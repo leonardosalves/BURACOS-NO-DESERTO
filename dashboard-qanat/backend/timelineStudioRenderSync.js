@@ -41,7 +41,9 @@ export function shouldUseStudioForRender(studio) {
     return false;
   if (studio.updatedAt) return true;
   return studio.clips.some(
-    (c) => c.trackId === "video" && String(c.source || "").trim()
+    (c) =>
+      c.trackId === "video" &&
+      (String(c.source || "").trim() || isRemotionVideoClip(c))
   );
 }
 
@@ -51,6 +53,56 @@ function inferAssetType(clip) {
   const src = String(clip?.source || "").toLowerCase();
   if (/\.(mp4|webm|mov|m4v)$/.test(src)) return "video";
   return "image";
+}
+
+function isRemotionVideoClip(clip) {
+  return (
+    clip?.props?.media_mode === "remotion" &&
+    Boolean(String(clip?.templateId || "").trim())
+  );
+}
+
+function resolveProjectAssetPath(projectDir, relPath, findProjectFile) {
+  const rel = String(relPath || "")
+    .trim()
+    .replace(/\\/g, "/");
+  if (!rel || /^https?:\/\//i.test(rel) || rel.startsWith("projects/")) {
+    return null;
+  }
+  const direct = path.join(projectDir, rel);
+  if (fs.existsSync(direct)) return direct;
+  return (
+    findProjectFile(projectDir, rel) ||
+    findProjectFile(projectDir, path.basename(rel))
+  );
+}
+
+function copyMotionPropsAssets(
+  props = {},
+  {
+    projectDir,
+    publicProjectDir,
+    projectSlug,
+    copyRemotionAsset,
+    findProjectFile,
+  },
+  prefix = "motion_"
+) {
+  const p = { ...props };
+  for (const key of ["backgroundImage", "backgroundImageWide"]) {
+    const rel = String(p[key] || "").trim();
+    if (!rel || /^https?:\/\//i.test(rel) || rel.startsWith("projects/")) {
+      continue;
+    }
+    const source = resolveProjectAssetPath(projectDir, rel, findProjectFile);
+    const copied = copyRemotionAsset(
+      source,
+      publicProjectDir,
+      `${prefix}${key}_`
+    );
+    if (copied) p[key] = `projects/${projectSlug}/${copied}`;
+  }
+  return p;
 }
 
 export function buildScenesFromStudio(
@@ -64,12 +116,55 @@ export function buildScenesFromStudio(
     fillSceneTimelineGaps,
   }
 ) {
-  const videoClips = clipsOnTrack(studio.clips, "video").filter((c) =>
-    String(c.source || "").trim()
+  const videoClips = clipsOnTrack(studio.clips, "video").filter(
+    (c) => String(c.source || "").trim() || isRemotionVideoClip(c)
   );
+
+  const assetCtx = {
+    projectDir,
+    publicProjectDir,
+    projectSlug,
+    copyRemotionAsset,
+    findProjectFile,
+  };
 
   const scenes = [];
   videoClips.forEach((clip, index) => {
+    const blockKey = clip.props?.blockKey ?? clip.props?.block;
+    const block = Number.isFinite(Number(blockKey))
+      ? Number(blockKey)
+      : index + 1;
+    const start = Number(clip.start) || 0;
+    const duration = Math.max(0.08, Number(clip.duration) || 1);
+
+    if (isRemotionVideoClip(clip)) {
+      const rawProps = { ...(clip.props || {}) };
+      delete rawProps.overlayType;
+      const remotionProps = copyMotionPropsAssets(
+        rawProps,
+        assetCtx,
+        `rv${index + 1}_`
+      );
+      scenes.push({
+        block,
+        scene_id: String(
+          clip.props?.scene_ref || clip.id || `studio.remotion.${index + 1}`
+        ),
+        asset: "",
+        type: "remotion",
+        remotionTemplate: String(clip.templateId),
+        remotionProps,
+        start,
+        duration,
+        durationLocked: Boolean(clip.locked),
+        narrationText: "",
+        editorNotes: "",
+        volume: 0,
+        playback_rate: 1,
+      });
+      return;
+    }
+
     const sourcePath = findProjectFile(projectDir, clip.source);
     const copiedName = copyRemotionAsset(
       sourcePath,
@@ -78,12 +173,6 @@ export function buildScenesFromStudio(
     );
     if (!copiedName) return;
 
-    const blockKey = clip.props?.blockKey;
-    const block = Number.isFinite(Number(blockKey))
-      ? Number(blockKey)
-      : index + 1;
-    const start = Number(clip.start) || 0;
-    const duration = Math.max(0.08, Number(clip.duration) || 1);
     const volume = Number.isFinite(Number(clip.props?.volume))
       ? Math.min(1, Math.max(0, Number(clip.props.volume)))
       : 0;
@@ -112,14 +201,28 @@ export function buildScenesFromStudio(
       : scenes.reduce((max, s) => Math.max(max, s.start + s.duration), 1);
 
   return fillSceneTimelineGaps(
-    scenes.filter((s) => s.asset),
+    scenes.filter((s) => s.asset || s.type === "remotion"),
     coverageEnd
   );
 }
 
 export function buildOverlaysFromStudio(studio) {
+  const primaryRemotion = clipsOnTrack(studio.clips, "video").filter(
+    (c) => c.motionScenePrimary || isRemotionVideoClip(c)
+  );
+  const primaryKeys = new Set(
+    primaryRemotion.map(
+      (c) => `${String(c.templateId)}::${(Number(c.start) || 0).toFixed(1)}`
+    )
+  );
+
   return clipsOnTrack(studio.clips, "overlays")
     .filter((c) => c.templateId || c.props?.overlayType)
+    .filter((clip) => {
+      if (!clip.motionScene) return true;
+      const key = `${String(clip.templateId)}::${(Number(clip.start) || 0).toFixed(1)}`;
+      return !primaryKeys.has(key);
+    })
     .map((clip) => {
       const type = String(
         clip.templateId || clip.props?.overlayType || ""

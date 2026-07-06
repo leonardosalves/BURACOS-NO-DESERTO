@@ -153,10 +153,17 @@ export function TimelineStudioPreview({
     [studio.clips, displayPlayhead]
   );
 
-  const assetSrc = videoClip?.source
-    ? resolveMediaUrl(videoClip.source, getAssetUrl, getMusicUrl)
+  const isRemotionVideo =
+    videoClip?.props?.media_mode === "remotion" &&
+    Boolean(videoClip?.templateId);
+  const assetSrc =
+    videoClip?.source && !isRemotionVideo
+      ? resolveMediaUrl(videoClip.source, getAssetUrl, getMusicUrl)
+      : null;
+  const isVideo = isVideoClip(videoClip) && !isRemotionVideo;
+  const remotionVideoDraft = isRemotionVideo
+    ? clipToOverlayDraft(videoClip, getAssetUrl, getMusicUrl)
     : null;
-  const isVideo = isVideoClip(videoClip);
 
   const publishPlayhead = useCallback((t: number, force = false) => {
     const total = totalDurRef.current;
@@ -362,7 +369,24 @@ export function TimelineStudioPreview({
           className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black shadow-lg shadow-black/40"
           style={{ ...frameStyle, containerType: "size" }}
         >
-          {assetSrc ? (
+          {remotionVideoDraft ? (
+            <div className="absolute inset-0 z-10 pointer-events-none">
+              <OverlayPreview
+                overlay={remotionVideoDraft}
+                aspectRatio={aspectRatio}
+                accentColor={String(
+                  remotionVideoDraft.props?.accentColor || "#D4AF37"
+                )}
+                durationSeconds={videoClip?.duration || 4}
+                scrubSeconds={Math.max(
+                  0,
+                  displayPlayhead - (videoClip?.start || 0)
+                )}
+                timelinePlaying={false}
+                embedded
+              />
+            </div>
+          ) : assetSrc ? (
             isVideo ? (
               <video
                 ref={videoRef}

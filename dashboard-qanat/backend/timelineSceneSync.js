@@ -19,7 +19,10 @@ import { flattenWordTranscripts } from "../shared/wordTranscripts.js";
 
 export { findNarrationMatch } from "../shared/narrationMatch.js";
 export { flattenWordTranscripts } from "../shared/wordTranscripts.js";
-export { computeAssetDuration, recalculateBlockSequentialAudioStarts } from "../shared/timelineAudioStarts.js";
+export {
+  computeAssetDuration,
+  recalculateBlockSequentialAudioStarts,
+} from "../shared/timelineAudioStarts.js";
 export {
   getAssetNarrationText,
   getBlockNarrationAnchor,
@@ -32,7 +35,12 @@ export function isAssetDurationLocked(asset) {
 
 export function assetHasExplicitDuration(asset) {
   const fixed = Number(asset?.fixed);
-  return asset?.fixed !== undefined && asset?.fixed !== null && Number.isFinite(fixed) && fixed > 0;
+  return (
+    asset?.fixed !== undefined &&
+    asset?.fixed !== null &&
+    Number.isFinite(fixed) &&
+    fixed > 0
+  );
 }
 
 export function blockHasLockedDurations(assets = []) {
@@ -89,12 +97,19 @@ function sceneBindingTokens(promptObj = {}) {
 
 /** Casa arquivo de ASSETS ao stock_query / cena / asset já vinculado no storyboard. */
 export function scoreAssetForScene(filename, promptObj = {}) {
-  const base = String(filename || "").replace(/\\/g, "/").toLowerCase();
+  const base = String(filename || "")
+    .replace(/\\/g, "/")
+    .toLowerCase();
   const baseName = base.split("/").pop() || base;
   let score = 0;
 
-  const bound = String(promptObj?.asset?.asset || promptObj?.asset_file || "").replace(/\\/g, "/").trim();
-  if (bound && (base === bound.toLowerCase() || baseName === bound.toLowerCase())) {
+  const bound = String(promptObj?.asset?.asset || promptObj?.asset_file || "")
+    .replace(/\\/g, "/")
+    .trim();
+  if (
+    bound &&
+    (base === bound.toLowerCase() || baseName === bound.toLowerCase())
+  ) {
     return 100;
   }
 
@@ -105,25 +120,43 @@ export function scoreAssetForScene(filename, promptObj = {}) {
     promptObj?.busca_termo,
   ]
     .map(slugifyStockToken)
-    .filter((q) => q.length >= 3 && !["cinematic", "documentary", "documentary_scene"].includes(q));
+    .filter(
+      (q) =>
+        q.length >= 3 &&
+        !["cinematic", "documentary", "documentary_scene"].includes(q)
+    );
 
   for (const q of queries) {
-    if (baseName.includes(q)) score = Math.max(score, 12 + Math.min(q.length, 20));
+    if (baseName.includes(q))
+      score = Math.max(score, 12 + Math.min(q.length, 20));
   }
 
   for (const token of sceneBindingTokens(promptObj)) {
-    if (token.length >= 4 && baseName.includes(token)) score = Math.max(score, 25);
+    if (token.length >= 4 && baseName.includes(token))
+      score = Math.max(score, 25);
   }
 
   return score;
 }
 
-function isGloballyBlockedAsset(filename, { stockRegistry = null, currentProject = "" } = {}) {
+function isGloballyBlockedAsset(
+  filename,
+  { stockRegistry = null, currentProject = "" } = {}
+) {
   if (!stockRegistry) return false;
-  return isFilenameSourceUsedInOtherProject(filename, stockRegistry, currentProject);
+  return isFilenameSourceUsedInOtherProject(
+    filename,
+    stockRegistry,
+    currentProject
+  );
 }
 
-function pickSemanticAsset(promptObj, assetFiles, blockUsed, globalOpts = null) {
+function pickSemanticAsset(
+  promptObj,
+  assetFiles,
+  blockUsed,
+  globalOpts = null
+) {
   if (!promptObj || !assetFiles?.length) return "";
   let best = "";
   let bestScore = 0;
@@ -149,7 +182,11 @@ function pickHintAsset(promptObj, assetFileSet, blockUsed) {
     promptObj.media_file,
     promptObj.broll_file,
   ]
-    .map((v) => String(v || "").replace(/\\/g, "/").trim())
+    .map((v) =>
+      String(v || "")
+        .replace(/\\/g, "/")
+        .trim()
+    )
     .filter(Boolean);
   for (const hint of hints) {
     if (assetFileSet.has(hint) && !blockUsed.has(hint)) return hint;
@@ -159,11 +196,24 @@ function pickHintAsset(promptObj, assetFileSet, blockUsed) {
 
 const RECENT_GLOBAL_WINDOW = 8;
 
-function pickLeastUsedAsset(assetFiles, usageCount, blockUsed, lastPath = "", recentGlobal = [], globalOpts = null) {
+function pickLeastUsedAsset(
+  assetFiles,
+  usageCount,
+  blockUsed,
+  lastPath = "",
+  recentGlobal = [],
+  globalOpts = null
+) {
   const recentSet = new Set(recentGlobal);
   const notBlocked = (f) => f && !isGloballyBlockedAsset(f, globalOpts);
   const candidates = assetFiles
-    .filter((f) => notBlocked(f) && !blockUsed.has(f) && f !== lastPath && !recentSet.has(f))
+    .filter(
+      (f) =>
+        notBlocked(f) &&
+        !blockUsed.has(f) &&
+        f !== lastPath &&
+        !recentSet.has(f)
+    )
     .sort((a, b) => (usageCount.get(a) || 0) - (usageCount.get(b) || 0));
   if (candidates.length) return candidates[0];
 
@@ -257,10 +307,18 @@ export function buildTimelineAssetMap({
   for (const block of blocks) {
     const blockKey = String(block);
     const expectedScenes = promptsByBlock.get(block) || [];
-    const existingBlock = Array.isArray(existingTimeline[blockKey]) ? existingTimeline[blockKey] : [];
-    const expectedCount = Math.max(1, expectedScenes.length || existingBlock.length || 1);
+    const existingBlock = Array.isArray(existingTimeline[blockKey])
+      ? existingTimeline[blockKey]
+      : [];
+    const expectedCount = Math.max(
+      1,
+      expectedScenes.length || existingBlock.length || 1
+    );
     const blockDuration = Number(timings.durations?.[block - 1]);
-    const effectiveBlockDuration = Number.isFinite(blockDuration) && blockDuration > 0 ? blockDuration : expectedCount * 4;
+    const effectiveBlockDuration =
+      Number.isFinite(blockDuration) && blockDuration > 0
+        ? blockDuration
+        : expectedCount * 4;
     const slotDuration = Math.max(0.5, effectiveBlockDuration / expectedCount);
     const blockUsed = new Set();
     const blockAssets = [];
@@ -274,19 +332,37 @@ export function buildTimelineAssetMap({
 
       let assetPath = "";
 
-      const slotLocked = prevSlot?.user_locked === true || prevSlot?.manual_asset === true;
+      const slotLocked =
+        prevSlot?.user_locked === true || prevSlot?.manual_asset === true;
 
       if (slotLocked && prevSlot?.asset && assetFileSet.has(prevSlot.asset)) {
         assetPath = prevSlot.asset;
-      } else if (!remapping && prevSlot?.asset && assetFileSet.has(prevSlot.asset) && !blockUsed.has(prevSlot.asset)) {
+      } else if (
+        !remapping &&
+        prevSlot?.asset &&
+        assetFileSet.has(prevSlot.asset) &&
+        !blockUsed.has(prevSlot.asset)
+      ) {
         assetPath = prevSlot.asset;
       } else {
         assetPath = pickHintAsset(promptObj, assetFileSet, blockUsed);
         if (!assetPath) {
-          assetPath = pickSemanticAsset(promptObj, rotatedFiles, blockUsed, globalOpts);
+          assetPath = pickSemanticAsset(
+            promptObj,
+            rotatedFiles,
+            blockUsed,
+            globalOpts
+          );
         }
         if (!assetPath) {
-          assetPath = pickLeastUsedAsset(rotatedFiles, usageCount, blockUsed, lastPath, recentGlobal, globalOpts);
+          assetPath = pickLeastUsedAsset(
+            rotatedFiles,
+            usageCount,
+            blockUsed,
+            lastPath,
+            recentGlobal,
+            globalOpts
+          );
         }
       }
 
@@ -295,16 +371,20 @@ export function buildTimelineAssetMap({
         blockUsed.add(assetPath);
         trackRecentGlobal(recentGlobal, assetPath);
       } else {
-        warnings.push(`Bloco ${block} slot ${slot + 1}: sem mídia disponível sem repetir.`);
+        warnings.push(
+          `Bloco ${block} slot ${slot + 1}: sem mídia disponível sem repetir.`
+        );
       }
 
       let resolvedType = "image";
       if (assetPath) {
         resolvedType = /\.(mp4|mov|webm)$/i.test(assetPath) ? "video" : "image";
       } else if (promptObj?.type) {
-        resolvedType = String(promptObj.type).includes("video") || String(promptObj.type).includes("vídeo")
-          ? "video"
-          : "image";
+        resolvedType =
+          String(promptObj.type).includes("video") ||
+          String(promptObj.type).includes("vídeo")
+            ? "video"
+            : "image";
       } else if (prevSlot?.type) {
         resolvedType = prevSlot.type;
       }
@@ -312,11 +392,16 @@ export function buildTimelineAssetMap({
       const entry = {
         asset: assetPath,
         type: resolvedType,
-        fixed: prevSlot?.fixed !== undefined && prevSlot?.fixed !== null
-          ? Number(prevSlot.fixed)
-          : Number(slotDuration.toFixed(1)),
+        fixed:
+          prevSlot?.fixed !== undefined && prevSlot?.fixed !== null
+            ? Number(prevSlot.fixed)
+            : Number(slotDuration.toFixed(1)),
       };
-      if (!remapping && prevSlot?.audio_start !== undefined && prevSlot?.audio_start !== null) {
+      if (
+        !remapping &&
+        prevSlot?.audio_start !== undefined &&
+        prevSlot?.audio_start !== null
+      ) {
         entry.audio_start = prevSlot.audio_start;
       }
       if (prevSlot?.narration_segment) {
@@ -330,10 +415,15 @@ export function buildTimelineAssetMap({
         entry.volume = Math.min(1, Math.max(0, Number(prevSlot.volume)));
       }
       if (Number.isFinite(Number(prevSlot?.playback_rate))) {
-        entry.playback_rate = Math.min(2, Math.max(0.25, Number(prevSlot.playback_rate)));
+        entry.playback_rate = Math.min(
+          2,
+          Math.max(0.25, Number(prevSlot.playback_rate))
+        );
       }
       if (!entry.narration_segment && promptObj) {
-        const seg = String(promptObj.narration_text || promptObj.narration_excerpt || "").trim();
+        const seg = String(
+          promptObj.narration_text || promptObj.narration_excerpt || ""
+        ).trim();
         if (seg) entry.narration_segment = seg;
       }
       blockAssets.push(entry);
@@ -341,16 +431,23 @@ export function buildTimelineAssetMap({
 
     const uniqueBlock = dedupeBlockUniqueAssets(blockAssets, rotatedFiles);
     if (uniqueBlock.length < blockAssets.length) {
-      warnings.push(`Bloco ${block}: ${blockAssets.length - uniqueBlock.length} repetição(ões) intra-bloco substituída(s).`);
+      warnings.push(
+        `Bloco ${block}: ${blockAssets.length - uniqueBlock.length} repetição(ões) intra-bloco substituída(s).`
+      );
     }
     if (uniqueBlock.length > 0) {
       timelineAssets[blockKey] = dedupeConsecutiveTimelineAssets(uniqueBlock);
     }
   }
 
-  const { timeline: sanitized, replaced } = sanitizeFullTimelineAssets(timelineAssets, rotatedFiles);
+  const { timeline: sanitized, replaced } = sanitizeFullTimelineAssets(
+    timelineAssets,
+    rotatedFiles
+  );
   if (replaced > 0) {
-    warnings.push(`${replaced} slot(s) com mídia duplicada foram substituídos globalmente.`);
+    warnings.push(
+      `${replaced} slot(s) com mídia duplicada foram substituídos globalmente.`
+    );
   }
 
   return { timelineAssets: sanitized, warnings, usageCount };
@@ -361,7 +458,9 @@ export function buildTimelineAssetMap({
  */
 export function normalizeBlockSceneTimings(timings, blockEnd = Infinity) {
   if (!Array.isArray(timings) || timings.length === 0) return [];
-  const sorted = [...timings].sort((a, b) => a.start - b.start || a.index - b.index);
+  const sorted = [...timings].sort(
+    (a, b) => a.start - b.start || a.index - b.index
+  );
   const out = [];
   for (let i = 0; i < sorted.length; i++) {
     const t = { ...sorted[i] };
@@ -384,7 +483,10 @@ export function normalizeBlockSceneTimings(timings, blockEnd = Infinity) {
 /**
  * Ajusta fixed de cada slot sincronizado para encadear cenas (sem hold após a fala).
  */
-export function tightenTimelineRetentionDurations(timelineAssets = {}, blockTimings = {}) {
+export function tightenTimelineRetentionDurations(
+  timelineAssets = {},
+  blockTimings = {}
+) {
   const out = { ...timelineAssets };
   const starts = blockTimings.starts || [];
   const durations = blockTimings.durations || [];
@@ -403,12 +505,13 @@ export function tightenTimelineRetentionDurations(timelineAssets = {}, blockTimi
     const nextBlockStart = Number(starts[blockNum]);
     const blockEnd = Number.isFinite(nextBlockStart)
       ? nextBlockStart
-      : (Number.isFinite(blockStart) && Number.isFinite(blockDuration)
+      : Number.isFinite(blockStart) && Number.isFinite(blockDuration)
         ? blockStart + blockDuration
-        : Infinity);
+        : Infinity;
 
     assets.forEach((asset, idx) => {
-      if (isAssetDurationLocked(asset) || asset.synced_to_speech !== true) return;
+      if (isAssetDurationLocked(asset) || asset.synced_to_speech !== true)
+        return;
       const chained = computeChainedSceneDuration(asset, assets, idx, blockEnd);
       if (chained == null) return;
       asset.fixed = parseFloat(chained.toFixed(1));
@@ -425,28 +528,46 @@ export function tightenTimelineRetentionDurations(timelineAssets = {}, blockTimi
  * Build { start, duration } for each asset in a block.
  * Prefers persisted audio_start; falls back to transcript-anchored sequential layout.
  */
-export function buildBlockSceneTimings(blockNum, assets, blockDuration, flatTranscriptWords, context = {}) {
+export function buildBlockSceneTimings(
+  blockNum,
+  assets,
+  blockDuration,
+  flatTranscriptWords,
+  context = {}
+) {
   const cleanAssets = dedupeConsecutiveTimelineAssets(assets);
   if (cleanAssets.length === 0) return [];
 
   const blockEnd = Number(context.blockEnd);
   const safeBlockEnd = Number.isFinite(blockEnd) ? blockEnd : Infinity;
 
-  const narrationAnchor = getBlockNarrationAnchor(blockNum, cleanAssets, flatTranscriptWords, context);
+  const narrationAnchor = getBlockNarrationAnchor(
+    blockNum,
+    cleanAssets,
+    flatTranscriptWords,
+    context
+  );
   const fallbackBlockStart = Number(context.blockStart);
-  const anchor = narrationAnchor ?? (Number.isFinite(fallbackBlockStart) ? fallbackBlockStart : 0);
+  const anchor =
+    narrationAnchor ??
+    (Number.isFinite(fallbackBlockStart) ? fallbackBlockStart : 0);
 
   let sequentialCursor = anchor;
   const timings = [];
 
-  const blockStartBound = Number.isFinite(fallbackBlockStart) ? fallbackBlockStart : 0;
+  const blockStartBound = Number.isFinite(fallbackBlockStart)
+    ? fallbackBlockStart
+    : 0;
   const useLockedSequentialLayout = blockUsesSequentialFixedLayout(cleanAssets);
 
   cleanAssets.forEach((asset, index) => {
-    const duration = Math.max(0.5, computeAssetDuration(asset, cleanAssets, blockDuration, {
-      assetIndex: index,
-      blockEnd: safeBlockEnd,
-    }));
+    const duration = Math.max(
+      0.5,
+      computeAssetDuration(asset, cleanAssets, blockDuration, {
+        assetIndex: index,
+        blockEnd: safeBlockEnd,
+      })
+    );
     let start;
 
     // Se o asset foi sincronizado pelo usuario, usar valores salvos diretamente
@@ -462,9 +583,10 @@ export function buildBlockSceneTimings(blockNum, assets, blockDuration, flatTran
       sequentialCursor = start + duration;
     } else {
       const rawAudioStart = Number(asset?.audio_start);
-      const audioStartInBlock = Number.isFinite(rawAudioStart)
-        && rawAudioStart >= blockStartBound - 0.35
-        && rawAudioStart < safeBlockEnd - 0.25;
+      const audioStartInBlock =
+        Number.isFinite(rawAudioStart) &&
+        rawAudioStart >= blockStartBound - 0.35 &&
+        rawAudioStart < safeBlockEnd - 0.25;
 
       if (audioStartInBlock && !isAssetDurationLocked(asset)) {
         start = rawAudioStart;
@@ -501,7 +623,7 @@ export function fillSceneTimelineGaps(scenes, endTime) {
   if (!Array.isArray(scenes) || scenes.length === 0) return [];
   const targetEnd = Number(endTime);
   const sorted = [...scenes]
-    .filter((s) => s?.asset)
+    .filter((s) => s?.asset || s?.type === "remotion")
     .sort((a, b) => a.start - b.start || 0);
   const out = sorted.map((s) => ({ ...s }));
 
@@ -540,14 +662,19 @@ export function groupTranscriptSegmentsByBlock(wordTranscripts = []) {
 }
 
 export function getTranscriptSegmentsForBlock(wordTranscripts, blockNum) {
-  const segs = groupTranscriptSegmentsByBlock(wordTranscripts).get(blockNum) || [];
+  const segs =
+    groupTranscriptSegmentsByBlock(wordTranscripts).get(blockNum) || [];
   return [...segs].sort(
-    (a, b) => Number(a.index) - Number(b.index) || Number(a.start_time) - Number(b.start_time),
+    (a, b) =>
+      Number(a.index) - Number(b.index) ||
+      Number(a.start_time) - Number(b.start_time)
   );
 }
 
 /** block_timings a partir dos segmentos Whisper (1 cena = 1 segmento), sem vazar fala do bloco seguinte. */
-export function rebuildBlockTimingsFromTranscriptSegments(wordTranscripts = []) {
+export function rebuildBlockTimingsFromTranscriptSegments(
+  wordTranscripts = []
+) {
   const byBlock = groupTranscriptSegmentsByBlock(wordTranscripts);
   const blockNums = [...byBlock.keys()].sort((a, b) => a - b);
   if (!blockNums.length) return null;
@@ -560,7 +687,12 @@ export function rebuildBlockTimingsFromTranscriptSegments(wordTranscripts = []) 
     const ordered = getTranscriptSegmentsForBlock(wordTranscripts, blockNum);
     const blockStart = Number(ordered[0]?.start_time);
     const blockEnd = Math.max(...ordered.map((s) => Number(s.end_time)));
-    if (!Number.isFinite(blockStart) || !Number.isFinite(blockEnd) || blockEnd <= blockStart) continue;
+    if (
+      !Number.isFinite(blockStart) ||
+      !Number.isFinite(blockEnd) ||
+      blockEnd <= blockStart
+    )
+      continue;
     starts.push(blockStart);
     durations.push(Math.max(0.25, blockEnd - blockStart));
     totalEnd = Math.max(totalEnd, blockEnd);
@@ -588,7 +720,11 @@ function resolveSceneSpeechMatch({
   if (transcriptSegment) {
     const segStart = Number(transcriptSegment.start_time);
     const segEnd = Number(transcriptSegment.end_time);
-    if (Number.isFinite(segStart) && Number.isFinite(segEnd) && segEnd > segStart) {
+    if (
+      Number.isFinite(segStart) &&
+      Number.isFinite(segEnd) &&
+      segEnd > segStart
+    ) {
       const segMatch = {
         start: segStart,
         end: segEnd,
@@ -596,7 +732,10 @@ function resolveSceneSpeechMatch({
       };
       if (!matched) return segMatch;
       if (segStart >= searchAfter - 0.35 && segEnd <= searchBefore + 0.35) {
-        if (Math.abs(segStart - matched.start) > 1.5 || Math.abs(segEnd - matched.end) > 1.5) {
+        if (
+          Math.abs(segStart - matched.start) > 1.5 ||
+          Math.abs(segEnd - matched.end) > 1.5
+        ) {
           return segMatch;
         }
       }
@@ -628,22 +767,31 @@ export function realignTimelineAssetsToSpeech({
     const assets = (out[blockKey] || []).map((a) => ({ ...a }));
     if (!assets.length) continue;
 
-    const transcriptSegments = getTranscriptSegmentsForBlock(wordTranscripts, blockNum);
+    const transcriptSegments = getTranscriptSegmentsForBlock(
+      wordTranscripts,
+      blockNum
+    );
     const blockStart = Number(
-      transcriptSegments[0]?.start_time ?? starts[blockNum - 1],
+      transcriptSegments[0]?.start_time ?? starts[blockNum - 1]
     );
     const blockDuration = Number(durations[blockNum - 1]);
     const segmentBlockEnd = transcriptSegments.length
       ? Math.max(...transcriptSegments.map((s) => Number(s.end_time)))
       : NaN;
-    const timingBlockEnd = Number.isFinite(blockStart) && Number.isFinite(blockDuration)
-      ? blockStart + blockDuration
-      : NaN;
+    const timingBlockEnd =
+      Number.isFinite(blockStart) && Number.isFinite(blockDuration)
+        ? blockStart + blockDuration
+        : NaN;
     const blockEnd = Number.isFinite(segmentBlockEnd)
       ? segmentBlockEnd
       : timingBlockEnd;
 
-    if (!Number.isFinite(blockStart) || !Number.isFinite(blockEnd) || blockEnd <= blockStart) continue;
+    if (
+      !Number.isFinite(blockStart) ||
+      !Number.isFinite(blockEnd) ||
+      blockEnd <= blockStart
+    )
+      continue;
 
     const context = {
       visualPrompts,
@@ -677,12 +825,22 @@ export function realignTimelineAssetsToSpeech({
         assets[idx].narration_segment = narrationText;
       }
 
-      if (!isAssetDurationLocked(assets[idx]) && !(preserveExplicitFixed && assetHasExplicitDuration(assets[idx]))) {
-        const chained = computeChainedSceneDuration(assets[idx], assets, idx, blockEnd);
+      if (
+        !isAssetDurationLocked(assets[idx]) &&
+        !(preserveExplicitFixed && assetHasExplicitDuration(assets[idx]))
+      ) {
+        const chained = computeChainedSceneDuration(
+          assets[idx],
+          assets,
+          idx,
+          blockEnd
+        );
         if (chained != null) {
           assets[idx].fixed = parseFloat(chained.toFixed(1));
         } else {
-          assets[idx].fixed = parseFloat(Math.max(0.5, speechEnd - speechStart).toFixed(1));
+          assets[idx].fixed = parseFloat(
+            Math.max(0.5, speechEnd - speechStart).toFixed(1)
+          );
         }
       }
 
@@ -696,7 +854,12 @@ export function realignTimelineAssetsToSpeech({
       if (!seg) continue;
       const segStart = Number(seg.start_time);
       const segEnd = Number(seg.end_time);
-      if (!Number.isFinite(segStart) || !Number.isFinite(segEnd) || segEnd <= segStart) continue;
+      if (
+        !Number.isFinite(segStart) ||
+        !Number.isFinite(segEnd) ||
+        segEnd <= segStart
+      )
+        continue;
 
       const narrationText = getAssetNarrationText(blockNum, idx, context);
       assets[idx].audio_start = parseFloat(segStart.toFixed(3));
@@ -705,12 +868,22 @@ export function realignTimelineAssetsToSpeech({
       if (narrationText) assets[idx].narration_segment = narrationText;
       if (seg.chunk_id) assets[idx].chunk_id = seg.chunk_id;
 
-      if (!isAssetDurationLocked(assets[idx]) && !(preserveExplicitFixed && assetHasExplicitDuration(assets[idx]))) {
-        const chained = computeChainedSceneDuration(assets[idx], assets, idx, blockEnd);
+      if (
+        !isAssetDurationLocked(assets[idx]) &&
+        !(preserveExplicitFixed && assetHasExplicitDuration(assets[idx]))
+      ) {
+        const chained = computeChainedSceneDuration(
+          assets[idx],
+          assets,
+          idx,
+          blockEnd
+        );
         if (chained != null) {
           assets[idx].fixed = parseFloat(chained.toFixed(1));
         } else {
-          assets[idx].fixed = parseFloat(Math.max(0.5, segEnd - segStart).toFixed(1));
+          assets[idx].fixed = parseFloat(
+            Math.max(0.5, segEnd - segStart).toFixed(1)
+          );
         }
       }
       aligned++;
@@ -720,7 +893,9 @@ export function realignTimelineAssetsToSpeech({
       let cursor = blockStart;
       for (let idx = 0; idx < assets.length; idx++) {
         if (isAssetDurationLocked(assets[idx])) {
-          cursor = Number(assets[idx].audio_start || cursor) + computeAssetDuration(assets[idx], assets, blockDuration);
+          cursor =
+            Number(assets[idx].audio_start || cursor) +
+            computeAssetDuration(assets[idx], assets, blockDuration);
           continue;
         }
         const dur = computeAssetDuration(assets[idx], assets, blockDuration);
@@ -734,7 +909,7 @@ export function realignTimelineAssetsToSpeech({
 
     out[blockKey] = tightenTimelineRetentionDurations(
       { [blockKey]: assets },
-      blockTimings,
+      blockTimings
     )[blockKey];
   }
 
@@ -749,7 +924,9 @@ function groupVisualPromptsByBlock(visualPrompts = []) {
     byBlock.get(block).push(vp);
   }
   for (const scenes of byBlock.values()) {
-    scenes.sort((a, b) => String(a?.scene || "").localeCompare(String(b?.scene || "")));
+    scenes.sort((a, b) =>
+      String(a?.scene || "").localeCompare(String(b?.scene || ""))
+    );
   }
   return byBlock;
 }
@@ -769,9 +946,13 @@ export function bootstrapTimelineSlotsFromWhisper({
   }
 
   const promptsByBlock = groupVisualPromptsByBlock(visualPrompts);
-  const segmentBlocks = [...groupTranscriptSegmentsByBlock(wordTranscripts).keys()];
+  const segmentBlocks = [
+    ...groupTranscriptSegmentsByBlock(wordTranscripts).keys(),
+  ];
   const promptBlocks = [...promptsByBlock.keys()];
-  const blockNums = [...new Set([...segmentBlocks, ...promptBlocks])].sort((a, b) => a - b);
+  const blockNums = [...new Set([...segmentBlocks, ...promptBlocks])].sort(
+    (a, b) => a - b
+  );
   const out = { ...timelineAssets };
 
   for (const blockNum of blockNums) {
@@ -779,7 +960,12 @@ export function bootstrapTimelineSlotsFromWhisper({
     const segments = getTranscriptSegmentsForBlock(wordTranscripts, blockNum);
     const scenes = promptsByBlock.get(blockNum) || [];
     const existing = Array.isArray(out[blockKey]) ? out[blockKey] : [];
-    const slotCount = Math.max(segments.length, scenes.length, existing.length, 1);
+    const slotCount = Math.max(
+      segments.length,
+      scenes.length,
+      existing.length,
+      1
+    );
     const blockAssets = [];
 
     for (let idx = 0; idx < slotCount; idx++) {
@@ -789,10 +975,10 @@ export function bootstrapTimelineSlotsFromWhisper({
       const narrationText = scene
         ? String(scene.narration_text || scene.narration_excerpt || "").trim()
         : getAssetNarrationText(blockNum, idx, {
-          visualPrompts,
-          blockPhrases,
-          timelineAssets: out,
-        });
+            visualPrompts,
+            blockPhrases,
+            timelineAssets: out,
+          });
 
       const entry = {
         asset: String(prev.asset || "").trim(),
@@ -812,19 +998,21 @@ export function bootstrapTimelineSlotsFromWhisper({
       const blockEnd = segments.length
         ? Math.max(...segments.map((s) => Number(s.end_time)))
         : NaN;
-      const searchAfter = idx > 0 && blockAssets[idx - 1]?.speech_end != null
-        ? Number(blockAssets[idx - 1].speech_end)
-        : blockStart;
+      const searchAfter =
+        idx > 0 && blockAssets[idx - 1]?.speech_end != null
+          ? Number(blockAssets[idx - 1].speech_end)
+          : blockStart;
 
-      const speechMatch = flatWords?.length && narrationText
-        ? resolveSceneSpeechMatch({
-          narrationText,
-          flatTranscriptWords: flatWords,
-          transcriptSegment: seg,
-          searchAfter: Number.isFinite(searchAfter) ? searchAfter : 0,
-          searchBefore: Number.isFinite(blockEnd) ? blockEnd : Infinity,
-        })
-        : null;
+      const speechMatch =
+        flatWords?.length && narrationText
+          ? resolveSceneSpeechMatch({
+              narrationText,
+              flatTranscriptWords: flatWords,
+              transcriptSegment: seg,
+              searchAfter: Number.isFinite(searchAfter) ? searchAfter : 0,
+              searchBefore: Number.isFinite(blockEnd) ? blockEnd : Infinity,
+            })
+          : null;
 
       if (speechMatch) {
         const speechDur = Math.max(0.5, speechMatch.end - speechMatch.start);
@@ -836,7 +1024,11 @@ export function bootstrapTimelineSlotsFromWhisper({
       } else if (seg) {
         const segStart = Number(seg.start_time);
         const segEnd = Number(seg.end_time);
-        if (Number.isFinite(segStart) && Number.isFinite(segEnd) && segEnd > segStart) {
+        if (
+          Number.isFinite(segStart) &&
+          Number.isFinite(segEnd) &&
+          segEnd > segStart
+        ) {
           const speechDur = Math.max(0.5, segEnd - segStart);
           entry.audio_start = parseFloat(segStart.toFixed(3));
           entry.speech_end = parseFloat(segEnd.toFixed(3));
@@ -844,7 +1036,11 @@ export function bootstrapTimelineSlotsFromWhisper({
           entry.synced_to_speech = true;
           entry.duration_from_whisper = true;
         }
-      } else if (prev.fixed !== undefined && prev.fixed !== null && prev.fixed_locked) {
+      } else if (
+        prev.fixed !== undefined &&
+        prev.fixed !== null &&
+        prev.fixed_locked
+      ) {
         entry.fixed = Number(prev.fixed);
         entry.fixed_locked = true;
       } else if (prev.fixed !== undefined && prev.fixed !== null) {
@@ -869,15 +1065,18 @@ export function bootstrapTimelineSlotsFromWhisper({
 export function applyWhisperDurationsToStoryboard(
   storyboard = {},
   wordTranscripts = [],
-  { flatTranscriptWords = null, blockTimings = null } = {},
+  { flatTranscriptWords = null, blockTimings = null } = {}
 ) {
-  const prompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+  const prompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
   if (!prompts.length || !wordTranscripts.length) return storyboard;
 
   const flat = flatTranscriptWords || flattenWordTranscripts(wordTranscripts);
   if (!flat.length) return storyboard;
 
-  const timings = blockTimings || rebuildBlockTimingsFromTranscriptSegments(wordTranscripts);
+  const timings =
+    blockTimings || rebuildBlockTimingsFromTranscriptSegments(wordTranscripts);
   const starts = timings?.starts || [];
   const durations = timings?.durations || [];
 
@@ -887,26 +1086,40 @@ export function applyWhisperDurationsToStoryboard(
 
   const nextPrompts = [...prompts];
   for (const [blockNum, scenes] of scenesByBlock) {
-    const transcriptSegments = getTranscriptSegmentsForBlock(wordTranscripts, blockNum);
-    const blockStart = Number(transcriptSegments[0]?.start_time ?? starts[blockNum - 1]);
+    const transcriptSegments = getTranscriptSegmentsForBlock(
+      wordTranscripts,
+      blockNum
+    );
+    const blockStart = Number(
+      transcriptSegments[0]?.start_time ?? starts[blockNum - 1]
+    );
     const segmentBlockEnd = transcriptSegments.length
       ? Math.max(...transcriptSegments.map((s) => Number(s.end_time)))
       : NaN;
-    const timingBlockEnd = Number.isFinite(blockStart) && Number.isFinite(Number(durations[blockNum - 1]))
-      ? blockStart + Number(durations[blockNum - 1])
-      : NaN;
+    const timingBlockEnd =
+      Number.isFinite(blockStart) &&
+      Number.isFinite(Number(durations[blockNum - 1]))
+        ? blockStart + Number(durations[blockNum - 1])
+        : NaN;
     const blockEnd = Number.isFinite(segmentBlockEnd)
       ? segmentBlockEnd
       : timingBlockEnd;
 
-    if (!Number.isFinite(blockStart) || !Number.isFinite(blockEnd) || blockEnd <= blockStart) continue;
+    if (
+      !Number.isFinite(blockStart) ||
+      !Number.isFinite(blockEnd) ||
+      blockEnd <= blockStart
+    )
+      continue;
 
     let searchAfter = blockStart;
     scenes.forEach((vp, localIdx) => {
       const idx = indexByVp.get(vp);
       if (idx == null) return;
 
-      const narrationText = String(vp?.narration_text || vp?.narration_excerpt || "").trim();
+      const narrationText = String(
+        vp?.narration_text || vp?.narration_excerpt || ""
+      ).trim();
       const matched = resolveSceneSpeechMatch({
         narrationText,
         flatTranscriptWords: flat,
@@ -916,7 +1129,9 @@ export function applyWhisperDurationsToStoryboard(
       });
       if (!matched) return;
 
-      const dur = parseFloat(Math.max(0.5, matched.end - matched.start).toFixed(1));
+      const dur = parseFloat(
+        Math.max(0.5, matched.end - matched.start).toFixed(1)
+      );
       nextPrompts[idx] = {
         ...vp,
         duration: `${dur} segundos`,
@@ -964,7 +1179,10 @@ export function syncProjectTimelineAfterWhisper({
   });
 
   return {
-    timelineAssets: tightenTimelineRetentionDurations(timelineAssetsSynced, timings),
+    timelineAssets: tightenTimelineRetentionDurations(
+      timelineAssetsSynced,
+      timings
+    ),
     blockTimings: timings,
   };
 }
@@ -992,9 +1210,10 @@ export function recalculateSequentialAudioStarts({
 
     const blockStart = Number(starts[blockNum - 1]);
     const blockDuration = Number(durations[blockNum - 1]);
-    const blockEnd = Number.isFinite(blockStart) && Number.isFinite(blockDuration)
-      ? blockStart + blockDuration
-      : Infinity;
+    const blockEnd =
+      Number.isFinite(blockStart) && Number.isFinite(blockDuration)
+        ? blockStart + blockDuration
+        : Infinity;
     const context = {
       visualPrompts,
       blockPhrases,
@@ -1003,7 +1222,12 @@ export function recalculateSequentialAudioStarts({
       blockEnd,
     };
 
-    const anchor = getBlockNarrationAnchor(blockNum, assets, flatTranscriptWords, context);
+    const anchor = getBlockNarrationAnchor(
+      blockNum,
+      assets,
+      flatTranscriptWords,
+      context
+    );
     out[blockKey] = recalculateBlockSequentialAudioStarts({
       assets,
       blockDuration,

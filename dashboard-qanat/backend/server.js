@@ -7927,7 +7927,9 @@ async function prepareRemotionRender(
     runningStart = Math.max(runningStart, start + duration);
   }
 
-  let validScenes = scenes.filter((scene) => scene.asset);
+  let validScenes = scenes.filter(
+    (scene) => scene.asset || scene.type === "remotion"
+  );
 
   if (validScenes.length === 0) {
     throw new Error(

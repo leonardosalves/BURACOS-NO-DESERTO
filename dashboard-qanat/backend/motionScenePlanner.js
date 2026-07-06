@@ -4,6 +4,7 @@
 
 import {
   DEFAULT_DURATIONS,
+  FULLSCREEN_TEMPLATES,
   MOTION_SCENE_TRIGGERS,
   pickTemplateForTrigger,
   resolveLayoutForTemplate,
@@ -342,42 +343,127 @@ export function planMotionScenesFromStoryboard(
   };
 }
 
+export function clipsTimeOverlap(a, b, epsilon = 0.35) {
+  const aStart = Number(a?.start) || 0;
+  const aEnd = aStart + (Number(a?.duration) || 0);
+  const bStart = Number(b?.start) || 0;
+  const bEnd = bStart + (Number(b?.duration) || 0);
+  return aStart < bEnd - epsilon && bStart < aEnd - epsilon;
+}
+
+export function isPrimaryRemotionMotionScene(ms = {}) {
+  if (ms.media_mode !== "remotion") return false;
+  const layout = String(ms.layout || "").trim();
+  if (layout === "fullscreen") return true;
+  return FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""));
+}
+
+export function motionScenesToVideoClips(motionScenes = []) {
+  return (Array.isArray(motionScenes) ? motionScenes : [])
+    .filter(isPrimaryRemotionMotionScene)
+    .map((ms, i) => ({
+      id: String(ms.id || `motion-v-${i + 1}`),
+      trackId: "video",
+      start: Math.max(0, Number(ms.start_hint) || 0),
+      duration: Math.max(0.5, Number(ms.duration_seconds) || 4),
+      label: String(
+        ms.props?.location ||
+          ms.props?.label ||
+          ms.props?.text ||
+          ms.props?.title ||
+          ms.template_id
+      ),
+      templateId: ms.template_id,
+      props: {
+        ...(ms.props || {}),
+        media_mode: "remotion",
+        motion_scene: true,
+        scene_ref: String(ms.scene_ref || ""),
+        block: Number(ms.block) || 1,
+        layout: ms.layout || "fullscreen",
+        trigger: ms.trigger,
+      },
+      color: "#6A1B9A",
+      motionScene: true,
+      motionScenePrimary: true,
+    }));
+}
+
 export function motionScenesToOverlayClips(motionScenes = []) {
-  return (Array.isArray(motionScenes) ? motionScenes : []).map((ms, i) => ({
-    id: String(ms.id || `motion-${i + 1}`),
-    trackId: "overlays",
-    start: Math.max(0, Number(ms.start_hint) || 0),
-    duration: Math.max(0.5, Number(ms.duration_seconds) || 4),
-    label: String(
-      ms.props?.location ||
-        ms.props?.label ||
-        ms.props?.text ||
-        ms.props?.title ||
-        ms.template_id
-    ),
-    templateId: ms.template_id,
-    props: {
-      ...(ms.props || {}),
-      overlayType: ms.template_id,
-      motion_scene: true,
-      layout: ms.layout || "fullscreen",
-      trigger: ms.trigger,
-    },
-    color: "#00897B",
-    motionScene: true,
-  }));
+  return (Array.isArray(motionScenes) ? motionScenes : [])
+    .filter((ms) => !isPrimaryRemotionMotionScene(ms))
+    .map((ms, i) => ({
+      id: String(ms.id || `motion-${i + 1}`),
+      trackId: "overlays",
+      start: Math.max(0, Number(ms.start_hint) || 0),
+      duration: Math.max(0.5, Number(ms.duration_seconds) || 4),
+      label: String(
+        ms.props?.location ||
+          ms.props?.label ||
+          ms.props?.text ||
+          ms.props?.title ||
+          ms.template_id
+      ),
+      templateId: ms.template_id,
+      props: {
+        ...(ms.props || {}),
+        overlayType: ms.template_id,
+        motion_scene: true,
+        layout: ms.layout || "fullscreen",
+        trigger: ms.trigger,
+      },
+      color: "#00897B",
+      motionScene: true,
+    }));
+}
+
+export function applyMotionScenesToVisualPrompts(
+  storyboard = {},
+  motionScenes = []
+) {
+  const scenes = Array.isArray(motionScenes) ? motionScenes : [];
+  const bySceneRef = new Map(
+    scenes
+      .filter((ms) => isPrimaryRemotionMotionScene(ms) && ms.scene_ref)
+      .map((ms) => [String(ms.scene_ref), ms])
+  );
+  if (!bySceneRef.size) return storyboard;
+
+  const visualPrompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts.map((vp) => {
+        const ref = String(vp.scene || vp.scene_ref || "").trim();
+        const ms = ref ? bySceneRef.get(ref) : null;
+        if (!ms) return vp;
+        return {
+          ...vp,
+          media_mode: "remotion",
+          motion_scene_id: ms.id,
+          motion_template_id: ms.template_id,
+        };
+      })
+    : [];
+
+  return { ...storyboard, visual_prompts: visualPrompts };
 }
 
 export function syncMotionScenesToStudio(studio, motionScenes = []) {
   if (!studio || !Array.isArray(studio.clips)) return studio;
-  const motionClips = motionScenesToOverlayClips(motionScenes);
-  if (!motionClips.length) return studio;
+
+  const videoClips = motionScenesToVideoClips(motionScenes);
+  const overlayClips = motionScenesToOverlayClips(motionScenes);
+  if (!videoClips.length && !overlayClips.length) return studio;
 
   const withoutMotion = studio.clips.filter(
     (c) => !c.motionScene && !c.props?.motion_scene
   );
-  const merged = [...withoutMotion, ...motionClips].sort(
+
+  const withoutReplacedVideo = withoutMotion.filter((clip) => {
+    if (clip.trackId !== "video" || !videoClips.length) return true;
+    return !videoClips.some((rv) => clipsTimeOverlap(clip, rv));
+  });
+
+  const merged = [...withoutReplacedVideo, ...videoClips, ...overlayClips].sort(
     (a, b) => (Number(a.start) || 0) - (Number(b.start) || 0)
   );
-  return { ...studio, clips: merged };
+  return { ...studio, clips: merged, updatedAt: new Date().toISOString() };
 }
