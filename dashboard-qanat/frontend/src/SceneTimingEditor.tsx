@@ -184,6 +184,73 @@ function getTransitionInfo(sceneIdx: number, isShort: boolean) {
   return { type, ...TRANSITION_LABELS[type] };
 }
 
+function getTransitionStyle(
+  type: number,
+  progress: number
+): React.CSSProperties {
+  // progress goes from 0.0 (transition start) to 1.0 (transition end)
+  switch (type) {
+    case 0: // Fade
+      return { opacity: progress };
+    case 1: // Zoom In
+      return {
+        transform: `scale(${1.18 - 0.18 * progress})`,
+        opacity: progress,
+      };
+    case 2: // Wipe Left
+      return {
+        clipPath: `inset(0 0 0 ${(1 - progress) * 100}%)`,
+      };
+    case 3: // Wipe Top
+      return {
+        clipPath: `inset(${(1 - progress) * 100}% 0 0 0)`,
+      };
+    case 4: // Scale
+      return {
+        transform: `scale(${0.87 + 0.13 * progress})`,
+        opacity: progress,
+      };
+    case 5: // Circle
+      return {
+        clipPath: `circle(${progress * 75}% at 50% 50%)`,
+      };
+    case 6: // Wipe Right
+      return {
+        clipPath: `inset(0 ${(1 - progress) * 100}% 0 0)`,
+      };
+    case 7: // Wipe Bottom
+      return {
+        clipPath: `inset(0 0 ${(1 - progress) * 100}% 0)`,
+      };
+    case 8: // Rotate
+      return {
+        transform: `scale(${0.92 + 0.08 * progress}) rotate(${-3 * (1 - progress)}deg)`,
+        opacity: progress,
+      };
+    case 9: // Blur
+      return {
+        filter: `blur(${(1 - progress) * 12}px)`,
+        opacity: progress,
+      };
+    case 10: // Diagonal
+      return {
+        clipPath: `polygon(0 0, ${progress * 100}% 0, 0 ${progress * 100}%)`,
+      };
+    case 11: // Grid
+      return {
+        clipPath: `inset(${(1 - progress) * 12}% ${(1 - progress) * 12}% ${(1 - progress) * 12}% ${(1 - progress) * 12}%)`,
+        transform: `scale(${1.07 - 0.07 * progress})`,
+      };
+    case 12: // Zoom Hard
+      return {
+        transform: `scale(${1.3 - 0.3 * progress})`,
+        opacity: progress,
+      };
+    default:
+      return { opacity: progress };
+  }
+}
+
 export function SceneTimingEditor({
   activeProject,
   config,
@@ -742,34 +809,56 @@ export function SceneTimingEditor({
     toast("Overlay adicionado.");
   };
 
-  // Find active scene and active overlay in preview
-  const activeSceneInPreview = useMemo(() => {
-    if (!blockModel || !blockModel.scenes.length) return null;
-    let acc = 0;
-    for (const scene of blockModel.scenes) {
-      if (currentTime >= acc && currentTime <= acc + scene.duration) {
-        return scene;
-      }
-      acc += scene.duration;
-    }
-    return blockModel.scenes[blockModel.scenes.length - 1];
-  }, [blockModel, currentTime]);
-
   const isShort = config?.aspect_ratio === "9:16";
 
-  // Trigger preview transition animation when active scene changes
-  useEffect(() => {
-    if (!activeSceneInPreview) return;
-    const idx = activeSceneInPreview.idx;
-    if (prevSceneIdxRef.current === idx) return;
-    prevSceneIdxRef.current = idx;
-    // Scene 0 (first) = no entry animation
-    if (idx === 0) return;
-    const info = getTransitionInfo(idx, isShort);
-    const animName = TRANSITION_ANIMS[info.type] ?? "ste-fade";
-    setTransitionAnim(null);
-    requestAnimationFrame(() => setTransitionAnim(animName));
-  }, [activeSceneInPreview, isShort]);
+  // Calculate active scene, underlying scene and transition progress in real-time
+  const transitionState = useMemo(() => {
+    if (!blockModel || !blockModel.scenes.length) return null;
+
+    // Calculate cumulative starts
+    let cumulativeStart = 0;
+    const sceneRanges = blockModel.scenes.map((scene, idx) => {
+      const start = cumulativeStart;
+      const end = start + scene.duration;
+      cumulativeStart = end;
+      return { scene, start, end, idx };
+    });
+
+    // Find which scene is active based on currentTime
+    const currentSceneRange =
+      sceneRanges.find((r) => currentTime >= r.start && currentTime <= r.end) ||
+      sceneRanges[sceneRanges.length - 1];
+
+    if (!currentSceneRange) return null;
+
+    const activeScene = currentSceneRange.scene;
+    const activeIdx = currentSceneRange.idx;
+    const activeStart = currentSceneRange.start;
+
+    // Check if we are within the transition zone (first 0.4s of this scene)
+    // Scene 0 (first scene) has no transition at its start
+    const transitionDuration = 0.4;
+    const timeInScene = currentTime - activeStart;
+    const isInTransition = activeIdx > 0 && timeInScene < transitionDuration;
+
+    if (isInTransition) {
+      const progress = timeInScene / transitionDuration;
+      const underlyingScene = sceneRanges[activeIdx - 1].scene;
+      return {
+        activeScene,
+        underlyingScene,
+        progress,
+      };
+    }
+
+    return {
+      activeScene,
+      underlyingScene: null,
+      progress: 1.0,
+    };
+  }, [blockModel, currentTime]);
+
+  const activeSceneInPreview = transitionState?.activeScene || null;
 
   const activeOverlayInPreview = useMemo(() => {
     if (!blockModel) return null;
@@ -1126,6 +1215,30 @@ export function SceneTimingEditor({
                               variant="strip"
                             />
                           </div>
+                          {/* Visual transition overlap zone (0.4s) on the left of each scene (except the first) */}
+                          {idx > 0 && (
+                            <div
+                              className="absolute top-0 bottom-0 left-0 z-10 border-r border-dashed border-white/20"
+                              style={{
+                                width: `${(0.4 / scene.duration) * 100}%`,
+                                background:
+                                  "repeating-linear-gradient(45deg, rgba(255,255,255,0.03), rgba(255,255,255,0.03) 4px, transparent 4px, transparent 8px)",
+                              }}
+                              title={`Zona de Transição: ${getTransitionInfo(idx, isShort).label}`}
+                            >
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span
+                                  className="text-[7px] font-extrabold opacity-30 select-none uppercase tracking-widest rotate-90"
+                                  style={{
+                                    color: getTransitionInfo(idx, isShort)
+                                      .color,
+                                  }}
+                                >
+                                  {getTransitionInfo(idx, isShort).icon}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                           <div className="ste-timeline-seg-label absolute inset-x-0 bottom-0 z-[2] flex items-end justify-between gap-1 px-1.5 py-0.5 bg-gradient-to-t from-black/85 to-transparent">
                             <span
                               className="text-[8px] text-zinc-300 truncate max-w-[70%]"
@@ -1371,56 +1484,84 @@ export function SceneTimingEditor({
                   : "w-full aspect-video"
               }`}
             >
-              {/* Asset display with transition animation */}
-              {activeSceneInPreview ? (
-                <div
-                  key={activeSceneInPreview.idx}
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{
-                    animation: transitionAnim
-                      ? `${transitionAnim} 0.4s ease-out forwards`
-                      : undefined,
-                  }}
-                >
-                  {activeSceneInPreview.assetType === "video" ? (
+              {/* Asset display with real-time transition simulation */}
+              {transitionState?.underlyingScene && (
+                <div className="absolute inset-0 z-0 flex items-center justify-center">
+                  {transitionState.underlyingScene.assetType === "video" ? (
                     <video
-                      key={activeSceneInPreview.assetPath}
-                      src={getAssetUrl(activeSceneInPreview.assetPath)}
+                      key={transitionState.underlyingScene.assetPath + "-under"}
+                      src={getAssetUrl(
+                        transitionState.underlyingScene.assetPath
+                      )}
                       className="w-full h-full object-cover"
                       muted
                       preload="metadata"
                     />
                   ) : (
                     <img
-                      src={getAssetUrl(activeSceneInPreview.assetPath)}
+                      src={getAssetUrl(
+                        transitionState.underlyingScene.assetPath
+                      )}
                       alt=""
                       className="w-full h-full object-cover"
                     />
                   )}
-                  {/* Transition name badge */}
-                  {transitionAnim && (
-                    <div className="absolute top-2 right-2 z-30 pointer-events-none">
-                      {(() => {
-                        const info = getTransitionInfo(
-                          activeSceneInPreview.idx,
-                          isShort
-                        );
-                        return (
-                          <span
-                            className="text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md animate-fade-in"
-                            style={{
-                              background: info.color + "25",
-                              color: info.color,
-                              border: `1px solid ${info.color}50`,
-                              textShadow: "0 0 8px " + info.color,
-                            }}
-                          >
-                            {info.icon} {info.label}
-                          </span>
-                        );
-                      })()}
-                    </div>
+                </div>
+              )}
+
+              {transitionState?.activeScene ? (
+                <div
+                  key={transitionState.activeScene.idx}
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{
+                    zIndex: 10,
+                    ...getTransitionStyle(
+                      transitionState.activeScene.idx % (isShort ? 12 : 9),
+                      transitionState.progress
+                    ),
+                  }}
+                >
+                  {transitionState.activeScene.assetType === "video" ? (
+                    <video
+                      key={transitionState.activeScene.assetPath}
+                      src={getAssetUrl(transitionState.activeScene.assetPath)}
+                      className="w-full h-full object-cover"
+                      muted
+                      preload="metadata"
+                    />
+                  ) : (
+                    <img
+                      src={getAssetUrl(transitionState.activeScene.assetPath)}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
                   )}
+                  {/* Transition name badge during transition */}
+                  {transitionState.progress < 1.0 &&
+                    transitionState.underlyingScene && (
+                      <div className="absolute top-2 right-2 z-30 pointer-events-none">
+                        {(() => {
+                          const info = getTransitionInfo(
+                            transitionState.activeScene.idx,
+                            isShort
+                          );
+                          return (
+                            <span
+                              className="text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md"
+                              style={{
+                                background: info.color + "25",
+                                color: info.color,
+                                border: `1px solid ${info.color}50`,
+                                textShadow: "0 0 8px " + info.color,
+                              }}
+                            >
+                              {info.icon} {info.label} (
+                              {Math.round(transitionState.progress * 100)}%)
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    )}
                 </div>
               ) : (
                 <div className="text-[10px] text-zinc-650 italic">
