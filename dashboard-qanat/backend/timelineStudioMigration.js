@@ -344,12 +344,7 @@ export function migrateLegacyToTimelineStudio(projDir, { force = false } = {}) {
 }
 
 export function loadTimelineStudio(projDir) {
-  const result = migrateLegacyToTimelineStudio(projDir);
-  const config = readJson(path.join(projDir, "config_qanat.json"), {}) || {};
-  return {
-    ...result,
-    studio: upsertMusicClipInStudio(result.studio, config, projDir),
-  };
+  return migrateLegacyToTimelineStudio(projDir);
 }
 
 export function saveTimelineStudio(projDir, studio) {
