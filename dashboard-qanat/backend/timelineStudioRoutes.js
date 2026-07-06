@@ -17,6 +17,9 @@ import {
   buildStudioOverlayClip,
 } from "./timelineStudioNichePacks.js";
 import { handleTimelineStudioAsk } from "./timelineStudioAsk.js";
+import fs from "fs";
+import path from "path";
+import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 
 export function registerTimelineStudioRoutes(
   app,
@@ -25,7 +28,17 @@ export function registerTimelineStudioRoutes(
   app.get("/api/timeline-studio", (req, res) => {
     try {
       const projDir = getProjectDir(req);
-      const { studio, migrated } = loadTimelineStudio(projDir);
+      const { studio: rawStudio, migrated } = loadTimelineStudio(projDir);
+      let config = {};
+      try {
+        const configPath = path.join(projDir, "config_qanat.json");
+        if (fs.existsSync(configPath)) {
+          config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+        }
+      } catch {
+        config = {};
+      }
+      const studio = upsertMusicClipInStudio(rawStudio, config, projDir);
       res.json({ ok: true, studio, migrated });
     } catch (err) {
       res.status(500).json({ error: err.message });

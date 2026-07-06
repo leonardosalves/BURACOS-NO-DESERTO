@@ -5,6 +5,10 @@
 import fs from "fs";
 import path from "path";
 import { tightenStudioTimelineClips } from "../shared/timelineStudioTighten.js";
+import {
+  resolveStudioBgmSource,
+  upsertMusicClipInStudio,
+} from "../shared/timelineStudioMusic.js";
 
 const STUDIO_FILENAME = "timeline_studio.json";
 const NARRATION_FILES = [
@@ -244,13 +248,7 @@ function migrateSfxClips(sfxTimeline = {}) {
 }
 
 function migrateMusicClip(config = {}, projDir) {
-  const bgm =
-    config.bgm_file ||
-    config.background_music ||
-    config.music_file ||
-    (fs.existsSync(path.join(projDir, "trilha_documentario.mp3"))
-      ? "trilha_documentario.mp3"
-      : null);
+  const bgm = resolveStudioBgmSource(config, projDir);
   if (!bgm) return null;
 
   const total = Number(config.total_duration) || 120;
@@ -262,6 +260,10 @@ function migrateMusicClip(config = {}, projDir) {
     label: String(bgm).split("/").pop(),
     source: String(bgm),
     color: "#5C6BC0",
+    props: {
+      volume:
+        Number(config.project_music_volume ?? config.music_volume) || 0.15,
+    },
   };
 }
 
@@ -316,7 +318,7 @@ export function migrateLegacyToTimelineStudio(projDir, { force = false } = {}) {
   const { clips: tightenedClips } = tightenStudioTimelineClips(sortedClips);
 
   const format = config.aspect_ratio === "9:16" ? "9:16" : "16:9";
-  const studio = {
+  let studio = {
     version: 1,
     format,
     niche_pack: resolveNichePack(config, storyboard),
@@ -334,6 +336,8 @@ export function migrateLegacyToTimelineStudio(projDir, { force = false } = {}) {
       "sfx_timeline",
     ],
   };
+
+  studio = upsertMusicClipInStudio(studio, config, projDir);
 
   fs.writeFileSync(studioPath, JSON.stringify(studio, null, 2), "utf8");
   return { studio, migrated: true, path: studioPath };

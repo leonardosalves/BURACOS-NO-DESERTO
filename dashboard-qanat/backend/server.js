@@ -812,9 +812,13 @@ app.use("/api/projects-media", (req, res, next) => {
   const fileSubpath = parts.slice(1).join("/");
 
   const fullFilePath = path.join(projDir, fileSubpath);
+  const resolvedPath =
+    fs.existsSync(fullFilePath) && fs.statSync(fullFilePath).isFile()
+      ? fullFilePath
+      : findProjectFileLocal(projDir, path.basename(fileSubpath));
 
-  if (fs.existsSync(fullFilePath)) {
-    const ext = path.extname(fullFilePath).toLowerCase();
+  if (resolvedPath && fs.existsSync(resolvedPath)) {
+    const ext = path.extname(resolvedPath).toLowerCase();
     const mediaTypes = {
       ".mp4": "video/mp4",
       ".webm": "video/webm",
@@ -828,10 +832,14 @@ app.use("/api/projects-media", (req, res, next) => {
       ".gif": "image/gif",
       ".mp3": "audio/mpeg",
       ".wav": "audio/wav",
+      ".m4a": "audio/mp4",
+      ".aac": "audio/aac",
+      ".flac": "audio/flac",
+      ".ogg": "audio/ogg",
     };
     const mime = mediaTypes[ext];
     if (mime) res.type(mime);
-    return res.sendFile(path.resolve(fullFilePath));
+    return res.sendFile(path.resolve(resolvedPath));
   }
 
   return res.status(404).json({ error: "Arquivo de mídia não encontrado." });

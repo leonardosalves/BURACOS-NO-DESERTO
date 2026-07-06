@@ -26,6 +26,7 @@ import type {
   AskLumieraAction,
   StockSearchTrigger,
 } from "./timelineStudioAskTypes";
+import { upsertMusicClipInStudio } from "./timelineStudioMusic";
 
 export type TimelineStudioProps = RichTimelineEditorProps;
 
@@ -65,7 +66,11 @@ export function TimelineStudio({
       const res = await fetch(getProjectUrl("/api/timeline-studio"));
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      setStudio(data.studio as TimelineStudioState);
+      const loaded = upsertMusicClipInStudio(
+        data.studio as TimelineStudioState,
+        config
+      );
+      setStudio(loaded);
       if (data.migrated) {
         toast.success("Timeline Studio: projeto migrado para multi-trilha");
       }
@@ -74,11 +79,20 @@ export function TimelineStudio({
     } finally {
       setLoading(false);
     }
-  }, [activeProject, getProjectUrl]);
+  }, [activeProject, config, getProjectUrl]);
 
   useEffect(() => {
     void loadStudio();
   }, [loadStudio]);
+
+  useEffect(() => {
+    setStudio((prev) => (prev ? upsertMusicClipInStudio(prev, config) : prev));
+  }, [
+    config.single_bgm,
+    config.use_single_bgm,
+    config.bgm_mappings,
+    config.project_music_volume,
+  ]);
 
   const saveStudio = async () => {
     if (!studio) return;
@@ -395,6 +409,11 @@ export function TimelineStudio({
             getAssetUrl={getAssetUrl}
             getMusicUrl={getMusicUrl}
             aspectRatio={aspectRatio}
+            musicVolume={
+              Number(config.project_music_volume) > 0
+                ? Number(config.project_music_volume)
+                : 0.15
+            }
             onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
           />
         </div>

@@ -22,6 +22,7 @@ type Props = {
   getAssetUrl: (fileName: string) => string;
   getMusicUrl?: (fileName: string) => string;
   aspectRatio: string;
+  musicVolume?: number;
   onPlayheadChange: (sec: number) => void;
 };
 
@@ -73,6 +74,7 @@ export function TimelineStudioPreview({
   getAssetUrl,
   getMusicUrl,
   aspectRatio,
+  musicVolume = 0.15,
   onPlayheadChange,
 }: Props) {
   const isVertical = aspectRatio === "9:16";
@@ -80,6 +82,7 @@ export function TimelineStudioPreview({
   const [livePlayhead, setLivePlayhead] = useState(studio.playhead);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
   const playheadRef = useRef(studio.playhead);
   const playingRef = useRef(false);
   const rafRef = useRef(0);
@@ -96,9 +99,22 @@ export function TimelineStudioPreview({
   const displayPlayhead = playing ? livePlayhead : studio.playhead;
 
   const voiceClip = clipsOnTrack(studio.clips, "voice")[0];
+  const musicClip = clipsOnTrack(studio.clips, "music")[0];
   const voiceSrc = voiceClip?.source
     ? resolveMediaUrl(voiceClip.source, getAssetUrl, getMusicUrl)
     : null;
+  const musicSrc = musicClip?.source
+    ? resolveMediaUrl(musicClip.source, getAssetUrl, getMusicUrl)
+    : null;
+  const bgmVol = Math.min(
+    1,
+    Math.max(
+      0,
+      Number(musicClip?.props?.volume) > 0
+        ? Number(musicClip?.props?.volume)
+        : musicVolume
+    )
+  );
 
   useEffect(() => {
     if (!playing) {
@@ -152,8 +168,38 @@ export function TimelineStudioPreview({
     cancelAnimationFrame(rafRef.current);
     videoRef.current?.pause();
     audioRef.current?.pause();
+    bgmRef.current?.pause();
     publishPlayhead(playheadRef.current, true);
   }, [publishPlayhead]);
+
+  const syncBgmToPlayhead = useCallback(
+    (globalSec: number, shouldPlay: boolean) => {
+      const b = bgmRef.current;
+      if (!b || !musicClip?.source) return;
+      const local = Math.max(0, globalSec - musicClip.start);
+      const inRange =
+        globalSec >= musicClip.start &&
+        globalSec < musicClip.start + musicClip.duration;
+      b.volume = bgmVol;
+      if (!inRange) {
+        b.pause();
+        return;
+      }
+      if (Math.abs(b.currentTime - local) > 0.25) {
+        try {
+          b.currentTime = local;
+        } catch {
+          /* ignore */
+        }
+      }
+      if (shouldPlay) {
+        void b.play().catch(() => {});
+      } else {
+        b.pause();
+      }
+    },
+    [bgmVol, musicClip]
+  );
 
   const syncVideoToTime = useCallback((globalSec: number) => {
     const v = videoRef.current;
@@ -201,6 +247,7 @@ export function TimelineStudioPreview({
       narration.currentTime = playheadRef.current;
       void narration.play().catch(() => {});
     }
+    syncBgmToPlayhead(playheadRef.current, true);
 
     let last = performance.now();
 
@@ -220,6 +267,7 @@ export function TimelineStudioPreview({
 
       publishPlayhead(t);
       syncVideoToTime(playheadRef.current);
+      syncBgmToPlayhead(playheadRef.current, true);
 
       if (playheadRef.current >= total - 0.02) {
         stopPlayback();
@@ -234,7 +282,14 @@ export function TimelineStudioPreview({
     return () => {
       cancelAnimationFrame(rafRef.current);
     };
-  }, [playing, voiceSrc, publishPlayhead, stopPlayback, syncVideoToTime]);
+  }, [
+    playing,
+    voiceSrc,
+    publishPlayhead,
+    stopPlayback,
+    syncVideoToTime,
+    syncBgmToPlayhead,
+  ]);
 
   // Troca de clip de vídeo durante play
   useEffect(() => {
@@ -255,8 +310,9 @@ export function TimelineStudioPreview({
     }
     a?.pause();
     syncVideoToTime(studio.playhead);
+    syncBgmToPlayhead(studio.playhead, false);
     videoRef.current?.pause();
-  }, [studio.playhead, playing, voiceSrc, syncVideoToTime]);
+  }, [studio.playhead, playing, voiceSrc, syncVideoToTime, syncBgmToPlayhead]);
 
   const frameStyle: React.CSSProperties = isVertical
     ? {
@@ -329,6 +385,16 @@ export function TimelineStudioPreview({
               ref={audioRef}
               key={voiceSrc}
               src={voiceSrc}
+              preload="auto"
+              className="hidden"
+            />
+          ) : null}
+
+          {musicSrc ? (
+            <audio
+              ref={bgmRef}
+              key={musicSrc}
+              src={musicSrc}
               preload="auto"
               className="hidden"
             />
@@ -425,6 +491,10 @@ export function TimelineStudioPreview({
           {videoClip ? (
             <span className="text-[9px] text-zinc-600 truncate max-w-[40%] text-right">
               {videoClip.label}
+            </span>
+          ) : musicClip ? (
+            <span className="text-[9px] text-indigo-400/80 truncate max-w-[40%] text-right">
+              ♪ {musicClip.label}
             </span>
           ) : (
             <span className="text-[9px] text-zinc-700">—</span>
