@@ -21,7 +21,7 @@ while ($true) {
 
     if ((Get-Date) -lt $graceUntil) { continue }
 
-    if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 20) {
+    if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 45) {
         if ($consecutiveBusyFails -gt 0) {
             Write-LumieraLog "Backend respondeu apos $consecutiveBusyFails cheque(s) lentos"
         }
