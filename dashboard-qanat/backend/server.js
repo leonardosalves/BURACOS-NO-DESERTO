@@ -17679,7 +17679,10 @@ workflowApi = registerWorkflowRoutes(app, {
   readJsonFile,
 });
 
-registerTimelineStudioRoutes(app, { getProjectDir });
+registerTimelineStudioRoutes(app, {
+  getProjectDir,
+  workspaceDir: WORKSPACE_DIR,
+});
 
 registerVideoResurrectorRoutes(app, {
   WORKSPACE_DIR,
