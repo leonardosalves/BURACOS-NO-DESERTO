@@ -1,10 +1,9 @@
 # tavily search pro
 
-> 🔗 [[MEMORIA-LUMIERA]] · [[skills/tavily-search-pro/SKILL]] · [[memory/cocoloop-skills-curated]] · [[SKILLS]]
-
-Atalho Obsidian para [[skills/tavily-search-pro/SKILL|tavily search pro (CocoLoop #1155)]].
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/tavily-search-pro/SKILL]] · [[SKILLS]]
+> Atalho Obsidian para [[skills/tavily-search-pro/SKILL|tavily search pro (SKILL completa)]].
 
 - [[MEMORIA-LUMIERA]]
-- [[skills/agent-reach]]
-- [[skills/deer-flow-research]]
+- [[SKILLS]]
+- [[AGENTS]]
 - Documentação: [[skills/tavily-search-pro/SKILL]]

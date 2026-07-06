@@ -1,10 +1,9 @@
 # video understanding
 
-> 🔗 [[MEMORIA-LUMIERA]] · [[skills/video-understanding/SKILL]] · [[memory/cocoloop-skills-curated]] · [[SKILLS]]
-
-Atalho Obsidian para [[skills/video-understanding/SKILL|video understanding (CocoLoop #768)]].
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/video-understanding/SKILL]] · [[SKILLS]]
+> Atalho Obsidian para [[skills/video-understanding/SKILL|video understanding (SKILL completa)]].
 
 - [[MEMORIA-LUMIERA]]
-- [[skills/openmontage-reference-video]]
-- [[memory/competitor-intelligence]]
+- [[SKILLS]]
+- [[AGENTS]]
 - Documentação: [[skills/video-understanding/SKILL]]

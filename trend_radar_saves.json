@@ -1,0 +1,3707 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-05T04:51:37.939Z",
+  "items": [
+    {
+      "id": "e3c7b6ab-7952-42a1-9e8f-8938ac74cb02",
+      "type": "scan",
+      "savedAt": "2026-07-05T04:51:37.938Z",
+      "label": "Varredura virgem — 6 nicho(s)",
+      "discoveryMode": "virgin",
+      "nicheFilter": null,
+      "format": "SHORTS",
+      "status": "pioneiro",
+      "pioneerScore": 92,
+      "macroNiche": "Engenharia",
+      "summary": {
+        "scanned": 24,
+        "validated": 17,
+        "virginCount": 0,
+        "pioneerCount": 6,
+        "topPick": "Engenharia: Mapas e Mistérios Ocultos",
+        "topMacro": "Engenharia"
+      },
+      "discovery": {
+        "ok": true,
+        "discoveryMode": "virgin",
+        "baseNiche": null,
+        "format": "SHORTS",
+        "exaAvailable": true,
+        "logic": {
+          "version": "macro-angle-gap-v2",
+          "description": "Descoberta aberta: varre macro-nichos diversos (não preso ao nicho do projeto). Virgem = poucos canais dedicados no ângulo."
+        },
+        "pioneerNiches": [
+          {
+            "label": "Engenharia: Mapas e Mistérios Ocultos",
+            "macroNiche": "Engenharia",
+            "angle": "Grandes mistérios da engenharia antiga ocultados em mapas modernos",
+            "formatPattern": "Zoom de mapa interativo + Narrativa de mistério",
+            "youtubeSearchQuery": "engenharia lugar misterioso mapa shorts",
+            "pioneerScore": 92,
+            "saturationPct": 26,
+            "macroSaturationPct": 89,
+            "gapScore": 63,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Há uma enorme demanda por mistérios geográficos no Brasil, mas nenhum canal de engenharia foca em usar mapas interativos (como Google Earth) para revelar falhas e segredos de construções históricas.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "engenharia lugar misterioso mapa shorts",
+              "channelCount": 3,
+              "videoCount": 274,
+              "dedicatedChannels": 0,
+              "avgTopViews": 860106,
+              "maxTopViews": 6602517,
+              "sampleChannels": [
+                {
+                  "title": "Mente Ancestral",
+                  "channelId": "UChbYTOCt_YKWJByRpW-GCIQ"
+                },
+                {
+                  "title": "Código_Bíblico",
+                  "channelId": "UCaSpUUycY8Opguk0oNfh3Vw"
+                },
+                {
+                  "title": "Descobrir Hoje!",
+                  "channelId": "UCDa2YaJIpPKSZnZefzW3ONw"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "🌟 Esta roda está presente na rocha há milhares de anos!!#shorts #short #arqueologia",
+                  "views": 336631,
+                  "videoId": "g-3eeyYdJz8"
+                },
+                {
+                  "title": "Animais de Chernobyl #shorts",
+                  "views": 661959,
+                  "videoId": "_Eij9Ve8I3I"
+                },
+                {
+                  "title": "Solafite Generator! | Sons Of The Forest #shorts",
+                  "views": 732372,
+                  "videoId": "cJhH_wZQLCw"
+                },
+                {
+                  "title": "Mistério no Google maps 😨",
+                  "views": 6091,
+                  "videoId": "hfc-w2_6AXM"
+                },
+                {
+                  "title": "Missão secreta no Build a Boat For Treasure?! #construaumbarcoportesouro  #buildaboatfortreasure",
+                  "views": 71475,
+                  "videoId": "Mm2sjQfqzFw"
+                },
+                {
+                  "title": "Eles Criaram a Escrita e Sumiram do Mapa! #sumerios #curiosidades #viral #fatos #histórias  #shorts",
+                  "views": 41,
+                  "videoId": "qQVeRrffTMk"
+                },
+                {
+                  "title": "Túnel secreto no meio da Imigrantes! #shorts",
+                  "views": 98984,
+                  "videoId": "8MowY2oM8O0"
+                },
+                {
+                  "title": "Teorias no logo da Coca Cola #shorts #youtubeshorts",
+                  "views": 90696,
+                  "videoId": "McWGr5i_PC0"
+                },
+                {
+                  "title": "Ilusão de ótica matemática",
+                  "views": 290,
+                  "videoId": "jEMFH03jORg"
+                },
+                {
+                  "title": "Barulho ensurdecedor das ondas que arrastam banhistas #naturezaselvagem #praias #ondasgigantes",
+                  "views": 6602517,
+                  "videoId": "aWJVbmV_eZI"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63
+            },
+            "firstVideoIdea": "O misterioso forte em formato de estrela que o Google Maps tenta esconder",
+            "risk": "Exigência de edição visual complexa com zoom de mapas e retenção alta nos primeiros 3 segundos."
+          },
+          {
+            "label": "Filosofia: Loucuras e Recordes Históricos",
+            "macroNiche": "Filosofia",
+            "angle": "Experimentos mentais e comportamentos extremos de filósofos que parecem ficção",
+            "formatPattern": "Storytelling dinâmico + Ilustrações rápidas",
+            "youtubeSearchQuery": "engenharia recorde humano shorts",
+            "pioneerScore": 85,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Canais de filosofia no Brasil são extremamente teóricos e acadêmicos. Trazer o lado bizarro, obsessivo e quase inacreditável da vida dos pensadores quebra o padrão e atrai o público jovem de Shorts.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "engenharia recorde humano shorts",
+              "channelCount": 4,
+              "videoCount": 14659,
+              "dedicatedChannels": 0,
+              "avgTopViews": 499293,
+              "maxTopViews": 2613741,
+              "sampleChannels": [
+                {
+                  "title": "Manual do Mundo",
+                  "channelId": "UCKHhA5hN2UohhFDfNXB_cvQ"
+                },
+                {
+                  "title": "A Física do Esporte",
+                  "channelId": "UCoJLdnstONlmbo7aEHEzV6Q"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "✅ VEJA A EVOLUÇÃO NA CONSTRUÇÃO DESSES PRÉDIOS NA CHINA | Curiosidades Incríveis | #shorts",
+                  "views": 188173,
+                  "videoId": "GLbtoyzFmf0"
+                },
+                {
+                  "title": "Ponte de palitos aguentando 680kg",
+                  "views": 47060,
+                  "videoId": "owPtijYoLlU"
+                },
+                {
+                  "title": "A VERDADE SOBRE MATEMÁTICA NA FACULDADE #shorts",
+                  "views": 192275,
+                  "videoId": "DUmacS1_14s"
+                },
+                {
+                  "title": "Olha esse robô para ser humano falta pouco#viral #fyp #robotics #tecnologia",
+                  "views": 1261606,
+                  "videoId": "rCqo1C_mCOA"
+                },
+                {
+                  "title": "Pov: você já viu isso em algum mercado? Inteligência artificial #ia #veo3 #gemini",
+                  "views": 2613741,
+                  "videoId": "nMye6REIuLY"
+                },
+                {
+                  "title": "As Profissões que vão acabar - profissões que serão extintas até 2030 por robôs #shorts",
+                  "views": 98218,
+                  "videoId": "psyQcPnFdlo"
+                },
+                {
+                  "title": "ELA EMITE A NOTA MUSICAL MAIS AGUDA | INCRÍVEL #shorts",
+                  "views": 24978,
+                  "videoId": "-rxV8m1Gavc"
+                },
+                {
+                  "title": "trem na Índia vs trem no Japão #shorts",
+                  "views": 367918,
+                  "videoId": "FcOhvTyOHpk"
+                },
+                {
+                  "title": "Obras incríveis da engenharia #shorts #engenharia #viral #obras",
+                  "views": 4209,
+                  "videoId": "MDizkT8LFAI"
+                },
+                {
+                  "title": "Enéas é mais direita ou esquerda? #shorts",
+                  "views": 194753,
+                  "videoId": "75xS32a3tx0"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "O filósofo que viveu dentro de um barril e humilhou o homem mais poderoso do mundo",
+            "risk": "Romantizar comportamentos autodestrutivos ou simplificar demais conceitos filosóficos complexos."
+          },
+          {
+            "label": "Engenharia: Evolução de Objetos Comuns",
+            "macroNiche": "Engenharia",
+            "angle": "A evolução de objetos cotidianos simples que moldaram impérios através da engenharia",
+            "formatPattern": "Timeline visual acelerada + Efeitos sonoros mecânicos",
+            "youtubeSearchQuery": "engenharia objeto história timeline shorts",
+            "pioneerScore": 79,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 1,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "O nicho de curiosidades foca em fatos soltos, enquanto uma linha do tempo visual focada na engenharia de um único objeto gera alto engajamento e curiosidade sequencial.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "engenharia objeto história timeline shorts",
+              "channelCount": 2,
+              "videoCount": 378632,
+              "dedicatedChannels": 1,
+              "avgTopViews": 3722327,
+              "maxTopViews": 17715314,
+              "sampleChannels": [
+                {
+                  "title": "ARMS Armstrong",
+                  "channelId": "UCl7xRgETh8lYqCyVvlCtTpg"
+                },
+                {
+                  "title": "Shibargatti  Electrical",
+                  "channelId": "UCA8P9yVKrlllAG8ifXCXK4A"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "A CRIAÇÃO DA NASA​ #SHORTS",
+                  "views": 12937,
+                  "videoId": "jr4ozCrtjFg"
+                },
+                {
+                  "title": "VEJA COMO CASTELOS MEDIEVAIS ERAM CONSTRUÍDOS (ENGENHARIA DA ÉPOCA) #shorts #curiosidades",
+                  "views": 8800,
+                  "videoId": "3QewWdJ_8_Y"
+                },
+                {
+                  "title": "COMO EXPLICA PRO CAPITÃO?! #curioso #incrível #interessante #shorts #história #engenharia  &",
+                  "views": 1289201,
+                  "videoId": "MzRoLNQS-ZQ"
+                },
+                {
+                  "title": "Os alemães faziam isso para sobreviver durante a Segunda Guerra Mundial 💀 #shorts",
+                  "views": 668520,
+                  "videoId": "1KjEJNEFSRM"
+                },
+                {
+                  "title": "✅ VEJA A EVOLUÇÃO NA CONSTRUÇÃO DESSES PRÉDIOS NA CHINA | Curiosidades Incríveis | #shorts",
+                  "views": 188173,
+                  "videoId": "GLbtoyzFmf0"
+                },
+                {
+                  "title": "MECANISMO FALHO DA SEGUNDA GUERRA EXPLICADO! #curioso #incrível #interessante #shorts #historia  &",
+                  "views": 8519948,
+                  "videoId": "RS4rd3NaOM0"
+                },
+                {
+                  "title": "The Evolution of Wheels: 3500 BC to 2100! (AI-Generated)",
+                  "views": 17715314,
+                  "videoId": "yClo1l4qiGA"
+                },
+                {
+                  "title": "History of AI in 30 seconds #shorts",
+                  "views": 2654,
+                  "videoId": "FCBA9U-Y84k"
+                },
+                {
+                  "title": "MADEIRA ESPIÃ RUSSA! #curioso #incrível #interessante #shorts #estadosunidos &",
+                  "views": 8812184,
+                  "videoId": "v0XXhSZIcXA"
+                },
+                {
+                  "title": "The Surprising Science and History Behind the Fork #Shorts",
+                  "views": 5542,
+                  "videoId": "m1VAROUYeKQ"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "Como um simples parafuso de madeira salvou Veneza de afundar no oceano",
+            "risk": "Dificuldade em encontrar imagens históricas de alta qualidade para ilustrar a evolução do objeto."
+          },
+          {
+            "label": "Filosofia: Seitas e Cidades Perdidas",
+            "macroNiche": "Filosofia",
+            "angle": "Cidades utópicas e seitas filosóficas reais que sumiram do mapa",
+            "formatPattern": "Geolocalização + Narrativa de conspiração histórica",
+            "youtubeSearchQuery": "filosofia recorde humano shorts",
+            "pioneerScore": 74,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Mistura a curiosidade geográfica com a história das ideias. Praticamente não existem canais em português mapeando onde seitas filosóficas reais tentaram criar sociedades alternativas.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia recorde humano shorts",
+              "channelCount": 7,
+              "videoCount": 18881,
+              "dedicatedChannels": 0,
+              "avgTopViews": 630159,
+              "maxTopViews": 2121083,
+              "sampleChannels": [
+                {
+                  "title": "Fala Sério",
+                  "channelId": "UClG7ik2BxqqYCJaFc9xlM8w"
+                },
+                {
+                  "title": "Você Sabia?",
+                  "channelId": "UCj0O6W8yDuLg3iraAXKgCrQ"
+                },
+                {
+                  "title": "Mente Sem Limites",
+                  "channelId": "UCDQZAwXMwaCfYEfUVh5yx-A"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Lute Por Um Mundo Melhor- Will Smith #cortes  #motivacional  #shorts #filmes",
+                  "views": 774231,
+                  "videoId": "IzxB2H-Ijq0"
+                },
+                {
+                  "title": "SEJA PERIGOSO!  | Jordan Peterson #shorts",
+                  "views": 1289,
+                  "videoId": "WZiTDxyd3o4"
+                },
+                {
+                  "title": "Como Não Ser um Prisioneiro da Mente? | #Shorts | Augusto Cury",
+                  "views": 430047,
+                  "videoId": "pXm135Uqc6c"
+                },
+                {
+                  "title": "Enéas é mais direita ou esquerda? #shorts",
+                  "views": 194753,
+                  "videoId": "75xS32a3tx0"
+                },
+                {
+                  "title": "EU SOU O MELHOR! | Reflexão do Cristiano Ronaldo | #Shorts",
+                  "views": 2121083,
+                  "videoId": "prkp4m4_SWs"
+                },
+                {
+                  "title": "O que eu aprendi com a minha DECEPÇÃO AMOROSA... 💔 #shorts",
+                  "views": 244803,
+                  "videoId": "z0-keo3k8Dg"
+                },
+                {
+                  "title": "explicando LOCKE: ONDE NÃO HÁ LEIS NÃO HÁ LIBERDADE #shorts",
+                  "views": 662094,
+                  "videoId": "NsbDEIu3ECc"
+                },
+                {
+                  "title": "O Maior equivoco da igreja católica - Augustus Nicodemus//Inteligência LTDA #shorts #youtubeshorts",
+                  "views": 525830,
+                  "videoId": "aUMs3FaJk84"
+                },
+                {
+                  "title": "Os 40 Segundos Mais Importantes para sua vida | David Goggins #shorts",
+                  "views": 130469,
+                  "videoId": "2oeHJ9olK2s"
+                },
+                {
+                  "title": "REI SALOMÃO NÃO ERA O HOMEM MAIS RICO? - INSCREVA-SE NO CANAL #shorts",
+                  "views": 1216986,
+                  "videoId": "5JIO92b9Qtc"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "O que aconteceu com a cidade secreta onde Pitágoras proibiu seus seguidores de comer feijão?",
+            "risk": "Escassez de dados geográficos precisos sobre locais muito antigos, exigindo recriações ilustrativas."
+          },
+          {
+            "label": "Esportes: Limites Extremos do Corpo",
+            "macroNiche": "Esportes",
+            "angle": "Os limites mais absurdos e bizarros que o corpo humano já atingiu no esporte",
+            "formatPattern": "Análise biomecânica rápida + Retenção extrema",
+            "youtubeSearchQuery": "filosofia lugar misterioso mapa shorts",
+            "pioneerScore": 68,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Canais de esporte focam em notícias de futebol ou treinos de academia. Há um vácuo de conteúdo focado em recordes bizarros de resistência e sobrevivência esportiva analisados sob uma ótica científica rápida.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia lugar misterioso mapa shorts",
+              "channelCount": 6,
+              "videoCount": 3821,
+              "dedicatedChannels": 0,
+              "avgTopViews": 4093988,
+              "maxTopViews": 23479521,
+              "sampleChannels": [
+                {
+                  "title": "Você Sabia?",
+                  "channelId": "UCj0O6W8yDuLg3iraAXKgCrQ"
+                },
+                {
+                  "title": "Família Sophia e Liz",
+                  "channelId": "UCeHuZmjaD4p7ac_lxxBVgSQ"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "O Mapa Misterioso",
+                  "views": 815,
+                  "videoId": "CAm9CvsrWVM"
+                },
+                {
+                  "title": "Abu Simbel é um lugar misterioso no mapa. Da Like 👍👍",
+                  "views": 38,
+                  "videoId": "GqHHSjdkr_U"
+                },
+                {
+                  "title": "NA ROMA ANTIGA VOCÊ SERIA RICO OU POBRE? #curiosidades #historia #shorts",
+                  "views": 23479521,
+                  "videoId": "HIy1cSiSXVY"
+                },
+                {
+                  "title": "Positivismo é uma ideia completamente maluca! #shorts",
+                  "views": 32938,
+                  "videoId": "95n3tcg1RHg"
+                },
+                {
+                  "title": "El Misterioso Mapa de un Tesoro Oculto",
+                  "views": 1043,
+                  "videoId": "X159FH59m7w"
+                },
+                {
+                  "title": "TODA SALA TINHA ESSES ALUNOS! #shorts",
+                  "views": 10427614,
+                  "videoId": "RYvAnDW8364"
+                },
+                {
+                  "title": "O Segredo Que Está Escondido Neste Manuscrito #shorts #suspense",
+                  "views": 211,
+                  "videoId": "NRgZ3btXpxA"
+                },
+                {
+                  "title": "Aventuras filosoficas",
+                  "views": 16,
+                  "videoId": "Wq_pxPFS000"
+                },
+                {
+                  "title": "O ENIGMA MAIS DIFÍCIL DO MUNDO",
+                  "views": 6378098,
+                  "videoId": "oJbXv7FZTp0"
+                },
+                {
+                  "title": "Este libro fue ESCONDIDO por 30 AÑOS (Libro ROJO) 🤯 #shorts",
+                  "views": 619583,
+                  "videoId": "up-q51ltW9c"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "O homem que correu por 3 dias seguidos sem parar para dormir",
+            "risk": "Algoritmo do YouTube classificar o conteúdo como perigoso ou nocivo se não houver aviso de segurança."
+          },
+          {
+            "label": "Música: Obsessões e Recordes Extremos",
+            "macroNiche": "Música",
+            "angle": "Feitos musicais extremos e obsessões sonoras que desafiam a lógica",
+            "formatPattern": "Áudio imersivo + Storytelling de suspense",
+            "youtubeSearchQuery": "filosofia objeto história timeline shorts",
+            "pioneerScore": 63,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 1,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "O nicho de música no Brasil se limita a tutoriais de instrumentos ou fofocas de artistas. Explorar recordes bizarros e obsessões acústicas reais atrai tanto audiófilos quanto curiosos.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia objeto história timeline shorts",
+              "channelCount": 1,
+              "videoCount": 136572,
+              "dedicatedChannels": 1,
+              "avgTopViews": 3538711,
+              "maxTopViews": 25115576,
+              "sampleChannels": [
+                {
+                  "title": "Divine stories",
+                  "channelId": "UCF8-aaVt_nPksaS9t3FWTLw"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Qual calendário é realmente o certo ? Sérgio Sacani #astronomia #shorts #viral #historia",
+                  "views": 141623,
+                  "videoId": "1ihRvCPZ_pE"
+                },
+                {
+                  "title": "MONJA CONTANDO UMA HISTÓRIA DE BUDA #shorts",
+                  "views": 1182762,
+                  "videoId": "yqq3xQVYJ5s"
+                },
+                {
+                  "title": "HQ'S como FONTE e OBJETO DA HISTÓRIA  #shorts #historia #hq #history",
+                  "views": 36,
+                  "videoId": "WI2WqbHw3ew"
+                },
+                {
+                  "title": "COMO ERA A VIDA DE UM ADOLESCENTE NA IDADE MÉDIA #shorts",
+                  "views": 1538950,
+                  "videoId": "ahf1DUmgbXc"
+                },
+                {
+                  "title": "TODA HISTÓRIA DA FILOSOFIA - Parte 1",
+                  "views": 2368632,
+                  "videoId": "Y9_UovLgduo"
+                },
+                {
+                  "title": "O Paradoxo de Epicuro. Filosofia, Filosofia Estoica, Aforismos, Citações, Frases, Religião",
+                  "views": 409824,
+                  "videoId": "ebdQiMffrW0"
+                },
+                {
+                  "title": "o JULGAMENTO de SÓCRATES foi INSANO",
+                  "views": 3991556,
+                  "videoId": "hNJIIeyYBRU"
+                },
+                {
+                  "title": "POV: Os Shorts na época MEDIEVAL “2” 😹 KKKKK",
+                  "views": 25115576,
+                  "videoId": "ayWtaf6rgUU"
+                },
+                {
+                  "title": "EXPLICANDO o EPICURISMO e a busca pelo PRAZER #shorts",
+                  "views": 404169,
+                  "videoId": "76Xw2Z3tqnM"
+                },
+                {
+                  "title": "Por que para você ser um membro da maçonaria, você precisa ser convidado por quem está lá? #shorts",
+                  "views": 233985,
+                  "videoId": "xMKKjvLjnBU"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "A música de 639 anos que está tocando agora e você só vai ouvir o final na próxima vida",
+            "risk": "Dependência de direitos autorais de áudio, exigindo o uso de trilhas de domínio público ou recriações próprias."
+          }
+        ],
+        "pioneerIdeas": [
+          {
+            "title": "O misterioso forte em formato de estrela que o Google Maps tenta esconder",
+            "hookPt": "Grandes mistérios da engenharia antiga ocultados em mapas modernos",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Há uma enorme demanda por mistérios geográficos no Brasil, mas nenhum canal de engenharia foca em usar mapas interativos (como Google Earth) para revelar falhas e segredos de construções históricas.",
+            "format": "SHORTS",
+            "pioneerScore": 92,
+            "saturationPct": 26,
+            "status": "pioneiro",
+            "macroNiche": "Engenharia",
+            "angle": "Grandes mistérios da engenharia antiga ocultados em mapas modernos",
+            "formatPattern": "Zoom de mapa interativo + Narrativa de mistério",
+            "youtubeSearchQuery": "engenharia lugar misterioso mapa shorts"
+          },
+          {
+            "title": "O filósofo que viveu dentro de um barril e humilhou o homem mais poderoso do mundo",
+            "hookPt": "Experimentos mentais e comportamentos extremos de filósofos que parecem ficção",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Canais de filosofia no Brasil são extremamente teóricos e acadêmicos. Trazer o lado bizarro, obsessivo e quase inacreditável da vida dos pensadores quebra o padrão e atrai o público jovem de Shorts.",
+            "format": "SHORTS",
+            "pioneerScore": 85,
+            "saturationPct": 40,
+            "status": "pioneiro",
+            "macroNiche": "Filosofia",
+            "angle": "Experimentos mentais e comportamentos extremos de filósofos que parecem ficção",
+            "formatPattern": "Storytelling dinâmico + Ilustrações rápidas",
+            "youtubeSearchQuery": "engenharia recorde humano shorts"
+          },
+          {
+            "title": "Como um simples parafuso de madeira salvou Veneza de afundar no oceano",
+            "hookPt": "A evolução de objetos cotidianos simples que moldaram impérios através da engenharia",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "O nicho de curiosidades foca em fatos soltos, enquanto uma linha do tempo visual focada na engenharia de um único objeto gera alto engajamento e curiosidade sequencial.",
+            "format": "SHORTS",
+            "pioneerScore": 79,
+            "saturationPct": 40,
+            "status": "pioneiro",
+            "macroNiche": "Engenharia",
+            "angle": "A evolução de objetos cotidianos simples que moldaram impérios através da engenharia",
+            "formatPattern": "Timeline visual acelerada + Efeitos sonoros mecânicos",
+            "youtubeSearchQuery": "engenharia objeto história timeline shorts"
+          },
+          {
+            "title": "O que aconteceu com a cidade secreta onde Pitágoras proibiu seus seguidores de comer feijão?",
+            "hookPt": "Cidades utópicas e seitas filosóficas reais que sumiram do mapa",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Mistura a curiosidade geográfica com a história das ideias. Praticamente não existem canais em português mapeando onde seitas filosóficas reais tentaram criar sociedades alternativas.",
+            "format": "SHORTS",
+            "pioneerScore": 74,
+            "saturationPct": 40,
+            "status": "pioneiro",
+            "macroNiche": "Filosofia",
+            "angle": "Cidades utópicas e seitas filosóficas reais que sumiram do mapa",
+            "formatPattern": "Geolocalização + Narrativa de conspiração histórica",
+            "youtubeSearchQuery": "filosofia recorde humano shorts"
+          },
+          {
+            "title": "O homem que correu por 3 dias seguidos sem parar para dormir",
+            "hookPt": "Os limites mais absurdos e bizarros que o corpo humano já atingiu no esporte",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Canais de esporte focam em notícias de futebol ou treinos de academia. Há um vácuo de conteúdo focado em recordes bizarros de resistência e sobrevivência esportiva analisados sob uma ótica científica rápida.",
+            "format": "SHORTS",
+            "pioneerScore": 68,
+            "saturationPct": 40,
+            "status": "pioneiro",
+            "macroNiche": "Esportes",
+            "angle": "Os limites mais absurdos e bizarros que o corpo humano já atingiu no esporte",
+            "formatPattern": "Análise biomecânica rápida + Retenção extrema",
+            "youtubeSearchQuery": "filosofia lugar misterioso mapa shorts"
+          },
+          {
+            "title": "A música de 639 anos que está tocando agora e você só vai ouvir o final na próxima vida",
+            "hookPt": "Feitos musicais extremos e obsessões sonoras que desafiam a lógica",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "O nicho de música no Brasil se limita a tutoriais de instrumentos ou fofocas de artistas. Explorar recordes bizarros e obsessões acústicas reais atrai tanto audiófilos quanto curiosos.",
+            "format": "SHORTS",
+            "pioneerScore": 63,
+            "saturationPct": 40,
+            "status": "pioneiro",
+            "macroNiche": "Música",
+            "angle": "Feitos musicais extremos e obsessões sonoras que desafiam a lógica",
+            "formatPattern": "Áudio imersivo + Storytelling de suspense",
+            "youtubeSearchQuery": "filosofia objeto história timeline shorts"
+          }
+        ],
+        "summary": {
+          "scanned": 24,
+          "validated": 17,
+          "virginCount": 0,
+          "pioneerCount": 6,
+          "topPick": "Engenharia: Mapas e Mistérios Ocultos",
+          "topMacro": "Engenharia"
+        },
+        "fetchedAt": "2026-07-05T04:51:21.020Z"
+      },
+      "niches": [
+        {
+          "label": "Engenharia: Mapas e Mistérios Ocultos",
+          "status": "pioneiro",
+          "pioneerScore": 92,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-05T04:51:37.938Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Há uma enorme demanda por mistérios geográficos no Brasil, mas nenhum canal de engenharia foca em usar mapas interativos (como Google Earth) para revelar falhas e segredos de construções históricas.",
+              "headline": "Engenharia: Mapas e Mistérios Ocultos"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Engenharia",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Grandes mistérios da engenharia antiga ocultados em mapas modernos",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Zoom de mapa interativo + Narrativa de mistério",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "engenharia lugar misterioso mapa shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 3,
+              "videoCount": 274,
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63,
+              "avgTopViews": 860106,
+              "maxTopViews": 6602517,
+              "sampleChannels": [
+                {
+                  "title": "Mente Ancestral",
+                  "channelId": "UChbYTOCt_YKWJByRpW-GCIQ"
+                },
+                {
+                  "title": "Código_Bíblico",
+                  "channelId": "UCaSpUUycY8Opguk0oNfh3Vw"
+                },
+                {
+                  "title": "Descobrir Hoje!",
+                  "channelId": "UCDa2YaJIpPKSZnZefzW3ONw"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "🌟 Esta roda está presente na rocha há milhares de anos!!#shorts #short #arqueologia",
+                  "views": 336631,
+                  "videoId": "g-3eeyYdJz8"
+                },
+                {
+                  "title": "Animais de Chernobyl #shorts",
+                  "views": 661959,
+                  "videoId": "_Eij9Ve8I3I"
+                },
+                {
+                  "title": "Solafite Generator! | Sons Of The Forest #shorts",
+                  "views": 732372,
+                  "videoId": "cJhH_wZQLCw"
+                },
+                {
+                  "title": "Mistério no Google maps 😨",
+                  "views": 6091,
+                  "videoId": "hfc-w2_6AXM"
+                },
+                {
+                  "title": "Missão secreta no Build a Boat For Treasure?! #construaumbarcoportesouro  #buildaboatfortreasure",
+                  "views": 71475,
+                  "videoId": "Mm2sjQfqzFw"
+                },
+                {
+                  "title": "Eles Criaram a Escrita e Sumiram do Mapa! #sumerios #curiosidades #viral #fatos #histórias  #shorts",
+                  "views": 41,
+                  "videoId": "qQVeRrffTMk"
+                },
+                {
+                  "title": "Túnel secreto no meio da Imigrantes! #shorts",
+                  "views": 98984,
+                  "videoId": "8MowY2oM8O0"
+                },
+                {
+                  "title": "Teorias no logo da Coca Cola #shorts #youtubeshorts",
+                  "views": 90696,
+                  "videoId": "McWGr5i_PC0"
+                },
+                {
+                  "title": "Ilusão de ótica matemática",
+                  "views": 290,
+                  "videoId": "jEMFH03jORg"
+                },
+                {
+                  "title": "Barulho ensurdecedor das ondas que arrastam banhistas #naturezaselvagem #praias #ondasgigantes",
+                  "views": 6602517,
+                  "videoId": "aWJVbmV_eZI"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 92,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "Há uma enorme demanda por mistérios geográficos no Brasil, mas nenhum canal de engenharia foca em usar mapas interativos (como Google Earth) para revelar falhas e segredos de construções históricas."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "O misterioso forte em formato de estrela que o Google Maps tenta esconder",
+              "hook": "Grandes mistérios da engenharia antiga ocultados em mapas modernos"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Exigência de edição visual complexa com zoom de mapas e retenção alta nos primeiros 3 segundos."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Curiosos sobre como as coisas funcionam e falham."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Zoom de mapa interativo + Narrativa de mistério",
+                "Ângulo: Grandes mistérios da engenharia antiga ocultados em mapas modernos",
+                "Gancho inicial: O misterioso forte em formato de estrela que o Google Maps tenta esconder",
+                "Referência: 🌟 Esta roda está presente na rocha há milhares de anos!!#shorts #short #arqueologia"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "engenharia lugar misterioso mapa shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Engenharia: Mapas e Mistérios Ocultos",
+            "macroNiche": "Engenharia",
+            "angle": "Grandes mistérios da engenharia antiga ocultados em mapas modernos",
+            "formatPattern": "Zoom de mapa interativo + Narrativa de mistério",
+            "youtubeSearchQuery": "engenharia lugar misterioso mapa shorts",
+            "pioneerScore": 92,
+            "saturationPct": 26,
+            "macroSaturationPct": 89,
+            "gapScore": 63,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Há uma enorme demanda por mistérios geográficos no Brasil, mas nenhum canal de engenharia foca em usar mapas interativos (como Google Earth) para revelar falhas e segredos de construções históricas.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "engenharia lugar misterioso mapa shorts",
+              "channelCount": 3,
+              "videoCount": 274,
+              "dedicatedChannels": 0,
+              "avgTopViews": 860106,
+              "maxTopViews": 6602517,
+              "sampleChannels": [
+                {
+                  "title": "Mente Ancestral",
+                  "channelId": "UChbYTOCt_YKWJByRpW-GCIQ"
+                },
+                {
+                  "title": "Código_Bíblico",
+                  "channelId": "UCaSpUUycY8Opguk0oNfh3Vw"
+                },
+                {
+                  "title": "Descobrir Hoje!",
+                  "channelId": "UCDa2YaJIpPKSZnZefzW3ONw"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "🌟 Esta roda está presente na rocha há milhares de anos!!#shorts #short #arqueologia",
+                  "views": 336631,
+                  "videoId": "g-3eeyYdJz8"
+                },
+                {
+                  "title": "Animais de Chernobyl #shorts",
+                  "views": 661959,
+                  "videoId": "_Eij9Ve8I3I"
+                },
+                {
+                  "title": "Solafite Generator! | Sons Of The Forest #shorts",
+                  "views": 732372,
+                  "videoId": "cJhH_wZQLCw"
+                },
+                {
+                  "title": "Mistério no Google maps 😨",
+                  "views": 6091,
+                  "videoId": "hfc-w2_6AXM"
+                },
+                {
+                  "title": "Missão secreta no Build a Boat For Treasure?! #construaumbarcoportesouro  #buildaboatfortreasure",
+                  "views": 71475,
+                  "videoId": "Mm2sjQfqzFw"
+                },
+                {
+                  "title": "Eles Criaram a Escrita e Sumiram do Mapa! #sumerios #curiosidades #viral #fatos #histórias  #shorts",
+                  "views": 41,
+                  "videoId": "qQVeRrffTMk"
+                },
+                {
+                  "title": "Túnel secreto no meio da Imigrantes! #shorts",
+                  "views": 98984,
+                  "videoId": "8MowY2oM8O0"
+                },
+                {
+                  "title": "Teorias no logo da Coca Cola #shorts #youtubeshorts",
+                  "views": 90696,
+                  "videoId": "McWGr5i_PC0"
+                },
+                {
+                  "title": "Ilusão de ótica matemática",
+                  "views": 290,
+                  "videoId": "jEMFH03jORg"
+                },
+                {
+                  "title": "Barulho ensurdecedor das ondas que arrastam banhistas #naturezaselvagem #praias #ondasgigantes",
+                  "views": 6602517,
+                  "videoId": "aWJVbmV_eZI"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63
+            },
+            "firstVideoIdea": "O misterioso forte em formato de estrela que o Google Maps tenta esconder",
+            "risk": "Exigência de edição visual complexa com zoom de mapas e retenção alta nos primeiros 3 segundos."
+          }
+        },
+        {
+          "label": "Filosofia: Loucuras e Recordes Históricos",
+          "status": "pioneiro",
+          "pioneerScore": 85,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-05T04:51:37.938Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Canais de filosofia no Brasil são extremamente teóricos e acadêmicos. Trazer o lado bizarro, obsessivo e quase inacreditável da vida dos pensadores quebra o padrão e atrai o público jovem de Shorts.",
+              "headline": "Filosofia: Loucuras e Recordes Históricos"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Filosofia",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Experimentos mentais e comportamentos extremos de filósofos que parecem ficção",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Storytelling dinâmico + Ilustrações rápidas",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "engenharia recorde humano shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 4,
+              "videoCount": 14659,
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49,
+              "avgTopViews": 499293,
+              "maxTopViews": 2613741,
+              "sampleChannels": [
+                {
+                  "title": "Manual do Mundo",
+                  "channelId": "UCKHhA5hN2UohhFDfNXB_cvQ"
+                },
+                {
+                  "title": "A Física do Esporte",
+                  "channelId": "UCoJLdnstONlmbo7aEHEzV6Q"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "✅ VEJA A EVOLUÇÃO NA CONSTRUÇÃO DESSES PRÉDIOS NA CHINA | Curiosidades Incríveis | #shorts",
+                  "views": 188173,
+                  "videoId": "GLbtoyzFmf0"
+                },
+                {
+                  "title": "Ponte de palitos aguentando 680kg",
+                  "views": 47060,
+                  "videoId": "owPtijYoLlU"
+                },
+                {
+                  "title": "A VERDADE SOBRE MATEMÁTICA NA FACULDADE #shorts",
+                  "views": 192275,
+                  "videoId": "DUmacS1_14s"
+                },
+                {
+                  "title": "Olha esse robô para ser humano falta pouco#viral #fyp #robotics #tecnologia",
+                  "views": 1261606,
+                  "videoId": "rCqo1C_mCOA"
+                },
+                {
+                  "title": "Pov: você já viu isso em algum mercado? Inteligência artificial #ia #veo3 #gemini",
+                  "views": 2613741,
+                  "videoId": "nMye6REIuLY"
+                },
+                {
+                  "title": "As Profissões que vão acabar - profissões que serão extintas até 2030 por robôs #shorts",
+                  "views": 98218,
+                  "videoId": "psyQcPnFdlo"
+                },
+                {
+                  "title": "ELA EMITE A NOTA MUSICAL MAIS AGUDA | INCRÍVEL #shorts",
+                  "views": 24978,
+                  "videoId": "-rxV8m1Gavc"
+                },
+                {
+                  "title": "trem na Índia vs trem no Japão #shorts",
+                  "views": 367918,
+                  "videoId": "FcOhvTyOHpk"
+                },
+                {
+                  "title": "Obras incríveis da engenharia #shorts #engenharia #viral #obras",
+                  "views": 4209,
+                  "videoId": "MDizkT8LFAI"
+                },
+                {
+                  "title": "Enéas é mais direita ou esquerda? #shorts",
+                  "views": 194753,
+                  "videoId": "75xS32a3tx0"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 85,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "Canais de filosofia no Brasil são extremamente teóricos e acadêmicos. Trazer o lado bizarro, obsessivo e quase inacreditável da vida dos pensadores quebra o padrão e atrai o público jovem de Shorts."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "O filósofo que viveu dentro de um barril e humilhou o homem mais poderoso do mundo",
+              "hook": "Experimentos mentais e comportamentos extremos de filósofos que parecem ficção"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Romantizar comportamentos autodestrutivos ou simplificar demais conceitos filosóficos complexos."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Pensadores que querem ideias complexas em linguagem clara."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Storytelling dinâmico + Ilustrações rápidas",
+                "Ângulo: Experimentos mentais e comportamentos extremos de filósofos que parecem ficção",
+                "Gancho inicial: O filósofo que viveu dentro de um barril e humilhou o homem mais poderoso do mundo",
+                "Referência: ✅ VEJA A EVOLUÇÃO NA CONSTRUÇÃO DESSES PRÉDIOS NA CHINA | Curiosidades Incríveis | #shorts"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "engenharia recorde humano shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Filosofia: Loucuras e Recordes Históricos",
+            "macroNiche": "Filosofia",
+            "angle": "Experimentos mentais e comportamentos extremos de filósofos que parecem ficção",
+            "formatPattern": "Storytelling dinâmico + Ilustrações rápidas",
+            "youtubeSearchQuery": "engenharia recorde humano shorts",
+            "pioneerScore": 85,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Canais de filosofia no Brasil são extremamente teóricos e acadêmicos. Trazer o lado bizarro, obsessivo e quase inacreditável da vida dos pensadores quebra o padrão e atrai o público jovem de Shorts.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "engenharia recorde humano shorts",
+              "channelCount": 4,
+              "videoCount": 14659,
+              "dedicatedChannels": 0,
+              "avgTopViews": 499293,
+              "maxTopViews": 2613741,
+              "sampleChannels": [
+                {
+                  "title": "Manual do Mundo",
+                  "channelId": "UCKHhA5hN2UohhFDfNXB_cvQ"
+                },
+                {
+                  "title": "A Física do Esporte",
+                  "channelId": "UCoJLdnstONlmbo7aEHEzV6Q"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "✅ VEJA A EVOLUÇÃO NA CONSTRUÇÃO DESSES PRÉDIOS NA CHINA | Curiosidades Incríveis | #shorts",
+                  "views": 188173,
+                  "videoId": "GLbtoyzFmf0"
+                },
+                {
+                  "title": "Ponte de palitos aguentando 680kg",
+                  "views": 47060,
+                  "videoId": "owPtijYoLlU"
+                },
+                {
+                  "title": "A VERDADE SOBRE MATEMÁTICA NA FACULDADE #shorts",
+                  "views": 192275,
+                  "videoId": "DUmacS1_14s"
+                },
+                {
+                  "title": "Olha esse robô para ser humano falta pouco#viral #fyp #robotics #tecnologia",
+                  "views": 1261606,
+                  "videoId": "rCqo1C_mCOA"
+                },
+                {
+                  "title": "Pov: você já viu isso em algum mercado? Inteligência artificial #ia #veo3 #gemini",
+                  "views": 2613741,
+                  "videoId": "nMye6REIuLY"
+                },
+                {
+                  "title": "As Profissões que vão acabar - profissões que serão extintas até 2030 por robôs #shorts",
+                  "views": 98218,
+                  "videoId": "psyQcPnFdlo"
+                },
+                {
+                  "title": "ELA EMITE A NOTA MUSICAL MAIS AGUDA | INCRÍVEL #shorts",
+                  "views": 24978,
+                  "videoId": "-rxV8m1Gavc"
+                },
+                {
+                  "title": "trem na Índia vs trem no Japão #shorts",
+                  "views": 367918,
+                  "videoId": "FcOhvTyOHpk"
+                },
+                {
+                  "title": "Obras incríveis da engenharia #shorts #engenharia #viral #obras",
+                  "views": 4209,
+                  "videoId": "MDizkT8LFAI"
+                },
+                {
+                  "title": "Enéas é mais direita ou esquerda? #shorts",
+                  "views": 194753,
+                  "videoId": "75xS32a3tx0"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "O filósofo que viveu dentro de um barril e humilhou o homem mais poderoso do mundo",
+            "risk": "Romantizar comportamentos autodestrutivos ou simplificar demais conceitos filosóficos complexos."
+          }
+        },
+        {
+          "label": "Engenharia: Evolução de Objetos Comuns",
+          "status": "pioneiro",
+          "pioneerScore": 79,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-05T04:51:37.938Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "O nicho de curiosidades foca em fatos soltos, enquanto uma linha do tempo visual focada na engenharia de um único objeto gera alto engajamento e curiosidade sequencial.",
+              "headline": "Engenharia: Evolução de Objetos Comuns"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Engenharia",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "A evolução de objetos cotidianos simples que moldaram impérios através da engenharia",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Timeline visual acelerada + Efeitos sonoros mecânicos",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "engenharia objeto história timeline shorts",
+              "dedicatedChannels": 1,
+              "channelCount": 2,
+              "videoCount": 378632,
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49,
+              "avgTopViews": 3722327,
+              "maxTopViews": 17715314,
+              "sampleChannels": [
+                {
+                  "title": "ARMS Armstrong",
+                  "channelId": "UCl7xRgETh8lYqCyVvlCtTpg"
+                },
+                {
+                  "title": "Shibargatti  Electrical",
+                  "channelId": "UCA8P9yVKrlllAG8ifXCXK4A"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "A CRIAÇÃO DA NASA​ #SHORTS",
+                  "views": 12937,
+                  "videoId": "jr4ozCrtjFg"
+                },
+                {
+                  "title": "VEJA COMO CASTELOS MEDIEVAIS ERAM CONSTRUÍDOS (ENGENHARIA DA ÉPOCA) #shorts #curiosidades",
+                  "views": 8800,
+                  "videoId": "3QewWdJ_8_Y"
+                },
+                {
+                  "title": "COMO EXPLICA PRO CAPITÃO?! #curioso #incrível #interessante #shorts #história #engenharia  &",
+                  "views": 1289201,
+                  "videoId": "MzRoLNQS-ZQ"
+                },
+                {
+                  "title": "Os alemães faziam isso para sobreviver durante a Segunda Guerra Mundial 💀 #shorts",
+                  "views": 668520,
+                  "videoId": "1KjEJNEFSRM"
+                },
+                {
+                  "title": "✅ VEJA A EVOLUÇÃO NA CONSTRUÇÃO DESSES PRÉDIOS NA CHINA | Curiosidades Incríveis | #shorts",
+                  "views": 188173,
+                  "videoId": "GLbtoyzFmf0"
+                },
+                {
+                  "title": "MECANISMO FALHO DA SEGUNDA GUERRA EXPLICADO! #curioso #incrível #interessante #shorts #historia  &",
+                  "views": 8519948,
+                  "videoId": "RS4rd3NaOM0"
+                },
+                {
+                  "title": "The Evolution of Wheels: 3500 BC to 2100! (AI-Generated)",
+                  "views": 17715314,
+                  "videoId": "yClo1l4qiGA"
+                },
+                {
+                  "title": "History of AI in 30 seconds #shorts",
+                  "views": 2654,
+                  "videoId": "FCBA9U-Y84k"
+                },
+                {
+                  "title": "MADEIRA ESPIÃ RUSSA! #curioso #incrível #interessante #shorts #estadosunidos &",
+                  "views": 8812184,
+                  "videoId": "v0XXhSZIcXA"
+                },
+                {
+                  "title": "The Surprising Science and History Behind the Fork #Shorts",
+                  "views": 5542,
+                  "videoId": "m1VAROUYeKQ"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 79,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "O nicho de curiosidades foca em fatos soltos, enquanto uma linha do tempo visual focada na engenharia de um único objeto gera alto engajamento e curiosidade sequencial."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "Como um simples parafuso de madeira salvou Veneza de afundar no oceano",
+              "hook": "A evolução de objetos cotidianos simples que moldaram impérios através da engenharia"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Dificuldade em encontrar imagens históricas de alta qualidade para ilustrar a evolução do objeto."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Curiosos sobre como as coisas funcionam e falham."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Timeline visual acelerada + Efeitos sonoros mecânicos",
+                "Ângulo: A evolução de objetos cotidianos simples que moldaram impérios através da engenharia",
+                "Gancho inicial: Como um simples parafuso de madeira salvou Veneza de afundar no oceano",
+                "Referência: A CRIAÇÃO DA NASA​ #SHORTS"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "engenharia objeto história timeline shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Engenharia: Evolução de Objetos Comuns",
+            "macroNiche": "Engenharia",
+            "angle": "A evolução de objetos cotidianos simples que moldaram impérios através da engenharia",
+            "formatPattern": "Timeline visual acelerada + Efeitos sonoros mecânicos",
+            "youtubeSearchQuery": "engenharia objeto história timeline shorts",
+            "pioneerScore": 79,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 1,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "O nicho de curiosidades foca em fatos soltos, enquanto uma linha do tempo visual focada na engenharia de um único objeto gera alto engajamento e curiosidade sequencial.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "engenharia objeto história timeline shorts",
+              "channelCount": 2,
+              "videoCount": 378632,
+              "dedicatedChannels": 1,
+              "avgTopViews": 3722327,
+              "maxTopViews": 17715314,
+              "sampleChannels": [
+                {
+                  "title": "ARMS Armstrong",
+                  "channelId": "UCl7xRgETh8lYqCyVvlCtTpg"
+                },
+                {
+                  "title": "Shibargatti  Electrical",
+                  "channelId": "UCA8P9yVKrlllAG8ifXCXK4A"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "A CRIAÇÃO DA NASA​ #SHORTS",
+                  "views": 12937,
+                  "videoId": "jr4ozCrtjFg"
+                },
+                {
+                  "title": "VEJA COMO CASTELOS MEDIEVAIS ERAM CONSTRUÍDOS (ENGENHARIA DA ÉPOCA) #shorts #curiosidades",
+                  "views": 8800,
+                  "videoId": "3QewWdJ_8_Y"
+                },
+                {
+                  "title": "COMO EXPLICA PRO CAPITÃO?! #curioso #incrível #interessante #shorts #história #engenharia  &",
+                  "views": 1289201,
+                  "videoId": "MzRoLNQS-ZQ"
+                },
+                {
+                  "title": "Os alemães faziam isso para sobreviver durante a Segunda Guerra Mundial 💀 #shorts",
+                  "views": 668520,
+                  "videoId": "1KjEJNEFSRM"
+                },
+                {
+                  "title": "✅ VEJA A EVOLUÇÃO NA CONSTRUÇÃO DESSES PRÉDIOS NA CHINA | Curiosidades Incríveis | #shorts",
+                  "views": 188173,
+                  "videoId": "GLbtoyzFmf0"
+                },
+                {
+                  "title": "MECANISMO FALHO DA SEGUNDA GUERRA EXPLICADO! #curioso #incrível #interessante #shorts #historia  &",
+                  "views": 8519948,
+                  "videoId": "RS4rd3NaOM0"
+                },
+                {
+                  "title": "The Evolution of Wheels: 3500 BC to 2100! (AI-Generated)",
+                  "views": 17715314,
+                  "videoId": "yClo1l4qiGA"
+                },
+                {
+                  "title": "History of AI in 30 seconds #shorts",
+                  "views": 2654,
+                  "videoId": "FCBA9U-Y84k"
+                },
+                {
+                  "title": "MADEIRA ESPIÃ RUSSA! #curioso #incrível #interessante #shorts #estadosunidos &",
+                  "views": 8812184,
+                  "videoId": "v0XXhSZIcXA"
+                },
+                {
+                  "title": "The Surprising Science and History Behind the Fork #Shorts",
+                  "views": 5542,
+                  "videoId": "m1VAROUYeKQ"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "Como um simples parafuso de madeira salvou Veneza de afundar no oceano",
+            "risk": "Dificuldade em encontrar imagens históricas de alta qualidade para ilustrar a evolução do objeto."
+          }
+        },
+        {
+          "label": "Filosofia: Seitas e Cidades Perdidas",
+          "status": "pioneiro",
+          "pioneerScore": 74,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-05T04:51:37.938Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Mistura a curiosidade geográfica com a história das ideias. Praticamente não existem canais em português mapeando onde seitas filosóficas reais tentaram criar sociedades alternativas.",
+              "headline": "Filosofia: Seitas e Cidades Perdidas"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Filosofia",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Cidades utópicas e seitas filosóficas reais que sumiram do mapa",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Geolocalização + Narrativa de conspiração histórica",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "filosofia recorde humano shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 7,
+              "videoCount": 18881,
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49,
+              "avgTopViews": 630159,
+              "maxTopViews": 2121083,
+              "sampleChannels": [
+                {
+                  "title": "Fala Sério",
+                  "channelId": "UClG7ik2BxqqYCJaFc9xlM8w"
+                },
+                {
+                  "title": "Você Sabia?",
+                  "channelId": "UCj0O6W8yDuLg3iraAXKgCrQ"
+                },
+                {
+                  "title": "Mente Sem Limites",
+                  "channelId": "UCDQZAwXMwaCfYEfUVh5yx-A"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Lute Por Um Mundo Melhor- Will Smith #cortes  #motivacional  #shorts #filmes",
+                  "views": 774231,
+                  "videoId": "IzxB2H-Ijq0"
+                },
+                {
+                  "title": "SEJA PERIGOSO!  | Jordan Peterson #shorts",
+                  "views": 1289,
+                  "videoId": "WZiTDxyd3o4"
+                },
+                {
+                  "title": "Como Não Ser um Prisioneiro da Mente? | #Shorts | Augusto Cury",
+                  "views": 430047,
+                  "videoId": "pXm135Uqc6c"
+                },
+                {
+                  "title": "Enéas é mais direita ou esquerda? #shorts",
+                  "views": 194753,
+                  "videoId": "75xS32a3tx0"
+                },
+                {
+                  "title": "EU SOU O MELHOR! | Reflexão do Cristiano Ronaldo | #Shorts",
+                  "views": 2121083,
+                  "videoId": "prkp4m4_SWs"
+                },
+                {
+                  "title": "O que eu aprendi com a minha DECEPÇÃO AMOROSA... 💔 #shorts",
+                  "views": 244803,
+                  "videoId": "z0-keo3k8Dg"
+                },
+                {
+                  "title": "explicando LOCKE: ONDE NÃO HÁ LEIS NÃO HÁ LIBERDADE #shorts",
+                  "views": 662094,
+                  "videoId": "NsbDEIu3ECc"
+                },
+                {
+                  "title": "O Maior equivoco da igreja católica - Augustus Nicodemus//Inteligência LTDA #shorts #youtubeshorts",
+                  "views": 525830,
+                  "videoId": "aUMs3FaJk84"
+                },
+                {
+                  "title": "Os 40 Segundos Mais Importantes para sua vida | David Goggins #shorts",
+                  "views": 130469,
+                  "videoId": "2oeHJ9olK2s"
+                },
+                {
+                  "title": "REI SALOMÃO NÃO ERA O HOMEM MAIS RICO? - INSCREVA-SE NO CANAL #shorts",
+                  "views": 1216986,
+                  "videoId": "5JIO92b9Qtc"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 74,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "Mistura a curiosidade geográfica com a história das ideias. Praticamente não existem canais em português mapeando onde seitas filosóficas reais tentaram criar sociedades alternativas."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "O que aconteceu com a cidade secreta onde Pitágoras proibiu seus seguidores de comer feijão?",
+              "hook": "Cidades utópicas e seitas filosóficas reais que sumiram do mapa"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Escassez de dados geográficos precisos sobre locais muito antigos, exigindo recriações ilustrativas."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Pensadores que querem ideias complexas em linguagem clara."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Geolocalização + Narrativa de conspiração histórica",
+                "Ângulo: Cidades utópicas e seitas filosóficas reais que sumiram do mapa",
+                "Gancho inicial: O que aconteceu com a cidade secreta onde Pitágoras proibiu seus seguidores de comer feijão?",
+                "Referência: Lute Por Um Mundo Melhor- Will Smith #cortes  #motivacional  #shorts #filmes"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "filosofia recorde humano shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Filosofia: Seitas e Cidades Perdidas",
+            "macroNiche": "Filosofia",
+            "angle": "Cidades utópicas e seitas filosóficas reais que sumiram do mapa",
+            "formatPattern": "Geolocalização + Narrativa de conspiração histórica",
+            "youtubeSearchQuery": "filosofia recorde humano shorts",
+            "pioneerScore": 74,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Mistura a curiosidade geográfica com a história das ideias. Praticamente não existem canais em português mapeando onde seitas filosóficas reais tentaram criar sociedades alternativas.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia recorde humano shorts",
+              "channelCount": 7,
+              "videoCount": 18881,
+              "dedicatedChannels": 0,
+              "avgTopViews": 630159,
+              "maxTopViews": 2121083,
+              "sampleChannels": [
+                {
+                  "title": "Fala Sério",
+                  "channelId": "UClG7ik2BxqqYCJaFc9xlM8w"
+                },
+                {
+                  "title": "Você Sabia?",
+                  "channelId": "UCj0O6W8yDuLg3iraAXKgCrQ"
+                },
+                {
+                  "title": "Mente Sem Limites",
+                  "channelId": "UCDQZAwXMwaCfYEfUVh5yx-A"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Lute Por Um Mundo Melhor- Will Smith #cortes  #motivacional  #shorts #filmes",
+                  "views": 774231,
+                  "videoId": "IzxB2H-Ijq0"
+                },
+                {
+                  "title": "SEJA PERIGOSO!  | Jordan Peterson #shorts",
+                  "views": 1289,
+                  "videoId": "WZiTDxyd3o4"
+                },
+                {
+                  "title": "Como Não Ser um Prisioneiro da Mente? | #Shorts | Augusto Cury",
+                  "views": 430047,
+                  "videoId": "pXm135Uqc6c"
+                },
+                {
+                  "title": "Enéas é mais direita ou esquerda? #shorts",
+                  "views": 194753,
+                  "videoId": "75xS32a3tx0"
+                },
+                {
+                  "title": "EU SOU O MELHOR! | Reflexão do Cristiano Ronaldo | #Shorts",
+                  "views": 2121083,
+                  "videoId": "prkp4m4_SWs"
+                },
+                {
+                  "title": "O que eu aprendi com a minha DECEPÇÃO AMOROSA... 💔 #shorts",
+                  "views": 244803,
+                  "videoId": "z0-keo3k8Dg"
+                },
+                {
+                  "title": "explicando LOCKE: ONDE NÃO HÁ LEIS NÃO HÁ LIBERDADE #shorts",
+                  "views": 662094,
+                  "videoId": "NsbDEIu3ECc"
+                },
+                {
+                  "title": "O Maior equivoco da igreja católica - Augustus Nicodemus//Inteligência LTDA #shorts #youtubeshorts",
+                  "views": 525830,
+                  "videoId": "aUMs3FaJk84"
+                },
+                {
+                  "title": "Os 40 Segundos Mais Importantes para sua vida | David Goggins #shorts",
+                  "views": 130469,
+                  "videoId": "2oeHJ9olK2s"
+                },
+                {
+                  "title": "REI SALOMÃO NÃO ERA O HOMEM MAIS RICO? - INSCREVA-SE NO CANAL #shorts",
+                  "views": 1216986,
+                  "videoId": "5JIO92b9Qtc"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "O que aconteceu com a cidade secreta onde Pitágoras proibiu seus seguidores de comer feijão?",
+            "risk": "Escassez de dados geográficos precisos sobre locais muito antigos, exigindo recriações ilustrativas."
+          }
+        },
+        {
+          "label": "Esportes: Limites Extremos do Corpo",
+          "status": "pioneiro",
+          "pioneerScore": 68,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-05T04:51:37.938Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Canais de esporte focam em notícias de futebol ou treinos de academia. Há um vácuo de conteúdo focado em recordes bizarros de resistência e sobrevivência esportiva analisados sob uma ótica científica rápida.",
+              "headline": "Esportes: Limites Extremos do Corpo"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Esportes",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Os limites mais absurdos e bizarros que o corpo humano já atingiu no esporte",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Análise biomecânica rápida + Retenção extrema",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "filosofia lugar misterioso mapa shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 6,
+              "videoCount": 3821,
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49,
+              "avgTopViews": 4093988,
+              "maxTopViews": 23479521,
+              "sampleChannels": [
+                {
+                  "title": "Você Sabia?",
+                  "channelId": "UCj0O6W8yDuLg3iraAXKgCrQ"
+                },
+                {
+                  "title": "Família Sophia e Liz",
+                  "channelId": "UCeHuZmjaD4p7ac_lxxBVgSQ"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "O Mapa Misterioso",
+                  "views": 815,
+                  "videoId": "CAm9CvsrWVM"
+                },
+                {
+                  "title": "Abu Simbel é um lugar misterioso no mapa. Da Like 👍👍",
+                  "views": 38,
+                  "videoId": "GqHHSjdkr_U"
+                },
+                {
+                  "title": "NA ROMA ANTIGA VOCÊ SERIA RICO OU POBRE? #curiosidades #historia #shorts",
+                  "views": 23479521,
+                  "videoId": "HIy1cSiSXVY"
+                },
+                {
+                  "title": "Positivismo é uma ideia completamente maluca! #shorts",
+                  "views": 32938,
+                  "videoId": "95n3tcg1RHg"
+                },
+                {
+                  "title": "El Misterioso Mapa de un Tesoro Oculto",
+                  "views": 1043,
+                  "videoId": "X159FH59m7w"
+                },
+                {
+                  "title": "TODA SALA TINHA ESSES ALUNOS! #shorts",
+                  "views": 10427614,
+                  "videoId": "RYvAnDW8364"
+                },
+                {
+                  "title": "O Segredo Que Está Escondido Neste Manuscrito #shorts #suspense",
+                  "views": 211,
+                  "videoId": "NRgZ3btXpxA"
+                },
+                {
+                  "title": "Aventuras filosoficas",
+                  "views": 16,
+                  "videoId": "Wq_pxPFS000"
+                },
+                {
+                  "title": "O ENIGMA MAIS DIFÍCIL DO MUNDO",
+                  "views": 6378098,
+                  "videoId": "oJbXv7FZTp0"
+                },
+                {
+                  "title": "Este libro fue ESCONDIDO por 30 AÑOS (Libro ROJO) 🤯 #shorts",
+                  "views": 619583,
+                  "videoId": "up-q51ltW9c"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 68,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "Canais de esporte focam em notícias de futebol ou treinos de academia. Há um vácuo de conteúdo focado em recordes bizarros de resistência e sobrevivência esportiva analisados sob uma ótica científica rápida."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "O homem que correu por 3 dias seguidos sem parar para dormir",
+              "hook": "Os limites mais absurdos e bizarros que o corpo humano já atingiu no esporte"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Algoritmo do YouTube classificar o conteúdo como perigoso ou nocivo se não houver aviso de segurança."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Fãs de esporte que gostam de história e recordes."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Análise biomecânica rápida + Retenção extrema",
+                "Ângulo: Os limites mais absurdos e bizarros que o corpo humano já atingiu no esporte",
+                "Gancho inicial: O homem que correu por 3 dias seguidos sem parar para dormir",
+                "Referência: O Mapa Misterioso"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "filosofia lugar misterioso mapa shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Esportes: Limites Extremos do Corpo",
+            "macroNiche": "Esportes",
+            "angle": "Os limites mais absurdos e bizarros que o corpo humano já atingiu no esporte",
+            "formatPattern": "Análise biomecânica rápida + Retenção extrema",
+            "youtubeSearchQuery": "filosofia lugar misterioso mapa shorts",
+            "pioneerScore": 68,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Canais de esporte focam em notícias de futebol ou treinos de academia. Há um vácuo de conteúdo focado em recordes bizarros de resistência e sobrevivência esportiva analisados sob uma ótica científica rápida.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia lugar misterioso mapa shorts",
+              "channelCount": 6,
+              "videoCount": 3821,
+              "dedicatedChannels": 0,
+              "avgTopViews": 4093988,
+              "maxTopViews": 23479521,
+              "sampleChannels": [
+                {
+                  "title": "Você Sabia?",
+                  "channelId": "UCj0O6W8yDuLg3iraAXKgCrQ"
+                },
+                {
+                  "title": "Família Sophia e Liz",
+                  "channelId": "UCeHuZmjaD4p7ac_lxxBVgSQ"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "O Mapa Misterioso",
+                  "views": 815,
+                  "videoId": "CAm9CvsrWVM"
+                },
+                {
+                  "title": "Abu Simbel é um lugar misterioso no mapa. Da Like 👍👍",
+                  "views": 38,
+                  "videoId": "GqHHSjdkr_U"
+                },
+                {
+                  "title": "NA ROMA ANTIGA VOCÊ SERIA RICO OU POBRE? #curiosidades #historia #shorts",
+                  "views": 23479521,
+                  "videoId": "HIy1cSiSXVY"
+                },
+                {
+                  "title": "Positivismo é uma ideia completamente maluca! #shorts",
+                  "views": 32938,
+                  "videoId": "95n3tcg1RHg"
+                },
+                {
+                  "title": "El Misterioso Mapa de un Tesoro Oculto",
+                  "views": 1043,
+                  "videoId": "X159FH59m7w"
+                },
+                {
+                  "title": "TODA SALA TINHA ESSES ALUNOS! #shorts",
+                  "views": 10427614,
+                  "videoId": "RYvAnDW8364"
+                },
+                {
+                  "title": "O Segredo Que Está Escondido Neste Manuscrito #shorts #suspense",
+                  "views": 211,
+                  "videoId": "NRgZ3btXpxA"
+                },
+                {
+                  "title": "Aventuras filosoficas",
+                  "views": 16,
+                  "videoId": "Wq_pxPFS000"
+                },
+                {
+                  "title": "O ENIGMA MAIS DIFÍCIL DO MUNDO",
+                  "views": 6378098,
+                  "videoId": "oJbXv7FZTp0"
+                },
+                {
+                  "title": "Este libro fue ESCONDIDO por 30 AÑOS (Libro ROJO) 🤯 #shorts",
+                  "views": 619583,
+                  "videoId": "up-q51ltW9c"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "O homem que correu por 3 dias seguidos sem parar para dormir",
+            "risk": "Algoritmo do YouTube classificar o conteúdo como perigoso ou nocivo se não houver aviso de segurança."
+          }
+        },
+        {
+          "label": "Música: Obsessões e Recordes Extremos",
+          "status": "pioneiro",
+          "pioneerScore": 63,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-05T04:51:37.938Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "O nicho de música no Brasil se limita a tutoriais de instrumentos ou fofocas de artistas. Explorar recordes bizarros e obsessões acústicas reais atrai tanto audiófilos quanto curiosos.",
+              "headline": "Música: Obsessões e Recordes Extremos"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Música",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Feitos musicais extremos e obsessões sonoras que desafiam a lógica",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Áudio imersivo + Storytelling de suspense",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "filosofia objeto história timeline shorts",
+              "dedicatedChannels": 1,
+              "channelCount": 1,
+              "videoCount": 136572,
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49,
+              "avgTopViews": 3538711,
+              "maxTopViews": 25115576,
+              "sampleChannels": [
+                {
+                  "title": "Divine stories",
+                  "channelId": "UCF8-aaVt_nPksaS9t3FWTLw"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Qual calendário é realmente o certo ? Sérgio Sacani #astronomia #shorts #viral #historia",
+                  "views": 141623,
+                  "videoId": "1ihRvCPZ_pE"
+                },
+                {
+                  "title": "MONJA CONTANDO UMA HISTÓRIA DE BUDA #shorts",
+                  "views": 1182762,
+                  "videoId": "yqq3xQVYJ5s"
+                },
+                {
+                  "title": "HQ'S como FONTE e OBJETO DA HISTÓRIA  #shorts #historia #hq #history",
+                  "views": 36,
+                  "videoId": "WI2WqbHw3ew"
+                },
+                {
+                  "title": "COMO ERA A VIDA DE UM ADOLESCENTE NA IDADE MÉDIA #shorts",
+                  "views": 1538950,
+                  "videoId": "ahf1DUmgbXc"
+                },
+                {
+                  "title": "TODA HISTÓRIA DA FILOSOFIA - Parte 1",
+                  "views": 2368632,
+                  "videoId": "Y9_UovLgduo"
+                },
+                {
+                  "title": "O Paradoxo de Epicuro. Filosofia, Filosofia Estoica, Aforismos, Citações, Frases, Religião",
+                  "views": 409824,
+                  "videoId": "ebdQiMffrW0"
+                },
+                {
+                  "title": "o JULGAMENTO de SÓCRATES foi INSANO",
+                  "views": 3991556,
+                  "videoId": "hNJIIeyYBRU"
+                },
+                {
+                  "title": "POV: Os Shorts na época MEDIEVAL “2” 😹 KKKKK",
+                  "views": 25115576,
+                  "videoId": "ayWtaf6rgUU"
+                },
+                {
+                  "title": "EXPLICANDO o EPICURISMO e a busca pelo PRAZER #shorts",
+                  "views": 404169,
+                  "videoId": "76Xw2Z3tqnM"
+                },
+                {
+                  "title": "Por que para você ser um membro da maçonaria, você precisa ser convidado por quem está lá? #shorts",
+                  "views": 233985,
+                  "videoId": "xMKKjvLjnBU"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 63,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "O nicho de música no Brasil se limita a tutoriais de instrumentos ou fofocas de artistas. Explorar recordes bizarros e obsessões acústicas reais atrai tanto audiófilos quanto curiosos."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "A música de 639 anos que está tocando agora e você só vai ouvir o final na próxima vida",
+              "hook": "Feitos musicais extremos e obsessões sonoras que desafiam a lógica"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Dependência de direitos autorais de áudio, exigindo o uso de trilhas de domínio público ou recriações próprias."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Ouvintes curiosos sobre origem de gêneros e artistas."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Áudio imersivo + Storytelling de suspense",
+                "Ângulo: Feitos musicais extremos e obsessões sonoras que desafiam a lógica",
+                "Gancho inicial: A música de 639 anos que está tocando agora e você só vai ouvir o final na próxima vida",
+                "Referência: Qual calendário é realmente o certo ? Sérgio Sacani #astronomia #shorts #viral #historia"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "filosofia objeto história timeline shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Música: Obsessões e Recordes Extremos",
+            "macroNiche": "Música",
+            "angle": "Feitos musicais extremos e obsessões sonoras que desafiam a lógica",
+            "formatPattern": "Áudio imersivo + Storytelling de suspense",
+            "youtubeSearchQuery": "filosofia objeto história timeline shorts",
+            "pioneerScore": 63,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 1,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "O nicho de música no Brasil se limita a tutoriais de instrumentos ou fofocas de artistas. Explorar recordes bizarros e obsessões acústicas reais atrai tanto audiófilos quanto curiosos.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia objeto história timeline shorts",
+              "channelCount": 1,
+              "videoCount": 136572,
+              "dedicatedChannels": 1,
+              "avgTopViews": 3538711,
+              "maxTopViews": 25115576,
+              "sampleChannels": [
+                {
+                  "title": "Divine stories",
+                  "channelId": "UCF8-aaVt_nPksaS9t3FWTLw"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Qual calendário é realmente o certo ? Sérgio Sacani #astronomia #shorts #viral #historia",
+                  "views": 141623,
+                  "videoId": "1ihRvCPZ_pE"
+                },
+                {
+                  "title": "MONJA CONTANDO UMA HISTÓRIA DE BUDA #shorts",
+                  "views": 1182762,
+                  "videoId": "yqq3xQVYJ5s"
+                },
+                {
+                  "title": "HQ'S como FONTE e OBJETO DA HISTÓRIA  #shorts #historia #hq #history",
+                  "views": 36,
+                  "videoId": "WI2WqbHw3ew"
+                },
+                {
+                  "title": "COMO ERA A VIDA DE UM ADOLESCENTE NA IDADE MÉDIA #shorts",
+                  "views": 1538950,
+                  "videoId": "ahf1DUmgbXc"
+                },
+                {
+                  "title": "TODA HISTÓRIA DA FILOSOFIA - Parte 1",
+                  "views": 2368632,
+                  "videoId": "Y9_UovLgduo"
+                },
+                {
+                  "title": "O Paradoxo de Epicuro. Filosofia, Filosofia Estoica, Aforismos, Citações, Frases, Religião",
+                  "views": 409824,
+                  "videoId": "ebdQiMffrW0"
+                },
+                {
+                  "title": "o JULGAMENTO de SÓCRATES foi INSANO",
+                  "views": 3991556,
+                  "videoId": "hNJIIeyYBRU"
+                },
+                {
+                  "title": "POV: Os Shorts na época MEDIEVAL “2” 😹 KKKKK",
+                  "views": 25115576,
+                  "videoId": "ayWtaf6rgUU"
+                },
+                {
+                  "title": "EXPLICANDO o EPICURISMO e a busca pelo PRAZER #shorts",
+                  "views": 404169,
+                  "videoId": "76Xw2Z3tqnM"
+                },
+                {
+                  "title": "Por que para você ser um membro da maçonaria, você precisa ser convidado por quem está lá? #shorts",
+                  "views": 233985,
+                  "videoId": "xMKKjvLjnBU"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "A música de 639 anos que está tocando agora e você só vai ouvir o final na próxima vida",
+            "risk": "Dependência de direitos autorais de áudio, exigindo o uso de trilhas de domínio público ou recriações próprias."
+          }
+        }
+      ]
+    },
+    {
+      "id": "ba711d86-9b2b-4363-bd69-6c011338a23f",
+      "type": "scan",
+      "savedAt": "2026-07-04T06:04:39.638Z",
+      "label": "Varredura virgem — 6 nicho(s)",
+      "discoveryMode": "virgin",
+      "nicheFilter": null,
+      "format": "SHORTS",
+      "status": "virgem",
+      "pioneerScore": 81,
+      "macroNiche": "Agronegócio",
+      "summary": {
+        "scanned": 24,
+        "validated": 21,
+        "virginCount": 6,
+        "pioneerCount": 6,
+        "topPick": "Agronegócio: Mapa + mistério",
+        "topMacro": "Agronegócio"
+      },
+      "discovery": {
+        "ok": true,
+        "discoveryMode": "virgin",
+        "baseNiche": null,
+        "format": "SHORTS",
+        "exaAvailable": true,
+        "logic": {
+          "version": "macro-angle-gap-v2",
+          "description": "Descoberta aberta: varre macro-nichos diversos (não preso ao nicho do projeto). Virgem = poucos canais dedicados no ângulo."
+        },
+        "pioneerNiches": [
+          {
+            "label": "Agronegócio: Mapa + mistério",
+            "macroNiche": "Agronegócio",
+            "angle": "Mistérios geográficos e terras esquecidas pela história oficial do agro",
+            "formatPattern": "Mapa interativo + Narrativa de mistério",
+            "youtubeSearchQuery": "agronegócio lugar misterioso mapa shorts",
+            "pioneerScore": 81,
+            "saturationPct": 9,
+            "macroSaturationPct": 89,
+            "gapScore": 80,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "O agronegócio no YouTube BR é dominado por maquinários ou notícias de mercado. Explorar mistérios territoriais e mapas históricos usando o formato dinâmico de Shorts é um oceano azul absoluto sem canais dedicados.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "agronegócio lugar misterioso mapa shorts",
+              "channelCount": 1,
+              "videoCount": 14,
+              "dedicatedChannels": 0,
+              "avgTopViews": 2119592,
+              "maxTopViews": 14675556,
+              "sampleChannels": [
+                {
+                  "title": "Estância FZPR ",
+                  "channelId": "UClCDsRugcMkuf4S3oeyvPBQ"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Parecia ce kkkkk…..#agro #humor #roça #viral #youtubeshorts #agriculture #comedia #caipira #fazenda",
+                  "views": 14675556,
+                  "videoId": "wgpgJpCV6xc"
+                },
+                {
+                  "title": "Como encontrar VEIO D'ÁGUA utilizando OVO 💧🥚#agrorural #agro #agronegócio #roça #agropecuaria",
+                  "views": 2187175,
+                  "videoId": "fhLEJqjc880"
+                },
+                {
+                  "title": "Humano gigante aparece na Cidade. #shorts #filmes #cinema #melhorfilme #recap",
+                  "views": 1733272,
+                  "videoId": "PJPOx7edrgc"
+                },
+                {
+                  "title": "corredor do abate 4 de novembro de 2022 #inshot",
+                  "views": 678461,
+                  "videoId": "7NTfm_a1BnY"
+                },
+                {
+                  "title": "#LAPBOOK# Geography Project",
+                  "views": 288549,
+                  "videoId": "ioHgZcC4YTc"
+                },
+                {
+                  "title": "Por que 88% do Uruguai é Completamente Vazio?",
+                  "views": 1486440,
+                  "videoId": "Y65jcrmsaIA"
+                },
+                {
+                  "title": "Quantos municípios com ITA- existem no Brasil?",
+                  "views": 1150,
+                  "videoId": "xOA_taKhKW8"
+                },
+                {
+                  "title": "dois dias comigo em Miami | sol, praia, comprinhas | eua | vlog novo jaja no canal | Marcella Timo",
+                  "views": 880,
+                  "videoId": "bI75PUTSrkA"
+                },
+                {
+                  "title": "Serra dos Montes Zona Rural de Paulo Ramos Maranhão",
+                  "views": 87215,
+                  "videoId": "LvE8TZfkNGU"
+                },
+                {
+                  "title": "Verdades que ninguém te conta sobre a cidade de Toledo - Paraná",
+                  "views": 57225,
+                  "videoId": "r5LwSnGb85M"
+                }
+              ],
+              "saturationPct": 9,
+              "macroSaturationPct": 89,
+              "gapScore": 80
+            },
+            "firstVideoIdea": "A cidade fantasma que o avanço da soja engoliu no interior do Mato Grosso",
+            "risk": "Dificuldade em encontrar imagens de satélite históricas ou mapas antigos de alta qualidade para ilustrar o Short."
+          },
+          {
+            "label": "Agronegócio: Arquivo público esquecido",
+            "macroNiche": "Agronegócio",
+            "angle": "Segredos e revelações históricas ocultas em documentos públicos do agro",
+            "formatPattern": "Análise de arquivo histórico + Revelação",
+            "youtubeSearchQuery": "agronegócio documento histórico raro shorts",
+            "pioneerScore": 81,
+            "saturationPct": 9,
+            "macroSaturationPct": 89,
+            "gapScore": 80,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Documentos históricos e registros de terras antigos guardam segredos fascinantes que nunca foram traduzidos para o formato rápido e visual dos Shorts, aproveitando a baixíssima saturação do nicho.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "agronegócio documento histórico raro shorts",
+              "channelCount": 0,
+              "videoCount": 16,
+              "dedicatedChannels": 0,
+              "avgTopViews": 2812124,
+              "maxTopViews": 27611010,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Rei das vaquejadas HOLLAND JECK",
+                  "views": 477615,
+                  "videoId": "t20ZdoPMgwc"
+                },
+                {
+                  "title": "Agrotóxico é banido da Europa e Estados Unidos por suspeita de causar câncer",
+                  "views": 738,
+                  "videoId": "VM3YcoEvUNY"
+                },
+                {
+                  "title": "Soja encarquilhada",
+                  "views": 787,
+                  "videoId": "GvyHSGWyHyc"
+                },
+                {
+                  "title": "ONU: Nicarágua precisa impedir assassinatos de manifestantes",
+                  "views": 970,
+                  "videoId": "Zws9KNRZ7fc"
+                },
+                {
+                  "title": "O DESASTRE DA ARGENTINA QUE O PT QUER TRAZER PARA O BRASIL",
+                  "views": 2665,
+                  "videoId": "Jc3gdF60MYI"
+                },
+                {
+                  "title": "Antony e Gabriel, DJ Kévin - Os Caipira Também Pode (Clipe Oficial)",
+                  "views": 27611010,
+                  "videoId": "ha3I908WaJo"
+                },
+                {
+                  "title": "APRENDA 3 TÉCNICAS DE FECHAMENTO PARA VENDAS TRANSACIONAIS QUE VÃO TE AJUDAR A VENDER MAIS",
+                  "views": 23317,
+                  "videoId": "GfIiFQkLi_g"
+                },
+                {
+                  "title": "Antônio Cabrera Mano Filho @FéTrabalho  -  #podcast 151 #feetrabalho #brasil #cabrera",
+                  "views": 2828,
+                  "videoId": "k4xlOCpYbck"
+                },
+                {
+                  "title": "QUEM SE CLASSIFICA COMO PEQUENO PRODUTOR RURAL",
+                  "views": 1204,
+                  "videoId": "qmF_nSWZ-Sw"
+                },
+                {
+                  "title": "#46 - Aumento no preço de máquinas agrícolas em 2022   - Agro em Foco",
+                  "views": 107,
+                  "videoId": "BPjkyUFuTOg"
+                }
+              ],
+              "saturationPct": 9,
+              "macroSaturationPct": 89,
+              "gapScore": 80
+            },
+            "firstVideoIdea": "O documento de 1880 que prova quem realmente mandava no café no Brasil",
+            "risk": "Tornar o conteúdo excessivamente burocrático ou acadêmico, perdendo a retenção rápida exigida pelos Shorts."
+          },
+          {
+            "label": "Agronegócio: Timeline de um objeto",
+            "macroNiche": "Agronegócio",
+            "angle": "A evolução histórica de ferramentas e objetos comuns que revolucionaram o campo",
+            "formatPattern": "Linha do tempo visual acelerada",
+            "youtubeSearchQuery": "agronegócio objeto história timeline shorts",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "A audiência do agro é altamente engajada com ferramentas e maquinários, mas há um gap imenso de conteúdo que reconte a história desses objetos sob uma perspectiva de design e evolução histórica em vídeos curtos.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "agronegócio objeto história timeline shorts",
+              "channelCount": 0,
+              "videoCount": 56,
+              "dedicatedChannels": 0,
+              "avgTopViews": 75488,
+              "maxTopViews": 526969,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "A VERDADE POR TRÁS DOS DESENHOS EM PLANTAÇÕES DE FAZENDAS",
+                  "views": 526969,
+                  "videoId": "pJZoi8p_Hew"
+                },
+                {
+                  "title": "Como surgiu a Inteligência Artificial?",
+                  "views": 14391,
+                  "videoId": "3wRlkakFfzk"
+                },
+                {
+                  "title": "Notícias. #noticias #agro #bolsonaro #lula #politica #fyp #shorts",
+                  "views": 41,
+                  "videoId": "e4-ARvPs8sc"
+                },
+                {
+                  "title": "COMO SURGEM OS AGROGLÍFOS? TONI INAJAR",
+                  "views": 1443,
+                  "videoId": "LqW3pdBxDds"
+                },
+                {
+                  "title": "O doce que faz seu estômago explodir! | DEVORADORES DE HISTÓRIA | HISTORY",
+                  "views": 17489,
+                  "videoId": "61sO2iGa2r8"
+                },
+                {
+                  "title": "Pesquisador ensina ao MST que sustentabilidade é produzir mais em menos terra  | #shorts",
+                  "views": 1209,
+                  "videoId": "x3kFdzTDoME"
+                },
+                {
+                  "title": "Nômades e Sedentários",
+                  "views": 145827,
+                  "videoId": "gs-bcrzbb8I"
+                },
+                {
+                  "title": "Os maçons mais famosos e ricos do brasil que você não fazia ideia que são membros da ordem!",
+                  "views": 38384,
+                  "videoId": "3HhmCo9_dmw"
+                },
+                {
+                  "title": "Conheça a história de Jhon Deere",
+                  "views": 951,
+                  "videoId": "guqld8pPxD8"
+                },
+                {
+                  "title": "Moray: O segredo da agricultura inca",
+                  "views": 8179,
+                  "videoId": "WnMG92qeAfc"
+                }
+              ],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73
+            },
+            "firstVideoIdea": "Como um simples arame farpado mudou a geopolítica das terras no Brasil",
+            "risk": "Limitação de acervo visual dinâmico para objetos muito antigos, exigindo edição criativa ou uso de IA para recriar cenários."
+          },
+          {
+            "label": "Tecnologia: Timeline de um objeto",
+            "macroNiche": "Tecnologia",
+            "angle": "A arqueologia digital e evolução de objetos tecnológicos obsoletos que moldaram o presente",
+            "formatPattern": "Linha do tempo visual acelerada",
+            "youtubeSearchQuery": "tecnologia objeto história timeline shorts",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Canais de tecnologia focam quase exclusivamente em reviews de lançamentos. Há um enorme gap de interesse nostálgico e histórico não explorado no formato Shorts.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "tecnologia objeto história timeline shorts",
+              "channelCount": 2,
+              "videoCount": 33,
+              "dedicatedChannels": 0,
+              "avgTopViews": 6942,
+              "maxTopViews": 20826,
+              "sampleChannels": [],
+              "sampleVideos": [],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "simulated": true
+            },
+            "firstVideoIdea": "A evolução do disquete: como ele ainda controla os trens de Nova York",
+            "risk": "Competir indiretamente com canais de curiosidades gerais, exigindo um foco estrito na evolução técnica do objeto para manter a identidade."
+          },
+          {
+            "label": "Tecnologia: Debunk em 3 atos",
+            "macroNiche": "Tecnologia",
+            "angle": "Desmistificando lendas urbanas tecnológicas com provas e engenharia reversa",
+            "formatPattern": "Debunk estruturado em 3 atos (Mito, Evidência, Verdade)",
+            "youtubeSearchQuery": "tecnologia mito verdade história shorts",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Mitos de tecnologia são replicados infinitamente na internet. Um formato focado em desmascarar essas mentiras com rigor técnico e edição ágil atrai tanto entusiastas quanto o público geral.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "tecnologia mito verdade história shorts",
+              "channelCount": 2,
+              "videoCount": 31,
+              "dedicatedChannels": 0,
+              "avgTopViews": 4215,
+              "maxTopViews": 21075,
+              "sampleChannels": [],
+              "sampleVideos": [],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "simulated": true
+            },
+            "firstVideoIdea": "A mentira do 'modo anônimo' que as empresas de tecnologia esconderam de você",
+            "risk": "Gerar atrito com comunidades de fãs ou marcas consolidadas ao desmistificar produtos e serviços populares."
+          },
+          {
+            "label": "Tecnologia: Arquivo público esquecido",
+            "macroNiche": "Tecnologia",
+            "angle": "Patentes bizarras e projetos secretos de tecnologia revelados em arquivos históricos",
+            "formatPattern": "Análise de arquivo histórico + Revelação",
+            "youtubeSearchQuery": "tecnologia documento histórico raro shorts",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Patentes antigas e documentos vazados contêm ideias bizarras e futuristas que nunca viraram produtos. Explorar esses arquivos em Shorts gera extrema curiosidade com concorrência quase nula.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "tecnologia documento histórico raro shorts",
+              "channelCount": 1,
+              "videoCount": 34,
+              "dedicatedChannels": 0,
+              "avgTopViews": 10498,
+              "maxTopViews": 52490,
+              "sampleChannels": [],
+              "sampleVideos": [],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "simulated": true
+            },
+            "firstVideoIdea": "A patente secreta de 1990 de um celular que lia mentes",
+            "risk": "Dificuldade de traduzir esquemas técnicos e patentes complexas em uma linguagem simples e visual de 60 segundos."
+          }
+        ],
+        "pioneerIdeas": [
+          {
+            "title": "A cidade fantasma que o avanço da soja engoliu no interior do Mato Grosso",
+            "hookPt": "Mistérios geográficos e terras esquecidas pela história oficial do agro",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "O agronegócio no YouTube BR é dominado por maquinários ou notícias de mercado. Explorar mistérios territoriais e mapas históricos usando o formato dinâmico de Shorts é um oceano azul absoluto sem canais dedicados.",
+            "format": "SHORTS",
+            "pioneerScore": 81,
+            "saturationPct": 9,
+            "status": "virgem",
+            "macroNiche": "Agronegócio",
+            "angle": "Mistérios geográficos e terras esquecidas pela história oficial do agro",
+            "formatPattern": "Mapa interativo + Narrativa de mistério",
+            "youtubeSearchQuery": "agronegócio lugar misterioso mapa shorts"
+          },
+          {
+            "title": "O documento de 1880 que prova quem realmente mandava no café no Brasil",
+            "hookPt": "Segredos e revelações históricas ocultas em documentos públicos do agro",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Documentos históricos e registros de terras antigos guardam segredos fascinantes que nunca foram traduzidos para o formato rápido e visual dos Shorts, aproveitando a baixíssima saturação do nicho.",
+            "format": "SHORTS",
+            "pioneerScore": 81,
+            "saturationPct": 9,
+            "status": "virgem",
+            "macroNiche": "Agronegócio",
+            "angle": "Segredos e revelações históricas ocultas em documentos públicos do agro",
+            "formatPattern": "Análise de arquivo histórico + Revelação",
+            "youtubeSearchQuery": "agronegócio documento histórico raro shorts"
+          },
+          {
+            "title": "Como um simples arame farpado mudou a geopolítica das terras no Brasil",
+            "hookPt": "A evolução histórica de ferramentas e objetos comuns que revolucionaram o campo",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "A audiência do agro é altamente engajada com ferramentas e maquinários, mas há um gap imenso de conteúdo que reconte a história desses objetos sob uma perspectiva de design e evolução histórica em vídeos curtos.",
+            "format": "SHORTS",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "status": "virgem",
+            "macroNiche": "Agronegócio",
+            "angle": "A evolução histórica de ferramentas e objetos comuns que revolucionaram o campo",
+            "formatPattern": "Linha do tempo visual acelerada",
+            "youtubeSearchQuery": "agronegócio objeto história timeline shorts"
+          },
+          {
+            "title": "A evolução do disquete: como ele ainda controla os trens de Nova York",
+            "hookPt": "A arqueologia digital e evolução de objetos tecnológicos obsoletos que moldaram o presente",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Canais de tecnologia focam quase exclusivamente em reviews de lançamentos. Há um enorme gap de interesse nostálgico e histórico não explorado no formato Shorts.",
+            "format": "SHORTS",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "status": "virgem",
+            "macroNiche": "Tecnologia",
+            "angle": "A arqueologia digital e evolução de objetos tecnológicos obsoletos que moldaram o presente",
+            "formatPattern": "Linha do tempo visual acelerada",
+            "youtubeSearchQuery": "tecnologia objeto história timeline shorts"
+          },
+          {
+            "title": "A mentira do 'modo anônimo' que as empresas de tecnologia esconderam de você",
+            "hookPt": "Desmistificando lendas urbanas tecnológicas com provas e engenharia reversa",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Mitos de tecnologia são replicados infinitamente na internet. Um formato focado em desmascarar essas mentiras com rigor técnico e edição ágil atrai tanto entusiastas quanto o público geral.",
+            "format": "SHORTS",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "status": "virgem",
+            "macroNiche": "Tecnologia",
+            "angle": "Desmistificando lendas urbanas tecnológicas com provas e engenharia reversa",
+            "formatPattern": "Debunk estruturado em 3 atos (Mito, Evidência, Verdade)",
+            "youtubeSearchQuery": "tecnologia mito verdade história shorts"
+          },
+          {
+            "title": "A patente secreta de 1990 de um celular que lia mentes",
+            "hookPt": "Patentes bizarras e projetos secretos de tecnologia revelados em arquivos históricos",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Patentes antigas e documentos vazados contêm ideias bizarras e futuristas que nunca viraram produtos. Explorar esses arquivos em Shorts gera extrema curiosidade com concorrência quase nula.",
+            "format": "SHORTS",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "status": "virgem",
+            "macroNiche": "Tecnologia",
+            "angle": "Patentes bizarras e projetos secretos de tecnologia revelados em arquivos históricos",
+            "formatPattern": "Análise de arquivo histórico + Revelação",
+            "youtubeSearchQuery": "tecnologia documento histórico raro shorts"
+          }
+        ],
+        "summary": {
+          "scanned": 24,
+          "validated": 21,
+          "virginCount": 6,
+          "pioneerCount": 6,
+          "topPick": "Agronegócio: Mapa + mistério",
+          "topMacro": "Agronegócio"
+        },
+        "fetchedAt": "2026-07-04T06:01:45.881Z"
+      },
+      "niches": [
+        {
+          "label": "Agronegócio: Mapa + mistério",
+          "status": "virgem",
+          "pioneerScore": 81,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-04T06:04:39.638Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "O agronegócio no YouTube BR é dominado por maquinários ou notícias de mercado. Explorar mistérios territoriais e mapas históricos usando o formato dinâmico de Shorts é um oceano azul absoluto sem canais dedicados.",
+              "headline": "Agronegócio: Mapa + mistério"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Agronegócio",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Mistérios geográficos e terras esquecidas pela história oficial do agro",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Mapa interativo + Narrativa de mistério",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "agronegócio lugar misterioso mapa shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 1,
+              "videoCount": 14,
+              "saturationPct": 9,
+              "macroSaturationPct": 89,
+              "gapScore": 80,
+              "avgTopViews": 2119592,
+              "maxTopViews": 14675556,
+              "sampleChannels": [
+                {
+                  "title": "Estância FZPR ",
+                  "channelId": "UClCDsRugcMkuf4S3oeyvPBQ"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Parecia ce kkkkk…..#agro #humor #roça #viral #youtubeshorts #agriculture #comedia #caipira #fazenda",
+                  "views": 14675556,
+                  "videoId": "wgpgJpCV6xc"
+                },
+                {
+                  "title": "Como encontrar VEIO D'ÁGUA utilizando OVO 💧🥚#agrorural #agro #agronegócio #roça #agropecuaria",
+                  "views": 2187175,
+                  "videoId": "fhLEJqjc880"
+                },
+                {
+                  "title": "Humano gigante aparece na Cidade. #shorts #filmes #cinema #melhorfilme #recap",
+                  "views": 1733272,
+                  "videoId": "PJPOx7edrgc"
+                },
+                {
+                  "title": "corredor do abate 4 de novembro de 2022 #inshot",
+                  "views": 678461,
+                  "videoId": "7NTfm_a1BnY"
+                },
+                {
+                  "title": "#LAPBOOK# Geography Project",
+                  "views": 288549,
+                  "videoId": "ioHgZcC4YTc"
+                },
+                {
+                  "title": "Por que 88% do Uruguai é Completamente Vazio?",
+                  "views": 1486440,
+                  "videoId": "Y65jcrmsaIA"
+                },
+                {
+                  "title": "Quantos municípios com ITA- existem no Brasil?",
+                  "views": 1150,
+                  "videoId": "xOA_taKhKW8"
+                },
+                {
+                  "title": "dois dias comigo em Miami | sol, praia, comprinhas | eua | vlog novo jaja no canal | Marcella Timo",
+                  "views": 880,
+                  "videoId": "bI75PUTSrkA"
+                },
+                {
+                  "title": "Serra dos Montes Zona Rural de Paulo Ramos Maranhão",
+                  "views": 87215,
+                  "videoId": "LvE8TZfkNGU"
+                },
+                {
+                  "title": "Verdades que ninguém te conta sobre a cidade de Toledo - Paraná",
+                  "views": 57225,
+                  "videoId": "r5LwSnGb85M"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 81,
+              "interestScore": 89,
+              "status": "virgem",
+              "whyPioneer": "O agronegócio no YouTube BR é dominado por maquinários ou notícias de mercado. Explorar mistérios territoriais e mapas históricos usando o formato dinâmico de Shorts é um oceano azul absoluto sem canais dedicados."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "A cidade fantasma que o avanço da soja engoliu no interior do Mato Grosso",
+              "hook": "Mistérios geográficos e terras esquecidas pela história oficial do agro"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Dificuldade em encontrar imagens de satélite históricas ou mapas antigos de alta qualidade para ilustrar o Short."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Rural, agronegócio e curiosos sobre campo e alimento."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Mapa interativo + Narrativa de mistério",
+                "Ângulo: Mistérios geográficos e terras esquecidas pela história oficial do agro",
+                "Gancho inicial: A cidade fantasma que o avanço da soja engoliu no interior do Mato Grosso",
+                "Referência: Parecia ce kkkkk…..#agro #humor #roça #viral #youtubeshorts #agriculture #comedia #caipira #fazenda"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Categoria virgem: menos concorrência por patrocínio de nicho."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "agronegócio lugar misterioso mapa shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Agronegócio: Mapa + mistério",
+            "macroNiche": "Agronegócio",
+            "angle": "Mistérios geográficos e terras esquecidas pela história oficial do agro",
+            "formatPattern": "Mapa interativo + Narrativa de mistério",
+            "youtubeSearchQuery": "agronegócio lugar misterioso mapa shorts",
+            "pioneerScore": 81,
+            "saturationPct": 9,
+            "macroSaturationPct": 89,
+            "gapScore": 80,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "O agronegócio no YouTube BR é dominado por maquinários ou notícias de mercado. Explorar mistérios territoriais e mapas históricos usando o formato dinâmico de Shorts é um oceano azul absoluto sem canais dedicados.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "agronegócio lugar misterioso mapa shorts",
+              "channelCount": 1,
+              "videoCount": 14,
+              "dedicatedChannels": 0,
+              "avgTopViews": 2119592,
+              "maxTopViews": 14675556,
+              "sampleChannels": [
+                {
+                  "title": "Estância FZPR ",
+                  "channelId": "UClCDsRugcMkuf4S3oeyvPBQ"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Parecia ce kkkkk…..#agro #humor #roça #viral #youtubeshorts #agriculture #comedia #caipira #fazenda",
+                  "views": 14675556,
+                  "videoId": "wgpgJpCV6xc"
+                },
+                {
+                  "title": "Como encontrar VEIO D'ÁGUA utilizando OVO 💧🥚#agrorural #agro #agronegócio #roça #agropecuaria",
+                  "views": 2187175,
+                  "videoId": "fhLEJqjc880"
+                },
+                {
+                  "title": "Humano gigante aparece na Cidade. #shorts #filmes #cinema #melhorfilme #recap",
+                  "views": 1733272,
+                  "videoId": "PJPOx7edrgc"
+                },
+                {
+                  "title": "corredor do abate 4 de novembro de 2022 #inshot",
+                  "views": 678461,
+                  "videoId": "7NTfm_a1BnY"
+                },
+                {
+                  "title": "#LAPBOOK# Geography Project",
+                  "views": 288549,
+                  "videoId": "ioHgZcC4YTc"
+                },
+                {
+                  "title": "Por que 88% do Uruguai é Completamente Vazio?",
+                  "views": 1486440,
+                  "videoId": "Y65jcrmsaIA"
+                },
+                {
+                  "title": "Quantos municípios com ITA- existem no Brasil?",
+                  "views": 1150,
+                  "videoId": "xOA_taKhKW8"
+                },
+                {
+                  "title": "dois dias comigo em Miami | sol, praia, comprinhas | eua | vlog novo jaja no canal | Marcella Timo",
+                  "views": 880,
+                  "videoId": "bI75PUTSrkA"
+                },
+                {
+                  "title": "Serra dos Montes Zona Rural de Paulo Ramos Maranhão",
+                  "views": 87215,
+                  "videoId": "LvE8TZfkNGU"
+                },
+                {
+                  "title": "Verdades que ninguém te conta sobre a cidade de Toledo - Paraná",
+                  "views": 57225,
+                  "videoId": "r5LwSnGb85M"
+                }
+              ],
+              "saturationPct": 9,
+              "macroSaturationPct": 89,
+              "gapScore": 80
+            },
+            "firstVideoIdea": "A cidade fantasma que o avanço da soja engoliu no interior do Mato Grosso",
+            "risk": "Dificuldade em encontrar imagens de satélite históricas ou mapas antigos de alta qualidade para ilustrar o Short."
+          }
+        },
+        {
+          "label": "Agronegócio: Arquivo público esquecido",
+          "status": "virgem",
+          "pioneerScore": 81,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-04T06:04:39.638Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Documentos históricos e registros de terras antigos guardam segredos fascinantes que nunca foram traduzidos para o formato rápido e visual dos Shorts, aproveitando a baixíssima saturação do nicho.",
+              "headline": "Agronegócio: Arquivo público esquecido"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Agronegócio",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Segredos e revelações históricas ocultas em documentos públicos do agro",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Análise de arquivo histórico + Revelação",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "agronegócio documento histórico raro shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 0,
+              "videoCount": 16,
+              "saturationPct": 9,
+              "macroSaturationPct": 89,
+              "gapScore": 80,
+              "avgTopViews": 2812124,
+              "maxTopViews": 27611010,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Rei das vaquejadas HOLLAND JECK",
+                  "views": 477615,
+                  "videoId": "t20ZdoPMgwc"
+                },
+                {
+                  "title": "Agrotóxico é banido da Europa e Estados Unidos por suspeita de causar câncer",
+                  "views": 738,
+                  "videoId": "VM3YcoEvUNY"
+                },
+                {
+                  "title": "Soja encarquilhada",
+                  "views": 787,
+                  "videoId": "GvyHSGWyHyc"
+                },
+                {
+                  "title": "ONU: Nicarágua precisa impedir assassinatos de manifestantes",
+                  "views": 970,
+                  "videoId": "Zws9KNRZ7fc"
+                },
+                {
+                  "title": "O DESASTRE DA ARGENTINA QUE O PT QUER TRAZER PARA O BRASIL",
+                  "views": 2665,
+                  "videoId": "Jc3gdF60MYI"
+                },
+                {
+                  "title": "Antony e Gabriel, DJ Kévin - Os Caipira Também Pode (Clipe Oficial)",
+                  "views": 27611010,
+                  "videoId": "ha3I908WaJo"
+                },
+                {
+                  "title": "APRENDA 3 TÉCNICAS DE FECHAMENTO PARA VENDAS TRANSACIONAIS QUE VÃO TE AJUDAR A VENDER MAIS",
+                  "views": 23317,
+                  "videoId": "GfIiFQkLi_g"
+                },
+                {
+                  "title": "Antônio Cabrera Mano Filho @FéTrabalho  -  #podcast 151 #feetrabalho #brasil #cabrera",
+                  "views": 2828,
+                  "videoId": "k4xlOCpYbck"
+                },
+                {
+                  "title": "QUEM SE CLASSIFICA COMO PEQUENO PRODUTOR RURAL",
+                  "views": 1204,
+                  "videoId": "qmF_nSWZ-Sw"
+                },
+                {
+                  "title": "#46 - Aumento no preço de máquinas agrícolas em 2022   - Agro em Foco",
+                  "views": 107,
+                  "videoId": "BPjkyUFuTOg"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 81,
+              "interestScore": 89,
+              "status": "virgem",
+              "whyPioneer": "Documentos históricos e registros de terras antigos guardam segredos fascinantes que nunca foram traduzidos para o formato rápido e visual dos Shorts, aproveitando a baixíssima saturação do nicho."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "O documento de 1880 que prova quem realmente mandava no café no Brasil",
+              "hook": "Segredos e revelações históricas ocultas em documentos públicos do agro"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Tornar o conteúdo excessivamente burocrático ou acadêmico, perdendo a retenção rápida exigida pelos Shorts."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Rural, agronegócio e curiosos sobre campo e alimento."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Análise de arquivo histórico + Revelação",
+                "Ângulo: Segredos e revelações históricas ocultas em documentos públicos do agro",
+                "Gancho inicial: O documento de 1880 que prova quem realmente mandava no café no Brasil",
+                "Referência: Rei das vaquejadas HOLLAND JECK"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Categoria virgem: menos concorrência por patrocínio de nicho."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "agronegócio documento histórico raro shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Agronegócio: Arquivo público esquecido",
+            "macroNiche": "Agronegócio",
+            "angle": "Segredos e revelações históricas ocultas em documentos públicos do agro",
+            "formatPattern": "Análise de arquivo histórico + Revelação",
+            "youtubeSearchQuery": "agronegócio documento histórico raro shorts",
+            "pioneerScore": 81,
+            "saturationPct": 9,
+            "macroSaturationPct": 89,
+            "gapScore": 80,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Documentos históricos e registros de terras antigos guardam segredos fascinantes que nunca foram traduzidos para o formato rápido e visual dos Shorts, aproveitando a baixíssima saturação do nicho.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "agronegócio documento histórico raro shorts",
+              "channelCount": 0,
+              "videoCount": 16,
+              "dedicatedChannels": 0,
+              "avgTopViews": 2812124,
+              "maxTopViews": 27611010,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Rei das vaquejadas HOLLAND JECK",
+                  "views": 477615,
+                  "videoId": "t20ZdoPMgwc"
+                },
+                {
+                  "title": "Agrotóxico é banido da Europa e Estados Unidos por suspeita de causar câncer",
+                  "views": 738,
+                  "videoId": "VM3YcoEvUNY"
+                },
+                {
+                  "title": "Soja encarquilhada",
+                  "views": 787,
+                  "videoId": "GvyHSGWyHyc"
+                },
+                {
+                  "title": "ONU: Nicarágua precisa impedir assassinatos de manifestantes",
+                  "views": 970,
+                  "videoId": "Zws9KNRZ7fc"
+                },
+                {
+                  "title": "O DESASTRE DA ARGENTINA QUE O PT QUER TRAZER PARA O BRASIL",
+                  "views": 2665,
+                  "videoId": "Jc3gdF60MYI"
+                },
+                {
+                  "title": "Antony e Gabriel, DJ Kévin - Os Caipira Também Pode (Clipe Oficial)",
+                  "views": 27611010,
+                  "videoId": "ha3I908WaJo"
+                },
+                {
+                  "title": "APRENDA 3 TÉCNICAS DE FECHAMENTO PARA VENDAS TRANSACIONAIS QUE VÃO TE AJUDAR A VENDER MAIS",
+                  "views": 23317,
+                  "videoId": "GfIiFQkLi_g"
+                },
+                {
+                  "title": "Antônio Cabrera Mano Filho @FéTrabalho  -  #podcast 151 #feetrabalho #brasil #cabrera",
+                  "views": 2828,
+                  "videoId": "k4xlOCpYbck"
+                },
+                {
+                  "title": "QUEM SE CLASSIFICA COMO PEQUENO PRODUTOR RURAL",
+                  "views": 1204,
+                  "videoId": "qmF_nSWZ-Sw"
+                },
+                {
+                  "title": "#46 - Aumento no preço de máquinas agrícolas em 2022   - Agro em Foco",
+                  "views": 107,
+                  "videoId": "BPjkyUFuTOg"
+                }
+              ],
+              "saturationPct": 9,
+              "macroSaturationPct": 89,
+              "gapScore": 80
+            },
+            "firstVideoIdea": "O documento de 1880 que prova quem realmente mandava no café no Brasil",
+            "risk": "Tornar o conteúdo excessivamente burocrático ou acadêmico, perdendo a retenção rápida exigida pelos Shorts."
+          }
+        },
+        {
+          "label": "Agronegócio: Timeline de um objeto",
+          "status": "virgem",
+          "pioneerScore": 75,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-04T06:04:39.638Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "A audiência do agro é altamente engajada com ferramentas e maquinários, mas há um gap imenso de conteúdo que reconte a história desses objetos sob uma perspectiva de design e evolução histórica em vídeos curtos.",
+              "headline": "Agronegócio: Timeline de um objeto"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Agronegócio",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "A evolução histórica de ferramentas e objetos comuns que revolucionaram o campo",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Linha do tempo visual acelerada",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "agronegócio objeto história timeline shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 0,
+              "videoCount": 56,
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "avgTopViews": 75488,
+              "maxTopViews": 526969,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "A VERDADE POR TRÁS DOS DESENHOS EM PLANTAÇÕES DE FAZENDAS",
+                  "views": 526969,
+                  "videoId": "pJZoi8p_Hew"
+                },
+                {
+                  "title": "Como surgiu a Inteligência Artificial?",
+                  "views": 14391,
+                  "videoId": "3wRlkakFfzk"
+                },
+                {
+                  "title": "Notícias. #noticias #agro #bolsonaro #lula #politica #fyp #shorts",
+                  "views": 41,
+                  "videoId": "e4-ARvPs8sc"
+                },
+                {
+                  "title": "COMO SURGEM OS AGROGLÍFOS? TONI INAJAR",
+                  "views": 1443,
+                  "videoId": "LqW3pdBxDds"
+                },
+                {
+                  "title": "O doce que faz seu estômago explodir! | DEVORADORES DE HISTÓRIA | HISTORY",
+                  "views": 17489,
+                  "videoId": "61sO2iGa2r8"
+                },
+                {
+                  "title": "Pesquisador ensina ao MST que sustentabilidade é produzir mais em menos terra  | #shorts",
+                  "views": 1209,
+                  "videoId": "x3kFdzTDoME"
+                },
+                {
+                  "title": "Nômades e Sedentários",
+                  "views": 145827,
+                  "videoId": "gs-bcrzbb8I"
+                },
+                {
+                  "title": "Os maçons mais famosos e ricos do brasil que você não fazia ideia que são membros da ordem!",
+                  "views": 38384,
+                  "videoId": "3HhmCo9_dmw"
+                },
+                {
+                  "title": "Conheça a história de Jhon Deere",
+                  "views": 951,
+                  "videoId": "guqld8pPxD8"
+                },
+                {
+                  "title": "Moray: O segredo da agricultura inca",
+                  "views": 8179,
+                  "videoId": "WnMG92qeAfc"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 75,
+              "interestScore": 89,
+              "status": "virgem",
+              "whyPioneer": "A audiência do agro é altamente engajada com ferramentas e maquinários, mas há um gap imenso de conteúdo que reconte a história desses objetos sob uma perspectiva de design e evolução histórica em vídeos curtos."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "Como um simples arame farpado mudou a geopolítica das terras no Brasil",
+              "hook": "A evolução histórica de ferramentas e objetos comuns que revolucionaram o campo"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Limitação de acervo visual dinâmico para objetos muito antigos, exigindo edição criativa ou uso de IA para recriar cenários."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Rural, agronegócio e curiosos sobre campo e alimento."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Linha do tempo visual acelerada",
+                "Ângulo: A evolução histórica de ferramentas e objetos comuns que revolucionaram o campo",
+                "Gancho inicial: Como um simples arame farpado mudou a geopolítica das terras no Brasil",
+                "Referência: A VERDADE POR TRÁS DOS DESENHOS EM PLANTAÇÕES DE FAZENDAS"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Categoria virgem: menos concorrência por patrocínio de nicho."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "agronegócio objeto história timeline shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Agronegócio: Timeline de um objeto",
+            "macroNiche": "Agronegócio",
+            "angle": "A evolução histórica de ferramentas e objetos comuns que revolucionaram o campo",
+            "formatPattern": "Linha do tempo visual acelerada",
+            "youtubeSearchQuery": "agronegócio objeto história timeline shorts",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "A audiência do agro é altamente engajada com ferramentas e maquinários, mas há um gap imenso de conteúdo que reconte a história desses objetos sob uma perspectiva de design e evolução histórica em vídeos curtos.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "agronegócio objeto história timeline shorts",
+              "channelCount": 0,
+              "videoCount": 56,
+              "dedicatedChannels": 0,
+              "avgTopViews": 75488,
+              "maxTopViews": 526969,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "A VERDADE POR TRÁS DOS DESENHOS EM PLANTAÇÕES DE FAZENDAS",
+                  "views": 526969,
+                  "videoId": "pJZoi8p_Hew"
+                },
+                {
+                  "title": "Como surgiu a Inteligência Artificial?",
+                  "views": 14391,
+                  "videoId": "3wRlkakFfzk"
+                },
+                {
+                  "title": "Notícias. #noticias #agro #bolsonaro #lula #politica #fyp #shorts",
+                  "views": 41,
+                  "videoId": "e4-ARvPs8sc"
+                },
+                {
+                  "title": "COMO SURGEM OS AGROGLÍFOS? TONI INAJAR",
+                  "views": 1443,
+                  "videoId": "LqW3pdBxDds"
+                },
+                {
+                  "title": "O doce que faz seu estômago explodir! | DEVORADORES DE HISTÓRIA | HISTORY",
+                  "views": 17489,
+                  "videoId": "61sO2iGa2r8"
+                },
+                {
+                  "title": "Pesquisador ensina ao MST que sustentabilidade é produzir mais em menos terra  | #shorts",
+                  "views": 1209,
+                  "videoId": "x3kFdzTDoME"
+                },
+                {
+                  "title": "Nômades e Sedentários",
+                  "views": 145827,
+                  "videoId": "gs-bcrzbb8I"
+                },
+                {
+                  "title": "Os maçons mais famosos e ricos do brasil que você não fazia ideia que são membros da ordem!",
+                  "views": 38384,
+                  "videoId": "3HhmCo9_dmw"
+                },
+                {
+                  "title": "Conheça a história de Jhon Deere",
+                  "views": 951,
+                  "videoId": "guqld8pPxD8"
+                },
+                {
+                  "title": "Moray: O segredo da agricultura inca",
+                  "views": 8179,
+                  "videoId": "WnMG92qeAfc"
+                }
+              ],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73
+            },
+            "firstVideoIdea": "Como um simples arame farpado mudou a geopolítica das terras no Brasil",
+            "risk": "Limitação de acervo visual dinâmico para objetos muito antigos, exigindo edição criativa ou uso de IA para recriar cenários."
+          }
+        },
+        {
+          "label": "Tecnologia: Timeline de um objeto",
+          "status": "virgem",
+          "pioneerScore": 75,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-04T06:04:39.638Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Canais de tecnologia focam quase exclusivamente em reviews de lançamentos. Há um enorme gap de interesse nostálgico e histórico não explorado no formato Shorts.",
+              "headline": "Tecnologia: Timeline de um objeto"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Tecnologia",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "A arqueologia digital e evolução de objetos tecnológicos obsoletos que moldaram o presente",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Linha do tempo visual acelerada",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "tecnologia objeto história timeline shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 2,
+              "videoCount": 33,
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "avgTopViews": 6942,
+              "maxTopViews": 20826,
+              "sampleChannels": [],
+              "sampleVideos": []
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 75,
+              "interestScore": 89,
+              "status": "virgem",
+              "whyPioneer": "Canais de tecnologia focam quase exclusivamente em reviews de lançamentos. Há um enorme gap de interesse nostálgico e histórico não explorado no formato Shorts."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "A evolução do disquete: como ele ainda controla os trens de Nova York",
+              "hook": "A arqueologia digital e evolução de objetos tecnológicos obsoletos que moldaram o presente"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Competir indiretamente com canais de curiosidades gerais, exigindo um foco estrito na evolução técnica do objeto para manter a identidade."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Entusiastas de tech e história da inovação."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Linha do tempo visual acelerada",
+                "Ângulo: A arqueologia digital e evolução de objetos tecnológicos obsoletos que moldaram o presente",
+                "Gancho inicial: A evolução do disquete: como ele ainda controla os trens de Nova York"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Demanda ainda a validar — foque em retenção nos primeiros uploads.",
+                "Categoria virgem: menos concorrência por patrocínio de nicho."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "tecnologia objeto história timeline shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Tecnologia: Timeline de um objeto",
+            "macroNiche": "Tecnologia",
+            "angle": "A arqueologia digital e evolução de objetos tecnológicos obsoletos que moldaram o presente",
+            "formatPattern": "Linha do tempo visual acelerada",
+            "youtubeSearchQuery": "tecnologia objeto história timeline shorts",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Canais de tecnologia focam quase exclusivamente em reviews de lançamentos. Há um enorme gap de interesse nostálgico e histórico não explorado no formato Shorts.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "tecnologia objeto história timeline shorts",
+              "channelCount": 2,
+              "videoCount": 33,
+              "dedicatedChannels": 0,
+              "avgTopViews": 6942,
+              "maxTopViews": 20826,
+              "sampleChannels": [],
+              "sampleVideos": [],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "simulated": true
+            },
+            "firstVideoIdea": "A evolução do disquete: como ele ainda controla os trens de Nova York",
+            "risk": "Competir indiretamente com canais de curiosidades gerais, exigindo um foco estrito na evolução técnica do objeto para manter a identidade."
+          }
+        },
+        {
+          "label": "Tecnologia: Debunk em 3 atos",
+          "status": "virgem",
+          "pioneerScore": 75,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-04T06:04:39.638Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Mitos de tecnologia são replicados infinitamente na internet. Um formato focado em desmascarar essas mentiras com rigor técnico e edição ágil atrai tanto entusiastas quanto o público geral.",
+              "headline": "Tecnologia: Debunk em 3 atos"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Tecnologia",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Desmistificando lendas urbanas tecnológicas com provas e engenharia reversa",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Debunk estruturado em 3 atos (Mito, Evidência, Verdade)",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "tecnologia mito verdade história shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 2,
+              "videoCount": 31,
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "avgTopViews": 4215,
+              "maxTopViews": 21075,
+              "sampleChannels": [],
+              "sampleVideos": []
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 75,
+              "interestScore": 89,
+              "status": "virgem",
+              "whyPioneer": "Mitos de tecnologia são replicados infinitamente na internet. Um formato focado em desmascarar essas mentiras com rigor técnico e edição ágil atrai tanto entusiastas quanto o público geral."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "A mentira do 'modo anônimo' que as empresas de tecnologia esconderam de você",
+              "hook": "Desmistificando lendas urbanas tecnológicas com provas e engenharia reversa"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Gerar atrito com comunidades de fãs ou marcas consolidadas ao desmistificar produtos e serviços populares."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Entusiastas de tech e história da inovação."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Debunk estruturado em 3 atos (Mito, Evidência, Verdade)",
+                "Ângulo: Desmistificando lendas urbanas tecnológicas com provas e engenharia reversa",
+                "Gancho inicial: A mentira do 'modo anônimo' que as empresas de tecnologia esconderam de você"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Demanda ainda a validar — foque em retenção nos primeiros uploads.",
+                "Categoria virgem: menos concorrência por patrocínio de nicho."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "tecnologia mito verdade história shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Tecnologia: Debunk em 3 atos",
+            "macroNiche": "Tecnologia",
+            "angle": "Desmistificando lendas urbanas tecnológicas com provas e engenharia reversa",
+            "formatPattern": "Debunk estruturado em 3 atos (Mito, Evidência, Verdade)",
+            "youtubeSearchQuery": "tecnologia mito verdade história shorts",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Mitos de tecnologia são replicados infinitamente na internet. Um formato focado em desmascarar essas mentiras com rigor técnico e edição ágil atrai tanto entusiastas quanto o público geral.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "tecnologia mito verdade história shorts",
+              "channelCount": 2,
+              "videoCount": 31,
+              "dedicatedChannels": 0,
+              "avgTopViews": 4215,
+              "maxTopViews": 21075,
+              "sampleChannels": [],
+              "sampleVideos": [],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "simulated": true
+            },
+            "firstVideoIdea": "A mentira do 'modo anônimo' que as empresas de tecnologia esconderam de você",
+            "risk": "Gerar atrito com comunidades de fãs ou marcas consolidadas ao desmistificar produtos e serviços populares."
+          }
+        },
+        {
+          "label": "Tecnologia: Arquivo público esquecido",
+          "status": "virgem",
+          "pioneerScore": 75,
+          "format": "SHORTS",
+          "discoveryMode": "virgin",
+          "nicheFilter": null,
+          "savedAt": "2026-07-04T06:04:39.638Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Patentes antigas e documentos vazados contêm ideias bizarras e futuristas que nunca viraram produtos. Explorar esses arquivos em Shorts gera extrema curiosidade com concorrência quase nula.",
+              "headline": "Tecnologia: Arquivo público esquecido"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Tecnologia",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Patentes bizarras e projetos secretos de tecnologia revelados em arquivos históricos",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Análise de arquivo histórico + Revelação",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "tecnologia documento histórico raro shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 1,
+              "videoCount": 34,
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "avgTopViews": 10498,
+              "maxTopViews": 52490,
+              "sampleChannels": [],
+              "sampleVideos": []
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 75,
+              "interestScore": 89,
+              "status": "virgem",
+              "whyPioneer": "Patentes antigas e documentos vazados contêm ideias bizarras e futuristas que nunca viraram produtos. Explorar esses arquivos em Shorts gera extrema curiosidade com concorrência quase nula."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "A patente secreta de 1990 de um celular que lia mentes",
+              "hook": "Patentes bizarras e projetos secretos de tecnologia revelados em arquivos históricos"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Dificuldade de traduzir esquemas técnicos e patentes complexas em uma linguagem simples e visual de 60 segundos."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Entusiastas de tech e história da inovação."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Análise de arquivo histórico + Revelação",
+                "Ângulo: Patentes bizarras e projetos secretos de tecnologia revelados em arquivos históricos",
+                "Gancho inicial: A patente secreta de 1990 de um celular que lia mentes"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Categoria virgem: menos concorrência por patrocínio de nicho."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "tecnologia documento histórico raro shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Tecnologia: Arquivo público esquecido",
+            "macroNiche": "Tecnologia",
+            "angle": "Patentes bizarras e projetos secretos de tecnologia revelados em arquivos históricos",
+            "formatPattern": "Análise de arquivo histórico + Revelação",
+            "youtubeSearchQuery": "tecnologia documento histórico raro shorts",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Patentes antigas e documentos vazados contêm ideias bizarras e futuristas que nunca viraram produtos. Explorar esses arquivos em Shorts gera extrema curiosidade com concorrência quase nula.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "tecnologia documento histórico raro shorts",
+              "channelCount": 1,
+              "videoCount": 34,
+              "dedicatedChannels": 0,
+              "avgTopViews": 10498,
+              "maxTopViews": 52490,
+              "sampleChannels": [],
+              "sampleVideos": [],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "simulated": true
+            },
+            "firstVideoIdea": "A patente secreta de 1990 de um celular que lia mentes",
+            "risk": "Dificuldade de traduzir esquemas técnicos e patentes complexas em uma linguagem simples e visual de 60 segundos."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,233 +1,252 @@
 {
-  "version": 1,
-  "savedAt": "2026-07-01T01:00:21.149Z",
+  "version": 2,
+  "savedAt": "2026-07-05T22:01:28.936Z",
   "wasInWizard": true,
   "activeTab": "creator",
-  "activeProject": "Buracos no Deserto",
+  "activeProject": "Lei_Babilonia_punia",
   "creatorStep": 1,
-  "nicheInput": "curiosidades e fatos surpreendentes",
+  "nicheInput": "engenharia japao",
   "formatSelector": "SHORTS",
   "ideasData": {
     "diagnostic": {
-      "looking_for": "Quebras de padrão intelectuais, fenômenos inexplicados e paradoxos do nosso cotidiano.",
-      "pain_points": "Encontrar canais que repetem as mesmas cinco listas da Wikipedia exaustivamente.",
-      "desires": "Adquirir um conhecimento bizarro e real que sirva de munição para conversas e cause espanto imediato.",
-      "retention_fears": "Ganchos longos, excesso de adjetivos e demora para entregar a promessa principal do vídeo.",
-      "comment_hooks": "Fatos históricos ou biológicos altamente específicos e documentados que forçam o espectador a checar no Google.",
-      "title_style": "Afirmações diretas, enxutas e ancoradas em dados concretos (nomes, lugares ou datas específicas).",
-      "core_emotion": "Perplexidade misturada com o sentimento de urgência de descobrir a verdade.",
-      "retention_topics": "Contradições geográficas, bizarrices biológicas evolutivas e paradoxos cronológicos reais.",
-      "strong_angle": "Contrastar uma verdade tida como absoluta com um acontecimento bizarro que pouquíssimas pessoas conhecem."
+      "looking_for": "Soluções urbanísticas bizarras, tecnologias de infraestrutura resilientes e adaptações extremas do Japão a desastres.",
+      "pain_points": "Canais concorrentes que repetem a mesma lista de curiosidades rasas sem mostrar o mecanismo mecânico por trás.",
+      "desires": "Entender de forma simples a física e a engenharia de estruturas futuristas e soluções urbanas curiosas.",
+      "retention_fears": "Explicações excessivamente técnicas que parecem aula acadêmica ou falta de conexão com a utilidade prática.",
+      "comment_hooks": "Comparações inevitáveis com a infraestrutura e planejamento do Brasil, além de debates sobre o custo das obras.",
+      "title_style": "Títulos afirmativos curtíssimos que destacam um elemento incomum ou absurdo e sua consequência prática.",
+      "core_emotion": "Admiração pela precisão e obsessão milimétrica dos projetos japoneses.",
+      "retention_topics": "Uso de sistemas hidráulicos monumentais subterrâneos, proteção animal integrada e aproveitamento de micrometeorologia.",
+      "strong_angle": "Focar na obsessão japonesa pelo detalhe que evita desastres bilionários ou salva pequenas frações do cotidiano."
     },
     "ideas": [
       {
-        "title": "O mapa de 1513 que previu a Antártida 🗺️",
-        "promise": "Explicar o mistério cronológico do mapa de Piri Reis, desenhado séculos antes do continente ser descoberto.",
-        "emotion": "Surpresa",
-        "why_works": "Desafia diretamente as linhas do tempo dos livros escolares de geografia através de um documento histórico real.",
-        "best_format": "SHORTS",
-        "viral_category": "provocative",
-        "hook_angle": "secret",
-        "hooks": "Um mapa de 1513 desenhou a Antártida perfeita.",
-        "hook_candidates": [
-          "Um mapa de 1513 desenhou a Antártida perfeita.",
-          "Como esse mapa antigo desenhou um continente oculto?",
-          "A geografia impossível impressa em 1513."
-        ],
-        "wow_facts_preview": [
-          "Desenhado pelo almirante turco Piri Reis",
-          "Mostra o continente sem cobertura de gelo",
-          "Antártida só foi descoberta oficialmente em 1820"
-        ]
-      },
-      {
-        "title": "Este lago da Tanzânia mumifica animais 🦅",
-        "promise": "Apresentar a química letal do Lago Natron que petrifica e preserva corpos de aves intactos.",
-        "emotion": "Surpresa",
-        "why_works": "Quebra a expectativa comum sobre a natureza ao mostrar águas que agem de forma idêntica à mumificação egípcia.",
-        "best_format": "SHORTS",
-        "viral_category": "astonishing",
-        "hook_angle": "shock",
-        "hooks": "Este lago africano transforma animais em pedra.",
-        "hook_candidates": [
-          "Este lago africano transforma animais em pedra.",
-          "O ecossistema mortal que petrifica aves inteiras.",
-          "Animais viram estátuas de sal neste lugar."
-        ],
-        "wow_facts_preview": [
-          "O pH da água atinge a marca extrema de 10.5",
-          "Preserva cadáveres com precisão cirúrgica de estátua",
-          "Temperatura local chega a bater 60 graus célsius"
-        ]
-      },
-      {
-        "title": "O erro de arquitetura que derreteu carros",
-        "promise": "Expor o desastre do arranha-céu côncavo de Londres que virou uma lente térmica na calçada.",
-        "emotion": "Surpresa",
-        "why_works": "Associa uma falha de engenharia hipermoderna a um dano material bizarro e totalmente visual.",
+        "title": "Trilho do trem-bala salvando tartarugas 🐢",
+        "promise": "Como túneis milimétricos impedem descarrilamentos de trens de alta velocidade.",
+        "emotion": "Surpresa de engenhosidade",
+        "why_works": "Mostra como um problema biológico simples exigiu engenharia física para evitar acidentes ferroviários milionários, gerando identificação imediata.",
         "best_format": "SHORTS",
         "viral_category": "impactful",
         "hook_angle": "problem_solution",
-        "hooks": "Este arranha-céu em Londres derreteu carros na rua.",
+        "hooks": "Esse bueiro minúsculo no Japão salva trens inteiros",
         "hook_candidates": [
-          "Este arranha-céu em Londres derreteu carros na rua.",
-          "O prédio côncavo que virou um raio solar térmico.",
-          "Como a luz de um edifício destruiu um Jaguar."
+          "Esse bueiro minúsculo salva trens inteiros",
+          "Por que o trem-bala japonês precisa de tartarugas?",
+          "A engenharia que protege tartarugas de descarrilar trens"
         ],
         "wow_facts_preview": [
-          "Edifício Walkie Talkie causou o surto em 2013",
-          "Luz refletida concentrou calor de 117 graus",
-          "Derreteu a carenagem plástica de veículos estacionados"
+          "Trilhos equipados com túneis em U de concreto de 15cm",
+          "Redução de 90% nas falhas mecânicas por obstrução de animais",
+          "Trem Shinkansen trafega a 320 km por hora com segurança total"
         ]
       },
       {
-        "title": "O salmão que você compra nasce cinza 🐟",
-        "promise": "Explicar o processo industrial de pigmentação artificial adicionado à ração dos peixes de cativeiro.",
-        "emotion": "Curiosidade",
-        "why_works": "Ativa o interesse prático ao revelar um segredo biológico de um alimento de consumo diário massivo.",
-        "best_format": "SHORTS",
-        "viral_category": "practical",
-        "hook_angle": "before_after",
-        "hooks": "O salmão de cativeiro nasce inteiramente cinza.",
-        "hook_candidates": [
-          "O salmão de cativeiro nasce inteiramente cinza.",
-          "A cor rosa do seu peixe é puramente artificial.",
-          "Antes cinza, depois rosa: o truque do salmão."
-        ],
-        "wow_facts_preview": [
-          "Peixes de fazenda não comem pequenos crustáceos",
-          "A indústria adiciona astaxantina sintética na ração",
-          "Sem o aditivo a carne seria branca ou acinzentada"
-        ]
-      },
-      {
-        "title": "Uma nuvem invisível sufocou 1700 pessoas",
-        "promise": "Relatar o desastre do Lago Nyos em 1986, onde uma liberação súbita de CO2 dizimou vilas inteiras.",
-        "emotion": "Surpresa",
-        "why_works": "Uma tragédia real documentada que opera de forma silenciosa, parecendo enredo de suspense de ficção científica.",
-        "best_format": "SHORTS",
-        "viral_category": "astonishing",
-        "hook_angle": "breaking",
-        "hooks": "Em 1986, uma nuvem invisible asfixiou três vilas.",
-        "hook_candidates": [
-          "Em 1986, uma nuvem invisible asfixiou três vilas.",
-          "O dia em que um lago asfixiou 1700 pessoas.",
-          "A erupção invisível que eliminou populações dormindo."
-        ],
-        "wow_facts_preview": [
-          "Erupção límnica ocorrida em Camarões no ano de 1986",
-          "1 milhão de toneladas de CO2 expelidas em minutos",
-          "Gás cobriu de forma letal um raio de 25km"
-        ]
-      },
-      {
-        "title": "Quase nenhuma bandeira usa a cor roxa 💡",
-        "promise": "Demonstrar a escassez histórica do pigmento roxo extraído de moluscos até a revolução sintética.",
-        "emotion": "Curiosidade",
-        "why_works": "Usa uma observação visual simples da geopolítica global que passa batida por 99% das pessoas.",
-        "best_format": "SHORTS",
-        "viral_category": "provocative",
-        "hook_angle": "challenge",
-        "hooks": "Apenas dois países usam a cor roxa em bandeiras.",
-        "hook_candidates": [
-          "Apenas dois países usam a cor roxa em bandeiras.",
-          "A cor proibida nas bandeiras de quase todo o mundo.",
-          "Descubra por que imperadores monopolizavam o tecido roxo."
-        ],
-        "wow_facts_preview": [
-          "Dominica e Nicarágua são as únicas exceções mundiais",
-          "Pigmento exigia dez mil caracóis para um grama",
-          "A alternativa sintética barata surgiu só em 1856"
-        ]
-      },
-      {
-        "title": "Abaixo do Magic Kingdom há ruas secretas",
-        "promise": "Expor o imenso labirinto subterrâneo construído sob o parque principal da Disney na Flórida.",
-        "emotion": "Surpresa",
-        "why_works": "Revela os segredos estruturais de engenharia de um dos pontos turísticos mais vigiados e famosos do planeta.",
-        "best_format": "SHORTS",
-        "viral_category": "impactful",
-        "hook_angle": "secret",
-        "hooks": "Existe uma cidade subterrânea oculta debaixo da Disney.",
-        "hook_candidates": [
-          "Existe uma cidade subterrânea oculta debaixo da Disney.",
-          "Os túneis secretos que sustentam o parque temático.",
-          "O mundo subterrâneo construído abaixo do Magic Kingdom."
-        ],
-        "wow_facts_preview": [
-          "O complexo gigante chama-se túneis Utilidores",
-          "Ocupa um espaço de 360 mil metros quadrados",
-          "Construído para mover lixo e funcionários sem quebrar a ilusão"
-        ]
-      },
-      {
-        "title": "O pequeno furo na caneta salva vidas 🖋️",
-        "promise": "Mostrar a lógica de segurança por trás do orifício nas tampas das canetas esferográficas Bic.",
-        "emotion": "Curiosidade",
-        "why_works": "Conecta um traço de design totalmente despercebido em um item doméstico banal a um salva-vidas crucial.",
-        "best_format": "SHORTS",
-        "viral_category": "practical",
-        "hook_angle": "personal",
-        "hooks": "O furo na tampa da caneta Bic salva vidas.",
-        "hook_candidates": [
-          "O furo na tampa da caneta Bic salva vidas.",
-          "Você tem esse objeto em casa e não sabe disso.",
-          "O detalhe de engenharia que impede mortes por asfixia."
-        ],
-        "wow_facts_preview": [
-          "Norma de segurança internacional implementada em 1991",
-          "Permite a passagem contínua de ar caso seja engolida",
-          "Reduziu drasticamente casos de sufocamento acidental"
-        ]
-      },
-      {
-        "title": "A ilha brasileira proibida para humanos",
-        "promise": "Revelar as condições biológicas extremas da Ilha da Queimada Grande, dominada por cobras venenosas.",
-        "emotion": "Surpresa",
-        "why_works": "Explora o medo instintivo e a fascinação por ecossistemas intocados onde a presença humana foi banida por lei.",
+        "title": "Engenheiros do Japão reviveram um mamute",
+        "promise": "A bioengenharia que ativou células de 28 mil anos de idade.",
+        "emotion": "Fascínio científico",
+        "why_works": "Leva o espectador para a fronteira da biotecnologia japonesa usando um gancho histórico poderoso de recriação biológica.",
         "best_format": "SHORTS",
         "viral_category": "astonishing",
         "hook_angle": "shock",
-        "hooks": "Esta ilha brasileira tem cinco cobras por metro quadrado.",
+        "hooks": "Eles usaram física para ligar células congeladas milenares",
         "hook_candidates": [
-          "Esta ilha brasileira tem os piores monstros da costa.",
-          "O pedaço de terra isolado proibido pela Marinha.",
-          "O lugar perigoso dominado pela jararaca-ilhoa."
+          "Eles ligaram células congeladas de mamute",
+          "Cientistas japoneses reativaram vida de 28 mil anos",
+          "O motor biológico japonês que despertou células mortas"
         ],
         "wow_facts_preview": [
-          "Localizada no litoral sul de São Paulo",
-          "Abriga a letal espécie jararaca-ilhoa isolada há séculos",
-          "Veneno evoluiu para derreter tecidos e agir de imediato"
+          "Núcleos da mamute Yuka de 28.000 anos reativados",
+          "Fusão celular feita com microinjeções magnéticas",
+          "Cientistas da Universidade Kindai de Osaka lideraram a façanha"
         ]
       },
       {
-        "title": "Quem inventou o primeiro meme em 1921",
-        "promise": "Apresentar a tirinha cômica centenária que utilizou a estrutura exata de piada visual usada hoje.",
-        "emotion": "Curiosidade",
-        "why_works": "Faz uma ponte hilária e direta com a cultura digital contemporânea, provando que o humor visual não é novo.",
+        "title": "Japão taxa donos por limpar terrenos #Shorts",
+        "promise": "Por que o governo cobra mais caro se você demolir sua casa.",
+        "emotion": "Indignação econômica",
+        "why_works": "Usa um paradoxo de economia e habitação japonesa (as Akiya) que quebra totalmente o senso comum sobre propriedade e leis.",
         "best_format": "SHORTS",
         "viral_category": "provocative",
-        "hook_angle": "question",
-        "hooks": "O primeiro meme do mundo foi impresso em 1921.",
+        "hook_angle": "breaking",
+        "hooks": "Derrubar uma casa velha no Japão custa uma fortuna",
         "hook_candidates": [
-          "O primeiro meme do mundo foi impresso em 1921.",
-          "A piada centenária idêntica ao humor do Twitter.",
-          "Quem desenhou o formato de piada moderna há cem anos?"
+          "Limpar o seu lote no Japão custa muito caro",
+          "A taxa bizarra sobre casas abandonadas no Japão",
+          "A lei que impede demolições de casas fantasmas"
         ],
         "wow_facts_preview": [
-          "Publicado na revista de humor satírico Judge",
-          "Usa o molde estrito de Expectativa versus Realidade",
-          "Ilustração com mais de cem anos de idade histórica"
+          "Imposto territorial aumenta em até 6 vezes sem construção",
+          "Mais de 8,5 milhões de casas vazias deixadas abandonadas",
+          "Engenheiros buscam novos materiais de demolição rápida de baixo custo"
+        ]
+      },
+      {
+        "title": "Kansai afunda e custa bilhões de ienes",
+        "promise": "A batalha de engenharia contra um aeroporto que afunda no oceano.",
+        "emotion": "Tensão contra o tempo",
+        "why_works": "Expõe o megaprojeto de Kansai e como elevadores hidráulicos impedem que ele desapareça debaixo d'água, unindo recordes e risco extremo.",
+        "best_format": "SHORTS",
+        "viral_category": "astonishing",
+        "hook_angle": "before_after",
+        "hooks": "Este aeroporto bilionário no mar afundou 10 metros",
+        "hook_candidates": [
+          "Este aeroporto no mar afundou 10 metros",
+          "O truque de bilhões para Kansai não afundar de vez",
+          "Cem macacos hidráulicos seguram este aeroporto gigante"
+        ],
+        "wow_facts_preview": [
+          "Ilha artificial de Kansai afundou 11 metros desde 1994",
+          "900 colunas ajustáveis com sensores eletrônicos milimétricos",
+          "Uso de 40.000 blocos de concreto tetrópodes para ondas"
+        ]
+      },
+      {
+        "title": "Sumô robótico do Japão usa superímãs 🤯",
+        "promise": "A física de robôs autônomos hiper velozes no sumô de metal.",
+        "emotion": "Empolgação tecnológica",
+        "why_works": "Conecta cultura pop com uma competição de recordes mecânicos onde a força de adesão desafia a gravidade das câmeras lentas.",
+        "best_format": "SHORTS",
+        "viral_category": "practical",
+        "hook_angle": "challenge",
+        "hooks": "Este robô de metal pesa 3 quilos e voa",
+        "hook_candidates": [
+          "Este mini robô pesa 3 quilos e voa",
+          "A engenharia secreta do esporte mais rápido do Japão",
+          "Ímãs de neodímio que evitam acidentes no sumô robótico"
+        ],
+        "wow_facts_preview": [
+          "Robôs de 3kg atingem velocidade de 5 metros por segundo",
+          "Ímãs geram 1.000 newtons de força de atração ao solo",
+          "Tempo de resposta do motor controlado em microsegundos"
+        ]
+      },
+      {
+        "title": "Pistas de ciclismo perfeitas do Japão",
+        "promise": "Como o Japão calcula a inclinação milimétrica das pistas de Keirin.",
+        "emotion": "Curiosidade geométrica",
+        "why_works": "Revela o projeto de física aplicada ao esporte de apostas milionárias do país, onde a inclinação evita mortes em alta velocidade.",
+        "best_format": "SHORTS",
+        "viral_category": "impactful",
+        "hook_angle": "question",
+        "hooks": "Por que esta curva japonesa tem essa inclinação exata?",
+        "hook_candidates": [
+          "Por que esta curva japonesa tem inclinação extrema?",
+          "A matemática por trás do ciclismo da morte Keirin",
+          "Pistas sem juntas que evitam quedas a 70km/h"
+        ],
+        "wow_facts_preview": [
+          "Curvas inclinadas a exatamente 45 graus para manter aderência",
+          "Asfalto nivelado sem costura com tolerância menor que 2mm",
+          "Ciclistas geram força centrífuga de até 2G em velocidade"
+        ]
+      },
+      {
+        "title": "Estradas do Japão tocam música de anime",
+        "promise": "O cálculo matemático de ranhuras no asfalto para criar som físico.",
+        "emotion": "Divertimento musical",
+        "why_works": "Une a cultura pop musical com engenharia acústica simples que funciona apenas usando as leis de propagação de frequência dos pneus.",
+        "best_format": "SHORTS",
+        "viral_category": "practical",
+        "hook_angle": "personal",
+        "hooks": "O asfalto japonês toca música se você acelerar certo",
+        "hook_candidates": [
+          "O asfalto toca música se você correr correto",
+          "Como buracos cirúrgicos na estrada viraram uma rádio",
+          "Engenharia de estradas musicais que salvam motoristas com sono"
+        ],
+        "wow_facts_preview": [
+          "Ranhuras de 9 a 24 milímetros esculpidas em sequência lógica",
+          "A velocidade ideal de 50km/h produz o tom em Lá natural",
+          "Mais de 30 estradas musicais reduzem acidentes de trânsito"
+        ]
+      },
+      {
+        "title": "Relógio de bronze do Japão calcula o Sol",
+        "promise": "Como engrenagens analógicas de 1851 regulavam o tempo sazonal.",
+        "emotion": "Admiração mecânica",
+        "why_works": "Apresenta a genialidade mecânica japonesa pré-eletrônica isolada do ocidente, provando sofisticação sem auxílio computacional.",
+        "best_format": "SHORTS",
+        "viral_category": "astonishing",
+        "hook_angle": "secret",
+        "hooks": "Esta máquina de 1851 dividia as estações do ano",
+        "hook_candidates": [
+          "Essa máquina de bronze previa as estações do ano",
+          "O computador analógico que mudava de tamanho sozinho",
+          "O relógio japonês de 1000 peças que nunca para"
+        ],
+        "wow_facts_preview": [
+          "Ajuste automático de engrenagens para dias mais curtos no inverno",
+          "Projeto Manen Jidosho levou 3 anos para ser fabricado",
+          "Contém mais de 1.000 peças fundidas à mão sem moldes"
+        ]
+      },
+      {
+        "title": "Rodovia passa dentro de prédio no Japão",
+        "promise": "A bizarra solução jurídica e arquitetônica do Gate Tower em Osaka.",
+        "emotion": "Admiração urbanística",
+        "why_works": "Explica a solução surreal de infraestrutura onde a estrada perfura um edifício de escritórios comercial de forma isolada.",
+        "best_format": "SHORTS",
+        "viral_category": "practical",
+        "hook_angle": "question",
+        "hooks": "Esta rodovia passa no meio de um escritório inteiro",
+        "hook_candidates": [
+          "Esta rodovia passa dentro de um edifício comercial",
+          "Por que esse prédio japonês aceitou uma rua interna?",
+          "A engenharia que isolou o ruído do asfalto flutuante"
+        ],
+        "wow_facts_preview": [
+          "A rodovia Hanshin passa pelos andares 5, 6 e 7",
+          "Prédio não toca fisicamente na ponte para evitar vibrações",
+          "Governo japonês paga aluguel de espaço aéreo ao proprietário"
+        ]
+      },
+      {
+        "title": "Ilha fantasma de concreto no Japão #Hashima",
+        "promise": "A barreira de concreto de 1916 criada contra os piores supertufões.",
+        "emotion": "Mistério histórico",
+        "why_works": "Explora a mecânica da muralha marítima brutalista que manteve em pé os primeiros arranha-céus japoneses em uma ilha isolada no mar.",
+        "best_format": "SHORTS",
+        "viral_category": "impactful",
+        "hook_angle": "before_after",
+        "hooks": "Esta barreira protegeu prédios fantasmas no meio do mar",
+        "hook_candidates": [
+          "Esta parede gigante salvou prédios de concreto abandonados",
+          "A estrutura naval rústica da ilha mais densa do mundo",
+          "Muralhas marinhas de Hashima duram há mais de cem anos"
+        ],
+        "wow_facts_preview": [
+          "Muralhas externas calculadas contra impacto de ondas de 10 metros",
+          "Primeiro edifício residencial de concreto do Japão construído lá",
+          "Abandono total em 1974 com a mina de carvão desativada"
         ]
       }
     ],
-    "best_idea_index": 2,
-    "best_idea_reason": "A ideia do arranha-céu que derrete carros reúne as melhores métricas para retenção imediata em Shorts. Ela amarra um objeto moderno facilmente reconhecível (um prédio espelhado), um erro de engenharia colossal de um país famoso e um desfecho absurdo com prova material clara (um Jaguar de luxo deformado pelo reflexo solar). O apelo inteiramente visual alimenta o tempo de tela e gera discussões instintivas nos comentários sobre a estupidez da arquitetura."
+    "best_idea_index": 0,
+    "best_idea_reason": "A ideia dos túneis subterrâneos de tartarugas integrados à malha ferroviária do Shinkansen possui altíssimo poder de retenção visual e compartilhamento. Ela combina biologia animal inusitada e engenharia de precisão com uma resolução rápida e muito clara para o público leigo. Evidencia a obsessão japonesa pelos detalhes mais improváveis que sustentam sua infraestrutura perfeita, gerando engajamento imediato nos comentários por debater o contraste com bueiros e ferrovias do resto do mundo.",
+    "_ideas_meta": {
+      "generationSeed": 402820871,
+      "excludedCount": 40,
+      "usedDeepResearch": true,
+      "deepResearch": {
+        "factCount": 12,
+        "derivedIdeas": 3,
+        "outlierCount": 0,
+        "legs": {
+          "web": true,
+          "exa": true,
+          "notebooklm": true,
+          "competitors": true
+        },
+        "legErrors": 0
+      },
+      "usedWebResearch": false,
+      "usedNotebooklm": false
+    }
   },
   "selectedIdeaIndex": 0,
   "generatedScriptData": null,
-  "creatorProjectName": "mapa_1513_previu",
-  "creatorScript": "Por que centenas de pessoas dançaram até morrer? Em julho de 1518, uma mulher chamada Frau Troffea começou a dançar sem parar nas ruas de Estrasburgo. Em um mês, quatrocentas pessoas se juntaram a ela. Elas dançavam dia e noite, chorando de dor e implorando para parar. No auge, o surto matava quinze pessoas por dia por exaustão ou infarto. Bizarramente, o governo contratou músicos para incentivar a dança, achando que o cansaço curaria a crise. A ciência moderna aponta que o estresse extremo da fome causou um colapso mental coletivo.",
+  "creatorProjectName": "Trilho_trembala_salvando",
+  "creatorScript": "",
   "ideationTab": "ai",
   "customTitle": "",
   "customHooks": "",
@@ -238,64 +257,33 @@
       "content": ""
     }
   ],
-  "customIdeaTitle": "O mapa de 1513 que previu a Antártida 🗺️",
-  "customIdeaPromise": "Explicar o mistério cronológico do mapa de Piri Reis, desenhado séculos antes do continente ser descoberto.",
+  "customIdeaTitle": "",
+  "customIdeaPromise": "",
   "customIdeaHook": "",
-  "customIdeaEmotion": "Surpresa",
+  "customIdeaEmotion": "",
   "customIdeaBlocks": "",
-  "listNiche": "curiosidades e fatos surpreendentes",
-  "listTopic": "fatos mais chocantes que poucos conhecem",
-  "rankCount": 3,
+  "listNiche": "",
+  "listTopic": "",
+  "rankCount": 20,
   "rankOrder": "desc",
-  "listicleHudStyle": "full",
+  "listicleHudStyle": "auto",
   "listicleIdeasData": null,
-  "listicleSearchNiche": "curiosidades engenharia antiga",
-  "ideasSearchNiche": "curiosidades e fatos surpreendentes",
+  "listicleSearchNiche": "",
+  "ideasSearchNiche": "engenharia japao",
   "selectedListicleIdeaIndex": -1,
   "showNarrationReview": false,
-  "narrationDraft": "Por que centenas de pessoas dançaram até morrer? Em julho de 1518, uma mulher chamada Frau Troffea começou a dançar sem parar nas ruas de Estrasburgo. Em um mês, quatrocentas pessoas se juntaram a ela. Elas dançavam dia e noite, chorando de dor e implorando para parar. No auge, o surto matava quinze pessoas por dia por exaustão ou infarto. Bizarramente, o governo contratou músicos para incentivar a dança, achando que o cansaço curaria a crise. A ciência moderna aponta que o estresse extremo da fome causou um colapso mental coletivo.",
+  "narrationDraft": "",
   "narrationTaggedDraft": "",
-  "narrationStrategy": {
-    "title_main": "A epidemia de dança que matou pessoas 💃",
-    "title_variations": [],
-    "hook": "Por que centenas de pessoas dançaram até morrer?",
-    "target_audience": "Público interessado em curiosidades históricas, mistérios médicos e fatos bizarras",
-    "tone": "Curioso, enxuto e documental",
-    "pinned_comment": "",
-    "cta": ""
-  },
-  "narrationBlockPhrases": [
-    {
-      "block": 1,
-      "phrase": "Por que centenas de pessoas"
-    },
-    {
-      "block": 2,
-      "phrase": "Em julho de 1518, uma"
-    },
-    {
-      "block": 3,
-      "phrase": "Em um mês, quatrocentas pessoas"
-    },
-    {
-      "block": 4,
-      "phrase": "No auge, o surto matava"
-    },
-    {
-      "block": 5,
-      "phrase": "A ciência moderna aponta que"
-    }
-  ],
-  "narrationBlockScript": "Por que centenas de pessoas dançaram até morrer?\n\nEm julho de 1518, uma mulher chamada Frau Troffea começou a dançar sem parar nas ruas de Estrasburgo.\n\nEm um mês, quatrocentas pessoas se juntaram a ela. Elas dançavam dia e noite, chorando de dor e implorando para parar.\n\nNo auge, o surto matava quinze pessoas por dia por exaustão ou infarto. Bizarramente, o governo contratou músicos para incentivar a dança, achando que o cansaço curaria a crise.\n\nA ciência moderna aponta que o estresse extremo da fome causou um colapso mental coletivo.",
+  "narrationStrategy": null,
+  "narrationBlockPhrases": [],
+  "narrationBlockScript": "",
   "narrationNotebooklmEnriched": false,
-  "narrationProjectName": "epidemia_danca_matou",
+  "narrationProjectName": "",
   "useNotebooklm": true,
+  "useDeepResearch": true,
   "uploadedScenes": {},
   "expandedBlocks": {
-    "1": true,
-    "2": true,
-    "3": true,
-    "4": true,
-    "5": true
-  }
+    "1": true
+  },
+  "editorialIdeaImport": null
 }
