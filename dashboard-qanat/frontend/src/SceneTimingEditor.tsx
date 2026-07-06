@@ -62,6 +62,7 @@ type Props = {
       narration_text?: string;
       narration_excerpt?: string;
     }>;
+    overlays?: any[];
   };
   wordTranscripts: any[];
   getMediaUrl: (file: string) => string;
@@ -73,7 +74,8 @@ type Props = {
       start_offset: number;
       end_offset: number;
       text: string;
-    }>
+    }>,
+    storyboardOverlays?: any[]
   ) => Promise<void>;
   toast: (msg: string) => void;
 };
@@ -151,11 +153,13 @@ export function SceneTimingEditor({
 }: Props) {
   const [draft, setDraft] = useState<Record<string, TimelineAsset[]>>({});
   const [draftImpactTexts, setDraftImpactTexts] = useState<any[]>([]);
+  const [draftOverlays, setDraftOverlays] = useState<any[]>([]);
   const [activeBlock, setActiveBlock] = useState("1");
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [draggingDivider, setDraggingDivider] = useState<number | null>(null);
+
   const [draggingOverlay, setDraggingOverlay] = useState<{
     type: "slide" | "resize-left" | "resize-right";
     overlayIndex: number;
@@ -175,7 +179,13 @@ export function SceneTimingEditor({
   useEffect(() => {
     setDraft(structuredClone(config?.timeline_assets || {}));
     setDraftImpactTexts(structuredClone(config?.impact_texts || []));
-  }, [config?.timeline_assets, config?.impact_texts, activeProject]);
+    setDraftOverlays(structuredClone(storyboard?.overlays || []));
+  }, [
+    config?.timeline_assets,
+    config?.impact_texts,
+    storyboard?.overlays,
+    activeProject,
+  ]);
 
   const flatWords = useMemo(
     () => flattenTranscriptWords(wordTranscripts),
@@ -350,6 +360,7 @@ export function SceneTimingEditor({
     };
   }, [draggingDivider, handleDividerDrag]);
 
+  // Drag handler for Storyboard Overlays on the track
   const handleOverlayDragMove = useCallback(
     (e: MouseEvent) => {
       if (!draggingOverlay || !timelineRef.current || !blockModel) return;
@@ -359,48 +370,54 @@ export function SceneTimingEditor({
       const deltaTime = (deltaX / rect.width) * blockModel.totalDuration;
 
       const targetIdx = draggingOverlay.overlayIndex;
-      const originalOt = draftImpactTexts[targetIdx];
+      const originalOt = draftOverlays[targetIdx];
       if (!originalOt) return;
 
-      let newStart = originalOt.start_offset;
-      let newEnd = originalOt.end_offset;
+      let newStartAbs = originalOt.start;
+      let newDuration = originalOt.duration;
+
+      const initialStartRel =
+        draggingOverlay.initialStart - blockModel.narrationStart;
+      const initialEndRel =
+        draggingOverlay.initialEnd - blockModel.narrationStart;
 
       if (draggingOverlay.type === "slide") {
-        const duration =
-          draggingOverlay.initialEnd - draggingOverlay.initialStart;
-        newStart = draggingOverlay.initialStart + deltaTime;
-        newStart = Math.max(
+        let newStartRel = initialStartRel + deltaTime;
+        newStartRel = Math.max(
           0,
-          Math.min(newStart, blockModel.totalDuration - duration)
+          Math.min(newStartRel, blockModel.totalDuration - newDuration)
         );
-        newEnd = newStart + duration;
+        newStartAbs = blockModel.narrationStart + newStartRel;
       } else if (draggingOverlay.type === "resize-left") {
-        newStart = draggingOverlay.initialStart + deltaTime;
-        newStart = Math.max(
-          0,
-          Math.min(newStart, draggingOverlay.initialEnd - 0.2)
-        );
+        let newStartRel = initialStartRel + deltaTime;
+        newStartRel = Math.max(0, Math.min(newStartRel, initialEndRel - 0.2));
+        newStartAbs = blockModel.narrationStart + newStartRel;
+        newDuration = draggingOverlay.initialEnd - newStartAbs;
       } else if (draggingOverlay.type === "resize-right") {
-        newEnd = draggingOverlay.initialEnd + deltaTime;
-        newEnd = Math.max(
-          draggingOverlay.initialStart + 0.2,
-          Math.min(newEnd, blockModel.totalDuration)
+        const newEndAbs = draggingOverlay.initialEnd + deltaTime;
+        const newEndRel = Math.max(
+          initialStartRel + 0.2,
+          Math.min(
+            newEndAbs - blockModel.narrationStart,
+            blockModel.totalDuration
+          )
         );
+        newDuration = newEndRel - initialStartRel;
       }
 
-      const updated = draftImpactTexts.map((ot, idx) => {
+      const updated = draftOverlays.map((ot, idx) => {
         if (idx === targetIdx) {
           return {
             ...ot,
-            start_offset: parseFloat(newStart.toFixed(2)),
-            end_offset: parseFloat(newEnd.toFixed(2)),
+            start: parseFloat(newStartAbs.toFixed(3)),
+            duration: parseFloat(newDuration.toFixed(3)),
           };
         }
         return ot;
       });
-      setDraftImpactTexts(updated);
+      setDraftOverlays(updated);
     },
-    [draggingOverlay, blockModel, draftImpactTexts]
+    [draggingOverlay, blockModel, draftOverlays]
   );
 
   useEffect(() => {
@@ -481,7 +498,7 @@ export function SceneTimingEditor({
           enriched[blockKey] = applyAudioStartsFromScenes(assets, model);
         }
       }
-      await onSave(enriched, draftImpactTexts);
+      await onSave(enriched, draftImpactTexts, draftOverlays);
       setDraft(enriched);
       toast("Timing das cenas e overlays salvos.");
     } catch {
@@ -491,10 +508,36 @@ export function SceneTimingEditor({
     }
   };
 
-  // AI Overlays (Impact Text) helpers
+  // Storyboard overlays selectors
   const activeBlockOverlays = useMemo(() => {
-    return draftImpactTexts.filter((ot) => ot.block === Number(activeBlock));
-  }, [draftImpactTexts, activeBlock]);
+    return draftOverlays.filter((ot) => ot.block_ref === Number(activeBlock));
+  }, [draftOverlays, activeBlock]);
+
+  const updateOverlayText = (indexInActive: number, newText: string) => {
+    let count = 0;
+    const nextOverlays = draftOverlays.map((ot) => {
+      if (ot.block_ref === Number(activeBlock)) {
+        if (count === indexInActive) {
+          const props = { ...ot.props };
+          if (
+            "label" in props ||
+            ot.type === "counter" ||
+            ot.type === "lower-third"
+          ) {
+            props.label = newText;
+          } else if ("text" in props) {
+            props.text = newText;
+          } else {
+            props.label = newText;
+          }
+          return { ...ot, props };
+        }
+        count++;
+      }
+      return ot;
+    });
+    setDraftOverlays(nextOverlays);
+  };
 
   const updateOverlayField = (
     indexInActive: number,
@@ -502,8 +545,8 @@ export function SceneTimingEditor({
     value: any
   ) => {
     let count = 0;
-    const nextImpactTexts = draftImpactTexts.map((ot) => {
-      if (ot.block === Number(activeBlock)) {
+    const nextOverlays = draftOverlays.map((ot) => {
+      if (ot.block_ref === Number(activeBlock)) {
         if (count === indexInActive) {
           return { ...ot, [field]: value };
         }
@@ -511,13 +554,13 @@ export function SceneTimingEditor({
       }
       return ot;
     });
-    setDraftImpactTexts(nextImpactTexts);
+    setDraftOverlays(nextOverlays);
   };
 
   const deleteOverlay = (indexInActive: number) => {
     let count = 0;
-    const nextImpactTexts = draftImpactTexts.filter((ot) => {
-      if (ot.block === Number(activeBlock)) {
+    const nextOverlays = draftOverlays.filter((ot) => {
+      if (ot.block_ref === Number(activeBlock)) {
         if (count === indexInActive) {
           count++;
           return false;
@@ -526,22 +569,35 @@ export function SceneTimingEditor({
       }
       return true;
     });
-    setDraftImpactTexts(nextImpactTexts);
+    setDraftOverlays(nextOverlays);
     toast("Overlay removido.");
   };
 
   const addOverlay = () => {
     const newOverlay = {
-      block: Number(activeBlock),
-      start_offset: 0,
-      end_offset: Math.min(3, blockModel?.totalDuration || 5),
-      text: "TEXTO DO OVERLAY",
+      id: `overlay-${Date.now()}`,
+      type: "lower-third",
+      start: parseFloat((blockModel?.narrationStart || 0).toFixed(3)),
+      duration: 3.0,
+      scene_ref: `${activeBlock}.1`,
+      block_ref: Number(activeBlock),
+      timing_manual: true,
+      props: {
+        label: "NOVO OVERLAY",
+        theme: "classic",
+        position: "top-left",
+        customStyle: {
+          background: "rgba(18, 18, 20, 0.92)",
+          border: "1.5px solid rgba(255, 255, 255, 0.15)",
+          borderRadius: "20px",
+        },
+      },
     };
-    setDraftImpactTexts([...draftImpactTexts, newOverlay]);
+    setDraftOverlays([...draftOverlays, newOverlay]);
     toast("Overlay adicionado.");
   };
 
-  // Find active scene and overlay at current player playhead
+  // Find active scene and active overlay in preview
   const activeSceneInPreview = useMemo(() => {
     if (!blockModel || !blockModel.scenes.length) return null;
     let acc = 0;
@@ -551,17 +607,18 @@ export function SceneTimingEditor({
       }
       acc += scene.duration;
     }
-    // Freeze last scene frame if playhead goes past the end
     return blockModel.scenes[blockModel.scenes.length - 1];
   }, [blockModel, currentTime]);
 
   const activeOverlayInPreview = useMemo(() => {
-    return activeBlockOverlays.find(
-      (ot) => currentTime >= ot.start_offset && currentTime <= ot.end_offset
+    if (!blockModel) return null;
+    const currentAbsTime = blockModel.narrationStart + currentTime;
+    return draftOverlays.find(
+      (ot) =>
+        currentAbsTime >= ot.start && currentAbsTime <= ot.start + ot.duration
     );
-  }, [activeBlockOverlays, currentTime]);
+  }, [draftOverlays, blockModel, currentTime]);
 
-  // Preview Play/Pause click handler (drives the audio narration playback)
   const handlePreviewPlayToggle = () => {
     if (!blockModel) return;
 
@@ -574,7 +631,6 @@ export function SceneTimingEditor({
         if (startAbs < endAbs) {
           playScene(activeBlock, 999, startAbs, endAbs);
         } else {
-          // Play from beginning if playhead is at the end
           playScene(
             activeBlock,
             999,
@@ -583,7 +639,6 @@ export function SceneTimingEditor({
           );
         }
       } else {
-        // Visual-only simulation fallback
         if (currentTime >= blockModel.totalDuration) {
           setCurrentTime(0);
         }
@@ -738,8 +793,8 @@ export function SceneTimingEditor({
                 </span>
                 {hasNarration && (
                   <span className="text-[10px] text-zinc-650 flex items-center gap-1">
-                    <Volume2 className="w-3 h-3" /> Arraste os divisores para
-                    redistribuir tempo
+                    <Volume2 className="w-3 h-3" /> Arraste as cenas ou os
+                    overlays para ajustar o tempo
                   </span>
                 )}
               </div>
@@ -853,14 +908,14 @@ export function SceneTimingEditor({
                 {/* ROW 2: AI Overlays Track */}
                 <div className="relative h-16 bg-zinc-950/45 flex items-center px-1">
                   {activeBlockOverlays.map((ot) => {
-                    const fullIdx = draftImpactTexts.findIndex((x) => x === ot);
+                    const fullIdx = draftOverlays.findIndex((x) => x === ot);
                     if (fullIdx === -1) return null;
                     const leftPct =
-                      (ot.start_offset / blockModel.totalDuration) * 100;
-                    const widthPct =
-                      ((ot.end_offset - ot.start_offset) /
+                      (Math.max(0, ot.start - blockModel.narrationStart) /
                         blockModel.totalDuration) *
                       100;
+                    const widthPct =
+                      (ot.duration / blockModel.totalDuration) * 100;
                     return (
                       <div
                         key={fullIdx}
@@ -879,8 +934,8 @@ export function SceneTimingEditor({
                               type: "resize-left",
                               overlayIndex: fullIdx,
                               initialX: e.clientX,
-                              initialStart: ot.start_offset,
-                              initialEnd: ot.end_offset,
+                              initialStart: ot.start,
+                              initialEnd: ot.start + ot.duration,
                             });
                           }}
                         />
@@ -894,16 +949,16 @@ export function SceneTimingEditor({
                               type: "slide",
                               overlayIndex: fullIdx,
                               initialX: e.clientX,
-                              initialStart: ot.start_offset,
-                              initialEnd: ot.end_offset,
+                              initialStart: ot.start,
+                              initialEnd: ot.start + ot.duration,
                             });
                           }}
                         >
                           <span className="text-[9px] font-extrabold uppercase tracking-wide text-cyan-400 leading-none mb-0.5 truncate">
-                            Overlay
+                            {ot.type}
                           </span>
                           <span className="text-[9px] font-medium truncate text-zinc-300 leading-none">
-                            {ot.text}
+                            {ot.props?.label || ot.props?.text || ""}
                           </span>
                         </div>
 
@@ -916,8 +971,8 @@ export function SceneTimingEditor({
                               type: "resize-right",
                               overlayIndex: fullIdx,
                               initialX: e.clientX,
-                              initialStart: ot.start_offset,
-                              initialEnd: ot.end_offset,
+                              initialStart: ot.start,
+                              initialEnd: ot.start + ot.duration,
                             });
                           }}
                         />
@@ -938,11 +993,11 @@ export function SceneTimingEditor({
               </div>
             </div>
 
-            {/* AI OVERLAYS / IMPACT TEXT EDITOR PANEL */}
+            {/* AI OVERLAYS / HYPERFRAMES EDITOR PANEL */}
             <div className="ste-timeline-wrap glass-panel p-5 rounded-xl space-y-3.5">
               <div className="flex justify-between items-center pb-2 border-b border-zinc-900">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-gold-500 flex items-center gap-1.5">
-                  🎨 Overlays de Texto IA
+                  🎨 Overlays de Texto IA (HyperFrames)
                 </span>
                 <span className="text-[9px] text-zinc-500 font-mono uppercase">
                   {activeBlockOverlays.length} Overlay(s) Ativo(s)
@@ -955,93 +1010,103 @@ export function SceneTimingEditor({
                     Nenhum overlay de texto para este bloco.
                   </p>
                 ) : (
-                  activeBlockOverlays.map((ot, idx) => (
-                    <div
-                      key={idx}
-                      className="flex flex-col md:flex-row gap-3 p-3 bg-zinc-900/30 border border-zinc-900 rounded-2xl items-end justify-between hover:border-zinc-850 transition"
-                    >
-                      <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="md:col-span-2">
-                          <label className="text-[10px] uppercase text-zinc-500 font-bold block mb-1">
-                            Texto do Overlay
-                          </label>
-                          <input
-                            type="text"
-                            value={ot.text}
-                            onChange={(e) =>
-                              updateOverlayField(idx, "text", e.target.value)
-                            }
-                            className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-gold-500 transition"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <div>
+                  activeBlockOverlays.map((ot, idx) => {
+                    const textVal = ot.props?.label || ot.props?.text || "";
+                    const relativeStart = Math.max(
+                      0,
+                      ot.start - blockModel.narrationStart
+                    );
+                    return (
+                      <div
+                        key={idx}
+                        className="flex flex-col md:flex-row gap-3 p-3 bg-zinc-900/30 border border-zinc-900 rounded-2xl items-end justify-between hover:border-zinc-850 transition"
+                      >
+                        <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="md:col-span-2">
                             <label className="text-[10px] uppercase text-zinc-500 font-bold block mb-1">
-                              Início (s)
+                              Texto do Overlay ({ot.type})
                             </label>
                             <input
-                              type="number"
-                              step={0.1}
-                              min={0}
-                              value={ot.start_offset}
+                              type="text"
+                              value={textVal}
                               onChange={(e) =>
-                                updateOverlayField(
-                                  idx,
-                                  "start_offset",
-                                  Number(e.target.value)
-                                )
+                                updateOverlayText(idx, e.target.value)
                               }
-                              className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-2 py-1.5 text-xs text-center text-white focus:outline-none transition"
+                              className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-gold-500 transition"
                             />
                           </div>
-                          <div>
-                            <label className="text-[10px] uppercase text-zinc-500 font-bold block mb-1">
-                              Fim (s)
-                            </label>
-                            <input
-                              type="number"
-                              step={0.1}
-                              min={0}
-                              value={ot.end_offset}
-                              onChange={(e) =>
-                                updateOverlayField(
-                                  idx,
-                                  "end_offset",
-                                  Number(e.target.value)
-                                )
-                              }
-                              className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-2 py-1.5 text-xs text-center text-white focus:outline-none transition"
-                            />
+                          <div className="flex gap-2">
+                            <div>
+                              <label className="text-[10px] uppercase text-zinc-500 font-bold block mb-1">
+                                Início (s)
+                              </label>
+                              <input
+                                type="number"
+                                step={0.1}
+                                min={0}
+                                value={parseFloat(relativeStart.toFixed(2))}
+                                onChange={(e) => {
+                                  const absStart =
+                                    blockModel.narrationStart +
+                                    Number(e.target.value);
+                                  updateOverlayField(
+                                    idx,
+                                    "start",
+                                    parseFloat(absStart.toFixed(3))
+                                  );
+                                }}
+                                className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-2 py-1.5 text-xs text-center text-white focus:outline-none transition"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] uppercase text-zinc-500 font-bold block mb-1">
+                                Duração (s)
+                              </label>
+                              <input
+                                type="number"
+                                step={0.1}
+                                min={0.2}
+                                value={ot.duration}
+                                onChange={(e) =>
+                                  updateOverlayField(
+                                    idx,
+                                    "duration",
+                                    Number(e.target.value)
+                                  )
+                                }
+                                className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-2 py-1.5 text-xs text-center text-white focus:outline-none transition"
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCurrentTime(ot.start_offset);
-                            if (audioRef.current && playingKey !== null) {
-                              audioRef.current.currentTime =
-                                blockModel.narrationStart + ot.start_offset;
-                            }
-                          }}
-                          className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-[10px] rounded-xl text-gold-500 hover:text-gold-400 font-bold transition flex items-center gap-1 cursor-pointer"
-                          title="Seek na linha do tempo"
-                        >
-                          Seek
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteOverlay(idx)}
-                          className="p-1.5 bg-zinc-950 hover:bg-red-950/40 border border-zinc-850 hover:border-red-900 text-zinc-500 hover:text-red-400 rounded-xl transition cursor-pointer"
-                          title="Excluir overlay"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCurrentTime(relativeStart);
+                              if (audioRef.current && playingKey !== null) {
+                                audioRef.current.currentTime =
+                                  blockModel.narrationStart + relativeStart;
+                              }
+                            }}
+                            className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-[10px] rounded-xl text-gold-500 hover:text-gold-400 font-bold transition flex items-center gap-1 cursor-pointer"
+                            title="Seek na linha do tempo"
+                          >
+                            Seek
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteOverlay(idx)}
+                            className="p-1.5 bg-zinc-950 hover:bg-red-950/40 border border-zinc-850 hover:border-red-900 text-zinc-500 hover:text-red-400 rounded-xl transition cursor-pointer"
+                            title="Excluir overlay"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
@@ -1214,7 +1279,9 @@ export function SceneTimingEditor({
                         "1.5px 1.5px 0px #000, -1.5px -1.5px 0px #000, 1.5px -1.5px 0px #000, -1.5px 1.5px 0px #000, 2px 2px 4px rgba(0,0,0,0.9)",
                     }}
                   >
-                    {activeOverlayInPreview.text}
+                    {activeOverlayInPreview.props?.label ||
+                      activeOverlayInPreview.props?.text ||
+                      activeOverlayInPreview.type.toUpperCase()}
                   </span>
                 </div>
               )}
@@ -1266,7 +1333,7 @@ export function SceneTimingEditor({
                   <span className="text-white font-bold">
                     {currentTime.toFixed(1)}s
                   </span>
-                  <span className="text-zinc-650 mx-1">/</span>
+                  <span className="text-zinc-655 mx-1">/</span>
                   <span>{blockModel.totalDuration.toFixed(1)}s</span>
                 </div>
               </div>
