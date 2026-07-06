@@ -36,6 +36,7 @@ export type AppTabPropContext = Record<string, unknown> & {
   projects: ProjectListItem[];
   recentProjects: string[];
   renderProgress?: { percent?: number };
+  renderTimelineStudio: () => React.ReactNode;
   rendering: boolean;
   saveTimelinePatch: (cfg: ConfigData) => void | Promise<void>;
   setActiveTab: (tab: AppTab) => void;
@@ -607,14 +608,7 @@ export function buildAppTabPropBundles(
 
   const sceneTimingTabProps: AppSceneTimingTabProps = {
     activeProject: ctx.activeProject,
-    config: ctx.config,
-    status: ctx.status,
-    storyboardData: ctx.storyboardData,
-    wordTranscripts: ctx.wordTranscripts,
-    getMusicUrl: ctx.getMusicUrl,
-    getAssetUrl: ctx.getAssetUrl,
-    saveTimelinePatch: ctx.saveTimelinePatch,
-    saveStoryboardData: ctx.saveCreatorStoryboard as any,
+    renderTimelineStudio: ctx.renderTimelineStudio as () => React.ReactNode,
   };
 
   const terminalTabProps: AppTerminalTabProps = {

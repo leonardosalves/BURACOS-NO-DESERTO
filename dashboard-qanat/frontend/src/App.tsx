@@ -156,6 +156,11 @@ import {
 } from "./youtubeMetadataDisplay";
 import { buildAppTabPropBundles } from "./appTabPropBundles";
 import { AppOverlays } from "./AppOverlays";
+const RichTimelineEditor = lazy(() =>
+  import("./RichTimelineEditor").then((m) => ({
+    default: m.RichTimelineEditor,
+  }))
+);
 const TimelineStudio = lazy(() =>
   import("./TimelineStudio").then((m) => ({
     default: m.TimelineStudio,
@@ -9242,6 +9247,67 @@ export default function App() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  const timelineEditorCommonProps = () => ({
+    config: config!,
+    status,
+    activeProject,
+    selectedProject,
+    storyboardData,
+    wordTranscripts,
+    timelineNeedsWhisperSync,
+    timelineScenesNeedRepair,
+    timelineOpenBlocks,
+    timelinePreviewZoom,
+    timelineSelectedClips,
+    videoFileDurations,
+    visualBlockTimings,
+    progressBarChaptersText,
+    progressBarMetadataReady,
+    savingBlockProgressBar,
+    logoStatus,
+    creatorLoading,
+    syncingTimings,
+    generatingOverlays,
+    playingMusic,
+    playingNarration,
+    setConfig,
+    setTimelineOpenBlocks,
+    setTimelinePreviewZoom,
+    setTimelineSelectedClips,
+    setVideoFileDurations,
+    setWordTranscripts,
+    setActiveTab,
+    setSavingBlockProgressBar,
+    getAssetDuration,
+    getAssetNarration,
+    getDynamicAssetWords,
+    getAssetUrl,
+    getMusicUrl,
+    getProjectUrl,
+    handleAutoMapAssets,
+    handleGenerateAiOverlays,
+    handleRepairProjectVisualPrompts,
+    handleSaveConfig,
+    handleSyncTimings,
+    handleUploadSceneAsset,
+    alignAllBlocksToSpeech,
+    alignBlockAssetsToSpeech,
+    addTimelineAsset,
+    deleteTimelineAsset,
+    moveTimelineAsset,
+    updateTimelineAssetField,
+    bulkDeleteTimelineClips,
+    toggleTimelineClipSelection,
+    togglePlayMusic,
+    togglePlaySceneNarration,
+    saveConfigPatch,
+    syncCreatorStoryboard,
+    fetchData,
+    fetchStatus: fetchStatusAndOutputs,
+    suggestBlockProgressIcons,
+    syncBlockProgressTitles,
+  });
+
   const renderRichTimelineEditor = (options?: {
     hideAutoMap?: boolean;
     wizardManualMode?: boolean;
@@ -9249,70 +9315,24 @@ export default function App() {
     if (!config) return null;
     return (
       <Suspense
-        fallback={<TabPanelFallback label="Carregando Timeline Studio..." />}
+        fallback={<TabPanelFallback label="Carregando editor de timeline..." />}
       >
-        <TimelineStudio
+        <RichTimelineEditor
           hideAutoMap={options?.hideAutoMap === true}
           wizardManualMode={options?.wizardManualMode === true}
-          config={config}
-          status={status}
-          activeProject={activeProject}
-          selectedProject={selectedProject}
-          storyboardData={storyboardData}
-          wordTranscripts={wordTranscripts}
-          timelineNeedsWhisperSync={timelineNeedsWhisperSync}
-          timelineScenesNeedRepair={timelineScenesNeedRepair}
-          timelineOpenBlocks={timelineOpenBlocks}
-          timelinePreviewZoom={timelinePreviewZoom}
-          timelineSelectedClips={timelineSelectedClips}
-          videoFileDurations={videoFileDurations}
-          visualBlockTimings={visualBlockTimings}
-          progressBarChaptersText={progressBarChaptersText}
-          progressBarMetadataReady={progressBarMetadataReady}
-          savingBlockProgressBar={savingBlockProgressBar}
-          logoStatus={logoStatus}
-          creatorLoading={creatorLoading}
-          syncingTimings={syncingTimings}
-          generatingOverlays={generatingOverlays}
-          playingMusic={playingMusic}
-          playingNarration={playingNarration}
-          setConfig={setConfig}
-          setTimelineOpenBlocks={setTimelineOpenBlocks}
-          setTimelinePreviewZoom={setTimelinePreviewZoom}
-          setTimelineSelectedClips={setTimelineSelectedClips}
-          setVideoFileDurations={setVideoFileDurations}
-          setWordTranscripts={setWordTranscripts}
-          setActiveTab={setActiveTab}
-          setSavingBlockProgressBar={setSavingBlockProgressBar}
-          getAssetDuration={getAssetDuration}
-          getAssetNarration={getAssetNarration}
-          getDynamicAssetWords={getDynamicAssetWords}
-          getAssetUrl={getAssetUrl}
-          getMusicUrl={getMusicUrl}
-          getProjectUrl={getProjectUrl}
-          handleAutoMapAssets={handleAutoMapAssets}
-          handleGenerateAiOverlays={handleGenerateAiOverlays}
-          handleRepairProjectVisualPrompts={handleRepairProjectVisualPrompts}
-          handleSaveConfig={handleSaveConfig}
-          handleSyncTimings={handleSyncTimings}
-          handleUploadSceneAsset={handleUploadSceneAsset}
-          alignAllBlocksToSpeech={alignAllBlocksToSpeech}
-          alignBlockAssetsToSpeech={alignBlockAssetsToSpeech}
-          addTimelineAsset={addTimelineAsset}
-          deleteTimelineAsset={deleteTimelineAsset}
-          moveTimelineAsset={moveTimelineAsset}
-          updateTimelineAssetField={updateTimelineAssetField}
-          bulkDeleteTimelineClips={bulkDeleteTimelineClips}
-          toggleTimelineClipSelection={toggleTimelineClipSelection}
-          togglePlayMusic={togglePlayMusic}
-          togglePlaySceneNarration={togglePlaySceneNarration}
-          saveConfigPatch={saveConfigPatch}
-          syncCreatorStoryboard={syncCreatorStoryboard}
-          fetchData={fetchData}
-          fetchStatus={fetchStatusAndOutputs}
-          suggestBlockProgressIcons={suggestBlockProgressIcons}
-          syncBlockProgressTitles={syncBlockProgressTitles}
+          {...timelineEditorCommonProps()}
         />
+      </Suspense>
+    );
+  };
+
+  const renderTimelineStudio = () => {
+    if (!config) return null;
+    return (
+      <Suspense
+        fallback={<TabPanelFallback label="Carregando Timeline Studio..." />}
+      >
+        <TimelineStudio {...timelineEditorCommonProps()} />
       </Suspense>
     );
   };
@@ -9602,6 +9622,7 @@ export default function App() {
     renderProgress,
     renderResolutionLabel,
     renderRichTimelineEditor,
+    renderTimelineStudio,
     rendering,
     resetCreatorWizard,
     resolutionConfigScope,
