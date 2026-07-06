@@ -30,11 +30,24 @@ export function isBgmMusicCandidate(fileName = "") {
 }
 
 export function listBgmMusicCandidates(projDir) {
-  try {
-    return fs.readdirSync(projDir).filter((name) => isBgmMusicCandidate(name));
-  } catch {
-    return [];
-  }
+  const found = new Set();
+  const scanDir = (dir) => {
+    try {
+      for (const name of fs.readdirSync(dir)) {
+        const full = path.join(dir, name);
+        if (!fs.statSync(full).isFile()) continue;
+        if (isBgmMusicCandidate(name)) found.add(name);
+      }
+    } catch {
+      /* ignore missing dirs */
+    }
+  };
+
+  scanDir(projDir);
+  scanDir(path.join(projDir, "MUSICAS"));
+  scanDir(path.join(projDir, "ASSETS", "audio"));
+
+  return [...found].sort((a, b) => a.localeCompare(b));
 }
 
 /** Resolve arquivo apenas dentro da pasta do projeto (sem fallback ao workspace). */

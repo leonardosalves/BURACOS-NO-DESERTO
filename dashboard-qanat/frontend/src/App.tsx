@@ -5154,15 +5154,23 @@ export default function App() {
         : getMusicUrl(fileName);
 
       const audio = new Audio(url);
+      audio.preload = "auto";
+      audio.volume = 1;
 
       audio.onended = () => setPlayingMusic(null);
+      audio.onerror = () => {
+        setPlayingMusic(null);
+        toast.error(`Áudio indisponível: ${fileName}`);
+      };
 
       audioPlayerRef.current = audio;
 
       audio.play().catch((err) => {
-        console.error("Failed to play audio:", err);
-
-        toast.error("Erro ao reproduzir áudio.");
+        console.error("Failed to play audio:", url, err);
+        setPlayingMusic(null);
+        toast.error(
+          `Erro ao reproduzir ${fileName}. Verifique se o arquivo existe no projeto.`
+        );
       });
 
       setPlayingMusic(fileName);

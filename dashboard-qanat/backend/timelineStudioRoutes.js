@@ -21,6 +21,34 @@ import fs from "fs";
 import path from "path";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 
+function readProjectConfig(projDir) {
+  try {
+    const configPath = path.join(projDir, "config_qanat.json");
+    if (fs.existsSync(configPath)) {
+      return JSON.parse(fs.readFileSync(configPath, "utf8"));
+    }
+  } catch {
+    /* ignore */
+  }
+  return {};
+}
+
+function musicClipSnapshot(studio) {
+  const clip = studio?.clips?.find((c) => c?.trackId === "music");
+  if (!clip) return null;
+  return {
+    source: String(clip.source || ""),
+    label: String(clip.label || ""),
+    duration: Number(clip.duration) || 0,
+    volume: Number(clip.props?.volume) || 0,
+  };
+}
+
+function syncStudioMusicFromConfig(rawStudio, projDir) {
+  const config = readProjectConfig(projDir);
+  return upsertMusicClipInStudio(rawStudio, config, projDir);
+}
+
 export function registerTimelineStudioRoutes(
   app,
   { getProjectDir, workspaceDir, callGemini }
@@ -29,17 +57,14 @@ export function registerTimelineStudioRoutes(
     try {
       const projDir = getProjectDir(req);
       const { studio: rawStudio, migrated } = loadTimelineStudio(projDir);
-      let config = {};
-      try {
-        const configPath = path.join(projDir, "config_qanat.json");
-        if (fs.existsSync(configPath)) {
-          config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-        }
-      } catch {
-        config = {};
+      const studio = syncStudioMusicFromConfig(rawStudio, projDir);
+      const musicChanged =
+        JSON.stringify(musicClipSnapshot(rawStudio)) !==
+        JSON.stringify(musicClipSnapshot(studio));
+      if (musicChanged) {
+        saveTimelineStudio(projDir, studio);
       }
-      const studio = upsertMusicClipInStudio(rawStudio, config, projDir);
-      res.json({ ok: true, studio, migrated });
+      res.json({ ok: true, studio, migrated, musicSynced: musicChanged });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -54,7 +79,8 @@ export function registerTimelineStudioRoutes(
           .status(400)
           .json({ error: "Corpo inválido — esperado { studio: {...} }" });
       }
-      const saved = saveTimelineStudio(projDir, studio);
+      const synced = syncStudioMusicFromConfig(studio, projDir);
+      const saved = saveTimelineStudio(projDir, synced);
       res.json({ ok: true, studio: saved });
     } catch (err) {
       res.status(500).json({ error: err.message });
