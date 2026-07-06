@@ -11,3 +11,6 @@
 - [x] T9 — satelliteMapService (Esri/Mapbox) + dual-image zoom LocationIntro
 - [x] T10 — LLM enrichment + dedupe overlays_ai (Fase 3)
 - [x] T11 — media_mode remotion substituindo image/video (Fase 4)
+- [x] T12 — Earth fly + contorno cidade (location-intro Fase 5)
+- [x] T13 — copyMotionPropsAssets: zoom_keyframes + boundary no render
+- [x] T14 — LLM enrichment: sem cenas extras / start_hint preservado

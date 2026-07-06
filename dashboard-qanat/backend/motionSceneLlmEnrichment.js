@@ -189,6 +189,8 @@ export function buildMotionSceneEnrichmentPrompt({
     "REGRAS:",
     `- Use APENAS template_id: ${templateList}`,
     "- NUNCA duplique overlays já planejados em overlays_ai (mesmo template + mesma cena/bloco).",
+    "- NÃO adicione cenas novas — refine APENAS as do plano heurístico (mesmos id).",
+    "- Preserve start_hint de cada cena; nunca empilhe cenas em start_hint 0.",
     "- Extraia dados reais da narração: nomes de lugares, números, anos, comparações.",
     "- location-intro: location, region, country; variant satellite.",
     "- location-intro cidade: fly_mode city_outline, place_type city, zoom_from 9, zoom_to 12.",
@@ -301,11 +303,36 @@ export function applyLlmEnrichmentToPlan(
     (heuristicPlan.motion_scenes || []).map((s) => [String(s.id), s])
   );
 
-  const motion_scenes = rawScenes
-    .map((raw) =>
-      normalizeLlmMotionScene(raw, heuristicById, { accentColor, nichePack })
-    )
-    .filter(Boolean);
+  const llmById = new Map();
+  for (const raw of rawScenes) {
+    const normalized = normalizeLlmMotionScene(raw, heuristicById, {
+      accentColor,
+      nichePack,
+    });
+    if (!normalized?.id) continue;
+    if (!heuristicById.has(String(normalized.id))) continue;
+    llmById.set(String(normalized.id), normalized);
+  }
+
+  const motion_scenes = (heuristicPlan.motion_scenes || []).map((heuristic) => {
+    const llm = llmById.get(String(heuristic.id));
+    if (!llm) return heuristic;
+    const startHint = Number.isFinite(Number(llm.start_hint))
+      ? Number(llm.start_hint)
+      : Number(heuristic.start_hint) || 0;
+    const safeStart =
+      startHint > 0
+        ? startHint
+        : Number(heuristic.start_hint) > 0
+          ? Number(heuristic.start_hint)
+          : startHint;
+    return {
+      ...heuristic,
+      ...llm,
+      start_hint: safeStart,
+      props: { ...(heuristic.props || {}), ...(llm.props || {}) },
+    };
+  });
 
   return {
     ...heuristicPlan,

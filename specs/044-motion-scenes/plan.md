@@ -43,6 +43,7 @@ prepareRemotionRender → OverlayLayer
 | **2**           | `backgroundImage` satélite real (Mapbox Static) em `LocationIntro`             |
 | **3**           | LLM enrichment opcional + merge com `overlays_ai` sem duplicar                 |
 | **4**           | `media_mode: remotion` em `visual_prompts` substituindo cena image/video       |
+| **5**           | Earth fly (POI) + contorno OSM (cidade) em `location-intro`                    |
 
 ## Arquivos
 

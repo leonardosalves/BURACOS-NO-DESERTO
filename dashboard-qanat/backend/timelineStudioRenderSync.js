@@ -77,7 +77,27 @@ function resolveProjectAssetPath(projectDir, relPath, findProjectFile) {
   );
 }
 
-function copyMotionPropsAssets(
+function copyRelAssetToPublic(
+  relPath,
+  {
+    projectDir,
+    publicProjectDir,
+    projectSlug,
+    copyRemotionAsset,
+    findProjectFile,
+  },
+  prefix = "motion_"
+) {
+  const rel = String(relPath || "").trim();
+  if (!rel || /^https?:\/\//i.test(rel) || rel.startsWith("projects/")) {
+    return rel;
+  }
+  const source = resolveProjectAssetPath(projectDir, rel, findProjectFile);
+  const copied = copyRemotionAsset(source, publicProjectDir, prefix);
+  return copied ? `projects/${projectSlug}/${copied}` : rel;
+}
+
+export function copyMotionPropsAssets(
   props = {},
   {
     projectDir,
@@ -89,19 +109,35 @@ function copyMotionPropsAssets(
   prefix = "motion_"
 ) {
   const p = { ...props };
-  for (const key of ["backgroundImage", "backgroundImageWide"]) {
-    const rel = String(p[key] || "").trim();
-    if (!rel || /^https?:\/\//i.test(rel) || rel.startsWith("projects/")) {
-      continue;
-    }
-    const source = resolveProjectAssetPath(projectDir, rel, findProjectFile);
-    const copied = copyRemotionAsset(
-      source,
-      publicProjectDir,
-      `${prefix}${key}_`
-    );
-    if (copied) p[key] = `projects/${projectSlug}/${copied}`;
+  const assetCtx = {
+    projectDir,
+    publicProjectDir,
+    projectSlug,
+    copyRemotionAsset,
+    findProjectFile,
+  };
+
+  for (const key of [
+    "backgroundImage",
+    "backgroundImageWide",
+    "boundaryGeoJson",
+  ]) {
+    const copied = copyRelAssetToPublic(p[key], assetCtx, `${prefix}${key}_`);
+    if (copied) p[key] = copied;
   }
+
+  if (Array.isArray(p.zoom_keyframes)) {
+    p.zoom_keyframes = p.zoom_keyframes.map((kf, i) => {
+      if (!kf || typeof kf !== "object") return kf;
+      const image = copyRelAssetToPublic(
+        kf.image,
+        assetCtx,
+        `${prefix}zk${i}_`
+      );
+      return image ? { ...kf, image } : kf;
+    });
+  }
+
   return p;
 }
 
