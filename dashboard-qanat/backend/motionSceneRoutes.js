@@ -5,6 +5,7 @@
 import fs from "fs";
 import path from "path";
 import {
+  applyMotionScenesToVisualPrompts,
   planMotionScenesFromStoryboard,
   syncMotionScenesToStudio,
 } from "./motionScenePlanner.js";
@@ -102,19 +103,21 @@ export function registerMotionSceneRoutes(
       }
 
       if (persist) {
-        const nextStoryboard = {
-          ...storyboard,
-          motion_scenes: plan.motion_scenes,
-          motion_scenes_meta: {
-            planned_at: plan.planned_at,
-            planner_version: plan.planner_version,
-            source: plan.source,
-            niche_pack: plan.niche_pack,
-            llm: llmMeta,
-            dedupe_removed:
-              plan.dedupe_removed || llmMeta?.dedupe_removed || [],
-            satellite: satelliteMeta,
+        const nextStoryboard = applyMotionScenesToVisualPrompts(
+          {
+            ...storyboard,
+            motion_scenes: plan.motion_scenes,
           },
+          plan.motion_scenes
+        );
+        nextStoryboard.motion_scenes_meta = {
+          planned_at: plan.planned_at,
+          planner_version: plan.planner_version,
+          source: plan.source,
+          niche_pack: plan.niche_pack,
+          llm: llmMeta,
+          dedupe_removed: plan.dedupe_removed || llmMeta?.dedupe_removed || [],
+          satellite: satelliteMeta,
         };
         fs.writeFileSync(
           path.join(projDir, "storyboard.json"),

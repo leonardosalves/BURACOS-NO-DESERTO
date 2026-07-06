@@ -1,136 +1,72 @@
 import React from "react";
 
-
-
 import {
-
-
-
   AbsoluteFill,
-
-
-
   Img,
-
-
-
   interpolate,
-
-
-
   spring,
-
-
-
   Sequence,
-
-
-
   staticFile,
-
-
-
   useCurrentFrame,
-
-
-
   useVideoConfig,
-
-
-
 } from "remotion";
-
-
 
 import { Audio, Video } from "@remotion/media";
 
-import { OverlayLayer, Overlay } from "./overlays/OverlayLayer";
-import { YoutubeSubOverlay, YoutubeChannelInfo } from "./overlays/YoutubeSubOverlay";
+import {
+  OverlayLayer,
+  Overlay,
+  MotionSceneFill,
+  type OverlayType,
+} from "./overlays/OverlayLayer";
+import {
+  YoutubeSubOverlay,
+  YoutubeChannelInfo,
+} from "./overlays/YoutubeSubOverlay";
 import { ProgressBar } from "./overlays/ProgressBar";
-import { BlockProgressBar, type BlockProgressBarProps } from "./overlays/BlockProgressBar";
+import {
+  BlockProgressBar,
+  type BlockProgressBarProps,
+} from "./overlays/BlockProgressBar";
 import { ShortsVisualFx } from "./overlays/ShortsVisualFx";
 
-
-
-
-
-
-
 type TimelineScene = {
-
-
-
   block: number;
-
-
 
   asset: string;
 
+  scene_id?: string;
 
+  type: "image" | "video" | "remotion";
 
-  type: "image" | "video";
+  remotionTemplate?: string;
 
-
+  remotionProps?: Record<string, unknown>;
 
   start: number;
 
-
-
   duration: number;
 
-
-
   narrationText?: string;
-
-
 
   editorNotes?: string;
 
   volume?: number;
 
   playback_rate?: number;
-
-
-
 };
 
-
-
-
-
-
-
 type Caption = {
-
-
-
   text: string;
-
-
 
   startMs: number;
 
-
-
   endMs: number;
-
-
 
   timestampMs: number | null;
 
-
-
   confidence: number | null;
-
-
-
 };
-
-
-
-
-
-
 
 type BgmTrack = {
   block: number;
@@ -146,47 +82,18 @@ type BgmTrack = {
   climaxMode?: string;
 };
 
-
-
-
-
-
-
 type SfxTrack = {
-
-
-
   file: string;
-
-
 
   start: number;
 
-
-
   duration: number;
 
-
-
   volume: number;
-
-
-
 };
 
-
-
-
-
-
-
 export type LumieraTimelineProps = {
-
-
-
   projectName: string;
-
-
 
   format: "16:9" | "9:16";
 
@@ -195,35 +102,19 @@ export type LumieraTimelineProps = {
 
   totalDuration: number;
 
-
-
   scenes: TimelineScene[];
-
-
 
   captions: Caption[];
 
-
-
   narration?: string | null;
-
-
 
   narrationDuration?: number;
 
-
-
   bgmTracks: BgmTrack[];
-
-
 
   sfxTracks?: SfxTrack[];
 
-
-
   editingMap?: string;
-
-
 
   musicVolume?: number;
 
@@ -235,8 +126,32 @@ export type LumieraTimelineProps = {
   /** Caption rendering style — shorts-viral for 9:16, documentary for 16:9 */
   captionStyle?: "shorts-viral" | "documentary";
   /** HyperFrames caption mode (catálogo completo 17/17) */
-  captionMode?: "caption-highlight" | "caption-kinetic-slam" | "caption-pill-karaoke" | "caption-neon-glow" | "caption-weight-shift" | "caption-gradient-fill" | "caption-glitch-rgb" | "caption-matrix-decode" | "caption-clip-wipe" | "caption-particle-burst" | "caption-neon-accent" | "caption-emoji-pop" | "caption-editorial-emphasis" | "caption-parallax-layers" | "caption-texture" | "caption-blend-difference" | "morph-text";
-  captionEffect?: "viral-pop" | "viral-pulse" | "viral-static" | "doc-pill" | "doc-glow" | "doc-minimal" | string;
+  captionMode?:
+    | "caption-highlight"
+    | "caption-kinetic-slam"
+    | "caption-pill-karaoke"
+    | "caption-neon-glow"
+    | "caption-weight-shift"
+    | "caption-gradient-fill"
+    | "caption-glitch-rgb"
+    | "caption-matrix-decode"
+    | "caption-clip-wipe"
+    | "caption-particle-burst"
+    | "caption-neon-accent"
+    | "caption-emoji-pop"
+    | "caption-editorial-emphasis"
+    | "caption-parallax-layers"
+    | "caption-texture"
+    | "caption-blend-difference"
+    | "morph-text";
+  captionEffect?:
+    | "viral-pop"
+    | "viral-pulse"
+    | "viral-static"
+    | "doc-pill"
+    | "doc-glow"
+    | "doc-minimal"
+    | string;
   designPreset?: string | null;
   grainOverlay?: boolean;
   vignette?: boolean;
@@ -256,47 +171,22 @@ export type LumieraTimelineProps = {
   canvasBackground?: string;
 };
 
-
-
-
-
-
-
 export const defaultLumieraProps: LumieraTimelineProps = {
-
-
-
   projectName: "Lumiera",
-
-
 
   format: "9:16",
 
-
-
   totalDuration: 30,
-
-
 
   scenes: [],
 
-
-
   captions: [],
-
-
 
   narration: null,
 
-
-
   narrationDuration: 0,
 
-
-
   bgmTracks: [],
-
-
 
   sfxTracks: [],
 
@@ -341,25 +231,12 @@ export const defaultLumieraProps: LumieraTimelineProps = {
   shortsPortalEvery: 4,
 
   canvasBackground: "#050506",
-
 };
-
-
-
-
-
-
 
 const assetUrl = (file: string) => staticFile(file.replace(/\\/g, "/"));
 
 const MEDIA_DELAY_RENDER_TIMEOUT_MS = 180_000;
 const MEDIA_DELAY_RENDER_RETRIES = 2;
-
-
-
-
-
-
 
 const SceneMedia: React.FC<{
   scene: TimelineScene;
@@ -386,189 +263,112 @@ const SceneMedia: React.FC<{
   shortsPortalEvery = 4,
   accentColor = "#D4AF37",
 }) => {
-
-
-
   const frame = useCurrentFrame();
-
-
 
   const { fps } = useVideoConfig();
 
-
-
   const durationFrames = Math.max(1, Math.round(scene.duration * fps));
 
-
-
-  const isLogo = scene.asset.toLowerCase().includes("logo_final_") || scene.asset.toLowerCase().includes("logo.") || scene.asset.toLowerCase().includes("/logo");
-
-
-
-
-
-
+  const assetPath = String(scene.asset || "");
+  const isLogo =
+    scene.type !== "remotion" &&
+    (assetPath.toLowerCase().includes("logo_final_") ||
+      assetPath.toLowerCase().includes("logo.") ||
+      assetPath.toLowerCase().includes("/logo"));
 
   // Overlap transitions duration: 12 frames (0.4s)
 
-
-
   const transFrames = 12;
-
-
-
-
-
-
 
   // 1. Zoom effect (always active)
 
-
-
   // Logo has a steady framing, standard scenes have gentle zooms
 
-
-
   const zoomProfile = isShort
-    ? (shortsZoomIntensity === "aggressive"
+    ? shortsZoomIntensity === "aggressive"
       ? { start: 1.1, end: 1.28 }
       : shortsZoomIntensity === "cinematic"
         ? { start: 1.04, end: 1.16 }
-        : { start: 1.06, end: 1.22 })
-    : (longZoomIntensity === "aggressive"
+        : { start: 1.06, end: 1.22 }
+    : longZoomIntensity === "aggressive"
       ? { start: 1.06, end: 1.18 }
       : longZoomIntensity === "cinematic"
         ? { start: 1.03, end: 1.12 }
-        : { start: 1.04, end: 1.14 });
+        : { start: 1.04, end: 1.14 };
 
   const startScale = isLogo ? 1.0 : zoomProfile.start;
 
   const endScale = isLogo ? 1.15 : zoomProfile.end;
 
+  const zoomScale = interpolate(
+    frame,
+    [0, durationFrames],
+    [startScale, endScale],
+    {
+      extrapolateLeft: "clamp",
 
-
-  const zoomScale = interpolate(frame, [0, durationFrames], [startScale, endScale], {
-
-
-
-    extrapolateLeft: "clamp",
-
-
-
-    extrapolateRight: "clamp",
-
-
-
-  });
-
-
-
-
-
-
+      extrapolateRight: "clamp",
+    }
+  );
 
   // 2. Opacity transitions (fade-in)
 
-
-
   let opacity = 1;
 
-
-
   if (isFirst) {
-
-
-
-    opacity = interpolate(frame, [0, 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-
-
-
+    opacity = interpolate(frame, [0, 8], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
   } else if (frame < transFrames) {
-
-
-
-    opacity = interpolate(frame, [0, transFrames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-
-
-
+    opacity = interpolate(frame, [0, transFrames], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
   }
-
-
-
-
-
-
 
   if (!isLogo && !isLast) {
     const fadeOutStart = Math.max(0, durationFrames - transFrames);
     if (frame >= fadeOutStart) {
-      const fadeOutOpacity = interpolate(frame, [fadeOutStart, durationFrames], [1, 0], {
-        extrapolateLeft: "clamp",
-        extrapolateRight: "clamp",
-      });
+      const fadeOutOpacity = interpolate(
+        frame,
+        [fadeOutStart, durationFrames],
+        [1, 0],
+        {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        }
+      );
       opacity = Math.min(opacity, fadeOutOpacity);
     }
   }
 
-    // Fade out at the very end of the video (logo outro)
-
-
+  // Fade out at the very end of the video (logo outro)
 
   const isLastScene = isLogo;
 
-
-
   if (isLastScene) {
-
-
-
     const fadeOutStart = durationFrames - 10;
 
-
-
     if (frame > fadeOutStart) {
+      const fadeOutOpacity = interpolate(
+        frame,
+        [fadeOutStart, durationFrames],
+        [1, 0],
+        {
+          extrapolateLeft: "clamp",
 
-
-
-      const fadeOutOpacity = interpolate(frame, [fadeOutStart, durationFrames], [1, 0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
+          extrapolateRight: "clamp",
+        }
+      );
 
       opacity = Math.min(opacity, fadeOutOpacity);
-
-
-
     }
-
-
-
   }
-
-
-
-
-
-
 
   // 3. Custom Transitions (alternate based on index)
 
-
-
   let clipPath = "none";
-
-
 
   let transitionScale = 1;
 
@@ -578,20 +378,14 @@ const SceneMedia: React.FC<{
 
   let portalFilterBoost = "";
 
-
-
-
-
-
-
-  const usePortalTransition = isShort
-    && shortsPortalTransition
-    && !isFirst
-    && !isLogo
-    && index % Math.max(3, shortsPortalEvery) === 0;
+  const usePortalTransition =
+    isShort &&
+    shortsPortalTransition &&
+    !isFirst &&
+    !isLogo &&
+    index % Math.max(3, shortsPortalEvery) === 0;
 
   if (!isFirst && !isLogo && frame < transFrames) {
-
     if (usePortalTransition) {
       const portalSize = interpolate(frame, [0, transFrames], [0, 145], {
         extrapolateLeft: "clamp",
@@ -604,551 +398,236 @@ const SceneMedia: React.FC<{
       });
       portalFilterBoost = ` saturate(1.25) drop-shadow(0 0 18px ${accentColor}88)`;
     } else {
-
-    const transitionMod = isShort ? 12 : 9;
-    const transitionType = index % transitionMod;
-
-
-
-    if (transitionType === 1) {
-
-
-
-      transitionScale = interpolate(frame, [0, transFrames], [isShort ? 1.2 : 1.15, 1.0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-    } else if (transitionType === 2) {
-
-
-
-      const wipePercent = interpolate(frame, [0, transFrames], [100, 0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-      clipPath = `inset(0 0 0 ${wipePercent}%)`;
-
-
-
-    } else if (transitionType === 3) {
-
-
-
-      const wipeTop = interpolate(frame, [0, transFrames], [100, 0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-      clipPath = `inset(${wipeTop}% 0 0 0)`;
-
-
-
-    } else if (transitionType === 4) {
-
-
-
-      transitionScale = interpolate(frame, [0, transFrames], [0.88, 1.0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-    } else if (transitionType === 5) {
-
-
-
-      const circleSize = interpolate(frame, [0, transFrames], [0, 150], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-      clipPath = `circle(${circleSize}% at 50% 50%)`;
-
-
-
-    } else if (transitionType === 6) {
-
-
-
-      const wipeRight = interpolate(frame, [0, transFrames], [100, 0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-      clipPath = `inset(0 ${wipeRight}% 0 0)`;
-
-
-
-    } else if (transitionType === 7) {
-
-
-
-      const wipeBottom = interpolate(frame, [0, transFrames], [100, 0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-      clipPath = `inset(0 0 ${wipeBottom}% 0)`;
-
-
-
-    } else if (transitionType === 8) {
-
-
-
-      transitionRotate = interpolate(frame, [0, transFrames], [isShort ? -4 : -2.5, 0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-      transitionScale = interpolate(frame, [0, transFrames], [0.92, 1.0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-    } else if (transitionType === 9) {
-
-
-
-      transitionBlur = interpolate(frame, [0, transFrames], [isShort ? 14 : 10, 0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-    } else if (transitionType === 10) {
-
-
-
-      const diag = interpolate(frame, [0, transFrames], [0, 100], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-      clipPath = `polygon(0 0, ${diag}% 0, 0 ${diag}%)`;
-
-
-
-    } else if (transitionType === 11) {
-
-
-
-      const gridStep = Math.floor(interpolate(frame, [0, transFrames], [8, 0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      }));
-
-
-
-      const cell = Math.max(0, gridStep) * 12.5;
-
-
-
-      clipPath = `inset(${cell}% ${cell}% ${cell}% ${cell}%)`;
-
-
-
-      transitionScale = interpolate(frame, [0, transFrames], [1.06, 1.0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
-    } else if (transitionType === 12) {
-
-
-
-      transitionScale = interpolate(frame, [0, transFrames], [isShort ? 1.35 : 1.22, 1.0], {
-
-
-
-        extrapolateLeft: "clamp",
-
-
-
-        extrapolateRight: "clamp",
-
-
-
-      });
-
-
-
+      const transitionMod = isShort ? 12 : 9;
+      const transitionType = index % transitionMod;
+
+      if (transitionType === 1) {
+        transitionScale = interpolate(
+          frame,
+          [0, transFrames],
+          [isShort ? 1.2 : 1.15, 1.0],
+          {
+            extrapolateLeft: "clamp",
+
+            extrapolateRight: "clamp",
+          }
+        );
+      } else if (transitionType === 2) {
+        const wipePercent = interpolate(frame, [0, transFrames], [100, 0], {
+          extrapolateLeft: "clamp",
+
+          extrapolateRight: "clamp",
+        });
+
+        clipPath = `inset(0 0 0 ${wipePercent}%)`;
+      } else if (transitionType === 3) {
+        const wipeTop = interpolate(frame, [0, transFrames], [100, 0], {
+          extrapolateLeft: "clamp",
+
+          extrapolateRight: "clamp",
+        });
+
+        clipPath = `inset(${wipeTop}% 0 0 0)`;
+      } else if (transitionType === 4) {
+        transitionScale = interpolate(frame, [0, transFrames], [0.88, 1.0], {
+          extrapolateLeft: "clamp",
+
+          extrapolateRight: "clamp",
+        });
+      } else if (transitionType === 5) {
+        const circleSize = interpolate(frame, [0, transFrames], [0, 150], {
+          extrapolateLeft: "clamp",
+
+          extrapolateRight: "clamp",
+        });
+
+        clipPath = `circle(${circleSize}% at 50% 50%)`;
+      } else if (transitionType === 6) {
+        const wipeRight = interpolate(frame, [0, transFrames], [100, 0], {
+          extrapolateLeft: "clamp",
+
+          extrapolateRight: "clamp",
+        });
+
+        clipPath = `inset(0 ${wipeRight}% 0 0)`;
+      } else if (transitionType === 7) {
+        const wipeBottom = interpolate(frame, [0, transFrames], [100, 0], {
+          extrapolateLeft: "clamp",
+
+          extrapolateRight: "clamp",
+        });
+
+        clipPath = `inset(0 0 ${wipeBottom}% 0)`;
+      } else if (transitionType === 8) {
+        transitionRotate = interpolate(
+          frame,
+          [0, transFrames],
+          [isShort ? -4 : -2.5, 0],
+          {
+            extrapolateLeft: "clamp",
+
+            extrapolateRight: "clamp",
+          }
+        );
+
+        transitionScale = interpolate(frame, [0, transFrames], [0.92, 1.0], {
+          extrapolateLeft: "clamp",
+
+          extrapolateRight: "clamp",
+        });
+      } else if (transitionType === 9) {
+        transitionBlur = interpolate(
+          frame,
+          [0, transFrames],
+          [isShort ? 14 : 10, 0],
+          {
+            extrapolateLeft: "clamp",
+
+            extrapolateRight: "clamp",
+          }
+        );
+      } else if (transitionType === 10) {
+        const diag = interpolate(frame, [0, transFrames], [0, 100], {
+          extrapolateLeft: "clamp",
+
+          extrapolateRight: "clamp",
+        });
+
+        clipPath = `polygon(0 0, ${diag}% 0, 0 ${diag}%)`;
+      } else if (transitionType === 11) {
+        const gridStep = Math.floor(
+          interpolate(frame, [0, transFrames], [8, 0], {
+            extrapolateLeft: "clamp",
+
+            extrapolateRight: "clamp",
+          })
+        );
+
+        const cell = Math.max(0, gridStep) * 12.5;
+
+        clipPath = `inset(${cell}% ${cell}% ${cell}% ${cell}%)`;
+
+        transitionScale = interpolate(frame, [0, transFrames], [1.06, 1.0], {
+          extrapolateLeft: "clamp",
+
+          extrapolateRight: "clamp",
+        });
+      } else if (transitionType === 12) {
+        transitionScale = interpolate(
+          frame,
+          [0, transFrames],
+          [isShort ? 1.35 : 1.22, 1.0],
+          {
+            extrapolateLeft: "clamp",
+
+            extrapolateRight: "clamp",
+          }
+        );
+      }
     }
-
-    }
-
-
-
   }
-
-
-
-
-
-
 
   // 4. Video Manipulation & Cinematic Color Grading
 
-
-
   let filter = "";
 
-
-
   if (!isLogo) {
-
-
-
     const effectType = index % (isShort ? 6 : 4);
 
-
-
     if (effectType === 0) {
-
-
-
       filter = "sepia(0.12) contrast(1.06) brightness(1.02) saturate(1.08)";
-
-
-
     } else if (effectType === 1) {
-
-
-
       filter = "contrast(1.1) brightness(0.98) saturate(1.05)";
-
-
-
     } else if (effectType === 2) {
-
-
-
       filter = "hue-rotate(-5deg) contrast(1.05) saturate(1.02)";
-
-
-
     } else if (isShort && effectType === 3) {
-
-
-
-      filter = "contrast(1.14) brightness(1.04) saturate(1.18) hue-rotate(8deg)";
-
-
-
+      filter =
+        "contrast(1.14) brightness(1.04) saturate(1.18) hue-rotate(8deg)";
     } else if (isShort && effectType === 4) {
-
-
-
       filter = "contrast(1.08) brightness(0.95) saturate(0.92) sepia(0.08)";
-
-
-
     } else if (isShort && effectType === 5) {
-
-
-
       filter = "contrast(1.12) brightness(1.0) saturate(1.1)";
-
-
-
     } else {
-
-
-
       filter = "contrast(1.0) brightness(1.0)";
-
-
-
     }
-
-
-
   } else {
-
-
-
     filter = "none";
-
-
-
   }
-
-
-
-
-
-
 
   if (portalFilterBoost) {
     filter = `${filter}${portalFilterBoost}`;
   }
 
   if (transitionBlur > 0) {
-    filter = filter && filter !== "none" ? `${filter} blur(${transitionBlur}px)` : `blur(${transitionBlur}px)`;
+    filter =
+      filter && filter !== "none"
+        ? `${filter} blur(${transitionBlur}px)`
+        : `blur(${transitionBlur}px)`;
   }
 
   // 5. Professional Depth-of-Field Blur Entry (Focus Effect)
 
-
-
   if (!isLogo && frame < 15) {
-
-
-
     const entryBlur = interpolate(frame, [0, 15], [10, 0], {
-
-
-
       extrapolateLeft: "clamp",
 
-
-
       extrapolateRight: "clamp",
-
-
-
     });
 
-
-
     if (filter !== "none") {
-
-
-
       filter += ` blur(${entryBlur}px)`;
-
-
-
     } else {
-
-
-
       filter = `blur(${entryBlur}px)`;
-
-
-
     }
-
-
-
   }
 
-
-
-
-
-
-
   const commonStyle: React.CSSProperties = {
-
-
-
     width: "100%",
-
-
 
     height: "100%",
 
-
-
     objectFit: isLogo ? "contain" : "cover",
-
-
 
     opacity,
 
     visibility: opacity < 0.02 ? "hidden" : "visible",
 
-    transform: isLogo && youtubeChannelInfo
-      ? `scale(${zoomScale * transitionScale}) rotate(${transitionRotate}deg) translateY(-100px)`
-      : `scale(${zoomScale * transitionScale}) rotate(${transitionRotate}deg)`,
-
-
+    transform:
+      isLogo && youtubeChannelInfo
+        ? `scale(${zoomScale * transitionScale}) rotate(${transitionRotate}deg) translateY(-100px)`
+        : `scale(${zoomScale * transitionScale}) rotate(${transitionRotate}deg)`,
 
     backgroundColor: isLogo ? "#050506" : "transparent",
 
-
-
     padding: isLogo ? "10%" : "0",
-
-
 
     boxSizing: "border-box",
 
-
-
     clipPath,
 
-
-
     filter,
-
-
-
   };
-
-
-
-
-
-
 
   const clipVolume = scene.volume ?? 0;
   const clipRate = scene.playback_rate ?? 1;
 
-  if (scene.type === "video") {
-
-
-
+  if (scene.type === "remotion" && scene.remotionTemplate) {
+    const template = scene.remotionTemplate as OverlayType;
+    const props = (scene.remotionProps || {}) as Overlay["props"];
     return (
+      <AbsoluteFill style={{ overflow: "hidden", backgroundColor: "#050506" }}>
+        <MotionSceneFill
+          type={template}
+          props={props}
+          durationInFrames={durationFrames}
+        />
+      </AbsoluteFill>
+    );
+  }
 
-
-
+  if (scene.type === "video") {
+    return (
       <AbsoluteFill style={{ overflow: "hidden" }}>
-
-
-
         <Video
           src={assetUrl(scene.asset)}
           muted={clipVolume <= 0}
@@ -1158,176 +637,63 @@ const SceneMedia: React.FC<{
           delayRenderTimeoutInMilliseconds={MEDIA_DELAY_RENDER_TIMEOUT_MS}
           delayRenderRetries={MEDIA_DELAY_RENDER_RETRIES}
           style={commonStyle}
-
-
-
         />
 
-
-
         {!isLogo && (
-
-
-
           <div
-
-
-
             style={{
-
-
-
               position: "absolute",
-
-
 
               inset: 0,
 
-
-
               pointerEvents: "none",
 
-
-
-              background: "radial-gradient(circle, transparent 35%, rgba(0,0,0,0.7) 100%)",
-
-
+              background:
+                "radial-gradient(circle, transparent 35%, rgba(0,0,0,0.7) 100%)",
 
               mixBlendMode: "multiply",
 
-
-
               opacity: 0.85,
-
-
-
             }}
-
-
-
           />
-
-
-
         )}
-
-
-
       </AbsoluteFill>
-
-
-
     );
-
-
-
   }
 
-
-
-
-
-
-
   return (
-
-
-
     <AbsoluteFill style={{ overflow: "hidden" }}>
-
-
-
       <Img src={assetUrl(scene.asset)} style={commonStyle} />
 
-
-
       {!isLogo && (
-
-
-
         <div
-
-
-
           style={{
-
-
-
             position: "absolute",
-
-
 
             inset: 0,
 
-
-
             pointerEvents: "none",
 
-
-
-            background: "radial-gradient(circle, transparent 35%, rgba(0,0,0,0.7) 100%)",
-
-
+            background:
+              "radial-gradient(circle, transparent 35%, rgba(0,0,0,0.7) 100%)",
 
             mixBlendMode: "multiply",
 
-
-
             opacity: 0.85,
-
-
-
           }}
-
-
-
         />
-
-
-
       )}
-
-
-
     </AbsoluteFill>
-
-
-
   );
-
-
-
 };
 
-
-
-
-
-
-
 interface WordChunk {
-
-
-
   words: Caption[];
-
-
 
   startMs: number;
 
-
-
   endMs: number;
-
-
-
 }
-
-
-
-
-
-
 
 type CaptionModeId =
   | "caption-highlight"
@@ -1372,7 +738,11 @@ const EMOJI_POP_POOL = ["✨", "🔥", "💡", "⚡", "🎯", "💥"];
 
 const MATRIX_SCRAMBLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
 
-function scrambleCaptionText(text: string, progress: number, seed: number): string {
+function scrambleCaptionText(
+  text: string,
+  progress: number,
+  seed: number
+): string {
   if (progress >= 1) return text;
   return text
     .split("")
@@ -1380,7 +750,9 @@ function scrambleCaptionText(text: string, progress: number, seed: number): stri
       if (ch === " ") return " ";
       const revealAt = (i + 1) / Math.max(text.length, 1);
       if (progress >= revealAt) return ch;
-      return MATRIX_SCRAMBLE[(seed + i * 11 + Math.floor(progress * 20)) % MATRIX_SCRAMBLE.length];
+      return MATRIX_SCRAMBLE[
+        (seed + i * 11 + Math.floor(progress * 20)) % MATRIX_SCRAMBLE.length
+      ];
     })
     .join("");
 }
@@ -1399,7 +771,7 @@ const BURST_PARTICLES = [
 function resolveCaptionMode(
   captionMode?: string,
   captionEffect?: string,
-  captionStyle: "shorts-viral" | "documentary" = "documentary",
+  captionStyle: "shorts-viral" | "documentary" = "documentary"
 ): CaptionModeId {
   if (captionMode && HF_CAPTION_MODES.has(captionMode as CaptionModeId)) {
     return captionMode as CaptionModeId;
@@ -1415,14 +787,19 @@ function resolveCaptionMode(
     "doc-glow": "caption-neon-glow",
     "doc-minimal": "caption-weight-shift",
   };
-  if (captionEffect && legacyMap[captionEffect]) return legacyMap[captionEffect];
-  return captionStyle === "shorts-viral" ? "caption-highlight" : "caption-pill-karaoke";
+  if (captionEffect && legacyMap[captionEffect])
+    return legacyMap[captionEffect];
+  return captionStyle === "shorts-viral"
+    ? "caption-highlight"
+    : "caption-pill-karaoke";
 }
 
 function isWordByWordCaptionMode(mode: CaptionModeId): boolean {
-  return mode !== "caption-pill-karaoke"
-    && mode !== "caption-weight-shift"
-    && mode !== "caption-editorial-emphasis";
+  return (
+    mode !== "caption-pill-karaoke" &&
+    mode !== "caption-weight-shift" &&
+    mode !== "caption-editorial-emphasis"
+  );
 }
 
 const CaptionLayer: React.FC<{
@@ -1440,16 +817,9 @@ const CaptionLayer: React.FC<{
   captionBgmPulse = false,
   accentColor = "#D4AF37",
 }) => {
-
-
-
   const frame = useCurrentFrame();
 
-
-
   const { fps, width, height } = useVideoConfig();
-
-
 
   const currentMs = (frame / fps) * 1000;
   const mode = resolveCaptionMode(captionMode, captionEffect, captionStyle);
@@ -1472,232 +842,101 @@ const CaptionLayer: React.FC<{
   const isBlendDiff = mode === "caption-blend-difference";
   const isMorph = mode === "morph-text";
   const viralStatic = isHighlight && captionEffect === "viral-static";
-  const viralPulse = isHighlight && (captionBgmPulse || captionEffect === "viral-pulse") && !viralStatic;
+  const viralPulse =
+    isHighlight &&
+    (captionBgmPulse || captionEffect === "viral-pulse") &&
+    !viralStatic;
   const viralPop = isHighlight && !viralStatic;
   const maxWordsPerChunk = isWordByWordCaptionMode(mode) ? 1 : 2;
   const pauseThresholdMs = isViralShorts ? 400 : 600;
   const maxChunkDurationMs = isViralShorts ? 1800 : 2200;
 
-
-
-
-
-
-
   // Dynamically group single words into static chunks of at most 2 words
-
-
 
   // with a pause threshold of 600ms
 
-
-
   const chunks: WordChunk[] = React.useMemo(() => {
-
-
-
     const list: WordChunk[] = [];
-
-
 
     let currentChunk: Caption[] = [];
 
-
-
     const safeCaptions = captions
 
-
-
-      .filter((caption) => caption.text.trim() && Number.isFinite(caption.startMs) && Number.isFinite(caption.endMs))
-
-
+      .filter(
+        (caption) =>
+          caption.text.trim() &&
+          Number.isFinite(caption.startMs) &&
+          Number.isFinite(caption.endMs)
+      )
 
       .map((caption) => ({
-
-
-
         ...caption,
 
-
-
         endMs: Math.min(caption.endMs, caption.startMs + 900),
-
-
-
       }))
-
-
 
       .sort((a, b) => a.startMs - b.startMs);
 
-
-
-
-
-
-
     for (let j = 0; j < safeCaptions.length; j++) {
-
-
-
       const cap = safeCaptions[j];
-
-
 
       const lastCap = currentChunk[currentChunk.length - 1];
 
-
-
-
-
-
-
       if (
-
-
-
         currentChunk.length >= maxWordsPerChunk ||
-
-
-
         (lastCap && cap.startMs - lastCap.endMs > pauseThresholdMs) ||
-
-
-
-        (currentChunk.length > 0 && cap.endMs - currentChunk[0].startMs > maxChunkDurationMs)
-
-
-
+        (currentChunk.length > 0 &&
+          cap.endMs - currentChunk[0].startMs > maxChunkDurationMs)
       ) {
-
-
-
         if (currentChunk.length > 0) {
-
-
-
           list.push({
-
-
-
             words: currentChunk,
-
-
 
             startMs: currentChunk[0].startMs,
 
-
-
-            endMs: Math.min(currentChunk[currentChunk.length - 1].endMs, currentChunk[0].startMs + 2400),
-
-
-
+            endMs: Math.min(
+              currentChunk[currentChunk.length - 1].endMs,
+              currentChunk[0].startMs + 2400
+            ),
           });
-
-
-
         }
 
-
-
         currentChunk = [cap];
-
-
-
       } else {
-
-
-
         currentChunk.push(cap);
-
-
-
       }
-
-
-
     }
 
-
-
     if (currentChunk.length > 0) {
-
-
-
       list.push({
-
-
-
         words: currentChunk,
-
-
 
         startMs: currentChunk[0].startMs,
 
-
-
-        endMs: Math.min(currentChunk[currentChunk.length - 1].endMs, currentChunk[0].startMs + 2400),
-
-
-
+        endMs: Math.min(
+          currentChunk[currentChunk.length - 1].endMs,
+          currentChunk[0].startMs + 2400
+        ),
       });
-
-
-
     }
 
-
-
     return list;
-
-
-
   }, [captions, maxWordsPerChunk, pauseThresholdMs, maxChunkDurationMs]);
-
-
-
-
-
-
 
   // Find the currently active static chunk
 
-
-
   const activeChunk = chunks.find(
-
-
-
     (chunk) => currentMs >= chunk.startMs && currentMs <= chunk.endMs
-
-
-
   );
-
-
-
-
-
-
 
   if (!activeChunk) return null;
 
-
-
-
-
-
-
   const isVertical = height > width;
 
-
-
-
-
-
-
   const wordsToRender = isSlam
-    ? activeChunk.words.filter((word) => currentMs >= word.startMs && currentMs <= word.endMs)
+    ? activeChunk.words.filter(
+        (word) => currentMs >= word.startMs && currentMs <= word.endMs
+      )
     : activeChunk.words;
 
   if (isSlam && wordsToRender.length === 0) return null;
@@ -1708,9 +947,13 @@ const CaptionLayer: React.FC<{
         justifyContent: isSlam ? "center" : "flex-end",
         alignItems: "center",
         padding: isSlam
-          ? (isVertical ? "0 40px" : "0 120px")
+          ? isVertical
+            ? "0 40px"
+            : "0 120px"
           : isVertical
-            ? (isViralShorts ? "0 48px 220px" : "0 72px 240px")
+            ? isViralShorts
+              ? "0 48px 220px"
+              : "0 72px 240px"
             : "0 180px 70px",
         pointerEvents: "none",
         zIndex: 90,
@@ -1723,15 +966,19 @@ const CaptionLayer: React.FC<{
           flexWrap: "wrap",
           justifyContent: "center",
           alignItems: "center",
-          columnGap: isViralShorts ? 14 : (isVertical ? 22 : 16),
-          rowGap: isViralShorts ? 8 : (isVertical ? 12 : 8),
-          maxWidth: isVertical ? (isSlam ? 920 : (isViralShorts ? 900 : 800)) : 1000,
+          columnGap: isViralShorts ? 14 : isVertical ? 22 : 16,
+          rowGap: isViralShorts ? 8 : isVertical ? 12 : 8,
+          maxWidth: isVertical
+            ? isSlam
+              ? 920
+              : isViralShorts
+                ? 900
+                : 800
+            : 1000,
           background: isPill ? "rgba(10, 10, 15, 0.75)" : "transparent",
           backdropFilter: isPill ? "blur(12px)" : "none",
           border: isPill ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
-          padding: isPill
-            ? (isVertical ? "20px 40px" : "14px 28px")
-            : "0",
+          padding: isPill ? (isVertical ? "20px 40px" : "14px 28px") : "0",
           borderRadius: isPill ? "99px" : 0,
           boxShadow: isPill ? "0 16px 40px rgba(0, 0, 0, 0.75)" : "none",
         }}
@@ -1742,7 +989,8 @@ const CaptionLayer: React.FC<{
               position: "absolute",
               inset: 0,
               pointerEvents: "none",
-              background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.14) 2px, rgba(0,0,0,0.14) 4px)",
+              background:
+                "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.14) 2px, rgba(0,0,0,0.14) 4px)",
               mixBlendMode: "overlay",
               borderRadius: isPill ? "99px" : 0,
             }}
@@ -1750,51 +998,95 @@ const CaptionLayer: React.FC<{
         )}
         {wordsToRender.map((word, index) => {
           const active = currentMs >= word.startMs && currentMs <= word.endMs;
-          const wordFrame = Math.max(0, Math.round(((currentMs - word.startMs) / 1000) * fps));
+          const wordFrame = Math.max(
+            0,
+            Math.round(((currentMs - word.startMs) / 1000) * fps)
+          );
           const matrixProgress = Math.min(1, wordFrame / 14);
           const wipeProgress = Math.min(1, wordFrame / 12);
           const burstFade = active
-            ? interpolate(wordFrame, [0, 18], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+            ? interpolate(wordFrame, [0, 18], [1, 0], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+              })
             : 0;
           const glitchShift = Math.sin((frame + index * 3) / 3) * 3;
-          const displayText = isMatrix && active
-            ? scrambleCaptionText(word.text, matrixProgress, word.startMs)
-            : word.text;
-          const popScale = (viralPop || isGradient) && active
-            ? spring({ fps, frame: wordFrame, config: { damping: 14, stiffness: 220, mass: 0.5 } })
-            : 1;
-          const slamScale = isSlam && active
-            ? spring({ fps, frame: wordFrame, config: { damping: 12, stiffness: 180, mass: 0.8 } })
-            : 1;
-          const bgmBeat = viralPulse && active
-            ? 1 + 0.1 * Math.sin((frame / fps) * Math.PI * 4)
-            : 1;
-          const pulseGlow = viralPulse && active
-            ? `0 0 20px ${accentColor}66, 0 0 40px ${accentColor}33`
-            : undefined;
+          const displayText =
+            isMatrix && active
+              ? scrambleCaptionText(word.text, matrixProgress, word.startMs)
+              : word.text;
+          const popScale =
+            (viralPop || isGradient) && active
+              ? spring({
+                  fps,
+                  frame: wordFrame,
+                  config: { damping: 14, stiffness: 220, mass: 0.5 },
+                })
+              : 1;
+          const slamScale =
+            isSlam && active
+              ? spring({
+                  fps,
+                  frame: wordFrame,
+                  config: { damping: 12, stiffness: 180, mass: 0.8 },
+                })
+              : 1;
+          const bgmBeat =
+            viralPulse && active
+              ? 1 + 0.1 * Math.sin((frame / fps) * Math.PI * 4)
+              : 1;
+          const pulseGlow =
+            viralPulse && active
+              ? `0 0 20px ${accentColor}66, 0 0 40px ${accentColor}33`
+              : undefined;
           const slamDir = index % 2 === 0 ? -48 : 48;
-          const slamOffset = isSlam && active
-            ? (1 - slamScale) * slamDir
-            : 0;
-          const morphBlur = isMorph && active
-            ? interpolate(wordFrame, [0, 10], [10, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-            : 0;
-          const morphScale = isMorph && active
-            ? interpolate(wordFrame, [0, 12], [1.25, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-            : 1;
+          const slamOffset = isSlam && active ? (1 - slamScale) * slamDir : 0;
+          const morphBlur =
+            isMorph && active
+              ? interpolate(wordFrame, [0, 10], [10, 0], {
+                  extrapolateLeft: "clamp",
+                  extrapolateRight: "clamp",
+                })
+              : 0;
+          const morphScale =
+            isMorph && active
+              ? interpolate(wordFrame, [0, 12], [1.25, 1], {
+                  extrapolateLeft: "clamp",
+                  extrapolateRight: "clamp",
+                })
+              : 1;
           const neonAccentHue = (frame * 4 + index * 40) % 360;
           const neonAccentColor = `hsl(${neonAccentHue}, 95%, 62%)`;
-          const wiggleX = isNeonAccent && active ? Math.sin((frame + index * 5) / 5) * 4 : 0;
-          const wiggleY = isNeonAccent && active ? Math.cos((frame + index * 3) / 6) * 3 : 0;
+          const wiggleX =
+            isNeonAccent && active ? Math.sin((frame + index * 5) / 5) * 4 : 0;
+          const wiggleY =
+            isNeonAccent && active ? Math.cos((frame + index * 3) / 6) * 3 : 0;
           const textureShift = (frame * 2) % 100;
-          const emojiPopScale = isEmojiPop && active
-            ? spring({ fps, frame: wordFrame, config: { damping: 10, stiffness: 200, mass: 0.45 } })
-            : 0;
+          const emojiPopScale =
+            isEmojiPop && active
+              ? spring({
+                  fps,
+                  frame: wordFrame,
+                  config: { damping: 10, stiffness: 200, mass: 0.45 },
+                })
+              : 0;
           const emojiGlyph = EMOJI_POP_POOL[index % EMOJI_POP_POOL.length];
 
           let baseFont = isVertical
-            ? (isSlam ? 88 : isViralShorts ? 64 : isWeight ? 52 : 58)
-            : (isSlam ? 72 : isViralShorts ? 44 : isWeight ? 34 : 38);
+            ? isSlam
+              ? 88
+              : isViralShorts
+                ? 64
+                : isWeight
+                  ? 52
+                  : 58
+            : isSlam
+              ? 72
+              : isViralShorts
+                ? 44
+                : isWeight
+                  ? 34
+                  : 38;
           if (isEditorial && active) baseFont *= 1.35;
           if (isEditorial && !active) baseFont *= 0.82;
           if (isParallax && !active) baseFont *= 0.78;
@@ -1808,24 +1100,26 @@ const CaptionLayer: React.FC<{
           else if (isNeon && active) color = "#22D3EE";
           else if (active) color = accentColor;
 
-          const gradientText = (isGradient || isTexture) && active
-            ? {
-                backgroundImage: isTexture
-                  ? `linear-gradient(${textureShift}deg, #F97316, #DC2626, #78350F, #FBBF24, #F97316)`
-                  : `linear-gradient(135deg, ${accentColor}, #F472B6, #22D3EE)`,
-                backgroundSize: isTexture ? "200% 200%" : undefined,
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-                color: "transparent",
-              }
-            : {};
+          const gradientText =
+            (isGradient || isTexture) && active
+              ? {
+                  backgroundImage: isTexture
+                    ? `linear-gradient(${textureShift}deg, #F97316, #DC2626, #78350F, #FBBF24, #F97316)`
+                    : `linear-gradient(135deg, ${accentColor}, #F472B6, #22D3EE)`,
+                  backgroundSize: isTexture ? "200% 200%" : undefined,
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }
+              : {};
 
-          const fontFamily = isEditorial && active
-            ? "'Cinzel', 'Playfair Display', Georgia, serif"
-            : isMatrix && active && matrixProgress < 1
-              ? "'Courier New', Courier, monospace"
-              : "'Montserrat', 'Inter', Arial, sans-serif";
+          const fontFamily =
+            isEditorial && active
+              ? "'Cinzel', 'Playfair Display', Georgia, serif"
+              : isMatrix && active && matrixProgress < 1
+                ? "'Courier New', Courier, monospace"
+                : "'Montserrat', 'Inter', Arial, sans-serif";
 
           return (
             <span
@@ -1838,36 +1132,44 @@ const CaptionLayer: React.FC<{
                 color,
                 fontFamily,
                 fontSize: baseFont,
-                fontWeight: isWeight ? (active ? 900 : 300) : isEditorial && !active ? 500 : 900,
+                fontWeight: isWeight
+                  ? active
+                    ? 900
+                    : 300
+                  : isEditorial && !active
+                    ? 500
+                    : 900,
                 mixBlendMode: isBlendDiff ? "difference" : undefined,
                 filter: isMorph && active ? `blur(${morphBlur}px)` : undefined,
                 lineHeight: 1.1,
                 letterSpacing: isViralShorts || isSlam ? "0.02em" : "0.05em",
                 textTransform: "uppercase",
                 whiteSpace: "pre",
-                background: isHighlight && active
-                  ? `linear-gradient(135deg, ${accentColor} 0%, #FDE047 100%)`
-                  : "transparent",
+                background:
+                  isHighlight && active
+                    ? `linear-gradient(135deg, ${accentColor} 0%, #FDE047 100%)`
+                    : "transparent",
                 padding: isHighlight && active ? "6px 18px" : "0",
                 borderRadius: isHighlight && active ? "12px" : 0,
-                clipPath: isWipe && active
-                  ? `inset(0 ${Math.round((1 - wipeProgress) * 100)}% 0 0)`
-                  : undefined,
+                clipPath:
+                  isWipe && active
+                    ? `inset(0 ${Math.round((1 - wipeProgress) * 100)}% 0 0)`
+                    : undefined,
                 textShadow: isHighlight
-                  ? (active
-                    ? (pulseGlow || "0 2px 8px rgba(0,0,0,0.35)")
-                    : "0 3px 12px rgba(0,0,0,0.85), 0 0 24px rgba(0,0,0,0.5)")
+                  ? active
+                    ? pulseGlow || "0 2px 8px rgba(0,0,0,0.35)"
+                    : "0 3px 12px rgba(0,0,0,0.85), 0 0 24px rgba(0,0,0,0.5)"
                   : isGlitch && active
                     ? `${glitchShift - 3}px 0 #FF4D6D, ${glitchShift + 3}px 0 #22D3EE, 0 0 10px rgba(255,255,255,0.35)`
                     : isNeonAccent && active
-                    ? `0 0 14px ${neonAccentColor}, 0 0 26px #F472B6`
-                    : isNeon && active
-                      ? "0 0 16px #22D3EE, 0 0 28px #F472B6"
-                      : isMatrix && active && matrixProgress < 1
-                        ? "0 0 12px rgba(74,222,128,0.6)"
-                        : active
-                          ? `0 0 14px ${accentColor}88, 0 2px 4px rgba(0,0,0,0.5)`
-                          : "0 2px 4px rgba(0,0,0,0.5)",
+                      ? `0 0 14px ${neonAccentColor}, 0 0 26px #F472B6`
+                      : isNeon && active
+                        ? "0 0 16px #22D3EE, 0 0 28px #F472B6"
+                        : isMatrix && active && matrixProgress < 1
+                          ? "0 0 12px rgba(74,222,128,0.6)"
+                          : active
+                            ? `0 0 14px ${accentColor}88, 0 2px 4px rgba(0,0,0,0.5)`
+                            : "0 2px 4px rgba(0,0,0,0.5)",
                 transform: active
                   ? isSlam
                     ? `translateX(${slamOffset}px) scale(${0.75 + slamScale * 0.35})`
@@ -1881,8 +1183,22 @@ const CaptionLayer: React.FC<{
                   : isParallax
                     ? "scale(0.78) translateY(6px)"
                     : "scale(1.0)",
-                transition: isViralShorts || isSlam || isWipe || isMatrix || isMorph || isNeonAccent ? "none" : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
-                opacity: active ? 1 : (isWeight || isParallax ? 0.6 : isViralShorts ? 0.92 : 0.75),
+                transition:
+                  isViralShorts ||
+                  isSlam ||
+                  isWipe ||
+                  isMatrix ||
+                  isMorph ||
+                  isNeonAccent
+                    ? "none"
+                    : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
+                opacity: active
+                  ? 1
+                  : isWeight || isParallax
+                    ? 0.6
+                    : isViralShorts
+                      ? 0.92
+                      : 0.75,
                 zIndex: isParallax && active ? 2 : isParallax ? 1 : undefined,
                 ...gradientText,
               }}
@@ -1901,41 +1217,35 @@ const CaptionLayer: React.FC<{
                 </span>
               )}
               {displayText}
-              {isBurst && active && burstFade > 0 && BURST_PARTICLES.map((p, pi) => (
-                <span
-                  key={pi}
-                  style={{
-                    position: "absolute",
-                    left: "50%",
-                    top: "50%",
-                    width: isVertical ? 8 : 6,
-                    height: isVertical ? 8 : 6,
-                    marginLeft: p.x * burstFade,
-                    marginTop: p.y * burstFade,
-                    borderRadius: "50%",
-                    background: p.c,
-                    opacity: burstFade,
-                    boxShadow: `0 0 10px ${p.c}`,
-                    pointerEvents: "none",
-                  }}
-                />
-              ))}
+              {isBurst &&
+                active &&
+                burstFade > 0 &&
+                BURST_PARTICLES.map((p, pi) => (
+                  <span
+                    key={pi}
+                    style={{
+                      position: "absolute",
+                      left: "50%",
+                      top: "50%",
+                      width: isVertical ? 8 : 6,
+                      height: isVertical ? 8 : 6,
+                      marginLeft: p.x * burstFade,
+                      marginTop: p.y * burstFade,
+                      borderRadius: "50%",
+                      background: p.c,
+                      opacity: burstFade,
+                      boxShadow: `0 0 10px ${p.c}`,
+                      pointerEvents: "none",
+                    }}
+                  />
+                ))}
             </span>
           );
         })}
       </div>
     </AbsoluteFill>
   );
-
-
-
 };
-
-
-
-
-
-
 
 /** Shorts: duck agressivo para punch viral. */
 const BGM_DUCK_PROFILES_SHORT = {
@@ -1969,8 +1279,10 @@ const BgmAudio: React.FC<{
   format = "9:16",
 }) => {
   const isLongForm = format === "16:9";
-  const duckShort = BGM_DUCK_PROFILES_SHORT[bgmDuckStrength] || BGM_DUCK_PROFILES_SHORT.normal;
-  const duckLong = BGM_DUCK_PROFILES_LONG[bgmDuckStrength] || BGM_DUCK_PROFILES_LONG.normal;
+  const duckShort =
+    BGM_DUCK_PROFILES_SHORT[bgmDuckStrength] || BGM_DUCK_PROFILES_SHORT.normal;
+  const duckLong =
+    BGM_DUCK_PROFILES_LONG[bgmDuckStrength] || BGM_DUCK_PROFILES_LONG.normal;
   const minSpeakingVol = isLongForm ? 0.08 : 0.012;
   const minNearVol = isLongForm ? 0.09 : 0.015;
   const minIdleVol = isLongForm ? 0.1 : 0.02;
@@ -1979,8 +1291,14 @@ const BgmAudio: React.FC<{
   const startFrame = Math.round(track.start * fps);
   const trackDurationMs = Math.max(500, track.duration * 1000);
   const narrationDurationMs = Math.max(0, narrationDuration * 1000);
-  const fadeInMs = Math.max(800, (track.fadeInS ?? (isLongForm ? 2.5 : 1.8)) * 1000);
-  const fadeOutMs = Math.max(1000, (track.fadeOutS ?? (isLongForm ? 4 : 2.2)) * 1000);
+  const fadeInMs = Math.max(
+    800,
+    (track.fadeInS ?? (isLongForm ? 2.5 : 1.8)) * 1000
+  );
+  const fadeOutMs = Math.max(
+    1000,
+    (track.fadeOutS ?? (isLongForm ? 4 : 2.2)) * 1000
+  );
 
   return (
     <Audio
@@ -1998,10 +1316,15 @@ const BgmAudio: React.FC<{
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         });
-        const fadeOut = interpolate(trackDurationMs - localMs, [0, fadeOutMs], [0, 1], {
-          extrapolateLeft: "clamp",
-          extrapolateRight: "clamp",
-        });
+        const fadeOut = interpolate(
+          trackDurationMs - localMs,
+          [0, fadeOutMs],
+          [0, 1],
+          {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          }
+        );
         const envelope = Math.min(fadeIn, fadeOut);
 
         const getBaseVolume = () => {
@@ -2009,10 +1332,12 @@ const BgmAudio: React.FC<{
           const logoStartMs = totalDurationMs - 3000;
           if (currentMs >= logoStartMs) {
             const progress = (currentMs - logoStartMs) / 3000;
-            return interpolate(progress, [0, 1], [0.035, 0.08], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            }) * envelope;
+            return (
+              interpolate(progress, [0, 1], [0.035, 0.08], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+              }) * envelope
+            );
           }
 
           // 2. Check distance to narrator speaking interval
@@ -2034,7 +1359,8 @@ const BgmAudio: React.FC<{
             }
           } else {
             // Fallback when there are no captions: duck volume during the entire narration
-            isSpeaking = narrationDurationMs > 0 && currentMs <= narrationDurationMs;
+            isSpeaking =
+              narrationDurationMs > 0 && currentMs <= narrationDurationMs;
           }
 
           let duckBoost = 0;
@@ -2042,27 +1368,41 @@ const BgmAudio: React.FC<{
             const duckMs = point * 1000;
             const dist = Math.abs(currentMs - duckMs);
             if (dist < 700) {
-              duckBoost = Math.max(duckBoost, interpolate(dist, [0, 700], [0.018, 0], {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp",
-              }));
+              duckBoost = Math.max(
+                duckBoost,
+                interpolate(dist, [0, 700], [0.018, 0], {
+                  extrapolateLeft: "clamp",
+                  extrapolateRight: "clamp",
+                })
+              );
             }
           }
 
           if (isLongForm) {
             const stable = isSpeaking
               ? duckLong.speaking
-              : (minDistance < 1200 ? duckLong.near : duckLong.idle);
+              : minDistance < 1200
+                ? duckLong.near
+                : duckLong.idle;
             return Math.max(minSpeakingVol, stable * envelope - duckBoost);
           }
 
           if (isSpeaking) {
-            const breath = (Math.sin((currentMs / 1000) * Math.PI * 0.42) + 1) / 2;
-            return Math.max(minSpeakingVol, interpolate(breath, [0, 1], duckShort.speaking) * envelope - duckBoost);
+            const breath =
+              (Math.sin((currentMs / 1000) * Math.PI * 0.42) + 1) / 2;
+            return Math.max(
+              minSpeakingVol,
+              interpolate(breath, [0, 1], duckShort.speaking) * envelope -
+                duckBoost
+            );
           }
 
           if (minDistance < 900) {
-            return Math.max(minNearVol, interpolate(minDistance, [0, 900], duckShort.near) * envelope - duckBoost);
+            return Math.max(
+              minNearVol,
+              interpolate(minDistance, [0, 900], duckShort.near) * envelope -
+                duckBoost
+            );
           }
 
           return Math.max(minIdleVol, duckShort.idle * envelope - duckBoost);
@@ -2075,119 +1415,47 @@ const BgmAudio: React.FC<{
 };
 
 const SfxAudio: React.FC<{ track: SfxTrack }> = ({ track }) => {
-
-
-
   const { fps } = useVideoConfig();
-
-
 
   const durationMs = Math.max(300, track.duration * 1000);
 
-
-
   const baseVolume = Math.min(0.07, Math.max(0.012, track.volume || 0.035));
 
-
-
-
-
-
-
   return (
-
-
-
     <Audio
       src={assetUrl(track.file)}
       delayRenderTimeoutInMilliseconds={MEDIA_DELAY_RENDER_TIMEOUT_MS}
       volume={(localFrame) => {
-
-
-
         const localMs = (localFrame / fps) * 1000;
 
-
-
         const fadeIn = interpolate(localMs, [0, 120], [0, 1], {
-
-
-
           extrapolateLeft: "clamp",
 
-
-
           extrapolateRight: "clamp",
-
-
-
         });
-
-
 
         const fadeOut = interpolate(durationMs - localMs, [0, 300], [0, 1], {
-
-
-
           extrapolateLeft: "clamp",
 
-
-
           extrapolateRight: "clamp",
-
-
-
         });
 
-
-
         return baseVolume * Math.min(fadeIn, fadeOut);
-
-
-
       }}
-
-
-
     />
-
-
-
   );
-
-
-
 };
 
-
-
-
-
-
-
 export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
-
-
-
   scenes,
-
-
 
   captions,
 
-
-
   narration,
-
-
 
   narrationDuration = 0,
 
-
-
   bgmTracks,
-
-
 
   sfxTracks = [],
 
@@ -2222,93 +1490,57 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   const showVignette = vignette;
   const showGrain = grainOverlay;
 
-
-
   const { fps } = useVideoConfig();
-
-
 
   const transitionFrames = 12; // 0.4 seconds overlap transition
 
-
-
-
-
-
-
   const lastScene = scenes[scenes.length - 1];
-  const isLastSceneLogo = lastScene && (
-    lastScene.asset.toLowerCase().includes("logo_final_") || 
-    lastScene.asset.toLowerCase().includes("logo.") || 
-    lastScene.asset.toLowerCase().includes("/logo")
-  );
+  const lastAsset = String(lastScene?.asset || "");
+  const isLastSceneLogo =
+    lastScene &&
+    lastScene.type !== "remotion" &&
+    (lastAsset.toLowerCase().includes("logo_final_") ||
+      lastAsset.toLowerCase().includes("logo.") ||
+      lastAsset.toLowerCase().includes("/logo"));
 
   return (
-
-
-
-    <AbsoluteFill style={{ backgroundColor: transparent ? "transparent" : canvasBackground }}>
+    <AbsoluteFill
+      style={{
+        backgroundColor: transparent ? "transparent" : canvasBackground,
+      }}
+    >
       <style>
         {`
           @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Cinzel:wght@700;900&family=Inter:wght@400;500;700&display=swap');
         `}
       </style>
       {scenes.map((scene, index) => {
-
-
-
         const isLast = index === scenes.length - 1;
 
+        const sceneAsset = String(scene.asset || "");
+        const isLogo =
+          scene.type !== "remotion" &&
+          (sceneAsset.toLowerCase().includes("logo_final_") ||
+            sceneAsset.toLowerCase().includes("logo.") ||
+            sceneAsset.toLowerCase().includes("/logo"));
 
+        const overlap = !isLast && !isLogo ? transitionFrames : 0;
 
-        const isLogo = scene.asset.toLowerCase().includes("logo_final_") || scene.asset.toLowerCase().includes("logo.") || scene.asset.toLowerCase().includes("/logo");
-
-
-
-        const overlap = (!isLast && !isLogo) ? transitionFrames : 0;
-
-
-
-        const durationInFrames = Math.max(1, Math.round(scene.duration * fps)) + overlap;
-
-
-
-
-
-
+        const durationInFrames =
+          Math.max(1, Math.round(scene.duration * fps)) + overlap;
 
         return (
-
-
-
           <Sequence
-
-
-
-            key={`${scene.block}-${scene.asset}-${index}`}
-
-
+            key={`${scene.block}-${scene.scene_id || scene.asset || scene.remotionTemplate}-${index}`}
 
             from={Math.round(scene.start * fps)}
 
-
-
             durationInFrames={durationInFrames}
-
-
 
             premountFor={fps}
 
-
-
             style={{ zIndex: index + 1 }}
-
-
-
           >
-
-
-
             <SceneMedia
               scene={scene}
               isFirst={index === 0}
@@ -2322,53 +1554,20 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
               shortsPortalEvery={shortsPortalEvery}
               accentColor={accentColor}
             />
-
-
-
           </Sequence>
-
-
-
         );
-
-
-
       })}
 
-
-
-
-
-
-
       {bgmTracks.map((track, index) => (
-
-
-
         <Sequence
-
-
-
           key={`${track.block}-${track.file}-${index}`}
-
-
 
           from={Math.round(track.start * fps)}
 
-
-
           durationInFrames={Math.max(1, Math.round(track.duration * fps))}
 
-
-
           premountFor={fps}
-
-
-
         >
-
-
-
           <BgmAudio
             track={track}
             captions={captions}
@@ -2378,84 +1577,30 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
             bgmDuckStrength={track.duckStrength || bgmDuckStrength}
             format={format}
           />
-
-
-
         </Sequence>
-
-
-
       ))}
 
-
-
-
-
-
-
       {sfxTracks.map((track, index) => (
-
-
-
         <Sequence
-
-
-
           key={`${track.file}-${index}`}
-
-
 
           from={Math.max(0, Math.round(track.start * fps))}
 
-
-
           durationInFrames={Math.max(1, Math.round(track.duration * fps))}
 
-
-
           premountFor={fps}
-
-
-
         >
-
-
-
           <SfxAudio track={track} />
-
-
-
         </Sequence>
-
-
-
       ))}
 
-
-
-
-
-
-
       {narration ? (
-
-
-
         <Audio
           src={assetUrl(narration)}
           volume={1}
           delayRenderTimeoutInMilliseconds={MEDIA_DELAY_RENDER_TIMEOUT_MS}
         />
-
-
-
       ) : null}
-
-
-
-
-
-
 
       {showVignette && (
         <AbsoluteFill
@@ -2561,18 +1706,6 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
           <YoutubeSubOverlay channelInfo={youtubeChannelInfo} />
         </Sequence>
       )}
-
-
-
     </AbsoluteFill>
-
-
-
   );
-
-
-
 };
-
-
-

@@ -168,6 +168,23 @@ function sanitizeOverlayProps<T extends Overlay["props"]>(raw: T): T {
   return props;
 }
 
+export const MotionSceneFill: React.FC<{
+  type: OverlayType;
+  props: Overlay["props"];
+  durationInFrames: number;
+}> = ({ type, props, durationInFrames }) => (
+  <OverlayComponent
+    overlay={{
+      id: "motion-scene-fill",
+      type,
+      start: 0,
+      duration: 1,
+      props,
+    }}
+    durationInFrames={durationInFrames}
+  />
+);
+
 const OverlayComponent: React.FC<{
   overlay: Overlay;
   durationInFrames: number;

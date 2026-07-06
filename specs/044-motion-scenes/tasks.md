@@ -10,4 +10,4 @@
 - [x] T8 — botão Timeline Studio + LocationIntro zoom_from/zoom_to
 - [x] T9 — satelliteMapService (Esri/Mapbox) + dual-image zoom LocationIntro
 - [x] T10 — LLM enrichment + dedupe overlays_ai (Fase 3)
-- [ ] T11 — media_mode remotion substituindo image/video (Fase 4)
+- [x] T11 — media_mode remotion substituindo image/video (Fase 4)
