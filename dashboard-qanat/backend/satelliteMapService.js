@@ -245,6 +245,16 @@ export function buildEsriExportUrl(lat, lng, zoom, width = 1280, height = 720) {
   );
 }
 
+function isValidJpegBuffer(buf) {
+  return (
+    Buffer.isBuffer(buf) &&
+    buf.length >= 500 &&
+    buf[0] === 0xff &&
+    buf[1] === 0xd8 &&
+    buf[2] === 0xff
+  );
+}
+
 async function downloadImageToFile(url, destPath) {
   const res = await fetch(url, {
     headers: { "User-Agent": NOMINATIM_UA },
@@ -255,8 +265,12 @@ async function downloadImageToFile(url, destPath) {
     );
   }
   const buf = Buffer.from(await res.arrayBuffer());
-  if (buf.length < 500) {
-    throw new Error("Imagem de mapa inválida ou vazia");
+  const head = buf.slice(0, 32).toString("utf8").toLowerCase();
+  if (head.includes("<html") || head.includes('"error"')) {
+    throw new Error("Resposta do provedor de mapa não é imagem JPEG");
+  }
+  if (!isValidJpegBuffer(buf)) {
+    throw new Error("Imagem de mapa inválida ou corrompida");
   }
   fs.mkdirSync(path.dirname(destPath), { recursive: true });
   fs.writeFileSync(destPath, buf);
@@ -293,7 +307,20 @@ export async function fetchSatelliteAssetsForScene(
       ? { fly_mode: props.fly_mode, place_type: props.place_type }
       : classifyPlaceType(scene?.narration_text || "", props);
 
-  let coords = resolveKnownCoordinates(scene?.narration_text || "", props);
+  const narration = String(scene?.narration_text || "");
+  let coords = resolveKnownCoordinates(narration, props);
+  const genericLocation = /^(local|local no mapa)$/i.test(
+    String(props.location || "").trim()
+  );
+  if (!coords && (genericLocation || POI_KEYWORDS.test(narration))) {
+    coords = resolveKnownCoordinates(
+      `${narration} ${props.region || ""} ${props.country || ""}`.trim(),
+      props
+    );
+  }
+  if (!coords && genericLocation && POI_KEYWORDS.test(narration)) {
+    coords = resolveKnownCoordinates("Palmanova fortaleza estelar", props);
+  }
   if (!coords) {
     coords = await geocodeLocation(query);
   }

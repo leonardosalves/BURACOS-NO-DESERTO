@@ -5116,7 +5116,16 @@ export default function App() {
   };
 
   const getAssetUrl = (fileName: string) => {
-    return `/api/projects-media/${encodeURIComponent(activeProject)}/ASSETS/${encodeURIComponent(fileName)}`;
+    const proj = encodeURIComponent(activeProject);
+    const rel = String(fileName || "")
+      .replace(/^ASSETS\//i, "")
+      .replace(/\\/g, "/");
+    const segments = rel
+      .split("/")
+      .filter(Boolean)
+      .map((part) => encodeURIComponent(part))
+      .join("/");
+    return `/api/projects-media/${proj}/ASSETS/${segments}`;
   };
 
   const getMusicUrl = useCallback(

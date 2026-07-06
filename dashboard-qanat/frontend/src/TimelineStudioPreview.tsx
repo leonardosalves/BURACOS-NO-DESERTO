@@ -16,6 +16,10 @@ import {
   type StudioClip,
   type TimelineStudioState,
 } from "./timelineStudioTypes";
+import {
+  resolveMediaUrl,
+  resolveMotionSceneProps,
+} from "./timelineStudioMedia";
 
 type Props = {
   studio: TimelineStudioState;
@@ -29,25 +33,6 @@ type Props = {
 const FULLSCREEN_OVERLAYS = new Set(["pictogram-chart", "location-intro"]);
 const UI_PUBLISH_MS = 100;
 
-function resolveMediaUrl(
-  source: string,
-  getAssetUrl: (fileName: string) => string,
-  getMusicUrl?: (fileName: string) => string
-): string {
-  const s = String(source || "").trim();
-  if (!s) return "";
-  if (/^https?:\/\//i.test(s)) return s;
-  const normalized = s.replace(/^ASSETS\//i, "");
-  const isProjectRoot = /\.(mp3|wav|m4a|aac)$/i.test(normalized);
-  if (isProjectRoot && getMusicUrl) {
-    return getMusicUrl(normalized.split("/").pop() || normalized);
-  }
-  const assetName = normalized.includes("/")
-    ? normalized
-    : normalized.split("/").pop() || normalized;
-  return getAssetUrl(assetName);
-}
-
 function clipToOverlayDraft(
   clip: StudioClip,
   getAssetUrl: (fileName: string) => string,
@@ -56,13 +41,11 @@ function clipToOverlayDraft(
   const type = String(
     clip.templateId || clip.props?.overlayType || "lower-third"
   );
-  const props = { ...(clip.props || {}) };
-  for (const key of ["backgroundImage", "backgroundImageWide"] as const) {
-    const val = props[key];
-    if (typeof val === "string" && val.trim()) {
-      props[key] = resolveMediaUrl(val, getAssetUrl, getMusicUrl);
-    }
-  }
+  const props = resolveMotionSceneProps(
+    (clip.props || {}) as Record<string, unknown>,
+    getAssetUrl,
+    getMusicUrl
+  );
   return {
     id: clip.id,
     type,
