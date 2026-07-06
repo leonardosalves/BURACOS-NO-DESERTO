@@ -34,7 +34,7 @@ function Get-BackendListenerPid {
 function Test-LumieraBackendHealthy {
     param(
         [int]$Retries = 3,
-        [int]$TimeoutSec = 20
+        [int]$TimeoutSec = 45
     )
     for ($i = 1; $i -le $Retries; $i++) {
         try {
