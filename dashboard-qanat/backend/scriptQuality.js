@@ -3,7 +3,10 @@
 import { resolveStockSearchQuery } from "./stockSearchQuery.js";
 import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
 import { buildTitleCraftRules } from "./titleGenerator.js";
-import { buildCinematicNarrationRules, buildEpidemicMoodPrompt } from "./videoProEnhancements.js";
+import {
+  buildCinematicNarrationRules,
+  buildEpidemicMoodPrompt,
+} from "./videoProEnhancements.js";
 import {
   enrichVisualPromptsSpecificity,
   buildSceneSpecificPrompt,
@@ -35,13 +38,41 @@ export const ROBOTIC_PHRASE_PATTERNS = [
 /** Framework viral short-form (Lucas Walter / n8n — adaptado Lumiera). */
 export const VIRAL_HOOK_TYPES = [
   { id: "question", label: "Pergunta", example: "Por que ninguém fala disso?" },
-  { id: "shock", label: "Choque/Surpresa", example: "Isso quase derrubou a Boeing." },
-  { id: "problem_solution", label: "Problema/Solução", example: "A janela quadrada matava passageiros." },
-  { id: "before_after", label: "Antes/Depois", example: "Antes: quadrado. Depois: oval." },
-  { id: "breaking", label: "Notícia/Urgência", example: "Em 1985, a regra mudou de um dia pro outro." },
-  { id: "challenge", label: "Desafio/Teste", example: "Adivinha qual avião ainda voa com janela quadrada." },
-  { id: "secret", label: "Segredo/Conspiração leve", example: "A FAA escondeu o relatório por anos." },
-  { id: "personal", label: "Impacto pessoal", example: "Você já sentou ao lado disso sem saber." },
+  {
+    id: "shock",
+    label: "Choque/Surpresa",
+    example: "Isso quase derrubou a Boeing.",
+  },
+  {
+    id: "problem_solution",
+    label: "Problema/Solução",
+    example: "A janela quadrada matava passageiros.",
+  },
+  {
+    id: "before_after",
+    label: "Antes/Depois",
+    example: "Antes: quadrado. Depois: oval.",
+  },
+  {
+    id: "breaking",
+    label: "Notícia/Urgência",
+    example: "Em 1985, a regra mudou de um dia pro outro.",
+  },
+  {
+    id: "challenge",
+    label: "Desafio/Teste",
+    example: "Adivinha qual avião ainda voa com janela quadrada.",
+  },
+  {
+    id: "secret",
+    label: "Segredo/Conspiração leve",
+    example: "A FAA escondeu o relatório por anos.",
+  },
+  {
+    id: "personal",
+    label: "Impacto pessoal",
+    example: "Você já sentou ao lado disso sem saber.",
+  },
 ];
 
 export const VIRAL_STORY_CATEGORIES = [
@@ -132,7 +163,7 @@ ${UGC_SCRIPTWRITER_REINFORCEMENT}
 export function buildFormatScriptRules(format = "LONGO") {
   if (format === "SHORTS") {
     return `
-REGRAS ESPECÍFICAS — SHORTS (30–50 segundos, 5 blocos):
+REGRAS ESPECÍFICAS — SHORTS (30–50 segundos, 3–4 blocos):
 
 - UMA ideia, UMA virada, UM payoff. Nada de sub-temas paralelos.
 - Bloco 1 (gancho): ≤10 palavras, voz ativa — use um dos tipos de gancho viral (pergunta, choque, problema/solução, antes/depois, urgência, desafio, segredo leve, impacto pessoal).
@@ -184,30 +215,46 @@ export function normalizeScriptChecklist(raw) {
   if (!raw || typeof raw !== "object") return { ...empty };
 
   const feedback = String(
-    raw.feedback
-    || raw.sugestoes
-    || raw.recommendations
-    || raw.recomendacoes
-    || raw.recomendacoes_ia
-    || raw.avaliacao
-    || "",
+    raw.feedback ||
+      raw.sugestoes ||
+      raw.recommendations ||
+      raw.recomendacoes ||
+      raw.recomendacoes_ia ||
+      raw.avaliacao ||
+      ""
   ).trim();
 
-  let corrections = raw.corrections || raw.correcoes || raw.fixes || raw.ajustes || [];
+  let corrections =
+    raw.corrections || raw.correcoes || raw.fixes || raw.ajustes || [];
   if (typeof corrections === "string") {
-    corrections = corrections.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+    corrections = corrections
+      .split(/\n+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
   }
   if (!Array.isArray(corrections)) corrections = [];
 
   return {
     click_potential: parseChecklistScore(
-      raw.click_potential ?? raw.clickPotential ?? raw.potencial_clique ?? raw.clique ?? raw.clicks,
+      raw.click_potential ??
+        raw.clickPotential ??
+        raw.potencial_clique ??
+        raw.clique ??
+        raw.clicks
     ),
     retention_potential: parseChecklistScore(
-      raw.retention_potential ?? raw.retentionPotential ?? raw.potencial_retencao ?? raw.retencao ?? raw.retention,
+      raw.retention_potential ??
+        raw.retentionPotential ??
+        raw.potencial_retencao ??
+        raw.retencao ??
+        raw.retention
     ),
     comments_potential: parseChecklistScore(
-      raw.comments_potential ?? raw.commentsPotential ?? raw.potencial_comentarios ?? raw.comentarios ?? raw.comments,
+      raw.comments_potential ??
+        raw.commentsPotential ??
+        raw.potencial_comentarios ??
+        raw.comentarios ??
+        raw.comments
     ),
     feedback,
     corrections: corrections.map((c) => String(c).trim()).filter(Boolean),
@@ -216,7 +263,8 @@ export function normalizeScriptChecklist(raw) {
 
 export function isChecklistEmpty(checklist = {}) {
   const c = normalizeScriptChecklist(checklist);
-  const scores = c.click_potential + c.retention_potential + c.comments_potential;
+  const scores =
+    c.click_potential + c.retention_potential + c.comments_potential;
   return scores === 0 && !c.feedback.trim() && c.corrections.length === 0;
 }
 
@@ -281,7 +329,9 @@ Evite ideias cujo título promete algo que 40 segundos (Shorts) ou 12 minutos (L
 
 /** Curadoria viral + hook angles para geração de ideias (framework n8n adaptado). */
 export function buildViralIdeasAddendum(format = "LONGO") {
-  const hookList = VIRAL_HOOK_TYPES.map((h) => `  - ${h.id}: ${h.label} (ex.: "${h.example}")`).join("\n");
+  const hookList = VIRAL_HOOK_TYPES.map(
+    (h) => `  - ${h.id}: ${h.label} (ex.: "${h.example}")`
+  ).join("\n");
   const isShorts = format === "SHORTS";
 
   return `
@@ -294,10 +344,14 @@ Descarte ideias: ad-driven, puramente políticas, sem substância factual.
 TIPOS DE GANCHO (campo "hook_angle" — use tipos DIFERENTES entre ideias):
 ${hookList}
 
-${isShorts ? `PROCESSO MENTAL POR IDEIA SHORT (não entregue rascunho — só metadados):
+${
+  isShorts
+    ? `PROCESSO MENTAL POR IDEIA SHORT (não entregue rascunho — só metadados):
 1. Esboce 3 ganchos candidatos (campo "hook_candidates": array de 3 strings ≤10 palavras)
 2. Escolha o melhor em "hook_angle" + "hooks" (gancho principal para o roteiro)
-3. Planeje 3–5 wow-facts verificáveis em "wow_facts_preview" (números/datas curtos)` : `Para LONGO: "hook_angle" indica o tipo de abertura; "hooks" = gancho de retenção dos primeiros 30s.`}
+3. Planeje 3–5 wow-facts verificáveis em "wow_facts_preview" (números/datas curtos)`
+    : `Para LONGO: "hook_angle" indica o tipo de abertura; "hooks" = gancho de retenção dos primeiros 30s.`
+}
 
 REGRAS:
 - Cada ideia deve ter "viral_category" e "hook_angle" (id do tipo, ex.: "shock", "before_after")
@@ -332,7 +386,10 @@ DIRETRIZ DE VARIABILIDADE (somente dentro de "${n}"):
 
 export const SHORTS_LISTICLE_RANK_OPTIONS = [3, 5];
 
-export function resolveListicleBlockCount({ rankCount = 20, format = "LONGO" } = {}) {
+export function resolveListicleBlockCount({
+  rankCount = 20,
+  format = "LONGO",
+} = {}) {
   const rank = clampListicleRankCount(rankCount, format);
   return rank + 2;
 }
@@ -346,8 +403,13 @@ export function clampListicleRankCount(rankCount = 20, format = "LONGO") {
   return rank;
 }
 
-export function buildListicleIdeasAddendum({ rankCount = 20, listTopic = "", rankOrder = "desc" } = {}) {
-  const orderLabel = rankOrder === "asc" ? "1 até N (build-up)" : "N até 1 (countdown)";
+export function buildListicleIdeasAddendum({
+  rankCount = 20,
+  listTopic = "",
+  rankOrder = "desc",
+} = {}) {
+  const orderLabel =
+    rankOrder === "asc" ? "1 até N (build-up)" : "N até 1 (countdown)";
   return `
 MODO LISTICLE / TOP N (OBRIGATÓRIO):
 - Gere exatamente 10 ideias de vídeo no formato "Top ${rankCount}" sobre: "${listTopic}"
@@ -375,8 +437,14 @@ const LISTICLE_RANKING_ARCHETYPES = [
   "mais lucrativos / de maior ROI / impacto econômico",
 ];
 
-export function buildListicleRankingIdeasPrompt({ niche = "", format = "LONGO", compact = false } = {}) {
-  const archetypes = LISTICLE_RANKING_ARCHETYPES.map((a, i) => `${i + 1}. ${a}`).join("\n");
+export function buildListicleRankingIdeasPrompt({
+  niche = "",
+  format = "LONGO",
+  compact = false,
+} = {}) {
+  const archetypes = LISTICLE_RANKING_ARCHETYPES.map(
+    (a, i) => `${i + 1}. ${a}`
+  ).join("\n");
   const isShorts = format === "SHORTS";
   const formatRules = isShorts
     ? `- FORMATO SHORTS (exclusivo): "suggested_rank_count" deve ser APENAS 3 ou 5 — nunca outro número
@@ -395,13 +463,15 @@ Formato preferido: ${format}${isShorts ? " (SHORTS — apenas Top 3 e Top 5)" : 
 
 SUA MISSÃO: Sugerir exatamente 12 ideias de RANKINGS interessantes, específicos e variados DENTRO desse nicho — não títulos genéricos.
 
-${compact
-  ? `- Foque só no nicho "${niche}". Varie ângulos (subestimados, controversos, recordes, etc.).`
-  : `${buildNicheIsolationAddendum(niche)}
+${
+  compact
+    ? `- Foque só no nicho "${niche}". Varie ângulos (subestimados, controversos, recordes, etc.).`
+    : `${buildNicheIsolationAddendum(niche)}
 
 ${buildNicheVarietyInstruction(niche)}
 
-${SCRIPT_CREATIVE_REINFORCEMENT}`}
+${SCRIPT_CREATIVE_REINFORCEMENT}`
+}
 
 ARQUÉTIPOS DE RANKING (use pelo menos 8 tipos diferentes entre as 12 ideias):
 ${archetypes}
@@ -446,19 +516,39 @@ Responda APENAS JSON válido (sem markdown, sem texto extra):
 
 function normalizeRankingIdeaItem(item = {}) {
   const count = Number(
-    item.suggested_rank_count ?? item.suggestedRankCount ?? item.rank_count ?? item.quantidade ?? 0,
+    item.suggested_rank_count ??
+      item.suggestedRankCount ??
+      item.rank_count ??
+      item.quantidade ??
+      0
   );
   return {
     title: String(item.title || item.titulo || "").trim(),
     suggested_rank_count: count > 0 ? count : 15,
-    list_topic: String(item.list_topic || item.listTopic || item.tema || item.topic || "").trim(),
-    listicle_angle: String(item.listicle_angle || item.listicleAngle || item.angle || item.angulo || "").trim(),
+    list_topic: String(
+      item.list_topic || item.listTopic || item.tema || item.topic || ""
+    ).trim(),
+    listicle_angle: String(
+      item.listicle_angle ||
+        item.listicleAngle ||
+        item.angle ||
+        item.angulo ||
+        ""
+    ).trim(),
     promise: String(item.promise || item.promessa || "").trim(),
     why_interesting: String(
-      item.why_interesting || item.whyInteresting || item.why_it_works || item.por_que || "",
+      item.why_interesting ||
+        item.whyInteresting ||
+        item.why_it_works ||
+        item.por_que ||
+        ""
     ).trim(),
     controversy_hook: String(
-      item.controversy_hook || item.controversyHook || item.gancho || item.hook || "",
+      item.controversy_hook ||
+        item.controversyHook ||
+        item.gancho ||
+        item.hook ||
+        ""
     ).trim(),
     sample_items: Array.isArray(item.sample_items)
       ? item.sample_items
@@ -468,26 +558,39 @@ function normalizeRankingIdeaItem(item = {}) {
           ? item.exemplos
           : [],
     emotion: String(item.emotion || item.emocao || "").trim(),
-    best_format: String(item.best_format || item.bestFormat || item.formato || "LONGO").trim(),
+    best_format: String(
+      item.best_format || item.bestFormat || item.formato || "LONGO"
+    ).trim(),
   };
 }
 
-export function normalizeListicleIdeasResponse(data = {}, { format = "LONGO" } = {}) {
+export function normalizeListicleIdeasResponse(
+  data = {},
+  { format = "LONGO" } = {}
+) {
   if (Array.isArray(data)) {
     return normalizeListicleIdeasResponse({ ranking_ideas: data }, { format });
   }
   if (!data || typeof data !== "object") {
-    return { niche_analysis: {}, ranking_ideas: [], best_index: 0, best_reason: "" };
+    return {
+      niche_analysis: {},
+      ranking_ideas: [],
+      best_index: 0,
+      best_reason: "",
+    };
   }
 
   const ideasKey = Object.keys(data).find((k) =>
-    /ranking_ideas|rankingideas|ideias_ranking|ideias_de_ranking|lista_rankings|rankings|ideias/i.test(k),
+    /ranking_ideas|rankingideas|ideias_ranking|ideias_de_ranking|lista_rankings|rankings|ideias/i.test(
+      k
+    )
   );
   const analysisKey = Object.keys(data).find((k) =>
-    /niche_analysis|analise_nicho|nicheanalysis|analise_do_nicho/i.test(k),
+    /niche_analysis|analise_nicho|nicheanalysis|analise_do_nicho/i.test(k)
   );
 
-  let rawIdeas = data.ranking_ideas ?? data[ideasKey] ?? data.ideas ?? data.rankings ?? [];
+  let rawIdeas =
+    data.ranking_ideas ?? data[ideasKey] ?? data.ideas ?? data.rankings ?? [];
   if (!Array.isArray(rawIdeas) && rawIdeas && typeof rawIdeas === "object") {
     rawIdeas = Object.values(rawIdeas);
   }
@@ -508,14 +611,21 @@ export function normalizeListicleIdeasResponse(data = {}, { format = "LONGO" } =
     .filter((item) => item.title.length > 3);
 
   const rawAnalysis = data.niche_analysis ?? data[analysisKey] ?? {};
-  const niche_analysis = typeof rawAnalysis === "object" && rawAnalysis !== null ? rawAnalysis : {};
+  const niche_analysis =
+    typeof rawAnalysis === "object" && rawAnalysis !== null ? rawAnalysis : {};
 
   const best_index = Math.max(
     0,
     Math.min(
       ranking_ideas.length - 1,
-      Number(data.best_index ?? data.bestIndex ?? data.melhor_indice ?? data.best_idea_index ?? 0) || 0,
-    ),
+      Number(
+        data.best_index ??
+          data.bestIndex ??
+          data.melhor_indice ??
+          data.best_idea_index ??
+          0
+      ) || 0
+    )
   );
 
   return {
@@ -523,7 +633,11 @@ export function normalizeListicleIdeasResponse(data = {}, { format = "LONGO" } =
     ranking_ideas,
     best_index,
     best_reason: String(
-      data.best_reason ?? data.bestReason ?? data.melhor_motivo ?? data.best_idea_reason ?? "",
+      data.best_reason ??
+        data.bestReason ??
+        data.melhor_motivo ??
+        data.best_idea_reason ??
+        ""
     ).trim(),
   };
 }
@@ -538,12 +652,14 @@ export function buildListicleScriptRules({
   const orderDesc = rankOrder !== "asc";
   const itemBlocks = blockCount - 2;
   const isShortsTop3 = format === "SHORTS" && itemBlocks <= 3;
-  const wordsPerItem = format === "SHORTS"
-    ? (isShortsTop3 ? "15-22" : "20-30")
-    : "80-140";
-  const totalWords = format === "SHORTS"
-    ? (isShortsTop3 ? "65-95" : "110-150")
-    : `${itemBlocks * 90}-${itemBlocks * 150}`;
+  const wordsPerItem =
+    format === "SHORTS" ? (isShortsTop3 ? "15-22" : "20-30") : "80-140";
+  const totalWords =
+    format === "SHORTS"
+      ? isShortsTop3
+        ? "65-95"
+        : "110-150"
+      : `${itemBlocks * 90}-${itemBlocks * 150}`;
   const shortsDuration = isShortsTop3 ? "30-45 segundos" : "45-60 segundos";
 
   return `
@@ -567,7 +683,9 @@ ESTRUTURA DOS BLOCOS:
     5. Impacto no mundo moderno (1 frase curta)
     6. Ponte oral de 3-5 palavras para o próximo item (exceto no último item antes do outro)
 - Bloco ${blockCount} (OUTRO): ${format === "SHORTS" ? "1 frase de recap declarativa + mic drop (consequência ou fato final)" : "recap do top 3 em 2 frases + fechamento declarativo — sem perguntas vazias"}
-${format === "SHORTS" ? `
+${
+  format === "SHORTS"
+    ? `
 NARRAÇÃO SHORTS — HUMANA, ENXUTA E CLARA (prioridade máxima):
 - TOTAL: ${totalWords} palavras. Se passar do teto, CORTE antes de entregar — menos é mais.
 - Por item: ~${wordsPerItem} palavras — nome + 1 fato forte + 1 linha de impacto. Proibido empilhar 3 fatos no mesmo item.
@@ -576,7 +694,9 @@ NARRAÇÃO SHORTS — HUMANA, ENXUTA E CLARA (prioridade máxima):
 - Frases de até 10-12 palavras na maioria. Ritmo de countdown, zero enrolação.
 - O telespectador deve entender a mensagem de CADA item na primeira escuta, mesmo sem conhecer o tema.
 - 1 ideia por frase. Se uma frase não avança o ranking, remova.
-` : ""}
+`
+    : ""
+}
 
 NARRAÇÃO CINEMATOGRÁFICA (narrative_script_tagged):
 - [pausa] antes de cada número do ranking e antes do #1
@@ -597,7 +717,7 @@ VISUAL_PROMPTS (crítico para listicle):
 - Mínimo 3 cenas por item (bloco de item)
 - A PRIMEIRA cena de cada item deve ter "text_overlay": "#N — NOME DO ITEM" (N = rank daquele bloco)
 - Prompts visuais: objeto/invenção em close, contexto histórico, impacto moderno
-- ${format === "SHORTS" ? "SHORTS: mínimo 3 cenas com type \"vídeo IA (max 10s)\" distribuídas (gancho, meio, payoff); demais imagem 2K" : "80-90% imagem 2K, 10-20% vídeo IA"}
+- ${format === "SHORTS" ? 'SHORTS: mínimo 3 cenas com type "vídeo IA (max 10s)" distribuídas (gancho, meio, payoff); demais imagem 2K' : "80-90% imagem 2K, 10-20% vídeo IA"}
 
 IMPACT_TEXTS (obrigatório):
 - Um impact_text por bloco de item: {"block": N, "start_offset": 0.0, "end_offset": 4.0, "text": "#20 — NOME"}
@@ -624,7 +744,12 @@ CAMPO EXTRA — "list_items" (array com ${itemBlocks} objetos):
 `;
 }
 
-export function buildHumanizeRepairPrompt({ format, ideaTitle, rawScript, blockCount }) {
+export function buildHumanizeRepairPrompt({
+  format,
+  ideaTitle,
+  rawScript,
+  blockCount,
+}) {
   return `Você é um roteirista brasileiro especialista em clareza e naturalidade para YouTube.
 
 O roteiro abaixo foi gerado por IA e pode estar robótico, confuso ou com mensagem difusa. REESCREVA apenas os campos de texto da narração.
@@ -661,7 +786,8 @@ Responda APENAS JSON com as chaves:
 }`;
 }
 
-const LAME_ENDING_RE = /^(você|voce|qual você|qual voce|e você|e voce|o que você|o que voce|comenta|deixa nos coment|marque alguém|marque alguem|curtiu|gostou|concorda|qual te surpreendeu|qual origem)/i;
+const LAME_ENDING_RE =
+  /^(você|voce|qual você|qual voce|e você|e voce|o que você|o que voce|comenta|deixa nos coment|marque alguém|marque alguem|curtiu|gostou|concorda|qual te surpreendeu|qual origem)/i;
 
 export function sanitizeLameEndingQuestions(text = "") {
   let out = String(text).trim();
@@ -673,7 +799,11 @@ export function sanitizeLameEndingQuestions(text = "") {
   const last = sentences[sentences.length - 1].trim();
   if (!last.endsWith("?")) return out;
 
-  if (LAME_ENDING_RE.test(last) || /\bvocê prefere\b/i.test(last) || /\bqual você\b/i.test(last)) {
+  if (
+    LAME_ENDING_RE.test(last) ||
+    /\bvocê prefere\b/i.test(last) ||
+    /\bqual você\b/i.test(last)
+  ) {
     out = sentences.slice(0, -1).join(" ").trim();
     if (!out.endsWith(".") && !out.endsWith("!") && !out.endsWith("…")) {
       out += ".";
@@ -707,7 +837,9 @@ export function applyScriptTextQuality(parsedData = {}, format = "LONGO") {
 
   for (const key of fields) {
     if (typeof result[key] === "string") {
-      result[key] = sanitizeLameEndingQuestions(sanitizeRoboticPhrases(result[key]));
+      result[key] = sanitizeLameEndingQuestions(
+        sanitizeRoboticPhrases(result[key])
+      );
     }
   }
 
@@ -746,10 +878,16 @@ export function extractScriptSliceForRepair(parsedData = {}) {
   };
 }
 
-export function mergeHumanizedScript(original = {}, repaired = {}, format = "LONGO") {
+export function mergeHumanizedScript(
+  original = {},
+  repaired = {},
+  format = "LONGO"
+) {
   const merged = { ...original };
-  if (repaired.narrative_script) merged.narrative_script = repaired.narrative_script;
-  if (repaired.narrative_script_tagged) merged.narrative_script_tagged = repaired.narrative_script_tagged;
+  if (repaired.narrative_script)
+    merged.narrative_script = repaired.narrative_script;
+  if (repaired.narrative_script_tagged)
+    merged.narrative_script_tagged = repaired.narrative_script_tagged;
   if (repaired.strategy?.hook) {
     merged.strategy = { ...merged.strategy, hook: repaired.strategy.hook };
   }
@@ -784,7 +922,8 @@ Emoção: "${idea.emotion || ""}"`;
     header += `\n\nTEMA DA LISTA: ${listicleTopic}
 ORDEM DO RANKING: ${rankOrder === "asc" ? "1 → N (build-up)" : "N → 1 (countdown)"}
 BLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)`;
-    if (idea.listicle_angle) header += `\nÂNGULO DO RANKING: ${idea.listicle_angle}`;
+    if (idea.listicle_angle)
+      header += `\nÂNGULO DO RANKING: ${idea.listicle_angle}`;
     if (Array.isArray(idea.sample_items) && idea.sample_items.length) {
       header += `\nITENS SUGERIDOS (use ou refine): ${idea.sample_items.join(", ")}`;
     }
@@ -812,7 +951,9 @@ BLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)`;
   if (idea.blocks) {
     let blocksStr = "";
     if (Array.isArray(idea.blocks)) {
-      blocksStr = idea.blocks.map((b) => `Block ${b.block || b.index || 1}: ${b.content}`).join("\n");
+      blocksStr = idea.blocks
+        .map((b) => `Block ${b.block || b.index || 1}: ${b.content}`)
+        .join("\n");
     } else {
       blocksStr = String(idea.blocks);
     }
@@ -829,7 +970,8 @@ BLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)`;
 export const SHORTS_MIN_VIDEO_SCENES = 3;
 export const SHORTS_VIDEO_SCENE_TYPE = "vídeo IA (max 10s)";
 
-const MOTION_PROMPT_RE = /\b(motion|moving|drone|aerial|crowd|water|waves|fire|explosion|walking|running|traffic|timelapse|slow motion|camera pan|fly through|flowing|storm|wind|spinning|rotating|collapse|falling|crashing|surge|ripple)\b/i;
+const MOTION_PROMPT_RE =
+  /\b(motion|moving|drone|aerial|crowd|water|waves|fire|explosion|walking|running|traffic|timelapse|slow motion|camera pan|fly through|flowing|storm|wind|spinning|rotating|collapse|falling|crashing|surge|ripple)\b/i;
 
 export function isVideoSceneType(type = "") {
   const t = String(type || "").toLowerCase();
@@ -838,7 +980,8 @@ export function isVideoSceneType(type = "") {
 
 function adaptPromptForVideoScene(prompt = "") {
   const p = String(prompt || "").trim();
-  if (!p) return "Cinematic motion, photorealistic, dramatic lighting, no text, max 10 seconds";
+  if (!p)
+    return "Cinematic motion, photorealistic, dramatic lighting, no text, max 10 seconds";
   if (/cinematic motion|max 10/i.test(p)) return p;
   return `${p.replace(/\.\s*$/, "")}. Cinematic motion, max 10 seconds, no text.`;
 }
@@ -857,9 +1000,13 @@ function pickEvenlyDistributedIndices(total, count) {
 /** Garante pelo menos N cenas de vídeo IA em Shorts (gancho, meio e payoff). */
 export function enforceShortsVideoSceneMix(
   visualPrompts = [],
-  { format = "LONGO", minVideos = SHORTS_MIN_VIDEO_SCENES } = {},
+  { format = "LONGO", minVideos = SHORTS_MIN_VIDEO_SCENES } = {}
 ) {
-  if (format !== "SHORTS" || !Array.isArray(visualPrompts) || visualPrompts.length === 0) {
+  if (
+    format !== "SHORTS" ||
+    !Array.isArray(visualPrompts) ||
+    visualPrompts.length === 0
+  ) {
     return visualPrompts;
   }
 
@@ -869,8 +1016,10 @@ export function enforceShortsVideoSceneMix(
   if (currentVideos >= effectiveMin) return vps;
 
   const need = effectiveMin - currentVideos;
-  const preferred = pickEvenlyDistributedIndices(vps.length, effectiveMin)
-    .filter((index) => !isVideoSceneType(vps[index].type));
+  const preferred = pickEvenlyDistributedIndices(
+    vps.length,
+    effectiveMin
+  ).filter((index) => !isVideoSceneType(vps[index].type));
 
   const scored = vps
     .map((vp, index) => ({ index, vp, isVideo: isVideoSceneType(vp.type) }))
@@ -899,9 +1048,10 @@ export function enforceShortsVideoSceneMix(
       ...vp,
       type: SHORTS_VIDEO_SCENE_TYPE,
       prompt: adaptPromptForVideoScene(vp.prompt || vp.visual_prompt || ""),
-      editor_notes: notes && /vídeo|video/i.test(notes)
-        ? notes
-        : `${notes || "Ken Burns zoom in"} — vídeo IA para movimento ativo (Shorts)`.trim(),
+      editor_notes:
+        notes && /vídeo|video/i.test(notes)
+          ? notes
+          : `${notes || "Ken Burns zoom in"} — vídeo IA para movimento ativo (Shorts)`.trim(),
     };
   }
 
@@ -953,13 +1103,23 @@ REGRAS DE PROMPT ENGINEERING CINEMATOGRÁFICO (OBRIGATÓRIO):
    - Priorize composição vertical 9:16 (Shorts): framing apertado, sujeito centralizado ou em terços superiores/inferiores, movimentos de câmera preferencialmente verticais.
    - Também deve funcionar em 16:9 (Long form): composição widescreen cinematográfica, shots amplos ou pans horizontais quando apropriado.`;
 
-export function buildVisualPromptsRules({ format = "LONGO", isListicle = false, listicleRank = 20 } = {}) {
-  const sceneCount = format === "SHORTS"
-    ? (isListicle ? `${listicleRank * 2 + 4}-${listicleRank * 3 + 6}` : "5-12")
-    : (isListicle ? `${listicleRank * 3}+` : "40-80+");
-  const typeMixRule = format === "SHORTS"
-    ? `- SHORTS: mínimo ${SHORTS_MIN_VIDEO_SCENES} cenas com type "${SHORTS_VIDEO_SCENE_TYPE}" — gancho, virada e payoff devem ter movimento; distribua vídeos ao longo do Short (não concentre no final). Demais cenas: imagem IA 2k.`
-    : `- 80-90% "imagem IA 2k"; 10-20% "${SHORTS_VIDEO_SCENE_TYPE}" para movimento ativo.`;
+export function buildVisualPromptsRules({
+  format = "LONGO",
+  isListicle = false,
+  listicleRank = 20,
+} = {}) {
+  const sceneCount =
+    format === "SHORTS"
+      ? isListicle
+        ? `${listicleRank * 2 + 4}-${listicleRank * 3 + 6}`
+        : "5-12"
+      : isListicle
+        ? `${listicleRank * 3}+`
+        : "40-80+";
+  const typeMixRule =
+    format === "SHORTS"
+      ? `- SHORTS: mínimo ${SHORTS_MIN_VIDEO_SCENES} cenas com type "${SHORTS_VIDEO_SCENE_TYPE}" — gancho, virada e payoff devem ter movimento; distribua vídeos ao longo do Short (não concentre no final). Demais cenas: imagem IA 2k.`
+      : `- 80-90% "imagem IA 2k"; 10-20% "${SHORTS_VIDEO_SCENE_TYPE}" para movimento ativo.`;
 
   return `
 REGRAS DOS PROMPTS VISUAIS (OBRIGATÓRIO — sem isso o roteiro fica inutilizável):
@@ -979,7 +1139,11 @@ ${VISUAL_PROMPT_SPECIFICITY_RULES}
 ${CINEMATIC_PROMPT_ENGINEERING_RULES}`;
 }
 
-export function buildVisualPromptsJsonSchema({ blockCount = 5, isListicle = false, listicleRank = 20 } = {}) {
+export function buildVisualPromptsJsonSchema({
+  blockCount = 5,
+  isListicle = false,
+  listicleRank = 20,
+} = {}) {
   return `
 4. "visual_prompts": [
    GERE UM OBJETO PARA CADA SEGMENTO DA NARRAÇÃO. Cubra o vídeo inteiro. Cada objeto:
@@ -1021,7 +1185,10 @@ export function countUniqueVisualBlocks(visualPrompts = []) {
 }
 
 /** Prompts vindos do Gemini Browser Bridge — não sobrescrever com glossário local. */
-export function browserVisualPromptsUsable(visualPrompts = [], { format = "LONGO" } = {}) {
+export function browserVisualPromptsUsable(
+  visualPrompts = [],
+  { format = "LONGO" } = {}
+) {
   const vps = Array.isArray(visualPrompts) ? visualPrompts : [];
   if (!vps.length) return false;
 
@@ -1029,32 +1196,44 @@ export function browserVisualPromptsUsable(visualPrompts = [], { format = "LONGO
     const p = String(vp.prompt || vp.visual_prompt || "").trim();
     return p.length >= 40 && !isSceneSpecificFallbackPrompt(p);
   });
-  const minGood = format === "SHORTS"
-    ? Math.max(3, Math.min(5, vps.length))
-    : Math.max(8, Math.min(12, vps.length));
+  const minGood =
+    format === "SHORTS"
+      ? Math.max(3, Math.min(5, vps.length))
+      : Math.max(8, Math.min(12, vps.length));
   if (withPrompt.length < Math.min(minGood, vps.length)) return false;
 
-  const emptyNarr = vps.filter((vp) => !String(vp.narration_text || vp.narracao || "").trim()).length;
+  const emptyNarr = vps.filter(
+    (vp) => !String(vp.narration_text || vp.narracao || "").trim()
+  ).length;
   if (emptyNarr > Math.floor(vps.length * 0.25)) return false;
 
   return true;
 }
 
-export function needsVisualPromptsRepair(storyboard = {}, { blockCount = 5, format = "LONGO" } = {}) {
+export function needsVisualPromptsRepair(
+  storyboard = {},
+  { blockCount = 5, format = "LONGO" } = {}
+) {
   const vps = storyboard.visual_prompts || [];
   if (!Array.isArray(vps) || vps.length === 0) return true;
-  const emptyNarr = vps.filter((vp) => !String(vp.narration_text || vp.narracao || "").trim()).length;
-  const emptyPrompt = vps.filter((vp) => !String(vp.prompt || vp.visual_prompt || "").trim()).length;
+  const emptyNarr = vps.filter(
+    (vp) => !String(vp.narration_text || vp.narracao || "").trim()
+  ).length;
+  const emptyPrompt = vps.filter(
+    (vp) => !String(vp.prompt || vp.visual_prompt || "").trim()
+  ).length;
   if (emptyNarr > 0 || emptyPrompt > 0) return true;
 
   const blockPhrases = storyboard.technical_config?.block_phrases || [];
-  const expectedBlocks = blockPhrases.length > 0 ? blockPhrases.length : blockCount;
+  const expectedBlocks =
+    blockPhrases.length > 0 ? blockPhrases.length : blockCount;
   const uniqueBlocks = countUniqueVisualBlocks(vps);
   if (uniqueBlocks < expectedBlocks) return true;
 
-  const minScenes = format === "SHORTS"
-    ? Math.max(5, expectedBlocks)
-    : Math.max(8, expectedBlocks);
+  const minScenes =
+    format === "SHORTS"
+      ? Math.max(5, expectedBlocks)
+      : Math.max(8, expectedBlocks);
   if (vps.length < Math.min(minScenes, expectedBlocks * 2)) return true;
 
   return false;
@@ -1080,18 +1259,30 @@ export function sanitizeVisualPromptDurations(visualPrompts = []) {
  */
 export function normalizeVisualPromptBlocks(
   parsedData = {},
-  { blockCount = 5, format = "LONGO", ideaTitle = "", skipPromptEnrichment = false } = {},
+  {
+    blockCount = 5,
+    format = "LONGO",
+    ideaTitle = "",
+    skipPromptEnrichment = false,
+  } = {}
 ) {
   const result = { ...parsedData };
-  const vps = Array.isArray(result.visual_prompts) ? [...result.visual_prompts] : [];
+  const vps = Array.isArray(result.visual_prompts)
+    ? [...result.visual_prompts]
+    : [];
   if (!vps.length) return result;
 
   const blockPhrases = result.technical_config?.block_phrases || [];
-  const expectedBlocks = blockPhrases.length > 0 ? blockPhrases.length : blockCount;
+  const expectedBlocks =
+    blockPhrases.length > 0 ? blockPhrases.length : blockCount;
 
   let normalized = vps.map((vp, index) => {
-    const block = parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena)
-      ?? Math.min(expectedBlocks, Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1);
+    const block =
+      parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ??
+      Math.min(
+        expectedBlocks,
+        Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1
+      );
     const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
     const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.(\\d+)$`));
     return {
@@ -1102,7 +1293,8 @@ export function normalizeVisualPromptBlocks(
   });
 
   const uniqueBlocks = countUniqueVisualBlocks(normalized);
-  const tooFewScenes = normalized.length < Math.max(expectedBlocks, format === "SHORTS" ? 5 : 8);
+  const tooFewScenes =
+    normalized.length < Math.max(expectedBlocks, format === "SHORTS" ? 5 : 8);
   const blocksCollapsed = uniqueBlocks < expectedBlocks;
 
   if (blocksCollapsed && normalized.length >= expectedBlocks) {
@@ -1113,21 +1305,24 @@ export function normalizeVisualPromptBlocks(
       return { ...vp, block, scene: `${block}.${sceneInBlock}` };
     });
   } else if (
-    !skipPromptEnrichment
-    && (blocksCollapsed || tooFewScenes)
-    && String(result.narrative_script || "").trim()
+    !skipPromptEnrichment &&
+    (blocksCollapsed || tooFewScenes) &&
+    String(result.narrative_script || "").trim()
   ) {
-    const deterministic = buildDeterministicVisualPromptsFromNarration(result.narrative_script, {
-      blockCount: expectedBlocks,
-      format,
-      ideaTitle,
-    });
+    const deterministic = buildDeterministicVisualPromptsFromNarration(
+      result.narrative_script,
+      {
+        blockCount: expectedBlocks,
+        format,
+        ideaTitle,
+      }
+    );
     if (deterministic.length > 0) {
       result.visual_prompts = sanitizeVisualPromptDurations(
         enrichVisualPromptsSpecificity(
           enforceShortsVideoSceneMix(deterministic, { format }),
-          { strategyTitle: ideaTitle },
-        ),
+          { strategyTitle: ideaTitle }
+        )
       );
       return result;
     }
@@ -1137,7 +1332,7 @@ export function normalizeVisualPromptBlocks(
   result.visual_prompts = sanitizeVisualPromptDurations(
     skipPromptEnrichment
       ? mixed
-      : enrichVisualPromptsSpecificity(mixed, { strategyTitle: ideaTitle }),
+      : enrichVisualPromptsSpecificity(mixed, { strategyTitle: ideaTitle })
   );
   return result;
 }
@@ -1153,17 +1348,18 @@ export function buildVisualPromptsFromNarrationPrompt({
   ideaTitle = "",
   existingPrompts = [],
 }) {
-  const skeleton = Array.isArray(existingPrompts) && existingPrompts.length > 0
-    ? `\nESQUELETO DE CENAS (mantenha scene/block/type; PREENCHA narration_text e prompt em TODOS):\n${JSON.stringify(
-      existingPrompts.map((vp) => ({
-        scene: vp.scene,
-        block: vp.block,
-        type: vp.type || "imagem IA 2k",
-      })),
-      null,
-      2,
-    ).slice(0, 6000)}`
-    : "";
+  const skeleton =
+    Array.isArray(existingPrompts) && existingPrompts.length > 0
+      ? `\nESQUELETO DE CENAS (mantenha scene/block/type; PREENCHA narration_text e prompt em TODOS):\n${JSON.stringify(
+          existingPrompts.map((vp) => ({
+            scene: vp.scene,
+            block: vp.block,
+            type: vp.type || "imagem IA 2k",
+          })),
+          null,
+          2
+        ).slice(0, 6000)}`
+      : "";
 
   return `Você é um Prompt Engineer especialista em criar prompts visuais hiper-detalhados e cinematográficos para YouTube (curiosidades históricas, engenharia, construções, fatos surpreendentes). A narração já foi aprovada pelo usuário — NÃO altere palavras da narração nos trechos das cenas.
 
@@ -1198,7 +1394,10 @@ Responda APENAS JSON:
 
 export function mergeVisualPromptsRepair(original = {}, repaired = {}) {
   const merged = { ...original };
-  if (Array.isArray(repaired.visual_prompts) && repaired.visual_prompts.length > 0) {
+  if (
+    Array.isArray(repaired.visual_prompts) &&
+    repaired.visual_prompts.length > 0
+  ) {
     merged.visual_prompts = repaired.visual_prompts;
   }
   if (repaired.technical_config) {
@@ -1210,12 +1409,14 @@ export function mergeVisualPromptsRepair(original = {}, repaired = {}) {
   return merged;
 }
 
-
 /**
  * Build a focused AI prompt to translate scene narrations into proper English visual prompts.
  * Used as intermediate fallback - lighter/faster than the full visual_prompts repair prompt.
  */
-export function buildBatchScenePromptsAiRequest(scenes = [], { ideaTitle = "" } = {}) {
+export function buildBatchScenePromptsAiRequest(
+  scenes = [],
+  { ideaTitle = "" } = {}
+) {
   const sceneSummary = scenes.map((s) => ({
     scene: s.scene,
     narration: String(s.narration_text || "").slice(0, 300),
@@ -1282,7 +1483,14 @@ export function buildNarrationOnlyPrompt({
   cinematicNarrationRules = "",
 }) {
   const ideaHeader = buildIdeaContextHeader({
-    niche, format, idea, isListicle, listicleRank, listicleTopic, rankOrder, listicleBlockCount,
+    niche,
+    format,
+    idea,
+    isListicle,
+    listicleRank,
+    listicleTopic,
+    rankOrder,
+    listicleBlockCount,
   });
 
   return `Você é o "Lumiera Script Master" (Roteirista Profissional para YouTube).
@@ -1296,15 +1504,17 @@ Gere SOMENTE a narração completa do vídeo em português brasileiro. NÃO gere
 
 ${SCRIPT_CREATIVE_REINFORCEMENT}
 
-${isListicle
+${
+  isListicle
     ? buildListicleScriptRules({
-      rankCount: listicleRank,
-      rankOrder: rankOrder || "desc",
-      format,
-      listTopic: listicleTopic,
-      blockCount: listicleBlockCount,
-    })
-    : buildFormatScriptRules(format)}
+        rankCount: listicleRank,
+        rankOrder: rankOrder || "desc",
+        format,
+        listTopic: listicleTopic,
+        blockCount: listicleBlockCount,
+      })
+    : buildFormatScriptRules(format)
+}
 
 ${format === "SHORTS" && !isListicle ? VIRAL_SHORT_FORM_REINFORCEMENT : ""}
 
@@ -1316,11 +1526,13 @@ REGRAS DESTA FASE:
 - CLAREZA: o telespectador precisa entender a tese do vídeo e cada item do ranking na primeira escuta — sem jargão sem explicação.
 - Revise cada frase: elimine tom robótico, clichês de IA, tom de redação escolar e trechos desconexos.
 - Formato: "${format}"${isListicle ? ` — LISTICLE TOP ${listicleRank}` : ""}.
-- ${isListicle
-    ? `Estruture em ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). ${format === "SHORTS" && listicleRank <= 3 ? "Top 3 Short: máximo ~90 palavras, 1 fato forte por item." : ""}`
-    : format === "SHORTS"
-      ? "30-50 segundos, ~80-130 palavras, 5 blocos lógicos."
-      : `10-20 minutos, 1500-3000 palavras, ${format === "SHORTS" ? 5 : 12} blocos lógicos.`}
+- ${
+    isListicle
+      ? `Estruture em ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). ${format === "SHORTS" && listicleRank <= 3 ? "Top 3 Short: máximo ~90 palavras, 1 fato forte por item." : ""}`
+      : format === "SHORTS"
+        ? "30-50 segundos, ~80-130 palavras, 5 blocos lógicos."
+        : `10-20 minutos, 1500-3000 palavras, ${format === "SHORTS" ? 5 : 12} blocos lógicos.`
+  }
 - Escreva BLOCO A BLOCO primeiro (frases curtas, 1 ideia por bloco), depois una em narrative_script.
 - Se houver pesquisa NotebookLM acima, priorize fatos verificáveis dela — estilo documental brasileiro enxuto.
 
@@ -1358,7 +1570,14 @@ export function buildFullScriptFromNarrationPrompt({
   epidemicMoodPrompt = "",
 }) {
   const ideaHeader = buildIdeaContextHeader({
-    niche, format, idea, isListicle, listicleRank, listicleTopic, rankOrder, listicleBlockCount,
+    niche,
+    format,
+    idea,
+    isListicle,
+    listicleRank,
+    listicleTopic,
+    rankOrder,
+    listicleBlockCount,
   });
 
   const taggedBlock = approvedNarrationTagged?.trim()
@@ -1383,15 +1602,17 @@ ${taggedBlock}
 
 ${SCRIPT_CREATIVE_REINFORCEMENT}
 
-${isListicle
+${
+  isListicle
     ? buildListicleScriptRules({
-      rankCount: listicleRank,
-      rankOrder: rankOrder || "desc",
-      format,
-      listTopic: listicleTopic,
-      blockCount: listicleBlockCount,
-    })
-    : buildFormatScriptRules(format)}
+        rankCount: listicleRank,
+        rankOrder: rankOrder || "desc",
+        format,
+        listTopic: listicleTopic,
+        blockCount: listicleBlockCount,
+      })
+    : buildFormatScriptRules(format)
+}
 
 ${titleCraftRules}
 
@@ -1401,9 +1622,11 @@ SUA MISSÃO:
 - narrative_script e narrative_script_tagged = narração aprovada (tagged pode ser gerada/atualizada se o usuário editou só o texto limpo).
 - DIVIDA a narração em segmentos e gere visual_prompts cobrindo 100% do texto — TODOS os campos narration_text e prompt PREENCHIDOS.
 - technical_config.script = narração dividida em ${listicleBlockCount} parágrafos (um por bloco).
-- ${isListicle
-    ? `EXATAMENTE ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). Gere list_items e listicle.`
-    : `Estruture em ${format === "SHORTS" ? "5" : "12"} blocos lógicos em block_phrases.`}
+- ${
+    isListicle
+      ? `EXATAMENTE ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). Gere list_items e listicle.`
+      : `Estruture em ${format === "SHORTS" ? "5" : "12"} blocos lógicos em block_phrases.`
+  }
 
 ${buildVisualPromptsRules({ format, isListicle, listicleRank })}
 
@@ -1444,12 +1667,20 @@ export function buildCreatorPhase2Prompt(ctx = {}) {
   } = ctx;
 
   const ideaHeader = buildIdeaContextHeader({
-    niche, format, idea, isListicle, listicleRank, listicleTopic, rankOrder, listicleBlockCount,
+    niche,
+    format,
+    idea,
+    isListicle,
+    listicleRank,
+    listicleTopic,
+    rankOrder,
+    listicleBlockCount,
   });
 
-  const strategySeed = existingStrategy?.title_main || existingStrategy?.hook
-    ? `\nESTRATÉGIA DA FASE 1 (reutilize e complete se faltar campo):\n${JSON.stringify(existingStrategy, null, 2).slice(0, 2500)}`
-    : "";
+  const strategySeed =
+    existingStrategy?.title_main || existingStrategy?.hook
+      ? `\nESTRATÉGIA DA FASE 1 (reutilize e complete se faltar campo):\n${JSON.stringify(existingStrategy, null, 2).slice(0, 2500)}`
+      : "";
 
   const taggedBlock = approvedNarrationTagged?.trim()
     ? `\nNARRAÇÃO COM TAGS:\n"""\n${approvedNarrationTagged.trim()}\n"""`
@@ -1508,18 +1739,26 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
   } = ctx;
 
   const ideaHeader = buildIdeaContextHeader({
-    niche, format, idea, isListicle, listicleRank, listicleTopic, rankOrder, listicleBlockCount,
+    niche,
+    format,
+    idea,
+    isListicle,
+    listicleRank,
+    listicleTopic,
+    rankOrder,
+    listicleBlockCount,
   });
 
   let customAddendum = "";
   if (idea.isCustom) {
     customAddendum += `\n\nATENÇÃO: A ideia original, os ganchos e a estrutura fornecida pelo usuário podem estar em português ou inglês. O roteiro gerado e a narração devem ser obrigatoriamente em Português do Brasil (PT-BR) de forma extremamente natural, humanizada, fluida e cativante — estilo UGC falado (skill ugc-scriptwriter). Fechamento DECLARATIVO; proibido "Você prefere…?" ou perguntas vazias de comentário. No entanto, os ganchos visuais ("visual_prompts") e termos de busca ('prompt' e 'stock_query') devem permanecer em inglês para manter a compatibilidade com a geração de assets.`;
     const customHookVal = idea.hook || idea.hooks || "";
-    const pioneerMode = idea.pioneerNiche
-      || isPioneerStrategyText(idea.title)
-      || isPioneerStrategyText(idea.promise)
-      || isPioneerStrategyText(customHookVal)
-      || /TEMA DO VÍDEO/i.test(String(idea.promise || ""));
+    const pioneerMode =
+      idea.pioneerNiche ||
+      isPioneerStrategyText(idea.title) ||
+      isPioneerStrategyText(idea.promise) ||
+      isPioneerStrategyText(customHookVal) ||
+      /TEMA DO VÍDEO/i.test(String(idea.promise || ""));
     if (pioneerMode) {
       customAddendum += `\n\nMODO NICHO PIONEIRO: O vídeo deve ser SOBRE O TEMA/ÂNGULO descrito na promessa (fatos, história, objeto, fenômeno real). PROIBIDO fazer vídeo sobre "nicho virgem", saturação de mercado, gap de pontos, como encontrar nichos no YouTube, "farsa do mercado saturado" ou estratégia de criador. Se a promessa tiver "Contexto estratégico", use só como nota interna — não vire isso no roteiro.`;
     }
@@ -1528,43 +1767,60 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
 
   const formatRules = isListicle
     ? buildListicleScriptRules({
-      rankCount: listicleRank,
-      rankOrder: rankOrder || "desc",
-      format,
-      listTopic: listicleTopic,
-      blockCount: listicleBlockCount,
-    })
+        rankCount: listicleRank,
+        rankOrder: rankOrder || "desc",
+        format,
+        listTopic: listicleTopic,
+        blockCount: listicleBlockCount,
+      })
     : buildFormatScriptRules(format);
 
-  const titleRules = titleCraftRules || buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG");
+  const titleRules =
+    titleCraftRules ||
+    buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG");
   const cinemaRules = cinematicNarrationRules || buildCinematicNarrationRules();
-  const moodPrompt = epidemicMoodPrompt || buildEpidemicMoodPrompt(
-    niche,
-    { niche, content_mode: isListicle ? "LISTICLE" : undefined, list_topic: listicleTopic },
-    { listicle: { topic: listicleTopic } },
-  );
+  const moodPrompt =
+    epidemicMoodPrompt ||
+    buildEpidemicMoodPrompt(
+      niche,
+      {
+        niche,
+        content_mode: isListicle ? "LISTICLE" : undefined,
+        list_topic: listicleTopic,
+      },
+      { listicle: { topic: listicleTopic } }
+    );
 
+  const userBlockCount =
+    Array.isArray(idea?.blocks) && idea.blocks.length > 0
+      ? idea.blocks.length
+      : format === "SHORTS"
+        ? 4
+        : 8;
   const blockStructureRule = isListicle
     ? `MODO LISTICLE ATIVO: use EXATAMENTE ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). Cada item = 1 bloco. Não resuma vários itens no mesmo bloco.`
-    : `Se for uma ideia personalizada (isCustom: true), a 'Estrutura/Ganchos por Bloco' fornecida representa apenas um esboço inicial do usuário. Você DEVE expandi-la e detalhá-la para atingir exatamente 12 blocos lógicos (se o formato for LONGO) ou exatamente 5 blocos (se o formato for SHORTS) na narração completa e em 'technical_config.block_phrases'. Não limite o roteiro nem os blocos de configuração ao número de blocos informados pelo usuário; crie uma estrutura completa e equilibrada para o formato do vídeo.`;
+    : `ESTRUTURA OBRIGATÓRIA: use EXATAMENTE ${userBlockCount} blocos na narração e em 'technical_config.block_phrases' — esse é o número definido pelo usuário. NÃO adicione nem remova blocos. Cada bloco deve cobrir o conteúdo descrito na Estrutura/Ganchos por Bloco fornecida acima.`;
 
   const durationRule = isListicle
     ? `LISTICLE: ${listicleBlockCount} blocos obrigatórios. Tempo estimado: ${format === "SHORTS" ? (listicleRank >= 5 ? "45-60 segundos" : "35-50 segundos") : `${Math.round(listicleRank * 0.75)}-${Math.round(listicleRank * 1.2)} minutos`}. Um item por bloco, ordem ${rankOrder === "asc" ? "crescente" : "decrescente"}.`
     : format === "SHORTS"
-      ? "SHORTS: 30-50 segundos, 5 cenas (gancho, contexto, desenvolvimento, virada, payoff+CTA)."
-      : "LONGO: O roteiro DEVE ser muito profundo, detalhado e extenso. O tempo de vídeo ideal é de 10 a 20 minutos (1500 a 3000 palavras). Explore cada detalhe do assunto ao máximo, traga histórias, metáforas, contexto histórico, dados e crie uma narrativa imersiva. Estruture em pelo menos 12 blocos (cold open, promessa, contexto, desenvolvimento profundo, tensão, valor, resumo, payoff, CTA). NUNCA faça um roteiro superficial ou curto.";
+      ? `SHORTS: 30-50 segundos, ${userBlockCount} blocos. Narração TOTAL: 80-130 palavras. Cada bloco = 1 frase curta a 3 frases no máximo. Frases de até 12 palavras. NÃO ultrapasse 130 palavras no total.`
+      : "LONGO: O roteiro DEVE ser muito profundo, detalhado e extenso. O tempo de vídeo ideal é de 10 a 20 minutos (1500 a 3000 palavras). Explore cada detalhe do assunto ao máximo, traga histórias, metáforas, contexto histórico, dados e crie uma narrativa imersiva. NUNCA faça um roteiro superficial ou curto.";
 
-  const visualTypeMix = format === "SHORTS"
-    ? `- SHORTS: mínimo ${SHORTS_MIN_VIDEO_SCENES} cenas com type "${SHORTS_VIDEO_SCENE_TYPE}" — gancho (cena 1), virada (meio) e payoff (final) devem ter movimento ativo. Distribua os vídeos ao longo do Short; não concentre todos no fim.
+  const visualTypeMix =
+    format === "SHORTS"
+      ? `- SHORTS: mínimo ${SHORTS_MIN_VIDEO_SCENES} cenas com type "${SHORTS_VIDEO_SCENE_TYPE}" — gancho (cena 1), virada (meio) e payoff (final) devem ter movimento ativo. Distribua os vídeos ao longo do Short; não concentre todos no fim.
 - SHORTS: demais cenas = "imagem IA 2k" (photorealistic 2k, Ken Burns).`
-    : `- 80-90% devem ser IMAGEM IA 2K (photorealistic 2k resolution, cinematic, para usar com efeito Ken Burns zoom lento).
+      : `- 80-90% devem ser IMAGEM IA 2K (photorealistic 2k resolution, cinematic, para usar com efeito Ken Burns zoom lento).
 - 10-20% devem ser VÍDEO IA (máximo estrito de 10 segundos, apenas para movimento ativo: água, fogo, multidão, câmera em movimento).`;
 
-  const aspectRule = format === "SHORTS"
-    ? "Composição vertical 9:16, framing apertado, sujeito centralizado ou em terços superiores/inferiores."
-    : "Composição widescreen 16:9, shots amplos ou pans horizontais quando apropriado, profundidade de campo cinematográfica.";
+  const aspectRule =
+    format === "SHORTS"
+      ? "Composição vertical 9:16, framing apertado, sujeito centralizado ou em terços superiores/inferiores."
+      : "Composição widescreen 16:9, shots amplos ou pans horizontais quando apropriado, profundidade de campo cinematográfica.";
 
-  const listicleJsonTail = isListicle ? `
+  const listicleJsonTail = isListicle
+    ? `
 10. "listicle": {
    "content_mode": "LISTICLE",
    "rank_count": ${listicleRank},
@@ -1573,7 +1829,8 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
 }
 11. "list_items": [
    { "rank": ${listicleRank}, "title": "nome do item", "year": "ano", "origin": "país", "block": 2, "hook_line": "gancho", "visual_hook": "english stock term" }
-]` : "";
+]`
+    : "";
 
   return `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
 
@@ -1666,11 +1923,16 @@ export function extractNarrativeScriptFromRaw(responseText = "") {
   return "";
 }
 
-export function enrichBrowserVisualPromptsParsed(parsed = {}, responseText = "") {
+export function enrichBrowserVisualPromptsParsed(
+  parsed = {},
+  responseText = ""
+) {
   const out = { ...parsed };
   const current = Array.isArray(out.visual_prompts) ? out.visual_prompts : [];
   const salvaged = salvageScriptJson(responseText) || {};
-  const salvagedVps = Array.isArray(salvaged.visual_prompts) ? salvaged.visual_prompts : [];
+  const salvagedVps = Array.isArray(salvaged.visual_prompts)
+    ? salvaged.visual_prompts
+    : [];
 
   const pickBetter = (a, b) => {
     if (browserVisualPromptsUsable(a)) return a;
@@ -1690,21 +1952,28 @@ export function enrichBrowserNarrationParsed(parsed = {}, responseText = "") {
   const salvaged = salvageScriptJson(responseText) || {};
   const salvagedNarr = String(salvaged.narrative_script || "").trim();
   const extracted = extractNarrativeScriptFromRaw(responseText);
-  const techScript = typeof out.technical_config?.script === "string"
-    ? out.technical_config.script.trim()
-    : "";
+  const techScript =
+    typeof out.technical_config?.script === "string"
+      ? out.technical_config.script.trim()
+      : "";
 
-  const best = [current, salvagedNarr, extracted, techScript]
-    .sort((a, b) => b.length - a.length)[0] || "";
+  const best =
+    [current, salvagedNarr, extracted, techScript].sort(
+      (a, b) => b.length - a.length
+    )[0] || "";
 
   if (best.length > current.length) out.narrative_script = best;
 
-  const tagged = String(out.narrative_script_tagged || salvaged.narrative_script_tagged || "").trim();
+  const tagged = String(
+    out.narrative_script_tagged || salvaged.narrative_script_tagged || ""
+  ).trim();
   if (tagged.length > 40) out.narrative_script_tagged = tagged;
-  else if (best.length > 80 && !out.narrative_script_tagged) out.narrative_script_tagged = best;
+  else if (best.length > 80 && !out.narrative_script_tagged)
+    out.narrative_script_tagged = best;
 
   if (!out.strategy && salvaged.strategy) out.strategy = salvaged.strategy;
-  if (!out.technical_config && salvaged.technical_config) out.technical_config = salvaged.technical_config;
+  if (!out.technical_config && salvaged.technical_config)
+    out.technical_config = salvaged.technical_config;
 
   return out;
 }
@@ -1714,12 +1983,15 @@ export function salvageScriptJson(responseText = "") {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(extractJsonCandidateForSalvage(raw));
-    if (String(parsed?.narrative_script || "").trim().length >= 40) return parsed;
+    if (String(parsed?.narrative_script || "").trim().length >= 40)
+      return parsed;
   } catch {
     /* try partial */
   }
   const out = {};
-  const strategyMatch = raw.match(/"strategy"\s*:\s*(\{[\s\S]*?\})\s*,\s*"(?:narrative_script|visual_prompts)"/);
+  const strategyMatch = raw.match(
+    /"strategy"\s*:\s*(\{[\s\S]*?\})\s*,\s*"(?:narrative_script|visual_prompts)"/
+  );
   if (strategyMatch) {
     try {
       out.strategy = JSON.parse(strategyMatch[1]);
@@ -1734,15 +2006,21 @@ export function salvageScriptJson(responseText = "") {
     try {
       out.narrative_script = JSON.parse(`"${narrMatch[1]}"`);
     } catch {
-      out.narrative_script = narrMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+      out.narrative_script = narrMatch[1]
+        .replace(/\\n/g, "\n")
+        .replace(/\\"/g, '"');
     }
   }
-  const taggedMatch = raw.match(/"narrative_script_tagged"\s*:\s*"((?:\\.|[^"\\])*)"/);
+  const taggedMatch = raw.match(
+    /"narrative_script_tagged"\s*:\s*"((?:\\.|[^"\\])*)"/
+  );
   if (taggedMatch) {
     try {
       out.narrative_script_tagged = JSON.parse(`"${taggedMatch[1]}"`);
     } catch {
-      out.narrative_script_tagged = taggedMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+      out.narrative_script_tagged = taggedMatch[1]
+        .replace(/\\n/g, "\n")
+        .replace(/\\"/g, '"');
     }
   }
   const techMatch = raw.match(/"technical_config"\s*:\s*(\{[\s\S]*\})\s*\}?/);
@@ -1769,12 +2047,17 @@ export function salvageScriptJson(responseText = "") {
 }
 
 function extractJsonCandidateForSalvage(text) {
-  const candidate = String(text || "").replace(/```json/gi, "").replace(/```/g, "").trim();
+  const candidate = String(text || "")
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
   const start = candidate.search(/[\[{]/);
   if (start < 0) return candidate;
   let slice = candidate.slice(start);
-  const openBraces = (slice.match(/\{/g) || []).length - (slice.match(/\}/g) || []).length;
-  const openBrackets = (slice.match(/\[/g) || []).length - (slice.match(/\]/g) || []).length;
+  const openBraces =
+    (slice.match(/\{/g) || []).length - (slice.match(/\}/g) || []).length;
+  const openBrackets =
+    (slice.match(/\[/g) || []).length - (slice.match(/\]/g) || []).length;
   for (let i = 0; i < openBrackets; i++) slice += "]";
   for (let i = 0; i < openBraces; i++) slice += "}";
   return slice;
@@ -1782,12 +2065,16 @@ function extractJsonCandidateForSalvage(text) {
 
 export function buildDeterministicVisualPromptsFromNarration(
   approvedNarration = "",
-  { blockCount = 12, format = "LONGO", ideaTitle = "" } = {},
+  { blockCount = 12, format = "LONGO", ideaTitle = "" } = {}
 ) {
   const text = String(approvedNarration || "").trim();
   if (!text) return [];
-  const sentences = text.split(/(?<=[.!?…])\s+/).map((s) => s.trim()).filter((s) => s.length > 8);
-  const resolveSceneStockQuery = (scene) => resolveStockSearchQuery(scene, { strategyTitle: ideaTitle });
+  const sentences = text
+    .split(/(?<=[.!?…])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 8);
+  const resolveSceneStockQuery = (scene) =>
+    resolveStockSearchQuery(scene, { strategyTitle: ideaTitle });
   if (!sentences.length) {
     const narration_text = text.slice(0, 280);
     const sceneDraft = {
@@ -1798,17 +2085,25 @@ export function buildDeterministicVisualPromptsFromNarration(
       editor_notes: "Ken Burns zoom in",
     };
     const prompt = buildSceneSpecificPrompt(sceneDraft);
-    const singleScene = [{
-      ...sceneDraft,
-      prompt,
-      stock_query: resolveSceneStockQuery({ ...sceneDraft, prompt }, { strategyTitle: ideaTitle }),
-    }];
+    const singleScene = [
+      {
+        ...sceneDraft,
+        prompt,
+        stock_query: resolveSceneStockQuery(
+          { ...sceneDraft, prompt },
+          { strategyTitle: ideaTitle }
+        ),
+      },
+    ];
     return enrichVisualPromptsSpecificity(
       enforceShortsVideoSceneMix(singleScene, { format }),
-      { strategyTitle: ideaTitle },
+      { strategyTitle: ideaTitle }
     );
   }
-  const targetScenes = format === "SHORTS" ? Math.min(12, Math.max(5, sentences.length)) : Math.min(50, Math.max(20, sentences.length));
+  const targetScenes =
+    format === "SHORTS"
+      ? Math.min(12, Math.max(5, sentences.length))
+      : Math.min(50, Math.max(20, sentences.length));
   const perScene = Math.max(1, Math.ceil(sentences.length / targetScenes));
   const vps = [];
   let block = 1;
@@ -1826,7 +2121,10 @@ export function buildDeterministicVisualPromptsFromNarration(
     vps.push({
       ...sceneDraft,
       prompt,
-      stock_query: resolveSceneStockQuery({ ...sceneDraft, prompt }, { strategyTitle: ideaTitle }),
+      stock_query: resolveSceneStockQuery(
+        { ...sceneDraft, prompt },
+        { strategyTitle: ideaTitle }
+      ),
     });
     sceneInBlock += 1;
     if (sceneInBlock > Math.max(2, Math.ceil(blockCount / 4))) {
@@ -1836,7 +2134,7 @@ export function buildDeterministicVisualPromptsFromNarration(
   }
   return enrichVisualPromptsSpecificity(
     enforceShortsVideoSceneMix(vps, { format }),
-    { strategyTitle: ideaTitle },
+    { strategyTitle: ideaTitle }
   );
 }
 
@@ -1850,9 +2148,14 @@ export function buildNarrationHumanizeRepairPrompt({
   listicleRank = 20,
   listTopic = "",
 } = {}) {
-  const wordCeiling = format === "SHORTS"
-    ? (isListicle && listicleRank <= 3 ? 95 : isListicle ? 150 : 130)
-    : null;
+  const wordCeiling =
+    format === "SHORTS"
+      ? isListicle && listicleRank <= 3
+        ? 95
+        : isListicle
+          ? 150
+          : 130
+      : null;
 
   const listicleNote = isListicle
     ? `
@@ -1895,19 +2198,32 @@ Responda APENAS JSON:
 }`;
 }
 
-export function mergeHumanizedNarration(original = {}, repaired = {}, format = "LONGO") {
+export function mergeHumanizedNarration(
+  original = {},
+  repaired = {},
+  format = "LONGO"
+) {
   const merged = { ...original };
-  if (repaired.narrative_script) merged.narrative_script = repaired.narrative_script;
-  if (repaired.narrative_script_tagged) merged.narrative_script_tagged = repaired.narrative_script_tagged;
+  if (repaired.narrative_script)
+    merged.narrative_script = repaired.narrative_script;
+  if (repaired.narrative_script_tagged)
+    merged.narrative_script_tagged = repaired.narrative_script_tagged;
   return applyScriptTextQuality(merged, format);
 }
 
-export function mergeEnrichedNarration(original = {}, enriched = {}, format = "LONGO") {
+export function mergeEnrichedNarration(
+  original = {},
+  enriched = {},
+  format = "LONGO"
+) {
   const merged = mergeHumanizedNarration(original, enriched, format);
   if (enriched.strategy && typeof enriched.strategy === "object") {
     merged.strategy = { ...merged.strategy, ...enriched.strategy };
   }
-  if (enriched.technical_config && typeof enriched.technical_config === "object") {
+  if (
+    enriched.technical_config &&
+    typeof enriched.technical_config === "object"
+  ) {
     merged.technical_config = {
       ...merged.technical_config,
       ...enriched.technical_config,
@@ -1921,12 +2237,19 @@ export function normalizeNarrationBlocks(parsedData = {}, expectedBlocks = 5) {
   const tc = { ...(result.technical_config || {}) };
 
   if (Array.isArray(tc.script)) {
-    tc.script = tc.script.map((p) => String(p).trim()).filter(Boolean).join("\n\n");
+    tc.script = tc.script
+      .map((p) => String(p).trim())
+      .filter(Boolean)
+      .join("\n\n");
   }
 
-  let paragraphs = typeof tc.script === "string"
-    ? tc.script.split(/\n\n+/).map((p) => p.trim()).filter(Boolean)
-    : [];
+  let paragraphs =
+    typeof tc.script === "string"
+      ? tc.script
+          .split(/\n\n+/)
+          .map((p) => p.trim())
+          .filter(Boolean)
+      : [];
 
   if (!paragraphs.length && result.narrative_script?.trim()) {
     const sentences = result.narrative_script.trim().split(/(?<=[.!?…])\s+/);
@@ -1934,7 +2257,10 @@ export function normalizeNarrationBlocks(parsedData = {}, expectedBlocks = 5) {
       const perBlock = Math.ceil(sentences.length / expectedBlocks);
       paragraphs = [];
       for (let i = 0; i < expectedBlocks; i += 1) {
-        const chunk = sentences.slice(i * perBlock, (i + 1) * perBlock).join(" ").trim();
+        const chunk = sentences
+          .slice(i * perBlock, (i + 1) * perBlock)
+          .join(" ")
+          .trim();
         if (chunk) paragraphs.push(chunk);
       }
     }
@@ -1954,7 +2280,10 @@ export function normalizeNarrationBlocks(parsedData = {}, expectedBlocks = 5) {
     }
   }
 
-  if (Array.isArray(tc.block_phrases) && tc.block_phrases.length > expectedBlocks) {
+  if (
+    Array.isArray(tc.block_phrases) &&
+    tc.block_phrases.length > expectedBlocks
+  ) {
     tc.block_phrases = tc.block_phrases.slice(0, expectedBlocks);
   }
 
@@ -1967,41 +2296,128 @@ export function normalizeNarrationBlocks(parsedData = {}, expectedBlocks = 5) {
 // ---------------------------------------------------------------------------
 
 const NICHE_STYLE_MAP = {
-  mystery: "Dark cinematic mood, deep shadows, volumetric lighting, warm gold accents, mysterious atmosphere, heavy realistic textures (oxidized bronze, ancient clay, forged steel)",
-  true_crime: "Dark moody cinematic, high contrast, cold blue shadows, tense atmosphere, forensic detail, noir lighting",
-  history: "Period-accurate cinematic, film grain, classic lenses, warm amber lighting for ancient scenes, cool steel for modern, rich textures of the era",
-  science: "Clean modern cinematic, bright precise lighting with color accents, sharp detail, scientific visualization, volumetric light beams",
+  mystery:
+    "Dark cinematic mood, deep shadows, volumetric lighting, warm gold accents, mysterious atmosphere, heavy realistic textures (oxidized bronze, ancient clay, forged steel)",
+  true_crime:
+    "Dark moody cinematic, high contrast, cold blue shadows, tense atmosphere, forensic detail, noir lighting",
+  history:
+    "Period-accurate cinematic, film grain, classic lenses, warm amber lighting for ancient scenes, cool steel for modern, rich textures of the era",
+  science:
+    "Clean modern cinematic, bright precise lighting with color accents, sharp detail, scientific visualization, volumetric light beams",
   pets: "Vibrant warm colors, soft cheerful lighting, expressive close-ups, playful atmosphere, shallow depth of field on animal features",
-  luxury: "Premium cinematic, golden hour lighting, rich textures (leather, marble, chrome), heroic camera angles, sophisticated composition",
-  motivation: "Epic inspirational, golden light, powerful compositions, silhouette shots, dramatic sky backgrounds, warm tones",
-  horror: "Dark disturbing, high contrast, cold blue/red tones, deep shadows, unsettling angles, grain and noise, tension-building lighting",
-  finance: "Luxurious clean, elegant lighting, wealth visual elements (gold, graphs, modern offices), sophisticated compositions, premium feel",
-  geography: "Epic landscape cinematography, aerial drone shots, green/earth tones, clean sans-serif layout spaces, natural lighting",
+  luxury:
+    "Premium cinematic, golden hour lighting, rich textures (leather, marble, chrome), heroic camera angles, sophisticated composition",
+  motivation:
+    "Epic inspirational, golden light, powerful compositions, silhouette shots, dramatic sky backgrounds, warm tones",
+  horror:
+    "Dark disturbing, high contrast, cold blue/red tones, deep shadows, unsettling angles, grain and noise, tension-building lighting",
+  finance:
+    "Luxurious clean, elegant lighting, wealth visual elements (gold, graphs, modern offices), sophisticated compositions, premium feel",
+  geography:
+    "Epic landscape cinematography, aerial drone shots, green/earth tones, clean sans-serif layout spaces, natural lighting",
   tech: "Premium dark backgrounds, neon-accented glows, code mockups/terminals, precise numeric counters, sharp modern aesthetics",
   food: "Warm appetizing lighting, macro close-ups, steam/texture detail, vibrant saturated colors, shallow depth of field",
-  sports: "Dynamic action cinematography, fast motion, dramatic lighting, stadium atmospheres, freeze-frame moments",
-  default: "Cinematic documentary style, dramatic lighting, sharp detail, photorealistic textures, professional composition",
+  sports:
+    "Dynamic action cinematography, fast motion, dramatic lighting, stadium atmospheres, freeze-frame moments",
+  default:
+    "Cinematic documentary style, dramatic lighting, sharp detail, photorealistic textures, professional composition",
 };
 
-export function detectNicheFromContent(strategy = {}, narrative = "", hyperframe = "") {
+export function detectNicheFromContent(
+  strategy = {},
+  narrative = "",
+  hyperframe = ""
+) {
   const text = [
-    strategy.title_main, strategy.hook, strategy.tone, strategy.target_audience,
-    narrative.slice(0, 2000), hyperframe,
-  ].filter(Boolean).join(" ").toLowerCase();
+    strategy.title_main,
+    strategy.hook,
+    strategy.tone,
+    strategy.target_audience,
+    narrative.slice(0, 2000),
+    hyperframe,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
-  if (/\b(true.?crime|assassin|serial.?killer|desaparec|murder|forensic|csi)\b/i.test(text)) return "true_crime";
-  if (/\b(horror|creepy|assombr|fantasma|demon|ghost|terror|medo|noite.?escura)\b/i.test(text)) return "horror";
-  if (/\b(mistério|mystery|enigma|antiq|históri|ancient|civiliza|arqueolog|ruína|artifact)\b/i.test(text)) return "mystery";
-  if (/\b(histór|history|guerra|war|impér|empire|revolução|revolution|século|century)\b/i.test(text)) return "history";
-  if (/\b(ciência|science|físic|physics|químic|chemistry|biolog|experiment|quantum)\b/i.test(text)) return "science";
-  if (/\b(pet|cachorro|gato|dog|cat|animal|fofo|cute|filhote|puppy|kitten)\b/i.test(text)) return "pets";
-  if (/\b(luxo|luxury|mansão|mansion|ferrari|lamborghini|supercar|imóvel|yacht|rolex)\b/i.test(text)) return "luxury";
-  if (/\b(motivaç|motivation|sucesso|success|mentalidade|mindset|inspiração|empreend)\b/i.test(text)) return "motivation";
-  if (/\b(finanç|finance|dinheiro|money|investimento|invest|bitcoin|cripto|renda|salário)\b/i.test(text)) return "finance";
-  if (/\b(geografi|geography|país|country|mapa|map|continent|ocean|montanha|desert)\b/i.test(text)) return "geography";
-  if (/\b(tech|tecnolog|ia |\bai\b|robot|comput|software|hardware|program|code|server)\b/i.test(text)) return "tech";
-  if (/\b(comida|food|receita|recipe|cozinha|kitchen|chef|gastrono|sabor|ingrediente)\b/i.test(text)) return "food";
-  if (/\b(esporte|sport|futebol|soccer|basketball|atleta|olimp|campeon)\b/i.test(text)) return "sports";
+  if (
+    /\b(true.?crime|assassin|serial.?killer|desaparec|murder|forensic|csi)\b/i.test(
+      text
+    )
+  )
+    return "true_crime";
+  if (
+    /\b(horror|creepy|assombr|fantasma|demon|ghost|terror|medo|noite.?escura)\b/i.test(
+      text
+    )
+  )
+    return "horror";
+  if (
+    /\b(mistério|mystery|enigma|antiq|históri|ancient|civiliza|arqueolog|ruína|artifact)\b/i.test(
+      text
+    )
+  )
+    return "mystery";
+  if (
+    /\b(histór|history|guerra|war|impér|empire|revolução|revolution|século|century)\b/i.test(
+      text
+    )
+  )
+    return "history";
+  if (
+    /\b(ciência|science|físic|physics|químic|chemistry|biolog|experiment|quantum)\b/i.test(
+      text
+    )
+  )
+    return "science";
+  if (
+    /\b(pet|cachorro|gato|dog|cat|animal|fofo|cute|filhote|puppy|kitten)\b/i.test(
+      text
+    )
+  )
+    return "pets";
+  if (
+    /\b(luxo|luxury|mansão|mansion|ferrari|lamborghini|supercar|imóvel|yacht|rolex)\b/i.test(
+      text
+    )
+  )
+    return "luxury";
+  if (
+    /\b(motivaç|motivation|sucesso|success|mentalidade|mindset|inspiração|empreend)\b/i.test(
+      text
+    )
+  )
+    return "motivation";
+  if (
+    /\b(finanç|finance|dinheiro|money|investimento|invest|bitcoin|cripto|renda|salário)\b/i.test(
+      text
+    )
+  )
+    return "finance";
+  if (
+    /\b(geografi|geography|país|country|mapa|map|continent|ocean|montanha|desert)\b/i.test(
+      text
+    )
+  )
+    return "geography";
+  if (
+    /\b(tech|tecnolog|ia |\bai\b|robot|comput|software|hardware|program|code|server)\b/i.test(
+      text
+    )
+  )
+    return "tech";
+  if (
+    /\b(comida|food|receita|recipe|cozinha|kitchen|chef|gastrono|sabor|ingrediente)\b/i.test(
+      text
+    )
+  )
+    return "food";
+  if (
+    /\b(esporte|sport|futebol|soccer|basketball|atleta|olimp|campeon)\b/i.test(
+      text
+    )
+  )
+    return "sports";
   return "default";
 }
 
@@ -2014,7 +2430,8 @@ export function buildVisualPromptEngineerSystemPrompt({
   rankOrder = "desc",
 } = {}) {
   const nicheStyle = NICHE_STYLE_MAP[niche] || NICHE_STYLE_MAP.default;
-  const nicheLabel = niche === "default" ? "Geral / Documentário" : niche.replace(/_/g, " ");
+  const nicheLabel =
+    niche === "default" ? "Geral / Documentário" : niche.replace(/_/g, " ");
 
   return `Você é um **Engenheiro de Prompts Visuais Sênior de nível mundial**, especialista em criar prompts extremamente eficazes para geração de imagens e vídeos com IA (Grok Imagine, Kling AI, Runway, Luma Dream Machine, Pika, etc.).
 
@@ -2054,9 +2471,11 @@ ${hyperframePrompt ? `- Combine com o hyperframe do projeto: ${hyperframePrompt}
 - Descreva iluminação, ângulo, profundidade e mood com precisão.
 
 **6. Otimização por Aspect Ratio (Obrigatório em todos os prompts)**
-${format === "SHORTS"
+${
+  format === "SHORTS"
     ? "- Composição vertical 9:16 otimizada para mobile, framing apertado, sujeito centralizado ou em terços superiores/inferiores, movimentos de câmera preferencialmente verticais."
-    : "- Composição widescreen 16:9 cinematográfica, shots amplos ou pans horizontais quando apropriado, maior profundidade de campo."}
+    : "- Composição widescreen 16:9 cinematográfica, shots amplos ou pans horizontais quando apropriado, maior profundidade de campo."
+}
 - O prompt deve funcionar bem nos dois formatos quando possível.
 
 **7. Regras de Qualidade**
@@ -2120,12 +2539,15 @@ Não adicione texto fora do JSON.`;
 export function buildVisualPromptEngineerRequest(storyboard = {}, opts = {}) {
   const strategy = storyboard.strategy || {};
   const narrative = String(storyboard.narrative_script || "").trim();
-  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+  const visualPrompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
   const hyperframe = String(storyboard.hyperframe_prompt || "").trim();
   const editingMap = storyboard.editing_map || "";
   const listicle = storyboard.listicle || {};
   const format = opts.format || "SHORTS";
-  const isListicle = listicle.content_mode === "LISTICLE" || opts.isListicle || false;
+  const isListicle =
+    listicle.content_mode === "LISTICLE" || opts.isListicle || false;
   const listicleRank = Number(listicle.rank_count || opts.listicleRank || 0);
   const rankOrder = listicle.rank_order || opts.rankOrder || "desc";
 
@@ -2154,7 +2576,10 @@ export function buildVisualPromptEngineerRequest(storyboard = {}, opts = {}) {
       text_overlay: vp.text_overlay || undefined,
     })),
     hyperframe_prompt: hyperframe.slice(0, 500),
-    editing_map: typeof editingMap === "string" ? editingMap.slice(0, 500) : JSON.stringify(editingMap).slice(0, 500),
+    editing_map:
+      typeof editingMap === "string"
+        ? editingMap.slice(0, 500)
+        : JSON.stringify(editingMap).slice(0, 500),
   };
 
   return {
