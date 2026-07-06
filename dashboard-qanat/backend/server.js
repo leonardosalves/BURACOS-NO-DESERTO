@@ -503,6 +503,7 @@ import {
 import cors from "cors";
 
 import fs from "fs";
+import { promises as fsPromises } from "fs";
 
 import path from "path";
 
@@ -1214,81 +1215,90 @@ app.post("/api/projects/delete", (req, res) => {
 
 // API: Check status of workspace files
 
-app.get("/api/status", (req, res) => {
+app.get("/api/status", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
 
     // Auto-sync template scripts when project is accessed
 
     if (projDir !== WORKSPACE_DIR) {
+      // Keep ensureFileExists synchronous if it's not a bottleneck, but ideally it should be async too.
+      // For now, let's keep it as is to avoid breaking anything elsewhere.
       ensureFileExists("build_video.py", projDir);
-
       ensureFileExists("build_video_destacado.py", projDir);
-
       ensureFileExists("mix_bgm.py", projDir);
-
       ensureFileExists("find_block_timings.py", projDir);
-
       ensureFileExists("align_transcripts.py", projDir);
     }
 
     const assetsDir = path.join(projDir, "ASSETS");
-
     const outputDir = path.join(projDir, "OUTPUT", "qanat_persa_video_final");
 
-    const countFiles = (dir) => {
-      if (!fs.existsSync(dir)) return 0;
-
+    const countFilesAsync = async (dir) => {
+      try {
+        await fsPromises.access(dir);
+      } catch {
+        return 0;
+      }
       let count = 0;
-
-      const scan = (d) => {
-        const items = fs.readdirSync(d);
-
+      const scanAsync = async (d) => {
+        const items = await fsPromises.readdir(d, { withFileTypes: true });
         for (const item of items) {
-          const p = path.join(d, item);
-
-          if (fs.statSync(p).isDirectory()) {
-            scan(p);
+          const p = path.join(d, item.name);
+          if (item.isDirectory()) {
+            await scanAsync(p);
           } else {
             count++;
           }
         }
       };
-
-      scan(dir);
-
+      await scanAsync(dir);
       return count;
     };
 
     let blockTimings = null;
-
     const timingsPath = path.join(projDir, "block_timings.json");
 
-    if (fs.existsSync(timingsPath)) {
+    const checkFileExistsAsync = async (filePath) => {
+        try {
+            await fsPromises.access(filePath);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    const [
+      assetsCount,
+      hasNarration,
+      hasSoundtrack,
+      hasHighlightClip,
+      hasConfig,
+      timingsExists
+    ] = await Promise.all([
+      countFilesAsync(assetsDir),
+      checkFileExistsAsync(path.join(projDir, "narracao_mestra_premium.mp3")),
+      checkFileExistsAsync(path.join(projDir, "trilha_documentario.mp3")),
+      checkFileExistsAsync(path.join(projDir, "clip_highlight.mp4")),
+      checkFileExistsAsync(path.join(projDir, "config_qanat.json")),
+      checkFileExistsAsync(timingsPath)
+    ]);
+
+
+    if (timingsExists) {
       try {
-        blockTimings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
+        const data = await fsPromises.readFile(timingsPath, "utf8");
+        blockTimings = JSON.parse(data);
       } catch (e) {}
     }
 
     res.json({
       workspace: projDir,
-
-      assets_count: countFiles(assetsDir),
-
-      has_narration: fs.existsSync(
-        path.join(projDir, "narracao_mestra_premium.mp3")
-      ),
-
-      has_soundtrack: fs.existsSync(
-        path.join(projDir, "trilha_documentario.mp3")
-      ),
-
-      has_highlight_clip: fs.existsSync(
-        path.join(projDir, "clip_highlight.mp4")
-      ),
-
-      has_config: fs.existsSync(path.join(projDir, "config_qanat.json")),
-
+      assets_count: assetsCount,
+      has_narration: hasNarration,
+      has_soundtrack: hasSoundtrack,
+      has_highlight_clip: hasHighlightClip,
+      has_config: hasConfig,
       block_timings: blockTimings,
     });
   } catch (err) {
@@ -1298,30 +1308,36 @@ app.get("/api/status", (req, res) => {
 
 // API: Get central config
 
-app.get("/api/config", (req, res) => {
+app.get("/api/config", async (req, res) => {
   const projDir = getProjectDir(req);
-
   const configPath = path.join(projDir, "config_qanat.json");
 
-  if (!fs.existsSync(configPath)) {
+  try {
+    await fsPromises.access(configPath);
+  } catch {
     return res.status(404).json({ error: "config_qanat.json não encontrado" });
   }
 
   try {
-    const data = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    const rawData = await fsPromises.readFile(configPath, "utf8");
+    const data = JSON.parse(rawData);
+
+    // readProjectJson is synchronous inside, we could make it async but it's a small file usually
     const timings = readProjectJson(projDir, "block_timings.json", {
       total_duration: 0,
     });
+
     let responseConfig = { ...data };
     const assetFiles = listProjectMediaAssets(projDir);
     const { timeline, stripped } = sanitizeTimelineAssetsForProject(
       responseConfig.timeline_assets,
       { assetFiles }
     );
+
     if (stripped > 0) {
       responseConfig = { ...responseConfig, timeline_assets: timeline };
       try {
-        fs.writeFileSync(
+        await fsPromises.writeFile(
           configPath,
           JSON.stringify(responseConfig, null, 2),
           "utf8"
@@ -1330,6 +1346,7 @@ app.get("/api/config", (req, res) => {
         /* leitura segue com timeline saneada */
       }
     }
+
     const format = detectVideoFormat(
       responseConfig,
       Number(timings.total_duration) || 0
@@ -2035,44 +2052,40 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
 
 // API: List output videos
 
-app.get("/api/outputs", (req, res) => {
+app.get("/api/outputs", async (req, res) => {
   const projDir = getProjectDir(req);
-
   const outputDir = path.join(projDir, "OUTPUT", "qanat_persa_video_final");
 
-  if (!fs.existsSync(outputDir)) {
+  try {
+    await fsPromises.access(outputDir);
+  } catch {
     return res.json([]);
   }
 
   try {
-    const files = fs
-      .readdirSync(outputDir)
+    const allFiles = await fsPromises.readdir(outputDir);
+    const videoFiles = allFiles.filter(
+      (f) => f.endsWith(".mp4") || f.endsWith(".mov") || f.endsWith(".webm")
+    );
 
-      .filter(
-        (f) => f.endsWith(".mp4") || f.endsWith(".mov") || f.endsWith(".webm")
-      )
+    const filesWithStats = await Promise.all(
+        videoFiles.map(async (f) => {
+            const stats = await fsPromises.stat(path.join(outputDir, f));
+            return {
+                name: f,
+                sizeBytes: stats.size,
+                modifiedAt: stats.mtime,
+                renderEngine: f.toLowerCase().startsWith("remotion_")
+                  ? "remotion"
+                  : "standard",
+                renderEngineLabel: f.toLowerCase().startsWith("remotion_")
+                  ? "Remotion"
+                  : "Renderizador Padrão",
+              };
+        })
+    );
 
-      .map((f) => {
-        const stats = fs.statSync(path.join(outputDir, f));
-
-        return {
-          name: f,
-
-          sizeBytes: stats.size,
-
-          modifiedAt: stats.mtime,
-
-          renderEngine: f.toLowerCase().startsWith("remotion_")
-            ? "remotion"
-            : "standard",
-
-          renderEngineLabel: f.toLowerCase().startsWith("remotion_")
-            ? "Remotion"
-            : "Renderizador Padrão",
-        };
-      });
-
-    res.json(files);
+    res.json(filesWithStats);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
