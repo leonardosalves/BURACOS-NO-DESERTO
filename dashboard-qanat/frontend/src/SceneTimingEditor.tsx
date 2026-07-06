@@ -140,6 +140,50 @@ const SCENE_COLORS = [
   "rgba(167, 139, 250, 0.4)",
 ];
 
+// Mirror of LumieraTimeline.tsx transition logic: transitionType = index % transitionMod
+// transitionMod = 9 for long-form, 12 for shorts
+const TRANSITION_LABELS: Record<
+  number,
+  { label: string; icon: string; color: string }
+> = {
+  0: { label: "Fade", icon: "◌", color: "#a1a1aa" },
+  1: { label: "Zoom In", icon: "⬡", color: "#60a5fa" },
+  2: { label: "Wipe ←", icon: "◁", color: "#34d399" },
+  3: { label: "Wipe ↑", icon: "△", color: "#a78bfa" },
+  4: { label: "Scale", icon: "⬡", color: "#fb923c" },
+  5: { label: "Circle", icon: "◎", color: "#f472b6" },
+  6: { label: "Wipe →", icon: "▷", color: "#2dd4bf" },
+  7: { label: "Wipe ↓", icon: "▽", color: "#c084fc" },
+  8: { label: "Rotate", icon: "↺", color: "#fbbf24" },
+  9: { label: "Blur", icon: "≋", color: "#94a3b8" },
+  10: { label: "Diagonal", icon: "◤", color: "#f43f5e" },
+  11: { label: "Grid", icon: "⊞", color: "#818cf8" },
+  12: { label: "Zoom+", icon: "⬡", color: "#06b6d4" },
+};
+
+// CSS animation names matching each transition type for the preview
+const TRANSITION_ANIMS: Record<number, string> = {
+  0: "ste-fade",
+  1: "ste-zoom-in",
+  2: "ste-wipe-left",
+  3: "ste-wipe-top",
+  4: "ste-scale-in",
+  5: "ste-circle",
+  6: "ste-wipe-right",
+  7: "ste-wipe-bottom",
+  8: "ste-rotate-in",
+  9: "ste-blur-in",
+  10: "ste-diagonal",
+  11: "ste-grid",
+  12: "ste-zoom-hard",
+};
+
+function getTransitionInfo(sceneIdx: number, isShort: boolean) {
+  const mod = isShort ? 12 : 9;
+  const type = sceneIdx % mod;
+  return { type, ...TRANSITION_LABELS[type] };
+}
+
 export function SceneTimingEditor({
   activeProject,
   config,
@@ -167,6 +211,10 @@ export function SceneTimingEditor({
     initialStart: number;
     initialEnd: number;
   } | null>(null);
+
+  // Transition animation state for preview
+  const [transitionAnim, setTransitionAnim] = useState<string | null>(null);
+  const prevSceneIdxRef = useRef<number | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
@@ -707,6 +755,22 @@ export function SceneTimingEditor({
     return blockModel.scenes[blockModel.scenes.length - 1];
   }, [blockModel, currentTime]);
 
+  const isShort = config?.aspect_ratio === "9:16";
+
+  // Trigger preview transition animation when active scene changes
+  useEffect(() => {
+    if (!activeSceneInPreview) return;
+    const idx = activeSceneInPreview.idx;
+    if (prevSceneIdxRef.current === idx) return;
+    prevSceneIdxRef.current = idx;
+    // Scene 0 (first) = no entry animation
+    if (idx === 0) return;
+    const info = getTransitionInfo(idx, isShort);
+    const animName = TRANSITION_ANIMS[info.type] ?? "ste-fade";
+    setTransitionAnim(null);
+    requestAnimationFrame(() => setTransitionAnim(animName));
+  }, [activeSceneInPreview, isShort]);
+
   const activeOverlayInPreview = useMemo(() => {
     if (!blockModel) return null;
     const currentAbsTime = blockModel.narrationStart + currentTime;
@@ -1047,7 +1111,7 @@ export function SceneTimingEditor({
                       );
                     })}
 
-                    {/* Scene dividers (draggable) */}
+                    {/* Scene dividers (draggable) with transition badge */}
                     {blockModel.scenes.slice(0, -1).map((_, idx) => {
                       const leftPct = blockModel.scenes
                         .slice(0, idx + 1)
@@ -1056,18 +1120,44 @@ export function SceneTimingEditor({
                             a + (s.duration / blockModel.totalDuration) * 100,
                           0
                         );
+                      const transInfo = getTransitionInfo(idx + 1, isShort);
                       return (
-                        <button
-                          key={`div-${idx}`}
-                          type="button"
-                          className="ste-timeline-divider"
-                          style={{ left: `calc(${leftPct}% - 6px)` }}
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            setDraggingDivider(idx);
+                        <div
+                          key={`div-wrap-${idx}`}
+                          className="absolute top-0 bottom-0 z-10"
+                          style={{
+                            left: `calc(${leftPct}% - 14px)`,
+                            width: "28px",
                           }}
-                          aria-label={`Ajustar divisão entre cena ${idx + 1} e ${idx + 2}`}
-                        />
+                        >
+                          {/* Transition label badge */}
+                          <div
+                            className="absolute -top-px left-1/2 -translate-x-1/2 flex flex-col items-center gap-px pointer-events-none"
+                            style={{ zIndex: 20 }}
+                          >
+                            <span
+                              className="text-[7px] font-bold uppercase tracking-wide px-1 py-px rounded-sm whitespace-nowrap leading-none"
+                              style={{
+                                background: transInfo.color + "30",
+                                color: transInfo.color,
+                                border: `1px solid ${transInfo.color}60`,
+                              }}
+                            >
+                              {transInfo.icon} {transInfo.label}
+                            </span>
+                          </div>
+                          {/* Draggable divider handle */}
+                          <button
+                            type="button"
+                            className="ste-timeline-divider absolute inset-y-0 left-1/2 -translate-x-1/2"
+                            style={{ width: "12px" }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setDraggingDivider(idx);
+                            }}
+                            aria-label={`Ajustar divisão entre cena ${idx + 1} e ${idx + 2}`}
+                          />
+                        </div>
                       );
                     })}
                   </div>
@@ -1355,9 +1445,17 @@ export function SceneTimingEditor({
                   : "w-full aspect-video"
               }`}
             >
-              {/* Asset display */}
+              {/* Asset display with transition animation */}
               {activeSceneInPreview ? (
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div
+                  key={activeSceneInPreview.idx}
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{
+                    animation: transitionAnim
+                      ? `${transitionAnim} 0.4s ease-out forwards`
+                      : undefined,
+                  }}
+                >
                   {activeSceneInPreview.assetType === "video" ? (
                     <video
                       key={activeSceneInPreview.assetPath}
@@ -1372,6 +1470,30 @@ export function SceneTimingEditor({
                       alt=""
                       className="w-full h-full object-cover"
                     />
+                  )}
+                  {/* Transition name badge */}
+                  {transitionAnim && (
+                    <div className="absolute top-2 right-2 z-30 pointer-events-none">
+                      {(() => {
+                        const info = getTransitionInfo(
+                          activeSceneInPreview.idx,
+                          isShort
+                        );
+                        return (
+                          <span
+                            className="text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-md animate-fade-in"
+                            style={{
+                              background: info.color + "25",
+                              color: info.color,
+                              border: `1px solid ${info.color}50`,
+                              textShadow: "0 0 8px " + info.color,
+                            }}
+                          >
+                            {info.icon} {info.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   )}
                 </div>
               ) : (
@@ -1515,6 +1637,23 @@ export function SceneTimingEditor({
         .ste-overlay-wrapper > div > div:last-child {
           display: none !important;
         }
+
+        /* ── Preview transition keyframes ── */
+        @keyframes ste-fade       { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes ste-zoom-in    { from { transform: scale(1.18); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes ste-wipe-left  { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0% 0 0); } }
+        @keyframes ste-wipe-top   { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+        @keyframes ste-scale-in   { from { transform: scale(0.87); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes ste-circle     { from { clip-path: circle(0% at 50% 50%); } to { clip-path: circle(75% at 50% 50%); } }
+        @keyframes ste-wipe-right { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+        @keyframes ste-wipe-bottom{ from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0% 0); } }
+        @keyframes ste-rotate-in  { from { transform: scale(0.92) rotate(-3deg); opacity: 0; } to { transform: scale(1) rotate(0deg); opacity: 1; } }
+        @keyframes ste-blur-in    { from { filter: blur(12px); opacity: 0.3; } to { filter: blur(0); opacity: 1; } }
+        @keyframes ste-diagonal   { from { clip-path: polygon(0 0, 0 0, 0 0); } to { clip-path: polygon(0 0, 100% 0, 0 100%); } }
+        @keyframes ste-grid       { from { clip-path: inset(12% 12% 12% 12%); transform: scale(1.07); } to { clip-path: inset(0 0 0 0); transform: scale(1); } }
+        @keyframes ste-zoom-hard  { from { transform: scale(1.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes animate-fade-in{ from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: animate-fade-in 0.3s ease-out forwards; }
       `}</style>
     </div>
   );
