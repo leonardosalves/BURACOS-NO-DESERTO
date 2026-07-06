@@ -6,6 +6,7 @@
 import fs from "fs";
 import path from "path";
 import { STUDIO_FILENAME } from "./timelineStudioMigration.js";
+import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 
 function clipsOnTrack(clips, trackId) {
   return (Array.isArray(clips) ? clips : [])
@@ -18,7 +19,16 @@ export function loadStudioForRender(projDir) {
   if (!fs.existsSync(studioPath)) return null;
   try {
     const studio = JSON.parse(fs.readFileSync(studioPath, "utf8"));
-    if (studio?.version >= 1 && Array.isArray(studio.clips)) return studio;
+    if (!(studio?.version >= 1 && Array.isArray(studio.clips))) return null;
+    let config = {};
+    try {
+      config = JSON.parse(
+        fs.readFileSync(path.join(projDir, "config_qanat.json"), "utf8")
+      );
+    } catch {
+      config = {};
+    }
+    return upsertMusicClipInStudio(studio, config, projDir);
   } catch {
     return null;
   }

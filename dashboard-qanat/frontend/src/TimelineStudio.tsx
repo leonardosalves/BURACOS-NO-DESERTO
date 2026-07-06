@@ -98,10 +98,11 @@ export function TimelineStudio({
     if (!studio) return;
     setSaving(true);
     try {
+      const synced = upsertMusicClipInStudio(studio, config);
       const res = await fetch(getProjectUrl("/api/timeline-studio"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studio }),
+        body: JSON.stringify({ studio: synced }),
       });
       if (!res.ok) throw new Error(await res.text());
       toast.success("Timeline Studio salva");
