@@ -38,6 +38,7 @@ import type {
   NarrationSyncContext,
   TimelineAsset,
 } from "./timelineNarrationSync";
+import { OverlayPreview } from "./OverlayPreview";
 
 type ConfigSlice = {
   timeline_assets?: Record<string, TimelineAsset[]>;
@@ -1242,21 +1243,34 @@ export function SceneTimingEditor({
                 </div>
               )}
 
-              {/* Subtitles Overlay (capitalized, outline shadow) */}
+              {/* Subtitles Overlay / Simulated Component */}
               {activeOverlayInPreview && (
-                <div className="absolute bottom-6 left-2 right-2 text-center z-10 pointer-events-none">
-                  <span
-                    className="font-sans font-extrabold uppercase text-xs md:text-sm text-yellow-500 tracking-wider leading-relaxed"
-                    style={{
-                      textShadow:
-                        "1.5px 1.5px 0px #000, -1.5px -1.5px 0px #000, 1.5px -1.5px 0px #000, -1.5px 1.5px 0px #000, 2px 2px 4px rgba(0,0,0,0.9)",
-                    }}
-                  >
-                    {activeOverlayInPreview.props?.label ||
-                      activeOverlayInPreview.props?.text ||
-                      activeOverlayInPreview.type.toUpperCase()}
-                  </span>
-                </div>
+                <>
+                  <div className="ste-overlay-wrapper absolute inset-0 pointer-events-none z-20">
+                    <OverlayPreview
+                      overlay={activeOverlayInPreview}
+                      aspectRatio={config?.aspect_ratio || "9:16"}
+                      accentColor={
+                        activeOverlayInPreview.props?.accentColor || "#FF3D00"
+                      }
+                      compact={true}
+                    />
+                  </div>
+                  {/* Fallback label at the bottom with high contrast opacity */}
+                  <div className="absolute bottom-6 left-2 right-2 text-center z-10 pointer-events-none">
+                    <span
+                      className="font-sans font-extrabold uppercase text-[10px] md:text-xs text-yellow-500 tracking-wider leading-relaxed opacity-40"
+                      style={{
+                        textShadow:
+                          "1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000",
+                      }}
+                    >
+                      {activeOverlayInPreview.props?.label ||
+                        activeOverlayInPreview.props?.text ||
+                        activeOverlayInPreview.type.toUpperCase()}
+                    </span>
+                  </div>
+                </>
               )}
             </div>
 
@@ -1314,6 +1328,55 @@ export function SceneTimingEditor({
           </div>
         </div>
       )}
+      {/* Style overrides to strip frames and backgrounds of OverlayPreview in the playhead box */}
+      <style>{`
+        .ste-overlay-wrapper {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          pointer-events: none !important;
+          z-index: 20 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .ste-overlay-wrapper > div {
+          width: 100% !important;
+          height: 100% !important;
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: transparent !important;
+        }
+        .ste-overlay-wrapper > div > div:first-child {
+          display: none !important;
+        }
+        .ste-overlay-wrapper .overlay-preview-frame {
+          border: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .ste-overlay-wrapper .overlay-preview-frame > div[style*="linear-gradient"],
+        .ste-overlay-wrapper .overlay-preview-frame > div[style*="radial-gradient"],
+        .ste-overlay-wrapper .overlay-preview-frame > div[style*="border-t"],
+        .ste-overlay-wrapper .overlay-preview-frame > div[className*="top-"],
+        .ste-overlay-wrapper .overlay-preview-frame > div[className*="bottom-"] {
+          display: none !important;
+        }
+        .ste-overlay-wrapper > div > p,
+        .ste-overlay-wrapper > div > div:last-child {
+          display: none !important;
+        }
+      `}</style>
     </div>
   );
 }
