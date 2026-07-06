@@ -106,7 +106,7 @@ export function applyProductionPatchToConfig<T extends Record<string, unknown>>(
   previous: ProductionConfig = {}
 ): T {
   const patch = productionDraftToApiPatch(draft, previous);
-  const merged = { ...base } as T & Record<string, unknown>;
+  const merged: Record<string, unknown> = { ...base };
   for (const [key, value] of Object.entries(patch)) {
     if (value === null) delete merged[key];
     else merged[key] = value;

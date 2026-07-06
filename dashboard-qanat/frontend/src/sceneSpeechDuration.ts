@@ -1,7 +1,11 @@
-import { findBoundedNarrationMatch, getBlockTimeBounds } from "./timelineNarrationSync";
+import {
+  findBoundedNarrationMatch,
+  getBlockTimeBounds,
+} from "./timelineNarrationSync";
 
 export const parseDurationSeconds = (duration: unknown) => {
-  if (typeof duration === "number" && Number.isFinite(duration)) return duration;
+  if (typeof duration === "number" && Number.isFinite(duration))
+    return duration;
   if (typeof duration !== "string") return null;
   const normalized = duration.replace(",", ".");
   const match = normalized.match(/(\d+(?:\.\d+)?)/);
@@ -11,7 +15,12 @@ export const parseDurationSeconds = (duration: unknown) => {
 };
 
 export function flattenWordsForSceneDuration(wordTranscripts: any[]) {
-  const flat: Array<{ word: string; clean: string; start: number; end: number }> = [];
+  const flat: Array<{
+    word: string;
+    clean: string;
+    start: number;
+    end: number;
+  }> = [];
   if (!Array.isArray(wordTranscripts)) return flat;
   for (const segment of wordTranscripts) {
     const segStart = Number(segment.start_time) || 0;
@@ -23,14 +32,15 @@ export function flattenWordsForSceneDuration(wordTranscripts: any[]) {
         wEnd += segStart;
       }
       const token = String(w.word || "").trim();
-      const clean = token
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9\s]/g, "")
-        .split(/\s+/)
-        .filter(Boolean)
-        .pop() || "";
+      const clean =
+        token
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9\s]/g, "")
+          .split(/\s+/)
+          .filter(Boolean)
+          .pop() || "";
       flat.push({ word: token, clean, start: wStart, end: wEnd });
     }
   }
@@ -43,18 +53,30 @@ export function getSceneSpeechDurationSeconds(
   blockNum: number,
   sceneIdxInBlock: number,
   status?: { block_timings?: { starts?: number[]; durations?: number[] } },
-  scenesInBlock?: any[],
+  scenesInBlock?: any[]
 ): number | null {
   if (scene?.duration_from_whisper) {
-    if (scene?.duration_seconds != null && Number.isFinite(Number(scene.duration_seconds))) {
+    if (
+      scene?.duration_seconds != null &&
+      Number.isFinite(Number(scene.duration_seconds))
+    ) {
       return Number(scene.duration_seconds);
     }
-    const parsed = parseDurationSeconds(scene?.duration ?? scene?.duracaoSegundos);
+    const parsed = parseDurationSeconds(
+      scene?.duration ?? scene?.duracaoSegundos
+    );
     if (parsed != null) return parsed;
   }
 
-  const narrationText = String(scene?.narration_text || scene?.narration_excerpt || "").trim();
-  if (!narrationText || !wordTranscripts?.length || !status?.block_timings?.starts?.length) return null;
+  const narrationText = String(
+    scene?.narration_text || scene?.narration_excerpt || ""
+  ).trim();
+  if (
+    !narrationText ||
+    !wordTranscripts?.length ||
+    !status?.block_timings?.starts?.length
+  )
+    return null;
 
   const flat = flattenWordsForSceneDuration(wordTranscripts);
   if (!flat.length) return null;
@@ -63,36 +85,53 @@ export function getSceneSpeechDurationSeconds(
   let searchAfter = bounds.searchAfter;
   if (scenesInBlock) {
     for (let i = 0; i < sceneIdxInBlock; i += 1) {
-      const prevText = String(scenesInBlock[i]?.narration_text || scenesInBlock[i]?.narration_excerpt || "").trim();
+      const prevText = String(
+        scenesInBlock[i]?.narration_text ||
+          scenesInBlock[i]?.narration_excerpt ||
+          ""
+      ).trim();
       if (!prevText) continue;
-      const prev = findBoundedNarrationMatch(prevText, flat, { searchAfter, searchBefore: bounds.searchBefore });
+      const prev = findBoundedNarrationMatch(prevText, flat, {
+        searchAfter,
+        searchBefore: bounds.searchBefore,
+      });
       if (prev) searchAfter = prev.end;
     }
   }
 
-  const matched = findBoundedNarrationMatch(narrationText, flat, { searchAfter, searchBefore: bounds.searchBefore });
+  const matched = findBoundedNarrationMatch(narrationText, flat, {
+    searchAfter,
+    searchBefore: bounds.searchBefore,
+  });
   if (matched?.duration > 0) return parseFloat(matched.duration.toFixed(1));
   return null;
 }
 
 export const isWhisperTimelineReady = (
-  wordTranscripts: any[],
-  status?: { block_timings?: { starts?: number[] } },
+  wordTranscripts: unknown,
+  status?: { block_timings?: { starts?: number[] } }
 ) =>
-  Array.isArray(wordTranscripts)
-  && wordTranscripts.length > 0
-  && (status?.block_timings?.starts?.length ?? 0) > 0;
+  Array.isArray(wordTranscripts) &&
+  wordTranscripts.length > 0 &&
+  (status?.block_timings?.starts?.length ?? 0) > 0;
 
 export function isChunkedNarrationProject(
   config?: { narration_mode?: string } | null,
   storyboard?: { narration_chunk_plan?: ChunkPlanLike } | null,
-  wordTranscripts?: Array<{ chunk_id?: string }> | null,
+  wordTranscripts?: Array<{ chunk_id?: string }> | null
 ): boolean {
   const plan = storyboard?.narration_chunk_plan;
   const chunks = plan?.chunks;
-  const hasPlan = Array.isArray(chunks) && chunks.some((c) => String(c?.text || "").trim().length >= 2);
-  if (config?.narration_mode === "chunked" || plan?.mode === "chunked") return hasPlan;
-  if (Array.isArray(wordTranscripts) && wordTranscripts.some((s) => s?.chunk_id)) return hasPlan;
+  const hasPlan =
+    Array.isArray(chunks) &&
+    chunks.some((c) => String(c?.text || "").trim().length >= 2);
+  if (config?.narration_mode === "chunked" || plan?.mode === "chunked")
+    return hasPlan;
+  if (
+    Array.isArray(wordTranscripts) &&
+    wordTranscripts.some((s) => s?.chunk_id)
+  )
+    return hasPlan;
   return false;
 }
 
@@ -111,7 +150,7 @@ type ChunkPlanLike = {
 export function getSceneDurationFromChunkPlan(
   scene: any,
   chunkPlan?: ChunkPlanLike | null,
-  sceneIdxInBlock = 0,
+  sceneIdxInBlock = 0
 ): number | null {
   const chunks = chunkPlan?.chunks;
   if (!chunks?.length) return null;
@@ -126,8 +165,9 @@ export function getSceneDurationFromChunkPlan(
     const inBlock = chunks
       .filter((c) => Number(c.block) === block)
       .sort(
-        (a, b) => Number(a.start_s ?? 0) - Number(b.start_s ?? 0)
-          || String(a.scene_ref || "").localeCompare(String(b.scene_ref || "")),
+        (a, b) =>
+          Number(a.start_s ?? 0) - Number(b.start_s ?? 0) ||
+          String(a.scene_ref || "").localeCompare(String(b.scene_ref || ""))
       );
     chunk = inBlock[sceneIdxInBlock];
   }
@@ -143,8 +183,17 @@ export function getSceneDurationFromChunkPlan(
 
 /** Detecta timeline corrompida (durações somadas >> bloco ou audio_start block-relative). */
 export function chunkedTimelineNeedsRepair(
-  config?: { timeline_assets?: Record<string, Array<{ fixed?: number; audio_start?: number; synced_to_speech?: boolean }>> } | null,
-  status?: { block_timings?: { starts?: number[]; durations?: number[] } },
+  config?: {
+    timeline_assets?: Record<
+      string,
+      Array<{
+        fixed?: number;
+        audio_start?: number;
+        synced_to_speech?: boolean;
+      }>
+    >;
+  } | null,
+  status?: { block_timings?: { starts?: number[]; durations?: number[] } }
 ): boolean {
   const durations = status?.block_timings?.durations || [];
   const starts = status?.block_timings?.starts || [];
@@ -156,7 +205,10 @@ export function chunkedTimelineNeedsRepair(
     if (!blockAssets.some((a) => a.synced_to_speech)) continue;
     const blockDur = Number(durations[blockNum - 1]);
     if (Number.isFinite(blockDur) && blockDur > 0) {
-      const sumFixed = blockAssets.reduce((acc, a) => acc + (Number(a.fixed) || 0), 0);
+      const sumFixed = blockAssets.reduce(
+        (acc, a) => acc + (Number(a.fixed) || 0),
+        0
+      );
       if (sumFixed > blockDur * 1.35) return true;
     }
     const blockStart = Number(starts[blockNum - 1]);
@@ -177,9 +229,13 @@ export const getSceneDurationSeconds = (
   sceneIdxInBlock?: number,
   status?: { block_timings?: { starts?: number[]; durations?: number[] } },
   scenesInBlock?: any[],
-  chunkPlan?: ChunkPlanLike | null,
+  chunkPlan?: ChunkPlanLike | null
 ) => {
-  const fromChunks = getSceneDurationFromChunkPlan(scene, chunkPlan, sceneIdxInBlock);
+  const fromChunks = getSceneDurationFromChunkPlan(
+    scene,
+    chunkPlan,
+    sceneIdxInBlock
+  );
   if (fromChunks != null) return fromChunks;
 
   if (wordTranscripts && blockNum != null && sceneIdxInBlock != null) {
@@ -189,7 +245,7 @@ export const getSceneDurationSeconds = (
       blockNum,
       sceneIdxInBlock,
       status,
-      scenesInBlock,
+      scenesInBlock
     );
   }
   return null;

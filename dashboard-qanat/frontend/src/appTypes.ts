@@ -26,9 +26,9 @@ export interface ImpactText {
 
 export interface ConfigData {
   [key: string]: any;
-  highlight_keywords: string[];
-  bgm_mappings: BGM[];
-  impact_texts: ImpactText[];
+  highlight_keywords?: string[];
+  bgm_mappings?: BGM[];
+  impact_texts?: ImpactText[];
   timeline_assets?: Record<string, any[]>;
   block_phrases?: { block: number; phrase: string }[];
   aspect_ratio?: "16:9" | "9:16";
@@ -73,7 +73,7 @@ export interface ConfigData {
   content_mode?: string;
   use_single_bgm?: boolean;
   single_bgm?: string;
-  bgm_mode?: "emotion" | "block";
+  bgm_mode?: "emotion" | "block" | string;
   narration_mode?: "chunked" | "master";
   block_progress_bar?: any;
   block_timings?: {

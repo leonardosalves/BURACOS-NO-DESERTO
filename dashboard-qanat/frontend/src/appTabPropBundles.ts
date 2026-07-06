@@ -33,13 +33,16 @@ export type AppTabPropContext = Record<string, unknown> & {
   logs: string[];
   openCreatorTab: () => void;
   outputs: OutputVideo[];
-  postAi: (path: string, body: unknown) => Promise<unknown>;
+  postAi: (path: string, body: unknown) => Promise<any>;
   projects: ProjectListItem[];
   recentProjects: string[];
   renderProgress?: { percent?: number };
   renderTimelineStudio: () => React.ReactNode;
   rendering: boolean;
-  saveTimelinePatch: (cfg: ConfigData) => void | Promise<void>;
+  saveTimelinePatch: (
+    cfg: ConfigData,
+    opts?: { skipRefresh?: boolean }
+  ) => void | Promise<void> | Promise<ConfigData | null>;
   setActiveTab: (tab: AppTab) => void;
   handleSelectProject: (name: string) => void;
   setLogs: React.Dispatch<React.SetStateAction<string[]>>;
@@ -196,6 +199,7 @@ export function buildAppTabPropBundles(
     setSelectedListicleIdeaIndex: ctx.setSelectedListicleIdeaIndex,
     setTaggedNarrations: ctx.setTaggedNarrations,
     setUploadSuccess: ctx.setUploadSuccess,
+    setUseDeepResearch: ctx.setUseDeepResearch,
     setUseNotebooklm: ctx.setUseNotebooklm,
     showNarrationReview: ctx.showNarrationReview,
     status: ctx.status,

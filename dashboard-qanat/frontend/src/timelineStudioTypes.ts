@@ -21,6 +21,7 @@ export type StudioClip = {
   props?: Record<string, unknown>;
   color?: string;
   locked?: boolean;
+  durationLocked?: boolean;
   legacyOverlay?: boolean;
 };
 

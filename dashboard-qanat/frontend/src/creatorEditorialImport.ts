@@ -8,9 +8,17 @@ export type AgentReachResearchPayload = {
 
 export type PioneerNicheMeta = {
   macroNiche?: string;
+  nicheLabel?: string;
   angle?: string;
+  specificAngle?: string;
   formatPattern?: string;
   youtubeSearchQuery?: string;
+  firstVideoIdea?: string;
+  firstVideoHook?: string;
+  demandAnalysis?: string;
+  contentPillars?: string[] | string;
+  competitionLevel?: string;
+  whyPioneer?: string;
 };
 
 /** Texto de estratégia YouTube — não é tema de vídeo (espelha pioneerNicheDiscovery.js). */

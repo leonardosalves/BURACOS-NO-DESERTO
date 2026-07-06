@@ -1,7 +1,15 @@
-import React from 'react';
+import React from "react";
 
-type DashButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'info' | 'outline' | 'ghost';
-type DashButtonSize = 'sm' | 'md' | 'lg';
+type DashButtonVariant =
+  | "primary"
+  | "secondary"
+  | "success"
+  | "danger"
+  | "warning"
+  | "info"
+  | "outline"
+  | "ghost";
+type DashButtonSize = "sm" | "md" | "lg";
 
 type DashButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: DashButtonVariant;
@@ -10,17 +18,17 @@ type DashButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const sizeClass: Record<DashButtonSize, string> = {
-  sm: 'dash-ui-btn-sm',
-  md: 'dash-ui-btn-md',
-  lg: 'dash-ui-btn-lg',
+  sm: "dash-ui-btn-sm",
+  md: "dash-ui-btn-md",
+  lg: "dash-ui-btn-lg",
 };
 
 export function DashButton({
-  variant = 'primary',
-  size = 'md',
-  className = '',
+  variant = "primary",
+  size = "md",
+  className = "",
   children,
-  type = 'button',
+  type = "button",
   ...rest
 }: DashButtonProps) {
   return (

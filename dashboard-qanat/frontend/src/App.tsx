@@ -738,7 +738,7 @@ export default function App() {
     savedCreatorState.ideasSearchNiche &&
       savedCreatorState.nicheInput?.trim() ===
         savedCreatorState.ideasSearchNiche
-      ? savedCreatorState.ideasData || null
+      ? (savedCreatorState.ideasData as any) || null
       : null
   );
 
@@ -4086,7 +4086,7 @@ export default function App() {
         ? { ...updatedConfig, timeline_assets: sanitizedTimeline }
         : updatedConfig;
     if (dupesRemoved > 0) {
-      toast.info(
+      toast(
         `Removidos ${dupesRemoved} asset(s) repetido(s) consecutivos na timeline.`
       );
       setConfig(baseConfig);
@@ -4704,7 +4704,7 @@ export default function App() {
     if (!config?.timeline_assets?.[blockKey]?.length) return;
     const assets = config.timeline_assets[blockKey];
     if (assets.length <= 1) {
-      toast.info("Bloco com 1 asset — narração já é única.");
+      toast("Bloco com 1 asset — narração já é única.");
       return;
     }
     const ctx = buildNarrationSyncContext();
@@ -6615,7 +6615,7 @@ export default function App() {
       });
 
       if (ok && !data.needs_browser) {
-        setBgmSuggestions(data);
+        setBgmSuggestions(data as any);
 
         toast.success(
           "✨ Sugestões de BGM geradas! Veja abaixo de cada bloco.",
@@ -6877,7 +6877,7 @@ export default function App() {
       });
 
       if (ok && data.ideas) {
-        setIdeasData(data);
+        setIdeasData(data as any);
         setIdeasSearchNiche(nicheInput.trim());
 
         setSelectedIdeaIndex(data.best_idea_index);
@@ -8024,7 +8024,7 @@ export default function App() {
               )
             )
           ),
-        ].sort((a, b) => a - b);
+        ].sort((a, b) => Number(a) - Number(b)) as number[];
         setExpandedBlocks(Object.fromEntries(blockNums.map((b) => [b, true])));
         setShowNarrationReview(false);
         setCreatorStep(2);

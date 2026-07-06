@@ -72,7 +72,7 @@ export type AppSettingsTabProps = {
   pickProductionConfig: (cfg: ConfigData) => any;
   pickVisualConfig: (cfg: ConfigData) => any;
   pixabayKeyInput: string;
-  productionDraftToApiPatch: (draft: any) => any;
+  productionDraftToApiPatch: (draft: any, previous?: any) => any;
   projectDataLoading: boolean;
   projectRenderResolution: string;
   refreshGeminiExtensionStatus: () => Promise<any>;
@@ -129,7 +129,7 @@ export type AppSettingsTabProps = {
   supermemoryKeyInput: string;
   testingSupermemory: boolean;
   uploadStatus: any;
-  visualDraftToApiPatch: (draft: any) => any;
+  visualDraftToApiPatch: (draft: any, previous?: any) => any;
   xaiKeyInput: string;
   ytClientId: string;
   ytClientSecret: string;
@@ -1099,7 +1099,10 @@ export function AppSettingsTab({
             onSave={async (draft) => {
               setSavingVisualConfig(true);
               try {
-                const patch = visualDraftToApiPatch(draft, globalStudioVisual);
+                const patch = visualDraftToApiPatch(
+                  draft as any,
+                  globalStudioVisual
+                );
                 if (Object.keys(patch).length === 0) {
                   toast.success("Nenhuma alteração visual para salvar.");
                   return;
@@ -1127,7 +1130,7 @@ export function AppSettingsTab({
               setSavingProductionConfig(true);
               try {
                 const patch = productionDraftToApiPatch(
-                  draft,
+                  draft as any,
                   globalStudioProduction
                 );
                 if (Object.keys(patch).length === 0) {
