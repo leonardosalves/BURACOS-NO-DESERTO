@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   ArrowLeft,
   Bookmark,
@@ -9,9 +9,9 @@ import {
   Users,
   Video,
   Youtube,
-} from 'lucide-react';
-import type { CreatorApplyIdeaOptions } from './creatorEditorialImport';
-import { resolvePioneerCreatorSeed } from './creatorEditorialImport';
+} from "lucide-react";
+import type { CreatorApplyIdeaOptions } from "./creatorEditorialImport";
+import { resolvePioneerCreatorSeed } from "./creatorEditorialImport";
 
 export type TrendRadarAspects = {
   overview?: { title?: string; summary?: string; headline?: string };
@@ -44,15 +44,20 @@ export type TrendRadarAspects = {
   audience?: { title?: string; description?: string };
   contentPillars?: { title?: string; items?: string[] };
   monetization?: { title?: string; items?: string[] };
-  searchStrategy?: { title?: string; primaryQuery?: string; format?: string; tips?: string[] };
+  searchStrategy?: {
+    title?: string;
+    primaryQuery?: string;
+    format?: string;
+    tips?: string[];
+  };
 };
 
 export type TrendRadarSavedItem = {
   id: string;
-  type: 'niche' | 'scan';
+  type: "niche" | "scan";
   label?: string;
   savedAt?: string;
-  discoveryMode?: 'virgin' | 'chosen';
+  discoveryMode?: "virgin" | "chosen";
   nicheFilter?: string | null;
   format?: string;
   status?: string;
@@ -86,20 +91,22 @@ export type TrendRadarSavedItem = {
 
 function StatusBadge({ status }: { status?: string }) {
   const map: Record<string, string> = {
-    virgem: 'bg-violet-500/20 text-violet-200 border-violet-500/40',
-    pioneiro: 'bg-cyan-500/15 text-cyan-200 border-cyan-500/30',
-    emergente: 'bg-amber-500/10 text-amber-200 border-amber-500/25',
-    saturado: 'bg-zinc-600/20 text-zinc-400 border-zinc-600/40',
+    virgem: "bg-violet-500/20 text-violet-200 border-violet-500/40",
+    pioneiro: "bg-cyan-500/15 text-cyan-200 border-cyan-500/30",
+    emergente: "bg-amber-500/10 text-amber-200 border-amber-500/25",
+    saturado: "bg-zinc-600/20 text-zinc-400 border-zinc-600/40",
   };
   const labels: Record<string, string> = {
-    virgem: 'Virgem',
-    pioneiro: 'Pioneiro',
-    emergente: 'Emergente',
-    saturado: 'Saturado',
+    virgem: "Virgem",
+    pioneiro: "Pioneiro",
+    emergente: "Emergente",
+    saturado: "Saturado",
   };
-  const key = status && map[status] ? status : 'emergente';
+  const key = status && map[status] ? status : "emergente";
   return (
-    <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wide ${map[key]}`}>
+    <span
+      className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wide ${map[key]}`}
+    >
       {labels[key]}
     </span>
   );
@@ -108,37 +115,53 @@ function StatusBadge({ status }: { status?: string }) {
 function AspectCard({
   title,
   children,
-  className = '',
+  className = "",
 }: {
   title: string;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
-    <section className={`p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800/70 space-y-2 ${className}`}>
-      <h3 className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90">{title}</h3>
+    <section
+      className={`p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800/70 space-y-2 ${className}`}
+    >
+      <h3 className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90">
+        {title}
+      </h3>
       {children}
     </section>
   );
 }
 
-function MetricPill({ label, value }: { label: string; value: string | number }) {
+function MetricPill({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
   return (
     <div className="px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-center min-w-[88px]">
-      <p className="text-[8px] text-zinc-500 uppercase tracking-wide">{label}</p>
+      <p className="text-[8px] text-zinc-500 uppercase tracking-wide">
+        {label}
+      </p>
       <p className="text-sm font-bold text-zinc-100 tabular-nums">{value}</p>
     </div>
   );
 }
 
-type NicheDetailEntry = NonNullable<TrendRadarSavedItem['niches']>[number];
+type NicheDetailEntry = NonNullable<TrendRadarSavedItem["niches"]>[number];
 
 type NicheDetailViewProps = {
   item: TrendRadarSavedItem;
   onBack: () => void;
   onDelete?: (id: string) => void;
   onOpenNicheFromScan?: (entry: NicheDetailEntry) => void;
-  onApplyCreatorIdea?: (title: string, hook: string, options?: CreatorApplyIdeaOptions) => void;
+  onApplyCreatorIdea?: (
+    title: string,
+    hook: string,
+    options?: CreatorApplyIdeaOptions
+  ) => void;
 };
 
 export function TrendRadarNicheDetailView({
@@ -148,15 +171,23 @@ export function TrendRadarNicheDetailView({
   onOpenNicheFromScan,
   onApplyCreatorIdea,
 }: NicheDetailViewProps) {
-  if (item.type === 'scan' && item.niches?.length) {
+  if (item.type === "scan" && item.niches?.length) {
     return (
       <div className="space-y-4 animate-fade-in">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-zinc-200">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-zinc-200"
+          >
             <ArrowLeft className="w-4 h-4" /> Voltar
           </button>
           {onDelete && (
-            <button type="button" onClick={() => onDelete(item.id)} className="ml-auto text-[10px] text-zinc-500 hover:text-red-400">
+            <button
+              type="button"
+              onClick={() => onDelete(item.id)}
+              className="ml-auto text-[10px] text-zinc-500 hover:text-red-400"
+            >
               Excluir varredura
             </button>
           )}
@@ -164,20 +195,30 @@ export function TrendRadarNicheDetailView({
         <div className="glass-panel p-5 rounded-3xl border border-violet-500/15 space-y-2">
           <h2 className="text-lg font-bold text-zinc-100">{item.label}</h2>
           <p className="text-[10px] text-zinc-500">
-            {item.summary?.scanned ?? item.niches.length} analisados · {item.summary?.virginCount ?? 0} virgens ·{' '}
-            {item.savedAt ? new Date(item.savedAt).toLocaleString('pt-BR') : ''}
+            {item.summary?.scanned ?? item.niches.length} analisados ·{" "}
+            {item.summary?.virginCount ?? 0} virgens ·{" "}
+            {item.savedAt ? new Date(item.savedAt).toLocaleString("pt-BR") : ""}
           </p>
         </div>
         <ul className="space-y-2">
           {item.niches.map((n, i) => (
-            <li key={i} className="p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/60">
+            <li
+              key={i}
+              className="p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/60"
+            >
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
                   <StatusBadge status={n.status} />
-                  <p className="text-[11px] font-semibold text-zinc-100 mt-1">{n.label}</p>
-                  <p className="text-[9px] text-zinc-500">{n.aspects?.overview?.summary?.slice(0, 120)}…</p>
+                  <p className="text-[11px] font-semibold text-zinc-100 mt-1">
+                    {n.label}
+                  </p>
+                  <p className="text-[9px] text-zinc-500">
+                    {n.aspects?.overview?.summary?.slice(0, 120)}…
+                  </p>
                 </div>
-                <span className="text-[9px] font-bold text-violet-300">{Number(n.pioneerScore || 0).toFixed(0)} pts</span>
+                <span className="text-[9px] font-bold text-violet-300">
+                  {Number(n.pioneerScore || 0).toFixed(0)} pts
+                </span>
               </div>
               {onOpenNicheFromScan && (
                 <button
@@ -204,20 +245,39 @@ export function TrendRadarNicheDetailView({
   const openCreator = () => {
     if (!onApplyCreatorIdea) return;
     const pioneerMeta = {
-      macroNiche: String(raw.macroNiche || item.macroNiche || ''),
-      angle: String(raw.angle || ''),
-      formatPattern: String(raw.formatPattern || ''),
-      youtubeSearchQuery: String(raw.youtubeSearchQuery || ''),
+      macroNiche: String(raw.macroNiche || item.macroNiche || ""),
+      angle: String(raw.angle || aspects?.specificAngle || ""),
+      formatPattern: String(raw.formatPattern || ""),
+      youtubeSearchQuery: String(raw.youtubeSearchQuery || ""),
+      // Dados ricos do resultado de pesquisa
+      firstVideoIdea: String(aspects?.firstVideo?.idea || ""),
+      firstVideoHook: String(aspects?.firstVideo?.hook || ""),
+      whyPioneer: String(pioneer?.whyPioneer || ""),
+      demandAnalysis: String(
+        aspects?.demandAnalysis || raw.demandAnalysis || ""
+      ),
+      specificAngle: String(
+        aspects?.specificAngle || raw.specificAngle || raw.angle || ""
+      ),
+      contentPillars: Array.isArray(aspects?.contentPillars)
+        ? aspects.contentPillars
+        : [],
+      competitionLevel: String(competition?.level || ""),
+      searchQuery: String(
+        aspects?.searchQuery || raw.youtubeSearchQuery || item.label || ""
+      ),
+      nicheLabel: String(item.label || ""),
     };
     const seed = resolvePioneerCreatorSeed(
-      String(aspects?.firstVideo?.idea || item.label || ''),
-      String(aspects?.firstVideo?.hook || aspects?.firstVideo?.idea || ''),
+      String(aspects?.firstVideo?.idea || item.label || ""),
+      String(aspects?.firstVideo?.hook || aspects?.firstVideo?.idea || ""),
       pioneerMeta,
-      String(pioneer?.whyPioneer || ''),
+      String(pioneer?.whyPioneer || "")
     );
     onApplyCreatorIdea(seed.title, seed.hook, {
-      format: (item.format === 'LONGO' ? 'LONGO' : 'SHORTS') as 'LONGO' | 'SHORTS',
-      mechanic: 'pioneer-niche',
+      format: (item.format === "LONGO" ? "LONGO" : "SHORTS") as
+        "LONGO" | "SHORTS",
+      mechanic: "pioneer-niche",
       whyWorks: pioneer?.whyPioneer,
       pioneerMeta,
     });
@@ -235,7 +295,8 @@ export function TrendRadarNicheDetailView({
           Voltar
         </button>
         <span className="text-[9px] text-zinc-600">
-          Salvo em {item.savedAt ? new Date(item.savedAt).toLocaleString('pt-BR') : '—'}
+          Salvo em{" "}
+          {item.savedAt ? new Date(item.savedAt).toLocaleString("pt-BR") : "—"}
         </span>
         <div className="ml-auto flex items-center gap-2">
           {onApplyCreatorIdea && (
@@ -266,68 +327,121 @@ export function TrendRadarNicheDetailView({
             <div className="flex items-center gap-2 flex-wrap">
               <Compass className="w-5 h-5 text-violet-300 shrink-0" />
               <span className="text-[9px] font-bold uppercase tracking-wide text-amber-400/90">
-                {aspects?.macroNiche?.value || item.macroNiche || 'Macro-nicho'}
+                {aspects?.macroNiche?.value || item.macroNiche || "Macro-nicho"}
               </span>
               <StatusBadge status={detail?.status || item.status} />
               <span className="text-[9px] text-zinc-500">
-                {item.discoveryMode === 'chosen' ? `Modo: nicho escolhido${item.nicheFilter ? ` (${item.nicheFilter})` : ''}` : 'Modo: descoberta virgem'}
+                {item.discoveryMode === "chosen"
+                  ? `Modo: nicho escolhido${item.nicheFilter ? ` (${item.nicheFilter})` : ""}`
+                  : "Modo: descoberta virgem"}
               </span>
             </div>
             <h2 className="text-xl font-extrabold text-zinc-50 leading-snug">
-              {detail?.label || item.label || 'Nicho pioneiro'}
+              {detail?.label || item.label || "Nicho pioneiro"}
             </h2>
             {aspects?.overview?.summary && (
-              <p className="text-sm text-zinc-400 leading-relaxed max-w-3xl">{aspects.overview.summary}</p>
+              <p className="text-sm text-zinc-400 leading-relaxed max-w-3xl">
+                {aspects.overview.summary}
+              </p>
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
-            <MetricPill label="Pioneiro" value={`${Number(detail?.pioneerScore ?? item.pioneerScore ?? 0).toFixed(0)} pts`} />
-            <MetricPill label="Gap" value={competition?.gapScore ?? '—'} />
-            <MetricPill label="Saturação" value={competition?.saturationPct != null ? `${competition.saturationPct}%` : '—'} />
+            <MetricPill
+              label="Pioneiro"
+              value={`${Number(detail?.pioneerScore ?? item.pioneerScore ?? 0).toFixed(0)} pts`}
+            />
+            <MetricPill label="Gap" value={competition?.gapScore ?? "—"} />
+            <MetricPill
+              label="Saturação"
+              value={
+                competition?.saturationPct != null
+                  ? `${competition.saturationPct}%`
+                  : "—"
+              }
+            />
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <AspectCard title={aspects?.angle?.title || 'Ângulo específico'}>
-          <p className="text-sm text-zinc-200">{aspects?.angle?.value || '—'}</p>
-          <p className="text-[10px] text-zinc-500">{aspects?.angle?.description}</p>
+        <AspectCard title={aspects?.angle?.title || "Ângulo específico"}>
+          <p className="text-sm text-zinc-200">
+            {aspects?.angle?.value || "—"}
+          </p>
+          <p className="text-[10px] text-zinc-500">
+            {aspects?.angle?.description}
+          </p>
         </AspectCard>
-        <AspectCard title={aspects?.formatPattern?.title || 'Padrão de vídeo'}>
-          <p className="text-sm text-zinc-200">{aspects?.formatPattern?.value || '—'}</p>
-          <p className="text-[10px] text-zinc-500">{aspects?.formatPattern?.description}</p>
+        <AspectCard title={aspects?.formatPattern?.title || "Padrão de vídeo"}>
+          <p className="text-sm text-zinc-200">
+            {aspects?.formatPattern?.value || "—"}
+          </p>
+          <p className="text-[10px] text-zinc-500">
+            {aspects?.formatPattern?.description}
+          </p>
         </AspectCard>
-        <AspectCard title={aspects?.audience?.title || 'Público-alvo'} className="md:col-span-2">
+        <AspectCard
+          title={aspects?.audience?.title || "Público-alvo"}
+          className="md:col-span-2"
+        >
           <p className="text-sm text-zinc-300 leading-relaxed flex items-start gap-2">
             <Users className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-            {aspects?.audience?.description || '—'}
+            {aspects?.audience?.description || "—"}
           </p>
         </AspectCard>
-        <AspectCard title={aspects?.pioneerAnalysis?.title || 'Análise pioneira'}>
-          <p className="text-sm text-zinc-300 leading-relaxed">{pioneer?.whyPioneer || '—'}</p>
+        <AspectCard
+          title={aspects?.pioneerAnalysis?.title || "Análise pioneira"}
+        >
+          <p className="text-sm text-zinc-300 leading-relaxed">
+            {pioneer?.whyPioneer || "—"}
+          </p>
           <p className="text-[10px] text-zinc-500 mt-2">
-            Interesse: {pioneer?.interestScore ?? '—'} · Score: {pioneer?.pioneerScore ?? '—'}
+            Interesse: {pioneer?.interestScore ?? "—"} · Score:{" "}
+            {pioneer?.pioneerScore ?? "—"}
           </p>
         </AspectCard>
-        <AspectCard title={aspects?.firstVideo?.title || 'Primeiro vídeo'}>
-          <p className="text-sm font-semibold text-cyan-300">{aspects?.firstVideo?.idea || '—'}</p>
+        <AspectCard title={aspects?.firstVideo?.title || "Primeiro vídeo"}>
+          <p className="text-sm font-semibold text-cyan-300">
+            {aspects?.firstVideo?.idea || "—"}
+          </p>
           {aspects?.firstVideo?.hook && (
-            <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">{aspects.firstVideo.hook}</p>
+            <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">
+              {aspects.firstVideo.hook}
+            </p>
           )}
         </AspectCard>
       </div>
 
-      <AspectCard title={aspects?.competition?.title || 'Concorrência no YouTube'}>
+      <AspectCard
+        title={aspects?.competition?.title || "Concorrência no YouTube"}
+      >
         <div className="flex flex-wrap gap-2 mb-3">
-          <MetricPill label="Canais dedicados" value={competition?.dedicatedChannels ?? 0} />
-          <MetricPill label="Canais (busca)" value={competition?.channelCount ?? 0} />
+          <MetricPill
+            label="Canais dedicados"
+            value={competition?.dedicatedChannels ?? 0}
+          />
+          <MetricPill
+            label="Canais (busca)"
+            value={competition?.channelCount ?? 0}
+          />
           <MetricPill label="Vídeos" value={competition?.videoCount ?? 0} />
-          <MetricPill label="Views médias" value={(competition?.avgTopViews ?? 0).toLocaleString('pt-BR')} />
-          <MetricPill label="Macro sat." value={competition?.macroSaturationPct != null ? `${competition.macroSaturationPct}%` : '—'} />
+          <MetricPill
+            label="Views médias"
+            value={(competition?.avgTopViews ?? 0).toLocaleString("pt-BR")}
+          />
+          <MetricPill
+            label="Macro sat."
+            value={
+              competition?.macroSaturationPct != null
+                ? `${competition.macroSaturationPct}%`
+                : "—"
+            }
+          />
         </div>
         {competition?.searchQuery && (
           <p className="text-[10px] text-zinc-500 mb-3">
-            Busca: <code className="text-zinc-400">{competition.searchQuery}</code>
+            Busca:{" "}
+            <code className="text-zinc-400">{competition.searchQuery}</code>
           </p>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -337,10 +451,17 @@ export function TrendRadarNicheDetailView({
             </p>
             <ul className="space-y-1">
               {(competition?.sampleChannels || []).slice(0, 5).map((ch, i) => (
-                <li key={`${ch.title}-${i}`} className="text-[10px] text-zinc-400 truncate">{ch.title || '—'}</li>
+                <li
+                  key={`${ch.title}-${i}`}
+                  className="text-[10px] text-zinc-400 truncate"
+                >
+                  {ch.title || "—"}
+                </li>
               ))}
               {!(competition?.sampleChannels || []).length && (
-                <li className="text-[10px] text-zinc-600 italic">Nenhum canal amostrado</li>
+                <li className="text-[10px] text-zinc-600 italic">
+                  Nenhum canal amostrado
+                </li>
               )}
             </ul>
           </div>
@@ -350,13 +471,21 @@ export function TrendRadarNicheDetailView({
             </p>
             <ul className="space-y-1">
               {(competition?.sampleVideos || []).slice(0, 5).map((v, i) => (
-                <li key={`${v.videoId || v.title}-${i}`} className="text-[10px] text-zinc-400">
-                  <span className="line-clamp-1">{v.title || '—'}</span>
-                  <span className="text-zinc-600"> · {(v.views ?? 0).toLocaleString('pt-BR')} views</span>
+                <li
+                  key={`${v.videoId || v.title}-${i}`}
+                  className="text-[10px] text-zinc-400"
+                >
+                  <span className="line-clamp-1">{v.title || "—"}</span>
+                  <span className="text-zinc-600">
+                    {" "}
+                    · {(v.views ?? 0).toLocaleString("pt-BR")} views
+                  </span>
                 </li>
               ))}
               {!(competition?.sampleVideos || []).length && (
-                <li className="text-[10px] text-zinc-600 italic">Nenhum vídeo amostrado</li>
+                <li className="text-[10px] text-zinc-600 italic">
+                  Nenhum vídeo amostrado
+                </li>
               )}
             </ul>
           </div>
@@ -364,7 +493,9 @@ export function TrendRadarNicheDetailView({
       </AspectCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <AspectCard title={aspects?.contentPillars?.title || 'Pilares de conteúdo'}>
+        <AspectCard
+          title={aspects?.contentPillars?.title || "Pilares de conteúdo"}
+        >
           <ul className="space-y-1.5">
             {(aspects?.contentPillars?.items || []).map((line, i) => (
               <li key={i} className="text-[11px] text-zinc-300 flex gap-2">
@@ -374,24 +505,33 @@ export function TrendRadarNicheDetailView({
             ))}
           </ul>
         </AspectCard>
-        <AspectCard title={aspects?.monetization?.title || 'Monetização'}>
+        <AspectCard title={aspects?.monetization?.title || "Monetização"}>
           <ul className="space-y-1.5">
             {(aspects?.monetization?.items || []).map((line, i) => (
-              <li key={i} className="text-[11px] text-zinc-400 leading-relaxed">{line}</li>
+              <li key={i} className="text-[11px] text-zinc-400 leading-relaxed">
+                {line}
+              </li>
             ))}
           </ul>
         </AspectCard>
-        <AspectCard title={aspects?.risks?.title || 'Riscos'}>
+        <AspectCard title={aspects?.risks?.title || "Riscos"}>
           <ul className="space-y-1">
             {(aspects?.risks?.items || []).map((line, i) => (
-              <li key={i} className="text-[11px] text-amber-400/90">{line}</li>
+              <li key={i} className="text-[11px] text-amber-400/90">
+                {line}
+              </li>
             ))}
           </ul>
         </AspectCard>
-        <AspectCard title={aspects?.searchStrategy?.title || 'Estratégia de busca'}>
+        <AspectCard
+          title={aspects?.searchStrategy?.title || "Estratégia de busca"}
+        >
           {aspects?.searchStrategy?.primaryQuery && (
             <p className="text-[11px] text-zinc-300 mb-2">
-              Query: <code className="text-violet-300">{aspects.searchStrategy.primaryQuery}</code>
+              Query:{" "}
+              <code className="text-violet-300">
+                {aspects.searchStrategy.primaryQuery}
+              </code>
             </p>
           )}
           <ul className="space-y-1">
@@ -438,7 +578,9 @@ export function TrendRadarSavedList({
         </p>
       </div>
       {items.length === 0 ? (
-        <p className="text-[11px] text-zinc-500 italic p-4">Nenhum resultado salvo ainda. Rode uma varredura e clique em Salvar.</p>
+        <p className="text-[11px] text-zinc-500 italic p-4">
+          Nenhum resultado salvo ainda. Rode uma varredura e clique em Salvar.
+        </p>
       ) : (
         <ul className="space-y-2">
           {items.map((item) => (
@@ -450,14 +592,21 @@ export function TrendRadarSavedList({
                 <div className="flex items-center gap-2 flex-wrap">
                   <StatusBadge status={item.status} />
                   <span className="text-[8px] text-zinc-600 uppercase">
-                    {item.discoveryMode === 'chosen' ? 'Escolhido' : 'Virgem'} · {item.type === 'scan' ? 'Varredura' : 'Nicho'}
+                    {item.discoveryMode === "chosen" ? "Escolhido" : "Virgem"} ·{" "}
+                    {item.type === "scan" ? "Varredura" : "Nicho"}
                   </span>
                 </div>
-                <p className="text-[11px] font-semibold text-zinc-100 line-clamp-2">{item.label}</p>
+                <p className="text-[11px] font-semibold text-zinc-100 line-clamp-2">
+                  {item.label}
+                </p>
                 <p className="text-[9px] text-zinc-500">
-                  {item.macroNiche ? `${item.macroNiche} · ` : ''}
-                  {item.savedAt ? new Date(item.savedAt).toLocaleString('pt-BR') : ''}
-                  {item.pioneerScore != null ? ` · ${item.pioneerScore} pts` : ''}
+                  {item.macroNiche ? `${item.macroNiche} · ` : ""}
+                  {item.savedAt
+                    ? new Date(item.savedAt).toLocaleString("pt-BR")
+                    : ""}
+                  {item.pioneerScore != null
+                    ? ` · ${item.pioneerScore} pts`
+                    : ""}
                 </p>
               </div>
               <div className="flex flex-col gap-1 shrink-0">
