@@ -14,12 +14,12 @@ Adaptação leve do framework [HKUDS/VideoAgent](https://github.com/HKUDS/VideoA
 
 ## O que o Lumiera adapta
 
-| VideoAgent (original) | Lumiera (nosso) |
-|----------------------|-----------------|
-| `intents.yml` → CosyVoice, Whisper… | `LUMIERA_INTENT_MAP` → Creator, NotebookLM, render, upload |
-| Agent graph (Claude) | `planVideoAgentWithLlm` + registry fixo |
-| Storyboard Agent | `storyboardBeats` no plano + Creator roteiro |
-| Execução automática de tools | Botões para abrir abas (`creator`, `youtube-studio`, `upload`…) |
+| VideoAgent (original)               | Lumiera (nosso)                                                 |
+| ----------------------------------- | --------------------------------------------------------------- |
+| `intents.yml` → CosyVoice, Whisper… | `LUMIERA_INTENT_MAP` → Creator, NotebookLM, render, upload      |
+| Agent graph (Claude)                | `planVideoAgentWithLlm` + registry fixo                         |
+| Storyboard Agent                    | `storyboardBeats` no plano + Creator roteiro                    |
+| Execução automática de tools        | Botões para abrir abas (`creator`, `youtube-studio`, `upload`…) |
 
 ## Intents mapeados
 
@@ -59,7 +59,43 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 
 ## Planos gerados (VideoAgent)
 
+### 2026-07-05 19:33 — Crie um vídeo de 50 segundos no formato 9:16 focado em mistério e curiosidade hi…
+
+- **Feasibility:** Feasible
+- **Intents:** Short viral, Comentário / narração
+- **Implícitos:** Enriquecer com fatos (NotebookLM)
+- **Chain:** Creator — ideias → Creator — narração → Creator — roteiro + cenas → Overlays / HyperFrames → Sincronizar beats → Render Short 9:16 → Metadados YouTube → Upload YouTube
+- **Reasoning:** Plano Lumiera com 8 etapas derivadas dos intents VideoAgent: Short viral, Comentário / narração.
+
+#### Storyboard beats
+
+- Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
+- Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
+- Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
+- Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
+- Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
+
+### 2026-07-02 21:19 — Crie um vídeo documental de alta energia sobre a transição da aviação convencion…
+
+- **Feasibility:** Feasible
+- **Intents:** Comentário / narração
+- **Implícitos:** —
+- **Chain:** Creator — narração → Creator — roteiro + cenas → Overlays / HyperFrames → Sincronizar beats → Render Short 9:16
+- **Reasoning:** Plano Lumiera com 5 etapas derivadas dos intents VideoAgent: Comentário / narração.
+
+#### Storyboard beats
+
+- Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
+- Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
+- Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
+- Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
+- Beat 5: Pattern interrupt ~16s — fato visual concreto · _Transição com open loop_
+- Beat 6: Pattern interrupt ~18s — fato visual concreto · _Transição com open loop_
+- Beat 7: Pattern interrupt ~20s — fato visual concreto · _Transição com open loop_
+- Beat 8: CTA — pergunta específica ou parte 2 · _Transição com open loop_
+
 ### 2026-07-01 06:41 — Short viral sobre engenharia antiga — gancho forte e 5 fatos surpreendentes
+
 - **Feasibility:** Feasible
 - **Intents:** Short viral
 - **Implícitos:** Enriquecer com fatos (NotebookLM)
@@ -67,14 +103,15 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 - **Reasoning:** Plano Lumiera com 7 etapas derivadas dos intents VideoAgent: Short viral.
 
 #### Storyboard beats
+
 - Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
 - Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
 - Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
 - Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
 - Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
-
 
 ### 2026-07-01 06:40 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+
 - **Feasibility:** Feasible
 - **Intents:** Pesquisa concorrentes
 - **Implícitos:** Enriquecer com fatos (NotebookLM)
@@ -82,14 +119,15 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 - **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
 
 #### Storyboard beats
+
 - Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
 - Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
 - Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
 - Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
 - Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
-
 
 ### 2026-07-01 06:39 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+
 - **Feasibility:** Feasible
 - **Intents:** Pesquisa concorrentes
 - **Implícitos:** Enriquecer com fatos (NotebookLM)
@@ -97,14 +135,15 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 - **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
 
 #### Storyboard beats
+
 - Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
 - Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
 - Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
 - Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
 - Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
-
 
 ### 2026-07-01 06:39 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+
 - **Feasibility:** Feasible
 - **Intents:** Pesquisa concorrentes
 - **Implícitos:** Enriquecer com fatos (NotebookLM)
@@ -112,14 +151,15 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 - **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
 
 #### Storyboard beats
+
 - Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
 - Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
 - Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
 - Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
 - Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
-
 
 ### 2026-07-01 06:39 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+
 - **Feasibility:** Feasible
 - **Intents:** Pesquisa concorrentes
 - **Implícitos:** Enriquecer com fatos (NotebookLM)
@@ -127,14 +167,15 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 - **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
 
 #### Storyboard beats
+
 - Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
 - Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
 - Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
 - Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
 - Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
-
 
 ### 2026-07-01 06:37 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+
 - **Feasibility:** Feasible
 - **Intents:** Pesquisa concorrentes
 - **Implícitos:** Enriquecer com fatos (NotebookLM)
@@ -142,14 +183,15 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 - **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
 
 #### Storyboard beats
+
 - Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
 - Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
 - Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
 - Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
 - Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
-
 
 ### 2026-07-01 06:37 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+
 - **Feasibility:** Feasible
 - **Intents:** Pesquisa concorrentes
 - **Implícitos:** Enriquecer com fatos (NotebookLM)
@@ -157,14 +199,15 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 - **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
 
 #### Storyboard beats
+
 - Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
 - Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
 - Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
 - Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
 - Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
-
 
 ### 2026-07-01 06:37 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+
 - **Feasibility:** Feasible
 - **Intents:** Pesquisa concorrentes
 - **Implícitos:** Enriquecer com fatos (NotebookLM)
@@ -172,14 +215,15 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 - **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
 
 #### Storyboard beats
+
 - Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
 - Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
 - Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
 - Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
 - Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
-
 
 ### 2026-07-01 06:29 — Short viral sobre engenharia antiga
+
 - **Feasibility:** Feasible
 - **Intents:** Short viral
 - **Implícitos:** Enriquecer com fatos (NotebookLM)
@@ -187,6 +231,7 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 - **Reasoning:** Plano Lumiera com 7 etapas derivadas dos intents VideoAgent: Short viral.
 
 #### Storyboard beats
+
 - Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
 - Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
 - Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_

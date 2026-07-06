@@ -33,6 +33,7 @@
 - [[skills/improve-codebase-architecture|improve codebase architecture]] — doc: [[skills/improve-codebase-architecture/SKILL]]
 - [[skills/loop-me|loop me]] — doc: [[skills/loop-me/SKILL]]
 - [[skills/lumiera-ops|lumiera ops]] — doc: [[skills/lumiera-ops/SKILL]]
+- [[skills/lumiera-security-review|lumiera security review]] — doc: [[skills/lumiera-security-review/SKILL]]
 - [[skills/lumiera-seedance-directing|lumiera seedance directing]] — doc: [[skills/lumiera-seedance-directing/SKILL]]
 - [[skills/markdown-converter|markdown converter]] — doc: [[skills/markdown-converter/SKILL]]
 - [[skills/mcp-builder|mcp builder]] — doc: [[skills/mcp-builder/SKILL]]
@@ -91,4 +92,4 @@
 ## Por que vários arquivos SKILL?
 
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-05T16:37:13.610Z
+atualizado: 2026-07-05T22:00:43.195Z
