@@ -11,7 +11,7 @@ export function describeFetchError(err: unknown, context = "operação"): string
   return raw.trim() || `Falha em ${context}.`;
 }
 
-export async function pingBackendHealth(timeoutMs = 4000): Promise<boolean> {
+export async function pingBackendHealth(timeoutMs = 15000): Promise<boolean> {
   const ctrl = new AbortController();
   const timer = window.setTimeout(() => ctrl.abort(), timeoutMs);
   try {
