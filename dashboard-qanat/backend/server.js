@@ -565,12 +565,59 @@ const OPENROUTER_FREE_MODELS = [
 
 const app = express();
 
+// --- Crash log persistente (sobrevive a restarts) ---
+const CRASH_LOG_PATH = path.join(
+  WORKSPACE_DIR,
+  ".lumiera-logs",
+  "backend-crashes.log"
+);
+function appendCrashLog(kind, err) {
+  try {
+    const ts = new Date().toISOString();
+    const stack = err instanceof Error ? err.stack : String(err ?? "(unknown)");
+    const line = `[${ts}] [${kind}] ${stack}\n`;
+    fs.appendFileSync(CRASH_LOG_PATH, line, "utf8");
+  } catch (_) {
+    /* melhor não crashar o crash handler */
+  }
+}
+
 process.on("uncaughtException", (err) => {
   console.error("[Lumiera] uncaughtException (processo mantido):", err);
+  appendCrashLog("uncaughtException", err);
 });
 process.on("unhandledRejection", (reason) => {
   console.error("[Lumiera] unhandledRejection (processo mantido):", reason);
+  appendCrashLog("unhandledRejection", reason);
 });
+
+/**
+ * Wrapper para rotas async — captura rejeições e envia 500 em vez de
+ * deixar a promise escapar como unhandledRejection.
+ * Uso: app.get("/rota", asyncHandler(async (req, res) => { ... }))
+ */
+function asyncHandler(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch((err) => {
+      console.error(
+        `[asyncHandler] Erro em ${req.method} ${req.originalUrl}:`,
+        err
+      );
+      appendCrashLog(
+        "asyncHandler",
+        err instanceof Error
+          ? err
+          : new Error(`${req.method} ${req.originalUrl}: ${err}`)
+      );
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: err instanceof Error ? err.message : String(err),
+          route: `${req.method} ${req.originalUrl}`,
+        });
+      }
+    });
+  };
+}
 
 // Health ultra-leve — registrado ANTES de middlewares pesados (watchdog nao mata processo ocupado)
 app.get("/api/health", (_req, res) => {
@@ -1476,63 +1523,66 @@ function youtubeApiErrorPayload(err, fallback = "Erro na API do YouTube") {
 }
 
 // GET /api/upload/status
-app.get("/api/upload/status", async (req, res) => {
-  const ytSecrets = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
-  const ytToken = path.join(WORKSPACE_DIR, "youtube_token.json");
-  const igSecrets = path.join(WORKSPACE_DIR, "instagram_secrets.json");
-  const ttCookies = path.join(WORKSPACE_DIR, "tiktok_cookies.json");
-  const kwCookies = path.join(WORKSPACE_DIR, "kwai_cookies.json");
+app.get(
+  "/api/upload/status",
+  asyncHandler(async (req, res) => {
+    const ytSecrets = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
+    const ytToken = path.join(WORKSPACE_DIR, "youtube_token.json");
+    const igSecrets = path.join(WORKSPACE_DIR, "instagram_secrets.json");
+    const ttCookies = path.join(WORKSPACE_DIR, "tiktok_cookies.json");
+    const kwCookies = path.join(WORKSPACE_DIR, "kwai_cookies.json");
 
-  let yt_client_id = null;
-  if (fs.existsSync(ytSecrets)) {
-    try {
-      const data = JSON.parse(fs.readFileSync(ytSecrets, "utf8"));
-      yt_client_id = data.client_id;
-    } catch (e) {}
-  }
-
-  let ig_account_id = null;
-  if (fs.existsSync(igSecrets)) {
-    try {
-      const data = JSON.parse(fs.readFileSync(igSecrets, "utf8"));
-      ig_account_id = data.instagram_business_account_id;
-    } catch (e) {}
-  }
-
-  const canvaStatus = getCanvaConnectionStatus(WORKSPACE_DIR);
-  let youtubeScopes = { ready: false, missingLabels: [] };
-  if (fs.existsSync(ytSecrets) && fs.existsSync(ytToken)) {
-    try {
-      youtubeScopes = await getYoutubeTokenScopes(WORKSPACE_DIR);
-    } catch (e) {
-      youtubeScopes = { ready: false, error: e.message, missingLabels: [] };
+    let yt_client_id = null;
+    if (fs.existsSync(ytSecrets)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(ytSecrets, "utf8"));
+        yt_client_id = data.client_id;
+      } catch (e) {}
     }
-  }
 
-  res.json({
-    youtube: {
-      connected: fs.existsSync(ytSecrets) && fs.existsSync(ytToken),
-      has_secrets: fs.existsSync(ytSecrets),
-      client_id: yt_client_id,
-      titleTestReady: youtubeScopes.ready === true,
-      missingScopes: youtubeScopes.missingLabels || [],
-    },
-    canva: canvaStatus,
-    instagram: {
-      connected:
-        fs.existsSync(igSecrets) ||
-        getInstagramConnectionStatus(WORKSPACE_DIR).connected,
-      account_id: ig_account_id,
-      oauthReady: getInstagramConnectionStatus(WORKSPACE_DIR).oauthReady,
-    },
-    tiktok: {
-      connected: fs.existsSync(ttCookies),
-    },
-    kwai: {
-      connected: fs.existsSync(kwCookies),
-    },
-  });
-});
+    let ig_account_id = null;
+    if (fs.existsSync(igSecrets)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(igSecrets, "utf8"));
+        ig_account_id = data.instagram_business_account_id;
+      } catch (e) {}
+    }
+
+    const canvaStatus = getCanvaConnectionStatus(WORKSPACE_DIR);
+    let youtubeScopes = { ready: false, missingLabels: [] };
+    if (fs.existsSync(ytSecrets) && fs.existsSync(ytToken)) {
+      try {
+        youtubeScopes = await getYoutubeTokenScopes(WORKSPACE_DIR);
+      } catch (e) {
+        youtubeScopes = { ready: false, error: e.message, missingLabels: [] };
+      }
+    }
+
+    res.json({
+      youtube: {
+        connected: fs.existsSync(ytSecrets) && fs.existsSync(ytToken),
+        has_secrets: fs.existsSync(ytSecrets),
+        client_id: yt_client_id,
+        titleTestReady: youtubeScopes.ready === true,
+        missingScopes: youtubeScopes.missingLabels || [],
+      },
+      canva: canvaStatus,
+      instagram: {
+        connected:
+          fs.existsSync(igSecrets) ||
+          getInstagramConnectionStatus(WORKSPACE_DIR).connected,
+        account_id: ig_account_id,
+        oauthReady: getInstagramConnectionStatus(WORKSPACE_DIR).oauthReady,
+      },
+      tiktok: {
+        connected: fs.existsSync(ttCookies),
+      },
+      kwai: {
+        connected: fs.existsSync(kwCookies),
+      },
+    });
+  })
+);
 
 // POST /api/canva/save-credentials
 app.post("/api/canva/save-credentials", (req, res) => {
@@ -1573,17 +1623,24 @@ app.get("/api/canva/auth-url", (req, res) => {
 });
 
 // GET /api/canva/callback
-app.get("/api/canva/callback", async (req, res) => {
-  const { code, state, error, error_description: errorDescription } = req.query;
-  if (error) {
-    return res.status(400).send(`Erro Canva: ${errorDescription || error}`);
-  }
-  if (!code || !state) {
-    return res.status(400).send("Código ou state ausente.");
-  }
-  try {
-    await exchangeCanvaAuthCode(WORKSPACE_DIR, { code, state });
-    res.send(`
+app.get(
+  "/api/canva/callback",
+  asyncHandler(async (req, res) => {
+    const {
+      code,
+      state,
+      error,
+      error_description: errorDescription,
+    } = req.query;
+    if (error) {
+      return res.status(400).send(`Erro Canva: ${errorDescription || error}`);
+    }
+    if (!code || !state) {
+      return res.status(400).send("Código ou state ausente.");
+    }
+    try {
+      await exchangeCanvaAuthCode(WORKSPACE_DIR, { code, state });
+      res.send(`
       <html>
         <body style="background:#09090b; color:#fff; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh;">
           <div style="text-align:center; border: 1px solid #27272a; padding: 2rem; border-radius: 1.5rem; background: #0c0c0e;">
@@ -1594,10 +1651,11 @@ app.get("/api/canva/callback", async (req, res) => {
         </body>
       </html>
     `);
-  } catch (err) {
-    res.status(500).send(`Erro: ${err.message}`);
-  }
-});
+    } catch (err) {
+      res.status(500).send(`Erro: ${err.message}`);
+    }
+  })
+);
 
 // GET /api/upload/youtube/scopes-status
 app.get("/api/upload/youtube/scopes-status", async (req, res) => {
@@ -1648,45 +1706,51 @@ app.get("/api/upload/youtube/auth-url", (req, res) => {
 });
 
 // GET /api/upload/youtube/callback
-app.get("/api/upload/youtube/callback", async (req, res) => {
-  const { code } = req.query;
-  if (!code) {
-    return res.status(400).send("Código não fornecido.");
-  }
-  const secretsPath = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
-  if (!fs.existsSync(secretsPath)) {
-    return res.status(400).send("Credenciais do YouTube ausentes.");
-  }
-  try {
-    const secrets = JSON.parse(fs.readFileSync(secretsPath, "utf8"));
-    const redirectUri = LUMIERA_YOUTUBE_CALLBACK;
-    const response = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        code,
-        client_id: secrets.client_id,
-        client_secret: secrets.client_secret,
-        redirect_uri: redirectUri,
-        grant_type: "authorization_code",
-      }),
-    });
-    const tokens = await response.json();
-    if (tokens.error) {
-      return res
-        .status(400)
-        .send(
-          `Erro ao obter tokens: ${tokens.error_description || tokens.error}`
-        );
+app.get(
+  "/api/upload/youtube/callback",
+  asyncHandler(async (req, res) => {
+    const { code } = req.query;
+    if (!code) {
+      return res.status(400).send("Código não fornecido.");
     }
-    const tokenPath = path.join(WORKSPACE_DIR, "youtube_token.json");
-    const tokenPayload = {
-      ...tokens,
-      linked_at: new Date().toISOString(),
-      scopes_requested: getYoutubeScopeString(),
-    };
-    fs.writeFileSync(tokenPath, JSON.stringify(tokenPayload, null, 2), "utf8");
-    res.send(`
+    const secretsPath = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
+    if (!fs.existsSync(secretsPath)) {
+      return res.status(400).send("Credenciais do YouTube ausentes.");
+    }
+    try {
+      const secrets = JSON.parse(fs.readFileSync(secretsPath, "utf8"));
+      const redirectUri = LUMIERA_YOUTUBE_CALLBACK;
+      const response = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: secrets.client_id,
+          client_secret: secrets.client_secret,
+          redirect_uri: redirectUri,
+          grant_type: "authorization_code",
+        }),
+      });
+      const tokens = await response.json();
+      if (tokens.error) {
+        return res
+          .status(400)
+          .send(
+            `Erro ao obter tokens: ${tokens.error_description || tokens.error}`
+          );
+      }
+      const tokenPath = path.join(WORKSPACE_DIR, "youtube_token.json");
+      const tokenPayload = {
+        ...tokens,
+        linked_at: new Date().toISOString(),
+        scopes_requested: getYoutubeScopeString(),
+      };
+      fs.writeFileSync(
+        tokenPath,
+        JSON.stringify(tokenPayload, null, 2),
+        "utf8"
+      );
+      res.send(`
       <html>
         <body style="background:#09090b; color:#fff; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh;">
           <div style="text-align:center; border: 1px solid #27272a; padding: 2rem; border-radius: 1.5rem; background: #0c0c0e;">
@@ -1697,10 +1761,11 @@ app.get("/api/upload/youtube/callback", async (req, res) => {
         </body>
       </html>
     `);
-  } catch (err) {
-    res.status(500).send(`Erro: ${err.message}`);
-  }
-});
+    } catch (err) {
+      res.status(500).send(`Erro: ${err.message}`);
+    }
+  })
+);
 
 // POST /api/upload/launch-login
 app.post("/api/upload/launch-login", (req, res) => {
@@ -4052,211 +4117,227 @@ function validateBgmReadyForMix(projDir, config, storyboard) {
 
 // API: Mix soundtrack (runs mix_bgm.py)
 
-app.post("/api/music/mix", async (req, res) => {
-  const projDir = getProjectDir(req);
+app.post(
+  "/api/music/mix",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
 
-  ensureFileExists("mix_bgm.py", projDir);
+    ensureFileExists("mix_bgm.py", projDir);
 
-  const scriptPath = path.join(projDir, "mix_bgm.py");
+    const scriptPath = path.join(projDir, "mix_bgm.py");
 
-  if (!fs.existsSync(scriptPath)) {
-    return res.status(404).json({ error: "mix_bgm.py não encontrado" });
-  }
-
-  try {
-    const prepLogs = await prepareBgmBeforeMix(projDir);
-    const config = readProjectJson(projDir, "config_qanat.json", {});
-    const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    const validationError = validateBgmReadyForMix(projDir, config, storyboard);
-    if (validationError) {
-      return res.status(400).json({
-        error: validationError,
-        prepLogs,
-      });
+    if (!fs.existsSync(scriptPath)) {
+      return res.status(404).json({ error: "mix_bgm.py não encontrado" });
     }
 
-    const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
-      cwd: projDir,
-
-      shell: true,
-
-      env: { ...process.env, PYTHONUNBUFFERED: "1" },
-    });
-
-    let stdout = "";
-
-    let stderr = "";
-
-    child.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-
-    child.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-
-    child.on("close", (code) => {
-      if (code === 0) {
-        res.json({ success: true, log: stdout, prepLogs });
-      } else {
-        res.status(500).json({
-          error: "Erro na mixagem da trilha",
-          log: stdout,
-          details: stderr,
+    try {
+      const prepLogs = await prepareBgmBeforeMix(projDir);
+      const config = readProjectJson(projDir, "config_qanat.json", {});
+      const storyboard = readProjectJson(projDir, "storyboard.json", {});
+      const validationError = validateBgmReadyForMix(
+        projDir,
+        config,
+        storyboard
+      );
+      if (validationError) {
+        return res.status(400).json({
+          error: validationError,
           prepLogs,
         });
       }
-    });
-  } catch (err) {
-    res.status(500).json({
-      error: err.message || "Falha ao preparar mixagem",
-      details: err.message,
-    });
-  }
-});
+
+      const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
+        cwd: projDir,
+
+        shell: true,
+
+        env: { ...process.env, PYTHONUNBUFFERED: "1" },
+      });
+
+      let stdout = "";
+
+      let stderr = "";
+
+      child.stdout.on("data", (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on("data", (data) => {
+        stderr += data.toString();
+      });
+
+      child.on("close", (code) => {
+        if (code === 0) {
+          res.json({ success: true, log: stdout, prepLogs });
+        } else {
+          res.status(500).json({
+            error: "Erro na mixagem da trilha",
+            log: stdout,
+            details: stderr,
+            prepLogs,
+          });
+        }
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: err.message || "Falha ao preparar mixagem",
+        details: err.message,
+      });
+    }
+  })
+);
 
 // API: Search music/SFX on Epidemic Sound MCP
 
-app.get("/api/epidemic/search", async (req, res) => {
-  const projDir = getProjectDir(req);
+app.get(
+  "/api/epidemic/search",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
 
-  const token = getEpidemicSoundKey(projDir) || "";
+    const token = getEpidemicSoundKey(projDir) || "";
 
-  const { query, type } = req.query;
+    const { query, type } = req.query;
 
-  if (!query) {
-    return res
-      .status(400)
-      .json({ error: "O termo de busca (query) é obrigatório." });
-  }
-
-  try {
-    if (type === "sfx") {
-      const results = await searchSoundEffects(token, query);
-
-      res.json(results);
-    } else {
-      const results = await searchMusic(token, query);
-
-      res.json(results);
+    if (!query) {
+      return res
+        .status(400)
+        .json({ error: "O termo de busca (query) é obrigatório." });
     }
-  } catch (err) {
-    res.status(500).json({
-      error: "Erro ao buscar na Epidemic Sound",
-      details: err.message,
-    });
-  }
-});
+
+    try {
+      if (type === "sfx") {
+        const results = await searchSoundEffects(token, query);
+
+        res.json(results);
+      } else {
+        const results = await searchMusic(token, query);
+
+        res.json(results);
+      }
+    } catch (err) {
+      res.status(500).json({
+        error: "Erro ao buscar na Epidemic Sound",
+        details: err.message,
+      });
+    }
+  })
+);
 
 // API: Download track/SFX and auto-map
 
-app.post("/api/epidemic/download", async (req, res) => {
-  const projDir = getProjectDir(req);
+app.post(
+  "/api/epidemic/download",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
 
-  const token = getEpidemicSoundKey(projDir) || "";
+    const token = getEpidemicSoundKey(projDir) || "";
 
-  const { id, type, title, block, previewUrl } = req.body;
+    const { id, type, title, block, previewUrl } = req.body;
 
-  if (!id || !type) {
-    return res
-      .status(400)
-      .json({ error: "Parâmetros 'id' e 'type' são obrigatórios." });
-  }
+    if (!id || !type) {
+      return res
+        .status(400)
+        .json({ error: "Parâmetros 'id' e 'type' são obrigatórios." });
+    }
 
-  try {
-    const safeTitle = (title || `audio_${id}`).replace(/[^a-zA-Z0-9_-]/g, "_");
+    try {
+      const safeTitle = (title || `audio_${id}`).replace(
+        /[^a-zA-Z0-9_-]/g,
+        "_"
+      );
 
-    if (type === "sfx") {
-      // Save SFX directly to project ASSETS folder
+      if (type === "sfx") {
+        // Save SFX directly to project ASSETS folder
 
-      const assetsDir = path.join(projDir, "ASSETS");
+        const assetsDir = path.join(projDir, "ASSETS");
 
-      fs.mkdirSync(assetsDir, { recursive: true });
+        fs.mkdirSync(assetsDir, { recursive: true });
 
-      const filename = `sfx_${safeTitle}.mp3`;
+        const filename = `sfx_${safeTitle}.mp3`;
 
-      const destPath = path.join(assetsDir, filename);
+        const destPath = path.join(assetsDir, filename);
 
-      await downloadSoundEffect(token, id, destPath, previewUrl);
+        await downloadSoundEffect(token, id, destPath, previewUrl);
 
-      res.json({
-        success: true,
-        filename,
-        type: "sfx",
-        message: `Efeito sonoro baixado e salvo em ASSETS/${filename}`,
-      });
-    } else {
-      // Save BGM directly to project folder
+        res.json({
+          success: true,
+          filename,
+          type: "sfx",
+          message: `Efeito sonoro baixado e salvo em ASSETS/${filename}`,
+        });
+      } else {
+        // Save BGM directly to project folder
 
-      const filename = `ES_${safeTitle}.mp3`;
+        const filename = `ES_${safeTitle}.mp3`;
 
-      const destPath = path.join(projDir, filename);
+        const destPath = path.join(projDir, filename);
 
-      await downloadMusicTrack(token, id, destPath, previewUrl);
+        await downloadMusicTrack(token, id, destPath, previewUrl);
 
-      // Auto-map BGM based on block
+        // Auto-map BGM based on block
 
-      const configPath = path.join(projDir, "config_qanat.json");
+        const configPath = path.join(projDir, "config_qanat.json");
 
-      let config = readJsonFile(configPath) || {};
+        let config = readJsonFile(configPath) || {};
 
-      if (block !== undefined && block > 0) {
-        // Map BGM to specific block
+        if (block !== undefined && block > 0) {
+          // Map BGM to specific block
 
-        if (!Array.isArray(config.bgm_mappings)) {
-          config.bgm_mappings = [];
+          if (!Array.isArray(config.bgm_mappings)) {
+            config.bgm_mappings = [];
+          }
+
+          // Remove existing mapping for this block if any
+
+          config.bgm_mappings = config.bgm_mappings.filter(
+            (item) => Number(item.block) !== Number(block)
+          );
+
+          config.bgm_mappings.push({
+            block: Number(block),
+
+            file: filename,
+          });
+
+          config.bgm_mappings.sort((a, b) => a.block - b.block);
+
+          config.use_single_bgm = false;
+
+          console.log(
+            `[Epidemic MCP] Auto-mapped BGM ${filename} to block ${block}`
+          );
+        } else {
+          // Map BGM as single BGM
+
+          config.single_bgm = filename;
+
+          config.use_single_bgm = true;
+
+          console.log(
+            `[Epidemic MCP] Auto-mapped BGM ${filename} as single soundtrack`
+          );
         }
 
-        // Remove existing mapping for this block if any
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
 
-        config.bgm_mappings = config.bgm_mappings.filter(
-          (item) => Number(item.block) !== Number(block)
-        );
+        res.json({
+          success: true,
 
-        config.bgm_mappings.push({
-          block: Number(block),
+          filename,
 
-          file: filename,
+          type: "bgm",
+
+          message: `Música baixada e mapeada com sucesso: ${filename}`,
         });
-
-        config.bgm_mappings.sort((a, b) => a.block - b.block);
-
-        config.use_single_bgm = false;
-
-        console.log(
-          `[Epidemic MCP] Auto-mapped BGM ${filename} to block ${block}`
-        );
-      } else {
-        // Map BGM as single BGM
-
-        config.single_bgm = filename;
-
-        config.use_single_bgm = true;
-
-        console.log(
-          `[Epidemic MCP] Auto-mapped BGM ${filename} as single soundtrack`
-        );
       }
-
-      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-
-      res.json({
-        success: true,
-
-        filename,
-
-        type: "bgm",
-
-        message: `Música baixada e mapeada com sucesso: ${filename}`,
+    } catch (err) {
+      res.status(500).json({
+        error: "Erro ao baixar arquivo da Epidemic Sound",
+        details: err.message,
       });
     }
-  } catch (err) {
-    res.status(500).json({
-      error: "Erro ao baixar arquivo da Epidemic Sound",
-      details: err.message,
-    });
-  }
-});
+  })
+);
 
 // Helper: Translate Portuguese query terms to English and sanitize for Epidemic Sound search
 
@@ -5075,26 +5156,29 @@ async function runAutoSoundtrackLogic(projDir, token, mode, options = {}) {
 
 // API: Auto-soundtrack project blocks using AI recommendations search themes
 
-app.post("/api/epidemic/auto-soundtrack", async (req, res) => {
-  const projDir = getProjectDir(req);
+app.post(
+  "/api/epidemic/auto-soundtrack",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
 
-  const token = getEpidemicSoundKey(projDir) || "";
+    const token = getEpidemicSoundKey(projDir) || "";
 
-  try {
-    const { mode, force } = req.body;
+    try {
+      const { mode, force } = req.body;
 
-    const logs = await runAutoSoundtrackLogic(projDir, token, mode, {
-      force: force !== false,
-    });
+      const logs = await runAutoSoundtrackLogic(projDir, token, mode, {
+        force: force !== false,
+      });
 
-    res.json({ success: true, logs });
-  } catch (err) {
-    res.status(500).json({
-      error: "Erro no processo de automação de trilha",
-      details: err.message,
-    });
-  }
-});
+      res.json({ success: true, logs });
+    } catch (err) {
+      res.status(500).json({
+        error: "Erro no processo de automação de trilha",
+        details: err.message,
+      });
+    }
+  })
+);
 
 // Helper: Ensure all mapped BGM files are downloaded from Epidemic Sound before rendering
 
@@ -6058,583 +6142,592 @@ app.post("/api/render/plan-overlays", async (req, res) => {
 
 // API: Render videos streaming logs via Server-Sent Events (SSE)
 
-app.get("/api/render/:mode", async (req, res) => {
-  const projDir = getProjectDir(req);
+app.get(
+  "/api/render/:mode",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
 
-  const mode = req.params.mode; // 'standard' or 'highlighted'
+    const mode = req.params.mode; // 'standard' or 'highlighted'
 
-  const withoutImpactTitles = req.query.withoutImpactTitles === "1";
+    const withoutImpactTitles = req.query.withoutImpactTitles === "1";
 
-  res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Content-Type", "text/event-stream");
 
-  res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Cache-Control", "no-cache");
 
-  res.setHeader("Connection", "keep-alive");
+    res.setHeader("Connection", "keep-alive");
 
-  res.setHeader("X-Accel-Buffering", "no");
+    res.setHeader("X-Accel-Buffering", "no");
 
-  res.flushHeaders();
+    res.flushHeaders();
 
-  // Heartbeat to keep connection alive during long renders/downloads
+    // Heartbeat to keep connection alive during long renders/downloads
 
-  const heartbeat = setInterval(() => {
-    res.write(":\n\n");
-  }, 15000);
+    const heartbeat = setInterval(() => {
+      res.write(":\n\n");
+    }, 15000);
 
-  const cleanup = () => {
-    clearInterval(heartbeat);
-  };
-
-  req.on("close", cleanup);
-
-  const sendLog = (text) => {
-    res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
-  };
-
-  const timingSanitization = sanitizeProjectBlockTimings(projDir);
-
-  if (timingSanitization.message) {
-    sendLog(`[Dashboard] ${timingSanitization.message}`);
-  }
-
-  // Pre-download missing BGM files from Epidemic Sound
-
-  try {
-    sendLog("[Dashboard] Verificando trilhas sonoras de fundo (BGM)...");
-
-    await ensureProjectBgmTracks(projDir);
-  } catch (err) {
-    sendLog(`[BGM Auto-Fetch] Erro: ${err.message}`);
-  }
-
-  // Pre-download and map SFX
-
-  try {
-    const renderCfg = readProjectJson(projDir, "config_qanat.json", {});
-    if (!isSfxEnabled(renderCfg)) {
-      sendLog(
-        "[Dashboard] Efeitos sonoros (SFX) desativados — render sem SFX."
-      );
-    } else {
-      sendLog(
-        "[Dashboard] Analisando roteiro para download de efeitos sonoros (SFX)..."
-      );
-      await ensureProjectSfxTracks(projDir);
-    }
-  } catch (err) {
-    sendLog(`[SFX Auto-Fetch] Erro: ${err.message}`);
-  }
-
-  // Mix soundtrack
-
-  try {
-    const mixPrepLogs = await prepareBgmBeforeMix(projDir);
-    for (const line of mixPrepLogs || []) sendLog(`[BGM Prep] ${line}`);
-
-    sendLog("[Dashboard] Iniciando mixagem da trilha sonora (mix_bgm.py)...");
-
-    ensureFileExists("mix_bgm.py", projDir);
-
-    await new Promise((resolve) => {
-      const mixProcess = spawn(PYTHON_PATH, ["mix_bgm.py"], {
-        cwd: projDir,
-
-        shell: true,
-      });
-
-      mixProcess.stdout.on("data", (data) => {
-        const lines = data.toString().split("\n");
-
-        for (const line of lines) {
-          const cleanLine = line.trim();
-
-          if (cleanLine) sendLog(`[BGM Mixer] ${cleanLine}`);
-        }
-      });
-
-      mixProcess.on("close", (code) => {
-        if (code === 0) {
-          sendLog("[BGM Mixer] Trilha final trilha_documentario.mp3 gerada!");
-        } else {
-          sendLog(
-            "[BGM Mixer] Aviso: O mixador de BGM retornou código não-zero."
-          );
-        }
-
-        resolve();
-      });
-    });
-  } catch (err) {
-    sendLog(`[BGM Mixer] Erro: ${err.message}`);
-  }
-
-  if (mode === "remotion" || mode === "remotion-pro") {
-    let child = null;
-    const renderProjectName = path.basename(projDir);
-    const renderJobId = createRenderJobId(renderProjectName);
-    createRenderJob({
-      jobId: renderJobId,
-      projectName: renderProjectName,
-      projDir,
-      mode,
-    });
-    res.write(
-      `data: ${JSON.stringify({ type: "job", jobId: renderJobId })}\n\n`
-    );
-
-    const trackRenderProgress = (text) => {
-      appendRenderJobLog(renderJobId, text);
-      const pctMatch = String(text).match(/\[PROGRESSO\] (\d+)%/);
-      if (pctMatch) {
-        updateRenderJob(renderJobId, {
-          status: "rendering",
-          percent: parseInt(pctMatch[1], 10),
-          phase: "Renderizando…",
-        });
-      }
+    const cleanup = () => {
+      clearInterval(heartbeat);
     };
 
+    req.on("close", cleanup);
+
+    const sendLog = (text) => {
+      res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+    };
+
+    const timingSanitization = sanitizeProjectBlockTimings(projDir);
+
+    if (timingSanitization.message) {
+      sendLog(`[Dashboard] ${timingSanitization.message}`);
+    }
+
+    // Pre-download missing BGM files from Epidemic Sound
+
     try {
-      if (req.query.require_overlay_plan === "1") {
-        const storyboardGate = readProjectJson(projDir, "storyboard.json", {});
-        const plannedAt = storyboardGate.overlays_planned_at
-          ? new Date(storyboardGate.overlays_planned_at).getTime()
-          : 0;
-        const planAgeMs =
-          plannedAt > 0 ? Date.now() - plannedAt : Number.POSITIVE_INFINITY;
-        const overlayCount = countProjectPlannedOverlays(storyboardGate);
-        const reqToken = String(req.query.overlay_plan_token || "").trim();
-        const savedToken = String(
-          storyboardGate.overlays_plan_token || ""
-        ).trim();
-        let tokenOk = reqToken && savedToken && reqToken === savedToken;
-        const planMaxAgeMs = 30 * 60 * 1000;
+      sendLog("[Dashboard] Verificando trilhas sonoras de fundo (BGM)...");
 
-        if (!tokenOk && reqToken && overlayCount >= 1) {
-          storyboardGate.overlays_plan_token = reqToken;
-          storyboardGate.overlays_planned_at = new Date().toISOString();
-          if (
-            !Array.isArray(storyboardGate.overlays_ai) ||
-            !storyboardGate.overlays_ai.length
-          ) {
-            const fallback = countProjectPlannedOverlays(storyboardGate);
-            if (fallback > 0 && Array.isArray(storyboardGate.overlays)) {
-              storyboardGate.overlays_ai = JSON.parse(
-                JSON.stringify(
-                  storyboardGate.overlays.filter(
-                    (o) => o && o.id && !String(o.id).startsWith("sys-")
-                  )
-                )
-              );
-            }
-          }
-          fs.writeFileSync(
-            path.join(projDir, "storyboard.json"),
-            JSON.stringify(storyboardGate, null, 2),
-            "utf8"
-          );
-          tokenOk = true;
-          sendLog(
-            "[Remotion] Token de overlays sincronizado com o storyboard."
-          );
-        }
+      await ensureProjectBgmTracks(projDir);
+    } catch (err) {
+      sendLog(`[BGM Auto-Fetch] Erro: ${err.message}`);
+    }
 
-        if (overlayCount < 1 || planAgeMs > planMaxAgeMs || !tokenOk) {
-          sendLog(
-            "=== ERRO: Planejamento de overlays obrigatório não concluído nesta sessão. ==="
-          );
-          if (overlayCount < 1) {
-            sendLog(
-              "[Remotion] Nenhum overlay no storyboard. Clique em «Gerar overlays IA» ou aguarde o Gemini no Chrome."
-            );
-          } else if (!tokenOk) {
-            sendLog(
-              "[Remotion] Token de planejamento inválido — clique Render de novo após o Gemini concluir."
-            );
-          } else {
-            sendLog(
-              "[Remotion] Planejamento expirou (>30 min). Gere overlays novamente antes do render."
-            );
-          }
-          res.write(
-            `data: ${JSON.stringify({ type: "failed", code: 2, reason: "overlay_plan_gate" })}\n\n`
-          );
-          res.end();
-          cleanup();
-          return;
-        }
+    // Pre-download and map SFX
+
+    try {
+      const renderCfg = readProjectJson(projDir, "config_qanat.json", {});
+      if (!isSfxEnabled(renderCfg)) {
         sendLog(
-          `[Remotion] Overlays planejados validados (${overlayCount} itens, token OK, ${Math.round(planAgeMs / 1000)}s atrás).`
-        );
-      }
-
-      sendLog(
-        "[Remotion] Preparando linha do tempo, assets, narração e legendas..."
-      );
-
-      const isProres =
-        req.query.prores === "1" || req.query.transparent === "1";
-      const useHyperframes = req.query.hyperframes === "1";
-      const isSample = req.query.sample === "1";
-      const previewSecs = isSample
-        ? Math.min(15, Math.max(10, Number(req.query.sampleSeconds) || 12))
-        : Math.min(60, Math.max(0, Number(req.query.preview) || 0));
-      const resolution = resolveRenderResolution(req);
-      if (isSample) {
-        sendLog(
-          `[Remotion] Modo amostra OpenMontage: ${previewSecs}s (gancho + 1 cena).`
-        );
-      }
-      if (useHyperframes) {
-        sendLog("[Remotion] Modo HyperFrames AI orquestrado ativo.");
-      }
-      updateRenderJob(renderJobId, {
-        status: "preparing",
-        phase: "Preparando timeline e assets…",
-        percent: 3,
-      });
-
-      const renderPlan = await prepareRemotionRender(
-        projDir,
-        isProres,
-        useHyperframes,
-        {
-          previewDuration: previewSecs > 0 ? previewSecs : undefined,
-          resolution,
-          sampleRender: isSample,
-        }
-      );
-      if (resolution === "2k") {
-        sendLog("[Remotion] Resolução 2K ativada (2560×1440 ou 1440×2560).");
-      }
-
-      sendLog(`[PROGRESSO] 10%`);
-      trackRenderProgress("[PROGRESSO] 10%");
-      updateRenderJob(renderJobId, {
-        status: "rendering",
-        outputPath: renderPlan.outputPath,
-        phase: "Iniciando Remotion…",
-        percent: 10,
-      });
-
-      sendLog(
-        `[Remotion] ${renderPlan.sceneCount} cenas e ${renderPlan.captionCount} legendas prontas.`
-      );
-
-      const infoCount =
-        renderPlan.informativeOverlayCount ?? renderPlan.overlayCount ?? 0;
-      const totalOv = renderPlan.overlayCount ?? 0;
-      sendLog(
-        `[Remotion] ${infoCount} overlays informativos na timeline${totalOv !== infoCount ? ` (${totalOv} no total com HUD/sistema)` : ""}.`
-      );
-      const timingReport = renderPlan.overlayTimingReport;
-      if (timingReport?.entries?.length) {
-        for (const entry of timingReport.entries) {
-          const icon =
-            entry.status === "ok"
-              ? "✓"
-              : entry.status === "repaired"
-                ? "↻"
-                : "!";
-          sendLog(
-            `[Overlays Timing] ${icon} ${entry.id} @ ${entry.startSec?.toFixed(1)}s` +
-              `${entry.plannedScene ? ` (cena ${entry.plannedScene})` : ""}` +
-              ` — ${entry.message || entry.status}`
-          );
-        }
-      }
-
-      sendLog(
-        `[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`
-      );
-
-      sendLog(
-        `[Remotion] ${renderPlan.bgmTrackCount || 0} faixas BGM — modo ${renderPlan.bgmMode || "none"} (${renderPlan.bgmSource || "none"}).`
-      );
-      if (Array.isArray(renderPlan.bgmTrackSummary)) {
-        for (const line of renderPlan.bgmTrackSummary) {
-          sendLog(`[Remotion BGM] ${line}`);
-        }
-      }
-      if (
-        renderPlan.bgmMode === "emotion" &&
-        (renderPlan.bgmTrackCount || 0) === 0
-      ) {
-        sendLog(
-          "[Remotion BGM] AVISO: modo emoção sem faixas no render — verifique mapeamentos na aba Trilha BGM."
-        );
-      }
-      if (Array.isArray(renderPlan.sonoplastiaLog)) {
-        for (const line of renderPlan.sonoplastiaLog) {
-          sendLog(line);
-        }
-      }
-
-      sendLog(
-        `[Remotion] Duração estimada: ${renderPlan.totalDuration.toFixed(1)}s`
-      );
-
-      const remotionTimeoutMs = 180000;
-      const heavyRender =
-        resolution === "2k" || (renderPlan.totalDuration || 0) > 60;
-
-      const remotionArgs = [
-        "remotion",
-        "render",
-        "src/index.ts",
-        "LumieraTimeline",
-        `"${renderPlan.outputPath}"`,
-        "--props",
-        `"${renderPlan.propsPath}"`,
-        "--codec",
-        isProres ? "prores" : "h264",
-        "--timeout",
-        String(remotionTimeoutMs),
-      ];
-
-      if (heavyRender) {
-        remotionArgs.push("--concurrency", "4");
-        sendLog(
-          `[Remotion] Timeout ${remotionTimeoutMs / 1000}s, concurrency=4 (render pesado).`
+          "[Dashboard] Efeitos sonoros (SFX) desativados — render sem SFX."
         );
       } else {
-        sendLog(`[Remotion] Timeout ${remotionTimeoutMs / 1000}s.`);
-      }
-
-      if (previewSecs > 0) {
-        remotionArgs.push("--frames", String(Math.ceil(previewSecs * 30)));
         sendLog(
-          `[Remotion] Preview de ${previewSecs}s (${Math.ceil(previewSecs * 30)} frames)`
+          "[Dashboard] Analisando roteiro para download de efeitos sonoros (SFX)..."
         );
+        await ensureProjectSfxTracks(projDir);
       }
+    } catch (err) {
+      sendLog(`[SFX Auto-Fetch] Erro: ${err.message}`);
+    }
 
-      child = spawn("npx", remotionArgs, {
-        cwd: REMOTION_DIR,
+    // Mix soundtrack
 
-        shell: true,
+    try {
+      const mixPrepLogs = await prepareBgmBeforeMix(projDir);
+      for (const line of mixPrepLogs || []) sendLog(`[BGM Prep] ${line}`);
 
-        env: { ...process.env },
-      });
+      sendLog("[Dashboard] Iniciando mixagem da trilha sonora (mix_bgm.py)...");
 
-      if (child?.pid) {
-        updateRenderJob(renderJobId, {
-          childPid: child.pid,
-          status: "rendering",
-          phase: "Renderizando frames…",
+      ensureFileExists("mix_bgm.py", projDir);
+
+      await new Promise((resolve) => {
+        const mixProcess = spawn(PYTHON_PATH, ["mix_bgm.py"], {
+          cwd: projDir,
+
+          shell: true,
         });
-      }
 
-      const emitRemotionLine = (line) => {
-        sendLog(`[Remotion] ${line}`);
-        trackRenderProgress(`[Remotion] ${line}`);
+        mixProcess.stdout.on("data", (data) => {
+          const lines = data.toString().split("\n");
 
-        const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
-        if (progressMatch) {
-          const pct = Math.min(
-            99,
-            Math.max(10, Math.round(Number(progressMatch[1])))
+          for (const line of lines) {
+            const cleanLine = line.trim();
+
+            if (cleanLine) sendLog(`[BGM Mixer] ${cleanLine}`);
+          }
+        });
+
+        mixProcess.on("close", (code) => {
+          if (code === 0) {
+            sendLog("[BGM Mixer] Trilha final trilha_documentario.mp3 gerada!");
+          } else {
+            sendLog(
+              "[BGM Mixer] Aviso: O mixador de BGM retornou código não-zero."
+            );
+          }
+
+          resolve();
+        });
+      });
+    } catch (err) {
+      sendLog(`[BGM Mixer] Erro: ${err.message}`);
+    }
+
+    if (mode === "remotion" || mode === "remotion-pro") {
+      let child = null;
+      const renderProjectName = path.basename(projDir);
+      const renderJobId = createRenderJobId(renderProjectName);
+      createRenderJob({
+        jobId: renderJobId,
+        projectName: renderProjectName,
+        projDir,
+        mode,
+      });
+      res.write(
+        `data: ${JSON.stringify({ type: "job", jobId: renderJobId })}\n\n`
+      );
+
+      const trackRenderProgress = (text) => {
+        appendRenderJobLog(renderJobId, text);
+        const pctMatch = String(text).match(/\[PROGRESSO\] (\d+)%/);
+        if (pctMatch) {
+          updateRenderJob(renderJobId, {
+            status: "rendering",
+            percent: parseInt(pctMatch[1], 10),
+            phase: "Renderizando…",
+          });
+        }
+      };
+
+      try {
+        if (req.query.require_overlay_plan === "1") {
+          const storyboardGate = readProjectJson(
+            projDir,
+            "storyboard.json",
+            {}
           );
-          const progressLine = `[PROGRESSO] ${pct}%`;
-          sendLog(progressLine);
-          trackRenderProgress(progressLine);
+          const plannedAt = storyboardGate.overlays_planned_at
+            ? new Date(storyboardGate.overlays_planned_at).getTime()
+            : 0;
+          const planAgeMs =
+            plannedAt > 0 ? Date.now() - plannedAt : Number.POSITIVE_INFINITY;
+          const overlayCount = countProjectPlannedOverlays(storyboardGate);
+          const reqToken = String(req.query.overlay_plan_token || "").trim();
+          const savedToken = String(
+            storyboardGate.overlays_plan_token || ""
+          ).trim();
+          let tokenOk = reqToken && savedToken && reqToken === savedToken;
+          const planMaxAgeMs = 30 * 60 * 1000;
+
+          if (!tokenOk && reqToken && overlayCount >= 1) {
+            storyboardGate.overlays_plan_token = reqToken;
+            storyboardGate.overlays_planned_at = new Date().toISOString();
+            if (
+              !Array.isArray(storyboardGate.overlays_ai) ||
+              !storyboardGate.overlays_ai.length
+            ) {
+              const fallback = countProjectPlannedOverlays(storyboardGate);
+              if (fallback > 0 && Array.isArray(storyboardGate.overlays)) {
+                storyboardGate.overlays_ai = JSON.parse(
+                  JSON.stringify(
+                    storyboardGate.overlays.filter(
+                      (o) => o && o.id && !String(o.id).startsWith("sys-")
+                    )
+                  )
+                );
+              }
+            }
+            fs.writeFileSync(
+              path.join(projDir, "storyboard.json"),
+              JSON.stringify(storyboardGate, null, 2),
+              "utf8"
+            );
+            tokenOk = true;
+            sendLog(
+              "[Remotion] Token de overlays sincronizado com o storyboard."
+            );
+          }
+
+          if (overlayCount < 1 || planAgeMs > planMaxAgeMs || !tokenOk) {
+            sendLog(
+              "=== ERRO: Planejamento de overlays obrigatório não concluído nesta sessão. ==="
+            );
+            if (overlayCount < 1) {
+              sendLog(
+                "[Remotion] Nenhum overlay no storyboard. Clique em «Gerar overlays IA» ou aguarde o Gemini no Chrome."
+              );
+            } else if (!tokenOk) {
+              sendLog(
+                "[Remotion] Token de planejamento inválido — clique Render de novo após o Gemini concluir."
+              );
+            } else {
+              sendLog(
+                "[Remotion] Planejamento expirou (>30 min). Gere overlays novamente antes do render."
+              );
+            }
+            res.write(
+              `data: ${JSON.stringify({ type: "failed", code: 2, reason: "overlay_plan_gate" })}\n\n`
+            );
+            res.end();
+            cleanup();
+            return;
+          }
+          sendLog(
+            `[Remotion] Overlays planejados validados (${overlayCount} itens, token OK, ${Math.round(planAgeMs / 1000)}s atrás).`
+          );
         }
 
-        const remotionMatch = line.match(/Rendered\s+(\d+)\/(\d+)/i);
-        if (remotionMatch) {
-          const renderedFrames = parseInt(remotionMatch[1], 10);
-          const totalFrames = parseInt(remotionMatch[2], 10);
-          if (totalFrames > 0) {
+        sendLog(
+          "[Remotion] Preparando linha do tempo, assets, narração e legendas..."
+        );
+
+        const isProres =
+          req.query.prores === "1" || req.query.transparent === "1";
+        const useHyperframes = req.query.hyperframes === "1";
+        const isSample = req.query.sample === "1";
+        const previewSecs = isSample
+          ? Math.min(15, Math.max(10, Number(req.query.sampleSeconds) || 12))
+          : Math.min(60, Math.max(0, Number(req.query.preview) || 0));
+        const resolution = resolveRenderResolution(req);
+        if (isSample) {
+          sendLog(
+            `[Remotion] Modo amostra OpenMontage: ${previewSecs}s (gancho + 1 cena).`
+          );
+        }
+        if (useHyperframes) {
+          sendLog("[Remotion] Modo HyperFrames AI orquestrado ativo.");
+        }
+        updateRenderJob(renderJobId, {
+          status: "preparing",
+          phase: "Preparando timeline e assets…",
+          percent: 3,
+        });
+
+        const renderPlan = await prepareRemotionRender(
+          projDir,
+          isProres,
+          useHyperframes,
+          {
+            previewDuration: previewSecs > 0 ? previewSecs : undefined,
+            resolution,
+            sampleRender: isSample,
+          }
+        );
+        if (resolution === "2k") {
+          sendLog("[Remotion] Resolução 2K ativada (2560×1440 ou 1440×2560).");
+        }
+
+        sendLog(`[PROGRESSO] 10%`);
+        trackRenderProgress("[PROGRESSO] 10%");
+        updateRenderJob(renderJobId, {
+          status: "rendering",
+          outputPath: renderPlan.outputPath,
+          phase: "Iniciando Remotion…",
+          percent: 10,
+        });
+
+        sendLog(
+          `[Remotion] ${renderPlan.sceneCount} cenas e ${renderPlan.captionCount} legendas prontas.`
+        );
+
+        const infoCount =
+          renderPlan.informativeOverlayCount ?? renderPlan.overlayCount ?? 0;
+        const totalOv = renderPlan.overlayCount ?? 0;
+        sendLog(
+          `[Remotion] ${infoCount} overlays informativos na timeline${totalOv !== infoCount ? ` (${totalOv} no total com HUD/sistema)` : ""}.`
+        );
+        const timingReport = renderPlan.overlayTimingReport;
+        if (timingReport?.entries?.length) {
+          for (const entry of timingReport.entries) {
+            const icon =
+              entry.status === "ok"
+                ? "✓"
+                : entry.status === "repaired"
+                  ? "↻"
+                  : "!";
+            sendLog(
+              `[Overlays Timing] ${icon} ${entry.id} @ ${entry.startSec?.toFixed(1)}s` +
+                `${entry.plannedScene ? ` (cena ${entry.plannedScene})` : ""}` +
+                ` — ${entry.message || entry.status}`
+            );
+          }
+        }
+
+        sendLog(
+          `[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`
+        );
+
+        sendLog(
+          `[Remotion] ${renderPlan.bgmTrackCount || 0} faixas BGM — modo ${renderPlan.bgmMode || "none"} (${renderPlan.bgmSource || "none"}).`
+        );
+        if (Array.isArray(renderPlan.bgmTrackSummary)) {
+          for (const line of renderPlan.bgmTrackSummary) {
+            sendLog(`[Remotion BGM] ${line}`);
+          }
+        }
+        if (
+          renderPlan.bgmMode === "emotion" &&
+          (renderPlan.bgmTrackCount || 0) === 0
+        ) {
+          sendLog(
+            "[Remotion BGM] AVISO: modo emoção sem faixas no render — verifique mapeamentos na aba Trilha BGM."
+          );
+        }
+        if (Array.isArray(renderPlan.sonoplastiaLog)) {
+          for (const line of renderPlan.sonoplastiaLog) {
+            sendLog(line);
+          }
+        }
+
+        sendLog(
+          `[Remotion] Duração estimada: ${renderPlan.totalDuration.toFixed(1)}s`
+        );
+
+        const remotionTimeoutMs = 180000;
+        const heavyRender =
+          resolution === "2k" || (renderPlan.totalDuration || 0) > 60;
+
+        const remotionArgs = [
+          "remotion",
+          "render",
+          "src/index.ts",
+          "LumieraTimeline",
+          `"${renderPlan.outputPath}"`,
+          "--props",
+          `"${renderPlan.propsPath}"`,
+          "--codec",
+          isProres ? "prores" : "h264",
+          "--timeout",
+          String(remotionTimeoutMs),
+        ];
+
+        if (heavyRender) {
+          remotionArgs.push("--concurrency", "4");
+          sendLog(
+            `[Remotion] Timeout ${remotionTimeoutMs / 1000}s, concurrency=4 (render pesado).`
+          );
+        } else {
+          sendLog(`[Remotion] Timeout ${remotionTimeoutMs / 1000}s.`);
+        }
+
+        if (previewSecs > 0) {
+          remotionArgs.push("--frames", String(Math.ceil(previewSecs * 30)));
+          sendLog(
+            `[Remotion] Preview de ${previewSecs}s (${Math.ceil(previewSecs * 30)} frames)`
+          );
+        }
+
+        child = spawn("npx", remotionArgs, {
+          cwd: REMOTION_DIR,
+
+          shell: true,
+
+          env: { ...process.env },
+        });
+
+        if (child?.pid) {
+          updateRenderJob(renderJobId, {
+            childPid: child.pid,
+            status: "rendering",
+            phase: "Renderizando frames…",
+          });
+        }
+
+        const emitRemotionLine = (line) => {
+          sendLog(`[Remotion] ${line}`);
+          trackRenderProgress(`[Remotion] ${line}`);
+
+          const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
+          if (progressMatch) {
             const pct = Math.min(
               99,
-              Math.max(10, Math.round((renderedFrames / totalFrames) * 100))
+              Math.max(10, Math.round(Number(progressMatch[1])))
             );
             const progressLine = `[PROGRESSO] ${pct}%`;
             sendLog(progressLine);
             trackRenderProgress(progressLine);
           }
+
+          const remotionMatch = line.match(/Rendered\s+(\d+)\/(\d+)/i);
+          if (remotionMatch) {
+            const renderedFrames = parseInt(remotionMatch[1], 10);
+            const totalFrames = parseInt(remotionMatch[2], 10);
+            if (totalFrames > 0) {
+              const pct = Math.min(
+                99,
+                Math.max(10, Math.round((renderedFrames / totalFrames) * 100))
+              );
+              const progressLine = `[PROGRESSO] ${pct}%`;
+              sendLog(progressLine);
+              trackRenderProgress(progressLine);
+            }
+          }
+        };
+
+        child.stdout.on("data", (data) => {
+          const text = data.toString().trim();
+
+          if (text) {
+            const lines = text.split(/\r?\n/);
+
+            for (const line of lines) {
+              emitRemotionLine(line);
+            }
+          }
+        });
+
+        child.stderr.on("data", (data) => {
+          const text = data.toString().trim();
+
+          if (text) {
+            const lines = text.split(/\r?\n/);
+
+            for (const line of lines) {
+              emitRemotionLine(line);
+            }
+          }
+        });
+
+        child.on("close", (code) => {
+          if (code === 0) {
+            sendLog("[PROGRESSO] 100%");
+            trackRenderProgress("[PROGRESSO] 100%");
+            finishRenderJob(renderJobId, {
+              outputPath: renderPlan.outputPath,
+              phase: "Concluído!",
+            });
+
+            sendLog(`[Remotion] Arquivo final: ${renderPlan.outputPath}`);
+
+            const postClean = purgeRemotionPublicProjectCache();
+            if (postClean.freedMb > 0) {
+              sendLog(
+                `[Remotion] Cache temporário removido (~${postClean.freedMb} MB liberados).`
+              );
+            }
+
+            if (!res.writableEnded) {
+              res.write(
+                `data: ${JSON.stringify({ type: "complete", code })}\n\n`
+              );
+              cleanup();
+              res.end();
+            }
+          } else {
+            failRenderJob(renderJobId, `Remotion exit ${code}`);
+            if (!res.writableEnded) {
+              res.write(
+                `data: ${JSON.stringify({ type: "failed", code })}\n\n`
+              );
+              cleanup();
+              res.end();
+            }
+          }
+        });
+      } catch (err) {
+        sendLog(`[ERRO] ${err.message}`);
+        failRenderJob(renderJobId, err.message);
+
+        if (!res.writableEnded) {
+          res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
+          cleanup();
+          res.end();
         }
-      };
-
-      child.stdout.on("data", (data) => {
-        const text = data.toString().trim();
-
-        if (text) {
-          const lines = text.split(/\r?\n/);
-
-          for (const line of lines) {
-            emitRemotionLine(line);
-          }
-        }
-      });
-
-      child.stderr.on("data", (data) => {
-        const text = data.toString().trim();
-
-        if (text) {
-          const lines = text.split(/\r?\n/);
-
-          for (const line of lines) {
-            emitRemotionLine(line);
-          }
-        }
-      });
-
-      child.on("close", (code) => {
-        if (code === 0) {
-          sendLog("[PROGRESSO] 100%");
-          trackRenderProgress("[PROGRESSO] 100%");
-          finishRenderJob(renderJobId, {
-            outputPath: renderPlan.outputPath,
-            phase: "Concluído!",
-          });
-
-          sendLog(`[Remotion] Arquivo final: ${renderPlan.outputPath}`);
-
-          const postClean = purgeRemotionPublicProjectCache();
-          if (postClean.freedMb > 0) {
-            sendLog(
-              `[Remotion] Cache temporário removido (~${postClean.freedMb} MB liberados).`
-            );
-          }
-
-          if (!res.writableEnded) {
-            res.write(
-              `data: ${JSON.stringify({ type: "complete", code })}\n\n`
-            );
-            cleanup();
-            res.end();
-          }
-        } else {
-          failRenderJob(renderJobId, `Remotion exit ${code}`);
-          if (!res.writableEnded) {
-            res.write(`data: ${JSON.stringify({ type: "failed", code })}\n\n`);
-            cleanup();
-            res.end();
-          }
-        }
-      });
-    } catch (err) {
-      sendLog(`[ERRO] ${err.message}`);
-      failRenderJob(renderJobId, err.message);
-
-      if (!res.writableEnded) {
-        res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
-        cleanup();
-        res.end();
       }
+
+      req.on("close", () => {
+        cleanup();
+        if (child) {
+          appendRenderJobLog(
+            renderJobId,
+            "[Dashboard] Cliente desconectou — render segue ativo em segundo plano."
+          );
+        }
+      });
+
+      return;
     }
 
-    req.on("close", () => {
+    const scriptName =
+      mode === "highlighted" ? "build_video_destacado.py" : "build_video.py";
+
+    ensureFileExists(scriptName, projDir);
+
+    const scriptPath = path.join(projDir, scriptName);
+
+    if (!fs.existsSync(scriptPath)) {
+      sendLog(`[ERRO] ${scriptName} não encontrado no workspace`);
+
+      res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
       cleanup();
-      if (child) {
-        appendRenderJobLog(
-          renderJobId,
-          "[Dashboard] Cliente desconectou — render segue ativo em segundo plano."
-        );
+      res.end();
+
+      return;
+    }
+
+    let runScriptName = scriptName;
+
+    let tempScriptPath = null;
+
+    if (withoutImpactTitles) {
+      const sourceCode = fs.readFileSync(scriptPath, "utf8");
+
+      const patchedCode = sourceCode.replace(
+        /_raw_impacts\s*=\s*_config\.get\(['"]impact_texts['"],\s*\[\]\)/,
+
+        "_raw_impacts = []"
+      );
+
+      runScriptName = `.render_sem_titulos_${scriptName}`;
+
+      tempScriptPath = path.join(projDir, runScriptName);
+
+      fs.writeFileSync(tempScriptPath, patchedCode, "utf8");
+    }
+
+    const resolution = resolveRenderResolution(req);
+    sendLog(
+      `[Dashboard] Iniciando script de renderização: ${scriptName}${withoutImpactTitles ? " (sem títulos grandes)" : ""}${resolution === "2k" ? " [2K]" : ""}...`
+    );
+
+    const child = spawn(PYTHON_PATH, [runScriptName], {
+      cwd: projDir,
+
+      shell: true,
+
+      env: {
+        ...process.env,
+        PYTHONUNBUFFERED: "1",
+        LUMIERA_RENDER_RESOLUTION: resolution,
+      },
+    });
+
+    child.stdout.on("data", (data) => {
+      const text = data.toString().trim();
+
+      if (text) {
+        const lines = text.split(/\r?\n/);
+
+        for (const line of lines) {
+          sendLog(line);
+        }
       }
     });
 
-    return;
-  }
+    child.stderr.on("data", (data) => {
+      const text = data.toString().trim();
 
-  const scriptName =
-    mode === "highlighted" ? "build_video_destacado.py" : "build_video.py";
+      if (text) {
+        const lines = text.split(/\r?\n/);
 
-  ensureFileExists(scriptName, projDir);
-
-  const scriptPath = path.join(projDir, scriptName);
-
-  if (!fs.existsSync(scriptPath)) {
-    sendLog(`[ERRO] ${scriptName} não encontrado no workspace`);
-
-    res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
-    cleanup();
-    res.end();
-
-    return;
-  }
-
-  let runScriptName = scriptName;
-
-  let tempScriptPath = null;
-
-  if (withoutImpactTitles) {
-    const sourceCode = fs.readFileSync(scriptPath, "utf8");
-
-    const patchedCode = sourceCode.replace(
-      /_raw_impacts\s*=\s*_config\.get\(['"]impact_texts['"],\s*\[\]\)/,
-
-      "_raw_impacts = []"
-    );
-
-    runScriptName = `.render_sem_titulos_${scriptName}`;
-
-    tempScriptPath = path.join(projDir, runScriptName);
-
-    fs.writeFileSync(tempScriptPath, patchedCode, "utf8");
-  }
-
-  const resolution = resolveRenderResolution(req);
-  sendLog(
-    `[Dashboard] Iniciando script de renderização: ${scriptName}${withoutImpactTitles ? " (sem títulos grandes)" : ""}${resolution === "2k" ? " [2K]" : ""}...`
-  );
-
-  const child = spawn(PYTHON_PATH, [runScriptName], {
-    cwd: projDir,
-
-    shell: true,
-
-    env: {
-      ...process.env,
-      PYTHONUNBUFFERED: "1",
-      LUMIERA_RENDER_RESOLUTION: resolution,
-    },
-  });
-
-  child.stdout.on("data", (data) => {
-    const text = data.toString().trim();
-
-    if (text) {
-      const lines = text.split(/\r?\n/);
-
-      for (const line of lines) {
-        sendLog(line);
+        for (const line of lines) {
+          sendLog(`[ERRO] ${line}`);
+        }
       }
-    }
-  });
+    });
 
-  child.stderr.on("data", (data) => {
-    const text = data.toString().trim();
-
-    if (text) {
-      const lines = text.split(/\r?\n/);
-
-      for (const line of lines) {
-        sendLog(`[ERRO] ${line}`);
+    child.on("close", (code) => {
+      if (tempScriptPath && fs.existsSync(tempScriptPath)) {
+        try {
+          fs.unlinkSync(tempScriptPath);
+        } catch (e) {}
       }
-    }
-  });
 
-  child.on("close", (code) => {
-    if (tempScriptPath && fs.existsSync(tempScriptPath)) {
-      try {
-        fs.unlinkSync(tempScriptPath);
-      } catch (e) {}
-    }
+      if (code === 0) {
+        res.write(`data: ${JSON.stringify({ type: "complete", code })}\n\n`);
+      } else {
+        res.write(`data: ${JSON.stringify({ type: "failed", code })}\n\n`);
+      }
+      cleanup();
+      res.end();
+    });
 
-    if (code === 0) {
-      res.write(`data: ${JSON.stringify({ type: "complete", code })}\n\n`);
-    } else {
-      res.write(`data: ${JSON.stringify({ type: "failed", code })}\n\n`);
-    }
-    cleanup();
-    res.end();
-  });
-
-  req.on("close", () => {
-    cleanup();
-  });
-});
+    req.on("close", () => {
+      cleanup();
+    });
+  })
+);
 
 // Helper: Get configured API key
 
@@ -10319,352 +10412,374 @@ REGRAS:
 
 // API: Chat assistant
 
-app.post("/api/ai/chat", async (req, res) => {
-  const projDir = getProjectDir(req);
+app.post(
+  "/api/ai/chat",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
 
-  const { messages, browser_response } = req.body;
+    const { messages, browser_response } = req.body;
 
-  if (!messages || !Array.isArray(messages)) {
-    return res.status(400).json({ error: "Mensagens inválidas ou vazias" });
-  }
-
-  try {
-    let systemInstruction = getProjectContext(projDir);
-    let supermemoryMeta = null;
-
-    if (isSupermemoryEnabled(__dirname)) {
-      const lastUserMsg =
-        [...messages].reverse().find((m) => m.role === "user")?.content || "";
-      const mem = await fetchMemoryContext(__dirname, projDir, lastUserMsg);
-      if (mem?.contextBlock) {
-        systemInstruction += `\n\n${mem.contextBlock}`;
-        supermemoryMeta = { injected: true, containerTags: mem.containerTags };
-      } else if (mem?.containerTags) {
-        supermemoryMeta = { injected: false, containerTags: mem.containerTags };
-      }
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: "Mensagens inválidas ou vazias" });
     }
 
-    const formattedContents = messages.map((msg) => ({
-      role: msg.role === "assistant" ? "model" : "user",
+    try {
+      let systemInstruction = getProjectContext(projDir);
+      let supermemoryMeta = null;
 
-      parts: [{ text: msg.content }],
-    }));
-
-    const chatBody = {
-      contents: formattedContents,
-
-      systemInstruction: {
-        parts: [{ text: systemInstruction }],
-      },
-    };
-
-    const responseText = await callGeminiLlm(req, res, projDir, {
-      title: "Assistente Lumiera",
-      bodyOverride: chatBody,
-    });
-    if (responseText == null) return;
-
-    if (isSupermemoryEnabled(__dirname) && responseText) {
-      persistConversation(__dirname, projDir, messages, responseText).catch(
-        (err) => {
-          console.warn("[supermemory] persistConversation:", err.message);
+      if (isSupermemoryEnabled(__dirname)) {
+        const lastUserMsg =
+          [...messages].reverse().find((m) => m.role === "user")?.content || "";
+        const mem = await fetchMemoryContext(__dirname, projDir, lastUserMsg);
+        if (mem?.contextBlock) {
+          systemInstruction += `\n\n${mem.contextBlock}`;
+          supermemoryMeta = {
+            injected: true,
+            containerTags: mem.containerTags,
+          };
+        } else if (mem?.containerTags) {
+          supermemoryMeta = {
+            injected: false,
+            containerTags: mem.containerTags,
+          };
         }
-      );
-    }
+      }
 
-    res.json({
-      text: responseText || "Desculpe, não consegui obter uma resposta.",
-      supermemory: supermemoryMeta,
-    });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ error: "Erro ao consultar IA", details: err.message });
-  }
-});
+      const formattedContents = messages.map((msg) => ({
+        role: msg.role === "assistant" ? "model" : "user",
+
+        parts: [{ text: msg.content }],
+      }));
+
+      const chatBody = {
+        contents: formattedContents,
+
+        systemInstruction: {
+          parts: [{ text: systemInstruction }],
+        },
+      };
+
+      const responseText = await callGeminiLlm(req, res, projDir, {
+        title: "Assistente Lumiera",
+        bodyOverride: chatBody,
+      });
+      if (responseText == null) return;
+
+      if (isSupermemoryEnabled(__dirname) && responseText) {
+        persistConversation(__dirname, projDir, messages, responseText).catch(
+          (err) => {
+            console.warn("[supermemory] persistConversation:", err.message);
+          }
+        );
+      }
+
+      res.json({
+        text: responseText || "Desculpe, não consegui obter uma resposta.",
+        supermemory: supermemoryMeta,
+      });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ error: "Erro ao consultar IA", details: err.message });
+    }
+  })
+);
 
 // API: Execute AI agent actions
 
-app.post("/api/ai/execute-action", async (req, res) => {
-  const projDir = getProjectDir(req);
+app.post(
+  "/api/ai/execute-action",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
 
-  const { actions } = req.body;
+    const { actions } = req.body;
 
-  if (!actions || !Array.isArray(actions)) {
-    return res.status(400).json({ error: "No actions provided" });
-  }
-
-  const results = [];
-
-  try {
-    for (const action of actions) {
-      try {
-        switch (action.type) {
-          case "update_config": {
-            const configPath = path.join(projDir, "config_qanat.json");
-
-            let config = {};
-
-            if (fs.existsSync(configPath)) {
-              try {
-                config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-              } catch (e) {}
-            }
-
-            config[action.field] = action.value;
-
-            fs.writeFileSync(
-              configPath,
-              JSON.stringify(config, null, 2),
-              "utf8"
-            );
-
-            results.push({
-              type: action.type,
-              field: action.field,
-              status: "ok",
-            });
-
-            break;
-          }
-
-          case "trigger_render": {
-            const renderMode = action.render_type || "remotion-pro";
-            results.push({
-              type: action.type,
-              status: "ok",
-              message: `Render ${renderMode} pronto para iniciar`,
-              render_mode: renderMode,
-              render_url: `/api/render/${renderMode}?project=${encodeURIComponent(path.basename(projDir))}`,
-            });
-            break;
-          }
-
-          case "trigger_mix": {
-            ensureFileExists("mix_bgm.py", projDir);
-            const mixScript = path.join(projDir, "mix_bgm.py");
-            if (!fs.existsSync(mixScript)) {
-              results.push({
-                type: action.type,
-                status: "error",
-                message: "mix_bgm.py não encontrado",
-              });
-              break;
-            }
-            await new Promise((resolve, reject) => {
-              const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
-                cwd: projDir,
-                shell: true,
-                env: { ...process.env, PYTHONUNBUFFERED: "1" },
-              });
-              let stderr = "";
-              child.stderr.on("data", (d) => {
-                stderr += d.toString();
-              });
-              child.on("close", (code) => {
-                if (code === 0) resolve();
-                else reject(new Error(stderr || `Mix falhou (code ${code})`));
-              });
-            });
-            results.push({
-              type: action.type,
-              status: "ok",
-              message: "Mix BGM concluído",
-            });
-            break;
-          }
-
-          case "navigate_tab": {
-            results.push({ type: action.type, tab: action.tab, status: "ok" });
-
-            break;
-          }
-
-          case "trigger_sync": {
-            if (!fs.existsSync(path.join(projDir, "find_block_timings.py"))) {
-              results.push({
-                type: action.type,
-                status: "error",
-                message: "find_block_timings.py não encontrado",
-              });
-              break;
-            }
-            await new Promise((resolve, reject) => {
-              const child = spawn(PYTHON_PATH, ["find_block_timings.py"], {
-                cwd: projDir,
-                shell: true,
-                env: buildPythonSpawnEnv(),
-              });
-              child.on("close", (code) =>
-                code === 0 ? resolve() : reject(new Error(`Sync exit ${code}`))
-              );
-            });
-            results.push({
-              type: action.type,
-              status: "ok",
-              message: "Sincronização concluída",
-            });
-            break;
-          }
-
-          case "trigger_auto_map": {
-            const configPath = path.join(projDir, "config_qanat.json");
-            let cfg = readJsonFile(configPath) || {};
-            const mapEpoch = Number(cfg.timeline_map_epoch || 0);
-            const mapped = buildTimelineFromStoryboard(projDir, {
-              remapping: true,
-              rotateOffset: mapEpoch,
-            });
-            cfg.timeline_assets = mapped.timelineAssets;
-            cfg.timeline_map_epoch = mapEpoch + 1;
-            fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
-            results.push({
-              type: action.type,
-              status: "ok",
-              asset_count: mapped.assetCount,
-            });
-            break;
-          }
-
-          case "trigger_stock_fetch": {
-            const stockResult = await fetchStockForScenes(projDir, {
-              workspaceDir: WORKSPACE_DIR,
-            });
-            results.push({
-              type: action.type,
-              status: stockResult.success ? "ok" : "error",
-              fetched: stockResult.fetched?.length || 0,
-              message:
-                stockResult.error ||
-                `${stockResult.fetched?.length || 0} arquivos baixados`,
-            });
-            break;
-          }
-
-          case "trigger_tts": {
-            const ttsResult = await generateNarrationTts(projDir, {
-              voice: action.voice,
-              rate: action.rate,
-              pitch: action.pitch,
-              speed: action.speed,
-              platform: action.engine || action.platform || "kokoro",
-              workspaceDir: WORKSPACE_DIR,
-            });
-            results.push({
-              type: action.type,
-              status: "ok",
-              file: ttsResult.file,
-            });
-            break;
-          }
-
-          case "trigger_publish_prep": {
-            if (!workflowApi?.generateYoutubeMetadataForProject) {
-              results.push({
-                type: action.type,
-                status: "error",
-                message: "Workflow API não inicializada",
-              });
-              break;
-            }
-            const prep = await runPublishPrep(projDir, {
-              generateMetadata: (dir) =>
-                workflowApi.generateYoutubeMetadataForProject(dir, {
-                  req,
-                  res,
-                }),
-              generateThumbnails: async (dir, metadata) =>
-                generateYoutubeThumbnailImages({
-                  projectDir: dir,
-                  projectName: path.basename(dir),
-                  thumbnails: metadata?.parsed?.thumbnails || [],
-                  format: metadata?.format || "LONG",
-                  palette: metadata?.palette || [],
-                }),
-            });
-            results.push({
-              type: action.type,
-              status: "ok",
-              prepared: true,
-              thumbnails: prep.thumbnails?.length || 0,
-            });
-            break;
-          }
-
-          case "trigger_apply_bgm": {
-            const token = getEpidemicSoundKey(projDir) || "";
-            const cfg =
-              readJsonFile(path.join(projDir, "config_qanat.json")) || {};
-            const mode =
-              cfg.aspect_ratio === "9:16" || cfg.video_format === "SHORTS"
-                ? "SHORTS"
-                : "LONGO";
-            const logs = await runAutoSoundtrackLogic(projDir, token, mode);
-            results.push({
-              type: action.type,
-              status: "ok",
-              logs: logs.slice(-3),
-            });
-            break;
-          }
-
-          case "run_pipeline_step": {
-            if (!workflowApi?.buildCreatorPipelineHandlers) {
-              results.push({
-                type: action.type,
-                status: "error",
-                message: "Workflow API não inicializada",
-              });
-              break;
-            }
-            const handlers = workflowApi.buildCreatorPipelineHandlers();
-            const stepId = action.step || action.stepId;
-            if (!handlers[stepId]) {
-              results.push({
-                type: action.type,
-                status: "error",
-                message: `Step desconhecido: ${stepId}`,
-              });
-              break;
-            }
-            await handlers[stepId](projDir, () => {});
-            results.push({ type: action.type, status: "ok", step: stepId });
-            break;
-          }
-
-          case "show_message": {
-            results.push({
-              type: action.type,
-              message: action.message,
-              status: "ok",
-            });
-
-            break;
-          }
-
-          default:
-            results.push({
-              type: action.type,
-              status: "error",
-              message: "Unknown action type",
-            });
-        }
-      } catch (err) {
-        if (err?.geminiBrowserPending) throw err;
-        results.push({
-          type: action.type,
-          status: "error",
-          message: err.message,
-        });
-      }
+    if (!actions || !Array.isArray(actions)) {
+      return res.status(400).json({ error: "No actions provided" });
     }
 
-    res.json({ results });
-  } catch (err) {
-    if (err?.geminiBrowserPending) return;
-    res.status(500).json({ error: err.message });
-  }
-});
+    const results = [];
+
+    try {
+      for (const action of actions) {
+        try {
+          switch (action.type) {
+            case "update_config": {
+              const configPath = path.join(projDir, "config_qanat.json");
+
+              let config = {};
+
+              if (fs.existsSync(configPath)) {
+                try {
+                  config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+                } catch (e) {}
+              }
+
+              config[action.field] = action.value;
+
+              fs.writeFileSync(
+                configPath,
+                JSON.stringify(config, null, 2),
+                "utf8"
+              );
+
+              results.push({
+                type: action.type,
+                field: action.field,
+                status: "ok",
+              });
+
+              break;
+            }
+
+            case "trigger_render": {
+              const renderMode = action.render_type || "remotion-pro";
+              results.push({
+                type: action.type,
+                status: "ok",
+                message: `Render ${renderMode} pronto para iniciar`,
+                render_mode: renderMode,
+                render_url: `/api/render/${renderMode}?project=${encodeURIComponent(path.basename(projDir))}`,
+              });
+              break;
+            }
+
+            case "trigger_mix": {
+              ensureFileExists("mix_bgm.py", projDir);
+              const mixScript = path.join(projDir, "mix_bgm.py");
+              if (!fs.existsSync(mixScript)) {
+                results.push({
+                  type: action.type,
+                  status: "error",
+                  message: "mix_bgm.py não encontrado",
+                });
+                break;
+              }
+              await new Promise((resolve, reject) => {
+                const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
+                  cwd: projDir,
+                  shell: true,
+                  env: { ...process.env, PYTHONUNBUFFERED: "1" },
+                });
+                let stderr = "";
+                child.stderr.on("data", (d) => {
+                  stderr += d.toString();
+                });
+                child.on("close", (code) => {
+                  if (code === 0) resolve();
+                  else reject(new Error(stderr || `Mix falhou (code ${code})`));
+                });
+              });
+              results.push({
+                type: action.type,
+                status: "ok",
+                message: "Mix BGM concluído",
+              });
+              break;
+            }
+
+            case "navigate_tab": {
+              results.push({
+                type: action.type,
+                tab: action.tab,
+                status: "ok",
+              });
+
+              break;
+            }
+
+            case "trigger_sync": {
+              if (!fs.existsSync(path.join(projDir, "find_block_timings.py"))) {
+                results.push({
+                  type: action.type,
+                  status: "error",
+                  message: "find_block_timings.py não encontrado",
+                });
+                break;
+              }
+              await new Promise((resolve, reject) => {
+                const child = spawn(PYTHON_PATH, ["find_block_timings.py"], {
+                  cwd: projDir,
+                  shell: true,
+                  env: buildPythonSpawnEnv(),
+                });
+                child.on("close", (code) =>
+                  code === 0
+                    ? resolve()
+                    : reject(new Error(`Sync exit ${code}`))
+                );
+              });
+              results.push({
+                type: action.type,
+                status: "ok",
+                message: "Sincronização concluída",
+              });
+              break;
+            }
+
+            case "trigger_auto_map": {
+              const configPath = path.join(projDir, "config_qanat.json");
+              let cfg = readJsonFile(configPath) || {};
+              const mapEpoch = Number(cfg.timeline_map_epoch || 0);
+              const mapped = buildTimelineFromStoryboard(projDir, {
+                remapping: true,
+                rotateOffset: mapEpoch,
+              });
+              cfg.timeline_assets = mapped.timelineAssets;
+              cfg.timeline_map_epoch = mapEpoch + 1;
+              fs.writeFileSync(
+                configPath,
+                JSON.stringify(cfg, null, 2),
+                "utf8"
+              );
+              results.push({
+                type: action.type,
+                status: "ok",
+                asset_count: mapped.assetCount,
+              });
+              break;
+            }
+
+            case "trigger_stock_fetch": {
+              const stockResult = await fetchStockForScenes(projDir, {
+                workspaceDir: WORKSPACE_DIR,
+              });
+              results.push({
+                type: action.type,
+                status: stockResult.success ? "ok" : "error",
+                fetched: stockResult.fetched?.length || 0,
+                message:
+                  stockResult.error ||
+                  `${stockResult.fetched?.length || 0} arquivos baixados`,
+              });
+              break;
+            }
+
+            case "trigger_tts": {
+              const ttsResult = await generateNarrationTts(projDir, {
+                voice: action.voice,
+                rate: action.rate,
+                pitch: action.pitch,
+                speed: action.speed,
+                platform: action.engine || action.platform || "kokoro",
+                workspaceDir: WORKSPACE_DIR,
+              });
+              results.push({
+                type: action.type,
+                status: "ok",
+                file: ttsResult.file,
+              });
+              break;
+            }
+
+            case "trigger_publish_prep": {
+              if (!workflowApi?.generateYoutubeMetadataForProject) {
+                results.push({
+                  type: action.type,
+                  status: "error",
+                  message: "Workflow API não inicializada",
+                });
+                break;
+              }
+              const prep = await runPublishPrep(projDir, {
+                generateMetadata: (dir) =>
+                  workflowApi.generateYoutubeMetadataForProject(dir, {
+                    req,
+                    res,
+                  }),
+                generateThumbnails: async (dir, metadata) =>
+                  generateYoutubeThumbnailImages({
+                    projectDir: dir,
+                    projectName: path.basename(dir),
+                    thumbnails: metadata?.parsed?.thumbnails || [],
+                    format: metadata?.format || "LONG",
+                    palette: metadata?.palette || [],
+                  }),
+              });
+              results.push({
+                type: action.type,
+                status: "ok",
+                prepared: true,
+                thumbnails: prep.thumbnails?.length || 0,
+              });
+              break;
+            }
+
+            case "trigger_apply_bgm": {
+              const token = getEpidemicSoundKey(projDir) || "";
+              const cfg =
+                readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+              const mode =
+                cfg.aspect_ratio === "9:16" || cfg.video_format === "SHORTS"
+                  ? "SHORTS"
+                  : "LONGO";
+              const logs = await runAutoSoundtrackLogic(projDir, token, mode);
+              results.push({
+                type: action.type,
+                status: "ok",
+                logs: logs.slice(-3),
+              });
+              break;
+            }
+
+            case "run_pipeline_step": {
+              if (!workflowApi?.buildCreatorPipelineHandlers) {
+                results.push({
+                  type: action.type,
+                  status: "error",
+                  message: "Workflow API não inicializada",
+                });
+                break;
+              }
+              const handlers = workflowApi.buildCreatorPipelineHandlers();
+              const stepId = action.step || action.stepId;
+              if (!handlers[stepId]) {
+                results.push({
+                  type: action.type,
+                  status: "error",
+                  message: `Step desconhecido: ${stepId}`,
+                });
+                break;
+              }
+              await handlers[stepId](projDir, () => {});
+              results.push({ type: action.type, status: "ok", step: stepId });
+              break;
+            }
+
+            case "show_message": {
+              results.push({
+                type: action.type,
+                message: action.message,
+                status: "ok",
+              });
+
+              break;
+            }
+
+            default:
+              results.push({
+                type: action.type,
+                status: "error",
+                message: "Unknown action type",
+              });
+          }
+        } catch (err) {
+          if (err?.geminiBrowserPending) throw err;
+          results.push({
+            type: action.type,
+            status: "error",
+            message: err.message,
+          });
+        }
+      }
+
+      res.json({ results });
+    } catch (err) {
+      if (err?.geminiBrowserPending) return;
+      res.status(500).json({ error: err.message });
+    }
+  })
+);
 
 // API: Generate YouTube Metadata (SEO Titles, Description, Tags, Chapters)
 
@@ -10935,379 +11050,384 @@ async function enhanceCreatorStrategyTitles(
   };
 }
 
-app.post("/api/ai/optimize-youtube", async (req, res) => {
-  const projDir = getProjectDir(req);
+app.post(
+  "/api/ai/optimize-youtube",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
 
-  const apiKeys = getApiKeys(projDir);
+    const apiKeys = getApiKeys(projDir);
 
-  const xaiKey = getXaiApiKey(projDir);
+    const xaiKey = getXaiApiKey(projDir);
 
-  const aiProvider = getAiProvider(projDir);
+    const aiProvider = getAiProvider(projDir);
 
-  const openrouterKey = getOpenRouterApiKey(projDir);
+    const openrouterKey = getOpenRouterApiKey(projDir);
 
-  const nvidiaKey = getNvidiaApiKey(projDir);
-  const inferenceKey = getInferenceApiKey(projDir);
-  if (
-    apiKeys.length === 0 &&
-    !xaiKey &&
-    !(aiProvider === "openrouter" && openrouterKey) &&
-    !(aiProvider === "nvidia" && nvidiaKey) &&
-    !(aiProvider === "inference" && inferenceKey) &&
-    !shouldOfferGeminiBrowser(projDir)
-  ) {
-    return res.status(401).json({ error: "Nenhuma chave de IA configurada." });
-  }
-
-  try {
-    const configPath = path.join(projDir, "config_qanat.json");
-
-    const timingsPath = path.join(projDir, "block_timings.json");
-
-    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
-
-    let config = {};
-
-    let timings = { starts: [] };
-
-    let transcript = "";
-
-    if (fs.existsSync(configPath)) {
-      try {
-        config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      } catch (e) {}
+    const nvidiaKey = getNvidiaApiKey(projDir);
+    const inferenceKey = getInferenceApiKey(projDir);
+    if (
+      apiKeys.length === 0 &&
+      !xaiKey &&
+      !(aiProvider === "openrouter" && openrouterKey) &&
+      !(aiProvider === "nvidia" && nvidiaKey) &&
+      !(aiProvider === "inference" && inferenceKey) &&
+      !shouldOfferGeminiBrowser(projDir)
+    ) {
+      return res
+        .status(401)
+        .json({ error: "Nenhuma chave de IA configurada." });
     }
 
-    if (fs.existsSync(timingsPath)) {
-      try {
-        timings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
-      } catch (e) {}
-    }
+    try {
+      const configPath = path.join(projDir, "config_qanat.json");
 
-    if (fs.existsSync(transcriptPath)) {
-      try {
-        transcript = fs.readFileSync(transcriptPath, "utf8");
-      } catch (e) {}
-    }
+      const timingsPath = path.join(projDir, "block_timings.json");
 
-    // Load storyboard for extra context
+      const transcriptPath = path.join(projDir, "transcripts_readable.txt");
 
-    let storyboard = {};
+      let config = {};
 
-    const storyboardPath = path.join(projDir, "storyboard.json");
+      let timings = { starts: [] };
 
-    if (fs.existsSync(storyboardPath)) {
-      try {
-        storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-      } catch (e) {}
-    }
+      let transcript = "";
 
-    transcript = buildProjectTranscript({ transcript, config, storyboard });
+      if (fs.existsSync(configPath)) {
+        try {
+          config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+        } catch (e) {}
+      }
 
-    if (!transcript) {
-      return res.status(400).json({
-        error: "Roteiro não encontrado para este projeto.",
+      if (fs.existsSync(timingsPath)) {
+        try {
+          timings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
+        } catch (e) {}
+      }
 
-        details:
-          "Crie ou carregue transcripts_readable.txt, storyboard.json com narrative_script/visual_prompts, ou config_qanat.json com block_phrases.",
+      if (fs.existsSync(transcriptPath)) {
+        try {
+          transcript = fs.readFileSync(transcriptPath, "utf8");
+        } catch (e) {}
+      }
+
+      // Load storyboard for extra context
+
+      let storyboard = {};
+
+      const storyboardPath = path.join(projDir, "storyboard.json");
+
+      if (fs.existsSync(storyboardPath)) {
+        try {
+          storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+        } catch (e) {}
+      }
+
+      transcript = buildProjectTranscript({ transcript, config, storyboard });
+
+      if (!transcript) {
+        return res.status(400).json({
+          error: "Roteiro não encontrado para este projeto.",
+
+          details:
+            "Crie ou carregue transcripts_readable.txt, storyboard.json com narrative_script/visual_prompts, ou config_qanat.json com block_phrases.",
+        });
+      }
+
+      const projectName = path.basename(projDir);
+
+      const metadataCtx = resolveYoutubeMetadataContext({
+        config,
+        timings,
+        storyboard,
+        projectName,
       });
-    }
 
-    const projectName = path.basename(projDir);
-
-    const metadataCtx = resolveYoutubeMetadataContext({
-      config,
-      timings,
-      storyboard,
-      projectName,
-    });
-
-    const {
-      format,
-      niche,
-      totalDuration,
-      chaptersText,
-      category,
-      profile,
-      rpmHint,
-    } = metadataCtx;
-
-    let prompt = buildYoutubeMetadataPrompt({
-      transcript,
-      chaptersText,
-      storyboard,
-      config,
-      format,
-      niche,
-      totalDuration,
-      category,
-      profile,
-      rpmHint,
-    });
-    prompt = injectStudioAgentsContext(prompt, WORKSPACE_DIR, {
-      niche,
-      task: "metadata",
-      format,
-    });
-
-    const respondWithMetadata = async (text, extra = {}) => {
-      const normalizedText = normalizeMetadataMarkdown(text);
-      const apiKeyForTitles = apiKeys[0] || null;
-      const parsed = await enhanceYoutubeTitlesMetadata(normalizedText, {
-        transcript,
+      const {
         format,
+        niche,
+        totalDuration,
+        chaptersText,
+        category,
+        profile,
+        rpmHint,
+      } = metadataCtx;
+
+      let prompt = buildYoutubeMetadataPrompt({
+        transcript,
+        chaptersText,
         storyboard,
         config,
-        apiKey: extra.fallback ? null : apiKeyForTitles,
-      });
-      const payload = {
-        text: normalizedText,
         format,
         niche,
         totalDuration,
         category,
-        profile: { id: profile.id, label: profile.label },
-        rpm: rpmHint.rpm,
-        palette: rpmHint.palette,
-        parsed,
-        titleRefined: !extra.fallback,
-        ...extra,
+        profile,
+        rpmHint,
+      });
+      prompt = injectStudioAgentsContext(prompt, WORKSPACE_DIR, {
+        niche,
+        task: "metadata",
+        format,
+      });
+
+      const respondWithMetadata = async (text, extra = {}) => {
+        const normalizedText = normalizeMetadataMarkdown(text);
+        const apiKeyForTitles = apiKeys[0] || null;
+        const parsed = await enhanceYoutubeTitlesMetadata(normalizedText, {
+          transcript,
+          format,
+          storyboard,
+          config,
+          apiKey: extra.fallback ? null : apiKeyForTitles,
+        });
+        const payload = {
+          text: normalizedText,
+          format,
+          niche,
+          totalDuration,
+          category,
+          profile: { id: profile.id, label: profile.label },
+          rpm: rpmHint.rpm,
+          palette: rpmHint.palette,
+          parsed,
+          titleRefined: !extra.fallback,
+          ...extra,
+        };
+
+        try {
+          fs.writeFileSync(
+            path.join(projDir, "youtube_metadata_cache.json"),
+            JSON.stringify(
+              {
+                generatedAt: new Date().toISOString(),
+                pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+                format,
+                niche,
+                category,
+                profile: payload.profile,
+                rpm: rpmHint.rpm,
+                palette: rpmHint.palette,
+                parsed,
+                text,
+              },
+              null,
+              2
+            ),
+            "utf8"
+          );
+        } catch (cacheErr) {
+          console.warn(
+            "[YouTube Metadata] Falha ao salvar cache:",
+            cacheErr.message
+          );
+        }
+
+        return res.json(payload);
       };
 
-      try {
-        fs.writeFileSync(
-          path.join(projDir, "youtube_metadata_cache.json"),
-          JSON.stringify(
-            {
-              generatedAt: new Date().toISOString(),
-              pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
-              format,
-              niche,
-              category,
-              profile: payload.profile,
-              rpm: rpmHint.rpm,
-              palette: rpmHint.palette,
-              parsed,
-              text,
-            },
-            null,
-            2
-          ),
-          "utf8"
-        );
-      } catch (cacheErr) {
-        console.warn(
-          "[YouTube Metadata] Falha ao salvar cache:",
-          cacheErr.message
-        );
-      }
+      const errors = [];
+      const browserTextRaw = extractBrowserResponse(req.body);
+      const browserText = browserTextRaw
+        ? normalizeMetadataMarkdown(browserTextRaw)
+        : "";
+      const forceBrowser =
+        req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
 
-      return res.json(payload);
-    };
-
-    const errors = [];
-    const browserTextRaw = extractBrowserResponse(req.body);
-    const browserText = browserTextRaw
-      ? normalizeMetadataMarkdown(browserTextRaw)
-      : "";
-    const forceBrowser =
-      req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
-
-    if (browserText && forceBrowser) {
-      if (looksLikeLumieraPrompt(browserText)) {
-        console.warn(
-          "[YouTube Metadata] browser_response é o prompt — não a resposta do Gemini."
-        );
-        return res.status(422).json({
-          error:
-            "Capturou o prompt em vez da resposta. Aguarde o Gemini terminar em gemini.google.com e tente de novo.",
-          staleResponse: true,
-        });
-      }
-      if (looksLikeOverlayJsonResponse(browserText)) {
-        console.warn(
-          "[YouTube Metadata] Resposta de overlays rejeitada no fluxo de metadados."
-        );
-        return res.status(422).json({
-          error:
-            "Resposta antiga de overlays detectada. Aguarde os metadados na aba gemini.google.com e tente de novo.",
-          staleResponse: true,
-        });
-      }
-      if (!isMetadataBrowserResponseReady(browserText)) {
-        console.warn(
-          "[YouTube Metadata] browser_response incompleto ou inválido."
-        );
-        return res.status(422).json({
-          error:
-            "Resposta do Gemini incompleta. Aguarde ## TÍTULOS na aba gemini.google.com e tente de novo.",
-          staleResponse: true,
-        });
-      }
-    }
-
-    if (aiProvider === "nvidia" && nvidiaKey && !forceBrowser) {
-      const responseText = await generateMetadataWithNvidia(
-        prompt,
-        nvidiaKey,
-        format
-      );
-
-      return await respondWithMetadata(responseText, { provider: "nvidia" });
-    }
-
-    if (aiProvider === "xai" && xaiKey && !forceBrowser) {
-      const responseText = await generateMetadataWithXai(
-        prompt,
-        xaiKey,
-        format
-      );
-
-      return await respondWithMetadata(responseText, { provider: "xai" });
-    }
-
-    let responseText = browserText;
-
-    if (!responseText && forceBrowser) {
-      const metadataSessionId = createMetadataSessionId();
-      const promptWithSession = `${prompt}\n\n[LUMIERA] Na primeira linha da resposta, inclua exatamente: LUMIERA_METADATA_SESSION:${metadataSessionId}`;
-      const promptText = buildBrowserTaskPrompt(
-        "Metadados YouTube",
-        promptWithSession,
-        "",
-        {
-          taskType: "metadata",
-          responseFormat: "markdown",
+      if (browserText && forceBrowser) {
+        if (looksLikeLumieraPrompt(browserText)) {
+          console.warn(
+            "[YouTube Metadata] browser_response é o prompt — não a resposta do Gemini."
+          );
+          return res.status(422).json({
+            error:
+              "Capturou o prompt em vez da resposta. Aguarde o Gemini terminar em gemini.google.com e tente de novo.",
+            staleResponse: true,
+          });
         }
-      );
-      console.log(
-        `[YouTube Metadata] Aguardando Gemini no Chrome (sessão ${metadataSessionId}).`
-      );
-      return res.json(
-        offerGeminiBrowserPayload({
-          title: "Metadados YouTube",
-          prompt: promptText,
-          metadataSessionId,
-        })
-      );
-    }
-
-    if (!responseText) {
-      try {
-        responseText = await callGeminiLlm(req, res, projDir, {
-          title: "Metadados YouTube",
-          prompt,
-          temperature: 0.55,
-        });
-        if (responseText == null) return;
-      } catch (geminiErr) {
-        errors.push({
-          status: 503,
-          message: geminiErr.message,
-          quotaExceeded: true,
-        });
+        if (looksLikeOverlayJsonResponse(browserText)) {
+          console.warn(
+            "[YouTube Metadata] Resposta de overlays rejeitada no fluxo de metadados."
+          );
+          return res.status(422).json({
+            error:
+              "Resposta antiga de overlays detectada. Aguarde os metadados na aba gemini.google.com e tente de novo.",
+            staleResponse: true,
+          });
+        }
+        if (!isMetadataBrowserResponseReady(browserText)) {
+          console.warn(
+            "[YouTube Metadata] browser_response incompleto ou inválido."
+          );
+          return res.status(422).json({
+            error:
+              "Resposta do Gemini incompleta. Aguarde ## TÍTULOS na aba gemini.google.com e tente de novo.",
+            staleResponse: true,
+          });
+        }
       }
-    }
 
-    if (responseText) {
-      if (
-        forceBrowser &&
-        browserText &&
-        looksLikeFallbackMetadata(responseText)
-      ) {
-        return res.status(422).json({
-          error:
-            "Metadados genéricos detectados — Gemini no Chrome não concluiu. Tente de novo.",
-          staleResponse: true,
-        });
-      }
-      return await respondWithMetadata(responseText, {
-        tried_keys: browserText ? 0 : 1,
-        provider: browserText ? "gemini_browser" : undefined,
-      });
-    }
-
-    if (forceBrowser) {
-      return res.status(422).json({
-        error:
-          "Gemini no Chrome não retornou metadados válidos. Deixe gemini.google.com aberto e tente de novo.",
-      });
-    }
-
-    if (nvidiaKey) {
-      try {
+      if (aiProvider === "nvidia" && nvidiaKey && !forceBrowser) {
         const responseText = await generateMetadataWithNvidia(
           prompt,
           nvidiaKey,
           format
         );
 
-        return await respondWithMetadata(responseText, {
-          provider: "nvidia",
-
-          warning: `As ${apiKeys.length} chaves Gemini falharam. Usei NVIDIA API como fallback.`,
-        });
-      } catch (err) {
-        errors.push({
-          status: "nvidia",
-          message: err.message,
-          quotaExceeded: false,
-        });
+        return await respondWithMetadata(responseText, { provider: "nvidia" });
       }
-    }
 
-    if (xaiKey) {
-      try {
+      if (aiProvider === "xai" && xaiKey && !forceBrowser) {
         const responseText = await generateMetadataWithXai(
           prompt,
           xaiKey,
           format
         );
 
-        return await respondWithMetadata(responseText, {
-          provider: "xai",
+        return await respondWithMetadata(responseText, { provider: "xai" });
+      }
 
-          warning: `As ${apiKeys.length} chaves Gemini falharam. Usei Grok/xAI como fallback.`,
-        });
-      } catch (err) {
-        errors.push({
-          status: "xai",
-          message: err.message,
-          quotaExceeded: false,
+      let responseText = browserText;
+
+      if (!responseText && forceBrowser) {
+        const metadataSessionId = createMetadataSessionId();
+        const promptWithSession = `${prompt}\n\n[LUMIERA] Na primeira linha da resposta, inclua exatamente: LUMIERA_METADATA_SESSION:${metadataSessionId}`;
+        const promptText = buildBrowserTaskPrompt(
+          "Metadados YouTube",
+          promptWithSession,
+          "",
+          {
+            taskType: "metadata",
+            responseFormat: "markdown",
+          }
+        );
+        console.log(
+          `[YouTube Metadata] Aguardando Gemini no Chrome (sessão ${metadataSessionId}).`
+        );
+        return res.json(
+          offerGeminiBrowserPayload({
+            title: "Metadados YouTube",
+            prompt: promptText,
+            metadataSessionId,
+          })
+        );
+      }
+
+      if (!responseText) {
+        try {
+          responseText = await callGeminiLlm(req, res, projDir, {
+            title: "Metadados YouTube",
+            prompt,
+            temperature: 0.55,
+          });
+          if (responseText == null) return;
+        } catch (geminiErr) {
+          errors.push({
+            status: 503,
+            message: geminiErr.message,
+            quotaExceeded: true,
+          });
+        }
+      }
+
+      if (responseText) {
+        if (
+          forceBrowser &&
+          browserText &&
+          looksLikeFallbackMetadata(responseText)
+        ) {
+          return res.status(422).json({
+            error:
+              "Metadados genéricos detectados — Gemini no Chrome não concluiu. Tente de novo.",
+            staleResponse: true,
+          });
+        }
+        return await respondWithMetadata(responseText, {
+          tried_keys: browserText ? 0 : 1,
+          provider: browserText ? "gemini_browser" : undefined,
         });
       }
+
+      if (forceBrowser) {
+        return res.status(422).json({
+          error:
+            "Gemini no Chrome não retornou metadados válidos. Deixe gemini.google.com aberto e tente de novo.",
+        });
+      }
+
+      if (nvidiaKey) {
+        try {
+          const responseText = await generateMetadataWithNvidia(
+            prompt,
+            nvidiaKey,
+            format
+          );
+
+          return await respondWithMetadata(responseText, {
+            provider: "nvidia",
+
+            warning: `As ${apiKeys.length} chaves Gemini falharam. Usei NVIDIA API como fallback.`,
+          });
+        } catch (err) {
+          errors.push({
+            status: "nvidia",
+            message: err.message,
+            quotaExceeded: false,
+          });
+        }
+      }
+
+      if (xaiKey) {
+        try {
+          const responseText = await generateMetadataWithXai(
+            prompt,
+            xaiKey,
+            format
+          );
+
+          return await respondWithMetadata(responseText, {
+            provider: "xai",
+
+            warning: `As ${apiKeys.length} chaves Gemini falharam. Usei Grok/xAI como fallback.`,
+          });
+        } catch (err) {
+          errors.push({
+            status: "xai",
+            message: err.message,
+            quotaExceeded: false,
+          });
+        }
+      }
+
+      const fallbackText = buildFallbackYoutubeMetadata({
+        transcript,
+        chaptersText,
+        storyboard,
+        config,
+        format,
+        niche,
+        category,
+        profile,
+        rpmHint,
+      });
+
+      const quotaErrors = errors.filter((error) => error.quotaExceeded).length;
+
+      return await respondWithMetadata(fallbackText, {
+        fallback: true,
+
+        tried_keys: apiKeys.length,
+
+        warning:
+          quotaErrors === apiKeys.length
+            ? `Todas as ${apiKeys.length} chaves cadastradas atingiram limite temporário. Usei metadados locais por enquanto.`
+            : `Não consegui gerar com Gemini usando as ${apiKeys.length} chaves cadastradas. Usei metadados locais por enquanto.`,
+      });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ error: "Erro ao otimizar metadados", details: err.message });
     }
-
-    const fallbackText = buildFallbackYoutubeMetadata({
-      transcript,
-      chaptersText,
-      storyboard,
-      config,
-      format,
-      niche,
-      category,
-      profile,
-      rpmHint,
-    });
-
-    const quotaErrors = errors.filter((error) => error.quotaExceeded).length;
-
-    return await respondWithMetadata(fallbackText, {
-      fallback: true,
-
-      tried_keys: apiKeys.length,
-
-      warning:
-        quotaErrors === apiKeys.length
-          ? `Todas as ${apiKeys.length} chaves cadastradas atingiram limite temporário. Usei metadados locais por enquanto.`
-          : `Não consegui gerar com Gemini usando as ${apiKeys.length} chaves cadastradas. Usei metadados locais por enquanto.`,
-    });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ error: "Erro ao otimizar metadados", details: err.message });
-  }
-});
+  })
+);
 
 app.get("/api/ai/youtube-metadata-cache", (req, res) => {
   const projDir = getProjectDir(req);
@@ -11593,34 +11713,37 @@ function youtubeChannelForceRefresh(req) {
   );
 }
 
-app.get("/api/youtube/channel/summary", async (req, res) => {
-  const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
-  const limit = Math.min(Math.max(Number(req.query?.limit) || 25, 1), 50);
-  const views48hThreshold = Math.min(
-    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
-    100000
-  );
-  const maxProjects = Math.min(
-    Math.max(Number(req.query?.maxProjects) || 12, 1),
-    20
-  );
-  try {
-    const summary = await fetchChannelSummary(WORKSPACE_DIR, PROJECTS_ROOT, {
-      days,
-      limit,
-      views48hThreshold,
-      maxProjects,
-      forceRefresh: youtubeChannelForceRefresh(req),
-    });
-    res.json(summary);
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(
-      err,
-      "Erro ao buscar resumo do canal"
+app.get(
+  "/api/youtube/channel/summary",
+  asyncHandler(async (req, res) => {
+    const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
+    const limit = Math.min(Math.max(Number(req.query?.limit) || 25, 1), 50);
+    const views48hThreshold = Math.min(
+      Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+      100000
     );
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
+    const maxProjects = Math.min(
+      Math.max(Number(req.query?.maxProjects) || 12, 1),
+      20
+    );
+    try {
+      const summary = await fetchChannelSummary(WORKSPACE_DIR, PROJECTS_ROOT, {
+        days,
+        limit,
+        views48hThreshold,
+        maxProjects,
+        forceRefresh: youtubeChannelForceRefresh(req),
+      });
+      res.json(summary);
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(
+        err,
+        "Erro ao buscar resumo do canal"
+      );
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
+  })
+);
 
 app.get("/api/youtube/channel/overview", async (req, res) => {
   try {
@@ -11657,61 +11780,67 @@ app.get("/api/youtube/channel/videos", async (req, res) => {
   }
 });
 
-app.get("/api/youtube/channel/alerts", async (req, res) => {
-  const views48hThreshold = Math.min(
-    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
-    100000
-  );
-  const maxProjects = Math.min(
-    Math.max(Number(req.query?.maxProjects) || 12, 1),
-    20
-  );
-  try {
-    const report = await fetchChannelAlerts(WORKSPACE_DIR, PROJECTS_ROOT, {
-      views48hThreshold,
-      maxProjects,
-      forceRefresh: youtubeChannelForceRefresh(req),
-    });
-    res.json(report);
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(
-      err,
-      "Erro ao buscar alertas do canal"
-    );
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
-
-app.get("/api/youtube/channel/comments", async (req, res) => {
-  const limit = Math.min(Math.max(Number(req.query?.limit) || 20, 1), 50);
-  const filter = String(req.query?.filter || "all").toLowerCase();
-  const keyword = String(req.query?.keyword || "").trim();
-  const pageToken = String(req.query?.pageToken || "").trim();
-  const allowedFilters = new Set(["all", "unanswered"]);
-  const resolvedFilter = allowedFilters.has(filter) ? filter : "all";
-  try {
+app.get(
+  "/api/youtube/channel/alerts",
+  asyncHandler(async (req, res) => {
     const views48hThreshold = Math.min(
       Math.max(Number(req.query?.viewsThreshold) || 100, 1),
       100000
     );
-    const report = await fetchChannelComments(WORKSPACE_DIR, {
-      limit,
-      filter: resolvedFilter,
-      keyword,
-      pageToken,
-      projectsRoot: PROJECTS_ROOT,
-      views48hThreshold,
-      enrich: true,
-    });
-    res.json(report);
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(
-      err,
-      "Erro ao buscar comentários do canal"
+    const maxProjects = Math.min(
+      Math.max(Number(req.query?.maxProjects) || 12, 1),
+      20
     );
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
+    try {
+      const report = await fetchChannelAlerts(WORKSPACE_DIR, PROJECTS_ROOT, {
+        views48hThreshold,
+        maxProjects,
+        forceRefresh: youtubeChannelForceRefresh(req),
+      });
+      res.json(report);
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(
+        err,
+        "Erro ao buscar alertas do canal"
+      );
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
+  })
+);
+
+app.get(
+  "/api/youtube/channel/comments",
+  asyncHandler(async (req, res) => {
+    const limit = Math.min(Math.max(Number(req.query?.limit) || 20, 1), 50);
+    const filter = String(req.query?.filter || "all").toLowerCase();
+    const keyword = String(req.query?.keyword || "").trim();
+    const pageToken = String(req.query?.pageToken || "").trim();
+    const allowedFilters = new Set(["all", "unanswered"]);
+    const resolvedFilter = allowedFilters.has(filter) ? filter : "all";
+    try {
+      const views48hThreshold = Math.min(
+        Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+        100000
+      );
+      const report = await fetchChannelComments(WORKSPACE_DIR, {
+        limit,
+        filter: resolvedFilter,
+        keyword,
+        pageToken,
+        projectsRoot: PROJECTS_ROOT,
+        views48hThreshold,
+        enrich: true,
+      });
+      res.json(report);
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(
+        err,
+        "Erro ao buscar comentários do canal"
+      );
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
+  })
+);
 
 app.get("/api/youtube/channel/settings", (req, res) => {
   try {
@@ -11826,93 +11955,110 @@ app.get("/api/youtube/channel/reach", async (req, res) => {
   }
 });
 
-app.get("/api/youtube/channel/weekly-report", async (req, res) => {
-  const views48hThreshold = Math.min(
-    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
-    100000
-  );
-  try {
-    const report = await generateWeeklyReport(WORKSPACE_DIR, PROJECTS_ROOT, {
-      views48hThreshold,
-    });
-    res.json(report);
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(
-      err,
-      "Erro ao gerar relatório semanal"
+app.get(
+  "/api/youtube/channel/weekly-report",
+  asyncHandler(async (req, res) => {
+    const views48hThreshold = Math.min(
+      Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+      100000
     );
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
-
-app.post("/api/youtube/channel/weekly-report/send", async (req, res) => {
-  const views48hThreshold = Math.min(
-    Math.max(Number(req.body?.viewsThreshold) || 100, 1),
-    100000
-  );
-  try {
-    const result = await sendWeeklyReportEmail(WORKSPACE_DIR, PROJECTS_ROOT, {
-      views48hThreshold,
-      to: req.body?.to,
-    });
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/api/youtube/channel/project-snapshot", async (req, res) => {
-  const projectName = String(req.query?.project || "").trim();
-  const views48hThreshold = Math.min(
-    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
-    100000
-  );
-  if (!projectName) {
-    return res.status(400).json({ error: "Parâmetro project é obrigatório." });
-  }
-  try {
-    const snapshot = await fetchProjectYoutubeSnapshot(
-      WORKSPACE_DIR,
-      PROJECTS_ROOT,
-      projectName,
-      {
+    try {
+      const report = await generateWeeklyReport(WORKSPACE_DIR, PROJECTS_ROOT, {
         views48hThreshold,
-      }
-    );
-    res.json(snapshot);
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(
-      err,
-      "Erro ao buscar snapshot do projeto"
-    );
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
+      });
+      res.json(report);
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(
+        err,
+        "Erro ao gerar relatório semanal"
+      );
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
+  })
+);
 
-app.post("/api/youtube/channel/comments/reply", async (req, res) => {
-  const parentId = String(
-    req.body?.parentId || req.body?.commentId || ""
-  ).trim();
-  const text = String(req.body?.text || "").trim();
-  try {
-    const result = await replyToChannelComment(WORKSPACE_DIR, {
-      parentId,
-      text,
-    });
-    appendReplyHistory(WORKSPACE_DIR, {
-      commentId: parentId,
-      threadId: String(req.body?.threadId || "").trim(),
-      videoId: String(req.body?.videoId || "").trim(),
-      videoTitle: String(req.body?.videoTitle || "").trim(),
-      text,
-      source: String(req.body?.source || "manual"),
-    });
-    res.json(result);
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao responder comentário");
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
+app.post(
+  "/api/youtube/channel/weekly-report/send",
+  asyncHandler(async (req, res) => {
+    const views48hThreshold = Math.min(
+      Math.max(Number(req.body?.viewsThreshold) || 100, 1),
+      100000
+    );
+    try {
+      const result = await sendWeeklyReportEmail(WORKSPACE_DIR, PROJECTS_ROOT, {
+        views48hThreshold,
+        to: req.body?.to,
+      });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  })
+);
+
+app.get(
+  "/api/youtube/channel/project-snapshot",
+  asyncHandler(async (req, res) => {
+    const projectName = String(req.query?.project || "").trim();
+    const views48hThreshold = Math.min(
+      Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+      100000
+    );
+    if (!projectName) {
+      return res
+        .status(400)
+        .json({ error: "Parâmetro project é obrigatório." });
+    }
+    try {
+      const snapshot = await fetchProjectYoutubeSnapshot(
+        WORKSPACE_DIR,
+        PROJECTS_ROOT,
+        projectName,
+        {
+          views48hThreshold,
+        }
+      );
+      res.json(snapshot);
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(
+        err,
+        "Erro ao buscar snapshot do projeto"
+      );
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
+  })
+);
+
+app.post(
+  "/api/youtube/channel/comments/reply",
+  asyncHandler(async (req, res) => {
+    const parentId = String(
+      req.body?.parentId || req.body?.commentId || ""
+    ).trim();
+    const text = String(req.body?.text || "").trim();
+    try {
+      const result = await replyToChannelComment(WORKSPACE_DIR, {
+        parentId,
+        text,
+      });
+      appendReplyHistory(WORKSPACE_DIR, {
+        commentId: parentId,
+        threadId: String(req.body?.threadId || "").trim(),
+        videoId: String(req.body?.videoId || "").trim(),
+        videoTitle: String(req.body?.videoTitle || "").trim(),
+        text,
+        source: String(req.body?.source || "manual"),
+      });
+      res.json(result);
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(
+        err,
+        "Erro ao responder comentário"
+      );
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
+  })
+);
 
 app.get("/api/youtube/channel/video/:videoId/detail", async (req, res) => {
   const videoId = String(req.params?.videoId || "").trim();
@@ -12058,142 +12204,145 @@ app.get("/api/youtube/channel/comments/ideas", async (req, res) => {
   }
 });
 
-app.post("/api/youtube/channel/competitor-research", async (req, res) => {
-  const niche = String(req.body?.niche || "").trim();
-  const format =
-    String(req.body?.format || "SHORT").toUpperCase() === "LONG"
-      ? "LONG"
-      : "SHORT";
-  const maxCompetitors = Math.min(
-    Math.max(Number(req.body?.maxCompetitors) || 5, 1),
-    10
-  );
-  const seedChannels = Array.isArray(req.body?.seedChannels)
-    ? req.body.seedChannels
-    : [];
-  const useAi = req.body?.useAi !== false;
+app.post(
+  "/api/youtube/channel/competitor-research",
+  asyncHandler(async (req, res) => {
+    const niche = String(req.body?.niche || "").trim();
+    const format =
+      String(req.body?.format || "SHORT").toUpperCase() === "LONG"
+        ? "LONG"
+        : "SHORT";
+    const maxCompetitors = Math.min(
+      Math.max(Number(req.body?.maxCompetitors) || 5, 1),
+      10
+    );
+    const seedChannels = Array.isArray(req.body?.seedChannels)
+      ? req.body.seedChannels
+      : [];
+    const useAi = req.body?.useAi !== false;
 
-  try {
-    const LLM_TIMEOUT_MS = 90000;
-    const withTimeout = (promise, label) =>
-      Promise.race([
-        promise,
-        new Promise((_, reject) => {
-          setTimeout(
-            () => reject(new Error(`${label} timeout ${LLM_TIMEOUT_MS}ms`)),
-            LLM_TIMEOUT_MS
-          );
-        }),
-      ]);
+    try {
+      const LLM_TIMEOUT_MS = 90000;
+      const withTimeout = (promise, label) =>
+        Promise.race([
+          promise,
+          new Promise((_, reject) => {
+            setTimeout(
+              () => reject(new Error(`${label} timeout ${LLM_TIMEOUT_MS}ms`)),
+              LLM_TIMEOUT_MS
+            );
+          }),
+        ]);
 
-    const tryCompetitorLlm = async (label, fn) => {
-      try {
-        const text = String((await withTimeout(fn(), label)) || "").trim();
-        if (text) return text;
-        console.warn(`[CompetitorResearch] ${label}: resposta vazia`);
-      } catch (err) {
-        console.warn(`[CompetitorResearch] ${label} falhou:`, err.message);
-      }
-      return null;
-    };
+      const tryCompetitorLlm = async (label, fn) => {
+        try {
+          const text = String((await withTimeout(fn(), label)) || "").trim();
+          if (text) return text;
+          console.warn(`[CompetitorResearch] ${label}: resposta vazia`);
+        } catch (err) {
+          console.warn(`[CompetitorResearch] ${label} falhou:`, err.message);
+        }
+        return null;
+      };
 
-    const llmFn = useAi
-      ? async (prompt) => {
-          let text = null;
+      const llmFn = useAi
+        ? async (prompt) => {
+            let text = null;
 
-          if (getAiProvider(WORKSPACE_DIR) === "nvidia") {
-            for (const model of NVIDIA_MODELS.slice(0, 4)) {
-              text = await tryCompetitorLlm(`nvidia-${model}`, () =>
-                callNvidiaWithRetry(prompt, {
+            if (getAiProvider(WORKSPACE_DIR) === "nvidia") {
+              for (const model of NVIDIA_MODELS.slice(0, 4)) {
+                text = await tryCompetitorLlm(`nvidia-${model}`, () =>
+                  callNvidiaWithRetry(prompt, {
+                    maxRetries: 1,
+                    models: [model],
+                    temperature: 0.2,
+                    projectDir: WORKSPACE_DIR,
+                  })
+                );
+                if (text) break;
+              }
+            } else {
+              text = await tryCompetitorLlm("provider", () =>
+                callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+                  maxRetries: 1,
+                  temperature: 0.2,
+                  projectDir: WORKSPACE_DIR,
+                })
+              );
+            }
+
+            return text;
+          }
+        : null;
+
+      const repairJsonFn = useAi
+        ? async (candidate) => {
+            const repairPrompt = `Corrija o JSON abaixo para sintaxe 100% válida. Preserve todos os textos. Retorne APENAS o JSON, sem markdown.\n\n${candidate}`;
+            let text = null;
+            for (const model of [
+              "qwen/qwen3.5-397b-a17b",
+              "moonshotai/kimi-k2.6",
+              "deepseek/deepseek-v4-flash",
+            ]) {
+              text = await tryCompetitorLlm(`json-repair-${model}`, () =>
+                callNvidiaWithRetry(repairPrompt, {
                   maxRetries: 1,
                   models: [model],
-                  temperature: 0.2,
+                  temperature: 0,
                   projectDir: WORKSPACE_DIR,
                 })
               );
               if (text) break;
             }
-          } else {
-            text = await tryCompetitorLlm("provider", () =>
-              callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
-                maxRetries: 1,
-                temperature: 0.2,
-                projectDir: WORKSPACE_DIR,
-              })
-            );
+            if (!text) {
+              text = await tryCompetitorLlm("json-repair-gemini", () =>
+                callGeminiWithRetry(getApiKey(WORKSPACE_DIR), repairPrompt, {
+                  maxRetries: 1,
+                  models: ["gemini-2.0-flash"],
+                  temperature: 0,
+                  projectDir: WORKSPACE_DIR,
+                  forceProvider: "gemini",
+                })
+              );
+            }
+            return text;
           }
+        : null;
 
-          return text;
-        }
-      : null;
-
-    const repairJsonFn = useAi
-      ? async (candidate) => {
-          const repairPrompt = `Corrija o JSON abaixo para sintaxe 100% válida. Preserve todos os textos. Retorne APENAS o JSON, sem markdown.\n\n${candidate}`;
-          let text = null;
-          for (const model of [
-            "qwen/qwen3.5-397b-a17b",
-            "moonshotai/kimi-k2.6",
-            "deepseek/deepseek-v4-flash",
-          ]) {
-            text = await tryCompetitorLlm(`json-repair-${model}`, () =>
-              callNvidiaWithRetry(repairPrompt, {
-                maxRetries: 1,
-                models: [model],
-                temperature: 0,
-                projectDir: WORKSPACE_DIR,
-              })
-            );
-            if (text) break;
-          }
-          if (!text) {
-            text = await tryCompetitorLlm("json-repair-gemini", () =>
-              callGeminiWithRetry(getApiKey(WORKSPACE_DIR), repairPrompt, {
-                maxRetries: 1,
-                models: ["gemini-2.0-flash"],
-                temperature: 0,
-                projectDir: WORKSPACE_DIR,
-                forceProvider: "gemini",
-              })
-            );
-          }
-          return text;
-        }
-      : null;
-
-    const report = await runCompetitorResearch(WORKSPACE_DIR, {
-      niche,
-      format,
-      maxCompetitors,
-      seedChannels,
-      projectsRoot: PROJECTS_ROOT,
-      llmFn,
-      repairJsonFn,
-    });
-    try {
-      const { enqueueEditorialIdeas } =
-        await import("./youtubeEditorialQueue.js");
-      const enqueued = enqueueEditorialIdeas(
-        WORKSPACE_DIR,
-        report.analysis?.derivedIdeas || [],
-        { source: "competitor-research", format }
-      );
-      report.editorialQueue = {
-        enqueued: (report.analysis?.derivedIdeas || []).length,
-        total: enqueued.items.length,
-      };
+      const report = await runCompetitorResearch(WORKSPACE_DIR, {
+        niche,
+        format,
+        maxCompetitors,
+        seedChannels,
+        projectsRoot: PROJECTS_ROOT,
+        llmFn,
+        repairJsonFn,
+      });
+      try {
+        const { enqueueEditorialIdeas } =
+          await import("./youtubeEditorialQueue.js");
+        const enqueued = enqueueEditorialIdeas(
+          WORKSPACE_DIR,
+          report.analysis?.derivedIdeas || [],
+          { source: "competitor-research", format }
+        );
+        report.editorialQueue = {
+          enqueued: (report.analysis?.derivedIdeas || []).length,
+          total: enqueued.items.length,
+        };
+      } catch (err) {
+        console.warn("[CompetitorResearch] Fila editorial:", err.message);
+      }
+      res.json(report);
     } catch (err) {
-      console.warn("[CompetitorResearch] Fila editorial:", err.message);
+      const payload = youtubeApiErrorPayload(
+        err,
+        "Erro na pesquisa de concorrentes"
+      );
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
     }
-    res.json(report);
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(
-      err,
-      "Erro na pesquisa de concorrentes"
-    );
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
+  })
+);
 
 app.get("/api/youtube/channel/editorial-queue", async (_req, res) => {
   try {
@@ -12231,84 +12380,100 @@ app.delete("/api/youtube/channel/editorial-queue/:id", async (req, res) => {
   }
 });
 
-app.post("/api/youtube/channel/top-winners", async (req, res) => {
-  const days = Math.min(Math.max(Number(req.body?.days) || 7, 3), 28);
-  const limit = Math.min(Math.max(Number(req.body?.limit) || 3, 1), 5);
-  const niche = String(req.body?.niche || "").trim();
-  const useAi = req.body?.useAi !== false;
+app.post(
+  "/api/youtube/channel/top-winners",
+  asyncHandler(async (req, res) => {
+    const days = Math.min(Math.max(Number(req.body?.days) || 7, 3), 28);
+    const limit = Math.min(Math.max(Number(req.body?.limit) || 3, 1), 5);
+    const niche = String(req.body?.niche || "").trim();
+    const useAi = req.body?.useAi !== false;
 
-  try {
-    const { generateTopWinnerIdeas } =
-      await import("./youtubeEditorialQueue.js");
-    const config =
-      readJsonFile(path.join(WORKSPACE_DIR, "config_qanat.json")) || {};
-    const llmFn = useAi
-      ? async (prompt) =>
-          callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
-            maxRetries: 1,
-            temperature: 0.4,
-            projectDir: WORKSPACE_DIR,
-          })
-      : null;
+    try {
+      const { generateTopWinnerIdeas } =
+        await import("./youtubeEditorialQueue.js");
+      const config =
+        readJsonFile(path.join(WORKSPACE_DIR, "config_qanat.json")) || {};
+      const llmFn = useAi
+        ? async (prompt) =>
+            callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+              maxRetries: 1,
+              temperature: 0.4,
+              projectDir: WORKSPACE_DIR,
+            })
+        : null;
 
-    const result = await generateTopWinnerIdeas(WORKSPACE_DIR, PROJECTS_ROOT, {
-      days,
-      limit,
-      niche: niche || config.niche || "",
-      llmFn,
-    });
-    if (!result.ok) return res.status(404).json(result);
-    res.json(result);
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(
-      err,
-      "Erro ao gerar ideias dos top vídeos"
+      const result = await generateTopWinnerIdeas(
+        WORKSPACE_DIR,
+        PROJECTS_ROOT,
+        {
+          days,
+          limit,
+          niche: niche || config.niche || "",
+          llmFn,
+        }
+      );
+      if (!result.ok) return res.status(404).json(result);
+      res.json(result);
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(
+        err,
+        "Erro ao gerar ideias dos top vídeos"
+      );
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
+  })
+);
+
+app.get(
+  "/api/youtube/channel/export.csv",
+  asyncHandler(async (req, res) => {
+    const type = String(req.query?.type || "comments");
+    const views48hThreshold = Math.min(
+      Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+      100000
     );
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
-
-app.get("/api/youtube/channel/export.csv", async (req, res) => {
-  const type = String(req.query?.type || "comments");
-  const views48hThreshold = Math.min(
-    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
-    100000
-  );
-  try {
-    if (type === "videos") {
-      const [videos, lumiera] = await Promise.all([
-        fetchChannelVideosWithAnalytics(WORKSPACE_DIR, { days: 28, limit: 50 }),
-        fetchLumieraVideosReport(WORKSPACE_DIR, PROJECTS_ROOT, { days: 28 }),
-      ]);
-      const csv = videosToCsv([
-        ...(videos.videos || []),
-        ...(lumiera.videos || []).map((v) => ({ ...v, videoFormat: v.format })),
-      ]);
+    try {
+      if (type === "videos") {
+        const [videos, lumiera] = await Promise.all([
+          fetchChannelVideosWithAnalytics(WORKSPACE_DIR, {
+            days: 28,
+            limit: 50,
+          }),
+          fetchLumieraVideosReport(WORKSPACE_DIR, PROJECTS_ROOT, { days: 28 }),
+        ]);
+        const csv = videosToCsv([
+          ...(videos.videos || []),
+          ...(lumiera.videos || []).map((v) => ({
+            ...v,
+            videoFormat: v.format,
+          })),
+        ]);
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader(
+          "Content-Disposition",
+          'attachment; filename="youtube-videos.csv"'
+        );
+        return res.send(csv);
+      }
+      const commentsReport = await fetchChannelComments(WORKSPACE_DIR, {
+        limit: 50,
+        filter: "all",
+        projectsRoot: PROJECTS_ROOT,
+        views48hThreshold,
+        enrich: true,
+      });
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader(
         "Content-Disposition",
-        'attachment; filename="youtube-videos.csv"'
+        'attachment; filename="youtube-comments.csv"'
       );
-      return res.send(csv);
+      res.send(commentsToCsv(commentsReport.comments || []));
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(err, "Erro ao exportar CSV");
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
     }
-    const commentsReport = await fetchChannelComments(WORKSPACE_DIR, {
-      limit: 50,
-      filter: "all",
-      projectsRoot: PROJECTS_ROOT,
-      views48hThreshold,
-      enrich: true,
-    });
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader(
-      "Content-Disposition",
-      'attachment; filename="youtube-comments.csv"'
-    );
-    res.send(commentsToCsv(commentsReport.comments || []));
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao exportar CSV");
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
+  })
+);
 
 app.get("/api/youtube/channel/response-stats", async (req, res) => {
   try {
@@ -12340,21 +12505,24 @@ app.get("/api/youtube/channel/response-stats", async (req, res) => {
   }
 });
 
-app.get("/api/youtube/channel/daily-report", async (req, res) => {
-  const views48hThreshold = Math.min(
-    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
-    100000
-  );
-  try {
-    res.json(
-      await generateDailyReport(WORKSPACE_DIR, PROJECTS_ROOT, {
-        views48hThreshold,
-      })
+app.get(
+  "/api/youtube/channel/daily-report",
+  asyncHandler(async (req, res) => {
+    const views48hThreshold = Math.min(
+      Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+      100000
     );
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    try {
+      res.json(
+        await generateDailyReport(WORKSPACE_DIR, PROJECTS_ROOT, {
+          views48hThreshold,
+        })
+      );
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  })
+);
 
 app.post("/api/youtube/channel/webhooks/test", async (req, res) => {
   try {
@@ -12371,47 +12539,53 @@ app.post("/api/youtube/channel/webhooks/test", async (req, res) => {
   }
 });
 
-app.get("/api/youtube/channel/post-publish-checklist", async (req, res) => {
-  const projectName = String(req.query?.project || "").trim();
-  const videoId = String(req.query?.videoId || "").trim();
-  if (!projectName)
-    return res.status(400).json({ error: "project é obrigatório." });
-  try {
-    res.json(
-      await getPostPublishChecklist(
-        WORKSPACE_DIR,
-        PROJECTS_ROOT,
-        projectName,
-        videoId
-      )
-    );
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+app.get(
+  "/api/youtube/channel/post-publish-checklist",
+  asyncHandler(async (req, res) => {
+    const projectName = String(req.query?.project || "").trim();
+    const videoId = String(req.query?.videoId || "").trim();
+    if (!projectName)
+      return res.status(400).json({ error: "project é obrigatório." });
+    try {
+      res.json(
+        await getPostPublishChecklist(
+          WORKSPACE_DIR,
+          PROJECTS_ROOT,
+          projectName,
+          videoId
+        )
+      );
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  })
+);
 
-app.post("/api/youtube/channel/post-publish-checklist", async (req, res) => {
-  const projectName = String(req.body?.project || "").trim();
-  const itemId = String(req.body?.itemId || "").trim();
-  if (!projectName || !itemId)
-    return res.status(400).json({ error: "project e itemId obrigatórios." });
-  try {
-    const { collectLumieraPublishedVideos } =
-      await import("./youtubeChannelAnalytics.js");
-    const entry = collectLumieraPublishedVideos(PROJECTS_ROOT).find(
-      (p) => p.projectName === projectName
-    );
-    res.json(
-      savePostPublishChecklistItem(
-        entry?.projectPath,
-        itemId,
-        req.body?.done !== false
-      )
-    );
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+app.post(
+  "/api/youtube/channel/post-publish-checklist",
+  asyncHandler(async (req, res) => {
+    const projectName = String(req.body?.project || "").trim();
+    const itemId = String(req.body?.itemId || "").trim();
+    if (!projectName || !itemId)
+      return res.status(400).json({ error: "project e itemId obrigatórios." });
+    try {
+      const { collectLumieraPublishedVideos } =
+        await import("./youtubeChannelAnalytics.js");
+      const entry = collectLumieraPublishedVideos(PROJECTS_ROOT).find(
+        (p) => p.projectName === projectName
+      );
+      res.json(
+        savePostPublishChecklistItem(
+          entry?.projectPath,
+          itemId,
+          req.body?.done !== false
+        )
+      );
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  })
+);
 
 app.get("/api/youtube/channel/pro/dashboard", async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query?.limit) || 40, 5), 50);
@@ -12687,20 +12861,23 @@ app.post("/api/youtube/title-experiment/start", async (req, res) => {
   }
 });
 
-app.post("/api/youtube/title-experiment/apply", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const variantId = String(req.body?.variantId || "").toUpperCase();
-  if (!variantId) {
-    return res.status(400).json({ error: "variantId é obrigatório." });
-  }
-  try {
-    const result = await applyTitleVariant(WORKSPACE_DIR, projDir, variantId);
-    res.json({ success: true, ...result });
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao aplicar título");
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
+app.post(
+  "/api/youtube/title-experiment/apply",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const variantId = String(req.body?.variantId || "").toUpperCase();
+    if (!variantId) {
+      return res.status(400).json({ error: "variantId é obrigatório." });
+    }
+    try {
+      const result = await applyTitleVariant(WORKSPACE_DIR, projDir, variantId);
+      res.json({ success: true, ...result });
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(err, "Erro ao aplicar título");
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
+  })
+);
 
 app.get("/api/youtube/title-experiment/analytics", async (req, res) => {
   const projDir = getProjectDir(req);
@@ -12767,24 +12944,27 @@ app.post("/api/youtube/title-experiment/apply-first", async (req, res) => {
   }
 });
 
-app.get("/api/youtube/title-experiment/retention", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const experiment = loadTitleExperiment(projDir);
-  const videoId = experiment?.videoId || req.query?.videoId;
-  if (!videoId) {
-    return res.status(400).json({ error: "videoId não encontrado." });
-  }
-  try {
-    const [retention, velocity] = await Promise.all([
-      fetchRetentionCurve(WORKSPACE_DIR, videoId),
-      fetchVideoVelocity(WORKSPACE_DIR, videoId),
-    ]);
-    res.json({ retention, velocity });
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao buscar retenção");
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
+app.get(
+  "/api/youtube/title-experiment/retention",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const experiment = loadTitleExperiment(projDir);
+    const videoId = experiment?.videoId || req.query?.videoId;
+    if (!videoId) {
+      return res.status(400).json({ error: "videoId não encontrado." });
+    }
+    try {
+      const [retention, velocity] = await Promise.all([
+        fetchRetentionCurve(WORKSPACE_DIR, videoId),
+        fetchVideoVelocity(WORKSPACE_DIR, videoId),
+      ]);
+      res.json({ retention, velocity });
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(err, "Erro ao buscar retenção");
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
+  })
+);
 
 app.post("/api/upload/post-upload", async (req, res) => {
   const projDir = getProjectDir(req);
@@ -12830,24 +13010,27 @@ app.post("/api/youtube/thumbnail-experiment/start", (req, res) => {
   }
 });
 
-app.post("/api/youtube/thumbnail-experiment/apply", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const variantId = String(req.body?.variantId || "").toUpperCase();
-  if (!variantId) {
-    return res.status(400).json({ error: "variantId é obrigatório." });
-  }
-  try {
-    const result = await applyThumbnailVariant(
-      WORKSPACE_DIR,
-      projDir,
-      variantId
-    );
-    res.json({ success: true, ...result });
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao aplicar thumbnail");
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
-  }
-});
+app.post(
+  "/api/youtube/thumbnail-experiment/apply",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const variantId = String(req.body?.variantId || "").toUpperCase();
+    if (!variantId) {
+      return res.status(400).json({ error: "variantId é obrigatório." });
+    }
+    try {
+      const result = await applyThumbnailVariant(
+        WORKSPACE_DIR,
+        projDir,
+        variantId
+      );
+      res.json({ success: true, ...result });
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(err, "Erro ao aplicar thumbnail");
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
+  })
+);
 
 app.get("/api/youtube/thumbnail-experiment/analytics", async (req, res) => {
   const projDir = getProjectDir(req);
@@ -12863,97 +13046,102 @@ app.get("/api/youtube/thumbnail-experiment/analytics", async (req, res) => {
   }
 });
 
-app.get("/api/pipeline/run", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const stepsParam = req.query?.steps || "mix,upload";
-  const steps = String(stepsParam)
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+app.get(
+  "/api/pipeline/run",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const stepsParam = req.query?.steps || "mix,upload";
+    const steps = String(stepsParam)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
-  res.flushHeaders();
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
 
-  const sendLog = (text) => {
-    res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
-  };
+    const sendLog = (text) => {
+      res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+    };
 
-  try {
-    const results = await runFullPipeline({
-      projDir,
-      pythonPath: PYTHON_PATH,
-      sendLog,
-      steps,
-      handlers: {
-        metadata: async (dir, log) => {
-          if (!workflowApi?.generateYoutubeMetadataForProject) {
-            log("[Pipeline] Workflow API indisponível para metadados.");
-            return;
-          }
-          try {
-            await workflowApi.generateYoutubeMetadataForProject(dir);
-            log("[Pipeline] Metadados YouTube gerados.");
-          } catch (err) {
-            log(`[Pipeline] Falha ao gerar metadados: ${err.message}`);
-            throw err;
-          }
-        },
-        thumbnails: async (dir, log) => {
-          const cachePath = path.join(dir, "youtube_metadata_cache.json");
-          if (!fs.existsSync(cachePath)) return;
-          const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
-          const thumbs = cache?.parsed?.thumbnails || [];
-          if (!thumbs.length) return;
-          const result = await generateYoutubeThumbnailImages({
-            projectDir: dir,
-            projectName: path.basename(dir),
-            thumbnails: thumbs,
-            format: cache.format || "LONG",
-            palette: cache.palette || [],
-          });
-          log(
-            `[Pipeline] ${result.thumbnails?.length || 0} thumbnails geradas.`
-          );
-        },
-        render: async (dir, log, mode) => {
-          ensureFileExists("build_video.py", dir);
-          const scriptName =
-            mode === "highlighted"
-              ? "build_video_destacado.py"
-              : "build_video.py";
-          if (mode === "remotion" || mode === "remotion-pro") {
-            log(
-              `[Pipeline] Render ${mode} — use a aba Render para concluir (passo pesado).`
-            );
-            return;
-          }
-          await new Promise((resolve, reject) => {
-            const child = spawn(PYTHON_PATH, [scriptName], {
-              cwd: dir,
-              shell: true,
+    try {
+      const results = await runFullPipeline({
+        projDir,
+        pythonPath: PYTHON_PATH,
+        sendLog,
+        steps,
+        handlers: {
+          metadata: async (dir, log) => {
+            if (!workflowApi?.generateYoutubeMetadataForProject) {
+              log("[Pipeline] Workflow API indisponível para metadados.");
+              return;
+            }
+            try {
+              await workflowApi.generateYoutubeMetadataForProject(dir);
+              log("[Pipeline] Metadados YouTube gerados.");
+            } catch (err) {
+              log(`[Pipeline] Falha ao gerar metadados: ${err.message}`);
+              throw err;
+            }
+          },
+          thumbnails: async (dir, log) => {
+            const cachePath = path.join(dir, "youtube_metadata_cache.json");
+            if (!fs.existsSync(cachePath)) return;
+            const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+            const thumbs = cache?.parsed?.thumbnails || [];
+            if (!thumbs.length) return;
+            const result = await generateYoutubeThumbnailImages({
+              projectDir: dir,
+              projectName: path.basename(dir),
+              thumbnails: thumbs,
+              format: cache.format || "LONG",
+              palette: cache.palette || [],
             });
-            child.stdout.on("data", (d) => log(d.toString().trim()));
-            child.stderr.on("data", (d) =>
-              log(`[stderr] ${d.toString().trim()}`)
+            log(
+              `[Pipeline] ${result.thumbnails?.length || 0} thumbnails geradas.`
             );
-            child.on("close", (code) =>
-              code === 0 ? resolve() : reject(new Error(`Render exit ${code}`))
-            );
-          });
+          },
+          render: async (dir, log, mode) => {
+            ensureFileExists("build_video.py", dir);
+            const scriptName =
+              mode === "highlighted"
+                ? "build_video_destacado.py"
+                : "build_video.py";
+            if (mode === "remotion" || mode === "remotion-pro") {
+              log(
+                `[Pipeline] Render ${mode} — use a aba Render para concluir (passo pesado).`
+              );
+              return;
+            }
+            await new Promise((resolve, reject) => {
+              const child = spawn(PYTHON_PATH, [scriptName], {
+                cwd: dir,
+                shell: true,
+              });
+              child.stdout.on("data", (d) => log(d.toString().trim()));
+              child.stderr.on("data", (d) =>
+                log(`[stderr] ${d.toString().trim()}`)
+              );
+              child.on("close", (code) =>
+                code === 0
+                  ? resolve()
+                  : reject(new Error(`Render exit ${code}`))
+              );
+            });
+          },
         },
-      },
-    });
-    res.write(`data: ${JSON.stringify({ type: "complete", results })}\n\n`);
-  } catch (err) {
-    res.write(
-      `data: ${JSON.stringify({ type: "error", message: err.message })}\n\n`
-    );
-  }
-  res.end();
-});
+      });
+      res.write(`data: ${JSON.stringify({ type: "complete", results })}\n\n`);
+    } catch (err) {
+      res.write(
+        `data: ${JSON.stringify({ type: "error", message: err.message })}\n\n`
+      );
+    }
+    res.end();
+  })
+);
 
 app.post("/api/upload/instagram/save-app", (req, res) => {
   const { app_id, app_secret } = req.body;
@@ -12980,21 +13168,24 @@ app.get("/api/upload/instagram/oauth-url", (req, res) => {
   }
 });
 
-app.get("/api/upload/instagram/callback", async (req, res) => {
-  const code = req.query?.code;
-  if (!code) {
-    return res.status(400).send("Código OAuth ausente.");
-  }
-  try {
-    const redirectUri = `${LUMIERA_BACKEND_BASE}/api/upload/instagram/callback`;
-    await exchangeInstagramCode(WORKSPACE_DIR, code, redirectUri);
-    res.send(
-      "<html><body><h2>Instagram conectado!</h2><p>Feche esta aba e volte ao Lumiera.</p></body></html>"
-    );
-  } catch (err) {
-    res.status(500).send(`Erro: ${err.message}`);
-  }
-});
+app.get(
+  "/api/upload/instagram/callback",
+  asyncHandler(async (req, res) => {
+    const code = req.query?.code;
+    if (!code) {
+      return res.status(400).send("Código OAuth ausente.");
+    }
+    try {
+      const redirectUri = `${LUMIERA_BACKEND_BASE}/api/upload/instagram/callback`;
+      await exchangeInstagramCode(WORKSPACE_DIR, code, redirectUri);
+      res.send(
+        "<html><body><h2>Instagram conectado!</h2><p>Feche esta aba e volte ao Lumiera.</p></body></html>"
+      );
+    } catch (err) {
+      res.status(500).send(`Erro: ${err.message}`);
+    }
+  })
+);
 
 // API: AI-powered BGM suggestion per block
 
@@ -14307,34 +14498,36 @@ app.delete("/api/brand/channels/:id", (req, res) => {
   }
 });
 
-app.post("/api/ai/generate-creator-script", async (req, res) => {
-  const projDir = getProjectDir(req);
+app.post(
+  "/api/ai/generate-creator-script",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
 
-  const { prompt, useNotebooklm } = req.body;
+    const { prompt, useNotebooklm } = req.body;
 
-  if (!prompt) {
-    return res.status(400).json({ error: "Prompt/Tema não fornecido" });
-  }
-
-  let notebooklmContext = "";
-  if (useNotebooklm !== false) {
-    try {
-      const research = await fetchNotebooklmScriptContext({
-        backendDir: __dirname,
-        niche: prompt,
-        format: "LONGO",
-        idea: { title: prompt, promise: prompt, emotion: "Curiosidade" },
-      });
-      notebooklmContext = formatNotebooklmPromptBlock(
-        research,
-        "PESQUISA NOTEBOOKLM"
-      );
-    } catch (e) {
-      notebooklmContext = "";
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt/Tema não fornecido" });
     }
-  }
 
-  const promptSystem = `Você é o "AI Video Creator Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um roteirista profissional, estrategista de retenção e editor de vídeos para YouTube.
+    let notebooklmContext = "";
+    if (useNotebooklm !== false) {
+      try {
+        const research = await fetchNotebooklmScriptContext({
+          backendDir: __dirname,
+          niche: prompt,
+          format: "LONGO",
+          idea: { title: prompt, promise: prompt, emotion: "Curiosidade" },
+        });
+        notebooklmContext = formatNotebooklmPromptBlock(
+          research,
+          "PESQUISA NOTEBOOKLM"
+        );
+      } catch (e) {
+        notebooklmContext = "";
+      }
+    }
+
+    const promptSystem = `Você é o "AI Video Creator Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um roteirista profissional, estrategista de retenção e editor de vídeos para YouTube.
 
 O usuário deseja criar um documentário cinematográfico de 12 blocos sobre o tema: "${prompt}".
 ${notebooklmContext}
@@ -14401,59 +14594,60 @@ Você deve responder com um objeto JSON válido contendo exatamente as seguintes
 
 Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`json ou explicações antes ou depois. Responda apenas com o JSON estruturado.`;
 
-  try {
-    const responseText = await callGeminiLlm(req, res, projDir, {
-      title: "Roteiro Creator (12 blocos)",
-      prompt: promptSystem,
-    });
-    if (responseText == null) return;
+    try {
+      const responseText = await callGeminiLlm(req, res, projDir, {
+        title: "Roteiro Creator (12 blocos)",
+        prompt: promptSystem,
+      });
+      if (responseText == null) return;
 
-    const parsedData = await parseAiJsonResponse(
-      responseText,
-      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
-      "Roteiro/configuracao"
-    );
+      const parsedData = await parseAiJsonResponse(
+        responseText,
+        extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+        "Roteiro/configuracao"
+      );
 
-    // Save script to transcripts_readable.txt
+      // Save script to transcripts_readable.txt
 
-    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+      const transcriptPath = path.join(projDir, "transcripts_readable.txt");
 
-    fs.writeFileSync(transcriptPath, parsedData.script, "utf8");
+      fs.writeFileSync(transcriptPath, parsedData.script, "utf8");
 
-    // Save configuration
+      // Save configuration
 
-    const configPath = path.join(projDir, "config_qanat.json");
+      const configPath = path.join(projDir, "config_qanat.json");
 
-    let currentConfig = {};
+      let currentConfig = {};
 
-    if (fs.existsSync(configPath)) {
-      try {
-        currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      } catch (e) {}
+      if (fs.existsSync(configPath)) {
+        try {
+          currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+        } catch (e) {}
+      }
+
+      const newConfig = {
+        gemini_api_key: currentConfig.gemini_api_key,
+
+        highlight_keywords: parsedData.highlight_keywords,
+
+        bgm_mappings: parsedData.bgm_mappings,
+
+        impact_texts: parsedData.impact_texts,
+
+        block_phrases: parsedData.block_phrases,
+      };
+
+      fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
+
+      res.json({ success: true, script: parsedData.script, config: newConfig });
+    } catch (err) {
+      res.status(500).json({
+        error: "Erro ao gerar roteiro/configuração",
+        details: err.message,
+      });
     }
-
-    const newConfig = {
-      gemini_api_key: currentConfig.gemini_api_key,
-
-      highlight_keywords: parsedData.highlight_keywords,
-
-      bgm_mappings: parsedData.bgm_mappings,
-
-      impact_texts: parsedData.impact_texts,
-
-      block_phrases: parsedData.block_phrases,
-    };
-
-    fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
-
-    res.json({ success: true, script: parsedData.script, config: newConfig });
-  } catch (err) {
-    res.status(500).json({
-      error: "Erro ao gerar roteiro/configuração",
-      details: err.message,
-    });
-  }
-});
+  })
+);
 
 function getExistingProjectsMetadata() {
   const projects = [];
@@ -14516,171 +14710,175 @@ function getExistingProjectsMetadata() {
 
 // API: SCRIPT MASTER Step 1 - Generate Research & 10 Ideas
 
-app.post("/api/ai/creator/ideas", async (req, res) => {
-  const projDir = getProjectDir(req);
+app.post(
+  "/api/ai/creator/ideas",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
 
-  const browserText = extractBrowserResponse(req.body);
+    const browserText = extractBrowserResponse(req.body);
 
-  const {
-    niche,
-    format,
-    useNotebooklm,
-    contentMode,
-    rankCount,
-    rankOrder,
-    listTopic,
-    excludeIdeas = [],
-    forceVariety = false,
-    useDeepResearch = true,
-  } = req.body;
+    const {
+      niche,
+      format,
+      useNotebooklm,
+      contentMode,
+      rankCount,
+      rankOrder,
+      listTopic,
+      excludeIdeas = [],
+      forceVariety = false,
+      useDeepResearch = true,
+    } = req.body;
 
-  if (!niche || !format) {
-    return res.status(400).json({ error: "Nicho e Formato são obrigatórios." });
-  }
-
-  const isListicle = contentMode === "LISTICLE";
-  const listicleRank = clampListicleRankCount(rankCount, format);
-  const listicleTopic = String(listTopic || niche).trim();
-  const nicheClean = String(niche).trim();
-  const generationSeed = makeIdeasGenerationSeed();
-
-  const previousIdeas = Array.isArray(excludeIdeas)
-    ? excludeIdeas
-        .map((i) => String(i?.title || i || "").trim())
-        .filter(Boolean)
-    : [];
-  const historyTopics = loadIdeasHistory(WORKSPACE_DIR, nicheClean);
-  const projectTopics = collectProjectTopics(PROJECTS_ROOT);
-  const excludeTopics = mergeExclusionTopics({
-    projectTopics,
-    historyTopics,
-    previousIdeas,
-  });
-  const explorationAxes = buildIdeasExplorationAxes(generationSeed);
-  const exclusionAddendum = buildIdeasExclusionAddendum(excludeTopics);
-  const diversityHint = explorationAxes
-    .split("\n")
-    .filter((l) => /^\d+\./.test(l))
-    .join(" | ");
-
-  const skipResearch = browserText || shouldOfferGeminiBrowser(projDir);
-  const researchTopic = isListicle ? listicleTopic : nicheClean;
-  const fmtDeep = format === "SHORTS" ? "SHORTS" : "LONGO";
-
-  let deepResearchContext = "";
-  let deepResearchMeta = null;
-
-  if (useDeepResearch !== false && !skipResearch) {
-    try {
-      const { llmFn: competitorLlmFn, repairJsonFn: competitorRepairFn } =
-        buildCompetitorLlmFns(
-          {
-            workspaceDir: WORKSPACE_DIR,
-            getAiProvider,
-            getApiKey,
-            getApiKeys,
-            getGeminiModel,
-            callGeminiWithRetry,
-            callNvidiaWithRetry,
-            NVIDIA_MODELS,
-          },
-          { useAi: true }
-        );
-
-      const deepLegs =
-        useNotebooklm !== false
-          ? ["web", "exa", "competitors", "notebooklm"]
-          : ["web", "exa", "competitors"];
-
-      console.log(
-        `[IDEAS] DeerFlow — nicho="${nicheClean}" legs=${deepLegs.join(",")}`
-      );
-      const deep = await runDeepResearch(WORKSPACE_DIR, {
-        topic: researchTopic,
-        niche: nicheClean,
-        format: fmtDeep,
-        legs: deepLegs,
-        llmFn: competitorLlmFn,
-        repairJsonFn: competitorRepairFn,
-        getApiKeys: () => getApiKeys(projDir),
-        apiKey: getApiKey(projDir),
-        backendDir: __dirname,
-        notebooklmDeep: useNotebooklm !== false,
-        enqueueIdeas: false,
-        diversityHint,
-        excludeTopics,
-      });
-
-      if (deep.ok) {
-        deepResearchContext = formatDeepResearchForIdeasPrompt(
-          deep.report,
-          deep.plan,
-          deep.artifacts
-        );
-        deepResearchMeta = {
-          factCount: deep.report?.factCount || 0,
-          derivedIdeas: deep.report?.derivedIdeas?.length || 0,
-          outlierCount: deep.artifacts?.competitors?.outlierCount || 0,
-          legs: {
-            web: Boolean(deep.artifacts?.web?.available),
-            exa: Boolean(deep.artifacts?.exa?.available),
-            notebooklm: Boolean(deep.artifacts?.notebooklm?.available),
-            competitors: Boolean(deep.artifacts?.competitors),
-          },
-          legErrors: (deep.legErrors || []).length,
-        };
-      }
-    } catch (err) {
-      console.warn(
-        "[IDEAS] DeerFlow falhou — fallback pesquisa rápida:",
-        err.message
-      );
+    if (!niche || !format) {
+      return res
+        .status(400)
+        .json({ error: "Nicho e Formato são obrigatórios." });
     }
-  }
 
-  let notebooklmContext = "";
-  let webResearchContext = "";
+    const isListicle = contentMode === "LISTICLE";
+    const listicleRank = clampListicleRankCount(rankCount, format);
+    const listicleTopic = String(listTopic || niche).trim();
+    const nicheClean = String(niche).trim();
+    const generationSeed = makeIdeasGenerationSeed();
 
-  if (!deepResearchContext && !skipResearch) {
-    if (useNotebooklm !== false) {
+    const previousIdeas = Array.isArray(excludeIdeas)
+      ? excludeIdeas
+          .map((i) => String(i?.title || i || "").trim())
+          .filter(Boolean)
+      : [];
+    const historyTopics = loadIdeasHistory(WORKSPACE_DIR, nicheClean);
+    const projectTopics = collectProjectTopics(PROJECTS_ROOT);
+    const excludeTopics = mergeExclusionTopics({
+      projectTopics,
+      historyTopics,
+      previousIdeas,
+    });
+    const explorationAxes = buildIdeasExplorationAxes(generationSeed);
+    const exclusionAddendum = buildIdeasExclusionAddendum(excludeTopics);
+    const diversityHint = explorationAxes
+      .split("\n")
+      .filter((l) => /^\d+\./.test(l))
+      .join(" | ");
+
+    const skipResearch = browserText || shouldOfferGeminiBrowser(projDir);
+    const researchTopic = isListicle ? listicleTopic : nicheClean;
+    const fmtDeep = format === "SHORTS" ? "SHORTS" : "LONGO";
+
+    let deepResearchContext = "";
+    let deepResearchMeta = null;
+
+    if (useDeepResearch !== false && !skipResearch) {
       try {
-        const research = await fetchNotebooklmResearch(niche, format, {
+        const { llmFn: competitorLlmFn, repairJsonFn: competitorRepairFn } =
+          buildCompetitorLlmFns(
+            {
+              workspaceDir: WORKSPACE_DIR,
+              getAiProvider,
+              getApiKey,
+              getApiKeys,
+              getGeminiModel,
+              callGeminiWithRetry,
+              callNvidiaWithRetry,
+              NVIDIA_MODELS,
+            },
+            { useAi: true }
+          );
+
+        const deepLegs =
+          useNotebooklm !== false
+            ? ["web", "exa", "competitors", "notebooklm"]
+            : ["web", "exa", "competitors"];
+
+        console.log(
+          `[IDEAS] DeerFlow — nicho="${nicheClean}" legs=${deepLegs.join(",")}`
+        );
+        const deep = await runDeepResearch(WORKSPACE_DIR, {
+          topic: researchTopic,
+          niche: nicheClean,
+          format: fmtDeep,
+          legs: deepLegs,
+          llmFn: competitorLlmFn,
+          repairJsonFn: competitorRepairFn,
+          getApiKeys: () => getApiKeys(projDir),
+          apiKey: getApiKey(projDir),
           backendDir: __dirname,
-          contentMode: isListicle ? "LISTICLE" : undefined,
-          rankCount: listicleRank,
-          listTopic: listicleTopic,
-          rankOrder: rankOrder || "desc",
+          notebooklmDeep: useNotebooklm !== false,
+          enqueueIdeas: false,
+          diversityHint,
+          excludeTopics,
         });
-        notebooklmContext = formatNotebooklmPromptBlock(
-          research,
-          "CONTEXTO DE PESQUISA"
+
+        if (deep.ok) {
+          deepResearchContext = formatDeepResearchForIdeasPrompt(
+            deep.report,
+            deep.plan,
+            deep.artifacts
+          );
+          deepResearchMeta = {
+            factCount: deep.report?.factCount || 0,
+            derivedIdeas: deep.report?.derivedIdeas?.length || 0,
+            outlierCount: deep.artifacts?.competitors?.outlierCount || 0,
+            legs: {
+              web: Boolean(deep.artifacts?.web?.available),
+              exa: Boolean(deep.artifacts?.exa?.available),
+              notebooklm: Boolean(deep.artifacts?.notebooklm?.available),
+              competitors: Boolean(deep.artifacts?.competitors),
+            },
+            legErrors: (deep.legErrors || []).length,
+          };
+        }
+      } catch (err) {
+        console.warn(
+          "[IDEAS] DeerFlow falhou — fallback pesquisa rápida:",
+          err.message
+        );
+      }
+    }
+
+    let notebooklmContext = "";
+    let webResearchContext = "";
+
+    if (!deepResearchContext && !skipResearch) {
+      if (useNotebooklm !== false) {
+        try {
+          const research = await fetchNotebooklmResearch(niche, format, {
+            backendDir: __dirname,
+            contentMode: isListicle ? "LISTICLE" : undefined,
+            rankCount: listicleRank,
+            listTopic: listicleTopic,
+            rankOrder: rankOrder || "desc",
+          });
+          notebooklmContext = formatNotebooklmPromptBlock(
+            research,
+            "CONTEXTO DE PESQUISA"
+          );
+        } catch {
+          notebooklmContext = "";
+        }
+      }
+
+      try {
+        const webResearch = await fetchWebResearchForTopic({
+          topic: researchTopic,
+          niche: nicheClean,
+          format,
+          apiKey: getApiKey(projDir),
+          getApiKeys: () => getApiKeys(projDir),
+          workspaceDir: WORKSPACE_DIR,
+          diversityHint,
+          excludeTopics,
+        });
+        webResearchContext = formatWebResearchPromptBlock(
+          webResearch,
+          "PESQUISA WEB"
         );
       } catch {
-        notebooklmContext = "";
+        webResearchContext = "";
       }
     }
 
-    try {
-      const webResearch = await fetchWebResearchForTopic({
-        topic: researchTopic,
-        niche: nicheClean,
-        format,
-        apiKey: getApiKey(projDir),
-        getApiKeys: () => getApiKeys(projDir),
-        workspaceDir: WORKSPACE_DIR,
-        diversityHint,
-        excludeTopics,
-      });
-      webResearchContext = formatWebResearchPromptBlock(
-        webResearch,
-        "PESQUISA WEB"
-      );
-    } catch {
-      webResearchContext = "";
-    }
-  }
-
-  let promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
+    let promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
 
 O usuário fornecerá um Nicho de Vídeo e um Formato (Longo ou Shorts).
 
@@ -14776,14 +14974,14 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 
 }`;
 
-  promptSystem = injectStudioAgentsContext(promptSystem, WORKSPACE_DIR, {
-    niche: nicheClean,
-    task: "ideas",
-    format: format === "SHORTS" ? "SHORT" : "LONG",
-  });
+    promptSystem = injectStudioAgentsContext(promptSystem, WORKSPACE_DIR, {
+      niche: nicheClean,
+      task: "ideas",
+      format: format === "SHORTS" ? "SHORT" : "LONG",
+    });
 
-  try {
-    const fullPrompt = `${promptSystem}
+    try {
+      const fullPrompt = `${promptSystem}
 
 [ID da Geração: ${generationSeed}]
 ${forceVariety || previousIdeas.length ? "MODO: NOVA VARREDURA — obrigatório entregar assuntos distintos dos listados em TÓPICOS JÁ EXPLORADOS." : ""}
@@ -14793,123 +14991,127 @@ NICHO: ${nicheClean}
 FORMATO: ${format}
 ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleTopic}\nORDEM: ${rankOrder || "desc"}` : ""}`;
 
-    const responseText = await callGeminiLlm(req, res, projDir, {
-      title: "Gerar 10 ideias virais",
-      prompt: fullPrompt,
-      temperature: 1.2,
-    });
-    if (responseText == null) return;
+      const responseText = await callGeminiLlm(req, res, projDir, {
+        title: "Gerar 10 ideias virais",
+        prompt: fullPrompt,
+        temperature: 1.2,
+      });
+      if (responseText == null) return;
 
-    const parsedData = await parseAiJsonResponse(
-      responseText,
-      getApiKey(projDir),
-      "Ideias e diagnostico"
-    );
+      const parsedData = await parseAiJsonResponse(
+        responseText,
+        getApiKey(projDir),
+        "Ideias e diagnostico"
+      );
 
-    if (Array.isArray(parsedData?.ideas) && parsedData.ideas.length) {
-      appendIdeasHistory(WORKSPACE_DIR, nicheClean, parsedData.ideas);
+      if (Array.isArray(parsedData?.ideas) && parsedData.ideas.length) {
+        appendIdeasHistory(WORKSPACE_DIR, nicheClean, parsedData.ideas);
+      }
+
+      res.json({
+        ...parsedData,
+        _ideas_meta: {
+          generationSeed,
+          excludedCount: excludeTopics.length,
+          usedDeepResearch: Boolean(deepResearchContext),
+          deepResearch: deepResearchMeta,
+          usedWebResearch: Boolean(webResearchContext),
+          usedNotebooklm: Boolean(notebooklmContext),
+        },
+      });
+    } catch (err) {
+      console.error("[IDEAS ENDPOINT ERROR]", err.message);
+
+      res.status(500).json({
+        error: "Erro ao gerar ideias/diagnóstico",
+        details: err.message,
+      });
     }
-
-    res.json({
-      ...parsedData,
-      _ideas_meta: {
-        generationSeed,
-        excludedCount: excludeTopics.length,
-        usedDeepResearch: Boolean(deepResearchContext),
-        deepResearch: deepResearchMeta,
-        usedWebResearch: Boolean(webResearchContext),
-        usedNotebooklm: Boolean(notebooklmContext),
-      },
-    });
-  } catch (err) {
-    console.error("[IDEAS ENDPOINT ERROR]", err.message);
-
-    res.status(500).json({
-      error: "Erro ao gerar ideias/diagnóstico",
-      details: err.message,
-    });
-  }
-});
+  })
+);
 
 // API: LISTICLE — Sugerir rankings interessantes para um nicho
 
-app.post("/api/ai/creator/listicle-ideas", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const browserText = extractBrowserResponse(req.body);
+app.post(
+  "/api/ai/creator/listicle-ideas",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const browserText = extractBrowserResponse(req.body);
 
-  const { niche, format = "LONGO", useNotebooklm } = req.body;
+    const { niche, format = "LONGO", useNotebooklm } = req.body;
 
-  if (!niche || !String(niche).trim()) {
-    return res
-      .status(400)
-      .json({ error: "Informe o nicho para sugerir rankings." });
-  }
-
-  const nicheClean = String(niche).trim();
-
-  let notebooklmContext = "";
-  const skipNotebooklm = browserText || shouldOfferGeminiBrowser(projDir);
-  if (useNotebooklm !== false && !skipNotebooklm) {
-    try {
-      const research = await fetchNotebooklmResearch(nicheClean, format, {
-        backendDir: __dirname,
-        contentMode: "LISTICLE",
-      });
-      notebooklmContext = formatNotebooklmPromptBlock(
-        research,
-        "PESQUISA DE MERCADO"
-      );
-    } catch (e) {
-      notebooklmContext = "";
+    if (!niche || !String(niche).trim()) {
+      return res
+        .status(400)
+        .json({ error: "Informe o nicho para sugerir rankings." });
     }
-  }
 
-  const useCompactPrompt = skipNotebooklm || !!browserText;
-  const prompt = `${buildListicleRankingIdeasPrompt({ niche: nicheClean, format, compact: useCompactPrompt })}
+    const nicheClean = String(niche).trim();
+
+    let notebooklmContext = "";
+    const skipNotebooklm = browserText || shouldOfferGeminiBrowser(projDir);
+    if (useNotebooklm !== false && !skipNotebooklm) {
+      try {
+        const research = await fetchNotebooklmResearch(nicheClean, format, {
+          backendDir: __dirname,
+          contentMode: "LISTICLE",
+        });
+        notebooklmContext = formatNotebooklmPromptBlock(
+          research,
+          "PESQUISA DE MERCADO"
+        );
+      } catch (e) {
+        notebooklmContext = "";
+      }
+    }
+
+    const useCompactPrompt = skipNotebooklm || !!browserText;
+    const prompt = `${buildListicleRankingIdeasPrompt({ niche: nicheClean, format, compact: useCompactPrompt })}
 
 ${notebooklmContext}
 
 [ID: ${Date.now()}]`;
 
-  try {
-    const responseText = await callGeminiLlm(req, res, projDir, {
-      title: "Sugerir rankings (listicle)",
-      prompt,
-      temperature: 0.9,
-    });
-    if (responseText == null) return;
-
-    const raw = await parseAiJsonResponse(
-      responseText,
-      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
-      "Ranking ideas"
-    );
-    const parsed = normalizeListicleIdeasResponse(raw, { format });
-
-    if (!parsed.ranking_ideas?.length) {
-      console.warn(
-        "[LISTICLE IDEAS] Resposta sem ranking_ideas. Chaves recebidas:",
-        Object.keys(raw || {})
-      );
-      return res.status(502).json({
-        error:
-          "A IA não retornou rankings válidos. Tente novamente ou mude o nicho.",
-        details: `Chaves na resposta: ${Object.keys(raw || {}).join(", ") || "nenhuma"}`,
-        raw_preview: JSON.stringify(raw).slice(0, 500),
+    try {
+      const responseText = await callGeminiLlm(req, res, projDir, {
+        title: "Sugerir rankings (listicle)",
+        prompt,
+        temperature: 0.9,
       });
-    }
+      if (responseText == null) return;
 
-    console.log(
-      `[LISTICLE IDEAS] ${parsed.ranking_ideas.length} rankings para nicho "${nicheClean}"`
-    );
-    res.json(parsed);
-  } catch (err) {
-    console.error("[LISTICLE IDEAS ERROR]", err.message);
-    res
-      .status(500)
-      .json({ error: "Erro ao sugerir rankings", details: err.message });
-  }
-});
+      const raw = await parseAiJsonResponse(
+        responseText,
+        extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+        "Ranking ideas"
+      );
+      const parsed = normalizeListicleIdeasResponse(raw, { format });
+
+      if (!parsed.ranking_ideas?.length) {
+        console.warn(
+          "[LISTICLE IDEAS] Resposta sem ranking_ideas. Chaves recebidas:",
+          Object.keys(raw || {})
+        );
+        return res.status(502).json({
+          error:
+            "A IA não retornou rankings válidos. Tente novamente ou mude o nicho.",
+          details: `Chaves na resposta: ${Object.keys(raw || {}).join(", ") || "nenhuma"}`,
+          raw_preview: JSON.stringify(raw).slice(0, 500),
+        });
+      }
+
+      console.log(
+        `[LISTICLE IDEAS] ${parsed.ranking_ideas.length} rankings para nicho "${nicheClean}"`
+      );
+      res.json(parsed);
+    } catch (err) {
+      console.error("[LISTICLE IDEAS ERROR]", err.message);
+      res
+        .status(500)
+        .json({ error: "Erro ao sugerir rankings", details: err.message });
+    }
+  })
+);
 
 function normalizeKeys(data) {
   if (!data || typeof data !== "object") return data;
@@ -15153,672 +15355,806 @@ function normalizeKeys(data) {
 
 // API: SCRIPT MASTER Step 2 - Generate Strategy, Complete Script, and technical mappings
 
-app.post("/api/ai/creator/script", async (req, res) => {
-  const {
-    niche,
-    format,
-    idea,
-    project,
-    contentMode,
-    rankCount,
-    rankOrder,
-    listTopic,
-    listicleHudStyle,
-    useNotebooklm,
-    phase = "full",
-    approvedNarration: approvedNarrationRaw,
-    approvedNarrationTagged: approvedNarrationTaggedRaw,
-    existingStrategy: existingStrategyRaw,
-    agentReachResearch: agentReachResearchRaw,
-  } = req.body;
-  const scriptPhase = phase === "narration" ? "narration" : "full";
-  const approvedNarration = String(approvedNarrationRaw || "").trim();
-  const approvedNarrationTagged = String(
-    approvedNarrationTaggedRaw || ""
-  ).trim();
-  const progressJobId = normalizeJobId(req.body?.progress_job_id);
-  const report = createProgressReporter(progressJobId);
-  const phaseTitle =
-    scriptPhase === "narration" ? "Narração" : "Roteiro completo";
-  report("prepare", `${phaseTitle}: validando projeto…`, 4);
-
-  if (!niche || !format || !idea || !project) {
-    failJobProgress(progressJobId, "Dados obrigatórios ausentes.");
-    return res.status(400).json({
-      error:
-        "Nicho, formato, ideia selecionada e nome do projeto são obrigatórios.",
-    });
-  }
-
-  const isListicle = contentMode === "LISTICLE";
-  const listicleRank = clampListicleRankCount(rankCount, format);
-  const listicleTopic = String(listTopic || idea.title || niche).trim();
-  const listicleBlockCount = isListicle
-    ? resolveListicleBlockCount({ rankCount: listicleRank, format })
-    : format === "SHORTS"
-      ? 5
-      : 12;
-
-  const safeProjectName = project.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
-
-  const isShort = format === "SHORTS";
-
-  const targetParentDir = isShort ? SHORTS_DIR : LONGS_DIR;
-
-  const projDir = path.join(targetParentDir, safeProjectName);
-
-  const settingsDir = getProjectDir(req);
-  const llmDir = fs.existsSync(path.join(projDir, "config_qanat.json"))
-    ? projDir
-    : settingsDir;
-
-  if (
-    !extractBrowserResponse(req.body) &&
-    !shouldOfferGeminiBrowser(settingsDir) &&
-    !getApiKey(projDir) &&
-    !getApiKey(settingsDir)
-  ) {
-    failJobProgress(progressJobId, "Chave de API não configurada.");
-    return res
-      .status(401)
-      .json({ error: "Chave de API do Google AI Studio não configurada." });
-  }
-
-  let activeRes = res;
-  if (progressJobId) {
-    res.json({ started: true, jobId: progressJobId });
-    activeRes = createProgressJobResponse(progressJobId);
-  }
-
-  report("project", "Preparando pasta do projeto…", 10);
-
-  // Automatically create and template project directory on-the-fly if it doesn't exist
-
-  if (!fs.existsSync(projDir)) {
-    try {
-      fs.mkdirSync(projDir, { recursive: true });
-
-      fs.mkdirSync(path.join(projDir, "ASSETS"), { recursive: true });
-
-      fs.mkdirSync(path.join(projDir, "OUTPUT"), { recursive: true });
-
-      ensureProjectSfxPack(projDir);
-
-      ensureFileExists("build_video.py", projDir);
-
-      ensureFileExists("build_video_destacado.py", projDir);
-
-      ensureFileExists("mix_bgm.py", projDir);
-
-      ensureFileExists("find_block_timings.py", projDir);
-
-      ensureFileExists("align_transcripts.py", projDir);
-
-      // Copy logo.png if it exists in root ASSETS folder
-
-      const rootLogoPath = path.join(WORKSPACE_DIR, "ASSETS", "logo.png");
-
-      const destLogoPath = path.join(projDir, "ASSETS", "logo.png");
-
-      if (fs.existsSync(rootLogoPath)) {
-        fs.copyFileSync(rootLogoPath, destLogoPath);
-
-        console.log(`Copied logo.png to new project ${safeProjectName}`);
-      }
-
-      const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
-
-      const defaultConfigDest = path.join(projDir, "config_qanat.json");
-
-      if (fs.existsSync(defaultConfigSrc)) {
-        fs.copyFileSync(defaultConfigSrc, defaultConfigDest);
-
-        try {
-          const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
-          const boot = bootstrapNewProjectConfig(cfg, {
-            isShort: format === "SHORTS" || format === "SHORT",
-            niche: niche || "Geral",
-            defaultDuration: isListicle
-              ? listicleBlockCount * 50
-              : format === "SHORTS"
-                ? 40
-                : 120,
-          });
-          fs.writeFileSync(
-            defaultConfigDest,
-            JSON.stringify(boot, null, 2),
-            "utf8"
-          );
-        } catch (e) {}
-      }
-
-      const blockEstimate = isListicle ? 50 : 10;
-      const timingStarts = Array.from(
-        { length: listicleBlockCount },
-        (_, i) => i * blockEstimate
-      );
-      const timingDurations = Array.from(
-        { length: listicleBlockCount },
-        () => blockEstimate
-      );
-      fs.writeFileSync(
-        path.join(projDir, "block_timings.json"),
-        JSON.stringify(
-          {
-            starts: timingStarts,
-
-            durations: timingDurations,
-
-            total_duration:
-              timingStarts[timingStarts.length - 1] + blockEstimate,
-          },
-          null,
-          4
-        ),
-        "utf8"
-      );
-    } catch (err) {
-      return activeRes.status(500).json({
-        error: "Erro ao criar pasta do novo projeto",
-        details: err.message,
-      });
-    }
-  }
-
-  const browserTextEarly = extractBrowserResponse(req.body);
-  const skipNotebooklmScript =
-    browserTextEarly || shouldOfferGeminiBrowser(settingsDir);
-
-  let notebooklmContext = "";
-  let notebooklmResearch = null;
-  if (useNotebooklm !== false && !skipNotebooklmScript) {
-    report("notebooklm", "Consultando NotebookLM…", 18);
-    try {
-      console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
-      notebooklmResearch = await fetchNotebooklmScriptContext({
-        backendDir: __dirname,
-        niche,
-        format,
-        idea,
-        contentMode: isListicle ? "LISTICLE" : undefined,
-        rankCount: listicleRank,
-        listTopic: listicleTopic,
-        rankOrder: rankOrder || "desc",
-      });
-      notebooklmContext = formatNotebooklmPromptBlock(
-        notebooklmResearch,
-        "PESQUISA NOTEBOOKLM PARA ROTEIRO"
-      );
-      if (notebooklmResearch.available) {
-        console.log("[NotebookLM] Contexto de roteiro obtido com sucesso.");
-      } else {
-        console.warn(
-          "[NotebookLM] Usando fallback de pesquisa:",
-          notebooklmResearch.message || "sem login"
-        );
-      }
-    } catch (err) {
-      console.warn("[NotebookLM] Falha ao enriquecer roteiro:", err.message);
-    }
-  }
-
-  let webResearchContext = "";
-  let webResearchMeta = null;
-  const researchTopic = isListicle ? listicleTopic : idea.title || niche;
-  const prefetchedReach =
-    agentReachResearchRaw && typeof agentReachResearchRaw === "object"
-      ? agentReachResearchRaw
-      : null;
-  if (prefetchedReach?.summary || prefetchedReach?.facts?.length) {
-    webResearchMeta = {
-      available: true,
-      summary: String(prefetchedReach.summary || "").slice(0, 12000),
-      facts: Array.isArray(prefetchedReach.facts)
-        ? prefetchedReach.facts.map(String).filter(Boolean)
-        : [],
-      sources: Array.isArray(prefetchedReach.sources)
-        ? prefetchedReach.sources
-        : [],
-      via: prefetchedReach.via || "agent-reach-panel",
-      fallback: false,
-    };
-    webResearchContext = formatWebResearchPromptBlock(
-      webResearchMeta,
-      "PESQUISA WEB (AGENT REACH — SUA BUSCA)"
-    );
-    console.log(
-      `[WebResearch] Usando pesquisa Agent Reach do painel: ${webResearchMeta.sources?.length || 0} fontes.`
-    );
-  } else if (!webResearchContext) {
-    report("web_research", "Pesquisando fatos na web…", 26);
-    try {
-      console.log("[WebResearch] Pesquisando fatos com fontes para roteiro...");
-      webResearchMeta = await fetchWebResearchForTopic({
-        topic: researchTopic,
-        niche,
-        format,
-        apiKey: getApiKey(llmDir),
-        getApiKeys: () => getApiKeys(llmDir),
-        workspaceDir: WORKSPACE_DIR,
-      });
-      webResearchContext = formatWebResearchPromptBlock(
-        webResearchMeta,
-        "PESQUISA WEB (FONTES REAIS)"
-      );
-      if (webResearchMeta.available) {
-        console.log(
-          `[WebResearch] ${webResearchMeta.facts?.length || 0} fatos, ${webResearchMeta.sources?.length || 0} fontes.`
-        );
-      }
-    } catch (err) {
-      console.warn("[WebResearch] Falha:", err.message);
-    }
-  }
-
-  let phase1Strategy = {};
-  const storyboardEarlyPath = path.join(projDir, "storyboard.json");
-  if (fs.existsSync(storyboardEarlyPath)) {
-    try {
-      const partial = JSON.parse(fs.readFileSync(storyboardEarlyPath, "utf8"));
-      if (partial?.strategy && typeof partial.strategy === "object") {
-        phase1Strategy = partial.strategy;
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  const existingStrategy =
-    existingStrategyRaw &&
-    typeof existingStrategyRaw === "object" &&
-    Object.keys(existingStrategyRaw).length
-      ? existingStrategyRaw
-      : phase1Strategy;
-
-  const promptContext = {
-    niche,
-    format,
-    idea,
-    isListicle,
-    listicleRank,
-    listicleTopic,
-    rankOrder: rankOrder || "desc",
-    listicleBlockCount,
-    notebooklmContext,
-    webResearchContext,
-    cinematicNarrationRules: buildCinematicNarrationRules(),
-    titleCraftRules: buildTitleCraftRules(
-      format === "SHORTS" ? "SHORT" : "LONG"
-    ),
-    epidemicMoodPrompt: buildEpidemicMoodPrompt(
+app.post(
+  "/api/ai/creator/script",
+  asyncHandler(async (req, res) => {
+    const {
       niche,
-      {
-        niche,
-        content_mode: isListicle ? "LISTICLE" : undefined,
-        list_topic: listicleTopic,
-      },
-      { listicle: { topic: listicleTopic } }
-    ),
-    approvedNarration,
-    approvedNarrationTagged,
-    existingStrategy,
-  };
+      format,
+      idea,
+      project,
+      contentMode,
+      rankCount,
+      rankOrder,
+      listTopic,
+      listicleHudStyle,
+      useNotebooklm,
+      phase = "full",
+      approvedNarration: approvedNarrationRaw,
+      approvedNarrationTagged: approvedNarrationTaggedRaw,
+      existingStrategy: existingStrategyRaw,
+      agentReachResearch: agentReachResearchRaw,
+    } = req.body;
+    const scriptPhase = phase === "narration" ? "narration" : "full";
+    const approvedNarration = String(approvedNarrationRaw || "").trim();
+    const approvedNarrationTagged = String(
+      approvedNarrationTaggedRaw || ""
+    ).trim();
+    const progressJobId = normalizeJobId(req.body?.progress_job_id);
+    const report = createProgressReporter(progressJobId);
+    const phaseTitle =
+      scriptPhase === "narration" ? "Narração" : "Roteiro completo";
+    report("prepare", `${phaseTitle}: validando projeto…`, 4);
 
-  let promptSystem;
-  if (scriptPhase === "narration") {
-    promptSystem = buildNarrationOnlyPrompt(promptContext);
-  } else if (approvedNarration) {
-    promptSystem = buildCreatorPhase2Prompt(promptContext);
-  } else {
-    promptSystem = buildCreatorFullScriptPrompt(promptContext);
-  }
-
-  report("prompt", "Montando prompt + memória Obsidian…", 34);
-  promptSystem = injectStudioAgentsContext(promptSystem, WORKSPACE_DIR, {
-    niche,
-    task: "script",
-    format: isShort ? "SHORT" : "LONG",
-  });
-
-  let responseText = "";
-  const apiKey = getApiKey(projDir) || getApiKey(settingsDir);
-
-  try {
-    report(
-      "gemini",
-      scriptPhase === "narration"
-        ? "Gerando narração com IA…"
-        : "Gerando roteiro técnico com IA…",
-      shouldOfferGeminiBrowser(settingsDir) ? 48 : 52
-    );
-    responseText = await callGeminiLlm(req, activeRes, llmDir, {
-      title:
-        scriptPhase === "narration"
-          ? "Gerar narração Creator"
-          : "Gerar roteiro Creator",
-      prompt: promptSystem,
-      temperature: isListicle ? 0.75 : 0.85,
-    });
-    if (responseText == null) {
-      report("browser_wait", "Aguardando resposta do Gemini no Chrome…", 58);
-      return;
-    }
-    report("parse", "Interpretando resposta da IA…", 64);
-
-    const isBrowserResponse = !!extractBrowserResponse(req.body);
-    let rawData;
-    try {
-      rawData = await parseAiJsonResponse(
-        responseText,
-        isBrowserResponse ? null : apiKey,
-        "Roteiro e estrategia"
-      );
-    } catch (parseErr) {
-      if (
-        (scriptPhase === "narration" && isBrowserResponse) ||
-        (scriptPhase === "full" && approvedNarration)
-      ) {
-        rawData = salvageScriptJson(responseText) || {};
-        console.warn(
-          "[Creator Script] JSON inválido — salvage/fallback:",
-          parseErr.message
-        );
-        if (!Object.keys(rawData).length) {
-          throw parseErr;
-        }
-      } else {
-        throw parseErr;
-      }
+    if (!niche || !format || !idea || !project) {
+      failJobProgress(progressJobId, "Dados obrigatórios ausentes.");
+      return res.status(400).json({
+        error:
+          "Nicho, formato, ideia selecionada e nome do projeto são obrigatórios.",
+      });
     }
 
-    let parsedData = applyScriptTextQuality(normalizeKeys(rawData), format);
-    if (scriptPhase === "narration" && isBrowserResponse) {
-      parsedData = applyScriptTextQuality(
-        normalizeKeys(enrichBrowserNarrationParsed(parsedData, responseText)),
-        format
-      );
-    }
-    if (scriptPhase === "full" && isBrowserResponse) {
-      parsedData = applyScriptTextQuality(
-        normalizeKeys(
-          enrichBrowserVisualPromptsParsed(parsedData, responseText)
-        ),
-        format
-      );
-    }
+    const isListicle = contentMode === "LISTICLE";
+    const listicleRank = clampListicleRankCount(rankCount, format);
+    const listicleTopic = String(listTopic || idea.title || niche).trim();
+    const listicleBlockCount = isListicle
+      ? resolveListicleBlockCount({ rankCount: listicleRank, format })
+      : format === "SHORTS"
+        ? 5
+        : 12;
 
-    const vpRepairOpts = { blockCount: listicleBlockCount, format };
-    const preserveBrowserVisualPrompts =
-      scriptPhase === "full" &&
-      isBrowserResponse &&
-      browserVisualPromptsUsable(parsedData.visual_prompts, vpRepairOpts);
-    if (preserveBrowserVisualPrompts) {
-      console.log(
-        "[Creator Script] Modo navegador fase 2 — preservando visual_prompts do Gemini Browser."
-      );
-    }
+    const safeProjectName = project.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    const isShort = format === "SHORTS";
+
+    const targetParentDir = isShort ? SHORTS_DIR : LONGS_DIR;
+
+    const projDir = path.join(targetParentDir, safeProjectName);
+
+    const settingsDir = getProjectDir(req);
+    const llmDir = fs.existsSync(path.join(projDir, "config_qanat.json"))
+      ? projDir
+      : settingsDir;
 
     if (
-      scriptPhase === "full" &&
-      approvedNarration &&
-      existingStrategy &&
-      Object.keys(existingStrategy).length
+      !extractBrowserResponse(req.body) &&
+      !shouldOfferGeminiBrowser(settingsDir) &&
+      !getApiKey(projDir) &&
+      !getApiKey(settingsDir)
     ) {
-      parsedData.strategy = {
-        ...existingStrategy,
-        ...(parsedData.strategy || {}),
-      };
+      failJobProgress(progressJobId, "Chave de API não configurada.");
+      return res
+        .status(401)
+        .json({ error: "Chave de API do Google AI Studio não configurada." });
     }
 
-    if (isListicle && !parsedData.listicle) {
-      parsedData.listicle = {
-        content_mode: "LISTICLE",
-        rank_count: listicleRank,
-        rank_order: rankOrder === "asc" ? "asc" : "desc",
-        topic: listicleTopic,
-        hud_style: ["compact", "full", "auto"].includes(listicleHudStyle)
-          ? listicleHudStyle
-          : listicleRank > 8
-            ? "compact"
-            : "full",
-      };
-    } else if (isListicle && parsedData.listicle) {
-      parsedData.listicle.hud_style = ["compact", "full", "auto"].includes(
-        listicleHudStyle
-      )
-        ? listicleHudStyle
-        : parsedData.listicle.hud_style ||
-          (listicleRank > 8 ? "compact" : "full");
+    let activeRes = res;
+    if (progressJobId) {
+      res.json({ started: true, jobId: progressJobId });
+      activeRes = createProgressJobResponse(progressJobId);
     }
 
-    if (scriptPhase === "narration") {
-      const extracted = extractNarrativeScriptFromRaw(responseText);
-      if (
-        extracted.length >
-        String(parsedData.narrative_script || "").trim().length
-      ) {
-        parsedData.narrative_script = extracted;
+    report("project", "Preparando pasta do projeto…", 10);
+
+    // Automatically create and template project directory on-the-fly if it doesn't exist
+
+    if (!fs.existsSync(projDir)) {
+      try {
+        fs.mkdirSync(projDir, { recursive: true });
+
+        fs.mkdirSync(path.join(projDir, "ASSETS"), { recursive: true });
+
+        fs.mkdirSync(path.join(projDir, "OUTPUT"), { recursive: true });
+
+        ensureProjectSfxPack(projDir);
+
+        ensureFileExists("build_video.py", projDir);
+
+        ensureFileExists("build_video_destacado.py", projDir);
+
+        ensureFileExists("mix_bgm.py", projDir);
+
+        ensureFileExists("find_block_timings.py", projDir);
+
+        ensureFileExists("align_transcripts.py", projDir);
+
+        // Copy logo.png if it exists in root ASSETS folder
+
+        const rootLogoPath = path.join(WORKSPACE_DIR, "ASSETS", "logo.png");
+
+        const destLogoPath = path.join(projDir, "ASSETS", "logo.png");
+
+        if (fs.existsSync(rootLogoPath)) {
+          fs.copyFileSync(rootLogoPath, destLogoPath);
+
+          console.log(`Copied logo.png to new project ${safeProjectName}`);
+        }
+
+        const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
+
+        const defaultConfigDest = path.join(projDir, "config_qanat.json");
+
+        if (fs.existsSync(defaultConfigSrc)) {
+          fs.copyFileSync(defaultConfigSrc, defaultConfigDest);
+
+          try {
+            const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
+            const boot = bootstrapNewProjectConfig(cfg, {
+              isShort: format === "SHORTS" || format === "SHORT",
+              niche: niche || "Geral",
+              defaultDuration: isListicle
+                ? listicleBlockCount * 50
+                : format === "SHORTS"
+                  ? 40
+                  : 120,
+            });
+            fs.writeFileSync(
+              defaultConfigDest,
+              JSON.stringify(boot, null, 2),
+              "utf8"
+            );
+          } catch (e) {}
+        }
+
+        const blockEstimate = isListicle ? 50 : 10;
+        const timingStarts = Array.from(
+          { length: listicleBlockCount },
+          (_, i) => i * blockEstimate
+        );
+        const timingDurations = Array.from(
+          { length: listicleBlockCount },
+          () => blockEstimate
+        );
+        fs.writeFileSync(
+          path.join(projDir, "block_timings.json"),
+          JSON.stringify(
+            {
+              starts: timingStarts,
+
+              durations: timingDurations,
+
+              total_duration:
+                timingStarts[timingStarts.length - 1] + blockEstimate,
+            },
+            null,
+            4
+          ),
+          "utf8"
+        );
+      } catch (err) {
+        return activeRes.status(500).json({
+          error: "Erro ao criar pasta do novo projeto",
+          details: err.message,
+        });
       }
-      const narrationLen = String(parsedData.narrative_script || "").trim()
-        .length;
-      if (isBrowserResponse && narrationLen < 40 && responseText.length < 400) {
-        failJobProgress(progressJobId, "Resposta do Gemini incompleta.");
-        return activeRes.status(422).json({
-          error:
-            "Resposta do Gemini incompleta — o chat não terminou de responder.",
-          details: `Narração capturada com apenas ${narrationLen} caracteres (${responseText.length} chars brutos). Use Capturar do Gemini no Lumiera.`,
-          hint: "Recarregue a extensão Lumiera Gemini Bridge (v2.0.0+) com gemini.google.com aberto.",
+    }
+
+    const browserTextEarly = extractBrowserResponse(req.body);
+    const skipNotebooklmScript =
+      browserTextEarly || shouldOfferGeminiBrowser(settingsDir);
+
+    let notebooklmContext = "";
+    let notebooklmResearch = null;
+    if (useNotebooklm !== false && !skipNotebooklmScript) {
+      report("notebooklm", "Consultando NotebookLM…", 18);
+      try {
+        console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
+        notebooklmResearch = await fetchNotebooklmScriptContext({
+          backendDir: __dirname,
+          niche,
+          format,
+          idea,
+          contentMode: isListicle ? "LISTICLE" : undefined,
+          rankCount: listicleRank,
+          listTopic: listicleTopic,
+          rankOrder: rankOrder || "desc",
+        });
+        notebooklmContext = formatNotebooklmPromptBlock(
+          notebooklmResearch,
+          "PESQUISA NOTEBOOKLM PARA ROTEIRO"
+        );
+        if (notebooklmResearch.available) {
+          console.log("[NotebookLM] Contexto de roteiro obtido com sucesso.");
+        } else {
+          console.warn(
+            "[NotebookLM] Usando fallback de pesquisa:",
+            notebooklmResearch.message || "sem login"
+          );
+        }
+      } catch (err) {
+        console.warn("[NotebookLM] Falha ao enriquecer roteiro:", err.message);
+      }
+    }
+
+    let webResearchContext = "";
+    let webResearchMeta = null;
+    const researchTopic = isListicle ? listicleTopic : idea.title || niche;
+    const prefetchedReach =
+      agentReachResearchRaw && typeof agentReachResearchRaw === "object"
+        ? agentReachResearchRaw
+        : null;
+    if (prefetchedReach?.summary || prefetchedReach?.facts?.length) {
+      webResearchMeta = {
+        available: true,
+        summary: String(prefetchedReach.summary || "").slice(0, 12000),
+        facts: Array.isArray(prefetchedReach.facts)
+          ? prefetchedReach.facts.map(String).filter(Boolean)
+          : [],
+        sources: Array.isArray(prefetchedReach.sources)
+          ? prefetchedReach.sources
+          : [],
+        via: prefetchedReach.via || "agent-reach-panel",
+        fallback: false,
+      };
+      webResearchContext = formatWebResearchPromptBlock(
+        webResearchMeta,
+        "PESQUISA WEB (AGENT REACH — SUA BUSCA)"
+      );
+      console.log(
+        `[WebResearch] Usando pesquisa Agent Reach do painel: ${webResearchMeta.sources?.length || 0} fontes.`
+      );
+    } else if (!webResearchContext) {
+      report("web_research", "Pesquisando fatos na web…", 26);
+      try {
+        console.log(
+          "[WebResearch] Pesquisando fatos com fontes para roteiro..."
+        );
+        webResearchMeta = await fetchWebResearchForTopic({
+          topic: researchTopic,
+          niche,
+          format,
+          apiKey: getApiKey(llmDir),
+          getApiKeys: () => getApiKeys(llmDir),
+          workspaceDir: WORKSPACE_DIR,
+        });
+        webResearchContext = formatWebResearchPromptBlock(
+          webResearchMeta,
+          "PESQUISA WEB (FONTES REAIS)"
+        );
+        if (webResearchMeta.available) {
+          console.log(
+            `[WebResearch] ${webResearchMeta.facts?.length || 0} fatos, ${webResearchMeta.sources?.length || 0} fontes.`
+          );
+        }
+      } catch (err) {
+        console.warn("[WebResearch] Falha:", err.message);
+      }
+    }
+
+    let phase1Strategy = {};
+    const storyboardEarlyPath = path.join(projDir, "storyboard.json");
+    if (fs.existsSync(storyboardEarlyPath)) {
+      try {
+        const partial = JSON.parse(
+          fs.readFileSync(storyboardEarlyPath, "utf8")
+        );
+        if (partial?.strategy && typeof partial.strategy === "object") {
+          phase1Strategy = partial.strategy;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    const existingStrategy =
+      existingStrategyRaw &&
+      typeof existingStrategyRaw === "object" &&
+      Object.keys(existingStrategyRaw).length
+        ? existingStrategyRaw
+        : phase1Strategy;
+
+    const promptContext = {
+      niche,
+      format,
+      idea,
+      isListicle,
+      listicleRank,
+      listicleTopic,
+      rankOrder: rankOrder || "desc",
+      listicleBlockCount,
+      notebooklmContext,
+      webResearchContext,
+      cinematicNarrationRules: buildCinematicNarrationRules(),
+      titleCraftRules: buildTitleCraftRules(
+        format === "SHORTS" ? "SHORT" : "LONG"
+      ),
+      epidemicMoodPrompt: buildEpidemicMoodPrompt(
+        niche,
+        {
+          niche,
+          content_mode: isListicle ? "LISTICLE" : undefined,
+          list_topic: listicleTopic,
+        },
+        { listicle: { topic: listicleTopic } }
+      ),
+      approvedNarration,
+      approvedNarrationTagged,
+      existingStrategy,
+    };
+
+    let promptSystem;
+    if (scriptPhase === "narration") {
+      promptSystem = buildNarrationOnlyPrompt(promptContext);
+    } else if (approvedNarration) {
+      promptSystem = buildCreatorPhase2Prompt(promptContext);
+    } else {
+      promptSystem = buildCreatorFullScriptPrompt(promptContext);
+    }
+
+    report("prompt", "Montando prompt + memória Obsidian…", 34);
+    promptSystem = injectStudioAgentsContext(promptSystem, WORKSPACE_DIR, {
+      niche,
+      task: "script",
+      format: isShort ? "SHORT" : "LONG",
+    });
+
+    let responseText = "";
+    const apiKey = getApiKey(projDir) || getApiKey(settingsDir);
+
+    try {
+      report(
+        "gemini",
+        scriptPhase === "narration"
+          ? "Gerando narração com IA…"
+          : "Gerando roteiro técnico com IA…",
+        shouldOfferGeminiBrowser(settingsDir) ? 48 : 52
+      );
+      responseText = await callGeminiLlm(req, activeRes, llmDir, {
+        title:
+          scriptPhase === "narration"
+            ? "Gerar narração Creator"
+            : "Gerar roteiro Creator",
+        prompt: promptSystem,
+        temperature: isListicle ? 0.75 : 0.85,
+      });
+      if (responseText == null) {
+        report("browser_wait", "Aguardando resposta do Gemini no Chrome…", 58);
+        return;
+      }
+      report("parse", "Interpretando resposta da IA…", 64);
+
+      const isBrowserResponse = !!extractBrowserResponse(req.body);
+      let rawData;
+      try {
+        rawData = await parseAiJsonResponse(
+          responseText,
+          isBrowserResponse ? null : apiKey,
+          "Roteiro e estrategia"
+        );
+      } catch (parseErr) {
+        if (
+          (scriptPhase === "narration" && isBrowserResponse) ||
+          (scriptPhase === "full" && approvedNarration)
+        ) {
+          rawData = salvageScriptJson(responseText) || {};
+          console.warn(
+            "[Creator Script] JSON inválido — salvage/fallback:",
+            parseErr.message
+          );
+          if (!Object.keys(rawData).length) {
+            throw parseErr;
+          }
+        } else {
+          throw parseErr;
+        }
+      }
+
+      let parsedData = applyScriptTextQuality(normalizeKeys(rawData), format);
+      if (scriptPhase === "narration" && isBrowserResponse) {
+        parsedData = applyScriptTextQuality(
+          normalizeKeys(enrichBrowserNarrationParsed(parsedData, responseText)),
+          format
+        );
+      }
+      if (scriptPhase === "full" && isBrowserResponse) {
+        parsedData = applyScriptTextQuality(
+          normalizeKeys(
+            enrichBrowserVisualPromptsParsed(parsedData, responseText)
+          ),
+          format
+        );
+      }
+
+      const vpRepairOpts = { blockCount: listicleBlockCount, format };
+      const preserveBrowserVisualPrompts =
+        scriptPhase === "full" &&
+        isBrowserResponse &&
+        browserVisualPromptsUsable(parsedData.visual_prompts, vpRepairOpts);
+      if (preserveBrowserVisualPrompts) {
+        console.log(
+          "[Creator Script] Modo navegador fase 2 — preservando visual_prompts do Gemini Browser."
+        );
+      }
+
+      if (
+        scriptPhase === "full" &&
+        approvedNarration &&
+        existingStrategy &&
+        Object.keys(existingStrategy).length
+      ) {
+        parsedData.strategy = {
+          ...existingStrategy,
+          ...(parsedData.strategy || {}),
+        };
+      }
+
+      if (isListicle && !parsedData.listicle) {
+        parsedData.listicle = {
+          content_mode: "LISTICLE",
+          rank_count: listicleRank,
+          rank_order: rankOrder === "asc" ? "asc" : "desc",
+          topic: listicleTopic,
+          hud_style: ["compact", "full", "auto"].includes(listicleHudStyle)
+            ? listicleHudStyle
+            : listicleRank > 8
+              ? "compact"
+              : "full",
+        };
+      } else if (isListicle && parsedData.listicle) {
+        parsedData.listicle.hud_style = ["compact", "full", "auto"].includes(
+          listicleHudStyle
+        )
+          ? listicleHudStyle
+          : parsedData.listicle.hud_style ||
+            (listicleRank > 8 ? "compact" : "full");
+      }
+
+      if (scriptPhase === "narration") {
+        const extracted = extractNarrativeScriptFromRaw(responseText);
+        if (
+          extracted.length >
+          String(parsedData.narrative_script || "").trim().length
+        ) {
+          parsedData.narrative_script = extracted;
+        }
+        const narrationLen = String(parsedData.narrative_script || "").trim()
+          .length;
+        if (
+          isBrowserResponse &&
+          narrationLen < 40 &&
+          responseText.length < 400
+        ) {
+          failJobProgress(progressJobId, "Resposta do Gemini incompleta.");
+          return activeRes.status(422).json({
+            error:
+              "Resposta do Gemini incompleta — o chat não terminou de responder.",
+            details: `Narração capturada com apenas ${narrationLen} caracteres (${responseText.length} chars brutos). Use Capturar do Gemini no Lumiera.`,
+            hint: "Recarregue a extensão Lumiera Gemini Bridge (v2.0.0+) com gemini.google.com aberto.",
+          });
+        }
+
+        const skipPostProcess =
+          isBrowserResponse || shouldOfferGeminiBrowser(settingsDir);
+        if (skipPostProcess) {
+          console.log(
+            "[Creator Script] Modo navegador — pulando humanização/enriquecimento extra na fase narração."
+          );
+        }
+        try {
+          if (skipPostProcess) throw new Error("skip_humanize");
+          report("humanize", "Humanizando narração…", 72);
+          const repairPrompt = buildNarrationHumanizeRepairPrompt({
+            format,
+            ideaTitle: idea.title,
+            narrative_script: parsedData.narrative_script,
+            narrative_script_tagged: parsedData.narrative_script_tagged,
+            blockCount: listicleBlockCount,
+            isListicle,
+            listicleRank,
+            listTopic: listicleTopic,
+          });
+          const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+            temperature: 0.55,
+            maxRetries: 2,
+            models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+          });
+          const repaired = normalizeKeys(
+            await parseAiJsonResponse(
+              repairText,
+              apiKey,
+              "Humanizacao narracao"
+            )
+          );
+          parsedData = mergeHumanizedNarration(parsedData, repaired, format);
+          console.log(
+            "[Creator Script] Humanização da narração (fase 1) aplicada."
+          );
+        } catch (repairErr) {
+          if (repairErr.message !== "skip_humanize") {
+            console.warn(
+              "[Creator Script] Humanização da narração falhou, usando rascunho:",
+              repairErr.message
+            );
+          }
+        }
+
+        parsedData = normalizeNarrationBlocks(parsedData, listicleBlockCount);
+
+        let notebooklmEnriched = false;
+        let notebooklmEnrichSummary = "";
+        if (
+          !skipPostProcess &&
+          useNotebooklm !== false &&
+          notebooklmResearch?.available &&
+          String(parsedData.narrative_script || "").trim().length >= 40
+        ) {
+          try {
+            report(
+              "notebooklm_enrich",
+              "Enriquecendo narração com NotebookLM…",
+              82
+            );
+            console.log(
+              "[NotebookLM] Enriquecendo narração do wizard (pós-rascunho)..."
+            );
+            const improveResearch = await fetchNotebooklmScriptImprovements({
+              backendDir: __dirname,
+              niche,
+              format,
+              narrativeScript: parsedData.narrative_script,
+            });
+            const enrichBlock = formatNotebooklmPromptBlock(
+              improveResearch,
+              "ENRIQUECIMENTO NOTEBOOKLM"
+            );
+            notebooklmEnrichSummary = improveResearch.summary || "";
+            const enrichPrompt = buildNotebooklmNarrationEnrichPrompt({
+              niche,
+              format,
+              ideaTitle: idea.title,
+              rawScript: extractScriptSliceForRepair(parsedData),
+              notebooklmBlock: enrichBlock || notebooklmContext,
+              blockCount: listicleBlockCount,
+              isListicle,
+              listicleRank,
+            });
+            const enrichText = await callGeminiWithRetry(apiKey, enrichPrompt, {
+              temperature: 0.55,
+              maxRetries: 2,
+              models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+            });
+            const enriched = normalizeKeys(
+              await parseAiJsonResponse(
+                enrichText,
+                apiKey,
+                "Enriquecimento narracao NLM"
+              )
+            );
+            parsedData = mergeEnrichedNarration(parsedData, enriched, format);
+            parsedData = normalizeNarrationBlocks(
+              parsedData,
+              listicleBlockCount
+            );
+            notebooklmEnriched = true;
+            console.log(
+              "[Creator Script] Narração enriquecida com NotebookLM na fase 1."
+            );
+          } catch (enrichErr) {
+            console.warn(
+              "[Creator Script] Enriquecimento NotebookLM na narração falhou:",
+              enrichErr.message
+            );
+          }
+        }
+
+        const storyboardPath = path.join(projDir, "storyboard.json");
+        let existingStoryboard = {};
+        if (fs.existsSync(storyboardPath)) {
+          try {
+            existingStoryboard = JSON.parse(
+              fs.readFileSync(storyboardPath, "utf8")
+            );
+          } catch (e) {
+            /* ignore corrupt file */
+          }
+        }
+        const partialStoryboard = {
+          strategy: parsedData.strategy || {},
+          narrative_script: parsedData.narrative_script || "",
+          narrative_script_tagged: parsedData.narrative_script_tagged || "",
+          technical_config: parsedData.technical_config || undefined,
+          research_sources: webResearchMeta?.sources || [],
+          notebooklm_enriched: notebooklmEnriched,
+          notebooklm_enriched_at: notebooklmEnriched
+            ? new Date().toISOString()
+            : undefined,
+          _creator_phase: "narration_pending",
+        };
+        report("save", "Salvando narração no projeto…", 94);
+        fs.writeFileSync(
+          storyboardPath,
+          JSON.stringify(
+            { ...existingStoryboard, ...partialStoryboard },
+            null,
+            2
+          ),
+          "utf8"
+        );
+        return activeRes.json({
+          phase: "narration",
+          project: safeProjectName,
+          strategy: partialStoryboard.strategy,
+          narrative_script: partialStoryboard.narrative_script,
+          narrative_script_tagged: partialStoryboard.narrative_script_tagged,
+          technical_config: partialStoryboard.technical_config,
+          notebooklm_enriched: notebooklmEnriched,
+          notebooklm_summary: notebooklmEnrichSummary
+            ? notebooklmEnrichSummary.slice(0, 500)
+            : undefined,
         });
       }
 
-      const skipPostProcess =
-        isBrowserResponse || shouldOfferGeminiBrowser(settingsDir);
-      if (skipPostProcess) {
-        console.log(
-          "[Creator Script] Modo navegador — pulando humanização/enriquecimento extra na fase narração."
-        );
-      }
-      try {
-        if (skipPostProcess) throw new Error("skip_humanize");
-        report("humanize", "Humanizando narração…", 72);
-        const repairPrompt = buildNarrationHumanizeRepairPrompt({
+      if (approvedNarration) {
+        report("visual_prompts", "Montando prompts visuais e list_items…", 70);
+        parsedData.narrative_script = approvedNarration;
+        if (approvedNarrationTagged) {
+          parsedData.narrative_script_tagged = approvedNarrationTagged;
+        } else if (!parsedData.narrative_script_tagged?.trim()) {
+          parsedData.narrative_script_tagged = approvedNarration;
+        }
+
+        if (
+          !preserveBrowserVisualPrompts &&
+          needsVisualPromptsRepair(parsedData, vpRepairOpts)
+        ) {
+          try {
+            const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
+              approvedNarration,
+              format,
+              blockCount: listicleBlockCount,
+              isListicle,
+              listicleRank,
+              listTopic: listicleTopic,
+              rankOrder: rankOrder || "desc",
+              ideaTitle: idea.title,
+              existingPrompts: parsedData.visual_prompts || [],
+            });
+            const vpRepairText = await callGeminiWithRetry(
+              apiKey,
+              vpRepairPrompt,
+              {
+                temperature: 0.6,
+                maxRetries: 2,
+                models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+              }
+            );
+            const vpRepaired = normalizeKeys(
+              await parseAiJsonResponse(
+                vpRepairText,
+                apiKey,
+                "Visual prompts fase 2"
+              )
+            );
+            parsedData = mergeVisualPromptsRepair(parsedData, vpRepaired);
+            parsedData.narrative_script = approvedNarration;
+            if (approvedNarrationTagged)
+              parsedData.narrative_script_tagged = approvedNarrationTagged;
+            console.log(
+              `[Creator Script] visual_prompts reparados na fase 2 (${parsedData.visual_prompts?.length || 0} cenas).`
+            );
+          } catch (vpRepairErr) {
+            console.warn(
+              "[Creator Script] Falha ao reparar visual_prompts na fase 2:",
+              vpRepairErr.message
+            );
+          }
+        }
+
+        parsedData = normalizeVisualPromptBlocks(parsedData, {
+          blockCount: listicleBlockCount,
           format,
           ideaTitle: idea.title,
-          narrative_script: parsedData.narrative_script,
-          narrative_script_tagged: parsedData.narrative_script_tagged,
-          blockCount: listicleBlockCount,
-          isListicle,
-          listicleRank,
-          listTopic: listicleTopic,
+          skipPromptEnrichment: preserveBrowserVisualPrompts,
         });
-        const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
-          temperature: 0.55,
-          maxRetries: 2,
-          models: ["gemini-2.0-flash", "gemini-1.5-flash"],
-        });
-        const repaired = normalizeKeys(
-          await parseAiJsonResponse(repairText, apiKey, "Humanizacao narracao")
-        );
-        parsedData = mergeHumanizedNarration(parsedData, repaired, format);
-        console.log(
-          "[Creator Script] Humanização da narração (fase 1) aplicada."
-        );
-      } catch (repairErr) {
-        if (repairErr.message !== "skip_humanize") {
+
+        if (
+          !preserveBrowserVisualPrompts &&
+          needsVisualPromptsRepair(parsedData, vpRepairOpts)
+        ) {
+          const deterministic = buildDeterministicVisualPromptsFromNarration(
+            approvedNarration,
+            {
+              blockCount: listicleBlockCount,
+              format,
+              ideaTitle: idea.title,
+            }
+          );
+          if (deterministic.length) {
+            // Try AI-based batch prompt generation before using static glossary fallback
+            try {
+              const batchPrompt = buildBatchScenePromptsAiRequest(
+                deterministic,
+                {
+                  ideaTitle: idea.title,
+                }
+              );
+              const batchText = await callGeminiWithRetry(apiKey, batchPrompt, {
+                temperature: 0.7,
+                maxRetries: 2,
+                models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+              });
+              const batchParsed = await parseAiJsonResponse(
+                batchText,
+                apiKey,
+                "Batch scene prompts"
+              );
+              const aiEnhanced = applyBatchScenePromptsAiResponse(
+                deterministic,
+                Array.isArray(batchParsed)
+                  ? batchParsed
+                  : batchParsed?.scenes || []
+              );
+              parsedData.visual_prompts = aiEnhanced;
+              console.log(
+                `[Creator Script] visual_prompts fallback IA batch (${aiEnhanced.length} cenas com prompts cinematográficos).`
+              );
+            } catch (batchErr) {
+              console.warn(
+                "[Creator Script] Fallback IA batch falhou, usando determinístico:",
+                batchErr.message
+              );
+              parsedData.visual_prompts = deterministic;
+            }
+            parsedData.narrative_script = approvedNarration;
+            if (approvedNarrationTagged)
+              parsedData.narrative_script_tagged = approvedNarrationTagged;
+            if (!parsedData.technical_config?.script) {
+              parsedData.technical_config = {
+                ...(parsedData.technical_config || {}),
+                script: approvedNarration,
+                block_phrases: parsedData.technical_config?.block_phrases || [],
+                impact_texts: parsedData.technical_config?.impact_texts || [],
+                highlight_keywords:
+                  parsedData.technical_config?.highlight_keywords || [],
+                bgm_mappings: parsedData.technical_config?.bgm_mappings || [],
+              };
+            }
+            console.log(
+              `[Creator Script] visual_prompts fallback final (${parsedData.visual_prompts.length} cenas).`
+            );
+          }
+        }
+      } else {
+        try {
+          const blockCount = listicleBlockCount;
+          const repairPrompt = buildHumanizeRepairPrompt({
+            format,
+            ideaTitle: idea.title,
+            rawScript: extractScriptSliceForRepair(parsedData),
+            blockCount,
+          });
+          const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+            temperature: 0.55,
+            maxRetries: 2,
+            models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+          });
+          const repaired = normalizeKeys(
+            await parseAiJsonResponse(repairText, apiKey, "Humanizacao roteiro")
+          );
+          parsedData = mergeHumanizedScript(parsedData, repaired, format);
+          console.log(
+            "[Creator Script] Passagem de humanização/clareza aplicada."
+          );
+        } catch (repairErr) {
           console.warn(
-            "[Creator Script] Humanização da narração falhou, usando rascunho:",
+            "[Creator Script] Humanização secundária falhou, usando rascunho:",
             repairErr.message
           );
         }
       }
 
-      parsedData = normalizeNarrationBlocks(parsedData, listicleBlockCount);
-
-      let notebooklmEnriched = false;
-      let notebooklmEnrichSummary = "";
-      if (
-        !skipPostProcess &&
-        useNotebooklm !== false &&
-        notebooklmResearch?.available &&
-        String(parsedData.narrative_script || "").trim().length >= 40
-      ) {
-        try {
-          report(
-            "notebooklm_enrich",
-            "Enriquecendo narração com NotebookLM…",
-            82
-          );
-          console.log(
-            "[NotebookLM] Enriquecendo narração do wizard (pós-rascunho)..."
-          );
-          const improveResearch = await fetchNotebooklmScriptImprovements({
-            backendDir: __dirname,
-            niche,
-            format,
-            narrativeScript: parsedData.narrative_script,
-          });
-          const enrichBlock = formatNotebooklmPromptBlock(
-            improveResearch,
-            "ENRIQUECIMENTO NOTEBOOKLM"
-          );
-          notebooklmEnrichSummary = improveResearch.summary || "";
-          const enrichPrompt = buildNotebooklmNarrationEnrichPrompt({
-            niche,
-            format,
-            ideaTitle: idea.title,
-            rawScript: extractScriptSliceForRepair(parsedData),
-            notebooklmBlock: enrichBlock || notebooklmContext,
-            blockCount: listicleBlockCount,
-            isListicle,
-            listicleRank,
-          });
-          const enrichText = await callGeminiWithRetry(apiKey, enrichPrompt, {
-            temperature: 0.55,
-            maxRetries: 2,
-            models: ["gemini-2.0-flash", "gemini-1.5-flash"],
-          });
-          const enriched = normalizeKeys(
-            await parseAiJsonResponse(
-              enrichText,
-              apiKey,
-              "Enriquecimento narracao NLM"
-            )
-          );
-          parsedData = mergeEnrichedNarration(parsedData, enriched, format);
-          parsedData = normalizeNarrationBlocks(parsedData, listicleBlockCount);
-          notebooklmEnriched = true;
-          console.log(
-            "[Creator Script] Narração enriquecida com NotebookLM na fase 1."
-          );
-        } catch (enrichErr) {
-          console.warn(
-            "[Creator Script] Enriquecimento NotebookLM na narração falhou:",
-            enrichErr.message
-          );
-        }
-      }
-
-      const storyboardPath = path.join(projDir, "storyboard.json");
-      let existingStoryboard = {};
-      if (fs.existsSync(storyboardPath)) {
-        try {
-          existingStoryboard = JSON.parse(
-            fs.readFileSync(storyboardPath, "utf8")
-          );
-        } catch (e) {
-          /* ignore corrupt file */
-        }
-      }
-      const partialStoryboard = {
-        strategy: parsedData.strategy || {},
-        narrative_script: parsedData.narrative_script || "",
-        narrative_script_tagged: parsedData.narrative_script_tagged || "",
-        technical_config: parsedData.technical_config || undefined,
-        research_sources: webResearchMeta?.sources || [],
-        notebooklm_enriched: notebooklmEnriched,
-        notebooklm_enriched_at: notebooklmEnriched
-          ? new Date().toISOString()
-          : undefined,
-        _creator_phase: "narration_pending",
-      };
-      report("save", "Salvando narração no projeto…", 94);
-      fs.writeFileSync(
-        storyboardPath,
-        JSON.stringify(
-          { ...existingStoryboard, ...partialStoryboard },
-          null,
-          2
-        ),
-        "utf8"
-      );
-      return activeRes.json({
-        phase: "narration",
-        project: safeProjectName,
-        strategy: partialStoryboard.strategy,
-        narrative_script: partialStoryboard.narrative_script,
-        narrative_script_tagged: partialStoryboard.narrative_script_tagged,
-        technical_config: partialStoryboard.technical_config,
-        notebooklm_enriched: notebooklmEnriched,
-        notebooklm_summary: notebooklmEnrichSummary
-          ? notebooklmEnrichSummary.slice(0, 500)
-          : undefined,
+      parsedData = await enhanceCreatorStrategyTitles(parsedData, {
+        transcript: parsedData.narrative_script || "",
+        format,
+        apiKey,
+        ideaTitle: idea.title,
       });
-    }
 
-    if (approvedNarration) {
-      report("visual_prompts", "Montando prompts visuais e list_items…", 70);
-      parsedData.narrative_script = approvedNarration;
-      if (approvedNarrationTagged) {
-        parsedData.narrative_script_tagged = approvedNarrationTagged;
-      } else if (!parsedData.narrative_script_tagged?.trim()) {
-        parsedData.narrative_script_tagged = approvedNarration;
-      }
-
-      if (
-        !preserveBrowserVisualPrompts &&
-        needsVisualPromptsRepair(parsedData, vpRepairOpts)
-      ) {
-        try {
-          const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
-            approvedNarration,
-            format,
-            blockCount: listicleBlockCount,
-            isListicle,
-            listicleRank,
-            listTopic: listicleTopic,
-            rankOrder: rankOrder || "desc",
-            ideaTitle: idea.title,
-            existingPrompts: parsedData.visual_prompts || [],
-          });
-          const vpRepairText = await callGeminiWithRetry(
-            apiKey,
-            vpRepairPrompt,
-            {
-              temperature: 0.6,
-              maxRetries: 2,
-              models: ["gemini-2.0-flash", "gemini-1.5-flash"],
-            }
-          );
-          const vpRepaired = normalizeKeys(
-            await parseAiJsonResponse(
-              vpRepairText,
-              apiKey,
-              "Visual prompts fase 2"
-            )
-          );
-          parsedData = mergeVisualPromptsRepair(parsedData, vpRepaired);
-          parsedData.narrative_script = approvedNarration;
-          if (approvedNarrationTagged)
-            parsedData.narrative_script_tagged = approvedNarrationTagged;
-          console.log(
-            `[Creator Script] visual_prompts reparados na fase 2 (${parsedData.visual_prompts?.length || 0} cenas).`
-          );
-        } catch (vpRepairErr) {
-          console.warn(
-            "[Creator Script] Falha ao reparar visual_prompts na fase 2:",
-            vpRepairErr.message
-          );
-        }
-      }
+      parsedData = await ensureScriptChecklist(parsedData, {
+        format,
+        niche,
+        ideaTitle: idea.title,
+        apiKey,
+      });
 
       parsedData = normalizeVisualPromptBlocks(parsedData, {
         blockCount: listicleBlockCount,
@@ -15827,780 +16163,687 @@ app.post("/api/ai/creator/script", async (req, res) => {
         skipPromptEnrichment: preserveBrowserVisualPrompts,
       });
 
-      if (
-        !preserveBrowserVisualPrompts &&
-        needsVisualPromptsRepair(parsedData, vpRepairOpts)
-      ) {
-        const deterministic = buildDeterministicVisualPromptsFromNarration(
-          approvedNarration,
-          {
-            blockCount: listicleBlockCount,
-            format,
-            ideaTitle: idea.title,
-          }
-        );
-        if (deterministic.length) {
-          // Try AI-based batch prompt generation before using static glossary fallback
+      if (isListicle) {
+        const repairConfig = {
+          content_mode: "LISTICLE",
+          rank_count: listicleRank,
+          rank_order: rankOrder === "asc" ? "asc" : "desc",
+          list_topic: listicleTopic,
+          video_format: format,
+          block_phrases: parsedData.technical_config?.block_phrases || [],
+          niche,
+        };
+        if (needsListItemsRepair(repairConfig, parsedData)) {
           try {
-            const batchPrompt = buildBatchScenePromptsAiRequest(deterministic, {
-              ideaTitle: idea.title,
-            });
-            const batchText = await callGeminiWithRetry(apiKey, batchPrompt, {
-              temperature: 0.7,
-              maxRetries: 2,
-              models: ["gemini-2.0-flash", "gemini-1.5-flash"],
-            });
-            const batchParsed = await parseAiJsonResponse(
-              batchText,
-              apiKey,
-              "Batch scene prompts"
+            const repaired = await repairListItemsWithAI(
+              parsedData,
+              repairConfig,
+              {
+                apiKey,
+                callGemini: (prompt, opts) =>
+                  callGeminiWithRetry(apiKey, prompt, opts),
+                parseJson: (text, label) =>
+                  parseAiJsonResponse(text, apiKey, label),
+                format,
+              }
             );
-            const aiEnhanced = applyBatchScenePromptsAiResponse(
-              deterministic,
-              Array.isArray(batchParsed)
-                ? batchParsed
-                : batchParsed?.scenes || []
-            );
-            parsedData.visual_prompts = aiEnhanced;
-            console.log(
-              `[Creator Script] visual_prompts fallback IA batch (${aiEnhanced.length} cenas com prompts cinematográficos).`
-            );
-          } catch (batchErr) {
-            console.warn(
-              "[Creator Script] Fallback IA batch falhou, usando determinístico:",
-              batchErr.message
-            );
-            parsedData.visual_prompts = deterministic;
-          }
-          parsedData.narrative_script = approvedNarration;
-          if (approvedNarrationTagged)
-            parsedData.narrative_script_tagged = approvedNarrationTagged;
-          if (!parsedData.technical_config?.script) {
-            parsedData.technical_config = {
-              ...(parsedData.technical_config || {}),
-              script: approvedNarration,
-              block_phrases: parsedData.technical_config?.block_phrases || [],
-              impact_texts: parsedData.technical_config?.impact_texts || [],
-              highlight_keywords:
-                parsedData.technical_config?.highlight_keywords || [],
-              bgm_mappings: parsedData.technical_config?.bgm_mappings || [],
-            };
-          }
-          console.log(
-            `[Creator Script] visual_prompts fallback final (${parsedData.visual_prompts.length} cenas).`
-          );
-        }
-      }
-    } else {
-      try {
-        const blockCount = listicleBlockCount;
-        const repairPrompt = buildHumanizeRepairPrompt({
-          format,
-          ideaTitle: idea.title,
-          rawScript: extractScriptSliceForRepair(parsedData),
-          blockCount,
-        });
-        const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
-          temperature: 0.55,
-          maxRetries: 2,
-          models: ["gemini-2.0-flash", "gemini-1.5-flash"],
-        });
-        const repaired = normalizeKeys(
-          await parseAiJsonResponse(repairText, apiKey, "Humanizacao roteiro")
-        );
-        parsedData = mergeHumanizedScript(parsedData, repaired, format);
-        console.log(
-          "[Creator Script] Passagem de humanização/clareza aplicada."
-        );
-      } catch (repairErr) {
-        console.warn(
-          "[Creator Script] Humanização secundária falhou, usando rascunho:",
-          repairErr.message
-        );
-      }
-    }
-
-    parsedData = await enhanceCreatorStrategyTitles(parsedData, {
-      transcript: parsedData.narrative_script || "",
-      format,
-      apiKey,
-      ideaTitle: idea.title,
-    });
-
-    parsedData = await ensureScriptChecklist(parsedData, {
-      format,
-      niche,
-      ideaTitle: idea.title,
-      apiKey,
-    });
-
-    parsedData = normalizeVisualPromptBlocks(parsedData, {
-      blockCount: listicleBlockCount,
-      format,
-      ideaTitle: idea.title,
-      skipPromptEnrichment: preserveBrowserVisualPrompts,
-    });
-
-    if (isListicle) {
-      const repairConfig = {
-        content_mode: "LISTICLE",
-        rank_count: listicleRank,
-        rank_order: rankOrder === "asc" ? "asc" : "desc",
-        list_topic: listicleTopic,
-        video_format: format,
-        block_phrases: parsedData.technical_config?.block_phrases || [],
-        niche,
-      };
-      if (needsListItemsRepair(repairConfig, parsedData)) {
-        try {
-          const repaired = await repairListItemsWithAI(
-            parsedData,
-            repairConfig,
-            {
-              apiKey,
-              callGemini: (prompt, opts) =>
-                callGeminiWithRetry(apiKey, prompt, opts),
-              parseJson: (text, label) =>
-                parseAiJsonResponse(text, apiKey, label),
-              format,
+            if (repaired.repaired) {
+              parsedData = repaired.storyboard;
+              console.log(
+                `[Creator Script] list_items reparado pela IA (${repaired.count} itens).`
+              );
             }
-          );
-          if (repaired.repaired) {
-            parsedData = repaired.storyboard;
-            console.log(
-              `[Creator Script] list_items reparado pela IA (${repaired.count} itens).`
+          } catch (repairListErr) {
+            console.warn(
+              "[Creator Script] Falha ao reparar list_items:",
+              repairListErr.message
             );
           }
-        } catch (repairListErr) {
-          console.warn(
-            "[Creator Script] Falha ao reparar list_items:",
-            repairListErr.message
-          );
         }
       }
-    }
 
-    if (webResearchMeta?.sources?.length) {
-      parsedData.research_sources = webResearchMeta.sources;
-    }
-
-    // Save full storyboard JSON
-
-    const storyboardPath = path.join(projDir, "storyboard.json");
-
-    fs.writeFileSync(
-      storyboardPath,
-      JSON.stringify(parsedData, null, 2),
-      "utf8"
-    );
-
-    // Save technical configurations to active project directory
-
-    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
-
-    let scriptText = parsedData.technical_config?.script;
-
-    if (Array.isArray(scriptText)) {
-      scriptText = scriptText.join("\n\n");
-    } else if (typeof scriptText !== "string") {
-      scriptText = String(scriptText || "");
-    }
-
-    fs.writeFileSync(transcriptPath, scriptText, "utf8");
-
-    const configPath = path.join(projDir, "config_qanat.json");
-
-    let currentConfig = {};
-
-    if (fs.existsSync(configPath)) {
-      try {
-        currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      } catch (e) {}
-    }
-
-    // Wizard: timeline vazia — B-roll só após o usuário mapear no passo manual ou Workflow → auto-map.
-    const timelineAssets = {};
-
-    let newConfig = {
-      ...currentConfig,
-      niche: niche || currentConfig.niche || "Geral",
-      highlight_keywords:
-        parsedData.technical_config?.highlight_keywords ||
-        currentConfig.highlight_keywords ||
-        [],
-      impact_texts:
-        parsedData.technical_config?.impact_texts ||
-        currentConfig.impact_texts ||
-        [],
-      block_phrases:
-        parsedData.technical_config?.block_phrases ||
-        currentConfig.block_phrases ||
-        [],
-      timeline_assets: timelineAssets,
-      aspect_ratio: isShort ? "9:16" : "16:9",
-      video_format: format,
-      ...(isListicle
-        ? {
-            content_mode: "LISTICLE",
-            rank_count: listicleRank,
-            rank_order: rankOrder === "asc" ? "asc" : "desc",
-            list_topic: listicleTopic,
-            listicle_hud_style: ["compact", "full", "auto"].includes(
-              listicleHudStyle
-            )
-              ? listicleHudStyle
-              : listicleRank > 8
-                ? "compact"
-                : "full",
-          }
-        : {}),
-    };
-
-    const presetApplied = applyDocumentaryHistoryPreset(
-      newConfig,
-      parsedData,
-      newConfig.niche
-    );
-    if (presetApplied.applied) {
-      newConfig = presetApplied.config;
-      console.log(
-        "[Creator Script] Preset Documentário História aplicado ao config."
-      );
-    }
-
-    const estDuration =
-      Number(parsedData?.technical_config?.estimated_duration) ||
-      Number(currentConfig?.estimated_duration) ||
-      0;
-    newConfig = applyBgmProductionDefaults(newConfig, estDuration);
-
-    fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
-
-    report("save", "Finalizando roteiro…", 96);
-
-    activeRes.json(parsedData);
-  } catch (err) {
-    failJobProgress(progressJobId, err.message);
-    console.error("Erro no endpoint /api/ai/creator/script:", err);
-
-    if (responseText) {
-      console.error(
-        "Raw responseText returned from Gemini was:\n",
-        responseText
-      );
-    }
-
-    if (!progressJobId || activeRes === res) {
-      activeRes.status(500).json({
-        error: "Erro ao gerar roteiro e estratégia",
-        details: err.message,
-        hint: /json|JSON|válido/i.test(String(err.message || ""))
-          ? "A resposta do Gemini pode ter vindo truncada. Tente de novo ou desative o modo navegador."
-          : undefined,
-      });
-    } else {
-      setJobProgress(progressJobId, {
-        result: {
-          error: "Erro ao gerar roteiro e estratégia",
-          details: err.message,
-        },
-        done: true,
-        awaitingBrowser: false,
-      });
-    }
-  }
-});
-
-app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const storyboardPath = path.join(projDir, "storyboard.json");
-  if (!fs.existsSync(storyboardPath)) {
-    return res
-      .status(404)
-      .json({ error: "Storyboard não encontrado para este projeto." });
-  }
-
-  try {
-    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-    const approvedNarration = String(storyboard.narrative_script || "").trim();
-    if (!approvedNarration) {
-      return res.status(400).json({
-        error:
-          "Não há narrative_script no storyboard para distribuir nas cenas.",
-      });
-    }
-
-    const config = readProjectJson(projDir, "config_qanat.json", {});
-    const isListicle =
-      config.content_mode === "LISTICLE" ||
-      storyboard.listicle?.content_mode === "LISTICLE";
-    const format = config.video_format || "LONGO";
-    const listicleRank =
-      config.rank_count || storyboard.listicle?.rank_count || 3;
-    const blockCount = isListicle
-      ? resolveListicleBlockCount({ rankCount: listicleRank, format })
-      : format === "SHORTS"
-        ? 5
-        : 12;
-
-    const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
-      approvedNarration,
-      format,
-      blockCount,
-      isListicle,
-      listicleRank,
-      listTopic: config.list_topic || storyboard.listicle?.topic || "",
-      rankOrder: config.rank_order || storyboard.listicle?.rank_order || "desc",
-      ideaTitle: storyboard.strategy?.title_main || config.niche || "Vídeo",
-      existingPrompts: storyboard.visual_prompts || [],
-    });
-    const vpRepairText = await callGeminiLlm(req, res, projDir, {
-      title: "Reparar prompts visuais",
-      prompt: vpRepairPrompt,
-      temperature: 0.6,
-    });
-    if (vpRepairText == null) return;
-
-    const vpRepaired = normalizeKeys(
-      await parseAiJsonResponse(
-        vpRepairText,
-        extractBrowserResponse(req.body) ? null : getApiKey(projDir),
-        "Repair visual prompts"
-      )
-    );
-    storyboard = mergeVisualPromptsRepair(storyboard, vpRepaired);
-    storyboard.narrative_script = approvedNarration;
-    storyboard = normalizeVisualPromptBlocks(storyboard, {
-      blockCount,
-      format,
-      ideaTitle: config.niche || storyboard.strategy?.title_main || "Vídeo",
-    });
-
-    fs.writeFileSync(
-      storyboardPath,
-      JSON.stringify(storyboard, null, 2),
-      "utf8"
-    );
-
-    let scriptText = storyboard.technical_config?.script;
-    if (Array.isArray(scriptText)) scriptText = scriptText.join("\n\n");
-    if (typeof scriptText === "string" && scriptText.trim()) {
-      fs.writeFileSync(
-        path.join(projDir, "transcripts_readable.txt"),
-        scriptText,
-        "utf8"
-      );
-    }
-
-    if (storyboard.technical_config?.block_phrases?.length) {
-      const configPath = path.join(projDir, "config_qanat.json");
-      let currentConfig = config;
-      currentConfig.block_phrases = storyboard.technical_config.block_phrases;
-      if (storyboard.technical_config.impact_texts) {
-        currentConfig.impact_texts = storyboard.technical_config.impact_texts;
+      if (webResearchMeta?.sources?.length) {
+        parsedData.research_sources = webResearchMeta.sources;
       }
-      if (storyboard.technical_config.highlight_keywords) {
-        currentConfig.highlight_keywords =
-          storyboard.technical_config.highlight_keywords;
-      }
-      fs.writeFileSync(
-        configPath,
-        JSON.stringify(currentConfig, null, 2),
-        "utf8"
-      );
-    }
 
-    console.log(
-      `[Creator Repair] visual_prompts reparados (${storyboard.visual_prompts?.length || 0} cenas).`
-    );
-    res.json(storyboard);
-  } catch (err) {
-    console.error("Erro em /api/ai/creator/repair-visual-prompts:", err);
-    res.status(500).json({
-      error: "Erro ao reparar cenas do roteiro",
-      details: err.message,
-    });
-  }
-});
+      // Save full storyboard JSON
 
-// --- Visual Prompt Engineer PRO (premium reprocessing) ---
-app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const storyboardPath = path.join(projDir, "storyboard.json");
-  const progressJobId = normalizeJobId(req.body?.progress_job_id);
-  const report = createProgressReporter(progressJobId);
+      const storyboardPath = path.join(projDir, "storyboard.json");
 
-  if (!fs.existsSync(storyboardPath)) {
-    if (progressJobId)
-      failJobProgress(progressJobId, "Storyboard não encontrado.");
-    return res
-      .status(404)
-      .json({ error: "Storyboard não encontrado para este projeto." });
-  }
-
-  let activeRes = res;
-  if (progressJobId) {
-    res.json({ started: true, jobId: progressJobId });
-    activeRes = createProgressJobResponse(progressJobId);
-  }
-
-  try {
-    report("vpe_prepare", "Engenharia Visual PRO: carregando storyboard…", 6);
-
-    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-    const narrative = String(storyboard.narrative_script || "").trim();
-    if (!narrative) {
-      const msg = "Não há narrative_script no storyboard.";
-      if (progressJobId) failJobProgress(progressJobId, msg);
-      else if (!res.headersSent) return res.status(400).json({ error: msg });
-      return;
-    }
-    if (
-      !Array.isArray(storyboard.visual_prompts) ||
-      storyboard.visual_prompts.length === 0
-    ) {
-      const msg = "Não há visual_prompts no storyboard para reprocessar.";
-      if (progressJobId) failJobProgress(progressJobId, msg);
-      else if (!res.headersSent) return res.status(400).json({ error: msg });
-      return;
-    }
-
-    const config = readProjectJson(projDir, "config_qanat.json", {});
-    const format = config.video_format || "LONGO";
-    const isListicle =
-      config.content_mode === "LISTICLE" ||
-      storyboard.listicle?.content_mode === "LISTICLE";
-    const listicleRank =
-      config.rank_count || storyboard.listicle?.rank_count || 0;
-    const rankOrder =
-      config.rank_order || storyboard.listicle?.rank_order || "desc";
-
-    const { systemPrompt, userPrompt, detectedNiche } =
-      buildVisualPromptEngineerRequest(storyboard, {
-        format,
-        isListicle,
-        listicleRank,
-        rankOrder,
-      });
-
-    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
-    const sceneCount = storyboard.visual_prompts.length;
-    const geminiKeys = getApiKeys(projDir);
-    const apiKey = geminiKeys[0] || getApiKey(projDir);
-
-    report("vpe_llm", `Gemini reprocessando ${sceneCount} cena(s)…`, 22);
-
-    const responseText = await callGeminiLlm(req, activeRes, projDir, {
-      title: "✨ Engenharia Visual PRO",
-      prompt: fullPrompt,
-      temperature: 0.7,
-    });
-    if (responseText == null) return;
-
-    report("vpe_parse", "Validando JSON e aplicando engenharia visual…", 68);
-
-    const isBrowserResponse = !!extractBrowserResponse(req.body);
-    const parsed = normalizeKeys(
-      await parseAiJsonResponse(
-        responseText,
-        isBrowserResponse ? null : apiKey,
-        "Visual Prompt Engineer PRO"
-      )
-    );
-
-    if (
-      Array.isArray(parsed.visual_prompts) &&
-      parsed.visual_prompts.length > 0
-    ) {
-      storyboard.visual_prompts = parsed.visual_prompts;
-    } else {
-      throw new Error(
-        "Gemini não retornou visual_prompts válidos. Tente de novo."
-      );
-    }
-    storyboard.narrative_script = narrative;
-
-    if (parsed.checklist) {
-      storyboard._vpe_checklist = parsed.checklist;
-    }
-    if (parsed.style_adaptation_notes) {
-      storyboard._vpe_style_notes = parsed.style_adaptation_notes;
-    }
-
-    const vps = storyboard.visual_prompts || [];
-    const expectedBlocks = isListicle
-      ? resolveListicleBlockCount({ rankCount: listicleRank, format })
-      : format === "SHORTS"
-        ? 5
-        : 12;
-    storyboard.visual_prompts = vps.map((vp, index) => {
-      const block =
-        parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ??
-        Math.min(
-          expectedBlocks,
-          Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1
-        );
-      const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
-      const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
-      return {
-        ...vp,
-        block,
-        scene: sceneInBlock ? sceneStr : `${block}.${index + 1}`,
-      };
-    });
-    storyboard.visual_prompts = sanitizeVisualPromptDurations(
-      enforceShortsVideoSceneMix(storyboard.visual_prompts, { format })
-    );
-
-    report("vpe_save", "Salvando storyboard aprimorado…", 92);
-
-    fs.writeFileSync(
-      storyboardPath,
-      JSON.stringify(storyboard, null, 2),
-      "utf8"
-    );
-
-    console.log(
-      `[VPE PRO] visual_prompts enhanced (${storyboard.visual_prompts?.length || 0} cenas, nicho: ${detectedNiche}, score: ${parsed.checklist?.quality_score || "N/A"}).`
-    );
-
-    if (progressJobId) {
-      finishJobProgressWithResult(
-        progressJobId,
-        storyboard,
-        `Engenharia Visual PRO — ${storyboard.visual_prompts.length} cenas`
-      );
-      return;
-    }
-
-    if (!res.headersSent) res.json(storyboard);
-  } catch (err) {
-    console.error("Erro em /api/ai/creator/enhance-visual-prompts:", err);
-    if (progressJobId) {
-      failJobProgress(progressJobId, err.message);
-      return;
-    }
-    if (!res.headersSent) {
-      res.status(500).json({
-        error: "Erro ao aprimorar prompts visuais",
-        details: err.message,
-      });
-    }
-  }
-});
-
-// --- Seedance Directing (Fase 1): directing_brief + refs por papel antes do visual_prompt ---
-app.post("/api/ai/creator/compile-directing-briefs", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const storyboardPath = path.join(projDir, "storyboard.json");
-  if (!fs.existsSync(storyboardPath)) {
-    return res
-      .status(404)
-      .json({ error: "Storyboard não encontrado para este projeto." });
-  }
-
-  try {
-    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-    const narrative = String(storyboard.narrative_script || "").trim();
-    if (!narrative) {
-      return res
-        .status(400)
-        .json({ error: "Não há narrative_script no storyboard." });
-    }
-    if (
-      !Array.isArray(storyboard.visual_prompts) ||
-      storyboard.visual_prompts.length === 0
-    ) {
-      return res
-        .status(400)
-        .json({ error: "Não há visual_prompts no storyboard." });
-    }
-
-    const config = readProjectJson(projDir, "config_qanat.json", {});
-    const format = config.video_format || "LONGO";
-    const rawIndices = req.body?.scene_indices ?? req.body?.sceneIndices;
-    const sceneIndices = Array.isArray(rawIndices)
-      ? rawIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
-      : null;
-
-    const { systemPrompt, userPrompt, detectedNiche } =
-      buildSeedanceDirectingRequest(storyboard, {
-        format,
-        sceneIndices,
-      });
-
-    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
-    const responseText = await callGeminiLlm(req, res, projDir, {
-      title: "🎬 Seedance Directing",
-      prompt: fullPrompt,
-      temperature: 0.65,
-    });
-    if (responseText == null) return;
-
-    const isBrowserResponse = !!extractBrowserResponse(req.body);
-    const parsed = normalizeKeys(
-      await parseAiJsonResponse(
-        responseText,
-        isBrowserResponse ? null : getApiKey(projDir) || getApiKey(settingsDir),
-        "Seedance Directing"
-      )
-    );
-
-    storyboard = applySeedanceDirectingResponse(storyboard, parsed);
-    storyboard.narrative_script = narrative;
-
-    fs.writeFileSync(
-      storyboardPath,
-      JSON.stringify(storyboard, null, 2),
-      "utf8"
-    );
-
-    const count =
-      sceneIndices?.length || storyboard.visual_prompts?.length || 0;
-    console.log(
-      `[Seedance Directing] briefs compilados (${count} cenas, nicho: ${detectedNiche}).`
-    );
-    res.json(storyboard);
-  } catch (err) {
-    console.error("Erro em /api/ai/creator/compile-directing-briefs:", err);
-    res.status(500).json({
-      error: "Erro ao compilar directing briefs",
-      details: err.message,
-    });
-  }
-});
-
-// --- Seedance T2V (Fase 2): geração vídeo IA com directing + refs → LTX ou API Seedance ---
-app.post("/api/ai/creator/generate-seedance-t2v", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const storyboardPath = path.join(projDir, "storyboard.json");
-  if (!fs.existsSync(storyboardPath)) {
-    return res
-      .status(404)
-      .json({ error: "Storyboard não encontrado para este projeto." });
-  }
-
-  try {
-    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-    const config = readProjectJson(projDir, "config_qanat.json", {});
-    const rawIndices = req.body?.scene_indices ?? req.body?.sceneIndices;
-    const sceneIndices = Array.isArray(rawIndices)
-      ? rawIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
-      : null;
-    const provider =
-      String(req.body?.provider || "ltx").toLowerCase() === "seedance"
-        ? "seedance"
-        : "ltx";
-    const wait = Boolean(req.body?.wait);
-
-    if (provider === "seedance") {
-      const apiCfg = loadSeedanceApiConfig(projDir);
-      if (!apiCfg.enabled) {
-        return res.status(400).json({
-          error:
-            "API Seedance desabilitada. Use provider: 'ltx' ou ative seedance_api.enabled em config_qanat.json.",
-        });
-      }
-    }
-
-    const result = await generateSeedanceScenes({
-      projDir,
-      storyboard,
-      config,
-      sceneIndices,
-      provider,
-      wait,
-    });
-
-    if (wait) {
       fs.writeFileSync(
         storyboardPath,
-        JSON.stringify(result.storyboard, null, 2),
+        JSON.stringify(parsedData, null, 2),
         "utf8"
       );
+
+      // Save technical configurations to active project directory
+
+      const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+
+      let scriptText = parsedData.technical_config?.script;
+
+      if (Array.isArray(scriptText)) {
+        scriptText = scriptText.join("\n\n");
+      } else if (typeof scriptText !== "string") {
+        scriptText = String(scriptText || "");
+      }
+
+      fs.writeFileSync(transcriptPath, scriptText, "utf8");
+
+      const configPath = path.join(projDir, "config_qanat.json");
+
+      let currentConfig = {};
+
+      if (fs.existsSync(configPath)) {
+        try {
+          currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+        } catch (e) {}
+      }
+
+      // Wizard: timeline vazia — B-roll só após o usuário mapear no passo manual ou Workflow → auto-map.
+      const timelineAssets = {};
+
+      let newConfig = {
+        ...currentConfig,
+        niche: niche || currentConfig.niche || "Geral",
+        highlight_keywords:
+          parsedData.technical_config?.highlight_keywords ||
+          currentConfig.highlight_keywords ||
+          [],
+        impact_texts:
+          parsedData.technical_config?.impact_texts ||
+          currentConfig.impact_texts ||
+          [],
+        block_phrases:
+          parsedData.technical_config?.block_phrases ||
+          currentConfig.block_phrases ||
+          [],
+        timeline_assets: timelineAssets,
+        aspect_ratio: isShort ? "9:16" : "16:9",
+        video_format: format,
+        ...(isListicle
+          ? {
+              content_mode: "LISTICLE",
+              rank_count: listicleRank,
+              rank_order: rankOrder === "asc" ? "asc" : "desc",
+              list_topic: listicleTopic,
+              listicle_hud_style: ["compact", "full", "auto"].includes(
+                listicleHudStyle
+              )
+                ? listicleHudStyle
+                : listicleRank > 8
+                  ? "compact"
+                  : "full",
+            }
+          : {}),
+      };
+
+      const presetApplied = applyDocumentaryHistoryPreset(
+        newConfig,
+        parsedData,
+        newConfig.niche
+      );
+      if (presetApplied.applied) {
+        newConfig = presetApplied.config;
+        console.log(
+          "[Creator Script] Preset Documentário História aplicado ao config."
+        );
+      }
+
+      const estDuration =
+        Number(parsedData?.technical_config?.estimated_duration) ||
+        Number(currentConfig?.estimated_duration) ||
+        0;
+      newConfig = applyBgmProductionDefaults(newConfig, estDuration);
+
+      fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
+
+      report("save", "Finalizando roteiro…", 96);
+
+      activeRes.json(parsedData);
+    } catch (err) {
+      failJobProgress(progressJobId, err.message);
+      console.error("Erro no endpoint /api/ai/creator/script:", err);
+
+      if (responseText) {
+        console.error(
+          "Raw responseText returned from Gemini was:\n",
+          responseText
+        );
+      }
+
+      if (!progressJobId || activeRes === res) {
+        activeRes.status(500).json({
+          error: "Erro ao gerar roteiro e estratégia",
+          details: err.message,
+          hint: /json|JSON|válido/i.test(String(err.message || ""))
+            ? "A resposta do Gemini pode ter vindo truncada. Tente de novo ou desative o modo navegador."
+            : undefined,
+        });
+      } else {
+        setJobProgress(progressJobId, {
+          result: {
+            error: "Erro ao gerar roteiro e estratégia",
+            details: err.message,
+          },
+          done: true,
+          awaitingBrowser: false,
+        });
+      }
+    }
+  })
+);
+
+app.post(
+  "/api/ai/creator/repair-visual-prompts",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (!fs.existsSync(storyboardPath)) {
+      return res
+        .status(404)
+        .json({ error: "Storyboard não encontrado para este projeto." });
     }
 
-    const videoSceneCount = listVideoIaSceneIndices(
-      storyboard.visual_prompts || []
-    ).length;
-    console.log(
-      `[Seedance T2V] ${result.jobs.length} job(s) enfileirado(s) — provider: ${provider}, vídeo IA total: ${videoSceneCount}`
-    );
-    res.json({
-      provider,
-      waited: wait,
-      jobs: result.jobs,
-      storyboard: wait ? result.storyboard : undefined,
-      video_ia_scene_count: videoSceneCount,
-    });
-  } catch (err) {
-    console.error("Erro em /api/ai/creator/generate-seedance-t2v:", err);
-    res.status(500).json({
-      error: "Erro ao gerar vídeo Seedance/LTX",
-      details: err.message,
-    });
-  }
-});
+    try {
+      let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      const approvedNarration = String(
+        storyboard.narrative_script || ""
+      ).trim();
+      if (!approvedNarration) {
+        return res.status(400).json({
+          error:
+            "Não há narrative_script no storyboard para distribuir nas cenas.",
+        });
+      }
 
-app.post("/api/ai/creator/attach-seedance-t2v", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const storyboardPath = path.join(projDir, "storyboard.json");
-  if (!fs.existsSync(storyboardPath)) {
-    return res
-      .status(404)
-      .json({ error: "Storyboard não encontrado para este projeto." });
-  }
+      const config = readProjectJson(projDir, "config_qanat.json", {});
+      const isListicle =
+        config.content_mode === "LISTICLE" ||
+        storyboard.listicle?.content_mode === "LISTICLE";
+      const format = config.video_format || "LONGO";
+      const listicleRank =
+        config.rank_count || storyboard.listicle?.rank_count || 3;
+      const blockCount = isListicle
+        ? resolveListicleBlockCount({ rankCount: listicleRank, format })
+        : format === "SHORTS"
+          ? 5
+          : 12;
 
-  try {
-    const promptId = String(
-      req.body?.prompt_id || req.body?.promptId || ""
-    ).trim();
-    const sceneIndex = Number(req.body?.scene_index ?? req.body?.sceneIndex);
-    if (!promptId)
-      return res.status(400).json({ error: "prompt_id obrigatório." });
-    if (!Number.isFinite(sceneIndex) || sceneIndex < 0) {
-      return res.status(400).json({ error: "scene_index inválido." });
-    }
+      const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
+        approvedNarration,
+        format,
+        blockCount,
+        isListicle,
+        listicleRank,
+        listTopic: config.list_topic || storyboard.listicle?.topic || "",
+        rankOrder:
+          config.rank_order || storyboard.listicle?.rank_order || "desc",
+        ideaTitle: storyboard.strategy?.title_main || config.niche || "Vídeo",
+        existingPrompts: storyboard.visual_prompts || [],
+      });
+      const vpRepairText = await callGeminiLlm(req, res, projDir, {
+        title: "Reparar prompts visuais",
+        prompt: vpRepairPrompt,
+        temperature: 0.6,
+      });
+      if (vpRepairText == null) return;
 
-    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-    const config = readProjectJson(projDir, "config_qanat.json", {});
+      const vpRepaired = normalizeKeys(
+        await parseAiJsonResponse(
+          vpRepairText,
+          extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+          "Repair visual prompts"
+        )
+      );
+      storyboard = mergeVisualPromptsRepair(storyboard, vpRepaired);
+      storyboard.narrative_script = approvedNarration;
+      storyboard = normalizeVisualPromptBlocks(storyboard, {
+        blockCount,
+        format,
+        ideaTitle: config.niche || storyboard.strategy?.title_main || "Vídeo",
+      });
 
-    const result = await attachSeedanceT2vOutput(
-      projDir,
-      storyboard,
-      config,
-      sceneIndex,
-      promptId
-    );
-    if (!result.ready) {
-      return res.json({
-        ready: false,
-        status: result.status,
-        progress: result.progress,
+      fs.writeFileSync(
+        storyboardPath,
+        JSON.stringify(storyboard, null, 2),
+        "utf8"
+      );
+
+      let scriptText = storyboard.technical_config?.script;
+      if (Array.isArray(scriptText)) scriptText = scriptText.join("\n\n");
+      if (typeof scriptText === "string" && scriptText.trim()) {
+        fs.writeFileSync(
+          path.join(projDir, "transcripts_readable.txt"),
+          scriptText,
+          "utf8"
+        );
+      }
+
+      if (storyboard.technical_config?.block_phrases?.length) {
+        const configPath = path.join(projDir, "config_qanat.json");
+        let currentConfig = config;
+        currentConfig.block_phrases = storyboard.technical_config.block_phrases;
+        if (storyboard.technical_config.impact_texts) {
+          currentConfig.impact_texts = storyboard.technical_config.impact_texts;
+        }
+        if (storyboard.technical_config.highlight_keywords) {
+          currentConfig.highlight_keywords =
+            storyboard.technical_config.highlight_keywords;
+        }
+        fs.writeFileSync(
+          configPath,
+          JSON.stringify(currentConfig, null, 2),
+          "utf8"
+        );
+      }
+
+      console.log(
+        `[Creator Repair] visual_prompts reparados (${storyboard.visual_prompts?.length || 0} cenas).`
+      );
+      res.json(storyboard);
+    } catch (err) {
+      console.error("Erro em /api/ai/creator/repair-visual-prompts:", err);
+      res.status(500).json({
+        error: "Erro ao reparar cenas do roteiro",
+        details: err.message,
       });
     }
+  })
+);
 
-    res.json({
-      ready: true,
-      asset: result.asset,
-      storyboard: result.storyboard,
-      config: result.config,
-      blockKey: result.blockKey,
-      assetIdx: result.assetIdx,
-      compiled_prompt: buildSeedanceT2vPrompt(
-        result.storyboard.visual_prompts?.[sceneIndex]
-      ),
-      is_video_ia: isVideoIaScene(
-        result.storyboard.visual_prompts?.[sceneIndex]
-      ),
-    });
-  } catch (err) {
-    console.error("Erro em /api/ai/creator/attach-seedance-t2v:", err);
-    res
-      .status(500)
-      .json({ error: "Erro ao vincular vídeo gerado", details: err.message });
-  }
-});
+// --- Visual Prompt Engineer PRO (premium reprocessing) ---
+app.post(
+  "/api/ai/creator/enhance-visual-prompts",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    const progressJobId = normalizeJobId(req.body?.progress_job_id);
+    const report = createProgressReporter(progressJobId);
+
+    if (!fs.existsSync(storyboardPath)) {
+      if (progressJobId)
+        failJobProgress(progressJobId, "Storyboard não encontrado.");
+      return res
+        .status(404)
+        .json({ error: "Storyboard não encontrado para este projeto." });
+    }
+
+    let activeRes = res;
+    if (progressJobId) {
+      res.json({ started: true, jobId: progressJobId });
+      activeRes = createProgressJobResponse(progressJobId);
+    }
+
+    try {
+      report("vpe_prepare", "Engenharia Visual PRO: carregando storyboard…", 6);
+
+      let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      const narrative = String(storyboard.narrative_script || "").trim();
+      if (!narrative) {
+        const msg = "Não há narrative_script no storyboard.";
+        if (progressJobId) failJobProgress(progressJobId, msg);
+        else if (!res.headersSent) return res.status(400).json({ error: msg });
+        return;
+      }
+      if (
+        !Array.isArray(storyboard.visual_prompts) ||
+        storyboard.visual_prompts.length === 0
+      ) {
+        const msg = "Não há visual_prompts no storyboard para reprocessar.";
+        if (progressJobId) failJobProgress(progressJobId, msg);
+        else if (!res.headersSent) return res.status(400).json({ error: msg });
+        return;
+      }
+
+      const config = readProjectJson(projDir, "config_qanat.json", {});
+      const format = config.video_format || "LONGO";
+      const isListicle =
+        config.content_mode === "LISTICLE" ||
+        storyboard.listicle?.content_mode === "LISTICLE";
+      const listicleRank =
+        config.rank_count || storyboard.listicle?.rank_count || 0;
+      const rankOrder =
+        config.rank_order || storyboard.listicle?.rank_order || "desc";
+
+      const { systemPrompt, userPrompt, detectedNiche } =
+        buildVisualPromptEngineerRequest(storyboard, {
+          format,
+          isListicle,
+          listicleRank,
+          rankOrder,
+        });
+
+      const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
+      const sceneCount = storyboard.visual_prompts.length;
+      const geminiKeys = getApiKeys(projDir);
+      const apiKey = geminiKeys[0] || getApiKey(projDir);
+
+      report("vpe_llm", `Gemini reprocessando ${sceneCount} cena(s)…`, 22);
+
+      const responseText = await callGeminiLlm(req, activeRes, projDir, {
+        title: "✨ Engenharia Visual PRO",
+        prompt: fullPrompt,
+        temperature: 0.7,
+      });
+      if (responseText == null) return;
+
+      report("vpe_parse", "Validando JSON e aplicando engenharia visual…", 68);
+
+      const isBrowserResponse = !!extractBrowserResponse(req.body);
+      const parsed = normalizeKeys(
+        await parseAiJsonResponse(
+          responseText,
+          isBrowserResponse ? null : apiKey,
+          "Visual Prompt Engineer PRO"
+        )
+      );
+
+      if (
+        Array.isArray(parsed.visual_prompts) &&
+        parsed.visual_prompts.length > 0
+      ) {
+        storyboard.visual_prompts = parsed.visual_prompts;
+      } else {
+        throw new Error(
+          "Gemini não retornou visual_prompts válidos. Tente de novo."
+        );
+      }
+      storyboard.narrative_script = narrative;
+
+      if (parsed.checklist) {
+        storyboard._vpe_checklist = parsed.checklist;
+      }
+      if (parsed.style_adaptation_notes) {
+        storyboard._vpe_style_notes = parsed.style_adaptation_notes;
+      }
+
+      const vps = storyboard.visual_prompts || [];
+      const expectedBlocks = isListicle
+        ? resolveListicleBlockCount({ rankCount: listicleRank, format })
+        : format === "SHORTS"
+          ? 5
+          : 12;
+      storyboard.visual_prompts = vps.map((vp, index) => {
+        const block =
+          parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ??
+          Math.min(
+            expectedBlocks,
+            Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1
+          );
+        const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
+        const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
+        return {
+          ...vp,
+          block,
+          scene: sceneInBlock ? sceneStr : `${block}.${index + 1}`,
+        };
+      });
+      storyboard.visual_prompts = sanitizeVisualPromptDurations(
+        enforceShortsVideoSceneMix(storyboard.visual_prompts, { format })
+      );
+
+      report("vpe_save", "Salvando storyboard aprimorado…", 92);
+
+      fs.writeFileSync(
+        storyboardPath,
+        JSON.stringify(storyboard, null, 2),
+        "utf8"
+      );
+
+      console.log(
+        `[VPE PRO] visual_prompts enhanced (${storyboard.visual_prompts?.length || 0} cenas, nicho: ${detectedNiche}, score: ${parsed.checklist?.quality_score || "N/A"}).`
+      );
+
+      if (progressJobId) {
+        finishJobProgressWithResult(
+          progressJobId,
+          storyboard,
+          `Engenharia Visual PRO — ${storyboard.visual_prompts.length} cenas`
+        );
+        return;
+      }
+
+      if (!res.headersSent) res.json(storyboard);
+    } catch (err) {
+      console.error("Erro em /api/ai/creator/enhance-visual-prompts:", err);
+      if (progressJobId) {
+        failJobProgress(progressJobId, err.message);
+        return;
+      }
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: "Erro ao aprimorar prompts visuais",
+          details: err.message,
+        });
+      }
+    }
+  })
+);
+
+// --- Seedance Directing (Fase 1): directing_brief + refs por papel antes do visual_prompt ---
+app.post(
+  "/api/ai/creator/compile-directing-briefs",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (!fs.existsSync(storyboardPath)) {
+      return res
+        .status(404)
+        .json({ error: "Storyboard não encontrado para este projeto." });
+    }
+
+    try {
+      let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      const narrative = String(storyboard.narrative_script || "").trim();
+      if (!narrative) {
+        return res
+          .status(400)
+          .json({ error: "Não há narrative_script no storyboard." });
+      }
+      if (
+        !Array.isArray(storyboard.visual_prompts) ||
+        storyboard.visual_prompts.length === 0
+      ) {
+        return res
+          .status(400)
+          .json({ error: "Não há visual_prompts no storyboard." });
+      }
+
+      const config = readProjectJson(projDir, "config_qanat.json", {});
+      const format = config.video_format || "LONGO";
+      const rawIndices = req.body?.scene_indices ?? req.body?.sceneIndices;
+      const sceneIndices = Array.isArray(rawIndices)
+        ? rawIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
+        : null;
+
+      const { systemPrompt, userPrompt, detectedNiche } =
+        buildSeedanceDirectingRequest(storyboard, {
+          format,
+          sceneIndices,
+        });
+
+      const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
+      const responseText = await callGeminiLlm(req, res, projDir, {
+        title: "🎬 Seedance Directing",
+        prompt: fullPrompt,
+        temperature: 0.65,
+      });
+      if (responseText == null) return;
+
+      const isBrowserResponse = !!extractBrowserResponse(req.body);
+      const parsed = normalizeKeys(
+        await parseAiJsonResponse(
+          responseText,
+          isBrowserResponse
+            ? null
+            : getApiKey(projDir) || getApiKey(settingsDir),
+          "Seedance Directing"
+        )
+      );
+
+      storyboard = applySeedanceDirectingResponse(storyboard, parsed);
+      storyboard.narrative_script = narrative;
+
+      fs.writeFileSync(
+        storyboardPath,
+        JSON.stringify(storyboard, null, 2),
+        "utf8"
+      );
+
+      const count =
+        sceneIndices?.length || storyboard.visual_prompts?.length || 0;
+      console.log(
+        `[Seedance Directing] briefs compilados (${count} cenas, nicho: ${detectedNiche}).`
+      );
+      res.json(storyboard);
+    } catch (err) {
+      console.error("Erro em /api/ai/creator/compile-directing-briefs:", err);
+      res.status(500).json({
+        error: "Erro ao compilar directing briefs",
+        details: err.message,
+      });
+    }
+  })
+);
+
+// --- Seedance T2V (Fase 2): geração vídeo IA com directing + refs → LTX ou API Seedance ---
+app.post(
+  "/api/ai/creator/generate-seedance-t2v",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (!fs.existsSync(storyboardPath)) {
+      return res
+        .status(404)
+        .json({ error: "Storyboard não encontrado para este projeto." });
+    }
+
+    try {
+      let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      const config = readProjectJson(projDir, "config_qanat.json", {});
+      const rawIndices = req.body?.scene_indices ?? req.body?.sceneIndices;
+      const sceneIndices = Array.isArray(rawIndices)
+        ? rawIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
+        : null;
+      const provider =
+        String(req.body?.provider || "ltx").toLowerCase() === "seedance"
+          ? "seedance"
+          : "ltx";
+      const wait = Boolean(req.body?.wait);
+
+      if (provider === "seedance") {
+        const apiCfg = loadSeedanceApiConfig(projDir);
+        if (!apiCfg.enabled) {
+          return res.status(400).json({
+            error:
+              "API Seedance desabilitada. Use provider: 'ltx' ou ative seedance_api.enabled em config_qanat.json.",
+          });
+        }
+      }
+
+      const result = await generateSeedanceScenes({
+        projDir,
+        storyboard,
+        config,
+        sceneIndices,
+        provider,
+        wait,
+      });
+
+      if (wait) {
+        fs.writeFileSync(
+          storyboardPath,
+          JSON.stringify(result.storyboard, null, 2),
+          "utf8"
+        );
+      }
+
+      const videoSceneCount = listVideoIaSceneIndices(
+        storyboard.visual_prompts || []
+      ).length;
+      console.log(
+        `[Seedance T2V] ${result.jobs.length} job(s) enfileirado(s) — provider: ${provider}, vídeo IA total: ${videoSceneCount}`
+      );
+      res.json({
+        provider,
+        waited: wait,
+        jobs: result.jobs,
+        storyboard: wait ? result.storyboard : undefined,
+        video_ia_scene_count: videoSceneCount,
+      });
+    } catch (err) {
+      console.error("Erro em /api/ai/creator/generate-seedance-t2v:", err);
+      res.status(500).json({
+        error: "Erro ao gerar vídeo Seedance/LTX",
+        details: err.message,
+      });
+    }
+  })
+);
+
+app.post(
+  "/api/ai/creator/attach-seedance-t2v",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (!fs.existsSync(storyboardPath)) {
+      return res
+        .status(404)
+        .json({ error: "Storyboard não encontrado para este projeto." });
+    }
+
+    try {
+      const promptId = String(
+        req.body?.prompt_id || req.body?.promptId || ""
+      ).trim();
+      const sceneIndex = Number(req.body?.scene_index ?? req.body?.sceneIndex);
+      if (!promptId)
+        return res.status(400).json({ error: "prompt_id obrigatório." });
+      if (!Number.isFinite(sceneIndex) || sceneIndex < 0) {
+        return res.status(400).json({ error: "scene_index inválido." });
+      }
+
+      let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      const config = readProjectJson(projDir, "config_qanat.json", {});
+
+      const result = await attachSeedanceT2vOutput(
+        projDir,
+        storyboard,
+        config,
+        sceneIndex,
+        promptId
+      );
+      if (!result.ready) {
+        return res.json({
+          ready: false,
+          status: result.status,
+          progress: result.progress,
+        });
+      }
+
+      res.json({
+        ready: true,
+        asset: result.asset,
+        storyboard: result.storyboard,
+        config: result.config,
+        blockKey: result.blockKey,
+        assetIdx: result.assetIdx,
+        compiled_prompt: buildSeedanceT2vPrompt(
+          result.storyboard.visual_prompts?.[sceneIndex]
+        ),
+        is_video_ia: isVideoIaScene(
+          result.storyboard.visual_prompts?.[sceneIndex]
+        ),
+      });
+    } catch (err) {
+      console.error("Erro em /api/ai/creator/attach-seedance-t2v:", err);
+      res
+        .status(500)
+        .json({ error: "Erro ao vincular vídeo gerado", details: err.message });
+    }
+  })
+);
 
 app.get("/api/ai/creator/seedance-t2v/preview-prompt", (req, res) => {
   const projDir = getProjectDir(req);
@@ -16624,64 +16867,69 @@ app.get("/api/ai/creator/seedance-t2v/preview-prompt", (req, res) => {
   }
 });
 
-app.post("/api/ai/creator/evaluate-checklist", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const storyboardPath = path.join(projDir, "storyboard.json");
-  if (!fs.existsSync(storyboardPath)) {
-    return res
-      .status(404)
-      .json({ error: "Storyboard não encontrado para este projeto." });
-  }
-
-  try {
-    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-    const approvedNarration = String(storyboard.narrative_script || "").trim();
-    if (!approvedNarration) {
+app.post(
+  "/api/ai/creator/evaluate-checklist",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (!fs.existsSync(storyboardPath)) {
       return res
-        .status(400)
-        .json({ error: "Não há narração no storyboard para avaliar." });
+        .status(404)
+        .json({ error: "Storyboard não encontrado para este projeto." });
     }
 
-    const config = readProjectJson(projDir, "config_qanat.json", {});
-    const apiKey = getApiKey(projDir);
-    const evalPrompt = buildScriptChecklistEvaluationPrompt({
-      narrative_script: approvedNarration,
-      strategy: storyboard.strategy || {},
-      format: config.video_format || "SHORTS",
-      ideaTitle: storyboard.strategy?.title_main || "",
-      niche: config.niche || "",
-    });
+    try {
+      let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      const approvedNarration = String(
+        storyboard.narrative_script || ""
+      ).trim();
+      if (!approvedNarration) {
+        return res
+          .status(400)
+          .json({ error: "Não há narração no storyboard para avaliar." });
+      }
 
-    const evalText = await callGeminiLlm(req, res, projDir, {
-      title: "Avaliar checklist de qualidade",
-      prompt: evalPrompt,
-      temperature: 0.35,
-    });
-    if (evalText == null) return;
+      const config = readProjectJson(projDir, "config_qanat.json", {});
+      const apiKey = getApiKey(projDir);
+      const evalPrompt = buildScriptChecklistEvaluationPrompt({
+        narrative_script: approvedNarration,
+        strategy: storyboard.strategy || {},
+        format: config.video_format || "SHORTS",
+        ideaTitle: storyboard.strategy?.title_main || "",
+        niche: config.niche || "",
+      });
 
-    const evaluated = normalizeKeys(
-      await parseAiJsonResponse(
-        evalText,
-        extractBrowserResponse(req.body) ? null : apiKey,
-        "Checklist qualidade"
-      )
-    );
-    storyboard.checklist = normalizeScriptChecklist(evaluated?.checklist);
+      const evalText = await callGeminiLlm(req, res, projDir, {
+        title: "Avaliar checklist de qualidade",
+        prompt: evalPrompt,
+        temperature: 0.35,
+      });
+      if (evalText == null) return;
 
-    fs.writeFileSync(
-      storyboardPath,
-      JSON.stringify(storyboard, null, 2),
-      "utf8"
-    );
-    res.json(storyboard);
-  } catch (err) {
-    console.error("Erro em /api/ai/creator/evaluate-checklist:", err);
-    res.status(500).json({
-      error: "Erro ao avaliar checklist de qualidade",
-      details: err.message,
-    });
-  }
-});
+      const evaluated = normalizeKeys(
+        await parseAiJsonResponse(
+          evalText,
+          extractBrowserResponse(req.body) ? null : apiKey,
+          "Checklist qualidade"
+        )
+      );
+      storyboard.checklist = normalizeScriptChecklist(evaluated?.checklist);
+
+      fs.writeFileSync(
+        storyboardPath,
+        JSON.stringify(storyboard, null, 2),
+        "utf8"
+      );
+      res.json(storyboard);
+    } catch (err) {
+      console.error("Erro em /api/ai/creator/evaluate-checklist:", err);
+      res.status(500).json({
+        error: "Erro ao avaliar checklist de qualidade",
+        details: err.message,
+      });
+    }
+  })
+);
 
 app.get("/api/notebooklm/status", (_req, res) => {
   try {
@@ -16740,284 +16988,296 @@ app.post("/api/notebooklm/login", (_req, res) => {
   }
 });
 
-app.post("/api/notebooklm/improve-script", async (req, res) => {
-  const projDir = getProjectDir(req);
+app.post(
+  "/api/notebooklm/improve-script",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
 
-  const {
-    niche: nicheBody,
-    format: formatBody,
-    useNotebooklm,
-  } = req.body || {};
-  const storyboardPath = path.join(projDir, "storyboard.json");
+    const {
+      niche: nicheBody,
+      format: formatBody,
+      useNotebooklm,
+    } = req.body || {};
+    const storyboardPath = path.join(projDir, "storyboard.json");
 
-  if (!fs.existsSync(storyboardPath)) {
-    return res
-      .status(404)
-      .json({ error: "storyboard.json não encontrado neste projeto." });
-  }
-
-  let storyboard;
-  try {
-    storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-  } catch (err) {
-    return res
-      .status(500)
-      .json({ error: "Erro ao ler storyboard.json", details: err.message });
-  }
-
-  const narrativeScript = buildProjectTranscript({ storyboard });
-  if (!narrativeScript || narrativeScript.length < 80) {
-    return res.status(400).json({
-      error:
-        "Roteiro muito curto ou ausente. Gere ou edite a narração antes de enriquecer.",
-    });
-  }
-
-  const configPath = path.join(projDir, "config_qanat.json");
-  let projectConfig = {};
-  if (fs.existsSync(configPath)) {
-    try {
-      projectConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    } catch {
-      projectConfig = {};
+    if (!fs.existsSync(storyboardPath)) {
+      return res
+        .status(404)
+        .json({ error: "storyboard.json não encontrado neste projeto." });
     }
-  }
 
-  const niche = String(
-    nicheBody ||
-      storyboard?.strategy?.title_main ||
-      storyboard?.listicle?.topic ||
-      projectConfig.niche ||
-      "documentário"
-  ).trim();
-  const format = formatBody === "SHORTS" ? "SHORTS" : "LONGO";
-  const blockCount = Array.isArray(storyboard?.technical_config?.block_phrases)
-    ? storyboard.technical_config.block_phrases.length
-    : format === "SHORTS"
-      ? 5
-      : 12;
-
-  let notebooklmResearch = null;
-  let notebooklmBlock = "";
-
-  if (useNotebooklm !== false) {
+    let storyboard;
     try {
-      console.log("[NotebookLM] Analisando roteiro para melhorias...");
-      notebooklmResearch = await fetchNotebooklmScriptImprovements({
-        backendDir: __dirname,
+      storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ error: "Erro ao ler storyboard.json", details: err.message });
+    }
+
+    const narrativeScript = buildProjectTranscript({ storyboard });
+    if (!narrativeScript || narrativeScript.length < 80) {
+      return res.status(400).json({
+        error:
+          "Roteiro muito curto ou ausente. Gere ou edite a narração antes de enriquecer.",
+      });
+    }
+
+    const configPath = path.join(projDir, "config_qanat.json");
+    let projectConfig = {};
+    if (fs.existsSync(configPath)) {
+      try {
+        projectConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      } catch {
+        projectConfig = {};
+      }
+    }
+
+    const niche = String(
+      nicheBody ||
+        storyboard?.strategy?.title_main ||
+        storyboard?.listicle?.topic ||
+        projectConfig.niche ||
+        "documentário"
+    ).trim();
+    const format = formatBody === "SHORTS" ? "SHORTS" : "LONGO";
+    const blockCount = Array.isArray(
+      storyboard?.technical_config?.block_phrases
+    )
+      ? storyboard.technical_config.block_phrases.length
+      : format === "SHORTS"
+        ? 5
+        : 12;
+
+    let notebooklmResearch = null;
+    let notebooklmBlock = "";
+
+    if (useNotebooklm !== false) {
+      try {
+        console.log("[NotebookLM] Analisando roteiro para melhorias...");
+        notebooklmResearch = await fetchNotebooklmScriptImprovements({
+          backendDir: __dirname,
+          niche,
+          format,
+          narrativeScript,
+        });
+        notebooklmBlock = formatNotebooklmPromptBlock(
+          notebooklmResearch,
+          "SUGESTÕES NOTEBOOKLM"
+        );
+        if (!notebooklmBlock) {
+          notebooklmBlock =
+            "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
+        }
+      } catch (err) {
+        console.warn("[NotebookLM] Melhoria de roteiro falhou:", err.message);
+        notebooklmBlock = `\n(Pesquisa NotebookLM indisponível: ${err.message})\n`;
+      }
+    } else {
+      notebooklmBlock =
+        "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
+    }
+
+    try {
+      const improvePrompt = buildNotebooklmImproveApplyPrompt({
         niche,
         format,
-        narrativeScript,
+        rawScript: extractScriptSliceForRepair(storyboard),
+        notebooklmBlock,
+        blockCount,
       });
-      notebooklmBlock = formatNotebooklmPromptBlock(
-        notebooklmResearch,
-        "SUGESTÕES NOTEBOOKLM"
+
+      const responseText = await callGeminiLlm(req, res, projDir, {
+        title: "Enriquecer roteiro (NotebookLM)",
+        prompt: improvePrompt,
+        temperature: 0.6,
+      });
+      if (responseText == null) return;
+
+      const repaired = normalizeKeys(
+        await parseAiJsonResponse(
+          responseText,
+          extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+          "Enriquecer roteiro"
+        )
       );
-      if (!notebooklmBlock) {
-        notebooklmBlock =
-          "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
+      const improved = mergeHumanizedScript(storyboard, repaired, format);
+
+      fs.writeFileSync(
+        storyboardPath,
+        JSON.stringify(improved, null, 2),
+        "utf8"
+      );
+
+      const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+      let scriptText = improved.technical_config?.script;
+      if (Array.isArray(scriptText)) scriptText = scriptText.join("\n\n");
+      if (typeof scriptText === "string" && scriptText.trim()) {
+        fs.writeFileSync(transcriptPath, scriptText, "utf8");
       }
+
+      return res.json({
+        success: true,
+        storyboard: improved,
+        notebooklm: notebooklmResearch || {
+          available: false,
+          fallback: true,
+          summary: "",
+        },
+        suggestions: notebooklmResearch?.summary || "",
+      });
     } catch (err) {
-      console.warn("[NotebookLM] Melhoria de roteiro falhou:", err.message);
-      notebooklmBlock = `\n(Pesquisa NotebookLM indisponível: ${err.message})\n`;
+      console.error("[NotebookLM] Erro ao aplicar melhorias:", err);
+      return res
+        .status(500)
+        .json({ error: "Erro ao enriquecer roteiro", details: err.message });
     }
-  } else {
-    notebooklmBlock =
-      "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
-  }
-
-  try {
-    const improvePrompt = buildNotebooklmImproveApplyPrompt({
-      niche,
-      format,
-      rawScript: extractScriptSliceForRepair(storyboard),
-      notebooklmBlock,
-      blockCount,
-    });
-
-    const responseText = await callGeminiLlm(req, res, projDir, {
-      title: "Enriquecer roteiro (NotebookLM)",
-      prompt: improvePrompt,
-      temperature: 0.6,
-    });
-    if (responseText == null) return;
-
-    const repaired = normalizeKeys(
-      await parseAiJsonResponse(
-        responseText,
-        extractBrowserResponse(req.body) ? null : getApiKey(projDir),
-        "Enriquecer roteiro"
-      )
-    );
-    const improved = mergeHumanizedScript(storyboard, repaired, format);
-
-    fs.writeFileSync(storyboardPath, JSON.stringify(improved, null, 2), "utf8");
-
-    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
-    let scriptText = improved.technical_config?.script;
-    if (Array.isArray(scriptText)) scriptText = scriptText.join("\n\n");
-    if (typeof scriptText === "string" && scriptText.trim()) {
-      fs.writeFileSync(transcriptPath, scriptText, "utf8");
-    }
-
-    return res.json({
-      success: true,
-      storyboard: improved,
-      notebooklm: notebooklmResearch || {
-        available: false,
-        fallback: true,
-        summary: "",
-      },
-      suggestions: notebooklmResearch?.summary || "",
-    });
-  } catch (err) {
-    console.error("[NotebookLM] Erro ao aplicar melhorias:", err);
-    return res
-      .status(500)
-      .json({ error: "Erro ao enriquecer roteiro", details: err.message });
-  }
-});
+  })
+);
 
 // API: Improve narration draft inline (wizard — before approving and distributing to blocks)
-app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
-  const {
-    narrativeScript: narrativeScriptRaw,
-    narrativeScriptTagged: narrativeScriptTaggedRaw,
-    niche: nicheRaw,
-    format: formatRaw,
-    blockCount: blockCountRaw,
-    useNotebooklm,
-    ideaTitle,
-    isListicle,
-    listicleRank,
-  } = req.body || {};
+app.post(
+  "/api/notebooklm/improve-narration-draft",
+  asyncHandler(async (req, res) => {
+    const {
+      narrativeScript: narrativeScriptRaw,
+      narrativeScriptTagged: narrativeScriptTaggedRaw,
+      niche: nicheRaw,
+      format: formatRaw,
+      blockCount: blockCountRaw,
+      useNotebooklm,
+      ideaTitle,
+      isListicle,
+      listicleRank,
+    } = req.body || {};
 
-  const narrativeScript = String(narrativeScriptRaw || "").trim();
-  if (narrativeScript.length < 40) {
-    return res.status(400).json({
-      error: "A narração precisa ter ao menos 40 caracteres para melhorar.",
-    });
-  }
+    const narrativeScript = String(narrativeScriptRaw || "").trim();
+    if (narrativeScript.length < 40) {
+      return res.status(400).json({
+        error: "A narração precisa ter ao menos 40 caracteres para melhorar.",
+      });
+    }
 
-  const niche = String(nicheRaw || "documentário").trim();
-  const format = formatRaw === "SHORTS" ? "SHORTS" : "LONGO";
-  const blockCount = Number(blockCountRaw) || (format === "SHORTS" ? 5 : 12);
+    const niche = String(nicheRaw || "documentário").trim();
+    const format = formatRaw === "SHORTS" ? "SHORTS" : "LONGO";
+    const blockCount = Number(blockCountRaw) || (format === "SHORTS" ? 5 : 12);
 
-  // Use any available project dir for API key resolution
-  const projDir = getProjectDir(req);
+    // Use any available project dir for API key resolution
+    const projDir = getProjectDir(req);
 
-  // NotebookLM research
-  let notebooklmResearch = null;
-  let notebooklmBlock = "";
+    // NotebookLM research
+    let notebooklmResearch = null;
+    let notebooklmBlock = "";
 
-  if (useNotebooklm !== false) {
+    if (useNotebooklm !== false) {
+      try {
+        console.log(
+          "[NotebookLM] Analisando draft de narração para melhorias (wizard)..."
+        );
+        notebooklmResearch = await fetchNotebooklmScriptImprovements({
+          backendDir: __dirname,
+          niche,
+          format,
+          narrativeScript,
+        });
+        notebooklmBlock = formatNotebooklmPromptBlock(
+          notebooklmResearch,
+          "SUGESTÕES NOTEBOOKLM"
+        );
+        if (!notebooklmBlock) {
+          notebooklmBlock =
+            "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
+        }
+      } catch (err) {
+        console.warn("[NotebookLM] Melhoria de draft falhou:", err.message);
+        notebooklmBlock = `\n(Pesquisa NotebookLM indisponível: ${err.message})\n`;
+      }
+    } else {
+      notebooklmBlock =
+        "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
+    }
+
     try {
-      console.log(
-        "[NotebookLM] Analisando draft de narração para melhorias (wizard)..."
-      );
-      notebooklmResearch = await fetchNotebooklmScriptImprovements({
-        backendDir: __dirname,
+      const rawScript = {
+        narrative_script: narrativeScript,
+        narrative_script_tagged:
+          String(narrativeScriptTaggedRaw || "").trim() || narrativeScript,
+      };
+
+      const improvePrompt = buildNotebooklmNarrationEnrichPrompt({
         niche,
         format,
-        narrativeScript,
+        ideaTitle: ideaTitle || niche,
+        rawScript,
+        notebooklmBlock,
+        blockCount,
+        isListicle: Boolean(isListicle),
+        listicleRank: Number(listicleRank) || 20,
       });
-      notebooklmBlock = formatNotebooklmPromptBlock(
-        notebooklmResearch,
-        "SUGESTÕES NOTEBOOKLM"
-      );
-      if (!notebooklmBlock) {
-        notebooklmBlock =
-          "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
+
+      const responseText = await callGeminiLlm(req, res, projDir, {
+        title: "Melhorar narração draft (NotebookLM)",
+        prompt: improvePrompt,
+        temperature: 0.6,
+      });
+      if (responseText == null) return;
+
+      const isBrowserResponse = !!extractBrowserResponse(req.body);
+      let rawData;
+      try {
+        rawData = await parseAiJsonResponse(
+          responseText,
+          isBrowserResponse ? null : getApiKey(projDir),
+          "Melhorar narração draft"
+        );
+      } catch (parseErr) {
+        rawData = salvageScriptJson(responseText) || {};
+        console.warn(
+          "[NotebookLM] JSON inválido ao melhorar draft — salvage/fallback:",
+          parseErr.message
+        );
+        if (!Object.keys(rawData).length) {
+          throw parseErr;
+        }
       }
+
+      const parsed = normalizeKeys(rawData);
+
+      console.log("[NotebookLM] Draft de narração melhorado com sucesso!");
+
+      const notebooklmEnriched = Boolean(
+        notebooklmResearch?.available && !notebooklmResearch?.fallback
+      );
+      let notebooklmReason = "pesquisa_ok";
+      if (useNotebooklm === false) {
+        notebooklmReason = "disabled";
+      } else if (!notebooklmResearch) {
+        notebooklmReason = "unavailable";
+      } else if (notebooklmResearch.fallback || !notebooklmResearch.available) {
+        notebooklmReason = notebooklmResearch.needsLogin
+          ? "needs_login"
+          : "fallback";
+      }
+
+      return res.json({
+        success: true,
+        narrative_script: parsed.narrative_script || narrativeScript,
+        narrative_script_tagged:
+          parsed.narrative_script_tagged || parsed.narrative_script || "",
+        strategy: parsed.strategy || null,
+        technical_config: parsed.technical_config || null,
+        notebooklm_enriched: notebooklmEnriched,
+        notebooklm_reason: notebooklmReason,
+        suggestions: notebooklmResearch?.summary || "",
+      });
     } catch (err) {
-      console.warn("[NotebookLM] Melhoria de draft falhou:", err.message);
-      notebooklmBlock = `\n(Pesquisa NotebookLM indisponível: ${err.message})\n`;
+      console.error("[NotebookLM] Erro ao melhorar draft de narração:", err);
+      return res
+        .status(500)
+        .json({ error: "Erro ao melhorar narração", details: err.message });
     }
-  } else {
-    notebooklmBlock =
-      "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
-  }
-
-  try {
-    const rawScript = {
-      narrative_script: narrativeScript,
-      narrative_script_tagged:
-        String(narrativeScriptTaggedRaw || "").trim() || narrativeScript,
-    };
-
-    const improvePrompt = buildNotebooklmNarrationEnrichPrompt({
-      niche,
-      format,
-      ideaTitle: ideaTitle || niche,
-      rawScript,
-      notebooklmBlock,
-      blockCount,
-      isListicle: Boolean(isListicle),
-      listicleRank: Number(listicleRank) || 20,
-    });
-
-    const responseText = await callGeminiLlm(req, res, projDir, {
-      title: "Melhorar narração draft (NotebookLM)",
-      prompt: improvePrompt,
-      temperature: 0.6,
-    });
-    if (responseText == null) return;
-
-    const isBrowserResponse = !!extractBrowserResponse(req.body);
-    let rawData;
-    try {
-      rawData = await parseAiJsonResponse(
-        responseText,
-        isBrowserResponse ? null : getApiKey(projDir),
-        "Melhorar narração draft"
-      );
-    } catch (parseErr) {
-      rawData = salvageScriptJson(responseText) || {};
-      console.warn(
-        "[NotebookLM] JSON inválido ao melhorar draft — salvage/fallback:",
-        parseErr.message
-      );
-      if (!Object.keys(rawData).length) {
-        throw parseErr;
-      }
-    }
-
-    const parsed = normalizeKeys(rawData);
-
-    console.log("[NotebookLM] Draft de narração melhorado com sucesso!");
-
-    const notebooklmEnriched = Boolean(
-      notebooklmResearch?.available && !notebooklmResearch?.fallback
-    );
-    let notebooklmReason = "pesquisa_ok";
-    if (useNotebooklm === false) {
-      notebooklmReason = "disabled";
-    } else if (!notebooklmResearch) {
-      notebooklmReason = "unavailable";
-    } else if (notebooklmResearch.fallback || !notebooklmResearch.available) {
-      notebooklmReason = notebooklmResearch.needsLogin
-        ? "needs_login"
-        : "fallback";
-    }
-
-    return res.json({
-      success: true,
-      narrative_script: parsed.narrative_script || narrativeScript,
-      narrative_script_tagged:
-        parsed.narrative_script_tagged || parsed.narrative_script || "",
-      strategy: parsed.strategy || null,
-      technical_config: parsed.technical_config || null,
-      notebooklm_enriched: notebooklmEnriched,
-      notebooklm_reason: notebooklmReason,
-      suggestions: notebooklmResearch?.summary || "",
-    });
-  } catch (err) {
-    console.error("[NotebookLM] Erro ao melhorar draft de narração:", err);
-    return res
-      .status(500)
-      .json({ error: "Erro ao melhorar narração", details: err.message });
-  }
-});
+  })
+);
 
 // API: Automap available files in ASSETS to script narrative blocks using Gemini
 
@@ -17448,6 +17708,23 @@ registerTimesfmRoutes(app, {
 
 registerAgentReachRoutes(app, {
   WORKSPACE_DIR,
+});
+
+// --- Global Express error middleware (última barreira antes de crash) ---
+app.use((err, req, res, _next) => {
+  console.error(`[Express Error] ${req.method} ${req.originalUrl}:`, err);
+  appendCrashLog(
+    "expressMiddleware",
+    err instanceof Error
+      ? err
+      : new Error(`${req.method} ${req.originalUrl}: ${err}`)
+  );
+  if (!res.headersSent) {
+    res.status(500).json({
+      error: err instanceof Error ? err.message : String(err),
+      route: `${req.method} ${req.originalUrl}`,
+    });
+  }
 });
 
 // Serve frontend build static files in production (must be after API routes)
