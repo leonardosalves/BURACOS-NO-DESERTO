@@ -1005,7 +1005,7 @@ export function SceneTimingEditor({
           </div>
 
           {/* COLUMN 2: Real-time active block player preview */}
-          <div className="lg:w-80 shrink-0 sticky top-4 flex flex-col gap-4 bg-zinc-950 border border-zinc-900 rounded-2xl p-4 self-start shadow-2xl backdrop-blur-md">
+          <div className="lg:w-[380px] shrink-0 sticky top-4 flex flex-col gap-4 bg-zinc-950 border border-zinc-900 rounded-2xl p-4 self-start shadow-2xl backdrop-blur-md">
             <div className="flex justify-between items-center pb-2 border-b border-zinc-900">
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-gold-500">
                 Prévia do Bloco
@@ -1019,7 +1019,7 @@ export function SceneTimingEditor({
             <div
               className={`relative flex items-center justify-center bg-[#050506] rounded-xl overflow-hidden border border-zinc-900 shadow-inner ${
                 config?.aspect_ratio === "9:16"
-                  ? "h-96 aspect-[9/16] mx-auto"
+                  ? "h-[440px] aspect-[9/16] mx-auto"
                   : "w-full aspect-video"
               }`}
             >
