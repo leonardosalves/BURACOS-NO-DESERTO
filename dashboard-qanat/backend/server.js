@@ -9692,12 +9692,9 @@ function isGeminiBrowserModeEnabled(projectDir = WORKSPACE_DIR) {
     const config = readJsonFile(configPath);
     return getGeminiBrowserMode(config);
   };
-  return (
-    readMode(path.join(projectDir, "config_qanat.json")) ||
-    (projectDir !== WORKSPACE_DIR
-      ? readMode(path.join(WORKSPACE_DIR, "config_qanat.json"))
-      : false)
-  );
+  const workspaceMode = readMode(path.join(WORKSPACE_DIR, "config_qanat.json"));
+  if (workspaceMode === false) return false;
+  return readMode(path.join(projectDir, "config_qanat.json")) || workspaceMode;
 }
 
 function shouldOfferGeminiBrowser(projectDir = WORKSPACE_DIR) {
