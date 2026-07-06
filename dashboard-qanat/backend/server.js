@@ -15538,9 +15538,15 @@ app.post(
       report("notebooklm", "Consultando NotebookLM…", 18);
       try {
         console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
+        // Para ideias pioneer-niche (isCustom), niche="Customized" não localiza o notebook correto.
+        // Usamos o título/tema real da ideia para o NLM encontrar/criar o notebook certo.
+        const nlmNiche =
+          isPioneerFromIdea && niche === "Customized"
+            ? (idea?.title || idea?.promise || niche).trim().slice(0, 72)
+            : niche;
         notebooklmResearch = await fetchNotebooklmScriptContext({
           backendDir: __dirname,
-          niche,
+          niche: nlmNiche,
           format,
           idea,
           contentMode: isListicle ? "LISTICLE" : undefined,
