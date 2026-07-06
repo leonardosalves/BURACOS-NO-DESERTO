@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
   Download,
@@ -10,6 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import type { StudioClip } from "./timelineStudioTypes";
+import type { StockSearchTrigger } from "./timelineStudioAskTypes";
 import type { StockKeysStatus, StockSearchItem } from "./stockMediaTypes";
 
 type PanelMode = "project" | "stock";
@@ -20,6 +21,7 @@ type Props = {
   getProjectUrl: (path: string) => string;
   playhead: number;
   onStockClipAdded: (clip: StudioClip) => void;
+  stockSearchTrigger?: StockSearchTrigger | null;
 };
 
 export function StockMediaPanel({
@@ -28,6 +30,7 @@ export function StockMediaPanel({
   getProjectUrl,
   playhead,
   onStockClipAdded,
+  stockSearchTrigger,
 }: Props) {
   const [mode, setMode] = useState<PanelMode>("stock");
   const [mediaTab, setMediaTab] = useState<"videos" | "images">("videos");
@@ -73,38 +76,63 @@ export function StockMediaPanel({
     );
   }, [videoClips, mediaTab, projectFilter]);
 
-  const runStockSearch = useCallback(async () => {
-    const q = query.trim();
-    if (!q) {
-      toast.error("Digite um termo de busca");
-      return;
-    }
-    setSearching(true);
-    setStockError(null);
-    try {
-      const params = new URLSearchParams({
-        q,
-        type: mediaTab === "videos" ? "video" : "image",
-        provider,
-        per_page: "12",
-      });
-      const res = await fetch(
-        getProjectUrl(`/api/timeline-studio/stock/search?${params}`)
-      );
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setStockResults((data.items || []) as StockSearchItem[]);
-      setStockKeys(data.keys || { pexels: false, pixabay: false });
-      if (data.error && !(data.items || []).length) {
-        setStockError(data.error);
+  const runStockSearch = useCallback(
+    async (override?: { q?: string; mediaType?: "video" | "image" }) => {
+      const q = (override?.q ?? query).trim();
+      const tab =
+        override?.mediaType === "image"
+          ? "images"
+          : override?.mediaType === "video"
+            ? "videos"
+            : mediaTab;
+      if (!q) {
+        toast.error("Digite um termo de busca");
+        return;
       }
-    } catch (err) {
-      setStockError((err as Error).message);
-      toast.error(`Busca falhou: ${(err as Error).message}`);
-    } finally {
-      setSearching(false);
-    }
-  }, [getProjectUrl, mediaTab, provider, query]);
+      setSearching(true);
+      setStockError(null);
+      try {
+        const params = new URLSearchParams({
+          q,
+          type: tab === "videos" ? "video" : "image",
+          provider,
+          per_page: "12",
+        });
+        const res = await fetch(
+          getProjectUrl(`/api/timeline-studio/stock/search?${params}`)
+        );
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        setStockResults((data.items || []) as StockSearchItem[]);
+        setStockKeys(data.keys || { pexels: false, pixabay: false });
+        if (data.error && !(data.items || []).length) {
+          setStockError(data.error);
+        }
+      } catch (err) {
+        setStockError((err as Error).message);
+        toast.error(`Busca falhou: ${(err as Error).message}`);
+      } finally {
+        setSearching(false);
+      }
+    },
+    [getProjectUrl, mediaTab, provider, query]
+  );
+
+  useEffect(() => {
+    if (!stockSearchTrigger?.query) return;
+    setMode("stock");
+    setMediaTab(stockSearchTrigger.mediaType === "image" ? "images" : "videos");
+    setQuery(stockSearchTrigger.query);
+    void runStockSearch({
+      q: stockSearchTrigger.query,
+      mediaType: stockSearchTrigger.mediaType,
+    });
+  }, [
+    stockSearchTrigger?.nonce,
+    runStockSearch,
+    stockSearchTrigger?.query,
+    stockSearchTrigger?.mediaType,
+  ]);
 
   const importStockItem = async (item: StockSearchItem) => {
     setImportingId(item.id);
@@ -248,7 +276,7 @@ export function StockMediaPanel({
               </div>
               <button
                 type="button"
-                onClick={() => void runStockSearch()}
+                onClick={() => void runStockSearch(undefined)}
                 disabled={searching}
                 className="shrink-0 px-3 rounded-xl bg-gold-500/20 border border-gold-500/40 text-gold-300 text-[10px] font-bold cursor-pointer disabled:opacity-50"
               >

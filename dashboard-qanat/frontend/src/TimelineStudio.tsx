@@ -21,6 +21,10 @@ import {
   type TimelineStudioState,
 } from "./timelineStudioTypes";
 import type { RichTimelineEditorProps } from "./RichTimelineEditor";
+import type {
+  AskLumieraAction,
+  StockSearchTrigger,
+} from "./timelineStudioAskTypes";
 
 export type TimelineStudioProps = RichTimelineEditorProps;
 
@@ -49,6 +53,8 @@ export function TimelineStudio({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
+  const [stockSearchTrigger, setStockSearchTrigger] =
+    useState<StockSearchTrigger | null>(null);
 
   const loadStudio = useCallback(async () => {
     if (!activeProject) return;
@@ -104,6 +110,62 @@ export function TimelineStudio({
       };
     });
   }, []);
+
+  const addClipToStudio = useCallback(
+    (clip: StudioClip) => {
+      if (!studio) return;
+      handleClipsChange(appendClip(studio.clips, clip));
+      setSelectedClipId(clip.id);
+      updateStudio({ playhead: clip.start });
+    },
+    [handleClipsChange, studio]
+  );
+
+  const insertTemplate = useCallback(
+    async (templateId: string) => {
+      if (!studio) return;
+      try {
+        const res = await fetch(
+          getProjectUrl("/api/timeline-studio/template/insert"),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              templateId,
+              playhead: studio.playhead,
+            }),
+          }
+        );
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        addClipToStudio(data.clip as StudioClip);
+        toast.success(`Template ${templateId} inserido`);
+      } catch (err) {
+        toast.error(`Template: ${(err as Error).message}`);
+      }
+    },
+    [addClipToStudio, getProjectUrl, studio]
+  );
+
+  const handleAskActions = useCallback(
+    (actions: AskLumieraAction[]) => {
+      for (const act of actions) {
+        if (act.type === "add_overlay") {
+          addClipToStudio(act.clip);
+        } else if (act.type === "set_niche_pack") {
+          updateStudio({ niche_pack: act.niche_pack });
+          toast.success(`Pacote: ${act.niche_pack}`);
+        } else if (act.type === "search_stock") {
+          setStockSearchTrigger({
+            query: act.query,
+            mediaType: act.mediaType,
+            nonce: Date.now(),
+          });
+        }
+      }
+    },
+    [addClipToStudio]
+  );
 
   const selectedClip = useMemo(
     () =>
@@ -303,11 +365,8 @@ export function TimelineStudio({
             getAssetUrl={getAssetUrl}
             getProjectUrl={getProjectUrl}
             playhead={studio.playhead}
-            onStockClipAdded={(clip) => {
-              handleClipsChange(appendClip(studio.clips, clip));
-              setSelectedClipId(clip.id);
-              updateStudio({ playhead: clip.start });
-            }}
+            stockSearchTrigger={stockSearchTrigger}
+            onStockClipAdded={addClipToStudio}
           />
         </div>
         <div className="min-h-[220px] lg:min-h-0 lg:h-[min(52vh,480px)]">
@@ -321,6 +380,10 @@ export function TimelineStudio({
           <AskLumieraPanel
             playhead={studio.playhead}
             nichePack={studio.niche_pack}
+            getProjectUrl={getProjectUrl}
+            onActions={handleAskActions}
+            onInsertTemplate={(id) => void insertTemplate(id)}
+            onSelectPack={(packId) => updateStudio({ niche_pack: packId })}
           />
         </div>
       </div>

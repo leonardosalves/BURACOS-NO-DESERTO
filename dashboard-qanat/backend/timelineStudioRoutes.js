@@ -12,10 +12,15 @@ import {
   importTimelineStock,
   buildStockVideoClip,
 } from "./timelineStudioStock.js";
+import {
+  listNichePackCatalog,
+  buildStudioOverlayClip,
+} from "./timelineStudioNichePacks.js";
+import { handleTimelineStudioAsk } from "./timelineStudioAsk.js";
 
 export function registerTimelineStudioRoutes(
   app,
-  { getProjectDir, workspaceDir }
+  { getProjectDir, workspaceDir, callGemini }
 ) {
   app.get("/api/timeline-studio", (req, res) => {
     try {
@@ -107,6 +112,60 @@ export function registerTimelineStudioRoutes(
       });
 
       res.json({ ok: true, import: importResult, clip });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/timeline-studio/niche-packs", (_req, res) => {
+    try {
+      res.json({ ok: true, packs: listNichePackCatalog() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/timeline-studio/template/insert", (req, res) => {
+    try {
+      const { templateId, playhead, props, label } = req.body || {};
+      if (!templateId) {
+        return res.status(400).json({ error: "templateId é obrigatório" });
+      }
+      const clip = buildStudioOverlayClip({
+        templateId: String(templateId),
+        playhead: Number(playhead) || 0,
+        props: props && typeof props === "object" ? props : {},
+        label: label ? String(label) : undefined,
+      });
+      if (!clip) {
+        return res
+          .status(400)
+          .json({ error: `Template desconhecido: ${templateId}` });
+      }
+      res.json({ ok: true, clip });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/timeline-studio/ask", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const { message, playhead, niche_pack, prefer_llm } = req.body || {};
+      if (!String(message || "").trim()) {
+        return res.status(400).json({ error: "Campo message é obrigatório" });
+      }
+
+      const result = await handleTimelineStudioAsk({
+        message: String(message).trim(),
+        playhead: Number(playhead) || 0,
+        nichePack: String(niche_pack || "documentary-prestige"),
+        callGemini,
+        projDir,
+        preferLlm: prefer_llm !== false,
+      });
+
+      res.json({ ok: true, ...result });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

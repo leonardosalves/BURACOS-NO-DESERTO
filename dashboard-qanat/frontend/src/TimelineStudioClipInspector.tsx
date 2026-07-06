@@ -117,6 +117,39 @@ export function TimelineStudioClipInspector({
           </Field>
         ) : null}
 
+        {clip.templateId === "location-intro" ? (
+          <Field label="Local" className="sm:col-span-2">
+            <input
+              type="text"
+              disabled={!editable}
+              value={String(clip.props?.location || "")}
+              onChange={(e) =>
+                onUpdate({
+                  props: { ...clip.props, location: e.target.value },
+                  label: `Intro: ${e.target.value}`,
+                })
+              }
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5 text-[11px] text-white disabled:opacity-50"
+            />
+          </Field>
+        ) : null}
+
+        {clip.templateId === "pictogram-chart" ? (
+          <Field label="Título do pictograma" className="sm:col-span-2">
+            <input
+              type="text"
+              disabled={!editable}
+              value={String(clip.props?.title || "")}
+              onChange={(e) =>
+                onUpdate({
+                  props: { ...clip.props, title: e.target.value },
+                })
+              }
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5 text-[11px] text-white disabled:opacity-50"
+            />
+          </Field>
+        ) : null}
+
         {clip.trackId === "captions" ? (
           <Field
             label="Texto da legenda"
