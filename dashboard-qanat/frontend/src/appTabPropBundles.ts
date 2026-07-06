@@ -614,6 +614,7 @@ export function buildAppTabPropBundles(
     getMusicUrl: ctx.getMusicUrl,
     getAssetUrl: ctx.getAssetUrl,
     saveTimelinePatch: ctx.saveTimelinePatch,
+    saveStoryboardData: ctx.saveCreatorStoryboard as any,
   };
 
   const terminalTabProps: AppTerminalTabProps = {

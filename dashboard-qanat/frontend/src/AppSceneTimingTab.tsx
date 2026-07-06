@@ -13,6 +13,7 @@ export type AppSceneTimingTabProps = {
   getMusicUrl: (fileName: string, projectOverride?: string) => string;
   getAssetUrl: (fileName: string) => string;
   saveTimelinePatch: (cfg: ConfigData) => void | Promise<void>;
+  saveStoryboardData?: (storyboard: any) => void | Promise<void>;
 };
 
 export function AppSceneTimingTab({
@@ -24,6 +25,7 @@ export function AppSceneTimingTab({
   getMusicUrl,
   getAssetUrl,
   saveTimelinePatch,
+  saveStoryboardData,
 }: AppSceneTimingTabProps) {
   return (
     <DashminProjectTabLayout tab="scene-timing" activeProject={activeProject}>
@@ -38,13 +40,27 @@ export function AppSceneTimingTab({
           wordTranscripts={wordTranscripts}
           getMediaUrl={getMusicUrl}
           getAssetUrl={getAssetUrl}
-          onSave={async (timelineAssets, impactTexts) => {
+          onSave={async (
+            timelineAssets,
+            impactTexts,
+            updatedStoryboardOverlays
+          ) => {
             if (!config) return;
             await saveTimelinePatch({
               ...config,
               timeline_assets: timelineAssets,
               impact_texts: impactTexts,
             });
+            if (
+              updatedStoryboardOverlays &&
+              saveStoryboardData &&
+              storyboardData
+            ) {
+              await saveStoryboardData({
+                ...storyboardData,
+                overlays: updatedStoryboardOverlays,
+              });
+            }
           }}
           toast={(msg) => toast(msg)}
         />
