@@ -1,7 +1,7 @@
-import type { EditorialIdeaImport } from './creatorEditorialImport';
+import type { EditorialIdeaImport } from "./creatorEditorialImport";
 
-export const WIZARD_SESSION_KEY = 'qanat_wizard_session';
-export const LEGACY_CREATOR_STATE_KEY = 'qanat_creator_state';
+export const WIZARD_SESSION_KEY = "qanat_wizard_session";
+export const LEGACY_CREATOR_STATE_KEY = "qanat_creator_state";
 export const WIZARD_SESSION_VERSION = 2;
 
 export type WizardSession = {
@@ -12,13 +12,13 @@ export type WizardSession = {
   activeProject: string;
   creatorStep: number;
   nicheInput: string;
-  formatSelector: 'LONGO' | 'SHORTS';
+  formatSelector: "LONGO" | "SHORTS";
   ideasData: unknown;
   selectedIdeaIndex: number;
   generatedScriptData: unknown;
   creatorProjectName: string;
   creatorScript: string;
-  ideationTab: 'ai' | 'custom' | 'listicle';
+  ideationTab: "ai" | "custom" | "listicle";
   customTitle: string;
   customHooks: string;
   customOutline: string;
@@ -31,8 +31,8 @@ export type WizardSession = {
   listNiche: string;
   listTopic: string;
   rankCount: number;
-  rankOrder: 'desc' | 'asc';
-  listicleHudStyle: 'full' | 'compact' | 'auto';
+  rankOrder: "desc" | "asc";
+  listicleHudStyle: "full" | "compact" | "auto";
   listicleIdeasData: unknown;
   listicleSearchNiche: string;
   ideasSearchNiche: string;
@@ -52,9 +52,11 @@ export type WizardSession = {
   editorialIdeaImport?: EditorialIdeaImport | null;
 };
 
-export type WizardSessionPatch = Partial<Omit<WizardSession, 'version' | 'savedAt'>>;
+export type WizardSessionPatch = Partial<Omit<WizardSession, "version">> & {
+  savedAt?: string;
+};
 
-const EMPTY_BLOCKS = [{ block: 1, content: '' }];
+const EMPTY_BLOCKS = [{ block: 1, content: "" }];
 
 function parseJson<T>(raw: string | null): T | null {
   if (!raw) return null;
@@ -66,32 +68,40 @@ function parseJson<T>(raw: string | null): T | null {
 }
 
 export function loadWizardSession(): WizardSessionPatch | null {
-  const modern = parseJson<WizardSessionPatch>(localStorage.getItem(WIZARD_SESSION_KEY));
-  const legacy = parseJson<WizardSessionPatch>(localStorage.getItem(LEGACY_CREATOR_STATE_KEY));
+  const modern = parseJson<WizardSessionPatch>(
+    localStorage.getItem(WIZARD_SESSION_KEY)
+  );
+  const legacy = parseJson<WizardSessionPatch>(
+    localStorage.getItem(LEGACY_CREATOR_STATE_KEY)
+  );
   const merged = { ...(legacy || {}), ...(modern || {}) };
   if (!Object.keys(merged).length) return null;
   return merged;
 }
 
-export function shouldRestoreWizardTab(session: WizardSessionPatch | null): boolean {
+export function shouldRestoreWizardTab(
+  session: WizardSessionPatch | null
+): boolean {
   if (!session) return false;
   if (session.wasInWizard === true) return true;
-  if (session.activeTab === 'creator') return true;
+  if (session.activeTab === "creator") return true;
   const step = Number(session.creatorStep || 1);
   if (step > 1) return true;
   if (session.showNarrationReview) return true;
   if (session.generatedScriptData) return true;
-  if (String(session.creatorProjectName || '').trim()) return true;
+  if (String(session.creatorProjectName || "").trim()) return true;
   return false;
 }
 
-export function resolveWizardActiveProject(session: WizardSessionPatch | null): string {
-  if (!session) return '';
+export function resolveWizardActiveProject(
+  session: WizardSessionPatch | null
+): string {
+  if (!session) return "";
   return String(
-    session.narrationProjectName
-    || session.creatorProjectName
-    || session.activeProject
-    || '',
+    session.narrationProjectName ||
+      session.creatorProjectName ||
+      session.activeProject ||
+      ""
   ).trim();
 }
 
@@ -101,50 +111,74 @@ export function saveWizardSession(patch: WizardSessionPatch): WizardSession {
     version: WIZARD_SESSION_VERSION,
     savedAt: new Date().toISOString(),
     wasInWizard: patch.wasInWizard ?? prev.wasInWizard ?? false,
-    activeTab: patch.activeTab ?? prev.activeTab ?? 'home',
-    activeProject: patch.activeProject ?? prev.activeProject ?? '',
+    activeTab: patch.activeTab ?? prev.activeTab ?? "home",
+    activeProject: patch.activeProject ?? prev.activeProject ?? "",
     creatorStep: patch.creatorStep ?? prev.creatorStep ?? 1,
-    nicheInput: patch.nicheInput ?? prev.nicheInput ?? '',
-    formatSelector: patch.formatSelector ?? prev.formatSelector ?? 'LONGO',
-    ideasData: patch.ideasData !== undefined ? patch.ideasData : prev.ideasData ?? null,
+    nicheInput: patch.nicheInput ?? prev.nicheInput ?? "",
+    formatSelector: patch.formatSelector ?? prev.formatSelector ?? "LONGO",
+    ideasData:
+      patch.ideasData !== undefined
+        ? patch.ideasData
+        : (prev.ideasData ?? null),
     selectedIdeaIndex: patch.selectedIdeaIndex ?? prev.selectedIdeaIndex ?? -1,
-    generatedScriptData: patch.generatedScriptData !== undefined ? patch.generatedScriptData : prev.generatedScriptData ?? null,
-    creatorProjectName: patch.creatorProjectName ?? prev.creatorProjectName ?? '',
-    creatorScript: patch.creatorScript ?? prev.creatorScript ?? '',
-    ideationTab: patch.ideationTab ?? prev.ideationTab ?? 'ai',
-    customTitle: patch.customTitle ?? prev.customTitle ?? '',
-    customHooks: patch.customHooks ?? prev.customHooks ?? '',
-    customOutline: patch.customOutline ?? prev.customOutline ?? '',
+    generatedScriptData:
+      patch.generatedScriptData !== undefined
+        ? patch.generatedScriptData
+        : (prev.generatedScriptData ?? null),
+    creatorProjectName:
+      patch.creatorProjectName ?? prev.creatorProjectName ?? "",
+    creatorScript: patch.creatorScript ?? prev.creatorScript ?? "",
+    ideationTab: patch.ideationTab ?? prev.ideationTab ?? "ai",
+    customTitle: patch.customTitle ?? prev.customTitle ?? "",
+    customHooks: patch.customHooks ?? prev.customHooks ?? "",
+    customOutline: patch.customOutline ?? prev.customOutline ?? "",
     customBlocks: patch.customBlocks ?? prev.customBlocks ?? EMPTY_BLOCKS,
-    customIdeaTitle: patch.customIdeaTitle ?? prev.customIdeaTitle ?? '',
-    customIdeaPromise: patch.customIdeaPromise ?? prev.customIdeaPromise ?? '',
-    customIdeaHook: patch.customIdeaHook ?? prev.customIdeaHook ?? '',
-    customIdeaEmotion: patch.customIdeaEmotion ?? prev.customIdeaEmotion ?? '',
-    customIdeaBlocks: patch.customIdeaBlocks ?? prev.customIdeaBlocks ?? '',
-    listNiche: patch.listNiche ?? prev.listNiche ?? '',
-    listTopic: patch.listTopic ?? prev.listTopic ?? '',
+    customIdeaTitle: patch.customIdeaTitle ?? prev.customIdeaTitle ?? "",
+    customIdeaPromise: patch.customIdeaPromise ?? prev.customIdeaPromise ?? "",
+    customIdeaHook: patch.customIdeaHook ?? prev.customIdeaHook ?? "",
+    customIdeaEmotion: patch.customIdeaEmotion ?? prev.customIdeaEmotion ?? "",
+    customIdeaBlocks: patch.customIdeaBlocks ?? prev.customIdeaBlocks ?? "",
+    listNiche: patch.listNiche ?? prev.listNiche ?? "",
+    listTopic: patch.listTopic ?? prev.listTopic ?? "",
     rankCount: patch.rankCount ?? prev.rankCount ?? 20,
-    rankOrder: patch.rankOrder ?? prev.rankOrder ?? 'desc',
-    listicleHudStyle: patch.listicleHudStyle ?? prev.listicleHudStyle ?? 'auto',
-    listicleIdeasData: patch.listicleIdeasData !== undefined ? patch.listicleIdeasData : prev.listicleIdeasData ?? null,
-    listicleSearchNiche: patch.listicleSearchNiche ?? prev.listicleSearchNiche ?? '',
-    ideasSearchNiche: patch.ideasSearchNiche ?? prev.ideasSearchNiche ?? '',
-    selectedListicleIdeaIndex: patch.selectedListicleIdeaIndex ?? prev.selectedListicleIdeaIndex ?? -1,
-    showNarrationReview: patch.showNarrationReview ?? prev.showNarrationReview ?? false,
-    narrationDraft: patch.narrationDraft ?? prev.narrationDraft ?? '',
-    narrationTaggedDraft: patch.narrationTaggedDraft ?? prev.narrationTaggedDraft ?? '',
-    narrationStrategy: patch.narrationStrategy !== undefined ? patch.narrationStrategy : prev.narrationStrategy ?? null,
-    narrationBlockPhrases: patch.narrationBlockPhrases ?? prev.narrationBlockPhrases ?? [],
-    narrationBlockScript: patch.narrationBlockScript ?? prev.narrationBlockScript ?? '',
-    narrationNotebooklmEnriched: patch.narrationNotebooklmEnriched ?? prev.narrationNotebooklmEnriched ?? false,
-    narrationProjectName: patch.narrationProjectName ?? prev.narrationProjectName ?? '',
+    rankOrder: patch.rankOrder ?? prev.rankOrder ?? "desc",
+    listicleHudStyle: patch.listicleHudStyle ?? prev.listicleHudStyle ?? "auto",
+    listicleIdeasData:
+      patch.listicleIdeasData !== undefined
+        ? patch.listicleIdeasData
+        : (prev.listicleIdeasData ?? null),
+    listicleSearchNiche:
+      patch.listicleSearchNiche ?? prev.listicleSearchNiche ?? "",
+    ideasSearchNiche: patch.ideasSearchNiche ?? prev.ideasSearchNiche ?? "",
+    selectedListicleIdeaIndex:
+      patch.selectedListicleIdeaIndex ?? prev.selectedListicleIdeaIndex ?? -1,
+    showNarrationReview:
+      patch.showNarrationReview ?? prev.showNarrationReview ?? false,
+    narrationDraft: patch.narrationDraft ?? prev.narrationDraft ?? "",
+    narrationTaggedDraft:
+      patch.narrationTaggedDraft ?? prev.narrationTaggedDraft ?? "",
+    narrationStrategy:
+      patch.narrationStrategy !== undefined
+        ? patch.narrationStrategy
+        : (prev.narrationStrategy ?? null),
+    narrationBlockPhrases:
+      patch.narrationBlockPhrases ?? prev.narrationBlockPhrases ?? [],
+    narrationBlockScript:
+      patch.narrationBlockScript ?? prev.narrationBlockScript ?? "",
+    narrationNotebooklmEnriched:
+      patch.narrationNotebooklmEnriched ??
+      prev.narrationNotebooklmEnriched ??
+      false,
+    narrationProjectName:
+      patch.narrationProjectName ?? prev.narrationProjectName ?? "",
     useNotebooklm: patch.useNotebooklm ?? prev.useNotebooklm ?? true,
     useDeepResearch: patch.useDeepResearch ?? prev.useDeepResearch ?? true,
     uploadedScenes: patch.uploadedScenes ?? prev.uploadedScenes ?? {},
     expandedBlocks: patch.expandedBlocks ?? prev.expandedBlocks ?? { 1: true },
-    editorialIdeaImport: patch.editorialIdeaImport !== undefined
-      ? patch.editorialIdeaImport
-      : prev.editorialIdeaImport ?? null,
+    editorialIdeaImport:
+      patch.editorialIdeaImport !== undefined
+        ? patch.editorialIdeaImport
+        : (prev.editorialIdeaImport ?? null),
   };
   const serialized = JSON.stringify(payload);
   localStorage.setItem(WIZARD_SESSION_KEY, serialized);
@@ -158,48 +192,48 @@ export function clearWizardSession(): void {
 }
 
 /** Sessão zerada — substitui localStorage por completo (sem merge com estado anterior). */
-export function buildEmptyWizardSession(activeTab = 'creator'): WizardSession {
+export function buildEmptyWizardSession(activeTab = "creator"): WizardSession {
   return {
     version: WIZARD_SESSION_VERSION,
     savedAt: new Date().toISOString(),
     wasInWizard: false,
     activeTab,
-    activeProject: '',
+    activeProject: "",
     creatorStep: 1,
-    nicheInput: '',
-    formatSelector: 'LONGO',
+    nicheInput: "",
+    formatSelector: "LONGO",
     ideasData: null,
     selectedIdeaIndex: -1,
     generatedScriptData: null,
-    creatorProjectName: '',
-    creatorScript: '',
-    ideationTab: 'ai',
-    customTitle: '',
-    customHooks: '',
-    customOutline: '',
+    creatorProjectName: "",
+    creatorScript: "",
+    ideationTab: "ai",
+    customTitle: "",
+    customHooks: "",
+    customOutline: "",
     customBlocks: EMPTY_BLOCKS,
-    customIdeaTitle: '',
-    customIdeaPromise: '',
-    customIdeaHook: '',
-    customIdeaEmotion: '',
-    customIdeaBlocks: '',
-    listNiche: '',
-    listTopic: '',
+    customIdeaTitle: "",
+    customIdeaPromise: "",
+    customIdeaHook: "",
+    customIdeaEmotion: "",
+    customIdeaBlocks: "",
+    listNiche: "",
+    listTopic: "",
     rankCount: 20,
-    rankOrder: 'desc',
-    listicleHudStyle: 'auto',
+    rankOrder: "desc",
+    listicleHudStyle: "auto",
     listicleIdeasData: null,
-    listicleSearchNiche: '',
-    ideasSearchNiche: '',
+    listicleSearchNiche: "",
+    ideasSearchNiche: "",
     selectedListicleIdeaIndex: -1,
     showNarrationReview: false,
-    narrationDraft: '',
-    narrationTaggedDraft: '',
+    narrationDraft: "",
+    narrationTaggedDraft: "",
     narrationStrategy: null,
     narrationBlockPhrases: [],
-    narrationBlockScript: '',
+    narrationBlockScript: "",
     narrationNotebooklmEnriched: false,
-    narrationProjectName: '',
+    narrationProjectName: "",
     useNotebooklm: true,
     useDeepResearch: true,
     uploadedScenes: {},
@@ -208,7 +242,9 @@ export function buildEmptyWizardSession(activeTab = 'creator'): WizardSession {
   };
 }
 
-export function resetWizardSessionStorage(activeTab = 'creator'): WizardSession {
+export function resetWizardSessionStorage(
+  activeTab = "creator"
+): WizardSession {
   const payload = buildEmptyWizardSession(activeTab);
   const serialized = JSON.stringify(payload);
   localStorage.setItem(WIZARD_SESSION_KEY, serialized);
@@ -218,7 +254,7 @@ export function resetWizardSessionStorage(activeTab = 'creator'): WizardSession 
 
 export function isServerSessionNewer(
   localSession: WizardSessionPatch | null,
-  serverSavedAt?: string | null,
+  serverSavedAt?: string | null
 ): boolean {
   if (!serverSavedAt) return false;
   const localAt = localSession?.savedAt ? Date.parse(localSession.savedAt) : 0;
@@ -227,15 +263,15 @@ export function isServerSessionNewer(
 }
 
 export function formatWizardSavedAt(savedAt?: string): string {
-  if (!savedAt) return '';
+  if (!savedAt) return "";
   try {
-    return new Date(savedAt).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(savedAt).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch {
-    return '';
+    return "";
   }
 }

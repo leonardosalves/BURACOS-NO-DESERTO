@@ -25,6 +25,7 @@ export interface ImpactText {
 }
 
 export interface ConfigData {
+  [key: string]: any;
   highlight_keywords: string[];
   bgm_mappings: BGM[];
   impact_texts: ImpactText[];
@@ -74,6 +75,16 @@ export interface ConfigData {
   single_bgm?: string;
   bgm_mode?: "emotion" | "block";
   narration_mode?: "chunked" | "master";
+  block_progress_bar?: any;
+  block_timings?: {
+    starts?: number[];
+    durations?: number[];
+    total_duration?: number;
+  } | null;
+  niche?: string;
+  rank_count?: number;
+  use_gemini_chrome?: boolean;
+  use_hyperframes?: boolean;
   bgm_emotion_mappings?: BgmEmotionMapping[];
   _bgm_production_hints?: BgmProductionHints;
   upload_metadata?: any;
