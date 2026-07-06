@@ -15530,9 +15530,15 @@ app.post(
     const skipNotebooklmScript =
       browserTextEarly || shouldOfferGeminiBrowser(settingsDir);
 
+    const isPioneerFromIdea =
+      idea?.pioneerNiche === true || Boolean(idea?.pioneerMeta);
     let notebooklmContext = "";
     let notebooklmResearch = null;
-    if (useNotebooklm !== false && !skipNotebooklmScript) {
+    if (
+      useNotebooklm !== false &&
+      !skipNotebooklmScript &&
+      !isPioneerFromIdea
+    ) {
       report("notebooklm", "Consultando NotebookLM…", 18);
       try {
         console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
@@ -15566,6 +15572,8 @@ app.post(
     let webResearchContext = "";
     let webResearchMeta = null;
     const researchTopic = isListicle ? listicleTopic : idea.title || niche;
+    const isPioneerNicheIdea =
+      idea?.pioneerNiche === true || Boolean(idea?.pioneerMeta);
     const prefetchedReach =
       agentReachResearchRaw && typeof agentReachResearchRaw === "object"
         ? agentReachResearchRaw
@@ -15590,7 +15598,9 @@ app.post(
       console.log(
         `[WebResearch] Usando pesquisa Agent Reach do painel: ${webResearchMeta.sources?.length || 0} fontes.`
       );
-    } else if (!webResearchContext) {
+    } else if (!webResearchContext && !isPioneerNicheIdea) {
+      // Para ideias pioneer-niche, os dados já vêm no pioneerMeta do Radar de Tendências.
+      // Buscar na web novamente pode contaminar a narração com fatos de tópicos não relacionados.
       report("web_research", "Pesquisando fatos na web…", 26);
       try {
         console.log(
@@ -15616,6 +15626,10 @@ app.post(
       } catch (err) {
         console.warn("[WebResearch] Falha:", err.message);
       }
+    } else if (isPioneerNicheIdea) {
+      console.log(
+        "[WebResearch] Pulando busca web — ideia pioneer-niche já tem dados do Radar de Tendências."
+      );
     }
 
     let phase1Strategy = {};
