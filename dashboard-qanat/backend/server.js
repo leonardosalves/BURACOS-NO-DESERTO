@@ -147,6 +147,15 @@ import {
 import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerTimelineStudioRoutes } from "./timelineStudioRoutes.js";
+import {
+  loadStudioForRender,
+  shouldUseStudioForRender,
+  buildScenesFromStudio,
+  buildOverlaysFromStudio,
+  buildCaptionsFromStudio,
+  resolveStudioTotalDuration,
+  resolveStudioFormat,
+} from "./timelineStudioRenderSync.js";
 import { registerVideoResurrectorRoutes } from "./videoResurrectorRoutes.js";
 import { registerSocialPublishRoutes } from "./socialPublishRoutes.js";
 import {
@@ -7492,12 +7501,24 @@ async function prepareRemotionRender(
   );
   const flatTranscriptWords = flattenWordTranscripts(wordTranscripts);
 
+  const timelineStudio = loadStudioForRender(projectDir);
+  const useStudioRender = shouldUseStudioForRender(timelineStudio);
+  if (useStudioRender) {
+    console.log(
+      `[Remotion] Timeline Studio: ${timelineStudio.clips.length} clips → render`
+    );
+  }
+
   const isChunkedNarration =
     config.narration_mode === NARRATION_MODE_CHUNKED ||
     timings.source === "narration_chunks" ||
     (Array.isArray(wordTranscripts) && wordTranscripts.some((s) => s.chunk_id));
 
-  if (flatTranscriptWords.length > 0 && config.timeline_assets) {
+  if (
+    !useStudioRender &&
+    flatTranscriptWords.length > 0 &&
+    config.timeline_assets
+  ) {
     // Verificar se o usuario ja sincronizou assets — se sim, respeitar os valores salvos
     const anyBlockSynced = Object.values(config.timeline_assets).some(
       (assets) =>
@@ -7667,11 +7688,25 @@ async function prepareRemotionRender(
     ]),
   ].sort((a, b) => a - b);
 
-  const scenes = [];
+  let scenes = [];
 
   let runningStart = 0;
 
-  for (const block of blockNumbers) {
+  if (useStudioRender) {
+    scenes = buildScenesFromStudio(timelineStudio, {
+      projectDir,
+      publicProjectDir,
+      projectSlug,
+      copyRemotionAsset,
+      findProjectFile,
+      fillSceneTimelineGaps,
+    });
+    console.log(
+      `[Remotion] Timeline Studio: ${scenes.length} cena(s) montada(s) a partir da linha do tempo.`
+    );
+  }
+
+  for (const block of useStudioRender ? [] : blockNumbers) {
     const blockIndex = Math.max(0, block - 1);
 
     const blockStart = Number(timings.starts?.[blockIndex]);
@@ -7840,6 +7875,14 @@ async function prepareRemotionRender(
     );
   }
 
+  const renderBlockNumbers = useStudioRender
+    ? [
+        ...new Set(validScenes.map((scene) => scene.block).filter(Boolean)),
+      ].sort((a, b) => a - b)
+    : blockNumbers;
+  const effectiveBlockNumbers =
+    renderBlockNumbers.length > 0 ? renderBlockNumbers : [1];
+
   const narrationSource = findProjectFile(
     projectDir,
     "narracao_mestra_premium.mp3"
@@ -7855,23 +7898,29 @@ async function prepareRemotionRender(
     ? getAudioDuration(narrationSource)
     : 0;
 
-  const coverageEnd = Math.max(
-    Number(timings.total_duration || 0),
-    narrationDuration,
-    ...validScenes.map((scene) => scene.start + scene.duration),
-    1
-  );
-  validScenes = fillSceneTimelineGaps(validScenes, coverageEnd);
+  const coverageEnd = useStudioRender
+    ? resolveStudioTotalDuration(timelineStudio, validScenes, narrationDuration)
+    : Math.max(
+        Number(timings.total_duration || 0),
+        narrationDuration,
+        ...validScenes.map((scene) => scene.start + scene.duration),
+        1
+      );
+  if (!useStudioRender) {
+    validScenes = fillSceneTimelineGaps(validScenes, coverageEnd);
+  }
 
-  const totalDurationBeforeLogo = Math.max(
-    Number(timings.total_duration || 0),
+  const totalDurationBeforeLogo = useStudioRender
+    ? resolveStudioTotalDuration(timelineStudio, validScenes, narrationDuration)
+    : Math.max(
+        Number(timings.total_duration || 0),
 
-    ...validScenes.map((scene) => scene.start + scene.duration),
+        ...validScenes.map((scene) => scene.start + scene.duration),
 
-    narrationDuration,
+        narrationDuration,
 
-    1
-  );
+        1
+      );
 
   const globalConfigForLogo = loadRenderConfig(__dirname);
   const projectConfigForLogo = readProjectJson(
@@ -7896,7 +7945,7 @@ async function prepareRemotionRender(
 
     if (copiedLogo) {
       validScenes.push({
-        block: blockNumbers.length + 1,
+        block: effectiveBlockNumbers.length + 1,
 
         asset: `projects/${projectSlug}/${copiedLogo}`,
 
@@ -7913,17 +7962,19 @@ async function prepareRemotionRender(
     }
   }
 
-  const totalDuration = Math.max(
-    Number(timings.total_duration || 0),
+  const totalDuration = useStudioRender
+    ? resolveStudioTotalDuration(timelineStudio, validScenes, narrationDuration)
+    : Math.max(
+        Number(timings.total_duration || 0),
 
-    ...validScenes.map((scene) => scene.start + scene.duration),
+        ...validScenes.map((scene) => scene.start + scene.duration),
 
-    narrationDuration,
+        narrationDuration,
 
-    1
-  );
+        1
+      );
 
-  const blockRanges = blockNumbers.map((block) => {
+  const blockRanges = effectiveBlockNumbers.map((block) => {
     const blockIndex = Math.max(0, block - 1);
 
     const blockStart = Number(timings.starts?.[blockIndex]);
@@ -7953,7 +8004,7 @@ async function prepareRemotionRender(
   const sonoplastiaPlan = buildBlockSonoplastiaPlan({
     config,
     storyboard,
-    blockNumbers,
+    blockNumbers: effectiveBlockNumbers,
     blockRanges,
     wordTranscripts,
     nicheMood,
@@ -7965,7 +8016,7 @@ async function prepareRemotionRender(
   const bgmPlan = resolveBgmMappingsForRender(
     projectDir,
     config,
-    blockNumbers,
+    effectiveBlockNumbers,
     storyboard
   );
   const bgmTracks = [];
@@ -7984,7 +8035,7 @@ async function prepareRemotionRender(
         const scriptPath = path.join(WORKSPACE_DIR, "mix_bgm.py");
 
         const singleClimaxMode =
-          sonoplastiaPlan.get(blockNumbers[0])?.climaxMode || "rise";
+          sonoplastiaPlan.get(effectiveBlockNumbers[0])?.climaxMode || "rise";
         const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${totalDuration} ${singleClimaxMode}`;
 
         const output = execSync(detectCmd, { encoding: "utf8" }).trim();
@@ -8173,17 +8224,28 @@ async function prepareRemotionRender(
     );
   }
 
-  const captions = captionsFromWordTranscripts(wordTranscripts);
-
-  const rawCaptions =
-    captions.length > 0 ? captions : fallbackCaptionsFromScenes(validScenes);
+  let rawCaptions;
+  if (useStudioRender) {
+    rawCaptions = buildCaptionsFromStudio(timelineStudio);
+    if (rawCaptions.length === 0) {
+      rawCaptions = fallbackCaptionsFromScenes(validScenes);
+    }
+  } else {
+    const captions = captionsFromWordTranscripts(wordTranscripts);
+    rawCaptions =
+      captions.length > 0 ? captions : fallbackCaptionsFromScenes(validScenes);
+  }
 
   const finalCaptions = sanitizeCaptionsForRemotion(
     rawCaptions,
     narrationDuration || totalDuration
   );
 
-  const format = config.aspect_ratio === "16:9" ? "16:9" : "9:16";
+  const format = useStudioRender
+    ? resolveStudioFormat(timelineStudio, config)
+    : config.aspect_ratio === "16:9"
+      ? "16:9"
+      : "9:16";
 
   // Load planned overlays from storyboard.json instead of generating via AI during render
   const freshSb = readProjectJson(projectDir, "storyboard.json", {});
@@ -8195,7 +8257,14 @@ async function prepareRemotionRender(
         : [];
 
   let overlays = [];
-  if (plannedRaw.length > 0) {
+  if (useStudioRender) {
+    overlays = buildOverlaysFromStudio(timelineStudio)
+      .map((overlay) => repairOverlayPropsForRemotion(overlay))
+      .filter(Boolean);
+    console.log(
+      `[Remotion Render] ${overlays.length} overlay(s) do Timeline Studio (timing manual).`
+    );
+  } else if (plannedRaw.length > 0) {
     console.log(
       `[Remotion Render] Alinhando ${plannedRaw.length} overlays informativos com a linha do tempo física.`
     );
@@ -8244,18 +8313,20 @@ async function prepareRemotionRender(
     );
   }
 
-  // Update storyboard overlays with aligned rendering overlays
-  storyboard.overlays = overlays;
-  storyboard.quality_report =
-    freshSb.quality_report || storyboard.quality_report;
-  try {
-    fs.writeFileSync(
-      path.join(projectDir, "storyboard.json"),
-      JSON.stringify(storyboard, null, 2),
-      "utf8"
-    );
-  } catch (e) {
-    console.error("Error writing storyboard overlays:", e);
+  if (!useStudioRender) {
+    // Update storyboard overlays with aligned rendering overlays
+    storyboard.overlays = overlays;
+    storyboard.quality_report =
+      freshSb.quality_report || storyboard.quality_report;
+    try {
+      fs.writeFileSync(
+        path.join(projectDir, "storyboard.json"),
+        JSON.stringify(storyboard, null, 2),
+        "utf8"
+      );
+    } catch (e) {
+      console.error("Error writing storyboard overlays:", e);
+    }
   }
 
   // Analyze and log overlay exhibition times and detect any concurrent conflict
