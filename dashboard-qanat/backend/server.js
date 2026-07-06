@@ -17682,6 +17682,8 @@ workflowApi = registerWorkflowRoutes(app, {
 registerTimelineStudioRoutes(app, {
   getProjectDir,
   workspaceDir: WORKSPACE_DIR,
+  callGemini: (projDir, prompt, opts) =>
+    callGeminiWithRetry(getApiKey(projDir), prompt, opts),
 });
 
 registerVideoResurrectorRoutes(app, {
