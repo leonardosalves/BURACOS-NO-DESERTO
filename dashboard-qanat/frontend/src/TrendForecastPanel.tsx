@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import React, { useCallback, useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import {
   AlertTriangle,
   Bookmark,
@@ -14,15 +14,15 @@ import {
   TrendingUp,
   Video,
   Youtube,
-} from 'lucide-react';
-import { SectionHeader } from './SectionHeader';
-import type { CreatorApplyIdeaOptions } from './creatorEditorialImport';
-import { resolvePioneerCreatorSeed } from './creatorEditorialImport';
+} from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
+import type { CreatorApplyIdeaOptions } from "./creatorEditorialImport";
+import { resolvePioneerCreatorSeed } from "./creatorEditorialImport";
 import {
   TrendRadarNicheDetailView,
   TrendRadarSavedList,
   type TrendRadarSavedItem,
-} from './TrendRadarNicheDetail';
+} from "./TrendRadarNicheDetail";
 
 type TimesfmStatus = {
   timesfmInstalled?: boolean;
@@ -70,12 +70,13 @@ type PioneerNiche = {
   gapScore?: number;
   dedicatedChannels?: number;
   interestScore?: number;
-  status?: 'virgem' | 'pioneiro' | 'emergente' | 'saturado';
+  status?: "virgem" | "pioneiro" | "emergente" | "saturado";
   whyPioneer?: string;
   firstVideoIdea?: string;
   risk?: string;
   format?: string;
   youtube?: {
+    query?: string;
     channelCount?: number;
     videoCount?: number;
     dedicatedChannels?: number;
@@ -86,7 +87,7 @@ type PioneerNiche = {
 
 type PioneerDiscovery = {
   ok?: boolean;
-  discoveryMode?: 'virgin' | 'chosen';
+  discoveryMode?: "virgin" | "chosen";
   baseNiche?: string | null;
   pioneerNiches?: PioneerNiche[];
   pioneerIdeas?: TrendIdea[];
@@ -99,7 +100,7 @@ type PioneerDiscovery = {
   exaAvailable?: boolean;
 };
 
-type RadarView = 'radar' | 'saved' | 'detail';
+type RadarView = "radar" | "saved" | "detail";
 
 type ForecastResult = {
   ok?: boolean;
@@ -116,27 +117,33 @@ type ForecastResult = {
 
 type TrendForecastPanelProps = {
   niche?: string;
-  onApplyCreatorIdea?: (title: string, hookPt: string, options?: CreatorApplyIdeaOptions) => void;
+  onApplyCreatorIdea?: (
+    title: string,
+    hookPt: string,
+    options?: CreatorApplyIdeaOptions
+  ) => void;
   onGoToIntegrations?: () => void;
   embedded?: boolean;
 };
 
-function PioneerStatusBadge({ status }: { status?: PioneerNiche['status'] }) {
+function PioneerStatusBadge({ status }: { status?: PioneerNiche["status"] }) {
   const map = {
-    virgem: 'bg-violet-500/20 text-violet-200 border-violet-500/40',
-    pioneiro: 'bg-cyan-500/15 text-cyan-200 border-cyan-500/30',
-    emergente: 'bg-amber-500/10 text-amber-200 border-amber-500/25',
-    saturado: 'bg-zinc-600/20 text-zinc-400 border-zinc-600/40',
+    virgem: "bg-violet-500/20 text-violet-200 border-violet-500/40",
+    pioneiro: "bg-cyan-500/15 text-cyan-200 border-cyan-500/30",
+    emergente: "bg-amber-500/10 text-amber-200 border-amber-500/25",
+    saturado: "bg-zinc-600/20 text-zinc-400 border-zinc-600/40",
   } as const;
   const labels = {
-    virgem: 'Virgem',
-    pioneiro: 'Pioneiro',
-    emergente: 'Emergente',
-    saturado: 'Saturado',
+    virgem: "Virgem",
+    pioneiro: "Pioneiro",
+    emergente: "Emergente",
+    saturado: "Saturado",
   } as const;
-  const key = status && status in map ? status : 'emergente';
+  const key = status && status in map ? status : "emergente";
   return (
-    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${map[key]}`}>
+    <span
+      className={`text-[8px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${map[key]}`}
+    >
       {labels[key]}
     </span>
   );
@@ -147,19 +154,22 @@ function GrowthBadge({ pct }: { pct?: number }) {
   const positive = v > 5;
   const neutral = v >= -5 && v <= 5;
   const cls = positive
-    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+    ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
     : neutral
-      ? 'bg-zinc-500/10 text-zinc-400 border-zinc-700/50'
-      : 'bg-amber-500/10 text-amber-300 border-amber-500/30';
+      ? "bg-zinc-500/10 text-zinc-400 border-zinc-700/50"
+      : "bg-amber-500/10 text-amber-300 border-amber-500/30";
   return (
-    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border tabular-nums ${cls}`}>
-      {v > 0 ? '+' : ''}{v.toFixed(1)}%
+    <span
+      className={`text-[9px] font-bold px-1.5 py-0.5 rounded border tabular-nums ${cls}`}
+    >
+      {v > 0 ? "+" : ""}
+      {v.toFixed(1)}%
     </span>
   );
 }
 
 export function TrendForecastPanel({
-  niche = '',
+  niche = "",
   onApplyCreatorIdea,
   onGoToIntegrations,
   embedded = false,
@@ -167,19 +177,26 @@ export function TrendForecastPanel({
   const [status, setStatus] = useState<TimesfmStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [format, setFormat] = useState<'all' | 'SHORTS' | 'LONGO'>('all');
+  const [format, setFormat] = useState<"all" | "SHORTS" | "LONGO">("all");
   const [horizon, setHorizon] = useState(7);
   const [enqueueIdeas, setEnqueueIdeas] = useState(true);
   const [discoverPioneers, setDiscoverPioneers] = useState(true);
   const [pioneerOnly, setPioneerOnly] = useState(false);
-  const [discoveryMode, setDiscoveryMode] = useState<'virgin' | 'chosen'>('virgin');
-  const [chosenNiche, setChosenNiche] = useState(niche || '');
-  const [pioneerResult, setPioneerResult] = useState<PioneerDiscovery | null>(null);
+  const [discoveryMode, setDiscoveryMode] = useState<"virgin" | "chosen">(
+    "virgin"
+  );
+  const [chosenNiche, setChosenNiche] = useState(niche || "");
+  const [pioneerResult, setPioneerResult] = useState<PioneerDiscovery | null>(
+    null
+  );
   const [result, setResult] = useState<ForecastResult | null>(null);
-  const [view, setView] = useState<RadarView>('radar');
+  const [view, setView] = useState<RadarView>("radar");
   const [savedItems, setSavedItems] = useState<TrendRadarSavedItem[]>([]);
-  const [detailItem, setDetailItem] = useState<TrendRadarSavedItem | null>(null);
-  const [parentScanItem, setParentScanItem] = useState<TrendRadarSavedItem | null>(null);
+  const [detailItem, setDetailItem] = useState<TrendRadarSavedItem | null>(
+    null
+  );
+  const [parentScanItem, setParentScanItem] =
+    useState<TrendRadarSavedItem | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -188,7 +205,7 @@ export function TrendForecastPanel({
 
   const fetchSaved = useCallback(async () => {
     try {
-      const res = await fetch('/api/trends/saved');
+      const res = await fetch("/api/trends/saved");
       const data = await res.json();
       if (res.ok && Array.isArray(data.items)) {
         setSavedItems(data.items);
@@ -202,14 +219,14 @@ export function TrendForecastPanel({
     void fetchSaved();
   }, [fetchSaved]);
 
-  const effectiveNiche = discoveryMode === 'chosen' ? chosenNiche.trim() : '';
+  const effectiveNiche = discoveryMode === "chosen" ? chosenNiche.trim() : "";
 
   const fetchStatus = useCallback(async () => {
     setLoadingStatus(true);
     try {
-      const res = await fetch('/api/trends/status');
+      const res = await fetch("/api/trends/status");
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Falha ao carregar status');
+      if (!res.ok) throw new Error(data.error || "Falha ao carregar status");
       setStatus(data);
     } catch (err: unknown) {
       console.error(err);
@@ -226,29 +243,39 @@ export function TrendForecastPanel({
     setBusy(true);
     setPioneerResult(null);
     setResult(null);
-    const toastId = 'pioneer-scan';
+    const toastId = "pioneer-scan";
     try {
-      toast.loading('Varrendo nichos pioneiros no YouTube…', { id: toastId });
-      const res = await fetch('/api/trends/pioneer-niches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      toast.loading("Varrendo nichos pioneiros no YouTube…", { id: toastId });
+      const res = await fetch("/api/trends/pioneer-niches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          format: format === 'LONGO' ? 'LONGO' : format === 'SHORTS' ? 'SHORTS' : 'SHORTS',
+          format:
+            format === "LONGO"
+              ? "LONGO"
+              : format === "SHORTS"
+                ? "SHORTS"
+                : "SHORTS",
           niche: effectiveNiche,
           discoveryMode,
           useAi: true,
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(String(data.error || data.details || 'Falha na varredura'));
+      if (!res.ok)
+        throw new Error(
+          String(data.error || data.details || "Falha na varredura")
+        );
       setPioneerResult(data);
       const top = data.summary?.topPick;
       toast.success(
-        `${data.summary?.pioneerCount ?? 0} nicho(s) pioneiro(s)${top ? ` · destaque: ${top.slice(0, 40)}` : ''}`,
-        { id: toastId },
+        `${data.summary?.pioneerCount ?? 0} nicho(s) pioneiro(s)${top ? ` · destaque: ${top.slice(0, 40)}` : ""}`,
+        { id: toastId }
       );
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro na varredura', { id: toastId });
+      toast.error(err instanceof Error ? err.message : "Erro na varredura", {
+        id: toastId,
+      });
     } finally {
       setBusy(false);
     }
@@ -262,15 +289,17 @@ export function TrendForecastPanel({
     setBusy(true);
     setResult(null);
     setPioneerResult(null);
-    const toastId = 'trend-forecast';
+    const toastId = "trend-forecast";
     try {
       toast.loading(
-        discoverPioneers ? 'TimesFM + varredura de nichos pioneiros…' : 'Previsão TimesFM em andamento…',
-        { id: toastId },
+        discoverPioneers
+          ? "TimesFM + varredura de nichos pioneiros…"
+          : "Previsão TimesFM em andamento…",
+        { id: toastId }
       );
-      const res = await fetch('/api/trends/forecast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/trends/forecast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           format,
           horizon,
@@ -281,18 +310,24 @@ export function TrendForecastPanel({
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(String(data.error || data.details || 'Falha na previsão'));
+      if (!res.ok)
+        throw new Error(
+          String(data.error || data.details || "Falha na previsão")
+        );
       setResult(data);
       if (data.pioneerDiscovery?.ok) setPioneerResult(data.pioneerDiscovery);
-      const engine = data.engine === 'timesfm-2.5' ? 'TimesFM 2.5' : 'fallback estatístico';
+      const engine =
+        data.engine === "timesfm-2.5" ? "TimesFM 2.5" : "fallback estatístico";
       const queue = data.editorialQueue?.enqueued;
       const pioneers = data.pioneerDiscovery?.summary?.pioneerCount;
       toast.success(
-        `Previsão pronta (${engine})${pioneers ? ` · ${pioneers} pioneiro(s)` : ''}${queue ? ` · ${queue} na fila` : ''}`,
-        { id: toastId },
+        `Previsão pronta (${engine})${pioneers ? ` · ${pioneers} pioneiro(s)` : ""}${queue ? ` · ${queue} na fila` : ""}`,
+        { id: toastId }
       );
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro na previsão', { id: toastId });
+      toast.error(err instanceof Error ? err.message : "Erro na previsão", {
+        id: toastId,
+      });
     } finally {
       setBusy(false);
     }
@@ -301,28 +336,33 @@ export function TrendForecastPanel({
   const saveScan = async () => {
     const discovery = pioneerResult || result?.pioneerDiscovery;
     if (!discovery?.pioneerNiches?.length) {
-      toast.error('Rode uma varredura antes de salvar.');
+      toast.error("Rode uma varredura antes de salvar.");
       return;
     }
-    setSavingId('scan');
+    setSavingId("scan");
     try {
-      const res = await fetch('/api/trends/saved', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/trends/saved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: 'scan',
+          type: "scan",
           discovery,
           discoveryMode,
           nicheFilter: effectiveNiche,
-          format: format === 'LONGO' ? 'LONGO' : format === 'SHORTS' ? 'SHORTS' : 'SHORTS',
+          format:
+            format === "LONGO"
+              ? "LONGO"
+              : format === "SHORTS"
+                ? "SHORTS"
+                : "SHORTS",
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Falha ao salvar');
-      toast.success('Varredura salva!');
+      if (!res.ok) throw new Error(data.error || "Falha ao salvar");
+      toast.success("Varredura salva!");
       await fetchSaved();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar');
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setSavingId(null);
     }
@@ -332,24 +372,25 @@ export function TrendForecastPanel({
     const key = `${n.macroNiche}-${n.youtubeSearchQuery || n.label}`;
     setSavingId(key);
     try {
-      const res = await fetch('/api/trends/saved', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/trends/saved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: 'niche',
+          type: "niche",
           niche: n,
           discoveryMode,
           nicheFilter: effectiveNiche,
-          format: n.format || (format === 'LONGO' ? 'LONGO' : 'SHORTS'),
-          scanSummary: pioneerResult?.summary || result?.pioneerDiscovery?.summary || null,
+          format: n.format || (format === "LONGO" ? "LONGO" : "SHORTS"),
+          scanSummary:
+            pioneerResult?.summary || result?.pioneerDiscovery?.summary || null,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Falha ao salvar');
-      toast.success(`Salvo: ${n.label?.slice(0, 40) || 'nicho'}`);
+      if (!res.ok) throw new Error(data.error || "Falha ao salvar");
+      toast.success(`Salvo: ${n.label?.slice(0, 40) || "nicho"}`);
       await fetchSaved();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar');
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setSavingId(null);
     }
@@ -359,33 +400,33 @@ export function TrendForecastPanel({
     try {
       const res = await fetch(`/api/trends/saved/${id}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Não encontrado');
+      if (!res.ok) throw new Error(data.error || "Não encontrado");
       setDetailItem(data.item as TrendRadarSavedItem);
-      setView('detail');
+      setView("detail");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao abrir');
+      toast.error(err instanceof Error ? err.message : "Erro ao abrir");
     }
   };
 
   const deleteSaved = async (id: string) => {
     try {
-      const res = await fetch(`/api/trends/saved/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/trends/saved/${id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Falha ao excluir');
-      toast.success('Removido dos salvos');
+      if (!res.ok) throw new Error(data.error || "Falha ao excluir");
+      toast.success("Removido dos salvos");
       if (detailItem?.id === id) {
         setDetailItem(null);
-        setView('saved');
+        setView("saved");
       }
       await fetchSaved();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao excluir');
+      toast.error(err instanceof Error ? err.message : "Erro ao excluir");
     }
   };
 
   const timesfmReady = status?.timesfmInstalled;
 
-  if (view === 'detail' && detailItem) {
+  if (view === "detail" && detailItem) {
     return (
       <TrendRadarNicheDetailView
         item={detailItem}
@@ -396,14 +437,14 @@ export function TrendForecastPanel({
             return;
           }
           setDetailItem(null);
-          setView('saved');
+          setView("saved");
         }}
         onDelete={deleteSaved}
         onOpenNicheFromScan={(entry) => {
           setParentScanItem(detailItem);
           setDetailItem({
             id: detailItem.id,
-            type: 'niche',
+            type: "niche",
             label: entry.label,
             savedAt: detailItem.savedAt,
             discoveryMode: detailItem.discoveryMode,
@@ -421,13 +462,13 @@ export function TrendForecastPanel({
     );
   }
 
-  if (view === 'saved') {
+  if (view === "saved") {
     return (
       <TrendRadarSavedList
         items={savedItems}
         onOpen={openSavedDetail}
         onDelete={deleteSaved}
-        onBack={() => setView('radar')}
+        onBack={() => setView("radar")}
       />
     );
   }
@@ -456,10 +497,10 @@ export function TrendForecastPanel({
             )}
             <span>
               {loadingStatus
-                ? 'Verificando TimesFM…'
+                ? "Verificando TimesFM…"
                 : timesfmReady
-                  ? 'TimesFM 2.5 instalado'
-                  : 'Modo fallback (instale TimesFM para previsão neural)'}
+                  ? "TimesFM 2.5 instalado"
+                  : "Modo fallback (instale TimesFM para previsão neural)"}
             </span>
           </div>
           <button
@@ -472,8 +513,12 @@ export function TrendForecastPanel({
           </button>
           {!timesfmReady && !loadingStatus && (
             <p className="text-[10px] text-zinc-500 w-full">
-              Execute <code className="text-amber-300/90">.\scripts\setup-timesfm.ps1</code> no repositório Lumiera.
-              {status?.probeError ? ` (${status.probeError})` : ''}
+              Execute{" "}
+              <code className="text-amber-300/90">
+                .\scripts\setup-timesfm.ps1
+              </code>{" "}
+              no repositório Lumiera.
+              {status?.probeError ? ` (${status.probeError})` : ""}
             </p>
           )}
         </div>
@@ -517,10 +562,12 @@ export function TrendForecastPanel({
         <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
             <Compass className="w-4 h-4 text-violet-300" />
-            <p className="text-[11px] font-bold text-violet-100">Modo de descoberta</p>
+            <p className="text-[11px] font-bold text-violet-100">
+              Modo de descoberta
+            </p>
             <button
               type="button"
-              onClick={() => setView('saved')}
+              onClick={() => setView("saved")}
               className="ml-auto text-[10px] text-amber-400/90 hover:text-amber-300 flex items-center gap-1"
             >
               <Bookmark className="w-3.5 h-3.5" />
@@ -530,40 +577,48 @@ export function TrendForecastPanel({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => setDiscoveryMode('virgin')}
+              onClick={() => setDiscoveryMode("virgin")}
               className={`p-3 rounded-xl border text-left transition ${
-                discoveryMode === 'virgin'
-                  ? 'border-violet-500/50 bg-violet-500/15'
-                  : 'border-zinc-800 bg-zinc-950/40 hover:border-zinc-700'
+                discoveryMode === "virgin"
+                  ? "border-violet-500/50 bg-violet-500/15"
+                  : "border-zinc-800 bg-zinc-950/40 hover:border-zinc-700"
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="w-4 h-4 text-violet-300" />
-                <span className="text-[11px] font-bold text-zinc-100">Nicho virgem</span>
+                <span className="text-[11px] font-bold text-zinc-100">
+                  Nicho virgem
+                </span>
               </div>
               <p className="text-[9px] text-zinc-500 leading-relaxed">
-                Descobre <strong className="text-zinc-300">qualquer categoria</strong> — finanças, pets, filosofia, viagens… Ignora o nicho do projeto.
+                Descobre{" "}
+                <strong className="text-zinc-300">qualquer categoria</strong> —
+                finanças, pets, filosofia, viagens… Ignora o nicho do projeto.
               </p>
             </button>
             <button
               type="button"
-              onClick={() => setDiscoveryMode('chosen')}
+              onClick={() => setDiscoveryMode("chosen")}
               className={`p-3 rounded-xl border text-left transition ${
-                discoveryMode === 'chosen'
-                  ? 'border-amber-500/40 bg-amber-500/10'
-                  : 'border-zinc-800 bg-zinc-950/40 hover:border-zinc-700'
+                discoveryMode === "chosen"
+                  ? "border-amber-500/40 bg-amber-500/10"
+                  : "border-zinc-800 bg-zinc-950/40 hover:border-zinc-700"
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
                 <Target className="w-4 h-4 text-amber-300" />
-                <span className="text-[11px] font-bold text-zinc-100">Nicho escolhido</span>
+                <span className="text-[11px] font-bold text-zinc-100">
+                  Nicho escolhido
+                </span>
               </div>
               <p className="text-[9px] text-zinc-500 leading-relaxed">
-                Explora ângulos pioneiros <strong className="text-zinc-300">dentro de um nicho</strong> que você define abaixo.
+                Explora ângulos pioneiros{" "}
+                <strong className="text-zinc-300">dentro de um nicho</strong>{" "}
+                que você define abaixo.
               </p>
             </button>
           </div>
-          {discoveryMode === 'chosen' && (
+          {discoveryMode === "chosen" && (
             <label className="text-[10px] text-zinc-500 space-y-1 block">
               Nicho para explorar
               <input
@@ -576,7 +631,8 @@ export function TrendForecastPanel({
             </label>
           )}
           <p className="text-[10px] text-zinc-500 leading-relaxed">
-            <strong className="text-cyan-300">Virgem</strong> = poucos canais dedicados naquele ângulo no YouTube BR.
+            <strong className="text-cyan-300">Virgem</strong> = poucos canais
+            dedicados naquele ângulo no YouTube BR.
           </p>
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-[10px] text-zinc-400 cursor-pointer">
@@ -612,8 +668,18 @@ export function TrendForecastPanel({
           onClick={() => void runForecast()}
           className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-bold py-3 rounded-xl transition"
         >
-          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : pioneerOnly ? <Compass className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-          {pioneerOnly ? 'Varrer nichos pioneiros' : discoverPioneers ? 'Previsão + nichos pioneiros' : 'Gerar previsão de tendências'}
+          {busy ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : pioneerOnly ? (
+            <Compass className="w-4 h-4" />
+          ) : (
+            <Sparkles className="w-4 h-4" />
+          )}
+          {pioneerOnly
+            ? "Varrer nichos pioneiros"
+            : discoverPioneers
+              ? "Previsão + nichos pioneiros"
+              : "Gerar previsão de tendências"}
         </button>
       </div>
 
@@ -634,14 +700,16 @@ export function TrendForecastPanel({
               <TrendingUp className="w-4 h-4 text-amber-300" />
               <p className="text-xs font-bold text-zinc-200">
                 Nichos em alta
-                {result.channelTitle ? ` · ${result.channelTitle}` : ''}
+                {result.channelTitle ? ` · ${result.channelTitle}` : ""}
               </p>
               <span className="text-[9px] text-zinc-500 ml-auto">
                 {result.engine} · {result.horizon}d
               </span>
             </div>
             {(result.risingNiches || []).length === 0 ? (
-              <p className="text-[10px] text-zinc-500 italic">Nenhum cluster de nicho com dados suficientes.</p>
+              <p className="text-[10px] text-zinc-500 italic">
+                Nenhum cluster de nicho com dados suficientes.
+              </p>
             ) : (
               <ul className="space-y-2">
                 {(result.risingNiches || []).slice(0, 8).map((n) => (
@@ -650,10 +718,14 @@ export function TrendForecastPanel({
                     className="flex items-start gap-2 p-2 rounded-xl bg-zinc-950/50 border border-zinc-800/60"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold text-zinc-200 capitalize">{n.niche}</p>
+                      <p className="text-[11px] font-semibold text-zinc-200 capitalize">
+                        {n.niche}
+                      </p>
                       <p className="text-[9px] text-zinc-500">
                         {n.videoCount} vídeo(s)
-                        {n.sampleTitles?.[0] ? ` · ex: ${n.sampleTitles[0].slice(0, 48)}…` : ''}
+                        {n.sampleTitles?.[0]
+                          ? ` · ex: ${n.sampleTitles[0].slice(0, 48)}…`
+                          : ""}
                       </p>
                     </div>
                     <GrowthBadge pct={n.growthPct} />
@@ -680,7 +752,9 @@ export function TrendForecastPanel({
 
           {(result.derivedIdeas || []).length > 0 && (
             <div className="glass-panel p-5 rounded-3xl space-y-3">
-              <p className="text-xs font-bold text-zinc-200">Ideias derivadas da previsão</p>
+              <p className="text-xs font-bold text-zinc-200">
+                Ideias derivadas da previsão
+              </p>
               <ul className="space-y-2">
                 {(result.derivedIdeas || []).map((idea, i) => (
                   <li
@@ -688,19 +762,28 @@ export function TrendForecastPanel({
                     className="p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/60 space-y-2"
                   >
                     <div className="flex items-start gap-2">
-                      <p className="text-[11px] text-zinc-200 flex-1">{idea.title}</p>
+                      <p className="text-[11px] text-zinc-200 flex-1">
+                        {idea.title}
+                      </p>
                       <GrowthBadge pct={idea.growthPct} />
                     </div>
                     {idea.hookPt && (
-                      <p className="text-[9px] text-zinc-500 leading-relaxed">{idea.hookPt}</p>
+                      <p className="text-[9px] text-zinc-500 leading-relaxed">
+                        {idea.hookPt}
+                      </p>
                     )}
                     {onApplyCreatorIdea && (
                       <button
                         type="button"
                         onClick={() =>
-                          onApplyCreatorIdea(idea.title || '', idea.hookPt || '', {
-                            format: idea.format,
-                          })
+                          onApplyCreatorIdea(
+                            idea.title || "",
+                            idea.hookPt || "",
+                            {
+                              format: idea.format as
+                                "LONGO" | "SHORTS" | undefined,
+                            }
+                          )
                         }
                         className="text-[10px] text-amber-300 hover:text-amber-200"
                       >
@@ -717,8 +800,12 @@ export function TrendForecastPanel({
 
       {onGoToIntegrations && (
         <p className="text-[10px] text-zinc-600 text-center">
-          Dados do YouTube Analytics exigem canal vinculado.{' '}
-          <button type="button" onClick={onGoToIntegrations} className="text-amber-400/80 hover:text-amber-300">
+          Dados do YouTube Analytics exigem canal vinculado.{" "}
+          <button
+            type="button"
+            onClick={onGoToIntegrations}
+            className="text-amber-400/80 hover:text-amber-300"
+          >
             Integrações
           </button>
         </p>
@@ -735,44 +822,59 @@ function PioneerNicheList({
   savingId,
 }: {
   discovery: PioneerDiscovery | null;
-  onApply?: (title: string, hook: string, options?: CreatorApplyIdeaOptions) => void;
+  onApply?: (
+    title: string,
+    hook: string,
+    options?: CreatorApplyIdeaOptions
+  ) => void;
   onSaveNiche?: (niche: PioneerNiche) => void | Promise<void>;
   onSaveScan?: () => void | Promise<void>;
   savingId?: string | null;
 }) {
   const niches = discovery?.pioneerNiches || [];
   const summary = discovery?.summary;
-  const modeLabel = discovery?.discoveryMode === 'chosen'
-    ? `focado em ${discovery?.baseNiche || 'nicho escolhido'}`
-    : 'descoberta aberta';
+  const modeLabel =
+    discovery?.discoveryMode === "chosen"
+      ? `focado em ${discovery?.baseNiche || "nicho escolhido"}`
+      : "descoberta aberta";
 
   return (
     <div className="glass-panel p-5 rounded-3xl space-y-3 border border-violet-500/15">
       <div className="flex items-center gap-2 flex-wrap">
         <Compass className="w-4 h-4 text-violet-300" />
-        <p className="text-xs font-bold text-zinc-200">Nichos pioneiros para desbravar</p>
-        <span className="text-[8px] text-violet-400/80 uppercase tracking-wide">{modeLabel}</span>
+        <p className="text-xs font-bold text-zinc-200">
+          Nichos pioneiros para desbravar
+        </p>
+        <span className="text-[8px] text-violet-400/80 uppercase tracking-wide">
+          {modeLabel}
+        </span>
         {summary && (
           <span className="text-[9px] text-zinc-500 ml-auto">
-            {summary.scanned} analisados · {summary.virginCount ?? 0} virgens · {summary.pioneerCount ?? 0} pioneiros
-            {discovery?.exaAvailable ? ' · Exa' : ' · heurística'}
+            {summary.scanned} analisados · {summary.virginCount ?? 0} virgens ·{" "}
+            {summary.pioneerCount ?? 0} pioneiros
+            {discovery?.exaAvailable ? " · Exa" : " · heurística"}
           </span>
         )}
         {onSaveScan && (
           <button
             type="button"
-            disabled={savingId === 'scan'}
+            disabled={savingId === "scan"}
             onClick={() => void onSaveScan()}
             className="text-[10px] font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1 disabled:opacity-50"
           >
-            {savingId === 'scan' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+            {savingId === "scan" ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Save className="w-3 h-3" />
+            )}
             Salvar varredura
           </button>
         )}
       </div>
       <p className="text-[9px] text-zinc-600 leading-relaxed">
-        Cada card = <span className="text-zinc-400">macro-nicho</span> + <span className="text-zinc-400">ângulo/formato</span>.
-        Gap alto = categoria existe (ex.: história), mas o recorte específico está vazio.
+        Cada card = <span className="text-zinc-400">macro-nicho</span> +{" "}
+        <span className="text-zinc-400">ângulo/formato</span>. Gap alto =
+        categoria existe (ex.: história), mas o recorte específico está vazio.
       </p>
       <ul className="space-y-2">
         {niches.slice(0, 10).map((n) => (
@@ -783,9 +885,13 @@ function PioneerNicheList({
             <div className="flex items-start gap-2 flex-wrap">
               <div className="flex-1 min-w-0 space-y-1">
                 {n.macroNiche && (
-                  <span className="text-[8px] font-bold uppercase tracking-wide text-amber-400/90">{n.macroNiche}</span>
+                  <span className="text-[8px] font-bold uppercase tracking-wide text-amber-400/90">
+                    {n.macroNiche}
+                  </span>
                 )}
-                <p className="text-[11px] font-semibold text-zinc-100">{n.label || n.angle}</p>
+                <p className="text-[11px] font-semibold text-zinc-100">
+                  {n.label || n.angle}
+                </p>
               </div>
               <PioneerStatusBadge status={n.status} />
               <span className="text-[9px] font-bold text-violet-300 tabular-nums">
@@ -798,22 +904,37 @@ function PioneerNicheList({
               </p>
             )}
             {n.angle && n.angle !== n.label && (
-              <p className="text-[9px] text-zinc-500 leading-relaxed">{n.angle}</p>
+              <p className="text-[9px] text-zinc-500 leading-relaxed">
+                {n.angle}
+              </p>
             )}
             {n.whyPioneer && (
-              <p className="text-[9px] text-zinc-400 leading-relaxed">{n.whyPioneer}</p>
+              <p className="text-[9px] text-zinc-400 leading-relaxed">
+                {n.whyPioneer}
+              </p>
             )}
             {(n.youtube || n.gapScore != null) && (
               <p className="text-[9px] text-zinc-600">
-                Busca: <code className="text-zinc-500">{n.youtubeSearchQuery || n.youtube?.query}</code>
-                {n.dedicatedChannels != null ? ` · ${n.dedicatedChannels} canal(is) dedicado(s)` : ''}
-                {n.saturationPct != null ? ` · saturação ângulo ${n.saturationPct}%` : ''}
-                {n.macroSaturationPct != null ? ` · macro ${n.macroSaturationPct}%` : ''}
-                {n.gapScore != null ? ` · gap ${n.gapScore}` : ''}
+                Busca:{" "}
+                <code className="text-zinc-500">
+                  {n.youtubeSearchQuery || n.youtube?.query}
+                </code>
+                {n.dedicatedChannels != null
+                  ? ` · ${n.dedicatedChannels} canal(is) dedicado(s)`
+                  : ""}
+                {n.saturationPct != null
+                  ? ` · saturação ângulo ${n.saturationPct}%`
+                  : ""}
+                {n.macroSaturationPct != null
+                  ? ` · macro ${n.macroSaturationPct}%`
+                  : ""}
+                {n.gapScore != null ? ` · gap ${n.gapScore}` : ""}
               </p>
             )}
             {n.firstVideoIdea && (
-              <p className="text-[9px] text-cyan-400/90">1º vídeo: {n.firstVideoIdea}</p>
+              <p className="text-[9px] text-cyan-400/90">
+                1º vídeo: {n.firstVideoIdea}
+              </p>
             )}
             {n.risk && (
               <p className="text-[9px] text-amber-500/80">Risco: {n.risk}</p>
@@ -822,13 +943,19 @@ function PioneerNicheList({
               {onSaveNiche && (
                 <button
                   type="button"
-                  disabled={savingId === `${n.macroNiche}-${n.youtubeSearchQuery || n.label}`}
+                  disabled={
+                    savingId ===
+                    `${n.macroNiche}-${n.youtubeSearchQuery || n.label}`
+                  }
                   onClick={() => void onSaveNiche(n)}
                   className="text-[10px] text-amber-300 hover:text-amber-200 flex items-center gap-1 disabled:opacity-50"
                 >
-                  {savingId === `${n.macroNiche}-${n.youtubeSearchQuery || n.label}`
-                    ? <Loader2 className="w-3 h-3 animate-spin" />
-                    : <Bookmark className="w-3 h-3" />}
+                  {savingId ===
+                  `${n.macroNiche}-${n.youtubeSearchQuery || n.label}` ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Bookmark className="w-3 h-3" />
+                  )}
                   Salvar
                 </button>
               )}
@@ -843,20 +970,21 @@ function PioneerNicheList({
                       youtubeSearchQuery: n.youtubeSearchQuery,
                     };
                     const seed = resolvePioneerCreatorSeed(
-                      n.firstVideoIdea || n.label || '',
-                      n.angle || n.firstVideoIdea || n.label || '',
+                      n.firstVideoIdea || n.label || "",
+                      n.angle || n.firstVideoIdea || n.label || "",
                       pioneerMeta,
-                      n.whyPioneer,
+                      n.whyPioneer
                     );
                     onApply(
                       seed.title || n.label || `Pioneiro: ${n.macroNiche}`,
                       seed.hook || seed.title,
                       {
-                        format: (n.format === 'LONGO' ? 'LONGO' : 'SHORTS') as 'LONGO' | 'SHORTS',
-                        mechanic: 'pioneer-niche',
+                        format: (n.format === "LONGO" ? "LONGO" : "SHORTS") as
+                          "LONGO" | "SHORTS",
+                        mechanic: "pioneer-niche",
                         whyWorks: n.whyPioneer,
                         pioneerMeta,
-                      },
+                      }
                     );
                   }}
                   className="text-[10px] text-violet-300 hover:text-violet-200"
@@ -881,7 +1009,11 @@ function TrendVideoList({
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   videos: TrendVideo[];
-  onApply?: (title: string, hook: string, options?: CreatorApplyIdeaOptions) => void;
+  onApply?: (
+    title: string,
+    hook: string,
+    options?: CreatorApplyIdeaOptions
+  ) => void;
 }) {
   return (
     <div className="glass-panel p-5 rounded-3xl space-y-3">
@@ -890,7 +1022,9 @@ function TrendVideoList({
         <p className="text-xs font-bold text-zinc-200">{title}</p>
       </div>
       {videos.length === 0 ? (
-        <p className="text-[10px] text-zinc-500 italic">Sem vídeos neste formato no período.</p>
+        <p className="text-[10px] text-zinc-500 italic">
+          Sem vídeos neste formato no período.
+        </p>
       ) : (
         <ul className="space-y-2">
           {videos.map((v) => (
@@ -906,9 +1040,11 @@ function TrendVideoList({
                 />
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-zinc-200 line-clamp-2">{v.title}</p>
+                <p className="text-[10px] text-zinc-200 line-clamp-2">
+                  {v.title}
+                </p>
                 <p className="text-[9px] text-zinc-500">
-                  {(v.metrics?.views ?? 0).toLocaleString('pt-BR')} views
+                  {(v.metrics?.views ?? 0).toLocaleString("pt-BR")} views
                 </p>
               </div>
               <GrowthBadge pct={v.growthPct} />

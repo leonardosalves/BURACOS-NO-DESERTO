@@ -67,7 +67,7 @@ type TtsEngineOption = {
 type Props = {
   getProjectUrl: (path: string) => string;
   getMediaUrl: (file: string) => string;
-  toast: (msg: string) => void;
+  toast: (msg: string, opts?: unknown) => void;
   hasApiKey?: boolean;
   narrationMode?: "chunked" | "master" | string;
   plan?: NarrationChunkPlan | null;

@@ -109,18 +109,21 @@ export function useNotebooklmAuth(opts?: {
         return false;
       }
       if (data.alreadyAuthenticated) {
-        const merged = { ...data, authenticated: true };
+        const merged = {
+          ...(data as Record<string, unknown>),
+          authenticated: true,
+        } as NotebooklmStatus;
         setStatus(merged);
         broadcastStatus(merged);
         setLoggingIn(false);
-        toast.success(data.message || "NotebookLM já conectado.");
+        toast.success(String(data.message || "NotebookLM já conectado."));
         return true;
       }
       if (data.status) {
-        setStatus(data.status);
-        broadcastStatus(data.status);
+        setStatus(data.status as NotebooklmStatus);
+        broadcastStatus(data.status as NotebooklmStatus);
       }
-      toast.success(data.message || "Abrindo navegador para login…", {
+      toast.success(String(data.message || "Abrindo navegador para login…"), {
         duration: 8000,
       });
       startLoginPoll();

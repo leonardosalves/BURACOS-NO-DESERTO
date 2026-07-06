@@ -104,7 +104,10 @@ export function OverlayPreview({
       : null;
   const isShort = aspectRatio === "9:16";
   const format = isShort ? "short" : "long";
-  const metrics = getOverlayPreviewMetrics(format);
+  const metrics = getOverlayPreviewMetrics(format) as ReturnType<
+    typeof getOverlayPreviewMetrics
+  > &
+    Record<string, number>;
   const props = overlay.props || {};
   const position = String(props.position || "bottom-left");
   const variant = String(props.variant || "glass");
@@ -622,7 +625,7 @@ export function OverlayPreview({
             <div
               className="rounded-md mb-1"
               style={{
-                height: metrics.fontSizeCounter * 1.4,
+                height: Number(metrics.fontSizeCounter) * 1.4,
                 background:
                   "linear-gradient(135deg, #2d5a27, #1a5f7a 55%, #4a4f55)",
               }}
@@ -642,7 +645,7 @@ export function OverlayPreview({
           </>,
           "center",
           {
-            maxWidth: metrics.maxWidth * 1.2,
+            maxWidth: Number(metrics.maxWidth) * 1.2,
             background: "rgba(0,0,0,0.55)",
             border: `1px solid ${accentColor}33`,
             borderRadius: metrics.cardGap,
@@ -678,7 +681,7 @@ export function OverlayPreview({
           </>,
           "center",
           {
-            maxWidth: metrics.maxWidth * 1.1,
+            maxWidth: Number(metrics.maxWidth) * 1.1,
             background: "#F4F4F2",
             border: "1px solid rgba(0,0,0,0.08)",
             borderRadius: metrics.cardGap,

@@ -15,7 +15,7 @@ export type GeminiBrowserRequest = {
   staleResponse?: boolean;
   fallback?: boolean;
   narrative_script?: string;
-  [key: string]: unknown;
+  [key: string]: any;
 };
 
 export type OpenGeminiBridge = (opts: {

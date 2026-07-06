@@ -1,5 +1,6 @@
 import { createProgressJobId, waitForAiJobDone } from "./aiJobProgressClient";
 import { fetchCreatorScriptAi, fetchGeminiAi } from "./geminiAiFetch";
+import type { GeminiBrowserResolver } from "./geminiAiFetch";
 import type { ConfigData, WorkspaceStatus } from "./appTypes";
 import {
   FLOW_LAB_FISH_VOICE_HINT,
@@ -10,7 +11,7 @@ import {
 export type FlowLabAiContext = {
   geminiBrowserMode: boolean;
   aiProvider: string;
-  resolveBrowserResponse: (response: unknown) => unknown;
+  resolveBrowserResponse: GeminiBrowserResolver;
 };
 
 function projectUrl(path: string): string {
@@ -194,9 +195,7 @@ export async function ensureFlowLabProject(
 }
 
 /** Engenharia Visual PRO — le storyboard do disco e reprocessa todos os prompts. */
-export async function runFlowLabVisualPro(
-  ctx: FlowLabAiContext
-): Promise<{
+export async function runFlowLabVisualPro(ctx: FlowLabAiContext): Promise<{
   ok: boolean;
   storyboard?: Record<string, unknown>;
   meta?: FlowLabVpeMeta;

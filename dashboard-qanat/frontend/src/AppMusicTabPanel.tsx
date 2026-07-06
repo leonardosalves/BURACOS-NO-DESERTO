@@ -1,11 +1,11 @@
-import React, { Suspense, lazy } from 'react';
-import { RefreshCw } from 'lucide-react';
-import { TabErrorBoundary } from './TabErrorBoundary';
-import { TabPanelFallback } from './appLazyPanels';
-import type { AppMusicTabProps } from './AppMusicTab';
+import React, { Suspense, lazy } from "react";
+import { RefreshCw } from "lucide-react";
+import { TabErrorBoundary } from "./TabErrorBoundary";
+import { TabPanelFallback } from "./appLazyPanels";
+import type { AppMusicTabProps } from "./AppMusicTab";
 
 const LazyAppMusicTab = lazy(() =>
-  import('./AppMusicTab').then((m) => ({ default: m.AppMusicTab })),
+  import("./AppMusicTab").then((m) => ({ default: m.AppMusicTab }))
 );
 
 export type AppMusicTabPanelProps = AppMusicTabProps & {
@@ -23,11 +23,13 @@ export function AppMusicTabPanel({
     <TabErrorBoundary tabName="Trilha BGM">
       {!config ? (
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 text-zinc-400 font-sans">
-          <RefreshCw className={`w-8 h-8 text-gold-500 ${projectDataLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`w-8 h-8 text-gold-500 ${projectDataLoading ? "animate-spin" : ""}`}
+          />
           <p className="text-sm">
             {projectDataLoading
-              ? 'Carregando trilhas do projeto...'
-              : 'Não foi possível carregar a configuração do projeto.'}
+              ? "Carregando trilhas do projeto..."
+              : "Não foi possível carregar a configuração do projeto."}
           </p>
           {!projectDataLoading && (
             <button
@@ -41,7 +43,11 @@ export function AppMusicTabPanel({
         </div>
       ) : (
         <Suspense fallback={<TabPanelFallback label="Carregando trilhas..." />}>
-          <LazyAppMusicTab config={config} {...musicProps} />
+          <LazyAppMusicTab
+            config={config}
+            fetchData={fetchData}
+            {...musicProps}
+          />
         </Suspense>
       )}
     </TabErrorBoundary>

@@ -14,12 +14,16 @@ import type { CreatorApplyIdeaOptions } from "./creatorEditorialImport";
 import { resolvePioneerCreatorSeed } from "./creatorEditorialImport";
 
 export type TrendRadarAspects = {
+  specificAngle?: string;
+  demandAnalysis?: string;
+  searchQuery?: string;
   overview?: { title?: string; summary?: string; headline?: string };
   macroNiche?: { title?: string; value?: string; description?: string };
   angle?: { title?: string; value?: string; description?: string };
   formatPattern?: { title?: string; value?: string; description?: string };
   competition?: {
     title?: string;
+    level?: string;
     searchQuery?: string;
     dedicatedChannels?: number;
     channelCount?: number;
@@ -78,6 +82,7 @@ export type TrendRadarSavedItem = {
     label?: string;
     status?: string;
     pioneerScore?: number;
+    format?: string;
     aspects?: TrendRadarAspects;
     raw?: Record<string, unknown>;
   }>;

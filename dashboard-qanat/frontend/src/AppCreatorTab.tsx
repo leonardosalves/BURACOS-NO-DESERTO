@@ -938,7 +938,7 @@ export function AppCreatorTab({
                   setListTopic={setListTopic}
                   rankCount={rankCount}
                   setRankCount={setRankCount}
-                  rankOrder={rankOrder}
+                  rankOrder={rankOrder as "desc" | "asc"}
                   setRankOrder={setRankOrder}
                   formatSelector={formatSelector}
                   setFormatSelector={setFormatSelector}
@@ -949,7 +949,9 @@ export function AppCreatorTab({
                   hasApiKey={hasApiKey}
                   listicleIdeasData={listicleIdeasData}
                   selectedListicleIdeaIndex={selectedListicleIdeaIndex}
-                  listicleHudStyle={listicleHudStyle}
+                  listicleHudStyle={
+                    listicleHudStyle as "auto" | "full" | "compact"
+                  }
                   setListicleHudStyle={setListicleHudStyle}
                   listItems={
                     generatedScriptData?.list_items ||
@@ -1051,7 +1053,7 @@ export function AppCreatorTab({
                       creatorLoading || !nicheInput.trim() || !hasApiKey
                     }
 
-                    onClick={handleGenerateIdeas}
+                    onClick={() => handleGenerateIdeas()}
 
                     className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-3.5 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-gold-500/10 w-full justify-center sm:w-auto"
                   >
@@ -1519,7 +1521,9 @@ export function AppCreatorTab({
                   notebooklmAvailable={notebooklmStatus?.authenticated ?? false}
                   loading={creatorLoading}
                   loadingMode={
-                    creatorLoadingMode === "idle" ? "idle" : creatorLoadingMode
+                    (creatorLoadingMode === "idle"
+                      ? "idle"
+                      : creatorLoadingMode) as "full" | "narration" | "idle"
                   }
                   onNarrativeChange={(value) => {
                     setNarrationDraft(value);
