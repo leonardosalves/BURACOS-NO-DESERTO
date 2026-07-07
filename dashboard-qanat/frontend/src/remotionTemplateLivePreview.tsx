@@ -96,7 +96,6 @@ function prepareRunnableSource(code: string) {
   src = src.replace(/^"use client";\s*/m, "");
   src = src.replace(/^import\s+[\s\S]*?from\s+["'][^"']+["'];?\s*/gm, "");
   src = src.replace(/export\s+const\s+exampleProps\s*=[\s\S]*?;\s*/m, "");
-  src = src.replace(/type\s+\w+\s*=\s*\{[\s\S]*?\};\s*/gm, "");
 
   const defaultFn = src.match(/export\s+default\s+function\s+(\w+)/);
   const componentName = defaultFn?.[1];
@@ -207,7 +206,16 @@ export function SavedTemplatePreviewFrame({
   );
 
   if (compiled.ok === false) {
-    if (fallback) return <>{fallback}</>;
+    if (fallback) {
+      return (
+        <div className="space-y-2">
+          {fallback}
+          <p className="text-center text-[10px] font-bold leading-relaxed text-amber-200">
+            Preview ao vivo falhou — mostrando mock. {compiled.error}
+          </p>
+        </div>
+      );
+    }
     return (
       <div
         className={`grid place-items-center rounded-[6px] border border-red-400/30 bg-red-500/10 p-3 text-center ${dimensions.className}`}
