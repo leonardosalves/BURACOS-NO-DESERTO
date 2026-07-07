@@ -1,4 +1,12 @@
 import React, { useMemo, useState } from "react";
+import { Player } from "@remotion/player";
+import {
+  AbsoluteFill,
+  Easing,
+  interpolate,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
 import {
   BadgeCheck,
   Braces,
@@ -8,9 +16,7 @@ import {
   Eye,
   Film,
   Layers3,
-  Maximize2,
   PencilRuler,
-  Play,
   Plus,
   Sparkles,
   Trash2,
@@ -37,7 +43,10 @@ type TemplateItem = {
   status: "approved" | "draft";
   description: string;
   dataSlots: string[];
-  sourceCode: string;
+  sourceCode: {
+    short: string;
+    long: string;
+  };
   shortPreview: "ring" | "map" | "bars" | "title" | "media";
   longPreview: "line" | "map" | "bars" | "cinematic" | "media";
 };
@@ -118,8 +127,11 @@ const TEMPLATES: TemplateItem[] = [
     status: "approved",
     description: "Mapa em janela tecnica para shorts, fora da area de legenda.",
     dataSlots: ["locationName", "coordinates", "siteRef", "map"],
-    sourceCode:
-      "export function EngineeringTacticalMapPip({locationName, coordinates, siteRef, map}) {\n  return <EngineeringMapPipOverlay locationName={locationName} coordinates={coordinates} siteRef={siteRef} map={map} />;\n}",
+    sourceCode: {
+      short:
+        'export function EngineeringTacticalMapPipShort({locationName, coordinates, siteRef, map}) {\n  return <EngineeringMapPipOverlay format="9:16" pipRect={{x:535,y:420,width:450,height:245}} locationName={locationName} coordinates={coordinates} siteRef={siteRef} map={map} />;\n}',
+      long: 'export function EngineeringTacticalMapFullscreen({locationName, coordinates, siteRef, map}) {\n  return <EngineeringMapFullscreen format="16:9" locationName={locationName} coordinates={coordinates} siteRef={siteRef} map={map} />;\n}',
+    },
     shortPreview: "map",
     longPreview: "map",
   },
@@ -133,8 +145,11 @@ const TEMPLATES: TemplateItem[] = [
     description:
       "Zoom continuo regiao, pais, cidade e alvo com orbit 360 para POI.",
     dataSlots: ["lat", "lng", "place_type", "flyover_video"],
-    sourceCode:
-      "export function ContinuousGeoFlyover({lat, lng, place_type, flyover_video}) {\n  return <GeoFlyoverScene lat={lat} lng={lng} placeType={place_type} video={flyover_video} />;\n}",
+    sourceCode: {
+      short:
+        'export function ContinuousGeoFlyoverShort({lat, lng, place_type, flyover_video}) {\n  return <GeoFlyoverPip format="9:16" lat={lat} lng={lng} placeType={place_type} video={flyover_video} maxDuration={10} />;\n}',
+      long: 'export function ContinuousGeoFlyoverLong({lat, lng, place_type, flyover_video}) {\n  return <GeoFlyoverScene format="16:9" lat={lat} lng={lng} placeType={place_type} video={flyover_video} maxDuration={20} />;\n}',
+    },
     shortPreview: "map",
     longPreview: "cinematic",
   },
@@ -147,8 +162,11 @@ const TEMPLATES: TemplateItem[] = [
     status: "approved",
     description: "Indicador circular com leitura tecnica para metricas curtas.",
     dataSlots: ["value", "label", "suffix"],
-    sourceCode:
-      "export function IndustrialKpiRing({value = 78, label = 'Completion Rate', suffix = '%'}) {\n  return <KpiRing value={value} label={label} suffix={suffix} />;\n}",
+    sourceCode: {
+      short:
+        "export function IndustrialKpiRingShort({value = 78, label = 'Completion Rate', suffix = '%'}) {\n  return <KpiRingCompact format=\"9:16\" value={value} label={label} suffix={suffix} />;\n}",
+      long: "export function IndustrialKpiRingLong({value = 78, label = 'Completion Rate', suffix = '%'}) {\n  return <KpiRingDashboard format=\"16:9\" value={value} label={label} suffix={suffix} />;\n}",
+    },
     shortPreview: "ring",
     longPreview: "line",
   },
@@ -161,8 +179,11 @@ const TEMPLATES: TemplateItem[] = [
     status: "approved",
     description: "Barras SVG com grid tecnico e cores por serie.",
     dataSlots: ["title", "items", "source"],
-    sourceCode:
-      "export function EngineeringBarGrid({title, items, source}) {\n  return <AnimatedBarGrid title={title} items={items} source={source} />;\n}",
+    sourceCode: {
+      short:
+        'export function EngineeringBarGridShort({title, items, source}) {\n  return <AnimatedBarGrid format="9:16" title={title} items={items.slice(0, 4)} source={source} />;\n}',
+      long: 'export function EngineeringBarGridLong({title, items, source}) {\n  return <AnimatedBarGrid format="16:9" title={title} items={items} source={source} />;\n}',
+    },
     shortPreview: "bars",
     longPreview: "bars",
   },
@@ -175,8 +196,11 @@ const TEMPLATES: TemplateItem[] = [
     status: "draft",
     description: "Texto ancorado em placa CAD, nunca solto sobre o video.",
     dataSlots: ["title", "subtitle", "tag"],
-    sourceCode:
-      "export function BlueprintLowerThird({title, subtitle, tag}) {\n  return <CadLowerThird title={title} subtitle={subtitle} tag={tag} />;\n}",
+    sourceCode: {
+      short:
+        'export function BlueprintLowerThirdShort({title, subtitle, tag}) {\n  return <CadLowerThird format="9:16" safeZone="captions-clear" title={title} subtitle={subtitle} tag={tag} />;\n}',
+      long: 'export function BlueprintLowerThirdLong({title, subtitle, tag}) {\n  return <CadLowerThird format="16:9" title={title} subtitle={subtitle} tag={tag} />;\n}',
+    },
     shortPreview: "title",
     longPreview: "media",
   },
@@ -189,14 +213,329 @@ const TEMPLATES: TemplateItem[] = [
     status: "draft",
     description: "Sequencia de processo com linhas, etapas e marcadores.",
     dataSlots: ["steps", "currentStep", "caption"],
-    sourceCode:
-      "export function StructuralProcessSteps({steps, currentStep, caption}) {\n  return <ProcessTimeline steps={steps} currentStep={currentStep} caption={caption} />;\n}",
+    sourceCode: {
+      short:
+        'export function StructuralProcessStepsShort({steps, currentStep, caption}) {\n  return <ProcessTimelineStack format="9:16" steps={steps} currentStep={currentStep} caption={caption} />;\n}',
+      long: 'export function StructuralProcessStepsLong({steps, currentStep, caption}) {\n  return <ProcessTimelineWide format="16:9" steps={steps} currentStep={currentStep} caption={caption} />;\n}',
+    },
     shortPreview: "media",
     longPreview: "bars",
   },
 ];
 
 type DetailTab = "preview" | "source";
+type DetailFormat = "short" | "long";
+
+type PreviewVariant =
+  TemplateItem["shortPreview"] | TemplateItem["longPreview"];
+
+function RemotionTemplatePreview({
+  format,
+  variant,
+}: {
+  format: "9:16" | "16:9";
+  variant: PreviewVariant;
+}) {
+  const frame = useCurrentFrame();
+  const { width, height, fps } = useVideoConfig();
+  const progress = interpolate(frame % (fps * 3), [0, fps * 3 - 1], [0, 1]);
+  const enter = interpolate(frame, [0, 18], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.bezier(0.16, 1, 0.3, 1),
+  });
+  const isVertical = format === "9:16";
+  const palette = ["#4f7cff", "#7c2dff", "#22d3ee", "#ff2f8f"];
+  const bars = [42, 80, 34, 72, 56, 92];
+
+  return (
+    <AbsoluteFill
+      style={{
+        backgroundColor: "#0b111b",
+        color: "white",
+        fontFamily: "Inter, system-ui, sans-serif",
+        overflow: "hidden",
+      }}
+    >
+      <AbsoluteFill
+        style={{
+          opacity: 0.28,
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,.13) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.13) 1px, transparent 1px)",
+          backgroundSize: `${Math.round(width / 9)}px ${Math.round(width / 9)}px`,
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(circle at 50% 50%, rgba(34,211,238,.22), transparent 28%), linear-gradient(135deg, rgba(14,165,233,.08), transparent 55%)",
+          transform: `translateY(${interpolate(progress, [0, 1], [-height * 0.12, height * 0.12])}px)`,
+        }}
+      />
+
+      {variant === "ring" && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+          }}
+        >
+          <svg
+            width={isVertical ? 120 : 170}
+            height={isVertical ? 120 : 170}
+            viewBox="0 0 180 180"
+          >
+            <circle
+              cx="90"
+              cy="90"
+              r="64"
+              fill="none"
+              stroke="#1f2a44"
+              strokeWidth="18"
+            />
+            <circle
+              cx="90"
+              cy="90"
+              r="64"
+              fill="none"
+              stroke="#4f7cff"
+              strokeWidth="18"
+              strokeLinecap="round"
+              strokeDasharray="402"
+              strokeDashoffset={
+                402 - 402 * interpolate(progress, [0, 1], [0.18, 0.78])
+              }
+              transform="rotate(-90 90 90)"
+            />
+            <circle
+              cx="90"
+              cy="90"
+              r="64"
+              fill="none"
+              stroke="#ff2f8f"
+              strokeWidth="18"
+              strokeLinecap="round"
+              strokeDasharray="402"
+              strokeDashoffset={
+                402 - 402 * interpolate(progress, [0, 1], [0.06, 0.22])
+              }
+              transform="rotate(170 90 90)"
+            />
+          </svg>
+          <div
+            style={{
+              position: "absolute",
+              textAlign: "center",
+              scale: enter,
+            }}
+          >
+            <div style={{ fontSize: isVertical ? 23 : 38, fontWeight: 900 }}>
+              78%
+            </div>
+            <div style={{ color: "#a7b0c2", fontSize: isVertical ? 8 : 13 }}>
+              Completion Rate
+            </div>
+          </div>
+        </div>
+      )}
+
+      {variant === "bars" && (
+        <div
+          style={{
+            position: "absolute",
+            left: width * 0.1,
+            right: width * 0.1,
+            bottom: height * 0.14,
+            height: height * 0.54,
+            display: "flex",
+            alignItems: "end",
+            gap: isVertical ? 5 : 12,
+          }}
+        >
+          {bars.map((bar, index) => {
+            const barProgress = interpolate(
+              frame,
+              [index * 5, index * 5 + 24],
+              [0, 1],
+              {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+                easing: Easing.bezier(0.16, 1, 0.3, 1),
+              }
+            );
+            return (
+              <div
+                key={index}
+                style={{
+                  flex: 1,
+                  height: `${bar * barProgress}%`,
+                  backgroundColor: palette[index % palette.length],
+                  borderRadius: "4px 4px 0 0",
+                  boxShadow: `0 0 18px ${palette[index % palette.length]}55`,
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {variant === "line" && (
+        <svg
+          viewBox="0 0 520 260"
+          style={{
+            position: "absolute",
+            inset: isVertical ? "28% 6% 14%" : "18% 8% 12%",
+            width: "auto",
+            height: "auto",
+          }}
+        >
+          <path
+            d="M20 210 L95 145 L160 165 L250 75 L340 105 L490 35"
+            fill="none"
+            stroke="#5d7cff"
+            strokeWidth="9"
+            strokeLinecap="round"
+            strokeDasharray="640"
+            strokeDashoffset={640 - 640 * enter}
+          />
+          <path
+            d="M20 210 L95 145 L160 165 L250 75 L340 105 L490 35 L490 235 L20 235 Z"
+            fill="rgba(66,103,255,.22)"
+            opacity={enter}
+          />
+        </svg>
+      )}
+
+      {variant === "map" && (
+        <div
+          style={{
+            position: "absolute",
+            inset: isVertical ? "18% 12% 16%" : "14% 10%",
+            border: "2px solid rgba(34,211,238,.68)",
+            borderRadius: 10,
+            backgroundColor: "rgba(8,47,73,.44)",
+            transform: `scale(${interpolate(progress, [0, 1], [1, 1.18])}) translate(${interpolate(progress, [0, 1], [0, -width * 0.018])}px, ${interpolate(progress, [0, 1], [0, height * 0.018])}px)`,
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: "48%",
+              top: "45%",
+              width: isVertical ? 14 : 20,
+              height: isVertical ? 14 : 20,
+              borderRadius: 999,
+              backgroundColor: "#67e8f9",
+              boxShadow: "0 0 28px #22d3ee",
+              scale: interpolate(progress, [0, 0.5, 1], [0.78, 1.35, 0.78]),
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: 16,
+              right: 16,
+              bottom: 14,
+              height: 4,
+              backgroundColor: "#fbbf24",
+              borderRadius: 999,
+            }}
+          />
+        </div>
+      )}
+
+      {variant === "title" && (
+        <div
+          style={{
+            position: "absolute",
+            left: width * 0.12,
+            right: width * 0.12,
+            top: "50%",
+            borderLeft: "4px solid #67e8f9",
+            paddingLeft: isVertical ? 12 : 22,
+            translate: `${interpolate(enter, [0, 1], [-40, 0])}px -50%`,
+            opacity: enter,
+          }}
+        >
+          <div
+            style={{
+              height: isVertical ? 12 : 20,
+              width: "76%",
+              borderRadius: 999,
+              backgroundColor: "white",
+            }}
+          />
+          <div
+            style={{
+              marginTop: 12,
+              height: isVertical ? 8 : 14,
+              width: "48%",
+              borderRadius: 999,
+              backgroundColor: "#22d3ee",
+            }}
+          />
+        </div>
+      )}
+
+      {(variant === "cinematic" || variant === "media") && (
+        <div
+          style={{
+            position: "absolute",
+            inset: isVertical ? "18% 11%" : "14% 11%",
+            borderRadius: 10,
+            border: "1px solid rgba(251,191,36,.45)",
+            background:
+              "linear-gradient(135deg, rgba(113,113,122,.9), rgba(9,9,11,.95) 48%, rgba(8,47,73,.86))",
+            transform: `scale(${interpolate(progress, [0, 1], [1.02, 1.14])}) translateX(${interpolate(progress, [0, 1], [0, -width * 0.018])}px)`,
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: "10%",
+              bottom: "12%",
+              width: "42%",
+              height: "28%",
+              border: "1px solid rgba(255,255,255,.35)",
+              borderRadius: 4,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              right: "12%",
+              top: "12%",
+              width: isVertical ? 32 : 52,
+              height: isVertical ? 32 : 52,
+              borderRadius: 999,
+              backgroundColor: "rgba(251,191,36,.7)",
+              filter: "blur(8px)",
+            }}
+          />
+        </div>
+      )}
+
+      <div
+        style={{
+          position: "absolute",
+          left: 10,
+          top: 10,
+          borderRadius: 4,
+          backgroundColor: "rgba(0,0,0,.68)",
+          padding: "4px 7px",
+          fontSize: isVertical ? 10 : 13,
+          fontWeight: 800,
+        }}
+      >
+        {format === "9:16" ? "Shorts" : "Longos"}
+      </div>
+    </AbsoluteFill>
+  );
+}
 
 function PreviewFrame({
   format,
@@ -204,96 +543,41 @@ function PreviewFrame({
   size = "card",
 }: {
   format: "9:16" | "16:9";
-  variant: TemplateItem["shortPreview"] | TemplateItem["longPreview"];
+  variant: PreviewVariant;
   size?: "card" | "detail";
 }) {
   const vertical = format === "9:16";
-  const sizeClass =
+  const dimensions =
     size === "detail"
       ? vertical
-        ? "aspect-[9/16] w-[154px] sm:w-[190px]"
-        : "aspect-video w-[280px] sm:w-[430px] lg:w-[520px]"
+        ? { width: 270, height: 480, className: "w-[154px] sm:w-[190px]" }
+        : {
+            width: 640,
+            height: 360,
+            className: "w-[280px] sm:w-[430px] lg:w-[520px]",
+          }
       : vertical
-        ? "aspect-[9/16] w-[92px]"
-        : "aspect-video w-[190px]";
+        ? { width: 162, height: 288, className: "w-[92px]" }
+        : { width: 304, height: 171, className: "w-[190px]" };
+
   return (
     <div
-      className={`template-preview relative overflow-hidden rounded-[6px] border border-white/10 bg-[#0b111b] shadow-lg shadow-black/30 ${
-        sizeClass
-      }`}
+      className={`overflow-hidden rounded-[6px] border border-white/10 bg-[#0b111b] shadow-lg shadow-black/30 ${dimensions.className}`}
     >
-      <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.13)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.13)_1px,transparent_1px)] [background-size:22px_22px]" />
-      <div className="template-scan absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-cyan-300/12 to-transparent" />
-      {variant === "ring" && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="template-spin grid h-16 w-16 place-items-center rounded-full border-[8px] border-blue-500 border-l-cyan-300">
-            <span className="text-lg font-black text-white">90%</span>
-          </div>
-        </div>
-      )}
-      {variant === "bars" && (
-        <div className="absolute inset-x-4 bottom-6 flex h-24 items-end gap-2">
-          {[42, 80, 34, 72, 56, 92].map((h, i) => (
-            <div
-              key={i}
-              className="template-bar flex-1 rounded-t-sm"
-              style={{
-                height: `${h}%`,
-                background: ["#4f7cff", "#7c2dff", "#00d4ff", "#ff2f8f"][i % 4],
-                animationDelay: `${i * 120}ms`,
-              }}
-            />
-          ))}
-        </div>
-      )}
-      {variant === "line" && (
-        <svg
-          viewBox="0 0 180 100"
-          className="absolute inset-3 h-[calc(100%-24px)] w-[calc(100%-24px)]"
-        >
-          <path
-            className="template-line"
-            d="M5 80 L35 55 L60 62 L92 28 L126 38 L170 14"
-            fill="none"
-            stroke="#5d7cff"
-            strokeWidth="3"
-          />
-          <path
-            d="M5 80 L35 55 L60 62 L92 28 L126 38 L170 14 L170 92 L5 92 Z"
-            fill="rgba(66,103,255,.22)"
-          />
-        </svg>
-      )}
-      {variant === "map" && (
-        <div className="template-map absolute inset-3 rounded border border-cyan-300/60 bg-cyan-950/40">
-          <div className="template-pin absolute left-[48%] top-[45%] h-3 w-3 rounded-full bg-cyan-300 shadow-[0_0_18px_#22d3ee]" />
-          <div className="absolute inset-x-3 bottom-3 h-1 rounded bg-amber-300" />
-        </div>
-      )}
-      {variant === "title" && (
-        <div className="template-title absolute left-4 right-4 top-1/2 -translate-y-1/2 border-l-2 border-cyan-300 pl-3">
-          <div className="h-3 w-3/4 rounded bg-white" />
-          <div className="mt-2 h-2 w-1/2 rounded bg-cyan-300" />
-        </div>
-      )}
-      {(variant === "cinematic" || variant === "media") && (
-        <div className="template-camera absolute inset-4 overflow-hidden rounded border border-amber-300/40 bg-gradient-to-br from-zinc-700 via-zinc-950 to-cyan-950">
-          <div className="absolute bottom-3 left-3 h-10 w-24 rounded-sm border border-white/30" />
-          <div className="absolute right-4 top-4 h-8 w-8 rounded-full bg-amber-300/70 blur-sm" />
-        </div>
-      )}
-      <div className="absolute inset-x-2 bottom-2">
-        <div className="flex items-center gap-2 text-white/45">
-          <Play className="h-3 w-3 fill-current" />
-          <div className="h-1 flex-1 overflow-hidden rounded bg-white/10">
-            <div className="template-progress h-full rounded bg-cyan-300" />
-          </div>
-          <Maximize2 className="h-3 w-3" />
-        </div>
-      </div>
-      <span className="absolute left-2 top-2 rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-bold text-zinc-200">
-        {format === "9:16" ? "Shorts" : "Longos"}
-      </span>
+      <Player
+        component={RemotionTemplatePreview}
+        inputProps={{ format, variant }}
+        durationInFrames={90}
+        fps={30}
+        compositionWidth={dimensions.width}
+        compositionHeight={dimensions.height}
+        style={{ width: "100%" }}
+        controls
+        loop
+        autoPlay
+        clickToPlay
+        spaceKeyToPlayOrPause
+      />
     </div>
   );
 }
@@ -301,16 +585,25 @@ function PreviewFrame({
 function TemplateDetailPanel({
   template,
   activeTab,
+  activeFormat,
   copied,
   onTabChange,
+  onFormatChange,
   onCopy,
 }: {
   template: TemplateItem;
   activeTab: DetailTab;
+  activeFormat: DetailFormat;
   copied: boolean;
   onTabChange: (tab: DetailTab) => void;
+  onFormatChange: (format: DetailFormat) => void;
   onCopy: () => void;
 }) {
+  const activeSource = template.sourceCode[activeFormat];
+  const activePreview =
+    activeFormat === "short" ? template.shortPreview : template.longPreview;
+  const activeAspectRatio = activeFormat === "short" ? "9:16" : "16:9";
+
   return (
     <section className="border-b border-white/10 bg-[#0e1522]">
       <div className="border-b border-white/10 px-4 py-4">
@@ -340,7 +633,7 @@ function TemplateDetailPanel({
       </div>
 
       <div className="px-4">
-        <div className="flex items-center justify-between rounded-t-lg border border-b-0 border-white/10 bg-[#111827]">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-t-lg border border-b-0 border-white/10 bg-[#111827]">
           <div className="flex">
             <button
               type="button"
@@ -367,18 +660,44 @@ function TemplateDetailPanel({
               Source Code
             </button>
           </div>
-          <button
-            type="button"
-            onClick={onCopy}
-            className="mr-2 inline-flex items-center gap-2 rounded-md bg-black/30 px-3 py-2 text-sm font-bold text-zinc-300 hover:bg-black/50 hover:text-white"
-          >
-            {copied ? (
-              <Check className="h-4 w-4 text-emerald-300" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
-            {copied ? "Copied" : "Copy"}
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-md border border-white/10 bg-black/20 p-1">
+              <button
+                type="button"
+                onClick={() => onFormatChange("short")}
+                className={`rounded px-2.5 py-1 text-xs font-black ${
+                  activeFormat === "short"
+                    ? "bg-cyan-300 text-slate-950"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                9:16 Shorts
+              </button>
+              <button
+                type="button"
+                onClick={() => onFormatChange("long")}
+                className={`rounded px-2.5 py-1 text-xs font-black ${
+                  activeFormat === "long"
+                    ? "bg-cyan-300 text-slate-950"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                16:9 Longos
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={onCopy}
+              className="mr-2 inline-flex items-center gap-2 rounded-md bg-black/30 px-3 py-2 text-sm font-bold text-zinc-300 hover:bg-black/50 hover:text-white"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-emerald-300" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -389,21 +708,11 @@ function TemplateDetailPanel({
               <div className="flex flex-wrap items-center justify-center gap-8">
                 <div className="space-y-2">
                   <p className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">
-                    Shorts 9:16
+                    {activeFormat === "short" ? "Shorts 9:16" : "Longos 16:9"}
                   </p>
                   <PreviewFrame
-                    format="9:16"
-                    variant={template.shortPreview}
-                    size="detail"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">
-                    Longos 16:9
-                  </p>
-                  <PreviewFrame
-                    format="16:9"
-                    variant={template.longPreview}
+                    format={activeAspectRatio}
+                    variant={activePreview}
                     size="detail"
                   />
                 </div>
@@ -411,7 +720,7 @@ function TemplateDetailPanel({
             </div>
           ) : (
             <pre className="min-h-[314px] overflow-auto p-5 text-left font-mono text-xs leading-relaxed text-cyan-50">
-              <code>{template.sourceCode}</code>
+              <code>{activeSource}</code>
             </pre>
           )}
         </div>
@@ -421,18 +730,21 @@ function TemplateDetailPanel({
 }
 
 export function RemotionTemplateStudio({
-  activeProject,
   projectNiche,
 }: {
   activeProject: string;
   projectNiche: string;
 }) {
-  const [niche, setNiche] = useState(projectNiche || "Engenharia");
+  const initialNiche = NICHES.includes(projectNiche)
+    ? projectNiche
+    : "Engenharia";
+  const [niche, setNiche] = useState(initialNiche);
   const [category, setCategory] = useState<TemplateCategory>("maps");
   const [subcategory, setSubcategory] = useState("PIP mapa");
   const [selectedId, setSelectedId] = useState("eng-map-pip-tactical");
   const [templates, setTemplates] = useState<TemplateItem[]>(TEMPLATES);
   const [detailTab, setDetailTab] = useState<DetailTab>("preview");
+  const [detailFormat, setDetailFormat] = useState<DetailFormat>("short");
   const [copiedTemplateId, setCopiedTemplateId] = useState("");
   const [codeDraft, setCodeDraft] = useState(
     "export function MyTemplate(props) {\n  return <AbsoluteFill>{/* cole seu template aqui */}</AbsoluteFill>;\n}"
@@ -475,8 +787,8 @@ export function RemotionTemplateStudio({
   async function copyTemplateSource(template?: TemplateItem) {
     if (!template) return;
     try {
-      await navigator.clipboard.writeText(template.sourceCode);
-      setCopiedTemplateId(template.id);
+      await navigator.clipboard.writeText(template.sourceCode[detailFormat]);
+      setCopiedTemplateId(`${template.id}:${detailFormat}`);
       window.setTimeout(() => setCopiedTemplateId(""), 1600);
     } catch {
       window.alert("Nao foi possivel copiar o codigo automaticamente.");
@@ -485,27 +797,6 @@ export function RemotionTemplateStudio({
 
   return (
     <div className="space-y-5">
-      <style>{`
-        @keyframes template-progress { from { width: 0%; } to { width: 100%; } }
-        @keyframes template-scan { 0% { transform: translateY(-80%); opacity: .2; } 50% { opacity: .75; } 100% { transform: translateY(260%); opacity: .2; } }
-        @keyframes template-spin { from { transform: rotate(-18deg); } to { transform: rotate(342deg); } }
-        @keyframes template-bar { 0%, 100% { transform: scaleY(.42); } 50% { transform: scaleY(1); } }
-        @keyframes template-line { from { stroke-dashoffset: 220; } to { stroke-dashoffset: 0; } }
-        @keyframes template-map { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12) translate(-3%, 2%); } }
-        @keyframes template-pin { 0%, 100% { transform: scale(.85); opacity: .7; } 50% { transform: scale(1.35); opacity: 1; } }
-        @keyframes template-title { 0% { transform: translate(-14px, -50%); opacity: .35; } 25%, 100% { transform: translate(0, -50%); opacity: 1; } }
-        @keyframes template-camera { 0%, 100% { transform: scale(1.02) translateX(0); } 50% { transform: scale(1.14) translateX(-3%); } }
-        .template-preview:hover { border-color: rgba(34, 211, 238, .55); }
-        .template-progress { animation: template-progress 3s linear infinite; }
-        .template-scan { animation: template-scan 3.2s ease-in-out infinite; }
-        .template-spin { animation: template-spin 3s linear infinite; }
-        .template-bar { transform-origin: bottom; animation: template-bar 2.4s ease-in-out infinite; }
-        .template-line { stroke-dasharray: 220; animation: template-line 2.8s ease-in-out infinite; }
-        .template-map { animation: template-map 4s ease-in-out infinite; }
-        .template-pin { animation: template-pin 1.2s ease-in-out infinite; }
-        .template-title { animation: template-title 3s ease-out infinite; }
-        .template-camera { animation: template-camera 5s ease-in-out infinite; }
-      `}</style>
       <div className="grid gap-4 xl:grid-cols-[280px_1fr_360px]">
         <aside className="rounded-lg border border-white/10 bg-[#0b0f17] p-4">
           <div className="mb-4 flex items-center gap-2">
@@ -514,9 +805,7 @@ export function RemotionTemplateStudio({
               <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
                 Nicho
               </p>
-              <p className="text-sm font-bold text-white">
-                {activeProject || "Catalogo global"}
-              </p>
+              <p className="text-sm font-bold text-white">Catalogo global</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -597,8 +886,10 @@ export function RemotionTemplateStudio({
             <TemplateDetailPanel
               template={selected}
               activeTab={detailTab}
-              copied={copiedTemplateId === selected.id}
+              activeFormat={detailFormat}
+              copied={copiedTemplateId === `${selected.id}:${detailFormat}`}
               onTabChange={setDetailTab}
+              onFormatChange={setDetailFormat}
               onCopy={() => copyTemplateSource(selected)}
             />
           )}
@@ -610,12 +901,14 @@ export function RemotionTemplateStudio({
                 onClick={() => {
                   setSelectedId(template.id);
                   setDetailTab("preview");
+                  setDetailFormat("short");
                 }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     setSelectedId(template.id);
                     setDetailTab("preview");
+                    setDetailFormat("short");
                   }
                 }}
                 tabIndex={0}
