@@ -66,18 +66,24 @@ export function registerMotionSceneRoutes(
             req.body?.restore_suppressed_motion !== false,
         }
       );
-      if (!result.ok) {
+      if (result.reason === "no_visual_prompts") {
         return res.status(400).json(result);
       }
       res.json({
-        ok: true,
-        motion_count: result.motion_scenes?.length || 0,
+        ok: Boolean(result.orchestration_ok),
+        orchestration_ok: Boolean(result.orchestration_ok),
+        motion_count: result.motion_count ?? result.motion_scenes?.length ?? 0,
+        timeline_motion_count: result.timeline_motion_count ?? 0,
+        timeline_template_count: result.timeline_template_count ?? 0,
         pending_assets: result.production?.pending_asset_slots || 0,
         timeline_synced: result.timeline_synced,
         production: result.production,
         storyboard: result.storyboard,
         config: { timeline_assets: result.timeline_assets },
         studio: result.studio,
+        quality: result.quality,
+        satellite: result.satellite,
+        llm: result.llm,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

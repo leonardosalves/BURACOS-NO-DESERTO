@@ -678,9 +678,19 @@ export function TimelineStudio({
                   loaded?.clips || [],
                   "overlays"
                 );
-                toast.success(
-                  `${orchData.motion_count} planejada(s) · ${counts.motion} Cenas Remotion · ${counts.overlays} Templates · QC ${qc?.score ?? "—"}/100`
+                const orchestrationOk = Boolean(
+                  orchData.orchestration_ok ??
+                  (counts.motion + counts.overlays > 0 && qc?.ok !== false)
                 );
+                if (orchestrationOk) {
+                  toast.success(
+                    `${orchData.motion_count ?? counts.motion + counts.overlays} cena(s) · ${counts.motion} mapas/motion · ${counts.overlays} templates · QC ${qc?.score ?? "—"}/100`
+                  );
+                } else {
+                  toast.error(
+                    `Orquestração incompleta — ${counts.motion} motion · ${counts.overlays} templates na timeline · QC ${qc?.score ?? "—"}/100`
+                  );
+                }
                 if (counts.motion === 0 && Number(orchData.motion_count) > 0) {
                   toast(
                     "Mapa na trilha roxa estava bloqueado (clip removido antes) — restaurado ao orquestrar. Se ainda sumir, clique Recarregar.",

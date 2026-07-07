@@ -26,6 +26,8 @@ function applyGeoFetchToScene(scene, fetched) {
     zoom_to: fetched.zoom_to ?? scene.props?.zoom_to,
     fly_mode: fetched.fly_mode || scene.props?.fly_mode,
     place_type: fetched.place_type || scene.props?.place_type,
+    structure_exists: fetched.structure_exists,
+    aspect_ratio: fetched.aspect_ratio || scene.props?.aspect_ratio,
     boundaryGeoJson: fetched.boundaryGeoJson || "",
     map_provider: fetched.map_provider,
     geocode_source: fetched.geocode_source,
@@ -36,14 +38,22 @@ function applyGeoFetchToScene(scene, fetched) {
   return { scene, ok: true, kind: fetched.kind || "geo" };
 }
 
-function applyNarrationPropsToScene(scene, accentColor = "#D4AF37") {
+function applyNarrationPropsToScene(
+  scene,
+  accentColor = "#D4AF37",
+  config = {}
+) {
   const narration = String(scene.narration_text || "").trim();
   if (!narration) return { scene, ok: false, reason: "no_narration" };
+  const aspectRatio = String(
+    config.aspect_ratio || config.format || scene.props?.aspect_ratio || "16:9"
+  );
   const fresh = buildPropsForTemplate(
     scene.template_id,
     scene.trigger,
     narration,
-    accentColor
+    accentColor,
+    aspectRatio
   );
   scene.props = { ...(scene.props || {}), ...fresh };
   return { scene, ok: true, kind: "narration_props" };
@@ -95,7 +105,7 @@ export async function enrichMotionScenesWithAssets(
         });
         if (applied.ok) enriched += 1;
       } else if (!isGeoTemplate(templateId)) {
-        const applied = applyNarrationPropsToScene(scene, accent);
+        const applied = applyNarrationPropsToScene(scene, accent, config);
         results.push({
           id: scene.id,
           template_id: templateId,

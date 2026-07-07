@@ -94,7 +94,7 @@ export function assessLocationIntroScene(scene = {}, { projDir = "" } = {}) {
     issues.push({
       code: "zoom_too_tight",
       severity: "critical",
-      message: `zoom_to=${zoomTo} — cidade e contorno ficam cortados no PIP`,
+      message: `zoom_to=${zoomTo} — cidade e contorno ficam cortados no frame`,
       proposed_fix: `Re-baixar satélite com zoom final ≤ ${MAX_CITY_ZOOM_TO}`,
     });
   }
@@ -210,7 +210,9 @@ export function assessKineticTextScene(scene = {}) {
 
 export function normalizeMotionSceneMetadata(scene = {}) {
   const templateId = String(scene.template_id || "");
-  if (!FULLSCREEN_TEMPLATES.has(templateId)) return scene;
+  const forceFullscreen =
+    templateId === "location-intro" || FULLSCREEN_TEMPLATES.has(templateId);
+  if (!forceFullscreen) return scene;
   const layout = "fullscreen";
   return {
     ...scene,
@@ -218,10 +220,7 @@ export function normalizeMotionSceneMetadata(scene = {}) {
     props: {
       ...(scene.props || {}),
       layout,
-      presentation:
-        scene.props?.presentation === "pip"
-          ? "fullscreen"
-          : scene.props?.presentation,
+      presentation: "fullscreen",
     },
   };
 }

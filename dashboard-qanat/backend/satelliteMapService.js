@@ -201,9 +201,19 @@ export function classifyPlaceType(text = "", place = {}) {
   };
 }
 
+export function resolveRenderDimensions(aspectRatio = "16:9") {
+  const ar = String(aspectRatio || "16:9").trim();
+  if (ar === "9:16") {
+    return { width: 1080, height: 1920, aspect_ratio: ar };
+  }
+  return { width: 1920, height: 1080, aspect_ratio: "16:9" };
+}
+
 export function buildZoomSequence(flyMode, zoomFrom, zoomTo, placeType) {
   if (flyMode === "earth_descent") {
-    if (placeType === "city") return [...CITY_DESCENT_ZOOMS];
+    if (placeType === "city" || placeType === "historic_site") {
+      return [...CITY_DESCENT_ZOOMS];
+    }
     return [...EARTH_DESCENT_ZOOMS];
   }
   if (flyMode === "city_outline") {
@@ -553,10 +563,22 @@ export async function fetchSatelliteAssetsForScene(
   const boundaryQuery =
     resolveGeocodeAlias(props.location, props.region, props.country) || query;
 
+  const classified = classifyPlaceType(scene?.narration_text || "", props);
   const classification =
     props.fly_mode && props.place_type
-      ? { fly_mode: props.fly_mode, place_type: props.place_type }
-      : classifyPlaceType(scene?.narration_text || "", props);
+      ? {
+          fly_mode: props.fly_mode,
+          place_type: props.place_type,
+          structure_exists:
+            props.structure_exists !== false &&
+            props.place_type !== "historic_site",
+        }
+      : classified;
+
+  const aspectRatio = String(
+    props.aspect_ratio || config.aspect_ratio || config.format || "16:9"
+  ).trim();
+  const renderDims = resolveRenderDimensions(aspectRatio);
 
   const narration = String(scene?.narration_text || "");
   let coords = resolveKnownCoordinates(narration, props);
@@ -602,10 +624,7 @@ export async function fetchSatelliteAssetsForScene(
 
   let boundaryGeoJson = null;
   let boundaryPath = null;
-  if (
-    classification.place_type === "city" ||
-    classification.fly_mode === "city_outline"
-  ) {
+  if (classification.place_type === "city") {
     try {
       boundaryGeoJson = await fetchPlaceBoundary(boundaryQuery, {
         lat: coords.lat,
@@ -616,8 +635,8 @@ export async function fetchSatelliteAssetsForScene(
           boundaryGeoJson,
           coords.lat,
           coords.lng,
-          1280,
-          720,
+          renderDims.width,
+          renderDims.height,
           1.55
         );
         if (classification.place_type === "city") {
@@ -693,6 +712,11 @@ export async function fetchSatelliteAssetsForScene(
       durationSec,
       accentColor: String(props.accentColor || "#C5A889"),
       placeType: classification.place_type,
+      aspectRatio: renderDims.aspect_ratio,
+      width: renderDims.width,
+      height: renderDims.height,
+      orbitPoi: classification.place_type === "poi",
+      structureExists: classification.structure_exists !== false,
       useBlenderGis: config.use_blender_gis !== false,
     });
     zoomKeyframes = blenderOut.zoom_keyframes;
@@ -731,7 +755,9 @@ export async function fetchSatelliteAssetsForScene(
           ? "mapbox"
           : "esri",
     place_type: classification.place_type,
+    structure_exists: classification.structure_exists !== false,
     fly_mode: classification.fly_mode,
+    aspect_ratio: renderDims.aspect_ratio,
     zoom_keyframes: zoomKeyframes,
     flyover_video: flyoverVideo,
     cesium_ion_token:

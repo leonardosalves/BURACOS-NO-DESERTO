@@ -7,6 +7,7 @@ import {
   MOTION_SCENE_TRIGGERS,
   resolveLayoutForTemplate,
 } from "../shared/motionSceneCatalog.js";
+import { nicheDesignPromptBlock } from "../shared/nicheDesignPack.js";
 import {
   buildPropsForTemplate,
   resolveNichePack,
@@ -207,6 +208,8 @@ export function buildMotionSceneEnrichmentPrompt({
     "- lower-third: props.subtitle com o fato histórico da narração.",
     "- Mantenha id, scene_ref, block e start_hint do plano heurístico quando possível.",
     `- accentColor padrão: ${accent}`,
+    "",
+    nicheDesignPromptBlock(nichePack),
     "",
     overlaySummary
       ? `OVERLAYS_AI (não duplicar):\n${overlaySummary}`
