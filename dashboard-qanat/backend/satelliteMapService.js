@@ -49,6 +49,31 @@ export const LOCATION_GEOCODE_ALIASES = {
   "cidade do mexico": "Mexico City, Mexico",
   "cidade do méxico": "Mexico City, Mexico",
   "new york": "New York City, United States",
+  laufenburg: "Laufenburg, Switzerland",
+  "ponte de laufenburg": "Laufenburg bridge, Switzerland",
+  "fronteira laufenburg": "Laufenburg, Switzerland",
+};
+
+const COUNTRY_PT_TO_EN = {
+  alemanha: "Germany",
+  suica: "Switzerland",
+  suíça: "Switzerland",
+  franca: "France",
+  frança: "France",
+  italia: "Italy",
+  itália: "Italy",
+  austria: "Austria",
+  áustria: "Austria",
+  holanda: "Netherlands",
+  "paises baixos": "Netherlands",
+  "países baixos": "Netherlands",
+  espanha: "Spain",
+  portugal: "Portugal",
+  brasil: "Brazil",
+  tailandia: "Thailand",
+  tailândia: "Thailand",
+  eua: "United States",
+  "estados unidos": "United States",
 };
 
 /** Coordenadas conhecidas — evita geocoding em projetos de engenharia/mapa. */
@@ -108,6 +133,14 @@ export const KNOWN_COORDINATES = [
     country: "Itália",
     lat: 41.9028,
     lng: 12.4964,
+  },
+  {
+    pattern: /laufenburg|hochrheinbr[uü]cke|ponte de laufenburg/i,
+    location: "Laufenburg",
+    region: "Fronteira Alemanha-Suíça",
+    country: "Alemanha & Suíça",
+    lat: 47.5519,
+    lng: 8.0389,
   },
 ];
 
@@ -235,6 +268,36 @@ export function resolveGeocodeAlias(location = "", region = "", country = "") {
   return null;
 }
 
+function expandCountryVariants(country = "") {
+  const raw = String(country || "").trim();
+  if (!raw) return [];
+  const parts = raw
+    .split(/\s*(?:&|\/|\+|,|;|\be\b)\s*/i)
+    .map((p) => p.trim())
+    .filter((p) => p.length >= 2);
+  const out = new Set(parts.length ? parts : [raw]);
+  for (const part of [...out]) {
+    const key = normalizeAliasKey(part);
+    const en = COUNTRY_PT_TO_EN[key];
+    if (en) out.add(en);
+  }
+  return [...out];
+}
+
+function locationNameVariants(location = "") {
+  const loc = String(location || "").trim();
+  if (!loc) return [];
+  const variants = [loc];
+  const stripped = loc
+    .replace(
+      /^(ponte|ponte de|bridge|rio|rio de|forte|fortaleza)\s+(de\s+)?/i,
+      ""
+    )
+    .trim();
+  if (stripped && stripped !== loc) variants.push(stripped);
+  return [...new Set(variants.filter((v) => v.length >= 2))];
+}
+
 export function buildGeocodeQueries(location = "", region = "", country = "") {
   const loc = String(location || "").trim();
   const reg = String(region || "").trim();
@@ -242,10 +305,24 @@ export function buildGeocodeQueries(location = "", region = "", country = "") {
   const alias = resolveGeocodeAlias(loc, reg, cty);
   const queries = [];
   if (alias) queries.push(alias);
-  if (loc && cty) queries.push(`${loc}, ${cty}`);
-  if (loc && reg && cty) queries.push(`${loc}, ${reg}, ${cty}`);
-  if (loc && reg) queries.push(`${loc}, ${reg}`);
-  if (loc) queries.push(loc);
+
+  const locs = locationNameVariants(loc);
+  const countries = expandCountryVariants(cty);
+
+  for (const name of locs) {
+    if (countries.length) {
+      for (const c of countries) {
+        queries.push(`${name}, ${c}`);
+        if (reg) queries.push(`${name}, ${reg}, ${c}`);
+      }
+    } else if (cty) {
+      queries.push(`${name}, ${cty}`);
+      if (reg) queries.push(`${name}, ${reg}, ${cty}`);
+    }
+    if (reg) queries.push(`${name}, ${reg}`);
+    queries.push(name);
+  }
+
   return [...new Set(queries.filter((q) => q.length >= 2))];
 }
 
@@ -476,8 +553,16 @@ export async function fetchSatelliteAssetsForScene(
   if (!coords) {
     coords = await geocodeLocation(query, props);
   }
+  if (!coords && scene?.narration_text) {
+    coords = await geocodeLocation(scene.narration_text, props);
+  }
   if (!coords?.lat || !coords?.lng) {
-    return { ok: false, reason: "geocode_failed", query };
+    return {
+      ok: false,
+      reason: "geocode_failed",
+      query,
+      tried: buildGeocodeQueries(props.location, props.region, props.country),
+    };
   }
 
   const token = resolveMapboxToken(config, workspaceConfig);

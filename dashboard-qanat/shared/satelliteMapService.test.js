@@ -45,6 +45,28 @@ describe("satelliteMapService", () => {
     assert.equal(queries[0], "Bangkok, Thailand");
   });
 
+  it("resolve Laufenburg (ponte Alemanha & Suíça)", () => {
+    const c = resolveKnownCoordinates("", {
+      location: "Ponte de Laufenburg",
+      region: "Fronteira Laufenburg",
+      country: "Alemanha & Suíça",
+    });
+    assert.ok(c);
+    assert.ok(Math.abs(c.lat - 47.5519) < 0.05);
+    assert.ok(Math.abs(c.lng - 8.0389) < 0.05);
+  });
+
+  it("buildGeocodeQueries expande país composto Alemanha & Suíça", () => {
+    const queries = buildGeocodeQueries(
+      "Ponte de Laufenburg",
+      "Fronteira Laufenburg",
+      "Alemanha & Suíça"
+    );
+    assert.ok(queries.includes("Laufenburg, Switzerland"));
+    assert.ok(queries.includes("Laufenburg, Germany"));
+    assert.ok(queries.some((q) => q.includes("Laufenburg bridge")));
+  });
+
   it("bboxFromCenter retorna limites válidos", () => {
     const b = bboxFromCenter(45.9, 13.31, 10);
     assert.ok(b.minLat < b.maxLat);
