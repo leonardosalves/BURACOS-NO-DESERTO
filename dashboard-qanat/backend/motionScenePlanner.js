@@ -450,15 +450,15 @@ export function motionScenesToMotionClips(motionScenes = []) {
         scene_ref: String(ms.scene_ref || ""),
         block: Number(ms.block) || 1,
         layout:
-          ms.template_id === "location-intro"
-            ? LOCATION_INTRO_DEFAULTS.layout
+          ms.template_id === "location-intro" || ms.template_id === "geo-map"
+            ? "fullscreen"
             : FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))
               ? "fullscreen"
               : ms.layout ||
                 resolveLayoutForTemplate(ms.template_id, ms.trigger),
         presentation:
-          ms.template_id === "location-intro"
-            ? ms.props?.presentation || LOCATION_INTRO_DEFAULTS.presentation
+          ms.template_id === "location-intro" || ms.template_id === "geo-map"
+            ? "fullscreen"
             : FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))
               ? "fullscreen"
               : ms.props?.presentation,
@@ -494,7 +494,8 @@ export function ensureMotionTrack(studio = {}) {
 
 function normalizeMotionClipProps(clip = {}) {
   const props = { ...(clip.props || {}) };
-  if (String(clip.templateId) === "location-intro") {
+  const tpl = String(clip.templateId || "");
+  if (tpl === "location-intro" || tpl === "geo-map") {
     props.presentation = "fullscreen";
     props.layout = "fullscreen";
   }

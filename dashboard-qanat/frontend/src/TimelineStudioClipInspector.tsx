@@ -38,7 +38,6 @@ export function TimelineStudioClipInspector({
   const editable = isClipEditable(clip);
   const captionText = String(clip.props?.text || clip.label || "");
   const [fetchingSatellite, setFetchingSatellite] = useState(false);
-  const autoFetchedRef = useRef<string | null>(null);
   const mapProvider = String(clip.props?.map_provider || "");
   const hasCoords =
     Number.isFinite(Number(clip.props?.lat)) &&
@@ -54,6 +53,8 @@ export function TimelineStudioClipInspector({
     ? clip.props.zoom_keyframes.length
     : 0;
   const zoomTo = Number(clip.props?.zoom_to) || 0;
+
+  const autoFetchStartedRef = useRef(false);
 
   const runSatelliteFetch = async (silent = false) => {
     if (!getProjectUrl) return;
@@ -85,18 +86,12 @@ export function TimelineStudioClipInspector({
   };
 
   useEffect(() => {
-    if (!getProjectUrl || !needsSatelliteFetch || fetchingSatellite) return;
-    const key = `${clip.id}:${String(clip.props?.location || clip.label || "")}`;
-    if (autoFetchedRef.current === key) return;
-    autoFetchedRef.current = key;
+    if (!needsSatelliteFetch || !getProjectUrl || autoFetchStartedRef.current) {
+      return;
+    }
+    autoFetchStartedRef.current = true;
     void runSatelliteFetch(true);
-  }, [
-    clip.id,
-    clip.label,
-    clip.props?.location,
-    getProjectUrl,
-    needsSatelliteFetch,
-  ]);
+  }, [clip.id, needsSatelliteFetch, getProjectUrl]);
 
   return (
     <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/90 overflow-hidden">
@@ -231,11 +226,11 @@ export function TimelineStudioClipInspector({
                 </span>
                 {isCesiumReady ? (
                   <span className="text-[9px] text-zinc-500 w-full">
-                    Preview 3D no PIP — posicione o playhead dentro do clip (
-                    {Number(clip.start).toFixed(1)}s)
+                    Preview 3D fullscreen — posicione o playhead dentro do clip
+                    ({Number(clip.start).toFixed(1)}s)
                   </span>
                 ) : null}
-                {getProjectUrl && hasSatelliteTiles ? (
+                {getProjectUrl && needsSatelliteFetch ? (
                   <button
                     type="button"
                     disabled={fetchingSatellite}

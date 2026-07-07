@@ -34,6 +34,7 @@ export const CITY_OUTLINE_ZOOMS = [9, 12];
  */
 export const LOCATION_GEOCODE_ALIASES = {
   bangcoc: "Bangkok, Thailand",
+  bangoc: "Bangkok, Thailand",
   banguecoque: "Bangkok, Thailand",
   bancoc: "Bangkok, Thailand",
   "grande bangcoc": "Bangkok, Thailand",
