@@ -420,11 +420,18 @@ export function motionScenesToMotionClips(motionScenes = []) {
         layout:
           ms.template_id === "location-intro"
             ? LOCATION_INTRO_DEFAULTS.layout
-            : ms.layout || resolveLayoutForTemplate(ms.template_id, ms.trigger),
+            : FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))
+              ? "fullscreen"
+              : ms.layout ||
+                resolveLayoutForTemplate(ms.template_id, ms.trigger),
         presentation:
           ms.template_id === "location-intro"
             ? ms.props?.presentation || LOCATION_INTRO_DEFAULTS.presentation
-            : ms.props?.presentation,
+            : FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))
+              ? "fullscreen"
+              : ms.props?.presentation,
+        motion_quality_ok: ms.quality?.ok !== false,
+        motion_quality_score: Number(ms.quality?.score) || 100,
         trigger: ms.trigger,
         overlayType: ms.template_id,
       },

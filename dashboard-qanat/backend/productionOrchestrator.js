@@ -22,6 +22,7 @@ import {
   saveTimelineStudio,
 } from "./timelineStudioMigration.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
+import { ensureMotionScenesQuality } from "./motionSceneQualityService.js";
 
 function readJsonSafe(filePath, fallback = null) {
   try {
@@ -330,6 +331,32 @@ export async function orchestrateProduction(
     };
   }
 
+  let qualityMeta = null;
+  if (plan.motion_scenes.length > 0) {
+    const qc = await ensureMotionScenesQuality(projDir, plan.motion_scenes, {
+      config,
+      workspaceConfig,
+      autoFix: true,
+      maxPasses: 2,
+    });
+    plan = { ...plan, motion_scenes: qc.motion_scenes };
+    qualityMeta = {
+      ok: qc.quality.ok,
+      score: qc.quality.score,
+      failed_count: qc.quality.failed_count,
+      auto_fixed: qc.auto_fixed,
+      remediation: qc.remediation,
+      scenes: qc.quality.scenes,
+      checked_at: qc.quality.checked_at,
+    };
+    if (qc.auto_fixed) {
+      satelliteMeta = {
+        ...(satelliteMeta || {}),
+        qc_refetch: true,
+      };
+    }
+  }
+
   storyboard = applyMotionScenesToVisualPrompts(
     { ...storyboard, motion_scenes: plan.motion_scenes },
     plan.motion_scenes
@@ -358,6 +385,7 @@ export async function orchestrateProduction(
     llm: llmMeta,
     dedupe_removed: plan.dedupe_removed || llmMeta?.dedupe_removed || [],
     satellite: satelliteMeta,
+    quality: qualityMeta,
   };
 
   const slotCount = Object.values(timelineAssets).reduce(
@@ -406,5 +434,6 @@ export async function orchestrateProduction(
     production: storyboard.production_orchestration,
     llm: llmMeta,
     satellite: satelliteMeta,
+    quality: qualityMeta,
   };
 }
