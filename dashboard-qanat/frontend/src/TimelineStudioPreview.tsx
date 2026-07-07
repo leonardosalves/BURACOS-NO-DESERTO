@@ -39,7 +39,9 @@ type Props = {
 
 const FULLSCREEN_OVERLAYS = new Set(["pictogram-chart"]);
 
-const UI_PUBLISH_MS = 100;
+const UI_PUBLISH_MS = 250;
+const UI_PUBLISH_PLAYBACK_MS = 900;
+const MOTION_SCRUB_MS = 100;
 
 function clipToOverlayDraft(
   clip: StudioClip,
@@ -92,6 +94,8 @@ export function TimelineStudioPreview({
   const playingRef = useRef(false);
   const rafRef = useRef(0);
   const lastPublishRef = useRef(0);
+  const lastMotionPublishRef = useRef(0);
+  const motionPlayheadRef = useRef(studio.playhead);
   const lastVideoClipIdRef = useRef<string | null>(null);
   const onPlayheadChangeRef = useRef(onPlayheadChange);
   const clipsRef = useRef(studio.clips);
@@ -164,20 +168,43 @@ export function TimelineStudioPreview({
     setVideoLoadFailed(false);
   }, [assetSrc]);
 
-  const publishPlayhead = useCallback((t: number, force = false) => {
-    const total = totalDurRef.current;
-    const next = Math.min(total, Math.max(0, t));
-    if (!force && next < playheadRef.current - 0.02) return next;
-    playheadRef.current = next;
-
+  const publishMotionPlayhead = useCallback((t: number, force = false) => {
+    const prev = motionPlayheadRef.current;
+    motionPlayheadRef.current = t;
     const now = performance.now();
-    if (force || now - lastPublishRef.current >= UI_PUBLISH_MS) {
-      lastPublishRef.current = now;
-      setLivePlayhead(next);
-      onPlayheadChangeRef.current(next);
+    if (
+      force ||
+      now - lastMotionPublishRef.current >= MOTION_SCRUB_MS ||
+      Math.abs(t - prev) > 0.35
+    ) {
+      lastMotionPublishRef.current = now;
+      setMotionPlayhead(t);
     }
-    return next;
   }, []);
+
+  const publishPlayhead = useCallback(
+    (t: number, force = false) => {
+      const total = totalDurRef.current;
+      const next = Math.min(total, Math.max(0, t));
+      if (!force && next < playheadRef.current - 0.02) return next;
+      playheadRef.current = next;
+
+      const now = performance.now();
+      const uiInterval = playingRef.current
+        ? UI_PUBLISH_PLAYBACK_MS
+        : UI_PUBLISH_MS;
+      if (force || now - lastPublishRef.current >= uiInterval) {
+        lastPublishRef.current = now;
+        setLivePlayhead(next);
+        if (!playingRef.current || force) {
+          onPlayheadChangeRef.current(next);
+        }
+      }
+      publishMotionPlayhead(next, force);
+      return next;
+    },
+    [publishMotionPlayhead]
+  );
 
   const stopPlayback = useCallback(() => {
     playingRef.current = false;
@@ -324,7 +351,6 @@ export function TimelineStudioPreview({
       }
 
       publishPlayhead(t);
-      setMotionPlayhead(t);
       syncVideoToTime(playheadRef.current);
       syncBgmToPlayhead(playheadRef.current, true);
 
@@ -383,11 +409,18 @@ export function TimelineStudioPreview({
       }
     }
     a?.pause();
-    setMotionPlayhead(studio.playhead);
+    publishMotionPlayhead(studio.playhead, true);
     syncVideoToTime(studio.playhead, true);
     syncBgmToPlayhead(studio.playhead, false);
     videoRef.current?.pause();
-  }, [studio.playhead, playing, voiceSrc, syncVideoToTime, syncBgmToPlayhead]);
+  }, [
+    studio.playhead,
+    playing,
+    voiceSrc,
+    syncVideoToTime,
+    syncBgmToPlayhead,
+    publishMotionPlayhead,
+  ]);
 
   const frameStyle: React.CSSProperties = isVertical
     ? {
@@ -436,7 +469,7 @@ export function TimelineStudioPreview({
                 style={{ transform: "translateZ(0)", willChange: "auto" }}
                 muted
                 playsInline
-                preload="auto"
+                preload={playing ? "auto" : "metadata"}
                 onLoadedData={() => syncVideoToTime(displayPlayhead)}
                 onLoadedMetadata={() => syncVideoToTime(displayPlayhead)}
                 onCanPlay={() => syncVideoToTime(displayPlayhead)}
@@ -473,7 +506,7 @@ export function TimelineStudioPreview({
               ref={audioRef}
               key={voiceSrc}
               src={voiceSrc}
-              preload="auto"
+              preload={playing ? "auto" : "metadata"}
               className="hidden"
             />
           ) : null}
@@ -483,7 +516,7 @@ export function TimelineStudioPreview({
               ref={bgmRef}
               key={musicSrc}
               src={musicSrc}
-              preload="auto"
+              preload={playing ? "auto" : "metadata"}
               className="hidden"
             />
           ) : null}

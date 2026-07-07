@@ -158,9 +158,11 @@ export function useOverlayPreviewMotion(
 
   useEffect(() => {
     if (externalFrame != null) {
-      setFrame(
-        Math.max(0, Math.min(totalFrames - 1, Math.round(externalFrame)))
+      const next = Math.max(
+        0,
+        Math.min(totalFrames - 1, Math.round(externalFrame))
       );
+      setFrame((prev) => (prev === next ? prev : next));
       return undefined;
     }
     if (!playing) return undefined;

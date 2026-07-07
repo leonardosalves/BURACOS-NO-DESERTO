@@ -16,7 +16,7 @@ export function BlenderFlyoverPreview({
     if (!el || !src) return;
     const seek = () => {
       const t = Math.max(0, Number(scrubSeconds) || 0);
-      if (Math.abs(el.currentTime - t) > 0.08) {
+      if (Math.abs(el.currentTime - t) > 0.15) {
         try {
           el.currentTime = t;
         } catch {
@@ -47,7 +47,7 @@ export function BlenderFlyoverPreview({
       src={src}
       muted
       playsInline
-      preload="auto"
+      preload="metadata"
       className={className}
       style={{
         position: "absolute",

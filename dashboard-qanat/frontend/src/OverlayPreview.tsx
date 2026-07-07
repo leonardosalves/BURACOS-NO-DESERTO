@@ -144,7 +144,7 @@ function LocationIntroMapCard({
   const useCesiumMap = mapProvider === "cesium" && lat && lng;
 
   useEffect(() => {
-    if (!useCesiumMap) return;
+    if (!useCesiumMap || embedded) return;
     if (props.cesium_ion_token || props.google_maps_api_key) {
       setCesiumCfg({
         ionAccessToken: String(props.cesium_ion_token || ""),
@@ -166,7 +166,12 @@ function LocationIntroMapCard({
     return () => {
       cancelled = true;
     };
-  }, [useCesiumMap, props.cesium_ion_token, props.google_maps_api_key]);
+  }, [
+    useCesiumMap,
+    embedded,
+    props.cesium_ion_token,
+    props.google_maps_api_key,
+  ]);
 
   useEffect(() => {
     if (!boundarySrc || placeType !== "city") {
@@ -239,6 +244,7 @@ function LocationIntroMapCard({
             progress={progress}
             ionAccessToken={cesiumCfg.ionAccessToken}
             googleMapsApiKey={cesiumCfg.googleMapsApiKey}
+            staticOnly={embedded}
           />
         </div>
       );
