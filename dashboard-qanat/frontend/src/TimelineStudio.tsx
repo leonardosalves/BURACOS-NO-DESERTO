@@ -339,33 +339,28 @@ export function TimelineStudio({
             onClick={async () => {
               setPlanningMotion(true);
               try {
-                const planRes = await fetch(
-                  getProjectUrl("/api/ai/creator/plan-motion-scenes"),
+                const orchRes = await fetch(
+                  getProjectUrl("/api/ai/creator/orchestrate-production"),
                   {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      persist: true,
                       use_llm: true,
                       fetch_satellite: true,
+                      sync_timeline: true,
+                      rebuild_asset_slots: true,
                     }),
                   }
                 );
-                if (!planRes.ok) throw new Error(await planRes.text());
-                const planData = await planRes.json();
-                const syncRes = await fetch(
-                  getProjectUrl("/api/timeline-studio/motion-scenes/sync"),
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: "{}",
-                  }
-                );
-                if (!syncRes.ok) throw new Error(await syncRes.text());
-                const syncData = await syncRes.json();
-                setStudio(syncData.studio as TimelineStudioState);
+                if (!orchRes.ok) throw new Error(await orchRes.text());
+                const orchData = await orchRes.json();
+                if (orchData.studio) {
+                  setStudio(orchData.studio as TimelineStudioState);
+                } else {
+                  await loadStudio();
+                }
                 toast.success(
-                  `${planData.count} cena(s) Remotion planejada(s) e sincronizadas`
+                  `${orchData.motion_count} Remotion · ${orchData.pending_assets} assets pendentes · timeline sincronizada`
                 );
               } catch (err) {
                 toast.error(`Motion scenes: ${(err as Error).message}`);

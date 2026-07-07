@@ -20,6 +20,7 @@ import {
   saveTimelineStudio,
 } from "./timelineStudioMigration.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
+import { orchestrateProduction } from "./productionOrchestrator.js";
 
 function readJsonSafe(filePath, fallback = {}) {
   try {
@@ -36,6 +37,43 @@ export function registerMotionSceneRoutes(
   app,
   { getProjectDir, workspaceDir, callGemini, getApiKey, parseAiJson }
 ) {
+  app.post("/api/ai/creator/orchestrate-production", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const result = await orchestrateProduction(
+        projDir,
+        {
+          workspaceDir,
+          callGemini,
+          getApiKey,
+          parseAiJson,
+        },
+        {
+          useLlm: req.body?.use_llm !== false,
+          fetchSatellite: req.body?.fetch_satellite !== false,
+          syncTimeline: req.body?.sync_timeline !== false,
+          rebuildAssetSlots: req.body?.rebuild_asset_slots !== false,
+          persist: req.body?.persist !== false,
+        }
+      );
+      if (!result.ok) {
+        return res.status(400).json(result);
+      }
+      res.json({
+        ok: true,
+        motion_count: result.motion_scenes?.length || 0,
+        pending_assets: result.production?.pending_asset_slots || 0,
+        timeline_synced: result.timeline_synced,
+        production: result.production,
+        storyboard: result.storyboard,
+        config: { timeline_assets: result.timeline_assets },
+        studio: result.studio,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post("/api/ai/creator/plan-motion-scenes", async (req, res) => {
     try {
       const projDir = getProjectDir(req);

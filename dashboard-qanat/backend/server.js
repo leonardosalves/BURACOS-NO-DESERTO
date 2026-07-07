@@ -148,6 +148,7 @@ import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerTimelineStudioRoutes } from "./timelineStudioRoutes.js";
 import { registerMotionSceneRoutes } from "./motionSceneRoutes.js";
+import { orchestrateProduction } from "./productionOrchestrator.js";
 import {
   loadStudioForRender,
   shouldUseStudioForRender,
@@ -16392,6 +16393,45 @@ app.post(
         "utf8"
       );
 
+      let timelineAssets = {};
+      try {
+        const orch = await orchestrateProduction(
+          projDir,
+          {
+            workspaceDir: WORKSPACE_DIR,
+            callGemini: (p, prompt, opts) =>
+              callGeminiWithRetry(getApiKey(p), prompt, opts),
+            getApiKey,
+            parseAiJson: parseAiJsonResponse,
+          },
+          {
+            useLlm: false,
+            fetchSatellite: false,
+            syncTimeline: true,
+            rebuildAssetSlots: true,
+            persist: true,
+          }
+        );
+        if (orch.ok) {
+          parsedData = orch.storyboard;
+          timelineAssets = orch.timeline_assets || {};
+          parsedData.production_orchestration = orch.production;
+          fs.writeFileSync(
+            storyboardPath,
+            JSON.stringify(parsedData, null, 2),
+            "utf8"
+          );
+          console.log(
+            `[Creator Script] Produção orquestrada: ${orch.motion_scenes?.length || 0} cenas Remotion, ${orch.production?.pending_asset_slots || 0} slots de asset pendentes.`
+          );
+        }
+      } catch (orchErr) {
+        console.warn(
+          "[Creator Script] Orquestração de produção (não bloqueante):",
+          orchErr.message
+        );
+      }
+
       // Save technical configurations to active project directory
 
       const transcriptPath = path.join(projDir, "transcripts_readable.txt");
@@ -16415,9 +16455,6 @@ app.post(
           currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
         } catch (e) {}
       }
-
-      // Wizard: timeline vazia — B-roll só após o usuário mapear no passo manual ou Workflow → auto-map.
-      const timelineAssets = {};
 
       let newConfig = {
         ...currentConfig,
@@ -16766,6 +16803,38 @@ app.post(
         JSON.stringify(storyboard, null, 2),
         "utf8"
       );
+
+      try {
+        const orch = await orchestrateProduction(
+          projDir,
+          {
+            workspaceDir: WORKSPACE_DIR,
+            callGemini: (p, prompt, opts) =>
+              callGeminiWithRetry(getApiKey(p), prompt, opts),
+            getApiKey,
+            parseAiJson: parseAiJsonResponse,
+          },
+          {
+            useLlm: false,
+            fetchSatellite: req.body?.fetch_satellite !== false,
+            syncTimeline: true,
+            rebuildAssetSlots: true,
+            persist: true,
+          }
+        );
+        if (orch.ok) {
+          storyboard = orch.storyboard;
+          storyboard.production_orchestration = orch.production;
+          console.log(
+            `[VPE PRO] Produção orquestrada: ${orch.motion_scenes?.length || 0} motion, ${orch.production?.pending_asset_slots || 0} slots pendentes.`
+          );
+        }
+      } catch (orchErr) {
+        console.warn(
+          "[VPE PRO] Orquestração de produção (não bloqueante):",
+          orchErr.message
+        );
+      }
 
       console.log(
         `[VPE PRO] visual_prompts enhanced (${storyboard.visual_prompts?.length || 0} cenas, nicho: ${detectedNiche}, score: ${parsed.checklist?.quality_score || "N/A"}).`
