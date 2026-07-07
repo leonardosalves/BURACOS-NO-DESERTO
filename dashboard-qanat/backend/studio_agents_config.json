@@ -1,5 +1,23 @@
 {
   "autoCaptureOnQualityCheck": true,
   "applyLearningsInAgentMode": true,
-  "promoteThreshold": 3
+  "promoteThreshold": 3,
+  "skillsInAgentMode": true,
+  "skillsWriteApproval": true,
+  "skillAllowlist": null,
+  "skillBundleByTask": {
+    "overlay": "studio-overlay-agent",
+    "ideas": "shorts-ideas",
+    "ideas:LONG": "long-ideas",
+    "script": "shorts-script",
+    "script:LONG": "long-documentary",
+    "metadata": "publish-seo",
+    "default": "studio-overlay-agent"
+  },
+  "workshopHandled": {
+    "applied": [
+      "studio-agents-hermes|história|SHORT|short/hook_polluted|ilhas_flutuantes_astecas"
+    ],
+    "rejected": []
+  }
 }

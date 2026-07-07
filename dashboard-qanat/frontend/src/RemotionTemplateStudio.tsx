@@ -1,6 +1,4 @@
 import React, {
-  Suspense,
-  lazy,
   useCallback,
   useEffect,
   useMemo,
@@ -84,6 +82,7 @@ const CATEGORIES: TemplateCategoryDefinition[] = [
       "Counter",
       "Bar chart",
       "Line chart",
+      "Area chart",
       "Pie chart",
       "Donut chart",
       "KPI",
@@ -313,11 +312,8 @@ const PREVIEW_DURATION_BY_VARIANT: Record<PreviewVariant, number> = {
   cinematic: 90,
 };
 
-const SavedTemplatePreviewFrame = lazy(() =>
-  import("./remotionTemplateLivePreview").then((module) => ({
-    default: module.SavedTemplatePreviewFrame,
-  }))
-);
+// Live preview removido — sucrase + new Function() crashava o app.
+// Preview usa mock animado leve (PreviewFrame) que é estável e fiel ao tipo do chart.
 
 function slugifyTemplatePart(value: string) {
   return String(value || "template")
@@ -429,42 +425,66 @@ function previewVariantsFromChartKind(
   return null;
 }
 
+/**
+ * Inferência flexível de tipo de chart a partir do nome da subcategoria.
+ * Cobre nomes customizados que o usuário criar (ex: "Stacked bar", "Gráfico radar", etc.)
+ * A subcategoria que o usuário SELECIONOU é a fonte de verdade — prioridade máxima.
+ */
+function inferChartKindFromSubcategory(
+  subcategory: string,
+  templateName = ""
+): ReturnType<typeof detectChartKindFromCode> {
+  const metaLabels = [subcategory, templateName];
+  // Checagens específicas (ordem importa — donut antes de pie, area antes de line)
+  if (isCircularProgressContext(...metaLabels)) return null; // handled separately
+  if (isDonutChartContext(...metaLabels)) return "donut";
+  if (isPieChartContext(...metaLabels)) return "pie";
+  if (isAreaChartContext(...metaLabels)) return "area";
+  if (isBarChartContext(...metaLabels)) return "bar";
+  if (isLineChartContext(...metaLabels)) return "line";
+
+  // Keyword matching flexível para subcategorias customizadas
+  const hay = [subcategory, templateName].join(" ").toLowerCase();
+  if (/\b(donut|rosca|anel)\b/.test(hay)) return "donut";
+  if (/\b(pie|pizza|fatia)\b/.test(hay)) return "pie";
+  if (/\b(area|preenchid|filled|stacked\s*area)\b/.test(hay)) return "area";
+  if (/\b(bar|barra|column|coluna|histogram|stack)\b/.test(hay)) return "bar";
+  if (/\b(line|linha|spark|trend|serie|series|curv)\b/.test(hay)) return "line";
+
+  return null;
+}
+
 function resolveChartDataPreview(
   subcategory: string,
   templateName = "",
   code = ""
 ): Pick<TemplateItem, "shortPreview" | "longPreview"> {
-  const fromCode = previewVariantsFromChartKind(detectChartKindFromCode(code));
-  if (fromCode) return fromCode;
+  const sub = subcategory.toLowerCase();
 
-  const metaLabels = [subcategory, templateName];
-  if (isCircularProgressContext(...metaLabels)) {
+  // Counter/KPI — checagem direta (não são "charts" visuais)
+  if (sub.includes("counter") || sub.includes("kpi")) {
+    return { shortPreview: "ring", longPreview: "ring" };
+  }
+
+  // Circular Progress — checagem direta
+  if (isCircularProgressContext(subcategory, templateName)) {
     return {
       shortPreview: "circular-progress",
       longPreview: "circular-progress",
     };
   }
-  if (isDonutChartContext(...metaLabels)) {
-    return { shortPreview: "donut", longPreview: "donut" };
-  }
-  if (isPieChartContext(...metaLabels)) {
-    return { shortPreview: "pie", longPreview: "pie" };
-  }
-  if (isBarChartContext(...metaLabels)) {
-    return { shortPreview: "bars", longPreview: "bars" };
-  }
-  if (isAreaChartContext(...metaLabels)) {
-    return { shortPreview: "area", longPreview: "area" };
-  }
-  if (isLineChartContext(...metaLabels)) {
-    return { shortPreview: "line", longPreview: "line" };
-  }
-  const sub = subcategory.toLowerCase();
-  if (sub.includes("counter") || sub.includes("kpi")) {
-    return { shortPreview: "ring", longPreview: "ring" };
-  }
 
-  return { shortPreview: "media", longPreview: "media" };
+  // 1) PRIORIDADE: Subcategoria selecionada pelo usuário
+  const fromSub = inferChartKindFromSubcategory(subcategory, templateName);
+  const fromSubPreview = previewVariantsFromChartKind(fromSub);
+  if (fromSubPreview) return fromSubPreview;
+
+  // 2) FALLBACK: Detectar pelo código (se a subcategoria não deu match)
+  const fromCode = previewVariantsFromChartKind(detectChartKindFromCode(code));
+  if (fromCode) return fromCode;
+
+  // 3) Último recurso: "line" é o chart mais genérico (melhor que "media" para chart-data)
+  return { shortPreview: "line", longPreview: "line" };
 }
 
 function resolvePreviewVariants(
@@ -605,7 +625,10 @@ function buildPreviewPropsFromSlots(slots: string[]): TemplatePreviewProps {
 }
 
 function buildPreviewPropsFromTemplate(
-  template: Pick<TemplateItem, "dataSlots" | "sourceCode" | "subcategory">
+  template: Pick<
+    TemplateItem,
+    "dataSlots" | "sourceCode" | "subcategory" | "name"
+  >
 ): TemplatePreviewProps {
   const props = buildPreviewPropsFromSlots(template.dataSlots);
   const code = `${template.sourceCode.short}\n${template.sourceCode.long}`;
@@ -1684,13 +1707,7 @@ function useTemplatePreviewTimeline({
   return { frame, playing, playFromStart, toggle, pause, setFrame };
 }
 
-function canLivePreviewSource(code: string) {
-  const trimmed = String(code || "").trim();
-  return (
-    /export\s+default\s+function/.test(trimmed) &&
-    /\buseCurrentFrame\s*\(/.test(trimmed)
-  );
-}
+// canLivePreviewSource removido — live preview desativado (crashava o app).
 
 function TemplatePreviewSlot({
   template,
@@ -1717,19 +1734,7 @@ function TemplatePreviewSlot({
     />
   );
 
-  if (size === "detail" && canLivePreviewSource(source)) {
-    return (
-      <Suspense fallback={mockPreview}>
-        <SavedTemplatePreviewFrame
-          sourceCode={source}
-          format={format}
-          size={size}
-          autoPlay={false}
-          fallback={mockPreview}
-        />
-      </Suspense>
-    );
-  }
+  // Live preview removido — sempre usa mock preview estável.
 
   return mockPreview;
 }
@@ -1997,9 +2002,7 @@ function TemplateDetailPanel({
                     autoPlay={false}
                   />
                   <p className="text-center text-[10px] font-bold text-zinc-500">
-                    {canLivePreviewSource(activeSource)
-                      ? "Preview fiel ao TSX salvo neste draft."
-                      : "Aperte play para ver a animacao do catalogo seed."}
+                    Aperte play para ver a animacao do catalogo seed.
                   </p>
                 </div>
               </div>
@@ -2294,8 +2297,8 @@ export function RemotionTemplateStudio({
           format: "long",
         }),
       },
-      shortPreview: "media",
-      longPreview: "media",
+      shortPreview: "media" as TemplateItem["shortPreview"],
+      longPreview: "media" as TemplateItem["longPreview"],
     });
 
     setTemplates((current) => [template, ...current]);

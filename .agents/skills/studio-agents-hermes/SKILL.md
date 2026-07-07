@@ -178,6 +178,15 @@ Depois: seção Lumiera, stub Obsidian, atualizar bundle se necessário.
 - `SHORT/overlay_timing` Overlay "lt-heron-alexandria" @ 7.5s: desvio 7.5s da palavra-chave (0.0s)
 - `SHORT/overlay_timing` Overlay "info-automatos-heron" @ 20.0s: desvio 20.0s da palavra-chave (0.0s)
 
+## Aprendizados capturados (workshop — 2026-07-05)
+
+**História** / SHORT / score 50 / ILHAS_FLUTUANTES_ASTECAS
+
+- `SHORT/hook_polluted` Evitar overlays informativos no gancho Short (<1.5s) — manter hook limpo
+- `SHORT/overlay_budget` Respeitar orçamento máximo de overlays do formato
+- `SHORT/overlay_timing` Overlay "lt-tenochtitlan" @ 0.8s: no gancho (0.8s < 1.5s); desvio 9.7s da palavra-chave (10.5s)
+- `SHORT/overlay_timing` Overlay "info-chinampas" @ 20.0s: desvio 11.6s da palavra-chave (8.4s)
+
 ## Ver também
 
 - `../skills-registry-external/SKILL.md` — catálogo upstream

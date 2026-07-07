@@ -108,3 +108,4 @@ Write-Host "  .\scripts\status-lumiera.ps1" -ForegroundColor White
 Write-Host "  npx pm2 logs lumiera-backend" -ForegroundColor White
 Write-Host "  npx pm2 reload lumiera-backend   # apos mudar codigo do backend" -ForegroundColor White
 Write-Host "  .\scripts\install-lumiera-pm2.ps1 -Uninstall" -ForegroundColor White
+exit 0

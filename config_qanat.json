@@ -59,8 +59,21 @@
     "passado",
     "futuro"
   ],
-  "gemini_browser_mode": true,
+  "gemini_browser_mode": false,
   "design_preset": "documentary-history",
   "caption_style": "shorts-viral",
-  "accent_color": "#C5A889"
+  "accent_color": "#C5A889",
+  "fish_speech": {
+    "api_key": "3ad0cf2c087c4aaabb44982af767b13c",
+    "mode": "cloud",
+    "cloud_base_url": "https://api.fish.audio",
+    "cloud_model": "s2.1-pro-free",
+    "format": "mp3",
+    "temperature": 0.8,
+    "top_p": 0.8,
+    "repetition_penalty": 1.1,
+    "chunk_length": 300,
+    "max_new_tokens": 1024,
+    "use_tagged_script": true
+  }
 }

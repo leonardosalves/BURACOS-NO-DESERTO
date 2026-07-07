@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Volume2, Gauge } from "lucide-react";
 import { clampPlaybackRate, clampVolume } from "./opencutTimeline";
 
@@ -32,34 +32,17 @@ export function TimelineClipPreview({
   onSourceDuration,
   compact = false,
 }: Props) {
-  const videoRef = useRef<HTMLVideoElement>(null);
   const volume = clampVolume(asset.volume, 0);
   const rate = clampPlaybackRate(asset.playback_rate, 1);
   const isVideo = asset.type === "video";
   const isPortrait = aspectRatio === "9:16";
   const hasAsset = Boolean(asset.asset?.trim());
 
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el || !isVideo) return;
-    el.playbackRate = rate;
-    el.volume = volume;
-    el.muted = volume <= 0.001;
-    if (el.readyState >= 2) {
-      void el.play().catch(() => {});
-    }
-  }, [volume, rate, asset.asset, isVideo]);
-
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const dur = e.currentTarget.duration;
     if (dur && !Number.isNaN(dur) && asset.asset && onSourceDuration) {
       onSourceDuration(asset.asset, dur);
     }
-    const el = e.currentTarget;
-    el.playbackRate = rate;
-    el.volume = volume;
-    el.muted = volume <= 0.001;
-    void el.play().catch(() => {});
   };
 
   return (
@@ -84,16 +67,13 @@ export function TimelineClipPreview({
         </span>
       ) : isVideo ? (
         <video
-          ref={videoRef}
           key={asset.asset}
           src={getAssetUrl(asset.asset!)}
           className="w-full h-full object-cover"
           controls={false}
-          muted={volume <= 0.001}
-          loop
-          autoPlay
+          muted
           playsInline
-          preload="auto"
+          preload="metadata"
           onLoadedMetadata={handleLoadedMetadata}
           onLoadedData={(e) => {
             const el = e.currentTarget;
@@ -103,7 +83,6 @@ export function TimelineClipPreview({
             } catch {
               /* ignore */
             }
-            void el.play().catch(() => {});
           }}
           onError={() => {
             /* mantém área visível — mensagem «Sem asset» só quando asset vazio */
@@ -115,6 +94,8 @@ export function TimelineClipPreview({
           src={getAssetUrl(asset.asset!)}
           className="w-full h-full object-cover"
           alt="Preview"
+          loading="lazy"
+          decoding="async"
           onLoad={(e) => {
             e.currentTarget.style.display = "block";
           }}

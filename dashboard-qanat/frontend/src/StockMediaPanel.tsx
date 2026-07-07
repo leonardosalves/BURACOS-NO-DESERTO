@@ -376,12 +376,15 @@ export function StockMediaPanel({
                         src={getAssetUrl(item.source)}
                         className="w-full h-full object-cover"
                         muted
+                        preload="none"
                       />
                     ) : (
                       <img
                         src={getAssetUrl(item.source)}
                         alt=""
                         className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     )}
                   </div>

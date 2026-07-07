@@ -92,4 +92,4 @@
 ## Por que vários arquivos SKILL?
 
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-05T22:00:43.195Z
+atualizado: 2026-07-07T19:13:21.628Z

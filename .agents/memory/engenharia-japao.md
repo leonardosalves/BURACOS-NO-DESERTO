@@ -5,8 +5,8 @@
 ## Meta
 
 niche: engenharia japao
-updated: 2026-07-06T02:25:52.287Z
-runs: 4
+updated: 2026-07-06T13:20:05.740Z
+runs: 8
 
 ## Padrões promovidos
 
@@ -14,6 +14,6 @@ runs: 4
 
 ## Candidatos (em observação)
 
+- [SHORT/overlay_timing] Ancorar overlay ao scene_ref da narração — não usar segundos fora da cena ativa (count: 8)
 - [SHORT/overlay_timing] Overlay "cnt-railway" @ 26.1s: fora da cena 3.1 (25.6–31.2s), em 26.1s (count: 4)
-- [SHORT/overlay_timing] Ancorar overlay ao scene_ref da narração — não usar segundos fora da cena ativa (count: 4)
 - [SHORT/overlay_timing] Overlay "lt-eco-eng" @ 1.9s: fora da cena 1.1 (0.0–5.8s), em 1.9s (count: 1)
