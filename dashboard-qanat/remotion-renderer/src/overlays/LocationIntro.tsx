@@ -737,9 +737,9 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
         zIndex: 55,
         opacity: Math.min(enterOpacity, exitOpacity),
         overflow: "hidden",
-        justifyContent: isPip ? "flex-end" : "center",
+        justifyContent: isPip ? "flex-start" : "center",
         alignItems: isPip ? "flex-end" : "center",
-        padding: isPip ? (isVertical ? "18% 6% 22%" : "8% 5% 10%") : 0,
+        padding: isPip ? (isVertical ? "10% 5% 26%" : "8% 5% 12%") : 0,
       }}
     >
       <div style={cardStyle}>{mapPanel}</div>

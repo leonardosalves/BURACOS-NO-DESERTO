@@ -23,6 +23,10 @@ import {
   resolveMediaUrl,
   resolveMotionSceneProps,
 } from "./timelineStudioMedia";
+import {
+  isFullscreenMotionClip,
+  SHORTS_CAPTION_SAFE_BOTTOM_PCT,
+} from "./timelineStudioMotionLayout";
 
 type Props = {
   studio: TimelineStudioState;
@@ -35,15 +39,6 @@ type Props = {
 
 const FULLSCREEN_OVERLAYS = new Set(["pictogram-chart"]);
 
-function isFullscreenMotionClip(
-  clip: StudioClip,
-  draft: OverlayDraft
-): boolean {
-  if (String(clip.templateId) === "location-intro") {
-    return draft.props?.presentation === "fullscreen";
-  }
-  return FULLSCREEN_OVERLAYS.has(String(clip.templateId));
-}
 const UI_PUBLISH_MS = 100;
 
 function clipToOverlayDraft(
@@ -484,16 +479,25 @@ export function TimelineStudioPreview({
           {motionClips.map((clip) => {
             const draft = clipToOverlayDraft(clip, getAssetUrl, getMusicUrl);
             const localSec = displayPlayhead - clip.start;
-            const isFullscreen = isFullscreenMotionClip(clip, draft);
+            const isFullscreen = isFullscreenMotionClip(clip);
             const isPip = !isFullscreen;
             return (
               <div
                 key={clip.id}
                 className={`absolute pointer-events-none ${
                   isPip
-                    ? "inset-0 flex items-end justify-end p-[5%] z-30"
+                    ? "inset-0 flex items-start justify-end z-30 pt-[8%] pr-[5%] pl-[5%]"
                     : `inset-0 ${isFullscreen ? "z-40" : "z-30"}`
                 }`}
+                style={
+                  isPip && isVertical
+                    ? {
+                        paddingBottom: `${SHORTS_CAPTION_SAFE_BOTTOM_PCT}%`,
+                      }
+                    : isPip
+                      ? { padding: "5%" }
+                      : undefined
+                }
               >
                 <OverlayPreview
                   overlay={draft}
