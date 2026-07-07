@@ -13,6 +13,34 @@ export type MotionOrchestrationResult = {
 };
 
 let inflight: Promise<MotionOrchestrationResult | null> | null = null;
+let lastFailureToastAt = 0;
+
+function toastOrchestrationFailures(
+  failed: Array<{ reason?: string }>,
+  silent: boolean
+) {
+  if (!failed.length) return;
+  const now = Date.now();
+  if (now - lastFailureToastAt < 8000) return;
+  lastFailureToastAt = now;
+  const reasons = [
+    ...new Set(
+      failed.map((r) => String(r.reason || "").trim()).filter(Boolean)
+    ),
+  ];
+  const detail =
+    reasons[0] === "geocode_failed"
+      ? "geocode falhou — confira Local/País (ex.: Bangkok, Tailândia)"
+      : reasons.length
+        ? reasons.slice(0, 2).join(" · ")
+        : "";
+  toast(
+    detail
+      ? `Falha em ${failed.length} template(s): ${detail}`
+      : `Falha em ${failed.length} template(s) — revise dados no inspector`,
+    { icon: "⚠️", duration: 7000 }
+  );
+}
 
 export function locationIntroHasSatellite(clip: StudioClip): boolean {
   const props = clip.props || {};
@@ -204,10 +232,7 @@ export async function autoOrchestrateMotionForStudio(
       );
     }
     if (failed.length > 0) {
-      toast(
-        `Falha em ${failed.length} template(s) — revise dados no inspector`,
-        { icon: "⚠️", duration: 6000 }
-      );
+      toastOrchestrationFailures(failed, silent);
     }
     return true;
   } catch (err) {

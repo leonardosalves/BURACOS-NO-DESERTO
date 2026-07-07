@@ -85,7 +85,7 @@ const COUNTRY_PT_TO_EN = {
 /** Coordenadas conhecidas — evita geocoding em projetos de engenharia/mapa. */
 export const KNOWN_COORDINATES = [
   {
-    pattern: /bangcoc|banguecoque|bangkok/i,
+    pattern: /bangcoc|bangoc|banguecoque|bangkok/i,
     location: "Bangkok",
     region: "Bangkok",
     country: "Tailândia",
