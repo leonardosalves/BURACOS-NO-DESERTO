@@ -31,23 +31,11 @@ function Start-LumieraFrontend {
     $errLog = Join-Path $LogDir "frontend-stderr.log"
     Ensure-LumieraLogDir
 
-    $proc = Start-Process -FilePath "cmd.exe" `
-        -ArgumentList "/c npm run dev" `
-        -WorkingDirectory $FrontendDir `
-        -WindowStyle Hidden `
-        -RedirectStandardOutput $outLog `
-        -RedirectStandardError $errLog `
-        -PassThru
-
-    Write-Host "Frontend iniciando (PID $($proc.Id))..." -ForegroundColor Cyan
-
-    $deadline = (Get-Date).AddSeconds(45)
-    while ((Get-Date) -lt $deadline) {
-        if (Test-PortListening $FrontendPort) { return }
-        Start-Sleep -Seconds 1
+    & (Join-Path $PSScriptRoot "ensure-frontend.ps1")
+    if ($LASTEXITCODE -ne 0) {
+        throw "Frontend nao respondeu na porta $FrontendPort. Veja $errLog"
     }
-
-    throw "Frontend nao respondeu na porta $FrontendPort. Veja $errLog"
+    return
 }
 
 Write-Host "Lumiera Studio" -ForegroundColor Magenta

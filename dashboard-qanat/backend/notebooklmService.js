@@ -220,7 +220,7 @@ export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
   }
   try {
     runNlm(["login", "--check"], {
-      timeoutMs: quick ? 4000 : 12000,
+      timeoutMs: quick ? 2500 : 8000,
       backendDir,
     });
     if (quick) {
