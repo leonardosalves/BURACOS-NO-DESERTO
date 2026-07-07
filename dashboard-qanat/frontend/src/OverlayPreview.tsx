@@ -625,7 +625,10 @@ export function OverlayPreview({
       case "location-intro": {
         const bgWide = String(props.backgroundImageWide || "");
         const bgTight = String(props.backgroundImage || "");
-        const flyMode = String(props.fly_mode || "simple");
+        const flyMode = String(props.fly_mode || "earth_descent");
+        const placeType = String(
+          props.place_type || (flyMode === "city_outline" ? "city" : "poi")
+        );
         const isPip =
           props.presentation !== "fullscreen" && embeddedLayout === "pip";
         const keyframes = Array.isArray(props.zoom_keyframes)
@@ -693,14 +696,33 @@ export function OverlayPreview({
                   );
                 })}
               </div>
-              {flyMode === "city_outline" ? (
+              {placeType === "city" ? (
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
                     boxShadow: `inset 0 0 0 3px ${accentColor}88`,
-                    opacity: Math.min(1, progress * 1.4),
+                    opacity: Math.min(1, Math.max(0, (progress - 0.35) * 2)),
                   }}
                 />
+              ) : null}
+              {placeType === "city" ? (
+                <svg
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  style={{
+                    opacity: Math.min(1, Math.max(0, (progress - 0.4) * 1.8)),
+                  }}
+                >
+                  <path
+                    d="M18,42 L42,28 L72,34 L82,58 L64,78 L36,74 Z"
+                    fill="none"
+                    stroke={accentColor}
+                    strokeWidth="1.2"
+                    strokeDasharray="220"
+                    strokeDashoffset={220 * (1 - Math.min(1, progress * 1.1))}
+                  />
+                </svg>
               ) : null}
               <div
                 className="absolute inset-0"

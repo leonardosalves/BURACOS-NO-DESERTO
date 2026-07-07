@@ -97,7 +97,20 @@ export const DEFAULT_DURATIONS = {
   "lower-third": 3,
   "kinetic-text": 2.5,
   "geo-map": 4,
-  "location-intro": 5,
+  "location-intro": 8,
+};
+
+/** Padrão global location-intro: PIP com descida; cidade marca território OSM. */
+export const LOCATION_INTRO_DEFAULTS = {
+  presentation: "pip",
+  layout: "pip",
+  variant: "satellite",
+  map_style: "satellite",
+  zoom_from: 3,
+  zoom_to_poi: 17,
+  zoom_to_city: 12,
+  duration_seconds: 8,
+  fly_mode: "earth_descent",
 };
 
 export const MOTION_TRACK_ID = "motion";
