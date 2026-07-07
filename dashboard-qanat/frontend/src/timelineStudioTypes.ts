@@ -97,3 +97,26 @@ export function activeMotionAt(
     (c) => playhead >= c.start && playhead < c.start + c.duration
   );
 }
+
+const MOTION_TRACK: StudioTrack = {
+  id: "motion",
+  type: "motion",
+  label: "Cenas Remotion",
+  color: "#6A1B9A",
+  height: 36,
+};
+
+/** Garante trilha motion quando há clips ou após migração legada. */
+export function ensureMotionTrackInStudio(
+  studio: TimelineStudioState
+): TimelineStudioState {
+  const hasMotionClips = studio.clips.some((c) => c.trackId === "motion");
+  if (!hasMotionClips && studio.tracks.some((t) => t.id === "motion")) {
+    return studio;
+  }
+  if (studio.tracks.some((t) => t.id === "motion")) return studio;
+  const tracks = [...studio.tracks];
+  const videoIdx = tracks.findIndex((t) => t.id === "video");
+  tracks.splice(videoIdx >= 0 ? videoIdx + 1 : tracks.length, 0, MOTION_TRACK);
+  return { ...studio, tracks };
+}
