@@ -7,6 +7,11 @@ import React, {
 } from "react";
 import { Easing, interpolate } from "remotion";
 import {
+  adaptRemotionTemplate,
+  validateFinalTemplateCode,
+  validateOriginalTemplateCode,
+} from "./remotionTemplateStudioApi";
+import {
   ArrowLeft,
   BadgeCheck,
   Braces,
@@ -1348,7 +1353,11 @@ export function RemotionTemplateStudio({
   const [propsDraft, setPropsDraft] = useState(
     "title, subtitle, progress, label, imageUrl, location"
   );
-  const [codeDraft, setCodeDraft] = useState("");
+  const [originalCodeDraft, setOriginalCodeDraft] = useState("");
+  const [finalCodeDraft, setFinalCodeDraft] = useState("");
+  const [studioError, setStudioError] = useState("");
+  const [studioInfo, setStudioInfo] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
   const [aiBrief, setAiBrief] = useState(
     [
       "Adaptar este template Remotion para o nicho Engenharia.",
@@ -1404,6 +1413,11 @@ export function RemotionTemplateStudio({
       ),
     [propsDraft]
   );
+  const finalValidation = useMemo(
+    () => validateFinalTemplateCode(finalCodeDraft),
+    [finalCodeDraft]
+  );
+  const canSaveDraft = finalValidation.ok && Boolean(finalCodeDraft.trim());
   const visibleTemplates = useMemo(
     () =>
       templates.filter(
@@ -1553,93 +1567,68 @@ export function RemotionTemplateStudio({
     }
   }
 
-  function assistTemplateWithAi() {
-    const originalCode = codeDraft.trim();
-    if (!originalCode) {
-      window.alert(
-        "Cole o codigo Remotion original completo no campo Template Code antes de usar Assistir IA."
-      );
+  async function assistTemplateWithAi() {
+    const originalCode = originalCodeDraft.trim();
+    const originalCheck = validateOriginalTemplateCode(originalCode);
+    if (!originalCheck.ok) {
+      setStudioError(originalCheck.errors[0] || "Template Code incompleto.");
+      setStudioInfo("");
       return;
     }
-    const categoryLabel = currentCategory?.label || category;
-    const props = propsDraft
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-    const propTypeLines = props
-      .map((prop) => `  ${prop}?: unknown;`)
-      .join("\n");
-    const adaptedCode = [
-      `"use client";`,
-      "",
-      `import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";`,
-      "",
-      `type ${slugifyTemplatePart(templateType || subcategory)
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("")}Props = {`,
-      propTypeLines || "  data?: unknown;",
-      "};",
-      "",
-      "/*",
-      `NICHO: ${niche}`,
-      `TIPO DO TEMPLATE: ${templateType || subcategory}`,
-      `CATEGORIA: ${categoryLabel}`,
-      `SUBCATEGORIA: ${subcategory}`,
-      "FORMATOS: 9:16 e 16:9",
-      "",
-      "BRIEFING:",
-      aiBrief,
-      "",
-      "CODIGO ORIGINAL:",
-      originalCode,
-      "*/",
-      "",
-      `export default function Adapted${slugifyTemplatePart(
-        templateType || subcategory
-      )
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("")}(props: ${slugifyTemplatePart(templateType || subcategory)
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("")}Props) {`,
-      "  const frame = useCurrentFrame();",
-      "  const { width, height } = useVideoConfig();",
-      "  const isVertical = height > width;",
-      '  const enter = interpolate(frame, [0, 24], [0, 1], { extrapolateRight: "clamp" });',
-      "",
-      "  return (",
-      "    <AbsoluteFill",
-      "      style={{",
-      '        background: "#0b111b",',
-      '        color: "#e5f7ff",',
-      '        border: "1px solid rgba(34,211,238,0.32)",',
-      "        opacity: enter,",
-      "        padding: isVertical ? 48 : 64,",
-      "      }}",
-      "    >",
-      "      {/* TODO IA: substituir este bloco pela versao adaptada do template original acima, mantendo a animacao principal e usando apenas props editaveis. */}",
-      '      <pre style={{ whiteSpace: "pre-wrap", fontSize: isVertical ? 28 : 34 }}>',
-      "        {JSON.stringify(props, null, 2)}",
-      "      </pre>",
-      "    </AbsoluteFill>",
-      "  );",
-      "}",
-      "",
-      "export const exampleProps = {",
-      props.map((prop) => `  ${prop}: "${prop}",`).join("\n") ||
-        '  data: "example",',
-      "};",
-    ].join("\n");
 
-    setCodeDraft(adaptedCode);
+    setAiLoading(true);
+    setStudioError("");
+    setStudioInfo("");
+
+    try {
+      const categoryLabel = currentCategory?.label || category;
+      const result = await adaptRemotionTemplate({
+        niche,
+        templateType: templateType || subcategory,
+        category: categoryLabel,
+        subcategory,
+        briefing: aiBrief,
+        propsDraft,
+        originalCode,
+      });
+
+      if (!result.ok || !result.code) {
+        setStudioError(
+          result.error ||
+            result.errors?.[0] ||
+            "Nao foi possivel gerar o template final."
+        );
+        return;
+      }
+
+      const finalCheck = validateFinalTemplateCode(result.code);
+      if (!finalCheck.ok) {
+        setStudioError(
+          finalCheck.errors[0] || "Codigo gerado falhou na validacao."
+        );
+        return;
+      }
+
+      setFinalCodeDraft(result.code);
+      setStudioInfo(
+        result.source === "local-generator"
+          ? "Template gerado localmente (fallback deterministico)."
+          : `Template gerado pela IA (${result.source || "gemini"}).`
+      );
+    } catch (err) {
+      setStudioError(
+        err instanceof Error ? err.message : "Erro ao chamar Assistir IA."
+      );
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   function saveAssistedDraft(kind: "ai" | "draft") {
-    if (!codeDraft.trim()) {
-      window.alert(
-        "Cole ou gere um codigo Remotion completo antes de salvar o draft."
+    if (!canSaveDraft) {
+      setStudioError(
+        finalValidation.errors[0] ||
+          "Gere e valide o codigo final antes de salvar o draft."
       );
       return;
     }
@@ -1669,14 +1658,14 @@ export function RemotionTemplateStudio({
         .filter(Boolean),
       sourceCode: {
         short: buildFormatSource({
-          code: codeDraft,
+          code: finalCodeDraft,
           niche,
           categoryLabel,
           subcategory,
           format: "short",
         }),
         long: buildFormatSource({
-          code: codeDraft,
+          code: finalCodeDraft,
           niche,
           categoryLabel,
           subcategory,
@@ -1978,17 +1967,54 @@ export function RemotionTemplateStudio({
               className="w-full rounded-md border border-white/10 bg-black/30 p-3 text-xs text-zinc-200 outline-none focus:border-cyan-300"
             />
             <label className="mb-2 mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-              Template code
+              Template code (original)
             </label>
             <textarea
-              value={codeDraft}
-              onChange={(e) => setCodeDraft(e.target.value)}
-              className="min-h-[210px] w-full resize-y rounded-md border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-zinc-200 outline-none focus:border-cyan-300"
+              value={originalCodeDraft}
+              onChange={(e) => {
+                setOriginalCodeDraft(e.target.value);
+                setStudioError("");
+              }}
+              className="min-h-[180px] w-full resize-y rounded-md border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-zinc-200 outline-none focus:border-cyan-300"
               placeholder={
-                'Cole aqui o codigo Remotion original completo do template que voce quer adaptar. Nao use placeholder.\n\nExemplo:\n"use client";\n\nimport { interpolate, useCurrentFrame, useVideoConfig } from "remotion";\n\nexport default function CircularProgress() {\n  const frame = useCurrentFrame();\n  const { fps } = useVideoConfig();\n  // resto do codigo...\n}'
+                'Cole SOMENTE o codigo Remotion original completo.\n\nProibido: placeholder, "// codigo original", mocks genericos ou trechos incompletos.'
               }
               spellCheck={false}
             />
+
+            <label className="mb-2 mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+              Codigo final gerado
+            </label>
+            <textarea
+              value={finalCodeDraft}
+              onChange={(e) => {
+                setFinalCodeDraft(e.target.value);
+                setStudioError("");
+                setStudioInfo("");
+              }}
+              readOnly={aiLoading}
+              className="min-h-[220px] w-full resize-y rounded-md border border-cyan-300/20 bg-[#071018] p-3 font-mono text-[11px] leading-relaxed text-cyan-50 outline-none focus:border-cyan-300"
+              placeholder="Use Assistir IA para gerar o componente Remotion final validado."
+              spellCheck={false}
+            />
+
+            {studioError ? (
+              <p className="mt-2 rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+                {studioError}
+              </p>
+            ) : null}
+            {studioInfo ? (
+              <p className="mt-2 rounded-md border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+                {studioInfo}
+              </p>
+            ) : null}
+            {!canSaveDraft && finalCodeDraft.trim() ? (
+              <ul className="mt-2 space-y-1 rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100">
+                {finalValidation.errors.map((item) => (
+                  <li key={item}>• {item}</li>
+                ))}
+              </ul>
+            ) : null}
 
             <div className="mt-4 rounded-md border border-cyan-300/20 bg-cyan-300/[0.04] p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
@@ -2018,16 +2044,18 @@ export function RemotionTemplateStudio({
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={assistTemplateWithAi}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-cyan-400 px-3 py-2 text-xs font-black text-slate-950"
+                onClick={() => void assistTemplateWithAi()}
+                disabled={aiLoading}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-cyan-400 px-3 py-2 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Sparkles className="h-3.5 w-3.5" />
-                Assistir IA
+                {aiLoading ? "Gerando..." : "Assistir IA"}
               </button>
               <button
                 type="button"
                 onClick={() => saveAssistedDraft("draft")}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-zinc-200"
+                disabled={!canSaveDraft}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Salvar draft
