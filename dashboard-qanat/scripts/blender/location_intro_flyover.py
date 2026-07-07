@@ -149,7 +149,8 @@ def import_boundary_curve(geo_path: str, center_lat: float, center_lng: float, a
         for i, pt in enumerate(ring):
             lng, lat = float(pt[0]), float(pt[1])
             x, y = latlng_to_local(lat, lng, center_lat, center_lng)
-            spline.points[i].co = (x, y, 8.0)
+            # POLY spline points use 4D homogeneous coords (x, y, z, w).
+            spline.points[i].co = (x, y, 8.0, 1.0)
             spline.points[i].radius = 1.0
         obj = bpy.data.objects.new("BoundaryLine", curve)
         obj.location = (0, 0, 0)
