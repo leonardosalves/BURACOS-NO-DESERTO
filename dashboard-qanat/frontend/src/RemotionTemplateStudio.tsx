@@ -2005,6 +2005,7 @@ function TemplateDetailPanel({
   onFormatChange,
   onCopy,
   onBack,
+  onApprove,
 }: {
   template: TemplateItem;
   activeTab: DetailTab;
@@ -2014,6 +2015,7 @@ function TemplateDetailPanel({
   onFormatChange: (format: DetailFormat) => void;
   onCopy: () => void;
   onBack: () => void;
+  onApprove?: () => void;
 }) {
   const activeSource = template.sourceCode[activeFormat];
   const activeAspectRatio = activeFormat === "short" ? "9:16" : "16:9";
@@ -2036,16 +2038,28 @@ function TemplateDetailPanel({
               {template.description}
             </p>
           </div>
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-black uppercase ${
-              template.status === "approved"
-                ? "bg-emerald-400/12 text-emerald-300"
-                : "bg-amber-300/12 text-amber-200"
-            }`}
-          >
-            <BadgeCheck className="h-3.5 w-3.5" />
-            {template.status === "approved" ? "Aprovado" : "Rascunho"}
-          </span>
+          <div className="flex items-center gap-3">
+            {template.status === "draft" && onApprove && (
+              <button
+                type="button"
+                onClick={onApprove}
+                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 text-xs font-black text-slate-950 transition shadow-lg shadow-emerald-500/10"
+              >
+                <BadgeCheck className="h-4 w-4" />
+                Aprovar template
+              </button>
+            )}
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-black uppercase ${
+                template.status === "approved"
+                  ? "bg-emerald-400/12 text-emerald-300"
+                  : "bg-amber-300/12 text-amber-200"
+              }`}
+            >
+              <BadgeCheck className="h-3.5 w-3.5" />
+              {template.status === "approved" ? "Aprovado" : "Rascunho"}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -2386,6 +2400,14 @@ export function RemotionTemplateStudio({
     }
   }
 
+  function approveTemplate(templateId: string) {
+    setTemplates((current) =>
+      current.map((item) =>
+        item.id === templateId ? { ...item, status: "approved" as const } : item
+      )
+    );
+  }
+
   function saveAssistedDraft() {
     if (!canSaveDraft) {
       setStudioError(
@@ -2582,6 +2604,7 @@ export function RemotionTemplateStudio({
               onFormatChange={setDetailFormat}
               onCopy={() => copyTemplateSource(detailTemplate)}
               onBack={() => setDetailTemplateId("")}
+              onApprove={() => approveTemplate(detailTemplate.id)}
             />
           ) : (
             <div className="grid gap-4 p-4 2xl:grid-cols-2">
