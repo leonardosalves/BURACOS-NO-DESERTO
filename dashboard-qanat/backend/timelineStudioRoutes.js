@@ -8,6 +8,7 @@ import {
   migrateLegacyToTimelineStudio,
   mergeMissingBrollFromConfig,
   mergeRemotionFromStoryboard,
+  pruneStoryboardRemotionSources,
 } from "./timelineStudioMigration.js";
 import {
   searchTimelineStock,
@@ -61,10 +62,19 @@ function isMotionClip(clip) {
   );
 }
 
+function isUserDeletableRemotionClip(clip) {
+  return (
+    isMotionClip(clip) ||
+    clip?.trackId === "overlays" ||
+    clip?.legacyOverlay ||
+    Boolean(clip?.templateId)
+  );
+}
+
 function mergeDeletedMotionSuppressions(previousStudio, nextStudio) {
   const previousMotionIds = new Set(
     (Array.isArray(previousStudio?.clips) ? previousStudio.clips : [])
-      .filter(isMotionClip)
+      .filter(isUserDeletableRemotionClip)
       .map((clip) => String(clip.id || "").trim())
       .filter(Boolean)
   );
@@ -176,6 +186,7 @@ export function registerTimelineStudioRoutes(
               if (
                 afterFp !== beforeFp ||
                 afterSuppressed !== beforeSuppressed ||
+                remotionRestored > 0 ||
                 motionSynced > 0
               ) {
                 studio = remotionMerged.studio;
@@ -227,6 +238,10 @@ export function registerTimelineStudioRoutes(
       const withSuppressions = mergeDeletedMotionSuppressions(
         previousStudio,
         studio
+      );
+      pruneStoryboardRemotionSources(
+        projDir,
+        withSuppressions.suppressedMotionSceneIds || []
       );
       const synced = syncStudioMusicFromConfig(withSuppressions, projDir);
       const saved = saveTimelineStudio(projDir, synced);

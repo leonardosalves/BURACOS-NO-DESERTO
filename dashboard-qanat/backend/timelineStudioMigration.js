@@ -432,9 +432,103 @@ export function loadTimelineStudio(projDir) {
   return result;
 }
 
+function remotionClipFingerprint(clips = []) {
+  return JSON.stringify(
+    clips
+      .filter((c) => c?.trackId === "motion" || c?.trackId === "overlays")
+      .map((c) => ({
+        id: c.id,
+        trackId: c.trackId,
+        start: c.start,
+        templateId: c.templateId,
+        props: c.props,
+      }))
+  );
+}
+
+function suppressedRemotionClipIds(studio = {}) {
+  return new Set(
+    (Array.isArray(studio.suppressedMotionSceneIds)
+      ? studio.suppressedMotionSceneIds
+      : []
+    )
+      .map((id) => String(id || "").trim())
+      .filter(Boolean)
+  );
+}
+
+/**
+ * Remove do storyboard cenas/templates que o usuário excluiu na timeline.
+ * Evita que GET /api/timeline-studio as restaure no F5.
+ */
+export function pruneStoryboardRemotionSources(projDir, suppressedIds = []) {
+  const suppressed = new Set(
+    (Array.isArray(suppressedIds) ? suppressedIds : [])
+      .map((id) => String(id || "").trim())
+      .filter(Boolean)
+  );
+  if (!suppressed.size) return false;
+
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) return false;
+
+  let storyboard;
+  try {
+    storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+  } catch {
+    return false;
+  }
+
+  let changed = false;
+
+  if (Array.isArray(storyboard.motion_scenes)) {
+    const next = storyboard.motion_scenes.filter(
+      (ms) => !suppressed.has(String(ms?.id || ""))
+    );
+    if (next.length !== storyboard.motion_scenes.length) {
+      storyboard.motion_scenes = next;
+      changed = true;
+    }
+  }
+
+  for (const key of ["overlays_ai", "overlays"]) {
+    if (!Array.isArray(storyboard[key])) continue;
+    const next = storyboard[key].filter(
+      (o) => !suppressed.has(String(o?.id || ""))
+    );
+    if (next.length !== storyboard[key].length) {
+      storyboard[key] = next;
+      changed = true;
+    }
+  }
+
+  if (Array.isArray(storyboard.visual_prompts)) {
+    storyboard.visual_prompts = storyboard.visual_prompts.map((vp) => {
+      const motionId = String(vp?.motion_scene_id || "").trim();
+      if (!motionId || !suppressed.has(motionId)) return vp;
+      changed = true;
+      const next = { ...vp };
+      delete next.motion_scene_id;
+      delete next.motion_template_id;
+      if (next.media_mode === "remotion") next.media_mode = "video";
+      return next;
+    });
+  }
+
+  if (changed) {
+    fs.writeFileSync(
+      storyboardPath,
+      JSON.stringify(storyboard, null, 2),
+      "utf8"
+    );
+  }
+  return changed;
+}
+
 /**
  * Sincroniza motion_scenes + overlays_ai do storyboard para clips da timeline.
  * motion → trilha "Cenas Remotion"; counter/timeline/etc. → trilha "Templates".
+ * Não limpa suppressedMotionSceneIds — exclusões do usuário persistem no F5.
  */
 export function mergeRemotionFromStoryboard(
   studio,
@@ -445,17 +539,21 @@ export function mergeRemotionFromStoryboard(
     return { studio, remotionRestored: 0, motionSynced: 0 };
   }
 
-  let next = syncMotion
-    ? syncMotionScenesToStudio(studio, storyboard.motion_scenes || [])
-    : studio;
-  const motionSynced = (storyboard.motion_scenes || []).length;
+  const suppressed = suppressedRemotionClipIds(studio);
+  const beforeFp = remotionClipFingerprint(studio.clips);
+
+  let next = studio;
+  if (syncMotion) {
+    next = syncMotionScenesToStudio(next, storyboard.motion_scenes || []);
+  }
 
   const overlayExpected = migrateOverlayClips(storyboard);
   const byId = new Map(next.clips.map((c) => [c.id, c]));
   let restored = 0;
-
   let updated = 0;
+
   for (const clip of overlayExpected) {
+    if (suppressed.has(String(clip.id || ""))) continue;
     if (!byId.has(clip.id)) {
       byId.set(clip.id, clip);
       restored += 1;
@@ -473,15 +571,19 @@ export function mergeRemotionFromStoryboard(
     }
   }
 
-  if (!restored && !updated && !syncMotion) {
-    return { studio: next, remotionRestored: 0, motionSynced };
-  }
-
   const clips = [...byId.values()].sort(
     (a, b) => (Number(a.start) || 0) - (Number(b.start) || 0)
   );
+  const mergedStudio = { ...next, clips };
+  const afterFp = remotionClipFingerprint(mergedStudio.clips);
+  const motionSynced = afterFp !== beforeFp ? 1 : 0;
+
+  if (!restored && !updated && !motionSynced) {
+    return { studio: next, remotionRestored: 0, motionSynced: 0 };
+  }
+
   return {
-    studio: { ...next, clips },
+    studio: mergedStudio,
     remotionRestored: restored,
     motionSynced,
   };

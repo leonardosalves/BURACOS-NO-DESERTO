@@ -479,12 +479,14 @@ export function TimelineStudio({
       const nextClips = deleteClip(studio.clips, clipId);
       if (!target || nextClips.length === studio.clips.length) return;
 
-      const isMotionClip =
+      const isRemotionClip =
         target.trackId === "motion" ||
+        target.trackId === "overlays" ||
         target.motionScene ||
         target.props?.motion_scene === true ||
-        target.props?.media_mode === "remotion";
-      const suppressedMotionSceneIds = isMotionClip
+        target.props?.media_mode === "remotion" ||
+        Boolean(target.templateId);
+      const suppressedMotionSceneIds = isRemotionClip
         ? [
             ...new Set([
               ...(studio.suppressedMotionSceneIds || []),
@@ -506,8 +508,8 @@ export function TimelineStudio({
       setSelectedClipId(null);
       void persistStudioSnapshot(nextStudio);
       toast.success(
-        isMotionClip
-          ? "Cena Remotion removida e bloqueada para nÃ£o voltar"
+        isRemotionClip
+          ? "Cena Remotion removida — não volta no F5"
           : "Clip removido"
       );
     },
