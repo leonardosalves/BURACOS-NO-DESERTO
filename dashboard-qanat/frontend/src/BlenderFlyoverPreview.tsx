@@ -85,33 +85,47 @@ export function BlenderFlyoverPreview({
   }
 
   return (
-    <video
-      ref={videoRef}
-      src={src}
-      poster={poster || undefined}
-      muted
-      playsInline
-      preload="auto"
+    <div
       className={className}
-      onLoadedData={() => {
-        const el = videoRef.current;
-        if (!el || playing) return;
-        const t = Math.max(0, Number(scrubSeconds) || 0);
-        try {
-          el.currentTime = t;
-        } catch {
-          /* ignore */
-        }
-      }}
-      onError={() => setLoadFailed(true)}
-      style={{
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        zIndex: 1,
-      }}
-    />
+      style={{ position: "absolute", inset: 0, overflow: "hidden" }}
+    >
+      {poster ? (
+        <img
+          src={poster}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ zIndex: 0 }}
+        />
+      ) : null}
+      <video
+        ref={videoRef}
+        src={src}
+        poster={poster || undefined}
+        muted
+        playsInline
+        preload="auto"
+        onLoadedData={() => {
+          const el = videoRef.current;
+          if (!el || playing) return;
+          const t = Math.max(0, Number(scrubSeconds) || 0);
+          try {
+            el.currentTime = t;
+          } catch {
+            /* ignore */
+          }
+        }}
+        onError={() => setLoadFailed(true)}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          zIndex: 1,
+          /* Frames pretos do Blender deixam ver os tiles satélite por baixo */
+          mixBlendMode: "lighten",
+        }}
+      />
+    </div>
   );
 }
