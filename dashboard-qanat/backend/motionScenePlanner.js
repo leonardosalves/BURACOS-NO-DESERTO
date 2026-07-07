@@ -415,6 +415,7 @@ export function motionScenesToMotionClips(motionScenes = []) {
         ...(ms.props || {}),
         media_mode: "remotion",
         motion_scene: true,
+        narration_text: String(ms.narration_text || ""),
         scene_ref: String(ms.scene_ref || ""),
         block: Number(ms.block) || 1,
         layout:

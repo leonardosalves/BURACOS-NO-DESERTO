@@ -6,7 +6,10 @@ import {
   assessMotionScenesPlan,
   normalizeMotionSceneMetadata,
 } from "../shared/motionSceneQuality.js";
-import { fetchSatelliteAssetsForScene } from "./satelliteMapService.js";
+import {
+  fetchGeoMapAssetsForScene,
+  fetchSatelliteAssetsForScene,
+} from "./satelliteMapService.js";
 
 const SATELLITE_FIX_CODES = new Set([
   "missing_coords",
@@ -21,7 +24,8 @@ const SATELLITE_FIX_CODES = new Set([
 ]);
 
 function sceneNeedsSatelliteRefetch(scene, assessment) {
-  if (String(scene.template_id) !== "location-intro") return false;
+  const tpl = String(scene.template_id || "");
+  if (tpl !== "location-intro" && tpl !== "geo-map") return false;
   if (!assessment || assessment.ok) return false;
   return (assessment.issues || []).some(
     (i) => i.severity === "critical" && SATELLITE_FIX_CODES.has(i.code)
@@ -81,7 +85,11 @@ export async function ensureMotionScenesQuality(
       if (!sceneNeedsSatelliteRefetch(ms, assessment)) continue;
 
       try {
-        const fetched = await fetchSatelliteAssetsForScene(projDir, ms, {
+        const fetcher =
+          String(ms.template_id) === "geo-map"
+            ? fetchGeoMapAssetsForScene
+            : fetchSatelliteAssetsForScene;
+        const fetched = await fetcher(projDir, ms, {
           config,
           workspaceConfig,
         });

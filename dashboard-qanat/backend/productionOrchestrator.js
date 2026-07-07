@@ -10,7 +10,7 @@ import {
   planMotionScenesFromStoryboard,
   syncMotionScenesToStudio,
 } from "./motionScenePlanner.js";
-import { enrichMotionScenesWithSatellite } from "./satelliteMapService.js";
+import { enrichMotionScenesWithAssets } from "./motionSceneAssetService.js";
 import {
   dedupeMotionScenesAgainstOverlays,
   enrichMotionScenesWithLlm,
@@ -320,7 +320,7 @@ export async function orchestrateProduction(
 
   let satelliteMeta = null;
   if (fetchSatellite && plan.motion_scenes.length > 0) {
-    const enriched = await enrichMotionScenesWithSatellite(
+    const enriched = await enrichMotionScenesWithAssets(
       projDir,
       plan.motion_scenes,
       { config, workspaceConfig }
@@ -329,6 +329,7 @@ export async function orchestrateProduction(
     satelliteMeta = {
       enriched: enriched.enriched,
       results: enriched.results,
+      assets: true,
     };
   }
 

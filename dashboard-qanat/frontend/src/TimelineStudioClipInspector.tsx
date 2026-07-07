@@ -250,9 +250,9 @@ export function TimelineStudioClipInspector({
                 ) : null}
               </div>
               <p className="text-[9px] text-zinc-600 mt-1">
-                Voo gerado no Blender (terreno + animação). Baixa sozinho ao
-                planejar Cenas Remotion ou ao abrir clip sem mapa. Requer
-                Blender instalado (BLENDER_PATH).
+                Orquestração automática ao abrir a timeline: escolhe template,
+                preenche dados (mapa Blender, contadores, etc.) e sincroniza
+                clips. Requer Blender para flyover (BLENDER_PATH).
               </p>
             </Field>
           </>
