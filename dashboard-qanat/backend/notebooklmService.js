@@ -210,7 +210,7 @@ export function startNotebooklmLogin(backendDir) {
   }
 }
 
-export function getNotebooklmStatus(backendDir) {
+export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
   const loginState = getNotebooklmLoginState();
   if (loginState.inProgress) {
     return buildLoginPendingStatus(
@@ -219,7 +219,20 @@ export function getNotebooklmStatus(backendDir) {
     );
   }
   try {
-    runNlm(["login", "--check"], { timeoutMs: 12000, backendDir });
+    runNlm(["login", "--check"], {
+      timeoutMs: quick ? 4000 : 12000,
+      backendDir,
+    });
+    if (quick) {
+      return {
+        available: true,
+        authenticated: true,
+        notebookCount: null,
+        loginInProgress: false,
+        message: "NotebookLM conectado",
+        dataDir: resolveNotebooklmDataDir(backendDir),
+      };
+    }
     const listRaw = runNlm(["notebook", "list", "--json"], {
       timeoutMs: 25000,
       backendDir,

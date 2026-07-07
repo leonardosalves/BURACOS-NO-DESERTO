@@ -18004,39 +18004,55 @@ const PORT = 3005;
 
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend Server running on ${LUMIERA_BACKEND_BASE}`);
-  try {
-    const nlm = getNotebooklmStatus(__dirname);
-    if (nlm.authenticated) {
-      console.log(
-        `[NotebookLM] ${nlm.message} (${nlm.dataDir || ".notebooklm-data"})`
-      );
-    } else {
-      console.warn(`[NotebookLM] ${nlm.message}`);
+  // NotebookLM + schedulers rodam fora do callback — health responde na hora.
+  setImmediate(() => {
+    try {
+      const nlmQuick = getNotebooklmStatus(__dirname, { quick: true });
+      if (nlmQuick.authenticated) {
+        console.log(
+          `[NotebookLM] ${nlmQuick.message} (${nlmQuick.dataDir || ".notebooklm-data"})`
+        );
+        setImmediate(() => {
+          try {
+            const nlmFull = getNotebooklmStatus(__dirname);
+            if (nlmFull.authenticated && nlmFull.notebookCount != null) {
+              console.log(`[NotebookLM] ${nlmFull.message}`);
+            }
+          } catch (e) {
+            console.warn(
+              "[NotebookLM] listagem em background falhou:",
+              e.message
+            );
+          }
+        });
+      } else {
+        console.warn(`[NotebookLM] ${nlmQuick.message}`);
+      }
+    } catch (e) {
+      console.warn("[NotebookLM] status check failed:", e.message);
     }
-  } catch (e) {
-    console.warn("[NotebookLM] status check failed:", e.message);
-  }
-  startTitleRotationScheduler({
-    workspaceDir: WORKSPACE_DIR,
-    projectsRoot: PROJECTS_ROOT,
-  });
-  startSocialPublishScheduler({
-    workspaceDir: WORKSPACE_DIR,
-    deps: {
-      resolveProjectDir: resolveProjectDirFromName,
-      pythonPath: PYTHON_PATH,
+    startTitleRotationScheduler({
       workspaceDir: WORKSPACE_DIR,
-      syncUploadScripts,
-      runPostUploadHooks,
-    },
-  });
-  startYoutubeWeeklyReportScheduler({
-    workspaceDir: WORKSPACE_DIR,
-    projectsRoot: PROJECTS_ROOT,
-  });
-  startYoutubeDailyReportScheduler({
-    workspaceDir: WORKSPACE_DIR,
-    projectsRoot: PROJECTS_ROOT,
+      projectsRoot: PROJECTS_ROOT,
+    });
+    startSocialPublishScheduler({
+      workspaceDir: WORKSPACE_DIR,
+      deps: {
+        resolveProjectDir: resolveProjectDirFromName,
+        pythonPath: PYTHON_PATH,
+        workspaceDir: WORKSPACE_DIR,
+        syncUploadScripts,
+        runPostUploadHooks,
+      },
+    });
+    startYoutubeWeeklyReportScheduler({
+      workspaceDir: WORKSPACE_DIR,
+      projectsRoot: PROJECTS_ROOT,
+    });
+    startYoutubeDailyReportScheduler({
+      workspaceDir: WORKSPACE_DIR,
+      projectsRoot: PROJECTS_ROOT,
+    });
   });
 });
 

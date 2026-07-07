@@ -29,23 +29,28 @@ if (-not (Test-Path $WatchScript)) {
 
 $watchArgs = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$WatchScript`""
 $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $watchArgs -WorkingDirectory $RepoRoot
-$trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+$triggerLogon = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+$triggerBoot = New-ScheduledTaskTrigger -AtStartup
 $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries `
     -StartWhenAvailable `
-    -RestartCount 3 `
+    -ExecutionTimeLimit (New-TimeSpan -Days 365) `
+    -MultipleInstances IgnoreNew `
+    -RestartCount 999 `
     -RestartInterval (New-TimeSpan -Minutes 1)
 
 Register-ScheduledTask `
     -TaskName $TaskName `
     -Action $action `
-    -Trigger $trigger `
+    -Trigger @($triggerLogon, $triggerBoot) `
     -Settings $settings `
     -Description "Mantem o backend Lumiera (porta 3005) sempre online com auto-reinicio." `
     -Force | Out-Null
 
-Write-Host "OK: tarefa '$TaskName' - backend sobe ao fazer login no Windows." -ForegroundColor Green
+Start-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+
+Write-Host "OK: tarefa '$TaskName' - backend sobe no login e no boot do Windows." -ForegroundColor Green
 
 if ($IncludeFrontend) {
     if (-not (Test-Path $DashboardBat)) {
