@@ -146,20 +146,34 @@ export function registerTimelineStudioRoutes(
                   }))
               );
             const beforeFp = remotionFingerprint(studio.clips);
+            const beforeSuppressed = JSON.stringify(
+              studio.suppressedMotionSceneIds || []
+            );
             const remotionMerged = mergeRemotionFromStoryboard(
               studio,
               storyboard
             );
             remotionRestored = Number(remotionMerged.remotionRestored) || 0;
             motionSynced = Number(remotionMerged.motionSynced) || 0;
-            if (remotionFingerprint(remotionMerged.studio.clips) !== beforeFp) {
+            const afterFp = remotionFingerprint(remotionMerged.studio.clips);
+            const afterSuppressed = JSON.stringify(
+              remotionMerged.studio.suppressedMotionSceneIds || []
+            );
+            if (
+              afterFp !== beforeFp ||
+              afterSuppressed !== beforeSuppressed ||
+              motionSynced > 0
+            ) {
               studio = remotionMerged.studio;
               remotionChanged = true;
             }
           }
         }
-      } catch {
-        /* ignore storyboard sync */
+      } catch (storyboardErr) {
+        console.warn(
+          "[timeline-studio] storyboard remotion sync:",
+          storyboardErr?.message || storyboardErr
+        );
       }
 
       const musicChanged =

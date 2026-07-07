@@ -33,6 +33,25 @@ type DragState = {
 const RULER_HEIGHT = 28;
 const TRACK_LABEL_WIDTH = 88;
 const VIRTUAL_OVERSCAN_PX = 700;
+/** Remotion primeiro — evita trilhas roxa/verde ficarem abaixo do fold sem scroll. */
+const TRACK_DISPLAY_ORDER = [
+  "voice",
+  "motion",
+  "overlays",
+  "video",
+  "sfx",
+  "music",
+  "captions",
+];
+
+function hexToRgba(hex: string, alpha: number): string {
+  const raw = String(hex || "#64748b").replace("#", "");
+  if (raw.length !== 6) return `rgba(100, 116, 139, ${alpha})`;
+  const r = parseInt(raw.slice(0, 2), 16);
+  const g = parseInt(raw.slice(2, 4), 16);
+  const b = parseInt(raw.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 type VisibleWindow = {
   leftPx: number;
@@ -109,6 +128,17 @@ export function TimelineStudioTracks({
     for (let t = 0; t <= totalDur; t += step) items.push(t);
     return items;
   }, [totalDur, studio.zoom]);
+
+  const displayTracks = useMemo(() => {
+    const byId = new Map(studio.tracks.map((t) => [t.id, t]));
+    const ordered = TRACK_DISPLAY_ORDER.map((id) => byId.get(id)).filter(
+      Boolean
+    ) as StudioTrack[];
+    const rest = studio.tracks.filter(
+      (t) => !TRACK_DISPLAY_ORDER.includes(t.id)
+    );
+    return [...ordered, ...rest];
+  }, [studio.tracks]);
 
   const clipsByTrack = useMemo(() => {
     const grouped = new Map<string, StudioClip[]>();
@@ -213,7 +243,7 @@ export function TimelineStudioTracks({
 
       <div
         ref={scrollRef}
-        className="overflow-x-auto overflow-y-hidden"
+        className="overflow-x-auto overflow-y-auto max-h-[min(52vh,440px)]"
         onScroll={handleScroll}
       >
         <div
@@ -248,7 +278,7 @@ export function TimelineStudioTracks({
             </div>
           </div>
 
-          {studio.tracks.map((track) => (
+          {displayTracks.map((track) => (
             <TrackRow
               key={track.id}
               track={track}
@@ -299,24 +329,31 @@ const TrackRow = React.memo(function TrackRow({
     type: DragState["type"]
   ) => void;
 }) {
-  const h = track.height || 36;
+  const h =
+    track.id === "motion" || track.id === "overlays"
+      ? Math.max(track.height || 36, 44)
+      : track.height || 36;
   const color = track.color || "#64748b";
+  const isRemotionRow = track.id === "motion" || track.id === "overlays";
   const visibleClips = useMemo(
     () =>
-      clips.filter((clip) => {
-        const left = clip.start * pps;
-        const right = left + Math.max(clip.duration * pps, 6);
-        const selected = selectedClipId === clip.id;
-        const active =
-          playhead >= clip.start && playhead < clip.start + clip.duration;
-        return (
-          selected ||
-          active ||
-          (right >= visibleWindow.leftPx && left <= visibleWindow.rightPx)
-        );
-      }),
+      isRemotionRow
+        ? clips
+        : clips.filter((clip) => {
+            const left = clip.start * pps;
+            const right = left + Math.max(clip.duration * pps, 6);
+            const selected = selectedClipId === clip.id;
+            const active =
+              playhead >= clip.start && playhead < clip.start + clip.duration;
+            return (
+              selected ||
+              active ||
+              (right >= visibleWindow.leftPx && left <= visibleWindow.rightPx)
+            );
+          }),
     [
       clips,
+      isRemotionRow,
       playhead,
       pps,
       selectedClipId,
