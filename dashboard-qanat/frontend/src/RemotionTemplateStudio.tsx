@@ -2,7 +2,10 @@ import React, { useMemo, useState } from "react";
 import {
   BadgeCheck,
   Braces,
+  Check,
+  Code2,
   Copy,
+  Eye,
   Film,
   Layers3,
   Maximize2,
@@ -34,6 +37,7 @@ type TemplateItem = {
   status: "approved" | "draft";
   description: string;
   dataSlots: string[];
+  sourceCode: string;
   shortPreview: "ring" | "map" | "bars" | "title" | "media";
   longPreview: "line" | "map" | "bars" | "cinematic" | "media";
 };
@@ -114,6 +118,8 @@ const TEMPLATES: TemplateItem[] = [
     status: "approved",
     description: "Mapa em janela tecnica para shorts, fora da area de legenda.",
     dataSlots: ["locationName", "coordinates", "siteRef", "map"],
+    sourceCode:
+      "export function EngineeringTacticalMapPip({locationName, coordinates, siteRef, map}) {\n  return <EngineeringMapPipOverlay locationName={locationName} coordinates={coordinates} siteRef={siteRef} map={map} />;\n}",
     shortPreview: "map",
     longPreview: "map",
   },
@@ -127,6 +133,8 @@ const TEMPLATES: TemplateItem[] = [
     description:
       "Zoom continuo regiao, pais, cidade e alvo com orbit 360 para POI.",
     dataSlots: ["lat", "lng", "place_type", "flyover_video"],
+    sourceCode:
+      "export function ContinuousGeoFlyover({lat, lng, place_type, flyover_video}) {\n  return <GeoFlyoverScene lat={lat} lng={lng} placeType={place_type} video={flyover_video} />;\n}",
     shortPreview: "map",
     longPreview: "cinematic",
   },
@@ -139,6 +147,8 @@ const TEMPLATES: TemplateItem[] = [
     status: "approved",
     description: "Indicador circular com leitura tecnica para metricas curtas.",
     dataSlots: ["value", "label", "suffix"],
+    sourceCode:
+      "export function IndustrialKpiRing({value = 78, label = 'Completion Rate', suffix = '%'}) {\n  return <KpiRing value={value} label={label} suffix={suffix} />;\n}",
     shortPreview: "ring",
     longPreview: "line",
   },
@@ -151,6 +161,8 @@ const TEMPLATES: TemplateItem[] = [
     status: "approved",
     description: "Barras SVG com grid tecnico e cores por serie.",
     dataSlots: ["title", "items", "source"],
+    sourceCode:
+      "export function EngineeringBarGrid({title, items, source}) {\n  return <AnimatedBarGrid title={title} items={items} source={source} />;\n}",
     shortPreview: "bars",
     longPreview: "bars",
   },
@@ -163,6 +175,8 @@ const TEMPLATES: TemplateItem[] = [
     status: "draft",
     description: "Texto ancorado em placa CAD, nunca solto sobre o video.",
     dataSlots: ["title", "subtitle", "tag"],
+    sourceCode:
+      "export function BlueprintLowerThird({title, subtitle, tag}) {\n  return <CadLowerThird title={title} subtitle={subtitle} tag={tag} />;\n}",
     shortPreview: "title",
     longPreview: "media",
   },
@@ -175,23 +189,37 @@ const TEMPLATES: TemplateItem[] = [
     status: "draft",
     description: "Sequencia de processo com linhas, etapas e marcadores.",
     dataSlots: ["steps", "currentStep", "caption"],
+    sourceCode:
+      "export function StructuralProcessSteps({steps, currentStep, caption}) {\n  return <ProcessTimeline steps={steps} currentStep={currentStep} caption={caption} />;\n}",
     shortPreview: "media",
     longPreview: "bars",
   },
 ];
 
+type DetailTab = "preview" | "source";
+
 function PreviewFrame({
   format,
   variant,
+  size = "card",
 }: {
   format: "9:16" | "16:9";
   variant: TemplateItem["shortPreview"] | TemplateItem["longPreview"];
+  size?: "card" | "detail";
 }) {
   const vertical = format === "9:16";
+  const sizeClass =
+    size === "detail"
+      ? vertical
+        ? "aspect-[9/16] w-[154px] sm:w-[190px]"
+        : "aspect-video w-[280px] sm:w-[430px] lg:w-[520px]"
+      : vertical
+        ? "aspect-[9/16] w-[92px]"
+        : "aspect-video w-[190px]";
   return (
     <div
       className={`template-preview relative overflow-hidden rounded-[6px] border border-white/10 bg-[#0b111b] shadow-lg shadow-black/30 ${
-        vertical ? "aspect-[9/16] w-[92px]" : "aspect-video w-[190px]"
+        sizeClass
       }`}
     >
       <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.13)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.13)_1px,transparent_1px)] [background-size:22px_22px]" />
@@ -270,6 +298,128 @@ function PreviewFrame({
   );
 }
 
+function TemplateDetailPanel({
+  template,
+  activeTab,
+  copied,
+  onTabChange,
+  onCopy,
+}: {
+  template: TemplateItem;
+  activeTab: DetailTab;
+  copied: boolean;
+  onTabChange: (tab: DetailTab) => void;
+  onCopy: () => void;
+}) {
+  return (
+    <section className="border-b border-white/10 bg-[#0e1522]">
+      <div className="border-b border-white/10 px-4 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
+              Template selecionado
+            </p>
+            <h3 className="mt-1 text-2xl font-black text-white">
+              {template.name}
+            </h3>
+            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-zinc-300">
+              {template.description}
+            </p>
+          </div>
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-black uppercase ${
+              template.status === "approved"
+                ? "bg-emerald-400/12 text-emerald-300"
+                : "bg-amber-300/12 text-amber-200"
+            }`}
+          >
+            <BadgeCheck className="h-3.5 w-3.5" />
+            {template.status === "approved" ? "Aprovado" : "Rascunho"}
+          </span>
+        </div>
+      </div>
+
+      <div className="px-4">
+        <div className="flex items-center justify-between rounded-t-lg border border-b-0 border-white/10 bg-[#111827]">
+          <div className="flex">
+            <button
+              type="button"
+              onClick={() => onTabChange("preview")}
+              className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold ${
+                activeTab === "preview"
+                  ? "border-blue-400 text-white"
+                  : "border-transparent text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Eye className="h-4 w-4" />
+              Preview
+            </button>
+            <button
+              type="button"
+              onClick={() => onTabChange("source")}
+              className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold ${
+                activeTab === "source"
+                  ? "border-blue-400 text-white"
+                  : "border-transparent text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Code2 className="h-4 w-4" />
+              Source Code
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={onCopy}
+            className="mr-2 inline-flex items-center gap-2 rounded-md bg-black/30 px-3 py-2 text-sm font-bold text-zinc-300 hover:bg-black/50 hover:text-white"
+          >
+            {copied ? (
+              <Check className="h-4 w-4 text-emerald-300" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+      </div>
+
+      <div className="px-4 pb-4">
+        <div className="min-h-[314px] overflow-hidden rounded-b-lg border border-white/10 bg-[#162030]">
+          {activeTab === "preview" ? (
+            <div className="grid min-h-[314px] place-items-center px-4 py-5">
+              <div className="flex flex-wrap items-center justify-center gap-8">
+                <div className="space-y-2">
+                  <p className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">
+                    Shorts 9:16
+                  </p>
+                  <PreviewFrame
+                    format="9:16"
+                    variant={template.shortPreview}
+                    size="detail"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">
+                    Longos 16:9
+                  </p>
+                  <PreviewFrame
+                    format="16:9"
+                    variant={template.longPreview}
+                    size="detail"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <pre className="min-h-[314px] overflow-auto p-5 text-left font-mono text-xs leading-relaxed text-cyan-50">
+              <code>{template.sourceCode}</code>
+            </pre>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function RemotionTemplateStudio({
   activeProject,
   projectNiche,
@@ -282,6 +432,8 @@ export function RemotionTemplateStudio({
   const [subcategory, setSubcategory] = useState("PIP mapa");
   const [selectedId, setSelectedId] = useState("eng-map-pip-tactical");
   const [templates, setTemplates] = useState<TemplateItem[]>(TEMPLATES);
+  const [detailTab, setDetailTab] = useState<DetailTab>("preview");
+  const [copiedTemplateId, setCopiedTemplateId] = useState("");
   const [codeDraft, setCodeDraft] = useState(
     "export function MyTemplate(props) {\n  return <AbsoluteFill>{/* cole seu template aqui */}</AbsoluteFill>;\n}"
   );
@@ -317,6 +469,17 @@ export function RemotionTemplateStudio({
     if (selectedId === templateId) {
       const nextTemplate = templates.find((item) => item.id !== templateId);
       setSelectedId(nextTemplate?.id || "");
+    }
+  }
+
+  async function copyTemplateSource(template?: TemplateItem) {
+    if (!template) return;
+    try {
+      await navigator.clipboard.writeText(template.sourceCode);
+      setCopiedTemplateId(template.id);
+      window.setTimeout(() => setCopiedTemplateId(""), 1600);
+    } catch {
+      window.alert("Nao foi possivel copiar o codigo automaticamente.");
     }
   }
 
@@ -430,15 +593,29 @@ export function RemotionTemplateStudio({
             </div>
           </div>
 
+          {selected && (
+            <TemplateDetailPanel
+              template={selected}
+              activeTab={detailTab}
+              copied={copiedTemplateId === selected.id}
+              onTabChange={setDetailTab}
+              onCopy={() => copyTemplateSource(selected)}
+            />
+          )}
+
           <div className="grid gap-4 p-4 2xl:grid-cols-2">
             {visibleTemplates.map((template) => (
               <article
                 key={template.id}
-                onClick={() => setSelectedId(template.id)}
+                onClick={() => {
+                  setSelectedId(template.id);
+                  setDetailTab("preview");
+                }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     setSelectedId(template.id);
+                    setDetailTab("preview");
                   }
                 }}
                 tabIndex={0}
