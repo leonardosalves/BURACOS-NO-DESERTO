@@ -48,7 +48,7 @@ while ((Get-Date) -lt $deadline) {
 }
 
 # Fallback: sobe o loop diretamente se a tarefa agendada nao iniciou
-Write-Host "Tarefa agendada nao subiu — iniciando watchdog em background..." -ForegroundColor Yellow
+Write-Host "Tarefa agendada nao subiu - iniciando watchdog em background..." -ForegroundColor Yellow
 Start-Process `
     -FilePath "powershell.exe" `
     -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", "`"$WatchScript`"") `
@@ -66,5 +66,5 @@ if ($running) {
     exit 0
 }
 
-Write-Host "Falha ao subir watchdog — veja .lumiera-logs\backend-watch.log" -ForegroundColor Red
+Write-Host "Falha ao subir watchdog - veja .lumiera-logs\backend-watch.log" -ForegroundColor Red
 exit 1
