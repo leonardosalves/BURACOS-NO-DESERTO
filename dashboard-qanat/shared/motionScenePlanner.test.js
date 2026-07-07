@@ -181,7 +181,7 @@ describe("motionScenePlanner", () => {
     assert.equal(city.presentation, "pip");
     assert.equal(city.fly_mode, "earth_descent");
     assert.equal(city.place_type, "city");
-    assert.equal(city.zoom_to, 12);
+    assert.equal(city.zoom_to, 10);
   });
 
   it("plan location-intro usa duração mínima 8s", () => {

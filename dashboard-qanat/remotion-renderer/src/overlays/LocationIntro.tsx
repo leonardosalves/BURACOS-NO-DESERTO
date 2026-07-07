@@ -157,25 +157,18 @@ const MultiKeyframeSatellite: React.FC<{
     );
   }
 
-  const segment = durationInFrames / (sorted.length - 1);
-  const idx = Math.min(
-    sorted.length - 2,
-    Math.max(0, Math.floor(frame / Math.max(segment, 1)))
-  );
-  const localT = interpolate(
-    frame,
-    [idx * segment, (idx + 1) * segment],
-    [0, 1],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-  );
+  const progress = frame / Math.max(durationInFrames - 1, 1);
+  const eased = Easing.bezier(0.42, 0, 0.2, 1)(progress);
+  const n = sorted.length - 1;
+  const pos = eased * n;
+  const idx = Math.min(n - 1, Math.max(0, Math.floor(pos)));
+  const localT = pos - idx;
 
   const zoomA = Number(sorted[idx].zoom) || 8;
   const zoomB = Number(sorted[idx + 1].zoom) || 14;
-  const scaleA = 1 + zoomA / 26;
-  const scaleB = 1 + zoomB / 22;
-  const scale = interpolate(localT, [0, 1], [scaleA, scaleB], {
-    easing: Easing.bezier(0.22, 0.1, 0.25, 1),
-  });
+  const scaleA = 1 + zoomA / 30;
+  const scaleB = 1 + zoomB / 30;
+  const scale = scaleA + (scaleB - scaleA) * localT;
 
   return (
     <AbsoluteFill
