@@ -977,21 +977,44 @@ app.use("/api/projects-media", (req, res, next) => {
 
 // Helper: Resolve active project directory dynamically based on request parameters
 
-function getProjectDir(req) {
+function getProjectContext(req) {
   let rawProjName = req.query?.project || req.body?.project;
   if (Array.isArray(rawProjName)) rawProjName = rawProjName[0];
-  if (!rawProjName) {
-    return WORKSPACE_DIR;
+  const requestedName = String(rawProjName || "").trim();
+  if (!requestedName) {
+    return {
+      requestedName: "",
+      projDir: WORKSPACE_DIR,
+      resolved: true,
+      resolvedName: path.basename(WORKSPACE_DIR),
+      fallbackWorkspace: false,
+    };
   }
 
-  const resolved = resolveProjectDirFromName(rawProjName);
+  const resolved = resolveProjectDirFromName(requestedName);
   if (resolved) {
     global.lastActiveProjectDir = resolved;
-    return resolved;
+    return {
+      requestedName,
+      projDir: resolved,
+      resolved: true,
+      resolvedName: path.basename(resolved),
+      fallbackWorkspace: false,
+    };
   }
 
   global.lastActiveProjectDir = WORKSPACE_DIR;
-  return WORKSPACE_DIR;
+  return {
+    requestedName,
+    projDir: WORKSPACE_DIR,
+    resolved: false,
+    resolvedName: null,
+    fallbackWorkspace: true,
+  };
+}
+
+function getProjectDir(req) {
+  return getProjectContext(req).projDir;
 }
 
 // Helper: Auto-copy missing or outdated timing and render template files to project folder on-demand
@@ -18215,6 +18238,7 @@ workflowApi = registerWorkflowRoutes(app, {
 
 registerTimelineStudioRoutes(app, {
   getProjectDir,
+  getProjectContext,
   workspaceDir: WORKSPACE_DIR,
   callGemini: (projDir, prompt, opts) =>
     callGeminiWithRetry(getApiKey(projDir), prompt, opts),

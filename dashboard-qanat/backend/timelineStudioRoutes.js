@@ -57,11 +57,20 @@ function syncStudioMusicFromConfig(rawStudio, projDir) {
 
 export function registerTimelineStudioRoutes(
   app,
-  { getProjectDir, workspaceDir, callGemini }
+  { getProjectDir, getProjectContext, workspaceDir, callGemini }
 ) {
   app.get("/api/timeline-studio", (req, res) => {
     try {
-      const projDir = getProjectDir(req);
+      const projectCtx = getProjectContext
+        ? getProjectContext(req)
+        : {
+            requestedName: "",
+            resolved: true,
+            resolvedName: null,
+            fallbackWorkspace: false,
+            projDir: getProjectDir(req),
+          };
+      const projDir = projectCtx.projDir;
       const light =
         req.query.light === "1" ||
         String(req.query.sync || "").toLowerCase() === "0";
@@ -165,7 +174,12 @@ export function registerTimelineStudioRoutes(
         musicChanged =
           JSON.stringify(musicClipSnapshot(rawStudio)) !==
           JSON.stringify(musicClipSnapshot(studio));
-        if (musicChanged || brollRestored > 0 || remotionChanged) {
+        if (
+          musicChanged ||
+          brollRestored > 0 ||
+          remotionChanged ||
+          narrationSynced
+        ) {
           saveTimelineStudio(projDir, studio);
         }
       } else if (narrationSynced) {
@@ -183,6 +197,10 @@ export function registerTimelineStudioRoutes(
         brollRestored,
         remotionRestored,
         motionSynced,
+        projectResolved: projectCtx.resolved !== false,
+        requestedProject: projectCtx.requestedName || null,
+        resolvedProject: projectCtx.resolvedName || null,
+        projectFallbackWorkspace: Boolean(projectCtx.fallbackWorkspace),
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
