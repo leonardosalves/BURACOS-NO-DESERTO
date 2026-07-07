@@ -38,8 +38,10 @@ type TemplateItem = {
     short: string;
     long: string;
   };
-  shortPreview: "ring" | "map" | "bars" | "title" | "media";
-  longPreview: "line" | "map" | "bars" | "cinematic" | "media";
+  shortPreview:
+    "ring" | "circular-progress" | "map" | "bars" | "title" | "media";
+  longPreview:
+    "line" | "circular-progress" | "map" | "bars" | "cinematic" | "media";
 };
 
 type TemplateCategoryDefinition = {
@@ -57,7 +59,13 @@ const CATEGORIES: TemplateCategoryDefinition[] = [
   {
     id: "chart-data",
     label: "Chart Data",
-    subcategories: ["Counter", "Bar chart", "Line chart", "KPI"],
+    subcategories: [
+      "Counter",
+      "Bar chart",
+      "Line chart",
+      "KPI",
+      "Circular Progress",
+    ],
   },
   {
     id: "text",
@@ -225,6 +233,26 @@ type DetailFormat = "short" | "long";
 type PreviewVariant =
   TemplateItem["shortPreview"] | TemplateItem["longPreview"];
 
+type TemplatePreviewProps = {
+  title?: string;
+  subtitle?: string;
+  progress?: number;
+  value?: number;
+  label?: string;
+  suffix?: string;
+};
+
+const PREVIEW_DURATION_BY_VARIANT: Record<PreviewVariant, number> = {
+  ring: 90,
+  "circular-progress": 150,
+  map: 90,
+  bars: 90,
+  title: 90,
+  media: 90,
+  line: 90,
+  cinematic: 90,
+};
+
 function slugifyTemplatePart(value: string) {
   return String(value || "template")
     .normalize("NFD")
@@ -234,15 +262,37 @@ function slugifyTemplatePart(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function isCircularProgressContext(...labels: string[]) {
+  const haystack = labels.join(" ").toLowerCase();
+  return (
+    haystack.includes("circular progress") ||
+    haystack.includes("circular-progress") ||
+    (haystack.includes("circular") && haystack.includes("progress"))
+  );
+}
+
 function resolvePreviewVariants(
   category: TemplateCategory,
-  subcategory: string
+  subcategory: string,
+  templateType = ""
 ): Pick<TemplateItem, "shortPreview" | "longPreview"> {
   const sub = subcategory.toLowerCase();
+  if (isCircularProgressContext(subcategory, templateType)) {
+    return {
+      shortPreview: "circular-progress",
+      longPreview: "circular-progress",
+    };
+  }
   if (category === "maps") return { shortPreview: "map", longPreview: "map" };
   if (category === "chart-data") {
     if (sub.includes("bar")) {
       return { shortPreview: "bars", longPreview: "bars" };
+    }
+    if (sub.includes("line")) {
+      return { shortPreview: "bars", longPreview: "line" };
+    }
+    if (sub.includes("counter") || sub.includes("kpi")) {
+      return { shortPreview: "ring", longPreview: "circular-progress" };
     }
     return { shortPreview: "ring", longPreview: "line" };
   }
@@ -255,6 +305,41 @@ function resolvePreviewVariants(
     return { shortPreview: "media", longPreview: "media" };
   }
   return { shortPreview: "media", longPreview: "bars" };
+}
+
+function effectivePreviewVariant(
+  variant: PreviewVariant,
+  template?: Pick<TemplateItem, "name" | "subcategory">
+): PreviewVariant {
+  if (
+    isCircularProgressContext(template?.name || "", template?.subcategory || "")
+  ) {
+    return "circular-progress";
+  }
+  return variant;
+}
+
+function buildPreviewPropsFromSlots(slots: string[]): TemplatePreviewProps {
+  const props: TemplatePreviewProps = {};
+  for (const slot of slots) {
+    const key = slot.trim();
+    if (!key) continue;
+    const normalized = key.toLowerCase();
+    if (normalized === "progress" || normalized === "value") {
+      props[normalized === "progress" ? "progress" : "value"] = 78;
+    } else if (normalized === "label") {
+      props.label = "Completion Rate";
+    } else if (normalized === "title") {
+      props.title = "Engineering KPI";
+    } else if (normalized === "subtitle") {
+      props.subtitle = "Live metric";
+    } else if (normalized === "suffix") {
+      props.suffix = "%";
+    }
+  }
+  if (!props.progress && !props.value) props.progress = 78;
+  if (!props.label) props.label = "Completion Rate";
+  return props;
 }
 
 function buildFormatSource({
@@ -321,13 +406,15 @@ function uniqueCategoryId(
 function RemotionTemplatePreview({
   format,
   variant,
+  previewProps = {},
 }: {
   format: "9:16" | "16:9";
   variant: PreviewVariant;
+  previewProps?: TemplatePreviewProps;
 }) {
   const frame = useCurrentFrame();
   const { width, height, fps } = useVideoConfig();
-  const progress = interpolate(frame % (fps * 3), [0, fps * 3 - 1], [0, 1]);
+  const loopProgress = interpolate(frame % (fps * 3), [0, fps * 3 - 1], [0, 1]);
   const enter = interpolate(frame, [0, 18], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -336,6 +423,30 @@ function RemotionTemplatePreview({
   const isVertical = format === "9:16";
   const palette = ["#4f7cff", "#7c2dff", "#22d3ee", "#ff2f8f"];
   const bars = [42, 80, 34, 72, 56, 92];
+  const targetValue = Number(previewProps.progress ?? previewProps.value ?? 78);
+  const metricLabel = previewProps.label || "Completion Rate";
+  const metricSuffix = previewProps.suffix || "%";
+  const metricTitle = previewProps.title || "";
+  const metricSubtitle = previewProps.subtitle || "";
+  const fillProgress = interpolate(frame, [10, fps * 2.6 + 10], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.bezier(0.22, 1, 0.36, 1),
+  });
+  const displayValue = Math.round(targetValue * fillProgress);
+  const titleEnter = interpolate(frame, [14, 34], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+  const subtitleEnter = interpolate(frame, [24, 44], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+  const ringCircumference = 402;
+  const ringRadius = isVertical ? 60 : 64;
+  const ringStroke = isVertical ? 16 : 18;
 
   return (
     <AbsoluteFill
@@ -360,7 +471,7 @@ function RemotionTemplatePreview({
           inset: 0,
           background:
             "radial-gradient(circle at 50% 50%, rgba(34,211,238,.22), transparent 28%), linear-gradient(135deg, rgba(14,165,233,.08), transparent 55%)",
-          transform: `translateY(${interpolate(progress, [0, 1], [-height * 0.12, height * 0.12])}px)`,
+          transform: `translateY(${interpolate(loopProgress, [0, 1], [-height * 0.12, height * 0.12])}px)`,
         }}
       />
 
@@ -396,7 +507,7 @@ function RemotionTemplatePreview({
               strokeLinecap="round"
               strokeDasharray="402"
               strokeDashoffset={
-                402 - 402 * interpolate(progress, [0, 1], [0.18, 0.78])
+                402 - 402 * interpolate(loopProgress, [0, 1], [0.18, 0.78])
               }
               transform="rotate(-90 90 90)"
             />
@@ -410,7 +521,7 @@ function RemotionTemplatePreview({
               strokeLinecap="round"
               strokeDasharray="402"
               strokeDashoffset={
-                402 - 402 * interpolate(progress, [0, 1], [0.06, 0.22])
+                402 - 402 * interpolate(loopProgress, [0, 1], [0.06, 0.22])
               }
               transform="rotate(170 90 90)"
             />
@@ -423,13 +534,199 @@ function RemotionTemplatePreview({
             }}
           >
             <div style={{ fontSize: isVertical ? 23 : 38, fontWeight: 900 }}>
-              78%
+              {displayValue}
+              {metricSuffix}
             </div>
             <div style={{ color: "#a7b0c2", fontSize: isVertical ? 8 : 13 }}>
-              Completion Rate
+              {metricLabel}
             </div>
           </div>
         </div>
+      )}
+
+      {variant === "circular-progress" && (
+        <>
+          <div
+            style={{
+              position: "absolute",
+              left: isVertical ? 14 : 28,
+              right: isVertical ? 14 : 28,
+              top: isVertical ? 42 : 36,
+              opacity: titleEnter,
+              transform: `translateY(${interpolate(titleEnter, [0, 1], [12, 0])}px)`,
+            }}
+          >
+            {metricTitle ? (
+              <div
+                style={{
+                  fontSize: isVertical ? 11 : 16,
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "#67e8f9",
+                }}
+              >
+                {metricTitle}
+              </div>
+            ) : null}
+            {metricSubtitle ? (
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: isVertical ? 9 : 12,
+                  color: "#94a3b8",
+                  opacity: subtitleEnter,
+                }}
+              >
+                {metricSubtitle}
+              </div>
+            ) : null}
+          </div>
+
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+                width: isVertical ? 148 : 220,
+                height: isVertical ? 148 : 220,
+                borderRadius: 999,
+                boxShadow: `0 0 ${interpolate(fillProgress, [0, 1], [8, 34])}px rgba(34,211,238,${interpolate(fillProgress, [0, 1], [0.12, 0.42])})`,
+              }}
+            >
+              <svg
+                width="100%"
+                height="100%"
+                viewBox="0 0 180 180"
+                style={{ transform: "rotate(-90deg)" }}
+              >
+                <circle
+                  cx="90"
+                  cy="90"
+                  r={ringRadius}
+                  fill="none"
+                  stroke="rgba(15,23,42,.92)"
+                  strokeWidth={ringStroke}
+                />
+                <circle
+                  cx="90"
+                  cy="90"
+                  r={ringRadius}
+                  fill="none"
+                  stroke="rgba(34,211,238,.18)"
+                  strokeWidth={ringStroke}
+                  strokeDasharray={`${ringCircumference * 0.12} ${ringCircumference}`}
+                  strokeDashoffset={
+                    -ringCircumference *
+                    interpolate(fillProgress, [0, 1], [0, 0.88])
+                  }
+                />
+                <circle
+                  cx="90"
+                  cy="90"
+                  r={ringRadius}
+                  fill="none"
+                  stroke="#22d3ee"
+                  strokeWidth={ringStroke}
+                  strokeLinecap="round"
+                  strokeDasharray={ringCircumference}
+                  strokeDashoffset={
+                    ringCircumference -
+                    ringCircumference * (targetValue / 100) * fillProgress
+                  }
+                />
+                <circle
+                  cx="90"
+                  cy="90"
+                  r={ringRadius}
+                  fill="none"
+                  stroke="#4f7cff"
+                  strokeWidth={4}
+                  strokeLinecap="round"
+                  strokeDasharray={`2 ${ringCircumference - 2}`}
+                  strokeDashoffset={
+                    ringCircumference -
+                    ringCircumference * (targetValue / 100) * fillProgress
+                  }
+                  opacity={0.85}
+                />
+              </svg>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  textAlign: "center",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: isVertical ? 28 : 42,
+                    fontWeight: 900,
+                    lineHeight: 1,
+                    color: "#f8fafc",
+                  }}
+                >
+                  {displayValue}
+                  <span
+                    style={{
+                      fontSize: isVertical ? 12 : 18,
+                      color: "#67e8f9",
+                      marginLeft: 2,
+                    }}
+                  >
+                    {metricSuffix}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: isVertical ? 9 : 12,
+                    fontWeight: 700,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    color: "#94a3b8",
+                    opacity: subtitleEnter,
+                  }}
+                >
+                  {metricLabel}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              position: "absolute",
+              left: isVertical ? 16 : 28,
+              right: isVertical ? 16 : 28,
+              bottom: isVertical ? 28 : 24,
+              height: 4,
+              borderRadius: 999,
+              backgroundColor: "rgba(15,23,42,.9)",
+              overflow: "hidden",
+              opacity: titleEnter,
+            }}
+          >
+            <div
+              style={{
+                width: `${targetValue * fillProgress}%`,
+                height: "100%",
+                borderRadius: 999,
+                background:
+                  "linear-gradient(90deg, rgba(34,211,238,.35), #22d3ee)",
+                boxShadow: "0 0 16px rgba(34,211,238,.45)",
+              }}
+            />
+          </div>
+        </>
       )}
 
       {variant === "bars" && (
@@ -507,7 +804,7 @@ function RemotionTemplatePreview({
             border: "2px solid rgba(34,211,238,.68)",
             borderRadius: 10,
             backgroundColor: "rgba(8,47,73,.44)",
-            transform: `scale(${interpolate(progress, [0, 1], [1, 1.18])}) translate(${interpolate(progress, [0, 1], [0, -width * 0.018])}px, ${interpolate(progress, [0, 1], [0, height * 0.018])}px)`,
+            transform: `scale(${interpolate(loopProgress, [0, 1], [1, 1.18])}) translate(${interpolate(loopProgress, [0, 1], [0, -width * 0.018])}px, ${interpolate(loopProgress, [0, 1], [0, height * 0.018])}px)`,
           }}
         >
           <div
@@ -520,7 +817,7 @@ function RemotionTemplatePreview({
               borderRadius: 999,
               backgroundColor: "#67e8f9",
               boxShadow: "0 0 28px #22d3ee",
-              scale: interpolate(progress, [0, 0.5, 1], [0.78, 1.35, 0.78]),
+              scale: interpolate(loopProgress, [0, 0.5, 1], [0.78, 1.35, 0.78]),
             }}
           />
           <div
@@ -579,7 +876,7 @@ function RemotionTemplatePreview({
             border: "1px solid rgba(251,191,36,.45)",
             background:
               "linear-gradient(135deg, rgba(113,113,122,.9), rgba(9,9,11,.95) 48%, rgba(8,47,73,.86))",
-            transform: `scale(${interpolate(progress, [0, 1], [1.02, 1.14])}) translateX(${interpolate(progress, [0, 1], [0, -width * 0.018])}px)`,
+            transform: `scale(${interpolate(loopProgress, [0, 1], [1.02, 1.14])}) translateX(${interpolate(loopProgress, [0, 1], [0, -width * 0.018])}px)`,
           }}
         >
           <div
@@ -629,11 +926,15 @@ function RemotionTemplatePreview({
 function PreviewFrame({
   format,
   variant,
+  previewProps,
   size = "card",
+  autoPlay = false,
 }: {
   format: "9:16" | "16:9";
   variant: PreviewVariant;
+  previewProps?: TemplatePreviewProps;
   size?: "card" | "detail";
+  autoPlay?: boolean;
 }) {
   const vertical = format === "9:16";
   const dimensions =
@@ -648,6 +949,7 @@ function PreviewFrame({
       : vertical
         ? { width: 162, height: 288, className: "w-[92px]" }
         : { width: 304, height: 171, className: "w-[190px]" };
+  const durationInFrames = PREVIEW_DURATION_BY_VARIANT[variant] || 90;
 
   return (
     <div
@@ -655,17 +957,19 @@ function PreviewFrame({
     >
       <Player
         component={RemotionTemplatePreview}
-        inputProps={{ format, variant }}
-        durationInFrames={90}
+        inputProps={{ format, variant, previewProps }}
+        durationInFrames={durationInFrames}
         fps={30}
         compositionWidth={dimensions.width}
         compositionHeight={dimensions.height}
         style={{ width: "100%" }}
         controls
         loop
-        autoPlay
+        autoPlay={autoPlay}
+        initialFrame={0}
         clickToPlay
         spaceKeyToPlayOrPause
+        showVolumeControls={false}
       />
     </div>
   );
@@ -691,9 +995,11 @@ function TemplateDetailPanel({
   onBack: () => void;
 }) {
   const activeSource = template.sourceCode[activeFormat];
-  const activePreview =
+  const basePreview =
     activeFormat === "short" ? template.shortPreview : template.longPreview;
+  const activePreview = effectivePreviewVariant(basePreview, template);
   const activeAspectRatio = activeFormat === "short" ? "9:16" : "16:9";
+  const previewProps = buildPreviewPropsFromSlots(template.dataSlots);
 
   return (
     <section className="bg-[#0e1522]">
@@ -807,8 +1113,13 @@ function TemplateDetailPanel({
                   <PreviewFrame
                     format={activeAspectRatio}
                     variant={activePreview}
+                    previewProps={previewProps}
                     size="detail"
+                    autoPlay={false}
                   />
+                  <p className="text-center text-[10px] font-bold text-zinc-500">
+                    Aperte play para ver a animacao completa do template.
+                  </p>
                 </div>
               </div>
             </div>
@@ -911,6 +1222,21 @@ export function RemotionTemplateStudio({
   }, [categories]);
 
   const subcategories = currentCategory?.subcategories || [];
+  const creationPreviewVariant = useMemo(
+    () =>
+      resolvePreviewVariants(category, subcategory, templateType).shortPreview,
+    [category, subcategory, templateType]
+  );
+  const creationPreviewProps = useMemo(
+    () =>
+      buildPreviewPropsFromSlots(
+        propsDraft
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      ),
+    [propsDraft]
+  );
   const visibleTemplates = useMemo(
     () =>
       templates.filter(
@@ -1151,7 +1477,11 @@ export function RemotionTemplateStudio({
       return;
     }
     const categoryLabel = currentCategory?.label || category;
-    const variants = resolvePreviewVariants(category, subcategory);
+    const variants = resolvePreviewVariants(
+      category,
+      subcategory,
+      templateType
+    );
     const id = `${kind}-${slugifyTemplatePart(niche)}-${slugifyTemplatePart(
       categoryLabel
     )}-${slugifyTemplatePart(subcategory)}-${Date.now()}`;
@@ -1369,11 +1699,25 @@ export function RemotionTemplateStudio({
                   <div className="flex gap-3 border-b border-white/10 bg-[#0c121d] p-3">
                     <PreviewFrame
                       format="9:16"
-                      variant={template.shortPreview}
+                      variant={effectivePreviewVariant(
+                        template.shortPreview,
+                        template
+                      )}
+                      previewProps={buildPreviewPropsFromSlots(
+                        template.dataSlots
+                      )}
+                      autoPlay
                     />
                     <PreviewFrame
                       format="16:9"
-                      variant={template.longPreview}
+                      variant={effectivePreviewVariant(
+                        template.longPreview,
+                        template
+                      )}
+                      previewProps={buildPreviewPropsFromSlots(
+                        template.dataSlots
+                      )}
+                      autoPlay
                     />
                   </div>
                   <div className="p-4">
@@ -1478,6 +1822,32 @@ export function RemotionTemplateStudio({
               }
               spellCheck={false}
             />
+
+            <div className="mt-4 rounded-md border border-cyan-300/20 bg-cyan-300/[0.04] p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cyan-200">
+                  Preview ao vivo
+                </p>
+                <span className="text-[10px] font-bold text-zinc-500">
+                  Shorts 9:16
+                </span>
+              </div>
+              <div className="grid place-items-center">
+                <PreviewFrame
+                  key={`${creationPreviewVariant}-${propsDraft}-${templateType}`}
+                  format="9:16"
+                  variant={creationPreviewVariant}
+                  previewProps={creationPreviewProps}
+                  size="detail"
+                  autoPlay={false}
+                />
+              </div>
+              <p className="mt-2 text-center text-[10px] leading-relaxed text-zinc-500">
+                O preview usa props de exemplo e anima como uso real ao apertar
+                play: arco, contador e labels entram no tempo do template.
+              </p>
+            </div>
+
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button
                 type="button"
