@@ -866,11 +866,25 @@ export function RemotionTemplateStudio({
   const [detailTab, setDetailTab] = useState<DetailTab>("preview");
   const [detailFormat, setDetailFormat] = useState<DetailFormat>("short");
   const [copiedTemplateId, setCopiedTemplateId] = useState("");
-  const [codeDraft, setCodeDraft] = useState(
-    "export function MyTemplate(props) {\n  return <AbsoluteFill>{/* cole seu template aqui */}</AbsoluteFill>;\n}"
+  const [templateType, setTemplateType] = useState("");
+  const [propsDraft, setPropsDraft] = useState(
+    "title, subtitle, progress, label, imageUrl, location"
   );
+  const [codeDraft, setCodeDraft] = useState("");
   const [aiBrief, setAiBrief] = useState(
-    "Adaptar para Engenharia, com versao 9:16 e 16:9, sem texto solto e com props editaveis."
+    [
+      "Adaptar este template Remotion para o nicho Engenharia.",
+      "",
+      "Criar uma versao com visual tecnico, moderno e profissional, com estetica de blueprint, HUD, linhas de medicao, grid tecnico, detalhes em cyan, amarelo de marcacao e fundo grafite.",
+      "",
+      "Gerar layout responsivo para 9:16 e 16:9 usando useVideoConfig para detectar largura e altura.",
+      "",
+      "Nao deixar texto fixo solto no codigo. Todo texto, numero, imagem, cor e label deve vir por props editaveis.",
+      "",
+      "Manter a animacao principal do template original, mas melhorar o design, hierarquia visual, espacamentos, bordas tecnicas e aparencia profissional.",
+      "",
+      "Retornar o codigo Remotion completo, pronto para uso, com props tipadas e exemplo de uso.",
+    ].join("\n")
   );
   const currentCategory = categories.find((c) => c.id === category);
 
@@ -982,6 +996,59 @@ export function RemotionTemplateStudio({
     setDetailTemplateId("");
   }
 
+  function deleteCategory(categoryId: string) {
+    const target = categories.find((item) => item.id === categoryId);
+    if (!target) return;
+    const shouldDelete = window.confirm(
+      `Excluir a categoria "${target.label}" e todos os templates dela?`
+    );
+    if (!shouldDelete) return;
+    const nextCategories = categories.filter((item) => item.id !== categoryId);
+    setCategories(nextCategories);
+    setTemplates((current) =>
+      current.filter((template) => template.category !== categoryId)
+    );
+    if (category === categoryId) {
+      const nextCategory = nextCategories[0];
+      setCategory(nextCategory?.id || "");
+      setSubcategory(nextCategory?.subcategories[0] || "");
+      setSelectedId("");
+      setDetailTemplateId("");
+    }
+  }
+
+  function deleteSubcategory(subcategoryName: string) {
+    if (!currentCategory) return;
+    const shouldDelete = window.confirm(
+      `Excluir a subcategoria "${subcategoryName}" e todos os templates dela?`
+    );
+    if (!shouldDelete) return;
+    const remainingSubcategories = currentCategory.subcategories.filter(
+      (item) => item !== subcategoryName
+    );
+    setCategories((current) =>
+      current.map((item) =>
+        item.id === currentCategory.id
+          ? { ...item, subcategories: remainingSubcategories }
+          : item
+      )
+    );
+    setTemplates((current) =>
+      current.filter(
+        (template) =>
+          !(
+            template.category === currentCategory.id &&
+            template.subcategory === subcategoryName
+          )
+      )
+    );
+    if (subcategory === subcategoryName) {
+      setSubcategory(remainingSubcategories[0] || "");
+      setSelectedId("");
+      setDetailTemplateId("");
+    }
+  }
+
   async function copyTemplateSource(template?: TemplateItem) {
     if (!template) return;
     try {
@@ -993,7 +1060,96 @@ export function RemotionTemplateStudio({
     }
   }
 
+  function assistTemplateWithAi() {
+    const originalCode = codeDraft.trim();
+    if (!originalCode) {
+      window.alert(
+        "Cole o codigo Remotion original completo no campo Template Code antes de usar Assistir IA."
+      );
+      return;
+    }
+    const categoryLabel = currentCategory?.label || category;
+    const props = propsDraft
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const propTypeLines = props
+      .map((prop) => `  ${prop}?: unknown;`)
+      .join("\n");
+    const adaptedCode = [
+      `"use client";`,
+      "",
+      `import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";`,
+      "",
+      `type ${slugifyTemplatePart(templateType || subcategory)
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("")}Props = {`,
+      propTypeLines || "  data?: unknown;",
+      "};",
+      "",
+      "/*",
+      `NICHO: ${niche}`,
+      `TIPO DO TEMPLATE: ${templateType || subcategory}`,
+      `CATEGORIA: ${categoryLabel}`,
+      `SUBCATEGORIA: ${subcategory}`,
+      "FORMATOS: 9:16 e 16:9",
+      "",
+      "BRIEFING:",
+      aiBrief,
+      "",
+      "CODIGO ORIGINAL:",
+      originalCode,
+      "*/",
+      "",
+      `export default function Adapted${slugifyTemplatePart(
+        templateType || subcategory
+      )
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("")}(props: ${slugifyTemplatePart(templateType || subcategory)
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("")}Props) {`,
+      "  const frame = useCurrentFrame();",
+      "  const { width, height } = useVideoConfig();",
+      "  const isVertical = height > width;",
+      '  const enter = interpolate(frame, [0, 24], [0, 1], { extrapolateRight: "clamp" });',
+      "",
+      "  return (",
+      "    <AbsoluteFill",
+      "      style={{",
+      '        background: "#0b111b",',
+      '        color: "#e5f7ff",',
+      '        border: "1px solid rgba(34,211,238,0.32)",',
+      "        opacity: enter,",
+      "        padding: isVertical ? 48 : 64,",
+      "      }}",
+      "    >",
+      "      {/* TODO IA: substituir este bloco pela versao adaptada do template original acima, mantendo a animacao principal e usando apenas props editaveis. */}",
+      '      <pre style={{ whiteSpace: "pre-wrap", fontSize: isVertical ? 28 : 34 }}>',
+      "        {JSON.stringify(props, null, 2)}",
+      "      </pre>",
+      "    </AbsoluteFill>",
+      "  );",
+      "}",
+      "",
+      "export const exampleProps = {",
+      props.map((prop) => `  ${prop}: "${prop}",`).join("\n") ||
+        '  data: "example",',
+      "};",
+    ].join("\n");
+
+    setCodeDraft(adaptedCode);
+  }
+
   function saveAssistedDraft(kind: "ai" | "draft") {
+    if (!codeDraft.trim()) {
+      window.alert(
+        "Cole ou gere um codigo Remotion completo antes de salvar o draft."
+      );
+      return;
+    }
     const categoryLabel = currentCategory?.label || category;
     const variants = resolvePreviewVariants(category, subcategory);
     const id = `${kind}-${slugifyTemplatePart(niche)}-${slugifyTemplatePart(
@@ -1001,7 +1157,7 @@ export function RemotionTemplateStudio({
     )}-${slugifyTemplatePart(subcategory)}-${Date.now()}`;
     const template: TemplateItem = {
       id,
-      name: `${niche} ${subcategory} ${kind === "ai" ? "AI" : "Draft"}`,
+      name: `${niche} ${templateType || subcategory} ${kind === "ai" ? "AI" : "Draft"}`,
       category,
       subcategory,
       niche,
@@ -1010,7 +1166,10 @@ export function RemotionTemplateStudio({
         kind === "ai"
           ? `Draft assistido pela IA para ${categoryLabel} / ${subcategory}. ${aiBrief}`
           : `Draft manual para ${categoryLabel} / ${subcategory}.`,
-      dataSlots: ["props", "data", "theme"],
+      dataSlots: propsDraft
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
       sourceCode: {
         short: buildFormatSource({
           code: codeDraft,
@@ -1082,24 +1241,41 @@ export function RemotionTemplateStudio({
               </button>
             </div>
             {categories.map((item) => (
-              <button
+              <div
                 key={item.id}
-                type="button"
-                onClick={() => {
-                  setCategory(item.id);
-                  setSubcategory(item.subcategories[0] || "");
-                }}
                 className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-xs font-bold ${
                   category === item.id
                     ? "border-blue-400 bg-blue-500/12 text-white"
                     : "border-white/10 bg-white/[0.025] text-zinc-400"
                 }`}
               >
-                <span>{item.label}</span>
-                <span className="text-[10px] text-zinc-600">
-                  {item.subcategories.length}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategory(item.id);
+                    setSubcategory(item.subcategories[0] || "");
+                  }}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  {item.label}
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-zinc-600">
+                    {item.subcategories.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      deleteCategory(item.id);
+                    }}
+                    className="text-red-300 hover:text-red-100"
+                    title="Excluir categoria"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         </aside>
@@ -1117,18 +1293,26 @@ export function RemotionTemplateStudio({
               </div>
               <div className="flex flex-wrap gap-2">
                 {subcategories.map((item) => (
-                  <button
+                  <span
                     key={item}
-                    type="button"
-                    onClick={() => setSubcategory(item)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold ${
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${
                       subcategory === item
                         ? "border-amber-300 bg-amber-300/14 text-amber-100"
                         : "border-white/10 bg-white/[0.03] text-zinc-400"
                     }`}
                   >
-                    {item}
-                  </button>
+                    <button type="button" onClick={() => setSubcategory(item)}>
+                      {item}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteSubcategory(item)}
+                      className="text-red-300 hover:text-red-100"
+                      title="Excluir subcategoria"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </span>
                 ))}
                 <button
                   type="button"
@@ -1265,18 +1449,39 @@ export function RemotionTemplateStudio({
               className="min-h-[104px] w-full resize-y rounded-md border border-white/10 bg-black/30 p-3 text-xs text-zinc-200 outline-none focus:border-cyan-300"
             />
             <label className="mb-2 mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+              Tipo do template
+            </label>
+            <input
+              value={templateType}
+              onChange={(e) => setTemplateType(e.target.value)}
+              placeholder="Circular Progress / Chart / KPI / Map PIP"
+              className="w-full rounded-md border border-white/10 bg-black/30 p-3 text-xs text-zinc-200 outline-none focus:border-cyan-300"
+            />
+            <label className="mb-2 mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+              Props / dados de entrada
+            </label>
+            <input
+              value={propsDraft}
+              onChange={(e) => setPropsDraft(e.target.value)}
+              placeholder="title, subtitle, progress, label, imageUrl"
+              className="w-full rounded-md border border-white/10 bg-black/30 p-3 text-xs text-zinc-200 outline-none focus:border-cyan-300"
+            />
+            <label className="mb-2 mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
               Template code
             </label>
             <textarea
               value={codeDraft}
               onChange={(e) => setCodeDraft(e.target.value)}
               className="min-h-[210px] w-full resize-y rounded-md border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-zinc-200 outline-none focus:border-cyan-300"
+              placeholder={
+                'Cole aqui o codigo Remotion original completo do template que voce quer adaptar. Nao use placeholder.\n\nExemplo:\n"use client";\n\nimport { interpolate, useCurrentFrame, useVideoConfig } from "remotion";\n\nexport default function CircularProgress() {\n  const frame = useCurrentFrame();\n  const { fps } = useVideoConfig();\n  // resto do codigo...\n}'
+              }
               spellCheck={false}
             />
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => saveAssistedDraft("ai")}
+                onClick={assistTemplateWithAi}
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-cyan-400 px-3 py-2 text-xs font-black text-slate-950"
               >
                 <Sparkles className="h-3.5 w-3.5" />
