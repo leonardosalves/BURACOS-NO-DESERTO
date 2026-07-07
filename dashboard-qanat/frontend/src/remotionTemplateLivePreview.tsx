@@ -1,7 +1,29 @@
-import React, { useMemo } from "react";
+import React, { Component, useMemo } from "react";
 import { Player } from "@remotion/player";
 import * as Remotion from "remotion";
 import { transform } from "sucrase";
+
+class LivePreviewErrorBoundary extends Component<
+  { fallback: React.ReactNode; children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidUpdate(prevProps: { children: React.ReactNode }) {
+    if (prevProps.children !== this.props.children) {
+      this.setState({ hasError: false });
+    }
+  }
+
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
 
 export type CompiledTemplatePreview = {
   Component: React.ComponentType<Record<string, unknown>>;
@@ -155,6 +177,7 @@ type SavedTemplatePreviewFrameProps = {
   format: "9:16" | "16:9";
   size?: "card" | "detail";
   autoPlay?: boolean;
+  fallback?: React.ReactNode;
 };
 
 export function SavedTemplatePreviewFrame({
@@ -162,6 +185,7 @@ export function SavedTemplatePreviewFrame({
   format,
   size = "card",
   autoPlay = false,
+  fallback = null,
 }: SavedTemplatePreviewFrameProps) {
   const vertical = format === "9:16";
   const dimensions =
@@ -200,7 +224,7 @@ export function SavedTemplatePreviewFrame({
 
   const { Component, inputProps, durationInFrames, fps } = compiled.preview;
 
-  return (
+  const player = (
     <div
       className={`overflow-hidden rounded-[6px] border border-white/10 bg-[#0b111b] shadow-lg shadow-black/30 ${dimensions.className}`}
       style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}` }}
@@ -219,5 +243,13 @@ export function SavedTemplatePreviewFrame({
         acknowledgeRemotionLicense
       />
     </div>
+  );
+
+  if (!fallback) return player;
+
+  return (
+    <LivePreviewErrorBoundary fallback={fallback}>
+      {player}
+    </LivePreviewErrorBoundary>
   );
 }

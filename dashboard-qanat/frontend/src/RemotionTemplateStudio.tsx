@@ -868,6 +868,65 @@ function TemplatePreviewCanvas({
             height={isVertical ? 132 : 188}
             viewBox="0 0 180 180"
           >
+            {(() => {
+              const segments =
+                previewProps.segments && previewProps.segments.length
+                  ? previewProps.segments
+                  : DEFAULT_PREVIEW_SEGMENTS;
+              const total = segments.reduce((sum, item) => sum + item.value, 0);
+              let startAngle = -Math.PI / 2;
+              return segments.map((segment, index) => {
+                const fullSlice = (segment.value / total) * Math.PI * 2;
+                const endAngle = startAngle + fullSlice * enter;
+                const path = describePieSlice(90, 90, 72, startAngle, endAngle);
+                startAngle += fullSlice;
+                return (
+                  <path
+                    key={`${segment.label}-${index}`}
+                    d={path}
+                    fill={segment.color}
+                    opacity={interpolate(
+                      frame,
+                      [index * 5 + 6, index * 5 + 22],
+                      [0, 1],
+                      { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+                    )}
+                  />
+                );
+              });
+            })()}
+          </svg>
+          <div
+            style={{
+              position: "absolute",
+              textAlign: "center",
+              transform: `scale(${enter})`,
+            }}
+          >
+            <div style={{ fontSize: isVertical ? 18 : 28, fontWeight: 900 }}>
+              {metricTitle || "PIE"}
+            </div>
+            <div style={{ color: "#94a3b8", fontSize: isVertical ? 8 : 11 }}>
+              {metricLabel}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {variant === "donut" && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+          }}
+        >
+          <svg
+            width={isVertical ? 132 : 188}
+            height={isVertical ? 132 : 188}
+            viewBox="0 0 180 180"
+          >
             {[
               { size: 0.34, color: "#22d3ee", offset: 0 },
               { size: 0.22, color: "#4f7cff", offset: 0.34 },
@@ -910,10 +969,10 @@ function TemplatePreviewCanvas({
             }}
           >
             <div style={{ fontSize: isVertical ? 18 : 28, fontWeight: 900 }}>
-              {metricTitle || "PIE"}
+              {previewProps.centerValue || displayValue + metricSuffix}
             </div>
             <div style={{ color: "#94a3b8", fontSize: isVertical ? 8 : 11 }}>
-              {metricLabel}
+              {previewProps.centerLabel || metricLabel}
             </div>
           </div>
         </div>
@@ -1528,26 +1587,37 @@ function TemplatePreviewSlot({
 }) {
   const source =
     format === "9:16" ? template.sourceCode.short : template.sourceCode.long;
-  if (canLivePreviewSource(source)) {
+  const variant = effectivePreviewVariant(
+    format === "9:16" ? template.shortPreview : template.longPreview,
+    template
+  );
+  const previewProps = buildPreviewPropsFromTemplate(template);
+
+  if (size === "detail" && canLivePreviewSource(source)) {
     return (
       <SavedTemplatePreviewFrame
         sourceCode={source}
         format={format}
         size={size}
         autoPlay={autoPlay}
+        fallback={
+          <PreviewFrame
+            format={format}
+            variant={variant}
+            previewProps={previewProps}
+            size={size}
+            autoPlay={autoPlay}
+          />
+        }
       />
     );
   }
 
-  const variant = effectivePreviewVariant(
-    format === "9:16" ? template.shortPreview : template.longPreview,
-    template
-  );
   return (
     <PreviewFrame
       format={format}
       variant={variant}
-      previewProps={buildPreviewPropsFromTemplate(template)}
+      previewProps={previewProps}
       size={size}
       autoPlay={autoPlay}
     />
