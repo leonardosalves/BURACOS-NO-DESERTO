@@ -9,6 +9,9 @@ const sharedDir = path.join(dashboardRoot, "shared");
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    CESIUM_BASE_URL: JSON.stringify("/cesium/"),
+  },
   plugins: [
     // esbuild (default) — Babel estourava heap no App.tsx (~650KB) em produção.
     react(),

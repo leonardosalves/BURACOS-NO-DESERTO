@@ -34,6 +34,10 @@ OUTPUT/
 *.7z
 *.pdf
 
+# Cesium runtime assets (copiados via postinstall)
+dashboard-qanat/frontend/public/cesium/
+dashboard-qanat/remotion-renderer/public/cesium/
+
 # Logs locais do watchdog Lumiera
 .lumiera-logs/
 

@@ -43,6 +43,7 @@ import {
   resolveEarthDescentFrame,
   sortZoomKeyframes,
 } from "./locationIntroFly";
+import { CesiumLocationIntro } from "./CesiumLocationIntro";
 
 type Props = {
   overlay: OverlayDraft;
@@ -115,6 +116,10 @@ function LocationIntroMapCard({
   isShort: boolean;
 }) {
   const [boundaryPaths, setBoundaryPaths] = useState<string[]>([]);
+  const [cesiumCfg, setCesiumCfg] = useState({
+    ionAccessToken: String(props.cesium_ion_token || ""),
+    googleMapsApiKey: String(props.google_maps_api_key || ""),
+  });
   const bgWide = String(props.backgroundImageWide || "");
   const bgTight = String(props.backgroundImage || "");
   const flyMode = String(props.fly_mode || "earth_descent");
@@ -129,6 +134,33 @@ function LocationIntroMapCard({
   const lng = Number(props.lng) || 0;
   const zoomTo = Number(props.zoom_to) || 12;
   const boundarySrc = String(props.boundaryGeoJson || "").trim();
+  const mapProvider = String(props.map_provider || "");
+  const useCesiumMap = mapProvider === "cesium" && lat && lng;
+
+  useEffect(() => {
+    if (!useCesiumMap) return;
+    if (props.cesium_ion_token || props.google_maps_api_key) {
+      setCesiumCfg({
+        ionAccessToken: String(props.cesium_ion_token || ""),
+        googleMapsApiKey: String(props.google_maps_api_key || ""),
+      });
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/cesium/config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setCesiumCfg({
+          ionAccessToken: String(data.ionAccessToken || ""),
+          googleMapsApiKey: String(data.googleMapsApiKey || ""),
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [useCesiumMap, props.cesium_ion_token, props.google_maps_api_key]);
 
   useEffect(() => {
     if (!boundarySrc || placeType !== "city") {
@@ -150,7 +182,7 @@ function LocationIntroMapCard({
     };
   }, [boundarySrc, lat, lng, placeType, zoomTo]);
 
-  if (embedded && (keyframes.length > 0 || bgWide || bgTight)) {
+  if (embedded && (useCesiumMap || keyframes.length > 0 || bgWide || bgTight)) {
     const progress =
       scrubSeconds != null
         ? Math.min(
@@ -158,6 +190,39 @@ function LocationIntroMapCard({
             Math.max(0, scrubSeconds / Math.max(durationSeconds, 0.1))
           )
         : 0.45;
+
+    if (useCesiumMap) {
+      const virtualFrames =
+        keyframes.length > 0
+          ? keyframes
+          : [
+              { zoom: props.zoom_from || 3, image: "" },
+              { zoom: props.zoom_to || 12, image: "" },
+            ];
+      return (
+        <div
+          className={`relative overflow-hidden bg-[#050506] ${
+            isPip ? "w-full h-full" : "absolute inset-0"
+          }`}
+        >
+          <CesiumLocationIntro
+            lat={lat}
+            lng={lng}
+            zoom_from={Number(props.zoom_from) || 3}
+            zoom_to={Number(props.zoom_to) || 12}
+            fly_mode={flyMode}
+            zoom_keyframes={virtualFrames}
+            boundaryGeoJson={boundarySrc}
+            accentColor={accentColor}
+            place_type={placeType}
+            progress={progress}
+            ionAccessToken={cesiumCfg.ionAccessToken}
+            googleMapsApiKey={cesiumCfg.googleMapsApiKey}
+          />
+        </div>
+      );
+    }
+
     const frames = sortZoomKeyframes(
       keyframes.length > 0
         ? keyframes

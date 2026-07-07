@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { fitZoomForBoundary } from "../shared/locationIntroFly.js";
+import { buildVirtualZoomKeyframes } from "../shared/cesiumFly.js";
 
 const NOMINATIM_UA = "LumieraVideoStudio/1.0 (motion-scenes-satellite)";
 
@@ -345,6 +346,35 @@ function resolveMapboxToken(config = {}, workspaceConfig = {}) {
   );
 }
 
+export function resolveMapEngine(config = {}, workspaceConfig = {}) {
+  return String(
+    config.map_engine ||
+      workspaceConfig.map_engine ||
+      process.env.LUMIERA_MAP_ENGINE ||
+      "cesium"
+  )
+    .trim()
+    .toLowerCase();
+}
+
+function resolveCesiumIonToken(config = {}, workspaceConfig = {}) {
+  return (
+    String(config.cesium_ion_access_token || "").trim() ||
+    String(workspaceConfig.cesium_ion_access_token || "").trim() ||
+    String(process.env.CESIUM_ION_ACCESS_TOKEN || "").trim() ||
+    ""
+  );
+}
+
+function resolveGoogleMapsApiKey(config = {}, workspaceConfig = {}) {
+  return (
+    String(config.google_maps_api_key || "").trim() ||
+    String(workspaceConfig.google_maps_api_key || "").trim() ||
+    String(process.env.GOOGLE_MAPS_API_KEY || "").trim() ||
+    ""
+  );
+}
+
 export function buildMapboxStaticUrl(lng, lat, zoom, token, size = "1280x720") {
   const z = Math.max(1, Math.min(20, Math.round(Number(zoom) || 10)));
   return `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${lng},${lat},${z},0,0/${size}@2x?access_token=${encodeURIComponent(token)}`;
@@ -496,18 +526,24 @@ export async function fetchSatelliteAssetsForScene(
     }
   }
 
-  const zoomKeyframes = [];
-  for (const zoom of zoomLevels) {
-    const fileName = `${sceneKey}-z${zoom}.jpg`;
-    const destPath = path.join(projDir, assetRelPath(fileName));
-    const url = buildTileUrl(token, coords.lat, coords.lng, zoom);
-    await downloadImageToFile(url, destPath);
-    zoomKeyframes.push({
-      zoom,
-      image: assetRelPath(fileName),
-    });
-    if (zoomLevels.length > 2) {
-      await new Promise((r) => setTimeout(r, 400));
+  const useCesium = resolveMapEngine(config, workspaceConfig) === "cesium";
+  let zoomKeyframes = [];
+
+  if (useCesium) {
+    zoomKeyframes = buildVirtualZoomKeyframes(zoomLevels);
+  } else {
+    for (const zoom of zoomLevels) {
+      const fileName = `${sceneKey}-z${zoom}.jpg`;
+      const destPath = path.join(projDir, assetRelPath(fileName));
+      const url = buildTileUrl(token, coords.lat, coords.lng, zoom);
+      await downloadImageToFile(url, destPath);
+      zoomKeyframes.push({
+        zoom,
+        image: assetRelPath(fileName),
+      });
+      if (zoomLevels.length > 2) {
+        await new Promise((r) => setTimeout(r, 400));
+      }
     }
   }
 
@@ -540,10 +576,16 @@ export async function fetchSatelliteAssetsForScene(
     lat: coords.lat,
     lng: coords.lng,
     geocode_source: coords.source,
-    map_provider: token ? "mapbox" : "esri",
+    map_provider: useCesium ? "cesium" : token ? "mapbox" : "esri",
     place_type: classification.place_type,
     fly_mode: classification.fly_mode,
     zoom_keyframes: zoomKeyframes,
+    cesium_ion_token: useCesium
+      ? resolveCesiumIonToken(config, workspaceConfig)
+      : "",
+    google_maps_api_key: useCesium
+      ? resolveGoogleMapsApiKey(config, workspaceConfig)
+      : "",
     boundaryGeoJson: boundaryPath
       ? assetRelPath(`${sceneKey}-boundary.json`)
       : "",
@@ -593,6 +635,8 @@ export async function enrichMotionScenesWithSatellite(
         boundaryGeoJson: fetched.boundaryGeoJson || "",
         map_provider: fetched.map_provider,
         geocode_source: fetched.geocode_source,
+        cesium_ion_token: fetched.cesium_ion_token || "",
+        google_maps_api_key: fetched.google_maps_api_key || "",
       };
       enriched += 1;
       results.push({ id: scene.id, ok: true, ...fetched });

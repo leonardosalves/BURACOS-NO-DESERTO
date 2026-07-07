@@ -16,6 +16,7 @@ import {
   type BoundaryGeoJson,
   type ZoomKeyframe,
 } from "./locationIntroGeo";
+import { CesiumGlobeLayer } from "./CesiumGlobeLayer";
 
 function resolveMapImageSrc(src?: string): string {
   const s = String(src || "").trim();
@@ -46,6 +47,10 @@ export interface LocationIntroProps {
   zoom_keyframes?: ZoomKeyframe[];
   /** pip = cartão sobre o B-roll; fullscreen = takeover (estilo Earth Studio) */
   presentation?: "pip" | "fullscreen";
+  /** cesium = globo 3D WebGL; esri/mapbox = tiles estáticos */
+  map_provider?: "cesium" | "esri" | "mapbox" | string;
+  cesium_ion_token?: string;
+  google_maps_api_key?: string;
 }
 
 const SatelliteTerrain: React.FC = () => (
@@ -288,6 +293,9 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   boundaryGeoJson = "",
   zoom_keyframes = [],
   presentation = "pip",
+  map_provider = "",
+  cesium_ion_token = "",
+  google_maps_api_key = "",
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
@@ -428,7 +436,27 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   const subtitleFontSize = isVertical ? 20 : 24;
   const hasCoords = Boolean(lat && lng);
 
+  const useCesium = map_provider === "cesium" && hasCoords;
+
   const mapContent = () => {
+    if (useCesium && hasCoords) {
+      return (
+        <CesiumGlobeLayer
+          lat={lat}
+          lng={lng}
+          zoom_from={zoom_from}
+          zoom_to={zoom_to}
+          fly_mode={fly_mode}
+          zoom_keyframes={keyframes}
+          boundaryGeoJson={boundaryData}
+          accentColor={accentColor}
+          place_type={place_type}
+          ionAccessToken={cesium_ion_token}
+          googleMapsApiKey={google_maps_api_key}
+        />
+      );
+    }
+
     if (variant === "minimal") {
       return (
         <AbsoluteFill

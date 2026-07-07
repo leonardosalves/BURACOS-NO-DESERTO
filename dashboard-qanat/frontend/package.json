@@ -9,10 +9,12 @@
     "build:lite": "node --max-old-space-size=8192 ./node_modules/vite/bin/vite.js build --minify false",
     "typecheck": "node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --noEmit",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node ../scripts/copy-cesium-assets.mjs"
   },
   "dependencies": {
     "apexcharts": "^5.15.2",
+    "cesium": "1.143",
     "lottie-web": "^5.13.0",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",

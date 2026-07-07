@@ -53,12 +53,18 @@ export function assessLocationIntroScene(scene = {}, { projDir = "" } = {}) {
     });
   }
 
+  const isCesium = String(props.map_provider || "").toLowerCase() === "cesium";
+
   if (keyframes.length < MIN_CITY_KEYFRAMES) {
     issues.push({
       code: "insufficient_keyframes",
       severity: "critical",
-      message: `Apenas ${keyframes.length} tile(s) — descida não fica suave`,
-      proposed_fix: "Re-baixar sequência satélite completa (5+ zooms)",
+      message: isCesium
+        ? `Apenas ${keyframes.length} nível(is) de zoom — descida Cesium curta`
+        : `Apenas ${keyframes.length} tile(s) — descida não fica suave`,
+      proposed_fix: isCesium
+        ? "Re-planejar location-intro (5+ zooms virtuais)"
+        : "Re-baixar sequência satélite completa (5+ zooms)",
     });
   }
 
@@ -81,24 +87,26 @@ export function assessLocationIntroScene(scene = {}, { projDir = "" } = {}) {
     });
   }
 
-  for (const kf of keyframes) {
-    const rel = String(kf?.image || "").trim();
-    if (!rel) {
-      issues.push({
-        code: "empty_keyframe",
-        severity: "critical",
-        message: "Keyframe sem imagem",
-        proposed_fix: "Re-baixar tiles satélite",
-      });
-      continue;
-    }
-    if (projDir && !fileExists(projDir, rel)) {
-      issues.push({
-        code: "missing_tile_file",
-        severity: "critical",
-        message: `Arquivo ausente: ${rel}`,
-        proposed_fix: "Re-baixar tiles satélite",
-      });
+  if (!isCesium) {
+    for (const kf of keyframes) {
+      const rel = String(kf?.image || "").trim();
+      if (!rel) {
+        issues.push({
+          code: "empty_keyframe",
+          severity: "critical",
+          message: "Keyframe sem imagem",
+          proposed_fix: "Re-baixar tiles satélite",
+        });
+        continue;
+      }
+      if (projDir && !fileExists(projDir, rel)) {
+        issues.push({
+          code: "missing_tile_file",
+          severity: "critical",
+          message: `Arquivo ausente: ${rel}`,
+          proposed_fix: "Re-baixar tiles satélite",
+        });
+      }
     }
   }
 
