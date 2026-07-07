@@ -40,8 +40,8 @@ type Props = {
 const FULLSCREEN_OVERLAYS = new Set(["pictogram-chart"]);
 
 const UI_PUBLISH_MS = 250;
-const UI_PUBLISH_PLAYBACK_MS = 900;
-const MOTION_SCRUB_MS = 220;
+const UI_PUBLISH_PLAYBACK_MS = 80;
+const MOTION_SCRUB_MS = 80;
 
 function clipToOverlayDraft(
   clip: StudioClip,
@@ -159,19 +159,11 @@ export function TimelineStudioPreview({
     [studio.clips, displayPlayhead]
   );
 
-  const fullscreenMotionActive = useMemo(
-    () => motionClips.some((clip) => isFullscreenMotionClip(clip)),
-    [motionClips]
-  );
-
   const assetSrc = videoClip?.source
     ? resolveMediaUrl(videoClip.source, getAssetUrl, getMusicUrl)
     : null;
   const isVideo = isVideoClip(videoClip);
-  const showBaseVideo =
-    Boolean(assetSrc) &&
-    !(isVideo && videoLoadFailed) &&
-    !fullscreenMotionActive;
+  const showBaseVideo = Boolean(assetSrc) && !(isVideo && videoLoadFailed);
 
   useEffect(() => {
     setVideoLoadFailed(false);
@@ -205,9 +197,7 @@ export function TimelineStudioPreview({
       if (force || now - lastPublishRef.current >= uiInterval) {
         lastPublishRef.current = now;
         setLivePlayhead(next);
-        if (!playingRef.current || force) {
-          onPlayheadChangeRef.current(next);
-        }
+        onPlayheadChangeRef.current(next);
       }
       publishMotionPlayhead(next, force);
       return next;
@@ -498,27 +488,19 @@ export function TimelineStudioPreview({
               />
             )
           ) : (
-            <div
-              className={`absolute inset-0 ${
-                fullscreenMotionActive
-                  ? "bg-black"
-                  : "flex items-center justify-center bg-zinc-950"
-              }`}
-            >
-              {!fullscreenMotionActive ? (
-                <div className="text-center px-6">
-                  <p className="text-sm text-zinc-500">
-                    {videoLoadFailed
-                      ? "Falha ao carregar mídia"
-                      : "Sem mídia neste momento"}
-                  </p>
-                  <p className="text-[10px] text-zinc-600 mt-1">
-                    {videoLoadFailed
-                      ? videoClip?.label || "Verifique ASSETS/ no projeto"
-                      : "Adicione stock ou posicione o playhead num clip de vídeo"}
-                  </p>
-                </div>
-              ) : null}
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-950">
+              <div className="text-center px-6">
+                <p className="text-sm text-zinc-500">
+                  {videoLoadFailed
+                    ? "Falha ao carregar mídia"
+                    : "Sem mídia neste momento"}
+                </p>
+                <p className="text-[10px] text-zinc-600 mt-1">
+                  {videoLoadFailed
+                    ? videoClip?.label || "Verifique ASSETS/ no projeto"
+                    : "Adicione stock ou posicione o playhead num clip de vídeo"}
+                </p>
+              </div>
             </div>
           )}
 
@@ -571,7 +553,7 @@ export function TimelineStudioPreview({
                   accentColor={String(draft.props?.accentColor || "#D4AF37")}
                   durationSeconds={clip.duration}
                   scrubSeconds={Math.max(0, localSec)}
-                  timelinePlaying={false}
+                  timelinePlaying={playing}
                   embedded
                   embeddedLayout={isPip ? "pip" : "fill"}
                 />
@@ -598,7 +580,7 @@ export function TimelineStudioPreview({
                   accentColor={String(draft.props?.accentColor || "#D4AF37")}
                   durationSeconds={clip.duration}
                   scrubSeconds={Math.max(0, localSec)}
-                  timelinePlaying={false}
+                  timelinePlaying={playing}
                   embedded
                 />
               </div>
