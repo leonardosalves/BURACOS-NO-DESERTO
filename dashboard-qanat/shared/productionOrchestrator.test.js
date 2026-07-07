@@ -70,8 +70,9 @@ describe("productionOrchestrator", () => {
         },
       ],
     });
-    assert.equal(pruned["1"].length, 1);
-    assert.equal(pruned["1"][0].asset, "video.mp4");
+    assert.equal(pruned["1"].length, 2);
+    assert.equal(pruned["1"][0].motion_template_id, "location-intro");
+    assert.equal(pruned["1"][1].asset, "video.mp4");
   });
 
   it("não sobrescreve slot user_locked", () => {

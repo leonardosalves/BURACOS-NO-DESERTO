@@ -411,16 +411,36 @@ export function TimelineStudio({
     return { ...studio, playhead: localPlayhead };
   }, [studio, localPlayhead]);
 
-  const handleClipsChange = useCallback((clips: StudioClip[]) => {
-    setStudio((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        clips,
-        totalDuration: computeTotalDuration(clips, prev.totalDuration || 120),
-      };
-    });
-  }, []);
+  const handleClipsChange = useCallback(
+    (clips: StudioClip[]) => {
+      setStudio((prev) => {
+        if (!prev) return prev;
+        const nextIds = new Set(clips.map((clip) => String(clip.id || "")));
+        const removedRemotionClips = prev.clips.filter(
+          (clip) => isRemotionStudioClip(clip) && !nextIds.has(String(clip.id))
+        );
+        const suppressionPatch = removedRemotionClips.reduce<
+          Partial<TimelineStudioState>
+        >((patch, clip) => {
+          const base = applySuppressionFields(prev, patch);
+          return expandDeletedClipSuppressions(
+            storyboardData || {},
+            base,
+            clip
+          );
+        }, {});
+        const withSuppressions = removedRemotionClips.length
+          ? applySuppressionFields(prev, suppressionPatch)
+          : prev;
+        return {
+          ...withSuppressions,
+          clips,
+          totalDuration: computeTotalDuration(clips, prev.totalDuration || 120),
+        };
+      });
+    },
+    [storyboardData]
+  );
 
   const addClipToStudio = useCallback(
     (clip: StudioClip) => {

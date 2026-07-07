@@ -16,11 +16,32 @@ export function isRemotionStudioClip(clip = {}) {
   );
 }
 
+function clipTemplateId(clip = {}) {
+  return String(
+    clip.templateId ||
+      clip.props?.overlayType ||
+      clip.props?.template_id ||
+      clip.props?.templateId ||
+      clip.props?.motion_template_id ||
+      ""
+  ).trim();
+}
+
+function clipStableIds(clip = {}) {
+  return [
+    clip.id,
+    clip.props?.motion_scene_id,
+    clip.props?.motionSceneId,
+    clip.props?.overlay_id,
+    clip.props?.overlayId,
+  ]
+    .map((id) => String(id || "").trim())
+    .filter(Boolean);
+}
+
 export function remotionClipFingerprint(clip = {}) {
   const trackId = String(clip.trackId || "motion").trim();
-  const templateId = String(
-    clip.templateId || clip.props?.overlayType || ""
-  ).trim();
+  const templateId = clipTemplateId(clip);
   const start = Number(clip.start) || 0;
   if (!templateId) return "";
   return `${trackId}::${templateId}::${start.toFixed(3)}`;
@@ -48,9 +69,7 @@ function labelsOverlap(a = "", b = "") {
 }
 
 function clipSemanticKey(clip = {}) {
-  const templateId = String(
-    clip.templateId || clip.props?.overlayType || ""
-  ).trim();
+  const templateId = clipTemplateId(clip);
   const label = normLabel(
     clip.label ||
       clip.props?.title ||
@@ -67,7 +86,7 @@ function clipSemanticKey(clip = {}) {
 
 function clipDisplayLabel(clip = {}) {
   const generic = normLabel(clip.label || "");
-  const tpl = normLabel(clip.templateId || clip.props?.overlayType || "");
+  const tpl = normLabel(clipTemplateId(clip));
   const rich = normLabel(
     clip.props?.title ||
       clip.props?.text ||
@@ -80,8 +99,8 @@ function clipDisplayLabel(clip = {}) {
 }
 
 function clipsAreSemanticDuplicates(a = {}, b = {}) {
-  const tplA = String(a.templateId || a.props?.overlayType || "").trim();
-  const tplB = String(b.templateId || b.props?.overlayType || "").trim();
+  const tplA = clipTemplateId(a);
+  const tplB = clipTemplateId(b);
   if (!tplA || tplA !== tplB) return false;
   const refA = String(a.props?.scene_ref || "").trim();
   const refB = String(b.props?.scene_ref || "").trim();
@@ -137,8 +156,9 @@ export function clipMatchesSuppression(
   clip = {},
   state = collectSuppressionState()
 ) {
-  const id = String(clip.id || "").trim();
-  if (id && state.ids.has(id)) return true;
+  for (const id of clipStableIds(clip)) {
+    if (id && state.ids.has(id)) return true;
+  }
   const fp = remotionClipFingerprint(clip);
   if (fp && state.fingerprints.has(fp)) return true;
   return false;
@@ -170,8 +190,9 @@ export function expandDeletedClipSuppressions(
   const ids = new Set(state.ids);
   const fingerprints = new Set(state.fingerprints);
 
-  const deletedId = String(deletedClip?.id || "").trim();
-  if (deletedId) ids.add(deletedId);
+  const deletedIds = clipStableIds(deletedClip);
+  for (const deletedId of deletedIds) ids.add(deletedId);
+  const deletedId = deletedIds[0] || "";
 
   const fp = remotionClipFingerprint(deletedClip);
   if (fp) fingerprints.add(fp);
@@ -194,16 +215,16 @@ export function expandDeletedClipSuppressions(
   }
 
   const semantic = clipSemanticKey(deletedClip);
-  const templateId = String(
-    deletedClip?.templateId || deletedClip?.props?.overlayType || ""
-  ).trim();
+  const templateId = clipTemplateId(deletedClip);
   const deletedStart = Number(deletedClip?.start) || 0;
 
   if (templateId) {
     for (const key of ["overlays_ai", "overlays"]) {
       for (const row of storyboard[key] || []) {
         const rowId = String(row?.id || "").trim();
-        const rowType = String(row?.type || row?.templateId || "").trim();
+        const rowType = String(
+          row?.type || row?.template_id || row?.templateId || ""
+        ).trim();
         const rowStart = Number(row?.start) || 0;
         const rowSemantic = storyboardRowSemanticKey(row);
         if (
@@ -249,9 +270,7 @@ export function expandDeletedClipSuppressions(
   for (const clip of studio.clips || []) {
     if (!isRemotionStudioClip(clip)) continue;
     if (String(clip.id || "") === deletedId) continue;
-    const clipTpl = String(
-      clip.templateId || clip.props?.overlayType || ""
-    ).trim();
+    const clipTpl = clipTemplateId(clip);
     if (clipTpl !== templateId) continue;
     if (
       clipSemanticKey(clip) === semantic ||

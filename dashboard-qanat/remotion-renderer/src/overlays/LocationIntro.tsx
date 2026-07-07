@@ -43,7 +43,7 @@ export interface LocationIntroProps {
   lat?: number;
   lng?: number;
   fly_mode?: "earth_descent" | "city_outline" | "simple";
-  place_type?: "city" | "poi";
+  place_type?: "city" | "poi" | "historic_site";
   boundaryGeoJson?: string;
   zoom_keyframes?: ZoomKeyframe[];
   /** pip = cartão sobre o B-roll; fullscreen = takeover (estilo Earth Studio) */

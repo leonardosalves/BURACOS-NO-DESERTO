@@ -187,6 +187,76 @@ describe("timelineStudioRemotionSync", () => {
     assert.equal(sb.motion_scenes.length, 0);
   });
 
+  it("finalizeStudioForDisk infere exclusão Remotion removida direto da trilha", () => {
+    const tmp = fs.mkdtempSync(
+      path.join(os.tmpdir(), "lumiera-finalize-implicit-")
+    );
+    const storyboardPath = path.join(tmp, "storyboard.json");
+    fs.writeFileSync(
+      storyboardPath,
+      JSON.stringify(
+        {
+          motion_scenes: [
+            {
+              id: "ms-laufenburg",
+              template_id: "location-intro",
+              start_hint: 12,
+              duration_seconds: 8,
+              props: { location: "Ponte de Laufenburg" },
+            },
+          ],
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+    const studioPath = path.join(tmp, "timeline_studio.json");
+    fs.writeFileSync(
+      studioPath,
+      JSON.stringify(
+        {
+          clips: [
+            {
+              id: "clip-generated-1",
+              trackId: "motion",
+              start: 12,
+              duration: 8,
+              label: "Ponte de Laufenburg",
+              props: {
+                motion_scene_id: "ms-laufenburg",
+                template_id: "location-intro",
+                location: "Ponte de Laufenburg",
+              },
+            },
+            { id: "video-1", trackId: "video", start: 0, duration: 20 },
+          ],
+          suppressedMotionSceneIds: [],
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const previous = JSON.parse(fs.readFileSync(studioPath, "utf8"));
+    const next = {
+      clips: [{ id: "video-1", trackId: "video", start: 0, duration: 20 }],
+      suppressedMotionSceneIds: [],
+    };
+    finalizeStudioForDisk(tmp, next, { previousStudio: previous });
+
+    const saved = JSON.parse(fs.readFileSync(studioPath, "utf8"));
+    assert.equal(
+      saved.clips.some((c) => c.trackId === "motion"),
+      false
+    );
+    assert.ok(saved.suppressedMotionSceneIds.includes("ms-laufenburg"));
+    assert.ok(saved.suppressedMotionSceneIds.includes("clip-generated-1"));
+    const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    assert.equal(sb.motion_scenes.length, 0);
+  });
+
   it("pruneStoryboardRemotionSources remove motion_scenes suprimidas", () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-prune-"));
     const storyboardPath = path.join(tmp, "storyboard.json");

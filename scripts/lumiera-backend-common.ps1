@@ -11,11 +11,24 @@ $script:LastRestartFile = Join-Path $script:LogDir "backend-last-restart.txt"
 $script:NodeMaxOldSpaceMb = 4096
 $script:Pm2ModeFile = Join-Path $script:LogDir "pm2.mode"
 $script:SyntaxCheckLog = Join-Path $script:LogDir "backend-syntax-check.log"
+$script:LogCleanupScript = Join-Path $script:RepoRoot "scripts\cleanup-lumiera-logs.ps1"
+$script:LastLogCleanup = $null
+
+function Invoke-LumieraLogCleanup {
+    if ($script:LastLogCleanup -and ((Get-Date) - $script:LastLogCleanup).TotalMinutes -lt 30) {
+        return
+    }
+    $script:LastLogCleanup = Get-Date
+    if (Test-Path -LiteralPath $script:LogCleanupScript) {
+        & $script:LogCleanupScript -RetentionDays 3 -JobRetentionHours 24 -MaxLogBytes 5242880 | Out-Null
+    }
+}
 
 function Ensure-LumieraLogDir {
     if (-not (Test-Path -LiteralPath $script:LogDir)) {
         New-Item -ItemType Directory -Path $script:LogDir -Force | Out-Null
     }
+    Invoke-LumieraLogCleanup
 }
 
 function Write-LumieraLog {

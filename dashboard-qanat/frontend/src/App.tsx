@@ -171,13 +171,17 @@ import {
 } from "./youtubeMetadataDisplay";
 import { buildAppTabPropBundles } from "./appTabPropBundles";
 import { AppOverlays } from "./AppOverlays";
+
+const loadRichTimelineEditorModule = () => import("./RichTimelineEditor");
+const loadTimelineStudioModule = () => import("./TimelineStudio");
+
 const RichTimelineEditor = lazy(() =>
-  import("./RichTimelineEditor").then((m) => ({
+  loadRichTimelineEditorModule().then((m) => ({
     default: m.RichTimelineEditor,
   }))
 );
 const TimelineStudio = lazy(() =>
-  import("./TimelineStudio").then((m) => ({
+  loadTimelineStudioModule().then((m) => ({
     default: m.TimelineStudio,
   }))
 );
@@ -198,6 +202,23 @@ export default function App() {
         RESTORABLE_APP_TABS
       ) as AppTab
   );
+
+  useEffect(() => {
+    const preloadTimelineEditors = () => {
+      void loadRichTimelineEditorModule();
+      void loadTimelineStudioModule();
+    };
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    if (typeof idleWindow.requestIdleCallback === "function") {
+      const handle = idleWindow.requestIdleCallback(preloadTimelineEditors);
+      return () => idleWindow.cancelIdleCallback?.(handle);
+    }
+    const timeout = window.setTimeout(preloadTimelineEditors, 1200);
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(
     () => initialProjectSnapshot?.status || null
