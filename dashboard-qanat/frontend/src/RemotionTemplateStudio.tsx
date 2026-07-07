@@ -597,6 +597,34 @@ function resolvePreviewVariants(
 ): Pick<TemplateItem, "shortPreview" | "longPreview"> {
   const sub = subcategory.toLowerCase();
 
+  // 1) PRIORIDADE ABSOLUTA: Herdar o preview de outro template da MESMA subcategoria!
+  try {
+    const rawTemplates = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
+    if (rawTemplates) {
+      const allTemplates = JSON.parse(rawTemplates) as TemplateItem[];
+      const sibling =
+        allTemplates.find(
+          (t) =>
+            t.subcategory.toLowerCase() === sub &&
+            t.shortPreview &&
+            t.shortPreview !== "media"
+        ) ||
+        allTemplates.find(
+          (t) => t.subcategory.toLowerCase() === sub && t.shortPreview
+        );
+
+      if (sibling) {
+        return {
+          shortPreview: sibling.shortPreview,
+          longPreview: sibling.longPreview,
+        };
+      }
+    }
+  } catch {
+    // Fallback silencioso
+  }
+
+  // 2) SEGUNDA PRIORIDADE: Deduzir a partir da categoria pai ou análise de código
   if (category === "maps") {
     if (sub.includes("flyover")) {
       return { shortPreview: "map", longPreview: "cinematic" };
@@ -607,10 +635,10 @@ function resolvePreviewVariants(
     return resolveChartDataPreview(subcategory, templateName, code);
   }
   if (category === "text") {
-    return { shortPreview: "title", longPreview: "media" };
+    return { shortPreview: "title", longPreview: "title" };
   }
   if (category === "logo-branding" || category === "intro-outro") {
-    return { shortPreview: "title", longPreview: "media" };
+    return { shortPreview: "title", longPreview: "title" };
   }
   if (category === "cinematic") {
     return { shortPreview: "media", longPreview: "cinematic" };
@@ -631,14 +659,13 @@ function normalizeTemplatePreviewVariants(
   template: TemplateItem
 ): TemplateItem {
   const sourceBundle = `${template.sourceCode.short}\n${template.sourceCode.long}`;
-  const codeHint = template.category === "chart-data" ? sourceBundle : "";
   return {
     ...template,
     ...resolvePreviewVariants(
       template.category,
       template.subcategory,
       template.name,
-      codeHint
+      sourceBundle
     ),
   };
 }
@@ -651,15 +678,12 @@ function effectivePreviewVariant(
   >
 ): PreviewVariant {
   if (!template) return "media";
-  const codeHint =
-    template.category === "chart-data"
-      ? `${template.sourceCode?.short || ""}\n${template.sourceCode?.long || ""}`
-      : "";
+  const sourceBundle = `${template.sourceCode?.short || ""}\n${template.sourceCode?.long || ""}`;
   const fixed = resolvePreviewVariants(
     template.category,
     template.subcategory,
     template.name,
-    codeHint
+    sourceBundle
   );
   return format === "9:16" ? fixed.shortPreview : fixed.longPreview;
 }
