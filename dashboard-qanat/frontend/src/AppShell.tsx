@@ -8,6 +8,7 @@ import {
   Cloud,
   Globe,
   Home,
+  LayoutTemplate,
   Menu,
   RefreshCw,
   Search,
@@ -39,6 +40,13 @@ type GlobalNavItem = {
 
 const STUDIO_NAV: GlobalNavItem[] = [
   { id: "agents", label: "Studio Agents", icon: Bot, helpId: "tab-agents" },
+  {
+    id: "templates",
+    label: "Templates",
+    icon: LayoutTemplate,
+    helpId: "tab-templates",
+    accent: "sky",
+  },
   {
     id: "flow-lab",
     label: "Flow Lab",

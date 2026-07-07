@@ -3,11 +3,13 @@
  */
 
 import {
+  APPROVED_ORCHESTRATION_TEMPLATES,
   DEFAULT_DURATIONS,
   FULLSCREEN_TEMPLATES,
   LOCATION_INTRO_DEFAULTS,
   MOTION_SCENE_TRIGGERS,
   MOTION_TRACK_ID,
+  REMOTION_TEMPLATE_LIMITS,
   defaultMotionTrack,
   pickTemplateForTrigger,
   resolveLayoutForTemplate,
@@ -314,6 +316,40 @@ function sceneStartHint(vp, blockTimings = {}) {
   return Number(starts[idx]) || 0;
 }
 
+function motionScenePriority(scene = {}) {
+  const templateId = String(scene.template_id || "");
+  const trigger = String(scene.trigger || "");
+  if (templateId === "location-intro") return 100;
+  if (templateId === "geo-map") return 90;
+  if (trigger === "stat_number" || templateId === "counter") return 80;
+  if (trigger === "comparison" || templateId === "bar-chart") return 70;
+  if (templateId === "pictogram-chart") return 65;
+  if (templateId === "timeline") return 55;
+  return 10;
+}
+
+export function limitMotionScenesForFormat(scenes = [], aspectRatio = "16:9") {
+  const approved = (Array.isArray(scenes) ? scenes : []).filter((scene) =>
+    APPROVED_ORCHESTRATION_TEMPLATES.has(String(scene.template_id || ""))
+  );
+  const max =
+    String(aspectRatio || "") === "9:16"
+      ? REMOTION_TEMPLATE_LIMITS.shortMax
+      : REMOTION_TEMPLATE_LIMITS.longMax;
+  if (approved.length <= max) return approved;
+  return approved
+    .map((scene, index) => ({ scene, index }))
+    .sort(
+      (a, b) =>
+        motionScenePriority(b.scene) - motionScenePriority(a.scene) ||
+        (Number(a.scene.start_hint) || 0) - (Number(b.scene.start_hint) || 0) ||
+        a.index - b.index
+    )
+    .slice(0, max)
+    .sort((a, b) => a.index - b.index)
+    .map((entry) => entry.scene);
+}
+
 /**
  * Gera motion_scenes[] a partir de visual_prompts do storyboard.
  */
@@ -343,7 +379,9 @@ export function planMotionScenesFromStoryboard(
     if (!classified || classified.confidence < 0.65) continue;
 
     const trigger = classified.trigger;
+    if (trigger === "curiosity_punch") continue;
     const templateId = pickTemplateForTrigger(trigger, nichePack);
+    if (!APPROVED_ORCHESTRATION_TEMPLATES.has(templateId)) continue;
     const layout = resolveLayoutForTemplate(templateId, trigger, {
       text: narration,
       aspectRatio,
@@ -415,8 +453,10 @@ export function planMotionScenesFromStoryboard(
     });
   }
 
+  const limitedScenes = limitMotionScenesForFormat(scenes, aspectRatio);
+
   return {
-    motion_scenes: scenes,
+    motion_scenes: limitedScenes,
     niche_pack: nichePack,
     planned_at: new Date().toISOString(),
     planner_version: 1,

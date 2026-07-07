@@ -5,6 +5,7 @@ import {
   Clapperboard,
   Cloud,
   Globe,
+  LayoutTemplate,
   TrendingUp,
   Tv,
   Youtube,
@@ -72,6 +73,11 @@ const FlowLabPage = lazy(() =>
 );
 const AppMusicTabPanel = lazy(() =>
   import("./AppMusicTabPanel").then((m) => ({ default: m.AppMusicTabPanel }))
+);
+const RemotionTemplateStudio = lazy(() =>
+  import("./RemotionTemplateStudio").then((m) => ({
+    default: m.RemotionTemplateStudio,
+  }))
 );
 
 type ResurrectorAlert = {
@@ -321,6 +327,26 @@ export function AppTabPanels({
                     options
                   ))
                 }
+              />
+            </Suspense>
+          </DashminPageLayout>
+        </TabErrorBoundary>
+      )}
+
+      {activeTab === "templates" && (
+        <TabErrorBoundary tabName="Templates Remotion">
+          <DashminPageLayout
+            title="Remotion Template Studio"
+            subtitle="Biblioteca por nicho, categoria e formato para a IA orquestrar apenas templates aprovados."
+            breadcrumb={["Dashboard", "Estudio", "Templates"]}
+            icon={<LayoutTemplate className="w-5 h-5" />}
+          >
+            <Suspense
+              fallback={<TabPanelFallback label="Carregando templates..." />}
+            >
+              <RemotionTemplateStudio
+                activeProject={activeProject}
+                projectNiche={config?.niche || nicheInput || "Engenharia"}
               />
             </Suspense>
           </DashminPageLayout>
