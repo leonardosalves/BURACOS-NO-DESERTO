@@ -41,6 +41,7 @@ type TemplateItem = {
   };
   shortPreview:
     | "ring"
+    | "counter"
     | "pie"
     | "donut"
     | "circular-progress"
@@ -53,6 +54,7 @@ type TemplateItem = {
     | "media";
   longPreview:
     | "ring"
+    | "counter"
     | "line"
     | "area"
     | "pie"
@@ -291,6 +293,13 @@ type TemplatePreviewProps = {
   centerValue?: string;
   centerLabel?: string;
   segments?: PreviewSegment[];
+  prefix?: string;
+  unit?: string;
+  trendValue?: string;
+  trendLabel?: string;
+  statusText?: string;
+  projectCode?: string;
+  location?: string;
 };
 
 const DEFAULT_PREVIEW_SEGMENTS: PreviewSegment[] = [
@@ -302,6 +311,7 @@ const DEFAULT_PREVIEW_SEGMENTS: PreviewSegment[] = [
 
 const PREVIEW_DURATION_BY_VARIANT: Record<PreviewVariant, number> = {
   ring: 90,
+  counter: 90,
   pie: 90,
   donut: 90,
   "circular-progress": 150,
@@ -468,8 +478,13 @@ function resolveChartDataPreview(
   const sub = subcategory.toLowerCase();
   const nameLower = templateName.toLowerCase();
 
-  // Counter/KPI — checagem direta (não são "charts" visuais)
-  if (sub.includes("counter") || sub.includes("kpi")) {
+  // Counter — checagem direta (redireciona para o novo painel Stat Counter animado)
+  if (sub.includes("counter") || nameLower.includes("counter")) {
+    return { shortPreview: "counter", longPreview: "counter" };
+  }
+
+  // KPI — checagem direta
+  if (sub.includes("kpi") || nameLower.includes("kpi")) {
     return { shortPreview: "ring", longPreview: "ring" };
   }
 
@@ -648,28 +663,98 @@ function buildPreviewPropsFromSlots(slots: string[]): TemplatePreviewProps {
   return props;
 }
 
+function extractDefaultPropsFromCode(code: string): Record<string, any> {
+  const defaults: Record<string, any> = {};
+
+  // Encontra o bloco de parâmetros do componente padrão
+  const match = code.match(
+    /export\s+default\s+function\s+\w+\s*\(\s*\{([\s\S]*?)\}\s*\)/
+  );
+  if (!match) return defaults;
+
+  const paramsBlock = match[1];
+
+  // Regex para capturar atribuições de valor padrão, ex: key = value
+  // Suporta strings com aspas simples, duplas ou crases, números, e booleanos
+  const regex =
+    /(\w+)\s*=\s*(?:["']([^"']*)["']|`([^`]*)`|([-\d.]+)|(true|false))/g;
+
+  for (const item of paramsBlock.matchAll(regex)) {
+    const key = item[1];
+    const strVal = item[2] ?? item[3];
+    const numVal = item[4] ? Number(item[4]) : undefined;
+    const boolVal = item[5] ? item[5] === "true" : undefined;
+
+    if (strVal !== undefined) {
+      defaults[key] = strVal;
+    } else if (numVal !== undefined && !Number.isNaN(numVal)) {
+      defaults[key] = numVal;
+    } else if (boolVal !== undefined) {
+      defaults[key] = boolVal;
+    }
+  }
+
+  return defaults;
+}
+
 function buildPreviewPropsFromTemplate(
   template: Pick<
     TemplateItem,
     "dataSlots" | "sourceCode" | "subcategory" | "name"
   >
 ): TemplatePreviewProps {
-  const props = buildPreviewPropsFromSlots(template.dataSlots);
   const code = `${template.sourceCode.short}\n${template.sourceCode.long}`;
-  props.segments = extractPreviewSegmentsFromCode(code);
+
+  // 1) Extrai os valores padrão diretamente da assinatura do componente!
+  const defaultProps = extractDefaultPropsFromCode(code);
+
+  // 2) Cria a base de props a partir dos data slots
+  const props = buildPreviewPropsFromSlots(template.dataSlots);
+
+  // 3) Mescla com os valores padrão extraídos do código (dando prioridade ao código do usuário)
+  const merged: TemplatePreviewProps = {
+    ...props,
+    title: defaultProps.title ?? props.title,
+    subtitle: defaultProps.subtitle ?? props.subtitle,
+    progress:
+      defaultProps.progress ??
+      defaultProps.value ??
+      props.progress ??
+      props.value,
+    value: defaultProps.value ?? props.value,
+    label: defaultProps.label ?? props.label,
+    suffix: defaultProps.suffix ?? defaultProps.unit ?? props.suffix,
+    centerValue:
+      defaultProps.centerValue ??
+      (defaultProps.value !== undefined
+        ? String(defaultProps.value)
+        : undefined) ??
+      props.centerValue,
+    centerLabel:
+      defaultProps.centerLabel ?? defaultProps.label ?? props.centerLabel,
+    prefix: defaultProps.prefix ?? props.prefix,
+    unit: defaultProps.unit ?? props.unit,
+    trendValue: defaultProps.trendValue ?? props.trendValue,
+    trendLabel: defaultProps.trendLabel ?? props.trendLabel,
+    statusText: defaultProps.statusText ?? props.statusText,
+    projectCode: defaultProps.projectCode ?? props.projectCode,
+    location: defaultProps.location ?? props.location,
+  };
+
+  merged.segments = extractPreviewSegmentsFromCode(code);
 
   const centerValue = code.match(/centerValue\s*:\s*["']([^"']+)["']/)?.[1];
   const centerLabel = code.match(/centerLabel\s*:\s*["']([^"']+)["']/)?.[1];
-  if (centerValue) props.centerValue = centerValue;
-  if (centerLabel) props.centerLabel = centerLabel;
+  if (centerValue) merged.centerValue = centerValue;
+  if (centerLabel) merged.centerLabel = centerLabel;
 
   if (isAreaChartContext(template.subcategory, template.name)) {
-    props.title = props.title || "Area Series";
+    merged.title = merged.title || "Area Series";
   } else if (isPieChartContext(template.subcategory)) {
-    props.title = props.title || "Pie Series";
+    merged.title = merged.title || "Pie Series";
   } else if (isDonutChartContext(template.subcategory)) {
-    props.centerValue = props.centerValue || "78%";
-    props.centerLabel = props.centerLabel || props.label || "Total";
+    merged.centerValue = merged.centerValue || "78%";
+    merged.centerLabel = merged.centerLabel || merged.label || "Total";
   } else {
     const subLower = template.subcategory.toLowerCase();
     const nameLower = template.name ? template.name.toLowerCase() : "";
@@ -679,11 +764,11 @@ function buildPreviewPropsFromTemplate(
       nameLower.includes("progress") ||
       nameLower.includes("progresso")
     ) {
-      props.title = props.title || "Progresso do Projeto";
+      merged.title = merged.title || "Progresso do Projeto";
     }
   }
 
-  return props;
+  return merged;
 }
 
 function buildFormatSource({
@@ -1148,6 +1233,236 @@ function TemplatePreviewCanvas({
             </div>
           </div>
         </div>
+      )}
+
+      {variant === "counter" && (
+        <>
+          {/* Tag de Código do Projeto */}
+          <div
+            style={{
+              position: "absolute",
+              top: isVertical ? 24 : 18,
+              left: isVertical ? 16 : 28,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 8px",
+              border: "1px solid rgba(34,211,238,0.3)",
+              background: "rgba(8,13,24,0.6)",
+              fontSize: isVertical ? 8 : 11,
+              fontWeight: 800,
+              color: "#e2e8f0",
+              letterSpacing: 1.5,
+            }}
+          >
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                background: "#facc15",
+                borderRadius: "50%",
+              }}
+            />
+            <span>{previewProps.projectCode || "ENG-8241"}</span>
+          </div>
+
+          {/* Título e Subtítulo */}
+          <div
+            style={{
+              position: "absolute",
+              top: isVertical ? 64 : 54,
+              left: isVertical ? 16 : 28,
+              right: isVertical ? 16 : 28,
+              opacity: titleEnter,
+            }}
+          >
+            <div
+              style={{
+                fontSize: isVertical ? 11 : 16,
+                fontWeight: 950,
+                letterSpacing: "-0.04em",
+                textTransform: "uppercase",
+                color: "white",
+              }}
+            >
+              {previewProps.title || "MÉTRICA ESTRUTURAL"}
+            </div>
+            {previewProps.subtitle && (
+              <div
+                style={{
+                  marginTop: 4,
+                  fontSize: isVertical ? 8 : 10,
+                  color: "#94a3b8",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {previewProps.subtitle}
+              </div>
+            )}
+          </div>
+
+          {/* Painel Central */}
+          <div
+            style={{
+              position: "absolute",
+              top: isVertical ? "52%" : "54%",
+              left: "50%",
+              width: isVertical ? width * 0.88 : width * 0.58,
+              height: isVertical ? height * 0.44 : height * 0.54,
+              transform: `translate(-50%, -50%) scale(${enter})`,
+              background: "rgba(8,13,24,0.55)",
+              border: "1px solid rgba(34,211,238,0.18)",
+              borderRadius: 6,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 12,
+            }}
+          >
+            <span
+              style={{
+                color: "#22d3ee",
+                fontSize: isVertical ? 8 : 10,
+                fontWeight: 800,
+                letterSpacing: 2,
+                textTransform: "uppercase",
+                marginBottom: 10,
+              }}
+            >
+              {previewProps.statusText || "MONITORAMENTO ATIVO"}
+            </span>
+
+            {/* Número Animado */}
+            <div
+              style={{
+                fontSize: isVertical ? 28 : 42,
+                fontWeight: 950,
+                color: "white",
+                textShadow: "0 0 16px rgba(34,211,238,0.25)",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              {previewProps.prefix}
+              {displayValue.toLocaleString("pt-BR")}
+              <span
+                style={{
+                  fontSize: isVertical ? 11 : 16,
+                  color: "#facc15",
+                  marginLeft: 4,
+                }}
+              >
+                {previewProps.unit || previewProps.suffix}
+              </span>
+            </div>
+
+            {/* Label do Contador */}
+            <div
+              style={{
+                marginTop: 10,
+                padding: "4px 10px",
+                border: "1px solid rgba(250,204,21,0.25)",
+                background: "rgba(250,204,21,0.04)",
+                fontSize: isVertical ? 9 : 12,
+                fontWeight: 800,
+                color: "rgba(255,255,255,0.85)",
+                textAlign: "center",
+                textTransform: "uppercase",
+              }}
+            >
+              {previewProps.label}
+            </div>
+
+            {/* Variação (Trend) */}
+            {(previewProps.trendValue || previewProps.trendLabel) && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  marginTop: 16,
+                  opacity: subtitleEnter,
+                }}
+              >
+                {previewProps.trendValue && (
+                  <div
+                    style={{
+                      padding: "3px 8px",
+                      border: "1px solid rgba(34,211,238,0.18)",
+                      background: "rgba(2,6,23,0.3)",
+                      fontSize: isVertical ? 8 : 11,
+                      fontWeight: 900,
+                      color: "#facc15",
+                    }}
+                  >
+                    {previewProps.trendValue}
+                  </div>
+                )}
+                {previewProps.trendLabel && (
+                  <div
+                    style={{
+                      padding: "3px 8px",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                      background: "rgba(2,6,23,0.2)",
+                      fontSize: isVertical ? 8 : 10,
+                      fontWeight: 750,
+                      color: "#94a3b8",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {previewProps.trendLabel}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Barra de Progresso e Localização no Rodapé */}
+          <div
+            style={{
+              position: "absolute",
+              left: isVertical ? 16 : 28,
+              bottom: isVertical ? 28 : 20,
+              right: isVertical ? 16 : 28,
+              background: "rgba(8,13,24,0.6)",
+              padding: "10px 12px",
+              borderLeft: "2px solid #facc15",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: isVertical ? 8 : 10,
+                fontWeight: 700,
+                color: "rgba(255,255,255,0.6)",
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              <span>{previewProps.location || "CANTEIRO CENTRAL"}</span>
+              <span>{previewProps.label}</span>
+            </div>
+            <div
+              style={{
+                height: 4,
+                width: "100%",
+                background: "rgba(255,255,255,0.08)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${fillProgress * 100}%`,
+                  height: "100%",
+                  background: "linear-gradient(90deg, #22d3ee, #facc15)",
+                }}
+              />
+            </div>
+          </div>
+        </>
       )}
 
       {variant === "circular-progress" && (
