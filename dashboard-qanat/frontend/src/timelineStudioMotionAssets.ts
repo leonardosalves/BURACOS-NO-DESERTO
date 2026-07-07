@@ -115,7 +115,7 @@ export async function fetchMotionOrchestration(
         duration: 4500,
       });
     }
-    const res = await fetch(
+    const tryAuto = await fetch(
       getProjectUrl("/api/timeline-studio/auto-orchestrate-motion"),
       {
         method: "POST",
@@ -123,8 +123,41 @@ export async function fetchMotionOrchestration(
         body: JSON.stringify({ force }),
       }
     );
-    if (!res.ok) throw new Error(await res.text());
-    return (await res.json()) as MotionOrchestrationResult;
+    if (tryAuto.ok) {
+      return (await tryAuto.json()) as MotionOrchestrationResult;
+    }
+    const autoErr = await tryAuto.text();
+    const isMissingRoute =
+      tryAuto.status === 404 ||
+      autoErr.includes(
+        "Cannot POST /api/timeline-studio/auto-orchestrate-motion"
+      );
+    if (!isMissingRoute) {
+      throw new Error(autoErr);
+    }
+    const fallback = await fetch(
+      getProjectUrl("/api/ai/creator/orchestrate-production"),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          use_llm: false,
+          fetch_satellite: true,
+          sync_timeline: true,
+          rebuild_asset_slots: false,
+        }),
+      }
+    );
+    if (!fallback.ok) throw new Error(await fallback.text());
+    const data = await fallback.json();
+    return {
+      studio: data.studio,
+      motion_scenes: data.motion_scenes,
+      enriched: Number(data.satellite?.enriched) || 0,
+      results: data.satellite?.results,
+      quality: data.quality,
+      motion_count: data.motion_count,
+    } as MotionOrchestrationResult;
   })();
 
   try {
