@@ -1,8 +1,8 @@
 # Vigia o backend Lumiera — SOBE se cair, NUNCA mata processo ocupado (render/Gemini).
 param(
-    [int]$CheckIntervalSec = 45,
+    [int]$CheckIntervalSec = 20,
     [int]$BusyFailBeforeKill = 80,
-    [int]$GraceAfterStartSec = 120
+    [int]$GraceAfterStartSec = 45
 )
 
 $ErrorActionPreference = "SilentlyContinue"

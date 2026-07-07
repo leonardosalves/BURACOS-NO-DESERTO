@@ -51,6 +51,7 @@ function Start-LumieraFrontend {
 }
 
 Write-Host "Lumiera Studio" -ForegroundColor Magenta
+& (Join-Path $PSScriptRoot "ensure-watchdog.ps1") -InstallIfMissing | Out-Null
 $backendOk = Start-LumieraBackendProcess
 if (-not $backendOk) {
     Write-Host "Falha ao iniciar backend. Veja .lumiera-logs\backend-stderr.log" -ForegroundColor Red

@@ -269,14 +269,17 @@ function Start-LumieraBackendProcess {
 
         $stdout = Join-Path $script:LogDir "backend-stdout.log"
         $stderr = Join-Path $script:LogDir "backend-stderr.log"
-        $cmdLine = 'node --max-old-space-size={0} server.js >> "{1}" 2>> "{2}"' -f $script:NodeMaxOldSpaceMb, $stdout, $stderr
+        $nodeCmd = Get-Command node.exe -ErrorAction SilentlyContinue
+        $nodeExe = if ($nodeCmd) { $nodeCmd.Source } else { "node.exe" }
 
         Write-LumieraLog "Iniciando node server.js em $script:BackendDir"
         $proc = Start-Process `
-            -FilePath "cmd.exe" `
-            -ArgumentList @("/d", "/s", "/c", $cmdLine) `
+            -FilePath $nodeExe `
+            -ArgumentList @("--max-old-space-size=$($script:NodeMaxOldSpaceMb)", "server.js") `
             -WorkingDirectory $script:BackendDir `
             -WindowStyle Hidden `
+            -RedirectStandardOutput $stdout `
+            -RedirectStandardError $stderr `
             -PassThru
 
         if ($proc -and $proc.Id) {
