@@ -22,7 +22,12 @@ if (-not $Quiet) {
     Write-Host "=== Lumiera ensure ===" -ForegroundColor Cyan
 }
 
-& (Join-Path $PSScriptRoot "ensure-watchdog.ps1") | Out-Null
+$pm2Mode = Test-LumieraPm2Mode
+if ($pm2Mode) {
+    if (-not $Quiet) { Write-Host "Modo PM2 (auto-reinicio)" -ForegroundColor DarkGray }
+} else {
+    & (Join-Path $PSScriptRoot "ensure-watchdog.ps1") | Out-Null
+}
 
 $backendOk = $false
 if (Test-LumieraBackendHealthy -Retries 4 -TimeoutSec 10) {
@@ -34,8 +39,28 @@ if (Test-LumieraBackendHealthy -Retries 4 -TimeoutSec 10) {
 }
 
 $frontendExit = 0
-& (Join-Path $PSScriptRoot "ensure-frontend.ps1")
-$frontendExit = $LASTEXITCODE
+if ($pm2Mode) {
+    $feStatus = (Invoke-LumieraPm2 @("describe", "lumiera-frontend") -CaptureOutput | Out-String)
+    if ($feStatus -match "online" -and (Get-PortListenerPidFast 5176)) {
+        if (-not $Quiet) { Write-Host "Frontend OK em http://127.0.0.1:5176/" -ForegroundColor Green }
+        $frontendExit = 0
+    } else {
+        Invoke-LumieraPm2 @("restart", "lumiera-frontend", "--update-env") | Out-Null
+        $deadline = (Get-Date).AddSeconds(60)
+        while ((Get-Date) -lt $deadline) {
+            if (Get-PortListenerPidFast 5176) {
+                if (-not $Quiet) { Write-Host "Frontend OK em http://127.0.0.1:5176/" -ForegroundColor Green }
+                $frontendExit = 0
+                break
+            }
+            Start-Sleep -Seconds 1
+        }
+        if ($frontendExit -ne 0) { $frontendExit = 1 }
+    }
+} else {
+    & (Join-Path $PSScriptRoot "ensure-frontend.ps1")
+    $frontendExit = $LASTEXITCODE
+}
 
 $backendErrors = Test-LogHasErrors (Join-Path $script:LogDir "backend-stderr.log")
 $frontendErrors = Test-LogHasErrors (Join-Path $script:LogDir "frontend-stderr.log")

@@ -9,6 +9,8 @@ $script:PidFile = Join-Path $script:LogDir "backend.pid"
 $script:RestartLockFile = Join-Path $script:LogDir "backend-restart.lock"
 $script:LastRestartFile = Join-Path $script:LogDir "backend-last-restart.txt"
 $script:NodeMaxOldSpaceMb = 4096
+$script:Pm2ModeFile = Join-Path $script:LogDir "pm2.mode"
+$script:SyntaxCheckLog = Join-Path $script:LogDir "backend-syntax-check.log"
 
 function Ensure-LumieraLogDir {
     if (-not (Test-Path -LiteralPath $script:LogDir)) {
@@ -206,6 +208,13 @@ function Start-LumieraBackendProcess {
 
     Initialize-LumieraBackendEnv
 
+    if (Test-LumieraPm2Mode) {
+        if ($ForceRestart) {
+            return Ensure-LumieraPm2Backend -Reload
+        }
+        return Ensure-LumieraPm2Backend
+    }
+
     if (Test-BackendRestartLock) {
         Write-LumieraLog "Reinicio ja em andamento (lock) - aguardando" "WARN"
         $deadline = (Get-Date).AddSeconds(120)
@@ -342,6 +351,143 @@ function Start-LumieraBackendProcess {
     } finally {
         Clear-BackendRestartLock
     }
+}
+
+function Resolve-LumieraPm2Bin {
+    $localPm2 = Join-Path $script:RepoRoot "node_modules\.bin\pm2.cmd"
+    if (Test-Path -LiteralPath $localPm2) {
+        return $localPm2
+    }
+    return $null
+}
+
+function Convert-LumieraPm2Json {
+    param([object]$Raw)
+    $text = if ($Raw -is [array]) { ($Raw | ForEach-Object { "$_" }) -join "`n" } else { "$Raw" }
+    $line = ($text -split "`n" | Where-Object { $_.TrimStart().StartsWith("[") -or $_.TrimStart().StartsWith("{") } | Select-Object -First 1)
+    if (-not $line) { return $null }
+    return $line | ConvertFrom-Json
+}
+
+function Get-LumieraPm2AppRow {
+    param([string]$AppName)
+    $list = Convert-LumieraPm2Json (Invoke-LumieraPm2 @("jlist") -CaptureOutput)
+    if (-not $list) { return $null }
+    return $list | Where-Object { $_.name -eq $AppName } | Select-Object -First 1
+}
+
+function Test-LumieraPm2Mode {
+    if (Test-Path -LiteralPath $script:Pm2ModeFile) {
+        return $true
+    }
+    if (-not (Resolve-LumieraPm2Bin)) { return $false }
+    try {
+        return [bool](Get-LumieraPm2AppRow "lumiera-backend")
+    } catch {
+        return $false
+    }
+}
+
+function Invoke-LumieraPm2 {
+    param(
+        [string[]]$Pm2Args,
+        [switch]$CaptureOutput
+    )
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    $pm2 = Resolve-LumieraPm2Bin
+    $runner = {
+        param($Bin, $Args, $Capture)
+        if ($Capture) {
+            return & $Bin @Args 2>&1
+        }
+        & $Bin @Args 2>$null | Out-Null
+        return $LASTEXITCODE
+    }
+    if ($pm2) {
+        $result = & $runner $pm2 $Pm2Args $CaptureOutput.IsPresent
+    } else {
+        Push-Location $script:RepoRoot
+        if ($CaptureOutput) {
+            $result = & npx --yes pm2 @Pm2Args 2>&1
+        } else {
+            & npx --yes pm2 @Pm2Args 2>$null | Out-Null
+            $result = $LASTEXITCODE
+        }
+        Pop-Location
+    }
+    $ErrorActionPreference = $prevEap
+    return $result
+}
+
+function Test-BackendSyntaxOk {
+    Ensure-LumieraLogDir
+    $serverJs = Join-Path $script:BackendDir "server.js"
+    if (-not (Test-Path -LiteralPath $serverJs)) { return $false }
+    Push-Location $script:BackendDir
+    $out = & node --check server.js 2>&1 | Out-String
+    Pop-Location
+    Set-Content -Path $script:SyntaxCheckLog -Value $out -Encoding UTF8
+    return $LASTEXITCODE -eq 0
+}
+
+function Ensure-LumieraPm2Backend {
+    param([switch]$Reload)
+
+    if (-not (Resolve-LumieraPm2Bin) -and -not (Test-Path -LiteralPath $script:Pm2ModeFile)) {
+        return $false
+    }
+
+    if ($Reload) {
+        if (-not (Test-BackendSyntaxOk)) {
+            Write-LumieraLog "PM2 reload bloqueado: server.js com erro de sintaxe" "ERROR"
+            return $false
+        }
+        if (Test-ActiveLumieraRender) {
+            Write-LumieraLog "PM2 reload adiado: render ativo" "WARN"
+            return $true
+        }
+        Invoke-LumieraPm2 @("reload", "lumiera-backend", "--update-env") | Out-Null
+        $deadline = (Get-Date).AddSeconds(120)
+        while ((Get-Date) -lt $deadline) {
+            if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 12) {
+                Write-LumieraLog "PM2 reload OK - $script:HealthUrl"
+                return $true
+            }
+            Start-Sleep -Seconds 2
+        }
+        Write-LumieraLog "PM2 reload: health lento" "WARN"
+        return $true
+    }
+
+    $status = (Invoke-LumieraPm2 @("describe", "lumiera-backend") -CaptureOutput | Out-String)
+    if ($status -match "online") {
+        if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 10) {
+            return $true
+        }
+        Write-LumieraLog "PM2 online mas health lento - aguardando" "WARN"
+        $deadline = (Get-Date).AddSeconds(90)
+        while ((Get-Date) -lt $deadline) {
+            if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 12) { return $true }
+            Start-Sleep -Seconds 2
+        }
+        Invoke-LumieraPm2 @("restart", "lumiera-backend", "--update-env") | Out-Null
+        return $true
+    }
+
+    $ecosystem = Join-Path $script:RepoRoot "ecosystem.config.cjs"
+    if (-not (Test-Path -LiteralPath $ecosystem)) { return $false }
+    if (-not (Test-BackendSyntaxOk)) {
+        Write-LumieraLog "PM2 start bloqueado: server.js com erro de sintaxe" "ERROR"
+        return $false
+    }
+    Invoke-LumieraPm2 @("start", $ecosystem, "--only", "lumiera-backend", "--update-env") | Out-Null
+    $deadline = (Get-Date).AddSeconds(120)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 12) { return $true }
+        Start-Sleep -Seconds 2
+    }
+    return $false
 }
 
 function Test-LumieraWatchdogActive {
