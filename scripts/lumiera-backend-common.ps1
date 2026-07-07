@@ -459,7 +459,15 @@ function Ensure-LumieraPm2Backend {
             Write-LumieraLog "PM2 reload adiado: render ativo" "WARN"
             return $true
         }
-        Invoke-LumieraPm2 @("reload", "lumiera-backend", "--update-env") | Out-Null
+        # restart (nao reload) — no Windows reload ESM pode manter rotas/modulos antigos
+        $orphanPid = Get-BackendListenerPid
+        if ($orphanPid) {
+            Stop-LumieraBackendListener
+        }
+        Invoke-LumieraPm2 @("restart", "lumiera-backend", "--update-env") | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Invoke-LumieraPm2 @("start", (Join-Path $script:RepoRoot "ecosystem.config.cjs"), "--only", "lumiera-backend", "--update-env") | Out-Null
+        }
         $deadline = (Get-Date).AddSeconds(120)
         while ((Get-Date) -lt $deadline) {
             if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 12) {
