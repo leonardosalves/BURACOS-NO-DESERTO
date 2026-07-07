@@ -438,8 +438,12 @@ export function registerMotionSceneRoutes(
         "utf8"
       );
 
-      let baseStudio = unsuppressMotionSceneIds(rawStudio, qc.motion_scenes);
-      baseStudio = { ...baseStudio, suppressedMotionSceneIds: [] };
+      const restoreSuppressed = req.body?.restore_suppressed_motion === true;
+      let baseStudio = rawStudio;
+      if (restoreSuppressed) {
+        baseStudio = unsuppressMotionSceneIds(rawStudio, qc.motion_scenes);
+        baseStudio = { ...baseStudio, suppressedMotionSceneIds: [] };
+      }
       storyboard.motion_scenes = qc.motion_scenes;
       const overlayMerged = mergeRemotionFromStoryboard(
         baseStudio,

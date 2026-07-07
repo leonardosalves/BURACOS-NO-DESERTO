@@ -164,6 +164,17 @@ export function resolveMotionScenesForEnrichment(storyboard = {}, studio = {}) {
   });
 }
 
+function suppressedRemotionIdSet(studio = {}) {
+  return new Set(
+    (Array.isArray(studio?.suppressedMotionSceneIds)
+      ? studio.suppressedMotionSceneIds
+      : []
+    )
+      .map((id) => String(id || "").trim())
+      .filter(Boolean)
+  );
+}
+
 export function studioNeedsMotionOrchestration(
   clips = [],
   storyboard = {},
@@ -171,19 +182,14 @@ export function studioNeedsMotionOrchestration(
 ) {
   if (studioClipsNeedingEnrichment(clips).length > 0) return true;
 
-  const suppressed = (
-    Array.isArray(studio?.suppressedMotionSceneIds)
-      ? studio.suppressedMotionSceneIds
-      : []
-  ).filter(Boolean);
-  if (suppressed.length > 0) return true;
+  const suppressedIds = suppressedRemotionIdSet(studio);
 
   const motionClips = (Array.isArray(clips) ? clips : []).filter(
     (c) => c.trackId === "motion" || c.motionScene
   );
-  const storyboardMotion = Array.isArray(storyboard.motion_scenes)
-    ? storyboard.motion_scenes
-    : [];
+  const storyboardMotion = (
+    Array.isArray(storyboard.motion_scenes) ? storyboard.motion_scenes : []
+  ).filter((ms) => !suppressedIds.has(String(ms?.id || "")));
   if (
     storyboardMotion.length > 0 &&
     motionClips.length < storyboardMotion.length
@@ -194,11 +200,13 @@ export function studioNeedsMotionOrchestration(
   const overlayClips = (Array.isArray(clips) ? clips : []).filter(
     (c) => c.trackId === "overlays"
   );
-  const overlaysSource = Array.isArray(storyboard.overlays_ai)
-    ? storyboard.overlays_ai
-    : Array.isArray(storyboard.overlays)
-      ? storyboard.overlays
-      : [];
+  const overlaysSource = (
+    Array.isArray(storyboard.overlays_ai)
+      ? storyboard.overlays_ai
+      : Array.isArray(storyboard.overlays)
+        ? storyboard.overlays
+        : []
+  ).filter((o) => !suppressedIds.has(String(o?.id || "")));
   if (
     overlaysSource.length > 0 &&
     overlayClips.length < overlaysSource.length
@@ -209,7 +217,11 @@ export function studioNeedsMotionOrchestration(
   const hasVisualPrompts = Array.isArray(storyboard.visual_prompts)
     ? storyboard.visual_prompts.length > 0
     : false;
-  if (motionClips.length === 0 && hasVisualPrompts) {
+  if (
+    motionClips.length === 0 &&
+    hasVisualPrompts &&
+    storyboardMotion.length > 0
+  ) {
     return true;
   }
 

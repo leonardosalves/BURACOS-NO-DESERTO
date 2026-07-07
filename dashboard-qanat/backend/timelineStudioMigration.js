@@ -571,9 +571,9 @@ export function mergeRemotionFromStoryboard(
     }
   }
 
-  const clips = [...byId.values()].sort(
-    (a, b) => (Number(a.start) || 0) - (Number(b.start) || 0)
-  );
+  const clips = [...byId.values()]
+    .filter((c) => !suppressed.has(String(c.id || "")))
+    .sort((a, b) => (Number(a.start) || 0) - (Number(b.start) || 0));
   const mergedStudio = { ...next, clips };
   const afterFp = remotionClipFingerprint(mergedStudio.clips);
   const motionSynced = afterFp !== beforeFp ? 1 : 0;

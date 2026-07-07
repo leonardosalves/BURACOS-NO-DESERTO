@@ -407,17 +407,13 @@ export function TimelineStudio({
 
   const persistStudioSnapshot = useCallback(
     async (nextStudio: TimelineStudioState) => {
-      try {
-        const synced = upsertMusicClipInStudio(nextStudio, configRef.current);
-        const res = await fetch(getProjectUrl("/api/timeline-studio"), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ studio: synced }),
-        });
-        if (!res.ok) throw new Error(await res.text());
-      } catch (err) {
-        toast.error(`Erro ao persistir timeline: ${(err as Error).message}`);
-      }
+      const synced = upsertMusicClipInStudio(nextStudio, configRef.current);
+      const res = await fetch(getProjectUrl("/api/timeline-studio"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studio: synced }),
+      });
+      if (!res.ok) throw new Error(await res.text());
     },
     [getProjectUrl]
   );
@@ -520,7 +516,7 @@ export function TimelineStudio({
   );
 
   const deleteClipFromStudio = useCallback(
-    (clipId: string) => {
+    async (clipId: string) => {
       if (!studio) return;
       const target = findClip(studio.clips, clipId);
       const nextClips = deleteClip(studio.clips, clipId);
@@ -553,12 +549,18 @@ export function TimelineStudio({
 
       setStudio(nextStudio);
       setSelectedClipId(null);
-      void persistStudioSnapshot(nextStudio);
-      toast.success(
-        isRemotionClip
-          ? "Cena Remotion removida — não volta no F5"
-          : "Clip removido"
-      );
+      try {
+        await persistStudioSnapshot(nextStudio);
+        toast.success(
+          isRemotionClip
+            ? "Cena Remotion removida — não volta no F5"
+            : "Clip removido"
+        );
+      } catch (err) {
+        toast.error(
+          `Falha ao salvar exclusão: ${(err as Error).message || "erro"}`
+        );
+      }
     },
     [persistStudioSnapshot, studio]
   );

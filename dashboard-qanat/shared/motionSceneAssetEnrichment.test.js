@@ -89,7 +89,7 @@ describe("motionSceneAssetEnrichment", () => {
     assert.equal(studioNeedsMotionOrchestration(clips, {}), true);
   });
 
-  it("studioNeedsMotionOrchestration quando motion suprimida no storyboard", () => {
+  it("studioNeedsMotionOrchestration ignora cenas suprimidas no storyboard", () => {
     const storyboard = {
       motion_scenes: [{ id: "ms-1.1" }, { id: "ms-3.1" }],
       visual_prompts: [{ block: 1 }],
@@ -98,7 +98,7 @@ describe("motionSceneAssetEnrichment", () => {
       suppressedMotionSceneIds: ["ms-1.1", "ms-3.1"],
       clips: [],
     };
-    assert.equal(studioNeedsMotionOrchestration([], storyboard, studio), true);
+    assert.equal(studioNeedsMotionOrchestration([], storyboard, studio), false);
   });
 
   it("motionSceneFromStudioClip extrai template e narração", () => {

@@ -148,7 +148,10 @@ export async function fetchMotionOrchestration(
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ force }),
+        body: JSON.stringify({
+          force,
+          restore_suppressed_motion: false,
+        }),
       }
     );
     if (tryAuto.ok) {
@@ -173,7 +176,7 @@ export async function fetchMotionOrchestration(
           fetch_satellite: true,
           sync_timeline: true,
           rebuild_asset_slots: false,
-          restore_suppressed_motion: true,
+          restore_suppressed_motion: false,
         }),
       }
     );
