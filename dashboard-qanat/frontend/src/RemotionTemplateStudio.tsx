@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Player } from "@remotion/player";
 import {
   AbsoluteFill,
@@ -8,6 +8,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import {
+  ArrowLeft,
   BadgeCheck,
   Braces,
   Check,
@@ -590,6 +591,7 @@ function TemplateDetailPanel({
   onTabChange,
   onFormatChange,
   onCopy,
+  onBack,
 }: {
   template: TemplateItem;
   activeTab: DetailTab;
@@ -598,6 +600,7 @@ function TemplateDetailPanel({
   onTabChange: (tab: DetailTab) => void;
   onFormatChange: (format: DetailFormat) => void;
   onCopy: () => void;
+  onBack: () => void;
 }) {
   const activeSource = template.sourceCode[activeFormat];
   const activePreview =
@@ -605,16 +608,19 @@ function TemplateDetailPanel({
   const activeAspectRatio = activeFormat === "short" ? "9:16" : "16:9";
 
   return (
-    <section className="border-b border-white/10 bg-[#0e1522]">
+    <section className="bg-[#0e1522]">
       <div className="border-b border-white/10 px-4 py-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-4 inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-bold text-zinc-300 hover:border-cyan-300/50 hover:text-white"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Voltar para Templates
+        </button>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
-              Template selecionado
-            </p>
-            <h3 className="mt-1 text-2xl font-black text-white">
-              {template.name}
-            </h3>
+            <h3 className="text-2xl font-black text-white">{template.name}</h3>
             <p className="mt-1 max-w-3xl text-sm leading-relaxed text-zinc-300">
               {template.description}
             </p>
@@ -702,9 +708,9 @@ function TemplateDetailPanel({
       </div>
 
       <div className="px-4 pb-4">
-        <div className="min-h-[314px] overflow-hidden rounded-b-lg border border-white/10 bg-[#162030]">
+        <div className="min-h-[430px] overflow-hidden rounded-b-lg border border-white/10 bg-[#162030]">
           {activeTab === "preview" ? (
-            <div className="grid min-h-[314px] place-items-center px-4 py-5">
+            <div className="grid min-h-[430px] place-items-center px-4 py-5">
               <div className="flex flex-wrap items-center justify-center gap-8">
                 <div className="space-y-2">
                   <p className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">
@@ -719,11 +725,33 @@ function TemplateDetailPanel({
               </div>
             </div>
           ) : (
-            <pre className="min-h-[314px] overflow-auto p-5 text-left font-mono text-xs leading-relaxed text-cyan-50">
+            <pre className="min-h-[430px] overflow-auto p-5 text-left font-mono text-xs leading-relaxed text-cyan-50">
               <code>{activeSource}</code>
             </pre>
           )}
         </div>
+      </div>
+      <div className="grid gap-4 border-t border-white/10 p-4 lg:grid-cols-[1fr_280px]">
+        <section>
+          <h4 className="text-sm font-black text-white">Description</h4>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+            Template Remotion com preview executado pelo Player oficial, props
+            declaradas e codigo separado para Shorts 9:16 e Longos 16:9.
+          </p>
+        </section>
+        <section>
+          <h4 className="text-sm font-black text-white">Data slots</h4>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {template.dataSlots.map((slot) => (
+              <span
+                key={slot}
+                className="rounded bg-white/[0.06] px-2 py-1 text-[10px] font-bold text-zinc-300"
+              >
+                {slot}
+              </span>
+            ))}
+          </div>
+        </section>
       </div>
     </section>
   );
@@ -742,6 +770,7 @@ export function RemotionTemplateStudio({
   const [category, setCategory] = useState<TemplateCategory>("maps");
   const [subcategory, setSubcategory] = useState("PIP mapa");
   const [selectedId, setSelectedId] = useState("eng-map-pip-tactical");
+  const [detailTemplateId, setDetailTemplateId] = useState("");
   const [templates, setTemplates] = useState<TemplateItem[]>(TEMPLATES);
   const [detailTab, setDetailTab] = useState<DetailTab>("preview");
   const [detailFormat, setDetailFormat] = useState<DetailFormat>("short");
@@ -765,10 +794,20 @@ export function RemotionTemplateStudio({
       ),
     [category, niche, subcategory, templates]
   );
+  const detailTemplate = visibleTemplates.find(
+    (t) => t.id === detailTemplateId
+  );
   const selected =
-    templates.find((t) => t.id === selectedId) ||
+    visibleTemplates.find((t) => t.id === selectedId) ||
     visibleTemplates[0] ||
-    templates[0];
+    null;
+
+  useEffect(() => {
+    setDetailTemplateId("");
+    setDetailTab("preview");
+    setDetailFormat("short");
+    setSelectedId(visibleTemplates[0]?.id || "");
+  }, [category, niche, subcategory, visibleTemplates]);
 
   function deleteTemplate(templateId: string) {
     const template = templates.find((item) => item.id === templateId);
@@ -778,8 +817,13 @@ export function RemotionTemplateStudio({
     );
     if (!shouldDelete) return;
     setTemplates((current) => current.filter((item) => item.id !== templateId));
+    if (detailTemplateId === templateId) {
+      setDetailTemplateId("");
+    }
     if (selectedId === templateId) {
-      const nextTemplate = templates.find((item) => item.id !== templateId);
+      const nextTemplate = visibleTemplates.find(
+        (item) => item.id !== templateId
+      );
       setSelectedId(nextTemplate?.id || "");
     }
   }
@@ -882,99 +926,110 @@ export function RemotionTemplateStudio({
             </div>
           </div>
 
-          {selected && (
+          {detailTemplate ? (
             <TemplateDetailPanel
-              template={selected}
+              template={detailTemplate}
               activeTab={detailTab}
               activeFormat={detailFormat}
-              copied={copiedTemplateId === `${selected.id}:${detailFormat}`}
+              copied={
+                copiedTemplateId === `${detailTemplate.id}:${detailFormat}`
+              }
               onTabChange={setDetailTab}
               onFormatChange={setDetailFormat}
-              onCopy={() => copyTemplateSource(selected)}
+              onCopy={() => copyTemplateSource(detailTemplate)}
+              onBack={() => setDetailTemplateId("")}
             />
-          )}
-
-          <div className="grid gap-4 p-4 2xl:grid-cols-2">
-            {visibleTemplates.map((template) => (
-              <article
-                key={template.id}
-                onClick={() => {
-                  setSelectedId(template.id);
-                  setDetailTab("preview");
-                  setDetailFormat("short");
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
+          ) : (
+            <div className="grid gap-4 p-4 2xl:grid-cols-2">
+              {visibleTemplates.map((template) => (
+                <article
+                  key={template.id}
+                  onClick={() => {
                     setSelectedId(template.id);
+                    setDetailTemplateId(template.id);
                     setDetailTab("preview");
                     setDetailFormat("short");
-                  }
-                }}
-                tabIndex={0}
-                className={`overflow-hidden rounded-lg border bg-[#111722] text-left shadow-xl shadow-black/20 ${
-                  selected?.id === template.id
-                    ? "border-cyan-300/70"
-                    : "border-white/10"
-                }`}
-              >
-                <div className="flex gap-3 border-b border-white/10 bg-[#0c121d] p-3">
-                  <PreviewFrame format="9:16" variant={template.shortPreview} />
-                  <PreviewFrame format="16:9" variant={template.longPreview} />
-                </div>
-                <div className="p-4">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <h3 className="text-base font-black text-white">
-                      {template.name}
-                    </h3>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                          template.status === "approved"
-                            ? "bg-emerald-400/12 text-emerald-300"
-                            : "bg-amber-300/12 text-amber-200"
-                        }`}
-                      >
-                        <BadgeCheck className="h-3 w-3" />
-                        {template.status === "approved"
-                          ? "Aprovado"
-                          : "Rascunho"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          deleteTemplate(template.id);
-                        }}
-                        className="grid h-7 w-7 place-items-center rounded-md border border-red-400/20 bg-red-500/10 text-red-200 hover:border-red-300/60 hover:bg-red-500/20"
-                        title="Excluir template"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedId(template.id);
+                      setDetailTemplateId(template.id);
+                      setDetailTab("preview");
+                      setDetailFormat("short");
+                    }
+                  }}
+                  tabIndex={0}
+                  className={`overflow-hidden rounded-lg border bg-[#111722] text-left shadow-xl shadow-black/20 ${
+                    selected?.id === template.id
+                      ? "border-cyan-300/70"
+                      : "border-white/10"
+                  }`}
+                >
+                  <div className="flex gap-3 border-b border-white/10 bg-[#0c121d] p-3">
+                    <PreviewFrame
+                      format="9:16"
+                      variant={template.shortPreview}
+                    />
+                    <PreviewFrame
+                      format="16:9"
+                      variant={template.longPreview}
+                    />
+                  </div>
+                  <div className="p-4">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <h3 className="text-base font-black text-white">
+                        {template.name}
+                      </h3>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                            template.status === "approved"
+                              ? "bg-emerald-400/12 text-emerald-300"
+                              : "bg-amber-300/12 text-amber-200"
+                          }`}
+                        >
+                          <BadgeCheck className="h-3 w-3" />
+                          {template.status === "approved"
+                            ? "Aprovado"
+                            : "Rascunho"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            deleteTemplate(template.id);
+                          }}
+                          className="grid h-7 w-7 place-items-center rounded-md border border-red-400/20 bg-red-500/10 text-red-200 hover:border-red-300/60 hover:bg-red-500/20"
+                          title="Excluir template"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="min-h-[38px] text-sm leading-relaxed text-zinc-400">
+                      {template.description}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {template.dataSlots.map((slot) => (
+                        <span
+                          key={slot}
+                          className="rounded bg-white/[0.06] px-2 py-1 text-[10px] font-bold text-zinc-300"
+                        >
+                          {slot}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                  <p className="min-h-[38px] text-sm leading-relaxed text-zinc-400">
-                    {template.description}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {template.dataSlots.map((slot) => (
-                      <span
-                        key={slot}
-                        className="rounded bg-white/[0.06] px-2 py-1 text-[10px] font-bold text-zinc-300"
-                      >
-                        {slot}
-                      </span>
-                    ))}
-                  </div>
+                </article>
+              ))}
+              {!visibleTemplates.length && (
+                <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-zinc-500">
+                  Nenhum template aprovado nessa combinacao ainda.
                 </div>
-              </article>
-            ))}
-            {!visibleTemplates.length && (
-              <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-zinc-500">
-                Nenhum template aprovado nessa combinacao ainda.
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </main>
 
         <aside className="space-y-4">
