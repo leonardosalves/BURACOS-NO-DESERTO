@@ -2,6 +2,8 @@ import type { EditorialIdeaImport } from "./creatorEditorialImport";
 
 export const WIZARD_SESSION_KEY = "qanat_wizard_session";
 export const LEGACY_CREATOR_STATE_KEY = "qanat_creator_state";
+export const WORKSPACE_TAB_KEY = "qanat_active_tab";
+export const WORKSPACE_PROJECT_KEY = "qanat_active_project";
 export const WIZARD_SESSION_VERSION = 2;
 
 export type WizardSession = {
@@ -79,18 +81,59 @@ export function loadWizardSession(): WizardSessionPatch | null {
   return merged;
 }
 
+/** Só força o wizard quando não há aba de workspace salva — evita F5 cair no passo 1. */
 export function shouldRestoreWizardTab(
   session: WizardSessionPatch | null
 ): boolean {
   if (!session) return false;
-  if (session.wasInWizard === true) return true;
-  if (session.activeTab === "creator") return true;
   const step = Number(session.creatorStep || 1);
-  if (step > 1) return true;
   if (session.showNarrationReview) return true;
-  if (session.generatedScriptData) return true;
-  if (String(session.creatorProjectName || "").trim()) return true;
+  if (step > 1) return true;
+  if (session.activeTab === "creator" && session.wasInWizard === true)
+    return true;
   return false;
+}
+
+export function readPersistedWorkspaceTab(): string {
+  if (typeof localStorage === "undefined") return "";
+  return (
+    String(localStorage.getItem(WORKSPACE_TAB_KEY) || "").trim() ||
+    String(loadWizardSession()?.activeTab || "").trim()
+  );
+}
+
+export function readPersistedWorkspaceProject(): string {
+  if (typeof localStorage === "undefined") return "";
+  return (
+    String(localStorage.getItem(WORKSPACE_PROJECT_KEY) || "").trim() ||
+    String(loadWizardSession()?.activeProject || "").trim()
+  );
+}
+
+export function resolveInitialActiveTab(
+  session: WizardSessionPatch | null,
+  restorableTabs: readonly string[]
+): string {
+  const fromKey = readPersistedWorkspaceTab();
+  if (fromKey && restorableTabs.includes(fromKey)) return fromKey;
+
+  const saved = String(session?.activeTab || "").trim();
+  if (saved && restorableTabs.includes(saved)) return saved;
+
+  if (shouldRestoreWizardTab(session)) return "creator";
+  return "home";
+}
+
+export function resolveInitialActiveProject(
+  session: WizardSessionPatch | null
+): string {
+  const fromKey = readPersistedWorkspaceProject();
+  if (fromKey) return fromKey;
+
+  const fromSession = String(session?.activeProject || "").trim();
+  if (fromSession) return fromSession;
+
+  return resolveWizardActiveProject(session) || "Buracos no Deserto";
 }
 
 export function resolveWizardActiveProject(
@@ -183,12 +226,19 @@ export function saveWizardSession(patch: WizardSessionPatch): WizardSession {
   const serialized = JSON.stringify(payload);
   localStorage.setItem(WIZARD_SESSION_KEY, serialized);
   localStorage.setItem(LEGACY_CREATOR_STATE_KEY, serialized);
+  if (payload.activeTab) {
+    localStorage.setItem(WORKSPACE_TAB_KEY, payload.activeTab);
+  }
+  if (payload.activeProject) {
+    localStorage.setItem(WORKSPACE_PROJECT_KEY, payload.activeProject);
+  }
   return payload;
 }
 
 export function clearWizardSession(): void {
   localStorage.removeItem(WIZARD_SESSION_KEY);
   localStorage.removeItem(LEGACY_CREATOR_STATE_KEY);
+  localStorage.removeItem(WORKSPACE_TAB_KEY);
 }
 
 /** Sessão zerada — substitui localStorage por completo (sem merge com estado anterior). */
