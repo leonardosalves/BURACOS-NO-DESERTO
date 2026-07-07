@@ -39,6 +39,23 @@ import { upsertMusicClipInStudio } from "./timelineStudioMusic";
 
 export type TimelineStudioProps = RichTimelineEditorProps;
 
+const PREVIEW_SPLIT_STORAGE_KEY = "lumiera-studio-preview-split";
+const PREVIEW_SPLIT_DEFAULT = 62;
+const PREVIEW_SPLIT_MIN = 38;
+const PREVIEW_SPLIT_MAX = 78;
+
+function readPreviewSplitRatio(): number {
+  try {
+    const saved = localStorage.getItem(PREVIEW_SPLIT_STORAGE_KEY);
+    if (saved == null) return PREVIEW_SPLIT_DEFAULT;
+    const n = Number(saved);
+    if (!Number.isFinite(n)) return PREVIEW_SPLIT_DEFAULT;
+    return Math.min(PREVIEW_SPLIT_MAX, Math.max(PREVIEW_SPLIT_MIN, n));
+  } catch {
+    return PREVIEW_SPLIT_DEFAULT;
+  }
+}
+
 function countRemotionTracks(clips: StudioClip[]) {
   return {
     motion: clipsOnTrack(clips, "motion").length,
@@ -144,6 +161,13 @@ export function TimelineStudio({
     useState<StockSearchTrigger | null>(null);
   const [planningMotion, setPlanningMotion] = useState(false);
   const [scrollToTrackId, setScrollToTrackId] = useState<string | null>(null);
+  const [previewSplitRatio, setPreviewSplitRatio] = useState(
+    readPreviewSplitRatio
+  );
+  const workspaceSplitRef = useRef<HTMLDivElement>(null);
+  const splitDragRef = useRef<{ startY: number; startRatio: number } | null>(
+    null
+  );
   const configRef = useRef(config);
   configRef.current = config;
   const getAssetUrlRef = useRef(getAssetUrl);
@@ -447,6 +471,54 @@ export function TimelineStudio({
 
   const aspectRatio = config.aspect_ratio || "16:9";
   const isVertical = aspectRatio === "9:16";
+  const timelineSplitRatio = 100 - previewSplitRatio;
+
+  const handlePreviewSplitMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const container = workspaceSplitRef.current;
+      if (!container) return;
+      splitDragRef.current = {
+        startY: e.clientY,
+        startRatio: previewSplitRatio,
+      };
+
+      const onMove = (ev: MouseEvent) => {
+        const drag = splitDragRef.current;
+        const host = workspaceSplitRef.current;
+        if (!drag || !host) return;
+        const height = host.getBoundingClientRect().height;
+        if (height <= 0) return;
+        const deltaPct = ((ev.clientY - drag.startY) / height) * 100;
+        const next = Math.min(
+          PREVIEW_SPLIT_MAX,
+          Math.max(PREVIEW_SPLIT_MIN, drag.startRatio + deltaPct)
+        );
+        setPreviewSplitRatio(next);
+      };
+
+      const onUp = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        splitDragRef.current = null;
+        setPreviewSplitRatio((current) => {
+          try {
+            localStorage.setItem(
+              PREVIEW_SPLIT_STORAGE_KEY,
+              String(Math.round(current))
+            );
+          } catch {
+            /* ignore */
+          }
+          return current;
+        });
+      };
+
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    [previewSplitRatio]
+  );
 
   if (loading || !studio) {
     return (
@@ -736,83 +808,107 @@ export function TimelineStudio({
         </div>
       </div>
 
-      <RemotionQuickBar
-        clips={studio.clips}
-        playhead={studio.playhead}
-        onJump={(clip) => {
-          setSelectedClipId(clip.id);
-          updateStudio({ playhead: clip.start });
-          setScrollToTrackId(clip.trackId);
-        }}
-      />
-
       <div
-        className={`grid gap-3 shrink-0 ${
-          isVertical
-            ? "grid-cols-1 lg:grid-cols-[minmax(170px,200px)_minmax(0,1.35fr)_minmax(170px,220px)]"
-            : "grid-cols-1 lg:grid-cols-[minmax(190px,220px)_minmax(0,2fr)_minmax(190px,240px)]"
-        }`}
-        style={{
-          minHeight: isVertical ? 260 : 300,
-          maxHeight: "min(42vh, 400px)",
-        }}
+        ref={workspaceSplitRef}
+        className="flex flex-col min-h-[calc(100vh-11rem)] flex-1 min-w-0"
       >
-        <div className="min-h-[160px] lg:min-h-0 lg:h-full max-h-[min(42vh,400px)] overflow-hidden">
-          <StockMediaPanel
-            videoClips={videoClips}
-            getAssetUrl={getAssetUrl}
-            getProjectUrl={getProjectUrl}
+        <div
+          className="flex flex-col gap-2 min-h-[240px] min-w-0 overflow-hidden"
+          style={{ flex: previewSplitRatio }}
+        >
+          <RemotionQuickBar
+            clips={studio.clips}
             playhead={studio.playhead}
-            stockSearchTrigger={stockSearchTrigger}
-            onStockClipAdded={addClipToStudio}
+            onJump={(clip) => {
+              setSelectedClipId(clip.id);
+              updateStudio({ playhead: clip.start });
+              setScrollToTrackId(clip.trackId);
+            }}
           />
-        </div>
-        <div className="min-h-[200px] lg:min-h-0 lg:h-full max-h-[min(42vh,400px)] overflow-hidden">
-          <TimelineStudioPreview
-            studio={studio}
-            getAssetUrl={getAssetUrl}
-            getMusicUrl={getMusicUrl}
-            aspectRatio={aspectRatio}
-            musicVolume={
-              Number(config.project_music_volume) > 0
-                ? Number(config.project_music_volume)
-                : 0.15
-            }
-            onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
-          />
-        </div>
-        <div className="min-h-[160px] lg:min-h-0 lg:h-full max-h-[min(42vh,400px)] overflow-hidden">
-          <AskLumieraPanel
-            playhead={studio.playhead}
-            nichePack={studio.niche_pack}
-            getProjectUrl={getProjectUrl}
-            onActions={handleAskActions}
-            onInsertTemplate={(id) => void insertTemplate(id)}
-            onSelectPack={(packId) => updateStudio({ niche_pack: packId })}
-          />
-        </div>
-      </div>
 
-      <div className="shrink-0 rounded-t-2xl border-t-2 border-violet-500/35 bg-zinc-950/50 pt-1">
-        <div className="px-1 pb-0.5 flex items-center justify-between gap-2">
-          <span className="text-[9px] font-bold uppercase tracking-wider text-violet-300/90">
-            Timeline · role aqui para ver todas as trilhas
-          </span>
-          <span className="text-[9px] font-mono text-zinc-500">
-            🟣 {remotionCounts.motion} · 🟢 {remotionCounts.overlays}
-          </span>
+          <div
+            className={`grid gap-3 flex-1 min-h-0 min-w-0 ${
+              isVertical
+                ? "grid-cols-1 lg:grid-cols-[minmax(170px,200px)_minmax(0,1.35fr)_minmax(170px,220px)]"
+                : "grid-cols-1 lg:grid-cols-[minmax(190px,220px)_minmax(0,2fr)_minmax(190px,240px)]"
+            }`}
+          >
+            <div className="min-h-[140px] lg:min-h-0 lg:h-full overflow-hidden">
+              <StockMediaPanel
+                videoClips={videoClips}
+                getAssetUrl={getAssetUrl}
+                getProjectUrl={getProjectUrl}
+                playhead={studio.playhead}
+                stockSearchTrigger={stockSearchTrigger}
+                onStockClipAdded={addClipToStudio}
+              />
+            </div>
+            <div className="min-h-[200px] lg:min-h-0 lg:h-full overflow-hidden">
+              <TimelineStudioPreview
+                studio={studio}
+                getAssetUrl={getAssetUrl}
+                getMusicUrl={getMusicUrl}
+                aspectRatio={aspectRatio}
+                musicVolume={
+                  Number(config.project_music_volume) > 0
+                    ? Number(config.project_music_volume)
+                    : 0.15
+                }
+                onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
+              />
+            </div>
+            <div className="min-h-[140px] lg:min-h-0 lg:h-full overflow-hidden">
+              <AskLumieraPanel
+                playhead={studio.playhead}
+                nichePack={studio.niche_pack}
+                getProjectUrl={getProjectUrl}
+                onActions={handleAskActions}
+                onInsertTemplate={(id) => void insertTemplate(id)}
+                onSelectPack={(packId) => updateStudio({ niche_pack: packId })}
+              />
+            </div>
+          </div>
         </div>
-        <TimelineStudioTracks
-          studio={studio}
-          selectedClipId={selectedClipId}
-          scrollToTrackId={scrollToTrackId}
-          collapsedTrackIds={["captions"]}
-          onScrollToTrackDone={() => setScrollToTrackId(null)}
-          onSelectClip={setSelectedClipId}
-          onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
-          onZoomChange={(zoom) => updateStudio({ zoom })}
-          onClipsChange={handleClipsChange}
-        />
+
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-valuenow={Math.round(previewSplitRatio)}
+          aria-valuemin={PREVIEW_SPLIT_MIN}
+          aria-valuemax={PREVIEW_SPLIT_MAX}
+          title="Arraste para redimensionar preview e timeline"
+          className="h-2 shrink-0 cursor-row-resize flex items-center justify-center border-y border-zinc-800/80 bg-zinc-900/70 hover:bg-violet-500/10 transition group"
+          onMouseDown={handlePreviewSplitMouseDown}
+        >
+          <div className="w-12 h-0.5 rounded-full bg-zinc-600 group-hover:bg-violet-400/70" />
+        </div>
+
+        <div
+          className="flex flex-col min-h-[140px] min-w-0 overflow-hidden rounded-t-2xl border-t-2 border-violet-500/35 bg-zinc-950/50"
+          style={{ flex: timelineSplitRatio }}
+        >
+          <div className="px-1 pt-1 pb-0.5 flex items-center justify-between gap-2 shrink-0">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-violet-300/90">
+              Timeline · arraste a barra acima para ajustar o preview
+            </span>
+            <span className="text-[9px] font-mono text-zinc-500">
+              🟣 {remotionCounts.motion} · 🟢 {remotionCounts.overlays}
+            </span>
+          </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <TimelineStudioTracks
+              studio={studio}
+              selectedClipId={selectedClipId}
+              scrollToTrackId={scrollToTrackId}
+              collapsedTrackIds={["captions"]}
+              onScrollToTrackDone={() => setScrollToTrackId(null)}
+              onSelectClip={setSelectedClipId}
+              onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
+              onZoomChange={(zoom) => updateStudio({ zoom })}
+              onClipsChange={handleClipsChange}
+            />
+          </div>
+        </div>
       </div>
 
       {selectedClip ? (

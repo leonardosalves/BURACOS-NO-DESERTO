@@ -11,6 +11,7 @@ import {
   defaultMotionTrack,
   pickTemplateForTrigger,
   resolveLayoutForTemplate,
+  resolvePresentationForScene,
 } from "../shared/motionSceneCatalog.js";
 import { resolvePackByAlias } from "./timelineStudioNichePacks.js";
 import { detectNicheCategory } from "./overlayOrchestration.js";
@@ -164,7 +165,8 @@ export function buildPropsForTemplate(
   templateId,
   trigger,
   text,
-  accentColor = "#D4AF37"
+  accentColor = "#D4AF37",
+  aspectRatio = "16:9"
 ) {
   const t = String(text || "").trim();
 
@@ -205,11 +207,18 @@ export function buildPropsForTemplate(
       };
     case "location-intro": {
       const place = resolvePlace(t);
-      const { place_type } = classifyPlaceType(t, place);
+      const classified = classifyPlaceType(t, place);
+      const place_type = classified.place_type;
       const zoomTo =
-        place_type === "city"
+        place_type === "city" || place_type === "historic_site"
           ? LOCATION_INTRO_DEFAULTS.zoom_to_city
           : LOCATION_INTRO_DEFAULTS.zoom_to_poi;
+      const presentation = resolvePresentationForScene({
+        templateId: "location-intro",
+        trigger: "location",
+        text: t,
+        aspectRatio,
+      });
       return {
         location: place.location,
         region: place.region,
@@ -217,12 +226,14 @@ export function buildPropsForTemplate(
         variant: LOCATION_INTRO_DEFAULTS.variant,
         accentColor: "#FFFFFF",
         place_type,
+        structure_exists: classified.structure_exists !== false,
         fly_mode: LOCATION_INTRO_DEFAULTS.fly_mode,
         zoom_from: LOCATION_INTRO_DEFAULTS.zoom_from,
         zoom_to: zoomTo,
         map_style: LOCATION_INTRO_DEFAULTS.map_style,
-        presentation: LOCATION_INTRO_DEFAULTS.presentation,
-        layout: LOCATION_INTRO_DEFAULTS.layout,
+        presentation,
+        layout: presentation,
+        aspect_ratio: aspectRatio,
       };
     }
     case "geo-map": {
@@ -308,6 +319,9 @@ export function planMotionScenesFromStoryboard(
     : [];
   const nichePack = resolveNichePack(config, storyboard);
   const accentColor = String(config.accent_color || "#D4AF37");
+  const aspectRatio = String(
+    config.aspect_ratio || config.format || "16:9"
+  ).trim();
   const scenes = [];
   const usedTriggers = new Set();
 
@@ -322,10 +336,16 @@ export function planMotionScenesFromStoryboard(
 
     const trigger = classified.trigger;
     const templateId = pickTemplateForTrigger(trigger, nichePack);
-    const layout =
-      templateId === "location-intro"
-        ? LOCATION_INTRO_DEFAULTS.layout
-        : resolveLayoutForTemplate(templateId, trigger);
+    const layout = resolveLayoutForTemplate(templateId, trigger, {
+      text: narration,
+      aspectRatio,
+    });
+    const presentation = resolvePresentationForScene({
+      templateId,
+      trigger,
+      text: narration,
+      aspectRatio,
+    });
 
     const dedupeKey = `${trigger}-${templateId}-${vp.scene || vp.block}`;
     if (usedTriggers.has(dedupeKey)) continue;
@@ -357,7 +377,18 @@ export function planMotionScenesFromStoryboard(
       template_id: templateId,
       trigger,
       confidence: classified.confidence,
-      props: buildPropsForTemplate(templateId, trigger, narration, accentColor),
+      props: {
+        ...buildPropsForTemplate(
+          templateId,
+          trigger,
+          narration,
+          accentColor,
+          aspectRatio
+        ),
+        presentation,
+        layout,
+        aspect_ratio: aspectRatio,
+      },
       narration_text: narration,
       media_mode: "remotion",
       niche_pack: nichePack,
@@ -463,12 +494,9 @@ export function ensureMotionTrack(studio = {}) {
 
 function normalizeMotionClipProps(clip = {}) {
   const props = { ...(clip.props || {}) };
-  if (
-    String(clip.templateId) === "location-intro" &&
-    props.presentation !== "fullscreen"
-  ) {
-    props.presentation = "pip";
-    props.layout = "pip";
+  if (String(clip.templateId) === "location-intro") {
+    props.presentation = "fullscreen";
+    props.layout = "fullscreen";
   }
   return props;
 }
