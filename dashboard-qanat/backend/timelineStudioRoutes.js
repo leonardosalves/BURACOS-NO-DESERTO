@@ -98,95 +98,112 @@ export function registerTimelineStudioRoutes(
   app.get("/api/timeline-studio", (req, res) => {
     try {
       const projDir = getProjectDir(req);
+      const light =
+        req.query.light === "1" ||
+        String(req.query.sync || "").toLowerCase() === "0";
       const {
         studio: rawStudio,
         migrated,
         motionMigrated,
       } = loadTimelineStudio(projDir);
-      let studio = syncStudioMusicFromConfig(rawStudio, projDir);
+      let studio = light
+        ? rawStudio
+        : syncStudioMusicFromConfig(rawStudio, projDir);
       const config = readProjectConfig(projDir);
-      let blockTimings = {};
-      try {
-        const btPath = path.join(projDir, "block_timings.json");
-        if (fs.existsSync(btPath)) {
-          blockTimings = JSON.parse(fs.readFileSync(btPath, "utf8"));
-        }
-      } catch {
-        /* ignore */
-      }
-      const merged = mergeMissingBrollFromConfig(studio, config, blockTimings);
-      const brollRestored = Number(merged.brollRestored) || 0;
-      if (brollRestored > 0) studio = merged;
-
+      let brollRestored = 0;
       let remotionRestored = 0;
       let motionSynced = 0;
       let remotionChanged = false;
-      try {
-        const storyboardPath = path.join(projDir, "storyboard.json");
-        if (fs.existsSync(storyboardPath)) {
-          const storyboard = JSON.parse(
-            fs.readFileSync(storyboardPath, "utf8")
-          );
-          const hasRemotionSource =
-            (storyboard.motion_scenes || []).length > 0 ||
-            (storyboard.overlays_ai || []).length > 0;
-          if (hasRemotionSource) {
-            const remotionFingerprint = (clips = []) =>
-              JSON.stringify(
-                clips
-                  .filter(
-                    (c) => c?.trackId === "motion" || c?.trackId === "overlays"
-                  )
-                  .map((c) => ({
-                    id: c.id,
-                    trackId: c.trackId,
-                    start: c.start,
-                    templateId: c.templateId,
-                    props: c.props,
-                  }))
+      let musicChanged = false;
+
+      if (!light) {
+        let blockTimings = {};
+        try {
+          const btPath = path.join(projDir, "block_timings.json");
+          if (fs.existsSync(btPath)) {
+            blockTimings = JSON.parse(fs.readFileSync(btPath, "utf8"));
+          }
+        } catch {
+          /* ignore */
+        }
+        const merged = mergeMissingBrollFromConfig(
+          studio,
+          config,
+          blockTimings
+        );
+        brollRestored = Number(merged.brollRestored) || 0;
+        if (brollRestored > 0) studio = merged;
+
+        try {
+          const storyboardPath = path.join(projDir, "storyboard.json");
+          if (fs.existsSync(storyboardPath)) {
+            const storyboard = JSON.parse(
+              fs.readFileSync(storyboardPath, "utf8")
+            );
+            const hasRemotionSource =
+              (storyboard.motion_scenes || []).length > 0 ||
+              (storyboard.overlays_ai || []).length > 0;
+            if (hasRemotionSource) {
+              const remotionFingerprint = (clips = []) =>
+                JSON.stringify(
+                  clips
+                    .filter(
+                      (c) =>
+                        c?.trackId === "motion" || c?.trackId === "overlays"
+                    )
+                    .map((c) => ({
+                      id: c.id,
+                      trackId: c.trackId,
+                      start: c.start,
+                      templateId: c.templateId,
+                      props: c.props,
+                    }))
+                );
+              const beforeFp = remotionFingerprint(studio.clips);
+              const beforeSuppressed = JSON.stringify(
+                studio.suppressedMotionSceneIds || []
               );
-            const beforeFp = remotionFingerprint(studio.clips);
-            const beforeSuppressed = JSON.stringify(
-              studio.suppressedMotionSceneIds || []
-            );
-            const remotionMerged = mergeRemotionFromStoryboard(
-              studio,
-              storyboard
-            );
-            remotionRestored = Number(remotionMerged.remotionRestored) || 0;
-            motionSynced = Number(remotionMerged.motionSynced) || 0;
-            const afterFp = remotionFingerprint(remotionMerged.studio.clips);
-            const afterSuppressed = JSON.stringify(
-              remotionMerged.studio.suppressedMotionSceneIds || []
-            );
-            if (
-              afterFp !== beforeFp ||
-              afterSuppressed !== beforeSuppressed ||
-              motionSynced > 0
-            ) {
-              studio = remotionMerged.studio;
-              remotionChanged = true;
+              const remotionMerged = mergeRemotionFromStoryboard(
+                studio,
+                storyboard
+              );
+              remotionRestored = Number(remotionMerged.remotionRestored) || 0;
+              motionSynced = Number(remotionMerged.motionSynced) || 0;
+              const afterFp = remotionFingerprint(remotionMerged.studio.clips);
+              const afterSuppressed = JSON.stringify(
+                remotionMerged.studio.suppressedMotionSceneIds || []
+              );
+              if (
+                afterFp !== beforeFp ||
+                afterSuppressed !== beforeSuppressed ||
+                motionSynced > 0
+              ) {
+                studio = remotionMerged.studio;
+                remotionChanged = true;
+              }
             }
           }
+        } catch (storyboardErr) {
+          console.warn(
+            "[timeline-studio] storyboard remotion sync:",
+            storyboardErr?.message || storyboardErr
+          );
         }
-      } catch (storyboardErr) {
-        console.warn(
-          "[timeline-studio] storyboard remotion sync:",
-          storyboardErr?.message || storyboardErr
-        );
+
+        musicChanged =
+          JSON.stringify(musicClipSnapshot(rawStudio)) !==
+          JSON.stringify(musicClipSnapshot(studio));
+        if (musicChanged || brollRestored > 0 || remotionChanged) {
+          saveTimelineStudio(projDir, studio);
+        }
       }
 
-      const musicChanged =
-        JSON.stringify(musicClipSnapshot(rawStudio)) !==
-        JSON.stringify(musicClipSnapshot(studio));
-      if (musicChanged || brollRestored > 0 || remotionChanged) {
-        saveTimelineStudio(projDir, studio);
-      }
       res.json({
         ok: true,
         studio,
         migrated,
         motionMigrated: Boolean(motionMigrated),
+        light,
         musicSynced: musicChanged,
         brollRestored,
         remotionRestored,

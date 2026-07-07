@@ -109,9 +109,13 @@ export function TimelineStudioTracks({
     return () => cancelAnimationFrame(scrollRafRef.current);
   }, [syncVisibleWindow, timelineWidth]);
 
+  const lastFollowPlayheadRef = useRef(studio.playhead);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    const delta = Math.abs(studio.playhead - lastFollowPlayheadRef.current);
+    if (delta < 1.25) return;
+    lastFollowPlayheadRef.current = studio.playhead;
     const playheadPx = studio.playhead * pps + TRACK_LABEL_WIDTH;
     const target = Math.max(0, playheadPx - el.clientWidth * 0.35);
     if (Math.abs(el.scrollLeft - target) > 48) {

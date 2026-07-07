@@ -82,7 +82,11 @@ import {
 import { AppShell } from "./AppShell";
 import { resolveStockSearchQuery } from "./stockSearchQuery";
 import type { AppTab } from "./appTabs";
-import { isGlobalViewTab, RESTORABLE_APP_TABS } from "./appTabs";
+import {
+  isEditorHeavyTab,
+  isGlobalViewTab,
+  RESTORABLE_APP_TABS,
+} from "./appTabs";
 
 import { clipKey, parseClipKey } from "./opencutTimeline";
 import { mergeStoryboardWithTimelineAssets } from "./assetPreviewUtils";
@@ -2432,24 +2436,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetchYoutubeChannelAlerts();
-    let timer = window.setInterval(
-      fetchYoutubeChannelAlerts,
-      getYoutubePollIntervalMs()
-    );
+    const pollYoutube = () => {
+      if (isEditorHeavyTab(activeTab)) return;
+      void fetchYoutubeChannelAlerts();
+    };
+    pollYoutube();
+    let timer = window.setInterval(pollYoutube, getYoutubePollIntervalMs());
     const onPollChange = () => {
       window.clearInterval(timer);
-      timer = window.setInterval(
-        fetchYoutubeChannelAlerts,
-        getYoutubePollIntervalMs()
-      );
+      timer = window.setInterval(pollYoutube, getYoutubePollIntervalMs());
     };
     window.addEventListener("lumiera-youtube-poll-change", onPollChange);
     return () => {
       window.clearInterval(timer);
       window.removeEventListener("lumiera-youtube-poll-change", onPollChange);
     };
-  }, [fetchYoutubeChannelAlerts]);
+  }, [fetchYoutubeChannelAlerts, activeTab]);
 
   useEffect(() => {
     if (
@@ -3437,12 +3439,13 @@ export default function App() {
 
     const tick = () => {
       if (typeof document !== "undefined" && document.hidden) return;
+      if (isEditorHeavyTab(activeTab)) return;
       fetchStatusAndOutputs();
     };
     const interval = setInterval(tick, 30_000);
 
     return () => clearInterval(interval);
-  }, [activeProject]);
+  }, [activeProject, activeTab]);
 
   useEffect(() => {
     if (terminalEndRef.current) {

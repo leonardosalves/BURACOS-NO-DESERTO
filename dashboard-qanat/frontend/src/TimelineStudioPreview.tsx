@@ -389,13 +389,17 @@ export function TimelineStudioPreview({
   }, [assetSrc, isVideo, playing, studio.playhead, syncVideoToTime]);
 
   useEffect(() => {
-    preloadStudioMediaAtPlayhead(
-      studio.clips,
-      studio.playhead,
-      getAssetUrl,
-      getMusicUrl
-    );
-  }, [studio.clips, studio.playhead, getAssetUrl, getMusicUrl]);
+    const delayMs = playing ? 420 : 200;
+    const timer = window.setTimeout(() => {
+      preloadStudioMediaAtPlayhead(
+        studio.clips,
+        studio.playhead,
+        getAssetUrl,
+        getMusicUrl
+      );
+    }, delayMs);
+    return () => window.clearTimeout(timer);
+  }, [studio.clips, studio.playhead, playing, getAssetUrl, getMusicUrl]);
 
   // Pausado: alinha mídia ao scrub manual
   useEffect(() => {
