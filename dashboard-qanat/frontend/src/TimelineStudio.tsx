@@ -131,7 +131,13 @@ export function TimelineStudio({
         );
       }
     } catch (err) {
-      toast.error(`Erro ao carregar timeline: ${(err as Error).message}`);
+      const raw = String((err as Error)?.message || "").trim();
+      const detail =
+        raw ||
+        (err instanceof TypeError
+          ? "backend offline — verifique porta 3005 (scripts/ensure-lumiera.ps1)"
+          : "falha desconhecida ao contactar /api/timeline-studio");
+      toast.error(`Erro ao carregar timeline: ${detail}`);
     } finally {
       setLoading(false);
     }
