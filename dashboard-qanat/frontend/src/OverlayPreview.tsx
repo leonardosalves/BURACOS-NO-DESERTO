@@ -99,6 +99,7 @@ function LocationIntroMapCard({
   embeddedLayout,
   scrubSeconds,
   durationSeconds,
+  timelinePlaying = false,
   metrics,
   motion,
   legibilityShadow,
@@ -111,6 +112,7 @@ function LocationIntroMapCard({
   embeddedLayout: "pip" | "fill";
   scrubSeconds?: number;
   durationSeconds: number;
+  timelinePlaying?: boolean;
   metrics: Record<string, number>;
   motion: { opacity: number };
   legibilityShadow: string;
@@ -216,7 +218,12 @@ function LocationIntroMapCard({
             isPip ? "w-full h-full" : "absolute inset-0"
           }`}
         >
-          <BlenderFlyoverPreview src={flyoverSrc} scrubSeconds={scrubSeconds} />
+          <BlenderFlyoverPreview
+            src={flyoverSrc}
+            scrubSeconds={scrubSeconds}
+            playing={timelinePlaying}
+            poster={bgTight || bgWide || undefined}
+          />
         </div>
       );
     }
@@ -962,6 +969,7 @@ export function OverlayPreview({
               embeddedLayout="fill"
               scrubSeconds={scrubSeconds}
               durationSeconds={durationSeconds}
+              timelinePlaying={Boolean(timelinePlaying)}
               metrics={metrics}
               motion={motion}
               legibilityShadow={legibilityShadow}

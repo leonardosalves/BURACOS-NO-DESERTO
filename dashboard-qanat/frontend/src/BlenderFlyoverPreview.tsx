@@ -3,10 +3,14 @@ import { useEffect, useRef, useState } from "react";
 export function BlenderFlyoverPreview({
   src,
   scrubSeconds = 0,
+  playing = false,
+  poster,
   className = "",
 }: {
   src: string;
   scrubSeconds?: number;
+  playing?: boolean;
+  poster?: string;
   className?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -19,9 +23,21 @@ export function BlenderFlyoverPreview({
   useEffect(() => {
     const el = videoRef.current;
     if (!el || !src) return;
-    const seek = () => {
-      const t = Math.max(0, Number(scrubSeconds) || 0);
-      if (Math.abs(el.currentTime - t) > 0.15) {
+    const t = Math.max(0, Number(scrubSeconds) || 0);
+    const sync = () => {
+      if (playing) {
+        if (Math.abs(el.currentTime - t) > 0.35) {
+          try {
+            el.currentTime = t;
+          } catch {
+            /* metadata ainda não carregou */
+          }
+        }
+        void el.play().catch(() => {});
+        return;
+      }
+      el.pause();
+      if (Math.abs(el.currentTime - t) > 0.08) {
         try {
           el.currentTime = t;
         } catch {
@@ -29,9 +45,9 @@ export function BlenderFlyoverPreview({
         }
       }
     };
-    if (el.readyState >= 1) seek();
-    else el.addEventListener("loadedmetadata", seek, { once: true });
-  }, [src, scrubSeconds]);
+    if (el.readyState >= 1) sync();
+    else el.addEventListener("loadedmetadata", sync, { once: true });
+  }, [src, scrubSeconds, playing]);
 
   if (!src) {
     return (
@@ -72,10 +88,21 @@ export function BlenderFlyoverPreview({
     <video
       ref={videoRef}
       src={src}
+      poster={poster || undefined}
       muted
       playsInline
       preload="auto"
       className={className}
+      onLoadedData={() => {
+        const el = videoRef.current;
+        if (!el || playing) return;
+        const t = Math.max(0, Number(scrubSeconds) || 0);
+        try {
+          el.currentTime = t;
+        } catch {
+          /* ignore */
+        }
+      }}
       onError={() => setLoadFailed(true)}
       style={{
         position: "absolute",
