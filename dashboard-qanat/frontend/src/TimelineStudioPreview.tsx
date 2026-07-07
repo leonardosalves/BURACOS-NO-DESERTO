@@ -19,6 +19,7 @@ import {
   type TimelineStudioState,
 } from "./timelineStudioTypes";
 import {
+  enrichSatelliteMotionClip,
   preloadStudioMediaAtPlayhead,
   resolveMediaUrl,
   resolveMotionSceneProps,
@@ -47,19 +48,20 @@ function clipToOverlayDraft(
   getAssetUrl: (fileName: string) => string,
   getMusicUrl?: (fileName: string) => string
 ): OverlayDraft {
+  const enriched = enrichSatelliteMotionClip(clip);
   const type = String(
-    clip.templateId || clip.props?.overlayType || "lower-third"
+    enriched.templateId || enriched.props?.overlayType || "lower-third"
   );
   const props = resolveMotionSceneProps(
-    (clip.props || {}) as Record<string, unknown>,
+    (enriched.props || {}) as Record<string, unknown>,
     getAssetUrl,
     getMusicUrl
   );
   return {
-    id: clip.id,
+    id: enriched.id,
     type,
-    start: clip.start,
-    duration: clip.duration,
+    start: enriched.start,
+    duration: enriched.duration,
     props,
   };
 }

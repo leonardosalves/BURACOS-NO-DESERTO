@@ -9,6 +9,7 @@ import {
   mergeMissingBrollFromConfig,
   mergeRemotionFromStoryboard,
   pruneStoryboardRemotionSources,
+  finalizeStudioForDisk,
 } from "./timelineStudioMigration.js";
 import {
   searchTimelineStock,
@@ -20,6 +21,7 @@ import {
   buildStudioOverlayClip,
 } from "./timelineStudioNichePacks.js";
 import { handleTimelineStudioAsk } from "./timelineStudioAsk.js";
+import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
 import fs from "fs";
 import path from "path";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
@@ -52,109 +54,6 @@ function syncStudioMusicFromConfig(rawStudio, projDir) {
   return upsertMusicClipInStudio(rawStudio, config, projDir);
 }
 
-function isMotionClip(clip) {
-  return (
-    clip?.trackId === "motion" ||
-    clip?.motionScene ||
-    clip?.motionScenePrimary ||
-    clip?.props?.media_mode === "remotion" ||
-    clip?.props?.motion_scene
-  );
-}
-
-function isUserDeletableRemotionClip(clip) {
-  return (
-    isMotionClip(clip) ||
-    clip?.trackId === "overlays" ||
-    clip?.legacyOverlay ||
-    Boolean(clip?.templateId)
-  );
-}
-
-function readStoryboardJson(projDir) {
-  try {
-    const storyboardPath = path.join(projDir, "storyboard.json");
-    if (!fs.existsSync(storyboardPath)) return {};
-    return JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-  } catch {
-    return {};
-  }
-}
-
-function expandSuppressionAliases(storyboard, deletedClip) {
-  const aliases = new Set(
-    [String(deletedClip?.id || "").trim()].filter(Boolean)
-  );
-  const templateId = String(
-    deletedClip?.templateId || deletedClip?.props?.overlayType || ""
-  ).trim();
-  const start = Number(deletedClip?.start) || 0;
-  if (!templateId) return [...aliases];
-
-  for (const key of ["overlays_ai", "overlays"]) {
-    for (const row of storyboard[key] || []) {
-      const rowId = String(row?.id || "").trim();
-      if (!rowId || aliases.has(rowId)) continue;
-      const rowType = String(row?.type || row?.templateId || "").trim();
-      const rowStart = Number(row?.start) || 0;
-      if (
-        rowType === templateId &&
-        (rowId === String(deletedClip?.id || "") ||
-          Math.abs(rowStart - start) < 0.75)
-      ) {
-        aliases.add(rowId);
-      }
-    }
-  }
-
-  for (const ms of storyboard.motion_scenes || []) {
-    const msId = String(ms?.id || "").trim();
-    if (!msId || aliases.has(msId)) continue;
-    const msTpl = String(ms?.template_id || "").trim();
-    const msStart = Number(ms?.start_hint ?? ms?.start) || 0;
-    if (
-      msTpl === templateId &&
-      (msId === String(deletedClip?.id || "") ||
-        Math.abs(msStart - start) < 0.75)
-    ) {
-      aliases.add(msId);
-    }
-  }
-
-  return [...aliases];
-}
-
-function mergeDeletedMotionSuppressions(previousStudio, nextStudio, projDir) {
-  const previousRemotionClips = (
-    Array.isArray(previousStudio?.clips) ? previousStudio.clips : []
-  ).filter(isUserDeletableRemotionClip);
-
-  const nextIds = new Set(
-    (Array.isArray(nextStudio?.clips) ? nextStudio.clips : [])
-      .map((clip) => String(clip.id || "").trim())
-      .filter(Boolean)
-  );
-  const suppressed = new Set(
-    (Array.isArray(nextStudio?.suppressedMotionSceneIds)
-      ? nextStudio.suppressedMotionSceneIds
-      : []
-    )
-      .map((id) => String(id || "").trim())
-      .filter(Boolean)
-  );
-
-  const storyboard = readStoryboardJson(projDir);
-  for (const clip of previousRemotionClips) {
-    const id = String(clip.id || "").trim();
-    if (!id || nextIds.has(id)) continue;
-    for (const alias of expandSuppressionAliases(storyboard, clip)) {
-      suppressed.add(alias);
-    }
-  }
-
-  return { ...nextStudio, suppressedMotionSceneIds: [...suppressed] };
-}
-
 export function registerTimelineStudioRoutes(
   app,
   { getProjectDir, workspaceDir, callGemini }
@@ -171,7 +70,7 @@ export function registerTimelineStudioRoutes(
         motionMigrated,
       } = loadTimelineStudio(projDir);
       let studio = light
-        ? rawStudio
+        ? stripSuppressedRemotionClips(rawStudio)
         : syncStudioMusicFromConfig(rawStudio, projDir);
       const config = readProjectConfig(projDir);
       let brollRestored = 0;
@@ -201,15 +100,7 @@ export function registerTimelineStudioRoutes(
         try {
           const storyboardPath = path.join(projDir, "storyboard.json");
           if (fs.existsSync(storyboardPath)) {
-            if (
-              Array.isArray(studio.suppressedMotionSceneIds) &&
-              studio.suppressedMotionSceneIds.length > 0
-            ) {
-              pruneStoryboardRemotionSources(
-                projDir,
-                studio.suppressedMotionSceneIds
-              );
-            }
+            pruneStoryboardRemotionSources(projDir, studio);
             const storyboard = JSON.parse(
               fs.readFileSync(storyboardPath, "utf8")
             );
@@ -233,28 +124,32 @@ export function registerTimelineStudioRoutes(
                     }))
                 );
               const beforeFp = remotionFingerprint(studio.clips);
-              const beforeSuppressed = JSON.stringify(
-                studio.suppressedMotionSceneIds || []
-              );
+              const beforeSuppressed = JSON.stringify({
+                ids: studio.suppressedMotionSceneIds || [],
+                fps: studio.suppressedRemotionFingerprints || [],
+              });
               const remotionMerged = mergeRemotionFromStoryboard(
                 studio,
                 storyboard
               );
               remotionRestored = Number(remotionMerged.remotionRestored) || 0;
               motionSynced = Number(remotionMerged.motionSynced) || 0;
-              const afterFp = remotionFingerprint(remotionMerged.studio.clips);
-              const afterSuppressed = JSON.stringify(
-                remotionMerged.studio.suppressedMotionSceneIds || []
-              );
+              studio = stripSuppressedRemotionClips(remotionMerged.studio);
+              const afterFp = remotionFingerprint(studio.clips);
+              const afterSuppressed = JSON.stringify({
+                ids: studio.suppressedMotionSceneIds || [],
+                fps: studio.suppressedRemotionFingerprints || [],
+              });
               if (
                 afterFp !== beforeFp ||
                 afterSuppressed !== beforeSuppressed ||
                 remotionRestored > 0 ||
                 motionSynced > 0
               ) {
-                studio = remotionMerged.studio;
                 remotionChanged = true;
               }
+            } else {
+              studio = stripSuppressedRemotionClips(studio);
             }
           }
         } catch (storyboardErr) {
@@ -298,17 +193,11 @@ export function registerTimelineStudioRoutes(
           .json({ error: "Corpo inválido — esperado { studio: {...} }" });
       }
       const { studio: previousStudio } = loadTimelineStudio(projDir);
-      const withSuppressions = mergeDeletedMotionSuppressions(
+      const synced = syncStudioMusicFromConfig(studio, projDir);
+      const saved = finalizeStudioForDisk(projDir, synced, {
         previousStudio,
-        studio,
-        projDir
-      );
-      pruneStoryboardRemotionSources(
-        projDir,
-        withSuppressions.suppressedMotionSceneIds || []
-      );
-      const synced = syncStudioMusicFromConfig(withSuppressions, projDir);
-      const saved = saveTimelineStudio(projDir, synced);
+        mergeStoryboard: false,
+      });
       res.json({ ok: true, studio: saved });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -318,20 +207,27 @@ export function registerTimelineStudioRoutes(
   app.post("/api/timeline-studio/remigrate", (req, res) => {
     try {
       const projDir = getProjectDir(req);
+      const { studio: before } = loadTimelineStudio(projDir);
+      const suppressions = {
+        suppressedMotionSceneIds: before?.suppressedMotionSceneIds || [],
+        suppressedRemotionFingerprints:
+          before?.suppressedRemotionFingerprints || [],
+      };
       const { migrated } = migrateLegacyToTimelineStudio(projDir, {
         force: true,
       });
       const { studio, motionMigrated } = loadTimelineStudio(projDir);
-      const synced = syncStudioMusicFromConfig(studio, projDir);
-      const musicChanged =
-        JSON.stringify(musicClipSnapshot(studio)) !==
-        JSON.stringify(musicClipSnapshot(synced));
-      if (musicChanged) {
-        saveTimelineStudio(projDir, synced);
-      }
+      const withSuppressions = {
+        ...studio,
+        ...suppressions,
+      };
+      const synced = syncStudioMusicFromConfig(withSuppressions, projDir);
+      const saved = finalizeStudioForDisk(projDir, synced, {
+        mergeStoryboard: false,
+      });
       res.json({
         ok: true,
-        studio: musicChanged ? synced : studio,
+        studio: saved,
         migrated,
         motionMigrated: Boolean(motionMigrated),
       });

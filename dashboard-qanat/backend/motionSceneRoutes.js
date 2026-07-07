@@ -25,6 +25,7 @@ import {
   mergeRemotionFromStoryboard,
   saveTimelineStudio,
 } from "./timelineStudioMigration.js";
+import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 import { orchestrateProduction } from "./productionOrchestrator.js";
 import { ensureMotionScenesQuality } from "./motionSceneQualityService.js";
@@ -442,7 +443,11 @@ export function registerMotionSceneRoutes(
       let baseStudio = rawStudio;
       if (restoreSuppressed) {
         baseStudio = unsuppressMotionSceneIds(rawStudio, qc.motion_scenes);
-        baseStudio = { ...baseStudio, suppressedMotionSceneIds: [] };
+        baseStudio = {
+          ...baseStudio,
+          suppressedMotionSceneIds: [],
+          suppressedRemotionFingerprints: [],
+        };
       }
       storyboard.motion_scenes = qc.motion_scenes;
       const overlayMerged = mergeRemotionFromStoryboard(
@@ -452,9 +457,10 @@ export function registerMotionSceneRoutes(
           syncMotion: true,
         }
       );
-      let studio = overlayMerged.studio;
+      let studio = stripSuppressedRemotionClips(overlayMerged.studio);
       studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
       studio = upsertMusicClipInStudio(studio, config, projDir);
+      studio = stripSuppressedRemotionClips(studio);
       const saved = saveTimelineStudio(projDir, studio);
 
       res.json({
@@ -496,8 +502,18 @@ export function registerMotionSceneRoutes(
         {}
       );
       const { studio: rawStudio } = loadTimelineStudio(projDir);
-      let studio = unsuppressMotionSceneIds(rawStudio, motionScenes);
+      const restoreSuppressed = req.body?.restore_suppressed_motion === true;
+      let studio = rawStudio;
+      if (restoreSuppressed) {
+        studio = unsuppressMotionSceneIds(rawStudio, motionScenes);
+        studio = {
+          ...studio,
+          suppressedMotionSceneIds: [],
+          suppressedRemotionFingerprints: [],
+        };
+      }
       studio = syncMotionScenesToStudio(studio, motionScenes);
+      studio = stripSuppressedRemotionClips(studio);
       studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
       studio = upsertMusicClipInStudio(studio, config, projDir);
       const saved = saveTimelineStudio(projDir, studio);

@@ -16,6 +16,11 @@ import {
 import { resolvePackByAlias } from "./timelineStudioNichePacks.js";
 import { detectNicheCategory } from "./overlayOrchestration.js";
 import { classifyPlaceType } from "./satelliteMapService.js";
+import {
+  clipMatchesSuppression,
+  collectSuppressionState,
+  storyboardRowMatchesSuppression,
+} from "../shared/timelineStudioRemotionSuppress.js";
 
 const YEAR_RE = /\b(1\d{3}|20\d{2})\b/;
 const YEAR_GLOBAL_RE = /\b(1\d{3}|20\d{2})\b/g;
@@ -574,14 +579,7 @@ export function unsuppressMotionSceneIds(studio, motionScenes = []) {
 export function syncMotionScenesToStudio(studio, motionScenes = []) {
   if (!studio || !Array.isArray(studio.clips)) return studio;
 
-  const suppressedIds = new Set(
-    (Array.isArray(studio.suppressedMotionSceneIds)
-      ? studio.suppressedMotionSceneIds
-      : []
-    )
-      .map((id) => String(id || "").trim())
-      .filter(Boolean)
-  );
+  const suppression = collectSuppressionState(studio);
   const cleanStudio = {
     ...studio,
     clips: studio.clips.filter((c) => {
@@ -591,12 +589,12 @@ export function syncMotionScenesToStudio(studio, motionScenes = []) {
         c.motionScenePrimary ||
         c.props?.media_mode === "remotion" ||
         c.props?.motion_scene;
-      return !isMotion || !suppressedIds.has(String(c.id || ""));
+      return !isMotion || !clipMatchesSuppression(c, suppression);
     }),
   };
   const activeMotionScenes = (
     Array.isArray(motionScenes) ? motionScenes : []
-  ).filter((ms) => !suppressedIds.has(String(ms?.id || "")));
+  ).filter((ms) => !storyboardRowMatchesSuppression(ms, "motion", suppression));
   const motionClips = motionScenesToMotionClips(activeMotionScenes);
   if (!motionClips.length)
     return migrateStudioMotionClipsFromVideo(cleanStudio);

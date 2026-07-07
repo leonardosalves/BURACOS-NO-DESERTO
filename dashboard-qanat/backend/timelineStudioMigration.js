@@ -15,6 +15,13 @@ import {
   syncMotionScenesToStudio,
 } from "./motionScenePlanner.js";
 import { defaultMotionTrack } from "../shared/motionSceneCatalog.js";
+import {
+  clipMatchesSuppression,
+  collectSuppressionState,
+  mergeDeletedClipSuppressions,
+  storyboardRowMatchesSuppression,
+  stripSuppressedRemotionClips,
+} from "../shared/timelineStudioRemotionSuppress.js";
 
 const STUDIO_FILENAME = "timeline_studio.json";
 const NARRATION_FILES = [
@@ -446,28 +453,66 @@ function remotionClipFingerprint(clips = []) {
   );
 }
 
-function suppressedRemotionClipIds(studio = {}) {
-  return new Set(
-    (Array.isArray(studio.suppressedMotionSceneIds)
-      ? studio.suppressedMotionSceneIds
-      : []
-    )
-      .map((id) => String(id || "").trim())
-      .filter(Boolean)
-  );
+function readStoryboardJson(projDir) {
+  try {
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (!fs.existsSync(storyboardPath)) return {};
+    return JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Persistência atômica: supressões + prune storyboard + remove clips bloqueados.
+ */
+export function finalizeStudioForDisk(
+  projDir,
+  studio,
+  { previousStudio = null, mergeStoryboard = false } = {}
+) {
+  const storyboard = readStoryboardJson(projDir);
+  let next = studio;
+
+  if (previousStudio) {
+    next = mergeDeletedClipSuppressions(storyboard, previousStudio, next);
+  }
+
+  const suppression = collectSuppressionState(next);
+  if (suppression.ids.size > 0 || suppression.fingerprints.size > 0) {
+    pruneStoryboardRemotionSources(projDir, next);
+    next = stripSuppressedRemotionClips(next);
+  }
+
+  if (mergeStoryboard) {
+    const merged = mergeRemotionFromStoryboard(next, storyboard);
+    next = stripSuppressedRemotionClips(merged.studio);
+  } else {
+    next = stripSuppressedRemotionClips(next);
+  }
+
+  return saveTimelineStudio(projDir, next);
 }
 
 /**
  * Remove do storyboard cenas/templates que o usuário excluiu na timeline.
  * Evita que GET /api/timeline-studio as restaure no F5.
  */
-export function pruneStoryboardRemotionSources(projDir, suppressedIds = []) {
-  const suppressed = new Set(
-    (Array.isArray(suppressedIds) ? suppressedIds : [])
-      .map((id) => String(id || "").trim())
-      .filter(Boolean)
-  );
-  if (!suppressed.size) return false;
+export function pruneStoryboardRemotionSources(projDir, studioOrIds = {}) {
+  const state =
+    studioOrIds &&
+    typeof studioOrIds === "object" &&
+    !Array.isArray(studioOrIds)
+      ? collectSuppressionState(studioOrIds)
+      : {
+          ids: new Set(
+            (Array.isArray(studioOrIds) ? studioOrIds : [])
+              .map((id) => String(id || "").trim())
+              .filter(Boolean)
+          ),
+          fingerprints: new Set(),
+        };
+  if (!state.ids.size && !state.fingerprints.size) return false;
 
   const storyboardPath = path.join(projDir, "storyboard.json");
   if (!fs.existsSync(storyboardPath)) return false;
@@ -483,7 +528,7 @@ export function pruneStoryboardRemotionSources(projDir, suppressedIds = []) {
 
   if (Array.isArray(storyboard.motion_scenes)) {
     const next = storyboard.motion_scenes.filter(
-      (ms) => !suppressed.has(String(ms?.id || ""))
+      (ms) => !storyboardRowMatchesSuppression(ms, "motion", state)
     );
     if (next.length !== storyboard.motion_scenes.length) {
       storyboard.motion_scenes = next;
@@ -494,7 +539,7 @@ export function pruneStoryboardRemotionSources(projDir, suppressedIds = []) {
   for (const key of ["overlays_ai", "overlays"]) {
     if (!Array.isArray(storyboard[key])) continue;
     const next = storyboard[key].filter(
-      (o) => !suppressed.has(String(o?.id || ""))
+      (o) => !storyboardRowMatchesSuppression(o, "overlays", state)
     );
     if (next.length !== storyboard[key].length) {
       storyboard[key] = next;
@@ -505,7 +550,7 @@ export function pruneStoryboardRemotionSources(projDir, suppressedIds = []) {
   if (Array.isArray(storyboard.visual_prompts)) {
     storyboard.visual_prompts = storyboard.visual_prompts.map((vp) => {
       const motionId = String(vp?.motion_scene_id || "").trim();
-      if (!motionId || !suppressed.has(motionId)) return vp;
+      if (!motionId || !state.ids.has(motionId)) return vp;
       changed = true;
       const next = { ...vp };
       delete next.motion_scene_id;
@@ -539,7 +584,7 @@ export function mergeRemotionFromStoryboard(
     return { studio, remotionRestored: 0, motionSynced: 0 };
   }
 
-  const suppressed = suppressedRemotionClipIds(studio);
+  const suppression = collectSuppressionState(studio);
   const beforeFp = remotionClipFingerprint(studio.clips);
 
   let next = studio;
@@ -553,7 +598,7 @@ export function mergeRemotionFromStoryboard(
   let updated = 0;
 
   for (const clip of overlayExpected) {
-    if (suppressed.has(String(clip.id || ""))) continue;
+    if (clipMatchesSuppression(clip, suppression)) continue;
     if (!byId.has(clip.id)) {
       byId.set(clip.id, clip);
       restored += 1;
@@ -572,7 +617,7 @@ export function mergeRemotionFromStoryboard(
   }
 
   const clips = [...byId.values()]
-    .filter((c) => !suppressed.has(String(c.id || "")))
+    .filter((c) => !clipMatchesSuppression(c, suppression))
     .sort((a, b) => (Number(a.start) || 0) - (Number(b.start) || 0));
   const mergedStudio = { ...next, clips };
   const afterFp = remotionClipFingerprint(mergedStudio.clips);

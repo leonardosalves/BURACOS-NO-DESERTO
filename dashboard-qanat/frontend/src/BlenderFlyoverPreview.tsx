@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export function BlenderFlyoverPreview({
   src,
@@ -6,12 +6,14 @@ export function BlenderFlyoverPreview({
   playing = false,
   poster,
   className = "",
+  style,
 }: {
   src: string;
   scrubSeconds?: number;
   playing?: boolean;
   poster?: string;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -87,7 +89,7 @@ export function BlenderFlyoverPreview({
   return (
     <div
       className={className}
-      style={{ position: "absolute", inset: 0, overflow: "hidden" }}
+      style={{ position: "absolute", inset: 0, overflow: "hidden", ...style }}
     >
       {poster ? (
         <img
