@@ -58,9 +58,21 @@ export function resolveMotionSceneProps(
 }
 
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v)(\?|$)/i;
+const PRELOAD_CACHE_MAX = 48;
+const preloadedUrls = new Set<string>();
 
 function isVideoUrl(url: string): boolean {
   return VIDEO_EXT.test(url);
+}
+
+function rememberPreloadedUrl(url: string): boolean {
+  if (preloadedUrls.has(url)) return false;
+  preloadedUrls.add(url);
+  if (preloadedUrls.size > PRELOAD_CACHE_MAX) {
+    const oldest = preloadedUrls.values().next().value;
+    if (oldest) preloadedUrls.delete(oldest);
+  }
+  return true;
 }
 
 /** Pré-carrega B-roll perto do playhead para o preview pintar no primeiro mount. */
@@ -88,6 +100,7 @@ export function preloadStudioMediaAtPlayhead(
   }
 
   for (const url of urls) {
+    if (!rememberPreloadedUrl(url)) continue;
     if (isVideoUrl(url)) {
       const activeUrl = active?.source
         ? resolveMediaUrl(active.source, getAssetUrl, getMusicUrl)

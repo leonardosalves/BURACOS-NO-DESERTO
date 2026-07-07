@@ -174,6 +174,9 @@ export function TimelineStudio({
   getAssetUrlRef.current = getAssetUrl;
   const getMusicUrlRef = useRef(getMusicUrl);
   getMusicUrlRef.current = getMusicUrl;
+  const initialLoadDoneRef = useRef(false);
+  const playheadCommitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [localPlayhead, setLocalPlayhead] = useState<number | null>(null);
 
   const applyStudioFromServer = useCallback(
     (
@@ -221,11 +224,19 @@ export function TimelineStudio({
   );
 
   const loadStudio = useCallback(
-    async (opts?: { focusRemotion?: boolean; silent?: boolean }) => {
+    async (opts?: {
+      focusRemotion?: boolean;
+      silent?: boolean;
+      fullSync?: boolean;
+    }) => {
       if (!activeProject) return null;
       if (!opts?.silent) setLoading(true);
       try {
-        const res = await fetch(getProjectUrl("/api/timeline-studio"));
+        const light = !opts?.fullSync && initialLoadDoneRef.current;
+        const endpoint = light
+          ? "/api/timeline-studio?light=1"
+          : "/api/timeline-studio";
+        const res = await fetch(getProjectUrl(endpoint));
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         const loaded = applyStudioFromServer(
@@ -252,6 +263,7 @@ export function TimelineStudio({
             );
           }
         }
+        initialLoadDoneRef.current = true;
         return loaded;
       } catch (err) {
         const raw = String((err as Error)?.message || "").trim();
@@ -269,12 +281,36 @@ export function TimelineStudio({
     [activeProject, applyStudioFromServer, getProjectUrl]
   );
 
-  useEffect(() => {
-    void loadStudio();
-  }, [loadStudio]);
+  const loadStudioRef = useRef(loadStudio);
+  loadStudioRef.current = loadStudio;
 
   useEffect(() => {
-    setStudio((prev) => (prev ? upsertMusicClipInStudio(prev, config) : prev));
+    initialLoadDoneRef.current = false;
+    setLocalPlayhead(null);
+    void loadStudioRef.current({ fullSync: true });
+  }, [activeProject]);
+
+  useEffect(() => {
+    return () => {
+      if (playheadCommitRef.current) clearTimeout(playheadCommitRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    setStudio((prev) => {
+      if (!prev) return prev;
+      const next = upsertMusicClipInStudio(prev, config);
+      const prevMusic = prev.clips.find((c) => c.trackId === "music");
+      const nextMusic = next.clips.find((c) => c.trackId === "music");
+      if (
+        prevMusic?.source === nextMusic?.source &&
+        prevMusic?.duration === nextMusic?.duration &&
+        Number(prevMusic?.props?.volume) === Number(nextMusic?.props?.volume)
+      ) {
+        return prev;
+      }
+      return next;
+    });
   }, [
     config.single_bgm,
     config.use_single_bgm,
@@ -321,6 +357,22 @@ export function TimelineStudio({
   const updateStudio = (patch: Partial<TimelineStudioState>) => {
     setStudio((prev) => (prev ? { ...prev, ...patch } : prev));
   };
+
+  const handlePlayheadChange = useCallback((sec: number) => {
+    setLocalPlayhead(sec);
+    if (playheadCommitRef.current) clearTimeout(playheadCommitRef.current);
+    playheadCommitRef.current = setTimeout(() => {
+      setLocalPlayhead(null);
+      updateStudio({ playhead: sec });
+      playheadCommitRef.current = null;
+    }, 120);
+  }, []);
+
+  const displayStudio = useMemo(() => {
+    if (!studio) return null;
+    if (localPlayhead == null) return studio;
+    return { ...studio, playhead: localPlayhead };
+  }, [studio, localPlayhead]);
 
   const handleClipsChange = useCallback((clips: StudioClip[]) => {
     setStudio((prev) => {
@@ -532,7 +584,7 @@ export function TimelineStudio({
         {!loading && (
           <button
             type="button"
-            onClick={() => void loadStudio()}
+            onClick={() => void loadStudio({ fullSync: true })}
             className="text-xs text-gold-400 border border-gold-500/30 px-3 py-1.5 rounded-lg cursor-pointer"
           >
             Tentar novamente
@@ -653,6 +705,7 @@ export function TimelineStudio({
                   loaded = await loadStudio({
                     focusRemotion: true,
                     silent: true,
+                    fullSync: true,
                   });
                   setScrollToTrackId("motion");
                 }
@@ -791,7 +844,9 @@ export function TimelineStudio({
           </button>
           <button
             type="button"
-            onClick={() => void loadStudio()}
+            onClick={() =>
+              void loadStudio({ fullSync: true, silent: Boolean(studio) })
+            }
             disabled={loading}
             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 cursor-pointer disabled:opacity-50 flex items-center gap-1"
             title="Recarrega timeline_studio.json do disco (aplica migração motion)"
@@ -828,9 +883,10 @@ export function TimelineStudio({
         >
           <RemotionQuickBar
             clips={studio.clips}
-            playhead={studio.playhead}
+            playhead={displayStudio?.playhead ?? studio.playhead}
             onJump={(clip) => {
               setSelectedClipId(clip.id);
+              setLocalPlayhead(null);
               updateStudio({ playhead: clip.start });
               setScrollToTrackId(clip.trackId);
             }}
@@ -848,14 +904,14 @@ export function TimelineStudio({
                 videoClips={videoClips}
                 getAssetUrl={getAssetUrl}
                 getProjectUrl={getProjectUrl}
-                playhead={studio.playhead}
+                playhead={displayStudio?.playhead ?? studio.playhead}
                 stockSearchTrigger={stockSearchTrigger}
                 onStockClipAdded={addClipToStudio}
               />
             </div>
             <div className="min-h-[200px] lg:min-h-0 lg:h-full overflow-hidden">
               <TimelineStudioPreview
-                studio={studio}
+                studio={displayStudio ?? studio}
                 getAssetUrl={getAssetUrl}
                 getMusicUrl={getMusicUrl}
                 aspectRatio={aspectRatio}
@@ -864,12 +920,12 @@ export function TimelineStudio({
                     ? Number(config.project_music_volume)
                     : 0.15
                 }
-                onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
+                onPlayheadChange={handlePlayheadChange}
               />
             </div>
             <div className="min-h-[140px] lg:min-h-0 lg:h-full overflow-hidden">
               <AskLumieraPanel
-                playhead={studio.playhead}
+                playhead={displayStudio?.playhead ?? studio.playhead}
                 nichePack={studio.niche_pack}
                 getProjectUrl={getProjectUrl}
                 onActions={handleAskActions}
@@ -907,13 +963,13 @@ export function TimelineStudio({
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
             <TimelineStudioTracks
-              studio={studio}
+              studio={displayStudio ?? studio}
               selectedClipId={selectedClipId}
               scrollToTrackId={scrollToTrackId}
               collapsedTrackIds={["captions"]}
               onScrollToTrackDone={() => setScrollToTrackId(null)}
               onSelectClip={setSelectedClipId}
-              onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
+              onPlayheadChange={handlePlayheadChange}
               onZoomChange={(zoom) => updateStudio({ zoom })}
               onClipsChange={handleClipsChange}
             />
