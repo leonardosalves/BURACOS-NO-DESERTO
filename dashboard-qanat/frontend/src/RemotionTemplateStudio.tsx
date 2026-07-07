@@ -51,6 +51,7 @@ type TemplateItem = {
     | "line"
     | "area"
     | "title"
+    | "cinematic"
     | "media";
   longPreview:
     | "ring"
@@ -63,6 +64,7 @@ type TemplateItem = {
     | "progress-bars"
     | "map"
     | "bars"
+    | "title"
     | "cinematic"
     | "media";
 };
@@ -2321,6 +2323,7 @@ function TemplateDetailPanel({
   onCopy,
   onBack,
   onApprove,
+  onChangePreview,
 }: {
   template: TemplateItem;
   activeTab: DetailTab;
@@ -2331,6 +2334,7 @@ function TemplateDetailPanel({
   onCopy: () => void;
   onBack: () => void;
   onApprove?: () => void;
+  onChangePreview?: (variant: PreviewVariant) => void;
 }) {
   const activeSource = template.sourceCode[activeFormat];
   const activeAspectRatio = activeFormat === "short" ? "9:16" : "16:9";
@@ -2353,7 +2357,35 @@ function TemplateDetailPanel({
               {template.description}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-4">
+            {onChangePreview && (
+              <div className="flex items-center gap-2 rounded-md border border-white/5 bg-black/20 px-2 py-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                  Preview:
+                </span>
+                <select
+                  value={template.shortPreview}
+                  onChange={(e) =>
+                    onChangePreview(e.target.value as PreviewVariant)
+                  }
+                  className="rounded bg-black/40 px-2 py-1 text-xs font-bold text-zinc-200 outline-none hover:text-white"
+                >
+                  <option value="line">Gráfico de Linha</option>
+                  <option value="bars">Gráfico de Barras</option>
+                  <option value="area">Gráfico de Área</option>
+                  <option value="pie">Gráfico de Pizza</option>
+                  <option value="donut">Gráfico de Rosca</option>
+                  <option value="circular-progress">Progresso Circular</option>
+                  <option value="progress-bars">Barras de Progresso</option>
+                  <option value="counter">Contador Estatístico</option>
+                  <option value="ring">KPI / Anel</option>
+                  <option value="map">Mapa Satélite</option>
+                  <option value="title">Título Slide</option>
+                  <option value="media">Imagem / Vídeo</option>
+                </select>
+              </div>
+            )}
+
             {template.status === "draft" && onApprove && (
               <button
                 type="button"
@@ -2723,6 +2755,19 @@ export function RemotionTemplateStudio({
     );
   }
 
+  function changeTemplatePreviewVariant(
+    templateId: string,
+    variant: PreviewVariant
+  ) {
+    setTemplates((current) =>
+      current.map((item) =>
+        item.id === templateId
+          ? { ...item, shortPreview: variant, longPreview: variant }
+          : item
+      )
+    );
+  }
+
   function saveAssistedDraft() {
     if (!canSaveDraft) {
       setStudioError(
@@ -2920,6 +2965,9 @@ export function RemotionTemplateStudio({
               onCopy={() => copyTemplateSource(detailTemplate)}
               onBack={() => setDetailTemplateId("")}
               onApprove={() => approveTemplate(detailTemplate.id)}
+              onChangePreview={(variant) =>
+                changeTemplatePreviewVariant(detailTemplate.id, variant)
+              }
             />
           ) : (
             <div className="grid gap-4 p-4 2xl:grid-cols-2">
