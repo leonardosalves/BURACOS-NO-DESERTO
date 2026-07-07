@@ -45,6 +45,8 @@ function applySatelliteFetchToScene(scene, fetched) {
     zoom_to: fetched.zoom_to,
     fly_mode: fetched.fly_mode,
     place_type: fetched.place_type,
+    structure_exists: fetched.structure_exists,
+    aspect_ratio: fetched.aspect_ratio,
     boundaryGeoJson: fetched.boundaryGeoJson || "",
     map_provider: fetched.map_provider,
     geocode_source: fetched.geocode_source,

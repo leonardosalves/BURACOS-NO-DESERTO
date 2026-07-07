@@ -219,6 +219,43 @@ describe("motionScenePlanner", () => {
     assert.equal(loc.layout, "fullscreen");
   });
 
+  it("E2E Bangkok short 9:16 — location-intro fullscreen + place_type city", () => {
+    const plan = planMotionScenesFromStoryboard(
+      {
+        visual_prompts: [
+          {
+            scene: "1.1",
+            block: 1,
+            narration_text:
+              "Na cidade de Bangcoc, a bacia de argila esconde um segredo sísmico.",
+            speech_start: 0,
+            duration_seconds: 8,
+          },
+          {
+            scene: "3.1",
+            block: 3,
+            narration_text:
+              "770 km do epicentro — amplificação sísmica recorde.",
+            speech_start: 38,
+            duration_seconds: 4,
+          },
+        ],
+      },
+      { niche: "Engenharia", aspect_ratio: "9:16" }
+    );
+    const loc = plan.motion_scenes.find(
+      (s) => s.template_id === "location-intro"
+    );
+    const counter = plan.motion_scenes.find((s) => s.template_id === "counter");
+    assert.ok(loc);
+    assert.equal(loc.layout, "fullscreen");
+    assert.equal(loc.props.presentation, "fullscreen");
+    assert.equal(loc.props.place_type, "city");
+    assert.equal(loc.props.aspect_ratio, "9:16");
+    assert.ok(counter);
+    assert.equal(counter.props.aspect_ratio, "9:16");
+  });
+
   it("pip layout permanece overlay, não vídeo primário", () => {
     assert.equal(
       isPrimaryRemotionMotionScene({

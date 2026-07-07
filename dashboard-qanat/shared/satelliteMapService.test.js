@@ -8,6 +8,7 @@ import {
   buildMapboxStaticUrl,
   buildEsriExportUrl,
   classifyPlaceType,
+  resolveRenderDimensions,
   buildZoomSequence,
   EARTH_DESCENT_ZOOMS,
   CITY_DESCENT_ZOOMS,
@@ -97,6 +98,29 @@ describe("satelliteMapService", () => {
     const c = classifyPlaceType("na cidade de Roma", { location: "Roma" });
     assert.equal(c.place_type, "city");
     assert.equal(c.fly_mode, "earth_descent");
+    assert.equal(c.structure_exists, true);
+  });
+
+  it("classifyPlaceType detecta historic_site quando estrutura caiu", () => {
+    const c = classifyPlaceType(
+      "O único prédio da cidade caiu e não existe mais no local.",
+      { location: "Bangcoc" }
+    );
+    assert.equal(c.place_type, "historic_site");
+    assert.equal(c.structure_exists, false);
+  });
+
+  it("resolveRenderDimensions 9:16 e 16:9", () => {
+    assert.deepEqual(resolveRenderDimensions("9:16"), {
+      width: 1080,
+      height: 1920,
+      aspect_ratio: "9:16",
+    });
+    assert.deepEqual(resolveRenderDimensions("16:9"), {
+      width: 1920,
+      height: 1080,
+      aspect_ratio: "16:9",
+    });
   });
 
   it("buildZoomSequence retorna keyframes corretos", () => {
@@ -106,6 +130,10 @@ describe("satelliteMapService", () => {
     );
     assert.deepEqual(
       buildZoomSequence("earth_descent", 8, 14, "city"),
+      CITY_DESCENT_ZOOMS
+    );
+    assert.deepEqual(
+      buildZoomSequence("earth_descent", 8, 14, "historic_site"),
       CITY_DESCENT_ZOOMS
     );
     assert.deepEqual(

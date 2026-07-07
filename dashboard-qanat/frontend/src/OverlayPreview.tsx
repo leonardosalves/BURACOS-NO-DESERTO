@@ -141,7 +141,7 @@ function LocationIntroMapCard({
   const mapProvider = String(props.map_provider || "");
   const flyoverSrc = String(props.flyover_video || "").trim();
   const useBlenderMap = mapProvider === "blender" && Boolean(flyoverSrc);
-  const useCesiumMap = mapProvider === "cesium" && lat && lng;
+  const useCesiumMap = mapProvider === "cesium" && lat && lng && !embedded;
 
   useEffect(() => {
     if (!useCesiumMap || embedded) return;

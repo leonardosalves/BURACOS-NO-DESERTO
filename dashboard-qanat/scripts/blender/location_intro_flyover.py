@@ -77,6 +77,31 @@ def latlng_to_local(lat: float, lng: float, center_lat: float, center_lng: float
     return x, y
 
 
+def boundary_span_m(geo_path: str, center_lat: float, center_lng: float) -> float:
+    if not geo_path or not os.path.isfile(geo_path):
+        return 80_000.0
+    with open(geo_path, "r", encoding="utf-8") as f:
+        geo = json.load(f)
+    rings: list[list] = []
+    gtype = geo.get("type")
+    if gtype == "Polygon":
+        rings = [geo.get("coordinates", [[]])[0]]
+    elif gtype == "MultiPolygon":
+        rings = [poly[0] for poly in geo.get("coordinates", []) if poly]
+    min_x = min_y = float("inf")
+    max_x = max_y = float("-inf")
+    for ring in rings:
+        for pt in ring or []:
+            lng, lat = float(pt[0]), float(pt[1])
+            x, y = latlng_to_local(lat, lng, center_lat, center_lng)
+            min_x, max_x = min(min_x, x), max(max_x, x)
+            min_y, max_y = min(min_y, y), max(max_y, y)
+    if min_x == float("inf"):
+        return 80_000.0
+    span = max(max_x - min_x, max_y - min_y)
+    return max(80_000.0, span * 1.85)
+
+
 def create_textured_ground(texture_path: str, size_m: float = 80_000) -> bpy.types.Object:
     bpy.ops.mesh.primitive_plane_add(size=size_m, location=(0, 0, 0))
     ground = bpy.context.active_object
@@ -153,11 +178,11 @@ def try_gis_terrain(job: dict) -> bool:
 
 def setup_camera(job: dict) -> bpy.types.Object:
     zoom_levels = job.get("zoom_levels") or [3, 6, 10, 14]
-    lat = float(job["lat"])
-    lng = float(job["lng"])
     duration = float(job.get("duration_sec") or 8)
     fps = int(job.get("fps") or 30)
     frames = max(2, int(duration * fps))
+    place_type = str(job.get("place_type") or "city")
+    orbit_poi = bool(job.get("orbit_poi")) and place_type == "poi"
 
     bpy.ops.object.camera_add(location=(0, 0, zoom_to_height(zoom_levels[0])))
     cam = bpy.context.active_object
@@ -170,15 +195,32 @@ def setup_camera(job: dict) -> bpy.types.Object:
     scene.frame_end = frames
     scene.render.fps = fps
 
+    descent_end = int(frames * 0.67) if orbit_poi else frames
     keys = len(zoom_levels)
     for i, zoom in enumerate(zoom_levels):
-        frame = 1 + int((i / max(keys - 1, 1)) * (frames - 1))
+        frame = 1 + int((i / max(keys - 1, 1)) * max(descent_end - 1, 1))
         height = zoom_to_height(zoom)
-        # câmera olhando para o centro (0,0,0)
         cam.location = (0, -height * 0.15, height)
         cam.rotation_euler = (math.radians(55), 0, 0)
         cam.keyframe_insert(data_path="location", frame=frame)
         cam.keyframe_insert(data_path="rotation_euler", frame=frame)
+
+    if orbit_poi:
+        final_height = zoom_to_height(zoom_levels[-1])
+        radius = max(final_height * 0.1, 1200.0)
+        orbit_frames = max(2, frames - descent_end)
+        for step in range(orbit_frames + 1):
+            frame = descent_end + step
+            t = step / max(orbit_frames, 1)
+            angle = t * math.pi * 2
+            cam.location = (
+                math.sin(angle) * radius,
+                -math.cos(angle) * radius * 0.18,
+                final_height,
+            )
+            cam.rotation_euler = (math.radians(55), 0, angle)
+            cam.keyframe_insert(data_path="location", frame=frame)
+            cam.keyframe_insert(data_path="rotation_euler", frame=frame)
 
     return cam
 
@@ -219,8 +261,13 @@ def main() -> None:
     if not texture or not os.path.isfile(texture):
         raise SystemExit(f"Textura satélite ausente: {texture}")
 
+    ground_size = boundary_span_m(
+        job.get("boundary_geojson") or "",
+        lat,
+        lng,
+    )
     if not try_gis_terrain(job):
-        create_textured_ground(texture)
+        create_textured_ground(texture, size_m=ground_size)
 
     import_boundary_curve(
         job.get("boundary_geojson") or "",

@@ -25,6 +25,8 @@ import {
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 import { ensureMotionScenesQuality } from "./motionSceneQualityService.js";
 import { normalizeTimelineAssetSlots } from "../shared/timelineAssetDedupe.js";
+import { applyNicheDesignToMotionScenes } from "../shared/nicheDesignPack.js";
+import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
 
 function readJsonSafe(filePath, fallback = null) {
   try {
@@ -320,6 +322,14 @@ export async function orchestrateProduction(
     };
   }
 
+  plan = {
+    ...plan,
+    motion_scenes: applyNicheDesignToMotionScenes(
+      plan.motion_scenes,
+      plan.niche_pack
+    ),
+  };
+
   let satelliteMeta = null;
   if (fetchSatellite && plan.motion_scenes.length > 0) {
     const enriched = await enrichMotionScenesWithAssets(
@@ -441,12 +451,33 @@ export async function orchestrateProduction(
     writeJson(configPath, config);
   }
 
+  const timelineMotionCount = Array.isArray(studio?.clips)
+    ? studio.clips.filter((c) => c.trackId === MOTION_TRACK_ID).length
+    : 0;
+  const timelineTemplateCount = Array.isArray(studio?.clips)
+    ? studio.clips.filter((c) => c.trackId === "overlays").length
+    : 0;
+  const geoScenes = (plan.motion_scenes || []).filter(
+    (ms) => String(ms.template_id) === "location-intro"
+  );
+  const geoQcOk =
+    geoScenes.length === 0 || geoScenes.every((ms) => ms.quality?.ok !== false);
+  const orchestrationOk =
+    timelineSynced &&
+    plan.motion_scenes.length > 0 &&
+    timelineMotionCount + timelineTemplateCount > 0 &&
+    (qualityMeta?.ok !== false || geoQcOk);
+
   return {
-    ok: true,
+    ok: orchestrationOk,
     storyboard,
     config,
     timeline_assets: timelineAssets,
     motion_scenes: plan.motion_scenes,
+    motion_count: plan.motion_scenes.length,
+    timeline_motion_count: timelineMotionCount,
+    timeline_template_count: timelineTemplateCount,
+    orchestration_ok: orchestrationOk,
     studio,
     timeline_synced: timelineSynced,
     production: storyboard.production_orchestration,
