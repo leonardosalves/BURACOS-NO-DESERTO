@@ -23,18 +23,26 @@ function Write-LumieraLog {
     Add-Content -Path (Join-Path $script:LogDir "backend-watch.log") -Value $line -Encoding UTF8
 }
 
+function Get-PortListenerPidFast([int]$Port) {
+    try {
+        $line = & netstat -ano 2>$null |
+            Select-String -Pattern ":$Port\s+.*LISTENING" |
+            Select-Object -First 1
+        if ($line -and ($line.ToString() -match "\s(\d+)\s*$")) {
+            return [int]$Matches[1]
+        }
+    } catch { }
+    return $null
+}
+
 function Get-BackendListenerPid {
+    $fast = Get-PortListenerPidFast $script:BackendPort
+    if ($fast) { return $fast }
+
     try {
         $conn = Get-NetTCPConnection -LocalPort $script:BackendPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
         if ($conn -and $conn.OwningProcess -and $conn.OwningProcess -ne 0) {
             return [int]$conn.OwningProcess
-        }
-    } catch { }
-
-    try {
-        $line = & netstat -ano 2>$null | Select-String -Pattern ":$($script:BackendPort)\s+.*LISTENING" | Select-Object -First 1
-        if ($line -and ($line.ToString() -match "\s(\d+)\s*$")) {
-            return [int]$Matches[1]
         }
     } catch { }
     return $null
@@ -43,28 +51,31 @@ function Get-BackendListenerPid {
 function Test-LumieraBackendHealthy {
     param(
         [int]$Retries = 3,
-        [int]$TimeoutSec = 8
+        [int]$TimeoutSec = 8,
+        [switch]$Quick
     )
 
-    for ($i = 1; $i -le $Retries; $i++) {
+    $retries = if ($Quick) { 1 } else { $Retries }
+    $timeout = if ($Quick) { [Math]::Min($TimeoutSec, 4) } else { $TimeoutSec }
+
+    for ($i = 1; $i -le $retries; $i++) {
+        $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+        if ($curl) {
+            try {
+                $body = & curl.exe -sS --max-time $timeout $script:HealthUrl 2>$null
+                if ($LASTEXITCODE -eq 0 -and $body -match '"ok"\s*:\s*true') {
+                    return $true
+                }
+            } catch { }
+        }
         try {
-            $r = Invoke-WebRequest -Uri $script:HealthUrl -UseBasicParsing -TimeoutSec $TimeoutSec -Headers @{ "Connection" = "close" }
+            $r = Invoke-WebRequest -Uri $script:HealthUrl -UseBasicParsing -TimeoutSec $timeout -Headers @{ "Connection" = "close" }
             if ($r.StatusCode -eq 200 -and $r.Content -match '"ok"\s*:\s*true') {
                 return $true
             }
-        } catch {
-            $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
-            if ($curl) {
-                try {
-                    $body = & curl.exe -sS --max-time $TimeoutSec $script:HealthUrl 2>$null
-                    if ($LASTEXITCODE -eq 0 -and $body -match '"ok"\s*:\s*true') {
-                        return $true
-                    }
-                } catch { }
-            }
-        }
-        if ($i -lt $Retries) {
-            Start-Sleep -Milliseconds 500
+        } catch { }
+        if ($i -lt $retries) {
+            Start-Sleep -Milliseconds 300
         }
     }
     return $false
@@ -145,18 +156,18 @@ function Resolve-NlmBin {
 
 function Stop-LumieraBackendOnPort {
     $pids = @()
-    try {
-        $connections = Get-NetTCPConnection -LocalPort $script:BackendPort -State Listen -ErrorAction SilentlyContinue
-        foreach ($conn in $connections) {
-            if ($conn.OwningProcess -and $conn.OwningProcess -ne 0) {
-                $pids += [int]$conn.OwningProcess
-            }
-        }
-    } catch { }
+    $listenerPid = Get-PortListenerPidFast $script:BackendPort
+    if ($listenerPid) { $pids += $listenerPid }
 
     if ($pids.Count -eq 0) {
-        $listenerPid = Get-BackendListenerPid
-        if ($listenerPid) { $pids += $listenerPid }
+        try {
+            $connections = Get-NetTCPConnection -LocalPort $script:BackendPort -State Listen -ErrorAction SilentlyContinue
+            foreach ($conn in $connections) {
+                if ($conn.OwningProcess -and $conn.OwningProcess -ne 0) {
+                    $pids += [int]$conn.OwningProcess
+                }
+            }
+        } catch { }
     }
 
     foreach ($procId in ($pids | Select-Object -Unique)) {
