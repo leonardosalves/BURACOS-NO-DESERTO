@@ -56,6 +56,64 @@ function focusFirstRemotionClip(
   return { ...studio, playhead: target.start };
 }
 
+function RemotionQuickBar({
+  clips,
+  playhead,
+  onJump,
+}: {
+  clips: StudioClip[];
+  playhead: number;
+  onJump: (clip: StudioClip) => void;
+}) {
+  const motion = clipsOnTrack(clips, "motion");
+  const templates = clipsOnTrack(clips, "overlays");
+  const items = [...motion, ...templates].sort(
+    (a, b) => (Number(a.start) || 0) - (Number(b.start) || 0)
+  );
+  if (!items.length) {
+    return (
+      <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-[10px] text-amber-200/90">
+        Nenhuma cena Remotion na timeline — clique{" "}
+        <span className="font-bold text-violet-300">Cenas Remotion</span> para
+        gerar mapa, contadores e gráficos.
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-800/80 bg-zinc-950/80 px-3 py-2">
+      <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 shrink-0">
+        Remotion
+      </span>
+      <span className="text-[9px] text-zinc-600 shrink-0">
+        🟣 {motion.length} · 🟢 {templates.length}
+      </span>
+      {items.map((clip) => {
+        const isMotion = clip.trackId === "motion";
+        const active =
+          playhead >= clip.start && playhead < clip.start + clip.duration;
+        return (
+          <button
+            key={clip.id}
+            type="button"
+            onClick={() => onJump(clip)}
+            className={`text-[9px] font-semibold px-2 py-1 rounded-md border cursor-pointer transition ${
+              active
+                ? "border-gold-400/70 bg-gold-500/15 text-gold-200"
+                : isMotion
+                  ? "border-violet-500/40 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20"
+                  : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+            }`}
+            title={`${clip.label || clip.templateId} · ${formatStudioTime(clip.start)}`}
+          >
+            {isMotion ? "🟣" : "🟢"} {clip.label || clip.templateId || clip.id}{" "}
+            @ {formatStudioTime(clip.start)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function TimelineStudio({
   config,
   status,
@@ -412,8 +470,10 @@ export function TimelineStudio({
     );
   }
 
+  const remotionCounts = countRemotionTracks(studio.clips);
+
   return (
-    <div className="space-y-3 font-sans">
+    <div className="space-y-2 font-sans flex flex-col min-h-0">
       {(timelineNeedsWhisperSync || timelineScenesNeedRepair) && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex flex-wrap gap-2 items-start">
           <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -454,7 +514,7 @@ export function TimelineStudio({
           helpId="timeline-media-blocks"
           size="sm"
           titleClassName="tracking-wider uppercase text-xs"
-          subtitle={`Multi-trilha · ${isVertical ? "9:16 Short" : "16:9 Long"} · ${studio.clips.length} clips`}
+          subtitle={`Multi-trilha · ${isVertical ? "9:16 Short" : "16:9 Long"} · ${studio.clips.length} clips · 🟣 ${countRemotionTracks(studio.clips).motion} Cenas · 🟢 ${countRemotionTracks(studio.clips).overlays} Templates`}
         />
         <div className="flex flex-wrap items-center gap-2">
           <select
@@ -676,15 +736,28 @@ export function TimelineStudio({
         </div>
       </div>
 
+      <RemotionQuickBar
+        clips={studio.clips}
+        playhead={studio.playhead}
+        onJump={(clip) => {
+          setSelectedClipId(clip.id);
+          updateStudio({ playhead: clip.start });
+          setScrollToTrackId(clip.trackId);
+        }}
+      />
+
       <div
-        className={`grid gap-3 min-h-[360px] ${
+        className={`grid gap-3 shrink-0 ${
           isVertical
             ? "grid-cols-1 lg:grid-cols-[minmax(170px,200px)_minmax(0,1.35fr)_minmax(170px,220px)]"
             : "grid-cols-1 lg:grid-cols-[minmax(190px,220px)_minmax(0,2fr)_minmax(190px,240px)]"
         }`}
-        style={{ minHeight: isVertical ? 440 : 560 }}
+        style={{
+          minHeight: isVertical ? 260 : 300,
+          maxHeight: "min(42vh, 400px)",
+        }}
       >
-        <div className="min-h-[180px] lg:min-h-0 lg:h-[min(58vh,540px)]">
+        <div className="min-h-[160px] lg:min-h-0 lg:h-full max-h-[min(42vh,400px)] overflow-hidden">
           <StockMediaPanel
             videoClips={videoClips}
             getAssetUrl={getAssetUrl}
@@ -694,7 +767,7 @@ export function TimelineStudio({
             onStockClipAdded={addClipToStudio}
           />
         </div>
-        <div className="min-h-[300px] lg:min-h-0 lg:h-[min(74vh,780px)]">
+        <div className="min-h-[200px] lg:min-h-0 lg:h-full max-h-[min(42vh,400px)] overflow-hidden">
           <TimelineStudioPreview
             studio={studio}
             getAssetUrl={getAssetUrl}
@@ -708,7 +781,7 @@ export function TimelineStudio({
             onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
           />
         </div>
-        <div className="min-h-[180px] lg:min-h-0 lg:h-[min(58vh,540px)]">
+        <div className="min-h-[160px] lg:min-h-0 lg:h-full max-h-[min(42vh,400px)] overflow-hidden">
           <AskLumieraPanel
             playhead={studio.playhead}
             nichePack={studio.niche_pack}
@@ -720,16 +793,27 @@ export function TimelineStudio({
         </div>
       </div>
 
-      <TimelineStudioTracks
-        studio={studio}
-        selectedClipId={selectedClipId}
-        scrollToTrackId={scrollToTrackId}
-        onScrollToTrackDone={() => setScrollToTrackId(null)}
-        onSelectClip={setSelectedClipId}
-        onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
-        onZoomChange={(zoom) => updateStudio({ zoom })}
-        onClipsChange={handleClipsChange}
-      />
+      <div className="shrink-0 rounded-t-2xl border-t-2 border-violet-500/35 bg-zinc-950/50 pt-1">
+        <div className="px-1 pb-0.5 flex items-center justify-between gap-2">
+          <span className="text-[9px] font-bold uppercase tracking-wider text-violet-300/90">
+            Timeline · role aqui para ver todas as trilhas
+          </span>
+          <span className="text-[9px] font-mono text-zinc-500">
+            🟣 {remotionCounts.motion} · 🟢 {remotionCounts.overlays}
+          </span>
+        </div>
+        <TimelineStudioTracks
+          studio={studio}
+          selectedClipId={selectedClipId}
+          scrollToTrackId={scrollToTrackId}
+          collapsedTrackIds={["captions"]}
+          onScrollToTrackDone={() => setScrollToTrackId(null)}
+          onSelectClip={setSelectedClipId}
+          onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
+          onZoomChange={(zoom) => updateStudio({ zoom })}
+          onClipsChange={handleClipsChange}
+        />
+      </div>
 
       {selectedClip ? (
         <TimelineStudioClipInspector

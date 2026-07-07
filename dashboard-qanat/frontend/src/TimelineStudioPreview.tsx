@@ -41,7 +41,7 @@ const FULLSCREEN_OVERLAYS = new Set(["pictogram-chart"]);
 
 const UI_PUBLISH_MS = 250;
 const UI_PUBLISH_PLAYBACK_MS = 900;
-const MOTION_SCRUB_MS = 100;
+const MOTION_SCRUB_MS = 220;
 
 function clipToOverlayDraft(
   clip: StudioClip,
