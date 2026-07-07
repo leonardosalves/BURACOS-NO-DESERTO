@@ -23,10 +23,10 @@ import {
   updateClipInList,
 } from "./timelineStudioClipOps";
 import { preloadStudioMediaAtPlayhead } from "./timelineStudioMedia";
-import { autoFetchSatelliteForClips } from "./timelineStudioSatellite";
 import {
   clipsOnTrack,
   ensureMotionTrackInStudio,
+  formatStudioTime,
   type StudioClip,
   type TimelineStudioState,
 } from "./timelineStudioTypes";
@@ -38,6 +38,23 @@ import type {
 import { upsertMusicClipInStudio } from "./timelineStudioMusic";
 
 export type TimelineStudioProps = RichTimelineEditorProps;
+
+function countRemotionTracks(clips: StudioClip[]) {
+  return {
+    motion: clipsOnTrack(clips, "motion").length,
+    overlays: clipsOnTrack(clips, "overlays").length,
+  };
+}
+
+function focusFirstRemotionClip(
+  studio: TimelineStudioState
+): TimelineStudioState {
+  const motion = clipsOnTrack(studio.clips, "motion");
+  const templates = clipsOnTrack(studio.clips, "overlays");
+  const target = motion[0] || templates[0];
+  if (!target) return studio;
+  return { ...studio, playhead: target.start };
+}
 
 export function TimelineStudio({
   config,
@@ -75,34 +92,37 @@ export function TimelineStudio({
   const getMusicUrlRef = useRef(getMusicUrl);
   getMusicUrlRef.current = getMusicUrl;
 
-  const loadStudio = useCallback(async () => {
-    if (!activeProject) return;
-    setLoading(true);
-    try {
-      const res = await fetch(getProjectUrl("/api/timeline-studio"));
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
+  const applyStudioFromServer = useCallback(
+    (
+      raw: TimelineStudioState,
+      { focusRemotion = false }: { focusRemotion?: boolean } = {}
+    ): TimelineStudioState => {
       let loaded = ensureMotionTrackInStudio(
-        upsertMusicClipInStudio(
-          data.studio as TimelineStudioState,
-          configRef.current
-        )
+        upsertMusicClipInStudio(raw, configRef.current)
       );
-      const playhead = Number(loaded.playhead) || 0;
-      const hasVideoAtPlayhead = Boolean(
-        clipsOnTrack(loaded.clips, "video").find(
-          (clip) =>
-            Boolean(String(clip.source || "").trim()) &&
-            playhead >= clip.start &&
-            playhead < clip.start + clip.duration
-        )
-      );
-      if (!hasVideoAtPlayhead) {
-        const firstVideo = clipsOnTrack(loaded.clips, "video").find((clip) =>
-          Boolean(String(clip.source || "").trim())
+      if (focusRemotion) {
+        loaded = focusFirstRemotionClip(loaded);
+        const motion = clipsOnTrack(loaded.clips, "motion");
+        const templates = clipsOnTrack(loaded.clips, "overlays");
+        const target = motion[0] || templates[0];
+        if (target) setSelectedClipId(target.id);
+      } else {
+        const playhead = Number(loaded.playhead) || 0;
+        const hasVideoAtPlayhead = Boolean(
+          clipsOnTrack(loaded.clips, "video").find(
+            (clip) =>
+              Boolean(String(clip.source || "").trim()) &&
+              playhead >= clip.start &&
+              playhead < clip.start + clip.duration
+          )
         );
-        if (firstVideo) {
-          loaded = { ...loaded, playhead: firstVideo.start };
+        if (!hasVideoAtPlayhead) {
+          const firstVideo = clipsOnTrack(loaded.clips, "video").find((clip) =>
+            Boolean(String(clip.source || "").trim())
+          );
+          if (firstVideo) {
+            loaded = { ...loaded, playhead: firstVideo.start };
+          }
         }
       }
       setStudio(loaded);
@@ -112,36 +132,59 @@ export function TimelineStudio({
         getAssetUrlRef.current,
         getMusicUrlRef.current
       );
-      void autoFetchSatelliteForClips(loaded.clips, getProjectUrl, {
-        onStudioSynced: (nextStudio) => {
-          setStudio(nextStudio as TimelineStudioState);
-        },
-      });
-      if (data.migrated) {
-        toast.success("Timeline Studio: projeto migrado para multi-trilha");
-      }
-      if (data.motionMigrated) {
-        toast.success(
-          "Cenas Remotion movidas para trilha própria (PIP no mapa)"
+      return loaded;
+    },
+    []
+  );
+
+  const loadStudio = useCallback(
+    async (opts?: { focusRemotion?: boolean; silent?: boolean }) => {
+      if (!activeProject) return null;
+      setLoading(true);
+      try {
+        const res = await fetch(getProjectUrl("/api/timeline-studio"));
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        const loaded = applyStudioFromServer(
+          data.studio as TimelineStudioState,
+          { focusRemotion: opts?.focusRemotion }
         );
+        if (!opts?.silent) {
+          if (data.migrated) {
+            toast.success("Timeline Studio: projeto migrado para multi-trilha");
+          }
+          if (data.motionMigrated) {
+            toast.success(
+              "Cenas Remotion movidas para trilha própria (PIP no mapa)"
+            );
+          }
+          if (Number(data.brollRestored) > 0) {
+            toast.success(
+              `${data.brollRestored} clip(s) B-roll restaurado(s) do config`
+            );
+          }
+          if (Number(data.remotionRestored) > 0) {
+            toast.success(
+              `${data.remotionRestored} template(s) Remotion restaurado(s) na timeline`
+            );
+          }
+        }
+        return loaded;
+      } catch (err) {
+        const raw = String((err as Error)?.message || "").trim();
+        const detail =
+          raw ||
+          (err instanceof TypeError
+            ? "backend offline — verifique porta 3005 (scripts/ensure-lumiera.ps1)"
+            : "falha desconhecida ao contactar /api/timeline-studio");
+        toast.error(`Erro ao carregar timeline: ${detail}`);
+        return null;
+      } finally {
+        setLoading(false);
       }
-      if (Number(data.brollRestored) > 0) {
-        toast.success(
-          `${data.brollRestored} clip(s) B-roll restaurado(s) do config`
-        );
-      }
-    } catch (err) {
-      const raw = String((err as Error)?.message || "").trim();
-      const detail =
-        raw ||
-        (err instanceof TypeError
-          ? "backend offline — verifique porta 3005 (scripts/ensure-lumiera.ps1)"
-          : "falha desconhecida ao contactar /api/timeline-studio");
-      toast.error(`Erro ao carregar timeline: ${detail}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeProject, getProjectUrl]);
+    },
+    [activeProject, applyStudioFromServer, getProjectUrl]
+  );
 
   useEffect(() => {
     void loadStudio();
@@ -174,6 +217,23 @@ export function TimelineStudio({
       setSaving(false);
     }
   };
+
+  const persistStudioSnapshot = useCallback(
+    async (nextStudio: TimelineStudioState) => {
+      try {
+        const synced = upsertMusicClipInStudio(nextStudio, configRef.current);
+        const res = await fetch(getProjectUrl("/api/timeline-studio"), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ studio: synced }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+      } catch (err) {
+        toast.error(`Erro ao persistir timeline: ${(err as Error).message}`);
+      }
+    },
+    [getProjectUrl]
+  );
 
   const updateStudio = (patch: Partial<TimelineStudioState>) => {
     setStudio((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -246,6 +306,48 @@ export function TimelineStudio({
     [addClipToStudio]
   );
 
+  const deleteClipFromStudio = useCallback(
+    (clipId: string) => {
+      if (!studio) return;
+      const target = findClip(studio.clips, clipId);
+      const nextClips = deleteClip(studio.clips, clipId);
+      if (!target || nextClips.length === studio.clips.length) return;
+
+      const isMotionClip =
+        target.trackId === "motion" ||
+        target.motionScene ||
+        target.props?.motion_scene === true ||
+        target.props?.media_mode === "remotion";
+      const suppressedMotionSceneIds = isMotionClip
+        ? [
+            ...new Set([
+              ...(studio.suppressedMotionSceneIds || []),
+              String(target.id),
+            ]),
+          ]
+        : studio.suppressedMotionSceneIds;
+      const nextStudio: TimelineStudioState = {
+        ...studio,
+        clips: nextClips,
+        suppressedMotionSceneIds,
+        totalDuration: computeTotalDuration(
+          nextClips,
+          studio.totalDuration || 120
+        ),
+      };
+
+      setStudio(nextStudio);
+      setSelectedClipId(null);
+      void persistStudioSnapshot(nextStudio);
+      toast.success(
+        isMotionClip
+          ? "Cena Remotion removida e bloqueada para nÃ£o voltar"
+          : "Clip removido"
+      );
+    },
+    [persistStudioSnapshot, studio]
+  );
+
   const selectedClip = useMemo(
     () =>
       selectedClipId && studio ? findClip(studio.clips, selectedClipId) : null,
@@ -273,15 +375,11 @@ export function TimelineStudio({
         return;
       }
       e.preventDefault();
-      const next = deleteClip(studio.clips, selectedClipId);
-      if (next.length === studio.clips.length) return;
-      handleClipsChange(next);
-      setSelectedClipId(null);
-      toast.success("Clip removido");
+      deleteClipFromStudio(selectedClipId);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleClipsChange, selectedClipId, studio]);
+  }, [deleteClipFromStudio, selectedClipId, studio]);
 
   const videoClips = useMemo(
     () => (studio ? clipsOnTrack(studio.clips, "video") : []),
@@ -410,12 +508,16 @@ export function TimelineStudio({
                 );
                 if (!orchRes.ok) throw new Error(await orchRes.text());
                 const orchData = await orchRes.json();
-                if (orchData.studio) {
-                  setStudio(orchData.studio as TimelineStudioState);
-                } else {
-                  await loadStudio();
-                }
-                const satCount = Number(orchData.satellite?.enriched) || 0;
+                const loaded = await loadStudio({
+                  focusRemotion: true,
+                  silent: true,
+                });
+                const counts = countRemotionTracks(
+                  (loaded?.clips ||
+                    (orchData.studio as TimelineStudioState | undefined)
+                      ?.clips ||
+                    []) as StudioClip[]
+                );
                 const satFailed = (orchData.satellite?.results || []).filter(
                   (r: { ok?: boolean }) => r?.ok === false
                 );
@@ -428,8 +530,21 @@ export function TimelineStudio({
                     }
                   | undefined;
                 toast.success(
-                  `${orchData.motion_count} Remotion · ${orchData.pending_assets} assets pendentes · QC ${qc?.score ?? "—"}/100`
+                  `${orchData.motion_count} cena(s) planejada(s) · ${counts.motion} em Cenas Remotion · ${counts.overlays} em Templates · QC ${qc?.score ?? "—"}/100`
                 );
+                if (counts.motion + counts.overlays === 0) {
+                  toast(
+                    "Nenhum clip Remotion na timeline — role até a trilha roxa «Cenas Remotion» ou verde «Templates», ou clique Recarregar (F5)",
+                    { icon: "⚠️", duration: 8000 }
+                  );
+                } else if (counts.motion > 0) {
+                  toast(
+                    `Mapa/motion: trilha «Cenas Remotion» ~${formatStudioTime(
+                      clipsOnTrack(loaded?.clips || [], "motion")[0]?.start || 0
+                    )}`,
+                    { icon: "🗺️", duration: 6000 }
+                  );
+                }
                 if (qc?.auto_fixed) {
                   toast("QC corrigiu mapa(s) satélite automaticamente", {
                     icon: "✓",
@@ -604,9 +719,7 @@ export function TimelineStudio({
             );
           }}
           onDelete={() => {
-            handleClipsChange(deleteClip(studio.clips, selectedClip.id));
-            setSelectedClipId(null);
-            toast.success("Clip removido");
+            deleteClipFromStudio(selectedClip.id);
           }}
         />
       ) : null}

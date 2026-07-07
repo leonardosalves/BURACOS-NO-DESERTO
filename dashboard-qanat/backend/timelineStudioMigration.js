@@ -12,6 +12,7 @@ import {
 import {
   migrateStudioMotionClipsFromVideo,
   motionScenesToMotionClips,
+  syncMotionScenesToStudio,
 } from "./motionScenePlanner.js";
 import { defaultMotionTrack } from "../shared/motionSceneCatalog.js";
 
@@ -196,7 +197,7 @@ export function mergeMissingBrollFromConfig(
   return { ...studio, clips, brollRestored: restored };
 }
 
-function migrateOverlayClips(storyboard = {}) {
+export function migrateOverlayClips(storyboard = {}) {
   const overlays =
     Array.isArray(storyboard.overlays) && storyboard.overlays.length
       ? storyboard.overlays
@@ -429,6 +430,49 @@ export function loadTimelineStudio(projDir) {
   }
   result.studio = studio;
   return result;
+}
+
+/**
+ * Sincroniza motion_scenes + overlays_ai do storyboard para clips da timeline.
+ * motion → trilha "Cenas Remotion"; counter/timeline/etc. → trilha "Templates".
+ */
+export function mergeRemotionFromStoryboard(
+  studio,
+  storyboard = {},
+  { syncMotion = true } = {}
+) {
+  if (!studio || !Array.isArray(studio.clips)) {
+    return { studio, remotionRestored: 0, motionSynced: 0 };
+  }
+
+  let next = syncMotion
+    ? syncMotionScenesToStudio(studio, storyboard.motion_scenes || [])
+    : studio;
+  const motionSynced = (storyboard.motion_scenes || []).length;
+
+  const overlayExpected = migrateOverlayClips(storyboard);
+  const byId = new Map(next.clips.map((c) => [c.id, c]));
+  let restored = 0;
+
+  for (const clip of overlayExpected) {
+    if (!byId.has(clip.id)) {
+      byId.set(clip.id, clip);
+      restored += 1;
+    }
+  }
+
+  if (!restored && !syncMotion) {
+    return { studio: next, remotionRestored: 0, motionSynced };
+  }
+
+  const clips = [...byId.values()].sort(
+    (a, b) => (Number(a.start) || 0) - (Number(b.start) || 0)
+  );
+  return {
+    studio: { ...next, clips },
+    remotionRestored: restored,
+    motionSynced,
+  };
 }
 
 export function saveTimelineStudio(projDir, studio) {

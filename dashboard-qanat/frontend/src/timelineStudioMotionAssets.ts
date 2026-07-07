@@ -196,8 +196,10 @@ export async function autoOrchestrateMotionForStudio(
     const q = data.quality;
     if (!silent) {
       const n = Number(data.enriched) || 0;
+      const motionN = Number(data.motion_count) || 0;
+      const restored = Number(data.remotion_restored) || 0;
       toast.success(
-        `Remotion · ${n} cena(s) enriquecida(s) · QC ${q?.score ?? "—"}/100${q?.ok ? " ✓" : ""}`
+        `Remotion · ${n} enriquecida(s) · ${motionN} motion · ${restored > 0 ? `${restored} template(s) sincronizado(s)` : "timeline atualizada"} · QC ${q?.score ?? "—"}/100${q?.ok ? " ✓" : ""}`
       );
     }
     if (failed.length > 0) {
