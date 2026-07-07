@@ -1,5 +1,5 @@
 export type StudioTrackType =
-  "voice" | "captions" | "video" | "overlays" | "sfx" | "music";
+  "voice" | "captions" | "video" | "motion" | "overlays" | "sfx" | "music";
 
 export type StudioTrack = {
   id: string;
@@ -80,9 +80,20 @@ export function activeVideoAt(
   clips: StudioClip[],
   playhead: number
 ): StudioClip | null {
-  const vids = clipsOnTrack(clips, "video");
+  const vids = clipsOnTrack(clips, "video").filter((c) =>
+    Boolean(String(c.source || "").trim())
+  );
   return (
     vids.find((c) => playhead >= c.start && playhead < c.start + c.duration) ||
     null
+  );
+}
+
+export function activeMotionAt(
+  clips: StudioClip[],
+  playhead: number
+): StudioClip[] {
+  return clipsOnTrack(clips, "motion").filter(
+    (c) => playhead >= c.start && playhead < c.start + c.duration
   );
 }

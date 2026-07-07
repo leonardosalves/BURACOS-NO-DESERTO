@@ -9,7 +9,11 @@ import {
   resolveStudioBgmSource,
   upsertMusicClipInStudio,
 } from "../shared/timelineStudioMusic.js";
-import { motionScenesToOverlayClips } from "./motionScenePlanner.js";
+import {
+  migrateStudioMotionClipsFromVideo,
+  motionScenesToMotionClips,
+} from "./motionScenePlanner.js";
+import { defaultMotionTrack } from "../shared/motionSceneCatalog.js";
 
 const STUDIO_FILENAME = "timeline_studio.json";
 const NARRATION_FILES = [
@@ -65,6 +69,7 @@ function defaultTracks() {
       color: "#1565C0",
       height: 44,
     },
+    defaultMotionTrack(),
     {
       id: "overlays",
       type: "overlays",
@@ -182,22 +187,28 @@ function migrateOverlayClips(storyboard = {}) {
       legacyOverlay: true,
     }));
 
-  const motion = motionScenesToOverlayClips(storyboard.motion_scenes || []);
-  const dedupedMotion = motion.filter((mc) => {
+  return legacy;
+}
+
+function migrateMotionClips(storyboard = {}) {
+  const motion = motionScenesToMotionClips(storyboard.motion_scenes || []);
+  const overlays =
+    Array.isArray(storyboard.overlays) && storyboard.overlays.length
+      ? storyboard.overlays
+      : storyboard.overlays_ai || [];
+  const legacy = overlays.filter((o) => o && o.type);
+
+  return motion.filter((mc) => {
     const mcKey = `${mc.templateId}::${mc.start.toFixed(1)}`;
     return !legacy.some((lc) => {
-      const lcKey = `${lc.templateId}::${lc.start.toFixed(1)}`;
+      const lcKey = `${String(lc.type)}::${(Number(lc.start) || 0).toFixed(1)}`;
       if (lcKey === mcKey) return true;
-      if (
-        lc.templateId === mc.templateId &&
-        Math.abs(lc.start - mc.start) < 2
-      ) {
-        return true;
-      }
-      return false;
+      return (
+        String(lc.type) === mc.templateId &&
+        Math.abs((Number(lc.start) || 0) - mc.start) < 2
+      );
     });
   });
-  return [...legacy, ...dedupedMotion];
 }
 
 function migrateCaptionClips(wordTranscripts = []) {
@@ -322,6 +333,7 @@ export function migrateLegacyToTimelineStudio(projDir, { force = false } = {}) {
   const clips = [
     ...migrateVideoClips(config.timeline_assets || {}, blockTimings),
     ...migrateOverlayClips(storyboard),
+    ...migrateMotionClips(storyboard),
     ...migrateCaptionClips(wordTranscripts),
     ...migrateSfxClips(sfxTimeline),
   ];
@@ -361,8 +373,32 @@ export function migrateLegacyToTimelineStudio(projDir, { force = false } = {}) {
   return { studio, migrated: true, path: studioPath };
 }
 
+function studioMotionMigrationFingerprint(studio = {}) {
+  return JSON.stringify({
+    tracks: (studio.tracks || []).map((t) => t.id),
+    clips: (studio.clips || []).map((c) => ({
+      id: c.id,
+      trackId: c.trackId,
+      presentation: c.props?.presentation,
+      layout: c.props?.layout,
+    })),
+  });
+}
+
 export function loadTimelineStudio(projDir) {
-  return migrateLegacyToTimelineStudio(projDir);
+  const result = migrateLegacyToTimelineStudio(projDir);
+  if (!result?.studio) return result;
+
+  const before = studioMotionMigrationFingerprint(result.studio);
+  const studio = migrateStudioMotionClipsFromVideo(result.studio);
+  const after = studioMotionMigrationFingerprint(studio);
+
+  if (before !== after) {
+    saveTimelineStudio(projDir, studio);
+    result.motionMigrated = true;
+  }
+  result.studio = studio;
+  return result;
 }
 
 export function saveTimelineStudio(projDir, studio) {

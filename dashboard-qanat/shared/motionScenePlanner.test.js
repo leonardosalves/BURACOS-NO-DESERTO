@@ -59,7 +59,7 @@ describe("motionScenePlanner", () => {
     assert.ok(templates.includes("location-intro"));
   });
 
-  it("fullscreen remotion vira clip de vídeo e remove B-roll sobreposto", () => {
+  it("motion scenes vão para trilha motion sem remover B-roll", () => {
     const motionScenes = [
       {
         id: "ms-3.2",
@@ -67,10 +67,10 @@ describe("motionScenePlanner", () => {
         block: 3,
         start_hint: 35,
         duration_seconds: 5,
-        layout: "fullscreen",
+        layout: "pip",
         template_id: "location-intro",
         media_mode: "remotion",
-        props: { location: "Palmanova" },
+        props: { location: "Palmanova", presentation: "pip" },
       },
     ];
     const studio = {
@@ -88,13 +88,12 @@ describe("motionScenePlanner", () => {
     };
     const synced = syncMotionScenesToStudio(studio, motionScenes);
     const videoClips = synced.clips.filter((c) => c.trackId === "video");
+    const motionClips = synced.clips.filter((c) => c.trackId === "motion");
     assert.equal(videoClips.length, 1);
-    assert.equal(videoClips[0].props?.media_mode, "remotion");
-    assert.equal(videoClips[0].templateId, "location-intro");
-    assert.equal(
-      synced.clips.filter((c) => c.trackId === "overlays").length,
-      0
-    );
+    assert.equal(videoClips[0].source, "ASSETS/cena_3.jpg");
+    assert.equal(motionClips.length, 1);
+    assert.equal(motionClips[0].templateId, "location-intro");
+    assert.ok(synced.tracks.some((t) => t.id === "motion"));
   });
 
   it("marca visual_prompts com media_mode remotion", () => {

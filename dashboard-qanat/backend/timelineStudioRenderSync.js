@@ -5,6 +5,7 @@
 
 import fs from "fs";
 import path from "path";
+import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
 import { STUDIO_FILENAME } from "./timelineStudioMigration.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 
@@ -41,9 +42,7 @@ export function shouldUseStudioForRender(studio) {
     return false;
   if (studio.updatedAt) return true;
   return studio.clips.some(
-    (c) =>
-      c.trackId === "video" &&
-      (String(c.source || "").trim() || isRemotionVideoClip(c))
+    (c) => c.trackId === "video" && String(c.source || "").trim()
   );
 }
 
@@ -53,13 +52,6 @@ function inferAssetType(clip) {
   const src = String(clip?.source || "").toLowerCase();
   if (/\.(mp4|webm|mov|m4v)$/.test(src)) return "video";
   return "image";
-}
-
-function isRemotionVideoClip(clip) {
-  return (
-    clip?.props?.media_mode === "remotion" &&
-    Boolean(String(clip?.templateId || "").trim())
-  );
 }
 
 function resolveProjectAssetPath(projectDir, relPath, findProjectFile) {
@@ -141,6 +133,25 @@ export function copyMotionPropsAssets(
   return p;
 }
 
+function studioClipToOverlay(clip, assetCtx, index = 0) {
+  const type = String(clip.templateId || clip.props?.overlayType || "").trim();
+  if (!type) return null;
+  const rawProps = { ...(clip.props || {}) };
+  delete rawProps.overlayType;
+  const props =
+    clip.trackId === MOTION_TRACK_ID
+      ? copyMotionPropsAssets(rawProps, assetCtx, `mo${index + 1}_`)
+      : rawProps;
+  return {
+    id: String(clip.id || `studio-overlay-${type}`),
+    type,
+    start: Number(clip.start) || 0,
+    duration: Math.max(0.5, Number(clip.duration) || 4),
+    props,
+    timing_manual: true,
+  };
+}
+
 export function buildScenesFromStudio(
   studio,
   {
@@ -152,17 +163,9 @@ export function buildScenesFromStudio(
     fillSceneTimelineGaps,
   }
 ) {
-  const videoClips = clipsOnTrack(studio.clips, "video").filter(
-    (c) => String(c.source || "").trim() || isRemotionVideoClip(c)
+  const videoClips = clipsOnTrack(studio.clips, "video").filter((c) =>
+    String(c.source || "").trim()
   );
-
-  const assetCtx = {
-    projectDir,
-    publicProjectDir,
-    projectSlug,
-    copyRemotionAsset,
-    findProjectFile,
-  };
 
   const scenes = [];
   videoClips.forEach((clip, index) => {
@@ -172,34 +175,6 @@ export function buildScenesFromStudio(
       : index + 1;
     const start = Number(clip.start) || 0;
     const duration = Math.max(0.08, Number(clip.duration) || 1);
-
-    if (isRemotionVideoClip(clip)) {
-      const rawProps = { ...(clip.props || {}) };
-      delete rawProps.overlayType;
-      const remotionProps = copyMotionPropsAssets(
-        rawProps,
-        assetCtx,
-        `rv${index + 1}_`
-      );
-      scenes.push({
-        block,
-        scene_id: String(
-          clip.props?.scene_ref || clip.id || `studio.remotion.${index + 1}`
-        ),
-        asset: "",
-        type: "remotion",
-        remotionTemplate: String(clip.templateId),
-        remotionProps,
-        start,
-        duration,
-        durationLocked: Boolean(clip.locked),
-        narrationText: "",
-        editorNotes: "",
-        volume: 0,
-        playback_rate: 1,
-      });
-      return;
-    }
 
     const sourcePath = findProjectFile(projectDir, clip.source);
     const copiedName = copyRemotionAsset(
@@ -237,43 +212,45 @@ export function buildScenesFromStudio(
       : scenes.reduce((max, s) => Math.max(max, s.start + s.duration), 1);
 
   return fillSceneTimelineGaps(
-    scenes.filter((s) => s.asset || s.type === "remotion"),
+    scenes.filter((s) => s.asset),
     coverageEnd
   );
 }
 
-export function buildOverlaysFromStudio(studio) {
-  const primaryRemotion = clipsOnTrack(studio.clips, "video").filter(
-    (c) => c.motionScenePrimary || isRemotionVideoClip(c)
+export function buildOverlaysFromStudio(
+  studio,
+  {
+    projectDir,
+    publicProjectDir,
+    projectSlug,
+    copyRemotionAsset,
+    findProjectFile,
+  } = {}
+) {
+  const assetCtx = {
+    projectDir,
+    publicProjectDir,
+    projectSlug,
+    copyRemotionAsset,
+    findProjectFile,
+  };
+
+  const overlayClips = clipsOnTrack(studio.clips, "overlays").filter(
+    (c) => c.templateId || c.props?.overlayType
   );
-  const primaryKeys = new Set(
-    primaryRemotion.map(
-      (c) => `${String(c.templateId)}::${(Number(c.start) || 0).toFixed(1)}`
-    )
+  const motionClips = clipsOnTrack(studio.clips, MOTION_TRACK_ID).filter(
+    (c) => c.templateId || c.props?.overlayType
   );
 
-  return clipsOnTrack(studio.clips, "overlays")
-    .filter((c) => c.templateId || c.props?.overlayType)
-    .filter((clip) => {
-      if (!clip.motionScene) return true;
-      const key = `${String(clip.templateId)}::${(Number(clip.start) || 0).toFixed(1)}`;
-      return !primaryKeys.has(key);
-    })
+  let motionIndex = 0;
+  return [...overlayClips, ...motionClips]
     .map((clip) => {
-      const type = String(
-        clip.templateId || clip.props?.overlayType || ""
-      ).trim();
-      if (!type) return null;
-      const rawProps = { ...(clip.props || {}) };
-      delete rawProps.overlayType;
-      return {
-        id: String(clip.id || `studio-overlay-${type}`),
-        type,
-        start: Number(clip.start) || 0,
-        duration: Math.max(0.5, Number(clip.duration) || 4),
-        props: rawProps,
-        timing_manual: true,
-      };
+      const out = studioClipToOverlay(
+        clip,
+        assetCtx,
+        clip.trackId === MOTION_TRACK_ID ? motionIndex++ : 0
+      );
+      return out;
     })
     .filter(Boolean);
 }

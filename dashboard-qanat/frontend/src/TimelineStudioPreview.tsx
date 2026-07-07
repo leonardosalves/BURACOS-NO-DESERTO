@@ -10,6 +10,7 @@ import { OverlayPreview } from "./OverlayPreview";
 import type { OverlayDraft } from "./overlayEditorConfig";
 import {
   activeCaptionAt,
+  activeMotionAt,
   activeVideoAt,
   clipsOnTrack,
   formatStudioTime,
@@ -30,7 +31,17 @@ type Props = {
   onPlayheadChange: (sec: number) => void;
 };
 
-const FULLSCREEN_OVERLAYS = new Set(["pictogram-chart", "location-intro"]);
+const FULLSCREEN_OVERLAYS = new Set(["pictogram-chart"]);
+
+function isFullscreenMotionClip(
+  clip: StudioClip,
+  draft: OverlayDraft
+): boolean {
+  if (String(clip.templateId) === "location-intro") {
+    return draft.props?.presentation === "fullscreen";
+  }
+  return FULLSCREEN_OVERLAYS.has(String(clip.templateId));
+}
 const UI_PUBLISH_MS = 100;
 
 function clipToOverlayDraft(
@@ -118,6 +129,10 @@ export function TimelineStudioPreview({
   }, [studio.playhead, playing]);
 
   const videoClip = activeVideoAt(studio.clips, displayPlayhead);
+  const motionClips = useMemo(
+    () => activeMotionAt(studio.clips, displayPlayhead),
+    [studio.clips, displayPlayhead]
+  );
   const caption = activeCaptionAt(studio.clips, displayPlayhead);
 
   const activeOverlays = useMemo(
@@ -136,17 +151,10 @@ export function TimelineStudioPreview({
     [studio.clips, displayPlayhead]
   );
 
-  const isRemotionVideo =
-    videoClip?.props?.media_mode === "remotion" &&
-    Boolean(videoClip?.templateId);
-  const assetSrc =
-    videoClip?.source && !isRemotionVideo
-      ? resolveMediaUrl(videoClip.source, getAssetUrl, getMusicUrl)
-      : null;
-  const isVideo = isVideoClip(videoClip) && !isRemotionVideo;
-  const remotionVideoDraft = isRemotionVideo
-    ? clipToOverlayDraft(videoClip, getAssetUrl, getMusicUrl)
+  const assetSrc = videoClip?.source
+    ? resolveMediaUrl(videoClip.source, getAssetUrl, getMusicUrl)
     : null;
+  const isVideo = isVideoClip(videoClip);
 
   const publishPlayhead = useCallback((t: number, force = false) => {
     const total = totalDurRef.current;
@@ -352,24 +360,7 @@ export function TimelineStudioPreview({
           className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black shadow-lg shadow-black/40"
           style={{ ...frameStyle, containerType: "size" }}
         >
-          {remotionVideoDraft ? (
-            <div className="absolute inset-0 z-10 pointer-events-none">
-              <OverlayPreview
-                overlay={remotionVideoDraft}
-                aspectRatio={aspectRatio}
-                accentColor={String(
-                  remotionVideoDraft.props?.accentColor || "#D4AF37"
-                )}
-                durationSeconds={videoClip?.duration || 4}
-                scrubSeconds={Math.max(
-                  0,
-                  displayPlayhead - (videoClip?.start || 0)
-                )}
-                timelinePlaying={false}
-                embedded
-              />
-            </div>
-          ) : assetSrc ? (
+          {assetSrc ? (
             isVideo ? (
               <video
                 ref={videoRef}
@@ -417,6 +408,34 @@ export function TimelineStudioPreview({
               className="hidden"
             />
           ) : null}
+
+          {motionClips.map((clip) => {
+            const draft = clipToOverlayDraft(clip, getAssetUrl, getMusicUrl);
+            const localSec = displayPlayhead - clip.start;
+            const isFullscreen = isFullscreenMotionClip(clip, draft);
+            const isPip = !isFullscreen;
+            return (
+              <div
+                key={clip.id}
+                className={`absolute pointer-events-none ${
+                  isPip
+                    ? "inset-0 flex items-end justify-end p-[5%] z-30"
+                    : `inset-0 ${isFullscreen ? "z-40" : "z-30"}`
+                }`}
+              >
+                <OverlayPreview
+                  overlay={draft}
+                  aspectRatio={aspectRatio}
+                  accentColor={String(draft.props?.accentColor || "#D4AF37")}
+                  durationSeconds={clip.duration}
+                  scrubSeconds={Math.max(0, localSec)}
+                  timelinePlaying={false}
+                  embedded
+                  embeddedLayout={isPip ? "pip" : "fill"}
+                />
+              </div>
+            );
+          })}
 
           {activeOverlays.map((clip) => {
             const draft = clipToOverlayDraft(clip, getAssetUrl, getMusicUrl);
@@ -521,9 +540,9 @@ export function TimelineStudioPreview({
       </div>
 
       <style>{`
-        .tss-embedded-overlay,
-        .tss-embedded-overlay > div,
-        .tss-embedded-overlay .overlay-preview-frame {
+        .tss-embedded-overlay:not(.tss-pip-card),
+        .tss-embedded-overlay:not(.tss-pip-card) > div,
+        .tss-embedded-overlay:not(.tss-pip-card) .overlay-preview-frame {
           position: absolute !important;
           inset: 0 !important;
           width: 100% !important;
