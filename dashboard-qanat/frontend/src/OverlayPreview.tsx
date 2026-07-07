@@ -212,13 +212,12 @@ function LocationIntroMapCard({
         : 0.45;
 
     if (useBlenderMap) {
+      const fallbackFrames = [
+        bgWide ? { zoom: Number(props.zoom_from) || 3, image: bgWide } : null,
+        bgTight ? { zoom: Number(props.zoom_to) || 10, image: bgTight } : null,
+      ].filter(Boolean) as Array<{ zoom?: number; image?: string }>;
       const frames = sortZoomKeyframes(
-        keyframes.length > 0
-          ? keyframes
-          : [
-              bgWide ? { zoom: props.zoom_from || 8, image: bgWide } : null,
-              bgTight ? { zoom: props.zoom_to || 14, image: bgTight } : null,
-            ].filter(Boolean)
+        keyframes.length > 0 ? keyframes : fallbackFrames
       );
       const {
         activeIndex: idx,
@@ -283,6 +282,15 @@ function LocationIntroMapCard({
               playing={timelinePlaying}
               poster={poster || undefined}
               className="absolute inset-0"
+            />
+          ) : frames.length === 0 && flyoverSrc ? (
+            <BlenderFlyoverPreview
+              src={flyoverSrc}
+              scrubSeconds={scrubSeconds}
+              playing={timelinePlaying}
+              poster={poster || undefined}
+              className="absolute inset-0"
+              style={{ mixBlendMode: "lighten", opacity: 0.92 }}
             />
           ) : null}
           {placeType === "city" && boundaryPaths.length > 0 ? (

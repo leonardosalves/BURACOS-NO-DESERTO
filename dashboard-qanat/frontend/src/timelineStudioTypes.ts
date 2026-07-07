@@ -23,6 +23,8 @@ export type StudioClip = {
   locked?: boolean;
   durationLocked?: boolean;
   legacyOverlay?: boolean;
+  motionScene?: boolean;
+  motionScenePrimary?: boolean;
 };
 
 export type TimelineStudioState = {
@@ -34,6 +36,8 @@ export type TimelineStudioState = {
   pixelsPerSecond?: number;
   tracks: StudioTrack[];
   clips: StudioClip[];
+  suppressedMotionSceneIds?: string[];
+  suppressedRemotionFingerprints?: string[];
   totalDuration?: number;
   migratedAt?: string;
   updatedAt?: string;

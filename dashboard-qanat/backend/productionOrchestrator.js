@@ -27,6 +27,7 @@ import { ensureMotionScenesQuality } from "./motionSceneQualityService.js";
 import { normalizeTimelineAssetSlots } from "../shared/timelineAssetDedupe.js";
 import { applyNicheDesignToMotionScenes } from "../shared/nicheDesignPack.js";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
+import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
 
 function readJsonSafe(filePath, fallback = null) {
   try {
@@ -434,14 +435,19 @@ export async function orchestrateProduction(
     let baseStudio = rawStudio;
     if (restoreSuppressedMotion) {
       baseStudio = unsuppressMotionSceneIds(rawStudio, plan.motion_scenes);
-      baseStudio = { ...baseStudio, suppressedMotionSceneIds: [] };
+      baseStudio = {
+        ...baseStudio,
+        suppressedMotionSceneIds: [],
+        suppressedRemotionFingerprints: [],
+      };
     }
     const remotionMerged = mergeRemotionFromStoryboard(baseStudio, storyboard, {
       syncMotion: true,
     });
-    let nextStudio = remotionMerged.studio;
+    let nextStudio = stripSuppressedRemotionClips(remotionMerged.studio);
     nextStudio = mergeMissingBrollFromConfig(nextStudio, config, blockTimings);
     nextStudio = upsertMusicClipInStudio(nextStudio, config, projDir);
+    nextStudio = stripSuppressedRemotionClips(nextStudio);
     studio = saveTimelineStudio(projDir, nextStudio);
     timelineSynced = true;
   }

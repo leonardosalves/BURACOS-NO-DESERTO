@@ -22,7 +22,15 @@ import {
   updateCaptionText,
   updateClipInList,
 } from "./timelineStudioClipOps";
-import { preloadStudioMediaAtPlayhead } from "./timelineStudioMedia";
+import {
+  enrichSatelliteMotionClip,
+  preloadStudioMediaAtPlayhead,
+} from "./timelineStudioMedia";
+import {
+  applySuppressionFields,
+  expandDeletedClipSuppressions,
+  isRemotionStudioClip,
+} from "@lumiera/shared/timelineStudioRemotionSuppress.js";
 import { autoFetchSatelliteForClips } from "./timelineStudioSatellite";
 import {
   clipsOnTrack,
@@ -55,54 +63,6 @@ function readPreviewSplitRatio(): number {
   } catch {
     return PREVIEW_SPLIT_DEFAULT;
   }
-}
-
-function sceneSatelliteKey(clipId: string): string {
-  return String(clipId || "")
-    .trim()
-    .replace(/\./g, "_");
-}
-
-function enrichSatelliteMotionClip(clip: StudioClip): StudioClip {
-  const tpl = String(clip.templateId || "");
-  if (tpl !== "location-intro" && tpl !== "geo-map") return clip;
-
-  const key = sceneSatelliteKey(clip.id);
-  const props = { ...(clip.props || {}) } as Record<string, unknown>;
-
-  if (!String(props.flyover_video || "").trim()) {
-    props.flyover_video = `ASSETS/satellite/${key}-flyover.mp4`;
-  }
-  if (!String(props.backgroundImage || "").trim()) {
-    props.backgroundImage = `ASSETS/satellite/${key}-z10.jpg`;
-  }
-  if (!String(props.backgroundImageWide || "").trim()) {
-    props.backgroundImageWide = `ASSETS/satellite/${key}-z3.jpg`;
-  }
-  if (!String(props.boundaryGeoJson || "").trim()) {
-    props.boundaryGeoJson = `ASSETS/satellite/${key}-boundary.json`;
-  }
-  if (!String(props.map_provider || "").trim()) {
-    props.map_provider = "blender";
-  }
-  if (Array.isArray(props.zoom_keyframes)) {
-    props.zoom_keyframes = props.zoom_keyframes.map((kf) => {
-      if (!kf || typeof kf !== "object") return kf;
-      const row = kf as { zoom?: number; image?: string };
-      const zoom = Number(row.zoom);
-      if (!Number.isFinite(zoom) || String(row.image || "").trim()) return kf;
-      return { ...row, image: `ASSETS/satellite/${key}-z${zoom}.jpg` };
-    });
-  }
-
-  return {
-    ...clip,
-    props: {
-      ...props,
-      presentation: "fullscreen",
-      layout: "fullscreen",
-    },
-  };
 }
 
 function normalizeGeoMotionClips(
@@ -397,6 +357,10 @@ export function TimelineStudio({
         body: JSON.stringify({ studio: synced }),
       });
       if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      if (data.studio) {
+        setStudio(normalizeGeoMotionClips(data.studio as TimelineStudioState));
+      }
       toast.success("Timeline Studio salva");
     } catch (err) {
       toast.error(`Erro ao salvar: ${(err as Error).message}`);
@@ -414,6 +378,11 @@ export function TimelineStudio({
         body: JSON.stringify({ studio: synced }),
       });
       if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      if (data.studio) {
+        return normalizeGeoMotionClips(data.studio as TimelineStudioState);
+      }
+      return nextStudio;
     },
     [getProjectUrl]
   );
@@ -522,35 +491,27 @@ export function TimelineStudio({
       const nextClips = deleteClip(studio.clips, clipId);
       if (!target || nextClips.length === studio.clips.length) return;
 
-      const isRemotionClip =
-        target.trackId === "motion" ||
-        target.trackId === "overlays" ||
-        target.motionScene ||
-        target.props?.motion_scene === true ||
-        target.props?.media_mode === "remotion" ||
-        Boolean(target.templateId);
-      const suppressedMotionSceneIds = isRemotionClip
-        ? [
-            ...new Set([
-              ...(studio.suppressedMotionSceneIds || []),
-              String(target.id),
-            ]),
-          ]
-        : studio.suppressedMotionSceneIds;
-      const nextStudio: TimelineStudioState = {
-        ...studio,
-        clips: nextClips,
-        suppressedMotionSceneIds,
-        totalDuration: computeTotalDuration(
-          nextClips,
-          studio.totalDuration || 120
-        ),
-      };
+      const isRemotionClip = isRemotionStudioClip(target);
+      const expanded = isRemotionClip
+        ? expandDeletedClipSuppressions(storyboardData || {}, studio, target)
+        : null;
+      const nextStudio: TimelineStudioState = applySuppressionFields(
+        {
+          ...studio,
+          clips: nextClips,
+          totalDuration: computeTotalDuration(
+            nextClips,
+            studio.totalDuration || 120
+          ),
+        },
+        expanded || {}
+      );
 
       setStudio(nextStudio);
       setSelectedClipId(null);
       try {
-        await persistStudioSnapshot(nextStudio);
+        const saved = await persistStudioSnapshot(nextStudio);
+        setStudio(saved);
         toast.success(
           isRemotionClip
             ? "Cena Remotion removida — não volta no F5"
@@ -562,7 +523,7 @@ export function TimelineStudio({
         );
       }
     },
-    [persistStudioSnapshot, studio]
+    [persistStudioSnapshot, storyboardData, studio]
   );
 
   const selectedClip = useMemo(
