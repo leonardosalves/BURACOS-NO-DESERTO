@@ -32,7 +32,13 @@ export function TimelineStudioClipInspector({
   const editable = isClipEditable(clip);
   const captionText = String(clip.props?.text || clip.label || "");
   const [fetchingSatellite, setFetchingSatellite] = useState(false);
+  const mapProvider = String(clip.props?.map_provider || "");
+  const hasCoords =
+    Number.isFinite(Number(clip.props?.lat)) &&
+    Number.isFinite(Number(clip.props?.lng));
+  const isCesiumReady = mapProvider === "cesium" && hasCoords;
   const hasSatelliteTiles = Boolean(
+    isCesiumReady ||
     String(clip.props?.backgroundImage || "").trim() ||
     (Array.isArray(clip.props?.zoom_keyframes) &&
       clip.props.zoom_keyframes.some((kf: { image?: string }) =>
@@ -162,9 +168,13 @@ export function TimelineStudioClipInspector({
                   }`}
                 >
                   {motionQcOk && hasSatelliteTiles
-                    ? `QC OK · ${keyframeCount} tiles · zoom ${zoomTo || "—"}`
+                    ? isCesiumReady
+                      ? `QC OK · ${keyframeCount} keyframes · Cesium 3D · zoom ${zoomTo || "—"}`
+                      : `QC OK · ${keyframeCount} tiles · zoom ${zoomTo || "—"}`
                     : hasSatelliteTiles
-                      ? `QC pendente · ${keyframeCount} tiles (revise zoom/contorno)`
+                      ? isCesiumReady
+                        ? `QC pendente · ${keyframeCount} keyframes Cesium (revise zoom/contorno)`
+                        : `QC pendente · ${keyframeCount} tiles (revise zoom/contorno)`
                       : "Sem tiles — QC vai re-baixar ao orquestrar"}
                 </span>
                 {getProjectUrl ? (
