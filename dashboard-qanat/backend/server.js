@@ -1249,85 +1249,100 @@ app.post("/api/projects/delete", (req, res) => {
   }
 });
 
+const projectStatusCache = new Map();
+const PROJECT_STATUS_CACHE_MS = 30_000;
+
+function getDirMtimeMs(dirPath) {
+  try {
+    return fs.existsSync(dirPath) ? fs.statSync(dirPath).mtimeMs : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function countProjectAssets(dir) {
+  if (!fs.existsSync(dir)) return 0;
+  let count = 0;
+  const scan = (d) => {
+    const items = fs.readdirSync(d);
+    for (const item of items) {
+      const p = path.join(d, item);
+      if (fs.statSync(p).isDirectory()) {
+        scan(p);
+      } else {
+        count++;
+      }
+    }
+  };
+  scan(dir);
+  return count;
+}
+
+function buildProjectStatusPayload(projDir) {
+  const assetsDir = path.join(projDir, "ASSETS");
+  const assetsMtime = getDirMtimeMs(assetsDir);
+  const cacheKey = projDir;
+  const cached = projectStatusCache.get(cacheKey);
+  if (
+    cached &&
+    cached.assetsMtime === assetsMtime &&
+    Date.now() - cached.at < PROJECT_STATUS_CACHE_MS
+  ) {
+    return cached.payload;
+  }
+
+  let blockTimings = null;
+  const timingsPath = path.join(projDir, "block_timings.json");
+  if (fs.existsSync(timingsPath)) {
+    try {
+      blockTimings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const payload = {
+    workspace: projDir,
+    assets_count: countProjectAssets(assetsDir),
+    has_narration: fs.existsSync(
+      path.join(projDir, "narracao_mestra_premium.mp3")
+    ),
+    has_soundtrack: fs.existsSync(
+      path.join(projDir, "trilha_documentario.mp3")
+    ),
+    has_highlight_clip: fs.existsSync(path.join(projDir, "clip_highlight.mp4")),
+    has_config: fs.existsSync(path.join(projDir, "config_qanat.json")),
+    block_timings: blockTimings,
+  };
+  projectStatusCache.set(cacheKey, {
+    payload,
+    assetsMtime,
+    at: Date.now(),
+  });
+  return payload;
+}
+
 // API: Check status of workspace files
 
 app.get("/api/status", (req, res) => {
   try {
     const projDir = getProjectDir(req);
 
-    // Auto-sync template scripts when project is accessed
-
+    // Auto-sync template scripts when project is accessed (nao no poll de 20s do mesmo projeto)
     if (projDir !== WORKSPACE_DIR) {
-      ensureFileExists("build_video.py", projDir);
-
-      ensureFileExists("build_video_destacado.py", projDir);
-
-      ensureFileExists("mix_bgm.py", projDir);
-
-      ensureFileExists("find_block_timings.py", projDir);
-
-      ensureFileExists("align_transcripts.py", projDir);
+      const syncKey = `${projDir}:sync`;
+      const lastSync = projectStatusCache.get(syncKey)?.at || 0;
+      if (Date.now() - lastSync > PROJECT_STATUS_CACHE_MS) {
+        ensureFileExists("build_video.py", projDir);
+        ensureFileExists("build_video_destacado.py", projDir);
+        ensureFileExists("mix_bgm.py", projDir);
+        ensureFileExists("find_block_timings.py", projDir);
+        ensureFileExists("align_transcripts.py", projDir);
+        projectStatusCache.set(syncKey, { at: Date.now() });
+      }
     }
 
-    const assetsDir = path.join(projDir, "ASSETS");
-
-    const outputDir = path.join(projDir, "OUTPUT", "qanat_persa_video_final");
-
-    const countFiles = (dir) => {
-      if (!fs.existsSync(dir)) return 0;
-
-      let count = 0;
-
-      const scan = (d) => {
-        const items = fs.readdirSync(d);
-
-        for (const item of items) {
-          const p = path.join(d, item);
-
-          if (fs.statSync(p).isDirectory()) {
-            scan(p);
-          } else {
-            count++;
-          }
-        }
-      };
-
-      scan(dir);
-
-      return count;
-    };
-
-    let blockTimings = null;
-
-    const timingsPath = path.join(projDir, "block_timings.json");
-
-    if (fs.existsSync(timingsPath)) {
-      try {
-        blockTimings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
-      } catch (e) {}
-    }
-
-    res.json({
-      workspace: projDir,
-
-      assets_count: countFiles(assetsDir),
-
-      has_narration: fs.existsSync(
-        path.join(projDir, "narracao_mestra_premium.mp3")
-      ),
-
-      has_soundtrack: fs.existsSync(
-        path.join(projDir, "trilha_documentario.mp3")
-      ),
-
-      has_highlight_clip: fs.existsSync(
-        path.join(projDir, "clip_highlight.mp4")
-      ),
-
-      has_config: fs.existsSync(path.join(projDir, "config_qanat.json")),
-
-      block_timings: blockTimings,
-    });
+    res.json(buildProjectStatusPayload(projDir));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -3,7 +3,7 @@ param(
     [switch]$NoBrowser
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 . (Join-Path $PSScriptRoot "lumiera-backend-common.ps1")
 
 $FrontendDir = Join-Path (Join-Path $RepoRoot "dashboard-qanat") "frontend"

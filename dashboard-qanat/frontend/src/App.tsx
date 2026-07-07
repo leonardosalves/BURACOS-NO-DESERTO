@@ -2823,15 +2823,21 @@ export default function App() {
   // Fetch status and outputs (runs periodically in background)
 
   const fetchStatusAndOutputs = async () => {
+    const pollSignal = AbortSignal.timeout(12_000);
     try {
-      const statusRes = await fetch(getProjectUrl("/api/status"));
+      const statusRes = await fetch(getProjectUrl("/api/status"), {
+        signal: pollSignal,
+      });
 
       if (statusRes.ok) setStatus(await statusRes.json());
 
-      const outputsRes = await fetch(getProjectUrl("/api/outputs"));
+      const outputsRes = await fetch(getProjectUrl("/api/outputs"), {
+        signal: pollSignal,
+      });
 
       if (outputsRes.ok) setOutputs(await outputsRes.json());
     } catch (err) {
+      if (err instanceof Error && err.name === "TimeoutError") return;
       console.error("Error loading status and outputs:", err);
     }
   };
@@ -3344,7 +3350,7 @@ export default function App() {
       if (typeof document !== "undefined" && document.hidden) return;
       fetchStatusAndOutputs();
     };
-    const interval = setInterval(tick, 20000);
+    const interval = setInterval(tick, 30_000);
 
     return () => clearInterval(interval);
   }, [activeProject]);
