@@ -5,6 +5,7 @@
 import {
   saveTimelineStudio,
   loadTimelineStudio,
+  migrateLegacyToTimelineStudio,
 } from "./timelineStudioMigration.js";
 import {
   searchTimelineStock,
@@ -99,10 +100,23 @@ export function registerTimelineStudioRoutes(
   app.post("/api/timeline-studio/remigrate", (req, res) => {
     try {
       const projDir = getProjectDir(req);
-      const { studio, migrated } = migrateLegacyToTimelineStudio(projDir, {
+      const { migrated } = migrateLegacyToTimelineStudio(projDir, {
         force: true,
       });
-      res.json({ ok: true, studio, migrated });
+      const { studio, motionMigrated } = loadTimelineStudio(projDir);
+      const synced = syncStudioMusicFromConfig(studio, projDir);
+      const musicChanged =
+        JSON.stringify(musicClipSnapshot(studio)) !==
+        JSON.stringify(musicClipSnapshot(synced));
+      if (musicChanged) {
+        saveTimelineStudio(projDir, synced);
+      }
+      res.json({
+        ok: true,
+        studio: musicChanged ? synced : studio,
+        migrated,
+        motionMigrated: Boolean(motionMigrated),
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

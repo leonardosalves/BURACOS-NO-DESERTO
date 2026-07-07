@@ -117,6 +117,47 @@ describe("motionScenePlanner", () => {
     assert.equal(next.visual_prompts[1].media_mode, undefined);
   });
 
+  it("sync com B-roll ausente não remove clips video existentes", () => {
+    const motionScenes = [
+      {
+        id: "ms-1.2",
+        scene_ref: "1.2",
+        block: 1,
+        start_hint: 3.587,
+        duration_seconds: 5,
+        layout: "pip",
+        template_id: "location-intro",
+        media_mode: "remotion",
+        props: { location: "Palmanova", presentation: "pip" },
+      },
+    ];
+    const studio = {
+      version: 1,
+      clips: [
+        {
+          id: "video-2-1",
+          trackId: "video",
+          start: 21.612,
+          duration: 8,
+          source: "Designer_hands.jpeg",
+        },
+        {
+          id: "ms-1.2",
+          trackId: "motion",
+          start: 3.587,
+          duration: 5,
+          templateId: "location-intro",
+          motionScene: true,
+          props: { motion_scene: true },
+        },
+      ],
+    };
+    const synced = syncMotionScenesToStudio(studio, motionScenes);
+    const videoClips = synced.clips.filter((c) => c.trackId === "video");
+    assert.equal(videoClips.length, 1);
+    assert.equal(videoClips[0].id, "video-2-1");
+  });
+
   it("pip layout permanece overlay, não vídeo primário", () => {
     assert.equal(
       isPrimaryRemotionMotionScene({

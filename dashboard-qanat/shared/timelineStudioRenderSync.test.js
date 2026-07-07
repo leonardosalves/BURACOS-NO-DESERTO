@@ -8,6 +8,7 @@ import {
   buildScenesFromStudio,
   copyMotionPropsAssets,
 } from "../backend/timelineStudioRenderSync.js";
+import { mergeMissingBrollFromConfig } from "../backend/timelineStudioMigration.js";
 
 describe("timelineStudioRenderSync", () => {
   it("copyMotionPropsAssets copia zoom_keyframes e boundary", () => {
@@ -122,5 +123,65 @@ describe("timelineStudioRenderSync", () => {
     assert.equal(overlays.length, 1);
     assert.equal(overlays[0].type, "location-intro");
     assert.equal(overlays[0].props.location, "Palmanova");
+  });
+
+  it("mergeMissingBrollFromConfig restaura assets ausentes sem duplicar", () => {
+    const studio = {
+      version: 1,
+      clips: [
+        {
+          id: "video-2-1",
+          trackId: "video",
+          start: 21.612,
+          duration: 8,
+          source: "Designer_hands.jpeg",
+        },
+        {
+          id: "ms-1.2",
+          trackId: "motion",
+          start: 3.587,
+          duration: 5,
+          templateId: "location-intro",
+        },
+      ],
+    };
+    const config = {
+      timeline_assets: {
+        1: [
+          {
+            asset: "Hands_tablet.jpeg",
+            type: "image",
+            audio_start: 0,
+            fixed: 3.6,
+          },
+          {
+            asset: "Star_fort.mp4",
+            type: "video",
+            audio_start: 3.587,
+            fixed: 8.9,
+          },
+        ],
+        2: [
+          {
+            asset: "Designer_hands.jpeg",
+            type: "image",
+            audio_start: 21.612,
+            fixed: 7.8,
+          },
+        ],
+      },
+    };
+    const merged = mergeMissingBrollFromConfig(studio, config, {});
+    const videoIds = merged.clips
+      .filter((c) => c.trackId === "video")
+      .map((c) => c.id)
+      .sort();
+    assert.deepEqual(videoIds, [
+      "video-1-0",
+      "video-1-1",
+      "video-2-0",
+      "video-2-1",
+    ]);
+    assert.equal(merged.brollRestored, 3);
   });
 });
