@@ -71,14 +71,63 @@ function isUserDeletableRemotionClip(clip) {
   );
 }
 
-function mergeDeletedMotionSuppressions(previousStudio, nextStudio) {
-  const previousMotionIds = new Set(
-    (Array.isArray(previousStudio?.clips) ? previousStudio.clips : [])
-      .filter(isUserDeletableRemotionClip)
-      .map((clip) => String(clip.id || "").trim())
-      .filter(Boolean)
+function readStoryboardJson(projDir) {
+  try {
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (!fs.existsSync(storyboardPath)) return {};
+    return JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function expandSuppressionAliases(storyboard, deletedClip) {
+  const aliases = new Set(
+    [String(deletedClip?.id || "").trim()].filter(Boolean)
   );
-  if (!previousMotionIds.size) return nextStudio;
+  const templateId = String(
+    deletedClip?.templateId || deletedClip?.props?.overlayType || ""
+  ).trim();
+  const start = Number(deletedClip?.start) || 0;
+  if (!templateId) return [...aliases];
+
+  for (const key of ["overlays_ai", "overlays"]) {
+    for (const row of storyboard[key] || []) {
+      const rowId = String(row?.id || "").trim();
+      if (!rowId || aliases.has(rowId)) continue;
+      const rowType = String(row?.type || row?.templateId || "").trim();
+      const rowStart = Number(row?.start) || 0;
+      if (
+        rowType === templateId &&
+        (rowId === String(deletedClip?.id || "") ||
+          Math.abs(rowStart - start) < 0.75)
+      ) {
+        aliases.add(rowId);
+      }
+    }
+  }
+
+  for (const ms of storyboard.motion_scenes || []) {
+    const msId = String(ms?.id || "").trim();
+    if (!msId || aliases.has(msId)) continue;
+    const msTpl = String(ms?.template_id || "").trim();
+    const msStart = Number(ms?.start_hint ?? ms?.start) || 0;
+    if (
+      msTpl === templateId &&
+      (msId === String(deletedClip?.id || "") ||
+        Math.abs(msStart - start) < 0.75)
+    ) {
+      aliases.add(msId);
+    }
+  }
+
+  return [...aliases];
+}
+
+function mergeDeletedMotionSuppressions(previousStudio, nextStudio, projDir) {
+  const previousRemotionClips = (
+    Array.isArray(previousStudio?.clips) ? previousStudio.clips : []
+  ).filter(isUserDeletableRemotionClip);
 
   const nextIds = new Set(
     (Array.isArray(nextStudio?.clips) ? nextStudio.clips : [])
@@ -94,8 +143,13 @@ function mergeDeletedMotionSuppressions(previousStudio, nextStudio) {
       .filter(Boolean)
   );
 
-  for (const id of previousMotionIds) {
-    if (!nextIds.has(id)) suppressed.add(id);
+  const storyboard = readStoryboardJson(projDir);
+  for (const clip of previousRemotionClips) {
+    const id = String(clip.id || "").trim();
+    if (!id || nextIds.has(id)) continue;
+    for (const alias of expandSuppressionAliases(storyboard, clip)) {
+      suppressed.add(alias);
+    }
   }
 
   return { ...nextStudio, suppressedMotionSceneIds: [...suppressed] };
@@ -147,6 +201,15 @@ export function registerTimelineStudioRoutes(
         try {
           const storyboardPath = path.join(projDir, "storyboard.json");
           if (fs.existsSync(storyboardPath)) {
+            if (
+              Array.isArray(studio.suppressedMotionSceneIds) &&
+              studio.suppressedMotionSceneIds.length > 0
+            ) {
+              pruneStoryboardRemotionSources(
+                projDir,
+                studio.suppressedMotionSceneIds
+              );
+            }
             const storyboard = JSON.parse(
               fs.readFileSync(storyboardPath, "utf8")
             );
@@ -237,7 +300,8 @@ export function registerTimelineStudioRoutes(
       const { studio: previousStudio } = loadTimelineStudio(projDir);
       const withSuppressions = mergeDeletedMotionSuppressions(
         previousStudio,
-        studio
+        studio,
+        projDir
       );
       pruneStoryboardRemotionSources(
         projDir,

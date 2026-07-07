@@ -52,6 +52,33 @@ describe("timelineStudioRemotionSync", () => {
     assert.deepEqual(merged.studio.suppressedMotionSceneIds, ["ms-1.1"]);
   });
 
+  it("mergeRemotionFromStoryboard remove clips suprimidos já presentes", () => {
+    const storyboard = {
+      motion_scenes: [
+        {
+          id: "ms-1.1",
+          template_id: "location-intro",
+          start_hint: 0,
+          duration_seconds: 8,
+          props: {},
+        },
+      ],
+      overlays_ai: [{ id: "ov-1", type: "counter", start: 5, duration: 4 }],
+    };
+    const studio = {
+      clips: [
+        { id: "ms-1.1", trackId: "motion", start: 0, duration: 8 },
+        { id: "ov-1", trackId: "overlays", start: 5, duration: 4 },
+        { id: "video-1", trackId: "video", start: 0, duration: 10 },
+      ],
+      suppressedMotionSceneIds: ["ms-1.1", "ov-1"],
+    };
+
+    const merged = mergeRemotionFromStoryboard(studio, storyboard);
+    const ids = merged.studio.clips.map((c) => c.id);
+    assert.deepEqual(ids, ["video-1"]);
+  });
+
   it("pruneStoryboardRemotionSources remove motion_scenes suprimidas", () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-prune-"));
     const storyboardPath = path.join(tmp, "storyboard.json");
