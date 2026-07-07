@@ -148,6 +148,7 @@ import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerTimelineStudioRoutes } from "./timelineStudioRoutes.js";
 import { registerMotionSceneRoutes } from "./motionSceneRoutes.js";
+import { registerRemotionTemplateStudioRoutes } from "./remotionTemplateStudioRoutes.js";
 import {
   orchestrateProduction,
   resolveCreatorOrchestrationOptions,
@@ -18251,6 +18252,12 @@ registerMotionSceneRoutes(app, {
     callGeminiWithRetry(getApiKey(projDir), prompt, opts),
   getApiKey,
   parseAiJson: parseAiJsonResponse,
+});
+
+registerRemotionTemplateStudioRoutes(app, {
+  getProjectDir,
+  callGemini: (projDir, prompt, opts) =>
+    callGeminiWithRetry(getApiKey(projDir), prompt, opts),
 });
 
 registerVideoResurrectorRoutes(app, {
