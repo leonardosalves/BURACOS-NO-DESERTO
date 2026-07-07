@@ -40,9 +40,23 @@ type TemplateItem = {
     long: string;
   };
   shortPreview:
-    "ring" | "circular-progress" | "map" | "bars" | "line" | "title" | "media";
+    | "ring"
+    | "pie"
+    | "circular-progress"
+    | "map"
+    | "bars"
+    | "line"
+    | "title"
+    | "media";
   longPreview:
-    "line" | "circular-progress" | "map" | "bars" | "cinematic" | "media";
+    | "ring"
+    | "line"
+    | "pie"
+    | "circular-progress"
+    | "map"
+    | "bars"
+    | "cinematic"
+    | "media";
 };
 
 type TemplateCategoryDefinition = {
@@ -64,6 +78,7 @@ const CATEGORIES: TemplateCategoryDefinition[] = [
       "Counter",
       "Bar chart",
       "Line chart",
+      "Pie chart",
       "KPI",
       "Circular Progress",
     ],
@@ -263,6 +278,7 @@ type TemplatePreviewProps = {
 
 const PREVIEW_DURATION_BY_VARIANT: Record<PreviewVariant, number> = {
   ring: 90,
+  pie: 90,
   "circular-progress": 150,
   map: 90,
   bars: 90,
@@ -298,7 +314,19 @@ function isCircularProgressContext(...labels: string[]) {
   return (
     haystack.includes("circular progress") ||
     haystack.includes("circular-progress") ||
-    (haystack.includes("circular") && haystack.includes("progress"))
+    /\bcircularprogress\b/.test(haystack)
+  );
+}
+
+function isPieChartContext(...labels: string[]) {
+  const haystack = labels.join(" ").toLowerCase();
+  return (
+    haystack.includes("pie chart") ||
+    haystack.includes("pie-chart") ||
+    /\bpiechart\b/.test(haystack) ||
+    haystack.includes("donut chart") ||
+    haystack.includes("donut-chart") ||
+    /\bdonut\b/.test(haystack)
   );
 }
 
@@ -322,62 +350,84 @@ function isBarChartContext(...labels: string[]) {
   );
 }
 
-function detectChartKindFromCode(code = ""): "line" | "bar" | null {
-  const haystack = code.toLowerCase();
-  if (isLineChartContext(haystack)) return "line";
-  if (isBarChartContext(haystack)) return "bar";
-  if (
-    /\blinechart\b|\bline-chart\b|animatedlinechart|engineeringlinechart/.test(
-      haystack
-    )
-  ) {
-    return "line";
-  }
-  if (
-    /\bbarchart\b|\bbar-chart\b|animatedbargrid|engineeringbargrid/.test(
-      haystack
-    )
-  ) {
-    return "bar";
-  }
+function detectChartKindFromCode(code = ""): "line" | "bar" | "pie" | null {
+  const componentName = code.match(/export\s+default\s+function\s+(\w+)/)?.[1];
+  const meta = [componentName || "", code.slice(0, 1200)].join(" ");
+  if (isPieChartContext(meta)) return "pie";
+  if (isLineChartContext(meta)) return "line";
+  if (isBarChartContext(meta)) return "bar";
+  if (isCircularProgressContext(meta)) return null;
   return null;
 }
 
-function resolvePreviewVariants(
-  category: TemplateCategory,
+function resolveChartDataPreview(
   subcategory: string,
-  templateType = "",
+  templateName = "",
   code = ""
 ): Pick<TemplateItem, "shortPreview" | "longPreview"> {
-  const labels = [subcategory, templateType, code];
-  if (isCircularProgressContext(...labels)) {
+  const metaLabels = [subcategory, templateName];
+  if (isCircularProgressContext(...metaLabels)) {
     return {
       shortPreview: "circular-progress",
       longPreview: "circular-progress",
     };
   }
-  if (category === "maps") return { shortPreview: "map", longPreview: "map" };
-  if (category === "chart-data") {
-    const codeKind = detectChartKindFromCode(code);
-    if (isBarChartContext(...labels) || codeKind === "bar") {
-      return { shortPreview: "bars", longPreview: "bars" };
-    }
-    if (isLineChartContext(...labels) || codeKind === "line") {
-      return { shortPreview: "line", longPreview: "line" };
-    }
-    const sub = subcategory.toLowerCase();
-    if (sub.includes("counter") || sub.includes("kpi")) {
-      return { shortPreview: "ring", longPreview: "circular-progress" };
-    }
-    return { shortPreview: "ring", longPreview: "circular-progress" };
+  if (isPieChartContext(...metaLabels)) {
+    return { shortPreview: "pie", longPreview: "pie" };
   }
-  if (category === "text")
+  if (isBarChartContext(...metaLabels)) {
+    return { shortPreview: "bars", longPreview: "bars" };
+  }
+  if (isLineChartContext(...metaLabels)) {
+    return { shortPreview: "line", longPreview: "line" };
+  }
+  const sub = subcategory.toLowerCase();
+  if (sub.includes("counter") || sub.includes("kpi")) {
+    return { shortPreview: "ring", longPreview: "ring" };
+  }
+
+  const codeKind = detectChartKindFromCode(code);
+  if (codeKind === "pie") return { shortPreview: "pie", longPreview: "pie" };
+  if (codeKind === "bar") return { shortPreview: "bars", longPreview: "bars" };
+  if (codeKind === "line") return { shortPreview: "line", longPreview: "line" };
+
+  return { shortPreview: "bars", longPreview: "line" };
+}
+
+function resolvePreviewVariants(
+  category: TemplateCategory,
+  subcategory: string,
+  templateName = "",
+  code = ""
+): Pick<TemplateItem, "shortPreview" | "longPreview"> {
+  const sub = subcategory.toLowerCase();
+
+  if (category === "maps") {
+    if (sub.includes("flyover")) {
+      return { shortPreview: "map", longPreview: "cinematic" };
+    }
+    return { shortPreview: "map", longPreview: "map" };
+  }
+  if (category === "chart-data") {
+    return resolveChartDataPreview(subcategory, templateName, code);
+  }
+  if (category === "text") {
     return { shortPreview: "title", longPreview: "media" };
+  }
+  if (category === "logo-branding" || category === "intro-outro") {
+    return { shortPreview: "title", longPreview: "media" };
+  }
   if (category === "cinematic") {
     return { shortPreview: "media", longPreview: "cinematic" };
   }
   if (category === "image-media") {
     return { shortPreview: "media", longPreview: "media" };
+  }
+  if (category === "background") {
+    return { shortPreview: "media", longPreview: "media" };
+  }
+  if (category === "content-animation" || category === "transition") {
+    return { shortPreview: "media", longPreview: "bars" };
   }
   return { shortPreview: "media", longPreview: "media" };
 }
@@ -386,36 +436,34 @@ function normalizeTemplatePreviewVariants(
   template: TemplateItem
 ): TemplateItem {
   const sourceBundle = `${template.sourceCode.short}\n${template.sourceCode.long}`;
+  const codeHint = template.category === "chart-data" ? sourceBundle : "";
   return {
     ...template,
     ...resolvePreviewVariants(
       template.category,
       template.subcategory,
       template.name,
-      sourceBundle
+      codeHint
     ),
   };
 }
 
 function effectivePreviewVariant(
   variant: PreviewVariant,
-  template?: Pick<TemplateItem, "name" | "subcategory" | "category">
+  template?: Pick<
+    TemplateItem,
+    "category" | "subcategory" | "name" | "shortPreview" | "longPreview"
+  >
 ): PreviewVariant {
-  const labels = [
-    template?.name || "",
-    template?.subcategory || "",
-    template?.category || "",
-  ];
-  if (isCircularProgressContext(...labels)) {
-    return "circular-progress";
-  }
-  if (isLineChartContext(...labels)) {
-    return "line";
-  }
-  if (isBarChartContext(...labels)) {
-    return "bars";
-  }
-  return variant;
+  if (!template) return variant;
+  const fixed = resolvePreviewVariants(
+    template.category,
+    template.subcategory,
+    template.name
+  );
+  if (variant === template.shortPreview) return fixed.shortPreview;
+  if (variant === template.longPreview) return fixed.longPreview;
+  return fixed.shortPreview;
 }
 
 function buildPreviewPropsFromSlots(slots: string[]): TemplatePreviewProps {
@@ -597,6 +645,71 @@ function TemplatePreviewCanvas({
           transform: `translateY(${interpolate(loopProgress, [0, 1], [-height * 0.12, height * 0.12])}px)`,
         }}
       />
+
+      {variant === "pie" && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+          }}
+        >
+          <svg
+            width={isVertical ? 132 : 188}
+            height={isVertical ? 132 : 188}
+            viewBox="0 0 180 180"
+          >
+            {[
+              { size: 0.34, color: "#22d3ee", offset: 0 },
+              { size: 0.22, color: "#4f7cff", offset: 0.34 },
+              { size: 0.18, color: "#facc15", offset: 0.56 },
+              { size: 0.16, color: "#ff2f8f", offset: 0.74 },
+              { size: 0.1, color: "#7c2dff", offset: 0.9 },
+            ].map((segment, index) => {
+              const circumference = 2 * Math.PI * 58;
+              const dash = circumference * segment.size * enter;
+              const gap = circumference - dash;
+              const rotate = segment.offset * 360 - 90;
+              return (
+                <circle
+                  key={segment.color}
+                  cx="90"
+                  cy="90"
+                  r="58"
+                  fill="none"
+                  stroke={segment.color}
+                  strokeWidth={isVertical ? 24 : 28}
+                  strokeLinecap="butt"
+                  strokeDasharray={`${dash} ${gap}`}
+                  transform={`rotate(${rotate} 90 90)`}
+                  opacity={interpolate(
+                    frame,
+                    [index * 5 + 6, index * 5 + 22],
+                    [0, 1],
+                    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+                  )}
+                />
+              );
+            })}
+            <circle cx="90" cy="90" r="34" fill="#0b111b" />
+          </svg>
+          <div
+            style={{
+              position: "absolute",
+              textAlign: "center",
+              transform: `scale(${enter})`,
+            }}
+          >
+            <div style={{ fontSize: isVertical ? 18 : 28, fontWeight: 900 }}>
+              {metricTitle || "PIE"}
+            </div>
+            <div style={{ color: "#94a3b8", fontSize: isVertical ? 8 : 11 }}>
+              {metricLabel}
+            </div>
+          </div>
+        </div>
+      )}
 
       {variant === "ring" && (
         <div
