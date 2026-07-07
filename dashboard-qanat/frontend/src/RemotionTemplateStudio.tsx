@@ -522,18 +522,13 @@ function normalizeTemplatePreviewVariants(
 }
 
 function effectivePreviewVariant(
-  variant: PreviewVariant,
+  format: "9:16" | "16:9",
   template?: Pick<
     TemplateItem,
-    | "category"
-    | "subcategory"
-    | "name"
-    | "shortPreview"
-    | "longPreview"
-    | "sourceCode"
+    "category" | "subcategory" | "name" | "sourceCode"
   >
 ): PreviewVariant {
-  if (!template) return variant;
+  if (!template) return "media";
   const codeHint =
     template.category === "chart-data"
       ? `${template.sourceCode?.short || ""}\n${template.sourceCode?.long || ""}`
@@ -544,9 +539,7 @@ function effectivePreviewVariant(
     template.name,
     codeHint
   );
-  if (variant === template.shortPreview) return fixed.shortPreview;
-  if (variant === template.longPreview) return fixed.longPreview;
-  return fixed.shortPreview;
+  return format === "9:16" ? fixed.shortPreview : fixed.longPreview;
 }
 
 function describePieSlice(
@@ -1712,10 +1705,7 @@ function TemplatePreviewSlot({
 }) {
   const source =
     format === "9:16" ? template.sourceCode.short : template.sourceCode.long;
-  const variant = effectivePreviewVariant(
-    format === "9:16" ? template.shortPreview : template.longPreview,
-    template
-  );
+  const variant = effectivePreviewVariant(format, template);
   const previewProps = buildPreviewPropsFromTemplate(template);
   const mockPreview = (
     <PreviewFrame
