@@ -18,6 +18,7 @@ import {
   type TimelineStudioState,
 } from "./timelineStudioTypes";
 import {
+  preloadStudioMediaAtPlayhead,
   resolveMediaUrl,
   resolveMotionSceneProps,
 } from "./timelineStudioMedia";
@@ -216,16 +217,32 @@ export function TimelineStudioPreview({
     const clip = activeVideoAt(clipsRef.current, globalSec);
     if (!clip || !isVideoClip(clip)) return;
     const local = Math.max(0, globalSec - clip.start);
-    if (Math.abs(v.currentTime - local) > 0.2) {
-      try {
-        v.currentTime = local;
-      } catch {
-        /* ignore seek errors */
+
+    const applySeek = () => {
+      if (Math.abs(v.currentTime - local) > 0.05) {
+        try {
+          v.currentTime = local;
+        } catch {
+          /* ignore seek errors */
+        }
       }
+      if (playingRef.current) {
+        void v.play().catch(() => {});
+      }
+    };
+
+    if (v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      applySeek();
+      return;
     }
-    if (playingRef.current) {
-      void v.play().catch(() => {});
-    }
+
+    const onReady = () => {
+      v.removeEventListener("loadeddata", onReady);
+      v.removeEventListener("loadedmetadata", onReady);
+      applySeek();
+    };
+    v.addEventListener("loadeddata", onReady);
+    v.addEventListener("loadedmetadata", onReady);
   }, []);
 
   const togglePlay = useCallback(() => {
@@ -306,6 +323,21 @@ export function TimelineStudioPreview({
     syncVideoToTime(playheadRef.current);
   }, [assetSrc, playing, isVideo, syncVideoToTime]);
 
+  // Pausado: garante frame visível após metadata (evita preview preto no 1º mount)
+  useEffect(() => {
+    if (playing || !isVideo || !assetSrc) return;
+    syncVideoToTime(studio.playhead);
+  }, [assetSrc, isVideo, playing, studio.playhead, syncVideoToTime]);
+
+  useEffect(() => {
+    preloadStudioMediaAtPlayhead(
+      studio.clips,
+      studio.playhead,
+      getAssetUrl,
+      getMusicUrl
+    );
+  }, [studio.clips, studio.playhead, getAssetUrl, getMusicUrl]);
+
   // Pausado: alinha mídia ao scrub manual
   useEffect(() => {
     if (playing) return;
@@ -370,6 +402,8 @@ export function TimelineStudioPreview({
                 muted
                 playsInline
                 preload="auto"
+                onLoadedData={() => syncVideoToTime(studio.playhead)}
+                onLoadedMetadata={() => syncVideoToTime(studio.playhead)}
               />
             ) : (
               <img
