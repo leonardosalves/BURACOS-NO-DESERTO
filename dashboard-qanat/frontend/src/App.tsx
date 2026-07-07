@@ -49,9 +49,14 @@ import {
   clearWizardSession,
   resetWizardSessionStorage,
   shouldRestoreWizardTab,
+  resolveInitialActiveProject,
+  resolveInitialActiveTab,
+  readPersistedWorkspaceTab,
   resolveWizardActiveProject,
   isServerSessionNewer,
   formatWizardSavedAt,
+  WORKSPACE_PROJECT_KEY,
+  WORKSPACE_TAB_KEY,
   type WizardSessionPatch,
 } from "./wizardSession";
 import { PreRenderAdviceModal, type PreRenderAdvice } from "./PreRenderAdvice";
@@ -174,13 +179,13 @@ import { TabPanelFallback } from "./appLazyPanels";
 const initialWizardSession = loadWizardSession();
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<AppTab>(() => {
-    if (shouldRestoreWizardTab(initialWizardSession)) return "creator";
-    const saved = initialWizardSession?.activeTab;
-    return saved && RESTORABLE_APP_TABS.includes(saved as AppTab)
-      ? (saved as AppTab)
-      : "home";
-  });
+  const [activeTab, setActiveTab] = useState<AppTab>(
+    () =>
+      resolveInitialActiveTab(
+        initialWizardSession,
+        RESTORABLE_APP_TABS
+      ) as AppTab
+  );
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
 
@@ -279,10 +284,8 @@ export default function App() {
     Record<string, number>
   >({});
 
-  const [activeProject, setActiveProject] = useState<string>(
-    resolveWizardActiveProject(initialWizardSession) ||
-      localStorage.getItem("qanat_active_project") ||
-      "Buracos no Deserto"
+  const [activeProject, setActiveProject] = useState<string>(() =>
+    resolveInitialActiveProject(initialWizardSession)
   );
 
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
@@ -2884,11 +2887,7 @@ export default function App() {
 
   const buildWizardSessionPatch = useCallback(
     (): WizardSessionPatch => ({
-      wasInWizard:
-        activeTab === "creator" ||
-        creatorStep > 1 ||
-        showNarrationReview ||
-        !!generatedScriptData,
+      wasInWizard: activeTab === "creator",
       activeTab,
       activeProject,
       creatorStep,
@@ -3062,7 +3061,12 @@ export default function App() {
       }
     }
     if (patch.activeProject) setActiveProject(patch.activeProject);
-    if (patch.activeTab === "creator" || shouldRestoreWizardTab(patch)) {
+    if (
+      patch.activeTab &&
+      RESTORABLE_APP_TABS.includes(patch.activeTab as AppTab)
+    ) {
+      setActiveTab(patch.activeTab as AppTab);
+    } else if (shouldRestoreWizardTab(patch)) {
       setActiveTab("creator");
     }
     if (patch.savedAt)
@@ -3133,9 +3137,18 @@ export default function App() {
         const data = await res.json();
         if (!data?.session) return;
         if (!isServerSessionNewer(local, data.session.savedAt)) return;
-        applyWizardSessionPatch(data.session);
+        const session = { ...data.session };
+        const localTab = readPersistedWorkspaceTab();
+        if (
+          localTab &&
+          localTab !== "creator" &&
+          session.activeTab === "creator"
+        ) {
+          session.activeTab = localTab;
+        }
+        applyWizardSessionPatch(session);
         toast.success(
-          `Wizard restaurado — passo ${data.session.creatorStep || 1}${
+          `Wizard restaurado — passo ${session.creatorStep || 1}${
             data.session.creatorProjectName
               ? ` · ${data.session.creatorProjectName}`
               : ""
@@ -3222,8 +3235,12 @@ export default function App() {
   }, [geminiBrowserMode]);
 
   useEffect(() => {
-    localStorage.setItem("qanat_active_project", activeProject);
+    localStorage.setItem(WORKSPACE_PROJECT_KEY, activeProject);
   }, [activeProject]);
+
+  useEffect(() => {
+    localStorage.setItem(WORKSPACE_TAB_KEY, activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     if (
