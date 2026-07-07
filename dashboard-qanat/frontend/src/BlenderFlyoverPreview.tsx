@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function BlenderFlyoverPreview({
   src,
@@ -10,6 +10,11 @@ export function BlenderFlyoverPreview({
   className?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    setLoadFailed(false);
+  }, [src]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -41,20 +46,44 @@ export function BlenderFlyoverPreview({
     );
   }
 
+  if (loadFailed) {
+    return (
+      <div
+        className={className}
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#050506",
+          color: "#a1a1aa",
+          fontSize: 11,
+          textAlign: "center",
+          padding: 12,
+        }}
+      >
+        Flyover Blender indisponível
+      </div>
+    );
+  }
+
   return (
     <video
       ref={videoRef}
       src={src}
       muted
       playsInline
-      preload="metadata"
+      preload="auto"
       className={className}
+      onError={() => setLoadFailed(true)}
       style={{
         position: "absolute",
         inset: 0,
         width: "100%",
         height: "100%",
         objectFit: "cover",
+        zIndex: 1,
       }}
     />
   );

@@ -58,13 +58,15 @@ export function resizeClip(
   clipId: string,
   edge: "left" | "right",
   deltaSec: number,
-  totalDuration: number
+  totalDuration: number,
+  baseline?: { start: number; duration: number }
 ): StudioClip[] {
   const clip = findClip(clips, clipId);
   if (!clip || !isClipEditable(clip)) return clips;
 
-  const initialStart = clip.start;
-  const initialEnd = clip.start + clip.duration;
+  const initialStart = Number(baseline?.start ?? clip.start) || 0;
+  const initialDuration = Number(baseline?.duration ?? clip.duration) || 0;
+  const initialEnd = initialStart + initialDuration;
 
   if (edge === "left") {
     const newStart = snapTime(
