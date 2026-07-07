@@ -204,7 +204,11 @@ export function TimelineStudioTracks({
         dragging.clipId,
         edge,
         deltaSec,
-        totalDur
+        totalDur,
+        {
+          start: dragging.initialStart,
+          duration: dragging.initialDuration,
+        }
       );
       onClipsChange(next);
     },

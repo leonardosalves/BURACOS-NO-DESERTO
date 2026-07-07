@@ -99,15 +99,29 @@ export function preloadStudioMediaAtPlayhead(
     if (url) urls.add(url);
   }
 
+  const motionNear = clipsOnTrack(clips, "motion").filter((clip) => {
+    const end = clip.start + clip.duration;
+    return playhead >= clip.start - windowSec && playhead <= end + windowSec;
+  });
+  for (const clip of motionNear) {
+    const props = resolveMotionSceneProps(
+      (clip.props || {}) as Record<string, unknown>,
+      getAssetUrl,
+      getMusicUrl
+    );
+    const flyover = String(props.flyover_video || "").trim();
+    if (flyover) urls.add(flyover);
+  }
+
+  const activeUrl = active?.source
+    ? resolveMediaUrl(active.source, getAssetUrl, getMusicUrl)
+    : "";
+
   for (const url of urls) {
     if (!rememberPreloadedUrl(url)) continue;
     if (isVideoUrl(url)) {
-      const activeUrl = active?.source
-        ? resolveMediaUrl(active.source, getAssetUrl, getMusicUrl)
-        : "";
-      if (url !== activeUrl) continue;
       const video = document.createElement("video");
-      video.preload = "metadata";
+      video.preload = url === activeUrl ? "auto" : "metadata";
       video.muted = true;
       video.playsInline = true;
       video.src = url;

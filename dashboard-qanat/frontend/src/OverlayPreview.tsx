@@ -140,7 +140,11 @@ function LocationIntroMapCard({
   const boundarySrc = String(props.boundaryGeoJson || "").trim();
   const mapProvider = String(props.map_provider || "");
   const flyoverSrc = String(props.flyover_video || "").trim();
-  const useBlenderMap = mapProvider === "blender" && Boolean(flyoverSrc);
+  const useBlenderMap =
+    Boolean(flyoverSrc) &&
+    (mapProvider === "blender" ||
+      mapProvider === "" ||
+      /flyover\.mp4/i.test(flyoverSrc));
   const useCesiumMap = mapProvider === "cesium" && lat && lng && !embedded;
 
   useEffect(() => {
@@ -932,7 +936,11 @@ export function OverlayPreview({
         const lng = Number(props.lng) || 0;
         const mapProvider = String(props.map_provider || "");
         const flyoverSrc = String(props.flyover_video || "").trim();
-        const useBlenderMap = mapProvider === "blender" && Boolean(flyoverSrc);
+        const useBlenderMap =
+          Boolean(flyoverSrc) &&
+          (mapProvider === "blender" ||
+            mapProvider === "" ||
+            /flyover\.mp4/i.test(flyoverSrc));
         const useCesiumMap = mapProvider === "cesium" && lat && lng;
         const hasTiles = Boolean(
           useBlenderMap ||
