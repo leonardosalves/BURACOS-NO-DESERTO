@@ -129,6 +129,8 @@ export function CesiumLocationIntro({
   className = "",
   ionAccessToken = "",
   googleMapsApiKey = "",
+  /** Timeline embutida: tile estático — evita WebGL contínuo no editor. */
+  staticOnly = false,
 }: {
   lat: number;
   lng: number;
@@ -143,6 +145,7 @@ export function CesiumLocationIntro({
   className?: string;
   ionAccessToken?: string;
   googleMapsApiKey?: string;
+  staticOnly?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<InstanceType<CesiumModule["Viewer"]> | null>(null);
@@ -178,6 +181,7 @@ export function CesiumLocationIntro({
       : "";
 
   useEffect(() => {
+    if (staticOnly) return;
     const path = String(boundaryGeoJson || "").trim();
     if (!path || place_type !== "city") {
       setBoundaryData(null);
@@ -241,8 +245,8 @@ export function CesiumLocationIntro({
             infoBox: false,
             selectionIndicator: false,
             creditContainer: document.createElement("div"),
-            useDefaultRenderLoop: true,
-            requestRenderMode: false,
+            useDefaultRenderLoop: false,
+            requestRenderMode: true,
             showRenderLoopErrors: false,
             contextOptions: {
               webgl: {
@@ -297,9 +301,10 @@ export function CesiumLocationIntro({
       cesiumRef.current = null;
       setReady(false);
     };
-  }, []);
+  }, [staticOnly]);
 
   useEffect(() => {
+    if (staticOnly) return;
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || !ready || viewer.isDestroyed()) return;
@@ -333,9 +338,10 @@ export function CesiumLocationIntro({
         /* terrain / 3D tiles opcionais */
       }
     })();
-  }, [ready, ionAccessToken, googleMapsApiKey]);
+  }, [ready, ionAccessToken, googleMapsApiKey, staticOnly]);
 
   useEffect(() => {
+    if (staticOnly) return;
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || !ready || boundaryAddedRef.current) return;
@@ -358,9 +364,10 @@ export function CesiumLocationIntro({
     }
     boundaryAddedRef.current = true;
     viewer.scene.requestRender();
-  }, [ready, boundaryData, accentColor, place_type]);
+  }, [ready, boundaryData, accentColor, place_type, staticOnly]);
 
   useLayoutEffect(() => {
+    if (staticOnly) return;
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || !ready || !lat || !lng || viewer.isDestroyed()) {
@@ -387,11 +394,62 @@ export function CesiumLocationIntro({
     });
     viewer.resize();
     viewer.scene.requestRender();
-  }, [ready, lat, lng, zoom_from, zoom_to, fly_mode, zoom_keyframes, progress]);
+  }, [
+    ready,
+    lat,
+    lng,
+    zoom_from,
+    zoom_to,
+    fly_mode,
+    zoom_keyframes,
+    progress,
+    staticOnly,
+  ]);
 
   const showStaticFallback = Boolean(
     initError && (fallbackTile || staticPreviewUrl)
   );
+
+  if (staticOnly) {
+    const tile = fallbackTile || staticPreviewUrl;
+    return (
+      <div
+        className={className}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
+          background: "#050506",
+        }}
+      >
+        {tile ? (
+          <img
+            src={tile}
+            alt=""
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+            decoding="async"
+          />
+        ) : (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(135deg, #1a2a1a 0%, #0a1628 50%, #1a1a2e 100%)",
+            }}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
