@@ -1,12 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Player } from "@remotion/player";
-import {
-  AbsoluteFill,
-  Easing,
-  interpolate,
-  useCurrentFrame,
-  useVideoConfig,
-} from "remotion";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Easing, interpolate } from "remotion";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -17,7 +16,9 @@ import {
   Eye,
   Film,
   Layers3,
+  Pause,
   PencilRuler,
+  Play,
   Plus,
   Sparkles,
   Trash2,
@@ -403,17 +404,35 @@ function uniqueCategoryId(
   return id;
 }
 
-function RemotionTemplatePreview({
+function PreviewFill({
+  children = null,
+  style,
+}: {
+  children?: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div style={{ position: "absolute", inset: 0, ...style }}>{children}</div>
+  );
+}
+
+function TemplatePreviewCanvas({
+  frame,
+  width,
+  height,
+  fps,
   format,
   variant,
   previewProps = {},
 }: {
+  frame: number;
+  width: number;
+  height: number;
+  fps: number;
   format: "9:16" | "16:9";
   variant: PreviewVariant;
   previewProps?: TemplatePreviewProps;
 }) {
-  const frame = useCurrentFrame();
-  const { width, height, fps } = useVideoConfig();
   const loopProgress = interpolate(frame % (fps * 3), [0, fps * 3 - 1], [0, 1]);
   const enter = interpolate(frame, [0, 18], [0, 1], {
     extrapolateLeft: "clamp",
@@ -449,15 +468,18 @@ function RemotionTemplatePreview({
   const ringStroke = isVertical ? 16 : 18;
 
   return (
-    <AbsoluteFill
+    <div
       style={{
+        position: "relative",
+        width,
+        height,
         backgroundColor: "#0b111b",
         color: "white",
         fontFamily: "Inter, system-ui, sans-serif",
         overflow: "hidden",
       }}
     >
-      <AbsoluteFill
+      <PreviewFill
         style={{
           opacity: 0.28,
           backgroundImage:
@@ -530,7 +552,7 @@ function RemotionTemplatePreview({
             style={{
               position: "absolute",
               textAlign: "center",
-              scale: enter,
+              transform: `scale(${enter})`,
             }}
           >
             <div style={{ fontSize: isVertical ? 23 : 38, fontWeight: 900 }}>
@@ -817,7 +839,7 @@ function RemotionTemplatePreview({
               borderRadius: 999,
               backgroundColor: "#67e8f9",
               boxShadow: "0 0 28px #22d3ee",
-              scale: interpolate(loopProgress, [0, 0.5, 1], [0.78, 1.35, 0.78]),
+              transform: `scale(${interpolate(loopProgress, [0, 0.5, 1], [0.78, 1.35, 0.78])})`,
             }}
           />
           <div
@@ -919,8 +941,80 @@ function RemotionTemplatePreview({
       >
         {format === "9:16" ? "Shorts" : "Longos"}
       </div>
-    </AbsoluteFill>
+    </div>
   );
+}
+
+function useTemplatePreviewTimeline({
+  fps,
+  durationInFrames,
+  autoPlay,
+  loop,
+}: {
+  fps: number;
+  durationInFrames: number;
+  autoPlay: boolean;
+  loop: boolean;
+}) {
+  const [frame, setFrame] = useState(0);
+  const [playing, setPlaying] = useState(autoPlay);
+  const rafRef = useRef(0);
+  const accRef = useRef(0);
+  const lastRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setPlaying(autoPlay);
+    if (autoPlay) setFrame(0);
+  }, [autoPlay, durationInFrames]);
+
+  useEffect(() => {
+    if (!playing) {
+      cancelAnimationFrame(rafRef.current);
+      lastRef.current = null;
+      accRef.current = 0;
+      return;
+    }
+
+    const tick = (ts: number) => {
+      if (lastRef.current == null) lastRef.current = ts;
+      accRef.current += ts - lastRef.current;
+      lastRef.current = ts;
+      const frameMs = 1000 / fps;
+
+      if (accRef.current >= frameMs) {
+        accRef.current %= frameMs;
+        setFrame((prev) => {
+          const next = prev + 1;
+          if (next >= durationInFrames) {
+            return loop ? 0 : durationInFrames - 1;
+          }
+          return next;
+        });
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [playing, fps, durationInFrames, loop]);
+
+  const playFromStart = useCallback(() => {
+    setFrame(0);
+    setPlaying(true);
+  }, []);
+
+  const toggle = useCallback(() => {
+    setPlaying((current) => {
+      if (current) return false;
+      setFrame(0);
+      return true;
+    });
+  }, []);
+
+  const pause = useCallback(() => setPlaying(false), []);
+
+  return { frame, playing, playFromStart, toggle, pause, setFrame };
 }
 
 function PreviewFrame({
@@ -949,28 +1043,101 @@ function PreviewFrame({
       : vertical
         ? { width: 162, height: 288, className: "w-[92px]" }
         : { width: 304, height: 171, className: "w-[190px]" };
+  const fps = 30;
   const durationInFrames = PREVIEW_DURATION_BY_VARIANT[variant] || 90;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const { frame, playing, playFromStart, toggle, pause, setFrame } =
+    useTemplatePreviewTimeline({
+      fps,
+      durationInFrames,
+      autoPlay,
+      loop: true,
+    });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const updateScale = () => {
+      const next = el.clientWidth / dimensions.width;
+      setScale(Number.isFinite(next) && next > 0 ? next : 1);
+    };
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [dimensions.width]);
 
   return (
     <div
-      className={`overflow-hidden rounded-[6px] border border-white/10 bg-[#0b111b] shadow-lg shadow-black/30 ${dimensions.className}`}
+      ref={containerRef}
+      className={`group relative overflow-hidden rounded-[6px] border border-white/10 bg-[#0b111b] shadow-lg shadow-black/30 ${dimensions.className}`}
+      style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}` }}
     >
-      <Player
-        component={RemotionTemplatePreview}
-        inputProps={{ format, variant, previewProps }}
-        durationInFrames={durationInFrames}
-        fps={30}
-        compositionWidth={dimensions.width}
-        compositionHeight={dimensions.height}
-        style={{ width: "100%" }}
-        controls
-        loop
-        autoPlay={autoPlay}
-        initialFrame={0}
-        clickToPlay
-        spaceKeyToPlayOrPause
-        showVolumeControls={false}
-      />
+      <div
+        style={{
+          width: dimensions.width,
+          height: dimensions.height,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+      >
+        <TemplatePreviewCanvas
+          frame={frame}
+          width={dimensions.width}
+          height={dimensions.height}
+          fps={fps}
+          format={format}
+          variant={variant}
+          previewProps={previewProps}
+        />
+      </div>
+
+      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/0 transition group-hover:bg-black/25">
+        <button
+          type="button"
+          onClick={toggle}
+          className={`pointer-events-auto grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-black/70 text-white shadow-lg transition ${
+            playing ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+          }`}
+          aria-label={playing ? "Pausar preview" : "Reproduzir preview"}
+        >
+          {playing ? (
+            <Pause className="h-5 w-5" />
+          ) : (
+            <Play className="h-5 w-5 translate-x-[1px]" />
+          )}
+        </button>
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 bg-gradient-to-t from-black/85 to-transparent px-2 pb-2 pt-6">
+        <button
+          type="button"
+          onClick={playing ? pause : playFromStart}
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/15 bg-black/55 text-white hover:border-cyan-300/50"
+          aria-label={playing ? "Pausar" : "Play do inicio"}
+        >
+          {playing ? (
+            <Pause className="h-3.5 w-3.5" />
+          ) : (
+            <Play className="h-3.5 w-3.5 translate-x-[1px]" />
+          )}
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={Math.max(0, durationInFrames - 1)}
+          value={frame}
+          onChange={(event) => {
+            pause();
+            setFrame(Number(event.target.value));
+          }}
+          className="h-1.5 w-full cursor-pointer accent-cyan-300"
+        />
+        <span className="shrink-0 font-mono text-[10px] font-bold text-zinc-300">
+          {(frame / fps).toFixed(1)}s
+        </span>
+      </div>
     </div>
   );
 }
@@ -1134,7 +1301,7 @@ function TemplateDetailPanel({
         <section>
           <h4 className="text-sm font-black text-white">Description</h4>
           <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-            Template Remotion com preview executado pelo Player oficial, props
+            Template Remotion com preview animado frame-a-frame, props
             declaradas e codigo separado para Shorts 9:16 e Longos 16:9.
           </p>
         </section>
