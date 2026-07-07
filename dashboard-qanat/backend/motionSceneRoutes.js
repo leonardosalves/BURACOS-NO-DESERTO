@@ -345,7 +345,11 @@ export function registerMotionSceneRoutes(
       const { studio: rawStudio } = loadTimelineStudio(projDir);
 
       if (
-        !studioNeedsMotionOrchestration(rawStudio.clips || [], storyboard) &&
+        !studioNeedsMotionOrchestration(
+          rawStudio.clips || [],
+          storyboard,
+          rawStudio
+        ) &&
         !req.body?.force
       ) {
         return res.json({
@@ -428,11 +432,17 @@ export function registerMotionSceneRoutes(
         "utf8"
       );
 
-      let studio = syncMotionScenesToStudio(rawStudio, qc.motion_scenes);
-      const overlayMerged = mergeRemotionFromStoryboard(studio, storyboard, {
-        syncMotion: false,
-      });
-      studio = overlayMerged.studio;
+      let baseStudio = unsuppressMotionSceneIds(rawStudio, qc.motion_scenes);
+      baseStudio = { ...baseStudio, suppressedMotionSceneIds: [] };
+      storyboard.motion_scenes = qc.motion_scenes;
+      const overlayMerged = mergeRemotionFromStoryboard(
+        baseStudio,
+        storyboard,
+        {
+          syncMotion: true,
+        }
+      );
+      let studio = overlayMerged.studio;
       studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
       studio = upsertMusicClipInStudio(studio, config, projDir);
       const saved = saveTimelineStudio(projDir, studio);

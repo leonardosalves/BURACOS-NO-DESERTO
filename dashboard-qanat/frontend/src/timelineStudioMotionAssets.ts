@@ -145,6 +145,7 @@ export async function fetchMotionOrchestration(
           fetch_satellite: true,
           sync_timeline: true,
           rebuild_asset_slots: false,
+          restore_suppressed_motion: true,
         }),
       }
     );

@@ -8,7 +8,6 @@ import path from "path";
 import {
   applyMotionScenesToVisualPrompts,
   planMotionScenesFromStoryboard,
-  syncMotionScenesToStudio,
   unsuppressMotionSceneIds,
 } from "./motionScenePlanner.js";
 import { enrichMotionScenesWithAssets } from "./motionSceneAssetService.js";
@@ -414,18 +413,23 @@ export async function orchestrateProduction(
   let studio = null;
   let timelineSynced = false;
 
-  if (syncTimeline && plan.motion_scenes.length > 0) {
+  const hasRemotionTimeline =
+    plan.motion_scenes.length > 0 ||
+    (storyboard.overlays_ai || []).length > 0 ||
+    (storyboard.overlays || []).length > 0;
+
+  if (syncTimeline && hasRemotionTimeline) {
     migrateLegacyToTimelineStudio(projDir, { force: false });
     const { studio: rawStudio } = loadTimelineStudio(projDir);
     let baseStudio = rawStudio;
     if (restoreSuppressedMotion) {
       baseStudio = unsuppressMotionSceneIds(rawStudio, plan.motion_scenes);
+      baseStudio = { ...baseStudio, suppressedMotionSceneIds: [] };
     }
-    let nextStudio = syncMotionScenesToStudio(baseStudio, plan.motion_scenes);
-    const overlayMerged = mergeRemotionFromStoryboard(nextStudio, storyboard, {
-      syncMotion: false,
+    const remotionMerged = mergeRemotionFromStoryboard(baseStudio, storyboard, {
+      syncMotion: true,
     });
-    nextStudio = overlayMerged.studio;
+    let nextStudio = remotionMerged.studio;
     nextStudio = mergeMissingBrollFromConfig(nextStudio, config, blockTimings);
     nextStudio = upsertMusicClipInStudio(nextStudio, config, projDir);
     studio = saveTimelineStudio(projDir, nextStudio);
