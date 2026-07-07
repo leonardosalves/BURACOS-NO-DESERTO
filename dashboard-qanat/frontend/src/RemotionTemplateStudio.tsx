@@ -40,7 +40,7 @@ type TemplateItem = {
     long: string;
   };
   shortPreview:
-    "ring" | "circular-progress" | "map" | "bars" | "title" | "media";
+    "ring" | "circular-progress" | "map" | "bars" | "line" | "title" | "media";
   longPreview:
     "line" | "circular-progress" | "map" | "bars" | "cinematic" | "media";
 };
@@ -170,6 +170,24 @@ const TEMPLATES: TemplateItem[] = [
       long: "export function IndustrialKpiRingLong({value = 78, label = 'Completion Rate', suffix = '%'}) {\n  return <KpiRingDashboard format=\"16:9\" value={value} label={label} suffix={suffix} />;\n}",
     },
     shortPreview: "ring",
+    longPreview: "circular-progress",
+  },
+  {
+    id: "engineering-line-chart",
+    name: "Engineering Line Chart",
+    category: "chart-data",
+    subcategory: "Line chart",
+    niche: "Engenharia",
+    status: "approved",
+    description:
+      "Linha SVG com grid tecnico, area preenchida e leitura de serie.",
+    dataSlots: ["title", "items", "unit", "source"],
+    sourceCode: {
+      short:
+        'export function EngineeringLineChartShort({title, items, unit, source}) {\n  return <AnimatedLineChart format="9:16" title={title} items={items} unit={unit} source={source} />;\n}',
+      long: 'export function EngineeringLineChartLong({title, items, unit, source}) {\n  return <AnimatedLineChart format="16:9" title={title} items={items} unit={unit} source={source} />;\n}',
+    },
+    shortPreview: "line",
     longPreview: "line",
   },
   {
@@ -284,13 +302,55 @@ function isCircularProgressContext(...labels: string[]) {
   );
 }
 
+function isLineChartContext(...labels: string[]) {
+  const haystack = labels.join(" ").toLowerCase();
+  return (
+    haystack.includes("line chart") ||
+    haystack.includes("line-chart") ||
+    /\blinechart\b/.test(haystack) ||
+    /\bline\s*series\b/.test(haystack)
+  );
+}
+
+function isBarChartContext(...labels: string[]) {
+  const haystack = labels.join(" ").toLowerCase();
+  return (
+    haystack.includes("bar chart") ||
+    haystack.includes("bar-chart") ||
+    /\bbarchart\b/.test(haystack) ||
+    /\bbar\s*grid\b/.test(haystack)
+  );
+}
+
+function detectChartKindFromCode(code = ""): "line" | "bar" | null {
+  const haystack = code.toLowerCase();
+  if (isLineChartContext(haystack)) return "line";
+  if (isBarChartContext(haystack)) return "bar";
+  if (
+    /\blinechart\b|\bline-chart\b|animatedlinechart|engineeringlinechart/.test(
+      haystack
+    )
+  ) {
+    return "line";
+  }
+  if (
+    /\bbarchart\b|\bbar-chart\b|animatedbargrid|engineeringbargrid/.test(
+      haystack
+    )
+  ) {
+    return "bar";
+  }
+  return null;
+}
+
 function resolvePreviewVariants(
   category: TemplateCategory,
   subcategory: string,
-  templateType = ""
+  templateType = "",
+  code = ""
 ): Pick<TemplateItem, "shortPreview" | "longPreview"> {
-  const sub = subcategory.toLowerCase();
-  if (isCircularProgressContext(subcategory, templateType)) {
+  const labels = [subcategory, templateType, code];
+  if (isCircularProgressContext(...labels)) {
     return {
       shortPreview: "circular-progress",
       longPreview: "circular-progress",
@@ -298,16 +358,18 @@ function resolvePreviewVariants(
   }
   if (category === "maps") return { shortPreview: "map", longPreview: "map" };
   if (category === "chart-data") {
-    if (sub.includes("bar")) {
+    const codeKind = detectChartKindFromCode(code);
+    if (isBarChartContext(...labels) || codeKind === "bar") {
       return { shortPreview: "bars", longPreview: "bars" };
     }
-    if (sub.includes("line")) {
-      return { shortPreview: "bars", longPreview: "line" };
+    if (isLineChartContext(...labels) || codeKind === "line") {
+      return { shortPreview: "line", longPreview: "line" };
     }
+    const sub = subcategory.toLowerCase();
     if (sub.includes("counter") || sub.includes("kpi")) {
       return { shortPreview: "ring", longPreview: "circular-progress" };
     }
-    return { shortPreview: "ring", longPreview: "line" };
+    return { shortPreview: "ring", longPreview: "circular-progress" };
   }
   if (category === "text")
     return { shortPreview: "title", longPreview: "media" };
@@ -317,17 +379,41 @@ function resolvePreviewVariants(
   if (category === "image-media") {
     return { shortPreview: "media", longPreview: "media" };
   }
-  return { shortPreview: "media", longPreview: "bars" };
+  return { shortPreview: "media", longPreview: "media" };
+}
+
+function normalizeTemplatePreviewVariants(
+  template: TemplateItem
+): TemplateItem {
+  const sourceBundle = `${template.sourceCode.short}\n${template.sourceCode.long}`;
+  return {
+    ...template,
+    ...resolvePreviewVariants(
+      template.category,
+      template.subcategory,
+      template.name,
+      sourceBundle
+    ),
+  };
 }
 
 function effectivePreviewVariant(
   variant: PreviewVariant,
-  template?: Pick<TemplateItem, "name" | "subcategory">
+  template?: Pick<TemplateItem, "name" | "subcategory" | "category">
 ): PreviewVariant {
-  if (
-    isCircularProgressContext(template?.name || "", template?.subcategory || "")
-  ) {
+  const labels = [
+    template?.name || "",
+    template?.subcategory || "",
+    template?.category || "",
+  ];
+  if (isCircularProgressContext(...labels)) {
     return "circular-progress";
+  }
+  if (isLineChartContext(...labels)) {
+    return "line";
+  }
+  if (isBarChartContext(...labels)) {
+    return "bars";
   }
   return variant;
 }
@@ -371,20 +457,23 @@ function buildFormatSource({
   const aspect = format === "short" ? "9:16 Shorts" : "16:9 Longos";
   return [
     `// ${niche} / ${categoryLabel} / ${subcategory} / ${aspect}`,
-    "// Gerado pelo Assistir IA do Template Studio.",
+    "// Importado pelo Template Studio.",
     code.trim() || "export default function Template() {\n  return null;\n}",
   ].join("\n");
 }
 
 function loadStoredTemplates() {
-  if (typeof window === "undefined") return TEMPLATES;
+  const seed = TEMPLATES.map(normalizeTemplatePreviewVariants);
+  if (typeof window === "undefined") return seed;
   try {
     const raw = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
-    if (!raw) return TEMPLATES;
+    if (!raw) return seed;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as TemplateItem[]) : TEMPLATES;
+    return Array.isArray(parsed)
+      ? (parsed as TemplateItem[]).map(normalizeTemplatePreviewVariants)
+      : seed;
   } catch {
-    return TEMPLATES;
+    return seed;
   }
 }
 
@@ -804,30 +893,98 @@ function TemplatePreviewCanvas({
       )}
 
       {variant === "line" && (
-        <svg
-          viewBox="0 0 520 260"
-          style={{
-            position: "absolute",
-            inset: isVertical ? "28% 6% 14%" : "18% 8% 12%",
-            width: "auto",
-            height: "auto",
-          }}
-        >
-          <path
-            d="M20 210 L95 145 L160 165 L250 75 L340 105 L490 35"
-            fill="none"
-            stroke="#5d7cff"
-            strokeWidth="9"
-            strokeLinecap="round"
-            strokeDasharray="640"
-            strokeDashoffset={640 - 640 * enter}
-          />
-          <path
-            d="M20 210 L95 145 L160 165 L250 75 L340 105 L490 35 L490 235 L20 235 Z"
-            fill="rgba(66,103,255,.22)"
-            opacity={enter}
-          />
-        </svg>
+        <>
+          <div
+            style={{
+              position: "absolute",
+              left: isVertical ? 12 : 24,
+              right: isVertical ? 12 : 24,
+              top: isVertical ? 18 : 16,
+              opacity: titleEnter,
+            }}
+          >
+            <div
+              style={{
+                fontSize: isVertical ? 10 : 14,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "#67e8f9",
+              }}
+            >
+              {metricTitle || "Line Series"}
+            </div>
+            {metricSubtitle ? (
+              <div
+                style={{
+                  marginTop: 4,
+                  fontSize: isVertical ? 8 : 11,
+                  color: "#94a3b8",
+                }}
+              >
+                {metricSubtitle}
+              </div>
+            ) : null}
+          </div>
+          <svg
+            viewBox="0 0 520 260"
+            preserveAspectRatio="none"
+            style={{
+              position: "absolute",
+              inset: isVertical ? "24% 8% 16%" : "18% 8% 12%",
+              width: "auto",
+              height: "auto",
+            }}
+          >
+            {[70, 130, 190].map((y) => (
+              <line
+                key={y}
+                x1="20"
+                y1={y}
+                x2="500"
+                y2={y}
+                stroke="rgba(148,163,184,.18)"
+                strokeWidth="2"
+              />
+            ))}
+            <path
+              d="M20 210 L95 145 L160 165 L250 75 L340 105 L490 35"
+              fill="none"
+              stroke="#22d3ee"
+              strokeWidth={isVertical ? 7 : 9}
+              strokeLinecap="round"
+              strokeDasharray="640"
+              strokeDashoffset={640 - 640 * enter}
+            />
+            <path
+              d="M20 210 L95 145 L160 165 L250 75 L340 105 L490 35 L490 235 L20 235 Z"
+              fill="rgba(34,211,238,.16)"
+              opacity={enter}
+            />
+            {[
+              [20, 210],
+              [95, 145],
+              [160, 165],
+              [250, 75],
+              [340, 105],
+              [490, 35],
+            ].map(([cx, cy], index) => (
+              <circle
+                key={`${cx}-${cy}`}
+                cx={cx}
+                cy={cy}
+                r={isVertical ? 5 : 6}
+                fill="#facc15"
+                opacity={interpolate(
+                  frame,
+                  [index * 4 + 8, index * 4 + 20],
+                  [0, 1],
+                  { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+                )}
+              />
+            ))}
+          </svg>
+        </>
       )}
 
       {variant === "map" && (
@@ -1546,21 +1703,13 @@ export function RemotionTemplateStudio({
       return;
     }
     const categoryLabel = currentCategory?.label || category;
-    const inferredType = isCircularProgressContext(subcategory, finalCodeDraft)
-      ? "Circular Progress"
-      : subcategory;
-    const variants = resolvePreviewVariants(
-      category,
-      subcategory,
-      inferredType
-    );
     const dataSlots = extractDataSlotsFromCode(finalCodeDraft);
     const id = `draft-${slugifyTemplatePart(niche)}-${slugifyTemplatePart(
       categoryLabel
     )}-${slugifyTemplatePart(subcategory)}-${Date.now()}`;
-    const template: TemplateItem = {
+    const template = normalizeTemplatePreviewVariants({
       id,
-      name: `${niche} ${inferredType} Draft`,
+      name: `${niche} ${subcategory} Draft`,
       category,
       subcategory,
       niche,
@@ -1585,8 +1734,9 @@ export function RemotionTemplateStudio({
           format: "long",
         }),
       },
-      ...variants,
-    };
+      shortPreview: "media",
+      longPreview: "media",
+    });
 
     setTemplates((current) => [template, ...current]);
     setSelectedId(id);
