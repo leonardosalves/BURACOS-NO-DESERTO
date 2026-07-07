@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import { Easing, interpolate } from "remotion";
 import { validateFinalTemplateCode } from "./remotionTemplateStudioApi";
-import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -1572,14 +1571,6 @@ function useTemplatePreviewTimeline({
   return { frame, playing, playFromStart, toggle, pause, setFrame };
 }
 
-function canLivePreviewSource(code: string) {
-  const trimmed = String(code || "").trim();
-  return (
-    /export\s+default\s+function/.test(trimmed) &&
-    /\buseCurrentFrame\s*\(/.test(trimmed)
-  );
-}
-
 function TemplatePreviewSlot({
   template,
   format,
@@ -1591,39 +1582,15 @@ function TemplatePreviewSlot({
   size?: "card" | "detail";
   autoPlay?: boolean;
 }) {
-  const source =
-    format === "9:16" ? template.sourceCode.short : template.sourceCode.long;
   const variant = effectivePreviewVariant(
     format === "9:16" ? template.shortPreview : template.longPreview,
     template
   );
-  const previewProps = buildPreviewPropsFromTemplate(template);
-
-  if (size === "detail" && canLivePreviewSource(source)) {
-    return (
-      <SavedTemplatePreviewFrame
-        sourceCode={source}
-        format={format}
-        size={size}
-        autoPlay={autoPlay}
-        fallback={
-          <PreviewFrame
-            format={format}
-            variant={variant}
-            previewProps={previewProps}
-            size={size}
-            autoPlay={autoPlay}
-          />
-        }
-      />
-    );
-  }
-
   return (
     <PreviewFrame
       format={format}
       variant={variant}
-      previewProps={previewProps}
+      previewProps={buildPreviewPropsFromTemplate(template)}
       size={size}
       autoPlay={autoPlay}
     />
@@ -1893,9 +1860,7 @@ function TemplateDetailPanel({
                     autoPlay={false}
                   />
                   <p className="text-center text-[10px] font-bold text-zinc-500">
-                    {canLivePreviewSource(activeSource)
-                      ? "Preview ao vivo do TSX salvo (Remotion Player)."
-                      : "Aperte play para ver a animacao do catalogo seed."}
+                    Aperte play para ver a animacao do catalogo seed.
                   </p>
                 </div>
               </div>
