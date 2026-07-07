@@ -23,17 +23,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-type TemplateCategory =
-  | "maps"
-  | "chart-data"
-  | "text"
-  | "content-animation"
-  | "background"
-  | "cinematic"
-  | "transition"
-  | "logo-branding"
-  | "intro-outro"
-  | "image-media";
+type TemplateCategory = string;
 
 type TemplateItem = {
   id: string;
@@ -52,11 +42,13 @@ type TemplateItem = {
   longPreview: "line" | "map" | "bars" | "cinematic" | "media";
 };
 
-const CATEGORIES: Array<{
+type TemplateCategoryDefinition = {
   id: TemplateCategory;
   label: string;
   subcategories: string[];
-}> = [
+};
+
+const CATEGORIES: TemplateCategoryDefinition[] = [
   {
     id: "maps",
     label: "Mapas",
@@ -225,6 +217,7 @@ const TEMPLATES: TemplateItem[] = [
 ];
 
 const TEMPLATE_STORAGE_KEY = "lumiera.remotionTemplateStudio.templates.v1";
+const CATEGORY_STORAGE_KEY = "lumiera.remotionTemplateStudio.categories.v1";
 
 type DetailTab = "preview" | "source";
 type DetailFormat = "short" | "long";
@@ -295,6 +288,34 @@ function loadStoredTemplates() {
   } catch {
     return TEMPLATES;
   }
+}
+
+function loadStoredCategories() {
+  if (typeof window === "undefined") return CATEGORIES;
+  try {
+    const raw = window.localStorage.getItem(CATEGORY_STORAGE_KEY);
+    if (!raw) return CATEGORIES;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? (parsed as TemplateCategoryDefinition[])
+      : CATEGORIES;
+  } catch {
+    return CATEGORIES;
+  }
+}
+
+function uniqueCategoryId(
+  label: string,
+  categories: TemplateCategoryDefinition[]
+) {
+  const base = slugifyTemplatePart(label || "categoria");
+  let id = base;
+  let suffix = 2;
+  while (categories.some((item) => item.id === id)) {
+    id = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return id;
 }
 
 function RemotionTemplatePreview({
@@ -834,6 +855,8 @@ export function RemotionTemplateStudio({
     ? projectNiche
     : "Engenharia";
   const [niche, setNiche] = useState(initialNiche);
+  const [categories, setCategories] =
+    useState<TemplateCategoryDefinition[]>(loadStoredCategories);
   const [category, setCategory] = useState<TemplateCategory>("maps");
   const [subcategory, setSubcategory] = useState("PIP mapa");
   const [selectedId, setSelectedId] = useState("eng-map-pip-tactical");
@@ -849,7 +872,7 @@ export function RemotionTemplateStudio({
   const [aiBrief, setAiBrief] = useState(
     "Adaptar para Engenharia, com versao 9:16 e 16:9, sem texto solto e com props editaveis."
   );
-  const currentCategory = CATEGORIES.find((c) => c.id === category);
+  const currentCategory = categories.find((c) => c.id === category);
 
   useEffect(() => {
     try {
@@ -861,6 +884,17 @@ export function RemotionTemplateStudio({
       // Mantem a tela funcional mesmo quando storage estiver indisponivel.
     }
   }, [templates]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        CATEGORY_STORAGE_KEY,
+        JSON.stringify(categories)
+      );
+    } catch {
+      // Mantem a tela funcional mesmo quando storage estiver indisponivel.
+    }
+  }, [categories]);
 
   const subcategories = currentCategory?.subcategories || [];
   const visibleTemplates = useMemo(
@@ -905,6 +939,47 @@ export function RemotionTemplateStudio({
       );
       setSelectedId(nextTemplate?.id || "");
     }
+  }
+
+  function addCategory() {
+    const label = window.prompt("Nome da nova categoria");
+    const cleanLabel = String(label || "").trim();
+    if (!cleanLabel) return;
+    const firstSubcategory =
+      window.prompt("Primeira subcategoria dessa categoria", "Geral") ||
+      "Geral";
+    const cleanSubcategory = String(firstSubcategory).trim() || "Geral";
+    const id = uniqueCategoryId(cleanLabel, categories);
+    const categoryDefinition: TemplateCategoryDefinition = {
+      id,
+      label: cleanLabel,
+      subcategories: [cleanSubcategory],
+    };
+    setCategories((current) => [...current, categoryDefinition]);
+    setCategory(id);
+    setSubcategory(cleanSubcategory);
+    setDetailTemplateId("");
+  }
+
+  function addSubcategory() {
+    if (!currentCategory) return;
+    const label = window.prompt(
+      `Nova subcategoria em "${currentCategory.label}"`
+    );
+    const cleanLabel = String(label || "").trim();
+    if (!cleanLabel) return;
+    setCategories((current) =>
+      current.map((item) => {
+        if (item.id !== currentCategory.id) return item;
+        if (item.subcategories.includes(cleanLabel)) return item;
+        return {
+          ...item,
+          subcategories: [...item.subcategories, cleanLabel],
+        };
+      })
+    );
+    setSubcategory(cleanLabel);
+    setDetailTemplateId("");
   }
 
   async function copyTemplateSource(template?: TemplateItem) {
@@ -993,10 +1068,20 @@ export function RemotionTemplateStudio({
           </div>
 
           <div className="mt-5 space-y-2">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
-              Categorias
-            </p>
-            {CATEGORIES.map((item) => (
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
+                Categorias
+              </p>
+              <button
+                type="button"
+                onClick={addCategory}
+                className="inline-flex items-center gap-1 rounded-md border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-[10px] font-black text-cyan-100 hover:border-cyan-300/70"
+              >
+                <Plus className="h-3 w-3" />
+                Categoria
+              </button>
+            </div>
+            {categories.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -1045,6 +1130,14 @@ export function RemotionTemplateStudio({
                     {item}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={addSubcategory}
+                  className="inline-flex items-center gap-1 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 text-xs font-black text-cyan-100 hover:border-cyan-300/70"
+                >
+                  <Plus className="h-3 w-3" />
+                  Subcategoria
+                </button>
               </div>
             </div>
           </div>
