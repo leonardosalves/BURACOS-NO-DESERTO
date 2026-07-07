@@ -230,6 +230,8 @@ function LocationIntroMapCard({
         1,
         Math.max(0, (easedProgress - 0.42) * 1.65)
       );
+      const poster = bgTight || bgWide || "";
+      const showFlyoverVideo = !embedded;
 
       return (
         <div
@@ -237,6 +239,14 @@ function LocationIntroMapCard({
             isPip ? "w-full h-full" : "absolute inset-0"
           }`}
         >
+          {poster && frames.length === 0 ? (
+            <img
+              src={poster}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ zIndex: 0 }}
+            />
+          ) : null}
           {frames.length > 0 ? (
             <div
               className="absolute inset-0"
@@ -266,13 +276,15 @@ function LocationIntroMapCard({
               })}
             </div>
           ) : null}
-          <BlenderFlyoverPreview
-            src={flyoverSrc}
-            scrubSeconds={scrubSeconds}
-            playing={timelinePlaying}
-            poster={bgTight || bgWide || undefined}
-            className="absolute inset-0"
-          />
+          {showFlyoverVideo ? (
+            <BlenderFlyoverPreview
+              src={flyoverSrc}
+              scrubSeconds={scrubSeconds}
+              playing={timelinePlaying}
+              poster={poster || undefined}
+              className="absolute inset-0"
+            />
+          ) : null}
           {placeType === "city" && boundaryPaths.length > 0 ? (
             <svg
               className="absolute inset-0 w-full h-full pointer-events-none"
@@ -1317,10 +1329,12 @@ export function OverlayPreview({
         <div
           className="overlay-preview-frame relative overflow-hidden w-full h-full"
           style={
-            pipCard ? undefined : { aspectRatio: isShort ? "9 / 16" : "16 / 9" }
+            pipCard || embeddedLayout === "fill"
+              ? undefined
+              : { aspectRatio: isShort ? "9 / 16" : "16 / 9" }
           }
         >
-          <div className="absolute inset-0 z-10 pointer-events-none">
+          <div className="absolute inset-0 z-10 pointer-events-none w-full h-full">
             {renderOverlayContent()}
           </div>
         </div>
