@@ -736,58 +736,65 @@ export async function fetchSatelliteAssetsForScene(
   };
 }
 
+/**
+ * Pin regional leve — geocode + tile único (sem flyover Blender).
+ */
+export async function fetchGeoMapAssetsForScene(
+  projDir,
+  scene,
+  { config = {}, workspaceConfig = {} } = {}
+) {
+  const props = scene?.props || {};
+  const query = [props.location, props.region, props.country]
+    .filter(Boolean)
+    .join(", ");
+
+  let coords = resolveKnownCoordinates(scene?.narration_text || "", props);
+  if (!coords) {
+    coords = await geocodeLocation(query, props);
+  }
+  if (!coords?.lat || !coords?.lng) {
+    return {
+      ok: false,
+      reason: "geocode_failed",
+      query,
+      kind: "geo-map",
+    };
+  }
+
+  const token = resolveMapboxToken(config, workspaceConfig);
+  const sceneKey =
+    String(scene.id || "geo")
+      .replace(/[^a-zA-Z0-9_-]/g, "_")
+      .slice(0, 40) || crypto.randomBytes(4).toString("hex");
+  const zoom = Number(props.zoom_to) || 11;
+  const fileName = `${sceneKey}-geo-z${zoom}.jpg`;
+  const destPath = path.join(projDir, assetRelPath(fileName));
+  await downloadImageToFile(
+    buildTileUrl(token, coords.lat, coords.lng, zoom),
+    destPath
+  );
+
+  return {
+    ok: true,
+    kind: "geo-map",
+    lat: coords.lat,
+    lng: coords.lng,
+    geocode_source: coords.source,
+    map_provider: token ? "mapbox" : "esri",
+    backgroundImage: assetRelPath(fileName),
+    zoom_from: zoom,
+    zoom_to: zoom,
+    zoom_keyframes: [{ zoom, image: assetRelPath(fileName) }],
+  };
+}
+
 export async function enrichMotionScenesWithSatellite(
   projDir,
   motionScenes = [],
-  { config = {}, workspaceConfig = {}, maxScenes = 6 } = {}
+  opts = {}
 ) {
-  const scenes = Array.isArray(motionScenes) ? motionScenes : [];
-  const locationScenes = scenes
-    .filter((s) => s.template_id === "location-intro")
-    .slice(0, maxScenes);
-
-  const results = [];
-  let enriched = 0;
-
-  for (const scene of locationScenes) {
-    try {
-      const fetched = await fetchSatelliteAssetsForScene(projDir, scene, {
-        config,
-        workspaceConfig,
-      });
-      if (!fetched.ok) {
-        results.push({ id: scene.id, ok: false, reason: fetched.reason });
-        continue;
-      }
-      scene.props = {
-        ...(scene.props || {}),
-        lat: fetched.lat,
-        lng: fetched.lng,
-        backgroundImage: fetched.backgroundImage,
-        backgroundImageWide: fetched.backgroundImageWide,
-        zoom_keyframes: fetched.zoom_keyframes,
-        zoom_from: fetched.zoom_from,
-        zoom_to: fetched.zoom_to,
-        fly_mode: fetched.fly_mode,
-        place_type: fetched.place_type,
-        boundaryGeoJson: fetched.boundaryGeoJson || "",
-        map_provider: fetched.map_provider,
-        geocode_source: fetched.geocode_source,
-        cesium_ion_token: fetched.cesium_ion_token || "",
-        google_maps_api_key: fetched.google_maps_api_key || "",
-        flyover_video: fetched.flyover_video || "",
-      };
-      enriched += 1;
-      results.push({ id: scene.id, ok: true, ...fetched });
-      await new Promise((r) => setTimeout(r, 1100));
-    } catch (err) {
-      results.push({
-        id: scene.id,
-        ok: false,
-        reason: err.message,
-      });
-    }
-  }
-
-  return { motion_scenes: scenes, enriched, results };
+  const { enrichMotionScenesWithAssets } =
+    await import("./motionSceneAssetService.js");
+  return enrichMotionScenesWithAssets(projDir, motionScenes, opts);
 }

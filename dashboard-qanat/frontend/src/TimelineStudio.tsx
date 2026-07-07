@@ -449,7 +449,7 @@ export function TimelineStudio({
               }
             }}
             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-violet-500/40 bg-violet-500/10 text-violet-300 cursor-pointer disabled:opacity-50 flex items-center gap-1"
-            title="Detecta dados, mapas e curiosidades no roteiro e insere templates Remotion"
+            title="IA orquestra templates Remotion (mapa, contadores, gráficos, timeline) e injeta dados do roteiro"
           >
             <Sparkles
               className={`w-3 h-3 ${planningMotion ? "animate-spin" : ""}`}

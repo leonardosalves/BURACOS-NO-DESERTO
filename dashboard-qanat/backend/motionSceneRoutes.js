@@ -9,7 +9,11 @@ import {
   planMotionScenesFromStoryboard,
   syncMotionScenesToStudio,
 } from "./motionScenePlanner.js";
-import { enrichMotionScenesWithSatellite } from "./satelliteMapService.js";
+import { enrichMotionScenesWithAssets } from "./motionSceneAssetService.js";
+import {
+  resolveMotionScenesForEnrichment,
+  studioNeedsMotionOrchestration,
+} from "../shared/motionSceneAssetEnrichment.js";
 import {
   dedupeMotionScenesAgainstOverlays,
   enrichMotionScenesWithLlm,
@@ -131,7 +135,7 @@ export function registerMotionSceneRoutes(
 
       let satelliteMeta = null;
       if (fetchSatellite && plan.motion_scenes.length > 0) {
-        const enriched = await enrichMotionScenesWithSatellite(
+        const enriched = await enrichMotionScenesWithAssets(
           projDir,
           plan.motion_scenes,
           { config, workspaceConfig }
@@ -215,10 +219,12 @@ export function registerMotionSceneRoutes(
         path.join(projDir, "storyboard.json"),
         {}
       );
+      const { studio: rawStudio } = loadTimelineStudio(projDir);
       const motionScenes =
-        req.body?.motion_scenes || storyboard.motion_scenes || [];
+        req.body?.motion_scenes ||
+        resolveMotionScenesForEnrichment(storyboard, rawStudio);
 
-      const enriched = await enrichMotionScenesWithSatellite(
+      const enriched = await enrichMotionScenesWithAssets(
         projDir,
         motionScenes,
         { config, workspaceConfig }
@@ -262,7 +268,6 @@ export function registerMotionSceneRoutes(
           path.join(projDir, "block_timings.json"),
           {}
         );
-        const { studio: rawStudio } = loadTimelineStudio(projDir);
         let nextStudio = syncMotionScenesToStudio(rawStudio, qc.motion_scenes);
         nextStudio = mergeMissingBrollFromConfig(
           nextStudio,
@@ -313,6 +318,126 @@ export function registerMotionSceneRoutes(
         ok: true,
         motion_scenes: storyboard.motion_scenes || [],
         meta: storyboard.motion_scenes_meta || null,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/timeline-studio/auto-orchestrate-motion", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const useLlm = req.body?.use_llm === true;
+      const config = readJsonSafe(path.join(projDir, "config_qanat.json"), {});
+      const workspaceConfig = readJsonSafe(
+        path.join(workspaceDir, "config_qanat.json"),
+        {}
+      );
+      const blockTimings = readJsonSafe(
+        path.join(projDir, "block_timings.json"),
+        {}
+      );
+      let storyboard = readJsonSafe(path.join(projDir, "storyboard.json"), {});
+      const { studio: rawStudio } = loadTimelineStudio(projDir);
+
+      if (
+        !studioNeedsMotionOrchestration(rawStudio.clips || [], storyboard) &&
+        !req.body?.force
+      ) {
+        return res.json({
+          ok: true,
+          skipped: true,
+          reason: "nothing_to_orchestrate",
+          studio: rawStudio,
+        });
+      }
+
+      let motionScenes = resolveMotionScenesForEnrichment(
+        storyboard,
+        rawStudio
+      );
+
+      if (!motionScenes.length && storyboard.visual_prompts?.length) {
+        let plan = planMotionScenesFromStoryboard(
+          storyboard,
+          config,
+          blockTimings
+        );
+        if (useLlm) {
+          const llmResult = await enrichMotionScenesWithLlm(plan, {
+            storyboard,
+            config,
+            overlaysAi: storyboard.overlays_ai || [],
+            callGemini,
+            getApiKey,
+            projDir,
+            parseAiJson,
+          });
+          plan = llmResult.plan;
+        }
+        motionScenes = plan.motion_scenes || [];
+      }
+
+      if (!motionScenes.length) {
+        return res.json({
+          ok: true,
+          skipped: true,
+          reason: "no_motion_scenes",
+          studio: rawStudio,
+        });
+      }
+
+      const enriched = await enrichMotionScenesWithAssets(
+        projDir,
+        motionScenes,
+        { config, workspaceConfig }
+      );
+
+      const qc = await ensureMotionScenesQuality(
+        projDir,
+        enriched.motion_scenes,
+        { config, workspaceConfig, autoFix: true, maxPasses: 2 }
+      );
+
+      storyboard = applyMotionScenesToVisualPrompts(
+        { ...storyboard, motion_scenes: qc.motion_scenes },
+        qc.motion_scenes
+      );
+      storyboard.motion_scenes = qc.motion_scenes;
+      storyboard.motion_scenes_meta = {
+        ...(storyboard.motion_scenes_meta || {}),
+        auto_orchestrated_at: new Date().toISOString(),
+        assets: {
+          enriched: enriched.enriched,
+          results: enriched.results,
+        },
+        quality: {
+          ok: qc.quality.ok,
+          score: qc.quality.score,
+          failed_count: qc.quality.failed_count,
+          auto_fixed: qc.auto_fixed,
+        },
+      };
+      fs.writeFileSync(
+        path.join(projDir, "storyboard.json"),
+        JSON.stringify(storyboard, null, 2),
+        "utf8"
+      );
+
+      let studio = syncMotionScenesToStudio(rawStudio, qc.motion_scenes);
+      studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
+      studio = upsertMusicClipInStudio(studio, config, projDir);
+      const saved = saveTimelineStudio(projDir, studio);
+
+      res.json({
+        ok: true,
+        motion_count: qc.motion_scenes.length,
+        enriched: enriched.enriched,
+        results: enriched.results,
+        quality: qc.quality,
+        auto_fixed: qc.auto_fixed,
+        studio: saved,
+        motion_scenes: qc.motion_scenes,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
