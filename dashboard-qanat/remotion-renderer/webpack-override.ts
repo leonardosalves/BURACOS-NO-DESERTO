@@ -13,6 +13,38 @@ function resolveRendererRoot(): string {
 const rendererRoot = resolveRendererRoot();
 const sharedRoot = path.resolve(rendererRoot, "..", "shared");
 
+type WebpackAlias = NonNullable<Configuration["resolve"]>["alias"];
+
+function mergeWebpackAlias(
+  existing: WebpackAlias | undefined,
+  additions: Record<string, string>
+): WebpackAlias {
+  const additionNames = new Set(Object.keys(additions));
+
+  if (Array.isArray(existing)) {
+    const kept = existing.filter(
+      (entry) =>
+        typeof entry === "object" &&
+        entry !== null &&
+        "name" in entry &&
+        !additionNames.has(String(entry.name))
+    );
+    return [
+      ...kept,
+      ...Object.entries(additions).map(([name, aliasPath]) => ({
+        name,
+        alias: aliasPath,
+      })),
+    ];
+  }
+
+  const base =
+    existing && typeof existing === "object"
+      ? { ...(existing as Record<string, string>) }
+      : {};
+  return { ...base, ...additions };
+}
+
 export const webpackOverride = (config: Configuration): Configuration => {
   const plugins = [...(config.plugins || [])];
   try {
@@ -60,11 +92,11 @@ export const webpackOverride = (config: Configuration): Configuration => {
     plugins,
     resolve: {
       ...config.resolve,
-      alias: {
-        ...(config.resolve?.alias as Record<string, string>),
+      alias: mergeWebpackAlias(config.resolve?.alias, {
         "@lumiera/shared": sharedRoot,
+        "@lumiera/shared/cesiumFly.js": path.join(sharedRoot, "cesiumFly.js"),
         cesium: path.join(rendererRoot, "node_modules/cesium/Source/Cesium.js"),
-      },
+      }),
       fallback: {
         ...(config.resolve?.fallback as Record<string, string | false>),
         fs: false,
