@@ -190,9 +190,11 @@ export function TimelineStudioClipInspector({
                           (row: { id?: string }) => row.id === clip.id
                         );
                         if (hit?.ok === false) {
-                          throw new Error(
-                            hit.reason || "Falha ao baixar mapa satélite"
-                          );
+                          const detail =
+                            hit.reason === "geocode_failed"
+                              ? "geocode_failed — preencha local/cidade/país ou use nome canônico (ex.: Laufenburg, Suíça)"
+                              : hit.reason || "Falha ao baixar mapa satélite";
+                          throw new Error(detail);
                         }
                         if (data.studio && onSatelliteSynced) {
                           onSatelliteSynced(data.studio);
