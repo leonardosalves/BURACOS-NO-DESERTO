@@ -1,20 +1,29 @@
-import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { HelpCircle } from 'lucide-react';
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
+import { HelpCircle } from "lucide-react";
 
-type Align = 'start' | 'center' | 'end';
+type Align = "start" | "center" | "end";
 
 type HelpTipProps = {
   title?: string;
   children: React.ReactNode;
   align?: Align;
+  /** Use dentro de outro &lt;button&gt; — renderiza span em vez de button. */
+  nested?: boolean;
 };
 
 type TipCoords = {
   top: number;
   left: number;
   transform?: string;
-  placement: 'above' | 'below';
+  placement: "above" | "below";
 };
 
 const VIEWPORT_MARGIN = 12;
@@ -25,7 +34,7 @@ function computeCoords(
   button: HTMLButtonElement,
   align: Align,
   panelWidth: number,
-  panelHeight: number,
+  panelHeight: number
 ): TipCoords {
   const rect = button.getBoundingClientRect();
   const vw = window.innerWidth;
@@ -35,30 +44,29 @@ function computeCoords(
 
   const spaceBelow = vh - rect.bottom - VIEWPORT_MARGIN;
   const spaceAbove = rect.top - VIEWPORT_MARGIN;
-  const placement: 'above' | 'below' =
-    spaceBelow >= Math.min(h, 160) || spaceBelow >= spaceAbove ? 'below' : 'above';
+  const placement: "above" | "below" =
+    spaceBelow >= Math.min(h, 160) || spaceBelow >= spaceAbove
+      ? "below"
+      : "above";
 
-  let top =
-    placement === 'below'
-      ? rect.bottom + GAP
-      : rect.top - h - GAP;
+  let top = placement === "below" ? rect.bottom + GAP : rect.top - h - GAP;
 
   top = Math.max(VIEWPORT_MARGIN, Math.min(top, vh - h - VIEWPORT_MARGIN));
 
   let left: number;
   let transform: string | undefined;
 
-  if (align === 'end') {
+  if (align === "end") {
     left = rect.right;
-    transform = 'translateX(-100%)';
+    transform = "translateX(-100%)";
     if (left > vw - VIEWPORT_MARGIN) {
       left = vw - VIEWPORT_MARGIN;
     }
     if (left - w < VIEWPORT_MARGIN) {
       left = VIEWPORT_MARGIN + w;
-      transform = 'translateX(-100%)';
+      transform = "translateX(-100%)";
     }
-  } else if (align === 'start') {
+  } else if (align === "start") {
     left = rect.left;
     if (left < VIEWPORT_MARGIN) left = VIEWPORT_MARGIN;
     if (left + w > vw - VIEWPORT_MARGIN) {
@@ -66,7 +74,7 @@ function computeCoords(
     }
   } else {
     left = rect.left + rect.width / 2;
-    transform = 'translateX(-50%)';
+    transform = "translateX(-50%)";
     const half = w / 2;
     if (left - half < VIEWPORT_MARGIN) {
       left = VIEWPORT_MARGIN + half;
@@ -79,13 +87,18 @@ function computeCoords(
   return { top, left, transform, placement };
 }
 
-export function SettingHelpTip({ title, children, align = 'center' }: HelpTipProps) {
+export function SettingHelpTip({
+  title,
+  children,
+  align = "center",
+  nested = false,
+}: HelpTipProps) {
   const [pinned, setPinned] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [coords, setCoords] = useState<TipCoords | null>(null);
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const buttonRef = useRef<HTMLButtonElement | HTMLSpanElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const open = pinned || hovered;
 
@@ -94,7 +107,9 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
     const panel = panelRef.current;
     const w = panel.offsetWidth || PANEL_WIDTH_ESTIMATE;
     const h = panel.offsetHeight || 120;
-    setCoords(computeCoords(buttonRef.current, align, w, h));
+    setCoords(
+      computeCoords(buttonRef.current as HTMLButtonElement, align, w, h)
+    );
   }, [align]);
 
   useLayoutEffect(() => {
@@ -108,11 +123,11 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
   useEffect(() => {
     if (!open) return;
     const onScrollOrResize = () => refreshCoords();
-    window.addEventListener('scroll', onScrollOrResize, true);
-    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
     return () => {
-      window.removeEventListener('scroll', onScrollOrResize, true);
-      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
     };
   }, [open, refreshCoords]);
 
@@ -121,32 +136,33 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
     const onDoc = (e: MouseEvent) => {
       const target = e.target as Node;
       if (
-        rootRef.current?.contains(target)
-        || panelRef.current?.contains(target)
-      ) return;
+        rootRef.current?.contains(target) ||
+        panelRef.current?.contains(target)
+      )
+        return;
       setPinned(false);
     };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
   }, [pinned]);
 
   const panelVisible = open;
   const panelStyle: React.CSSProperties = coords
     ? {
-        position: 'fixed',
+        position: "fixed",
         top: coords.top,
         left: coords.left,
         transform: coords.transform,
         zIndex: 99999,
-        visibility: 'visible',
+        visibility: "visible",
       }
     : {
-        position: 'fixed',
+        position: "fixed",
         top: -9999,
         left: 0,
         zIndex: 99999,
-        visibility: 'hidden',
-        pointerEvents: 'none',
+        visibility: "hidden",
+        pointerEvents: "none",
       };
 
   const panel = panelVisible
@@ -166,30 +182,27 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
           {coords && (
             <div
               className={`dash-help-tip-arrow pointer-events-none absolute w-2.5 h-2.5 rotate-45 ${
-                coords.placement === 'below'
-                  ? '-top-[5px] border-l border-t'
-                  : '-bottom-[5px] border-r border-b'
+                coords.placement === "below"
+                  ? "-top-[5px] border-l border-t"
+                  : "-bottom-[5px] border-r border-b"
               }`}
               style={{
-                left: align === 'start' ? 14 : align === 'end' ? undefined : '50%',
-                right: align === 'end' ? 14 : undefined,
+                left:
+                  align === "start" ? 14 : align === "end" ? undefined : "50%",
+                right: align === "end" ? 14 : undefined,
                 transform:
-                  align === 'center'
-                    ? 'translateX(-50%) rotate(45deg)'
-                    : 'rotate(45deg)',
+                  align === "center"
+                    ? "translateX(-50%) rotate(45deg)"
+                    : "rotate(45deg)",
               }}
             />
           )}
-          {title && (
-            <p className="dash-help-tip-title break-words">
-              {title}
-            </p>
-          )}
+          {title && <p className="dash-help-tip-title break-words">{title}</p>}
           <div className="dash-help-tip-body break-words [overflow-wrap:anywhere] [hyphens:auto]">
             {children}
           </div>
         </div>,
-        document.body,
+        document.body
       )
     : null;
 
@@ -203,21 +216,47 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
           if (!pinned) setHovered(false);
         }}
       >
-        <button
-          ref={buttonRef}
-          type="button"
-          aria-label="O que é esta configuração?"
-          aria-expanded={open}
-          aria-describedby={open ? id : undefined}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setPinned((v) => !v);
-          }}
-          className={`dash-help-tip-trigger ${open ? 'dash-help-tip-trigger-open' : ''}`}
-        >
-          <HelpCircle className="w-3 h-3" strokeWidth={2.25} />
-        </button>
+        {nested ? (
+          <span
+            ref={buttonRef}
+            role="button"
+            tabIndex={0}
+            aria-label="O que é esta configuração?"
+            aria-expanded={open}
+            aria-describedby={open ? id : undefined}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setPinned((v) => !v);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                setPinned((v) => !v);
+              }
+            }}
+            className={`dash-help-tip-trigger ${open ? "dash-help-tip-trigger-open" : ""}`}
+          >
+            <HelpCircle className="w-3 h-3" strokeWidth={2.25} />
+          </span>
+        ) : (
+          <button
+            ref={buttonRef as React.RefObject<HTMLButtonElement>}
+            type="button"
+            aria-label="O que é esta configuração?"
+            aria-expanded={open}
+            aria-describedby={open ? id : undefined}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setPinned((v) => !v);
+            }}
+            className={`dash-help-tip-trigger ${open ? "dash-help-tip-trigger-open" : ""}`}
+          >
+            <HelpCircle className="w-3 h-3" strokeWidth={2.25} />
+          </button>
+        )}
       </div>
       {panel}
     </>
@@ -230,23 +269,23 @@ type LabelProps = {
   helpTitle?: string;
   className?: string;
   align?: Align;
-  as?: 'label' | 'span' | 'p';
+  as?: "label" | "span" | "p";
 };
 
 export function SettingLabel({
   children,
   help,
   helpTitle,
-  className = '',
-  align = 'center',
-  as = 'span',
+  className = "",
+  align = "center",
+  as = "span",
 }: LabelProps) {
   const Tag = as;
   return (
-    <div className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 ${className}`}>
-      <Tag className="dash-typo-label break-words min-w-0">
-        {children}
-      </Tag>
+    <div
+      className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 ${className}`}
+    >
+      <Tag className="dash-typo-label break-words min-w-0">{children}</Tag>
       <SettingHelpTip title={helpTitle} align={align}>
         {help}
       </SettingHelpTip>

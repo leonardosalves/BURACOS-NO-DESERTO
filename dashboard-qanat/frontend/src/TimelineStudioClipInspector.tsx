@@ -86,11 +86,19 @@ export function TimelineStudioClipInspector({
   };
 
   useEffect(() => {
+    autoFetchStartedRef.current = false;
+  }, [clip.id]);
+
+  useEffect(() => {
     if (!needsSatelliteFetch || !getProjectUrl || autoFetchStartedRef.current) {
-      return;
+      return undefined;
     }
-    autoFetchStartedRef.current = true;
-    void runSatelliteFetch(true);
+    const timer = window.setTimeout(() => {
+      if (autoFetchStartedRef.current) return;
+      autoFetchStartedRef.current = true;
+      void runSatelliteFetch(true);
+    }, 2500);
+    return () => window.clearTimeout(timer);
   }, [clip.id, needsSatelliteFetch, getProjectUrl]);
 
   return (

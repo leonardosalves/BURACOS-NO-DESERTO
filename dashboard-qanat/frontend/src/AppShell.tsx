@@ -110,7 +110,7 @@ function NavHelp({ helpId }: { helpId?: string }) {
       onKeyDown={(e) => e.stopPropagation()}
       role="presentation"
     >
-      <SettingHelpTip title={help.title} align="start">
+      <SettingHelpTip title={help.title} align="start" nested>
         {help.body}
       </SettingHelpTip>
     </span>
