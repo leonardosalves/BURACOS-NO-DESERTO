@@ -217,7 +217,32 @@ export function registerMotionSceneRoutes(
         "utf8"
       );
 
-      res.json({ ok: true, ...enriched });
+      let studio = null;
+      if (enriched.enriched > 0) {
+        const blockTimings = readJsonSafe(
+          path.join(projDir, "block_timings.json"),
+          {}
+        );
+        const { studio: rawStudio } = loadTimelineStudio(projDir);
+        let nextStudio = syncMotionScenesToStudio(
+          rawStudio,
+          enriched.motion_scenes
+        );
+        nextStudio = mergeMissingBrollFromConfig(
+          nextStudio,
+          config,
+          blockTimings
+        );
+        nextStudio = upsertMusicClipInStudio(nextStudio, config, projDir);
+        studio = saveTimelineStudio(projDir, nextStudio);
+      }
+
+      res.json({
+        ok: true,
+        ...enriched,
+        studio,
+        timeline_synced: Boolean(studio),
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { boundaryToViewBoxPaths } from "./locationIntroBoundaryPreview";
 import { Pause, Play } from "lucide-react";
 import { OverlayAnimatedIcon } from "./OverlayAnimatedIcon";
 import { iconLabel, resolveIconStyle } from "./overlayIconCatalog";
@@ -81,6 +82,210 @@ function IconSlot({
       />
     </div>
   );
+}
+
+function LocationIntroMapCard({
+  props,
+  accentColor,
+  isPip,
+  embedded,
+  embeddedLayout,
+  scrubSeconds,
+  durationSeconds,
+  metrics,
+  motion,
+  legibilityShadow,
+  isShort,
+}: {
+  props: Record<string, unknown>;
+  accentColor: string;
+  isPip: boolean;
+  embedded: boolean;
+  embeddedLayout: "pip" | "fill";
+  scrubSeconds?: number;
+  durationSeconds: number;
+  metrics: Record<string, number>;
+  motion: { opacity: number };
+  legibilityShadow: string;
+  isShort: boolean;
+}) {
+  const [boundaryPaths, setBoundaryPaths] = useState<string[]>([]);
+  const bgWide = String(props.backgroundImageWide || "");
+  const bgTight = String(props.backgroundImage || "");
+  const flyMode = String(props.fly_mode || "earth_descent");
+  const placeType = String(
+    props.place_type || (flyMode === "city_outline" ? "city" : "poi")
+  );
+  const keyframes = Array.isArray(props.zoom_keyframes)
+    ? props.zoom_keyframes.filter((k: { image?: string }) => k?.image)
+    : [];
+  const subtitle = [props.region, props.country].filter(Boolean).join(" · ");
+  const lat = Number(props.lat) || 0;
+  const lng = Number(props.lng) || 0;
+  const zoomTo = Number(props.zoom_to) || 12;
+  const boundarySrc = String(props.boundaryGeoJson || "").trim();
+
+  useEffect(() => {
+    if (!boundarySrc || placeType !== "city") {
+      setBoundaryPaths([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(boundarySrc)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((geo) => {
+        if (cancelled || !geo || !lat || !lng) return;
+        setBoundaryPaths(boundaryToViewBoxPaths(geo, lat, lng, zoomTo));
+      })
+      .catch(() => {
+        if (!cancelled) setBoundaryPaths([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [boundarySrc, lat, lng, placeType, zoomTo]);
+
+  if (embedded && (keyframes.length > 0 || bgWide || bgTight)) {
+    const progress =
+      scrubSeconds != null
+        ? Math.min(
+            1,
+            Math.max(0, scrubSeconds / Math.max(durationSeconds, 0.1))
+          )
+        : 0.45;
+    const frames =
+      keyframes.length > 0
+        ? keyframes
+        : [
+            bgWide ? { zoom: props.zoom_from || 8, image: bgWide } : null,
+            bgTight ? { zoom: props.zoom_to || 14, image: bgTight } : null,
+          ].filter(Boolean);
+    const seg = 1 / Math.max(frames.length - 1, 1);
+    const idx = Math.min(
+      frames.length - 2,
+      Math.max(0, Math.floor(progress / seg))
+    );
+    const localT = (progress - idx * seg) / Math.max(seg, 0.001);
+    const zoom =
+      flyMode === "earth_descent" ? 1 + progress * 0.22 : 1 + progress * 0.1;
+    const drawProgress = Math.min(1, Math.max(0, (progress - 0.35) * 1.4));
+
+    return (
+      <div
+        className={`relative overflow-hidden bg-[#050506] ${
+          isPip ? "w-full h-full" : "absolute inset-0"
+        }`}
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: "center center",
+          }}
+        >
+          {frames.map((kf, i) => {
+            const src = String((kf as { image?: string })?.image || "");
+            if (!src) return null;
+            let opacity = 0;
+            if (frames.length === 1) opacity = 1;
+            else if (i === idx) opacity = 1 - localT;
+            else if (i === idx + 1) opacity = localT;
+            if (opacity <= 0.02) return null;
+            return (
+              <img
+                key={`${src}-${i}`}
+                src={src}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ opacity }}
+              />
+            );
+          })}
+        </div>
+        {placeType === "city" && boundaryPaths.length > 0 ? (
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            style={{ opacity: drawProgress }}
+          >
+            {boundaryPaths.map((d, i) => (
+              <path
+                key={i}
+                d={d}
+                fill="none"
+                stroke={accentColor}
+                strokeWidth="1.1"
+                strokeDasharray="240"
+                strokeDashoffset={240 * (1 - drawProgress)}
+              />
+            ))}
+          </svg>
+        ) : placeType === "city" ? (
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            style={{
+              opacity: Math.min(1, Math.max(0, (progress - 0.4) * 1.8)),
+            }}
+          >
+            <path
+              d="M18,42 L42,28 L72,34 L82,58 L64,78 L36,74 Z"
+              fill="none"
+              stroke={accentColor}
+              strokeWidth="1.2"
+              strokeDasharray="220"
+              strokeDashoffset={220 * (1 - Math.min(1, progress * 1.1))}
+            />
+          </svg>
+        ) : null}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: isPip
+              ? "linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.55) 100%)"
+              : "radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.5) 100%)",
+          }}
+        />
+        <div
+          className={`absolute px-3 pb-2 ${
+            isPip
+              ? "left-0 right-0 bottom-0 text-left"
+              : "inset-x-0 bottom-[12%] text-center px-4"
+          }`}
+          style={{ opacity: motion.opacity }}
+        >
+          <p
+            className="font-black text-white leading-tight"
+            style={{
+              fontSize: isPip
+                ? metrics.fontSizeTitle * 0.42
+                : metrics.fontSizeTitle,
+              textShadow: legibilityShadow,
+            }}
+          >
+            {String(props.location || "Local")}
+          </p>
+          {subtitle ? (
+            <p
+              className="text-zinc-300 uppercase tracking-widest mt-0.5"
+              style={{
+                fontSize: isPip
+                  ? metrics.fontSizeSubtitle * 0.75
+                  : metrics.fontSizeSubtitle,
+                textShadow: legibilityShadow,
+              }}
+            >
+              {subtitle}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export function OverlayPreview({
@@ -623,151 +828,32 @@ export function OverlayPreview({
         );
 
       case "location-intro": {
-        const bgWide = String(props.backgroundImageWide || "");
-        const bgTight = String(props.backgroundImage || "");
-        const flyMode = String(props.fly_mode || "earth_descent");
-        const placeType = String(
-          props.place_type || (flyMode === "city_outline" ? "city" : "poi")
-        );
         const isPip =
           props.presentation !== "fullscreen" && embeddedLayout === "pip";
-        const keyframes = Array.isArray(props.zoom_keyframes)
-          ? props.zoom_keyframes.filter((k: { image?: string }) => k?.image)
-          : [];
-        const subtitle = [props.region, props.country]
-          .filter(Boolean)
-          .join(" · ");
-        if (embedded && (keyframes.length > 0 || bgWide || bgTight)) {
-          const progress =
-            scrubSeconds != null
-              ? Math.min(
-                  1,
-                  Math.max(0, scrubSeconds / Math.max(durationSeconds, 0.1))
-                )
-              : 0.45;
-          const frames =
-            keyframes.length > 0
-              ? keyframes
-              : [
-                  bgWide ? { zoom: props.zoom_from || 8, image: bgWide } : null,
-                  bgTight
-                    ? { zoom: props.zoom_to || 14, image: bgTight }
-                    : null,
-                ].filter(Boolean);
-          const seg = 1 / Math.max(frames.length - 1, 1);
-          const idx = Math.min(
-            frames.length - 2,
-            Math.max(0, Math.floor(progress / seg))
+        const hasTiles = Boolean(
+          String(props.backgroundImage || "").trim() ||
+          String(props.backgroundImageWide || "").trim() ||
+          (Array.isArray(props.zoom_keyframes) &&
+            props.zoom_keyframes.some((k: { image?: string }) =>
+              Boolean(String(k?.image || "").trim())
+            ))
+        );
+        if (embedded && hasTiles) {
+          return (
+            <LocationIntroMapCard
+              props={props}
+              accentColor={accentColor}
+              isPip={isPip}
+              embedded={embedded}
+              embeddedLayout={embeddedLayout}
+              scrubSeconds={scrubSeconds}
+              durationSeconds={durationSeconds}
+              metrics={metrics}
+              motion={motion}
+              legibilityShadow={legibilityShadow}
+              isShort={isShort}
+            />
           );
-          const localT = (progress - idx * seg) / Math.max(seg, 0.001);
-          const zoom =
-            flyMode === "earth_descent"
-              ? 1 + progress * 0.22
-              : 1 + progress * 0.1;
-          const mapCard = (
-            <div
-              className={`relative overflow-hidden bg-[#050506] ${
-                isPip ? "w-full h-full" : "absolute inset-0"
-              }`}
-            >
-              <div
-                className="absolute inset-0"
-                style={{
-                  transform: `scale(${zoom})`,
-                  transformOrigin: "center center",
-                }}
-              >
-                {frames.map((kf, i) => {
-                  const src = String((kf as { image?: string })?.image || "");
-                  if (!src) return null;
-                  let opacity = 0;
-                  if (frames.length === 1) opacity = 1;
-                  else if (i === idx) opacity = 1 - localT;
-                  else if (i === idx + 1) opacity = localT;
-                  if (opacity <= 0.02) return null;
-                  return (
-                    <img
-                      key={`${src}-${i}`}
-                      src={src}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-cover"
-                      style={{ opacity }}
-                    />
-                  );
-                })}
-              </div>
-              {placeType === "city" ? (
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    boxShadow: `inset 0 0 0 3px ${accentColor}88`,
-                    opacity: Math.min(1, Math.max(0, (progress - 0.35) * 2)),
-                  }}
-                />
-              ) : null}
-              {placeType === "city" ? (
-                <svg
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  style={{
-                    opacity: Math.min(1, Math.max(0, (progress - 0.4) * 1.8)),
-                  }}
-                >
-                  <path
-                    d="M18,42 L42,28 L72,34 L82,58 L64,78 L36,74 Z"
-                    fill="none"
-                    stroke={accentColor}
-                    strokeWidth="1.2"
-                    strokeDasharray="220"
-                    strokeDashoffset={220 * (1 - Math.min(1, progress * 1.1))}
-                  />
-                </svg>
-              ) : null}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: isPip
-                    ? "linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.55) 100%)"
-                    : "radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.5) 100%)",
-                }}
-              />
-              <div
-                className={`absolute px-3 pb-2 ${
-                  isPip
-                    ? "left-0 right-0 bottom-0 text-left"
-                    : "inset-x-0 bottom-[12%] text-center px-4"
-                }`}
-                style={{ opacity: motion.opacity }}
-              >
-                <p
-                  className="font-black text-white leading-tight"
-                  style={{
-                    fontSize: isPip
-                      ? metrics.fontSizeTitle * 0.42
-                      : metrics.fontSizeTitle,
-                    textShadow: legibilityShadow,
-                  }}
-                >
-                  {String(props.location || "Local")}
-                </p>
-                {subtitle ? (
-                  <p
-                    className="text-zinc-300 uppercase tracking-widest mt-0.5"
-                    style={{
-                      fontSize: isPip
-                        ? metrics.fontSizeSubtitle * 0.75
-                        : metrics.fontSizeSubtitle,
-                      textShadow: legibilityShadow,
-                    }}
-                  >
-                    {subtitle}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          );
-          return mapCard;
         }
         return motionShell(
           <>
