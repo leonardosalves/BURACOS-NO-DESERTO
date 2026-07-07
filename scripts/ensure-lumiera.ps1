@@ -23,41 +23,29 @@ if (-not $Quiet) {
 }
 
 $pm2Mode = Test-LumieraPm2Mode
-if ($pm2Mode) {
-    if (-not $Quiet) { Write-Host "Modo PM2 (auto-reinicio)" -ForegroundColor DarkGray }
-} else {
-    & (Join-Path $PSScriptRoot "ensure-watchdog.ps1") | Out-Null
-}
+$permanentMarker = Join-Path $script:LogDir "permanent.mode"
 
-$backendOk = $false
-if (Test-LumieraBackendHealthy -Retries 4 -TimeoutSec 10) {
-    $backendOk = $true
-    if (-not $Quiet) { Write-Host "Backend ja OK" -ForegroundColor Green }
-} else {
-    if (-not $Quiet) { Write-Host "Backend offline - subindo..." -ForegroundColor Yellow }
-    $backendOk = Start-LumieraBackendProcess
-}
-
-$frontendExit = 0
-if ($pm2Mode) {
-    $feStatus = (Invoke-LumieraPm2 @("describe", "lumiera-frontend") -CaptureOutput | Out-String)
-    if ($feStatus -match "online" -and (Get-PortListenerPidFast 5176)) {
-        if (-not $Quiet) { Write-Host "Frontend OK em http://127.0.0.1:5176/" -ForegroundColor Green }
-        $frontendExit = 0
-    } else {
-        Invoke-LumieraPm2 @("restart", "lumiera-frontend", "--update-env") | Out-Null
-        $deadline = (Get-Date).AddSeconds(60)
-        while ((Get-Date) -lt $deadline) {
-            if (Get-PortListenerPidFast 5176) {
-                if (-not $Quiet) { Write-Host "Frontend OK em http://127.0.0.1:5176/" -ForegroundColor Green }
-                $frontendExit = 0
-                break
-            }
-            Start-Sleep -Seconds 1
-        }
-        if ($frontendExit -ne 0) { $frontendExit = 1 }
+if ($pm2Mode -or (Test-Path -LiteralPath $permanentMarker)) {
+    if (-not $Quiet) { Write-Host "Modo permanente (PM2 + guardian)" -ForegroundColor DarkGray }
+    $stackOk = Repair-LumieraPm2Stack
+    $backendOk = $stackOk
+    $frontendExit = if ($stackOk) { 0 } else { 1 }
+    if ($stackOk -and -not $Quiet) {
+        Write-Host "Backend OK em http://127.0.0.1:3005" -ForegroundColor Green
+        Write-Host "Frontend OK em http://127.0.0.1:5176/" -ForegroundColor Green
+    } elseif (-not $Quiet) {
+        Write-Host "Stack offline - guardian vai tentar de novo em ate 1 min" -ForegroundColor Yellow
     }
 } else {
+    & (Join-Path $PSScriptRoot "ensure-watchdog.ps1") | Out-Null
+    $backendOk = $false
+    if (Test-LumieraBackendHealthy -Retries 4 -TimeoutSec 10) {
+        $backendOk = $true
+        if (-not $Quiet) { Write-Host "Backend ja OK" -ForegroundColor Green }
+    } else {
+        if (-not $Quiet) { Write-Host "Backend offline - subindo..." -ForegroundColor Yellow }
+        $backendOk = Start-LumieraBackendProcess
+    }
     & (Join-Path $PSScriptRoot "ensure-frontend.ps1")
     $frontendExit = $LASTEXITCODE
 }
