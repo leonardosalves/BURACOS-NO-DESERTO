@@ -8,6 +8,7 @@ import path from "path";
 import crypto from "crypto";
 import { fitZoomForBoundary } from "../shared/locationIntroFly.js";
 import { buildVirtualZoomKeyframes } from "../shared/cesiumFly.js";
+import { HISTORIC_DESTROYED_RE } from "../shared/motionSceneCatalog.js";
 import {
   isBlenderAvailable,
   renderLocationIntroFlyover,
@@ -17,7 +18,7 @@ const NOMINATIM_UA = "LumieraVideoStudio/1.0 (motion-scenes-satellite)";
 
 /** POI específico → descida estilo Google Earth; cidade → contorno administrativo. */
 const POI_KEYWORDS =
-  /\b(forte|fortaleza|castelo|ponte|monumento|edif[ií]cio|torre|templo|pir[aâ]mide|est[aá]tua|museu|pal[aá]cio|bas[ií]lica|catedral|memorial|ru[ií]na|aqueduto|viaduto|est[aá]dio|arena|obelisco|farol|porto|aeroporto)\b/i;
+  /\b(forte|fortaleza|castelo|ponte|monumento|edif[ií]cio|pr[eé]dio|torre|templo|pir[aâ]mide|est[aá]tua|museu|pal[aá]cio|bas[ií]lica|catedral|memorial|ru[ií]na|aqueduto|viaduto|est[aá]dio|arena|obelisco|farol|porto|aeroporto)\b/i;
 const CITY_KEYWORDS =
   /\b(cidade|munic[ií]pio|capital|regi[aã]o|estado|prov[ií]ncia|pa[ií]s|continente|metr[oó]pole|distrito|comuna|vilarejo|vila)\b/i;
 
@@ -167,20 +168,37 @@ export function bboxFromCenter(lat, lng, zoom, widthPx = 1280, heightPx = 720) {
 export function classifyPlaceType(text = "", place = {}) {
   const t = String(text || "");
   const loc = String(place.location || place.label || "").toLowerCase();
-
-  if (
+  const isPoi =
     POI_KEYWORDS.test(t) ||
-    /\b(fort|castel|ponte|torre|pirâmide|piramide)\b/i.test(loc)
-  ) {
-    return { place_type: "poi", fly_mode: "earth_descent" };
+    /\b(fort|castel|ponte|torre|pirâmide|piramide)\b/i.test(loc) ||
+    /\b(fort|castel|bridge|tower)\b/i.test(loc);
+
+  if (HISTORIC_DESTROYED_RE.test(t) && isPoi) {
+    return {
+      place_type: "historic_site",
+      fly_mode: "earth_descent",
+      structure_exists: false,
+    };
+  }
+  if (isPoi) {
+    return {
+      place_type: "poi",
+      fly_mode: "earth_descent",
+      structure_exists: true,
+    };
   }
   if (CITY_KEYWORDS.test(t)) {
-    return { place_type: "city", fly_mode: "earth_descent" };
+    return {
+      place_type: "city",
+      fly_mode: "earth_descent",
+      structure_exists: true,
+    };
   }
-  if (/\b(fort|castel|bridge|tower)\b/i.test(loc)) {
-    return { place_type: "poi", fly_mode: "earth_descent" };
-  }
-  return { place_type: "city", fly_mode: "earth_descent" };
+  return {
+    place_type: "city",
+    fly_mode: "earth_descent",
+    structure_exists: true,
+  };
 }
 
 export function buildZoomSequence(flyMode, zoomFrom, zoomTo, placeType) {

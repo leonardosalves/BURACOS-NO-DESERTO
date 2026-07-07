@@ -27,7 +27,7 @@ export const MOTION_SCENE_TRIGGERS = {
     label: "Lugar / cidade",
     templates: ["location-intro", "geo-map"],
     defaultTemplate: "location-intro",
-    layout: "pip",
+    layout: "fullscreen",
     rveRef: null,
     remotionRef: "mapbox-example",
   },
@@ -36,7 +36,7 @@ export const MOTION_SCENE_TRIGGERS = {
     label: "Pin regional",
     templates: ["geo-map"],
     defaultTemplate: "geo-map",
-    layout: "pip",
+    layout: "fullscreen",
     rveRef: null,
     remotionRef: "mapbox-example",
   },
@@ -100,10 +100,10 @@ export const DEFAULT_DURATIONS = {
   "location-intro": 8,
 };
 
-/** Padrão global location-intro: PIP com descida; cidade marca território OSM. */
+/** Padrão global location-intro: fullscreen globo→alvo; cidade marca território OSM. */
 export const LOCATION_INTRO_DEFAULTS = {
-  presentation: "pip",
-  layout: "pip",
+  presentation: "fullscreen",
+  layout: "fullscreen",
   variant: "satellite",
   map_style: "satellite",
   zoom_from: 3,
@@ -146,8 +146,64 @@ export function pickTemplateForTrigger(
   return def.defaultTemplate;
 }
 
-export function resolveLayoutForTemplate(templateId, trigger) {
+/** Objetos muito específicos — PIP educativo em 16:9 quando o espectador pode não reconhecer. */
+export const SPECIFIC_OBJECT_RE =
+  /\b(armadura|armaduras|elmo|escudo|espada|lan[cç]a|machado|besta|catapulta|obelisco|rel[ií]quia|artefato|ferramenta|instrumento|m[aá]quina|motor|turbina|válvula|valvula|pist[aã]o|engrenagem|torno|ponte rolante|guindaste|escavadeira|betoneira|estrutura met[aá]lica|viga|pilar|arco|aqueduto|muralha|basti[aã]o|trincheira)\b/i;
+
+export const HISTORIC_DESTROYED_RE =
+  /\b(caiu|ru[ií]na|ruinas|demolido|destru[ií]do|n[aã]o existe mais|nao existe mais|desapareceu|derrubado|colapsou|desmoronou|perdeu|foi destru[ií]d[oa]|desabou|incendiou)\b/i;
+
+export function inferStructureExists(text = "") {
+  return !HISTORIC_DESTROYED_RE.test(String(text || ""));
+}
+
+export function inferSpecificObject(text = "") {
+  return SPECIFIC_OBJECT_RE.test(String(text || ""));
+}
+
+/**
+ * Fullscreen por padrão (geo sempre). PIP só em 16:9 + objeto específico educativo.
+ */
+export function resolvePresentationForScene({
+  templateId = "",
+  trigger = "",
+  text = "",
+  aspectRatio = "16:9",
+  hasReferenceAsset = false,
+} = {}) {
+  const tpl = String(templateId || "");
+  const trig = String(trigger || "");
+  if (
+    tpl === "location-intro" ||
+    tpl === "geo-map" ||
+    trig === "location" ||
+    trig === "region_pin"
+  ) {
+    return "fullscreen";
+  }
+  if (FULLSCREEN_TEMPLATES.has(tpl)) return "fullscreen";
+  const isWide = String(aspectRatio || "16:9") === "16:9";
+  if (
+    isWide &&
+    (hasReferenceAsset || inferSpecificObject(text)) &&
+    (trig === "historical_fact" || trig === "stat_number")
+  ) {
+    return "pip";
+  }
+  const def = MOTION_SCENE_TRIGGERS[trig];
+  return def?.layout === "fullscreen" ? "fullscreen" : "pip";
+}
+
+export function resolveLayoutForTemplate(templateId, trigger, opts = {}) {
+  if (templateId === "location-intro" || trigger === "location") {
+    return "fullscreen";
+  }
   if (FULLSCREEN_TEMPLATES.has(templateId)) return "fullscreen";
-  const def = MOTION_SCENE_TRIGGERS[trigger];
-  return def?.layout || "pip";
+  return resolvePresentationForScene({
+    templateId,
+    trigger,
+    text: opts.text,
+    aspectRatio: opts.aspectRatio,
+    hasReferenceAsset: opts.hasReferenceAsset,
+  });
 }
