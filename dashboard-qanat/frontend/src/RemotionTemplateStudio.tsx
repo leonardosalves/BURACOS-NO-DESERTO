@@ -10,6 +10,7 @@ import {
   Play,
   Plus,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 
 type TemplateCategory =
@@ -280,6 +281,7 @@ export function RemotionTemplateStudio({
   const [category, setCategory] = useState<TemplateCategory>("maps");
   const [subcategory, setSubcategory] = useState("PIP mapa");
   const [selectedId, setSelectedId] = useState("eng-map-pip-tactical");
+  const [templates, setTemplates] = useState<TemplateItem[]>(TEMPLATES);
   const [codeDraft, setCodeDraft] = useState(
     "export function MyTemplate(props) {\n  return <AbsoluteFill>{/* cole seu template aqui */}</AbsoluteFill>;\n}"
   );
@@ -291,18 +293,32 @@ export function RemotionTemplateStudio({
     CATEGORIES.find((c) => c.id === category)?.subcategories || [];
   const visibleTemplates = useMemo(
     () =>
-      TEMPLATES.filter(
+      templates.filter(
         (t) =>
           t.niche === niche &&
           t.category === category &&
           (!subcategory || t.subcategory === subcategory)
       ),
-    [category, niche, subcategory]
+    [category, niche, subcategory, templates]
   );
   const selected =
-    TEMPLATES.find((t) => t.id === selectedId) ||
+    templates.find((t) => t.id === selectedId) ||
     visibleTemplates[0] ||
-    TEMPLATES[0];
+    templates[0];
+
+  function deleteTemplate(templateId: string) {
+    const template = templates.find((item) => item.id === templateId);
+    if (!template) return;
+    const shouldDelete = window.confirm(
+      `Excluir o template "${template.name}"?`
+    );
+    if (!shouldDelete) return;
+    setTemplates((current) => current.filter((item) => item.id !== templateId));
+    if (selectedId === templateId) {
+      const nextTemplate = templates.find((item) => item.id !== templateId);
+      setSelectedId(nextTemplate?.id || "");
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -416,12 +432,18 @@ export function RemotionTemplateStudio({
 
           <div className="grid gap-4 p-4 2xl:grid-cols-2">
             {visibleTemplates.map((template) => (
-              <button
+              <article
                 key={template.id}
-                type="button"
                 onClick={() => setSelectedId(template.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedId(template.id);
+                  }
+                }}
+                tabIndex={0}
                 className={`overflow-hidden rounded-lg border bg-[#111722] text-left shadow-xl shadow-black/20 ${
-                  selected.id === template.id
+                  selected?.id === template.id
                     ? "border-cyan-300/70"
                     : "border-white/10"
                 }`}
@@ -435,16 +457,31 @@ export function RemotionTemplateStudio({
                     <h3 className="text-base font-black text-white">
                       {template.name}
                     </h3>
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                        template.status === "approved"
-                          ? "bg-emerald-400/12 text-emerald-300"
-                          : "bg-amber-300/12 text-amber-200"
-                      }`}
-                    >
-                      <BadgeCheck className="h-3 w-3" />
-                      {template.status === "approved" ? "Aprovado" : "Rascunho"}
-                    </span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                          template.status === "approved"
+                            ? "bg-emerald-400/12 text-emerald-300"
+                            : "bg-amber-300/12 text-amber-200"
+                        }`}
+                      >
+                        <BadgeCheck className="h-3 w-3" />
+                        {template.status === "approved"
+                          ? "Aprovado"
+                          : "Rascunho"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          deleteTemplate(template.id);
+                        }}
+                        className="grid h-7 w-7 place-items-center rounded-md border border-red-400/20 bg-red-500/10 text-red-200 hover:border-red-300/60 hover:bg-red-500/20"
+                        title="Excluir template"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <p className="min-h-[38px] text-sm leading-relaxed text-zinc-400">
                     {template.description}
@@ -460,7 +497,7 @@ export function RemotionTemplateStudio({
                     ))}
                   </div>
                 </div>
-              </button>
+              </article>
             ))}
             {!visibleTemplates.length && (
               <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-zinc-500">
@@ -520,22 +557,42 @@ export function RemotionTemplateStudio({
                 Contrato do template
               </h3>
             </div>
-            <p className="text-sm font-bold text-white">{selected.name}</p>
-            <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-              Todo template aprovado precisa ter preview 9:16 e 16:9, props
-              declaradas e safe zones de legenda.
-            </p>
-            <div className="mt-3 space-y-2">
-              {selected.dataSlots.map((slot) => (
-                <div
-                  key={slot}
-                  className="flex items-center justify-between rounded border border-white/10 px-3 py-2 text-xs"
-                >
-                  <span className="font-mono text-zinc-300">{slot}</span>
-                  <Copy className="h-3.5 w-3.5 text-zinc-500" />
+            {selected ? (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-bold text-white">
+                    {selected.name}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => deleteTemplate(selected.id)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-red-400/20 bg-red-500/10 px-2 py-1 text-[11px] font-bold text-red-200 hover:border-red-300/60 hover:bg-red-500/20"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Excluir
+                  </button>
                 </div>
-              ))}
-            </div>
+                <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+                  Todo template aprovado precisa ter preview 9:16 e 16:9, props
+                  declaradas e safe zones de legenda.
+                </p>
+                <div className="mt-3 space-y-2">
+                  {selected.dataSlots.map((slot) => (
+                    <div
+                      key={slot}
+                      className="flex items-center justify-between rounded border border-white/10 px-3 py-2 text-xs"
+                    >
+                      <span className="font-mono text-zinc-300">{slot}</span>
+                      <Copy className="h-3.5 w-3.5 text-zinc-500" />
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-zinc-500">
+                Nenhum template selecionado.
+              </p>
+            )}
           </section>
 
           <section className="rounded-lg border border-red-400/20 bg-red-950/10 p-4">
