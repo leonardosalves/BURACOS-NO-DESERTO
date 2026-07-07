@@ -126,9 +126,12 @@ function LocationIntroMapCard({
   const placeType = String(
     props.place_type || (flyMode === "city_outline" ? "city" : "poi")
   );
-  const keyframes = Array.isArray(props.zoom_keyframes)
-    ? props.zoom_keyframes.filter((k: { image?: string }) => k?.image)
+  const allKeyframes = Array.isArray(props.zoom_keyframes)
+    ? props.zoom_keyframes
     : [];
+  const keyframes = allKeyframes.filter((k: { image?: string }) =>
+    Boolean(String(k?.image || "").trim())
+  );
   const subtitle = [props.region, props.country].filter(Boolean).join(" · ");
   const lat = Number(props.lat) || 0;
   const lng = Number(props.lng) || 0;
@@ -193,8 +196,8 @@ function LocationIntroMapCard({
 
     if (useCesiumMap) {
       const virtualFrames =
-        keyframes.length > 0
-          ? keyframes
+        allKeyframes.length > 0
+          ? allKeyframes
           : [
               { zoom: props.zoom_from || 3, image: "" },
               { zoom: props.zoom_to || 12, image: "" },
@@ -902,7 +905,12 @@ export function OverlayPreview({
       case "location-intro": {
         const isPip =
           props.presentation !== "fullscreen" && embeddedLayout === "pip";
+        const lat = Number(props.lat) || 0;
+        const lng = Number(props.lng) || 0;
+        const mapProvider = String(props.map_provider || "");
+        const useCesiumMap = mapProvider === "cesium" && lat && lng;
         const hasTiles = Boolean(
+          useCesiumMap ||
           String(props.backgroundImage || "").trim() ||
           String(props.backgroundImageWide || "").trim() ||
           (Array.isArray(props.zoom_keyframes) &&

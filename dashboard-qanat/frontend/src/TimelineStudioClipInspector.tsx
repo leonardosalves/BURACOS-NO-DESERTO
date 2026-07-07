@@ -177,6 +177,12 @@ export function TimelineStudioClipInspector({
                         : `QC pendente · ${keyframeCount} tiles (revise zoom/contorno)`
                       : "Sem tiles — QC vai re-baixar ao orquestrar"}
                 </span>
+                {isCesiumReady ? (
+                  <span className="text-[9px] text-zinc-500 w-full">
+                    Preview 3D no PIP — posicione o playhead dentro do clip (
+                    {Number(clip.start).toFixed(1)}s)
+                  </span>
+                ) : null}
                 {getProjectUrl ? (
                   <button
                     type="button"
