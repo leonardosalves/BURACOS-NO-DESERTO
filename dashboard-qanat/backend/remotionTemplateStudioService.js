@@ -130,8 +130,11 @@ export async function adaptRemotionTemplate(
     subcategory = "",
     briefing = "",
     propsDraft = "",
+    propsInput = "",
     originalCode = "",
   } = input || {};
+
+  const resolvedPropsDraft = propsDraft || propsInput || "";
 
   const originalCheck = validateOriginalTemplateCode(originalCode);
   if (!originalCheck.ok) {
@@ -153,7 +156,7 @@ export async function adaptRemotionTemplate(
         category,
         subcategory,
         briefing,
-        propsDraft,
+        propsDraft: resolvedPropsDraft,
         originalCode,
         validationErrors: lastErrors,
       });
@@ -183,7 +186,7 @@ export async function adaptRemotionTemplate(
     niche,
     templateType,
     subcategory,
-    propsDraft,
+    propsDraft: resolvedPropsDraft,
   });
 
   if (local) {
