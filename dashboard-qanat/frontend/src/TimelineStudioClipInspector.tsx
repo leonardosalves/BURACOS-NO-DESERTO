@@ -39,6 +39,12 @@ export function TimelineStudioClipInspector({
         Boolean(String(kf?.image || "").trim())
       ))
   );
+  const motionQcOk = clip.props?.motion_quality_ok !== false;
+  const motionQcScore = Number(clip.props?.motion_quality_score) || 0;
+  const keyframeCount = Array.isArray(clip.props?.zoom_keyframes)
+    ? clip.props.zoom_keyframes.length
+    : 0;
+  const zoomTo = Number(clip.props?.zoom_to) || 0;
 
   return (
     <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/90 overflow-hidden">
@@ -150,12 +156,16 @@ export function TimelineStudioClipInspector({
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={`text-[10px] font-semibold ${
-                    hasSatelliteTiles ? "text-emerald-400" : "text-amber-400"
+                    motionQcOk && hasSatelliteTiles
+                      ? "text-emerald-400"
+                      : "text-amber-400"
                   }`}
                 >
-                  {hasSatelliteTiles
-                    ? "Tiles baixados — voo + contorno disponíveis"
-                    : "Sem tiles — preview usa placeholder genérico"}
+                  {motionQcOk && hasSatelliteTiles
+                    ? `QC OK · ${keyframeCount} tiles · zoom ${zoomTo || "—"}`
+                    : hasSatelliteTiles
+                      ? `QC pendente · ${keyframeCount} tiles (revise zoom/contorno)`
+                      : "Sem tiles — QC vai re-baixar ao orquestrar"}
                 </span>
                 {getProjectUrl ? (
                   <button
@@ -196,8 +206,10 @@ export function TimelineStudioClipInspector({
                             });
                           }
                         }
+                        const q = data.quality as
+                          { ok?: boolean; score?: number } | undefined;
                         toast.success(
-                          `Mapa satélite: ${data.enriched || 0} cena(s) com voo Earth`
+                          `Satélite + QC ${q?.score ?? motionQcScore}/100${q?.ok ? " ✓" : " — revise inspector"}`
                         );
                       } catch (err) {
                         toast.error(

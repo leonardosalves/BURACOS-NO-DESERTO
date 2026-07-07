@@ -407,12 +407,32 @@ export function TimelineStudio({
                 const satFailed = (orchData.satellite?.results || []).filter(
                   (r: { ok?: boolean }) => r?.ok === false
                 );
+                const qc = orchData.quality as
+                  | {
+                      ok?: boolean;
+                      score?: number;
+                      failed_count?: number;
+                      auto_fixed?: boolean;
+                    }
+                  | undefined;
                 toast.success(
-                  `${orchData.motion_count} Remotion · ${orchData.pending_assets} assets pendentes · ${satCount} mapa(s) satélite`
+                  `${orchData.motion_count} Remotion · ${orchData.pending_assets} assets pendentes · QC ${qc?.score ?? "—"}/100`
                 );
+                if (qc?.auto_fixed) {
+                  toast("QC corrigiu mapa(s) satélite automaticamente", {
+                    icon: "✓",
+                    duration: 5000,
+                  });
+                }
+                if (qc && !qc.ok && Number(qc.failed_count) > 0) {
+                  toast(
+                    `QC: ${qc.failed_count} cena(s) Remotion ainda com problema — ver inspector do clip`,
+                    { icon: "⚠️", duration: 7000 }
+                  );
+                }
                 if (satFailed.length > 0) {
                   toast(
-                    `Mapa satélite pendente em ${satFailed.length} cena(s) — selecione o clip e use «Baixar voo satélite»`,
+                    `Geocode falhou em ${satFailed.length} cena(s) — revise o nome do local`,
                     { icon: "🗺️", duration: 6000 }
                   );
                 }

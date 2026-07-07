@@ -21,6 +21,8 @@ import {
 } from "./timelineStudioMigration.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 import { orchestrateProduction } from "./productionOrchestrator.js";
+import { ensureMotionScenesQuality } from "./motionSceneQualityService.js";
+import { assessMotionScenesPlan } from "../shared/motionSceneQuality.js";
 
 function readJsonSafe(filePath, fallback = {}) {
   try {
@@ -141,6 +143,27 @@ export function registerMotionSceneRoutes(
         };
       }
 
+      let qualityMeta = null;
+      if (plan.motion_scenes.length > 0) {
+        const qc = await ensureMotionScenesQuality(
+          projDir,
+          plan.motion_scenes,
+          {
+            config,
+            workspaceConfig,
+          }
+        );
+        plan = { ...plan, motion_scenes: qc.motion_scenes };
+        qualityMeta = {
+          ok: qc.quality.ok,
+          score: qc.quality.score,
+          failed_count: qc.quality.failed_count,
+          auto_fixed: qc.auto_fixed,
+          scenes: qc.quality.scenes,
+          checked_at: qc.quality.checked_at,
+        };
+      }
+
       if (persist) {
         const nextStoryboard = applyMotionScenesToVisualPrompts(
           {
@@ -157,6 +180,7 @@ export function registerMotionSceneRoutes(
           llm: llmMeta,
           dedupe_removed: plan.dedupe_removed || llmMeta?.dedupe_removed || [],
           satellite: satelliteMeta,
+          quality: qualityMeta,
         };
         fs.writeFileSync(
           path.join(projDir, "storyboard.json"),
@@ -171,6 +195,7 @@ export function registerMotionSceneRoutes(
         ...plan,
         llm: llmMeta,
         satellite: satelliteMeta,
+        quality: qualityMeta,
         persisted: persist,
       });
     } catch (err) {
@@ -199,15 +224,29 @@ export function registerMotionSceneRoutes(
         { config, workspaceConfig }
       );
 
+      const qc = await ensureMotionScenesQuality(
+        projDir,
+        enriched.motion_scenes,
+        { config, workspaceConfig }
+      );
+
       const nextStoryboard = {
         ...storyboard,
-        motion_scenes: enriched.motion_scenes,
+        motion_scenes: qc.motion_scenes,
         motion_scenes_meta: {
           ...(storyboard.motion_scenes_meta || {}),
           satellite: {
             enriched: enriched.enriched,
             results: enriched.results,
             at: new Date().toISOString(),
+          },
+          quality: {
+            ok: qc.quality.ok,
+            score: qc.quality.score,
+            failed_count: qc.quality.failed_count,
+            auto_fixed: qc.auto_fixed,
+            scenes: qc.quality.scenes,
+            checked_at: qc.quality.checked_at,
           },
         },
       };
@@ -218,16 +257,13 @@ export function registerMotionSceneRoutes(
       );
 
       let studio = null;
-      if (enriched.enriched > 0) {
+      if (enriched.enriched > 0 || qc.auto_fixed) {
         const blockTimings = readJsonSafe(
           path.join(projDir, "block_timings.json"),
           {}
         );
         const { studio: rawStudio } = loadTimelineStudio(projDir);
-        let nextStudio = syncMotionScenesToStudio(
-          rawStudio,
-          enriched.motion_scenes
-        );
+        let nextStudio = syncMotionScenesToStudio(rawStudio, qc.motion_scenes);
         nextStudio = mergeMissingBrollFromConfig(
           nextStudio,
           config,
@@ -240,9 +276,27 @@ export function registerMotionSceneRoutes(
       res.json({
         ok: true,
         ...enriched,
+        motion_scenes: qc.motion_scenes,
+        quality: qc.quality,
+        auto_fixed: qc.auto_fixed,
         studio,
         timeline_synced: Boolean(studio),
       });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/ai/creator/motion-scenes/quality", (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const storyboard = readJsonSafe(
+        path.join(projDir, "storyboard.json"),
+        {}
+      );
+      const motionScenes = storyboard.motion_scenes || [];
+      const quality = assessMotionScenesPlan(motionScenes, projDir);
+      res.json({ ok: true, quality, motion_count: motionScenes.length });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

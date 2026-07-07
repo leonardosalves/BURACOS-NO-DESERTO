@@ -194,7 +194,7 @@ export function buildMotionSceneEnrichmentPrompt({
     "- Extraia dados reais da narração: nomes de lugares, números, anos, comparações.",
     "- location-intro: location, region, country; variant satellite; presentation pip; layout pip.",
     "- location-intro SEMPRE fly_mode earth_descent (descida do espaço no cartão PIP).",
-    "- location-intro cidade: place_type city, zoom_from 3, zoom_to 12, boundaryGeoJson quando disponível.",
+    "- location-intro cidade: place_type city, zoom_from 3, zoom_to 10 (máx), boundaryGeoJson obrigatório.",
     "- location-intro POI (forte, ponte, monumento): place_type poi, zoom_from 3, zoom_to 17.",
     "- location-intro: duration_seconds mínimo 8.",
     "- counter: value numérico real + label curto em PT-BR.",
