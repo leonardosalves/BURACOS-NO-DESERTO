@@ -8,9 +8,20 @@ function isFullscreenMotionClip(clip = {}) {
   const props = clip.props || {};
   const layout = String(props.layout || "").trim();
 
+  if (templateId === "location-intro") {
+    const aspectRatio = String(props.aspect_ratio || "").trim();
+    const niche = String(props.niche || "").trim();
+    if (
+      aspectRatio === "9:16" &&
+      /engenharia|engineering|industrial/i.test(niche)
+    ) {
+      return false;
+    }
+    return true;
+  }
+  if (templateId === "geo-map") return true;
   if (layout === "fullscreen") return true;
   if (FULLSCREEN_TEMPLATES.has(templateId)) return true;
-  if (templateId === "location-intro" || templateId === "geo-map") return true;
   return false;
 }
 
@@ -42,6 +53,21 @@ describe("isFullscreenMotionClip", () => {
         props: { presentation: "fullscreen" },
       }),
       true
+    );
+  });
+
+  it("location-intro engenharia 9:16 fica PIP fora da legenda", () => {
+    assert.equal(
+      isFullscreenMotionClip({
+        templateId: "location-intro",
+        props: {
+          presentation: "pip",
+          layout: "pip",
+          aspect_ratio: "9:16",
+          niche: "Engenharia",
+        },
+      }),
+      false
     );
   });
 });

@@ -194,6 +194,7 @@ export async function renderLocationIntroFlyover(
     place_type: placeType,
     poi_kind: poiKind,
     camera_profile: "continuous_earth_zoom",
+    pip_mode: String(aspectRatio || "") === "9:16",
     orbit_poi: Boolean(orbitPoi),
     structure_exists: Boolean(structureExists),
     use_blender_gis: useBlenderGis,

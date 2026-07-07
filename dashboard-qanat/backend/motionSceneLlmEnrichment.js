@@ -193,16 +193,18 @@ export function buildMotionSceneEnrichmentPrompt({
     "- NÃO adicione cenas novas — refine APENAS as do plano heurístico (mesmos id).",
     "- Preserve start_hint de cada cena; nunca empilhe cenas em start_hint 0.",
     "- Extraia dados reais da narração: nomes de lugares, números, anos, comparações.",
-    "- ESCOLHA DE TEMPLATE: location-intro = globo→alvo fullscreen (8s+); geo-map = pin regional; counter/bar-chart/timeline = dados da narração.",
-    "- location-intro: location, region, country; variant satellite; presentation fullscreen; layout fullscreen; place_type city|poi|historic_site; structure_exists boolean.",
+    "- ESCOLHA DE TEMPLATE: location-intro = zoom geografico continuo ate o alvo; geo-map = pin regional; counter/bar-chart/timeline = dados da narração.",
+    "- location-intro: location, region, country; variant satellite; place_type city|poi|historic_site; structure_exists boolean.",
+    "- REGRA GEO 16:9: location-intro deve ser fullscreen, vindo em zoom continuo estilo Google Maps desde globo/regiao (ex.: Europa) -> pais -> cidade -> alvo; sem transicao/corte entre mapas.",
+    "- REGRA GEO 9:16 ENGENHARIA: location-intro deve ser PIP tecnico de mapa, nao embaixo, com o mapa animado dentro da janela PIP e preservando legendas.",
     "- REGRA GEO: pais/cidade/regiao usa place_type city, mapa antigo/satelite aberto, fronteira desenhada e zoom final mostrando o pais/cidade inteiro.",
-    "- REGRA GEO: ponte, monumento, edificio, predio, templo, torre, museu, estadio, ruina ou ponto especifico visivel no mapa usa place_type poi, zoom final no objeto e orbita 360; nao trate como cidade/pais.",
+    "- REGRA GEO: ponte, monumento, edificio, predio, templo, torre, museu, estadio, ruina ou ponto especifico visivel no mapa usa place_type poi, zoom continuo ate o objeto e orbita 360; nao trate como cidade/pais.",
     "- REGRA GEO: se for mapa antigo de pais/cidade, preserve enquadramento aberto com fronteira desenhada; nao faca close de POI.",
     "- location-intro SEMPRE fly_mode earth_descent (globo terrestre → cidade com boundary OSM ou POI/terreno).",
-    "- PIP só em 16:9 para objeto específico educativo (armadura, artefato) — nunca em mapas/geo.",
+    "- PIP para mapas/geo só é permitido em 9:16 no nicho Engenharia; em 16:9 geo sempre fullscreen.",
     "- location-intro cidade: place_type city, zoom_from 3, zoom_to 10 (máx), boundaryGeoJson obrigatório.",
     "- location-intro POI (forte, ponte, monumento): place_type poi, zoom_from 3, zoom_to 17.",
-    "- location-intro: duration_seconds mínimo 8.",
+    "- location-intro: duration_seconds minimo 8, max 10 em shorts 9:16 e max 20 em videos longos 16:9.",
     "- geo-map: só quando basta pin regional (sem descida); props.location + region obrigatórios.",
     "- counter: value numérico real + label curto em PT-BR (extraído da narração).",
     "- bar-chart: props.items com labels e valores reais da narração (mín. 2 itens).",
@@ -246,13 +248,30 @@ function normalizeLlmMotionScene(
   const narration = String(
     raw.narration_text || heuristic?.narration_text || ""
   ).trim();
+  const aspectRatio = String(
+    raw.props?.aspect_ratio || heuristic?.props?.aspect_ratio || "16:9"
+  );
   const baseProps = buildPropsForTemplate(
     templateId,
     trigger,
     narration,
-    accentColor
+    accentColor,
+    aspectRatio,
+    nichePack
   );
   const llmProps = raw.props && typeof raw.props === "object" ? raw.props : {};
+
+  const rawDuration =
+    Number(raw.duration_seconds) ||
+    Number(heuristic?.duration_seconds) ||
+    DEFAULT_DURATIONS[templateId] ||
+    4;
+  const maxLocationDuration =
+    templateId === "location-intro"
+      ? aspectRatio === "9:16"
+        ? 10
+        : 20
+      : Number.POSITIVE_INFINITY;
 
   const scene = {
     ...(heuristic || {}),
@@ -263,19 +282,17 @@ function normalizeLlmMotionScene(
     start_hint: Number.isFinite(Number(raw.start_hint))
       ? Number(raw.start_hint)
       : Number(heuristic?.start_hint) || 0,
-    duration_seconds: Math.max(
-      0.5,
-      Number(raw.duration_seconds) ||
-        Number(heuristic?.duration_seconds) ||
-        DEFAULT_DURATIONS[templateId] ||
-        4
-    ),
+    duration_seconds: Math.min(maxLocationDuration, Math.max(0.5, rawDuration)),
     template_id: templateId,
     trigger: trigger || heuristic?.trigger || "curiosity_punch",
     layout:
       raw.layout ||
       heuristic?.layout ||
-      resolveLayoutForTemplate(templateId, trigger),
+      resolveLayoutForTemplate(templateId, trigger, {
+        text: narration,
+        aspectRatio,
+        niche: nichePack,
+      }),
     props: { ...baseProps, ...llmProps },
     narration_text: narration || heuristic?.narration_text || "",
     media_mode: "remotion",
@@ -294,6 +311,21 @@ function normalizeLlmMotionScene(
   scene.rve_ref = heuristic?.rve_ref ?? triggerMeta.rveRef ?? null;
   scene.remotion_ref =
     heuristic?.remotion_ref ?? triggerMeta.remotionRef ?? null;
+
+  if (templateId === "location-intro") {
+    const isEngineeringShort =
+      aspectRatio === "9:16" &&
+      /engenharia|engineering|industrial/i.test(String(nichePack || ""));
+    const layout = isEngineeringShort ? "pip" : "fullscreen";
+    scene.layout = layout;
+    scene.props = {
+      ...scene.props,
+      aspect_ratio: aspectRatio,
+      niche: scene.props?.niche || nichePack,
+      presentation: layout,
+      layout,
+    };
+  }
 
   return scene;
 }

@@ -171,7 +171,8 @@ export function buildPropsForTemplate(
   trigger,
   text,
   accentColor = "#D4AF37",
-  aspectRatio = "16:9"
+  aspectRatio = "16:9",
+  niche = ""
 ) {
   const t = String(text || "").trim();
 
@@ -223,6 +224,7 @@ export function buildPropsForTemplate(
         trigger: "location",
         text: t,
         aspectRatio,
+        niche,
       });
       return {
         location: place.location,
@@ -239,6 +241,7 @@ export function buildPropsForTemplate(
         presentation,
         layout: presentation,
         aspect_ratio: aspectRatio,
+        niche,
       };
     }
     case "geo-map": {
@@ -344,12 +347,14 @@ export function planMotionScenesFromStoryboard(
     const layout = resolveLayoutForTemplate(templateId, trigger, {
       text: narration,
       aspectRatio,
+      niche: config.niche || nichePack,
     });
     const presentation = resolvePresentationForScene({
       templateId,
       trigger,
       text: narration,
       aspectRatio,
+      niche: config.niche || nichePack,
     });
 
     const dedupeKey = `${trigger}-${templateId}-${vp.scene || vp.block}`;
@@ -360,11 +365,14 @@ export function planMotionScenesFromStoryboard(
     const vpDur = Number(vp.duration_seconds);
     const duration =
       templateId === "location-intro"
-        ? Math.max(
-            LOCATION_INTRO_DEFAULTS.duration_seconds,
-            vpDur > 0
-              ? Math.min(vpDur, 12)
-              : LOCATION_INTRO_DEFAULTS.duration_seconds
+        ? Math.min(
+            aspectRatio === "9:16"
+              ? LOCATION_INTRO_DEFAULTS.duration_seconds_short_max
+              : LOCATION_INTRO_DEFAULTS.duration_seconds_long_max,
+            Math.max(
+              LOCATION_INTRO_DEFAULTS.duration_seconds,
+              vpDur > 0 ? vpDur : LOCATION_INTRO_DEFAULTS.duration_seconds
+            )
           )
         : vpDur > 0
           ? Math.min(vpDur, templateDefault)
@@ -388,7 +396,8 @@ export function planMotionScenesFromStoryboard(
           trigger,
           narration,
           accentColor,
-          aspectRatio
+          aspectRatio,
+          config.niche || nichePack
         ),
         presentation,
         layout,

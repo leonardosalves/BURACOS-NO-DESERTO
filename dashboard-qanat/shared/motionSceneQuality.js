@@ -210,8 +210,25 @@ export function assessKineticTextScene(scene = {}) {
 
 export function normalizeMotionSceneMetadata(scene = {}) {
   const templateId = String(scene.template_id || "");
-  const forceFullscreen =
-    templateId === "location-intro" || FULLSCREEN_TEMPLATES.has(templateId);
+  if (templateId === "location-intro") {
+    const props = scene.props || {};
+    const isEngineeringShort =
+      String(props.aspect_ratio || "") === "9:16" &&
+      /engenharia|engineering|industrial/i.test(
+        String(scene.niche_pack || props.niche || "")
+      );
+    const layout = isEngineeringShort ? "pip" : "fullscreen";
+    return {
+      ...scene,
+      layout,
+      props: {
+        ...props,
+        layout,
+        presentation: layout,
+      },
+    };
+  }
+  const forceFullscreen = FULLSCREEN_TEMPLATES.has(templateId);
   if (!forceFullscreen) return scene;
   const layout = "fullscreen";
   return {

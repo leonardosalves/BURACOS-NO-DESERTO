@@ -110,6 +110,8 @@ export const LOCATION_INTRO_DEFAULTS = {
   zoom_to_poi: 17,
   zoom_to_city: 10,
   duration_seconds: 8,
+  duration_seconds_short_max: 10,
+  duration_seconds_long_max: 20,
   fly_mode: "earth_descent",
 };
 
@@ -170,9 +172,17 @@ export function resolvePresentationForScene({
   text = "",
   aspectRatio = "16:9",
   hasReferenceAsset = false,
+  niche = "",
 } = {}) {
   const tpl = String(templateId || "");
   const trig = String(trigger || "");
+  const isVertical = String(aspectRatio || "16:9") === "9:16";
+  const isEngineering = /engenharia|engineering|industrial/i.test(
+    String(niche || "")
+  );
+  if (tpl === "location-intro" && isVertical && isEngineering) {
+    return "pip";
+  }
   if (
     tpl === "location-intro" ||
     tpl === "geo-map" ||
@@ -182,7 +192,7 @@ export function resolvePresentationForScene({
     return "fullscreen";
   }
   if (FULLSCREEN_TEMPLATES.has(tpl)) return "fullscreen";
-  const isWide = String(aspectRatio || "16:9") === "16:9";
+  const isWide = !isVertical;
   if (
     isWide &&
     (hasReferenceAsset || inferSpecificObject(text)) &&
@@ -196,6 +206,15 @@ export function resolvePresentationForScene({
 
 export function resolveLayoutForTemplate(templateId, trigger, opts = {}) {
   if (templateId === "location-intro" || trigger === "location") {
+    const presentation = resolvePresentationForScene({
+      templateId,
+      trigger,
+      text: opts.text,
+      aspectRatio: opts.aspectRatio,
+      hasReferenceAsset: opts.hasReferenceAsset,
+      niche: opts.niche,
+    });
+    if (presentation === "pip") return "pip";
     return "fullscreen";
   }
   if (FULLSCREEN_TEMPLATES.has(templateId)) return "fullscreen";
@@ -205,5 +224,6 @@ export function resolveLayoutForTemplate(templateId, trigger, opts = {}) {
     text: opts.text,
     aspectRatio: opts.aspectRatio,
     hasReferenceAsset: opts.hasReferenceAsset,
+    niche: opts.niche,
   });
 }
