@@ -173,6 +173,8 @@ export function TimelineStudio({
   setConfig,
 }: TimelineStudioProps) {
   const [studio, setStudio] = useState<TimelineStudioState | null>(null);
+  const [projectResolved, setProjectResolved] = useState(true);
+  const [requestedProject, setRequestedProject] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
@@ -262,6 +264,12 @@ export function TimelineStudio({
         const res = await fetch(getProjectUrl(endpoint));
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
+        setProjectResolved(data.projectResolved !== false);
+        setRequestedProject(
+          typeof data.requestedProject === "string"
+            ? data.requestedProject
+            : activeProject
+        );
         const loaded = applyStudioFromServer(
           data.studio as TimelineStudioState,
           { focusRemotion: opts?.focusRemotion }
@@ -662,6 +670,36 @@ export function TimelineStudio({
     },
     [previewSplitRatio]
   );
+
+  if (!projectResolved) {
+    return (
+      <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-6 space-y-3">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-6 h-6 text-rose-400 shrink-0" />
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold text-rose-100">
+              Pasta do projeto não existe no disco
+            </h3>
+            <p className="text-[12px] text-rose-100/85 leading-relaxed">
+              O nome ativo{" "}
+              <span className="font-mono text-rose-200">
+                {requestedProject || activeProject}
+              </span>{" "}
+              não corresponde a nenhuma pasta em{" "}
+              <span className="font-mono">Desktop/Lumiera Videos</span>. Por
+              isso a narração e a timeline abrem vazias — o backend estava
+              caindo no workspace errado.
+            </p>
+            <p className="text-[11px] text-rose-200/80">
+              Selecione o projeto correto na barra superior (ex.{" "}
+              <span className="font-mono">trem_Brasil_nao</span>) ou crie a
+              pasta com o botão Novo Projeto usando o mesmo nome.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !studio) {
     return (

@@ -8185,7 +8185,46 @@ export default function App() {
         setShowNarrationReview(false);
         setCreatorStep(2);
         await fetchProjects();
-        setActiveProject(narrationProjectName);
+        const safeNarrationProject = narrationProjectName
+          .trim()
+          .replace(/[^a-zA-Z0-9_-]/g, "_");
+        let projectList: ProjectListItem[] = [];
+        try {
+          const listRes = await fetch("/api/projects");
+          if (listRes.ok) projectList = await listRes.json();
+        } catch {
+          projectList = projects;
+        }
+        if (
+          safeNarrationProject &&
+          !projectList.some((p) => p.name === safeNarrationProject)
+        ) {
+          try {
+            const createRes = await fetch("/api/projects/create", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: safeNarrationProject,
+                format: formatSelector,
+                niche: nicheInput || "",
+              }),
+            });
+            const createData = await createRes.json();
+            if (!createRes.ok) {
+              toast.error(
+                createData.error ||
+                  `Crie a pasta do projeto "${safeNarrationProject}" antes de continuar.`
+              );
+            } else {
+              await fetchProjects();
+            }
+          } catch {
+            toast.error(
+              `Pasta "${safeNarrationProject}" ausente — crie o projeto na biblioteca.`
+            );
+          }
+        }
+        setActiveProject(safeNarrationProject);
         fetchData();
         const listicleMsg =
           ideationTab === "listicle"
