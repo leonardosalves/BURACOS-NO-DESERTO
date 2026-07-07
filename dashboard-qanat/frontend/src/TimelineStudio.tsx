@@ -1,5 +1,11 @@
 import toast from "react-hot-toast";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { AlertTriangle, Bot, RefreshCw, Save, Sparkles } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
 import { AskLumieraPanel } from "./AskLumieraPanel";
@@ -16,7 +22,9 @@ import {
   updateCaptionText,
   updateClipInList,
 } from "./timelineStudioClipOps";
+import { preloadStudioMediaAtPlayhead } from "./timelineStudioMedia";
 import {
+  activeVideoAt,
   clipsOnTrack,
   ensureMotionTrackInStudio,
   type StudioClip,
@@ -60,6 +68,12 @@ export function TimelineStudio({
   const [stockSearchTrigger, setStockSearchTrigger] =
     useState<StockSearchTrigger | null>(null);
   const [planningMotion, setPlanningMotion] = useState(false);
+  const configRef = useRef(config);
+  configRef.current = config;
+  const getAssetUrlRef = useRef(getAssetUrl);
+  getAssetUrlRef.current = getAssetUrl;
+  const getMusicUrlRef = useRef(getMusicUrl);
+  getMusicUrlRef.current = getMusicUrl;
 
   const loadStudio = useCallback(async () => {
     if (!activeProject) return;
@@ -68,10 +82,28 @@ export function TimelineStudio({
       const res = await fetch(getProjectUrl("/api/timeline-studio"));
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      const loaded = ensureMotionTrackInStudio(
-        upsertMusicClipInStudio(data.studio as TimelineStudioState, config)
+      let loaded = ensureMotionTrackInStudio(
+        upsertMusicClipInStudio(
+          data.studio as TimelineStudioState,
+          configRef.current
+        )
       );
+      const playhead = Number(loaded.playhead) || 0;
+      if (!activeVideoAt(loaded.clips, playhead)) {
+        const firstVideo = clipsOnTrack(loaded.clips, "video").find((clip) =>
+          Boolean(String(clip.source || "").trim())
+        );
+        if (firstVideo) {
+          loaded = { ...loaded, playhead: firstVideo.start };
+        }
+      }
       setStudio(loaded);
+      preloadStudioMediaAtPlayhead(
+        loaded.clips,
+        loaded.playhead,
+        getAssetUrlRef.current,
+        getMusicUrlRef.current
+      );
       if (data.migrated) {
         toast.success("Timeline Studio: projeto migrado para multi-trilha");
       }
@@ -85,7 +117,7 @@ export function TimelineStudio({
     } finally {
       setLoading(false);
     }
-  }, [activeProject, config, getProjectUrl]);
+  }, [activeProject, getProjectUrl]);
 
   useEffect(() => {
     void loadStudio();
