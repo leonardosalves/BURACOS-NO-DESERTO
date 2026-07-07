@@ -8336,7 +8336,13 @@ async function prepareRemotionRender(
 
   let overlays = [];
   if (useStudioRender) {
-    overlays = buildOverlaysFromStudio(timelineStudio)
+    overlays = buildOverlaysFromStudio(timelineStudio, {
+      projectDir,
+      publicProjectDir,
+      projectSlug,
+      copyRemotionAsset,
+      findProjectFile,
+    })
       .map((overlay) =>
         copyOverlayMediaPropsForRemotion(overlay, overlayMediaCtx)
       )

@@ -44,6 +44,8 @@ export interface LocationIntroProps {
   place_type?: "city" | "poi";
   boundaryGeoJson?: string;
   zoom_keyframes?: ZoomKeyframe[];
+  /** pip = cartão sobre o B-roll; fullscreen = takeover (estilo Earth Studio) */
+  presentation?: "pip" | "fullscreen";
 }
 
 const SatelliteTerrain: React.FC = () => (
@@ -291,10 +293,12 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   fly_mode = "simple",
   boundaryGeoJson = "",
   zoom_keyframes = [],
+  presentation = "pip",
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
   const isVertical = height > width;
+  const isPip = presentation === "pip";
 
   const [boundaryData, setBoundaryData] = useState<BoundaryGeoJson | null>(
     null
@@ -571,59 +575,53 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
       ? undefined
       : `scale(${legacyZoom}) translate(${panX}%, ${panY}%)`;
 
-  return (
-    <AbsoluteFill
-      style={{
-        pointerEvents: "none",
-        zIndex: 55,
-        opacity: Math.min(enterOpacity, exitOpacity),
-        overflow: "hidden",
-      }}
-    >
+  const mapPanel = (
+    <>
       <AbsoluteFill
         style={wrapTransform ? { transform: wrapTransform } : undefined}
       >
         {mapContent()}
       </AbsoluteFill>
 
-      <AbsoluteFill
-        style={{
-          background:
-            "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.45) 100%)",
-        }}
-      />
-
-      <AbsoluteFill
-        style={{
-          background:
-            "linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.75) 100%)",
-        }}
-      />
+      {!isPip ? (
+        <>
+          <AbsoluteFill
+            style={{
+              background:
+                "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.45) 100%)",
+            }}
+          />
+          <AbsoluteFill
+            style={{
+              background:
+                "linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.75) 100%)",
+            }}
+          />
+        </>
+      ) : (
+        <AbsoluteFill
+          style={{
+            background:
+              "linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.55) 100%)",
+          }}
+        />
+      )}
 
       {variant !== "minimal" ? (
         <AbsoluteFill
           style={{
-            justifyContent: "center",
-            alignItems: "center",
+            justifyContent: isPip ? "flex-start" : "center",
+            alignItems: isPip ? "flex-start" : "center",
+            padding: isPip ? "14% 12%" : 0,
           }}
         >
           <div
             style={{
-              width: 16 * pinPulse,
-              height: 16 * pinPulse,
+              width: (isPip ? 10 : 16) * pinPulse,
+              height: (isPip ? 10 : 16) * pinPulse,
               borderRadius: "50%",
               background: accentColor,
-              boxShadow: `0 0 24px ${accentColor}88, 0 0 48px ${accentColor}44`,
-            }}
-          />
-          <div
-            style={{
-              width: 40 * pinPulse,
-              height: 40 * pinPulse,
-              borderRadius: "50%",
-              border: `2px solid ${accentColor}66`,
-              position: "absolute",
-              marginTop: -8,
+              boxShadow: `0 0 16px ${accentColor}88`,
             }}
           />
         </AbsoluteFill>
@@ -632,22 +630,23 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
       <AbsoluteFill
         style={{
           justifyContent: "flex-end",
-          alignItems: "center",
-          paddingBottom: isVertical ? 280 : 80,
+          alignItems: isPip ? "flex-start" : "center",
+          padding: isPip ? "10px 14px 12px" : undefined,
+          paddingBottom: isPip ? 12 : isVertical ? 280 : 80,
         }}
       >
         <div
           style={{
-            textAlign: "center",
+            textAlign: isPip ? "left" : "center",
             opacity: labelOpacity,
-            transform: `translateY(${labelY}px)`,
-            padding: "0 48px",
+            transform: isPip ? undefined : `translateY(${labelY}px)`,
+            padding: isPip ? 0 : "0 48px",
           }}
         >
           <div
             style={{
               fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
-              fontSize: locationFontSize,
+              fontSize: isPip ? locationFontSize * 0.42 : locationFontSize,
               fontWeight: 800,
               color: accentColor,
               letterSpacing: "-0.02em",
@@ -660,9 +659,9 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
           {subtitle ? (
             <div
               style={{
-                marginTop: 12,
+                marginTop: isPip ? 4 : 12,
                 fontFamily: "'Inter', sans-serif",
-                fontSize: subtitleFontSize,
+                fontSize: isPip ? subtitleFontSize * 0.75 : subtitleFontSize,
                 fontWeight: 500,
                 color: "rgba(255,255,255,0.75)",
                 letterSpacing: "0.12em",
@@ -675,6 +674,39 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
           ) : null}
         </div>
       </AbsoluteFill>
+    </>
+  );
+
+  const cardStyle: React.CSSProperties = isPip
+    ? {
+        position: "relative",
+        width: isVertical ? "88%" : "44%",
+        height: isVertical ? "30%" : "36%",
+        borderRadius: 16,
+        overflow: "hidden",
+        border: `2px solid ${accentColor}44`,
+        boxShadow: "0 12px 40px rgba(0,0,0,0.55)",
+        background: "#050506",
+      }
+    : {
+        position: "relative",
+        width: "100%",
+        height: "100%",
+      };
+
+  return (
+    <AbsoluteFill
+      style={{
+        pointerEvents: "none",
+        zIndex: 55,
+        opacity: Math.min(enterOpacity, exitOpacity),
+        overflow: "hidden",
+        justifyContent: isPip ? "flex-end" : "center",
+        alignItems: isPip ? "flex-end" : "center",
+        padding: isPip ? (isVertical ? "18% 6% 22%" : "8% 5% 10%") : 0,
+      }}
+    >
+      <div style={cardStyle}>{mapPanel}</div>
     </AbsoluteFill>
   );
 };

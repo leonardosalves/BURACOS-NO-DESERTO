@@ -54,6 +54,8 @@ type Props = {
   timelinePlaying?: boolean;
   /** Oculta chrome do preview (botões, meta) — uso embutido na timeline. */
   embedded?: boolean;
+  /** PIP = cartão no canto; fill = cobre o frame (fullscreen). */
+  embeddedLayout?: "pip" | "fill";
   /** Clique no preview para escolher posição (grade 3×3). */
   onPositionSelect?: (positionId: string) => void;
 };
@@ -93,6 +95,7 @@ export function OverlayPreview({
   scrubSeconds,
   timelinePlaying,
   embedded = false,
+  embeddedLayout = "fill",
   onPositionSelect,
 }: Props) {
   const [playing, setPlaying] = useState(true);
@@ -623,6 +626,8 @@ export function OverlayPreview({
         const bgWide = String(props.backgroundImageWide || "");
         const bgTight = String(props.backgroundImage || "");
         const flyMode = String(props.fly_mode || "simple");
+        const isPip =
+          props.presentation !== "fullscreen" && embeddedLayout === "pip";
         const keyframes = Array.isArray(props.zoom_keyframes)
           ? props.zoom_keyframes.filter((k: { image?: string }) => k?.image)
           : [];
@@ -656,8 +661,12 @@ export function OverlayPreview({
             flyMode === "earth_descent"
               ? 1 + progress * 0.22
               : 1 + progress * 0.1;
-          return (
-            <div className="absolute inset-0 overflow-hidden">
+          const mapCard = (
+            <div
+              className={`relative overflow-hidden bg-[#050506] ${
+                isPip ? "w-full h-full" : "absolute inset-0"
+              }`}
+            >
               <div
                 className="absolute inset-0"
                 style={{
@@ -696,18 +705,25 @@ export function OverlayPreview({
               <div
                 className="absolute inset-0"
                 style={{
-                  background:
-                    "radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.5) 100%)",
+                  background: isPip
+                    ? "linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.55) 100%)"
+                    : "radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.5) 100%)",
                 }}
               />
               <div
-                className="absolute inset-x-0 bottom-[12%] text-center px-4"
+                className={`absolute px-3 pb-2 ${
+                  isPip
+                    ? "left-0 right-0 bottom-0 text-left"
+                    : "inset-x-0 bottom-[12%] text-center px-4"
+                }`}
                 style={{ opacity: motion.opacity }}
               >
                 <p
-                  className="font-black text-white"
+                  className="font-black text-white leading-tight"
                   style={{
-                    fontSize: metrics.fontSizeTitle,
+                    fontSize: isPip
+                      ? metrics.fontSizeTitle * 0.42
+                      : metrics.fontSizeTitle,
                     textShadow: legibilityShadow,
                   }}
                 >
@@ -715,9 +731,11 @@ export function OverlayPreview({
                 </p>
                 {subtitle ? (
                   <p
-                    className="text-zinc-300 uppercase tracking-widest mt-1"
+                    className="text-zinc-300 uppercase tracking-widest mt-0.5"
                     style={{
-                      fontSize: metrics.fontSizeSubtitle,
+                      fontSize: isPip
+                        ? metrics.fontSizeSubtitle * 0.75
+                        : metrics.fontSizeSubtitle,
                       textShadow: legibilityShadow,
                     }}
                   >
@@ -727,6 +745,7 @@ export function OverlayPreview({
               </div>
             </div>
           );
+          return mapCard;
         }
         return motionShell(
           <>
@@ -954,11 +973,31 @@ export function OverlayPreview({
   ].filter(Boolean);
 
   if (embedded) {
+    const pipCard = embeddedLayout === "pip";
     return (
-      <div className={`tss-embedded-overlay w-full h-full ${className}`.trim()}>
+      <div
+        className={`tss-embedded-overlay ${
+          pipCard ? "tss-pip-card relative shrink-0" : "w-full h-full"
+        } ${className}`.trim()}
+        style={
+          pipCard
+            ? {
+                width: isShort ? "88%" : "44%",
+                maxWidth: isShort ? 280 : 340,
+                aspectRatio: isShort ? "3 / 1" : "16 / 10",
+                border: `2px solid ${accentColor}44`,
+                borderRadius: 16,
+                boxShadow: "0 12px 40px rgba(0,0,0,0.55)",
+                overflow: "hidden",
+              }
+            : undefined
+        }
+      >
         <div
           className="overlay-preview-frame relative overflow-hidden w-full h-full"
-          style={{ aspectRatio: isShort ? "9 / 16" : "16 / 9" }}
+          style={
+            pipCard ? undefined : { aspectRatio: isShort ? "9 / 16" : "16 / 9" }
+          }
         >
           <div className="absolute inset-0 z-10 pointer-events-none">
             {renderOverlayContent()}

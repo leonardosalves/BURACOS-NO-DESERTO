@@ -27,7 +27,7 @@ export const MOTION_SCENE_TRIGGERS = {
     label: "Lugar / cidade",
     templates: ["location-intro", "geo-map"],
     defaultTemplate: "location-intro",
-    layout: "fullscreen",
+    layout: "pip",
     rveRef: null,
     remotionRef: "mapbox-example",
   },
@@ -100,13 +100,25 @@ export const DEFAULT_DURATIONS = {
   "location-intro": 5,
 };
 
+export const MOTION_TRACK_ID = "motion";
+
 export const FULLSCREEN_TEMPLATES = new Set([
-  "location-intro",
   "pictogram-chart",
   "kinetic-text",
   "bar-chart",
   "timeline",
+  "counter",
 ]);
+
+export function defaultMotionTrack() {
+  return {
+    id: MOTION_TRACK_ID,
+    type: "motion",
+    label: "Cenas Remotion",
+    color: "#6A1B9A",
+    height: 36,
+  };
+}
 
 export function pickTemplateForTrigger(
   trigger,

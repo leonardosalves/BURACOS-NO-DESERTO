@@ -4,6 +4,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
+  buildOverlaysFromStudio,
   buildScenesFromStudio,
   copyMotionPropsAssets,
 } from "../backend/timelineStudioRenderSync.js";
@@ -54,13 +55,20 @@ describe("timelineStudioRenderSync", () => {
     assert.ok(copied.length >= 3);
   });
 
-  it("buildScenesFromStudio emite type remotion para clip primário", () => {
+  it("buildScenesFromStudio mantém só B-roll na trilha video", () => {
     const studio = {
       version: 1,
       clips: [
         {
-          id: "ms-3.2",
+          id: "video-1",
           trackId: "video",
+          start: 0,
+          duration: 10,
+          source: "ASSETS/cena.jpg",
+        },
+        {
+          id: "ms-3.2",
+          trackId: "motion",
           start: 35.7,
           duration: 5,
           templateId: "location-intro",
@@ -68,7 +76,6 @@ describe("timelineStudioRenderSync", () => {
             media_mode: "remotion",
             location: "Palmanova",
             fly_mode: "earth_descent",
-            zoom_keyframes: [{ zoom: 8, image: "ASSETS/satellite/x.jpg" }],
           },
         },
       ],
@@ -79,14 +86,41 @@ describe("timelineStudioRenderSync", () => {
       projectDir: "/tmp",
       publicProjectDir: "/tmp/public",
       projectSlug: "demo",
-      copyRemotionAsset: () => "x.jpg",
+      copyRemotionAsset: () => "cena.jpg",
       findProjectFile: (_dir, rel) => rel,
       fillSceneTimelineGaps: (s) => s,
     });
 
     assert.equal(scenes.length, 1);
-    assert.equal(scenes[0].type, "remotion");
-    assert.equal(scenes[0].remotionTemplate, "location-intro");
-    assert.equal(scenes[0].remotionProps.fly_mode, "earth_descent");
+    assert.equal(scenes[0].type, "image");
+    assert.ok(scenes[0].asset.includes("cena.jpg"));
+  });
+
+  it("buildOverlaysFromStudio inclui trilha motion", () => {
+    const studio = {
+      version: 1,
+      clips: [
+        {
+          id: "ms-3.2",
+          trackId: "motion",
+          start: 35.7,
+          duration: 5,
+          templateId: "location-intro",
+          props: { location: "Palmanova", presentation: "pip" },
+        },
+      ],
+    };
+
+    const overlays = buildOverlaysFromStudio(studio, {
+      projectDir: "/tmp",
+      publicProjectDir: "/tmp/public",
+      projectSlug: "demo",
+      copyRemotionAsset: () => null,
+      findProjectFile: (_dir, rel) => rel,
+    });
+
+    assert.equal(overlays.length, 1);
+    assert.equal(overlays[0].type, "location-intro");
+    assert.equal(overlays[0].props.location, "Palmanova");
   });
 });

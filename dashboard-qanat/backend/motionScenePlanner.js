@@ -6,6 +6,8 @@ import {
   DEFAULT_DURATIONS,
   FULLSCREEN_TEMPLATES,
   MOTION_SCENE_TRIGGERS,
+  MOTION_TRACK_ID,
+  defaultMotionTrack,
   pickTemplateForTrigger,
   resolveLayoutForTemplate,
 } from "../shared/motionSceneCatalog.js";
@@ -216,6 +218,7 @@ export function buildPropsForTemplate(
         zoom_from: zoomFrom,
         zoom_to: zoomTo,
         map_style: "satellite",
+        presentation: "pip",
       };
     }
     case "geo-map": {
@@ -378,12 +381,13 @@ export function isPrimaryRemotionMotionScene(ms = {}) {
   return FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""));
 }
 
-export function motionScenesToVideoClips(motionScenes = []) {
+/** Todas as motion scenes vão para a trilha dedicada — não competem com B-roll. */
+export function motionScenesToMotionClips(motionScenes = []) {
   return (Array.isArray(motionScenes) ? motionScenes : [])
-    .filter(isPrimaryRemotionMotionScene)
+    .filter((ms) => ms.media_mode === "remotion")
     .map((ms, i) => ({
-      id: String(ms.id || `motion-v-${i + 1}`),
-      trackId: "video",
+      id: String(ms.id || `motion-${i + 1}`),
+      trackId: MOTION_TRACK_ID,
       start: Math.max(0, Number(ms.start_hint) || 0),
       duration: Math.max(0.5, Number(ms.duration_seconds) || 4),
       label: String(
@@ -400,41 +404,70 @@ export function motionScenesToVideoClips(motionScenes = []) {
         motion_scene: true,
         scene_ref: String(ms.scene_ref || ""),
         block: Number(ms.block) || 1,
-        layout: ms.layout || "fullscreen",
+        layout:
+          ms.layout || resolveLayoutForTemplate(ms.template_id, ms.trigger),
         trigger: ms.trigger,
+        overlayType: ms.template_id,
       },
       color: "#6A1B9A",
       motionScene: true,
-      motionScenePrimary: true,
+      motionScenePrimary: isPrimaryRemotionMotionScene(ms),
     }));
 }
 
-export function motionScenesToOverlayClips(motionScenes = []) {
-  return (Array.isArray(motionScenes) ? motionScenes : [])
-    .filter((ms) => !isPrimaryRemotionMotionScene(ms))
-    .map((ms, i) => ({
-      id: String(ms.id || `motion-${i + 1}`),
-      trackId: "overlays",
-      start: Math.max(0, Number(ms.start_hint) || 0),
-      duration: Math.max(0.5, Number(ms.duration_seconds) || 4),
-      label: String(
-        ms.props?.location ||
-          ms.props?.label ||
-          ms.props?.text ||
-          ms.props?.title ||
-          ms.template_id
-      ),
-      templateId: ms.template_id,
-      props: {
-        ...(ms.props || {}),
-        overlayType: ms.template_id,
-        motion_scene: true,
-        layout: ms.layout || "fullscreen",
-        trigger: ms.trigger,
-      },
-      color: "#00897B",
-      motionScene: true,
-    }));
+/** @deprecated use motionScenesToMotionClips */
+export function motionScenesToVideoClips(motionScenes = []) {
+  return motionScenesToMotionClips(motionScenes);
+}
+
+export function motionScenesToOverlayClips() {
+  return [];
+}
+
+export function ensureMotionTrack(studio = {}) {
+  const tracks = Array.isArray(studio.tracks) ? [...studio.tracks] : [];
+  if (!tracks.some((t) => t.id === MOTION_TRACK_ID)) {
+    const videoIdx = tracks.findIndex((t) => t.id === "video");
+    const insertAt = videoIdx >= 0 ? videoIdx + 1 : tracks.length;
+    tracks.splice(insertAt, 0, defaultMotionTrack());
+  }
+  return { ...studio, tracks };
+}
+
+function normalizeMotionClipProps(clip = {}) {
+  const props = { ...(clip.props || {}) };
+  if (
+    String(clip.templateId) === "location-intro" &&
+    props.presentation !== "fullscreen"
+  ) {
+    props.presentation = "pip";
+    props.layout = "pip";
+  }
+  return props;
+}
+
+/** Move clips Remotion legados da trilha video → motion. */
+export function migrateStudioMotionClipsFromVideo(studio = {}) {
+  const clips = (Array.isArray(studio.clips) ? studio.clips : []).map((c) => {
+    const isLegacyMotionOnVideo =
+      c.trackId === "video" &&
+      (c.motionScene ||
+        c.motionScenePrimary ||
+        c.props?.media_mode === "remotion" ||
+        c.props?.motion_scene);
+    if (isLegacyMotionOnVideo) {
+      return {
+        ...c,
+        trackId: MOTION_TRACK_ID,
+        props: normalizeMotionClipProps(c),
+      };
+    }
+    if (c.trackId === MOTION_TRACK_ID) {
+      return { ...c, props: normalizeMotionClipProps(c) };
+    }
+    return c;
+  });
+  return ensureMotionTrack({ ...studio, clips });
 }
 
 export function applyMotionScenesToVisualPrompts(
@@ -469,21 +502,19 @@ export function applyMotionScenesToVisualPrompts(
 export function syncMotionScenesToStudio(studio, motionScenes = []) {
   if (!studio || !Array.isArray(studio.clips)) return studio;
 
-  const videoClips = motionScenesToVideoClips(motionScenes);
-  const overlayClips = motionScenesToOverlayClips(motionScenes);
-  if (!videoClips.length && !overlayClips.length) return studio;
+  const motionClips = motionScenesToMotionClips(motionScenes);
+  if (!motionClips.length) return migrateStudioMotionClipsFromVideo(studio);
 
   const withoutMotion = studio.clips.filter(
     (c) => !c.motionScene && !c.props?.motion_scene
   );
 
-  const withoutReplacedVideo = withoutMotion.filter((clip) => {
-    if (clip.trackId !== "video" || !videoClips.length) return true;
-    return !videoClips.some((rv) => clipsTimeOverlap(clip, rv));
-  });
-
-  const merged = [...withoutReplacedVideo, ...videoClips, ...overlayClips].sort(
+  const merged = [...withoutMotion, ...motionClips].sort(
     (a, b) => (Number(a.start) || 0) - (Number(b.start) || 0)
   );
-  return { ...studio, clips: merged, updatedAt: new Date().toISOString() };
+  return migrateStudioMotionClipsFromVideo({
+    ...studio,
+    clips: merged,
+    updatedAt: new Date().toISOString(),
+  });
 }
