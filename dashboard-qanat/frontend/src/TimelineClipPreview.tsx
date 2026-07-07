@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { Volume2, Gauge } from 'lucide-react';
-import { clampPlaybackRate, clampVolume } from './opencutTimeline';
+import React, { useEffect, useRef } from "react";
+import { Volume2, Gauge } from "lucide-react";
+import { clampPlaybackRate, clampVolume } from "./opencutTimeline";
 
 type AssetPreview = {
   asset?: string;
@@ -24,9 +24,9 @@ type Props = {
 export function TimelineClipPreview({
   asset,
   getAssetUrl,
-  aspectRatio = '16:9',
+  aspectRatio = "16:9",
   previewZoom = 100,
-  canvasBackground = '#050506',
+  canvasBackground = "#050506",
   clipDuration,
   sourceDuration,
   onSourceDuration,
@@ -35,8 +35,8 @@ export function TimelineClipPreview({
   const videoRef = useRef<HTMLVideoElement>(null);
   const volume = clampVolume(asset.volume, 0);
   const rate = clampPlaybackRate(asset.playback_rate, 1);
-  const isVideo = asset.type === 'video';
-  const isPortrait = aspectRatio === '9:16';
+  const isVideo = asset.type === "video";
+  const isPortrait = aspectRatio === "9:16";
   const hasAsset = Boolean(asset.asset?.trim());
 
   useEffect(() => {
@@ -65,17 +65,23 @@ export function TimelineClipPreview({
   return (
     <div
       className={`rounded-lg overflow-hidden relative flex items-center justify-center border border-zinc-900 group/preview mx-auto ${
-        compact ? 'w-full h-24 rounded-xl' : isPortrait ? 'h-64 w-full' : 'w-full'
+        compact
+          ? "w-full h-24 rounded-xl"
+          : isPortrait
+            ? "h-64 w-full"
+            : "w-full"
       }`}
       style={{
-        aspectRatio: compact ? undefined : isPortrait ? '9/16' : '16/9',
+        aspectRatio: compact ? undefined : isPortrait ? "9/16" : "16/9",
         transform: compact ? undefined : `scale(${previewZoom / 100})`,
-        transformOrigin: 'center center',
+        transformOrigin: "center center",
         backgroundColor: canvasBackground,
       }}
     >
       {!hasAsset ? (
-        <span className="text-[10px] text-zinc-600 px-2 text-center">Sem asset</span>
+        <span className="text-[10px] text-zinc-600 px-2 text-center">
+          Sem asset
+        </span>
       ) : isVideo ? (
         <video
           ref={videoRef}
@@ -87,12 +93,20 @@ export function TimelineClipPreview({
           loop
           autoPlay
           playsInline
+          preload="auto"
           onLoadedMetadata={handleLoadedMetadata}
           onLoadedData={(e) => {
-            e.currentTarget.style.display = 'block';
+            const el = e.currentTarget;
+            el.style.display = "block";
+            try {
+              if (el.currentTime < 0.05) el.currentTime = 0.05;
+            } catch {
+              /* ignore */
+            }
+            void el.play().catch(() => {});
           }}
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
+          onError={() => {
+            /* mantém área visível — mensagem «Sem asset» só quando asset vazio */
           }}
         />
       ) : (
@@ -102,10 +116,10 @@ export function TimelineClipPreview({
           className="w-full h-full object-cover"
           alt="Preview"
           onLoad={(e) => {
-            e.currentTarget.style.display = 'block';
+            e.currentTarget.style.display = "block";
           }}
           onError={(e) => {
-            e.currentTarget.style.display = 'none';
+            e.currentTarget.style.display = "none";
           }}
         />
       )}

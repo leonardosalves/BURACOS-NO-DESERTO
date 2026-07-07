@@ -12,6 +12,7 @@ import {
   activeCaptionAt,
   activeMotionAt,
   activeVideoAt,
+  previewVideoAt,
   clipsOnTrack,
   formatStudioTime,
   type StudioClip,
@@ -85,6 +86,7 @@ export function TimelineStudioPreview({
 }: Props) {
   const isVertical = aspectRatio === "9:16";
   const [playing, setPlaying] = useState(false);
+  const [videoLoadFailed, setVideoLoadFailed] = useState(false);
   const [livePlayhead, setLivePlayhead] = useState(studio.playhead);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -129,7 +131,9 @@ export function TimelineStudioPreview({
     }
   }, [studio.playhead, playing]);
 
-  const videoClip = activeVideoAt(studio.clips, displayPlayhead);
+  const videoClip = playing
+    ? activeVideoAt(studio.clips, displayPlayhead)
+    : previewVideoAt(studio.clips, displayPlayhead);
   const motionClips = useMemo(
     () => activeMotionAt(studio.clips, displayPlayhead),
     [studio.clips, displayPlayhead]
@@ -156,6 +160,10 @@ export function TimelineStudioPreview({
     ? resolveMediaUrl(videoClip.source, getAssetUrl, getMusicUrl)
     : null;
   const isVideo = isVideoClip(videoClip);
+
+  useEffect(() => {
+    setVideoLoadFailed(false);
+  }, [assetSrc]);
 
   const publishPlayhead = useCallback((t: number, force = false) => {
     const total = totalDurRef.current;
@@ -211,39 +219,59 @@ export function TimelineStudioPreview({
     [bgmVol, musicClip]
   );
 
-  const syncVideoToTime = useCallback((globalSec: number) => {
-    const v = videoRef.current;
-    if (!v) return;
-    const clip = activeVideoAt(clipsRef.current, globalSec);
-    if (!clip || !isVideoClip(clip)) return;
-    const local = Math.max(0, globalSec - clip.start);
+  const resolveVideoClipAt = useCallback(
+    (globalSec: number) =>
+      playingRef.current
+        ? activeVideoAt(clipsRef.current, globalSec)
+        : previewVideoAt(clipsRef.current, globalSec),
+    []
+  );
 
-    const applySeek = () => {
-      if (Math.abs(v.currentTime - local) > 0.05) {
-        try {
-          v.currentTime = local;
-        } catch {
-          /* ignore seek errors */
+  const syncVideoToTime = useCallback(
+    (globalSec: number) => {
+      const v = videoRef.current;
+      if (!v) return;
+      const clip = resolveVideoClipAt(globalSec);
+      if (!clip || !isVideoClip(clip)) return;
+      const local = Math.max(
+        0,
+        Math.min(
+          Math.max(0, clip.duration - 0.04),
+          globalSec < clip.start
+            ? 0
+            : globalSec >= clip.start + clip.duration
+              ? Math.max(0, clip.duration - 0.04)
+              : globalSec - clip.start
+        )
+      );
+      const applySeek = () => {
+        if (Math.abs(v.currentTime - local) > 0.05) {
+          try {
+            v.currentTime = local;
+          } catch {
+            /* ignore seek errors */
+          }
         }
-      }
-      if (playingRef.current) {
-        void v.play().catch(() => {});
-      }
-    };
+        if (playingRef.current) {
+          void v.play().catch(() => {});
+        }
+      };
 
-    if (v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      applySeek();
-      return;
-    }
+      if (v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        applySeek();
+        return;
+      }
 
-    const onReady = () => {
-      v.removeEventListener("loadeddata", onReady);
-      v.removeEventListener("loadedmetadata", onReady);
-      applySeek();
-    };
-    v.addEventListener("loadeddata", onReady);
-    v.addEventListener("loadedmetadata", onReady);
-  }, []);
+      const onReady = () => {
+        v.removeEventListener("loadeddata", onReady);
+        v.removeEventListener("loadedmetadata", onReady);
+        applySeek();
+      };
+      v.addEventListener("loadeddata", onReady);
+      v.addEventListener("loadedmetadata", onReady);
+    },
+    [resolveVideoClipAt]
+  );
 
   const togglePlay = useCallback(() => {
     if (playingRef.current) {
@@ -392,7 +420,7 @@ export function TimelineStudioPreview({
           className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black shadow-lg shadow-black/40"
           style={{ ...frameStyle, containerType: "size" }}
         >
-          {assetSrc ? (
+          {assetSrc && !(isVideo && videoLoadFailed) ? (
             isVideo ? (
               <video
                 ref={videoRef}
@@ -402,22 +430,32 @@ export function TimelineStudioPreview({
                 muted
                 playsInline
                 preload="auto"
-                onLoadedData={() => syncVideoToTime(studio.playhead)}
-                onLoadedMetadata={() => syncVideoToTime(studio.playhead)}
+                onLoadedData={() => syncVideoToTime(displayPlayhead)}
+                onLoadedMetadata={() => syncVideoToTime(displayPlayhead)}
+                onCanPlay={() => syncVideoToTime(displayPlayhead)}
+                onError={() => setVideoLoadFailed(true)}
               />
             ) : (
               <img
+                key={assetSrc}
                 src={assetSrc}
                 alt={videoClip?.label || "B-roll"}
                 className="absolute inset-0 w-full h-full object-cover"
+                onError={() => setVideoLoadFailed(true)}
               />
             )
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-zinc-950">
               <div className="text-center px-6">
-                <p className="text-sm text-zinc-500">Sem mídia neste momento</p>
+                <p className="text-sm text-zinc-500">
+                  {videoLoadFailed
+                    ? "Falha ao carregar mídia"
+                    : "Sem mídia neste momento"}
+                </p>
                 <p className="text-[10px] text-zinc-600 mt-1">
-                  Adicione stock ou posicione o playhead num clip de vídeo
+                  {videoLoadFailed
+                    ? videoClip?.label || "Verifique ASSETS/ no projeto"
+                    : "Adicione stock ou posicione o playhead num clip de vídeo"}
                 </p>
               </div>
             </div>

@@ -4,6 +4,7 @@ import {
   buildTimelineAssetSlotsFromVisualPrompts,
   inferAssetMediaType,
   attachProductionToVisualPrompts,
+  pruneMotionOnlyAssetSlots,
 } from "../backend/productionOrchestrator.js";
 
 describe("productionOrchestrator", () => {
@@ -50,6 +51,25 @@ describe("productionOrchestrator", () => {
     );
     assert.equal(slots["1"][1].motion_template_id, "location-intro");
     assert.equal(slots["1"][1].production.template_props.location, "Palmanova");
+  });
+
+  it("pruneMotionOnlyAssetSlots remove slot vazio de motion quando bloco já tem asset", () => {
+    const pruned = pruneMotionOnlyAssetSlots({
+      1: [
+        {
+          scene_ref: "1.1",
+          asset: "",
+          motion_template_id: "location-intro",
+          orchestrated: true,
+        },
+        {
+          asset: "video.mp4",
+          user_locked: true,
+        },
+      ],
+    });
+    assert.equal(pruned["1"].length, 1);
+    assert.equal(pruned["1"][0].asset, "video.mp4");
   });
 
   it("não sobrescreve slot user_locked", () => {
