@@ -162,6 +162,11 @@ import {
   resolveStudioTotalDuration,
   resolveStudioFormat,
 } from "./timelineStudioRenderSync.js";
+import {
+  loadTimelineStudio,
+  saveTimelineStudio,
+  syncNarrationToTimelineStudio,
+} from "./timelineStudioMigration.js";
 import { registerVideoResurrectorRoutes } from "./videoResurrectorRoutes.js";
 import { registerSocialPublishRoutes } from "./socialPublishRoutes.js";
 import {
@@ -18155,6 +18160,32 @@ app.get("/api/sync-timings", (req, res) => {
         } catch (syncErr) {
           sendLog(
             `[AVISO] Falha ao sincronizar timeline pós-Whisper: ${syncErr.message}`
+          );
+        }
+
+        try {
+          const studioPath = path.join(projDir, "timeline_studio.json");
+          if (fs.existsSync(studioPath)) {
+            const existing = JSON.parse(fs.readFileSync(studioPath, "utf8"));
+            const { studio, changed } = syncNarrationToTimelineStudio(
+              projDir,
+              existing
+            );
+            if (changed) {
+              saveTimelineStudio(projDir, studio);
+              sendLog(
+                "[Pipeline] Narração e legendas sincronizadas com Editor de Timing."
+              );
+            }
+          } else {
+            loadTimelineStudio(projDir);
+            sendLog(
+              "[Pipeline] timeline_studio.json criado com narração e legendas."
+            );
+          }
+        } catch (studioSyncErr) {
+          sendLog(
+            `[AVISO] Falha ao sincronizar narração no Timeline Studio: ${studioSyncErr.message}`
           );
         }
 

@@ -312,6 +312,14 @@ export function TimelineStudio({
     void loadStudioRef.current({ fullSync: true });
   }, [activeProject]);
 
+  const prevSyncingTimingsRef = useRef(syncingTimings);
+  useEffect(() => {
+    if (prevSyncingTimingsRef.current && !syncingTimings) {
+      void loadStudioRef.current({ fullSync: true, silent: true });
+    }
+    prevSyncingTimingsRef.current = syncingTimings;
+  }, [syncingTimings]);
+
   useEffect(() => {
     return () => {
       if (playheadCommitRef.current) clearTimeout(playheadCommitRef.current);
