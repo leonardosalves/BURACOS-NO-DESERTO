@@ -1,230 +1,230 @@
 {
   "version": 2,
-  "savedAt": "2026-07-05T22:01:28.936Z",
+  "savedAt": "2026-07-07T14:31:48.262Z",
   "wasInWizard": true,
   "activeTab": "creator",
-  "activeProject": "Lei_Babilonia_punia",
+  "activeProject": "ponte_cortada_erro",
   "creatorStep": 1,
-  "nicheInput": "engenharia japao",
+  "nicheInput": "curiosidade engenharia brasil",
   "formatSelector": "SHORTS",
   "ideasData": {
     "diagnostic": {
-      "looking_for": "Soluções urbanísticas bizarras, tecnologias de infraestrutura resilientes e adaptações extremas do Japão a desastres.",
-      "pain_points": "Canais concorrentes que repetem a mesma lista de curiosidades rasas sem mostrar o mecanismo mecânico por trás.",
-      "desires": "Entender de forma simples a física e a engenharia de estruturas futuristas e soluções urbanas curiosas.",
-      "retention_fears": "Explicações excessivamente técnicas que parecem aula acadêmica ou falta de conexão com a utilidade prática.",
-      "comment_hooks": "Comparações inevitáveis com a infraestrutura e planejamento do Brasil, além de debates sobre o custo das obras.",
-      "title_style": "Títulos afirmativos curtíssimos que destacam um elemento incomum ou absurdo e sua consequência prática.",
-      "core_emotion": "Admiração pela precisão e obsessão milimétrica dos projetos japoneses.",
-      "retention_topics": "Uso de sistemas hidráulicos monumentais subterrâneos, proteção animal integrada e aproveitamento de micrometeorologia.",
-      "strong_angle": "Focar na obsessão japonesa pelo detalhe que evita desastres bilionários ou salva pequenas frações do cotidiano."
+      "looking_for": "As pessoas buscam explicações lógicas e visuais sobre segredos de infraestrutura e ciência prática escondidos no dia a dia do Brasil.",
+      "pain_points": "Canais concorrentes que trazem fatos muito teóricos ou históricos europeus sem conexão direta com a engenharia prática e curiosa do território nacional.",
+      "desires": "Compreender como desafios gigantescos ou bizarros do cotidiano brasileiro foram resolvidos com soluções geniais ou como falhas ocultas geraram desastres.",
+      "retention_fears": "Explicações excessivamente acadêmicas com fórmulas complexas ou falta de contexto visual claro nos primeiros 3 segundos.",
+      "comment_hooks": "Debates sobre infraestrutura regional, orgulho de invenções locais desconhecidas ou discussões sobre decisões de segurança polêmicas no Brasil.",
+      "title_style": "Títulos extremamente curtos, com substantivo concreto forte, contextualizados com um único emoji ou hashtag relevante no final.",
+      "core_emotion": "Fascinante choque de realidade e revelação ('Eu passo por isso sempre e nunca percebi a genialidade/erro').",
+      "retention_topics": "Estruturas que as pessoas conhecem de nome, mas cujo princípio técnico de funcionamento (acústico, aerodinâmico ou biológico) é um segredo absoluto.",
+      "strong_angle": "Foco no bastidor técnico invisível por trás de eventos culturais, biológicos e urbanos tipicamente brasileiros."
     },
     "ideas": [
       {
-        "title": "Trilho do trem-bala salvando tartarugas 🐢",
-        "promise": "Como túneis milimétricos impedem descarrilamentos de trens de alta velocidade.",
-        "emotion": "Surpresa de engenhosidade",
-        "why_works": "Mostra como um problema biológico simples exigiu engenharia física para evitar acidentes ferroviários milionários, gerando identificação imediata.",
-        "best_format": "SHORTS",
-        "viral_category": "impactful",
-        "hook_angle": "problem_solution",
-        "hooks": "Esse bueiro minúsculo no Japão salva trens inteiros",
-        "hook_candidates": [
-          "Esse bueiro minúsculo salva trens inteiros",
-          "Por que o trem-bala japonês precisa de tartarugas?",
-          "A engenharia que protege tartarugas de descarrilar trens"
-        ],
-        "wow_facts_preview": [
-          "Trilhos equipados com túneis em U de concreto de 15cm",
-          "Redução de 90% nas falhas mecânicas por obstrução de animais",
-          "Trem Shinkansen trafega a 320 km por hora com segurança total"
-        ]
-      },
-      {
-        "title": "Engenheiros do Japão reviveram um mamute",
-        "promise": "A bioengenharia que ativou células de 28 mil anos de idade.",
-        "emotion": "Fascínio científico",
-        "why_works": "Leva o espectador para a fronteira da biotecnologia japonesa usando um gancho histórico poderoso de recriação biológica.",
-        "best_format": "SHORTS",
-        "viral_category": "astonishing",
-        "hook_angle": "shock",
-        "hooks": "Eles usaram física para ligar células congeladas milenares",
-        "hook_candidates": [
-          "Eles ligaram células congeladas de mamute",
-          "Cientistas japoneses reativaram vida de 28 mil anos",
-          "O motor biológico japonês que despertou células mortas"
-        ],
-        "wow_facts_preview": [
-          "Núcleos da mamute Yuka de 28.000 anos reativados",
-          "Fusão celular feita com microinjeções magnéticas",
-          "Cientistas da Universidade Kindai de Osaka lideraram a façanha"
-        ]
-      },
-      {
-        "title": "Japão taxa donos por limpar terrenos #Shorts",
-        "promise": "Por que o governo cobra mais caro se você demolir sua casa.",
-        "emotion": "Indignação econômica",
-        "why_works": "Usa um paradoxo de economia e habitação japonesa (as Akiya) que quebra totalmente o senso comum sobre propriedade e leis.",
-        "best_format": "SHORTS",
-        "viral_category": "provocative",
-        "hook_angle": "breaking",
-        "hooks": "Derrubar uma casa velha no Japão custa uma fortuna",
-        "hook_candidates": [
-          "Limpar o seu lote no Japão custa muito caro",
-          "A taxa bizarra sobre casas abandonadas no Japão",
-          "A lei que impede demolições de casas fantasmas"
-        ],
-        "wow_facts_preview": [
-          "Imposto territorial aumenta em até 6 vezes sem construção",
-          "Mais de 8,5 milhões de casas vazias deixadas abandonadas",
-          "Engenheiros buscam novos materiais de demolição rápida de baixo custo"
-        ]
-      },
-      {
-        "title": "Kansai afunda e custa bilhões de ienes",
-        "promise": "A batalha de engenharia contra um aeroporto que afunda no oceano.",
-        "emotion": "Tensão contra o tempo",
-        "why_works": "Expõe o megaprojeto de Kansai e como elevadores hidráulicos impedem que ele desapareça debaixo d'água, unindo recordes e risco extremo.",
-        "best_format": "SHORTS",
-        "viral_category": "astonishing",
-        "hook_angle": "before_after",
-        "hooks": "Este aeroporto bilionário no mar afundou 10 metros",
-        "hook_candidates": [
-          "Este aeroporto no mar afundou 10 metros",
-          "O truque de bilhões para Kansai não afundar de vez",
-          "Cem macacos hidráulicos seguram este aeroporto gigante"
-        ],
-        "wow_facts_preview": [
-          "Ilha artificial de Kansai afundou 11 metros desde 1994",
-          "900 colunas ajustáveis com sensores eletrônicos milimétricos",
-          "Uso de 40.000 blocos de concreto tetrópodes para ondas"
-        ]
-      },
-      {
-        "title": "Sumô robótico do Japão usa superímãs 🤯",
-        "promise": "A física de robôs autônomos hiper velozes no sumô de metal.",
-        "emotion": "Empolgação tecnológica",
-        "why_works": "Conecta cultura pop com uma competição de recordes mecânicos onde a força de adesão desafia a gravidade das câmeras lentas.",
-        "best_format": "SHORTS",
-        "viral_category": "practical",
-        "hook_angle": "challenge",
-        "hooks": "Este robô de metal pesa 3 quilos e voa",
-        "hook_candidates": [
-          "Este mini robô pesa 3 quilos e voa",
-          "A engenharia secreta do esporte mais rápido do Japão",
-          "Ímãs de neodímio que evitam acidentes no sumô robótico"
-        ],
-        "wow_facts_preview": [
-          "Robôs de 3kg atingem velocidade de 5 metros por segundo",
-          "Ímãs geram 1.000 newtons de força de atração ao solo",
-          "Tempo de resposta do motor controlado em microsegundos"
-        ]
-      },
-      {
-        "title": "Pistas de ciclismo perfeitas do Japão",
-        "promise": "Como o Japão calcula a inclinação milimétrica das pistas de Keirin.",
-        "emotion": "Curiosidade geométrica",
-        "why_works": "Revela o projeto de física aplicada ao esporte de apostas milionárias do país, onde a inclinação evita mortes em alta velocidade.",
-        "best_format": "SHORTS",
-        "viral_category": "impactful",
-        "hook_angle": "question",
-        "hooks": "Por que esta curva japonesa tem essa inclinação exata?",
-        "hook_candidates": [
-          "Por que esta curva japonesa tem inclinação extrema?",
-          "A matemática por trás do ciclismo da morte Keirin",
-          "Pistas sem juntas que evitam quedas a 70km/h"
-        ],
-        "wow_facts_preview": [
-          "Curvas inclinadas a exatamente 45 graus para manter aderência",
-          "Asfalto nivelado sem costura com tolerância menor que 2mm",
-          "Ciclistas geram força centrífuga de até 2G em velocidade"
-        ]
-      },
-      {
-        "title": "Estradas do Japão tocam música de anime",
-        "promise": "O cálculo matemático de ranhuras no asfalto para criar som físico.",
-        "emotion": "Divertimento musical",
-        "why_works": "Une a cultura pop musical com engenharia acústica simples que funciona apenas usando as leis de propagação de frequência dos pneus.",
-        "best_format": "SHORTS",
-        "viral_category": "practical",
-        "hook_angle": "personal",
-        "hooks": "O asfalto japonês toca música se você acelerar certo",
-        "hook_candidates": [
-          "O asfalto toca música se você correr correto",
-          "Como buracos cirúrgicos na estrada viraram uma rádio",
-          "Engenharia de estradas musicais que salvam motoristas com sono"
-        ],
-        "wow_facts_preview": [
-          "Ranhuras de 9 a 24 milímetros esculpidas em sequência lógica",
-          "A velocidade ideal de 50km/h produz o tom em Lá natural",
-          "Mais de 30 estradas musicais reduzem acidentes de trânsito"
-        ]
-      },
-      {
-        "title": "Relógio de bronze do Japão calcula o Sol",
-        "promise": "Como engrenagens analógicas de 1851 regulavam o tempo sazonal.",
-        "emotion": "Admiração mecânica",
-        "why_works": "Apresenta a genialidade mecânica japonesa pré-eletrônica isolada do ocidente, provando sofisticação sem auxílio computacional.",
+        "title": "O som perfeito do Teatro Amazonas 🎭",
+        "promise": "Como os engenheiros de 1896 criaram uma acústica perfeita sem usar nenhuma tecnologia moderna.",
+        "emotion": "astonishing",
+        "why_works": "Usa a curiosidade cultural do Teatro Amazonas para explicar como uma estrutura côncava e madeiras específicas da Bahia funcionam como um amplificador mecânico gigante.",
         "best_format": "SHORTS",
         "viral_category": "astonishing",
         "hook_angle": "secret",
-        "hooks": "Esta máquina de 1851 dividia as estações do ano",
+        "hooks": "O segredo acústico escondido sob o palco do Amazonas.",
         "hook_candidates": [
-          "Essa máquina de bronze previa as estações do ano",
-          "O computador analógico que mudava de tamanho sozinho",
-          "O relógio japonês de 1000 peças que nunca para"
+          "Por que esse teatro de 1896 tem som perfeito?",
+          "O segredo acústico escondido sob o Teatro Amazonas.",
+          "Como engenheiros antigos amplificaram o som sem caixas?"
         ],
         "wow_facts_preview": [
-          "Ajuste automático de engrenagens para dias mais curtos no inverno",
-          "Projeto Manen Jidosho levou 3 anos para ser fabricado",
-          "Contém mais de 1.000 peças fundidas à mão sem moldes"
+          "Inaugurado em 1896 no auge do ciclo da borracha",
+          "A cúpula usa 36.000 escamas de cerâmica importada",
+          "Teto côncavo funciona como refletor acústico natural de 100%"
         ]
       },
       {
-        "title": "Rodovia passa dentro de prédio no Japão",
-        "promise": "A bizarra solução jurídica e arquitetônica do Gate Tower em Osaka.",
-        "emotion": "Admiração urbanística",
-        "why_works": "Explica a solução surreal de infraestrutura onde a estrada perfura um edifício de escritórios comercial de forma isolada.",
+        "title": "Como os gigantes da Sapucaí andam #Rio",
+        "promise": "A engenharia mecânica oculta que impede carros alegóricos de 15 metros de derrubar fiação elétrica.",
+        "emotion": "impactful",
+        "why_works": "Explica a engenharia hidráulica pesada e os sistemas de rebaixamento de eixos que tornam o carnaval tecnicamente viável.",
+        "best_format": "SHORTS",
+        "viral_category": "practical",
+        "hook_angle": "problem_solution",
+        "hooks": "Como carros de 15 metros passam sob os fios?",
+        "hook_candidates": [
+          "A engenharia secreta dos carros gigantes da Sapucaí.",
+          "Como monstros de ferro passam embaixo dos fios elétricos?",
+          "O truque hidráulico dos maiores carros de Carnaval."
+        ],
+        "wow_facts_preview": [
+          "Carros chegam a medir mais de 15 metros de altura",
+          "Sistemas hidráulicos rebaixam a estrutura em até 4 metros",
+          "Chassis pesam mais de 8 toneladas com suspensão adaptada"
+        ]
+      },
+      {
+        "title": "A prótese brasileira que lê músculos 💪",
+        "promise": "A tecnologia desenvolvida em Minas Gerais que faz próteses responderem a sinais musculares em milissegundos.",
+        "emotion": "astonishing",
+        "why_works": "Mostra engenharia biomédica de ponta feita no Brasil, trazendo forte identificação e apelo científico moderno.",
+        "best_format": "SHORTS",
+        "viral_category": "impactful",
+        "hook_angle": "shock",
+        "hooks": "Cientistas brasileiros criaram uma mão robótica que lê músculos.",
+        "hook_candidates": [
+          "A prótese brasileira barata que lê movimentos musculares.",
+          "Cientistas de Minas criaram uma mão robótica incrível.",
+          "Como a engenharia biomédica nacional imita o cérebro humano."
+        ],
+        "wow_facts_preview": [
+          "Desenvolvida por engenheiros do Inatel em Minas Gerais",
+          "Sensores leem microcorrentes elétricas da pele em tempo real",
+          "Prótese reduz custo de fabricação em até 85%"
+        ]
+      },
+      {
+        "title": "O labirinto dos operários a 290m 🤯",
+        "promise": "Como o corpo humano dos operários reage ao balanço físico no topo dos maiores prédios de Santa Catarina.",
+        "emotion": "provocative",
+        "why_works": "Aborda o impacto biofísico da oscilação de edifícios altos sobre o labirinto e o equilíbrio dos construtores brasileiros.",
+        "best_format": "SHORTS",
+        "viral_category": "provocative",
+        "hook_angle": "personal",
+        "hooks": "O que acontece com o corpo a 290 metros?",
+        "hook_candidates": [
+          "O efeito bizarro nos operários dos maiores prédios brasileiros.",
+          "Como o cérebro lida com prédios que balançam 1 metro?",
+          "O enjoo de vento que afeta trabalhadores em SC."
+        ],
+        "wow_facts_preview": [
+          "Prédios de Balneário Camboriú oscilam até 1 metro no topo",
+          "Labirinto do ouvido humano perde referência de gravidade",
+          "Amortecedores de massa evitam o enjoo de movimento"
+        ]
+      },
+      {
+        "title": "A língua secreta criada em Itaipu #Obra",
+        "promise": "Como engenheiros criaram um jargão misto de três idiomas para evitar erros fatais na usina.",
+        "emotion": "astonishing",
+        "why_works": "Mostra a barreira linguística na maior obra binacional do país e como termos técnicos precisaram ser reinventados.",
+        "best_format": "SHORTS",
+        "viral_category": "practical",
+        "hook_angle": "secret",
+        "hooks": "A língua secreta que salvou a usina de Itaipu.",
+        "hook_candidates": [
+          "A mistura de idiomas que evitou desastres em Itaipu.",
+          "Como operários inventaram um dialeto técnico para a barragem.",
+          "O dialeto de três línguas usado na maior usina."
+        ],
+        "wow_facts_preview": [
+          "Mistura de Português, Espanhol e Guarani nos anos 70",
+          "Mais de 40.000 operários trabalhavam simultaneamente sem tradutores",
+          "Manuais técnicos unificados criaram termos exclusivos para segurança"
+        ]
+      },
+      {
+        "title": "Como o trem do Brasil não colide #Trem",
+        "promise": "O antigo sistema mecânico de chaveamento físico que impede colisões frontais até hoje.",
+        "emotion": "impactful",
+        "why_works": "Explica de forma simples e mecânica o funcionamento de um objeto físico pesado de latão usado para controle de tráfego ferroviário.",
         "best_format": "SHORTS",
         "viral_category": "practical",
         "hook_angle": "question",
-        "hooks": "Esta rodovia passa no meio de um escritório inteiro",
+        "hooks": "Por que trens de linha única nunca batem de frente?",
         "hook_candidates": [
-          "Esta rodovia passa dentro de um edifício comercial",
-          "Por que esse prédio japonês aceitou uma rua interna?",
-          "A engenharia que isolou o ruído do asfalto flutuante"
+          "O segredo do anel de latão que impede colisões de trens.",
+          "Como ferrovias brasileiras antigas operam sem sinal digital?",
+          "O bastão físico que garante a segurança da linha."
         ],
         "wow_facts_preview": [
-          "A rodovia Hanshin passa pelos andares 5, 6 e 7",
-          "Prédio não toca fisicamente na ponte para evitar vibrações",
-          "Governo japonês paga aluguel de espaço aéreo ao proprietário"
+          "O sistema usa o 'bastão de staff' mecânico inventado no século 19",
+          "Um trem só pode andar se o maquinista segurar o anel",
+          "Apenas um bastão físico existe para cada trecho ferroviário"
         ]
       },
       {
-        "title": "Ilha fantasma de concreto no Japão #Hashima",
-        "promise": "A barreira de concreto de 1916 criada contra os piores supertufões.",
-        "emotion": "Mistério histórico",
-        "why_works": "Explora a mecânica da muralha marítima brutalista que manteve em pé os primeiros arranha-céus japoneses em uma ilha isolada no mar.",
+        "title": "Represa de Orós quase ruiu em 1960 🌊",
+        "promise": "Como engenheiros correram contra o tempo para evacuar 100 mil pessoas antes do rompimento parcial da barragem.",
+        "emotion": "provocative",
+        "why_works": "Narra o desastre climático histórico no Ceará que testou os limites da engenharia de solo e as decisões extremas sob chuva.",
         "best_format": "SHORTS",
-        "viral_category": "impactful",
-        "hook_angle": "before_after",
-        "hooks": "Esta barreira protegeu prédios fantasmas no meio do mar",
+        "viral_category": "astonishing",
+        "hook_angle": "breaking",
+        "hooks": "O dia em que o Ceará quase afundou em 1960.",
         "hook_candidates": [
-          "Esta parede gigante salvou prédios de concreto abandonados",
-          "A estrutura naval rústica da ilha mais densa do mundo",
-          "Muralhas marinhas de Hashima duram há mais de cem anos"
+          "A grande corrida contra o colapso da barragem de Orós.",
+          "Como a maior barragem de terra do Brasil quase sumiu.",
+          "O plano de evacuação de 100 mil cearenses na tempestade."
         ],
         "wow_facts_preview": [
-          "Muralhas externas calculadas contra impacto de ondas de 10 metros",
-          "Primeiro edifício residencial de concreto do Japão construído lá",
-          "Abandono total em 1974 com a mina de carvão desativada"
+          "Ocorreu em março de 1960 após chuvas recordes no Nordeste",
+          "A barragem de terra ainda não estava totalmente concluída",
+          "A água galgou a crista abrindo uma fenda gigante"
+        ]
+      },
+      {
+        "title": "O erro térmico que condenou o Joelma",
+        "promise": "Como o projeto aerodinâmico do topo do prédio impediu o resgate por helicópteros em 1974.",
+        "emotion": "provocative",
+        "why_works": "Análise técnica fria de um erro de engenharia de segurança térmica em São Paulo que mudou as normas nacionais para sempre.",
+        "best_format": "SHORTS",
+        "viral_category": "provocative",
+        "hook_angle": "shock",
+        "hooks": "Por que helicópteros não conseguiram pousar no Joelma?",
+        "hook_candidates": [
+          "O erro aerodinâmico fatal no topo do Edifício Joelma.",
+          "Como a física do ar quente impediu o resgate aéreo.",
+          "A falha de engenharia térmica no pior incêndio de SP."
+        ],
+        "wow_facts_preview": [
+          "Incêndio de 1974 em São Paulo gerou calor extremo no topo",
+          "A coluna de ar quente subindo atingiu temperaturas acima de 200°C",
+          "A turbulência gerada impediu a aproximação estável de helicópteros"
+        ]
+      },
+      {
+        "title": "Prédio brasileiro copiado de cupins 🐜",
+        "promise": "Como arquitetos copiaram a ventilação interna de ninhos de insetos para refrigerar prédios no Cerrado.",
+        "emotion": "astonishing",
+        "why_works": "Mostra a fantástica conexão da biomimética aplicada à arquitetura corporativa moderna no Centro-Oeste brasileiro.",
+        "best_format": "SHORTS",
+        "viral_category": "practical",
+        "hook_angle": "before_after",
+        "hooks": "Eles usaram arquitetura de insetos para esfriar este prédio.",
+        "hook_candidates": [
+          "Como cupinzeiros inspiraram o design de prédios no Brasil.",
+          "O prédio que imita a refrigeração natural do cupim.",
+          "Design biomimético brasileiro reduz ar condicionado usando insetos."
+        ],
+        "wow_facts_preview": [
+          "Inspirado no projeto do edifício Solum Hub e termorregulação de cupins",
+          "Túneis subterrâneos puxam ar frio e expelem ar quente no topo",
+          "Reduz a necessidade de uso de ar condicionado ativo em até 40%"
+        ]
+      },
+      {
+        "title": "O molusco que quase parou Itaipu #Fato",
+        "promise": "A guerra biológica travada por engenheiros contra o mexilhão-dourado que entope os sistemas de refrigeração.",
+        "emotion": "impactful",
+        "why_works": "Une ecologia de espécies invasoras e a manutenção pesada da maior hidrelétrica do Brasil em um Short dinâmico.",
+        "best_format": "SHORTS",
+        "viral_category": "astonishing",
+        "hook_angle": "challenge",
+        "hooks": "Este pequeno animal asiático quase apagou o Brasil.",
+        "hook_candidates": [
+          "Como um mini mexilhão ameaçou desligar a hidrelétrica de Itaipu.",
+          "A batalha secreta dos engenheiros contra mexilhões em Itaipu.",
+          "O molusco invasor que entope os sistemas de refrigeração."
+        ],
+        "wow_facts_preview": [
+          "O mexilhão-dourado chegou da Ásia acidentalmente em navios",
+          "Milhares de mexilhões grudam nos tubos de resfriamento das turbinas",
+          "Engenheiros usam revestimentos químicos e de cobre para conter a praga"
         ]
       }
     ],
-    "best_idea_index": 0,
-    "best_idea_reason": "A ideia dos túneis subterrâneos de tartarugas integrados à malha ferroviária do Shinkansen possui altíssimo poder de retenção visual e compartilhamento. Ela combina biologia animal inusitada e engenharia de precisão com uma resolução rápida e muito clara para o público leigo. Evidencia a obsessão japonesa pelos detalhes mais improváveis que sustentam sua infraestrutura perfeita, gerando engajamento imediato nos comentários por debater o contraste com bueiros e ferrovias do resto do mundo.",
+    "best_idea_index": 8,
+    "best_idea_reason": "A ideia 'Prédio brasileiro copiado de cupins 🐜' une perfeitamente a engenharia bioclimática com a biologia prática e inusitada do Cerrado (biomimética). Ela explica de forma incrivelmente simples e visual como uma solução da natureza resolveu o maior problema da arquitetura moderna no calor brasileiro: o custo energético de refrigeração. O gancho inicial que conecta insetos à construção civil desperta curiosidade extrema imediata, garantindo alta retenção nos primeiros segundos de Short.",
     "_ideas_meta": {
-      "generationSeed": 402820871,
+      "generationSeed": 979425889,
       "excludedCount": 40,
       "usedDeepResearch": true,
       "deepResearch": {
@@ -243,9 +243,9 @@
       "usedNotebooklm": false
     }
   },
-  "selectedIdeaIndex": 0,
+  "selectedIdeaIndex": 5,
   "generatedScriptData": null,
-  "creatorProjectName": "Trilho_trembala_salvando",
+  "creatorProjectName": "trem_Brasil_nao",
   "creatorScript": "",
   "ideationTab": "ai",
   "customTitle": "",
@@ -257,10 +257,10 @@
       "content": ""
     }
   ],
-  "customIdeaTitle": "",
-  "customIdeaPromise": "",
+  "customIdeaTitle": "Como o trem do Brasil não colide #Trem",
+  "customIdeaPromise": "O antigo sistema mecânico de chaveamento físico que impede colisões frontais até hoje.",
   "customIdeaHook": "",
-  "customIdeaEmotion": "",
+  "customIdeaEmotion": "impactful",
   "customIdeaBlocks": "",
   "listNiche": "",
   "listTopic": "",
@@ -269,7 +269,7 @@
   "listicleHudStyle": "auto",
   "listicleIdeasData": null,
   "listicleSearchNiche": "",
-  "ideasSearchNiche": "engenharia japao",
+  "ideasSearchNiche": "curiosidade engenharia brasil",
   "selectedListicleIdeaIndex": -1,
   "showNarrationReview": false,
   "narrationDraft": "",

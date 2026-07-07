@@ -62,7 +62,10 @@ export function sanitizeTimelineAssets(
   let removed = 0;
 
   const { timeline: orchestrationDeduped, removed: orchRemoved } =
-    dedupeOrchestratedTimelineSlots(src);
+    dedupeOrchestratedTimelineSlots(src) as {
+      timeline: Record<string, TimelineAssetRow[]>;
+      removed: number;
+    };
   removed += orchRemoved;
 
   const next: Record<string, TimelineAssetRow[]> = {};

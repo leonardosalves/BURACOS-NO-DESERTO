@@ -104,6 +104,7 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[memory/cocoloop-skills-rejected]]
 - [[memory/comparacao-engenharia-moderna-x-antiga-origem]]
 - [[memory/competitor-intelligence]]
+- [[memory/curiosidade-engenharia-brasil]]
 - [[memory/curiosidade-engenharia]]
 - [[memory/curiosidades-e-fatos-surpreendentes]]
 - [[memory/curiosidades-e-objetos-do-cotidiano]]
@@ -114,7 +115,9 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[memory/engenharia-antiga-curioso]]
 - [[memory/engenharia-antiga]]
 - [[memory/engenharia-curiosidade]]
+- [[memory/engenharia-japao]]
 - [[memory/engenharia-medieval]]
+- [[memory/engenharia-tailandesa]]
 - [[memory/engenharia]]
 - [[memory/geral]]
 - [[memory/google-gemini-sdk-reference]]
@@ -128,12 +131,13 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 
 ## Logs recentes
 
+- [[agent_runs/2026-07-07]]
+- [[agent_runs/2026-07-06]]
 - [[agent_runs/2026-07-05]]
 - [[agent_runs/2026-07-04]]
 - [[agent_runs/2026-07-03]]
 - [[agent_runs/2026-07-02]]
 - [[agent_runs/2026-07-01]]
-- [[agent_runs/2026-06-30]]
 
 ## Regras por formato
 
@@ -146,4 +150,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-07-05T22:00:43.188Z
+atualizado: 2026-07-07T19:13:21.625Z

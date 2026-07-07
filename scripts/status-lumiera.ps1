@@ -28,7 +28,7 @@ if ($permanentMode) {
             if ($gpid -gt 0 -and (Get-Process -Id $gpid -ErrorAction SilentlyContinue)) {
                 Write-Host ("Guardian : daemon ativo (PID {0})" -f $gpid) -ForegroundColor Green
             } else {
-                Write-Host "Guardian : daemon parado — rode install-lumiera-permanent.ps1" -ForegroundColor Yellow
+                Write-Host "Guardian : daemon parado - rode install-lumiera-permanent.ps1" -ForegroundColor Yellow
             }
         } catch { }
     }
@@ -66,13 +66,13 @@ if ($frontend) {
 
 $watchProc = $null
 $task = $null
-if (-not $pm2Mode) {
+if (-not ($pm2Mode -or $permanentMode)) {
     $watchProc = Test-LumieraWatchdogActive
     if (-not $watchProc) {
         $task = Get-ScheduledTask -TaskName "Lumiera-Backend-Watchdog" -ErrorAction SilentlyContinue
     }
 }
-if ($pm2Mode) {
+if ($pm2Mode -or $permanentMode) {
     Write-Host "Watchdog : desativado (PM2 cuida do processo)" -ForegroundColor DarkGray
 } elseif ($watchProc) {
     if ($watchProc.ProcessId -gt 0) {

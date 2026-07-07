@@ -25,7 +25,7 @@ Write-Host "=== Lumiera PERMANENTE (PM2 + Guardian) ===" -ForegroundColor Cyan
 
 # 1) PM2 stack
 & (Join-Path $PSScriptRoot "install-lumiera-pm2.ps1")
-if ($LASTEXITCODE -ne 0) {
+if (-not (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 10)) {
     Write-Host "Falha ao subir PM2. Corrija sintaxe/logs e tente de novo." -ForegroundColor Red
     exit 1
 }
@@ -71,27 +71,24 @@ try {
     $taskOk = $true
     Write-Host "Guardian: tarefa agendada '$TaskGuardian'" -ForegroundColor Green
 } catch {
-    Write-Host "Guardian: sem admin — usando pasta Startup + daemon" -ForegroundColor Yellow
+    Write-Host "Guardian: sem admin - usando pasta Startup + daemon" -ForegroundColor Yellow
     $daemonScript = Join-Path $PSScriptRoot "start-lumiera-guardian-daemon.ps1"
     $startupDir = [Environment]::GetFolderPath("Startup")
     $vbsPath = Join-Path $startupDir "Lumiera-Guardian.vbs"
-    $vbs = @"
-Set sh = CreateObject("Wscript.Shell")
-sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""$daemonScript""", 0, False
-"@
-    Set-Content -Path $vbsPath -Value $vbs -Encoding ASCII
-    Start-Process `
-        -FilePath "powershell.exe" `
-        -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", "`"$daemonScript`"") `
-        -WorkingDirectory $script:RepoRoot `
-        -WindowStyle Hidden | Out-Null
+    $runLine = 'sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{0}""", 0, False' -f $daemonScript
+    Set-Content -Path $vbsPath -Value @(
+        'Set sh = CreateObject("Wscript.Shell")',
+        $runLine
+    ) -Encoding ASCII
+    $daemonArgs = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$daemonScript`""
+    Start-Process -FilePath "powershell.exe" -ArgumentList $daemonArgs -WorkingDirectory $script:RepoRoot -WindowStyle Hidden | Out-Null
     Write-Host "Guardian: daemon ativo + $vbsPath" -ForegroundColor Green
 }
 
 & $GuardianScript -Quiet | Out-Null
 
 Write-Host ""
-Write-Host "OK — modo PERMANENTE ativo." -ForegroundColor Green
+Write-Host "OK - modo PERMANENTE ativo." -ForegroundColor Green
 Write-Host "  Backend:  http://127.0.0.1:3005" -ForegroundColor White
 Write-Host "  Frontend: http://127.0.0.1:5176" -ForegroundColor White
 Write-Host "  Guardian: tarefa '$TaskGuardian' (cada 1 min + login + boot)" -ForegroundColor White
@@ -99,3 +96,4 @@ Write-Host ""
 Write-Host "Diagnostico: .\scripts\status-lumiera.ps1" -ForegroundColor Cyan
 Write-Host "Log guardian: .lumiera-logs\guardian.log" -ForegroundColor Cyan
 Write-Host "Desinstalar:  .\scripts\install-lumiera-permanent.ps1 -Uninstall" -ForegroundColor DarkGray
+exit 0

@@ -26,9 +26,9 @@ export function BackendStatusBanner({
           <ServerCrash className="w-4 h-4 shrink-0 text-amber-300" />
         )}
         <span className="leading-snug">
-          Backend ocupado ou reiniciando (porta 3005). Durante render/Gemini a
-          resposta pode demorar — o vídeo continua renderizando em segundo
-          plano; aguarde, não feche o programa.
+          Modo cache ativo: o app continua abrindo projetos, status, timeline e
+          configuracoes do ultimo snapshot. Render, upload, IA e arquivos novos
+          voltam quando o worker da porta 3005 responder.
         </span>
       </div>
       {onRetry ? (

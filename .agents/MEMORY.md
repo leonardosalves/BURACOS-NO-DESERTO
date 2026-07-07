@@ -38,6 +38,7 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 - [[memory/cocoloop-skills-rejected]]
 - [[memory/comparacao-engenharia-moderna-x-antiga-origem]]
 - [[memory/competitor-intelligence]]
+- [[memory/curiosidade-engenharia-brasil]]
 - [[memory/curiosidade-engenharia]]
 - [[memory/curiosidades-e-fatos-surpreendentes]]
 - [[memory/curiosidades-e-objetos-do-cotidiano]]
@@ -48,7 +49,9 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 - [[memory/engenharia-antiga-curioso]]
 - [[memory/engenharia-antiga]]
 - [[memory/engenharia-curiosidade]]
+- [[memory/engenharia-japao]]
 - [[memory/engenharia-medieval]]
+- [[memory/engenharia-tailandesa]]
 - [[memory/engenharia]]
 - [[memory/geral]]
 - [[memory/google-gemini-sdk-reference]]
@@ -60,4 +63,4 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 - [[memory/video-reference-analyses]]
 - [[memory/videoagent-lumiera]]
 
-atualizado: 2026-07-05T22:00:43.167Z
+atualizado: 2026-07-07T19:13:21.614Z

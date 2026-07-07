@@ -5,8 +5,8 @@
 ## Meta
 
 niche: Customized
-updated: 2026-07-06T02:12:54.537Z
-runs: 47
+updated: 2026-07-07T18:53:19.598Z
+runs: 60
 
 ## Padrões promovidos
 
@@ -14,7 +14,7 @@ runs: 47
 
 ## Candidatos (em observação)
 
-- [LONG/no_bgm] Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia (count: 30)
+- [LONG/no_bgm] Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia (count: 43)
 - [LONG/overlay_budget] Respeitar orçamento máximo de overlays do formato (count: 8)
 - [LONG/overlay_timing] Sincronizar overlay com palavra-chave da narração (desvio < 3s) (count: 7)
 - [SHORT/hook_polluted] Evitar overlays informativos no gancho Short (<1.5s) — manter hook limpo (count: 6)
