@@ -38,6 +38,11 @@ import {
   overlaySupportsTheme,
   type OverlayDraft,
 } from "./overlayEditorConfig";
+import {
+  interpolateFlyScale,
+  resolveEarthDescentFrame,
+  sortZoomKeyframes,
+} from "./locationIntroFly";
 
 type Props = {
   overlay: OverlayDraft;
@@ -153,22 +158,24 @@ function LocationIntroMapCard({
             Math.max(0, scrubSeconds / Math.max(durationSeconds, 0.1))
           )
         : 0.45;
-    const frames =
+    const frames = sortZoomKeyframes(
       keyframes.length > 0
         ? keyframes
         : [
             bgWide ? { zoom: props.zoom_from || 8, image: bgWide } : null,
             bgTight ? { zoom: props.zoom_to || 14, image: bgTight } : null,
-          ].filter(Boolean);
-    const seg = 1 / Math.max(frames.length - 1, 1);
-    const idx = Math.min(
-      frames.length - 2,
-      Math.max(0, Math.floor(progress / seg))
+          ].filter(Boolean)
     );
-    const localT = (progress - idx * seg) / Math.max(seg, 0.001);
-    const zoom =
-      flyMode === "earth_descent" ? 1 + progress * 0.22 : 1 + progress * 0.1;
-    const drawProgress = Math.min(1, Math.max(0, (progress - 0.35) * 1.4));
+    const {
+      activeIndex: idx,
+      blendT: localT,
+      easedProgress,
+    } = resolveEarthDescentFrame(frames, progress);
+    const zoom = interpolateFlyScale(frames, progress, flyMode);
+    const drawProgress = Math.min(
+      1,
+      Math.max(0, (easedProgress - 0.42) * 1.65)
+    );
 
     return (
       <div

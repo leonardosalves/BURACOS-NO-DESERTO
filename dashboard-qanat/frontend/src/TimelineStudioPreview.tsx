@@ -83,6 +83,8 @@ export function TimelineStudioPreview({
   const [playing, setPlaying] = useState(false);
   const [videoLoadFailed, setVideoLoadFailed] = useState(false);
   const [livePlayhead, setLivePlayhead] = useState(studio.playhead);
+  /** Playhead em tempo real para motion/PIP — sem throttle de 100ms. */
+  const [motionPlayhead, setMotionPlayhead] = useState(studio.playhead);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const bgmRef = useRef<HTMLAudioElement | null>(null);
@@ -90,6 +92,7 @@ export function TimelineStudioPreview({
   const playingRef = useRef(false);
   const rafRef = useRef(0);
   const lastPublishRef = useRef(0);
+  const lastVideoClipIdRef = useRef<string | null>(null);
   const onPlayheadChangeRef = useRef(onPlayheadChange);
   const clipsRef = useRef(studio.clips);
   const totalDurRef = useRef(studio.totalDuration || 120);
@@ -123,6 +126,7 @@ export function TimelineStudioPreview({
     if (!playing) {
       playheadRef.current = studio.playhead;
       setLivePlayhead(studio.playhead);
+      setMotionPlayhead(studio.playhead);
     }
   }, [studio.playhead, playing]);
 
@@ -130,8 +134,8 @@ export function TimelineStudioPreview({
     ? activeVideoAt(studio.clips, displayPlayhead)
     : previewVideoAt(studio.clips, displayPlayhead);
   const motionClips = useMemo(
-    () => activeMotionAt(studio.clips, displayPlayhead),
-    [studio.clips, displayPlayhead]
+    () => activeMotionAt(studio.clips, motionPlayhead),
+    [studio.clips, motionPlayhead]
   );
   const caption = activeCaptionAt(studio.clips, displayPlayhead);
 
@@ -223,11 +227,13 @@ export function TimelineStudioPreview({
   );
 
   const syncVideoToTime = useCallback(
-    (globalSec: number) => {
+    (globalSec: number, forceSeek = false) => {
       const v = videoRef.current;
       if (!v) return;
       const clip = resolveVideoClipAt(globalSec);
       if (!clip || !isVideoClip(clip)) return;
+      const clipChanged = clip.id !== lastVideoClipIdRef.current;
+      if (clipChanged) lastVideoClipIdRef.current = clip.id;
       const local = Math.max(
         0,
         Math.min(
@@ -240,7 +246,10 @@ export function TimelineStudioPreview({
         )
       );
       const applySeek = () => {
-        if (Math.abs(v.currentTime - local) > 0.05) {
+        const drift = Math.abs(v.currentTime - local);
+        const shouldSeek =
+          forceSeek || clipChanged || !playingRef.current || drift > 0.28;
+        if (shouldSeek && drift > 0.02) {
           try {
             v.currentTime = local;
           } catch {
@@ -315,6 +324,7 @@ export function TimelineStudioPreview({
       }
 
       publishPlayhead(t);
+      setMotionPlayhead(t);
       syncVideoToTime(playheadRef.current);
       syncBgmToPlayhead(playheadRef.current, true);
 
@@ -373,7 +383,8 @@ export function TimelineStudioPreview({
       }
     }
     a?.pause();
-    syncVideoToTime(studio.playhead);
+    setMotionPlayhead(studio.playhead);
+    syncVideoToTime(studio.playhead, true);
     syncBgmToPlayhead(studio.playhead, false);
     videoRef.current?.pause();
   }, [studio.playhead, playing, voiceSrc, syncVideoToTime, syncBgmToPlayhead]);
@@ -422,6 +433,7 @@ export function TimelineStudioPreview({
                 key={assetSrc}
                 src={assetSrc}
                 className="absolute inset-0 w-full h-full object-cover"
+                style={{ transform: "translateZ(0)", willChange: "auto" }}
                 muted
                 playsInline
                 preload="auto"
@@ -478,7 +490,7 @@ export function TimelineStudioPreview({
 
           {motionClips.map((clip) => {
             const draft = clipToOverlayDraft(clip, getAssetUrl, getMusicUrl);
-            const localSec = displayPlayhead - clip.start;
+            const localSec = motionPlayhead - clip.start;
             const isFullscreen = isFullscreenMotionClip(clip);
             const isPip = !isFullscreen;
             return (
@@ -515,7 +527,7 @@ export function TimelineStudioPreview({
 
           {activeOverlays.map((clip) => {
             const draft = clipToOverlayDraft(clip, getAssetUrl, getMusicUrl);
-            const localSec = displayPlayhead - clip.start;
+            const localSec = motionPlayhead - clip.start;
             const isFullscreen = FULLSCREEN_OVERLAYS.has(
               String(clip.templateId)
             );

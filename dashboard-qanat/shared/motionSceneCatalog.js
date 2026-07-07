@@ -108,7 +108,7 @@ export const LOCATION_INTRO_DEFAULTS = {
   map_style: "satellite",
   zoom_from: 3,
   zoom_to_poi: 17,
-  zoom_to_city: 12,
+  zoom_to_city: 10,
   duration_seconds: 8,
   fly_mode: "earth_descent",
 };
