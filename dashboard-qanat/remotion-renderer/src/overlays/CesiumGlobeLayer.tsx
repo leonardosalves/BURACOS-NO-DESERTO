@@ -65,6 +65,7 @@ export const CesiumGlobeLayer: React.FC<CesiumGlobeLayerProps> = ({
   const viewerRef = useRef<InstanceType<CesiumModule["Viewer"]> | null>(null);
   const cesiumRef = useRef<CesiumModule | null>(null);
   const boundaryAddedRef = useRef(false);
+  const initGenRef = useRef(0);
   const [ready, setReady] = useState(false);
 
   const frame = useCurrentFrame();
@@ -72,19 +73,32 @@ export const CesiumGlobeLayer: React.FC<CesiumGlobeLayerProps> = ({
 
   useEffect(() => {
     const handle = delayRender("cesium-globe-init");
-    let cancelled = false;
     let viewer: InstanceType<CesiumModule["Viewer"]> | null = null;
+    const initGen = ++initGenRef.current;
 
     (async () => {
       try {
+        const container = containerRef.current;
+        if (!container) return;
+
+        if (container.clientWidth === 0 || container.clientHeight === 0) {
+          await new Promise<void>((resolve) => {
+            const ro = new ResizeObserver(() => {
+              if (container.clientWidth > 0 && container.clientHeight > 0) {
+                ro.disconnect();
+                resolve();
+              }
+            });
+            ro.observe(container);
+          });
+        }
+
+        container.replaceChildren();
         const Cesium = await import("cesium");
         await import("cesium/Build/Cesium/Widgets/widgets.css");
-        if (cancelled || !containerRef.current) return;
+        if (initGen !== initGenRef.current || !containerRef.current) return;
 
         cesiumRef.current = Cesium;
-        if (ionAccessToken) {
-          Cesium.Ion.defaultAccessToken = ionAccessToken;
-        }
 
         viewer = new Cesium.Viewer(containerRef.current, {
           animation: false,
@@ -102,6 +116,12 @@ export const CesiumGlobeLayer: React.FC<CesiumGlobeLayerProps> = ({
           useDefaultRenderLoop: false,
           requestRenderMode: true,
           maximumRenderTimeChange: Infinity,
+          showRenderLoopErrors: false,
+          contextOptions: {
+            webgl: {
+              failIfMajorPerformanceCaveat: false,
+            },
+          },
         });
         viewerRef.current = viewer;
 
@@ -111,40 +131,53 @@ export const CesiumGlobeLayer: React.FC<CesiumGlobeLayerProps> = ({
         );
         viewer.imageryLayers.addImageryProvider(imagery);
 
-        if (googleMapsApiKey && Cesium.createGooglePhotorealistic3DTileset) {
-          try {
-            const tileset = await Cesium.createGooglePhotorealistic3DTileset({
-              key: googleMapsApiKey,
-            });
-            viewer.scene.primitives.add(tileset);
-          } catch {
-            /* 3D Tiles Google opcional */
-          }
-        } else if (ionAccessToken) {
-          try {
-            const terrain = await Cesium.createWorldTerrainAsync();
-            viewer.terrainProvider = terrain;
-          } catch {
-            /* terrain opcional */
-          }
-        }
-
-        if (!cancelled) setReady(true);
+        if (initGen === initGenRef.current) setReady(true);
       } finally {
         continueRender(handle);
       }
     })();
 
     return () => {
-      cancelled = true;
+      initGenRef.current += 1;
       boundaryAddedRef.current = false;
-      if (viewer && !viewer.isDestroyed()) {
-        viewer.destroy();
-      }
+      if (viewer && !viewer.isDestroyed()) viewer.destroy();
+      if (containerRef.current) containerRef.current.replaceChildren();
       viewerRef.current = null;
       cesiumRef.current = null;
+      setReady(false);
     };
-  }, [ionAccessToken, googleMapsApiKey]);
+  }, []);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || !ready || viewer.isDestroyed()) return;
+
+    const ion = String(ionAccessToken || "").trim();
+    const googleKey = String(googleMapsApiKey || "").trim();
+
+    (async () => {
+      try {
+        if (ion) Cesium.Ion.defaultAccessToken = ion;
+
+        if (googleKey && Cesium.createGooglePhotorealistic3DTileset) {
+          const tileset = await Cesium.createGooglePhotorealistic3DTileset({
+            key: googleKey,
+          });
+          if (viewer.isDestroyed()) return;
+          viewer.scene.primitives.add(tileset);
+          viewer.scene.requestRender();
+        } else if (ion) {
+          const terrain = await Cesium.createWorldTerrainAsync();
+          if (viewer.isDestroyed()) return;
+          viewer.terrainProvider = terrain;
+          viewer.scene.requestRender();
+        }
+      } catch {
+        /* terrain / 3D tiles opcionais */
+      }
+    })();
+  }, [ready, ionAccessToken, googleMapsApiKey]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
