@@ -424,6 +424,67 @@ function studioMotionMigrationFingerprint(studio = {}) {
   });
 }
 
+function narrationClipsFingerprint(clips = []) {
+  const voice = clips.filter((c) => c.trackId === "voice");
+  const captions = clips.filter((c) => c.trackId === "captions");
+  return JSON.stringify({
+    voice: voice.map((c) => ({
+      id: c.id,
+      source: c.source,
+      duration: c.duration,
+    })),
+    captionCount: captions.length,
+    captionSample: captions.slice(0, 5).map((c) => ({
+      start: c.start,
+      duration: c.duration,
+      label: c.label,
+    })),
+  });
+}
+
+/**
+ * Reconstrói trilhas voice + captions a partir de block_timings, word_transcripts
+ * e arquivo de narração no disco — fonte de verdade pós-TTS/Whisper.
+ */
+export function syncNarrationToTimelineStudio(projDir, studio) {
+  if (!studio || !Array.isArray(studio.clips)) {
+    return { studio, changed: false };
+  }
+
+  const blockTimings =
+    readJson(path.join(projDir, "block_timings.json"), {}) || {};
+  const wordTranscripts =
+    readJson(path.join(projDir, "word_transcripts.json"), []) || [];
+
+  const beforeFp = narrationClipsFingerprint(studio.clips);
+  const beforeTotal = Number(studio.totalDuration) || 0;
+
+  const otherClips = studio.clips.filter(
+    (c) => c.trackId !== "voice" && c.trackId !== "captions"
+  );
+  const narrationClips = [...migrateCaptionClips(wordTranscripts)];
+  const voice = migrateVoiceClip(projDir, blockTimings);
+  if (voice) narrationClips.unshift(voice);
+
+  const merged = [...otherClips, ...narrationClips].sort(
+    (a, b) => (Number(a.start) || 0) - (Number(b.start) || 0)
+  );
+  const { clips: tightenedClips } = tightenStudioTimelineClips(merged);
+  const totalDuration = resolveTotalDuration(blockTimings, tightenedClips);
+
+  const nextStudio = {
+    ...studio,
+    clips: tightenedClips,
+    totalDuration,
+  };
+
+  const afterFp = narrationClipsFingerprint(tightenedClips);
+  const changed =
+    beforeFp !== afterFp || Math.abs(beforeTotal - totalDuration) > 0.01;
+
+  return { studio: nextStudio, changed };
+}
+
 function repairStudioOnLoad(projDir, studio) {
   const storyboard = readStoryboardJson(projDir);
   let next = migrateStudioMotionClipsFromVideo(studio);
@@ -436,7 +497,11 @@ function repairStudioOnLoad(projDir, studio) {
   const merged = mergeRemotionFromStoryboard(next, storyboard);
   next = stripSuppressedRemotionClips(merged.studio);
   next = enrichStudioSatelliteClips(next);
-  return next;
+  const { studio: withNarration } = syncNarrationToTimelineStudio(
+    projDir,
+    next
+  );
+  return withNarration;
 }
 
 export function loadTimelineStudio(projDir) {
@@ -447,12 +512,14 @@ export function loadTimelineStudio(projDir) {
     motion: studioMotionMigrationFingerprint(result.studio),
     clips: (result.studio.clips || []).map((c) => c.id),
     sup: result.studio.suppressedMotionSceneIds,
+    narration: narrationClipsFingerprint(result.studio.clips),
   });
   const studio = repairStudioOnLoad(projDir, result.studio);
   const afterFp = JSON.stringify({
     motion: studioMotionMigrationFingerprint(studio),
     clips: (studio.clips || []).map((c) => c.id),
     sup: studio.suppressedMotionSceneIds,
+    narration: narrationClipsFingerprint(studio.clips),
   });
 
   if (beforeFp !== afterFp) {
