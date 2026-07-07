@@ -868,33 +868,39 @@ function TemplatePreviewCanvas({
             height={isVertical ? 132 : 188}
             viewBox="0 0 180 180"
           >
-            {(() => {
-              const segments =
-                previewProps.segments && previewProps.segments.length
-                  ? previewProps.segments
-                  : DEFAULT_PREVIEW_SEGMENTS;
-              const total = segments.reduce((sum, item) => sum + item.value, 0);
-              let startAngle = -Math.PI / 2;
-              return segments.map((segment, index) => {
-                const fullSlice = (segment.value / total) * Math.PI * 2;
-                const endAngle = startAngle + fullSlice * enter;
-                const path = describePieSlice(90, 90, 72, startAngle, endAngle);
-                startAngle += fullSlice;
-                return (
-                  <path
-                    key={`${segment.label}-${index}`}
-                    d={path}
-                    fill={segment.color}
-                    opacity={interpolate(
-                      frame,
-                      [index * 5 + 6, index * 5 + 22],
-                      [0, 1],
-                      { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-                    )}
-                  />
-                );
-              });
-            })()}
+            {[
+              { size: 0.34, color: "#22d3ee", offset: 0 },
+              { size: 0.22, color: "#4f7cff", offset: 0.34 },
+              { size: 0.18, color: "#facc15", offset: 0.56 },
+              { size: 0.16, color: "#ff2f8f", offset: 0.74 },
+              { size: 0.1, color: "#7c2dff", offset: 0.9 },
+            ].map((segment, index) => {
+              const circumference = 2 * Math.PI * 58;
+              const dash = circumference * segment.size * enter;
+              const gap = circumference - dash;
+              const rotate = segment.offset * 360 - 90;
+              return (
+                <circle
+                  key={segment.color}
+                  cx="90"
+                  cy="90"
+                  r="58"
+                  fill="none"
+                  stroke={segment.color}
+                  strokeWidth={isVertical ? 24 : 28}
+                  strokeLinecap="butt"
+                  strokeDasharray={`${dash} ${gap}`}
+                  transform={`rotate(${rotate} 90 90)`}
+                  opacity={interpolate(
+                    frame,
+                    [index * 5 + 6, index * 5 + 22],
+                    [0, 1],
+                    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+                  )}
+                />
+              );
+            })}
+            <circle cx="90" cy="90" r="34" fill="#0b111b" />
           </svg>
           <div
             style={{
