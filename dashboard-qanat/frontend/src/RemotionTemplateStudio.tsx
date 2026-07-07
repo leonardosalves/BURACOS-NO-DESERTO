@@ -42,6 +42,7 @@ type TemplateItem = {
   shortPreview:
     | "ring"
     | "counter"
+    | "comparison"
     | "pie"
     | "donut"
     | "circular-progress"
@@ -56,6 +57,7 @@ type TemplateItem = {
   longPreview:
     | "ring"
     | "counter"
+    | "comparison"
     | "line"
     | "area"
     | "pie"
@@ -302,6 +304,10 @@ type TemplatePreviewProps = {
   statusText?: string;
   projectCode?: string;
   location?: string;
+  beforeLabel?: string;
+  afterLabel?: string;
+  beforeValue?: number;
+  afterValue?: number;
 };
 
 const DEFAULT_PREVIEW_SEGMENTS: PreviewSegment[] = [
@@ -314,6 +320,7 @@ const DEFAULT_PREVIEW_SEGMENTS: PreviewSegment[] = [
 const PREVIEW_DURATION_BY_VARIANT: Record<PreviewVariant, number> = {
   ring: 90,
   counter: 90,
+  comparison: 90,
   pie: 90,
   donut: 90,
   "circular-progress": 150,
@@ -337,6 +344,11 @@ function slugifyTemplatePart(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function toNumber(value: unknown, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function extractDataSlotsFromCode(code: string): string[] {
@@ -416,15 +428,49 @@ function isBarChartContext(...labels: string[]) {
 
 function detectChartKindFromCode(
   code = ""
-): "line" | "area" | "bar" | "pie" | "donut" | null {
+):
+  | "line"
+  | "area"
+  | "bar"
+  | "pie"
+  | "donut"
+  | "comparison"
+  | "progress-bars"
+  | "circular-progress"
+  | null {
   const componentName = code.match(/export\s+default\s+function\s+(\w+)/)?.[1];
-  const meta = [componentName || "", code.slice(0, 1600)].join(" ");
-  if (isDonutChartContext(meta)) return "donut";
-  if (isPieChartContext(meta)) return "pie";
-  if (isAreaChartContext(meta)) return "area";
-  if (isLineChartContext(meta)) return "line";
-  if (isBarChartContext(meta)) return "bar";
-  if (isCircularProgressContext(meta)) return null;
+  const meta = [componentName || "", code.slice(0, 3000)]
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    meta.includes("beforevalue") ||
+    meta.includes("aftervalue") ||
+    meta.includes("comparison") ||
+    meta.includes("beforelabel")
+  ) {
+    return "comparison";
+  }
+  if (isDonutChartContext(meta) || meta.includes("donut")) return "donut";
+  if (isPieChartContext(meta) || meta.includes("pie")) return "pie";
+  if (isAreaChartContext(meta) || meta.includes("area")) return "area";
+  if (
+    meta.includes("progressbar") ||
+    meta.includes("progress-bar") ||
+    meta.includes("progressbars")
+  ) {
+    return "progress-bars";
+  }
+  if (isCircularProgressContext(meta) || meta.includes("circularprogress"))
+    return "circular-progress";
+  if (isLineChartContext(meta) || meta.includes("line")) return "line";
+  if (
+    isBarChartContext(meta) ||
+    meta.includes("bar") ||
+    meta.includes("column")
+  )
+    return "bar";
+
   return null;
 }
 
@@ -437,6 +483,15 @@ function previewVariantsFromChartKind(
   if (kind === "bar") return { shortPreview: "bars", longPreview: "bars" };
   if (kind === "area") return { shortPreview: "area", longPreview: "area" };
   if (kind === "line") return { shortPreview: "line", longPreview: "line" };
+  if (kind === "comparison")
+    return { shortPreview: "comparison", longPreview: "comparison" };
+  if (kind === "progress-bars")
+    return { shortPreview: "progress-bars", longPreview: "progress-bars" };
+  if (kind === "circular-progress")
+    return {
+      shortPreview: "circular-progress",
+      longPreview: "circular-progress",
+    };
   return null;
 }
 
@@ -450,8 +505,8 @@ function inferChartKindFromSubcategory(
   templateName = ""
 ): ReturnType<typeof detectChartKindFromCode> {
   const metaLabels = [subcategory, templateName];
-  // Checagens específicas (ordem importa — donut antes de pie, area antes de line)
-  if (isCircularProgressContext(...metaLabels)) return null; // handled separately
+  // Checagens específicas
+  if (isCircularProgressContext(...metaLabels)) return "circular-progress";
   if (isDonutChartContext(...metaLabels)) return "donut";
   if (isPieChartContext(...metaLabels)) return "pie";
   if (isAreaChartContext(...metaLabels)) return "area";
@@ -459,12 +514,23 @@ function inferChartKindFromSubcategory(
   if (isLineChartContext(...metaLabels)) return "line";
 
   // Keyword matching flexível para subcategorias customizadas
-  // Usa plurais (bars?, lines?) para pegar "Stacked Lines", etc.
   const hay = [subcategory, templateName].join(" ").toLowerCase();
   if (/\b(donut|rosca|anel|donuts?)\b/.test(hay)) return "donut";
   if (/\b(pie|pizza|fatia|pies?)\b/.test(hay)) return "pie";
   if (/\b(area|preenchid|filled|stacked\s*area|areas?)\b/.test(hay))
     return "area";
+  if (
+    /\b(comparison|comparativo|comparative|before\s*after|antes\s*depois)\b/.test(
+      hay
+    )
+  )
+    return "comparison";
+  if (
+    /\b(progress\s*bars?|barras?\s*de\s*progresso|progress\-bars?)\b/.test(hay)
+  )
+    return "progress-bars";
+  if (/\b(circular\s*progress|circular\-progress)\b/.test(hay))
+    return "circular-progress";
   if (/\b(bars?|barra|coluna|columns?|histogram|stack)\b/.test(hay))
     return "bar";
   if (/\b(lines?|linha|spark|trend|series?|curv)\b/.test(hay)) return "line";
@@ -480,25 +546,31 @@ function resolveChartDataPreview(
   const sub = subcategory.toLowerCase();
   const nameLower = templateName.toLowerCase();
 
-  // Counter — checagem direta (redireciona para o novo painel Stat Counter animado)
+  // 1) PRIORIDADE MÁXIMA: Detectar diretamente a partir do código fonte (fonte da verdade do componente!)
+  const fromCode = previewVariantsFromChartKind(detectChartKindFromCode(code));
+  if (fromCode) return fromCode;
+
+  // 2) SEGUNDA PRIORIDADE: Detectar pelo nome da subcategoria
+  const fromSub = previewVariantsFromChartKind(
+    inferChartKindFromSubcategory(subcategory, templateName)
+  );
+  if (fromSub) return fromSub;
+
+  // 3) KPIs e Counters específicos que não são charts visuais padrão
   if (sub.includes("counter") || nameLower.includes("counter")) {
     return { shortPreview: "counter", longPreview: "counter" };
   }
-
-  // KPI — checagem direta
   if (sub.includes("kpi") || nameLower.includes("kpi")) {
     return { shortPreview: "ring", longPreview: "ring" };
   }
 
-  // Circular Progress — checagem direta
+  // 4) Checagens explícitas de progresso como fallback
   if (isCircularProgressContext(subcategory, templateName)) {
     return {
       shortPreview: "circular-progress",
       longPreview: "circular-progress",
     };
   }
-
-  // Progress Bars (lista de barras horizontais) — checagem direta
   if (
     sub.includes("progress bar") ||
     sub.includes("progress-bar") ||
@@ -513,16 +585,7 @@ function resolveChartDataPreview(
     };
   }
 
-  // 1) PRIORIDADE: Subcategoria selecionada pelo usuário
-  const fromSub = inferChartKindFromSubcategory(subcategory, templateName);
-  const fromSubPreview = previewVariantsFromChartKind(fromSub);
-  if (fromSubPreview) return fromSubPreview;
-
-  // 2) FALLBACK: Detectar pelo código (se a subcategoria não deu match)
-  const fromCode = previewVariantsFromChartKind(detectChartKindFromCode(code));
-  if (fromCode) return fromCode;
-
-  // 3) Último recurso: "line" é o chart mais genérico (melhor que "media" para chart-data)
+  // 5) Último recurso: "line"
   return { shortPreview: "line", longPreview: "line" };
 }
 
@@ -741,6 +804,10 @@ function buildPreviewPropsFromTemplate(
     statusText: defaultProps.statusText ?? props.statusText,
     projectCode: defaultProps.projectCode ?? props.projectCode,
     location: defaultProps.location ?? props.location,
+    beforeLabel: defaultProps.beforeLabel ?? props.beforeLabel,
+    afterLabel: defaultProps.afterLabel ?? props.afterLabel,
+    beforeValue: defaultProps.beforeValue ?? props.beforeValue,
+    afterValue: defaultProps.afterValue ?? props.afterValue,
   };
 
   merged.segments = extractPreviewSegmentsFromCode(code);
@@ -1465,6 +1532,142 @@ function TemplatePreviewCanvas({
             </div>
           </div>
         </>
+      )}
+
+      {variant === "comparison" && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: isVertical ? 16 : 24,
+          }}
+        >
+          {previewProps.title && (
+            <div
+              style={{
+                fontSize: isVertical ? 11 : 16,
+                fontWeight: 950,
+                color: "white",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: isVertical ? 20 : 28,
+                textAlign: "center",
+              }}
+            >
+              {previewProps.title}
+            </div>
+          )}
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-around",
+              alignItems: "stretch",
+              width: "100%",
+              height: isVertical ? height * 0.44 : height * 0.52,
+              position: "relative",
+            }}
+          >
+            {/* Barra da Esquerda: Before */}
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: isVertical ? 16 : 24,
+                  fontWeight: 900,
+                  color: "#ef4444",
+                  fontFamily: "monospace",
+                }}
+              >
+                {Math.round(toNumber(previewProps.beforeValue, 34) * enter)}%
+              </div>
+              <div
+                style={{
+                  width: isVertical ? 38 : 58,
+                  height: `${toNumber(previewProps.beforeValue, 34) * enter}%`,
+                  backgroundColor: "#ef4444",
+                  borderRadius: 4,
+                  boxShadow: "0 0 16px rgba(239,68,68,0.35)",
+                }}
+              />
+              <div
+                style={{
+                  fontSize: isVertical ? 9 : 11,
+                  fontWeight: 800,
+                  color: "#94a3b8",
+                  textTransform: "uppercase",
+                  marginTop: 4,
+                }}
+              >
+                {previewProps.beforeLabel || "Before"}
+              </div>
+            </div>
+
+            {/* Linha Divisória */}
+            <div
+              style={{
+                width: 1,
+                backgroundColor: "rgba(255,255,255,0.12)",
+                margin: "0 10px",
+              }}
+            />
+
+            {/* Barra da Direita: After */}
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: isVertical ? 16 : 24,
+                  fontWeight: 900,
+                  color: "#3b82f6",
+                  fontFamily: "monospace",
+                }}
+              >
+                {Math.round(toNumber(previewProps.afterValue, 89) * enter)}%
+              </div>
+              <div
+                style={{
+                  width: isVertical ? 38 : 58,
+                  height: `${toNumber(previewProps.afterValue, 89) * enter}%`,
+                  backgroundColor: "#3b82f6",
+                  borderRadius: 4,
+                  boxShadow: "0 0 16px rgba(59,130,246,0.35)",
+                }}
+              />
+              <div
+                style={{
+                  fontSize: isVertical ? 9 : 11,
+                  fontWeight: 800,
+                  color: "#94a3b8",
+                  textTransform: "uppercase",
+                  marginTop: 4,
+                }}
+              >
+                {previewProps.afterLabel || "After"}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {variant === "circular-progress" && (
