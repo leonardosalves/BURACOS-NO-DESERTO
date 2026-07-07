@@ -18,6 +18,7 @@ import {
 } from "./timelineStudioClipOps";
 import {
   clipsOnTrack,
+  ensureMotionTrackInStudio,
   type StudioClip,
   type TimelineStudioState,
 } from "./timelineStudioTypes";
@@ -67,13 +68,17 @@ export function TimelineStudio({
       const res = await fetch(getProjectUrl("/api/timeline-studio"));
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      const loaded = upsertMusicClipInStudio(
-        data.studio as TimelineStudioState,
-        config
+      const loaded = ensureMotionTrackInStudio(
+        upsertMusicClipInStudio(data.studio as TimelineStudioState, config)
       );
       setStudio(loaded);
       if (data.migrated) {
         toast.success("Timeline Studio: projeto migrado para multi-trilha");
+      }
+      if (data.motionMigrated) {
+        toast.success(
+          "Cenas Remotion movidas para trilha própria (PIP no mapa)"
+        );
       }
     } catch (err) {
       toast.error(`Erro ao carregar timeline: ${(err as Error).message}`);
@@ -415,6 +420,16 @@ export function TimelineStudio({
             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 cursor-pointer"
           >
             Remigrar
+          </button>
+          <button
+            type="button"
+            onClick={() => void loadStudio()}
+            disabled={loading}
+            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 cursor-pointer disabled:opacity-50 flex items-center gap-1"
+            title="Recarrega timeline_studio.json do disco (aplica migração motion)"
+          >
+            <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+            Recarregar
           </button>
           <button
             type="button"
