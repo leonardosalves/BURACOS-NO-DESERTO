@@ -1,4 +1,6 @@
 import React, {
+  Suspense,
+  lazy,
   useCallback,
   useEffect,
   useMemo,
@@ -47,11 +49,13 @@ type TemplateItem = {
     | "map"
     | "bars"
     | "line"
+    | "area"
     | "title"
     | "media";
   longPreview:
     | "ring"
     | "line"
+    | "area"
     | "pie"
     | "donut"
     | "circular-progress"
@@ -305,8 +309,15 @@ const PREVIEW_DURATION_BY_VARIANT: Record<PreviewVariant, number> = {
   title: 90,
   media: 90,
   line: 90,
+  area: 90,
   cinematic: 90,
 };
+
+const SavedTemplatePreviewFrame = lazy(() =>
+  import("./remotionTemplateLivePreview").then((module) => ({
+    default: module.SavedTemplatePreviewFrame,
+  }))
+);
 
 function slugifyTemplatePart(value: string) {
   return String(value || "template")
@@ -365,8 +376,9 @@ function isAreaChartContext(...labels: string[]) {
   return (
     haystack.includes("area chart") ||
     haystack.includes("area-chart") ||
-    /\bareachart\b/.test(haystack) ||
-    /\barea\s*series\b/.test(haystack)
+    /areachart/.test(haystack) ||
+    /\barea\s*series\b/.test(haystack) ||
+    haystack.includes("areadata")
   );
 }
 
@@ -405,11 +417,26 @@ function detectChartKindFromCode(
   return null;
 }
 
+function previewVariantsFromChartKind(
+  kind: ReturnType<typeof detectChartKindFromCode>
+): Pick<TemplateItem, "shortPreview" | "longPreview"> | null {
+  if (!kind) return null;
+  if (kind === "donut") return { shortPreview: "donut", longPreview: "donut" };
+  if (kind === "pie") return { shortPreview: "pie", longPreview: "pie" };
+  if (kind === "bar") return { shortPreview: "bars", longPreview: "bars" };
+  if (kind === "area") return { shortPreview: "area", longPreview: "area" };
+  if (kind === "line") return { shortPreview: "line", longPreview: "line" };
+  return null;
+}
+
 function resolveChartDataPreview(
   subcategory: string,
   templateName = "",
   code = ""
 ): Pick<TemplateItem, "shortPreview" | "longPreview"> {
+  const fromCode = previewVariantsFromChartKind(detectChartKindFromCode(code));
+  if (fromCode) return fromCode;
+
   const metaLabels = [subcategory, templateName];
   if (isCircularProgressContext(...metaLabels)) {
     return {
@@ -427,7 +454,7 @@ function resolveChartDataPreview(
     return { shortPreview: "bars", longPreview: "bars" };
   }
   if (isAreaChartContext(...metaLabels)) {
-    return { shortPreview: "line", longPreview: "line" };
+    return { shortPreview: "area", longPreview: "area" };
   }
   if (isLineChartContext(...metaLabels)) {
     return { shortPreview: "line", longPreview: "line" };
@@ -437,16 +464,7 @@ function resolveChartDataPreview(
     return { shortPreview: "ring", longPreview: "ring" };
   }
 
-  const codeKind = detectChartKindFromCode(code);
-  if (codeKind === "donut")
-    return { shortPreview: "donut", longPreview: "donut" };
-  if (codeKind === "pie") return { shortPreview: "pie", longPreview: "pie" };
-  if (codeKind === "bar") return { shortPreview: "bars", longPreview: "bars" };
-  if (codeKind === "area" || codeKind === "line") {
-    return { shortPreview: "line", longPreview: "line" };
-  }
-
-  return { shortPreview: "line", longPreview: "line" };
+  return { shortPreview: "media", longPreview: "media" };
 }
 
 function resolvePreviewVariants(
@@ -1401,6 +1419,79 @@ function TemplatePreviewCanvas({
         </>
       )}
 
+      {variant === "area" && (
+        <>
+          <div
+            style={{
+              position: "absolute",
+              left: isVertical ? 12 : 24,
+              right: isVertical ? 12 : 24,
+              top: isVertical ? 18 : 16,
+              opacity: titleEnter,
+            }}
+          >
+            <div
+              style={{
+                fontSize: isVertical ? 10 : 14,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "#67e8f9",
+              }}
+            >
+              {metricTitle || "Area Series"}
+            </div>
+            {metricSubtitle ? (
+              <div
+                style={{
+                  marginTop: 4,
+                  fontSize: isVertical ? 8 : 11,
+                  color: "#94a3b8",
+                }}
+              >
+                {metricSubtitle}
+              </div>
+            ) : null}
+          </div>
+          <svg
+            viewBox="0 0 520 260"
+            preserveAspectRatio="none"
+            style={{
+              position: "absolute",
+              inset: isVertical ? "24% 8% 16%" : "18% 8% 12%",
+              width: "auto",
+              height: "auto",
+            }}
+          >
+            {[70, 130, 190].map((y) => (
+              <line
+                key={y}
+                x1="20"
+                y1={y}
+                x2="500"
+                y2={y}
+                stroke="rgba(148,163,184,.18)"
+                strokeWidth="2"
+              />
+            ))}
+            <path
+              d="M20 210 L95 145 L160 165 L250 75 L340 105 L490 35 L490 235 L20 235 Z"
+              fill="rgba(34,211,238,.34)"
+              opacity={enter}
+            />
+            <path
+              d="M20 210 L95 145 L160 165 L250 75 L340 105 L490 35"
+              fill="none"
+              stroke="#22d3ee"
+              strokeWidth={isVertical ? 5 : 7}
+              strokeLinecap="round"
+              strokeDasharray="640"
+              strokeDashoffset={640 - 640 * enter}
+            />
+          </svg>
+        </>
+      )}
+
       {variant === "map" && (
         <div
           style={{
@@ -1600,6 +1691,14 @@ function useTemplatePreviewTimeline({
   return { frame, playing, playFromStart, toggle, pause, setFrame };
 }
 
+function canLivePreviewSource(code: string) {
+  const trimmed = String(code || "").trim();
+  return (
+    /export\s+default\s+function/.test(trimmed) &&
+    /\buseCurrentFrame\s*\(/.test(trimmed)
+  );
+}
+
 function TemplatePreviewSlot({
   template,
   format,
@@ -1611,19 +1710,38 @@ function TemplatePreviewSlot({
   size?: "card" | "detail";
   autoPlay?: boolean;
 }) {
+  const source =
+    format === "9:16" ? template.sourceCode.short : template.sourceCode.long;
   const variant = effectivePreviewVariant(
     format === "9:16" ? template.shortPreview : template.longPreview,
     template
   );
-  return (
+  const previewProps = buildPreviewPropsFromTemplate(template);
+  const mockPreview = (
     <PreviewFrame
       format={format}
       variant={variant}
-      previewProps={buildPreviewPropsFromTemplate(template)}
+      previewProps={previewProps}
       size={size}
       autoPlay={autoPlay}
     />
   );
+
+  if (size === "detail" && canLivePreviewSource(source)) {
+    return (
+      <Suspense fallback={mockPreview}>
+        <SavedTemplatePreviewFrame
+          sourceCode={source}
+          format={format}
+          size={size}
+          autoPlay={false}
+          fallback={mockPreview}
+        />
+      </Suspense>
+    );
+  }
+
+  return mockPreview;
 }
 
 function PreviewFrame({
@@ -1889,7 +2007,9 @@ function TemplateDetailPanel({
                     autoPlay={false}
                   />
                   <p className="text-center text-[10px] font-bold text-zinc-500">
-                    Aperte play para ver a animacao do catalogo seed.
+                    {canLivePreviewSource(activeSource)
+                      ? "Preview fiel ao TSX salvo neste draft."
+                      : "Aperte play para ver a animacao do catalogo seed."}
                   </p>
                 </div>
               </div>
