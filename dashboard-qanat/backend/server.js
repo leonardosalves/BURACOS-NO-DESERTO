@@ -1343,11 +1343,11 @@ app.get("/api/config", (req, res) => {
     });
     let responseConfig = { ...data };
     const assetFiles = listProjectMediaAssets(projDir);
-    const { timeline, stripped } = sanitizeTimelineAssetsForProject(
-      responseConfig.timeline_assets,
-      { assetFiles }
-    );
-    if (stripped > 0) {
+    const { timeline, stripped, dedupeRemoved } =
+      sanitizeTimelineAssetsForProject(responseConfig.timeline_assets, {
+        assetFiles,
+      });
+    if (stripped > 0 || dedupeRemoved > 0) {
       responseConfig = { ...responseConfig, timeline_assets: timeline };
       try {
         fs.writeFileSync(

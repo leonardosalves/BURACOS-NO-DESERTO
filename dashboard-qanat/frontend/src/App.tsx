@@ -4104,7 +4104,7 @@ export default function App() {
         : updatedConfig;
     if (dupesRemoved > 0) {
       toast(
-        `Removidos ${dupesRemoved} asset(s) repetido(s) consecutivos na timeline.`
+        `Removidos ${dupesRemoved} slot(s) duplicado(s) na timeline (placeholders orquestrados ou arquivos repetidos).`
       );
       setConfig(baseConfig);
     }

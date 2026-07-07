@@ -1,8 +1,12 @@
 /** Sanitiza timeline_assets — sem repetir o mesmo arquivo dentro do bloco. */
 
+import { dedupeOrchestratedTimelineSlots } from "@lumiera/shared/timelineAssetDedupe.js";
+
 export type TimelineAssetRow = { asset?: string; [key: string]: unknown };
 
-export function dedupeConsecutiveTimelineAssets<T extends TimelineAssetRow>(assets: T[]): T[] {
+export function dedupeConsecutiveTimelineAssets<T extends TimelineAssetRow>(
+  assets: T[]
+): T[] {
   if (!Array.isArray(assets) || assets.length <= 1) return assets || [];
   const result: T[] = [];
   for (const asset of assets) {
@@ -16,11 +20,13 @@ export function dedupeConsecutiveTimelineAssets<T extends TimelineAssetRow>(asse
 
 export function dedupeBlockUniqueAssets<T extends TimelineAssetRow>(
   assets: T[],
-  pool: string[] = [],
+  pool: string[] = []
 ): T[] {
   if (!Array.isArray(assets)) return [];
   const used = new Set<string>();
-  const files = pool.length ? pool : assets.map((a) => String(a?.asset || "").trim()).filter(Boolean);
+  const files = pool.length
+    ? pool
+    : assets.map((a) => String(a?.asset || "").trim()).filter(Boolean);
   let cursor = 0;
   const result: T[] = [];
 
@@ -50,19 +56,24 @@ export function dedupeBlockUniqueAssets<T extends TimelineAssetRow>(
 }
 
 export function sanitizeTimelineAssets(
-  timeline: Record<string, TimelineAssetRow[]> | undefined,
+  timeline: Record<string, TimelineAssetRow[]> | undefined
 ): { timeline: Record<string, TimelineAssetRow[]>; removed: number } {
   const src = timeline || {};
-  const next: Record<string, TimelineAssetRow[]> = {};
   let removed = 0;
 
-  const pool = Object.values(src)
+  const { timeline: orchestrationDeduped, removed: orchRemoved } =
+    dedupeOrchestratedTimelineSlots(src);
+  removed += orchRemoved;
+
+  const next: Record<string, TimelineAssetRow[]> = {};
+
+  const pool = Object.values(orchestrationDeduped)
     .flat()
     .map((a) => String(a?.asset || "").trim())
     .filter(Boolean);
 
-  for (const blockKey of Object.keys(src)) {
-    const before = src[blockKey] || [];
+  for (const blockKey of Object.keys(orchestrationDeduped)) {
+    const before = orchestrationDeduped[blockKey] || [];
     const unique = dedupeBlockUniqueAssets(before, pool);
     const after = dedupeConsecutiveTimelineAssets(unique);
     removed += Math.max(0, before.length - after.length);
