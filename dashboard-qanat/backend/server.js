@@ -588,8 +588,47 @@ const CRASH_LOG_PATH = path.join(
   ".lumiera-logs",
   "backend-crashes.log"
 );
+const CRASH_LOG_MAX_BYTES = 5 * 1024 * 1024;
+const CRASH_LOG_THROTTLE_MS = 30000;
+const LOG_RETENTION_MS = 3 * 24 * 60 * 60 * 1000;
+const JOB_LOG_RETENTION_MS = 24 * 60 * 60 * 1000;
+const TEXT_LOG_EXTENSIONS = new Set([".log", ".txt"]);
+const crashLogLastSeen = new Map();
+
+function crashLogKey(kind, err) {
+  const code = err?.code ? `:${err.code}` : "";
+  const message =
+    err instanceof Error ? err.message : String(err ?? "(unknown)");
+  return `${kind}${code}:${message.slice(0, 180)}`;
+}
+
+function shouldWriteCrashLog(kind, err) {
+  const key = crashLogKey(kind, err);
+  const now = Date.now();
+  const last = crashLogLastSeen.get(key) || 0;
+  if (now - last < CRASH_LOG_THROTTLE_MS) return false;
+  crashLogLastSeen.set(key, now);
+  return true;
+}
+
 function appendCrashLog(kind, err) {
   try {
+    if (!shouldWriteCrashLog(kind, err)) return;
+    fs.mkdirSync(path.dirname(CRASH_LOG_PATH), { recursive: true });
+    try {
+      const stat = fs.existsSync(CRASH_LOG_PATH)
+        ? fs.statSync(CRASH_LOG_PATH)
+        : null;
+      if (stat && stat.size > CRASH_LOG_MAX_BYTES) {
+        fs.writeFileSync(
+          CRASH_LOG_PATH,
+          `[${new Date().toISOString()}] [log-rotated] backend-crashes.log excedeu ${CRASH_LOG_MAX_BYTES} bytes e foi reiniciado.\n`,
+          "utf8"
+        );
+      }
+    } catch (_) {
+      /* se a rotacao falhar, ainda tentamos registrar o erro atual */
+    }
     const ts = new Date().toISOString();
     const stack = err instanceof Error ? err.stack : String(err ?? "(unknown)");
     const line = `[${ts}] [${kind}] ${stack}\n`;
@@ -599,12 +638,68 @@ function appendCrashLog(kind, err) {
   }
 }
 
+function safeConsoleError(...args) {
+  try {
+    console.error(...args);
+  } catch (err) {
+    appendCrashLog("consoleError", err);
+  }
+}
+
+function cleanupLumieraLogs() {
+  try {
+    fs.mkdirSync(path.dirname(CRASH_LOG_PATH), { recursive: true });
+    const logDir = path.dirname(CRASH_LOG_PATH);
+    const now = Date.now();
+    for (const entry of fs.readdirSync(logDir, { withFileTypes: true })) {
+      const full = path.join(logDir, entry.name);
+      try {
+        if (entry.isFile()) {
+          const ext = path.extname(entry.name).toLowerCase();
+          if (!TEXT_LOG_EXTENSIONS.has(ext)) continue;
+          const stat = fs.statSync(full);
+          const tooOld = now - stat.mtimeMs > LOG_RETENTION_MS;
+          const tooBig = stat.size > CRASH_LOG_MAX_BYTES;
+          if (tooOld) {
+            fs.unlinkSync(full);
+          } else if (tooBig) {
+            fs.writeFileSync(
+              full,
+              `[${new Date().toISOString()}] [log-rotated] arquivo excedeu ${CRASH_LOG_MAX_BYTES} bytes e foi reiniciado.\n`,
+              "utf8"
+            );
+          }
+          continue;
+        }
+        if (!entry.isDirectory()) continue;
+        if (entry.name !== "ai-jobs" && entry.name !== "render-jobs") continue;
+        const cutoff = now - JOB_LOG_RETENTION_MS;
+        for (const jobFile of fs.readdirSync(full, { withFileTypes: true })) {
+          if (!jobFile.isFile() || !jobFile.name.endsWith(".json")) continue;
+          const jobPath = path.join(full, jobFile.name);
+          const stat = fs.statSync(jobPath);
+          if (stat.mtimeMs < cutoff) fs.unlinkSync(jobPath);
+        }
+      } catch (_) {
+        /* limpeza oportunista: se arquivo estiver em uso, fica para a proxima */
+      }
+    }
+  } catch (_) {
+    /* limpeza nunca pode impedir o backend de subir */
+  }
+}
+
+cleanupLumieraLogs();
+setInterval(cleanupLumieraLogs, 60 * 60 * 1000).unref?.();
+
 process.on("uncaughtException", (err) => {
-  console.error("[Lumiera] uncaughtException (processo mantido):", err);
+  if (err?.code !== "EPIPE") {
+    safeConsoleError("[Lumiera] uncaughtException (processo mantido):", err);
+  }
   appendCrashLog("uncaughtException", err);
 });
 process.on("unhandledRejection", (reason) => {
-  console.error("[Lumiera] unhandledRejection (processo mantido):", reason);
+  safeConsoleError("[Lumiera] unhandledRejection (processo mantido):", reason);
   appendCrashLog("unhandledRejection", reason);
 });
 
@@ -616,7 +711,7 @@ process.on("unhandledRejection", (reason) => {
 function asyncHandler(fn) {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch((err) => {
-      console.error(
+      safeConsoleError(
         `[asyncHandler] Erro em ${req.method} ${req.originalUrl}:`,
         err
       );
@@ -18165,7 +18260,7 @@ registerAgentReachRoutes(app, {
 
 // --- Global Express error middleware (última barreira antes de crash) ---
 app.use((err, req, res, _next) => {
-  console.error(`[Express Error] ${req.method} ${req.originalUrl}:`, err);
+  safeConsoleError(`[Express Error] ${req.method} ${req.originalUrl}:`, err);
   appendCrashLog(
     "expressMiddleware",
     err instanceof Error

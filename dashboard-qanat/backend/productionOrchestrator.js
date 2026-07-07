@@ -94,22 +94,9 @@ function visualPromptAssetPath(vp = {}) {
   return String(vp.asset || "").trim();
 }
 
-/** Remove slots vazios de motion (location-intro) que duplicam o bloco no Creator. */
+/** Mantem slots de motion para que Remotion e B-roll convivam no timing. */
 export function pruneMotionOnlyAssetSlots(timelineAssets = {}) {
-  const out = {};
-  for (const [blockKey, rawSlots] of Object.entries(timelineAssets || {})) {
-    const slots = Array.isArray(rawSlots) ? [...rawSlots] : [];
-    const hasFilled = slots.some((s) => String(s?.asset || "").trim());
-    const pruned = slots.filter((slot) => {
-      if (String(slot?.asset || "").trim()) return true;
-      if (slot?.user_locked) return true;
-      if (!slot?.motion_template_id && !slot?.motion_scene_id) return true;
-      if (!hasFilled) return true;
-      return false;
-    });
-    if (pruned.length) out[blockKey] = pruned;
-  }
-  return out;
+  return timelineAssets || {};
 }
 
 export function buildTimelineAssetSlotsFromVisualPrompts(

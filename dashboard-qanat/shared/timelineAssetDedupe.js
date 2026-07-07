@@ -70,6 +70,7 @@ export function dedupeOrchestratedTimelineSlots(timelineAssets = {}) {
 
     const pruned = slots.filter((slot) => {
       if (!isEmptyOrchestratedSlot(slot)) return true;
+      if (slot?.motion_template_id || slot?.motion_scene_id) return true;
 
       const narr = normNarration(slot.narration_segment);
       const chunk = String(slot.chunk_id || "").trim();
@@ -105,20 +106,7 @@ export function normalizeTimelineAssetSlots(
   const pruneFn =
     pruneMotionOnly ||
     ((ta) => {
-      const out = {};
-      for (const [blockKey, rawSlots] of Object.entries(ta || {})) {
-        const slots = Array.isArray(rawSlots) ? [...rawSlots] : [];
-        const hasFilled = slots.some((s) => String(s?.asset || "").trim());
-        const pruned = slots.filter((slot) => {
-          if (String(slot?.asset || "").trim()) return true;
-          if (slot?.user_locked) return true;
-          if (!slot?.motion_template_id && !slot?.motion_scene_id) return true;
-          if (!hasFilled) return true;
-          return false;
-        });
-        if (pruned.length) out[blockKey] = pruned;
-      }
-      return out;
+      return ta || {};
     });
 
   const { timeline: deduped, removed: dedupeRemoved } =

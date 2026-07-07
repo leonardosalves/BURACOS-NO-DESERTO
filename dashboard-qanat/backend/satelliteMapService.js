@@ -23,6 +23,7 @@ const CITY_KEYWORDS =
   /\b(cidade|munic[ií]pio|capital|regi[aã]o|estado|prov[ií]ncia|pa[ií]s|continente|metr[oó]pole|distrito|comuna|vilarejo|vila)\b/i;
 
 export const EARTH_DESCENT_ZOOMS = [3, 4, 6, 8, 10, 12, 14, 17];
+const BRIDGE_KEYWORDS = /\b(ponte|bridge|br[uÃ¼]cke|brucke|viaduto)\b/i;
 /** Cidade: descida longa; frame final mais aberto para contorno OSM completo no PIP. */
 export const CITY_DESCENT_ZOOMS = [3, 4, 6, 7, 8, 9, 10];
 /** @deprecated legado — novos projetos usam earth_descent + place_type city */
@@ -142,11 +143,11 @@ export const KNOWN_COORDINATES = [
   },
   {
     pattern: /laufenburg|hochrheinbr[uü]cke|ponte de laufenburg/i,
-    location: "Laufenburg",
+    location: "Ponte de Laufenburg",
     region: "Fronteira Alemanha-Suíça",
     country: "Alemanha & Suíça",
-    lat: 47.5519,
-    lng: 8.0389,
+    lat: 47.5618,
+    lng: 8.0748,
   },
 ];
 
@@ -167,18 +168,22 @@ export function bboxFromCenter(lat, lng, zoom, widthPx = 1280, heightPx = 720) {
 }
 
 export function classifyPlaceType(text = "", place = {}) {
-  const t = String(text || "");
+  const t = [text, place.location, place.label, place.region, place.country]
+    .filter(Boolean)
+    .join(" ");
   const loc = String(place.location || place.label || "").toLowerCase();
   const isPoi =
     POI_KEYWORDS.test(t) ||
     /\b(fort|castel|ponte|torre|pirâmide|piramide)\b/i.test(loc) ||
-    /\b(fort|castel|bridge|tower)\b/i.test(loc);
+    /\b(fort|castel|bridge|tower|br[uÃ¼]cke|brucke)\b/i.test(loc);
+  const poi_kind = BRIDGE_KEYWORDS.test(t) ? "bridge" : "landmark";
 
   if (HISTORIC_DESTROYED_RE.test(t) && isPoi) {
     return {
       place_type: "historic_site",
       fly_mode: "earth_descent",
       structure_exists: false,
+      poi_kind,
     };
   }
   if (isPoi) {
@@ -186,6 +191,7 @@ export function classifyPlaceType(text = "", place = {}) {
       place_type: "poi",
       fly_mode: "earth_descent",
       structure_exists: true,
+      poi_kind,
     };
   }
   if (CITY_KEYWORDS.test(t)) {
@@ -193,12 +199,14 @@ export function classifyPlaceType(text = "", place = {}) {
       place_type: "city",
       fly_mode: "earth_descent",
       structure_exists: true,
+      poi_kind: "",
     };
   }
   return {
     place_type: "city",
     fly_mode: "earth_descent",
     structure_exists: true,
+    poi_kind: "",
   };
 }
 
@@ -212,7 +220,7 @@ export function resolveRenderDimensions(aspectRatio = "16:9") {
 
 export function buildZoomSequence(flyMode, zoomFrom, zoomTo, placeType) {
   if (flyMode === "earth_descent") {
-    if (placeType === "city" || placeType === "historic_site") {
+    if (placeType === "city") {
       return [...CITY_DESCENT_ZOOMS];
     }
     return [...EARTH_DESCENT_ZOOMS];
@@ -565,16 +573,28 @@ export async function fetchSatelliteAssetsForScene(
     resolveGeocodeAlias(props.location, props.region, props.country) || query;
 
   const classified = classifyPlaceType(scene?.narration_text || "", props);
-  const classification =
-    props.fly_mode && props.place_type
+  const explicitPlaceType = String(props.place_type || "").trim();
+  const classification = {
+    ...(props.fly_mode && explicitPlaceType
       ? {
           fly_mode: props.fly_mode,
-          place_type: props.place_type,
+          place_type: explicitPlaceType,
           structure_exists:
             props.structure_exists !== false &&
-            props.place_type !== "historic_site",
+            explicitPlaceType !== "historic_site",
         }
-      : classified;
+      : classified),
+    poi_kind: classified.poi_kind || String(props.poi_kind || ""),
+  };
+  if (
+    classified.place_type === "poi" &&
+    explicitPlaceType &&
+    explicitPlaceType !== "poi"
+  ) {
+    classification.place_type = "poi";
+    classification.fly_mode = "earth_descent";
+    classification.structure_exists = true;
+  }
 
   const aspectRatio = String(
     props.aspect_ratio || config.aspect_ratio || config.format || "16:9"
@@ -713,10 +733,13 @@ export async function fetchSatelliteAssetsForScene(
       durationSec,
       accentColor: String(props.accentColor || "#C5A889"),
       placeType: classification.place_type,
+      poiKind: classification.poi_kind,
       aspectRatio: renderDims.aspect_ratio,
       width: renderDims.width,
       height: renderDims.height,
-      orbitPoi: classification.place_type === "poi",
+      orbitPoi:
+        classification.place_type === "poi" ||
+        classification.place_type === "historic_site",
       structureExists: classification.structure_exists !== false,
       useBlenderGis: config.use_blender_gis !== false,
     });
@@ -756,6 +779,7 @@ export async function fetchSatelliteAssetsForScene(
           ? "mapbox"
           : "esri",
     place_type: classification.place_type,
+    poi_kind: classification.poi_kind,
     structure_exists: classification.structure_exists !== false,
     fly_mode: classification.fly_mode,
     aspect_ratio: renderDims.aspect_ratio,

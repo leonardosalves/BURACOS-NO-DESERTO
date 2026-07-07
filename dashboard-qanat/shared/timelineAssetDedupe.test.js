@@ -43,10 +43,11 @@ describe("timelineAssetDedupe", () => {
         },
       ],
     });
-    assert.equal(removed, 1);
-    assert.equal(timeline["1"].length, 1);
-    assert.equal(timeline["1"][0].asset, "Skyscraper.mp4");
-    assert.equal(timeline["1"][0].scene_ref, "1.1");
+    assert.equal(removed, 0);
+    assert.equal(timeline["1"].length, 2);
+    assert.equal(timeline["1"][0].motion_template_id, "location-intro");
+    assert.equal(timeline["1"][1].asset, "Skyscraper.mp4");
+    assert.equal(timeline["1"][1].scene_ref, "1.1");
   });
 
   it("bloco 3: 2 placeholders + 2 mídias → 2 slots", () => {
@@ -104,6 +105,8 @@ describe("timelineAssetDedupe", () => {
       },
       { pruneMotionOnly: pruneMotionOnlyAssetSlots }
     );
-    assert.equal(timeline["1"].length, 1);
+    assert.equal(timeline["1"].length, 2);
+    assert.equal(timeline["1"][0].motion_template_id, "location-intro");
+    assert.equal(timeline["1"][1].asset, "v.mp4");
   });
 });

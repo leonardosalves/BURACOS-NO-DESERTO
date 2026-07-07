@@ -58,8 +58,9 @@ describe("satelliteMapService", () => {
       country: "Alemanha & Suíça",
     });
     assert.ok(c);
-    assert.ok(Math.abs(c.lat - 47.5519) < 0.05);
-    assert.ok(Math.abs(c.lng - 8.0389) < 0.05);
+    assert.equal(c.label, "Ponte de Laufenburg");
+    assert.ok(Math.abs(c.lat - 47.5618) < 0.01);
+    assert.ok(Math.abs(c.lng - 8.0748) < 0.01);
   });
 
   it("buildGeocodeQueries expande país composto Alemanha & Suíça", () => {
@@ -97,6 +98,17 @@ describe("satelliteMapService", () => {
     });
     assert.equal(c.place_type, "poi");
     assert.equal(c.fly_mode, "earth_descent");
+  });
+
+  it("classifyPlaceType detecta ponte pelo props.location mesmo com texto curto", () => {
+    const c = classifyPlaceType("erro de 54 centimetros", {
+      location: "Ponte de Laufenburg",
+      country: "Alemanha & Suica",
+      place_type: "city",
+    });
+    assert.equal(c.place_type, "poi");
+    assert.equal(c.poi_kind, "bridge");
+    assert.equal(c.structure_exists, true);
   });
 
   it("classifyPlaceType detecta cidade com descida padrão", () => {
@@ -139,7 +151,7 @@ describe("satelliteMapService", () => {
     );
     assert.deepEqual(
       buildZoomSequence("earth_descent", 8, 14, "historic_site"),
-      CITY_DESCENT_ZOOMS
+      EARTH_DESCENT_ZOOMS
     );
     assert.deepEqual(
       buildZoomSequence("city_outline", 8, 14),

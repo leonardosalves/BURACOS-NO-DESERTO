@@ -10,6 +10,7 @@ export type MotionOrchestrationResult = {
   quality?: { ok?: boolean; score?: number };
   enriched?: number;
   motion_count?: number;
+  remotion_restored?: number;
 };
 
 let inflight: Promise<MotionOrchestrationResult | null> | null = null;
