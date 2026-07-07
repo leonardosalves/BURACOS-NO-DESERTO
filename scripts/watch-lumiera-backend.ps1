@@ -1,8 +1,8 @@
-# Vigia o backend Lumiera — SOBE se cair, NUNCA mata processo ocupado (render/Gemini).
+# Vigia o backend Lumiera - SOBE se cair, NUNCA mata processo ocupado (render/Gemini).
 param(
-    [int]$CheckIntervalSec = 20,
-    [int]$BusyFailBeforeKill = 80,
-    [int]$GraceAfterStartSec = 45
+    [int]$CheckIntervalSec = 30,
+    [int]$BusyFailBeforeKill = 120,
+    [int]$GraceAfterStartSec = 90
 )
 
 $ErrorActionPreference = "SilentlyContinue"
@@ -11,12 +11,16 @@ $ErrorActionPreference = "SilentlyContinue"
 $script:WatchdogPidFile = Join-Path $script:LogDir "watchdog.pid"
 Set-Content -Path $script:WatchdogPidFile -Value $PID -Encoding UTF8 -ErrorAction SilentlyContinue
 
-Write-LumieraLog "=== Watchdog v2 (intervalo ${CheckIntervalSec}s, nao mata processo ocupado) ==="
+Write-LumieraLog "=== Watchdog v3 (intervalo ${CheckIntervalSec}s, spawn nao-bloqueante) ==="
 
 $consecutiveBusyFails = 0
 $graceUntil = [datetime]::MinValue
 
-Start-LumieraBackendProcess | Out-Null
+if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 6) {
+    Write-LumieraLog "Backend ja responde em $script:HealthUrl"
+} else {
+    Start-LumieraBackendProcess -SpawnOnly | Out-Null
+}
 $graceUntil = (Get-Date).AddSeconds($GraceAfterStartSec)
 
 while ($true) {
@@ -24,7 +28,7 @@ while ($true) {
 
     if ((Get-Date) -lt $graceUntil) { continue }
 
-    if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 45) {
+    if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 8) {
         if ($consecutiveBusyFails -gt 0) {
             Write-LumieraLog "Backend respondeu apos $consecutiveBusyFails cheque(s) lentos"
         }
@@ -35,16 +39,18 @@ while ($true) {
     $livePid = Get-BackendListenerPid
     if ($livePid) {
         $consecutiveBusyFails++
-        Write-LumieraLog (
-            "Health lento mas processo ativo (PID $livePid) - mantendo ($consecutiveBusyFails/$BusyFailBeforeKill)"
-        ) "WARN"
+        if ($consecutiveBusyFails -le 3 -or ($consecutiveBusyFails % 10) -eq 0) {
+            Write-LumieraLog (
+                "Health lento mas processo ativo (PID $livePid) - mantendo ($consecutiveBusyFails/$BusyFailBeforeKill)"
+            ) "WARN"
+        }
 
         if ($consecutiveBusyFails -ge $BusyFailBeforeKill) {
             if (Test-ActiveLumieraRender) {
                 Write-LumieraLog (
                     "Render ativo - reinicio forcado bloqueado (PID $livePid ocupado)"
                 ) "WARN"
-                $consecutiveBusyFails = [math]::Max(0, $BusyFailBeforeKill - 6)
+                $consecutiveBusyFails = [math]::Max(0, $BusyFailBeforeKill - 12)
                 continue
             }
             Write-LumieraLog (
@@ -59,6 +65,6 @@ while ($true) {
 
     Write-LumieraLog "Porta 3005 livre - subindo backend" "WARN"
     $consecutiveBusyFails = 0
-    Start-LumieraBackendProcess | Out-Null
+    Start-LumieraBackendProcess -SpawnOnly | Out-Null
     $graceUntil = (Get-Date).AddSeconds($GraceAfterStartSec)
 }

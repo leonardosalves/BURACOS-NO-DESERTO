@@ -18,6 +18,8 @@ const ACTIVE_TTL_MS = 4 * 60 * 60 * 1000;
 const MAX_LOG_LINES = 120;
 
 const jobs = new Map();
+let activeRenderCountCache = { count: 0, at: 0 };
+const ACTIVE_RENDER_COUNT_TTL_MS = 5000;
 
 function now() {
   return Date.now();
@@ -194,7 +196,13 @@ export function getActiveRenderJobForProject(projectName = "") {
 }
 
 export function countActiveRenderJobs() {
-  return listRenderJobs({ activeOnly: true }).length;
+  const ts = now();
+  if (ts - activeRenderCountCache.at < ACTIVE_RENDER_COUNT_TTL_MS) {
+    return activeRenderCountCache.count;
+  }
+  const count = listRenderJobs({ activeOnly: true }).length;
+  activeRenderCountCache = { count, at: ts };
+  return count;
 }
 
 /** Usado pelo watchdog — true se há render em andamento (arquivo recente + PID vivo, se houver). */

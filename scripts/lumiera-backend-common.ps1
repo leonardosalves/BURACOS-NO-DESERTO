@@ -189,7 +189,8 @@ function Initialize-LumieraBackendEnv {
 function Start-LumieraBackendProcess {
     param(
         [switch]$ForceRestart,
-        [switch]$SkipDebounce
+        [switch]$SkipDebounce,
+        [switch]$SpawnOnly
     )
 
     Initialize-LumieraBackendEnv
@@ -287,6 +288,18 @@ function Start-LumieraBackendProcess {
         }
 
         Set-Content -Path $script:LastRestartFile -Value ((Get-Date).ToString("o")) -Encoding UTF8
+
+        if ($SpawnOnly) {
+            Start-Sleep -Seconds 2
+            $listenerPid = Get-BackendListenerPid
+            if ($listenerPid) {
+                Write-BackendPidFile $listenerPid
+                Write-LumieraLog "Backend spawn OK (SpawnOnly) - $script:HealthUrl"
+                return $true
+            }
+            Write-LumieraLog "SpawnOnly: processo ainda subindo na porta $script:BackendPort" "WARN"
+            return $true
+        }
 
         $deadline = (Get-Date).AddSeconds(90)
         while ((Get-Date) -lt $deadline) {
