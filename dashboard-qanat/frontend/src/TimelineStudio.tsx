@@ -155,6 +155,7 @@ export function TimelineStudio({
   activeProject,
   storyboardData,
   wordTranscripts,
+  timelineDataRevision = 0,
   timelineNeedsWhisperSync,
   timelineScenesNeedRepair,
   creatorLoading,
@@ -284,6 +285,11 @@ export function TimelineStudio({
               `${data.remotionRestored} template(s) Remotion restaurado(s) na timeline`
             );
           }
+          if (data.narrationSynced) {
+            toast.success("Narração e legendas sincronizadas na timeline", {
+              duration: 4000,
+            });
+          }
         }
         initialLoadDoneRef.current = true;
         return loaded;
@@ -319,6 +325,18 @@ export function TimelineStudio({
     }
     prevSyncingTimingsRef.current = syncingTimings;
   }, [syncingTimings]);
+
+  const prevTimelineRevisionRef = useRef(timelineDataRevision);
+  useEffect(() => {
+    if (
+      timelineDataRevision > 0 &&
+      timelineDataRevision !== prevTimelineRevisionRef.current &&
+      initialLoadDoneRef.current
+    ) {
+      void loadStudioRef.current({ fullSync: true, silent: true });
+    }
+    prevTimelineRevisionRef.current = timelineDataRevision;
+  }, [timelineDataRevision]);
 
   useEffect(() => {
     return () => {
@@ -668,9 +686,32 @@ export function TimelineStudio({
   }
 
   const remotionCounts = countRemotionTracks(studio.clips);
+  const voiceClips = clipsOnTrack(studio.clips, "voice");
+  const captionClips = clipsOnTrack(studio.clips, "captions");
+  const voiceClip = voiceClips[0];
+  const collapsedTrackIds = wordTranscripts?.length ? [] : ["captions"];
+  const narrationMissingOnStudio =
+    Boolean(status?.has_narration) && voiceClips.length === 0;
 
   return (
     <div className="space-y-2 font-sans flex flex-col min-h-0">
+      {narrationMissingOnStudio && (
+        <div className="rounded-xl border border-rose-500/35 bg-rose-500/10 p-3 flex flex-wrap gap-2 items-center">
+          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <p className="flex-1 text-[11px] text-rose-100/90">
+            Narração detectada no projeto, mas a trilha de áudio não carregou no
+            Editor de Timing. Clique em Atualizar ou rode o Whisper de novo.
+          </p>
+          <button
+            type="button"
+            onClick={() => void loadStudio({ fullSync: true })}
+            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-rose-400/40 text-rose-100 cursor-pointer"
+          >
+            Atualizar timeline
+          </button>
+        </div>
+      )}
+
       {(timelineNeedsWhisperSync || timelineScenesNeedRepair) && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex flex-wrap gap-2 items-start">
           <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -711,7 +752,7 @@ export function TimelineStudio({
           helpId="timeline-media-blocks"
           size="sm"
           titleClassName="tracking-wider uppercase text-xs"
-          subtitle={`Multi-trilha · ${isVertical ? "9:16 Short" : "16:9 Long"} · ${studio.clips.length} clips · 🟣 ${countRemotionTracks(studio.clips).motion} Cenas · 🟢 ${countRemotionTracks(studio.clips).overlays} Templates`}
+          subtitle={`Multi-trilha · ${isVertical ? "9:16 Short" : "16:9 Long"} · ${studio.clips.length} clips · 🎙️ ${voiceClip ? formatStudioTime(voiceClip.duration) : "sem narração"} · 📝 ${captionClips.length} legendas · 🟣 ${remotionCounts.motion} Cenas · 🟢 ${remotionCounts.overlays} Templates`}
         />
         <div className="flex flex-wrap items-center gap-2">
           <select
@@ -1031,7 +1072,8 @@ export function TimelineStudio({
               Timeline · arraste a barra acima para ajustar o preview
             </span>
             <span className="text-[9px] font-mono text-zinc-500">
-              🟣 {remotionCounts.motion} · 🟢 {remotionCounts.overlays}
+              🎙️ {voiceClip ? "1" : "0"} · 📝 {captionClips.length} · 🟣{" "}
+              {remotionCounts.motion} · 🟢 {remotionCounts.overlays}
             </span>
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
@@ -1039,7 +1081,7 @@ export function TimelineStudio({
               studio={displayStudio ?? studio}
               selectedClipId={selectedClipId}
               scrollToTrackId={scrollToTrackId}
-              collapsedTrackIds={["captions"]}
+              collapsedTrackIds={collapsedTrackIds}
               onScrollToTrackDone={() => setScrollToTrackId(null)}
               onSelectClip={setSelectedClipId}
               onPlayheadChange={handlePlayheadChange}

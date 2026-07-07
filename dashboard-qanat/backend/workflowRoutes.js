@@ -5,6 +5,7 @@
 import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
+import { applyNarrationSyncToProject } from "./timelineStudioMigration.js";
 import {
   analyzeSceneGaps,
   fetchStockForScenes,
@@ -16,7 +17,11 @@ import {
   getWorkflowApiKeys,
   runPythonScript,
 } from "./workflowTools.js";
-import { KOKORO_VOICES, KOKORO_DEFAULT_VOICE, KOKORO_DEFAULT_SPEED } from "./kokoroTts.js";
+import {
+  KOKORO_VOICES,
+  KOKORO_DEFAULT_VOICE,
+  KOKORO_DEFAULT_SPEED,
+} from "./kokoroTts.js";
 import {
   loadFishSpeechConfig,
   probeFishSpeechServer,
@@ -148,15 +153,31 @@ export function registerWorkflowRoutes(app, deps) {
 
     let config = readJsonFile(configPath) || {};
     let timings = readJsonFile(timingsPath) || { starts: [] };
-    let transcript = fs.existsSync(transcriptPath) ? fs.readFileSync(transcriptPath, "utf8") : "";
+    let transcript = fs.existsSync(transcriptPath)
+      ? fs.readFileSync(transcriptPath, "utf8")
+      : "";
     let storyboard = readJsonFile(storyboardPath) || {};
 
     transcript = buildProjectTranscript({ transcript, config, storyboard });
-    if (!transcript) throw new Error("Roteiro não encontrado para gerar metadados.");
+    if (!transcript)
+      throw new Error("Roteiro não encontrado para gerar metadados.");
 
     const projectName = path.basename(projDir);
-    const metadataCtx = resolveYoutubeMetadataContext({ config, timings, storyboard, projectName });
-    const { format, niche, totalDuration, chaptersText, category, profile, rpmHint } = metadataCtx;
+    const metadataCtx = resolveYoutubeMetadataContext({
+      config,
+      timings,
+      storyboard,
+      projectName,
+    });
+    const {
+      format,
+      niche,
+      totalDuration,
+      chaptersText,
+      category,
+      profile,
+      rpmHint,
+    } = metadataCtx;
 
     let prompt = buildYoutubeMetadataPrompt({
       transcript,
@@ -219,7 +240,9 @@ export function registerWorkflowRoutes(app, deps) {
       }
     } else {
       try {
-        text = await callGeminiWithRetry(apiKeys[0], prompt, { temperature: 0.55 });
+        text = await callGeminiWithRetry(apiKeys[0], prompt, {
+          temperature: 0.55,
+        });
       } catch (geminiErr) {
         if (nvidiaKey && generateMetadataWithNvidia) {
           text = await generateMetadataWithNvidia(prompt, nvidiaKey, format);
@@ -265,19 +288,23 @@ export function registerWorkflowRoutes(app, deps) {
 
     fs.writeFileSync(
       path.join(projDir, "youtube_metadata_cache.json"),
-      JSON.stringify({
-        generatedAt: new Date().toISOString(),
-        pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
-        format,
-        niche,
-        category,
-        profile: payload.profile,
-        rpm: rpmHint.rpm,
-        palette: rpmHint.palette,
-        parsed,
-        text,
-      }, null, 2),
-      "utf8",
+      JSON.stringify(
+        {
+          generatedAt: new Date().toISOString(),
+          pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+          format,
+          niche,
+          category,
+          profile: payload.profile,
+          rpm: rpmHint.rpm,
+          palette: rpmHint.palette,
+          parsed,
+          text,
+        },
+        null,
+        2
+      ),
+      "utf8"
     );
 
     return payload;
@@ -289,10 +316,16 @@ export function registerWorkflowRoutes(app, deps) {
     const timingsPath = path.join(projDir, "block_timings.json");
     const wordsPath = path.join(projDir, "word_transcripts.json");
 
-    if (!fs.existsSync(configPath) || !fs.existsSync(timingsPath) || !fs.existsSync(wordsPath)) return;
+    if (
+      !fs.existsSync(configPath) ||
+      !fs.existsSync(timingsPath) ||
+      !fs.existsSync(wordsPath)
+    )
+      return;
 
     const config = readJsonFile(configPath) || {};
-    if (!config.timeline_assets || !Object.keys(config.timeline_assets).length) return;
+    if (!config.timeline_assets || !Object.keys(config.timeline_assets).length)
+      return;
 
     const storyboard = readJsonFile(storyboardPath) || {};
     const timings = readJsonFile(timingsPath) || { starts: [], durations: [] };
@@ -307,7 +340,9 @@ export function registerWorkflowRoutes(app, deps) {
       flatWords: flatTranscriptWords,
     });
     if (chunkedApplied) {
-      log("[Pipeline] Narração por trechos: block_timings e timeline pelo plano de chunks (Whisper só para palavras).");
+      log(
+        "[Pipeline] Narração por trechos: block_timings e timeline pelo plano de chunks (Whisper só para palavras)."
+      );
       return;
     }
 
@@ -316,23 +351,41 @@ export function registerWorkflowRoutes(app, deps) {
       blockTimings: timings,
       wordTranscripts,
       flatTranscriptWords,
-      visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
-      blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+      visualPrompts: Array.isArray(storyboard.visual_prompts)
+        ? storyboard.visual_prompts
+        : [],
+      blockPhrases: Array.isArray(config.block_phrases)
+        ? config.block_phrases
+        : [],
       preserveExplicitFixed: false,
     });
     config.timeline_assets = synced.timelineAssets;
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
     if (synced.blockTimings?.starts?.length) {
-      fs.writeFileSync(timingsPath, JSON.stringify(synced.blockTimings, null, 2), "utf8");
+      fs.writeFileSync(
+        timingsPath,
+        JSON.stringify(synced.blockTimings, null, 2),
+        "utf8"
+      );
     }
     if (fs.existsSync(storyboardPath)) {
-      const storyboardNext = applyWhisperDurationsToStoryboard(storyboard, wordTranscripts, {
-        flatTranscriptWords,
-        blockTimings: synced.blockTimings,
-      });
-      fs.writeFileSync(storyboardPath, JSON.stringify(storyboardNext, null, 2), "utf8");
+      const storyboardNext = applyWhisperDurationsToStoryboard(
+        storyboard,
+        wordTranscripts,
+        {
+          flatTranscriptWords,
+          blockTimings: synced.blockTimings,
+        }
+      );
+      fs.writeFileSync(
+        storyboardPath,
+        JSON.stringify(storyboardNext, null, 2),
+        "utf8"
+      );
     }
-    log("[Pipeline] Timeline com segundos da voz (Whisper). Mídia: manual ou auto-map no Workflow.");
+    log(
+      "[Pipeline] Timeline com segundos da voz (Whisper). Mídia: manual ou auto-map no Workflow."
+    );
   }
 
   function buildCreatorPipelineHandlers() {
@@ -341,7 +394,7 @@ export function registerWorkflowRoutes(app, deps) {
         const narrationPath = path.join(projDir, "narracao_mestra_premium.mp3");
         if (!fs.existsSync(narrationPath)) {
           throw new Error(
-            "narracao_mestra_premium.mp3 não encontrado. Gere a narração (TTS) antes de sincronizar com Whisper.",
+            "narracao_mestra_premium.mp3 não encontrado. Gere a narração (TTS) antes de sincronizar com Whisper."
           );
         }
         if (!fs.existsSync(path.join(projDir, "find_block_timings.py"))) {
@@ -374,11 +427,17 @@ export function registerWorkflowRoutes(app, deps) {
         config.timeline_map_epoch = mapEpoch + 1;
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
         persistRealignedTimeline(projDir, log);
-        log(`[Pipeline] Timeline mapeada (${mapped.assetCount} assets no pool).`);
+        log(
+          `[Pipeline] Timeline mapeada (${mapped.assetCount} assets no pool).`
+        );
       },
       bgm: async (projDir, log) => {
-        const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
-        const mode = config.aspect_ratio === "9:16" || config.video_format === "SHORTS" ? "SHORTS" : "LONGO";
+        const config =
+          readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+        const mode =
+          config.aspect_ratio === "9:16" || config.video_format === "SHORTS"
+            ? "SHORTS"
+            : "LONGO";
         const token = getEpidemicSoundKey(projDir) || "";
         const logs = await runAutoSoundtrackLogic(projDir, token, mode);
         logs.forEach((line) => log(line));
@@ -419,20 +478,23 @@ export function registerWorkflowRoutes(app, deps) {
   function normalizeImportedTranscript(raw) {
     let segments = null;
     if (Array.isArray(raw)) segments = raw;
-    else if (raw && typeof raw === "object" && Array.isArray(raw.segments)) segments = raw.segments;
+    else if (raw && typeof raw === "object" && Array.isArray(raw.segments))
+      segments = raw.segments;
     else return null;
 
     if (
-      segments.length > 0
-      && Array.isArray(segments[0]?.words)
-      && (segments[0].start_time !== undefined || segments[0].filename)
+      segments.length > 0 &&
+      Array.isArray(segments[0]?.words) &&
+      (segments[0].start_time !== undefined || segments[0].filename)
     ) {
       return segments;
     }
 
     return segments.map((seg, idx) => {
       const segStart = Number(seg.start ?? seg.start_time ?? 0);
-      const segEnd = Number(seg.end ?? seg.end_time ?? segStart + Number(seg.duration || 0));
+      const segEnd = Number(
+        seg.end ?? seg.end_time ?? segStart + Number(seg.duration || 0)
+      );
       const rawWords = Array.isArray(seg.words) ? seg.words : [];
       const wordsFormatted = rawWords.map((w, k) => {
         let wStart = Number(w.start ?? 0);
@@ -442,7 +504,12 @@ export function registerWorkflowRoutes(app, deps) {
           wEnd -= segStart;
         }
         let wText = String(w.word ?? w.text ?? "").trim();
-        if (k > 0 && wText && !wText.startsWith(" ") && !wText.startsWith("-")) {
+        if (
+          k > 0 &&
+          wText &&
+          !wText.startsWith(" ") &&
+          !wText.startsWith("-")
+        ) {
           wText = ` ${wText}`;
         }
         return {
@@ -455,7 +522,8 @@ export function registerWorkflowRoutes(app, deps) {
       return {
         index: idx + 1,
         block: Number(seg.block) || 1,
-        filename: seg.filename || `segment_${String(idx + 1).padStart(3, "0")}.mp3`,
+        filename:
+          seg.filename || `segment_${String(idx + 1).padStart(3, "0")}.mp3`,
         start_time: segStart,
         duration: Math.max(0.1, segEnd - segStart),
         end_time: segEnd,
@@ -474,7 +542,8 @@ export function registerWorkflowRoutes(app, deps) {
       const normalized = normalizeImportedTranscript(transcript);
       if (!normalized?.length) {
         return res.status(400).json({
-          error: "Formato JSON inválido. Envie um array de segmentos ou { segments: [...] }.",
+          error:
+            "Formato JSON inválido. Envie um array de segmentos ou { segments: [...] }.",
         });
       }
       const wordsPath = path.join(projDir, "word_transcripts.json");
@@ -494,8 +563,10 @@ export function registerWorkflowRoutes(app, deps) {
       if (cached && Date.now() - cached.at < 10000) {
         return res.json(cached.data);
       }
-      const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
-      const storyboard = readJsonFile(path.join(projDir, "storyboard.json")) || {};
+      const config =
+        readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+      const storyboard =
+        readJsonFile(path.join(projDir, "storyboard.json")) || {};
       const data = analyzeSceneGaps(projDir, { config, storyboard });
       sceneGapsCache.set(cacheKey, { at: Date.now(), data });
       res.json(data);
@@ -527,12 +598,19 @@ export function registerWorkflowRoutes(app, deps) {
       const fishProbe = await probeFishSpeechServer(fishConfig);
       const fishVoices = buildFishSpeechVoiceList(fishProbe);
       const chatterboxProbe = await probeChatterbox();
-      const voiceboxConfig = loadVoiceboxConfig({ workspaceDir: WORKSPACE_DIR });
+      const voiceboxConfig = loadVoiceboxConfig({
+        workspaceDir: WORKSPACE_DIR,
+      });
       const voiceboxProbe = await probeVoiceboxServer(voiceboxConfig);
       const voiceboxVoices = buildVoiceboxVoiceList(voiceboxProbe);
-      const gptSovitsConfig = loadGptSovitsConfig({ workspaceDir: WORKSPACE_DIR });
+      const gptSovitsConfig = loadGptSovitsConfig({
+        workspaceDir: WORKSPACE_DIR,
+      });
       const gptSovitsProbe = await probeGptSovitsServer(gptSovitsConfig);
-      const gptSovitsVoices = buildGptSovitsVoiceList(gptSovitsProbe, gptSovitsConfig);
+      const gptSovitsVoices = buildGptSovitsVoiceList(
+        gptSovitsProbe,
+        gptSovitsConfig
+      );
 
       res.json({
         engines: [
@@ -556,7 +634,8 @@ export function registerWorkflowRoutes(app, deps) {
           {
             id: "voicebox",
             label: "Voicebox (clone local)",
-            defaultVoice: voiceboxProbe.defaultProfileId || voiceboxVoices[0]?.id || "",
+            defaultVoice:
+              voiceboxProbe.defaultProfileId || voiceboxVoices[0]?.id || "",
             voices: voiceboxVoices,
             available: voiceboxProbe.ok,
             serverUrl: voiceboxProbe.baseUrl,
@@ -569,37 +648,61 @@ export function registerWorkflowRoutes(app, deps) {
             id: "gptsovits",
             label: "GPT-SoVITS (clone few-shot)",
             defaultVoice: gptSovitsProbe.ok
-              ? (gptSovitsVoices.find((v) => v.id !== GPT_SOVITS_DEFAULT_VOICE)?.id || GPT_SOVITS_DEFAULT_VOICE)
+              ? gptSovitsVoices.find((v) => v.id !== GPT_SOVITS_DEFAULT_VOICE)
+                  ?.id || GPT_SOVITS_DEFAULT_VOICE
               : GPT_SOVITS_DEFAULT_VOICE,
             voices: gptSovitsVoices,
-            available: gptSovitsProbe.ok && gptSovitsVoices.some((v) => v.id !== GPT_SOVITS_DEFAULT_VOICE),
+            available:
+              gptSovitsProbe.ok &&
+              gptSovitsVoices.some((v) => v.id !== GPT_SOVITS_DEFAULT_VOICE),
             serverUrl: gptSovitsProbe.baseUrl,
             hint: buildGptSovitsStatusHint(gptSovitsProbe, gptSovitsVoices),
           },
           {
             id: "fish",
             label: "Fish Speech S2",
-            defaultVoice: fishProbe.defaultReferenceId || FISH_SPEECH_DEFAULT_VOICE,
+            defaultVoice:
+              fishProbe.defaultReferenceId || FISH_SPEECH_DEFAULT_VOICE,
             voices: fishVoices,
             available: fishProbe.ok,
             mode: fishProbe.mode || "local",
             serverUrl: fishProbe.baseUrl,
-            cloudModel: fishConfig.fish_speech?.cloud_model || fishConfig.fish_speech?.cloudModel || "s2.1-pro-free",
+            cloudModel:
+              fishConfig.fish_speech?.cloud_model ||
+              fishConfig.fish_speech?.cloudModel ||
+              "s2.1-pro-free",
             hint: fishProbe.ok
-              ? (fishProbe.mode === "cloud"
+              ? fishProbe.mode === "cloud"
                 ? `Fish Audio API (cloud) · ${fishConfig.fish_speech?.cloud_model || fishConfig.fish_speech?.cloudModel || "s2.1-pro-free"} · ${fishProbe.modelCount || fishProbe.references?.length || 0} voz(es) — tags [pausa], [ênfase]`
-                : "Servidor local ativo — tags inline [pausa], [ênfase]")
-              : (fishProbe.error || "Offline: .\\scripts\\start-fish-speech.ps1 ou fish_speech.api_key no config"),
+                : "Servidor local ativo — tags inline [pausa], [ênfase]"
+              : fishProbe.error ||
+                "Offline: .\\scripts\\start-fish-speech.ps1 ou fish_speech.api_key no config",
           },
           {
             id: "edge",
             label: "Edge TTS (Microsoft)",
             defaultVoice: "pt-BR-AntonioNeural",
             voices: [
-              { id: "pt-BR-AntonioNeural", label: "Antonio — PT-BR masculino", group: "pt" },
-              { id: "pt-BR-FranciscaNeural", label: "Francisca — PT-BR feminino", group: "pt" },
-              { id: "en-US-RogerNeural", label: "Roger — EN grave", group: "en" },
-              { id: "en-US-ChristopherNeural", label: "Christopher — EN maduro", group: "en" },
+              {
+                id: "pt-BR-AntonioNeural",
+                label: "Antonio — PT-BR masculino",
+                group: "pt",
+              },
+              {
+                id: "pt-BR-FranciscaNeural",
+                label: "Francisca — PT-BR feminino",
+                group: "pt",
+              },
+              {
+                id: "en-US-RogerNeural",
+                label: "Roger — EN grave",
+                group: "en",
+              },
+              {
+                id: "en-US-ChristopherNeural",
+                label: "Christopher — EN maduro",
+                group: "en",
+              },
               { id: "en-US-GuyNeural", label: "Guy — EN seco", group: "en" },
             ],
           },
@@ -614,7 +717,10 @@ export function registerWorkflowRoutes(app, deps) {
     try {
       const projDir = getProjectDir(req);
       const { voice, sampleText, narrativeScript, gptSovits } = req.body || {};
-      const gsConfig = loadGptSovitsConfig({ workspaceDir: WORKSPACE_DIR, projectDir: projDir });
+      const gsConfig = loadGptSovitsConfig({
+        workspaceDir: WORKSPACE_DIR,
+        projectDir: projDir,
+      });
       const result = await previewGptSovitsVoice({
         voice,
         sampleText,
@@ -623,8 +729,14 @@ export function registerWorkflowRoutes(app, deps) {
         options: gptSovits && typeof gptSovits === "object" ? gptSovits : {},
       });
       res.setHeader("Content-Type", "audio/wav");
-      res.setHeader("X-Gpt-Sovits-Sample-Text", encodeURIComponent(result.sampleText || ""));
-      res.setHeader("X-Gpt-Sovits-Voice-Id", String(result.voiceId || voice || ""));
+      res.setHeader(
+        "X-Gpt-Sovits-Sample-Text",
+        encodeURIComponent(result.sampleText || "")
+      );
+      res.setHeader(
+        "X-Gpt-Sovits-Voice-Id",
+        String(result.voiceId || voice || "")
+      );
       res.send(result.buffer);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -635,7 +747,10 @@ export function registerWorkflowRoutes(app, deps) {
     try {
       const projDir = getProjectDir(req);
       const { voice, sampleText, narrativeScript, fish } = req.body || {};
-      const fishConfig = loadFishSpeechConfig({ workspaceDir: WORKSPACE_DIR, projectDir: projDir });
+      const fishConfig = loadFishSpeechConfig({
+        workspaceDir: WORKSPACE_DIR,
+        projectDir: projDir,
+      });
       const result = await previewFishSpeechVoice({
         voice,
         sampleText,
@@ -644,8 +759,14 @@ export function registerWorkflowRoutes(app, deps) {
         fishOptions: fish && typeof fish === "object" ? fish : {},
       });
       res.setHeader("Content-Type", "audio/mpeg");
-      res.setHeader("X-Fish-Sample-Text", encodeURIComponent(result.sampleText || ""));
-      res.setHeader("X-Fish-Voice-Id", String(result.referenceId || voice || FISH_SPEECH_DEFAULT_VOICE));
+      res.setHeader(
+        "X-Fish-Sample-Text",
+        encodeURIComponent(result.sampleText || "")
+      );
+      res.setHeader(
+        "X-Fish-Voice-Id",
+        String(result.referenceId || voice || FISH_SPEECH_DEFAULT_VOICE)
+      );
       res.send(result.buffer);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -654,10 +775,7 @@ export function registerWorkflowRoutes(app, deps) {
 
   app.post("/api/tts/preview-tagged-text", (req, res) => {
     try {
-      const {
-        text_tagged: taggedText = "",
-        engine = "fish",
-      } = req.body || {};
+      const { text_tagged: taggedText = "", engine = "fish" } = req.body || {};
       const platform = String(engine).toLowerCase().includes("chatterbox")
         ? "chatterbox"
         : String(engine).toLowerCase().includes("eleven")
@@ -702,18 +820,33 @@ export function registerWorkflowRoutes(app, deps) {
         });
       }
 
-      let storyboard = JSON.parse(fs.readFileSync(path.join(projDir, "storyboard.json"), "utf8"));
-      let config = JSON.parse(fs.readFileSync(path.join(projDir, "config_qanat.json"), "utf8"));
+      let storyboard = JSON.parse(
+        fs.readFileSync(path.join(projDir, "storyboard.json"), "utf8")
+      );
+      let config = JSON.parse(
+        fs.readFileSync(path.join(projDir, "config_qanat.json"), "utf8")
+      );
       const plan = storyboard.narration_chunk_plan;
       if (!plan?.chunks?.length) {
-        throw new Error("Plano de trechos ausente — use 'Planejar trechos (IA)' antes.");
+        throw new Error(
+          "Plano de trechos ausente — use 'Planejar trechos (IA)' antes."
+        );
       }
 
-      report("prepare", `Plano com ${plan.chunks.length} trecho(s) — iniciando TTS…`, 5);
+      report(
+        "prepare",
+        `Plano com ${plan.chunks.length} trecho(s) — iniciando TTS…`,
+        5
+      );
 
-      const voiceRef = defaultVoice && typeof defaultVoice === "object"
-        ? defaultVoice
-        : { engine: engine || plan.default_voice?.engine || "kokoro", voice, speed };
+      const voiceRef =
+        defaultVoice && typeof defaultVoice === "object"
+          ? defaultVoice
+          : {
+              engine: engine || plan.default_voice?.engine || "kokoro",
+              voice,
+              speed,
+            };
 
       const nextPlan = await generateNarrationChunksTts(projDir, {
         plan,
@@ -727,7 +860,10 @@ export function registerWorkflowRoutes(app, deps) {
         onProgress: report,
       });
 
-      persistChunkPlanToProject(projDir, nextPlan, { ...config, narration_mode: NARRATION_MODE_CHUNKED });
+      persistChunkPlanToProject(projDir, nextPlan, {
+        ...config,
+        narration_mode: NARRATION_MODE_CHUNKED,
+      });
 
       const fullBatch = isFullNarrationChunkBatch(chunkIds, plan);
       const shouldSyncWhisper = fullBatch && syncWhisper !== false;
@@ -737,15 +873,23 @@ export function registerWorkflowRoutes(app, deps) {
       if (shouldSyncWhisper) {
         const masterPath = path.join(projDir, "narracao_mestra_premium.mp3");
         if (!fs.existsSync(masterPath)) {
-          whisperError = "narracao_mestra_premium.mp3 não encontrado após montagem.";
+          whisperError =
+            "narracao_mestra_premium.mp3 não encontrado após montagem.";
           console.warn(`[TTS Chunks] Whisper ignorado: ${whisperError}`);
         } else {
-          report("whisper", "Sincronizando legendas com Whisper (pode levar alguns minutos)…", 88);
+          report(
+            "whisper",
+            "Sincronizando legendas com Whisper (pode levar alguns minutos)…",
+            88
+          );
           try {
             const handlers = buildCreatorPipelineHandlers();
             await handlers.sync(projDir, (msg) => {
               console.log(msg);
-              if (String(msg).includes("Whisper") || String(msg).includes("align")) {
+              if (
+                String(msg).includes("Whisper") ||
+                String(msg).includes("align")
+              ) {
                 report("whisper", "Whisper em execução…", 92);
               }
             });
@@ -753,7 +897,10 @@ export function registerWorkflowRoutes(app, deps) {
             report("whisper", "Legendas alinhadas com Whisper.", 97);
           } catch (whisperErr) {
             whisperError = whisperErr?.message || String(whisperErr);
-            console.warn("[TTS Chunks] Whisper falhou — restaurando timings por trecho:", whisperError);
+            console.warn(
+              "[TTS Chunks] Whisper falhou — restaurando timings por trecho:",
+              whisperError
+            );
             writeTimingsFromChunkPlan(projDir, nextPlan);
             report("whisper-fallback", `Whisper falhou: ${whisperError}`, 95);
           }
@@ -766,7 +913,12 @@ export function registerWorkflowRoutes(app, deps) {
         let flatWords = [];
         if (whisperSynced) {
           try {
-            whisperTranscripts = JSON.parse(fs.readFileSync(path.join(projDir, "word_transcripts.json"), "utf8"));
+            whisperTranscripts = JSON.parse(
+              fs.readFileSync(
+                path.join(projDir, "word_transcripts.json"),
+                "utf8"
+              )
+            );
             flatWords = flattenWordTranscripts(whisperTranscripts);
           } catch {
             whisperTranscripts = null;
@@ -781,12 +933,20 @@ export function registerWorkflowRoutes(app, deps) {
         });
         config = applied.config;
         storyboard = applied.storyboard;
-        console.log("[TTS Chunks] Timeline sincronizada por trecho (1 segmento por cena).");
+        console.log(
+          "[TTS Chunks] Timeline sincronizada por trecho (1 segmento por cena)."
+        );
       } else if (!fullBatch) {
-        console.log("[TTS Chunks] Timeline preservada — batch parcial sem master completo.");
+        console.log(
+          "[TTS Chunks] Timeline preservada — batch parcial sem master completo."
+        );
       }
       storyboard.narration_chunk_plan = nextPlan;
-      fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+      fs.writeFileSync(
+        path.join(projDir, "storyboard.json"),
+        JSON.stringify(storyboard, null, 2),
+        "utf8"
+      );
 
       const logs = formatNarrationChunkPlanLog(nextPlan);
       let message = masterReady
@@ -797,18 +957,23 @@ export function registerWorkflowRoutes(app, deps) {
       } else if (shouldSyncWhisper && whisperError) {
         message += ` Whisper não concluiu: ${whisperError}`;
       } else if (!fullBatch) {
-        message += " Gere todos os trechos para montar o master e sincronizar legendas.";
+        message +=
+          " Gere todos os trechos para montar o master e sincronizar legendas.";
       } else if (!masterReady) {
         message += " Gere os trechos restantes para montar o MP3 master.";
       }
       if (progressJobId) {
-        finishJobProgressWithResult(progressJobId, {
-          message,
-          plan: nextPlan,
-          whisper_synced: whisperSynced,
-          whisper_error: whisperError,
-          full_batch: fullBatch,
-        }, message);
+        finishJobProgressWithResult(
+          progressJobId,
+          {
+            message,
+            plan: nextPlan,
+            whisper_synced: whisperSynced,
+            whisper_error: whisperError,
+            full_batch: fullBatch,
+          },
+          message
+        );
       }
       return {
         success: true,
@@ -852,7 +1017,9 @@ export function registerWorkflowRoutes(app, deps) {
       const storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
       const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
       if (!isChunkedNarrationProject(config, storyboard)) {
-        return res.status(400).json({ error: "Projeto não usa narração por trechos." });
+        return res
+          .status(400)
+          .json({ error: "Projeto não usa narração por trechos." });
       }
       const plan = storyboard.narration_chunk_plan;
       if (!plan?.chunks?.length) {
@@ -884,7 +1051,15 @@ export function registerWorkflowRoutes(app, deps) {
 
   app.post("/api/tts/generate-narration", async (req, res) => {
     const projDir = getProjectDir(req);
-    const { voice, rate, pitch, speed, engine, ttsOptions, progress_job_id: progressJobIdRaw } = req.body || {};
+    const {
+      voice,
+      rate,
+      pitch,
+      speed,
+      engine,
+      ttsOptions,
+      progress_job_id: progressJobIdRaw,
+    } = req.body || {};
     const progressJobId = normalizeJobId(progressJobIdRaw);
     const report = createProgressReporter(progressJobId);
     const ttsParams = {
@@ -894,15 +1069,27 @@ export function registerWorkflowRoutes(app, deps) {
       speed,
       platform: engine || "kokoro",
       workspaceDir: WORKSPACE_DIR,
-      ttsOptions: ttsOptions && typeof ttsOptions === "object" ? ttsOptions : {},
+      ttsOptions:
+        ttsOptions && typeof ttsOptions === "object" ? ttsOptions : {},
       onLog: (msg) => console.log(msg),
       onProgress: report,
     };
 
     const runGeneration = async () => {
       const result = await generateNarrationTts(projDir, ttsParams);
+      try {
+        applyNarrationSyncToProject(projDir);
+      } catch (syncErr) {
+        console.warn(
+          "[TTS] Falha ao sincronizar narração no Timeline Studio:",
+          syncErr?.message || syncErr
+        );
+      }
       if (progressJobId) {
-        finishJobProgress(progressJobId, result.message || "Narração TTS gerada");
+        finishJobProgress(
+          progressJobId,
+          result.message || "Narração TTS gerada"
+        );
       }
       return result;
     };
@@ -926,8 +1113,12 @@ export function registerWorkflowRoutes(app, deps) {
 
   async function dubCallGemini(projDir, prompt, opts = {}) {
     const apiKeys = getApiKeys(projDir);
-    if (!apiKeys?.[0]) throw new Error("Chave Gemini não configurada para tradução.");
-    return callGeminiWithRetry(apiKeys[0], prompt, { ...opts, projectDir: projDir });
+    if (!apiKeys?.[0])
+      throw new Error("Chave Gemini não configurada para tradução.");
+    return callGeminiWithRetry(apiKeys[0], prompt, {
+      ...opts,
+      projectDir: projDir,
+    });
   }
 
   app.get("/api/dub/sources", (req, res) => {
@@ -964,21 +1155,26 @@ export function registerWorkflowRoutes(app, deps) {
       const projDir = getProjectDir(req);
       const logs = [];
       const body = req.body || {};
-      const result = await runLumieraDub(projDir, {
-        sourceId: body.sourceId,
-        targetLanguage: body.targetLanguage || "en",
-        sourceLanguage: body.sourceLanguage || "auto",
-        engine: body.engine || "fish",
-        voice: body.voice,
-        skipTranslate: Boolean(body.skipTranslate),
-        bgmVolume: body.bgmVolume ?? 0.35,
-        forceRetranscribe: Boolean(body.forceRetranscribe),
-        fishOptions: body.fish && typeof body.fish === "object" ? body.fish : {},
-      }, {
-        pythonPath: PYTHON_PATH,
-        workspaceDir: WORKSPACE_DIR,
-        callGemini: (prompt, opts) => dubCallGemini(projDir, prompt, opts),
-      });
+      const result = await runLumieraDub(
+        projDir,
+        {
+          sourceId: body.sourceId,
+          targetLanguage: body.targetLanguage || "en",
+          sourceLanguage: body.sourceLanguage || "auto",
+          engine: body.engine || "fish",
+          voice: body.voice,
+          skipTranslate: Boolean(body.skipTranslate),
+          bgmVolume: body.bgmVolume ?? 0.35,
+          forceRetranscribe: Boolean(body.forceRetranscribe),
+          fishOptions:
+            body.fish && typeof body.fish === "object" ? body.fish : {},
+        },
+        {
+          pythonPath: PYTHON_PATH,
+          workspaceDir: WORKSPACE_DIR,
+          callGemini: (prompt, opts) => dubCallGemini(projDir, prompt, opts),
+        }
+      );
       res.json({ ...result, logs });
     } catch (err) {
       if (err?.geminiBrowserPending) return;
@@ -991,14 +1187,16 @@ export function registerWorkflowRoutes(app, deps) {
       const projDir = getProjectDir(req);
       const logs = [];
       const result = await runPublishPrep(projDir, {
-        generateMetadata: (dir) => generateYoutubeMetadataForProject(dir, { req, res }),
-        generateThumbnails: async (dir, metadata) => generateYoutubeThumbnailImages({
-          projectDir: dir,
-          projectName: path.basename(dir),
-          thumbnails: metadata?.parsed?.thumbnails || [],
-          format: metadata?.format || "LONG",
-          palette: metadata?.palette || [],
-        }),
+        generateMetadata: (dir) =>
+          generateYoutubeMetadataForProject(dir, { req, res }),
+        generateThumbnails: async (dir, metadata) =>
+          generateYoutubeThumbnailImages({
+            projectDir: dir,
+            projectName: path.basename(dir),
+            thumbnails: metadata?.parsed?.thumbnails || [],
+            format: metadata?.format || "LONG",
+            palette: metadata?.palette || [],
+          }),
         onLog: (msg) => logs.push(msg),
       });
       res.json({ ...result, logs });
@@ -1010,15 +1208,20 @@ export function registerWorkflowRoutes(app, deps) {
 
   app.get("/api/creator/listicle-presets", (req, res) => {
     const format = req.query?.format === "LONGO" ? "LONGO" : "SHORTS";
-    res.json({ presets: LISTICLE_WORKFLOW_PRESETS[format] || LISTICLE_WORKFLOW_PRESETS.SHORTS });
+    res.json({
+      presets:
+        LISTICLE_WORKFLOW_PRESETS[format] || LISTICLE_WORKFLOW_PRESETS.SHORTS,
+    });
   });
 
   app.post("/api/creator/apply-preset", (req, res) => {
     try {
       const { presetId, format = "SHORTS" } = req.body || {};
-      const list = LISTICLE_WORKFLOW_PRESETS[format] || LISTICLE_WORKFLOW_PRESETS.SHORTS;
+      const list =
+        LISTICLE_WORKFLOW_PRESETS[format] || LISTICLE_WORKFLOW_PRESETS.SHORTS;
       const preset = list.find((p) => p.id === presetId);
-      if (!preset) return res.status(404).json({ error: "Preset não encontrado." });
+      if (!preset)
+        return res.status(404).json({ error: "Preset não encontrado." });
       res.json({ applied: applyListiclePreset(preset, { format }) });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1027,8 +1230,12 @@ export function registerWorkflowRoutes(app, deps) {
 
   app.get("/api/creator/run-pipeline", async (req, res) => {
     const projDir = getProjectDir(req);
-    const stepsParam = req.query?.steps || "sync,stock,automap,bgm,mix,metadata,thumbnails";
-    const steps = String(stepsParam).split(",").map((s) => s.trim()).filter(Boolean);
+    const stepsParam =
+      req.query?.steps || "sync,stock,automap,bgm,mix,metadata,thumbnails";
+    const steps = String(stepsParam)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
@@ -1048,7 +1255,9 @@ export function registerWorkflowRoutes(app, deps) {
       });
       res.write(`data: ${JSON.stringify({ type: "complete", results })}\n\n`);
     } catch (err) {
-      res.write(`data: ${JSON.stringify({ type: "error", message: err.message })}\n\n`);
+      res.write(
+        `data: ${JSON.stringify({ type: "error", message: err.message })}\n\n`
+      );
     }
     res.end();
   });
@@ -1056,8 +1265,12 @@ export function registerWorkflowRoutes(app, deps) {
   app.post("/api/ai/apply-bgm", async (req, res) => {
     try {
       const projDir = getProjectDir(req);
-      const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
-      const mode = config.aspect_ratio === "9:16" || config.video_format === "SHORTS" ? "SHORTS" : "LONGO";
+      const config =
+        readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+      const mode =
+        config.aspect_ratio === "9:16" || config.video_format === "SHORTS"
+          ? "SHORTS"
+          : "LONGO";
       const token = getEpidemicSoundKey(projDir) || "";
       const logs = await runAutoSoundtrackLogic(projDir, token, mode);
       res.json({ success: true, logs });
@@ -1072,20 +1285,36 @@ export function registerWorkflowRoutes(app, deps) {
       const projDir = getProjectDir(req);
 
       if (global) {
-        const globalPath = path.join(WORKSPACE_DIR, "dashboard-qanat", "backend", "render_config_global.json");
+        const globalPath = path.join(
+          WORKSPACE_DIR,
+          "dashboard-qanat",
+          "backend",
+          "render_config_global.json"
+        );
         let globalCfg = readJsonFile(globalPath) || {};
-        if (typeof pexels_api_key === "string") globalCfg.pexels_api_key = pexels_api_key.trim();
-        if (typeof pixabay_api_key === "string") globalCfg.pixabay_api_key = pixabay_api_key.trim();
-        fs.writeFileSync(globalPath, JSON.stringify(globalCfg, null, 2), "utf8");
+        if (typeof pexels_api_key === "string")
+          globalCfg.pexels_api_key = pexels_api_key.trim();
+        if (typeof pixabay_api_key === "string")
+          globalCfg.pixabay_api_key = pixabay_api_key.trim();
+        fs.writeFileSync(
+          globalPath,
+          JSON.stringify(globalCfg, null, 2),
+          "utf8"
+        );
       } else {
         const configPath = path.join(projDir, "config_qanat.json");
         let config = readJsonFile(configPath) || {};
-        if (typeof pexels_api_key === "string") config.pexels_api_key = pexels_api_key.trim();
-        if (typeof pixabay_api_key === "string") config.pixabay_api_key = pixabay_api_key.trim();
+        if (typeof pexels_api_key === "string")
+          config.pexels_api_key = pexels_api_key.trim();
+        if (typeof pixabay_api_key === "string")
+          config.pixabay_api_key = pixabay_api_key.trim();
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
       }
 
-      res.json({ success: true, keys: getWorkflowApiKeys(WORKSPACE_DIR, projDir) });
+      res.json({
+        success: true,
+        keys: getWorkflowApiKeys(WORKSPACE_DIR, projDir),
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -1130,10 +1359,11 @@ export function registerWorkflowRoutes(app, deps) {
         useAi = true,
       } = req.body || {};
 
-      const format = String(formatRaw || "SHORTS").toUpperCase() === "LONGO" ||
+      const format =
+        String(formatRaw || "SHORTS").toUpperCase() === "LONGO" ||
         String(formatRaw || "").toUpperCase() === "LONG"
-        ? "LONGO"
-        : "SHORTS";
+          ? "LONGO"
+          : "SHORTS";
 
       const browserText = extractBrowserResponse(req.body);
       let llmFn = null;
@@ -1169,7 +1399,9 @@ export function registerWorkflowRoutes(app, deps) {
       }
 
       if (!result.ok) {
-        return res.status(400).json({ error: result.error || "Falha na análise" });
+        return res
+          .status(400)
+          .json({ error: result.error || "Falha na análise" });
       }
 
       if (!res.headersSent) {
@@ -1186,9 +1418,13 @@ export function registerWorkflowRoutes(app, deps) {
     try {
       const projDir = getProjectDir(req);
       const { enqueue = true } = req.body || {};
-      const result = runClipFactory(WORKSPACE_DIR, projDir, { enqueue: enqueue !== false });
+      const result = runClipFactory(WORKSPACE_DIR, projDir, {
+        enqueue: enqueue !== false,
+      });
       if (!result.ok) {
-        return res.status(400).json({ error: result.error || "Clip Factory falhou" });
+        return res
+          .status(400)
+          .json({ error: result.error || "Clip Factory falhou" });
       }
       res.json({ ok: true, ...result });
     } catch (err) {
@@ -1199,7 +1435,8 @@ export function registerWorkflowRoutes(app, deps) {
   app.get("/api/workflow/archive-search", async (req, res) => {
     try {
       const q = String(req.query.q || "").trim();
-      if (!q) return res.status(400).json({ error: "Informe q=termo de busca" });
+      if (!q)
+        return res.status(400).json({ error: "Informe q=termo de busca" });
       const preferVideo = req.query.video === "1";
       const hits = await searchArchiveOrg(q, { rows: 10, preferVideo });
       res.json({ ok: true, query: q, hits });
@@ -1211,7 +1448,8 @@ export function registerWorkflowRoutes(app, deps) {
   app.get("/api/workflow/bing-image-search", async (req, res) => {
     try {
       const q = String(req.query.q || "").trim();
-      if (!q) return res.status(400).json({ error: "Informe q=termo de busca" });
+      if (!q)
+        return res.status(400).json({ error: "Informe q=termo de busca" });
       const hits = await searchBingImages(q, { count: 12 });
       res.json({ ok: true, query: q, hits });
     } catch (err) {
@@ -1232,11 +1470,14 @@ export function registerWorkflowRoutes(app, deps) {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
-    const send = (type, payload) => res.write(`data: ${JSON.stringify({ type, ...payload })}\n\n`);
+    const send = (type, payload) =>
+      res.write(`data: ${JSON.stringify({ type, ...payload })}\n\n`);
     try {
       send("log", { text: "Iniciando instalação ComfyUI + LTX..." });
       await runComfyuiInstall((text) => send("log", { text: text.trim() }));
-      send("complete", { message: "ComfyUI instalado. Baixe os modelos LTX em seguida." });
+      send("complete", {
+        message: "ComfyUI instalado. Baixe os modelos LTX em seguida.",
+      });
     } catch (err) {
       send("error", { message: err.message });
     }
@@ -1247,10 +1488,13 @@ export function registerWorkflowRoutes(app, deps) {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
-    const send = (type, payload) => res.write(`data: ${JSON.stringify({ type, ...payload })}\n\n`);
+    const send = (type, payload) =>
+      res.write(`data: ${JSON.stringify({ type, ...payload })}\n\n`);
     try {
       send("log", { text: "Baixando modelos LTX (~18 GB). Pode demorar..." });
-      const result = await runComfyuiModelDownload((text) => send("log", { text: text.trim() }));
+      const result = await runComfyuiModelDownload((text) =>
+        send("log", { text: text.trim() })
+      );
       send("complete", { message: "Modelos prontos.", models: result.models });
     } catch (err) {
       send("error", { message: err.message });
@@ -1321,7 +1565,8 @@ export function registerWorkflowRoutes(app, deps) {
       const filename = String(req.query.filename || "");
       const subfolder = String(req.query.subfolder || "");
       const filePath = resolveComfyuiOutputFile({ filename, subfolder });
-      if (!filePath) return res.status(404).json({ error: "Arquivo não encontrado." });
+      if (!filePath)
+        return res.status(404).json({ error: "Arquivo não encontrado." });
       res.sendFile(filePath);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1376,14 +1621,17 @@ export function registerWorkflowRoutes(app, deps) {
       const result = await testComfyCloudConnection(apiKey);
       res.json({ ok: true, ...result });
     } catch (err) {
-      res.status(err.status === 401 ? 401 : 500).json({ error: err.message, details: err.data });
+      res
+        .status(err.status === 401 ? 401 : 500)
+        .json({ error: err.message, details: err.data });
     }
   });
 
   app.get("/api/comfy-mcp/queue", async (req, res) => {
     try {
       const cfg = loadComfyCloudConfig(WORKSPACE_DIR);
-      if (!cfg.api_key) return res.status(400).json({ error: "API key não configurada" });
+      if (!cfg.api_key)
+        return res.status(400).json({ error: "API key não configurada" });
       const queue = await getComfyCloudQueue(cfg.api_key);
       res.json(queue);
     } catch (err) {

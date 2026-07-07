@@ -4,6 +4,7 @@
 
 import fs from "fs";
 import path from "path";
+import { execSync } from "child_process";
 import { tightenStudioTimelineClips } from "../shared/timelineStudioTighten.js";
 import {
   resolveStudioBgmSource,
@@ -278,16 +279,34 @@ function migrateCaptionClips(wordTranscripts = []) {
   return clips;
 }
 
-function migrateVoiceClip(projDir, blockTimings = {}) {
-  const total =
-    Number(blockTimings.total_duration) ||
-    (blockTimings.durations || []).reduce((a, d) => a + (Number(d) || 0), 0) ||
-    60;
+function probeAudioDurationSec(filePath) {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return 0;
+    const output = execSync(
+      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
+      { encoding: "utf8" }
+    ).trim();
+    const dur = parseFloat(output);
+    return Number.isFinite(dur) && dur > 0 ? dur : 0;
+  } catch {
+    return 0;
+  }
+}
 
+function migrateVoiceClip(projDir, blockTimings = {}) {
   const source = NARRATION_FILES.find((f) =>
     fs.existsSync(path.join(projDir, f))
   );
   if (!source) return null;
+
+  let total =
+    Number(blockTimings.total_duration) ||
+    (blockTimings.durations || []).reduce((a, d) => a + (Number(d) || 0), 0) ||
+    0;
+  if (total <= 0) {
+    total = probeAudioDurationSec(path.join(projDir, source));
+  }
+  if (total <= 0) total = 60;
 
   return {
     id: "voice-main",
@@ -483,6 +502,30 @@ export function syncNarrationToTimelineStudio(projDir, studio) {
     beforeFp !== afterFp || Math.abs(beforeTotal - totalDuration) > 0.01;
 
   return { studio: nextStudio, changed };
+}
+
+/** Sincroniza narração no disco e persiste quando necessário. */
+export function applyNarrationSyncToProject(projDir, studio = null) {
+  const studioPath = path.join(projDir, STUDIO_FILENAME);
+  let base = studio;
+  if (!base) {
+    if (fs.existsSync(studioPath)) {
+      base = readJson(studioPath, null);
+    } else {
+      const migrated = migrateLegacyToTimelineStudio(projDir);
+      return {
+        studio: migrated.studio,
+        changed: Boolean(migrated.migrated),
+        created: Boolean(migrated.migrated),
+      };
+    }
+  }
+  const { studio: next, changed } = syncNarrationToTimelineStudio(
+    projDir,
+    base
+  );
+  if (changed) saveTimelineStudio(projDir, next);
+  return { studio: next, changed, created: false };
 }
 
 function repairStudioOnLoad(projDir, studio) {

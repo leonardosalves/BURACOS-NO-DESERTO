@@ -1584,6 +1584,7 @@ export default function App() {
   const [narrationDuration, setNarrationDuration] = useState<number>(0);
 
   const [wordTranscripts, setWordTranscripts] = useState<any[]>([]);
+  const [timelineDataRevision, setTimelineDataRevision] = useState(0);
 
   const [flatTranscriptWords, setFlatTranscriptWords] = useState<any[]>([]);
 
@@ -2975,6 +2976,7 @@ export default function App() {
     ];
     if (opts?.includeVideoQuality) tasks.push(fetchVideoQuality());
     await Promise.all(tasks);
+    setTimelineDataRevision((r) => r + 1);
   };
 
   const buildWizardSessionPatch = useCallback(
@@ -9431,6 +9433,7 @@ export default function App() {
     selectedProject,
     storyboardData,
     wordTranscripts,
+    timelineDataRevision,
     timelineNeedsWhisperSync,
     timelineScenesNeedRepair,
     timelineOpenBlocks,

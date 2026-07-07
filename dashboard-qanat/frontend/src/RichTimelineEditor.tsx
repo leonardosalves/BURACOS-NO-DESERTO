@@ -1,5 +1,5 @@
 import toast from "react-hot-toast";
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import {
   AlertTriangle,
   Bot,
@@ -26,6 +26,24 @@ import { LazyOverlayTimelineEditor, TabPanelFallback } from "./appLazyPanels";
 import type { ConfigData, WorkspaceStatus } from "./appTypes";
 import type { AppTab } from "./appTabs";
 
+type AssetValidationIssue = {
+  block?: string;
+  index?: number;
+  asset: string;
+  reason: string;
+  detail?: string;
+  expectedUrl?: string;
+};
+
+type AssetValidationReport = {
+  ok: boolean;
+  project: string;
+  checked: number;
+  found: number;
+  missing: number;
+  issues: AssetValidationIssue[];
+};
+
 function formatTime(sec: number): string {
   if (sec === undefined || Number.isNaN(sec)) return "0:00";
   const mins = Math.floor(sec / 60);
@@ -42,6 +60,7 @@ export type RichTimelineEditorProps = {
   selectedProject: string;
   storyboardData: any;
   wordTranscripts: any[];
+  timelineDataRevision?: number;
   timelineNeedsWhisperSync: boolean;
   timelineScenesNeedRepair: boolean;
   timelineOpenBlocks: Record<number, boolean>;
@@ -184,9 +203,45 @@ export function RichTimelineEditor({
   suggestBlockProgressIcons,
   syncBlockProgressTitles,
 }: RichTimelineEditorProps) {
+  const [assetValidation, setAssetValidation] =
+    useState<AssetValidationReport | null>(null);
+  const [validatingAssets, setValidatingAssets] = useState(false);
   const timelineBlockCount = config.block_phrases
     ? config.block_phrases.length
     : status?.block_timings?.durations?.length || 12;
+
+  const validateProjectAssets = async () => {
+    if (!activeProject.trim()) {
+      toast.error("Selecione um projeto antes de verificar assets.");
+      return;
+    }
+    setValidatingAssets(true);
+    try {
+      const res = await fetch(getProjectUrl("/api/assets/validate"));
+      const data = (await res.json().catch(() => null)) as
+        AssetValidationReport | { error?: string } | null;
+      if (!res.ok || !data) {
+        throw new Error(
+          (data as { error?: string } | null)?.error ||
+            "Falha ao verificar assets."
+        );
+      }
+      setAssetValidation(data as AssetValidationReport);
+      if ((data as AssetValidationReport).ok) {
+        toast.success("Todos os assets da timeline existem no projeto ativo.");
+      } else {
+        toast.error(
+          `${(data as AssetValidationReport).missing} asset(s) com problema no projeto ativo.`
+        );
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Falha ao verificar assets."
+      );
+    } finally {
+      setValidatingAssets(false);
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -456,6 +511,70 @@ export function RichTimelineEditor({
         badge={timelineBlockCount}
         defaultOpen
       >
+        <div className="mb-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-bold text-zinc-200">
+                Validador de assets do projeto ativo
+              </p>
+              <p className="text-[10px] text-zinc-500">
+                Confere somente arquivos dentro de {activeProject || "projeto"}.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={validateProjectAssets}
+              disabled={validatingAssets}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-700 bg-zinc-900 text-[10px] font-bold text-zinc-200 hover:bg-zinc-800 disabled:opacity-60"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${validatingAssets ? "animate-spin" : ""}`}
+              />
+              {validatingAssets ? "Verificando..." : "Verificar assets"}
+            </button>
+          </div>
+
+          {assetValidation ? (
+            <div
+              className={`rounded-lg border p-2 text-[10px] ${
+                assetValidation.ok
+                  ? "border-emerald-500/25 bg-emerald-500/5 text-emerald-100"
+                  : "border-amber-500/25 bg-amber-500/5 text-amber-100"
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-2 font-mono">
+                <span>checked: {assetValidation.checked}</span>
+                <span>found: {assetValidation.found}</span>
+                <span>missing: {assetValidation.missing}</span>
+              </div>
+              {!assetValidation.ok ? (
+                <div className="mt-2 max-h-40 overflow-auto space-y-1 pr-1">
+                  {assetValidation.issues.slice(0, 20).map((issue, idx) => (
+                    <div
+                      key={`${issue.asset}-${idx}`}
+                      className="rounded border border-amber-500/15 bg-black/20 px-2 py-1"
+                    >
+                      <div className="font-mono text-amber-200 break-all">
+                        {issue.asset}
+                      </div>
+                      <div className="text-amber-100/80">
+                        {issue.block ? `Bloco ${issue.block}` : "Timeline"}{" "}
+                        {issue.index !== undefined ? `#${issue.index + 1}` : ""}{" "}
+                        - {issue.reason}
+                      </div>
+                      {issue.detail ? (
+                        <div className="text-amber-100/60 break-all">
+                          {issue.detail}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
         <div className="timeline-block-nav">
           {Array.from({ length: timelineBlockCount }, (_, i) => i + 1).map(
             (blockNum) => (
