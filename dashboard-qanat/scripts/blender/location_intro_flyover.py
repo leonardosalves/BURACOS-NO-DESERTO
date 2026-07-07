@@ -110,15 +110,20 @@ def boundary_span_m(geo_path: str, center_lat: float, center_lng: float) -> floa
     return max(80_000.0, span * 1.85)
 
 
-def create_textured_ground(texture_path: str, size_m: float = 80_000) -> bpy.types.Object:
-    bpy.ops.mesh.primitive_plane_add(size=size_m, location=(0, 0, 12))
+def create_textured_ground(
+    texture_path: str,
+    size_m: float = 80_000,
+    z: float = 12,
+    name: str = "LumieraGround",
+) -> bpy.types.Object:
+    bpy.ops.mesh.primitive_plane_add(size=size_m, location=(0, 0, z))
     ground = bpy.context.active_object
-    ground.name = "LumieraGround"
+    ground.name = name
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.subdivide(number_cuts=24)
     bpy.ops.object.mode_set(mode="OBJECT")
 
-    mat = bpy.data.materials.new(name="SatelliteMat")
+    mat = bpy.data.materials.new(name=f"{name}Mat")
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
@@ -323,6 +328,7 @@ def setup_camera(job: dict) -> bpy.types.Object:
     place_type = str(job.get("place_type") or "city")
     orbit_poi = bool(job.get("orbit_poi")) and place_type in {"poi", "historic_site"}
     show_city = place_type == "city"
+    pip_mode = bool(job.get("pip_mode"))
 
     target = bpy.data.objects.new("FlyTarget", None)
     target.location = (0, 0, 0)
@@ -334,6 +340,9 @@ def setup_camera(job: dict) -> bpy.types.Object:
         final_height = max(final_height, 38_000.0)
     else:
         final_height = min(max(final_height, 900.0), 1400.0)
+    if pip_mode:
+        mid_zoom = zoom_levels[min(len(zoom_levels) - 1, max(1, len(zoom_levels) // 2))]
+        start_height = max(zoom_to_height(mid_zoom), final_height * 22)
 
     bpy.ops.object.camera_add(location=(0, -start_height * 0.34, start_height))
     cam = bpy.context.active_object
@@ -351,17 +360,17 @@ def setup_camera(job: dict) -> bpy.types.Object:
     scene.frame_end = frames
     scene.render.fps = fps
 
-    descent_end = int(frames * 0.72) if orbit_poi else frames
+    descent_end = int(frames * 0.64) if orbit_poi else frames
     descent_key_count = max(18, int(duration * 4))
     for i in range(descent_key_count):
         t = i / max(descent_key_count - 1, 1)
         eased = 1 - (1 - t) ** 3
-        frame = 1 + int(eased * max(descent_end - 1, 1))
-        log_height = math.log(start_height) + (math.log(final_height) - math.log(start_height)) * eased
+        frame = 1 + int(t * max(descent_end - 1, 1))
+        log_height = math.log(start_height) + (math.log(final_height) - math.log(start_height)) * t
         height = math.exp(log_height)
-        lateral = height * (0.34 * (1 - eased) + (0.032 if orbit_poi else 0.055) * eased)
+        lateral = height * (0.34 * (1 - t) + (0.032 if orbit_poi else 0.055) * t)
         cam.location = (
-            math.sin(eased * math.pi * 0.26) * lateral * 0.28,
+            math.sin(t * math.pi * 0.26) * lateral * 0.28,
             -lateral,
             height,
         )
@@ -454,28 +463,58 @@ def main() -> None:
 
     lat = float(job["lat"])
     lng = float(job["lng"])
-    texture = job.get("texture_tight") or job.get("texture_wide")
-    if not texture or not os.path.isfile(texture):
-        raise SystemExit(f"Textura satélite ausente: {texture}")
+    texture_tight = job.get("texture_tight") or job.get("texture_wide")
+    texture_wide = job.get("texture_wide") or texture_tight
+    if not texture_tight or not os.path.isfile(texture_tight):
+        raise SystemExit(f"Textura satélite ausente: {texture_tight}")
 
     place_type = str(job.get("place_type") or "city")
     if place_type in {"poi", "historic_site"}:
         zoom_levels = job.get("zoom_levels") or [3, 6, 10, 14, 17]
-        ground_size = tile_span_m(
+        wide_ground_size = tile_span_m(
+            lat,
+            float(zoom_levels[0]),
+            int(job.get("width") or 1280),
+            int(job.get("height") or 720),
+        )
+        tight_ground_size = tile_span_m(
             lat,
             float(zoom_levels[-1]),
             int(job.get("width") or 1280),
             int(job.get("height") or 720),
         )
     else:
-        ground_size = boundary_span_m(
+        tight_ground_size = boundary_span_m(
             job.get("boundary_geojson") or "",
             lat,
             lng,
         )
+        zoom_levels = job.get("zoom_levels") or [3, 6, 10]
+        wide_ground_size = max(
+            tight_ground_size * 3.2,
+            tile_span_m(
+                lat,
+                float(zoom_levels[0]),
+                int(job.get("width") or 1280),
+                int(job.get("height") or 720),
+            ),
+        )
     if not try_gis_terrain(job):
-        create_earth_context()
-        create_textured_ground(texture, size_m=ground_size)
+        if not pip_mode:
+            create_earth_context()
+        if texture_wide and os.path.isfile(texture_wide):
+            create_textured_ground(
+                texture_wide,
+                size_m=wide_ground_size,
+                z=6,
+                name="LumieraWideMap",
+            )
+        create_textured_ground(
+            texture_tight,
+            size_m=tight_ground_size,
+            z=14,
+            name="LumieraTargetMap",
+        )
 
     import_boundary_curve(
         job.get("boundary_geojson") or "",

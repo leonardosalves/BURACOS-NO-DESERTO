@@ -55,6 +55,17 @@ export interface LocationIntroProps {
   google_maps_api_key?: string;
 }
 
+const ENGINEERING_PIP_OVERLAY =
+  "overlays/overlay_pip_engenharia_9x16_transparente.png";
+const ENGINEERING_PIP_WINDOW = {
+  x: 535,
+  y: 1228,
+  width: 450,
+  height: 245,
+  radius: 18,
+};
+const ENGINEERING_PIP_SHIFT_Y = -430;
+
 const SatelliteTerrain: React.FC = () => (
   <AbsoluteFill>
     <div
@@ -304,6 +315,7 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   const { fps, durationInFrames, width, height } = useVideoConfig();
   const isVertical = height > width;
   const isPip = presentation === "pip";
+  const isEngineeringMapPip = isVertical && isPip;
 
   const [boundaryData, setBoundaryData] = useState<BoundaryGeoJson | null>(
     null
@@ -748,6 +760,61 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
       </AbsoluteFill>
     </>
   );
+
+  if (isEngineeringMapPip) {
+    const scale = Math.min(width / 1080, height / 1920);
+    const shiftY = ENGINEERING_PIP_SHIFT_Y * scale;
+    const win = {
+      left: ENGINEERING_PIP_WINDOW.x * scale,
+      top: (ENGINEERING_PIP_WINDOW.y + ENGINEERING_PIP_SHIFT_Y) * scale,
+      width: ENGINEERING_PIP_WINDOW.width * scale,
+      height: ENGINEERING_PIP_WINDOW.height * scale,
+      radius: ENGINEERING_PIP_WINDOW.radius * scale,
+    };
+    const pipIn = interpolate(frame, [0, fps * 0.35], [34, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing: Easing.bezier(0.16, 1, 0.3, 1),
+    });
+    const pipOpacity = Math.min(enterOpacity, exitOpacity);
+
+    return (
+      <AbsoluteFill
+        style={{
+          pointerEvents: "none",
+          zIndex: 55,
+          opacity: pipOpacity,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            left: win.left,
+            top: win.top + pipIn,
+            width: win.width,
+            height: win.height,
+            borderRadius: win.radius,
+            overflow: "hidden",
+            background: "#071417",
+          }}
+        >
+          <AbsoluteFill>{mapContent()}</AbsoluteFill>
+        </div>
+        <Img
+          src={staticFile(ENGINEERING_PIP_OVERLAY)}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: shiftY + pipIn,
+            width,
+            height,
+            objectFit: "fill",
+          }}
+        />
+      </AbsoluteFill>
+    );
+  }
 
   const cardStyle: React.CSSProperties = isPip
     ? {

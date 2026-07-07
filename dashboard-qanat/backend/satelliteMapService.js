@@ -703,7 +703,15 @@ export async function fetchSatelliteAssetsForScene(
   let flyoverVideo = "";
 
   if (useBlender) {
-    const wideZoom = zoomLevels[0];
+    const wideZoom =
+      renderDims.aspect_ratio === "9:16"
+        ? zoomLevels[
+            Math.min(
+              zoomLevels.length - 1,
+              Math.max(1, Math.floor(zoomLevels.length / 2))
+            )
+          ]
+        : zoomLevels[0];
     const tightZoom = zoomLevels[zoomLevels.length - 1];
     const wideName = `${sceneKey}-z${wideZoom}.jpg`;
     const tightName = `${sceneKey}-z${tightZoom}.jpg`;

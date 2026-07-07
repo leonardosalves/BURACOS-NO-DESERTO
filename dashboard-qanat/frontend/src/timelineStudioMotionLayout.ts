@@ -9,8 +9,18 @@ export function isFullscreenMotionClip(clip: StudioClip): boolean {
   const props = (clip.props || {}) as Record<string, unknown>;
   const layout = String(props.layout || "").trim();
 
-  // Regra global: mapas/geo nunca em PIP
-  if (templateId === "location-intro" || templateId === "geo-map") return true;
+  if (templateId === "location-intro") {
+    const aspectRatio = String(props.aspect_ratio || "").trim();
+    const niche = String(props.niche || "").trim();
+    if (
+      aspectRatio === "9:16" &&
+      /engenharia|engineering|industrial/i.test(niche)
+    ) {
+      return false;
+    }
+    return true;
+  }
+  if (templateId === "geo-map") return true;
   if (layout === "fullscreen") return true;
   if (FULLSCREEN_TEMPLATES.has(templateId)) return true;
   return false;

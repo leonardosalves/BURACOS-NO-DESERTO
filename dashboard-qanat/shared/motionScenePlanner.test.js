@@ -219,7 +219,31 @@ describe("motionScenePlanner", () => {
     assert.equal(loc.layout, "fullscreen");
   });
 
-  it("E2E Bangkok short 9:16 — location-intro fullscreen + place_type city", () => {
+  it("location-intro respeita teto 10s shorts e 20s longos", () => {
+    const storyboard = {
+      visual_prompts: [
+        {
+          scene: "2.1",
+          block: 2,
+          narration_text: "A Ponte de Laufenburg revela o detalhe estrutural.",
+          speech_start: 4,
+          duration_seconds: 30,
+        },
+      ],
+    };
+    const shortPlan = planMotionScenesFromStoryboard(storyboard, {
+      niche: "Engenharia",
+      aspect_ratio: "9:16",
+    });
+    const longPlan = planMotionScenesFromStoryboard(storyboard, {
+      niche: "Engenharia",
+      aspect_ratio: "16:9",
+    });
+    assert.equal(shortPlan.motion_scenes[0].duration_seconds, 10);
+    assert.equal(longPlan.motion_scenes[0].duration_seconds, 20);
+  });
+
+  it("E2E Bangkok short 9:16 — location-intro PIP engenharia + place_type city", () => {
     const plan = planMotionScenesFromStoryboard(
       {
         visual_prompts: [
@@ -248,10 +272,11 @@ describe("motionScenePlanner", () => {
     );
     const counter = plan.motion_scenes.find((s) => s.template_id === "counter");
     assert.ok(loc);
-    assert.equal(loc.layout, "fullscreen");
-    assert.equal(loc.props.presentation, "fullscreen");
+    assert.equal(loc.layout, "pip");
+    assert.equal(loc.props.presentation, "pip");
     assert.equal(loc.props.place_type, "city");
     assert.equal(loc.props.aspect_ratio, "9:16");
+    assert.equal(loc.duration_seconds, 8);
     assert.ok(counter);
     assert.equal(counter.props.aspect_ratio, "9:16");
   });
