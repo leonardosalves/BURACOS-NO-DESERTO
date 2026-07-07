@@ -85,6 +85,7 @@ export function TimelineStudio({
   const [stockSearchTrigger, setStockSearchTrigger] =
     useState<StockSearchTrigger | null>(null);
   const [planningMotion, setPlanningMotion] = useState(false);
+  const [scrollToTrackId, setScrollToTrackId] = useState<string | null>(null);
   const configRef = useRef(config);
   configRef.current = config;
   const getAssetUrlRef = useRef(getAssetUrl);
@@ -140,7 +141,7 @@ export function TimelineStudio({
   const loadStudio = useCallback(
     async (opts?: { focusRemotion?: boolean; silent?: boolean }) => {
       if (!activeProject) return null;
-      setLoading(true);
+      if (!opts?.silent) setLoading(true);
       try {
         const res = await fetch(getProjectUrl("/api/timeline-studio"));
         if (!res.ok) throw new Error(await res.text());
@@ -180,7 +181,7 @@ export function TimelineStudio({
         toast.error(`Erro ao carregar timeline: ${detail}`);
         return null;
       } finally {
-        setLoading(false);
+        if (!opts?.silent) setLoading(false);
       }
     },
     [activeProject, applyStudioFromServer, getProjectUrl]
@@ -509,10 +510,20 @@ export function TimelineStudio({
                 );
                 if (!orchRes.ok) throw new Error(await orchRes.text());
                 const orchData = await orchRes.json();
-                const loaded = await loadStudio({
-                  focusRemotion: true,
-                  silent: true,
-                });
+                let loaded: TimelineStudioState | null = null;
+                if (orchData.timeline_synced && orchData.studio) {
+                  loaded = applyStudioFromServer(
+                    orchData.studio as TimelineStudioState,
+                    { focusRemotion: true }
+                  );
+                  setScrollToTrackId("motion");
+                } else {
+                  loaded = await loadStudio({
+                    focusRemotion: true,
+                    silent: true,
+                  });
+                  setScrollToTrackId("motion");
+                }
                 const counts = countRemotionTracks(
                   (loaded?.clips ||
                     (orchData.studio as TimelineStudioState | undefined)
@@ -712,6 +723,8 @@ export function TimelineStudio({
       <TimelineStudioTracks
         studio={studio}
         selectedClipId={selectedClipId}
+        scrollToTrackId={scrollToTrackId}
+        onScrollToTrackDone={() => setScrollToTrackId(null)}
         onSelectClip={setSelectedClipId}
         onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
         onZoomChange={(zoom) => updateStudio({ zoom })}

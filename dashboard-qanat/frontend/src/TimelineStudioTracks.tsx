@@ -16,6 +16,8 @@ import { isClipEditable, moveClip, resizeClip } from "./timelineStudioClipOps";
 type Props = {
   studio: TimelineStudioState;
   selectedClipId: string | null;
+  scrollToTrackId?: string | null;
+  onScrollToTrackDone?: () => void;
   onSelectClip: (id: string | null) => void;
   onPlayheadChange: (sec: number) => void;
   onZoomChange: (zoom: number) => void;
@@ -61,12 +63,15 @@ type VisibleWindow = {
 export function TimelineStudioTracks({
   studio,
   selectedClipId,
+  scrollToTrackId,
+  onScrollToTrackDone,
   onSelectClip,
   onPlayheadChange,
   onZoomChange,
   onClipsChange,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const trackRowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const scrollRafRef = useRef(0);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [visibleWindow, setVisibleWindow] = useState<VisibleWindow>({
@@ -152,6 +157,16 @@ export function TimelineStudioTracks({
     }
     return grouped;
   }, [studio.clips, studio.tracks]);
+
+  useEffect(() => {
+    if (!scrollToTrackId) return;
+    const row = trackRowRefs.current.get(scrollToTrackId);
+    const container = scrollRef.current;
+    if (!row || !container) return;
+    const rowTop = row.offsetTop;
+    container.scrollTo({ top: Math.max(0, rowTop - 8), behavior: "smooth" });
+    onScrollToTrackDone?.();
+  }, [scrollToTrackId, displayTracks, onScrollToTrackDone]);
 
   const handleDragMove = useCallback(
     (e: MouseEvent) => {
@@ -289,6 +304,10 @@ export function TimelineStudioTracks({
               selectedClipId={selectedClipId}
               playhead={studio.playhead}
               isDragging={dragging !== null}
+              rowRef={(el) => {
+                if (el) trackRowRefs.current.set(track.id, el);
+                else trackRowRefs.current.delete(track.id);
+              }}
               onSelectClip={onSelectClip}
               onPlayheadChange={onPlayheadChange}
               onStartDrag={startDrag}
@@ -309,6 +328,7 @@ const TrackRow = React.memo(function TrackRow({
   selectedClipId,
   playhead,
   isDragging,
+  rowRef,
   onSelectClip,
   onPlayheadChange,
   onStartDrag,
@@ -321,6 +341,7 @@ const TrackRow = React.memo(function TrackRow({
   selectedClipId: string | null;
   playhead: number;
   isDragging: boolean;
+  rowRef?: (el: HTMLDivElement | null) => void;
   onSelectClip: (id: string | null) => void;
   onPlayheadChange: (sec: number) => void;
   onStartDrag: (
@@ -364,6 +385,7 @@ const TrackRow = React.memo(function TrackRow({
 
   return (
     <div
+      ref={rowRef}
       className="flex border-b border-zinc-800/40 hover:bg-zinc-900/20"
       style={{ height: h }}
     >
