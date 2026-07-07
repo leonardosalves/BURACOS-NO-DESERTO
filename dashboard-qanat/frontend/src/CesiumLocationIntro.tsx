@@ -37,6 +37,38 @@ function boundaryRings(geo: BoundaryGeo | null): number[][][] {
   return [];
 }
 
+function waitForContainerSize(
+  el: HTMLElement,
+  timeoutMs = 4000
+): Promise<void> {
+  if (el.clientWidth > 0 && el.clientHeight > 0) return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      ro.disconnect();
+      if (el.clientWidth > 0 && el.clientHeight > 0) resolve();
+      else reject(new Error("cesium_container_zero_size"));
+    }, timeoutMs);
+
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth > 0 && el.clientHeight > 0) {
+        window.clearTimeout(timer);
+        ro.disconnect();
+        resolve();
+      }
+    });
+    ro.observe(el);
+  });
+}
+
+function destroyViewer(
+  viewer: InstanceType<CesiumModule["Viewer"]> | null,
+  container: HTMLDivElement | null
+) {
+  if (viewer && !viewer.isDestroyed()) viewer.destroy();
+  if (container) container.replaceChildren();
+}
+
 export function CesiumLocationIntro({
   lat,
   lng,
@@ -70,8 +102,15 @@ export function CesiumLocationIntro({
   const viewerRef = useRef<InstanceType<CesiumModule["Viewer"]> | null>(null);
   const cesiumRef = useRef<CesiumModule | null>(null);
   const boundaryAddedRef = useRef(false);
+  const extrasGenRef = useRef(0);
+  const initGenRef = useRef(0);
   const [ready, setReady] = useState(false);
+  const [initError, setInitError] = useState("");
   const [boundaryData, setBoundaryData] = useState<BoundaryGeo | null>(null);
+
+  const fallbackTile = zoom_keyframes
+    .map((k) => String(k?.image || "").trim())
+    .find(Boolean);
 
   useEffect(() => {
     const path = String(boundaryGeoJson || "").trim();
@@ -94,71 +133,121 @@ export function CesiumLocationIntro({
   }, [boundaryGeoJson, place_type]);
 
   useEffect(() => {
-    let cancelled = false;
+    const initGen = ++initGenRef.current;
     let viewer: InstanceType<CesiumModule["Viewer"]> | null = null;
+    const container = containerRef.current;
 
     (async () => {
-      const Cesium = await import("cesium");
-      await import("cesium/Build/Cesium/Widgets/widgets.css");
-      if (cancelled || !containerRef.current) return;
+      try {
+        if (!container) return;
+        await waitForContainerSize(container);
+        if (initGen !== initGenRef.current) return;
 
-      cesiumRef.current = Cesium;
-      if (ionAccessToken) Cesium.Ion.defaultAccessToken = ionAccessToken;
+        container.replaceChildren();
+        const Cesium = await import("cesium");
+        await import("cesium/Build/Cesium/Widgets/widgets.css");
+        if (initGen !== initGenRef.current || !containerRef.current) return;
 
-      viewer = new Cesium.Viewer(containerRef.current, {
-        animation: false,
-        timeline: false,
-        geocoder: false,
-        homeButton: false,
-        sceneModePicker: false,
-        baseLayerPicker: false,
-        navigationHelpButton: false,
-        fullscreenButton: false,
-        vrButton: false,
-        infoBox: false,
-        selectionIndicator: false,
-        creditContainer: document.createElement("div"),
-        useDefaultRenderLoop: false,
-        requestRenderMode: true,
-        maximumRenderTimeChange: Infinity,
-      });
-      viewerRef.current = viewer;
+        cesiumRef.current = Cesium;
 
-      viewer.imageryLayers.removeAll();
-      const imagery = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
-        "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer"
-      );
-      viewer.imageryLayers.addImageryProvider(imagery);
+        viewer = new Cesium.Viewer(containerRef.current, {
+          animation: false,
+          timeline: false,
+          geocoder: false,
+          homeButton: false,
+          sceneModePicker: false,
+          baseLayerPicker: false,
+          navigationHelpButton: false,
+          fullscreenButton: false,
+          vrButton: false,
+          infoBox: false,
+          selectionIndicator: false,
+          creditContainer: document.createElement("div"),
+          useDefaultRenderLoop: false,
+          requestRenderMode: true,
+          maximumRenderTimeChange: Infinity,
+          showRenderLoopErrors: false,
+          contextOptions: {
+            webgl: {
+              failIfMajorPerformanceCaveat: false,
+            },
+          },
+        });
 
-      if (googleMapsApiKey && Cesium.createGooglePhotorealistic3DTileset) {
-        try {
-          const tileset = await Cesium.createGooglePhotorealistic3DTileset({
-            key: googleMapsApiKey,
-          });
-          viewer.scene.primitives.add(tileset);
-        } catch {
-          /* opcional */
+        if (initGen !== initGenRef.current) {
+          destroyViewer(viewer, containerRef.current);
+          return;
         }
-      } else if (ionAccessToken) {
-        try {
-          viewer.terrainProvider = await Cesium.createWorldTerrainAsync();
-        } catch {
-          /* opcional */
+
+        viewerRef.current = viewer;
+
+        viewer.imageryLayers.removeAll();
+        const imagery = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
+          "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer"
+        );
+        if (initGen !== initGenRef.current) {
+          destroyViewer(viewer, containerRef.current);
+          return;
         }
+        viewer.imageryLayers.addImageryProvider(imagery);
+
+        setInitError("");
+        setReady(true);
+      } catch (err) {
+        if (initGen !== initGenRef.current) return;
+        destroyViewer(viewer, containerRef.current);
+        viewerRef.current = null;
+        cesiumRef.current = null;
+        setReady(false);
+        setInitError(err instanceof Error ? err.message : "cesium_init_failed");
       }
-
-      if (!cancelled) setReady(true);
     })();
 
     return () => {
-      cancelled = true;
+      initGenRef.current += 1;
       boundaryAddedRef.current = false;
-      if (viewer && !viewer.isDestroyed()) viewer.destroy();
+      destroyViewer(viewer, containerRef.current);
       viewerRef.current = null;
       cesiumRef.current = null;
       setReady(false);
     };
-  }, [ionAccessToken, googleMapsApiKey]);
+  }, []);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || !ready || viewer.isDestroyed()) return;
+
+    const extrasGen = ++extrasGenRef.current;
+    const ion = String(ionAccessToken || "").trim();
+    const googleKey = String(googleMapsApiKey || "").trim();
+
+    (async () => {
+      try {
+        if (ion) Cesium.Ion.defaultAccessToken = ion;
+
+        if (googleKey && Cesium.createGooglePhotorealistic3DTileset) {
+          const tileset = await Cesium.createGooglePhotorealistic3DTileset({
+            key: googleKey,
+          });
+          if (extrasGen !== extrasGenRef.current || viewer.isDestroyed()) {
+            return;
+          }
+          viewer.scene.primitives.add(tileset);
+          viewer.scene.requestRender();
+        } else if (ion) {
+          const terrain = await Cesium.createWorldTerrainAsync();
+          if (extrasGen !== extrasGenRef.current || viewer.isDestroyed()) {
+            return;
+          }
+          viewer.terrainProvider = terrain;
+          viewer.scene.requestRender();
+        }
+      } catch {
+        /* terrain / 3D tiles opcionais */
+      }
+    })();
+  }, [ready, ionAccessToken, googleMapsApiKey]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -188,7 +277,9 @@ export function CesiumLocationIntro({
   useLayoutEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
-    if (!viewer || !Cesium || !ready || !lat || !lng) return;
+    if (!viewer || !Cesium || !ready || !lat || !lng || viewer.isDestroyed()) {
+      return;
+    }
 
     const cam = resolveEarthDescentCamera({
       lat,
@@ -211,6 +302,39 @@ export function CesiumLocationIntro({
     viewer.resize();
     viewer.render();
   }, [ready, lat, lng, zoom_from, zoom_to, fly_mode, zoom_keyframes, progress]);
+
+  if (initError) {
+    return (
+      <div
+        className={className}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
+          background: "#050506",
+        }}
+      >
+        {fallbackTile ? (
+          <img
+            src={fallbackTile}
+            alt=""
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              background:
+                "linear-gradient(135deg, #1a2a1a 0%, #0a1628 50%, #1a1a2e 100%)",
+            }}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
