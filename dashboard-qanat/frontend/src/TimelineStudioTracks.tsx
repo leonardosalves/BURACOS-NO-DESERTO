@@ -17,6 +17,7 @@ type Props = {
   studio: TimelineStudioState;
   selectedClipId: string | null;
   scrollToTrackId?: string | null;
+  collapsedTrackIds?: string[];
   onScrollToTrackDone?: () => void;
   onSelectClip: (id: string | null) => void;
   onPlayheadChange: (sec: number) => void;
@@ -64,6 +65,7 @@ export function TimelineStudioTracks({
   studio,
   selectedClipId,
   scrollToTrackId,
+  collapsedTrackIds = ["captions"],
   onScrollToTrackDone,
   onSelectClip,
   onPlayheadChange,
@@ -74,6 +76,13 @@ export function TimelineStudioTracks({
   const trackRowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const scrollRafRef = useRef(0);
   const [dragging, setDragging] = useState<DragState | null>(null);
+  const [expandedTracks, setExpandedTracks] = useState<Set<string>>(
+    () => new Set()
+  );
+  const collapsedSet = useMemo(
+    () => new Set(collapsedTrackIds.filter((id) => !expandedTracks.has(id))),
+    [collapsedTrackIds, expandedTracks]
+  );
   const [visibleWindow, setVisibleWindow] = useState<VisibleWindow>({
     leftPx: 0,
     rightPx: 2200,
@@ -258,7 +267,7 @@ export function TimelineStudioTracks({
 
       <div
         ref={scrollRef}
-        className="overflow-x-auto overflow-y-auto max-h-[min(52vh,440px)]"
+        className="overflow-x-auto overflow-y-auto max-h-[min(50vh,480px)] min-h-[220px]"
         onScroll={handleScroll}
       >
         <div
@@ -293,26 +302,57 @@ export function TimelineStudioTracks({
             </div>
           </div>
 
-          {displayTracks.map((track) => (
-            <TrackRow
-              key={track.id}
-              track={track}
-              clips={clipsByTrack.get(track.id) || []}
-              pps={pps}
-              timelineWidth={timelineWidth}
-              visibleWindow={visibleWindow}
-              selectedClipId={selectedClipId}
-              playhead={studio.playhead}
-              isDragging={dragging !== null}
-              rowRef={(el) => {
-                if (el) trackRowRefs.current.set(track.id, el);
-                else trackRowRefs.current.delete(track.id);
-              }}
-              onSelectClip={onSelectClip}
-              onPlayheadChange={onPlayheadChange}
-              onStartDrag={startDrag}
-            />
-          ))}
+          {displayTracks.map((track) => {
+            const trackClips = clipsByTrack.get(track.id) || [];
+            const isCollapsed = collapsedSet.has(track.id);
+            if (isCollapsed) {
+              return (
+                <div
+                  key={track.id}
+                  ref={(el) => {
+                    if (el) trackRowRefs.current.set(track.id, el);
+                    else trackRowRefs.current.delete(track.id);
+                  }}
+                  className="flex border-b border-zinc-800/40 bg-zinc-900/30"
+                  style={{ height: 24 }}
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedTracks((prev) => new Set(prev).add(track.id))
+                    }
+                    className="w-full px-3 text-left text-[9px] text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                  >
+                    <span
+                      className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle"
+                      style={{ backgroundColor: track.color || "#64748b" }}
+                    />
+                    {track.label} ({trackClips.length}) — clique para expandir
+                  </button>
+                </div>
+              );
+            }
+            return (
+              <TrackRow
+                key={track.id}
+                track={track}
+                clips={trackClips}
+                pps={pps}
+                timelineWidth={timelineWidth}
+                visibleWindow={visibleWindow}
+                selectedClipId={selectedClipId}
+                playhead={studio.playhead}
+                isDragging={dragging !== null}
+                rowRef={(el) => {
+                  if (el) trackRowRefs.current.set(track.id, el);
+                  else trackRowRefs.current.delete(track.id);
+                }}
+                onSelectClip={onSelectClip}
+                onPlayheadChange={onPlayheadChange}
+                onStartDrag={startDrag}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
