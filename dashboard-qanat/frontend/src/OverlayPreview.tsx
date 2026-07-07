@@ -44,6 +44,7 @@ import {
   sortZoomKeyframes,
 } from "./locationIntroFly";
 import { CesiumLocationIntro } from "./CesiumLocationIntro";
+import { BlenderFlyoverPreview } from "./BlenderFlyoverPreview";
 
 type Props = {
   overlay: OverlayDraft;
@@ -138,6 +139,8 @@ function LocationIntroMapCard({
   const zoomTo = Number(props.zoom_to) || 12;
   const boundarySrc = String(props.boundaryGeoJson || "").trim();
   const mapProvider = String(props.map_provider || "");
+  const flyoverSrc = String(props.flyover_video || "").trim();
+  const useBlenderMap = mapProvider === "blender" && Boolean(flyoverSrc);
   const useCesiumMap = mapProvider === "cesium" && lat && lng;
 
   useEffect(() => {
@@ -185,7 +188,10 @@ function LocationIntroMapCard({
     };
   }, [boundarySrc, lat, lng, placeType, zoomTo]);
 
-  if (embedded && (useCesiumMap || keyframes.length > 0 || bgWide || bgTight)) {
+  if (
+    embedded &&
+    (useBlenderMap || useCesiumMap || keyframes.length > 0 || bgWide || bgTight)
+  ) {
     const progress =
       scrubSeconds != null
         ? Math.min(
@@ -193,6 +199,18 @@ function LocationIntroMapCard({
             Math.max(0, scrubSeconds / Math.max(durationSeconds, 0.1))
           )
         : 0.45;
+
+    if (useBlenderMap) {
+      return (
+        <div
+          className={`relative overflow-hidden bg-[#050506] ${
+            isPip ? "w-full h-full" : "absolute inset-0"
+          }`}
+        >
+          <BlenderFlyoverPreview src={flyoverSrc} scrubSeconds={scrubSeconds} />
+        </div>
+      );
+    }
 
     if (useCesiumMap) {
       const virtualFrames =
@@ -908,8 +926,11 @@ export function OverlayPreview({
         const lat = Number(props.lat) || 0;
         const lng = Number(props.lng) || 0;
         const mapProvider = String(props.map_provider || "");
+        const flyoverSrc = String(props.flyover_video || "").trim();
+        const useBlenderMap = mapProvider === "blender" && Boolean(flyoverSrc);
         const useCesiumMap = mapProvider === "cesium" && lat && lng;
         const hasTiles = Boolean(
+          useBlenderMap ||
           useCesiumMap ||
           String(props.backgroundImage || "").trim() ||
           String(props.backgroundImageWide || "").trim() ||

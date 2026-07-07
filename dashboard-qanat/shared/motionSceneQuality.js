@@ -53,9 +53,11 @@ export function assessLocationIntroScene(scene = {}, { projDir = "" } = {}) {
     });
   }
 
-  const isCesium = String(props.map_provider || "").toLowerCase() === "cesium";
+  const provider = String(props.map_provider || "").toLowerCase();
+  const isCesium = provider === "cesium";
+  const isBlender = provider === "blender";
 
-  if (keyframes.length < MIN_CITY_KEYFRAMES) {
+  if (!isBlender && keyframes.length < MIN_CITY_KEYFRAMES) {
     issues.push({
       code: "insufficient_keyframes",
       severity: "critical",
@@ -66,6 +68,25 @@ export function assessLocationIntroScene(scene = {}, { projDir = "" } = {}) {
         ? "Re-planejar location-intro (5+ zooms virtuais)"
         : "Re-baixar sequência satélite completa (5+ zooms)",
     });
+  }
+
+  const flyoverRel = String(props.flyover_video || "").trim();
+  if (isBlender) {
+    if (!flyoverRel) {
+      issues.push({
+        code: "missing_flyover_video",
+        severity: "critical",
+        message: "Voo Blender sem MP4 renderizado",
+        proposed_fix: "Re-baixar voo satélite (Blender)",
+      });
+    } else if (projDir && !fileExists(projDir, flyoverRel)) {
+      issues.push({
+        code: "missing_flyover_file",
+        severity: "critical",
+        message: `MP4 ausente: ${flyoverRel}`,
+        proposed_fix: "Re-renderizar voo no Blender",
+      });
+    }
   }
 
   const zoomTo = Number(props.zoom_to) || 14;
@@ -87,7 +108,7 @@ export function assessLocationIntroScene(scene = {}, { projDir = "" } = {}) {
     });
   }
 
-  if (!isCesium) {
+  if (!isCesium && !isBlender) {
     for (const kf of keyframes) {
       const rel = String(kf?.image || "").trim();
       if (!rel) {

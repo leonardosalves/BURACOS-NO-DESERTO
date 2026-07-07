@@ -36,6 +36,7 @@ export function resolveMotionSceneProps(
     "backgroundImage",
     "backgroundImageWide",
     "boundaryGeoJson",
+    "flyover_video",
   ] as const) {
     const val = p[key];
     if (typeof val === "string" && val.trim()) {
@@ -68,7 +69,7 @@ export function preloadStudioMediaAtPlayhead(
   playhead: number,
   getAssetUrl: (fileName: string) => string,
   getMusicUrl?: (fileName: string) => string,
-  windowSec = 30
+  windowSec = 8
 ): void {
   if (typeof document === "undefined") return;
 
@@ -88,8 +89,12 @@ export function preloadStudioMediaAtPlayhead(
 
   for (const url of urls) {
     if (isVideoUrl(url)) {
+      const activeUrl = active?.source
+        ? resolveMediaUrl(active.source, getAssetUrl, getMusicUrl)
+        : "";
+      if (url !== activeUrl) continue;
       const video = document.createElement("video");
-      video.preload = "auto";
+      video.preload = "metadata";
       video.muted = true;
       video.playsInline = true;
       video.src = url;

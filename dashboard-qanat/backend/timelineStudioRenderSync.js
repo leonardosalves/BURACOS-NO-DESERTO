@@ -113,6 +113,7 @@ export function copyMotionPropsAssets(
     "backgroundImage",
     "backgroundImageWide",
     "boundaryGeoJson",
+    "flyover_video",
   ]) {
     const copied = copyRelAssetToPublic(p[key], assetCtx, `${prefix}${key}_`);
     if (copied) p[key] = copied;

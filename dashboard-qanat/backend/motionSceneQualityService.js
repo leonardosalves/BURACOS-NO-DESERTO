@@ -16,6 +16,8 @@ const SATELLITE_FIX_CODES = new Set([
   "missing_tile_file",
   "missing_boundary_file",
   "empty_keyframe",
+  "missing_flyover_video",
+  "missing_flyover_file",
 ]);
 
 function sceneNeedsSatelliteRefetch(scene, assessment) {
@@ -42,6 +44,7 @@ function applySatelliteFetchToScene(scene, fetched) {
     boundaryGeoJson: fetched.boundaryGeoJson || "",
     map_provider: fetched.map_provider,
     geocode_source: fetched.geocode_source,
+    flyover_video: fetched.flyover_video || "",
   };
   return { scene, ok: true };
 }

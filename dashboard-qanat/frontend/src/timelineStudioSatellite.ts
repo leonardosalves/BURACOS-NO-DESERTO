@@ -15,6 +15,8 @@ export function locationIntroHasSatellite(clip: StudioClip): boolean {
   const mapProvider = String(props.map_provider || "");
   const hasCoords =
     Number.isFinite(Number(props.lat)) && Number.isFinite(Number(props.lng));
+  const flyover = String(props.flyover_video || "").trim();
+  if (mapProvider === "blender" && flyover) return true;
   const isCesiumReady = mapProvider === "cesium" && hasCoords;
   if (isCesiumReady) return true;
   if (String(props.backgroundImage || "").trim()) return true;

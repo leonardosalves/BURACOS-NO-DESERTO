@@ -43,6 +43,8 @@ export function TimelineStudioClipInspector({
   const hasCoords =
     Number.isFinite(Number(clip.props?.lat)) &&
     Number.isFinite(Number(clip.props?.lng));
+  const flyoverVideo = String(clip.props?.flyover_video || "").trim();
+  const isBlenderReady = mapProvider === "blender" && Boolean(flyoverVideo);
   const isCesiumReady = mapProvider === "cesium" && hasCoords;
   const hasSatelliteTiles = locationIntroHasSatellite(clip);
   const needsSatelliteFetch = locationIntroNeedsSatelliteFetch(clip);
@@ -216,9 +218,11 @@ export function TimelineStudioClipInspector({
                   {fetchingSatellite
                     ? "Baixando voo satélite automaticamente…"
                     : motionQcOk && hasSatelliteTiles
-                      ? isCesiumReady
-                        ? `QC OK · ${keyframeCount} keyframes · Cesium 3D · zoom ${zoomTo || "—"}`
-                        : `QC OK · ${keyframeCount} tiles · zoom ${zoomTo || "—"}`
+                      ? isBlenderReady
+                        ? `QC OK · Blender MP4 · zoom ${zoomTo || "—"}`
+                        : isCesiumReady
+                          ? `QC OK · ${keyframeCount} keyframes · Cesium 3D · zoom ${zoomTo || "—"}`
+                          : `QC OK · ${keyframeCount} tiles · zoom ${zoomTo || "—"}`
                       : hasSatelliteTiles
                         ? isCesiumReady
                           ? `QC pendente · ${keyframeCount} keyframes Cesium (revise zoom/contorno)`
@@ -246,9 +250,9 @@ export function TimelineStudioClipInspector({
                 ) : null}
               </div>
               <p className="text-[9px] text-zinc-600 mt-1">
-                O voo satélite baixa sozinho ao planejar Cenas Remotion ou ao
-                abrir um clip sem mapa. Cidade: descida do espaço + contorno
-                OSM.
+                Voo gerado no Blender (terreno + animação). Baixa sozinho ao
+                planejar Cenas Remotion ou ao abrir clip sem mapa. Requer
+                Blender instalado (BLENDER_PATH).
               </p>
             </Field>
           </>
