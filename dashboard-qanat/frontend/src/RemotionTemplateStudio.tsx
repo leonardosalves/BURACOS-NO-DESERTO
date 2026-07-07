@@ -6,11 +6,7 @@ import React, {
   useState,
 } from "react";
 import { Easing, interpolate } from "remotion";
-import {
-  adaptRemotionTemplate,
-  validateFinalTemplateCode,
-  validateOriginalTemplateCode,
-} from "./remotionTemplateStudioApi";
+import { validateFinalTemplateCode } from "./remotionTemplateStudioApi";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -25,7 +21,6 @@ import {
   PencilRuler,
   Play,
   Plus,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 
@@ -266,6 +261,18 @@ function slugifyTemplatePart(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function extractDataSlotsFromCode(code: string): string[] {
+  const exampleMatch = code.match(
+    /export\s+const\s+exampleProps\s*=\s*\{([\s\S]*?)\n\}/m
+  );
+  const typeMatch = code.match(/type\s+\w+Props\s*=\s*\{([\s\S]*?)\};/m);
+  const block = exampleMatch?.[1] || typeMatch?.[1] || "";
+  const keys = [...block.matchAll(/^\s*([A-Za-z_]\w*)\s*[?:]?\s*:/gm)].map(
+    (match) => match[1]
+  );
+  return [...new Set(keys)];
 }
 
 function isCircularProgressContext(...labels: string[]) {
@@ -1349,31 +1356,8 @@ export function RemotionTemplateStudio({
   const [detailTab, setDetailTab] = useState<DetailTab>("preview");
   const [detailFormat, setDetailFormat] = useState<DetailFormat>("short");
   const [copiedTemplateId, setCopiedTemplateId] = useState("");
-  const [templateType, setTemplateType] = useState("");
-  const [propsDraft, setPropsDraft] = useState(
-    "title, subtitle, progress, label, imageUrl, location"
-  );
-  const [originalCodeDraft, setOriginalCodeDraft] = useState("");
   const [finalCodeDraft, setFinalCodeDraft] = useState("");
   const [studioError, setStudioError] = useState("");
-  const [studioInfo, setStudioInfo] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [generationSucceeded, setGenerationSucceeded] = useState(false);
-  const [aiBrief, setAiBrief] = useState(
-    [
-      "Adaptar este template Remotion para o nicho Engenharia.",
-      "",
-      "Criar uma versao com visual tecnico, moderno e profissional, com estetica de blueprint, HUD, linhas de medicao, grid tecnico, detalhes em cyan, amarelo de marcacao e fundo grafite.",
-      "",
-      "Gerar layout responsivo para 9:16 e 16:9 usando useVideoConfig para detectar largura e altura.",
-      "",
-      "Nao deixar texto fixo solto no codigo. Todo texto, numero, imagem, cor e label deve vir por props editaveis.",
-      "",
-      "Manter a animacao principal do template original, mas melhorar o design, hierarquia visual, espacamentos, bordas tecnicas e aparencia profissional.",
-      "",
-      "Retornar o codigo Remotion completo, pronto para uso, com props tipadas e exemplo de uso.",
-    ].join("\n")
-  );
   const currentCategory = categories.find((c) => c.id === category);
 
   useEffect(() => {
@@ -1399,27 +1383,11 @@ export function RemotionTemplateStudio({
   }, [categories]);
 
   const subcategories = currentCategory?.subcategories || [];
-  const creationPreviewVariant = useMemo(
-    () =>
-      resolvePreviewVariants(category, subcategory, templateType).shortPreview,
-    [category, subcategory, templateType]
-  );
-  const creationPreviewProps = useMemo(
-    () =>
-      buildPreviewPropsFromSlots(
-        propsDraft
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean)
-      ),
-    [propsDraft]
-  );
   const finalValidation = useMemo(
     () => validateFinalTemplateCode(finalCodeDraft),
     [finalCodeDraft]
   );
-  const canSaveDraft =
-    generationSucceeded && finalValidation.ok && Boolean(finalCodeDraft.trim());
+  const canSaveDraft = finalValidation.ok && Boolean(finalCodeDraft.trim());
   const visibleTemplates = useMemo(
     () =>
       templates.filter(
@@ -1569,97 +1537,38 @@ export function RemotionTemplateStudio({
     }
   }
 
-  async function assistTemplateWithAi() {
-    const originalCode = originalCodeDraft.trim();
-    const originalCheck = validateOriginalTemplateCode(originalCode);
-    if (!originalCheck.ok) {
-      setStudioError(originalCheck.errors[0] || "Template Code incompleto.");
-      setStudioInfo("");
-      return;
-    }
-
-    setAiLoading(true);
-    setStudioError("");
-    setStudioInfo("");
-    setGenerationSucceeded(false);
-
-    try {
-      const categoryLabel = currentCategory?.label || category;
-      const result = await adaptRemotionTemplate({
-        niche,
-        templateType: templateType || subcategory,
-        propsInput: propsDraft,
-        briefing: aiBrief,
-        originalCode,
-        category: categoryLabel,
-        subcategory,
-      });
-
-      if (!result.success || !result.code) {
-        setStudioError(
-          result.error ||
-            result.errors?.[0] ||
-            "Nao foi possivel gerar o template final."
-        );
-        return;
-      }
-
-      const finalCheck = validateFinalTemplateCode(result.code);
-      if (!finalCheck.ok) {
-        setStudioError(
-          finalCheck.errors[0] || "Codigo gerado falhou na validacao."
-        );
-        return;
-      }
-
-      setFinalCodeDraft(result.code);
-      setGenerationSucceeded(true);
-      setStudioInfo(
-        result.source === "local-generator"
-          ? "Template gerado localmente (fallback deterministico)."
-          : `Template gerado pela IA (${result.source || "gemini"}).`
-      );
-    } catch (err) {
-      setStudioError(
-        err instanceof Error ? err.message : "Erro ao chamar Assistir IA."
-      );
-    } finally {
-      setAiLoading(false);
-    }
-  }
-
-  function saveAssistedDraft(kind: "ai" | "draft") {
+  function saveAssistedDraft() {
     if (!canSaveDraft) {
       setStudioError(
         finalValidation.errors[0] ||
-          "Gere e valide o codigo final antes de salvar o draft."
+          "Cole o codigo TSX completo e valido antes de salvar o draft."
       );
       return;
     }
     const categoryLabel = currentCategory?.label || category;
+    const inferredType = isCircularProgressContext(subcategory, finalCodeDraft)
+      ? "Circular Progress"
+      : subcategory;
     const variants = resolvePreviewVariants(
       category,
       subcategory,
-      templateType
+      inferredType
     );
-    const id = `${kind}-${slugifyTemplatePart(niche)}-${slugifyTemplatePart(
+    const dataSlots = extractDataSlotsFromCode(finalCodeDraft);
+    const id = `draft-${slugifyTemplatePart(niche)}-${slugifyTemplatePart(
       categoryLabel
     )}-${slugifyTemplatePart(subcategory)}-${Date.now()}`;
     const template: TemplateItem = {
       id,
-      name: `${niche} ${templateType || subcategory} ${kind === "ai" ? "AI" : "Draft"}`,
+      name: `${niche} ${inferredType} Draft`,
       category,
       subcategory,
       niche,
       status: "draft",
-      description:
-        kind === "ai"
-          ? `Draft assistido pela IA para ${categoryLabel} / ${subcategory}. ${aiBrief}`
-          : `Draft manual para ${categoryLabel} / ${subcategory}.`,
-      dataSlots: propsDraft
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
+      description: `Template importado para ${categoryLabel} / ${subcategory}.`,
+      dataSlots: dataSlots.length
+        ? dataSlots
+        : ["title", "subtitle", "progress", "label"],
       sourceCode: {
         short: buildFormatSource({
           code: finalCodeDraft,
@@ -1941,53 +1850,14 @@ export function RemotionTemplateStudio({
             <div className="mb-3 flex items-center gap-2">
               <PencilRuler className="h-4 w-4 text-amber-300" />
               <h3 className="text-sm font-black text-white">
-                Criar / editar com IA
+                Implementar template
               </h3>
             </div>
+            <p className="mb-3 text-xs leading-relaxed text-zinc-500">
+              Cole aqui o codigo Remotion TSX completo gerado fora do Lumiera.
+              Briefing, adaptacao e geracao ficam no seu fluxo externo.
+            </p>
             <label className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-              Briefing de modificacao
-            </label>
-            <textarea
-              value={aiBrief}
-              onChange={(e) => setAiBrief(e.target.value)}
-              className="min-h-[104px] w-full resize-y rounded-md border border-white/10 bg-black/30 p-3 text-xs text-zinc-200 outline-none focus:border-cyan-300"
-            />
-            <label className="mb-2 mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-              Tipo do template
-            </label>
-            <input
-              value={templateType}
-              onChange={(e) => setTemplateType(e.target.value)}
-              placeholder="Circular Progress / Chart / KPI / Map PIP"
-              className="w-full rounded-md border border-white/10 bg-black/30 p-3 text-xs text-zinc-200 outline-none focus:border-cyan-300"
-            />
-            <label className="mb-2 mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-              Props / dados de entrada
-            </label>
-            <input
-              value={propsDraft}
-              onChange={(e) => setPropsDraft(e.target.value)}
-              placeholder="title, subtitle, progress, label, imageUrl"
-              className="w-full rounded-md border border-white/10 bg-black/30 p-3 text-xs text-zinc-200 outline-none focus:border-cyan-300"
-            />
-            <label className="mb-2 mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-              Template code (original)
-            </label>
-            <textarea
-              value={originalCodeDraft}
-              onChange={(e) => {
-                setOriginalCodeDraft(e.target.value);
-                setStudioError("");
-                setGenerationSucceeded(false);
-              }}
-              className="min-h-[180px] w-full resize-y rounded-md border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-zinc-200 outline-none focus:border-cyan-300"
-              placeholder={
-                'Cole SOMENTE o codigo Remotion original completo.\n\nProibido: placeholder, "// codigo original", mocks genericos ou trechos incompletos.'
-              }
-              spellCheck={false}
-            />
-
-            <label className="mb-2 mt-4 block text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
               Codigo final gerado
             </label>
             <textarea
@@ -1995,23 +1865,17 @@ export function RemotionTemplateStudio({
               onChange={(e) => {
                 setFinalCodeDraft(e.target.value);
                 setStudioError("");
-                setStudioInfo("");
-                setGenerationSucceeded(false);
               }}
-              readOnly={aiLoading}
-              className="min-h-[220px] w-full resize-y rounded-md border border-cyan-300/20 bg-[#071018] p-3 font-mono text-[11px] leading-relaxed text-cyan-50 outline-none focus:border-cyan-300"
-              placeholder="Use Assistir IA para gerar o componente Remotion final validado."
+              className="min-h-[420px] w-full resize-y rounded-md border border-cyan-300/20 bg-[#071018] p-3 font-mono text-[11px] leading-relaxed text-cyan-50 outline-none focus:border-cyan-300"
+              placeholder={
+                'Cole o TSX completo: imports, Props, export default, exampleProps e animacao.\n\nEx.: "use client" + remotion + componente final pronto para render.'
+              }
               spellCheck={false}
             />
 
             {studioError ? (
               <p className="mt-2 rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
                 {studioError}
-              </p>
-            ) : null}
-            {studioInfo ? (
-              <p className="mt-2 rounded-md border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
-                {studioInfo}
               </p>
             ) : null}
             {!canSaveDraft && finalCodeDraft.trim() ? (
@@ -2021,52 +1885,21 @@ export function RemotionTemplateStudio({
                 ))}
               </ul>
             ) : null}
-
-            <div className="mt-4 rounded-md border border-cyan-300/20 bg-cyan-300/[0.04] p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cyan-200">
-                  Preview ao vivo
-                </p>
-                <span className="text-[10px] font-bold text-zinc-500">
-                  Shorts 9:16
-                </span>
-              </div>
-              <div className="grid place-items-center">
-                <PreviewFrame
-                  key={`${creationPreviewVariant}-${propsDraft}-${templateType}`}
-                  format="9:16"
-                  variant={creationPreviewVariant}
-                  previewProps={creationPreviewProps}
-                  size="detail"
-                  autoPlay={false}
-                />
-              </div>
-              <p className="mt-2 text-center text-[10px] leading-relaxed text-zinc-500">
-                O preview usa props de exemplo e anima como uso real ao apertar
-                play: arco, contador e labels entram no tempo do template.
+            {canSaveDraft ? (
+              <p className="mt-2 rounded-md border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+                Codigo valido — pronto para salvar como draft.
               </p>
-            </div>
+            ) : null}
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => void assistTemplateWithAi()}
-                disabled={aiLoading}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-cyan-400 px-3 py-2 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {aiLoading ? "Gerando..." : "Assistir IA"}
-              </button>
-              <button
-                type="button"
-                onClick={() => saveAssistedDraft("draft")}
-                disabled={!canSaveDraft}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Salvar draft
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => saveAssistedDraft()}
+              disabled={!canSaveDraft}
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-cyan-400 px-3 py-2.5 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Salvar draft
+            </button>
           </section>
 
           <section className="rounded-lg border border-white/10 bg-[#0b0f17] p-4">
