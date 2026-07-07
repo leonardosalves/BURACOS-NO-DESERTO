@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { Easing, interpolate } from "remotion";
 import { validateFinalTemplateCode } from "./remotionTemplateStudioApi";
+import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -674,10 +675,21 @@ function effectivePreviewVariant(
   format: "9:16" | "16:9",
   template?: Pick<
     TemplateItem,
-    "category" | "subcategory" | "name" | "sourceCode"
+    | "category"
+    | "subcategory"
+    | "name"
+    | "sourceCode"
+    | "shortPreview"
+    | "longPreview"
   >
 ): PreviewVariant {
   if (!template) return "media";
+  if (format === "9:16" && template.shortPreview) {
+    return template.shortPreview;
+  }
+  if (format === "16:9" && template.longPreview) {
+    return template.longPreview;
+  }
   const sourceBundle = `${template.sourceCode?.short || ""}\n${template.sourceCode?.long || ""}`;
   const fixed = resolvePreviewVariants(
     template.category,
@@ -2410,9 +2422,15 @@ function TemplatePreviewSlot({
     />
   );
 
-  // Live preview removido — sempre usa mock preview estável.
-
-  return mockPreview;
+  return (
+    <SavedTemplatePreviewFrame
+      sourceCode={source}
+      format={format}
+      size={size}
+      autoPlay={autoPlay}
+      fallback={mockPreview}
+    />
+  );
 }
 
 function PreviewFrame({
