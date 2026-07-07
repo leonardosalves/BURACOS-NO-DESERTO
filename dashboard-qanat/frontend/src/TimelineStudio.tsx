@@ -23,6 +23,7 @@ import {
   updateClipInList,
 } from "./timelineStudioClipOps";
 import { preloadStudioMediaAtPlayhead } from "./timelineStudioMedia";
+import { autoFetchSatelliteForClips } from "./timelineStudioSatellite";
 import {
   clipsOnTrack,
   ensureMotionTrackInStudio,
@@ -111,6 +112,11 @@ export function TimelineStudio({
         getAssetUrlRef.current,
         getMusicUrlRef.current
       );
+      void autoFetchSatelliteForClips(loaded.clips, getProjectUrl, {
+        onStudioSynced: (nextStudio) => {
+          setStudio(nextStudio as TimelineStudioState);
+        },
+      });
       if (data.migrated) {
         toast.success("Timeline Studio: projeto migrado para multi-trilha");
       }
