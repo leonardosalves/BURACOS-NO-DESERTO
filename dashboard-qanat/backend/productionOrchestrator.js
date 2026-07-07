@@ -23,6 +23,7 @@ import {
 } from "./timelineStudioMigration.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 import { ensureMotionScenesQuality } from "./motionSceneQualityService.js";
+import { normalizeTimelineAssetSlots } from "../shared/timelineAssetDedupe.js";
 
 function readJsonSafe(filePath, fallback = null) {
   try {
@@ -365,13 +366,14 @@ export async function orchestrateProduction(
 
   let timelineAssets = config.timeline_assets || {};
   if (rebuildAssetSlots) {
-    timelineAssets = pruneMotionOnlyAssetSlots(
-      buildTimelineAssetSlotsFromVisualPrompts(
-        storyboard.visual_prompts,
-        timelineAssets,
-        plan.motion_scenes
-      )
+    const built = buildTimelineAssetSlotsFromVisualPrompts(
+      storyboard.visual_prompts,
+      timelineAssets,
+      plan.motion_scenes
     );
+    timelineAssets = normalizeTimelineAssetSlots(built, {
+      pruneMotionOnly: pruneMotionOnlyAssetSlots,
+    }).timeline;
     config = { ...config, timeline_assets: timelineAssets };
   }
 

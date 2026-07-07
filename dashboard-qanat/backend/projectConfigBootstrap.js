@@ -1,12 +1,18 @@
 import { applyBgmProductionDefaults } from "./bgmProductionDefaults.js";
+import { dedupeOrchestratedTimelineSlots } from "../shared/timelineAssetDedupe.js";
 
 /** Prefixos herdados do config global — não são B-roll do projeto. */
 export const GHOST_TIMELINE_ASSET_PREFIXES = ["logos/"];
 
 export function isGhostTimelineAssetPath(assetPath) {
-  const normalized = String(assetPath || "").trim().replace(/\\/g, "/").toLowerCase();
+  const normalized = String(assetPath || "")
+    .trim()
+    .replace(/\\/g, "/")
+    .toLowerCase();
   if (!normalized) return false;
-  return GHOST_TIMELINE_ASSET_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+  return GHOST_TIMELINE_ASSET_PREFIXES.some((prefix) =>
+    normalized.startsWith(prefix)
+  );
 }
 
 export function isTimelineAssetUserOwned(entry = {}) {
@@ -22,9 +28,15 @@ export function storyboardAssetPath(assetRef) {
 /**
  * Mescla um slot da timeline com o asset do storyboard sem apagar upload manual.
  */
-export function mergeTimelineSlotFromStoryboard(existing = {}, fromStoryboard = null) {
+export function mergeTimelineSlotFromStoryboard(
+  existing = {},
+  fromStoryboard = null
+) {
   const ex = existing && typeof existing === "object" ? existing : {};
-  const sb = fromStoryboard && storyboardAssetPath(fromStoryboard) ? fromStoryboard : null;
+  const sb =
+    fromStoryboard && storyboardAssetPath(fromStoryboard)
+      ? fromStoryboard
+      : null;
   const exOwned = isTimelineAssetUserOwned(ex);
   const sbOwned = sb ? isTimelineAssetUserOwned(sb) : false;
 
@@ -48,7 +60,9 @@ export function mergeTimelineSlotFromStoryboard(existing = {}, fromStoryboard = 
       ...ex,
       asset: sb.asset || ex.asset,
       type: sb.type || ex.type,
-      ...(sb.fixed !== undefined && sb.fixed !== null ? { fixed: sb.fixed } : {}),
+      ...(sb.fixed !== undefined && sb.fixed !== null
+        ? { fixed: sb.fixed }
+        : {}),
     };
   }
 
@@ -60,7 +74,10 @@ export function mergeTimelineSlotFromStoryboard(existing = {}, fromStoryboard = 
 /**
  * Vincula assets da timeline ao storyboard (upload manual tem prioridade).
  */
-export function bindStoryboardAssetsFromTimeline(visualPrompts = [], timelineAssets = {}) {
+export function bindStoryboardAssetsFromTimeline(
+  visualPrompts = [],
+  timelineAssets = {}
+) {
   if (!Array.isArray(visualPrompts) || !timelineAssets) {
     return { visualPrompts: visualPrompts || [], updated: false };
   }
@@ -86,7 +103,9 @@ export function bindStoryboardAssetsFromTimeline(visualPrompts = [], timelineAss
       asset: {
         asset: tlAsset.asset,
         type: tlAsset.type || "image",
-        ...(tlAsset.fixed !== undefined && tlAsset.fixed !== null ? { fixed: tlAsset.fixed } : {}),
+        ...(tlAsset.fixed !== undefined && tlAsset.fixed !== null
+          ? { fixed: tlAsset.fixed }
+          : {}),
         ...(tlOwned ? { user_locked: true, manual_asset: true } : {}),
       },
     };
@@ -101,17 +120,26 @@ export function bindStoryboardAssetsFromTimeline(visualPrompts = [], timelineAss
  */
 export function sanitizeTimelineAssetsForProject(
   timelineAssets = {},
-  { assetFiles = [], stripGhosts = true } = {},
+  { assetFiles = [], stripGhosts = true } = {}
 ) {
+  const { timeline: deduped, removed: dedupeRemoved } =
+    dedupeOrchestratedTimelineSlots(timelineAssets);
+
   const fileSet = new Set(
-    (assetFiles || []).map((f) => String(f || "").trim().replace(/\\/g, "/")),
+    (assetFiles || []).map((f) =>
+      String(f || "")
+        .trim()
+        .replace(/\\/g, "/")
+    )
   );
   const next = {};
   let stripped = 0;
 
-  for (const [blockKey, slots] of Object.entries(timelineAssets || {})) {
+  for (const [blockKey, slots] of Object.entries(deduped || {})) {
     const cleaned = (Array.isArray(slots) ? slots : []).map((entry) => {
-      const asset = String(entry?.asset || "").trim().replace(/\\/g, "/");
+      const asset = String(entry?.asset || "")
+        .trim()
+        .replace(/\\/g, "/");
       if (!asset) return { ...entry, asset: "" };
 
       if (isTimelineAssetUserOwned(entry)) return entry;
@@ -136,7 +164,7 @@ export function sanitizeTimelineAssetsForProject(
     }
   }
 
-  return { timeline: next, stripped };
+  return { timeline: next, stripped, dedupeRemoved };
 }
 
 /** Estado que pertence a um projeto em edição — não clonar do config global. */
@@ -156,7 +184,10 @@ export function stripInheritedProjectState(cfg = {}) {
   return next;
 }
 
-export function bootstrapNewProjectConfig(template = {}, { isShort = false, niche = "Geral", defaultDuration = 120 } = {}) {
+export function bootstrapNewProjectConfig(
+  template = {},
+  { isShort = false, niche = "Geral", defaultDuration = 120 } = {}
+) {
   const cfg = stripInheritedProjectState(template);
   cfg.aspect_ratio = isShort ? "9:16" : "16:9";
   cfg.video_format = isShort ? "SHORTS" : "LONGO";
