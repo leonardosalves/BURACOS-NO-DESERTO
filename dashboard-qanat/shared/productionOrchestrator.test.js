@@ -5,6 +5,8 @@ import {
   inferAssetMediaType,
   attachProductionToVisualPrompts,
   pruneMotionOnlyAssetSlots,
+  resolveCreatorOrchestrationOptions,
+  applyOrchestrationToStoryboard,
 } from "../backend/productionOrchestrator.js";
 
 describe("productionOrchestrator", () => {
@@ -121,5 +123,41 @@ describe("productionOrchestrator", () => {
       "counter"
     );
     assert.equal(next.visual_prompts[0].production.data_type, "stat_number");
+  });
+
+  it("resolveCreatorOrchestrationOptions padrão = LLM + satélite ligados", () => {
+    const opts = resolveCreatorOrchestrationOptions({});
+    assert.equal(opts.useLlm, true);
+    assert.equal(opts.fetchSatellite, true);
+    assert.equal(opts.syncTimeline, true);
+  });
+
+  it("resolveCreatorOrchestrationOptions respeita opt-out explícito", () => {
+    const opts = resolveCreatorOrchestrationOptions({
+      use_llm: false,
+      fetch_satellite: false,
+    });
+    assert.equal(opts.useLlm, false);
+    assert.equal(opts.fetchSatellite, false);
+  });
+
+  it("applyOrchestrationToStoryboard injeta production_orchestration", () => {
+    const { storyboard } = applyOrchestrationToStoryboard(
+      { visual_prompts: [{ scene: "1.1", block: 1 }] },
+      {
+        storyboard: {
+          visual_prompts: [{ scene: "1.1", block: 1, media_mode: "remotion" }],
+          motion_scenes: [{ id: "ms-1.1", scene_ref: "1.1" }],
+        },
+        motion_scenes: [{ id: "ms-1.1", scene_ref: "1.1" }],
+        motion_count: 1,
+        orchestration_ok: true,
+        quality: { ok: true, score: 92 },
+        production: { pending_asset_slots: 3 },
+      }
+    );
+    assert.equal(storyboard.production_orchestration.motion_count, 1);
+    assert.equal(storyboard.production_orchestration.quality_score, 92);
+    assert.equal(storyboard.production_orchestration.source, "creator_wizard");
   });
 });
