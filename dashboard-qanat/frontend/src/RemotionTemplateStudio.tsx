@@ -224,11 +224,78 @@ const TEMPLATES: TemplateItem[] = [
   },
 ];
 
+const TEMPLATE_STORAGE_KEY = "lumiera.remotionTemplateStudio.templates.v1";
+
 type DetailTab = "preview" | "source";
 type DetailFormat = "short" | "long";
 
 type PreviewVariant =
   TemplateItem["shortPreview"] | TemplateItem["longPreview"];
+
+function slugifyTemplatePart(value: string) {
+  return String(value || "template")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function resolvePreviewVariants(
+  category: TemplateCategory,
+  subcategory: string
+): Pick<TemplateItem, "shortPreview" | "longPreview"> {
+  const sub = subcategory.toLowerCase();
+  if (category === "maps") return { shortPreview: "map", longPreview: "map" };
+  if (category === "chart-data") {
+    if (sub.includes("bar")) {
+      return { shortPreview: "bars", longPreview: "bars" };
+    }
+    return { shortPreview: "ring", longPreview: "line" };
+  }
+  if (category === "text")
+    return { shortPreview: "title", longPreview: "media" };
+  if (category === "cinematic") {
+    return { shortPreview: "media", longPreview: "cinematic" };
+  }
+  if (category === "image-media") {
+    return { shortPreview: "media", longPreview: "media" };
+  }
+  return { shortPreview: "media", longPreview: "bars" };
+}
+
+function buildFormatSource({
+  code,
+  niche,
+  categoryLabel,
+  subcategory,
+  format,
+}: {
+  code: string;
+  niche: string;
+  categoryLabel: string;
+  subcategory: string;
+  format: DetailFormat;
+}) {
+  const aspect = format === "short" ? "9:16 Shorts" : "16:9 Longos";
+  return [
+    `// ${niche} / ${categoryLabel} / ${subcategory} / ${aspect}`,
+    "// Gerado pelo Assistir IA do Template Studio.",
+    code.trim() || "export default function Template() {\n  return null;\n}",
+  ].join("\n");
+}
+
+function loadStoredTemplates() {
+  if (typeof window === "undefined") return TEMPLATES;
+  try {
+    const raw = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
+    if (!raw) return TEMPLATES;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as TemplateItem[]) : TEMPLATES;
+  } catch {
+    return TEMPLATES;
+  }
+}
 
 function RemotionTemplatePreview({
   format,
@@ -771,7 +838,8 @@ export function RemotionTemplateStudio({
   const [subcategory, setSubcategory] = useState("PIP mapa");
   const [selectedId, setSelectedId] = useState("eng-map-pip-tactical");
   const [detailTemplateId, setDetailTemplateId] = useState("");
-  const [templates, setTemplates] = useState<TemplateItem[]>(TEMPLATES);
+  const [templates, setTemplates] =
+    useState<TemplateItem[]>(loadStoredTemplates);
   const [detailTab, setDetailTab] = useState<DetailTab>("preview");
   const [detailFormat, setDetailFormat] = useState<DetailFormat>("short");
   const [copiedTemplateId, setCopiedTemplateId] = useState("");
@@ -781,9 +849,20 @@ export function RemotionTemplateStudio({
   const [aiBrief, setAiBrief] = useState(
     "Adaptar para Engenharia, com versao 9:16 e 16:9, sem texto solto e com props editaveis."
   );
+  const currentCategory = CATEGORIES.find((c) => c.id === category);
 
-  const subcategories =
-    CATEGORIES.find((c) => c.id === category)?.subcategories || [];
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        TEMPLATE_STORAGE_KEY,
+        JSON.stringify(templates)
+      );
+    } catch {
+      // Mantem a tela funcional mesmo quando storage estiver indisponivel.
+    }
+  }, [templates]);
+
+  const subcategories = currentCategory?.subcategories || [];
   const visibleTemplates = useMemo(
     () =>
       templates.filter(
@@ -807,7 +886,7 @@ export function RemotionTemplateStudio({
     setDetailTab("preview");
     setDetailFormat("short");
     setSelectedId(visibleTemplates[0]?.id || "");
-  }, [category, niche, subcategory, visibleTemplates]);
+  }, [category, niche, subcategory]);
 
   function deleteTemplate(templateId: string) {
     const template = templates.find((item) => item.id === templateId);
@@ -837,6 +916,50 @@ export function RemotionTemplateStudio({
     } catch {
       window.alert("Nao foi possivel copiar o codigo automaticamente.");
     }
+  }
+
+  function saveAssistedDraft(kind: "ai" | "draft") {
+    const categoryLabel = currentCategory?.label || category;
+    const variants = resolvePreviewVariants(category, subcategory);
+    const id = `${kind}-${slugifyTemplatePart(niche)}-${slugifyTemplatePart(
+      categoryLabel
+    )}-${slugifyTemplatePart(subcategory)}-${Date.now()}`;
+    const template: TemplateItem = {
+      id,
+      name: `${niche} ${subcategory} ${kind === "ai" ? "AI" : "Draft"}`,
+      category,
+      subcategory,
+      niche,
+      status: "draft",
+      description:
+        kind === "ai"
+          ? `Draft assistido pela IA para ${categoryLabel} / ${subcategory}. ${aiBrief}`
+          : `Draft manual para ${categoryLabel} / ${subcategory}.`,
+      dataSlots: ["props", "data", "theme"],
+      sourceCode: {
+        short: buildFormatSource({
+          code: codeDraft,
+          niche,
+          categoryLabel,
+          subcategory,
+          format: "short",
+        }),
+        long: buildFormatSource({
+          code: codeDraft,
+          niche,
+          categoryLabel,
+          subcategory,
+          format: "long",
+        }),
+      },
+      ...variants,
+    };
+
+    setTemplates((current) => [template, ...current]);
+    setSelectedId(id);
+    setDetailTemplateId(id);
+    setDetailTab("preview");
+    setDetailFormat("short");
   }
 
   return (
@@ -904,7 +1027,7 @@ export function RemotionTemplateStudio({
                   Showcase
                 </p>
                 <h2 className="text-xl font-black text-white">
-                  {niche} / {CATEGORIES.find((c) => c.id === category)?.label}
+                  {niche} / {currentCategory?.label}
                 </h2>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1060,6 +1183,7 @@ export function RemotionTemplateStudio({
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button
                 type="button"
+                onClick={() => saveAssistedDraft("ai")}
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-cyan-400 px-3 py-2 text-xs font-black text-slate-950"
               >
                 <Sparkles className="h-3.5 w-3.5" />
@@ -1067,6 +1191,7 @@ export function RemotionTemplateStudio({
               </button>
               <button
                 type="button"
+                onClick={() => saveAssistedDraft("draft")}
                 className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-zinc-200"
               >
                 <Plus className="h-3.5 w-3.5" />
