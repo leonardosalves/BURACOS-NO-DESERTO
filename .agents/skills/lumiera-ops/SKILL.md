@@ -13,6 +13,10 @@ Triggers: commit, reiniciar, restart, servidor, backend, porta 3005, finalizar t
 
 ## Ao terminar qualquer implementação
 
+0. **Verificar erros** — SEMPRE antes de entregar:
+   - `.\scripts\ensure-lumiera.ps1` (backend 3005 + frontend 5176 + watchdog)
+   - Se falhar: ler `.lumiera-logs\backend-stderr.log` e `frontend-stderr.log`
+   - Corrigir causa (porta, dependência, proxy, crash) e rodar ensure de novo
 1. **Backend** — NUNCA derrube processo ocupado (render/Gemini):
    - Código em `dashboard-qanat/backend/**` alterado → `.\scripts\restart-backend.ps1 -Force` (só após commit, 1×)
    - Só garantir que está no ar → `.\scripts\ensure-backend.ps1` (não mata se porta 3005 ativa)
@@ -25,8 +29,10 @@ Triggers: commit, reiniciar, restart, servidor, backend, porta 3005, finalizar t
 ## Scripts
 
 ```powershell
+.\scripts\ensure-lumiera.ps1         # verifica e corrige tudo (preferir ao finalizar)
 .\scripts\restart-backend.ps1 -Force   # após mudar backend
 .\scripts\ensure-backend.ps1           # só sobe se offline
+.\scripts\ensure-frontend.ps1        # só sobe Vite se offline
 .\scripts\status-lumiera.ps1           # diagnóstico
 ```
 

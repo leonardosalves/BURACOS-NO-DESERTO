@@ -23,14 +23,18 @@ if ($Force) {
 }
 
 if (-not $ok) {
-    Write-Host "Aguardando subida lenta do server.js (ate 60s)..." -ForegroundColor Yellow
-    $deadline = (Get-Date).AddSeconds(60)
+    Write-Host "Aguardando subida lenta do server.js (ate 90s)..." -ForegroundColor Yellow
+    $deadline = (Get-Date).AddSeconds(90)
     while ((Get-Date) -lt $deadline) {
-        if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 8) {
+        if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 10) {
             $ok = $true
             break
         }
         Start-Sleep -Seconds 2
+    }
+    if (-not $ok -and -not (Get-BackendListenerPid)) {
+        Write-Host "Tentativa extra de subida..." -ForegroundColor Yellow
+        $ok = Start-LumieraBackendProcess
     }
 }
 
