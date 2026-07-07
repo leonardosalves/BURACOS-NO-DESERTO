@@ -4,6 +4,11 @@
  */
 
 import { MOTION_SCENE_TRIGGERS } from "./motionSceneCatalog.js";
+import {
+  clipMatchesSuppression,
+  collectSuppressionState,
+  storyboardRowMatchesSuppression,
+} from "./timelineStudioRemotionSuppress.js";
 
 const GEO_TEMPLATES = new Set(["location-intro", "geo-map"]);
 
@@ -165,14 +170,7 @@ export function resolveMotionScenesForEnrichment(storyboard = {}, studio = {}) {
 }
 
 function suppressedRemotionIdSet(studio = {}) {
-  return new Set(
-    (Array.isArray(studio?.suppressedMotionSceneIds)
-      ? studio.suppressedMotionSceneIds
-      : []
-    )
-      .map((id) => String(id || "").trim())
-      .filter(Boolean)
-  );
+  return collectSuppressionState(studio).ids;
 }
 
 export function studioNeedsMotionOrchestration(
@@ -182,14 +180,16 @@ export function studioNeedsMotionOrchestration(
 ) {
   if (studioClipsNeedingEnrichment(clips).length > 0) return true;
 
-  const suppressedIds = suppressedRemotionIdSet(studio);
+  const suppression = collectSuppressionState(studio);
 
   const motionClips = (Array.isArray(clips) ? clips : []).filter(
-    (c) => c.trackId === "motion" || c.motionScene
+    (c) =>
+      (c.trackId === "motion" || c.motionScene) &&
+      !clipMatchesSuppression(c, suppression)
   );
   const storyboardMotion = (
     Array.isArray(storyboard.motion_scenes) ? storyboard.motion_scenes : []
-  ).filter((ms) => !suppressedIds.has(String(ms?.id || "")));
+  ).filter((ms) => !storyboardRowMatchesSuppression(ms, "motion", suppression));
   if (
     storyboardMotion.length > 0 &&
     motionClips.length < storyboardMotion.length
@@ -198,7 +198,7 @@ export function studioNeedsMotionOrchestration(
   }
 
   const overlayClips = (Array.isArray(clips) ? clips : []).filter(
-    (c) => c.trackId === "overlays"
+    (c) => c.trackId === "overlays" && !clipMatchesSuppression(c, suppression)
   );
   const overlaysSource = (
     Array.isArray(storyboard.overlays_ai)
@@ -206,7 +206,7 @@ export function studioNeedsMotionOrchestration(
       : Array.isArray(storyboard.overlays)
         ? storyboard.overlays
         : []
-  ).filter((o) => !suppressedIds.has(String(o?.id || "")));
+  ).filter((o) => !storyboardRowMatchesSuppression(o, "overlays", suppression));
   if (
     overlaysSource.length > 0 &&
     overlayClips.length < overlaysSource.length

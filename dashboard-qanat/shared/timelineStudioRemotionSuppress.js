@@ -176,6 +176,23 @@ export function expandDeletedClipSuppressions(
   const fp = remotionClipFingerprint(deletedClip);
   if (fp) fingerprints.add(fp);
 
+  for (const ms of storyboard.motion_scenes || []) {
+    if (storyboardRowMatchesSuppression(ms, "motion", { ids, fingerprints })) {
+      const msId = String(ms?.id || "").trim();
+      if (msId) ids.add(msId);
+    }
+  }
+  for (const key of ["overlays_ai", "overlays"]) {
+    for (const row of storyboard[key] || []) {
+      if (
+        storyboardRowMatchesSuppression(row, "overlays", { ids, fingerprints })
+      ) {
+        const rowId = String(row?.id || "").trim();
+        if (rowId) ids.add(rowId);
+      }
+    }
+  }
+
   const semantic = clipSemanticKey(deletedClip);
   const templateId = String(
     deletedClip?.templateId || deletedClip?.props?.overlayType || ""

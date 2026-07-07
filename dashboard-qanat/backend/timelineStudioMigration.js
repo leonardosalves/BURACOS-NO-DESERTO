@@ -22,6 +22,7 @@ import {
   storyboardRowMatchesSuppression,
   stripSuppressedRemotionClips,
 } from "../shared/timelineStudioRemotionSuppress.js";
+import { enrichStudioSatelliteClips } from "../shared/timelineStudioSatelliteEnrich.js";
 
 const STUDIO_FILENAME = "timeline_studio.json";
 const NARRATION_FILES = [
@@ -423,15 +424,38 @@ function studioMotionMigrationFingerprint(studio = {}) {
   });
 }
 
+function repairStudioOnLoad(projDir, studio) {
+  const storyboard = readStoryboardJson(projDir);
+  let next = migrateStudioMotionClipsFromVideo(studio);
+  const suppression = collectSuppressionState(next);
+  if (suppression.ids.size > 0 || suppression.fingerprints.size > 0) {
+    pruneStoryboardRemotionSources(projDir, next);
+    next = stripSuppressedRemotionClips(next);
+  }
+  next = enrichStudioSatelliteClips(next);
+  const merged = mergeRemotionFromStoryboard(next, storyboard);
+  next = stripSuppressedRemotionClips(merged.studio);
+  next = enrichStudioSatelliteClips(next);
+  return next;
+}
+
 export function loadTimelineStudio(projDir) {
   const result = migrateLegacyToTimelineStudio(projDir);
   if (!result?.studio) return result;
 
-  const before = studioMotionMigrationFingerprint(result.studio);
-  const studio = migrateStudioMotionClipsFromVideo(result.studio);
-  const after = studioMotionMigrationFingerprint(studio);
+  const beforeFp = JSON.stringify({
+    motion: studioMotionMigrationFingerprint(result.studio),
+    clips: (result.studio.clips || []).map((c) => c.id),
+    sup: result.studio.suppressedMotionSceneIds,
+  });
+  const studio = repairStudioOnLoad(projDir, result.studio);
+  const afterFp = JSON.stringify({
+    motion: studioMotionMigrationFingerprint(studio),
+    clips: (studio.clips || []).map((c) => c.id),
+    sup: studio.suppressedMotionSceneIds,
+  });
 
-  if (before !== after) {
+  if (beforeFp !== afterFp) {
     saveTimelineStudio(projDir, studio);
     result.motionMigrated = true;
   }
@@ -490,6 +514,7 @@ export function finalizeStudioForDisk(
   } else {
     next = stripSuppressedRemotionClips(next);
   }
+  next = enrichStudioSatelliteClips(next);
 
   return saveTimelineStudio(projDir, next);
 }

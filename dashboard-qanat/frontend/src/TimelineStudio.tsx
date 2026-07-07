@@ -31,7 +31,7 @@ import {
   expandDeletedClipSuppressions,
   isRemotionStudioClip,
 } from "@lumiera/shared/timelineStudioRemotionSuppress.js";
-import { autoFetchSatelliteForClips } from "./timelineStudioSatellite";
+
 import {
   clipsOnTrack,
   ensureMotionTrackInStudio,
@@ -240,12 +240,6 @@ export function TimelineStudio({
         getAssetUrlRef.current,
         getMusicUrlRef.current
       );
-      void autoFetchSatelliteForClips(loaded.clips, getProjectUrlRef.current, {
-        silent: true,
-        onStudioSynced: (nextStudio) => {
-          applyStudioFromServer(nextStudio as TimelineStudioState);
-        },
-      });
       return loaded;
     },
     []
@@ -495,6 +489,14 @@ export function TimelineStudio({
       const expanded = isRemotionClip
         ? expandDeletedClipSuppressions(storyboardData || {}, studio, target)
         : null;
+      if (isRemotionClip && expanded) {
+        expanded.suppressedMotionSceneIds = [
+          ...new Set([
+            ...(expanded.suppressedMotionSceneIds || []),
+            String(target.id),
+          ]),
+        ];
+      }
       const nextStudio: TimelineStudioState = applySuppressionFields(
         {
           ...studio,

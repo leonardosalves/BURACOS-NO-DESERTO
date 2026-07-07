@@ -24,6 +24,7 @@ import {
   resolveMediaUrl,
   resolveMotionSceneProps,
 } from "./timelineStudioMedia";
+import { SatelliteMapPreview } from "./SatelliteMapPreview";
 import {
   isFullscreenMotionClip,
   SHORTS_CAPTION_SAFE_BOTTOM_PCT,
@@ -530,8 +531,21 @@ export function TimelineStudioPreview({
           ) : null}
 
           {motionClips.map((clip) => {
-            const draft = clipToOverlayDraft(clip, getAssetUrl, getMusicUrl);
             const localSec = motionPlayhead - clip.start;
+            const tpl = String(clip.templateId || "");
+            const isMapScene = tpl === "location-intro" || tpl === "geo-map";
+            if (isMapScene) {
+              return (
+                <SatelliteMapPreview
+                  key={clip.id}
+                  clip={clip}
+                  localSec={Math.max(0, localSec)}
+                  getAssetUrl={getAssetUrl}
+                  getMusicUrl={getMusicUrl}
+                />
+              );
+            }
+            const draft = clipToOverlayDraft(clip, getAssetUrl, getMusicUrl);
             const isFullscreen = isFullscreenMotionClip(clip);
             const isPip = !isFullscreen;
             return (

@@ -1,57 +1,18 @@
 import {
+  enrichSatelliteMotionClip as enrichSatelliteMotionClipCore,
+  enrichStudioSatelliteClips,
+} from "@lumiera/shared/timelineStudioSatelliteEnrich.js";
+import {
   activeVideoAt,
   clipsOnTrack,
   type StudioClip,
 } from "./timelineStudioTypes";
 
-function sceneSatelliteKey(clipId: string): string {
-  return String(clipId || "")
-    .trim()
-    .replace(/\./g, "_");
-}
-
-/** Preenche paths ASSETS/satellite/* quando zoom_keyframes estão vazios no disco. */
 export function enrichSatelliteMotionClip(clip: StudioClip): StudioClip {
-  const tpl = String(clip.templateId || "");
-  if (tpl !== "location-intro" && tpl !== "geo-map") return clip;
-
-  const key = sceneSatelliteKey(clip.id);
-  const props = { ...(clip.props || {}) } as Record<string, unknown>;
-
-  if (!String(props.flyover_video || "").trim()) {
-    props.flyover_video = `ASSETS/satellite/${key}-flyover.mp4`;
-  }
-  if (!String(props.backgroundImage || "").trim()) {
-    props.backgroundImage = `ASSETS/satellite/${key}-z10.jpg`;
-  }
-  if (!String(props.backgroundImageWide || "").trim()) {
-    props.backgroundImageWide = `ASSETS/satellite/${key}-z3.jpg`;
-  }
-  if (!String(props.boundaryGeoJson || "").trim()) {
-    props.boundaryGeoJson = `ASSETS/satellite/${key}-boundary.json`;
-  }
-  if (!String(props.map_provider || "").trim()) {
-    props.map_provider = "blender";
-  }
-  if (Array.isArray(props.zoom_keyframes)) {
-    props.zoom_keyframes = props.zoom_keyframes.map((kf) => {
-      if (!kf || typeof kf !== "object") return kf;
-      const row = kf as { zoom?: number; image?: string };
-      const zoom = Number(row.zoom);
-      if (!Number.isFinite(zoom) || String(row.image || "").trim()) return kf;
-      return { ...row, image: `ASSETS/satellite/${key}-z${zoom}.jpg` };
-    });
-  }
-
-  return {
-    ...clip,
-    props: {
-      ...props,
-      presentation: "fullscreen",
-      layout: "fullscreen",
-    },
-  };
+  return enrichSatelliteMotionClipCore(clip) as StudioClip;
 }
+
+export { enrichStudioSatelliteClips };
 
 /** Resolve paths ASSETS/… para URLs servidas pelo backend. */
 
