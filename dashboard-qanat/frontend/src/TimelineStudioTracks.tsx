@@ -403,7 +403,9 @@ const TrackRow = React.memo(function TrackRow({
   const h =
     track.id === "motion" || track.id === "overlays"
       ? Math.max(track.height || 36, 44)
-      : track.height || 36;
+      : track.id === "voice"
+        ? Math.max(track.height || 36, 40)
+        : track.height || 36;
   const color = track.color || "#64748b";
   const isRemotionRow = track.id === "motion" || track.id === "overlays";
   const visibleClips = useMemo(
@@ -478,8 +480,9 @@ const TrackRow = React.memo(function TrackRow({
           const showHandles = editable && (selected || width > 20);
           const isRemotionTrack =
             track.id === "motion" || track.id === "overlays";
-          const fillAlpha = isRemotionTrack ? "aa" : "33";
-          const borderAlpha = isRemotionTrack ? "ee" : "66";
+          const isVoiceTrack = track.id === "voice";
+          const fillAlpha = isRemotionTrack || isVoiceTrack ? "aa" : "33";
+          const borderAlpha = isRemotionTrack || isVoiceTrack ? "ee" : "66";
 
           return (
             <div

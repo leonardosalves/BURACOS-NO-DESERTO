@@ -10,6 +10,7 @@ import {
   mergeRemotionFromStoryboard,
   pruneStoryboardRemotionSources,
   finalizeStudioForDisk,
+  applyNarrationSyncToProject,
 } from "./timelineStudioMigration.js";
 import {
   searchTimelineStock,
@@ -69,9 +70,11 @@ export function registerTimelineStudioRoutes(
         migrated,
         motionMigrated,
       } = loadTimelineStudio(projDir);
+      const narrationSync = applyNarrationSyncToProject(projDir, rawStudio);
       let studio = light
-        ? stripSuppressedRemotionClips(rawStudio)
-        : syncStudioMusicFromConfig(rawStudio, projDir);
+        ? stripSuppressedRemotionClips(narrationSync.studio)
+        : syncStudioMusicFromConfig(narrationSync.studio, projDir);
+      const narrationSynced = Boolean(narrationSync.changed);
       const config = readProjectConfig(projDir);
       let brollRestored = 0;
       let remotionRestored = 0;
@@ -165,6 +168,8 @@ export function registerTimelineStudioRoutes(
         if (musicChanged || brollRestored > 0 || remotionChanged) {
           saveTimelineStudio(projDir, studio);
         }
+      } else if (narrationSynced) {
+        saveTimelineStudio(projDir, studio);
       }
 
       res.json({
@@ -174,6 +179,7 @@ export function registerTimelineStudioRoutes(
         motionMigrated: Boolean(motionMigrated),
         light,
         musicSynced: musicChanged,
+        narrationSynced,
         brollRestored,
         remotionRestored,
         motionSynced,
@@ -193,7 +199,8 @@ export function registerTimelineStudioRoutes(
           .json({ error: "Corpo inválido — esperado { studio: {...} }" });
       }
       const { studio: previousStudio } = loadTimelineStudio(projDir);
-      const synced = syncStudioMusicFromConfig(studio, projDir);
+      const withNarration = applyNarrationSyncToProject(projDir, studio).studio;
+      const synced = syncStudioMusicFromConfig(withNarration, projDir);
       const saved = finalizeStudioForDisk(projDir, synced, {
         previousStudio,
         mergeStoryboard: false,
