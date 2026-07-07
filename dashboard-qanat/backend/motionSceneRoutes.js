@@ -8,6 +8,7 @@ import {
   applyMotionScenesToVisualPrompts,
   planMotionScenesFromStoryboard,
   syncMotionScenesToStudio,
+  unsuppressMotionSceneIds,
 } from "./motionScenePlanner.js";
 import { enrichMotionScenesWithAssets } from "./motionSceneAssetService.js";
 import {
@@ -475,7 +476,8 @@ export function registerMotionSceneRoutes(
         {}
       );
       const { studio: rawStudio } = loadTimelineStudio(projDir);
-      let studio = syncMotionScenesToStudio(rawStudio, motionScenes);
+      let studio = unsuppressMotionSceneIds(rawStudio, motionScenes);
+      studio = syncMotionScenesToStudio(studio, motionScenes);
       studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
       studio = upsertMusicClipInStudio(studio, config, projDir);
       const saved = saveTimelineStudio(projDir, studio);
