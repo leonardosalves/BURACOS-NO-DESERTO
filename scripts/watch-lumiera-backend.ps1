@@ -42,7 +42,7 @@ while ($true) {
         if ($consecutiveBusyFails -ge $BusyFailBeforeKill) {
             if (Test-ActiveLumieraRender) {
                 Write-LumieraLog (
-                    "Render ativo — reinicio forcado bloqueado (PID $livePid ocupado)"
+                    "Render ativo - reinicio forcado bloqueado (PID $livePid ocupado)"
                 ) "WARN"
                 $consecutiveBusyFails = [math]::Max(0, $BusyFailBeforeKill - 6)
                 continue
