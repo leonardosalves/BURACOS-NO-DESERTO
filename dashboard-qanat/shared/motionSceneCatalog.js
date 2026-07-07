@@ -100,6 +100,21 @@ export const DEFAULT_DURATIONS = {
   "location-intro": 8,
 };
 
+export const APPROVED_ORCHESTRATION_TEMPLATES = new Set([
+  "location-intro",
+  "geo-map",
+  "counter",
+  "bar-chart",
+  "pictogram-chart",
+  "timeline",
+]);
+
+export const REMOTION_TEMPLATE_LIMITS = {
+  shortMax: 1,
+  longMax: 8,
+  longTargetMin: 5,
+};
+
 /** Padrão global location-intro: fullscreen globo→alvo; cidade marca território OSM. */
 export const LOCATION_INTRO_DEFAULTS = {
   presentation: "fullscreen",

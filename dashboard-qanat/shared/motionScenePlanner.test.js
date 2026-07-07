@@ -7,6 +7,7 @@ import {
   applyMotionScenesToVisualPrompts,
   isPrimaryRemotionMotionScene,
   buildPropsForTemplate,
+  limitMotionScenesForFormat,
 } from "../backend/motionScenePlanner.js";
 
 describe("motionScenePlanner", () => {
@@ -28,6 +29,24 @@ describe("motionScenePlanner", () => {
   it("detecta curiosidade curta", () => {
     const r = classifyNarrationSegment("Um segredo incrível foi revelado.");
     assert.equal(r?.trigger, "curiosity_punch");
+  });
+
+  it("nao orquestra kinetic-text solto sem template aprovado", () => {
+    const plan = planMotionScenesFromStoryboard(
+      {
+        visual_prompts: [
+          {
+            scene: "1.1",
+            block: 1,
+            narration_text: "Um segredo incrivel foi revelado.",
+            speech_start: 0,
+            duration_seconds: 3,
+          },
+        ],
+      },
+      { niche: "Engenharia" }
+    );
+    assert.equal(plan.motion_scenes.length, 0);
   });
 
   it("planeja motion_scenes a partir de visual_prompts", () => {
@@ -270,15 +289,29 @@ describe("motionScenePlanner", () => {
     const loc = plan.motion_scenes.find(
       (s) => s.template_id === "location-intro"
     );
-    const counter = plan.motion_scenes.find((s) => s.template_id === "counter");
     assert.ok(loc);
+    assert.equal(plan.motion_scenes.length, 1);
     assert.equal(loc.layout, "pip");
     assert.equal(loc.props.presentation, "pip");
     assert.equal(loc.props.place_type, "city");
     assert.equal(loc.props.aspect_ratio, "9:16");
     assert.equal(loc.duration_seconds, 8);
-    assert.ok(counter);
-    assert.equal(counter.props.aspect_ratio, "9:16");
+  });
+
+  it("limita shorts a 1 template e longos a 8 templates aprovados", () => {
+    const scenes = Array.from({ length: 10 }, (_, i) => ({
+      id: `ms-${i}`,
+      template_id:
+        i === 9 ? "kinetic-text" : i === 0 ? "location-intro" : "counter",
+      trigger: i === 0 ? "location" : "stat_number",
+      start_hint: i * 4,
+    }));
+    const shortScenes = limitMotionScenesForFormat(scenes, "9:16");
+    const longScenes = limitMotionScenesForFormat(scenes, "16:9");
+    assert.equal(shortScenes.length, 1);
+    assert.equal(shortScenes[0].template_id, "location-intro");
+    assert.equal(longScenes.length, 8);
+    assert.ok(longScenes.every((s) => s.template_id !== "kinetic-text"));
   });
 
   it("pip layout permanece overlay, não vídeo primário", () => {

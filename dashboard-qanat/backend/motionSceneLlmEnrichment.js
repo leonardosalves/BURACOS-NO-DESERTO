@@ -202,6 +202,8 @@ export function buildMotionSceneEnrichmentPrompt({
     "- REGRA GEO: se for mapa antigo de pais/cidade, preserve enquadramento aberto com fronteira desenhada; nao faca close de POI.",
     "- location-intro SEMPRE fly_mode earth_descent (globo terrestre → cidade com boundary OSM ou POI/terreno).",
     "- PIP para mapas/geo só é permitido em 9:16 no nicho Engenharia; em 16:9 geo sempre fullscreen.",
+    "- NUNCA use kinetic-text automaticamente enquanto nao houver template aprovado no Remotion Template Studio; texto solto sobre video e proibido.",
+    "- Shorts 9:16 usam no maximo 1 template Remotion automatico; videos 16:9 longos usam ate 8 templates.",
     "- location-intro cidade: place_type city, zoom_from 3, zoom_to 10 (máx), boundaryGeoJson obrigatório.",
     "- location-intro POI (forte, ponte, monumento): place_type poi, zoom_from 3, zoom_to 17.",
     "- location-intro: duration_seconds minimo 8, max 10 em shorts 9:16 e max 20 em videos longos 16:9.",
