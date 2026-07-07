@@ -635,9 +635,19 @@ function asyncHandler(fn) {
 // Health ultra-leve — registrado ANTES de middlewares pesados (watchdog nao mata processo ocupado)
 app.get("/api/cesium/config", (_req, res) => {
   res.json({
-    map_engine: String(process.env.LUMIERA_MAP_ENGINE || "cesium"),
+    map_engine: String(process.env.LUMIERA_MAP_ENGINE || "blender"),
     ionAccessToken: String(process.env.CESIUM_ION_ACCESS_TOKEN || "").trim(),
     googleMapsApiKey: String(process.env.GOOGLE_MAPS_API_KEY || "").trim(),
+  });
+});
+
+app.get("/api/map/engine", async (_req, res) => {
+  const { isBlenderAvailable, resolveBlenderExecutable } =
+    await import("./blenderMapService.js");
+  res.json({
+    map_engine: String(process.env.LUMIERA_MAP_ENGINE || "blender"),
+    blender_available: isBlenderAvailable(),
+    blender_path: resolveBlenderExecutable() || null,
   });
 });
 

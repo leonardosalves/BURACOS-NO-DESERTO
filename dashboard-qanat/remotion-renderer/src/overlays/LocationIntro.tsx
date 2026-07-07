@@ -4,6 +4,7 @@ import {
   Img,
   interpolate,
   staticFile,
+  Video,
   useCurrentFrame,
   useVideoConfig,
   Easing,
@@ -47,8 +48,9 @@ export interface LocationIntroProps {
   zoom_keyframes?: ZoomKeyframe[];
   /** pip = cartão sobre o B-roll; fullscreen = takeover (estilo Earth Studio) */
   presentation?: "pip" | "fullscreen";
-  /** cesium = globo 3D WebGL; esri/mapbox = tiles estáticos */
-  map_provider?: "cesium" | "esri" | "mapbox" | string;
+  /** blender = MP4 flyover; cesium = globo WebGL; esri/mapbox = tiles */
+  map_provider?: "blender" | "cesium" | "esri" | "mapbox" | string;
+  flyover_video?: string;
   cesium_ion_token?: string;
   google_maps_api_key?: string;
 }
@@ -294,6 +296,7 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   zoom_keyframes = [],
   presentation = "pip",
   map_provider = "",
+  flyover_video = "",
   cesium_ion_token = "",
   google_maps_api_key = "",
 }) => {
@@ -436,9 +439,21 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   const subtitleFontSize = isVertical ? 20 : 24;
   const hasCoords = Boolean(lat && lng);
 
+  const useBlender =
+    map_provider === "blender" && Boolean(String(flyover_video || "").trim());
   const useCesium = map_provider === "cesium" && hasCoords;
+  const flyoverSrc = resolveMapImageSrc(flyover_video);
 
   const mapContent = () => {
+    if (useBlender && flyoverSrc) {
+      return (
+        <Video
+          src={flyoverSrc}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      );
+    }
+
     if (useCesium && hasCoords) {
       return (
         <CesiumGlobeLayer

@@ -8,6 +8,10 @@ import path from "path";
 import crypto from "crypto";
 import { fitZoomForBoundary } from "../shared/locationIntroFly.js";
 import { buildVirtualZoomKeyframes } from "../shared/cesiumFly.js";
+import {
+  isBlenderAvailable,
+  renderLocationIntroFlyover,
+} from "./blenderMapService.js";
 
 const NOMINATIM_UA = "LumieraVideoStudio/1.0 (motion-scenes-satellite)";
 
@@ -428,7 +432,7 @@ export function resolveMapEngine(config = {}, workspaceConfig = {}) {
     config.map_engine ||
       workspaceConfig.map_engine ||
       process.env.LUMIERA_MAP_ENGINE ||
-      "cesium"
+      "blender"
   )
     .trim()
     .toLowerCase();
@@ -611,10 +615,71 @@ export async function fetchSatelliteAssetsForScene(
     }
   }
 
-  const useCesium = resolveMapEngine(config, workspaceConfig) === "cesium";
-  let zoomKeyframes = [];
+  let boundaryAbsPath = null;
+  if (
+    boundaryGeoJson &&
+    (classification.place_type === "city" ||
+      classification.fly_mode === "city_outline")
+  ) {
+    try {
+      const boundaryName = `${sceneKey}-boundary.json`;
+      boundaryAbsPath = path.join(projDir, assetRelPath(boundaryName));
+      fs.mkdirSync(path.dirname(boundaryAbsPath), { recursive: true });
+      fs.writeFileSync(
+        boundaryAbsPath,
+        JSON.stringify(boundaryGeoJson, null, 2),
+        "utf8"
+      );
+      boundaryPath = boundaryAbsPath;
+      await new Promise((r) => setTimeout(r, 400));
+    } catch {
+      boundaryGeoJson = null;
+      boundaryAbsPath = null;
+      boundaryPath = null;
+    }
+  }
 
-  if (useCesium) {
+  const mapEngine = resolveMapEngine(config, workspaceConfig);
+  const useBlender = mapEngine === "blender" && isBlenderAvailable();
+  let zoomKeyframes = [];
+  let flyoverVideo = "";
+
+  if (useBlender) {
+    const wideZoom = zoomLevels[0];
+    const tightZoom = zoomLevels[zoomLevels.length - 1];
+    const wideName = `${sceneKey}-z${wideZoom}.jpg`;
+    const tightName = `${sceneKey}-z${tightZoom}.jpg`;
+    const widePath = path.join(projDir, assetRelPath(wideName));
+    const tightPath = path.join(projDir, assetRelPath(tightName));
+    await downloadImageToFile(
+      buildTileUrl(token, coords.lat, coords.lng, wideZoom),
+      widePath
+    );
+    await downloadImageToFile(
+      buildTileUrl(token, coords.lat, coords.lng, tightZoom),
+      tightPath
+    );
+
+    const durationSec = Math.max(
+      8,
+      Number(scene.duration_seconds) || Number(props.duration_seconds) || 8
+    );
+    const blenderOut = await renderLocationIntroFlyover(projDir, {
+      lat: coords.lat,
+      lng: coords.lng,
+      zoomLevels,
+      textureWide: widePath,
+      textureTight: tightPath,
+      boundaryPath: boundaryAbsPath || "",
+      sceneKey,
+      durationSec,
+      accentColor: String(props.accentColor || "#C5A889"),
+      placeType: classification.place_type,
+      useBlenderGis: config.use_blender_gis !== false,
+    });
+    zoomKeyframes = blenderOut.zoom_keyframes;
+    flyoverVideo = blenderOut.flyover_video;
+  } else if (mapEngine === "cesium") {
     zoomKeyframes = buildVirtualZoomKeyframes(zoomLevels);
   } else {
     for (const zoom of zoomLevels) {
@@ -635,42 +700,30 @@ export async function fetchSatelliteAssetsForScene(
   const wideFrame = zoomKeyframes[0];
   const tightFrame = zoomKeyframes[zoomKeyframes.length - 1];
 
-  if (
-    boundaryGeoJson &&
-    (classification.place_type === "city" ||
-      classification.fly_mode === "city_outline")
-  ) {
-    try {
-      const boundaryName = `${sceneKey}-boundary.json`;
-      boundaryPath = path.join(projDir, assetRelPath(boundaryName));
-      fs.mkdirSync(path.dirname(boundaryPath), { recursive: true });
-      fs.writeFileSync(
-        boundaryPath,
-        JSON.stringify(boundaryGeoJson, null, 2),
-        "utf8"
-      );
-      await new Promise((r) => setTimeout(r, 1100));
-    } catch {
-      boundaryGeoJson = null;
-      boundaryPath = null;
-    }
-  }
-
   return {
     ok: true,
     lat: coords.lat,
     lng: coords.lng,
     geocode_source: coords.source,
-    map_provider: useCesium ? "cesium" : token ? "mapbox" : "esri",
+    map_provider: useBlender
+      ? "blender"
+      : mapEngine === "cesium"
+        ? "cesium"
+        : token
+          ? "mapbox"
+          : "esri",
     place_type: classification.place_type,
     fly_mode: classification.fly_mode,
     zoom_keyframes: zoomKeyframes,
-    cesium_ion_token: useCesium
-      ? resolveCesiumIonToken(config, workspaceConfig)
-      : "",
-    google_maps_api_key: useCesium
-      ? resolveGoogleMapsApiKey(config, workspaceConfig)
-      : "",
+    flyover_video: flyoverVideo,
+    cesium_ion_token:
+      mapEngine === "cesium"
+        ? resolveCesiumIonToken(config, workspaceConfig)
+        : "",
+    google_maps_api_key:
+      mapEngine === "cesium"
+        ? resolveGoogleMapsApiKey(config, workspaceConfig)
+        : "",
     boundaryGeoJson: boundaryPath
       ? assetRelPath(`${sceneKey}-boundary.json`)
       : "",
@@ -722,6 +775,7 @@ export async function enrichMotionScenesWithSatellite(
         geocode_source: fetched.geocode_source,
         cesium_ion_token: fetched.cesium_ion_token || "",
         google_maps_api_key: fetched.google_maps_api_key || "",
+        flyover_video: fetched.flyover_video || "",
       };
       enriched += 1;
       results.push({ id: scene.id, ok: true, ...fetched });
