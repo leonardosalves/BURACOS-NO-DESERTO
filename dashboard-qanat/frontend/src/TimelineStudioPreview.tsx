@@ -34,13 +34,12 @@ type Props = {
   getMusicUrl?: (fileName: string) => string;
   aspectRatio: string;
   musicVolume?: number;
-  onPlayheadChange: (sec: number) => void;
+  onPlayheadChange: (sec: number, opts?: { playing?: boolean }) => void;
 };
 
 const FULLSCREEN_OVERLAYS = new Set(["pictogram-chart"]);
 
 const UI_PUBLISH_MS = 250;
-const UI_PUBLISH_PLAYBACK_MS = 80;
 const MOTION_SCRUB_MS = 80;
 
 function clipToOverlayDraft(
@@ -191,13 +190,17 @@ export function TimelineStudioPreview({
       playheadRef.current = next;
 
       const now = performance.now();
-      const uiInterval = playingRef.current
-        ? UI_PUBLISH_PLAYBACK_MS
-        : UI_PUBLISH_MS;
-      if (force || now - lastPublishRef.current >= uiInterval) {
-        lastPublishRef.current = now;
+      const isPlaying = playingRef.current;
+      if (isPlaying) {
         setLivePlayhead(next);
-        onPlayheadChangeRef.current(next);
+        onPlayheadChangeRef.current(next, { playing: true });
+      } else {
+        const uiInterval = UI_PUBLISH_MS;
+        if (force || now - lastPublishRef.current >= uiInterval) {
+          lastPublishRef.current = now;
+          setLivePlayhead(next);
+          onPlayheadChangeRef.current(next);
+        }
       }
       publishMotionPlayhead(next, force);
       return next;

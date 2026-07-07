@@ -426,15 +426,25 @@ export function TimelineStudio({
     setStudio((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
-  const handlePlayheadChange = useCallback((sec: number) => {
-    setLocalPlayhead(sec);
-    if (playheadCommitRef.current) clearTimeout(playheadCommitRef.current);
-    playheadCommitRef.current = setTimeout(() => {
-      setLocalPlayhead(null);
-      updateStudio({ playhead: sec });
-      playheadCommitRef.current = null;
-    }, 120);
-  }, []);
+  const handlePlayheadChange = useCallback(
+    (sec: number, opts?: { playing?: boolean }) => {
+      setLocalPlayhead(sec);
+      if (opts?.playing) {
+        if (playheadCommitRef.current) {
+          clearTimeout(playheadCommitRef.current);
+          playheadCommitRef.current = null;
+        }
+        return;
+      }
+      if (playheadCommitRef.current) clearTimeout(playheadCommitRef.current);
+      playheadCommitRef.current = setTimeout(() => {
+        setLocalPlayhead(null);
+        updateStudio({ playhead: sec });
+        playheadCommitRef.current = null;
+      }, 120);
+    },
+    []
+  );
 
   const displayStudio = useMemo(() => {
     if (!studio) return null;

@@ -212,18 +212,88 @@ function LocationIntroMapCard({
         : 0.45;
 
     if (useBlenderMap) {
+      const frames = sortZoomKeyframes(
+        keyframes.length > 0
+          ? keyframes
+          : [
+              bgWide ? { zoom: props.zoom_from || 8, image: bgWide } : null,
+              bgTight ? { zoom: props.zoom_to || 14, image: bgTight } : null,
+            ].filter(Boolean)
+      );
+      const {
+        activeIndex: idx,
+        blendT: localT,
+        easedProgress,
+      } = resolveEarthDescentFrame(frames, progress);
+      const zoom = interpolateFlyScale(frames, progress, flyMode);
+      const drawProgress = Math.min(
+        1,
+        Math.max(0, (easedProgress - 0.42) * 1.65)
+      );
+
       return (
         <div
           className={`relative overflow-hidden bg-[#050506] ${
             isPip ? "w-full h-full" : "absolute inset-0"
           }`}
         >
+          {frames.length > 0 ? (
+            <div
+              className="absolute inset-0"
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: "center center",
+                zIndex: 0,
+              }}
+            >
+              {frames.map((kf, i) => {
+                const src = String((kf as { image?: string })?.image || "");
+                if (!src) return null;
+                let opacity = 0;
+                if (frames.length === 1) opacity = 1;
+                else if (i === idx) opacity = 1 - localT;
+                else if (i === idx + 1) opacity = localT;
+                if (opacity <= 0.02) return null;
+                return (
+                  <img
+                    key={`${src}-${i}`}
+                    src={src}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ opacity }}
+                  />
+                );
+              })}
+            </div>
+          ) : null}
           <BlenderFlyoverPreview
             src={flyoverSrc}
             scrubSeconds={scrubSeconds}
             playing={timelinePlaying}
             poster={bgTight || bgWide || undefined}
+            className="absolute inset-0"
           />
+          {placeType === "city" && boundaryPaths.length > 0 ? (
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              style={{ zIndex: 2 }}
+            >
+              {boundaryPaths.map((d, i) => (
+                <path
+                  key={i}
+                  d={d}
+                  fill="none"
+                  stroke={accentColor}
+                  strokeWidth={0.35}
+                  strokeDasharray="1.2 0.8"
+                  strokeDashoffset={drawProgress > 0 ? 0 : 100}
+                  opacity={drawProgress}
+                />
+              ))}
+            </svg>
+          ) : null}
         </div>
       );
     }

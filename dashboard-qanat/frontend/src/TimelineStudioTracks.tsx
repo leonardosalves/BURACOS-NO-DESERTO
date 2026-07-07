@@ -20,7 +20,7 @@ type Props = {
   collapsedTrackIds?: string[];
   onScrollToTrackDone?: () => void;
   onSelectClip: (id: string | null) => void;
-  onPlayheadChange: (sec: number) => void;
+  onPlayheadChange: (sec: number, opts?: { playing?: boolean }) => void;
   onZoomChange: (zoom: number) => void;
   onClipsChange: (clips: StudioClip[]) => void;
 };
@@ -279,8 +279,16 @@ export function TimelineStudioTracks({
         onScroll={handleScroll}
       >
         <div
+          className="relative"
           style={{ width: timelineWidth + TRACK_LABEL_WIDTH, minWidth: "100%" }}
         >
+          <div
+            className="absolute top-0 bottom-0 w-0.5 bg-gold-400 z-30 pointer-events-none"
+            style={{ left: TRACK_LABEL_WIDTH + playheadX }}
+          >
+            <div className="absolute top-0 -left-1.5 w-3 h-3 bg-gold-400 rotate-45 shadow-sm shadow-black/40" />
+          </div>
+
           <div
             className="relative flex border-b border-zinc-800/50 cursor-pointer select-none"
             style={{ height: RULER_HEIGHT, marginLeft: TRACK_LABEL_WIDTH }}
@@ -302,12 +310,6 @@ export function TimelineStudioTracks({
                   </span>
                 </div>
               ))}
-            <div
-              className="absolute top-0 bottom-0 w-0.5 bg-gold-400 z-20 pointer-events-none"
-              style={{ left: playheadX }}
-            >
-              <div className="absolute -top-0.5 -left-1.5 w-3 h-3 bg-gold-400 rotate-45" />
-            </div>
           </div>
 
           {displayTracks.map((track) => {
@@ -391,7 +393,7 @@ const TrackRow = React.memo(function TrackRow({
   isDragging: boolean;
   rowRef?: (el: HTMLDivElement | null) => void;
   onSelectClip: (id: string | null) => void;
-  onPlayheadChange: (sec: number) => void;
+  onPlayheadChange: (sec: number, opts?: { playing?: boolean }) => void;
   onStartDrag: (
     e: React.MouseEvent,
     clip: StudioClip,
