@@ -73,6 +73,12 @@ import type { YoutubeChannelAlerts } from "./YoutubeStudioPanel";
 import { useResurrectorScheduler } from "./useResurrectorScheduler";
 
 import type { ProjectListItem } from "./ProjectsLibraryPanel";
+import {
+  loadCachedProjects,
+  loadCachedProjectSnapshot,
+  saveCachedProjects,
+  updateCachedProjectSnapshot,
+} from "./offlineProjectCache";
 import { AppShell } from "./AppShell";
 import { resolveStockSearchQuery } from "./stockSearchQuery";
 import type { AppTab } from "./appTabs";
@@ -177,6 +183,8 @@ const AppTabPanels = lazy(() =>
 import { TabPanelFallback } from "./appLazyPanels";
 
 const initialWizardSession = loadWizardSession();
+const initialActiveProject = resolveInitialActiveProject(initialWizardSession);
+const initialProjectSnapshot = loadCachedProjectSnapshot(initialActiveProject);
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(
@@ -187,12 +195,18 @@ export default function App() {
       ) as AppTab
   );
 
-  const [status, setStatus] = useState<WorkspaceStatus | null>(null);
+  const [status, setStatus] = useState<WorkspaceStatus | null>(
+    () => initialProjectSnapshot?.status || null
+  );
 
-  const [config, setConfig] = useState<ConfigData | null>(null);
+  const [config, setConfig] = useState<ConfigData | null>(
+    () => initialProjectSnapshot?.config || null
+  );
   const [projectDataLoading, setProjectDataLoading] = useState(false);
 
-  const [outputs, setOutputs] = useState<OutputVideo[]>([]);
+  const [outputs, setOutputs] = useState<OutputVideo[]>(
+    () => initialProjectSnapshot?.outputs || []
+  );
   const [selectedUploadVideo, setSelectedUploadVideo] = useState<string | null>(
     null
   );
@@ -211,7 +225,9 @@ export default function App() {
 
   // Project Management states
 
-  const [projects, setProjects] = useState<ProjectListItem[]>([]);
+  const [projects, setProjects] = useState<ProjectListItem[]>(() =>
+    loadCachedProjects()
+  );
   const [newProjectNiche, setNewProjectNiche] = useState<string>("Geral");
 
   const [recentProjects, setRecentProjects] = useState<string[]>([]);
@@ -284,9 +300,8 @@ export default function App() {
     Record<string, number>
   >({});
 
-  const [activeProject, setActiveProject] = useState<string>(() =>
-    resolveInitialActiveProject(initialWizardSession)
-  );
+  const [activeProject, setActiveProject] =
+    useState<string>(initialActiveProject);
 
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
 
@@ -2483,10 +2498,14 @@ export default function App() {
       const res = await fetch("/api/projects");
 
       if (res.ok) {
-        setProjects(await res.json());
+        const projectList = await res.json();
+        setProjects(projectList);
+        saveCachedProjects(projectList);
       }
     } catch (err) {
       console.error("Error fetching projects:", err);
+      const cached = loadCachedProjects();
+      if (cached.length) setProjects(cached);
     }
   };
 
@@ -2506,14 +2525,23 @@ export default function App() {
       if (res.ok) {
         if (gen !== storyboardFetchGenRef.current) return;
         if (!opts?.force && storyboardDirtyRef.current) return;
+        const storyboard = repairMojibakeDeep(await res.json());
         applyStoryboardToCreatorState(
-          repairMojibakeDeep(await res.json()),
+          storyboard,
           "fetch",
           opts?.timelineAssets
         );
       }
     } catch (err) {
       console.error("Error fetching storyboard:", err);
+      const cached = loadCachedProjectSnapshot(projName);
+      if (cached?.storyboard && gen === storyboardFetchGenRef.current) {
+        applyStoryboardToCreatorState(
+          repairMojibakeDeep(cached.storyboard),
+          "fetch",
+          opts?.timelineAssets
+        );
+      }
     } finally {
       if (gen === storyboardFetchGenRef.current) {
         setLoadingStoryboard(false);
@@ -2653,6 +2681,7 @@ export default function App() {
         }
 
         setConfig(loadedConfig);
+        updateCachedProjectSnapshot(activeProject, { config: loadedConfig });
         setGeneratedScriptData((prev) => {
           if (!prev) return prev;
           const merged = mergeStoryboardWithTimelineAssets(
@@ -2815,6 +2844,29 @@ export default function App() {
       fetchCreatorAssets();
     } catch (err) {
       console.error("Error loading initial project data:", err);
+      const cached = loadCachedProjectSnapshot(activeProject);
+      if (cached?.config) {
+        setConfig(cached.config);
+        setGeneratedScriptData((prev) => {
+          if (!prev) return prev;
+          const merged = mergeStoryboardWithTimelineAssets(
+            prev,
+            cached.config?.timeline_assets
+          );
+          if (merged && merged !== prev) {
+            setStoryboardData(merged);
+            return merged;
+          }
+          return prev;
+        });
+      }
+      if (cached?.storyboard) {
+        applyStoryboardToCreatorState(
+          repairMojibakeDeep(cached.storyboard),
+          "fetch",
+          cached.config?.timeline_assets
+        );
+      }
     } finally {
       setProjectDataLoading(false);
     }
@@ -2829,16 +2881,27 @@ export default function App() {
         signal: pollSignal,
       });
 
-      if (statusRes.ok) setStatus(await statusRes.json());
+      if (statusRes.ok) {
+        const nextStatus = await statusRes.json();
+        setStatus(nextStatus);
+        updateCachedProjectSnapshot(activeProject, { status: nextStatus });
+      }
 
       const outputsRes = await fetch(getProjectUrl("/api/outputs"), {
         signal: pollSignal,
       });
 
-      if (outputsRes.ok) setOutputs(await outputsRes.json());
+      if (outputsRes.ok) {
+        const nextOutputs = await outputsRes.json();
+        setOutputs(nextOutputs);
+        updateCachedProjectSnapshot(activeProject, { outputs: nextOutputs });
+      }
     } catch (err) {
       if (err instanceof Error && err.name === "TimeoutError") return;
       console.error("Error loading status and outputs:", err);
+      const cached = loadCachedProjectSnapshot(activeProject);
+      if (cached?.status) setStatus(cached.status);
+      if (cached?.outputs) setOutputs(cached.outputs);
     }
   };
 
@@ -3245,6 +3308,21 @@ export default function App() {
   }, [activeProject]);
 
   useEffect(() => {
+    if (!activeProject || !config) return;
+    updateCachedProjectSnapshot(activeProject, { config });
+  }, [activeProject, config]);
+
+  useEffect(() => {
+    if (!activeProject || !status) return;
+    updateCachedProjectSnapshot(activeProject, { status });
+  }, [activeProject, status]);
+
+  useEffect(() => {
+    if (!activeProject) return;
+    updateCachedProjectSnapshot(activeProject, { outputs });
+  }, [activeProject, outputs]);
+
+  useEffect(() => {
     localStorage.setItem(WORKSPACE_TAB_KEY, activeTab);
   }, [activeTab]);
 
@@ -3321,6 +3399,17 @@ export default function App() {
 
   useEffect(() => {
     const inCreatorFlow = activeTab === "creator" && creatorStep > 1;
+    const cached = loadCachedProjectSnapshot(activeProject);
+    setConfig(cached?.config || null);
+    setStatus(cached?.status || null);
+    setOutputs(cached?.outputs || []);
+    if (cached?.storyboard && !storyboardDirtyRef.current) {
+      applyStoryboardToCreatorState(
+        repairMojibakeDeep(cached.storyboard),
+        "fetch",
+        cached.config?.timeline_assets
+      );
+    }
     if (!inCreatorFlow) {
       setUploadSuccess(false);
       setUploadedScenes({});
@@ -5139,6 +5228,7 @@ export default function App() {
   };
 
   const getAssetUrl = (fileName: string) => {
+    if (!activeProject.trim()) return "";
     const proj = encodeURIComponent(activeProject);
     const rel = String(fileName || "")
       .replace(/^ASSETS\//i, "")
@@ -8075,7 +8165,22 @@ export default function App() {
           ideationTab === "listicle"
             ? ` com ${data.list_items?.length || rankCount} itens`
             : "";
-        toast.success(`Roteiro completo gerado${listicleMsg}.`);
+        const orch = data.production_orchestration || {};
+        const motionN =
+          orch.motion_count ?? (data.motion_scenes || []).length ?? 0;
+        const brollN = (data.visual_prompts || []).filter(
+          (vp: { media_mode?: string }) =>
+            String(vp.media_mode || "").toLowerCase() !== "remotion"
+        ).length;
+        toast.success(
+          `Roteiro completo${listicleMsg} · ${motionN} Remotion · ${brollN} B-roll${orch.quality_score != null ? ` · QC ${orch.quality_score}` : ""}`
+        );
+        if (orch.orchestration_ok === false) {
+          toast(
+            "Orquestração parcial — refine mapas no Editor de Timing (Cenas Remotion).",
+            { icon: "⚠️", duration: 7000 }
+          );
+        }
       } else if (token === creatorGenTokenRef.current) {
         const detail = data.details ? `: ${data.details}` : "";
         const hint = data.hint ? ` ${data.hint}` : "";
@@ -8206,8 +8311,11 @@ export default function App() {
         const score = data._vpe_checklist?.quality_score;
         const niche = data._vpe_checklist?.nicho_detectado || "";
         stopAiJobProgress(true);
+        const orch = data.production_orchestration || {};
+        const motionN =
+          orch.motion_count ?? (data.motion_scenes || []).length ?? 0;
         toast.success(
-          `✨ Engenharia Visual PRO concluída — ${data.visual_prompts?.length || 0} cenas${score ? ` · Score: ${score}` : ""}${niche ? ` · Nicho: ${niche}` : ""}`
+          `✨ VPE PRO — ${data.visual_prompts?.length || 0} cenas · ${motionN} Remotion${score ? ` · Score: ${score}` : ""}${niche ? ` · ${niche}` : ""}${orch.quality_score != null ? ` · QC ${orch.quality_score}` : ""}`
         );
       } else {
         const errMsg =
@@ -8363,6 +8471,11 @@ export default function App() {
   // Fetch lists of available media assets in folder
 
   const fetchCreatorAssets = async () => {
+    if (!activeProject.trim()) {
+      setCreatorAssets([]);
+      return;
+    }
+
     try {
       const res = await fetch(getProjectUrl("/api/assets/list"));
 

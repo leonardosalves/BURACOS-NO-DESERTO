@@ -148,7 +148,11 @@ import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerTimelineStudioRoutes } from "./timelineStudioRoutes.js";
 import { registerMotionSceneRoutes } from "./motionSceneRoutes.js";
-import { orchestrateProduction } from "./productionOrchestrator.js";
+import {
+  orchestrateProduction,
+  resolveCreatorOrchestrationOptions,
+  applyOrchestrationToStoryboard,
+} from "./productionOrchestrator.js";
 import {
   loadStudioForRender,
   shouldUseStudioForRender,
@@ -797,6 +801,16 @@ app.use("/api/projects-media", (req, res, next) => {
   }
 
   if (parts[0] === "ASSETS") {
+    const allowedGlobalAsset =
+      parts[1] === "logos" ||
+      /^logo\.(png|jpe?g|webp|svg)$/i.test(parts[1] || "");
+    if (!allowedGlobalAsset) {
+      return res.status(404).json({
+        error:
+          "Assets globais desativados para midia de projeto. Informe /api/projects-media/:project/ASSETS/arquivo.",
+      });
+    }
+
     const fullFilePath = path.join(WORKSPACE_DIR, parts.join("/"));
 
     if (fs.existsSync(fullFilePath)) {
@@ -13979,7 +13993,18 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
 // API: List available assets inside ASSETS/ folder
 
 app.get("/api/assets/list", (req, res) => {
-  const projDir = getProjectDir(req);
+  const rawProject = Array.isArray(req.query?.project)
+    ? req.query.project[0]
+    : req.query?.project;
+  const projectName = String(rawProject || "").trim();
+  if (!projectName) {
+    return res.json([]);
+  }
+
+  const projDir = resolveProjectDirFromName(projectName);
+  if (!projDir || projDir === WORKSPACE_DIR) {
+    return res.json([]);
+  }
 
   const assetsDir = path.join(projDir, "ASSETS");
 
@@ -14041,6 +14066,144 @@ app.get("/api/assets/list", (req, res) => {
     res.json(scanDir(assetsDir));
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+function normalizeProjectAssetRef(value = "") {
+  return String(value || "")
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "")
+    .replace(/^ASSETS\//i, "");
+}
+
+function resolveAssetInsideProject(projectDir, assetRef = "") {
+  const rel = normalizeProjectAssetRef(assetRef);
+  if (!rel) return null;
+  const assetsDir = path.join(projectDir, "ASSETS");
+  const direct = path.resolve(assetsDir, rel);
+  const assetsRoot = path.resolve(assetsDir);
+  if (direct.startsWith(assetsRoot + path.sep) && fs.existsSync(direct)) {
+    return direct;
+  }
+  const byName = findProjectFileLocal(projectDir, rel);
+  if (!byName) return null;
+  const resolved = path.resolve(byName);
+  return resolved.startsWith(path.resolve(projectDir) + path.sep)
+    ? resolved
+    : null;
+}
+
+function collectTimelineAssetRefs(config = {}, storyboard = {}) {
+  const refs = [];
+  const push = (asset, source) => {
+    const ref = normalizeProjectAssetRef(asset);
+    if (!ref) return;
+    if (/^https?:\/\//i.test(ref) || ref.startsWith("/api/")) return;
+    refs.push({ asset: ref, ...source });
+  };
+
+  const timelineAssets = config.timeline_assets || {};
+  for (const [block, assets] of Object.entries(timelineAssets)) {
+    if (!Array.isArray(assets)) continue;
+    assets.forEach((item, index) => {
+      if (item && typeof item === "object") {
+        push(item.asset, { block, index, source: "config.timeline_assets" });
+      }
+    });
+  }
+
+  const prompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
+  prompts.forEach((prompt, index) => {
+    if (!prompt || typeof prompt !== "object") return;
+    const block =
+      prompt.block ?? prompt.block_number ?? prompt.scene ?? String(index + 1);
+    const assetObj = prompt.asset;
+    if (typeof assetObj === "string") {
+      push(assetObj, { block: String(block), index, source: "storyboard" });
+    } else if (assetObj && typeof assetObj === "object") {
+      push(assetObj.asset, {
+        block: String(block),
+        index,
+        source: "storyboard.asset",
+      });
+    }
+  });
+
+  const seen = new Set();
+  return refs.filter((ref) => {
+    const key = `${ref.asset}|${ref.block || ""}|${ref.index ?? ""}|${ref.source}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+app.get("/api/assets/validate", (req, res) => {
+  const rawProject = Array.isArray(req.query?.project)
+    ? req.query.project[0]
+    : req.query?.project;
+  const projectName = String(rawProject || "").trim();
+  if (!projectName) {
+    return res.status(400).json({ error: "Projeto ativo nao informado." });
+  }
+
+  const projDir = resolveProjectDirFromName(projectName);
+  if (!projDir || projDir === WORKSPACE_DIR) {
+    return res
+      .status(404)
+      .json({ error: `Projeto nao encontrado: ${projectName}` });
+  }
+
+  try {
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const refs = collectTimelineAssetRefs(config, storyboard);
+    const projectAssets = new Set(listProjectMediaAssets(projDir));
+    const issues = [];
+    let found = 0;
+
+    for (const ref of refs) {
+      const resolved = resolveAssetInsideProject(projDir, ref.asset);
+      if (resolved) {
+        found++;
+        continue;
+      }
+
+      const base = path.basename(ref.asset);
+      const similar = [...projectAssets].filter(
+        (item) => path.basename(item).toLowerCase() === base.toLowerCase()
+      );
+      issues.push({
+        block: ref.block,
+        index: ref.index,
+        source: ref.source,
+        asset: ref.asset,
+        reason: "Arquivo nao encontrado dentro do projeto ativo",
+        detail: similar.length
+          ? `Nome semelhante no projeto: ${similar.slice(0, 3).join(", ")}`
+          : "Sem correspondencia em ASSETS/ deste projeto.",
+        expectedUrl: `/api/projects-media/${encodeURIComponent(projectName)}/ASSETS/${normalizeProjectAssetRef(
+          ref.asset
+        )
+          .split("/")
+          .map((part) => encodeURIComponent(part))
+          .join("/")}`,
+      });
+    }
+
+    res.json({
+      ok: issues.length === 0,
+      project: path.basename(projDir),
+      checked: refs.length,
+      found,
+      missing: issues.length,
+      issues,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Falha ao validar assets." });
   }
 });
 
@@ -16428,6 +16591,8 @@ app.post(
 
       let timelineAssets = {};
       try {
+        report("orchestrate", "Orquestrando Remotion + assets…", 88);
+        const orchOpts = resolveCreatorOrchestrationOptions(req.body || {});
         const orch = await orchestrateProduction(
           projDir,
           {
@@ -16437,25 +16602,23 @@ app.post(
             getApiKey,
             parseAiJson: parseAiJsonResponse,
           },
-          {
-            useLlm: false,
-            fetchSatellite: false,
-            syncTimeline: true,
-            rebuildAssetSlots: true,
-            persist: true,
-          }
+          orchOpts
         );
-        if (orch.ok) {
-          parsedData = orch.storyboard;
-          timelineAssets = orch.timeline_assets || {};
-          parsedData.production_orchestration = orch.production;
+        const merged = applyOrchestrationToStoryboard(
+          parsedData,
+          orch,
+          timelineAssets
+        );
+        if (merged.orch) {
+          parsedData = merged.storyboard;
+          timelineAssets = merged.timelineAssets;
           fs.writeFileSync(
             storyboardPath,
             JSON.stringify(parsedData, null, 2),
             "utf8"
           );
           console.log(
-            `[Creator Script] Produção orquestrada: ${orch.motion_scenes?.length || 0} cenas Remotion, ${orch.production?.pending_asset_slots || 0} slots de asset pendentes.`
+            `[Creator Script] Produção orquestrada: ${merged.orch.motion_count || 0} Remotion · QC ${merged.orch.quality?.score ?? "—"} · satélite ${merged.orch.satellite?.enriched ?? 0} · ok=${merged.orch.orchestration_ok}`
           );
         }
       } catch (orchErr) {
@@ -16838,6 +17001,8 @@ app.post(
       );
 
       try {
+        report("vpe_orchestrate", "Orquestrando Remotion + mapas…", 94);
+        const orchOpts = resolveCreatorOrchestrationOptions(req.body || {});
         const orch = await orchestrateProduction(
           projDir,
           {
@@ -16847,19 +17012,13 @@ app.post(
             getApiKey,
             parseAiJson: parseAiJsonResponse,
           },
-          {
-            useLlm: false,
-            fetchSatellite: req.body?.fetch_satellite !== false,
-            syncTimeline: true,
-            rebuildAssetSlots: true,
-            persist: true,
-          }
+          orchOpts
         );
-        if (orch.ok) {
-          storyboard = orch.storyboard;
-          storyboard.production_orchestration = orch.production;
+        const merged = applyOrchestrationToStoryboard(storyboard, orch);
+        if (merged.orch) {
+          storyboard = merged.storyboard;
           console.log(
-            `[VPE PRO] Produção orquestrada: ${orch.motion_scenes?.length || 0} motion, ${orch.production?.pending_asset_slots || 0} slots pendentes.`
+            `[VPE PRO] Produção orquestrada: ${merged.orch.motion_count || 0} Remotion · QC ${merged.orch.quality?.score ?? "—"} · ok=${merged.orch.orchestration_ok}`
           );
         }
       } catch (orchErr) {

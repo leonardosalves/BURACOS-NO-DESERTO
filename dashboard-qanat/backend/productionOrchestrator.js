@@ -486,3 +486,59 @@ export async function orchestrateProduction(
     quality: qualityMeta,
   };
 }
+
+/** Opções padrão Creator Wizard — paridade com «Cenas Remotion» do Timeline Studio. */
+export function resolveCreatorOrchestrationOptions(body = {}) {
+  return {
+    useLlm: body.use_llm !== false,
+    fetchSatellite: body.fetch_satellite !== false,
+    syncTimeline: body.sync_timeline !== false,
+    rebuildAssetSlots: body.rebuild_asset_slots !== false,
+    persist: body.persist !== false,
+    restoreSuppressedMotion: body.restore_suppressed_motion !== false,
+  };
+}
+
+/** Mescla resultado da orquestração no storyboard retornado ao Creator. */
+export function applyOrchestrationToStoryboard(
+  storyboard = {},
+  orch = {},
+  timelineAssets = {}
+) {
+  const hasMotion = (orch.motion_scenes || []).length > 0;
+  if (!orch?.storyboard && !hasMotion) {
+    return { storyboard, timelineAssets, orch: null };
+  }
+
+  const next = orch.storyboard || storyboard;
+  next.production_orchestration = {
+    ...(orch.production || next.production_orchestration || {}),
+    orchestration_ok: Boolean(orch.orchestration_ok),
+    motion_count: orch.motion_count ?? orch.motion_scenes?.length ?? 0,
+    timeline_motion_count: orch.timeline_motion_count ?? 0,
+    timeline_template_count: orch.timeline_template_count ?? 0,
+    pending_asset_slots: orch.production?.pending_asset_slots ?? 0,
+    quality_score: orch.quality?.score,
+    quality_ok: orch.quality?.ok,
+    satellite_enriched: orch.satellite?.enriched ?? 0,
+    niche_pack:
+      next.motion_scenes_meta?.niche_pack ||
+      orch.storyboard?.motion_scenes_meta?.niche_pack,
+    orchestrated_at: new Date().toISOString(),
+    source: "creator_wizard",
+  };
+  if (orch.quality || orch.satellite) {
+    next.motion_scenes_meta = {
+      ...(next.motion_scenes_meta || {}),
+      quality: orch.quality,
+      satellite: orch.satellite,
+      llm: orch.llm,
+    };
+  }
+
+  return {
+    storyboard: next,
+    timelineAssets: orch.timeline_assets || timelineAssets,
+    orch,
+  };
+}
