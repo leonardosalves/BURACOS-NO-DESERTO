@@ -1,5 +1,6 @@
-import React from "react";
-import { Trash2, X } from "lucide-react";
+import React, { useState } from "react";
+import { MapPin, Trash2, X } from "lucide-react";
+import toast from "react-hot-toast";
 import {
   formatStudioTime,
   type StudioClip,
@@ -14,6 +15,8 @@ type Props = {
   onUpdate: (patch: Partial<StudioClip>) => void;
   onCaptionText: (text: string) => void;
   onDelete: () => void;
+  getProjectUrl?: (endpoint: string) => string;
+  onSatelliteSynced?: (studio: unknown) => void;
 };
 
 export function TimelineStudioClipInspector({
@@ -23,9 +26,19 @@ export function TimelineStudioClipInspector({
   onUpdate,
   onCaptionText,
   onDelete,
+  getProjectUrl,
+  onSatelliteSynced,
 }: Props) {
   const editable = isClipEditable(clip);
   const captionText = String(clip.props?.text || clip.label || "");
+  const [fetchingSatellite, setFetchingSatellite] = useState(false);
+  const hasSatelliteTiles = Boolean(
+    String(clip.props?.backgroundImage || "").trim() ||
+    (Array.isArray(clip.props?.zoom_keyframes) &&
+      clip.props.zoom_keyframes.some((kf: { image?: string }) =>
+        Boolean(String(kf?.image || "").trim())
+      ))
+  );
 
   return (
     <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/90 overflow-hidden">
@@ -118,20 +131,97 @@ export function TimelineStudioClipInspector({
         ) : null}
 
         {clip.templateId === "location-intro" ? (
-          <Field label="Local" className="sm:col-span-2">
-            <input
-              type="text"
-              disabled={!editable}
-              value={String(clip.props?.location || "")}
-              onChange={(e) =>
-                onUpdate({
-                  props: { ...clip.props, location: e.target.value },
-                  label: `Intro: ${e.target.value}`,
-                })
-              }
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5 text-[11px] text-white disabled:opacity-50"
-            />
-          </Field>
+          <>
+            <Field label="Local" className="sm:col-span-2">
+              <input
+                type="text"
+                disabled={!editable}
+                value={String(clip.props?.location || "")}
+                onChange={(e) =>
+                  onUpdate({
+                    props: { ...clip.props, location: e.target.value },
+                    label: e.target.value || clip.label,
+                  })
+                }
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5 text-[11px] text-white disabled:opacity-50"
+              />
+            </Field>
+            <Field label="Mapa satélite" className="sm:col-span-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`text-[10px] font-semibold ${
+                    hasSatelliteTiles ? "text-emerald-400" : "text-amber-400"
+                  }`}
+                >
+                  {hasSatelliteTiles
+                    ? "Tiles baixados — voo + contorno disponíveis"
+                    : "Sem tiles — preview usa placeholder genérico"}
+                </span>
+                {getProjectUrl ? (
+                  <button
+                    type="button"
+                    disabled={fetchingSatellite}
+                    onClick={async () => {
+                      setFetchingSatellite(true);
+                      try {
+                        const res = await fetch(
+                          getProjectUrl(
+                            "/api/ai/creator/motion-scenes/satellite"
+                          ),
+                          {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({}),
+                          }
+                        );
+                        if (!res.ok) throw new Error(await res.text());
+                        const data = await res.json();
+                        const hit = (data.results || []).find(
+                          (row: { id?: string }) => row.id === clip.id
+                        );
+                        if (hit?.ok === false) {
+                          throw new Error(
+                            hit.reason || "Falha ao baixar mapa satélite"
+                          );
+                        }
+                        if (data.studio && onSatelliteSynced) {
+                          onSatelliteSynced(data.studio);
+                        } else {
+                          const motion = (data.motion_scenes || []).find(
+                            (ms: { id?: string }) => ms.id === clip.id
+                          );
+                          if (motion?.props) {
+                            onUpdate({
+                              props: { ...clip.props, ...motion.props },
+                            });
+                          }
+                        }
+                        toast.success(
+                          `Mapa satélite: ${data.enriched || 0} cena(s) com voo Earth`
+                        );
+                      } catch (err) {
+                        toast.error(
+                          `Mapa: ${(err as Error).message || "erro desconhecido"}`
+                        );
+                      } finally {
+                        setFetchingSatellite(false);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-violet-500/40 bg-violet-500/10 text-violet-200 cursor-pointer disabled:opacity-50"
+                  >
+                    <MapPin
+                      className={`w-3 h-3 ${fetchingSatellite ? "animate-pulse" : ""}`}
+                    />
+                    {fetchingSatellite ? "Baixando…" : "Baixar voo satélite"}
+                  </button>
+                ) : null}
+              </div>
+              <p className="text-[9px] text-zinc-600 mt-1">
+                Cidade: descida do espaço + contorno OSM. POI: zoom até o
+                monumento/prédio (satélite 3D real exige Google Earth Studio).
+              </p>
+            </Field>
+          </>
         ) : null}
 
         {clip.templateId === "pictogram-chart" ? (

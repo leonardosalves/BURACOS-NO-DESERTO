@@ -391,9 +391,19 @@ export function TimelineStudio({
                 } else {
                   await loadStudio();
                 }
-                toast.success(
-                  `${orchData.motion_count} Remotion · ${orchData.pending_assets} assets pendentes · timeline sincronizada`
+                const satCount = Number(orchData.satellite?.enriched) || 0;
+                const satFailed = (orchData.satellite?.results || []).filter(
+                  (r: { ok?: boolean }) => r?.ok === false
                 );
+                toast.success(
+                  `${orchData.motion_count} Remotion · ${orchData.pending_assets} assets pendentes · ${satCount} mapa(s) satélite`
+                );
+                if (satFailed.length > 0) {
+                  toast(
+                    `Mapa satélite pendente em ${satFailed.length} cena(s) — selecione o clip e use «Baixar voo satélite»`,
+                    { icon: "🗺️", duration: 6000 }
+                  );
+                }
               } catch (err) {
                 toast.error(`Motion scenes: ${(err as Error).message}`);
               } finally {
@@ -535,6 +545,10 @@ export function TimelineStudio({
           clip={selectedClip}
           track={selectedTrack}
           onClose={() => setSelectedClipId(null)}
+          getProjectUrl={getProjectUrl}
+          onSatelliteSynced={(nextStudio) => {
+            setStudio(nextStudio as TimelineStudioState);
+          }}
           onUpdate={(patch) => {
             handleClipsChange(
               updateClipInList(studio.clips, selectedClip.id, patch)

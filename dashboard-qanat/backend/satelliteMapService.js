@@ -21,8 +21,44 @@ export const CITY_DESCENT_ZOOMS = [3, 5, 8, 9, 11, 12];
 /** @deprecated legado — novos projetos usam earth_descent + place_type city */
 export const CITY_OUTLINE_ZOOMS = [9, 12];
 
+/**
+ * Nomes em PT-BR (roteiro/narração) → consulta canônica para Nominatim/OSM.
+ * Evita geocode_failed em cidades como Bangcoc/Banguecoque.
+ */
+export const LOCATION_GEOCODE_ALIASES = {
+  bangcoc: "Bangkok, Thailand",
+  banguecoque: "Bangkok, Thailand",
+  bancoc: "Bangkok, Thailand",
+  "grande bangcoc": "Bangkok, Thailand",
+  "bacia de argila de bangcoc": "Bangkok, Thailand",
+  mianmar: "Myanmar",
+  birmania: "Myanmar",
+  "são paulo": "São Paulo, Brazil",
+  "rio de janeiro": "Rio de Janeiro, Brazil",
+  lisboa: "Lisbon, Portugal",
+  londres: "London, United Kingdom",
+  paris: "Paris, France",
+  berlim: "Berlin, Germany",
+  "nova york": "New York City, United States",
+  "nova iorque": "New York City, United States",
+  toquio: "Tokyo, Japan",
+  tóquio: "Tokyo, Japan",
+  pequim: "Beijing, China",
+  "cidade do mexico": "Mexico City, Mexico",
+  "cidade do méxico": "Mexico City, Mexico",
+  "new york": "New York City, United States",
+};
+
 /** Coordenadas conhecidas — evita geocoding em projetos de engenharia/mapa. */
 export const KNOWN_COORDINATES = [
+  {
+    pattern: /bangcoc|banguecoque|bangkok/i,
+    location: "Bangkok",
+    region: "Bangkok",
+    country: "Tailândia",
+    lat: 13.7563,
+    lng: 100.5018,
+  },
   {
     pattern: /palmanova|forte estelar|fortaleza estelar/i,
     location: "Palmanova",
@@ -171,6 +207,46 @@ export async function fetchPlaceBoundary(query = "", { lat, lng } = {}) {
   };
 }
 
+function normalizeAliasKey(value = "") {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+export function resolveGeocodeAlias(location = "", region = "", country = "") {
+  const candidates = [
+    normalizeAliasKey(location),
+    normalizeAliasKey(`${location} ${region}`.trim()),
+    normalizeAliasKey(`${location} ${country}`.trim()),
+    normalizeAliasKey(`${location} ${region} ${country}`.trim()),
+  ].filter((c) => c.length >= 2);
+
+  for (const key of candidates) {
+    const hit = LOCATION_GEOCODE_ALIASES[key];
+    if (hit) return hit;
+    for (const [alias, query] of Object.entries(LOCATION_GEOCODE_ALIASES)) {
+      if (key.includes(alias)) return query;
+    }
+  }
+  return null;
+}
+
+export function buildGeocodeQueries(location = "", region = "", country = "") {
+  const loc = String(location || "").trim();
+  const reg = String(region || "").trim();
+  const cty = String(country || "").trim();
+  const alias = resolveGeocodeAlias(loc, reg, cty);
+  const queries = [];
+  if (alias) queries.push(alias);
+  if (loc && cty) queries.push(`${loc}, ${cty}`);
+  if (loc && reg && cty) queries.push(`${loc}, ${reg}, ${cty}`);
+  if (loc && reg) queries.push(`${loc}, ${reg}`);
+  if (loc) queries.push(loc);
+  return [...new Set(queries.filter((q) => q.length >= 2))];
+}
+
 export function resolveKnownCoordinates(text = "", place = {}) {
   const t = String(text || "");
   for (const entry of KNOWN_COORDINATES) {
@@ -185,7 +261,10 @@ export function resolveKnownCoordinates(text = "", place = {}) {
   }
   const name = String(place.location || place.label || "").trim();
   for (const entry of KNOWN_COORDINATES) {
-    if (entry.location.toLowerCase() === name.toLowerCase()) {
+    if (
+      entry.pattern.test(name) ||
+      entry.location.toLowerCase() === name.toLowerCase()
+    ) {
       return {
         lat: entry.lat,
         lng: entry.lng,
@@ -194,16 +273,29 @@ export function resolveKnownCoordinates(text = "", place = {}) {
       };
     }
   }
+  const alias = resolveGeocodeAlias(
+    place.location || place.label || "",
+    place.region || "",
+    place.country || ""
+  );
+  if (alias) {
+    for (const entry of KNOWN_COORDINATES) {
+      if (entry.pattern.test(alias)) {
+        return {
+          lat: entry.lat,
+          lng: entry.lng,
+          label: entry.location,
+          source: "known",
+        };
+      }
+    }
+  }
   return null;
 }
 
-export async function geocodeLocation(query = "") {
+async function nominatimSearch(query = "") {
   const q = String(query || "").trim();
   if (!q || q.length < 2) return null;
-
-  const known = resolveKnownCoordinates(q);
-  if (known) return known;
-
   const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
   const res = await fetch(url, {
     headers: { "User-Agent": NOMINATIM_UA, Accept: "application/json" },
@@ -217,7 +309,30 @@ export async function geocodeLocation(query = "") {
     lng: Number(hit.lon),
     label: String(hit.display_name || q).split(",")[0],
     source: "nominatim",
+    query: q,
   };
+}
+
+export async function geocodeLocation(query = "", place = {}) {
+  const q = String(query || "").trim();
+  if (!q || q.length < 2) return null;
+
+  const known = resolveKnownCoordinates(q, place);
+  if (known) return known;
+
+  const parts = q.split(",").map((p) => p.trim());
+  const loc = parts[0] || "";
+  const region = parts[1] || String(place.region || "");
+  const country = parts[2] || String(place.country || "");
+  const queries = buildGeocodeQueries(loc, region, country);
+  if (!queries.includes(q)) queries.unshift(q);
+
+  for (const candidate of queries) {
+    const hit = await nominatimSearch(candidate);
+    if (hit) return hit;
+    await new Promise((r) => setTimeout(r, 1100));
+  }
+  return null;
 }
 
 function resolveMapboxToken(config = {}, workspaceConfig = {}) {
@@ -305,6 +420,8 @@ export async function fetchSatelliteAssetsForScene(
   const query = [props.location, props.region, props.country]
     .filter(Boolean)
     .join(", ");
+  const boundaryQuery =
+    resolveGeocodeAlias(props.location, props.region, props.country) || query;
 
   const classification =
     props.fly_mode && props.place_type
@@ -326,7 +443,7 @@ export async function fetchSatelliteAssetsForScene(
     coords = resolveKnownCoordinates("Palmanova fortaleza estelar", props);
   }
   if (!coords) {
-    coords = await geocodeLocation(query);
+    coords = await geocodeLocation(query, props);
   }
   if (!coords?.lat || !coords?.lng) {
     return { ok: false, reason: "geocode_failed", query };
@@ -370,7 +487,7 @@ export async function fetchSatelliteAssetsForScene(
     classification.fly_mode === "city_outline"
   ) {
     try {
-      boundaryGeoJson = await fetchPlaceBoundary(query, {
+      boundaryGeoJson = await fetchPlaceBoundary(boundaryQuery, {
         lat: coords.lat,
         lng: coords.lng,
       });

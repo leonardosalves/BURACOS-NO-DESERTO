@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   bboxFromCenter,
   resolveKnownCoordinates,
+  resolveGeocodeAlias,
+  buildGeocodeQueries,
   buildMapboxStaticUrl,
   buildEsriExportUrl,
   classifyPlaceType,
@@ -17,6 +19,30 @@ describe("satelliteMapService", () => {
     const c = resolveKnownCoordinates("fortaleza estelar em Palmanova");
     assert.ok(c);
     assert.ok(Math.abs(c.lat - 45.9054) < 0.01);
+  });
+
+  it("resolve Bangcoc (PT-BR) para coordenadas de Bangkok", () => {
+    const c = resolveKnownCoordinates("", {
+      location: "Bangcoc",
+      country: "Tailândia",
+    });
+    assert.ok(c);
+    assert.ok(Math.abs(c.lat - 13.7563) < 0.05);
+    assert.ok(Math.abs(c.lng - 100.5018) < 0.05);
+  });
+
+  it("resolveGeocodeAlias traduz Bangcoc para Bangkok", () => {
+    const q = resolveGeocodeAlias("Bangcoc", "Grande Bangcoc", "Tailândia");
+    assert.equal(q, "Bangkok, Thailand");
+  });
+
+  it("buildGeocodeQueries inclui alias canônico primeiro", () => {
+    const queries = buildGeocodeQueries(
+      "Bangcoc",
+      "Grande Bangcoc",
+      "Tailândia"
+    );
+    assert.equal(queries[0], "Bangkok, Thailand");
   });
 
   it("bboxFromCenter retorna limites válidos", () => {
