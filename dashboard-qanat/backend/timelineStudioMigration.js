@@ -454,14 +454,26 @@ export function mergeRemotionFromStoryboard(
   const byId = new Map(next.clips.map((c) => [c.id, c]));
   let restored = 0;
 
+  let updated = 0;
   for (const clip of overlayExpected) {
     if (!byId.has(clip.id)) {
       byId.set(clip.id, clip);
       restored += 1;
+      continue;
+    }
+    const prev = byId.get(clip.id);
+    const merged = {
+      ...prev,
+      ...clip,
+      props: { ...(prev?.props || {}), ...(clip.props || {}) },
+    };
+    if (JSON.stringify(merged) !== JSON.stringify(prev)) {
+      byId.set(clip.id, merged);
+      updated += 1;
     }
   }
 
-  if (!restored && !syncMotion) {
+  if (!restored && !updated && !syncMotion) {
     return { studio: next, remotionRestored: 0, motionSynced };
   }
 

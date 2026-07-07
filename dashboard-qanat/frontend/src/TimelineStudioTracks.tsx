@@ -6,7 +6,6 @@ import React, {
   useState,
 } from "react";
 import {
-  clipsOnTrack,
   formatStudioTime,
   type StudioClip,
   type StudioTrack,
@@ -32,6 +31,13 @@ type DragState = {
 };
 
 const RULER_HEIGHT = 28;
+const TRACK_LABEL_WIDTH = 88;
+const VIRTUAL_OVERSCAN_PX = 700;
+
+type VisibleWindow = {
+  leftPx: number;
+  rightPx: number;
+};
 
 export function TimelineStudioTracks({
   studio,
@@ -42,16 +48,57 @@ export function TimelineStudioTracks({
   onClipsChange,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRafRef = useRef(0);
   const [dragging, setDragging] = useState<DragState | null>(null);
+  const [visibleWindow, setVisibleWindow] = useState<VisibleWindow>({
+    leftPx: 0,
+    rightPx: 2200,
+  });
   const pps = (studio.pixelsPerSecond || 40) * studio.zoom;
   const totalDur = studio.totalDuration || 120;
   const timelineWidth = Math.max(totalDur * pps + 120, 800);
 
   const playheadX = studio.playhead * pps;
 
+  const syncVisibleWindow = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const timelineLeft = Math.max(0, el.scrollLeft - TRACK_LABEL_WIDTH);
+    const timelineRight = timelineLeft + el.clientWidth + TRACK_LABEL_WIDTH;
+    setVisibleWindow({
+      leftPx: Math.max(0, timelineLeft - VIRTUAL_OVERSCAN_PX),
+      rightPx: timelineRight + VIRTUAL_OVERSCAN_PX,
+    });
+  }, []);
+
+  useEffect(() => {
+    syncVisibleWindow();
+    return () => cancelAnimationFrame(scrollRafRef.current);
+  }, [syncVisibleWindow, timelineWidth]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const playheadPx = studio.playhead * pps + TRACK_LABEL_WIDTH;
+    const target = Math.max(0, playheadPx - el.clientWidth * 0.35);
+    if (Math.abs(el.scrollLeft - target) > 48) {
+      el.scrollLeft = target;
+      syncVisibleWindow();
+    }
+  }, [studio.playhead, pps, syncVisibleWindow]);
+
+  const handleScroll = useCallback(() => {
+    cancelAnimationFrame(scrollRafRef.current);
+    scrollRafRef.current = requestAnimationFrame(syncVisibleWindow);
+  }, [syncVisibleWindow]);
+
   const handleRulerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left + (scrollRef.current?.scrollLeft || 0) - 88;
+    const x =
+      e.clientX -
+      rect.left +
+      (scrollRef.current?.scrollLeft || 0) -
+      TRACK_LABEL_WIDTH;
     const sec = Math.max(0, Math.min(totalDur, x / pps));
     onPlayheadChange(sec);
   };
@@ -62,6 +109,19 @@ export function TimelineStudioTracks({
     for (let t = 0; t <= totalDur; t += step) items.push(t);
     return items;
   }, [totalDur, studio.zoom]);
+
+  const clipsByTrack = useMemo(() => {
+    const grouped = new Map<string, StudioClip[]>();
+    for (const track of studio.tracks) grouped.set(track.id, []);
+    for (const clip of studio.clips) {
+      const list = grouped.get(clip.trackId);
+      if (list) list.push(clip);
+    }
+    for (const list of grouped.values()) {
+      list.sort((a, b) => a.start - b.start);
+    }
+    return grouped;
+  }, [studio.clips, studio.tracks]);
 
   const handleDragMove = useCallback(
     (e: MouseEvent) => {
@@ -151,24 +211,35 @@ export function TimelineStudioTracks({
         </div>
       </div>
 
-      <div ref={scrollRef} className="overflow-x-auto overflow-y-hidden">
-        <div style={{ width: timelineWidth + 88, minWidth: "100%" }}>
+      <div
+        ref={scrollRef}
+        className="overflow-x-auto overflow-y-hidden"
+        onScroll={handleScroll}
+      >
+        <div
+          style={{ width: timelineWidth + TRACK_LABEL_WIDTH, minWidth: "100%" }}
+        >
           <div
             className="relative flex border-b border-zinc-800/50 cursor-pointer select-none"
-            style={{ height: RULER_HEIGHT, marginLeft: 88 }}
+            style={{ height: RULER_HEIGHT, marginLeft: TRACK_LABEL_WIDTH }}
             onClick={handleRulerClick}
           >
-            {ticks.map((t) => (
-              <div
-                key={t}
-                className="absolute top-0 bottom-0 border-l border-zinc-700/40"
-                style={{ left: t * pps }}
-              >
-                <span className="absolute top-1 left-1 text-[9px] text-zinc-500 font-mono">
-                  {formatStudioTime(t)}
-                </span>
-              </div>
-            ))}
+            {ticks
+              .filter((t) => {
+                const x = t * pps;
+                return x >= visibleWindow.leftPx && x <= visibleWindow.rightPx;
+              })
+              .map((t) => (
+                <div
+                  key={t}
+                  className="absolute top-0 bottom-0 border-l border-zinc-700/40"
+                  style={{ left: t * pps }}
+                >
+                  <span className="absolute top-1 left-1 text-[9px] text-zinc-500 font-mono">
+                    {formatStudioTime(t)}
+                  </span>
+                </div>
+              ))}
             <div
               className="absolute top-0 bottom-0 w-0.5 bg-gold-400 z-20 pointer-events-none"
               style={{ left: playheadX }}
@@ -181,9 +252,10 @@ export function TimelineStudioTracks({
             <TrackRow
               key={track.id}
               track={track}
-              clips={clipsOnTrack(studio.clips, track.id)}
+              clips={clipsByTrack.get(track.id) || []}
               pps={pps}
               timelineWidth={timelineWidth}
+              visibleWindow={visibleWindow}
               selectedClipId={selectedClipId}
               playhead={studio.playhead}
               isDragging={dragging !== null}
@@ -198,11 +270,12 @@ export function TimelineStudioTracks({
   );
 }
 
-function TrackRow({
+const TrackRow = React.memo(function TrackRow({
   track,
   clips,
   pps,
   timelineWidth,
+  visibleWindow,
   selectedClipId,
   playhead,
   isDragging,
@@ -214,6 +287,7 @@ function TrackRow({
   clips: StudioClip[];
   pps: number;
   timelineWidth: number;
+  visibleWindow: VisibleWindow;
   selectedClipId: string | null;
   playhead: number;
   isDragging: boolean;
@@ -227,6 +301,29 @@ function TrackRow({
 }) {
   const h = track.height || 36;
   const color = track.color || "#64748b";
+  const visibleClips = useMemo(
+    () =>
+      clips.filter((clip) => {
+        const left = clip.start * pps;
+        const right = left + Math.max(clip.duration * pps, 6);
+        const selected = selectedClipId === clip.id;
+        const active =
+          playhead >= clip.start && playhead < clip.start + clip.duration;
+        return (
+          selected ||
+          active ||
+          (right >= visibleWindow.leftPx && left <= visibleWindow.rightPx)
+        );
+      }),
+    [
+      clips,
+      playhead,
+      pps,
+      selectedClipId,
+      visibleWindow.leftPx,
+      visibleWindow.rightPx,
+    ]
+  );
 
   return (
     <div
@@ -243,6 +340,11 @@ function TrackRow({
         />
         <span className="text-[9px] font-semibold text-zinc-400 truncate leading-tight">
           {track.label}
+          {clips.length > 0 ? (
+            <span className="ml-1 text-[8px] font-mono text-zinc-500">
+              ({clips.length})
+            </span>
+          ) : null}
         </span>
       </div>
       <div
@@ -257,7 +359,7 @@ function TrackRow({
           }
         }}
       >
-        {clips.map((clip) => {
+        {visibleClips.map((clip) => {
           const left = clip.start * pps;
           const width = Math.max(clip.duration * pps, 6);
           const selected = selectedClipId === clip.id;
@@ -265,20 +367,24 @@ function TrackRow({
             playhead >= clip.start && playhead < clip.start + clip.duration;
           const editable = isClipEditable(clip);
           const showHandles = editable && (selected || width > 20);
+          const isRemotionTrack =
+            track.id === "motion" || track.id === "overlays";
+          const fillAlpha = isRemotionTrack ? "aa" : "33";
+          const borderAlpha = isRemotionTrack ? "ee" : "66";
 
           return (
             <div
               key={clip.id}
               className={`absolute top-1 bottom-1 rounded-md overflow-hidden border transition group ${
                 selected ? "ring-2 ring-gold-400/80 z-10" : ""
-              } ${active ? "opacity-100" : "opacity-85 hover:opacity-100"} ${
+              } ${active ? "opacity-100" : "opacity-90 hover:opacity-100"} ${
                 isDragging ? "select-none" : ""
-              }`}
+              } ${active && isRemotionTrack ? "ring-1 ring-white/30" : ""}`}
               style={{
                 left,
                 width,
-                backgroundColor: `${clip.color || color}33`,
-                borderColor: `${clip.color || color}66`,
+                backgroundColor: `${clip.color || color}${fillAlpha}`,
+                borderColor: `${clip.color || color}${borderAlpha}`,
               }}
               title={`${clip.label || clip.id} · ${formatStudioTime(clip.start)}`}
             >
@@ -330,4 +436,4 @@ function TrackRow({
       </div>
     </div>
   );
-}
+});
