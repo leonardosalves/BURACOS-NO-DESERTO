@@ -526,13 +526,53 @@ export function applyMotionScenesToVisualPrompts(
   return { ...storyboard, visual_prompts: visualPrompts };
 }
 
+/** Remove bloqueios de cenas que voltam no plano (ex.: usuário clicou «Cenas Remotion»). */
+export function unsuppressMotionSceneIds(studio, motionScenes = []) {
+  if (!studio || !Array.isArray(studio.suppressedMotionSceneIds)) return studio;
+  const revive = new Set(
+    (Array.isArray(motionScenes) ? motionScenes : [])
+      .map((ms) => String(ms?.id || "").trim())
+      .filter(Boolean)
+  );
+  if (!revive.size) return studio;
+  const next = studio.suppressedMotionSceneIds.filter(
+    (id) => !revive.has(String(id || "").trim())
+  );
+  if (next.length === studio.suppressedMotionSceneIds.length) return studio;
+  return { ...studio, suppressedMotionSceneIds: next };
+}
+
 export function syncMotionScenesToStudio(studio, motionScenes = []) {
   if (!studio || !Array.isArray(studio.clips)) return studio;
 
-  const motionClips = motionScenesToMotionClips(motionScenes);
-  if (!motionClips.length) return migrateStudioMotionClipsFromVideo(studio);
+  const suppressedIds = new Set(
+    (Array.isArray(studio.suppressedMotionSceneIds)
+      ? studio.suppressedMotionSceneIds
+      : []
+    )
+      .map((id) => String(id || "").trim())
+      .filter(Boolean)
+  );
+  const cleanStudio = {
+    ...studio,
+    clips: studio.clips.filter((c) => {
+      const isMotion =
+        c.trackId === MOTION_TRACK_ID ||
+        c.motionScene ||
+        c.motionScenePrimary ||
+        c.props?.media_mode === "remotion" ||
+        c.props?.motion_scene;
+      return !isMotion || !suppressedIds.has(String(c.id || ""));
+    }),
+  };
+  const activeMotionScenes = (
+    Array.isArray(motionScenes) ? motionScenes : []
+  ).filter((ms) => !suppressedIds.has(String(ms?.id || "")));
+  const motionClips = motionScenesToMotionClips(activeMotionScenes);
+  if (!motionClips.length)
+    return migrateStudioMotionClipsFromVideo(cleanStudio);
 
-  const withoutMotion = studio.clips.filter(
+  const withoutMotion = cleanStudio.clips.filter(
     (c) => !c.motionScene && !c.props?.motion_scene
   );
 
@@ -540,7 +580,7 @@ export function syncMotionScenesToStudio(studio, motionScenes = []) {
     (a, b) => (Number(a.start) || 0) - (Number(b.start) || 0)
   );
   return migrateStudioMotionClipsFromVideo({
-    ...studio,
+    ...cleanStudio,
     clips: merged,
     updatedAt: new Date().toISOString(),
   });

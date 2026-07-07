@@ -9,6 +9,7 @@ import {
   applyMotionScenesToVisualPrompts,
   planMotionScenesFromStoryboard,
   syncMotionScenesToStudio,
+  unsuppressMotionSceneIds,
 } from "./motionScenePlanner.js";
 import { enrichMotionScenesWithAssets } from "./motionSceneAssetService.js";
 import {
@@ -263,6 +264,7 @@ export async function orchestrateProduction(
     syncTimeline = true,
     rebuildAssetSlots = true,
     persist = true,
+    restoreSuppressedMotion = true,
   } = {}
 ) {
   const storyboardPath = path.join(projDir, "storyboard.json");
@@ -415,7 +417,11 @@ export async function orchestrateProduction(
   if (syncTimeline && plan.motion_scenes.length > 0) {
     migrateLegacyToTimelineStudio(projDir, { force: false });
     const { studio: rawStudio } = loadTimelineStudio(projDir);
-    let nextStudio = syncMotionScenesToStudio(rawStudio, plan.motion_scenes);
+    let baseStudio = rawStudio;
+    if (restoreSuppressedMotion) {
+      baseStudio = unsuppressMotionSceneIds(rawStudio, plan.motion_scenes);
+    }
+    let nextStudio = syncMotionScenesToStudio(baseStudio, plan.motion_scenes);
     const overlayMerged = mergeRemotionFromStoryboard(nextStudio, storyboard, {
       syncMotion: false,
     });

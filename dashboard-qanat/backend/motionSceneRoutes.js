@@ -61,6 +61,8 @@ export function registerMotionSceneRoutes(
           syncTimeline: req.body?.sync_timeline !== false,
           rebuildAssetSlots: req.body?.rebuild_asset_slots !== false,
           persist: req.body?.persist !== false,
+          restoreSuppressedMotion:
+            req.body?.restore_suppressed_motion !== false,
         }
       );
       if (!result.ok) {

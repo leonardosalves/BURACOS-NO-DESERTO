@@ -503,6 +503,7 @@ export function TimelineStudio({
                       fetch_satellite: true,
                       sync_timeline: true,
                       rebuild_asset_slots: true,
+                      restore_suppressed_motion: true,
                     }),
                   }
                 );
@@ -529,21 +530,39 @@ export function TimelineStudio({
                       auto_fixed?: boolean;
                     }
                   | undefined;
-                toast.success(
-                  `${orchData.motion_count} cena(s) planejada(s) · ${counts.motion} em Cenas Remotion · ${counts.overlays} em Templates · QC ${qc?.score ?? "—"}/100`
+                const motionClips = clipsOnTrack(loaded?.clips || [], "motion");
+                const templateClips = clipsOnTrack(
+                  loaded?.clips || [],
+                  "overlays"
                 );
+                toast.success(
+                  `${orchData.motion_count} planejada(s) · ${counts.motion} Cenas Remotion · ${counts.overlays} Templates · QC ${qc?.score ?? "—"}/100`
+                );
+                if (counts.motion === 0 && Number(orchData.motion_count) > 0) {
+                  toast(
+                    "Mapa na trilha roxa estava bloqueado (clip removido antes) — restaurado ao orquestrar. Se ainda sumir, clique Recarregar.",
+                    { icon: "🗺️", duration: 7000 }
+                  );
+                }
                 if (counts.motion + counts.overlays === 0) {
                   toast(
-                    "Nenhum clip Remotion na timeline — role até a trilha roxa «Cenas Remotion» ou verde «Templates», ou clique Recarregar (F5)",
+                    "Nenhum clip na timeline — trilhas roxa «Cenas Remotion» e verde «Templates» (role para baixo na timeline)",
                     { icon: "⚠️", duration: 8000 }
                   );
-                } else if (counts.motion > 0) {
-                  toast(
-                    `Mapa/motion: trilha «Cenas Remotion» ~${formatStudioTime(
-                      clipsOnTrack(loaded?.clips || [], "motion")[0]?.start || 0
-                    )}`,
-                    { icon: "🗺️", duration: 6000 }
-                  );
+                } else {
+                  const hints = [
+                    ...motionClips.map(
+                      (c) =>
+                        `🟣 ${c.label || c.templateId} @ ${formatStudioTime(c.start)}`
+                    ),
+                    ...templateClips.map(
+                      (c) =>
+                        `🟢 ${c.label || c.templateId} @ ${formatStudioTime(c.start)}`
+                    ),
+                  ].slice(0, 4);
+                  if (hints.length) {
+                    toast(hints.join(" · "), { icon: "📍", duration: 9000 });
+                  }
                 }
                 if (qc?.auto_fixed) {
                   toast("QC corrigiu mapa(s) satélite automaticamente", {
