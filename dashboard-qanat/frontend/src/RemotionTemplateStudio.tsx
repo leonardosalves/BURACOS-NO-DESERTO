@@ -44,6 +44,7 @@ type TemplateItem = {
     | "pie"
     | "donut"
     | "circular-progress"
+    | "progress-bars"
     | "map"
     | "bars"
     | "line"
@@ -57,6 +58,7 @@ type TemplateItem = {
     | "pie"
     | "donut"
     | "circular-progress"
+    | "progress-bars"
     | "map"
     | "bars"
     | "cinematic"
@@ -303,6 +305,7 @@ const PREVIEW_DURATION_BY_VARIANT: Record<PreviewVariant, number> = {
   pie: 90,
   donut: 90,
   "circular-progress": 150,
+  "progress-bars": 120,
   map: 90,
   bars: 90,
   title: 90,
@@ -444,12 +447,15 @@ function inferChartKindFromSubcategory(
   if (isLineChartContext(...metaLabels)) return "line";
 
   // Keyword matching flexível para subcategorias customizadas
+  // Usa plurais (bars?, lines?) para pegar "Stacked Lines", etc.
   const hay = [subcategory, templateName].join(" ").toLowerCase();
-  if (/\b(donut|rosca|anel)\b/.test(hay)) return "donut";
-  if (/\b(pie|pizza|fatia)\b/.test(hay)) return "pie";
-  if (/\b(area|preenchid|filled|stacked\s*area)\b/.test(hay)) return "area";
-  if (/\b(bar|barra|column|coluna|histogram|stack)\b/.test(hay)) return "bar";
-  if (/\b(line|linha|spark|trend|serie|series|curv)\b/.test(hay)) return "line";
+  if (/\b(donut|rosca|anel|donuts?)\b/.test(hay)) return "donut";
+  if (/\b(pie|pizza|fatia|pies?)\b/.test(hay)) return "pie";
+  if (/\b(area|preenchid|filled|stacked\s*area|areas?)\b/.test(hay))
+    return "area";
+  if (/\b(bars?|barra|coluna|columns?|histogram|stack)\b/.test(hay))
+    return "bar";
+  if (/\b(lines?|linha|spark|trend|series?|curv)\b/.test(hay)) return "line";
 
   return null;
 }
@@ -460,6 +466,7 @@ function resolveChartDataPreview(
   code = ""
 ): Pick<TemplateItem, "shortPreview" | "longPreview"> {
   const sub = subcategory.toLowerCase();
+  const nameLower = templateName.toLowerCase();
 
   // Counter/KPI — checagem direta (não são "charts" visuais)
   if (sub.includes("counter") || sub.includes("kpi")) {
@@ -471,6 +478,21 @@ function resolveChartDataPreview(
     return {
       shortPreview: "circular-progress",
       longPreview: "circular-progress",
+    };
+  }
+
+  // Progress Bars (lista de barras horizontais) — checagem direta
+  if (
+    sub.includes("progress bar") ||
+    sub.includes("progress-bar") ||
+    sub.includes("barra de progresso") ||
+    nameLower.includes("progress bar") ||
+    nameLower.includes("progress-bar") ||
+    nameLower.includes("barra de progresso")
+  ) {
+    return {
+      shortPreview: "progress-bars",
+      longPreview: "progress-bars",
     };
   }
 
@@ -582,6 +604,8 @@ function extractPreviewSegmentsFromCode(code: string): PreviewSegment[] {
   const block =
     code.match(/segments\s*:\s*\[([\s\S]*?)\]\s*,?/m)?.[1] ||
     code.match(/segments\s*=\s*\[([\s\S]*?)\]\s*;/m)?.[1] ||
+    code.match(/items\s*:\s*\[([\s\S]*?)\]\s*,?/m)?.[1] ||
+    code.match(/items\s*=\s*\[([\s\S]*?)\]\s*;/m)?.[1] ||
     "";
   const segments: PreviewSegment[] = [];
   for (const match of block.matchAll(/\{([^}]+)\}/g)) {
@@ -646,6 +670,17 @@ function buildPreviewPropsFromTemplate(
   } else if (isDonutChartContext(template.subcategory)) {
     props.centerValue = props.centerValue || "78%";
     props.centerLabel = props.centerLabel || props.label || "Total";
+  } else {
+    const subLower = template.subcategory.toLowerCase();
+    const nameLower = template.name ? template.name.toLowerCase() : "";
+    if (
+      subLower.includes("progress") ||
+      subLower.includes("progresso") ||
+      nameLower.includes("progress") ||
+      nameLower.includes("progresso")
+    ) {
+      props.title = props.title || "Progresso do Projeto";
+    }
   }
 
   return props;
@@ -1298,6 +1333,103 @@ function TemplatePreviewCanvas({
             />
           </div>
         </>
+      )}
+
+      {variant === "progress-bars" && (
+        <div
+          style={{
+            position: "absolute",
+            left: isVertical ? 16 : 32,
+            right: isVertical ? 16 : 32,
+            top: isVertical ? "20%" : "15%",
+            bottom: isVertical ? "15%" : "12%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            gap: isVertical ? 12 : 20,
+          }}
+        >
+          {previewProps.title && (
+            <div
+              style={{
+                fontSize: isVertical ? 11 : 16,
+                fontWeight: 900,
+                color: "#67e8f9",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                marginBottom: 2,
+              }}
+            >
+              {previewProps.title}
+            </div>
+          )}
+          {(previewProps.segments || [])
+            .slice(0, isVertical ? 4 : 5)
+            .map((item, index) => {
+              const itemProgress = interpolate(
+                frame,
+                [index * 6 + 10, index * 6 + 34],
+                [0, 1],
+                {
+                  extrapolateLeft: "clamp",
+                  extrapolateRight: "clamp",
+                  easing: Easing.bezier(0.16, 1, 0.3, 1),
+                }
+              );
+              const currentVal = Math.round(item.value * itemProgress);
+              return (
+                <div
+                  key={index}
+                  style={{ display: "flex", flexDirection: "column", gap: 6 }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      width: "100%",
+                      fontSize: isVertical ? 9 : 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span
+                      style={{ color: "#e2e8f0", textTransform: "uppercase" }}
+                    >
+                      {item.label}
+                    </span>
+                    <span
+                      style={{
+                        color: item.color || "#22d3ee",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      {currentVal}%
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      height: isVertical ? 8 : 12,
+                      borderRadius: 999,
+                      backgroundColor: "rgba(15,23,42,0.8)",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                      overflow: "hidden",
+                      position: "relative",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${item.value * itemProgress}%`,
+                        height: "100%",
+                        borderRadius: 999,
+                        backgroundColor: item.color || "#22d3ee",
+                        boxShadow: `0 0 12px ${item.color || "#22d3ee"}aa`,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+        </div>
       )}
 
       {variant === "bars" && (
