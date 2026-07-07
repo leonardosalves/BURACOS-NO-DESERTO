@@ -16,6 +16,7 @@ import {
 } from "./motionSceneLlmEnrichment.js";
 import {
   loadTimelineStudio,
+  mergeMissingBrollFromConfig,
   saveTimelineStudio,
 } from "./timelineStudioMigration.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
@@ -219,14 +220,20 @@ export function registerMotionSceneRoutes(
         });
       }
 
+      const blockTimings = readJsonSafe(
+        path.join(projDir, "block_timings.json"),
+        {}
+      );
       const { studio: rawStudio } = loadTimelineStudio(projDir);
       let studio = syncMotionScenesToStudio(rawStudio, motionScenes);
+      studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
       studio = upsertMusicClipInStudio(studio, config, projDir);
       const saved = saveTimelineStudio(projDir, studio);
 
       res.json({
         ok: true,
         synced: motionScenes.length,
+        brollRestored: Number(studio.brollRestored) || 0,
         studio: saved,
       });
     } catch (err) {

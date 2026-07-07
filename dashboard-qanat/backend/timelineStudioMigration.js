@@ -166,6 +166,36 @@ function migrateVideoClips(timelineAssets = {}, blockTimings = {}) {
   return clips;
 }
 
+/** Reinsere clips B-roll ausentes a partir de config.timeline_assets (não remove nada). */
+export function mergeMissingBrollFromConfig(
+  studio,
+  config = {},
+  blockTimings = {}
+) {
+  if (!studio || !Array.isArray(studio.clips)) return studio;
+
+  const expected = migrateVideoClips(
+    config.timeline_assets || {},
+    blockTimings
+  );
+  if (!expected.length) return studio;
+
+  const byId = new Map(studio.clips.map((c) => [c.id, c]));
+  let restored = 0;
+  for (const clip of expected) {
+    if (!byId.has(clip.id)) {
+      byId.set(clip.id, clip);
+      restored += 1;
+    }
+  }
+  if (!restored) return studio;
+
+  const clips = [...byId.values()].sort(
+    (a, b) => (Number(a.start) || 0) - (Number(b.start) || 0)
+  );
+  return { ...studio, clips, brollRestored: restored };
+}
+
 function migrateOverlayClips(storyboard = {}) {
   const overlays =
     Array.isArray(storyboard.overlays) && storyboard.overlays.length
