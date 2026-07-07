@@ -157,12 +157,20 @@ def import_boundary_curve(geo_path: str, center_lat: float, center_lng: float, a
         bpy.context.collection.objects.link(obj)
         mat = bpy.data.materials.new("BoundaryMat")
         mat.use_nodes = True
-        bsdf = mat.node_tree.nodes.get("Principled BSDF")
-        if bsdf:
-            col = tuple(int(accent.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4)) + (1,)
-            bsdf.inputs["Base Color"].default_value = col
-            bsdf.inputs["Emission"].default_value = col
-            bsdf.inputs["Emission Strength"].default_value = 1.2
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
+        nodes.clear()
+        out = nodes.new("ShaderNodeOutputMaterial")
+        emission = nodes.new("ShaderNodeEmission")
+        raw = accent.lstrip("#")
+        col = (
+            tuple(int(raw[i : i + 2], 16) / 255 for i in (0, 2, 4)) + (1.0,)
+            if len(raw) == 6
+            else (0.77, 0.66, 0.54, 1.0)
+        )
+        emission.inputs["Color"].default_value = col
+        emission.inputs["Strength"].default_value = 1.2
+        links.new(emission.outputs["Emission"], out.inputs["Surface"])
         obj.data.bevel_depth = 120
         obj.data.materials.append(mat)
 
@@ -244,12 +252,37 @@ def setup_render(job: dict) -> None:
     scene.render.resolution_x = int(job.get("width") or 1280)
     scene.render.resolution_y = int(job.get("height") or 720)
     scene.render.resolution_percentage = 100
-    scene.render.image_settings.file_format = "FFMPEG"
+    img = scene.render.image_settings
+    # Blender 5+: VIDEO media type; Blender 4.x: FFMPEG file_format.
+    if hasattr(img, "media_type"):
+        img.media_type = "VIDEO"
+    else:
+        img.file_format = "FFMPEG"
     scene.render.ffmpeg.format = "MPEG4"
     scene.render.ffmpeg.codec = "H264"
     scene.render.ffmpeg.constant_rate_factor = "MEDIUM"
     scene.render.ffmpeg.ffmpeg_preset = "GOOD"
+    scene.render.use_file_extension = True
     scene.render.filepath = str(out.with_suffix(""))
+
+
+def resolve_rendered_mp4(expected: Path) -> Path | None:
+    if expected.is_file():
+        return expected
+    stem = expected.with_suffix("")
+    alt = Path(str(stem))
+    if alt.is_file():
+        return alt
+    # Blender 5 pode gravar com sufixo de faixa: name0001-0360.mp4
+    matches = sorted(
+        expected.parent.glob(f"{stem.name}*.mp4"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    for candidate in matches:
+        if candidate.is_file() and candidate.stat().st_size > 0:
+            return candidate
+    return None
 
 
 def main() -> None:
@@ -283,13 +316,13 @@ def main() -> None:
     bpy.ops.render.render(animation=True)
 
     out = Path(job["output_mp4"])
-    if not out.is_file():
-        # Blender pode gravar sem extensão
-        alt = Path(str(out.with_suffix("")))
-        if alt.is_file():
-            alt.rename(out)
-    if not out.is_file():
+    rendered = resolve_rendered_mp4(out)
+    if not rendered:
         raise SystemExit(f"MP4 não gerado: {out}")
+    if rendered != out:
+        if out.is_file():
+            out.unlink()
+        rendered.rename(out)
 
     print(json.dumps({"ok": True, "output": str(out)}), flush=True)
 
