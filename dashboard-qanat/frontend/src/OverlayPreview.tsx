@@ -927,8 +927,7 @@ export function OverlayPreview({
         );
 
       case "location-intro": {
-        const isPip =
-          props.presentation !== "fullscreen" && embeddedLayout === "pip";
+        const isPip = false;
         const lat = Number(props.lat) || 0;
         const lng = Number(props.lng) || 0;
         const mapProvider = String(props.map_provider || "");
@@ -952,7 +951,7 @@ export function OverlayPreview({
               accentColor={accentColor}
               isPip={isPip}
               embedded={embedded}
-              embeddedLayout={embeddedLayout}
+              embeddedLayout="fill"
               scrubSeconds={scrubSeconds}
               durationSeconds={durationSeconds}
               metrics={metrics}
@@ -960,6 +959,27 @@ export function OverlayPreview({
               legibilityShadow={legibilityShadow}
               isShort={isShort}
             />
+          );
+        }
+        if (embedded) {
+          return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#0d2137] via-[#1a5f7a] to-[#2d5a27] px-4 text-center">
+              <p
+                className="font-black text-white"
+                style={{ fontSize: metrics.fontSizeTitle }}
+              >
+                {String(props.location || "Local")}
+              </p>
+              <p
+                className="text-zinc-300 uppercase mt-1"
+                style={{ fontSize: metrics.fontSizeSubtitle }}
+              >
+                {String(props.country || props.region || "")}
+              </p>
+              <p className="text-amber-300/90 text-[10px] mt-3 font-semibold">
+                Mapa satélite pendente — baixando em segundo plano…
+              </p>
+            </div>
           );
         }
         return motionShell(

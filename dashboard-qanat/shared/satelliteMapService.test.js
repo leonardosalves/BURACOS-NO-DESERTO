@@ -37,6 +37,11 @@ describe("satelliteMapService", () => {
     assert.equal(q, "Bangkok, Thailand");
   });
 
+  it("resolveGeocodeAlias corrige typo Bangoc → Bangkok", () => {
+    const q = resolveGeocodeAlias("Bangoc", "", "Tailândia");
+    assert.equal(q, "Bangkok, Thailand");
+  });
+
   it("buildGeocodeQueries inclui alias canônico primeiro", () => {
     const queries = buildGeocodeQueries(
       "Bangcoc",

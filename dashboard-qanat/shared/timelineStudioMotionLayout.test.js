@@ -10,9 +10,7 @@ function isFullscreenMotionClip(clip = {}) {
 
   if (layout === "fullscreen") return true;
   if (FULLSCREEN_TEMPLATES.has(templateId)) return true;
-  if (templateId === "location-intro") {
-    return props.presentation === "fullscreen";
-  }
+  if (templateId === "location-intro" || templateId === "geo-map") return true;
   return false;
 }
 
@@ -27,13 +25,13 @@ describe("isFullscreenMotionClip", () => {
     );
   });
 
-  it("location-intro pip permanece cartão", () => {
+  it("location-intro legado pip → fullscreen (geo proibido em PIP)", () => {
     assert.equal(
       isFullscreenMotionClip({
         templateId: "location-intro",
         props: { presentation: "pip", layout: "pip" },
       }),
-      false
+      true
     );
   });
 

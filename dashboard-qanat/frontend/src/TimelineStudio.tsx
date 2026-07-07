@@ -23,6 +23,7 @@ import {
   updateClipInList,
 } from "./timelineStudioClipOps";
 import { preloadStudioMediaAtPlayhead } from "./timelineStudioMedia";
+import { autoFetchSatelliteForClips } from "./timelineStudioSatellite";
 import {
   clipsOnTrack,
   ensureMotionTrackInStudio,
@@ -54,6 +55,26 @@ function readPreviewSplitRatio(): number {
   } catch {
     return PREVIEW_SPLIT_DEFAULT;
   }
+}
+
+function normalizeGeoMotionClips(
+  studio: TimelineStudioState
+): TimelineStudioState {
+  return {
+    ...studio,
+    clips: studio.clips.map((clip) => {
+      const tpl = String(clip.templateId || "");
+      if (tpl !== "location-intro" && tpl !== "geo-map") return clip;
+      return {
+        ...clip,
+        props: {
+          ...clip.props,
+          presentation: "fullscreen",
+          layout: "fullscreen",
+        },
+      };
+    }),
+  };
 }
 
 function countRemotionTracks(clips: StudioClip[]) {
@@ -174,6 +195,8 @@ export function TimelineStudio({
   getAssetUrlRef.current = getAssetUrl;
   const getMusicUrlRef = useRef(getMusicUrl);
   getMusicUrlRef.current = getMusicUrl;
+  const getProjectUrlRef = useRef(getProjectUrl);
+  getProjectUrlRef.current = getProjectUrl;
   const initialLoadDoneRef = useRef(false);
   const playheadCommitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [localPlayhead, setLocalPlayhead] = useState<number | null>(null);
@@ -183,8 +206,10 @@ export function TimelineStudio({
       raw: TimelineStudioState,
       { focusRemotion = false }: { focusRemotion?: boolean } = {}
     ): TimelineStudioState => {
-      let loaded = ensureMotionTrackInStudio(
-        upsertMusicClipInStudio(raw, configRef.current)
+      let loaded = normalizeGeoMotionClips(
+        ensureMotionTrackInStudio(
+          upsertMusicClipInStudio(raw, configRef.current)
+        )
       );
       if (focusRemotion) {
         loaded = focusFirstRemotionClip(loaded);
@@ -218,6 +243,12 @@ export function TimelineStudio({
         getAssetUrlRef.current,
         getMusicUrlRef.current
       );
+      void autoFetchSatelliteForClips(loaded.clips, getProjectUrlRef.current, {
+        silent: true,
+        onStudioSynced: (nextStudio) => {
+          applyStudioFromServer(nextStudio as TimelineStudioState);
+        },
+      });
       return loaded;
     },
     []
@@ -249,7 +280,7 @@ export function TimelineStudio({
           }
           if (data.motionMigrated) {
             toast.success(
-              "Cenas Remotion movidas para trilha própria (PIP no mapa)"
+              "Cenas Remotion movidas para trilha própria (mapas em fullscreen)"
             );
           }
           if (Number(data.brollRestored) > 0) {
