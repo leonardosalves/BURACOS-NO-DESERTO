@@ -14,6 +14,21 @@ function Get-PortStatus([int]$Port) {
 
 Write-Host "=== Lumiera - status ===" -ForegroundColor Cyan
 
+$pm2Mode = Test-LumieraPm2Mode
+if ($pm2Mode) {
+    Write-Host "Modo     : PM2 (auto-reinicio nativo)" -ForegroundColor Green
+    if (Resolve-LumieraPm2Bin) {
+        foreach ($app in @("lumiera-backend", "lumiera-frontend")) {
+            $row = Get-LumieraPm2AppRow $app
+            if ($row) {
+                $st = $row.pm2_env.status
+                $color = if ($st -eq "online") { "Green" } else { "Yellow" }
+                Write-Host ("PM2 {0}: {1} (restarts: {2})" -f $app, $st, $row.pm2_env.restart_time) -ForegroundColor $color
+            }
+        }
+    }
+}
+
 $backend = Get-PortStatus 3005
 $frontend = Get-PortStatus 5176
 $healthy = if ($backend) { Test-LumieraBackendHealthy -Quick -TimeoutSec 3 } else { $false }
@@ -32,11 +47,17 @@ if ($frontend) {
     Write-Host "Frontend : OFFLINE (rode run_qanat_dashboard.bat ou npm run dev)" -ForegroundColor Yellow
 }
 
-$watchProc = Test-LumieraWatchdogActive
-if (-not $watchProc) {
-    $task = Get-ScheduledTask -TaskName "Lumiera-Backend-Watchdog" -ErrorAction SilentlyContinue
+$watchProc = $null
+$task = $null
+if (-not $pm2Mode) {
+    $watchProc = Test-LumieraWatchdogActive
+    if (-not $watchProc) {
+        $task = Get-ScheduledTask -TaskName "Lumiera-Backend-Watchdog" -ErrorAction SilentlyContinue
+    }
 }
-if ($watchProc) {
+if ($pm2Mode) {
+    Write-Host "Watchdog : desativado (PM2 cuida do processo)" -ForegroundColor DarkGray
+} elseif ($watchProc) {
     if ($watchProc.ProcessId -gt 0) {
         Write-Host ("Watchdog : ATIVO (PID {0})" -f $watchProc.ProcessId) -ForegroundColor Green
     } elseif ($watchProc.FromTask) {

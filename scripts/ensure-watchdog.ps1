@@ -4,6 +4,11 @@ param([switch]$InstallIfMissing)
 $ErrorActionPreference = "SilentlyContinue"
 . (Join-Path $PSScriptRoot "lumiera-backend-common.ps1")
 
+if (Test-LumieraPm2Mode) {
+    Write-Host "Modo PM2 ativo - watchdog PowerShell desnecessario" -ForegroundColor DarkGray
+    exit 0
+}
+
 $TaskName = "Lumiera-Backend-Watchdog"
 $WatchScript = Join-Path $PSScriptRoot "watch-lumiera-backend.ps1"
 

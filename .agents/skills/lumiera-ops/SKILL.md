@@ -14,13 +14,14 @@ Triggers: commit, reiniciar, restart, servidor, backend, porta 3005, finalizar t
 ## Ao terminar qualquer implementação
 
 0. **Verificar erros** — SEMPRE antes de entregar:
-   - `.\scripts\ensure-lumiera.ps1` (backend 3005 + frontend 5176 + watchdog)
-   - Se falhar: ler `.lumiera-logs\backend-stderr.log` e `frontend-stderr.log`
+   - `.\scripts\ensure-lumiera.ps1` (backend 3005 + frontend 5176)
+   - Se falhar: ler `.lumiera-logs\pm2-backend-error.log` (modo PM2) ou `backend-stderr.log`
    - Corrigir causa (porta, dependência, proxy, crash) e rodar ensure de novo
-1. **Backend** — NUNCA derrube processo ocupado (render/Gemini):
-   - Código em `dashboard-qanat/backend/**` alterado → `.\scripts\restart-backend.ps1 -Force` (só após commit, 1×)
-   - Só garantir que está no ar → `.\scripts\ensure-backend.ps1` (não mata se porta 3005 ativa)
-   - Watchdog v2 **não mata** backend com health lento — só sobe se porta 3005 estiver livre
+1. **Backend** — preferir **modo PM2** (estável, auto-reinicio):
+   - Instalar 1× no PC do Leo: `.\scripts\install-lumiera-pm2.ps1`
+   - Código em `dashboard-qanat/backend/**` alterado → `.\scripts\restart-backend.ps1 -Force` (PM2 faz reload gracioso; bloqueia se `server.js` tiver erro de sintaxe)
+   - Só garantir que está no ar → `.\scripts\ensure-lumiera.ps1` (não mata render ativo)
+   - **Não** reinstalar watchdog PowerShell se PM2 estiver ativo
 2. **Reiniciar** Vite (5176) se tocou em proxy/API config
 3. **Commit** com `git add` + `git commit` — nunca deixar diff pendente
 4. Não commitar por padrão: `config_qanat.json`, `studio_agents_config.json` (config local do Leo)
@@ -29,10 +30,9 @@ Triggers: commit, reiniciar, restart, servidor, backend, porta 3005, finalizar t
 ## Scripts
 
 ```powershell
+.\scripts\install-lumiera-pm2.ps1      # 1× — modo estável (recomendado)
 .\scripts\ensure-lumiera.ps1         # verifica e corrige tudo (preferir ao finalizar)
-.\scripts\restart-backend.ps1 -Force   # após mudar backend
-.\scripts\ensure-backend.ps1           # só sobe se offline
-.\scripts\ensure-frontend.ps1        # só sobe Vite se offline
+.\scripts\restart-backend.ps1 -Force   # após mudar backend (PM2 reload se instalado)
 .\scripts\status-lumiera.ps1           # diagnóstico
 ```
 

@@ -14,7 +14,20 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "NotebookLM: sessao OK ($script:NotebookLmData)" -ForegroundColor DarkGray
 }
 
-if ($Force) {
+if (Test-LumieraPm2Mode) {
+    if (-not (Test-BackendSyntaxOk)) {
+        Write-Host "ERRO: server.js com sintaxe invalida - PM2 nao reiniciou." -ForegroundColor Red
+        Write-Host "Veja: .lumiera-logs\backend-syntax-check.log" -ForegroundColor Yellow
+        exit 1
+    }
+    if ($Force) {
+        Write-Host "PM2 reload do backend (codigo alterado)..." -ForegroundColor Yellow
+        $ok = Ensure-LumieraPm2Backend -Reload
+    } else {
+        Write-Host "PM2: garantindo backend online..." -ForegroundColor Cyan
+        $ok = Ensure-LumieraPm2Backend
+    }
+} elseif ($Force) {
     Write-Host "Reinicio FORCADO do backend (codigo alterado)..." -ForegroundColor Yellow
     $ok = Start-LumieraBackendProcess -ForceRestart
 } else {
