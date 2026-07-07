@@ -1358,6 +1358,7 @@ export function RemotionTemplateStudio({
   const [studioError, setStudioError] = useState("");
   const [studioInfo, setStudioInfo] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [generationSucceeded, setGenerationSucceeded] = useState(false);
   const [aiBrief, setAiBrief] = useState(
     [
       "Adaptar este template Remotion para o nicho Engenharia.",
@@ -1417,7 +1418,8 @@ export function RemotionTemplateStudio({
     () => validateFinalTemplateCode(finalCodeDraft),
     [finalCodeDraft]
   );
-  const canSaveDraft = finalValidation.ok && Boolean(finalCodeDraft.trim());
+  const canSaveDraft =
+    generationSucceeded && finalValidation.ok && Boolean(finalCodeDraft.trim());
   const visibleTemplates = useMemo(
     () =>
       templates.filter(
@@ -1579,20 +1581,21 @@ export function RemotionTemplateStudio({
     setAiLoading(true);
     setStudioError("");
     setStudioInfo("");
+    setGenerationSucceeded(false);
 
     try {
       const categoryLabel = currentCategory?.label || category;
       const result = await adaptRemotionTemplate({
         niche,
         templateType: templateType || subcategory,
+        propsInput: propsDraft,
+        briefing: aiBrief,
+        originalCode,
         category: categoryLabel,
         subcategory,
-        briefing: aiBrief,
-        propsDraft,
-        originalCode,
       });
 
-      if (!result.ok || !result.code) {
+      if (!result.success || !result.code) {
         setStudioError(
           result.error ||
             result.errors?.[0] ||
@@ -1610,6 +1613,7 @@ export function RemotionTemplateStudio({
       }
 
       setFinalCodeDraft(result.code);
+      setGenerationSucceeded(true);
       setStudioInfo(
         result.source === "local-generator"
           ? "Template gerado localmente (fallback deterministico)."
@@ -1974,6 +1978,7 @@ export function RemotionTemplateStudio({
               onChange={(e) => {
                 setOriginalCodeDraft(e.target.value);
                 setStudioError("");
+                setGenerationSucceeded(false);
               }}
               className="min-h-[180px] w-full resize-y rounded-md border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-zinc-200 outline-none focus:border-cyan-300"
               placeholder={
@@ -1991,6 +1996,7 @@ export function RemotionTemplateStudio({
                 setFinalCodeDraft(e.target.value);
                 setStudioError("");
                 setStudioInfo("");
+                setGenerationSucceeded(false);
               }}
               readOnly={aiLoading}
               className="min-h-[220px] w-full resize-y rounded-md border border-cyan-300/20 bg-[#071018] p-3 font-mono text-[11px] leading-relaxed text-cyan-50 outline-none focus:border-cyan-300"

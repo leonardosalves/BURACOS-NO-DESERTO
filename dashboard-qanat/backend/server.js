@@ -18322,6 +18322,14 @@ app.use((err, req, res, _next) => {
   }
 });
 
+// API 404 sempre em JSON (evita HTML em fetch do dashboard)
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `Rota não encontrada: ${req.method} ${req.originalUrl}`,
+  });
+});
+
 // Serve frontend build static files in production (must be after API routes)
 
 const frontendDist = path.join(__dirname, "../frontend/dist");
