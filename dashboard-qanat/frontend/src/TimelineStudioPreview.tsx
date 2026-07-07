@@ -669,7 +669,8 @@ export function TimelineStudioPreview({
       <style>{`
         .tss-embedded-overlay:not(.tss-pip-card),
         .tss-embedded-overlay:not(.tss-pip-card) > div,
-        .tss-embedded-overlay:not(.tss-pip-card) .overlay-preview-frame {
+        .tss-embedded-overlay:not(.tss-pip-card) .overlay-preview-frame,
+        .tss-embedded-overlay:not(.tss-pip-card) .overlay-preview-frame > div {
           position: absolute !important;
           inset: 0 !important;
           width: 100% !important;
@@ -680,6 +681,10 @@ export function TimelineStudioPreview({
           background: transparent !important;
           border-radius: 0 !important;
           box-shadow: none !important;
+        }
+        .tss-embedded-overlay:not(.tss-pip-card) img,
+        .tss-embedded-overlay:not(.tss-pip-card) video {
+          object-fit: cover !important;
         }
       `}</style>
     </div>
