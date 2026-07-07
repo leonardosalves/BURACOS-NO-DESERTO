@@ -360,7 +360,18 @@ function isPieChartContext(...labels: string[]) {
   );
 }
 
+function isAreaChartContext(...labels: string[]) {
+  const haystack = labels.join(" ").toLowerCase();
+  return (
+    haystack.includes("area chart") ||
+    haystack.includes("area-chart") ||
+    /\bareachart\b/.test(haystack) ||
+    /\barea\s*series\b/.test(haystack)
+  );
+}
+
 function isLineChartContext(...labels: string[]) {
+  if (isAreaChartContext(...labels)) return false;
   const haystack = labels.join(" ").toLowerCase();
   return (
     haystack.includes("line chart") ||
@@ -382,11 +393,12 @@ function isBarChartContext(...labels: string[]) {
 
 function detectChartKindFromCode(
   code = ""
-): "line" | "bar" | "pie" | "donut" | null {
+): "line" | "area" | "bar" | "pie" | "donut" | null {
   const componentName = code.match(/export\s+default\s+function\s+(\w+)/)?.[1];
   const meta = [componentName || "", code.slice(0, 1600)].join(" ");
   if (isDonutChartContext(meta)) return "donut";
   if (isPieChartContext(meta)) return "pie";
+  if (isAreaChartContext(meta)) return "area";
   if (isLineChartContext(meta)) return "line";
   if (isBarChartContext(meta)) return "bar";
   if (isCircularProgressContext(meta)) return null;
@@ -414,6 +426,9 @@ function resolveChartDataPreview(
   if (isBarChartContext(...metaLabels)) {
     return { shortPreview: "bars", longPreview: "bars" };
   }
+  if (isAreaChartContext(...metaLabels)) {
+    return { shortPreview: "line", longPreview: "line" };
+  }
   if (isLineChartContext(...metaLabels)) {
     return { shortPreview: "line", longPreview: "line" };
   }
@@ -427,9 +442,11 @@ function resolveChartDataPreview(
     return { shortPreview: "donut", longPreview: "donut" };
   if (codeKind === "pie") return { shortPreview: "pie", longPreview: "pie" };
   if (codeKind === "bar") return { shortPreview: "bars", longPreview: "bars" };
-  if (codeKind === "line") return { shortPreview: "line", longPreview: "line" };
+  if (codeKind === "area" || codeKind === "line") {
+    return { shortPreview: "line", longPreview: "line" };
+  }
 
-  return { shortPreview: "bars", longPreview: "line" };
+  return { shortPreview: "line", longPreview: "line" };
 }
 
 function resolvePreviewVariants(
@@ -490,14 +507,24 @@ function effectivePreviewVariant(
   variant: PreviewVariant,
   template?: Pick<
     TemplateItem,
-    "category" | "subcategory" | "name" | "shortPreview" | "longPreview"
+    | "category"
+    | "subcategory"
+    | "name"
+    | "shortPreview"
+    | "longPreview"
+    | "sourceCode"
   >
 ): PreviewVariant {
   if (!template) return variant;
+  const codeHint =
+    template.category === "chart-data"
+      ? `${template.sourceCode?.short || ""}\n${template.sourceCode?.long || ""}`
+      : "";
   const fixed = resolvePreviewVariants(
     template.category,
     template.subcategory,
-    template.name
+    template.name,
+    codeHint
   );
   if (variant === template.shortPreview) return fixed.shortPreview;
   if (variant === template.longPreview) return fixed.longPreview;
@@ -578,7 +605,9 @@ function buildPreviewPropsFromTemplate(
   if (centerValue) props.centerValue = centerValue;
   if (centerLabel) props.centerLabel = centerLabel;
 
-  if (isPieChartContext(template.subcategory)) {
+  if (isAreaChartContext(template.subcategory, template.name)) {
+    props.title = props.title || "Area Series";
+  } else if (isPieChartContext(template.subcategory)) {
     props.title = props.title || "Pie Series";
   } else if (isDonutChartContext(template.subcategory)) {
     props.centerValue = props.centerValue || "78%";
