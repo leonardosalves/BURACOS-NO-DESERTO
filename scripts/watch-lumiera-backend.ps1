@@ -8,6 +8,9 @@ param(
 $ErrorActionPreference = "SilentlyContinue"
 . (Join-Path $PSScriptRoot "lumiera-backend-common.ps1")
 
+$script:WatchdogPidFile = Join-Path $script:LogDir "watchdog.pid"
+Set-Content -Path $script:WatchdogPidFile -Value $PID -Encoding UTF8 -ErrorAction SilentlyContinue
+
 Write-LumieraLog "=== Watchdog v2 (intervalo ${CheckIntervalSec}s, nao mata processo ocupado) ==="
 
 $consecutiveBusyFails = 0
