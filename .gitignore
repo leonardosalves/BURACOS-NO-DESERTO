@@ -53,6 +53,9 @@ blob-report/
 dashboard-qanat/backend/.venv-chatterbox/
 dashboard-qanat/backend/.venv-timesfm/
 
+# Deps Python do Blender (Pillow/PyProj) — instaladas via install-blendergis.ps1
+dashboard-qanat/scripts/blender/python-deps/
+
 # Temp files & tool directories
 .gemini/
 .tempmediaStorage/

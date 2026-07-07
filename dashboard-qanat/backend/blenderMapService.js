@@ -17,6 +17,23 @@ const BLENDER_SCRIPT = path.join(
   "blender",
   "location_intro_flyover.py"
 );
+const BLENDER_PYTHON_DEPS = path.join(
+  DASHBOARD_ROOT,
+  "scripts",
+  "blender",
+  "python-deps"
+);
+
+export function buildBlenderSpawnEnv(baseEnv = process.env) {
+  const env = { ...baseEnv };
+  if (!fs.existsSync(BLENDER_PYTHON_DEPS)) return env;
+  const sep = process.platform === "win32" ? ";" : ":";
+  const existing = String(env.PYTHONPATH || "").trim();
+  env.PYTHONPATH = existing
+    ? `${BLENDER_PYTHON_DEPS}${sep}${existing}`
+    : BLENDER_PYTHON_DEPS;
+  return env;
+}
 
 const BLENDER_CANDIDATES_WIN = [
   process.env.BLENDER_PATH,
@@ -82,13 +99,15 @@ export function runBlenderJob(jobPath, { onLog = () => {} } = {}) {
   const args = ["--background", "--python", BLENDER_SCRIPT, "--", jobPath];
 
   return new Promise((resolve, reject) => {
+    const spawnEnv = buildBlenderSpawnEnv();
+    const spawnOpts = { shell: false, env: spawnEnv, windowsHide: true };
     const spawnArgs =
       process.platform === "win32"
         ? [
             [quoteSpawnArg(blender), ...args.map(quoteSpawnArg)].join(" "),
-            { shell: true, windowsHide: true },
+            { ...spawnOpts, shell: true },
           ]
-        : [blender, args, { shell: false }];
+        : [blender, args, spawnOpts];
 
     onLog(`[Blender] ${path.basename(blender)} ${args.join(" ")}`);
     const child = spawn(...spawnArgs);

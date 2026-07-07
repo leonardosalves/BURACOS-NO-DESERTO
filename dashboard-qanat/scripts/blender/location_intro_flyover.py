@@ -14,6 +14,13 @@ import os
 import sys
 from pathlib import Path
 
+# Pillow/PyProj locais (scripts/install-blendergis.ps1) — antes de bpy/blendergis
+_DEPS = Path(__file__).resolve().parent / "python-deps"
+if _DEPS.is_dir():
+    _deps_str = str(_DEPS)
+    if _deps_str not in sys.path:
+        sys.path.insert(0, _deps_str)
+
 import bpy
 from mathutils import Vector
 
@@ -139,23 +146,9 @@ def try_gis_terrain(job: dict) -> bool:
         return False
     if not enable_blender_gis():
         return False
-    lat = float(job["lat"])
-    lng = float(job["lng"])
-    try:
-        # BlenderGIS: terreno + OSM (requer addon e rede)
-        bpy.ops.importgis.geo_raster(
-            "INVOKE_DEFAULT",
-            operator="import",
-            mode="DEM",
-            lon=lng,
-            lat=lat,
-            zoom=10,
-        )
-        log("BlenderGIS: terreno importado")
-        return True
-    except Exception as err:
-        log(f"BlenderGIS falhou, fallback textura: {err}")
-        return False
+    # dem_query exige cena georreferenciada; em headless usamos textura Esri local
+    log("BlenderGIS ativo — terreno DEM requer georef manual; usando textura")
+    return False
 
 
 def setup_camera(job: dict) -> bpy.types.Object:
