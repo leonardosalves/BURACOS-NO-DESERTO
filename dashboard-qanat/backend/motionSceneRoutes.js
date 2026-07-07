@@ -21,6 +21,7 @@ import {
 import {
   loadTimelineStudio,
   mergeMissingBrollFromConfig,
+  mergeRemotionFromStoryboard,
   saveTimelineStudio,
 } from "./timelineStudioMigration.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
@@ -425,6 +426,10 @@ export function registerMotionSceneRoutes(
       );
 
       let studio = syncMotionScenesToStudio(rawStudio, qc.motion_scenes);
+      const overlayMerged = mergeRemotionFromStoryboard(studio, storyboard, {
+        syncMotion: false,
+      });
+      studio = overlayMerged.studio;
       studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
       studio = upsertMusicClipInStudio(studio, config, projDir);
       const saved = saveTimelineStudio(projDir, studio);
@@ -432,6 +437,7 @@ export function registerMotionSceneRoutes(
       res.json({
         ok: true,
         motion_count: qc.motion_scenes.length,
+        remotion_restored: Number(overlayMerged.remotionRestored) || 0,
         enriched: enriched.enriched,
         results: enriched.results,
         quality: qc.quality,

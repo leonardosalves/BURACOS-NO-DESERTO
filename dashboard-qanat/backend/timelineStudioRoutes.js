@@ -7,6 +7,7 @@ import {
   loadTimelineStudio,
   migrateLegacyToTimelineStudio,
   mergeMissingBrollFromConfig,
+  mergeRemotionFromStoryboard,
 } from "./timelineStudioMigration.js";
 import {
   searchTimelineStock,
@@ -50,6 +51,46 @@ function syncStudioMusicFromConfig(rawStudio, projDir) {
   return upsertMusicClipInStudio(rawStudio, config, projDir);
 }
 
+function isMotionClip(clip) {
+  return (
+    clip?.trackId === "motion" ||
+    clip?.motionScene ||
+    clip?.motionScenePrimary ||
+    clip?.props?.media_mode === "remotion" ||
+    clip?.props?.motion_scene
+  );
+}
+
+function mergeDeletedMotionSuppressions(previousStudio, nextStudio) {
+  const previousMotionIds = new Set(
+    (Array.isArray(previousStudio?.clips) ? previousStudio.clips : [])
+      .filter(isMotionClip)
+      .map((clip) => String(clip.id || "").trim())
+      .filter(Boolean)
+  );
+  if (!previousMotionIds.size) return nextStudio;
+
+  const nextIds = new Set(
+    (Array.isArray(nextStudio?.clips) ? nextStudio.clips : [])
+      .map((clip) => String(clip.id || "").trim())
+      .filter(Boolean)
+  );
+  const suppressed = new Set(
+    (Array.isArray(nextStudio?.suppressedMotionSceneIds)
+      ? nextStudio.suppressedMotionSceneIds
+      : []
+    )
+      .map((id) => String(id || "").trim())
+      .filter(Boolean)
+  );
+
+  for (const id of previousMotionIds) {
+    if (!nextIds.has(id)) suppressed.add(id);
+  }
+
+  return { ...nextStudio, suppressedMotionSceneIds: [...suppressed] };
+}
+
 export function registerTimelineStudioRoutes(
   app,
   { getProjectDir, workspaceDir, callGemini }
@@ -76,10 +117,55 @@ export function registerTimelineStudioRoutes(
       const merged = mergeMissingBrollFromConfig(studio, config, blockTimings);
       const brollRestored = Number(merged.brollRestored) || 0;
       if (brollRestored > 0) studio = merged;
+
+      let remotionRestored = 0;
+      let motionSynced = 0;
+      let remotionChanged = false;
+      try {
+        const storyboardPath = path.join(projDir, "storyboard.json");
+        if (fs.existsSync(storyboardPath)) {
+          const storyboard = JSON.parse(
+            fs.readFileSync(storyboardPath, "utf8")
+          );
+          const hasRemotionSource =
+            (storyboard.motion_scenes || []).length > 0 ||
+            (storyboard.overlays_ai || []).length > 0;
+          if (hasRemotionSource) {
+            const remotionFingerprint = (clips = []) =>
+              JSON.stringify(
+                clips
+                  .filter(
+                    (c) => c?.trackId === "motion" || c?.trackId === "overlays"
+                  )
+                  .map((c) => ({
+                    id: c.id,
+                    trackId: c.trackId,
+                    start: c.start,
+                    templateId: c.templateId,
+                    props: c.props,
+                  }))
+              );
+            const beforeFp = remotionFingerprint(studio.clips);
+            const remotionMerged = mergeRemotionFromStoryboard(
+              studio,
+              storyboard
+            );
+            remotionRestored = Number(remotionMerged.remotionRestored) || 0;
+            motionSynced = Number(remotionMerged.motionSynced) || 0;
+            if (remotionFingerprint(remotionMerged.studio.clips) !== beforeFp) {
+              studio = remotionMerged.studio;
+              remotionChanged = true;
+            }
+          }
+        }
+      } catch {
+        /* ignore storyboard sync */
+      }
+
       const musicChanged =
         JSON.stringify(musicClipSnapshot(rawStudio)) !==
         JSON.stringify(musicClipSnapshot(studio));
-      if (musicChanged || brollRestored > 0) {
+      if (musicChanged || brollRestored > 0 || remotionChanged) {
         saveTimelineStudio(projDir, studio);
       }
       res.json({
@@ -89,6 +175,8 @@ export function registerTimelineStudioRoutes(
         motionMigrated: Boolean(motionMigrated),
         musicSynced: musicChanged,
         brollRestored,
+        remotionRestored,
+        motionSynced,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -104,7 +192,12 @@ export function registerTimelineStudioRoutes(
           .status(400)
           .json({ error: "Corpo inválido — esperado { studio: {...} }" });
       }
-      const synced = syncStudioMusicFromConfig(studio, projDir);
+      const { studio: previousStudio } = loadTimelineStudio(projDir);
+      const withSuppressions = mergeDeletedMotionSuppressions(
+        previousStudio,
+        studio
+      );
+      const synced = syncStudioMusicFromConfig(withSuppressions, projDir);
       const saved = saveTimelineStudio(projDir, synced);
       res.json({ ok: true, studio: saved });
     } catch (err) {

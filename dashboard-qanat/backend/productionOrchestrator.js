@@ -19,6 +19,7 @@ import {
   loadTimelineStudio,
   mergeMissingBrollFromConfig,
   migrateLegacyToTimelineStudio,
+  mergeRemotionFromStoryboard,
   saveTimelineStudio,
 } from "./timelineStudioMigration.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
@@ -415,6 +416,10 @@ export async function orchestrateProduction(
     migrateLegacyToTimelineStudio(projDir, { force: false });
     const { studio: rawStudio } = loadTimelineStudio(projDir);
     let nextStudio = syncMotionScenesToStudio(rawStudio, plan.motion_scenes);
+    const overlayMerged = mergeRemotionFromStoryboard(nextStudio, storyboard, {
+      syncMotion: false,
+    });
+    nextStudio = overlayMerged.studio;
     nextStudio = mergeMissingBrollFromConfig(nextStudio, config, blockTimings);
     nextStudio = upsertMusicClipInStudio(nextStudio, config, projDir);
     studio = saveTimelineStudio(projDir, nextStudio);
