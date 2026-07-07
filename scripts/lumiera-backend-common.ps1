@@ -125,9 +125,9 @@ function Test-ActiveLumieraRender {
     return $false
 }
 
-function Write-BackendPidFile([int]$Pid) {
+function Write-BackendPidFile([int]$ProcessId) {
     Ensure-LumieraLogDir
-    Set-Content -Path $script:PidFile -Value $Pid -Encoding UTF8
+    Set-Content -Path $script:PidFile -Value $ProcessId -Encoding UTF8
 }
 
 function Resolve-NlmBin {
