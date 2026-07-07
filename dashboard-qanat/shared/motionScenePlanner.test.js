@@ -6,6 +6,7 @@ import {
   syncMotionScenesToStudio,
   applyMotionScenesToVisualPrompts,
   isPrimaryRemotionMotionScene,
+  buildPropsForTemplate,
 } from "../backend/motionScenePlanner.js";
 
 describe("motionScenePlanner", () => {
@@ -156,6 +157,55 @@ describe("motionScenePlanner", () => {
     const videoClips = synced.clips.filter((c) => c.trackId === "video");
     assert.equal(videoClips.length, 1);
     assert.equal(videoClips[0].id, "video-2-1");
+  });
+
+  it("location-intro padrão: PIP + earth_descent para POI e cidade", () => {
+    const poi = buildPropsForTemplate(
+      "location-intro",
+      "location",
+      "A fortaleza estelar de Palmanova revela um segredo.",
+      "#C5A889"
+    );
+    assert.equal(poi.presentation, "pip");
+    assert.equal(poi.fly_mode, "earth_descent");
+    assert.equal(poi.place_type, "poi");
+    assert.equal(poi.zoom_from, 3);
+    assert.equal(poi.zoom_to, 17);
+
+    const city = buildPropsForTemplate(
+      "location-intro",
+      "location",
+      "Na cidade de Roma, a engenharia antiga impressiona.",
+      "#C5A889"
+    );
+    assert.equal(city.presentation, "pip");
+    assert.equal(city.fly_mode, "earth_descent");
+    assert.equal(city.place_type, "city");
+    assert.equal(city.zoom_to, 12);
+  });
+
+  it("plan location-intro usa duração mínima 8s", () => {
+    const plan = planMotionScenesFromStoryboard(
+      {
+        visual_prompts: [
+          {
+            scene: "2.1",
+            block: 2,
+            narration_text:
+              "O Google Maps esconde uma fortaleza estelar em Palmanova.",
+            speech_start: 12,
+            duration_seconds: 4,
+          },
+        ],
+      },
+      { niche: "Engenharia" }
+    );
+    const loc = plan.motion_scenes.find(
+      (s) => s.template_id === "location-intro"
+    );
+    assert.ok(loc);
+    assert.equal(loc.duration_seconds, 8);
+    assert.equal(loc.layout, "pip");
   });
 
   it("pip layout permanece overlay, não vídeo primário", () => {

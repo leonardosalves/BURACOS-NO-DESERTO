@@ -16,6 +16,9 @@ const CITY_KEYWORDS =
   /\b(cidade|munic[ií]pio|capital|regi[aã]o|estado|prov[ií]ncia|pa[ií]s|continente|metr[oó]pole|distrito|comuna|vilarejo|vila)\b/i;
 
 export const EARTH_DESCENT_ZOOMS = [3, 5, 8, 11, 14, 17];
+/** Cidade: mesma descida do espaço, para em zoom regional + contorno OSM. */
+export const CITY_DESCENT_ZOOMS = [3, 5, 8, 9, 11, 12];
+/** @deprecated legado — novos projetos usam earth_descent + place_type city */
 export const CITY_OUTLINE_ZOOMS = [9, 12];
 
 /** Coordenadas conhecidas — evita geocoding em projetos de engenharia/mapa. */
@@ -97,16 +100,17 @@ export function classifyPlaceType(text = "", place = {}) {
     return { place_type: "poi", fly_mode: "earth_descent" };
   }
   if (CITY_KEYWORDS.test(t)) {
-    return { place_type: "city", fly_mode: "city_outline" };
+    return { place_type: "city", fly_mode: "earth_descent" };
   }
   if (/\b(fort|castel|bridge|tower)\b/i.test(loc)) {
     return { place_type: "poi", fly_mode: "earth_descent" };
   }
-  return { place_type: "city", fly_mode: "city_outline" };
+  return { place_type: "city", fly_mode: "earth_descent" };
 }
 
-export function buildZoomSequence(flyMode, zoomFrom, zoomTo) {
+export function buildZoomSequence(flyMode, zoomFrom, zoomTo, placeType) {
   if (flyMode === "earth_descent") {
+    if (placeType === "city") return [...CITY_DESCENT_ZOOMS];
     return [...EARTH_DESCENT_ZOOMS];
   }
   if (flyMode === "city_outline") {
@@ -337,7 +341,8 @@ export async function fetchSatelliteAssetsForScene(
   const zoomLevels = buildZoomSequence(
     classification.fly_mode,
     zoomFrom,
-    zoomTo
+    zoomTo,
+    classification.place_type
   );
 
   const zoomKeyframes = [];
@@ -360,7 +365,10 @@ export async function fetchSatelliteAssetsForScene(
 
   let boundaryGeoJson = null;
   let boundaryPath = null;
-  if (classification.fly_mode === "city_outline") {
+  if (
+    classification.place_type === "city" ||
+    classification.fly_mode === "city_outline"
+  ) {
     try {
       boundaryGeoJson = await fetchPlaceBoundary(query, {
         lat: coords.lat,

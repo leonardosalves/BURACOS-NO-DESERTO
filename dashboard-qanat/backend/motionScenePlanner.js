@@ -5,6 +5,7 @@
 import {
   DEFAULT_DURATIONS,
   FULLSCREEN_TEMPLATES,
+  LOCATION_INTRO_DEFAULTS,
   MOTION_SCENE_TRIGGERS,
   MOTION_TRACK_ID,
   defaultMotionTrack,
@@ -204,21 +205,24 @@ export function buildPropsForTemplate(
       };
     case "location-intro": {
       const place = resolvePlace(t);
-      const { place_type, fly_mode } = classifyPlaceType(t, place);
-      const zoomFrom = fly_mode === "earth_descent" ? 3 : 9;
-      const zoomTo = fly_mode === "earth_descent" ? 17 : 12;
+      const { place_type } = classifyPlaceType(t, place);
+      const zoomTo =
+        place_type === "city"
+          ? LOCATION_INTRO_DEFAULTS.zoom_to_city
+          : LOCATION_INTRO_DEFAULTS.zoom_to_poi;
       return {
         location: place.location,
         region: place.region,
         country: place.country,
-        variant: "satellite",
+        variant: LOCATION_INTRO_DEFAULTS.variant,
         accentColor: "#FFFFFF",
         place_type,
-        fly_mode,
-        zoom_from: zoomFrom,
+        fly_mode: LOCATION_INTRO_DEFAULTS.fly_mode,
+        zoom_from: LOCATION_INTRO_DEFAULTS.zoom_from,
         zoom_to: zoomTo,
-        map_style: "satellite",
-        presentation: "pip",
+        map_style: LOCATION_INTRO_DEFAULTS.map_style,
+        presentation: LOCATION_INTRO_DEFAULTS.presentation,
+        layout: LOCATION_INTRO_DEFAULTS.layout,
       };
     }
     case "geo-map": {
@@ -318,19 +322,28 @@ export function planMotionScenesFromStoryboard(
 
     const trigger = classified.trigger;
     const templateId = pickTemplateForTrigger(trigger, nichePack);
-    const layout = resolveLayoutForTemplate(templateId, trigger);
+    const layout =
+      templateId === "location-intro"
+        ? LOCATION_INTRO_DEFAULTS.layout
+        : resolveLayoutForTemplate(templateId, trigger);
 
     const dedupeKey = `${trigger}-${templateId}-${vp.scene || vp.block}`;
     if (usedTriggers.has(dedupeKey)) continue;
     usedTriggers.add(dedupeKey);
 
+    const templateDefault = DEFAULT_DURATIONS[templateId] || 4;
+    const vpDur = Number(vp.duration_seconds);
     const duration =
-      Number(vp.duration_seconds) > 0
-        ? Math.min(
-            Number(vp.duration_seconds),
-            DEFAULT_DURATIONS[templateId] || 4
+      templateId === "location-intro"
+        ? Math.max(
+            LOCATION_INTRO_DEFAULTS.duration_seconds,
+            vpDur > 0
+              ? Math.min(vpDur, 12)
+              : LOCATION_INTRO_DEFAULTS.duration_seconds
           )
-        : DEFAULT_DURATIONS[templateId] || 4;
+        : vpDur > 0
+          ? Math.min(vpDur, templateDefault)
+          : templateDefault;
 
     const triggerMeta = MOTION_SCENE_TRIGGERS[trigger] || {};
 
@@ -405,7 +418,13 @@ export function motionScenesToMotionClips(motionScenes = []) {
         scene_ref: String(ms.scene_ref || ""),
         block: Number(ms.block) || 1,
         layout:
-          ms.layout || resolveLayoutForTemplate(ms.template_id, ms.trigger),
+          ms.template_id === "location-intro"
+            ? LOCATION_INTRO_DEFAULTS.layout
+            : ms.layout || resolveLayoutForTemplate(ms.template_id, ms.trigger),
+        presentation:
+          ms.template_id === "location-intro"
+            ? ms.props?.presentation || LOCATION_INTRO_DEFAULTS.presentation
+            : ms.props?.presentation,
         trigger: ms.trigger,
         overlayType: ms.template_id,
       },

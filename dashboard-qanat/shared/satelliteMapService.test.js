@@ -8,6 +8,7 @@ import {
   classifyPlaceType,
   buildZoomSequence,
   EARTH_DESCENT_ZOOMS,
+  CITY_DESCENT_ZOOMS,
   CITY_OUTLINE_ZOOMS,
 } from "../backend/satelliteMapService.js";
 
@@ -44,16 +45,20 @@ describe("satelliteMapService", () => {
     assert.equal(c.fly_mode, "earth_descent");
   });
 
-  it("classifyPlaceType detecta cidade", () => {
+  it("classifyPlaceType detecta cidade com descida padrão", () => {
     const c = classifyPlaceType("na cidade de Roma", { location: "Roma" });
     assert.equal(c.place_type, "city");
-    assert.equal(c.fly_mode, "city_outline");
+    assert.equal(c.fly_mode, "earth_descent");
   });
 
   it("buildZoomSequence retorna keyframes corretos", () => {
     assert.deepEqual(
-      buildZoomSequence("earth_descent", 8, 14),
+      buildZoomSequence("earth_descent", 8, 14, "poi"),
       EARTH_DESCENT_ZOOMS
+    );
+    assert.deepEqual(
+      buildZoomSequence("earth_descent", 8, 14, "city"),
+      CITY_DESCENT_ZOOMS
     );
     assert.deepEqual(
       buildZoomSequence("city_outline", 8, 14),

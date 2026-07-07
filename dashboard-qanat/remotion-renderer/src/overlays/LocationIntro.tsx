@@ -291,6 +291,7 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   lat = 0,
   lng = 0,
   fly_mode = "simple",
+  place_type = "poi",
   boundaryGeoJson = "",
   zoom_keyframes = [],
   presentation = "pip",
@@ -306,14 +307,15 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
 
   useEffect(() => {
     const path = String(boundaryGeoJson || "").trim();
-    if (!path || fly_mode !== "city_outline") return;
+    const needsBoundary = place_type === "city" || fly_mode === "city_outline";
+    if (!path || !needsBoundary) return;
     const handle = delayRender("location-intro-boundary");
     fetch(resolveMapImageSrc(path))
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => setBoundaryData(data))
       .catch(() => setBoundaryData(null))
       .finally(() => continueRender(handle));
-  }, [boundaryGeoJson, fly_mode]);
+  }, [boundaryGeoJson, fly_mode, place_type]);
 
   const keyframes =
     Array.isArray(zoom_keyframes) && zoom_keyframes.length > 0
@@ -332,6 +334,8 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
     !hasMultiKeyframe && Boolean(backgroundImageWide && backgroundImage);
   const useEarthFly = fly_mode === "earth_descent" && hasMultiKeyframe;
   const useCityOutline = fly_mode === "city_outline";
+  const showCityTerritory =
+    place_type === "city" || fly_mode === "city_outline";
 
   const enterOpacity = interpolate(frame, [0, fps * 0.5], [0, 1], {
     extrapolateLeft: "clamp",
@@ -444,14 +448,46 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
     }
 
     if (useEarthFly) {
+      const lastZoom =
+        Number(keyframes[keyframes.length - 1]?.zoom) || Number(zoom_to) || 12;
+      const territoryZoom = interpolate(
+        frame,
+        [durationInFrames * 0.45, durationInFrames * 0.92],
+        [Number(zoom_from) || 3, lastZoom],
+        { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+      );
+      const territoryDraw = interpolate(
+        frame,
+        [durationInFrames * 0.5, durationInFrames * 0.9],
+        [0, 1],
+        {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.bezier(0.4, 0, 0.2, 1),
+        }
+      );
       return (
-        <MultiKeyframeSatellite
-          keyframes={keyframes}
-          frame={frame}
-          durationInFrames={durationInFrames}
-          panX={panX}
-          panY={panY}
-        />
+        <AbsoluteFill>
+          <MultiKeyframeSatellite
+            keyframes={keyframes}
+            frame={frame}
+            durationInFrames={durationInFrames}
+            panX={panX}
+            panY={panY}
+          />
+          {showCityTerritory && hasCoords && boundaryData ? (
+            <CityBoundaryOverlay
+              boundary={boundaryData}
+              lat={lat}
+              lng={lng}
+              zoom={territoryZoom}
+              accentColor={accentColor}
+              drawProgress={territoryDraw}
+              width={width}
+              height={height}
+            />
+          ) : null}
+        </AbsoluteFill>
       );
     }
 
