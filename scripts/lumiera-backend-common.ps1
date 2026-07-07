@@ -321,6 +321,19 @@ function Start-LumieraBackendProcess {
 }
 
 function Test-LumieraWatchdogActive {
+    $watchPidFile = Join-Path $script:LogDir "watchdog.pid"
+    if (Test-Path -LiteralPath $watchPidFile) {
+        try {
+            $watchPid = [int](Get-Content -LiteralPath $watchPidFile -TotalCount 1 -ErrorAction Stop)
+            if ($watchPid -gt 0) {
+                $watchProc = Get-Process -Id $watchPid -ErrorAction SilentlyContinue
+                if ($watchProc -and $watchProc.ProcessName -match "powershell") {
+                    return @{ ProcessId = $watchPid }
+                }
+            }
+        } catch { }
+    }
+
     $watchScript = Join-Path $PSScriptRoot "watch-lumiera-backend.ps1"
     $watchName = Split-Path $watchScript -Leaf
 
