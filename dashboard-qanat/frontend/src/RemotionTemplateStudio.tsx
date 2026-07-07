@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { Easing, interpolate } from "remotion";
 import { validateFinalTemplateCode } from "./remotionTemplateStudioApi";
+import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -42,6 +43,7 @@ type TemplateItem = {
   shortPreview:
     | "ring"
     | "pie"
+    | "donut"
     | "circular-progress"
     | "map"
     | "bars"
@@ -52,6 +54,7 @@ type TemplateItem = {
     | "ring"
     | "line"
     | "pie"
+    | "donut"
     | "circular-progress"
     | "map"
     | "bars"
@@ -79,6 +82,7 @@ const CATEGORIES: TemplateCategoryDefinition[] = [
       "Bar chart",
       "Line chart",
       "Pie chart",
+      "Donut chart",
       "KPI",
       "Circular Progress",
     ],
@@ -267,6 +271,12 @@ type DetailFormat = "short" | "long";
 type PreviewVariant =
   TemplateItem["shortPreview"] | TemplateItem["longPreview"];
 
+type PreviewSegment = {
+  label: string;
+  value: number;
+  color: string;
+};
+
 type TemplatePreviewProps = {
   title?: string;
   subtitle?: string;
@@ -274,11 +284,22 @@ type TemplatePreviewProps = {
   value?: number;
   label?: string;
   suffix?: string;
+  centerValue?: string;
+  centerLabel?: string;
+  segments?: PreviewSegment[];
 };
+
+const DEFAULT_PREVIEW_SEGMENTS: PreviewSegment[] = [
+  { label: "Execucao", value: 34, color: "#22d3ee" },
+  { label: "Planejado", value: 25, color: "#4f7cff" },
+  { label: "Operacao", value: 20, color: "#facc15" },
+  { label: "Restante", value: 21, color: "#ff2f8f" },
+];
 
 const PREVIEW_DURATION_BY_VARIANT: Record<PreviewVariant, number> = {
   ring: 90,
   pie: 90,
+  donut: 90,
   "circular-progress": 150,
   map: 90,
   bars: 90,
@@ -318,15 +339,25 @@ function isCircularProgressContext(...labels: string[]) {
   );
 }
 
+function isDonutChartContext(...labels: string[]) {
+  const haystack = labels.join(" ").toLowerCase();
+  return (
+    haystack.includes("donut chart") ||
+    haystack.includes("donut-chart") ||
+    /\bdonutchart\b/.test(haystack) ||
+    /\bdonut\b/.test(haystack) ||
+    /\brosca\b/.test(haystack)
+  );
+}
+
 function isPieChartContext(...labels: string[]) {
+  if (isDonutChartContext(...labels)) return false;
   const haystack = labels.join(" ").toLowerCase();
   return (
     haystack.includes("pie chart") ||
     haystack.includes("pie-chart") ||
     /\bpiechart\b/.test(haystack) ||
-    haystack.includes("donut chart") ||
-    haystack.includes("donut-chart") ||
-    /\bdonut\b/.test(haystack)
+    /\bpizza\b/.test(haystack)
   );
 }
 
@@ -350,9 +381,12 @@ function isBarChartContext(...labels: string[]) {
   );
 }
 
-function detectChartKindFromCode(code = ""): "line" | "bar" | "pie" | null {
+function detectChartKindFromCode(
+  code = ""
+): "line" | "bar" | "pie" | "donut" | null {
   const componentName = code.match(/export\s+default\s+function\s+(\w+)/)?.[1];
-  const meta = [componentName || "", code.slice(0, 1200)].join(" ");
+  const meta = [componentName || "", code.slice(0, 1600)].join(" ");
+  if (isDonutChartContext(meta)) return "donut";
   if (isPieChartContext(meta)) return "pie";
   if (isLineChartContext(meta)) return "line";
   if (isBarChartContext(meta)) return "bar";
@@ -372,6 +406,9 @@ function resolveChartDataPreview(
       longPreview: "circular-progress",
     };
   }
+  if (isDonutChartContext(...metaLabels)) {
+    return { shortPreview: "donut", longPreview: "donut" };
+  }
   if (isPieChartContext(...metaLabels)) {
     return { shortPreview: "pie", longPreview: "pie" };
   }
@@ -387,6 +424,8 @@ function resolveChartDataPreview(
   }
 
   const codeKind = detectChartKindFromCode(code);
+  if (codeKind === "donut")
+    return { shortPreview: "donut", longPreview: "donut" };
   if (codeKind === "pie") return { shortPreview: "pie", longPreview: "pie" };
   if (codeKind === "bar") return { shortPreview: "bars", longPreview: "bars" };
   if (codeKind === "line") return { shortPreview: "line", longPreview: "line" };
@@ -466,6 +505,42 @@ function effectivePreviewVariant(
   return fixed.shortPreview;
 }
 
+function describePieSlice(
+  cx: number,
+  cy: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number
+) {
+  const x1 = cx + radius * Math.cos(startAngle);
+  const y1 = cy + radius * Math.sin(startAngle);
+  const x2 = cx + radius * Math.cos(endAngle);
+  const y2 = cy + radius * Math.sin(endAngle);
+  const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
+  return `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+}
+
+function extractPreviewSegmentsFromCode(code: string): PreviewSegment[] {
+  const palette = ["#22d3ee", "#4f7cff", "#facc15", "#ff2f8f", "#7c2dff"];
+  const block =
+    code.match(/segments\s*:\s*\[([\s\S]*?)\]\s*,?/m)?.[1] ||
+    code.match(/segments\s*=\s*\[([\s\S]*?)\]\s*;/m)?.[1] ||
+    "";
+  const segments: PreviewSegment[] = [];
+  for (const match of block.matchAll(/\{([^}]+)\}/g)) {
+    const objectBody = match[1];
+    const label = objectBody.match(/label\s*:\s*["']([^"']+)["']/)?.[1];
+    const value = Number(objectBody.match(/value\s*:\s*(\d+(?:\.\d+)?)/)?.[1]);
+    const color =
+      objectBody.match(/color\s*:\s*["']([^"']+)["']/)?.[1] ||
+      palette[segments.length % palette.length];
+    if (label && Number.isFinite(value) && value > 0) {
+      segments.push({ label, value, color });
+    }
+  }
+  return segments.length ? segments : DEFAULT_PREVIEW_SEGMENTS;
+}
+
 function buildPreviewPropsFromSlots(slots: string[]): TemplatePreviewProps {
   const props: TemplatePreviewProps = {};
   for (const slot of slots) {
@@ -474,18 +549,43 @@ function buildPreviewPropsFromSlots(slots: string[]): TemplatePreviewProps {
     const normalized = key.toLowerCase();
     if (normalized === "progress" || normalized === "value") {
       props[normalized === "progress" ? "progress" : "value"] = 78;
-    } else if (normalized === "label") {
+    } else if (normalized === "label" || normalized === "centerlabel") {
       props.label = "Completion Rate";
+      props.centerLabel = "Completion Rate";
     } else if (normalized === "title") {
       props.title = "Engineering KPI";
     } else if (normalized === "subtitle") {
       props.subtitle = "Live metric";
     } else if (normalized === "suffix") {
       props.suffix = "%";
+    } else if (normalized === "centervalue") {
+      props.centerValue = "78%";
     }
   }
   if (!props.progress && !props.value) props.progress = 78;
   if (!props.label) props.label = "Completion Rate";
+  return props;
+}
+
+function buildPreviewPropsFromTemplate(
+  template: Pick<TemplateItem, "dataSlots" | "sourceCode" | "subcategory">
+): TemplatePreviewProps {
+  const props = buildPreviewPropsFromSlots(template.dataSlots);
+  const code = `${template.sourceCode.short}\n${template.sourceCode.long}`;
+  props.segments = extractPreviewSegmentsFromCode(code);
+
+  const centerValue = code.match(/centerValue\s*:\s*["']([^"']+)["']/)?.[1];
+  const centerLabel = code.match(/centerLabel\s*:\s*["']([^"']+)["']/)?.[1];
+  if (centerValue) props.centerValue = centerValue;
+  if (centerLabel) props.centerLabel = centerLabel;
+
+  if (isPieChartContext(template.subcategory)) {
+    props.title = props.title || "Pie Series";
+  } else if (isDonutChartContext(template.subcategory)) {
+    props.centerValue = props.centerValue || "78%";
+    props.centerLabel = props.centerLabel || props.label || "Total";
+  }
+
   return props;
 }
 
@@ -1407,6 +1507,53 @@ function useTemplatePreviewTimeline({
   return { frame, playing, playFromStart, toggle, pause, setFrame };
 }
 
+function canLivePreviewSource(code: string) {
+  const trimmed = String(code || "").trim();
+  return (
+    /export\s+default\s+function/.test(trimmed) &&
+    /\buseCurrentFrame\s*\(/.test(trimmed)
+  );
+}
+
+function TemplatePreviewSlot({
+  template,
+  format,
+  size = "card",
+  autoPlay = false,
+}: {
+  template: TemplateItem;
+  format: "9:16" | "16:9";
+  size?: "card" | "detail";
+  autoPlay?: boolean;
+}) {
+  const source =
+    format === "9:16" ? template.sourceCode.short : template.sourceCode.long;
+  if (canLivePreviewSource(source)) {
+    return (
+      <SavedTemplatePreviewFrame
+        sourceCode={source}
+        format={format}
+        size={size}
+        autoPlay={autoPlay}
+      />
+    );
+  }
+
+  const variant = effectivePreviewVariant(
+    format === "9:16" ? template.shortPreview : template.longPreview,
+    template
+  );
+  return (
+    <PreviewFrame
+      format={format}
+      variant={variant}
+      previewProps={buildPreviewPropsFromTemplate(template)}
+      size={size}
+      autoPlay={autoPlay}
+    />
+  );
+}
+
 function PreviewFrame({
   format,
   variant,
@@ -1552,11 +1699,7 @@ function TemplateDetailPanel({
   onBack: () => void;
 }) {
   const activeSource = template.sourceCode[activeFormat];
-  const basePreview =
-    activeFormat === "short" ? template.shortPreview : template.longPreview;
-  const activePreview = effectivePreviewVariant(basePreview, template);
   const activeAspectRatio = activeFormat === "short" ? "9:16" : "16:9";
-  const previewProps = buildPreviewPropsFromSlots(template.dataSlots);
 
   return (
     <section className="bg-[#0e1522]">
@@ -1667,15 +1810,16 @@ function TemplateDetailPanel({
                   <p className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">
                     {activeFormat === "short" ? "Shorts 9:16" : "Longos 16:9"}
                   </p>
-                  <PreviewFrame
+                  <TemplatePreviewSlot
+                    template={template}
                     format={activeAspectRatio}
-                    variant={activePreview}
-                    previewProps={previewProps}
                     size="detail"
                     autoPlay={false}
                   />
                   <p className="text-center text-[10px] font-bold text-zinc-500">
-                    Aperte play para ver a animacao completa do template.
+                    {canLivePreviewSource(activeSource)
+                      ? "Preview ao vivo do TSX salvo (Remotion Player)."
+                      : "Aperte play para ver a animacao do catalogo seed."}
                   </p>
                 </div>
               </div>
@@ -2152,26 +2296,14 @@ export function RemotionTemplateStudio({
                   }`}
                 >
                   <div className="flex gap-3 border-b border-white/10 bg-[#0c121d] p-3">
-                    <PreviewFrame
+                    <TemplatePreviewSlot
+                      template={template}
                       format="9:16"
-                      variant={effectivePreviewVariant(
-                        template.shortPreview,
-                        template
-                      )}
-                      previewProps={buildPreviewPropsFromSlots(
-                        template.dataSlots
-                      )}
                       autoPlay
                     />
-                    <PreviewFrame
+                    <TemplatePreviewSlot
+                      template={template}
                       format="16:9"
-                      variant={effectivePreviewVariant(
-                        template.longPreview,
-                        template
-                      )}
-                      previewProps={buildPreviewPropsFromSlots(
-                        template.dataSlots
-                      )}
                       autoPlay
                     />
                   </div>
