@@ -633,6 +633,14 @@ function asyncHandler(fn) {
 }
 
 // Health ultra-leve — registrado ANTES de middlewares pesados (watchdog nao mata processo ocupado)
+app.get("/api/cesium/config", (_req, res) => {
+  res.json({
+    map_engine: String(process.env.LUMIERA_MAP_ENGINE || "cesium"),
+    ionAccessToken: String(process.env.CESIUM_ION_ACCESS_TOKEN || "").trim(),
+    googleMapsApiKey: String(process.env.GOOGLE_MAPS_API_KEY || "").trim(),
+  });
+});
+
 app.get("/api/health", (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Connection", "close");
