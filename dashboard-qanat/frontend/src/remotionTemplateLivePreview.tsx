@@ -67,7 +67,7 @@ function stripTemplateHeader(code: string) {
 
 function extractExampleProps(code: string): Record<string, unknown> {
   const match = code.match(
-    /export\s+const\s+exampleProps\s*=\s*(\{[\s\S]*?\n\});/m
+    /export\s+const\s+exampleProps[^=]*=\s*(\{[\s\S]*?\n\});/m
   );
   if (!match?.[1]) return {};
   try {
@@ -95,7 +95,7 @@ function prepareRunnableSource(code: string) {
   let src = stripTemplateHeader(code);
   src = src.replace(/^"use client";\s*/m, "");
   src = src.replace(/^import\s+[\s\S]*?from\s+["'][^"']+["'];?\s*/gm, "");
-  src = src.replace(/export\s+const\s+exampleProps\s*=[\s\S]*?;\s*/m, "");
+  src = src.replace(/export\s+const\s+exampleProps[^=]*=[\s\S]*?;\s*/m, "");
 
   const defaultFn = src.match(/export\s+default\s+function\s+(\w+)/);
   const componentName = defaultFn?.[1];
