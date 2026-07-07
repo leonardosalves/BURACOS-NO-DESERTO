@@ -89,6 +89,34 @@ export function activeVideoAt(
   );
 }
 
+/** Preview: clip no playhead ou o B-roll com source mais próximo (evita «Sem mídia» em gaps). */
+export function previewVideoAt(
+  clips: StudioClip[],
+  playhead: number
+): StudioClip | null {
+  const direct = activeVideoAt(clips, playhead);
+  if (direct) return direct;
+
+  const vids = clipsOnTrack(clips, "video").filter((c) =>
+    Boolean(String(c.source || "").trim())
+  );
+  if (!vids.length) return null;
+
+  let best: StudioClip | null = null;
+  let bestDist = Infinity;
+  for (const clip of vids) {
+    const end = clip.start + clip.duration;
+    let dist = 0;
+    if (playhead < clip.start) dist = clip.start - playhead;
+    else if (playhead >= end) dist = playhead - end;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = clip;
+    }
+  }
+  return bestDist <= 45 ? best : vids[0] || null;
+}
+
 export function activeMotionAt(
   clips: StudioClip[],
   playhead: number

@@ -73,6 +73,39 @@ export function buildProductionMetaForVisualPrompt(
  * Cria/atualiza slots em timeline_assets a partir de visual_prompts (asset vazio = Pendente).
  * Não sobrescreve slots com user_locked ou arquivo já escolhido pelo usuário.
  */
+function isRemotionPrimaryScene(vp = {}, motion = null) {
+  const mediaMode = String(
+    vp.media_mode || motion?.media_mode || ""
+  ).toLowerCase();
+  return mediaMode === "remotion";
+}
+
+function visualPromptAssetPath(vp = {}) {
+  const nested = vp.asset;
+  if (nested && typeof nested === "object") {
+    return String(nested.asset || "").trim();
+  }
+  return String(vp.asset || "").trim();
+}
+
+/** Remove slots vazios de motion (location-intro) que duplicam o bloco no Creator. */
+export function pruneMotionOnlyAssetSlots(timelineAssets = {}) {
+  const out = {};
+  for (const [blockKey, rawSlots] of Object.entries(timelineAssets || {})) {
+    const slots = Array.isArray(rawSlots) ? [...rawSlots] : [];
+    const hasFilled = slots.some((s) => String(s?.asset || "").trim());
+    const pruned = slots.filter((slot) => {
+      if (String(slot?.asset || "").trim()) return true;
+      if (slot?.user_locked) return true;
+      if (!slot?.motion_template_id && !slot?.motion_scene_id) return true;
+      if (!hasFilled) return true;
+      return false;
+    });
+    if (pruned.length) out[blockKey] = pruned;
+  }
+  return out;
+}
+
 export function buildTimelineAssetSlotsFromVisualPrompts(
   visualPrompts = [],
   existingTimelineAssets = {},
@@ -97,6 +130,8 @@ export function buildTimelineAssetSlotsFromVisualPrompts(
     const prev = idx >= 0 ? slots[idx] : null;
     const motion = motionByRef.get(sceneRef) || null;
     const production = buildProductionMetaForVisualPrompt(vp, motion);
+    const vpAsset = visualPromptAssetPath(vp);
+    const remotionPrimary = isRemotionPrimaryScene(vp, motion);
 
     if (prev?.user_locked) {
       slots[idx] = {
@@ -119,6 +154,49 @@ export function buildTimelineAssetSlotsFromVisualPrompts(
           prev.generation_prompt || production.generate_from_prompt,
       };
       merged[blockKey] = slots;
+      continue;
+    }
+
+    if (vpAsset) {
+      const orphanIdx = slots.findIndex(
+        (s) =>
+          !String(s?.scene_ref || "").trim() &&
+          String(s?.asset || "").trim() === vpAsset
+      );
+      if (orphanIdx >= 0) {
+        slots[orphanIdx] = {
+          ...slots[orphanIdx],
+          scene_ref: sceneRef,
+          production,
+          narration_segment:
+            slots[orphanIdx].narration_segment ||
+            String(vp.narration_text || "").trim(),
+          generation_prompt:
+            slots[orphanIdx].generation_prompt ||
+            production.generate_from_prompt,
+        };
+        if (
+          idx >= 0 &&
+          idx !== orphanIdx &&
+          !String(prev?.asset || "").trim()
+        ) {
+          slots.splice(idx, 1);
+        }
+        merged[blockKey] = slots;
+        continue;
+      }
+    }
+
+    if (remotionPrimary && !vpAsset) {
+      if (idx >= 0) {
+        slots[idx] = {
+          ...prev,
+          production,
+          motion_scene_id: production.motion_scene_id,
+          motion_template_id: production.motion_template_id,
+        };
+        merged[blockKey] = slots;
+      }
       continue;
     }
 
@@ -260,10 +338,12 @@ export async function orchestrateProduction(
 
   let timelineAssets = config.timeline_assets || {};
   if (rebuildAssetSlots) {
-    timelineAssets = buildTimelineAssetSlotsFromVisualPrompts(
-      storyboard.visual_prompts,
-      timelineAssets,
-      plan.motion_scenes
+    timelineAssets = pruneMotionOnlyAssetSlots(
+      buildTimelineAssetSlotsFromVisualPrompts(
+        storyboard.visual_prompts,
+        timelineAssets,
+        plan.motion_scenes
+      )
     );
     config = { ...config, timeline_assets: timelineAssets };
   }

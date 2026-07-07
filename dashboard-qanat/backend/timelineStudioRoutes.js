@@ -6,6 +6,7 @@ import {
   saveTimelineStudio,
   loadTimelineStudio,
   migrateLegacyToTimelineStudio,
+  mergeMissingBrollFromConfig,
 } from "./timelineStudioMigration.js";
 import {
   searchTimelineStock,
@@ -61,11 +62,24 @@ export function registerTimelineStudioRoutes(
         migrated,
         motionMigrated,
       } = loadTimelineStudio(projDir);
-      const studio = syncStudioMusicFromConfig(rawStudio, projDir);
+      let studio = syncStudioMusicFromConfig(rawStudio, projDir);
+      const config = readProjectConfig(projDir);
+      let blockTimings = {};
+      try {
+        const btPath = path.join(projDir, "block_timings.json");
+        if (fs.existsSync(btPath)) {
+          blockTimings = JSON.parse(fs.readFileSync(btPath, "utf8"));
+        }
+      } catch {
+        /* ignore */
+      }
+      const merged = mergeMissingBrollFromConfig(studio, config, blockTimings);
+      const brollRestored = Number(merged.brollRestored) || 0;
+      if (brollRestored > 0) studio = merged;
       const musicChanged =
         JSON.stringify(musicClipSnapshot(rawStudio)) !==
         JSON.stringify(musicClipSnapshot(studio));
-      if (musicChanged) {
+      if (musicChanged || brollRestored > 0) {
         saveTimelineStudio(projDir, studio);
       }
       res.json({
@@ -74,6 +88,7 @@ export function registerTimelineStudioRoutes(
         migrated,
         motionMigrated: Boolean(motionMigrated),
         musicSynced: musicChanged,
+        brollRestored,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

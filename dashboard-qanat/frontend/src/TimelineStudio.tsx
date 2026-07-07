@@ -24,7 +24,6 @@ import {
 } from "./timelineStudioClipOps";
 import { preloadStudioMediaAtPlayhead } from "./timelineStudioMedia";
 import {
-  activeVideoAt,
   clipsOnTrack,
   ensureMotionTrackInStudio,
   type StudioClip,
@@ -89,7 +88,15 @@ export function TimelineStudio({
         )
       );
       const playhead = Number(loaded.playhead) || 0;
-      if (!activeVideoAt(loaded.clips, playhead)) {
+      const hasVideoAtPlayhead = Boolean(
+        clipsOnTrack(loaded.clips, "video").find(
+          (clip) =>
+            Boolean(String(clip.source || "").trim()) &&
+            playhead >= clip.start &&
+            playhead < clip.start + clip.duration
+        )
+      );
+      if (!hasVideoAtPlayhead) {
         const firstVideo = clipsOnTrack(loaded.clips, "video").find((clip) =>
           Boolean(String(clip.source || "").trim())
         );
@@ -110,6 +117,11 @@ export function TimelineStudio({
       if (data.motionMigrated) {
         toast.success(
           "Cenas Remotion movidas para trilha própria (PIP no mapa)"
+        );
+      }
+      if (Number(data.brollRestored) > 0) {
+        toast.success(
+          `${data.brollRestored} clip(s) B-roll restaurado(s) do config`
         );
       }
     } catch (err) {
