@@ -17,8 +17,8 @@ Triggers: commit, reiniciar, restart, servidor, backend, porta 3005, finalizar t
    - `.\scripts\ensure-lumiera.ps1` (backend 3005 + frontend 5176)
    - Se falhar: ler `.lumiera-logs\pm2-backend-error.log` (modo PM2) ou `backend-stderr.log`
    - Corrigir causa (porta, dependência, proxy, crash) e rodar ensure de novo
-1. **Backend** — preferir **modo PM2** (estável, auto-reinicio):
-   - Instalar 1× no PC do Leo: `.\scripts\install-lumiera-pm2.ps1`
+1. **Backend** — modo **PERMANENTE** (obrigatório no PC do Leo):
+   - Instalar 1×: `.\scripts\install-lumiera-permanent.ps1` (PM2 + guardian Windows a cada 1 min)
    - Código em `dashboard-qanat/backend/**` alterado → `.\scripts\restart-backend.ps1 -Force` (PM2 faz reload gracioso; bloqueia se `server.js` tiver erro de sintaxe)
    - Só garantir que está no ar → `.\scripts\ensure-lumiera.ps1` (não mata render ativo)
    - **Não** reinstalar watchdog PowerShell se PM2 estiver ativo
@@ -30,7 +30,7 @@ Triggers: commit, reiniciar, restart, servidor, backend, porta 3005, finalizar t
 ## Scripts
 
 ```powershell
-.\scripts\install-lumiera-pm2.ps1      # 1× — modo estável (recomendado)
+.\scripts\install-lumiera-permanent.ps1  # 1× — nunca mais cair (PM2+guardian)
 .\scripts\ensure-lumiera.ps1         # verifica e corrige tudo (preferir ao finalizar)
 .\scripts\restart-backend.ps1 -Force   # após mudar backend (PM2 reload se instalado)
 .\scripts\status-lumiera.ps1           # diagnóstico

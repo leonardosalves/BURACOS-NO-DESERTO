@@ -15,7 +15,24 @@ function Get-PortStatus([int]$Port) {
 Write-Host "=== Lumiera - status ===" -ForegroundColor Cyan
 
 $pm2Mode = Test-LumieraPm2Mode
-if ($pm2Mode) {
+$permanentMode = Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode")
+if ($permanentMode) {
+    Write-Host "Modo     : PERMANENTE (PM2 + guardian 1 min)" -ForegroundColor Green
+    $guardTask = Get-ScheduledTask -TaskName "Lumiera-Guardian" -ErrorAction SilentlyContinue
+    $daemonPidFile = Join-Path $script:LogDir "guardian-daemon.pid"
+    if ($guardTask) {
+        Write-Host ("Guardian : tarefa {0}" -f $guardTask.State) -ForegroundColor $(if ($guardTask.State -eq "Running") { "Green" } else { "Yellow" })
+    } elseif (Test-Path -LiteralPath $daemonPidFile) {
+        try {
+            $gpid = [int](Get-Content -LiteralPath $daemonPidFile -TotalCount 1)
+            if ($gpid -gt 0 -and (Get-Process -Id $gpid -ErrorAction SilentlyContinue)) {
+                Write-Host ("Guardian : daemon ativo (PID {0})" -f $gpid) -ForegroundColor Green
+            } else {
+                Write-Host "Guardian : daemon parado — rode install-lumiera-permanent.ps1" -ForegroundColor Yellow
+            }
+        } catch { }
+    }
+} elseif ($pm2Mode) {
     Write-Host "Modo     : PM2 (auto-reinicio nativo)" -ForegroundColor Green
     if (Resolve-LumieraPm2Bin) {
         foreach ($app in @("lumiera-backend", "lumiera-frontend")) {

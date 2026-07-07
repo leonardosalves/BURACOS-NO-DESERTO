@@ -31,6 +31,7 @@ if ($Uninstall) {
     Invoke-LumieraPm2 @("delete", "lumiera-backend", "lumiera-frontend") | Out-Null
     Invoke-LumieraPm2 @("save", "--force") | Out-Null
     Remove-Item -LiteralPath $Pm2ModeFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $script:LogDir "permanent.mode") -Force -ErrorAction SilentlyContinue
     Write-Host "PM2 desinstalado. Para voltar ao watchdog: .\scripts\install-lumiera-startup.ps1" -ForegroundColor Green
     exit 0
 }
@@ -75,22 +76,13 @@ foreach ($app in @("lumiera-backend", "lumiera-frontend")) {
 }
 $startArgs = @("start", $Ecosystem, "--update-env")
 if ($BackendOnly) { $startArgs += "--only"; $startArgs += "lumiera-backend" }
-Invoke-LumieraPm2 $startArgs | Out-Host
-
-$deadline = (Get-Date).AddSeconds(90)
-$backendOk = $false
-while ((Get-Date) -lt $deadline) {
-    $be = Get-LumieraPm2AppRow "lumiera-backend"
-    if ($be -and $be.pm2_env.status -eq "online" -and (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 8)) {
-        $backendOk = $true
-        break
-    }
-    Start-Sleep -Seconds 2
-}
+Invoke-LumieraPm2 $startArgs | Out-Null
+Start-Sleep -Seconds 3
+$backendOk = Repair-LumieraPm2Stack
 
 if (-not $backendOk) {
     Write-Host "Backend nao respondeu - veja .lumiera-logs\pm2-backend-error.log" -ForegroundColor Red
-    Invoke-LumieraPm2 @("logs", "lumiera-backend", "--lines", "20", "--nostream") | Out-Host
+    Invoke-LumieraPm2 @("logs", "lumiera-backend", "--lines", "20", "--nostream") -CaptureOutput | Out-Host
     exit 1
 }
 

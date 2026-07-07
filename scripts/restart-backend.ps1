@@ -14,7 +14,8 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "NotebookLM: sessao OK ($script:NotebookLmData)" -ForegroundColor DarkGray
 }
 
-if (Test-LumieraPm2Mode) {
+$permanentMode = Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode")
+if (Test-LumieraPm2Mode -or $permanentMode) {
     if (-not (Test-BackendSyntaxOk)) {
         Write-Host "ERRO: server.js com sintaxe invalida - PM2 nao reiniciou." -ForegroundColor Red
         Write-Host "Veja: .lumiera-logs\backend-syntax-check.log" -ForegroundColor Yellow

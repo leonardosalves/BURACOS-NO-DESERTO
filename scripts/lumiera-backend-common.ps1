@@ -208,11 +208,11 @@ function Start-LumieraBackendProcess {
 
     Initialize-LumieraBackendEnv
 
-    if (Test-LumieraPm2Mode) {
+    if (Test-LumieraPm2Mode -or (Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode"))) {
         if ($ForceRestart) {
             return Ensure-LumieraPm2Backend -Reload
         }
-        return Ensure-LumieraPm2Backend
+        return Repair-LumieraPm2Stack
     }
 
     if (Test-BackendRestartLock) {
@@ -353,12 +353,23 @@ function Start-LumieraBackendProcess {
     }
 }
 
+function Initialize-LumieraPm2Env {
+    $env:PM2_HOME = Join-Path $env:USERPROFILE ".pm2"
+}
+
 function Resolve-LumieraPm2Bin {
     $localPm2 = Join-Path $script:RepoRoot "node_modules\.bin\pm2.cmd"
     if (Test-Path -LiteralPath $localPm2) {
         return $localPm2
     }
     return $null
+}
+
+function Test-LumieraPm2DaemonAlive {
+    Initialize-LumieraPm2Env
+    if (-not (Resolve-LumieraPm2Bin)) { return $false }
+    $ping = (Invoke-LumieraPm2 @("ping") -CaptureOutput | Out-String)
+    return $ping -match "pong"
 }
 
 function Convert-LumieraPm2Json {
@@ -393,6 +404,7 @@ function Invoke-LumieraPm2 {
         [string[]]$Pm2Args,
         [switch]$CaptureOutput
     )
+    Initialize-LumieraPm2Env
     $prevEap = $ErrorActionPreference
     $ErrorActionPreference = "SilentlyContinue"
     $pm2 = Resolve-LumieraPm2Bin
@@ -487,6 +499,93 @@ function Ensure-LumieraPm2Backend {
         if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 12) { return $true }
         Start-Sleep -Seconds 2
     }
+    return $false
+}
+
+function Repair-LumieraPm2Stack {
+    Initialize-LumieraPm2Env
+    Ensure-LumieraLogDir
+
+    if (-not (Resolve-LumieraPm2Bin)) {
+        Push-Location $script:RepoRoot
+        npm install pm2 --save-dev --no-audit --no-fund 2>$null | Out-Null
+        Pop-Location
+    }
+    if (-not (Resolve-LumieraPm2Bin)) {
+        Write-LumieraLog "PM2 nao instalado - impossivel reparar stack" "ERROR"
+        return $false
+    }
+
+    $ecosystem = Join-Path $script:RepoRoot "ecosystem.config.cjs"
+    if (-not (Test-Path -LiteralPath $ecosystem)) { return $false }
+
+    $backendHealthy = Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 8
+    $frontendUp = [bool](Get-PortListenerPidFast 5176)
+    if ($backendHealthy -and $frontendUp) {
+        return $true
+    }
+
+    if (-not (Test-BackendSyntaxOk)) {
+        Write-LumieraLog "Reparo bloqueado: server.js com erro de sintaxe" "ERROR"
+        return $false
+    }
+
+    if (Test-ActiveLumieraRender -and -not $backendHealthy) {
+        Write-LumieraLog "Render ativo - reparo do backend adiado" "WARN"
+        if (-not $frontendUp) {
+            Invoke-LumieraPm2 @("restart", "lumiera-frontend", "--update-env") | Out-Null
+            $feDeadline = (Get-Date).AddSeconds(45)
+            while ((Get-Date) -lt $feDeadline) {
+                if (Get-PortListenerPidFast 5176) { return $false }
+                Start-Sleep -Seconds 1
+            }
+        }
+        return $false
+    }
+
+    if (-not (Test-LumieraPm2DaemonAlive)) {
+        Write-LumieraLog "PM2 daemon offline - resurrect" "WARN"
+        Invoke-LumieraPm2 @("resurrect") | Out-Null
+        Start-Sleep -Seconds 4
+    }
+
+    $be = Get-LumieraPm2AppRow "lumiera-backend"
+    $fe = Get-LumieraPm2AppRow "lumiera-frontend"
+
+    if (-not $be -or -not $fe) {
+        Write-LumieraLog "Apps PM2 ausentes - start ecosystem" "WARN"
+        foreach ($app in @("lumiera-backend", "lumiera-frontend")) {
+            Invoke-LumieraPm2 @("delete", $app) | Out-Null
+        }
+        Invoke-LumieraPm2 @("start", $ecosystem, "--update-env") | Out-Null
+    } elseif (-not $backendHealthy) {
+        $beStatus = $be.pm2_env.status
+        if ($beStatus -eq "online") {
+            Write-LumieraLog "Backend PM2 online sem health - restart" "WARN"
+            Invoke-LumieraPm2 @("restart", "lumiera-backend", "--update-env") | Out-Null
+        } else {
+            Invoke-LumieraPm2 @("restart", "lumiera-backend", "--update-env") | Out-Null
+        }
+    }
+
+    if (-not $frontendUp) {
+        Invoke-LumieraPm2 @("restart", "lumiera-frontend", "--update-env") | Out-Null
+    }
+
+    $deadline = (Get-Date).AddSeconds(120)
+    while ((Get-Date) -lt $deadline) {
+        $bh = Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 10
+        $fu = [bool](Get-PortListenerPidFast 5176)
+        if ($bh -and $fu) {
+            Invoke-LumieraPm2 @("save", "--force") | Out-Null
+            Set-Content -Path $script:Pm2ModeFile -Value ((Get-Date).ToString("o")) -Encoding UTF8
+            Write-LumieraLog "Stack PM2 reparado - backend+frontend OK"
+            return $true
+        }
+        Start-Sleep -Seconds 2
+    }
+
+    Write-LumieraLog "Reparo PM2: timeout aguardando health/portas" "ERROR"
     return $false
 }
 
