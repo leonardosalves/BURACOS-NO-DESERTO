@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { MapPin, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -7,6 +7,12 @@ import {
   type StudioTrack,
 } from "./timelineStudioTypes";
 import { isClipEditable } from "./timelineStudioClipOps";
+import {
+  applySatelliteResultToClip,
+  fetchProjectSatellite,
+  locationIntroHasSatellite,
+  locationIntroNeedsSatelliteFetch,
+} from "./timelineStudioSatellite";
 
 type Props = {
   clip: StudioClip;
@@ -32,25 +38,63 @@ export function TimelineStudioClipInspector({
   const editable = isClipEditable(clip);
   const captionText = String(clip.props?.text || clip.label || "");
   const [fetchingSatellite, setFetchingSatellite] = useState(false);
+  const autoFetchedRef = useRef<string | null>(null);
   const mapProvider = String(clip.props?.map_provider || "");
   const hasCoords =
     Number.isFinite(Number(clip.props?.lat)) &&
     Number.isFinite(Number(clip.props?.lng));
   const isCesiumReady = mapProvider === "cesium" && hasCoords;
-  const hasSatelliteTiles = Boolean(
-    isCesiumReady ||
-    String(clip.props?.backgroundImage || "").trim() ||
-    (Array.isArray(clip.props?.zoom_keyframes) &&
-      clip.props.zoom_keyframes.some((kf: { image?: string }) =>
-        Boolean(String(kf?.image || "").trim())
-      ))
-  );
+  const hasSatelliteTiles = locationIntroHasSatellite(clip);
+  const needsSatelliteFetch = locationIntroNeedsSatelliteFetch(clip);
   const motionQcOk = clip.props?.motion_quality_ok !== false;
   const motionQcScore = Number(clip.props?.motion_quality_score) || 0;
   const keyframeCount = Array.isArray(clip.props?.zoom_keyframes)
     ? clip.props.zoom_keyframes.length
     : 0;
   const zoomTo = Number(clip.props?.zoom_to) || 0;
+
+  const runSatelliteFetch = async (silent = false) => {
+    if (!getProjectUrl) return;
+    setFetchingSatellite(true);
+    try {
+      const data = await fetchProjectSatellite(getProjectUrl, { silent });
+      if (!data) return;
+
+      if (data.studio && onSatelliteSynced) {
+        onSatelliteSynced(data.studio);
+      } else {
+        const patch = applySatelliteResultToClip(clip, data);
+        if (patch) onUpdate(patch);
+      }
+
+      const q = data.quality as { ok?: boolean; score?: number } | undefined;
+      if (!silent) {
+        toast.success(
+          `Satélite + QC ${q?.score ?? motionQcScore}/100${q?.ok ? " ✓" : " — revise inspector"}`
+        );
+      }
+    } catch (err) {
+      if (!silent) {
+        toast.error(`Mapa: ${(err as Error).message || "erro desconhecido"}`);
+      }
+    } finally {
+      setFetchingSatellite(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!getProjectUrl || !needsSatelliteFetch || fetchingSatellite) return;
+    const key = `${clip.id}:${String(clip.props?.location || clip.label || "")}`;
+    if (autoFetchedRef.current === key) return;
+    autoFetchedRef.current = key;
+    void runSatelliteFetch(true);
+  }, [
+    clip.id,
+    clip.label,
+    clip.props?.location,
+    getProjectUrl,
+    needsSatelliteFetch,
+  ]);
 
   return (
     <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/90 overflow-hidden">
@@ -162,20 +206,24 @@ export function TimelineStudioClipInspector({
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={`text-[10px] font-semibold ${
-                    motionQcOk && hasSatelliteTiles
-                      ? "text-emerald-400"
-                      : "text-amber-400"
+                    fetchingSatellite
+                      ? "text-sky-400"
+                      : motionQcOk && hasSatelliteTiles
+                        ? "text-emerald-400"
+                        : "text-amber-400"
                   }`}
                 >
-                  {motionQcOk && hasSatelliteTiles
-                    ? isCesiumReady
-                      ? `QC OK · ${keyframeCount} keyframes · Cesium 3D · zoom ${zoomTo || "—"}`
-                      : `QC OK · ${keyframeCount} tiles · zoom ${zoomTo || "—"}`
-                    : hasSatelliteTiles
+                  {fetchingSatellite
+                    ? "Baixando voo satélite automaticamente…"
+                    : motionQcOk && hasSatelliteTiles
                       ? isCesiumReady
-                        ? `QC pendente · ${keyframeCount} keyframes Cesium (revise zoom/contorno)`
-                        : `QC pendente · ${keyframeCount} tiles (revise zoom/contorno)`
-                      : "Sem tiles — QC vai re-baixar ao orquestrar"}
+                        ? `QC OK · ${keyframeCount} keyframes · Cesium 3D · zoom ${zoomTo || "—"}`
+                        : `QC OK · ${keyframeCount} tiles · zoom ${zoomTo || "—"}`
+                      : hasSatelliteTiles
+                        ? isCesiumReady
+                          ? `QC pendente · ${keyframeCount} keyframes Cesium (revise zoom/contorno)`
+                          : `QC pendente · ${keyframeCount} tiles (revise zoom/contorno)`
+                        : "Aguardando geocode — baixa automática ao abrir o clip"}
                 </span>
                 {isCesiumReady ? (
                   <span className="text-[9px] text-zinc-500 w-full">
@@ -183,72 +231,24 @@ export function TimelineStudioClipInspector({
                     {Number(clip.start).toFixed(1)}s)
                   </span>
                 ) : null}
-                {getProjectUrl ? (
+                {getProjectUrl && hasSatelliteTiles ? (
                   <button
                     type="button"
                     disabled={fetchingSatellite}
-                    onClick={async () => {
-                      setFetchingSatellite(true);
-                      try {
-                        const res = await fetch(
-                          getProjectUrl(
-                            "/api/ai/creator/motion-scenes/satellite"
-                          ),
-                          {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({}),
-                          }
-                        );
-                        if (!res.ok) throw new Error(await res.text());
-                        const data = await res.json();
-                        const hit = (data.results || []).find(
-                          (row: { id?: string }) => row.id === clip.id
-                        );
-                        if (hit?.ok === false) {
-                          const detail =
-                            hit.reason === "geocode_failed"
-                              ? "geocode_failed — preencha local/cidade/país ou use nome canônico (ex.: Laufenburg, Suíça)"
-                              : hit.reason || "Falha ao baixar mapa satélite";
-                          throw new Error(detail);
-                        }
-                        if (data.studio && onSatelliteSynced) {
-                          onSatelliteSynced(data.studio);
-                        } else {
-                          const motion = (data.motion_scenes || []).find(
-                            (ms: { id?: string }) => ms.id === clip.id
-                          );
-                          if (motion?.props) {
-                            onUpdate({
-                              props: { ...clip.props, ...motion.props },
-                            });
-                          }
-                        }
-                        const q = data.quality as
-                          { ok?: boolean; score?: number } | undefined;
-                        toast.success(
-                          `Satélite + QC ${q?.score ?? motionQcScore}/100${q?.ok ? " ✓" : " — revise inspector"}`
-                        );
-                      } catch (err) {
-                        toast.error(
-                          `Mapa: ${(err as Error).message || "erro desconhecido"}`
-                        );
-                      } finally {
-                        setFetchingSatellite(false);
-                      }
-                    }}
-                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-violet-500/40 bg-violet-500/10 text-violet-200 cursor-pointer disabled:opacity-50"
+                    onClick={() => void runSatelliteFetch(false)}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-zinc-700 bg-zinc-900/60 text-zinc-400 cursor-pointer disabled:opacity-50"
                   >
                     <MapPin
                       className={`w-3 h-3 ${fetchingSatellite ? "animate-pulse" : ""}`}
                     />
-                    {fetchingSatellite ? "Baixando…" : "Baixar voo satélite"}
+                    {fetchingSatellite ? "Baixando…" : "Re-baixar satélite"}
                   </button>
                 ) : null}
               </div>
               <p className="text-[9px] text-zinc-600 mt-1">
-                Cidade: descida do espaço + contorno OSM. POI: zoom até o
-                monumento/prédio (satélite 3D real exige Google Earth Studio).
+                O voo satélite baixa sozinho ao planejar Cenas Remotion ou ao
+                abrir um clip sem mapa. Cidade: descida do espaço + contorno
+                OSM.
               </p>
             </Field>
           </>
