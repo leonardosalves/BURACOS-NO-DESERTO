@@ -510,6 +510,119 @@ function buildFormatSource({
   ].join("\n");
 }
 
+function subcategoryKey(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function subcategoryExists(subcategories: string[], name: string) {
+  const key = subcategoryKey(name);
+  return subcategories.some((item) => subcategoryKey(item) === key);
+}
+
+function mergeCategoryCatalog(
+  stored: TemplateCategoryDefinition[],
+  seed: TemplateCategoryDefinition[] = CATEGORIES
+): TemplateCategoryDefinition[] {
+  const byId = new Map<string, TemplateCategoryDefinition>();
+
+  for (const item of seed) {
+    byId.set(item.id, {
+      ...item,
+      subcategories: [...item.subcategories],
+    });
+  }
+
+  for (const item of stored) {
+    const existing = byId.get(item.id);
+    if (!existing) {
+      byId.set(item.id, {
+        ...item,
+        subcategories: [...item.subcategories],
+      });
+      continue;
+    }
+    const mergedSubs = [...existing.subcategories];
+    for (const sub of item.subcategories) {
+      if (!subcategoryExists(mergedSubs, sub)) mergedSubs.push(sub);
+    }
+    byId.set(item.id, {
+      ...existing,
+      label: existing.label || item.label,
+      subcategories: mergedSubs,
+    });
+  }
+
+  return Array.from(byId.values());
+}
+
+function syncCategoriesFromTemplates(
+  categories: TemplateCategoryDefinition[],
+  templates: TemplateItem[]
+): TemplateCategoryDefinition[] {
+  const byId = new Map(
+    categories.map((item) => [
+      item.id,
+      { ...item, subcategories: [...item.subcategories] },
+    ])
+  );
+
+  for (const template of templates) {
+    const cleanSubcategory = template.subcategory?.trim();
+    if (!template.category || !cleanSubcategory) continue;
+
+    let categoryDef = byId.get(template.category);
+    if (!categoryDef) {
+      categoryDef = {
+        id: template.category,
+        label: template.category,
+        subcategories: [],
+      };
+      byId.set(template.category, categoryDef);
+    }
+    if (!subcategoryExists(categoryDef.subcategories, cleanSubcategory)) {
+      categoryDef.subcategories.push(cleanSubcategory);
+    }
+  }
+
+  return Array.from(byId.values());
+}
+
+function ensureSubcategoryRegistered(
+  categories: TemplateCategoryDefinition[],
+  categoryId: string,
+  subcategoryName: string
+): TemplateCategoryDefinition[] {
+  const clean = subcategoryName.trim();
+  if (!clean) return categories;
+
+  const nextCategories = categories.some((item) => item.id === categoryId)
+    ? categories
+    : [...categories, { id: categoryId, label: categoryId, subcategories: [] }];
+
+  return nextCategories.map((item) => {
+    if (item.id !== categoryId) return item;
+    if (subcategoryExists(item.subcategories, clean)) return item;
+    return {
+      ...item,
+      subcategories: [...item.subcategories, clean],
+    };
+  });
+}
+
+function readStoredCategoriesRaw(): TemplateCategoryDefinition[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CATEGORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? (parsed as TemplateCategoryDefinition[])
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 function loadStoredTemplates() {
   const seed = TEMPLATES.map(normalizeTemplatePreviewVariants);
   if (typeof window === "undefined") return seed;
@@ -525,18 +638,13 @@ function loadStoredTemplates() {
   }
 }
 
-function loadStoredCategories() {
-  if (typeof window === "undefined") return CATEGORIES;
-  try {
-    const raw = window.localStorage.getItem(CATEGORY_STORAGE_KEY);
-    if (!raw) return CATEGORIES;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? (parsed as TemplateCategoryDefinition[])
-      : CATEGORIES;
-  } catch {
-    return CATEGORIES;
-  }
+function loadStudioCatalog() {
+  const templates = loadStoredTemplates();
+  const categories = syncCategoriesFromTemplates(
+    mergeCategoryCatalog(readStoredCategoriesRaw()),
+    templates
+  );
+  return { templates, categories };
 }
 
 function uniqueCategoryId(
@@ -1614,15 +1722,18 @@ export function RemotionTemplateStudio({
   const initialNiche = NICHES.includes(projectNiche)
     ? projectNiche
     : "Engenharia";
+  const studioCatalog = useMemo(() => loadStudioCatalog(), []);
   const [niche, setNiche] = useState(initialNiche);
-  const [categories, setCategories] =
-    useState<TemplateCategoryDefinition[]>(loadStoredCategories);
+  const [categories, setCategories] = useState<TemplateCategoryDefinition[]>(
+    studioCatalog.categories
+  );
   const [category, setCategory] = useState<TemplateCategory>("maps");
   const [subcategory, setSubcategory] = useState("PIP mapa");
   const [selectedId, setSelectedId] = useState("eng-map-pip-tactical");
   const [detailTemplateId, setDetailTemplateId] = useState("");
-  const [templates, setTemplates] =
-    useState<TemplateItem[]>(loadStoredTemplates);
+  const [templates, setTemplates] = useState<TemplateItem[]>(
+    studioCatalog.templates
+  );
   const [detailTab, setDetailTab] = useState<DetailTab>("preview");
   const [detailFormat, setDetailFormat] = useState<DetailFormat>("short");
   const [copiedTemplateId, setCopiedTemplateId] = useState("");
@@ -1651,6 +1762,22 @@ export function RemotionTemplateStudio({
       // Mantem a tela funcional mesmo quando storage estiver indisponivel.
     }
   }, [categories]);
+
+  useEffect(() => {
+    setCategories((current) => {
+      const synced = syncCategoriesFromTemplates(current, templates);
+      const changed =
+        synced.length !== current.length ||
+        synced.some((cat) => {
+          const prev = current.find((item) => item.id === cat.id);
+          if (!prev) return true;
+          return cat.subcategories.some(
+            (sub) => !subcategoryExists(prev.subcategories, sub)
+          );
+        });
+      return changed ? synced : current;
+    });
+  }, [templates]);
 
   const subcategories = currentCategory?.subcategories || [];
   const finalValidation = useMemo(
@@ -1730,14 +1857,7 @@ export function RemotionTemplateStudio({
     const cleanLabel = String(label || "").trim();
     if (!cleanLabel) return;
     setCategories((current) =>
-      current.map((item) => {
-        if (item.id !== currentCategory.id) return item;
-        if (item.subcategories.includes(cleanLabel)) return item;
-        return {
-          ...item,
-          subcategories: [...item.subcategories, cleanLabel],
-        };
-      })
+      ensureSubcategoryRegistered(current, currentCategory.id, cleanLabel)
     );
     setSubcategory(cleanLabel);
     setDetailTemplateId("");
@@ -1816,6 +1936,9 @@ export function RemotionTemplateStudio({
       return;
     }
     const categoryLabel = currentCategory?.label || category;
+    setCategories((current) =>
+      ensureSubcategoryRegistered(current, category, subcategory)
+    );
     const dataSlots = extractDataSlotsFromCode(finalCodeDraft);
     const id = `draft-${slugifyTemplatePart(niche)}-${slugifyTemplatePart(
       categoryLabel
