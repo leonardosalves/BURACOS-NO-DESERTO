@@ -1,18 +1,22 @@
 # Status rapido: backend (3005), frontend (5176), ultimas linhas do log
 . (Join-Path $PSScriptRoot "lumiera-backend-common.ps1")
 
-function Test-PortListen([int]$Port) {
-    $c = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $c) { return $null }
-    $proc = Get-Process -Id $c.OwningProcess -ErrorAction SilentlyContinue
-    return @{ Port = $Port; Pid = $c.OwningProcess; Name = $proc.ProcessName }
+function Get-PortStatus([int]$Port) {
+    $portPid = Get-PortListenerPidFast $Port
+    if (-not $portPid) { return $null }
+    $proc = Get-Process -Id $portPid -ErrorAction SilentlyContinue
+    return @{
+        Port = $Port
+        Pid  = $portPid
+        Name = if ($proc) { $proc.ProcessName } else { "?" }
+    }
 }
 
 Write-Host "=== Lumiera - status ===" -ForegroundColor Cyan
 
-$backend = Test-PortListen 3005
-$frontend = Test-PortListen 5176
-$healthy = Test-LumieraBackendHealthy
+$backend = Get-PortStatus 3005
+$frontend = Get-PortStatus 5176
+$healthy = if ($backend) { Test-LumieraBackendHealthy -Quick -TimeoutSec 3 } else { $false }
 
 if ($backend) {
     $color = if ($healthy) { "Green" } else { "Yellow" }
@@ -29,7 +33,9 @@ if ($frontend) {
 }
 
 $watchProc = Test-LumieraWatchdogActive
-$task = Get-ScheduledTask -TaskName "Lumiera-Backend-Watchdog" -ErrorAction SilentlyContinue
+if (-not $watchProc) {
+    $task = Get-ScheduledTask -TaskName "Lumiera-Backend-Watchdog" -ErrorAction SilentlyContinue
+}
 if ($watchProc) {
     if ($watchProc.ProcessId -gt 0) {
         Write-Host ("Watchdog : ATIVO (PID {0})" -f $watchProc.ProcessId) -ForegroundColor Green
