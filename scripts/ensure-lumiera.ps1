@@ -25,7 +25,7 @@ if (-not $Quiet) {
 & (Join-Path $PSScriptRoot "ensure-watchdog.ps1") | Out-Null
 
 $backendOk = $false
-if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 8) {
+if (Test-LumieraBackendHealthy -Retries 4 -TimeoutSec 10) {
     $backendOk = $true
     if (-not $Quiet) { Write-Host "Backend ja OK" -ForegroundColor Green }
 } else {

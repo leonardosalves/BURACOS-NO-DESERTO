@@ -18033,8 +18033,10 @@ const server = app.listen(PORT, "0.0.0.0", () => {
             );
           }
         });
-      } else {
+      } else if (nlmQuick.needsLogin) {
         console.warn(`[NotebookLM] ${nlmQuick.message}`);
+      } else if (!/ETIMEDOUT/i.test(nlmQuick.message || "")) {
+        console.log(`[NotebookLM] ${nlmQuick.message}`);
       }
     } catch (e) {
       console.warn("[NotebookLM] status check failed:", e.message);

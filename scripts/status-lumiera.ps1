@@ -28,12 +28,16 @@ if ($frontend) {
     Write-Host "Frontend : OFFLINE (rode run_qanat_dashboard.bat ou npm run dev)" -ForegroundColor Yellow
 }
 
-$watchProc = Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
-    Where-Object { $_.CommandLine -like "*watch-lumiera-backend.ps1*" } |
-    Select-Object -First 1
+$watchProc = Test-LumieraWatchdogActive
 $task = Get-ScheduledTask -TaskName "Lumiera-Backend-Watchdog" -ErrorAction SilentlyContinue
 if ($watchProc) {
-    Write-Host ("Watchdog : ATIVO (PID {0})" -f $watchProc.ProcessId) -ForegroundColor Green
+    if ($watchProc.ProcessId -gt 0) {
+        Write-Host ("Watchdog : ATIVO (PID {0})" -f $watchProc.ProcessId) -ForegroundColor Green
+    } elseif ($watchProc.FromTask) {
+        Write-Host "Watchdog : ATIVO (tarefa agendada em execucao)" -ForegroundColor Green
+    } else {
+        Write-Host "Watchdog : ATIVO (log recente)" -ForegroundColor Green
+    }
 } elseif ($task) {
     Write-Host ("Watchdog : instalado mas PARADO (tarefa {0}) - rode .\scripts\ensure-watchdog.ps1" -f $task.State) -ForegroundColor Yellow
 } else {

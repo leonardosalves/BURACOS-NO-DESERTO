@@ -7,15 +7,13 @@ $ErrorActionPreference = "SilentlyContinue"
 $TaskName = "Lumiera-Backend-Watchdog"
 $WatchScript = Join-Path $PSScriptRoot "watch-lumiera-backend.ps1"
 
-function Test-WatchdogProcessRunning {
-    Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -like "*watch-lumiera-backend.ps1*" } |
-        Select-Object -First 1
-}
-
-$running = Test-WatchdogProcessRunning
+$running = Test-LumieraWatchdogActive
 if ($running) {
-    Write-Host "Watchdog ativo (PID $($running.ProcessId))" -ForegroundColor Green
+    if ($running.ProcessId -gt 0) {
+        Write-Host "Watchdog ativo (PID $($running.ProcessId))" -ForegroundColor Green
+    } else {
+        Write-Host "Watchdog ativo" -ForegroundColor Green
+    }
     exit 0
 }
 
@@ -38,9 +36,13 @@ Start-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 $deadline = (Get-Date).AddSeconds(15)
 while ((Get-Date) -lt $deadline) {
     Start-Sleep -Milliseconds 800
-    $running = Test-WatchdogProcessRunning
+    $running = Test-LumieraWatchdogActive
     if ($running) {
-        Write-Host "Watchdog ativo (PID $($running.ProcessId))" -ForegroundColor Green
+        if ($running.ProcessId -gt 0) {
+            Write-Host "Watchdog ativo (PID $($running.ProcessId))" -ForegroundColor Green
+        } else {
+            Write-Host "Watchdog ativo" -ForegroundColor Green
+        }
         exit 0
     }
 }
@@ -54,9 +56,13 @@ Start-Process `
     -WindowStyle Hidden | Out-Null
 
 Start-Sleep -Seconds 2
-$running = Test-WatchdogProcessRunning
+$running = Test-LumieraWatchdogActive
 if ($running) {
-    Write-Host "Watchdog ativo (PID $($running.ProcessId))" -ForegroundColor Green
+    if ($running.ProcessId -gt 0) {
+        Write-Host "Watchdog ativo (PID $($running.ProcessId))" -ForegroundColor Green
+    } else {
+        Write-Host "Watchdog ativo" -ForegroundColor Green
+    }
     exit 0
 }
 

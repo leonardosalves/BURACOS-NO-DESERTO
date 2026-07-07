@@ -155,8 +155,8 @@ function Stop-LumieraBackendOnPort {
     } catch { }
 
     if ($pids.Count -eq 0) {
-        $pid = Get-BackendListenerPid
-        if ($pid) { $pids += $pid }
+        $listenerPid = Get-BackendListenerPid
+        if ($listenerPid) { $pids += $listenerPid }
     }
 
     foreach ($procId in ($pids | Select-Object -Unique)) {
@@ -199,8 +199,8 @@ function Start-LumieraBackendProcess {
         $deadline = (Get-Date).AddSeconds(120)
         while ((Get-Date) -lt $deadline) {
             if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 8) {
-                $pid = Get-BackendListenerPid
-                if ($pid) { Write-BackendPidFile $pid }
+                $listenerPid = Get-BackendListenerPid
+                if ($listenerPid) { Write-BackendPidFile $listenerPid }
                 return $true
             }
             Start-Sleep -Milliseconds 800
@@ -246,8 +246,8 @@ function Start-LumieraBackendProcess {
                 $deadline = (Get-Date).AddSeconds(90)
                 while ((Get-Date) -lt $deadline) {
                     if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 15) {
-                        $pid = Get-BackendListenerPid
-                        if ($pid) { Write-BackendPidFile $pid }
+                        $listenerPid = Get-BackendListenerPid
+                        if ($listenerPid) { Write-BackendPidFile $listenerPid }
                         return $true
                     }
                     Start-Sleep -Seconds 2
@@ -269,6 +269,9 @@ function Start-LumieraBackendProcess {
 
         $stdout = Join-Path $script:LogDir "backend-stdout.log"
         $stderr = Join-Path $script:LogDir "backend-stderr.log"
+        if ($ForceRestart) {
+            Set-Content -Path $stderr -Value "" -Encoding UTF8 -ErrorAction SilentlyContinue
+        }
         $cmdLine = 'node --max-old-space-size={0} server.js 1>> "{1}" 2>> "{2}"' -f $script:NodeMaxOldSpaceMb, $stdout, $stderr
 
         Write-LumieraLog "Iniciando node server.js em $script:BackendDir"
@@ -289,8 +292,8 @@ function Start-LumieraBackendProcess {
         while ((Get-Date) -lt $deadline) {
             Start-Sleep -Milliseconds 800
             if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 20) {
-                $pid = Get-BackendListenerPid
-                if ($pid) { Write-BackendPidFile $pid }
+                $listenerPid = Get-BackendListenerPid
+                if ($listenerPid) { Write-BackendPidFile $listenerPid }
                 Write-LumieraLog "Backend OK - $script:HealthUrl"
                 return $true
             }
@@ -302,8 +305,8 @@ function Start-LumieraBackendProcess {
             while ((Get-Date) -lt $extraDeadline) {
                 Start-Sleep -Seconds 3
                 if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 20) {
-                    $pid = Get-BackendListenerPid
-                    if ($pid) { Write-BackendPidFile $pid }
+                    $listenerPid = Get-BackendListenerPid
+                    if ($listenerPid) { Write-BackendPidFile $listenerPid }
                     Write-LumieraLog "Backend OK (subida lenta) - $script:HealthUrl"
                     return $true
                 }
@@ -315,4 +318,31 @@ function Start-LumieraBackendProcess {
     } finally {
         Clear-BackendRestartLock
     }
+}
+
+function Test-LumieraWatchdogActive {
+    $watchScript = Join-Path $PSScriptRoot "watch-lumiera-backend.ps1"
+    $watchName = Split-Path $watchScript -Leaf
+
+    $proc = Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.CommandLine -like "*$watchName*" -or $_.CommandLine -like "*watch-lumiera-backend*"
+        } |
+        Select-Object -First 1
+    if ($proc) { return $proc }
+
+    $task = Get-ScheduledTask -TaskName "Lumiera-Backend-Watchdog" -ErrorAction SilentlyContinue
+    if ($task -and $task.State -eq "Running") {
+        return @{ ProcessId = 0; FromTask = $true }
+    }
+
+    $watchLog = Join-Path $script:LogDir "backend-watch.log"
+    if (Test-Path -LiteralPath $watchLog) {
+        $age = (Get-Date) - (Get-Item -LiteralPath $watchLog).LastWriteTime
+        if ($age.TotalSeconds -le 35) {
+            return @{ ProcessId = 0; FromLog = $true }
+        }
+    }
+
+    return $null
 }
