@@ -7343,19 +7343,17 @@ export default function App() {
             approvedNarration: options?.approvedNarration,
             approvedNarrationTagged: options?.approvedNarrationTagged,
             existingStrategy: narrationStrategy || undefined,
-            ...(motionTemplatePackEnabled
+            motion_template_pack: motionTemplatePackEnabled
               ? {
-                  motion_template_pack: {
-                    enabled: true,
-                    niche: (
-                      motionTemplateNiche ||
-                      scriptNiche ||
-                      "Engenharia"
-                    ).trim(),
-                    template_ids: motionTemplateIds,
-                  },
+                  enabled: true,
+                  niche: (
+                    motionTemplateNiche ||
+                    scriptNiche ||
+                    "Engenharia"
+                  ).trim(),
+                  template_ids: motionTemplateIds,
                 }
-              : {}),
+              : { enabled: false },
           }
         : {};
     const isCustom = ideationTab === "custom";

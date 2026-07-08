@@ -31,6 +31,12 @@ import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSu
 import { applyMontageAssetPolicy } from "../shared/montagePlanner.js";
 import { buildMotionResearchContext } from "../shared/storyboardResearch.js";
 import { enrichMotionScenesWithResearch } from "../shared/motionResearchProps.js";
+import {
+  freezeStoryboardNarration,
+  resolveProductionConfig,
+  restoreStoryboardNarration,
+} from "../shared/productionConfig.js";
+import { getCatalogForNiche } from "./remotionTemplateCatalogService.js";
 
 function readJsonSafe(filePath, fallback = null) {
   try {
@@ -267,6 +273,11 @@ export async function orchestrateProduction(
     path.join(workspaceDir, "config_qanat.json"),
     {}
   );
+  const frozenNarration = freezeStoryboardNarration(storyboard);
+  config = resolveProductionConfig(config, workspaceConfig, {
+    storyboard,
+    catalogResolver: getCatalogForNiche,
+  });
   const blockTimings = readJsonSafe(
     path.join(projDir, "block_timings.json"),
     {}
@@ -284,7 +295,9 @@ export async function orchestrateProduction(
     };
   }
 
-  storyboard = applyMontageAssetPolicy(storyboard, config);
+  if (config.production_pipeline?.montage_policy !== false) {
+    storyboard = applyMontageAssetPolicy(storyboard, config);
+  }
   const researchContext = buildMotionResearchContext(storyboard, config);
 
   let plan = planMotionScenesFromStoryboard(storyboard, config, blockTimings);
@@ -324,9 +337,11 @@ export async function orchestrateProduction(
     ),
   };
 
-  storyboard = applyMontageAssetPolicy(storyboard, config, {
-    motionScenes: plan.motion_scenes,
-  });
+  if (config.production_pipeline?.montage_policy !== false) {
+    storyboard = applyMontageAssetPolicy(storyboard, config, {
+      motionScenes: plan.motion_scenes,
+    });
+  }
 
   let satelliteMeta = null;
   if (fetchSatellite && plan.motion_scenes.length > 0) {
@@ -448,6 +463,8 @@ export async function orchestrateProduction(
     studio = saveTimelineStudio(projDir, nextStudio);
     timelineSynced = true;
   }
+
+  storyboard = restoreStoryboardNarration(storyboard, frozenNarration);
 
   if (persist) {
     writeJson(storyboardPath, storyboard);

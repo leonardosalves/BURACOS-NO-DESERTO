@@ -178,7 +178,7 @@ export function NarrationReviewPanel({
           <SectionHeader
             title="Revise a narração antes do roteiro"
             helpId="narration-review"
-            subtitle="Edite o texto até soar natural. Só depois de aprovar a IA monta os blocos, prompts visuais e estratégia completa."
+            subtitle="Edite o texto até soar natural. A narração aprovada não é reescrita na fase 2 — só blocos, prompts visuais e overlays mudam."
           />
           {notebooklmEnriched && (
             <p className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300/90 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-2.5 py-1">

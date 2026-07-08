@@ -16883,19 +16883,22 @@ app.post(
         timeline_assets: timelineAssets,
         aspect_ratio: isShort ? "9:16" : "16:9",
         video_format: format,
-        ...(motionTemplatePackRaw?.enabled
-          ? {
-              motion_template_pack: {
-                enabled: true,
-                niche: String(
-                  motionTemplatePackRaw.niche || niche || "Geral"
-                ).trim(),
-                template_ids: Array.isArray(motionTemplatePackRaw.template_ids)
-                  ? motionTemplatePackRaw.template_ids
-                  : [],
-              },
-            }
-          : {}),
+        motion_template_pack:
+          motionTemplatePackRaw?.enabled === false
+            ? { enabled: false }
+            : motionTemplatePackRaw?.enabled
+              ? {
+                  enabled: true,
+                  niche: String(
+                    motionTemplatePackRaw.niche || niche || "Geral"
+                  ).trim(),
+                  template_ids: Array.isArray(
+                    motionTemplatePackRaw.template_ids
+                  )
+                    ? motionTemplatePackRaw.template_ids
+                    : [],
+                }
+              : undefined,
         ...(isListicle
           ? {
               content_mode: "LISTICLE",
