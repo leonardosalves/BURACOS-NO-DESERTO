@@ -875,10 +875,51 @@ Responda APENAS com um objeto JSON válido, sem markdown:
       blockEntry,
       videoTopic
     );
-    const mergedScriptFacts = [...hydratedScriptResearch.facts, ...scriptFacts];
-    const mergedScriptSources = hydratedScriptResearch.sources.length
+    let mergedScriptFacts = [...hydratedScriptResearch.facts, ...scriptFacts];
+    let mergedScriptSources = hydratedScriptResearch.sources.length
       ? hydratedScriptResearch.sources
       : scriptSources;
+    let via = "storyboard-research";
+    let sourceLocked = true;
+
+    // Se as fontes do roteiro não renderizaram fatos específicos suficientes (ou seja, apenas os títulos das fontes),
+    // nós enriquecemos dinamicamente com busca web focada para trazer dados técnicos reais (ex: números, datas, etc.)
+    const hasDetailedFacts = mergedScriptFacts.some(
+      (f) => String(f).length > 60 || /\d+/.test(String(f))
+    );
+    if (mergedScriptFacts.length < 3 || !hasDetailedFacts) {
+      console.log(
+        `[Overlay Research] Fontes do roteiro escassas ou sem dados técnicos no Bloco ${blockEntry.block} (fatos: ${mergedScriptFacts.length}) — executando busca web complementar com query: "${query}"`
+      );
+      try {
+        const search = await exaWebSearch(query, workspaceDir, {
+          numResults: 5,
+        });
+        const rawFacts = extractFactsFromResearch(search);
+        const searchFacts = filterFactsForBlock(
+          rawFacts,
+          blockEntry,
+          videoTopic
+        );
+        if (searchFacts.length) {
+          mergedScriptFacts = [...mergedScriptFacts, ...searchFacts];
+          mergedScriptSources = [
+            ...mergedScriptSources,
+            ...(search.sources || []),
+          ];
+          via = "storyboard-research+web-enrichment";
+          // Como enriquecemos com dados da web, destravamos a fonte para que o Story Guard
+          // aceite o cruzamento de dados reais obtidos na pesquisa complementar.
+          sourceLocked = false;
+        }
+      } catch (err) {
+        console.warn(
+          `[Overlay Research] Busca web complementar falhou para bloco ${blockEntry.block}:`,
+          err.message
+        );
+      }
+    }
+
     return {
       block: blockEntry.block,
       blockStart: blockEntry.blockStart,
@@ -892,12 +933,12 @@ Responda APENAS com um objeto JSON válido, sem markdown:
       facts: [...new Set(mergedScriptFacts)].slice(0, 8),
       rawFactCount: mergedScriptFacts.length,
       sources: mergedScriptSources,
-      summary: "Pesquisa extraída das fontes do JSON do roteiro.",
+      summary: `Pesquisa extraída das fontes do roteiro${via.includes("+web") ? " e enriquecida via web." : "."}`,
       available: Boolean(
         mergedScriptFacts.length || mergedScriptSources.length
       ),
-      via: "storyboard-research",
-      sourceLocked: true,
+      via,
+      sourceLocked,
     };
   }
 
