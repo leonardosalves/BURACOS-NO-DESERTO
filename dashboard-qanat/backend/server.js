@@ -3416,6 +3416,8 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
         WORKSPACE_DIR,
         {
           orchestrationPlan: orchestrationForResearch,
+          callGemini: (prompt, opts) =>
+            callGeminiWithRetry(getApiKey(projDir), prompt, opts),
         }
       );
       const researchAddendum = buildOverlayResearchPromptBlock(overlayResearch);
@@ -6153,6 +6155,8 @@ app.post("/api/render/plan-overlays", async (req, res) => {
               ? req.body.research_facts
               : [],
           },
+          callGemini: (prompt, opts) =>
+            callGeminiWithRetry(getApiKey(projDir), prompt, opts),
         }
       );
       const researchAddendum = buildOverlayResearchPromptBlock(overlayResearch);
@@ -21052,6 +21056,8 @@ Estrutura JSON Exigida:
     WORKSPACE_DIR,
     {
       orchestrationPlan,
+      callGemini: (prompt, opts) =>
+        callGeminiWithRetry(getApiKey(projectDir), prompt, opts),
     }
   );
   storyboard.overlays_research = overlayResearch;

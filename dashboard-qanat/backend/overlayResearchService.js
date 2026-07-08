@@ -793,10 +793,11 @@ async function researchSingleBlock(
   niche,
   workspaceDir,
   videoTopic = "",
-  storyboardResearch = {}
+  storyboardResearch = {},
+  callGemini = null
 ) {
   const cleanTitle = extractCleanTitle(videoTopic);
-  const query = [
+  let query = [
     cleanTitle,
     blockEntry.primaryTopic && blockEntry.primaryTopic !== cleanTitle
       ? blockEntry.primaryTopic
@@ -806,6 +807,50 @@ async function researchSingleBlock(
     .filter(Boolean)
     .join(" ")
     .slice(0, 240);
+
+  if (callGemini) {
+    try {
+      const extractionPrompt = `Analise o trecho de narração e o título do vídeo para extrair o PONTO DE INTERESSE técnico (histórico, arquitetônico, de engenharia ou numérico) e criar uma QUERY DE BUSCA focado em trazer dados reais adicionais (números, datas, estatísticas).
+      
+Diretrizes:
+1. O ponto de interesse deve ter no máximo 3 ou 4 palavras, sem verbos soltos, representando o assunto técnico específico (Exemplo: "Resistência do Concreto", "Vítimas do Desabamento", "Profundidade dos Pilares").
+2. A query técnica deve ser concisa (5 a 8 palavras), sem pontuações ou palavras desnecessárias, focada nos termos técnicos da narração e no evento histórico.
+
+Narração: "${blockEntry.narration}"
+Título do Vídeo: "${videoTopic}"
+
+Responda APENAS com um objeto JSON válido, sem markdown:
+{
+  "ponto_interesse": "O ponto de interesse técnico",
+  "query_tecnica": "A query de busca no Google"
+}`;
+      const rawRes = await callGemini(extractionPrompt, {
+        temperature: 0.1,
+        models: [
+          "gemini-2.5-flash-lite",
+          "gemini-2.0-flash",
+          "gemini-2.5-flash",
+        ],
+      });
+      const cleanJsonText = rawRes
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+      const parsed = JSON.parse(cleanJsonText);
+      if (parsed.ponto_interesse && parsed.query_tecnica) {
+        blockEntry.primaryTopic = parsed.ponto_interesse;
+        query = parsed.query_tecnica;
+        console.log(
+          `[Overlay Research] IA sugeriu ponto_interesse="${parsed.ponto_interesse}" e query_tecnica="${parsed.query_tecnica}" para o Bloco ${blockEntry.block}`
+        );
+      }
+    } catch (err) {
+      console.warn(
+        `[Overlay Research] Falha ao refinar ponto de interesse com IA para bloco ${blockEntry.block}:`,
+        err.message
+      );
+    }
+  }
 
   const scriptFacts = filterFactsForBlock(
     storyboardResearch.facts || [],
@@ -887,7 +932,12 @@ async function researchSingleBlock(
 export async function fetchOverlayResearchForRender(
   projectDir,
   workspaceDir,
-  { forceRefresh = false, orchestrationPlan = null, scriptResearch = null } = {}
+  {
+    forceRefresh = false,
+    orchestrationPlan = null,
+    scriptResearch = null,
+    callGemini = null,
+  } = {}
 ) {
   const config = readJson(path.join(projectDir, "config_qanat.json"), {});
   const storyboard = readJson(path.join(projectDir, "storyboard.json"), {});
@@ -966,7 +1016,8 @@ export async function fetchOverlayResearchForRender(
         niche,
         workspaceDir,
         topic,
-        storyboardResearch
+        storyboardResearch,
+        callGemini
       );
       blockResearch.push(result);
       console.log(
@@ -1043,6 +1094,7 @@ export async function resolveOverlayResearchForPlanning(
     forceRefresh = false,
     orchestrationPlan = null,
     scriptResearch = null,
+    callGemini = null,
   } = options;
   try {
     const research = await fetchOverlayResearchForRender(
@@ -1052,6 +1104,7 @@ export async function resolveOverlayResearchForPlanning(
         forceRefresh,
         orchestrationPlan,
         scriptResearch,
+        callGemini,
       }
     );
     const blockCount = research.blocks?.length || 0;
