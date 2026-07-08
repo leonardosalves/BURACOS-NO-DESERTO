@@ -249,6 +249,12 @@ export type AppCreatorTabProps = {
   useNotebooklm: boolean;
   useDeepResearch: boolean;
   setUseDeepResearch: (v: boolean) => void;
+  motionTemplatePackEnabled: boolean;
+  setMotionTemplatePackEnabled: (v: boolean) => void;
+  motionTemplateNiche: string;
+  setMotionTemplateNiche: (v: string) => void;
+  motionTemplateIds: string[];
+  setMotionTemplateIds: (ids: string[]) => void;
   wizardSavedAtLabel: string | null;
   wordTranscripts: any;
   youtubeLoading: boolean;
@@ -394,6 +400,12 @@ export function AppCreatorTab({
   useNotebooklm,
   useDeepResearch,
   setUseDeepResearch,
+  motionTemplatePackEnabled,
+  setMotionTemplatePackEnabled,
+  motionTemplateNiche,
+  setMotionTemplateNiche,
+  motionTemplateIds,
+  setMotionTemplateIds,
   wizardSavedAtLabel,
   wordTranscripts,
   youtubeLoading,
@@ -1520,6 +1532,15 @@ export function AppCreatorTab({
                   notebooklmEnriched={narrationNotebooklmEnriched}
                   notebooklmImproving={notebooklmImproving}
                   notebooklmAvailable={notebooklmStatus?.authenticated ?? false}
+                  niche={nicheInput.trim() || listNiche.trim() || "Engenharia"}
+                  motionTemplatePackEnabled={motionTemplatePackEnabled}
+                  motionTemplateNiche={motionTemplateNiche}
+                  motionTemplateIds={motionTemplateIds}
+                  onMotionTemplatePackEnabledChange={
+                    setMotionTemplatePackEnabled
+                  }
+                  onMotionTemplateNicheChange={setMotionTemplateNiche}
+                  onMotionTemplateIdsChange={setMotionTemplateIds}
                   loading={creatorLoading}
                   loadingMode={
                     (creatorLoadingMode === "idle"

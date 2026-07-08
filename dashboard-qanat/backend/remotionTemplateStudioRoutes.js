@@ -1,5 +1,9 @@
 import { adaptRemotionTemplate } from "./remotionTemplateStudioService.js";
 import {
+  getCatalogForNiche,
+  syncCatalogForNiche,
+} from "./remotionTemplateCatalogService.js";
+import {
   validateFinalTemplateCode,
   validateOriginalTemplateCode,
 } from "../shared/remotionTemplateStudioValidate.js";
@@ -85,4 +89,28 @@ export function registerRemotionTemplateStudioRoutes(
 
   // Alias legível — mesma implementação
   app.post("/api/ai/assistir-ia", (req, res) => handleAdapt(req, res, deps));
+
+  app.get("/api/ai/template-studio/catalog", (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    const niche = String(req.query?.niche || "Engenharia").trim();
+    const catalog = getCatalogForNiche(niche);
+    res.json({ success: true, ...catalog });
+  });
+
+  app.post("/api/ai/template-studio/catalog/sync", (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    try {
+      const niche = String(req.body?.niche || "Engenharia").trim();
+      const templates = Array.isArray(req.body?.templates)
+        ? req.body.templates
+        : [];
+      const result = syncCatalogForNiche(niche, templates);
+      res.json({ success: true, ...result });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        error: err?.message || "Falha ao sincronizar catálogo.",
+      });
+    }
+  });
 }

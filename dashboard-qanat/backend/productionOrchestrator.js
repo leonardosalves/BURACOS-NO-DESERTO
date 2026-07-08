@@ -28,6 +28,9 @@ import { normalizeTimelineAssetSlots } from "../shared/timelineAssetDedupe.js";
 import { applyNicheDesignToMotionScenes } from "../shared/nicheDesignPack.js";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
 import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
+import { applyMontageAssetPolicy } from "../shared/montagePlanner.js";
+import { buildMotionResearchContext } from "../shared/storyboardResearch.js";
+import { enrichMotionScenesWithResearch } from "../shared/motionResearchProps.js";
 
 function readJsonSafe(filePath, fallback = null) {
   try {
@@ -281,6 +284,9 @@ export async function orchestrateProduction(
     };
   }
 
+  storyboard = applyMontageAssetPolicy(storyboard, config);
+  const researchContext = buildMotionResearchContext(storyboard, config);
+
   let plan = planMotionScenesFromStoryboard(storyboard, config, blockTimings);
   let llmMeta = null;
 
@@ -312,11 +318,15 @@ export async function orchestrateProduction(
 
   plan = {
     ...plan,
-    motion_scenes: applyNicheDesignToMotionScenes(
-      plan.motion_scenes,
-      plan.niche_pack
+    motion_scenes: enrichMotionScenesWithResearch(
+      applyNicheDesignToMotionScenes(plan.motion_scenes, plan.niche_pack),
+      researchContext
     ),
   };
+
+  storyboard = applyMontageAssetPolicy(storyboard, config, {
+    motionScenes: plan.motion_scenes,
+  });
 
   let satelliteMeta = null;
   if (fetchSatellite && plan.motion_scenes.length > 0) {

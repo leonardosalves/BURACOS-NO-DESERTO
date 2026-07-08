@@ -12,6 +12,8 @@ import {
   buildPropsForTemplate,
   resolveNichePack,
 } from "./motionScenePlanner.js";
+import { buildMotionResearchContext } from "../shared/storyboardResearch.js";
+import { enrichMotionScenesWithResearch } from "../shared/motionResearchProps.js";
 
 const VALID_TEMPLATES = new Set(
   Object.values(MOTION_SCENE_TRIGGERS).flatMap((t) => t.templates || [])
@@ -182,6 +184,15 @@ export function buildMotionSceneEnrichmentPrompt({
 
   const templateList = [...VALID_TEMPLATES].join(", ");
   const overlaySummary = summarizeOverlaysForPrompt(overlaysAi);
+  const researchContext = buildMotionResearchContext(storyboard, config);
+  const researchFacts = (researchContext.globalFacts || []).slice(0, 12);
+  const researchSources = (researchContext.globalSources || [])
+    .slice(0, 8)
+    .map((src) => ({
+      title: src.title,
+      url: src.url,
+      snippet: String(src.snippet || "").slice(0, 200),
+    }));
 
   return [
     `Você é diretor de motion graphics Remotion para vídeo documental (nicho: "${niche}", pack: "${nichePack}").`,
@@ -222,6 +233,10 @@ export function buildMotionSceneEnrichmentPrompt({
       ? `OVERLAYS_AI (não duplicar):\n${overlaySummary}`
       : "OVERLAYS_AI: (nenhum)",
     "",
+    researchFacts.length || researchSources.length
+      ? `PESQUISA DO ROTEIRO (priorize estes fatos — NÃO invente dados genéricos):\nFATOS:\n${researchFacts.map((f) => `- ${f}`).join("\n")}\n\nFONTES:\n${researchSources.map((s) => `- ${s.title || s.url}: ${s.snippet || ""}`).join("\n")}`
+      : "PESQUISA DO ROTEIRO: (nenhuma fonte no storyboard)",
+    "",
     "PLANO HEURÍSTICO:",
     JSON.stringify(scenes, null, 2),
     "",
@@ -235,7 +250,7 @@ export function buildMotionSceneEnrichmentPrompt({
 function normalizeLlmMotionScene(
   raw,
   heuristicById,
-  { accentColor, nichePack }
+  { accentColor, nichePack, researchContext = null }
 ) {
   if (!raw || typeof raw !== "object") return null;
   const id = String(raw.id || "").trim();
@@ -259,7 +274,8 @@ function normalizeLlmMotionScene(
     narration,
     accentColor,
     aspectRatio,
-    nichePack
+    nichePack,
+    researchContext
   );
   const llmProps = raw.props && typeof raw.props === "object" ? raw.props : {};
 
@@ -347,6 +363,7 @@ export function applyLlmEnrichmentToPlan(
   const accentColor = String(config.accent_color || "#D4AF37");
   const nichePack =
     heuristicPlan.niche_pack || resolveNichePack(config, storyboard);
+  const researchContext = buildMotionResearchContext(storyboard, config);
   const heuristicById = new Map(
     (heuristicPlan.motion_scenes || []).map((s) => [String(s.id), s])
   );
@@ -356,6 +373,7 @@ export function applyLlmEnrichmentToPlan(
     const normalized = normalizeLlmMotionScene(raw, heuristicById, {
       accentColor,
       nichePack,
+      researchContext,
     });
     if (!normalized?.id) continue;
     if (!heuristicById.has(String(normalized.id))) continue;
@@ -384,7 +402,10 @@ export function applyLlmEnrichmentToPlan(
 
   return {
     ...heuristicPlan,
-    motion_scenes,
+    motion_scenes: enrichMotionScenesWithResearch(
+      motion_scenes,
+      researchContext
+    ),
     planner_version: 2,
     source: "heuristic+llm",
     llm_notes: String(llmPayload?.notes || "").slice(0, 500),

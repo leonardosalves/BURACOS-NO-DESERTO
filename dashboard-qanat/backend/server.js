@@ -15917,6 +15917,7 @@ app.post(
       approvedNarrationTagged: approvedNarrationTaggedRaw,
       existingStrategy: existingStrategyRaw,
       agentReachResearch: agentReachResearchRaw,
+      motion_template_pack: motionTemplatePackRaw,
     } = req.body;
     const scriptPhase = phase === "narration" ? "narration" : "full";
     const approvedNarration = String(approvedNarrationRaw || "").trim();
@@ -16777,6 +16778,32 @@ app.post(
 
       let timelineAssets = {};
       try {
+        if (motionTemplatePackRaw?.enabled) {
+          const preConfigPath = path.join(projDir, "config_qanat.json");
+          let preConfig = {};
+          if (fs.existsSync(preConfigPath)) {
+            try {
+              preConfig = JSON.parse(fs.readFileSync(preConfigPath, "utf8"));
+            } catch {
+              /* ignore */
+            }
+          }
+          preConfig.motion_template_pack = {
+            enabled: true,
+            niche: String(
+              motionTemplatePackRaw.niche || niche || "Geral"
+            ).trim(),
+            template_ids: Array.isArray(motionTemplatePackRaw.template_ids)
+              ? motionTemplatePackRaw.template_ids
+              : [],
+          };
+          fs.writeFileSync(
+            preConfigPath,
+            JSON.stringify(preConfig, null, 2),
+            "utf8"
+          );
+        }
+
         report("orchestrate", "Orquestrando Remotion + assets…", 88);
         const orchOpts = resolveCreatorOrchestrationOptions(req.body || {});
         const orch = await orchestrateProduction(
@@ -16856,6 +16883,19 @@ app.post(
         timeline_assets: timelineAssets,
         aspect_ratio: isShort ? "9:16" : "16:9",
         video_format: format,
+        ...(motionTemplatePackRaw?.enabled
+          ? {
+              motion_template_pack: {
+                enabled: true,
+                niche: String(
+                  motionTemplatePackRaw.niche || niche || "Geral"
+                ).trim(),
+                template_ids: Array.isArray(motionTemplatePackRaw.template_ids)
+                  ? motionTemplatePackRaw.template_ids
+                  : [],
+              },
+            }
+          : {}),
         ...(isListicle
           ? {
               content_mode: "LISTICLE",
