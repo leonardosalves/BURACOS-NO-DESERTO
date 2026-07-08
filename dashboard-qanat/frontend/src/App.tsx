@@ -2585,6 +2585,20 @@ export default function App() {
     try {
       const effectiveGeminiChrome = config?.use_gemini_chrome === true;
       const useHyperframes = config?.use_hyperframes !== false;
+      const overlayResearchSources = Array.isArray(
+        (storyboardData as any)?.research_sources
+      )
+        ? (storyboardData as any).research_sources
+        : Array.isArray((generatedScriptData as any)?.research_sources)
+          ? (generatedScriptData as any).research_sources
+          : [];
+      const overlayResearchFacts = Array.isArray(
+        (storyboardData as any)?.research_facts
+      )
+        ? (storyboardData as any).research_facts
+        : Array.isArray((generatedScriptData as any)?.research_facts)
+          ? (generatedScriptData as any).research_facts
+          : [];
 
       const { ok, data } = await postAi("/api/render/plan-overlays", {
         method: "POST",
@@ -2593,6 +2607,8 @@ export default function App() {
           hyperframes: useHyperframes,
           require_browser: effectiveGeminiChrome,
           force: true,
+          research_sources: overlayResearchSources,
+          research_facts: overlayResearchFacts,
         }),
       });
 
@@ -9134,6 +9150,20 @@ export default function App() {
         ]);
       }, 5000);
       try {
+        const overlayResearchSources = Array.isArray(
+          (storyboardData as any)?.research_sources
+        )
+          ? (storyboardData as any).research_sources
+          : Array.isArray((generatedScriptData as any)?.research_sources)
+            ? (generatedScriptData as any).research_sources
+            : [];
+        const overlayResearchFacts = Array.isArray(
+          (storyboardData as any)?.research_facts
+        )
+          ? (storyboardData as any).research_facts
+          : Array.isArray((generatedScriptData as any)?.research_facts)
+            ? (generatedScriptData as any).research_facts
+            : [];
         const { ok, data } = await postAi("/api/render/plan-overlays", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -9141,6 +9171,8 @@ export default function App() {
             hyperframes: useHyperframes === true,
             require_browser: effectiveGeminiChrome,
             force: true,
+            research_sources: overlayResearchSources,
+            research_facts: overlayResearchFacts,
           }),
         });
         if (!ok || data.needs_browser) {
