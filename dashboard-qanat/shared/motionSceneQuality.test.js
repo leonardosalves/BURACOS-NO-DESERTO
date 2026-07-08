@@ -10,6 +10,25 @@ import {
 } from "./motionSceneQuality.js";
 
 describe("motionSceneQuality", () => {
+  it("aprova location-intro com prompt IA geo", () => {
+    const r = assessLocationIntroScene(
+      {
+        id: "ms-1",
+        duration_seconds: 10,
+        template_id: "location-intro",
+        props: {
+          map_provider: "ai_t2v",
+          geo_generation: "ai_prompt",
+          location: "Bangkok",
+          ai_video_prompt: "x".repeat(120),
+        },
+      },
+      { projDir: "" }
+    );
+    assert.equal(r.ok, true);
+    assert.equal(r.provider, "ai_t2v");
+  });
+
   it("reprova location-intro com zoom final apertado e poucos keyframes", () => {
     const r = assessLocationIntroScene({
       id: "ms-1.1",

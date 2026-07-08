@@ -79,10 +79,22 @@ export const MOTION_CONTENT_FIELDS: Record<string, ContentField[]> = {
     { key: "region", label: "Região", kind: "text" },
     { key: "country", label: "País", kind: "text" },
     { key: "subtitle", label: "Legenda", kind: "textarea" },
+    {
+      key: "ai_video_prompt",
+      label: "Prompt IA Geo (T2V)",
+      kind: "textarea",
+      placeholder:
+        "Zoom Terra→alvo, destaque territorial, órbita 360° — gere com Seedance/LTX",
+    },
   ],
   "geo-map": [
     { key: "location", label: "Local", kind: "text" },
     { key: "region", label: "Região", kind: "text" },
+    {
+      key: "ai_video_prompt",
+      label: "Prompt IA Geo (T2V)",
+      kind: "textarea",
+    },
   ],
   "pictogram-chart": [
     { key: "title", label: "Título", kind: "text" },

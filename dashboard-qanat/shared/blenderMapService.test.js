@@ -7,8 +7,8 @@ import {
 import { resolveMapEngine } from "../backend/satelliteMapService.js";
 
 describe("blenderMapService", () => {
-  it("resolveMapEngine padrão é blender", () => {
-    assert.equal(resolveMapEngine({}, {}), "blender");
+  it("resolveMapEngine padrão é ai_t2v", () => {
+    assert.equal(resolveMapEngine({}, {}), "ai_t2v");
   });
 
   it("resolveBlenderExecutable retorna string", () => {

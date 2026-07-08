@@ -1,9 +1,8 @@
 /**
- * Preenche paths ASSETS/satellite/* para location-intro / geo-map.
- * Usado no backend (persistir no disco) e no frontend (preview).
+ * Normaliza clips geográficos location-intro / geo-map para modo IA T2V.
  */
 
-const SATELLITE_TEMPLATES = new Set(["location-intro", "geo-map"]);
+const GEO_TEMPLATES = new Set(["location-intro", "geo-map"]);
 
 export function sceneSatelliteKey(clipId = "") {
   return String(clipId || "")
@@ -13,34 +12,21 @@ export function sceneSatelliteKey(clipId = "") {
 
 export function enrichSatelliteMotionClip(clip = {}) {
   const tpl = String(clip.templateId || clip.props?.overlayType || "");
-  if (!SATELLITE_TEMPLATES.has(tpl)) return clip;
+  if (!GEO_TEMPLATES.has(tpl)) return clip;
 
-  const key = sceneSatelliteKey(clip.id);
   const props = { ...(clip.props || {}) };
 
-  if (!String(props.flyover_video || "").trim()) {
-    props.flyover_video = `ASSETS/satellite/${key}-flyover.mp4`;
-  }
-  if (!String(props.backgroundImage || "").trim()) {
-    props.backgroundImage = `ASSETS/satellite/${key}-z10.jpg`;
-  }
-  if (!String(props.backgroundImageWide || "").trim()) {
-    props.backgroundImageWide = `ASSETS/satellite/${key}-z3.jpg`;
-  }
-  if (!String(props.boundaryGeoJson || "").trim()) {
-    props.boundaryGeoJson = `ASSETS/satellite/${key}-boundary.json`;
-  }
   if (!String(props.map_provider || "").trim()) {
-    props.map_provider = "blender";
+    props.map_provider = "ai_t2v";
   }
-  if (Array.isArray(props.zoom_keyframes)) {
-    props.zoom_keyframes = props.zoom_keyframes.map((kf) => {
-      if (!kf || typeof kf !== "object") return kf;
-      const row = { ...kf };
-      const zoom = Number(row.zoom);
-      if (!Number.isFinite(zoom) || String(row.image || "").trim()) return row;
-      return { ...row, image: `ASSETS/satellite/${key}-z${zoom}.jpg` };
-    });
+  if (!String(props.geo_generation || "").trim()) {
+    props.geo_generation = "ai_prompt";
+  }
+  if (!String(props.variant || "").trim()) {
+    props.variant = "ai_geo_video";
+  }
+  if (!String(props.map_style || "").trim()) {
+    props.map_style = "photoreal_satellite";
   }
 
   return {

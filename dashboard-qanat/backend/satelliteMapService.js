@@ -1,18 +1,13 @@
 /**
- * Tiles de satélite para location-intro — geocoding + download local.
- * Mapbox Static (se token) ou Esri World Imagery (fallback gratuito).
+ * Geocoding e classificação de lugares para cenas geográficas.
+ * Geração de vídeo: prompts T2V via geoVideoPromptService (não Blender/Cesium).
  */
 
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { fitZoomForBoundary } from "../shared/locationIntroFly.js";
-import { buildVirtualZoomKeyframes } from "../shared/cesiumFly.js";
 import { HISTORIC_DESTROYED_RE } from "../shared/motionSceneCatalog.js";
-import {
-  isBlenderAvailable,
-  renderLocationIntroFlyover,
-} from "./blenderMapService.js";
+import { enrichGeoSceneWithAiPrompt } from "./geoVideoPromptService.js";
 
 const NOMINATIM_UA = "LumieraVideoStudio/1.0 (motion-scenes-satellite)";
 
@@ -469,7 +464,7 @@ export function resolveMapEngine(config = {}, workspaceConfig = {}) {
     config.map_engine ||
       workspaceConfig.map_engine ||
       process.env.LUMIERA_MAP_ENGINE ||
-      "blender"
+      "ai_t2v"
   )
     .trim()
     .toLowerCase();
@@ -555,315 +550,15 @@ function buildTileUrl(token, lat, lng, zoom) {
     : buildEsriExportUrl(lat, lng, zoom);
 }
 
-/**
- * Baixa tiles satélite (multi-zoom Earth fly ou contorno de cidade) e retorna paths.
- */
-export async function fetchSatelliteAssetsForScene(
-  projDir,
-  scene,
-  { config = {}, workspaceConfig = {} } = {}
-) {
-  const props = scene?.props || {};
-  const zoomFrom = Number(props.zoom_from) || 8;
-  const zoomTo = Number(props.zoom_to) || 14;
-  const query = [props.location, props.region, props.country]
-    .filter(Boolean)
-    .join(", ");
-  const boundaryQuery =
-    resolveGeocodeAlias(props.location, props.region, props.country) || query;
-
-  const classified = classifyPlaceType(scene?.narration_text || "", props);
-  const explicitPlaceType = String(props.place_type || "").trim();
-  const classification = {
-    ...(props.fly_mode && explicitPlaceType
-      ? {
-          fly_mode: props.fly_mode,
-          place_type: explicitPlaceType,
-          structure_exists:
-            props.structure_exists !== false &&
-            explicitPlaceType !== "historic_site",
-        }
-      : classified),
-    poi_kind: classified.poi_kind || String(props.poi_kind || ""),
-  };
-  if (
-    classified.place_type === "poi" &&
-    explicitPlaceType &&
-    explicitPlaceType !== "poi"
-  ) {
-    classification.place_type = "poi";
-    classification.fly_mode = "earth_descent";
-    classification.structure_exists = true;
-  }
-
-  const aspectRatio = String(
-    props.aspect_ratio || config.aspect_ratio || config.format || "16:9"
-  ).trim();
-  const renderDims = resolveRenderDimensions(aspectRatio);
-
-  const narration = String(scene?.narration_text || "");
-  let coords = resolveKnownCoordinates(narration, props);
-  const genericLocation = /^(local|local no mapa)$/i.test(
-    String(props.location || "").trim()
-  );
-  if (!coords && (genericLocation || POI_KEYWORDS.test(narration))) {
-    coords = resolveKnownCoordinates(
-      `${narration} ${props.region || ""} ${props.country || ""}`.trim(),
-      props
-    );
-  }
-  if (!coords && genericLocation && POI_KEYWORDS.test(narration)) {
-    coords = resolveKnownCoordinates("Palmanova fortaleza estelar", props);
-  }
-  if (!coords) {
-    coords = await geocodeLocation(query, props);
-  }
-  if (!coords && scene?.narration_text) {
-    coords = await geocodeLocation(scene.narration_text, props);
-  }
-  if (!coords?.lat || !coords?.lng) {
-    return {
-      ok: false,
-      reason: "geocode_failed",
-      query,
-      tried: buildGeocodeQueries(props.location, props.region, props.country),
-    };
-  }
-
-  const token = resolveMapboxToken(config, workspaceConfig);
-  const sceneKey =
-    String(scene.id || "scene")
-      .replace(/[^a-zA-Z0-9_-]/g, "_")
-      .slice(0, 40) || crypto.randomBytes(4).toString("hex");
-
-  let zoomLevels = buildZoomSequence(
-    classification.fly_mode,
-    zoomFrom,
-    zoomTo,
-    classification.place_type
-  );
-
-  let boundaryGeoJson = null;
-  let boundaryPath = null;
-  if (classification.place_type === "city") {
-    try {
-      boundaryGeoJson = await fetchPlaceBoundary(boundaryQuery, {
-        lat: coords.lat,
-        lng: coords.lng,
-      });
-      if (boundaryGeoJson) {
-        const fitZ = fitZoomForBoundary(
-          boundaryGeoJson,
-          coords.lat,
-          coords.lng,
-          renderDims.width,
-          renderDims.height,
-          1.55
-        );
-        if (classification.place_type === "city") {
-          const last = zoomLevels[zoomLevels.length - 1];
-          const finalZ = Math.min(Number(last) || 10, fitZ);
-          zoomLevels = [...zoomLevels.slice(0, -1), finalZ].filter(
-            (z, i, arr) => i === 0 || z !== arr[i - 1]
-          );
-        }
-      }
-    } catch {
-      /* boundary opcional nesta fase */
-    }
-  }
-
-  let boundaryAbsPath = null;
-  if (
-    boundaryGeoJson &&
-    (classification.place_type === "city" ||
-      classification.fly_mode === "city_outline")
-  ) {
-    try {
-      const boundaryName = `${sceneKey}-boundary.json`;
-      boundaryAbsPath = path.join(projDir, assetRelPath(boundaryName));
-      fs.mkdirSync(path.dirname(boundaryAbsPath), { recursive: true });
-      fs.writeFileSync(
-        boundaryAbsPath,
-        JSON.stringify(boundaryGeoJson, null, 2),
-        "utf8"
-      );
-      boundaryPath = boundaryAbsPath;
-      await new Promise((r) => setTimeout(r, 400));
-    } catch {
-      boundaryGeoJson = null;
-      boundaryAbsPath = null;
-      boundaryPath = null;
-    }
-  }
-
-  const mapEngine = resolveMapEngine(config, workspaceConfig);
-  const useBlender = mapEngine === "blender" && isBlenderAvailable();
-  let zoomKeyframes = [];
-  let flyoverVideo = "";
-
-  if (useBlender) {
-    const wideZoom =
-      renderDims.aspect_ratio === "9:16"
-        ? zoomLevels[
-            Math.min(
-              zoomLevels.length - 1,
-              Math.max(1, Math.floor(zoomLevels.length / 2))
-            )
-          ]
-        : zoomLevels[0];
-    const tightZoom = zoomLevels[zoomLevels.length - 1];
-    const wideName = `${sceneKey}-z${wideZoom}.jpg`;
-    const tightName = `${sceneKey}-z${tightZoom}.jpg`;
-    const widePath = path.join(projDir, assetRelPath(wideName));
-    const tightPath = path.join(projDir, assetRelPath(tightName));
-    await downloadImageToFile(
-      buildTileUrl(token, coords.lat, coords.lng, wideZoom),
-      widePath
-    );
-    await downloadImageToFile(
-      buildTileUrl(token, coords.lat, coords.lng, tightZoom),
-      tightPath
-    );
-
-    const durationSec = Math.max(
-      8,
-      Number(scene.duration_seconds) || Number(props.duration_seconds) || 8
-    );
-    const blenderOut = await renderLocationIntroFlyover(projDir, {
-      lat: coords.lat,
-      lng: coords.lng,
-      zoomLevels,
-      textureWide: widePath,
-      textureTight: tightPath,
-      boundaryPath: boundaryAbsPath || "",
-      sceneKey,
-      durationSec,
-      accentColor: String(props.accentColor || "#C5A889"),
-      placeType: classification.place_type,
-      poiKind: classification.poi_kind,
-      aspectRatio: renderDims.aspect_ratio,
-      width: renderDims.width,
-      height: renderDims.height,
-      orbitPoi:
-        classification.place_type === "poi" ||
-        classification.place_type === "historic_site",
-      structureExists: classification.structure_exists !== false,
-      useBlenderGis: config.use_blender_gis !== false,
-    });
-    zoomKeyframes = blenderOut.zoom_keyframes;
-    flyoverVideo = blenderOut.flyover_video;
-  } else if (mapEngine === "cesium") {
-    zoomKeyframes = buildVirtualZoomKeyframes(zoomLevels);
-  } else {
-    for (const zoom of zoomLevels) {
-      const fileName = `${sceneKey}-z${zoom}.jpg`;
-      const destPath = path.join(projDir, assetRelPath(fileName));
-      const url = buildTileUrl(token, coords.lat, coords.lng, zoom);
-      await downloadImageToFile(url, destPath);
-      zoomKeyframes.push({
-        zoom,
-        image: assetRelPath(fileName),
-      });
-      if (zoomLevels.length > 2) {
-        await new Promise((r) => setTimeout(r, 400));
-      }
-    }
-  }
-
-  const wideFrame = zoomKeyframes[0];
-  const tightFrame = zoomKeyframes[zoomKeyframes.length - 1];
-
-  return {
-    ok: true,
-    lat: coords.lat,
-    lng: coords.lng,
-    geocode_source: coords.source,
-    map_provider: useBlender
-      ? "blender"
-      : mapEngine === "cesium"
-        ? "cesium"
-        : token
-          ? "mapbox"
-          : "esri",
-    place_type: classification.place_type,
-    poi_kind: classification.poi_kind,
-    structure_exists: classification.structure_exists !== false,
-    fly_mode: classification.fly_mode,
-    aspect_ratio: renderDims.aspect_ratio,
-    zoom_keyframes: zoomKeyframes,
-    flyover_video: flyoverVideo,
-    cesium_ion_token:
-      mapEngine === "cesium"
-        ? resolveCesiumIonToken(config, workspaceConfig)
-        : "",
-    google_maps_api_key:
-      mapEngine === "cesium"
-        ? resolveGoogleMapsApiKey(config, workspaceConfig)
-        : "",
-    boundaryGeoJson: boundaryPath
-      ? assetRelPath(`${sceneKey}-boundary.json`)
-      : "",
-    backgroundImage: tightFrame?.image || "",
-    backgroundImageWide: wideFrame?.image || "",
-    zoom_from: wideFrame?.zoom ?? zoomFrom,
-    zoom_to: tightFrame?.zoom ?? zoomTo,
-    widePath: wideFrame ? path.join(projDir, wideFrame.image) : null,
-    tightPath: tightFrame ? path.join(projDir, tightFrame.image) : null,
-  };
+/** @deprecated Alias — gera prompt T2V geográfico (substitui tiles Blender/Cesium). */
+export async function fetchSatelliteAssetsForScene(projDir, scene, opts = {}) {
+  return enrichGeoSceneWithAiPrompt(projDir, scene, opts);
 }
 
-/**
- * Pin regional leve — geocode + tile único (sem flyover Blender).
- */
-export async function fetchGeoMapAssetsForScene(
-  projDir,
-  scene,
-  { config = {}, workspaceConfig = {} } = {}
-) {
-  const props = scene?.props || {};
-  const query = [props.location, props.region, props.country]
-    .filter(Boolean)
-    .join(", ");
-
-  let coords = resolveKnownCoordinates(scene?.narration_text || "", props);
-  if (!coords) {
-    coords = await geocodeLocation(query, props);
-  }
-  if (!coords?.lat || !coords?.lng) {
-    return {
-      ok: false,
-      reason: "geocode_failed",
-      query,
-      kind: "geo-map",
-    };
-  }
-
-  const token = resolveMapboxToken(config, workspaceConfig);
-  const sceneKey =
-    String(scene.id || "geo")
-      .replace(/[^a-zA-Z0-9_-]/g, "_")
-      .slice(0, 40) || crypto.randomBytes(4).toString("hex");
-  const zoom = Number(props.zoom_to) || 11;
-  const fileName = `${sceneKey}-geo-z${zoom}.jpg`;
-  const destPath = path.join(projDir, assetRelPath(fileName));
-  await downloadImageToFile(
-    buildTileUrl(token, coords.lat, coords.lng, zoom),
-    destPath
-  );
-
-  return {
-    ok: true,
-    kind: "geo-map",
-    lat: coords.lat,
-    lng: coords.lng,
-    geocode_source: coords.source,
-    map_provider: token ? "mapbox" : "esri",
-    backgroundImage: assetRelPath(fileName),
-    zoom_from: zoom,
-    zoom_to: zoom,
-    zoom_keyframes: [{ zoom, image: assetRelPath(fileName) }],
-  };
+/** @deprecated Alias — gera prompt T2V para geo-map. */
+export async function fetchGeoMapAssetsForScene(projDir, scene, opts = {}) {
+  const withTpl = { ...scene, template_id: scene?.template_id || "geo-map" };
+  return enrichGeoSceneWithAiPrompt(projDir, withTpl, opts);
 }
 
 export async function enrichMotionScenesWithSatellite(

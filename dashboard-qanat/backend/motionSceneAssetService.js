@@ -7,33 +7,34 @@ import {
   motionSceneNeedsAssetEnrichment,
 } from "../shared/motionSceneAssetEnrichment.js";
 import { buildPropsForTemplate } from "./motionScenePlanner.js";
-import {
-  fetchSatelliteAssetsForScene,
-  fetchGeoMapAssetsForScene,
-} from "./satelliteMapService.js";
+import { enrichGeoSceneWithAiPrompt } from "./geoVideoPromptService.js";
 
 function applyGeoFetchToScene(scene, fetched) {
   if (!fetched?.ok) return { scene, ok: false, reason: fetched?.reason };
   scene.props = {
     ...(scene.props || {}),
-    lat: fetched.lat,
-    lng: fetched.lng,
-    backgroundImage: fetched.backgroundImage || scene.props?.backgroundImage,
-    backgroundImageWide:
-      fetched.backgroundImageWide || scene.props?.backgroundImageWide,
-    zoom_keyframes: fetched.zoom_keyframes || scene.props?.zoom_keyframes,
-    zoom_from: fetched.zoom_from ?? scene.props?.zoom_from,
-    zoom_to: fetched.zoom_to ?? scene.props?.zoom_to,
+    lat: fetched.lat ?? scene.props?.lat,
+    lng: fetched.lng ?? scene.props?.lng,
+    map_provider: fetched.map_provider || "ai_t2v",
+    geo_generation: fetched.geo_generation || "ai_prompt",
+    ai_video_prompt: fetched.ai_video_prompt || scene.props?.ai_video_prompt,
+    geo_prompt_brief: fetched.geo_prompt_brief,
+    geo_prompt_mode: fetched.geo_prompt_mode,
+    geo_prompt_weather: fetched.geo_prompt_weather,
+    geo_prompt_era: fetched.geo_prompt_era,
+    geo_prompt_orbit_360: fetched.geo_prompt_orbit_360,
+    geo_prompt_territory_highlight: fetched.geo_prompt_territory_highlight,
+    geo_prompt_generated_at: fetched.geo_prompt_generated_at,
+    geo_prompt_engine: fetched.geo_prompt_engine,
     fly_mode: fetched.fly_mode || scene.props?.fly_mode,
     place_type: fetched.place_type || scene.props?.place_type,
+    poi_kind: fetched.poi_kind,
     structure_exists: fetched.structure_exists,
     aspect_ratio: fetched.aspect_ratio || scene.props?.aspect_ratio,
-    boundaryGeoJson: fetched.boundaryGeoJson || "",
-    map_provider: fetched.map_provider,
+    variant: fetched.variant || "ai_geo_video",
+    map_style: fetched.map_style || "photoreal_satellite",
     geocode_source: fetched.geocode_source,
-    cesium_ion_token: fetched.cesium_ion_token || "",
-    google_maps_api_key: fetched.google_maps_api_key || "",
-    flyover_video: fetched.flyover_video || "",
+    subtitle: fetched.subtitle ?? scene.props?.subtitle,
   };
   return { scene, ok: true, kind: fetched.kind || "geo" };
 }
@@ -78,21 +79,8 @@ export async function enrichMotionScenesWithAssets(
   for (const scene of toProcess) {
     const templateId = String(scene.template_id || "");
     try {
-      if (templateId === "location-intro") {
-        const fetched = await fetchSatelliteAssetsForScene(projDir, scene, {
-          config,
-          workspaceConfig,
-        });
-        const applied = applyGeoFetchToScene(scene, fetched);
-        results.push({
-          id: scene.id,
-          template_id: templateId,
-          ...applied,
-          reason: applied.reason || null,
-        });
-        if (applied.ok) enriched += 1;
-      } else if (templateId === "geo-map") {
-        const fetched = await fetchGeoMapAssetsForScene(projDir, scene, {
+      if (templateId === "location-intro" || templateId === "geo-map") {
+        const fetched = await enrichGeoSceneWithAiPrompt(projDir, scene, {
           config,
           workspaceConfig,
         });
@@ -123,7 +111,7 @@ export async function enrichMotionScenesWithAssets(
       }
 
       if (isGeoTemplate(templateId)) {
-        await new Promise((r) => setTimeout(r, 900));
+        await new Promise((r) => setTimeout(r, 200));
       }
     } catch (err) {
       results.push({

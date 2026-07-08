@@ -268,6 +268,8 @@ export function buildPropsForTemplate(
         region: place.region,
         country: place.country,
         variant: LOCATION_INTRO_DEFAULTS.variant,
+        map_provider: LOCATION_INTRO_DEFAULTS.map_provider,
+        geo_generation: LOCATION_INTRO_DEFAULTS.geo_generation,
         accentColor: "#FFFFFF",
         place_type,
         structure_exists: classified.structure_exists !== false,

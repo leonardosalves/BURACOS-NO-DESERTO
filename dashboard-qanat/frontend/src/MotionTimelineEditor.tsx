@@ -483,8 +483,20 @@ export function MotionTimelineEditor({
                     onChange={(e) =>
                       patchProp(scene.id, field.key, e.target.value)
                     }
-                    rows={3}
-                    className="dash-input text-[10px] min-h-[72px] resize-y"
+                    rows={field.key === "ai_video_prompt" ? 10 : 3}
+                    placeholder={
+                      "placeholder" in field
+                        ? String(
+                            (field as { placeholder?: string }).placeholder ||
+                              ""
+                          )
+                        : undefined
+                    }
+                    className={`dash-input text-[10px] resize-y font-mono leading-relaxed ${
+                      field.key === "ai_video_prompt"
+                        ? "min-h-[160px]"
+                        : "min-h-[72px]"
+                    }`}
                   />
                 ) : (
                   <input
