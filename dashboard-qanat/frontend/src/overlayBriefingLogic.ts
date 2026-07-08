@@ -30,6 +30,15 @@ export type OverlayResearchSnapshot = {
   summary?: string;
   facts?: string[];
   sources?: Array<{ title?: string; url?: string }>;
+  selectedBlocks?: number[];
+  blocks?: Array<{
+    block?: number;
+    primaryTopic?: string;
+    narration?: string;
+    query?: string;
+    facts?: string[];
+    sources?: Array<{ title?: string; url?: string }>;
+  }>;
   sufficient?: boolean;
   fetchedAt?: string;
 };
@@ -155,6 +164,100 @@ function matchResearchFact(
   }
 
   return { fact: bestFact, source };
+}
+
+function blockFromSceneId(sceneId?: string): number | null {
+  const m = String(sceneId || "").match(/^(\d+)\./);
+  return m ? Number(m[1]) : null;
+}
+
+function scopedResearchForOverlay(
+  sceneId: string | undefined,
+  research?: OverlayResearchSnapshot | null
+): OverlayResearchSnapshot | null {
+  if (!research) return null;
+  const block = blockFromSceneId(sceneId);
+  if (!block || !Array.isArray(research.blocks)) return research;
+  const scoped = research.blocks.find((b) => Number(b.block) === block);
+  if (!scoped) return research;
+  return {
+    ...research,
+    query: scoped.query || research.query,
+    facts: scoped.facts || [],
+    sources: scoped.sources || [],
+    selectedBlocks: [block],
+    blocks: [scoped],
+  };
+}
+
+function factBelongsToResearch(
+  fact = "",
+  research?: OverlayResearchSnapshot | null
+): boolean {
+  const clean = fact.trim();
+  if (!clean) return false;
+  const factTokens = tokenize(clean);
+  return (research?.facts || []).some(
+    (candidate) =>
+      candidate.includes(clean) ||
+      overlapScore(factTokens, tokenize(candidate)) >= 0.18
+  );
+}
+
+const ENTITY_ALLOWLIST = new Set([
+  "IA",
+  "AI",
+  "Brasil",
+  "Cena",
+  "Lottie",
+  "Timeline",
+]);
+
+function extractEntityHints(text = ""): string[] {
+  const matches =
+    text.match(
+      /\b(?:[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç-]+)(?:\s+(?:de|da|do|dos|das|e|[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç-]+)){1,5}/g
+    ) || [];
+  return [...new Set(matches.map((m) => m.trim()))].filter(
+    (m) =>
+      m.length >= 8 &&
+      !ENTITY_ALLOWLIST.has(m) &&
+      !/^(Cena|Bloco|Tipo|Tema|Design|Fonte|Fato)\b/i.test(m)
+  );
+}
+
+function metaMatchesScopedStory(
+  meta: OverlayAiMeta | undefined,
+  scene?: VisualPromptScene,
+  research?: OverlayResearchSnapshot | null
+): boolean {
+  if (!meta) return true;
+  const metaText = [
+    meta.scene_rationale,
+    meta.content_summary,
+    meta.design_rationale,
+    meta.research_fact,
+    meta.narration_relation,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  if (!metaText.trim()) return true;
+  const context = [
+    scene?.narration_text,
+    scene?.prompt,
+    scene?.visual_description,
+    research?.topic,
+    research?.blocks?.[0]?.primaryTopic,
+    research?.blocks?.[0]?.narration,
+    ...(research?.facts || []),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const contextTokens = tokenize(context);
+  if (!contextTokens.size) return true;
+  return !extractEntityHints(metaText).some(
+    (entity) => overlapScore(tokenize(entity), contextTokens) < 0.34
+  );
 }
 
 function inferTypeSuggestion(overlay: OverlayDraft): string {
@@ -301,33 +404,38 @@ export function buildOverlayBriefing(
     .replace(/\s+/g, " ")
     .trim();
   const textBlob = overlayTextBlob(overlay);
-  const researchMatch = matchResearchFact(textBlob, overlayResearch);
+  const scopedResearch = scopedResearchForOverlay(sceneId, overlayResearch);
+  const safeMeta = metaMatchesScopedStory(meta, scene, scopedResearch)
+    ? meta
+    : undefined;
+  const researchMatch = matchResearchFact(textBlob, scopedResearch);
 
-  const suggestedType = meta?.suggested_type || inferTypeSuggestion(overlay);
+  const suggestedType =
+    safeMeta?.suggested_type || inferTypeSuggestion(overlay);
   const suggestedVariant =
-    meta?.suggested_variant ||
+    safeMeta?.suggested_variant ||
     (overlay.props?.variant as string | undefined) ||
     OVERLAY_VARIANTS[suggestedType]?.[0]?.id;
   const suggestedTheme =
-    meta?.suggested_theme ||
+    safeMeta?.suggested_theme ||
     (overlay.props?.theme as string | undefined) ||
     "classic";
   const suggestedIcon =
-    meta?.suggested_icon || (overlay.props?.iconType as string | undefined);
+    safeMeta?.suggested_icon || (overlay.props?.iconType as string | undefined);
   const suggestedPosition =
-    meta?.suggested_position ||
+    safeMeta?.suggested_position ||
     (overlay.props?.position as string | undefined) ||
     OVERLAY_POSITIONS[suggestedType]?.[0]?.id;
 
   const hasAiMeta = Boolean(
-    meta?.scene_rationale ||
-    meta?.content_summary ||
-    meta?.design_rationale ||
-    meta?.research_fact ||
-    meta?.narration_relation
+    safeMeta?.scene_rationale ||
+    safeMeta?.content_summary ||
+    safeMeta?.design_rationale ||
+    safeMeta?.research_fact ||
+    safeMeta?.narration_relation
   );
   const hasHeuristicResearch = Boolean(
-    researchMatch.fact && !meta?.research_fact
+    researchMatch.fact && !safeMeta?.research_fact
   );
 
   return {
@@ -335,19 +443,28 @@ export function buildOverlayBriefing(
     sceneNarration: narration,
     sceneVisual: visual || undefined,
     sceneRationale:
-      meta?.scene_rationale?.trim() ||
+      safeMeta?.scene_rationale?.trim() ||
       (sceneId
         ? `Aparece na cena ${sceneId}${visual ? ` — momento visual: ${visual.slice(0, 120)}${visual.length > 120 ? "…" : ""}` : ""}.`
         : "Sem cena âncora — defina a cena no roteiro para sincronizar com o vídeo."),
-    contentSummary: buildContentSummary(overlay, meta),
-    narrationRelation: buildNarrationRelation(narration, textBlob, meta),
+    contentSummary: buildContentSummary(overlay, safeMeta),
+    narrationRelation: buildNarrationRelation(narration, textBlob, safeMeta),
     designRationale:
-      meta?.design_rationale?.trim() ||
+      safeMeta?.design_rationale?.trim() ||
       inferDesignRationale(suggestedType, suggestedTheme),
-    researchQuery: meta?.research_query || overlayResearch?.query,
-    researchFact: meta?.research_fact || researchMatch.fact,
-    researchSource: meta?.research_source || researchMatch.source,
-    researchTopic: overlayResearch?.topic,
+    researchQuery: scopedResearch?.query,
+    researchFact:
+      safeMeta?.research_fact &&
+      factBelongsToResearch(safeMeta.research_fact, scopedResearch)
+        ? safeMeta.research_fact
+        : researchMatch.fact,
+    researchSource:
+      safeMeta?.research_fact &&
+      factBelongsToResearch(safeMeta.research_fact, scopedResearch)
+        ? safeMeta.research_source
+        : researchMatch.source,
+    researchTopic:
+      scopedResearch?.blocks?.[0]?.primaryTopic || scopedResearch?.topic,
     suggestions: {
       type: suggestedType,
       typeLabel: OVERLAY_TYPE_LABELS[suggestedType] || suggestedType,
