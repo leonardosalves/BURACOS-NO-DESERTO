@@ -1,5 +1,6 @@
 /**
  * Enriquecimento geográfico via prompts T2V — substitui Blender/Cesium/satélite.
+ * GLOBAL: lê local e narração da cena do projeto em edição; não injeta cidade fixa.
  */
 
 import {

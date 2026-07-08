@@ -1067,6 +1067,14 @@ export function OverlayPreview({
             />
           );
         }
+        const aiGeoPrompt = String(props.ai_video_prompt || "").trim();
+        const isAiGeo =
+          mapProvider === "ai_t2v" || props.geo_generation === "ai_prompt";
+        const placeLine = [props.location, props.region, props.country]
+          .map((v) => String(v || "").trim())
+          .filter(Boolean)
+          .join(" · ");
+
         if (embedded) {
           return (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#0d2137] via-[#1a5f7a] to-[#2d5a27] px-4 text-center">
@@ -1074,7 +1082,7 @@ export function OverlayPreview({
                 className="font-black text-white"
                 style={{ fontSize: metrics.fontSizeTitle }}
               >
-                {String(props.location || "Local")}
+                {String(props.location || "Local do vídeo")}
               </p>
               <p
                 className="text-zinc-300 uppercase mt-1"
@@ -1083,7 +1091,11 @@ export function OverlayPreview({
                 {String(props.country || props.region || "")}
               </p>
               <p className="text-amber-300/90 text-[10px] mt-3 font-semibold">
-                Mapa satélite pendente — baixando em segundo plano…
+                {isAiGeo && aiGeoPrompt
+                  ? "Prompt IA Geo pronto — gere o vídeo no Seedance/LTX"
+                  : isAiGeo
+                    ? "Gerando prompt IA Geo do local da narração…"
+                    : "Enriquecimento geográfico pendente…"}
               </p>
             </div>
           );
@@ -1102,14 +1114,24 @@ export function OverlayPreview({
               className="font-black text-white"
               style={{ fontSize: metrics.fontSizeTitle }}
             >
-              {String(props.location || "Bangkok")}
+              {String(props.location || "Local do vídeo")}
             </p>
             <p
               className="text-zinc-400 uppercase"
               style={{ fontSize: metrics.fontSizeSubtitle }}
             >
-              {String(props.country || props.region || "Tailândia")}
+              {placeLine || "País / região do projeto"}
             </p>
+            {isAiGeo && aiGeoPrompt ? (
+              <p
+                className="text-purple-200/90 mt-2 line-clamp-3"
+                style={{
+                  fontSize: Math.max(8, metrics.fontSizeSubtitle * 0.85),
+                }}
+              >
+                {String(props.geo_prompt_brief || "IA Geo")} — prompt T2V
+              </p>
+            ) : null}
           </>,
           "center",
           {

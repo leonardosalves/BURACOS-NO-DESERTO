@@ -262,7 +262,7 @@ describe("motionScenePlanner", () => {
     assert.equal(longPlan.motion_scenes[0].duration_seconds, 20);
   });
 
-  it("E2E Bangkok short 9:16 — location-intro PIP engenharia + place_type city", () => {
+  it("E2E cidade PT-BR (alias geocode) short 9:16 — location-intro PIP + place_type city", () => {
     const plan = planMotionScenesFromStoryboard(
       {
         visual_prompts: [

@@ -19,7 +19,7 @@ describe("motionSceneQuality", () => {
         props: {
           map_provider: "ai_t2v",
           geo_generation: "ai_prompt",
-          location: "Bangkok",
+          location: "Cidade do projeto",
           ai_video_prompt: "x".repeat(120),
         },
       },
