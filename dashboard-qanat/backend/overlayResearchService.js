@@ -882,14 +882,16 @@ Responda APENAS com um objeto JSON válido, sem markdown:
     let via = "storyboard-research";
     let sourceLocked = true;
 
-    // Se as fontes do roteiro não renderizaram fatos específicos suficientes (ou seja, apenas os títulos das fontes),
+    // Se as fontes do roteiro não renderizaram fatos específicos (ex: falha do leitor Jina ou fontes vazias),
+    // ou se temos apenas títulos de fontes sem fatos específicos listados no roteiro,
     // nós enriquecemos dinamicamente com busca web focada para trazer dados técnicos reais (ex: números, datas, etc.)
-    const hasDetailedFacts = mergedScriptFacts.some(
-      (f) => String(f).length > 60 || /\d+/.test(String(f))
-    );
-    if (mergedScriptFacts.length < 3 || !hasDetailedFacts) {
+    const hasOnlyTitleFallbacks =
+      !hydratedScriptResearch.facts.length &&
+      !storyboardResearch.hasExplicitFactList;
+
+    if (mergedScriptFacts.length < 3 || hasOnlyTitleFallbacks) {
       console.log(
-        `[Overlay Research] Fontes do roteiro escassas ou sem dados técnicos no Bloco ${blockEntry.block} (fatos: ${mergedScriptFacts.length}) — executando busca web complementar com query: "${query}"`
+        `[Overlay Research] Fontes do roteiro sem fatos reais ou leitor Jina falhou no Bloco ${blockEntry.block} (fatos: ${mergedScriptFacts.length}) — executando busca web complementar com query: "${query}"`
       );
       try {
         const search = await exaWebSearch(query, workspaceDir, {
