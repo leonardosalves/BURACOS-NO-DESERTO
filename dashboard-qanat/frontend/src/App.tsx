@@ -1188,6 +1188,7 @@ export default function App() {
         if (!opts?.silent) {
           toast.success("Templates Remotion salvos no storyboard.");
         }
+        setTimelineDataRevision((r) => r + 1);
       } catch (err) {
         toast.error(
           err instanceof Error ? err.message : "Erro ao salvar templates."
@@ -2678,9 +2679,10 @@ export default function App() {
           body: JSON.stringify({
             use_llm: true,
             fetch_satellite: true,
-            sync_timeline: false,
+            sync_timeline: true,
             rebuild_asset_slots: true,
             persist: true,
+            restore_suppressed_motion: true,
           }),
         }
       );
@@ -2689,6 +2691,7 @@ export default function App() {
         storyboard?: Record<string, unknown>;
         motion_scenes?: unknown[];
         motion_count?: number;
+        timeline_motion_count?: number;
         config?: { timeline_assets?: Record<string, unknown> };
       };
       if (!res.ok) {
@@ -2713,12 +2716,16 @@ export default function App() {
             : prev
         );
       }
+      const timelineMotion = Number(data.timeline_motion_count) || 0;
       toast.success(
         count > 0
-          ? `${count} template(s) planejado(s) e salvos no storyboard.`
+          ? timelineMotion > 0
+            ? `${count} template(s) salvos — ${timelineMotion} na Timeline Studio.`
+            : `${count} template(s) planejado(s) e salvos no storyboard.`
           : "Orquestração concluída — nenhum template gerado.",
         { id: toastId }
       );
+      setTimelineDataRevision((r) => r + 1);
       await fetchVideoQuality(activeProject);
     } catch (err) {
       console.error("Error planning motion scenes:", err);
@@ -3468,6 +3475,12 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem(WORKSPACE_TAB_KEY, activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "scene-timing") {
+      setTimelineDataRevision((r) => r + 1);
+    }
   }, [activeTab]);
 
   useEffect(() => {

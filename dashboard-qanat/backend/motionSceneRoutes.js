@@ -10,6 +10,7 @@ import {
   syncMotionScenesToStudio,
   unsuppressMotionSceneIds,
 } from "./motionScenePlanner.js";
+import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
 import { enrichMotionScenesWithAssets } from "./motionSceneAssetService.js";
 import {
   resolveMotionScenesForEnrichment,
@@ -252,9 +253,13 @@ export function registerMotionSceneRoutes(
             "Storyboard sem visual_prompts — carregue o roteiro do projeto antes de salvar templates.",
         });
       }
+      const normalizedScenes = motionScenes.map((ms) => ({
+        ...ms,
+        media_mode: ms?.media_mode || "remotion",
+      }));
       const next = applyMotionScenesToVisualPrompts(
-        { ...storyboard, motion_scenes: motionScenes },
-        motionScenes
+        { ...storyboard, motion_scenes: normalizedScenes },
+        normalizedScenes
       );
       next.motion_scenes_meta = {
         ...(next.motion_scenes_meta || {}),
@@ -262,11 +267,36 @@ export function registerMotionSceneRoutes(
         source: "motion_timeline_editor",
       };
       fs.writeFileSync(storyboardPath, JSON.stringify(next, null, 2), "utf8");
+
+      const config = readJsonSafe(path.join(projDir, "config_qanat.json"), {});
+      const blockTimings = readJsonSafe(
+        path.join(projDir, "block_timings.json"),
+        {}
+      );
+      const { studio: rawStudio } = loadTimelineStudio(projDir);
+      let studio = unsuppressMotionSceneIds(rawStudio, normalizedScenes);
+      studio = {
+        ...studio,
+        suppressedMotionSceneIds: [],
+        suppressedRemotionFingerprints: [],
+      };
+      studio = syncMotionScenesToStudio(studio, normalizedScenes);
+      studio = stripSuppressedRemotionClips(studio);
+      studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
+      studio = upsertMusicClipInStudio(studio, config, projDir);
+      const savedStudio = saveTimelineStudio(projDir, studio);
+      const timelineMotionCount = (savedStudio.clips || []).filter(
+        (c) => c?.trackId === MOTION_TRACK_ID
+      ).length;
+
       res.json({
         ok: true,
         motion_scenes: next.motion_scenes,
-        count: motionScenes.length,
+        count: normalizedScenes.length,
         saved_at: next.motion_scenes_meta.edited_at,
+        timeline_synced: true,
+        timeline_motion_count: timelineMotionCount,
+        studio: savedStudio,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
