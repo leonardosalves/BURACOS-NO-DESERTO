@@ -119,6 +119,22 @@ export function syncCatalogForNiche(niche = "", templates = []) {
   };
 }
 
+export function summarizeCatalogForLlm(niche = "") {
+  const catalog = getCatalogForNiche(niche);
+  const templates = catalog.approved.length
+    ? catalog.approved
+    : catalog.templates.filter((tpl) => tpl.status === "approved");
+  return templates.map((tpl) => ({
+    id: tpl.id,
+    name: tpl.name,
+    category: tpl.category,
+    subcategory: tpl.subcategory,
+    description: String(tpl.description || "").slice(0, 200),
+    motion_template_id: tpl.motion_template_id,
+    dataSlots: tpl.dataSlots,
+  }));
+}
+
 export function resolveMotionTemplateIdsFromPack(pack = {}, niche = "") {
   if (!pack?.enabled) return [];
   const catalog = getCatalogForNiche(pack.niche || niche);

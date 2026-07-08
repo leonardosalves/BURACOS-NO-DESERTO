@@ -7457,7 +7457,8 @@ export default function App() {
                     scriptNiche ||
                     "Engenharia"
                   ).trim(),
-                  template_ids: motionTemplateIds,
+                  template_ids: [],
+                  auto: true,
                 }
               : { enabled: false },
           }
