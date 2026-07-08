@@ -19040,15 +19040,25 @@ function repairOverlayPropsForRemotion(overlay) {
 }
 
 function tokenizeOverlayBriefingText(text = "") {
-  return new Set(
-    String(text)
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^\w\s]/g, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 3)
-  );
+  const words = String(text)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 3);
+  const stemmed = words.map((w) => {
+    let s = w;
+    if (s.endsWith("oes")) s = s.slice(0, -3) + "a";
+    else if (s.endsWith("ao")) s = s.slice(0, -2) + "a";
+    else if (s.endsWith("s")) s = s.slice(0, -1);
+
+    if (s.endsWith("os") || s.endsWith("as")) s = s.slice(0, -2);
+    else if (s.endsWith("o") || s.endsWith("a") || s.endsWith("e"))
+      s = s.slice(0, -1);
+    return s;
+  });
+  return new Set(stemmed);
 }
 
 function overlayBriefingTokenOverlap(a, b) {
