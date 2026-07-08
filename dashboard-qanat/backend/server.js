@@ -19318,6 +19318,58 @@ const META_ENTITY_ALLOWLIST = new Set([
   "Contador",
 ]);
 
+const NAMED_ENTITY_BLACKLIST = new Set([
+  "voce",
+  "voces",
+  "ele",
+  "ela",
+  "eles",
+  "elas",
+  "nao",
+  "não",
+  "sim",
+  "esse",
+  "este",
+  "esses",
+  "estes",
+  "essa",
+  "esta",
+  "essas",
+  "estas",
+  "isso",
+  "isto",
+  "aquilo",
+  "outro",
+  "outra",
+  "outros",
+  "outras",
+  "apenas",
+  "mesmo",
+  "mesma",
+  "onde",
+  "quando",
+  "como",
+  "quem",
+  "porque",
+  "porquê",
+  "acredita",
+  "acreditamos",
+  "falha",
+  "falhas",
+  "fornece",
+  "identifica",
+  "apresenta",
+  "compara",
+]);
+
+function normalizeEntityWord(word = "") {
+  return String(word)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w]/g, "");
+}
+
 function extractNamedEntityHints(text = "") {
   const matches =
     String(text).match(
@@ -19327,8 +19379,8 @@ function extractNamedEntityHints(text = "") {
     if (m.length < 8) return false;
     if (META_ENTITY_ALLOWLIST.has(m)) return false;
     if (/^(Cena|Bloco|Tipo|Tema|Design|Fonte|Fato)\b/i.test(m)) return false;
-    const firstWord = normalizeForBlacklist(m.split(/\s+/)[0]);
-    if (TOPIC_BLACKLIST.has(firstWord)) return false;
+    const firstWord = normalizeEntityWord(m.split(/\s+/)[0]);
+    if (NAMED_ENTITY_BLACKLIST.has(firstWord)) return false;
     return true;
   });
 }
