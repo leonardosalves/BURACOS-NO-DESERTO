@@ -38,7 +38,7 @@ describe("motionScenePlanner", () => {
     assert.equal(r?.trigger, "curiosity_punch");
   });
 
-  it("nao orquestra kinetic-text solto sem template aprovado", () => {
+  it("curiosidade vira counter aprovado em vez de kinetic-text", () => {
     const plan = planMotionScenesFromStoryboard(
       {
         visual_prompts: [
@@ -51,9 +51,10 @@ describe("motionScenePlanner", () => {
           },
         ],
       },
-      { niche: "Engenharia" }
+      { niche: "Engenharia", aspect_ratio: "16:9" }
     );
-    assert.equal(plan.motion_scenes.length, 0);
+    assert.equal(plan.motion_scenes.length, 1);
+    assert.equal(plan.motion_scenes[0].template_id, "counter");
   });
 
   it("planeja motion_scenes a partir de visual_prompts", () => {
