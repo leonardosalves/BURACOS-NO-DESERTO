@@ -50,6 +50,224 @@ const STORY_OBJECT_GROUPS = [
   ["rodovia", "estrada", "tunel", "tuneis"],
 ];
 
+const TOPIC_BLACKLIST = new Set([
+  "voce",
+  "voces",
+  "ele",
+  "ela",
+  "eles",
+  "elas",
+  "nao",
+  "não",
+  "sim",
+  "este",
+  "esta",
+  "estes",
+  "estas",
+  "esse",
+  "essa",
+  "esses",
+  "essas",
+  "aquele",
+  "aquela",
+  "aqueles",
+  "aquelas",
+  "isso",
+  "isto",
+  "aquilo",
+  "tudo",
+  "nada",
+  "todo",
+  "toda",
+  "todos",
+  "todas",
+  "outro",
+  "outra",
+  "outros",
+  "outras",
+  "algum",
+  "alguma",
+  "alguns",
+  "algumas",
+  "nenhum",
+  "nenhuma",
+  "nenhuns",
+  "nenhumas",
+  "qualquer",
+  "quaisquer",
+  "onde",
+  "como",
+  "quando",
+  "porque",
+  "porquê",
+  "quem",
+  "qual",
+  "quais",
+  "mais",
+  "menos",
+  "muito",
+  "pouco",
+  "tanto",
+  "tanta",
+  "tantos",
+  "tantas",
+  "para",
+  "pelo",
+  "pela",
+  "pelos",
+  "pelas",
+  "com",
+  "sem",
+  "sobre",
+  "atras",
+  "tras",
+  "mais",
+  "pelas",
+  "pelos",
+  "como",
+  "uma",
+  "umas",
+  "um",
+  "uns",
+  "caso",
+  "fato",
+  "fatos",
+  "neste",
+  "nesta",
+  "nestes",
+  "nestas",
+  "nesse",
+  "nessa",
+  "nesses",
+  "nessas",
+  "daquele",
+  "daquela",
+  "daqueles",
+  "daquelas",
+  "dele",
+  "dela",
+  "deles",
+  "delas",
+  "num",
+  "numa",
+  "nuns",
+  "numas",
+  "pelo",
+  "pela",
+  "pelos",
+  "pelas",
+  "aqui",
+  "ali",
+  "assim",
+  "entao",
+  "então",
+  "desde",
+  "apos",
+  "após",
+  "entre",
+  "contra",
+  "sobre",
+  "sob",
+  "ante",
+  "perante",
+  "atravess",
+  "embora",
+  "enquanto",
+  "durante",
+  "seria",
+  "seriam",
+  "serio",
+  "sério",
+  "quase",
+  "apenas",
+  "mesmo",
+  "mesma",
+  "mesmos",
+  "mesmas",
+  "onde",
+  "onde",
+  "quando",
+  "quem",
+  "cujo",
+  "cuja",
+  "cujos",
+  "cujas",
+  "voce",
+  "você",
+  "vocês",
+  "voces",
+  "nosso",
+  "nossa",
+  "nossos",
+  "nossas",
+  "meu",
+  "minha",
+  "meus",
+  "minhas",
+  "teu",
+  "tua",
+  "teus",
+  "tuas",
+  "seu",
+  "sua",
+  "seus",
+  "suas",
+  "primeiro",
+  "primeira",
+  "segundo",
+  "segunda",
+  "terceiro",
+  "terceira",
+]);
+
+function normalizeForBlacklist(word = "") {
+  return String(word)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w]/g, "");
+}
+
+function extractCleanTitle(videoTopic = "") {
+  const parts = String(videoTopic)
+    .split("—")
+    .map((p) => p.trim());
+  if (parts.length >= 2) {
+    return parts[1];
+  }
+  return parts[0] || "";
+}
+
+async function resolveRedirectUrl(url) {
+  if (!url || !url.includes("grounding-api-redirect")) return url;
+  try {
+    const res = await fetch(url, { method: "HEAD", redirect: "follow" });
+    return res.url || url;
+  } catch {
+    try {
+      const res = await fetch(url, { method: "GET", redirect: "follow" });
+      return res.url || url;
+    } catch {
+      return url;
+    }
+  }
+}
+
+function cleanTitleFromUrl(title, url) {
+  if (title && !title.startsWith("http")) return title;
+  try {
+    const parsed = new URL(url);
+    const pathParts = parsed.pathname.split("/").filter(Boolean);
+    if (pathParts.length > 0) {
+      const lastPart = decodeURIComponent(pathParts[pathParts.length - 1]);
+      return lastPart.replace(/[-_]+/g, " ").trim();
+    }
+    return parsed.hostname;
+  } catch {
+    return title;
+  }
+}
+
 function readJson(filePath, fallback = {}) {
   if (!filePath || !fs.existsSync(filePath)) return fallback;
   try {
@@ -201,15 +419,15 @@ function isResearchCandidateRelevant(candidate = "", context = "") {
   if (!contextTokens.length) return true;
   if (hasStoryObjectContradiction(candidate, context)) return false;
   const candidateTokens = tokenizeResearchText(candidate);
-  return tokenOverlapScore(contextTokens, candidateTokens) >= 0.12;
+  return tokenOverlapScore(candidateTokens, contextTokens) >= 0.12;
 }
 
 function filterFactsForBlock(facts = [], blockEntry = {}, videoTopic = "") {
+  const cleanTitle = extractCleanTitle(videoTopic);
   const context = [
-    videoTopic,
+    cleanTitle,
     blockEntry.primaryTopic,
     blockEntry.narration,
-    blockEntry.niche,
   ].join(" ");
   const contextTokens = tokenizeResearchText(context);
   if (!contextTokens.length) return facts.slice(0, 8);
@@ -217,7 +435,7 @@ function filterFactsForBlock(facts = [], blockEntry = {}, videoTopic = "") {
   return facts
     .map((fact) => ({
       fact,
-      score: tokenOverlapScore(contextTokens, tokenizeResearchText(fact)),
+      score: tokenOverlapScore(tokenizeResearchText(fact), contextTokens),
     }))
     .filter((entry) => entry.score >= 0.12)
     .filter((entry) => !hasStoryObjectContradiction(entry.fact, context))
@@ -227,11 +445,11 @@ function filterFactsForBlock(facts = [], blockEntry = {}, videoTopic = "") {
 }
 
 function filterSourcesForBlock(sources = [], blockEntry = {}, videoTopic = "") {
+  const cleanTitle = extractCleanTitle(videoTopic);
   const context = [
-    videoTopic,
+    cleanTitle,
     blockEntry.primaryTopic,
     blockEntry.narration,
-    blockEntry.niche,
   ].join(" ");
   return (sources || [])
     .filter((src) =>
@@ -253,11 +471,11 @@ function factMatchesNarrationBlock(fact = "", blockEntry = {}) {
 }
 
 function sourceMatchesBlock(source = {}, blockEntry = {}, videoTopic = "") {
+  const cleanTitle = extractCleanTitle(videoTopic);
   const context = [
-    videoTopic,
+    cleanTitle,
     blockEntry.primaryTopic,
     blockEntry.narration,
-    blockEntry.niche,
   ].join(" ");
   return isResearchCandidateRelevant(
     [source?.title, source?.url, source?.snippet].filter(Boolean).join(" "),
@@ -330,7 +548,15 @@ function extractTopicsFromNarration(text = "") {
   const proper = narration.match(
     /\b[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+(?:\s+(?:de|da|do|dos|das)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+|\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+)*/g
   );
-  if (proper) topics.push(...proper.slice(0, 2));
+  if (proper) {
+    const filteredProper = proper
+      .map((p) => p.trim())
+      .filter((p) => {
+        const firstWord = normalizeForBlacklist(p.split(/\s+/)[0]);
+        return firstWord.length >= 3 && !TOPIC_BLACKLIST.has(firstWord);
+      });
+    topics.push(...filteredProper.slice(0, 2));
+  }
 
   if (/compar|versus|vs\.?|maior|menor|dobr|tripl/i.test(narration))
     topics.push("comparação");
@@ -451,7 +677,8 @@ export function buildOverlayResearchTopic({
 } = {}) {
   const niche = String(config.niche || "Geral").trim();
   const title = String(
-    storyboard.strategy?.title ||
+    storyboard.strategy?.title_main ||
+      storyboard.strategy?.title ||
       storyboard.idea_title ||
       storyboard.title ||
       ""
@@ -568,11 +795,13 @@ async function researchSingleBlock(
   videoTopic = "",
   storyboardResearch = {}
 ) {
+  const cleanTitle = extractCleanTitle(videoTopic);
   const query = [
-    videoTopic,
-    blockEntry.primaryTopic,
-    blockEntry.narration,
-    "dados números datas estatísticas fatos verificáveis comparações",
+    cleanTitle,
+    blockEntry.primaryTopic && blockEntry.primaryTopic !== cleanTitle
+      ? blockEntry.primaryTopic
+      : "",
+    "dados números datas estatísticas fatos verificáveis",
   ]
     .filter(Boolean)
     .join(" ")
@@ -694,6 +923,22 @@ export async function fetchOverlayResearchForRender(
     storyboard,
     scriptResearch || {}
   );
+
+  // Resolve redirect URLs in parallel
+  if (Array.isArray(storyboardResearch.sources)) {
+    storyboardResearch.sources = await Promise.all(
+      storyboardResearch.sources.map(async (src) => {
+        if (!src.url) return src;
+        const resolvedUrl = await resolveRedirectUrl(src.url);
+        const resolvedTitle = cleanTitleFromUrl(src.title, resolvedUrl);
+        return {
+          ...src,
+          title: resolvedTitle,
+          url: resolvedUrl,
+        };
+      })
+    );
+  }
 
   if (
     !forceRefresh &&
