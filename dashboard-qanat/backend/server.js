@@ -19053,7 +19053,7 @@ function overlayBriefingTokenOverlap(a, b) {
   for (const token of a) {
     if (b.has(token)) hits += 1;
   }
-  return hits / Math.max(a.size, b.size);
+  return hits / Math.min(a.size, b.size);
 }
 
 const OVERLAY_STORY_OBJECT_GROUPS = [
@@ -19321,14 +19321,16 @@ const META_ENTITY_ALLOWLIST = new Set([
 function extractNamedEntityHints(text = "") {
   const matches =
     String(text).match(
-      /\b(?:[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç-]+)(?:\s+(?:de|da|do|dos|das|e|[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç-]+)){1,5}/g
+      /\b[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç-]+(?:\s+(?:de|da|do|dos|das|e)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç-]+|\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç-]+)*/g
     ) || [];
-  return [...new Set(matches.map((m) => m.trim()))].filter(
-    (m) =>
-      m.length >= 8 &&
-      !META_ENTITY_ALLOWLIST.has(m) &&
-      !/^(Cena|Bloco|Tipo|Tema|Design|Fonte|Fato)\b/i.test(m)
-  );
+  return [...new Set(matches.map((m) => m.trim()))].filter((m) => {
+    if (m.length < 8) return false;
+    if (META_ENTITY_ALLOWLIST.has(m)) return false;
+    if (/^(Cena|Bloco|Tipo|Tema|Design|Fonte|Fato)\b/i.test(m)) return false;
+    const firstWord = normalizeForBlacklist(m.split(/\s+/)[0]);
+    if (TOPIC_BLACKLIST.has(firstWord)) return false;
+    return true;
+  });
 }
 
 function overlayMetaMatchesStoryBlock(
