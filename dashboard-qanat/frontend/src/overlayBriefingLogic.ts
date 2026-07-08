@@ -31,8 +31,10 @@ export type OverlayResearchSnapshot = {
   facts?: string[];
   sources?: Array<{ title?: string; url?: string; snippet?: string }>;
   selectedBlocks?: number[];
+  sourceLocked?: boolean;
   blocks?: Array<{
     block?: number;
+    sourceLocked?: boolean;
     primaryTopic?: string;
     narration?: string;
     query?: string;
