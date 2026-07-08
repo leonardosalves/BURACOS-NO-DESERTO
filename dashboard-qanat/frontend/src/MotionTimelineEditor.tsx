@@ -1,5 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { Clock, Film, Layers, Sparkles, Trash2, Wand2 } from "lucide-react";
+import {
+  Clock,
+  Film,
+  Layers,
+  Save,
+  Sparkles,
+  Trash2,
+  Wand2,
+} from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
 import { SettingLabel } from "./SettingHelpTip";
 import {
@@ -35,8 +43,10 @@ type Props = {
   aspectRatio?: string;
   getAssetUrl?: (path: string) => string;
   generating?: boolean;
+  saving?: boolean;
   onChange: (nextScenes: MotionSceneDraft[]) => void;
   onGenerate: () => void;
+  onSave?: () => void | Promise<void>;
 };
 
 function numericStart(scene: MotionSceneDraft, starts: number[]): number {
@@ -71,8 +81,10 @@ export function MotionTimelineEditor({
   aspectRatio = "16:9",
   getAssetUrl,
   generating = false,
+  saving = false,
   onChange,
   onGenerate,
+  onSave,
 }: Props) {
   const starts = blockTimings?.starts || [];
   const filmstrip = useMemo(
@@ -488,11 +500,16 @@ export function MotionTimelineEditor({
             </span>
           }
         />
-        <div className="flex flex-wrap gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {scenes.length > 0 && (
+            <span className="text-[9px] text-zinc-500 tabular-nums">
+              {saving ? "Salvando…" : "Autosave ativo"}
+            </span>
+          )}
           <button
             type="button"
             onClick={onGenerate}
-            disabled={generating}
+            disabled={generating || saving}
             className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition"
           >
             <Wand2 className="w-3.5 h-3.5" />
@@ -501,11 +518,23 @@ export function MotionTimelineEditor({
           <button
             type="button"
             onClick={addScene}
-            className="dash-btn-ghost text-[10px] px-4 py-2 flex items-center gap-1.5"
+            disabled={saving}
+            className="dash-btn-ghost text-[10px] px-4 py-2 flex items-center gap-1.5 disabled:opacity-50"
           >
             <Sparkles className="w-3.5 h-3.5" />
             Novo template
           </button>
+          {onSave && scenes.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void onSave()}
+              disabled={saving || generating}
+              className="bg-zinc-900 border border-zinc-700 hover:border-purple-500/40 text-purple-200 disabled:opacity-50 text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {saving ? "Salvando…" : "Salvar agora"}
+            </button>
+          )}
         </div>
       </div>
 

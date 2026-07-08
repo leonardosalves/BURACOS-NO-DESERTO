@@ -879,6 +879,9 @@ export default function App() {
   );
 
   const saveStoryboardTimeoutRef = useRef<any | null>(null);
+  const motionSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
   const chunkTimelineResyncAttemptedRef = useRef<Set<string>>(new Set());
   const storyboardDirtyRef = useRef(false);
   const storyboardFetchGenRef = useRef(0);
@@ -1150,6 +1153,77 @@ export default function App() {
       clearTimeout(saveStoryboardTimeoutRef.current);
       saveStoryboardTimeoutRef.current = null;
     }
+  };
+
+  const clearPendingMotionSave = () => {
+    if (motionSaveTimeoutRef.current) {
+      clearTimeout(motionSaveTimeoutRef.current);
+      motionSaveTimeoutRef.current = null;
+    }
+  };
+
+  const persistMotionScenes = async (
+    scenes: unknown[],
+    opts?: { immediate?: boolean; silent?: boolean }
+  ) => {
+    const run = async () => {
+      clearPendingStoryboardSave();
+      storyboardDirtyRef.current = false;
+      setSavingMotionScenes(true);
+      try {
+        const res = await fetch(
+          getProjectUrl("/api/projects/storyboard/motion-scenes"),
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ motion_scenes: scenes }),
+          }
+        );
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        if (!res.ok) {
+          throw new Error(data.error || "Falha ao salvar templates.");
+        }
+        if (!opts?.silent) {
+          toast.success("Templates Remotion salvos no storyboard.");
+        }
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Erro ao salvar templates."
+        );
+      } finally {
+        setSavingMotionScenes(false);
+      }
+    };
+    if (opts?.immediate) {
+      await run();
+      return;
+    }
+    clearPendingMotionSave();
+    motionSaveTimeoutRef.current = setTimeout(() => {
+      void run();
+    }, 450);
+  };
+
+  const handleMotionScenesChange = (scenes: unknown[]) => {
+    const base = storyboardData || generatedScriptData;
+    if (!base) return;
+    const next = { ...base, motion_scenes: scenes };
+    setStoryboardData(next);
+    setGeneratedScriptData(next);
+    void persistMotionScenes(scenes, { silent: true });
+  };
+
+  const handleSaveMotionScenes = async () => {
+    const scenes =
+      storyboardData?.motion_scenes || generatedScriptData?.motion_scenes || [];
+    if (!Array.isArray(scenes) || scenes.length < 1) {
+      toast.error("Nenhum template para salvar.");
+      return;
+    }
+    clearPendingMotionSave();
+    await persistMotionScenes(scenes, { immediate: true });
   };
 
   const debounceSaveStoryboard = (scriptData: any) => {
@@ -1561,6 +1635,7 @@ export default function App() {
 
   const [loadingStoryboard, setLoadingStoryboard] = useState<boolean>(false);
   const [generatingOverlays, setGeneratingOverlays] = useState<boolean>(false);
+  const [savingMotionScenes, setSavingMotionScenes] = useState(false);
 
   const [editorSubTab, setEditorSubTab] = useState<
     "script" | "assets" | "json" | "narration" | "dub"
@@ -2589,6 +2664,9 @@ export default function App() {
       toast.error("Carregue um projeto antes de planejar templates.");
       return;
     }
+    clearPendingStoryboardSave();
+    clearPendingMotionSave();
+    storyboardDirtyRef.current = false;
     setGeneratingOverlays(true);
     const toastId = toast.loading("Planejando templates Remotion…");
     try {
@@ -2602,27 +2680,45 @@ export default function App() {
             fetch_satellite: true,
             sync_timeline: false,
             rebuild_asset_slots: true,
+            persist: true,
           }),
         }
       );
-      const data = await res.json().catch(() => ({}));
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        storyboard?: Record<string, unknown>;
+        motion_scenes?: unknown[];
+        motion_count?: number;
+        config?: { timeline_assets?: Record<string, unknown> };
+      };
       if (!res.ok) {
-        throw new Error(
-          String((data as { error?: string }).error || "Falha na orquestração")
+        throw new Error(String(data.error || "Falha na orquestração"));
+      }
+      const motionScenes =
+        data.motion_scenes ||
+        (data.storyboard?.motion_scenes as unknown[] | undefined) ||
+        [];
+      const count =
+        Number(data.motion_count) ||
+        (Array.isArray(motionScenes) ? motionScenes.length : 0);
+      const merged = {
+        ...(data.storyboard || storyboardData || generatedScriptData || {}),
+        motion_scenes: motionScenes,
+      };
+      applyStoryboardToCreatorState(merged, "generation");
+      if (data.config?.timeline_assets && config) {
+        setConfig((prev) =>
+          prev
+            ? { ...prev, timeline_assets: data.config!.timeline_assets as any }
+            : prev
         );
       }
-      const count =
-        Number((data as { motion_count?: number }).motion_count) ||
-        (Array.isArray((data as { motion_scenes?: unknown[] }).motion_scenes)
-          ? (data as { motion_scenes: unknown[] }).motion_scenes.length
-          : 0);
       toast.success(
         count > 0
-          ? `${count} template(s) Remotion planejado(s).`
-          : "Orquestração concluída — revise os templates.",
+          ? `${count} template(s) planejado(s) e salvos no storyboard.`
+          : "Orquestração concluída — nenhum template gerado.",
         { id: toastId }
       );
-      await fetchStoryboard(activeProject, { force: true });
       await fetchVideoQuality(activeProject);
     } catch (err) {
       console.error("Error planning motion scenes:", err);
@@ -9569,6 +9665,7 @@ export default function App() {
     creatorLoading,
     syncingTimings,
     generatingOverlays,
+    savingMotionScenes,
     playingMusic,
     playingNarration,
     setConfig,
@@ -9588,6 +9685,8 @@ export default function App() {
     handleAutoMapAssets,
     handleGenerateAiOverlays,
     handlePlanMotionScenes,
+    handleMotionScenesChange,
+    handleSaveMotionScenes,
     handleRepairProjectVisualPrompts,
     handleSaveConfig,
     handleSyncTimings,
