@@ -136,7 +136,18 @@ export async function fetchRemotionTemplateCatalog(
         error: parsed.error || "Catálogo indisponível.",
       };
     }
-    return parsed.data;
+    const data = parsed.data;
+    return {
+      success: Boolean(data.success),
+      niche: String(data.niche || niche || "Engenharia"),
+      templates: Array.isArray(data.templates) ? data.templates : [],
+      approved: Array.isArray(data.approved) ? data.approved : [],
+      orchestration_ready: Array.isArray(data.orchestration_ready)
+        ? data.orchestration_ready
+        : [],
+      updated_at: data.updated_at ?? null,
+      error: data.error,
+    };
   } catch (err) {
     return {
       success: false,
