@@ -80,6 +80,8 @@ function repairReplacementCharInPortuguese(text) {
   if (!text || !text.includes(REPLACEMENT_CHAR)) return text;
   let out = text;
   out = out.replace(/COMPAR\uFFFDA?\uFFFDO/gi, "COMPARAÇÃO");
+  out = out.replace(/([A-Z]{2,})\uFFFDA?\uFFFDO(?=\b|\s|[^A-Za-z])/g, "$1ÇÃO");
+  out = out.replace(/([a-z]{2,})\uFFFDa?\uFFFDo(?=\b|\s|[^a-z])/g, "$1ção");
   out = out.replace(/([A-Z]{2,})S\uFFFD([O])(?=\b|\s|[^A-Za-z])/g, "$1SÃO");
   out = out.replace(/([A-Z]{2,})\uFFFD([O])(?=\b|\s|[^A-Za-z])/g, "$1ÃO");
   out = out.replace(/([a-z]{2,})s\uFFFD([o])(?=\b|\s|[^a-z])/g, "$1são");
@@ -155,13 +157,20 @@ export function repairOverlayPropsEncoding(props) {
       out.events = val.map((ev) => ({
         ...ev,
         year: typeof ev?.year === "string" ? repairMojibake(ev.year) : ev?.year,
-        description: typeof ev?.description === "string" ? repairMojibake(ev.description) : ev?.description,
+        description:
+          typeof ev?.description === "string"
+            ? repairMojibake(ev.description)
+            : ev?.description,
       }));
     } else if (key === "items" && Array.isArray(val)) {
       out.items = val.map((it) => ({
         ...it,
-        label: typeof it?.label === "string" ? repairMojibake(it.label) : it?.label,
-        displayValue: typeof it?.displayValue === "string" ? repairMojibake(it.displayValue) : it?.displayValue,
+        label:
+          typeof it?.label === "string" ? repairMojibake(it.label) : it?.label,
+        displayValue:
+          typeof it?.displayValue === "string"
+            ? repairMojibake(it.displayValue)
+            : it?.displayValue,
       }));
     }
   }
@@ -176,7 +185,11 @@ export function repairOverlaysEncoding(overlays = []) {
 /** Detecta texto corrompido (mojibake ou caractere de substituição Unicode). */
 export function hasMojibakeDeep(value) {
   if (typeof value === "string") {
-    return value.includes("Ã") || value.includes("Â") || value.includes(REPLACEMENT_CHAR);
+    return (
+      value.includes("Ã") ||
+      value.includes("Â") ||
+      value.includes(REPLACEMENT_CHAR)
+    );
   }
   if (Array.isArray(value)) return value.some(hasMojibakeDeep);
   if (value && typeof value === "object") {
