@@ -19098,7 +19098,7 @@ function matchOverlayResearchFact(overlayText = "", overlayResearch = {}) {
   let source;
   const sources = (overlayResearch.sources || []).filter((src) =>
     overlayResearchCandidateIsRelevant(
-      [src.title, src.url].filter(Boolean).join(" "),
+      [src.title, src.url, src.snippet].filter(Boolean).join(" "),
       overlayResearch
     )
   );
@@ -19107,10 +19107,12 @@ function matchOverlayResearchFact(overlayText = "", overlayResearch = {}) {
     let bestSrc;
     let bestSrcScore = 0;
     for (const src of sources) {
-      const title = String(src.title || src.url || "");
+      const sourceText = String(
+        [src.title, src.url, src.snippet].filter(Boolean).join(" ")
+      );
       const score = overlayBriefingTokenOverlap(
         factTokens,
-        tokenizeOverlayBriefingText(title)
+        tokenizeOverlayBriefingText(sourceText)
       );
       if (score > bestSrcScore) {
         bestSrcScore = score;
