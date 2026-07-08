@@ -6103,6 +6103,14 @@ app.post("/api/render/plan-overlays", async (req, res) => {
         {
           forceRefresh: forceRegenerate || !allowCachedOverlays,
           orchestrationPlan: orchestrationForResearch,
+          scriptResearch: {
+            sources: Array.isArray(req.body?.research_sources)
+              ? req.body.research_sources
+              : [],
+            facts: Array.isArray(req.body?.research_facts)
+              ? req.body.research_facts
+              : [],
+          },
         }
       );
       const researchAddendum = buildOverlayResearchPromptBlock(overlayResearch);

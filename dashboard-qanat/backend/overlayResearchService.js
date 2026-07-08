@@ -79,6 +79,63 @@ function extractFactsFromResearch(search = {}) {
   return [...new Set(facts)].slice(0, 12);
 }
 
+function normalizeResearchSources(sources = []) {
+  return (Array.isArray(sources) ? sources : [])
+    .map((src) => ({
+      title: String(src?.title || src?.name || src?.label || "").trim(),
+      url: String(src?.url || src?.href || src?.link || "").trim(),
+      snippet: String(
+        src?.snippet || src?.summary || src?.description || ""
+      ).trim(),
+    }))
+    .filter((src) => src.title || src.url);
+}
+
+function normalizeResearchFacts(facts = []) {
+  return (Array.isArray(facts) ? facts : [])
+    .map((fact) => String(fact || "").trim())
+    .filter((fact) => fact.length >= 20);
+}
+
+function collectStoryboardResearch(storyboard = {}, injected = {}) {
+  const sourceBuckets = [
+    storyboard.research_sources,
+    storyboard.web_research?.sources,
+    storyboard.webResearch?.sources,
+    storyboard.strategy?.research_sources,
+    injected.sources,
+  ];
+  const factBuckets = [
+    storyboard.research_facts,
+    storyboard.web_facts,
+    storyboard.facts,
+    storyboard.web_research?.facts,
+    storyboard.webResearch?.facts,
+    storyboard.strategy?.wow_facts_preview,
+    storyboard.wow_facts_preview,
+    injected.facts,
+  ];
+  const sources = normalizeResearchSources(
+    sourceBuckets.flatMap((v) => v || [])
+  );
+  const sourceTitleFacts = sources.map((src) => src.title).filter(Boolean);
+  const facts = normalizeResearchFacts([
+    ...factBuckets.flatMap((v) => v || []),
+    ...sourceTitleFacts,
+  ]);
+  const sourceKey = new Set();
+  const dedupedSources = sources.filter((src) => {
+    const key = `${src.title}|${src.url}`.toLowerCase();
+    if (sourceKey.has(key)) return false;
+    sourceKey.add(key);
+    return true;
+  });
+  return {
+    sources: dedupedSources,
+    facts: [...new Set(facts)],
+  };
+}
+
 function tokenizeResearchText(text = "") {
   return String(text)
     .toLowerCase()
@@ -397,7 +454,7 @@ export function buildOverlayResearchPromptBlock(research = {}) {
 
   return `
 
-PESQUISA POR BLOCO (Agent Reach) — GERE 1 OVERLAY POR BLOCO SELECIONADO:
+PESQUISA POR BLOCO (JSON DO ROTEIRO primeiro; internet apenas se o JSON não tiver pesquisa) — GERE 1 OVERLAY POR BLOCO SELECIONADO:
 Workflow obrigatório:
 1. Para cada bloco listado abaixo, gere EXATAMENTE 1 overlay informativo.
 2. Use SOMENTE os fatos/números/datas do bloco selecionado correspondente. PROIBIDO usar fatos gerais do nicho ou de outro assunto.
@@ -417,7 +474,8 @@ async function researchSingleBlock(
   blockEntry,
   niche,
   workspaceDir,
-  videoTopic = ""
+  videoTopic = "",
+  storyboardResearch = {}
 ) {
   const query = [
     videoTopic,
@@ -428,6 +486,41 @@ async function researchSingleBlock(
     .filter(Boolean)
     .join(" ")
     .slice(0, 240);
+
+  const scriptFacts = filterFactsForBlock(
+    storyboardResearch.facts || [],
+    blockEntry,
+    videoTopic
+  );
+  const scriptSources = filterSourcesForBlock(
+    storyboardResearch.sources || [],
+    blockEntry,
+    videoTopic
+  );
+
+  const hasScriptResearch =
+    (storyboardResearch.facts || []).length > 0 ||
+    (storyboardResearch.sources || []).length > 0;
+
+  if (hasScriptResearch) {
+    return {
+      block: blockEntry.block,
+      blockStart: blockEntry.blockStart,
+      primaryTopic: blockEntry.primaryTopic,
+      topics: blockEntry.topics,
+      narration: blockEntry.narration,
+      suggestedType: blockEntry.suggestedType,
+      overlayScore: blockEntry.overlayScore,
+      selected: true,
+      query,
+      facts: scriptFacts,
+      rawFactCount: scriptFacts.length,
+      sources: scriptSources,
+      summary: "Pesquisa do JSON do roteiro.",
+      available: Boolean(scriptFacts.length || scriptSources.length),
+      via: "storyboard-research",
+    };
+  }
 
   const search = await exaWebSearch(query, workspaceDir, { numResults: 5 });
   const rawFacts = extractFactsFromResearch(search);
@@ -460,7 +553,7 @@ async function researchSingleBlock(
 export async function fetchOverlayResearchForRender(
   projectDir,
   workspaceDir,
-  { forceRefresh = false, orchestrationPlan = null } = {}
+  { forceRefresh = false, orchestrationPlan = null, scriptResearch = null } = {}
 ) {
   const config = readJson(path.join(projectDir, "config_qanat.json"), {});
   const storyboard = readJson(path.join(projectDir, "storyboard.json"), {});
@@ -492,6 +585,10 @@ export async function fetchOverlayResearchForRender(
   );
   const cacheKey = buildResearchCacheKey(blockPhrases, plan);
   const topic = buildOverlayResearchTopic({ config, storyboard, blockPhrases });
+  const storyboardResearch = collectStoryboardResearch(
+    storyboard,
+    scriptResearch || {}
+  );
 
   if (
     !forceRefresh &&
@@ -518,7 +615,8 @@ export async function fetchOverlayResearchForRender(
         blockEntry,
         niche,
         workspaceDir,
-        topic
+        topic,
+        storyboardResearch
       );
       blockResearch.push(result);
       console.log(
@@ -584,7 +682,11 @@ export async function resolveOverlayResearchForPlanning(
   workspaceDir,
   options = {}
 ) {
-  const { forceRefresh = false, orchestrationPlan = null } = options;
+  const {
+    forceRefresh = false,
+    orchestrationPlan = null,
+    scriptResearch = null,
+  } = options;
   try {
     const research = await fetchOverlayResearchForRender(
       projectDir,
@@ -592,6 +694,7 @@ export async function resolveOverlayResearchForPlanning(
       {
         forceRefresh,
         orchestrationPlan,
+        scriptResearch,
       }
     );
     const blockCount = research.blocks?.length || 0;
