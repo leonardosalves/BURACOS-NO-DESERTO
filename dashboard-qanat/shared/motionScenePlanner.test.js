@@ -19,9 +19,16 @@ describe("motionScenePlanner", () => {
     assert.ok(r.confidence >= 0.65);
   });
 
-  it("detecta menção a mapa / local", () => {
+  it("não dispara location só por mapa sem lugar nomeado", () => {
     const r = classifyNarrationSegment(
       "O Google Maps esconde uma fortaleza estelar com precisão absurda."
+    );
+    assert.notEqual(r?.trigger, "location");
+  });
+
+  it("dispara location quando cidade é citada no roteiro", () => {
+    const r = classifyNarrationSegment(
+      "Na cidade de Bangcoc, a bacia de argila esconde um segredo sísmico."
     );
     assert.equal(r?.trigger, "location");
   });
