@@ -29,7 +29,7 @@ export type OverlayResearchSnapshot = {
   query?: string;
   summary?: string;
   facts?: string[];
-  sources?: Array<{ title?: string; url?: string }>;
+  sources?: Array<{ title?: string; url?: string; snippet?: string }>;
   selectedBlocks?: number[];
   blocks?: Array<{
     block?: number;
@@ -37,7 +37,7 @@ export type OverlayResearchSnapshot = {
     narration?: string;
     query?: string;
     facts?: string[];
-    sources?: Array<{ title?: string; url?: string }>;
+    sources?: Array<{ title?: string; url?: string; snippet?: string }>;
   }>;
   sufficient?: boolean;
   fetchedAt?: string;
@@ -203,7 +203,7 @@ function matchResearchFact(
   let source: string | undefined;
   const sources = (research?.sources || []).filter((src) =>
     isResearchCandidateRelevant(
-      [src.title, src.url].filter(Boolean).join(" "),
+      [src.title, src.url, src.snippet].filter(Boolean).join(" "),
       research
     )
   );
@@ -212,8 +212,10 @@ function matchResearchFact(
     let bestSrc: (typeof sources)[number] | undefined;
     let bestSrcScore = 0;
     for (const src of sources) {
-      const title = String(src.title || src.url || "");
-      const score = overlapScore(factTokens, tokenize(title));
+      const sourceText = String(
+        [src.title, src.url, src.snippet].filter(Boolean).join(" ")
+      );
+      const score = overlapScore(factTokens, tokenize(sourceText));
       if (score > bestSrcScore) {
         bestSrcScore = score;
         bestSrc = src;
@@ -223,6 +225,18 @@ function matchResearchFact(
   }
 
   return { fact: bestFact, source };
+}
+
+function fallbackResearchSource(
+  research?: OverlayResearchSnapshot | null
+): string | undefined {
+  const source = (research?.sources || []).find((src) =>
+    isResearchCandidateRelevant(
+      [src.title, src.url, src.snippet].filter(Boolean).join(" "),
+      research
+    )
+  );
+  return source?.title || source?.url;
 }
 
 function blockFromSceneId(sceneId?: string): number | null {
@@ -471,6 +485,7 @@ export function buildOverlayBriefing(
     ? meta
     : undefined;
   const researchMatch = matchResearchFact(textBlob, scopedResearch);
+  const researchSourceFallback = fallbackResearchSource(scopedResearch);
 
   const suggestedType =
     safeMeta?.suggested_type || inferTypeSuggestion(overlay);
@@ -524,7 +539,7 @@ export function buildOverlayBriefing(
       safeMeta?.research_fact &&
       factBelongsToResearch(safeMeta.research_fact, scopedResearch)
         ? safeMeta.research_source
-        : researchMatch.source,
+        : researchMatch.source || researchSourceFallback,
     researchTopic:
       scopedResearch?.blocks?.[0]?.primaryTopic || scopedResearch?.topic,
     suggestions: {

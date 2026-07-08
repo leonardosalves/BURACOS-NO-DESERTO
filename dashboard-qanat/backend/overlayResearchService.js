@@ -6,13 +6,13 @@
 
 import fs from "fs";
 import path from "path";
-import { exaWebSearch } from "./agentReachService.js";
+import { exaWebSearch, fetchUrlViaJina } from "./agentReachService.js";
 import { buildOverlayOrchestrationPlan } from "./overlayOrchestration.js";
 
 const MIN_FACTS = 2;
 const MIN_SNIPPET_CHARS = 120;
 const CACHE_MAX_AGE_MS = 60 * 60 * 1000;
-const OVERLAY_RESEARCH_CACHE_VERSION = 2;
+const OVERLAY_RESEARCH_CACHE_VERSION = 3;
 const RESEARCH_STOPWORDS = new Set([
   "sobre",
   "para",
@@ -77,6 +77,10 @@ function extractFactsFromResearch(search = {}) {
     facts.push(...lines.slice(0, 8));
   }
   return [...new Set(facts)].slice(0, 12);
+}
+
+function sourceLabel(source = {}) {
+  return String(source.title || source.url || "").trim();
 }
 
 function normalizeResearchSources(sources = []) {
@@ -220,6 +224,62 @@ function filterSourcesForBlock(sources = [], blockEntry = {}, videoTopic = "") {
       )
     )
     .slice(0, 5);
+}
+
+function sourceMatchesBlock(source = {}, blockEntry = {}, videoTopic = "") {
+  const context = [
+    videoTopic,
+    blockEntry.primaryTopic,
+    blockEntry.narration,
+    blockEntry.niche,
+  ].join(" ");
+  return isResearchCandidateRelevant(
+    [source?.title, source?.url, source?.snippet].filter(Boolean).join(" "),
+    context
+  );
+}
+
+async function readFactsFromScriptSources(
+  sources = [],
+  blockEntry = {},
+  videoTopic = ""
+) {
+  const scopedSources = (sources || [])
+    .filter((src) => sourceMatchesBlock(src, blockEntry, videoTopic))
+    .slice(0, 4);
+  const facts = [];
+  const hydratedSources = [];
+
+  for (const src of scopedSources) {
+    if (!src.url) {
+      hydratedSources.push(src);
+      continue;
+    }
+    const read = await fetchUrlViaJina(src.url);
+    const snippet = read.available
+      ? String(read.summary || "").slice(0, 1600)
+      : String(src.snippet || "").slice(0, 1600);
+    const hydrated = {
+      title: sourceLabel(src) || src.url,
+      url: src.url,
+      snippet,
+    };
+    hydratedSources.push(hydrated);
+    const sourceFacts = filterFactsForBlock(
+      extractFactsFromResearch({
+        items: [{ title: hydrated.title, url: hydrated.url, snippet }],
+        summary: snippet,
+      }),
+      blockEntry,
+      videoTopic
+    );
+    facts.push(...sourceFacts);
+  }
+
+  return {
+    facts: [...new Set(facts)].slice(0, 8),
+    sources: hydratedSources,
+  };
 }
 
 export function countNumericHints(text = "") {
@@ -503,6 +563,15 @@ async function researchSingleBlock(
     (storyboardResearch.sources || []).length > 0;
 
   if (hasScriptResearch) {
+    const hydratedScriptResearch = await readFactsFromScriptSources(
+      storyboardResearch.sources || [],
+      blockEntry,
+      videoTopic
+    );
+    const mergedScriptFacts = [...hydratedScriptResearch.facts, ...scriptFacts];
+    const mergedScriptSources = hydratedScriptResearch.sources.length
+      ? hydratedScriptResearch.sources
+      : scriptSources;
     return {
       block: blockEntry.block,
       blockStart: blockEntry.blockStart,
@@ -513,11 +582,13 @@ async function researchSingleBlock(
       overlayScore: blockEntry.overlayScore,
       selected: true,
       query,
-      facts: scriptFacts,
-      rawFactCount: scriptFacts.length,
-      sources: scriptSources,
-      summary: "Pesquisa do JSON do roteiro.",
-      available: Boolean(scriptFacts.length || scriptSources.length),
+      facts: [...new Set(mergedScriptFacts)].slice(0, 8),
+      rawFactCount: mergedScriptFacts.length,
+      sources: mergedScriptSources,
+      summary: "Pesquisa extraída das fontes do JSON do roteiro.",
+      available: Boolean(
+        mergedScriptFacts.length || mergedScriptSources.length
+      ),
       via: "storyboard-research",
     };
   }
