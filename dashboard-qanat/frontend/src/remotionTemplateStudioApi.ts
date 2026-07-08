@@ -1,4 +1,6 @@
 import {
+  extractTemplateTsxFromLlm,
+  repairCommonTemplateLayoutVars,
   validateFinalTemplateCode,
   validateOriginalTemplateCode,
 } from "@lumiera/shared/remotionTemplateStudioValidate.js";
@@ -23,7 +25,12 @@ export type TemplateAdaptResponse = {
   stage?: string;
 };
 
-export { validateFinalTemplateCode, validateOriginalTemplateCode };
+export {
+  extractTemplateTsxFromLlm,
+  repairCommonTemplateLayoutVars,
+  validateFinalTemplateCode,
+  validateOriginalTemplateCode,
+};
 
 const ADAPT_ENDPOINT = "/api/ai/template-studio/adapt";
 
@@ -62,6 +69,112 @@ export async function readApiJsonResponse<T>(
       data: null,
       error: "JSON inválido na resposta do servidor.",
       status: res.status,
+    };
+  }
+}
+
+export type CatalogTemplate = {
+  id: string;
+  name: string;
+  category: string;
+  subcategory: string;
+  niche: string;
+  status: "approved" | "draft";
+  description: string;
+  dataSlots: string[];
+  motion_template_id: string | null;
+  orchestration_ready: boolean;
+  shortPreview?: string | null;
+  longPreview?: string | null;
+};
+
+export type CatalogResponse = {
+  success: boolean;
+  niche: string;
+  templates: CatalogTemplate[];
+  approved: CatalogTemplate[];
+  orchestration_ready: CatalogTemplate[];
+  updated_at: string | null;
+  error?: string;
+};
+
+export type CatalogSyncRequest = {
+  niche: string;
+  templates: Array<{
+    id: string;
+    name: string;
+    category?: string;
+    subcategory?: string;
+    niche?: string;
+    status?: "approved" | "draft";
+    description?: string;
+    dataSlots?: string[];
+    shortPreview?: string | null;
+    longPreview?: string | null;
+  }>;
+};
+
+const CATALOG_ENDPOINT = "/api/ai/template-studio/catalog";
+const CATALOG_SYNC_ENDPOINT = "/api/ai/template-studio/catalog/sync";
+
+export async function fetchRemotionTemplateCatalog(
+  niche: string
+): Promise<CatalogResponse> {
+  try {
+    const res = await fetch(
+      `${CATALOG_ENDPOINT}?niche=${encodeURIComponent(niche || "Engenharia")}`
+    );
+    const parsed = await readApiJsonResponse<CatalogResponse>(res);
+    if (parsed.error || !parsed.data) {
+      return {
+        success: false,
+        niche,
+        templates: [],
+        approved: [],
+        orchestration_ready: [],
+        updated_at: null,
+        error: parsed.error || "Catálogo indisponível.",
+      };
+    }
+    return parsed.data;
+  } catch (err) {
+    return {
+      success: false,
+      niche,
+      templates: [],
+      approved: [],
+      orchestration_ready: [],
+      updated_at: null,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Falha de rede ao buscar catálogo.",
+    };
+  }
+}
+
+export async function syncRemotionTemplateCatalog(
+  payload: CatalogSyncRequest
+): Promise<{ success: boolean; count?: number; error?: string }> {
+  try {
+    const res = await fetch(CATALOG_SYNC_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const parsed = await readApiJsonResponse<{
+      success: boolean;
+      count?: number;
+      error?: string;
+    }>(res);
+    if (parsed.error || !parsed.data) {
+      return { success: false, error: parsed.error || "Sync falhou." };
+    }
+    return parsed.data;
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha de rede no sync.",
     };
   }
 }

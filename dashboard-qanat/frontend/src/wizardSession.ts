@@ -49,6 +49,9 @@ export type WizardSession = {
   narrationProjectName: string;
   useNotebooklm: boolean;
   useDeepResearch: boolean;
+  motionTemplatePackEnabled?: boolean;
+  motionTemplateNiche?: string;
+  motionTemplateIds?: string[];
   uploadedScenes: Record<string, boolean>;
   expandedBlocks: Record<number, boolean>;
   editorialIdeaImport?: EditorialIdeaImport | null;

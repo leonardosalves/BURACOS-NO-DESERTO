@@ -23,6 +23,12 @@ import {
   collectSuppressionState,
   storyboardRowMatchesSuppression,
 } from "../shared/timelineStudioRemotionSuppress.js";
+import { buildMotionResearchContext } from "../shared/storyboardResearch.js";
+import {
+  enrichMotionScenesWithResearch,
+  resolvePlaceWithResearch,
+} from "../shared/motionResearchProps.js";
+import { resolveMotionTemplateIdsFromPack } from "./remotionTemplateCatalogService.js";
 
 const YEAR_RE = /\b(1\d{3}|20\d{2})\b/;
 const YEAR_GLOBAL_RE = /\b(1\d{3}|20\d{2})\b/g;
@@ -143,7 +149,26 @@ function parseStatValue(text) {
   };
 }
 
-function resolvePlace(text) {
+function resolvePlace(text, researchContext = null) {
+  if (researchContext) {
+    const fromResearch = resolvePlaceWithResearch(text, researchContext);
+    if (fromResearch) return fromResearch;
+    if (researchContext.hasExplicitSources) {
+      const m = String(text).match(LOCATION_RE);
+      if (m?.[1] && m[1].length > 3) {
+        return { location: m[1], region: "", country: "Brasil" };
+      }
+      const topic = String(researchContext.videoTopic || "").trim();
+      if (topic.length > 4) {
+        return {
+          location: topic.slice(0, 48),
+          region: "",
+          country: "Brasil",
+        };
+      }
+    }
+  }
+
   for (const p of KNOWN_PLACES) {
     if (p.pattern.test(text)) return p;
   }
@@ -154,7 +179,10 @@ function resolvePlace(text) {
       country: "Itália",
     };
   }
-  if (/\b(fortaleza|forte)\b/i.test(text)) {
+  if (
+    !researchContext?.hasExplicitSources &&
+    /\b(fortaleza|forte)\b/i.test(text)
+  ) {
     return {
       location: "Palmanova",
       region: "Vêneto",
@@ -168,13 +196,20 @@ function resolvePlace(text) {
   return { location: "Local", region: "", country: "" };
 }
 
+function resolvePreferredMotionTemplates(config = {}) {
+  const pack = config.motion_template_pack;
+  if (!pack?.enabled) return [];
+  return resolveMotionTemplateIdsFromPack(pack, config.niche);
+}
+
 export function buildPropsForTemplate(
   templateId,
   trigger,
   text,
   accentColor = "#D4AF37",
   aspectRatio = "16:9",
-  niche = ""
+  niche = "",
+  researchContext = null
 ) {
   const t = String(text || "").trim();
 
@@ -214,7 +249,7 @@ export function buildPropsForTemplate(
         ],
       };
     case "location-intro": {
-      const place = resolvePlace(t);
+      const place = resolvePlace(t, researchContext);
       const classified = classifyPlaceType(t, place);
       const place_type = classified.place_type;
       const zoomTo =
@@ -247,7 +282,7 @@ export function buildPropsForTemplate(
       };
     }
     case "geo-map": {
-      const place = resolvePlace(t);
+      const place = resolvePlace(t, researchContext);
       return {
         location: place.location,
         region: place.region || place.country,
@@ -366,6 +401,8 @@ export function planMotionScenesFromStoryboard(
   const aspectRatio = String(
     config.aspect_ratio || config.format || "16:9"
   ).trim();
+  const researchContext = buildMotionResearchContext(storyboard, config);
+  const preferredTemplates = resolvePreferredMotionTemplates(config);
   const scenes = [];
   const usedTriggers = new Set();
 
@@ -380,7 +417,11 @@ export function planMotionScenesFromStoryboard(
 
     const trigger = classified.trigger;
     if (trigger === "curiosity_punch") continue;
-    const templateId = pickTemplateForTrigger(trigger, nichePack);
+    const templateId = pickTemplateForTrigger(
+      trigger,
+      nichePack,
+      preferredTemplates
+    );
     if (!APPROVED_ORCHESTRATION_TEMPLATES.has(templateId)) continue;
     const layout = resolveLayoutForTemplate(templateId, trigger, {
       text: narration,
@@ -435,7 +476,8 @@ export function planMotionScenesFromStoryboard(
           narration,
           accentColor,
           aspectRatio,
-          config.niche || nichePack
+          config.niche || nichePack,
+          researchContext
         ),
         presentation,
         layout,
@@ -454,10 +496,18 @@ export function planMotionScenesFromStoryboard(
   }
 
   const limitedScenes = limitMotionScenesForFormat(scenes, aspectRatio);
+  const enrichedScenes = enrichMotionScenesWithResearch(
+    limitedScenes,
+    researchContext
+  );
 
   return {
-    motion_scenes: limitedScenes,
+    motion_scenes: enrichedScenes,
     niche_pack: nichePack,
+    research_backed: Boolean(
+      researchContext.globalFacts?.length ||
+      researchContext.globalSources?.length
+    ),
     planned_at: new Date().toISOString(),
     planner_version: 1,
     source: "heuristic",

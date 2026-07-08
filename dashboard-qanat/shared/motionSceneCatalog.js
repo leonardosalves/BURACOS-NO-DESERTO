@@ -152,10 +152,19 @@ export function defaultMotionTrack() {
 
 export function pickTemplateForTrigger(
   trigger,
-  nichePack = "documentary-prestige"
+  nichePack = "documentary-prestige",
+  preferredTemplates = []
 ) {
   const def = MOTION_SCENE_TRIGGERS[trigger];
   if (!def) return "lower-third";
+  const preferred = (
+    Array.isArray(preferredTemplates) ? preferredTemplates : []
+  ).filter(
+    (tpl) =>
+      APPROVED_ORCHESTRATION_TEMPLATES.has(String(tpl)) &&
+      def.templates.includes(tpl)
+  );
+  if (preferred.length) return preferred[0];
   const priority = NICHE_TEMPLATE_PRIORITY[nichePack] || [];
   for (const tpl of priority) {
     if (def.templates.includes(tpl)) return tpl;

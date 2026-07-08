@@ -722,6 +722,16 @@ export default function App() {
   const [useDeepResearch, setUseDeepResearch] = useState<boolean>(
     savedCreatorState.useDeepResearch !== false
   );
+  const [motionTemplatePackEnabled, setMotionTemplatePackEnabled] =
+    useState<boolean>(savedCreatorState.motionTemplatePackEnabled || false);
+  const [motionTemplateNiche, setMotionTemplateNiche] = useState<string>(
+    savedCreatorState.motionTemplateNiche || ""
+  );
+  const [motionTemplateIds, setMotionTemplateIds] = useState<string[]>(
+    Array.isArray(savedCreatorState.motionTemplateIds)
+      ? savedCreatorState.motionTemplateIds
+      : []
+  );
   const [facelessPresetId, setFacelessPresetId] = useState<string | null>(null);
   const [facelessPipelineBusy, setFacelessPipelineBusy] = useState(false);
   const [facelessPipelineLog, setFacelessPipelineLog] = useState<string[]>([]);
@@ -3057,6 +3067,9 @@ export default function App() {
       narrationProjectName,
       useNotebooklm,
       useDeepResearch,
+      motionTemplatePackEnabled,
+      motionTemplateNiche,
+      motionTemplateIds,
       uploadedScenes,
       expandedBlocks,
       editorialIdeaImport,
@@ -3101,6 +3114,9 @@ export default function App() {
       narrationProjectName,
       useNotebooklm,
       useDeepResearch,
+      motionTemplatePackEnabled,
+      motionTemplateNiche,
+      motionTemplateIds,
       uploadedScenes,
       expandedBlocks,
       editorialIdeaImport,
@@ -3176,6 +3192,12 @@ export default function App() {
       setUseNotebooklm(patch.useNotebooklm);
     if (patch.useDeepResearch !== undefined)
       setUseDeepResearch(patch.useDeepResearch);
+    if (patch.motionTemplatePackEnabled !== undefined)
+      setMotionTemplatePackEnabled(patch.motionTemplatePackEnabled);
+    if (patch.motionTemplateNiche !== undefined)
+      setMotionTemplateNiche(patch.motionTemplateNiche);
+    if (patch.motionTemplateIds !== undefined)
+      setMotionTemplateIds(patch.motionTemplateIds);
     if (patch.uploadedScenes) setUploadedScenes(patch.uploadedScenes);
     if (patch.expandedBlocks) setExpandedBlocks(patch.expandedBlocks);
     if (patch.editorialIdeaImport !== undefined) {
@@ -7306,12 +7328,34 @@ export default function App() {
     phase: "narration" | "full",
     options?: { approvedNarration?: string; approvedNarrationTagged?: string }
   ) => {
+    const scriptNiche =
+      ideationTab === "listicle"
+        ? listNiche.trim() || listTopic.trim()
+        : ideationTab === "custom"
+          ? editorialIdeaImport?.pioneerMeta?.macroNiche?.trim() ||
+            nicheInput.trim() ||
+            "Customized"
+          : nicheInput.trim();
+
     const fullExtras =
       phase === "full"
         ? {
             approvedNarration: options?.approvedNarration,
             approvedNarrationTagged: options?.approvedNarrationTagged,
             existingStrategy: narrationStrategy || undefined,
+            ...(motionTemplatePackEnabled
+              ? {
+                  motion_template_pack: {
+                    enabled: true,
+                    niche: (
+                      motionTemplateNiche ||
+                      scriptNiche ||
+                      "Engenharia"
+                    ).trim(),
+                    template_ids: motionTemplateIds,
+                  },
+                }
+              : {}),
           }
         : {};
     const isCustom = ideationTab === "custom";
@@ -10081,6 +10125,12 @@ export default function App() {
     useNotebooklm,
     useDeepResearch,
     setUseDeepResearch,
+    motionTemplatePackEnabled,
+    setMotionTemplatePackEnabled,
+    motionTemplateNiche,
+    setMotionTemplateNiche,
+    motionTemplateIds,
+    setMotionTemplateIds,
     videoFileDurations,
     videoQuality,
     visualDraftToApiPatch,
