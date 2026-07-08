@@ -116,6 +116,7 @@ import {
 import { getDynamicAssetWords as getDynamicAssetWordsCore } from "./timelineDynamicAssetWords";
 import { alignBlockAssetsToTranscript } from "./timelineSpeechAlign";
 import { resolveBgmMode } from "@lumiera/shared/bgmMode.js";
+import { isAiOverlaysEnabled } from "@lumiera/shared/productionConfig.js";
 
 import { flattenWordTranscripts } from "@lumiera/shared/wordTranscripts.js";
 import { repairMojibake, repairMojibakeDeep } from "./textEncoding";
@@ -2583,94 +2584,58 @@ export default function App() {
     }
   };
 
-  const handleGenerateAiOverlays = async () => {
+  const handlePlanMotionScenes = async () => {
     if (!activeProject) {
-      toast.error("Carregue um projeto antes de gerar overlays.");
+      toast.error("Carregue um projeto antes de planejar templates.");
       return;
     }
     setGeneratingOverlays(true);
-    const toastId = toast.loading(
-      "Pesquisando assuntos do roteiro e planejando overlays..."
-    );
+    const toastId = toast.loading("Planejando templates Remotion…");
     try {
-      const effectiveGeminiChrome = config?.use_gemini_chrome === true;
-      const useHyperframes = config?.use_hyperframes !== false;
-      const overlayResearchSources = Array.isArray(
-        (storyboardData as any)?.research_sources
-      )
-        ? (storyboardData as any).research_sources
-        : Array.isArray((generatedScriptData as any)?.research_sources)
-          ? (generatedScriptData as any).research_sources
-          : [];
-      const hasOverlayResearchSources =
-        Object.prototype.hasOwnProperty.call(
-          (storyboardData as any) || {},
-          "research_sources"
-        ) ||
-        Object.prototype.hasOwnProperty.call(
-          (generatedScriptData as any) || {},
-          "research_sources"
+      const res = await fetch(
+        getProjectUrl("/api/ai/creator/orchestrate-production"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            use_llm: true,
+            fetch_satellite: true,
+            sync_timeline: false,
+            rebuild_asset_slots: true,
+          }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          String((data as { error?: string }).error || "Falha na orquestração")
         );
-      const overlayResearchFacts = Array.isArray(
-        (storyboardData as any)?.research_facts
-      )
-        ? (storyboardData as any).research_facts
-        : Array.isArray((generatedScriptData as any)?.research_facts)
-          ? (generatedScriptData as any).research_facts
-          : [];
-      const hasOverlayResearchFacts =
-        Object.prototype.hasOwnProperty.call(
-          (storyboardData as any) || {},
-          "research_facts"
-        ) ||
-        Object.prototype.hasOwnProperty.call(
-          (generatedScriptData as any) || {},
-          "research_facts"
-        );
-
-      const { ok, data } = await postAi("/api/render/plan-overlays", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          hyperframes: useHyperframes,
-          require_browser: effectiveGeminiChrome,
-          force: true,
-          has_research_sources: hasOverlayResearchSources,
-          has_research_facts: hasOverlayResearchFacts,
-          research_sources: overlayResearchSources,
-          research_facts: overlayResearchFacts,
-        }),
-      });
-
-      if (!ok || (data as any)?.needs_browser) {
-        toast.error(
-          "Geração cancelada ou pendente de resposta do Gemini no Chrome.",
-          { id: toastId }
-        );
-        return;
       }
-
-      if (!(data as any).overlayCount || (data as any).overlayCount < 1) {
-        toast.error(
-          (data as any).error || "Gemini não gerou overlays válidos.",
-          { id: toastId }
-        );
-        return;
-      }
-
+      const count =
+        Number((data as { motion_count?: number }).motion_count) ||
+        (Array.isArray((data as { motion_scenes?: unknown[] }).motion_scenes)
+          ? (data as { motion_scenes: unknown[] }).motion_scenes.length
+          : 0);
       toast.success(
-        `Overlays planejados com sucesso: ${(data as any).overlayCount} overlays gerados!`,
+        count > 0
+          ? `${count} template(s) Remotion planejado(s).`
+          : "Orquestração concluída — revise os templates.",
         { id: toastId }
       );
       await fetchStoryboard(activeProject, { force: true });
       await fetchVideoQuality(activeProject);
     } catch (err) {
-      console.error("Error generating overlays:", err);
-      toast.error("Erro ao planejar overlays via AI.", { id: toastId });
+      console.error("Error planning motion scenes:", err);
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao planejar templates.",
+        { id: toastId }
+      );
     } finally {
       setGeneratingOverlays(false);
     }
   };
+
+  const handleGenerateAiOverlays = handlePlanMotionScenes;
 
   const fetchVideoQuality = async (projName = activeProject) => {
     try {
@@ -9159,7 +9124,9 @@ export default function App() {
       }
     }
 
-    const needsOverlayPlan = mode === "remotion" || mode === "remotion-pro";
+    const needsOverlayPlan =
+      (mode === "remotion" || mode === "remotion-pro") &&
+      isAiOverlaysEnabled(config || {});
     let effectiveGeminiChrome = geminiBrowserMode;
     let overlayPlanSucceeded = !needsOverlayPlan;
     let overlayPlanToken = "";
@@ -9620,6 +9587,7 @@ export default function App() {
     getProjectUrl,
     handleAutoMapAssets,
     handleGenerateAiOverlays,
+    handlePlanMotionScenes,
     handleRepairProjectVisualPrompts,
     handleSaveConfig,
     handleSyncTimings,

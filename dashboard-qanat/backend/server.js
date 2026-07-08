@@ -155,6 +155,11 @@ import {
   applyOrchestrationToStoryboard,
 } from "./productionOrchestrator.js";
 import {
+  isAiOverlaysEnabled,
+  stripAiOverlaysFromStoryboard,
+} from "../shared/productionConfig.js";
+import { motionScenesToMotionClips } from "./motionScenePlanner.js";
+import {
   loadStudioForRender,
   shouldUseStudioForRender,
   buildScenesFromStudio,
@@ -3377,6 +3382,26 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
 app.post("/api/studio-agents/plan-overlays", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
+    const gateConfig = readProjectJson(projDir, "config_qanat.json", {});
+    if (!isAiOverlaysEnabled(gateConfig)) {
+      const storyboard = stripAiOverlaysFromStoryboard(
+        readProjectJson(projDir, "storyboard.json", {})
+      );
+      fs.writeFileSync(
+        path.join(projDir, "storyboard.json"),
+        JSON.stringify(storyboard, null, 2),
+        "utf8"
+      );
+      return res.json({
+        success: true,
+        overlayCount: 0,
+        skippedAi: true,
+        disabled: true,
+        source: "templates_only",
+        message:
+          "Overlays IA desativados — use motion_scenes e Template Studio.",
+      });
+    }
     const useHyperframes = req.body?.hyperframes === true;
     const browserTextRaw = extractBrowserResponse(req.body);
     const browserText = browserTextRaw
@@ -6063,6 +6088,27 @@ function overlayPlanSessionMatches(llmText, expectedSessionId) {
 app.post("/api/render/plan-overlays", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
+    const gateConfig = readProjectJson(projDir, "config_qanat.json", {});
+    if (!isAiOverlaysEnabled(gateConfig)) {
+      const storyboard = stripAiOverlaysFromStoryboard(
+        readProjectJson(projDir, "storyboard.json", {})
+      );
+      fs.writeFileSync(
+        path.join(projDir, "storyboard.json"),
+        JSON.stringify(storyboard, null, 2),
+        "utf8"
+      );
+      return res.json({
+        success: true,
+        overlayCount: 0,
+        skippedAi: true,
+        disabled: true,
+        planToken: null,
+        source: "templates_only",
+        message:
+          "Overlays IA desativados — use motion_scenes e Template Studio.",
+      });
+    }
     const useHyperframes = req.body?.hyperframes === true;
     const forceRegenerate = req.body?.force === true;
 
@@ -6544,7 +6590,11 @@ app.get(
       };
 
       try {
-        if (req.query.require_overlay_plan === "1") {
+        const gateConfig = readProjectJson(projDir, "config_qanat.json", {});
+        if (
+          req.query.require_overlay_plan === "1" &&
+          isAiOverlaysEnabled(gateConfig)
+        ) {
           const storyboardGate = readProjectJson(
             projDir,
             "storyboard.json",
@@ -8557,12 +8607,20 @@ async function prepareRemotionRender(
       ? "16:9"
       : "9:16";
 
-  // Load planned overlays from storyboard.json instead of generating via AI during render
-  const freshSb = readProjectJson(projectDir, "storyboard.json", {});
+  const aiOverlaysOn = isAiOverlaysEnabled(config);
+  const freshSb = aiOverlaysOn
+    ? readProjectJson(projectDir, "storyboard.json", {})
+    : stripAiOverlaysFromStoryboard(
+        readProjectJson(projectDir, "storyboard.json", {})
+      );
   const plannedRaw =
-    Array.isArray(freshSb.overlays_ai) && freshSb.overlays_ai.length > 0
+    aiOverlaysOn &&
+    Array.isArray(freshSb.overlays_ai) &&
+    freshSb.overlays_ai.length > 0
       ? freshSb.overlays_ai
-      : Array.isArray(freshSb.overlays) && freshSb.overlays.length > 0
+      : aiOverlaysOn &&
+          Array.isArray(freshSb.overlays) &&
+          freshSb.overlays.length > 0
         ? stripSystemInjectedOverlays(freshSb.overlays)
         : [];
 
@@ -8584,6 +8642,22 @@ async function prepareRemotionRender(
       .filter(Boolean);
     console.log(
       `[Remotion Render] ${overlays.length} overlay(s) do Timeline Studio (timing manual).`
+    );
+  } else if (
+    Array.isArray(freshSb.motion_scenes) &&
+    freshSb.motion_scenes.length > 0
+  ) {
+    overlays = buildOverlaysFromStudio(
+      { clips: motionScenesToMotionClips(freshSb.motion_scenes) },
+      overlayMediaCtx
+    )
+      .map((overlay) =>
+        copyOverlayMediaPropsForRemotion(overlay, overlayMediaCtx)
+      )
+      .map((overlay) => repairOverlayPropsForRemotion(overlay))
+      .filter(Boolean);
+    console.log(
+      `[Remotion Render] ${overlays.length} template(s) Remotion a partir de motion_scenes.`
     );
   } else if (plannedRaw.length > 0) {
     console.log(

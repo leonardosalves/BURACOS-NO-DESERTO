@@ -22,7 +22,7 @@ import { TimelineClipPreview } from "./TimelineClipPreview";
 import { TimelineClipOpenCutControls } from "./TimelineClipOpenCutControls";
 import { BlockProgressBarProjectPanel } from "./BlockProgressBarProjectPanel";
 import { clipKey } from "./opencutTimeline";
-import { LazyOverlayTimelineEditor, TabPanelFallback } from "./appLazyPanels";
+import { LazyMotionTimelineEditor, TabPanelFallback } from "./appLazyPanels";
 import type { ConfigData, WorkspaceStatus } from "./appTypes";
 import type { AppTab } from "./appTabs";
 
@@ -96,7 +96,7 @@ export type RichTimelineEditorProps = {
   getMusicUrl: (fileName: string, projectOverride?: string) => string;
   getProjectUrl: (path: string) => string;
   handleAutoMapAssets: () => void | Promise<void>;
-  handleGenerateAiOverlays: () => void | Promise<void>;
+  handlePlanMotionScenes: () => void | Promise<void>;
   handleRepairProjectVisualPrompts: () => void | Promise<void>;
   handleSaveConfig: () => void | Promise<void>;
   handleSyncTimings: (fromWizard?: boolean) => void | Promise<void>;
@@ -181,7 +181,7 @@ export function RichTimelineEditor({
   getMusicUrl,
   getProjectUrl,
   handleAutoMapAssets,
-  handleGenerateAiOverlays,
+  handlePlanMotionScenes,
   handleRepairProjectVisualPrompts,
   handleSaveConfig,
   handleSyncTimings,
@@ -441,25 +441,23 @@ export function RichTimelineEditor({
 
       {storyboardData && (
         <EditorCollapsibleSection
-          title="Overlays com IA"
+          title="Templates Remotion"
           subtitle="motion graphics por bloco"
         >
           <Suspense
-            fallback={<TabPanelFallback label="Carregando overlays..." />}
+            fallback={<TabPanelFallback label="Carregando templates..." />}
           >
-            <LazyOverlayTimelineEditor
+            <LazyMotionTimelineEditor
               storyboard={storyboardData}
               blockTimings={status?.block_timings}
               timelineAssets={config.timeline_assets}
               aspectRatio={config.aspect_ratio || "16:9"}
-              accentColor={config.accent_color || "#D4AF37"}
               getAssetUrl={getAssetUrl}
               generating={generatingOverlays}
-              onGenerate={handleGenerateAiOverlays}
-              onChange={(nextOverlays) => {
-                const { overlays: _legacyOverlays, ...rest } =
-                  storyboardData || {};
-                syncCreatorStoryboard({ ...rest, overlays_ai: nextOverlays });
+              onGenerate={handlePlanMotionScenes}
+              onChange={(nextScenes) => {
+                const { motion_scenes: _prev, ...rest } = storyboardData || {};
+                syncCreatorStoryboard({ ...rest, motion_scenes: nextScenes });
               }}
             />
           </Suspense>

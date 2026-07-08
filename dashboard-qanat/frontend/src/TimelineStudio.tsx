@@ -160,12 +160,10 @@ export function TimelineStudio({
   timelineScenesNeedRepair,
   creatorLoading,
   syncingTimings,
-  generatingOverlays,
   getAssetUrl,
   getMusicUrl,
   getProjectUrl,
   handleAutoMapAssets,
-  handleGenerateAiOverlays,
   handleRepairProjectVisualPrompts,
   handleSaveConfig,
   handleSyncTimings,
@@ -816,14 +814,6 @@ export function TimelineStudio({
               <Sparkles className="w-3 h-3" /> IA B-roll
             </button>
           )}
-          <button
-            type="button"
-            disabled={generatingOverlays}
-            onClick={handleGenerateAiOverlays}
-            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 text-emerald-400 cursor-pointer disabled:opacity-50 flex items-center gap-1"
-          >
-            <Bot className="w-3 h-3" /> Overlays IA
-          </button>
           <button
             type="button"
             disabled={planningMotion}
