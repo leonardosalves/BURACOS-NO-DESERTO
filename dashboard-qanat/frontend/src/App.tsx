@@ -2592,6 +2592,15 @@ export default function App() {
         : Array.isArray((generatedScriptData as any)?.research_sources)
           ? (generatedScriptData as any).research_sources
           : [];
+      const hasOverlayResearchSources =
+        Object.prototype.hasOwnProperty.call(
+          (storyboardData as any) || {},
+          "research_sources"
+        ) ||
+        Object.prototype.hasOwnProperty.call(
+          (generatedScriptData as any) || {},
+          "research_sources"
+        );
       const overlayResearchFacts = Array.isArray(
         (storyboardData as any)?.research_facts
       )
@@ -2599,6 +2608,15 @@ export default function App() {
         : Array.isArray((generatedScriptData as any)?.research_facts)
           ? (generatedScriptData as any).research_facts
           : [];
+      const hasOverlayResearchFacts =
+        Object.prototype.hasOwnProperty.call(
+          (storyboardData as any) || {},
+          "research_facts"
+        ) ||
+        Object.prototype.hasOwnProperty.call(
+          (generatedScriptData as any) || {},
+          "research_facts"
+        );
 
       const { ok, data } = await postAi("/api/render/plan-overlays", {
         method: "POST",
@@ -2607,6 +2625,8 @@ export default function App() {
           hyperframes: useHyperframes,
           require_browser: effectiveGeminiChrome,
           force: true,
+          has_research_sources: hasOverlayResearchSources,
+          has_research_facts: hasOverlayResearchFacts,
           research_sources: overlayResearchSources,
           research_facts: overlayResearchFacts,
         }),
@@ -9157,6 +9177,15 @@ export default function App() {
           : Array.isArray((generatedScriptData as any)?.research_sources)
             ? (generatedScriptData as any).research_sources
             : [];
+        const hasOverlayResearchSources =
+          Object.prototype.hasOwnProperty.call(
+            (storyboardData as any) || {},
+            "research_sources"
+          ) ||
+          Object.prototype.hasOwnProperty.call(
+            (generatedScriptData as any) || {},
+            "research_sources"
+          );
         const overlayResearchFacts = Array.isArray(
           (storyboardData as any)?.research_facts
         )
@@ -9164,6 +9193,15 @@ export default function App() {
           : Array.isArray((generatedScriptData as any)?.research_facts)
             ? (generatedScriptData as any).research_facts
             : [];
+        const hasOverlayResearchFacts =
+          Object.prototype.hasOwnProperty.call(
+            (storyboardData as any) || {},
+            "research_facts"
+          ) ||
+          Object.prototype.hasOwnProperty.call(
+            (generatedScriptData as any) || {},
+            "research_facts"
+          );
         const { ok, data } = await postAi("/api/render/plan-overlays", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -9171,6 +9209,8 @@ export default function App() {
             hyperframes: useHyperframes === true,
             require_browser: effectiveGeminiChrome,
             force: true,
+            has_research_sources: hasOverlayResearchSources,
+            has_research_facts: hasOverlayResearchFacts,
             research_sources: overlayResearchSources,
             research_facts: overlayResearchFacts,
           }),

@@ -102,7 +102,17 @@ function overlapScore(a: Set<string>, b: Set<string>): number {
 
 const STORY_OBJECT_GROUPS = [
   ["ponte", "pontes", "viaduto", "viadutos", "passarela", "passarelas"],
-  ["predio", "predios", "edificio", "edificios", "condominio", "apartamento"],
+  [
+    "predio",
+    "predios",
+    "edificio",
+    "edificios",
+    "condominio",
+    "apartamento",
+    "palace",
+    "palacio",
+    "palacios",
+  ],
   ["barragem", "barragens", "represa", "represas"],
   ["navio", "navios", "barco", "barcos", "submarino", "submarinos"],
   ["aviao", "avioes", "aeronave", "aeronaves", "helicoptero"],
@@ -154,6 +164,27 @@ function isResearchCandidateRelevant(
 
 function overlayTextBlob(overlay: OverlayDraft): string {
   const p = overlay.props || {};
+  const nestedText: string[] = [];
+  const collect = (value: unknown, depth = 0) => {
+    if (depth > 3 || value == null) return;
+    if (typeof value === "string" || typeof value === "number") {
+      nestedText.push(String(value));
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item) => collect(item, depth + 1));
+      return;
+    }
+    if (typeof value === "object") {
+      Object.values(value as Record<string, unknown>).forEach((item) =>
+        collect(item, depth + 1)
+      );
+    }
+  };
+  collect(p.events);
+  collect(p.items);
+  collect(p.segments);
+  collect(p.rows);
   return [
     p.title,
     p.subtitle,
@@ -163,6 +194,7 @@ function overlayTextBlob(overlay: OverlayDraft): string {
     p.text,
     p.source,
     p.location,
+    ...nestedText,
   ]
     .filter((v) => v != null && String(v).trim())
     .map((v) => String(v))
