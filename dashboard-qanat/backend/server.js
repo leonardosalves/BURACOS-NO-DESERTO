@@ -6024,8 +6024,10 @@ app.post("/api/render/plan-overlays", async (req, res) => {
     const useHyperframes = req.body?.hyperframes === true;
     const forceRegenerate = req.body?.force === true;
 
-    // Check if overlays were already planned — skip AI if they exist
-    if (!forceRegenerate) {
+    // Reuse only when explicitly allowed. Default must regenerate, because stale
+    // overlay metadata can leak facts/entities from another project.
+    const allowCachedOverlays = req.body?.allow_cached === true;
+    if (allowCachedOverlays && !forceRegenerate) {
       const existingSb = readProjectJson(projDir, "storyboard.json", {});
       const existingOverlays =
         Array.isArray(existingSb.overlays_ai) &&
@@ -6099,7 +6101,7 @@ app.post("/api/render/plan-overlays", async (req, res) => {
         projDir,
         WORKSPACE_DIR,
         {
-          forceRefresh: forceRegenerate,
+          forceRefresh: forceRegenerate || !allowCachedOverlays,
           orchestrationPlan: orchestrationForResearch,
         }
       );
@@ -6269,6 +6271,16 @@ app.post("/api/render/plan-overlays", async (req, res) => {
       totalDurPlan
     );
 
+    const finalizedInformative = finalized.filter(isInformativeOverlay);
+    if (finalizedInformative.length === 0) {
+      return res.status(422).json({
+        error:
+          "Os overlays foram rejeitados pela validação de assunto do projeto. Gere novamente; nenhum dado fora do roteiro foi salvo.",
+        overlayCount: 0,
+        rawCount,
+      });
+    }
+
     storyboard.overlays = finalized;
 
     const sceneMapsPlan = buildSceneTimingMaps(
@@ -6312,7 +6324,7 @@ app.post("/api/render/plan-overlays", async (req, res) => {
 
     res.json({
       success: true,
-      overlayCount: cleanedAi.length,
+      overlayCount: finalizedInformative.length,
       plannedAt: storyboard.overlays_planned_at,
       hyperframes: useHyperframes,
       planToken,
@@ -19089,6 +19101,76 @@ function overlayTextBlobForBriefing(overlay = {}) {
     .join(" ");
 }
 
+function overlayAuditTextBlob(overlay = {}) {
+  const meta = overlay.ai_meta || {};
+  return [
+    overlayTextBlobForBriefing(overlay),
+    meta.scene_rationale,
+    meta.content_summary,
+    meta.design_rationale,
+    meta.research_fact,
+    meta.narration_relation,
+  ]
+    .filter((v) => v != null && String(v).trim())
+    .join(" ");
+}
+
+const META_ENTITY_ALLOWLIST = new Set([
+  "IA",
+  "AI",
+  "BR",
+  "Brasil",
+  "Cena",
+  "Lottie",
+  "Timeline",
+  "Lower Third",
+  "Contador",
+]);
+
+function extractNamedEntityHints(text = "") {
+  const matches =
+    String(text).match(
+      /\b(?:[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç-]+)(?:\s+(?:de|da|do|dos|das|e|[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wÁÉÍÓÚÂÊÔÃÕÇáéíóúâêôãõç-]+)){1,5}/g
+    ) || [];
+  return [...new Set(matches.map((m) => m.trim()))].filter(
+    (m) =>
+      m.length >= 8 &&
+      !META_ENTITY_ALLOWLIST.has(m) &&
+      !/^(Cena|Bloco|Tipo|Tema|Design|Fonte|Fato)\b/i.test(m)
+  );
+}
+
+function overlayMetaMatchesStoryBlock(overlay = {}, overlayResearch = {}) {
+  const scopedResearch = getOverlayBlockResearch(overlay, overlayResearch);
+  const blockResearch = scopedResearch.blocks?.[0] || {};
+  const auditText = overlayAuditTextBlob(overlay);
+  if (!auditText.trim()) return true;
+
+  const allowedContext = [
+    overlayResearch.topic,
+    blockResearch.primaryTopic,
+    blockResearch.narration,
+    ...(blockResearch.facts || []),
+  ].join(" ");
+  const auditTokens = tokenizeOverlayBriefingText(auditText);
+  const contextTokens = tokenizeOverlayBriefingText(allowedContext);
+  const overlap = overlayBriefingTokenOverlap(auditTokens, contextTokens);
+  const entities = extractNamedEntityHints(auditText);
+  const foreignEntity = entities.find((entity) => {
+    const entityTokens = tokenizeOverlayBriefingText(entity);
+    return overlayBriefingTokenOverlap(entityTokens, contextTokens) < 0.34;
+  });
+
+  if (foreignEntity) {
+    console.log(
+      `[Overlay Story Guard] Entidade fora do bloco detectada em ${overlay.id}: "${foreignEntity}".`
+    );
+    return false;
+  }
+
+  return overlap >= 0.04 || !contextTokens.size;
+}
+
 function ensureOverlayAiMeta(
   overlay,
   overlayResearch = {},
@@ -19773,6 +19855,12 @@ function pruneAiOverlaysToStoryBlocks(
     if (!overlayFactMatchesItsBlock(overlay, overlayResearch)) {
       console.log(
         `[Overlay Story Guard] Removido ${overlay.id} — fato/pesquisa nao corresponde ao bloco ${block || "?"}.`
+      );
+      continue;
+    }
+    if (!overlayMetaMatchesStoryBlock(overlay, overlayResearch)) {
+      console.log(
+        `[Overlay Story Guard] Removido ${overlay.id} — briefing/metadados nao correspondem ao bloco ${block || "?"}.`
       );
       continue;
     }

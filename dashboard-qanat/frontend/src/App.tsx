@@ -9140,6 +9140,7 @@ export default function App() {
           body: JSON.stringify({
             hyperframes: useHyperframes === true,
             require_browser: effectiveGeminiChrome,
+            force: true,
           }),
         });
         if (!ok || data.needs_browser) {
