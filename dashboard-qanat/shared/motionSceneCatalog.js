@@ -61,8 +61,8 @@ export const MOTION_SCENE_TRIGGERS = {
   curiosity_punch: {
     id: "curiosity_punch",
     label: "Curiosidade / impacto",
-    templates: ["kinetic-text", "counter"],
-    defaultTemplate: "kinetic-text",
+    templates: ["counter", "timeline", "bar-chart"],
+    defaultTemplate: "counter",
     layout: "fullscreen",
     rveRef: "popping-text",
     remotionRef: "wavy-meme",
@@ -171,11 +171,17 @@ export function pickTemplateForTrigger(
       def.templates.includes(tpl)
   );
   if (preferred.length) return preferred[0];
+  const approved = def.templates.filter((tpl) =>
+    APPROVED_ORCHESTRATION_TEMPLATES.has(String(tpl))
+  );
   const priority = NICHE_TEMPLATE_PRIORITY[nichePack] || [];
   for (const tpl of priority) {
-    if (def.templates.includes(tpl)) return tpl;
+    if (approved.includes(tpl)) return tpl;
   }
-  return def.defaultTemplate;
+  if (approved.length) return approved[0];
+  return APPROVED_ORCHESTRATION_TEMPLATES.has(String(def.defaultTemplate))
+    ? def.defaultTemplate
+    : "counter";
 }
 
 /** Objetos muito específicos — PIP educativo em 16:9 quando o espectador pode não reconhecer. */

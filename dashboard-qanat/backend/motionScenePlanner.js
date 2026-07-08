@@ -300,6 +300,63 @@ export function buildPropsForTemplate(
   }
 }
 
+export function backfillVisualPromptNarration(storyboard = {}, config = {}) {
+  const visualPrompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
+  if (!visualPrompts.length) return storyboard;
+
+  const hasMissing = visualPrompts.some(
+    (vp) =>
+      !String(vp.narration_text || vp.asset?.narration_segment || "").trim()
+  );
+  if (!hasMissing) return storyboard;
+
+  const blockPhraseMap = new Map();
+  for (const bp of Array.isArray(config.block_phrases)
+    ? config.block_phrases
+    : []) {
+    const phrase = String(bp?.phrase || "").trim();
+    const block = Number(bp?.block);
+    if (phrase && block > 0) blockPhraseMap.set(block, phrase);
+  }
+
+  const narrativeParagraphs = String(
+    storyboard.narrative_script || storyboard.narration || ""
+  )
+    .trim()
+    .split(/\n\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const filled = visualPrompts.map((vp, index) => {
+    const existing = String(
+      vp.narration_text || vp.asset?.narration_segment || ""
+    ).trim();
+    if (existing) return vp;
+
+    const block = Number(vp.block) || 1;
+    const fromBlock = blockPhraseMap.get(block);
+    if (fromBlock) {
+      return { ...vp, narration_text: fromBlock };
+    }
+
+    const para = narrativeParagraphs[block - 1] || narrativeParagraphs[0];
+    if (para) {
+      return { ...vp, narration_text: para };
+    }
+
+    const promptText = String(vp.prompt || "").trim();
+    if (promptText.length >= 24) {
+      return { ...vp, narration_text: promptText.slice(0, 220) };
+    }
+
+    return vp;
+  });
+
+  return { ...storyboard, visual_prompts: filled };
+}
+
 export function resolveNichePack(config = {}, storyboard = {}) {
   const fromConfig = String(config.motion_niche_pack || "").trim();
   if (fromConfig) return fromConfig;
@@ -390,8 +447,16 @@ export function planMotionScenesFromStoryboard(
     const classified = classifyNarrationSegment(narration);
     if (!classified || classified.confidence < 0.65) continue;
 
-    const trigger = classified.trigger;
-    if (trigger === "curiosity_punch") continue;
+    let trigger = classified.trigger;
+    if (trigger === "curiosity_punch") {
+      if (STAT_RE.test(narration)) {
+        trigger = "stat_number";
+      } else if (HISTORICAL_RE.test(narration) || YEAR_RE.test(narration)) {
+        trigger = "historical_fact";
+      } else {
+        trigger = "stat_number";
+      }
+    }
     const templateId = pickTemplateForTrigger(
       trigger,
       nichePack,

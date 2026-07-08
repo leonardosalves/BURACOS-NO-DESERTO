@@ -86,6 +86,7 @@ export function registerMotionSceneRoutes(
         quality: result.quality,
         satellite: result.satellite,
         llm: result.llm,
+        zero_motion_reason: result.zero_motion_reason || null,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

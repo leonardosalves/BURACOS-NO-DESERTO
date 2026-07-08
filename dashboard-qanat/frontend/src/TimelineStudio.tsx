@@ -882,8 +882,16 @@ export function TimelineStudio({
                     `${orchData.motion_count ?? counts.motion + counts.overlays} cena(s) · ${counts.motion} mapas/motion · ${counts.overlays} templates · QC ${qc?.score ?? "—"}/100`
                   );
                 } else {
+                  const reasonHint =
+                    orchData.zero_motion_reason === "no_visual_prompts"
+                      ? " Gere o roteiro completo antes — faltam visual_prompts."
+                      : orchData.zero_motion_reason === "no_matching_triggers"
+                        ? " Narração sem gatilhos (número, lugar nomeado, data) — revise os trechos por cena."
+                        : orchData.zero_motion_reason === "timeline_sync_empty"
+                          ? " Cenas planejadas mas não sincronizaram — clique Recarregar ou tente de novo."
+                          : "";
                   toast.error(
-                    `Orquestração incompleta — ${counts.motion} motion · ${counts.overlays} templates na timeline · QC ${qc?.score ?? "—"}/100`
+                    `Orquestração incompleta — ${counts.motion} motion · ${counts.overlays} templates na timeline · QC ${qc?.score ?? "—"}/100.${reasonHint}`
                   );
                 }
                 if (counts.motion === 0 && Number(orchData.motion_count) > 0) {

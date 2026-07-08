@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import {
   applyMotionScenesToVisualPrompts,
+  backfillVisualPromptNarration,
   planMotionScenesFromStoryboard,
   unsuppressMotionSceneIds,
 } from "./motionScenePlanner.js";
@@ -303,6 +304,7 @@ export async function orchestrateProduction(
   if (config.production_pipeline?.montage_policy !== false) {
     storyboard = applyMontageAssetPolicy(storyboard, config);
   }
+  storyboard = backfillVisualPromptNarration(storyboard, config);
   const researchContext = buildMotionResearchContext(storyboard, config);
 
   let plan = planMotionScenesFromStoryboard(storyboard, config, blockTimings);
@@ -496,6 +498,16 @@ export async function orchestrateProduction(
     timelineMotionCount + timelineTemplateCount > 0 &&
     (qualityMeta?.ok !== false || geoQcOk);
 
+  const zeroMotionReason =
+    plan.motion_scenes.length === 0
+      ? !Array.isArray(storyboard.visual_prompts) ||
+        storyboard.visual_prompts.length === 0
+        ? "no_visual_prompts"
+        : "no_matching_triggers"
+      : timelineMotionCount + timelineTemplateCount === 0
+        ? "timeline_sync_empty"
+        : null;
+
   return {
     ok: orchestrationOk,
     storyboard,
@@ -506,6 +518,7 @@ export async function orchestrateProduction(
     timeline_motion_count: timelineMotionCount,
     timeline_template_count: timelineTemplateCount,
     orchestration_ok: orchestrationOk,
+    zero_motion_reason: zeroMotionReason,
     studio,
     timeline_synced: timelineSynced,
     production: storyboard.production_orchestration,
