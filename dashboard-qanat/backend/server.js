@@ -19696,6 +19696,60 @@ function resolveLastMileOverlayCollisions(overlays, config = {}) {
   return [...resolved, ...system];
 }
 
+function pruneAiOverlaysToStoryBlocks(
+  overlays = [],
+  { storyboard = {}, plan = {}, config = {}, totalDuration = 0 } = {}
+) {
+  if (!Array.isArray(overlays) || overlays.length === 0) return overlays;
+
+  const researchBlocks = Array.isArray(
+    storyboard?.overlays_research?.selectedBlocks
+  )
+    ? storyboard.overlays_research.selectedBlocks
+        .map(Number)
+        .filter((n) => n > 0)
+    : [];
+  const selectedBlockSet = new Set(researchBlocks);
+  const isShortVideo =
+    plan?.format === "SHORT" ||
+    config.aspect_ratio !== "16:9" ||
+    Number(totalDuration) < 120;
+  const maxInformative = isShortVideo
+    ? 2
+    : Number(plan?.limits?.maxTotal) || Infinity;
+
+  const informative = [];
+  const system = [];
+  for (const overlay of overlays) {
+    if (isInformativeOverlay(overlay)) informative.push(overlay);
+    else system.push(overlay);
+  }
+
+  const kept = [];
+  for (const overlay of informative) {
+    const block = extractBlockIndex(overlay, overlay.scene_ref) + 1;
+    if (selectedBlockSet.size && !selectedBlockSet.has(block)) {
+      console.log(
+        `[Overlay Story Guard] Removido ${overlay.id} — bloco ${block || "?"} nao foi selecionado pela pesquisa da historia.`
+      );
+      continue;
+    }
+    kept.push(overlay);
+  }
+
+  kept.sort((a, b) => (Number(a.start) || 0) - (Number(b.start) || 0));
+  if (kept.length > maxInformative) {
+    const removed = kept.splice(maxInformative);
+    for (const overlay of removed) {
+      console.log(
+        `[Overlay Story Guard] Removido ${overlay.id} — limite absoluto de ${maxInformative} overlay(s) informativo(s).`
+      );
+    }
+  }
+
+  return [...kept, ...system];
+}
+
 function finalizeProjectOverlays(
   projectDir,
   overlays,
@@ -19707,6 +19761,12 @@ function finalizeProjectOverlays(
   totalDuration
 ) {
   let result = filterOverlaysByVisualConfig(overlays, config);
+  result = pruneAiOverlaysToStoryBlocks(result, {
+    storyboard,
+    plan: orchestrationPlan,
+    config,
+    totalDuration,
+  });
   const aiOverlayMode = hasAiPlannedOverlays(storyboard);
   if (!aiOverlayMode) {
     result = injectProLayoutOverlays(
@@ -19748,6 +19808,12 @@ function finalizeProjectOverlays(
     storyboard,
     orchestrationPlan
   );
+  result = pruneAiOverlaysToStoryBlocks(result, {
+    storyboard,
+    plan: orchestrationPlan,
+    config,
+    totalDuration,
+  });
   result = stabilizeOverlayTimings(result, {
     starts,
     durations,
@@ -19795,10 +19861,16 @@ function finalizeProjectOverlays(
   });
   result = timingVerified.overlays;
   result = resolveLastMileOverlayCollisions(result, config);
+  result = pruneAiOverlaysToStoryBlocks(result, {
+    storyboard,
+    plan: orchestrationPlan,
+    config,
+    totalDuration,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════
   // REGRA ABSOLUTA DE QUANTIDADE DE OVERLAYS (não pode ser ultrapassada)
-  // Shorts: MAX 3 overlays informativos
+  // Shorts: MAX 2 overlays informativos
   // Longos: MAX 1 por minuto (ex: vídeo de 5min = 5 overlays), max 2/min
   // ═══════════════════════════════════════════════════════════════════════
   {
@@ -19808,7 +19880,7 @@ function finalizeProjectOverlays(
 
     let maxAllowed;
     if (isShortVideo) {
-      maxAllowed = 3;
+      maxAllowed = 2;
     } else {
       const minutes = Math.max(1, Math.floor(totalDuration / 60));
       maxAllowed = Math.min(minutes * 2, Math.max(3, minutes));
@@ -20000,6 +20072,9 @@ Exemplo timeline:
     `Retorne APENAS JSON válido: {"plan_session":"...","planejamento":["3 observações"],"overlays":[...]}`,
     'Cada overlay DEVE ter "ai_meta": {scene_rationale, content_summary, design_rationale, research_fact, narration_relation}.',
     `Máximo ${maxOverlays} overlays. Gap mínimo ${minGap}s entre cada overlay.`,
+    isShort
+      ? `PROIBIDO overlay no começo: nao use cenas/blocos que comecem antes de ${orchestrationPlan.rhythm?.hookCleanSeconds || 6}s. O primeiro overlay deve aparecer so depois do gancho e no trecho correto da historia.`
+      : "",
     selectedBlockNums.length
       ? `Gere 1 overlay para CADA bloco selecionado: [${selectedBlockNums.join(", ")}]. Use os fatos da pesquisa web.`
       : "Escolha os blocos com maior potencial de dado visual (números, comparações, datas).",
@@ -20320,6 +20395,8 @@ IMPORTANTE — SINCRONIZAÇÃO DE TEMPO:
 Cada card informativo ou lower-third DEVE aparecer exatamente quando a cena visual correspondente está na tela.
 Você é terminantemente PROIBIDO de adivinhar ou inventar segundos absolutos para o campo "start".
 O campo "start" na sua resposta JSON deve ser OBRIGATORIAMENTE a string do "scene_id" da cena correta (ex: "1.1", "1.2", "2.1", "3.2").
+Para Shorts, NUNCA coloque overlay informativo no começo/gancho. Use apenas cenas depois da zona limpa do plano e somente quando o assunto daquele overlay estiver sendo contado/mostrado.
+O overlay deve nascer da história específica do vídeo, não de curiosidades gerais do nicho "${niche}".
 
 Você DEVE realizar um planejamento sistemático e explícito de design e posicionamento das informações antes de gerar cada overlay.
 Retorne um objeto JSON contendo exatamente esta estrutura:
@@ -20360,6 +20437,7 @@ ${
 
 REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
 1. SIGA O PLANO DE ORQUESTRAÇÃO ACIMA — ele define o orçamento exato de overlays para este vídeo. Não exceda os limites.${isListicleOverlay && orchestrationPlan.format === "SHORT" ? " Em LISTICLE SHORTS, gere poucos counters — o HUD de ranking já cobre a identidade visual." : " Use os componentes disponíveis dentro do orçamento."}
+   - REGRA ABSOLUTA: em Shorts, gere no máximo 2 overlays informativos no vídeo inteiro e nenhum deles pode aparecer no começo/gancho.
 2. LIMITES POR FORMATO (definidos pelo orquestrador — respeite o orçamento):
    - Para vídeos curtos (SHORTS/REELS/TIKTOK)${isListicleOverlay ? " em modo LISTICLE: apenas counters (máx. 2), gap 10s+" : ": Use kinetic-text, counter, bar-chart, timeline e lower-third distribuídos nos atos do plano. Varie tipos e posições. Gap mínimo de 5s entre overlays."}
    - Para vídeos LONGOS: Intervalo de pelo menos 18 segundos "limpo" entre overlays. Priorize dados visuais sobre texto.
@@ -20546,6 +20624,7 @@ Estrutura JSON Exigida:
       orchestrationPlan,
     }
   );
+  storyboard.overlays_research = overlayResearch;
   const overlayResearchBlock = buildOverlayResearchPromptBlock(overlayResearch);
   if (overlayResearchBlock) {
     systemPrompt += overlayResearchBlock;

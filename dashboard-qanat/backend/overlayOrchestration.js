@@ -366,6 +366,7 @@ export function buildOverlayOrchestrationPlan({
     const shortMax = isListicle ? 5 : 2;
     const aiBudget = 2;
     const shortMinGap = config.overlay_min_gap === "relaxed" ? 15 : 12;
+    const shortHookCleanSeconds = Math.max(6, Math.round(duration * 0.2));
     plan.limits = {
       maxTotal: aiBudget,
       finalMaxTotal: shortMax,
@@ -377,9 +378,9 @@ export function buildOverlayOrchestrationPlan({
       maxDurationSeconds: isListicle ? 4 : 6,
     };
     plan.rhythm = {
-      hookCleanSeconds: 1.5,
-      firstOverlayPercent: 0.12,
-      secondOverlayPercent: 0.35,
+      hookCleanSeconds: shortHookCleanSeconds,
+      firstOverlayPercent: 0.35,
+      secondOverlayPercent: 0.68,
       thirdOverlayPercent: 0.58,
       fourthOverlayPercent: 0.75,
       outroCleanSeconds: 2,
@@ -412,9 +413,9 @@ export function buildOverlayOrchestrationPlan({
           {
             act: 1,
             label: "Gancho Visual",
-            percent: "0-12%",
+            percent: `0-${Math.round((shortHookCleanSeconds / duration) * 100)}%`,
             overlays: 0,
-            goal: "1.5s limpos — imagem forte + legenda viral palavra-a-palavra.",
+            goal: `${shortHookCleanSeconds}s limpos — imagem forte + legenda viral palavra-a-palavra. Sem overlay informativo no começo.`,
           },
           {
             act: 2,
@@ -447,7 +448,11 @@ export function buildOverlayOrchestrationPlan({
       ...profile.componentPriority,
     ].filter((v, i, a) => a.indexOf(v) === i);
     plan.forbiddenZones = [
-      { start: 0, end: 1.5, reason: "Gancho — sem overlay nos primeiros 1.5s" },
+      {
+        start: 0,
+        end: shortHookCleanSeconds,
+        reason: `Gancho — sem overlay nos primeiros ${shortHookCleanSeconds}s`,
+      },
       {
         start: duration - 2,
         end: duration,
