@@ -31,7 +31,7 @@ function toastOrchestrationFailures(
   ];
   const detail =
     reasons[0] === "geocode_failed"
-      ? "geocode falhou — confira Local/País (ex.: Bangkok, Tailândia)"
+      ? "geocode falhou — preencha Local, Região e País do vídeo ativo"
       : reasons.length
         ? reasons.slice(0, 2).join(" · ")
         : "";

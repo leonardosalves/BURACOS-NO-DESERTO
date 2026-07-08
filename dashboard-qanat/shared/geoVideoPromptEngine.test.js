@@ -13,7 +13,7 @@ import {
 describe("geoVideoPromptEngine", () => {
   it("detecta clima de chuva na narração", () => {
     const w = detectWeatherFromNarration(
-      "Em 1988, uma chuva torrencial inundou as ruas de Bangkok."
+      "Em 1988, uma chuva torrencial inundou as ruas da cidade."
     );
     assert.equal(w.id, "rain");
   });
@@ -52,19 +52,19 @@ describe("geoVideoPromptEngine", () => {
   it("prompt zoom contém proibição de cortes e destaque territorial", () => {
     const prompt = buildGeoZoomVideoPrompt({
       place: {
-        location: "Bangkok",
-        region: "Sudeste Asiático",
-        country: "Tailândia",
+        location: "Lisboa",
+        region: "Lisboa",
+        country: "Portugal",
       },
       classification: { place_type: "city", structure_exists: true },
-      narration: "Bangkok cresceu sobre uma bacia de argila.",
+      narration: "Lisboa cresceu sobre colinas à beira do Tejo.",
       aspectRatio: "16:9",
       durationSeconds: 10,
-      coords: { lat: 13.7563, lng: 100.5018 },
+      coords: { lat: 38.7223, lng: -9.1393 },
     });
     assert.match(prompt, /sem cortes/i);
     assert.match(prompt, /DESTAQUE TERRITORIAL/i);
-    assert.match(prompt, /Bangkok/i);
+    assert.match(prompt, /Lisboa/i);
     assert.match(prompt, /português do Brasil/i);
   });
 

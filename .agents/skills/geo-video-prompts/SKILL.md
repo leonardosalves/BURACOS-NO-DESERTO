@@ -18,6 +18,12 @@ metadata:
 **Motor:** `dashboard-qanat/shared/geoVideoPromptEngine.js`  
 **Serviço:** `dashboard-qanat/backend/geoVideoPromptService.js`
 
+## Escopo global
+
+Funciona em **qualquer projeto** (história, engenharia, natureza, true crime, etc.).
+O local vem **sempre** da narração e dos campos `location` / `region` / `country` da cena —
+nunca de cidade fixa no código. Bangkok, Palmanova etc. em testes são só fixtures unitários.
+
 ## Quando usar
 
 - Cenas `location-intro` ou `geo-map` no planejamento Remotion

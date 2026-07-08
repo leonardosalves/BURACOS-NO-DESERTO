@@ -59,7 +59,7 @@ export function applySatelliteResultToClip(
   if (hit?.ok === false) {
     const detail =
       hit.reason === "geocode_failed"
-        ? "geocode_failed — preencha local/cidade/país ou use nome canônico (ex.: Laufenburg, Suíça)"
+        ? "geocode_failed — preencha local, região e país conforme a narração do projeto"
         : hit.reason || "Falha ao enriquecer template Remotion";
     throw new Error(detail);
   }
