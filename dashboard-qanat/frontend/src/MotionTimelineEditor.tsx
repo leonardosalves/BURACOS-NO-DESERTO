@@ -44,7 +44,10 @@ type Props = {
   getAssetUrl?: (path: string) => string;
   generating?: boolean;
   saving?: boolean;
-  onChange: (nextScenes: MotionSceneDraft[]) => void;
+  onChange: (
+    nextScenes: MotionSceneDraft[],
+    opts?: { immediate?: boolean }
+  ) => void;
   onGenerate: () => void;
   onSave?: () => void | Promise<void>;
 };
@@ -120,10 +123,15 @@ export function MotionTimelineEditor({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = scenes.find((s) => s.id === selectedId) || scenes[0] || null;
 
+  const emitChange = (next: MotionSceneDraft[], immediate = false) => {
+    onChange(next, { immediate });
+  };
+
   const patchScene = (
     id: string,
     patch: Partial<MotionSceneDraft>,
-    propsPatch?: Record<string, unknown>
+    propsPatch?: Record<string, unknown>,
+    immediate = false
   ) => {
     const next = scenes.map((s) => {
       if (s.id !== id) return s;
@@ -135,16 +143,16 @@ export function MotionTimelineEditor({
       }
       return merged;
     });
-    onChange(next);
+    emitChange(next, immediate);
   };
 
   const patchProp = (id: string, key: string, value: unknown) => {
-    patchScene(id, {}, { [key]: value });
+    patchScene(id, {}, { [key]: value }, false);
   };
 
   const removeScene = (id: string) => {
     const next = scenes.filter((s) => s.id !== id);
-    onChange(next);
+    emitChange(next, true);
     if (selectedId === id) setSelectedId(next[0]?.id || null);
   };
 
@@ -164,24 +172,34 @@ export function MotionTimelineEditor({
         subtitle: "",
       },
     };
-    onChange([...scenes, next]);
+    emitChange([...scenes, next], true);
     setSelectedId(id);
   };
 
   const anchorToScene = (id: string, sceneId: string) => {
     if (!sceneId) {
       const current = scenes.find((s) => s.id === id);
-      patchScene(id, {
-        scene_ref: undefined,
-        start_hint: current ? numericStart(current, starts) : 0,
-      });
+      patchScene(
+        id,
+        {
+          scene_ref: undefined,
+          start_hint: current ? numericStart(current, starts) : 0,
+        },
+        undefined,
+        true
+      );
       return;
     }
     const seconds = resolveSceneSeconds(sceneId, starts);
-    patchScene(id, {
-      scene_ref: sceneId,
-      start_hint: seconds ?? 0,
-    });
+    patchScene(
+      id,
+      {
+        scene_ref: sceneId,
+        start_hint: seconds ?? 0,
+      },
+      undefined,
+      true
+    );
   };
 
   const timeRulerTicks = useMemo(() => {
@@ -360,7 +378,12 @@ export function MotionTimelineEditor({
             <select
               value={scene.template_id}
               onChange={(e) =>
-                patchScene(scene.id, { template_id: e.target.value })
+                patchScene(
+                  scene.id,
+                  { template_id: e.target.value },
+                  undefined,
+                  true
+                )
               }
               className="dash-select text-[10px]"
             >
@@ -404,10 +427,15 @@ export function MotionTimelineEditor({
               onChange={(e) => {
                 const v = Number(e.target.value);
                 if (!Number.isFinite(v)) return;
-                patchScene(scene.id, {
-                  start_hint: Math.max(0, Math.min(totalDuration, v)),
-                  scene_ref: undefined,
-                });
+                patchScene(
+                  scene.id,
+                  {
+                    start_hint: Math.max(0, Math.min(totalDuration, v)),
+                    scene_ref: undefined,
+                  },
+                  undefined,
+                  true
+                );
               }}
               className="dash-input font-mono text-[10px]"
             />
@@ -425,9 +453,14 @@ export function MotionTimelineEditor({
               onChange={(e) => {
                 const v = Number(e.target.value);
                 if (!Number.isFinite(v) || v <= 0) return;
-                patchScene(scene.id, {
-                  duration_seconds: Math.min(120, v),
-                });
+                patchScene(
+                  scene.id,
+                  {
+                    duration_seconds: Math.min(120, v),
+                  },
+                  undefined,
+                  true
+                );
               }}
               className="dash-input font-mono text-[10px]"
             />

@@ -882,6 +882,8 @@ export default function App() {
   const motionSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+  const motionDirtyRef = useRef(false);
+  const motionSaveInFlightRef = useRef(false);
   const chunkTimelineResyncAttemptedRef = useRef<Set<string>>(new Set());
   const storyboardDirtyRef = useRef(false);
   const storyboardFetchGenRef = useRef(0);
@@ -1164,11 +1166,10 @@ export default function App() {
 
   const persistMotionScenes = async (
     scenes: unknown[],
-    opts?: { immediate?: boolean; silent?: boolean }
+    opts?: { immediate?: boolean; silent?: boolean; toastOnSuccess?: boolean }
   ) => {
     const run = async () => {
-      clearPendingStoryboardSave();
-      storyboardDirtyRef.current = false;
+      motionSaveInFlightRef.current = true;
       setSavingMotionScenes(true);
       try {
         const res = await fetch(
@@ -1181,11 +1182,24 @@ export default function App() {
         );
         const data = (await res.json().catch(() => ({}))) as {
           error?: string;
+          motion_scenes?: unknown[];
         };
         if (!res.ok) {
           throw new Error(data.error || "Falha ao salvar templates.");
         }
-        if (!opts?.silent) {
+        const savedScenes = Array.isArray(data.motion_scenes)
+          ? data.motion_scenes
+          : scenes;
+        const base = storyboardData || generatedScriptData;
+        if (base) {
+          const merged = { ...base, motion_scenes: savedScenes };
+          setStoryboardData(merged);
+          setGeneratedScriptData(merged);
+        }
+        motionDirtyRef.current = false;
+        if (opts?.toastOnSuccess) {
+          toast.success("Template Remotion salvo.");
+        } else if (!opts?.silent) {
           toast.success("Templates Remotion salvos no storyboard.");
         }
         setTimelineDataRevision((r) => r + 1);
@@ -1194,26 +1208,36 @@ export default function App() {
           err instanceof Error ? err.message : "Erro ao salvar templates."
         );
       } finally {
+        motionSaveInFlightRef.current = false;
         setSavingMotionScenes(false);
       }
     };
     if (opts?.immediate) {
+      clearPendingMotionSave();
       await run();
       return;
     }
     clearPendingMotionSave();
     motionSaveTimeoutRef.current = setTimeout(() => {
       void run();
-    }, 450);
+    }, 600);
   };
 
-  const handleMotionScenesChange = (scenes: unknown[]) => {
+  const handleMotionScenesChange = (
+    scenes: unknown[],
+    opts?: { immediate?: boolean }
+  ) => {
     const base = storyboardData || generatedScriptData;
     if (!base) return;
+    motionDirtyRef.current = true;
     const next = { ...base, motion_scenes: scenes };
     setStoryboardData(next);
     setGeneratedScriptData(next);
-    void persistMotionScenes(scenes, { silent: true });
+    void persistMotionScenes(scenes, {
+      immediate: opts?.immediate,
+      silent: true,
+      toastOnSuccess: opts?.immediate,
+    });
   };
 
   const handleSaveMotionScenes = async () => {
@@ -2635,7 +2659,14 @@ export default function App() {
       );
       if (res.ok) {
         if (gen !== storyboardFetchGenRef.current) return;
-        if (!opts?.force && storyboardDirtyRef.current) return;
+        if (
+          !opts?.force &&
+          (storyboardDirtyRef.current ||
+            motionDirtyRef.current ||
+            motionSaveInFlightRef.current)
+        ) {
+          return;
+        }
         const storyboard = repairMojibakeDeep(await res.json());
         applyStoryboardToCreatorState(
           storyboard,
@@ -2668,6 +2699,7 @@ export default function App() {
     clearPendingStoryboardSave();
     clearPendingMotionSave();
     storyboardDirtyRef.current = false;
+    motionDirtyRef.current = false;
     setGeneratingOverlays(true);
     const toastId = toast.loading("Planejando templates Remotion…");
     try {

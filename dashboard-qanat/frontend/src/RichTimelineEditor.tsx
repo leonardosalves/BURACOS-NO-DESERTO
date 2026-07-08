@@ -99,7 +99,10 @@ export type RichTimelineEditorProps = {
   getProjectUrl: (path: string) => string;
   handleAutoMapAssets: () => void | Promise<void>;
   handlePlanMotionScenes: () => void | Promise<void>;
-  handleMotionScenesChange: (scenes: MotionSceneDraft[]) => void;
+  handleMotionScenesChange: (
+    scenes: MotionSceneDraft[],
+    opts?: { immediate?: boolean }
+  ) => void;
   handleSaveMotionScenes: () => void | Promise<void>;
   handleRepairProjectVisualPrompts: () => void | Promise<void>;
   handleSaveConfig: () => void | Promise<void>;
