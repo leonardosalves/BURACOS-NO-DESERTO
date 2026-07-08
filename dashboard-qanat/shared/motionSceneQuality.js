@@ -44,7 +44,10 @@ export function assessLocationIntroScene(scene = {}, { projDir = "" } = {}) {
     });
   }
 
-  if (!Number(props.lat) || !Number(props.lng)) {
+  const provider = String(props.map_provider || "").toLowerCase();
+  const isAiT2v = provider === "ai_t2v" || props.geo_generation === "ai_prompt";
+
+  if (!isAiT2v && (!Number(props.lat) || !Number(props.lng))) {
     issues.push({
       code: "missing_coords",
       severity: "critical",
@@ -52,10 +55,36 @@ export function assessLocationIntroScene(scene = {}, { projDir = "" } = {}) {
       proposed_fix: "Re-baixar voo satélite (geocode)",
     });
   }
-
-  const provider = String(props.map_provider || "").toLowerCase();
   const isCesium = provider === "cesium";
   const isBlender = provider === "blender";
+
+  if (isAiT2v) {
+    const prompt = String(props.ai_video_prompt || "").trim();
+    if (prompt.length < 80) {
+      issues.push({
+        code: "missing_ai_prompt",
+        severity: "critical",
+        message: "Prompt T2V geográfico ausente ou muito curto",
+        proposed_fix: "Gerar prompt IA Geo (orquestrar templates)",
+      });
+    }
+    if (!String(props.location || "").trim()) {
+      issues.push({
+        code: "missing_location",
+        severity: "critical",
+        message: "Local não definido para prompt geográfico",
+        proposed_fix: "Preencher Local no inspector",
+      });
+    }
+    const critical = issues.filter((i) => i.severity === "critical");
+    return {
+      ok: critical.length === 0,
+      score: critical.length ? Math.max(0, 100 - critical.length * 25) : 100,
+      issues,
+      place_type: placeType,
+      provider: "ai_t2v",
+    };
+  }
 
   if (!isBlender && keyframes.length < MIN_CITY_KEYFRAMES) {
     issues.push({

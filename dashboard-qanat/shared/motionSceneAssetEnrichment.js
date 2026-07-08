@@ -72,30 +72,16 @@ export function motionSceneNeedsAssetEnrichment(scene = {}) {
   const props = scene.props || {};
 
   if (templateId === "location-intro") {
-    const provider = String(props.map_provider || "").toLowerCase();
-    if (provider === "blender" && String(props.flyover_video || "").trim()) {
-      return false;
-    }
-    if (provider === "cesium" && Number(props.lat) && Number(props.lng)) {
-      const kf = Array.isArray(props.zoom_keyframes)
-        ? props.zoom_keyframes.length
-        : 0;
-      return kf < 5;
-    }
-    if (
-      Number(props.lat) &&
-      Number(props.lng) &&
-      (String(props.backgroundImage || "").trim() ||
-        (Array.isArray(props.zoom_keyframes) &&
-          props.zoom_keyframes.some((k) => String(k?.image || "").trim())))
-    ) {
+    if (String(props.ai_video_prompt || "").trim().length >= 80) {
       return false;
     }
     return Boolean(String(props.location || "").trim());
   }
 
   if (templateId === "geo-map") {
-    if (Number(props.lat) && Number(props.lng)) return false;
+    if (String(props.ai_video_prompt || "").trim().length >= 80) {
+      return false;
+    }
     return Boolean(String(props.location || "").trim());
   }
 

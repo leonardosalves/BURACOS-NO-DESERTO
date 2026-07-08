@@ -45,22 +45,10 @@ function toastOrchestrationFailures(
 
 export function locationIntroHasSatellite(clip: StudioClip): boolean {
   const props = clip.props || {};
+  const prompt = String(props.ai_video_prompt || "").trim();
+  if (prompt.length >= 80) return true;
   const mapProvider = String(props.map_provider || "");
-  const hasCoords =
-    Number.isFinite(Number(props.lat)) && Number.isFinite(Number(props.lng));
-  const flyover = String(props.flyover_video || "").trim();
-  if (mapProvider === "blender" && flyover) return true;
-  const isCesiumReady = mapProvider === "cesium" && hasCoords;
-  if (isCesiumReady) return true;
-  if (String(props.backgroundImage || "").trim()) return true;
-  if (
-    Array.isArray(props.zoom_keyframes) &&
-    props.zoom_keyframes.some((kf: { image?: string }) =>
-      Boolean(String(kf?.image || "").trim())
-    )
-  ) {
-    return true;
-  }
+  if (mapProvider === "ai_t2v" && prompt.length > 0) return true;
   return false;
 }
 
@@ -94,11 +82,7 @@ export function motionClipNeedsAssetEnrichment(clip: StudioClip): boolean {
     return locationIntroNeedsSatelliteFetch(clip);
   }
   if (templateId === "geo-map") {
-    return !(
-      Number(props.lat) &&
-      Number(props.lng) &&
-      String(props.backgroundImage || "").trim()
-    );
+    return !String(props.ai_video_prompt || "").trim();
   }
   if (templateId === "counter") return isPlaceholderCounter(props);
   if (templateId === "bar-chart") return isPlaceholderBarChart(props);

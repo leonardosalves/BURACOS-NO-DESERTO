@@ -119,8 +119,10 @@ export const REMOTION_TEMPLATE_LIMITS = {
 export const LOCATION_INTRO_DEFAULTS = {
   presentation: "fullscreen",
   layout: "fullscreen",
-  variant: "satellite",
-  map_style: "satellite",
+  variant: "ai_geo_video",
+  map_style: "photoreal_satellite",
+  map_provider: "ai_t2v",
+  geo_generation: "ai_prompt",
   zoom_from: 3,
   zoom_to_poi: 17,
   zoom_to_city: 10,

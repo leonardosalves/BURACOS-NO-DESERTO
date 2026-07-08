@@ -6,21 +6,12 @@ import {
   assessMotionScenesPlan,
   normalizeMotionSceneMetadata,
 } from "../shared/motionSceneQuality.js";
-import {
-  fetchGeoMapAssetsForScene,
-  fetchSatelliteAssetsForScene,
-} from "./satelliteMapService.js";
+import { enrichGeoSceneWithAiPrompt } from "./geoVideoPromptService.js";
 
-const SATELLITE_FIX_CODES = new Set([
+const GEO_FIX_CODES = new Set([
+  "missing_ai_prompt",
+  "missing_location",
   "missing_coords",
-  "insufficient_keyframes",
-  "zoom_too_tight",
-  "missing_boundary",
-  "missing_tile_file",
-  "missing_boundary_file",
-  "empty_keyframe",
-  "missing_flyover_video",
-  "missing_flyover_file",
 ]);
 
 function sceneNeedsSatelliteRefetch(scene, assessment) {
@@ -28,29 +19,34 @@ function sceneNeedsSatelliteRefetch(scene, assessment) {
   if (tpl !== "location-intro" && tpl !== "geo-map") return false;
   if (!assessment || assessment.ok) return false;
   return (assessment.issues || []).some(
-    (i) => i.severity === "critical" && SATELLITE_FIX_CODES.has(i.code)
+    (i) => i.severity === "critical" && GEO_FIX_CODES.has(i.code)
   );
 }
 
-function applySatelliteFetchToScene(scene, fetched) {
+function applyGeoPromptToScene(scene, fetched) {
   if (!fetched?.ok) return { scene, ok: false, reason: fetched?.reason };
   scene.props = {
     ...(scene.props || {}),
-    lat: fetched.lat,
-    lng: fetched.lng,
-    backgroundImage: fetched.backgroundImage,
-    backgroundImageWide: fetched.backgroundImageWide,
-    zoom_keyframes: fetched.zoom_keyframes,
-    zoom_from: fetched.zoom_from,
-    zoom_to: fetched.zoom_to,
+    lat: fetched.lat ?? scene.props?.lat,
+    lng: fetched.lng ?? scene.props?.lng,
+    map_provider: fetched.map_provider || "ai_t2v",
+    geo_generation: fetched.geo_generation || "ai_prompt",
+    ai_video_prompt: fetched.ai_video_prompt,
+    geo_prompt_brief: fetched.geo_prompt_brief,
+    geo_prompt_mode: fetched.geo_prompt_mode,
+    geo_prompt_weather: fetched.geo_prompt_weather,
+    geo_prompt_era: fetched.geo_prompt_era,
+    geo_prompt_orbit_360: fetched.geo_prompt_orbit_360,
+    geo_prompt_territory_highlight: fetched.geo_prompt_territory_highlight,
+    geo_prompt_generated_at: fetched.geo_prompt_generated_at,
+    geo_prompt_engine: fetched.geo_prompt_engine,
     fly_mode: fetched.fly_mode,
     place_type: fetched.place_type,
     structure_exists: fetched.structure_exists,
     aspect_ratio: fetched.aspect_ratio,
-    boundaryGeoJson: fetched.boundaryGeoJson || "",
-    map_provider: fetched.map_provider,
+    variant: fetched.variant || "ai_geo_video",
+    map_style: fetched.map_style || "photoreal_satellite",
     geocode_source: fetched.geocode_source,
-    flyover_video: fetched.flyover_video || "",
   };
   return { scene, ok: true };
 }
@@ -87,20 +83,16 @@ export async function ensureMotionScenesQuality(
       if (!sceneNeedsSatelliteRefetch(ms, assessment)) continue;
 
       try {
-        const fetcher =
-          String(ms.template_id) === "geo-map"
-            ? fetchGeoMapAssetsForScene
-            : fetchSatelliteAssetsForScene;
-        const fetched = await fetcher(projDir, ms, {
+        const fetched = await enrichGeoSceneWithAiPrompt(projDir, ms, {
           config,
           workspaceConfig,
         });
-        const applied = applySatelliteFetchToScene(ms, fetched);
+        const applied = applyGeoPromptToScene(ms, fetched);
         scenes[i] = normalizeMotionSceneMetadata(applied.scene);
         remediation.push({
           pass: pass + 1,
           scene_id: ms.id,
-          action: "refetch_satellite",
+          action: "regenerate_geo_prompt",
           ok: applied.ok,
           reason: applied.reason || null,
         });
@@ -109,7 +101,7 @@ export async function ensureMotionScenesQuality(
         remediation.push({
           pass: pass + 1,
           scene_id: ms.id,
-          action: "refetch_satellite",
+          action: "regenerate_geo_prompt",
           ok: false,
           reason: err.message,
         });

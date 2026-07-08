@@ -38,21 +38,14 @@ export function TimelineStudioClipInspector({
   const editable = isClipEditable(clip);
   const captionText = String(clip.props?.text || clip.label || "");
   const [fetchingSatellite, setFetchingSatellite] = useState(false);
-  const mapProvider = String(clip.props?.map_provider || "");
-  const hasCoords =
-    Number.isFinite(Number(clip.props?.lat)) &&
-    Number.isFinite(Number(clip.props?.lng));
-  const flyoverVideo = String(clip.props?.flyover_video || "").trim();
-  const isBlenderReady = mapProvider === "blender" && Boolean(flyoverVideo);
-  const isCesiumReady = mapProvider === "cesium" && hasCoords;
+  const mapProvider = String(clip.props?.map_provider || "ai_t2v");
+  const aiGeoPrompt = String(clip.props?.ai_video_prompt || "").trim();
+  const geoBrief = String(clip.props?.geo_prompt_brief || "").trim();
+  const hasAiGeoPrompt = aiGeoPrompt.length >= 80;
   const hasSatelliteTiles = locationIntroHasSatellite(clip);
   const needsSatelliteFetch = locationIntroNeedsSatelliteFetch(clip);
   const motionQcOk = clip.props?.motion_quality_ok !== false;
   const motionQcScore = Number(clip.props?.motion_quality_score) || 0;
-  const keyframeCount = Array.isArray(clip.props?.zoom_keyframes)
-    ? clip.props.zoom_keyframes.length
-    : 0;
-  const zoomTo = Number(clip.props?.zoom_to) || 0;
 
   const autoFetchStartedRef = useRef(false);
 
@@ -73,7 +66,7 @@ export function TimelineStudioClipInspector({
       const q = data.quality as { ok?: boolean; score?: number } | undefined;
       if (!silent) {
         toast.success(
-          `Satélite + QC ${q?.score ?? motionQcScore}/100${q?.ok ? " ✓" : " — revise inspector"}`
+          `Prompt IA Geo + QC ${q?.score ?? motionQcScore}/100${q?.ok ? " ✓" : " — revise inspector"}`
         );
       }
     } catch (err) {
@@ -207,55 +200,75 @@ export function TimelineStudioClipInspector({
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5 text-[11px] text-white disabled:opacity-50"
               />
             </Field>
-            <Field label="Mapa satélite" className="sm:col-span-2">
-              <div className="flex flex-wrap items-center gap-2">
+            <Field
+              label="Vídeo geográfico IA"
+              className="sm:col-span-2 lg:col-span-4"
+            >
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span
                   className={`text-[10px] font-semibold ${
                     fetchingSatellite
                       ? "text-sky-400"
-                      : motionQcOk && hasSatelliteTiles
+                      : motionQcOk && hasAiGeoPrompt
                         ? "text-emerald-400"
                         : "text-amber-400"
                   }`}
                 >
                   {fetchingSatellite
-                    ? "Baixando voo satélite automaticamente…"
-                    : motionQcOk && hasSatelliteTiles
-                      ? isBlenderReady
-                        ? `QC OK · Blender MP4 · zoom ${zoomTo || "—"}`
-                        : isCesiumReady
-                          ? `QC OK · ${keyframeCount} keyframes · Cesium 3D · zoom ${zoomTo || "—"}`
-                          : `QC OK · ${keyframeCount} tiles · zoom ${zoomTo || "—"}`
+                    ? "Gerando prompt IA Geo automaticamente…"
+                    : motionQcOk && hasAiGeoPrompt
+                      ? `QC OK · ${mapProvider} · ${geoBrief || "zoom Terra→alvo"}`
                       : hasSatelliteTiles
-                        ? isCesiumReady
-                          ? `QC pendente · ${keyframeCount} keyframes Cesium (revise zoom/contorno)`
-                          : `QC pendente · ${keyframeCount} tiles (revise zoom/contorno)`
-                        : "Aguardando geocode — baixa automática ao abrir o clip"}
+                        ? "QC pendente — revise o prompt"
+                        : "Aguardando prompt — geração automática ao abrir o clip"}
                 </span>
-                {isCesiumReady ? (
-                  <span className="text-[9px] text-zinc-500 w-full">
-                    Preview 3D fullscreen — posicione o playhead dentro do clip
-                    ({Number(clip.start).toFixed(1)}s)
-                  </span>
-                ) : null}
-                {getProjectUrl && needsSatelliteFetch ? (
+                {getProjectUrl && (needsSatelliteFetch || hasAiGeoPrompt) ? (
                   <button
                     type="button"
                     disabled={fetchingSatellite}
                     onClick={() => void runSatelliteFetch(false)}
-                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-zinc-700 bg-zinc-900/60 text-zinc-400 cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 text-purple-200 cursor-pointer disabled:opacity-50"
                   >
                     <MapPin
                       className={`w-3 h-3 ${fetchingSatellite ? "animate-pulse" : ""}`}
                     />
-                    {fetchingSatellite ? "Baixando…" : "Re-baixar satélite"}
+                    {fetchingSatellite ? "Gerando…" : "Regenerar prompt IA"}
+                  </button>
+                ) : null}
+                {hasAiGeoPrompt ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(aiGeoPrompt);
+                      toast.success("Prompt copiado — cole no Seedance/LTX");
+                    }}
+                    className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-white"
+                  >
+                    Copiar prompt
                   </button>
                 ) : null}
               </div>
+              <textarea
+                disabled={!editable}
+                value={aiGeoPrompt}
+                onChange={(e) =>
+                  onUpdate({
+                    props: {
+                      ...clip.props,
+                      ai_video_prompt: e.target.value,
+                      map_provider: "ai_t2v",
+                      geo_generation: "ai_prompt",
+                    },
+                  })
+                }
+                rows={8}
+                placeholder="Zoom contínuo da Terra até o local, destaque territorial, órbita 360° em POIs — prompt rico para gerar vídeo com IA."
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-[10px] text-zinc-200 resize-y min-h-[140px] font-mono leading-relaxed disabled:opacity-50"
+              />
               <p className="text-[9px] text-zinc-600 mt-1">
-                Orquestração automática ao abrir a timeline: escolhe template,
-                preenche dados (mapa Blender, contadores, etc.) e sincroniza
-                clips. Requer Blender para flyover (BLENDER_PATH).
+                Substitui Blender/Cesium: use este prompt em Seedance, LTX ou
+                ComfyUI para gerar o voo satélite fotorrealista. Destaque de
+                país/cidade e clima vêm da narração.
               </p>
             </Field>
           </>
