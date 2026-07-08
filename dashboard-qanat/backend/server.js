@@ -3510,11 +3510,51 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
 
     const planToken = `agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    storyboard.overlays_ai = JSON.parse(JSON.stringify(cleanedAi));
+    storyboard.overlays_ai = repairOverlaysEncoding(
+      JSON.parse(JSON.stringify(cleanedAi))
+    );
     storyboard.overlays_hyperframes = useHyperframes;
     storyboard.overlays_planned_at = new Date().toISOString();
     storyboard.overlays_plan_token = planToken;
     storyboard.overlays_planned_by = "studio-agents";
+    const timingsForPlan = readProjectJson(projDir, "block_timings.json", {
+      starts: [],
+      durations: [],
+    });
+    const totalDurPlan =
+      Number(timingsForPlan.total_duration) ||
+      (timingsForPlan.starts?.length && timingsForPlan.durations?.length
+        ? Number(timingsForPlan.starts[timingsForPlan.starts.length - 1]) +
+          Number(timingsForPlan.durations[timingsForPlan.durations.length - 1])
+        : 48);
+    const planForTiming = buildOverlayOrchestrationPlan({
+      config,
+      niche: config.niche || "Geral",
+      totalDuration: totalDurPlan,
+      projectName: path.basename(projDir),
+      blockCount: Array.isArray(timingsForPlan.starts)
+        ? timingsForPlan.starts.length
+        : 0,
+    });
+    const finalized = finalizeProjectOverlays(
+      projDir,
+      storyboard.overlays_ai,
+      config,
+      storyboard,
+      timingsForPlan.starts || [],
+      timingsForPlan.durations || [],
+      planForTiming,
+      totalDurPlan
+    );
+    const finalizedInformative = finalized.filter(isInformativeOverlay);
+    if (finalizedInformative.length === 0) {
+      return res.status(422).json({
+        error:
+          "Studio Agents: overlays rejeitados porque nao tinham fato das fontes associado a narracao.",
+        overlayCount: 0,
+      });
+    }
+    storyboard.overlays = finalized;
     const cleanSb = repairStoryboardEncoding(storyboard);
     fs.writeFileSync(
       path.join(projDir, "storyboard.json"),
