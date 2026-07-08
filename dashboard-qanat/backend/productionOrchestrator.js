@@ -33,8 +33,10 @@ import { buildMotionResearchContext } from "../shared/storyboardResearch.js";
 import { enrichMotionScenesWithResearch } from "../shared/motionResearchProps.js";
 import {
   freezeStoryboardNarration,
+  isAiOverlaysEnabled,
   resolveProductionConfig,
   restoreStoryboardNarration,
+  stripAiOverlaysFromStoryboard,
 } from "../shared/productionConfig.js";
 import { getCatalogForNiche } from "./remotionTemplateCatalogService.js";
 
@@ -295,6 +297,9 @@ export async function orchestrateProduction(
     };
   }
 
+  if (!isAiOverlaysEnabled(config)) {
+    storyboard = stripAiOverlaysFromStoryboard(storyboard);
+  }
   if (config.production_pipeline?.montage_policy !== false) {
     storyboard = applyMontageAssetPolicy(storyboard, config);
   }
@@ -317,16 +322,18 @@ export async function orchestrateProduction(
     llmMeta = llmResult.llm;
   }
 
-  const deduped = dedupeMotionScenesAgainstOverlays(
-    plan.motion_scenes,
-    storyboard.overlays_ai || []
-  );
-  if (deduped.removed.length) {
-    plan = {
-      ...plan,
-      motion_scenes: deduped.scenes,
-      dedupe_removed: deduped.removed,
-    };
+  if (isAiOverlaysEnabled(config)) {
+    const deduped = dedupeMotionScenesAgainstOverlays(
+      plan.motion_scenes,
+      storyboard.overlays_ai || []
+    );
+    if (deduped.removed.length) {
+      plan = {
+        ...plan,
+        motion_scenes: deduped.scenes,
+        dedupe_removed: deduped.removed,
+      };
+    }
   }
 
   plan = {
@@ -438,8 +445,9 @@ export async function orchestrateProduction(
 
   const hasRemotionTimeline =
     plan.motion_scenes.length > 0 ||
-    (storyboard.overlays_ai || []).length > 0 ||
-    (storyboard.overlays || []).length > 0;
+    (isAiOverlaysEnabled(config) &&
+      ((storyboard.overlays_ai || []).length > 0 ||
+        (storyboard.overlays || []).length > 0));
 
   if (syncTimeline && hasRemotionTimeline) {
     migrateLegacyToTimelineStudio(projDir, { force: false });

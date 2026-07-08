@@ -6,7 +6,32 @@ export const GLOBAL_PRODUCTION_DEFAULTS = {
   research_grounding: true,
   montage_policy: true,
   auto_template_pack: true,
+  /** Overlays informativos via Gemini — desligado; usar motion_scenes + Template Studio. */
+  ai_overlays_enabled: false,
 };
+
+export function isAiOverlaysEnabled(config = {}) {
+  const pipeline = {
+    ...GLOBAL_PRODUCTION_DEFAULTS,
+    ...(config.production_pipeline || {}),
+  };
+  return pipeline.ai_overlays_enabled === true;
+}
+
+export function stripAiOverlaysFromStoryboard(storyboard = {}) {
+  if (!storyboard || typeof storyboard !== "object") return storyboard;
+  const next = { ...storyboard };
+  next.overlays_ai = [];
+  if (Array.isArray(next.overlays)) {
+    next.overlays = next.overlays.filter(
+      (o) => o && String(o.id || "").startsWith("sys-")
+    );
+  }
+  delete next.overlays_planned_at;
+  delete next.overlays_plan_token;
+  delete next.overlays_planejamento;
+  return next;
+}
 
 export function freezeStoryboardNarration(storyboard = {}) {
   return {
