@@ -95,122 +95,36 @@ export function registerMotionSceneRoutes(
     try {
       const projDir = getProjectDir(req);
       const persist = req.body?.persist !== false;
-      const fetchSatellite = req.body?.fetch_satellite !== false;
-      const useLlm = req.body?.use_llm !== false;
-      const storyboard = readJsonSafe(
-        path.join(projDir, "storyboard.json"),
-        {}
-      );
-      const config = readJsonSafe(path.join(projDir, "config_qanat.json"), {});
-      const workspaceConfig = readJsonSafe(
-        path.join(workspaceDir, "config_qanat.json"),
-        {}
-      );
-      const blockTimings = readJsonSafe(
-        path.join(projDir, "block_timings.json"),
-        {}
-      );
-
-      let plan = planMotionScenesFromStoryboard(
-        storyboard,
-        config,
-        blockTimings
-      );
-
-      let llmMeta = null;
-      if (useLlm) {
-        const llmResult = await enrichMotionScenesWithLlm(plan, {
-          storyboard,
-          config,
-          overlaysAi: storyboard.overlays_ai || [],
+      const result = await orchestrateProduction(
+        projDir,
+        {
+          workspaceDir,
           callGemini,
           getApiKey,
-          projDir,
           parseAiJson,
-        });
-        plan = llmResult.plan;
-        llmMeta = llmResult.llm;
-      }
-
-      const deduped = dedupeMotionScenesAgainstOverlays(
-        plan.motion_scenes,
-        storyboard.overlays_ai || []
+        },
+        {
+          useLlm: req.body?.use_llm !== false,
+          fetchSatellite: req.body?.fetch_satellite !== false,
+          syncTimeline: false,
+          rebuildAssetSlots: false,
+          persist,
+        }
       );
-      if (deduped.removed.length) {
-        plan = {
-          ...plan,
-          motion_scenes: deduped.scenes,
-          dedupe_removed: deduped.removed,
-        };
+      if (result.reason === "no_visual_prompts") {
+        return res.status(400).json(result);
       }
-
-      let satelliteMeta = null;
-      if (fetchSatellite && plan.motion_scenes.length > 0) {
-        const enriched = await enrichMotionScenesWithAssets(
-          projDir,
-          plan.motion_scenes,
-          { config, workspaceConfig }
-        );
-        plan = { ...plan, motion_scenes: enriched.motion_scenes };
-        satelliteMeta = {
-          enriched: enriched.enriched,
-          results: enriched.results,
-        };
-      }
-
-      let qualityMeta = null;
-      if (plan.motion_scenes.length > 0) {
-        const qc = await ensureMotionScenesQuality(
-          projDir,
-          plan.motion_scenes,
-          {
-            config,
-            workspaceConfig,
-          }
-        );
-        plan = { ...plan, motion_scenes: qc.motion_scenes };
-        qualityMeta = {
-          ok: qc.quality.ok,
-          score: qc.quality.score,
-          failed_count: qc.quality.failed_count,
-          auto_fixed: qc.auto_fixed,
-          scenes: qc.quality.scenes,
-          checked_at: qc.quality.checked_at,
-        };
-      }
-
-      if (persist) {
-        const nextStoryboard = applyMotionScenesToVisualPrompts(
-          {
-            ...storyboard,
-            motion_scenes: plan.motion_scenes,
-          },
-          plan.motion_scenes
-        );
-        nextStoryboard.motion_scenes_meta = {
-          planned_at: plan.planned_at,
-          planner_version: plan.planner_version,
-          source: plan.source,
-          niche_pack: plan.niche_pack,
-          llm: llmMeta,
-          dedupe_removed: plan.dedupe_removed || llmMeta?.dedupe_removed || [],
-          satellite: satelliteMeta,
-          quality: qualityMeta,
-        };
-        fs.writeFileSync(
-          path.join(projDir, "storyboard.json"),
-          JSON.stringify(nextStoryboard, null, 2),
-          "utf8"
-        );
-      }
-
       res.json({
         ok: true,
-        count: plan.motion_scenes.length,
-        ...plan,
-        llm: llmMeta,
-        satellite: satelliteMeta,
-        quality: qualityMeta,
+        count: result.motion_count ?? result.motion_scenes?.length ?? 0,
+        motion_scenes: result.motion_scenes,
+        niche_pack: result.storyboard?.motion_scenes_meta?.niche_pack,
+        planned_at: result.storyboard?.motion_scenes_meta?.planned_at,
+        planner_version: result.storyboard?.motion_scenes_meta?.planner_version,
+        source: result.storyboard?.motion_scenes_meta?.source,
+        llm: result.llm,
+        satellite: result.satellite,
+        quality: result.quality,
         persisted: persist,
       });
     } catch (err) {
@@ -373,24 +287,24 @@ export function registerMotionSceneRoutes(
       );
 
       if (!motionScenes.length && storyboard.visual_prompts?.length) {
-        let plan = planMotionScenesFromStoryboard(
-          storyboard,
-          config,
-          blockTimings
-        );
-        if (useLlm) {
-          const llmResult = await enrichMotionScenesWithLlm(plan, {
-            storyboard,
-            config,
-            overlaysAi: storyboard.overlays_ai || [],
+        const orch = await orchestrateProduction(
+          projDir,
+          {
+            workspaceDir,
             callGemini,
             getApiKey,
-            projDir,
             parseAiJson,
-          });
-          plan = llmResult.plan;
-        }
-        motionScenes = plan.motion_scenes || [];
+          },
+          {
+            useLlm,
+            fetchSatellite: true,
+            syncTimeline: false,
+            rebuildAssetSlots: false,
+            persist: true,
+          }
+        );
+        motionScenes = orch.motion_scenes || [];
+        storyboard = orch.storyboard || storyboard;
       }
 
       if (!motionScenes.length) {
