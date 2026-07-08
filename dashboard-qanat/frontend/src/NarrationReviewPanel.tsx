@@ -106,52 +106,71 @@ export function NarrationReviewPanel({
       setCatalogLoading(true);
       setCatalogError(null);
 
-      const localTemplates = readLocalStudioTemplates()
-        .filter((tpl: { niche?: string; status?: string }) => {
-          const tplNiche = String(tpl?.niche || effectiveNiche).trim();
-          return (
-            !tplNiche || tplNiche.toLowerCase() === effectiveNiche.toLowerCase()
-          );
-        })
-        .map((tpl: Record<string, unknown>) => ({
-          id: String(tpl.id || ""),
-          name: String(tpl.name || ""),
-          category: String(tpl.category || ""),
-          subcategory: String(tpl.subcategory || ""),
-          niche: String(tpl.niche || effectiveNiche),
-          status: tpl.status === "approved" ? "approved" : "draft",
-          description: String(tpl.description || ""),
-          dataSlots: Array.isArray(tpl.dataSlots)
-            ? tpl.dataSlots.map(String)
-            : [],
-          shortPreview: (tpl.shortPreview as string) || null,
-          longPreview: (tpl.longPreview as string) || null,
-        }));
+      try {
+        const localTemplates = readLocalStudioTemplates()
+          .filter((tpl: { niche?: string; status?: string }) => {
+            const tplNiche = String(tpl?.niche || effectiveNiche).trim();
+            return (
+              !tplNiche ||
+              tplNiche.toLowerCase() === effectiveNiche.toLowerCase()
+            );
+          })
+          .map((tpl: Record<string, unknown>) => ({
+            id: String(tpl.id || ""),
+            name: String(tpl.name || ""),
+            category: String(tpl.category || ""),
+            subcategory: String(tpl.subcategory || ""),
+            niche: String(tpl.niche || effectiveNiche),
+            status: tpl.status === "approved" ? "approved" : "draft",
+            description: String(tpl.description || ""),
+            dataSlots: Array.isArray(tpl.dataSlots)
+              ? tpl.dataSlots.map(String)
+              : [],
+            shortPreview: (tpl.shortPreview as string) || null,
+            longPreview: (tpl.longPreview as string) || null,
+          }));
 
-      if (localTemplates.length) {
-        await syncRemotionTemplateCatalog({
-          niche: effectiveNiche,
-          templates: localTemplates,
-        });
-      }
+        if (localTemplates.length) {
+          void syncRemotionTemplateCatalog({
+            niche: effectiveNiche,
+            templates: localTemplates,
+          });
+        }
 
-      const catalog = await fetchRemotionTemplateCatalog(effectiveNiche);
-      if (cancelled) return;
+        const catalog = await fetchRemotionTemplateCatalog(effectiveNiche);
+        if (cancelled) return;
 
-      if (!catalog.success && !catalog.templates.length) {
-        setCatalogError(
-          catalog.error || "Catálogo vazio — modo padrão de overlays."
-        );
-        setCatalogTemplates([]);
-      } else {
-        setCatalogTemplates(catalog.templates);
-        if (!catalog.templates.length) {
+        const templates = Array.isArray(catalog.templates)
+          ? catalog.templates
+          : [];
+
+        if (!catalog.success && !templates.length) {
           setCatalogError(
-            "Nenhum template no nicho — será usado o modo antigo."
+            catalog.error || "Catálogo vazio — modo padrão de overlays."
           );
+          setCatalogTemplates([]);
+        } else {
+          setCatalogTemplates(templates);
+          if (!templates.length) {
+            setCatalogError(
+              "Nenhum template no nicho — será usado o modo antigo."
+            );
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setCatalogError(
+            err instanceof Error
+              ? err.message
+              : "Falha ao carregar catálogo do Template Studio."
+          );
+          setCatalogTemplates([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setCatalogLoading(false);
         }
       }
-      setCatalogLoading(false);
     };
 
     void loadCatalog();
