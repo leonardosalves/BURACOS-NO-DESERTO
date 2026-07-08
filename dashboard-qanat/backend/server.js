@@ -18783,6 +18783,7 @@ function filterNarrationEchoOverlays(overlays = [], blockPhrases = []) {
       }
 
       if (
+        overlayText.split(/\s+/).length > 3 &&
         overlayText.length >= 20 &&
         narrationWordOverlapRatio(overlayText, phrase) >= 0.9
       ) {
@@ -21612,7 +21613,10 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
               .toLowerCase()
               .replace(/[^\w\s]/g, "")
               .trim();
-            if (cleanNarr.includes(cleanSub) || cleanSub.includes(cleanNarr)) {
+            if (
+              cleanSub.split(/\s+/).length > 2 &&
+              (cleanNarr.includes(cleanSub) || cleanSub.includes(cleanNarr))
+            ) {
               console.log(
                 `[Overlays Post-Process] Duplicação de narração detectada no subtítulo do overlay ${overlay.id}. Removendo subtítulo.`
               );
