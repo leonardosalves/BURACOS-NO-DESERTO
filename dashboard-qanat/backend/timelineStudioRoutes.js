@@ -112,12 +112,23 @@ export function registerTimelineStudioRoutes(
         try {
           const storyboardPath = path.join(projDir, "storyboard.json");
           if (fs.existsSync(storyboardPath)) {
-            pruneStoryboardRemotionSources(projDir, studio);
             const storyboard = JSON.parse(
               fs.readFileSync(storyboardPath, "utf8")
             );
+            const motionInStoryboard = (storyboard.motion_scenes || []).length;
+            const motionInStudio = (studio.clips || []).filter(
+              (c) => c?.trackId === "motion"
+            ).length;
+            if (motionInStoryboard > 0 && motionInStudio === 0) {
+              studio = {
+                ...studio,
+                suppressedMotionSceneIds: [],
+                suppressedRemotionFingerprints: [],
+              };
+            }
+            pruneStoryboardRemotionSources(projDir, studio);
             const hasRemotionSource =
-              (storyboard.motion_scenes || []).length > 0 ||
+              motionInStoryboard > 0 ||
               (storyboard.overlays_ai || []).length > 0;
             if (hasRemotionSource) {
               const remotionFingerprint = (clips = []) =>

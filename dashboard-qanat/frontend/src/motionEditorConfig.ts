@@ -109,6 +109,7 @@ export function normalizeMotionScenes(
         ...scene,
         id: String(scene.id || `ms-${index + 1}`),
         template_id: String(scene.template_id || "lower-third"),
+        media_mode: scene.media_mode || "remotion",
         start_hint: Number.isFinite(start) ? start : 0,
         duration_seconds: Math.max(0.5, Number(scene.duration_seconds) || 4),
         props: { ...(scene.props || {}) },
