@@ -29,6 +29,10 @@ import {
   resolvePlaceWithResearch,
 } from "../shared/motionResearchProps.js";
 import { resolveMotionTemplateIdsFromPack } from "./remotionTemplateCatalogService.js";
+import {
+  classifyGeoNarrationSegment,
+  limitGeoMotionScenes,
+} from "../shared/geoSceneEligibility.js";
 
 const YEAR_RE = /\b(1\d{3}|20\d{2})\b/;
 const YEAR_GLOBAL_RE = /\b(1\d{3}|20\d{2})\b/g;
@@ -38,8 +42,6 @@ const COMPARISON_RE =
   /\b(maior|menor|versus|vs\.?|comparad[oa]|dobro|triplo|supera|ultrapassa)\b/i;
 const LOCATION_RE =
   /\b(?:em|na|no|de)\s+([A-ZÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ][a-záàâãéèêíìîóòôõúùûç]+(?:\s+[A-ZÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ][a-záàâãéèêíìîóòôõúùûç]+){0,3})\b/;
-const MAP_KEYWORDS =
-  /\b(mapa|google\s*maps|sat[eé]lite|a[eé]reo|aerial|fortaleza|castelo|cidade|regi[aã]o|pa[ií]s|continente|amaz[oô]nia|deserto|oceano)\b/i;
 const CURIOSITY_RE =
   /\b(chocante|incr[ií]vel|segredo|enigma|mist[eé]rio|nunca|ningu[eé]m|descobr|revela|imposs[ií]vel|absurdo)\b/i;
 const HISTORICAL_RE =
@@ -47,7 +49,7 @@ const HISTORICAL_RE =
 
 const KNOWN_PLACES = [
   {
-    pattern: /palmanova|forte estelar|fortaleza estelar/i,
+    pattern: /\bpalmanova\b/i,
     location: "Palmanova",
     region: "Vêneto",
     country: "Itália",
@@ -77,12 +79,6 @@ const KNOWN_PLACES = [
     region: "Lácio",
     country: "Itália",
   },
-  {
-    pattern: /google\s*maps/i,
-    location: "Local no mapa",
-    region: "",
-    country: "",
-  },
 ];
 
 export function classifyNarrationSegment(text = "") {
@@ -97,14 +93,8 @@ export function classifyNarrationSegment(text = "") {
     return { trigger: "stat_number", confidence: 0.85 };
   }
 
-  if (MAP_KEYWORDS.test(t) || KNOWN_PLACES.some((p) => p.pattern.test(t))) {
-    return { trigger: "location", confidence: 0.82 };
-  }
-
-  const locMatch = t.match(LOCATION_RE);
-  if (locMatch && locMatch[1] && locMatch[1].length > 3) {
-    return { trigger: "location", confidence: 0.7, place: locMatch[1] };
-  }
+  const geo = classifyGeoNarrationSegment(t, KNOWN_PLACES);
+  if (geo) return geo;
 
   if (CURIOSITY_RE.test(t) && t.length < 120) {
     return { trigger: "curiosity_punch", confidence: 0.68 };
@@ -480,7 +470,8 @@ export function planMotionScenesFromStoryboard(
     });
   }
 
-  const limitedScenes = limitMotionScenesForFormat(scenes, aspectRatio);
+  const geoCapped = limitGeoMotionScenes(scenes, aspectRatio);
+  const limitedScenes = limitMotionScenesForFormat(geoCapped, aspectRatio);
   const enrichedScenes = enrichMotionScenesWithResearch(
     limitedScenes,
     researchContext

@@ -1,14 +1,17 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/geo-video-prompts|geo video prompts]] · [[SKILLS]]
+
 ---
+
 name: geo-video-prompts
 description: |
-  Vídeos geográficos via prompts T2V (substitui Blender/Cesium). Zoom contínuo Terra→região→país→local,
-  destaque territorial, órbita 360° em POIs, clima e época histórica da narração.
-  Triggers: geo video, mapa IA, location-intro prompt, zoom terra, voo satélite IA, prompt geográfico.
+Vídeos geográficos via prompts T2V (substitui Blender/Cesium). Zoom contínuo Terra→região→país→local,
+destaque territorial, órbita 360° em POIs, clima e época histórica da narração.
+Triggers: geo video, mapa IA, location-intro prompt, zoom terra, voo satélite IA, prompt geográfico.
 metadata:
-  lumiera: true
-  source: custom
-  tasks: [creator, production]
-  category: creator
+lumiera: true
+source: custom
+tasks: [creator, production]
+category: creator
 ---
 
 # Lumiera Geo Video Prompts (IA T2V)
@@ -22,7 +25,25 @@ metadata:
 
 Funciona em **qualquer projeto** (história, engenharia, natureza, true crime, etc.).
 O local vem **sempre** da narração e dos campos `location` / `region` / `country` da cena —
-nunca de cidade fixa no código. Bangkok, Palmanova etc. em testes são só fixtures unitários.
+nunca de cidade fixa no código.
+
+## Quando criar cena geo (não é obrigatório)
+
+Só planeja `location-intro` / `geo-map` quando o trecho do roteiro cita **explicitamente**:
+
+- País, estado, região, cidade, bairro, distrito
+- POI: ponte, prédio, barragem, fortaleza, monumento, etc. **com nome ou âncora** (`em Roma`, `ponte de X`)
+
+**Não** dispara por palavras soltas (`mapa`, `google maps`, `cidade` genérica, `fortaleza` sem lugar).
+
+**Teto (máximo, não mínimo):**
+
+| Formato    | Máx. cenas geo |
+| ---------- | -------------- |
+| Short 9:16 | 1              |
+| Longo 16:9 | 3              |
+
+Módulo: `shared/geoSceneEligibility.js`
 
 ## Quando usar
 

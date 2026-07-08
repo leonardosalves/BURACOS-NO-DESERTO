@@ -112,8 +112,12 @@ export const APPROVED_ORCHESTRATION_TEMPLATES = new Set([
 export const REMOTION_TEMPLATE_LIMITS = {
   shortMax: 1,
   longMax: 8,
+  /** @deprecated não força mínimo de templates — geo é opcional */
   longTargetMin: 5,
 };
+
+/** Cenas mapa/local: só quando o roteiro cita lugar ou POI; nunca obrigatório. */
+export { GEO_SCENE_LIMITS } from "./geoSceneEligibility.js";
 
 /** Padrão global location-intro: fullscreen globo→alvo; cidade marca território OSM. */
 export const LOCATION_INTRO_DEFAULTS = {
