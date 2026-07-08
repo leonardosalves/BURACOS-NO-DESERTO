@@ -19443,7 +19443,7 @@ function overlayMetaMatchesStoryBlock(
   const auditTokens = tokenizeOverlayBriefingText(auditText);
   const contextTokens = tokenizeOverlayBriefingText(allowedContext);
   const overlap = overlayBriefingTokenOverlap(auditTokens, contextTokens);
-  const entities = extractNamedEntityHints(auditText);
+  const entities = extractNamedEntityHints(overlayTextBlobForBriefing(overlay));
   const foreignEntity = entities.find((entity) => {
     const entityTokens = tokenizeOverlayBriefingText(entity);
     return overlayBriefingTokenOverlap(entityTokens, contextTokens) < 0.34;
