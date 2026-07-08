@@ -20551,20 +20551,14 @@ function buildCompactOverlayPlanningPrompt(
         "- PROIBIDO usar conhecimento geral, nicho, inferencia ou busca externa.",
       ].join("\n")
     : "";
-  const blockTopicLines = (
-    overlayResearch?.blockTopics ||
-    blockPhrases.map((bp) => ({
-      block: bp.block,
-      primaryTopic: String(bp.phrase || "").slice(0, 80),
-      suggestedType: "lower-third",
-      overlayScore: 0,
-    }))
-  )
-    .map((bt) => {
-      const selected = selectedBlockNums.includes(bt.block);
-      return `- Bloco ${bt.block}${selected ? " [SELECIONADO PARA OVERLAY]" : ""}: assunto="${bt.primaryTopic}" | tipo sugerido=${bt.suggestedType} | score=${bt.overlayScore}`;
-    })
-    .join("\n");
+  const blockTopicLines = overlayResearch
+    ? buildOverlayResearchPromptBlock(overlayResearch)
+    : blockPhrases
+        .map((bp) => {
+          const selected = selectedBlockNums.includes(bp.block);
+          return `- Bloco ${bp.block}${selected ? " [SELECIONADO PARA OVERLAY]" : ""}: assunto="${String(bp.phrase || "").slice(0, 80)}" | tipo sugerido=lower-third | score=0`;
+        })
+        .join("\n");
   const listicleRules =
     isListicle && isShort
       ? "LISTICLE SHORT: só counters (máx 2), posição bottom-left/right. Sem lower-third/kinetic-text."
