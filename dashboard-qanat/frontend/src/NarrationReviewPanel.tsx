@@ -70,7 +70,6 @@ export function NarrationReviewPanel({
   niche = "Engenharia",
   motionTemplatePackEnabled = false,
   motionTemplateNiche = "",
-  motionTemplateIds = [],
   onMotionTemplatePackEnabledChange,
   onMotionTemplateNicheChange,
   onMotionTemplateIdsChange,
@@ -179,13 +178,17 @@ export function NarrationReviewPanel({
     };
   }, [effectiveNiche]);
 
-  const toggleTemplateId = (id: string) => {
-    if (!onMotionTemplateIdsChange) return;
-    const set = new Set(motionTemplateIds);
-    if (set.has(id)) set.delete(id);
-    else set.add(id);
-    onMotionTemplateIdsChange([...set]);
-  };
+  useEffect(() => {
+    if (catalogLoading) return;
+    onMotionTemplateIdsChange?.([]);
+    onMotionTemplatePackEnabledChange?.(approvedTemplates.length > 0);
+  }, [
+    catalogLoading,
+    approvedTemplates.length,
+    effectiveNiche,
+    onMotionTemplateIdsChange,
+    onMotionTemplatePackEnabledChange,
+  ]);
 
   return (
     <div className="mt-6 border border-gold-500/25 bg-gold-500/5 rounded-2xl p-5 space-y-4 font-sans">
@@ -239,21 +242,12 @@ export function NarrationReviewPanel({
           </p>
         </div>
 
-        <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={motionTemplatePackEnabled}
-            disabled={loading || catalogLoading || !approvedTemplates.length}
-            onChange={(e) =>
-              onMotionTemplatePackEnabledChange?.(e.target.checked)
-            }
-            className="rounded border-zinc-700 bg-zinc-900 text-gold-500"
-          />
-          <span>
-            Usar catálogo do Template Studio
-            {catalogLoading ? " (carregando…)" : ""}
-          </span>
-        </label>
+        <p className="text-[11px] text-zinc-400 leading-relaxed">
+          Escolha o nicho — a IA usa todos os templates aprovados do Template
+          Studio e encaixa automaticamente nas cenas do roteiro, mesclando com
+          os assets dos prompts visuais.
+          {catalogLoading ? " (carregando catálogo…)" : ""}
+        </p>
 
         {onMotionTemplateNicheChange && (
           <div className="flex flex-wrap items-center gap-2">
@@ -263,7 +257,10 @@ export function NarrationReviewPanel({
             <select
               value={effectiveNiche}
               disabled={loading || catalogLoading}
-              onChange={(e) => onMotionTemplateNicheChange(e.target.value)}
+              onChange={(e) => {
+                onMotionTemplateNicheChange(e.target.value);
+                onMotionTemplateIdsChange?.([]);
+              }}
               className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-xs text-zinc-200"
             >
               <option value={niche || "Engenharia"}>
@@ -273,6 +270,12 @@ export function NarrationReviewPanel({
               <option value="História">História</option>
               <option value="Geografia">Geografia</option>
             </select>
+            {motionTemplatePackEnabled && approvedTemplates.length > 0 && (
+              <span className="text-[10px] text-emerald-400/90 font-medium">
+                {approvedTemplates.length} template
+                {approvedTemplates.length === 1 ? "" : "s"} · encaixe automático
+              </span>
+            )}
           </div>
         )}
 
@@ -281,46 +284,28 @@ export function NarrationReviewPanel({
         )}
 
         {approvedTemplates.length > 0 && (
-          <div className="grid gap-2 max-h-36 overflow-y-auto pr-1">
-            {approvedTemplates.map((tpl) => {
-              const checked = motionTemplateIds.includes(tpl.id);
-              return (
-                <label
-                  key={tpl.id}
-                  className="flex items-start gap-2 p-2 rounded-lg border border-zinc-800 hover:border-zinc-700 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={!motionTemplatePackEnabled || loading}
-                    onChange={() => toggleTemplateId(tpl.id)}
-                    className="mt-0.5 rounded border-zinc-700 bg-zinc-900 text-gold-500"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-xs text-zinc-200 font-medium">
-                      {tpl.name}
-                    </span>
-                    <span className="block text-[10px] text-zinc-500">
-                      {tpl.category}
-                      {tpl.motion_template_id
-                        ? ` · ${tpl.motion_template_id}`
-                        : ""}
-                    </span>
+          <div className="grid gap-1.5 max-h-28 overflow-y-auto pr-1">
+            {approvedTemplates.map((tpl) => (
+              <div
+                key={tpl.id}
+                className="flex items-start gap-2 p-2 rounded-lg border border-zinc-800/80 bg-zinc-900/40"
+              >
+                <Layers3 className="w-3 h-3 text-cyan-500/70 mt-0.5 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-xs text-zinc-300 font-medium">
+                    {tpl.name}
                   </span>
-                </label>
-              );
-            })}
+                  <span className="block text-[10px] text-zinc-500">
+                    {tpl.category}
+                    {tpl.motion_template_id
+                      ? ` · ${tpl.motion_template_id}`
+                      : ""}
+                  </span>
+                </span>
+              </div>
+            ))}
           </div>
         )}
-
-        {motionTemplatePackEnabled &&
-          approvedTemplates.length > 0 &&
-          !motionTemplateIds.length && (
-            <p className="text-[10px] text-zinc-500">
-              Nenhum template selecionado — todos os aprovados do nicho serão
-              considerados.
-            </p>
-          )}
       </div>
 
       {showBlocks && (

@@ -14,6 +14,7 @@ import {
 } from "./motionScenePlanner.js";
 import { buildMotionResearchContext } from "../shared/storyboardResearch.js";
 import { enrichMotionScenesWithResearch } from "../shared/motionResearchProps.js";
+import { summarizeCatalogForLlm } from "./remotionTemplateCatalogService.js";
 
 const VALID_TEMPLATES = new Set(
   Object.values(MOTION_SCENE_TRIGGERS).flatMap((t) => t.templates || [])
@@ -183,6 +184,12 @@ export function buildMotionSceneEnrichmentPrompt({
     }));
 
   const templateList = [...VALID_TEMPLATES].join(", ");
+  const studioCatalog =
+    config.motion_template_pack?.enabled !== false
+      ? summarizeCatalogForLlm(
+          config.motion_template_pack?.niche || config.niche || niche
+        )
+      : [];
   const overlaySummary = summarizeOverlaysForPrompt(overlaysAi);
   const researchContext = buildMotionResearchContext(storyboard, config);
   const researchFacts = (researchContext.globalFacts || []).slice(0, 12);
@@ -214,6 +221,12 @@ export function buildMotionSceneEnrichmentPrompt({
     "- location-intro SEMPRE fly_mode earth_descent (globo terrestre → cidade com boundary OSM ou POI/terreno).",
     "- PIP para mapas/geo só é permitido em 9:16 no nicho Engenharia; em 16:9 geo sempre fullscreen.",
     "- NUNCA use kinetic-text automaticamente enquanto nao houver template aprovado no Remotion Template Studio; texto solto sobre video e proibido.",
+    studioCatalog.length
+      ? "- CATÁLOGO DO NICHO (Template Studio): escolha template_id conforme motion_template_id que melhor encaixa na narração de cada cena — a IA decide automaticamente, sem seleção manual do usuário."
+      : "",
+    studioCatalog.length
+      ? `CATÁLOGO_TEMPLATE_STUDIO:\n${JSON.stringify(studioCatalog, null, 2)}`
+      : "",
     "- Shorts 9:16 usam no maximo 1 template Remotion automatico; videos 16:9 longos usam ate 8 templates.",
     "- location-intro cidade: place_type city, zoom_from 3, zoom_to 10 (máx), boundaryGeoJson obrigatório.",
     "- location-intro POI (forte, ponte, monumento): place_type poi, zoom_from 3, zoom_to 17.",
