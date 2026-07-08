@@ -19230,13 +19230,30 @@ function overlayFactMatchesItsBlock(overlay = {}, overlayResearch = {}) {
   const blockFacts = scopedResearch.facts || [];
   if (!blockFacts.length) return false;
   const factTokens = tokenizeOverlayBriefingText(fact);
-  return blockFacts.some(
+  const factBelongsToBlock = blockFacts.some(
     (blockFact) =>
       overlayBriefingTokenOverlap(
         factTokens,
         tokenizeOverlayBriefingText(blockFact)
       ) >= 0.18 || String(blockFact).includes(fact)
   );
+  if (!factBelongsToBlock) return false;
+  if (scopedResearch.sourceLocked || overlayResearch.sourceLocked) {
+    const overlayTokens = tokenizeOverlayBriefingText(
+      overlayTextBlobForBriefing(overlay)
+    );
+    const overlayFactOverlap = overlayBriefingTokenOverlap(
+      overlayTokens,
+      factTokens
+    );
+    if (overlayFactOverlap < 0.12) {
+      console.log(
+        `[Overlay Story Guard] Removido ${overlay.id} — texto do overlay nao deriva do fato das fontes.`
+      );
+      return false;
+    }
+  }
+  return true;
 }
 
 function overlayTextBlobForBriefing(overlay = {}) {
@@ -20338,6 +20355,16 @@ function buildCompactOverlayPlanningPrompt(
   const selectedBlockNums = overlayResearch?.selectedBlocks?.length
     ? overlayResearch.selectedBlocks
     : (overlayResearch?.blocks || []).map((b) => b.block).filter(Boolean);
+  const sourceLockedRules = overlayResearch?.sourceLocked
+    ? [
+        "MODO FONTE TRAVADA:",
+        "- Use SOMENTE os fatos listados nas fontes do JSON do roteiro.",
+        "- PROIBIDO criar overlay para bloco sem fatos listados.",
+        "- Cada overlay deve copiar em ai_meta.research_fact um fato listado exatamente para o mesmo bloco.",
+        "- props.title/subtitle/text/events/items devem ser derivados desse mesmo research_fact.",
+        "- PROIBIDO usar conhecimento geral, nicho, inferencia ou busca externa.",
+      ].join("\n")
+    : "";
   const blockTopicLines = (
     overlayResearch?.blockTopics ||
     blockPhrases.map((bp) => ({
@@ -20378,6 +20405,7 @@ Exemplo timeline:
       ? "MODO HYPERFRAMES AI ORQUESTRADO — siga o catálogo e o plano de orquestração abaixo."
       : "",
     "OBJETIVO: enriquecer o vídeo com dados visuais NOVOS — NUNCA repetir, resumir ou parafrasear a narração falada.",
+    sourceLockedRules,
     listicleRules,
     useHyperframes
       ? "HyperFrames: variantes glass/bild/accent-underline/clean-bar, iconType temático, customStyle com gradiente e glow. Inspire-se nas refs do catálogo."
