@@ -19040,6 +19040,39 @@ function matchOverlayResearchFact(overlayText = "", overlayResearch = {}) {
   return { fact: bestFact, source };
 }
 
+function getOverlayBlockResearch(overlay = {}, overlayResearch = {}) {
+  const block = extractBlockIndex(overlay, overlay.scene_ref) + 1;
+  if (!block || !Array.isArray(overlayResearch.blocks)) return overlayResearch;
+  const blockResearch = overlayResearch.blocks.find(
+    (entry) => Number(entry.block) === block
+  );
+  if (!blockResearch) return overlayResearch;
+  return {
+    ...overlayResearch,
+    query: blockResearch.query || overlayResearch.query,
+    facts: blockResearch.facts || [],
+    sources: blockResearch.sources || [],
+    selectedBlocks: [block],
+    blocks: [blockResearch],
+  };
+}
+
+function overlayFactMatchesItsBlock(overlay = {}, overlayResearch = {}) {
+  const fact = String(overlay?.ai_meta?.research_fact || "").trim();
+  if (!fact) return true;
+  const scopedResearch = getOverlayBlockResearch(overlay, overlayResearch);
+  const blockFacts = scopedResearch.facts || [];
+  if (!blockFacts.length) return false;
+  const factTokens = tokenizeOverlayBriefingText(fact);
+  return blockFacts.some(
+    (blockFact) =>
+      overlayBriefingTokenOverlap(
+        factTokens,
+        tokenizeOverlayBriefingText(blockFact)
+      ) >= 0.18 || String(blockFact).includes(fact)
+  );
+}
+
 function overlayTextBlobForBriefing(overlay = {}) {
   const p = overlay.props || {};
   return [
@@ -19077,13 +19110,15 @@ function ensureOverlayAiMeta(
   if (!meta.suggested_position && props.position)
     meta.suggested_position = props.position;
 
-  if (!meta.research_query && overlayResearch.query) {
-    meta.research_query = overlayResearch.query;
+  const scopedResearch = getOverlayBlockResearch(overlay, overlayResearch);
+
+  if (!meta.research_query && scopedResearch.query) {
+    meta.research_query = scopedResearch.query;
   }
-  if (!meta.research_fact && overlayResearch.facts?.length) {
+  if (!meta.research_fact && scopedResearch.facts?.length) {
     const match = matchOverlayResearchFact(
       overlayTextBlobForBriefing(overlay),
-      overlayResearch
+      scopedResearch
     );
     if (match.fact) {
       meta.research_fact = match.fact;
@@ -19710,6 +19745,7 @@ function pruneAiOverlaysToStoryBlocks(
         .filter((n) => n > 0)
     : [];
   const selectedBlockSet = new Set(researchBlocks);
+  const overlayResearch = storyboard?.overlays_research || {};
   const isShortVideo =
     plan?.format === "SHORT" ||
     config.aspect_ratio !== "16:9" ||
@@ -19731,6 +19767,12 @@ function pruneAiOverlaysToStoryBlocks(
     if (selectedBlockSet.size && !selectedBlockSet.has(block)) {
       console.log(
         `[Overlay Story Guard] Removido ${overlay.id} — bloco ${block || "?"} nao foi selecionado pela pesquisa da historia.`
+      );
+      continue;
+    }
+    if (!overlayFactMatchesItsBlock(overlay, overlayResearch)) {
+      console.log(
+        `[Overlay Story Guard] Removido ${overlay.id} — fato/pesquisa nao corresponde ao bloco ${block || "?"}.`
       );
       continue;
     }

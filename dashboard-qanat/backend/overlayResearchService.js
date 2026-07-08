@@ -12,6 +12,33 @@ import { buildOverlayOrchestrationPlan } from "./overlayOrchestration.js";
 const MIN_FACTS = 2;
 const MIN_SNIPPET_CHARS = 120;
 const CACHE_MAX_AGE_MS = 60 * 60 * 1000;
+const OVERLAY_RESEARCH_CACHE_VERSION = 2;
+const RESEARCH_STOPWORDS = new Set([
+  "sobre",
+  "para",
+  "pela",
+  "pelo",
+  "como",
+  "mais",
+  "dados",
+  "numeros",
+  "números",
+  "datas",
+  "estatisticas",
+  "estatísticas",
+  "fatos",
+  "verificaveis",
+  "verificáveis",
+  "comparacoes",
+  "comparações",
+  "engenharia",
+  "brasil",
+  "historia",
+  "história",
+  "tecnico",
+  "técnico",
+  "oficial",
+]);
 
 function readJson(filePath, fallback = {}) {
   if (!filePath || !fs.existsSync(filePath)) return fallback;
@@ -40,6 +67,48 @@ function extractFactsFromResearch(search = {}) {
     facts.push(...lines.slice(0, 8));
   }
   return [...new Set(facts)].slice(0, 12);
+}
+
+function tokenizeResearchText(text = "") {
+  return String(text)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/g, " ")
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 4 && !RESEARCH_STOPWORDS.has(w));
+}
+
+function tokenOverlapScore(aTokens = [], bTokens = []) {
+  if (!aTokens.length || !bTokens.length) return 0;
+  const b = new Set(bTokens);
+  let hits = 0;
+  for (const token of new Set(aTokens)) {
+    if (b.has(token)) hits++;
+  }
+  return hits / Math.max(1, new Set(aTokens).size);
+}
+
+function filterFactsForBlock(facts = [], blockEntry = {}, videoTopic = "") {
+  const context = [
+    videoTopic,
+    blockEntry.primaryTopic,
+    blockEntry.narration,
+    blockEntry.niche,
+  ].join(" ");
+  const contextTokens = tokenizeResearchText(context);
+  if (!contextTokens.length) return facts.slice(0, 8);
+
+  return facts
+    .map((fact) => ({
+      fact,
+      score: tokenOverlapScore(contextTokens, tokenizeResearchText(fact)),
+    }))
+    .filter((entry) => entry.score >= 0.08)
+    .sort((a, b) => b.score - a.score)
+    .map((entry) => entry.fact)
+    .slice(0, 8);
 }
 
 export function countNumericHints(text = "") {
@@ -203,7 +272,20 @@ function buildResearchCacheKey(blockPhrases, orchestrationPlan) {
     .map((bp) => `${bp.block}:${String(bp.phrase || "").slice(0, 40)}`)
     .join("|");
   const budget = orchestrationPlan?.limits?.maxTotal || 0;
-  return `${blocks}::${budget}`;
+  return `v${OVERLAY_RESEARCH_CACHE_VERSION}::${blocks}::${budget}`;
+}
+
+function isUsableOverlayResearchCache(research = {}, cacheKey = "") {
+  if (!research || research.cacheKey !== cacheKey) return false;
+  if (research.cacheVersion !== OVERLAY_RESEARCH_CACHE_VERSION) return false;
+  if (!Array.isArray(research.blocks) || research.blocks.length === 0)
+    return false;
+  const query = String(research.query || "")
+    .trim()
+    .toLowerCase();
+  if (!query || query.startsWith("geral dados")) return false;
+  if (research.summary && !research.blocks.some((b) => b.query)) return false;
+  return true;
 }
 
 export function isOverlayResearchSufficient(research = {}) {
@@ -277,8 +359,14 @@ Regra: bar-chart e timeline precisam de valores/datas ancorados nos fatos. lower
 `;
 }
 
-async function researchSingleBlock(blockEntry, niche, workspaceDir) {
+async function researchSingleBlock(
+  blockEntry,
+  niche,
+  workspaceDir,
+  videoTopic = ""
+) {
   const query = [
+    videoTopic,
     blockEntry.primaryTopic,
     blockEntry.narration,
     "dados números datas estatísticas fatos verificáveis comparações",
@@ -288,7 +376,8 @@ async function researchSingleBlock(blockEntry, niche, workspaceDir) {
     .slice(0, 240);
 
   const search = await exaWebSearch(query, workspaceDir, { numResults: 5 });
-  const facts = extractFactsFromResearch(search);
+  const rawFacts = extractFactsFromResearch(search);
+  const facts = filterFactsForBlock(rawFacts, blockEntry, videoTopic);
 
   return {
     block: blockEntry.block,
@@ -301,6 +390,7 @@ async function researchSingleBlock(blockEntry, niche, workspaceDir) {
     selected: true,
     query,
     facts,
+    rawFactCount: rawFacts.length,
     sources: search.sources || [],
     summary: String(search.summary || "").slice(0, 600),
     available: Boolean(search.available),
@@ -344,7 +434,10 @@ export async function fetchOverlayResearchForRender(
   const cacheKey = buildResearchCacheKey(blockPhrases, plan);
   const topic = buildOverlayResearchTopic({ config, storyboard, blockPhrases });
 
-  if (!forceRefresh && storyboard.overlays_research?.cacheKey === cacheKey) {
+  if (
+    !forceRefresh &&
+    isUsableOverlayResearchCache(storyboard.overlays_research, cacheKey)
+  ) {
     const age =
       Date.now() -
       new Date(storyboard.overlays_research.fetchedAt || 0).getTime();
@@ -362,7 +455,12 @@ export async function fetchOverlayResearchForRender(
   const blockResearch = [];
   for (const blockEntry of selectedBlocks) {
     try {
-      const result = await researchSingleBlock(blockEntry, niche, workspaceDir);
+      const result = await researchSingleBlock(
+        blockEntry,
+        niche,
+        workspaceDir,
+        topic
+      );
       blockResearch.push(result);
       console.log(
         `[Overlay Research] Bloco ${result.block}: "${result.primaryTopic.slice(0, 50)}" ` +
@@ -391,6 +489,7 @@ export async function fetchOverlayResearchForRender(
     sufficient: false,
     topic,
     cacheKey,
+    cacheVersion: OVERLAY_RESEARCH_CACHE_VERSION,
     budget: plan.limits?.maxTotal,
     minGapSeconds: plan.limits?.minGapSeconds,
     format: plan.format,
