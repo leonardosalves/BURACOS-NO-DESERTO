@@ -100,6 +100,58 @@ function overlapScore(a: Set<string>, b: Set<string>): number {
   return hits / Math.max(a.size, b.size);
 }
 
+const STORY_OBJECT_GROUPS = [
+  ["ponte", "pontes", "viaduto", "viadutos", "passarela", "passarelas"],
+  ["predio", "predios", "edificio", "edificios", "condominio", "apartamento"],
+  ["barragem", "barragens", "represa", "represas"],
+  ["navio", "navios", "barco", "barcos", "submarino", "submarinos"],
+  ["aviao", "avioes", "aeronave", "aeronaves", "helicoptero"],
+  ["trem", "trens", "metro", "ferrovia", "ferroviaria"],
+  ["rodovia", "estrada", "tunel", "tuneis"],
+];
+
+function storyObjectGroupsInText(text = ""): string[][] {
+  const tokens = tokenize(text);
+  return STORY_OBJECT_GROUPS.filter((group) =>
+    group.some((term) => tokens.has(term))
+  );
+}
+
+function hasStoryObjectContradiction(candidate = "", context = ""): boolean {
+  const contextGroups = storyObjectGroupsInText(context);
+  if (!contextGroups.length) return false;
+  const candidateGroups = storyObjectGroupsInText(candidate);
+  if (!candidateGroups.length) return false;
+  return candidateGroups.some(
+    (candidateGroup) =>
+      !contextGroups.some((contextGroup) => contextGroup === candidateGroup)
+  );
+}
+
+function researchContextText(
+  research?: OverlayResearchSnapshot | null
+): string {
+  return [
+    research?.topic,
+    research?.query,
+    research?.blocks?.[0]?.primaryTopic,
+    research?.blocks?.[0]?.narration,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function isResearchCandidateRelevant(
+  candidate = "",
+  research?: OverlayResearchSnapshot | null
+): boolean {
+  const context = researchContextText(research);
+  const contextTokens = tokenize(context);
+  if (!contextTokens.size) return true;
+  if (hasStoryObjectContradiction(candidate, context)) return false;
+  return overlapScore(contextTokens, tokenize(candidate)) >= 0.12;
+}
+
 function overlayTextBlob(overlay: OverlayDraft): string {
   const p = overlay.props || {};
   return [
@@ -121,7 +173,9 @@ function matchResearchFact(
   overlayText: string,
   research?: OverlayResearchSnapshot | null
 ): { fact?: string; source?: string } {
-  const facts = research?.facts || [];
+  const facts = (research?.facts || []).filter((fact) =>
+    isResearchCandidateRelevant(fact, research)
+  );
   if (!facts.length || !overlayText.trim()) return {};
 
   const overlayTokens = tokenize(overlayText);
@@ -147,10 +201,15 @@ function matchResearchFact(
   if (!bestFact) return {};
 
   let source: string | undefined;
-  const sources = research?.sources || [];
+  const sources = (research?.sources || []).filter((src) =>
+    isResearchCandidateRelevant(
+      [src.title, src.url].filter(Boolean).join(" "),
+      research
+    )
+  );
   if (sources.length) {
     const factTokens = tokenize(bestFact);
-    let bestSrc = sources[0];
+    let bestSrc: (typeof sources)[number] | undefined;
     let bestSrcScore = 0;
     for (const src of sources) {
       const title = String(src.title || src.url || "");
@@ -160,7 +219,7 @@ function matchResearchFact(
         bestSrc = src;
       }
     }
-    source = bestSrc.title || bestSrc.url;
+    if (bestSrc && bestSrcScore >= 0.12) source = bestSrc.title || bestSrc.url;
   }
 
   return { fact: bestFact, source };
@@ -196,12 +255,15 @@ function factBelongsToResearch(
 ): boolean {
   const clean = fact.trim();
   if (!clean) return false;
+  if (!isResearchCandidateRelevant(clean, research)) return false;
   const factTokens = tokenize(clean);
-  return (research?.facts || []).some(
-    (candidate) =>
-      candidate.includes(clean) ||
-      overlapScore(factTokens, tokenize(candidate)) >= 0.18
-  );
+  return (research?.facts || [])
+    .filter((candidate) => isResearchCandidateRelevant(candidate, research))
+    .some(
+      (candidate) =>
+        candidate.includes(clean) ||
+        overlapScore(factTokens, tokenize(candidate)) >= 0.18
+    );
 }
 
 const ENTITY_ALLOWLIST = new Set([

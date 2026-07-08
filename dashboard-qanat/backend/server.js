@@ -19006,8 +19006,65 @@ function overlayBriefingTokenOverlap(a, b) {
   return hits / Math.max(a.size, b.size);
 }
 
+const OVERLAY_STORY_OBJECT_GROUPS = [
+  ["ponte", "pontes", "viaduto", "viadutos", "passarela", "passarelas"],
+  ["predio", "predios", "edificio", "edificios", "condominio", "apartamento"],
+  ["barragem", "barragens", "represa", "represas"],
+  ["navio", "navios", "barco", "barcos", "submarino", "submarinos"],
+  ["aviao", "avioes", "aeronave", "aeronaves", "helicoptero"],
+  ["trem", "trens", "metro", "ferrovia", "ferroviaria"],
+  ["rodovia", "estrada", "tunel", "tuneis"],
+];
+
+function overlayStoryObjectGroupsInText(text = "") {
+  const tokens = tokenizeOverlayBriefingText(text);
+  return OVERLAY_STORY_OBJECT_GROUPS.filter((group) =>
+    group.some((term) => tokens.has(term))
+  );
+}
+
+function overlayHasStoryObjectContradiction(candidate = "", context = "") {
+  const contextGroups = overlayStoryObjectGroupsInText(context);
+  if (!contextGroups.length) return false;
+  const candidateGroups = overlayStoryObjectGroupsInText(candidate);
+  if (!candidateGroups.length) return false;
+  return candidateGroups.some(
+    (candidateGroup) =>
+      !contextGroups.some((contextGroup) => contextGroup === candidateGroup)
+  );
+}
+
+function overlayResearchContextText(overlayResearch = {}) {
+  return [
+    overlayResearch.topic,
+    overlayResearch.query,
+    overlayResearch.blocks?.[0]?.primaryTopic,
+    overlayResearch.blocks?.[0]?.narration,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function overlayResearchCandidateIsRelevant(
+  candidate = "",
+  overlayResearch = {}
+) {
+  const context = overlayResearchContextText(overlayResearch);
+  const contextTokens = tokenizeOverlayBriefingText(context);
+  if (!contextTokens.size) return true;
+  if (overlayHasStoryObjectContradiction(candidate, context)) return false;
+  return (
+    overlayBriefingTokenOverlap(
+      contextTokens,
+      tokenizeOverlayBriefingText(candidate)
+    ) >= 0.12
+  );
+}
+
 function matchOverlayResearchFact(overlayText = "", overlayResearch = {}) {
-  const facts = overlayResearch.facts || [];
+  const facts = (overlayResearch.facts || []).filter((fact) =>
+    overlayResearchCandidateIsRelevant(fact, overlayResearch)
+  );
   if (!facts.length || !String(overlayText).trim()) return {};
   const overlayTokens = tokenizeOverlayBriefingText(overlayText);
   let bestFact = "";
@@ -19031,10 +19088,15 @@ function matchOverlayResearchFact(overlayText = "", overlayResearch = {}) {
   }
   if (!bestFact) return {};
   let source;
-  const sources = overlayResearch.sources || [];
+  const sources = (overlayResearch.sources || []).filter((src) =>
+    overlayResearchCandidateIsRelevant(
+      [src.title, src.url].filter(Boolean).join(" "),
+      overlayResearch
+    )
+  );
   if (sources.length) {
     const factTokens = tokenizeOverlayBriefingText(bestFact);
-    let bestSrc = sources[0];
+    let bestSrc;
     let bestSrcScore = 0;
     for (const src of sources) {
       const title = String(src.title || src.url || "");
@@ -19047,7 +19109,7 @@ function matchOverlayResearchFact(overlayText = "", overlayResearch = {}) {
         bestSrc = src;
       }
     }
-    source = bestSrc.title || bestSrc.url;
+    if (bestSrc && bestSrcScore >= 0.12) source = bestSrc.title || bestSrc.url;
   }
   return { fact: bestFact, source };
 }

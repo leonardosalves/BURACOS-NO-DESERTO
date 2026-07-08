@@ -40,6 +40,16 @@ const RESEARCH_STOPWORDS = new Set([
   "oficial",
 ]);
 
+const STORY_OBJECT_GROUPS = [
+  ["ponte", "pontes", "viaduto", "viadutos", "passarela", "passarelas"],
+  ["predio", "predios", "edificio", "edificios", "condominio", "apartamento"],
+  ["barragem", "barragens", "represa", "represas"],
+  ["navio", "navios", "barco", "barcos", "submarino", "submarinos"],
+  ["aviao", "avioes", "aeronave", "aeronaves", "helicoptero"],
+  ["trem", "trens", "metro", "ferrovia", "ferroviaria"],
+  ["rodovia", "estrada", "tunel", "tuneis"],
+];
+
 function readJson(filePath, fallback = {}) {
   if (!filePath || !fs.existsSync(filePath)) return fallback;
   try {
@@ -90,6 +100,32 @@ function tokenOverlapScore(aTokens = [], bTokens = []) {
   return hits / Math.max(1, new Set(aTokens).size);
 }
 
+function storyObjectGroupsInText(text = "") {
+  const tokens = new Set(tokenizeResearchText(text));
+  return STORY_OBJECT_GROUPS.filter((group) =>
+    group.some((term) => tokens.has(term))
+  );
+}
+
+function hasStoryObjectContradiction(candidate = "", context = "") {
+  const contextGroups = storyObjectGroupsInText(context);
+  if (!contextGroups.length) return false;
+  const candidateGroups = storyObjectGroupsInText(candidate);
+  if (!candidateGroups.length) return false;
+  return candidateGroups.some(
+    (candidateGroup) =>
+      !contextGroups.some((contextGroup) => contextGroup === candidateGroup)
+  );
+}
+
+function isResearchCandidateRelevant(candidate = "", context = "") {
+  const contextTokens = tokenizeResearchText(context);
+  if (!contextTokens.length) return true;
+  if (hasStoryObjectContradiction(candidate, context)) return false;
+  const candidateTokens = tokenizeResearchText(candidate);
+  return tokenOverlapScore(contextTokens, candidateTokens) >= 0.12;
+}
+
 function filterFactsForBlock(facts = [], blockEntry = {}, videoTopic = "") {
   const context = [
     videoTopic,
@@ -105,10 +141,28 @@ function filterFactsForBlock(facts = [], blockEntry = {}, videoTopic = "") {
       fact,
       score: tokenOverlapScore(contextTokens, tokenizeResearchText(fact)),
     }))
-    .filter((entry) => entry.score >= 0.08)
+    .filter((entry) => entry.score >= 0.12)
+    .filter((entry) => !hasStoryObjectContradiction(entry.fact, context))
     .sort((a, b) => b.score - a.score)
     .map((entry) => entry.fact)
     .slice(0, 8);
+}
+
+function filterSourcesForBlock(sources = [], blockEntry = {}, videoTopic = "") {
+  const context = [
+    videoTopic,
+    blockEntry.primaryTopic,
+    blockEntry.narration,
+    blockEntry.niche,
+  ].join(" ");
+  return (sources || [])
+    .filter((src) =>
+      isResearchCandidateRelevant(
+        [src?.title, src?.url, src?.snippet].filter(Boolean).join(" "),
+        context
+      )
+    )
+    .slice(0, 5);
 }
 
 export function countNumericHints(text = "") {
@@ -378,6 +432,11 @@ async function researchSingleBlock(
   const search = await exaWebSearch(query, workspaceDir, { numResults: 5 });
   const rawFacts = extractFactsFromResearch(search);
   const facts = filterFactsForBlock(rawFacts, blockEntry, videoTopic);
+  const sources = filterSourcesForBlock(
+    search.sources || [],
+    blockEntry,
+    videoTopic
+  );
 
   return {
     block: blockEntry.block,
@@ -391,7 +450,7 @@ async function researchSingleBlock(
     query,
     facts,
     rawFactCount: rawFacts.length,
-    sources: search.sources || [],
+    sources,
     summary: String(search.summary || "").slice(0, 600),
     available: Boolean(search.available),
     via: search.via || "agent-reach",
