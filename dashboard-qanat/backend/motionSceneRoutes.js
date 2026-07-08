@@ -232,6 +232,47 @@ export function registerMotionSceneRoutes(
     }
   });
 
+  app.patch("/api/projects/storyboard/motion-scenes", (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const motionScenes = req.body?.motion_scenes;
+      if (!Array.isArray(motionScenes)) {
+        return res
+          .status(400)
+          .json({ error: "motion_scenes deve ser um array." });
+      }
+      const storyboardPath = path.join(projDir, "storyboard.json");
+      const storyboard = readJsonSafe(storyboardPath, {});
+      if (
+        !Array.isArray(storyboard.visual_prompts) ||
+        storyboard.visual_prompts.length === 0
+      ) {
+        return res.status(400).json({
+          error:
+            "Storyboard sem visual_prompts — carregue o roteiro do projeto antes de salvar templates.",
+        });
+      }
+      const next = applyMotionScenesToVisualPrompts(
+        { ...storyboard, motion_scenes: motionScenes },
+        motionScenes
+      );
+      next.motion_scenes_meta = {
+        ...(next.motion_scenes_meta || {}),
+        edited_at: new Date().toISOString(),
+        source: "motion_timeline_editor",
+      };
+      fs.writeFileSync(storyboardPath, JSON.stringify(next, null, 2), "utf8");
+      res.json({
+        ok: true,
+        motion_scenes: next.motion_scenes,
+        count: motionScenes.length,
+        saved_at: next.motion_scenes_meta.edited_at,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/ai/creator/motion-scenes", (req, res) => {
     try {
       const projDir = getProjectDir(req);

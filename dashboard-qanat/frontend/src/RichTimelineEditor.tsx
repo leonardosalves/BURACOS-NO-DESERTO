@@ -25,6 +25,7 @@ import { clipKey } from "./opencutTimeline";
 import { LazyMotionTimelineEditor, TabPanelFallback } from "./appLazyPanels";
 import type { ConfigData, WorkspaceStatus } from "./appTypes";
 import type { AppTab } from "./appTabs";
+import type { MotionSceneDraft } from "./motionEditorConfig";
 
 type AssetValidationIssue = {
   block?: string;
@@ -75,6 +76,7 @@ export type RichTimelineEditorProps = {
   creatorLoading: boolean;
   syncingTimings: boolean;
   generatingOverlays: boolean;
+  savingMotionScenes?: boolean;
   playingMusic: string | null;
   playingNarration: string | number | null;
   setConfig: React.Dispatch<React.SetStateAction<ConfigData | null>>;
@@ -97,6 +99,8 @@ export type RichTimelineEditorProps = {
   getProjectUrl: (path: string) => string;
   handleAutoMapAssets: () => void | Promise<void>;
   handlePlanMotionScenes: () => void | Promise<void>;
+  handleMotionScenesChange: (scenes: MotionSceneDraft[]) => void;
+  handleSaveMotionScenes: () => void | Promise<void>;
   handleRepairProjectVisualPrompts: () => void | Promise<void>;
   handleSaveConfig: () => void | Promise<void>;
   handleSyncTimings: (fromWizard?: boolean) => void | Promise<void>;
@@ -164,6 +168,7 @@ export function RichTimelineEditor({
   creatorLoading,
   syncingTimings,
   generatingOverlays,
+  savingMotionScenes = false,
   playingMusic,
   playingNarration,
   setConfig,
@@ -182,6 +187,8 @@ export function RichTimelineEditor({
   getProjectUrl,
   handleAutoMapAssets,
   handlePlanMotionScenes,
+  handleMotionScenesChange,
+  handleSaveMotionScenes,
   handleRepairProjectVisualPrompts,
   handleSaveConfig,
   handleSyncTimings,
@@ -454,11 +461,10 @@ export function RichTimelineEditor({
               aspectRatio={config.aspect_ratio || "16:9"}
               getAssetUrl={getAssetUrl}
               generating={generatingOverlays}
+              saving={savingMotionScenes}
               onGenerate={handlePlanMotionScenes}
-              onChange={(nextScenes) => {
-                const { motion_scenes: _prev, ...rest } = storyboardData || {};
-                syncCreatorStoryboard({ ...rest, motion_scenes: nextScenes });
-              }}
+              onSave={handleSaveMotionScenes}
+              onChange={handleMotionScenesChange}
             />
           </Suspense>
         </EditorCollapsibleSection>
