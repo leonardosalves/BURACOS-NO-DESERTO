@@ -467,7 +467,7 @@ function factMatchesNarrationBlock(fact = "", blockEntry = {}) {
     .join(" ");
   const narrationTokens = tokenizeResearchText(narrationContext);
   if (!narrationTokens.length) return true;
-  return tokenOverlapScore(narrationTokens, tokenizeResearchText(fact)) >= 0.1;
+  return tokenOverlapScore(tokenizeResearchText(fact), narrationTokens) >= 0.1;
 }
 
 function sourceMatchesBlock(source = {}, blockEntry = {}, videoTopic = "") {

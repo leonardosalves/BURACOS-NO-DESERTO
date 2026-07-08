@@ -19360,6 +19360,35 @@ const NAMED_ENTITY_BLACKLIST = new Set([
   "identifica",
   "apresenta",
   "compara",
+  "misterio",
+  "misterios",
+  "mas",
+  "por",
+  "para",
+  "com",
+  "sem",
+  "mais",
+  "menos",
+  "se",
+  "caso",
+  "embora",
+  "contudo",
+  "todavia",
+  "portanto",
+  "assim",
+  "entao",
+  "então",
+  "somente",
+  "muito",
+  "pouco",
+  "quase",
+  "todos",
+  "todas",
+  "nesse",
+  "nesta",
+  "neste",
+  "nestas",
+  "nessas",
 ]);
 
 function normalizeEntityWord(word = "") {
@@ -19379,8 +19408,11 @@ function extractNamedEntityHints(text = "") {
     if (m.length < 8) return false;
     if (META_ENTITY_ALLOWLIST.has(m)) return false;
     if (/^(Cena|Bloco|Tipo|Tema|Design|Fonte|Fato)\b/i.test(m)) return false;
-    const firstWord = normalizeEntityWord(m.split(/\s+/)[0]);
-    if (NAMED_ENTITY_BLACKLIST.has(firstWord)) return false;
+    const words = m.split(/\s+/);
+    for (const word of words) {
+      const normalized = normalizeEntityWord(word);
+      if (NAMED_ENTITY_BLACKLIST.has(normalized)) return false;
+    }
     return true;
   });
 }
