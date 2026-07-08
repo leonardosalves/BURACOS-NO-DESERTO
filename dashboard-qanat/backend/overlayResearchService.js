@@ -12,7 +12,7 @@ import { buildOverlayOrchestrationPlan } from "./overlayOrchestration.js";
 const MIN_FACTS = 2;
 const MIN_SNIPPET_CHARS = 120;
 const CACHE_MAX_AGE_MS = 60 * 60 * 1000;
-const OVERLAY_RESEARCH_CACHE_VERSION = 3;
+const OVERLAY_RESEARCH_CACHE_VERSION = 4;
 const RESEARCH_STOPWORDS = new Set([
   "sobre",
   "para",
@@ -102,6 +102,21 @@ function normalizeResearchFacts(facts = []) {
 }
 
 function collectStoryboardResearch(storyboard = {}, injected = {}) {
+  const hasExplicitSourceList =
+    Array.isArray(storyboard.research_sources) ||
+    Array.isArray(storyboard.web_research?.sources) ||
+    Array.isArray(storyboard.webResearch?.sources) ||
+    Array.isArray(storyboard.strategy?.research_sources) ||
+    injected.hasSourcesField === true ||
+    Array.isArray(injected.sources);
+  const hasExplicitFactList =
+    Array.isArray(storyboard.research_facts) ||
+    Array.isArray(storyboard.web_facts) ||
+    Array.isArray(storyboard.facts) ||
+    Array.isArray(storyboard.web_research?.facts) ||
+    Array.isArray(storyboard.webResearch?.facts) ||
+    injected.hasFactsField === true ||
+    Array.isArray(injected.facts);
   const sourceBuckets = [
     storyboard.research_sources,
     storyboard.web_research?.sources,
@@ -137,6 +152,8 @@ function collectStoryboardResearch(storyboard = {}, injected = {}) {
   return {
     sources: dedupedSources,
     facts: [...new Set(facts)],
+    hasExplicitSourceList,
+    hasExplicitFactList,
   };
 }
 
@@ -226,6 +243,15 @@ function filterSourcesForBlock(sources = [], blockEntry = {}, videoTopic = "") {
     .slice(0, 5);
 }
 
+function factMatchesNarrationBlock(fact = "", blockEntry = {}) {
+  const narrationContext = [blockEntry.primaryTopic, blockEntry.narration]
+    .filter(Boolean)
+    .join(" ");
+  const narrationTokens = tokenizeResearchText(narrationContext);
+  if (!narrationTokens.length) return true;
+  return tokenOverlapScore(narrationTokens, tokenizeResearchText(fact)) >= 0.1;
+}
+
 function sourceMatchesBlock(source = {}, blockEntry = {}, videoTopic = "") {
   const context = [
     videoTopic,
@@ -272,7 +298,7 @@ async function readFactsFromScriptSources(
       }),
       blockEntry,
       videoTopic
-    );
+    ).filter((fact) => factMatchesNarrationBlock(fact, blockEntry));
     facts.push(...sourceFacts);
   }
 
@@ -483,6 +509,11 @@ export function isOverlayResearchSufficient(research = {}) {
 export function buildOverlayResearchPromptBlock(research = {}) {
   const blockSections = (research.blocks || [])
     .filter((b) => b.selected !== false)
+    .filter(
+      (b) =>
+        !(b.sourceLocked || research.sourceLocked) ||
+        (Array.isArray(b.facts) && b.facts.length > 0)
+    )
     .map((b) => {
       const factLines = (b.facts || [])
         .slice(0, 5)
@@ -560,7 +591,9 @@ async function researchSingleBlock(
 
   const hasScriptResearch =
     (storyboardResearch.facts || []).length > 0 ||
-    (storyboardResearch.sources || []).length > 0;
+    (storyboardResearch.sources || []).length > 0 ||
+    storyboardResearch.hasExplicitSourceList ||
+    storyboardResearch.hasExplicitFactList;
 
   if (hasScriptResearch) {
     const hydratedScriptResearch = await readFactsFromScriptSources(
@@ -590,6 +623,7 @@ async function researchSingleBlock(
         mergedScriptFacts.length || mergedScriptSources.length
       ),
       via: "storyboard-research",
+      sourceLocked: true,
     };
   }
 
@@ -723,13 +757,20 @@ export async function fetchOverlayResearchForRender(
     format: plan.format,
     selectedBlocks: selectedBlocks.map((b) => b.block),
     blocks: blockResearch,
+    sourceLocked:
+      storyboardResearch.hasExplicitSourceList ||
+      storyboardResearch.hasExplicitFactList,
     blockTopics,
     query: blockResearch.map((b) => `B${b.block}: ${b.query}`).join(" | "),
     summary: "",
     facts: [...new Set(allFacts)].slice(0, 20),
     sources: blockResearch.flatMap((b) => b.sources || []).slice(0, 12),
     items: [],
-    via: "agent-reach",
+    via:
+      storyboardResearch.hasExplicitSourceList ||
+      storyboardResearch.hasExplicitFactList
+        ? "storyboard-research"
+        : "agent-reach",
     message: null,
     fetchedAt: new Date().toISOString(),
     cached: false,

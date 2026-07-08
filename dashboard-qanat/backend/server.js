@@ -6104,6 +6104,8 @@ app.post("/api/render/plan-overlays", async (req, res) => {
           forceRefresh: forceRegenerate || !allowCachedOverlays,
           orchestrationPlan: orchestrationForResearch,
           scriptResearch: {
+            hasSourcesField: req.body?.has_research_sources === true,
+            hasFactsField: req.body?.has_research_facts === true,
             sources: Array.isArray(req.body?.research_sources)
               ? req.body.research_sources
               : [],
@@ -19016,7 +19018,17 @@ function overlayBriefingTokenOverlap(a, b) {
 
 const OVERLAY_STORY_OBJECT_GROUPS = [
   ["ponte", "pontes", "viaduto", "viadutos", "passarela", "passarelas"],
-  ["predio", "predios", "edificio", "edificios", "condominio", "apartamento"],
+  [
+    "predio",
+    "predios",
+    "edificio",
+    "edificios",
+    "condominio",
+    "apartamento",
+    "palace",
+    "palacio",
+    "palacios",
+  ],
   ["barragem", "barragens", "represa", "represas"],
   ["navio", "navios", "barco", "barcos", "submarino", "submarinos"],
   ["aviao", "avioes", "aeronave", "aeronaves", "helicoptero"],
@@ -19048,6 +19060,35 @@ function overlayResearchContextText(overlayResearch = {}) {
     overlayResearch.query,
     overlayResearch.blocks?.[0]?.primaryTopic,
     overlayResearch.blocks?.[0]?.narration,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function overlayProjectStoryContextText({ config = {}, storyboard = {} } = {}) {
+  const blockPhrases = Array.isArray(config.block_phrases)
+    ? config.block_phrases
+    : [];
+  const visualPrompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
+  const researchSources = Array.isArray(storyboard.research_sources)
+    ? storyboard.research_sources
+    : [];
+  return [
+    config.niche,
+    storyboard.title,
+    storyboard.idea_title,
+    storyboard.strategy?.title,
+    storyboard.strategy?.promise,
+    storyboard.narrative_script,
+    ...blockPhrases.map((b) => b?.phrase || b?.text || ""),
+    ...visualPrompts.flatMap((vp) => [
+      vp?.narration_text,
+      vp?.visual_description,
+      vp?.prompt,
+    ]),
+    ...researchSources.flatMap((src) => [src?.title, src?.url]),
   ]
     .filter(Boolean)
     .join(" ");
@@ -19143,8 +19184,9 @@ function getOverlayBlockResearch(overlay = {}, overlayResearch = {}) {
 
 function overlayFactMatchesItsBlock(overlay = {}, overlayResearch = {}) {
   const fact = String(overlay?.ai_meta?.research_fact || "").trim();
-  if (!fact) return true;
   const scopedResearch = getOverlayBlockResearch(overlay, overlayResearch);
+  if (!fact)
+    return !scopedResearch.sourceLocked && !overlayResearch.sourceLocked;
   const blockFacts = scopedResearch.facts || [];
   if (!blockFacts.length) return false;
   const factTokens = tokenizeOverlayBriefingText(fact);
@@ -19159,6 +19201,25 @@ function overlayFactMatchesItsBlock(overlay = {}, overlayResearch = {}) {
 
 function overlayTextBlobForBriefing(overlay = {}) {
   const p = overlay.props || {};
+  const nestedText = [];
+  const collect = (value, depth = 0) => {
+    if (depth > 3 || value == null) return;
+    if (typeof value === "string" || typeof value === "number") {
+      nestedText.push(String(value));
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) collect(item, depth + 1);
+      return;
+    }
+    if (typeof value === "object") {
+      for (const item of Object.values(value)) collect(item, depth + 1);
+    }
+  };
+  collect(p.events);
+  collect(p.items);
+  collect(p.segments);
+  collect(p.rows);
   return [
     p.title,
     p.subtitle,
@@ -19168,6 +19229,7 @@ function overlayTextBlobForBriefing(overlay = {}) {
     p.text,
     p.source,
     p.location,
+    ...nestedText,
   ]
     .filter((v) => v != null && String(v).trim())
     .join(" ");
@@ -19212,7 +19274,11 @@ function extractNamedEntityHints(text = "") {
   );
 }
 
-function overlayMetaMatchesStoryBlock(overlay = {}, overlayResearch = {}) {
+function overlayMetaMatchesStoryBlock(
+  overlay = {},
+  overlayResearch = {},
+  storyContext = ""
+) {
   const scopedResearch = getOverlayBlockResearch(overlay, overlayResearch);
   const blockResearch = scopedResearch.blocks?.[0] || {};
   const auditText = overlayAuditTextBlob(overlay);
@@ -19223,7 +19289,14 @@ function overlayMetaMatchesStoryBlock(overlay = {}, overlayResearch = {}) {
     blockResearch.primaryTopic,
     blockResearch.narration,
     ...(blockResearch.facts || []),
+    storyContext,
   ].join(" ");
+  if (overlayHasStoryObjectContradiction(auditText, allowedContext)) {
+    console.log(
+      `[Overlay Story Guard] Objeto de historia contraditorio detectado em ${overlay.id}.`
+    );
+    return false;
+  }
   const auditTokens = tokenizeOverlayBriefingText(auditText);
   const contextTokens = tokenizeOverlayBriefingText(allowedContext);
   const overlap = overlayBriefingTokenOverlap(auditTokens, contextTokens);
@@ -19900,6 +19973,7 @@ function pruneAiOverlaysToStoryBlocks(
     : [];
   const selectedBlockSet = new Set(researchBlocks);
   const overlayResearch = storyboard?.overlays_research || {};
+  const storyContext = overlayProjectStoryContextText({ config, storyboard });
   const isShortVideo =
     plan?.format === "SHORT" ||
     config.aspect_ratio !== "16:9" ||
@@ -19930,7 +20004,7 @@ function pruneAiOverlaysToStoryBlocks(
       );
       continue;
     }
-    if (!overlayMetaMatchesStoryBlock(overlay, overlayResearch)) {
+    if (!overlayMetaMatchesStoryBlock(overlay, overlayResearch, storyContext)) {
       console.log(
         `[Overlay Story Guard] Removido ${overlay.id} — briefing/metadados nao correspondem ao bloco ${block || "?"}.`
       );
