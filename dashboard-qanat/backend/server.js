@@ -19211,9 +19211,18 @@ if (fs.existsSync(frontendDist)) {
     app.use(
       "/assets",
       express.static(frontendAssetsDir, {
-        maxAge: "1y",
-        immutable: true,
         fallthrough: false,
+        setHeaders(res, filePath) {
+          const base = path.basename(filePath);
+          if (base.startsWith("index-") && base.endsWith(".js")) {
+            res.setHeader(
+              "Cache-Control",
+              "no-cache, no-store, must-revalidate"
+            );
+            return;
+          }
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        },
       })
     );
   }

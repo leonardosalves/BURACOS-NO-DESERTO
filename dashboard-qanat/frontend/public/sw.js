@@ -1,5 +1,5 @@
-const CACHE_NAME = "lumiera-shell-v2";
-const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/vite.svg"];
+const CACHE_NAME = "lumiera-shell-v3";
+const SHELL = ["/manifest.webmanifest", "/vite.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -29,8 +29,13 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/")) return;
   if (event.request.method !== "GET") return;
 
-  // Chunks com hash: sempre rede primeiro — evita HTML velho cacheado como JS.
-  if (url.pathname.startsWith("/assets/")) {
+  // Build com hash: sempre rede (nunca cachear chunks nem index-*.js).
+  if (
+    url.pathname.startsWith("/assets/") ||
+    url.pathname === "/index.html" ||
+    url.pathname === "/sw.js" ||
+    url.pathname === "/"
+  ) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))
     );
