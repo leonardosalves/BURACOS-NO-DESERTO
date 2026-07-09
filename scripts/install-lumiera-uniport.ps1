@@ -57,6 +57,7 @@ Set-Content -Path (Join-Path $script:LogDir "permanent.mode") -Value ((Get-Date)
 
 Write-Host "Subindo backend (serve API + UI em :3005)..." -ForegroundColor Cyan
 $stackOk = Repair-LumieraStackUnified
+Start-LumieraLegacyRedirect | Out-Null
 if (-not $stackOk) {
     Write-Host "Falha ao subir stack. Veja .lumiera-logs\backend-stderr.log" -ForegroundColor Red
     exit 1

@@ -230,13 +230,68 @@ function Get-LumieraDashboardUrl {
     return $script:DashboardUrlDev
 }
 
+function Get-LumieraPort5176CommandLine {
+    param([int]$Pid)
+    if ($Pid -le 0) { return $null }
+    try {
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$Pid" -ErrorAction Stop
+        return $proc.CommandLine
+    } catch {
+        return $null
+    }
+}
+
+function Test-LumieraRedirectRunning {
+    $listenerPid = Get-PortListenerPidFast 5176
+    if (-not $listenerPid) { return $false }
+    $cmd = Get-LumieraPort5176CommandLine $listenerPid
+    return $cmd -like "*lumiera-redirect-5176*"
+}
+
 function Stop-LumieraViteDev {
     $fePid = Get-PortListenerPidFast 5176
-    if ($fePid) {
-        Stop-Process -Id $fePid -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Seconds 1
-        Write-LumieraLog ("Vite dev encerrado na porta 5176 (PID {0})" -f $fePid)
+    if (-not $fePid) { return }
+    $cmd = Get-LumieraPort5176CommandLine $fePid
+    if ($cmd -like "*lumiera-redirect-5176*") { return }
+    Stop-Process -Id $fePid -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+    Write-LumieraLog ("Vite dev encerrado na porta 5176 (PID {0})" -f $fePid)
+}
+
+function Start-LumieraLegacyRedirect {
+    if (-not (Test-LumieraUniportMode)) { return $true }
+    if (Test-LumieraRedirectRunning) { return $true }
+    $listenerPid = Get-PortListenerPidFast 5176
+    if ($listenerPid) { return $true }
+
+    $redirectJs = Join-Path $script:RepoRoot "scripts\lumiera-redirect-5176.js"
+    if (-not (Test-Path -LiteralPath $redirectJs)) { return $false }
+
+    Ensure-LumieraLogDir
+    $outLog = Join-Path $script:LogDir "redirect-5176-stdout.log"
+    $errLog = Join-Path $script:LogDir "redirect-5176-stderr.log"
+    $pidFile = Join-Path $script:LogDir "redirect-5176.pid"
+    $cmdLine = 'node "{0}" 1>> "{1}" 2>> "{2}"' -f $redirectJs, $outLog, $errLog
+
+    $proc = Start-Process `
+        -FilePath "cmd.exe" `
+        -ArgumentList @("/d", "/s", "/c", $cmdLine) `
+        -WorkingDirectory $script:RepoRoot `
+        -WindowStyle Hidden `
+        -PassThru
+
+    $deadline = (Get-Date).AddSeconds(15)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-LumieraRedirectRunning) {
+            $livePid = Get-PortListenerPidFast 5176
+            if ($livePid) { Set-Content -Path $pidFile -Value $livePid -Encoding UTF8 }
+            Write-LumieraLog "Redirect 5176->3005 ativo (bookmarks antigos)"
+            return $true
+        }
+        Start-Sleep -Milliseconds 400
     }
+    Write-LumieraLog "Falha ao subir redirect 5176->3005" "WARN"
+    return $false
 }
 
 function Disable-LumieraLegacyStack {
