@@ -178,6 +178,8 @@ import {
 } from "./youtubeMetadataDisplay";
 import { buildAppTabPropBundles } from "./appTabPropBundles";
 import { AppOverlays } from "./AppOverlays";
+import { AppTabPanels } from "./AppTabPanels";
+import { TabPanelFallback } from "./appLazyPanels";
 
 const loadRichTimelineEditorModule = () => import("./RichTimelineEditor");
 const loadTimelineStudioModule = () => import("./TimelineStudio");
@@ -192,10 +194,6 @@ const TimelineStudio = lazy(() =>
     default: m.TimelineStudio,
   }))
 );
-const AppTabPanels = lazy(() =>
-  import("./AppTabPanels").then((m) => ({ default: m.AppTabPanels }))
-);
-import { TabPanelFallback } from "./appLazyPanels";
 
 const initialWizardSession = loadWizardSession();
 const initialActiveProject = resolveInitialActiveProject(initialWizardSession);
@@ -10692,47 +10690,45 @@ export default function App() {
         onRefresh={fetchData}
         projectBar={projectWorkspaceBar}
       >
-        <Suspense fallback={<TabPanelFallback label="Carregando painel..." />}>
-          <AppTabPanels
-            activeTab={activeTab}
-            activeProject={activeProject}
-            config={config}
-            projects={projects}
-            recentProjects={recentProjects}
-            nicheInput={nicheInput}
-            geminiBrowserMode={geminiBrowserMode}
-            aiProvider={aiProvider}
-            youtubeChannelAlerts={youtubeChannelAlerts}
-            resurrectorAlerts={resurrectorScheduler.alerts}
-            getProjectUrl={getProjectUrl}
-            postAi={postAi}
-            setActiveTab={setActiveTab}
-            setSettingsSection={setSettingsSection}
-            handleSelectProject={handleSelectProject}
-            handleDeleteProject={handleDeleteProject}
-            handleApplyYoutubeStudioIdea={handleApplyYoutubeStudioIdea}
-            handleRelinkYoutube={handleRelinkYoutube}
-            handleScheduleFromHeatmap={handleScheduleFromHeatmap}
-            resolveBrowserResponse={resolveBrowserResponse}
-            setYoutubeChannelAlerts={setYoutubeChannelAlerts}
-            setNewProjectFormat={setNewProjectFormat}
-            setNewProjectNiche={setNewProjectNiche}
-            setShowCreateModal={setShowCreateModal}
-            creatorTabProps={creatorTabProps}
-            aiTabProps={aiTabProps}
-            uploadTabProps={uploadTabProps}
-            editorTabProps={editorTabProps}
-            settingsTabProps={settingsTabProps}
-            statusTabProps={statusTabProps}
-            timelineTabProps={timelineTabProps}
-            musicTabPanelProps={musicTabPanelProps}
-            homeTabProps={homeTabProps}
-            workflowTabProps={workflowTabProps}
-            sceneTimingTabProps={sceneTimingTabProps}
-            hasApiKey={hasApiKey}
-            terminalTabProps={terminalTabProps}
-          />
-        </Suspense>
+        <AppTabPanels
+          activeTab={activeTab}
+          activeProject={activeProject}
+          config={config}
+          projects={projects}
+          recentProjects={recentProjects}
+          nicheInput={nicheInput}
+          geminiBrowserMode={geminiBrowserMode}
+          aiProvider={aiProvider}
+          youtubeChannelAlerts={youtubeChannelAlerts}
+          resurrectorAlerts={resurrectorScheduler.alerts}
+          getProjectUrl={getProjectUrl}
+          postAi={postAi}
+          setActiveTab={setActiveTab}
+          setSettingsSection={setSettingsSection}
+          handleSelectProject={handleSelectProject}
+          handleDeleteProject={handleDeleteProject}
+          handleApplyYoutubeStudioIdea={handleApplyYoutubeStudioIdea}
+          handleRelinkYoutube={handleRelinkYoutube}
+          handleScheduleFromHeatmap={handleScheduleFromHeatmap}
+          resolveBrowserResponse={resolveBrowserResponse}
+          setYoutubeChannelAlerts={setYoutubeChannelAlerts}
+          setNewProjectFormat={setNewProjectFormat}
+          setNewProjectNiche={setNewProjectNiche}
+          setShowCreateModal={setShowCreateModal}
+          creatorTabProps={creatorTabProps}
+          aiTabProps={aiTabProps}
+          uploadTabProps={uploadTabProps}
+          editorTabProps={editorTabProps}
+          settingsTabProps={settingsTabProps}
+          statusTabProps={statusTabProps}
+          timelineTabProps={timelineTabProps}
+          musicTabPanelProps={musicTabPanelProps}
+          homeTabProps={homeTabProps}
+          workflowTabProps={workflowTabProps}
+          sceneTimingTabProps={sceneTimingTabProps}
+          hasApiKey={hasApiKey}
+          terminalTabProps={terminalTabProps}
+        />
       </AppShell>
 
       <AppOverlays
