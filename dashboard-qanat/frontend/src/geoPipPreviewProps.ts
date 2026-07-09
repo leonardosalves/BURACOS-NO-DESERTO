@@ -76,8 +76,6 @@ export function mergeGeoPipPreviewProps(
     ...base,
     ...studio_props,
     studio_props,
-    geoPipOverlayMode: true,
-    transparentBackground: true,
     referencePoint,
     scene_subject,
     narration_text: liveNarration || base.narration_text,

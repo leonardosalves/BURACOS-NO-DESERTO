@@ -63,8 +63,6 @@ function applyGeoPipFlyoverBinding(target = {}, { relPath, durationSec, storyboa
     flyover_video: relPath,
     map_provider: props.map_provider || "ai_t2v",
     geo_generation: props.geo_generation || "ai_prompt",
-    geoPipOverlayMode: true,
-    transparentBackground: true,
     referencePoint: overlay.referencePoint || props.referencePoint,
     scene_subject: overlay.scene_subject || props.scene_subject,
   };
