@@ -117,6 +117,8 @@ export function SavedTemplatePreviewFrame({
       ? Math.max(1, Math.round(Number(durationSeconds) * fps))
       : (previewMeta?.durationInFrames ?? 90);
 
+  const timelineSynced = scrubSeconds != null;
+
   const scrubFrame = Math.min(
     Math.max(sceneDurationFrames - 1, 0),
     Math.max(
@@ -128,9 +130,9 @@ export function SavedTemplatePreviewFrame({
   );
 
   useEffect(() => {
-    if (!previewMeta || autoPlay) return;
+    if (!previewMeta) return;
     playerRef.current?.seekTo(scrubFrame);
-  }, [previewMeta, autoPlay, scrubFrame]);
+  }, [previewMeta, scrubFrame]);
 
   if (compiled.ok === false) {
     if (fallback) {
@@ -208,8 +210,8 @@ export function SavedTemplatePreviewFrame({
             backgroundColor: geoPipOverlay ? "transparent" : undefined,
           }}
           controls={size === "detail" && !fullBleed}
-          autoPlay={autoPlay}
-          loop
+          autoPlay={timelineSynced ? false : autoPlay}
+          loop={!timelineSynced}
           acknowledgeRemotionLicense
           errorFallback={({ error }) => (
             <div className="grid h-full w-full place-items-center bg-red-950/20 p-3 text-center">
