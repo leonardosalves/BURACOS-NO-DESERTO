@@ -16,6 +16,7 @@ import {
 } from "@lumiera/shared/remotionTemplateNiches.js";
 import {
   NotebooklmEnrichmentPanel,
+  type NotebooklmBriefInfo,
   type NotebooklmSession,
 } from "./NotebooklmEnrichmentPanel";
 
@@ -59,6 +60,7 @@ type Props = {
   onApprove: () => void;
   onNotebooklmImprove?: () => void;
   notebooklmSession?: NotebooklmSession | null;
+  notebooklmBrief?: NotebooklmBriefInfo | null;
   notebooklmSessionLoading?: boolean;
   onNotebooklmReply?: (reply: string) => Promise<void>;
   onNotebooklmProceed?: () => Promise<void>;
@@ -106,6 +108,7 @@ export function NarrationReviewPanel({
   onApprove,
   onNotebooklmImprove,
   notebooklmSession,
+  notebooklmBrief = null,
   notebooklmSessionLoading = false,
   onNotebooklmReply,
   onNotebooklmProceed,
@@ -296,6 +299,7 @@ export function NarrationReviewPanel({
       {showNotebooklmPanel && onNotebooklmReply && onNotebooklmProceed && (
         <NotebooklmEnrichmentPanel
           session={notebooklmSession}
+          brief={notebooklmBrief}
           loading={notebooklmSessionLoading}
           onReply={onNotebooklmReply}
           onProceed={onNotebooklmProceed}

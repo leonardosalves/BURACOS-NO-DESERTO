@@ -9,6 +9,10 @@ import {
   normalizeResearchSources,
 } from "../shared/storyboardResearch.js";
 import { fetchWebResearchForTopic } from "./webResearchService.js";
+import {
+  loadNotebooklmBrief,
+  shouldSkipWebResearchForBrief,
+} from "./notebooklmResearchBrief.js";
 
 const MIN_FACTS = 3;
 const MIN_SOURCES = 2;
@@ -66,6 +70,40 @@ export async function ensureStoryboardWebResearch(
   const bundle = collectStoryboardResearch(storyboard);
   if (bundle.facts.length >= minFacts && bundle.sources.length >= minSources) {
     return { storyboard, fetched: false, reason: "research_sufficient" };
+  }
+
+  if (projDir) {
+    const brief = loadNotebooklmBrief(projDir);
+    if (brief?.available && shouldSkipWebResearchForBrief(brief)) {
+      const parsed = brief.parsed || {};
+      const mergedFacts = dedupeFacts([
+        ...normalizeResearchFacts(storyboard.research_facts || []),
+        ...normalizeResearchFacts(parsed.facts || []),
+      ]);
+      const next = {
+        ...storyboard,
+        research_facts: mergedFacts,
+        notebooklm_brief: {
+          path: brief.relativePath,
+          fact_count: parsed.factCount || mergedFacts.length,
+          skip_web_research: true,
+        },
+        template_hints: {
+          ...(storyboard.template_hints || {}),
+          ...(parsed.templateHints || {}),
+        },
+        web_research: {
+          ...(storyboard.web_research || {}),
+          summary: String(parsed.accumulated || "").slice(0, 8000),
+          via: "notebooklm-brief-md",
+        },
+      };
+      return {
+        storyboard: next,
+        fetched: false,
+        reason: "notebooklm_brief_sufficient",
+      };
+    }
   }
 
   const topic = researchTopicFromStoryboard(storyboard, config);

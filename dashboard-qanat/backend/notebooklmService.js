@@ -11,6 +11,22 @@ import {
   saveNotebooklmSession,
   assessNotebooklmReadiness,
 } from "./notebooklmInteractive.js";
+import {
+  loadNotebooklmBrief,
+  syncNotebooklmBriefFromSession,
+  formatNotebooklmBriefPromptBlock,
+  shouldSkipWebResearchForBrief,
+  mergeBriefIntoStoryboard,
+  NOTEBOOKLM_BRIEF_FILENAME,
+} from "./notebooklmResearchBrief.js";
+
+export {
+  loadNotebooklmBrief,
+  formatNotebooklmBriefPromptBlock,
+  shouldSkipWebResearchForBrief,
+  mergeBriefIntoStoryboard,
+  NOTEBOOKLM_BRIEF_FILENAME,
+};
 
 export {
   extractNotebooklmQuestions,
@@ -695,7 +711,32 @@ export async function handleNotebooklmSessionReply({
   });
 
   saveNotebooklmSession(next, { projDir, backendDir, niche });
+  if (projDir) {
+    syncNotebooklmBriefFromSession(next, {
+      projDir,
+      project: path.basename(projDir),
+      niche,
+      format: next.format,
+    });
+  }
   return next;
+}
+
+function persistNotebooklmSessionBundle(
+  session,
+  { projDir, backendDir, niche, format, project }
+) {
+  saveNotebooklmSession(session, { projDir, backendDir, niche });
+  let brief = null;
+  if (projDir) {
+    brief = syncNotebooklmBriefFromSession(session, {
+      projDir,
+      project: project || path.basename(projDir),
+      niche: niche || session.niche,
+      format: format || session.format,
+    });
+  }
+  return { session, brief };
 }
 
 export function persistNotebooklmResearchSession({
@@ -714,16 +755,35 @@ export function persistNotebooklmResearchSession({
     notebookId: research?.notebookId,
     initialQuestion: research?.initialQuestion,
   });
-  saveNotebooklmSession(session, { projDir, backendDir, niche });
-  return session;
+  const { session: saved, brief } = persistNotebooklmSessionBundle(session, {
+    projDir,
+    backendDir,
+    niche,
+    format,
+  });
+  if (brief) saved.notebooklm_brief_path = brief.relativePath;
+  return saved;
 }
 
-export function closeNotebooklmSession({ projDir, backendDir, niche }) {
+export function closeNotebooklmSession({
+  projDir,
+  backendDir,
+  niche,
+  format,
+  project,
+}) {
   const session = loadNotebooklmSession({ projDir, backendDir, niche });
   if (!session) return null;
   const finalized = finalizeNotebooklmSession(session);
-  saveNotebooklmSession(finalized, { projDir, backendDir, niche });
-  return finalized;
+  const { session: saved, brief } = persistNotebooklmSessionBundle(finalized, {
+    projDir,
+    backendDir,
+    niche,
+    format: format || finalized.format,
+    project,
+  });
+  if (brief) saved.notebooklm_brief_path = brief.relativePath;
+  return saved;
 }
 
 export async function fetchNotebooklmResearch(niche, format, options = {}) {
