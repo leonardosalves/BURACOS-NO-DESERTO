@@ -59,7 +59,7 @@ describe("geoPipSceneText", () => {
       );
     assert.equal(referencePoint, "Palmanova");
     assert.match(scene_subject, /Palmanova|fortaleza/i);
-    assert.equal(studio_props.pipTitle, "Palmanova");
+    assert.equal(studio_props.pipTitle, "");
     assert.equal(studio_props.location, scene_subject);
     assert.equal(pipMediaUrl, "ASSETS/satellite/palmanova.mp4");
     assert.equal(studio_props.durationSeconds, 8.4);

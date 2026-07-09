@@ -26,7 +26,7 @@ describe("geoPipStudioTemplate", () => {
     );
   });
 
-  it("buildGeoPipStudioProps preenche pipTitle e location do template", () => {
+  it("buildGeoPipStudioProps limpa chrome e preenche location narrada", () => {
     const { studio_props } = buildGeoPipStudioProps(
       {
         props: {
@@ -43,9 +43,11 @@ describe("geoPipStudioTemplate", () => {
         dataSlots: ["pipTitle", "location", "coordinateText"],
       }
     );
-    assert.equal(studio_props.pipTitle, "Porto Alegre");
+    assert.equal(studio_props.pipTitle, "");
+    assert.equal(studio_props.descriptorText, "");
+    assert.equal(studio_props.statusText, "");
+    assert.equal(studio_props.coordinateText, "");
     assert.match(String(studio_props.location), /Porto Alegre|infraestrutura/i);
-    assert.match(studio_props.coordinateText, /29/);
   });
 
   it("pickGeoPipStudioTemplate filtra image-media Picture in Picture", () => {
@@ -78,7 +80,7 @@ describe("geoPipStudioTemplate", () => {
     assert.equal(tpl?.id, "pip-1");
   });
 
-  it("attachGeoPipStudioTemplate liga studio quando catalogo tem PIP", () => {
+  it("attachGeoPipStudioTemplate liga studio PIP limpo para novos projetos", () => {
     const scene = attachGeoPipStudioTemplate(
       {
         template_id: "location-intro",
@@ -86,6 +88,7 @@ describe("geoPipStudioTemplate", () => {
           aspect_ratio: "9:16",
           location: "Golden Gate",
           region: "CA",
+          narration_text: "A ponte Golden Gate marca o horizonte.",
         },
       },
       {
@@ -116,7 +119,10 @@ describe("geoPipStudioTemplate", () => {
     assert.equal(scene.layout, "pip");
     assert.equal(scene.props.geo_pip_composite, true);
     assert.equal(scene.props.template_studio_subcategory, "Picture in Picture");
-    assert.equal(scene.props.studio_props.pipTitle, "Golden Gate");
+    assert.equal(scene.props.referencePoint, "Golden Gate");
+    assert.equal(scene.props.pipTitle, "");
+    assert.equal(scene.props.studio_props.pipTitle, "");
+    assert.equal(scene.props.studio_props.descriptorText, "");
     assert.ok(scene.props.studio_source_code);
   });
 });
