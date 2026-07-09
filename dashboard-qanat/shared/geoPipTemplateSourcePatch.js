@@ -220,12 +220,49 @@ export function patchGeoPipTemplateSourceForChrome(code = "") {
         viewBox={\`0 0 \${width} \${height}\`}`
   );
 
+  if (!src.includes("{!geoPipOverlayChrome ? (")) {
+    src = src.replace(
+      `      </svg>
+
+      <div
+        style={{
+          position: "absolute",
+          inset: isVertical ? "15% 7% 14%" : "13% 8% 12%",`,
+      `      </svg>
+
+      {!geoPipOverlayChrome ? (
+      <div
+        style={{
+          position: "absolute",
+          inset: isVertical ? "15% 7% 14%" : "13% 8% 12%",`
+    );
+    src = src.replace(
+      `        </div>
+      </div>
+
+      {showPointerLines && (`,
+      `        </div>
+      </div>
+      ) : null}
+
+      {showPointerLines && (`
+    );
+  }
+
   src = src.replace(
     `          background: "rgba(8,13,24,0.58)",
           border: "1px solid rgba(34,211,238,0.24)",`,
     `          background: geoPipOverlayChrome ? "transparent" : "rgba(8,13,24,0.58)",
-          border: geoPipOverlayChrome ? "none" : "1px solid rgba(34,211,238,0.24)",
-          opacity: geoPipOverlayChrome ? 0 : hudProgress,`
+          border: geoPipOverlayChrome ? "none" : "1px solid rgba(34,211,238,0.24)",`
+  );
+
+  src = src.replace(
+    `          overflow: "hidden",
+          opacity: contentProgress,
+          transform: \`scale(\${0.96 + contentProgress * 0.04})\`,`,
+    `          overflow: "hidden",
+          opacity: geoPipOverlayChrome ? 0 : contentProgress,
+          transform: geoPipOverlayChrome ? "none" : \`scale(\${0.96 + contentProgress * 0.04})\`,`
   );
 
   src = src.replace(
@@ -288,6 +325,27 @@ export function patchGeoPipTemplateSourceForChrome(code = "") {
     })
   );`
   );
+
+  if (!src.includes("geoPipOverlayChrome ? null : (")) {
+    src = src.replace(
+      `          ) : (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: \`
+                  radial-gradient(circle at 28% 24%, rgba(34,211,238,0.34) 0%, transparent 34%),
+                  radial-gradient(circle at 82% 70%, rgba(250,204,21,0.22) 0%, transparent 36%),`,
+      `          ) : geoPipOverlayChrome ? null : (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: \`
+                  radial-gradient(circle at 28% 24%, rgba(34,211,238,0.34) 0%, transparent 34%),
+                  radial-gradient(circle at 82% 70%, rgba(250,204,21,0.22) 0%, transparent 36%),`
+    );
+  }
 
   return src;
 }

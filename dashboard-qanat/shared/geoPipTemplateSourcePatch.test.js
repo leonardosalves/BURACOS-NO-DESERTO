@@ -65,6 +65,13 @@ describe("geoPipTemplateSourcePatch", () => {
       /geoPipOverlayChrome \? "transparent" : backgroundColor/
     );
     assert.match(patched, /geoPipOverlayChrome\s*=\s*false/);
+    assert.match(patched, /\{!geoPipOverlayChrome \? \(/);
+    assert.match(
+      patched,
+      /opacity: geoPipOverlayChrome \? 0 : contentProgress/
+    );
+    assert.doesNotMatch(patched, /opacity: contentProgress,/);
+    assert.match(patched, /geoPipOverlayChrome \? null : \(/);
     assert.match(patched, /statusText \? \(/);
     assert.match(patched, /pipTag \? \(/);
     assert.doesNotMatch(patched, />\s*PIP\s*<\/div>/);

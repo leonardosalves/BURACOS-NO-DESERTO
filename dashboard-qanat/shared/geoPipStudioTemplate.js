@@ -18,6 +18,47 @@ export const GEO_PIP_MEDIA_WINDOW_9x16 = {
   radiusPx: 14,
 };
 
+/** Retângulo do quadradinho PIP alinhado ao template Studio (top-right 9:16). */
+export function resolveGeoPipStudioPipWindowPct(props = {}, aspect = "9:16") {
+  const studio = props.studio_props || {};
+  const inset = Number(props.pipInset ?? studio.pipInset ?? 132) || 132;
+  const pipWidth = Number(props.pipWidth ?? studio.pipWidth ?? 360) || 360;
+  const pipHeight = Number(props.pipHeight ?? studio.pipHeight ?? 230) || 230;
+  const position = String(
+    props.pipPosition ?? studio.pipPosition ?? "top-right"
+  ).toLowerCase();
+  const vertical = String(aspect || "9:16").trim() === "9:16";
+  const compW = vertical ? 1080 : 1920;
+  const compH = vertical ? 1920 : 1080;
+  const activeW = vertical
+    ? Math.min(compW * 0.72, pipWidth)
+    : Math.min(compW * 0.32, pipWidth);
+  const activeH = vertical
+    ? Math.min(compH * 0.22, pipHeight)
+    : Math.min(compH * 0.3, pipHeight);
+  const isRight = position.includes("right");
+  const isBottom = position.includes("bottom");
+  const topPx = isBottom
+    ? null
+    : vertical
+      ? props.geoPipOverlayChrome || studio.geoPipOverlayChrome
+        ? inset
+        : 164
+      : inset + 24;
+  const bottomPx = isBottom ? (vertical ? 132 : inset) : null;
+
+  const rect = {
+    widthPct: (activeW / compW) * 100,
+    heightPct: (activeH / compH) * 100,
+    borderRadiusPx: 14,
+  };
+  if (isRight) rect.rightPct = (inset / compW) * 100;
+  else rect.leftPct = (inset / compW) * 100;
+  if (topPx != null) rect.topPct = (topPx / compH) * 100;
+  if (bottomPx != null) rect.bottomPct = (bottomPx / compH) * 100;
+  return rect;
+}
+
 const GEO_TEMPLATES = new Set(["location-intro", "geo-map"]);
 
 const REFERENCE_POINT_SLOTS = new Set([
