@@ -24,6 +24,7 @@ export function mergeNicheLists(...lists) {
     for (const raw of Array.isArray(list) ? list : []) {
       const label = normalizeNicheLabel(raw);
       if (!label) continue;
+      if (isInternalTestCatalogNiche(label)) continue;
       const key = label.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -31,4 +32,14 @@ export function mergeNicheLists(...lists) {
     }
   }
   return out;
+}
+
+/** Nichos criados por testes automatizados — não exibir no catálogo global. */
+export function isInternalTestCatalogNiche(raw = "") {
+  const label = String(raw || "").trim();
+  if (!label) return false;
+  if (/^__.*__$/.test(label)) return true;
+  if (/^__test/i.test(label)) return true;
+  if (/_test_/i.test(label) && label.startsWith("_")) return true;
+  return false;
 }

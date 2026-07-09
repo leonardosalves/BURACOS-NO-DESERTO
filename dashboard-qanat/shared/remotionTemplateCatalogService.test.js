@@ -78,7 +78,7 @@ describe("remotionTemplateCatalogService bridge", () => {
     assert.equal(kept.count, 1);
   });
 
-  it("createCatalogNiche cria catalogo vazio e listCatalogNiches inclui o nicho", () => {
+  it("createCatalogNiche cria catalogo vazio e listCatalogNiches oculta nichos de teste", () => {
     const nicheName = "__test_create_catalog_niche__";
     const created = createCatalogNiche(nicheName);
     assert.equal(created.ok, true);
@@ -86,7 +86,7 @@ describe("remotionTemplateCatalogService bridge", () => {
     assert.equal(created.count, 0);
 
     const niches = listCatalogNiches();
-    assert.ok(niches.some((row) => row.niche === nicheName));
+    assert.ok(!niches.some((row) => row.niche === nicheName));
   });
 
   it("mapStudioTemplateToMotionId mapeia bar chart corretamente", () => {
