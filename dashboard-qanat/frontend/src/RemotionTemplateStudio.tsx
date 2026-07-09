@@ -29,7 +29,10 @@ import {
   isLegacySeedTemplateId,
   LEGACY_SEED_TEMPLATE_IDS,
 } from "@lumiera/shared/remotionTemplateLegacy.js";
-import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
+import {
+  LazySavedTemplatePreviewFrame,
+  SavedTemplatePreviewFrame,
+} from "./remotionTemplateLivePreview";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -2626,14 +2629,22 @@ function TemplatePreviewSlot({
     />
   );
 
-  // Galeria: mock animado — dezenas de Players Remotion derrubam a aba.
-  if (size === "card") {
-    return mockPreview;
-  }
-
   const expectsLivePreview =
     /\bexport\s+default\s+function\b/.test(source) &&
     /\bexport\s+const\s+exampleProps\b/.test(source);
+
+  if (size === "card" && expectsLivePreview) {
+    return (
+      <LazySavedTemplatePreviewFrame
+        sourceCode={source}
+        format={format}
+        size="card"
+        autoPlay={false}
+        fallback={mockPreview}
+        placeholder={mockPreview}
+      />
+    );
+  }
 
   return (
     <SavedTemplatePreviewFrame
