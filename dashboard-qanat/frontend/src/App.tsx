@@ -1226,14 +1226,17 @@ export default function App() {
 
   const handleMotionScenesChange = (
     scenes: unknown[],
-    opts?: { immediate?: boolean }
+    opts?: { immediate?: boolean; skipPersist?: boolean }
   ) => {
     const base = storyboardData || generatedScriptData;
     if (!base) return;
-    motionDirtyRef.current = true;
+    if (!opts?.skipPersist) {
+      motionDirtyRef.current = true;
+    }
     const next = { ...base, motion_scenes: scenes };
     setStoryboardData(next);
     setGeneratedScriptData(next);
+    if (opts?.skipPersist) return;
     void persistMotionScenes(scenes, {
       immediate: opts?.immediate,
       silent: true,

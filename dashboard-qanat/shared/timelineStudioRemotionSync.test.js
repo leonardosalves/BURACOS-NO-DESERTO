@@ -8,6 +8,7 @@ import {
   mergeRemotionFromStoryboard,
   pruneStoryboardRemotionSources,
   purgeLegacyStoryboardRemotion,
+  syncStudioTimingToStoryboard,
 } from "../backend/timelineStudioMigration.js";
 import {
   expandDeletedClipSuppressions,
@@ -311,6 +312,52 @@ describe("timelineStudioRemotionSync", () => {
     assert.equal(purged.storyboard.overlays_ai.length, 0);
     assert.equal(purged.storyboard.motion_scenes.length, 1);
     assert.equal(purged.storyboard.motion_scenes[0].id, "ms-geo");
+  });
+
+  it("syncStudioTimingToStoryboard propaga start/duration dos clips motion", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-timing-sync-"));
+    const storyboardPath = path.join(tmp, "storyboard.json");
+    const sceneId = "motion-studio-1783573511378";
+    fs.writeFileSync(
+      storyboardPath,
+      JSON.stringify(
+        {
+          motion_scenes: [
+            {
+              id: sceneId,
+              template_id: "engenharia-picture-in-picture",
+              start_hint: 11.4,
+              duration_seconds: 4,
+              props: { location: "Norma NBR 6118" },
+            },
+          ],
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const studio = {
+      clips: [
+        {
+          id: sceneId,
+          trackId: "motion",
+          start: 16,
+          duration: 10,
+          props: { motion_scene_id: sceneId },
+        },
+      ],
+    };
+
+    const result = syncStudioTimingToStoryboard(tmp, studio);
+    assert.equal(result.changed, true);
+    assert.equal(result.motion_scenes[0].start_hint, 16);
+    assert.equal(result.motion_scenes[0].duration_seconds, 10);
+
+    const onDisk = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    assert.equal(onDisk.motion_scenes[0].start_hint, 16);
+    assert.equal(onDisk.motion_scenes[0].duration_seconds, 10);
   });
 
   it("pruneStoryboardRemotionSources remove motion_scenes suprimidas", () => {

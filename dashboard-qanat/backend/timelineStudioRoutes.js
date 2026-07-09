@@ -12,6 +12,7 @@ import {
   purgeLegacyStoryboardRemotion,
   finalizeStudioForDisk,
   applyNarrationSyncToProject,
+  syncStudioTimingToStoryboard,
 } from "./timelineStudioMigration.js";
 import {
   searchTimelineStock,
@@ -228,6 +229,8 @@ export function registerTimelineStudioRoutes(
         saveTimelineStudio(projDir, studio);
       }
 
+      const timingSync = syncStudioTimingToStoryboard(projDir, studio);
+
       res.json({
         ok: true,
         studio,
@@ -240,6 +243,8 @@ export function registerTimelineStudioRoutes(
         remotionRestored,
         motionSynced,
         legacyStripped,
+        motion_scenes: timingSync.motion_scenes,
+        motion_scenes_synced: timingSync.changed,
         projectResolved: projectCtx.resolved !== false,
         requestedProject: projectCtx.requestedName || null,
         resolvedProject: projectCtx.resolvedName || null,
@@ -271,7 +276,13 @@ export function registerTimelineStudioRoutes(
         previousStudio,
         mergeStoryboard: false,
       });
-      res.json({ ok: true, studio: saved });
+      const timingSync = syncStudioTimingToStoryboard(projDir, saved);
+      res.json({
+        ok: true,
+        studio: saved,
+        motion_scenes: timingSync.motion_scenes,
+        motion_scenes_synced: timingSync.changed,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

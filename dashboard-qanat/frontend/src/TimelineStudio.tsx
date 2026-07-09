@@ -48,6 +48,7 @@ import {
   type TimelineStudioState,
 } from "./timelineStudioTypes";
 import type { RichTimelineEditorProps } from "./RichTimelineEditor";
+import type { MotionSceneDraft } from "./motionEditorConfig";
 import type {
   AskLumieraAction,
   StockSearchTrigger,
@@ -200,6 +201,7 @@ export function TimelineStudio({
   getMusicUrl,
   getProjectUrl,
   handleAutoMapAssets,
+  handleMotionScenesChange,
   handleRepairProjectVisualPrompts,
   handleSaveConfig,
   handleSyncTimings,
@@ -297,6 +299,17 @@ export function TimelineStudio({
     []
   );
 
+  const applyServerMotionScenes = useCallback(
+    (data: { motion_scenes?: unknown[]; motion_scenes_synced?: boolean }) => {
+      const scenes = data.motion_scenes;
+      if (!Array.isArray(scenes) || scenes.length < 1) return;
+      handleMotionScenesChange(scenes as MotionSceneDraft[], {
+        skipPersist: true,
+      });
+    },
+    [handleMotionScenesChange]
+  );
+
   const loadStudio = useCallback(
     async (opts?: {
       focusRemotion?: boolean;
@@ -325,6 +338,7 @@ export function TimelineStudio({
           data.studio as TimelineStudioState,
           { focusRemotion: opts?.focusRemotion }
         );
+        applyServerMotionScenes(data);
         if (opts?.notifySync) {
           const syncNotes: string[] = [];
           if (data.migrated) {
@@ -373,7 +387,12 @@ export function TimelineStudio({
         setLoading(false);
       }
     },
-    [activeProject, applyStudioFromServer, getProjectUrl]
+    [
+      activeProject,
+      applyServerMotionScenes,
+      applyStudioFromServer,
+      getProjectUrl,
+    ]
   );
 
   const loadStudioRef = useRef(loadStudio);
@@ -448,6 +467,7 @@ export function TimelineStudio({
       if (data.studio) {
         setStudio(normalizeGeoMotionClips(data.studio as TimelineStudioState));
       }
+      applyServerMotionScenes(data);
       toast.success("Timeline Studio salva");
     } catch (err) {
       toast.error(`Erro ao salvar: ${(err as Error).message}`);
@@ -467,11 +487,16 @@ export function TimelineStudio({
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       if (data.studio) {
-        return normalizeGeoMotionClips(data.studio as TimelineStudioState);
+        const saved = normalizeGeoMotionClips(
+          data.studio as TimelineStudioState
+        );
+        applyServerMotionScenes(data);
+        return saved;
       }
+      applyServerMotionScenes(data);
       return nextStudio;
     },
-    [getProjectUrl]
+    [applyServerMotionScenes, getProjectUrl]
   );
 
   const updateStudio = (patch: Partial<TimelineStudioState>) => {
@@ -972,9 +997,7 @@ export function TimelineStudio({
           </p>
           <button
             type="button"
-            onClick={() =>
-              void loadStudio({ fullSync: true, silent: true })
-            }
+            onClick={() => void loadStudio({ fullSync: true, silent: true })}
             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-rose-400/40 text-rose-100 cursor-pointer"
           >
             Atualizar timeline
@@ -1228,9 +1251,7 @@ export function TimelineStudio({
           </button>
           <button
             type="button"
-            onClick={() =>
-              void loadStudio({ fullSync: true, silent: true })
-            }
+            onClick={() => void loadStudio({ fullSync: true, silent: true })}
             disabled={loading}
             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 cursor-pointer disabled:opacity-50 flex items-center gap-1"
             title="Recarrega timeline_studio.json do disco (aplica migração motion)"

@@ -15,7 +15,10 @@ import {
   motionScenesToMotionClips,
   syncMotionScenesToStudio,
 } from "./motionScenePlanner.js";
-import { defaultMotionTrack } from "../shared/motionSceneCatalog.js";
+import {
+  defaultMotionTrack,
+  MOTION_TRACK_ID,
+} from "../shared/motionSceneCatalog.js";
 import {
   clipMatchesSuppression,
   collectSuppressionState,
@@ -572,6 +575,92 @@ function readStoryboardJson(projDir) {
   }
 }
 
+function writeStoryboardJson(projDir, storyboard) {
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+}
+
+function isStudioMotionClip(clip = {}) {
+  return Boolean(
+    clip.trackId === MOTION_TRACK_ID ||
+    clip.motionScene ||
+    clip.motionScenePrimary ||
+    clip.props?.motion_scene
+  );
+}
+
+/**
+ * Propaga start/duration dos clips motion da timeline → motion_scenes do storyboard.
+ * Fonte de verdade após edição no Editor Timing (timeline_studio.json).
+ */
+export function syncStudioTimingToStoryboard(projDir, studio = {}) {
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) {
+    return { changed: false, motion_scenes: [] };
+  }
+
+  let storyboard;
+  try {
+    storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+  } catch {
+    return { changed: false, motion_scenes: [] };
+  }
+
+  const motionScenes = Array.isArray(storyboard.motion_scenes)
+    ? storyboard.motion_scenes
+    : [];
+  if (!motionScenes.length) {
+    return { changed: false, motion_scenes: [] };
+  }
+
+  const motionClips = (studio.clips || []).filter(isStudioMotionClip);
+  if (!motionClips.length) {
+    return { changed: false, motion_scenes: motionScenes };
+  }
+
+  const clipById = new Map();
+  for (const clip of motionClips) {
+    const id = String(clip.id || "").trim();
+    if (id) clipById.set(id, clip);
+    const motionId = String(clip.props?.motion_scene_id || "").trim();
+    if (motionId) clipById.set(motionId, clip);
+  }
+
+  let changed = false;
+  const nextScenes = motionScenes.map((ms) => {
+    const id = String(ms?.id || "").trim();
+    const clip = clipById.get(id);
+    if (!clip) return ms;
+
+    const start = Math.max(0, Number(clip.start) || 0);
+    const duration = Math.max(0.5, Number(clip.duration) || 4);
+    const prevStart = Number(ms.start_hint) || 0;
+    const prevDur = Number(ms.duration_seconds) || 4;
+
+    if (
+      Math.abs(start - prevStart) < 0.001 &&
+      Math.abs(duration - prevDur) < 0.001
+    ) {
+      return ms;
+    }
+
+    changed = true;
+    return {
+      ...ms,
+      start_hint: start,
+      duration_seconds: duration,
+    };
+  });
+
+  if (!changed) {
+    return { changed: false, motion_scenes: motionScenes };
+  }
+
+  storyboard.motion_scenes = nextScenes;
+  writeStoryboardJson(projDir, storyboard);
+  return { changed: true, motion_scenes: nextScenes };
+}
+
 /**
  * Persistência atômica: supressões + prune storyboard + remove clips bloqueados.
  */
@@ -601,6 +690,7 @@ export function finalizeStudioForDisk(
   }
   next = enrichStudioSatelliteClips(next);
 
+  syncStudioTimingToStoryboard(projDir, next);
   return saveTimelineStudio(projDir, next);
 }
 
