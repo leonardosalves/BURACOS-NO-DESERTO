@@ -63,11 +63,20 @@ ou copie nssm.exe para: $NssmExe
 }
 
 function Invoke-Nssm {
-    param([string[]]$Args)
-    & $NssmExe @Args
-    if ($LASTEXITCODE -ne 0) {
-        throw "NSSM falhou: nssm $($Args -join ' ')"
+    param(
+        [string[]]$NssmCommandArgs,
+        [switch]$AllowFailure
+    )
+    if (-not $NssmCommandArgs -or $NssmCommandArgs.Count -eq 0) {
+        throw "Invoke-Nssm chamado sem argumentos."
     }
+    $cmdLine = "nssm $($NssmCommandArgs -join ' ')"
+    & $NssmExe @NssmCommandArgs
+    $code = $LASTEXITCODE
+    if ($code -ne 0 -and -not $AllowFailure) {
+        throw "NSSM falhou (exit $code): $cmdLine"
+    }
+    return $code
 }
 
 function Test-Admin {
@@ -84,9 +93,9 @@ if (-not (Test-Admin)) {
 Ensure-Nssm
 
 if ($Uninstall) {
-    Invoke-Nssm @("stop", $ServiceName) 2>$null
+    Invoke-Nssm -NssmCommandArgs @("stop", $ServiceName) -AllowFailure | Out-Null
     Start-Sleep -Seconds 2
-    Invoke-Nssm @("remove", $ServiceName, "confirm")
+    Invoke-Nssm -NssmCommandArgs @("remove", $ServiceName, "confirm") -AllowFailure | Out-Null
     Remove-Item -LiteralPath (Join-Path $script:LogDir "windows-service.mode") -Force -ErrorAction SilentlyContinue
     Write-Host "Servico $ServiceName removido." -ForegroundColor Green
     exit 0
@@ -110,40 +119,53 @@ Unregister-ScheduledTask -TaskName "Lumiera-Backend-Watchdog" -Confirm:$false -E
 
 $existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if ($existing) {
-    Invoke-Nssm @("stop", $ServiceName) 2>$null
+    Write-Host "Removendo servico existente $ServiceName..." -ForegroundColor DarkGray
+    Invoke-Nssm -NssmCommandArgs @("stop", $ServiceName) -AllowFailure | Out-Null
     Start-Sleep -Seconds 2
-    Invoke-Nssm @("remove", $ServiceName, "confirm")
+    Invoke-Nssm -NssmCommandArgs @("remove", $ServiceName, "confirm") -AllowFailure | Out-Null
+    Start-Sleep -Seconds 1
 }
 
 $nodePath = Get-NodePath
 $serverJs = Join-Path $script:BackendDir "server.js"
 $stdout = Join-Path $script:LogDir "service-stdout.log"
 $stderr = Join-Path $script:LogDir "service-stderr.log"
+$appParams = '--max-old-space-size=4096 "{0}"' -f $serverJs
 
 Ensure-LumieraLogDir
 Initialize-LumieraBackendEnv
 
-Invoke-Nssm @("install", $ServiceName, $nodePath, "--max-old-space-size=4096", $serverJs)
-Invoke-Nssm @("set", $ServiceName, "AppDirectory", $script:BackendDir)
-Invoke-Nssm @("set", $ServiceName, "DisplayName", "Lumiera Backend (API + Dashboard)")
-Invoke-Nssm @("set", $ServiceName, "Description", "Lumiera Studio - Node.js uniport porta 3005")
-Invoke-Nssm @("set", $ServiceName, "Start", "SERVICE_AUTO_START")
-Invoke-Nssm @("set", $ServiceName, "AppStdout", $stdout)
-Invoke-Nssm @("set", $ServiceName, "AppStderr", $stderr)
-Invoke-Nssm @("set", $ServiceName, "AppStdoutCreationDisposition", "4")
-Invoke-Nssm @("set", $ServiceName, "AppStderrCreationDisposition", "4")
-Invoke-Nssm @("set", $ServiceName, "AppRotateFiles", "1")
-Invoke-Nssm @("set", $ServiceName, "AppRotateOnline", "1")
-Invoke-Nssm @("set", $ServiceName, "AppRotateBytes", "5242880")
-Invoke-Nssm @("set", $ServiceName, "AppExit", "Default", "Restart")
-Invoke-Nssm @("set", $ServiceName, "AppRestartDelay", "3000")
-Invoke-Nssm @("set", $ServiceName, "AppThrottle", "5000")
-
-if ($env:NOTEBOOKLM_MCP_CLI_PATH) {
-    Invoke-Nssm @("set", $ServiceName, "AppEnvironmentExtra", "NOTEBOOKLM_MCP_CLI_PATH=$($env:NOTEBOOKLM_MCP_CLI_PATH)")
+# Libera porta 3005 do node manual antes do servico assumir
+$manualPid = Get-BackendListenerPid
+if ($manualPid) {
+    Write-Host "Encerrando backend manual (PID $manualPid) para o servico assumir..." -ForegroundColor DarkGray
+    Stop-Process -Id $manualPid -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
 }
-if ($env:NLM_BIN) {
-    Invoke-Nssm @("set", $ServiceName, "AppEnvironmentExtra", "NLM_BIN=$($env:NLM_BIN)", "NOTEBOOKLM_MCP_CLI_PATH=$($env:NOTEBOOKLM_MCP_CLI_PATH)")
+
+Write-Host "Registrando servico $ServiceName..." -ForegroundColor Cyan
+Invoke-Nssm -NssmCommandArgs @("install", $ServiceName, $nodePath)
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppParameters", $appParams)
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppDirectory", $script:BackendDir)
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "DisplayName", "Lumiera Backend (API + Dashboard)")
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "Description", "Lumiera Studio - Node.js uniport porta 3005")
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "Start", "SERVICE_AUTO_START")
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppStdout", $stdout)
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppStderr", $stderr)
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppStdoutCreationDisposition", "4")
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppStderrCreationDisposition", "4")
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppRotateFiles", "1")
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppRotateOnline", "1")
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppRotateBytes", "5242880")
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppExit", "Default", "Restart")
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppRestartDelay", "3000")
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppThrottle", "5000")
+
+$envLines = @()
+if ($env:NOTEBOOKLM_MCP_CLI_PATH) { $envLines += "NOTEBOOKLM_MCP_CLI_PATH=$($env:NOTEBOOKLM_MCP_CLI_PATH)" }
+if ($env:NLM_BIN) { $envLines += "NLM_BIN=$($env:NLM_BIN)" }
+if ($envLines.Count -gt 0) {
+    Invoke-Nssm -NssmCommandArgs (@("set", $ServiceName, "AppEnvironmentExtra") + $envLines)
 }
 
 Set-Content -Path $script:UniportModeFile -Value ((Get-Date).ToString("o")) -Encoding UTF8
@@ -151,7 +173,7 @@ Set-Content -Path $script:StackModeFile -Value "service" -Encoding UTF8
 Set-Content -Path (Join-Path $script:LogDir "permanent.mode") -Value ((Get-Date).ToString("o")) -Encoding UTF8
 Set-Content -Path (Join-Path $script:LogDir "windows-service.mode") -Value ((Get-Date).ToString("o")) -Encoding UTF8
 
-Invoke-Nssm @("start", $ServiceName)
+Invoke-Nssm -NssmCommandArgs @("start", $ServiceName)
 Start-Sleep -Seconds 4
 
 $ok = $false
