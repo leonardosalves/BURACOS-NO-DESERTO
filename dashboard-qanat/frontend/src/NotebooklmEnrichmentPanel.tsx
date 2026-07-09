@@ -75,7 +75,11 @@ export function NotebooklmEnrichmentPanel({
       ? session.questions
       : latestAssistant?.questions || [];
   const readiness = session.readiness;
-  const ready = Boolean(readiness?.ready) && !session.awaitingUser;
+  const userTurns = (session.turns || []).filter(
+    (t) => t.role === "user"
+  ).length;
+  const ready =
+    (Boolean(readiness?.ready) && !session.awaitingUser) || userTurns >= 2;
 
   return (
     <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 p-4 space-y-4">
@@ -199,6 +203,14 @@ export function NotebooklmEnrichmentPanel({
         </button>
       </div>
 
+      {userTurns >= 1 && (
+        <p className="text-[10px] text-amber-200/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+          Quando tiver material suficiente, clique em{" "}
+          <strong>Prosseguir</strong> — não use &quot;Consultar NotebookLM&quot;
+          de novo (isso reinicia o painel).
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-zinc-900/60">
         <button
           type="button"
@@ -207,7 +219,7 @@ export function NotebooklmEnrichmentPanel({
             setProceeding(true);
             void onProceed().finally(() => setProceeding(false));
           }}
-          className="inline-flex items-center gap-2 bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-2.5 rounded-xl"
+          className="inline-flex items-center gap-2 bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-gold-500/20"
         >
           {proceeding ? (
             <Loader2 className="w-4 h-4 animate-spin" />
