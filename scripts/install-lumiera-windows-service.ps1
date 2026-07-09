@@ -161,11 +161,14 @@ Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppExit", "Default", "Resta
 Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppRestartDelay", "3000")
 Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppThrottle", "5000")
 
-$envLines = @()
-if ($env:NOTEBOOKLM_MCP_CLI_PATH) { $envLines += "NOTEBOOKLM_MCP_CLI_PATH=$($env:NOTEBOOKLM_MCP_CLI_PATH)" }
-if ($env:NLM_BIN) { $envLines += "NLM_BIN=$($env:NLM_BIN)" }
-if ($envLines.Count -gt 0) {
-    Invoke-Nssm -NssmCommandArgs (@("set", $ServiceName, "AppEnvironmentExtra") + $envLines)
+# NSSM: uma variavel por chamada (caminhos com espaco precisam de aspas no valor)
+if ($env:NOTEBOOKLM_MCP_CLI_PATH) {
+    $nbVal = 'NOTEBOOKLM_MCP_CLI_PATH="{0}"' -f $env:NOTEBOOKLM_MCP_CLI_PATH
+    Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppEnvironmentExtra", $nbVal)
+}
+if ($env:NLM_BIN) {
+    $nlmVal = 'NLM_BIN="{0}"' -f $env:NLM_BIN
+    Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppEnvironmentExtra", $nlmVal)
 }
 
 Set-Content -Path $script:UniportModeFile -Value ((Get-Date).ToString("o")) -Encoding UTF8
