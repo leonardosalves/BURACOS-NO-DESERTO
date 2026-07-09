@@ -352,6 +352,24 @@ export function purgeLegacySeedTemplatesFromCatalogFile() {
   };
 }
 
+/** Remove nichos de teste que poluem o catalogo de producao. */
+export function purgeTestNichesFromCatalogFile() {
+  const catalog = readCatalogFile();
+  if (!catalog.niches) return { removed: 0, niches: [] };
+  const removed = [];
+  for (const key of Object.keys(catalog.niches)) {
+    if (/^__/.test(key)) {
+      delete catalog.niches[key];
+      removed.push(key);
+    }
+  }
+  if (removed.length) {
+    catalog.updated_at = new Date().toISOString();
+    writeCatalogFile(catalog);
+  }
+  return { removed: removed.length, niches: removed };
+}
+
 /** Remove do JSON entradas sem TSX Remotion executavel (sync antigo so com metadados). */
 export function pruneCatalogEntriesWithoutSource() {
   const catalog = readCatalogFile();

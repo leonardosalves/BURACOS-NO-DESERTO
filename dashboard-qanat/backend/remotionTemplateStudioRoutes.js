@@ -5,6 +5,7 @@ import {
   listCatalogNiches,
   pruneCatalogEntriesWithoutSource,
   purgeLegacySeedTemplatesFromCatalogFile,
+  purgeTestNichesFromCatalogFile,
   syncCatalogForNiche,
 } from "./remotionTemplateCatalogService.js";
 import {
@@ -95,6 +96,7 @@ export function registerRemotionTemplateStudioRoutes(
   app.post("/api/ai/assistir-ia", (req, res) => handleAdapt(req, res, deps));
 
   purgeLegacySeedTemplatesFromCatalogFile();
+  purgeTestNichesFromCatalogFile();
   pruneCatalogEntriesWithoutSource();
 
   app.get("/api/ai/template-studio/catalog/niches", (_req, res) => {
