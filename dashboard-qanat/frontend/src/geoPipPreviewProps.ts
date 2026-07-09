@@ -33,10 +33,11 @@ export function mergeGeoPipPreviewProps(
     flyoverDurationSec: clipDurationSec,
   });
 
-  const pipMediaUrl =
-    flyoverRaw && getAssetUrl
-      ? resolveMediaUrl(flyoverRaw, getAssetUrl)
-      : bound.pipMediaUrl;
+  const pipMediaUrl = bound.pipMediaUrl
+    ? getAssetUrl
+      ? resolveMediaUrl(bound.pipMediaUrl, getAssetUrl)
+      : bound.pipMediaUrl
+    : "";
 
   return {
     ...base,

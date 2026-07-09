@@ -271,6 +271,7 @@ export function TimelineStudioPreview({
     const now = performance.now();
     if (
       force ||
+      playingRef.current ||
       now - lastMotionPublishRef.current >= MOTION_SCRUB_MS ||
       Math.abs(t - prev) > 0.35
     ) {

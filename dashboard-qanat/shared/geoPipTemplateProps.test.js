@@ -7,6 +7,7 @@ import {
   mapGeoPipFlyoverToTemplateRenderProps,
   resolveGeoPipClipDurationSec,
   resolveGeoPipPreviewScrubSec,
+  resolveGeoPipFlyoverVideoScrubSec,
   resolveGeoPipTimelineDurationSec,
   resolvePipMediaUrl,
 } from "./geoPipTemplateProps.js";
@@ -70,6 +71,23 @@ describe("geoPipTemplateProps", () => {
         },
       }),
       10
+    );
+  });
+
+  it("resolveGeoPipFlyoverVideoScrubSec avanca 1:1 com o playhead", () => {
+    assert.equal(
+      resolveGeoPipFlyoverVideoScrubSec(
+        {
+          start: 11.4,
+          duration: 10,
+          props: {
+            flyover_duration_sec: 10,
+            flyover_video: "ASSETS/a.mp4",
+          },
+        },
+        15.4
+      ),
+      4
     );
   });
 

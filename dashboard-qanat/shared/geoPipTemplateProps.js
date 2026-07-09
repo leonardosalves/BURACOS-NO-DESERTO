@@ -235,6 +235,14 @@ export function resolveGeoPipTimelineDurationSec(clip = {}) {
   return Math.max(0.5, timeline || 4);
 }
 
+/** Scrub 1:1 do MP4 flyover — HTML video nativo (sem seek por frame do Remotion). */
+export function resolveGeoPipFlyoverVideoScrubSec(clip = {}, playhead = 0) {
+  const flyoverDur = resolveGeoPipFlyoverDurationSec(clip);
+  const start = Number(clip.start) || 0;
+  const local = Math.max(0, Number(playhead) - start);
+  return Math.min(Math.max(0, flyoverDur - 0.04), local);
+}
+
 /**
  * Segundos locais no preview: animação segue o clip na timeline;
  * o flyover é distribuído linearmente ao longo dessa duração.
