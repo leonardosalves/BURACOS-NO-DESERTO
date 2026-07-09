@@ -10,6 +10,14 @@ export function hasRunnableStudioSource(sourceCode = null) {
 }
 
 export function mapStudioTemplateToMotionId(template = {}) {
+  const category = String(template.category || "")
+    .trim()
+    .toLowerCase();
+  if (category === "transition" || category === "background") {
+    return "counter";
+  }
+  if (category === "logo-branding") return "lower-third";
+
   const haystack = [
     template.name,
     template.category,
@@ -21,6 +29,9 @@ export function mapStudioTemplateToMotionId(template = {}) {
     .join(" ")
     .toLowerCase();
 
+  if (/transition|wipe|dissolve|fade/.test(haystack)) return "counter";
+  if (/background|backdrop|pattern|frame/.test(haystack)) return "counter";
+  if (/logo|bug|watermark|branding/.test(haystack)) return "lower-third";
   if (/lower/.test(haystack)) return "lower-third";
   if (/timeline|cronolog|process|roadmap|steps/.test(haystack))
     return "timeline";
