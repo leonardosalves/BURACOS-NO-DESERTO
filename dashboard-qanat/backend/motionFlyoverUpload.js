@@ -11,6 +11,7 @@ import {
   saveTimelineStudio,
 } from "./timelineStudioMigration.js";
 import { studioMotionClipToMotionScene } from "./timelineStudioNichePacks.js";
+import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".m4v", ".mkv"]);
@@ -152,6 +153,84 @@ export function patchStudioClipFlyover(studio, motionId, relPath) {
     };
   });
   return touched ? { ...studio, clips } : studio;
+}
+
+/** Grava clip motion + motion_scene no disco antes do upload de flyover. */
+export function ensureMotionClipForProject(projDir, clip = {}) {
+  const clipId = String(clip.id || "").trim();
+  if (!clipId) {
+    throw new Error("clip.id é obrigatório para vincular vídeo geo.");
+  }
+
+  const config = readJsonSafe(path.join(projDir, "config_qanat.json"), {});
+  const aspectRatio = String(
+    config.aspect_ratio || clip.props?.aspect_ratio || "16:9"
+  ).trim();
+  const isShort = aspectRatio === "9:16";
+
+  const { studio: rawStudio } = loadTimelineStudio(projDir);
+  let clips = Array.isArray(rawStudio.clips) ? [...rawStudio.clips] : [];
+
+  if (isShort) {
+    clips = clips.filter(
+      (c) =>
+        c.trackId !== MOTION_TRACK_ID || String(c?.id || "").trim() === clipId
+    );
+  }
+
+  const normalized = {
+    ...clip,
+    id: clipId,
+    trackId: clip.trackId || MOTION_TRACK_ID,
+    motionScene: clip.motionScene !== false,
+    motionScenePrimary: clip.motionScenePrimary !== false,
+    props: {
+      ...(clip.props || {}),
+      motion_scene: clip.props?.motion_scene !== false,
+      manual_studio_insert: true,
+      studio_user_locked: true,
+    },
+  };
+
+  const idx = clips.findIndex((c) => String(c?.id || "").trim() === clipId);
+  if (idx >= 0) {
+    clips[idx] = { ...clips[idx], ...normalized };
+  } else {
+    clips.push(normalized);
+  }
+
+  let totalDuration = Number(rawStudio.totalDuration) || 120;
+  for (const c of clips) {
+    const end = (Number(c.start) || 0) + (Number(c.duration) || 0);
+    if (end > totalDuration) totalDuration = end;
+  }
+
+  let studio = {
+    ...rawStudio,
+    clips,
+    totalDuration,
+    updatedAt: new Date().toISOString(),
+  };
+  studio = upsertMusicClipInStudio(studio, config, projDir);
+
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  const storyboard = readJsonSafe(storyboardPath, {});
+  const motionScene = studioMotionClipToMotionScene(normalized);
+  if (isShort) {
+    storyboard.motion_scenes = [motionScene];
+  } else {
+    const existing = Array.isArray(storyboard.motion_scenes)
+      ? storyboard.motion_scenes
+      : [];
+    storyboard.motion_scenes = [
+      ...existing.filter((ms) => String(ms?.id || "").trim() !== clipId),
+      motionScene,
+    ];
+  }
+  fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+
+  const savedStudio = saveTimelineStudio(projDir, studio);
+  return { studio: savedStudio, motion_scene: motionScene };
 }
 
 function persistFlyoverToProject(projDir, motionId, relPath) {
