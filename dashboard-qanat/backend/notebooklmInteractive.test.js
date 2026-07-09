@@ -5,6 +5,7 @@ import {
   isNotebooklmAwaitingUser,
   assessNotebooklmReadiness,
   buildNotebooklmSessionFromResearch,
+  replyNotebooklmSession,
 } from "./notebooklmInteractive.js";
 
 describe("notebooklmInteractive", () => {
@@ -60,6 +61,64 @@ Você gostaria que eu fizesse essa pesquisa na web agora?`;
       accumulatedSummary: "Fatos sobre cabos submarinos e fibra otica.",
     });
     assert.equal(readiness.ready, true);
+  });
+
+  it("sim para narração não dispara pesquisa web de novo", async () => {
+    const session = {
+      niche: "Cabos submarinos",
+      format: "SHORTS",
+      notebookId: "nb-1",
+      researchDone: true,
+      questions: ["Você quer que eu gere a narração de 60 segundos agora?"],
+      turns: [
+        {
+          role: "assistant",
+          content: "Fatos sobre cabos.",
+          questions: [],
+        },
+      ],
+      accumulatedSummary: "Fatos sobre cabos.",
+      status: "pending_user",
+      awaitingUser: true,
+    };
+    let researchCalled = false;
+    const result = await replyNotebooklmSession({
+      session,
+      userReply: "Sim",
+      backendDir: "/tmp",
+      queryNotebook: async () => "não deveria consultar",
+      runResearch: async () => {
+        researchCalled = true;
+      },
+    });
+    assert.equal(researchCalled, false);
+    assert.equal(result.suggestProceed, true);
+    assert.equal(result.session.awaitingUser, false);
+  });
+
+  it("sim para pesquisa web dispara runResearch quando ainda não feita", async () => {
+    const session = {
+      niche: "Cabos",
+      format: "SHORTS",
+      notebookId: "nb-2",
+      researchDone: false,
+      questions: ["Você gostaria que eu fizesse essa pesquisa na web agora?"],
+      turns: [{ role: "assistant", content: "Poucas fontes." }],
+      status: "pending_user",
+      awaitingUser: true,
+      initialQuestion: "fatos sobre cabos",
+    };
+    let researchCalled = false;
+    await replyNotebooklmSession({
+      session,
+      userReply: "Sim",
+      backendDir: "/tmp",
+      queryNotebook: async () => "1. Fato A\n2. Fato B",
+      runResearch: async () => {
+        researchCalled = true;
+      },
+    });
+    assert.equal(researchCalled, true);
   });
 
   it("libera prosseguir com material factual acumulado", () => {

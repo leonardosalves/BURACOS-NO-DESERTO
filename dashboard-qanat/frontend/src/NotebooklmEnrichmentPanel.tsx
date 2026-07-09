@@ -15,6 +15,11 @@ export type NotebooklmTurn = {
   at?: string;
 };
 
+export type NotebooklmPipelineStep = {
+  id: string;
+  label: string;
+};
+
 export type NotebooklmBriefInfo = {
   path?: string;
   status?: string;
@@ -23,6 +28,8 @@ export type NotebooklmBriefInfo = {
   location_count?: number;
   char_count?: number;
   markdown_preview?: string;
+  checklist?: Record<string, boolean | number>;
+  pipeline_steps?: NotebooklmPipelineStep[];
 };
 
 export type NotebooklmSession = {
@@ -140,6 +147,46 @@ export function NotebooklmEnrichmentPanel({
 
       {readiness?.reason && (
         <p className="text-[10px] text-zinc-500">{readiness.reason}</p>
+      )}
+
+      {(brief?.pipeline_steps?.length ?? 0) > 0 && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+            Checklist do brief MD
+          </p>
+          <ul className="space-y-1.5">
+            {brief?.pipeline_steps?.map((step) => {
+              const done = Boolean(brief?.checklist?.[step.id]);
+              const turnNote =
+                step.id === "editor_respondeu" &&
+                Number(brief?.checklist?.editor_turns) > 0
+                  ? ` (${brief?.checklist?.editor_turns})`
+                  : "";
+              return (
+                <li
+                  key={step.id}
+                  className={`flex items-center gap-2 text-[11px] ${
+                    done ? "text-emerald-300" : "text-zinc-500"
+                  }`}
+                >
+                  <span
+                    className={`inline-flex h-4 w-4 items-center justify-center rounded border text-[9px] font-bold ${
+                      done
+                        ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-200"
+                        : "border-zinc-700 bg-zinc-900 text-zinc-600"
+                    }`}
+                  >
+                    {done ? "✓" : ""}
+                  </span>
+                  <span>
+                    {step.label}
+                    {turnNote}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
 
       {(brief?.fact_count ?? 0) > 0 && (

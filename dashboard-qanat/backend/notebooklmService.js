@@ -17,7 +17,10 @@ import {
   formatNotebooklmBriefPromptBlock,
   shouldSkipWebResearchForBrief,
   mergeBriefIntoStoryboard,
+  hasNotebooklmProgress,
+  parsePipelineChecklist,
   NOTEBOOKLM_BRIEF_FILENAME,
+  NOTEBOOKLM_PIPELINE_STEPS,
 } from "./notebooklmResearchBrief.js";
 
 export {
@@ -25,7 +28,10 @@ export {
   formatNotebooklmBriefPromptBlock,
   shouldSkipWebResearchForBrief,
   mergeBriefIntoStoryboard,
+  hasNotebooklmProgress,
+  parsePipelineChecklist,
   NOTEBOOKLM_BRIEF_FILENAME,
+  NOTEBOOKLM_PIPELINE_STEPS,
 };
 
 export {
@@ -894,6 +900,18 @@ export function shouldPauseNotebooklmNarration(
   );
 }
 
+export function shouldClearNotebooklmArtifacts(
+  projDir,
+  backendDir,
+  niche,
+  { force = false } = {}
+) {
+  if (force) return true;
+  const session = loadNotebooklmSession({ projDir, backendDir, niche });
+  const brief = projDir ? loadNotebooklmBrief(projDir) : null;
+  return !hasNotebooklmProgress(session, brief);
+}
+
 export function clearNotebooklmProjectArtifacts(projDir, backendDir, niche) {
   if (projDir) {
     const sessionPath = path.join(projDir, "notebooklm_session.json");
@@ -1078,7 +1096,7 @@ export async function handleNotebooklmSessionReply({
     );
   }
 
-  const { session: next } = await replyNotebooklmSession({
+  const { session: next, suggestProceed } = await replyNotebooklmSession({
     session,
     userReply,
     backendDir,
@@ -1096,7 +1114,7 @@ export async function handleNotebooklmSessionReply({
       format: next.format,
     });
   }
-  return next;
+  return { session: next, suggestProceed: Boolean(suggestProceed) };
 }
 
 function persistNotebooklmSessionBundle(

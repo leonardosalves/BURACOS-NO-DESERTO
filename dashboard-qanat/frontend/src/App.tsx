@@ -8148,7 +8148,17 @@ export default function App() {
         notebooklmSession.status === "pending_user" ||
         ((notebooklmSession.turns?.length ?? 0) > 0 &&
           notebooklmSession.status !== "finalized"));
-    if (useNotebooklm && !payloadSkipNlm && !nlmInProgress) {
+    const briefHasProgress = Boolean(
+      notebooklmBrief?.checklist?.discovery_iniciado ||
+      notebooklmBrief?.checklist?.editor_respondeu ||
+      (notebooklmBrief?.fact_count ?? 0) > 0
+    );
+    if (
+      useNotebooklm &&
+      !payloadSkipNlm &&
+      !nlmInProgress &&
+      !briefHasProgress
+    ) {
       setNotebooklmSession(null);
       setNotebooklmBrief(null);
       try {
@@ -8516,11 +8526,23 @@ export default function App() {
   const handleGenerateNarration = async () => {
     if (!validateCreatorScriptInputs()) return;
 
+    const nlmUserTurns = (notebooklmSession?.turns || []).filter(
+      (t) => t.role === "user"
+    ).length;
     const nlmPending =
       notebooklmSession &&
       (notebooklmSession.awaitingUser ||
         notebooklmSession.status === "pending_user");
-    if (nlmPending) {
+    const nlmReadyToProceed =
+      notebooklmSession &&
+      !notebooklmSession.awaitingUser &&
+      (notebooklmSession.status === "ready" ||
+        notebooklmSession.readiness?.ready) &&
+      nlmUserTurns > 0;
+    const briefReady =
+      Boolean(notebooklmBrief?.checklist?.editor_respondeu) &&
+      !notebooklmSession?.awaitingUser;
+    if (nlmPending || nlmReadyToProceed || briefReady) {
       toast("Prosseguindo com o material do NotebookLM — gerando narração…", {
         icon: "✨",
         duration: 6000,
@@ -8594,6 +8616,7 @@ export default function App() {
               ok?: boolean;
               session?: NotebooklmSession;
               brief?: NotebooklmBriefInfo;
+              suggest_proceed?: boolean;
               error?: string;
             })
           : started;
@@ -8606,12 +8629,24 @@ export default function App() {
       if (data.brief) setNotebooklmBrief(data.brief as NotebooklmBriefInfo);
       else await fetchNotebooklmBrief();
       const session = data.session as NotebooklmSession | undefined;
+      const suggestProceed = Boolean(
+        (data as { suggest_proceed?: boolean }).suggest_proceed
+      );
       stopAiJobProgress(
         true,
         session?.awaitingUser
           ? "NotebookLM · aguardando sua resposta"
-          : "NotebookLM · resposta processada"
+          : suggestProceed
+            ? "NotebookLM · pronto para narração"
+            : "NotebookLM · resposta processada"
       );
+      if (suggestProceed) {
+        toast.success("Confirmado — gerando narração a partir do brief MD…", {
+          duration: 5000,
+        });
+        await handleNotebooklmProceed();
+        return;
+      }
       if (session?.readiness?.ready && !session?.awaitingUser) {
         toast.success(
           "Material suficiente — pode prosseguir com roteiro/narração."
