@@ -14,6 +14,7 @@ import {
   validateFinalTemplateCode,
   validateOriginalTemplateCode,
 } from "../shared/remotionTemplateStudioValidate.js";
+import { buildEngenhariaSeedTemplates } from "../shared/remotionTemplateEngenhariaSeed.js";
 
 function normalizeAdaptBody(body = {}) {
   return {
@@ -100,6 +101,12 @@ export function registerRemotionTemplateStudioRoutes(
   purgeLegacySeedTemplatesFromCatalogFile();
   purgeTestNichesFromCatalogFile();
   pruneCatalogEntriesWithoutSource();
+
+  const engSnapshot = getCatalogForNiche("Engenharia");
+  if (engSnapshot.templates.length < 10) {
+    const { templates } = buildEngenhariaSeedTemplates("Engenharia");
+    syncCatalogForNiche("Engenharia", templates);
+  }
 
   app.get("/api/ai/template-studio/catalog/niches", (_req, res) => {
     res.setHeader("Content-Type", "application/json; charset=utf-8");

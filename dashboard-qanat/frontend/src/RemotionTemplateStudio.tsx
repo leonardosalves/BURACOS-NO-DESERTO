@@ -2615,9 +2615,6 @@ function TemplatePreviewSlot({
     format === "9:16" ? template.sourceCode.short : template.sourceCode.long;
   const variant = effectivePreviewVariant(format, template);
   const previewProps = buildPreviewPropsFromTemplate(template);
-  const expectsLivePreview =
-    /\bexport\s+default\s+function\b/.test(source) &&
-    /\bexport\s+const\s+exampleProps\b/.test(source);
   const mockPreview = (
     <PreviewFrame
       format={format}
@@ -2627,6 +2624,15 @@ function TemplatePreviewSlot({
       autoPlay={autoPlay}
     />
   );
+
+  // Galeria: mock animado — dezenas de Players Remotion derrubam a aba.
+  if (size === "card") {
+    return mockPreview;
+  }
+
+  const expectsLivePreview =
+    /\bexport\s+default\s+function\b/.test(source) &&
+    /\bexport\s+const\s+exampleProps\b/.test(source);
 
   return (
     <SavedTemplatePreviewFrame
@@ -3047,10 +3053,38 @@ export function RemotionTemplateStudio({
         deleted
       );
       setTemplates(merged);
-      const synced = await pushAllTemplatesToServer(merged);
-      if (alive && synced > 0) {
+      const mergedForNiche = merged.filter((tpl) =>
+        matchesStudioNiche(tpl.niche, niche)
+      );
+      const firstWithTemplates = syncCategoriesFromTemplates(
+        mergeCategoryCatalog(readStoredCategoriesRaw()),
+        mergedForNiche
+      ).find((cat) => mergedForNiche.some((tpl) => tpl.category === cat.id));
+      if (alive) {
+        setCategories(
+          syncCategoriesFromTemplates(
+            mergeCategoryCatalog(readStoredCategoriesRaw()),
+            mergedForNiche
+          )
+        );
+        if (firstWithTemplates) {
+          setCategory(firstWithTemplates.id);
+          const firstSub =
+            firstWithTemplates.subcategories.find((sub) =>
+              mergedForNiche.some(
+                (tpl) =>
+                  tpl.category === firstWithTemplates.id &&
+                  tpl.subcategory === sub
+              )
+            ) ||
+            firstWithTemplates.subcategories[0] ||
+            "";
+          setSubcategory(firstSub);
+        }
+      }
+      if (alive && allFromApi.length > 0) {
         setCatalogSyncNote(
-          `${synced} template${synced === 1 ? "" : "s"} sincronizado${synced === 1 ? "" : "s"} no servidor.`
+          `${allFromApi.length} template${allFromApi.length === 1 ? "" : "s"} carregado${allFromApi.length === 1 ? "" : "s"} do servidor.`
         );
       }
       if (!alive) return;
@@ -3828,12 +3862,14 @@ export function RemotionTemplateStudio({
                       <TemplatePreviewSlot
                         template={template}
                         format="9:16"
-                        autoPlay
+                        size="card"
+                        autoPlay={false}
                       />
                       <TemplatePreviewSlot
                         template={template}
                         format="16:9"
-                        autoPlay
+                        size="card"
+                        autoPlay={false}
                       />
                     </div>
                     <div className="p-4">

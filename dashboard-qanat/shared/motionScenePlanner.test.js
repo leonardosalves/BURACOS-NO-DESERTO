@@ -1,5 +1,8 @@
-import { describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import fs from "fs";
+import os from "os";
+import path from "path";
 import {
   classifyNarrationSegment,
   planMotionScenesFromStoryboard,
@@ -22,6 +25,24 @@ export default function BridgeCounter() {
 }`;
 
 const BRIDGE_NICHE = "__test_motion_planner_bridge__";
+const TEST_CATALOG_PATH = path.join(
+  os.tmpdir(),
+  `lumiera-motion-planner-catalog-${process.pid}.json`
+);
+
+before(() => {
+  process.env.LUMIERA_TEMPLATE_CATALOG_PATH = TEST_CATALOG_PATH;
+  fs.writeFileSync(TEST_CATALOG_PATH, JSON.stringify({ niches: {} }), "utf8");
+});
+
+after(() => {
+  delete process.env.LUMIERA_TEMPLATE_CATALOG_PATH;
+  try {
+    fs.unlinkSync(TEST_CATALOG_PATH);
+  } catch {
+    /* ignore */
+  }
+});
 
 describe("motionScenePlanner", () => {
   it("detecta estatística com porcentagem", () => {
