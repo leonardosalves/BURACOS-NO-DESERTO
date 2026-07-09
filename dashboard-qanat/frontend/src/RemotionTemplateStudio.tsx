@@ -1022,6 +1022,25 @@ function purgeLegacyTemplatesFromList(templates: TemplateItem[]) {
   return templates.filter((tpl) => !isLegacySeedTemplateId(tpl.id));
 }
 
+function matchesStudioNiche(templateNiche = "", activeNiche = "") {
+  const tpl = String(templateNiche || "")
+    .trim()
+    .toLowerCase();
+  const active = String(activeNiche || "")
+    .trim()
+    .toLowerCase();
+  if (!active) return true;
+  if (!tpl) return true;
+  return tpl === active;
+}
+
+function normalizeTemplateNicheOnLoad(template: TemplateItem): TemplateItem {
+  return {
+    ...template,
+    niche: normalizeNicheLabel(template.niche || "") || template.niche,
+  };
+}
+
 function migrateLegacySeedTemplates() {
   if (typeof window === "undefined") return;
   try {
@@ -1064,7 +1083,9 @@ function loadStoredTemplates() {
     return Array.isArray(parsed)
       ? filterDeletedTemplates(
           purgeLegacyTemplatesFromList(
-            (parsed as TemplateItem[]).map(normalizeTemplatePreviewVariants)
+            (parsed as TemplateItem[])
+              .map(normalizeTemplatePreviewVariants)
+              .map(normalizeTemplateNicheOnLoad)
           ),
           deleted
         )
@@ -2946,16 +2967,25 @@ export function RemotionTemplateStudio({
   );
   const canSaveDraft =
     finalValidation.ok && Boolean(sanitizedFinalCodeDraft.trim());
-  const visibleTemplates = useMemo(
-    () =>
-      templates.filter(
-        (t) =>
-          t.niche === niche &&
-          t.category === category &&
-          (!subcategory || t.subcategory === subcategory)
-      ),
-    [category, niche, subcategory, templates]
+  const nicheTemplates = useMemo(
+    () => templates.filter((t) => matchesStudioNiche(t.niche, niche)),
+    [niche, templates]
   );
+  const categoryTemplates = useMemo(
+    () => nicheTemplates.filter((t) => t.category === category),
+    [category, nicheTemplates]
+  );
+  const showingCategoryFallback = useMemo(() => {
+    if (!subcategory || !categoryTemplates.length) return false;
+    return !categoryTemplates.some((t) => t.subcategory === subcategory);
+  }, [categoryTemplates, subcategory]);
+  const visibleTemplates = useMemo(() => {
+    if (!subcategory) return categoryTemplates;
+    const matched = categoryTemplates.filter(
+      (t) => t.subcategory === subcategory
+    );
+    return matched.length ? matched : categoryTemplates;
+  }, [categoryTemplates, subcategory]);
   const detailTemplate = visibleTemplates.find(
     (t) => t.id === detailTemplateId
   );
@@ -3336,7 +3366,13 @@ export function RemotionTemplateStudio({
                 </button>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-zinc-600">
-                    {item.subcategories.length}
+                    {
+                      templates.filter(
+                        (tpl) =>
+                          matchesStudioNiche(tpl.niche, niche) &&
+                          tpl.category === item.id
+                      ).length
+                    }
                   </span>
                   <button
                     type="button"
@@ -3419,96 +3455,119 @@ export function RemotionTemplateStudio({
               }
             />
           ) : (
-            <div className="grid gap-4 p-4 2xl:grid-cols-2">
-              {visibleTemplates.map((template) => (
-                <article
-                  key={template.id}
-                  onClick={() => {
-                    setSelectedId(template.id);
-                    setDetailTemplateId(template.id);
-                    setDetailTab("preview");
-                    setDetailFormat("short");
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
+            <div className="p-4 space-y-3">
+              {showingCategoryFallback ? (
+                <p className="text-[11px] text-amber-200/80">
+                  Nenhum template em &quot;{subcategory}&quot;. Mostrando os{" "}
+                  {categoryTemplates.length} da categoria{" "}
+                  {currentCategory?.label}.
+                </p>
+              ) : null}
+              <div className="grid gap-4 2xl:grid-cols-2">
+                {visibleTemplates.map((template) => (
+                  <article
+                    key={template.id}
+                    onClick={() => {
                       setSelectedId(template.id);
                       setDetailTemplateId(template.id);
                       setDetailTab("preview");
                       setDetailFormat("short");
-                    }
-                  }}
-                  tabIndex={0}
-                  className={`overflow-hidden rounded-lg border bg-[#111722] text-left shadow-xl shadow-black/20 ${
-                    selected?.id === template.id
-                      ? "border-cyan-300/70"
-                      : "border-white/10"
-                  }`}
-                >
-                  <div className="flex gap-3 border-b border-white/10 bg-[#0c121d] p-3">
-                    <TemplatePreviewSlot
-                      template={template}
-                      format="9:16"
-                      autoPlay
-                    />
-                    <TemplatePreviewSlot
-                      template={template}
-                      format="16:9"
-                      autoPlay
-                    />
-                  </div>
-                  <div className="p-4">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <h3 className="text-base font-black text-white">
-                        {template.name}
-                      </h3>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                            template.status === "approved"
-                              ? "bg-emerald-400/12 text-emerald-300"
-                              : "bg-amber-300/12 text-amber-200"
-                          }`}
-                        >
-                          <BadgeCheck className="h-3 w-3" />
-                          {template.status === "approved"
-                            ? "Aprovado"
-                            : "Rascunho"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            deleteTemplate(template.id);
-                          }}
-                          className="grid h-7 w-7 place-items-center rounded-md border border-red-400/20 bg-red-500/10 text-red-200 hover:border-red-300/60 hover:bg-red-500/20"
-                          title="Excluir template"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedId(template.id);
+                        setDetailTemplateId(template.id);
+                        setDetailTab("preview");
+                        setDetailFormat("short");
+                      }
+                    }}
+                    tabIndex={0}
+                    className={`overflow-hidden rounded-lg border bg-[#111722] text-left shadow-xl shadow-black/20 ${
+                      selected?.id === template.id
+                        ? "border-cyan-300/70"
+                        : "border-white/10"
+                    }`}
+                  >
+                    <div className="flex gap-3 border-b border-white/10 bg-[#0c121d] p-3">
+                      <TemplatePreviewSlot
+                        template={template}
+                        format="9:16"
+                        autoPlay
+                      />
+                      <TemplatePreviewSlot
+                        template={template}
+                        format="16:9"
+                        autoPlay
+                      />
+                    </div>
+                    <div className="p-4">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <h3 className="text-base font-black text-white">
+                          {template.name}
+                        </h3>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                              template.status === "approved"
+                                ? "bg-emerald-400/12 text-emerald-300"
+                                : "bg-amber-300/12 text-amber-200"
+                            }`}
+                          >
+                            <BadgeCheck className="h-3 w-3" />
+                            {template.status === "approved"
+                              ? "Aprovado"
+                              : "Rascunho"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              deleteTemplate(template.id);
+                            }}
+                            className="grid h-7 w-7 place-items-center rounded-md border border-red-400/20 bg-red-500/10 text-red-200 hover:border-red-300/60 hover:bg-red-500/20"
+                            title="Excluir template"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="min-h-[38px] text-sm leading-relaxed text-zinc-400">
+                        {template.description}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {template.dataSlots.map((slot) => (
+                          <span
+                            key={slot}
+                            className="rounded bg-white/[0.06] px-2 py-1 text-[10px] font-bold text-zinc-300"
+                          >
+                            {slot}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                    <p className="min-h-[38px] text-sm leading-relaxed text-zinc-400">
-                      {template.description}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {template.dataSlots.map((slot) => (
-                        <span
-                          key={slot}
-                          className="rounded bg-white/[0.06] px-2 py-1 text-[10px] font-bold text-zinc-300"
-                        >
-                          {slot}
-                        </span>
-                      ))}
-                    </div>
+                  </article>
+                ))}
+                {!visibleTemplates.length && (
+                  <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-zinc-500 space-y-2">
+                    <p>Nenhum template nesta combinacao ainda.</p>
+                    {nicheTemplates.length > 0 ? (
+                      <p className="text-xs text-zinc-600">
+                        Voce tem {nicheTemplates.length} template
+                        {nicheTemplates.length === 1 ? "" : "s"} no nicho{" "}
+                        {niche}. Troque a categoria na barra lateral (ex. Chart
+                        Data, Text, Frame) — nao apenas Logo e Branding.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-zinc-600">
+                        Os templates ficam salvos neste navegador
+                        (localStorage). Se a lista estiver vazia em todas as
+                        categorias, crie um novo draft pelo painel da direita.
+                      </p>
+                    )}
                   </div>
-                </article>
-              ))}
-              {!visibleTemplates.length && (
-                <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-zinc-500">
-                  Nenhum template aprovado nessa combinacao ainda.
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </main>
