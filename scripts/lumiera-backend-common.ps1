@@ -237,10 +237,10 @@ function Get-LumieraDashboardUrl {
 }
 
 function Get-LumieraPort5176CommandLine {
-    param([int]$Pid)
-    if ($Pid -le 0) { return $null }
+    param([int]$ProcessId)
+    if ($ProcessId -le 0) { return $null }
     try {
-        $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$Pid" -ErrorAction Stop
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction Stop
         return $proc.CommandLine
     } catch {
         return $null
