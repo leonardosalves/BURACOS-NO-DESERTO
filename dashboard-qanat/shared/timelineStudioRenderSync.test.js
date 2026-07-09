@@ -7,6 +7,8 @@ import {
   buildOverlaysFromStudio,
   buildScenesFromStudio,
   copyMotionPropsAssets,
+  resolveScenesTimelineEnd,
+  resolveStudioTotalDuration,
 } from "../backend/timelineStudioRenderSync.js";
 import { mergeMissingBrollFromConfig } from "../backend/timelineStudioMigration.js";
 
@@ -191,6 +193,16 @@ describe("timelineStudioRenderSync", () => {
     assert.equal(overlays.length, 1);
     assert.equal(overlays[0].props.template_studio_id, "studio-bar-1");
     assert.ok(overlays[0].props.studio_source_code);
+  });
+
+  it("resolveStudioTotalDuration inclui cena de logo outro", () => {
+    const studio = { totalDuration: 120 };
+    const scenes = [
+      { start: 0, duration: 118 },
+      { start: 120, duration: 4.5, asset: "logo_final_x.png" },
+    ];
+    assert.equal(resolveScenesTimelineEnd(scenes), 124.5);
+    assert.equal(resolveStudioTotalDuration(studio, scenes, 118, 0.25), 124.75);
   });
 
   it("mergeMissingBrollFromConfig restaura assets ausentes sem duplicar", () => {

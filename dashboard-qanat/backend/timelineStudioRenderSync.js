@@ -283,20 +283,25 @@ export function buildCaptionsFromStudio(studio) {
     .filter(Boolean);
 }
 
-export function resolveStudioTotalDuration(
-  studio,
-  scenes,
-  narrationDuration = 0
-) {
-  const fromStudio = Number(studio?.totalDuration);
-  const fromScenes = scenes.reduce(
+export function resolveScenesTimelineEnd(scenes = []) {
+  return (Array.isArray(scenes) ? scenes : []).reduce(
     (max, s) =>
       Math.max(max, (Number(s.start) || 0) + (Number(s.duration) || 0)),
     0
   );
+}
+
+export function resolveStudioTotalDuration(
+  studio,
+  scenes,
+  narrationDuration = 0,
+  extraTailSec = 0
+) {
+  const fromStudio = Number(studio?.totalDuration);
+  const fromScenes = resolveScenesTimelineEnd(scenes);
   return Math.max(
     Number.isFinite(fromStudio) && fromStudio > 0 ? fromStudio : 0,
-    fromScenes,
+    fromScenes + Math.max(0, Number(extraTailSec) || 0),
     Number(narrationDuration) || 0,
     1
   );
