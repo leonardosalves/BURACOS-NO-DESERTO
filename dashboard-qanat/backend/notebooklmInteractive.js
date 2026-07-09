@@ -200,7 +200,7 @@ export function buildNotebooklmSessionFromResearch({
   return session;
 }
 
-function userWantsResearch(reply = "") {
+function userAffirms(reply = "") {
   return /^(sim|s|yes|pode|faça|faz|fazer|quero|ok|claro|por favor|pode sim|com certeza)/i.test(
     String(reply || "").trim()
   );
@@ -209,6 +209,44 @@ function userWantsResearch(reply = "") {
 function userWantsProceed(reply = "") {
   return /prosseguir|gerar (a )?narra|roteiro|continuar|sem mais perguntas|pode gerar|finalizar|já (é|esta) suficiente/i.test(
     String(reply || "").trim()
+  );
+}
+
+function questionsMentionWebResearch(questions = []) {
+  const text = questions.join(" ").toLowerCase();
+  return /pesquisa na web|busca(?:r)? na (?:web|internet)|pesquisar na web|levantar.*internet/i.test(
+    text
+  );
+}
+
+function questionsMentionNarration(questions = []) {
+  const text = questions.join(" ").toLowerCase();
+  return /narra|roteiro|60\s*seg|gerar.*(?:texto|áudio|audio)|produzir.*narra/i.test(
+    text
+  );
+}
+
+function userWantsWebResearch(reply = "", session = {}) {
+  if (!userAffirms(reply)) return false;
+  if (session.researchDone) return false;
+  if (userWantsProceed(reply)) return false;
+  const questions = session.questions || [];
+  if (
+    questionsMentionNarration(questions) &&
+    !questionsMentionWebResearch(questions)
+  ) {
+    return false;
+  }
+  return questionsMentionWebResearch(questions) || questions.length === 0;
+}
+
+function userWantsNarrationProceed(reply = "", session = {}) {
+  if (userWantsProceed(reply)) return true;
+  if (!userAffirms(reply)) return false;
+  const questions = session.questions || [];
+  return (
+    questionsMentionNarration(questions) &&
+    !questionsMentionWebResearch(questions)
   );
 }
 
@@ -235,10 +273,19 @@ export async function replyNotebooklmSession({
     at: new Date().toISOString(),
   });
 
+  const wantsNarrationProceed = userWantsNarrationProceed(reply, session);
+  if (wantsNarrationProceed) {
+    next.awaitingUser = false;
+    next.questions = [];
+    next.status = "ready";
+    next.accumulatedSummary = mergeAssistantSummaries(next.turns);
+    next.readiness = assessNotebooklmReadiness(next);
+    return { session: next, researchTriggered: false, suggestProceed: true };
+  }
+
   let researchTriggered = false;
   if (
-    userWantsResearch(reply) &&
-    !next.researchDone &&
+    userWantsWebResearch(reply, next) &&
     next.notebookId &&
     typeof runResearch === "function"
   ) {
@@ -288,7 +335,10 @@ Evite fazer novas perguntas ao editor — priorize material acionável para narr
   next.accumulatedSummary = mergeAssistantSummaries(next.turns);
 
   next.readiness = assessNotebooklmReadiness(next);
-  return { session: next, researchTriggered };
+  const suggestProceed =
+    userWantsProceed(reply) ||
+    (!awaitingUser && userTurns >= 2 && next.readiness?.ready);
+  return { session: next, researchTriggered, suggestProceed };
 }
 
 export function finalizeNotebooklmSession(session = {}) {

@@ -254,7 +254,11 @@ import {
   resolveNeedsNlmDiscovery,
   wantsNotebooklmInteractiveNarration,
   clearNotebooklmProjectArtifacts,
+  shouldClearNotebooklmArtifacts,
+  hasNotebooklmProgress,
+  parsePipelineChecklist,
   NOTEBOOKLM_BRIEF_FILENAME,
+  NOTEBOOKLM_PIPELINE_STEPS,
 } from "./notebooklmService.js";
 import {
   fetchWebResearchForTopic,
@@ -16325,18 +16329,27 @@ app.post(
       nlmSessionEarly &&
       (nlmSessionEarly.awaitingUser ||
         nlmSessionEarly.status === "pending_user");
+    const nlmHasProgressEarly = hasNotebooklmProgress(
+      nlmSessionEarly,
+      notebooklmBriefDisk
+    );
     if (
       scriptPhase === "narration" &&
       useNotebooklm !== false &&
       !skipNotebooklmPending &&
       projDir &&
-      !nlmSessionPendingEarly
+      !nlmSessionPendingEarly &&
+      shouldClearNotebooklmArtifacts(projDir, __dirname, nlmNiche)
     ) {
       clearNotebooklmProjectArtifacts(projDir, __dirname, nlmNiche);
       notebooklmBriefDisk = null;
       nlmSessionEarly = null;
       console.log(
         "[NotebookLM] Sessão/brief anteriores limpos — nova rodada interativa."
+      );
+    } else if (nlmHasProgressEarly && !skipNotebooklmPending) {
+      console.log(
+        "[NotebookLM] Progresso preservado no brief MD — sem reset automático."
       );
     }
     const nlmUserTurnsEarly = (nlmSessionEarly?.turns || []).filter(
@@ -16370,6 +16383,31 @@ app.post(
           nlmSessionEarly.accumulatedSummary ||
           "Responda ao NotebookLM para continuar.",
         questions: nlmSessionEarly.questions || [],
+      });
+    }
+
+    if (
+      wantsNlmInteractiveFirst &&
+      nlmSessionEarly &&
+      nlmUserTurnsEarly > 0 &&
+      !nlmSessionPendingEarly
+    ) {
+      report(
+        "notebooklm_ready",
+        "Material NotebookLM acumulado — clique Prosseguir para narração.",
+        22
+      );
+      return activeRes.json({
+        phase: "notebooklm_pending",
+        project: safeProjectName,
+        notebooklm_session: nlmSessionEarly,
+        notebooklm_brief:
+          nlmSessionEarly.notebooklm_brief_path || NOTEBOOKLM_BRIEF_FILENAME,
+        message:
+          nlmSessionEarly.readiness?.reason ||
+          "Material acumulado no brief MD — clique em Prosseguir para gerar a narração.",
+        questions: [],
+        suggest_proceed: true,
       });
     }
 
@@ -18071,7 +18109,23 @@ app.get("/api/notebooklm/session", (req, res) => {
     res.json({
       ok: true,
       session,
-      brief: brief?.available ? brief : null,
+      brief: brief?.available
+        ? {
+            path: brief.relativePath,
+            status: brief.status,
+            skip_web_research: brief.skipWebResearch,
+            fact_count:
+              brief.parsed?.factCount || brief.parsed?.facts?.length || 0,
+            location_count: brief.parsed?.locations?.length || 0,
+            char_count: String(
+              brief.parsed?.accumulated || brief.markdown || ""
+            ).length,
+            markdown_preview: String(brief.markdown || "").slice(0, 2000),
+            checklist:
+              brief.checklist || parsePipelineChecklist(brief.markdown || ""),
+            pipeline_steps: NOTEBOOKLM_PIPELINE_STEPS,
+          }
+        : null,
     });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -18100,6 +18154,9 @@ app.get("/api/notebooklm/brief", (req, res) => {
           .length,
         markdown_preview: String(brief.markdown || "").slice(0, 2000),
         template_hints: brief.parsed?.templateHints || null,
+        checklist:
+          brief.checklist || parsePipelineChecklist(brief.markdown || ""),
+        pipeline_steps: NOTEBOOKLM_PIPELINE_STEPS,
       },
     });
   } catch (err) {
@@ -18128,7 +18185,7 @@ app.post(
     }
 
     try {
-      const session = await handleNotebooklmSessionReply({
+      const { session, suggestProceed } = await handleNotebooklmSessionReply({
         projDir,
         backendDir: __dirname,
         niche,
@@ -18141,13 +18198,16 @@ app.post(
           session.awaitingUser ? "notebooklm_pending" : "notebooklm_ready",
           session.awaitingUser
             ? "NotebookLM aguarda sua resposta"
-            : "Material NotebookLM atualizado",
+            : suggestProceed
+              ? "Pronto — pode gerar a narração"
+              : "Material NotebookLM atualizado",
           session.awaitingUser ? 22 : 92
         );
       }
       return activeRes.json({
         ok: true,
         session,
+        suggest_proceed: Boolean(suggestProceed),
         brief: brief?.available ? brief : null,
       });
     } catch (err) {
@@ -18161,8 +18221,25 @@ app.post("/api/notebooklm/session/reset", (req, res) => {
   try {
     const projDir = getProjectDir(req);
     const niche = String(req.body?.niche || "documentário").trim();
+    const force = req.body?.force === true;
+    if (!shouldClearNotebooklmArtifacts(projDir, __dirname, niche, { force })) {
+      const session = loadNotebooklmSession({
+        projDir,
+        backendDir: __dirname,
+        niche,
+      });
+      const brief = projDir ? loadNotebooklmBrief(projDir) : null;
+      return res.json({
+        ok: true,
+        preserved: true,
+        message:
+          "Progresso preservado no notebooklm_research_brief.md — use Prosseguir em vez de reiniciar.",
+        session,
+        brief: brief?.available ? brief : null,
+      });
+    }
     clearNotebooklmProjectArtifacts(projDir, __dirname, niche);
-    res.json({ ok: true });
+    res.json({ ok: true, preserved: false });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -18201,6 +18278,9 @@ app.post("/api/notebooklm/session/finalize", (req, res) => {
               brief.parsed?.accumulated || brief.markdown || ""
             ).length,
             markdown_preview: String(brief.markdown || "").slice(0, 2000),
+            checklist:
+              brief.checklist || parsePipelineChecklist(brief.markdown || ""),
+            pipeline_steps: NOTEBOOKLM_PIPELINE_STEPS,
           }
         : null,
     });

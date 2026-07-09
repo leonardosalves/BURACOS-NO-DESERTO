@@ -10,6 +10,9 @@ import {
   loadNotebooklmBrief,
   shouldSkipWebResearchForBrief,
   formatNotebooklmBriefPromptBlock,
+  parsePipelineChecklist,
+  hasNotebooklmProgress,
+  NOTEBOOKLM_PIPELINE_STEPS,
 } from "./notebooklmResearchBrief.js";
 
 describe("notebooklmResearchBrief", () => {
@@ -56,6 +59,47 @@ describe("notebooklmResearchBrief", () => {
     assert.equal(loaded.available, true);
     assert.ok(loaded.parsed.facts.length >= 2);
     assert.equal(shouldSkipWebResearchForBrief(loaded), true);
+  });
+
+  it("inclui checklist de progresso no MD", () => {
+    const md = buildNotebooklmBriefMarkdown(
+      {
+        format: "SHORTS",
+        status: "ready",
+        researchDone: true,
+        turns: [
+          { role: "assistant", content: "Pergunta?" },
+          { role: "user", content: "Sim, pesquise na web." },
+        ],
+        accumulatedSummary: "1. Fato sobre cabos submarinos.",
+      },
+      { project: "cabos" }
+    );
+    assert.match(md, /## Checklist de progresso/i);
+    assert.match(md, /\[x\] discovery_iniciado/);
+    assert.match(md, /\[x\] editor_respondeu/);
+    assert.match(md, /\[x\] pesquisa_web/);
+    const checklist = parsePipelineChecklist(md);
+    assert.equal(checklist.discovery_iniciado, true);
+    assert.equal(checklist.editor_respondeu, true);
+    assert.equal(checklist.pesquisa_web, true);
+    assert.equal(NOTEBOOKLM_PIPELINE_STEPS.length, 5);
+  });
+
+  it("detecta progresso salvo no brief para evitar reset", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "nlm-progress-"));
+    writeNotebooklmBrief(
+      tmp,
+      {
+        format: "SHORTS",
+        status: "ready",
+        turns: [{ role: "user", content: "sim" }],
+        accumulatedSummary: "Material factual.",
+      },
+      { project: "cabos" }
+    );
+    const loaded = loadNotebooklmBrief(tmp);
+    assert.equal(hasNotebooklmProgress(null, loaded), true);
   });
 
   it("formata prompt com skill SHORTS", () => {

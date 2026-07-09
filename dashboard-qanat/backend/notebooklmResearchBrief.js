@@ -3,6 +3,106 @@ import path from "path";
 
 export const NOTEBOOKLM_BRIEF_FILENAME = "notebooklm_research_brief.md";
 
+export const NOTEBOOKLM_PIPELINE_STEPS = [
+  { id: "discovery_iniciado", label: "Descoberta interativa iniciada" },
+  { id: "editor_respondeu", label: "Editor respondeu ao NotebookLM" },
+  { id: "pesquisa_web", label: "Pesquisa web no NotebookLM" },
+  { id: "brief_finalizado", label: "Brief finalizado para narração" },
+  { id: "narracao_gerada", label: "Narração gerada" },
+];
+
+const CHECKLIST_SECTION_RE = /## Checklist de progresso[\s\S]*?(?=## |$)/i;
+
+function countUserTurns(session = {}) {
+  return (session.turns || []).filter((t) => t.role === "user").length;
+}
+
+export function derivePipelineState(session = {}, opts = {}) {
+  const userTurns = countUserTurns(session);
+  const assistantTurns = (session.turns || []).filter(
+    (t) => t.role === "assistant"
+  ).length;
+  return {
+    discovery_iniciado:
+      assistantTurns > 0 ||
+      Boolean(opts.hasSession) ||
+      Boolean(opts.discoveryStarted),
+    editor_respondeu: userTurns >= 1,
+    editor_turns: userTurns,
+    pesquisa_web: Boolean(session.researchDone),
+    brief_finalizado:
+      session.status === "finalized" || opts.briefFinalized === true,
+    narracao_gerada: Boolean(opts.narrationGenerated),
+  };
+}
+
+export function parsePipelineChecklist(md = "") {
+  const { meta } = parseFrontmatter(md);
+  const sectionMatch = String(md || "").match(CHECKLIST_SECTION_RE);
+  const parsed = {};
+  for (const step of NOTEBOOKLM_PIPELINE_STEPS) {
+    parsed[step.id] = false;
+  }
+  if (sectionMatch) {
+    for (const step of NOTEBOOKLM_PIPELINE_STEPS) {
+      const re = new RegExp(
+        `- \\[[xX]\\]\\s+${step.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`
+      );
+      if (re.test(sectionMatch[0])) parsed[step.id] = true;
+    }
+  }
+  if (Number(meta.pipeline_user_turns) > 0) {
+    parsed.editor_respondeu = true;
+    parsed.discovery_iniciado = true;
+  }
+  if (meta.pipeline_research_done === true) parsed.pesquisa_web = true;
+  if (meta.status === "finalized") parsed.brief_finalizado = true;
+  if (meta.narration_generated === true) parsed.narracao_gerada = true;
+  parsed.editor_turns = Number(meta.pipeline_user_turns) || 0;
+  return parsed;
+}
+
+export function buildPipelineChecklistMarkdown(session = {}, opts = {}) {
+  const state = derivePipelineState(session, opts);
+  const lines = NOTEBOOKLM_PIPELINE_STEPS.map((step) => {
+    const done = Boolean(state[step.id]);
+    const suffix =
+      step.id === "editor_respondeu" && state.editor_turns > 0
+        ? ` (${state.editor_turns} resposta${state.editor_turns > 1 ? "s" : ""})`
+        : "";
+    return `- [${done ? "x" : " "}] ${step.id}${suffix}`;
+  });
+  return `## Checklist de progresso
+
+> Estado do pipeline NotebookLM — o Lumiera usa isto para retomar sem reiniciar do zero.
+
+${lines.join("\n")}
+`;
+}
+
+export function hasNotebooklmProgress(session = null, brief = null) {
+  if (session) {
+    if (countUserTurns(session) > 0) return true;
+    if ((session.turns || []).length > 0) return true;
+    if (session.researchDone) return true;
+    if (session.status === "finalized" || session.status === "ready") {
+      return String(session.accumulatedSummary || "").length >= 80;
+    }
+  }
+  if (brief?.available) {
+    const checklist = parsePipelineChecklist(brief.markdown || "");
+    if (checklist.discovery_iniciado || checklist.editor_respondeu) return true;
+    if (checklist.pesquisa_web || checklist.brief_finalizado) return true;
+    const meta = brief.parsed?.meta || {};
+    if (Number(meta.pipeline_user_turns) > 0) return true;
+    if ((brief.parsed?.factCount ?? brief.parsed?.facts?.length ?? 0) > 0) {
+      return true;
+    }
+    if (String(brief.parsed?.accumulated || "").length >= 200) return true;
+  }
+  return false;
+}
+
 const LOCATION_RE =
   /\b(?:em|na cidade de|no país|em|de)\s+([A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][\wáàâãéêíóôõúç\-]+(?:\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][\wáàâãéêíóôõúç\-]+){0,3})/g;
 
@@ -159,6 +259,8 @@ export function buildNotebooklmBriefMarkdown(session = {}, opts = {}) {
   const skipWeb = parsed.skipWebResearch;
   const updatedAt = session.updatedAt || new Date().toISOString();
   const questions = Array.isArray(session.questions) ? session.questions : [];
+  const pipeline = derivePipelineState(session, opts);
+  const checklistBlock = buildPipelineChecklistMarkdown(session, opts);
 
   const turnBlocks = turns
     .map((turn, idx) => {
@@ -204,6 +306,9 @@ updated_at: "${yamlEscape(updatedAt)}"
 fact_count: ${factCount}
 location_count: ${parsed.locations.length}
 skip_web_research: ${skipWeb}
+pipeline_user_turns: ${pipeline.editor_turns}
+pipeline_research_done: ${pipeline.pesquisa_web}
+narration_generated: ${pipeline.narracao_gerada}
 temporary: true
 source: notebooklm
 ---
@@ -223,6 +328,8 @@ source: notebooklm
 | Atualizado | ${updatedAt} |
 | Fatos extraídos | ${factCount} |
 | Pular busca web | ${skipWeb ? "sim" : "não"} |
+
+${checklistBlock}
 
 ## Perguntas pendentes
 
@@ -278,6 +385,7 @@ export function loadNotebooklmBrief(projDir) {
   try {
     const markdown = fs.readFileSync(filePath, "utf8");
     const parsed = parseNotebooklmBriefMarkdown(markdown);
+    const checklist = parsePipelineChecklist(markdown);
     return {
       available: true,
       path: filePath,
@@ -286,6 +394,8 @@ export function loadNotebooklmBrief(projDir) {
       parsed,
       status: parsed.meta?.status || "unknown",
       skipWebResearch: parsed.skipWebResearch,
+      checklist,
+      pipeline: checklist,
     };
   } catch (err) {
     return {
