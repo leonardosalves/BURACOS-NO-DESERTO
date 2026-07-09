@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bot,
   Clapperboard,
@@ -11,6 +11,7 @@ import {
   LayoutTemplate,
   Menu,
   RefreshCw,
+  RotateCcw,
   Search,
   Settings,
   Smartphone,
@@ -22,6 +23,7 @@ import {
   Zap,
   Bell,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { BackendStatusBanner } from "./BackendStatusBanner";
 import { SettingHelpTip } from "./SettingHelpTip";
 import { SECTION_HELP } from "./sectionHelpContent";
@@ -172,11 +174,87 @@ export function AppShell({
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [search, setSearch] = useState("");
+  const [serviceRestarting, setServiceRestarting] = useState(false);
+  const [opsCanRestart, setOpsCanRestart] = useState(
+    typeof navigator !== "undefined" && /Win/i.test(navigator.userAgent || "")
+  );
+  const [opsWindowsService, setOpsWindowsService] = useState(false);
   const {
     online: backendOnline,
     checking: backendChecking,
     recheck: recheckBackend,
   } = useBackendHealth(10_000);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/ops/service");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          canRestart?: boolean;
+          windowsService?: boolean;
+        };
+        setOpsCanRestart(Boolean(data.canRestart));
+        setOpsWindowsService(Boolean(data.windowsService));
+      } catch {
+        /* backend antigo sem rota ops */
+      }
+    })();
+  }, [backendOnline]);
+
+  const handleRestartService = useCallback(async () => {
+    if (serviceRestarting) return;
+    const label = opsWindowsService
+      ? "Reiniciar o serviço LumieraBackend? Leva ~10–20s."
+      : "Reiniciar o backend Lumiera?";
+    if (!window.confirm(label)) return;
+
+    setServiceRestarting(true);
+    const toastId = toast.loading("Reiniciando serviço Lumiera…");
+    try {
+      const res = await fetch("/api/ops/restart-service", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        message?: string;
+      };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Falha ao agendar reinício.");
+      }
+      toast.loading(data.message || "Aguardando backend voltar…", {
+        id: toastId,
+      });
+
+      const deadline = Date.now() + 90000;
+      let up = false;
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 2500));
+        up = await recheckBackend();
+        if (up) break;
+      }
+
+      if (up) {
+        toast.success("Serviço Lumiera reiniciado.", { id: toastId });
+        onRefresh();
+      } else {
+        toast.error(
+          "Reinício agendado, mas o backend ainda não respondeu — tente Atualizar em instantes.",
+          { id: toastId, duration: 8000 }
+        );
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao reiniciar serviço.",
+        { id: toastId }
+      );
+    } finally {
+      setServiceRestarting(false);
+    }
+  }, [serviceRestarting, opsWindowsService, recheckBackend, onRefresh]);
 
   const recentItems = useMemo(
     () =>
@@ -420,6 +498,24 @@ export function AppShell({
             >
               <Settings className="w-4 h-4" />
             </button>
+
+            {opsCanRestart && (
+              <button
+                type="button"
+                className={`dash-header-icon ${serviceRestarting ? "opacity-60" : ""}`}
+                onClick={() => void handleRestartService()}
+                disabled={serviceRestarting}
+                title={
+                  opsWindowsService
+                    ? "Reiniciar serviço Windows LumieraBackend"
+                    : "Reiniciar backend Lumiera"
+                }
+              >
+                <RotateCcw
+                  className={`w-4 h-4 ${serviceRestarting ? "animate-spin" : ""}`}
+                />
+              </button>
+            )}
 
             <button
               type="button"
