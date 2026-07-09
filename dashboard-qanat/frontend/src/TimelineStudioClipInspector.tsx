@@ -33,6 +33,7 @@ type Props = {
   getProjectUrl?: (endpoint: string) => string;
   getAssetUrl?: (fileName: string) => string;
   onSatelliteSynced?: (studio: unknown) => void;
+  onPersistStudio?: () => Promise<void>;
 };
 
 export function TimelineStudioClipInspector({
@@ -45,6 +46,7 @@ export function TimelineStudioClipInspector({
   getProjectUrl,
   getAssetUrl,
   onSatelliteSynced,
+  onPersistStudio,
 }: Props) {
   const editable = isClipEditable(clip);
   const captionText = String(clip.props?.text || clip.label || "");
@@ -413,6 +415,7 @@ export function TimelineStudioClipInspector({
                     getProjectUrl={getProjectUrl}
                     getAssetUrl={getAssetUrl}
                     compact
+                    onBeforeUpload={onPersistStudio}
                     onUploaded={(result) => {
                       onUpdate({
                         props: {

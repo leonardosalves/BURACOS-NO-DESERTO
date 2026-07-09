@@ -83,13 +83,16 @@ export function ensureMotionSceneForUpload(motionScenes, studio, motionId) {
   ];
 }
 
-export function patchMotionSceneFlyover(motionScenes, motionId, relPath) {
+export function patchMotionSceneFlyover(
+  motionScenes,
+  motionId,
+  relPath,
+  studio = null
+) {
   const needle = String(motionId || "").trim();
   if (!needle) return motionScenes;
-  let found = false;
-  const next = (Array.isArray(motionScenes) ? motionScenes : []).map((ms) => {
-    if (!motionSceneMatches(ms, needle)) return ms;
-    found = true;
+
+  const applyFlyover = (ms) => {
     const props = ms.props && typeof ms.props === "object" ? ms.props : {};
     return {
       ...ms,
@@ -100,13 +103,33 @@ export function patchMotionSceneFlyover(motionScenes, motionId, relPath) {
         geo_generation: props.geo_generation || "ai_prompt",
       },
     };
+  };
+
+  let found = false;
+  const next = (Array.isArray(motionScenes) ? motionScenes : []).map((ms) => {
+    if (!motionSceneMatches(ms, needle)) return ms;
+    found = true;
+    return applyFlyover(ms);
   });
-  if (!found) {
-    throw new Error(
-      `Cena motion "${needle}" não encontrada no storyboard — salve o roteiro antes do upload.`
-    );
+
+  if (found) return next;
+
+  const ensured = ensureMotionSceneForUpload(next, studio, needle);
+  const retried = ensured.map((ms) => {
+    if (!motionSceneMatches(ms, needle)) return ms;
+    found = true;
+    return applyFlyover(ms);
+  });
+  if (found) return retried;
+
+  const clip = findMotionClipInStudio(studio, needle);
+  if (clip) {
+    return [...retried, applyFlyover(studioMotionClipToMotionScene(clip))];
   }
-  return next;
+
+  throw new Error(
+    `Cena motion "${needle}" não encontrada na timeline — adicione o template antes do upload.`
+  );
 }
 
 export function patchStudioClipFlyover(studio, motionId, relPath) {
@@ -148,7 +171,12 @@ function persistFlyoverToProject(projDir, motionId, relPath) {
       `Cena motion "${motionId}" não encontrada — adicione o template na timeline antes do upload.`
     );
   }
-  const motionScenes = patchMotionSceneFlyover(ensured, motionId, relPath);
+  const motionScenes = patchMotionSceneFlyover(
+    ensured,
+    motionId,
+    relPath,
+    rawStudio
+  );
   const nextStoryboard = {
     ...storyboard,
     motion_scenes: motionScenes,
