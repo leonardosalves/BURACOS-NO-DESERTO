@@ -4,6 +4,7 @@
  */
 
 import { transform } from "sucrase";
+import { patchGeoPipTemplateSourceForChrome } from "./geoPipTemplateSourcePatch.js";
 import { repairCorruptedTemplateStringLiterals } from "./remotionTemplateSourceRepair.js";
 import { repairCommonTemplateLayoutVars } from "./remotionTemplateStudioValidate.js";
 export {
@@ -101,7 +102,9 @@ function extractDurationInFrames(code, inputProps) {
 }
 
 function prepareRunnableSource(code) {
-  let src = stripTemplateHeader(code);
+  let src = patchGeoPipTemplateSourceForChrome(
+    stripTemplateHeader(code)
+  );
   src = src.replace(/^"use client";\s*/m, "");
   src = src.replace(/^import\s+[\s\S]*?from\s+["'][^"']+["'];?\s*/gm, "");
   src = src.replace(/^import\s+["'][^"']+["'];?\s*/gm, "");

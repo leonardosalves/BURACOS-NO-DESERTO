@@ -84,9 +84,12 @@ describe("studioTemplateRenderProps", () => {
       fps: 30,
     });
     assert.equal(merged.pipMediaUrl, "ASSETS/satellite/map.mp4");
-    assert.equal(merged.pipTitle, "Palmanova");
+    assert.equal(merged.pipTitle, "");
     assert.match(String(merged.location), /Palmanova|fortaleza/i);
     assert.equal(merged.backgroundImage, undefined);
+    assert.equal(merged.descriptorText, "");
+    assert.equal(merged.statusText, "");
+    assert.equal(merged.mainMediaUrl, "");
   });
 
   it("stripGeoPipMapMediaForTemplateProps remove tiles satelite legados", () => {

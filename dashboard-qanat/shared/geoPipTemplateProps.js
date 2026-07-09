@@ -5,9 +5,77 @@
 
 import { formatCoordDms } from "./geoPipStudioTemplate.js";
 import {
+  extractSceneSubject,
   resolveGeoPipReferenceLabel,
   resolveGeoPipSectorLabel,
 } from "./geoPipSceneText.js";
+
+/** Props vazias que devem sobrescrever defaults do TSX (não filtrar como placeholder). */
+export const GEO_PIP_FORCE_EMPTY_KEYS = [
+  "descriptorText",
+  "statusText",
+  "pipTag",
+  "pipTitle",
+  "pipSubtitle",
+  "coordinateText",
+  "distanceText",
+  "mainTitle",
+  "mainSubtitle",
+  "mainMediaUrl",
+];
+
+/** Título + subtítulo centrais a partir do assunto narrado (até 2 frases). */
+export function splitNarrationTitleSubtitle(narration = "", maxTitle = 52, maxSubtitle = 72) {
+  const subject = extractSceneSubject(narration);
+  if (!subject) return { mainTitle: "", mainSubtitle: "" };
+
+  const sentences = subject
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 4);
+
+  if (sentences.length >= 2) {
+    return {
+      mainTitle: sentences[0].slice(0, maxTitle),
+      mainSubtitle: sentences[1].slice(0, maxSubtitle),
+    };
+  }
+
+  const words = subject.split(/\s+/).filter(Boolean);
+  if (words.length <= 5) {
+    return { mainTitle: subject.slice(0, maxTitle), mainSubtitle: "" };
+  }
+
+  const mid = Math.ceil(words.length / 2);
+  return {
+    mainTitle: words.slice(0, mid).join(" ").slice(0, maxTitle),
+    mainSubtitle: words.slice(mid).join(" ").slice(0, maxSubtitle),
+  };
+}
+
+/** Limpa chrome técnico; centro = assunto narrado; rodapé = setor/local. */
+export function applyGeoPipChromeProps(studio = {}, { narration = "", sector = "" } = {}) {
+  const { mainTitle, mainSubtitle } = splitNarrationTitleSubtitle(narration);
+  const hasCenter = Boolean(mainTitle || mainSubtitle);
+  const location = String(sector || studio.location || "").trim();
+
+  return {
+    ...studio,
+    descriptorText: "",
+    statusText: "",
+    pipTag: "",
+    pipTitle: "",
+    pipSubtitle: "",
+    coordinateText: "",
+    distanceText: "",
+    mainMediaUrl: "",
+    showPointerLines: false,
+    showMainContentLabel: hasCenter,
+    mainTitle: mainTitle || "",
+    mainSubtitle: mainSubtitle || "",
+    location,
+  };
+}
 
 const VIDEO_EXT_RE = /\.(mp4|webm|mov|m4v|mkv)(\?|$)/i;
 
@@ -110,12 +178,23 @@ export function bindGeoPipTemplateStudioProps(
     filled.push("durationSeconds", "durationInFrames");
   }
 
+  const chromed = applyGeoPipChromeProps(studio, {
+    narration: String(narration || props.narration_text || "").trim(),
+    sector,
+  });
+  Object.assign(studio, chromed);
+  for (const key of GEO_PIP_FORCE_EMPTY_KEYS) {
+    if (!filled.includes(key)) filled.push(key);
+  }
+  if (!filled.includes("showMainContentLabel")) filled.push("showMainContentLabel");
+  if (!filled.includes("showPointerLines")) filled.push("showPointerLines");
+
   return {
     studio_props: studio,
     pipTitle: reference,
-    location: sector,
+    location: chromed.location || sector,
     pipMediaUrl: media,
-    mainMediaUrl: broll,
+    mainMediaUrl: "",
     filled_slots: filled,
   };
 }
@@ -167,6 +246,15 @@ export function mapGeoPipFlyoverToTemplateRenderProps(props = {}) {
   if (bound.pipMediaUrl) out.pipMediaUrl = bound.pipMediaUrl;
   if (bound.pipTitle) out.pipTitle = bound.pipTitle;
   if (bound.location) out.location = bound.location;
-  if (bound.mainMediaUrl) out.mainMediaUrl = bound.mainMediaUrl;
+  for (const key of GEO_PIP_FORCE_EMPTY_KEYS) {
+    if (key in bound.studio_props) out[key] = bound.studio_props[key];
+  }
+  if (bound.studio_props.showMainContentLabel !== undefined) {
+    out.showMainContentLabel = bound.studio_props.showMainContentLabel;
+  }
+  if (bound.studio_props.showPointerLines !== undefined) {
+    out.showPointerLines = bound.studio_props.showPointerLines;
+  }
+  out.mainMediaUrl = "";
   return out;
 }

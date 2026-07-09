@@ -3,6 +3,7 @@ import {
   TEMPLATE_STRUCTURAL_PROP_KEYS,
 } from "./studioTemplatePlaceholder.js";
 import {
+  GEO_PIP_FORCE_EMPTY_KEYS,
   isPictureInPictureStudioTemplate,
   mapGeoPipFlyoverToTemplateRenderProps,
 } from "./geoPipTemplateProps.js";
@@ -158,6 +159,15 @@ export function mergeStudioRenderProps({
     const merged = { ...out, ...mapped };
     for (const key of GEO_PIP_MAP_MEDIA_KEYS) {
       if (key in merged) delete merged[key];
+    }
+    for (const key of GEO_PIP_FORCE_EMPTY_KEYS) {
+      if (key in mapped) merged[key] = mapped[key];
+    }
+    if (mapped.showMainContentLabel !== undefined) {
+      merged.showMainContentLabel = mapped.showMainContentLabel;
+    }
+    if (mapped.showPointerLines !== undefined) {
+      merged.showPointerLines = mapped.showPointerLines;
     }
     return merged;
   }
