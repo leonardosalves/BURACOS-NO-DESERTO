@@ -216,9 +216,15 @@ function Initialize-LumieraBackendEnv {
     }
 }
 
+function Test-LumieraWindowsServiceMode {
+    return (Test-Path -LiteralPath (Join-Path $script:LogDir "windows-service.mode")) -or
+        (Get-LumieraStackMode) -eq "service"
+}
+
 function Test-LumieraUniportMode {
+    if (Test-LumieraWindowsServiceMode) { return $true }
     if (Test-Path -LiteralPath $script:UniportModeFile) { return $true }
-    return (Get-LumieraStackMode) -eq "uniport"
+    return (Get-LumieraStackMode) -in @("uniport", "service")
 }
 
 function Test-LumieraFrontendDistReady {
@@ -259,6 +265,15 @@ function Stop-LumieraViteDev {
 }
 
 function Ensure-LumieraBackendUp {
+    if (Test-LumieraWindowsServiceMode) {
+        $svc = Get-Service -Name "LumieraBackend" -ErrorAction SilentlyContinue
+        if ($svc -and $svc.Status -ne "Running") {
+            Write-LumieraLog "Servico LumieraBackend parado - iniciando via SCM" "WARN"
+            Start-Service -Name "LumieraBackend" -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 3
+        }
+    }
+
     if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 12) { return $true }
 
     $livePid = Get-BackendListenerPid
@@ -283,6 +298,8 @@ function Ensure-LumieraBackendUp {
 }
 
 function Ensure-LumieraWatchdogRunning {
+    if (Test-LumieraWindowsServiceMode) { return $true }
+
     $pidFile = Join-Path $script:LogDir "watchdog.pid"
     if (Test-Path -LiteralPath $pidFile) {
         try {
@@ -365,7 +382,7 @@ function Disable-LumieraLegacyStack {
 function Get-LumieraStackMode {
     if (Test-Path -LiteralPath $script:StackModeFile) {
         $mode = ("$(Get-Content -LiteralPath $script:StackModeFile -TotalCount 1 -ErrorAction SilentlyContinue)").Trim().ToLower()
-        if ($mode -in @("pm2", "direct", "uniport")) { return $mode }
+        if ($mode -in @("pm2", "direct", "uniport", "service")) { return $mode }
     }
     if (Test-Path -LiteralPath $script:UniportModeFile) { return "uniport" }
     if (Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode")) {
@@ -506,7 +523,7 @@ function Repair-LumieraStackUnified {
     $mode = Get-LumieraStackMode
     Write-LumieraLog "Reparo stack unificado (modo=$mode)" "WARN"
 
-    if ($mode -eq "uniport") {
+    if ($mode -in @("uniport", "service")) {
         Disable-LumieraPm2Competition
         Stop-LumieraViteDev
         if (-not (Test-LumieraFrontendDistReady)) {

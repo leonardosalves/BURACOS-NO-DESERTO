@@ -19,7 +19,15 @@ $permanentMode = Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mod
 $stackMode = Get-LumieraStackMode
 $uniport = $stackMode -eq "uniport"
 
-if ($uniport) {
+if (Test-LumieraWindowsServiceMode) {
+    $svc = Get-Service -Name "LumieraBackend" -ErrorAction SilentlyContinue
+    if ($svc) {
+        $sc = if ($svc.Status -eq "Running") { "Green" } else { "Red" }
+        Write-Host ("Modo     : SERVICO WINDOWS ({0})" -f $svc.Status) -ForegroundColor $sc
+    } else {
+        Write-Host "Modo     : SERVICO WINDOWS (nao instalado)" -ForegroundColor Red
+    }
+} elseif ($uniport) {
     Write-Host "Modo     : UNIPORT (1 processo :3005, UI em dist/)" -ForegroundColor Green
 } elseif ($permanentMode) {
     Write-Host ("Modo     : PERMANENTE (stack={0})" -f $stackMode) -ForegroundColor Green

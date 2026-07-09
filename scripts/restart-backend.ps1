@@ -21,7 +21,18 @@ if (-not (Test-BackendSyntaxOk)) {
 }
 
 $stackMode = Get-LumieraStackMode
-if ($stackMode -eq "pm2" -and (Test-LumieraPm2Mode)) {
+if (Test-LumieraWindowsServiceMode) {
+    if ($Force) {
+        Write-Host "Reiniciando servico Windows LumieraBackend..." -ForegroundColor Yellow
+        Restart-Service -Name "LumieraBackend" -Force -ErrorAction SilentlyContinue
+    } else {
+        $svc = Get-Service -Name "LumieraBackend" -ErrorAction SilentlyContinue
+        if ($svc -and $svc.Status -ne "Running") {
+            Start-Service -Name "LumieraBackend" -ErrorAction SilentlyContinue
+        }
+    }
+    $ok = Test-LumieraBackendHealthy -Retries 4 -TimeoutSec 15
+} elseif ($stackMode -eq "pm2" -and (Test-LumieraPm2Mode)) {
     if ($Force) {
         Write-Host "PM2 reload do backend (codigo alterado)..." -ForegroundColor Yellow
         $ok = Ensure-LumieraPm2Backend -Reload
@@ -55,8 +66,8 @@ if (-not $ok) {
 
 if ($ok) {
     Write-Host "Backend OK em http://127.0.0.1:3005" -ForegroundColor Green
-    if ((Get-LumieraStackMode) -eq "uniport") {
-        Write-Host "Dashboard: http://127.0.0.1:3005/ (modo uniport)" -ForegroundColor DarkGray
+    if (Test-LumieraUniportMode) {
+        Write-Host "Dashboard: http://127.0.0.1:3005/" -ForegroundColor DarkGray
     }
     exit 0
 }
