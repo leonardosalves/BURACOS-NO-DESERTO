@@ -55,6 +55,9 @@ if (-not $ok) {
 
 if ($ok) {
     Write-Host "Backend OK em http://127.0.0.1:3005" -ForegroundColor Green
+    if ((Get-LumieraStackMode) -eq "uniport") {
+        Write-Host "Dashboard: http://127.0.0.1:3005/ (modo uniport)" -ForegroundColor DarkGray
+    }
     exit 0
 }
 
