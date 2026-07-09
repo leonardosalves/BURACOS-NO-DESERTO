@@ -284,6 +284,11 @@ function Initialize-LumieraBackendEnv {
             $env:Path = "$ffmpegDir;$env:Path"
         }
     }
+
+    $projectsRoot = Join-Path $env:USERPROFILE "Desktop\Lumiera Videos"
+    if (Test-Path -LiteralPath $projectsRoot) {
+        $env:LUMIERA_PROJECTS_ROOT = $projectsRoot
+    }
 }
 
 function Test-LumieraWindowsServiceMode {

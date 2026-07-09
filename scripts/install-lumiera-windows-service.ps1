@@ -290,6 +290,14 @@ if ($paths.FfmpegDir) {
         "FFMPEG_PATH=$($paths.FfmpegDir)"
     ) -AllowFailure | Out-Null
 }
+$leoProjects = Join-Path $env:USERPROFILE "Desktop\Lumiera Videos"
+if (Test-Path -LiteralPath $leoProjects) {
+    Invoke-Nssm -NssmExe $NssmExe -NssmCommandArgs @(
+        "set", $ServiceName, "AppEnvironmentExtra",
+        "LUMIERA_PROJECTS_ROOT=$leoProjects"
+    ) -AllowFailure | Out-Null
+    Write-Host "Projetos: $leoProjects" -ForegroundColor DarkGray
+}
 
 Set-Content -Path $script:UniportModeFile -Value ((Get-Date).ToString("o")) -Encoding UTF8
 Set-Content -Path $script:StackModeFile -Value "service" -Encoding UTF8
