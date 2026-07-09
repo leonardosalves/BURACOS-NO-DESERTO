@@ -504,6 +504,59 @@ function runOptionalFastResearch(notebookId, query, backendDir, mode = "fast") {
   return false;
 }
 
+async function runOptionalFastResearchAsync(
+  notebookId,
+  query,
+  backendDir,
+  mode = "fast"
+) {
+  const researchMode = mode === "deep" ? "deep" : "fast";
+  const maxWait = researchMode === "deep" ? "300" : "45";
+  const startTimeout = researchMode === "deep" ? 120000 : 45000;
+  const statusTimeout = researchMode === "deep" ? 320000 : 50000;
+  try {
+    const startRaw = await runNlmAsync(
+      [
+        "research",
+        "start",
+        query,
+        "--notebook-id",
+        notebookId,
+        "--mode",
+        researchMode,
+      ],
+      { timeoutMs: startTimeout, backendDir }
+    );
+    const started = parseJsonOutput(startRaw);
+    const taskId = started?.task_id || started?.id;
+    if (!taskId) return false;
+
+    const statusRaw = await runNlmAsync(
+      [
+        "research",
+        "status",
+        notebookId,
+        "--task-id",
+        taskId,
+        "--max-wait",
+        maxWait,
+      ],
+      { timeoutMs: statusTimeout, backendDir }
+    );
+    const status = parseJsonOutput(statusRaw);
+    if (status?.status === "completed" || status?.state === "completed") {
+      await runNlmAsync(["research", "import", notebookId, taskId], {
+        timeoutMs: 120000,
+        backendDir,
+      });
+      return true;
+    }
+  } catch {
+    /* research is optional */
+  }
+  return false;
+}
+
 function queryNotebook(notebookId, question, backendDir) {
   const raw = runNlm(["notebook", "query", notebookId, question, "--json"], {
     timeoutMs: QUERY_TIMEOUT_MS,
@@ -899,6 +952,7 @@ export async function handleNotebooklmSessionReply({
   backendDir,
   niche,
   userReply,
+  onProgress,
 }) {
   const session = loadNotebooklmSession({ projDir, backendDir, niche }) || null;
   if (!session?.notebookId) {
@@ -911,9 +965,9 @@ export async function handleNotebooklmSessionReply({
     session,
     userReply,
     backendDir,
-    queryNotebook: (id, q, dir) => Promise.resolve(queryNotebook(id, q, dir)),
-    runResearch: (notebookId, query, dir, mode) =>
-      Promise.resolve(runOptionalFastResearch(notebookId, query, dir, mode)),
+    queryNotebook: queryNotebookAsync,
+    runResearch: runOptionalFastResearchAsync,
+    onProgress,
   });
 
   saveNotebooklmSession(next, { projDir, backendDir, niche });

@@ -198,6 +198,7 @@ export async function replyNotebooklmSession({
   backendDir,
   queryNotebook,
   runResearch,
+  onProgress,
 }) {
   const reply = String(userReply || "").trim();
   if (!reply) throw new Error("Resposta vazia.");
@@ -222,6 +223,11 @@ export async function replyNotebooklmSession({
     typeof runResearch === "function"
   ) {
     try {
+      onProgress?.(
+        "notebooklm_research",
+        "Pesquisando na web via NotebookLM…",
+        35
+      );
       const query =
         next.initialQuestion ||
         `fatos históricos e dados numéricos sobre ${next.niche}`;
@@ -232,6 +238,8 @@ export async function replyNotebooklmSession({
       /* pesquisa opcional */
     }
   }
+
+  onProgress?.("notebooklm_query", "Consultando NotebookLM…", 68);
 
   const followUp = `Resposta do roteirista/editor Lumiera:
 ${reply}

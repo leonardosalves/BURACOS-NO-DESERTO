@@ -18077,24 +18077,50 @@ app.get("/api/notebooklm/brief", (req, res) => {
 app.post(
   "/api/notebooklm/session/reply",
   asyncHandler(async (req, res) => {
+    const progressJobId = normalizeJobId(req.body?.progress_job_id);
+    const report = createProgressReporter(progressJobId);
     const projDir = getProjectDir(req);
     const niche = String(req.body?.niche || "documentário").trim();
     const userReply = String(req.body?.reply || "").trim();
     if (!userReply) {
+      if (progressJobId) failJobProgress(progressJobId, "Resposta vazia.");
       return res.status(400).json({ error: "Resposta vazia." });
     }
-    const session = await handleNotebooklmSessionReply({
-      projDir,
-      backendDir: __dirname,
-      niche,
-      userReply,
-    });
-    const brief = projDir ? loadNotebooklmBrief(projDir) : null;
-    res.json({
-      ok: true,
-      session,
-      brief: brief?.available ? brief : null,
-    });
+
+    let activeRes = res;
+    if (progressJobId) {
+      report("notebooklm_reply", "Enviando resposta ao NotebookLM…", 12);
+      res.json({ started: true, jobId: progressJobId });
+      activeRes = createProgressJobResponse(progressJobId);
+    }
+
+    try {
+      const session = await handleNotebooklmSessionReply({
+        projDir,
+        backendDir: __dirname,
+        niche,
+        userReply,
+        onProgress: report,
+      });
+      const brief = projDir ? loadNotebooklmBrief(projDir) : null;
+      if (progressJobId) {
+        report(
+          session.awaitingUser ? "notebooklm_pending" : "notebooklm_ready",
+          session.awaitingUser
+            ? "NotebookLM aguarda sua resposta"
+            : "Material NotebookLM atualizado",
+          session.awaitingUser ? 22 : 92
+        );
+      }
+      return activeRes.json({
+        ok: true,
+        session,
+        brief: brief?.available ? brief : null,
+      });
+    } catch (err) {
+      if (progressJobId) failJobProgress(progressJobId, err.message);
+      return activeRes.status(500).json({ error: err.message });
+    }
   })
 );
 
