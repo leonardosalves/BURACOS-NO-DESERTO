@@ -4,6 +4,7 @@
  */
 
 import { bindGeoPipTemplateStudioProps } from "./geoPipTemplateProps.js";
+import { resolveGeoPipReferenceLabel } from "./geoPipSceneText.js";
 
 export const GEO_PIP_CATEGORY = "image-media";
 export const GEO_PIP_SUBCATEGORY = "Picture in Picture";
@@ -75,6 +76,10 @@ export function formatCoordDms(value, axis = "lat") {
   const min = Math.round((abs - deg) * 60);
   const hemi = axis === "lat" ? (num >= 0 ? "N" : "S") : num >= 0 ? "E" : "W";
   return `${deg}°${String(min).padStart(2, "0")}' ${hemi}`;
+}
+
+function boundReferenceFromScene(props = {}) {
+  return resolveGeoPipReferenceLabel(props);
 }
 
 export function buildGeoPipStudioProps(scene = {}, template = {}) {
@@ -158,6 +163,9 @@ export function attachGeoPipStudioTemplate(
       { ...scene, props: nextProps },
       template
     );
+    const referencePoint =
+      boundReferenceFromScene({ ...nextProps, studio_props }) ||
+      String(nextProps.location || "").trim();
     return {
       ...scene,
       layout: presentation,
@@ -175,9 +183,13 @@ export function attachGeoPipStudioTemplate(
         studio_source_code: sourceCode,
         studio_props,
         studio_props_meta,
-        pipTitle: studio_props.pipTitle || nextProps.location,
+        referencePoint,
+        scene_subject: studio_props.location,
+        pipTitle: "",
         pipMediaUrl: studio_props.pipMediaUrl || nextProps.pipMediaUrl,
         location: studio_props.location,
+        showMainContentLabel: studio_props.showMainContentLabel,
+        showPointerLines: studio_props.showPointerLines,
       },
     };
   }
