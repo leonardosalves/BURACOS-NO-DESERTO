@@ -4,6 +4,7 @@ import {
 } from "./studioTemplatePlaceholder.js";
 import {
   GEO_PIP_FORCE_EMPTY_KEYS,
+  GEO_PIP_OVERLAY_PROP_KEYS,
   isPictureInPictureStudioTemplate,
   mapGeoPipFlyoverToTemplateRenderProps,
 } from "./geoPipTemplateProps.js";
@@ -168,6 +169,9 @@ export function mergeStudioRenderProps({
     }
     if (mapped.showPointerLines !== undefined) {
       merged.showPointerLines = mapped.showPointerLines;
+    }
+    for (const key of GEO_PIP_OVERLAY_PROP_KEYS) {
+      if (key in mapped) merged[key] = mapped[key];
     }
     return merged;
   }

@@ -33,6 +33,111 @@ const SCENE_SUBJECT_STOPWORDS = new Set([
   "às",
 ]);
 
+export function isGenericPipNarration(text = "") {
+  const t = String(text || "").trim();
+  if (!t) return true;
+  return /picture\s*in\s*picture/i.test(t) || /^engenharia\s+picture/i.test(t);
+}
+
+function storyboardRows(storyboard = {}) {
+  if (Array.isArray(storyboard.blocks) && storyboard.blocks.length) {
+    return storyboard.blocks;
+  }
+  if (Array.isArray(storyboard.scenes) && storyboard.scenes.length) {
+    return storyboard.scenes;
+  }
+  if (
+    Array.isArray(storyboard.visual_prompts) &&
+    storyboard.visual_prompts.length
+  ) {
+    return storyboard.visual_prompts;
+  }
+  return [];
+}
+
+function isGeoLocationStoryboardRow(row = {}) {
+  const production =
+    row.production && typeof row.production === "object" ? row.production : {};
+  const dataType = String(production.data_type || "")
+    .trim()
+    .toLowerCase();
+  const motionId = String(production.motion_template_id || "")
+    .trim()
+    .toLowerCase();
+  const sceneType = String(row.type || "")
+    .trim()
+    .toLowerCase();
+  return (
+    dataType === "location" ||
+    motionId === "location-intro" ||
+    motionId === "geo-map" ||
+    sceneType.includes("geo") ||
+    sceneType.includes("mapa")
+  );
+}
+
+/** Narração do bloco do roteiro (storyboard), não legenda palavra-a-palavra. */
+export function resolveGeoPipBlockNarration(storyboard = {}, blockNum = 0) {
+  const rows = storyboardRows(storyboard);
+  const geoHit = rows.find(
+    (row) =>
+      Number(row?.block) === Number(blockNum) && isGeoLocationStoryboardRow(row)
+  );
+  if (geoHit) return String(geoHit.narration_text || "").trim();
+
+  const hit = rows.find((row) => Number(row?.block) === Number(blockNum));
+  return String(hit?.narration_text || "").trim();
+}
+
+/** Narração temática da cena geo — evita placeholder do template. */
+export function resolveGeoPipSceneNarration(props = {}, storyboard = {}) {
+  const studio = props.studio_props || {};
+  const fromSubject = String(
+    props.scene_subject || studio.scene_subject || ""
+  ).trim();
+  if (fromSubject && !isGenericSectorPlaceholder(fromSubject))
+    return fromSubject;
+
+  const narr = String(
+    props.narration_text || studio.narration_text || ""
+  ).trim();
+  if (narr && !isGenericPipNarration(narr)) return narr;
+
+  const block = Number(props.block ?? studio.block);
+  if (Number.isFinite(block)) {
+    const blockNarr = resolveGeoPipBlockNarration(storyboard, block);
+    if (blockNarr) return blockNarr;
+  }
+  return narr;
+}
+
+/** Resumo curto do assunto para o rodapé PIP (não repetir legenda). */
+export function summarizeGeoPipFooterSubject(narration = "", maxWords = 7) {
+  const raw = String(narration || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!raw || isGenericPipNarration(raw)) return "";
+
+  let pick = raw;
+  const mas = raw.toLowerCase().indexOf(" mas ");
+  if (mas >= 0 && mas < raw.length * 0.55) {
+    pick = raw.slice(mas + 5).trim();
+  } else {
+    const clauses = raw
+      .split(/[,.;]/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 8);
+    if (clauses.length >= 2) pick = clauses[1];
+    else pick = clauses[0] || raw;
+  }
+
+  const words = pick.split(/\s+/).filter(Boolean);
+  if (words.length > maxWords) {
+    return words.slice(0, maxWords).join(" ");
+  }
+  return pick;
+}
+
 /** Assunto da cena a partir da narração — não é legenda palavra-a-palavra. */
 export function extractSceneSubject(narration = "", maxLen = 72) {
   const raw = String(narration || "")

@@ -82,6 +82,8 @@ function applyGeoPipFlyoverBinding(
     },
     flyover_video: relPath,
     pipMediaUrl: relPath,
+    flyover_duration_sec: durationSec,
+    durationSeconds: durationSec,
     map_provider: props.map_provider || "ai_t2v",
     geo_generation: props.geo_generation || "ai_prompt",
     geo_pip_composite: true,

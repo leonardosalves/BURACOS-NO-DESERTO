@@ -56,6 +56,14 @@ describe("geoPipTemplateSourcePatch", () => {
     const patched = patchGeoPipTemplateSourceForChrome(src);
     assert.equal(patched.includes("{progressPercent}% PIP"), false);
     assert.match(patched, /showMainContentLabel && descriptorText &&/);
+    assert.match(
+      patched,
+      /showMainContentLabel && \(mainTitle \|\| mainSubtitle\) \? contentProgress : 0/
+    );
+    assert.match(
+      patched,
+      /geoPipOverlayChrome \? "transparent" : backgroundColor/
+    );
     assert.match(patched, /statusText \? \(/);
     assert.match(patched, /pipTag \? \(/);
     assert.doesNotMatch(patched, />\s*PIP\s*<\/div>/);
