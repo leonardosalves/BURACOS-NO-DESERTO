@@ -10,6 +10,7 @@ import {
   mergeMissingBrollFromConfig,
   saveTimelineStudio,
 } from "./timelineStudioMigration.js";
+import { studioMotionClipToMotionScene } from "./timelineStudioNichePacks.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".m4v", ".mkv"]);
@@ -57,6 +58,31 @@ export function resolveFlyoverDest(
   };
 }
 
+export function findMotionClipInStudio(studio, motionId) {
+  const needle = String(motionId || "").trim();
+  if (!needle || !Array.isArray(studio?.clips)) return null;
+  return (
+    studio.clips.find((clip) => String(clip?.id || "").trim() === needle) ||
+    null
+  );
+}
+
+/** Garante motion_scene no storyboard — cria a partir do clip da timeline se faltar. */
+export function ensureMotionSceneForUpload(motionScenes, studio, motionId) {
+  const needle = String(motionId || "").trim();
+  const list = Array.isArray(motionScenes) ? [...motionScenes] : [];
+  if (!needle) return list;
+  if (list.some((ms) => motionSceneMatches(ms, needle))) return list;
+
+  const clip = findMotionClipInStudio(studio, needle);
+  if (!clip) return list;
+
+  return [
+    ...list.filter((ms) => !motionSceneMatches(ms, needle)),
+    studioMotionClipToMotionScene(clip),
+  ];
+}
+
 export function patchMotionSceneFlyover(motionScenes, motionId, relPath) {
   const needle = String(motionId || "").trim();
   if (!needle) return motionScenes;
@@ -83,14 +109,46 @@ export function patchMotionSceneFlyover(motionScenes, motionId, relPath) {
   return next;
 }
 
+export function patchStudioClipFlyover(studio, motionId, relPath) {
+  const needle = String(motionId || "").trim();
+  if (!needle || !Array.isArray(studio?.clips)) return studio;
+  let touched = false;
+  const clips = studio.clips.map((clip) => {
+    if (String(clip?.id || "").trim() !== needle) return clip;
+    touched = true;
+    const props =
+      clip.props && typeof clip.props === "object" ? clip.props : {};
+    return {
+      ...clip,
+      props: {
+        ...props,
+        flyover_video: relPath,
+        map_provider: props.map_provider || "ai_t2v",
+        geo_generation: props.geo_generation || "ai_prompt",
+      },
+    };
+  });
+  return touched ? { ...studio, clips } : studio;
+}
+
 function persistFlyoverToProject(projDir, motionId, relPath) {
   const storyboardPath = path.join(projDir, "storyboard.json");
   const storyboard = readJsonSafe(storyboardPath, {});
-  const motionScenes = patchMotionSceneFlyover(
+  const { studio: rawStudio } = loadTimelineStudio(projDir);
+  const ensured = ensureMotionSceneForUpload(
     storyboard.motion_scenes || [],
-    motionId,
-    relPath
+    rawStudio,
+    motionId
   );
+  if (
+    !ensured.some((ms) => motionSceneMatches(ms, motionId)) &&
+    !findMotionClipInStudio(rawStudio, motionId)
+  ) {
+    throw new Error(
+      `Cena motion "${motionId}" não encontrada — adicione o template na timeline antes do upload.`
+    );
+  }
+  const motionScenes = patchMotionSceneFlyover(ensured, motionId, relPath);
   const nextStoryboard = {
     ...storyboard,
     motion_scenes: motionScenes,
@@ -114,8 +172,8 @@ function persistFlyoverToProject(projDir, motionId, relPath) {
     path.join(projDir, "block_timings.json"),
     {}
   );
-  const { studio: rawStudio } = loadTimelineStudio(projDir);
-  let studio = syncMotionScenesToStudio(rawStudio, motionScenes);
+  let studio = patchStudioClipFlyover(rawStudio, motionId, relPath);
+  studio = syncMotionScenesToStudio(studio, motionScenes);
   studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
   studio = upsertMusicClipInStudio(studio, config, projDir);
   const savedStudio = saveTimelineStudio(projDir, studio);
