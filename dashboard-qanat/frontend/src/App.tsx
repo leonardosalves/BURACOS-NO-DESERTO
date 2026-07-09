@@ -8144,11 +8144,21 @@ export default function App() {
     if (useNotebooklm && !payloadSkipNlm) {
       setNotebooklmSession(null);
       setNotebooklmBrief(null);
-      fetch(getProjectUrl("/api/notebooklm/session/reset"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ niche: resolveNotebooklmNiche() }),
-      }).catch(() => {});
+      try {
+        await fetch(
+          getProjectUrl("/api/notebooklm/session/reset", projectName),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              project: projectName,
+              niche: resolveNotebooklmNiche(),
+            }),
+          }
+        );
+      } catch {
+        /* backend também limpa no início da narração */
+      }
     }
     setShowNarrationReview(false);
     const progressJobId = createProgressJobId();
@@ -8169,7 +8179,7 @@ export default function App() {
       );
       if (token !== creatorGenTokenRef.current) return;
       if (ok && data.phase === "notebooklm_pending") {
-        stopAiJobProgress(false, "NotebookLM aguarda sua resposta");
+        stopAiJobProgress(false);
         setNotebooklmSession(
           (data.notebooklm_session as NotebooklmSession) || null
         );
@@ -8181,10 +8191,11 @@ export default function App() {
           void fetchNotebooklmBrief();
         }
         setShowNarrationReview(false);
+        setCreatorStep(1);
         notebooklmProceedActionRef.current = "narration";
         toast(
           "O NotebookLM quer alinhar o assunto — responda no painel roxo antes da narração.",
-          { icon: "💬", duration: 8000 }
+          { icon: "💬", duration: 10000 }
         );
         return;
       }
