@@ -1,4 +1,4 @@
-# Verifica backend (3005), frontend (5176) e watchdog — corrige automaticamente.
+# Verifica backend (3005), frontend (5176) — corrige automaticamente.
 param([switch]$Quiet)
 
 $ErrorActionPreference = "SilentlyContinue"
@@ -22,42 +22,31 @@ if (-not $Quiet) {
     Write-Host "=== Lumiera ensure ===" -ForegroundColor Cyan
 }
 
-$pm2Mode = Test-LumieraPm2Mode
 $permanentMarker = Join-Path $script:LogDir "permanent.mode"
+$stackMode = Get-LumieraStackMode
 
-if ($pm2Mode -or (Test-Path -LiteralPath $permanentMarker)) {
-    if (-not $Quiet) { Write-Host "Modo permanente (PM2 + guardian)" -ForegroundColor DarkGray }
-    $stackOk = Repair-LumieraPm2Stack
-    if (-not $stackOk) {
-        if (-not $Quiet) {
-            Write-Host "PM2 falhou - subindo backend+frontend em modo direto..." -ForegroundColor Yellow
-        }
-        $backendOk = Start-LumieraStackDirect
-        & (Join-Path $PSScriptRoot "ensure-frontend.ps1")
-        $frontendExit = $LASTEXITCODE
-        $stackOk = $backendOk -and ($frontendExit -eq 0)
-    } else {
-        $backendOk = $true
-        $frontendExit = 0
+if (-not $Quiet) {
+    Write-Host "Modo stack: $stackMode" -ForegroundColor DarkGray
+}
+
+$health = Test-LumieraStackHealthy
+$stackOk = $health.ok
+
+if (-not $stackOk) {
+    if (-not $Quiet) {
+        Write-Host "Stack offline - reparando..." -ForegroundColor Yellow
     }
-    if ($stackOk -and -not $Quiet) {
-        Write-Host "Backend OK em http://127.0.0.1:3005" -ForegroundColor Green
-        Write-Host "Frontend OK em http://127.0.0.1:5176/" -ForegroundColor Green
-    } elseif (-not $Quiet) {
-        Write-Host "Stack offline - execute run_qanat_dashboard.bat" -ForegroundColor Yellow
-    }
-} else {
-    & (Join-Path $PSScriptRoot "ensure-watchdog.ps1") | Out-Null
-    $backendOk = $false
-    if (Test-LumieraBackendHealthy -Retries 4 -TimeoutSec 10) {
-        $backendOk = $true
-        if (-not $Quiet) { Write-Host "Backend ja OK" -ForegroundColor Green }
-    } else {
-        if (-not $Quiet) { Write-Host "Backend offline - subindo..." -ForegroundColor Yellow }
-        $backendOk = Start-LumieraBackendProcess
-    }
-    & (Join-Path $PSScriptRoot "ensure-frontend.ps1")
-    $frontendExit = $LASTEXITCODE
+    $stackOk = Repair-LumieraStackUnified
+}
+
+$backendOk = (Test-LumieraStackHealthy).backend
+$frontendExit = if ((Get-PortListenerPidFast 5176)) { 0 } else { 1 }
+
+if ($stackOk -and -not $Quiet) {
+    Write-Host "Backend OK em http://127.0.0.1:3005" -ForegroundColor Green
+    Write-Host "Frontend OK em http://127.0.0.1:5176/" -ForegroundColor Green
+} elseif (-not $Quiet) {
+    Write-Host "Falha - execute run_qanat_dashboard.bat" -ForegroundColor Yellow
 }
 
 $backendErrors = Test-LogHasErrors (Join-Path $script:LogDir "backend-stderr.log")

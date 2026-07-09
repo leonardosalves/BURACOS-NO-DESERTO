@@ -14,13 +14,14 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "NotebookLM: sessao OK ($script:NotebookLmData)" -ForegroundColor DarkGray
 }
 
-$permanentMode = Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode")
-if (Test-LumieraPm2Mode -or $permanentMode) {
-    if (-not (Test-BackendSyntaxOk)) {
-        Write-Host "ERRO: server.js com sintaxe invalida - PM2 nao reiniciou." -ForegroundColor Red
-        Write-Host "Veja: .lumiera-logs\backend-syntax-check.log" -ForegroundColor Yellow
-        exit 1
-    }
+if (-not (Test-BackendSyntaxOk)) {
+    Write-Host "ERRO: server.js com sintaxe invalida." -ForegroundColor Red
+    Write-Host "Veja: .lumiera-logs\backend-syntax-check.log" -ForegroundColor Yellow
+    exit 1
+}
+
+$stackMode = Get-LumieraStackMode
+if ($stackMode -eq "pm2" -and (Test-LumieraPm2Mode)) {
     if ($Force) {
         Write-Host "PM2 reload do backend (codigo alterado)..." -ForegroundColor Yellow
         $ok = Ensure-LumieraPm2Backend -Reload
@@ -29,11 +30,11 @@ if (Test-LumieraPm2Mode -or $permanentMode) {
         $ok = Ensure-LumieraPm2Backend
     }
 } elseif ($Force) {
-    Write-Host "Reinicio FORCADO do backend (codigo alterado)..." -ForegroundColor Yellow
-    $ok = Start-LumieraBackendProcess -ForceRestart
+    Write-Host "Reinicio FORCADO do backend (modo direto)..." -ForegroundColor Yellow
+    $ok = Start-LumieraBackendProcess -Direct -ForceRestart
 } else {
-    Write-Host "Garantindo backend em http://127.0.0.1:3005 (sem derrubar se ja estiver OK)..." -ForegroundColor Cyan
-    $ok = Start-LumieraBackendProcess
+    Write-Host "Garantindo backend em http://127.0.0.1:3005..." -ForegroundColor Cyan
+    $ok = Start-LumieraBackendProcess -Direct
 }
 
 if (-not $ok) {
