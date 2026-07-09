@@ -30,6 +30,15 @@ if (-not (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 10)) {
     exit 1
 }
 
+Invoke-LumieraPm2 @("save", "--force") | Out-Null
+$pm2Bin = Join-Path $script:RepoRoot "node_modules\.bin\pm2.cmd"
+$pm2ResurrectVbs = Join-Path ([Environment]::GetFolderPath("Startup")) "Lumiera-PM2-Resurrect.vbs"
+Set-Content -Path $pm2ResurrectVbs -Value @(
+    'Set sh = CreateObject("Wscript.Shell")',
+    ('sh.Run "cmd /c ""{0}"" resurrect", 0, False' -f $pm2Bin)
+) -Encoding ASCII
+Write-Host "Boot: PM2 resurrect na pasta Inicializar" -ForegroundColor DarkGray
+
 # 2) Remove watchdog legado (mata processo e compete com PM2)
 Remove-LumieraTask $TaskWatchdog
 $watchPidFile = Join-Path $script:LogDir "watchdog.pid"
@@ -69,7 +78,10 @@ try {
         -Force -ErrorAction Stop | Out-Null
     Start-ScheduledTask -TaskName $TaskGuardian -ErrorAction SilentlyContinue
     $taskOk = $true
-    Write-Host "Guardian: tarefa agendada '$TaskGuardian'" -ForegroundColor Green
+    Stop-LumieraGuardianDaemon
+    $startupVbs = Join-Path ([Environment]::GetFolderPath("Startup")) "Lumiera-Guardian.vbs"
+    Remove-Item -LiteralPath $startupVbs -Force -ErrorAction SilentlyContinue
+    Write-Host "Guardian: tarefa agendada '$TaskGuardian' (1 instancia)" -ForegroundColor Green
 } catch {
     Write-Host "Guardian: sem admin - usando pasta Startup + daemon" -ForegroundColor Yellow
     $daemonScript = Join-Path $PSScriptRoot "start-lumiera-guardian-daemon.ps1"
