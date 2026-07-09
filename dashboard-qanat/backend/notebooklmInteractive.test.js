@@ -6,6 +6,7 @@ import {
   assessNotebooklmReadiness,
   buildNotebooklmSessionFromResearch,
   replyNotebooklmSession,
+  getActiveNotebooklmQuestions,
 } from "./notebooklmInteractive.js";
 
 describe("notebooklmInteractive", () => {
@@ -94,6 +95,71 @@ Você gostaria que eu fizesse essa pesquisa na web agora?`;
     assert.equal(researchCalled, false);
     assert.equal(result.suggestProceed, true);
     assert.equal(result.session.awaitingUser, false);
+  });
+
+  it("usa perguntas do ultimo turno do assistente, nao lista antiga", () => {
+    const session = {
+      questions: ["Você gostaria que eu fizesse essa pesquisa na web agora?"],
+      turns: [
+        {
+          role: "assistant",
+          content: "Você gostaria que eu fizesse essa pesquisa na web agora?",
+          questions: [
+            "Você gostaria que eu fizesse essa pesquisa na web agora?",
+          ],
+        },
+        { role: "user", content: "Sim, pesquise." },
+        {
+          role: "assistant",
+          content:
+            "Posso importar as pesquisas que já fiz para o notebook agora?",
+          questions: [
+            "Posso importar as pesquisas que já fiz para o notebook agora?",
+          ],
+        },
+      ],
+    };
+    const active = getActiveNotebooklmQuestions(session);
+    assert.match(active[0], /importar as pesquisas/i);
+    assert.doesNotMatch(active.join(" "), /pesquisa na web agora/i);
+  });
+
+  it("sim para importar pesquisas nao dispara nova pesquisa web", async () => {
+    const session = {
+      niche: "Cabos",
+      format: "SHORTS",
+      notebookId: "nb-import",
+      researchDone: false,
+      questions: ["Você gostaria que eu fizesse essa pesquisa na web agora?"],
+      turns: [
+        {
+          role: "assistant",
+          content:
+            "Posso importar as pesquisas que já fiz para o notebook agora?",
+          questions: [
+            "Posso importar as pesquisas que já fiz para o notebook agora?",
+          ],
+        },
+      ],
+      status: "pending_user",
+      awaitingUser: true,
+    };
+    let researchCalled = false;
+    const result = await replyNotebooklmSession({
+      session,
+      userReply: "Sim",
+      backendDir: "/tmp",
+      queryNotebook: async (_id, question) => {
+        assert.match(question, /IMPORTAR as pesquisas/i);
+        return "1. Cabo de 16 mil km\n2. Fibra óptica blindada";
+      },
+      runResearch: async () => {
+        researchCalled = true;
+      },
+    });
+    assert.equal(researchCalled, false);
+    assert.equal(result.session.researchDone, true);
+    assert.equal(result.suggestProceed, false);
   });
 
   it("sim para pesquisa web dispara runResearch quando ainda não feita", async () => {

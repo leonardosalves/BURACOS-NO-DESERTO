@@ -10,6 +10,7 @@ import {
   replyNotebooklmSession,
   saveNotebooklmSession,
   assessNotebooklmReadiness,
+  getActiveNotebooklmQuestions,
 } from "./notebooklmInteractive.js";
 import {
   loadNotebooklmBrief,
@@ -43,6 +44,7 @@ export {
   saveNotebooklmSession,
   replyNotebooklmSession,
   assessNotebooklmReadiness,
+  getActiveNotebooklmQuestions,
 };
 
 const QUERY_TIMEOUT_MS = Number(

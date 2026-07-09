@@ -558,8 +558,7 @@ export function AppCreatorTab({
 
       <div className="flex-1 glass-panel border border-dash-border rounded-lg p-6 min-h-0 overflow-y-auto">
         {notebooklmSession &&
-          (notebooklmSession.awaitingUser ||
-            notebooklmSession.status === "pending_user") &&
+          notebooklmSession.status !== "finalized" &&
           handleNotebooklmReply &&
           handleNotebooklmProceed && (
             <div className="mb-6 max-w-4xl mx-auto">
@@ -1510,8 +1509,7 @@ export function AppCreatorTab({
                 </div>
 
                 {notebooklmSession &&
-                  (notebooklmSession.awaitingUser ||
-                    notebooklmSession.status === "pending_user") && (
+                  notebooklmSession.status !== "finalized" && (
                     <NotebooklmEnrichmentPanel
                       session={notebooklmSession}
                       brief={notebooklmBrief}

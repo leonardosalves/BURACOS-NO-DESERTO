@@ -8142,41 +8142,7 @@ export default function App() {
     const payloadSkipNlm = Boolean(
       (payload as { skipNotebooklmPending?: boolean }).skipNotebooklmPending
     );
-    const nlmInProgress =
-      notebooklmSession &&
-      (notebooklmSession.awaitingUser ||
-        notebooklmSession.status === "pending_user" ||
-        ((notebooklmSession.turns?.length ?? 0) > 0 &&
-          notebooklmSession.status !== "finalized"));
-    const briefHasProgress = Boolean(
-      notebooklmBrief?.checklist?.discovery_iniciado ||
-      notebooklmBrief?.checklist?.editor_respondeu ||
-      (notebooklmBrief?.fact_count ?? 0) > 0
-    );
-    if (
-      useNotebooklm &&
-      !payloadSkipNlm &&
-      !nlmInProgress &&
-      !briefHasProgress
-    ) {
-      setNotebooklmSession(null);
-      setNotebooklmBrief(null);
-      try {
-        await fetch(
-          getProjectUrl("/api/notebooklm/session/reset", projectName),
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              project: projectName,
-              niche: resolveNotebooklmNiche(),
-            }),
-          }
-        );
-      } catch {
-        /* backend também limpa no início da narração */
-      }
-    }
+    /* Nunca resetar sessão NotebookLM automaticamente — progresso fica no brief MD */
     setShowNarrationReview(false);
     const progressJobId = createProgressJobId();
     const progressTitle =
@@ -8641,13 +8607,11 @@ export default function App() {
             : "NotebookLM · resposta processada"
       );
       if (suggestProceed) {
-        toast.success("Confirmado — gerando narração a partir do brief MD…", {
-          duration: 5000,
-        });
-        await handleNotebooklmProceed();
-        return;
-      }
-      if (session?.readiness?.ready && !session?.awaitingUser) {
+        toast.success(
+          "Confirmado — clique em Prosseguir para gerar a narração.",
+          { duration: 6000 }
+        );
+      } else if (session?.readiness?.ready && !session?.awaitingUser) {
         toast.success(
           "Material suficiente — pode prosseguir com roteiro/narração."
         );
