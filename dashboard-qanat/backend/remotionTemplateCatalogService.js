@@ -6,6 +6,11 @@ import {
   isLegacySeedTemplateId,
   LEGACY_SEED_TEMPLATE_IDS,
 } from "../shared/remotionTemplateLegacy.js";
+import {
+  DEFAULT_TEMPLATE_NICHES,
+  mergeNicheLists,
+  normalizeNicheLabel,
+} from "../shared/remotionTemplateNiches.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CATALOG_PATH = path.join(
@@ -296,6 +301,70 @@ export function purgeLegacySeedTemplatesFromCatalogFile() {
 
 export function loadRemotionTemplateCatalog() {
   return readCatalogFile();
+}
+
+export function listCatalogNiches() {
+  const catalog = readCatalogFile();
+  const fromFile = Object.keys(catalog.niches || {}).map((key) => {
+    const entry = catalog.niches[key] || {};
+    const templates = Array.isArray(entry.templates) ? entry.templates : [];
+    const approved = templates.filter((tpl) => tpl?.status === "approved");
+    return {
+      niche: key,
+      count: templates.length,
+      approved_count: approved.length,
+      updated_at: entry.updated_at || null,
+    };
+  });
+
+  const merged = mergeNicheLists(
+    DEFAULT_TEMPLATE_NICHES,
+    fromFile.map((row) => row.niche)
+  );
+
+  const byKey = new Map(fromFile.map((row) => [row.niche.toLowerCase(), row]));
+  return merged.map((niche) => {
+    const existing = byKey.get(niche.toLowerCase());
+    return (
+      existing || {
+        niche,
+        count: 0,
+        approved_count: 0,
+        updated_at: null,
+      }
+    );
+  });
+}
+
+export function createCatalogNiche(niche = "") {
+  const key = normalizeNicheLabel(niche);
+  if (!key) {
+    return { ok: false, error: "Informe o nome do nicho." };
+  }
+
+  const catalog = readCatalogFile();
+  if (!catalog.niches) catalog.niches = {};
+  purgeLegacyTemplatesFromCatalog(catalog);
+
+  const created = !catalog.niches[key];
+  if (created) {
+    catalog.niches[key] = {
+      templates: [],
+      updated_at: new Date().toISOString(),
+    };
+    catalog.updated_at = new Date().toISOString();
+    writeCatalogFile(catalog);
+  }
+
+  const snapshot = getCatalogForNiche(key);
+  return {
+    ok: true,
+    created,
+    niche: key,
+    count: snapshot.templates.length,
+    approved_count: snapshot.approved.length,
+    updated_at: snapshot.updated_at,
+  };
 }
 
 export function getCatalogForNiche(niche = "") {

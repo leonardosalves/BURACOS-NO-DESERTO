@@ -2,6 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   attachStudioTemplateToScene,
+  createCatalogNiche,
+  listCatalogNiches,
   mapStudioTemplateToMotionId,
   pickStudioTemplateForTrigger,
   purgeLegacySeedTemplatesFromCatalogFile,
@@ -72,6 +74,17 @@ describe("remotionTemplateCatalogService bridge", () => {
       },
     ]);
     assert.equal(kept.count, 1);
+  });
+
+  it("createCatalogNiche cria catalogo vazio e listCatalogNiches inclui o nicho", () => {
+    const nicheName = "__test_create_catalog_niche__";
+    const created = createCatalogNiche(nicheName);
+    assert.equal(created.ok, true);
+    assert.equal(created.niche, nicheName);
+    assert.equal(created.count, 0);
+
+    const niches = listCatalogNiches();
+    assert.ok(niches.some((row) => row.niche === nicheName));
   });
 
   it("mapStudioTemplateToMotionId mapeia bar chart corretamente", () => {

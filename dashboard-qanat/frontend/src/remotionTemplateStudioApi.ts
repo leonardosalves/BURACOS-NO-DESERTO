@@ -119,6 +119,80 @@ export type CatalogSyncRequest = {
 
 const CATALOG_ENDPOINT = "/api/ai/template-studio/catalog";
 const CATALOG_SYNC_ENDPOINT = "/api/ai/template-studio/catalog/sync";
+const CATALOG_NICHES_ENDPOINT = "/api/ai/template-studio/catalog/niches";
+const CATALOG_CREATE_NICHE_ENDPOINT = "/api/ai/template-studio/catalog/niche";
+
+export type CatalogNicheEntry = {
+  niche: string;
+  count: number;
+  approved_count: number;
+  updated_at: string | null;
+};
+
+export type CatalogNichesResponse = {
+  success: boolean;
+  niches: CatalogNicheEntry[];
+  error?: string;
+};
+
+export type CreateCatalogNicheResponse = {
+  success: boolean;
+  niche?: string;
+  created?: boolean;
+  count?: number;
+  approved_count?: number;
+  updated_at?: string | null;
+  error?: string;
+};
+
+export async function fetchCatalogNiches(): Promise<CatalogNichesResponse> {
+  try {
+    const res = await fetch(CATALOG_NICHES_ENDPOINT);
+    const parsed = await readApiJsonResponse<CatalogNichesResponse>(res);
+    if (parsed.error || !parsed.data) {
+      return {
+        success: false,
+        niches: [],
+        error: parsed.error || "Nichos indisponíveis.",
+      };
+    }
+    return {
+      success: Boolean(parsed.data.success),
+      niches: Array.isArray(parsed.data.niches) ? parsed.data.niches : [],
+      error: parsed.data.error,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      niches: [],
+      error:
+        err instanceof Error ? err.message : "Falha de rede ao listar nichos.",
+    };
+  }
+}
+
+export async function createCatalogNiche(
+  niche: string
+): Promise<CreateCatalogNicheResponse> {
+  try {
+    const res = await fetch(CATALOG_CREATE_NICHE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ niche }),
+    });
+    const parsed = await readApiJsonResponse<CreateCatalogNicheResponse>(res);
+    if (parsed.error || !parsed.data) {
+      return { success: false, error: parsed.error || "Falha ao criar nicho." };
+    }
+    return parsed.data;
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error ? err.message : "Falha de rede ao criar nicho.",
+    };
+  }
+}
 
 export async function fetchRemotionTemplateCatalog(
   niche: string
