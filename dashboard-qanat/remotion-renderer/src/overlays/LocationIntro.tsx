@@ -452,7 +452,11 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   const hasCoords = Boolean(lat && lng);
 
   const useBlender =
-    map_provider === "blender" && Boolean(String(flyover_video || "").trim());
+    Boolean(String(flyover_video || "").trim()) &&
+    (map_provider === "blender" ||
+      map_provider === "ai_t2v" ||
+      map_provider === "" ||
+      /flyover|\.mp4/i.test(String(flyover_video || "")));
   const useCesium = map_provider === "cesium" && hasCoords;
   const flyoverSrc = resolveMapImageSrc(flyover_video);
 

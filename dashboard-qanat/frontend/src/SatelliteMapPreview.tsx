@@ -54,13 +54,46 @@ export function SatelliteMapPreview({
     progress
   );
   const zoom = interpolateFlyScale(frames, progress, flyMode);
+  const flyoverSrc = String(props.flyover_video || "").trim();
+  const aiPrompt = String(props.ai_video_prompt || "").trim();
+  const isAiT2v =
+    String(props.map_provider || "") === "ai_t2v" ||
+    props.geo_generation === "ai_prompt";
+
+  if (flyoverSrc) {
+    const videoUrl = flyoverSrc.startsWith("http")
+      ? flyoverSrc
+      : getAssetUrl(flyoverSrc.replace(/^ASSETS\//i, "").replace(/\\/g, "/"));
+    return (
+      <div className="absolute inset-0 z-40 overflow-hidden bg-black pointer-events-none">
+        <video
+          src={videoUrl}
+          className="absolute inset-0 w-full h-full object-cover"
+          muted
+          playsInline
+          preload="metadata"
+          style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: "center center",
+          }}
+        />
+      </div>
+    );
+  }
 
   if (!frames.length) {
     return (
-      <div className="absolute inset-0 z-40 bg-zinc-900 flex items-center justify-center">
-        <span className="text-[10px] text-zinc-500 px-4 text-center">
-          Tiles satélite ausentes — rode Cenas Remotion
-        </span>
+      <div className="absolute inset-0 z-40 bg-gradient-to-br from-[#0d2137] via-[#1a3a52] to-[#0a1628] flex flex-col items-center justify-center px-6 text-center">
+        <p className="text-[11px] font-bold text-white">
+          {String(props.location || "Local geográfico")}
+        </p>
+        <p className="text-[10px] text-sky-300/90 mt-2 font-semibold max-w-md">
+          {isAiT2v && aiPrompt.length >= 80
+            ? "Prompt IA Geo pronto — gere o vídeo no Grok ou Google Flow e envie o MP4"
+            : isAiT2v
+              ? "Gerando prompt IA Geo…"
+              : "Enriquecimento geográfico pendente — abra o inspector da cena"}
+        </p>
       </div>
     );
   }

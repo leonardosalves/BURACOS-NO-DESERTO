@@ -29,6 +29,7 @@ import {
   normalizeMotionScenes,
   type MotionSceneDraft,
 } from "./motionEditorConfig";
+import { GeoFlyoverUploadField } from "./GeoFlyoverUploadField";
 
 type BlockTimings = {
   starts?: number[];
@@ -42,6 +43,7 @@ type Props = {
   timelineAssets?: Record<string, Array<Record<string, unknown>>>;
   aspectRatio?: string;
   getAssetUrl?: (path: string) => string;
+  getProjectUrl?: (path: string) => string;
   generating?: boolean;
   saving?: boolean;
   onChange: (
@@ -83,6 +85,7 @@ export function MotionTimelineEditor({
   timelineAssets = {},
   aspectRatio = "16:9",
   getAssetUrl,
+  getProjectUrl,
   generating = false,
   saving = false,
   onChange,
@@ -519,6 +522,29 @@ export function MotionTimelineEditor({
             ))}
           </div>
         )}
+
+        {(scene.template_id === "location-intro" ||
+          scene.template_id === "geo-map") &&
+        getProjectUrl &&
+        getAssetUrl ? (
+          <GeoFlyoverUploadField
+            motionId={scene.id}
+            flyoverPath={String(props.flyover_video || "")}
+            getProjectUrl={getProjectUrl}
+            getAssetUrl={getAssetUrl}
+            compact
+            onUploaded={(result) => {
+              if (result.flyover_video) {
+                patchProp(scene.id, "flyover_video", result.flyover_video);
+              }
+              if (Array.isArray(result.motion_scenes)) {
+                onChange(result.motion_scenes as MotionSceneDraft[], {
+                  immediate: true,
+                });
+              }
+            }}
+          />
+        ) : null}
 
         <p className="text-[8px] text-zinc-500 leading-relaxed">
           Formato {aspectRatio}. Edite catálogo global em Configurações →

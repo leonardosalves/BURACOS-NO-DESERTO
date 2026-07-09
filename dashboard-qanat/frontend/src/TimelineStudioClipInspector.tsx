@@ -13,6 +13,7 @@ import {
   locationIntroHasSatellite,
   locationIntroNeedsSatelliteFetch,
 } from "./timelineStudioSatellite";
+import { GeoFlyoverUploadField } from "./GeoFlyoverUploadField";
 import {
   applyStudioSlotPatch,
   applyTimingManualPatch,
@@ -30,6 +31,7 @@ type Props = {
   onCaptionText: (text: string) => void;
   onDelete: () => void;
   getProjectUrl?: (endpoint: string) => string;
+  getAssetUrl?: (fileName: string) => string;
   onSatelliteSynced?: (studio: unknown) => void;
 };
 
@@ -41,6 +43,7 @@ export function TimelineStudioClipInspector({
   onCaptionText,
   onDelete,
   getProjectUrl,
+  getAssetUrl,
   onSatelliteSynced,
 }: Props) {
   const editable = isClipEditable(clip);
@@ -402,6 +405,30 @@ export function TimelineStudioClipInspector({
                 para gerar o voo satelite fotorrealista. Destaque de pais/cidade
                 e clima vem da narracao.
               </p>
+              {getProjectUrl && getAssetUrl ? (
+                <div className="mt-3">
+                  <GeoFlyoverUploadField
+                    motionId={clip.id}
+                    flyoverPath={String(clip.props?.flyover_video || "")}
+                    getProjectUrl={getProjectUrl}
+                    getAssetUrl={getAssetUrl}
+                    compact
+                    onUploaded={(result) => {
+                      onUpdate({
+                        props: {
+                          ...clip.props,
+                          flyover_video: result.flyover_video,
+                          map_provider: "ai_t2v",
+                          geo_generation: "ai_prompt",
+                        },
+                      });
+                      if (result.studio && onSatelliteSynced) {
+                        onSatelliteSynced(result.studio);
+                      }
+                    }}
+                  />
+                </div>
+              ) : null}
             </Field>
           </>
         ) : null}
