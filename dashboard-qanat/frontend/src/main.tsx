@@ -1,22 +1,26 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import { GeminiBrowserProvider } from './GeminiBrowserBridge.tsx'
-import { TabErrorBoundary } from './TabErrorBoundary.tsx'
-import './index.css'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.tsx";
+import { GeminiBrowserProvider } from "./GeminiBrowserBridge.tsx";
+import { TabErrorBoundary } from "./TabErrorBoundary.tsx";
+import { ensureFreshDashboardShell } from "./deployRecovery";
+import "./index.css";
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <TabErrorBoundary label="Lumiera">
       <GeminiBrowserProvider>
         <App />
       </GeminiBrowserProvider>
     </TabErrorBoundary>
-  </React.StrictMode>,
-)
+  </React.StrictMode>
+);
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => undefined)
-  })
+if (import.meta.env.PROD) {
+  void ensureFreshDashboardShell();
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    });
+  }
 }
