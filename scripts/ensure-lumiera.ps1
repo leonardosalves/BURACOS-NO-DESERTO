@@ -62,7 +62,10 @@ if (-not $Quiet) {
 }
 
 if ($uniport) {
-    if ($backendOk -and (Test-LumieraFrontendDistReady)) { exit 0 }
+    if ($backendOk -and (Test-LumieraFrontendDistReady)) {
+        Start-LumieraLegacyRedirect | Out-Null
+        exit 0
+    }
     exit 1
 }
 
