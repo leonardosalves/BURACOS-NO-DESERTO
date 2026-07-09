@@ -240,8 +240,7 @@ const PREVIEW_DURATION_BY_VARIANT: Record<PreviewVariant, number> = {
   cinematic: 90,
 };
 
-// Live preview removido — sucrase + new Function() crashava o app.
-// Preview usa mock animado leve (PreviewFrame) que é estável e fiel ao tipo do chart.
+// Preview 100% fiel: Remotion Player compila e renderiza o TSX salvo (sem mock SVG).
 
 function slugifyTemplatePart(value: string) {
   return String(value || "template")
@@ -2602,8 +2601,6 @@ function useTemplatePreviewTimeline({
   return { frame, playing, playFromStart, toggle, pause, setFrame };
 }
 
-// canLivePreviewSource removido — live preview desativado (crashava o app).
-
 function TemplatePreviewSlot({
   template,
   format,
@@ -2617,31 +2614,14 @@ function TemplatePreviewSlot({
 }) {
   const source =
     format === "9:16" ? template.sourceCode.short : template.sourceCode.long;
-  const variant = effectivePreviewVariant(format, template);
-  const previewProps = buildPreviewPropsFromTemplate(template);
-  const mockPreview = (
-    <PreviewFrame
-      format={format}
-      variant={variant}
-      previewProps={previewProps}
-      size={size}
-      autoPlay={autoPlay}
-    />
-  );
 
-  const expectsLivePreview =
-    /\bexport\s+default\s+function\b/.test(source) &&
-    /\bexport\s+const\s+exampleProps\b/.test(source);
-
-  if (size === "card" && expectsLivePreview) {
+  if (size === "card") {
     return (
       <LazySavedTemplatePreviewFrame
         sourceCode={source}
         format={format}
         size="card"
-        autoPlay={false}
-        fallback={mockPreview}
-        placeholder={mockPreview}
+        autoPlay={autoPlay}
       />
     );
   }
@@ -2652,7 +2632,7 @@ function TemplatePreviewSlot({
       format={format}
       size={size}
       autoPlay={autoPlay}
-      fallback={expectsLivePreview ? null : mockPreview}
+      fallback={null}
     />
   );
 }
@@ -2961,10 +2941,10 @@ function TemplateDetailPanel({
                     template={template}
                     format={activeAspectRatio}
                     size="detail"
-                    autoPlay={false}
+                    autoPlay
                   />
                   <p className="text-center text-[10px] font-bold text-zinc-500">
-                    Preview ao vivo do TSX importado.
+                    Preview 100% fiel ao TSX salvo (Remotion Player).
                   </p>
                 </div>
               </div>
@@ -3890,13 +3870,13 @@ export function RemotionTemplateStudio({
                         template={template}
                         format="9:16"
                         size="card"
-                        autoPlay={false}
+                        autoPlay
                       />
                       <TemplatePreviewSlot
                         template={template}
                         format="16:9"
                         size="card"
-                        autoPlay={false}
+                        autoPlay
                       />
                     </div>
                     <div className="p-4">

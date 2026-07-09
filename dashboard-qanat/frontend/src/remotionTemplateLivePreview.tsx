@@ -178,11 +178,23 @@ export function SavedTemplatePreviewFrame({
       return;
     }
 
+    // Galeria/detalhe com autoPlay: Player controla play+loop — não forçar pause/seek.
+    if (autoPlay && !timelineSynced) {
+      return;
+    }
+
     if (lastSeekFrameRef.current === scrubFrame) return;
     lastSeekFrameRef.current = scrubFrame;
     player.pause();
     player.seekTo(scrubFrame);
-  }, [previewMeta, scrubFrame, timelinePlaying, driftFrames]);
+  }, [
+    previewMeta,
+    scrubFrame,
+    timelinePlaying,
+    driftFrames,
+    autoPlay,
+    timelineSynced,
+  ]);
 
   if (compiled.ok === false) {
     if (fallback) {
@@ -224,10 +236,12 @@ export function SavedTemplatePreviewFrame({
     overlayOnly || (fullBleed && isGeoPipCompositeProps(inputProps));
 
   const previewStartFrame = !fullBleed
-    ? Math.min(
-        Math.round(fps * (size === "detail" ? 0.8 : 0.55)),
-        sceneDurationFrames - 1
-      )
+    ? autoPlay
+      ? 0
+      : Math.min(
+          Math.round(fps * (size === "detail" ? 0.8 : 0.55)),
+          sceneDurationFrames - 1
+        )
     : 0;
 
   const player = (
@@ -286,17 +300,47 @@ export function SavedTemplatePreviewFrame({
   return player;
 }
 
+export function TemplatePreviewSkeleton({
+  format,
+  size = "card",
+}: {
+  format: "9:16" | "16:9";
+  size?: "card" | "detail";
+}) {
+  const vertical = format === "9:16";
+  const className =
+    size === "detail"
+      ? vertical
+        ? "w-[154px] sm:w-[190px]"
+        : "w-[280px] sm:w-[430px] lg:w-[520px]"
+      : vertical
+        ? "w-[92px]"
+        : "w-[190px]";
+  return (
+    <div
+      className={`animate-pulse rounded-[6px] border border-cyan-300/15 bg-[#0b111b] ${className}`}
+      style={{ aspectRatio: vertical ? "9 / 16" : "16 / 9" }}
+      aria-hidden
+    />
+  );
+}
+
 type LazySavedTemplatePreviewFrameProps = SavedTemplatePreviewFrameProps & {
   placeholder?: React.ReactNode;
 };
 
 /** Monta Player só quando o card entra na viewport (evita crash com dezenas de templates). */
 export function LazySavedTemplatePreviewFrame({
-  placeholder = null,
+  placeholder,
+  format = "9:16",
+  size = "card",
   ...props
 }: LazySavedTemplatePreviewFrameProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [shouldRender, setShouldRender] = useState(false);
+  const waiting = placeholder ?? (
+    <TemplatePreviewSkeleton format={format} size={size} />
+  );
 
   useEffect(() => {
     const node = hostRef.current;
@@ -307,7 +351,7 @@ export function LazySavedTemplatePreviewFrame({
           setShouldRender(true);
         }
       },
-      { rootMargin: "160px 0px", threshold: 0.04 }
+      { rootMargin: "320px 0px", threshold: 0.02 }
     );
     observer.observe(node);
     return () => observer.disconnect();
@@ -315,7 +359,16 @@ export function LazySavedTemplatePreviewFrame({
 
   return (
     <div ref={hostRef} className="min-h-0 min-w-0">
-      {shouldRender ? <SavedTemplatePreviewFrame {...props} /> : placeholder}
+      {shouldRender ? (
+        <SavedTemplatePreviewFrame
+          format={format}
+          size={size}
+          fallback={null}
+          {...props}
+        />
+      ) : (
+        waiting
+      )}
     </div>
   );
 }
