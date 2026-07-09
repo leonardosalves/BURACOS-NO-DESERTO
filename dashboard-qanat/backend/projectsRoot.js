@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_LEO_ROOT = "C:\\Users\\Leo\\Desktop\\Lumiera Videos";
 
 let cachedProjectsRoot = null;
