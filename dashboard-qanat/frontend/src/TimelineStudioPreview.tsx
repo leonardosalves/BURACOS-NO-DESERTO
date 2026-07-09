@@ -156,19 +156,19 @@ export function TimelineStudioPreview({
     ? activeVideoAt(studio.clips, displayPlayhead)
     : previewVideoAt(studio.clips, displayPlayhead);
   const motionClips = useMemo(
-    () =>
-      activeMotionAt(studio.clips, motionPlayhead).filter(
-        (clip) =>
-          !isLegacyStudioOverlayClip(clip) &&
-          (isStudioTemplateClip(clip) ||
-            String(clip.templateId) === "location-intro" ||
-            String(clip.templateId) === "geo-map")
-      ),
+    () => activeMotionAt(studio.clips, motionPlayhead),
     [studio.clips, motionPlayhead]
   );
   const caption = activeCaptionAt(studio.clips, displayPlayhead);
 
-  const activeOverlays = useMemo(() => [], [studio.clips, displayPlayhead]);
+  const activeOverlays = useMemo(
+    () =>
+      clipsOnTrack(studio.clips, "overlays").filter(
+        (c) =>
+          displayPlayhead >= c.start && displayPlayhead < c.start + c.duration
+      ),
+    [studio.clips, displayPlayhead]
+  );
   const activeSfxCount = useMemo(
     () =>
       studio.clips.filter(
@@ -640,6 +640,7 @@ export function TimelineStudioPreview({
                       sourceCode={studioCode}
                       inputProps={clip.props || {}}
                       durationSeconds={clip.duration}
+                      scrubSeconds={Math.max(0, localSec)}
                       format={isVertical ? "9:16" : "16:9"}
                       size="detail"
                       fullBleed
@@ -657,11 +658,37 @@ export function TimelineStudioPreview({
                   sourceCode={studioCode}
                   inputProps={clip.props || {}}
                   durationSeconds={clip.duration}
+                  scrubSeconds={Math.max(0, localSec)}
                   format={isVertical ? "9:16" : "16:9"}
                   size="detail"
                   fullBleed
                   autoPlay={playing}
                 />
+              );
+            }
+            if (isLegacyStudioOverlayClip(clip)) {
+              const draft = clipToOverlayDraft(clip, getAssetUrl, getMusicUrl);
+              const isFullscreen =
+                isFullscreenMotionClip(clip) ||
+                FULLSCREEN_OVERLAYS.has(String(clip.templateId));
+              return (
+                <div
+                  key={clip.id}
+                  className={`absolute inset-0 pointer-events-none z-40 ${
+                    isFullscreen ? "" : ""
+                  }`}
+                >
+                  <OverlayPreview
+                    overlay={draft}
+                    aspectRatio={aspectRatio}
+                    accentColor={String(draft.props?.accentColor || "#D4AF37")}
+                    durationSeconds={clip.duration}
+                    scrubSeconds={Math.max(0, localSec)}
+                    timelinePlaying={playing}
+                    embedded
+                    embeddedLayout={isFullscreen ? "fill" : "pip"}
+                  />
+                </div>
               );
             }
             return null;

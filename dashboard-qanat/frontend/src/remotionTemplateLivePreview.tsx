@@ -1,5 +1,5 @@
-import React, { Component, useMemo } from "react";
-import { Player } from "@remotion/player";
+import React, { Component, useEffect, useMemo, useRef } from "react";
+import { Player, type PlayerRef } from "@remotion/player";
 import * as Remotion from "remotion";
 import {
   compileSavedTemplateSource,
@@ -70,6 +70,8 @@ type SavedTemplatePreviewFrameProps = {
   inputProps?: Record<string, unknown>;
   /** Duração da cena em segundos — animação usa exatamente esse tempo. */
   durationSeconds?: number;
+  /** Segundos dentro da cena (scrub da timeline) quando pausado. */
+  scrubSeconds?: number;
   /** Ocupa 100% do container (Timeline Studio), sem caixa reduzida. */
   fullBleed?: boolean;
   /** PIP geo: só chrome do template; mapa renderizado em camada separada. */
@@ -84,9 +86,11 @@ export function SavedTemplatePreviewFrame({
   fallback = null,
   inputProps = {},
   durationSeconds,
+  scrubSeconds,
   fullBleed = false,
   overlayOnly = false,
 }: SavedTemplatePreviewFrameProps) {
+  const playerRef = useRef<PlayerRef>(null);
   const vertical = format === "9:16";
   const dimensions =
     size === "detail"
@@ -105,6 +109,28 @@ export function SavedTemplatePreviewFrame({
     () => compileSavedTemplateSource(sourceCode, { React, Remotion }),
     [sourceCode]
   );
+
+  const previewMeta = compiled.ok ? compiled.preview : null;
+  const fps = previewMeta?.fps ?? 30;
+  const sceneDurationFrames =
+    Number.isFinite(Number(durationSeconds)) && Number(durationSeconds) > 0
+      ? Math.max(1, Math.round(Number(durationSeconds) * fps))
+      : (previewMeta?.durationInFrames ?? 90);
+
+  const scrubFrame = Math.min(
+    Math.max(sceneDurationFrames - 1, 0),
+    Math.max(
+      0,
+      Math.round(
+        (scrubSeconds != null ? scrubSeconds : fullBleed ? 0 : fps * 0.8) * fps
+      )
+    )
+  );
+
+  useEffect(() => {
+    if (!previewMeta || autoPlay) return;
+    playerRef.current?.seekTo(scrubFrame);
+  }, [previewMeta, autoPlay, scrubFrame]);
 
   if (compiled.ok === false) {
     if (fallback) {
@@ -132,17 +158,7 @@ export function SavedTemplatePreviewFrame({
     );
   }
 
-  const {
-    Component,
-    inputProps: exampleProps,
-    durationInFrames: templateDefaultFrames,
-    fps,
-  } = compiled.preview;
-
-  const sceneDurationFrames =
-    Number.isFinite(Number(durationSeconds)) && Number(durationSeconds) > 0
-      ? Math.max(1, Math.round(Number(durationSeconds) * fps))
-      : templateDefaultFrames;
+  const { Component, inputProps: exampleProps } = compiled.preview;
 
   const mergedInputProps = mergeStudioRenderProps({
     inputProps,
@@ -157,7 +173,7 @@ export function SavedTemplatePreviewFrame({
   const previewStartFrame =
     size === "detail" && !fullBleed
       ? Math.min(Math.round(fps * 0.8), sceneDurationFrames - 1)
-      : 0;
+      : scrubFrame;
 
   const player = (
     <LivePreviewErrorBoundary
@@ -168,7 +184,7 @@ export function SavedTemplatePreviewFrame({
       <div
         className={
           fullBleed
-            ? "absolute inset-0 overflow-hidden pointer-events-none"
+            ? "absolute inset-0 z-40 overflow-hidden pointer-events-none"
             : `overflow-hidden rounded-[6px] border border-white/10 bg-[#0b111b] shadow-lg shadow-black/30 ${dimensions.className}`
         }
         style={
@@ -178,6 +194,7 @@ export function SavedTemplatePreviewFrame({
         }
       >
         <Player
+          ref={playerRef}
           component={Component}
           inputProps={mergedInputProps}
           durationInFrames={sceneDurationFrames}
