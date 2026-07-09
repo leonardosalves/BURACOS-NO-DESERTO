@@ -1,6 +1,10 @@
 import express from "express";
 import https from "https";
 
+import {
+  getLumieraServiceOpsStatus,
+  scheduleLumieraServiceRestart,
+} from "./lumieraServiceOps.js";
 import { buildGeminiKeyPool, shouldRotateGeminiKey } from "./geminiApiKeys.js";
 import {
   searchMusic,
@@ -797,6 +801,34 @@ app.get("/api/health", (_req, res) => {
       busy: renderActive > 0,
     })
   );
+});
+
+app.get("/api/ops/service", (_req, res) => {
+  try {
+    res.json({ ok: true, ...getLumieraServiceOpsStatus(__dirname) });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post("/api/ops/restart-service", (req, res) => {
+  try {
+    const renderActive = countActiveRenderJobs();
+    if (renderActive > 0 && req.body?.force !== true) {
+      return res.status(409).json({
+        ok: false,
+        error: "Render em andamento — aguarde ou envie force: true.",
+        render_active: renderActive,
+      });
+    }
+    const result = scheduleLumieraServiceRestart(__dirname);
+    if (!result.scheduled) {
+      return res.status(500).json({ ok: false, ...result });
+    }
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 app.get("/api/render/progress/:jobId", (req, res) => {
