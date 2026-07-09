@@ -12,6 +12,7 @@ import {
   activeCaptionAt,
   activeMotionAt,
   activeVideoAt,
+  previewMotionAt,
   previewVideoAt,
   clipsOnTrack,
   formatStudioTime,
@@ -155,10 +156,10 @@ export function TimelineStudioPreview({
   const videoClip = playing
     ? activeVideoAt(studio.clips, displayPlayhead)
     : previewVideoAt(studio.clips, displayPlayhead);
-  const motionClips = useMemo(
-    () => activeMotionAt(studio.clips, motionPlayhead),
-    [studio.clips, motionPlayhead]
-  );
+  const motionClips = useMemo(() => {
+    if (playing) return activeMotionAt(studio.clips, motionPlayhead);
+    return previewMotionAt(studio.clips, motionPlayhead);
+  }, [studio.clips, motionPlayhead, playing]);
   const caption = activeCaptionAt(studio.clips, displayPlayhead);
 
   const activeOverlays = useMemo(
@@ -616,31 +617,37 @@ export function TimelineStudioPreview({
           ) : null}
 
           {motionClips.map((clip) => {
-            const localSec = motionPlayhead - clip.start;
+            const localSec = Math.max(
+              0,
+              Math.min(
+                Math.max(0, (Number(clip.duration) || 0) - 0.04),
+                motionPlayhead - clip.start
+              )
+            );
             const tpl = String(clip.templateId || "");
-            const isMapScene = tpl === "location-intro" || tpl === "geo-map";
             const studioCode = clipStudioSourceCode(clip);
             const hasStudioOverlay = isStudioTemplateClip(clip);
-            const geoPipOverlay =
-              hasStudioOverlay && isGeoPipCompositeProps(clip.props || {});
+            const geoPipOverlay = isGeoPipCompositeProps(clip.props || {});
+            const isMapScene =
+              tpl === "location-intro" || tpl === "geo-map" || geoPipOverlay;
 
             if (isMapScene) {
               return (
                 <React.Fragment key={clip.id}>
                   <SatelliteMapPreview
                     clip={clip}
-                    localSec={Math.max(0, localSec)}
+                    localSec={localSec}
                     playing={playing}
                     getAssetUrl={getAssetUrl}
                     getMusicUrl={getMusicUrl}
-                    pipTransparent={geoPipOverlay}
+                    pipTransparent={geoPipOverlay && hasStudioOverlay}
                   />
                   {hasStudioOverlay ? (
                     <SavedTemplatePreviewFrame
                       sourceCode={studioCode}
                       inputProps={clip.props || {}}
                       durationSeconds={clip.duration}
-                      scrubSeconds={Math.max(0, localSec)}
+                      scrubSeconds={localSec}
                       format={isVertical ? "9:16" : "16:9"}
                       size="detail"
                       fullBleed
@@ -658,7 +665,7 @@ export function TimelineStudioPreview({
                   sourceCode={studioCode}
                   inputProps={clip.props || {}}
                   durationSeconds={clip.duration}
-                  scrubSeconds={Math.max(0, localSec)}
+                  scrubSeconds={localSec}
                   format={isVertical ? "9:16" : "16:9"}
                   size="detail"
                   fullBleed

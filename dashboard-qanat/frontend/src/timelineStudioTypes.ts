@@ -130,6 +130,32 @@ export function activeMotionAt(
   );
 }
 
+/** Quando pausado, mostra cena motion mais próxima (como previewVideoAt). */
+export function previewMotionAt(
+  clips: StudioClip[],
+  playhead: number
+): StudioClip[] {
+  const active = activeMotionAt(clips, playhead);
+  if (active.length) return active;
+
+  const motion = clipsOnTrack(clips, "motion");
+  if (!motion.length) return [];
+
+  let best: StudioClip | null = null;
+  let bestDist = Infinity;
+  for (const clip of motion) {
+    const end = clip.start + clip.duration;
+    let dist = 0;
+    if (playhead < clip.start) dist = clip.start - playhead;
+    else if (playhead >= end) dist = playhead - end;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = clip;
+    }
+  }
+  return bestDist <= 45 && best ? [best] : [];
+}
+
 const MOTION_TRACK: StudioTrack = {
   id: "motion",
   type: "motion",
