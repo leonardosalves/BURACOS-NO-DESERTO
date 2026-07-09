@@ -179,6 +179,52 @@ function Resolve-NlmBin {
     return $null
 }
 
+function Resolve-FfmpegSource {
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Links\ffmpeg.exe"),
+        "C:\Lumiera\tools\ffmpeg\bin\ffmpeg.exe"
+    )
+    foreach ($candidate in $candidates) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+            return $candidate
+        }
+    }
+    $cmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source -and (Test-Path -LiteralPath $cmd.Source)) {
+        return $cmd.Source
+    }
+    $packages = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages"
+    if (Test-Path -LiteralPath $packages) {
+        $found = Get-ChildItem -Path $packages -Recurse -Filter "ffmpeg.exe" -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if ($found) { return $found.FullName }
+    }
+    return $null
+}
+
+function Ensure-LumieraFfmpeg {
+    param([string]$LinkRoot = "C:\Lumiera")
+    $dstDir = Join-Path $LinkRoot "tools\ffmpeg\bin"
+    $dstFfmpeg = Join-Path $dstDir "ffmpeg.exe"
+    $dstFfprobe = Join-Path $dstDir "ffprobe.exe"
+    if ((Test-Path -LiteralPath $dstFfmpeg) -and (Test-Path -LiteralPath $dstFfprobe)) {
+        return $dstFfmpeg
+    }
+
+    $src = Resolve-FfmpegSource
+    if (-not $src) { return $null }
+
+    $srcDir = Split-Path -Parent $src
+    New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $srcDir "ffmpeg.exe") -Destination $dstFfmpeg -Force
+    $probeSrc = Join-Path $srcDir "ffprobe.exe"
+    if (Test-Path -LiteralPath $probeSrc) {
+        Copy-Item -LiteralPath $probeSrc -Destination $dstFfprobe -Force
+    }
+    Write-LumieraLog "FFmpeg copiado para $dstDir (servico Windows)"
+    return $dstFfmpeg
+}
+
 function Stop-LumieraBackendOnPort {
     $pids = @()
     $listenerPid = Get-PortListenerPidFast $script:BackendPort
@@ -227,6 +273,15 @@ function Initialize-LumieraBackendEnv {
         $localBin = Split-Path -Parent $nlmBin
         if ($localBin -and ($env:Path -notlike "*$localBin*")) {
             $env:Path = "$localBin;$env:Path"
+        }
+    }
+
+    $ffmpegExe = Ensure-LumieraFfmpeg
+    if ($ffmpegExe) {
+        $ffmpegDir = Split-Path -Parent $ffmpegExe
+        $env:FFMPEG_PATH = $ffmpegDir
+        if ($ffmpegDir -and ($env:Path -notlike "*$ffmpegDir*")) {
+            $env:Path = "$ffmpegDir;$env:Path"
         }
     }
 }
