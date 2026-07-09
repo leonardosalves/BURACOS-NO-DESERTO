@@ -35,6 +35,7 @@ import {
   isStudioTemplateClip,
 } from "@lumiera/shared/timelineStudioLegacyStrip.js";
 import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
+import { sanitizeStudioRenderProps } from "@lumiera/shared/remotionTemplateCompile.js";
 
 type Props = {
   studio: TimelineStudioState;
@@ -638,6 +639,7 @@ export function TimelineStudioPreview({
                 >
                   <SavedTemplatePreviewFrame
                     sourceCode={sourceCode}
+                    inputProps={sanitizeStudioRenderProps(clip.props || {})}
                     format={isVertical ? "9:16" : "16:9"}
                     size="detail"
                     autoPlay={playing}

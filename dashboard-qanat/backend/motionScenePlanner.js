@@ -25,6 +25,7 @@ import {
   storyboardRowMatchesSuppression,
 } from "../shared/timelineStudioRemotionSuppress.js";
 import { isRunnableStudioMotionScene } from "../shared/timelineStudioLegacyStrip.js";
+import { enrichStudioTemplateScene } from "../shared/studioTemplatePropsBinder.js";
 import { buildMotionResearchContext } from "../shared/storyboardResearch.js";
 import {
   enrichMotionScenesWithResearch,
@@ -713,6 +714,11 @@ export function planMotionScenesFromStoryboard(
         continue;
       }
       scene = attachStudioTemplateToScene(scene, studioPick);
+      scene = enrichStudioTemplateScene(scene, {
+        template: studioPick,
+        researchContext,
+        config,
+      });
       previousStudioIds.push(studioPick.id);
     }
 
