@@ -2,7 +2,9 @@ import { AgentReachPanel } from "./AgentReachPanel";
 import { AppMusicTab } from "./AppMusicTab";
 import { ComfyMcpPage } from "./ComfyMcpPage";
 import { DashminAiChat } from "./DashminAiChat";
+import { FlowLabPage } from "./FlowLabPage";
 import { ListicleCreatorStep } from "./ListicleCreatorStep";
+import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
 import { LumieraDubPanel } from "./LumieraDubPanel";
 import { LumieraHomePage } from "./LumieraHomePage";
 import { MotionTimelineEditor } from "./MotionTimelineEditor";
@@ -40,6 +42,8 @@ export const LazyTtsVoiceStudioPanel = TtsVoiceStudioPanel;
 export const LazyLumieraDubPanel = LumieraDubPanel;
 export const LazyNarrationReplacePanel = NarrationReplacePanel;
 export const LazyAppMusicTab = AppMusicTab;
+export const LazyFlowLabPage = FlowLabPage;
+export const LazyRemotionTemplateStudio = RemotionTemplateStudio;
 
 export function TabPanelFallback({
   label = "Carregando...",

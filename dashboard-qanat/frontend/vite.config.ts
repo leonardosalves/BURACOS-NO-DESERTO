@@ -2,6 +2,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { lumieraBuildStampPlugin } from "./src/vite-plugin-lumiera-build-stamp";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dashboardRoot = path.resolve(__dirname, "..");
@@ -15,6 +16,7 @@ export default defineConfig({
   plugins: [
     // esbuild (default) — Babel estourava heap no App.tsx (~650KB) em produção.
     react(),
+    lumieraBuildStampPlugin(),
   ],
   esbuild: {
     target: "es2020",
@@ -67,33 +69,6 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) return "vendor";
-          if (id.includes("AppMusicTab")) return "music-tab";
-          if (id.includes("AppCreatorTab")) return "creator-tab";
-          if (id.includes("AppEditorTab")) return "editor-tab";
-          if (id.includes("AppTimelineTab")) return "timeline-tab";
-          if (id.includes("AppUploadTab")) return "upload-tab";
-          if (id.includes("AppAiTab")) return "ai-tab";
-          if (id.includes("AppStatusTab")) return "status-tab";
-          if (id.includes("AppSettingsTab")) return "settings-tab";
-          if (id.includes("AppHomeTab")) return "home-tab";
-          if (id.includes("AppWorkflowTab")) return "workflow-tab";
-          if (id.includes("AppSceneTimingTab")) return "scene-timing-tab";
-          if (id.includes("AppTerminalTab")) return "terminal-tab";
-          if (id.includes("AppMusicTabPanel")) return "music-tab";
-          if (id.includes("youtubeMetadataDisplay"))
-            return "youtube-metadata-ui";
-          if (
-            id.includes("TimelineStudio") ||
-            id.includes("RichTimelineEditor")
-          )
-            return "timeline-editor";
-          if (id.includes("ListicleCreatorStep")) return "creator-step";
-          if (id.includes("SceneTimingEditor")) return "scene-timing";
-          if (id.includes("WorkflowToolkit")) return "workflow";
-          if (id.includes("OverlayTimelineEditor")) return "overlay-editor";
-          if (id.includes("LumieraHomePage")) return "home-page";
-          if (id.includes("DashminAiChat")) return "ai-chat";
-          if (id.includes("creatorEditorialImport")) return "creator-import";
         },
       },
     },
