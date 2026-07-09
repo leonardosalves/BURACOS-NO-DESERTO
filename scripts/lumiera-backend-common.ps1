@@ -391,6 +391,22 @@ function Initialize-LumieraPm2Env {
     }
 }
 
+function Stop-LumieraGuardianDaemon {
+    $pidFile = Join-Path $script:LogDir "guardian-daemon.pid"
+    if (Test-Path -LiteralPath $pidFile) {
+        try {
+            $guardPid = [int](Get-Content -LiteralPath $pidFile -TotalCount 1)
+            if ($guardPid -gt 0) {
+                Stop-Process -Id $guardPid -Force -ErrorAction SilentlyContinue
+            }
+        } catch { }
+        Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
+    }
+    Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -like "*start-lumiera-guardian-daemon*" } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+}
+
 function Reset-LumieraPm2Daemon {
     Initialize-LumieraPm2Env
     Invoke-LumieraPm2 @("kill") | Out-Null
