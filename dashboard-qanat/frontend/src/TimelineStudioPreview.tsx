@@ -37,8 +37,6 @@ import {
 } from "@lumiera/shared/timelineStudioLegacyStrip.js";
 import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
 import { isGeoPipCompositeProps } from "@lumiera/shared/remotionTemplateCompile.js";
-import { GEO_PIP_MEDIA_WINDOW_9x16 } from "./geoPipPreview";
-import { GeoPipTemplateMask } from "./GeoPipTemplateMask";
 import { mergeGeoPipPreviewProps } from "./geoPipPreviewProps";
 
 type Props = {
@@ -653,57 +651,50 @@ export function TimelineStudioPreview({
                     pipTransparent={geoPipOverlay && hasStudioOverlay}
                   />
                   {hasStudioOverlay ? (
-                    geoPipOverlay ? (
-                      <GeoPipTemplateMask
-                        pipWindow={
-                          (clip.props?.geo_pip_window as typeof GEO_PIP_MEDIA_WINDOW_9x16) ||
-                          GEO_PIP_MEDIA_WINDOW_9x16
-                        }
-                      >
-                        <SavedTemplatePreviewFrame
-                          sourceCode={studioCode}
-                          inputProps={mergeGeoPipPreviewProps(
-                            clip,
-                            motionPlayhead,
-                            wordTranscripts
-                          )}
-                          durationSeconds={clip.duration}
-                          scrubSeconds={localSec}
-                          format={isVertical ? "9:16" : "16:9"}
-                          size="detail"
-                          fullBleed
-                          overlayOnly
-                          autoPlay={playing}
-                        />
-                      </GeoPipTemplateMask>
-                    ) : (
-                      <SavedTemplatePreviewFrame
-                        sourceCode={studioCode}
-                        inputProps={clip.props || {}}
-                        durationSeconds={clip.duration}
-                        scrubSeconds={localSec}
-                        format={isVertical ? "9:16" : "16:9"}
-                        size="detail"
-                        fullBleed
-                        overlayOnly={geoPipOverlay}
-                        autoPlay={playing}
-                      />
-                    )
+                    <SavedTemplatePreviewFrame
+                      sourceCode={studioCode}
+                      inputProps={
+                        geoPipOverlay
+                          ? mergeGeoPipPreviewProps(
+                              clip,
+                              motionPlayhead,
+                              wordTranscripts
+                            )
+                          : clip.props || {}
+                      }
+                      durationSeconds={clip.duration}
+                      scrubSeconds={localSec}
+                      format={isVertical ? "9:16" : "16:9"}
+                      size="detail"
+                      fullBleed
+                      overlayOnly={geoPipOverlay}
+                      autoPlay={playing}
+                    />
                   ) : null}
                 </React.Fragment>
               );
             }
             if (hasStudioOverlay) {
+              const geoPip = isGeoPipCompositeProps(clip.props || {});
               return (
                 <SavedTemplatePreviewFrame
                   key={clip.id}
                   sourceCode={studioCode}
-                  inputProps={clip.props || {}}
+                  inputProps={
+                    geoPip
+                      ? mergeGeoPipPreviewProps(
+                          clip,
+                          motionPlayhead,
+                          wordTranscripts
+                        )
+                      : clip.props || {}
+                  }
                   durationSeconds={clip.duration}
                   scrubSeconds={localSec}
                   format={isVertical ? "9:16" : "16:9"}
                   size="detail"
                   fullBleed
+                  overlayOnly={geoPip}
                   autoPlay={playing}
                 />
               );

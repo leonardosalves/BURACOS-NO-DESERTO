@@ -460,8 +460,6 @@ export function registerTimelineStudioRoutes(
               ...(clip.props?.studio_props || {}),
               ...overlay.studio_props,
             },
-            geoPipOverlayMode: true,
-            transparentBackground: true,
             referencePoint: overlay.referencePoint,
             scene_subject: overlay.scene_subject,
             narration_text: narration || clip.props?.narration_text,
