@@ -2,6 +2,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { APPROVED_ORCHESTRATION_TEMPLATES } from "../shared/motionSceneCatalog.js";
+import {
+  isLegacySeedTemplateId,
+  LEGACY_SEED_TEMPLATE_IDS,
+} from "../shared/remotionTemplateLegacy.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CATALOG_PATH = path.join(
@@ -70,9 +74,20 @@ function normalizeSourceCode(raw = {}) {
   return { short, long };
 }
 
+function hasRunnableStudioSource(sourceCode = null) {
+  const code = String(sourceCode?.short || sourceCode?.long || "").trim();
+  if (!code) return false;
+  return (
+    /export\s+default\s+function/.test(code) &&
+    /\buseCurrentFrame\s*\(/.test(code)
+  );
+}
+
 function normalizeCatalogTemplate(raw = {}) {
+  if (isLegacySeedTemplateId(raw.id)) return null;
   const motionTemplateId = mapStudioTemplateToMotionId(raw);
   const sourceCode = normalizeSourceCode(raw);
+  const runnableSource = hasRunnableStudioSource(sourceCode);
   return {
     id: String(raw.id || "").trim(),
     name: String(raw.name || "").trim(),
@@ -84,12 +99,14 @@ function normalizeCatalogTemplate(raw = {}) {
     dataSlots: Array.isArray(raw.dataSlots) ? raw.dataSlots : [],
     motion_template_id: motionTemplateId,
     orchestration_ready: Boolean(
-      motionTemplateId && APPROVED_ORCHESTRATION_TEMPLATES.has(motionTemplateId)
+      motionTemplateId &&
+      APPROVED_ORCHESTRATION_TEMPLATES.has(motionTemplateId) &&
+      runnableSource
     ),
     shortPreview: raw.shortPreview || null,
     longPreview: raw.longPreview || null,
     sourceCode,
-    has_source_code: Boolean(sourceCode?.short || sourceCode?.long),
+    has_source_code: runnableSource,
   };
 }
 
@@ -194,6 +211,7 @@ export function pickStudioTemplateForTrigger({
   const candidates = catalog.approved.filter(
     (tpl) =>
       tpl.orchestration_ready &&
+      tpl.has_source_code &&
       tpl.motion_template_id === motionId &&
       tpl.status === "approved"
   );
@@ -254,6 +272,28 @@ export function attachStudioTemplateToScene(scene = {}, studioPick = null) {
   };
 }
 
+function purgeLegacyTemplatesFromCatalog(catalog = {}) {
+  if (!catalog.niches || typeof catalog.niches !== "object") return catalog;
+  for (const nicheKey of Object.keys(catalog.niches)) {
+    const entry = catalog.niches[nicheKey];
+    if (!entry || !Array.isArray(entry.templates)) continue;
+    entry.templates = entry.templates.filter(
+      (tpl) => !isLegacySeedTemplateId(tpl?.id)
+    );
+  }
+  return catalog;
+}
+
+export function purgeLegacySeedTemplatesFromCatalogFile() {
+  const catalog = readCatalogFile();
+  purgeLegacyTemplatesFromCatalog(catalog);
+  writeCatalogFile(catalog);
+  return {
+    removed_ids: [...LEGACY_SEED_TEMPLATE_IDS],
+    updated_at: new Date().toISOString(),
+  };
+}
+
 export function loadRemotionTemplateCatalog() {
   return readCatalogFile();
 }
@@ -264,7 +304,7 @@ export function getCatalogForNiche(niche = "") {
   const entry = catalog.niches?.[key] || { templates: [], updated_at: null };
   const templates = (Array.isArray(entry.templates) ? entry.templates : [])
     .map(normalizeCatalogTemplate)
-    .filter((tpl) => tpl.id);
+    .filter((tpl) => tpl?.id);
   return {
     niche: key,
     templates,
@@ -281,7 +321,9 @@ export function syncCatalogForNiche(niche = "", templates = []) {
 
   const normalized = (Array.isArray(templates) ? templates : [])
     .map(normalizeCatalogTemplate)
-    .filter((tpl) => tpl.id);
+    .filter((tpl) => tpl?.id);
+
+  purgeLegacyTemplatesFromCatalog(catalog);
 
   catalog.niches[key] = {
     templates: normalized,

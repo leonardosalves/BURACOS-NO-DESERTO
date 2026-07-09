@@ -1,6 +1,7 @@
 import { adaptRemotionTemplate } from "./remotionTemplateStudioService.js";
 import {
   getCatalogForNiche,
+  purgeLegacySeedTemplatesFromCatalogFile,
   syncCatalogForNiche,
 } from "./remotionTemplateCatalogService.js";
 import {
@@ -89,6 +90,8 @@ export function registerRemotionTemplateStudioRoutes(
 
   // Alias legível — mesma implementação
   app.post("/api/ai/assistir-ia", (req, res) => handleAdapt(req, res, deps));
+
+  purgeLegacySeedTemplatesFromCatalogFile();
 
   app.get("/api/ai/template-studio/catalog", (req, res) => {
     res.setHeader("Content-Type", "application/json; charset=utf-8");

@@ -194,6 +194,9 @@ const OverlayComponent: React.FC<{
   const studioSource = String(
     (props as { studio_source_code?: string }).studio_source_code || ""
   ).trim();
+  const isMotionScene = Boolean(
+    (props as { motion_scene?: boolean }).motion_scene
+  );
   if (studioSource) {
     return (
       <StudioTemplateOverlay
@@ -202,6 +205,9 @@ const OverlayComponent: React.FC<{
         durationInFrames={durationInFrames}
       />
     );
+  }
+  if (isMotionScene) {
+    return null;
   }
   switch (overlay.type) {
     case "lower-third":

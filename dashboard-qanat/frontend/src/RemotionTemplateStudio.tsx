@@ -6,7 +6,15 @@ import React, {
   useState,
 } from "react";
 import { Easing, interpolate } from "remotion";
-import { validateFinalTemplateCode } from "./remotionTemplateStudioApi";
+import {
+  extractTemplateTsxFromLlm,
+  repairCommonTemplateLayoutVars,
+  validateFinalTemplateCode,
+} from "./remotionTemplateStudioApi";
+import {
+  isLegacySeedTemplateId,
+  LEGACY_SEED_TEMPLATE_IDS,
+} from "@lumiera/shared/remotionTemplateLegacy.js";
 import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
 import {
   ArrowLeft,
@@ -149,135 +157,21 @@ const NICHES = [
   "Natureza",
 ];
 
-const TEMPLATES: TemplateItem[] = [
-  {
-    id: "eng-map-pip-tactical",
-    name: "Engineering Tactical Map PIP",
-    category: "maps",
-    subcategory: "PIP mapa",
-    niche: "Engenharia",
-    status: "approved",
-    description: "Mapa em janela tecnica para shorts, fora da area de legenda.",
-    dataSlots: ["locationName", "coordinates", "siteRef", "map"],
-    sourceCode: {
-      short:
-        'export function EngineeringTacticalMapPipShort({locationName, coordinates, siteRef, map}) {\n  return <EngineeringMapPipOverlay format="9:16" pipRect={{x:535,y:420,width:450,height:245}} locationName={locationName} coordinates={coordinates} siteRef={siteRef} map={map} />;\n}',
-      long: 'export function EngineeringTacticalMapFullscreen({locationName, coordinates, siteRef, map}) {\n  return <EngineeringMapFullscreen format="16:9" locationName={locationName} coordinates={coordinates} siteRef={siteRef} map={map} />;\n}',
-    },
-    shortPreview: "map",
-    longPreview: "map",
-  },
-  {
-    id: "geo-continuous-flyover",
-    name: "Continuous Geo Flyover",
-    category: "maps",
-    subcategory: "Flyover",
-    niche: "Engenharia",
-    status: "approved",
-    description:
-      "Zoom continuo regiao, pais, cidade e alvo com orbit 360 para POI.",
-    dataSlots: ["lat", "lng", "place_type", "flyover_video"],
-    sourceCode: {
-      short:
-        'export function ContinuousGeoFlyoverShort({lat, lng, place_type, flyover_video}) {\n  return <GeoFlyoverPip format="9:16" lat={lat} lng={lng} placeType={place_type} video={flyover_video} maxDuration={10} />;\n}',
-      long: 'export function ContinuousGeoFlyoverLong({lat, lng, place_type, flyover_video}) {\n  return <GeoFlyoverScene format="16:9" lat={lat} lng={lng} placeType={place_type} video={flyover_video} maxDuration={20} />;\n}',
-    },
-    shortPreview: "map",
-    longPreview: "cinematic",
-  },
-  {
-    id: "industrial-kpi-ring",
-    name: "Industrial KPI Ring",
-    category: "chart-data",
-    subcategory: "Counter",
-    niche: "Engenharia",
-    status: "approved",
-    description: "Indicador circular com leitura tecnica para metricas curtas.",
-    dataSlots: ["value", "label", "suffix"],
-    sourceCode: {
-      short:
-        "export function IndustrialKpiRingShort({value = 78, label = 'Completion Rate', suffix = '%'}) {\n  return <KpiRingCompact format=\"9:16\" value={value} label={label} suffix={suffix} />;\n}",
-      long: "export function IndustrialKpiRingLong({value = 78, label = 'Completion Rate', suffix = '%'}) {\n  return <KpiRingDashboard format=\"16:9\" value={value} label={label} suffix={suffix} />;\n}",
-    },
-    shortPreview: "ring",
-    longPreview: "circular-progress",
-  },
-  {
-    id: "engineering-line-chart",
-    name: "Engineering Line Chart",
-    category: "chart-data",
-    subcategory: "Line chart",
-    niche: "Engenharia",
-    status: "approved",
-    description:
-      "Linha SVG com grid tecnico, area preenchida e leitura de serie.",
-    dataSlots: ["title", "items", "unit", "source"],
-    sourceCode: {
-      short:
-        'export function EngineeringLineChartShort({title, items, unit, source}) {\n  return <AnimatedLineChart format="9:16" title={title} items={items} unit={unit} source={source} />;\n}',
-      long: 'export function EngineeringLineChartLong({title, items, unit, source}) {\n  return <AnimatedLineChart format="16:9" title={title} items={items} unit={unit} source={source} />;\n}',
-    },
-    shortPreview: "line",
-    longPreview: "line",
-  },
-  {
-    id: "engineering-bar-grid",
-    name: "Engineering Bar Grid",
-    category: "chart-data",
-    subcategory: "Bar chart",
-    niche: "Engenharia",
-    status: "approved",
-    description: "Barras SVG com grid tecnico e cores por serie.",
-    dataSlots: ["title", "items", "source"],
-    sourceCode: {
-      short:
-        'export function EngineeringBarGridShort({title, items, source}) {\n  return <AnimatedBarGrid format="9:16" title={title} items={items.slice(0, 4)} source={source} />;\n}',
-      long: 'export function EngineeringBarGridLong({title, items, source}) {\n  return <AnimatedBarGrid format="16:9" title={title} items={items} source={source} />;\n}',
-    },
-    shortPreview: "bars",
-    longPreview: "bars",
-  },
-  {
-    id: "blueprint-lower-third",
-    name: "Blueprint Lower Third",
-    category: "text",
-    subcategory: "Lower third",
-    niche: "Engenharia",
-    status: "draft",
-    description: "Texto ancorado em placa CAD, nunca solto sobre o video.",
-    dataSlots: ["title", "subtitle", "tag"],
-    sourceCode: {
-      short:
-        'export function BlueprintLowerThirdShort({title, subtitle, tag}) {\n  return <CadLowerThird format="9:16" safeZone="captions-clear" title={title} subtitle={subtitle} tag={tag} />;\n}',
-      long: 'export function BlueprintLowerThirdLong({title, subtitle, tag}) {\n  return <CadLowerThird format="16:9" title={title} subtitle={subtitle} tag={tag} />;\n}',
-    },
-    shortPreview: "title",
-    longPreview: "media",
-  },
-  {
-    id: "structural-process",
-    name: "Structural Process Steps",
-    category: "content-animation",
-    subcategory: "Processo",
-    niche: "Engenharia",
-    status: "draft",
-    description: "Sequencia de processo com linhas, etapas e marcadores.",
-    dataSlots: ["steps", "currentStep", "caption"],
-    sourceCode: {
-      short:
-        'export function StructuralProcessStepsShort({steps, currentStep, caption}) {\n  return <ProcessTimelineStack format="9:16" steps={steps} currentStep={currentStep} caption={caption} />;\n}',
-      long: 'export function StructuralProcessStepsLong({steps, currentStep, caption}) {\n  return <ProcessTimelineWide format="16:9" steps={steps} currentStep={currentStep} caption={caption} />;\n}',
-    },
-    shortPreview: "media",
-    longPreview: "bars",
-  },
-];
+/** Seed vazio — templates vêm só de import/Assistir IA no Studio. */
+const TEMPLATES: TemplateItem[] = [];
 
 const TEMPLATE_STORAGE_KEY = "lumiera.remotionTemplateStudio.templates.v1";
 const CATEGORY_STORAGE_KEY = "lumiera.remotionTemplateStudio.categories.v1";
+const DELETED_CATALOG_STORAGE_KEY =
+  "lumiera.remotionTemplateStudio.deletedCatalog.v1";
 
 type DetailTab = "preview" | "source";
 type DetailFormat = "short" | "long";
+type DeletedCatalog = {
+  categories: string[];
+  subcategories: string[];
+  templates: string[];
+};
 
 type PreviewVariant =
   TemplateItem["shortPreview"] | TemplateItem["longPreview"];
@@ -906,6 +800,100 @@ function subcategoryExists(subcategories: string[], name: string) {
   return subcategories.some((item) => subcategoryKey(item) === key);
 }
 
+function deletedSubcategoryKey(categoryId: string, subcategoryName: string) {
+  return `${categoryId.trim().toLowerCase()}::${subcategoryKey(
+    subcategoryName
+  )}`;
+}
+
+function emptyDeletedCatalog(): DeletedCatalog {
+  return { categories: [], subcategories: [], templates: [] };
+}
+
+function normalizeDeletedCatalog(raw: Partial<DeletedCatalog> = {}) {
+  return {
+    categories: Array.isArray(raw.categories)
+      ? raw.categories.map(String).filter(Boolean)
+      : [],
+    subcategories: Array.isArray(raw.subcategories)
+      ? raw.subcategories.map(String).filter(Boolean)
+      : [],
+    templates: Array.isArray(raw.templates)
+      ? raw.templates.map(String).filter(Boolean)
+      : [],
+  };
+}
+
+function readDeletedCatalog(): DeletedCatalog {
+  if (typeof window === "undefined") return emptyDeletedCatalog();
+  try {
+    const raw = window.localStorage.getItem(DELETED_CATALOG_STORAGE_KEY);
+    if (!raw) return emptyDeletedCatalog();
+    return normalizeDeletedCatalog(JSON.parse(raw));
+  } catch {
+    return emptyDeletedCatalog();
+  }
+}
+
+function writeDeletedCatalog(deleted: DeletedCatalog) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    DELETED_CATALOG_STORAGE_KEY,
+    JSON.stringify(normalizeDeletedCatalog(deleted))
+  );
+}
+
+function addUnique(list: string[], value: string) {
+  return list.includes(value) ? list : [...list, value];
+}
+
+function removeValue(list: string[], value: string) {
+  return list.filter((item) => item !== value);
+}
+
+function mutateDeletedCatalog(
+  updater: (deleted: DeletedCatalog) => DeletedCatalog
+) {
+  const next = normalizeDeletedCatalog(updater(readDeletedCatalog()));
+  writeDeletedCatalog(next);
+  return next;
+}
+
+function filterDeletedTemplates(
+  templates: TemplateItem[],
+  deleted: DeletedCatalog
+) {
+  const deletedTemplates = new Set(deleted.templates);
+  const deletedCategories = new Set(deleted.categories);
+  const deletedSubcategories = new Set(deleted.subcategories);
+  return templates.filter((template) => {
+    if (deletedTemplates.has(template.id)) return false;
+    if (deletedCategories.has(template.category)) return false;
+    return !deletedSubcategories.has(
+      deletedSubcategoryKey(template.category, template.subcategory)
+    );
+  });
+}
+
+function filterDeletedCategories(
+  categories: TemplateCategoryDefinition[],
+  deleted: DeletedCatalog
+) {
+  const deletedCategories = new Set(deleted.categories);
+  const deletedSubcategories = new Set(deleted.subcategories);
+  return categories
+    .filter((category) => !deletedCategories.has(category.id))
+    .map((category) => ({
+      ...category,
+      subcategories: category.subcategories.filter(
+        (subcategory) =>
+          !deletedSubcategories.has(
+            deletedSubcategoryKey(category.id, subcategory)
+          )
+      ),
+    }));
+}
+
 function mergeCategoryCatalog(
   stored: TemplateCategoryDefinition[],
   seed: TemplateCategoryDefinition[] = CATEGORIES
@@ -1010,26 +998,71 @@ function readStoredCategoriesRaw(): TemplateCategoryDefinition[] {
   }
 }
 
+function purgeLegacyTemplatesFromList(templates: TemplateItem[]) {
+  return templates.filter((tpl) => !isLegacySeedTemplateId(tpl.id));
+}
+
+function migrateLegacySeedTemplates() {
+  if (typeof window === "undefined") return;
+  try {
+    const deleted = readDeletedCatalog();
+    let changed = false;
+    const nextDeleted = { ...deleted };
+    for (const id of LEGACY_SEED_TEMPLATE_IDS) {
+      if (!nextDeleted.templates.includes(id)) {
+        nextDeleted.templates = addUnique(nextDeleted.templates, id);
+        changed = true;
+      }
+    }
+    if (changed) writeDeletedCatalog(nextDeleted);
+
+    const raw = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return;
+    const cleaned = purgeLegacyTemplatesFromList(parsed as TemplateItem[]);
+    if (cleaned.length !== parsed.length) {
+      window.localStorage.setItem(
+        TEMPLATE_STORAGE_KEY,
+        JSON.stringify(cleaned)
+      );
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 function loadStoredTemplates() {
+  migrateLegacySeedTemplates();
   const seed = TEMPLATES.map(normalizeTemplatePreviewVariants);
+  const deleted = readDeletedCatalog();
   if (typeof window === "undefined") return seed;
   try {
     const raw = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
-    if (!raw) return seed;
+    if (!raw) return filterDeletedTemplates(seed, deleted);
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed)
-      ? (parsed as TemplateItem[]).map(normalizeTemplatePreviewVariants)
-      : seed;
+      ? filterDeletedTemplates(
+          purgeLegacyTemplatesFromList(
+            (parsed as TemplateItem[]).map(normalizeTemplatePreviewVariants)
+          ),
+          deleted
+        )
+      : filterDeletedTemplates(seed, deleted);
   } catch {
-    return seed;
+    return filterDeletedTemplates(seed, deleted);
   }
 }
 
 function loadStudioCatalog() {
+  const deleted = readDeletedCatalog();
   const templates = loadStoredTemplates();
-  const categories = syncCategoriesFromTemplates(
-    mergeCategoryCatalog(readStoredCategoriesRaw()),
-    templates
+  const categories = filterDeletedCategories(
+    syncCategoriesFromTemplates(
+      mergeCategoryCatalog(readStoredCategoriesRaw()),
+      templates
+    ),
+    deleted
   );
   return { templates, categories };
 }
@@ -2412,6 +2445,9 @@ function TemplatePreviewSlot({
     format === "9:16" ? template.sourceCode.short : template.sourceCode.long;
   const variant = effectivePreviewVariant(format, template);
   const previewProps = buildPreviewPropsFromTemplate(template);
+  const expectsLivePreview =
+    /\bexport\s+default\s+function\b/.test(source) &&
+    /\bexport\s+const\s+exampleProps\b/.test(source);
   const mockPreview = (
     <PreviewFrame
       format={format}
@@ -2428,7 +2464,7 @@ function TemplatePreviewSlot({
       format={format}
       size={size}
       autoPlay={autoPlay}
-      fallback={mockPreview}
+      fallback={expectsLivePreview ? null : mockPreview}
     />
   );
 }
@@ -2740,7 +2776,7 @@ function TemplateDetailPanel({
                     autoPlay={false}
                   />
                   <p className="text-center text-[10px] font-bold text-zinc-500">
-                    Aperte play para ver a animacao do catalogo seed.
+                    Preview ao vivo do TSX importado.
                   </p>
                 </div>
               </div>
@@ -2845,11 +2881,17 @@ export function RemotionTemplateStudio({
   }, [templates]);
 
   const subcategories = currentCategory?.subcategories || [];
-  const finalValidation = useMemo(
-    () => validateFinalTemplateCode(finalCodeDraft),
+  const sanitizedFinalCodeDraft = useMemo(
+    () =>
+      repairCommonTemplateLayoutVars(extractTemplateTsxFromLlm(finalCodeDraft)),
     [finalCodeDraft]
   );
-  const canSaveDraft = finalValidation.ok && Boolean(finalCodeDraft.trim());
+  const finalValidation = useMemo(
+    () => validateFinalTemplateCode(sanitizedFinalCodeDraft),
+    [sanitizedFinalCodeDraft]
+  );
+  const canSaveDraft =
+    finalValidation.ok && Boolean(sanitizedFinalCodeDraft.trim());
   const visibleTemplates = useMemo(
     () =>
       templates.filter(
@@ -2882,6 +2924,10 @@ export function RemotionTemplateStudio({
       `Excluir o template "${template.name}"?`
     );
     if (!shouldDelete) return;
+    mutateDeletedCatalog((deleted) => ({
+      ...deleted,
+      templates: addUnique(deleted.templates, templateId),
+    }));
     setTemplates((current) => current.filter((item) => item.id !== templateId));
     if (detailTemplateId === templateId) {
       setDetailTemplateId("");
@@ -2908,6 +2954,14 @@ export function RemotionTemplateStudio({
       label: cleanLabel,
       subcategories: [cleanSubcategory],
     };
+    mutateDeletedCatalog((deleted) => ({
+      ...deleted,
+      categories: removeValue(deleted.categories, id),
+      subcategories: removeValue(
+        deleted.subcategories,
+        deletedSubcategoryKey(id, cleanSubcategory)
+      ),
+    }));
     setCategories((current) => [...current, categoryDefinition]);
     setCategory(id);
     setSubcategory(cleanSubcategory);
@@ -2921,6 +2975,13 @@ export function RemotionTemplateStudio({
     );
     const cleanLabel = String(label || "").trim();
     if (!cleanLabel) return;
+    mutateDeletedCatalog((deleted) => ({
+      ...deleted,
+      subcategories: removeValue(
+        deleted.subcategories,
+        deletedSubcategoryKey(currentCategory.id, cleanLabel)
+      ),
+    }));
     setCategories((current) =>
       ensureSubcategoryRegistered(current, currentCategory.id, cleanLabel)
     );
@@ -2936,6 +2997,20 @@ export function RemotionTemplateStudio({
     );
     if (!shouldDelete) return;
     const nextCategories = categories.filter((item) => item.id !== categoryId);
+    const categorySubcategoryKeys = target.subcategories.map((item) =>
+      deletedSubcategoryKey(categoryId, item)
+    );
+    const categoryTemplateIds = templates
+      .filter((template) => template.category === categoryId)
+      .map((template) => template.id);
+    mutateDeletedCatalog((deleted) => ({
+      ...deleted,
+      categories: addUnique(deleted.categories, categoryId),
+      subcategories: [
+        ...new Set([...deleted.subcategories, ...categorySubcategoryKeys]),
+      ],
+      templates: [...new Set([...deleted.templates, ...categoryTemplateIds])],
+    }));
     setCategories(nextCategories);
     setTemplates((current) =>
       current.filter((template) => template.category !== categoryId)
@@ -2958,6 +3033,23 @@ export function RemotionTemplateStudio({
     const remainingSubcategories = currentCategory.subcategories.filter(
       (item) => item !== subcategoryName
     );
+    const subcategoryTemplateIds = templates
+      .filter(
+        (template) =>
+          template.category === currentCategory.id &&
+          template.subcategory === subcategoryName
+      )
+      .map((template) => template.id);
+    mutateDeletedCatalog((deleted) => ({
+      ...deleted,
+      subcategories: addUnique(
+        deleted.subcategories,
+        deletedSubcategoryKey(currentCategory.id, subcategoryName)
+      ),
+      templates: [
+        ...new Set([...deleted.templates, ...subcategoryTemplateIds]),
+      ],
+    }));
     setCategories((current) =>
       current.map((item) =>
         item.id === currentCategory.id
@@ -3022,10 +3114,19 @@ export function RemotionTemplateStudio({
       return;
     }
     const categoryLabel = currentCategory?.label || category;
+    mutateDeletedCatalog((deleted) => ({
+      ...deleted,
+      categories: removeValue(deleted.categories, category),
+      subcategories: removeValue(
+        deleted.subcategories,
+        deletedSubcategoryKey(category, subcategory)
+      ),
+    }));
     setCategories((current) =>
       ensureSubcategoryRegistered(current, category, subcategory)
     );
-    const dataSlots = extractDataSlotsFromCode(finalCodeDraft);
+    const cleanCode = sanitizedFinalCodeDraft.trim();
+    const dataSlots = extractDataSlotsFromCode(cleanCode);
     const id = `draft-${slugifyTemplatePart(niche)}-${slugifyTemplatePart(
       categoryLabel
     )}-${slugifyTemplatePart(subcategory)}-${Date.now()}`;
@@ -3042,14 +3143,14 @@ export function RemotionTemplateStudio({
         : ["title", "subtitle", "progress", "label"],
       sourceCode: {
         short: buildFormatSource({
-          code: finalCodeDraft,
+          code: cleanCode,
           niche,
           categoryLabel,
           subcategory,
           format: "short",
         }),
         long: buildFormatSource({
-          code: finalCodeDraft,
+          code: cleanCode,
           niche,
           categoryLabel,
           subcategory,
@@ -3061,6 +3162,7 @@ export function RemotionTemplateStudio({
     });
 
     setTemplates((current) => [template, ...current]);
+    setFinalCodeDraft(cleanCode);
     setSelectedId(id);
     setDetailTemplateId(id);
     setDetailTab("preview");

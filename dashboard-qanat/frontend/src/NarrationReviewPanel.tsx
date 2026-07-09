@@ -6,6 +6,7 @@ import {
   syncRemotionTemplateCatalog,
   type CatalogTemplate,
 } from "./remotionTemplateStudioApi";
+import { isLegacySeedTemplateId } from "@lumiera/shared/remotionTemplateLegacy.js";
 
 type BlockPhrase = { block: number; phrase: string };
 
@@ -107,6 +108,10 @@ export function NarrationReviewPanel({
 
       try {
         const localTemplates = readLocalStudioTemplates()
+          .filter(
+            (tpl: { id?: string }) =>
+              !isLegacySeedTemplateId(String(tpl?.id || ""))
+          )
           .filter((tpl: { niche?: string; status?: string }) => {
             const tplNiche = String(tpl?.niche || effectiveNiche).trim();
             return (
