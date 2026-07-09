@@ -150,6 +150,29 @@ describe("geoPipTemplateProps", () => {
     assert.match(location, /Debaixo dos seus pés|fundação|NBR/i);
   });
 
+  it("bindGeoPipTemplateStudioProps respeita slots travados pelo usuario", () => {
+    const { studio_props, location } = bindGeoPipTemplateStudioProps(
+      {
+        template_studio_subcategory: "Picture in Picture",
+        geo_pip_composite: true,
+        studio_user_locked_slots: ["location", "primaryColor", "pipPosition"],
+        studio_props: {
+          location: "NORMA NBR 6118",
+          primaryColor: "#ff3366",
+          pipPosition: "bottom-left",
+        },
+      },
+      {
+        narration: "Texto longo da narração que não deve substituir o rodape.",
+        flyoverDurationSec: 10,
+      }
+    );
+    assert.equal(location, "NORMA NBR 6118");
+    assert.equal(studio_props.location, "NORMA NBR 6118");
+    assert.equal(studio_props.primaryColor, "#ff3366");
+    assert.equal(studio_props.pipPosition, "bottom-left");
+  });
+
   it("applyGeoPipChromeProps oculta centro e usa resumo no rodape", () => {
     const chrome = applyGeoPipChromeProps(
       {},

@@ -7,6 +7,7 @@ import {
   GEO_PIP_OVERLAY_PROP_KEYS,
   isPictureInPictureStudioTemplate,
   mapGeoPipFlyoverToTemplateRenderProps,
+  resolveStudioUserLockedSlots,
 } from "./geoPipTemplateProps.js";
 
 /** Tiles satélite legados — não fullscreen no template PIP. */
@@ -153,6 +154,7 @@ export function mergeStudioRenderProps({
     isGeoPipShortMode(inputProps) ||
     isPictureInPictureStudioTemplate(inputProps)
   ) {
+    const locked = resolveStudioUserLockedSlots(inputProps);
     const mapped = mapGeoPipFlyoverToTemplateRenderProps({
       ...inputProps,
       ...out,
@@ -162,15 +164,21 @@ export function mergeStudioRenderProps({
       if (key in merged) delete merged[key];
     }
     for (const key of GEO_PIP_FORCE_EMPTY_KEYS) {
+      if (locked.has(key)) continue;
       if (key in mapped) merged[key] = mapped[key];
     }
-    if (mapped.showMainContentLabel !== undefined) {
-      merged.showMainContentLabel = mapped.showMainContentLabel;
+    if (!locked.has("showMainContentLabel")) {
+      if (mapped.showMainContentLabel !== undefined) {
+        merged.showMainContentLabel = mapped.showMainContentLabel;
+      }
     }
-    if (mapped.showPointerLines !== undefined) {
-      merged.showPointerLines = mapped.showPointerLines;
+    if (!locked.has("showPointerLines")) {
+      if (mapped.showPointerLines !== undefined) {
+        merged.showPointerLines = mapped.showPointerLines;
+      }
     }
     for (const key of GEO_PIP_OVERLAY_PROP_KEYS) {
+      if (locked.has(key)) continue;
       if (key in mapped) merged[key] = mapped[key];
     }
     return merged;
