@@ -247,12 +247,21 @@ while ((Get-Date) -lt $deadline) {
 Start-LumieraLegacyRedirect | Out-Null
 
 if ($ok) {
+    $junctionTarget = $script:RepoRoot
+    try {
+        $ji = Get-Item -LiteralPath $LinkRoot -Force
+        if ($ji.LinkType -eq "Junction" -and $ji.Target) {
+            $junctionTarget = $ji.Target
+        }
+    } catch { }
+
     Write-Host ""
     Write-Host "OK - Servico Windows ativo." -ForegroundColor Green
-    Write-Host "  Servico:   $ServiceName" -ForegroundColor White
-    Write-Host "  Dashboard: http://127.0.0.1:3005/" -ForegroundColor White
-    Write-Host "  Junction:  $LinkRoot" -ForegroundColor DarkGray
-    Write-Host "  Logs:      $stderr" -ForegroundColor DarkGray
+    Write-Host "  Servico:    $ServiceName" -ForegroundColor White
+    Write-Host "  Dashboard:  http://127.0.0.1:3005/" -ForegroundColor White
+    Write-Host "  SCM alias:  $LinkRoot (caminhos sem espacos para o servico)" -ForegroundColor DarkGray
+    Write-Host "  Repositorio: $junctionTarget" -ForegroundColor DarkGray
+    Write-Host "  Logs NSSM:  $stderr" -ForegroundColor DarkGray
     exit 0
 }
 
