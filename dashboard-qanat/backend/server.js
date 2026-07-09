@@ -16277,6 +16277,45 @@ app.post(
     ).trim();
     const skipNotebooklmPending = req.body?.skipNotebooklmPending === true;
     const notebooklmBriefDisk = projDir ? loadNotebooklmBrief(projDir) : null;
+    const nlmSessionEarly = projDir
+      ? loadNotebooklmSession({
+          projDir,
+          backendDir: __dirname,
+          niche: nlmNiche,
+        })
+      : null;
+    const nlmUserTurnsEarly = (nlmSessionEarly?.turns || []).filter(
+      (t) => t.role === "user"
+    ).length;
+    const nlmBriefFinalizedEarly =
+      notebooklmBriefDisk?.status === "finalized" ||
+      (skipNotebooklmPending && notebooklmBriefDisk?.available);
+
+    if (
+      scriptPhase === "narration" &&
+      useNotebooklm !== false &&
+      !skipNotebooklmPending &&
+      nlmSessionEarly &&
+      (nlmSessionEarly.awaitingUser ||
+        nlmSessionEarly.status === "pending_user") &&
+      nlmUserTurnsEarly === 0
+    ) {
+      report("notebooklm_pending", "NotebookLM aguarda sua resposta…", 22);
+      return activeRes.json({
+        phase: "notebooklm_pending",
+        project: safeProjectName,
+        notebooklm_session: nlmSessionEarly,
+        notebooklm_brief:
+          nlmSessionEarly.notebooklm_brief_path || NOTEBOOKLM_BRIEF_FILENAME,
+        message:
+          [...(nlmSessionEarly.turns || [])]
+            .reverse()
+            .find((t) => t.role === "assistant")?.content ||
+          nlmSessionEarly.accumulatedSummary ||
+          "Responda ao NotebookLM para continuar.",
+        questions: nlmSessionEarly.questions || [],
+      });
+    }
 
     if (!notebooklmAccumulated && notebooklmBriefDisk?.available) {
       const briefAccum = String(
@@ -16284,13 +16323,11 @@ app.post(
       ).trim();
       if (
         briefAccum &&
-        (notebooklmBriefDisk.status === "finalized" ||
-          skipNotebooklmPending ||
-          notebooklmBriefDisk.parsed?.skipWebResearch)
+        (notebooklmBriefDisk.status === "finalized" || skipNotebooklmPending)
       ) {
         notebooklmAccumulated = briefAccum;
         console.log(
-          `[NotebookLM] Brief MD carregado: ${NOTEBOOKLM_BRIEF_FILENAME}`
+          `[NotebookLM] Brief MD finalizado carregado: ${NOTEBOOKLM_BRIEF_FILENAME}`
         );
       }
     }
@@ -16320,6 +16357,7 @@ app.post(
       );
     } else if (
       notebooklmBriefDisk?.available &&
+      nlmBriefFinalizedEarly &&
       String(notebooklmBriefDisk.parsed?.accumulated || "").length >= 200
     ) {
       notebooklmContext = formatNotebooklmBriefPromptBlock(
@@ -16328,7 +16366,7 @@ app.post(
         "BRIEF NOTEBOOKLM PARA ROTEIRO"
       );
       console.log(
-        `[NotebookLM] Usando brief MD existente (${NOTEBOOKLM_BRIEF_FILENAME}).`
+        `[NotebookLM] Usando brief MD finalizado (${NOTEBOOKLM_BRIEF_FILENAME}).`
       );
     } else if (useNotebooklm !== false && !skipNotebooklmScript) {
       report("notebooklm", "Consultando NotebookLM…", 18);
@@ -18022,6 +18060,33 @@ app.post(
     });
   })
 );
+
+app.post("/api/notebooklm/session/reset", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const niche = String(req.body?.niche || "documentário").trim();
+    if (projDir) {
+      const sessionPath = path.join(projDir, "notebooklm_session.json");
+      const briefPath = path.join(projDir, NOTEBOOKLM_BRIEF_FILENAME);
+      if (fs.existsSync(sessionPath)) fs.unlinkSync(sessionPath);
+      if (fs.existsSync(briefPath)) fs.unlinkSync(briefPath);
+    }
+    const backendDir = __dirname;
+    const key = String(niche || "default")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .slice(0, 48);
+    const fallbackSession = path.join(
+      backendDir,
+      ".notebooklm_sessions",
+      `${key}.json`
+    );
+    if (fs.existsSync(fallbackSession)) fs.unlinkSync(fallbackSession);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 app.post("/api/notebooklm/session/finalize", (req, res) => {
   try {

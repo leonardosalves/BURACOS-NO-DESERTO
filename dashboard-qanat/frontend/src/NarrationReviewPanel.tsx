@@ -291,8 +291,7 @@ export function NarrationReviewPanel({
   const showNotebooklmPanel =
     notebooklmSession &&
     (notebooklmSession.awaitingUser ||
-      notebooklmSession.status === "pending_user" ||
-      (notebooklmSession.questions?.length ?? 0) > 0);
+      notebooklmSession.status === "pending_user");
 
   return (
     <div className="mt-6 border border-gold-500/25 bg-gold-500/5 rounded-2xl p-5 space-y-4 font-sans">

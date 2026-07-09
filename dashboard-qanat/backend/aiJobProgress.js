@@ -175,6 +175,17 @@ export function createProgressJobResponse(jobId) {
         setJobAwaitingBrowser(jobId, payload);
         return;
       }
+      if (payload?.phase === "notebooklm_pending") {
+        setJobProgress(jobId, {
+          phase: "notebooklm_pending",
+          label: "NotebookLM aguarda sua resposta",
+          percent: 22,
+          done: true,
+          awaitingBrowser: false,
+          result: payload,
+        });
+        return;
+      }
       if (statusCode >= 400 || payload?.error) {
         const errMsg = String(payload?.error || payload?.details || "Erro");
         failJobProgress(jobId, errMsg);

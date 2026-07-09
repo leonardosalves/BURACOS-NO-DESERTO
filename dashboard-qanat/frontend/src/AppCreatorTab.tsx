@@ -1494,7 +1494,6 @@ export function AppCreatorTab({
                 </div>
 
                 {notebooklmSession &&
-                  !showNarrationReview &&
                   (notebooklmSession.awaitingUser ||
                     notebooklmSession.status === "pending_user") && (
                     <NotebooklmEnrichmentPanel
