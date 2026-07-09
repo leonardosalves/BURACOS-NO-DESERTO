@@ -388,7 +388,7 @@ export function AppShell({
                 className={`dash-status-dot ${backendOnline ? "" : "dash-status-dot-offline"}`}
               />
               <span>
-                {backendOnline ? "Servidor ativo" : "Servidor ocupado"}
+                {backendOnline ? "Servidor ativo" : "Servidor offline"}
               </span>
               <span className="dash-header-divider" />
               <CalendarDays className="w-3.5 h-3.5 text-dash-primary" />

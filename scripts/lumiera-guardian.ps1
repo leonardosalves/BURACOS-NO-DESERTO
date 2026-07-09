@@ -39,10 +39,20 @@ function Set-GuardianLock {
 
 if (Test-GuardianLock) { exit 0 }
 
-$backendOk = Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 6
+$backendOk = Test-LumieraBackendHealthy -Retries 4 -TimeoutSec 12
 $frontendOk = [bool](Get-PortListenerPidFast 5176)
 
-if ($backendOk -and $frontendOk) { exit 0 }
+if ($backendOk -and $frontendOk) {
+    Remove-Item (Join-Path $script:LogDir "guardian-miss.stamp") -Force -ErrorAction SilentlyContinue
+    exit 0
+}
+
+$missStamp = Join-Path $script:LogDir "guardian-miss.stamp"
+if (-not (Test-Path -LiteralPath $missStamp)) {
+    Set-Content -Path $missStamp -Value ((Get-Date).ToString("o")) -Encoding UTF8
+    Write-GuardianLog "Stack lento/offline - aguardando 1 ciclo antes de reparar (backend=$backendOk frontend=$frontendOk)" "WARN"
+    exit 0
+}
 
 Set-GuardianLock
 Write-GuardianLog "Recuperando stack (backend=$backendOk frontend=$frontendOk)" "WARN"
