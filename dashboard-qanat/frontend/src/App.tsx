@@ -8138,6 +8138,18 @@ export default function App() {
     setCreatorLoading(true);
     setCreatorLoadingMode("narration");
     setGeneratedScriptData(null);
+    const payloadSkipNlm = Boolean(
+      (payload as { skipNotebooklmPending?: boolean }).skipNotebooklmPending
+    );
+    if (useNotebooklm && !payloadSkipNlm) {
+      setNotebooklmSession(null);
+      setNotebooklmBrief(null);
+      fetch(getProjectUrl("/api/notebooklm/session/reset"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ niche: resolveNotebooklmNiche() }),
+      }).catch(() => {});
+    }
     setShowNarrationReview(false);
     const progressJobId = createProgressJobId();
     const progressTitle =
@@ -8157,7 +8169,7 @@ export default function App() {
       );
       if (token !== creatorGenTokenRef.current) return;
       if (ok && data.phase === "notebooklm_pending") {
-        stopAiJobProgress(true, "NotebookLM aguarda sua resposta");
+        stopAiJobProgress(false, "NotebookLM aguarda sua resposta");
         setNotebooklmSession(
           (data.notebooklm_session as NotebooklmSession) || null
         );
