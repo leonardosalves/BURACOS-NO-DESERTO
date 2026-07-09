@@ -176,6 +176,22 @@ function toPascalCase(slug) {
     .join("");
 }
 
+const ENGINEERING_BASE_PROPS = [
+  "title",
+  "subtitle",
+  "statusText",
+  "location",
+  "projectCode",
+  "primaryColor",
+  "secondaryColor",
+  "accentColor",
+  "backgroundColor",
+];
+
+function uniqueProps(names = []) {
+  return [...new Set(names.filter(Boolean))];
+}
+
 function propsForEntry(category, subcategory) {
   const sub = subcategory.toLowerCase();
   if (category === "chart-data") {
@@ -184,93 +200,38 @@ function propsForEntry(category, subcategory) {
       sub.includes("kpi") ||
       sub.includes("gauge")
     ) {
-      return [
-        "title",
-        "subtitle",
+      return uniqueProps([
+        ...ENGINEERING_BASE_PROPS,
         "value",
         "label",
         "suffix",
-        "statusText",
-        "location",
-        "projectCode",
-        "primaryColor",
-        "secondaryColor",
-        "accentColor",
-        "backgroundColor",
         "durationInFrames",
-      ];
+      ]);
     }
     if (sub.includes("circular") || sub.includes("progress bar")) {
-      return [
-        "title",
-        "subtitle",
+      return uniqueProps([
+        ...ENGINEERING_BASE_PROPS,
         "progress",
         "label",
         "suffix",
-        "statusText",
-        "location",
-        "projectCode",
-        "primaryColor",
-        "secondaryColor",
-        "accentColor",
-        "backgroundColor",
         "durationInFrames",
-      ];
+      ]);
     }
-    return [
-      "title",
-      "subtitle",
+    return uniqueProps([
+      ...ENGINEERING_BASE_PROPS,
       "chartData",
       "unit",
-      "statusText",
-      "location",
-      "projectCode",
       "maxValue",
-      "primaryColor",
-      "secondaryColor",
-      "accentColor",
-      "backgroundColor",
       "durationInFrames",
-    ];
+    ]);
   }
   if (category === "text") {
-    return [
-      "title",
-      "subtitle",
-      "tag",
-      "statusText",
-      "location",
-      "projectCode",
-      "primaryColor",
-      "accentColor",
-      "backgroundColor",
-    ];
+    return uniqueProps([...ENGINEERING_BASE_PROPS, "tag"]);
   }
   if (category === "image-media") {
-    return [
-      "title",
-      "subtitle",
-      "mediaLabel",
-      "location",
-      "projectCode",
-      "statusText",
-      "primaryColor",
-      "accentColor",
-      "backgroundColor",
-    ];
+    return uniqueProps([...ENGINEERING_BASE_PROPS, "mediaLabel"]);
   }
-  return [
-    "title",
-    "subtitle",
-    "statusText",
-    "location",
-    "projectCode",
-    "primaryColor",
-    "secondaryColor",
-    "accentColor",
-    "backgroundColor",
-    "durationInFrames",
-  ];
+  return uniqueProps([...ENGINEERING_BASE_PROPS, "durationInFrames"]);
 }
 
 function defaultValue(name) {
@@ -491,9 +452,9 @@ function generateEngineeringTemplateSource({
     .map((name) => `  ${name}: ${defaultValue(name)},`)
     .join("\n");
   const needsChartData = propsList.includes("chartData");
-  const needsValue = propsList.includes("value");
-  const needsTag = propsList.includes("tag");
-  const needsMedia = propsList.includes("mediaLabel");
+  const chartDataLine = needsChartData
+    ? ""
+    : `  const chartData = ${DEFAULT_CHART_ITEMS};\n`;
   const animDurationLine = propsList.includes("durationInFrames")
     ? "const animDuration = durationInFrames ?? Math.round(fps * 2.8);"
     : "const animDuration = Math.round(fps * 2.8);";
@@ -531,8 +492,7 @@ ${defaults}
   const labelFontSize = isVertical ? Math.max(14, width * 0.03) : Math.max(13, height * 0.026);
   const chipFontSize = isVertical ? Math.max(15, width * 0.034) : Math.max(15, height * 0.03);
   const bodyFontSize = isVertical ? Math.max(16, width * 0.035) : Math.max(15, height * 0.03);
-  const chartData = ${needsChartData ? "chartData" : DEFAULT_CHART_ITEMS};
-
+${chartDataLine}
   return (
     <AbsoluteFill
       style={{
