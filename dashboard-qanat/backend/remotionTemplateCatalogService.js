@@ -285,6 +285,9 @@ export function attachStudioTemplateToScene(scene = {}, studioPick = null) {
       template_studio_category: studioPick.category,
       template_studio_subcategory: studioPick.subcategory,
       template_studio_motion_template_id: studioPick.motion_template_id,
+      template_studio_data_slots: Array.isArray(studioPick.dataSlots)
+        ? studioPick.dataSlots
+        : [],
       studio_source_code: sourceCode,
     },
     studio_template_decision: {

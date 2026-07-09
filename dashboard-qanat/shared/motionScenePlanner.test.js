@@ -408,6 +408,9 @@ describe("motionScenePlanner", () => {
     assert.ok(
       String(scene.props.studio_source_code || "").includes("useCurrentFrame")
     );
+    assert.ok(scene.props.studio_props);
+    assert.equal(scene.props.studio_props.value, 62);
+    assert.equal(scene.props.value, 62);
 
     const clips = motionScenesToMotionClips(plan.motion_scenes);
     assert.equal(

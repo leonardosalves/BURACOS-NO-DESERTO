@@ -341,7 +341,15 @@ function normalizeLlmMotionScene(
               heuristic.props.template_studio_subcategory,
             template_studio_motion_template_id:
               heuristic.props.template_studio_motion_template_id,
+            template_studio_data_slots:
+              heuristic.props.template_studio_data_slots,
             studio_source_code: heuristic.props.studio_source_code,
+            studio_props: heuristic.props.studio_props,
+            studio_props_meta: heuristic.props.studio_props_meta,
+            ...(heuristic.props.studio_props &&
+            typeof heuristic.props.studio_props === "object"
+              ? heuristic.props.studio_props
+              : {}),
           }
         : {}),
     },

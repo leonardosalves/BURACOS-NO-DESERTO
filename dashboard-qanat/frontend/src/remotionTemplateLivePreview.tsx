@@ -1,7 +1,10 @@
 import React, { Component, useMemo } from "react";
 import { Player } from "@remotion/player";
 import * as Remotion from "remotion";
-import { compileSavedTemplateSource } from "@lumiera/shared/remotionTemplateCompile.js";
+import {
+  compileSavedTemplateSource,
+  sanitizeStudioRenderProps,
+} from "@lumiera/shared/remotionTemplateCompile.js";
 
 export { compileSavedTemplateSource };
 
@@ -63,6 +66,7 @@ type SavedTemplatePreviewFrameProps = {
   size?: "card" | "detail";
   autoPlay?: boolean;
   fallback?: React.ReactNode;
+  inputProps?: Record<string, unknown>;
 };
 
 export function SavedTemplatePreviewFrame({
@@ -71,6 +75,7 @@ export function SavedTemplatePreviewFrame({
   size = "card",
   autoPlay = false,
   fallback = null,
+  inputProps = {},
 }: SavedTemplatePreviewFrameProps) {
   const vertical = format === "9:16";
   const dimensions =
@@ -117,7 +122,16 @@ export function SavedTemplatePreviewFrame({
     );
   }
 
-  const { Component, inputProps, durationInFrames, fps } = compiled.preview;
+  const {
+    Component,
+    inputProps: exampleProps,
+    durationInFrames,
+    fps,
+  } = compiled.preview;
+  const mergedInputProps = {
+    ...exampleProps,
+    ...sanitizeStudioRenderProps(inputProps),
+  };
   const previewStartFrame =
     size === "detail"
       ? Math.min(Math.round(fps * 0.8), durationInFrames - 1)
@@ -135,7 +149,7 @@ export function SavedTemplatePreviewFrame({
       >
         <Player
           component={Component}
-          inputProps={inputProps}
+          inputProps={mergedInputProps}
           durationInFrames={durationInFrames}
           fps={fps}
           compositionWidth={dimensions.width}

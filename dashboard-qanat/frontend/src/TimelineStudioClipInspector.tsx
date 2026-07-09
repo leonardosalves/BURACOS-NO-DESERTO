@@ -46,6 +46,43 @@ export function TimelineStudioClipInspector({
   const needsSatelliteFetch = locationIntroNeedsSatelliteFetch(clip);
   const motionQcOk = clip.props?.motion_quality_ok !== false;
   const motionQcScore = Number(clip.props?.motion_quality_score) || 0;
+  const studioSource = String(clip.props?.studio_source_code || "").trim();
+  const studioProps =
+    clip.props?.studio_props &&
+    typeof clip.props.studio_props === "object" &&
+    !Array.isArray(clip.props.studio_props)
+      ? (clip.props.studio_props as Record<string, unknown>)
+      : {};
+  const studioMeta = clip.props?.studio_props_meta as
+    { confidence?: number; filled_slots?: string[] } | undefined;
+  const studioEditableKeys = [
+    "text",
+    "subtitle",
+    "headline",
+    "title",
+    "value",
+    "label",
+    "projectCode",
+    "statusText",
+    "location",
+  ].filter(
+    (key) =>
+      key in studioProps ||
+      clip.props?.[key] !== undefined ||
+      (Array.isArray(clip.props?.template_studio_data_slots) &&
+        (clip.props.template_studio_data_slots as string[]).includes(key))
+  );
+
+  const patchStudioProp = (key: string, value: string) => {
+    const nextStudioProps = { ...studioProps, [key]: value };
+    onUpdate({
+      props: {
+        ...clip.props,
+        [key]: value,
+        studio_props: nextStudioProps,
+      },
+    });
+  };
 
   const autoFetchStartedRef = useRef(false);
 
@@ -184,6 +221,43 @@ export function TimelineStudioClipInspector({
           </Field>
         ) : null}
 
+        {studioSource ? (
+          <>
+            <Field label="Template Studio" className="sm:col-span-2">
+              <p className="text-[10px] text-purple-300 font-semibold">
+                {String(
+                  clip.props?.template_studio_name ||
+                    clip.props?.template_studio_id ||
+                    "Studio"
+                )}
+              </p>
+              {studioMeta?.confidence !== undefined ? (
+                <p className="text-[9px] text-zinc-500 mt-0.5">
+                  Contrato preenchido · confiança{" "}
+                  {Math.round(Number(studioMeta.confidence) * 100)}%
+                </p>
+              ) : null}
+            </Field>
+            {studioEditableKeys.map((key) => (
+              <Field
+                key={key}
+                label={key}
+                className={
+                  key === "text" || key === "subtitle" ? "sm:col-span-2" : ""
+                }
+              >
+                <input
+                  type="text"
+                  disabled={!editable}
+                  value={String(clip.props?.[key] ?? studioProps[key] ?? "")}
+                  onChange={(e) => patchStudioProp(key, e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5 text-[11px] text-white disabled:opacity-50"
+                />
+              </Field>
+            ))}
+          </>
+        ) : null}
+
         {clip.templateId === "location-intro" ? (
           <>
             <Field label="Local" className="sm:col-span-2">
@@ -240,7 +314,9 @@ export function TimelineStudioClipInspector({
                     type="button"
                     onClick={() => {
                       void navigator.clipboard.writeText(aiGeoPrompt);
-                      toast.success("Prompt copiado — cole no Seedance/LTX");
+                      toast.success(
+                        "Prompt copiado - cole no Grok ou Google Flow"
+                      );
                     }}
                     className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-white"
                   >
@@ -262,13 +338,13 @@ export function TimelineStudioClipInspector({
                   })
                 }
                 rows={8}
-                placeholder="Zoom contínuo da Terra até o local, destaque territorial, órbita 360° em POIs — prompt rico para gerar vídeo com IA."
+                placeholder="Zoom continuo da Terra ate o local, destaque territorial, orbita 360 em POIs - prompt rico para Grok ou Google Flow."
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-[10px] text-zinc-200 resize-y min-h-[140px] font-mono leading-relaxed disabled:opacity-50"
               />
               <p className="text-[9px] text-zinc-600 mt-1">
-                Substitui Blender/Cesium: use este prompt em Seedance, LTX ou
-                ComfyUI para gerar o voo satélite fotorrealista. Destaque de
-                país/cidade e clima vêm da narração.
+                Substitui Blender/Cesium: use este prompt no Grok ou Google Flow
+                para gerar o voo satelite fotorrealista. Destaque de pais/cidade
+                e clima vem da narracao.
               </p>
             </Field>
           </>

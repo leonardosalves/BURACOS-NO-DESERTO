@@ -2,6 +2,8 @@
  * Preenche props de motion scenes com fatos de research_sources.
  */
 
+import { enrichStudioTemplateScene } from "./studioTemplatePropsBinder.js";
+
 const YEAR_GLOBAL_RE = /\b(1\d{3}|20\d{2})\b/g;
 const STAT_VALUE_RE =
   /(\d{1,3}(?:[.,]\d+)?)\s*(%|por\s*cento|mil\b|milh[oõ]es?|bilh[oõ]es?|anos?|vítimas?|vitimas?|mortos?|feridos?)?/gi;
@@ -189,6 +191,11 @@ export function enrichMotionSceneProps(scene = {}, researchContext = {}) {
   }
 
   props.research_backed = facts.length > 0 || sources.length > 0;
+
+  if (props.template_studio_id) {
+    return enrichStudioTemplateScene({ ...scene, props }, { researchContext });
+  }
+
   return { ...scene, props };
 }
 
