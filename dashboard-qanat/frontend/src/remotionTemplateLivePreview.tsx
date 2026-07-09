@@ -136,29 +136,33 @@ export function SavedTemplatePreviewFrame({
     )
   );
 
-  /** Timeline em play: só re-seek se drift > ~0,35s — evita travamento do MP4 no PIP. */
-  const timelinePlaying = timelineSynced && autoPlay;
-  const driftFrames = Math.max(3, Math.round(fps * 0.35));
+  const lastSeekFrameRef = useRef<number | null>(null);
 
+  const mergedInputProps = useMemo(() => {
+    if (!compiled.ok) return {};
+    const { inputProps: exampleProps } = compiled.preview;
+    return mergeStudioRenderProps({
+      inputProps,
+      exampleProps,
+      durationInFrames: sceneDurationFrames,
+      fps,
+    });
+  }, [compiled, inputProps, sceneDurationFrames, fps]);
+
+  useEffect(() => {
+    lastSeekFrameRef.current = null;
+  }, [sourceCode, sceneDurationFrames]);
+
+  /** Seek frame-a-frame: animações 30fps proporcionais à duração; MP4 usa acceptableTimeShiftInSeconds. */
   useEffect(() => {
     if (!previewMeta) return;
     const player = playerRef.current;
     if (!player) return;
-
-    if (timelinePlaying) {
-      const current = player.getCurrentFrame();
-      if (Math.abs(current - scrubFrame) > driftFrames) {
-        player.seekTo(scrubFrame);
-      }
-      if (!player.isPlaying()) {
-        player.play();
-      }
-      return;
-    }
-
+    if (lastSeekFrameRef.current === scrubFrame) return;
+    lastSeekFrameRef.current = scrubFrame;
     player.pause();
     player.seekTo(scrubFrame);
-  }, [previewMeta, scrubFrame, timelinePlaying, driftFrames]);
+  }, [previewMeta, scrubFrame]);
 
   if (compiled.ok === false) {
     if (fallback) {
@@ -194,14 +198,7 @@ export function SavedTemplatePreviewFrame({
     );
   }
 
-  const { Component, inputProps: exampleProps } = compiled.preview;
-
-  const mergedInputProps = mergeStudioRenderProps({
-    inputProps,
-    exampleProps,
-    durationInFrames: sceneDurationFrames,
-    fps,
-  });
+  const { Component } = compiled.preview;
 
   const geoPipOverlay =
     overlayOnly || (fullBleed && isGeoPipCompositeProps(inputProps));
@@ -209,7 +206,7 @@ export function SavedTemplatePreviewFrame({
   const previewStartFrame =
     size === "detail" && !fullBleed
       ? Math.min(Math.round(fps * 0.8), sceneDurationFrames - 1)
-      : scrubFrame;
+      : 0;
 
   const player = (
     <LivePreviewErrorBoundary
