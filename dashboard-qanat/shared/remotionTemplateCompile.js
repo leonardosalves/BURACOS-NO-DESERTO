@@ -4,6 +4,7 @@
  */
 
 import { transform } from "sucrase";
+import { repairCorruptedTemplateStringLiterals } from "./remotionTemplateSourceRepair.js";
 import { repairCommonTemplateLayoutVars } from "./remotionTemplateStudioValidate.js";
 export {
   sanitizeStudioRenderProps,
@@ -150,7 +151,9 @@ export function compileSavedTemplateSource(sourceCode, runtime) {
     return { ok: false, error: "Runtime React/Remotion ausente." };
   }
 
-  const code = repairCommonTemplateLayoutVars(String(sourceCode || "")).trim();
+  const code = repairCorruptedTemplateStringLiterals(
+    repairCommonTemplateLayoutVars(String(sourceCode || ""))
+  ).trim();
   if (!code) {
     return { ok: false, error: "Codigo vazio." };
   }
