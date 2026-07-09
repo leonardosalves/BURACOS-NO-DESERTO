@@ -19214,7 +19214,10 @@ if (fs.existsSync(frontendDist)) {
         fallthrough: false,
         setHeaders(res, filePath) {
           const base = path.basename(filePath);
-          if (base.startsWith("index-") && base.endsWith(".js")) {
+          if (
+            (base.startsWith("index-") && base.endsWith(".js")) ||
+            base === "lumiera-deploy-boot.js"
+          ) {
             res.setHeader(
               "Cache-Control",
               "no-cache, no-store, must-revalidate"
@@ -19233,6 +19236,7 @@ if (fs.existsSync(frontendDist)) {
         if (
           filePath.endsWith("index.html") ||
           filePath.endsWith("sw.js") ||
+          filePath.endsWith("lumiera-deploy-boot.js") ||
           filePath.endsWith(".webmanifest")
         ) {
           res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
