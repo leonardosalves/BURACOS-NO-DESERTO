@@ -10,7 +10,9 @@ import {
   createCatalogNiche,
   extractTemplateTsxFromLlm,
   fetchCatalogNiches,
+  exportRemotionTemplateCatalog,
   fetchRemotionTemplateCatalog,
+  importRemotionTemplateCatalog,
   repairCommonTemplateLayoutVars,
   syncRemotionTemplateCatalog,
   validateFinalTemplateCode,
@@ -43,6 +45,8 @@ import {
   Play,
   Plus,
   Trash2,
+  Download,
+  Upload,
 } from "lucide-react";
 
 type TemplateCategory = string;
@@ -1173,6 +1177,51 @@ function studioTemplatesToSyncPayload(
       },
     }))
     .filter((tpl) => tpl.sourceCode.short || tpl.sourceCode.long);
+}
+
+async function pushAllTemplatesToServer(templates: TemplateItem[]) {
+  const byNiche = new Map<string, TemplateItem[]>();
+  for (const tpl of templates) {
+    const key = normalizeNicheLabel(tpl.niche) || "Engenharia";
+    const bucket = byNiche.get(key) || [];
+    bucket.push(tpl);
+    byNiche.set(key, bucket);
+  }
+  let synced = 0;
+  for (const [key, list] of byNiche) {
+    const payload = studioTemplatesToSyncPayload(list, key);
+    if (!payload.length) continue;
+    const res = await syncRemotionTemplateCatalog({
+      niche: key,
+      templates: payload,
+    });
+    if (res.success) synced += payload.length;
+  }
+  return synced;
+}
+
+function buildLocalCatalogExport(templates: TemplateItem[]) {
+  const niches: Record<
+    string,
+    { templates: ReturnType<typeof studioTemplatesToSyncPayload> }
+  > = {};
+  const byNiche = new Map<string, TemplateItem[]>();
+  for (const tpl of templates) {
+    const key = normalizeNicheLabel(tpl.niche) || "Engenharia";
+    const bucket = byNiche.get(key) || [];
+    bucket.push(tpl);
+    byNiche.set(key, bucket);
+  }
+  for (const [key, list] of byNiche) {
+    const payload = studioTemplatesToSyncPayload(list, key);
+    if (payload.length) niches[key] = { templates: payload };
+  }
+  return {
+    version: 1,
+    exported_at: new Date().toISOString(),
+    source: "lumiera-browser",
+    niches,
+  };
 }
 
 function loadStudioCatalog() {
@@ -2990,15 +3039,21 @@ export function RemotionTemplateStudio({
       }
       if (!alive) return;
 
-      setTemplates((current) => {
-        const deleted = readDeletedCatalog();
-        return filterDeletedTemplates(
-          purgeLegacyTemplatesFromList(
-            mergeStudioTemplateLists(current, allFromApi)
-          ),
-          deleted
+      const deleted = readDeletedCatalog();
+      const merged = filterDeletedTemplates(
+        purgeLegacyTemplatesFromList(
+          mergeStudioTemplateLists(studioCatalog.templates, allFromApi)
+        ),
+        deleted
+      );
+      setTemplates(merged);
+      const synced = await pushAllTemplatesToServer(merged);
+      if (alive && synced > 0) {
+        setCatalogSyncNote(
+          `${synced} template${synced === 1 ? "" : "s"} sincronizado${synced === 1 ? "" : "s"} no servidor.`
         );
-      });
+      }
+      if (!alive) return;
       setCatalogReady(true);
     })();
     return () => {
@@ -3131,6 +3186,17 @@ export function RemotionTemplateStudio({
     () => nicheTemplates.filter((t) => t.category === category),
     [category, nicheTemplates]
   );
+  const categoriesWithTemplates = useMemo(
+    () =>
+      categories
+        .map((item) => ({
+          ...item,
+          count: nicheTemplates.filter((tpl) => tpl.category === item.id)
+            .length,
+        }))
+        .filter((item) => item.count > 0),
+    [categories, nicheTemplates]
+  );
   const showingCategoryFallback = useMemo(() => {
     if (!subcategory || !categoryTemplates.length) return false;
     return !categoryTemplates.some((t) => t.subcategory === subcategory);
@@ -3156,6 +3222,87 @@ export function RemotionTemplateStudio({
     setDetailFormat("short");
     setSelectedId(visibleTemplates[0]?.id || "");
   }, [category, niche, subcategory]);
+
+  useEffect(() => {
+    if (categoryTemplates.length > 0) return;
+    const first = categoriesWithTemplates[0];
+    if (!first || first.id === category) return;
+    setCategory(first.id);
+    setSubcategory(first.subcategories[0] || "");
+  }, [category, categoryTemplates.length, categoriesWithTemplates]);
+
+  async function exportTemplateBackup() {
+    const local = buildLocalCatalogExport(templates);
+    const server = await exportRemotionTemplateCatalog();
+    const mergedNiches = { ...local.niches };
+    if (server.success && server.niches) {
+      for (const [key, entry] of Object.entries(server.niches)) {
+        const existing = mergedNiches[key]?.templates || [];
+        const byId = new Map(existing.map((tpl) => [tpl.id, tpl]));
+        for (const tpl of entry.templates || []) {
+          byId.set(String(tpl.id || ""), tpl);
+        }
+        mergedNiches[key] = { templates: [...byId.values()] };
+      }
+    }
+    const blob = new Blob(
+      [JSON.stringify({ ...local, niches: mergedNiches }, null, 2)],
+      { type: "application/json" }
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `lumiera-templates-${Date.now()}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setCatalogSyncNote("Backup JSON baixado.");
+  }
+
+  async function importTemplateBackup(file: File) {
+    try {
+      const raw = await file.text();
+      const parsed = JSON.parse(raw) as {
+        niches?: Record<string, { templates: CatalogTemplate[] }>;
+      };
+      if (!parsed?.niches || typeof parsed.niches !== "object") {
+        setStudioError("Arquivo invalido: falta a secao niches.");
+        return;
+      }
+      const imported = await importRemotionTemplateCatalog({
+        version: 1,
+        niches: parsed.niches,
+      });
+      if (!imported.success) {
+        setStudioError(imported.error || "Falha ao importar backup.");
+        return;
+      }
+      const allFromApi: CatalogTemplate[] = [];
+      for (const key of Object.keys(parsed.niches)) {
+        const res = await fetchRemotionTemplateCatalog(key);
+        if (res.success) allFromApi.push(...res.templates);
+      }
+      setTemplates((current) => {
+        const deleted = readDeletedCatalog();
+        return filterDeletedTemplates(
+          purgeLegacyTemplatesFromList(
+            mergeStudioTemplateLists(current, allFromApi)
+          ),
+          deleted
+        );
+      });
+      setNiches((current) =>
+        mergeNicheLists(current, Object.keys(parsed.niches || {}))
+      );
+      setStudioError("");
+      setCatalogSyncNote(
+        `${imported.imported || 0} template${imported.imported === 1 ? "" : "s"} restaurado${imported.imported === 1 ? "" : "s"} do backup.`
+      );
+    } catch (err) {
+      setStudioError(
+        err instanceof Error ? err.message : "Nao foi possivel ler o backup."
+      );
+    }
+  }
 
   function deleteTemplate(templateId: string) {
     const template = templates.find((item) => item.id === templateId);
@@ -3460,15 +3607,40 @@ export function RemotionTemplateStudio({
                 <p className="text-sm font-bold text-white">Catalogo global</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => void addNicheCatalog()}
-              className="inline-flex items-center gap-1 rounded-md border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-[10px] font-black text-cyan-100 hover:border-cyan-300/70"
-              title="Criar novo catalogo de nicho"
-            >
-              <Plus className="h-3 w-3" />
-              Novo catalogo
-            </button>
+            <div className="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => void exportTemplateBackup()}
+                className="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-[10px] font-black text-zinc-300 hover:border-white/30"
+                title="Baixar backup JSON dos templates"
+              >
+                <Download className="h-3 w-3" />
+                Backup
+              </button>
+              <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-[10px] font-black text-zinc-300 hover:border-white/30">
+                <Upload className="h-3 w-3" />
+                Restaurar
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void importTemplateBackup(file);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => void addNicheCatalog()}
+                className="inline-flex items-center gap-1 rounded-md border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-[10px] font-black text-cyan-100 hover:border-cyan-300/70"
+                title="Criar novo catalogo de nicho"
+              >
+                <Plus className="h-3 w-3" />
+                Novo catalogo
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {niches
@@ -3715,12 +3887,30 @@ export function RemotionTemplateStudio({
                   <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-zinc-500 space-y-2">
                     <p>Nenhum template nesta combinacao ainda.</p>
                     {nicheTemplates.length > 0 ? (
-                      <p className="text-xs text-zinc-600">
-                        Voce tem {nicheTemplates.length} template
-                        {nicheTemplates.length === 1 ? "" : "s"} no nicho{" "}
-                        {niche}. Troque a categoria na barra lateral (ex. Chart
-                        Data, Text, Frame) — nao apenas Logo e Branding.
-                      </p>
+                      <div className="space-y-2 text-xs text-zinc-600">
+                        <p>
+                          Voce tem {nicheTemplates.length} template
+                          {nicheTemplates.length === 1 ? "" : "s"} no nicho{" "}
+                          {niche}, mas nenhum em &quot;
+                          {currentCategory?.label}&quot;. Clique uma categoria
+                          abaixo:
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {categoriesWithTemplates.map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                setCategory(item.id);
+                                setSubcategory(item.subcategories[0] || "");
+                              }}
+                              className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[11px] font-bold text-cyan-100 hover:border-cyan-300/60"
+                            >
+                              {item.label} ({item.count})
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     ) : (
                       <div className="space-y-2 text-xs text-zinc-600">
                         <p>

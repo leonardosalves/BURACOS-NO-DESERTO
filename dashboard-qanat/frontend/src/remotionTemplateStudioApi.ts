@@ -120,6 +120,8 @@ export type CatalogSyncRequest = {
 
 const CATALOG_ENDPOINT = "/api/ai/template-studio/catalog";
 const CATALOG_SYNC_ENDPOINT = "/api/ai/template-studio/catalog/sync";
+const CATALOG_EXPORT_ENDPOINT = "/api/ai/template-studio/catalog/export";
+const CATALOG_IMPORT_ENDPOINT = "/api/ai/template-studio/catalog/import";
 const CATALOG_NICHES_ENDPOINT = "/api/ai/template-studio/catalog/niches";
 const CATALOG_CREATE_NICHE_ENDPOINT = "/api/ai/template-studio/catalog/niche";
 
@@ -243,6 +245,73 @@ export async function fetchRemotionTemplateCatalog(
         err instanceof Error
           ? err.message
           : "Falha de rede ao buscar catálogo.",
+    };
+  }
+}
+
+export async function exportRemotionTemplateCatalog(): Promise<{
+  success: boolean;
+  version?: number;
+  exported_at?: string;
+  niches?: Record<
+    string,
+    { templates: CatalogTemplate[]; updated_at?: string }
+  >;
+  error?: string;
+}> {
+  try {
+    const res = await fetch(CATALOG_EXPORT_ENDPOINT);
+    const parsed = await readApiJsonResponse<{
+      success: boolean;
+      version?: number;
+      exported_at?: string;
+      niches?: Record<
+        string,
+        { templates: CatalogTemplate[]; updated_at?: string | null }
+      >;
+      error?: string;
+    }>(res);
+    if (parsed.error || !parsed.data) {
+      return { success: false, error: parsed.error || "Export falhou." };
+    }
+    return parsed.data;
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha de rede no export.",
+    };
+  }
+}
+
+export async function importRemotionTemplateCatalog(payload: {
+  version?: number;
+  niches: Record<string, { templates: CatalogTemplate[] }>;
+}): Promise<{
+  success: boolean;
+  imported?: number;
+  niches?: string[];
+  error?: string;
+}> {
+  try {
+    const res = await fetch(CATALOG_IMPORT_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const parsed = await readApiJsonResponse<{
+      success: boolean;
+      imported?: number;
+      niches?: string[];
+      error?: string;
+    }>(res);
+    if (parsed.error || !parsed.data) {
+      return { success: false, error: parsed.error || "Import falhou." };
+    }
+    return parsed.data;
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Falha de rede no import.",
     };
   }
 }

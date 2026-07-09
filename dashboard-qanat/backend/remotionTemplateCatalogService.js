@@ -637,6 +637,72 @@ export function getCatalogForNiche(niche = "") {
   };
 }
 
+export function exportFullTemplateCatalog() {
+  purgeInternalTestCatalogNiches();
+  const catalog = readCatalogFile();
+  const niches = {};
+  for (const [key, entry] of Object.entries(catalog.niches || {})) {
+    if (isInternalTestCatalogNiche(key)) continue;
+    const templates = (Array.isArray(entry?.templates) ? entry.templates : [])
+      .map(normalizeCatalogTemplate)
+      .filter((tpl) => tpl?.id);
+    if (!templates.length) continue;
+    niches[key] = {
+      templates,
+      updated_at: entry?.updated_at || null,
+    };
+  }
+  return {
+    version: 1,
+    exported_at: new Date().toISOString(),
+    niches,
+  };
+}
+
+export function importFullTemplateCatalog(payload = {}) {
+  const incoming = payload?.niches;
+  if (!incoming || typeof incoming !== "object") {
+    return { ok: false, error: "Payload invalido: falta niches." };
+  }
+
+  const catalog = readCatalogFile();
+  if (!catalog.niches) catalog.niches = {};
+  purgeLegacyTemplatesFromCatalog(catalog);
+
+  let imported = 0;
+  const nicheKeys = [];
+  for (const [rawKey, entry] of Object.entries(incoming)) {
+    const key = normalizeNicheLabel(rawKey) || String(rawKey || "").trim();
+    if (!key || isInternalTestCatalogNiche(key)) continue;
+    const templates = (Array.isArray(entry?.templates) ? entry.templates : [])
+      .map(normalizeCatalogTemplate)
+      .filter((tpl) => tpl?.id);
+    if (!templates.length) continue;
+
+    const legacyKey = resolveCatalogNicheKey(catalog, key);
+    const existing = catalog.niches[legacyKey]?.templates || [];
+    const byId = new Map(
+      existing.map((tpl) => [String(tpl?.id || ""), tpl]).filter(([id]) => id)
+    );
+    for (const tpl of templates) {
+      byId.set(tpl.id, tpl);
+      imported += 1;
+    }
+    catalog.niches[key] = {
+      templates: [...byId.values()],
+      updated_at: new Date().toISOString(),
+    };
+    if (legacyKey !== key && catalog.niches[legacyKey]) {
+      delete catalog.niches[legacyKey];
+    }
+    nicheKeys.push(key);
+  }
+
+  catalog.updated_at = new Date().toISOString();
+  writeCatalogFile(catalog);
+  return { ok: true, imported, niches: nicheKeys };
+}
+
 export function syncCatalogForNiche(niche = "", templates = []) {
   const key = normalizeNicheLabel(niche) || "Geral";
   const catalog = readCatalogFile();
