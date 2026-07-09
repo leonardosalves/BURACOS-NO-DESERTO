@@ -25,6 +25,7 @@ import {
   mergeMissingBrollFromConfig,
   mergeRemotionFromStoryboard,
   saveTimelineStudio,
+  syncStudioTimingToStoryboard,
 } from "./timelineStudioMigration.js";
 import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
@@ -288,17 +289,23 @@ export function registerMotionSceneRoutes(
       studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
       studio = upsertMusicClipInStudio(studio, config, projDir);
       const savedStudio = saveTimelineStudio(projDir, studio);
+      const timingSync = syncStudioTimingToStoryboard(projDir, savedStudio);
+      const motionScenesOut =
+        timingSync.motion_scenes?.length > 0
+          ? timingSync.motion_scenes
+          : next.motion_scenes;
       const timelineMotionCount = (savedStudio.clips || []).filter(
         (c) => c?.trackId === MOTION_TRACK_ID
       ).length;
 
       res.json({
         ok: true,
-        motion_scenes: next.motion_scenes,
-        count: normalizedScenes.length,
+        motion_scenes: motionScenesOut,
+        count: motionScenesOut.length,
         saved_at: next.motion_scenes_meta.edited_at,
         timeline_synced: true,
         timeline_motion_count: timelineMotionCount,
+        motion_scenes_timing_synced: timingSync.changed,
         studio: savedStudio,
       });
     } catch (err) {
