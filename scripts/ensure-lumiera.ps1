@@ -28,13 +28,23 @@ $permanentMarker = Join-Path $script:LogDir "permanent.mode"
 if ($pm2Mode -or (Test-Path -LiteralPath $permanentMarker)) {
     if (-not $Quiet) { Write-Host "Modo permanente (PM2 + guardian)" -ForegroundColor DarkGray }
     $stackOk = Repair-LumieraPm2Stack
-    $backendOk = $stackOk
-    $frontendExit = if ($stackOk) { 0 } else { 1 }
+    if (-not $stackOk) {
+        if (-not $Quiet) {
+            Write-Host "PM2 falhou - subindo backend+frontend em modo direto..." -ForegroundColor Yellow
+        }
+        $backendOk = Start-LumieraStackDirect
+        & (Join-Path $PSScriptRoot "ensure-frontend.ps1")
+        $frontendExit = $LASTEXITCODE
+        $stackOk = $backendOk -and ($frontendExit -eq 0)
+    } else {
+        $backendOk = $true
+        $frontendExit = 0
+    }
     if ($stackOk -and -not $Quiet) {
         Write-Host "Backend OK em http://127.0.0.1:3005" -ForegroundColor Green
         Write-Host "Frontend OK em http://127.0.0.1:5176/" -ForegroundColor Green
     } elseif (-not $Quiet) {
-        Write-Host "Stack offline - guardian vai tentar de novo em ate 1 min" -ForegroundColor Yellow
+        Write-Host "Stack offline - execute run_qanat_dashboard.bat" -ForegroundColor Yellow
     }
 } else {
     & (Join-Path $PSScriptRoot "ensure-watchdog.ps1") | Out-Null

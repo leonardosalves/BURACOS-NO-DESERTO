@@ -60,6 +60,8 @@ if (-not (Test-BackendSyntaxOk)) {
 }
 
 Write-Host "Parando processos soltos nas portas 3005/5176..." -ForegroundColor DarkGray
+Invoke-LumieraPm2 @("kill") | Out-Null
+Start-Sleep -Seconds 2
 Stop-LumieraBackendOnPort
 try {
     $fePid = Get-PortListenerPidFast 5176
@@ -77,7 +79,7 @@ foreach ($app in @("lumiera-backend", "lumiera-frontend")) {
 $startArgs = @("start", $Ecosystem, "--update-env")
 if ($BackendOnly) { $startArgs += "--only"; $startArgs += "lumiera-backend" }
 Invoke-LumieraPm2 $startArgs | Out-Null
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 12
 $backendOk = Repair-LumieraPm2Stack
 
 if (-not $backendOk) {

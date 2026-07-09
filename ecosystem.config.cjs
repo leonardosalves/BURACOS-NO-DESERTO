@@ -35,7 +35,7 @@ module.exports = {
       name: "lumiera-frontend",
       cwd: path.join(repoRoot, "dashboard-qanat", "frontend"),
       script: "node_modules/vite/bin/vite.js",
-      args: "--host 127.0.0.1 --port 5176 --strictPort",
+      args: "--host 0.0.0.0 --port 5176 --strictPort",
       interpreter: "node",
       instances: 1,
       exec_mode: "fork",

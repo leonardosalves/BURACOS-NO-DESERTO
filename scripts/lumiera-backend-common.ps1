@@ -210,16 +210,32 @@ function Initialize-LumieraBackendEnv {
     }
 }
 
+function Start-LumieraStackDirect {
+    Initialize-LumieraBackendEnv
+    Stop-LumieraBackendOnPort
+    $fePid = Get-PortListenerPidFast 5176
+    if ($fePid) {
+        Stop-Process -Id $fePid -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 1
+    }
+    $backendOk = Start-LumieraBackendProcess -Direct -ForceRestart -SkipDebounce
+    return $backendOk
+}
+
 function Start-LumieraBackendProcess {
     param(
         [switch]$ForceRestart,
         [switch]$SkipDebounce,
-        [switch]$SpawnOnly
+        [switch]$SpawnOnly,
+        [switch]$Direct
     )
 
     Initialize-LumieraBackendEnv
 
-    if (Test-LumieraPm2Mode -or (Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode"))) {
+    if (
+        -not $Direct -and
+        (Test-LumieraPm2Mode -or (Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode")))
+    ) {
         if ($ForceRestart) {
             return Ensure-LumieraPm2Backend -Reload
         }
@@ -548,6 +564,22 @@ function Repair-LumieraPm2Stack {
         return $false
     }
 
+    if (-not $backendHealthy -and -not (Test-ActiveLumieraRender)) {
+        if (Get-BackendListenerPid) {
+            Write-LumieraLog "Porta 3005 ocupada sem health — liberando antes do PM2" "WARN"
+            Stop-LumieraBackendOnPort
+            Start-Sleep -Seconds 2
+        }
+    }
+    if (-not $frontendUp) {
+        $fePid = Get-PortListenerPidFast 5176
+        if ($fePid) {
+            Write-LumieraLog ("Porta 5176 ocupada sem resposta — liberando PID {0}" -f $fePid) "WARN"
+            Stop-Process -Id $fePid -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 1
+        }
+    }
+
     if (Test-ActiveLumieraRender -and -not $backendHealthy) {
         Write-LumieraLog "Render ativo - reparo do backend adiado" "WARN"
         if (-not $frontendUp) {
@@ -598,6 +630,22 @@ function Repair-LumieraPm2Stack {
             Invoke-LumieraPm2 @("save", "--force") | Out-Null
             Set-Content -Path $script:Pm2ModeFile -Value ((Get-Date).ToString("o")) -Encoding UTF8
             Write-LumieraLog "Stack PM2 reparado - backend+frontend OK"
+            return $true
+        }
+        Start-Sleep -Seconds 2
+    }
+
+    Write-LumieraLog "Reparo PM2: timeout - tentando pm2 kill + start limpo" "WARN"
+    Invoke-LumieraPm2 @("kill") | Out-Null
+    Start-Sleep -Seconds 2
+    Invoke-LumieraPm2 @("start", $ecosystem, "--update-env") | Out-Null
+    $retryDeadline = (Get-Date).AddSeconds(90)
+    while ((Get-Date) -lt $retryDeadline) {
+        $bh = Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 10
+        $fu = [bool](Get-PortListenerPidFast 5176)
+        if ($bh -and $fu) {
+            Invoke-LumieraPm2 @("save", "--force") | Out-Null
+            Write-LumieraLog "Stack PM2 reparado apos restart limpo"
             return $true
         }
         Start-Sleep -Seconds 2
