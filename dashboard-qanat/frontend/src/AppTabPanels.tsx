@@ -13,7 +13,6 @@ import { AppUploadTab } from "./AppUploadTab";
 import { AppWorkflowTab } from "./AppWorkflowTab";
 import { FlowLabPage } from "./FlowLabPage";
 import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
-import { lazyPanel } from "./lazyPanel";
 import toast from "react-hot-toast";
 import {
   Bot,
@@ -49,85 +48,6 @@ import {
   LazyYoutubeStudioPanel,
   TabPanelFallback,
 } from "./appLazyPanels";
-
-const useStaticUniportPanels = import.meta.env.PROD;
-
-const LazyAppCreatorTab = useStaticUniportPanels
-  ? AppCreatorTab
-  : lazyPanel(() =>
-      import("./AppCreatorTab").then((m) => ({ default: m.AppCreatorTab }))
-    );
-const LazyAppEditorTab = useStaticUniportPanels
-  ? AppEditorTab
-  : lazyPanel(() =>
-      import("./AppEditorTab").then((m) => ({ default: m.AppEditorTab }))
-    );
-const LazyAppTimelineTab = useStaticUniportPanels
-  ? AppTimelineTab
-  : lazyPanel(() =>
-      import("./AppTimelineTab").then((m) => ({ default: m.AppTimelineTab }))
-    );
-const LazyAppUploadTab = useStaticUniportPanels
-  ? AppUploadTab
-  : lazyPanel(() =>
-      import("./AppUploadTab").then((m) => ({ default: m.AppUploadTab }))
-    );
-const LazyAppAiTab = useStaticUniportPanels
-  ? AppAiTab
-  : lazyPanel(() =>
-      import("./AppAiTab").then((m) => ({ default: m.AppAiTab }))
-    );
-const LazyAppStatusTab = useStaticUniportPanels
-  ? AppStatusTab
-  : lazyPanel(() =>
-      import("./AppStatusTab").then((m) => ({ default: m.AppStatusTab }))
-    );
-const LazyAppSettingsTab = useStaticUniportPanels
-  ? AppSettingsTab
-  : lazyPanel(() =>
-      import("./AppSettingsTab").then((m) => ({ default: m.AppSettingsTab }))
-    );
-const LazyAppHomeTab = useStaticUniportPanels
-  ? AppHomeTab
-  : lazyPanel(() =>
-      import("./AppHomeTab").then((m) => ({ default: m.AppHomeTab }))
-    );
-const LazyAppWorkflowTab = useStaticUniportPanels
-  ? AppWorkflowTab
-  : lazyPanel(() =>
-      import("./AppWorkflowTab").then((m) => ({ default: m.AppWorkflowTab }))
-    );
-const LazyAppSceneTimingTab = useStaticUniportPanels
-  ? AppSceneTimingTab
-  : lazyPanel(() =>
-      import("./AppSceneTimingTab").then((m) => ({
-        default: m.AppSceneTimingTab,
-      }))
-    );
-const LazyAppTerminalTab = useStaticUniportPanels
-  ? AppTerminalTab
-  : lazyPanel(() =>
-      import("./AppTerminalTab").then((m) => ({ default: m.AppTerminalTab }))
-    );
-const LazyFlowLabPage = useStaticUniportPanels
-  ? FlowLabPage
-  : lazyPanel(() =>
-      import("./FlowLabPage").then((m) => ({ default: m.FlowLabPage }))
-    );
-const LazyAppMusicTabPanel = useStaticUniportPanels
-  ? AppMusicTabPanel
-  : lazyPanel(() =>
-      import("./AppMusicTabPanel").then((m) => ({
-        default: m.AppMusicTabPanel,
-      }))
-    );
-const LazyRemotionTemplateStudio = useStaticUniportPanels
-  ? RemotionTemplateStudio
-  : lazyPanel(() =>
-      import("./RemotionTemplateStudio").then((m) => ({
-        default: m.RemotionTemplateStudio,
-      }))
-    );
 
 type ResurrectorAlert = {
   type: string;
