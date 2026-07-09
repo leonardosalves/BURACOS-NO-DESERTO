@@ -103,6 +103,51 @@ function runNlm(args, { timeoutMs = 60000, backendDir } = {}) {
   return stdout;
 }
 
+function runNlmAsync(args, { timeoutMs = 60000, backendDir } = {}) {
+  const dataDir = resolveNotebooklmDataDir(backendDir);
+  fs.mkdirSync(dataDir, { recursive: true });
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(NLM_BIN, args, {
+      windowsHide: true,
+      env: {
+        ...process.env,
+        NOTEBOOKLM_MCP_CLI_PATH: dataDir,
+      },
+    });
+
+    let stdout = "";
+    let stderr = "";
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      reject(new Error(`nlm timeout after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    child.stdout?.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
+    child.stderr?.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      const out = stdout.trim();
+      const errOut = stderr.trim();
+      if (code !== 0) {
+        const err = new Error(errOut || out || `nlm exit ${code}`);
+        err.code = code;
+        reject(err);
+        return;
+      }
+      resolve(out);
+    });
+  });
+}
+
 function parseJsonOutput(raw) {
   if (!raw) return null;
   try {
@@ -436,6 +481,21 @@ function queryNotebook(notebookId, question, backendDir) {
     timeoutMs: QUERY_TIMEOUT_MS,
     backendDir,
   });
+  return parseNotebookQueryAnswer(raw);
+}
+
+async function queryNotebookAsync(notebookId, question, backendDir) {
+  const raw = await runNlmAsync(
+    ["notebook", "query", notebookId, question, "--json"],
+    {
+      timeoutMs: QUERY_TIMEOUT_MS,
+      backendDir,
+    }
+  );
+  return parseNotebookQueryAnswer(raw);
+}
+
+function parseNotebookQueryAnswer(raw) {
   const parsed = parseJsonOutput(raw);
   if (parsed) {
     return (
@@ -594,6 +654,19 @@ export function resolveNeedsNlmDiscovery({
 }) {
   return (
     scriptPhase === "narration" && !skipNotebooklmPending && !briefFinalized
+  );
+}
+
+/** Fase 1 do wizard: só NotebookLM interativo — sem Gemini, web ou humanização. */
+export function wantsNotebooklmInteractiveNarration({
+  scriptPhase,
+  useNotebooklm,
+  skipNotebooklmPending,
+}) {
+  return (
+    scriptPhase === "narration" &&
+    useNotebooklm !== false &&
+    !skipNotebooklmPending
   );
 }
 
@@ -764,7 +837,7 @@ async function runNotebooklmPipeline({
     });
   }
 
-  const answer = queryNotebook(notebookId, question, backendDir);
+  const answer = await queryNotebookAsync(notebookId, question, backendDir);
   const summary = String(answer || "")
     .trim()
     .slice(0, 12000);

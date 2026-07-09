@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   resolveNeedsNlmDiscovery,
   shouldPauseNotebooklmNarration,
+  wantsNotebooklmInteractiveNarration,
 } from "./notebooklmService.js";
 
 describe("shouldPauseNotebooklmNarration", () => {
@@ -22,6 +23,25 @@ describe("shouldPauseNotebooklmNarration", () => {
       }
     );
     assert.equal(pause, true);
+  });
+
+  it("fase interativa bloqueia pipeline antes do usuario prosseguir", () => {
+    assert.equal(
+      wantsNotebooklmInteractiveNarration({
+        scriptPhase: "narration",
+        useNotebooklm: true,
+        skipNotebooklmPending: false,
+      }),
+      true
+    );
+    assert.equal(
+      wantsNotebooklmInteractiveNarration({
+        scriptPhase: "narration",
+        useNotebooklm: true,
+        skipNotebooklmPending: true,
+      }),
+      false
+    );
   });
 
   it("exige descoberta interativa mesmo com sessao antiga", () => {

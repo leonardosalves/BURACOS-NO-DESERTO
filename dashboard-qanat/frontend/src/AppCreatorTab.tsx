@@ -557,6 +557,22 @@ export function AppCreatorTab({
       {/* Steps Content Area */}
 
       <div className="flex-1 glass-panel border border-dash-border rounded-lg p-6 min-h-0 overflow-y-auto">
+        {notebooklmSession &&
+          (notebooklmSession.awaitingUser ||
+            notebooklmSession.status === "pending_user") &&
+          handleNotebooklmReply &&
+          handleNotebooklmProceed && (
+            <div className="mb-6 max-w-4xl mx-auto">
+              <NotebooklmEnrichmentPanel
+                session={notebooklmSession}
+                brief={notebooklmBrief}
+                loading={notebooklmSessionLoading}
+                onReply={handleNotebooklmReply}
+                onProceed={handleNotebooklmProceed}
+              />
+            </div>
+          )}
+
         {/* STEP 1: SCRIPT MASTER Research & Selection */}
 
         {creatorStep === 1 && (
@@ -1546,8 +1562,12 @@ export function AppCreatorTab({
                       )}
                       <span>
                         {creatorLoading && creatorLoadingMode === "narration"
-                          ? "Gerando narração..."
-                          : "Gerar Narração"}
+                          ? useNotebooklm
+                            ? "Consultando NotebookLM..."
+                            : "Gerando narração..."
+                          : useNotebooklm
+                            ? "Consultar NotebookLM → Narração"
+                            : "Gerar Narração"}
                       </span>
                     </button>
                   </div>

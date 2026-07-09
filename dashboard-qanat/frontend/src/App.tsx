@@ -8225,6 +8225,12 @@ export default function App() {
           [data.error, data.details].filter(Boolean).join(" — ") ||
           "Erro ao gerar narração.";
         stopAiJobProgress(false, String(errMsg));
+        if (data.needsNotebooklmLogin) {
+          toast.error(
+            "Conecte o NotebookLM no painel do Criador (checkbox marcado) antes de gerar narração.",
+            { duration: 10000 }
+          );
+        }
       }
     } catch (err: unknown) {
       if (token === creatorGenTokenRef.current) {
@@ -8569,12 +8575,16 @@ export default function App() {
   const handleNotebooklmProceed = async () => {
     setNotebooklmSessionLoading(true);
     try {
+      const projectName =
+        creatorNarrationProjectRef.current ||
+        creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
       const res = await fetch(
-        getProjectUrl("/api/notebooklm/session/finalize"),
+        getProjectUrl("/api/notebooklm/session/finalize", projectName),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            project: projectName,
             niche: resolveNotebooklmNiche(),
             format: formatSelector,
           }),
@@ -8597,9 +8607,6 @@ export default function App() {
         return;
       }
 
-      const projectName =
-        creatorNarrationProjectRef.current ||
-        creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
       const basePayload =
         creatorNarrationPayloadRef.current ||
         buildCreatorScriptPayload("narration");
@@ -8607,6 +8614,7 @@ export default function App() {
         projectName,
         {
           ...basePayload,
+          project: projectName,
           skipNotebooklmPending: true,
         },
         { toastId: "creator-nlm-proceed" }
