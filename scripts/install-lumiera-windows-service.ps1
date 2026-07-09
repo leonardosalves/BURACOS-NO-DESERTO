@@ -23,7 +23,34 @@ function Ensure-Nssm {
     $zip = Join-Path $env:TEMP "nssm-2.24.zip"
     $extract = Join-Path $env:TEMP "nssm-2.24"
 
-    Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile $zip -UseBasicParsing
+    $mirrors = @(
+        "https://github.com/imvickykumar999/Non-Sucking-Service-Manager/releases/download/nssm-2.24/nssm-2.24.zip",
+        "https://nssm.cc/release/nssm-2.24.zip"
+    )
+
+    $downloaded = $false
+    foreach ($url in $mirrors) {
+        try {
+            Write-Host "  Tentando: $url" -ForegroundColor DarkGray
+            Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing -TimeoutSec 120
+            if ((Get-Item $zip).Length -gt 100000) {
+                $downloaded = $true
+                break
+            }
+        } catch {
+            Write-Host "  Falhou: $($_.Exception.Message)" -ForegroundColor DarkYellow
+        }
+    }
+
+    if (-not $downloaded) {
+        throw @"
+Nao foi possivel baixar NSSM (site nssm.cc fora + mirrors falharam).
+Instale manualmente:
+  winget install NSSM.NSSM
+ou copie nssm.exe para: $NssmExe
+"@
+    }
+
     if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
     Expand-Archive -Path $zip -DestinationPath $extract -Force
 
@@ -32,6 +59,7 @@ function Ensure-Nssm {
     if (-not (Test-Path -LiteralPath $src)) { throw "nssm.exe nao encontrado no zip." }
     Copy-Item -LiteralPath $src -Destination $NssmExe -Force
     Remove-Item $zip -Force -ErrorAction SilentlyContinue
+    Write-Host "NSSM OK em $NssmExe" -ForegroundColor Green
 }
 
 function Invoke-Nssm {
