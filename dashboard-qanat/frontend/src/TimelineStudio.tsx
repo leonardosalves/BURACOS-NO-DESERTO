@@ -562,13 +562,29 @@ export function TimelineStudio({
         );
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
-        addClipToStudio(data.clip as StudioClip);
-        toast.success(`Template ${templateId} inserido`);
+        const newClip = data.clip as StudioClip;
+        const isShort =
+          String(configRef.current.aspect_ratio || "16:9").trim() === "9:16";
+
+        if (isShort) {
+          const withoutMotion = studio.clips.filter(
+            (c) => c.trackId !== "motion"
+          );
+          handleClipsChange([...withoutMotion, newClip]);
+          setSelectedClipId(newClip.id);
+          updateStudio({ playhead: newClip.start });
+          toast.success(
+            `Template ${templateId} substituiu a cena Remotion (1 por Short)`
+          );
+        } else {
+          addClipToStudio(newClip);
+          toast.success(`Template ${templateId} inserido`);
+        }
       } catch (err) {
         toast.error(`Template: ${(err as Error).message}`);
       }
     },
-    [addClipToStudio, getProjectUrl, studio]
+    [addClipToStudio, getProjectUrl, handleClipsChange, studio]
   );
 
   const handleAskActions = useCallback(
