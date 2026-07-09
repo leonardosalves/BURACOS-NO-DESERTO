@@ -35,7 +35,7 @@ import {
   isStudioTemplateClip,
 } from "@lumiera/shared/timelineStudioLegacyStrip.js";
 import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
-import { sanitizeStudioRenderProps } from "@lumiera/shared/remotionTemplateCompile.js";
+import { isGeoPipCompositeProps } from "@lumiera/shared/remotionTemplateCompile.js";
 
 type Props = {
   studio: TimelineStudioState;
@@ -619,32 +619,49 @@ export function TimelineStudioPreview({
             const localSec = motionPlayhead - clip.start;
             const tpl = String(clip.templateId || "");
             const isMapScene = tpl === "location-intro" || tpl === "geo-map";
+            const studioCode = clipStudioSourceCode(clip);
+            const hasStudioOverlay = isStudioTemplateClip(clip);
+            const geoPipOverlay =
+              hasStudioOverlay && isGeoPipCompositeProps(clip.props || {});
+
             if (isMapScene) {
               return (
-                <SatelliteMapPreview
-                  key={clip.id}
-                  clip={clip}
-                  localSec={Math.max(0, localSec)}
-                  getAssetUrl={getAssetUrl}
-                  getMusicUrl={getMusicUrl}
-                />
+                <React.Fragment key={clip.id}>
+                  <SatelliteMapPreview
+                    clip={clip}
+                    localSec={Math.max(0, localSec)}
+                    playing={playing}
+                    getAssetUrl={getAssetUrl}
+                    getMusicUrl={getMusicUrl}
+                    pipTransparent={geoPipOverlay}
+                  />
+                  {hasStudioOverlay ? (
+                    <SavedTemplatePreviewFrame
+                      sourceCode={studioCode}
+                      inputProps={clip.props || {}}
+                      durationSeconds={clip.duration}
+                      format={isVertical ? "9:16" : "16:9"}
+                      size="detail"
+                      fullBleed
+                      overlayOnly={geoPipOverlay}
+                      autoPlay={playing}
+                    />
+                  ) : null}
+                </React.Fragment>
               );
             }
-            if (isStudioTemplateClip(clip)) {
-              const sourceCode = clipStudioSourceCode(clip);
+            if (hasStudioOverlay) {
               return (
-                <div
+                <SavedTemplatePreviewFrame
                   key={clip.id}
-                  className="absolute inset-0 z-40 pointer-events-none flex items-center justify-center"
-                >
-                  <SavedTemplatePreviewFrame
-                    sourceCode={sourceCode}
-                    inputProps={sanitizeStudioRenderProps(clip.props || {})}
-                    format={isVertical ? "9:16" : "16:9"}
-                    size="detail"
-                    autoPlay={playing}
-                  />
-                </div>
+                  sourceCode={studioCode}
+                  inputProps={clip.props || {}}
+                  durationSeconds={clip.duration}
+                  format={isVertical ? "9:16" : "16:9"}
+                  size="detail"
+                  fullBleed
+                  autoPlay={playing}
+                />
               );
             }
             return null;

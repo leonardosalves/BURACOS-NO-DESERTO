@@ -3,7 +3,8 @@ import { Player } from "@remotion/player";
 import * as Remotion from "remotion";
 import {
   compileSavedTemplateSource,
-  sanitizeStudioRenderProps,
+  isGeoPipCompositeProps,
+  mergeStudioRenderProps,
 } from "@lumiera/shared/remotionTemplateCompile.js";
 
 export { compileSavedTemplateSource };
@@ -67,6 +68,12 @@ type SavedTemplatePreviewFrameProps = {
   autoPlay?: boolean;
   fallback?: React.ReactNode;
   inputProps?: Record<string, unknown>;
+  /** Duração da cena em segundos — animação usa exatamente esse tempo. */
+  durationSeconds?: number;
+  /** Ocupa 100% do container (Timeline Studio), sem caixa reduzida. */
+  fullBleed?: boolean;
+  /** PIP geo: só chrome do template; mapa renderizado em camada separada. */
+  overlayOnly?: boolean;
 };
 
 export function SavedTemplatePreviewFrame({
@@ -76,6 +83,9 @@ export function SavedTemplatePreviewFrame({
   autoPlay = false,
   fallback = null,
   inputProps = {},
+  durationSeconds,
+  fullBleed = false,
+  overlayOnly = false,
 }: SavedTemplatePreviewFrameProps) {
   const vertical = format === "9:16";
   const dimensions =
@@ -125,38 +135,62 @@ export function SavedTemplatePreviewFrame({
   const {
     Component,
     inputProps: exampleProps,
-    durationInFrames,
+    durationInFrames: templateDefaultFrames,
     fps,
   } = compiled.preview;
-  const mergedInputProps = {
-    ...exampleProps,
-    ...sanitizeStudioRenderProps(inputProps),
-  };
+
+  const sceneDurationFrames =
+    Number.isFinite(Number(durationSeconds)) && Number(durationSeconds) > 0
+      ? Math.max(1, Math.round(Number(durationSeconds) * fps))
+      : templateDefaultFrames;
+
+  const mergedInputProps = mergeStudioRenderProps({
+    inputProps,
+    exampleProps,
+    durationInFrames: sceneDurationFrames,
+    fps,
+  });
+
+  const geoPipOverlay =
+    overlayOnly || (fullBleed && isGeoPipCompositeProps(inputProps));
+
   const previewStartFrame =
-    size === "detail"
-      ? Math.min(Math.round(fps * 0.8), durationInFrames - 1)
+    size === "detail" && !fullBleed
+      ? Math.min(Math.round(fps * 0.8), sceneDurationFrames - 1)
       : 0;
 
   const player = (
     <LivePreviewErrorBoundary
       fallback={fallback}
-      dimensionsClassName={dimensions.className}
+      dimensionsClassName={fullBleed ? undefined : dimensions.className}
       aspectRatio={`${dimensions.width} / ${dimensions.height}`}
     >
       <div
-        className={`overflow-hidden rounded-[6px] border border-white/10 bg-[#0b111b] shadow-lg shadow-black/30 ${dimensions.className}`}
-        style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}` }}
+        className={
+          fullBleed
+            ? "absolute inset-0 overflow-hidden pointer-events-none"
+            : `overflow-hidden rounded-[6px] border border-white/10 bg-[#0b111b] shadow-lg shadow-black/30 ${dimensions.className}`
+        }
+        style={
+          fullBleed
+            ? undefined
+            : { aspectRatio: `${dimensions.width} / ${dimensions.height}` }
+        }
       >
         <Player
           component={Component}
           inputProps={mergedInputProps}
-          durationInFrames={durationInFrames}
+          durationInFrames={sceneDurationFrames}
           fps={fps}
           compositionWidth={dimensions.width}
           compositionHeight={dimensions.height}
           initialFrame={previewStartFrame}
-          style={{ width: "100%", height: "100%" }}
-          controls={size === "detail"}
+          style={{
+            width: "100%",
+            height: "100%",
+            backgroundColor: geoPipOverlay ? "transparent" : undefined,
+          }}
+          controls={size === "detail" && !fullBleed}
           autoPlay={autoPlay}
           loop
           acknowledgeRemotionLicense
