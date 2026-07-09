@@ -94,6 +94,15 @@ function Ensure-LumieraServicePaths {
         Write-Host "Node copiado para $nodeDst" -ForegroundColor DarkGray
     }
 
+    $ffmpegDst = $null
+    $ffmpegExe = Ensure-LumieraFfmpeg -LinkRoot $LinkRoot
+    if ($ffmpegExe) {
+        $ffmpegDst = Split-Path -Parent $ffmpegExe
+        Write-Host "FFmpeg copiado para $ffmpegDst" -ForegroundColor DarkGray
+    } else {
+        Write-Host "AVISO: ffmpeg nao encontrado — instale via winget install Gyan.FFmpeg" -ForegroundColor Yellow
+    }
+
     $nlmDst = $null
     $nlmSrc = Get-NlmExePath
     if ($nlmSrc) {
@@ -113,6 +122,7 @@ function Ensure-LumieraServicePaths {
         NssmExe     = Join-Path $LinkRoot "tools\nssm\nssm.exe"
         NodeExe     = $nodeDst
         NlmExe      = $nlmDst
+        FfmpegDir   = $ffmpegDst
         BackendDir  = Join-Path $LinkRoot "dashboard-qanat\backend"
         LogDir      = Join-Path $LinkRoot ".lumiera-logs"
         NotebookLmData = Join-Path $LinkRoot ".notebooklm-data"
@@ -272,6 +282,12 @@ if ($paths.NlmExe) {
     Invoke-Nssm -NssmExe $NssmExe -NssmCommandArgs @(
         "set", $ServiceName, "AppEnvironmentExtra",
         "NLM_BIN=$($paths.NlmExe)"
+    ) -AllowFailure | Out-Null
+}
+if ($paths.FfmpegDir) {
+    Invoke-Nssm -NssmExe $NssmExe -NssmCommandArgs @(
+        "set", $ServiceName, "AppEnvironmentExtra",
+        "FFMPEG_PATH=$($paths.FfmpegDir)"
     ) -AllowFailure | Out-Null
 }
 
