@@ -10,8 +10,11 @@ import {
   createCatalogNiche,
   extractTemplateTsxFromLlm,
   fetchCatalogNiches,
+  fetchRemotionTemplateCatalog,
   repairCommonTemplateLayoutVars,
+  syncRemotionTemplateCatalog,
   validateFinalTemplateCode,
+  type CatalogTemplate,
 } from "./remotionTemplateStudioApi";
 import {
   DEFAULT_TEMPLATE_NICHES,
@@ -1097,6 +1100,79 @@ function loadStoredTemplates() {
   } catch {
     return filterDeletedTemplates(seed, deleted);
   }
+}
+
+function catalogTemplateToTemplateItem(
+  tpl: CatalogTemplate
+): TemplateItem | null {
+  const short = String(tpl.sourceCode?.short || "").trim();
+  const long = String(tpl.sourceCode?.long || "").trim();
+  if (!short && !long) return null;
+  const sourceCode = { short: short || long, long: long || short };
+  return normalizeTemplatePreviewVariants({
+    id: String(tpl.id || ""),
+    name: String(tpl.name || ""),
+    category: String(tpl.category || "chart-data") as TemplateCategory,
+    subcategory: String(tpl.subcategory || ""),
+    niche: normalizeNicheLabel(tpl.niche || "") || String(tpl.niche || ""),
+    status: tpl.status === "approved" ? "approved" : "draft",
+    description: String(tpl.description || ""),
+    dataSlots: Array.isArray(tpl.dataSlots) ? tpl.dataSlots.map(String) : [],
+    sourceCode,
+    shortPreview: (tpl.shortPreview || "media") as TemplateItem["shortPreview"],
+    longPreview: (tpl.longPreview || "media") as TemplateItem["longPreview"],
+  });
+}
+
+function mergeStudioTemplateLists(
+  local: TemplateItem[],
+  fromApi: CatalogTemplate[]
+): TemplateItem[] {
+  const byId = new Map<string, TemplateItem>();
+  for (const raw of fromApi) {
+    const tpl = catalogTemplateToTemplateItem(raw);
+    if (tpl) byId.set(tpl.id, tpl);
+  }
+  for (const tpl of local) {
+    const prev = byId.get(tpl.id);
+    const merged = prev
+      ? normalizeTemplatePreviewVariants({
+          ...prev,
+          ...tpl,
+          sourceCode:
+            tpl.sourceCode?.short?.trim() || tpl.sourceCode?.long?.trim()
+              ? tpl.sourceCode
+              : prev.sourceCode,
+        })
+      : normalizeTemplatePreviewVariants(tpl);
+    byId.set(tpl.id, merged);
+  }
+  return [...byId.values()];
+}
+
+function studioTemplatesToSyncPayload(
+  templates: TemplateItem[],
+  niche: string
+) {
+  return templates
+    .filter((tpl) => matchesStudioNiche(tpl.niche, niche))
+    .map((tpl) => ({
+      id: tpl.id,
+      name: tpl.name,
+      category: tpl.category,
+      subcategory: tpl.subcategory,
+      niche: tpl.niche || niche,
+      status: tpl.status,
+      description: tpl.description,
+      dataSlots: tpl.dataSlots,
+      shortPreview: tpl.shortPreview,
+      longPreview: tpl.longPreview,
+      sourceCode: {
+        short: String(tpl.sourceCode?.short || "").trim(),
+        long: String(tpl.sourceCode?.long || "").trim(),
+      },
+    }))
+    .filter((tpl) => tpl.sourceCode.short || tpl.sourceCode.long);
 }
 
 function loadStudioCatalog() {
@@ -2889,7 +2965,80 @@ export function RemotionTemplateStudio({
   const [copiedTemplateId, setCopiedTemplateId] = useState("");
   const [finalCodeDraft, setFinalCodeDraft] = useState("");
   const [studioError, setStudioError] = useState("");
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [catalogSyncNote, setCatalogSyncNote] = useState("");
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentCategory = categories.find((c) => c.id === category);
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const nichesRes = await fetchCatalogNiches();
+      const nicheList = mergeNicheLists(
+        DEFAULT_TEMPLATE_NICHES,
+        readStoredNichesRaw(),
+        nichesRes.niches?.map((row) => row.niche) || [],
+        [niche, initialNiche]
+      ).filter((item) => !isInternalTestCatalogNiche(item));
+
+      const allFromApi: CatalogTemplate[] = [];
+      for (const item of nicheList) {
+        const res = await fetchRemotionTemplateCatalog(item);
+        if (res.success && res.templates.length) {
+          allFromApi.push(...res.templates);
+        }
+      }
+      if (!alive) return;
+
+      setTemplates((current) => {
+        const deleted = readDeletedCatalog();
+        return filterDeletedTemplates(
+          purgeLegacyTemplatesFromList(
+            mergeStudioTemplateLists(current, allFromApi)
+          ),
+          deleted
+        );
+      });
+      setCatalogReady(true);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!catalogReady) return;
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      const byNiche = new Map<string, TemplateItem[]>();
+      for (const tpl of templates) {
+        const key = normalizeNicheLabel(tpl.niche) || "Engenharia";
+        const bucket = byNiche.get(key) || [];
+        bucket.push(tpl);
+        byNiche.set(key, bucket);
+      }
+      void (async () => {
+        let synced = 0;
+        for (const [key, list] of byNiche) {
+          const payload = studioTemplatesToSyncPayload(list, key);
+          if (!payload.length) continue;
+          const res = await syncRemotionTemplateCatalog({
+            niche: key,
+            templates: payload,
+          });
+          if (res.success) synced += payload.length;
+        }
+        if (synced > 0) {
+          setCatalogSyncNote(
+            `${synced} template${synced === 1 ? "" : "s"} sincronizado${synced === 1 ? "" : "s"} no servidor.`
+          );
+        }
+      })();
+    }, 600);
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, [templates, catalogReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3410,6 +3559,11 @@ export function RemotionTemplateStudio({
                 <h2 className="text-xl font-black text-white">
                   {niche} / {currentCategory?.label}
                 </h2>
+                {catalogSyncNote ? (
+                  <p className="mt-1 text-xs text-emerald-400/90">
+                    {catalogSyncNote}
+                  </p>
+                ) : null}
               </div>
               <div className="flex flex-wrap gap-2">
                 {subcategories.map((item) => (
@@ -3568,11 +3722,26 @@ export function RemotionTemplateStudio({
                         Data, Text, Frame) — nao apenas Logo e Branding.
                       </p>
                     ) : (
-                      <p className="text-xs text-zinc-600">
-                        Os templates ficam salvos neste navegador
-                        (localStorage). Se a lista estiver vazia em todas as
-                        categorias, crie um novo draft pelo painel da direita.
-                      </p>
+                      <div className="space-y-2 text-xs text-zinc-600">
+                        <p>
+                          Os templates ficam no servidor e neste navegador. Se
+                          voce criou templates no dev server (porta 5176), abra{" "}
+                          <a
+                            href="http://127.0.0.1:5176/"
+                            className="text-cyan-300 hover:underline"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            127.0.0.1:5176
+                          </a>{" "}
+                          no mesmo Chrome, entre em Templates e aguarde a
+                          sincronizacao — depois recarregue esta pagina.
+                        </p>
+                        <p>
+                          Se a lista continuar vazia em todas as categorias,
+                          crie um novo draft pelo painel da direita.
+                        </p>
+                      </div>
                     )}
                   </div>
                 )}
