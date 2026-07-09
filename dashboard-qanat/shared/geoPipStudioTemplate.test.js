@@ -26,7 +26,7 @@ describe("geoPipStudioTemplate", () => {
     );
   });
 
-  it("buildGeoPipStudioProps preenche ponto de referência", () => {
+  it("buildGeoPipStudioProps preenche pipTitle e location do template", () => {
     const { studio_props } = buildGeoPipStudioProps(
       {
         props: {
@@ -35,13 +35,17 @@ describe("geoPipStudioTemplate", () => {
           country: "Brasil",
           lat: -29.99,
           lng: -51.3,
+          narration_text: "A infraestrutura de Porto Alegre evolui.",
         },
       },
-      { dataSlots: ["referencePoint", "pipTitle", "subtitle"] }
+      {
+        subcategory: "Picture in Picture",
+        dataSlots: ["pipTitle", "location", "coordinateText"],
+      }
     );
-    assert.equal(studio_props.referencePoint, "Porto Alegre");
     assert.equal(studio_props.pipTitle, "Porto Alegre");
-    assert.match(studio_props.subtitle, /RS/);
+    assert.match(String(studio_props.location), /Porto Alegre|infraestrutura/i);
+    assert.match(studio_props.coordinateText, /29/);
   });
 
   it("pickGeoPipStudioTemplate filtra image-media Picture in Picture", () => {
@@ -112,7 +116,7 @@ describe("geoPipStudioTemplate", () => {
     assert.equal(scene.layout, "pip");
     assert.equal(scene.props.geo_pip_composite, true);
     assert.equal(scene.props.template_studio_subcategory, "Picture in Picture");
-    assert.equal(scene.props.studio_props.referencePoint, "Golden Gate");
+    assert.equal(scene.props.studio_props.pipTitle, "Golden Gate");
     assert.ok(scene.props.studio_source_code);
   });
 });

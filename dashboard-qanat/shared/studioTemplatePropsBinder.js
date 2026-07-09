@@ -226,7 +226,10 @@ export function bindStudioTemplateProps({
     setSlot(key, headline, stat ? "narration+stat" : "narration");
   }
 
-  if (slotWanted(dataSlots, "subtitle", "descriptorText") && !isGeoPipTemplate) {
+  if (
+    slotWanted(dataSlots, "subtitle", "descriptorText") &&
+    !isGeoPipTemplate
+  ) {
     const key = slotWanted(dataSlots, "descriptorText")
       ? "descriptorText"
       : "subtitle";
@@ -293,44 +296,31 @@ export function bindStudioTemplateProps({
       region: place?.region || scene.props?.region,
       country: place?.country || scene.props?.country,
       referencePoint: scene.props?.referencePoint,
+      pipTitle: scene.props?.pipTitle,
     };
     const reference = resolveGeoPipReferenceLabel(geoProps);
     const sector = resolveGeoPipSectorLabel(geoProps, narration);
-    if (reference) {
-      for (const key of [
-        "referencePoint",
-        "reference_point",
-        "pontoReferencia",
-        "pipTitle",
-        "pip_title",
-      ]) {
-        if (slotWanted(dataSlots, key)) {
-          setSlot(key, reference, "geo");
-        }
-      }
-      if (!slotWanted(dataSlots, "referencePoint", "pipTitle")) {
-        setSlot("referencePoint", reference, "geo");
-      }
+    if (reference && slotWanted(dataSlots, "pipTitle", "pip_title")) {
+      setSlot(
+        slotWanted(dataSlots, "pipTitle") ? "pipTitle" : "pip_title",
+        reference,
+        "geo"
+      );
+    } else if (reference) {
+      setSlot("pipTitle", reference, "geo");
     }
-    if (sector) {
-      for (const key of [
-        "subtitle",
-        "descriptorText",
-        "sectorLabel",
-        "structuralSector",
-        "panelLabel",
-        "statusText",
-        "scene_subject",
-        "sceneSubject",
-      ]) {
-        if (slotWanted(dataSlots, key)) {
-          setSlot(key, sector, "narration");
-        }
-      }
-      if (!slotWanted(dataSlots, "subtitle", "sectorLabel", "panelLabel")) {
-        setSlot("subtitle", sector, "narration");
-        setSlot("sectorLabel", sector, "narration");
-      }
+    if (sector && slotWanted(dataSlots, "location")) {
+      setSlot("location", sector, "narration");
+    } else if (sector) {
+      setSlot("location", sector, "narration");
+    }
+    const flyover = String(
+      scene.props?.flyover_video || scene.props?.pipMediaUrl || ""
+    ).trim();
+    if (flyover && slotWanted(dataSlots, "pipMediaUrl")) {
+      setSlot("pipMediaUrl", flyover, "geo");
+    } else if (flyover) {
+      setSlot("pipMediaUrl", flyover, "geo");
     }
   }
   if (slotWanted(dataSlots, "region") && place?.region) {

@@ -35,13 +35,18 @@ export function probeFlyoverVideoDurationSec(absPath) {
   }
 }
 
-function applyGeoPipFlyoverBinding(target = {}, { relPath, durationSec, storyboard }) {
+function applyGeoPipFlyoverBinding(
+  target = {},
+  { relPath, durationSec, storyboard }
+) {
   const props =
     target.props && typeof target.props === "object" ? { ...target.props } : {};
   const motionScenes = Array.isArray(storyboard?.motion_scenes)
     ? storyboard.motion_scenes
     : [];
-  const motionScene = motionScenes.find((ms) => motionSceneMatches(ms, target.id));
+  const motionScene = motionScenes.find((ms) =>
+    motionSceneMatches(ms, target.id)
+  );
   const narration = String(
     motionScene?.narration_text || props.narration_text || ""
   ).trim();
@@ -62,6 +67,7 @@ function applyGeoPipFlyoverBinding(target = {}, { relPath, durationSec, storyboa
       ...overlay.studio_props,
     },
     flyover_video: relPath,
+    pipMediaUrl: relPath,
     map_provider: props.map_provider || "ai_t2v",
     geo_generation: props.geo_generation || "ai_prompt",
     geo_pip_composite: true,
@@ -70,11 +76,14 @@ function applyGeoPipFlyoverBinding(target = {}, { relPath, durationSec, storyboa
     presentation: "pip",
     layout: "pip",
     aspect_ratio: String(props.aspect_ratio || "9:16"),
-    referencePoint:
+    pipTitle:
+      overlay.pipTitle ||
       overlay.referencePoint ||
+      props.pipTitle ||
       props.referencePoint ||
       props.location ||
       props.country,
+    location: overlay.location || overlay.scene_subject || props.location,
     scene_subject: overlay.scene_subject || props.scene_subject,
   };
 

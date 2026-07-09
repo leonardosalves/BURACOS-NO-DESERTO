@@ -69,31 +69,32 @@ describe("studioTemplateRenderProps", () => {
     );
   });
 
-  it("mergeStudioRenderProps remove flyover do template em modo PIP short", () => {
+  it("mergeStudioRenderProps mapeia flyover para pipMediaUrl no template PIP", () => {
     const merged = mergeStudioRenderProps({
       inputProps: {
         geo_pip_composite: true,
         aspect_ratio: "9:16",
+        template_studio_subcategory: "Picture in Picture",
         flyover_video: "ASSETS/satellite/map.mp4",
-        referencePoint: "Palmanova",
-        sectorLabel: "Fortaleza estelar",
+        location: "Palmanova",
+        narration_text: "A fortaleza estelar de Palmanova impressiona.",
       },
       exampleProps: { durationInFrames: 90 },
       durationInFrames: 240,
       fps: 30,
     });
-    assert.equal(merged.flyover_video, undefined);
-    assert.equal(merged.referencePoint, "Palmanova");
-    assert.equal(merged.sectorLabel, "Fortaleza estelar");
+    assert.equal(merged.pipMediaUrl, "ASSETS/satellite/map.mp4");
+    assert.equal(merged.pipTitle, "Palmanova");
+    assert.match(String(merged.location), /Palmanova|fortaleza/i);
+    assert.equal(merged.backgroundImage, undefined);
   });
 
-  it("stripGeoPipMapMediaForTemplateProps remove midia de mapa", () => {
+  it("stripGeoPipMapMediaForTemplateProps remove tiles satelite legados", () => {
     const stripped = stripGeoPipMapMediaForTemplateProps({
-      flyover_video: "x.mp4",
       backgroundImage: "a.jpg",
-      referencePoint: "Roma",
+      pipTitle: "Roma",
     });
-    assert.equal(stripped.flyover_video, undefined);
-    assert.equal(stripped.referencePoint, "Roma");
+    assert.equal(stripped.backgroundImage, undefined);
+    assert.equal(stripped.pipTitle, "Roma");
   });
 });
