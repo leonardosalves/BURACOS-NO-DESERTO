@@ -114,20 +114,31 @@ export function NarrationReviewPanel({
               tplNiche.toLowerCase() === effectiveNiche.toLowerCase()
             );
           })
-          .map((tpl: Record<string, unknown>) => ({
-            id: String(tpl.id || ""),
-            name: String(tpl.name || ""),
-            category: String(tpl.category || ""),
-            subcategory: String(tpl.subcategory || ""),
-            niche: String(tpl.niche || effectiveNiche),
-            status: tpl.status === "approved" ? "approved" : "draft",
-            description: String(tpl.description || ""),
-            dataSlots: Array.isArray(tpl.dataSlots)
-              ? tpl.dataSlots.map(String)
-              : [],
-            shortPreview: (tpl.shortPreview as string) || null,
-            longPreview: (tpl.longPreview as string) || null,
-          }));
+          .map((tpl: Record<string, unknown>) => {
+            const status: "approved" | "draft" =
+              tpl.status === "approved" ? "approved" : "draft";
+            const sourceCode = tpl.sourceCode as
+              { short?: string; long?: string } | undefined;
+            const shortCode = String(sourceCode?.short || "").trim();
+            const longCode = String(sourceCode?.long || "").trim();
+            return {
+              id: String(tpl.id || ""),
+              name: String(tpl.name || ""),
+              category: String(tpl.category || ""),
+              subcategory: String(tpl.subcategory || ""),
+              niche: String(tpl.niche || effectiveNiche),
+              status,
+              description: String(tpl.description || ""),
+              dataSlots: Array.isArray(tpl.dataSlots)
+                ? tpl.dataSlots.map(String)
+                : [],
+              shortPreview: (tpl.shortPreview as string) || null,
+              longPreview: (tpl.longPreview as string) || null,
+              ...(shortCode || longCode
+                ? { sourceCode: { short: shortCode, long: longCode } }
+                : {}),
+            };
+          });
 
         if (localTemplates.length) {
           void syncRemotionTemplateCatalog({

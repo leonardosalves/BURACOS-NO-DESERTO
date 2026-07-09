@@ -5,6 +5,7 @@
 import {
   DEFAULT_DURATIONS,
   MOTION_SCENE_TRIGGERS,
+  operationalCatalogForTemplates,
   resolveLayoutForTemplate,
 } from "../shared/motionSceneCatalog.js";
 import { nicheDesignPromptBlock } from "../shared/nicheDesignPack.js";
@@ -184,6 +185,9 @@ export function buildMotionSceneEnrichmentPrompt({
     }));
 
   const templateList = [...VALID_TEMPLATES].join(", ");
+  const operationalCatalog = operationalCatalogForTemplates([
+    ...VALID_TEMPLATES,
+  ]);
   const studioCatalog =
     config.motion_template_pack?.enabled !== false
       ? summarizeCatalogForLlm(
@@ -207,6 +211,7 @@ export function buildMotionSceneEnrichmentPrompt({
     "",
     "REGRAS:",
     `- Use APENAS template_id: ${templateList}`,
+    `- CATALOGO OPERACIONAL DOS TEMPLATES:\n${JSON.stringify(operationalCatalog, null, 2)}`,
     "- NUNCA duplique overlays já planejados em overlays_ai (mesmo template + mesma cena/bloco).",
     "- NÃO adicione cenas novas — refine APENAS as do plano heurístico (mesmos id).",
     "- Preserve start_hint de cada cena; nunca empilhe cenas em start_hint 0.",
@@ -324,7 +329,22 @@ function normalizeLlmMotionScene(
         aspectRatio,
         niche: nichePack,
       }),
-    props: { ...baseProps, ...llmProps },
+    props: {
+      ...baseProps,
+      ...llmProps,
+      ...(heuristic?.props?.studio_source_code
+        ? {
+            template_studio_id: heuristic.props.template_studio_id,
+            template_studio_name: heuristic.props.template_studio_name,
+            template_studio_category: heuristic.props.template_studio_category,
+            template_studio_subcategory:
+              heuristic.props.template_studio_subcategory,
+            template_studio_motion_template_id:
+              heuristic.props.template_studio_motion_template_id,
+            studio_source_code: heuristic.props.studio_source_code,
+          }
+        : {}),
+    },
     narration_text: narration || heuristic?.narration_text || "",
     media_mode: "remotion",
     niche_pack: nichePack,

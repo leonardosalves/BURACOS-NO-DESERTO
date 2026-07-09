@@ -8,7 +8,19 @@ import {
   isPrimaryRemotionMotionScene,
   buildPropsForTemplate,
   limitMotionScenesForFormat,
+  motionScenesToMotionClips,
 } from "../backend/motionScenePlanner.js";
+import { syncCatalogForNiche } from "../backend/remotionTemplateCatalogService.js";
+
+const BRIDGE_TSX = `"use client";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+export const exampleProps = { title: "BRIDGE" };
+export default function BridgeCounter() {
+  const frame = useCurrentFrame();
+  return <AbsoluteFill style={{ opacity: frame / 30 }} />;
+}`;
+
+const BRIDGE_NICHE = "__test_motion_planner_bridge__";
 
 describe("motionScenePlanner", () => {
   it("detecta estatística com porcentagem", () => {
@@ -85,6 +97,34 @@ describe("motionScenePlanner", () => {
     const templates = plan.motion_scenes.map((s) => s.template_id);
     assert.ok(templates.includes("counter") || templates.includes("bar-chart"));
     assert.ok(templates.includes("location-intro"));
+    assert.ok(plan.motion_scenes_review);
+    assert.ok(plan.motion_scenes[0].template_decision);
+    assert.ok(plan.motion_scenes[0].decision_reason);
+    assert.ok(plan.motion_scenes_review.scenes.length >= 2);
+    assert.ok(
+      plan.motion_scenes_review.operational_catalog.some(
+        (tpl) => tpl.id === "counter" || tpl.id === "location-intro"
+      )
+    );
+  });
+
+  it("registra revisao de cenas sem template automatico", () => {
+    const plan = planMotionScenesFromStoryboard(
+      {
+        visual_prompts: [
+          {
+            scene: "1.1",
+            block: 1,
+            narration_text:
+              "A camera observa lentamente a textura da parede ao amanhecer.",
+          },
+        ],
+      },
+      { niche: "Arquitetura", aspect_ratio: "16:9" }
+    );
+    assert.equal(plan.motion_scenes.length, 0);
+    assert.equal(plan.motion_scenes_review.skipped_count, 1);
+    assert.equal(plan.motion_scenes_review.skipped[0].skipped, true);
   });
 
   it("motion scenes vão para trilha motion sem remover B-roll", () => {
@@ -320,6 +360,60 @@ describe("motionScenePlanner", () => {
     assert.equal(shortScenes[0].template_id, "location-intro");
     assert.equal(longScenes.length, 8);
     assert.ok(longScenes.every((s) => s.template_id !== "kinetic-text"));
+  });
+
+  it("planeja cena com template Studio quando pack do nicho está ativo", () => {
+    syncCatalogForNiche(BRIDGE_NICHE, [
+      {
+        id: "bridge-counter-studio",
+        name: "Bridge Counter Draft",
+        category: "chart-data",
+        subcategory: "Counter",
+        niche: BRIDGE_NICHE,
+        status: "approved",
+        description: "Contador de teste",
+        dataSlots: ["value", "label"],
+        shortPreview: "counter",
+        longPreview: "counter",
+        sourceCode: { short: BRIDGE_TSX, long: BRIDGE_TSX },
+      },
+    ]);
+
+    const plan = planMotionScenesFromStoryboard(
+      {
+        visual_prompts: [
+          {
+            scene: "2.1",
+            block: 2,
+            narration_text: "No Brasil, 62% dos usuarios nao protegem dados.",
+            speech_start: 0,
+            duration_seconds: 4,
+          },
+        ],
+      },
+      {
+        niche: BRIDGE_NICHE,
+        aspect_ratio: "9:16",
+        motion_template_pack: {
+          enabled: true,
+          niche: BRIDGE_NICHE,
+          template_ids: [],
+        },
+      }
+    );
+
+    assert.equal(plan.motion_scenes.length, 1);
+    const scene = plan.motion_scenes[0];
+    assert.equal(scene.props.template_studio_id, "bridge-counter-studio");
+    assert.ok(
+      String(scene.props.studio_source_code || "").includes("useCurrentFrame")
+    );
+
+    const clips = motionScenesToMotionClips(plan.motion_scenes);
+    assert.equal(
+      clips[0].props.studio_source_code,
+      scene.props.studio_source_code
+    );
   });
 
   it("pip layout permanece overlay, não vídeo primário", () => {
