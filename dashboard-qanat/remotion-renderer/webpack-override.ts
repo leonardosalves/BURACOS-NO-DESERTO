@@ -96,7 +96,16 @@ export const webpackOverride = (config: Configuration): Configuration => {
         "@lumiera/shared": sharedRoot,
         "@lumiera/shared/cesiumFly.js": path.join(sharedRoot, "cesiumFly.js"),
         cesium: path.join(rendererRoot, "node_modules/cesium/Source/Cesium.js"),
+        sucrase: path.join(rendererRoot, "node_modules/sucrase"),
       }),
+      modules: [
+        path.join(rendererRoot, "node_modules"),
+        ...(Array.isArray(config.resolve?.modules)
+          ? config.resolve.modules
+          : config.resolve?.modules
+            ? [config.resolve.modules]
+            : ["node_modules"]),
+      ],
       fallback: {
         ...(config.resolve?.fallback as Record<string, string | false>),
         fs: false,
