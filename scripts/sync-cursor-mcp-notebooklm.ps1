@@ -1,6 +1,11 @@
 # Aplica NOTEBOOKLM_MCP_CLI_PATH no MCP do Cursor (evita login repetido / pasta corrompida em ~/.notebooklm-mcp-cli)
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$DataPath = Join-Path $RepoRoot ".notebooklm-data"
+$LinkRoot = "C:\Lumiera"
+$DataPath = if (Test-Path -LiteralPath $LinkRoot) {
+    Join-Path $LinkRoot ".notebooklm-data"
+} else {
+    Join-Path $RepoRoot ".notebooklm-data"
+}
 $TemplatePath = Join-Path $RepoRoot "config\cursor-mcp-notebooklm.json"
 $CursorMcp = Join-Path $env:APPDATA "Cursor\User\mcp.json"
 
