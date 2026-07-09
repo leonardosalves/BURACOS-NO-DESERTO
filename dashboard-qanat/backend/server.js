@@ -19206,9 +19206,37 @@ app.use("/api", (req, res) => {
 const frontendDist = path.join(__dirname, "../frontend/dist");
 
 if (fs.existsSync(frontendDist)) {
-  app.use(express.static(frontendDist));
+  const frontendAssetsDir = path.join(frontendDist, "assets");
+  if (fs.existsSync(frontendAssetsDir)) {
+    app.use(
+      "/assets",
+      express.static(frontendAssetsDir, {
+        maxAge: "1y",
+        immutable: true,
+        fallthrough: false,
+      })
+    );
+  }
+
+  app.use(
+    express.static(frontendDist, {
+      setHeaders(res, filePath) {
+        if (
+          filePath.endsWith("index.html") ||
+          filePath.endsWith("sw.js") ||
+          filePath.endsWith(".webmanifest")
+        ) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        }
+      },
+    })
+  );
 
   app.get("*", (req, res) => {
+    if (req.path.startsWith("/assets/")) {
+      return res.status(404).type("text/plain").send("Asset not found");
+    }
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.sendFile(path.join(frontendDist, "index.html"));
   });
 }
