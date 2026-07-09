@@ -24,6 +24,7 @@ import {
   studioMotionClipToMotionScene,
 } from "./timelineStudioNichePacks.js";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
+import { ensureMotionClipForProject } from "./motionFlyoverUpload.js";
 import { handleTimelineStudioAsk } from "./timelineStudioAsk.js";
 import { renderTimelineStudioFinalFrame } from "./timelineStudioFinalFrame.js";
 import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
@@ -447,6 +448,22 @@ export function registerTimelineStudioRoutes(
 
       const saved = saveTimelineStudio(projDir, studio);
       res.json({ ok: true, clip, studio: saved, motion_scene: motionScene });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/timeline-studio/motion-clip/ensure", (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const clip = req.body?.clip;
+      if (!clip || typeof clip !== "object" || !clip.id) {
+        return res
+          .status(400)
+          .json({ error: "Campo clip com id é obrigatório." });
+      }
+      const result = ensureMotionClipForProject(projDir, clip);
+      res.json({ ok: true, ...result });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

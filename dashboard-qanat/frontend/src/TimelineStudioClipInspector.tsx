@@ -415,7 +415,33 @@ export function TimelineStudioClipInspector({
                     getProjectUrl={getProjectUrl}
                     getAssetUrl={getAssetUrl}
                     compact
-                    onBeforeUpload={onPersistStudio}
+                    onBeforeUpload={async () => {
+                      if (!getProjectUrl) return;
+                      const res = await fetch(
+                        getProjectUrl(
+                          "/api/timeline-studio/motion-clip/ensure"
+                        ),
+                        {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ clip }),
+                        }
+                      );
+                      if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        throw new Error(
+                          String(
+                            (data as { error?: string }).error ||
+                              "Falha ao sincronizar cena motion no projeto."
+                          )
+                        );
+                      }
+                      const data = await res.json();
+                      if (data.studio && onSatelliteSynced) {
+                        onSatelliteSynced(data.studio);
+                      }
+                      if (onPersistStudio) await onPersistStudio();
+                    }}
                     onUploaded={(result) => {
                       onUpdate({
                         props: {
