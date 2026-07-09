@@ -1373,6 +1373,11 @@ export function TimelineStudio({
           onSatelliteSynced={(nextStudio) => {
             setStudio(nextStudio as TimelineStudioState);
           }}
+          onPersistStudio={async () => {
+            if (!studio) return;
+            const saved = await persistStudioSnapshot(studio);
+            setStudio(saved);
+          }}
           onUpdate={(patch) => {
             handleClipsChange(
               updateClipInList(studio.clips, selectedClip.id, patch)

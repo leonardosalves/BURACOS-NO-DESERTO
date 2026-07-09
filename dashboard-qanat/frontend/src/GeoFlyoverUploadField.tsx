@@ -13,6 +13,7 @@ type Props = {
     motion_scenes?: unknown[];
     studio?: unknown;
   }) => void;
+  onBeforeUpload?: () => Promise<void>;
   compact?: boolean;
 };
 
@@ -33,6 +34,7 @@ export function GeoFlyoverUploadField({
   getProjectUrl,
   getAssetUrl,
   onUploaded,
+  onBeforeUpload,
   compact = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -50,6 +52,9 @@ export function GeoFlyoverUploadField({
     }
     setUploading(true);
     try {
+      if (onBeforeUpload) {
+        await onBeforeUpload();
+      }
       const result = await uploadMotionFlyoverVideo(
         getProjectUrl,
         motionId,

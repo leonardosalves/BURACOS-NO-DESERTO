@@ -80,6 +80,27 @@ describe("motionFlyoverUpload", () => {
     );
   });
 
+  it("patchMotionSceneFlyover cria cena a partir da timeline se storyboard vazio", () => {
+    const clip = buildStudioCatalogMotionClip({
+      templateId: "location-intro",
+      playhead: 12,
+      props: { studio_source_code: TSX },
+      label: "PIP",
+    });
+    const next = patchMotionSceneFlyover(
+      [],
+      clip.id,
+      "ASSETS/satellite/manual-geo-flyover.mp4",
+      { clips: [clip] }
+    );
+    assert.equal(next.length, 1);
+    assert.equal(next[0].id, clip.id);
+    assert.equal(
+      next[0].props.flyover_video,
+      "ASSETS/satellite/manual-geo-flyover.mp4"
+    );
+  });
+
   it("patchMotionSceneFlyover atualiza flyover_video", () => {
     const scenes = [
       {
