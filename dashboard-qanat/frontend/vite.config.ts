@@ -2,6 +2,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { lumieraDeployBootPlugin } from "./src/vite-plugin-lumiera-deploy-boot";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dashboardRoot = path.resolve(__dirname, "..");
@@ -15,6 +16,7 @@ export default defineConfig({
   plugins: [
     // esbuild (default) — Babel estourava heap no App.tsx (~650KB) em produção.
     react(),
+    lumieraDeployBootPlugin(),
   ],
   esbuild: {
     target: "es2020",
