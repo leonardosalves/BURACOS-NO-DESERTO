@@ -1,4 +1,4 @@
-import React, { Component, useEffect, useMemo, useRef } from "react";
+import React, { Component, useEffect, useMemo, useRef, useState } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
 import * as Remotion from "remotion";
 import {
@@ -126,12 +126,17 @@ export function SavedTemplatePreviewFrame({
 
   const timelineSynced = scrubSeconds != null;
 
+  const scrubSecondsDefault = size === "detail" ? 0.8 : 0.55;
   const scrubFrame = Math.min(
     Math.max(sceneDurationFrames - 1, 0),
     Math.max(
       0,
       Math.round(
-        (scrubSeconds != null ? scrubSeconds : fullBleed ? 0 : fps * 0.8) * fps
+        (scrubSeconds != null
+          ? scrubSeconds
+          : fullBleed
+            ? 0
+            : scrubSecondsDefault) * fps
       )
     )
   );
@@ -218,10 +223,12 @@ export function SavedTemplatePreviewFrame({
   const geoPipOverlay =
     overlayOnly || (fullBleed && isGeoPipCompositeProps(inputProps));
 
-  const previewStartFrame =
-    size === "detail" && !fullBleed
-      ? Math.min(Math.round(fps * 0.8), sceneDurationFrames - 1)
-      : 0;
+  const previewStartFrame = !fullBleed
+    ? Math.min(
+        Math.round(fps * (size === "detail" ? 0.8 : 0.55)),
+        sceneDurationFrames - 1
+      )
+    : 0;
 
   const player = (
     <LivePreviewErrorBoundary
@@ -277,4 +284,38 @@ export function SavedTemplatePreviewFrame({
   );
 
   return player;
+}
+
+type LazySavedTemplatePreviewFrameProps = SavedTemplatePreviewFrameProps & {
+  placeholder?: React.ReactNode;
+};
+
+/** Monta Player só quando o card entra na viewport (evita crash com dezenas de templates). */
+export function LazySavedTemplatePreviewFrame({
+  placeholder = null,
+  ...props
+}: LazySavedTemplatePreviewFrameProps) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  useEffect(() => {
+    const node = hostRef.current;
+    if (!node || shouldRender) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldRender(true);
+        }
+      },
+      { rootMargin: "160px 0px", threshold: 0.04 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [shouldRender]);
+
+  return (
+    <div ref={hostRef} className="min-h-0 min-w-0">
+      {shouldRender ? <SavedTemplatePreviewFrame {...props} /> : placeholder}
+    </div>
+  );
 }
