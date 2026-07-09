@@ -107,6 +107,42 @@ function clipPreviewDurationSec(clip: StudioClip): number {
   return Math.max(0.08, Number(clip.duration) || 0);
 }
 
+/** Props do PIP não dependem do playhead — evita re-render do Player a cada frame. */
+const GeoPipRemotionPreview = React.memo(function GeoPipRemotionPreview({
+  clip,
+  localSec,
+  playing,
+  isVertical,
+  getAssetUrl,
+  wordTranscripts,
+}: {
+  clip: StudioClip;
+  localSec: number;
+  playing: boolean;
+  isVertical: boolean;
+  getAssetUrl: (fileName: string) => string;
+  wordTranscripts?: Props["wordTranscripts"];
+}) {
+  const studioCode = clipStudioSourceCode(clip);
+  const inputProps = useMemo(
+    () => mergeGeoPipPreviewProps(clip, 0, wordTranscripts, getAssetUrl),
+    [clip, getAssetUrl, wordTranscripts]
+  );
+  if (!studioCode) return null;
+  return (
+    <SavedTemplatePreviewFrame
+      sourceCode={studioCode}
+      inputProps={inputProps}
+      durationSeconds={clipPreviewDurationSec(clip)}
+      scrubSeconds={localSec}
+      format={isVertical ? "9:16" : "16:9"}
+      size="detail"
+      fullBleed
+      autoPlay={playing}
+    />
+  );
+});
+
 export function TimelineStudioPreview({
   studio,
   getAssetUrl,
@@ -680,21 +716,14 @@ export function TimelineStudioPreview({
             if (isMapScene) {
               if (hasStudioOverlay && geoPipOverlay && studioCode) {
                 return (
-                  <SavedTemplatePreviewFrame
+                  <GeoPipRemotionPreview
                     key={clip.id}
-                    sourceCode={studioCode}
-                    inputProps={mergeGeoPipPreviewProps(
-                      clip,
-                      motionPlayhead,
-                      wordTranscripts,
-                      getAssetUrl
-                    )}
-                    durationSeconds={clipPreviewDurationSec(clip)}
-                    scrubSeconds={localSec}
-                    format={isVertical ? "9:16" : "16:9"}
-                    size="detail"
-                    fullBleed
-                    autoPlay={playing}
+                    clip={clip}
+                    localSec={localSec}
+                    playing={playing}
+                    isVertical={isVertical}
+                    getAssetUrl={getAssetUrl}
+                    wordTranscripts={wordTranscripts}
                   />
                 );
               }
@@ -724,20 +753,24 @@ export function TimelineStudioPreview({
             }
             if (hasStudioOverlay) {
               const geoPip = isGeoPipCompositeProps(clip.props || {});
+              if (geoPip) {
+                return (
+                  <GeoPipRemotionPreview
+                    key={clip.id}
+                    clip={clip}
+                    localSec={localSec}
+                    playing={playing}
+                    isVertical={isVertical}
+                    getAssetUrl={getAssetUrl}
+                    wordTranscripts={wordTranscripts}
+                  />
+                );
+              }
               return (
                 <SavedTemplatePreviewFrame
                   key={clip.id}
                   sourceCode={studioCode}
-                  inputProps={
-                    geoPip
-                      ? mergeGeoPipPreviewProps(
-                          clip,
-                          motionPlayhead,
-                          wordTranscripts,
-                          getAssetUrl
-                        )
-                      : clip.props || {}
-                  }
+                  inputProps={clip.props || {}}
                   durationSeconds={clipPreviewDurationSec(clip)}
                   scrubSeconds={localSec}
                   format={isVertical ? "9:16" : "16:9"}

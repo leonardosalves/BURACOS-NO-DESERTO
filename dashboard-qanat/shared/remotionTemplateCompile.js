@@ -136,7 +136,7 @@ function patchCompiledMediaVideoSlots(jsBody = "") {
     );
     const videoShift =
       slot === "pipMediaUrl"
-        ? ", volume: 0, acceptableTimeShiftInSeconds: 0.35"
+        ? ", volume: 0, acceptableTimeShiftInSeconds: 0.5"
         : "";
     out = out.replace(
       re,

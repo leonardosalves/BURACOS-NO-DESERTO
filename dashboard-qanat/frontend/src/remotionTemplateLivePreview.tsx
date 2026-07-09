@@ -153,16 +153,31 @@ export function SavedTemplatePreviewFrame({
     lastSeekFrameRef.current = null;
   }, [sourceCode, sceneDurationFrames]);
 
-  /** Seek frame-a-frame: animações 30fps proporcionais à duração; MP4 usa acceptableTimeShiftInSeconds. */
+  /** Em play: drift + player.play() — MP4 no PIP usa acceptableTimeShiftInSeconds. Pausado: seek exato. */
+  const timelinePlaying = timelineSynced && autoPlay;
+  const driftFrames = Math.max(3, Math.round(fps * 0.35));
+
   useEffect(() => {
     if (!previewMeta) return;
     const player = playerRef.current;
     if (!player) return;
+
+    if (timelinePlaying) {
+      const current = player.getCurrentFrame();
+      if (Math.abs(current - scrubFrame) > driftFrames) {
+        player.seekTo(scrubFrame);
+      }
+      if (!player.isPlaying()) {
+        player.play();
+      }
+      return;
+    }
+
     if (lastSeekFrameRef.current === scrubFrame) return;
     lastSeekFrameRef.current = scrubFrame;
     player.pause();
     player.seekTo(scrubFrame);
-  }, [previewMeta, scrubFrame]);
+  }, [previewMeta, scrubFrame, timelinePlaying, driftFrames]);
 
   if (compiled.ok === false) {
     if (fallback) {
