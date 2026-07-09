@@ -16,8 +16,9 @@ Write-Host "=== Lumiera - status ===" -ForegroundColor Cyan
 
 $pm2Mode = Test-LumieraPm2Mode
 $permanentMode = Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode")
+$stackMode = Get-LumieraStackMode
 if ($permanentMode) {
-    Write-Host "Modo     : PERMANENTE (PM2 + guardian 1 min)" -ForegroundColor Green
+    Write-Host ("Modo     : PERMANENTE (stack={0} + guardian 1 min)" -f $stackMode) -ForegroundColor Green
     $guardTask = Get-ScheduledTask -TaskName "Lumiera-Guardian" -ErrorAction SilentlyContinue
     $daemonPidFile = Join-Path $script:LogDir "guardian-daemon.pid"
     if ($guardTask) {
@@ -72,7 +73,9 @@ if (-not ($pm2Mode -or $permanentMode)) {
         $task = Get-ScheduledTask -TaskName "Lumiera-Backend-Watchdog" -ErrorAction SilentlyContinue
     }
 }
-if ($pm2Mode -or $permanentMode) {
+if ($permanentMode) {
+    Write-Host "Watchdog : desativado (guardian + modo direto)" -ForegroundColor DarkGray
+} elseif ($pm2Mode) {
     Write-Host "Watchdog : desativado (PM2 cuida do processo)" -ForegroundColor DarkGray
 } elseif ($watchProc) {
     if ($watchProc.ProcessId -gt 0) {

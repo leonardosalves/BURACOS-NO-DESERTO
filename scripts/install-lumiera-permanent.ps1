@@ -1,5 +1,5 @@
-# Instalacao DEFINITIVA: PM2 + guardian a cada 1 min + boot/login.
-# Rode UMA vez (como usuario normal): .\scripts\install-lumiera-permanent.ps1
+# Modo PERMANENTE estavel: processos diretos + guardian (sem PM2 instavel no Windows).
+# Rode UMA vez: .\scripts\install-lumiera-permanent.ps1
 param([switch]$Uninstall)
 
 $ErrorActionPreference = "SilentlyContinue"
@@ -8,6 +8,7 @@ $ErrorActionPreference = "SilentlyContinue"
 $TaskGuardian = "Lumiera-Guardian"
 $TaskWatchdog = "Lumiera-Backend-Watchdog"
 $GuardianScript = Join-Path $PSScriptRoot "lumiera-guardian.ps1"
+$EnsureScript = Join-Path $PSScriptRoot "ensure-lumiera.ps1"
 
 function Remove-LumieraTask([string]$Name) {
     Unregister-ScheduledTask -TaskName $Name -Confirm:$false -ErrorAction SilentlyContinue
@@ -16,42 +17,49 @@ function Remove-LumieraTask([string]$Name) {
 if ($Uninstall) {
     Remove-LumieraTask $TaskGuardian
     Remove-LumieraTask $TaskWatchdog
-    & (Join-Path $PSScriptRoot "install-lumiera-pm2.ps1") -Uninstall | Out-Null
+    Stop-LumieraGuardianDaemon
+    Remove-Item -LiteralPath $script:StackModeFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $script:LogDir "permanent.mode") -Force -ErrorAction SilentlyContinue
+    $startupDir = [Environment]::GetFolderPath("Startup")
+    foreach ($vbs in @("Lumiera-Guardian.vbs", "Lumiera-PM2-Resurrect.vbs", "Lumiera-Ensure.vbs")) {
+        Remove-Item (Join-Path $startupDir $vbs) -Force -ErrorAction SilentlyContinue
+    }
     Write-Host "Modo permanente removido." -ForegroundColor Green
     exit 0
 }
 
-Write-Host "=== Lumiera PERMANENTE (PM2 + Guardian) ===" -ForegroundColor Cyan
+Write-Host "=== Lumiera PERMANENTE (modo direto + guardian) ===" -ForegroundColor Cyan
 
-# 1) PM2 stack
-& (Join-Path $PSScriptRoot "install-lumiera-pm2.ps1")
-if (-not (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 10)) {
-    Write-Host "Falha ao subir PM2. Corrija sintaxe/logs e tente de novo." -ForegroundColor Red
+if (-not (Test-BackendSyntaxOk)) {
+    Write-Host "ERRO: server.js com erro de sintaxe." -ForegroundColor Red
     exit 1
 }
 
-Invoke-LumieraPm2 @("save", "--force") | Out-Null
-$pm2Bin = Join-Path $script:RepoRoot "node_modules\.bin\pm2.cmd"
-$pm2ResurrectVbs = Join-Path ([Environment]::GetFolderPath("Startup")) "Lumiera-PM2-Resurrect.vbs"
-Set-Content -Path $pm2ResurrectVbs -Value @(
-    'Set sh = CreateObject("Wscript.Shell")',
-    ('sh.Run "cmd /c ""{0}"" resurrect", 0, False' -f $pm2Bin)
-) -Encoding ASCII
-Write-Host "Boot: PM2 resurrect na pasta Inicializar" -ForegroundColor DarkGray
-
-# 2) Remove watchdog legado (mata processo e compete com PM2)
+Stop-LumieraGuardianDaemon
+Disable-LumieraPm2Competition
 Remove-LumieraTask $TaskWatchdog
-$watchPidFile = Join-Path $script:LogDir "watchdog.pid"
-if (Test-Path -LiteralPath $watchPidFile) {
-    try {
-        $wp = [int](Get-Content -LiteralPath $watchPidFile -TotalCount 1)
-        if ($wp -gt 0) { Stop-Process -Id $wp -Force -ErrorAction SilentlyContinue }
-    } catch { }
-    Remove-Item -LiteralPath $watchPidFile -Force -ErrorAction SilentlyContinue
+
+Ensure-LumieraLogDir
+Set-Content -Path (Join-Path $script:LogDir "permanent.mode") -Value ((Get-Date).ToString("o")) -Encoding UTF8
+Set-Content -Path $script:StackModeFile -Value "direct" -Encoding UTF8
+Remove-Item -LiteralPath $script:Pm2ModeFile -Force -ErrorAction SilentlyContinue
+
+Write-Host "Subindo stack (backend direto + Vite)..." -ForegroundColor Cyan
+$stackOk = Repair-LumieraStackUnified
+if (-not $stackOk) {
+    Write-Host "Falha ao subir stack. Veja .lumiera-logs\backend-stderr.log" -ForegroundColor Red
+    exit 1
 }
 
-# 3) Guardian — tarefa agendada (admin) ou daemon na pasta Startup (sem admin)
-Set-Content -Path (Join-Path $script:LogDir "permanent.mode") -Value ((Get-Date).ToString("o")) -Encoding UTF8
+$startupDir = [Environment]::GetFolderPath("Startup")
+$ensureVbs = Join-Path $startupDir "Lumiera-Ensure.vbs"
+$ensureLine = 'sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{0}"" -Quiet", 0, False' -f $EnsureScript
+Set-Content -Path $ensureVbs -Value @(
+    'Set sh = CreateObject("Wscript.Shell")',
+    $ensureLine
+) -Encoding ASCII
+Remove-Item (Join-Path $startupDir "Lumiera-PM2-Resurrect.vbs") -Force -ErrorAction SilentlyContinue
+Write-Host "Boot: ensure-lumiera na pasta Inicializar" -ForegroundColor DarkGray
 
 $taskOk = $false
 Remove-LumieraTask $TaskGuardian
@@ -74,38 +82,38 @@ try {
         -Action $action `
         -Trigger @($triggerLogon, $triggerBoot, $triggerRepeat) `
         -Settings $settings `
-        -Description "Mantem Lumiera (3005+5176) online via PM2." `
+        -Description "Mantem Lumiera (3005+5176) online - modo direto." `
         -Force -ErrorAction Stop | Out-Null
     Start-ScheduledTask -TaskName $TaskGuardian -ErrorAction SilentlyContinue
     $taskOk = $true
     Stop-LumieraGuardianDaemon
-    $startupVbs = Join-Path ([Environment]::GetFolderPath("Startup")) "Lumiera-Guardian.vbs"
-    Remove-Item -LiteralPath $startupVbs -Force -ErrorAction SilentlyContinue
-    Write-Host "Guardian: tarefa agendada '$TaskGuardian' (1 instancia)" -ForegroundColor Green
+    Remove-Item (Join-Path $startupDir "Lumiera-Guardian.vbs") -Force -ErrorAction SilentlyContinue
+    Write-Host "Guardian: tarefa agendada '$TaskGuardian'" -ForegroundColor Green
 } catch {
-    Write-Host "Guardian: sem admin - usando pasta Startup + daemon" -ForegroundColor Yellow
+    Write-Host "Guardian: sem admin - daemon unico no Startup" -ForegroundColor Yellow
+    Stop-LumieraGuardianDaemon
     $daemonScript = Join-Path $PSScriptRoot "start-lumiera-guardian-daemon.ps1"
-    $startupDir = [Environment]::GetFolderPath("Startup")
     $vbsPath = Join-Path $startupDir "Lumiera-Guardian.vbs"
     $runLine = 'sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{0}""", 0, False' -f $daemonScript
     Set-Content -Path $vbsPath -Value @(
         'Set sh = CreateObject("Wscript.Shell")',
         $runLine
     ) -Encoding ASCII
-    $daemonArgs = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$daemonScript`""
-    Start-Process -FilePath "powershell.exe" -ArgumentList $daemonArgs -WorkingDirectory $script:RepoRoot -WindowStyle Hidden | Out-Null
+    Start-Process -FilePath "powershell.exe" -ArgumentList @(
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
+        "-File", $daemonScript
+    ) -WorkingDirectory $script:RepoRoot -WindowStyle Hidden | Out-Null
     Write-Host "Guardian: daemon ativo + $vbsPath" -ForegroundColor Green
 }
 
 & $GuardianScript -Quiet | Out-Null
 
 Write-Host ""
-Write-Host "OK - modo PERMANENTE ativo." -ForegroundColor Green
+Write-Host "OK - modo PERMANENTE (direto) ativo." -ForegroundColor Green
 Write-Host "  Backend:  http://127.0.0.1:3005" -ForegroundColor White
 Write-Host "  Frontend: http://127.0.0.1:5176" -ForegroundColor White
-Write-Host "  Guardian: tarefa '$TaskGuardian' (cada 1 min + login + boot)" -ForegroundColor White
+Write-Host "  Stack:    direct (PM2 desativado - mais estavel no Windows)" -ForegroundColor White
 Write-Host ""
 Write-Host "Diagnostico: .\scripts\status-lumiera.ps1" -ForegroundColor Cyan
-Write-Host "Log guardian: .lumiera-logs\guardian.log" -ForegroundColor Cyan
-Write-Host "Desinstalar:  .\scripts\install-lumiera-permanent.ps1 -Uninstall" -ForegroundColor DarkGray
+Write-Host "Emergencia:  run_qanat_dashboard.bat" -ForegroundColor Cyan
 exit 0

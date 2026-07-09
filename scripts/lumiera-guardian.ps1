@@ -1,4 +1,4 @@
-# Guardian Lumiera — verifica a cada minuto e recupera PM2 sem matar render ativo.
+# Guardian Lumiera — verifica a cada minuto e recupera o stack (modo direto, sem matar no susto).
 param([switch]$Quiet)
 
 $ErrorActionPreference = "SilentlyContinue"
@@ -39,10 +39,8 @@ function Set-GuardianLock {
 
 if (Test-GuardianLock) { exit 0 }
 
-$backendOk = Test-LumieraBackendHealthy -Retries 4 -TimeoutSec 12
-$frontendOk = [bool](Get-PortListenerPidFast 5176)
-
-if ($backendOk -and $frontendOk) {
+$health = Test-LumieraStackHealthy
+if ($health.ok) {
     Remove-Item (Join-Path $script:LogDir "guardian-miss.stamp") -Force -ErrorAction SilentlyContinue
     exit 0
 }
@@ -50,18 +48,19 @@ if ($backendOk -and $frontendOk) {
 $missStamp = Join-Path $script:LogDir "guardian-miss.stamp"
 if (-not (Test-Path -LiteralPath $missStamp)) {
     Set-Content -Path $missStamp -Value ((Get-Date).ToString("o")) -Encoding UTF8
-    Write-GuardianLog "Stack lento/offline - aguardando 1 ciclo antes de reparar (backend=$backendOk frontend=$frontendOk)" "WARN"
+    Write-GuardianLog "Stack lento/offline - aguardando 1 ciclo (backend=$($health.backend) frontend=$($health.frontend))" "WARN"
     exit 0
 }
 
 Set-GuardianLock
-Write-GuardianLog "Recuperando stack (backend=$backendOk frontend=$frontendOk)" "WARN"
+Write-GuardianLog "Recuperando stack (backend=$($health.backend) frontend=$($health.frontend))" "WARN"
 
-$repaired = Repair-LumieraPm2Stack
+$repaired = Repair-LumieraStackUnified
 if ($repaired) {
     Write-GuardianLog "Stack OK apos recuperacao"
+    Remove-Item $missStamp -Force -ErrorAction SilentlyContinue
     exit 0
 }
 
-Write-GuardianLog "Falha na recuperacao - veja pm2-backend-error.log e backend-syntax-check.log" "ERROR"
+Write-GuardianLog "Falha na recuperacao - veja backend-watch.log e backend-stderr.log" "ERROR"
 exit 1

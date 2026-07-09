@@ -10,6 +10,8 @@ $script:RestartLockFile = Join-Path $script:LogDir "backend-restart.lock"
 $script:LastRestartFile = Join-Path $script:LogDir "backend-last-restart.txt"
 $script:NodeMaxOldSpaceMb = 4096
 $script:Pm2ModeFile = Join-Path $script:LogDir "pm2.mode"
+$script:StackModeFile = Join-Path $script:LogDir "stack.mode"
+$script:StackRepairLockFile = Join-Path $script:LogDir "stack-repair.lock"
 $script:SyntaxCheckLog = Join-Path $script:LogDir "backend-syntax-check.log"
 $script:LogCleanupScript = Join-Path $script:RepoRoot "scripts\cleanup-lumiera-logs.ps1"
 $script:LastLogCleanup = $null
@@ -210,16 +212,157 @@ function Initialize-LumieraBackendEnv {
     }
 }
 
-function Start-LumieraStackDirect {
-    Initialize-LumieraBackendEnv
-    Stop-LumieraBackendOnPort
-    $fePid = Get-PortListenerPidFast 5176
-    if ($fePid) {
-        Stop-Process -Id $fePid -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Seconds 1
+function Get-LumieraStackMode {
+    if (Test-Path -LiteralPath $script:StackModeFile) {
+        $mode = ("$(Get-Content -LiteralPath $script:StackModeFile -TotalCount 1 -ErrorAction SilentlyContinue)").Trim().ToLower()
+        if ($mode -eq "pm2" -or $mode -eq "direct") { return $mode }
     }
-    $backendOk = Start-LumieraBackendProcess -Direct -ForceRestart -SkipDebounce
+    if (Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode")) {
+        return "direct"
+    }
+    if (Test-Path -LiteralPath $script:Pm2ModeFile) { return "pm2" }
+    return "direct"
+}
+
+function Test-LumieraStackRepairLock {
+    if (-not (Test-Path -LiteralPath $script:StackRepairLockFile)) { return $false }
+    try {
+        $stamp = [datetime]::Parse(
+            (Get-Content -LiteralPath $script:StackRepairLockFile -TotalCount 1 -ErrorAction Stop)
+        )
+        return (((Get-Date) - $stamp).TotalSeconds -lt 180)
+    } catch {
+        return $false
+    }
+}
+
+function Set-LumieraStackRepairLock {
+    Ensure-LumieraLogDir
+    Set-Content -Path $script:StackRepairLockFile -Value ((Get-Date).ToString("o")) -Encoding UTF8
+}
+
+function Test-LumieraStackHealthy {
+    $backendOk = Test-LumieraBackendHealthy -Retries 4 -TimeoutSec 12
+    $frontendOk = [bool](Get-PortListenerPidFast 5176)
+    return @{
+        backend  = $backendOk
+        frontend = $frontendOk
+        ok       = ($backendOk -and $frontendOk)
+    }
+}
+
+function Disable-LumieraPm2Competition {
+    Initialize-LumieraPm2Env
+    foreach ($app in @("lumiera-backend", "lumiera-frontend")) {
+        Invoke-LumieraPm2 @("delete", $app) | Out-Null
+    }
+    Invoke-LumieraPm2 @("kill") | Out-Null
+    Start-Sleep -Seconds 1
+}
+
+function Start-LumieraStackDirect {
+    param(
+        [switch]$ForcePorts,
+        [switch]$ForceBackend,
+        [switch]$ForceFrontend
+    )
+
+    if ($ForcePorts) {
+        $ForceBackend = $true
+        $ForceFrontend = $true
+    }
+
+    Initialize-LumieraBackendEnv
+    if ($ForceBackend) {
+        Stop-LumieraBackendOnPort
+    }
+    if ($ForceFrontend) {
+        $fePid = Get-PortListenerPidFast 5176
+        if ($fePid) {
+            Stop-Process -Id $fePid -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 1
+        }
+    }
+    $backendOk = Start-LumieraBackendProcess -Direct -ForceRestart:$ForceBackend -SkipDebounce
     return $backendOk
+}
+
+function Repair-LumieraStackUnified {
+    $health = Test-LumieraStackHealthy
+    if ($health.ok) { return $true }
+
+    if (Test-LumieraStackRepairLock) {
+        Write-LumieraLog "Reparo stack em andamento (lock 180s) - aguardando" "WARN"
+        $deadline = (Get-Date).AddSeconds(120)
+        while ((Get-Date) -lt $deadline) {
+            Start-Sleep -Seconds 3
+            if ((Test-LumieraStackHealthy).ok) { return $true }
+            if (-not (Test-LumieraStackRepairLock)) { break }
+        }
+        if ((Test-LumieraStackHealthy).ok) { return $true }
+        if (Test-LumieraStackRepairLock) {
+            Write-LumieraLog "Reparo stack ainda bloqueado por outro processo" "WARN"
+            return $false
+        }
+        $health = Test-LumieraStackHealthy
+        if ($health.ok) { return $true }
+    }
+
+    if ((Get-BackendListenerPid) -and -not $health.backend) {
+        Write-LumieraLog "Porta 3005 ativa, health lento - aguardando sem matar" "WARN"
+        $deadline = (Get-Date).AddSeconds(90)
+        while ((Get-Date) -lt $deadline) {
+            if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 15) {
+                if (-not $health.frontend) {
+                    $feScript = Join-Path $script:RepoRoot "scripts\ensure-frontend.ps1"
+                    & $feScript | Out-Null
+                }
+                return (Test-LumieraStackHealthy).ok
+            }
+            Start-Sleep -Seconds 5
+        }
+    }
+
+    if (Test-ActiveLumieraRender) {
+        Write-LumieraLog "Render ativo - reparo so do frontend" "WARN"
+        if (-not $health.frontend) {
+            $feScript = Join-Path $script:RepoRoot "scripts\ensure-frontend.ps1"
+            & $feScript | Out-Null
+        }
+        return (Test-LumieraStackHealthy).ok
+    }
+
+    Set-LumieraStackRepairLock
+    $mode = Get-LumieraStackMode
+    Write-LumieraLog "Reparo stack unificado (modo=$mode)" "WARN"
+
+    if ($mode -eq "pm2" -and (Test-LumieraPm2DaemonAlive)) {
+        $be = Get-LumieraPm2AppRow "lumiera-backend"
+        if ($be) {
+            Invoke-LumieraPm2 @("restart", "lumiera-backend", "lumiera-frontend", "--update-env") | Out-Null
+            $deadline = (Get-Date).AddSeconds(120)
+            while ((Get-Date) -lt $deadline) {
+                if ((Test-LumieraStackHealthy).ok) { return $true }
+                Start-Sleep -Seconds 3
+            }
+        }
+    }
+
+    Disable-LumieraPm2Competition
+    $needBackend = -not $health.backend
+    $needFrontend = -not $health.frontend
+    $backendOk = if ($needBackend) {
+        Start-LumieraStackDirect -ForceBackend
+    } else {
+        $true
+    }
+    $frontendOk = $true
+    if ($needFrontend) {
+        $feScript = Join-Path $script:RepoRoot "scripts\ensure-frontend.ps1"
+        & $feScript | Out-Null
+        $frontendOk = ($LASTEXITCODE -eq 0)
+    }
+    return $backendOk -and $frontendOk
 }
 
 function Start-LumieraBackendProcess {
@@ -234,6 +377,7 @@ function Start-LumieraBackendProcess {
 
     if (
         -not $Direct -and
+        (Get-LumieraStackMode) -eq "pm2" -and
         (Test-LumieraPm2Mode -or (Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode")))
     ) {
         if ($ForceRestart) {

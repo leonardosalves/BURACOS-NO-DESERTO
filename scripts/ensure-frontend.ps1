@@ -7,7 +7,7 @@ $FrontendPort = 5176
 $DashboardUrl = "http://127.0.0.1:$FrontendPort/"
 
 function Test-PortListening([int]$Port) {
-    return [bool](Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
+    return [bool](Get-PortListenerPidFast $Port)
 }
 
 if (Test-PortListening $FrontendPort) {
@@ -25,18 +25,22 @@ if (-not (Test-Path (Join-Path $FrontendDir "node_modules"))) {
 Ensure-LumieraLogDir
 $outLog = Join-Path $script:LogDir "frontend-stdout.log"
 $errLog = Join-Path $script:LogDir "frontend-stderr.log"
-$npmCmd = if (Test-Path (Join-Path $FrontendDir "npm.cmd")) { "npm.cmd" } else { "npm" }
+$pidFile = Join-Path $script:LogDir "frontend.pid"
+$cmdLine = 'npm run dev 1>> "{0}" 2>> "{1}"' -f $outLog, $errLog
 
 Write-Host "Subindo frontend Vite na porta $FrontendPort..." -ForegroundColor Cyan
-Start-Process `
-    -FilePath $npmCmd `
-    -ArgumentList @("run", "dev") `
+$proc = Start-Process `
+    -FilePath "cmd.exe" `
+    -ArgumentList @("/d", "/s", "/c", $cmdLine) `
     -WorkingDirectory $FrontendDir `
     -WindowStyle Hidden `
-    -RedirectStandardOutput $outLog `
-    -RedirectStandardError $errLog | Out-Null
+    -PassThru
 
-$deadline = (Get-Date).AddSeconds(60)
+if ($proc -and $proc.Id) {
+    Set-Content -Path $pidFile -Value $proc.Id -Encoding UTF8
+}
+
+$deadline = (Get-Date).AddSeconds(90)
 while ((Get-Date) -lt $deadline) {
     if (Test-PortListening $FrontendPort) {
         Write-Host "Frontend OK em $DashboardUrl" -ForegroundColor Green
