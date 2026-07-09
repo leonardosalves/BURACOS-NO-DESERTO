@@ -145,8 +145,9 @@ function LocationIntroMapCard({
   const useBlenderMap =
     Boolean(flyoverSrc) &&
     (mapProvider === "blender" ||
+      mapProvider === "ai_t2v" ||
       mapProvider === "" ||
-      /flyover\.mp4/i.test(flyoverSrc));
+      /flyover|\.mp4/i.test(flyoverSrc));
   const useCesiumMap = mapProvider === "cesium" && lat && lng && !embedded;
 
   useEffect(() => {
@@ -1036,8 +1037,9 @@ export function OverlayPreview({
         const useBlenderMap =
           Boolean(flyoverSrc) &&
           (mapProvider === "blender" ||
+            mapProvider === "ai_t2v" ||
             mapProvider === "" ||
-            /flyover\.mp4/i.test(flyoverSrc));
+            /flyover|\.mp4/i.test(flyoverSrc));
         const useCesiumMap = mapProvider === "cesium" && lat && lng;
         const hasTiles = Boolean(
           useBlenderMap ||
@@ -1092,7 +1094,7 @@ export function OverlayPreview({
               </p>
               <p className="text-amber-300/90 text-[10px] mt-3 font-semibold">
                 {isAiGeo && aiGeoPrompt
-                  ? "Prompt IA Geo pronto — gere o vídeo no Seedance/LTX"
+                  ? "Prompt IA Geo pronto - gere o video no Grok ou Google Flow"
                   : isAiGeo
                     ? "Gerando prompt IA Geo do local da narração…"
                     : "Enriquecimento geográfico pendente…"}
@@ -1126,7 +1128,10 @@ export function OverlayPreview({
               <p
                 className="text-purple-200/90 mt-2 line-clamp-3"
                 style={{
-                  fontSize: Math.max(8, metrics.fontSizeSubtitle * 0.85),
+                  fontSize: Math.max(
+                    8,
+                    Number(metrics.fontSizeSubtitle) * 0.85
+                  ),
                 }}
               >
                 {String(props.geo_prompt_brief || "IA Geo")} — prompt T2V

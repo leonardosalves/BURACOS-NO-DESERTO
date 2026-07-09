@@ -62,6 +62,8 @@ import { TimelineClipPreview } from "./TimelineClipPreview";
 import type { ConfigData, WorkspaceStatus } from "./appTypes";
 import { NotebookLmConnect } from "./NotebookLmConnect";
 import { CreatorProductionPlanPanel } from "./CreatorProductionPlanPanel";
+import { GeoVideoWizardPanel } from "./GeoVideoWizardPanel";
+import type { GeoMotionScene } from "./geoVideoFlyover";
 
 export type AppCreatorTabProps = {
   activeProject: string;
@@ -166,6 +168,10 @@ export type AppCreatorTabProps = {
     file: File,
     assetIdx: number
   ) => void | Promise<void>;
+  handleMotionScenesChange: (
+    scenes: GeoMotionScene[],
+    opts?: { immediate?: boolean }
+  ) => void;
   hasApiKey: boolean;
   ideasData: any;
   ideationTab: string;
@@ -327,6 +333,7 @@ export function AppCreatorTab({
   handleSyncTimings,
   handleUpdateCreatorScene,
   handleUploadSceneAsset,
+  handleMotionScenesChange,
   hasApiKey,
   ideasData,
   ideationTab,
@@ -2397,6 +2404,16 @@ export function AppCreatorTab({
             </div>
 
             <CreatorProductionPlanPanel storyboard={generatedScriptData} />
+
+            <GeoVideoWizardPanel
+              motionScenes={generatedScriptData?.motion_scenes}
+              getProjectUrl={getProjectUrl}
+              getAssetUrl={getAssetUrl}
+              copyToClipboard={copyToClipboard}
+              copiedSection={copiedSection}
+              onMotionScenesChange={handleMotionScenesChange}
+              onStudioSynced={() => fetchData()}
+            />
 
             {generatedScriptData.visual_prompts &&
               (generatedScriptData?.visual_prompts || []).length > 0 && (

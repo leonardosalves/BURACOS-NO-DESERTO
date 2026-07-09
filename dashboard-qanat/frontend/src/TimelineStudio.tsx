@@ -1342,6 +1342,7 @@ export function TimelineStudio({
           track={selectedTrack}
           onClose={() => setSelectedClipId(null)}
           getProjectUrl={getProjectUrl}
+          getAssetUrl={getAssetUrl}
           onSatelliteSynced={(nextStudio) => {
             setStudio(nextStudio as TimelineStudioState);
           }}

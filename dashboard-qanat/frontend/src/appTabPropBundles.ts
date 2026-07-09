@@ -141,6 +141,7 @@ export function buildAppTabPropBundles(
     handleSyncTimings: ctx.handleSyncTimings,
     handleUpdateCreatorScene: ctx.handleUpdateCreatorScene,
     handleUploadSceneAsset: ctx.handleUploadSceneAsset,
+    handleMotionScenesChange: ctx.handleMotionScenesChange,
     hasApiKey: ctx.hasApiKey,
     ideasData: ctx.ideasData,
     ideationTab: ctx.ideationTab,

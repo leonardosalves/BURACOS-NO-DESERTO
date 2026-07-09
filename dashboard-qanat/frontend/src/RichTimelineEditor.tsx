@@ -463,6 +463,7 @@ export function RichTimelineEditor({
               timelineAssets={config.timeline_assets}
               aspectRatio={config.aspect_ratio || "16:9"}
               getAssetUrl={getAssetUrl}
+              getProjectUrl={getProjectUrl}
               generating={generatingOverlays}
               saving={savingMotionScenes}
               onGenerate={handlePlanMotionScenes}

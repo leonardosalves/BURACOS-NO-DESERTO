@@ -31,6 +31,10 @@ import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 import { orchestrateProduction } from "./productionOrchestrator.js";
 import { ensureMotionScenesQuality } from "./motionSceneQualityService.js";
 import { assessMotionScenesPlan } from "../shared/motionSceneQuality.js";
+import {
+  patchMotionSceneFlyover,
+  resolveFlyoverDest,
+} from "./motionFlyoverUpload.js";
 
 function readJsonSafe(filePath, fallback = {}) {
   try {
@@ -84,6 +88,7 @@ export function registerMotionSceneRoutes(
         config: { timeline_assets: result.timeline_assets },
         studio: result.studio,
         quality: result.quality,
+        review: result.storyboard?.motion_scenes_meta?.review || null,
         satellite: result.satellite,
         llm: result.llm,
         zero_motion_reason: result.zero_motion_reason || null,
@@ -124,6 +129,7 @@ export function registerMotionSceneRoutes(
         planned_at: result.storyboard?.motion_scenes_meta?.planned_at,
         planner_version: result.storyboard?.motion_scenes_meta?.planner_version,
         source: result.storyboard?.motion_scenes_meta?.source,
+        review: result.storyboard?.motion_scenes_meta?.review || null,
         llm: result.llm,
         satellite: result.satellite,
         quality: result.quality,
@@ -513,5 +519,86 @@ export function registerMotionSceneRoutes(
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  app.post("/api/upload-motion-flyover", (req, res) => {
+    const projDir = getProjectDir(req);
+    const motionId = String(req.query.motion_id || "").trim();
+    const filename = String(req.query.filename || "geo-flyover.mp4").trim();
+
+    if (!motionId) {
+      return res
+        .status(400)
+        .json({ error: "Parâmetro motion_id é obrigatório." });
+    }
+
+    let dest;
+    try {
+      dest = resolveFlyoverDest(projDir, motionId, filename);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    const writeStream = fs.createWriteStream(dest.absPath);
+    req.pipe(writeStream);
+
+    writeStream.on("error", (err) => {
+      res.status(500).json({ error: err.message });
+    });
+
+    writeStream.on("finish", () => {
+      try {
+        const storyboardPath = path.join(projDir, "storyboard.json");
+        const storyboard = readJsonSafe(storyboardPath, {});
+        const motionScenes = patchMotionSceneFlyover(
+          storyboard.motion_scenes || [],
+          motionId,
+          dest.relPath
+        );
+        const nextStoryboard = {
+          ...storyboard,
+          motion_scenes: motionScenes,
+          motion_scenes_meta: {
+            ...(storyboard.motion_scenes_meta || {}),
+            flyover_upload: {
+              motion_id: motionId,
+              path: dest.relPath,
+              at: new Date().toISOString(),
+            },
+          },
+        };
+        fs.writeFileSync(
+          storyboardPath,
+          JSON.stringify(nextStoryboard, null, 2),
+          "utf8"
+        );
+
+        const config = readJsonSafe(
+          path.join(projDir, "config_qanat.json"),
+          {}
+        );
+        const blockTimings = readJsonSafe(
+          path.join(projDir, "block_timings.json"),
+          {}
+        );
+        const { studio: rawStudio } = loadTimelineStudio(projDir);
+        let studio = syncMotionScenesToStudio(rawStudio, motionScenes);
+        studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
+        studio = upsertMusicClipInStudio(studio, config, projDir);
+        const savedStudio = saveTimelineStudio(projDir, studio);
+
+        res.json({
+          ok: true,
+          message: `Vídeo geo salvo: ${dest.fileName}`,
+          motion_id: motionId,
+          flyover_video: dest.relPath,
+          asset: dest.fileName,
+          motion_scenes: motionScenes,
+          studio: savedStudio,
+        });
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
   });
 }
