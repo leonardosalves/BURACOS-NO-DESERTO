@@ -28,6 +28,7 @@ import {
   createProgressJobId,
   startAiJobProgress,
   stopAiJobProgress,
+  waitForAiJobDone,
 } from "./aiJobProgressClient";
 import { useGeminiBrowserResolver } from "./useGeminiBrowserResolver";
 import {
@@ -8534,35 +8535,74 @@ export default function App() {
   const handleNotebooklmReply = async (reply: string) => {
     const text = String(reply || "").trim();
     if (!text) return;
+    const projectName =
+      creatorNarrationProjectRef.current ||
+      creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
     setNotebooklmSessionLoading(true);
+    const progressJobId = createProgressJobId();
+    startAiJobProgress(progressJobId, "NotebookLM");
     try {
-      const res = await fetch(getProjectUrl("/api/notebooklm/session/reply"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reply: text,
-          niche: resolveNotebooklmNiche(),
-        }),
-      });
-      const data = await res.json();
+      const res = await fetch(
+        getProjectUrl("/api/notebooklm/session/reply", projectName),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reply: text,
+            project: projectName,
+            niche: resolveNotebooklmNiche(),
+            progress_job_id: progressJobId,
+          }),
+        }
+      );
+      const started = (await res.json()) as {
+        started?: boolean;
+        jobId?: string;
+        error?: string;
+        ok?: boolean;
+        session?: NotebooklmSession;
+        brief?: NotebooklmBriefInfo;
+      };
       if (!res.ok) {
         throw new Error(
-          data.error || "Falha ao enviar resposta ao NotebookLM."
+          started.error || "Falha ao enviar resposta ao NotebookLM."
         );
       }
+
+      const data =
+        started.started && started.jobId
+          ? ((await waitForAiJobDone(started.jobId, 720000)) as {
+              ok?: boolean;
+              session?: NotebooklmSession;
+              brief?: NotebooklmBriefInfo;
+              error?: string;
+            })
+          : started;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       setNotebooklmSession((data.session as NotebooklmSession) || null);
       if (data.brief) setNotebooklmBrief(data.brief as NotebooklmBriefInfo);
       else await fetchNotebooklmBrief();
       const session = data.session as NotebooklmSession | undefined;
+      stopAiJobProgress(
+        true,
+        session?.awaitingUser
+          ? "NotebookLM · aguardando sua resposta"
+          : "NotebookLM · resposta processada"
+      );
       if (session?.readiness?.ready && !session?.awaitingUser) {
         toast.success(
           "Material suficiente — pode prosseguir com roteiro/narração."
         );
-      } else {
-        toast.success("Resposta enviada — aguarde o NotebookLM.");
+      } else if (!session?.awaitingUser) {
+        toast.success("Resposta enviada — material atualizado.");
       }
     } catch (err: unknown) {
-      toast.error(
+      stopAiJobProgress(
+        false,
         err instanceof Error
           ? err.message
           : "Conexão falhou ao responder NotebookLM."
