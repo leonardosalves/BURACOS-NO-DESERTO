@@ -79,6 +79,16 @@ function wrapBlockOnce(src, marker, opener, closer, wrapperOpen, wrapperClose) {
 
 function ensureGeoPipOverlayChromeProp(src = "") {
   let out = String(src);
+  if (!/durationInFrames\s*\??:/.test(out)) {
+    out = out.replace(
+      `  textColor?: string;
+};`,
+      `  textColor?: string;
+  durationInFrames?: number | string;
+  durationSeconds?: number | string;
+};`
+    );
+  }
   if (!/geoPipOverlayChrome\s*[=?:]/.test(out)) {
     out = out.replace(
       `  textColor?: string;
@@ -91,6 +101,17 @@ function ensureGeoPipOverlayChromeProp(src = "") {
       `  textColor = "#ffffff",
 }: EngineeringPictureInPictureProps)`,
       `  textColor = "#ffffff",
+  durationInFrames = 0,
+  durationSeconds = 0,
+  geoPipOverlayChrome = false,
+}: EngineeringPictureInPictureProps)`
+    );
+  } else if (!/durationInFrames\s*=/.test(out)) {
+    out = out.replace(
+      `  geoPipOverlayChrome = false,
+}: EngineeringPictureInPictureProps)`,
+      `  durationInFrames = 0,
+  durationSeconds = 0,
   geoPipOverlayChrome = false,
 }: EngineeringPictureInPictureProps)`
     );
@@ -194,9 +215,78 @@ export function patchGeoPipTemplateSourceForChrome(code = "") {
         }}
         viewBox={\`0 0 \${width} \${height}\`}`,
     `          pointerEvents: "none",
-          opacity: geoPipOverlayChrome ? 0.12 : 0.52,
+          opacity: geoPipOverlayChrome ? 0 : 0.52,
         }}
         viewBox={\`0 0 \${width} \${height}\`}`
+  );
+
+  src = src.replace(
+    `          background: "rgba(8,13,24,0.58)",
+          border: "1px solid rgba(34,211,238,0.24)",`,
+    `          background: geoPipOverlayChrome ? "transparent" : "rgba(8,13,24,0.58)",
+          border: geoPipOverlayChrome ? "none" : "1px solid rgba(34,211,238,0.24)",
+          opacity: geoPipOverlayChrome ? 0 : hudProgress,`
+  );
+
+  src = src.replace(
+    `            transform: \`translate(-50%, -50%) rotate(\${orbitRotation}deg)\`,
+            boxShadow: \`0 0 34px \${primaryColor}22\`,
+            pointerEvents: "none",
+            zIndex: 5,`,
+    `            transform: \`translate(-50%, -50%) rotate(\${orbitRotation}deg)\`,
+            boxShadow: \`0 0 34px \${primaryColor}22\`,
+            pointerEvents: "none",
+            opacity: geoPipOverlayChrome ? 0 : 1,
+            zIndex: 5,`
+  );
+  src = src.replace(
+    `            transform: \`translate(-50%, -50%) rotate(\${counterOrbitRotation}deg)\`,
+            pointerEvents: "none",
+            zIndex: 5,`,
+    `            transform: \`translate(-50%, -50%) rotate(\${counterOrbitRotation}deg)\`,
+            pointerEvents: "none",
+            opacity: geoPipOverlayChrome ? 0 : 1,
+            zIndex: 5,`
+  );
+
+  src = src.replace(
+    `    top: isBottom ? undefined : isVertical ? 164 : safePipInset + 24,
+    bottom: isBottom ? isVertical ? 132 : safePipInset : undefined,`,
+    `    top: isBottom ? undefined : isVertical ? (geoPipOverlayChrome ? 132 : 164) : safePipInset + 24,
+    bottom: isBottom ? (geoPipOverlayChrome ? undefined : isVertical ? 132 : safePipInset) : undefined,`
+  );
+
+  if (!src.includes("const sceneDurationFrames")) {
+    src = src.replace(
+      `  const safePipHeight = clamp(toNumber(pipHeight, 230), 120, 520);
+
+  const pipScaleRaw = spring({`,
+      `  const safePipHeight = clamp(toNumber(pipHeight, 230), 120, 520);
+
+  const sceneDurationFrames = Math.max(
+    1,
+    Math.round(toNumber(durationInFrames, 0)) ||
+      Math.round(toNumber(durationSeconds, 0) * fps) ||
+      90
+  );
+
+  const pipScaleRaw = spring({`
+    );
+  }
+
+  src = src.replace(
+    `  const progressPercent = Math.round(
+    interpolate(frame, [0, safePipDelayFrames + 36], [0, 100], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    })
+  );`,
+    `  const progressPercent = Math.round(
+    interpolate(frame, [0, sceneDurationFrames - 1], [0, 100], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    })
+  );`
   );
 
   return src;
