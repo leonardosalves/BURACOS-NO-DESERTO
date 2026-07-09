@@ -25,6 +25,30 @@ describe("timelineStudioLegacyStrip", () => {
     assert.equal(isStudioTemplateClip(clip), false);
   });
 
+  it("mantem location-intro sem studio_source_code", () => {
+    const clip = {
+      id: "m-geo",
+      trackId: "motion",
+      templateId: "location-intro",
+      start: 0,
+      duration: 8,
+      props: { location: "Bangkok", motion_scene: true },
+    };
+    assert.equal(isLegacyStudioOverlayClip(clip), false);
+  });
+
+  it("remove bar-chart motion sem studio_source_code", () => {
+    const clip = {
+      id: "m-bar",
+      trackId: "motion",
+      templateId: "bar-chart",
+      start: 0,
+      duration: 4,
+      props: { title: "COMPARAÇÃO", motion_scene: true },
+    };
+    assert.equal(isLegacyStudioOverlayClip(clip), true);
+  });
+
   it("mantem clip motion com studio_source_code", () => {
     const clip = {
       id: "m-1",

@@ -24,6 +24,7 @@ import {
   collectSuppressionState,
   storyboardRowMatchesSuppression,
 } from "../shared/timelineStudioRemotionSuppress.js";
+import { isRunnableStudioMotionScene } from "../shared/timelineStudioLegacyStrip.js";
 import { buildMotionResearchContext } from "../shared/storyboardResearch.js";
 import {
   enrichMotionScenesWithResearch,
@@ -790,7 +791,9 @@ export function isPrimaryRemotionMotionScene(ms = {}) {
 /** Todas as motion scenes vão para a trilha dedicada — não competem com B-roll. */
 export function motionScenesToMotionClips(motionScenes = []) {
   return (Array.isArray(motionScenes) ? motionScenes : [])
-    .filter((ms) => ms.media_mode === "remotion")
+    .filter(
+      (ms) => ms.media_mode === "remotion" && isRunnableStudioMotionScene(ms)
+    )
     .map((ms, i) => ({
       id: String(ms.id || `motion-${i + 1}`),
       trackId: MOTION_TRACK_ID,
@@ -958,7 +961,11 @@ export function syncMotionScenesToStudio(studio, motionScenes = []) {
   };
   const activeMotionScenes = (
     Array.isArray(motionScenes) ? motionScenes : []
-  ).filter((ms) => !storyboardRowMatchesSuppression(ms, "motion", suppression));
+  ).filter(
+    (ms) =>
+      !storyboardRowMatchesSuppression(ms, "motion", suppression) &&
+      isRunnableStudioMotionScene(ms)
+  );
   const motionClips = motionScenesToMotionClips(activeMotionScenes);
   if (!motionClips.length)
     return migrateStudioMotionClipsFromVideo(cleanStudio);
