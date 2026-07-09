@@ -1,34 +1,20 @@
-import toast from 'react-hot-toast';
+import toast from "react-hot-toast";
 
-type DashToastTone = 'success' | 'error' | 'warning' | 'info' | 'primary';
+type DashToastTone = "success" | "error" | "warning" | "info" | "primary";
 
-const toneClass: Record<DashToastTone, string> = {
-  success: 'dash-toast dash-toast-success',
-  error: 'dash-toast dash-toast-danger',
-  warning: 'dash-toast dash-toast-warning',
-  info: 'dash-toast dash-toast-info',
-  primary: 'dash-toast dash-toast-primary',
-};
-
-function show(message: string, tone: DashToastTone, duration = 4000) {
-  return toast(message, {
-    duration,
-    className: toneClass[tone],
-    style: {
-      background: 'var(--dash-card)',
-      color: '#fff',
-      border: '1px solid var(--dash-border)',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-      fontSize: '12px',
-      fontWeight: 600,
-    },
-  });
+function toneClass(tone: DashToastTone) {
+  return `dash-toast dash-toast-${tone === "error" ? "danger" : tone}`;
 }
 
 export const dashToast = {
-  success: (msg: string) => show(msg, 'success'),
-  error: (msg: string) => show(msg, 'error'),
-  warning: (msg: string) => show(msg, 'warning'),
-  info: (msg: string) => show(msg, 'info'),
-  primary: (msg: string) => show(msg, 'primary'),
+  success: (msg: string) =>
+    toast.success(msg, { duration: 4200, className: toneClass("success") }),
+  error: (msg: string) =>
+    toast.error(msg, { duration: 5200, className: toneClass("error") }),
+  warning: (msg: string) =>
+    toast(msg, { duration: 4800, className: toneClass("warning"), icon: "⚠️" }),
+  info: (msg: string) =>
+    toast(msg, { duration: 4200, className: toneClass("info") }),
+  primary: (msg: string) =>
+    toast(msg, { duration: 4200, className: toneClass("primary") }),
 };

@@ -8,3 +8,4 @@ export { DashListGroup } from './DashListGroup';
 export { DashRating } from './DashRating';
 export { DashCardMenu } from './DashCardMenu';
 export { dashToast } from './dashToast';
+export { DashToaster } from './DashToaster';

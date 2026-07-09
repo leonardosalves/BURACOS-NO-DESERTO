@@ -302,6 +302,8 @@ export function TimelineStudio({
       focusRemotion?: boolean;
       silent?: boolean;
       fullSync?: boolean;
+      /** Só ações explícitas (ex.: remigrar) — nunca em F5/recarregar. */
+      notifySync?: boolean;
     }) => {
       if (!activeProject) return null;
       if (!opts?.silent) setLoading(true);
@@ -323,34 +325,36 @@ export function TimelineStudio({
           data.studio as TimelineStudioState,
           { focusRemotion: opts?.focusRemotion }
         );
-        if (!opts?.silent) {
+        if (opts?.notifySync) {
+          const syncNotes: string[] = [];
           if (data.migrated) {
-            toast.success("Timeline Studio: projeto migrado para multi-trilha");
+            syncNotes.push("projeto migrado para multi-trilha");
           }
           if (data.motionMigrated) {
-            toast.success(
-              "Cenas Remotion movidas para trilha própria (mapas em fullscreen)"
-            );
+            syncNotes.push("cenas Remotion na trilha própria");
           }
           if (Number(data.brollRestored) > 0) {
-            toast.success(
-              `${data.brollRestored} clip(s) B-roll restaurado(s) do config`
+            syncNotes.push(
+              `${data.brollRestored} clip(s) B-roll restaurado(s)`
             );
           }
           if (Number(data.remotionRestored) > 0) {
-            toast.success(
-              `${data.remotionRestored} template(s) Remotion restaurado(s) na timeline`
+            syncNotes.push(
+              `${data.remotionRestored} template(s) Remotion restaurado(s)`
             );
           }
           if (data.narrationSynced) {
-            toast.success("Narração e legendas sincronizadas na timeline", {
-              duration: 4000,
-            });
+            syncNotes.push("narração e legendas sincronizadas");
           }
           if (Number(data.legacyStripped) > 0) {
-            toast.success(
+            syncNotes.push(
               `${data.legacyStripped} template(s) legado(s) removido(s)`
             );
+          }
+          if (syncNotes.length) {
+            toast.success(`Timeline atualizada · ${syncNotes.join(" · ")}`, {
+              duration: 5000,
+            });
           }
         }
         initialLoadDoneRef.current = true;
@@ -377,7 +381,7 @@ export function TimelineStudio({
   useEffect(() => {
     initialLoadDoneRef.current = false;
     setLocalPlayhead(null);
-    void loadStudioRef.current({ fullSync: true });
+    void loadStudioRef.current({ fullSync: true, silent: true });
   }, [activeProject]);
 
   const prevSyncingTimingsRef = useRef(syncingTimings);
@@ -938,7 +942,7 @@ export function TimelineStudio({
         {!loading && (
           <button
             type="button"
-            onClick={() => void loadStudio({ fullSync: true })}
+            onClick={() => void loadStudio({ fullSync: true, silent: true })}
             className="text-xs text-gold-400 border border-gold-500/30 px-3 py-1.5 rounded-lg cursor-pointer"
           >
             Tentar novamente
@@ -967,7 +971,9 @@ export function TimelineStudio({
           </p>
           <button
             type="button"
-            onClick={() => void loadStudio({ fullSync: true })}
+            onClick={() =>
+              void loadStudio({ fullSync: true, silent: true })
+            }
             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-rose-400/40 text-rose-100 cursor-pointer"
           >
             Atualizar timeline
@@ -1222,7 +1228,7 @@ export function TimelineStudio({
           <button
             type="button"
             onClick={() =>
-              void loadStudio({ fullSync: true, silent: Boolean(studio) })
+              void loadStudio({ fullSync: true, silent: true })
             }
             disabled={loading}
             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 cursor-pointer disabled:opacity-50 flex items-center gap-1"

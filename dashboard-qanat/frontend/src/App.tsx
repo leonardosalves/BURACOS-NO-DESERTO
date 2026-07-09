@@ -1,4 +1,5 @@
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
+import { DashToaster } from "./dashmin/ui/DashToaster";
 
 import React, {
   useState,
@@ -10278,19 +10279,7 @@ export default function App() {
     <>
       <AiJobProgressBar />
 
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          className: "dash-toast dash-toast-primary",
-          style: {
-            background: "#0c1018",
-            color: "#fff",
-            border: "1px solid #1a2230",
-            borderLeft: "3px solid #8280fd",
-          },
-        }}
-      />
+      <DashToaster />
 
       {preRenderModalOpen && videoQuality?.preRenderAdvice && pendingRender && (
         <PreRenderAdviceModal
