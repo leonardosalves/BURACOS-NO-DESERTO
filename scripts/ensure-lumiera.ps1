@@ -64,10 +64,13 @@ if (-not $Quiet) {
 if ($uniport) {
     if ($backendOk -and (Test-LumieraFrontendDistReady)) {
         Start-LumieraLegacyRedirect | Out-Null
+        Ensure-LumieraWatchdogRunning | Out-Null
         exit 0
     }
     exit 1
 }
+
+Ensure-LumieraWatchdogRunning | Out-Null
 
 $frontendOk = [bool](Get-PortListenerPidFast 5176)
 if ($backendOk -and $frontendOk) { exit 0 }

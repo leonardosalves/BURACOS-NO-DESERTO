@@ -101,12 +101,9 @@ Set-Content -Path $bootVbs -Value @(
 ) -Encoding ASCII
 Write-Host "Boot: ensure-lumiera na pasta Inicializar" -ForegroundColor DarkGray
 
+Ensure-LumieraWatchdogRunning | Out-Null
 if (-not $taskOk) {
-    Start-Process -FilePath "powershell.exe" -ArgumentList @(
-        "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
-        "-File", $WatchScript
-    ) -WorkingDirectory $script:RepoRoot -WindowStyle Hidden | Out-Null
-    Write-Host "Watchdog: processo em background iniciado" -ForegroundColor Green
+    Write-Host "Watchdog: processo em background (v4, nunca mata)" -ForegroundColor Green
 }
 
 Write-Host ""

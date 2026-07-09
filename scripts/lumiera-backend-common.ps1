@@ -258,6 +258,57 @@ function Stop-LumieraViteDev {
     Write-LumieraLog ("Vite dev encerrado na porta 5176 (PID {0})" -f $fePid)
 }
 
+function Ensure-LumieraBackendUp {
+    if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 12) { return $true }
+
+    $livePid = Get-BackendListenerPid
+    if ($livePid) {
+        Write-LumieraLog "Backend PID $livePid ativo, health lento - aguardando (sem matar)" "WARN"
+        $deadline = (Get-Date).AddSeconds(120)
+        while ((Get-Date) -lt $deadline) {
+            if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 15) { return $true }
+            Start-Sleep -Seconds 3
+        }
+        return $true
+    }
+
+    Write-LumieraLog "Backend offline - spawn na porta $script:BackendPort" "WARN"
+    Start-LumieraBackendProcess -Direct -SpawnOnly | Out-Null
+    $deadline = (Get-Date).AddSeconds(120)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 15) { return $true }
+        Start-Sleep -Seconds 2
+    }
+    return $false
+}
+
+function Ensure-LumieraWatchdogRunning {
+    $pidFile = Join-Path $script:LogDir "watchdog.pid"
+    if (Test-Path -LiteralPath $pidFile) {
+        try {
+            $wpid = [int](Get-Content -LiteralPath $pidFile -TotalCount 1)
+            if ($wpid -gt 0 -and (Get-Process -Id $wpid -ErrorAction SilentlyContinue)) {
+                return $true
+            }
+        } catch { }
+    }
+
+    $watchScript = Join-Path $script:RepoRoot "scripts\watch-lumiera-backend.ps1"
+    if (-not (Test-Path -LiteralPath $watchScript)) { return $false }
+
+    Start-Process `
+        -FilePath "powershell.exe" `
+        -ArgumentList @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
+            "-File", $watchScript
+        ) `
+        -WorkingDirectory $script:RepoRoot `
+        -WindowStyle Hidden | Out-Null
+
+    Start-Sleep -Seconds 1
+    return $true
+}
+
 function Start-LumieraLegacyRedirect {
     if (-not (Test-LumieraUniportMode)) { return $true }
     if (Test-LumieraRedirectRunning) { return $true }
@@ -466,12 +517,9 @@ function Repair-LumieraStackUnified {
                 return $false
             }
         }
-        $needBackend = -not $health.backend
-        $backendOk = if ($needBackend) {
-            Start-LumieraStackDirect -ForceBackend
-        } else {
-            $true
-        }
+        $backendOk = if (-not $health.backend) { Ensure-LumieraBackendUp } else { $true }
+        Start-LumieraLegacyRedirect | Out-Null
+        Ensure-LumieraWatchdogRunning | Out-Null
         return $backendOk -and (Test-LumieraStackHealthy).ok
     }
 
@@ -490,11 +538,8 @@ function Repair-LumieraStackUnified {
     Disable-LumieraPm2Competition
     $needBackend = -not $health.backend
     $needFrontend = -not $health.frontend
-    $backendOk = if ($needBackend) {
-        Start-LumieraStackDirect -ForceBackend
-    } else {
-        $true
-    }
+    $backendOk = if ($needBackend) { Ensure-LumieraBackendUp } else { $true }
+    Ensure-LumieraWatchdogRunning | Out-Null
     $frontendOk = $true
     if ($needFrontend) {
         $feScript = Join-Path $script:RepoRoot "scripts\ensure-frontend.ps1"
