@@ -245,6 +245,7 @@ import {
   formatNotebooklmBriefPromptBlock,
   shouldSkipWebResearchForBrief,
   mergeBriefIntoStoryboard,
+  shouldPauseNotebooklmNarration,
   NOTEBOOKLM_BRIEF_FILENAME,
 } from "./notebooklmService.js";
 import {
@@ -16332,7 +16333,30 @@ app.post(
     } else if (useNotebooklm !== false && !skipNotebooklmScript) {
       report("notebooklm", "Consultando NotebookLM…", 18);
       try {
-        console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
+        const nlmSessionExisting = projDir
+          ? loadNotebooklmSession({
+              projDir,
+              backendDir: __dirname,
+              niche: nlmNiche,
+            })
+          : null;
+        const nlmUserTurns = (nlmSessionExisting?.turns || []).filter(
+          (t) => t.role === "user"
+        ).length;
+        const nlmBriefFinalized =
+          notebooklmBriefDisk?.status === "finalized" ||
+          (skipNotebooklmPending && notebooklmBriefDisk?.available);
+        const needsNlmDiscovery =
+          scriptPhase === "narration" &&
+          !skipNotebooklmPending &&
+          nlmUserTurns === 0 &&
+          !nlmBriefFinalized;
+
+        console.log(
+          needsNlmDiscovery
+            ? "[NotebookLM] Rodada interativa de alinhamento (antes da narração)…"
+            : "[NotebookLM] Enriquecendo roteiro com pesquisa..."
+        );
         notebooklmResearch = await fetchNotebooklmScriptContext({
           backendDir: __dirname,
           niche: nlmNiche,
@@ -16342,11 +16366,17 @@ app.post(
           rankCount: listicleRank,
           listTopic: listicleTopic,
           rankOrder: rankOrder || "desc",
+          interactiveDiscovery: needsNlmDiscovery,
+          runResearch: needsNlmDiscovery ? false : undefined,
         });
         if (
-          notebooklmResearch?.awaitingUser &&
-          !skipNotebooklmPending &&
-          scriptPhase === "narration"
+          shouldPauseNotebooklmNarration(notebooklmResearch, {
+            scriptPhase,
+            skipNotebooklmPending,
+            needsDiscovery: needsNlmDiscovery,
+            userTurns: nlmUserTurns,
+            briefFinalized: nlmBriefFinalized,
+          })
         ) {
           const session = persistNotebooklmResearchSession({
             research: notebooklmResearch,
@@ -16728,6 +16758,8 @@ app.post(
           !skipPostProcess &&
           useNotebooklm !== false &&
           notebooklmResearch?.available &&
+          !skipNotebooklmPending &&
+          !notebooklmBriefDisk?.available &&
           String(parsedData.narrative_script || "").trim().length >= 40
         ) {
           try {

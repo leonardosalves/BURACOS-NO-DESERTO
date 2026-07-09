@@ -8161,10 +8161,18 @@ export default function App() {
         setNotebooklmSession(
           (data.notebooklm_session as NotebooklmSession) || null
         );
+        if (data.notebooklm_brief) {
+          setNotebooklmBrief({
+            path: String(data.notebooklm_brief),
+          });
+        } else {
+          void fetchNotebooklmBrief();
+        }
+        setShowNarrationReview(false);
         notebooklmProceedActionRef.current = "narration";
         toast(
-          "O NotebookLM fez perguntas — responda no painel de enriquecimento.",
-          { icon: "💬", duration: 6000 }
+          "O NotebookLM quer alinhar o assunto — responda no painel roxo antes da narração.",
+          { icon: "💬", duration: 8000 }
         );
         return;
       }
