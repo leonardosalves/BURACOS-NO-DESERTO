@@ -359,6 +359,86 @@ export function bindStudioTemplateProps({
   };
 }
 
+const STUDIO_META_KEYS = new Set([
+  "template_studio_id",
+  "template_studio_name",
+  "template_studio_category",
+  "template_studio_subcategory",
+  "template_studio_motion_template_id",
+  "template_studio_data_slots",
+  "studio_source_code",
+  "studio_props",
+  "studio_props_meta",
+  "studio_role",
+  "studio_z_index",
+  "studio_opacity",
+]);
+
+function dataSlotsFromScene(scene = {}) {
+  const props = scene.props || {};
+  return Array.isArray(props.template_studio_data_slots)
+    ? props.template_studio_data_slots.map((s) => String(s || "").trim())
+    : [];
+}
+
+function filledSlotKeys(props = {}, dataSlots = []) {
+  const filled = [];
+  for (const slot of dataSlots) {
+    const value = props[slot] ?? props.studio_props?.[slot];
+    if (!isPlaceholderValue(value)) filled.push(slot);
+  }
+  return filled;
+}
+
+/** Cobertura do contrato dataSlots (0–1) para uma cena Studio. */
+export function computeStudioContractCoverage(scene = {}) {
+  const dataSlots = dataSlotsFromScene(scene);
+  if (!dataSlots.length)
+    return { coverage: 1, filled_slots: [], missing_slots: [] };
+  const filled = filledSlotKeys(scene.props || {}, dataSlots);
+  const missing = dataSlots.filter((slot) => !filled.includes(slot));
+  return {
+    coverage: filled.length / dataSlots.length,
+    filled_slots: filled,
+    missing_slots: missing,
+    data_slots_total: dataSlots.length,
+  };
+}
+
+export function validateStudioContractCoverage(scene = {}, minCoverage = 0.5) {
+  const { coverage, filled_slots, missing_slots, data_slots_total } =
+    computeStudioContractCoverage(scene);
+  return {
+    valid: coverage >= minCoverage,
+    coverage,
+    filled_slots,
+    missing_slots,
+    data_slots_total,
+  };
+}
+
+/** Mescla studio_props do LLM sem sobrescrever valores heurísticos válidos. */
+export function mergeStudioPropsFromLlm(
+  heuristicProps = {},
+  llmProps = {},
+  dataSlots = []
+) {
+  const slots = new Set(
+    (Array.isArray(dataSlots) ? dataSlots : []).map((s) =>
+      String(s || "").trim()
+    )
+  );
+  const merged = { ...(heuristicProps || {}) };
+  for (const [key, value] of Object.entries(llmProps || {})) {
+    if (STUDIO_META_KEYS.has(key)) continue;
+    if (slots.size && !slots.has(key)) continue;
+    if (isPlaceholderValue(value)) continue;
+    if (!isPlaceholderValue(merged[key])) continue;
+    merged[key] = value;
+  }
+  return merged;
+}
+
 /** Aplica binder a uma motion scene que já tem template Studio anexado. */
 export function enrichStudioTemplateScene(
   scene = {},
@@ -374,14 +454,22 @@ export function enrichStudioTemplateScene(
     config,
   });
 
-  if (!Object.keys(studio_props).length) return scene;
+  const dataSlots = Array.isArray(tpl.dataSlots) ? tpl.dataSlots : [];
+  const existing = scene.props || {};
+  const mergedStudio = { ...studio_props };
+  for (const slot of dataSlots) {
+    const fromScene = existing[slot] ?? existing.studio_props?.[slot];
+    if (!isPlaceholderValue(fromScene)) mergedStudio[slot] = fromScene;
+  }
+
+  if (!Object.keys(mergedStudio).length) return scene;
 
   return {
     ...scene,
     props: {
       ...(scene.props || {}),
-      ...studio_props,
-      studio_props,
+      ...mergedStudio,
+      studio_props: mergedStudio,
       studio_props_meta,
     },
   };

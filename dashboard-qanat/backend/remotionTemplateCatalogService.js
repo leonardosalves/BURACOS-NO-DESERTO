@@ -261,6 +261,88 @@ export function resolveStudioSourceCode(template = {}, aspectRatio = "16:9") {
   return String(primary || fallback || "").trim();
 }
 
+export function pickStudioTemplateByCategory({
+  category = "",
+  motionTemplateId = "",
+  niche = "",
+  aspectRatio = "16:9",
+  preferredStudioIds = [],
+  previousStudioIds = [],
+  previousStudioCategories = [],
+  scene = null,
+  researchContext = {},
+  config = {},
+} = {}) {
+  const targetCat = String(category || "")
+    .trim()
+    .toLowerCase();
+  if (!targetCat) return null;
+
+  const catalog = getCatalogForNiche(niche);
+  let candidates = catalog.approved.filter(
+    (tpl) =>
+      tpl.orchestration_ready &&
+      tpl.has_source_code &&
+      tpl.status === "approved" &&
+      String(tpl.category || "")
+        .trim()
+        .toLowerCase() === targetCat
+  );
+
+  const motionId = String(motionTemplateId || "").trim();
+  if (!candidates.length && motionId) {
+    candidates = catalog.approved.filter(
+      (tpl) =>
+        tpl.orchestration_ready &&
+        tpl.has_source_code &&
+        tpl.status === "approved" &&
+        tpl.motion_template_id === motionId
+    );
+  }
+  if (!candidates.length) return null;
+
+  const scored = candidates
+    .map((tpl) => {
+      const base = scoreStudioTemplateForTrigger(
+        tpl,
+        "curiosity_punch",
+        tpl.motion_template_id,
+        {
+          preferredStudioIds,
+          previousStudioIds,
+          previousStudioCategories,
+        }
+      );
+      const coverage = scoreStudioTemplateCoverage(tpl, {
+        scene,
+        researchContext,
+        config,
+      });
+      return {
+        tpl,
+        score: base.score + coverage.bonus,
+        reasons: [...base.reasons, ...coverage.reasons],
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const best = scored[0];
+  if (!best || best.score < 0) return null;
+
+  return {
+    ...best.tpl,
+    studio_pick_score: best.score,
+    studio_pick_reasons: best.reasons,
+    studio_source_code: resolveStudioSourceCode(best.tpl, aspectRatio),
+    candidates: scored.slice(0, 4).map((entry) => ({
+      id: entry.tpl.id,
+      name: entry.tpl.name,
+      score: entry.score,
+      has_source_code: entry.tpl.has_source_code,
+    })),
+  };
+}
+
 export function pickStudioTemplateForTrigger({
   trigger = "",
   motionTemplateId = "",

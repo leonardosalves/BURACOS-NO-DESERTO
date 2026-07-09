@@ -2,7 +2,10 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   bindStudioTemplateProps,
+  computeStudioContractCoverage,
   enrichStudioTemplateScene,
+  mergeStudioPropsFromLlm,
+  validateStudioContractCoverage,
 } from "./studioTemplatePropsBinder.js";
 
 describe("studioTemplatePropsBinder", () => {
@@ -108,5 +111,43 @@ describe("studioTemplatePropsBinder", () => {
     assert.ok(Array.isArray(scene.props.events));
     assert.ok(scene.props.studio_props);
     assert.equal(scene.props.events, scene.props.studio_props.events);
+  });
+
+  it("validateStudioContractCoverage rejeita cena com poucos slots", () => {
+    const scene = {
+      props: {
+        template_studio_data_slots: ["text", "subtitle", "value", "label"],
+        text: "IMPACTO REAL",
+      },
+    };
+    const result = validateStudioContractCoverage(scene, 0.5);
+    assert.equal(result.valid, false);
+    assert.equal(result.coverage, 0.25);
+    assert.ok(result.missing_slots.includes("value"));
+  });
+
+  it("mergeStudioPropsFromLlm preserva heurístico e preenche faltantes", () => {
+    const merged = mergeStudioPropsFromLlm(
+      { text: "62%", label: "BRASIL" },
+      { text: "IGNORAR", subtitle: "Dado verificado", value: 62 },
+      ["text", "subtitle", "value", "label"]
+    );
+    assert.equal(merged.text, "62%");
+    assert.equal(merged.subtitle, "Dado verificado");
+    assert.equal(merged.value, 62);
+    assert.equal(merged.label, "BRASIL");
+  });
+
+  it("computeStudioContractCoverage conta slots preenchidos", () => {
+    const scene = {
+      props: {
+        template_studio_data_slots: ["value", "label"],
+        value: 42,
+        label: "BRASIL 42",
+      },
+    };
+    const cov = computeStudioContractCoverage(scene);
+    assert.equal(cov.coverage, 1);
+    assert.deepEqual(cov.missing_slots, []);
   });
 });

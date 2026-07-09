@@ -16,6 +16,14 @@ import {
 import { buildMotionResearchContext } from "../shared/storyboardResearch.js";
 import { enrichMotionScenesWithResearch } from "../shared/motionResearchProps.js";
 import { summarizeCatalogForLlm } from "./remotionTemplateCatalogService.js";
+import {
+  computeStudioContractCoverage,
+  enrichStudioTemplateScene,
+  mergeStudioPropsFromLlm,
+  validateStudioContractCoverage,
+} from "../shared/studioTemplatePropsBinder.js";
+
+export const STUDIO_CONTRACT_MIN_COVERAGE = 0.5;
 
 const VALID_TEMPLATES = new Set(
   Object.values(MOTION_SCENE_TRIGGERS).flatMap((t) => t.templates || [])
@@ -144,6 +152,31 @@ export function dedupeMotionScenesAgainstOverlays(
   return { scenes, removed };
 }
 
+function summarizeStudioContractsForPrompt(scenes = []) {
+  const studioScenes = (Array.isArray(scenes) ? scenes : []).filter(
+    (s) =>
+      s.props?.template_studio_id && s.props?.template_studio_data_slots?.length
+  );
+  if (!studioScenes.length) return "";
+
+  return studioScenes
+    .map((scene) => {
+      const dataSlots = scene.props.template_studio_data_slots;
+      const coverage = computeStudioContractCoverage(scene);
+      return {
+        id: scene.id,
+        template_studio_id: scene.props.template_studio_id,
+        template_studio_name: scene.props.template_studio_name,
+        dataSlots,
+        studio_props: scene.props.studio_props || {},
+        missing_slots: coverage.missing_slots,
+        coverage: Math.round(coverage.coverage * 100),
+        narration_excerpt: String(scene.narration_text || "").slice(0, 160),
+      };
+    })
+    .slice(0, 12);
+}
+
 function summarizeOverlaysForPrompt(overlaysAi = []) {
   return (Array.isArray(overlaysAi) ? overlaysAi : [])
     .slice(0, 24)
@@ -195,6 +228,7 @@ export function buildMotionSceneEnrichmentPrompt({
         )
       : [];
   const overlaySummary = summarizeOverlaysForPrompt(overlaysAi);
+  const studioContracts = summarizeStudioContractsForPrompt(scenes);
   const researchContext = buildMotionResearchContext(storyboard, config);
   const researchFacts = (researchContext.globalFacts || []).slice(0, 12);
   const researchSources = (researchContext.globalSources || [])
@@ -244,6 +278,18 @@ export function buildMotionSceneEnrichmentPrompt({
     "- lower-third: props.subtitle com o fato histórico da narração.",
     "- Mantenha id, scene_ref, block e start_hint do plano heurístico quando possível.",
     `- accentColor padrão: ${accent}`,
+    studioContracts.length
+      ? "- CONTRATO TEMPLATE STUDIO: para cenas com template_studio_id, preencha props.studio_props com TODOS os dataSlots faltantes usando narração e pesquisa — NÃO invente números sem suporte textual."
+      : "",
+    studioContracts.length
+      ? "- studio_props: use APENAS chaves listadas em dataSlots; preserve valores já preenchidos no plano heurístico."
+      : "",
+    studioContracts.length
+      ? `- Cobertura mínima exigida após enrich: ${Math.round(STUDIO_CONTRACT_MIN_COVERAGE * 100)}% dos dataSlots.`
+      : "",
+    studioContracts.length
+      ? `CONTRATOS_STUDIO:\n${JSON.stringify(studioContracts, null, 2)}`
+      : "",
     "",
     nicheDesignPromptBlock(nichePack),
     "",
@@ -261,8 +307,103 @@ export function buildMotionSceneEnrichmentPrompt({
     "CONTEXTO visual_prompts:",
     JSON.stringify(visualContext, null, 2),
     "",
-    'Retorne APENAS JSON: { "motion_scenes": [ ... ], "notes": "breve" }',
+    'Retorne APENAS JSON: { "motion_scenes": [ { "id", "template_id", "props": { ... , "studio_props": { slot: valor } } } ], "notes": "breve" }',
   ].join("\n");
+}
+
+function extractLlmStudioProps(raw = {}, dataSlots = []) {
+  const llmProps =
+    raw.props?.studio_props && typeof raw.props.studio_props === "object"
+      ? raw.props.studio_props
+      : {};
+  const topLevel = {};
+  for (const slot of dataSlots) {
+    if (raw.props?.[slot] !== undefined) topLevel[slot] = raw.props[slot];
+  }
+  return { ...topLevel, ...llmProps };
+}
+
+export function applyStudioContractFromLlm(
+  scene = {},
+  raw = {},
+  researchContext = {},
+  config = {}
+) {
+  const dataSlots = Array.isArray(scene.props?.template_studio_data_slots)
+    ? scene.props.template_studio_data_slots
+    : [];
+  if (!dataSlots.length || !scene.props?.template_studio_id) return scene;
+
+  const heuristicStudio = scene.props.studio_props || {};
+  const llmStudio = extractLlmStudioProps(raw, dataSlots);
+  const mergedStudio = mergeStudioPropsFromLlm(
+    heuristicStudio,
+    llmStudio,
+    dataSlots
+  );
+
+  let enriched = {
+    ...scene,
+    props: {
+      ...(scene.props || {}),
+      ...mergedStudio,
+      studio_props: mergedStudio,
+    },
+  };
+
+  enriched = enrichStudioTemplateScene(enriched, {
+    researchContext,
+    config,
+  });
+
+  const validation = validateStudioContractCoverage(
+    enriched,
+    STUDIO_CONTRACT_MIN_COVERAGE
+  );
+  enriched.props.studio_props_meta = {
+    ...(enriched.props.studio_props_meta || {}),
+    llm_enriched: Object.keys(llmStudio).length > 0,
+    contract_valid: validation.valid,
+    contract_coverage: validation.coverage,
+    contract_missing_slots: validation.missing_slots,
+  };
+
+  if (!validation.valid) {
+    return {
+      ...enriched,
+      studio_contract_rejected: true,
+      studio_contract_reason: `cobertura ${Math.round(validation.coverage * 100)}% abaixo do mínimo ${Math.round(STUDIO_CONTRACT_MIN_COVERAGE * 100)}%`,
+    };
+  }
+
+  return enriched;
+}
+
+export function filterScenesFailingStudioContract(scenes = []) {
+  const input = Array.isArray(scenes) ? scenes : [];
+  const kept = [];
+  const rejected = [];
+  for (const scene of input) {
+    if (!scene.props?.template_studio_id) {
+      kept.push(scene);
+      continue;
+    }
+    const validation = validateStudioContractCoverage(
+      scene,
+      STUDIO_CONTRACT_MIN_COVERAGE
+    );
+    if (validation.valid) {
+      kept.push(scene);
+    } else {
+      rejected.push({
+        id: scene.id,
+        template_studio_id: scene.props.template_studio_id,
+        coverage: validation.coverage,
+        missing_slots: validation.missing_slots,
+      });
+    }
+  }
+  return { scenes: kept, rejected };
 }
 
 function normalizeLlmMotionScene(
@@ -433,23 +574,27 @@ export function applyLlmEnrichmentToPlan(
         : Number(heuristic.start_hint) > 0
           ? Number(heuristic.start_hint)
           : startHint;
-    return {
+    const merged = {
       ...heuristic,
       ...llm,
       start_hint: safeStart,
       props: { ...(heuristic.props || {}), ...(llm.props || {}) },
     };
+    return applyStudioContractFromLlm(merged, llm, researchContext, config);
   });
+
+  const contractFiltered = filterScenesFailingStudioContract(motion_scenes);
 
   return {
     ...heuristicPlan,
     motion_scenes: enrichMotionScenesWithResearch(
-      motion_scenes,
+      contractFiltered.scenes,
       researchContext
     ),
     planner_version: 2,
     source: "heuristic+llm",
     llm_notes: String(llmPayload?.notes || "").slice(0, 500),
+    studio_contract_rejected: contractFiltered.rejected,
     planned_at: new Date().toISOString(),
   };
 }

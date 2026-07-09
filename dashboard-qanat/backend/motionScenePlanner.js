@@ -34,9 +34,11 @@ import {
 } from "../shared/motionResearchProps.js";
 import {
   attachStudioTemplateToScene,
+  pickStudioTemplateByCategory,
   pickStudioTemplateForTrigger,
   resolveMotionTemplateIdsFromPack,
 } from "./remotionTemplateCatalogService.js";
+import { injectStudioRoleScenes } from "../shared/studioTemplateRoleInjector.js";
 import {
   classifyGeoNarrationSegment,
   explainGeoNarrationSegment,
@@ -232,6 +234,8 @@ function buildMotionPlanReview({
   afterGeoLimitCount = 0,
   studioPackEnabled = false,
   boostedCount = 0,
+  transitionCount = 0,
+  backgroundCount = 0,
 }) {
   const usedTemplates = scenes.map((scene) => String(scene.template_id || ""));
   const uniqueTemplates = [...new Set(usedTemplates)].filter(Boolean);
@@ -255,6 +259,8 @@ function buildMotionPlanReview({
         : REMOTION_TEMPLATE_LIMITS.longTargetMin,
     studio_pack_enabled: Boolean(studioPackEnabled),
     studio_boosted_count: boostedCount,
+    studio_transition_count: transitionCount,
+    studio_background_count: backgroundCount,
     candidate_count: beforeLimitCount,
     geo_limited_count: afterGeoLimitCount,
     skipped_count: skippedEntries.length,
@@ -978,6 +984,9 @@ export function planMotionScenesFromStoryboard(
   }
 
   let plannedScenes = scenes;
+  let boostedCount = 0;
+  let transitionCount = 0;
+  let backgroundCount = 0;
   if (studioPackEnabled && studioNiche) {
     plannedScenes = boostStudioMotionScenesForLongForm({
       scenes,
@@ -993,6 +1002,24 @@ export function planMotionScenesFromStoryboard(
       preferredTemplates,
       aspectRatio,
     });
+    boostedCount = Math.max(0, plannedScenes.length - scenes.length);
+
+    const roleInjected = injectStudioRoleScenes({
+      scenes: plannedScenes,
+      visualPrompts,
+      blockTimings,
+      config,
+      studioNiche,
+      aspectRatio,
+      accentColor,
+      nichePack,
+      researchContext,
+      preferredStudioIds,
+      pickStudioTemplateByCategory,
+    });
+    plannedScenes = roleInjected.scenes;
+    transitionCount = roleInjected.transitions?.length || 0;
+    backgroundCount = roleInjected.backgrounds?.length || 0;
   }
 
   const geoCapped = limitGeoMotionScenes(plannedScenes, aspectRatio);
@@ -1015,7 +1042,9 @@ export function planMotionScenesFromStoryboard(
       beforeLimitCount: plannedScenes.length,
       afterGeoLimitCount: geoCapped.length,
       studioPackEnabled,
-      boostedCount: Math.max(0, plannedScenes.length - scenes.length),
+      boostedCount,
+      transitionCount,
+      backgroundCount,
     }),
     research_backed: Boolean(
       researchContext.globalFacts?.length ||
