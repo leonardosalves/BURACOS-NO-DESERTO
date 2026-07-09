@@ -47,6 +47,21 @@ Você gostaria que eu fizesse essa pesquisa na web agora?`;
     assert.equal(session.readiness.ready, false);
   });
 
+  it("nao trava em loop quando ja houve 2 respostas do editor", () => {
+    const readiness = assessNotebooklmReadiness({
+      awaitingUser: true,
+      turns: [
+        { role: "assistant", content: "Pergunta 1?" },
+        { role: "user", content: "sim pesquise" },
+        { role: "assistant", content: "Pergunta 2?" },
+        { role: "user", content: "traga numeros" },
+        { role: "assistant", content: "Mais uma pergunta?" },
+      ],
+      accumulatedSummary: "Fatos sobre cabos submarinos e fibra otica.",
+    });
+    assert.equal(readiness.ready, true);
+  });
+
   it("libera prosseguir com material factual acumulado", () => {
     const readiness = assessNotebooklmReadiness({
       awaitingUser: false,

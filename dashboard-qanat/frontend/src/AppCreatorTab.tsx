@@ -1563,11 +1563,15 @@ export function AppCreatorTab({
                       <span>
                         {creatorLoading && creatorLoadingMode === "narration"
                           ? useNotebooklm
-                            ? "Consultando NotebookLM..."
+                            ? notebooklmSession
+                              ? "Gerando narração..."
+                              : "Consultando NotebookLM..."
                             : "Gerando narração..."
-                          : useNotebooklm
-                            ? "Consultar NotebookLM → Narração"
-                            : "Gerar Narração"}
+                          : useNotebooklm && notebooklmSession
+                            ? "Prosseguir → Gerar narração"
+                            : useNotebooklm
+                              ? "Consultar NotebookLM → Narração"
+                              : "Gerar Narração"}
                       </span>
                     </button>
                   </div>

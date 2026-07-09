@@ -8142,7 +8142,13 @@ export default function App() {
     const payloadSkipNlm = Boolean(
       (payload as { skipNotebooklmPending?: boolean }).skipNotebooklmPending
     );
-    if (useNotebooklm && !payloadSkipNlm) {
+    const nlmInProgress =
+      notebooklmSession &&
+      (notebooklmSession.awaitingUser ||
+        notebooklmSession.status === "pending_user" ||
+        ((notebooklmSession.turns?.length ?? 0) > 0 &&
+          notebooklmSession.status !== "finalized"));
+    if (useNotebooklm && !payloadSkipNlm && !nlmInProgress) {
       setNotebooklmSession(null);
       setNotebooklmBrief(null);
       try {
@@ -8509,6 +8515,19 @@ export default function App() {
 
   const handleGenerateNarration = async () => {
     if (!validateCreatorScriptInputs()) return;
+
+    const nlmPending =
+      notebooklmSession &&
+      (notebooklmSession.awaitingUser ||
+        notebooklmSession.status === "pending_user");
+    if (nlmPending) {
+      toast("Prosseguindo com o material do NotebookLM — gerando narração…", {
+        icon: "✨",
+        duration: 6000,
+      });
+      await handleNotebooklmProceed();
+      return;
+    }
 
     const safeProjectName = creatorProjectName
       .trim()

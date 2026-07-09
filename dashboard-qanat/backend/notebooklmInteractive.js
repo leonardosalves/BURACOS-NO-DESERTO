@@ -44,11 +44,16 @@ export function isNotebooklmAwaitingUser(text = "") {
     raw.split("\n").filter((line) => /^\s*[-•]/.test(line.trim())).length;
 
   const hasQuestionCue = QUESTION_CUE_RE.test(raw);
-  const tail = raw.slice(-500).trim();
+  const tail = raw.slice(-400).trim();
   const endsWithQuestion = /\?[\s"»»]*$/.test(tail);
 
+  // Resposta factual longa: perguntas retóricas no final não bloqueiam o fluxo.
+  if (numberedFacts >= 4 && raw.length >= 500) {
+    return hasQuestionCue && endsWithQuestion && questions.length >= 2;
+  }
   if (numberedFacts >= 6) return false;
-  return hasQuestionCue || endsWithQuestion || questions.length >= 1;
+
+  return hasQuestionCue || endsWithQuestion;
 }
 
 function sessionPath(projDir, backendDir, niche) {
@@ -96,12 +101,21 @@ export function assessNotebooklmReadiness(session = {}) {
     (summary.match(/\d+[\d.,]*\s*(km|m|metros|%|anos?|séculos?)/gi) || [])
       .length + (summary.match(/^\s*\d+[\).\]:]/gm) || []).length;
 
-  if (session.awaitingUser) {
+  if (session.awaitingUser && userTurns < 2) {
     return {
       ready: false,
       reason:
-        "O NotebookLM fez uma pergunta — responda para liberar mais fatos.",
+        "O NotebookLM fez uma pergunta — responda ou clique em Prosseguir.",
       confidence: 0.2,
+    };
+  }
+
+  if (session.awaitingUser && userTurns >= 2) {
+    return {
+      ready: true,
+      reason:
+        "Material acumulado — clique em Prosseguir para gerar a narração.",
+      confidence: 0.7,
     };
   }
 
@@ -192,6 +206,12 @@ function userWantsResearch(reply = "") {
   );
 }
 
+function userWantsProceed(reply = "") {
+  return /prosseguir|gerar (a )?narra|roteiro|continuar|sem mais perguntas|pode gerar|finalizar|já (é|esta) suficiente/i.test(
+    String(reply || "").trim()
+  );
+}
+
 export async function replyNotebooklmSession({
   session,
   userReply,
@@ -248,8 +268,12 @@ ${researchTriggered ? "Pesquisa web concluída e importada ao notebook.\n\n" : "
 Evite fazer novas perguntas ao editor — priorize material acionável para narração YouTube ${next.format || "SHORTS"}.`;
 
   const answer = await queryNotebook(next.notebookId, followUp, backendDir);
-  const awaitingUser = isNotebooklmAwaitingUser(answer);
-  const questions = extractNotebooklmQuestions(answer);
+  const userTurns = next.turns.filter((t) => t.role === "user").length;
+  let awaitingUser = isNotebooklmAwaitingUser(answer);
+  if (userWantsProceed(reply) || userTurns >= 2) {
+    awaitingUser = false;
+  }
+  const questions = awaitingUser ? extractNotebooklmQuestions(answer) : [];
 
   next.turns.push({
     role: "assistant",
@@ -261,11 +285,7 @@ Evite fazer novas perguntas ao editor — priorize material acionável para narr
   next.awaitingUser = awaitingUser;
   next.questions = questions;
   next.status = awaitingUser ? "pending_user" : "ready";
-  next.accumulatedSummary = awaitingUser
-    ? mergeAssistantSummaries(
-        next.turns.filter((t, i) => i < next.turns.length - 1)
-      )
-    : mergeAssistantSummaries(next.turns);
+  next.accumulatedSummary = mergeAssistantSummaries(next.turns);
 
   next.readiness = assessNotebooklmReadiness(next);
   return { session: next, researchTriggered };
