@@ -159,7 +159,7 @@ describe("remotionTemplateCatalogService bridge", () => {
     const upper = getCatalogForNiche("ENGENHARIA");
     assert.equal(upper.templates.length, 1);
     assert.equal(upper.templates[0].id, "eng-case-test");
-    syncCatalogForNiche("Engenharia", []);
+    syncCatalogForNiche("Engenharia", [], { replace: true });
   });
 
   it("sync persiste sourceCode e pick escolhe template do nicho", () => {

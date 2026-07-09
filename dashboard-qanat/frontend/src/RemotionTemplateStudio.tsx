@@ -1194,6 +1194,7 @@ async function pushAllTemplatesToServer(templates: TemplateItem[]) {
     const res = await syncRemotionTemplateCatalog({
       niche: key,
       templates: payload,
+      replace: true,
     });
     if (res.success) synced += payload.length;
   }
@@ -3023,6 +3024,7 @@ export function RemotionTemplateStudio({
   const [catalogReady, setCatalogReady] = useState(false);
   const [catalogSyncNote, setCatalogSyncNote] = useState("");
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipCatalogSyncAfterHydrateRef = useRef(false);
   const currentCategory = categories.find((c) => c.id === category);
 
   useEffect(() => {
@@ -3046,13 +3048,21 @@ export function RemotionTemplateStudio({
       if (!alive) return;
 
       const deleted = readDeletedCatalog();
+      const serverFirst = purgeLegacyTemplatesFromList(
+        mergeStudioTemplateLists([], allFromApi)
+      );
       const merged = filterDeletedTemplates(
-        purgeLegacyTemplatesFromList(
-          mergeStudioTemplateLists(studioCatalog.templates, allFromApi)
-        ),
+        allFromApi.length > 0
+          ? serverFirst
+          : purgeLegacyTemplatesFromList(
+              mergeStudioTemplateLists(studioCatalog.templates, allFromApi)
+            ),
         deleted
       );
       setTemplates(merged);
+      if (allFromApi.length > 0) {
+        skipCatalogSyncAfterHydrateRef.current = true;
+      }
       const mergedForNiche = merged.filter((tpl) =>
         matchesStudioNiche(tpl.niche, niche)
       );
@@ -3069,17 +3079,7 @@ export function RemotionTemplateStudio({
         );
         if (firstWithTemplates) {
           setCategory(firstWithTemplates.id);
-          const firstSub =
-            firstWithTemplates.subcategories.find((sub) =>
-              mergedForNiche.some(
-                (tpl) =>
-                  tpl.category === firstWithTemplates.id &&
-                  tpl.subcategory === sub
-              )
-            ) ||
-            firstWithTemplates.subcategories[0] ||
-            "";
-          setSubcategory(firstSub);
+          setSubcategory("");
         }
       }
       if (alive && allFromApi.length > 0) {
@@ -3097,6 +3097,10 @@ export function RemotionTemplateStudio({
 
   useEffect(() => {
     if (!catalogReady) return;
+    if (skipCatalogSyncAfterHydrateRef.current) {
+      skipCatalogSyncAfterHydrateRef.current = false;
+      return;
+    }
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     syncTimerRef.current = setTimeout(() => {
       const byNiche = new Map<string, TemplateItem[]>();
@@ -3114,6 +3118,7 @@ export function RemotionTemplateStudio({
           const res = await syncRemotionTemplateCatalog({
             niche: key,
             templates: payload,
+            replace: true,
           });
           if (res.success) synced += payload.length;
         }
@@ -3722,7 +3727,7 @@ export function RemotionTemplateStudio({
                   type="button"
                   onClick={() => {
                     setCategory(item.id);
-                    setSubcategory(item.subcategories[0] || "");
+                    setSubcategory("");
                   }}
                   className="min-w-0 flex-1 text-left"
                 >
@@ -3772,6 +3777,17 @@ export function RemotionTemplateStudio({
                 ) : null}
               </div>
               <div className="flex flex-wrap gap-2">
+                <span
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${
+                    !subcategory
+                      ? "border-amber-300 bg-amber-300/14 text-amber-100"
+                      : "border-white/10 bg-white/[0.03] text-zinc-400"
+                  }`}
+                >
+                  <button type="button" onClick={() => setSubcategory("")}>
+                    Todos ({categoryTemplates.length})
+                  </button>
+                </span>
                 {subcategories.map((item) => (
                   <span
                     key={item}
@@ -3938,7 +3954,7 @@ export function RemotionTemplateStudio({
                               type="button"
                               onClick={() => {
                                 setCategory(item.id);
-                                setSubcategory(item.subcategories[0] || "");
+                                setSubcategory("");
                               }}
                               className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[11px] font-bold text-cyan-100 hover:border-cyan-300/60"
                             >

@@ -712,7 +712,11 @@ export function importFullTemplateCatalog(payload = {}) {
   return { ok: true, imported, niches: nicheKeys };
 }
 
-export function syncCatalogForNiche(niche = "", templates = []) {
+export function syncCatalogForNiche(
+  niche = "",
+  templates = [],
+  { replace = false } = {}
+) {
   const key = normalizeNicheLabel(niche) || "Geral";
   const catalog = readCatalogFile();
   if (!catalog.niches) catalog.niches = {};
@@ -728,8 +732,27 @@ export function syncCatalogForNiche(niche = "", templates = []) {
     delete catalog.niches[legacyKey];
   }
 
+  let mergedTemplates = normalized;
+  if (!replace) {
+    const existing = Array.isArray(catalog.niches[key]?.templates)
+      ? catalog.niches[key].templates
+      : Array.isArray(catalog.niches[legacyKey]?.templates)
+        ? catalog.niches[legacyKey].templates
+        : [];
+    const byId = new Map(
+      existing
+        .map((tpl) => normalizeCatalogTemplate(tpl))
+        .filter((tpl) => tpl?.id)
+        .map((tpl) => [tpl.id, tpl])
+    );
+    for (const tpl of normalized) {
+      byId.set(tpl.id, tpl);
+    }
+    mergedTemplates = [...byId.values()];
+  }
+
   catalog.niches[key] = {
-    templates: normalized,
+    templates: mergedTemplates,
     updated_at: new Date().toISOString(),
   };
   catalog.updated_at = new Date().toISOString();
@@ -737,10 +760,12 @@ export function syncCatalogForNiche(niche = "", templates = []) {
 
   return {
     niche: key,
-    count: normalized.length,
-    approved_count: normalized.filter((tpl) => tpl.status === "approved")
+    count: mergedTemplates.length,
+    synced: normalized.length,
+    replace,
+    approved_count: mergedTemplates.filter((tpl) => tpl.status === "approved")
       .length,
-    orchestration_ready_count: normalized.filter(
+    orchestration_ready_count: mergedTemplates.filter(
       (tpl) => tpl.orchestration_ready
     ).length,
     updated_at: catalog.niches[key].updated_at,
