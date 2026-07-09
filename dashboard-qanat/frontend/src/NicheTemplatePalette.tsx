@@ -1,7 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Layers } from "lucide-react";
 import type { NichePackInfo } from "./timelineStudioAskTypes";
-import type { CatalogTemplate } from "./remotionTemplateStudioApi";
+import {
+  syncRemotionTemplateCatalog,
+  type CatalogTemplate,
+} from "./remotionTemplateStudioApi";
+import { normalizeNicheLabel } from "@lumiera/shared/remotionTemplateNiches.js";
+import {
+  hasRunnableStudioSource,
+  isStudioTemplateOrchestrationReady,
+  mapStudioTemplateToMotionId,
+} from "@lumiera/shared/remotionTemplateStudioCatalog.js";
 
 const TEMPLATE_STORAGE_KEY = "lumiera.remotionTemplateStudio.templates.v1";
 
@@ -21,9 +30,16 @@ type Props = {
 
 type LocalStudioTemplate = {
   id: string;
+  name?: string;
+  category?: string;
+  subcategory?: string;
   niche?: string;
   status?: string;
+  description?: string;
+  dataSlots?: string[];
   sourceCode?: { short?: string; long?: string };
+  shortPreview?: string;
+  longPreview?: string;
 };
 
 function readLocalStudioTemplates(): LocalStudioTemplate[] {
@@ -37,16 +53,16 @@ function readLocalStudioTemplates(): LocalStudioTemplate[] {
   }
 }
 
-function hasRunnableStudioSource(sourceCode?: {
-  short?: string;
-  long?: string;
-}) {
-  const code = String(sourceCode?.short || sourceCode?.long || "").trim();
-  if (!code) return false;
-  return (
-    /export\s+default\s+function/.test(code) &&
-    /\buseCurrentFrame\s*\(/.test(code)
-  );
+function matchesStudioNiche(templateNiche = "", activeNiche = "") {
+  const tpl = String(templateNiche || "")
+    .trim()
+    .toLowerCase();
+  const active = String(activeNiche || "")
+    .trim()
+    .toLowerCase();
+  if (!active) return true;
+  if (!tpl) return true;
+  return tpl === active;
 }
 
 function resolveStudioSourceCode(
@@ -61,35 +77,95 @@ function resolveStudioSourceCode(
   return String(primary || fallback || "").trim();
 }
 
-function enrichCatalogWithLocalSource(
-  templates: CatalogTemplate[],
+function localTemplateToCatalog(
+  tpl: LocalStudioTemplate,
   niche: string
-): CatalogTemplate[] {
-  const localById = new Map(
-    readLocalStudioTemplates()
-      .filter((tpl) => {
-        const tplNiche = String(tpl.niche || niche).trim();
-        return !tplNiche || tplNiche.toLowerCase() === niche.toLowerCase();
-      })
-      .map((tpl) => [String(tpl.id), tpl])
-  );
-
-  return templates.map((tpl) => {
-    const local = localById.get(tpl.id);
-    const sourceCode =
-      tpl.sourceCode ||
-      (local?.sourceCode
-        ? {
-            short: String(local.sourceCode.short || ""),
-            long: String(local.sourceCode.long || ""),
-          }
-        : null);
-    const runnable = hasRunnableStudioSource(sourceCode || undefined);
-    return {
+): CatalogTemplate | null {
+  const sourceCode = tpl.sourceCode
+    ? {
+        short: String(tpl.sourceCode.short || ""),
+        long: String(tpl.sourceCode.long || ""),
+      }
+    : null;
+  const motionTemplateId = mapStudioTemplateToMotionId(tpl);
+  const catalogTpl: CatalogTemplate = {
+    id: String(tpl.id || ""),
+    name: String(tpl.name || ""),
+    category: String(tpl.category || ""),
+    subcategory: String(tpl.subcategory || ""),
+    niche: String(tpl.niche || niche),
+    status: tpl.status === "approved" ? "approved" : "draft",
+    description: String(tpl.description || ""),
+    dataSlots: Array.isArray(tpl.dataSlots) ? tpl.dataSlots.map(String) : [],
+    motion_template_id: motionTemplateId,
+    orchestration_ready: isStudioTemplateOrchestrationReady({
       ...tpl,
       sourceCode,
-      has_source_code: runnable,
-      orchestration_ready: Boolean(tpl.orchestration_ready && runnable),
+    }),
+    shortPreview: tpl.shortPreview ?? null,
+    longPreview: tpl.longPreview ?? null,
+    sourceCode,
+    has_source_code: hasRunnableStudioSource(sourceCode || undefined),
+  };
+  return catalogTpl;
+}
+
+function loadLocalStudioReady(niche: string): CatalogTemplate[] {
+  return readLocalStudioTemplates()
+    .filter((tpl) => matchesStudioNiche(tpl.niche, niche))
+    .map((tpl) => localTemplateToCatalog(tpl, niche))
+    .filter((tpl): tpl is CatalogTemplate =>
+      Boolean(
+        tpl &&
+        tpl.status === "approved" &&
+        tpl.has_source_code &&
+        tpl.orchestration_ready &&
+        tpl.motion_template_id
+      )
+    );
+}
+
+function mergeCatalogTemplates(
+  fromApi: CatalogTemplate[],
+  fromLocal: CatalogTemplate[]
+): CatalogTemplate[] {
+  const byId = new Map<string, CatalogTemplate>();
+  for (const tpl of [...fromApi, ...fromLocal]) {
+    const prev = byId.get(tpl.id);
+    const sourceCode = tpl.sourceCode || prev?.sourceCode || null;
+    const merged: CatalogTemplate = {
+      ...(prev || {}),
+      ...tpl,
+      sourceCode,
+      has_source_code: hasRunnableStudioSource(sourceCode || undefined),
+      orchestration_ready: Boolean(
+        (tpl.orchestration_ready || prev?.orchestration_ready) &&
+        hasRunnableStudioSource(sourceCode || undefined) &&
+        (tpl.motion_template_id || prev?.motion_template_id)
+      ),
+    };
+    byId.set(tpl.id, merged);
+  }
+  return [...byId.values()];
+}
+
+function toSyncPayload(templates: CatalogTemplate[], niche: string) {
+  return templates.map((tpl) => {
+    const sourceCode = tpl.sourceCode;
+    const short = String(sourceCode?.short || "").trim();
+    const long = String(sourceCode?.long || "").trim();
+    return {
+      id: tpl.id,
+      name: tpl.name,
+      category: tpl.category,
+      subcategory: tpl.subcategory,
+      niche: tpl.niche || niche,
+      status: "approved" as const,
+      description: tpl.description,
+      dataSlots: tpl.dataSlots,
+      shortPreview: tpl.shortPreview,
+      longPreview: tpl.longPreview,
+      ...(short || long ? { sourceCode: { short, long } } : {}),
     };
   });
 }
@@ -110,19 +186,25 @@ export function NicheTemplatePalette({
   const [selectedCreatedId, setSelectedCreatedId] = useState("");
   const activePack =
     packs.find((p) => p.id === activePackId) || packs[0] || null;
-  const niche = String(catalogNiche || "").trim();
+  const niche =
+    normalizeNicheLabel(catalogNiche || "") ||
+    String(catalogNiche || "").trim();
 
-  const studioReadyTemplates = useMemo(() => {
-    const enriched = enrichCatalogWithLocalSource(createdTemplates, niche);
-    return enriched
-      .filter(
-        (tpl) =>
-          tpl.status === "approved" &&
-          tpl.has_source_code &&
-          tpl.orchestration_ready
-      )
-      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
-  }, [createdTemplates, niche]);
+  const studioReadyTemplates = useMemo(
+    () =>
+      createdTemplates
+        .filter(
+          (tpl) =>
+            tpl.status === "approved" &&
+            tpl.has_source_code &&
+            tpl.orchestration_ready &&
+            tpl.motion_template_id
+        )
+        .sort((a, b) =>
+          String(a.name || "").localeCompare(String(b.name || ""))
+        ),
+    [createdTemplates]
+  );
 
   const selectedCreatedTemplate =
     studioReadyTemplates.find((tpl) => tpl.id === selectedCreatedId) ||
@@ -134,6 +216,10 @@ export function NicheTemplatePalette({
       setCreatedTemplates([]);
       return;
     }
+
+    const localReady = loadLocalStudioReady(niche);
+    setCreatedTemplates(localReady);
+
     let alive = true;
     void (async () => {
       try {
@@ -142,17 +228,34 @@ export function NicheTemplatePalette({
             `/api/ai/template-studio/catalog?niche=${encodeURIComponent(niche)}`
           )
         );
-        if (!res.ok) return;
-        const data = await res.json();
+        const fromApi: CatalogTemplate[] = [];
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.studio_ready)) {
+            fromApi.push(...(data.studio_ready as CatalogTemplate[]));
+          } else if (Array.isArray(data.orchestration_ready)) {
+            fromApi.push(...(data.orchestration_ready as CatalogTemplate[]));
+          }
+        }
+
+        const merged = mergeCatalogTemplates(
+          fromApi,
+          loadLocalStudioReady(niche)
+        );
         if (!alive) return;
-        const templates = Array.isArray(data.studio_ready)
-          ? data.studio_ready
-          : [];
-        setCreatedTemplates(templates as CatalogTemplate[]);
+        setCreatedTemplates(merged);
+
+        if (merged.length) {
+          void syncRemotionTemplateCatalog({
+            niche,
+            templates: toSyncPayload(merged, niche),
+          });
+        }
       } catch {
-        if (alive) setCreatedTemplates([]);
+        if (alive) setCreatedTemplates(loadLocalStudioReady(niche));
       }
     })();
+
     return () => {
       alive = false;
     };
@@ -212,7 +315,7 @@ export function NicheTemplatePalette({
           Catalogo Studio: <span className="text-zinc-300">{niche}</span>
           {studioReadyTemplates.length
             ? ` · ${studioReadyTemplates.length} com TSX`
-            : " · sem templates prontos"}
+            : " · sem templates prontos no navegador/servidor"}
         </p>
       ) : null}
 
@@ -224,7 +327,7 @@ export function NicheTemplatePalette({
           <span className="text-[8px] text-zinc-600">
             {studioReadyTemplates.length
               ? `${studioReadyTemplates.length} prontos`
-              : "nenhum com sourceCode"}
+              : "nenhum aprovado com TSX"}
           </span>
         </div>
 
@@ -274,9 +377,8 @@ export function NicheTemplatePalette({
           </>
         ) : (
           <p className="rounded-lg border border-zinc-800 bg-zinc-950/70 px-2 py-1.5 text-[9px] leading-relaxed text-zinc-500">
-            Nenhum template aprovado com TSX Remotion neste nicho. Crie e aprove
-            no Template Studio, depois passe pelo painel de Narração para
-            sincronizar o catalogo.
+            Nenhum template aprovado com TSX neste nicho. No Template Studio,
+            abra o draft, confirme o codigo Remotion e clique em Aprovar.
           </p>
         )}
       </div>

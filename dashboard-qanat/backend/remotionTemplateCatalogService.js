@@ -3,6 +3,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { APPROVED_ORCHESTRATION_TEMPLATES } from "../shared/motionSceneCatalog.js";
 import {
+  hasRunnableStudioSource,
+  mapStudioTemplateToMotionId,
+} from "../shared/remotionTemplateStudioCatalog.js";
+import {
   isLegacySeedTemplateId,
   LEGACY_SEED_TEMPLATE_IDS,
 } from "../shared/remotionTemplateLegacy.js";
@@ -89,39 +93,7 @@ function writeCatalogFile(data) {
   fs.writeFileSync(CATALOG_PATH, JSON.stringify(data, null, 2), "utf8");
 }
 
-export function mapStudioTemplateToMotionId(template = {}) {
-  const haystack = [
-    template.name,
-    template.category,
-    template.subcategory,
-    template.shortPreview,
-    template.longPreview,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  if (/lower/.test(haystack)) return "lower-third";
-  if (/timeline|cronolog|process|roadmap|steps/.test(haystack))
-    return "timeline";
-  if (/counter|contador|stat|circular|progress/.test(haystack))
-    return "counter";
-  if (/pie|donut|pictogram/.test(haystack)) return "pictogram-chart";
-  if (/bar|bars|line|area|comparison|chart|grafico|grÃ¡fico/.test(haystack))
-    return "bar-chart";
-  if (/text|title|quote|chapter|glitch|typewriter|kinetic/.test(haystack))
-    return "kinetic-text";
-
-  if (/mapa|geo|location|satelite|satélite/.test(haystack))
-    return "location-intro";
-  if (/area|line|bar|chart|grafico|gráfico|pictogram/.test(haystack))
-    return "bar-chart";
-  if (/counter|numero|número|progress|ring|circular/.test(haystack))
-    return "counter";
-  if (/timeline|cronolog|process/.test(haystack)) return "timeline";
-  if (/lower|terco|terço|third/.test(haystack)) return "lower-third";
-  return null;
-}
+export { mapStudioTemplateToMotionId };
 
 function normalizeSourceCode(raw = {}) {
   const src = raw.sourceCode;
@@ -132,14 +104,7 @@ function normalizeSourceCode(raw = {}) {
   return { short, long };
 }
 
-export function hasRunnableStudioSource(sourceCode = null) {
-  const code = String(sourceCode?.short || sourceCode?.long || "").trim();
-  if (!code) return false;
-  return (
-    /export\s+default\s+function/.test(code) &&
-    /\buseCurrentFrame\s*\(/.test(code)
-  );
-}
+export { hasRunnableStudioSource };
 
 function normalizeCatalogTemplate(raw = {}) {
   if (isLegacySeedTemplateId(raw.id)) return null;
