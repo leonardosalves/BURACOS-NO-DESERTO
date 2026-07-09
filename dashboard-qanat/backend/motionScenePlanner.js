@@ -25,6 +25,7 @@ import {
   storyboardRowMatchesSuppression,
 } from "../shared/timelineStudioRemotionSuppress.js";
 import { isRunnableStudioMotionScene } from "../shared/timelineStudioLegacyStrip.js";
+import { mergeMotionClipPreservingUserEdits } from "../shared/studioClipUserMerge.js";
 import { enrichStudioTemplateScene } from "../shared/studioTemplatePropsBinder.js";
 import { applyStudioRoleToScene } from "../shared/studioTemplateRoles.js";
 import { buildMotionResearchContext } from "../shared/storyboardResearch.js";
@@ -1249,7 +1250,24 @@ export function syncMotionScenesToStudio(studio, motionScenes = []) {
       !storyboardRowMatchesSuppression(ms, "motion", suppression) &&
       isRunnableStudioMotionScene(ms)
   );
-  const motionClips = motionScenesToMotionClips(activeMotionScenes);
+  const existingMotionById = new Map();
+  for (const clip of cleanStudio.clips) {
+    if (
+      clip.motionScene ||
+      clip.props?.motion_scene ||
+      clip.trackId === MOTION_TRACK_ID
+    ) {
+      existingMotionById.set(String(clip.id), clip);
+    }
+  }
+
+  const motionClips = motionScenesToMotionClips(activeMotionScenes).map(
+    (planned) => {
+      const existing = existingMotionById.get(String(planned.id));
+      if (!existing) return planned;
+      return mergeMotionClipPreservingUserEdits(existing, planned);
+    }
+  );
   if (!motionClips.length)
     return migrateStudioMotionClipsFromVideo(cleanStudio);
 

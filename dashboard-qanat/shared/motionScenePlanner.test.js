@@ -186,6 +186,56 @@ describe("motionScenePlanner", () => {
     assert.equal(next.visual_prompts[1].media_mode, undefined);
   });
 
+  it("syncMotionScenesToStudio preserva props editadas pelo usuário", () => {
+    const motionScenes = [
+      {
+        id: "ms-2.1",
+        scene_ref: "2.1",
+        block: 2,
+        start_hint: 10,
+        duration_seconds: 4,
+        template_id: "counter",
+        media_mode: "remotion",
+        props: {
+          template_studio_id: "counter-1",
+          studio_source_code:
+            '"use client";\nimport { useCurrentFrame } from "remotion";\nexport default function T(){useCurrentFrame();return null;}',
+          value: 40,
+          label: "GENÉRICO",
+          studio_props: { value: 40, label: "GENÉRICO" },
+        },
+      },
+    ];
+    const studio = {
+      version: 1,
+      clips: [
+        {
+          id: "ms-2.1",
+          trackId: "motion",
+          start: 12,
+          duration: 5,
+          templateId: "counter",
+          motionScene: true,
+          label: "BRASIL 62%",
+          props: {
+            studio_user_locked: true,
+            studio_user_locked_slots: ["value", "label"],
+            value: 62,
+            label: "BRASIL",
+            studio_props: { value: 62, label: "BRASIL" },
+            studio_source_code:
+              '"use client";\nimport { useCurrentFrame } from "remotion";\nexport default function T(){useCurrentFrame();return null;}',
+          },
+        },
+      ],
+    };
+    const synced = syncMotionScenesToStudio(studio, motionScenes);
+    const clip = synced.clips.find((c) => c.id === "ms-2.1");
+    assert.equal(clip.props.value, 62);
+    assert.equal(clip.props.label, "BRASIL");
+    assert.equal(clip.label, "BRASIL 62%");
+  });
+
   it("sync com B-roll ausente não remove clips video existentes", () => {
     const motionScenes = [
       {
