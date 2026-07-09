@@ -29,7 +29,27 @@ import {
   type BlockProgressBarProps,
 } from "./overlays/BlockProgressBar";
 import { ShortsVisualFx } from "./overlays/ShortsVisualFx";
-import { splitOverlaysByStudioLayer } from "../../../shared/studioOverlayLayers.js";
+
+/** Espelho de shared/studioOverlayLayers — inline para o bundler Remotion. */
+function splitOverlaysByStudioLayer(overlays: Overlay[] = []) {
+  const underlays: Overlay[] = [];
+  const topOverlays: Overlay[] = [];
+  for (const overlay of overlays) {
+    const props = (overlay.props || {}) as Record<string, unknown>;
+    const z = String(overlay.studio_z_index || props.studio_z_index || "")
+      .trim()
+      .toLowerCase();
+    const role = String(overlay.studio_role || props.studio_role || "")
+      .trim()
+      .toLowerCase();
+    if (z === "under" || role === "background_frame") {
+      underlays.push(overlay);
+    } else {
+      topOverlays.push(overlay);
+    }
+  }
+  return { underlays, overlays: topOverlays };
+}
 
 type TimelineScene = {
   block: number;
