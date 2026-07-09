@@ -181,7 +181,8 @@ export function registerRemotionTemplateStudioRoutes(
       const templates = Array.isArray(req.body?.templates)
         ? req.body.templates
         : [];
-      const result = syncCatalogForNiche(niche, templates);
+      const replace = Boolean(req.body?.replace);
+      const result = syncCatalogForNiche(niche, templates, { replace });
       res.json({ success: true, ...result });
     } catch (err) {
       res.status(500).json({

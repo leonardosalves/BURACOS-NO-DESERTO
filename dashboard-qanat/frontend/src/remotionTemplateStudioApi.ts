@@ -103,6 +103,8 @@ export type CatalogResponse = {
 
 export type CatalogSyncRequest = {
   niche: string;
+  /** true = substitui o nicho inteiro; false = merge por id (padrao seguro) */
+  replace?: boolean;
   templates: Array<{
     id: string;
     name: string;

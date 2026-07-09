@@ -25,7 +25,7 @@ const templates = exportData.niches[NICHE].templates;
 
 console.log(`Gerando ${templates.length} templates para ${NICHE}...`);
 
-const synced = syncCatalogForNiche(NICHE, templates);
+const synced = syncCatalogForNiche(NICHE, templates, { replace: true });
 console.log(`Sync: ${synced.count} templates em ${synced.niche}`);
 
 const purged = purgeTestNichesFromCatalogFile();
