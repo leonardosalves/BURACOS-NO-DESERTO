@@ -221,8 +221,16 @@ function isAuthError(message = "") {
     lower.includes("auth") ||
     lower.includes("profile") ||
     lower.includes("cookie") ||
-    lower.includes("credential")
+    lower.includes("credential") ||
+    lower.includes("authentication failed") ||
+    lower.includes("network_error") ||
+    lower.includes("clientauthenticationerror")
   );
+}
+
+function isNlmTimeoutError(message = "") {
+  const lower = message.toLowerCase();
+  return lower.includes("etimedout") || lower.includes("timed out");
 }
 
 export function getNotebooklmLoginState() {
@@ -374,7 +382,7 @@ export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
     } else {
       try {
         runNlm(["login", "--check"], {
-          timeoutMs: quick ? 1200 : 8000,
+          timeoutMs: quick ? 15000 : 45000,
           backendDir,
         });
         clearNotebooklmLoginState();
@@ -389,7 +397,7 @@ export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
 
   try {
     runNlm(["login", "--check"], {
-      timeoutMs: quick ? 1200 : 8000,
+      timeoutMs: quick ? 15000 : 45000,
       backendDir,
     });
     if (quick) {
@@ -424,26 +432,30 @@ export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
   } catch (err) {
     const msg = String(err.message || "");
     const auth = isAuthError(msg);
+    const timedOut = isNlmTimeoutError(msg);
     const cliMissing = msg.includes("ENOENT");
     const freshLoginState = getNotebooklmLoginState();
+    const manualLogin = serviceMode && !cliMissing;
     return {
       available: false,
       authenticated: false,
       notebookCount: 0,
       loginInProgress: freshLoginState.inProgress && !serviceMode,
       serviceMode,
-      manualLoginRequired: serviceMode && (auth || cliMissing),
+      manualLoginRequired: manualLogin,
       message: cliMissing
         ? `CLI nlm não encontrado (${NLM_BIN}). Reinstale o serviço Windows ou rode .\\nlm-login.ps1 na pasta Lumiera.`
-        : serviceMode && auth
+        : manualLogin
           ? getManualLoginMessage()
           : auth
             ? freshLoginState.inProgress
               ? "Aguardando login no navegador…"
               : "Sessão NotebookLM expirada — clique em Conectar NotebookLM ou rode .\\nlm-login.ps1"
-            : `NotebookLM indisponível: ${msg}`,
+            : timedOut
+              ? "NotebookLM demorou para responder — rode .\\nlm-login.ps1 e clique em Atualizar."
+              : `NotebookLM indisponível: ${msg}`,
       dataDir: resolveNotebooklmDataDir(backendDir),
-      needsLogin: auth || cliMissing,
+      needsLogin: auth || cliMissing || manualLogin || timedOut,
       cliMissing,
     };
   }
