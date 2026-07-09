@@ -13,6 +13,14 @@ import {
   locationIntroHasSatellite,
   locationIntroNeedsSatelliteFetch,
 } from "./timelineStudioSatellite";
+import {
+  applyStudioSlotPatch,
+  applyTimingManualPatch,
+  parseSlotInput,
+  resolveStudioInspectorSlots,
+  slotDisplayValue,
+  studioSlotKind,
+} from "./studioClipInspectorSlots";
 
 type Props = {
   clip: StudioClip;
@@ -55,33 +63,20 @@ export function TimelineStudioClipInspector({
       : {};
   const studioMeta = clip.props?.studio_props_meta as
     { confidence?: number; filled_slots?: string[] } | undefined;
-  const studioEditableKeys = [
-    "text",
-    "subtitle",
-    "headline",
-    "title",
-    "value",
-    "label",
-    "projectCode",
-    "statusText",
-    "location",
-  ].filter(
-    (key) =>
-      key in studioProps ||
-      clip.props?.[key] !== undefined ||
-      (Array.isArray(clip.props?.template_studio_data_slots) &&
-        (clip.props.template_studio_data_slots as string[]).includes(key))
-  );
+  const studioInspectorSlots = resolveStudioInspectorSlots(clip);
+  const userLocked = clip.props?.studio_user_locked === true;
 
-  const patchStudioProp = (key: string, value: string) => {
-    const nextStudioProps = { ...studioProps, [key]: value };
-    onUpdate({
-      props: {
-        ...clip.props,
-        [key]: value,
-        studio_props: nextStudioProps,
-      },
-    });
+  const patchStudioSlot = (slot: string, raw: string) => {
+    try {
+      const value = parseSlotInput(slot, raw);
+      onUpdate(applyStudioSlotPatch(clip, slot, value));
+    } catch {
+      toast.error(`JSON inválido no campo ${slot}`);
+    }
+  };
+
+  const patchTiming = (patch: Partial<typeof clip>) => {
+    onUpdate(applyTimingManualPatch(clip, patch));
   };
 
   const autoFetchStartedRef = useRef(false);
@@ -177,7 +172,9 @@ export function TimelineStudioClipInspector({
             disabled={!editable}
             value={Number(clip.start.toFixed(2))}
             onChange={(e) =>
-              onUpdate({ start: Math.max(0, Number(e.target.value) || 0) })
+              patchTiming({
+                start: Math.max(0, Number(e.target.value) || 0),
+              })
             }
             className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5 text-[11px] text-white font-mono disabled:opacity-50"
           />
@@ -194,7 +191,7 @@ export function TimelineStudioClipInspector({
             disabled={!editable}
             value={Number(clip.duration.toFixed(2))}
             onChange={(e) =>
-              onUpdate({
+              patchTiming({
                 duration: Math.max(0.08, Number(e.target.value) || 0.08),
               })
             }
@@ -239,26 +236,75 @@ export function TimelineStudioClipInspector({
                     ? ` · papel ${String(clip.props.studio_role)}`
                     : ""}
                   {clip.props?.boosted ? " · boost IA" : ""}
+                  {userLocked ? " · edição manual protegida" : ""}
+                  {clip.props?.timing_manual ? " · timing manual" : ""}
+                </p>
+              ) : null}
+              {Array.isArray(clip.props?.template_studio_data_slots) ? (
+                <p className="text-[9px] text-zinc-600 mt-0.5 font-mono truncate">
+                  slots:{" "}
+                  {(clip.props.template_studio_data_slots as string[]).join(
+                    ", "
+                  )}
                 </p>
               ) : null}
             </Field>
-            {studioEditableKeys.map((key) => (
-              <Field
-                key={key}
-                label={key}
-                className={
-                  key === "text" || key === "subtitle" ? "sm:col-span-2" : ""
-                }
-              >
-                <input
-                  type="text"
-                  disabled={!editable}
-                  value={String(clip.props?.[key] ?? studioProps[key] ?? "")}
-                  onChange={(e) => patchStudioProp(key, e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5 text-[11px] text-white disabled:opacity-50"
-                />
-              </Field>
-            ))}
+            {studioInspectorSlots.map((slot) => {
+              const kind = studioSlotKind(slot);
+              const wide =
+                kind === "array" ||
+                [
+                  "text",
+                  "subtitle",
+                  "headline",
+                  "title",
+                  "descriptorText",
+                ].includes(slot);
+              const display = slotDisplayValue(clip, slot);
+              const lockedSlots = Array.isArray(
+                clip.props?.studio_user_locked_slots
+              )
+                ? (clip.props.studio_user_locked_slots as string[])
+                : [];
+              const isLocked = lockedSlots.includes(slot);
+
+              return (
+                <Field
+                  key={slot}
+                  label={`${slot}${isLocked ? " 🔒" : ""}`}
+                  className={wide ? "sm:col-span-2 lg:col-span-4" : ""}
+                >
+                  {kind === "array" ? (
+                    <textarea
+                      disabled={!editable}
+                      value={display}
+                      onChange={(e) => patchStudioSlot(slot, e.target.value)}
+                      rows={5}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-[10px] text-zinc-200 resize-y min-h-[100px] font-mono leading-relaxed disabled:opacity-50"
+                      placeholder='[{"label":"Aço","value":250}]'
+                    />
+                  ) : kind === "color" ? (
+                    <input
+                      type="color"
+                      disabled={!editable}
+                      value={
+                        /^#[0-9a-f]{6}$/i.test(display) ? display : "#d4af37"
+                      }
+                      onChange={(e) => patchStudioSlot(slot, e.target.value)}
+                      className="w-full h-9 bg-zinc-900 border border-zinc-800 rounded-lg disabled:opacity-50"
+                    />
+                  ) : (
+                    <input
+                      type={kind === "number" ? "number" : "text"}
+                      disabled={!editable}
+                      value={display}
+                      onChange={(e) => patchStudioSlot(slot, e.target.value)}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5 text-[11px] text-white disabled:opacity-50"
+                    />
+                  )}
+                </Field>
+              );
+            })}
           </>
         ) : null}
 
