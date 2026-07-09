@@ -164,9 +164,15 @@ function Resolve-NlmBin {
     if ($env:NLM_BIN -and (Test-Path -LiteralPath $env:NLM_BIN)) {
         return $env:NLM_BIN
     }
-    $localNlm = Join-Path $env:LOCALAPPDATA ".local\bin\nlm.exe"
-    if (Test-Path -LiteralPath $localNlm) {
-        return $localNlm
+    $candidates = @(
+        (Join-Path $env:USERPROFILE ".local\bin\nlm.exe"),
+        (Join-Path $env:LOCALAPPDATA ".local\bin\nlm.exe"),
+        "C:\Lumiera\tools\nlm\nlm.exe"
+    )
+    foreach ($candidate in $candidates) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+            return $candidate
+        }
     }
     $cmd = Get-Command nlm -ErrorAction SilentlyContinue
     if ($cmd -and $cmd.Source) { return $cmd.Source }

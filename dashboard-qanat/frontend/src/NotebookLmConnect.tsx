@@ -1,6 +1,6 @@
-import React from 'react';
-import { Loader2, LogIn, RefreshCw } from 'lucide-react';
-import { useNotebooklmAuth } from './useNotebooklmAuth';
+import React from "react";
+import { Loader2, LogIn, RefreshCw } from "lucide-react";
+import { useNotebooklmAuth } from "./useNotebooklmAuth";
 
 type Props = {
   /** Tenta login automático uma vez por sessão do navegador */
@@ -8,11 +8,16 @@ type Props = {
   compact?: boolean;
 };
 
-export function NotebookLmConnect({ autoLogin = false, compact = false }: Props) {
-  const { status, loggingIn, refresh, login } = useNotebooklmAuth({ autoLogin });
+export function NotebookLmConnect({
+  autoLogin = false,
+  compact = false,
+}: Props) {
+  const { status, loggingIn, refresh, login } = useNotebooklmAuth({
+    autoLogin,
+  });
 
   const connected = Boolean(status?.authenticated);
-  const needsLogin = status?.needsLogin !== false && !connected;
+  const showConnect = !connected;
 
   if (compact) {
     return (
@@ -20,18 +25,18 @@ export function NotebookLmConnect({ autoLogin = false, compact = false }: Props)
         <span
           className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
             connected
-              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
               : loggingIn
-                ? 'bg-sky-500/10 text-sky-300 border border-sky-500/25'
-                : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
+                ? "bg-sky-500/10 text-sky-300 border border-sky-500/25"
+                : "bg-amber-500/10 text-amber-400 border border-amber-500/25"
           }`}
           title={status?.message}
         >
           {connected
             ? `NotebookLM · ${status?.notebookCount ?? 0} nb`
             : loggingIn
-              ? 'Aguardando login…'
-              : 'NotebookLM offline'}
+              ? "Aguardando login…"
+              : "NotebookLM offline"}
         </span>
         {!connected && (
           <button
@@ -40,7 +45,11 @@ export function NotebookLmConnect({ autoLogin = false, compact = false }: Props)
             onClick={() => void login()}
             className="dash-btn-secondary text-[10px] px-2.5 py-1 flex items-center gap-1"
           >
-            {loggingIn ? <Loader2 className="w-3 h-3 animate-spin" /> : <LogIn className="w-3 h-3" />}
+            {loggingIn ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <LogIn className="w-3 h-3" />
+            )}
             Conectar
           </button>
         )}
@@ -62,28 +71,37 @@ export function NotebookLmConnect({ autoLogin = false, compact = false }: Props)
       <span
         className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
           connected
-            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+            ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
             : loggingIn
-              ? 'bg-sky-500/10 text-sky-300 border border-sky-500/25'
-              : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
+              ? "bg-sky-500/10 text-sky-300 border border-sky-500/25"
+              : "bg-amber-500/10 text-amber-400 border border-amber-500/25"
         }`}
         title={status?.message}
       >
         {connected
-          ? (status?.message || 'NotebookLM conectado')
+          ? status?.message || "NotebookLM conectado"
           : loggingIn
-            ? 'Aguardando login no navegador…'
-            : 'NotebookLM desconectado'}
+            ? "Aguardando login no navegador…"
+            : "NotebookLM desconectado"}
       </span>
-      {needsLogin && (
+      {showConnect && (
         <button
           type="button"
           disabled={loggingIn}
           onClick={() => void login()}
           className="dash-btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5 border-violet-500/30 text-violet-200"
+          title={
+            status?.cliMissing
+              ? "Se falhar, rode .\\nlm-login.ps1 na pasta Lumiera (serviço Windows)"
+              : "Abre login Google do NotebookLM no navegador"
+          }
         >
-          {loggingIn ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-3.5 h-3.5" />}
-          {loggingIn ? 'Abrindo navegador…' : 'Conectar NotebookLM'}
+          {loggingIn ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <LogIn className="w-3.5 h-3.5" />
+          )}
+          {loggingIn ? "Abrindo navegador…" : "Conectar NotebookLM"}
         </button>
       )}
       <button

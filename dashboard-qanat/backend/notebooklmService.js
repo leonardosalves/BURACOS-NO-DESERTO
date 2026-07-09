@@ -46,16 +46,26 @@ const QUERY_TIMEOUT_MS = Number(
 function resolveNlmBin() {
   const fromEnv = String(process.env.NLM_BIN || "").trim();
   if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
-  const localAppData = process.env.LOCALAPPDATA || process.env.HOME || "";
-  if (localAppData) {
-    const winNlm = path.join(
-      localAppData,
-      ".local",
-      "bin",
-      process.platform === "win32" ? "nlm.exe" : "nlm"
-    );
-    if (fs.existsSync(winNlm)) return winNlm;
+
+  const exeName = process.platform === "win32" ? "nlm.exe" : "nlm";
+  const candidates = [];
+  const userProfile = process.env.USERPROFILE || process.env.HOME || "";
+  const localAppData = process.env.LOCALAPPDATA || "";
+
+  if (userProfile) {
+    candidates.push(path.join(userProfile, ".local", "bin", exeName));
   }
+  if (localAppData) {
+    candidates.push(path.join(localAppData, ".local", "bin", exeName));
+  }
+  if (process.platform === "win32") {
+    candidates.push("C:\\Lumiera\\tools\\nlm\\nlm.exe");
+  }
+
+  for (const candidate of candidates) {
+    if (candidate && fs.existsSync(candidate)) return candidate;
+  }
+
   return "nlm";
 }
 
@@ -333,19 +343,24 @@ export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
       dataDir: resolveNotebooklmDataDir(backendDir),
     };
   } catch (err) {
-    const auth = isAuthError(err.message);
+    const msg = String(err.message || "");
+    const auth = isAuthError(msg);
+    const cliMissing = msg.includes("ENOENT");
     return {
       available: false,
       authenticated: false,
       notebookCount: 0,
       loginInProgress: loginState.inProgress,
-      message: auth
-        ? loginState.inProgress
-          ? "Aguardando login no navegador…"
-          : "Sessão NotebookLM expirada — clique em Conectar NotebookLM ou rode .\\nlm-login.ps1"
-        : `NotebookLM indisponível: ${err.message}`,
+      message: cliMissing
+        ? `CLI nlm não encontrado (${NLM_BIN}). Reinstale o serviço Windows ou rode .\\nlm-login.ps1 na pasta Lumiera.`
+        : auth
+          ? loginState.inProgress
+            ? "Aguardando login no navegador…"
+            : "Sessão NotebookLM expirada — clique em Conectar NotebookLM ou rode .\\nlm-login.ps1"
+          : `NotebookLM indisponível: ${msg}`,
       dataDir: resolveNotebooklmDataDir(backendDir),
-      needsLogin: auth,
+      needsLogin: auth || cliMissing,
+      cliMissing,
     };
   }
 }

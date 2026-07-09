@@ -7,6 +7,7 @@ export type NotebooklmStatus = {
   notebookCount?: number;
   loginInProgress?: boolean;
   needsLogin?: boolean;
+  cliMissing?: boolean;
   message?: string;
   dataDir?: string;
 };
