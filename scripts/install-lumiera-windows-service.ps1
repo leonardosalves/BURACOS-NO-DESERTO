@@ -10,6 +10,26 @@ $LinkRoot = "C:\Lumiera"
 $NssmDirRepo = Join-Path $script:RepoRoot "tools\nssm"
 $NssmExeRepo = Join-Path $NssmDirRepo "nssm.exe"
 
+function Get-NlmExePath {
+    if ($env:NLM_BIN -and (Test-Path -LiteralPath $env:NLM_BIN)) {
+        return $env:NLM_BIN
+    }
+    $candidates = @(
+        (Join-Path $env:USERPROFILE ".local\bin\nlm.exe"),
+        (Join-Path $env:LOCALAPPDATA ".local\bin\nlm.exe")
+    )
+    foreach ($candidate in $candidates) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+            return $candidate
+        }
+    }
+    $cmd = Get-Command nlm -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source -and (Test-Path -LiteralPath $cmd.Source)) {
+        return $cmd.Source
+    }
+    return $null
+}
+
 function Get-NodeExePath {
     $node = Get-Command node -ErrorAction SilentlyContinue
     if (-not $node) { throw "Node.js nao encontrado no PATH." }
@@ -74,11 +94,28 @@ function Ensure-LumieraServicePaths {
         Write-Host "Node copiado para $nodeDst" -ForegroundColor DarkGray
     }
 
+    $nlmDst = $null
+    $nlmSrc = Get-NlmExePath
+    if ($nlmSrc) {
+        $nlmDstDir = Join-Path $LinkRoot "tools\nlm"
+        $nlmDst = Join-Path $nlmDstDir "nlm.exe"
+        New-Item -ItemType Directory -Path $nlmDstDir -Force | Out-Null
+        if (-not (Test-Path -LiteralPath $nlmDst) -or
+            ((Get-Item $nlmSrc).Length -ne (Get-Item $nlmDst).Length)) {
+            Copy-Item -LiteralPath $nlmSrc -Destination $nlmDst -Force
+            Write-Host "NotebookLM CLI copiado para $nlmDst" -ForegroundColor DarkGray
+        }
+    } else {
+        Write-Host "AVISO: nlm.exe nao encontrado — instale o NotebookLM CLI (nlm) no PATH do usuario." -ForegroundColor Yellow
+    }
+
     return @{
         NssmExe     = Join-Path $LinkRoot "tools\nssm\nssm.exe"
         NodeExe     = $nodeDst
+        NlmExe      = $nlmDst
         BackendDir  = Join-Path $LinkRoot "dashboard-qanat\backend"
         LogDir      = Join-Path $LinkRoot ".lumiera-logs"
+        NotebookLmData = Join-Path $LinkRoot ".notebooklm-data"
     }
 }
 
@@ -226,6 +263,17 @@ Invoke-Nssm -NssmExe $NssmExe -NssmCommandArgs @("set", $ServiceName, "AppRotate
 Invoke-Nssm -NssmExe $NssmExe -NssmCommandArgs @("set", $ServiceName, "AppExit", "Default", "Restart")
 Invoke-Nssm -NssmExe $NssmExe -NssmCommandArgs @("set", $ServiceName, "AppRestartDelay", "3000")
 Invoke-Nssm -NssmExe $NssmExe -NssmCommandArgs @("set", $ServiceName, "AppThrottle", "5000")
+
+Invoke-Nssm -NssmExe $NssmExe -NssmCommandArgs @(
+    "set", $ServiceName, "AppEnvironmentExtra",
+    "NOTEBOOKLM_MCP_CLI_PATH=$($paths.NotebookLmData)"
+) -AllowFailure | Out-Null
+if ($paths.NlmExe) {
+    Invoke-Nssm -NssmExe $NssmExe -NssmCommandArgs @(
+        "set", $ServiceName, "AppEnvironmentExtra",
+        "NLM_BIN=$($paths.NlmExe)"
+    ) -AllowFailure | Out-Null
+}
 
 Set-Content -Path $script:UniportModeFile -Value ((Get-Date).ToString("o")) -Encoding UTF8
 Set-Content -Path $script:StackModeFile -Value "service" -Encoding UTF8
