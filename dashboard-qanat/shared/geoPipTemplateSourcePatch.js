@@ -8,61 +8,26 @@ export function isGeoPipTemplateSource(code = "") {
   );
 }
 
-function wrapUniqueBlock(src, opener, closer, wrapperPrefix, wrapperSuffix) {
-  if (src.includes(wrapperPrefix.trim())) return src;
-  const start = src.indexOf(opener);
-  if (start < 0) return src;
-  const end = src.indexOf(closer, start);
-  if (end < 0) return src;
-  const block = src.slice(start, end + closer.length);
-  return (
-    src.slice(0, start) +
-    wrapperPrefix +
-    block +
-    wrapperSuffix +
-    src.slice(end + closer.length)
-  );
-}
-
-export function patchGeoPipTemplateSourceForChrome(code = "") {
-  if (!isGeoPipTemplateSource(code)) return String(code || "");
-  let src = String(code);
-
-  src = src.replace(
-    "{showMainContentLabel && (",
-    "{showMainContentLabel && descriptorText && ("
-  );
-
-  src = src.replace(/\s*<span>\{progressPercent\}% PIP<\/span>/g, "");
-
-  src = wrapUniqueBlock(
-    src,
-    `      <div
+const PIP_STATUS_OPENER = `      <div
         style={{
           position: "absolute",
           right: isVertical ? 42 : 68,
-          top: isVertical ? 118 : 50,`,
-    `      >
-        {statusText}
-      </div>`,
-    "{statusText ? (",
-    ") : null}"
-  );
+          top: isVertical ? 118 : 50,`;
 
-  src = wrapUniqueBlock(
-    src,
-    `          <div
+const PIP_STATUS_CLOSER = `      >
+        {statusText}
+      </div>`;
+
+const PIP_TAG_OPENER = `          <div
             style={{
               position: "absolute",
               top: 10,
-              left: 10,`,
-    `            {pipTag}
-          </div>`,
-    "{pipTag ? (",
-    ") : null}"
-  );
+              left: 10,`;
 
-  const pipBadge = `          <div
+const PIP_TAG_CLOSER = `            {pipTag}
+          </div>`;
+
+const PIP_BADGE = `          <div
             style={{
               position: "absolute",
               right: 10,
@@ -80,19 +45,74 @@ export function patchGeoPipTemplateSourceForChrome(code = "") {
           >
             PIP
           </div>`;
-  src = src.replace(pipBadge, "");
 
-  src = wrapUniqueBlock(
-    src,
-    `          <div
+const PIP_TEXT_OPENER = `          <div
             style={{
               position: "absolute",
               left: 14,
               right: 14,
-              bottom: 14,`,
-    `            </div>
-          </div>
-        </div>`,
+              bottom: 14,
+              zIndex: 4,
+            }}
+          >`;
+
+const PIP_TEXT_CLOSER = `              <span>{coordinateText}</span>
+              <span style={{ color: accentColor }}>{distanceText}</span>
+            </div>
+          </div>`;
+
+function wrapBlockOnce(src, marker, opener, closer, wrapperOpen, wrapperClose) {
+  if (src.includes(marker)) return src;
+  const start = src.indexOf(opener);
+  if (start < 0) return src;
+  const end = src.indexOf(closer, start);
+  if (end < 0) return src;
+  const block = src.slice(start, end + closer.length);
+  return (
+    src.slice(0, start) +
+    wrapperOpen +
+    block +
+    wrapperClose +
+    src.slice(end + closer.length)
+  );
+}
+
+export function patchGeoPipTemplateSourceForChrome(code = "") {
+  if (!isGeoPipTemplateSource(code)) return String(code || "");
+  let src = String(code);
+
+  src = src.replace(
+    "{showMainContentLabel && (",
+    "{showMainContentLabel && descriptorText && ("
+  );
+
+  src = src.replace(/\s*<span>\{progressPercent\}% PIP<\/span>/g, "");
+
+  src = wrapBlockOnce(
+    src,
+    "{statusText ? (",
+    PIP_STATUS_OPENER,
+    PIP_STATUS_CLOSER,
+    "{statusText ? (",
+    ") : null}"
+  );
+
+  src = wrapBlockOnce(
+    src,
+    "{pipTag ? (",
+    PIP_TAG_OPENER,
+    PIP_TAG_CLOSER,
+    "{pipTag ? (",
+    ") : null}"
+  );
+
+  src = src.replace(PIP_BADGE, "");
+
+  src = wrapBlockOnce(
+    src,
+    "(pipTitle || pipSubtitle || coordinateText || distanceText) ? (",
+    PIP_TEXT_OPENER,
+    PIP_TEXT_CLOSER,
     "{(pipTitle || pipSubtitle || coordinateText || distanceText) ? (",
     ") : null}"
   );
