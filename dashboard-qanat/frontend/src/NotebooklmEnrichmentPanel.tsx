@@ -15,6 +15,16 @@ export type NotebooklmTurn = {
   at?: string;
 };
 
+export type NotebooklmBriefInfo = {
+  path?: string;
+  status?: string;
+  skip_web_research?: boolean;
+  fact_count?: number;
+  location_count?: number;
+  char_count?: number;
+  markdown_preview?: string;
+};
+
 export type NotebooklmSession = {
   niche?: string;
   format?: string;
@@ -24,6 +34,7 @@ export type NotebooklmSession = {
   questions?: string[];
   turns?: NotebooklmTurn[];
   accumulatedSummary?: string;
+  notebooklm_brief_path?: string;
   readiness?: {
     ready?: boolean;
     reason?: string;
@@ -33,6 +44,7 @@ export type NotebooklmSession = {
 
 type Props = {
   session: NotebooklmSession | null;
+  brief?: NotebooklmBriefInfo | null;
   loading?: boolean;
   onReply: (reply: string) => Promise<void>;
   onProceed: () => Promise<void>;
@@ -40,6 +52,7 @@ type Props = {
 
 export function NotebooklmEnrichmentPanel({
   session,
+  brief = null,
   loading = false,
   onReply,
   onProceed,
@@ -76,8 +89,14 @@ export function NotebooklmEnrichmentPanel({
           </p>
           <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
             O NotebookLM fez perguntas para aprofundar o assunto. Responda
-            abaixo; a IA guarda os fatos para montar roteiro e narração
-            melhores.
+            abaixo — tudo é salvo em{" "}
+            <code className="text-indigo-200/90">
+              {brief?.path ||
+                session?.notebooklm_brief_path ||
+                "notebooklm_research_brief.md"}
+            </code>{" "}
+            e usado para roteiro, narração e templates Remotion (sem repetir
+            buscas na web quando o brief estiver completo).
           </p>
         </div>
         {ready ? (
@@ -117,6 +136,27 @@ export function NotebooklmEnrichmentPanel({
 
       {readiness?.reason && (
         <p className="text-[10px] text-zinc-500">{readiness.reason}</p>
+      )}
+
+      {(brief?.fact_count ?? 0) > 0 && (
+        <p className="text-[10px] text-emerald-400/90">
+          Brief MD: {brief?.fact_count ?? 0} fatos
+          {(brief?.location_count ?? 0) > 0
+            ? ` · ${brief?.location_count} locais/POIs`
+            : ""}
+          {brief?.skip_web_research ? " · busca web dispensada" : ""}
+        </p>
+      )}
+
+      {brief?.markdown_preview?.trim() && (
+        <details className="text-[10px] text-zinc-500">
+          <summary className="cursor-pointer hover:text-zinc-400 font-bold uppercase tracking-wider">
+            Prévia do brief MD ({brief.char_count ?? 0} chars)
+          </summary>
+          <pre className="mt-2 p-3 bg-zinc-950/80 border border-zinc-900 rounded-lg whitespace-pre-wrap text-zinc-400 max-h-40 overflow-y-auto text-[11px]">
+            {brief.markdown_preview}
+          </pre>
+        </details>
       )}
 
       {session.accumulatedSummary?.trim() && (

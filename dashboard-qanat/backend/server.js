@@ -241,6 +241,11 @@ import {
   loadNotebooklmSession,
   closeNotebooklmSession,
   persistNotebooklmResearchSession,
+  loadNotebooklmBrief,
+  formatNotebooklmBriefPromptBlock,
+  shouldSkipWebResearchForBrief,
+  mergeBriefIntoStoryboard,
+  NOTEBOOKLM_BRIEF_FILENAME,
 } from "./notebooklmService.js";
 import {
   fetchWebResearchForTopic,
@@ -16266,24 +16271,63 @@ app.post(
       isPioneerFromIdea && niche === "Customized"
         ? (idea?.title || idea?.promise || niche).trim().slice(0, 72)
         : niche;
-    const notebooklmAccumulated = String(
+    let notebooklmAccumulated = String(
       req.body?.notebooklmAccumulated || ""
     ).trim();
     const skipNotebooklmPending = req.body?.skipNotebooklmPending === true;
+    const notebooklmBriefDisk = projDir ? loadNotebooklmBrief(projDir) : null;
+
+    if (!notebooklmAccumulated && notebooklmBriefDisk?.available) {
+      const briefAccum = String(
+        notebooklmBriefDisk.parsed?.accumulated || ""
+      ).trim();
+      if (
+        briefAccum &&
+        (notebooklmBriefDisk.status === "finalized" ||
+          skipNotebooklmPending ||
+          notebooklmBriefDisk.parsed?.skipWebResearch)
+      ) {
+        notebooklmAccumulated = briefAccum;
+        console.log(
+          `[NotebookLM] Brief MD carregado: ${NOTEBOOKLM_BRIEF_FILENAME}`
+        );
+      }
+    }
 
     let notebooklmContext = "";
     let notebooklmResearch = null;
     if (notebooklmAccumulated) {
-      notebooklmContext = formatNotebooklmPromptBlock(
-        {
-          available: true,
-          summary: notebooklmAccumulated,
-          fallback: false,
-        },
-        "PESQUISA NOTEBOOKLM PARA ROTEIRO"
+      if (notebooklmBriefDisk?.available) {
+        notebooklmContext = formatNotebooklmBriefPromptBlock(
+          notebooklmBriefDisk,
+          format,
+          "BRIEF NOTEBOOKLM PARA ROTEIRO"
+        );
+      }
+      if (!notebooklmContext) {
+        notebooklmContext = formatNotebooklmPromptBlock(
+          {
+            available: true,
+            summary: notebooklmAccumulated,
+            fallback: false,
+          },
+          "PESQUISA NOTEBOOKLM PARA ROTEIRO"
+        );
+      }
+      console.log(
+        "[NotebookLM] Usando pesquisa acumulada (sessão interativa ou brief MD)."
+      );
+    } else if (
+      notebooklmBriefDisk?.available &&
+      String(notebooklmBriefDisk.parsed?.accumulated || "").length >= 200
+    ) {
+      notebooklmContext = formatNotebooklmBriefPromptBlock(
+        notebooklmBriefDisk,
+        format,
+        "BRIEF NOTEBOOKLM PARA ROTEIRO"
       );
       console.log(
-        "[NotebookLM] Usando pesquisa acumulada da sessão interativa."
+        `[NotebookLM] Usando brief MD existente (${NOTEBOOKLM_BRIEF_FILENAME}).`
       );
     } else if (useNotebooklm !== false && !skipNotebooklmScript) {
       report("notebooklm", "Consultando NotebookLM…", 18);
@@ -16317,6 +16361,8 @@ app.post(
             phase: "notebooklm_pending",
             project: safeProjectName,
             notebooklm_session: session,
+            notebooklm_brief:
+              session.notebooklm_brief_path || NOTEBOOKLM_BRIEF_FILENAME,
             message: notebooklmResearch.summary,
             questions: session.questions || [],
           });
@@ -16366,6 +16412,33 @@ app.post(
       );
       console.log(
         `[WebResearch] Usando pesquisa Agent Reach do painel: ${webResearchMeta.sources?.length || 0} fontes.`
+      );
+    } else if (
+      !webResearchContext &&
+      notebooklmBriefDisk?.available &&
+      shouldSkipWebResearchForBrief(notebooklmBriefDisk)
+    ) {
+      const briefParsed = notebooklmBriefDisk.parsed || {};
+      webResearchMeta = {
+        available: true,
+        summary: String(briefParsed.accumulated || "").slice(0, 12000),
+        facts: Array.isArray(briefParsed.facts) ? briefParsed.facts : [],
+        sources: [
+          {
+            title: `NotebookLM Brief (${NOTEBOOKLM_BRIEF_FILENAME})`,
+            url: "",
+            snippet: String(briefParsed.accumulated || "").slice(0, 500),
+          },
+        ],
+        via: "notebooklm-brief-md",
+        fallback: false,
+      };
+      webResearchContext = formatWebResearchPromptBlock(
+        webResearchMeta,
+        "PESQUISA NOTEBOOKLM (BRIEF MD — SEM BUSCA WEB)"
+      );
+      console.log(
+        `[WebResearch] Pulando busca web — brief NotebookLM suficiente (${briefParsed.factCount || briefParsed.facts?.length || 0} fatos).`
       );
     } else if (!webResearchContext && !isPioneerNicheIdea) {
       // Para ideias pioneer-niche, os dados já vêm no pioneerMeta do Radar de Tendências.
@@ -16988,6 +17061,9 @@ app.post(
       }
       if (webResearchMeta?.facts?.length) {
         parsedData.research_facts = webResearchMeta.facts;
+      }
+      if (notebooklmBriefDisk?.available) {
+        parsedData = mergeBriefIntoStoryboard(parsedData, notebooklmBriefDisk);
       }
 
       // Save full storyboard JSON
@@ -17844,10 +17920,48 @@ app.get("/api/notebooklm/session", (req, res) => {
       backendDir: __dirname,
       niche,
     });
+    const brief = projDir ? loadNotebooklmBrief(projDir) : null;
     if (!session) {
-      return res.json({ ok: true, session: null });
+      return res.json({
+        ok: true,
+        session: null,
+        brief: brief?.available ? brief : null,
+      });
     }
-    res.json({ ok: true, session });
+    res.json({
+      ok: true,
+      session,
+      brief: brief?.available ? brief : null,
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get("/api/notebooklm/brief", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    if (!projDir) {
+      return res.json({ ok: true, brief: null });
+    }
+    const brief = loadNotebooklmBrief(projDir);
+    if (!brief.available) {
+      return res.json({ ok: true, brief: null });
+    }
+    res.json({
+      ok: true,
+      brief: {
+        path: brief.relativePath,
+        status: brief.status,
+        skip_web_research: brief.skipWebResearch,
+        fact_count: brief.parsed?.factCount || brief.parsed?.facts?.length || 0,
+        location_count: brief.parsed?.locations?.length || 0,
+        char_count: String(brief.parsed?.accumulated || brief.markdown || "")
+          .length,
+        markdown_preview: String(brief.markdown || "").slice(0, 2000),
+        template_hints: brief.parsed?.templateHints || null,
+      },
+    });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -17868,7 +17982,12 @@ app.post(
       niche,
       userReply,
     });
-    res.json({ ok: true, session });
+    const brief = projDir ? loadNotebooklmBrief(projDir) : null;
+    res.json({
+      ok: true,
+      session,
+      brief: brief?.available ? brief : null,
+    });
   })
 );
 
@@ -17876,17 +17995,38 @@ app.post("/api/notebooklm/session/finalize", (req, res) => {
   try {
     const projDir = getProjectDir(req);
     const niche = String(req.body?.niche || "documentário").trim();
+    const format = String(req.body?.format || "SHORTS").trim();
     const session = closeNotebooklmSession({
       projDir,
       backendDir: __dirname,
       niche,
+      format,
+      project: projDir ? path.basename(projDir) : undefined,
     });
     if (!session) {
       return res
         .status(404)
         .json({ error: "Sessão NotebookLM não encontrada." });
     }
-    res.json({ ok: true, session });
+    const brief = projDir ? loadNotebooklmBrief(projDir) : null;
+    res.json({
+      ok: true,
+      session,
+      brief: brief?.available
+        ? {
+            path: brief.relativePath,
+            status: brief.status,
+            skip_web_research: brief.skipWebResearch,
+            fact_count:
+              brief.parsed?.factCount || brief.parsed?.facts?.length || 0,
+            location_count: brief.parsed?.locations?.length || 0,
+            char_count: String(
+              brief.parsed?.accumulated || brief.markdown || ""
+            ).length,
+            markdown_preview: String(brief.markdown || "").slice(0, 2000),
+          }
+        : null,
+    });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -18116,19 +18256,35 @@ app.post(
     let notebooklmResearch = null;
     let notebooklmBlock = "";
 
-    const notebooklmAccumulated = String(
+    let notebooklmAccumulated = String(
       req.body?.notebooklmAccumulated || ""
     ).trim();
+    const notebooklmBriefDisk = projDir ? loadNotebooklmBrief(projDir) : null;
+    if (!notebooklmAccumulated && notebooklmBriefDisk?.available) {
+      const briefAccum = String(
+        notebooklmBriefDisk.parsed?.accumulated || ""
+      ).trim();
+      if (briefAccum) notebooklmAccumulated = briefAccum;
+    }
 
     if (notebooklmAccumulated) {
-      notebooklmBlock = formatNotebooklmPromptBlock(
-        {
-          available: true,
-          summary: notebooklmAccumulated,
-          fallback: false,
-        },
-        "SUGESTÕES NOTEBOOKLM"
-      );
+      if (notebooklmBriefDisk?.available) {
+        notebooklmBlock = formatNotebooklmBriefPromptBlock(
+          notebooklmBriefDisk,
+          format,
+          "BRIEF NOTEBOOKLM (MELHORAR NARRAÇÃO)"
+        );
+      }
+      if (!notebooklmBlock) {
+        notebooklmBlock = formatNotebooklmPromptBlock(
+          {
+            available: true,
+            summary: notebooklmAccumulated,
+            fallback: false,
+          },
+          "SUGESTÕES NOTEBOOKLM"
+        );
+      }
     } else if (useNotebooklm !== false) {
       try {
         console.log(
@@ -18152,6 +18308,8 @@ app.post(
           return res.json({
             phase: "notebooklm_pending",
             notebooklm_session: session,
+            notebooklm_brief:
+              session.notebooklm_brief_path || NOTEBOOKLM_BRIEF_FILENAME,
             message: notebooklmResearch.summary,
             questions: session.questions || [],
           });
@@ -18168,6 +18326,12 @@ app.post(
         console.warn("[NotebookLM] Melhoria de draft falhou:", err.message);
         notebooklmBlock = `\n(Pesquisa NotebookLM indisponível: ${err.message})\n`;
       }
+    } else if (notebooklmBriefDisk?.available) {
+      notebooklmBlock = formatNotebooklmBriefPromptBlock(
+        notebooklmBriefDisk,
+        format,
+        "BRIEF NOTEBOOKLM (MELHORAR NARRAÇÃO)"
+      );
     } else {
       notebooklmBlock =
         "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";

@@ -63,6 +63,7 @@ import type { ConfigData, WorkspaceStatus } from "./appTypes";
 import { NotebookLmConnect } from "./NotebookLmConnect";
 import {
   NotebooklmEnrichmentPanel,
+  type NotebooklmBriefInfo,
   type NotebooklmSession,
 } from "./NotebooklmEnrichmentPanel";
 import { CreatorProductionPlanPanel } from "./CreatorProductionPlanPanel";
@@ -157,6 +158,7 @@ export type AppCreatorTabProps = {
   handleNotebooklmReply: (reply: string) => Promise<void>;
   handleNotebooklmProceed: () => Promise<void>;
   notebooklmSession: NotebooklmSession | null;
+  notebooklmBrief: NotebooklmBriefInfo | null;
   notebooklmSessionLoading: boolean;
   handleRemoveSceneAsset: (
     blockKey: string,
@@ -338,6 +340,7 @@ export function AppCreatorTab({
   handleNotebooklmReply,
   handleNotebooklmProceed,
   notebooklmSession,
+  notebooklmBrief,
   notebooklmSessionLoading,
   handleRemoveSceneAsset,
   handleSaveConfig,
@@ -1496,6 +1499,7 @@ export function AppCreatorTab({
                     notebooklmSession.status === "pending_user") && (
                     <NotebooklmEnrichmentPanel
                       session={notebooklmSession}
+                      brief={notebooklmBrief}
                       loading={notebooklmSessionLoading}
                       onReply={handleNotebooklmReply}
                       onProceed={handleNotebooklmProceed}
@@ -1586,6 +1590,7 @@ export function AppCreatorTab({
                   onApprove={handleApproveNarrationAndGenerateScript}
                   onNotebooklmImprove={handleNotebooklmImproveNarrationDraft}
                   notebooklmSession={notebooklmSession}
+                  notebooklmBrief={notebooklmBrief}
                   notebooklmSessionLoading={notebooklmSessionLoading}
                   onNotebooklmReply={handleNotebooklmReply}
                   onNotebooklmProceed={handleNotebooklmProceed}

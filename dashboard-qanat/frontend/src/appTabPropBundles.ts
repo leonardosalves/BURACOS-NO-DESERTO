@@ -138,6 +138,7 @@ export function buildAppTabPropBundles(
     handleNotebooklmReply: ctx.handleNotebooklmReply,
     handleNotebooklmProceed: ctx.handleNotebooklmProceed,
     notebooklmSession: ctx.notebooklmSession,
+    notebooklmBrief: ctx.notebooklmBrief,
     notebooklmSessionLoading: ctx.notebooklmSessionLoading,
     handleRemoveSceneAsset: ctx.handleRemoveSceneAsset,
     handleSaveConfig: ctx.handleSaveConfig,

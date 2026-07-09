@@ -44,7 +44,10 @@ import {
   pickVisualConfig,
   visualDraftToApiPatch,
 } from "./visualConfig";
-import type { NotebooklmSession } from "./NotebooklmEnrichmentPanel";
+import type {
+  NotebooklmBriefInfo,
+  NotebooklmSession,
+} from "./NotebooklmEnrichmentPanel";
 import {
   loadWizardSession,
   saveWizardSession,
@@ -758,6 +761,8 @@ export default function App() {
     );
   const [notebooklmSessionLoading, setNotebooklmSessionLoading] =
     useState(false);
+  const [notebooklmBrief, setNotebooklmBrief] =
+    useState<NotebooklmBriefInfo | null>(null);
   const notebooklmAccumulatedRef = useRef("");
   const notebooklmProceedActionRef = useRef<"narration" | "improve" | null>(
     null
@@ -3585,6 +3590,20 @@ export default function App() {
     return () => window.removeEventListener("lumiera-nlm-status", onNlmStatus);
   }, []);
 
+  const fetchNotebooklmBrief = useCallback(async () => {
+    const project = activeProject || creatorProjectName.trim();
+    if (!project) return null;
+    try {
+      const res = await fetch(getProjectUrl("/api/notebooklm/brief"));
+      const data = await res.json();
+      const brief = (data?.brief as NotebooklmBriefInfo | null) || null;
+      setNotebooklmBrief(brief);
+      return brief;
+    } catch {
+      return null;
+    }
+  }, [activeProject, creatorProjectName, getProjectUrl]);
+
   const resolveNotebooklmNiche = useCallback(() => {
     if (ideationTab === "listicle") {
       return (
@@ -3628,8 +3647,12 @@ export default function App() {
         if (data?.session) {
           setNotebooklmSession(data.session as NotebooklmSession);
         }
+        if (data?.brief) {
+          setNotebooklmBrief(data.brief as NotebooklmBriefInfo);
+        }
       })
       .catch(() => {});
+    void fetchNotebooklmBrief();
     return () => {
       cancelled = true;
     };
@@ -3639,6 +3662,7 @@ export default function App() {
     creatorProjectName,
     getProjectUrl,
     resolveNotebooklmNiche,
+    fetchNotebooklmBrief,
   ]);
 
   useEffect(() => {
@@ -7150,6 +7174,7 @@ export default function App() {
 
   const handleNotebooklmImproveNarrationDraft = async (opts?: {
     accumulated?: string;
+    useBriefMd?: boolean;
   }) => {
     const draft = narrationDraft.trim();
     if (draft.length < 40) {
@@ -7209,7 +7234,9 @@ export default function App() {
                   notebooklmAccumulated: opts.accumulated,
                   skipNotebooklmPending: true,
                 }
-              : {}),
+              : opts?.useBriefMd
+                ? { skipNotebooklmPending: true }
+                : {}),
           }),
         }
       );
@@ -7824,6 +7851,7 @@ export default function App() {
     setNarrationNotebooklmEnriched(false);
     setNarrationProjectName("");
     setNotebooklmSession(null);
+    setNotebooklmBrief(null);
     notebooklmAccumulatedRef.current = "";
     notebooklmProceedActionRef.current = null;
     setDirectingSceneIndex(null);
@@ -7875,6 +7903,7 @@ export default function App() {
       setNarrationNotebooklmEnriched(false);
       setNarrationProjectName("");
       setNotebooklmSession(null);
+      setNotebooklmBrief(null);
       notebooklmAccumulatedRef.current = "";
       notebooklmProceedActionRef.current = null;
       setCustomTitle("");
@@ -7958,6 +7987,7 @@ export default function App() {
     setNarrationNotebooklmEnriched(Boolean(data.notebooklm_enriched));
     setNarrationProjectName(projectName);
     setNotebooklmSession(null);
+    setNotebooklmBrief(null);
     notebooklmAccumulatedRef.current = "";
     notebooklmProceedActionRef.current = null;
     setShowNarrationReview(true);
@@ -8484,6 +8514,8 @@ export default function App() {
         );
       }
       setNotebooklmSession((data.session as NotebooklmSession) || null);
+      if (data.brief) setNotebooklmBrief(data.brief as NotebooklmBriefInfo);
+      else await fetchNotebooklmBrief();
       const session = data.session as NotebooklmSession | undefined;
       if (session?.readiness?.ready && !session?.awaitingUser) {
         toast.success(
@@ -8511,25 +8543,26 @@ export default function App() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ niche: resolveNotebooklmNiche() }),
+          body: JSON.stringify({
+            niche: resolveNotebooklmNiche(),
+            format: formatSelector,
+          }),
         }
       );
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Falha ao finalizar sessão NotebookLM.");
       }
-      const summary = String(
-        (data.session as NotebooklmSession)?.accumulatedSummary || ""
-      ).trim();
-      notebooklmAccumulatedRef.current = summary;
+      if (data.brief) setNotebooklmBrief(data.brief as NotebooklmBriefInfo);
+      else await fetchNotebooklmBrief();
       setNotebooklmSession(null);
 
       const action = notebooklmProceedActionRef.current || "narration";
       notebooklmProceedActionRef.current = null;
 
       if (action === "improve" && narrationDraft.trim().length >= 40) {
-        await handleNotebooklmImproveNarrationDraft({ accumulated: summary });
-        toast.success("Pesquisa NotebookLM aplicada — melhorando narração.");
+        await handleNotebooklmImproveNarrationDraft({ useBriefMd: true });
+        toast.success("Brief MD aplicado — melhorando narração.");
         return;
       }
 
@@ -8543,12 +8576,13 @@ export default function App() {
         projectName,
         {
           ...basePayload,
-          notebooklmAccumulated: summary,
           skipNotebooklmPending: true,
         },
         { toastId: "creator-nlm-proceed" }
       );
-      toast.success("Pesquisa NotebookLM aplicada — gerando narração.");
+      toast.success(
+        "Brief MD aplicado — gerando narração a partir do NotebookLM."
+      );
     } catch (err: unknown) {
       toast.error(
         err instanceof Error
@@ -10284,6 +10318,7 @@ export default function App() {
     nicheInput,
     notebooklmImproving,
     notebooklmSession,
+    notebooklmBrief,
     notebooklmSessionLoading,
     notebooklmStatus,
     notebooklmSuggestions,
