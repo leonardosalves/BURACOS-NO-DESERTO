@@ -135,6 +135,88 @@ export function ensureProjectsDirs() {
   return { projectsRoot, longsDir, shortsDir };
 }
 
+/** Pasta legada quando o backend rodava como servico SYSTEM. */
+export function getLegacySystemProjectsRoot() {
+  const winRoot = process.env.SystemRoot || "C:\\Windows";
+  return path.join(
+    winRoot,
+    "system32",
+    "config",
+    "systemprofile",
+    "Desktop",
+    "Lumiera Videos"
+  );
+}
+
+export function listLegacySystemProjects() {
+  const legacyRoot = getLegacySystemProjectsRoot();
+  const found = [];
+  for (const sub of ["videos curtos shorts", "videos longos"]) {
+    const dir = path.join(legacyRoot, sub);
+    if (!fs.existsSync(dir)) continue;
+    try {
+      for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (!ent.isDirectory()) continue;
+        const configPath = path.join(dir, ent.name, "config_qanat.json");
+        found.push({
+          folder: ent.name,
+          kind: sub.includes("shorts") ? "short" : "long",
+          legacy_path: path.join(dir, ent.name),
+          has_config: fs.existsSync(configPath),
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return { legacy_root: legacyRoot, projects: found };
+}
+
+export function recoverLegacyProject(
+  projectFolder = "",
+  { overwrite = false } = {}
+) {
+  const name = String(projectFolder || "").trim();
+  if (!name) {
+    return { ok: false, error: "Informe o nome da pasta do projeto." };
+  }
+
+  const legacyRoot = getLegacySystemProjectsRoot();
+  const { shortsDir, longsDir } = getProjectsDirs();
+  const pairs = [
+    [path.join(legacyRoot, "videos curtos shorts"), shortsDir],
+    [path.join(legacyRoot, "videos longos"), longsDir],
+  ];
+
+  for (const [legacyBase, targetBase] of pairs) {
+    const src = path.join(legacyBase, name);
+    if (!fs.existsSync(src)) continue;
+    const dest = path.join(targetBase, name);
+    fs.mkdirSync(targetBase, { recursive: true });
+    if (fs.existsSync(dest) && !overwrite) {
+      fs.cpSync(src, dest, {
+        recursive: true,
+        force: false,
+        errorOnExist: false,
+      });
+    } else {
+      fs.cpSync(src, dest, { recursive: true, force: true });
+    }
+    return {
+      ok: true,
+      folder: name,
+      from: src,
+      to: dest,
+      merged: fs.existsSync(dest) && !overwrite,
+    };
+  }
+
+  return {
+    ok: false,
+    error: `Projeto "${name}" nao encontrado em ${legacyRoot}`,
+  };
+}
+
 /** Limpa cache (testes). */
 export function resetProjectsRootCache() {
   cachedProjectsRoot = null;
