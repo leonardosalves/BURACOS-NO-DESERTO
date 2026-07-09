@@ -7,6 +7,12 @@ import {
 } from "./remotionTemplateStudioApi";
 import { normalizeNicheLabel } from "@lumiera/shared/remotionTemplateNiches.js";
 import {
+  countTemplatesInCategory,
+  filterTemplatesByCategorySubcategory,
+  loadTemplateCategoryCatalog,
+  type TemplateCategoryDefinition,
+} from "./remotionTemplateStudioCategories";
+import {
   hasRunnableStudioSource,
   isStudioTemplateOrchestrationReady,
   mapStudioTemplateToMotionId,
@@ -183,7 +189,8 @@ export function NicheTemplatePalette({
   const [createdTemplates, setCreatedTemplates] = useState<CatalogTemplate[]>(
     []
   );
-  const [selectedCreatedId, setSelectedCreatedId] = useState("");
+  const [categoryId, setCategoryId] = useState("chart-data");
+  const [subcategory, setSubcategory] = useState("Bar chart");
   const activePack =
     packs.find((p) => p.id === activePackId) || packs[0] || null;
   const niche =
@@ -206,10 +213,56 @@ export function NicheTemplatePalette({
     [createdTemplates]
   );
 
-  const selectedCreatedTemplate =
-    studioReadyTemplates.find((tpl) => tpl.id === selectedCreatedId) ||
-    studioReadyTemplates[0] ||
-    null;
+  const categories = useMemo(
+    () => loadTemplateCategoryCatalog(studioReadyTemplates),
+    [studioReadyTemplates]
+  );
+
+  const currentCategory = useMemo(
+    () => categories.find((c) => c.id === categoryId) || categories[0] || null,
+    [categories, categoryId]
+  );
+
+  const subcategories = currentCategory?.subcategories || [];
+
+  const categoryTemplates = useMemo(
+    () =>
+      studioReadyTemplates.filter(
+        (tpl) => tpl.category === currentCategory?.id
+      ),
+    [studioReadyTemplates, currentCategory?.id]
+  );
+
+  const visibleTemplates = useMemo(
+    () =>
+      filterTemplatesByCategorySubcategory(
+        studioReadyTemplates,
+        currentCategory?.id || "",
+        subcategory
+      ),
+    [studioReadyTemplates, currentCategory?.id, subcategory]
+  );
+
+  const showingCategoryFallback = useMemo(() => {
+    if (!subcategory || !categoryTemplates.length) return false;
+    return !categoryTemplates.some((tpl) => tpl.subcategory === subcategory);
+  }, [categoryTemplates, subcategory]);
+
+  useEffect(() => {
+    if (!categories.length) return;
+    if (!categories.some((c) => c.id === categoryId)) {
+      const first = categories[0];
+      setCategoryId(first.id);
+      setSubcategory(first.subcategories[0] || "");
+    }
+  }, [categories, categoryId]);
+
+  useEffect(() => {
+    if (!subcategories.length) return;
+    if (!subcategories.includes(subcategory)) {
+      setSubcategory(subcategories[0] || "");
+    }
+  }, [subcategories, subcategory]);
 
   useEffect(() => {
     if (!niche) {
@@ -261,15 +314,6 @@ export function NicheTemplatePalette({
     };
   }, [getProjectUrl, niche]);
 
-  useEffect(() => {
-    if (
-      selectedCreatedId &&
-      !studioReadyTemplates.some((tpl) => tpl.id === selectedCreatedId)
-    ) {
-      setSelectedCreatedId(studioReadyTemplates[0]?.id || "");
-    }
-  }, [selectedCreatedId, studioReadyTemplates]);
-
   function insertStudioTemplate(tpl: CatalogTemplate) {
     const motionId = String(tpl.motion_template_id || "counter");
     const sourceCode = resolveStudioSourceCode(tpl, aspectRatio);
@@ -319,7 +363,7 @@ export function NicheTemplatePalette({
         </p>
       ) : null}
 
-      <div className="border-t border-zinc-800/60 pt-2 space-y-1.5">
+      <div className="border-t border-zinc-800/60 pt-2 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
             Templates Studio
@@ -333,8 +377,77 @@ export function NicheTemplatePalette({
 
         {studioReadyTemplates.length ? (
           <>
+            <div className="space-y-1">
+              <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
+                Categorias
+              </p>
+              <div className="max-h-28 overflow-y-auto space-y-1 pr-0.5">
+                {categories.map((cat: TemplateCategoryDefinition) => {
+                  const count = countTemplatesInCategory(
+                    studioReadyTemplates,
+                    cat.id
+                  );
+                  const active = cat.id === currentCategory?.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setCategoryId(cat.id);
+                        setSubcategory(cat.subcategories[0] || "");
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left transition cursor-pointer ${
+                        active
+                          ? "border-blue-400/60 bg-blue-500/12 text-white"
+                          : "border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:border-zinc-700"
+                      }`}
+                    >
+                      <span className="text-[9px] font-bold truncate">
+                        {cat.label}
+                      </span>
+                      <span className="text-[8px] text-zinc-600 shrink-0 ml-2">
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {subcategories.length ? (
+              <div className="space-y-1">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
+                  {currentCategory?.label || "Subcategorias"}
+                </p>
+                <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                  {subcategories.map((sub) => (
+                    <button
+                      key={sub}
+                      type="button"
+                      onClick={() => setSubcategory(sub)}
+                      className={`text-[9px] px-2 py-1 rounded-full border transition cursor-pointer ${
+                        subcategory === sub
+                          ? "border-amber-400/50 bg-amber-400/12 text-amber-100"
+                          : "border-zinc-800 bg-zinc-950/70 text-zinc-400 hover:border-zinc-700"
+                      }`}
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {showingCategoryFallback ? (
+              <p className="text-[8px] text-amber-200/80 leading-relaxed">
+                Nenhum template em &quot;{subcategory}&quot;. Mostrando os{" "}
+                {categoryTemplates.length} da categoria {currentCategory?.label}
+                .
+              </p>
+            ) : null}
+
             <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-              {studioReadyTemplates.map((tpl) => (
+              {visibleTemplates.map((tpl) => (
                 <button
                   key={tpl.id}
                   type="button"
@@ -345,34 +458,6 @@ export function NicheTemplatePalette({
                   + {shortTemplateName(tpl.name)}
                 </button>
               ))}
-            </div>
-
-            <div className="flex gap-1">
-              <select
-                value={selectedCreatedTemplate?.id || ""}
-                onChange={(e) => setSelectedCreatedId(e.target.value)}
-                className="min-w-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-2 py-1 text-[9px] text-zinc-300"
-                title="Escolher template Studio com TSX salvo"
-              >
-                {studioReadyTemplates.map((tpl) => (
-                  <option key={tpl.id} value={tpl.id}>
-                    {shortTemplateName(tpl.name)} · {tpl.category}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                disabled={!selectedCreatedTemplate}
-                onClick={() => {
-                  if (selectedCreatedTemplate) {
-                    insertStudioTemplate(selectedCreatedTemplate);
-                  }
-                }}
-                className="shrink-0 rounded-lg border border-violet-500/40 bg-violet-500/10 px-2 py-1 text-[9px] font-bold text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-40"
-                title={`Inserir em ${formatShort(playhead)}`}
-              >
-                + Usar
-              </button>
             </div>
           </>
         ) : (

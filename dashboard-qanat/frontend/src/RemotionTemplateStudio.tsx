@@ -15,6 +15,7 @@ import {
 } from "./remotionTemplateStudioApi";
 import {
   DEFAULT_TEMPLATE_NICHES,
+  isInternalTestCatalogNiche,
   mergeNicheLists,
   normalizeNicheLabel,
 } from "@lumiera/shared/remotionTemplateNiches.js";
@@ -2894,7 +2895,10 @@ export function RemotionTemplateStudio({
     let cancelled = false;
     void fetchCatalogNiches().then((response) => {
       if (cancelled) return;
-      const fromApi = response.niches?.map((row) => row.niche) || [];
+      const fromApi =
+        response.niches
+          ?.map((row) => row.niche)
+          .filter((item) => !isInternalTestCatalogNiche(item)) || [];
       setNiches((current) => {
         const merged = mergeNicheLists(
           DEFAULT_TEMPLATE_NICHES,
@@ -3318,20 +3322,22 @@ export function RemotionTemplateStudio({
             </button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {niches.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setNiche(item)}
-                className={`rounded-md border px-3 py-2 text-left text-xs font-bold ${
-                  niche === item
-                    ? "border-cyan-300 bg-cyan-300/12 text-cyan-100"
-                    : "border-white/10 bg-white/[0.03] text-zinc-400"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
+            {niches
+              .filter((item) => !isInternalTestCatalogNiche(item))
+              .map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setNiche(item)}
+                  className={`rounded-md border px-3 py-2 text-left text-xs font-bold ${
+                    niche === item
+                      ? "border-cyan-300 bg-cyan-300/12 text-cyan-100"
+                      : "border-white/10 bg-white/[0.03] text-zinc-400"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
           </div>
 
           <div className="mt-5 space-y-2">

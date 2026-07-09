@@ -4,6 +4,7 @@ import {
   validateFinalTemplateCode,
   validateOriginalTemplateCode,
 } from "@lumiera/shared/remotionTemplateStudioValidate.js";
+import { isInternalTestCatalogNiche } from "@lumiera/shared/remotionTemplateNiches.js";
 
 export type TemplateAdaptRequest = {
   niche: string;
@@ -156,9 +157,14 @@ export async function fetchCatalogNiches(): Promise<CatalogNichesResponse> {
         error: parsed.error || "Nichos indisponíveis.",
       };
     }
+    const niches = Array.isArray(parsed.data.niches)
+      ? parsed.data.niches.filter(
+          (row) => row?.niche && !isInternalTestCatalogNiche(row.niche)
+        )
+      : [];
     return {
       success: Boolean(parsed.data.success),
-      niches: Array.isArray(parsed.data.niches) ? parsed.data.niches : [],
+      niches,
       error: parsed.data.error,
     };
   } catch (err) {

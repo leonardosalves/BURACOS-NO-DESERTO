@@ -13,6 +13,7 @@ import {
 } from "../shared/remotionTemplateLegacy.js";
 import {
   DEFAULT_TEMPLATE_NICHES,
+  isInternalTestCatalogNiche,
   mergeNicheLists,
   normalizeNicheLabel,
 } from "../shared/remotionTemplateNiches.js";
@@ -509,19 +510,38 @@ export function loadRemotionTemplateCatalog() {
   return readCatalogFile();
 }
 
-export function listCatalogNiches() {
+export function purgeInternalTestCatalogNiches() {
   const catalog = readCatalogFile();
-  const fromFile = Object.keys(catalog.niches || {}).map((key) => {
-    const entry = catalog.niches[key] || {};
-    const templates = Array.isArray(entry.templates) ? entry.templates : [];
-    const approved = templates.filter((tpl) => tpl?.status === "approved");
-    return {
-      niche: key,
-      count: templates.length,
-      approved_count: approved.length,
-      updated_at: entry.updated_at || null,
-    };
-  });
+  const niches = catalog.niches || {};
+  const removed = [];
+  for (const key of Object.keys(niches)) {
+    if (!isInternalTestCatalogNiche(key)) continue;
+    delete niches[key];
+    removed.push(key);
+  }
+  if (removed.length) {
+    catalog.updated_at = new Date().toISOString();
+    writeCatalogFile(catalog);
+  }
+  return { removed, count: removed.length };
+}
+
+export function listCatalogNiches() {
+  purgeInternalTestCatalogNiches();
+  const catalog = readCatalogFile();
+  const fromFile = Object.keys(catalog.niches || {})
+    .filter((key) => !isInternalTestCatalogNiche(key))
+    .map((key) => {
+      const entry = catalog.niches[key] || {};
+      const templates = Array.isArray(entry.templates) ? entry.templates : [];
+      const approved = templates.filter((tpl) => tpl?.status === "approved");
+      return {
+        niche: key,
+        count: templates.length,
+        approved_count: approved.length,
+        updated_at: entry.updated_at || null,
+      };
+    });
 
   const merged = mergeNicheLists(
     DEFAULT_TEMPLATE_NICHES,
