@@ -172,7 +172,10 @@ import {
 } from "./timelineStudioRenderSync.js";
 
 const LOGO_OUTRO_DURATION_SEC = 4.5;
-import { applyNarrationSyncToProject } from "./timelineStudioMigration.js";
+import {
+  applyNarrationSyncToProject,
+  syncStudioTimingToStoryboard,
+} from "./timelineStudioMigration.js";
 import { registerVideoResurrectorRoutes } from "./videoResurrectorRoutes.js";
 import { registerSocialPublishRoutes } from "./socialPublishRoutes.js";
 import {
@@ -2425,6 +2428,22 @@ app.get("/api/projects/storyboard", (req, res) => {
     }
 
     data.checklist = normalizeScriptChecklist(data.checklist);
+
+    const studioPath = path.join(projDir, "timeline_studio.json");
+    if (fs.existsSync(studioPath)) {
+      try {
+        const studio = JSON.parse(fs.readFileSync(studioPath, "utf8"));
+        const timingSync = syncStudioTimingToStoryboard(projDir, studio);
+        if (timingSync.motion_scenes?.length) {
+          data.motion_scenes = timingSync.motion_scenes;
+        }
+      } catch (timingErr) {
+        console.warn(
+          "[storyboard] timing sync:",
+          timingErr?.message || timingErr
+        );
+      }
+    }
 
     if (hasMojibakeDeep(data)) {
       const repaired = repairStoryboardEncoding(data);

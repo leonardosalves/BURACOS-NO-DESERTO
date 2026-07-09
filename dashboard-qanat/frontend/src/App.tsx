@@ -1230,7 +1230,10 @@ export default function App() {
   ) => {
     const base = storyboardData || generatedScriptData;
     if (!base) return;
-    if (!opts?.skipPersist) {
+    if (opts?.skipPersist) {
+      motionDirtyRef.current = false;
+      clearPendingMotionSave();
+    } else {
       motionDirtyRef.current = true;
     }
     const next = { ...base, motion_scenes: scenes };
