@@ -247,6 +247,7 @@ import {
   mergeBriefIntoStoryboard,
   shouldPauseNotebooklmNarration,
   resolveNeedsNlmDiscovery,
+  wantsNotebooklmInteractiveNarration,
   clearNotebooklmProjectArtifacts,
   NOTEBOOKLM_BRIEF_FILENAME,
 } from "./notebooklmService.js";
@@ -16311,15 +16312,13 @@ app.post(
       notebooklmBriefDisk?.status === "finalized" ||
       (skipNotebooklmPending && notebooklmBriefDisk?.available);
 
-    if (
-      scriptPhase === "narration" &&
-      useNotebooklm !== false &&
-      !skipNotebooklmPending &&
-      nlmSessionEarly &&
-      (nlmSessionEarly.awaitingUser ||
-        nlmSessionEarly.status === "pending_user") &&
-      nlmUserTurnsEarly === 0
-    ) {
+    const wantsNlmInteractiveFirst = wantsNotebooklmInteractiveNarration({
+      scriptPhase,
+      useNotebooklm,
+      skipNotebooklmPending,
+    });
+
+    if (wantsNlmInteractiveFirst && nlmSessionPendingEarly && nlmSessionEarly) {
       report("notebooklm_pending", "NotebookLM aguarda sua resposta…", 22);
       return activeRes.json({
         phase: "notebooklm_pending",
@@ -16335,6 +16334,68 @@ app.post(
           "Responda ao NotebookLM para continuar.",
         questions: nlmSessionEarly.questions || [],
       });
+    }
+
+    if (wantsNlmInteractiveFirst) {
+      report(
+        "notebooklm",
+        "Alinhamento com NotebookLM (antes da narração)…",
+        15
+      );
+      try {
+        console.log(
+          "[NotebookLM] Rodada interativa obrigatória — pausando antes de Gemini/web/humanização."
+        );
+        const discoveryResearch = await fetchNotebooklmScriptContext({
+          backendDir: __dirname,
+          niche: nlmNiche,
+          format,
+          idea,
+          contentMode: isListicle ? "LISTICLE" : undefined,
+          rankCount: listicleRank,
+          listTopic: listicleTopic,
+          rankOrder: rankOrder || "desc",
+          interactiveDiscovery: true,
+          runResearch: false,
+        });
+        if (!discoveryResearch?.available) {
+          const errMsg =
+            discoveryResearch?.needsLogin || discoveryResearch?.fallback
+              ? "NotebookLM não autenticado — conecte na aba Criador antes de gerar narração."
+              : discoveryResearch?.error ||
+                "NotebookLM indisponível neste momento.";
+          failJobProgress(progressJobId, errMsg);
+          return activeRes.status(503).json({
+            error: errMsg,
+            needsNotebooklmLogin: Boolean(discoveryResearch?.needsLogin),
+          });
+        }
+        const session = persistNotebooklmResearchSession({
+          research: discoveryResearch,
+          niche: nlmNiche,
+          format,
+          purpose: "script",
+          projDir,
+          backendDir: __dirname,
+        });
+        report("notebooklm_pending", "NotebookLM aguarda sua resposta…", 22);
+        return activeRes.json({
+          phase: "notebooklm_pending",
+          project: safeProjectName,
+          notebooklm_session: session,
+          notebooklm_brief:
+            session.notebooklm_brief_path || NOTEBOOKLM_BRIEF_FILENAME,
+          message: discoveryResearch.summary,
+          questions: session.questions || [],
+        });
+      } catch (err) {
+        console.warn("[NotebookLM] Falha na rodada interativa:", err.message);
+        failJobProgress(progressJobId, err.message);
+        return activeRes.status(500).json({
+          error: "Falha ao consultar NotebookLM.",
+          details: err.message,
+        });
+      }
     }
 
     if (!notebooklmAccumulated && notebooklmBriefDisk?.available) {
@@ -16388,33 +16449,14 @@ app.post(
       console.log(
         `[NotebookLM] Usando brief MD finalizado (${NOTEBOOKLM_BRIEF_FILENAME}).`
       );
-    } else if (useNotebooklm !== false && !skipNotebooklmScript) {
+    } else if (
+      useNotebooklm !== false &&
+      !skipNotebooklmScript &&
+      scriptPhase !== "narration"
+    ) {
       report("notebooklm", "Consultando NotebookLM…", 18);
       try {
-        const nlmSessionExisting = projDir
-          ? loadNotebooklmSession({
-              projDir,
-              backendDir: __dirname,
-              niche: nlmNiche,
-            })
-          : null;
-        const nlmUserTurns = (nlmSessionExisting?.turns || []).filter(
-          (t) => t.role === "user"
-        ).length;
-        const nlmBriefFinalized =
-          notebooklmBriefDisk?.status === "finalized" ||
-          (skipNotebooklmPending && notebooklmBriefDisk?.available);
-        const needsNlmDiscovery = resolveNeedsNlmDiscovery({
-          scriptPhase,
-          skipNotebooklmPending,
-          briefFinalized: nlmBriefFinalized,
-        });
-
-        console.log(
-          needsNlmDiscovery
-            ? "[NotebookLM] Rodada interativa de alinhamento (antes da narração)…"
-            : "[NotebookLM] Enriquecendo roteiro com pesquisa..."
-        );
+        console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
         notebooklmResearch = await fetchNotebooklmScriptContext({
           backendDir: __dirname,
           niche: nlmNiche,
@@ -16424,37 +16466,7 @@ app.post(
           rankCount: listicleRank,
           listTopic: listicleTopic,
           rankOrder: rankOrder || "desc",
-          interactiveDiscovery: needsNlmDiscovery,
-          runResearch: needsNlmDiscovery ? false : undefined,
         });
-        if (
-          shouldPauseNotebooklmNarration(notebooklmResearch, {
-            scriptPhase,
-            skipNotebooklmPending,
-            needsDiscovery: needsNlmDiscovery,
-            userTurns: nlmUserTurns,
-            briefFinalized: nlmBriefFinalized,
-          })
-        ) {
-          const session = persistNotebooklmResearchSession({
-            research: notebooklmResearch,
-            niche: nlmNiche,
-            format,
-            purpose: "script",
-            projDir,
-            backendDir: __dirname,
-          });
-          report("notebooklm_pending", "NotebookLM aguarda sua resposta…", 22);
-          return activeRes.json({
-            phase: "notebooklm_pending",
-            project: safeProjectName,
-            notebooklm_session: session,
-            notebooklm_brief:
-              session.notebooklm_brief_path || NOTEBOOKLM_BRIEF_FILENAME,
-            message: notebooklmResearch.summary,
-            questions: session.questions || [],
-          });
-        }
         notebooklmContext = formatNotebooklmPromptBlock(
           notebooklmResearch,
           "PESQUISA NOTEBOOKLM PARA ROTEIRO"
@@ -16818,6 +16830,7 @@ app.post(
           notebooklmResearch?.available &&
           !skipNotebooklmPending &&
           !notebooklmBriefDisk?.available &&
+          !notebooklmContext &&
           String(parsedData.narrative_script || "").trim().length >= 40
         ) {
           try {
