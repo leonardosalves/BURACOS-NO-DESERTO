@@ -11,6 +11,7 @@ import {
   filterTemplatesByCategorySubcategory,
   loadTemplateCategoryCatalog,
   templateMatchesPaletteCategory,
+  templateMatchesPaletteSubcategory,
   type TemplateCategoryDefinition,
 } from "./remotionTemplateStudioCategories";
 import { GEO_PIP_MEDIA_WINDOW_9x16 } from "./geoPipPreview";
@@ -254,8 +255,14 @@ export function NicheTemplatePalette({
 
   const showingCategoryFallback = useMemo(() => {
     if (!subcategory || !categoryTemplates.length) return false;
-    return !categoryTemplates.some((tpl) => tpl.subcategory === subcategory);
-  }, [categoryTemplates, subcategory]);
+    return !categoryTemplates.some((tpl) =>
+      templateMatchesPaletteSubcategory(
+        tpl,
+        currentCategory?.id || "",
+        subcategory
+      )
+    );
+  }, [categoryTemplates, subcategory, currentCategory?.id]);
 
   useEffect(() => {
     if (!categories.length) return;

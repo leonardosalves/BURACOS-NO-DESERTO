@@ -566,7 +566,18 @@ export function TimelineStudio({
         const isShort =
           String(configRef.current.aspect_ratio || "16:9").trim() === "9:16";
 
-        if (isShort) {
+        if (data.studio) {
+          const loaded = normalizeGeoMotionClips(
+            ensureMotionTrackInStudio(data.studio as TimelineStudioState)
+          );
+          setStudio({ ...loaded, playhead: newClip.start });
+          setSelectedClipId(newClip.id);
+          toast.success(
+            isShort
+              ? `Template ${templateId} substituiu a cena Remotion (1 por Short)`
+              : `Template ${templateId} inserido e salvo`
+          );
+        } else if (isShort) {
           const withoutMotion = studio.clips.filter(
             (c) => c.trackId !== "motion"
           );
