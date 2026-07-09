@@ -17,7 +17,12 @@ export function NotebookLmConnect({
   });
 
   const connected = Boolean(status?.authenticated);
+  const manualLogin = Boolean(
+    status?.manualLoginRequired || status?.serviceMode
+  );
   const showConnect = !connected;
+  const pending =
+    loggingIn || (Boolean(status?.loginInProgress) && !manualLogin);
 
   if (compact) {
     return (
@@ -80,33 +85,41 @@ export function NotebookLmConnect({
       >
         {connected
           ? status?.message || "NotebookLM conectado"
-          : loggingIn
+          : pending
             ? "Aguardando login no navegador…"
-            : "NotebookLM desconectado"}
+            : manualLogin
+              ? "Login manual necessário"
+              : "NotebookLM desconectado"}
       </span>
       {showConnect && (
         <button
           type="button"
-          disabled={loggingIn}
+          disabled={pending}
           onClick={() => void login()}
           className="dash-btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5 border-violet-500/30 text-violet-200"
           title={
-            status?.cliMissing
-              ? "Se falhar, rode .\\nlm-login.ps1 na pasta Lumiera (serviço Windows)"
-              : "Abre login Google do NotebookLM no navegador"
+            manualLogin
+              ? "No PowerShell: .\\nlm-login.ps1 na pasta Lumiera"
+              : status?.cliMissing
+                ? "Se falhar, rode .\\nlm-login.ps1 na pasta Lumiera (serviço Windows)"
+                : "Abre login Google do NotebookLM no navegador"
           }
         >
-          {loggingIn ? (
+          {pending ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
             <LogIn className="w-3.5 h-3.5" />
           )}
-          {loggingIn ? "Abrindo navegador…" : "Conectar NotebookLM"}
+          {pending
+            ? "Abrindo navegador…"
+            : manualLogin
+              ? "Como conectar"
+              : "Conectar NotebookLM"}
         </button>
       )}
       <button
         type="button"
-        disabled={loggingIn}
+        disabled={pending}
         onClick={() => void refresh()}
         className="dash-btn-secondary text-[10px] px-2.5 py-1 flex items-center gap-1"
         title="Verificar se o login no navegador terminou"
