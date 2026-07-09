@@ -16587,6 +16587,7 @@ app.post(
           narrative_script_tagged: parsedData.narrative_script_tagged || "",
           technical_config: parsedData.technical_config || undefined,
           research_sources: webResearchMeta?.sources || [],
+          research_facts: webResearchMeta?.facts || [],
           notebooklm_enriched: notebooklmEnriched,
           notebooklm_enriched_at: notebooklmEnriched
             ? new Date().toISOString()
@@ -16838,6 +16839,9 @@ app.post(
 
       if (webResearchMeta?.sources?.length) {
         parsedData.research_sources = webResearchMeta.sources;
+      }
+      if (webResearchMeta?.facts?.length) {
+        parsedData.research_facts = webResearchMeta.facts;
       }
 
       // Save full storyboard JSON
