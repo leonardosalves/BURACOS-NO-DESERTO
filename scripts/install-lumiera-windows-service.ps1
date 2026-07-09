@@ -126,32 +126,13 @@ if ($existing) {
     Start-Sleep -Seconds 1
 }
 
-$nodePath = Get-NodePath
+$nodePath = (Get-NodePath).Trim('"')
 $stdout = Join-Path $script:LogDir "service-stdout.log"
 $stderr = Join-Path $script:LogDir "service-stderr.log"
-$runnerCmd = Join-Path $script:LogDir "lumiera-service-runner.cmd"
-$cmdExe = Join-Path $env:WINDIR "System32\cmd.exe"
+$appParams = "--max-old-space-size=4096 server.js"
 
 Ensure-LumieraLogDir
 Initialize-LumieraBackendEnv
-
-function Write-LumieraServiceRunner {
-    param([string]$NodeExe, [string]$OutPath)
-    $lines = New-Object System.Collections.Generic.List[string]
-    $lines.Add("@echo off")
-    $lines.Add("setlocal EnableExtensions")
-    $lines.Add(('set "NOTEBOOKLM_MCP_CLI_PATH={0}"' -f $script:NotebookLmData))
-    if ($env:NLM_BIN) {
-        $lines.Add(('set "NLM_BIN={0}"' -f $env:NLM_BIN))
-        $nlmDir = Split-Path -Parent $env:NLM_BIN
-        if ($nlmDir) {
-            $lines.Add(('set "PATH={0};%PATH%"' -f $nlmDir))
-        }
-    }
-    $lines.Add(('cd /d "{0}"' -f $script:BackendDir))
-    $lines.Add(('"{0}" --max-old-space-size=4096 server.js' -f $NodeExe))
-    Set-Content -Path $OutPath -Value $lines -Encoding ASCII
-}
 
 # Libera porta 3005 do node manual antes do servico assumir
 $manualPid = Get-BackendListenerPid
@@ -161,12 +142,12 @@ if ($manualPid) {
     Start-Sleep -Seconds 2
 }
 
-Write-LumieraServiceRunner -NodeExe $nodePath -OutPath $runnerCmd
-Write-Host "Runner: $runnerCmd" -ForegroundColor DarkGray
-
 Write-Host "Registrando servico $ServiceName..." -ForegroundColor Cyan
-Invoke-Nssm -NssmCommandArgs @("install", $ServiceName, $cmdExe)
-Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppParameters", ('/c "{0}"' -f $runnerCmd))
+Write-Host "  Node: $nodePath" -ForegroundColor DarkGray
+Write-Host "  Dir:  $script:BackendDir" -ForegroundColor DarkGray
+# node.exe direto (Win32 valido). NotebookLM/nlm: defaults em notebooklmService.js
+Invoke-Nssm -NssmCommandArgs @("install", $ServiceName, $nodePath)
+Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppParameters", $appParams)
 Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "AppDirectory", $script:BackendDir)
 Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "DisplayName", "Lumiera Backend (API + Dashboard)")
 Invoke-Nssm -NssmCommandArgs @("set", $ServiceName, "Description", "Lumiera Studio - Node.js uniport porta 3005")
