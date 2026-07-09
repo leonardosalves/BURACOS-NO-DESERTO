@@ -536,8 +536,24 @@ export function MotionTimelineEditor({
             onUploaded={(result) => {
               if (result.flyover_video) {
                 patchProp(scene.id, "flyover_video", result.flyover_video);
+                patchProp(scene.id, "pipMediaUrl", result.flyover_video);
               }
-              if (Array.isArray(result.motion_scenes)) {
+              if (Number(result.duration_seconds) > 0) {
+                onChange(
+                  (Array.isArray(result.motion_scenes)
+                    ? (result.motion_scenes as MotionSceneDraft[])
+                    : []
+                  ).map((ms) =>
+                    String(ms.id) === String(scene.id)
+                      ? {
+                          ...ms,
+                          duration_seconds: Number(result.duration_seconds),
+                        }
+                      : ms
+                  ),
+                  { immediate: true }
+                );
+              } else if (Array.isArray(result.motion_scenes)) {
                 onChange(result.motion_scenes as MotionSceneDraft[], {
                   immediate: true,
                 });

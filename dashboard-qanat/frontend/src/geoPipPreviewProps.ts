@@ -1,4 +1,7 @@
-import { bindGeoPipTemplateStudioProps } from "@lumiera/shared/geoPipTemplateProps.js";
+import {
+  bindGeoPipTemplateStudioProps,
+  resolveGeoPipClipDurationSec,
+} from "@lumiera/shared/geoPipTemplateProps.js";
 import type { StudioClip } from "./timelineStudioTypes";
 
 type TranscriptWord = { word?: string; start?: number; end?: number };
@@ -66,12 +69,13 @@ export function mergeGeoPipPreviewProps(
     ? (base.template_studio_data_slots as string[])
     : [];
 
+  const clipDurationSec = resolveGeoPipClipDurationSec(clip);
   const bound = bindGeoPipTemplateStudioProps(base, {
     narration: liveNarration,
     dataSlots,
     flyoverUrl: String(base.flyover_video || base.pipMediaUrl || "").trim(),
     mainMediaUrl: String(mainMediaUrl || base.mainMediaUrl || "").trim(),
-    flyoverDurationSec: Number(clip.duration) || 0,
+    flyoverDurationSec: clipDurationSec,
   });
 
   return {

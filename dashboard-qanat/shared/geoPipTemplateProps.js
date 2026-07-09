@@ -121,6 +121,31 @@ export function bindGeoPipTemplateStudioProps(
 }
 
 /** Mescla props de render: flyover → pipMediaUrl; mantém design do TSX. */
+/** Duração efetiva do clip PIP — prioriza upload/ffprobe sobre default do template. */
+export function resolveGeoPipClipDurationSec(clip = {}) {
+  const props = clip.props && typeof clip.props === "object" ? clip.props : {};
+  const studio =
+    props.studio_props && typeof props.studio_props === "object"
+      ? props.studio_props
+      : {};
+  const candidates = [
+    props.durationSeconds,
+    studio.durationSeconds,
+    clip.duration,
+    Number(props.durationInFrames) > 0
+      ? Number(props.durationInFrames) / 30
+      : 0,
+    Number(studio.durationInFrames) > 0
+      ? Number(studio.durationInFrames) / 30
+      : 0,
+  ];
+  for (const raw of candidates) {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return Math.max(0.5, Number(clip.duration) || 4);
+}
+
 export function mapGeoPipFlyoverToTemplateRenderProps(props = {}) {
   if (!props || typeof props !== "object") return props;
   const pipTemplate =

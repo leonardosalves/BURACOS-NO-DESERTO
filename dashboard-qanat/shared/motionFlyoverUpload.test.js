@@ -10,6 +10,7 @@ import {
   patchMotionSceneFlyover,
   patchStudioClipFlyover,
   persistFlyoverToProject,
+  probeFlyoverVideoDurationSec,
   readMotionClipSidecar,
   resolveFlyoverDest,
   writeMotionClipSidecar,
@@ -185,6 +186,31 @@ describe("motionFlyoverUpload", () => {
     assert.equal(motionClips[0].id, clip.id);
     assert.equal(motionClips[0].props.flyover_video, flyoverRel);
     assert.equal(motionClips[0].props.presentation, "pip");
+  });
+
+  it("probeFlyoverVideoDurationSec usa hint quando ffprobe falha", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-probe-"));
+    const fakeMp4 = path.join(tmp, "broken.mp4");
+    fs.writeFileSync(fakeMp4, "not-a-real-mp4");
+    assert.equal(probeFlyoverVideoDurationSec(fakeMp4, 9.75), 9.75);
+  });
+
+  it("patchStudioClipFlyover grava duracao do flyover no clip", () => {
+    const clip = buildStudioCatalogMotionClip({
+      templateId: "location-intro",
+      playhead: 0,
+      props: { studio_source_code: TSX, geo_pip_composite: true },
+      label: "PIP",
+    });
+    const studio = { clips: [clip] };
+    const next = patchStudioClipFlyover(
+      studio,
+      clip.id,
+      "ASSETS/satellite/pip-geo-flyover.mp4",
+      { durationSec: 11.2 }
+    );
+    assert.equal(next.clips[0].duration, 11.2);
+    assert.equal(next.clips[0].props.studio_props.durationSeconds, 11.2);
   });
 
   it("patchMotionSceneFlyover atualiza flyover_video", () => {
