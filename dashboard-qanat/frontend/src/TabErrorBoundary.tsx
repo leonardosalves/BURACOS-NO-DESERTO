@@ -1,5 +1,9 @@
 import React from "react";
-import { hardReloadDashboard, isStaleChunkLoadError } from "./deployRecovery";
+import {
+  canAutoReloadDashboard,
+  hardReloadDashboard,
+  isStaleChunkLoadError,
+} from "./deployRecovery";
 
 type Props = {
   /** Rótulo exibido no erro (preferido). */
@@ -12,29 +16,39 @@ type Props = {
 type State = {
   error: Error | null;
   reloading: boolean;
+  reloadBlocked: boolean;
 };
 
 export class TabErrorBoundary extends React.Component<Props, State> {
-  state: State = { error: null, reloading: false };
+  state: State = { error: null, reloading: false, reloadBlocked: false };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { error, reloading: false };
   }
 
   private async handleRecovery() {
     const message = this.state.error?.message || "";
     if (isStaleChunkLoadError(message)) {
+      if (!canAutoReloadDashboard()) {
+        this.setState({ reloadBlocked: true });
+        return;
+      }
       this.setState({ reloading: true });
-      await hardReloadDashboard();
+      const started = await hardReloadDashboard();
+      if (!started) {
+        this.setState({ reloading: false, reloadBlocked: true });
+      }
       return;
     }
-    this.setState({ error: null, reloading: false });
+    this.setState({ error: null, reloading: false, reloadBlocked: false });
   }
 
   render() {
     const label = this.props.label || this.props.tabName || "painel";
     if (this.state.error) {
       const staleChunk = isStaleChunkLoadError(this.state.error.message);
+      const showManualCacheHelp =
+        staleChunk && (this.state.reloadBlocked || !canAutoReloadDashboard());
       return (
         <div className="flex flex-col items-center justify-center min-h-screen gap-3 p-8 text-center font-sans bg-zinc-950 text-zinc-200">
           <p className="text-sm font-bold text-red-300">
@@ -46,8 +60,25 @@ export class TabErrorBoundary extends React.Component<Props, State> {
           {staleChunk ? (
             <p className="text-xs text-zinc-600 max-w-md">
               O dashboard foi atualizado e o navegador ainda usa arquivos
-              antigos. Clique abaixo para recarregar com a versao nova.
+              antigos em cache.
             </p>
+          ) : null}
+          {showManualCacheHelp ? (
+            <div className="text-xs text-zinc-500 max-w-md space-y-2 text-left">
+              <p className="font-semibold text-zinc-400">
+                Limpe o cache desta pagina (uma vez):
+              </p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Feche todas as abas do Lumiera (127.0.0.1:3005)</li>
+                <li>
+                  No Chrome: Configuracoes → Privacidade → Limpar dados de
+                  navegacao → so &quot;Imagens e arquivos em cache&quot; →
+                  127.0.0.1
+                </li>
+                <li>Ou abra DevTools (F12) → Application → Clear site data</li>
+                <li>Abra de novo: http://127.0.0.1:3005/</li>
+              </ol>
+            </div>
           ) : null}
           <button
             type="button"
@@ -57,9 +88,11 @@ export class TabErrorBoundary extends React.Component<Props, State> {
           >
             {this.state.reloading
               ? "Recarregando..."
-              : staleChunk
-                ? "Atualizar dashboard"
-                : "Tentar novamente"}
+              : staleChunk && showManualCacheHelp
+                ? "Tentar recarregar de novo"
+                : staleChunk
+                  ? "Atualizar dashboard"
+                  : "Tentar novamente"}
           </button>
         </div>
       );

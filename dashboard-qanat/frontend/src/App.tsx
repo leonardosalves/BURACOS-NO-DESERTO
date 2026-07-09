@@ -7,8 +7,6 @@ import React, {
   useRef,
   useMemo,
   useCallback,
-  lazy,
-  Suspense,
 } from "react";
 
 import {
@@ -179,21 +177,8 @@ import {
 import { buildAppTabPropBundles } from "./appTabPropBundles";
 import { AppOverlays } from "./AppOverlays";
 import { AppTabPanels } from "./AppTabPanels";
-import { TabPanelFallback } from "./appLazyPanels";
-
-const loadRichTimelineEditorModule = () => import("./RichTimelineEditor");
-const loadTimelineStudioModule = () => import("./TimelineStudio");
-
-const RichTimelineEditor = lazy(() =>
-  loadRichTimelineEditorModule().then((m) => ({
-    default: m.RichTimelineEditor,
-  }))
-);
-const TimelineStudio = lazy(() =>
-  loadTimelineStudioModule().then((m) => ({
-    default: m.TimelineStudio,
-  }))
-);
+import { RichTimelineEditor } from "./RichTimelineEditor";
+import { TimelineStudio } from "./TimelineStudio";
 
 const initialWizardSession = loadWizardSession();
 const initialActiveProject = resolveInitialActiveProject(initialWizardSession);
@@ -207,23 +192,6 @@ export default function App() {
         RESTORABLE_APP_TABS
       ) as AppTab
   );
-
-  useEffect(() => {
-    const preloadTimelineEditors = () => {
-      void loadRichTimelineEditorModule();
-      void loadTimelineStudioModule();
-    };
-    const idleWindow = window as Window & {
-      requestIdleCallback?: (callback: () => void) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-    if (typeof idleWindow.requestIdleCallback === "function") {
-      const handle = idleWindow.requestIdleCallback(preloadTimelineEditors);
-      return () => idleWindow.cancelIdleCallback?.(handle);
-    }
-    const timeout = window.setTimeout(preloadTimelineEditors, 1200);
-    return () => window.clearTimeout(timeout);
-  }, []);
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(
     () => initialProjectSnapshot?.status || null
@@ -10133,27 +10101,17 @@ export default function App() {
   }) => {
     if (!config) return null;
     return (
-      <Suspense
-        fallback={<TabPanelFallback label="Carregando editor de timeline..." />}
-      >
-        <RichTimelineEditor
-          hideAutoMap={options?.hideAutoMap === true}
-          wizardManualMode={options?.wizardManualMode === true}
-          {...timelineEditorCommonProps()}
-        />
-      </Suspense>
+      <RichTimelineEditor
+        hideAutoMap={options?.hideAutoMap === true}
+        wizardManualMode={options?.wizardManualMode === true}
+        {...timelineEditorCommonProps()}
+      />
     );
   };
 
   const renderTimelineStudio = () => {
     if (!config) return null;
-    return (
-      <Suspense
-        fallback={<TabPanelFallback label="Carregando Timeline Studio..." />}
-      >
-        <TimelineStudio {...timelineEditorCommonProps()} />
-      </Suspense>
-    );
+    return <TimelineStudio {...timelineEditorCommonProps()} />;
   };
 
   const openCreatorTab = () => {
