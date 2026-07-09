@@ -274,6 +274,7 @@ import {
   makeIdeasGenerationSeed,
   mergeExclusionTopics,
 } from "./ideasVariety.js";
+import { ensureProjectsDirs } from "./projectsRoot.js";
 import {
   buildInstagramAuthUrl,
   exchangeInstagramCode,
@@ -580,26 +581,13 @@ const LOTTIE_ASSETS_DIR = path.join(REMOTION_DIR, "src/overlays/lottie_assets");
 
 const PYTHON_PATH = "C:\\Users\\Leo\\AppData\\Local\\Python\\bin\\python.exe";
 
-// Desktop projects configuration
-
-const PROJECTS_ROOT = path.join(
-  process.env.USERPROFILE || "C:\\Users\\Leo",
-  "Desktop",
-  "Lumiera Videos"
-);
-
-const LONGS_DIR = path.join(PROJECTS_ROOT, "videos longos");
-
-const SHORTS_DIR = path.join(PROJECTS_ROOT, "videos curtos shorts");
-
-// Auto-create directories on startup
-
-if (!fs.existsSync(PROJECTS_ROOT))
-  fs.mkdirSync(PROJECTS_ROOT, { recursive: true });
-
-if (!fs.existsSync(LONGS_DIR)) fs.mkdirSync(LONGS_DIR, { recursive: true });
-
-if (!fs.existsSync(SHORTS_DIR)) fs.mkdirSync(SHORTS_DIR, { recursive: true });
+// Desktop projects — servico Windows usa perfil SYSTEM; resolver pasta real do Leo
+const {
+  projectsRoot: PROJECTS_ROOT,
+  longsDir: LONGS_DIR,
+  shortsDir: SHORTS_DIR,
+} = ensureProjectsDirs();
+console.log(`[Projects] ROOT=${PROJECTS_ROOT}`);
 
 // OpenRouter Settings
 
@@ -1199,10 +1187,14 @@ app.get("/api/projects", (req, res) => {
             ".git",
           ].includes(item)
         ) {
-          if (
-            fs.existsSync(path.join(fullPath, "build_video.py")) ||
-            item === "FINANCAS"
-          ) {
+          const hasBuild = fs.existsSync(path.join(fullPath, "build_video.py"));
+          const hasStoryboard = fs.existsSync(
+            path.join(fullPath, "storyboard.json")
+          );
+          const hasConfig = fs.existsSync(
+            path.join(fullPath, "config_qanat.json")
+          );
+          if (hasBuild || hasStoryboard || hasConfig || item === "FINANCAS") {
             let title = item;
             let niche = "Curiosidades";
 

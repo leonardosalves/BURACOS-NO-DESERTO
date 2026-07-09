@@ -4,6 +4,7 @@
 
 import fs from "fs";
 import path from "path";
+import { resolveProjectsRoot } from "./projectsRoot.js";
 import {
   appendDailyRunLog,
   ensureAgentDirs,
@@ -36,9 +37,7 @@ function formatCount(value) {
 }
 
 function parseIso8601Duration(iso = "") {
-  const match = String(iso).match(
-    /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/,
-  );
+  const match = String(iso).match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!match) return 0;
   const h = Number(match[1] || 0);
   const m = Number(match[2] || 0);
@@ -47,7 +46,9 @@ function parseIso8601Duration(iso = "") {
 }
 
 function median(values = []) {
-  const nums = values.filter((v) => Number.isFinite(v) && v > 0).sort((a, b) => a - b);
+  const nums = values
+    .filter((v) => Number.isFinite(v) && v > 0)
+    .sort((a, b) => a - b);
   if (!nums.length) return 0;
   const mid = Math.floor(nums.length / 2);
   return nums.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
@@ -68,7 +69,10 @@ function videoMatchesFormat(video, format = "SHORT") {
   if (fmt === "LONG") {
     return video.durationSec > 60 && !titleSuggestsShort(video.title);
   }
-  return (video.durationSec > 0 && video.durationSec <= 180) || titleSuggestsShort(video.title);
+  return (
+    (video.durationSec > 0 && video.durationSec <= 180) ||
+    titleSuggestsShort(video.title)
+  );
 }
 
 async function youtubeDataGet(accessToken, apiPath, params = {}) {
@@ -83,13 +87,18 @@ async function youtubeDataGet(accessToken, apiPath, params = {}) {
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data?.error?.message || `Falha na API YouTube (${apiPath}).`);
+    throw new Error(
+      data?.error?.message || `Falha na API YouTube (${apiPath}).`
+    );
   }
   return data;
 }
 
 function readNicheFromCompetitorMemory(workspaceDir) {
-  const memoryPath = path.join(getAgentPaths(workspaceDir).memoryDir, COMPETITOR_MEMORY_FILE);
+  const memoryPath = path.join(
+    getAgentPaths(workspaceDir).memoryDir,
+    COMPETITOR_MEMORY_FILE
+  );
   if (!fs.existsSync(memoryPath)) return "";
   try {
     const content = fs.readFileSync(memoryPath, "utf8");
@@ -101,17 +110,21 @@ function readNicheFromCompetitorMemory(workspaceDir) {
 }
 
 function defaultProjectsRoot() {
-  const home = process.env.USERPROFILE || process.env.HOME || "";
-  return home ? path.join(home, "Desktop", "Lumiera Videos") : "";
+  return resolveProjectsRoot();
 }
 
 function isChannelBrandNiche(niche, channelTitle = "") {
-  const n = String(niche || "").trim().toLowerCase();
-  const t = String(channelTitle || "").trim().toLowerCase();
+  const n = String(niche || "")
+    .trim()
+    .toLowerCase();
+  const t = String(channelTitle || "")
+    .trim()
+    .toLowerCase();
   if (!n) return true;
   if (t && (n === t || n.includes(t) || t.includes(n))) return true;
   if (/^(ai |the )/.test(n)) return true;
-  if (/construction stories|building stories|ai construction/i.test(n)) return true;
+  if (/construction stories|building stories|ai construction/i.test(n))
+    return true;
   return false;
 }
 
@@ -127,13 +140,16 @@ const GENERIC_NICHE_KEYS = new Set([
 ]);
 
 function nichePriorityScore(niche, count) {
-  const key = String(niche || "").trim().toLowerCase();
+  const key = String(niche || "")
+    .trim()
+    .toLowerCase();
   let score = count;
   if (GENERIC_NICHE_KEYS.has(key)) score *= 0.15;
   const words = key.split(/\s+/).filter(Boolean).length;
   if (words >= 3) score *= 1.6;
   else if (words >= 2) score *= 1.35;
-  if (/engenharia|curiosidade|fato|mist[eé]rio|arqueologia/i.test(key)) score *= 1.25;
+  if (/engenharia|curiosidade|fato|mist[eé]rio|arqueologia/i.test(key))
+    score *= 1.25;
   return score;
 }
 
@@ -154,16 +170,24 @@ function collectProjectNiches(projectsRoot) {
       if (!niche || isChannelBrandNiche(niche)) continue;
       const key = niche.toLowerCase();
       counts.set(key, (counts.get(key) || 0) + 1);
-      if (!labels.has(key) || niche.length > labels.get(key).length) labels.set(key, niche);
+      if (!labels.has(key) || niche.length > labels.get(key).length)
+        labels.set(key, niche);
     }
   }
   return [...counts.entries()]
-    .map(([key, count]) => ({ niche: labels.get(key) || key, score: nichePriorityScore(labels.get(key) || key, count), count }))
+    .map(([key, count]) => ({
+      niche: labels.get(key) || key,
+      score: nichePriorityScore(labels.get(key) || key, count),
+      count,
+    }))
     .sort((a, b) => b.score - a.score || b.count - a.count)
     .map((entry) => entry.niche);
 }
 
-function resolveResearchNiche(workspaceDir, { niche, config = {}, channelTitle = "", projectsRoot = "" } = {}) {
+function resolveResearchNiche(
+  workspaceDir,
+  { niche, config = {}, channelTitle = "", projectsRoot = "" } = {}
+) {
   const explicit = String(niche || config.niche || "").trim();
   if (explicit && !isChannelBrandNiche(explicit, channelTitle)) return explicit;
 
@@ -171,9 +195,12 @@ function resolveResearchNiche(workspaceDir, { niche, config = {}, channelTitle =
   if (projectNiches.length) return projectNiches[0];
 
   const fromMemory = readNicheFromCompetitorMemory(workspaceDir);
-  if (fromMemory && !isChannelBrandNiche(fromMemory, channelTitle)) return fromMemory;
+  if (fromMemory && !isChannelBrandNiche(fromMemory, channelTitle))
+    return fromMemory;
 
-  const keywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
+  const keywords = Array.isArray(config.highlight_keywords)
+    ? config.highlight_keywords
+    : [];
   if (keywords.length >= 3) {
     return `${keywords[0]} ${keywords[1]} ${keywords[2]}`.trim();
   }
@@ -204,7 +231,10 @@ function buildSearchQueries(niche, format) {
   return [...new Set(queries.filter(Boolean))].slice(0, 5);
 }
 
-async function searchCompetitorChannels(accessToken, { niche, format, maxCompetitors, excludeChannelId }) {
+async function searchCompetitorChannels(
+  accessToken,
+  { niche, format, maxCompetitors, excludeChannelId }
+) {
   const queries = buildSearchQueries(niche, format);
   const found = new Map();
 
@@ -226,7 +256,10 @@ async function searchCompetitorChannels(accessToken, { niche, format, maxCompeti
         id: channelId,
         title: item?.snippet?.channelTitle || item?.snippet?.title || "",
         description: (item?.snippet?.description || "").slice(0, 280),
-        thumbnailUrl: item?.snippet?.thumbnails?.medium?.url || item?.snippet?.thumbnails?.default?.url || "",
+        thumbnailUrl:
+          item?.snippet?.thumbnails?.medium?.url ||
+          item?.snippet?.thumbnails?.default?.url ||
+          "",
         url: `https://www.youtube.com/channel/${channelId}`,
         sourceQuery: q,
       });
@@ -281,7 +314,10 @@ async function resolveSeedChannels(accessToken, seedChannels = []) {
       id: item.id,
       title: snippet.title || "",
       description: (snippet.description || "").slice(0, 280),
-      thumbnailUrl: snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || "",
+      thumbnailUrl:
+        snippet.thumbnails?.medium?.url ||
+        snippet.thumbnails?.default?.url ||
+        "",
       url: `https://www.youtube.com/channel/${item.id}`,
       subscriberCount: formatCount(stats.subscriberCount),
       videoCount: formatCount(stats.videoCount),
@@ -291,7 +327,11 @@ async function resolveSeedChannels(accessToken, seedChannels = []) {
   return resolved;
 }
 
-async function fetchChannelRecentVideos(accessToken, channelId, { limit = DEFAULT_VIDEOS_PER_CHANNEL, format = "SHORT" } = {}) {
+async function fetchChannelRecentVideos(
+  accessToken,
+  channelId,
+  { limit = DEFAULT_VIDEOS_PER_CHANNEL, format = "SHORT" } = {}
+) {
   const channelData = await youtubeDataGet(accessToken, "channels", {
     part: "contentDetails,snippet,statistics",
     id: channelId,
@@ -307,7 +347,10 @@ async function fetchChannelRecentVideos(accessToken, channelId, { limit = DEFAUL
   });
 
   const videoIds = (playlistData?.items || [])
-    .map((entry) => entry?.contentDetails?.videoId || entry?.snippet?.resourceId?.videoId)
+    .map(
+      (entry) =>
+        entry?.contentDetails?.videoId || entry?.snippet?.resourceId?.videoId
+    )
     .filter(Boolean);
 
   if (!videoIds.length) {
@@ -344,7 +387,10 @@ async function fetchChannelRecentVideos(accessToken, channelId, { limit = DEFAUL
       durationSec,
       durationLabel: durationSec ? `${Math.round(durationSec)}s` : "—",
       url: `https://www.youtube.com/watch?v=${v.id}`,
-      thumbnailUrl: snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || "",
+      thumbnailUrl:
+        snippet.thumbnails?.medium?.url ||
+        snippet.thumbnails?.default?.url ||
+        "",
     };
   });
 
@@ -390,35 +436,58 @@ function detectOutliers(videos = []) {
 function salvagePartialAnalysis(text = "", fallback = {}) {
   const salvaged = { ...fallback };
   const candidate = extractJsonCandidate(text);
-  for (const key of ["derivedIdeas", "outlierAnalyses", "promotedPatterns", "competitorErrors", "competitors"]) {
+  for (const key of [
+    "derivedIdeas",
+    "outlierAnalyses",
+    "promotedPatterns",
+    "competitorErrors",
+    "competitors",
+  ]) {
     const re = new RegExp(`"${key}"\\s*:\\s*(\\[[\\s\\S]*?\\])`);
     const match = candidate.match(re);
     if (!match) continue;
     try {
       const arr = JSON.parse(match[1].replace(/,\s*]/g, "]"));
       if (Array.isArray(arr) && arr.length) salvaged[key] = arr;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
   return salvaged;
 }
 
 function normalizeAnalysisShape(parsed = {}, fallback = {}) {
   if (!parsed || typeof parsed !== "object") return null;
-  const pickArray = (value, fb = []) => (Array.isArray(value) && value.length ? value : fb);
+  const pickArray = (value, fb = []) =>
+    Array.isArray(value) && value.length ? value : fb;
   return {
     competitors: pickArray(parsed.competitors, fallback.competitors),
-    outlierAnalyses: pickArray(parsed.outlierAnalyses, fallback.outlierAnalyses),
+    outlierAnalyses: pickArray(
+      parsed.outlierAnalyses,
+      fallback.outlierAnalyses
+    ),
     derivedIdeas: pickArray(parsed.derivedIdeas, fallback.derivedIdeas),
-    promotedPatterns: Array.isArray(parsed.promotedPatterns) ? parsed.promotedPatterns : [],
-    competitorErrors: Array.isArray(parsed.competitorErrors) ? parsed.competitorErrors : [],
+    promotedPatterns: Array.isArray(parsed.promotedPatterns)
+      ? parsed.promotedPatterns
+      : [],
+    competitorErrors: Array.isArray(parsed.competitorErrors)
+      ? parsed.competitorErrors
+      : [],
   };
 }
 
-async function parseCompetitorAnalysis(llmText, { fallback, repairFn = null } = {}) {
+async function parseCompetitorAnalysis(
+  llmText,
+  { fallback, repairFn = null } = {}
+) {
   if (!llmText) return { analysis: null, repaired: false, salvaged: false };
 
   try {
-    return { analysis: normalizeAnalysisShape(parseJsonLocally(llmText), fallback), repaired: false, salvaged: false };
+    return {
+      analysis: normalizeAnalysisShape(parseJsonLocally(llmText), fallback),
+      repaired: false,
+      salvaged: false,
+    };
   } catch (firstErr) {
     console.warn("[CompetitorResearch] JSON parse:", firstErr.message);
   }
@@ -429,7 +498,10 @@ async function parseCompetitorAnalysis(llmText, { fallback, repairFn = null } = 
       const repairedText = await repairFn(candidate);
       if (repairedText) {
         return {
-          analysis: normalizeAnalysisShape(parseJsonLocally(repairedText), fallback),
+          analysis: normalizeAnalysisShape(
+            parseJsonLocally(repairedText),
+            fallback
+          ),
           repaired: true,
           salvaged: false,
         };
@@ -440,10 +512,15 @@ async function parseCompetitorAnalysis(llmText, { fallback, repairFn = null } = 
   }
 
   const partial = salvagePartialAnalysis(llmText, fallback);
-  const hasUseful = (partial.derivedIdeas?.length || 0) > 0
-    || (partial.outlierAnalyses?.length || 0) > 0;
+  const hasUseful =
+    (partial.derivedIdeas?.length || 0) > 0 ||
+    (partial.outlierAnalyses?.length || 0) > 0;
   if (hasUseful) {
-    return { analysis: normalizeAnalysisShape(partial, fallback), repaired: false, salvaged: true };
+    return {
+      analysis: normalizeAnalysisShape(partial, fallback),
+      repaired: false,
+      salvaged: true,
+    };
   }
 
   return { analysis: null, repaired: false, salvaged: false };
@@ -495,17 +572,25 @@ function formatSubscriberCount(n) {
 }
 
 function escapeTableCell(text = "") {
-  return String(text || "").replace(/\|/g, "/").replace(/\n/g, " ").trim();
+  return String(text || "")
+    .replace(/\|/g, "/")
+    .replace(/\n/g, " ")
+    .trim();
 }
 
 function upsertChannelRow(existingTable, channel) {
   const title = escapeTableCell(channel.title);
   const url = channel.url || "";
-  if (existingTable.includes(url) || (title && existingTable.includes(`| ${title} |`))) {
+  if (
+    existingTable.includes(url) ||
+    (title && existingTable.includes(`| ${title} |`))
+  ) {
     return existingTable;
   }
   const size = formatSubscriberCount(channel.subscriberCount);
-  const notes = escapeTableCell(channel.notes || channel.sourceQuery || "IA search");
+  const notes = escapeTableCell(
+    channel.notes || channel.sourceQuery || "IA search"
+  );
   return `${existingTable.trimEnd()}\n| ${title} | — | ${size} | ${url} | ${notes} |`;
 }
 
@@ -537,12 +622,12 @@ function appendCandidates(content, ideas = []) {
 function appendPromotedPatterns(content, patterns = []) {
   if (!patterns.length) return content;
   const marker = "## Padrões promovidos (concorrentes → nosso formato)";
-  const additions = patterns.map((p) => `- ${escapeTableCell(p)} _(IA ${new Date().toISOString().slice(0, 10)})_`);
-  if (!content.includes(marker)) return content;
-  return content.replace(
-    marker,
-    `${marker}\n${additions.join("\n")}`,
+  const additions = patterns.map(
+    (p) =>
+      `- ${escapeTableCell(p)} _(IA ${new Date().toISOString().slice(0, 10)})_`
   );
+  if (!content.includes(marker)) return content;
+  return content.replace(marker, `${marker}\n${additions.join("\n")}`);
 }
 
 function appendCompetitorErrors(content, errors = []) {
@@ -557,20 +642,36 @@ function appendCompetitorErrors(content, errors = []) {
 
 function formatVideoAge(publishedAt) {
   if (!publishedAt) return "—";
-  const days = Math.max(0, Math.round((Date.now() - new Date(publishedAt).getTime()) / (24 * 60 * 60 * 1000)));
+  const days = Math.max(
+    0,
+    Math.round(
+      (Date.now() - new Date(publishedAt).getTime()) / (24 * 60 * 60 * 1000)
+    )
+  );
   if (days < 30) return `${days}d`;
   if (days < 365) return `${Math.round(days / 30)}m`;
   return `${Math.round(days / 365)}a`;
 }
 
 function buildFullOutlierFicha(outlier = {}, analysisEntry = {}) {
-  const title = escapeTableCell(analysisEntry.videoTitle || outlier.title || "Outlier");
-  const views = outlier.views != null ? Number(outlier.views).toLocaleString("pt-BR") : "—";
+  const title = escapeTableCell(
+    analysisEntry.videoTitle || outlier.title || "Outlier"
+  );
+  const views =
+    outlier.views != null ? Number(outlier.views).toLocaleString("pt-BR") : "—";
   const ratio = outlier.outlierRatio != null ? `${outlier.outlierRatio}×` : "—";
-  const median = outlier.channelMedianViews != null ? Number(outlier.channelMedianViews).toLocaleString("pt-BR") : "—";
-  const duration = outlier.durationLabel || (outlier.durationSec ? `${outlier.durationSec}s` : "—");
+  const median =
+    outlier.channelMedianViews != null
+      ? Number(outlier.channelMedianViews).toLocaleString("pt-BR")
+      : "—";
+  const duration =
+    outlier.durationLabel ||
+    (outlier.durationSec ? `${outlier.durationSec}s` : "—");
   const videoId = outlier.videoId || "";
-  const url = analysisEntry.videoUrl || outlier.url || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : "—");
+  const url =
+    analysisEntry.videoUrl ||
+    outlier.url ||
+    (videoId ? `https://www.youtube.com/watch?v=${videoId}` : "—");
 
   return [
     `### ${title}`,
@@ -609,7 +710,9 @@ function buildFullOutlierFicha(outlier = {}, analysisEntry = {}) {
     analysisEntry.competitorMistakes
       ? `#### Erros do concorrente\n- ${escapeTableCell(analysisEntry.competitorMistakes)}\n`
       : "",
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function appendFichaArchive(content, outliers = [], analyses = []) {
@@ -617,7 +720,7 @@ function appendFichaArchive(content, outliers = [], analyses = []) {
   if (!outliers.length) return content;
 
   const analysisByTitle = new Map(
-    (analyses || []).map((a) => [String(a.videoTitle || "").toLowerCase(), a]),
+    (analyses || []).map((a) => [String(a.videoTitle || "").toLowerCase(), a])
   );
 
   const blocks = outliers.map((o) => {
@@ -627,7 +730,11 @@ function appendFichaArchive(content, outliers = [], analyses = []) {
   });
 
   const deduped = blocks.filter((block) => {
-    const titleLine = block.split("\n")[0].replace(/^###\s*/, "").trim().toLowerCase();
+    const titleLine = block
+      .split("\n")[0]
+      .replace(/^###\s*/, "")
+      .trim()
+      .toLowerCase();
     return titleLine && !content.toLowerCase().includes(titleLine);
   });
   if (!deduped.length) return content;
@@ -643,45 +750,66 @@ function appendFichaArchive(content, outliers = [], analyses = []) {
 
 function buildFichaMarkdown(analysis, outliers = []) {
   if (!outliers.length) {
-    return (analysis.outlierAnalyses || []).map((o) => buildFullOutlierFicha({}, o)).join("\n\n---\n\n");
+    return (analysis.outlierAnalyses || [])
+      .map((o) => buildFullOutlierFicha({}, o))
+      .join("\n\n---\n\n");
   }
   const analysisByTitle = new Map(
-    (analysis.outlierAnalyses || []).map((a) => [String(a.videoTitle || "").toLowerCase(), a]),
+    (analysis.outlierAnalyses || []).map((a) => [
+      String(a.videoTitle || "").toLowerCase(),
+      a,
+    ])
   );
-  return outliers.slice(0, 4).map((o) => {
-    const entry = analysisByTitle.get(String(o.title || "").toLowerCase()) || {};
-    return buildFullOutlierFicha(o, entry);
-  }).join("\n\n---\n\n");
+  return outliers
+    .slice(0, 4)
+    .map((o) => {
+      const entry =
+        analysisByTitle.get(String(o.title || "").toLowerCase()) || {};
+      return buildFullOutlierFicha(o, entry);
+    })
+    .join("\n\n---\n\n");
 }
 
 function buildIdeasMarkdown(ideas = []) {
-  return ideas.map((idea, i) => (
-    `${i + 1}. **${escapeTableCell(idea.title)}**\n`
-    + `   - Gancho: ${escapeTableCell(idea.hookPt)}\n`
-    + `   - Mecânica: ${escapeTableCell(idea.mechanicSource)}\n`
-    + `   - Por que não é cópia: ${escapeTableCell(idea.whyNotCopy)}\n`
-    + `   - Pilar: ${escapeTableCell(idea.pillar)}`
-  )).join("\n\n");
+  return ideas
+    .map(
+      (idea, i) =>
+        `${i + 1}. **${escapeTableCell(idea.title)}**\n` +
+        `   - Gancho: ${escapeTableCell(idea.hookPt)}\n` +
+        `   - Mecânica: ${escapeTableCell(idea.mechanicSource)}\n` +
+        `   - Por que não é cópia: ${escapeTableCell(idea.whyNotCopy)}\n` +
+        `   - Pilar: ${escapeTableCell(idea.pillar)}`
+    )
+    .join("\n\n");
 }
 
-export function appendCompetitorResearchToMemory(workspaceDir, {
-  niche,
-  format,
-  competitors = [],
-  analysis = {},
-  outliers = [],
-  channelTitle = "",
-}) {
+export function appendCompetitorResearchToMemory(
+  workspaceDir,
+  {
+    niche,
+    format,
+    competitors = [],
+    analysis = {},
+    outliers = [],
+    channelTitle = "",
+  }
+) {
   ensureAgentDirs(workspaceDir);
-  const memoryPath = path.join(getAgentPaths(workspaceDir).memoryDir, COMPETITOR_MEMORY_FILE);
+  const memoryPath = path.join(
+    getAgentPaths(workspaceDir).memoryDir,
+    COMPETITOR_MEMORY_FILE
+  );
   let content = fs.existsSync(memoryPath)
     ? fs.readFileSync(memoryPath, "utf8")
     : `# Inteligência competitiva\n\n> 🔗 [[MEMORIA-LUMIERA]]\n\n`;
 
   const today = new Date().toISOString().slice(0, 10);
-  const existingNiche = (content.match(/^niche:\s*(.+)$/m) || [])[1]?.trim() || "";
+  const existingNiche =
+    (content.match(/^niche:\s*(.+)$/m) || [])[1]?.trim() || "";
   const nicheToPersist = isChannelBrandNiche(niche, channelTitle)
-    ? (existingNiche && !isChannelBrandNiche(existingNiche, channelTitle) ? existingNiche : niche)
+    ? existingNiche && !isChannelBrandNiche(existingNiche, channelTitle)
+      ? existingNiche
+      : niche
     : niche;
   if (!isChannelBrandNiche(nicheToPersist, channelTitle)) {
     content = content.replace(/niche: .*/m, `niche: ${nicheToPersist}`);
@@ -696,7 +824,10 @@ export function appendCompetitorResearchToMemory(workspaceDir, {
     if (tableStart >= 0) {
       const afterHeader = content.indexOf(tableSep, tableStart);
       const tableEnd = content.indexOf("\n\n", afterHeader);
-      const existingTable = content.slice(tableStart, tableEnd > 0 ? tableEnd : undefined);
+      const existingTable = content.slice(
+        tableStart,
+        tableEnd > 0 ? tableEnd : undefined
+      );
       let nextTable = existingTable;
       for (const c of [...(analysis.competitors || []), ...competitors]) {
         if (c.monitor === false) continue;
@@ -727,7 +858,11 @@ export function appendCompetitorResearchToMemory(workspaceDir, {
     body: researchBody,
   });
 
-  content = appendFichaArchive(content, outliers, analysis.outlierAnalyses || []);
+  content = appendFichaArchive(
+    content,
+    outliers,
+    analysis.outlierAnalyses || []
+  );
   content = appendCandidates(content, analysis.derivedIdeas || []);
   content = appendPromotedPatterns(content, analysis.promotedPatterns || []);
   content = appendCompetitorErrors(content, analysis.competitorErrors || []);
@@ -737,22 +872,25 @@ export function appendCompetitorResearchToMemory(workspaceDir, {
 
   appendDailyRunLog(
     workspaceDir,
-    `- ${new Date().toISOString()} **competitor-research** (${niche}/${format}) competitors=${competitors.length} outliers=${outliers.length} ideas=${(analysis.derivedIdeas || []).length}`,
+    `- ${new Date().toISOString()} **competitor-research** (${niche}/${format}) competitors=${competitors.length} outliers=${outliers.length} ideas=${(analysis.derivedIdeas || []).length}`
   );
 
   return { memoryPath, memoryFile: COMPETITOR_MEMORY_FILE };
 }
 
-export async function runCompetitorResearch(workspaceDir, {
-  niche,
-  format = "SHORT",
-  maxCompetitors = DEFAULT_MAX_COMPETITORS,
-  videosPerChannel = DEFAULT_VIDEOS_PER_CHANNEL,
-  seedChannels = [],
-  projectsRoot = "",
-  llmFn = null,
-  repairJsonFn = null,
-} = {}) {
+export async function runCompetitorResearch(
+  workspaceDir,
+  {
+    niche,
+    format = "SHORT",
+    maxCompetitors = DEFAULT_MAX_COMPETITORS,
+    videosPerChannel = DEFAULT_VIDEOS_PER_CHANNEL,
+    seedChannels = [],
+    projectsRoot = "",
+    llmFn = null,
+    repairJsonFn = null,
+  } = {}
+) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
 
@@ -762,7 +900,8 @@ export async function runCompetitorResearch(workspaceDir, {
   });
   const ownChannelId = ownOverview?.items?.[0]?.id || null;
 
-  const config = readJsonFile(path.join(workspaceDir, "config_qanat.json")) || {};
+  const config =
+    readJsonFile(path.join(workspaceDir, "config_qanat.json")) || {};
   const channelTitle = ownOverview?.items?.[0]?.snippet?.title || "";
   const resolvedNiche = resolveResearchNiche(workspaceDir, {
     niche,
@@ -770,8 +909,12 @@ export async function runCompetitorResearch(workspaceDir, {
     channelTitle,
     projectsRoot: projectsRoot || defaultProjectsRoot(),
   });
-  const resolvedFormat = String(format || "SHORT").toUpperCase() === "LONG" ? "LONG" : "SHORT";
-  const maxC = Math.min(Math.max(Number(maxCompetitors) || DEFAULT_MAX_COMPETITORS, 1), 10);
+  const resolvedFormat =
+    String(format || "SHORT").toUpperCase() === "LONG" ? "LONG" : "SHORT";
+  const maxC = Math.min(
+    Math.max(Number(maxCompetitors) || DEFAULT_MAX_COMPETITORS, 1),
+    10
+  );
 
   let competitors = await resolveSeedChannels(accessToken, seedChannels);
   if (competitors.length < maxC) {
@@ -794,10 +937,14 @@ export async function runCompetitorResearch(workspaceDir, {
   const channelReports = [];
 
   for (const competitor of competitors) {
-    const { channel, videos } = await fetchChannelRecentVideos(accessToken, competitor.id, {
-      limit: videosPerChannel,
-      format: resolvedFormat,
-    });
+    const { channel, videos } = await fetchChannelRecentVideos(
+      accessToken,
+      competitor.id,
+      {
+        limit: videosPerChannel,
+        format: resolvedFormat,
+      }
+    );
     if (!channel) continue;
 
     const outliers = detectOutliers(videos).map((o) => ({
@@ -826,7 +973,8 @@ export async function runCompetitorResearch(workspaceDir, {
       title: c.title,
       url: c.url,
       size: formatSubscriberCount(c.subscriberCount),
-      notes: c.sourceQuery === "seed" ? "canal seed" : `busca: ${c.sourceQuery}`,
+      notes:
+        c.sourceQuery === "seed" ? "canal seed" : `busca: ${c.sourceQuery}`,
       monitor: true,
     })),
     outlierAnalyses: topOutliers.map((o) => ({
@@ -863,14 +1011,19 @@ export async function runCompetitorResearch(workspaceDir, {
     });
     try {
       const llmText = await llmFn(prompt);
-      const { analysis: parsed, repaired, salvaged } = await parseCompetitorAnalysis(llmText, {
+      const {
+        analysis: parsed,
+        repaired,
+        salvaged,
+      } = await parseCompetitorAnalysis(llmText, {
         fallback: analysis,
         repairFn: repairJsonFn,
       });
       if (parsed) {
         analysis = parsed;
         if (repaired) {
-          aiAnalysisWarning = "Análise IA recuperada (JSON reparado automaticamente).";
+          aiAnalysisWarning =
+            "Análise IA recuperada (JSON reparado automaticamente).";
         } else if (salvaged) {
           aiAnalysisWarning = "Análise IA parcial recuperada dos outliers.";
         }
@@ -880,7 +1033,10 @@ export async function runCompetitorResearch(workspaceDir, {
           ? "IA retornou resposta inválida — usando análise automática básica."
           : "IA indisponível — dados do YouTube salvos com análise básica.";
         if (llmText) {
-          console.warn("[CompetitorResearch] Resposta IA (trecho):", String(llmText).slice(0, 400));
+          console.warn(
+            "[CompetitorResearch] Resposta IA (trecho):",
+            String(llmText).slice(0, 400)
+          );
         }
       }
     } catch (err) {
