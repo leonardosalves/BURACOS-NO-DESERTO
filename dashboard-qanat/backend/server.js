@@ -791,6 +791,7 @@ app.get("/api/health", (_req, res) => {
       pid: process.pid,
       render_active: renderActive,
       busy: renderActive > 0,
+      projects_root: PROJECTS_ROOT,
     })
   );
 });

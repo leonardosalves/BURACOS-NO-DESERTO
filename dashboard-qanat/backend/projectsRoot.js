@@ -5,6 +5,28 @@ const DEFAULT_LEO_ROOT = "C:\\Users\\Leo\\Desktop\\Lumiera Videos";
 
 let cachedProjectsRoot = null;
 
+function readProjectsRootFromFile() {
+  const candidates = [
+    process.env.LUMIERA_PROJECTS_ROOT_FILE,
+    path.resolve(__dirname, "..", "..", ".lumiera-projects-root"),
+    "C:\\Lumiera\\.lumiera-projects-root",
+  ].filter(Boolean);
+  for (const filePath of candidates) {
+    try {
+      if (!fs.existsSync(filePath)) continue;
+      const line = fs
+        .readFileSync(filePath, "utf8")
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .find(Boolean);
+      if (line && fs.existsSync(line)) return line;
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
+}
+
 function isSystemServiceProfile(home = "") {
   return /systemprofile/i.test(String(home || process.env.USERPROFILE || ""));
 }
@@ -61,6 +83,12 @@ function pickBestProjectsRoot(candidates = []) {
 
 export function resolveProjectsRoot() {
   if (cachedProjectsRoot) return cachedProjectsRoot;
+
+  const fromFile = readProjectsRootFromFile();
+  if (fromFile) {
+    cachedProjectsRoot = fromFile;
+    return cachedProjectsRoot;
+  }
 
   const fromEnv = String(process.env.LUMIERA_PROJECTS_ROOT || "").trim();
   if (fromEnv && fs.existsSync(fromEnv)) {
