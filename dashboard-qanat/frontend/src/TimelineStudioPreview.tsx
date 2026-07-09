@@ -213,7 +213,18 @@ export function TimelineStudioPreview({
     ? resolveMediaUrl(videoClip.source, getAssetUrl, getMusicUrl)
     : null;
   const isVideo = isVideoClip(videoClip);
-  const showBaseVideo = Boolean(assetSrc) && !(isVideo && videoLoadFailed);
+  const activeStudioGeoPip = useMemo(
+    () =>
+      motionClips.some(
+        (clip) =>
+          isStudioTemplateClip(clip) &&
+          isGeoPipCompositeProps(clip.props || {}) &&
+          clipStudioSourceCode(clip)
+      ),
+    [motionClips]
+  );
+  const showBaseVideo =
+    Boolean(assetSrc) && !(isVideo && videoLoadFailed) && !activeStudioGeoPip;
 
   useEffect(() => {
     setVideoLoadFailed(false);
@@ -640,6 +651,26 @@ export function TimelineStudioPreview({
               tpl === "location-intro" || tpl === "geo-map" || geoPipOverlay;
 
             if (isMapScene) {
+              if (hasStudioOverlay && geoPipOverlay && studioCode) {
+                return (
+                  <SavedTemplatePreviewFrame
+                    key={clip.id}
+                    sourceCode={studioCode}
+                    inputProps={mergeGeoPipPreviewProps(
+                      clip,
+                      motionPlayhead,
+                      wordTranscripts,
+                      assetSrc || undefined
+                    )}
+                    durationSeconds={clip.duration}
+                    scrubSeconds={localSec}
+                    format={isVertical ? "9:16" : "16:9"}
+                    size="detail"
+                    fullBleed
+                    autoPlay={playing}
+                  />
+                );
+              }
               return (
                 <React.Fragment key={clip.id}>
                   <SatelliteMapPreview
@@ -648,26 +679,16 @@ export function TimelineStudioPreview({
                     playing={playing}
                     getAssetUrl={getAssetUrl}
                     getMusicUrl={getMusicUrl}
-                    pipTransparent={geoPipOverlay && hasStudioOverlay}
                   />
                   {hasStudioOverlay ? (
                     <SavedTemplatePreviewFrame
                       sourceCode={studioCode}
-                      inputProps={
-                        geoPipOverlay
-                          ? mergeGeoPipPreviewProps(
-                              clip,
-                              motionPlayhead,
-                              wordTranscripts
-                            )
-                          : clip.props || {}
-                      }
+                      inputProps={clip.props || {}}
                       durationSeconds={clip.duration}
                       scrubSeconds={localSec}
                       format={isVertical ? "9:16" : "16:9"}
                       size="detail"
                       fullBleed
-                      overlayOnly={geoPipOverlay}
                       autoPlay={playing}
                     />
                   ) : null}
@@ -685,7 +706,8 @@ export function TimelineStudioPreview({
                       ? mergeGeoPipPreviewProps(
                           clip,
                           motionPlayhead,
-                          wordTranscripts
+                          wordTranscripts,
+                          assetSrc || undefined
                         )
                       : clip.props || {}
                   }
@@ -694,7 +716,6 @@ export function TimelineStudioPreview({
                   format={isVertical ? "9:16" : "16:9"}
                   size="detail"
                   fullBleed
-                  overlayOnly={geoPip}
                   autoPlay={playing}
                 />
               );

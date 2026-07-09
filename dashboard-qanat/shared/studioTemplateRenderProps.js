@@ -2,10 +2,13 @@ import {
   isTemplatePlaceholderValue,
   TEMPLATE_STRUCTURAL_PROP_KEYS,
 } from "./studioTemplatePlaceholder.js";
+import {
+  isPictureInPictureStudioTemplate,
+  mapGeoPipFlyoverToTemplateRenderProps,
+} from "./geoPipTemplateProps.js";
 
-/** Mídia do mapa/voo — só na camada PIP, nunca no componente TSX do template. */
+/** Tiles satélite legados — não fullscreen no template PIP. */
 export const GEO_PIP_MAP_MEDIA_KEYS = [
-  "flyover_video",
   "backgroundImage",
   "backgroundImageWide",
 ];
@@ -21,7 +24,7 @@ export function isGeoPipShortMode(props = {}) {
   return isGeoPipCompositeProps(props);
 }
 
-/** Remove mídia de mapa das props do template (fica só no slot PIP / B-roll atrás). */
+/** Remove tiles satélite legados das props do template PIP. */
 export function stripGeoPipMapMediaForTemplateProps(props = {}) {
   if (!props || typeof props !== "object") return props;
   const out = { ...props };
@@ -34,7 +37,8 @@ export function stripGeoPipMapMediaForTemplateProps(props = {}) {
 export function pickGeoPipMapMediaProps(props = {}) {
   const src = props && typeof props === "object" ? props : {};
   return {
-    flyover_video: String(src.flyover_video || "").trim(),
+    flyover_video: String(src.flyover_video || src.pipMediaUrl || "").trim(),
+    pipMediaUrl: String(src.pipMediaUrl || src.flyover_video || "").trim(),
     backgroundImage: String(src.backgroundImage || "").trim(),
     backgroundImageWide: String(src.backgroundImageWide || "").trim(),
   };
@@ -132,8 +136,19 @@ export function mergeStudioRenderProps({
 
   out.fps = Number.isFinite(Number(fps)) && Number(fps) > 0 ? Number(fps) : 30;
 
-  if (isGeoPipShortMode(inputProps)) {
-    return stripGeoPipMapMediaForTemplateProps(out);
+  if (
+    isGeoPipShortMode(inputProps) ||
+    isPictureInPictureStudioTemplate(inputProps)
+  ) {
+    const mapped = mapGeoPipFlyoverToTemplateRenderProps({
+      ...inputProps,
+      ...out,
+    });
+    const merged = { ...out, ...mapped };
+    for (const key of GEO_PIP_MAP_MEDIA_KEYS) {
+      if (key in merged) delete merged[key];
+    }
+    return merged;
   }
 
   return out;
@@ -148,9 +163,11 @@ export function isGeoPipCompositeProps(props = {}) {
   if (!sub.includes("picture in picture")) return false;
   const sanitized = sanitizeStudioRenderProps(props);
   return Boolean(
+    sanitized.pipMediaUrl ||
     sanitized.flyover_video ||
     sanitized.backgroundImage ||
     sanitized.backgroundImageWide ||
+    sanitized.pipTitle ||
     sanitized.location
   );
 }

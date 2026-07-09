@@ -6,11 +6,9 @@ import {
   isGeoPipCompositeProps,
   mergeStudioRenderProps,
 } from "../../../shared/remotionTemplateCompile.js";
-import {
-  isGeoPipShortMode,
-  pickGeoPipMapMediaProps,
-} from "../../../shared/studioTemplateRenderProps.js";
+import { isPictureInPictureStudioTemplate } from "../../../shared/geoPipTemplateProps.js";
 import { GeoPipMapSlot } from "./GeoPipMapSlot";
+import { pickGeoPipMapMediaProps } from "../../../shared/studioTemplateRenderProps.js";
 
 type StudioTemplateOverlayProps = {
   sourceCode: string;
@@ -66,8 +64,15 @@ export const StudioTemplateOverlay: React.FC<StudioTemplateOverlayProps> = ({
     fps,
   });
 
+  const pipStudioTemplate = isPictureInPictureStudioTemplate(inputProps);
+  const geoPipNative =
+    Boolean(inputProps.geo_pip_native) &&
+    !pipStudioTemplate &&
+    !String(inputProps.studio_source_code || "").trim();
   const geoPipComposite =
-    isGeoPipShortMode(inputProps) || isGeoPipCompositeProps(inputProps);
+    geoPipNative &&
+    (isGeoPipCompositeProps(inputProps) ||
+      Boolean(inputProps.geo_pip_composite));
   const mapMedia = pickGeoPipMapMediaProps({
     ...inputProps,
     ...(inputProps.studio_props as Record<string, unknown>),
@@ -114,15 +119,10 @@ export const StudioTemplateOverlay: React.FC<StudioTemplateOverlayProps> = ({
     );
   }
 
-  const bg =
-    role === "background_frame" || inputProps.studio_z_index === "under"
-      ? "transparent"
-      : "transparent";
-
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: bg,
+        backgroundColor: "transparent",
         overflow: "hidden",
         opacity: role === "transition" ? 1 : opacity,
       }}

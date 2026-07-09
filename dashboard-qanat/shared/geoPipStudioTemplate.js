@@ -3,10 +3,7 @@
  * mapa ou flyover no quadradinho PIP e local no slot "ponto de referência".
  */
 
-import {
-  resolveGeoPipReferenceLabel,
-  resolveGeoPipSectorLabel,
-} from "./geoPipSceneText.js";
+import { bindGeoPipTemplateStudioProps } from "./geoPipTemplateProps.js";
 
 export const GEO_PIP_CATEGORY = "image-media";
 export const GEO_PIP_SUBCATEGORY = "Picture in Picture";
@@ -82,93 +79,26 @@ export function formatCoordDms(value, axis = "lat") {
 
 export function buildGeoPipStudioProps(scene = {}, template = {}) {
   const props = scene.props || {};
-  const location = String(props.location || "").trim();
-  const region = String(props.region || "").trim();
-  const country = String(props.country || "").trim();
-  const lat = Number(props.lat);
-  const lng = Number(props.lng);
   const dataSlots = Array.isArray(template.dataSlots)
     ? template.dataSlots.map(String)
     : [];
-
-  const studio = {};
-  const filled = [];
-
-  const assign = (key, value) => {
-    if (value === undefined || value === null) return;
-    const clean = String(value).trim();
-    if (!clean) return;
-    studio[key] = clean;
-    filled.push(key);
-  };
-
-  for (const slot of dataSlots) {
-    const key = String(slot || "").trim();
-    if (!key) continue;
-    const lower = key.toLowerCase();
-    if (REFERENCE_POINT_SLOTS.has(key) || lower.includes("referen")) {
-      assign(key, resolveGeoPipReferenceLabel(props));
-      continue;
+  const bound = bindGeoPipTemplateStudioProps(
+    {
+      ...props,
+      template_studio_subcategory: template.subcategory,
+    },
+    {
+      narration: String(props.narration_text || ""),
+      dataSlots,
+      flyoverUrl: String(props.flyover_video || props.pipMediaUrl || "").trim(),
     }
-    if (PIP_TITLE_SLOTS.has(key)) {
-      assign(key, resolveGeoPipReferenceLabel(props) || location);
-      continue;
-    }
-    if (
-      lower === "subtitle" ||
-      lower === "descriptortext" ||
-      lower.includes("sector") ||
-      lower.includes("setor") ||
-      lower === "panellabel" ||
-      lower === "statustext"
-    ) {
-      assign(
-        key,
-        resolveGeoPipSectorLabel(props, String(props.narration_text || ""))
-      );
-      continue;
-    }
-    if (lower === "location") {
-      assign(key, location);
-      continue;
-    }
-    if (lower === "region") {
-      assign(key, region);
-      continue;
-    }
-    if (lower === "country") {
-      assign(key, country);
-      continue;
-    }
-    if (/lat/i.test(key) && Number.isFinite(lat)) {
-      assign(key, formatCoordDms(lat, "lat"));
-      continue;
-    }
-    if (/lng|lon/i.test(key) && Number.isFinite(lng)) {
-      assign(key, formatCoordDms(lng, "lng"));
-    }
-  }
-
-  if (!filled.length) {
-    assign("referencePoint", resolveGeoPipReferenceLabel(props));
-    assign("pipTitle", resolveGeoPipReferenceLabel(props) || location);
-    assign(
-      "subtitle",
-      resolveGeoPipSectorLabel(props, String(props.narration_text || ""))
-    );
-    assign(
-      "sectorLabel",
-      resolveGeoPipSectorLabel(props, String(props.narration_text || ""))
-    );
-    if (Number.isFinite(lat)) assign("latLabel", formatCoordDms(lat, "lat"));
-    if (Number.isFinite(lng)) assign("lngLabel", formatCoordDms(lng, "lng"));
-  }
+  );
 
   return {
-    studio_props: studio,
+    studio_props: bound.studio_props,
     studio_props_meta: {
-      filled_slots: filled,
-      confidence: filled.length ? 0.85 : 0.4,
+      filled_slots: bound.filled_slots,
+      confidence: bound.filled_slots.length ? 0.85 : 0.4,
       mode: "geo_pip",
     },
   };
@@ -245,7 +175,9 @@ export function attachGeoPipStudioTemplate(
         studio_source_code: sourceCode,
         studio_props,
         studio_props_meta,
-        referencePoint: studio_props.referencePoint || nextProps.location,
+        pipTitle: studio_props.pipTitle || nextProps.location,
+        pipMediaUrl: studio_props.pipMediaUrl || nextProps.pipMediaUrl,
+        location: studio_props.location,
       },
     };
   }

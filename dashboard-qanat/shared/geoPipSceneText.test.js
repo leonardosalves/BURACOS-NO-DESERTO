@@ -41,23 +41,27 @@ describe("geoPipSceneText", () => {
     assert.match(sector, /Laufenburg|engenharia/i);
   });
 
-  it("buildGeoPipOverlayStudioProps preenche slots PIP", () => {
-    const { studio_props, referencePoint, scene_subject } =
+  it("buildGeoPipOverlayStudioProps preenche slots do template PIP", () => {
+    const { studio_props, referencePoint, scene_subject, pipMediaUrl } =
       buildGeoPipOverlayStudioProps(
         {
           location: "Palmanova",
           country: "Itália",
           geo_pip_composite: true,
+          flyover_video: "ASSETS/satellite/palmanova.mp4",
+          template_studio_subcategory: "Picture in Picture",
         },
         {
           narration: "A fortaleza estelar de Palmanova impressiona.",
-          dataSlots: ["referencePoint", "sectorLabel", "subtitle"],
+          dataSlots: ["pipMediaUrl", "pipTitle", "location"],
           flyoverDurationSec: 8.4,
         }
       );
     assert.equal(referencePoint, "Palmanova");
     assert.match(scene_subject, /Palmanova|fortaleza/i);
-    assert.equal(studio_props.referencePoint, "Brasil");
+    assert.equal(studio_props.pipTitle, "Palmanova");
+    assert.equal(studio_props.location, scene_subject);
+    assert.equal(pipMediaUrl, "ASSETS/satellite/palmanova.mp4");
     assert.equal(studio_props.durationSeconds, 8.4);
   });
 });

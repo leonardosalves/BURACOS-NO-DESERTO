@@ -2,6 +2,8 @@
  * Textos e duração para cenas PIP geo (local no ponto de referência, assunto da cena).
  */
 
+import { bindGeoPipTemplateStudioProps } from "./geoPipTemplateProps.js";
+
 const SCENE_SUBJECT_STOPWORDS = new Set([
   "o",
   "a",
@@ -173,89 +175,19 @@ export function buildGeoPipOverlayStudioProps(
   props = {},
   { narration = "", dataSlots = [], flyoverDurationSec = 0 } = {}
 ) {
-  const slots = Array.isArray(dataSlots)
-    ? dataSlots.map((s) => String(s || "").trim()).filter(Boolean)
-    : [];
-  const slotSet = new Set(slots);
-  const hasSlots = slotSet.size > 0;
-
-  const reference = resolveGeoPipReferenceLabel(props);
-  const sector = resolveGeoPipSectorLabel(props, narration);
-  const studio = { ...(props.studio_props || {}) };
-  const filled = [];
-
-  const assign = (key, value) => {
-    if (!key || value === undefined || value === null) return;
-    const clean = String(value).trim();
-    if (!clean) return;
-    const existing = String(studio[key] ?? props[key] ?? "").trim();
-    if (
-      existing &&
-      !isGenericSectorPlaceholder(existing) &&
-      !isGenericLocationPlaceholder(existing)
-    ) {
-      return;
-    }
-    studio[key] = clean;
-    if (!filled.includes(key)) filled.push(key);
-  };
-
-  const wants = (keys) =>
-    !hasSlots || keys.some((k) => slotSet.has(k) || [...slotSet].some((s) => s.toLowerCase() === k.toLowerCase()));
-
-  if (reference && wants([...PIP_REFERENCE_SLOT_KEYS])) {
-    for (const key of slots.length ? slots : [...PIP_REFERENCE_SLOT_KEYS]) {
-      if (
-        PIP_REFERENCE_SLOT_KEYS.has(key) ||
-        String(key).toLowerCase().includes("referen") ||
-        PIP_REFERENCE_SLOT_KEYS.has(key.replace(/_/g, ""))
-      ) {
-        assign(key, reference);
-      }
-    }
-    if (!hasSlots) {
-      assign("referencePoint", reference);
-      assign("pipTitle", reference);
-    }
-  }
-
-  if (sector && wants([...PIP_SECTOR_SLOT_KEYS])) {
-    for (const key of slots.length ? slots : [...PIP_SECTOR_SLOT_KEYS]) {
-      const lower = String(key).toLowerCase();
-      if (
-        PIP_SECTOR_SLOT_KEYS.has(key) ||
-        lower.includes("sector") ||
-        lower.includes("setor") ||
-        lower === "subtitle" ||
-        lower === "descriptortext" ||
-        lower === "panellabel" ||
-        lower === "statustext"
-      ) {
-        assign(key, sector);
-      }
-    }
-    if (!hasSlots) {
-      assign("subtitle", sector);
-      assign("sectorLabel", sector);
-      assign("panelLabel", sector);
-    }
-  }
-
-  assign("referencePoint", reference);
-  assign("scene_subject", sector);
-  assign("location", String(props.location || reference || "").trim());
-
-  const dur = Number(flyoverDurationSec);
-  if (Number.isFinite(dur) && dur > 0) {
-    studio.durationSeconds = dur;
-    studio.durationInFrames = Math.max(1, Math.round(dur * 30));
-    filled.push("durationSeconds", "durationInFrames");
-  }
+  const bound = bindGeoPipTemplateStudioProps(props, {
+    narration,
+    dataSlots,
+    flyoverUrl: String(props.flyover_video || props.pipMediaUrl || "").trim(),
+    flyoverDurationSec,
+  });
 
   return {
-    studio_props: studio,
-    referencePoint: reference,
-    scene_subject: sector,
-    filled_slots: filled,
+    studio_props: bound.studio_props,
+    referencePoint: bound.pipTitle,
+    scene_subject: bound.location,
+    pipTitle: bound.pipTitle,
+    pipMediaUrl: bound.pipMediaUrl,
+    filled_slots: bound.filled_slots,
   };
 }

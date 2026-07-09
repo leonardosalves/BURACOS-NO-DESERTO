@@ -1,5 +1,4 @@
-import { buildGeoPipOverlayStudioProps } from "@lumiera/shared/geoPipSceneText.js";
-import { stripGeoPipMapMediaForTemplateProps } from "@lumiera/shared/studioTemplateRenderProps.js";
+import { bindGeoPipTemplateStudioProps } from "@lumiera/shared/geoPipTemplateProps.js";
 import type { StudioClip } from "./timelineStudioTypes";
 
 type TranscriptWord = { word?: string; start?: number; end?: number };
@@ -55,7 +54,8 @@ export function narrationSubjectAtPlayhead(
 export function mergeGeoPipPreviewProps(
   clip: StudioClip,
   playhead: number,
-  wordTranscripts?: TranscriptSegment[]
+  wordTranscripts?: TranscriptSegment[],
+  mainMediaUrl?: string
 ): Record<string, unknown> {
   const base = (clip.props || {}) as Record<string, unknown>;
   const liveNarration =
@@ -66,23 +66,25 @@ export function mergeGeoPipPreviewProps(
     ? (base.template_studio_data_slots as string[])
     : [];
 
-  const { studio_props, referencePoint, scene_subject } =
-    buildGeoPipOverlayStudioProps(base, {
-      narration: liveNarration,
-      dataSlots,
-      flyoverDurationSec: Number(clip.duration) || 0,
-    });
+  const bound = bindGeoPipTemplateStudioProps(base, {
+    narration: liveNarration,
+    dataSlots,
+    flyoverUrl: String(base.flyover_video || base.pipMediaUrl || "").trim(),
+    mainMediaUrl: String(mainMediaUrl || base.mainMediaUrl || "").trim(),
+    flyoverDurationSec: Number(clip.duration) || 0,
+  });
 
-  const merged = {
+  return {
     ...base,
-    ...studio_props,
-    studio_props: stripGeoPipMapMediaForTemplateProps({
+    ...bound.studio_props,
+    studio_props: {
       ...(base.studio_props as Record<string, unknown>),
-      ...studio_props,
-    }),
-    referencePoint,
-    scene_subject,
+      ...bound.studio_props,
+    },
+    pipTitle: bound.pipTitle,
+    pipMediaUrl: bound.pipMediaUrl,
+    location: bound.location,
+    mainMediaUrl: bound.mainMediaUrl,
     narration_text: liveNarration || base.narration_text,
   };
-  return stripGeoPipMapMediaForTemplateProps(merged);
 }

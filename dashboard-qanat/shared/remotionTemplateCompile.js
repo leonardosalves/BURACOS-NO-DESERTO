@@ -115,11 +115,29 @@ function prepareRunnableSource(code) {
   src = src.replace(/export\s+default\s+function\s+(\w+)/, "function $1");
   src = src.replace(/export\s+default\s+/, "");
 
-  const transformed = transform(src, {
+  let transformed = transform(src, {
     transforms: ["typescript", "jsx"],
   }).code;
 
+  transformed = patchCompiledMediaVideoSlots(transformed);
+
   return { body: transformed, componentName };
+}
+
+/** MP4 no pipMediaUrl/mainMediaUrl: Video em vez de Img (template salvo intacto). */
+function patchCompiledMediaVideoSlots(jsBody = "") {
+  let out = String(jsBody);
+  for (const slot of ["pipMediaUrl", "mainMediaUrl"]) {
+    const re = new RegExp(
+      `React\\.createElement\\(Img,\\s*\\{\\s*src:\\s*${slot}`,
+      "g"
+    );
+    out = out.replace(
+      re,
+      `React.createElement(/\\.(mp4|webm|mov|m4v|mkv)(\\?|$)/i.test(String(${slot} || "")) ? Video : Img, { src: ${slot}`
+    );
+  }
+  return out;
 }
 
 /**
