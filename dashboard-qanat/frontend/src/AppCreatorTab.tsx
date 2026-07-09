@@ -1,5 +1,5 @@
 import toast from "react-hot-toast";
-import React, { lazy, Suspense } from "react";
+import React, { Suspense } from "react";
 import {
   Check,
   CheckCircle,
@@ -19,11 +19,7 @@ import { NarrationChunksPanel } from "./NarrationChunksPanel";
 import { TtsVoiceStudioPanel } from "./TtsVoiceStudioPanel";
 import { warnLongListicleTitles } from "./listicleTitleUtils";
 
-const LazyListicleCreatorStep = lazy(() =>
-  import("./ListicleCreatorStep").then((m) => ({
-    default: m.ListicleCreatorStep,
-  }))
-);
+import { ListicleCreatorStep } from "./ListicleCreatorStep";
 import { resolveStockSearchQuery } from "./stockSearchQuery";
 import {
   buildTaggedNarration,
@@ -981,7 +977,7 @@ export function AppCreatorTab({
                   </div>
                 }
               >
-                <LazyListicleCreatorStep
+                <ListicleCreatorStep
                   listNiche={listNiche}
                   setListNiche={setListNiche}
                   listTopic={listTopic}

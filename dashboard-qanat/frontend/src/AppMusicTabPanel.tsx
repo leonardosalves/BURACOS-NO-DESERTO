@@ -1,12 +1,9 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense } from "react";
 import { RefreshCw } from "lucide-react";
 import { TabErrorBoundary } from "./TabErrorBoundary";
+import { AppMusicTab } from "./AppMusicTab";
 import { TabPanelFallback } from "./appLazyPanels";
 import type { AppMusicTabProps } from "./AppMusicTab";
-
-const LazyAppMusicTab = lazy(() =>
-  import("./AppMusicTab").then((m) => ({ default: m.AppMusicTab }))
-);
 
 export type AppMusicTabPanelProps = AppMusicTabProps & {
   projectDataLoading: boolean;
@@ -43,11 +40,7 @@ export function AppMusicTabPanel({
         </div>
       ) : (
         <Suspense fallback={<TabPanelFallback label="Carregando trilhas..." />}>
-          <LazyAppMusicTab
-            config={config}
-            fetchData={fetchData}
-            {...musicProps}
-          />
+          <AppMusicTab config={config} fetchData={fetchData} {...musicProps} />
         </Suspense>
       )}
     </TabErrorBoundary>
