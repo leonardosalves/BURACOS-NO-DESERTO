@@ -11,6 +11,10 @@ $script:LastRestartFile = Join-Path $script:LogDir "backend-last-restart.txt"
 $script:NodeMaxOldSpaceMb = 4096
 $script:Pm2ModeFile = Join-Path $script:LogDir "pm2.mode"
 $script:StackModeFile = Join-Path $script:LogDir "stack.mode"
+$script:UniportModeFile = Join-Path $script:LogDir "uniport.mode"
+$script:FrontendDistDir = Join-Path (Join-Path $script:RepoRoot "dashboard-qanat") "frontend\dist"
+$script:DashboardUrlUniport = "http://127.0.0.1:3005/"
+$script:DashboardUrlDev = "http://127.0.0.1:5176/"
 $script:StackRepairLockFile = Join-Path $script:LogDir "stack-repair.lock"
 $script:SyntaxCheckLog = Join-Path $script:LogDir "backend-syntax-check.log"
 $script:LogCleanupScript = Join-Path $script:RepoRoot "scripts\cleanup-lumiera-logs.ps1"
@@ -212,11 +216,52 @@ function Initialize-LumieraBackendEnv {
     }
 }
 
+function Test-LumieraUniportMode {
+    if (Test-Path -LiteralPath $script:UniportModeFile) { return $true }
+    return (Get-LumieraStackMode) -eq "uniport"
+}
+
+function Test-LumieraFrontendDistReady {
+    return Test-Path -LiteralPath (Join-Path $script:FrontendDistDir "index.html")
+}
+
+function Get-LumieraDashboardUrl {
+    if (Test-LumieraUniportMode) { return $script:DashboardUrlUniport }
+    return $script:DashboardUrlDev
+}
+
+function Stop-LumieraViteDev {
+    $fePid = Get-PortListenerPidFast 5176
+    if ($fePid) {
+        Stop-Process -Id $fePid -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 1
+        Write-LumieraLog ("Vite dev encerrado na porta 5176 (PID {0})" -f $fePid)
+    }
+}
+
+function Disable-LumieraLegacyStack {
+    Stop-LumieraGuardianDaemon
+    Disable-LumieraPm2Competition
+    Stop-LumieraViteDev
+    foreach ($task in @("Lumiera-Guardian", "Lumiera-Backend-Watchdog", "Lumiera-Dashboard-Dev")) {
+        Unregister-ScheduledTask -TaskName $task -Confirm:$false -ErrorAction SilentlyContinue
+    }
+    $startupDir = [Environment]::GetFolderPath("Startup")
+    foreach ($vbs in @(
+        "Lumiera-Guardian.vbs", "Lumiera-PM2-Resurrect.vbs",
+        "Lumiera-Ensure.vbs", "Lumiera-Uniport.vbs"
+    )) {
+        Remove-Item (Join-Path $startupDir $vbs) -Force -ErrorAction SilentlyContinue
+    }
+    Remove-Item -LiteralPath $script:Pm2ModeFile -Force -ErrorAction SilentlyContinue
+}
+
 function Get-LumieraStackMode {
     if (Test-Path -LiteralPath $script:StackModeFile) {
         $mode = ("$(Get-Content -LiteralPath $script:StackModeFile -TotalCount 1 -ErrorAction SilentlyContinue)").Trim().ToLower()
-        if ($mode -eq "pm2" -or $mode -eq "direct") { return $mode }
+        if ($mode -in @("pm2", "direct", "uniport")) { return $mode }
     }
+    if (Test-Path -LiteralPath $script:UniportModeFile) { return "uniport" }
     if (Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode")) {
         return "direct"
     }
@@ -243,11 +288,21 @@ function Set-LumieraStackRepairLock {
 
 function Test-LumieraStackHealthy {
     $backendOk = Test-LumieraBackendHealthy -Retries 4 -TimeoutSec 12
+    if ((Get-LumieraStackMode) -eq "uniport") {
+        $distOk = Test-LumieraFrontendDistReady
+        return @{
+            backend  = $backendOk
+            frontend = $distOk
+            ok       = ($backendOk -and $distOk)
+            uniport  = $true
+        }
+    }
     $frontendOk = [bool](Get-PortListenerPidFast 5176)
     return @{
         backend  = $backendOk
         frontend = $frontendOk
         ok       = ($backendOk -and $frontendOk)
+        uniport  = $false
     }
 }
 
@@ -308,11 +363,16 @@ function Repair-LumieraStackUnified {
         if ($health.ok) { return $true }
     }
 
+    $uniport = (Get-LumieraStackMode) -eq "uniport"
+
     if ((Get-BackendListenerPid) -and -not $health.backend) {
         Write-LumieraLog "Porta 3005 ativa, health lento - aguardando sem matar" "WARN"
         $deadline = (Get-Date).AddSeconds(90)
         while ((Get-Date) -lt $deadline) {
             if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 15) {
+                if ($uniport) {
+                    return (Test-LumieraStackHealthy).ok
+                }
                 if (-not $health.frontend) {
                     $feScript = Join-Path $script:RepoRoot "scripts\ensure-frontend.ps1"
                     & $feScript | Out-Null
@@ -324,6 +384,10 @@ function Repair-LumieraStackUnified {
     }
 
     if (Test-ActiveLumieraRender) {
+        if ($uniport) {
+            Write-LumieraLog "Render ativo - uniport mantem backend sem reiniciar" "WARN"
+            return (Test-LumieraStackHealthy).ok
+        }
         Write-LumieraLog "Render ativo - reparo so do frontend" "WARN"
         if (-not $health.frontend) {
             $feScript = Join-Path $script:RepoRoot "scripts\ensure-frontend.ps1"
@@ -335,6 +399,26 @@ function Repair-LumieraStackUnified {
     Set-LumieraStackRepairLock
     $mode = Get-LumieraStackMode
     Write-LumieraLog "Reparo stack unificado (modo=$mode)" "WARN"
+
+    if ($mode -eq "uniport") {
+        Disable-LumieraPm2Competition
+        Stop-LumieraViteDev
+        if (-not (Test-LumieraFrontendDistReady)) {
+            $buildScript = Join-Path $script:RepoRoot "scripts\build-lumiera-frontend.ps1"
+            & $buildScript -Quiet | Out-Null
+            if (-not (Test-LumieraFrontendDistReady)) {
+                Write-LumieraLog "Uniport: frontend/dist ausente apos build" "ERROR"
+                return $false
+            }
+        }
+        $needBackend = -not $health.backend
+        $backendOk = if ($needBackend) {
+            Start-LumieraStackDirect -ForceBackend
+        } else {
+            $true
+        }
+        return $backendOk -and (Test-LumieraStackHealthy).ok
+    }
 
     if ($mode -eq "pm2" -and (Test-LumieraPm2DaemonAlive)) {
         $be = Get-LumieraPm2AppRow "lumiera-backend"

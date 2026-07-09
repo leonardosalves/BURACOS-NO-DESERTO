@@ -1,4 +1,4 @@
-# Status rapido: backend (3005), frontend (5176), ultimas linhas do log
+# Status rapido: backend (3005), modo uniport ou Vite (5176)
 . (Join-Path $PSScriptRoot "lumiera-backend-common.ps1")
 
 function Get-PortStatus([int]$Port) {
@@ -17,22 +17,12 @@ Write-Host "=== Lumiera - status ===" -ForegroundColor Cyan
 $pm2Mode = Test-LumieraPm2Mode
 $permanentMode = Test-Path -LiteralPath (Join-Path $script:LogDir "permanent.mode")
 $stackMode = Get-LumieraStackMode
-if ($permanentMode) {
-    Write-Host ("Modo     : PERMANENTE (stack={0} + guardian 1 min)" -f $stackMode) -ForegroundColor Green
-    $guardTask = Get-ScheduledTask -TaskName "Lumiera-Guardian" -ErrorAction SilentlyContinue
-    $daemonPidFile = Join-Path $script:LogDir "guardian-daemon.pid"
-    if ($guardTask) {
-        Write-Host ("Guardian : tarefa {0}" -f $guardTask.State) -ForegroundColor $(if ($guardTask.State -eq "Running") { "Green" } else { "Yellow" })
-    } elseif (Test-Path -LiteralPath $daemonPidFile) {
-        try {
-            $gpid = [int](Get-Content -LiteralPath $daemonPidFile -TotalCount 1)
-            if ($gpid -gt 0 -and (Get-Process -Id $gpid -ErrorAction SilentlyContinue)) {
-                Write-Host ("Guardian : daemon ativo (PID {0})" -f $gpid) -ForegroundColor Green
-            } else {
-                Write-Host "Guardian : daemon parado - rode install-lumiera-permanent.ps1" -ForegroundColor Yellow
-            }
-        } catch { }
-    }
+$uniport = $stackMode -eq "uniport"
+
+if ($uniport) {
+    Write-Host "Modo     : UNIPORT (1 processo :3005, UI em dist/)" -ForegroundColor Green
+} elseif ($permanentMode) {
+    Write-Host ("Modo     : PERMANENTE (stack={0})" -f $stackMode) -ForegroundColor Green
 } elseif ($pm2Mode) {
     Write-Host "Modo     : PM2 (auto-reinicio nativo)" -ForegroundColor Green
     if (Resolve-LumieraPm2Bin) {
@@ -47,8 +37,27 @@ if ($permanentMode) {
     }
 }
 
+$watchTask = Get-ScheduledTask -TaskName "Lumiera-Backend-Watchdog" -ErrorAction SilentlyContinue
+if ($uniport -and $watchTask) {
+    Write-Host ("Watchdog : tarefa {0}" -f $watchTask.State) -ForegroundColor $(if ($watchTask.State -eq "Running") { "Green" } else { "Yellow" })
+} elseif ($permanentMode -and -not $uniport) {
+    $guardTask = Get-ScheduledTask -TaskName "Lumiera-Guardian" -ErrorAction SilentlyContinue
+    $daemonPidFile = Join-Path $script:LogDir "guardian-daemon.pid"
+    if ($guardTask) {
+        Write-Host ("Guardian : tarefa {0}" -f $guardTask.State) -ForegroundColor $(if ($guardTask.State -eq "Running") { "Green" } else { "Yellow" })
+    } elseif (Test-Path -LiteralPath $daemonPidFile) {
+        try {
+            $gpid = [int](Get-Content -LiteralPath $daemonPidFile -TotalCount 1)
+            if ($gpid -gt 0 -and (Get-Process -Id $gpid -ErrorAction SilentlyContinue)) {
+                Write-Host ("Guardian : daemon ativo (PID {0})" -f $gpid) -ForegroundColor Green
+            } else {
+                Write-Host "Guardian : daemon parado" -ForegroundColor Yellow
+            }
+        } catch { }
+    }
+}
+
 $backend = Get-PortStatus 3005
-$frontend = Get-PortStatus 5176
 $healthy = if ($backend) { Test-LumieraBackendHealthy -Quick -TimeoutSec 3 } else { $false }
 
 if ($backend) {
@@ -59,36 +68,36 @@ if ($backend) {
     Write-Host "Backend  : OFFLINE (porta 3005 livre)" -ForegroundColor Red
 }
 
-if ($frontend) {
-    Write-Host ("Frontend : porta 5176 - PID {0} ({1})" -f $frontend.Pid, $frontend.Name) -ForegroundColor Green
+if ($uniport) {
+    if (Test-LumieraFrontendDistReady) {
+        $distAge = (Get-Item (Join-Path $script:FrontendDistDir "index.html")).LastWriteTime
+        Write-Host ("UI       : dist/ OK (compilado {0})" -f $distAge.ToString("yyyy-MM-dd HH:mm")) -ForegroundColor Green
+        Write-Host "Dashboard: http://127.0.0.1:3005/" -ForegroundColor Green
+    } else {
+        Write-Host "UI       : dist/ AUSENTE - rode build-lumiera-frontend.ps1" -ForegroundColor Red
+    }
+    $vite = Get-PortStatus 5176
+    if ($vite) {
+        Write-Host ("Vite     : porta 5176 ainda ativa (PID {0}) - desnecessario no uniport" -f $vite.Pid) -ForegroundColor Yellow
+    }
 } else {
-    Write-Host "Frontend : OFFLINE (rode run_qanat_dashboard.bat ou npm run dev)" -ForegroundColor Yellow
+    $frontend = Get-PortStatus 5176
+    if ($frontend) {
+        Write-Host ("Frontend : porta 5176 - PID {0} ({1})" -f $frontend.Pid, $frontend.Name) -ForegroundColor Green
+    } else {
+        Write-Host "Frontend : OFFLINE (rode run_qanat_dashboard.bat ou install-lumiera-uniport.ps1)" -ForegroundColor Yellow
+    }
 }
 
-$watchProc = $null
-$task = $null
-if (-not ($pm2Mode -or $permanentMode)) {
+if (-not ($pm2Mode -or $permanentMode -or $uniport)) {
     $watchProc = Test-LumieraWatchdogActive
-    if (-not $watchProc) {
-        $task = Get-ScheduledTask -TaskName "Lumiera-Backend-Watchdog" -ErrorAction SilentlyContinue
-    }
-}
-if ($permanentMode) {
-    Write-Host "Watchdog : desativado (guardian + modo direto)" -ForegroundColor DarkGray
-} elseif ($pm2Mode) {
-    Write-Host "Watchdog : desativado (PM2 cuida do processo)" -ForegroundColor DarkGray
-} elseif ($watchProc) {
-    if ($watchProc.ProcessId -gt 0) {
-        Write-Host ("Watchdog : ATIVO (PID {0})" -f $watchProc.ProcessId) -ForegroundColor Green
-    } elseif ($watchProc.FromTask) {
-        Write-Host "Watchdog : ATIVO (tarefa agendada em execucao)" -ForegroundColor Green
+    if ($watchProc) {
+        Write-Host "Watchdog : ATIVO" -ForegroundColor Green
+    } elseif ($watchTask) {
+        Write-Host ("Watchdog : instalado ({0})" -f $watchTask.State) -ForegroundColor Yellow
     } else {
-        Write-Host "Watchdog : ATIVO (log recente)" -ForegroundColor Green
+        Write-Host "Watchdog : nao instalado" -ForegroundColor DarkGray
     }
-} elseif ($task) {
-    Write-Host ("Watchdog : instalado mas PARADO (tarefa {0}) - rode .\scripts\ensure-watchdog.ps1" -f $task.State) -ForegroundColor Yellow
-} else {
-    Write-Host "Watchdog : nao instalado (.\scripts\install-lumiera-startup.ps1)" -ForegroundColor DarkGray
 }
 
 $watchLog = Join-Path $script:LogDir "backend-watch.log"

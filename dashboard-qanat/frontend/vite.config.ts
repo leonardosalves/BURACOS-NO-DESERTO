@@ -27,10 +27,12 @@ export default defineConfig({
         "../remotion-renderer/src/overlays"
       ),
       "@lumiera/shared": sharedDir,
+      sucrase: path.resolve(__dirname, "node_modules/sucrase"),
     },
   },
   optimizeDeps: {
     include: [
+      "sucrase",
       "@lumiera/shared/narrationMatch.js",
       "@lumiera/shared/timelineNarration.js",
       "@lumiera/shared/timelineAudioStarts.js",
