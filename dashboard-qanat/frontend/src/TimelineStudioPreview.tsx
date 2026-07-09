@@ -38,6 +38,7 @@ import {
 import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
 import { isGeoPipCompositeProps } from "@lumiera/shared/remotionTemplateCompile.js";
 import { mergeGeoPipPreviewProps } from "./geoPipPreviewProps";
+import { resolveGeoPipClipDurationSec } from "@lumiera/shared/geoPipTemplateProps.js";
 
 type Props = {
   studio: TimelineStudioState;
@@ -95,6 +96,13 @@ function isVideoClip(clip: StudioClip | null | undefined): boolean {
     clip.props?.type === "video" ||
     /\.(mp4|webm|mov|m4v)$/i.test(String(clip.source || ""))
   );
+}
+
+function clipPreviewDurationSec(clip: StudioClip): number {
+  if (isGeoPipCompositeProps(clip.props || {})) {
+    return resolveGeoPipClipDurationSec(clip);
+  }
+  return Math.max(0.08, Number(clip.duration) || 0);
 }
 
 export function TimelineStudioPreview({
@@ -662,7 +670,7 @@ export function TimelineStudioPreview({
                       wordTranscripts,
                       assetSrc || undefined
                     )}
-                    durationSeconds={clip.duration}
+                    durationSeconds={clipPreviewDurationSec(clip)}
                     scrubSeconds={localSec}
                     format={isVertical ? "9:16" : "16:9"}
                     size="detail"
@@ -684,7 +692,7 @@ export function TimelineStudioPreview({
                     <SavedTemplatePreviewFrame
                       sourceCode={studioCode}
                       inputProps={clip.props || {}}
-                      durationSeconds={clip.duration}
+                      durationSeconds={clipPreviewDurationSec(clip)}
                       scrubSeconds={localSec}
                       format={isVertical ? "9:16" : "16:9"}
                       size="detail"
@@ -711,7 +719,7 @@ export function TimelineStudioPreview({
                         )
                       : clip.props || {}
                   }
-                  durationSeconds={clip.duration}
+                  durationSeconds={clipPreviewDurationSec(clip)}
                   scrubSeconds={localSec}
                   format={isVertical ? "9:16" : "16:9"}
                   size="detail"

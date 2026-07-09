@@ -1,7 +1,10 @@
 import React, { useRef, useState } from "react";
 import { CheckCircle, Film, Upload } from "lucide-react";
 import toast from "react-hot-toast";
-import { uploadMotionFlyoverVideo } from "./geoVideoFlyover";
+import {
+  probeVideoFileDurationSec,
+  uploadMotionFlyoverVideo,
+} from "./geoVideoFlyover";
 
 type Props = {
   motionId: string;
@@ -10,6 +13,8 @@ type Props = {
   getAssetUrl: (fileName: string) => string;
   onUploaded?: (result: {
     flyover_video: string;
+    duration_seconds?: number;
+    clip?: Record<string, unknown>;
     motion_scenes?: unknown[];
     studio?: unknown;
   }) => void;
@@ -55,10 +60,12 @@ export function GeoFlyoverUploadField({
       if (onBeforeUpload) {
         await onBeforeUpload();
       }
+      const probedDuration = await probeVideoFileDurationSec(file);
       const result = await uploadMotionFlyoverVideo(
         getProjectUrl,
         motionId,
-        file
+        file,
+        { durationSec: probedDuration }
       );
       if (!result.ok || !result.flyover_video) {
         throw new Error(result.error || "Upload falhou.");
@@ -66,6 +73,8 @@ export function GeoFlyoverUploadField({
       toast.success("Vídeo geo vinculado à cena Remotion.");
       onUploaded?.({
         flyover_video: result.flyover_video,
+        duration_seconds: result.duration_seconds ?? probedDuration,
+        clip: result.clip,
         motion_scenes: result.motion_scenes,
         studio: result.studio,
       });

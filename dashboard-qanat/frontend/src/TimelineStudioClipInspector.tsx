@@ -457,21 +457,38 @@ export function TimelineStudioClipInspector({
                       if (onPersistStudio) await onPersistStudio();
                     }}
                     onUploaded={(result) => {
-                      onUpdate({
-                        props: {
-                          ...clip.props,
-                          flyover_video: result.flyover_video,
-                          map_provider: "ai_t2v",
-                          geo_generation: "ai_prompt",
-                        },
-                      });
                       if (
                         result.studio &&
                         onSatelliteSynced &&
                         incomingStudioKeepsMotionClip(result.studio, clip.id)
                       ) {
                         onSatelliteSynced(result.studio);
+                        return;
                       }
+                      const serverClip = Array.isArray(
+                        (result.studio as { clips?: StudioClip[] })?.clips
+                      )
+                        ? (result.studio as { clips: StudioClip[] }).clips.find(
+                            (c) => String(c.id) === String(clip.id)
+                          )
+                        : null;
+                      const durationSec =
+                        Number(serverClip?.duration) > 0
+                          ? Number(serverClip?.duration)
+                          : Number(result.duration_seconds) > 0
+                            ? Number(result.duration_seconds)
+                            : clip.duration;
+                      onUpdate({
+                        duration: durationSec,
+                        props: {
+                          ...clip.props,
+                          ...(serverClip?.props || {}),
+                          flyover_video: result.flyover_video,
+                          pipMediaUrl: result.flyover_video,
+                          map_provider: "ai_t2v",
+                          geo_generation: "ai_prompt",
+                        },
+                      });
                     }}
                   />
                 </div>

@@ -125,8 +125,19 @@ export function mergeStudioRenderProps({
   }
 
   const resolvedDuration = Number(durationInFrames);
+  const durationSecHint = Number(
+    sceneValues.durationSeconds ??
+      studioProps.durationSeconds ??
+      inputProps.durationSeconds ??
+      0
+  );
   if (Number.isFinite(resolvedDuration) && resolvedDuration > 0) {
     out.durationInFrames = Math.round(resolvedDuration);
+    out.durationSeconds =
+      resolvedDuration / (Number(fps) > 0 ? Number(fps) : 30);
+  } else if (Number.isFinite(durationSecHint) && durationSecHint > 0) {
+    out.durationInFrames = Math.max(1, Math.round(durationSecHint * fps));
+    out.durationSeconds = durationSecHint;
   } else if (
     Number.isFinite(Number(out.durationInFrames)) &&
     Number(out.durationInFrames) > 0

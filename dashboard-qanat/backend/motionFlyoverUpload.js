@@ -21,18 +21,32 @@ import { buildGeoPipOverlayStudioProps } from "../shared/geoPipSceneText.js";
 import { remotionClipFingerprint } from "../shared/timelineStudioRemotionSuppress.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 
-export function probeFlyoverVideoDurationSec(absPath) {
-  try {
-    if (!absPath || !fs.existsSync(absPath)) return 0;
-    const output = execSync(
-      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${absPath}"`,
-      { encoding: "utf8" }
-    ).trim();
-    const dur = parseFloat(output);
-    return Number.isFinite(dur) && dur > 0 ? dur : 0;
-  } catch {
-    return 0;
+export function probeFlyoverVideoDurationSec(absPath, hintSec = 0) {
+  if (!absPath || !fs.existsSync(absPath)) {
+    return normalizeFlyoverDurationHint(hintSec);
   }
+
+  const probes = [
+    `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${absPath}"`,
+    `ffprobe -v error -select_streams v:0 -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "${absPath}"`,
+  ];
+
+  for (const cmd of probes) {
+    try {
+      const output = execSync(cmd, { encoding: "utf8" }).trim();
+      const dur = parseFloat(output);
+      if (Number.isFinite(dur) && dur > 0) return dur;
+    } catch {
+      /* try next probe */
+    }
+  }
+
+  return normalizeFlyoverDurationHint(hintSec);
+}
+
+function normalizeFlyoverDurationHint(hintSec = 0) {
+  const hint = Number(hintSec);
+  return Number.isFinite(hint) && hint > 0 ? hint : 0;
 }
 
 function applyGeoPipFlyoverBinding(
@@ -435,7 +449,12 @@ function resolveStudioForFlyoverUpload(projDir, motionId) {
   return { rawStudio, clip };
 }
 
-export function persistFlyoverToProject(projDir, motionId, relPath) {
+export function persistFlyoverToProject(
+  projDir,
+  motionId,
+  relPath,
+  { durationHintSec = 0 } = {}
+) {
   const storyboardPath = path.join(projDir, "storyboard.json");
 
   const reloadFlyoverState = () => {
@@ -475,7 +494,10 @@ export function persistFlyoverToProject(projDir, motionId, relPath) {
   }
 
   const flyoverAbs = path.join(projDir, relPath.replace(/\//g, path.sep));
-  const flyoverDurationSec = probeFlyoverVideoDurationSec(flyoverAbs);
+  const flyoverDurationSec = probeFlyoverVideoDurationSec(
+    flyoverAbs,
+    durationHintSec
+  );
 
   const motionScenes = patchMotionSceneFlyover(
     ensured,
@@ -529,7 +551,7 @@ export function persistFlyoverToProject(projDir, motionId, relPath) {
   studio = upsertMusicClipInStudio(studio, config, projDir);
   const savedStudio = saveTimelineStudio(projDir, studio);
 
-  return { motionScenes, savedStudio };
+  return { motionScenes, savedStudio, flyoverDurationSec };
 }
 
 export function registerMotionFlyoverUploadRoute(app, { getProjectDir }) {
@@ -581,17 +603,24 @@ export function registerMotionFlyoverUploadRoute(app, { getProjectDir }) {
 
     writeStream.on("finish", () => {
       try {
-        const { motionScenes, savedStudio } = persistFlyoverToProject(
-          projDir,
-          motionId,
-          dest.relPath
-        );
+        const durationHintSec = Number(req.query?.duration_sec) || 0;
+        const { motionScenes, savedStudio, flyoverDurationSec } =
+          persistFlyoverToProject(projDir, motionId, dest.relPath, {
+            durationHintSec,
+          });
+        const patchedClip = findMotionClipInStudio(savedStudio, motionId);
         succeed({
           ok: true,
           message: `Vídeo geo salvo: ${dest.fileName}`,
           motion_id: motionId,
           flyover_video: dest.relPath,
           asset: dest.fileName,
+          duration_seconds:
+            flyoverDurationSec ||
+            Number(patchedClip?.duration) ||
+            durationHintSec ||
+            0,
+          clip: patchedClip,
           motion_scenes: motionScenes,
           studio: savedStudio,
         });

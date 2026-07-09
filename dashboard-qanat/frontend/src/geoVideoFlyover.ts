@@ -46,20 +46,48 @@ export function geoSceneLabel(scene: GeoMotionScene): string {
   ).trim();
 }
 
+/** Duração real do arquivo antes do upload (fallback se ffprobe falhar no servidor). */
+export async function probeVideoFileDurationSec(file: File): Promise<number> {
+  if (typeof document === "undefined") return 0;
+  return new Promise((resolve) => {
+    const blobUrl = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    const finish = (value: number) => {
+      URL.revokeObjectURL(blobUrl);
+      resolve(value);
+    };
+    video.onloadedmetadata = () => {
+      const dur = Number(video.duration);
+      finish(Number.isFinite(dur) && dur > 0 ? dur : 0);
+    };
+    video.onerror = () => finish(0);
+    video.src = blobUrl;
+  });
+}
+
 export async function uploadMotionFlyoverVideo(
   getProjectUrl: (path: string) => string,
   motionId: string,
-  file: File
+  file: File,
+  { durationSec = 0 }: { durationSec?: number } = {}
 ): Promise<{
   ok: boolean;
   flyover_video?: string;
+  duration_seconds?: number;
+  clip?: Record<string, unknown>;
   motion_scenes?: GeoMotionScene[];
   studio?: unknown;
   error?: string;
 }> {
-  const url = getProjectUrl(
-    `/api/upload-motion-flyover?motion_id=${encodeURIComponent(motionId)}&filename=${encodeURIComponent(file.name)}`
-  );
+  const params = new URLSearchParams({
+    motion_id: motionId,
+    filename: file.name,
+  });
+  if (Number(durationSec) > 0) {
+    params.set("duration_sec", String(durationSec));
+  }
+  const url = getProjectUrl(`/api/upload-motion-flyover?${params.toString()}`);
   let res: Response;
   try {
     res = await fetch(url, {
@@ -79,6 +107,8 @@ export async function uploadMotionFlyoverVideo(
   const data = (await res.json().catch(() => ({}))) as {
     error?: string;
     flyover_video?: string;
+    duration_seconds?: number;
+    clip?: Record<string, unknown>;
     motion_scenes?: GeoMotionScene[];
     studio?: unknown;
   };
@@ -88,6 +118,8 @@ export async function uploadMotionFlyoverVideo(
   return {
     ok: true,
     flyover_video: data.flyover_video,
+    duration_seconds: data.duration_seconds,
+    clip: data.clip,
     motion_scenes: data.motion_scenes,
     studio: data.studio,
   };

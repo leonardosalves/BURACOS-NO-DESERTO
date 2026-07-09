@@ -4,6 +4,7 @@ import {
   bindGeoPipTemplateStudioProps,
   isPictureInPictureStudioTemplate,
   mapGeoPipFlyoverToTemplateRenderProps,
+  resolveGeoPipClipDurationSec,
   resolvePipMediaUrl,
 } from "./geoPipTemplateProps.js";
 
@@ -53,6 +54,18 @@ describe("geoPipTemplateProps", () => {
     assert.equal(mapped.pipTitle, "Roma");
     assert.match(String(mapped.location), /Roma|engenharia/i);
     assert.equal(mapped.flyover_video, "ASSETS/satellite/map.mp4");
+  });
+
+  it("resolveGeoPipClipDurationSec prioriza durationSeconds do upload", () => {
+    assert.equal(
+      resolveGeoPipClipDurationSec({
+        duration: 4,
+        props: {
+          studio_props: { durationSeconds: 12.8 },
+        },
+      }),
+      12.8
+    );
   });
 
   it("resolvePipMediaUrl prioriza pipMediaUrl salvo", () => {

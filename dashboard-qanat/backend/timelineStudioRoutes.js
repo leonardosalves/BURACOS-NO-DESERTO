@@ -484,6 +484,9 @@ export function registerTimelineStudioRoutes(
               : clip.duration,
         };
       }
+      const clipIdx = clips.findIndex((c) => String(c?.id || "") === clip.id);
+      if (clipIdx >= 0) clips[clipIdx] = clip;
+      studio = { ...studio, clips };
       if (isShort) {
         storyboard.motion_scenes = [motionScene];
       } else {
