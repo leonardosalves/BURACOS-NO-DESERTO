@@ -12,6 +12,7 @@ import {
   isGeoMotionTemplateId,
   isStudioTemplateClip,
 } from "../shared/timelineStudioLegacyStrip.js";
+import { attachStudioOverlayMeta } from "../shared/studioOverlayLayers.js";
 
 function clipsOnTrack(clips, trackId) {
   return (Array.isArray(clips) ? clips : [])
@@ -147,14 +148,17 @@ function studioClipToOverlay(clip, assetCtx, index = 0) {
     clip.trackId === MOTION_TRACK_ID
       ? copyMotionPropsAssets(rawProps, assetCtx, `mo${index + 1}_`)
       : rawProps;
-  return {
+  return attachStudioOverlayMeta({
     id: String(clip.id || `studio-overlay-${type}`),
     type,
     start: Number(clip.start) || 0,
     duration: Math.max(0.5, Number(clip.duration) || 4),
     props,
     timing_manual: true,
-  };
+    studio_z_index: rawProps.studio_z_index,
+    studio_role: rawProps.studio_role,
+    studio_opacity: rawProps.studio_opacity,
+  });
 }
 
 export function buildScenesFromStudio(

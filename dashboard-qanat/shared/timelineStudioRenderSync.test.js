@@ -125,6 +125,41 @@ describe("timelineStudioRenderSync", () => {
     assert.equal(overlays[0].props.location, "Palmanova");
   });
 
+  it("buildOverlaysFromStudio propaga studio_z_index para background", () => {
+    const studio = {
+      version: 1,
+      clips: [
+        {
+          id: "ms-bg-2",
+          trackId: "motion",
+          start: 12,
+          duration: 8,
+          templateId: "counter",
+          props: {
+            studio_source_code:
+              '"use client";\nimport { useCurrentFrame } from "remotion";\nexport default function T(){useCurrentFrame();return null;}',
+            studio_role: "background_frame",
+            studio_z_index: "under",
+            studio_opacity: 0.9,
+          },
+        },
+      ],
+    };
+
+    const overlays = buildOverlaysFromStudio(studio, {
+      projectDir: "/tmp",
+      publicProjectDir: "/tmp/public",
+      projectSlug: "demo",
+      copyRemotionAsset: () => null,
+      findProjectFile: (_dir, rel) => rel,
+    });
+
+    assert.equal(overlays.length, 1);
+    assert.equal(overlays[0].studio_z_index, "under");
+    assert.equal(overlays[0].studio_role, "background_frame");
+    assert.equal(overlays[0].studio_opacity, 0.9);
+  });
+
   it("buildOverlaysFromStudio propaga studio_source_code da trilha motion", () => {
     const studio = {
       version: 1,

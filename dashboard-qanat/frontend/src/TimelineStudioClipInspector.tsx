@@ -238,6 +238,12 @@ export function TimelineStudioClipInspector({
                   {clip.props?.boosted ? " · boost IA" : ""}
                   {userLocked ? " · edição manual protegida" : ""}
                   {clip.props?.timing_manual ? " · timing manual" : ""}
+                  {clip.props?.studio_z_index === "under"
+                    ? " · fundo (atrás do B-roll)"
+                    : ""}
+                  {clip.props?.studio_opacity !== undefined
+                    ? ` · opacidade ${Math.round(Number(clip.props.studio_opacity) * 100)}%`
+                    : ""}
                 </p>
               ) : null}
               {Array.isArray(clip.props?.template_studio_data_slots) ? (
