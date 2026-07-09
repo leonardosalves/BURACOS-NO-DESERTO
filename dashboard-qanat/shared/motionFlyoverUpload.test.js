@@ -9,6 +9,7 @@ import {
   motionSceneMatches,
   patchMotionSceneFlyover,
   patchStudioClipFlyover,
+  persistFlyoverToProject,
   readMotionClipSidecar,
   resolveFlyoverDest,
   writeMotionClipSidecar,
@@ -152,6 +153,38 @@ describe("motionFlyoverUpload", () => {
       next[0].props.flyover_video,
       "ASSETS/satellite/manual-geo-flyover.mp4"
     );
+  });
+
+  it("persistFlyoverToProject mantém clip motion-studio na timeline", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-persist-"));
+    const clip = buildStudioCatalogMotionClip({
+      templateId: "location-intro",
+      playhead: 0,
+      props: {
+        studio_source_code: TSX,
+        presentation: "pip",
+        geo_pip_composite: true,
+        aspect_ratio: "9:16",
+      },
+      label: "PIP mapa",
+    });
+    fs.writeFileSync(
+      path.join(tmp, "config_qanat.json"),
+      JSON.stringify({ aspect_ratio: "9:16" }),
+      "utf8"
+    );
+    ensureMotionClipForProject(tmp, clip);
+    const flyoverRel = `ASSETS/satellite/${clip.id}-geo-flyover.mp4`;
+    const satelliteDir = path.join(tmp, "ASSETS", "satellite");
+    fs.mkdirSync(satelliteDir, { recursive: true });
+    fs.writeFileSync(path.join(tmp, flyoverRel), "fake-mp4");
+
+    const { savedStudio } = persistFlyoverToProject(tmp, clip.id, flyoverRel);
+    const motionClips = savedStudio.clips.filter((c) => c.trackId === "motion");
+    assert.equal(motionClips.length, 1);
+    assert.equal(motionClips[0].id, clip.id);
+    assert.equal(motionClips[0].props.flyover_video, flyoverRel);
+    assert.equal(motionClips[0].props.presentation, "pip");
   });
 
   it("patchMotionSceneFlyover atualiza flyover_video", () => {

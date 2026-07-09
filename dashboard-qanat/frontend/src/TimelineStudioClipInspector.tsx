@@ -23,6 +23,20 @@ import {
   studioSlotKind,
 } from "./studioClipInspectorSlots";
 
+function incomingStudioKeepsMotionClip(
+  studio: unknown,
+  clipId: string
+): boolean {
+  const clips = Array.isArray((studio as { clips?: unknown[] })?.clips)
+    ? ((studio as { clips: StudioClip[] }).clips ?? [])
+    : [];
+  return clips.some(
+    (c) =>
+      String(c.id || "") === clipId &&
+      (c.trackId === "motion" || c.motionScene === true)
+  );
+}
+
 type Props = {
   clip: StudioClip;
   track: StudioTrack | undefined;
@@ -451,7 +465,11 @@ export function TimelineStudioClipInspector({
                           geo_generation: "ai_prompt",
                         },
                       });
-                      if (result.studio && onSatelliteSynced) {
+                      if (
+                        result.studio &&
+                        onSatelliteSynced &&
+                        incomingStudioKeepsMotionClip(result.studio, clip.id)
+                      ) {
                         onSatelliteSynced(result.studio);
                       }
                     }}

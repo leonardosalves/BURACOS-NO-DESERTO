@@ -4,7 +4,10 @@
 
 import fs from "fs";
 import path from "path";
-import { syncMotionScenesToStudio } from "./motionScenePlanner.js";
+import {
+  ensureMotionTrack,
+  motionScenesToMotionClips,
+} from "./motionScenePlanner.js";
 import {
   mergeMissingBrollFromConfig,
   saveTimelineStudio,
@@ -12,6 +15,7 @@ import {
 } from "./timelineStudioMigration.js";
 import { studioMotionClipToMotionScene } from "./timelineStudioNichePacks.js";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
+import { remotionClipFingerprint } from "../shared/timelineStudioRemotionSuppress.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".m4v", ".mkv"]);
@@ -56,21 +60,59 @@ export function readMotionClipSidecar(projDir, clipId = "") {
 function reviveMotionClipSuppressions(studio = {}, clipId = "") {
   const needle = String(clipId || "").trim();
   if (!needle) return studio;
+  const clip = findMotionClipInStudio(studio, needle);
+  const clipFp = clip ? remotionClipFingerprint(clip) : "";
   const ids = Array.isArray(studio.suppressedMotionSceneIds)
     ? studio.suppressedMotionSceneIds
         .map((id) => String(id || "").trim())
         .filter((id) => id && id !== needle)
     : [];
   const fps = Array.isArray(studio.suppressedRemotionFingerprints)
-    ? studio.suppressedRemotionFingerprints.filter(
-        (fp) => !String(fp || "").includes(needle)
-      )
+    ? studio.suppressedRemotionFingerprints.filter((fp) => {
+        const token = String(fp || "");
+        if (!token) return false;
+        if (token.includes(needle)) return false;
+        if (clipFp && token === clipFp) return false;
+        return true;
+      })
     : [];
   return {
     ...studio,
     suppressedMotionSceneIds: ids,
     suppressedRemotionFingerprints: fps,
   };
+}
+
+/** Garante que o clip manual da timeline não se perde após patch de flyover. */
+function ensureMotionClipInStudio(studio, motionId, motionScenes, projDir) {
+  const needle = String(motionId || "").trim();
+  if (!needle || findMotionClipInStudio(studio, needle)) return studio;
+
+  const sidecar = readMotionClipSidecar(projDir, needle);
+  if (sidecar) {
+    const clips = Array.isArray(studio.clips) ? [...studio.clips] : [];
+    clips.push({
+      ...sidecar,
+      trackId: sidecar.trackId || MOTION_TRACK_ID,
+      motionScene: sidecar.motionScene !== false,
+      motionScenePrimary: sidecar.motionScenePrimary !== false,
+    });
+    return { ...studio, clips };
+  }
+
+  const scene = (Array.isArray(motionScenes) ? motionScenes : []).find((ms) =>
+    motionSceneMatches(ms, needle)
+  );
+  if (scene) {
+    const built = motionScenesToMotionClips([scene]);
+    if (built.length) {
+      const clips = Array.isArray(studio.clips) ? [...studio.clips] : [];
+      clips.push(built[0]);
+      return { ...studio, clips };
+    }
+  }
+
+  return studio;
 }
 
 function readJsonSafe(filePath, fallback = {}) {
@@ -311,7 +353,7 @@ function resolveStudioForFlyoverUpload(projDir, motionId) {
   return { rawStudio, clip };
 }
 
-function persistFlyoverToProject(projDir, motionId, relPath) {
+export function persistFlyoverToProject(projDir, motionId, relPath) {
   const storyboardPath = path.join(projDir, "storyboard.json");
 
   const reloadFlyoverState = () => {
@@ -383,7 +425,8 @@ function persistFlyoverToProject(projDir, motionId, relPath) {
     patchStudioClipFlyover(rawStudio, motionId, relPath),
     motionId
   );
-  studio = syncMotionScenesToStudio(studio, motionScenes);
+  studio = ensureMotionClipInStudio(studio, motionId, motionScenes, projDir);
+  studio = ensureMotionTrack(studio);
   studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
   studio = upsertMusicClipInStudio(studio, config, projDir);
   const savedStudio = saveTimelineStudio(projDir, studio);
