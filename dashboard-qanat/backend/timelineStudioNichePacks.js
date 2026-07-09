@@ -3,6 +3,7 @@
  */
 
 import { OVERLAY_MIN_DURATION } from "./overlayTiming.js";
+import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
 
 export const STUDIO_TEMPLATE_DEFS = {
   "pictogram-chart": {
@@ -168,6 +169,40 @@ export function listNichePackCatalog() {
       .map((id) => STUDIO_TEMPLATE_DEFS[id])
       .filter(Boolean),
   }));
+}
+
+export function buildStudioCatalogMotionClip({
+  templateId,
+  playhead = 0,
+  props = {},
+  duration,
+  label,
+}) {
+  const tpl = String(templateId || "").trim();
+  const studioSource = String(props?.studio_source_code || "").trim();
+  if (!tpl || !studioSource) return null;
+
+  const mergedProps = {
+    ...props,
+    studio_source_code: studioSource,
+    motion_scene: true,
+    media_mode: "remotion",
+    overlayType: tpl,
+  };
+  const dur = Number(duration) > 0 ? Number(duration) : 4;
+
+  return {
+    id: `motion-studio-${Date.now()}`,
+    trackId: MOTION_TRACK_ID,
+    start: Math.max(0, Number(playhead) || 0),
+    duration: dur,
+    label: label || String(props?.template_studio_name || tpl),
+    templateId: tpl,
+    props: mergedProps,
+    color: "#6A1B9A",
+    motionScene: true,
+    motionScenePrimary: true,
+  };
 }
 
 export function buildStudioOverlayClip({

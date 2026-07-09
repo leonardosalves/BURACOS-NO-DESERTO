@@ -19,10 +19,62 @@ const CATALOG_PATH = path.join(
   "remotion-template-catalog.json"
 );
 
+function pickCanonicalNicheLabel(current = "", candidate = "") {
+  const cur = String(current || "").trim();
+  const next = String(candidate || "").trim();
+  if (!cur) return next;
+  if (!next) return cur;
+  const curUpper = cur === cur.toUpperCase();
+  const nextUpper = next === next.toUpperCase();
+  if (curUpper && !nextUpper) return next;
+  if (nextUpper && !curUpper) return cur;
+  return cur.length <= next.length ? cur : next;
+}
+
+function canonicalizeCatalogNiches(catalog = {}) {
+  if (!catalog.niches || typeof catalog.niches !== "object") {
+    catalog.niches = {};
+    return catalog;
+  }
+  const buckets = new Map();
+  for (const [key, entry] of Object.entries(catalog.niches)) {
+    const lower = String(key || "")
+      .trim()
+      .toLowerCase();
+    if (!lower) continue;
+    const label = normalizeNicheLabel(key) || key;
+    const bucket = buckets.get(lower) || {
+      niche: label,
+      templates: [],
+      updated_at: entry?.updated_at || null,
+    };
+    bucket.niche = pickCanonicalNicheLabel(bucket.niche, label);
+    const templates = Array.isArray(entry?.templates) ? entry.templates : [];
+    const seen = new Set(bucket.templates.map((tpl) => String(tpl?.id || "")));
+    for (const tpl of templates) {
+      const id = String(tpl?.id || "");
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      bucket.templates.push(tpl);
+    }
+    if (entry?.updated_at) bucket.updated_at = entry.updated_at;
+    buckets.set(lower, bucket);
+  }
+  catalog.niches = Object.fromEntries(
+    [...buckets.values()].map((bucket) => [
+      bucket.niche,
+      { templates: bucket.templates, updated_at: bucket.updated_at },
+    ])
+  );
+  return catalog;
+}
+
 function readCatalogFile() {
   try {
     if (fs.existsSync(CATALOG_PATH)) {
-      return JSON.parse(fs.readFileSync(CATALOG_PATH, "utf8")) || {};
+      return canonicalizeCatalogNiches(
+        JSON.parse(fs.readFileSync(CATALOG_PATH, "utf8")) || {}
+      );
     }
   } catch {
     /* ignore */
@@ -33,6 +85,7 @@ function readCatalogFile() {
 function writeCatalogFile(data) {
   const dir = path.dirname(CATALOG_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  canonicalizeCatalogNiches(data);
   fs.writeFileSync(CATALOG_PATH, JSON.stringify(data, null, 2), "utf8");
 }
 
@@ -79,7 +132,7 @@ function normalizeSourceCode(raw = {}) {
   return { short, long };
 }
 
-function hasRunnableStudioSource(sourceCode = null) {
+export function hasRunnableStudioSource(sourceCode = null) {
   const code = String(sourceCode?.short || sourceCode?.long || "").trim();
   if (!code) return false;
   return (
@@ -299,6 +352,35 @@ export function purgeLegacySeedTemplatesFromCatalogFile() {
   };
 }
 
+/** Remove do JSON entradas sem TSX Remotion executavel (sync antigo so com metadados). */
+export function pruneCatalogEntriesWithoutSource() {
+  const catalog = readCatalogFile();
+  if (!catalog.niches) return { removed: 0, niches: [] };
+
+  let removed = 0;
+  const niches = [];
+  for (const nicheKey of Object.keys(catalog.niches)) {
+    const entry = catalog.niches[nicheKey];
+    if (!Array.isArray(entry?.templates)) continue;
+    const before = entry.templates.length;
+    entry.templates = entry.templates.filter((raw) => {
+      if (isLegacySeedTemplateId(raw?.id)) return false;
+      return hasRunnableStudioSource(normalizeSourceCode(raw));
+    });
+    const delta = before - entry.templates.length;
+    if (delta > 0) {
+      removed += delta;
+      niches.push({ niche: nicheKey, removed: delta });
+      entry.updated_at = new Date().toISOString();
+    }
+  }
+  if (removed > 0) {
+    catalog.updated_at = new Date().toISOString();
+    writeCatalogFile(catalog);
+  }
+  return { removed, niches };
+}
+
 export function loadRemotionTemplateCatalog() {
   return readCatalogFile();
 }
@@ -336,6 +418,14 @@ export function listCatalogNiches() {
   });
 }
 
+function resolveCatalogNicheKey(catalog = {}, niche = "") {
+  const normalized = normalizeNicheLabel(niche) || "Geral";
+  const niches = catalog.niches || {};
+  const lower = normalized.toLowerCase();
+  const existing = Object.keys(niches).find((k) => k.toLowerCase() === lower);
+  return existing || normalized;
+}
+
 export function createCatalogNiche(niche = "") {
   const key = normalizeNicheLabel(niche);
   if (!key) {
@@ -346,7 +436,8 @@ export function createCatalogNiche(niche = "") {
   if (!catalog.niches) catalog.niches = {};
   purgeLegacyTemplatesFromCatalog(catalog);
 
-  const created = !catalog.niches[key];
+  const existingKey = resolveCatalogNicheKey(catalog, key);
+  const created = !catalog.niches[existingKey];
   if (created) {
     catalog.niches[key] = {
       templates: [],
@@ -368,23 +459,26 @@ export function createCatalogNiche(niche = "") {
 }
 
 export function getCatalogForNiche(niche = "") {
-  const key = String(niche || "").trim() || "Geral";
   const catalog = readCatalogFile();
+  const key = resolveCatalogNicheKey(catalog, niche);
   const entry = catalog.niches?.[key] || { templates: [], updated_at: null };
   const templates = (Array.isArray(entry.templates) ? entry.templates : [])
     .map(normalizeCatalogTemplate)
     .filter((tpl) => tpl?.id);
   return {
-    niche: key,
+    niche: normalizeNicheLabel(niche) || key,
     templates,
     approved: templates.filter((tpl) => tpl.status === "approved"),
     orchestration_ready: templates.filter((tpl) => tpl.orchestration_ready),
+    studio_ready: templates.filter(
+      (tpl) => tpl.orchestration_ready && tpl.has_source_code
+    ),
     updated_at: entry.updated_at || null,
   };
 }
 
 export function syncCatalogForNiche(niche = "", templates = []) {
-  const key = String(niche || "").trim() || "Geral";
+  const key = normalizeNicheLabel(niche) || "Geral";
   const catalog = readCatalogFile();
   if (!catalog.niches) catalog.niches = {};
 
@@ -393,6 +487,11 @@ export function syncCatalogForNiche(niche = "", templates = []) {
     .filter((tpl) => tpl?.id);
 
   purgeLegacyTemplatesFromCatalog(catalog);
+
+  const legacyKey = resolveCatalogNicheKey(catalog, key);
+  if (legacyKey !== key && catalog.niches[legacyKey]) {
+    delete catalog.niches[legacyKey];
+  }
 
   catalog.niches[key] = {
     templates: normalized,

@@ -10,13 +10,22 @@ type Message = { role: "user" | "assistant"; text: string };
 type Props = {
   playhead: number;
   nichePack: string;
+  catalogNiche?: string;
+  aspectRatio?: string;
   getProjectUrl: (path: string) => string;
   onActions: (actions: AskLumieraAction[]) => void;
-  onInsertTemplate: (templateId: string) => void;
+  onInsertTemplate: (
+    templateId: string,
+    options?: { label?: string; props?: Record<string, unknown> }
+  ) => void;
   onSelectPack: (packId: string) => void;
 };
 
 const SUGGESTIONS = [
+  'Muda essa legenda para "Como tudo comecou"',
+  "Deixa esse clip com 4s",
+  "Move esse clip para 0:20",
+  "Fecha os gaps",
   "Adiciona um pictograma de população aqui",
   "Busca stock de floresta no Pexels",
   "Aplica pacote Jornalismo de Dados",
@@ -26,6 +35,8 @@ const SUGGESTIONS = [
 export function AskLumieraPanel({
   playhead,
   nichePack,
+  catalogNiche,
+  aspectRatio = "16:9",
   getProjectUrl,
   onActions,
   onInsertTemplate,
@@ -151,6 +162,9 @@ export function AskLumieraPanel({
         activePackId={nichePack}
         packs={packs}
         playhead={playhead}
+        catalogNiche={catalogNiche}
+        aspectRatio={aspectRatio}
+        getProjectUrl={getProjectUrl}
         onInsertTemplate={onInsertTemplate}
         onSelectPack={onSelectPack}
       />

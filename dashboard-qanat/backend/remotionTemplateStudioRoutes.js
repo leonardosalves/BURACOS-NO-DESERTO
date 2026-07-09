@@ -3,6 +3,7 @@ import {
   createCatalogNiche,
   getCatalogForNiche,
   listCatalogNiches,
+  pruneCatalogEntriesWithoutSource,
   purgeLegacySeedTemplatesFromCatalogFile,
   syncCatalogForNiche,
 } from "./remotionTemplateCatalogService.js";
@@ -94,6 +95,7 @@ export function registerRemotionTemplateStudioRoutes(
   app.post("/api/ai/assistir-ia", (req, res) => handleAdapt(req, res, deps));
 
   purgeLegacySeedTemplatesFromCatalogFile();
+  pruneCatalogEntriesWithoutSource();
 
   app.get("/api/ai/template-studio/catalog/niches", (_req, res) => {
     res.setHeader("Content-Type", "application/json; charset=utf-8");
