@@ -35,10 +35,16 @@ import {
 } from "../shared/motionResearchProps.js";
 import {
   attachStudioTemplateToScene,
+  getCatalogForNiche,
   pickStudioTemplateByCategory,
   pickStudioTemplateForTrigger,
   resolveMotionTemplateIdsFromPack,
+  resolveStudioSourceCode,
 } from "./remotionTemplateCatalogService.js";
+import {
+  attachGeoPipStudioTemplate,
+  isGeoPipShortScene,
+} from "../shared/geoPipStudioTemplate.js";
 import { injectStudioRoleScenes } from "../shared/studioTemplateRoleInjector.js";
 import {
   classifyGeoNarrationSegment,
@@ -48,6 +54,18 @@ import {
 
 const YEAR_RE = /\b(1\d{3}|20\d{2})\b/;
 const YEAR_GLOBAL_RE = /\b(1\d{3}|20\d{2})\b/g;
+
+function applyGeoPipStudioPack(scene = {}, niche = "") {
+  if (!isGeoPipShortScene(scene)) return scene;
+  const tpl = String(scene.template_id || "").trim();
+  if (tpl !== "location-intro" && tpl !== "geo-map") return scene;
+  const catalog = niche ? getCatalogForNiche(niche) : { approved: [] };
+  return attachGeoPipStudioTemplate(scene, {
+    niche,
+    catalog,
+    resolveSourceCode: resolveStudioSourceCode,
+  });
+}
 const STAT_RE =
   /(\d{1,3}(?:[.,]\d+)?)\s*(%|por\s*cento|bilh[oõ]es?|milh[oõ]es?|mil\b|anos?|km|m\b|volts?|reais|R\$)/i;
 const COMPARISON_RE =
@@ -690,6 +708,7 @@ export function boostStudioMotionScenesForLongForm({
       config,
     });
     scene = applyStudioRoleToScene(scene, studioPick);
+    scene = applyGeoPipStudioPack(scene, studioNiche);
     previousStudioIds.push(studioPick.id);
     if (studioPick.category) previousStudioCategories.push(studioPick.category);
     previousTemplates.push(templateId);
@@ -950,10 +969,13 @@ export function planMotionScenesFromStoryboard(
         config,
       });
       scene = applyStudioRoleToScene(scene, studioPick);
+      scene = applyGeoPipStudioPack(scene, studioNiche);
       previousStudioIds.push(studioPick.id);
       if (studioPick.category) {
         previousStudioCategories.push(studioPick.category);
       }
+    } else {
+      scene = applyGeoPipStudioPack(scene, studioNiche);
     }
 
     scenes.push(scene);

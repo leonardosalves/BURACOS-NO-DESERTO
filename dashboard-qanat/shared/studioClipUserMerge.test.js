@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   clipHasStudioUserLock,
+  mergeGeoMotionAssets,
   mergeMotionClipPreservingUserEdits,
   markStudioClipUserEdit,
   studioSlotKind,
@@ -63,6 +64,41 @@ describe("studioClipUserMerge", () => {
     assert.equal(merged.start, 18.5);
     assert.equal(merged.duration, 6.2);
     assert.equal(merged.props.timing_manual, true);
+  });
+
+  it("mergeGeoMotionAssets preserva flyover e impede troca para counter", () => {
+    const existing = {
+      id: "ms-mapa",
+      templateId: "location-intro",
+      label: "Brasil · mapa",
+      props: {
+        flyover_video: "ASSETS/satellite/brasil.mp4",
+        ai_video_prompt: "Zoom Terra para Brasil...",
+        location: "Brasil",
+        presentation: "pip",
+        geo_pip_composite: true,
+        studio_source_code:
+          "export default function T(){useCurrentFrame();return null;}",
+        template_studio_subcategory: "Picture in Picture",
+      },
+    };
+    const planned = {
+      id: "ms-mapa",
+      templateId: "counter",
+      label: "Engenharia Progress Bar Draft",
+      props: {
+        template_studio_name: "Engenharia Progress Bar Draft",
+        value: 2017,
+      },
+    };
+    const merged = mergeGeoMotionAssets(existing, planned);
+    assert.equal(merged.templateId, "location-intro");
+    assert.equal(merged.props.flyover_video, "ASSETS/satellite/brasil.mp4");
+    assert.equal(merged.props.presentation, "pip");
+    assert.equal(
+      merged.props.template_studio_subcategory,
+      "Picture in Picture"
+    );
   });
 
   it("markStudioClipUserEdit registra slot bloqueado", () => {

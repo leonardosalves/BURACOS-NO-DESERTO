@@ -179,6 +179,21 @@ function scoreStudioTemplateForTrigger(
     reasons.push(`subcategoria/nome encaixa no trigger ${trigger}`);
   }
 
+  const aspect = String(context.aspectRatio || "").trim();
+  if (
+    (trigger === "location" || trigger === "region_pin") &&
+    aspect === "9:16" &&
+    motionTemplateId === "location-intro"
+  ) {
+    if (/picture\s*in\s*picture|image[\s-]*media|\bpip\b/i.test(haystack)) {
+      score += 40;
+      reasons.push("template PIP 9:16 para mapa geo");
+    } else if (/progress|bar chart|counter|dashboard|kpi/i.test(haystack)) {
+      score -= 45;
+      reasons.push("penalizado: nao e PIP geo em 9:16");
+    }
+  }
+
   if (tpl.has_source_code) {
     score += 18;
     reasons.push("possui sourceCode para render dinamico");
@@ -375,6 +390,7 @@ export function pickStudioTemplateForTrigger({
         preferredStudioIds,
         previousStudioIds,
         previousStudioCategories,
+        aspectRatio,
       });
       const coverage = scoreStudioTemplateCoverage(tpl, {
         scene,
