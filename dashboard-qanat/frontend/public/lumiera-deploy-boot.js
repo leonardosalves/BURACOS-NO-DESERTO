@@ -1,7 +1,8 @@
 (function () {
   var RELOAD_KEY = "lumiera.stale-chunk-reload";
-  var MIGRATION_KEY = "lumiera.cache-migration-v6";
+  var MIGRATION_KEY = "lumiera.cache-migration-v7";
   var MIGRATE_PARAM = "_lumiera_migrate";
+  var IS_DEV = /\/src\/main\.tsx/.test(document.documentElement.innerHTML);
 
   function clearDeployCaches() {
     var ops = [];
@@ -31,6 +32,7 @@
   }
 
   function hardReload() {
+    sessionStorage.removeItem(RELOAD_KEY);
     var url = new URL(window.location.href);
     url.searchParams.set("_lumiera_reload", String(Date.now()));
     window.location.replace(url.toString());
@@ -43,9 +45,53 @@
   }
 
   function recoverFromStaleChunk() {
-    if (sessionStorage.getItem(RELOAD_KEY)) return;
+    sessionStorage.removeItem(RELOAD_KEY);
     sessionStorage.setItem(RELOAD_KEY, "1");
     clearDeployCaches().finally(hardReload);
+  }
+
+  function extractModuleEntry(html) {
+    var meta = html.match(/<meta name="lumiera-entry" content="([^"]+)"/i);
+    if (meta) return meta[1];
+    var match = html.match(
+      /<script[^>]*type="module"[^>]*src="([^"]+)"[^>]*><\/script>/i
+    );
+    return match ? match[1] : null;
+  }
+
+  function removeStaticProdEntry() {
+    document
+      .querySelectorAll('script[type="module"][src*="/assets/index-"]')
+      .forEach(function (node) {
+        node.parentNode.removeChild(node);
+      });
+  }
+
+  function loadDashboardEntry() {
+    removeStaticProdEntry();
+    return fetch("/index.html", { cache: "no-store" })
+      .then(function (res) {
+        return res.text();
+      })
+      .then(function (html) {
+        var src = extractModuleEntry(html);
+        if (!src) {
+          throw new Error("Lumiera entry ausente em index.html");
+        }
+        var url =
+          src +
+          (src.indexOf("?") >= 0 ? "&" : "?") +
+          "_lumiera_entry=" +
+          Date.now();
+        return import(url);
+      });
+  }
+
+  function startDashboard() {
+    if (IS_DEV) return;
+    loadDashboardEntry().catch(function () {
+      recoverFromStaleChunk();
+    });
   }
 
   var params = new URLSearchParams(window.location.search);
@@ -53,7 +99,7 @@
   if (!localStorage.getItem(MIGRATION_KEY) && !params.has(MIGRATE_PARAM)) {
     localStorage.setItem(MIGRATION_KEY, "1");
     var migrateUrl = new URL(window.location.href);
-    migrateUrl.searchParams.set(MIGRATE_PARAM, "6");
+    migrateUrl.searchParams.set(MIGRATE_PARAM, "7");
     migrateUrl.searchParams.set("_t", String(Date.now()));
     window.location.replace(migrateUrl.toString());
     return;
@@ -111,4 +157,6 @@
   window.addEventListener("load", function () {
     sessionStorage.removeItem(RELOAD_KEY);
   });
+
+  startDashboard();
 })();
