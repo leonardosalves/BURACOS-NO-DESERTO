@@ -143,8 +143,6 @@ function Test-ActiveLumieraRender {
             if ($job.childPid) {
                 $proc = Get-Process -Id ([int]$job.childPid) -ErrorAction SilentlyContinue
                 if ($proc) { return $true }
-            } else {
-                return $true
             }
         } catch { }
     }
@@ -469,13 +467,12 @@ function Ensure-LumieraPm2Backend {
             return $false
         }
         if (Test-ActiveLumieraRender) {
-            Write-LumieraLog "PM2 reload adiado: render ativo" "WARN"
-            return $true
+            Write-LumieraLog "PM2 reload com render ativo - reiniciando mesmo assim (codigo)" "WARN"
         }
         # restart (nao reload) — no Windows reload ESM pode manter rotas/modulos antigos
         $orphanPid = Get-BackendListenerPid
         if ($orphanPid) {
-            Stop-LumieraBackendListener
+            Stop-LumieraBackendOnPort
         }
         Invoke-LumieraPm2 @("restart", "lumiera-backend", "--update-env") | Out-Null
         if ($LASTEXITCODE -ne 0) {

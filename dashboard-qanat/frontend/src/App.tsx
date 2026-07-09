@@ -7685,7 +7685,7 @@ export default function App() {
             }
           : (ideasData?.ideas || [])[selectedIdeaIndex],
       project: safeProjectName,
-      useNotebooklm,
+      useNotebooklm: useNotebooklm !== false,
       phase,
       ...fullExtras,
     };
