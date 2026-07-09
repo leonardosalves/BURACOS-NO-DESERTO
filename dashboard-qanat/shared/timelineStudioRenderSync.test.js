@@ -125,6 +125,39 @@ describe("timelineStudioRenderSync", () => {
     assert.equal(overlays[0].props.location, "Palmanova");
   });
 
+  it("buildOverlaysFromStudio propaga studio_source_code da trilha motion", () => {
+    const studio = {
+      version: 1,
+      clips: [
+        {
+          id: "ms-bar",
+          trackId: "motion",
+          start: 12,
+          duration: 4,
+          templateId: "bar-chart",
+          props: {
+            title: "COMPARACAO",
+            template_studio_id: "studio-bar-1",
+            studio_source_code:
+              'export const exampleProps = { title: "X" };\nexport default function T() { useCurrentFrame(); return null; }',
+          },
+        },
+      ],
+    };
+
+    const overlays = buildOverlaysFromStudio(studio, {
+      projectDir: "/tmp",
+      publicProjectDir: "/tmp/public",
+      projectSlug: "demo",
+      copyRemotionAsset: () => null,
+      findProjectFile: (_dir, rel) => rel,
+    });
+
+    assert.equal(overlays.length, 1);
+    assert.equal(overlays[0].props.template_studio_id, "studio-bar-1");
+    assert.ok(overlays[0].props.studio_source_code);
+  });
+
   it("mergeMissingBrollFromConfig restaura assets ausentes sem duplicar", () => {
     const studio = {
       version: 1,

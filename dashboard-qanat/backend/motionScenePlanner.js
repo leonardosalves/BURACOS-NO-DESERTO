@@ -11,7 +11,8 @@ import {
   MOTION_TRACK_ID,
   REMOTION_TEMPLATE_LIMITS,
   defaultMotionTrack,
-  pickTemplateForTrigger,
+  operationalCatalogForTemplates,
+  pickTemplateDecisionForTrigger,
   resolveLayoutForTemplate,
   resolvePresentationForScene,
 } from "../shared/motionSceneCatalog.js";
@@ -28,9 +29,14 @@ import {
   enrichMotionScenesWithResearch,
   resolvePlaceWithResearch,
 } from "../shared/motionResearchProps.js";
-import { resolveMotionTemplateIdsFromPack } from "./remotionTemplateCatalogService.js";
+import {
+  attachStudioTemplateToScene,
+  pickStudioTemplateForTrigger,
+  resolveMotionTemplateIdsFromPack,
+} from "./remotionTemplateCatalogService.js";
 import {
   classifyGeoNarrationSegment,
+  explainGeoNarrationSegment,
   limitGeoMotionScenes,
 } from "../shared/geoSceneEligibility.js";
 
@@ -173,6 +179,80 @@ function resolvePreferredMotionTemplates(config = {}) {
   const pack = config.motion_template_pack;
   if (!pack?.enabled) return [];
   return resolveMotionTemplateIdsFromPack(pack, config.niche);
+}
+
+function buildTemplateReviewEntry({
+  vp = {},
+  narration = "",
+  classification = null,
+  decision = null,
+  scene = null,
+  geoReview = null,
+  skipped = false,
+  reason = "",
+}) {
+  const sceneRef = String(vp.scene || vp.scene_ref || scene?.scene_ref || "");
+  return {
+    scene_ref: sceneRef,
+    block: Number(vp.block || scene?.block) || 1,
+    template_id: scene?.template_id || decision?.template_id || null,
+    trigger: scene?.trigger || classification?.trigger || null,
+    score: Number.isFinite(Number(decision?.score))
+      ? Number(decision.score)
+      : null,
+    confidence: Number.isFinite(Number(classification?.confidence))
+      ? Number(classification.confidence)
+      : (scene?.confidence ?? null),
+    skipped: Boolean(skipped),
+    reason:
+      reason ||
+      decision?.reasons?.[0] ||
+      (skipped ? "sem template aplicavel" : "template selecionado"),
+    reasons: Array.isArray(decision?.reasons) ? decision.reasons : [],
+    warnings: Array.isArray(decision?.warnings) ? decision.warnings : [],
+    geo_review: geoReview,
+    narration_excerpt: String(narration || scene?.narration_text || "").slice(
+      0,
+      180
+    ),
+  };
+}
+
+function buildMotionPlanReview({
+  scenes = [],
+  reviewEntries = [],
+  skippedEntries = [],
+  nichePack = "",
+  preferredTemplates = [],
+  aspectRatio = "16:9",
+  beforeLimitCount = 0,
+  afterGeoLimitCount = 0,
+}) {
+  const usedTemplates = scenes.map((scene) => String(scene.template_id || ""));
+  const uniqueTemplates = [...new Set(usedTemplates)].filter(Boolean);
+  const repeatedTemplates = uniqueTemplates
+    .map((templateId) => ({
+      template_id: templateId,
+      count: usedTemplates.filter((id) => id === templateId).length,
+    }))
+    .filter((item) => item.count > 1);
+
+  return {
+    niche_pack: nichePack,
+    aspect_ratio: aspectRatio,
+    motion_count: scenes.length,
+    candidate_count: beforeLimitCount,
+    geo_limited_count: afterGeoLimitCount,
+    skipped_count: skippedEntries.length,
+    selected_templates: uniqueTemplates,
+    repeated_templates: repeatedTemplates,
+    preferred_templates: preferredTemplates,
+    operational_catalog: operationalCatalogForTemplates(
+      uniqueTemplates.length ? uniqueTemplates : preferredTemplates
+    ),
+    scenes: reviewEntries,
+    skipped: skippedEntries,
+  };
 }
 
 export function buildPropsForTemplate(
@@ -435,8 +515,21 @@ export function planMotionScenesFromStoryboard(
   ).trim();
   const researchContext = buildMotionResearchContext(storyboard, config);
   const preferredTemplates = resolvePreferredMotionTemplates(config);
+  const studioPackEnabled = config.motion_template_pack?.enabled !== false;
+  const studioNiche = String(
+    config.motion_template_pack?.niche || config.niche || ""
+  ).trim();
+  const preferredStudioIds = Array.isArray(
+    config.motion_template_pack?.template_ids
+  )
+    ? config.motion_template_pack.template_ids.map((id) => String(id).trim())
+    : [];
   const scenes = [];
+  const reviewEntries = [];
+  const skippedEntries = [];
   const usedTriggers = new Set();
+  const previousTemplates = [];
+  const previousStudioIds = [];
 
   for (const vp of visualPrompts) {
     const narration = String(
@@ -445,7 +538,26 @@ export function planMotionScenesFromStoryboard(
     if (!narration) continue;
 
     const classified = classifyNarrationSegment(narration);
-    if (!classified || classified.confidence < 0.65) continue;
+    if (!classified || classified.confidence < 0.65) {
+      const geoReview = explainGeoNarrationSegment(narration, KNOWN_PLACES);
+      skippedEntries.push(
+        buildTemplateReviewEntry({
+          vp,
+          narration,
+          classification: classified,
+          geoReview:
+            geoReview.candidates?.length ||
+            /mapa|google maps|maps|sat[eé]lite/i.test(narration)
+              ? geoReview
+              : null,
+          skipped: true,
+          reason: classified
+            ? "confianca baixa para acionar template automatico"
+            : "sem trigger de mapa, numero, comparacao ou cronologia",
+        })
+      );
+      continue;
+    }
 
     let trigger = classified.trigger;
     if (trigger === "curiosity_punch") {
@@ -457,12 +569,29 @@ export function planMotionScenesFromStoryboard(
         trigger = "stat_number";
       }
     }
-    const templateId = pickTemplateForTrigger(
+    const templateDecision = pickTemplateDecisionForTrigger(
       trigger,
       nichePack,
-      preferredTemplates
+      preferredTemplates,
+      {
+        text: narration,
+        previousTemplates,
+      }
     );
-    if (!APPROVED_ORCHESTRATION_TEMPLATES.has(templateId)) continue;
+    const templateId = templateDecision.template_id;
+    if (!APPROVED_ORCHESTRATION_TEMPLATES.has(templateId)) {
+      skippedEntries.push(
+        buildTemplateReviewEntry({
+          vp,
+          narration,
+          classification: { ...classified, trigger },
+          decision: templateDecision,
+          skipped: true,
+          reason: "template escolhido ainda nao aprovado",
+        })
+      );
+      continue;
+    }
     const layout = resolveLayoutForTemplate(templateId, trigger, {
       text: narration,
       aspectRatio,
@@ -477,7 +606,19 @@ export function planMotionScenesFromStoryboard(
     });
 
     const dedupeKey = `${trigger}-${templateId}-${vp.scene || vp.block}`;
-    if (usedTriggers.has(dedupeKey)) continue;
+    if (usedTriggers.has(dedupeKey)) {
+      skippedEntries.push(
+        buildTemplateReviewEntry({
+          vp,
+          narration,
+          classification: { ...classified, trigger },
+          decision: templateDecision,
+          skipped: true,
+          reason: "template duplicado para a mesma cena/bloco",
+        })
+      );
+      continue;
+    }
     usedTriggers.add(dedupeKey);
 
     const templateDefault = DEFAULT_DURATIONS[templateId] || 4;
@@ -499,7 +640,7 @@ export function planMotionScenesFromStoryboard(
 
     const triggerMeta = MOTION_SCENE_TRIGGERS[trigger] || {};
 
-    scenes.push({
+    let scene = {
       id: `ms-${String(vp.scene || vp.block || scenes.length + 1).replace(/\s/g, "")}`,
       scene_ref: String(vp.scene || ""),
       block: Number(vp.block) || 1,
@@ -509,6 +650,9 @@ export function planMotionScenesFromStoryboard(
       template_id: templateId,
       trigger,
       confidence: classified.confidence,
+      geo_kind: trigger === "location" ? classified.geo_kind : undefined,
+      geo_score: trigger === "location" ? classified.score : undefined,
+      geo_reason: trigger === "location" ? classified.reason : undefined,
       props: {
         ...buildPropsForTemplate(
           templateId,
@@ -526,13 +670,64 @@ export function planMotionScenesFromStoryboard(
       narration_text: narration,
       media_mode: "remotion",
       niche_pack: nichePack,
+      template_decision: {
+        score: templateDecision.score,
+        fallback: Boolean(templateDecision.fallback),
+        reasons: templateDecision.reasons || [],
+        warnings: templateDecision.warnings || [],
+        candidates: templateDecision.candidates || [],
+      },
+      decision_reason:
+        templateDecision.reasons?.[0] ||
+        `template ${templateId} selecionado para ${trigger}`,
       rve_ref: triggerMeta.rveRef || null,
       remotion_ref: triggerMeta.remotionRef || null,
       pip:
         layout === "pip"
           ? { position: "bottom-right", background: "stock_or_satellite" }
           : null,
-    });
+    };
+
+    if (studioPackEnabled && studioNiche) {
+      const studioPick = pickStudioTemplateForTrigger({
+        trigger,
+        motionTemplateId: templateId,
+        niche: studioNiche,
+        aspectRatio,
+        preferredStudioIds,
+        previousStudioIds,
+      });
+      if (studioPick) {
+        scene = attachStudioTemplateToScene(scene, studioPick);
+        previousStudioIds.push(studioPick.id);
+      }
+    }
+
+    scenes.push(scene);
+    previousTemplates.push(templateId);
+    reviewEntries.push(
+      buildTemplateReviewEntry({
+        vp,
+        narration,
+        classification: { ...classified, trigger },
+        decision: templateDecision,
+        geoReview:
+          trigger === "location"
+            ? {
+                eligible: true,
+                score: classified.score,
+                confidence: classified.confidence,
+                geo_kind: classified.geo_kind,
+                place: classified.place,
+                reason: classified.reason,
+                reasons: classified.reasons || [],
+                warnings: classified.warnings || [],
+                matched_pattern: classified.matched_pattern,
+              }
+            : null,
+        scene,
+      })
+    );
   }
 
   const geoCapped = limitGeoMotionScenes(scenes, aspectRatio);
@@ -545,6 +740,16 @@ export function planMotionScenesFromStoryboard(
   return {
     motion_scenes: enrichedScenes,
     niche_pack: nichePack,
+    motion_scenes_review: buildMotionPlanReview({
+      scenes: enrichedScenes,
+      reviewEntries,
+      skippedEntries,
+      nichePack,
+      preferredTemplates,
+      aspectRatio,
+      beforeLimitCount: scenes.length,
+      afterGeoLimitCount: geoCapped.length,
+    }),
     research_backed: Boolean(
       researchContext.globalFacts?.length ||
       researchContext.globalSources?.length
@@ -589,6 +794,13 @@ export function motionScenesToMotionClips(motionScenes = []) {
       templateId: ms.template_id,
       props: {
         ...(ms.props || {}),
+        template_studio_id: ms.props?.template_studio_id,
+        template_studio_name: ms.props?.template_studio_name,
+        template_studio_category: ms.props?.template_studio_category,
+        template_studio_subcategory: ms.props?.template_studio_subcategory,
+        template_studio_motion_template_id:
+          ms.props?.template_studio_motion_template_id,
+        studio_source_code: ms.props?.studio_source_code,
         media_mode: "remotion",
         motion_scene: true,
         narration_text: String(ms.narration_text || ""),

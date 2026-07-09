@@ -16,6 +16,7 @@ import { SocialPostCard, SocialPostCardProps } from "./SocialPostCard";
 import { GeoMapOverlay, GeoMapOverlayProps } from "./GeoMapOverlay";
 import { PictogramChart, PictogramChartProps } from "./PictogramChart";
 import { LocationIntro, LocationIntroProps } from "./LocationIntro";
+import { StudioTemplateOverlay } from "./StudioTemplateOverlay";
 import { safeCustomStyle } from "./overlayStyleUtils";
 import { repairOverlayPropsEncoding } from "../textEncoding";
 
@@ -190,6 +191,18 @@ const OverlayComponent: React.FC<{
   durationInFrames: number;
 }> = ({ overlay, durationInFrames }) => {
   const props = sanitizeOverlayProps(overlay.props || ({} as Overlay["props"]));
+  const studioSource = String(
+    (props as { studio_source_code?: string }).studio_source_code || ""
+  ).trim();
+  if (studioSource) {
+    return (
+      <StudioTemplateOverlay
+        sourceCode={studioSource}
+        inputProps={props as Record<string, unknown>}
+        durationInFrames={durationInFrames}
+      />
+    );
+  }
   switch (overlay.type) {
     case "lower-third":
       return <LowerThird {...props} />;

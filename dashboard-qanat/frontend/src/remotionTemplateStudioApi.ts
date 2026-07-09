@@ -86,6 +86,8 @@ export type CatalogTemplate = {
   orchestration_ready: boolean;
   shortPreview?: string | null;
   longPreview?: string | null;
+  has_source_code?: boolean;
+  sourceCode?: { short: string; long: string } | null;
 };
 
 export type CatalogResponse = {
@@ -111,6 +113,7 @@ export type CatalogSyncRequest = {
     dataSlots?: string[];
     shortPreview?: string | null;
     longPreview?: string | null;
+    sourceCode?: { short?: string; long?: string };
   }>;
 };
 

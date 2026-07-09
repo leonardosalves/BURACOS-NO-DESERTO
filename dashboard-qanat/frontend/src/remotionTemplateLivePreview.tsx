@@ -1,26 +1,48 @@
 import React, { Component, useMemo } from "react";
 import { Player } from "@remotion/player";
 import * as Remotion from "remotion";
-import { transform } from "sucrase";
+import { compileSavedTemplateSource } from "@lumiera/shared/remotionTemplateCompile.js";
+
+export { compileSavedTemplateSource };
 
 class LivePreviewErrorBoundary extends Component<
-  { fallback: React.ReactNode; children: React.ReactNode },
-  { hasError: boolean }
+  {
+    fallback: React.ReactNode;
+    children: React.ReactNode;
+    dimensionsClassName?: string;
+    aspectRatio?: string;
+  },
+  { error: Error | null }
 > {
-  state = { hasError: false };
+  state = { error: null };
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
   }
 
   componentDidUpdate(prevProps: { children: React.ReactNode }) {
     if (prevProps.children !== this.props.children) {
-      this.setState({ hasError: false });
+      this.setState({ error: null });
     }
   }
 
   render() {
-    if (this.state.hasError) return this.props.fallback;
+    if (this.state.error) {
+      if (this.props.fallback) return this.props.fallback;
+      return (
+        <div
+          className={`grid place-items-center rounded-[6px] border border-red-400/30 bg-red-500/10 p-3 text-center ${this.props.dimensionsClassName || ""}`}
+          style={{ aspectRatio: this.props.aspectRatio }}
+        >
+          <p className="text-[10px] font-bold leading-relaxed text-red-200">
+            Preview falhou durante a renderizacao
+          </p>
+          <p className="mt-1 text-[9px] leading-relaxed text-red-200/80">
+            {this.state.error.message || "Erro desconhecido no template."}
+          </p>
+        </div>
+      );
+    }
     return this.props.children;
   }
 }
@@ -34,142 +56,6 @@ export type CompiledTemplatePreview = {
 
 export type CompileTemplateResult =
   { ok: true; preview: CompiledTemplatePreview } | { ok: false; error: string };
-
-const REMOTION_BINDINGS = `
-const {
-  AbsoluteFill,
-  Audio,
-  Easing,
-  Freeze,
-  Img,
-  Loop,
-  OffthreadVideo,
-  Sequence,
-  Series,
-  Video,
-  interpolate,
-  spring,
-  useCurrentFrame,
-  useVideoConfig,
-  staticFile,
-  delayRender,
-  continueRender,
-} = Remotion;
-`;
-
-function stripTemplateHeader(code: string) {
-  return code
-    .split("\n")
-    .filter((line) => !line.trim().startsWith("//"))
-    .join("\n")
-    .trim();
-}
-
-function extractExampleProps(code: string): Record<string, unknown> {
-  const match = code.match(
-    /export\s+const\s+exampleProps[^=]*=\s*(\{[\s\S]*?\n\});/m
-  );
-  if (!match?.[1]) return {};
-  try {
-    return new Function(`return (${match[1]});`)() as Record<string, unknown>;
-  } catch {
-    return {};
-  }
-}
-
-function extractDurationInFrames(
-  code: string,
-  inputProps: Record<string, unknown>
-) {
-  const fromProps = Number(inputProps.durationInFrames);
-  if (Number.isFinite(fromProps) && fromProps > 0) return Math.round(fromProps);
-  const fromCode = Number(
-    code.match(/durationInFrames\s*=\s*(\d+)/)?.[1] ||
-      code.match(/durationInFrames\s*:\s*(\d+)/)?.[1]
-  );
-  if (Number.isFinite(fromCode) && fromCode > 0) return fromCode;
-  return 90;
-}
-
-function prepareRunnableSource(code: string) {
-  let src = stripTemplateHeader(code);
-  src = src.replace(/^"use client";\s*/m, "");
-  src = src.replace(/^import\s+[\s\S]*?from\s+["'][^"']+["'];?\s*/gm, "");
-  src = src.replace(/export\s+const\s+exampleProps[^=]*=[\s\S]*?;\s*/m, "");
-
-  const defaultFn = src.match(/export\s+default\s+function\s+(\w+)/);
-  const componentName = defaultFn?.[1];
-  if (!componentName) {
-    throw new Error("O codigo precisa exportar default function Componente().");
-  }
-
-  src = src.replace(/export\s+default\s+function\s+(\w+)/, "function $1");
-  src = src.replace(/export\s+default\s+/, "");
-
-  const transformed = transform(src, {
-    transforms: ["typescript", "jsx"],
-  }).code;
-
-  return { body: transformed, componentName };
-}
-
-export function compileSavedTemplateSource(
-  sourceCode: string
-): CompileTemplateResult {
-  const code = String(sourceCode || "").trim();
-  if (!code) {
-    return { ok: false, error: "Codigo vazio." };
-  }
-  if (!/export\s+default\s+function/.test(code)) {
-    return {
-      ok: false,
-      error: "Preview ao vivo exige export default function no TSX salvo.",
-    };
-  }
-  if (!/\buseCurrentFrame\s*\(/.test(code)) {
-    return {
-      ok: false,
-      error: "Preview ao vivo exige componente Remotion com useCurrentFrame.",
-    };
-  }
-
-  try {
-    const inputProps = extractExampleProps(code);
-    const durationInFrames = extractDurationInFrames(code, inputProps);
-    const { body, componentName } = prepareRunnableSource(code);
-    const factory = new Function(
-      "React",
-      "Remotion",
-      `${REMOTION_BINDINGS}\n${body}\nreturn ${componentName};`
-    ) as (
-      react: typeof React,
-      remotion: typeof Remotion
-    ) => React.ComponentType<Record<string, unknown>>;
-
-    const Component = factory(React, Remotion);
-    if (typeof Component !== "function") {
-      return { ok: false, error: "Componente compilado invalido." };
-    }
-
-    return {
-      ok: true,
-      preview: {
-        Component,
-        inputProps,
-        durationInFrames,
-        fps: 30,
-      },
-    };
-  } catch (err) {
-    return {
-      ok: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "Falha ao compilar o template para preview.",
-    };
-  }
-}
 
 type SavedTemplatePreviewFrameProps = {
   sourceCode: string;
@@ -190,7 +76,7 @@ export function SavedTemplatePreviewFrame({
   const dimensions =
     size === "detail"
       ? vertical
-        ? { width: 1080, height: 1920, className: "w-[154px] sm:w-[190px]" }
+        ? { width: 1080, height: 1920, className: "w-[220px] sm:w-[270px]" }
         : {
             width: 1920,
             height: 1080,
@@ -201,7 +87,7 @@ export function SavedTemplatePreviewFrame({
         : { width: 1920, height: 1080, className: "w-[190px]" };
 
   const compiled = useMemo(
-    () => compileSavedTemplateSource(sourceCode),
+    () => compileSavedTemplateSource(sourceCode, { React, Remotion }),
     [sourceCode]
   );
 
@@ -232,33 +118,50 @@ export function SavedTemplatePreviewFrame({
   }
 
   const { Component, inputProps, durationInFrames, fps } = compiled.preview;
+  const previewStartFrame =
+    size === "detail"
+      ? Math.min(Math.round(fps * 0.8), durationInFrames - 1)
+      : 0;
 
   const player = (
-    <div
-      className={`overflow-hidden rounded-[6px] border border-white/10 bg-[#0b111b] shadow-lg shadow-black/30 ${dimensions.className}`}
-      style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}` }}
+    <LivePreviewErrorBoundary
+      fallback={fallback}
+      dimensionsClassName={dimensions.className}
+      aspectRatio={`${dimensions.width} / ${dimensions.height}`}
     >
-      <Player
-        component={Component}
-        inputProps={inputProps}
-        durationInFrames={durationInFrames}
-        fps={fps}
-        compositionWidth={dimensions.width}
-        compositionHeight={dimensions.height}
-        style={{ width: "100%", height: "100%" }}
-        controls={size === "detail"}
-        autoPlay={autoPlay}
-        loop
-        acknowledgeRemotionLicense
-      />
-    </div>
-  );
-
-  if (!fallback) return player;
-
-  return (
-    <LivePreviewErrorBoundary fallback={fallback}>
-      {player}
+      <div
+        className={`overflow-hidden rounded-[6px] border border-white/10 bg-[#0b111b] shadow-lg shadow-black/30 ${dimensions.className}`}
+        style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}` }}
+      >
+        <Player
+          component={Component}
+          inputProps={inputProps}
+          durationInFrames={durationInFrames}
+          fps={fps}
+          compositionWidth={dimensions.width}
+          compositionHeight={dimensions.height}
+          initialFrame={previewStartFrame}
+          style={{ width: "100%", height: "100%" }}
+          controls={size === "detail"}
+          autoPlay={autoPlay}
+          loop
+          acknowledgeRemotionLicense
+          errorFallback={({ error }) => (
+            <div className="grid h-full w-full place-items-center bg-red-950/20 p-3 text-center">
+              <div>
+                <p className="text-[10px] font-bold leading-relaxed text-red-200">
+                  Preview falhou no Remotion Player
+                </p>
+                <p className="mt-1 text-[9px] leading-relaxed text-red-200/80">
+                  {error.message || "Erro desconhecido no template."}
+                </p>
+              </div>
+            </div>
+          )}
+        />
+      </div>
     </LivePreviewErrorBoundary>
   );
+
+  return player;
 }
