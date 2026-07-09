@@ -3529,18 +3529,22 @@ export default function App() {
     if (activeTab !== "editor" || !activeProject?.trim()) return;
     let cancelled = false;
     void (async () => {
-      const { pullStudioMotionScenes, applyStudioMotionScenesToStoryboard } =
-        await import("./timelineStudioMotionSync");
+      const {
+        pullStudioMotionScenes,
+        applyStudioMotionScenesToStoryboard,
+        applyStudioTimelineAssetsToConfig,
+      } = await import("./timelineStudioMotionSync");
       const data = await pullStudioMotionScenes(getProjectUrl);
       if (cancelled) return;
       applyStudioMotionScenesToStoryboard(data, (scenes, opts) =>
         handleMotionScenesChangeRef.current(scenes, opts)
       );
+      applyStudioTimelineAssetsToConfig(data, setConfig);
     })();
     return () => {
       cancelled = true;
     };
-  }, [activeTab, activeProject, getProjectUrl]);
+  }, [activeTab, activeProject, getProjectUrl, setConfig]);
 
   useEffect(() => {
     if (

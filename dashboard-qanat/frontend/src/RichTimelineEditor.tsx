@@ -28,6 +28,7 @@ import type { AppTab } from "./appTabs";
 import type { MotionSceneDraft } from "./motionEditorConfig";
 import {
   applyStudioMotionScenesToStoryboard,
+  applyStudioTimelineAssetsToConfig,
   pullStudioMotionScenes,
 } from "./timelineStudioMotionSync";
 
@@ -236,11 +237,12 @@ export function RichTimelineEditor({
       applyStudioMotionScenesToStoryboard(data, (scenes, opts) =>
         handleMotionScenesChangeRef.current(scenes, opts)
       );
+      applyStudioTimelineAssetsToConfig(data, setConfig);
     })();
     return () => {
       cancelled = true;
     };
-  }, [activeProject, getProjectUrl]);
+  }, [activeProject, getProjectUrl, setConfig]);
 
   const validateProjectAssets = async () => {
     if (!activeProject.trim()) {
