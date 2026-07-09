@@ -21,7 +21,9 @@ import {
 import {
   listNichePackCatalog,
   buildStudioCatalogMotionClip,
+  studioMotionClipToMotionScene,
 } from "./timelineStudioNichePacks.js";
+import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
 import { handleTimelineStudioAsk } from "./timelineStudioAsk.js";
 import { renderTimelineStudioFinalFrame } from "./timelineStudioFinalFrame.js";
 import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
@@ -368,6 +370,7 @@ export function registerTimelineStudioRoutes(
 
   app.post("/api/timeline-studio/template/insert", (req, res) => {
     try {
+      const projDir = getProjectDir(req);
       const { templateId, playhead, props, label } = req.body || {};
       if (!templateId) {
         return res.status(400).json({ error: "templateId é obrigatório" });
@@ -391,7 +394,59 @@ export function registerTimelineStudioRoutes(
           error: "Template Studio invalido (sem sourceCode ou templateId).",
         });
       }
-      res.json({ ok: true, clip });
+
+      const config = readProjectConfig(projDir);
+      const aspectRatio = String(
+        config.aspect_ratio || safeProps.aspect_ratio || "16:9"
+      ).trim();
+      const isShort = aspectRatio === "9:16";
+
+      const { studio: rawStudio } = loadTimelineStudio(projDir);
+      let clips = Array.isArray(rawStudio.clips) ? [...rawStudio.clips] : [];
+      if (isShort) {
+        clips = clips.filter((c) => c.trackId !== MOTION_TRACK_ID);
+      }
+      clips.push(clip);
+
+      let totalDuration = Number(rawStudio.totalDuration) || 120;
+      for (const c of clips) {
+        const end = (Number(c.start) || 0) + (Number(c.duration) || 0);
+        if (end > totalDuration) totalDuration = end;
+      }
+
+      let studio = {
+        ...rawStudio,
+        clips,
+        totalDuration,
+        updatedAt: new Date().toISOString(),
+      };
+      studio = syncStudioMusicFromConfig(studio, projDir);
+
+      const storyboardPath = path.join(projDir, "storyboard.json");
+      let storyboard = {};
+      if (fs.existsSync(storyboardPath)) {
+        storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      }
+      const motionScene = studioMotionClipToMotionScene(clip);
+      if (isShort) {
+        storyboard.motion_scenes = [motionScene];
+      } else {
+        const existing = Array.isArray(storyboard.motion_scenes)
+          ? storyboard.motion_scenes
+          : [];
+        storyboard.motion_scenes = [
+          ...existing.filter((ms) => String(ms?.id || "") !== clip.id),
+          motionScene,
+        ];
+      }
+      fs.writeFileSync(
+        storyboardPath,
+        JSON.stringify(storyboard, null, 2),
+        "utf8"
+      );
+
+      const saved = saveTimelineStudio(projDir, studio);
+      res.json({ ok: true, clip, studio: saved, motion_scene: motionScene });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

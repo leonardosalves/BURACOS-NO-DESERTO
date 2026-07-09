@@ -104,7 +104,14 @@ export function motionClipNeedsAssetEnrichment(clip: StudioClip): boolean {
 
 export function locationIntroNeedsSatelliteFetch(clip: StudioClip): boolean {
   if (clip.templateId !== "location-intro") return false;
-  const location = String(clip.props?.location || clip.label || "").trim();
+  if (clip.props?.manual_studio_insert === true) return false;
+  if (
+    clip.props?.template_studio_id &&
+    !String(clip.props?.location || "").trim()
+  ) {
+    return false;
+  }
+  const location = String(clip.props?.location || "").trim();
   if (!location) return false;
   return !locationIntroHasSatellite(clip);
 }

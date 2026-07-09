@@ -186,6 +186,8 @@ export function buildStudioCatalogMotionClip({
     motion_scene: true,
     media_mode: "remotion",
     overlayType: tpl,
+    manual_studio_insert: true,
+    studio_user_locked: true,
   };
   const dur = Number(duration) > 0 ? Number(duration) : 4;
 
@@ -200,6 +202,31 @@ export function buildStudioCatalogMotionClip({
     color: "#6A1B9A",
     motionScene: true,
     motionScenePrimary: true,
+  };
+}
+
+/** Converte clip motion da timeline em motion_scene do storyboard. */
+export function studioMotionClipToMotionScene(clip = {}) {
+  const props = clip.props || {};
+  const templateId = String(clip.templateId || "").trim();
+  const presentation = props.presentation || props.layout;
+  const layout =
+    templateId === "location-intro" || templateId === "geo-map"
+      ? presentation || "pip"
+      : props.layout || "pip";
+
+  return {
+    id: String(clip.id || ""),
+    template_id: templateId,
+    media_mode: "remotion",
+    start_hint: Math.max(0, Number(clip.start) || 0),
+    duration_seconds: Math.max(0.5, Number(clip.duration) || 4),
+    layout,
+    trigger: String(props.trigger || "location"),
+    props: { ...props },
+    narration_text: String(props.narration_text || ""),
+    scene_ref: String(props.scene_ref || ""),
+    block: Number(props.block) || 1,
   };
 }
 
