@@ -7,6 +7,7 @@ import {
   buildOverlaysFromStudio,
   buildScenesFromStudio,
   copyMotionPropsAssets,
+  mirrorRelativeAssetsToRemotionPublic,
   resolveScenesTimelineEnd,
   resolveStudioTotalDuration,
 } from "../backend/timelineStudioRenderSync.js";
@@ -245,6 +246,23 @@ describe("timelineStudioRenderSync", () => {
     ];
     assert.equal(resolveScenesTimelineEnd(scenes), 124.5);
     assert.equal(resolveStudioTotalDuration(studio, scenes, 118, 0.25), 124.75);
+  });
+
+  it("mirrorRelativeAssetsToRemotionPublic espelha ASSETS no public do Remotion", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-mirror-"));
+    const projectDir = path.join(tmp, "proj");
+    const publicDir = path.join(tmp, "public");
+    const rel = "ASSETS/satellite/motion-studio-1-geo-flyover.mp4";
+    fs.mkdirSync(path.dirname(path.join(projectDir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, rel), Buffer.alloc(512, 9));
+
+    const mirrored = mirrorRelativeAssetsToRemotionPublic(
+      [rel],
+      projectDir,
+      publicDir
+    );
+    assert.deepEqual(mirrored, [rel]);
+    assert.ok(fs.existsSync(path.join(publicDir, rel)));
   });
 
   it("mergeMissingBrollFromConfig restaura assets ausentes sem duplicar", () => {

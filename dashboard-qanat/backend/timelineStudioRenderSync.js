@@ -361,3 +361,52 @@ export function resolveStudioFormat(studio, config = {}) {
     return studio.format;
   return config.aspect_ratio === "16:9" ? "16:9" : "9:16";
 }
+
+const RELATIVE_MEDIA_PREFIXES = ["ASSETS/", "MUSICAS/", "logos/"];
+
+export function collectRelativeMediaPaths(value, paths = new Set()) {
+  if (typeof value === "string") {
+    const rel = value.trim().replace(/\\/g, "/");
+    if (
+      rel &&
+      !/^https?:\/\//i.test(rel) &&
+      !rel.startsWith("projects/") &&
+      RELATIVE_MEDIA_PREFIXES.some((prefix) => rel.startsWith(prefix))
+    ) {
+      paths.add(rel);
+    }
+    return paths;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectRelativeMediaPaths(item, paths);
+    return paths;
+  }
+  if (value && typeof value === "object") {
+    for (const item of Object.values(value)) {
+      collectRelativeMediaPaths(item, paths);
+    }
+  }
+  return paths;
+}
+
+/** Espelha ASSETS/ do projeto em remotion-renderer/public/ (fallback para staticFile). */
+export function mirrorRelativeAssetsToRemotionPublic(
+  relPaths,
+  projectDir,
+  remotionPublicDir
+) {
+  const mirrored = [];
+  for (const rel of relPaths) {
+    const normalized = String(rel || "")
+      .trim()
+      .replace(/\\/g, "/");
+    if (!normalized) continue;
+    const source = path.join(projectDir, normalized);
+    if (!fs.existsSync(source)) continue;
+    const dest = path.join(remotionPublicDir, normalized);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(source, dest);
+    mirrored.push(normalized);
+  }
+  return mirrored;
+}

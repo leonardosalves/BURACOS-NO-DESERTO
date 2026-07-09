@@ -165,6 +165,8 @@ import {
   shouldUseStudioForRender,
   buildScenesFromStudio,
   buildOverlaysFromStudio,
+  collectRelativeMediaPaths,
+  mirrorRelativeAssetsToRemotionPublic,
   buildCaptionsFromStudio,
   resolveStudioTotalDuration,
   resolveScenesTimelineEnd,
@@ -8723,6 +8725,26 @@ async function prepareRemotionRender(
       )
       .map((overlay) => repairOverlayPropsForRemotion(overlay))
       .filter(Boolean);
+    const legacyMediaPaths = new Set();
+    for (const overlay of overlays) {
+      collectRelativeMediaPaths(overlay?.props, legacyMediaPaths);
+    }
+    if (legacyMediaPaths.size > 0) {
+      const mirrored = mirrorRelativeAssetsToRemotionPublic(
+        [...legacyMediaPaths],
+        projectDir,
+        REMOTION_PUBLIC_DIR
+      );
+      if (mirrored.length > 0) {
+        console.log(
+          `[Remotion Render] ${mirrored.length} asset(s) legado(s) espelhado(s) em public/ (${mirrored.join(", ")})`
+        );
+      } else {
+        console.warn(
+          `[Remotion Render] ${legacyMediaPaths.size} path(s) ASSETS/ sem cópia em public/projects — verifique arquivos no disco.`
+        );
+      }
+    }
     console.log(
       `[Remotion Render] ${overlays.length} overlay(s) do Timeline Studio (timing manual).`
     );
