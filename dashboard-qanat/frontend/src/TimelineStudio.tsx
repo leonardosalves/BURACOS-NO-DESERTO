@@ -1291,6 +1291,7 @@ export function TimelineStudio({
                 studio={displayStudio ?? studio}
                 getAssetUrl={getAssetUrl}
                 getMusicUrl={getMusicUrl}
+                wordTranscripts={wordTranscripts}
                 aspectRatio={aspectRatio}
                 musicVolume={
                   Number(config.project_music_volume) > 0

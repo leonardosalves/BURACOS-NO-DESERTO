@@ -28,6 +28,8 @@ import {
   ensureMotionClipForProject,
   writeMotionClipSidecar,
 } from "./motionFlyoverUpload.js";
+import { enrichStudioTemplateScene } from "../shared/studioTemplatePropsBinder.js";
+import { buildGeoPipOverlayStudioProps } from "../shared/geoPipSceneText.js";
 import { handleTimelineStudioAsk } from "./timelineStudioAsk.js";
 import { renderTimelineStudioFinalFrame } from "./timelineStudioFinalFrame.js";
 import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
@@ -387,7 +389,7 @@ export function registerTimelineStudioRoutes(
             "Templates legados (InfoBar, CRONOLOGIA, etc.) foram removidos. Use um template do Template Studio com TSX salvo.",
         });
       }
-      const clip = buildStudioCatalogMotionClip({
+      let clip = buildStudioCatalogMotionClip({
         templateId: String(templateId),
         playhead: Number(playhead) || 0,
         props: safeProps,
@@ -431,7 +433,59 @@ export function registerTimelineStudioRoutes(
       if (fs.existsSync(storyboardPath)) {
         storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
       }
-      const motionScene = studioMotionClipToMotionScene(clip);
+
+      if (safeProps.geo_pip_composite) {
+        const geoScene = (storyboard.motion_scenes || []).find(
+          (ms) =>
+            Boolean(
+              String(ms?.props?.location || ms?.props?.country || "").trim()
+            ) || Boolean(String(ms?.narration_text || "").trim())
+        );
+        const narration = String(
+          geoScene?.narration_text || safeProps.narration_text || ""
+        ).trim();
+        const dataSlots = Array.isArray(safeProps.template_studio_data_slots)
+          ? safeProps.template_studio_data_slots
+          : [];
+        const overlay = buildGeoPipOverlayStudioProps(
+          { ...safeProps, ...(geoScene?.props || {}) },
+          { narration, dataSlots }
+        );
+        clip = {
+          ...clip,
+          props: {
+            ...clip.props,
+            ...overlay.studio_props,
+            studio_props: {
+              ...(clip.props?.studio_props || {}),
+              ...overlay.studio_props,
+            },
+            geoPipOverlayMode: true,
+            transparentBackground: true,
+            referencePoint: overlay.referencePoint,
+            scene_subject: overlay.scene_subject,
+            narration_text: narration || clip.props?.narration_text,
+            location:
+              safeProps.location ||
+              geoScene?.props?.location ||
+              overlay.referencePoint,
+            country: safeProps.country || geoScene?.props?.country,
+          },
+        };
+      }
+
+      let motionScene = studioMotionClipToMotionScene(clip);
+      motionScene = enrichStudioTemplateScene(motionScene, { config });
+      if (motionScene.props) {
+        clip = {
+          ...clip,
+          props: { ...clip.props, ...motionScene.props },
+          duration:
+            Number(motionScene.duration_seconds) > 0
+              ? Number(motionScene.duration_seconds)
+              : clip.duration,
+        };
+      }
       if (isShort) {
         storyboard.motion_scenes = [motionScene];
       } else {

@@ -374,6 +374,9 @@ export function NicheTemplatePalette({
       template_studio_category: tpl.category,
       template_studio_subcategory: tpl.subcategory,
       template_studio_motion_template_id: motionId,
+      template_studio_data_slots: Array.isArray(tpl.dataSlots)
+        ? tpl.dataSlots
+        : [],
       studio_source_code: sourceCode,
       motion_scene: true,
       media_mode: "remotion",

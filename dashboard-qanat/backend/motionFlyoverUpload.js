@@ -4,6 +4,7 @@
 
 import fs from "fs";
 import path from "path";
+import { execSync } from "child_process";
 import {
   ensureMotionTrack,
   motionScenesToMotionClips,
@@ -15,8 +16,68 @@ import {
 } from "./timelineStudioMigration.js";
 import { studioMotionClipToMotionScene } from "./timelineStudioNichePacks.js";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
+import { buildGeoPipOverlayStudioProps } from "../shared/geoPipSceneText.js";
 import { remotionClipFingerprint } from "../shared/timelineStudioRemotionSuppress.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
+
+export function probeFlyoverVideoDurationSec(absPath) {
+  try {
+    if (!absPath || !fs.existsSync(absPath)) return 0;
+    const output = execSync(
+      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${absPath}"`,
+      { encoding: "utf8" }
+    ).trim();
+    const dur = parseFloat(output);
+    return Number.isFinite(dur) && dur > 0 ? dur : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function applyGeoPipFlyoverBinding(target = {}, { relPath, durationSec, storyboard }) {
+  const props =
+    target.props && typeof target.props === "object" ? { ...target.props } : {};
+  const motionScenes = Array.isArray(storyboard?.motion_scenes)
+    ? storyboard.motion_scenes
+    : [];
+  const motionScene = motionScenes.find((ms) => motionSceneMatches(ms, target.id));
+  const narration = String(
+    motionScene?.narration_text || props.narration_text || ""
+  ).trim();
+  const dataSlots = Array.isArray(props.template_studio_data_slots)
+    ? props.template_studio_data_slots
+    : [];
+  const overlay = buildGeoPipOverlayStudioProps(props, {
+    narration,
+    dataSlots,
+    flyoverDurationSec: durationSec,
+  });
+
+  const nextProps = {
+    ...props,
+    ...overlay.studio_props,
+    studio_props: {
+      ...(props.studio_props || {}),
+      ...overlay.studio_props,
+    },
+    flyover_video: relPath,
+    map_provider: props.map_provider || "ai_t2v",
+    geo_generation: props.geo_generation || "ai_prompt",
+    geoPipOverlayMode: true,
+    transparentBackground: true,
+    referencePoint: overlay.referencePoint || props.referencePoint,
+    scene_subject: overlay.scene_subject || props.scene_subject,
+  };
+
+  const next = {
+    ...target,
+    props: nextProps,
+  };
+  if (Number.isFinite(durationSec) && durationSec > 0) {
+    next.duration = Math.max(0.5, durationSec);
+  }
+  return next;
+}
 
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".m4v", ".mkv"]);
 const MOTION_CLIP_CACHE_DIR = ".lumiera-cache";
@@ -187,21 +248,25 @@ export function patchMotionSceneFlyover(
   motionScenes,
   motionId,
   relPath,
-  studio = null
+  studio = null,
+  { durationSec = 0 } = {}
 ) {
   const needle = String(motionId || "").trim();
   if (!needle) return motionScenes;
 
   const applyFlyover = (ms) => {
-    const props = ms.props && typeof ms.props === "object" ? ms.props : {};
+    const bound = applyGeoPipFlyoverBinding(
+      {
+        ...ms,
+        id: ms.id || needle,
+        props: ms.props && typeof ms.props === "object" ? ms.props : {},
+      },
+      { relPath, durationSec, storyboard: { motion_scenes: motionScenes } }
+    );
     return {
       ...ms,
-      props: {
-        ...props,
-        flyover_video: relPath,
-        map_provider: props.map_provider || "ai_t2v",
-        geo_generation: props.geo_generation || "ai_prompt",
-      },
+      duration_seconds: bound.duration || ms.duration_seconds,
+      props: bound.props,
     };
   };
 
@@ -232,24 +297,23 @@ export function patchMotionSceneFlyover(
   );
 }
 
-export function patchStudioClipFlyover(studio, motionId, relPath) {
+export function patchStudioClipFlyover(
+  studio,
+  motionId,
+  relPath,
+  { durationSec = 0, storyboard = null } = {}
+) {
   const needle = String(motionId || "").trim();
   if (!needle || !Array.isArray(studio?.clips)) return studio;
   let touched = false;
   const clips = studio.clips.map((clip) => {
     if (String(clip?.id || "").trim() !== needle) return clip;
     touched = true;
-    const props =
-      clip.props && typeof clip.props === "object" ? clip.props : {};
-    return {
-      ...clip,
-      props: {
-        ...props,
-        flyover_video: relPath,
-        map_provider: props.map_provider || "ai_t2v",
-        geo_generation: props.geo_generation || "ai_prompt",
-      },
-    };
+    return applyGeoPipFlyoverBinding(clip, {
+      relPath,
+      durationSec,
+      storyboard,
+    });
   });
   return touched ? { ...studio, clips } : studio;
 }
@@ -392,11 +456,15 @@ export function persistFlyoverToProject(projDir, motionId, relPath) {
     );
   }
 
+  const flyoverAbs = path.join(projDir, relPath.replace(/\//g, path.sep));
+  const flyoverDurationSec = probeFlyoverVideoDurationSec(flyoverAbs);
+
   const motionScenes = patchMotionSceneFlyover(
     ensured,
     motionId,
     relPath,
-    rawStudio
+    rawStudio,
+    { durationSec: flyoverDurationSec }
   );
   const nextStoryboard = {
     ...storyboard,
@@ -422,9 +490,21 @@ export function persistFlyoverToProject(projDir, motionId, relPath) {
     {}
   );
   let studio = reviveMotionClipSuppressions(
-    patchStudioClipFlyover(rawStudio, motionId, relPath),
+    patchStudioClipFlyover(rawStudio, motionId, relPath, {
+      durationSec: flyoverDurationSec,
+      storyboard: nextStoryboard,
+    }),
     motionId
   );
+  if (flyoverDurationSec > 0) {
+    const clip = findMotionClipInStudio(studio, motionId);
+    if (clip) {
+      const end = (Number(clip.start) || 0) + flyoverDurationSec;
+      if (end > Number(studio.totalDuration || 0)) {
+        studio = { ...studio, totalDuration: end };
+      }
+    }
+  }
   studio = ensureMotionClipInStudio(studio, motionId, motionScenes, projDir);
   studio = ensureMotionTrack(studio);
   studio = mergeMissingBrollFromConfig(studio, config, blockTimings);

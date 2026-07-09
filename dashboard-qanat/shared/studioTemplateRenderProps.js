@@ -94,6 +94,51 @@ export function mergeStudioRenderProps({
   }
 
   out.fps = Number.isFinite(Number(fps)) && Number(fps) > 0 ? Number(fps) : 30;
+
+  if (isGeoPipCompositeProps(inputProps)) {
+    out.geoPipOverlayMode = true;
+    out.transparentBackground = true;
+    const reference = String(
+      out.referencePoint ||
+        sceneValues.referencePoint ||
+        sceneValues.country ||
+        sceneValues.location ||
+        ""
+    ).trim();
+    const sector = String(
+      out.scene_subject ||
+        out.sectorLabel ||
+        out.panelLabel ||
+        out.subtitle ||
+        sceneValues.scene_subject ||
+        ""
+    ).trim();
+    if (reference) out.referencePoint = reference;
+    if (sector) {
+      out.scene_subject = sector;
+      if (!out.subtitle || isTemplatePlaceholderValue(out.subtitle, "subtitle")) {
+        out.subtitle = sector;
+      }
+      if (
+        !out.sectorLabel ||
+        isTemplatePlaceholderValue(out.sectorLabel, "sectorLabel")
+      ) {
+        out.sectorLabel = sector;
+      }
+      if (
+        !out.panelLabel ||
+        isTemplatePlaceholderValue(out.panelLabel, "panelLabel")
+      ) {
+        out.panelLabel = sector;
+      }
+    }
+    for (const key of ["headline", "title", "text", "mainTitle", "mainContent"]) {
+      if (isTemplatePlaceholderValue(out[key], key)) {
+        delete out[key];
+      }
+    }
+  }
+
   return out;
 }
 

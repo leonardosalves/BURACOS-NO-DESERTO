@@ -37,11 +37,20 @@ import {
 } from "@lumiera/shared/timelineStudioLegacyStrip.js";
 import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
 import { isGeoPipCompositeProps } from "@lumiera/shared/remotionTemplateCompile.js";
+import { GEO_PIP_MEDIA_WINDOW_9x16 } from "./geoPipPreview";
+import { GeoPipTemplateMask } from "./GeoPipTemplateMask";
+import { mergeGeoPipPreviewProps } from "./geoPipPreviewProps";
 
 type Props = {
   studio: TimelineStudioState;
   getAssetUrl: (fileName: string) => string;
   getMusicUrl?: (fileName: string) => string;
+  wordTranscripts?: Array<{
+    words?: Array<{ word?: string; start?: number; end?: number }>;
+    start_time?: number;
+    end_time?: number;
+    text?: string;
+  }>;
   aspectRatio: string;
   musicVolume?: number;
   finalFrame?: {
@@ -94,6 +103,7 @@ export function TimelineStudioPreview({
   studio,
   getAssetUrl,
   getMusicUrl,
+  wordTranscripts,
   aspectRatio,
   musicVolume = 0.15,
   finalFrame,
@@ -643,17 +653,42 @@ export function TimelineStudioPreview({
                     pipTransparent={geoPipOverlay && hasStudioOverlay}
                   />
                   {hasStudioOverlay ? (
-                    <SavedTemplatePreviewFrame
-                      sourceCode={studioCode}
-                      inputProps={clip.props || {}}
-                      durationSeconds={clip.duration}
-                      scrubSeconds={localSec}
-                      format={isVertical ? "9:16" : "16:9"}
-                      size="detail"
-                      fullBleed
-                      overlayOnly={geoPipOverlay}
-                      autoPlay={playing}
-                    />
+                    geoPipOverlay ? (
+                      <GeoPipTemplateMask
+                        pipWindow={
+                          (clip.props?.geo_pip_window as typeof GEO_PIP_MEDIA_WINDOW_9x16) ||
+                          GEO_PIP_MEDIA_WINDOW_9x16
+                        }
+                      >
+                        <SavedTemplatePreviewFrame
+                          sourceCode={studioCode}
+                          inputProps={mergeGeoPipPreviewProps(
+                            clip,
+                            motionPlayhead,
+                            wordTranscripts
+                          )}
+                          durationSeconds={clip.duration}
+                          scrubSeconds={localSec}
+                          format={isVertical ? "9:16" : "16:9"}
+                          size="detail"
+                          fullBleed
+                          overlayOnly
+                          autoPlay={playing}
+                        />
+                      </GeoPipTemplateMask>
+                    ) : (
+                      <SavedTemplatePreviewFrame
+                        sourceCode={studioCode}
+                        inputProps={clip.props || {}}
+                        durationSeconds={clip.duration}
+                        scrubSeconds={localSec}
+                        format={isVertical ? "9:16" : "16:9"}
+                        size="detail"
+                        fullBleed
+                        overlayOnly={geoPipOverlay}
+                        autoPlay={playing}
+                      />
+                    )
                   ) : null}
                 </React.Fragment>
               );
