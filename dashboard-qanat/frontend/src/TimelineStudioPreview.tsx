@@ -231,8 +231,23 @@ export function TimelineStudioPreview({
       ),
     [motionClips]
   );
-  /** Evita B-roll duplicado: só esconde a trilha vídeo se o template recebe mainMediaUrl. */
-  const suppressBaseVideoForPip = activeStudioGeoPip && Boolean(assetSrc);
+  /** B-roll na trilha vídeo; template PIP só desenha chrome + quadradinho flyover. */
+  const suppressBaseVideoForPip = useMemo(() => {
+    if (!assetSrc || !activeStudioGeoPip) return false;
+    return motionClips.some((clip) => {
+      if (!isStudioTemplateClip(clip) || !isGeoPipCompositeProps(clip.props || {})) {
+        return false;
+      }
+      const props = (clip.props || {}) as Record<string, unknown>;
+      const studio =
+        props.studio_props && typeof props.studio_props === "object"
+          ? (props.studio_props as Record<string, unknown>)
+          : {};
+      return Boolean(
+        String(props.mainMediaUrl || studio.mainMediaUrl || "").trim()
+      );
+    });
+  }, [activeStudioGeoPip, assetSrc, motionClips]);
   const showBaseVideo =
     Boolean(assetSrc) &&
     !(isVideo && videoLoadFailed) &&
@@ -674,7 +689,7 @@ export function TimelineStudioPreview({
                       clip,
                       motionPlayhead,
                       wordTranscripts,
-                      assetSrc || undefined
+                      getAssetUrl
                     )}
                     durationSeconds={clipPreviewDurationSec(clip)}
                     scrubSeconds={localSec}
@@ -721,7 +736,7 @@ export function TimelineStudioPreview({
                           clip,
                           motionPlayhead,
                           wordTranscripts,
-                          assetSrc || undefined
+                          getAssetUrl
                         )
                       : clip.props || {}
                   }

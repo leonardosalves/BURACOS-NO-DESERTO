@@ -2,6 +2,7 @@ import {
   bindGeoPipTemplateStudioProps,
   resolveGeoPipClipDurationSec,
 } from "@lumiera/shared/geoPipTemplateProps.js";
+import { resolveMediaUrl } from "./timelineStudioMedia";
 import type { StudioClip } from "./timelineStudioTypes";
 
 type TranscriptWord = { word?: string; start?: number; end?: number };
@@ -58,7 +59,7 @@ export function mergeGeoPipPreviewProps(
   clip: StudioClip,
   playhead: number,
   wordTranscripts?: TranscriptSegment[],
-  mainMediaUrl?: string
+  getAssetUrl?: (fileName: string) => string
 ): Record<string, unknown> {
   const base = (clip.props || {}) as Record<string, unknown>;
   const liveNarration =
@@ -70,13 +71,18 @@ export function mergeGeoPipPreviewProps(
     : [];
 
   const clipDurationSec = resolveGeoPipClipDurationSec(clip);
+  const flyoverRaw = String(base.flyover_video || base.pipMediaUrl || "").trim();
   const bound = bindGeoPipTemplateStudioProps(base, {
     narration: liveNarration,
     dataSlots,
-    flyoverUrl: String(base.flyover_video || base.pipMediaUrl || "").trim(),
-    mainMediaUrl: String(mainMediaUrl || base.mainMediaUrl || "").trim(),
+    flyoverUrl: flyoverRaw,
     flyoverDurationSec: clipDurationSec,
   });
+
+  const pipMediaUrl =
+    flyoverRaw && getAssetUrl
+      ? resolveMediaUrl(flyoverRaw, getAssetUrl)
+      : bound.pipMediaUrl;
 
   return {
     ...base,
@@ -84,11 +90,15 @@ export function mergeGeoPipPreviewProps(
     studio_props: {
       ...(base.studio_props as Record<string, unknown>),
       ...bound.studio_props,
+      pipMediaUrl,
+      mainMediaUrl: "",
     },
     pipTitle: bound.pipTitle,
-    pipMediaUrl: bound.pipMediaUrl,
+    pipMediaUrl,
     location: bound.location,
-    mainMediaUrl: bound.mainMediaUrl,
+    mainMediaUrl: "",
     narration_text: liveNarration || base.narration_text,
+    durationSeconds: clipDurationSec,
+    durationInFrames: Math.max(1, Math.round(clipDurationSec * 30)),
   };
 }

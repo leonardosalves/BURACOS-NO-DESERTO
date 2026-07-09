@@ -108,10 +108,6 @@ export function resolveGeoPipSectorLabel(props = {}, narration = "") {
     studio.structuralSector,
     props.panelLabel,
     studio.panelLabel,
-    props.statusText,
-    studio.statusText,
-    props.descriptorText,
-    studio.descriptorText,
     props.subtitle,
     studio.subtitle,
   ]

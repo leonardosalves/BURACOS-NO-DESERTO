@@ -1,11 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  applyGeoPipChromeProps,
   bindGeoPipTemplateStudioProps,
   isPictureInPictureStudioTemplate,
   mapGeoPipFlyoverToTemplateRenderProps,
   resolveGeoPipClipDurationSec,
   resolvePipMediaUrl,
+  splitNarrationTitleSubtitle,
 } from "./geoPipTemplateProps.js";
 
 describe("geoPipTemplateProps", () => {
@@ -36,7 +38,7 @@ describe("geoPipTemplateProps", () => {
     assert.equal(pipMediaUrl, "ASSETS/satellite/voo.mp4");
     assert.equal(studio_props.pipMediaUrl, "ASSETS/satellite/voo.mp4");
     assert.equal(pipTitle, "Palmanova");
-    assert.equal(studio_props.pipTitle, "Palmanova");
+    assert.equal(studio_props.pipTitle, "");
     assert.match(location, /Palmanova|fortaleza/i);
     assert.equal(studio_props.location, location);
     assert.equal(studio_props.durationSeconds, 6.2);
@@ -51,7 +53,7 @@ describe("geoPipTemplateProps", () => {
       narration_text: "Em Roma, a engenharia romana ainda impressiona.",
     });
     assert.equal(mapped.pipMediaUrl, "ASSETS/satellite/map.mp4");
-    assert.equal(mapped.pipTitle, "Roma");
+    assert.equal(mapped.pipTitle, "");
     assert.match(String(mapped.location), /Roma|engenharia/i);
     assert.equal(mapped.flyover_video, "ASSETS/satellite/map.mp4");
   });
@@ -76,5 +78,41 @@ describe("geoPipTemplateProps", () => {
       }),
       "ASSETS/a.mp4"
     );
+  });
+
+  it("splitNarrationTitleSubtitle divide assunto em titulo e subtitulo", () => {
+    const { mainTitle, mainSubtitle } = splitNarrationTitleSubtitle(
+      "Debaixo dos seus pés, a estrutura resiste. O concreto armado sustenta o edifício."
+    );
+    assert.match(mainTitle, /Debaixo dos seus pés/i);
+    assert.match(mainSubtitle, /concreto|estrutura/i);
+  });
+
+  it("bindGeoPipTemplateStudioProps limpa chrome e mantém location narrada", () => {
+    const { studio_props, location } = bindGeoPipTemplateStudioProps(
+      {
+        template_studio_subcategory: "Picture in Picture",
+        flyover_video: "ASSETS/satellite/voo.mp4",
+      },
+      {
+        narration: "Debaixo dos seus pés, a fundação NBR 6118 exige rigor.",
+        flyoverDurationSec: 10,
+      }
+    );
+    assert.equal(studio_props.descriptorText, "");
+    assert.equal(studio_props.statusText, "");
+    assert.equal(studio_props.pipTag, "");
+    assert.equal(studio_props.pipTitle, "");
+    assert.equal(studio_props.mainMediaUrl, "");
+    assert.equal(studio_props.showPointerLines, false);
+    assert.equal(studio_props.durationSeconds, 10);
+    assert.match(location, /Debaixo dos seus pés|fundação|NBR/i);
+  });
+
+  it("applyGeoPipChromeProps oculta centro sem narração", () => {
+    const chrome = applyGeoPipChromeProps({}, { narration: "", sector: "Setor A" });
+    assert.equal(chrome.showMainContentLabel, false);
+    assert.equal(chrome.mainTitle, "");
+    assert.equal(chrome.location, "Setor A");
   });
 });
