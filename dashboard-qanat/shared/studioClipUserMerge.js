@@ -2,6 +2,8 @@
  * Preserva edições manuais do usuário ao re-orquestrar motion scenes Studio.
  */
 
+import { isGeoMotionTemplate } from "./geoSceneEligibility.js";
+
 export const STUDIO_USER_LOCK_PROP = "studio_user_locked";
 export const STUDIO_USER_LOCKED_SLOTS_PROP = "studio_user_locked_slots";
 export const TIMING_MANUAL_PROP = "timing_manual";
@@ -115,16 +117,115 @@ function pickLockedProps(
   return out;
 }
 
+const GEO_ASSET_PROP_KEYS = [
+  "flyover_video",
+  "ai_video_prompt",
+  "ai_video_negative_prompt",
+  "geo_prompt_shotlist",
+  "geo_prompt_brief",
+  "map_provider",
+  "geo_generation",
+  "geo_pip_composite",
+  "geo_pip_window",
+  "geo_pip_mode",
+  "geo_pip_native",
+  "referencePoint",
+  "location",
+  "region",
+  "country",
+  "lat",
+  "lng",
+  "fly_mode",
+  "place_type",
+  "presentation",
+  "layout",
+  "aspect_ratio",
+];
+
+const GEO_STUDIO_META_KEYS = [
+  "template_studio_id",
+  "template_studio_name",
+  "template_studio_category",
+  "template_studio_subcategory",
+  "template_studio_motion_template_id",
+  "template_studio_data_slots",
+  "studio_source_code",
+  "studio_props",
+  "studio_props_meta",
+];
+
+function clipHasGeoUserAssets(props = {}) {
+  return Boolean(
+    String(props.flyover_video || "").trim() ||
+    String(props.ai_video_prompt || "").trim()
+  );
+}
+
+/** Mantém mapa/PIP quando o usuario ja enviou flyover ou prompt geo. */
+export function mergeGeoMotionAssets(existing = {}, planned = {}) {
+  const exProps = existing.props || {};
+  if (!clipHasGeoUserAssets(exProps)) return planned;
+
+  const preserved = {};
+  for (const key of GEO_ASSET_PROP_KEYS) {
+    const value = exProps[key];
+    if (value !== undefined && value !== null && value !== "") {
+      preserved[key] = value;
+    }
+  }
+
+  const hadGeoTemplate =
+    isGeoMotionTemplate(existing.templateId) ||
+    isGeoMotionTemplate(exProps.template_id) ||
+    isGeoMotionTemplate(exProps.overlayType) ||
+    exProps.geo_pip_composite ||
+    exProps.geo_pip_native;
+
+  const plannedTpl = String(
+    planned.templateId || planned.template_id || ""
+  ).trim();
+  const plannedIsGeo = isGeoMotionTemplate(plannedTpl);
+
+  let merged = {
+    ...planned,
+    props: {
+      ...(planned.props || {}),
+      ...preserved,
+    },
+  };
+
+  if (hadGeoTemplate && !plannedIsGeo) {
+    merged = {
+      ...merged,
+      templateId: "location-intro",
+      label: existing.label || merged.label,
+      props: {
+        ...merged.props,
+        overlayType: "location-intro",
+        motion_scene: true,
+      },
+    };
+    if (exProps.geo_pip_composite || exProps.geo_pip_native) {
+      for (const key of GEO_STUDIO_META_KEYS) {
+        if (exProps[key] !== undefined) merged.props[key] = exProps[key];
+      }
+    }
+  }
+
+  return merged;
+}
+
 /** Mescla clip planejado com edições manuais do usuário no clip existente. */
 export function mergeMotionClipPreservingUserEdits(
   existing = {},
   planned = {}
 ) {
+  const geoMerged = mergeGeoMotionAssets(existing, planned);
   const propsLocked = clipHasStudioUserLock(existing);
   const timingLocked = clipHasTimingManual(existing);
-  if (!propsLocked && !timingLocked) return planned;
+  if (!propsLocked && !timingLocked) return geoMerged;
 
-  let merged = { ...planned };
+  let merged = { ...geoMerged };
   if (timingLocked) {
     merged = {
       ...merged,
