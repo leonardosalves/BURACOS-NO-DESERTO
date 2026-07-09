@@ -61,6 +61,10 @@ import {
 import { TimelineClipPreview } from "./TimelineClipPreview";
 import type { ConfigData, WorkspaceStatus } from "./appTypes";
 import { NotebookLmConnect } from "./NotebookLmConnect";
+import {
+  NotebooklmEnrichmentPanel,
+  type NotebooklmSession,
+} from "./NotebooklmEnrichmentPanel";
 import { CreatorProductionPlanPanel } from "./CreatorProductionPlanPanel";
 import { GeoVideoWizardPanel } from "./GeoVideoWizardPanel";
 import type { GeoMotionScene } from "./geoVideoFlyover";
@@ -150,6 +154,10 @@ export type AppCreatorTabProps = {
   handleGenerateNarrationFromImport: () => void | Promise<void>;
   handleGenerateYoutubeThumbnailImages: () => void | Promise<void>;
   handleNotebooklmImproveNarrationDraft: () => void | Promise<void>;
+  handleNotebooklmReply: (reply: string) => Promise<void>;
+  handleNotebooklmProceed: () => Promise<void>;
+  notebooklmSession: NotebooklmSession | null;
+  notebooklmSessionLoading: boolean;
   handleRemoveSceneAsset: (
     blockKey: string,
     assetIdx: number
@@ -327,6 +335,10 @@ export function AppCreatorTab({
   handleGenerateNarrationFromImport,
   handleGenerateYoutubeThumbnailImages,
   handleNotebooklmImproveNarrationDraft,
+  handleNotebooklmReply,
+  handleNotebooklmProceed,
+  notebooklmSession,
+  notebooklmSessionLoading,
   handleRemoveSceneAsset,
   handleSaveConfig,
   handleSuggestListicleRankings,
@@ -1478,6 +1490,18 @@ export function AppCreatorTab({
                   </span>
                 </div>
 
+                {notebooklmSession &&
+                  !showNarrationReview &&
+                  (notebooklmSession.awaitingUser ||
+                    notebooklmSession.status === "pending_user") && (
+                    <NotebooklmEnrichmentPanel
+                      session={notebooklmSession}
+                      loading={notebooklmSessionLoading}
+                      onReply={handleNotebooklmReply}
+                      onProceed={handleNotebooklmProceed}
+                    />
+                  )}
+
                 {/* Script generation trigger */}
 
                 <div className="flex justify-between items-center pt-4 border-t border-zinc-900 font-sans">
@@ -1561,6 +1585,10 @@ export function AppCreatorTab({
                   onRegenerate={handleGenerateNarration}
                   onApprove={handleApproveNarrationAndGenerateScript}
                   onNotebooklmImprove={handleNotebooklmImproveNarrationDraft}
+                  notebooklmSession={notebooklmSession}
+                  notebooklmSessionLoading={notebooklmSessionLoading}
+                  onNotebooklmReply={handleNotebooklmReply}
+                  onNotebooklmProceed={handleNotebooklmProceed}
                 />
               )}
           </div>

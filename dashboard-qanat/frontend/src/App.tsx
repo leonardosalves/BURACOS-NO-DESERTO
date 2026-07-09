@@ -44,6 +44,7 @@ import {
   pickVisualConfig,
   visualDraftToApiPatch,
 } from "./visualConfig";
+import type { NotebooklmSession } from "./NotebooklmEnrichmentPanel";
 import {
   loadWizardSession,
   saveWizardSession,
@@ -751,6 +752,16 @@ export default function App() {
   const [notebooklmSuggestions, setNotebooklmSuggestions] = useState<
     string | null
   >(null);
+  const [notebooklmSession, setNotebooklmSession] =
+    useState<NotebooklmSession | null>(
+      (savedCreatorState.notebooklmSession as NotebooklmSession | null) || null
+    );
+  const [notebooklmSessionLoading, setNotebooklmSessionLoading] =
+    useState(false);
+  const notebooklmAccumulatedRef = useRef("");
+  const notebooklmProceedActionRef = useRef<"narration" | "improve" | null>(
+    null
+  );
 
   const [creatorAssets, setCreatorAssets] = useState<
     { name: string; sizeBytes: number; type: string }[]
@@ -3172,6 +3183,7 @@ export default function App() {
       narrationBlockScript,
       narrationNotebooklmEnriched,
       narrationProjectName,
+      notebooklmSession,
       useNotebooklm,
       useDeepResearch,
       motionTemplatePackEnabled,
@@ -3219,6 +3231,7 @@ export default function App() {
       narrationBlockScript,
       narrationNotebooklmEnriched,
       narrationProjectName,
+      notebooklmSession,
       useNotebooklm,
       useDeepResearch,
       motionTemplatePackEnabled,
@@ -3295,6 +3308,11 @@ export default function App() {
       setNarrationNotebooklmEnriched(patch.narrationNotebooklmEnriched);
     if (patch.narrationProjectName !== undefined)
       setNarrationProjectName(patch.narrationProjectName);
+    if (patch.notebooklmSession !== undefined) {
+      setNotebooklmSession(
+        (patch.notebooklmSession as NotebooklmSession | null) || null
+      );
+    }
     if (patch.useNotebooklm !== undefined)
       setUseNotebooklm(patch.useNotebooklm);
     if (patch.useDeepResearch !== undefined)
@@ -3566,6 +3584,62 @@ export default function App() {
     window.addEventListener("lumiera-nlm-status", onNlmStatus);
     return () => window.removeEventListener("lumiera-nlm-status", onNlmStatus);
   }, []);
+
+  const resolveNotebooklmNiche = useCallback(() => {
+    if (ideationTab === "listicle") {
+      return (
+        listNiche.trim() ||
+        listTopic.trim() ||
+        nicheInput.trim() ||
+        "documentário"
+      );
+    }
+    if (ideationTab === "custom") {
+      return (
+        editorialIdeaImport?.pioneerMeta?.macroNiche?.trim() ||
+        nicheInput.trim() ||
+        "Customized"
+      );
+    }
+    return nicheInput.trim() || config?.niche || "documentário";
+  }, [
+    ideationTab,
+    listNiche,
+    listTopic,
+    nicheInput,
+    editorialIdeaImport,
+    config?.niche,
+  ]);
+
+  useEffect(() => {
+    if (activeTab !== "creator") return;
+    const project = activeProject || creatorProjectName.trim();
+    if (!project) return;
+    let cancelled = false;
+    const niche = resolveNotebooklmNiche();
+    fetch(
+      getProjectUrl(
+        `/api/notebooklm/session?niche=${encodeURIComponent(niche)}`
+      )
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.session) {
+          setNotebooklmSession(data.session as NotebooklmSession);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeTab,
+    activeProject,
+    creatorProjectName,
+    getProjectUrl,
+    resolveNotebooklmNiche,
+  ]);
 
   useEffect(() => {
     if (activeTab !== "creator") return;
@@ -7074,7 +7148,9 @@ export default function App() {
     }
   };
 
-  const handleNotebooklmImproveNarrationDraft = async () => {
+  const handleNotebooklmImproveNarrationDraft = async (opts?: {
+    accumulated?: string;
+  }) => {
     const draft = narrationDraft.trim();
     if (draft.length < 40) {
       toast.error(
@@ -7128,11 +7204,30 @@ export default function App() {
             ideaTitle: selectedIdea?.title || niche,
             isListicle: ideationTab === "listicle",
             listicleRank: ideationTab === "listicle" ? rankCount : undefined,
+            ...(opts?.accumulated
+              ? {
+                  notebooklmAccumulated: opts.accumulated,
+                  skipNotebooklmPending: true,
+                }
+              : {}),
           }),
         }
       );
 
+      if (ok && data.phase === "notebooklm_pending") {
+        setNotebooklmSession(
+          (data.notebooklm_session as NotebooklmSession) || null
+        );
+        notebooklmProceedActionRef.current = "improve";
+        toast(
+          "O NotebookLM fez perguntas — responda no painel de enriquecimento.",
+          { icon: "💬", duration: 6000 }
+        );
+        return;
+      }
+
       if (ok && !data.needs_browser) {
+        notebooklmAccumulatedRef.current = "";
         if (data.narrative_script) setNarrationDraft(data.narrative_script);
         if (data.narrative_script_tagged)
           setNarrationTaggedDraft(data.narrative_script_tagged);
@@ -7728,6 +7823,9 @@ export default function App() {
     setNarrationBlockScript("");
     setNarrationNotebooklmEnriched(false);
     setNarrationProjectName("");
+    setNotebooklmSession(null);
+    notebooklmAccumulatedRef.current = "";
+    notebooklmProceedActionRef.current = null;
     setDirectingSceneIndex(null);
     setSeedanceT2vJobs({});
   }, []);
@@ -7776,6 +7874,9 @@ export default function App() {
       setNarrationBlockScript("");
       setNarrationNotebooklmEnriched(false);
       setNarrationProjectName("");
+      setNotebooklmSession(null);
+      notebooklmAccumulatedRef.current = "";
+      notebooklmProceedActionRef.current = null;
       setCustomTitle("");
       setCustomHooks("");
       setCustomOutline("");
@@ -7856,6 +7957,9 @@ export default function App() {
     );
     setNarrationNotebooklmEnriched(Boolean(data.notebooklm_enriched));
     setNarrationProjectName(projectName);
+    setNotebooklmSession(null);
+    notebooklmAccumulatedRef.current = "";
+    notebooklmProceedActionRef.current = null;
     setShowNarrationReview(true);
     if (toastId) toast.success(successMessage, { id: toastId });
     else toast.success(successMessage);
@@ -8022,6 +8126,18 @@ export default function App() {
         { jobId: progressJobId }
       );
       if (token !== creatorGenTokenRef.current) return;
+      if (ok && data.phase === "notebooklm_pending") {
+        stopAiJobProgress(true, "NotebookLM aguarda sua resposta");
+        setNotebooklmSession(
+          (data.notebooklm_session as NotebooklmSession) || null
+        );
+        notebooklmProceedActionRef.current = "narration";
+        toast(
+          "O NotebookLM fez perguntas — responda no painel de enriquecimento.",
+          { icon: "💬", duration: 6000 }
+        );
+        return;
+      }
       if (ok && !data.needs_browser) {
         const scriptLen = String(data.narrative_script || "").trim().length;
         if (scriptLen < 80) {
@@ -8346,6 +8462,102 @@ export default function App() {
         toastId: "creator-narration-direct",
       }
     );
+  };
+
+  const handleNotebooklmReply = async (reply: string) => {
+    const text = String(reply || "").trim();
+    if (!text) return;
+    setNotebooklmSessionLoading(true);
+    try {
+      const res = await fetch(getProjectUrl("/api/notebooklm/session/reply"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reply: text,
+          niche: resolveNotebooklmNiche(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(
+          data.error || "Falha ao enviar resposta ao NotebookLM."
+        );
+      }
+      setNotebooklmSession((data.session as NotebooklmSession) || null);
+      const session = data.session as NotebooklmSession | undefined;
+      if (session?.readiness?.ready && !session?.awaitingUser) {
+        toast.success(
+          "Material suficiente — pode prosseguir com roteiro/narração."
+        );
+      } else {
+        toast.success("Resposta enviada — aguarde o NotebookLM.");
+      }
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Conexão falhou ao responder NotebookLM."
+      );
+    } finally {
+      setNotebooklmSessionLoading(false);
+    }
+  };
+
+  const handleNotebooklmProceed = async () => {
+    setNotebooklmSessionLoading(true);
+    try {
+      const res = await fetch(
+        getProjectUrl("/api/notebooklm/session/finalize"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ niche: resolveNotebooklmNiche() }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Falha ao finalizar sessão NotebookLM.");
+      }
+      const summary = String(
+        (data.session as NotebooklmSession)?.accumulatedSummary || ""
+      ).trim();
+      notebooklmAccumulatedRef.current = summary;
+      setNotebooklmSession(null);
+
+      const action = notebooklmProceedActionRef.current || "narration";
+      notebooklmProceedActionRef.current = null;
+
+      if (action === "improve" && narrationDraft.trim().length >= 40) {
+        await handleNotebooklmImproveNarrationDraft({ accumulated: summary });
+        toast.success("Pesquisa NotebookLM aplicada — melhorando narração.");
+        return;
+      }
+
+      const projectName =
+        creatorNarrationProjectRef.current ||
+        creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+      const basePayload =
+        creatorNarrationPayloadRef.current ||
+        buildCreatorScriptPayload("narration");
+      await runCreatorNarrationGeneration(
+        projectName,
+        {
+          ...basePayload,
+          notebooklmAccumulated: summary,
+          skipNotebooklmPending: true,
+        },
+        { toastId: "creator-nlm-proceed" }
+      );
+      toast.success("Pesquisa NotebookLM aplicada — gerando narração.");
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Falha ao prosseguir com NotebookLM."
+      );
+    } finally {
+      setNotebooklmSessionLoading(false);
+    }
   };
 
   const handleApproveNarrationAndGenerateScript = async () => {
@@ -10008,6 +10220,8 @@ export default function App() {
     handleMusicChange,
     handleNotebooklmImprove,
     handleNotebooklmImproveNarrationDraft,
+    handleNotebooklmReply,
+    handleNotebooklmProceed,
     handlePlanBgmEmotions,
     handlePostUploadComplete,
     handlePreRenderAutoFix,
@@ -10069,6 +10283,8 @@ export default function App() {
     newKeyword,
     nicheInput,
     notebooklmImproving,
+    notebooklmSession,
+    notebooklmSessionLoading,
     notebooklmStatus,
     notebooklmSuggestions,
     nvidiaKeyInput,

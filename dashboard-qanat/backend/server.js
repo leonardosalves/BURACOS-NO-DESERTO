@@ -237,6 +237,10 @@ import {
   startNotebooklmLogin,
   buildNotebooklmImproveApplyPrompt,
   buildNotebooklmNarrationEnrichPrompt,
+  handleNotebooklmSessionReply,
+  loadNotebooklmSession,
+  closeNotebooklmSession,
+  persistNotebooklmResearchSession,
 } from "./notebooklmService.js";
 import {
   fetchWebResearchForTopic,
@@ -16258,18 +16262,33 @@ app.post(
 
     const isPioneerFromIdea =
       idea?.pioneerNiche === true || Boolean(idea?.pioneerMeta);
+    const nlmNiche =
+      isPioneerFromIdea && niche === "Customized"
+        ? (idea?.title || idea?.promise || niche).trim().slice(0, 72)
+        : niche;
+    const notebooklmAccumulated = String(
+      req.body?.notebooklmAccumulated || ""
+    ).trim();
+    const skipNotebooklmPending = req.body?.skipNotebooklmPending === true;
+
     let notebooklmContext = "";
     let notebooklmResearch = null;
-    if (useNotebooklm !== false && !skipNotebooklmScript) {
+    if (notebooklmAccumulated) {
+      notebooklmContext = formatNotebooklmPromptBlock(
+        {
+          available: true,
+          summary: notebooklmAccumulated,
+          fallback: false,
+        },
+        "PESQUISA NOTEBOOKLM PARA ROTEIRO"
+      );
+      console.log(
+        "[NotebookLM] Usando pesquisa acumulada da sessão interativa."
+      );
+    } else if (useNotebooklm !== false && !skipNotebooklmScript) {
       report("notebooklm", "Consultando NotebookLM…", 18);
       try {
         console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
-        // Para ideias pioneer-niche (isCustom), niche="Customized" não localiza o notebook correto.
-        // Usamos o título/tema real da ideia para o NLM encontrar/criar o notebook certo.
-        const nlmNiche =
-          isPioneerFromIdea && niche === "Customized"
-            ? (idea?.title || idea?.promise || niche).trim().slice(0, 72)
-            : niche;
         notebooklmResearch = await fetchNotebooklmScriptContext({
           backendDir: __dirname,
           niche: nlmNiche,
@@ -16280,6 +16299,28 @@ app.post(
           listTopic: listicleTopic,
           rankOrder: rankOrder || "desc",
         });
+        if (
+          notebooklmResearch?.awaitingUser &&
+          !skipNotebooklmPending &&
+          scriptPhase === "narration"
+        ) {
+          const session = persistNotebooklmResearchSession({
+            research: notebooklmResearch,
+            niche: nlmNiche,
+            format,
+            purpose: "script",
+            projDir,
+            backendDir: __dirname,
+          });
+          report("notebooklm_pending", "NotebookLM aguarda sua resposta…", 22);
+          return res.json({
+            phase: "notebooklm_pending",
+            project: safeProjectName,
+            notebooklm_session: session,
+            message: notebooklmResearch.summary,
+            questions: session.questions || [],
+          });
+        }
         notebooklmContext = formatNotebooklmPromptBlock(
           notebooklmResearch,
           "PESQUISA NOTEBOOKLM PARA ROTEIRO"
@@ -17794,6 +17835,63 @@ app.get("/api/notebooklm/status", (_req, res) => {
   }
 });
 
+app.get("/api/notebooklm/session", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const niche = String(req.query?.niche || "").trim() || "documentário";
+    const session = loadNotebooklmSession({
+      projDir,
+      backendDir: __dirname,
+      niche,
+    });
+    if (!session) {
+      return res.json({ ok: true, session: null });
+    }
+    res.json({ ok: true, session });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post(
+  "/api/notebooklm/session/reply",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const niche = String(req.body?.niche || "documentário").trim();
+    const userReply = String(req.body?.reply || "").trim();
+    if (!userReply) {
+      return res.status(400).json({ error: "Resposta vazia." });
+    }
+    const session = await handleNotebooklmSessionReply({
+      projDir,
+      backendDir: __dirname,
+      niche,
+      userReply,
+    });
+    res.json({ ok: true, session });
+  })
+);
+
+app.post("/api/notebooklm/session/finalize", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const niche = String(req.body?.niche || "documentário").trim();
+    const session = closeNotebooklmSession({
+      projDir,
+      backendDir: __dirname,
+      niche,
+    });
+    if (!session) {
+      return res
+        .status(404)
+        .json({ error: "Sessão NotebookLM não encontrada." });
+    }
+    res.json({ ok: true, session });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post("/api/notebooklm/login", (_req, res) => {
   try {
     const result = startNotebooklmLogin(__dirname);
@@ -18018,7 +18116,20 @@ app.post(
     let notebooklmResearch = null;
     let notebooklmBlock = "";
 
-    if (useNotebooklm !== false) {
+    const notebooklmAccumulated = String(
+      req.body?.notebooklmAccumulated || ""
+    ).trim();
+
+    if (notebooklmAccumulated) {
+      notebooklmBlock = formatNotebooklmPromptBlock(
+        {
+          available: true,
+          summary: notebooklmAccumulated,
+          fallback: false,
+        },
+        "SUGESTÕES NOTEBOOKLM"
+      );
+    } else if (useNotebooklm !== false) {
       try {
         console.log(
           "[NotebookLM] Analisando draft de narração para melhorias (wizard)..."
@@ -18029,6 +18140,22 @@ app.post(
           format,
           narrativeScript,
         });
+        if (notebooklmResearch?.awaitingUser) {
+          const session = persistNotebooklmResearchSession({
+            research: notebooklmResearch,
+            niche,
+            format,
+            purpose: "improve",
+            projDir,
+            backendDir: __dirname,
+          });
+          return res.json({
+            phase: "notebooklm_pending",
+            notebooklm_session: session,
+            message: notebooklmResearch.summary,
+            questions: session.questions || [],
+          });
+        }
         notebooklmBlock = formatNotebooklmPromptBlock(
           notebooklmResearch,
           "SUGESTÕES NOTEBOOKLM"

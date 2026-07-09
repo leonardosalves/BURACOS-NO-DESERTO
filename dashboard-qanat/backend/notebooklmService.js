@@ -1,6 +1,27 @@
 import { spawn, spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import {
+  buildNotebooklmSessionFromResearch,
+  extractNotebooklmQuestions,
+  finalizeNotebooklmSession,
+  isNotebooklmAwaitingUser,
+  loadNotebooklmSession,
+  replyNotebooklmSession,
+  saveNotebooklmSession,
+  assessNotebooklmReadiness,
+} from "./notebooklmInteractive.js";
+
+export {
+  extractNotebooklmQuestions,
+  isNotebooklmAwaitingUser,
+  buildNotebooklmSessionFromResearch,
+  finalizeNotebooklmSession,
+  loadNotebooklmSession,
+  saveNotebooklmSession,
+  replyNotebooklmSession,
+  assessNotebooklmReadiness,
+};
 
 const QUERY_TIMEOUT_MS = Number(
   process.env.NOTEBOOKLM_QUERY_TIMEOUT_MS || 120000
@@ -631,17 +652,78 @@ async function runNotebooklmPipeline({
   }
 
   const answer = queryNotebook(notebookId, question, backendDir);
+  const summary = String(answer || "")
+    .trim()
+    .slice(0, 12000);
+  const awaitingUser = isNotebooklmAwaitingUser(summary);
+  const questions = extractNotebooklmQuestions(summary);
 
   return {
     available: true,
     topic: listTopic || idea?.title || niche,
-    summary: String(answer || "")
-      .trim()
-      .slice(0, 12000),
+    summary,
     notebookId,
     sources: ["NotebookLM query"],
     fallback: false,
+    awaitingUser,
+    questions,
+    researchDone: Boolean(runResearch),
+    initialQuestion: question,
   };
+}
+
+export async function handleNotebooklmSessionReply({
+  projDir,
+  backendDir,
+  niche,
+  userReply,
+}) {
+  const session = loadNotebooklmSession({ projDir, backendDir, niche }) || null;
+  if (!session?.notebookId) {
+    throw new Error(
+      "Sessão NotebookLM não encontrada para este projeto/nicho."
+    );
+  }
+
+  const { session: next } = await replyNotebooklmSession({
+    session,
+    userReply,
+    backendDir,
+    queryNotebook: (id, q, dir) => Promise.resolve(queryNotebook(id, q, dir)),
+    runResearch: (notebookId, query, dir, mode) =>
+      Promise.resolve(runOptionalFastResearch(notebookId, query, dir, mode)),
+  });
+
+  saveNotebooklmSession(next, { projDir, backendDir, niche });
+  return next;
+}
+
+export function persistNotebooklmResearchSession({
+  research,
+  niche,
+  format,
+  purpose,
+  projDir,
+  backendDir,
+}) {
+  const session = buildNotebooklmSessionFromResearch({
+    research,
+    niche,
+    format,
+    purpose,
+    notebookId: research?.notebookId,
+    initialQuestion: research?.initialQuestion,
+  });
+  saveNotebooklmSession(session, { projDir, backendDir, niche });
+  return session;
+}
+
+export function closeNotebooklmSession({ projDir, backendDir, niche }) {
+  const session = loadNotebooklmSession({ projDir, backendDir, niche });
+  if (!session) return null;
+  const finalized = finalizeNotebooklmSession(session);
+  saveNotebooklmSession(finalized, { projDir, backendDir, niche });
+  return finalized;
 }
 
 export async function fetchNotebooklmResearch(niche, format, options = {}) {
