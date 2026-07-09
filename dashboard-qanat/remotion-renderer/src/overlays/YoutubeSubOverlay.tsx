@@ -1,4 +1,11 @@
-import { spring, interpolate, useCurrentFrame, useVideoConfig, Img, staticFile } from "remotion";
+import {
+  spring,
+  interpolate,
+  useCurrentFrame,
+  useVideoConfig,
+  Img,
+  staticFile,
+} from "remotion";
 import React from "react";
 
 export type YoutubeChannelInfo = {
@@ -11,7 +18,11 @@ const PRESS_START_FRAME = 35;
 const PRESS_END_FRAME = 43;
 const SUBSCRIBE_SWITCH_FRAME = 47;
 
-function lerpColor(t: number, from: [number, number, number], to: [number, number, number]) {
+function lerpColor(
+  t: number,
+  from: [number, number, number],
+  to: [number, number, number]
+) {
   const clamped = Math.max(0, Math.min(1, t));
   const r = Math.round(from[0] + (to[0] - from[0]) * clamped);
   const g = Math.round(from[1] + (to[1] - from[1]) * clamped);
@@ -21,7 +32,8 @@ function lerpColor(t: number, from: [number, number, number], to: [number, numbe
 
 export const YoutubeSubOverlay: React.FC<{
   channelInfo: YoutubeChannelInfo | null;
-}> = ({ channelInfo }) => {
+  holdThroughEnd?: boolean;
+}> = ({ channelInfo, holdThroughEnd = false }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
@@ -32,7 +44,10 @@ export const YoutubeSubOverlay: React.FC<{
     if (!channelInfo?.avatarUrl) {
       return "https://yt3.googleusercontent.com/n3hcrupQPiDWs6_xADQ9zrdP69p3hAZo2C9re-cTc8fgipdZiOnNAGeakDxnyzd_11L5eYlsAQ=s900-c-k-c0x00ffffff-no-rj";
     }
-    if (channelInfo.avatarUrl.startsWith("http://") || channelInfo.avatarUrl.startsWith("https://")) {
+    if (
+      channelInfo.avatarUrl.startsWith("http://") ||
+      channelInfo.avatarUrl.startsWith("https://")
+    ) {
       return channelInfo.avatarUrl;
     }
     return staticFile(channelInfo.avatarUrl.replace(/\\/g, "/"));
@@ -53,7 +68,8 @@ export const YoutubeSubOverlay: React.FC<{
 
   let buttonScale = 1;
   if (frame >= PRESS_START_FRAME && frame < PRESS_END_FRAME) {
-    const pressProgress = (frame - PRESS_START_FRAME) / (PRESS_END_FRAME - PRESS_START_FRAME);
+    const pressProgress =
+      (frame - PRESS_START_FRAME) / (PRESS_END_FRAME - PRESS_START_FRAME);
     const eased = 1 - Math.pow(1 - pressProgress, 2);
     buttonScale = interpolate(eased, [0, 1], [1, 0.9]);
   } else if (frame >= PRESS_END_FRAME && frame < PRESS_END_FRAME + 14) {
@@ -89,10 +105,12 @@ export const YoutubeSubOverlay: React.FC<{
   );
 
   const fadeOutStart = Math.max(0, durationInFrames - 15);
-  const exitOpacity = interpolate(frame, [fadeOutStart, durationInFrames - 1], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const exitOpacity = holdThroughEnd
+    ? 1
+    : interpolate(frame, [fadeOutStart, durationInFrames - 1], [1, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      });
 
   const finalOpacity = Math.min(cardOpacity, exitOpacity);
 
@@ -119,7 +137,15 @@ export const YoutubeSubOverlay: React.FC<{
         zIndex: 100,
       }}
     >
-      <div style={{ display: "flex", flexDirection: "row", alignItems: "center", minWidth: 0, flex: 1 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          minWidth: 0,
+          flex: 1,
+        }}
+      >
         <div
           style={{
             width: "68px",
@@ -144,7 +170,14 @@ export const YoutubeSubOverlay: React.FC<{
             }}
           />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", textAlign: "left", minWidth: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            textAlign: "left",
+            minWidth: 0,
+          }}
+        >
           <span
             style={{
               fontSize: "20px",
@@ -219,7 +252,13 @@ export const YoutubeSubOverlay: React.FC<{
             width: "100%",
           }}
         >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ flexShrink: 0 }}>
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="currentColor"
+            style={{ flexShrink: 0 }}
+          >
             <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
           </svg>
           Inscrito

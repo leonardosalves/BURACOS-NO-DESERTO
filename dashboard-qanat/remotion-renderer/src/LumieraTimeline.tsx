@@ -364,28 +364,7 @@ const SceneMedia: React.FC<{
     }
   }
 
-  // Fade out at the very end of the video (logo outro)
-
-  const isLastScene = isLogo;
-
-  if (isLastScene) {
-    const fadeOutStart = durationFrames - 10;
-
-    if (frame > fadeOutStart) {
-      const fadeOutOpacity = interpolate(
-        frame,
-        [fadeOutStart, durationFrames],
-        [1, 0],
-        {
-          extrapolateLeft: "clamp",
-
-          extrapolateRight: "clamp",
-        }
-      );
-
-      opacity = Math.min(opacity, fadeOutOpacity);
-    }
-  }
+  // Logo outro permanece visível até o fim — o card de inscrição fica em layer separado.
 
   // 3. Custom Transitions (alternate based on index)
 
@@ -977,7 +956,7 @@ const CaptionLayer: React.FC<{
               : "0 72px 240px"
             : "0 180px 70px",
         pointerEvents: "none",
-        zIndex: 90,
+        zIndex: 1050,
       }}
     >
       <div
@@ -1694,15 +1673,6 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
         </AbsoluteFill>
       )}
 
-      <CaptionLayer
-        captions={captions}
-        captionStyle={captionStyle}
-        captionMode={captionMode}
-        captionEffect={captionEffect}
-        captionBgmPulse={isShort && shortsCaptionBgmPulse}
-        accentColor={accentColor}
-      />
-
       {blockProgressBar?.enabled && blockProgressBar.blocks?.length ? (
         <BlockProgressBar
           totalDuration={blockProgressBar.totalDuration || totalDuration}
@@ -1729,13 +1699,27 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
         <OverlayLayer overlays={topOverlays} />
       </AbsoluteFill>
 
+      <CaptionLayer
+        captions={captions}
+        captionStyle={captionStyle}
+        captionMode={captionMode}
+        captionEffect={captionEffect}
+        captionBgmPulse={isShort && shortsCaptionBgmPulse}
+        accentColor={accentColor}
+      />
+
       {isLastSceneLogo && youtubeChannelInfo && (
         <Sequence
           from={Math.round(lastScene.start * fps)}
           durationInFrames={Math.max(1, Math.round(lastScene.duration * fps))}
           premountFor={fps}
         >
-          <YoutubeSubOverlay channelInfo={youtubeChannelInfo} />
+          <AbsoluteFill style={{ zIndex: 1100, pointerEvents: "none" }}>
+            <YoutubeSubOverlay
+              channelInfo={youtubeChannelInfo}
+              holdThroughEnd
+            />
+          </AbsoluteFill>
         </Sequence>
       )}
     </AbsoluteFill>

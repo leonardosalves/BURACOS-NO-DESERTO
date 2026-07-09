@@ -166,8 +166,11 @@ import {
   buildOverlaysFromStudio,
   buildCaptionsFromStudio,
   resolveStudioTotalDuration,
+  resolveScenesTimelineEnd,
   resolveStudioFormat,
 } from "./timelineStudioRenderSync.js";
+
+const LOGO_OUTRO_DURATION_SEC = 4.5;
 import { applyNarrationSyncToProject } from "./timelineStudioMigration.js";
 import { registerVideoResurrectorRoutes } from "./videoResurrectorRoutes.js";
 import { registerSocialPublishRoutes } from "./socialPublishRoutes.js";
@@ -8313,7 +8316,7 @@ async function prepareRemotionRender(
 
         start: totalDurationBeforeLogo,
 
-        duration: 3.0,
+        duration: LOGO_OUTRO_DURATION_SEC,
 
         narrationText: "",
 
@@ -8323,11 +8326,16 @@ async function prepareRemotionRender(
   }
 
   const totalDuration = useStudioRender
-    ? resolveStudioTotalDuration(timelineStudio, validScenes, narrationDuration)
+    ? resolveStudioTotalDuration(
+        timelineStudio,
+        validScenes,
+        narrationDuration,
+        0.25
+      )
     : Math.max(
         Number(timings.total_duration || 0),
 
-        ...validScenes.map((scene) => scene.start + scene.duration),
+        resolveScenesTimelineEnd(validScenes),
 
         narrationDuration,
 
@@ -8588,6 +8596,9 @@ async function prepareRemotionRender(
   if (useStudioRender) {
     rawCaptions = buildCaptionsFromStudio(timelineStudio);
     if (rawCaptions.length === 0) {
+      rawCaptions = captionsFromWordTranscripts(wordTranscripts);
+    }
+    if (rawCaptions.length === 0) {
       rawCaptions = fallbackCaptionsFromScenes(validScenes);
     }
   } else {
@@ -8596,9 +8607,13 @@ async function prepareRemotionRender(
       captions.length > 0 ? captions : fallbackCaptionsFromScenes(validScenes);
   }
 
+  const captionMaxDuration = Math.max(
+    Number(narrationDuration) || 0,
+    Number(totalDuration) || 0
+  );
   const finalCaptions = sanitizeCaptionsForRemotion(
     rawCaptions,
-    narrationDuration || totalDuration
+    captionMaxDuration
   );
 
   const format = useStudioRender
