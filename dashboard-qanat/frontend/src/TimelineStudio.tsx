@@ -369,7 +369,8 @@ export function TimelineStudio({
         toast.error(`Erro ao carregar timeline: ${detail}`);
         return null;
       } finally {
-        if (!opts?.silent) setLoading(false);
+        // silent só suprime toasts — sempre libera o spinner (F5/recarregar).
+        setLoading(false);
       }
     },
     [activeProject, applyStudioFromServer, getProjectUrl]
