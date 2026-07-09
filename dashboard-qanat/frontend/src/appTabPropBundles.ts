@@ -135,6 +135,10 @@ export function buildAppTabPropBundles(
       ctx.handleGenerateYoutubeThumbnailImages,
     handleNotebooklmImproveNarrationDraft:
       ctx.handleNotebooklmImproveNarrationDraft,
+    handleNotebooklmReply: ctx.handleNotebooklmReply,
+    handleNotebooklmProceed: ctx.handleNotebooklmProceed,
+    notebooklmSession: ctx.notebooklmSession,
+    notebooklmSessionLoading: ctx.notebooklmSessionLoading,
     handleRemoveSceneAsset: ctx.handleRemoveSceneAsset,
     handleSaveConfig: ctx.handleSaveConfig,
     handleSuggestListicleRankings: ctx.handleSuggestListicleRankings,

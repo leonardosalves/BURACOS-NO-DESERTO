@@ -47,6 +47,7 @@ export type WizardSession = {
   narrationBlockScript: string;
   narrationNotebooklmEnriched: boolean;
   narrationProjectName: string;
+  notebooklmSession?: unknown;
   useNotebooklm: boolean;
   useDeepResearch: boolean;
   motionTemplatePackEnabled?: boolean;
@@ -217,6 +218,10 @@ export function saveWizardSession(patch: WizardSessionPatch): WizardSession {
       false,
     narrationProjectName:
       patch.narrationProjectName ?? prev.narrationProjectName ?? "",
+    notebooklmSession:
+      patch.notebooklmSession !== undefined
+        ? patch.notebooklmSession
+        : (prev.notebooklmSession ?? null),
     useNotebooklm: patch.useNotebooklm ?? prev.useNotebooklm ?? true,
     useDeepResearch: patch.useDeepResearch ?? prev.useDeepResearch ?? true,
     uploadedScenes: patch.uploadedScenes ?? prev.uploadedScenes ?? {},
@@ -287,6 +292,7 @@ export function buildEmptyWizardSession(activeTab = "creator"): WizardSession {
     narrationBlockScript: "",
     narrationNotebooklmEnriched: false,
     narrationProjectName: "",
+    notebooklmSession: null,
     useNotebooklm: true,
     useDeepResearch: true,
     uploadedScenes: {},

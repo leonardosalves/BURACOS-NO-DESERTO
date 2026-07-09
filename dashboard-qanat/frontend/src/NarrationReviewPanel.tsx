@@ -14,6 +14,10 @@ import {
   mergeNicheLists,
   normalizeNicheLabel,
 } from "@lumiera/shared/remotionTemplateNiches.js";
+import {
+  NotebooklmEnrichmentPanel,
+  type NotebooklmSession,
+} from "./NotebooklmEnrichmentPanel";
 
 type BlockPhrase = { block: number; phrase: string };
 
@@ -54,6 +58,10 @@ type Props = {
   onRegenerate: () => void;
   onApprove: () => void;
   onNotebooklmImprove?: () => void;
+  notebooklmSession?: NotebooklmSession | null;
+  notebooklmSessionLoading?: boolean;
+  onNotebooklmReply?: (reply: string) => Promise<void>;
+  onNotebooklmProceed?: () => Promise<void>;
 };
 
 function splitBlockParagraphs(blockScript?: string) {
@@ -97,6 +105,10 @@ export function NarrationReviewPanel({
   onRegenerate,
   onApprove,
   onNotebooklmImprove,
+  notebooklmSession,
+  notebooklmSessionLoading = false,
+  onNotebooklmReply,
+  onNotebooklmProceed,
 }: Props) {
   const [catalogTemplates, setCatalogTemplates] = useState<CatalogTemplate[]>(
     []
@@ -273,8 +285,23 @@ export function NarrationReviewPanel({
     onMotionTemplatePackEnabledChange,
   ]);
 
+  const showNotebooklmPanel =
+    notebooklmSession &&
+    (notebooklmSession.awaitingUser ||
+      notebooklmSession.status === "pending_user" ||
+      (notebooklmSession.questions?.length ?? 0) > 0);
+
   return (
     <div className="mt-6 border border-gold-500/25 bg-gold-500/5 rounded-2xl p-5 space-y-4 font-sans">
+      {showNotebooklmPanel && onNotebooklmReply && onNotebooklmProceed && (
+        <NotebooklmEnrichmentPanel
+          session={notebooklmSession}
+          loading={notebooklmSessionLoading}
+          onReply={onNotebooklmReply}
+          onProceed={onNotebooklmProceed}
+        />
+      )}
+
       <div className="flex items-start gap-3">
         <div className="p-2 rounded-xl bg-gold-500/15 border border-gold-500/20">
           <Mic className="w-4 h-4 text-gold-400" />
