@@ -19,11 +19,18 @@ import {
 } from "../shared/remotionTemplateNiches.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CATALOG_PATH = path.join(
+const DEFAULT_CATALOG_PATH = path.join(
   __dirname,
   "data",
   "remotion-template-catalog.json"
 );
+
+function getCatalogPath() {
+  const override = String(
+    process.env.LUMIERA_TEMPLATE_CATALOG_PATH || ""
+  ).trim();
+  return override || DEFAULT_CATALOG_PATH;
+}
 
 function pickCanonicalNicheLabel(current = "", candidate = "") {
   const cur = String(current || "").trim();
@@ -77,9 +84,10 @@ function canonicalizeCatalogNiches(catalog = {}) {
 
 function readCatalogFile() {
   try {
-    if (fs.existsSync(CATALOG_PATH)) {
+    const catalogPath = getCatalogPath();
+    if (fs.existsSync(catalogPath)) {
       return canonicalizeCatalogNiches(
-        JSON.parse(fs.readFileSync(CATALOG_PATH, "utf8")) || {}
+        JSON.parse(fs.readFileSync(catalogPath, "utf8")) || {}
       );
     }
   } catch {
@@ -89,10 +97,11 @@ function readCatalogFile() {
 }
 
 function writeCatalogFile(data) {
-  const dir = path.dirname(CATALOG_PATH);
+  const catalogPath = getCatalogPath();
+  const dir = path.dirname(catalogPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   canonicalizeCatalogNiches(data);
-  fs.writeFileSync(CATALOG_PATH, JSON.stringify(data, null, 2), "utf8");
+  fs.writeFileSync(catalogPath, JSON.stringify(data, null, 2), "utf8");
 }
 
 export { mapStudioTemplateToMotionId };

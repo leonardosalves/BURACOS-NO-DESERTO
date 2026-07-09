@@ -1,5 +1,8 @@
-import { describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import fs from "fs";
+import os from "os";
+import path from "path";
 import {
   attachStudioTemplateToScene,
   createCatalogNiche,
@@ -26,10 +29,28 @@ export default function BridgeSample() {
 }`;
 
 const TEST_NICHE = "__test_studio_bridge__";
+const TEST_CATALOG_PATH = path.join(
+  os.tmpdir(),
+  `lumiera-catalog-test-${process.pid}.json`
+);
+
+before(() => {
+  process.env.LUMIERA_TEMPLATE_CATALOG_PATH = TEST_CATALOG_PATH;
+  fs.writeFileSync(TEST_CATALOG_PATH, JSON.stringify({ niches: {} }), "utf8");
+});
+
+after(() => {
+  delete process.env.LUMIERA_TEMPLATE_CATALOG_PATH;
+  try {
+    fs.unlinkSync(TEST_CATALOG_PATH);
+  } catch {
+    /* ignore */
+  }
+});
 
 describe("remotionTemplateCatalogService bridge", () => {
   it("ignora templates seed legados no sync", () => {
-    const result = syncCatalogForNiche("Engenharia", [
+    const result = syncCatalogForNiche("__test_legacy_eng__", [
       {
         id: LEGACY_SEED_TEMPLATE_IDS[0],
         name: "Engineering Bar Grid",
@@ -138,6 +159,7 @@ describe("remotionTemplateCatalogService bridge", () => {
     const upper = getCatalogForNiche("ENGENHARIA");
     assert.equal(upper.templates.length, 1);
     assert.equal(upper.templates[0].id, "eng-case-test");
+    syncCatalogForNiche("Engenharia", []);
   });
 
   it("sync persiste sourceCode e pick escolhe template do nicho", () => {
