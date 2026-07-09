@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   mergeStudioRenderProps,
   isGeoPipCompositeProps,
+  isGeoPipShortMode,
+  stripGeoPipMapMediaForTemplateProps,
 } from "./studioTemplateRenderProps.js";
 
 describe("studioTemplateRenderProps", () => {
@@ -47,5 +49,51 @@ describe("studioTemplateRenderProps", () => {
       true
     );
     assert.equal(isGeoPipCompositeProps({ location: "Brasil" }), false);
+  });
+
+  it("isGeoPipShortMode ativa PIP global em 9:16 com geo_pip_composite", () => {
+    assert.equal(
+      isGeoPipShortMode({
+        aspect_ratio: "9:16",
+        geo_pip_composite: true,
+        flyover_video: "ASSETS/satellite/x.mp4",
+      }),
+      true
+    );
+    assert.equal(
+      isGeoPipShortMode({
+        aspect_ratio: "16:9",
+        geo_pip_composite: true,
+      }),
+      false
+    );
+  });
+
+  it("mergeStudioRenderProps remove flyover do template em modo PIP short", () => {
+    const merged = mergeStudioRenderProps({
+      inputProps: {
+        geo_pip_composite: true,
+        aspect_ratio: "9:16",
+        flyover_video: "ASSETS/satellite/map.mp4",
+        referencePoint: "Palmanova",
+        sectorLabel: "Fortaleza estelar",
+      },
+      exampleProps: { durationInFrames: 90 },
+      durationInFrames: 240,
+      fps: 30,
+    });
+    assert.equal(merged.flyover_video, undefined);
+    assert.equal(merged.referencePoint, "Palmanova");
+    assert.equal(merged.sectorLabel, "Fortaleza estelar");
+  });
+
+  it("stripGeoPipMapMediaForTemplateProps remove midia de mapa", () => {
+    const stripped = stripGeoPipMapMediaForTemplateProps({
+      flyover_video: "x.mp4",
+      backgroundImage: "a.jpg",
+      referencePoint: "Roma",
+    });
+    assert.equal(stripped.flyover_video, undefined);
+    assert.equal(stripped.referencePoint, "Roma");
   });
 });

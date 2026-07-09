@@ -16,6 +16,7 @@ import {
 } from "./timelineStudioMigration.js";
 import { studioMotionClipToMotionScene } from "./timelineStudioNichePacks.js";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
+import { GEO_PIP_MEDIA_WINDOW_9x16 } from "../shared/geoPipStudioTemplate.js";
 import { buildGeoPipOverlayStudioProps } from "../shared/geoPipSceneText.js";
 import { remotionClipFingerprint } from "../shared/timelineStudioRemotionSuppress.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
@@ -63,7 +64,17 @@ function applyGeoPipFlyoverBinding(target = {}, { relPath, durationSec, storyboa
     flyover_video: relPath,
     map_provider: props.map_provider || "ai_t2v",
     geo_generation: props.geo_generation || "ai_prompt",
-    referencePoint: overlay.referencePoint || props.referencePoint,
+    geo_pip_composite: true,
+    geo_pip_mode: props.geo_pip_mode || "image-media-pip",
+    geo_pip_window: props.geo_pip_window || GEO_PIP_MEDIA_WINDOW_9x16,
+    presentation: "pip",
+    layout: "pip",
+    aspect_ratio: String(props.aspect_ratio || "9:16"),
+    referencePoint:
+      overlay.referencePoint ||
+      props.referencePoint ||
+      props.location ||
+      props.country,
     scene_subject: overlay.scene_subject || props.scene_subject,
   };
 

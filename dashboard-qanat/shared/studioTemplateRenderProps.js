@@ -3,6 +3,43 @@ import {
   TEMPLATE_STRUCTURAL_PROP_KEYS,
 } from "./studioTemplatePlaceholder.js";
 
+/** Mídia do mapa/voo — só na camada PIP, nunca no componente TSX do template. */
+export const GEO_PIP_MAP_MEDIA_KEYS = [
+  "flyover_video",
+  "backgroundImage",
+  "backgroundImageWide",
+];
+
+/** Short 9:16 com mapa/vídeo geo no quadradinho PIP (global, todos os projetos). */
+export function isGeoPipShortMode(props = {}) {
+  const aspect = String(props.aspect_ratio || "16:9").trim();
+  if (aspect !== "9:16") return false;
+  if (props.geo_pip_composite) return true;
+  if (String(props.geo_pip_mode || "").includes("pip")) return true;
+  const pres = String(props.presentation || props.layout || "").trim();
+  if (pres === "pip") return true;
+  return isGeoPipCompositeProps(props);
+}
+
+/** Remove mídia de mapa das props do template (fica só no slot PIP / B-roll atrás). */
+export function stripGeoPipMapMediaForTemplateProps(props = {}) {
+  if (!props || typeof props !== "object") return props;
+  const out = { ...props };
+  for (const key of GEO_PIP_MAP_MEDIA_KEYS) {
+    if (key in out) delete out[key];
+  }
+  return out;
+}
+
+export function pickGeoPipMapMediaProps(props = {}) {
+  const src = props && typeof props === "object" ? props : {};
+  return {
+    flyover_video: String(src.flyover_video || "").trim(),
+    backgroundImage: String(src.backgroundImage || "").trim(),
+    backgroundImageWide: String(src.backgroundImageWide || "").trim(),
+  };
+}
+
 /** Remove metadados de orquestração antes de passar props ao componente Studio. */
 export function sanitizeStudioRenderProps(props = {}) {
   const skip = new Set([
@@ -94,6 +131,11 @@ export function mergeStudioRenderProps({
   }
 
   out.fps = Number.isFinite(Number(fps)) && Number(fps) > 0 ? Number(fps) : 30;
+
+  if (isGeoPipShortMode(inputProps)) {
+    return stripGeoPipMapMediaForTemplateProps(out);
+  }
+
   return out;
 }
 

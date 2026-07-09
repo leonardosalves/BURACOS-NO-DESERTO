@@ -61,30 +61,61 @@ export function extractSceneSubject(narration = "", maxLen = 72) {
   return out || cleaned.slice(0, maxLen).trim();
 }
 
-/** Rótulo do ponto de referência — país ou local do vídeo geo. */
-export function resolveGeoPipReferenceLabel(props = {}) {
-  const country = String(props.country || "").trim();
-  const location = String(props.location || "").trim();
-  const region = String(props.region || "").trim();
-  const ref = String(props.referencePoint || "").trim();
-  if (country) return country;
-  if (location) return location;
-  if (region) return region;
-  return ref;
+function isGenericLocationPlaceholder(value = "") {
+  const t = String(value || "")
+    .trim()
+    .toUpperCase();
+  if (!t) return true;
+  return (
+    t === "LOCAL" ||
+    t === "PIP LOCALIZAÇÃO" ||
+    /^MAPA\s*[·•]/.test(t) ||
+    /^(LOREM|PLACEHOLDER|EXEMPLO|SAMPLE)$/.test(t)
+  );
 }
 
-/** Texto do setor/assunto abaixo do PIP — tema do trecho narrado. */
+/** Local real da cena geo (IA/orquestração) — ordem: referência → local → país → região. */
+export function resolveGeoPipReferenceLabel(props = {}) {
+  const studio = props.studio_props || {};
+  const candidates = [
+    props.referencePoint,
+    studio.referencePoint,
+    props.location,
+    studio.location,
+    props.country,
+    studio.country,
+    props.region,
+    studio.region,
+  ];
+  for (const raw of candidates) {
+    const v = String(raw || "").trim();
+    if (v && !isGenericLocationPlaceholder(v)) return v;
+  }
+  return "";
+}
+
+/** Texto do setor/assunto abaixo do PIP — IA ou trecho narrado (não legenda). */
 export function resolveGeoPipSectorLabel(props = {}, narration = "") {
-  const fromProps = String(
-    props.sectorLabel ||
-      props.structuralSector ||
-      props.panelLabel ||
-      props.statusText ||
-      props.descriptorText ||
-      props.scene_subject ||
-      ""
-  ).trim();
-  if (fromProps && !isGenericSectorPlaceholder(fromProps)) return fromProps;
+  const studio = props.studio_props || {};
+  const fromProps = [
+    props.scene_subject,
+    studio.scene_subject,
+    props.sectorLabel,
+    studio.sectorLabel,
+    props.structuralSector,
+    studio.structuralSector,
+    props.panelLabel,
+    studio.panelLabel,
+    props.statusText,
+    studio.statusText,
+    props.descriptorText,
+    studio.descriptorText,
+    props.subtitle,
+    studio.subtitle,
+  ]
+    .map((v) => String(v || "").trim())
+    .find((v) => v && !isGenericSectorPlaceholder(v));
+  if (fromProps) return fromProps;
 
   const narr = String(narration || props.narration_text || "").trim();
   const subject = extractSceneSubject(narr);
@@ -157,6 +188,14 @@ export function buildGeoPipOverlayStudioProps(
     if (!key || value === undefined || value === null) return;
     const clean = String(value).trim();
     if (!clean) return;
+    const existing = String(studio[key] ?? props[key] ?? "").trim();
+    if (
+      existing &&
+      !isGenericSectorPlaceholder(existing) &&
+      !isGenericLocationPlaceholder(existing)
+    ) {
+      return;
+    }
     studio[key] = clean;
     if (!filled.includes(key)) filled.push(key);
   };

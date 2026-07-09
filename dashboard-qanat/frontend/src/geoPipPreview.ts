@@ -1,6 +1,10 @@
 import { GEO_PIP_MEDIA_WINDOW_9x16 } from "../../shared/geoPipStudioTemplate.js";
+import {
+  isGeoPipShortMode,
+  stripGeoPipMapMediaForTemplateProps,
+} from "@lumiera/shared/studioTemplateRenderProps.js";
 
-export { GEO_PIP_MEDIA_WINDOW_9x16 };
+export { GEO_PIP_MEDIA_WINDOW_9x16, stripGeoPipMapMediaForTemplateProps };
 
 export type GeoPipWindow = {
   leftPct?: number;
@@ -29,8 +33,7 @@ export function resolveGeoPipWindowRect(
   };
 }
 
+/** Short 9:16 — vídeo geo só no quadradinho PIP, B-roll atrás. */
 export function isGeoMediaPipPreview(props: Record<string, unknown> = {}) {
-  const aspect = String(props.aspect_ratio || "");
-  const presentation = String(props.presentation || props.layout || "");
-  return aspect === "9:16" && presentation === "pip";
+  return isGeoPipShortMode(props);
 }

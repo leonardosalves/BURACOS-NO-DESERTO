@@ -1152,11 +1152,15 @@ export function motionScenesToMotionClips(motionScenes = []) {
               : ms.layout ||
                 resolveLayoutForTemplate(ms.template_id, ms.trigger),
         presentation:
-          ms.template_id === "location-intro" || ms.template_id === "geo-map"
-            ? "fullscreen"
-            : FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))
+          ms.props?.geo_pip_composite ||
+          (ms.props?.aspect_ratio === "9:16" &&
+            (ms.props?.presentation === "pip" || ms.layout === "pip"))
+            ? ms.props?.presentation || ms.layout || "pip"
+            : ms.template_id === "location-intro" || ms.template_id === "geo-map"
               ? "fullscreen"
-              : ms.props?.presentation,
+              : FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))
+                ? "fullscreen"
+                : ms.props?.presentation,
         motion_quality_ok: ms.quality?.ok !== false,
         motion_quality_score: Number(ms.quality?.score) || 100,
         trigger: ms.trigger,
