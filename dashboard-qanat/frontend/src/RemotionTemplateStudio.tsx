@@ -18,6 +18,7 @@ import {
   mergeNicheLists,
   normalizeNicheLabel,
 } from "@lumiera/shared/remotionTemplateNiches.js";
+import { hasRunnableStudioSource } from "@lumiera/shared/remotionTemplateStudioCatalog.js";
 import {
   isLegacySeedTemplateId,
   LEGACY_SEED_TEMPLATE_IDS,
@@ -1019,7 +1020,9 @@ function readStoredCategoriesRaw(): TemplateCategoryDefinition[] {
 }
 
 function purgeLegacyTemplatesFromList(templates: TemplateItem[]) {
-  return templates.filter((tpl) => !isLegacySeedTemplateId(tpl.id));
+  return templates
+    .filter((tpl) => !isLegacySeedTemplateId(tpl.id))
+    .filter((tpl) => hasRunnableStudioSource(tpl.sourceCode));
 }
 
 function matchesStudioNiche(templateNiche = "", activeNiche = "") {

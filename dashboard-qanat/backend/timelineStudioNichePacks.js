@@ -165,9 +165,7 @@ export const NICHE_PACK_CATALOG = [
 export function listNichePackCatalog() {
   return NICHE_PACK_CATALOG.map((pack) => ({
     ...pack,
-    templates: pack.templateIds
-      .map((id) => STUDIO_TEMPLATE_DEFS[id])
-      .filter(Boolean),
+    templates: [],
   }));
 }
 
@@ -205,29 +203,9 @@ export function buildStudioCatalogMotionClip({
   };
 }
 
-export function buildStudioOverlayClip({
-  templateId,
-  playhead = 0,
-  props = {},
-  duration,
-  label,
-}) {
-  const def = STUDIO_TEMPLATE_DEFS[templateId];
-  if (!def) return null;
-
-  const mergedProps = { ...def.defaultProps, ...props };
-  const dur = duration ?? def.duration ?? 4;
-
-  return {
-    id: `overlay-${templateId}-${Date.now()}`,
-    trackId: "overlays",
-    start: Math.max(0, Number(playhead) || 0),
-    duration: dur,
-    label: label || def.label,
-    templateId: def.templateId,
-    props: { ...mergedProps, overlayType: def.templateId },
-    color: def.color || "#00897B",
-  };
+/** Modo legado desativado — use Template Studio com studio_source_code. */
+export function buildStudioOverlayClip() {
+  return null;
 }
 
 export function resolvePackByAlias(text = "") {

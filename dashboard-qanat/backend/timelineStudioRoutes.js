@@ -24,6 +24,7 @@ import {
 import { handleTimelineStudioAsk } from "./timelineStudioAsk.js";
 import { renderTimelineStudioFinalFrame } from "./timelineStudioFinalFrame.js";
 import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
+import { stripLegacyStudioOverlayClips } from "../shared/timelineStudioLegacyStrip.js";
 import fs from "fs";
 import path from "path";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
@@ -198,6 +199,14 @@ export function registerTimelineStudioRoutes(
         saveTimelineStudio(projDir, studio);
       }
 
+      const legacyStrip = stripLegacyStudioOverlayClips(studio.clips || []);
+      let legacyStripped = 0;
+      if (legacyStrip.removed > 0) {
+        studio = { ...studio, clips: legacyStrip.clips };
+        legacyStripped = legacyStrip.removed;
+        saveTimelineStudio(projDir, studio);
+      }
+
       res.json({
         ok: true,
         studio,
@@ -209,6 +218,7 @@ export function registerTimelineStudioRoutes(
         brollRestored,
         remotionRestored,
         motionSynced,
+        legacyStripped,
         projectResolved: projectCtx.resolved !== false,
         requestedProject: projectCtx.requestedName || null,
         resolvedProject: projectCtx.resolvedName || null,
@@ -231,7 +241,12 @@ export function registerTimelineStudioRoutes(
       const { studio: previousStudio } = loadTimelineStudio(projDir);
       const withNarration = applyNarrationSyncToProject(projDir, studio).studio;
       const synced = syncStudioMusicFromConfig(withNarration, projDir);
-      const saved = finalizeStudioForDisk(projDir, synced, {
+      const legacyStrip = stripLegacyStudioOverlayClips(synced.clips || []);
+      const strippedStudio =
+        legacyStrip.removed > 0
+          ? { ...synced, clips: legacyStrip.clips }
+          : synced;
+      const saved = finalizeStudioForDisk(projDir, strippedStudio, {
         previousStudio,
         mergeStoryboard: false,
       });

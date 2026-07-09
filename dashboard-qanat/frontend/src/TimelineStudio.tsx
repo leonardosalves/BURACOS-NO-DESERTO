@@ -31,6 +31,10 @@ import {
   expandDeletedClipSuppressions,
   isRemotionStudioClip,
 } from "@lumiera/shared/timelineStudioRemotionSuppress.js";
+import {
+  isLegacyStudioOverlayClip,
+  stripLegacyStudioOverlayClips,
+} from "@lumiera/shared/timelineStudioLegacyStrip.js";
 
 import {
   activeCaptionAt,
@@ -242,11 +246,20 @@ export function TimelineStudio({
       raw: TimelineStudioState,
       { focusRemotion = false }: { focusRemotion?: boolean } = {}
     ): TimelineStudioState => {
+      const stripped = stripLegacyStudioOverlayClips(raw.clips || []);
       let loaded = normalizeGeoMotionClips(
         ensureMotionTrackInStudio(
-          upsertMusicClipInStudio(raw, configRef.current)
+          upsertMusicClipInStudio(
+            stripped.removed > 0 ? { ...raw, clips: stripped.clips } : raw,
+            configRef.current
+          )
         )
       );
+      if (stripped.removed > 0) {
+        toast.success(
+          `${stripped.removed} template(s) legado(s) removido(s) da timeline`
+        );
+      }
       if (focusRemotion) {
         loaded = focusFirstRemotionClip(loaded);
         const motion = clipsOnTrack(loaded.clips, "motion");
@@ -333,6 +346,11 @@ export function TimelineStudio({
             toast.success("Narração e legendas sincronizadas na timeline", {
               duration: 4000,
             });
+          }
+          if (Number(data.legacyStripped) > 0) {
+            toast.success(
+              `${data.legacyStripped} template(s) legado(s) removido(s)`
+            );
           }
         }
         initialLoadDoneRef.current = true;
@@ -585,7 +603,13 @@ export function TimelineStudio({
 
       for (const act of actions) {
         if (act.type === "add_overlay") {
-          addClipToStudio(act.clip);
+          if (act.clip && !isLegacyStudioOverlayClip(act.clip)) {
+            addClipToStudio(act.clip);
+          } else {
+            toast.error(
+              "Templates legados removidos — use Template Studio (botoes roxos)."
+            );
+          }
         } else if (act.type === "set_niche_pack") {
           updateStudio({ niche_pack: act.niche_pack });
           toast.success(`Pacote: ${act.niche_pack}`);
