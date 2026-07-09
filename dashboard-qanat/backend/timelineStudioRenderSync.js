@@ -94,6 +94,23 @@ function copyRelAssetToPublic(
   return copied ? `projects/${projectSlug}/${copied}` : rel;
 }
 
+const MOTION_TOP_MEDIA_KEYS = [
+  "backgroundImage",
+  "backgroundImageWide",
+  "boundaryGeoJson",
+  "flyover_video",
+  "pipMediaUrl",
+  "mainMediaUrl",
+];
+
+const MOTION_STUDIO_PROPS_MEDIA_KEYS = [
+  "pipMediaUrl",
+  "mainMediaUrl",
+  "flyover_video",
+  "backgroundImage",
+  "backgroundImageWide",
+];
+
 export function copyMotionPropsAssets(
   props = {},
   {
@@ -114,14 +131,46 @@ export function copyMotionPropsAssets(
     findProjectFile,
   };
 
-  for (const key of [
-    "backgroundImage",
-    "backgroundImageWide",
-    "boundaryGeoJson",
-    "flyover_video",
-  ]) {
+  for (const key of MOTION_TOP_MEDIA_KEYS) {
     const copied = copyRelAssetToPublic(p[key], assetCtx, `${prefix}${key}_`);
     if (copied) p[key] = copied;
+  }
+
+  if (p.studio_props && typeof p.studio_props === "object") {
+    const studioProps = { ...p.studio_props };
+    let studioChanged = false;
+    for (const key of MOTION_STUDIO_PROPS_MEDIA_KEYS) {
+      const copied = copyRelAssetToPublic(
+        studioProps[key],
+        assetCtx,
+        `${prefix}sp_${key}_`
+      );
+      if (copied && copied !== studioProps[key]) {
+        studioProps[key] = copied;
+        studioChanged = true;
+      }
+    }
+    if (studioChanged) p.studio_props = studioProps;
+  }
+
+  const publicFlyover = String(p.flyover_video || "").trim();
+  if (publicFlyover.startsWith("projects/")) {
+    for (const key of ["pipMediaUrl", "mainMediaUrl"]) {
+      const current = String(p[key] || "").trim();
+      if (!current || current.startsWith("ASSETS/")) p[key] = publicFlyover;
+    }
+    if (p.studio_props && typeof p.studio_props === "object") {
+      const studioProps = { ...p.studio_props };
+      let studioChanged = false;
+      for (const key of ["pipMediaUrl", "mainMediaUrl"]) {
+        const current = String(studioProps[key] || "").trim();
+        if (!current || current.startsWith("ASSETS/")) {
+          studioProps[key] = publicFlyover;
+          studioChanged = true;
+        }
+      }
+      if (studioChanged) p.studio_props = studioProps;
+    }
   }
 
   if (Array.isArray(p.zoom_keyframes)) {

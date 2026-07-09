@@ -162,6 +162,48 @@ describe("timelineStudioRenderSync", () => {
     assert.equal(overlays[0].studio_opacity, 0.9);
   });
 
+  it("copyMotionPropsAssets copia pipMediaUrl em studio_props para projects/", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-pip-media-"));
+    const publicDir = path.join(tmp, "public");
+    fs.mkdirSync(publicDir, { recursive: true });
+    const flyover = path.join(
+      tmp,
+      "ASSETS",
+      "satellite",
+      "motion-studio-1-geo-flyover.mp4"
+    );
+    fs.mkdirSync(path.dirname(flyover), { recursive: true });
+    fs.writeFileSync(flyover, Buffer.alloc(2048, 2));
+
+    const props = copyMotionPropsAssets(
+      {
+        flyover_video: "ASSETS/satellite/motion-studio-1-geo-flyover.mp4",
+        studio_props: {
+          pipMediaUrl: "ASSETS/satellite/motion-studio-1-geo-flyover.mp4",
+        },
+      },
+      {
+        projectDir: tmp,
+        publicProjectDir: publicDir,
+        projectSlug: "norma-test",
+        copyRemotionAsset: (src, dest, prefix) => {
+          const name = `${prefix}${path.basename(src)}`;
+          fs.copyFileSync(src, path.join(dest, name));
+          return name;
+        },
+        findProjectFile: (dir, rel) => path.join(dir, rel),
+      },
+      "mo1_"
+    );
+
+    assert.match(String(props.flyover_video), /^projects\/norma-test\//);
+    assert.match(String(props.pipMediaUrl), /^projects\/norma-test\//);
+    assert.match(
+      String(props.studio_props.pipMediaUrl),
+      /^projects\/norma-test\//
+    );
+  });
+
   it("buildOverlaysFromStudio propaga studio_source_code da trilha motion", () => {
     const studio = {
       version: 1,

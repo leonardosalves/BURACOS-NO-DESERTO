@@ -7270,7 +7270,14 @@ function copyOverlayMediaPropsForRemotion(
     /[^a-zA-Z0-9_-]/g,
     "_"
   );
-  for (const key of ["backgroundImage", "backgroundImageWide"]) {
+  const mediaKeys = [
+    "backgroundImage",
+    "backgroundImageWide",
+    "flyover_video",
+    "pipMediaUrl",
+    "mainMediaUrl",
+  ];
+  for (const key of mediaKeys) {
     const rel = String(p[key] || "").trim();
     if (!rel || /^https?:\/\//i.test(rel) || rel.startsWith("projects/")) {
       continue;
@@ -7282,6 +7289,27 @@ function copyOverlayMediaPropsForRemotion(
       `${overlayKey}_${key}_`
     );
     if (copied) p[key] = `projects/${projectSlug}/${copied}`;
+  }
+  if (p.studio_props && typeof p.studio_props === "object") {
+    const studioProps = { ...p.studio_props };
+    let studioChanged = false;
+    for (const key of ["pipMediaUrl", "mainMediaUrl", "flyover_video"]) {
+      const rel = String(studioProps[key] || "").trim();
+      if (!rel || /^https?:\/\//i.test(rel) || rel.startsWith("projects/")) {
+        continue;
+      }
+      const source = resolveProjectAssetPath(projectDir, rel);
+      const copied = copyRemotionAsset(
+        source,
+        publicProjectDir,
+        `${overlayKey}_sp_${key}_`
+      );
+      if (copied) {
+        studioProps[key] = `projects/${projectSlug}/${copied}`;
+        studioChanged = true;
+      }
+    }
+    if (studioChanged) p.studio_props = studioProps;
   }
   return overlay;
 }
