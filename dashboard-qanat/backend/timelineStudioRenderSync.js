@@ -8,6 +8,10 @@ import path from "path";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
 import { STUDIO_FILENAME } from "./timelineStudioMigration.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
+import {
+  isGeoMotionTemplateId,
+  isStudioTemplateClip,
+} from "../shared/timelineStudioLegacyStrip.js";
 
 function clipsOnTrack(clips, trackId) {
   return (Array.isArray(clips) ? clips : [])
@@ -236,11 +240,12 @@ export function buildOverlaysFromStudio(
     findProjectFile,
   };
 
-  const overlayClips = clipsOnTrack(studio.clips, "overlays").filter(
-    (c) => c.templateId || c.props?.overlayType
-  );
+  const isRenderableStudioClip = (clip) =>
+    isStudioTemplateClip(clip) || isGeoMotionTemplateId(clip.templateId);
+
+  const overlayClips = [];
   const motionClips = clipsOnTrack(studio.clips, MOTION_TRACK_ID).filter(
-    (c) => c.templateId || c.props?.overlayType
+    (c) => (c.templateId || c.props?.overlayType) && isRenderableStudioClip(c)
   );
 
   let motionIndex = 0;

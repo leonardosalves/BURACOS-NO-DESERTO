@@ -645,39 +645,7 @@ export function TimelineStudioPreview({
                 </div>
               );
             }
-            const draft = clipToOverlayDraft(clip, getAssetUrl, getMusicUrl);
-            const isFullscreen = isFullscreenMotionClip(clip);
-            const isPip = !isFullscreen;
-            return (
-              <div
-                key={clip.id}
-                className={`absolute pointer-events-none ${
-                  isPip
-                    ? "inset-0 flex items-start justify-end z-30 pt-[8%] pr-[5%] pl-[5%]"
-                    : `inset-0 ${isFullscreen ? "z-40" : "z-30"}`
-                }`}
-                style={
-                  isPip && isVertical
-                    ? {
-                        paddingBottom: `${SHORTS_CAPTION_SAFE_BOTTOM_PCT}%`,
-                      }
-                    : isPip
-                      ? { padding: "5%" }
-                      : undefined
-                }
-              >
-                <OverlayPreview
-                  overlay={draft}
-                  aspectRatio={aspectRatio}
-                  accentColor={String(draft.props?.accentColor || "#D4AF37")}
-                  durationSeconds={clip.duration}
-                  scrubSeconds={Math.max(0, localSec)}
-                  timelinePlaying={playing}
-                  embedded
-                  embeddedLayout={isPip ? "pip" : "fill"}
-                />
-              </div>
-            );
+            return null;
           })}
 
           {activeOverlays.map((clip) => {

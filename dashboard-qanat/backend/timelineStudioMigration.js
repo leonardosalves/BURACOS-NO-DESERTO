@@ -23,6 +23,10 @@ import {
   storyboardRowMatchesSuppression,
   stripSuppressedRemotionClips,
 } from "../shared/timelineStudioRemotionSuppress.js";
+import {
+  isRunnableStudioMotionScene,
+  stripLegacyStudioOverlayClips,
+} from "../shared/timelineStudioLegacyStrip.js";
 import { enrichStudioSatelliteClips } from "../shared/timelineStudioSatelliteEnrich.js";
 
 const STUDIO_FILENAME = "timeline_studio.json";
@@ -206,49 +210,16 @@ export function mergeMissingBrollFromConfig(
   return { ...studio, clips, brollRestored: restored };
 }
 
-export function migrateOverlayClips(storyboard = {}) {
-  const overlays =
-    Array.isArray(storyboard.overlays) && storyboard.overlays.length
-      ? storyboard.overlays
-      : storyboard.overlays_ai || [];
-  const legacy = overlays
-    .filter((o) => o && o.type)
-    .map((o, i) => ({
-      id: String(o.id || `overlay-${i + 1}`),
-      trackId: "overlays",
-      start: Number(o.start) || 0,
-      duration: Number(o.duration) || 4,
-      label: String(
-        o.props?.title || o.props?.text || o.props?.location || o.type
-      ),
-      templateId: o.type,
-      props: { ...(o.props || {}), overlayType: o.type },
-      color: "#00897B",
-      legacyOverlay: true,
-    }));
-
-  return legacy;
+/** Trilha overlays (InfoBar/OverlayPreview) desativada — use Template Studio. */
+export function migrateOverlayClips() {
+  return [];
 }
 
 function migrateMotionClips(storyboard = {}) {
-  const motion = motionScenesToMotionClips(storyboard.motion_scenes || []);
-  const overlays =
-    Array.isArray(storyboard.overlays) && storyboard.overlays.length
-      ? storyboard.overlays
-      : storyboard.overlays_ai || [];
-  const legacy = overlays.filter((o) => o && o.type);
-
-  return motion.filter((mc) => {
-    const mcKey = `${mc.templateId}::${mc.start.toFixed(1)}`;
-    return !legacy.some((lc) => {
-      const lcKey = `${String(lc.type)}::${(Number(lc.start) || 0).toFixed(1)}`;
-      if (lcKey === mcKey) return true;
-      return (
-        String(lc.type) === mc.templateId &&
-        Math.abs((Number(lc.start) || 0) - mc.start) < 2
-      );
-    });
-  });
+  const runnableScenes = (
+    Array.isArray(storyboard.motion_scenes) ? storyboard.motion_scenes : []
+  ).filter((ms) => isRunnableStudioMotionScene(ms));
+  return motionScenesToMotionClips(runnableScenes);
 }
 
 function migrateCaptionClips(wordTranscripts = []) {
@@ -633,6 +604,33 @@ export function finalizeStudioForDisk(
  * Remove do storyboard cenas/templates que o usuário excluiu na timeline.
  * Evita que GET /api/timeline-studio as restaure no F5.
  */
+/** Remove do storyboard overlays legados e motion scenes sem TSX do Template Studio. */
+export function purgeLegacyStoryboardRemotion(storyboard = {}) {
+  if (!storyboard || typeof storyboard !== "object") {
+    return { storyboard, changed: false };
+  }
+  const next = { ...storyboard };
+  let changed = false;
+
+  for (const key of ["overlays_ai", "overlays"]) {
+    if (!Array.isArray(next[key]) || !next[key].length) continue;
+    next[key] = [];
+    changed = true;
+  }
+
+  if (Array.isArray(next.motion_scenes)) {
+    const filtered = next.motion_scenes.filter((ms) =>
+      isRunnableStudioMotionScene(ms)
+    );
+    if (filtered.length !== next.motion_scenes.length) {
+      next.motion_scenes = filtered;
+      changed = true;
+    }
+  }
+
+  return { storyboard: next, changed };
+}
+
 export function pruneStoryboardRemotionSources(projDir, studioOrIds = {}) {
   const state =
     studioOrIds &&
@@ -727,44 +725,23 @@ export function mergeRemotionFromStoryboard(
     next = syncMotionScenesToStudio(next, storyboard.motion_scenes || []);
   }
 
-  const overlayExpected = migrateOverlayClips(storyboard);
   const byId = new Map(next.clips.map((c) => [c.id, c]));
-  let restored = 0;
-  let updated = 0;
-
-  for (const clip of overlayExpected) {
-    if (clipMatchesSuppression(clip, suppression)) continue;
-    if (!byId.has(clip.id)) {
-      byId.set(clip.id, clip);
-      restored += 1;
-      continue;
-    }
-    const prev = byId.get(clip.id);
-    const merged = {
-      ...prev,
-      ...clip,
-      props: { ...(prev?.props || {}), ...(clip.props || {}) },
-    };
-    if (JSON.stringify(merged) !== JSON.stringify(prev)) {
-      byId.set(clip.id, merged);
-      updated += 1;
-    }
-  }
 
   const clips = [...byId.values()]
     .filter((c) => !clipMatchesSuppression(c, suppression))
     .sort((a, b) => (Number(a.start) || 0) - (Number(b.start) || 0));
-  const mergedStudio = { ...next, clips };
+  const legacyStrip = stripLegacyStudioOverlayClips(clips);
+  const mergedStudio = { ...next, clips: legacyStrip.clips };
   const afterFp = remotionClipFingerprint(mergedStudio.clips);
   const motionSynced = afterFp !== beforeFp ? 1 : 0;
 
-  if (!restored && !updated && !motionSynced) {
+  if (!motionSynced && legacyStrip.removed === 0) {
     return { studio: next, remotionRestored: 0, motionSynced: 0 };
   }
 
   return {
     studio: mergedStudio,
-    remotionRestored: restored,
+    remotionRestored: 0,
     motionSynced,
   };
 }

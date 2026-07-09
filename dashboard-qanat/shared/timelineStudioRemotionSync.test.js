@@ -7,6 +7,7 @@ import {
   finalizeStudioForDisk,
   mergeRemotionFromStoryboard,
   pruneStoryboardRemotionSources,
+  purgeLegacyStoryboardRemotion,
 } from "../backend/timelineStudioMigration.js";
 import {
   expandDeletedClipSuppressions,
@@ -255,6 +256,61 @@ describe("timelineStudioRemotionSync", () => {
     assert.ok(saved.suppressedMotionSceneIds.includes("clip-generated-1"));
     const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
     assert.equal(sb.motion_scenes.length, 0);
+  });
+
+  it("mergeRemotionFromStoryboard ignora overlays_ai legados", () => {
+    const storyboard = {
+      overlays_ai: [
+        {
+          id: "ov-bar",
+          type: "bar-chart",
+          start: 2,
+          duration: 4,
+          props: { title: "COMPARAÇÃO" },
+        },
+      ],
+      motion_scenes: [
+        {
+          id: "ms-bar",
+          template_id: "bar-chart",
+          media_mode: "remotion",
+          start_hint: 2,
+          duration_seconds: 4,
+          props: { title: "COMPARAÇÃO" },
+        },
+      ],
+    };
+    const studio = {
+      clips: [{ id: "video-1", trackId: "video", start: 0, duration: 10 }],
+    };
+    const merged = mergeRemotionFromStoryboard(studio, storyboard);
+    assert.equal(
+      merged.studio.clips.filter((c) => c.trackId !== "video").length,
+      0
+    );
+  });
+
+  it("purgeLegacyStoryboardRemotion remove overlays_ai e motion sem TSX", () => {
+    const storyboard = {
+      overlays_ai: [{ id: "ov-1", type: "counter", start: 1, duration: 3 }],
+      motion_scenes: [
+        {
+          id: "ms-geo",
+          template_id: "location-intro",
+          props: { location: "Bangkok" },
+        },
+        {
+          id: "ms-bar",
+          template_id: "bar-chart",
+          props: { title: "COMPARAÇÃO" },
+        },
+      ],
+    };
+    const purged = purgeLegacyStoryboardRemotion(storyboard);
+    assert.equal(purged.changed, true);
+    assert.equal(purged.storyboard.overlays_ai.length, 0);
+    assert.equal(purged.storyboard.motion_scenes.length, 1);
+    assert.equal(purged.storyboard.motion_scenes[0].id, "ms-geo");
   });
 
   it("pruneStoryboardRemotionSources remove motion_scenes suprimidas", () => {

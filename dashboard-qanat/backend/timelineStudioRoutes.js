@@ -9,6 +9,7 @@ import {
   mergeMissingBrollFromConfig,
   mergeRemotionFromStoryboard,
   pruneStoryboardRemotionSources,
+  purgeLegacyStoryboardRemotion,
   finalizeStudioForDisk,
   applyNarrationSyncToProject,
 } from "./timelineStudioMigration.js";
@@ -24,7 +25,10 @@ import {
 import { handleTimelineStudioAsk } from "./timelineStudioAsk.js";
 import { renderTimelineStudioFinalFrame } from "./timelineStudioFinalFrame.js";
 import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
-import { stripLegacyStudioOverlayClips } from "../shared/timelineStudioLegacyStrip.js";
+import {
+  isRunnableStudioMotionScene,
+  stripLegacyStudioOverlayClips,
+} from "../shared/timelineStudioLegacyStrip.js";
 import fs from "fs";
 import path from "path";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
@@ -114,9 +118,18 @@ export function registerTimelineStudioRoutes(
         try {
           const storyboardPath = path.join(projDir, "storyboard.json");
           if (fs.existsSync(storyboardPath)) {
-            const storyboard = JSON.parse(
+            let storyboard = JSON.parse(
               fs.readFileSync(storyboardPath, "utf8")
             );
+            const storyboardPurged = purgeLegacyStoryboardRemotion(storyboard);
+            if (storyboardPurged.changed) {
+              storyboard = storyboardPurged.storyboard;
+              fs.writeFileSync(
+                storyboardPath,
+                JSON.stringify(storyboard, null, 2),
+                "utf8"
+              );
+            }
             const motionInStoryboard = (storyboard.motion_scenes || []).length;
             const motionInStudio = (studio.clips || []).filter(
               (c) => c?.trackId === "motion"
@@ -129,9 +142,9 @@ export function registerTimelineStudioRoutes(
               };
             }
             pruneStoryboardRemotionSources(projDir, studio);
-            const hasRemotionSource =
-              motionInStoryboard > 0 ||
-              (storyboard.overlays_ai || []).length > 0;
+            const hasRemotionSource = (storyboard.motion_scenes || []).some(
+              (ms) => isRunnableStudioMotionScene(ms)
+            );
             if (hasRemotionSource) {
               const remotionFingerprint = (clips = []) =>
                 JSON.stringify(
