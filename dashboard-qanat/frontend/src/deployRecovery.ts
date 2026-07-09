@@ -28,26 +28,5 @@ export async function hardReloadDashboard(): Promise<void> {
 }
 
 export async function ensureFreshDashboardShell(): Promise<void> {
-  if (!import.meta.env.PROD) return;
-
-  try {
-    const response = await fetch("/index.html", { cache: "no-store" });
-    if (!response.ok) return;
-    const html = await response.text();
-    const latestMatch = html.match(/\/assets\/(index-[^"]+\.js)/);
-    const latestIndex = latestMatch?.[1];
-    if (!latestIndex) return;
-
-    const currentScript = document.querySelector(
-      'script[type="module"][src*="/assets/index-"]'
-    ) as HTMLScriptElement | null;
-    const currentSrc = currentScript?.getAttribute("src") || "";
-    const currentIndex = currentSrc.replace(/^\//, "");
-
-    if (currentIndex && latestIndex !== currentIndex) {
-      await hardReloadDashboard();
-    }
-  } catch {
-    /* ignore */
-  }
+  /* desativado — reload automático causava loop infinito no uniport */
 }
