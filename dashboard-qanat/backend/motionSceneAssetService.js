@@ -8,6 +8,12 @@ import {
 } from "../shared/motionSceneAssetEnrichment.js";
 import { buildPropsForTemplate } from "./motionScenePlanner.js";
 import { enrichGeoSceneWithAiPrompt } from "./geoVideoPromptService.js";
+import { getCatalogForNiche } from "./remotionTemplateCatalogService.js";
+import {
+  attachGeoPipStudioTemplate,
+  isGeoPipShortScene,
+} from "../shared/geoPipStudioTemplate.js";
+import { resolveStudioSourceCode } from "./remotionTemplateCatalogService.js";
 
 function applyGeoFetchToScene(scene, fetched) {
   if (!fetched?.ok) return { scene, ok: false, reason: fetched?.reason };
@@ -18,10 +24,15 @@ function applyGeoFetchToScene(scene, fetched) {
     map_provider: fetched.map_provider || "ai_t2v",
     geo_generation: fetched.geo_generation || "ai_prompt",
     ai_video_prompt: fetched.ai_video_prompt || scene.props?.ai_video_prompt,
+    ai_video_negative_prompt:
+      fetched.ai_video_negative_prompt || scene.props?.ai_video_negative_prompt,
+    geo_prompt_shotlist:
+      fetched.geo_prompt_shotlist || scene.props?.geo_prompt_shotlist,
     geo_prompt_brief: fetched.geo_prompt_brief,
     geo_prompt_mode: fetched.geo_prompt_mode,
     geo_prompt_weather: fetched.geo_prompt_weather,
     geo_prompt_era: fetched.geo_prompt_era,
+    geo_prompt_target: fetched.geo_prompt_target,
     geo_prompt_orbit_360: fetched.geo_prompt_orbit_360,
     geo_prompt_territory_highlight: fetched.geo_prompt_territory_highlight,
     geo_prompt_generated_at: fetched.geo_prompt_generated_at,
@@ -85,6 +96,19 @@ export async function enrichMotionScenesWithAssets(
           workspaceConfig,
         });
         const applied = applyGeoFetchToScene(scene, fetched);
+        if (applied.ok && isGeoPipShortScene(scene)) {
+          const niche = String(config.niche || scene.props?.niche || "").trim();
+          const catalog = niche ? getCatalogForNiche(niche) : { approved: [] };
+          const pipScene = attachGeoPipStudioTemplate(scene, {
+            niche,
+            catalog,
+            resolveSourceCode: resolveStudioSourceCode,
+          });
+          Object.assign(scene, {
+            layout: pipScene.layout,
+            props: pipScene.props,
+          });
+        }
         results.push({
           id: scene.id,
           template_id: templateId,

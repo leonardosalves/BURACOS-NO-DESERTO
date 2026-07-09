@@ -9,18 +9,16 @@ export function isFullscreenMotionClip(clip: StudioClip): boolean {
   const props = (clip.props || {}) as Record<string, unknown>;
   const layout = String(props.layout || "").trim();
 
-  if (templateId === "location-intro") {
+  if (templateId === "location-intro" || templateId === "geo-map") {
     const aspectRatio = String(props.aspect_ratio || "").trim();
-    const niche = String(props.niche || "").trim();
-    if (
-      aspectRatio === "9:16" &&
-      /engenharia|engineering|industrial/i.test(niche)
-    ) {
+    const presentation = String(
+      props.presentation || props.layout || ""
+    ).trim();
+    if (aspectRatio === "9:16" && presentation === "pip") {
       return false;
     }
     return true;
   }
-  if (templateId === "geo-map") return true;
   if (layout === "fullscreen") return true;
   if (FULLSCREEN_TEMPLATES.has(templateId)) return true;
   return false;

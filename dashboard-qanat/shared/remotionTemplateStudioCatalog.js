@@ -44,6 +44,12 @@ export function mapStudioTemplateToMotionId(template = {}) {
     return "kinetic-text";
   if (/mapa|geo|location|satelite|satélite/.test(haystack))
     return "location-intro";
+  if (
+    /picture.in.picture|pip media|image.media|split screen|gallery|carousel/.test(
+      haystack
+    )
+  )
+    return "location-intro";
   return null;
 }
 

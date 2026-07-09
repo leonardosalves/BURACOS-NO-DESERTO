@@ -7,10 +7,17 @@ import {
 import type { StudioClip } from "./timelineStudioTypes";
 import { enrichSatelliteMotionClip } from "./timelineStudioMedia";
 import { resolveMotionSceneProps } from "./timelineStudioMedia";
+import { BlenderFlyoverPreview } from "./BlenderFlyoverPreview";
+import {
+  GEO_PIP_MEDIA_WINDOW_9x16,
+  isGeoMediaPipPreview,
+  resolveGeoPipWindowRect,
+} from "./geoPipPreview";
 
 type Props = {
   clip: StudioClip;
   localSec: number;
+  playing?: boolean;
   getAssetUrl: (fileName: string) => string;
   getMusicUrl?: (fileName: string) => string;
 };
@@ -19,6 +26,7 @@ type Props = {
 export function SatelliteMapPreview({
   clip,
   localSec,
+  playing = false,
   getAssetUrl,
   getMusicUrl,
 }: Props) {
@@ -45,10 +53,13 @@ export function SatelliteMapPreview({
   }, [props]);
 
   const flyMode = String(props.fly_mode || "earth_descent");
-  const isEngineeringPip =
-    String(props.aspect_ratio || "") === "9:16" &&
-    String(props.presentation || props.layout || "") === "pip" &&
-    /engenharia|engineering|industrial/i.test(String(props.niche || ""));
+  const isGeoMediaPip = isGeoMediaPipPreview(props as Record<string, unknown>);
+  const pipWindow =
+    (props.geo_pip_window as typeof GEO_PIP_MEDIA_WINDOW_9x16) ||
+    GEO_PIP_MEDIA_WINDOW_9x16;
+  const referencePoint = String(
+    props.referencePoint || props.location || ""
+  ).trim();
   const { activeIndex: idx, blendT: localT } = resolveEarthDescentFrame(
     frames,
     progress
@@ -64,14 +75,57 @@ export function SatelliteMapPreview({
     const videoUrl = flyoverSrc.startsWith("http")
       ? flyoverSrc
       : getAssetUrl(flyoverSrc.replace(/^ASSETS\//i, "").replace(/\\/g, "/"));
+    const isAiT2vFlyover =
+      isAiT2v || String(props.map_provider || "") === "ai_t2v";
+    if (isGeoMediaPip) {
+      const win = resolveGeoPipWindowRect(100, 100, pipWindow);
+      return (
+        <div className="absolute inset-0 z-40 overflow-hidden bg-gradient-to-b from-[#04070d] via-[#071018] to-[#04070d] pointer-events-none">
+          <div
+            className="absolute overflow-hidden bg-black border border-white/15 shadow-lg shadow-black/50"
+            style={{
+              left: win.left,
+              top: win.top,
+              width: win.width,
+              height: win.height,
+              borderRadius: win.borderRadius,
+            }}
+          >
+            <BlenderFlyoverPreview
+              src={videoUrl}
+              scrubSeconds={localSec}
+              playing={playing}
+              blendMode={isAiT2vFlyover ? "normal" : "lighten"}
+              objectFit="cover"
+              className="absolute inset-0"
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: "center center",
+              }}
+            />
+          </div>
+          {referencePoint ? (
+            <div className="absolute left-[5%] right-[5%] bottom-[6%] rounded-xl border border-amber-400/35 bg-[#08121c]/90 px-3 py-2">
+              <p className="text-[7px] font-bold uppercase tracking-wider text-amber-300">
+                Ponto de referência / PIP
+              </p>
+              <p className="text-[10px] font-bold text-cyan-300 mt-0.5 truncate">
+                {referencePoint}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
     return (
       <div className="absolute inset-0 z-40 overflow-hidden bg-black pointer-events-none">
-        <video
+        <BlenderFlyoverPreview
           src={videoUrl}
-          className="absolute inset-0 w-full h-full object-cover"
-          muted
-          playsInline
-          preload="metadata"
+          scrubSeconds={localSec}
+          playing={playing}
+          blendMode={isAiT2vFlyover ? "normal" : "lighten"}
+          objectFit="cover"
+          className="absolute inset-0"
           style={{
             transform: `scale(${zoom})`,
             transformOrigin: "center center",
@@ -128,28 +182,32 @@ export function SatelliteMapPreview({
     </div>
   );
 
-  if (isEngineeringPip) {
+  if (isGeoMediaPip) {
+    const win = resolveGeoPipWindowRect(100, 100, pipWindow);
     return (
-      <div className="absolute inset-0 z-40 overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 z-40 overflow-hidden bg-gradient-to-b from-[#04070d] via-[#071018] to-[#04070d] pointer-events-none">
         <div
-          className="absolute overflow-hidden bg-black"
+          className="absolute overflow-hidden bg-black border border-white/15"
           style={{
-            left: "49.54%",
-            top: "41.56%",
-            width: "41.67%",
-            height: "12.76%",
-            borderRadius: "1.67%",
+            left: win.left,
+            top: win.top,
+            width: win.width,
+            height: win.height,
+            borderRadius: win.borderRadius,
           }}
         >
           {mapLayers}
         </div>
-        <img
-          src="/overlays/overlay_pip_engenharia_9x16_transparente.png"
-          alt=""
-          className="absolute inset-x-0 w-full h-full object-fill"
-          style={{ top: "-22.4%" }}
-          draggable={false}
-        />
+        {referencePoint ? (
+          <div className="absolute left-[5%] right-[5%] bottom-[6%] rounded-xl border border-amber-400/35 bg-[#08121c]/90 px-3 py-2">
+            <p className="text-[7px] font-bold uppercase tracking-wider text-amber-300">
+              Ponto de referência / PIP
+            </p>
+            <p className="text-[10px] font-bold text-cyan-300 mt-0.5 truncate">
+              {referencePoint}
+            </p>
+          </div>
+        ) : null}
       </div>
     );
   }

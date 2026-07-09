@@ -18,6 +18,9 @@ import {
   type ZoomKeyframe,
 } from "./locationIntroGeo";
 import { CesiumGlobeLayer } from "./CesiumGlobeLayer";
+import { GeoPipHudFrame } from "./GeoPipHudFrame";
+import { GeoPipMapSlot } from "./GeoPipMapSlot";
+import type { GeoPipWindow } from "./GeoPipMapSlot";
 
 function resolveMapImageSrc(src?: string): string {
   const s = String(src || "").trim();
@@ -53,6 +56,9 @@ export interface LocationIntroProps {
   flyover_video?: string;
   cesium_ion_token?: string;
   google_maps_api_key?: string;
+  geo_pip_window?: GeoPipWindow;
+  geo_pip_native?: boolean;
+  referencePoint?: string;
 }
 
 const ENGINEERING_PIP_OVERLAY =
@@ -310,12 +316,15 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   flyover_video = "",
   cesium_ion_token = "",
   google_maps_api_key = "",
+  geo_pip_window,
+  geo_pip_native = false,
+  referencePoint = "",
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
   const isVertical = height > width;
   const isPip = presentation === "pip";
-  const isEngineeringMapPip = isVertical && isPip;
+  const isGeoMediaPip = isVertical && isPip;
 
   const [boundaryData, setBoundaryData] = useState<BoundaryGeoJson | null>(
     null
@@ -765,7 +774,37 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
     </>
   );
 
-  if (isEngineeringMapPip) {
+  if (isGeoMediaPip) {
+    const pipOpacity = Math.min(enterOpacity, exitOpacity);
+    const pipZoom = legacyZoom;
+
+    if (geo_pip_native) {
+      return (
+        <AbsoluteFill
+          style={{
+            pointerEvents: "none",
+            zIndex: 55,
+            opacity: pipOpacity,
+            overflow: "hidden",
+          }}
+        >
+          <GeoPipHudFrame
+            location={location}
+            region={region}
+            country={country}
+            referencePoint={referencePoint || location}
+            lat={lat}
+            lng={lng}
+            flyover_video={flyover_video}
+            backgroundImage={backgroundImage}
+            backgroundImageWide={backgroundImageWide}
+            geo_pip_window={geo_pip_window}
+            zoom={pipZoom}
+          />
+        </AbsoluteFill>
+      );
+    }
+
     const scale = Math.min(width / 1080, height / 1920);
     const shiftY = ENGINEERING_PIP_SHIFT_Y * scale;
     const win = {
@@ -780,7 +819,6 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
       extrapolateRight: "clamp",
       easing: Easing.bezier(0.16, 1, 0.3, 1),
     });
-    const pipOpacity = Math.min(enterOpacity, exitOpacity);
 
     return (
       <AbsoluteFill
@@ -791,20 +829,16 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
           overflow: "hidden",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            left: win.left,
-            top: win.top + pipIn,
-            width: win.width,
-            height: win.height,
-            borderRadius: win.radius,
-            overflow: "hidden",
-            background: "#071417",
-          }}
-        >
-          <AbsoluteFill>{mapContent()}</AbsoluteFill>
-        </div>
+        <GeoPipMapSlot
+          width={width}
+          height={height}
+          window={geo_pip_window}
+          flyoverVideo={flyover_video}
+          backgroundImage={backgroundImage}
+          backgroundImageWide={backgroundImageWide}
+          zoom={pipZoom}
+          mapContent={mapContent()}
+        />
         <Img
           src={staticFile(ENGINEERING_PIP_OVERLAY)}
           style={{
