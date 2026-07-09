@@ -86,6 +86,22 @@ export function patchGeoPipTemplateSourceForChrome(code = "") {
     "{showMainContentLabel && descriptorText && ("
   );
 
+  src = src.replace(
+    "opacity: showMainContentLabel ? contentProgress : 0,",
+    "opacity: showMainContentLabel && (mainTitle || mainSubtitle) ? contentProgress : 0,"
+  );
+
+  if (!src.includes('geoPipOverlayChrome ? "transparent"')) {
+    src = src.replace(
+      `    <AbsoluteFill
+      style={{
+        backgroundColor,`,
+      `    <AbsoluteFill
+      style={{
+        backgroundColor: geoPipOverlayChrome ? "transparent" : backgroundColor,`
+    );
+  }
+
   src = src.replace(/\s*<span>\{progressPercent\}% PIP<\/span>/g, "");
 
   src = wrapBlockOnce(
@@ -115,6 +131,68 @@ export function patchGeoPipTemplateSourceForChrome(code = "") {
     PIP_TEXT_CLOSER,
     "{(pipTitle || pipSubtitle || coordinateText || distanceText) ? (",
     ") : null}"
+  );
+
+  if (!src.includes("geoPipOverlayChrome")) {
+    src = src.replace(
+      `  textColor?: string;
+};`,
+      `  textColor?: string;
+  geoPipOverlayChrome?: boolean;
+};`
+    );
+    src = src.replace(
+      `  textColor = "#ffffff",
+}: EngineeringPictureInPictureProps)`,
+      `  textColor = "#ffffff",
+  geoPipOverlayChrome = false,
+}: EngineeringPictureInPictureProps)`
+    );
+  }
+
+  const overlayOpacity = "opacity: geoPipOverlayChrome ? 0 : 1,";
+  src = src.replace(
+    `          position: "absolute",
+          inset: 0,
+          background: \`
+            radial-gradient(circle at 20% 22%`,
+    `          position: "absolute",
+          inset: 0,
+          ${overlayOpacity}
+          background: \`
+            radial-gradient(circle at 20% 22%`
+  );
+  src = src.replace(
+    `          position: "absolute",
+          inset: 0,
+          backgroundImage: \`
+            linear-gradient(rgba(34,211,238,0.08)`,
+    `          position: "absolute",
+          inset: 0,
+          ${overlayOpacity}
+          backgroundImage: \`
+            linear-gradient(rgba(34,211,238,0.08)`
+  );
+  src = src.replace(
+    `          position: "absolute",
+          inset: 0,
+          background: \`
+            linear-gradient(90deg, rgba(2,6,23,0.86)`,
+    `          position: "absolute",
+          inset: 0,
+          ${overlayOpacity}
+          background: \`
+            linear-gradient(90deg, rgba(2,6,23,0.86)`
+  );
+  src = src.replace(
+    `          pointerEvents: "none",
+          opacity: 0.52,
+        }}
+        viewBox={\`0 0 \${width} \${height}\`}`,
+    `          pointerEvents: "none",
+          opacity: geoPipOverlayChrome ? 0.12 : 0.52,
+        }}
+        viewBox={\`0 0 \${width} \${height}\`}`
   );
 
   return src;

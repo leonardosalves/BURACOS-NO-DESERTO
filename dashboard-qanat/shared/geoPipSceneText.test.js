@@ -3,8 +3,11 @@ import assert from "node:assert/strict";
 import {
   buildGeoPipOverlayStudioProps,
   extractSceneSubject,
+  resolveGeoPipBlockNarration,
   resolveGeoPipReferenceLabel,
+  resolveGeoPipSceneNarration,
   resolveGeoPipSectorLabel,
+  summarizeGeoPipFooterSubject,
 } from "./geoPipSceneText.js";
 
 describe("geoPipSceneText", () => {
@@ -23,6 +26,56 @@ describe("geoPipSceneText", () => {
       }),
       "Golden Gate"
     );
+  });
+
+  it("resolveGeoPipBlockNarration usa visual_prompts geo do storyboard", () => {
+    const narr = resolveGeoPipBlockNarration(
+      {
+        visual_prompts: [
+          {
+            block: 1,
+            narration_text: "Primeira cena do bloco.",
+          },
+          {
+            block: 1,
+            narration_text:
+              "Muitos acham que o Brasil está livre de tremores de terra, mas a engenharia civil teve que criar um escudo silencioso.",
+            production: { data_type: "location" },
+          },
+        ],
+      },
+      1
+    );
+    assert.match(narr, /tremores|engenharia civil/i);
+    assert.doesNotMatch(narr, /Primeira cena/i);
+  });
+
+  it("resolveGeoPipSceneNarration ignora placeholder do template", () => {
+    const narr = resolveGeoPipSceneNarration(
+      {
+        block: 1,
+        narration_text: "Engenharia Picture in Picture Draft",
+      },
+      {
+        visual_prompts: [
+          {
+            block: 1,
+            narration_text: "Texto real do bloco geo.",
+            production: { data_type: "location" },
+          },
+        ],
+      }
+    );
+    assert.equal(narr, "Texto real do bloco geo.");
+  });
+
+  it("summarizeGeoPipFooterSubject resume assunto sem legenda inteira", () => {
+    const summary = summarizeGeoPipFooterSubject(
+      "Muitos acham que o Brasil está livre de tremores de terra, mas a engenharia civil teve que criar um escudo silencioso."
+    );
+    assert.ok(summary.split(/\s+/).length <= 8);
+    assert.match(summary, /engenharia civil|escudo/i);
+    assert.doesNotMatch(summary, /Muitos acham/i);
   });
 
   it("extractSceneSubject usa primeira frase da narração", () => {

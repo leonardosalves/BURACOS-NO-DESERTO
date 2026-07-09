@@ -28,6 +28,7 @@ import {
   stripLegacyStudioOverlayClips,
 } from "../shared/timelineStudioLegacyStrip.js";
 import { enrichStudioSatelliteClips } from "../shared/timelineStudioSatelliteEnrich.js";
+import { enrichGeoPipStudioClipsOnLoad } from "./geoPipTimelineEnrich.js";
 
 const STUDIO_FILENAME = "timeline_studio.json";
 const NARRATION_FILES = [
@@ -515,7 +516,10 @@ function repairStudioOnLoad(projDir, studio) {
     projDir,
     next
   );
-  return withNarration;
+  const { studio: withGeoPip, changed: geoPipChanged } =
+    enrichGeoPipStudioClipsOnLoad(withNarration, projDir, storyboard);
+  if (geoPipChanged) saveTimelineStudio(projDir, withGeoPip);
+  return withGeoPip;
 }
 
 export function loadTimelineStudio(projDir) {

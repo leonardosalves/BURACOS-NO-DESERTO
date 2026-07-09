@@ -38,7 +38,10 @@ import {
 import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
 import { isGeoPipCompositeProps } from "@lumiera/shared/remotionTemplateCompile.js";
 import { mergeGeoPipPreviewProps } from "./geoPipPreviewProps";
-import { resolveGeoPipClipDurationSec } from "@lumiera/shared/geoPipTemplateProps.js";
+import {
+  resolveGeoPipClipDurationSec,
+  resolveGeoPipPreviewScrubSec,
+} from "@lumiera/shared/geoPipTemplateProps.js";
 
 type Props = {
   studio: TimelineStudioState;
@@ -235,7 +238,10 @@ export function TimelineStudioPreview({
   const suppressBaseVideoForPip = useMemo(() => {
     if (!assetSrc || !activeStudioGeoPip) return false;
     return motionClips.some((clip) => {
-      if (!isStudioTemplateClip(clip) || !isGeoPipCompositeProps(clip.props || {})) {
+      if (
+        !isStudioTemplateClip(clip) ||
+        !isGeoPipCompositeProps(clip.props || {})
+      ) {
         return false;
       }
       const props = (clip.props || {}) as Record<string, unknown>;
@@ -665,13 +671,16 @@ export function TimelineStudioPreview({
           ) : null}
 
           {motionClips.map((clip) => {
-            const localSec = Math.max(
-              0,
-              Math.min(
-                Math.max(0, (Number(clip.duration) || 0) - 0.04),
-                motionPlayhead - clip.start
-              )
-            );
+            const geoPipClip = isGeoPipCompositeProps(clip.props || {});
+            const localSec = geoPipClip
+              ? resolveGeoPipPreviewScrubSec(clip, motionPlayhead)
+              : Math.max(
+                  0,
+                  Math.min(
+                    Math.max(0, (Number(clip.duration) || 0) - 0.04),
+                    motionPlayhead - clip.start
+                  )
+                );
             const tpl = String(clip.templateId || "");
             const studioCode = clipStudioSourceCode(clip);
             const hasStudioOverlay = isStudioTemplateClip(clip);

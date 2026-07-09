@@ -7,8 +7,8 @@ import {
   mapGeoPipFlyoverToTemplateRenderProps,
   resolveGeoPipClipDurationSec,
   resolvePipMediaUrl,
-  splitNarrationTitleSubtitle,
 } from "./geoPipTemplateProps.js";
+import { summarizeGeoPipFooterSubject } from "./geoPipSceneText.js";
 
 describe("geoPipTemplateProps", () => {
   it("isPictureInPictureStudioTemplate reconhece subcategoria", () => {
@@ -80,14 +80,6 @@ describe("geoPipTemplateProps", () => {
     );
   });
 
-  it("splitNarrationTitleSubtitle divide assunto em titulo e subtitulo", () => {
-    const { mainTitle, mainSubtitle } = splitNarrationTitleSubtitle(
-      "Debaixo dos seus pés, a estrutura resiste. O concreto armado sustenta o edifício."
-    );
-    assert.match(mainTitle, /Debaixo dos seus pés/i);
-    assert.match(mainSubtitle, /concreto|estrutura/i);
-  });
-
   it("bindGeoPipTemplateStudioProps limpa chrome e mantém location narrada", () => {
     const { studio_props, location } = bindGeoPipTemplateStudioProps(
       {
@@ -105,14 +97,31 @@ describe("geoPipTemplateProps", () => {
     assert.equal(studio_props.pipTitle, "");
     assert.equal(studio_props.mainMediaUrl, "");
     assert.equal(studio_props.showPointerLines, false);
+    assert.equal(studio_props.showMainContentLabel, false);
+    assert.equal(studio_props.mainTitle, "");
+    assert.equal(studio_props.geoPipOverlayChrome, true);
     assert.equal(studio_props.durationSeconds, 10);
     assert.match(location, /Debaixo dos seus pés|fundação|NBR/i);
   });
 
-  it("applyGeoPipChromeProps oculta centro sem narração", () => {
-    const chrome = applyGeoPipChromeProps({}, { narration: "", sector: "Setor A" });
+  it("applyGeoPipChromeProps oculta centro e usa resumo no rodape", () => {
+    const chrome = applyGeoPipChromeProps(
+      {},
+      {
+        narration:
+          "Muitos acham que o Brasil está livre de tremores, mas a engenharia civil criou um escudo silencioso.",
+        sector: "Setor A",
+      }
+    );
     assert.equal(chrome.showMainContentLabel, false);
     assert.equal(chrome.mainTitle, "");
-    assert.equal(chrome.location, "Setor A");
+    assert.equal(chrome.geoPipOverlayChrome, true);
+    assert.equal(chrome.backgroundColor, "transparent");
+    assert.equal(
+      chrome.location,
+      summarizeGeoPipFooterSubject(
+        "Muitos acham que o Brasil está livre de tremores, mas a engenharia civil criou um escudo silencioso."
+      )
+    );
   });
 });

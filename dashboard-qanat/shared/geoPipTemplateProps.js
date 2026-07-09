@@ -5,9 +5,9 @@
 
 import { formatCoordDms } from "./geoPipStudioTemplate.js";
 import {
-  extractSceneSubject,
   resolveGeoPipReferenceLabel,
   resolveGeoPipSectorLabel,
+  summarizeGeoPipFooterSubject,
 } from "./geoPipSceneText.js";
 
 /** Props vazias que devem sobrescrever defaults do TSX (não filtrar como placeholder). */
@@ -22,42 +22,22 @@ export const GEO_PIP_FORCE_EMPTY_KEYS = [
   "mainTitle",
   "mainSubtitle",
   "mainMediaUrl",
+  "backgroundColor",
 ];
 
-/** Título + subtítulo centrais a partir do assunto narrado (até 2 frases). */
-export function splitNarrationTitleSubtitle(narration = "", maxTitle = 52, maxSubtitle = 72) {
-  const subject = extractSceneSubject(narration);
-  if (!subject) return { mainTitle: "", mainSubtitle: "" };
+export const GEO_PIP_OVERLAY_PROP_KEYS = [
+  "geoPipOverlayChrome",
+  "backgroundColor",
+];
 
-  const sentences = subject
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 4);
-
-  if (sentences.length >= 2) {
-    return {
-      mainTitle: sentences[0].slice(0, maxTitle),
-      mainSubtitle: sentences[1].slice(0, maxSubtitle),
-    };
-  }
-
-  const words = subject.split(/\s+/).filter(Boolean);
-  if (words.length <= 5) {
-    return { mainTitle: subject.slice(0, maxTitle), mainSubtitle: "" };
-  }
-
-  const mid = Math.ceil(words.length / 2);
-  return {
-    mainTitle: words.slice(0, mid).join(" ").slice(0, maxTitle),
-    mainSubtitle: words.slice(mid).join(" ").slice(0, maxSubtitle),
-  };
-}
-
-/** Limpa chrome técnico; centro = assunto narrado; rodapé = setor/local. */
-export function applyGeoPipChromeProps(studio = {}, { narration = "", sector = "" } = {}) {
-  const { mainTitle, mainSubtitle } = splitNarrationTitleSubtitle(narration);
-  const hasCenter = Boolean(mainTitle || mainSubtitle);
-  const location = String(sector || studio.location || "").trim();
+/** Limpa chrome técnico; sem título central; rodapé = resumo do assunto. */
+export function applyGeoPipChromeProps(
+  studio = {},
+  { narration = "", sector = "" } = {}
+) {
+  const footer =
+    summarizeGeoPipFooterSubject(narration) ||
+    String(sector || studio.location || "").trim();
 
   return {
     ...studio,
@@ -70,10 +50,12 @@ export function applyGeoPipChromeProps(studio = {}, { narration = "", sector = "
     distanceText: "",
     mainMediaUrl: "",
     showPointerLines: false,
-    showMainContentLabel: hasCenter,
-    mainTitle: mainTitle || "",
-    mainSubtitle: mainSubtitle || "",
-    location,
+    showMainContentLabel: false,
+    mainTitle: "",
+    mainSubtitle: "",
+    location: footer,
+    backgroundColor: "transparent",
+    geoPipOverlayChrome: true,
   };
 }
 
@@ -186,7 +168,8 @@ export function bindGeoPipTemplateStudioProps(
   for (const key of GEO_PIP_FORCE_EMPTY_KEYS) {
     if (!filled.includes(key)) filled.push(key);
   }
-  if (!filled.includes("showMainContentLabel")) filled.push("showMainContentLabel");
+  if (!filled.includes("showMainContentLabel"))
+    filled.push("showMainContentLabel");
   if (!filled.includes("showPointerLines")) filled.push("showPointerLines");
 
   return {
@@ -207,10 +190,12 @@ export function resolveGeoPipClipDurationSec(clip = {}) {
     props.studio_props && typeof props.studio_props === "object"
       ? props.studio_props
       : {};
+  const hasFlyover = Boolean(resolvePipMediaUrl(props));
   const candidates = [
+    props.flyover_duration_sec,
+    studio.flyover_duration_sec,
     props.durationSeconds,
     studio.durationSeconds,
-    clip.duration,
     Number(props.durationInFrames) > 0
       ? Number(props.durationInFrames) / 30
       : 0,
@@ -218,11 +203,21 @@ export function resolveGeoPipClipDurationSec(clip = {}) {
       ? Number(studio.durationInFrames) / 30
       : 0,
   ];
+  if (!hasFlyover) candidates.push(clip.duration);
   for (const raw of candidates) {
     const n = Number(raw);
     if (Number.isFinite(n) && n > 0) return n;
   }
   return Math.max(0.5, Number(clip.duration) || 4);
+}
+
+/** Segundos locais no preview PIP — trava ao tempo do flyover (evita animação acelerada). */
+export function resolveGeoPipPreviewScrubSec(clip = {}, playhead = 0) {
+  const pipDur = resolveGeoPipClipDurationSec(clip);
+  const start = Number(clip.start) || 0;
+  const raw = Math.max(0, Number(playhead) - start);
+  const capped = Math.max(0, Math.min(pipDur - 0.04, raw % pipDur));
+  return capped;
 }
 
 export function mapGeoPipFlyoverToTemplateRenderProps(props = {}) {
@@ -254,6 +249,9 @@ export function mapGeoPipFlyoverToTemplateRenderProps(props = {}) {
   }
   if (bound.studio_props.showPointerLines !== undefined) {
     out.showPointerLines = bound.studio_props.showPointerLines;
+  }
+  for (const key of GEO_PIP_OVERLAY_PROP_KEYS) {
+    if (key in bound.studio_props) out[key] = bound.studio_props[key];
   }
   out.mainMediaUrl = "";
   return out;
