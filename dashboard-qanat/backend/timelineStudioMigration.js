@@ -654,6 +654,100 @@ function applyClipTimingToMotionScene(ms, clip) {
   };
 }
 
+function isStudioVideoClip(clip = {}) {
+  return clip?.trackId === "video";
+}
+
+function parseVideoClipSlot(clip = {}) {
+  const blockKey = String(clip.props?.blockKey || "").trim();
+  const assetIndex = Number(clip.props?.assetIndex);
+  if (blockKey && Number.isFinite(assetIndex) && assetIndex >= 0) {
+    return { blockKey, assetIndex };
+  }
+  const idMatch = String(clip.id || "").match(/^video-(\d+)-(\d+)$/);
+  if (idMatch) {
+    return {
+      blockKey: idMatch[1],
+      assetIndex: parseInt(idMatch[2], 10),
+    };
+  }
+  return null;
+}
+
+function applyClipTimingToTimelineAsset(asset = {}, clip = {}) {
+  const start = Math.max(0, Number(clip.start) || 0);
+  const duration = Math.max(0.5, Number(clip.duration) || 0.5);
+  const timingManual = clipHasTimingManual(clip);
+  const prevStart = Number(asset.audio_start);
+  const prevFixed = Number(asset.fixed);
+  const prevLocked = asset.fixed_locked === true;
+
+  let changed = false;
+  const next = { ...asset };
+
+  if (!Number.isFinite(prevStart) || Math.abs(prevStart - start) > 0.001) {
+    next.audio_start = start;
+    changed = true;
+  }
+  if (!Number.isFinite(prevFixed) || Math.abs(prevFixed - duration) > 0.001) {
+    next.fixed = duration;
+    changed = true;
+  }
+  if (timingManual && !prevLocked) {
+    next.fixed_locked = true;
+    changed = true;
+  }
+
+  return { asset: next, changed };
+}
+
+/**
+ * Propaga start/duration dos clips B-roll da timeline → timeline_assets do config.
+ * Fonte de verdade após edição no Editor Timing (timeline_studio.json).
+ */
+export function syncStudioBrollToTimelineAssets(projDir, studio = {}) {
+  const configPath = path.join(projDir, "config_qanat.json");
+  if (!fs.existsSync(configPath)) {
+    return { changed: false, timeline_assets: {} };
+  }
+
+  const config = readJson(configPath, {}) || {};
+  const timelineAssets = { ...(config.timeline_assets || {}) };
+  const videoClips = (studio.clips || []).filter(isStudioVideoClip);
+  if (!videoClips.length) {
+    return { changed: false, timeline_assets: config.timeline_assets || {} };
+  }
+
+  let changed = false;
+  for (const clip of videoClips) {
+    const slot = parseVideoClipSlot(clip);
+    if (!slot) continue;
+    const { blockKey, assetIndex } = slot;
+    const blockAssets = Array.isArray(timelineAssets[blockKey])
+      ? [...timelineAssets[blockKey]]
+      : [];
+    if (assetIndex < 0 || assetIndex >= blockAssets.length) continue;
+
+    const applied = applyClipTimingToTimelineAsset(
+      blockAssets[assetIndex] || {},
+      clip
+    );
+    if (!applied.changed) continue;
+
+    blockAssets[assetIndex] = applied.asset;
+    timelineAssets[blockKey] = blockAssets;
+    changed = true;
+  }
+
+  if (!changed) {
+    return { changed: false, timeline_assets: config.timeline_assets || {} };
+  }
+
+  const nextConfig = { ...config, timeline_assets: timelineAssets };
+  fs.writeFileSync(configPath, JSON.stringify(nextConfig, null, 2), "utf8");
+  return { changed: true, timeline_assets: timelineAssets };
+}
+
 /**
  * Propaga start/duration dos clips motion da timeline → motion_scenes do storyboard.
  * Fonte de verdade após edição no Editor Timing (timeline_studio.json).
@@ -763,6 +857,7 @@ export function finalizeStudioForDisk(
   next = enrichStudioSatelliteClips(next);
 
   syncStudioTimingToStoryboard(projDir, next);
+  syncStudioBrollToTimelineAssets(projDir, next);
   return saveTimelineStudio(projDir, next);
 }
 

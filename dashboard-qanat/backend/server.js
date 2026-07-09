@@ -175,6 +175,7 @@ const LOGO_OUTRO_DURATION_SEC = 4.5;
 import {
   applyNarrationSyncToProject,
   syncStudioTimingToStoryboard,
+  syncStudioBrollToTimelineAssets,
 } from "./timelineStudioMigration.js";
 import { registerVideoResurrectorRoutes } from "./videoResurrectorRoutes.js";
 import { registerSocialPublishRoutes } from "./socialPublishRoutes.js";
@@ -1538,6 +1539,25 @@ app.get("/api/config", (req, res) => {
         /* leitura segue com timeline saneada */
       }
     }
+    const studioPath = path.join(projDir, "timeline_studio.json");
+    if (fs.existsSync(studioPath)) {
+      try {
+        const studio = JSON.parse(fs.readFileSync(studioPath, "utf8"));
+        const brollSync = syncStudioBrollToTimelineAssets(projDir, studio);
+        if (brollSync.changed && brollSync.timeline_assets) {
+          responseConfig = {
+            ...responseConfig,
+            timeline_assets: brollSync.timeline_assets,
+          };
+        }
+      } catch (brollErr) {
+        console.warn(
+          "[config] broll timing sync:",
+          brollErr?.message || brollErr
+        );
+      }
+    }
+
     const format = detectVideoFormat(
       responseConfig,
       Number(timings.total_duration) || 0

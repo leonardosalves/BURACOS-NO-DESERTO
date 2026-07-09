@@ -9,6 +9,7 @@ import {
   pruneStoryboardRemotionSources,
   purgeLegacyStoryboardRemotion,
   syncStudioTimingToStoryboard,
+  syncStudioBrollToTimelineAssets,
 } from "../backend/timelineStudioMigration.js";
 import {
   expandDeletedClipSuppressions,
@@ -359,6 +360,71 @@ describe("timelineStudioRemotionSync", () => {
     assert.equal(result.changed, true);
     assert.equal(result.motion_scenes[0].start_hint, 16);
     assert.equal(result.motion_scenes[0].duration_seconds, 10);
+  });
+
+  it("syncStudioBrollToTimelineAssets propaga start/duration dos clips video", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-broll-sync-"));
+    const configPath = path.join(tmp, "config_qanat.json");
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify(
+        {
+          timeline_assets: {
+            1: [
+              {
+                asset: "clip_a.mp4",
+                type: "video",
+                audio_start: 0,
+                fixed: 14.1,
+              },
+              {
+                asset: "clip_b.jpeg",
+                type: "image",
+                audio_start: 14.114,
+                fixed: 11.9,
+              },
+            ],
+          },
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const studio = {
+      clips: [
+        {
+          id: "video-1-0",
+          trackId: "video",
+          start: 0,
+          duration: 10,
+          timing_manual: true,
+          props: { blockKey: "1", assetIndex: 0, timing_manual: true },
+        },
+        {
+          id: "video-1-1",
+          trackId: "video",
+          start: 10,
+          duration: 16,
+          timing_manual: true,
+          props: { blockKey: "1", assetIndex: 1, timing_manual: true },
+        },
+      ],
+    };
+
+    const result = syncStudioBrollToTimelineAssets(tmp, studio);
+    assert.equal(result.changed, true);
+    assert.equal(result.timeline_assets["1"][0].fixed, 10);
+    assert.equal(result.timeline_assets["1"][0].audio_start, 0);
+    assert.equal(result.timeline_assets["1"][0].fixed_locked, true);
+    assert.equal(result.timeline_assets["1"][1].fixed, 16);
+    assert.equal(result.timeline_assets["1"][1].audio_start, 10);
+    assert.equal(result.timeline_assets["1"][1].fixed_locked, true);
+
+    const onDisk = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    assert.equal(onDisk.timeline_assets["1"][0].fixed, 10);
+    assert.equal(onDisk.timeline_assets["1"][1].fixed, 16);
   });
 
   it("syncStudioTimingToStoryboard propaga start/duration dos clips motion", () => {

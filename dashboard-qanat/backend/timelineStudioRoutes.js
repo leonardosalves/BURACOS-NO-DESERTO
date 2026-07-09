@@ -13,6 +13,7 @@ import {
   finalizeStudioForDisk,
   applyNarrationSyncToProject,
   syncStudioTimingToStoryboard,
+  syncStudioBrollToTimelineAssets,
 } from "./timelineStudioMigration.js";
 import {
   searchTimelineStock,
@@ -230,6 +231,7 @@ export function registerTimelineStudioRoutes(
       }
 
       const timingSync = syncStudioTimingToStoryboard(projDir, studio);
+      const brollSync = syncStudioBrollToTimelineAssets(projDir, studio);
 
       res.json({
         ok: true,
@@ -245,6 +247,8 @@ export function registerTimelineStudioRoutes(
         legacyStripped,
         motion_scenes: timingSync.motion_scenes,
         motion_scenes_synced: timingSync.changed,
+        timeline_assets: brollSync.timeline_assets,
+        timeline_assets_synced: brollSync.changed,
         projectResolved: projectCtx.resolved !== false,
         requestedProject: projectCtx.requestedName || null,
         resolvedProject: projectCtx.resolvedName || null,
@@ -277,11 +281,14 @@ export function registerTimelineStudioRoutes(
         mergeStoryboard: false,
       });
       const timingSync = syncStudioTimingToStoryboard(projDir, saved);
+      const brollSync = syncStudioBrollToTimelineAssets(projDir, saved);
       res.json({
         ok: true,
         studio: saved,
         motion_scenes: timingSync.motion_scenes,
         motion_scenes_synced: timingSync.changed,
+        timeline_assets: brollSync.timeline_assets,
+        timeline_assets_synced: brollSync.changed,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

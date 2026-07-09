@@ -47,9 +47,13 @@ import {
   type StudioClip,
   type TimelineStudioState,
 } from "./timelineStudioTypes";
+import type { ConfigData } from "./appTypes";
 import type { RichTimelineEditorProps } from "./RichTimelineEditor";
 import type { MotionSceneDraft } from "./motionEditorConfig";
-import { applyStudioMotionScenesToStoryboard } from "./timelineStudioMotionSync";
+import {
+  applyStudioMotionScenesToStoryboard,
+  applyStudioTimelineAssetsToConfig,
+} from "./timelineStudioMotionSync";
 import { applyTimingManualPatch } from "./studioClipInspectorSlots";
 import type {
   AskLumieraAction,
@@ -302,10 +306,16 @@ export function TimelineStudio({
   );
 
   const applyServerMotionScenes = useCallback(
-    (data: { motion_scenes?: unknown[]; motion_scenes_synced?: boolean }) => {
+    (data: {
+      motion_scenes?: unknown[];
+      motion_scenes_synced?: boolean;
+      timeline_assets?: ConfigData["timeline_assets"];
+      timeline_assets_synced?: boolean;
+    }) => {
       applyStudioMotionScenesToStoryboard(data, handleMotionScenesChange);
+      applyStudioTimelineAssetsToConfig(data, setConfig);
     },
-    [handleMotionScenesChange]
+    [handleMotionScenesChange, setConfig]
   );
 
   const motionTimingPersistRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -545,10 +555,11 @@ export function TimelineStudio({
     return { ...studio, playhead: localPlayhead };
   }, [studio, localPlayhead]);
 
-  const withMotionTimingManual = useCallback(
+  const withClipTimingManual = useCallback(
     (prevClips: StudioClip[], nextClips: StudioClip[]): StudioClip[] =>
       nextClips.map((clip) => {
-        if (!isRemotionStudioClip(clip)) return clip;
+        const isBroll = clip.trackId === "video";
+        if (!isRemotionStudioClip(clip) && !isBroll) return clip;
         const old = prevClips.find((c) => c.id === clip.id);
         if (!old) return clip;
         const changed =
@@ -589,7 +600,7 @@ export function TimelineStudio({
         const withSuppressions = removedRemotionClips.length
           ? applySuppressionFields(prev, suppressionPatch)
           : prev;
-        const timedClips = withMotionTimingManual(prev.clips, clips);
+        const timedClips = withClipTimingManual(prev.clips, clips);
         return {
           ...withSuppressions,
           clips: timedClips,
@@ -600,7 +611,7 @@ export function TimelineStudio({
         };
       });
     },
-    [storyboardData, withMotionTimingManual]
+    [storyboardData, withClipTimingManual]
   );
 
   const studioPersistRef = useRef(studio);
