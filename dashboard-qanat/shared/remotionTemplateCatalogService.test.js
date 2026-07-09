@@ -4,9 +4,14 @@ import {
   attachStudioTemplateToScene,
   mapStudioTemplateToMotionId,
   pickStudioTemplateForTrigger,
+  purgeLegacySeedTemplatesFromCatalogFile,
   resolveStudioSourceCode,
   syncCatalogForNiche,
 } from "../backend/remotionTemplateCatalogService.js";
+import {
+  isLegacySeedTemplateId,
+  LEGACY_SEED_TEMPLATE_IDS,
+} from "./remotionTemplateLegacy.js";
 
 const SAMPLE_TSX = `"use client";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
@@ -19,6 +24,56 @@ export default function BridgeSample() {
 const TEST_NICHE = "__test_studio_bridge__";
 
 describe("remotionTemplateCatalogService bridge", () => {
+  it("ignora templates seed legados no sync", () => {
+    const result = syncCatalogForNiche("Engenharia", [
+      {
+        id: LEGACY_SEED_TEMPLATE_IDS[0],
+        name: "Engineering Bar Grid",
+        category: "chart-data",
+        subcategory: "Bar chart",
+        status: "approved",
+        sourceCode: {
+          short: "export function Old() { return null; }",
+          long: "export function Old() { return null; }",
+        },
+      },
+    ]);
+    assert.equal(result.count, 0);
+    assert.ok(isLegacySeedTemplateId(LEGACY_SEED_TEMPLATE_IDS[0]));
+  });
+
+  it("purgeLegacySeedTemplatesFromCatalogFile remove seeds do JSON", () => {
+    syncCatalogForNiche("__purge_test__", [
+      {
+        id: LEGACY_SEED_TEMPLATE_IDS[1],
+        name: "Legacy Flyover",
+        category: "maps",
+        subcategory: "Flyover",
+        status: "approved",
+      },
+      {
+        id: "valid-studio-keep",
+        name: "Valid Keep",
+        category: "chart-data",
+        subcategory: "Counter",
+        status: "approved",
+        sourceCode: { short: SAMPLE_TSX, long: SAMPLE_TSX },
+      },
+    ]);
+    purgeLegacySeedTemplatesFromCatalogFile();
+    const kept = syncCatalogForNiche("__purge_test__", [
+      {
+        id: "valid-studio-keep",
+        name: "Valid Keep",
+        category: "chart-data",
+        subcategory: "Counter",
+        status: "approved",
+        sourceCode: { short: SAMPLE_TSX, long: SAMPLE_TSX },
+      },
+    ]);
+    assert.equal(kept.count, 1);
+  });
+
   it("mapStudioTemplateToMotionId mapeia bar chart corretamente", () => {
     const id = mapStudioTemplateToMotionId({
       name: "Engenharia Bar chart Draft",

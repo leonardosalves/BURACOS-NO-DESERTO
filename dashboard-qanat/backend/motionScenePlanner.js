@@ -515,7 +515,7 @@ export function planMotionScenesFromStoryboard(
   ).trim();
   const researchContext = buildMotionResearchContext(storyboard, config);
   const preferredTemplates = resolvePreferredMotionTemplates(config);
-  const studioPackEnabled = config.motion_template_pack?.enabled !== false;
+  const studioPackEnabled = config.motion_template_pack?.enabled === true;
   const studioNiche = String(
     config.motion_template_pack?.niche || config.niche || ""
   ).trim();
@@ -697,10 +697,22 @@ export function planMotionScenesFromStoryboard(
         preferredStudioIds,
         previousStudioIds,
       });
-      if (studioPick) {
-        scene = attachStudioTemplateToScene(scene, studioPick);
-        previousStudioIds.push(studioPick.id);
+      if (!studioPick?.studio_source_code) {
+        skippedEntries.push(
+          buildTemplateReviewEntry({
+            vp,
+            narration,
+            classification: { ...classified, trigger },
+            decision: templateDecision,
+            skipped: true,
+            reason:
+              "nenhum template Studio aprovado com sourceCode Remotion valido",
+          })
+        );
+        continue;
       }
+      scene = attachStudioTemplateToScene(scene, studioPick);
+      previousStudioIds.push(studioPick.id);
     }
 
     scenes.push(scene);
