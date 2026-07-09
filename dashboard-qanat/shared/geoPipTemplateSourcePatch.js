@@ -77,9 +77,30 @@ function wrapBlockOnce(src, marker, opener, closer, wrapperOpen, wrapperClose) {
   );
 }
 
+function ensureGeoPipOverlayChromeProp(src = "") {
+  let out = String(src);
+  if (!/geoPipOverlayChrome\s*[=?:]/.test(out)) {
+    out = out.replace(
+      `  textColor?: string;
+};`,
+      `  textColor?: string;
+  geoPipOverlayChrome?: boolean;
+};`
+    );
+    out = out.replace(
+      `  textColor = "#ffffff",
+}: EngineeringPictureInPictureProps)`,
+      `  textColor = "#ffffff",
+  geoPipOverlayChrome = false,
+}: EngineeringPictureInPictureProps)`
+    );
+  }
+  return out;
+}
+
 export function patchGeoPipTemplateSourceForChrome(code = "") {
   if (!isGeoPipTemplateSource(code)) return String(code || "");
-  let src = String(code);
+  let src = ensureGeoPipOverlayChromeProp(String(code));
 
   src = src.replace(
     "{showMainContentLabel && (",
@@ -132,23 +153,6 @@ export function patchGeoPipTemplateSourceForChrome(code = "") {
     "{(pipTitle || pipSubtitle || coordinateText || distanceText) ? (",
     ") : null}"
   );
-
-  if (!src.includes("geoPipOverlayChrome")) {
-    src = src.replace(
-      `  textColor?: string;
-};`,
-      `  textColor?: string;
-  geoPipOverlayChrome?: boolean;
-};`
-    );
-    src = src.replace(
-      `  textColor = "#ffffff",
-}: EngineeringPictureInPictureProps)`,
-      `  textColor = "#ffffff",
-  geoPipOverlayChrome = false,
-}: EngineeringPictureInPictureProps)`
-    );
-  }
 
   const overlayOpacity = "opacity: geoPipOverlayChrome ? 0 : 1,";
   src = src.replace(

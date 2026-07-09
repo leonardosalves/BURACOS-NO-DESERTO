@@ -33,10 +33,17 @@ class LivePreviewErrorBoundary extends Component<
   render() {
     if (this.state.error) {
       if (this.props.fallback) return this.props.fallback;
+      const fullBleed = !this.props.dimensionsClassName;
       return (
         <div
-          className={`grid place-items-center rounded-[6px] border border-red-400/30 bg-red-500/10 p-3 text-center ${this.props.dimensionsClassName || ""}`}
-          style={{ aspectRatio: this.props.aspectRatio }}
+          className={
+            fullBleed
+              ? "absolute inset-0 z-50 grid place-items-center bg-red-950/40 p-3 text-center pointer-events-none"
+              : `grid place-items-center rounded-[6px] border border-red-400/30 bg-red-500/10 p-3 text-center ${this.props.dimensionsClassName || ""}`
+          }
+          style={
+            fullBleed ? undefined : { aspectRatio: this.props.aspectRatio }
+          }
         >
           <p className="text-[10px] font-bold leading-relaxed text-red-200">
             Preview falhou durante a renderizacao
@@ -147,8 +154,16 @@ export function SavedTemplatePreviewFrame({
     }
     return (
       <div
-        className={`grid place-items-center rounded-[6px] border border-red-400/30 bg-red-500/10 p-3 text-center ${dimensions.className}`}
-        style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}` }}
+        className={
+          fullBleed
+            ? "absolute inset-0 z-50 grid place-items-center bg-red-950/40 p-3 text-center pointer-events-none"
+            : `grid place-items-center rounded-[6px] border border-red-400/30 bg-red-500/10 p-3 text-center ${dimensions.className}`
+        }
+        style={
+          fullBleed
+            ? undefined
+            : { aspectRatio: `${dimensions.width} / ${dimensions.height}` }
+        }
       >
         <p className="text-[10px] font-bold leading-relaxed text-red-200">
           Preview ao vivo indisponivel
