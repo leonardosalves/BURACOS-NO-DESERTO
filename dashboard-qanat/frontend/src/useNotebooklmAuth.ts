@@ -8,6 +8,8 @@ export type NotebooklmStatus = {
   loginInProgress?: boolean;
   needsLogin?: boolean;
   cliMissing?: boolean;
+  manualLoginRequired?: boolean;
+  serviceMode?: boolean;
   message?: string;
   dataDir?: string;
 };
@@ -120,6 +122,28 @@ export function useNotebooklmAuth(opts?: {
         toast.success(String(data.message || "NotebookLM já conectado."));
         return true;
       }
+      if (data.manualLoginRequired) {
+        const manualStatus = {
+          ...(data.status as NotebooklmStatus | undefined),
+          manualLoginRequired: true,
+          serviceMode: true,
+          loginInProgress: false,
+          authenticated: false,
+          needsLogin: true,
+          message: String(
+            data.message ||
+              "Rode .\\nlm-login.ps1 na pasta Lumiera e clique em Atualizar."
+          ),
+        } as NotebooklmStatus;
+        setStatus(manualStatus);
+        broadcastStatus(manualStatus);
+        setLoggingIn(false);
+        toast(String(data.message || manualStatus.message), {
+          icon: "🔐",
+          duration: 14000,
+        });
+        return false;
+      }
       if (data.status) {
         setStatus(data.status as NotebooklmStatus);
         broadcastStatus(data.status as NotebooklmStatus);
@@ -157,6 +181,7 @@ export function useNotebooklmAuth(opts?: {
     if (status == null) return;
     if (status.authenticated) return;
     if (status.loginInProgress) return;
+    if (status.serviceMode || status.manualLoginRequired) return;
 
     const sessionDone = sessionStorage.getItem(AUTO_LOGIN_SESSION_KEY);
     if (sessionDone) return;

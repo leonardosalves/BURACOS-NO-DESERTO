@@ -70,6 +70,9 @@ function resolveNlmBin() {
 }
 
 const NLM_BIN = resolveNlmBin();
+const LOGIN_PENDING_TIMEOUT_MS = Number(
+  process.env.NOTEBOOKLM_LOGIN_TIMEOUT_MS || 180000
+);
 
 let loginChild = null;
 let loginStartedAt = null;
@@ -229,26 +232,85 @@ export function getNotebooklmLoginState() {
   };
 }
 
+export function clearNotebooklmLoginState() {
+  loginChild = null;
+  loginStartedAt = null;
+}
+
+function isLumieraWindowsServiceMode(backendDir) {
+  if (process.platform !== "win32") return false;
+  const user = String(
+    process.env.USERNAME || process.env.USER || ""
+  ).toUpperCase();
+  if (
+    user === "SYSTEM" ||
+    user === "LOCAL SERVICE" ||
+    user === "NETWORK SERVICE"
+  ) {
+    return true;
+  }
+  if (backendDir) {
+    const marker = path.join(
+      path.resolve(backendDir, "..", ".."),
+      ".lumiera-logs",
+      "windows-service.mode"
+    );
+    if (fs.existsSync(marker)) return true;
+  }
+  return false;
+}
+
+function getManualLoginMessage() {
+  return "Serviço Windows não abre o navegador. No PowerShell: cd para a pasta Lumiera e rode .\\nlm-login.ps1 — depois clique em Atualizar.";
+}
+
 function buildLoginPendingStatus(backendDir, message) {
+  const serviceMode = isLumieraWindowsServiceMode(backendDir);
   return {
     available: false,
     authenticated: false,
     notebookCount: 0,
-    loginInProgress: true,
+    loginInProgress: !serviceMode,
     needsLogin: true,
-    message: message || "Aguardando login no navegador…",
+    manualLoginRequired: serviceMode,
+    serviceMode,
+    message: serviceMode
+      ? getManualLoginMessage()
+      : message || "Aguardando login no navegador…",
     dataDir: resolveNotebooklmDataDir(backendDir),
   };
 }
 
+function loginPendingTimedOut() {
+  return (
+    loginStartedAt != null &&
+    Date.now() - loginStartedAt > LOGIN_PENDING_TIMEOUT_MS
+  );
+}
+
 /** Abre o navegador para login OAuth do NotebookLM (processo em background). */
 export function startNotebooklmLogin(backendDir) {
-  if (loginChild) {
+  if (isLumieraWindowsServiceMode(backendDir)) {
+    clearNotebooklmLoginState();
     return {
-      started: true,
-      alreadyRunning: true,
-      message: "Login já em andamento — conclua no navegador que abriu.",
+      started: false,
+      manualLoginRequired: true,
+      serviceMode: true,
+      message: getManualLoginMessage(),
+      dataDir: resolveNotebooklmDataDir(backendDir),
     };
+  }
+
+  if (loginChild) {
+    if (loginPendingTimedOut()) {
+      clearNotebooklmLoginState();
+    } else {
+      return {
+        started: true,
+        alreadyRunning: true,
+        message: "Login já em andamento — conclua no navegador que abriu.",
+      };
+    }
   }
 
   const current = getNotebooklmStatus(backendDir);
@@ -303,13 +365,28 @@ export function startNotebooklmLogin(backendDir) {
 }
 
 export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
+  const serviceMode = isLumieraWindowsServiceMode(backendDir);
   const loginState = getNotebooklmLoginState();
+
   if (loginState.inProgress) {
-    return buildLoginPendingStatus(
-      backendDir,
-      "Aguardando login no navegador…"
-    );
+    if (loginPendingTimedOut()) {
+      clearNotebooklmLoginState();
+    } else {
+      try {
+        runNlm(["login", "--check"], {
+          timeoutMs: quick ? 1200 : 8000,
+          backendDir,
+        });
+        clearNotebooklmLoginState();
+      } catch {
+        return buildLoginPendingStatus(
+          backendDir,
+          "Aguardando login no navegador…"
+        );
+      }
+    }
   }
+
   try {
     runNlm(["login", "--check"], {
       timeoutMs: quick ? 1200 : 8000,
@@ -321,6 +398,7 @@ export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
         authenticated: true,
         notebookCount: null,
         loginInProgress: false,
+        serviceMode,
         message: "NotebookLM conectado",
         dataDir: resolveNotebooklmDataDir(backendDir),
       };
@@ -335,7 +413,8 @@ export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
       available: true,
       authenticated: true,
       notebookCount: count,
-      loginInProgress: loginState.inProgress,
+      loginInProgress: false,
+      serviceMode,
       message:
         count > 0
           ? `NotebookLM conectado (${count} notebook${count === 1 ? "" : "s"})`
@@ -346,18 +425,23 @@ export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
     const msg = String(err.message || "");
     const auth = isAuthError(msg);
     const cliMissing = msg.includes("ENOENT");
+    const freshLoginState = getNotebooklmLoginState();
     return {
       available: false,
       authenticated: false,
       notebookCount: 0,
-      loginInProgress: loginState.inProgress,
+      loginInProgress: freshLoginState.inProgress && !serviceMode,
+      serviceMode,
+      manualLoginRequired: serviceMode && (auth || cliMissing),
       message: cliMissing
         ? `CLI nlm não encontrado (${NLM_BIN}). Reinstale o serviço Windows ou rode .\\nlm-login.ps1 na pasta Lumiera.`
-        : auth
-          ? loginState.inProgress
-            ? "Aguardando login no navegador…"
-            : "Sessão NotebookLM expirada — clique em Conectar NotebookLM ou rode .\\nlm-login.ps1"
-          : `NotebookLM indisponível: ${msg}`,
+        : serviceMode && auth
+          ? getManualLoginMessage()
+          : auth
+            ? freshLoginState.inProgress
+              ? "Aguardando login no navegador…"
+              : "Sessão NotebookLM expirada — clique em Conectar NotebookLM ou rode .\\nlm-login.ps1"
+            : `NotebookLM indisponível: ${msg}`,
       dataDir: resolveNotebooklmDataDir(backendDir),
       needsLogin: auth || cliMissing,
       cliMissing,

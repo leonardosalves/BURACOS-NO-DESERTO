@@ -235,6 +235,7 @@ import {
   formatNotebooklmPromptBlock,
   getNotebooklmStatus,
   startNotebooklmLogin,
+  clearNotebooklmLoginState,
   buildNotebooklmImproveApplyPrompt,
   buildNotebooklmNarrationEnrichPrompt,
   handleNotebooklmSessionReply,
@@ -18176,6 +18177,18 @@ app.post("/api/notebooklm/session/finalize", (req, res) => {
   }
 });
 
+app.post("/api/notebooklm/login/cancel", (_req, res) => {
+  try {
+    clearNotebooklmLoginState();
+    res.json({
+      success: true,
+      status: getNotebooklmStatus(__dirname),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.post("/api/notebooklm/login", (_req, res) => {
   try {
     const result = startNotebooklmLogin(__dirname);
@@ -18184,6 +18197,14 @@ app.post("/api/notebooklm/login", (_req, res) => {
         success: true,
         alreadyAuthenticated: true,
         ...result.status,
+      });
+    }
+    if (result.manualLoginRequired) {
+      return res.json({
+        success: true,
+        manualLoginRequired: true,
+        ...result,
+        status: getNotebooklmStatus(__dirname),
       });
     }
     if (result.error) {
