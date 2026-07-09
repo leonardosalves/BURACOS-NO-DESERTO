@@ -1,5 +1,5 @@
 import toast from "react-hot-toast";
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import {
   AlertTriangle,
   Bot,
@@ -26,6 +26,10 @@ import { LazyMotionTimelineEditor, TabPanelFallback } from "./appLazyPanels";
 import type { ConfigData, WorkspaceStatus } from "./appTypes";
 import type { AppTab } from "./appTabs";
 import type { MotionSceneDraft } from "./motionEditorConfig";
+import {
+  applyStudioMotionScenesToStoryboard,
+  pullStudioMotionScenes,
+} from "./timelineStudioMotionSync";
 
 type AssetValidationIssue = {
   block?: string;
@@ -219,6 +223,24 @@ export function RichTimelineEditor({
   const timelineBlockCount = config.block_phrases
     ? config.block_phrases.length
     : status?.block_timings?.durations?.length || 12;
+
+  const handleMotionScenesChangeRef = React.useRef(handleMotionScenesChange);
+  handleMotionScenesChangeRef.current = handleMotionScenesChange;
+
+  useEffect(() => {
+    if (!activeProject?.trim()) return;
+    let cancelled = false;
+    void (async () => {
+      const data = await pullStudioMotionScenes(getProjectUrl);
+      if (cancelled) return;
+      applyStudioMotionScenesToStoryboard(data, (scenes, opts) =>
+        handleMotionScenesChangeRef.current(scenes, opts)
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProject, getProjectUrl]);
 
   const validateProjectAssets = async () => {
     if (!activeProject.trim()) {

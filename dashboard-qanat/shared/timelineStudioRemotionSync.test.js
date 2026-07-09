@@ -314,6 +314,53 @@ describe("timelineStudioRemotionSync", () => {
     assert.equal(purged.storyboard.motion_scenes[0].id, "ms-geo");
   });
 
+  it("syncStudioTimingToStoryboard casa clip por motion_scene_id", () => {
+    const tmp = fs.mkdtempSync(
+      path.join(os.tmpdir(), "lumiera-timing-motion-id-")
+    );
+    const storyboardPath = path.join(tmp, "storyboard.json");
+    fs.writeFileSync(
+      storyboardPath,
+      JSON.stringify(
+        {
+          motion_scenes: [
+            {
+              id: "ms-pip-draft",
+              template_id: "location-intro",
+              start_hint: 11.4,
+              duration_seconds: 4,
+              props: { template_studio_name: "Engenharia Picture in Picture" },
+            },
+          ],
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const studio = {
+      clips: [
+        {
+          id: "motion-studio-1783573511378",
+          trackId: "motion",
+          start: 16,
+          duration: 10,
+          timing_manual: true,
+          props: {
+            motion_scene_id: "ms-pip-draft",
+            timing_manual: true,
+          },
+        },
+      ],
+    };
+
+    const result = syncStudioTimingToStoryboard(tmp, studio);
+    assert.equal(result.changed, true);
+    assert.equal(result.motion_scenes[0].start_hint, 16);
+    assert.equal(result.motion_scenes[0].duration_seconds, 10);
+  });
+
   it("syncStudioTimingToStoryboard propaga start/duration dos clips motion", () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-timing-sync-"));
     const storyboardPath = path.join(tmp, "storyboard.json");

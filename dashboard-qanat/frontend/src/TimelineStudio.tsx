@@ -49,6 +49,8 @@ import {
 } from "./timelineStudioTypes";
 import type { RichTimelineEditorProps } from "./RichTimelineEditor";
 import type { MotionSceneDraft } from "./motionEditorConfig";
+import { applyStudioMotionScenesToStoryboard } from "./timelineStudioMotionSync";
+import { applyTimingManualPatch } from "./studioClipInspectorSlots";
 import type {
   AskLumieraAction,
   StockSearchTrigger,
@@ -301,14 +303,28 @@ export function TimelineStudio({
 
   const applyServerMotionScenes = useCallback(
     (data: { motion_scenes?: unknown[]; motion_scenes_synced?: boolean }) => {
-      const scenes = data.motion_scenes;
-      if (!Array.isArray(scenes) || scenes.length < 1) return;
-      handleMotionScenesChange(scenes as MotionSceneDraft[], {
-        skipPersist: true,
-      });
+      applyStudioMotionScenesToStoryboard(data, handleMotionScenesChange);
     },
     [handleMotionScenesChange]
   );
+
+  const motionTimingPersistRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  const motionTimingFingerprint = useMemo(() => {
+    if (!studio) return "";
+    return JSON.stringify(
+      studio.clips
+        .filter((c) => isRemotionStudioClip(c))
+        .map((c) => ({
+          id: c.id,
+          start: c.start,
+          duration: c.duration,
+          tm: c.props?.timing_manual === true || c.timing_manual === true,
+        }))
+    );
+  }, [studio?.clips]);
 
   const loadStudio = useCallback(
     async (opts?: {
@@ -529,6 +545,29 @@ export function TimelineStudio({
     return { ...studio, playhead: localPlayhead };
   }, [studio, localPlayhead]);
 
+  const withMotionTimingManual = useCallback(
+    (prevClips: StudioClip[], nextClips: StudioClip[]): StudioClip[] =>
+      nextClips.map((clip) => {
+        if (!isRemotionStudioClip(clip)) return clip;
+        const old = prevClips.find((c) => c.id === clip.id);
+        if (!old) return clip;
+        const changed =
+          Math.abs((Number(old.start) || 0) - (Number(clip.start) || 0)) >
+            0.001 ||
+          Math.abs((Number(old.duration) || 0) - (Number(clip.duration) || 0)) >
+            0.001;
+        if (!changed) return clip;
+        return {
+          ...clip,
+          ...applyTimingManualPatch(old, {
+            start: clip.start,
+            duration: clip.duration,
+          }),
+        };
+      }),
+    []
+  );
+
   const handleClipsChange = useCallback(
     (clips: StudioClip[]) => {
       setStudio((prev) => {
@@ -550,15 +589,48 @@ export function TimelineStudio({
         const withSuppressions = removedRemotionClips.length
           ? applySuppressionFields(prev, suppressionPatch)
           : prev;
+        const timedClips = withMotionTimingManual(prev.clips, clips);
         return {
           ...withSuppressions,
-          clips,
-          totalDuration: computeTotalDuration(clips, prev.totalDuration || 120),
+          clips: timedClips,
+          totalDuration: computeTotalDuration(
+            timedClips,
+            prev.totalDuration || 120
+          ),
         };
       });
     },
-    [storyboardData]
+    [storyboardData, withMotionTimingManual]
   );
+
+  const studioPersistRef = useRef(studio);
+  studioPersistRef.current = studio;
+
+  useEffect(() => {
+    const snap = studioPersistRef.current;
+    if (!snap || loading || !initialLoadDoneRef.current) return;
+    const hasManualTiming = snap.clips.some(
+      (c) =>
+        isRemotionStudioClip(c) &&
+        (c.props?.timing_manual === true || c.timing_manual === true)
+    );
+    if (!hasManualTiming) return;
+    if (motionTimingPersistRef.current) {
+      clearTimeout(motionTimingPersistRef.current);
+    }
+    motionTimingPersistRef.current = setTimeout(() => {
+      const latest = studioPersistRef.current;
+      if (!latest) return;
+      void persistStudioSnapshot(latest)
+        .then((saved) => setStudio(saved))
+        .catch(() => {});
+    }, 900);
+    return () => {
+      if (motionTimingPersistRef.current) {
+        clearTimeout(motionTimingPersistRef.current);
+      }
+    };
+  }, [motionTimingFingerprint, loading, persistStudioSnapshot]);
 
   const addClipToStudio = useCallback(
     (clip: StudioClip) => {

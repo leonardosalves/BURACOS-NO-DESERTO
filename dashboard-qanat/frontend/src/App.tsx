@@ -3519,6 +3519,26 @@ export default function App() {
     }
   }, [activeTab]);
 
+  const handleMotionScenesChangeRef = useRef(handleMotionScenesChange);
+  handleMotionScenesChangeRef.current = handleMotionScenesChange;
+
+  useEffect(() => {
+    if (activeTab !== "editor" || !activeProject?.trim()) return;
+    let cancelled = false;
+    void (async () => {
+      const { pullStudioMotionScenes, applyStudioMotionScenesToStoryboard } =
+        await import("./timelineStudioMotionSync");
+      const data = await pullStudioMotionScenes(getProjectUrl);
+      if (cancelled) return;
+      applyStudioMotionScenesToStoryboard(data, (scenes, opts) =>
+        handleMotionScenesChangeRef.current(scenes, opts)
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, activeProject, getProjectUrl]);
+
   useEffect(() => {
     if (
       activeTab === "creator" ||

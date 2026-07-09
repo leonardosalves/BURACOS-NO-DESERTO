@@ -19,6 +19,8 @@ import {
   defaultMotionTrack,
   MOTION_TRACK_ID,
 } from "../shared/motionSceneCatalog.js";
+import { studioMotionClipToMotionScene } from "./timelineStudioNichePacks.js";
+import { clipHasTimingManual } from "../shared/studioClipUserMerge.js";
 import {
   clipMatchesSuppression,
   collectSuppressionState,
@@ -589,6 +591,69 @@ function isStudioMotionClip(clip = {}) {
   );
 }
 
+function motionClipLookupKeys(clip = {}) {
+  const keys = new Set();
+  const id = String(clip.id || "").trim();
+  if (id) keys.add(id);
+  const motionId = String(clip.props?.motion_scene_id || "").trim();
+  if (motionId) keys.add(motionId);
+  const studioId = String(clip.props?.template_studio_id || "").trim();
+  if (studioId) keys.add(`studio:${studioId}`);
+  const source = String(clip.props?.studio_source_code || "").trim();
+  if (source.length > 40) keys.add(`src:${source.slice(0, 96)}`);
+  return keys;
+}
+
+function motionSceneLookupKeys(ms = {}) {
+  const keys = new Set();
+  const id = String(ms?.id || "").trim();
+  if (id) keys.add(id);
+  const props = ms.props && typeof ms.props === "object" ? ms.props : {};
+  const motionId = String(props.motion_scene_id || "").trim();
+  if (motionId) keys.add(motionId);
+  const studioId = String(props.template_studio_id || "").trim();
+  if (studioId) keys.add(`studio:${studioId}`);
+  const source = String(props.studio_source_code || "").trim();
+  if (source.length > 40) keys.add(`src:${source.slice(0, 96)}`);
+  return keys;
+}
+
+function buildMotionClipLookup(motionClips = []) {
+  const byKey = new Map();
+  for (const clip of motionClips) {
+    for (const key of motionClipLookupKeys(clip)) {
+      if (!byKey.has(key)) byKey.set(key, clip);
+    }
+  }
+  return { byKey, clips: motionClips };
+}
+
+function resolveClipForMotionScene(ms, lookup) {
+  for (const key of motionSceneLookupKeys(ms)) {
+    const clip = lookup.byKey.get(key);
+    if (clip) return clip;
+  }
+  if (lookup.clips.length === 1) return lookup.clips[0];
+  return null;
+}
+
+function applyClipTimingToMotionScene(ms, clip) {
+  const start = Math.max(0, Number(clip.start) || 0);
+  const duration = Math.max(0.5, Number(clip.duration) || 4);
+  const prevStart = Number(ms.start_hint) || 0;
+  const prevDur = Number(ms.duration_seconds) || 4;
+  if (
+    Math.abs(start - prevStart) < 0.001 &&
+    Math.abs(duration - prevDur) < 0.001
+  ) {
+    return { scene: ms, changed: false };
+  }
+  return {
+    scene: { ...ms, start_hint: start, duration_seconds: duration },
+    changed: true,
+  };
+}
+
 /**
  * Propaga start/duration dos clips motion da timeline → motion_scenes do storyboard.
  * Fonte de verdade após edição no Editor Timing (timeline_studio.json).
@@ -609,48 +674,55 @@ export function syncStudioTimingToStoryboard(projDir, studio = {}) {
   const motionScenes = Array.isArray(storyboard.motion_scenes)
     ? storyboard.motion_scenes
     : [];
-  if (!motionScenes.length) {
-    return { changed: false, motion_scenes: [] };
-  }
 
   const motionClips = (studio.clips || []).filter(isStudioMotionClip);
   if (!motionClips.length) {
     return { changed: false, motion_scenes: motionScenes };
   }
 
-  const clipById = new Map();
-  for (const clip of motionClips) {
-    const id = String(clip.id || "").trim();
-    if (id) clipById.set(id, clip);
-    const motionId = String(clip.props?.motion_scene_id || "").trim();
-    if (motionId) clipById.set(motionId, clip);
-  }
-
+  const lookup = buildMotionClipLookup(motionClips);
+  const matchedClipIds = new Set();
   let changed = false;
-  const nextScenes = motionScenes.map((ms) => {
-    const id = String(ms?.id || "").trim();
-    const clip = clipById.get(id);
+
+  let nextScenes = motionScenes.map((ms) => {
+    const clip = resolveClipForMotionScene(ms, lookup);
     if (!clip) return ms;
-
-    const start = Math.max(0, Number(clip.start) || 0);
-    const duration = Math.max(0.5, Number(clip.duration) || 4);
-    const prevStart = Number(ms.start_hint) || 0;
-    const prevDur = Number(ms.duration_seconds) || 4;
-
-    if (
-      Math.abs(start - prevStart) < 0.001 &&
-      Math.abs(duration - prevDur) < 0.001
-    ) {
-      return ms;
-    }
-
-    changed = true;
-    return {
-      ...ms,
-      start_hint: start,
-      duration_seconds: duration,
-    };
+    matchedClipIds.add(String(clip.id || ""));
+    const applied = applyClipTimingToMotionScene(ms, clip);
+    if (applied.changed) changed = true;
+    return applied.scene;
   });
+
+  for (const clip of motionClips) {
+    const clipId = String(clip.id || "");
+    if (matchedClipIds.has(clipId)) continue;
+    if (!clipHasTimingManual(clip) && motionScenes.length > 0) continue;
+    const fromClip = studioMotionClipToMotionScene(clip);
+    const existingIdx = nextScenes.findIndex(
+      (ms) =>
+        String(ms?.id || "") === clipId ||
+        String(ms?.props?.motion_scene_id || "") === clipId ||
+        String(ms?.props?.template_studio_id || "") ===
+          String(clip.props?.template_studio_id || "")
+    );
+    if (existingIdx >= 0) {
+      const applied = applyClipTimingToMotionScene(
+        nextScenes[existingIdx],
+        clip
+      );
+      if (applied.changed) {
+        changed = true;
+        nextScenes = nextScenes.map((ms, i) =>
+          i === existingIdx ? applied.scene : ms
+        );
+      }
+      matchedClipIds.add(clipId);
+      continue;
+    }
+    nextScenes = [...nextScenes, fromClip];
+    changed = true;
+    matchedClipIds.add(clipId);
+  }
 
   if (!changed) {
     return { changed: false, motion_scenes: motionScenes };
