@@ -231,8 +231,14 @@ export function TimelineStudioPreview({
       ),
     [motionClips]
   );
+  /** Evita B-roll duplicado: só esconde a trilha vídeo se o template recebe mainMediaUrl. */
+  const suppressBaseVideoForPip = activeStudioGeoPip && Boolean(assetSrc);
   const showBaseVideo =
-    Boolean(assetSrc) && !(isVideo && videoLoadFailed) && !activeStudioGeoPip;
+    Boolean(assetSrc) &&
+    !(isVideo && videoLoadFailed) &&
+    !suppressBaseVideoForPip;
+  const showMediaPlaceholder =
+    !showBaseVideo && motionClips.length === 0 && !videoLoadFailed;
 
   useEffect(() => {
     setVideoLoadFailed(false);
@@ -606,7 +612,7 @@ export function TimelineStudioPreview({
                 onError={() => setVideoLoadFailed(true)}
               />
             )
-          ) : (
+          ) : showMediaPlaceholder ? (
             <div className="absolute inset-0 flex items-center justify-center bg-zinc-950">
               <div className="text-center px-6">
                 <p className="text-sm text-zinc-500">
@@ -621,7 +627,7 @@ export function TimelineStudioPreview({
                 </p>
               </div>
             </div>
-          )}
+          ) : null}
 
           {voiceSrc ? (
             <audio
