@@ -3,6 +3,11 @@
  * mapa ou flyover no quadradinho PIP e local no slot "ponto de referência".
  */
 
+import {
+  resolveGeoPipReferenceLabel,
+  resolveGeoPipSectorLabel,
+} from "./geoPipSceneText.js";
+
 export const GEO_PIP_CATEGORY = "image-media";
 export const GEO_PIP_SUBCATEGORY = "Picture in Picture";
 
@@ -102,17 +107,24 @@ export function buildGeoPipStudioProps(scene = {}, template = {}) {
     if (!key) continue;
     const lower = key.toLowerCase();
     if (REFERENCE_POINT_SLOTS.has(key) || lower.includes("referen")) {
-      assign(key, location || region || country);
+      assign(key, resolveGeoPipReferenceLabel(props));
       continue;
     }
     if (PIP_TITLE_SLOTS.has(key)) {
-      assign(key, location || "PIP LOCALIZAÇÃO");
+      assign(key, resolveGeoPipReferenceLabel(props) || location);
       continue;
     }
-    if (lower === "subtitle" || lower === "descriptortext") {
+    if (
+      lower === "subtitle" ||
+      lower === "descriptortext" ||
+      lower.includes("sector") ||
+      lower.includes("setor") ||
+      lower === "panellabel" ||
+      lower === "statustext"
+    ) {
       assign(
         key,
-        [region, country].filter(Boolean).join(" · ") || "MAPA · ROTA · SETOR"
+        resolveGeoPipSectorLabel(props, String(props.narration_text || ""))
       );
       continue;
     }
@@ -138,11 +150,15 @@ export function buildGeoPipStudioProps(scene = {}, template = {}) {
   }
 
   if (!filled.length) {
-    assign("referencePoint", location || region || country);
-    assign("pipTitle", location || "PIP LOCALIZAÇÃO");
+    assign("referencePoint", resolveGeoPipReferenceLabel(props));
+    assign("pipTitle", resolveGeoPipReferenceLabel(props) || location);
     assign(
       "subtitle",
-      [region, country].filter(Boolean).join(" · ") || "MAPA · ROTA · SETOR"
+      resolveGeoPipSectorLabel(props, String(props.narration_text || ""))
+    );
+    assign(
+      "sectorLabel",
+      resolveGeoPipSectorLabel(props, String(props.narration_text || ""))
     );
     if (Number.isFinite(lat)) assign("latLabel", formatCoordDms(lat, "lat"));
     if (Number.isFinite(lng)) assign("lngLabel", formatCoordDms(lng, "lng"));

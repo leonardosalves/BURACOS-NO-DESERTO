@@ -3,6 +3,10 @@
  */
 
 import { resolvePlaceWithResearch } from "./motionResearchProps.js";
+import {
+  resolveGeoPipReferenceLabel,
+  resolveGeoPipSectorLabel,
+} from "./geoPipSceneText.js";
 import { isTemplatePlaceholderValue } from "./studioTemplatePlaceholder.js";
 
 const YEAR_GLOBAL_RE = /\b(1\d{3}|20\d{2})\b/g;
@@ -206,7 +210,10 @@ export function bindStudioTemplateProps({
     slotSources[key] = source;
   };
 
-  if (slotWanted(dataSlots, "text", "headline", "title")) {
+  const isGeoPipTemplate =
+    subcategory.includes("picture in picture") || category === "image-media";
+
+  if (slotWanted(dataSlots, "text", "headline", "title") && !isGeoPipTemplate) {
     const headline =
       category === "chart-data" && stat?.label
         ? stat.label
@@ -219,7 +226,7 @@ export function bindStudioTemplateProps({
     setSlot(key, headline, stat ? "narration+stat" : "narration");
   }
 
-  if (slotWanted(dataSlots, "subtitle", "descriptorText")) {
+  if (slotWanted(dataSlots, "subtitle", "descriptorText") && !isGeoPipTemplate) {
     const key = slotWanted(dataSlots, "descriptorText")
       ? "descriptorText"
       : "subtitle";
@@ -279,15 +286,17 @@ export function bindStudioTemplateProps({
   if (slotWanted(dataSlots, "location")) {
     if (place?.location) setSlot("location", place.location, "geo");
   }
-  if (
-    subcategory.includes("picture in picture") ||
-    category === "image-media"
-  ) {
-    const geoLocation =
-      place?.location ||
-      String(scene.props?.location || "").trim() ||
-      String(scene.props?.referencePoint || "").trim();
-    if (geoLocation) {
+  if (isGeoPipTemplate) {
+    const geoProps = {
+      ...(scene.props || {}),
+      location: place?.location || scene.props?.location,
+      region: place?.region || scene.props?.region,
+      country: place?.country || scene.props?.country,
+      referencePoint: scene.props?.referencePoint,
+    };
+    const reference = resolveGeoPipReferenceLabel(geoProps);
+    const sector = resolveGeoPipSectorLabel(geoProps, narration);
+    if (reference) {
       for (const key of [
         "referencePoint",
         "reference_point",
@@ -296,15 +305,32 @@ export function bindStudioTemplateProps({
         "pip_title",
       ]) {
         if (slotWanted(dataSlots, key)) {
-          setSlot(key, geoLocation, "geo");
+          setSlot(key, reference, "geo");
         }
       }
+      if (!slotWanted(dataSlots, "referencePoint", "pipTitle")) {
+        setSlot("referencePoint", reference, "geo");
+      }
     }
-    const region = place?.region || String(scene.props?.region || "").trim();
-    const country = place?.country || String(scene.props?.country || "").trim();
-    const subtitle = [region, country].filter(Boolean).join(" · ");
-    if (subtitle && slotWanted(dataSlots, "subtitle")) {
-      setSlot("subtitle", subtitle, "geo");
+    if (sector) {
+      for (const key of [
+        "subtitle",
+        "descriptorText",
+        "sectorLabel",
+        "structuralSector",
+        "panelLabel",
+        "statusText",
+        "scene_subject",
+        "sceneSubject",
+      ]) {
+        if (slotWanted(dataSlots, key)) {
+          setSlot(key, sector, "narration");
+        }
+      }
+      if (!slotWanted(dataSlots, "subtitle", "sectorLabel", "panelLabel")) {
+        setSlot("subtitle", sector, "narration");
+        setSlot("sectorLabel", sector, "narration");
+      }
     }
   }
   if (slotWanted(dataSlots, "region") && place?.region) {
