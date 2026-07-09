@@ -6,6 +6,7 @@ import {
   isGeoPipShortScene,
   pickGeoPipStudioTemplate,
   resolveGeoPipPresentation,
+  resolveGeoPipStudioPipWindowPct,
 } from "./geoPipStudioTemplate.js";
 
 describe("geoPipStudioTemplate", () => {
@@ -78,6 +79,23 @@ describe("geoPipStudioTemplate", () => {
       "Engenharia"
     );
     assert.equal(tpl?.id, "pip-1");
+  });
+
+  it("resolveGeoPipStudioPipWindowPct replica clamp do template (pipInset 132 → 120)", () => {
+    const win = resolveGeoPipStudioPipWindowPct(
+      {
+        pipInset: 132,
+        pipWidth: 360,
+        pipHeight: 230,
+        pipPosition: "top-right",
+        geoPipOverlayChrome: true,
+      },
+      "9:16"
+    );
+    assert.ok(Math.abs(win.rightPct - (120 / 1080) * 100) < 0.01);
+    assert.ok(Math.abs(win.topPct - (132 / 1920) * 100) < 0.01);
+    assert.ok(Math.abs(win.widthPct - (360 / 1080) * 100) < 0.01);
+    assert.ok(Math.abs(win.heightPct - (230 / 1920) * 100) < 0.01);
   });
 
   it("attachGeoPipStudioTemplate liga studio PIP limpo para novos projetos", () => {

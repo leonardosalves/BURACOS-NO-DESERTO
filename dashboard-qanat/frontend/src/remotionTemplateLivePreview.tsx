@@ -136,10 +136,29 @@ export function SavedTemplatePreviewFrame({
     )
   );
 
+  /** Timeline em play: só re-seek se drift > ~0,35s — evita travamento do MP4 no PIP. */
+  const timelinePlaying = timelineSynced && autoPlay;
+  const driftFrames = Math.max(3, Math.round(fps * 0.35));
+
   useEffect(() => {
     if (!previewMeta) return;
-    playerRef.current?.seekTo(scrubFrame);
-  }, [previewMeta, scrubFrame]);
+    const player = playerRef.current;
+    if (!player) return;
+
+    if (timelinePlaying) {
+      const current = player.getCurrentFrame();
+      if (Math.abs(current - scrubFrame) > driftFrames) {
+        player.seekTo(scrubFrame);
+      }
+      if (!player.isPlaying()) {
+        player.play();
+      }
+      return;
+    }
+
+    player.pause();
+    player.seekTo(scrubFrame);
+  }, [previewMeta, scrubFrame, timelinePlaying, driftFrames]);
 
   if (compiled.ok === false) {
     if (fallback) {

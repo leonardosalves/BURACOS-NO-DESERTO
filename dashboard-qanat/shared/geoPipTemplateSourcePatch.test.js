@@ -34,14 +34,29 @@ const catalogPath = path.join(
   "../backend/data/remotion-template-catalog.json"
 );
 
+function loadPipShortSourceFromStudio() {
+  const studioPath =
+    "C:/Users/Leo/Desktop/Lumiera Videos/videos curtos shorts/Norma_NBR_6118/timeline_studio.json";
+  if (!fs.existsSync(studioPath)) return null;
+  const studio = JSON.parse(fs.readFileSync(studioPath, "utf8"));
+  const clip = (studio.clips || []).find(
+    (c) => c.props?.geo_pip_composite && c.props?.studio_source_code
+  );
+  return clip?.props?.studio_source_code || null;
+}
+
 function loadPipShortSource() {
   const c = JSON.parse(fs.readFileSync(catalogPath, "utf8"));
   for (const entry of Object.values(c.niches || {})) {
-    const tpl = (entry.templates || []).find((t) =>
-      String(t.name || "").includes("Picture in Picture")
+    const tpl = (entry.templates || []).find(
+      (t) =>
+        String(t.subcategory || "").includes("Picture in Picture") ||
+        String(t.name || "").includes("Picture in Picture")
     );
-    if (tpl) return tpl.sourceCode.short;
+    if (tpl?.sourceCode?.short) return tpl.sourceCode.short;
   }
+  const fromStudio = loadPipShortSourceFromStudio();
+  if (fromStudio) return fromStudio;
   throw new Error("PIP template not found");
 }
 
@@ -52,7 +67,7 @@ describe("geoPipTemplateSourcePatch", () => {
   });
 
   it("remove badge % PIP e condiciona chrome vazio", () => {
-    const src = loadPipShortSource();
+    const src = repairCorruptedTemplateStringLiterals(loadPipShortSource());
     const patched = patchGeoPipTemplateSourceForChrome(src);
     assert.equal(patched.includes("{progressPercent}% PIP"), false);
     assert.match(patched, /showMainContentLabel && descriptorText &&/);
@@ -75,7 +90,7 @@ describe("geoPipTemplateSourcePatch", () => {
     assert.match(patched, /statusText \? \(/);
     assert.match(patched, /pipTag \? \(/);
     assert.doesNotMatch(patched, />\s*PIP\s*<\/div>/);
-    assertCompilableTsx(patched, "catalog patched");
+    assertCompilableTsx(patched, "pip patched");
   });
 
   it("TSX corrompido de projeto real compila apos repair + patch", () => {
