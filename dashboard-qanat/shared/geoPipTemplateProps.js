@@ -31,17 +31,59 @@ export const GEO_PIP_OVERLAY_PROP_KEYS = [
   "backgroundColor",
 ];
 
+export const GEO_PIP_CHROME_DEFAULT_KEYS = [
+  "descriptorText",
+  "statusText",
+  "pipTag",
+  "pipTitle",
+  "pipSubtitle",
+  "coordinateText",
+  "distanceText",
+  "mainMediaUrl",
+  "showPointerLines",
+  "showMainContentLabel",
+  "mainTitle",
+  "mainSubtitle",
+  "location",
+  "panelLabel",
+  "backgroundColor",
+  "geoPipOverlayChrome",
+  "pipPosition",
+  "pipInset",
+];
+
+/** Slots editados manualmente no inspector — não sobrescrever no preview/render. */
+export function resolveStudioUserLockedSlots(props = {}) {
+  const raw = props.studio_user_locked_slots;
+  if (!Array.isArray(raw)) return new Set();
+  return new Set(raw.map((slot) => String(slot || "").trim()).filter(Boolean));
+}
+
+export function pickUserLockedStudioValues(props = {}, locked = null) {
+  const slots = locked || resolveStudioUserLockedSlots(props);
+  const studio =
+    props.studio_props && typeof props.studio_props === "object"
+      ? props.studio_props
+      : {};
+  const out = {};
+  for (const slot of slots) {
+    if (props[slot] !== undefined) out[slot] = props[slot];
+    else if (studio[slot] !== undefined) out[slot] = studio[slot];
+  }
+  return out;
+}
+
 /** Limpa chrome técnico; sem título central; rodapé = resumo do assunto. */
 export function applyGeoPipChromeProps(
   studio = {},
-  { narration = "", sector = "" } = {}
+  { narration = "", sector = "", lockedSlots = null } = {}
 ) {
+  const locked = lockedSlots || new Set();
   const footer =
     summarizeGeoPipFooterSubject(narration) ||
     String(sector || studio.location || "").trim();
 
-  return {
-    ...studio,
+  const defaults = {
     descriptorText: "",
     statusText: "",
     pipTag: "",
@@ -61,6 +103,12 @@ export function applyGeoPipChromeProps(
     pipPosition: "top-right",
     pipInset: 132,
   };
+
+  const out = { ...studio };
+  for (const [key, value] of Object.entries(defaults)) {
+    if (!locked.has(key)) out[key] = value;
+  }
+  return out;
 }
 
 const VIDEO_EXT_RE = /\.(mp4|webm|mov|m4v|mkv)(\?|$)/i;
@@ -119,11 +167,13 @@ export function bindGeoPipTemplateStudioProps(
 
   const reference = resolveGeoPipReferenceLabel(props);
   const sector = resolveGeoPipSectorLabel(props, narration);
+  const locked = resolveStudioUserLockedSlots(props);
   const studio = { ...(props.studio_props || {}) };
   const filled = [];
 
   const assign = (key, value) => {
-    if (!key || value === undefined || value === null) return;
+    if (!key || locked.has(key) || value === undefined || value === null)
+      return;
     const clean = String(value).trim();
     if (!clean) return;
     studio[key] = clean;
@@ -167,8 +217,10 @@ export function bindGeoPipTemplateStudioProps(
   const chromed = applyGeoPipChromeProps(studio, {
     narration: String(narration || props.narration_text || "").trim(),
     sector,
+    lockedSlots: locked,
   });
   Object.assign(studio, chromed);
+  Object.assign(studio, pickUserLockedStudioValues(props, locked));
   for (const key of GEO_PIP_FORCE_EMPTY_KEYS) {
     if (!filled.includes(key)) filled.push(key);
   }
@@ -270,6 +322,8 @@ export function mapGeoPipFlyoverToTemplateRenderProps(props = {}) {
     isPictureInPictureStudioTemplate(props) || props.geo_pip_composite;
   if (!pipTemplate) return props;
 
+  const locked = resolveStudioUserLockedSlots(props);
+  const userLocked = pickUserLockedStudioValues(props, locked);
   const bound = bindGeoPipTemplateStudioProps(props, {
     narration: String(props.narration_text || ""),
     dataSlots: props.template_studio_data_slots,
@@ -277,26 +331,33 @@ export function mapGeoPipFlyoverToTemplateRenderProps(props = {}) {
     mainMediaUrl: String(props.mainMediaUrl || "").trim(),
   });
 
-  const out = { ...props, ...bound.studio_props };
+  const out = { ...props, ...bound.studio_props, ...userLocked };
   out.studio_props = {
     ...(props.studio_props || {}),
     ...bound.studio_props,
+    ...userLocked,
   };
   if (bound.pipMediaUrl) out.pipMediaUrl = bound.pipMediaUrl;
-  if (bound.pipTitle) out.pipTitle = bound.pipTitle;
-  if (bound.location) out.location = bound.location;
+  if (!locked.has("pipTitle") && bound.pipTitle) out.pipTitle = bound.pipTitle;
+  if (!locked.has("location") && bound.location) out.location = bound.location;
   for (const key of GEO_PIP_FORCE_EMPTY_KEYS) {
+    if (locked.has(key)) continue;
     if (key in bound.studio_props) out[key] = bound.studio_props[key];
   }
-  if (bound.studio_props.showMainContentLabel !== undefined) {
-    out.showMainContentLabel = bound.studio_props.showMainContentLabel;
+  if (!locked.has("showMainContentLabel")) {
+    if (bound.studio_props.showMainContentLabel !== undefined) {
+      out.showMainContentLabel = bound.studio_props.showMainContentLabel;
+    }
   }
-  if (bound.studio_props.showPointerLines !== undefined) {
-    out.showPointerLines = bound.studio_props.showPointerLines;
+  if (!locked.has("showPointerLines")) {
+    if (bound.studio_props.showPointerLines !== undefined) {
+      out.showPointerLines = bound.studio_props.showPointerLines;
+    }
   }
   for (const key of GEO_PIP_OVERLAY_PROP_KEYS) {
+    if (locked.has(key)) continue;
     if (key in bound.studio_props) out[key] = bound.studio_props[key];
   }
-  out.mainMediaUrl = "";
+  if (!locked.has("mainMediaUrl")) out.mainMediaUrl = "";
   return out;
 }

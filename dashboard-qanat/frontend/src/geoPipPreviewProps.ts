@@ -1,7 +1,9 @@
 import {
   bindGeoPipTemplateStudioProps,
+  pickUserLockedStudioValues,
   resolveGeoPipTimelineDurationSec,
   resolveGeoPipPreviewScrubSec,
+  resolveStudioUserLockedSlots,
 } from "@lumiera/shared/geoPipTemplateProps.js";
 import { resolveGeoPipSceneNarration } from "@lumiera/shared/geoPipSceneText.js";
 import { resolveMediaUrl } from "./timelineStudioMedia";
@@ -26,6 +28,9 @@ export function mergeGeoPipPreviewProps(
   const flyoverRaw = String(
     base.flyover_video || base.pipMediaUrl || ""
   ).trim();
+  const locked = resolveStudioUserLockedSlots(base);
+  const userLocked = pickUserLockedStudioValues(base, locked);
+
   const bound = bindGeoPipTemplateStudioProps(base, {
     narration: sceneNarration,
     dataSlots,
@@ -39,23 +44,32 @@ export function mergeGeoPipPreviewProps(
       : bound.pipMediaUrl
     : "";
 
+  const overlayChrome = locked.has("geoPipOverlayChrome")
+    ? userLocked.geoPipOverlayChrome
+    : true;
+  const backgroundColor = locked.has("backgroundColor")
+    ? userLocked.backgroundColor
+    : "transparent";
+
   return {
     ...base,
     ...bound.studio_props,
+    ...userLocked,
     studio_props: {
       ...(base.studio_props as Record<string, unknown>),
       ...bound.studio_props,
+      ...userLocked,
       pipMediaUrl,
-      mainMediaUrl: "",
+      mainMediaUrl: locked.has("mainMediaUrl") ? userLocked.mainMediaUrl : "",
     },
-    pipTitle: bound.pipTitle,
+    pipTitle: locked.has("pipTitle") ? userLocked.pipTitle : bound.pipTitle,
     pipMediaUrl,
-    location: bound.location,
-    mainMediaUrl: "",
+    location: locked.has("location") ? userLocked.location : bound.location,
+    mainMediaUrl: locked.has("mainMediaUrl") ? userLocked.mainMediaUrl : "",
     narration_text: sceneNarration || base.narration_text,
     durationSeconds: clipDurationSec,
     durationInFrames: Math.max(1, Math.round(clipDurationSec * 30)),
-    geoPipOverlayChrome: true,
-    backgroundColor: "transparent",
+    geoPipOverlayChrome: overlayChrome,
+    backgroundColor,
   };
 }
