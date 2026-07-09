@@ -235,6 +235,10 @@ export function TimelineStudioClipInspector({
                 <p className="text-[9px] text-zinc-500 mt-0.5">
                   Contrato preenchido · confiança{" "}
                   {Math.round(Number(studioMeta.confidence) * 100)}%
+                  {clip.props?.studio_role
+                    ? ` · papel ${String(clip.props.studio_role)}`
+                    : ""}
+                  {clip.props?.boosted ? " · boost IA" : ""}
                 </p>
               ) : null}
             </Field>
