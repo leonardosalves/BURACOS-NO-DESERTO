@@ -1,6 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { shouldPauseNotebooklmNarration } from "./notebooklmService.js";
+import {
+  resolveNeedsNlmDiscovery,
+  shouldPauseNotebooklmNarration,
+} from "./notebooklmService.js";
 
 describe("shouldPauseNotebooklmNarration", () => {
   it("pausa na primeira rodada de descoberta interativa", () => {
@@ -19,6 +22,24 @@ describe("shouldPauseNotebooklmNarration", () => {
       }
     );
     assert.equal(pause, true);
+  });
+
+  it("exige descoberta interativa mesmo com sessao antiga", () => {
+    const needs = resolveNeedsNlmDiscovery({
+      scriptPhase: "narration",
+      skipNotebooklmPending: false,
+      briefFinalized: false,
+    });
+    assert.equal(needs, true);
+  });
+
+  it("nao exige descoberta ao prosseguir com brief", () => {
+    const needs = resolveNeedsNlmDiscovery({
+      scriptPhase: "narration",
+      skipNotebooklmPending: true,
+      briefFinalized: true,
+    });
+    assert.equal(needs, false);
   });
 
   it("nao pausa quando brief finalizado e prosseguir", () => {

@@ -587,6 +587,16 @@ REGRAS OBRIGATÓRIAS NESTA RESPOSTA:
 4) Termine com pergunta clara que exija resposta do editor (sim/não ou texto curto).`;
 }
 
+export function resolveNeedsNlmDiscovery({
+  scriptPhase,
+  skipNotebooklmPending,
+  briefFinalized,
+}) {
+  return (
+    scriptPhase === "narration" && !skipNotebooklmPending && !briefFinalized
+  );
+}
+
 export function shouldPauseNotebooklmNarration(
   research,
   {
@@ -604,12 +614,34 @@ export function shouldPauseNotebooklmNarration(
       research.awaitingUser || (research.questions?.length ?? 0) > 0
     );
   }
-  if (needsDiscovery || userTurns === 0) return true;
+  if (needsDiscovery) return true;
+  if (userTurns === 0) return true;
   return Boolean(
     research.awaitingUser ||
     research.interactiveDiscovery ||
     (research.questions?.length ?? 0) > 0
   );
+}
+
+export function clearNotebooklmProjectArtifacts(projDir, backendDir, niche) {
+  if (projDir) {
+    const sessionPath = path.join(projDir, "notebooklm_session.json");
+    const briefPath = path.join(projDir, NOTEBOOKLM_BRIEF_FILENAME);
+    if (fs.existsSync(sessionPath)) fs.unlinkSync(sessionPath);
+    if (fs.existsSync(briefPath)) fs.unlinkSync(briefPath);
+  }
+  if (backendDir && niche) {
+    const key = String(niche || "default")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .slice(0, 48);
+    const fallbackSession = path.join(
+      backendDir,
+      ".notebooklm_sessions",
+      `${key}.json`
+    );
+    if (fs.existsSync(fallbackSession)) fs.unlinkSync(fallbackSession);
+  }
 }
 
 function buildImproveQuery({ niche, format, narrativeScript }) {

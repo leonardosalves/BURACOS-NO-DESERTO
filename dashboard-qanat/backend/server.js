@@ -246,6 +246,8 @@ import {
   shouldSkipWebResearchForBrief,
   mergeBriefIntoStoryboard,
   shouldPauseNotebooklmNarration,
+  resolveNeedsNlmDiscovery,
+  clearNotebooklmProjectArtifacts,
   NOTEBOOKLM_BRIEF_FILENAME,
 } from "./notebooklmService.js";
 import {
@@ -16276,14 +16278,32 @@ app.post(
       req.body?.notebooklmAccumulated || ""
     ).trim();
     const skipNotebooklmPending = req.body?.skipNotebooklmPending === true;
-    const notebooklmBriefDisk = projDir ? loadNotebooklmBrief(projDir) : null;
-    const nlmSessionEarly = projDir
+    let notebooklmBriefDisk = projDir ? loadNotebooklmBrief(projDir) : null;
+    let nlmSessionEarly = projDir
       ? loadNotebooklmSession({
           projDir,
           backendDir: __dirname,
           niche: nlmNiche,
         })
       : null;
+    const nlmSessionPendingEarly =
+      nlmSessionEarly &&
+      (nlmSessionEarly.awaitingUser ||
+        nlmSessionEarly.status === "pending_user");
+    if (
+      scriptPhase === "narration" &&
+      useNotebooklm !== false &&
+      !skipNotebooklmPending &&
+      projDir &&
+      !nlmSessionPendingEarly
+    ) {
+      clearNotebooklmProjectArtifacts(projDir, __dirname, nlmNiche);
+      notebooklmBriefDisk = null;
+      nlmSessionEarly = null;
+      console.log(
+        "[NotebookLM] Sessão/brief anteriores limpos — nova rodada interativa."
+      );
+    }
     const nlmUserTurnsEarly = (nlmSessionEarly?.turns || []).filter(
       (t) => t.role === "user"
     ).length;
@@ -16384,11 +16404,11 @@ app.post(
         const nlmBriefFinalized =
           notebooklmBriefDisk?.status === "finalized" ||
           (skipNotebooklmPending && notebooklmBriefDisk?.available);
-        const needsNlmDiscovery =
-          scriptPhase === "narration" &&
-          !skipNotebooklmPending &&
-          nlmUserTurns === 0 &&
-          !nlmBriefFinalized;
+        const needsNlmDiscovery = resolveNeedsNlmDiscovery({
+          scriptPhase,
+          skipNotebooklmPending,
+          briefFinalized: nlmBriefFinalized,
+        });
 
         console.log(
           needsNlmDiscovery
@@ -16425,7 +16445,7 @@ app.post(
             backendDir: __dirname,
           });
           report("notebooklm_pending", "NotebookLM aguarda sua resposta…", 22);
-          return res.json({
+          return activeRes.json({
             phase: "notebooklm_pending",
             project: safeProjectName,
             notebooklm_session: session,
@@ -18065,23 +18085,7 @@ app.post("/api/notebooklm/session/reset", (req, res) => {
   try {
     const projDir = getProjectDir(req);
     const niche = String(req.body?.niche || "documentário").trim();
-    if (projDir) {
-      const sessionPath = path.join(projDir, "notebooklm_session.json");
-      const briefPath = path.join(projDir, NOTEBOOKLM_BRIEF_FILENAME);
-      if (fs.existsSync(sessionPath)) fs.unlinkSync(sessionPath);
-      if (fs.existsSync(briefPath)) fs.unlinkSync(briefPath);
-    }
-    const backendDir = __dirname;
-    const key = String(niche || "default")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .slice(0, 48);
-    const fallbackSession = path.join(
-      backendDir,
-      ".notebooklm_sessions",
-      `${key}.json`
-    );
-    if (fs.existsSync(fallbackSession)) fs.unlinkSync(fallbackSession);
+    clearNotebooklmProjectArtifacts(projDir, __dirname, niche);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });

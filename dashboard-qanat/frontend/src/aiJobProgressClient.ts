@@ -189,7 +189,27 @@ function applyProgressData(data: ProgressPayload, jobId: string) {
   if (data.error) {
     stopAiJobProgress(false, data.error);
   } else if (data.done) {
-    stopAiJobProgress(true, `${current.title} · 100%`);
+    if (data.phase === "notebooklm_pending") {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      current = {
+        ...current,
+        phase: "notebooklm_pending",
+        label: "Aguardando sua resposta",
+        percent: data.percent ?? 22,
+        active: false,
+      };
+      emit();
+      toast("Responda ao NotebookLM no painel roxo.", {
+        icon: "💬",
+        id: TOAST_ID,
+        duration: 10000,
+      });
+    } else {
+      stopAiJobProgress(true, `${current.title} · 100%`);
+    }
   }
 }
 
