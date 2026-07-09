@@ -788,6 +788,7 @@ app.get("/api/health", (_req, res) => {
     JSON.stringify({
       ok: true,
       service: "lumiera-backend",
+      notebooklm_flow: "interactive-first-v2",
       ts: Date.now(),
       uptime_sec: Math.floor(process.uptime()),
       pid: process.pid,
@@ -16317,6 +16318,9 @@ app.post(
       useNotebooklm,
       skipNotebooklmPending,
     });
+    console.log(
+      `[NotebookLM] creator/script narration=${scriptPhase === "narration"} useNotebooklm=${useNotebooklm !== false} skipPending=${skipNotebooklmPending} interactiveFirst=${wantsNlmInteractiveFirst}`
+    );
 
     if (wantsNlmInteractiveFirst && nlmSessionPendingEarly && nlmSessionEarly) {
       report("notebooklm_pending", "NotebookLM aguarda sua resposta…", 22);

@@ -28,7 +28,9 @@ function Start-HiddenNodeProcess([string]$WorkingDirectory, [string]$Command, [s
         -RedirectStandardError $ErrLog | Out-Null
 }
 
-if (-not (Test-PortListening 3005)) {
+$permanentMode = Test-Path -LiteralPath (Join-Path $LogDir "permanent.mode")
+$pm2Mode = Test-Path -LiteralPath (Join-Path $LogDir "pm2.mode")
+if (-not $permanentMode -and -not $pm2Mode -and -not (Test-PortListening 3005)) {
     Start-HiddenNodeProcess `
         -WorkingDirectory $BackendDir `
         -Command "node server.js" `

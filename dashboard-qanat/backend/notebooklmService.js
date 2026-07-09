@@ -428,6 +428,34 @@ function addTextSource(notebookId, title, text, backendDir) {
   }
 }
 
+async function addTextSourceAsync(notebookId, title, text, backendDir) {
+  const tmpDir = path.join(backendDir, ".notebooklm_tmp");
+  fs.mkdirSync(tmpDir, { recursive: true });
+  const tmpFile = path.join(tmpDir, `brief_${Date.now()}.txt`);
+  fs.writeFileSync(tmpFile, text, "utf8");
+  try {
+    await runNlmAsync(
+      [
+        "source",
+        "add",
+        notebookId,
+        "--file",
+        tmpFile,
+        "--title",
+        title.slice(0, 80),
+        "--wait",
+      ],
+      { timeoutMs: 120000, backendDir }
+    );
+  } finally {
+    try {
+      fs.unlinkSync(tmpFile);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 function runOptionalFastResearch(notebookId, query, backendDir, mode = "fast") {
   const researchMode = mode === "deep" ? "deep" : "fast";
   const maxWait = researchMode === "deep" ? "300" : "45";
@@ -774,7 +802,9 @@ async function runNotebooklmPipeline({
   const key = nicheKey(niche);
   const notebookExistsInCache = Boolean(cache.notebooks[key]);
 
-  if (purpose !== "improve" || !notebookExistsInCache) {
+  const skipBriefUpload =
+    purpose === "script" && interactiveDiscovery && notebookExistsInCache;
+  if ((purpose !== "improve" || !notebookExistsInCache) && !skipBriefUpload) {
     const brief = buildBriefText({
       niche,
       format,
@@ -784,12 +814,16 @@ async function runNotebooklmPipeline({
       listTopic,
       rankOrder,
     });
-    addTextSource(
-      notebookId,
-      `Brief Lumiera ${new Date().toISOString().slice(0, 16)}`,
-      brief,
-      backendDir
-    );
+    try {
+      await addTextSourceAsync(
+        notebookId,
+        `Brief Lumiera ${new Date().toISOString().slice(0, 16)}`,
+        brief,
+        backendDir
+      );
+    } catch (err) {
+      console.warn("[NotebookLM] Upload de brief ignorado:", err.message);
+    }
   }
 
   if (runResearch) {
