@@ -68,7 +68,6 @@ type Props = {
 const FULLSCREEN_OVERLAYS = new Set(["pictogram-chart"]);
 
 const UI_PUBLISH_MS = 250;
-const MOTION_SCRUB_MS = 80;
 
 function clipToOverlayDraft(
   clip: StudioClip,
@@ -132,7 +131,6 @@ export function TimelineStudioPreview({
   const playingRef = useRef(false);
   const rafRef = useRef(0);
   const lastPublishRef = useRef(0);
-  const lastMotionPublishRef = useRef(0);
   const motionPlayheadRef = useRef(studio.playhead);
   const lastVideoClipIdRef = useRef<string | null>(null);
   const onPlayheadChangeRef = useRef(onPlayheadChange);
@@ -265,19 +263,9 @@ export function TimelineStudioPreview({
     setVideoLoadFailed(false);
   }, [assetSrc]);
 
-  const publishMotionPlayhead = useCallback((t: number, force = false) => {
-    const prev = motionPlayheadRef.current;
+  const publishMotionPlayhead = useCallback((t: number) => {
     motionPlayheadRef.current = t;
-    const now = performance.now();
-    if (
-      force ||
-      playingRef.current ||
-      now - lastMotionPublishRef.current >= MOTION_SCRUB_MS ||
-      Math.abs(t - prev) > 0.35
-    ) {
-      lastMotionPublishRef.current = now;
-      setMotionPlayhead(t);
-    }
+    setMotionPlayhead(t);
   }, []);
 
   const publishPlayhead = useCallback(
@@ -300,7 +288,7 @@ export function TimelineStudioPreview({
           onPlayheadChangeRef.current(next);
         }
       }
-      publishMotionPlayhead(next, force);
+      publishMotionPlayhead(next);
       return next;
     },
     [publishMotionPlayhead]
