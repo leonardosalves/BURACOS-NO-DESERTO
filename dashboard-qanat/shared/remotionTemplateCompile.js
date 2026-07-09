@@ -102,9 +102,7 @@ function extractDurationInFrames(code, inputProps) {
 }
 
 function prepareRunnableSource(code) {
-  let src = patchGeoPipTemplateSourceForChrome(
-    stripTemplateHeader(code)
-  );
+  let src = patchGeoPipTemplateSourceForChrome(stripTemplateHeader(code));
   src = src.replace(/^"use client";\s*/m, "");
   src = src.replace(/^import\s+[\s\S]*?from\s+["'][^"']+["'];?\s*/gm, "");
   src = src.replace(/^import\s+["'][^"']+["'];?\s*/gm, "");
@@ -136,9 +134,11 @@ function patchCompiledMediaVideoSlots(jsBody = "") {
       `React\\.createElement\\(Img,\\s*\\{\\s*src:\\s*${slot}`,
       "g"
     );
+    const videoShift =
+      slot === "pipMediaUrl" ? ", acceptableTimeShiftInSeconds: 0.35" : "";
     out = out.replace(
       re,
-      `React.createElement(/\\.(mp4|webm|mov|m4v|mkv)(\\?|$)/i.test(String(${slot} || "")) ? Video : Img, { src: ${slot}`
+      `React.createElement(/\\.(mp4|webm|mov|m4v|mkv)(\\?|$)/i.test(String(${slot} || "")) ? Video : Img, { src: ${slot}${videoShift}`
     );
   }
   return out;

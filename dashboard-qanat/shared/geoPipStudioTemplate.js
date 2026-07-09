@@ -18,12 +18,33 @@ export const GEO_PIP_MEDIA_WINDOW_9x16 = {
   radiusPx: 14,
 };
 
+function clampPipNum(value, min, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, n));
+}
+
 /** Retângulo do quadradinho PIP alinhado ao template Studio (top-right 9:16). */
 export function resolveGeoPipStudioPipWindowPct(props = {}, aspect = "9:16") {
   const studio = props.studio_props || {};
-  const inset = Number(props.pipInset ?? studio.pipInset ?? 132) || 132;
-  const pipWidth = Number(props.pipWidth ?? studio.pipWidth ?? 360) || 360;
-  const pipHeight = Number(props.pipHeight ?? studio.pipHeight ?? 230) || 230;
+  const overlayChrome = Boolean(
+    props.geoPipOverlayChrome || studio.geoPipOverlayChrome
+  );
+  const safePipInset = clampPipNum(
+    props.pipInset ?? studio.pipInset ?? 44,
+    20,
+    120
+  );
+  const safePipWidth = clampPipNum(
+    props.pipWidth ?? studio.pipWidth ?? 360,
+    180,
+    760
+  );
+  const safePipHeight = clampPipNum(
+    props.pipHeight ?? studio.pipHeight ?? 230,
+    120,
+    520
+  );
   const position = String(
     props.pipPosition ?? studio.pipPosition ?? "top-right"
   ).toLowerCase();
@@ -31,29 +52,35 @@ export function resolveGeoPipStudioPipWindowPct(props = {}, aspect = "9:16") {
   const compW = vertical ? 1080 : 1920;
   const compH = vertical ? 1920 : 1080;
   const activeW = vertical
-    ? Math.min(compW * 0.72, pipWidth)
-    : Math.min(compW * 0.32, pipWidth);
+    ? Math.min(compW * 0.72, safePipWidth)
+    : Math.min(compW * 0.32, safePipWidth);
   const activeH = vertical
-    ? Math.min(compH * 0.22, pipHeight)
-    : Math.min(compH * 0.3, pipHeight);
+    ? Math.min(compH * 0.22, safePipHeight)
+    : Math.min(compH * 0.3, safePipHeight);
   const isRight = position.includes("right");
   const isBottom = position.includes("bottom");
   const topPx = isBottom
     ? null
     : vertical
-      ? props.geoPipOverlayChrome || studio.geoPipOverlayChrome
-        ? inset
+      ? overlayChrome
+        ? 132
         : 164
-      : inset + 24;
-  const bottomPx = isBottom ? (vertical ? 132 : inset) : null;
+      : safePipInset + 24;
+  const bottomPx = isBottom
+    ? overlayChrome
+      ? null
+      : vertical
+        ? 132
+        : safePipInset
+    : null;
 
   const rect = {
     widthPct: (activeW / compW) * 100,
     heightPct: (activeH / compH) * 100,
     borderRadiusPx: 14,
   };
-  if (isRight) rect.rightPct = (inset / compW) * 100;
-  else rect.leftPct = (inset / compW) * 100;
+  if (isRight) rect.rightPct = (safePipInset / compW) * 100;
+  else rect.leftPct = (safePipInset / compW) * 100;
   if (topPx != null) rect.topPct = (topPx / compH) * 100;
   if (bottomPx != null) rect.bottomPct = (bottomPx / compH) * 100;
   return rect;
