@@ -17,11 +17,13 @@ Triggers: commit, reiniciar, restart, servidor, backend, porta 3005, finalizar t
    - `.\scripts\ensure-lumiera.ps1` (backend 3005 + frontend 5176)
    - Se falhar: ler `.lumiera-logs\pm2-backend-error.log` (modo PM2) ou `backend-stderr.log`
    - Corrigir causa (porta, dependência, proxy, crash) e rodar ensure de novo
-1. **Backend** — modo **PERMANENTE** (obrigatório no PC do Leo):
-   - Instalar 1×: `.\scripts\install-lumiera-permanent.ps1` (PM2 + guardian Windows a cada 1 min)
-   - Código em `dashboard-qanat/backend/**` alterado → `.\scripts\restart-backend.ps1 -Force` (PM2 faz reload gracioso; bloqueia se `server.js` tiver erro de sintaxe)
+1. **Backend** — modo **DEV** padrão no PC do Leo (Vite :5176 + API :3005):
+   - **NUNCA** rodar `install-lumiera-windows-service.ps1` sem o Leo pedir explicitamente — muda o stack inteiro (mata Vite, serve `dist/` estático, NotebookLM sem login, projetos em perfil SYSTEM).
+   - Permanência sem serviço Windows: `.\scripts\install-lumiera-permanent.ps1` (guardian + backend direto + Vite)
+   - Se o PC estiver em modo serviço/uniport por engano: `.\restore-lumiera-dev-mode.bat` (Admin)
+   - Código em `dashboard-qanat/backend/**` alterado → `.\scripts\restart-backend.ps1 -Force`
    - Só garantir que está no ar → `.\scripts\ensure-lumiera.ps1` (não mata render ativo)
-   - **Não** reinstalar watchdog PowerShell se PM2 estiver ativo
+   - Dashboard do Leo: **http://127.0.0.1:5176/** (não :3005, salvo uniport explícito)
 2. **Reiniciar** Vite (5176) se tocou em proxy/API config
 3. **Commit** com `git add` + `git commit` — nunca deixar diff pendente
 4. Não commitar por padrão: `config_qanat.json`, `studio_agents_config.json` (config local do Leo)
