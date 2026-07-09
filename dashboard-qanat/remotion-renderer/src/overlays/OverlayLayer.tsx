@@ -52,6 +52,9 @@ export interface OverlayBase {
   start: number;
   /** Duration in seconds */
   duration: number;
+  studio_z_index?: string;
+  studio_role?: string;
+  studio_opacity?: number;
 }
 
 export interface LowerThirdOverlay extends OverlayBase {
@@ -288,6 +291,13 @@ const OverlayComponent: React.FC<{
 };
 
 const overlayRenderPriority = (overlay: Overlay) => {
+  const role = String(
+    overlay.studio_role ||
+      (overlay.props as { studio_role?: string })?.studio_role ||
+      ""
+  ).toLowerCase();
+  if (role === "transition") return 130;
+  if (role === "logo_bug") return 125;
   if (overlay.type === "location-intro" || overlay.type === "pictogram-chart")
     return 110;
   if (overlay.type === "rank-progress") return 100;

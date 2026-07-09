@@ -42,14 +42,55 @@ export const StudioTemplateOverlay: React.FC<StudioTemplateOverlayProps> = ({
   }
 
   const { Component, inputProps: exampleProps } = compiled.preview;
+  const role = String(inputProps.studio_role || "")
+    .trim()
+    .toLowerCase();
+  const rawOpacity = Number(inputProps.studio_opacity);
+  const opacity = Number.isFinite(rawOpacity)
+    ? Math.min(1, Math.max(0, rawOpacity))
+    : role === "logo_bug"
+      ? 0.35
+      : 1;
+
   const mergedProps = {
     ...exampleProps,
     ...sanitizeStudioRenderProps(inputProps),
     durationInFrames,
   };
 
+  if (role === "logo_bug") {
+    return (
+      <AbsoluteFill style={{ pointerEvents: "none", overflow: "hidden" }}>
+        <div
+          style={{
+            position: "absolute",
+            right: "4%",
+            top: "4%",
+            width: "20%",
+            height: "20%",
+            opacity,
+            overflow: "hidden",
+          }}
+        >
+          <Component {...mergedProps} />
+        </div>
+      </AbsoluteFill>
+    );
+  }
+
+  const bg =
+    role === "background_frame" || inputProps.studio_z_index === "under"
+      ? "transparent"
+      : "#050506";
+
   return (
-    <AbsoluteFill style={{ backgroundColor: "#050506", overflow: "hidden" }}>
+    <AbsoluteFill
+      style={{
+        backgroundColor: bg,
+        overflow: "hidden",
+        opacity: role === "transition" ? 1 : opacity,
+      }}
+    >
       <Component {...mergedProps} />
     </AbsoluteFill>
   );

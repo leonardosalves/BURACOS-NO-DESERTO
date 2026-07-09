@@ -29,6 +29,7 @@ import {
   type BlockProgressBarProps,
 } from "./overlays/BlockProgressBar";
 import { ShortsVisualFx } from "./overlays/ShortsVisualFx";
+import { splitOverlaysByStudioLayer } from "../../../shared/studioOverlayLayers.js";
 
 type TimelineScene = {
   block: number;
@@ -1494,6 +1495,11 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
   const transitionFrames = 12; // 0.4 seconds overlap transition
 
+  const { underlays, overlays: topOverlays } = React.useMemo(
+    () => splitOverlaysByStudioLayer(overlays),
+    [overlays]
+  );
+
   const lastScene = scenes[scenes.length - 1];
   const lastAsset = String(lastScene?.asset || "");
   const isLastSceneLogo =
@@ -1514,6 +1520,12 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
           @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Cinzel:wght@700;900&family=Inter:wght@400;500;700&display=swap');
         `}
       </style>
+      {underlays.length > 0 ? (
+        <AbsoluteFill style={{ zIndex: 2, pointerEvents: "none" }}>
+          <OverlayLayer overlays={underlays} />
+        </AbsoluteFill>
+      ) : null}
+
       {scenes.map((scene, index) => {
         const isLast = index === scenes.length - 1;
 
@@ -1539,7 +1551,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
             premountFor={fps}
 
-            style={{ zIndex: index + 1 }}
+            style={{ zIndex: 100 + index }}
           >
             <SceneMedia
               scene={scene}
@@ -1692,9 +1704,9 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
         <ProgressBar totalDuration={totalDuration} accentColor={accentColor} />
       ) : null}
 
-      {/* Professional overlays: infographics, lower thirds, kinetic text */}
+      {/* Studio templates + infográficos por cima do B-roll */}
       <AbsoluteFill style={{ zIndex: 1000, pointerEvents: "none" }}>
-        <OverlayLayer overlays={overlays} />
+        <OverlayLayer overlays={topOverlays} />
       </AbsoluteFill>
 
       {isLastSceneLogo && youtubeChannelInfo && (
