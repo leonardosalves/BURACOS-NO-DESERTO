@@ -6,6 +6,8 @@ import {
   isPictureInPictureStudioTemplate,
   mapGeoPipFlyoverToTemplateRenderProps,
   resolveGeoPipClipDurationSec,
+  resolveGeoPipPreviewScrubSec,
+  resolveGeoPipTimelineDurationSec,
   resolvePipMediaUrl,
 } from "./geoPipTemplateProps.js";
 import { summarizeGeoPipFooterSubject } from "./geoPipSceneText.js";
@@ -56,6 +58,32 @@ describe("geoPipTemplateProps", () => {
     assert.equal(mapped.pipTitle, "");
     assert.match(String(mapped.location), /Roma|engenharia/i);
     assert.equal(mapped.flyover_video, "ASSETS/satellite/map.mp4");
+  });
+
+  it("resolveGeoPipTimelineDurationSec usa max entre clip e flyover", () => {
+    assert.equal(
+      resolveGeoPipTimelineDurationSec({
+        duration: 4,
+        props: {
+          flyover_duration_sec: 10,
+          flyover_video: "ASSETS/a.mp4",
+        },
+      }),
+      10
+    );
+  });
+
+  it("resolveGeoPipPreviewScrubSec distribui flyover na duracao do clip", () => {
+    const clip = {
+      start: 10,
+      duration: 10,
+      props: {
+        flyover_duration_sec: 10,
+        flyover_video: "ASSETS/a.mp4",
+      },
+    };
+    assert.equal(resolveGeoPipPreviewScrubSec(clip, 15), 5);
+    assert.equal(resolveGeoPipPreviewScrubSec(clip, 20), 9.96);
   });
 
   it("resolveGeoPipClipDurationSec prioriza durationSeconds do upload", () => {

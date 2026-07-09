@@ -1,6 +1,6 @@
 import {
   bindGeoPipTemplateStudioProps,
-  resolveGeoPipClipDurationSec,
+  resolveGeoPipTimelineDurationSec,
   resolveGeoPipPreviewScrubSec,
 } from "@lumiera/shared/geoPipTemplateProps.js";
 import { resolveGeoPipSceneNarration } from "@lumiera/shared/geoPipSceneText.js";
@@ -22,7 +22,7 @@ export function mergeGeoPipPreviewProps(
     ? (base.template_studio_data_slots as string[])
     : [];
 
-  const clipDurationSec = resolveGeoPipClipDurationSec(clip);
+  const clipDurationSec = resolveGeoPipTimelineDurationSec(clip);
   const flyoverRaw = String(
     base.flyover_video || base.pipMediaUrl || ""
   ).trim();

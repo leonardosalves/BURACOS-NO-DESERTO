@@ -39,7 +39,7 @@ import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
 import { isGeoPipCompositeProps } from "@lumiera/shared/remotionTemplateCompile.js";
 import { mergeGeoPipPreviewProps } from "./geoPipPreviewProps";
 import {
-  resolveGeoPipClipDurationSec,
+  resolveGeoPipTimelineDurationSec,
   resolveGeoPipPreviewScrubSec,
 } from "@lumiera/shared/geoPipTemplateProps.js";
 
@@ -103,7 +103,7 @@ function isVideoClip(clip: StudioClip | null | undefined): boolean {
 
 function clipPreviewDurationSec(clip: StudioClip): number {
   if (isGeoPipCompositeProps(clip.props || {})) {
-    return resolveGeoPipClipDurationSec(clip);
+    return resolveGeoPipTimelineDurationSec(clip);
   }
   return Math.max(0.08, Number(clip.duration) || 0);
 }

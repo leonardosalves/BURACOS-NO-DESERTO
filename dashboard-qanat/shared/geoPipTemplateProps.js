@@ -23,6 +23,7 @@ export const GEO_PIP_FORCE_EMPTY_KEYS = [
   "mainSubtitle",
   "mainMediaUrl",
   "backgroundColor",
+  "panelLabel",
 ];
 
 export const GEO_PIP_OVERLAY_PROP_KEYS = [
@@ -54,8 +55,11 @@ export function applyGeoPipChromeProps(
     mainTitle: "",
     mainSubtitle: "",
     location: footer,
+    panelLabel: "",
     backgroundColor: "transparent",
     geoPipOverlayChrome: true,
+    pipPosition: "top-right",
+    pipInset: 132,
   };
 }
 
@@ -208,16 +212,48 @@ export function resolveGeoPipClipDurationSec(clip = {}) {
     const n = Number(raw);
     if (Number.isFinite(n) && n > 0) return n;
   }
-  return Math.max(0.5, Number(clip.duration) || 4);
+  const fallback = Math.max(0.5, Number(clip.duration) || 4);
+  if (
+    hasFlyover &&
+    (props.geo_pip_composite || isPictureInPictureStudioTemplate(props))
+  ) {
+    return Math.max(fallback, 10);
+  }
+  return fallback;
 }
 
-/** Segundos locais no preview PIP — trava ao tempo do flyover (evita animação acelerada). */
+/** Duração do flyover (upload/ffprobe), sem usar clip.duration da timeline. */
+export function resolveGeoPipFlyoverDurationSec(clip = {}) {
+  return resolveGeoPipClipDurationSec(clip);
+}
+
+/** Duração efetiva na timeline — max(clip, flyover) para não cortar o vídeo. */
+export function resolveGeoPipTimelineDurationSec(clip = {}) {
+  const flyover = resolveGeoPipFlyoverDurationSec(clip);
+  const timeline = Math.max(0, Number(clip.duration) || 0);
+  if (flyover > 0) return Math.max(timeline, flyover);
+  return Math.max(0.5, timeline || 4);
+}
+
+/**
+ * Segundos locais no preview: animação segue o clip na timeline;
+ * o flyover é distribuído linearmente ao longo dessa duração.
+ */
 export function resolveGeoPipPreviewScrubSec(clip = {}, playhead = 0) {
-  const pipDur = resolveGeoPipClipDurationSec(clip);
+  const clipDur = resolveGeoPipTimelineDurationSec(clip);
+  const flyoverDur = resolveGeoPipFlyoverDurationSec(clip) || clipDur;
   const start = Number(clip.start) || 0;
-  const raw = Math.max(0, Number(playhead) - start);
-  const capped = Math.max(0, Math.min(pipDur - 0.04, raw % pipDur));
-  return capped;
+  const local = Math.max(
+    0,
+    Math.min(Math.max(0, clipDur - 0.04), Number(playhead) - start)
+  );
+  if (flyoverDur > 0 && clipDur > 0) {
+    return Math.min(
+      Math.max(0, flyoverDur - 0.04),
+      local * (flyoverDur / clipDur)
+    );
+  }
+  return local;
 }
 
 export function mapGeoPipFlyoverToTemplateRenderProps(props = {}) {

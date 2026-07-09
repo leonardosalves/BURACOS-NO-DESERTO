@@ -12,7 +12,7 @@ export const GEO_PIP_SUBCATEGORY = "Picture in Picture";
 /** Janela do mapa/vídeo no frame 1080×1920 (template PIP técnico). */
 export const GEO_PIP_MEDIA_WINDOW_9x16 = {
   leftPct: 52,
-  topPct: 66,
+  topPct: 7,
   widthPct: 44,
   heightPct: 22,
   radiusPx: 14,
