@@ -153,7 +153,8 @@ export function previewMotionAt(
       best = clip;
     }
   }
-  return bestDist <= 45 && best ? [best] : [];
+  if (!best) return [];
+  return [bestDist <= 45 ? best : motion[0]];
 }
 
 const MOTION_TRACK: StudioTrack = {
