@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Img, Video } from "remotion";
+import { AbsoluteFill, Img, Video, staticFile } from "remotion";
 import type { ZoomKeyframe } from "./locationIntroGeo";
 
 export type GeoPipWindow = {
@@ -26,7 +26,8 @@ function resolveSrc(src = "") {
   const s = String(src || "").trim();
   if (!s) return "";
   if (/^https?:\/\//i.test(s)) return s;
-  return s.replace(/\\/g, "/");
+  const normalized = s.replace(/\\/g, "/").replace(/^\/+/, "");
+  return staticFile(normalized);
 }
 
 export function resolveGeoPipWindowRect(

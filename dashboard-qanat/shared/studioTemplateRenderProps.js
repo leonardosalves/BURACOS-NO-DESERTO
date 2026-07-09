@@ -94,6 +94,77 @@ export function sanitizeStudioRenderProps(props = {}) {
   return out;
 }
 
+const STUDIO_RENDER_MEDIA_KEYS = [
+  "pipMediaUrl",
+  "mainMediaUrl",
+  "flyover_video",
+  "backgroundImage",
+  "backgroundImageWide",
+];
+
+function isProjectPublicMediaUrl(value = "") {
+  const src = String(value || "").trim();
+  return src.startsWith("projects/");
+}
+
+function isLegacyProjectMediaUrl(value = "") {
+  const src = String(value || "")
+    .trim()
+    .replace(/\\/g, "/");
+  return (
+    src.startsWith("ASSETS/") ||
+    src.startsWith("MUSICAS/") ||
+    src.startsWith("logos/")
+  );
+}
+
+/** Prioriza paths já copiados para public/projects/ sobre ASSETS/ legado. */
+export function normalizeStudioRenderMediaPaths(props = {}) {
+  if (!props || typeof props !== "object") return props;
+  const out = { ...props };
+  const publicFlyover = isProjectPublicMediaUrl(out.flyover_video)
+    ? String(out.flyover_video).trim()
+    : "";
+
+  for (const key of ["pipMediaUrl", "mainMediaUrl"]) {
+    const current = String(out[key] || "").trim();
+    if (publicFlyover && (!current || isLegacyProjectMediaUrl(current))) {
+      out[key] = publicFlyover;
+    }
+  }
+
+  if (out.studio_props && typeof out.studio_props === "object") {
+    const studioProps = { ...out.studio_props };
+    const studioFlyover = isProjectPublicMediaUrl(studioProps.flyover_video)
+      ? String(studioProps.flyover_video).trim()
+      : publicFlyover;
+    for (const key of STUDIO_RENDER_MEDIA_KEYS) {
+      const current = String(studioProps[key] || out[key] || "").trim();
+      const source =
+        key === "flyover_video"
+          ? studioFlyover
+          : studioFlyover || publicFlyover;
+      if (
+        source &&
+        isProjectPublicMediaUrl(source) &&
+        (!current || isLegacyProjectMediaUrl(current))
+      ) {
+        studioProps[key] = source;
+        if (
+          key === "pipMediaUrl" ||
+          key === "mainMediaUrl" ||
+          key === "flyover_video"
+        ) {
+          out[key] = source;
+        }
+      }
+    }
+    out.studio_props = studioProps;
+  }
+
+  return out;
+}
+
 /**
  * Mescla props da cena/IA sem exampleProps genericos.
  * A duracao da cena sempre vence sobre o default do template.
@@ -181,10 +252,10 @@ export function mergeStudioRenderProps({
       if (locked.has(key)) continue;
       if (key in mapped) merged[key] = mapped[key];
     }
-    return merged;
+    return normalizeStudioRenderMediaPaths(merged);
   }
 
-  return out;
+  return normalizeStudioRenderMediaPaths(out);
 }
 
 /** Indica modo PIP geo: mapa no slot, fundo transparente para B-roll. */
