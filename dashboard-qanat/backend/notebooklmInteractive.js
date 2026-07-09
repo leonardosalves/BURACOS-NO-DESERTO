@@ -148,7 +148,8 @@ export function buildNotebooklmSessionFromResearch({
 }) {
   const answer = String(research?.summary || "").trim();
   const awaitingUser = Boolean(
-    research?.awaitingUser ?? isNotebooklmAwaitingUser(answer)
+    research?.awaitingUser ??
+    (research?.interactiveDiscovery ? true : isNotebooklmAwaitingUser(answer))
   );
   const questions =
     research?.questions?.length > 0

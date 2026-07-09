@@ -557,6 +557,61 @@ Forneça em português brasileiro:
 O roteirista transformará isso em narração fluida PT-BR. Priorize especificidade e fontes.`;
 }
 
+function buildInteractiveDiscoveryQuery({
+  niche,
+  format,
+  idea,
+  contentMode,
+  listTopic,
+  rankCount,
+}) {
+  const title = idea?.title || niche;
+  const promise = idea?.promise || "";
+  const listicleNote =
+    contentMode === "LISTICLE"
+      ? `Modo LISTICLE Top ${rankCount} sobre "${listTopic || title}".`
+      : "";
+
+  return `Você é o assistente de pesquisa do roteirista Lumiera (YouTube ${format}).
+Antes de entregar fatos para o roteiro, faça ALINHAMENTO com o editor humano.
+
+Título: ${title}
+Promessa: ${promise}
+Nicho: ${niche}
+${listicleNote}
+
+REGRAS OBRIGATÓRIAS NESTA RESPOSTA:
+1) Faça de 1 a 3 perguntas diretas ao editor em português brasileiro — ângulo, época, local, público, tom, ou pesquisa web.
+2) Se as fontes do notebook forem insuficientes, pergunte explicitamente: "Você gostaria que eu fizesse essa pesquisa na web agora?"
+3) NÃO entregue ainda a lista completa de fatos — no máximo 2 linhas do que já sabe das fontes + as perguntas.
+4) Termine com pergunta clara que exija resposta do editor (sim/não ou texto curto).`;
+}
+
+export function shouldPauseNotebooklmNarration(
+  research,
+  {
+    scriptPhase,
+    skipNotebooklmPending,
+    needsDiscovery,
+    userTurns = 0,
+    briefFinalized = false,
+  } = {}
+) {
+  if (scriptPhase !== "narration" || skipNotebooklmPending) return false;
+  if (!research?.available) return false;
+  if (briefFinalized) {
+    return Boolean(
+      research.awaitingUser || (research.questions?.length ?? 0) > 0
+    );
+  }
+  if (needsDiscovery || userTurns === 0) return true;
+  return Boolean(
+    research.awaitingUser ||
+    research.interactiveDiscovery ||
+    (research.questions?.length ?? 0) > 0
+  );
+}
+
 function buildImproveQuery({ niche, format, narrativeScript }) {
   const excerpt = String(narrativeScript || "").slice(0, 12000);
   return `Analise o rascunho de roteiro abaixo e, com base nas fontes deste notebook sobre "${niche}", sugira melhorias ACIONÁVEIS em português brasileiro:
@@ -601,6 +656,7 @@ async function runNotebooklmPipeline({
   backendDir,
   runResearch = false,
   researchMode = "fast",
+  interactiveDiscovery = false,
 }) {
   const status = getNotebooklmStatus(backendDir);
   if (!status.authenticated) {
@@ -647,6 +703,15 @@ async function runNotebooklmPipeline({
   let question;
   if (purpose === "improve") {
     question = buildImproveQuery({ niche, format, narrativeScript });
+  } else if (purpose === "script" && interactiveDiscovery) {
+    question = buildInteractiveDiscoveryQuery({
+      niche,
+      format,
+      idea,
+      contentMode,
+      listTopic,
+      rankCount,
+    });
   } else if (purpose === "script") {
     question = buildScriptQuery({
       niche,
@@ -681,10 +746,12 @@ async function runNotebooklmPipeline({
     notebookId,
     sources: ["NotebookLM query"],
     fallback: false,
-    awaitingUser,
+    awaitingUser:
+      awaitingUser || (interactiveDiscovery && questions.length > 0),
     questions,
     researchDone: Boolean(runResearch),
     initialQuestion: question,
+    interactiveDiscovery,
   };
 }
 
