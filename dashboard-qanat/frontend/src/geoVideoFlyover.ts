@@ -60,11 +60,22 @@ export async function uploadMotionFlyoverVideo(
   const url = getProjectUrl(
     `/api/upload-motion-flyover?motion_id=${encodeURIComponent(motionId)}&filename=${encodeURIComponent(file.name)}`
   );
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": file.type || "application/octet-stream" },
-    body: file,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        (err as Error).message === "Failed to fetch"
+          ? "Backend offline ou rota de upload indisponível — reinicie o servidor (porta 3005)."
+          : (err as Error).message || "Falha de rede no upload.",
+    };
+  }
   const data = (await res.json().catch(() => ({}))) as {
     error?: string;
     flyover_video?: string;

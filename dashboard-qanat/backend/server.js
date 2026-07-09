@@ -148,6 +148,7 @@ import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerTimelineStudioRoutes } from "./timelineStudioRoutes.js";
 import { registerMotionSceneRoutes } from "./motionSceneRoutes.js";
+import { registerMotionFlyoverUploadRoute } from "./motionFlyoverUpload.js";
 import { registerRemotionTemplateStudioRoutes } from "./remotionTemplateStudioRoutes.js";
 import {
   orchestrateProduction,
@@ -18455,6 +18456,8 @@ registerMotionSceneRoutes(app, {
   getApiKey,
   parseAiJson: parseAiJsonResponse,
 });
+
+registerMotionFlyoverUploadRoute(app, { getProjectDir });
 
 registerRemotionTemplateStudioRoutes(app, {
   getProjectDir,

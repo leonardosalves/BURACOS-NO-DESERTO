@@ -4,6 +4,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
+  motionSceneMatches,
   patchMotionSceneFlyover,
   resolveFlyoverDest,
 } from "../backend/motionFlyoverUpload.js";
@@ -18,6 +19,13 @@ describe("motionFlyoverUpload", () => {
       dest.absPath,
       path.join(tmp, dest.relPath.replace(/\//g, path.sep))
     );
+  });
+
+  it("motionSceneMatches aceita id e scene_ref", () => {
+    const ms = { id: "ms-3.2", scene_ref: "3.2" };
+    assert.equal(motionSceneMatches(ms, "ms-3.2"), true);
+    assert.equal(motionSceneMatches(ms, "3.2"), true);
+    assert.equal(motionSceneMatches(ms, "ms-9.9"), false);
   });
 
   it("patchMotionSceneFlyover atualiza flyover_video", () => {
