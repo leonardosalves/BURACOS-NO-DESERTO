@@ -24,7 +24,10 @@ import {
   studioMotionClipToMotionScene,
 } from "./timelineStudioNichePacks.js";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
-import { ensureMotionClipForProject } from "./motionFlyoverUpload.js";
+import {
+  ensureMotionClipForProject,
+  writeMotionClipSidecar,
+} from "./motionFlyoverUpload.js";
 import { handleTimelineStudioAsk } from "./timelineStudioAsk.js";
 import { renderTimelineStudioFinalFrame } from "./timelineStudioFinalFrame.js";
 import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
@@ -447,6 +450,7 @@ export function registerTimelineStudioRoutes(
       );
 
       const saved = saveTimelineStudio(projDir, studio);
+      writeMotionClipSidecar(projDir, clip);
       res.json({ ok: true, clip, studio: saved, motion_scene: motionScene });
     } catch (err) {
       res.status(500).json({ error: err.message });

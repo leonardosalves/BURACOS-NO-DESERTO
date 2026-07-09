@@ -6,15 +6,72 @@ import fs from "fs";
 import path from "path";
 import { syncMotionScenesToStudio } from "./motionScenePlanner.js";
 import {
-  loadTimelineStudio,
   mergeMissingBrollFromConfig,
   saveTimelineStudio,
+  STUDIO_FILENAME,
 } from "./timelineStudioMigration.js";
 import { studioMotionClipToMotionScene } from "./timelineStudioNichePacks.js";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".m4v", ".mkv"]);
+const MOTION_CLIP_CACHE_DIR = ".lumiera-cache";
+
+function readStudioRaw(projDir) {
+  return readJsonSafe(path.join(projDir, STUDIO_FILENAME), {
+    version: 1,
+    clips: [],
+    tracks: [],
+  });
+}
+
+function motionClipSidecarPath(projDir, clipId = "") {
+  const safeId = String(clipId || "geo").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const cacheDir = path.join(projDir, MOTION_CLIP_CACHE_DIR);
+  fs.mkdirSync(cacheDir, { recursive: true });
+  return path.join(cacheDir, `motion-clip-${safeId}.json`);
+}
+
+export function writeMotionClipSidecar(projDir, clip = {}) {
+  const clipId = String(clip.id || "").trim();
+  if (!clipId) return;
+  fs.writeFileSync(
+    motionClipSidecarPath(projDir, clipId),
+    JSON.stringify(clip, null, 2),
+    "utf8"
+  );
+}
+
+export function readMotionClipSidecar(projDir, clipId = "") {
+  const sidecarPath = motionClipSidecarPath(projDir, clipId);
+  if (!fs.existsSync(sidecarPath)) return null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(sidecarPath, "utf8"));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function reviveMotionClipSuppressions(studio = {}, clipId = "") {
+  const needle = String(clipId || "").trim();
+  if (!needle) return studio;
+  const ids = Array.isArray(studio.suppressedMotionSceneIds)
+    ? studio.suppressedMotionSceneIds
+        .map((id) => String(id || "").trim())
+        .filter((id) => id && id !== needle)
+    : [];
+  const fps = Array.isArray(studio.suppressedRemotionFingerprints)
+    ? studio.suppressedRemotionFingerprints.filter(
+        (fp) => !String(fp || "").includes(needle)
+      )
+    : [];
+  return {
+    ...studio,
+    suppressedMotionSceneIds: ids,
+    suppressedRemotionFingerprints: fps,
+  };
+}
 
 function readJsonSafe(filePath, fallback = {}) {
   try {
@@ -168,7 +225,7 @@ export function ensureMotionClipForProject(projDir, clip = {}) {
   ).trim();
   const isShort = aspectRatio === "9:16";
 
-  const { studio: rawStudio } = loadTimelineStudio(projDir);
+  let rawStudio = reviveMotionClipSuppressions(readStudioRaw(projDir), clipId);
   let clips = Array.isArray(rawStudio.clips) ? [...rawStudio.clips] : [];
 
   if (isShort) {
@@ -230,26 +287,69 @@ export function ensureMotionClipForProject(projDir, clip = {}) {
   fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
 
   const savedStudio = saveTimelineStudio(projDir, studio);
+  writeMotionClipSidecar(projDir, normalized);
   return { studio: savedStudio, motion_scene: motionScene };
+}
+
+function resolveStudioForFlyoverUpload(projDir, motionId) {
+  let rawStudio = reviveMotionClipSuppressions(
+    readStudioRaw(projDir),
+    motionId
+  );
+  let clip = findMotionClipInStudio(rawStudio, motionId);
+  if (!clip) {
+    const sidecar = readMotionClipSidecar(projDir, motionId);
+    if (sidecar) {
+      ensureMotionClipForProject(projDir, sidecar);
+      rawStudio = reviveMotionClipSuppressions(
+        readStudioRaw(projDir),
+        motionId
+      );
+      clip = findMotionClipInStudio(rawStudio, motionId);
+    }
+  }
+  return { rawStudio, clip };
 }
 
 function persistFlyoverToProject(projDir, motionId, relPath) {
   const storyboardPath = path.join(projDir, "storyboard.json");
-  const storyboard = readJsonSafe(storyboardPath, {});
-  const { studio: rawStudio } = loadTimelineStudio(projDir);
-  const ensured = ensureMotionSceneForUpload(
-    storyboard.motion_scenes || [],
-    rawStudio,
-    motionId
-  );
-  if (
-    !ensured.some((ms) => motionSceneMatches(ms, motionId)) &&
-    !findMotionClipInStudio(rawStudio, motionId)
-  ) {
+
+  const reloadFlyoverState = () => {
+    const storyboard = readJsonSafe(storyboardPath, {});
+    const rawStudio = reviveMotionClipSuppressions(
+      readStudioRaw(projDir),
+      motionId
+    );
+    const ensured = ensureMotionSceneForUpload(
+      storyboard.motion_scenes || [],
+      rawStudio,
+      motionId
+    );
+    return { storyboard, rawStudio, ensured };
+  };
+
+  let { storyboard, rawStudio, ensured } = reloadFlyoverState();
+  const hasBinding = () =>
+    ensured.some((ms) => motionSceneMatches(ms, motionId)) ||
+    Boolean(findMotionClipInStudio(rawStudio, motionId));
+
+  if (!hasBinding()) {
+    const sidecar = readMotionClipSidecar(projDir, motionId);
+    if (sidecar) {
+      ensureMotionClipForProject(projDir, sidecar);
+    } else {
+      const clip = findMotionClipInStudio(rawStudio, motionId);
+      if (clip) ensureMotionClipForProject(projDir, clip);
+    }
+    ({ storyboard, rawStudio, ensured } = reloadFlyoverState());
+  }
+
+  if (!hasBinding()) {
     throw new Error(
       `Cena motion "${motionId}" não encontrada — adicione o template na timeline antes do upload.`
     );
   }
+
   const motionScenes = patchMotionSceneFlyover(
     ensured,
     motionId,
@@ -279,7 +379,10 @@ function persistFlyoverToProject(projDir, motionId, relPath) {
     path.join(projDir, "block_timings.json"),
     {}
   );
-  let studio = patchStudioClipFlyover(rawStudio, motionId, relPath);
+  let studio = reviveMotionClipSuppressions(
+    patchStudioClipFlyover(rawStudio, motionId, relPath),
+    motionId
+  );
   studio = syncMotionScenesToStudio(studio, motionScenes);
   studio = mergeMissingBrollFromConfig(studio, config, blockTimings);
   studio = upsertMusicClipInStudio(studio, config, projDir);

@@ -9,7 +9,9 @@ import {
   motionSceneMatches,
   patchMotionSceneFlyover,
   patchStudioClipFlyover,
+  readMotionClipSidecar,
   resolveFlyoverDest,
+  writeMotionClipSidecar,
 } from "../backend/motionFlyoverUpload.js";
 import { buildStudioCatalogMotionClip } from "../backend/timelineStudioNichePacks.js";
 
@@ -51,6 +53,20 @@ describe("motionFlyoverUpload", () => {
     );
     assert.equal(studio.clips.length, 1);
     assert.equal(studio.clips[0].id, clip.id);
+  });
+
+  it("sidecar persiste clip para recuperacao no upload", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-sidecar-"));
+    const clip = buildStudioCatalogMotionClip({
+      templateId: "location-intro",
+      playhead: 12,
+      props: { studio_source_code: TSX },
+      label: "PIP",
+    });
+    writeMotionClipSidecar(tmp, clip);
+    const cached = readMotionClipSidecar(tmp, clip.id);
+    assert.equal(cached?.id, clip.id);
+    assert.equal(cached?.templateId, "location-intro");
   });
 
   it("resolveFlyoverDest grava em ASSETS/satellite", () => {
