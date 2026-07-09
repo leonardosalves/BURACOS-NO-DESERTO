@@ -40,6 +40,7 @@ import {
   stripAiOverlaysFromStoryboard,
 } from "../shared/productionConfig.js";
 import { getCatalogForNiche } from "./remotionTemplateCatalogService.js";
+import { ensureStoryboardWebResearch } from "./storyboardResearchEnsure.js";
 
 function readJsonSafe(filePath, fallback = null) {
   try {
@@ -258,7 +259,7 @@ export function attachProductionToVisualPrompts(
  */
 export async function orchestrateProduction(
   projDir,
-  { workspaceDir = "", callGemini, getApiKey, parseAiJson } = {},
+  { workspaceDir = "", callGemini, getApiKey, getApiKeys, parseAiJson } = {},
   {
     useLlm = false,
     fetchSatellite = true,
@@ -305,6 +306,19 @@ export async function orchestrateProduction(
     storyboard = applyMontageAssetPolicy(storyboard, config);
   }
   storyboard = backfillVisualPromptNarration(storyboard, config);
+
+  let researchFetchMeta = null;
+  if (config.motion_template_pack?.enabled === true) {
+    const ensured = await ensureStoryboardWebResearch(storyboard, config, {
+      projDir,
+      workspaceDir,
+      getApiKey,
+      getApiKeys,
+    });
+    storyboard = ensured.storyboard;
+    if (ensured.fetched) researchFetchMeta = ensured.meta;
+  }
+
   const researchContext = buildMotionResearchContext(storyboard, config);
 
   let plan = planMotionScenesFromStoryboard(storyboard, config, blockTimings);
@@ -419,6 +433,7 @@ export async function orchestrateProduction(
     planner_version: plan.planner_version,
     source: plan.source,
     niche_pack: plan.niche_pack,
+    review: plan.motion_scenes_review || null,
     llm: llmMeta,
     dedupe_removed: plan.dedupe_removed || llmMeta?.dedupe_removed || [],
     satellite: satelliteMeta,
@@ -525,6 +540,7 @@ export async function orchestrateProduction(
     llm: llmMeta,
     satellite: satelliteMeta,
     quality: qualityMeta,
+    research_fetch: researchFetchMeta,
   };
 }
 
