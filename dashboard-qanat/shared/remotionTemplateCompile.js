@@ -135,7 +135,9 @@ function patchCompiledMediaVideoSlots(jsBody = "") {
       "g"
     );
     const videoShift =
-      slot === "pipMediaUrl" ? ", acceptableTimeShiftInSeconds: 0.35" : "";
+      slot === "pipMediaUrl"
+        ? ", volume: 0, acceptableTimeShiftInSeconds: 0.35"
+        : "";
     out = out.replace(
       re,
       `React.createElement(/\\.(mp4|webm|mov|m4v|mkv)(\\?|$)/i.test(String(${slot} || "")) ? Video : Img, { src: ${slot}${videoShift}`
