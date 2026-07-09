@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Pause, Play } from "lucide-react";
+import { Camera, ExternalLink, Loader2, Pause, Play } from "lucide-react";
 import { OverlayPreview } from "./OverlayPreview";
 import type { OverlayDraft } from "./overlayEditorConfig";
 import {
@@ -29,6 +29,12 @@ import {
   isFullscreenMotionClip,
   SHORTS_CAPTION_SAFE_BOTTOM_PCT,
 } from "./timelineStudioMotionLayout";
+import {
+  clipStudioSourceCode,
+  isLegacyStudioOverlayClip,
+  isStudioTemplateClip,
+} from "@lumiera/shared/timelineStudioLegacyStrip.js";
+import { SavedTemplatePreviewFrame } from "./remotionTemplateLivePreview";
 
 type Props = {
   studio: TimelineStudioState;
@@ -36,6 +42,13 @@ type Props = {
   getMusicUrl?: (fileName: string) => string;
   aspectRatio: string;
   musicVolume?: number;
+  finalFrame?: {
+    loading: boolean;
+    url?: string | null;
+    error?: string | null;
+    playhead?: number;
+  };
+  onRequestFinalFrame?: (playhead: number) => void;
   onPlayheadChange: (sec: number, opts?: { playing?: boolean }) => void;
 };
 
@@ -81,6 +94,8 @@ export function TimelineStudioPreview({
   getMusicUrl,
   aspectRatio,
   musicVolume = 0.15,
+  finalFrame,
+  onRequestFinalFrame,
   onPlayheadChange,
 }: Props) {
   const isVertical = aspectRatio === "9:16";
@@ -140,26 +155,49 @@ export function TimelineStudioPreview({
     ? activeVideoAt(studio.clips, displayPlayhead)
     : previewVideoAt(studio.clips, displayPlayhead);
   const motionClips = useMemo(
-    () => activeMotionAt(studio.clips, motionPlayhead),
+    () =>
+      activeMotionAt(studio.clips, motionPlayhead).filter(
+        (clip) =>
+          !isLegacyStudioOverlayClip(clip) &&
+          (isStudioTemplateClip(clip) ||
+            String(clip.templateId) === "location-intro" ||
+            String(clip.templateId) === "geo-map")
+      ),
     [studio.clips, motionPlayhead]
   );
   const caption = activeCaptionAt(studio.clips, displayPlayhead);
 
-  const activeOverlays = useMemo(
+  const activeOverlays = useMemo(() => [], [studio.clips, displayPlayhead]);
+  const activeSfxCount = useMemo(
     () =>
-      studio.clips
-        .filter(
-          (c) =>
-            c.trackId === "overlays" &&
-            displayPlayhead >= c.start &&
-            displayPlayhead < c.start + c.duration
-        )
-        .sort((a, b) => {
-          const pri = (id: string) => (FULLSCREEN_OVERLAYS.has(id) ? 1 : 0);
-          return pri(String(a.templateId)) - pri(String(b.templateId));
-        }),
+      studio.clips.filter(
+        (c) =>
+          c.trackId === "sfx" &&
+          displayPlayhead >= c.start &&
+          displayPlayhead < c.start + c.duration
+      ).length,
     [studio.clips, displayPlayhead]
   );
+  const previewLayers = useMemo(() => {
+    const layers = [];
+    if (videoClip) layers.push("video");
+    if (voiceSrc) layers.push("voz");
+    if (musicSrc) layers.push("musica");
+    if (motionClips.length) layers.push(`${motionClips.length} motion`);
+    if (activeOverlays.length) layers.push(`${activeOverlays.length} overlay`);
+    if (caption) layers.push("legenda");
+    if (activeSfxCount) layers.push(`${activeSfxCount} sfx pendente`);
+    return layers;
+  }, [
+    activeOverlays.length,
+    activeSfxCount,
+    caption,
+    motionClips.length,
+    musicSrc,
+    videoClip,
+    voiceSrc,
+  ]);
+  const previewIsComplete = activeSfxCount === 0;
 
   const assetSrc = videoClip?.source
     ? resolveMediaUrl(videoClip.source, getAssetUrl, getMusicUrl)
@@ -457,10 +495,56 @@ export function TimelineStudioPreview({
           <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500">
             {isVertical ? "9:16" : "16:9"}
           </span>
+          <span
+            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+              previewIsComplete
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+            }`}
+            title={
+              previewIsComplete
+                ? `Camadas ativas: ${previewLayers.join(", ") || "nenhuma"}`
+                : `Preview parcial. Camadas ativas: ${previewLayers.join(", ")}`
+            }
+          >
+            {previewIsComplete ? "Fiel" : "Parcial"}
+          </span>
         </div>
-        <span className="text-[10px] font-mono text-gold-400/90">
-          {formatStudioTime(displayPlayhead)}
-        </span>
+        <div className="flex items-center gap-2">
+          {onRequestFinalFrame ? (
+            <button
+              type="button"
+              disabled={finalFrame?.loading}
+              onClick={() => onRequestFinalFrame(displayPlayhead)}
+              className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-[9px] font-bold text-zinc-300 transition hover:border-emerald-500/50 hover:text-emerald-200 disabled:opacity-50"
+              title="Renderizar um PNG deste frame usando o pipeline final do Remotion"
+            >
+              {finalFrame?.loading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Camera className="h-3 w-3" />
+              )}
+              Frame final
+            </button>
+          ) : null}
+          {finalFrame?.url ? (
+            <a
+              href={finalFrame.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[9px] font-bold text-emerald-200"
+              title={`Abrir frame final renderizado em ${formatStudioTime(
+                finalFrame.playhead ?? displayPlayhead
+              )}`}
+            >
+              <ExternalLink className="h-3 w-3" />
+              PNG
+            </a>
+          ) : null}
+          <span className="text-[10px] font-mono text-gold-400/90">
+            {formatStudioTime(displayPlayhead)}
+          </span>
+        </div>
       </div>
 
       <div className="flex-1 flex items-center justify-center min-h-0 p-1 bg-zinc-950">
@@ -543,6 +627,22 @@ export function TimelineStudioPreview({
                   getAssetUrl={getAssetUrl}
                   getMusicUrl={getMusicUrl}
                 />
+              );
+            }
+            if (isStudioTemplateClip(clip)) {
+              const sourceCode = clipStudioSourceCode(clip);
+              return (
+                <div
+                  key={clip.id}
+                  className="absolute inset-0 z-40 pointer-events-none flex items-center justify-center"
+                >
+                  <SavedTemplatePreviewFrame
+                    sourceCode={sourceCode}
+                    format={isVertical ? "9:16" : "16:9"}
+                    size="detail"
+                    autoPlay={playing}
+                  />
+                </div>
               );
             }
             const draft = clipToOverlayDraft(clip, getAssetUrl, getMusicUrl);
