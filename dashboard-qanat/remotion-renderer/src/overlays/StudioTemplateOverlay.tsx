@@ -3,7 +3,8 @@ import { AbsoluteFill, useVideoConfig } from "remotion";
 import * as Remotion from "remotion";
 import {
   compileSavedTemplateSource,
-  sanitizeStudioRenderProps,
+  isGeoPipCompositeProps,
+  mergeStudioRenderProps,
 } from "../../../shared/remotionTemplateCompile.js";
 import { GeoPipMapSlot } from "./GeoPipMapSlot";
 
@@ -18,6 +19,7 @@ export const StudioTemplateOverlay: React.FC<StudioTemplateOverlayProps> = ({
   inputProps = {},
   durationInFrames,
 }) => {
+  const { width, height, fps } = useVideoConfig();
   const compiled = useMemo(
     () => compileSavedTemplateSource(sourceCode, { React, Remotion }),
     [sourceCode]
@@ -53,36 +55,26 @@ export const StudioTemplateOverlay: React.FC<StudioTemplateOverlayProps> = ({
       ? 0.35
       : 1;
 
-  const sanitized = sanitizeStudioRenderProps(inputProps);
-  const studioProps =
-    sanitized.studio_props && typeof sanitized.studio_props === "object"
-      ? (sanitized.studio_props as Record<string, unknown>)
-      : {};
-  const mergedProps = {
-    ...exampleProps,
-    ...sanitized,
-    ...studioProps,
+  const mergedProps = mergeStudioRenderProps({
+    inputProps,
+    exampleProps,
     durationInFrames,
-  };
+    fps,
+  });
 
-  const geoPipComposite = Boolean(
-    sanitized.geo_pip_composite ||
-    (String(sanitized.template_studio_subcategory || "")
-      .toLowerCase()
-      .includes("picture in picture") &&
-      (sanitized.flyover_video ||
-        sanitized.backgroundImage ||
-        sanitized.location))
-  );
+  const geoPipComposite = isGeoPipCompositeProps(inputProps);
+  const sanitized = mergedProps;
 
   if (geoPipComposite) {
     return (
-      <AbsoluteFill style={{ overflow: "hidden", backgroundColor: "#050506" }}>
+      <AbsoluteFill
+        style={{ overflow: "hidden", backgroundColor: "transparent" }}
+      >
         <GeoPipMapSlot
           width={width}
           height={height}
           window={
-            (sanitized.geo_pip_window as Record<string, number>) || undefined
+            (inputProps.geo_pip_window as Record<string, number>) || undefined
           }
           flyoverVideo={String(sanitized.flyover_video || "")}
           backgroundImage={String(sanitized.backgroundImage || "")}
@@ -116,7 +108,7 @@ export const StudioTemplateOverlay: React.FC<StudioTemplateOverlayProps> = ({
   const bg =
     role === "background_frame" || inputProps.studio_z_index === "under"
       ? "transparent"
-      : "#050506";
+      : "transparent";
 
   return (
     <AbsoluteFill

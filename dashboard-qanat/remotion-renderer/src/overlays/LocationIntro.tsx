@@ -800,6 +800,7 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
             backgroundImageWide={backgroundImageWide}
             geo_pip_window={geo_pip_window}
             zoom={pipZoom}
+            transparentBackground
           />
         </AbsoluteFill>
       );

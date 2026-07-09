@@ -20,6 +20,8 @@ type Props = {
   playing?: boolean;
   getAssetUrl: (fileName: string) => string;
   getMusicUrl?: (fileName: string) => string;
+  /** PIP com template Studio: fundo transparente para B-roll da cena. */
+  pipTransparent?: boolean;
 };
 
 /** Preview satélite direto — sem OverlayPreview/motionShell (evita caixa cinza). */
@@ -29,6 +31,7 @@ export function SatelliteMapPreview({
   playing = false,
   getAssetUrl,
   getMusicUrl,
+  pipTransparent = false,
 }: Props) {
   const enriched = enrichSatelliteMotionClip(clip);
   const props = resolveMotionSceneProps(
@@ -80,7 +83,13 @@ export function SatelliteMapPreview({
     if (isGeoMediaPip) {
       const win = resolveGeoPipWindowRect(100, 100, pipWindow);
       return (
-        <div className="absolute inset-0 z-40 overflow-hidden bg-gradient-to-b from-[#04070d] via-[#071018] to-[#04070d] pointer-events-none">
+        <div
+          className={`absolute inset-0 z-40 overflow-hidden pointer-events-none ${
+            pipTransparent
+              ? "bg-transparent"
+              : "bg-gradient-to-b from-[#04070d] via-[#071018] to-[#04070d]"
+          }`}
+        >
           <div
             className="absolute overflow-hidden bg-black border border-white/15 shadow-lg shadow-black/50"
             style={{
@@ -104,7 +113,7 @@ export function SatelliteMapPreview({
               }}
             />
           </div>
-          {referencePoint ? (
+          {!pipTransparent && referencePoint ? (
             <div className="absolute left-[5%] right-[5%] bottom-[6%] rounded-xl border border-amber-400/35 bg-[#08121c]/90 px-3 py-2">
               <p className="text-[7px] font-bold uppercase tracking-wider text-amber-300">
                 Ponto de referência / PIP

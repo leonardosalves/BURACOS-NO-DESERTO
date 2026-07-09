@@ -3,13 +3,11 @@
  */
 
 import { resolvePlaceWithResearch } from "./motionResearchProps.js";
+import { isTemplatePlaceholderValue } from "./studioTemplatePlaceholder.js";
 
 const YEAR_GLOBAL_RE = /\b(1\d{3}|20\d{2})\b/g;
 const STAT_VALUE_RE =
   /(\d{1,3}(?:[.,]\d+)?)\s*(%|por\s*cento|mil\b|milh[oõ]es?|bilh[oõ]es?|anos?|vítimas?|vitimas?|mortos?|feridos?|ve[ií]culos?)?/gi;
-
-const PLACEHOLDER_TEXT_RE =
-  /^(COMPARA[ÇC][AÃ]O|TESTE|DADO|IMPACTO|REVELA[ÇC][AÃ]O|CRONOLOGIA|T[IÍ]TULO|SUBT[IÍ]TULO)$/i;
 
 function blockContextForScene(scene = {}, researchContext = {}) {
   const ref = String(scene.scene_ref || "").trim();
@@ -147,15 +145,8 @@ function resolveStatusText(researchContext = {}, facts = []) {
   return "ANÁLISE";
 }
 
-function isPlaceholderValue(value) {
-  if (value === undefined || value === null) return true;
-  if (typeof value === "string") {
-    const t = value.trim();
-    return !t || PLACEHOLDER_TEXT_RE.test(t);
-  }
-  if (typeof value === "number") return !Number.isFinite(value) || value === 0;
-  if (Array.isArray(value)) return value.length === 0;
-  return false;
+function isPlaceholderValue(value, key = "") {
+  return isTemplatePlaceholderValue(value, key);
 }
 
 function slotWanted(dataSlots, ...keys) {
@@ -355,12 +346,17 @@ export function bindStudioTemplateProps({
     setSlot("delayPerChar", delay, "template");
   }
 
-  if (slotWanted(dataSlots, "durationSeconds", "durationInFrames")) {
-    const dur = Number(scene.duration_seconds) || 4;
+  const sceneDurSec = Number(scene.duration_seconds);
+  if (Number.isFinite(sceneDurSec) && sceneDurSec > 0) {
+    const frames = Math.round(sceneDurSec * 30);
     if (slotWanted(dataSlots, "durationInFrames")) {
-      setSlot("durationInFrames", Math.round(dur * 30), "scene");
-    } else {
-      setSlot("durationSeconds", dur, "scene");
+      setSlot("durationInFrames", frames, "scene");
+    }
+    if (slotWanted(dataSlots, "durationSeconds")) {
+      setSlot("durationSeconds", sceneDurSec, "scene");
+    }
+    if (!slotWanted(dataSlots, "durationInFrames", "durationSeconds")) {
+      setSlot("durationInFrames", frames, "scene");
     }
   }
 

@@ -5,6 +5,12 @@
 
 import { transform } from "sucrase";
 import { repairCommonTemplateLayoutVars } from "./remotionTemplateStudioValidate.js";
+export {
+  sanitizeStudioRenderProps,
+  mergeStudioRenderProps,
+  isGeoPipCompositeProps,
+} from "./studioTemplateRenderProps.js";
+export { isTemplatePlaceholderValue } from "./studioTemplatePlaceholder.js";
 
 const REMOTION_BINDINGS = `
 const {
@@ -114,45 +120,6 @@ function prepareRunnableSource(code) {
   }).code;
 
   return { body: transformed, componentName };
-}
-
-/** Remove metadados de orquestração antes de passar props ao componente Studio. */
-export function sanitizeStudioRenderProps(props = {}) {
-  const skip = new Set([
-    "template_studio_id",
-    "template_studio_name",
-    "template_studio_category",
-    "template_studio_subcategory",
-    "template_studio_motion_template_id",
-    "studio_source_code",
-    "studio_props",
-    "studio_props_meta",
-    "template_studio_data_slots",
-    "studio_role",
-    "studio_z_index",
-    "studio_opacity",
-    "boosted",
-    "overlayType",
-    "media_mode",
-    "motion_scene",
-    "motion_quality_ok",
-    "motion_quality_score",
-    "narration_text",
-    "scene_ref",
-    "block",
-    "trigger",
-    "presentation",
-    "layout",
-    "aspect_ratio",
-    "timing_manual",
-    "customStyle",
-    "style",
-  ]);
-  const out = {};
-  for (const [key, value] of Object.entries(props)) {
-    if (!skip.has(key) && value !== undefined) out[key] = value;
-  }
-  return out;
 }
 
 /**

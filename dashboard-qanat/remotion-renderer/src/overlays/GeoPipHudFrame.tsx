@@ -22,6 +22,8 @@ type Props = {
   geo_pip_window?: GeoPipWindow;
   mapSlot?: React.ReactNode;
   zoom?: number;
+  /** Sem fundo opaco — B-roll da cena visível atrás do chrome PIP. */
+  transparentBackground?: boolean;
 };
 
 export const GeoPipHudFrame: React.FC<Props> = ({
@@ -37,6 +39,7 @@ export const GeoPipHudFrame: React.FC<Props> = ({
   geo_pip_window,
   mapSlot,
   zoom = 1,
+  transparentBackground = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
@@ -63,12 +66,14 @@ export const GeoPipHudFrame: React.FC<Props> = ({
 
   return (
     <AbsoluteFill style={{ pointerEvents: "none", overflow: "hidden" }}>
-      <AbsoluteFill
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 18%, rgba(0,229,255,0.08) 0%, transparent 55%), linear-gradient(180deg, #04070d 0%, #071018 55%, #04070d 100%)",
-        }}
-      />
+      {!transparentBackground ? (
+        <AbsoluteFill
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 18%, rgba(0,229,255,0.08) 0%, transparent 55%), linear-gradient(180deg, #04070d 0%, #071018 55%, #04070d 100%)",
+          }}
+        />
+      ) : null}
 
       {mapSlot || (
         <GeoPipMapSlot
