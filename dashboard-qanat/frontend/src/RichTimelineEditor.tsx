@@ -101,7 +101,7 @@ export type RichTimelineEditorProps = {
   handlePlanMotionScenes: () => void | Promise<void>;
   handleMotionScenesChange: (
     scenes: MotionSceneDraft[],
-    opts?: { immediate?: boolean }
+    opts?: { immediate?: boolean; skipPersist?: boolean }
   ) => void;
   handleSaveMotionScenes: () => void | Promise<void>;
   handleRepairProjectVisualPrompts: () => void | Promise<void>;
