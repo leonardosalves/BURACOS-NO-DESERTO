@@ -6,6 +6,7 @@ import {
   hasRunnableStudioSource,
   mapStudioTemplateToMotionId,
 } from "../shared/remotionTemplateStudioCatalog.js";
+import { bindStudioTemplateProps } from "../shared/studioTemplatePropsBinder.js";
 import {
   isLegacySeedTemplateId,
   LEGACY_SEED_TEMPLATE_IDS,
@@ -207,7 +208,48 @@ function scoreStudioTemplateForTrigger(
     reasons.push("penalizado para evitar repeticao visual");
   }
 
+  const prevCategories = new Set(
+    (Array.isArray(context.previousStudioCategories)
+      ? context.previousStudioCategories
+      : []
+    ).map((c) =>
+      String(c || "")
+        .trim()
+        .toLowerCase()
+    )
+  );
+  const tplCategory = String(tpl.category || "")
+    .trim()
+    .toLowerCase();
+  if (tplCategory && prevCategories.has(tplCategory)) {
+    score -= 12;
+    reasons.push("penalizado para variar categoria visual");
+  }
+
   return { score, reasons };
+}
+
+function scoreStudioTemplateCoverage(tpl, context = {}) {
+  const scene = context.scene;
+  if (!scene?.narration_text) {
+    return { bonus: 0, reasons: [] };
+  }
+  const { studio_props_meta } = bindStudioTemplateProps({
+    template: tpl,
+    scene,
+    researchContext: context.researchContext || {},
+    config: context.config || {},
+  });
+  const confidence = Number(studio_props_meta?.confidence) || 0;
+  if (confidence <= 0) {
+    return { bonus: 0, reasons: ["contrato sem dados preenchiveis"] };
+  }
+  return {
+    bonus: Math.round(confidence * 20),
+    reasons: [
+      `cobertura do contrato ${Math.round(confidence * 100)}% (${studio_props_meta.filled_slots?.length || 0} slots)`,
+    ],
+  };
 }
 
 export function resolveStudioSourceCode(template = {}, aspectRatio = "16:9") {
@@ -226,6 +268,10 @@ export function pickStudioTemplateForTrigger({
   aspectRatio = "16:9",
   preferredStudioIds = [],
   previousStudioIds = [],
+  previousStudioCategories = [],
+  scene = null,
+  researchContext = {},
+  config = {},
 } = {}) {
   const motionId = String(motionTemplateId || "").trim();
   if (!motionId) return null;
@@ -241,13 +287,23 @@ export function pickStudioTemplateForTrigger({
   if (!candidates.length) return null;
 
   const scored = candidates
-    .map((tpl) => ({
-      tpl,
-      ...scoreStudioTemplateForTrigger(tpl, trigger, motionId, {
+    .map((tpl) => {
+      const base = scoreStudioTemplateForTrigger(tpl, trigger, motionId, {
         preferredStudioIds,
         previousStudioIds,
-      }),
-    }))
+        previousStudioCategories,
+      });
+      const coverage = scoreStudioTemplateCoverage(tpl, {
+        scene,
+        researchContext,
+        config,
+      });
+      return {
+        tpl,
+        score: base.score + coverage.bonus,
+        reasons: [...base.reasons, ...coverage.reasons],
+      };
+    })
     .sort((a, b) => b.score - a.score);
 
   const best = scored[0];

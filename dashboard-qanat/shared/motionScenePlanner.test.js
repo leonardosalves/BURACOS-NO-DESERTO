@@ -9,6 +9,7 @@ import {
   buildPropsForTemplate,
   limitMotionScenesForFormat,
   motionScenesToMotionClips,
+  boostStudioMotionScenesForLongForm,
 } from "../backend/motionScenePlanner.js";
 import { syncCatalogForNiche } from "../backend/remotionTemplateCatalogService.js";
 
@@ -360,6 +361,64 @@ describe("motionScenePlanner", () => {
     assert.equal(shortScenes[0].template_id, "location-intro");
     assert.equal(longScenes.length, 8);
     assert.ok(longScenes.every((s) => s.template_id !== "kinetic-text"));
+  });
+
+  it("boostStudioMotionScenesForLongForm atinge minimo 5 templates Studio", () => {
+    const BOOST_NICHE = "__test_studio_boost_long__";
+    const mkTpl = (id, motionId, subcategory, slots) => ({
+      id,
+      name: id,
+      category: "chart-data",
+      subcategory,
+      niche: BOOST_NICHE,
+      status: "approved",
+      description: "",
+      dataSlots: slots,
+      shortPreview: "x",
+      longPreview: "x",
+      sourceCode: { short: BRIDGE_TSX, long: BRIDGE_TSX },
+    });
+    syncCatalogForNiche(BOOST_NICHE, [
+      mkTpl("boost-counter", "counter", "Counter", ["value", "label"]),
+      mkTpl("boost-bar", "bar-chart", "Bar chart", ["items", "title"]),
+      mkTpl("boost-bar-2", "bar-chart", "Line chart", ["items", "title"]),
+      mkTpl("boost-timeline", "timeline", "Timeline", ["events", "title"]),
+      mkTpl("boost-counter-2", "counter", "KPI", ["value", "label"]),
+    ]);
+
+    const visualPrompts = Array.from({ length: 8 }, (_, i) => ({
+      scene: `${i + 2}.1`,
+      block: i + 2,
+      narration_text:
+        i % 2 === 0
+          ? `Em ${1930 + i} a estrutura suportava ${40 + i}% da carga máxima.`
+          : `Comparando materiais: aço ${200 + i} MPa versus concreto ${40 + i} MPa.`,
+      speech_start: (i + 1) * 12,
+      duration_seconds: 4,
+    }));
+
+    const boosted = boostStudioMotionScenesForLongForm({
+      scenes: [],
+      visualPrompts,
+      consumedVpRefs: new Set(),
+      config: {
+        niche: BOOST_NICHE,
+        aspect_ratio: "16:9",
+        motion_template_pack: { enabled: true, niche: BOOST_NICHE },
+        accent_color: "#D4AF37",
+      },
+      blockTimings: {},
+      researchContext: {},
+      studioNiche: BOOST_NICHE,
+      aspectRatio: "16:9",
+      nichePack: "industrial-impact",
+    });
+
+    const studioCount = boosted.filter(
+      (s) => s.props?.template_studio_id
+    ).length;
+    assert.ok(studioCount >= 5);
+    assert.ok(boosted.some((s) => s.boosted));
   });
 
   it("planeja cena com template Studio quando pack do nicho está ativo", () => {

@@ -26,6 +26,7 @@ import {
 } from "../shared/timelineStudioRemotionSuppress.js";
 import { isRunnableStudioMotionScene } from "../shared/timelineStudioLegacyStrip.js";
 import { enrichStudioTemplateScene } from "../shared/studioTemplatePropsBinder.js";
+import { applyStudioRoleToScene } from "../shared/studioTemplateRoles.js";
 import { buildMotionResearchContext } from "../shared/storyboardResearch.js";
 import {
   enrichMotionScenesWithResearch,
@@ -229,6 +230,8 @@ function buildMotionPlanReview({
   aspectRatio = "16:9",
   beforeLimitCount = 0,
   afterGeoLimitCount = 0,
+  studioPackEnabled = false,
+  boostedCount = 0,
 }) {
   const usedTemplates = scenes.map((scene) => String(scene.template_id || ""));
   const uniqueTemplates = [...new Set(usedTemplates)].filter(Boolean);
@@ -239,10 +242,19 @@ function buildMotionPlanReview({
     }))
     .filter((item) => item.count > 1);
 
+  const studioCount = countStudioScenes(scenes);
+
   return {
     niche_pack: nichePack,
     aspect_ratio: aspectRatio,
     motion_count: scenes.length,
+    studio_motion_count: studioCount,
+    studio_target_min:
+      aspectRatio === "9:16"
+        ? REMOTION_TEMPLATE_LIMITS.shortMax
+        : REMOTION_TEMPLATE_LIMITS.longTargetMin,
+    studio_pack_enabled: Boolean(studioPackEnabled),
+    studio_boosted_count: boostedCount,
     candidate_count: beforeLimitCount,
     geo_limited_count: afterGeoLimitCount,
     skipped_count: skippedEntries.length,
@@ -465,16 +477,221 @@ function sceneStartHint(vp, blockTimings = {}) {
   return Number(starts[idx]) || 0;
 }
 
+const BOOST_TRIGGERS = [
+  "curiosity_punch",
+  "stat_number",
+  "comparison",
+  "timeline_date",
+  "historical_fact",
+];
+
+function vpRefKey(vp = {}) {
+  return String(vp.scene || `block-${vp.block || 0}` || "").trim();
+}
+
+function countStudioScenes(scenes = []) {
+  return scenes.filter((s) => String(s.props?.template_studio_id || "").trim())
+    .length;
+}
+
+function studioCategoriesFromScenes(scenes = []) {
+  return scenes
+    .map((s) => String(s.props?.template_studio_category || "").trim())
+    .filter(Boolean);
+}
+
 function motionScenePriority(scene = {}) {
   const templateId = String(scene.template_id || "");
   const trigger = String(scene.trigger || "");
-  if (templateId === "location-intro") return 100;
-  if (templateId === "geo-map") return 90;
-  if (trigger === "stat_number" || templateId === "counter") return 80;
-  if (trigger === "comparison" || templateId === "bar-chart") return 70;
-  if (templateId === "pictogram-chart") return 65;
-  if (templateId === "timeline") return 55;
-  return 10;
+  let score = 10;
+  if (templateId === "location-intro") score = 100;
+  else if (templateId === "geo-map") score = 90;
+  else if (trigger === "stat_number" || templateId === "counter") score = 80;
+  else if (trigger === "comparison" || templateId === "bar-chart") score = 70;
+  else if (templateId === "pictogram-chart") score = 65;
+  else if (templateId === "timeline") score = 55;
+  if (scene.props?.template_studio_id) score += 12;
+  if (scene.props?.studio_role === "transition") score += 4;
+  return score;
+}
+
+function resolveBoostTrigger(narration = "", index = 0, classified = null) {
+  if (classified?.trigger && classified.confidence >= 0.45) {
+    return classified.trigger;
+  }
+  if (STAT_RE.test(narration) && COMPARISON_RE.test(narration)) {
+    return "comparison";
+  }
+  if (STAT_RE.test(narration)) return "stat_number";
+  if (YEAR_RE.test(narration) || HISTORICAL_RE.test(narration)) {
+    return "timeline_date";
+  }
+  return BOOST_TRIGGERS[index % BOOST_TRIGGERS.length];
+}
+
+export function boostStudioMotionScenesForLongForm({
+  scenes = [],
+  visualPrompts = [],
+  consumedVpRefs = new Set(),
+  config = {},
+  blockTimings = {},
+  researchContext = {},
+  studioNiche = "",
+  preferredStudioIds = [],
+  accentColor = "#D4AF37",
+  nichePack = "",
+  preferredTemplates = [],
+  aspectRatio = "16:9",
+} = {}) {
+  const targetMin = REMOTION_TEMPLATE_LIMITS.longTargetMin;
+  if (String(aspectRatio) === "9:16") return scenes;
+  if (!studioNiche || config.motion_template_pack?.enabled !== true) {
+    return scenes;
+  }
+
+  let boosted = [...scenes];
+  const usedDedupe = new Set(
+    boosted.map(
+      (s) => `${s.trigger}-${s.template_id}-${s.scene_ref || s.block}`
+    )
+  );
+  let previousStudioIds = boosted
+    .map((s) => String(s.props?.template_studio_id || "").trim())
+    .filter(Boolean);
+  let previousStudioCategories = studioCategoriesFromScenes(boosted);
+  const previousTemplates = boosted.map((s) => String(s.template_id || ""));
+
+  const candidates = (Array.isArray(visualPrompts) ? visualPrompts : [])
+    .filter((vp) => {
+      const narration = String(
+        vp.narration_text || vp.asset?.narration_segment || ""
+      ).trim();
+      return narration.length >= 8 && !consumedVpRefs.has(vpRefKey(vp));
+    })
+    .sort(
+      (a, b) =>
+        sceneStartHint(a, blockTimings) - sceneStartHint(b, blockTimings)
+    );
+
+  let boostIndex = 0;
+  while (
+    countStudioScenes(boosted) < targetMin &&
+    boostIndex < candidates.length
+  ) {
+    const vp = candidates[boostIndex];
+    boostIndex += 1;
+    const narration = String(
+      vp.narration_text || vp.asset?.narration_segment || ""
+    ).trim();
+    const classified = classifyNarrationSegment(narration);
+    let trigger = resolveBoostTrigger(
+      narration,
+      countStudioScenes(boosted),
+      classified
+    );
+    if (trigger === "curiosity_punch") {
+      trigger = STAT_RE.test(narration) ? "stat_number" : "stat_number";
+    }
+
+    const templateDecision = pickTemplateDecisionForTrigger(
+      trigger,
+      nichePack,
+      preferredTemplates,
+      { text: narration, previousTemplates }
+    );
+    const templateId = templateDecision.template_id;
+    if (!APPROVED_ORCHESTRATION_TEMPLATES.has(templateId)) continue;
+
+    const dedupeKey = `${trigger}-${templateId}-${vp.scene || vp.block}`;
+    if (usedDedupe.has(dedupeKey)) continue;
+    usedDedupe.add(dedupeKey);
+    consumedVpRefs.add(vpRefKey(vp));
+
+    const layout = resolveLayoutForTemplate(templateId, trigger, {
+      text: narration,
+      aspectRatio,
+      niche: config.niche || nichePack,
+    });
+    const presentation = resolvePresentationForScene({
+      templateId,
+      trigger,
+      text: narration,
+      aspectRatio,
+      niche: config.niche || nichePack,
+    });
+    const templateDefault = DEFAULT_DURATIONS[templateId] || 4;
+    const vpDur = Number(vp.duration_seconds);
+    const duration =
+      templateId === "location-intro"
+        ? Math.min(
+            LOCATION_INTRO_DEFAULTS.duration_seconds_long_max,
+            Math.max(LOCATION_INTRO_DEFAULTS.duration_seconds, vpDur || 8)
+          )
+        : vpDur > 0
+          ? Math.min(vpDur, templateDefault)
+          : templateDefault;
+
+    let scene = {
+      id: `ms-boost-${String(vp.scene || vp.block || boostIndex).replace(/\s/g, "")}`,
+      scene_ref: String(vp.scene || ""),
+      block: Number(vp.block) || 1,
+      start_hint: sceneStartHint(vp, blockTimings),
+      duration_seconds: duration,
+      layout,
+      template_id: templateId,
+      trigger,
+      confidence: classified?.confidence || 0.5,
+      props: {
+        ...buildPropsForTemplate(
+          templateId,
+          trigger,
+          narration,
+          accentColor,
+          aspectRatio,
+          config.niche || nichePack,
+          researchContext
+        ),
+        presentation,
+        layout,
+        aspect_ratio: aspectRatio,
+      },
+      narration_text: narration,
+      media_mode: "remotion",
+      niche_pack: nichePack,
+      source: "studio_boost",
+      boosted: true,
+    };
+
+    const studioPick = pickStudioTemplateForTrigger({
+      trigger,
+      motionTemplateId: templateId,
+      niche: studioNiche,
+      aspectRatio,
+      preferredStudioIds,
+      previousStudioIds,
+      previousStudioCategories,
+      scene,
+      researchContext,
+      config,
+    });
+    if (!studioPick?.studio_source_code) continue;
+
+    scene = attachStudioTemplateToScene(scene, studioPick);
+    scene = enrichStudioTemplateScene(scene, {
+      template: studioPick,
+      researchContext,
+      config,
+    });
+    scene = applyStudioRoleToScene(scene, studioPick);
+    previousStudioIds.push(studioPick.id);
+    if (studioPick.category) previousStudioCategories.push(studioPick.category);
+    previousTemplates.push(templateId);
+    boosted.push(scene);
+  }
+
+  return boosted.sort(
+    (a, b) => (Number(a.start_hint) || 0) - (Number(b.start_hint) || 0)
+  );
 }
 
 export function limitMotionScenesForFormat(scenes = [], aspectRatio = "16:9") {
@@ -532,6 +749,8 @@ export function planMotionScenesFromStoryboard(
   const usedTriggers = new Set();
   const previousTemplates = [];
   const previousStudioIds = [];
+  const previousStudioCategories = [];
+  const consumedVpRefs = new Set();
 
   for (const vp of visualPrompts) {
     const narration = String(
@@ -698,6 +917,10 @@ export function planMotionScenesFromStoryboard(
         aspectRatio,
         preferredStudioIds,
         previousStudioIds,
+        previousStudioCategories,
+        scene,
+        researchContext,
+        config,
       });
       if (!studioPick?.studio_source_code) {
         skippedEntries.push(
@@ -719,10 +942,15 @@ export function planMotionScenesFromStoryboard(
         researchContext,
         config,
       });
+      scene = applyStudioRoleToScene(scene, studioPick);
       previousStudioIds.push(studioPick.id);
+      if (studioPick.category) {
+        previousStudioCategories.push(studioPick.category);
+      }
     }
 
     scenes.push(scene);
+    consumedVpRefs.add(vpRefKey(vp));
     previousTemplates.push(templateId);
     reviewEntries.push(
       buildTemplateReviewEntry({
@@ -749,7 +977,25 @@ export function planMotionScenesFromStoryboard(
     );
   }
 
-  const geoCapped = limitGeoMotionScenes(scenes, aspectRatio);
+  let plannedScenes = scenes;
+  if (studioPackEnabled && studioNiche) {
+    plannedScenes = boostStudioMotionScenesForLongForm({
+      scenes,
+      visualPrompts,
+      consumedVpRefs,
+      config,
+      blockTimings,
+      researchContext,
+      studioNiche,
+      preferredStudioIds,
+      accentColor,
+      nichePack,
+      preferredTemplates,
+      aspectRatio,
+    });
+  }
+
+  const geoCapped = limitGeoMotionScenes(plannedScenes, aspectRatio);
   const limitedScenes = limitMotionScenesForFormat(geoCapped, aspectRatio);
   const enrichedScenes = enrichMotionScenesWithResearch(
     limitedScenes,
@@ -766,8 +1012,10 @@ export function planMotionScenesFromStoryboard(
       nichePack,
       preferredTemplates,
       aspectRatio,
-      beforeLimitCount: scenes.length,
+      beforeLimitCount: plannedScenes.length,
       afterGeoLimitCount: geoCapped.length,
+      studioPackEnabled,
+      boostedCount: Math.max(0, plannedScenes.length - scenes.length),
     }),
     research_backed: Boolean(
       researchContext.globalFacts?.length ||
