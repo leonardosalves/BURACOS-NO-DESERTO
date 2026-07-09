@@ -274,7 +274,12 @@ import {
   makeIdeasGenerationSeed,
   mergeExclusionTopics,
 } from "./ideasVariety.js";
-import { ensureProjectsDirs } from "./projectsRoot.js";
+import {
+  ensureProjectsDirs,
+  listLegacySystemProjects,
+  recoverLegacyProject,
+  resolveProjectsRoot,
+} from "./projectsRoot.js";
 import {
   buildInstagramAuthUrl,
   exchangeInstagramCode,
@@ -1262,6 +1267,33 @@ app.get("/api/projects", (req, res) => {
     res.json(projects);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/api/projects/legacy-system", (_req, res) => {
+  try {
+    const payload = listLegacySystemProjects();
+    res.json({
+      success: true,
+      projects_root: resolveProjectsRoot(),
+      ...payload,
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post("/api/projects/recover-legacy", (req, res) => {
+  try {
+    const folder = String(req.body?.folder || req.body?.project || "").trim();
+    const overwrite = Boolean(req.body?.overwrite);
+    const result = recoverLegacyProject(folder, { overwrite });
+    if (!result.ok) {
+      return res.status(404).json({ success: false, ...result });
+    }
+    res.json({ success: true, ...result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
