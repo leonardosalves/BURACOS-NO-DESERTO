@@ -9,6 +9,8 @@ export {
   subcategoryExists,
   subcategoryKey,
   syncCategoriesFromTemplates,
+  templateMatchesPaletteCategory,
+  templateMatchesPaletteSubcategory,
 } from "@lumiera/shared/remotionTemplateStudioCategories.js";
 
 export type TemplateCategoryDefinition = {
