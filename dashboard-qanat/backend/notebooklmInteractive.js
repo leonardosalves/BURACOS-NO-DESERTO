@@ -200,6 +200,27 @@ export function buildNotebooklmSessionFromResearch({
   return session;
 }
 
+export function getActiveNotebooklmQuestions(session = {}) {
+  const turns = session.turns || [];
+  for (let i = turns.length - 1; i >= 0; i -= 1) {
+    if (turns[i]?.role !== "assistant") continue;
+    const fromTurn =
+      turns[i].questions?.length > 0
+        ? turns[i].questions
+        : extractNotebooklmQuestions(turns[i].content || "");
+    if (fromTurn.length > 0) return fromTurn;
+    break;
+  }
+  return session.questions?.length > 0 ? session.questions : [];
+}
+
+function sessionWithActiveQuestions(session = {}) {
+  return {
+    ...session,
+    questions: getActiveNotebooklmQuestions(session),
+  };
+}
+
 function userAffirms(reply = "") {
   return /^(sim|s|yes|pode|faça|faz|fazer|quero|ok|claro|por favor|pode sim|com certeza)/i.test(
     String(reply || "").trim()
@@ -219,6 +240,13 @@ function questionsMentionWebResearch(questions = []) {
   );
 }
 
+function questionsMentionImportResearch(questions = []) {
+  const text = questions.join(" ").toLowerCase();
+  return /importar|incorporar|adicionar.*(?:fontes|pesquisas|resultados)|usar.*pesquisa|trazer.*pesquisa/i.test(
+    text
+  );
+}
+
 function questionsMentionNarration(questions = []) {
   const text = questions.join(" ").toLowerCase();
   return /narra|roteiro|60\s*seg|gerar.*(?:texto|áudio|audio)|produzir.*narra/i.test(
@@ -226,24 +254,31 @@ function questionsMentionNarration(questions = []) {
   );
 }
 
+function userWantsImportResearch(reply = "", session = {}) {
+  if (!userAffirms(reply)) return false;
+  const questions = getActiveNotebooklmQuestions(session);
+  return questionsMentionImportResearch(questions);
+}
+
 function userWantsWebResearch(reply = "", session = {}) {
   if (!userAffirms(reply)) return false;
   if (session.researchDone) return false;
   if (userWantsProceed(reply)) return false;
-  const questions = session.questions || [];
+  if (userWantsImportResearch(reply, session)) return false;
+  const questions = getActiveNotebooklmQuestions(session);
   if (
     questionsMentionNarration(questions) &&
     !questionsMentionWebResearch(questions)
   ) {
     return false;
   }
-  return questionsMentionWebResearch(questions) || questions.length === 0;
+  return questionsMentionWebResearch(questions);
 }
 
 function userWantsNarrationProceed(reply = "", session = {}) {
   if (userWantsProceed(reply)) return true;
   if (!userAffirms(reply)) return false;
-  const questions = session.questions || [];
+  const questions = getActiveNotebooklmQuestions(session);
   return (
     questionsMentionNarration(questions) &&
     !questionsMentionWebResearch(questions)
@@ -273,7 +308,11 @@ export async function replyNotebooklmSession({
     at: new Date().toISOString(),
   });
 
-  const wantsNarrationProceed = userWantsNarrationProceed(reply, session);
+  const contextSession = sessionWithActiveQuestions(session);
+  const wantsNarrationProceed = userWantsNarrationProceed(
+    reply,
+    contextSession
+  );
   if (wantsNarrationProceed) {
     next.awaitingUser = false;
     next.questions = [];
@@ -283,9 +322,10 @@ export async function replyNotebooklmSession({
     return { session: next, researchTriggered: false, suggestProceed: true };
   }
 
+  const wantsImportResearch = userWantsImportResearch(reply, contextSession);
   let researchTriggered = false;
   if (
-    userWantsWebResearch(reply, next) &&
+    userWantsWebResearch(reply, contextSession) &&
     next.notebookId &&
     typeof runResearch === "function"
   ) {
@@ -306,18 +346,29 @@ export async function replyNotebooklmSession({
     }
   }
 
+  if (wantsImportResearch) {
+    next.researchDone = true;
+    onProgress?.("notebooklm_import", "Importando pesquisas ao notebook…", 45);
+  }
+
   onProgress?.("notebooklm_query", "Consultando NotebookLM…", 68);
+
+  const importNote = wantsImportResearch
+    ? "O editor confirmou IMPORTAR as pesquisas já feitas — use essas fontes importadas.\n\n"
+    : researchTriggered
+      ? "Pesquisa web concluída e importada ao notebook.\n\n"
+      : "";
 
   const followUp = `Resposta do roteirista/editor Lumiera:
 ${reply}
 
-${researchTriggered ? "Pesquisa web concluída e importada ao notebook.\n\n" : ""}Com base nessa resposta e nas fontes do notebook, entregue agora fatos concretos, números, datas, nomes e ganchos para o roteiro em português brasileiro.
+${importNote}Com base nessa resposta e nas fontes do notebook, entregue agora fatos concretos, números, datas, nomes e ganchos para o roteiro em português brasileiro.
 Evite fazer novas perguntas ao editor — priorize material acionável para narração YouTube ${next.format || "SHORTS"}.`;
 
   const answer = await queryNotebook(next.notebookId, followUp, backendDir);
   const userTurns = next.turns.filter((t) => t.role === "user").length;
   let awaitingUser = isNotebooklmAwaitingUser(answer);
-  if (userWantsProceed(reply) || userTurns >= 2) {
+  if (userWantsProceed(reply)) {
     awaitingUser = false;
   }
   const questions = awaitingUser ? extractNotebooklmQuestions(answer) : [];
@@ -336,8 +387,7 @@ Evite fazer novas perguntas ao editor — priorize material acionável para narr
 
   next.readiness = assessNotebooklmReadiness(next);
   const suggestProceed =
-    userWantsProceed(reply) ||
-    (!awaitingUser && userTurns >= 2 && next.readiness?.ready);
+    userWantsNarrationProceed(reply, contextSession) || userWantsProceed(reply);
   return { session: next, researchTriggered, suggestProceed };
 }
 

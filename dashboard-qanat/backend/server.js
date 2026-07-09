@@ -16333,23 +16333,9 @@ app.post(
       nlmSessionEarly,
       notebooklmBriefDisk
     );
-    if (
-      scriptPhase === "narration" &&
-      useNotebooklm !== false &&
-      !skipNotebooklmPending &&
-      projDir &&
-      !nlmSessionPendingEarly &&
-      shouldClearNotebooklmArtifacts(projDir, __dirname, nlmNiche)
-    ) {
-      clearNotebooklmProjectArtifacts(projDir, __dirname, nlmNiche);
-      notebooklmBriefDisk = null;
-      nlmSessionEarly = null;
+    if (nlmHasProgressEarly && !skipNotebooklmPending) {
       console.log(
-        "[NotebookLM] Sessão/brief anteriores limpos — nova rodada interativa."
-      );
-    } else if (nlmHasProgressEarly && !skipNotebooklmPending) {
-      console.log(
-        "[NotebookLM] Progresso preservado no brief MD — sem reset automático."
+        "[NotebookLM] Progresso preservado — interação NÃO será reiniciada."
       );
     }
     const nlmUserTurnsEarly = (nlmSessionEarly?.turns || []).filter(
@@ -16409,6 +16395,36 @@ app.post(
         questions: [],
         suggest_proceed: true,
       });
+    }
+
+    if (wantsNlmInteractiveFirst && nlmHasProgressEarly) {
+      console.log(
+        "[NotebookLM] Bloqueando nova descoberta — retomando sessão existente."
+      );
+      if (nlmSessionEarly) {
+        report(
+          nlmSessionPendingEarly ? "notebooklm_pending" : "notebooklm_ready",
+          nlmSessionPendingEarly
+            ? "NotebookLM aguarda sua resposta…"
+            : "Material acumulado — clique Prosseguir para narração.",
+          22
+        );
+        return activeRes.json({
+          phase: "notebooklm_pending",
+          project: safeProjectName,
+          notebooklm_session: nlmSessionEarly,
+          notebooklm_brief:
+            nlmSessionEarly.notebooklm_brief_path || NOTEBOOKLM_BRIEF_FILENAME,
+          message:
+            [...(nlmSessionEarly.turns || [])]
+              .reverse()
+              .find((t) => t.role === "assistant")?.content ||
+            nlmSessionEarly.accumulatedSummary ||
+            "Continue a interação no painel NotebookLM.",
+          questions: nlmSessionEarly.questions || [],
+          suggest_proceed: !nlmSessionPendingEarly,
+        });
+      }
     }
 
     if (wantsNlmInteractiveFirst) {
