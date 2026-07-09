@@ -33,6 +33,10 @@ import {
 } from "@lumiera/shared/timelineStudioRemotionSuppress.js";
 
 import {
+  activeCaptionAt,
+  activeMotionAt,
+  activeVideoAt,
+  clipAtPlayhead,
   clipsOnTrack,
   ensureMotionTrackInStudio,
   formatStudioTime,
@@ -79,6 +83,34 @@ function countRemotionTracks(clips: StudioClip[]) {
     motion: clipsOnTrack(clips, "motion").length,
     overlays: clipsOnTrack(clips, "overlays").length,
   };
+}
+
+function clipActiveOnTrack(
+  clips: StudioClip[],
+  playhead: number,
+  trackId?: string
+): StudioClip | null {
+  if (!trackId) return clipAtPlayhead(clips, playhead);
+  if (trackId === "captions") return activeCaptionAt(clips, playhead);
+  if (trackId === "video") return activeVideoAt(clips, playhead);
+  if (trackId === "motion") return activeMotionAt(clips, playhead)[0] || null;
+  return (
+    clips.find(
+      (clip) =>
+        clip.trackId === trackId &&
+        playhead >= clip.start &&
+        playhead < clip.start + clip.duration
+    ) || null
+  );
+}
+
+function numericClipPatch(patch: Partial<StudioClip>): Partial<StudioClip> {
+  const next = { ...patch };
+  if (next.start != null) next.start = Math.max(0, Number(next.start) || 0);
+  if (next.duration != null) {
+    next.duration = Math.max(0.08, Number(next.duration) || 0.08);
+  }
+  return next;
 }
 
 function focusFirstRemotionClip(
@@ -178,6 +210,12 @@ export function TimelineStudio({
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [stockSearchTrigger, setStockSearchTrigger] =
     useState<StockSearchTrigger | null>(null);
+  const [finalFrame, setFinalFrame] = useState<{
+    loading: boolean;
+    url?: string | null;
+    error?: string | null;
+    playhead?: number;
+  }>({ loading: false, url: null, error: null });
   const [planningMotion, setPlanningMotion] = useState(false);
   const [scrollToTrackId, setScrollToTrackId] = useState<string | null>(null);
   const [previewSplitRatio, setPreviewSplitRatio] = useState(
@@ -485,7 +523,10 @@ export function TimelineStudio({
   );
 
   const insertTemplate = useCallback(
-    async (templateId: string) => {
+    async (
+      templateId: string,
+      options: { label?: string; props?: Record<string, unknown> } = {}
+    ) => {
       if (!studio) return;
       try {
         const res = await fetch(
@@ -496,6 +537,8 @@ export function TimelineStudio({
             body: JSON.stringify({
               templateId,
               playhead: studio.playhead,
+              props: options.props || {},
+              label: options.label,
             }),
           }
         );
@@ -512,6 +555,34 @@ export function TimelineStudio({
 
   const handleAskActions = useCallback(
     (actions: AskLumieraAction[]) => {
+      const resolveTargetClip = (act: {
+        clipId?: string;
+        targetTrack?: string;
+      }): StudioClip | null => {
+        if (!studio) return null;
+        if (
+          act.clipId &&
+          act.clipId !== "selected" &&
+          act.clipId !== "active"
+        ) {
+          return findClip(studio.clips, act.clipId);
+        }
+        const selected = selectedClipId
+          ? findClip(studio.clips, selectedClipId)
+          : null;
+        if (
+          selected &&
+          (!act.targetTrack || selected.trackId === act.targetTrack)
+        ) {
+          return selected;
+        }
+        return clipActiveOnTrack(
+          studio.clips,
+          studio.playhead,
+          act.targetTrack
+        );
+      };
+
       for (const act of actions) {
         if (act.type === "add_overlay") {
           addClipToStudio(act.clip);
@@ -524,10 +595,115 @@ export function TimelineStudio({
             mediaType: act.mediaType,
             nonce: Date.now(),
           });
+        } else if (act.type === "seek_to") {
+          const time = Math.max(0, Number(act.time) || 0);
+          setLocalPlayhead(null);
+          updateStudio({ playhead: time });
+          toast.success(`Playhead: ${formatStudioTime(time)}`);
+        } else if (act.type === "tighten_gaps") {
+          if (!studio) continue;
+          const tightened = tightenStudioTimelineClips(studio.clips);
+          if (tightened.closed > 0) {
+            handleClipsChange(tightened.clips);
+            toast.success(`${tightened.closed} gaps fechados`);
+          } else {
+            toast("Sem gaps para fechar");
+          }
+        } else if (act.type === "set_caption_text") {
+          if (!studio) continue;
+          const target =
+            resolveTargetClip({
+              clipId: act.clipId,
+              targetTrack: "captions",
+            }) || activeCaptionAt(studio.clips, studio.playhead);
+          if (!target) {
+            toast.error("Nenhuma legenda selecionada ou ativa no playhead");
+            continue;
+          }
+          handleClipsChange(
+            updateCaptionText(studio.clips, target.id, act.text)
+          );
+          setSelectedClipId(target.id);
+          toast.success("Legenda atualizada");
+        } else if (act.type === "update_clip") {
+          if (!studio) continue;
+          const target = resolveTargetClip(act);
+          if (!target) {
+            toast.error("Nenhum clip alvo encontrado no playhead");
+            continue;
+          }
+          const patch = numericClipPatch(act.patch);
+          handleClipsChange(updateClipInList(studio.clips, target.id, patch));
+          setSelectedClipId(target.id);
+          if (patch.start != null) updateStudio({ playhead: patch.start });
+          toast.success("Clip atualizado");
+        } else if (act.type === "update_clip_props") {
+          if (!studio) continue;
+          const target = resolveTargetClip(act);
+          if (!target) {
+            toast.error("Nenhum clip alvo encontrado no playhead");
+            continue;
+          }
+          handleClipsChange(
+            updateClipInList(studio.clips, target.id, {
+              props: { ...(target.props || {}), ...act.props },
+            })
+          );
+          setSelectedClipId(target.id);
+          toast.success("Propriedades atualizadas");
+        } else if (act.type === "delete_clip") {
+          if (!studio) continue;
+          const target = resolveTargetClip(act);
+          if (!target) {
+            toast.error("Nenhum clip alvo encontrado no playhead");
+            continue;
+          }
+          handleClipsChange(deleteClip(studio.clips, target.id));
+          setSelectedClipId(null);
+          toast.success("Clip removido");
         }
       }
     },
-    [addClipToStudio]
+    [addClipToStudio, handleClipsChange, selectedClipId, studio]
+  );
+
+  const requestFinalFrame = useCallback(
+    async (playhead: number) => {
+      setFinalFrame({ loading: true, url: null, error: null, playhead });
+      try {
+        const resolution =
+          configRef.current.render_resolution === "2k" ? "2k" : "1080p";
+        const res = await fetch(
+          getProjectUrl("/api/timeline-studio/final-frame"),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ playhead, resolution }),
+          }
+        );
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        const url = String(data.url || "");
+        setFinalFrame({
+          loading: false,
+          url,
+          error: null,
+          playhead: Number(data.playhead) || playhead,
+        });
+        toast.success("Frame final renderizado pelo Remotion");
+        if (url) window.open(url, "_blank", "noopener,noreferrer");
+      } catch (err) {
+        const message = (err as Error).message || "erro desconhecido";
+        setFinalFrame({
+          loading: false,
+          url: null,
+          error: message,
+          playhead,
+        });
+        toast.error(`Frame final: ${message}`);
+      }
+    },
+    [getProjectUrl]
   );
 
   const deleteClipFromStudio = useCallback(
@@ -1070,6 +1246,8 @@ export function TimelineStudio({
                     ? Number(config.project_music_volume)
                     : 0.15
                 }
+                finalFrame={finalFrame}
+                onRequestFinalFrame={requestFinalFrame}
                 onPlayheadChange={handlePlayheadChange}
               />
             </div>
@@ -1077,9 +1255,15 @@ export function TimelineStudio({
               <AskLumieraPanel
                 playhead={displayStudio?.playhead ?? studio.playhead}
                 nichePack={studio.niche_pack}
+                catalogNiche={String(
+                  config.motion_template_pack?.niche || config.niche || ""
+                )}
+                aspectRatio={aspectRatio}
                 getProjectUrl={getProjectUrl}
                 onActions={handleAskActions}
-                onInsertTemplate={(id) => void insertTemplate(id)}
+                onInsertTemplate={(id, options) =>
+                  void insertTemplate(id, options)
+                }
                 onSelectPack={(packId) => updateStudio({ niche_pack: packId })}
               />
             </div>

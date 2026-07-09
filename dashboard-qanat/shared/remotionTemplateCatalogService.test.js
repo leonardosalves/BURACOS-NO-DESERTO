@@ -6,6 +6,8 @@ import {
   listCatalogNiches,
   mapStudioTemplateToMotionId,
   pickStudioTemplateForTrigger,
+  getCatalogForNiche,
+  pruneCatalogEntriesWithoutSource,
   purgeLegacySeedTemplatesFromCatalogFile,
   resolveStudioSourceCode,
   syncCatalogForNiche,
@@ -95,6 +97,47 @@ describe("remotionTemplateCatalogService bridge", () => {
       shortPreview: "bars",
     });
     assert.equal(id, "bar-chart");
+  });
+
+  it("pruneCatalogEntriesWithoutSource remove metadados sem TSX", () => {
+    syncCatalogForNiche("__prune_test__", [
+      {
+        id: "meta-only",
+        name: "Meta Only",
+        category: "chart-data",
+        subcategory: "Counter",
+        status: "approved",
+      },
+      {
+        id: "tsx-ready",
+        name: "TSX Ready",
+        category: "chart-data",
+        subcategory: "Counter",
+        status: "approved",
+        sourceCode: { short: SAMPLE_TSX, long: SAMPLE_TSX },
+      },
+    ]);
+    const pruned = pruneCatalogEntriesWithoutSource();
+    assert.ok(pruned.removed >= 1);
+    const catalog = getCatalogForNiche("__prune_test__");
+    assert.equal(catalog.templates.length, 1);
+    assert.equal(catalog.templates[0].id, "tsx-ready");
+  });
+
+  it("getCatalogForNiche resolve nicho sem diferenciar maiusculas", () => {
+    syncCatalogForNiche("Engenharia", [
+      {
+        id: "eng-case-test",
+        name: "Case Test",
+        category: "chart-data",
+        subcategory: "Counter",
+        status: "approved",
+        sourceCode: { short: SAMPLE_TSX, long: SAMPLE_TSX },
+      },
+    ]);
+    const upper = getCatalogForNiche("ENGENHARIA");
+    assert.equal(upper.templates.length, 1);
+    assert.equal(upper.templates[0].id, "eng-case-test");
   });
 
   it("sync persiste sourceCode e pick escolhe template do nicho", () => {

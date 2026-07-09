@@ -19,6 +19,18 @@ type BlockPhrase = { block: number; phrase: string };
 
 const TEMPLATE_STORAGE_KEY = "lumiera.remotionTemplateStudio.templates.v1";
 
+function hasRunnableStudioSource(sourceCode?: {
+  short?: string;
+  long?: string;
+}) {
+  const code = String(sourceCode?.short || sourceCode?.long || "").trim();
+  if (!code) return false;
+  return (
+    /export\s+default\s+function/.test(code) &&
+    /\buseCurrentFrame\s*\(/.test(code)
+  );
+}
+
 type Props = {
   narrativeScript: string;
   narrativeScriptTagged: string;
@@ -197,7 +209,8 @@ export function NarrationReviewPanel({
                 ? { sourceCode: { short: shortCode, long: longCode } }
                 : {}),
             };
-          });
+          })
+          .filter((tpl) => hasRunnableStudioSource(tpl.sourceCode));
 
         if (localTemplates.length) {
           void syncRemotionTemplateCatalog({
@@ -222,7 +235,7 @@ export function NarrationReviewPanel({
           setCatalogTemplates(templates);
           if (!templates.length) {
             setCatalogError(
-              "Nenhum template no nicho — será usado o modo antigo."
+              "Nenhum template com TSX neste nicho — crie e aprove no Template Studio."
             );
           }
         }

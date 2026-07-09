@@ -19,9 +19,10 @@ import {
 } from "./timelineStudioStock.js";
 import {
   listNichePackCatalog,
-  buildStudioOverlayClip,
+  buildStudioCatalogMotionClip,
 } from "./timelineStudioNichePacks.js";
 import { handleTimelineStudioAsk } from "./timelineStudioAsk.js";
+import { renderTimelineStudioFinalFrame } from "./timelineStudioFinalFrame.js";
 import { stripSuppressedRemotionClips } from "../shared/timelineStudioRemotionSuppress.js";
 import fs from "fs";
 import path from "path";
@@ -343,16 +344,24 @@ export function registerTimelineStudioRoutes(
       if (!templateId) {
         return res.status(400).json({ error: "templateId é obrigatório" });
       }
-      const clip = buildStudioOverlayClip({
+      const safeProps = props && typeof props === "object" ? props : {};
+      const studioSource = String(safeProps.studio_source_code || "").trim();
+      if (!studioSource) {
+        return res.status(400).json({
+          error:
+            "Templates legados (InfoBar, CRONOLOGIA, etc.) foram removidos. Use um template do Template Studio com TSX salvo.",
+        });
+      }
+      const clip = buildStudioCatalogMotionClip({
         templateId: String(templateId),
         playhead: Number(playhead) || 0,
-        props: props && typeof props === "object" ? props : {},
+        props: safeProps,
         label: label ? String(label) : undefined,
       });
       if (!clip) {
-        return res
-          .status(400)
-          .json({ error: `Template desconhecido: ${templateId}` });
+        return res.status(400).json({
+          error: "Template Studio invalido (sem sourceCode ou templateId).",
+        });
       }
       res.json({ ok: true, clip });
     } catch (err) {
@@ -378,6 +387,37 @@ export function registerTimelineStudioRoutes(
       });
 
       res.json({ ok: true, ...result });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/timeline-studio/final-frame", async (req, res) => {
+    try {
+      const projectCtx = getProjectContext
+        ? getProjectContext(req)
+        : {
+            requestedName: "",
+            resolved: true,
+            resolvedName: null,
+            fallbackWorkspace: false,
+            projDir: getProjectDir(req),
+          };
+      const projDir = projectCtx.projDir;
+      const result = await renderTimelineStudioFinalFrame({
+        projectDir: projDir,
+        playhead: Number(req.body?.playhead) || 0,
+        resolution: req.body?.resolution === "2k" ? "2k" : "1080p",
+      });
+      const projectName = projectCtx.resolvedName || path.basename(projDir);
+      res.json({
+        ...result,
+        projectName,
+        url: `/api/projects-media/${encodeURIComponent(projectName)}/${result.relPath
+          .split("/")
+          .map((part) => encodeURIComponent(part))
+          .join("/")}`,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
