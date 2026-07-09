@@ -594,10 +594,17 @@ function Repair-LumieraPm2Stack {
     }
 
     if (-not $backendHealthy -and -not (Test-ActiveLumieraRender)) {
-        if (Get-BackendListenerPid) {
-            Write-LumieraLog "Porta 3005 ocupada sem health - liberando antes do PM2" "WARN"
-            Stop-LumieraBackendOnPort
-            Start-Sleep -Seconds 2
+        $stalePid = Get-BackendListenerPid
+        if ($stalePid) {
+            $beRow = Get-LumieraPm2AppRow "lumiera-backend"
+            $pm2Healthy = $beRow -and $beRow.pm2_env.status -eq "online"
+            if (-not $pm2Healthy) {
+                Write-LumieraLog "Porta 3005 ocupada sem health - liberando antes do PM2" "WARN"
+                Stop-LumieraBackendOnPort
+                Start-Sleep -Seconds 2
+            } else {
+                Write-LumieraLog "Backend PM2 online com health lento - nao matar porta 3005" "WARN"
+            }
         }
     }
     if (-not $frontendUp) {
@@ -623,10 +630,13 @@ function Repair-LumieraPm2Stack {
     }
 
     if (-not (Test-LumieraPm2DaemonAlive)) {
-        Write-LumieraLog "PM2 daemon offline - reset sockets + resurrect" "WARN"
-        Reset-LumieraPm2Daemon | Out-Null
+        Write-LumieraLog "PM2 daemon offline - resurrect (sem kill)" "WARN"
         Invoke-LumieraPm2 @("resurrect") | Out-Null
-        Start-Sleep -Seconds 4
+        Start-Sleep -Seconds 6
+        if (-not (Test-LumieraPm2DaemonAlive)) {
+            Write-LumieraLog "PM2 resurrect falhou - reset sockets" "WARN"
+            Reset-LumieraPm2Daemon | Out-Null
+        }
     }
 
     $be = Get-LumieraPm2AppRow "lumiera-backend"
@@ -652,9 +662,9 @@ function Repair-LumieraPm2Stack {
         Invoke-LumieraPm2 @("restart", "lumiera-frontend", "--update-env") | Out-Null
     }
 
-    $deadline = (Get-Date).AddSeconds(120)
+    $deadline = (Get-Date).AddSeconds(180)
     while ((Get-Date) -lt $deadline) {
-        $bh = Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 10
+        $bh = Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 15
         $fu = [bool](Get-PortListenerPidFast 5176)
         if ($bh -and $fu) {
             Invoke-LumieraPm2 @("save", "--force") | Out-Null
@@ -662,7 +672,7 @@ function Repair-LumieraPm2Stack {
             Write-LumieraLog "Stack PM2 reparado - backend+frontend OK"
             return $true
         }
-        Start-Sleep -Seconds 2
+        Start-Sleep -Seconds 3
     }
 
     Write-LumieraLog "Reparo PM2: timeout - reset daemon + start limpo" "WARN"
