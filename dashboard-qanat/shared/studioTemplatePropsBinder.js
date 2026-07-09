@@ -288,6 +288,34 @@ export function bindStudioTemplateProps({
   if (slotWanted(dataSlots, "location")) {
     if (place?.location) setSlot("location", place.location, "geo");
   }
+  if (
+    subcategory.includes("picture in picture") ||
+    category === "image-media"
+  ) {
+    const geoLocation =
+      place?.location ||
+      String(scene.props?.location || "").trim() ||
+      String(scene.props?.referencePoint || "").trim();
+    if (geoLocation) {
+      for (const key of [
+        "referencePoint",
+        "reference_point",
+        "pontoReferencia",
+        "pipTitle",
+        "pip_title",
+      ]) {
+        if (slotWanted(dataSlots, key)) {
+          setSlot(key, geoLocation, "geo");
+        }
+      }
+    }
+    const region = place?.region || String(scene.props?.region || "").trim();
+    const country = place?.country || String(scene.props?.country || "").trim();
+    const subtitle = [region, country].filter(Boolean).join(" · ");
+    if (subtitle && slotWanted(dataSlots, "subtitle")) {
+      setSlot("subtitle", subtitle, "geo");
+    }
+  }
   if (slotWanted(dataSlots, "region") && place?.region) {
     setSlot("region", place.region, "geo");
   }

@@ -68,6 +68,29 @@ export function assessLocationIntroScene(scene = {}, { projDir = "" } = {}) {
         proposed_fix: "Gerar prompt IA Geo (orquestrar templates)",
       });
     }
+    if (
+      prompt &&
+      !/Grok or Google Flow|NEGATIVE PROMPT|VALIDATION CHECKLIST/i.test(prompt)
+    ) {
+      issues.push({
+        code: "legacy_ai_prompt",
+        severity: "suggestion",
+        message: "Prompt T2V sem estrutura Grok/Google Flow v2",
+        proposed_fix: "Regenerar prompt IA Geo",
+      });
+    }
+    if (
+      prompt &&
+      !String(props.ai_video_negative_prompt || "").trim() &&
+      !/NEGATIVE PROMPT/i.test(prompt)
+    ) {
+      issues.push({
+        code: "missing_negative_prompt",
+        severity: "suggestion",
+        message: "Prompt T2V sem negative prompt separado",
+        proposed_fix: "Regenerar prompt IA Geo v2",
+      });
+    }
     if (!String(props.location || "").trim()) {
       issues.push({
         code: "missing_location",
@@ -239,14 +262,10 @@ export function assessKineticTextScene(scene = {}) {
 
 export function normalizeMotionSceneMetadata(scene = {}) {
   const templateId = String(scene.template_id || "");
-  if (templateId === "location-intro") {
+  if (templateId === "location-intro" || templateId === "geo-map") {
     const props = scene.props || {};
-    const isEngineeringShort =
-      String(props.aspect_ratio || "") === "9:16" &&
-      /engenharia|engineering|industrial/i.test(
-        String(scene.niche_pack || props.niche || "")
-      );
-    const layout = isEngineeringShort ? "pip" : "fullscreen";
+    const layout =
+      String(props.aspect_ratio || "") === "9:16" ? "pip" : "fullscreen";
     return {
       ...scene,
       layout,

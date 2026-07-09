@@ -1,10 +1,11 @@
 import React, { useMemo } from "react";
-import { AbsoluteFill } from "remotion";
+import { AbsoluteFill, useVideoConfig } from "remotion";
 import * as Remotion from "remotion";
 import {
   compileSavedTemplateSource,
   sanitizeStudioRenderProps,
 } from "../../../shared/remotionTemplateCompile.js";
+import { GeoPipMapSlot } from "./GeoPipMapSlot";
 
 type StudioTemplateOverlayProps = {
   sourceCode: string;
@@ -52,11 +53,45 @@ export const StudioTemplateOverlay: React.FC<StudioTemplateOverlayProps> = ({
       ? 0.35
       : 1;
 
+  const sanitized = sanitizeStudioRenderProps(inputProps);
+  const studioProps =
+    sanitized.studio_props && typeof sanitized.studio_props === "object"
+      ? (sanitized.studio_props as Record<string, unknown>)
+      : {};
   const mergedProps = {
     ...exampleProps,
-    ...sanitizeStudioRenderProps(inputProps),
+    ...sanitized,
+    ...studioProps,
     durationInFrames,
   };
+
+  const geoPipComposite = Boolean(
+    sanitized.geo_pip_composite ||
+    (String(sanitized.template_studio_subcategory || "")
+      .toLowerCase()
+      .includes("picture in picture") &&
+      (sanitized.flyover_video ||
+        sanitized.backgroundImage ||
+        sanitized.location))
+  );
+
+  if (geoPipComposite) {
+    return (
+      <AbsoluteFill style={{ overflow: "hidden", backgroundColor: "#050506" }}>
+        <GeoPipMapSlot
+          width={width}
+          height={height}
+          window={
+            (sanitized.geo_pip_window as Record<string, number>) || undefined
+          }
+          flyoverVideo={String(sanitized.flyover_video || "")}
+          backgroundImage={String(sanitized.backgroundImage || "")}
+          backgroundImageWide={String(sanitized.backgroundImageWide || "")}
+        />
+        <Component {...mergedProps} />
+      </AbsoluteFill>
+    );
+  }
 
   if (role === "logo_bug") {
     return (

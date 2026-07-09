@@ -7,20 +7,28 @@ import {
   normalizeMotionSceneMetadata,
 } from "../shared/motionSceneQuality.js";
 import { enrichGeoSceneWithAiPrompt } from "./geoVideoPromptService.js";
+import {
+  getCatalogForNiche,
+  resolveStudioSourceCode,
+} from "./remotionTemplateCatalogService.js";
+import {
+  attachGeoPipStudioTemplate,
+  isGeoPipShortScene,
+} from "../shared/geoPipStudioTemplate.js";
 
 const GEO_FIX_CODES = new Set([
   "missing_ai_prompt",
   "missing_location",
   "missing_coords",
+  "legacy_ai_prompt",
+  "missing_negative_prompt",
 ]);
 
 function sceneNeedsSatelliteRefetch(scene, assessment) {
   const tpl = String(scene.template_id || "");
   if (tpl !== "location-intro" && tpl !== "geo-map") return false;
   if (!assessment || assessment.ok) return false;
-  return (assessment.issues || []).some(
-    (i) => i.severity === "critical" && GEO_FIX_CODES.has(i.code)
-  );
+  return (assessment.issues || []).some((i) => GEO_FIX_CODES.has(i.code));
 }
 
 function applyGeoPromptToScene(scene, fetched) {
@@ -32,16 +40,20 @@ function applyGeoPromptToScene(scene, fetched) {
     map_provider: fetched.map_provider || "ai_t2v",
     geo_generation: fetched.geo_generation || "ai_prompt",
     ai_video_prompt: fetched.ai_video_prompt,
+    ai_video_negative_prompt: fetched.ai_video_negative_prompt,
+    geo_prompt_shotlist: fetched.geo_prompt_shotlist,
     geo_prompt_brief: fetched.geo_prompt_brief,
     geo_prompt_mode: fetched.geo_prompt_mode,
     geo_prompt_weather: fetched.geo_prompt_weather,
     geo_prompt_era: fetched.geo_prompt_era,
+    geo_prompt_target: fetched.geo_prompt_target,
     geo_prompt_orbit_360: fetched.geo_prompt_orbit_360,
     geo_prompt_territory_highlight: fetched.geo_prompt_territory_highlight,
     geo_prompt_generated_at: fetched.geo_prompt_generated_at,
     geo_prompt_engine: fetched.geo_prompt_engine,
     fly_mode: fetched.fly_mode,
     place_type: fetched.place_type,
+    poi_kind: fetched.poi_kind,
     structure_exists: fetched.structure_exists,
     aspect_ratio: fetched.aspect_ratio,
     variant: fetched.variant || "ai_geo_video",
@@ -88,7 +100,19 @@ export async function ensureMotionScenesQuality(
           workspaceConfig,
         });
         const applied = applyGeoPromptToScene(ms, fetched);
-        scenes[i] = normalizeMotionSceneMetadata(applied.scene);
+        let nextScene = applied.scene;
+        if (applied.ok && isGeoPipShortScene(nextScene)) {
+          const niche = String(
+            config.niche || nextScene.props?.niche || ""
+          ).trim();
+          const catalog = niche ? getCatalogForNiche(niche) : { approved: [] };
+          nextScene = attachGeoPipStudioTemplate(nextScene, {
+            niche,
+            catalog,
+            resolveSourceCode: resolveStudioSourceCode,
+          });
+        }
+        scenes[i] = normalizeMotionSceneMetadata(nextScene);
         remediation.push({
           pass: pass + 1,
           scene_id: ms.id,
@@ -126,7 +150,7 @@ export async function ensureMotionScenesQuality(
     quality,
     remediation,
     auto_fixed: remediation.some(
-      (r) => r.action === "refetch_satellite" && r.ok
+      (r) => r.action === "regenerate_geo_prompt" && r.ok
     ),
   };
 }

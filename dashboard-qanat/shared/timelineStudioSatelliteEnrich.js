@@ -29,12 +29,20 @@ export function enrichSatelliteMotionClip(clip = {}) {
     props.map_style = "photoreal_satellite";
   }
 
+  const aspectRatio = String(props.aspect_ratio || "").trim();
+  const presentation =
+    aspectRatio === "9:16"
+      ? String(props.presentation || props.layout || "pip").trim() || "pip"
+      : String(props.presentation || props.layout || "fullscreen").trim() ||
+        "fullscreen";
+  const layout = presentation;
+
   return {
     ...clip,
     props: {
       ...props,
-      presentation: "fullscreen",
-      layout: "fullscreen",
+      presentation,
+      layout,
     },
   };
 }

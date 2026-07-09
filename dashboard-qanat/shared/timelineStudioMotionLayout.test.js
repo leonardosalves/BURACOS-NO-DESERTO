@@ -8,18 +8,16 @@ function isFullscreenMotionClip(clip = {}) {
   const props = clip.props || {};
   const layout = String(props.layout || "").trim();
 
-  if (templateId === "location-intro") {
+  if (templateId === "location-intro" || templateId === "geo-map") {
     const aspectRatio = String(props.aspect_ratio || "").trim();
-    const niche = String(props.niche || "").trim();
-    if (
-      aspectRatio === "9:16" &&
-      /engenharia|engineering|industrial/i.test(niche)
-    ) {
+    const presentation = String(
+      props.presentation || props.layout || ""
+    ).trim();
+    if (aspectRatio === "9:16" && presentation === "pip") {
       return false;
     }
     return true;
   }
-  if (templateId === "geo-map") return true;
   if (layout === "fullscreen") return true;
   if (FULLSCREEN_TEMPLATES.has(templateId)) return true;
   return false;
@@ -36,11 +34,11 @@ describe("isFullscreenMotionClip", () => {
     );
   });
 
-  it("location-intro legado pip → fullscreen (geo proibido em PIP)", () => {
+  it("location-intro 16:9 pip ainda é tratado como fullscreen no layout", () => {
     assert.equal(
       isFullscreenMotionClip({
         templateId: "location-intro",
-        props: { presentation: "pip", layout: "pip" },
+        props: { presentation: "pip", layout: "pip", aspect_ratio: "16:9" },
       }),
       true
     );
@@ -56,7 +54,7 @@ describe("isFullscreenMotionClip", () => {
     );
   });
 
-  it("location-intro engenharia 9:16 fica PIP fora da legenda", () => {
+  it("location-intro 9:16 PIP fica fora da legenda", () => {
     assert.equal(
       isFullscreenMotionClip({
         templateId: "location-intro",
