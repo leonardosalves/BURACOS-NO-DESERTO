@@ -161,6 +161,7 @@ export function SavedTemplatePreviewFrame({
   /** Em play: drift + player.play() — MP4 no PIP usa acceptableTimeShiftInSeconds. Pausado: seek exato. */
   const timelinePlaying = timelineSynced && autoPlay;
   const driftFrames = Math.max(3, Math.round(fps * 0.35));
+  const studioAutoPlay = autoPlay && !timelineSynced;
 
   useEffect(() => {
     if (!previewMeta) return;
@@ -178,8 +179,7 @@ export function SavedTemplatePreviewFrame({
       return;
     }
 
-    // Galeria/detalhe com autoPlay: Player controla play+loop — não forçar pause/seek.
-    if (autoPlay && !timelineSynced) {
+    if (studioAutoPlay) {
       return;
     }
 
@@ -187,14 +187,43 @@ export function SavedTemplatePreviewFrame({
     lastSeekFrameRef.current = scrubFrame;
     player.pause();
     player.seekTo(scrubFrame);
-  }, [
-    previewMeta,
-    scrubFrame,
-    timelinePlaying,
-    driftFrames,
-    autoPlay,
-    timelineSynced,
-  ]);
+  }, [previewMeta, scrubFrame, timelinePlaying, driftFrames, studioAutoPlay]);
+
+  /**
+   * Remotion autoPlay é one-shot (useState) e falha se o Player ainda não montou
+   * (lazy IntersectionObserver + compile). Forçamos play() com retry.
+   */
+  useEffect(() => {
+    if (!previewMeta || !studioAutoPlay) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 48;
+
+    const ensurePlaying = () => {
+      if (cancelled || attempts >= maxAttempts) return;
+      attempts += 1;
+
+      const player = playerRef.current;
+      if (!player) {
+        requestAnimationFrame(ensurePlaying);
+        return;
+      }
+
+      if (!player.isPlaying()) {
+        player.play();
+      }
+
+      if (!cancelled && !player.isPlaying() && attempts < maxAttempts) {
+        window.setTimeout(ensurePlaying, 100);
+      }
+    };
+
+    ensurePlaying();
+    return () => {
+      cancelled = true;
+    };
+  }, [previewMeta, studioAutoPlay, sourceCode]);
 
   if (compiled.ok === false) {
     if (fallback) {
@@ -277,8 +306,10 @@ export function SavedTemplatePreviewFrame({
             backgroundColor: geoPipOverlay ? "transparent" : undefined,
           }}
           controls={size === "detail" && !fullBleed}
-          autoPlay={timelineSynced ? false : autoPlay}
-          loop={!timelineSynced}
+          autoPlay={studioAutoPlay}
+          loop={studioAutoPlay || !timelineSynced}
+          clickToPlay={size === "detail"}
+          noSuspense
           acknowledgeRemotionLicense
           errorFallback={({ error }) => (
             <div className="grid h-full w-full place-items-center bg-red-950/20 p-3 text-center">
