@@ -59,9 +59,10 @@ if (-not (Test-BackendSyntaxOk)) {
     exit 1
 }
 
-Write-Host "Parando processos soltos nas portas 3005/5176..." -ForegroundColor DarkGray
-Invoke-LumieraPm2 @("kill") | Out-Null
-Start-Sleep -Seconds 2
+Write-Host "Reset PM2 (kill, sockets, portas 3005/5176)..." -ForegroundColor DarkGray
+if (-not (Reset-LumieraPm2Daemon)) {
+    Write-Host "AVISO: pm2 ping falhou apos reset - continuando..." -ForegroundColor Yellow
+}
 Stop-LumieraBackendOnPort
 try {
     $fePid = Get-PortListenerPidFast 5176

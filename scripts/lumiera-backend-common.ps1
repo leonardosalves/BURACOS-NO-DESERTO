@@ -381,7 +381,36 @@ function Start-LumieraBackendProcess {
 }
 
 function Initialize-LumieraPm2Env {
-    $env:PM2_HOME = Join-Path $env:USERPROFILE ".pm2"
+    $pm2Home = Join-Path $env:USERPROFILE ".pm2"
+    $env:PM2_HOME = $pm2Home
+    try {
+        [Environment]::SetEnvironmentVariable("PM2_HOME", $pm2Home, "User")
+    } catch { }
+    if (-not (Test-Path -LiteralPath $pm2Home)) {
+        New-Item -ItemType Directory -Path $pm2Home -Force | Out-Null
+    }
+}
+
+function Reset-LumieraPm2Daemon {
+    Initialize-LumieraPm2Env
+    Invoke-LumieraPm2 @("kill") | Out-Null
+    Start-Sleep -Seconds 2
+    foreach ($name in @("pm2.pid", "rpc.sock", "pub.sock")) {
+        Remove-Item (Join-Path $env:PM2_HOME $name) -Force -ErrorAction SilentlyContinue
+    }
+    foreach ($port in @(3005, 5176)) {
+        $listenerPid = Get-PortListenerPidFast $port
+        if ($listenerPid) {
+            Stop-Process -Id $listenerPid -Force -ErrorAction SilentlyContinue
+        }
+    }
+    Start-Sleep -Seconds 2
+    foreach ($attempt in 1..3) {
+        $ping = (Invoke-LumieraPm2 @("ping") -CaptureOutput | Out-String)
+        if ($ping -match "pong") { return $true }
+        Start-Sleep -Seconds 2
+    }
+    return $false
 }
 
 function Resolve-LumieraPm2Bin {
@@ -566,7 +595,7 @@ function Repair-LumieraPm2Stack {
 
     if (-not $backendHealthy -and -not (Test-ActiveLumieraRender)) {
         if (Get-BackendListenerPid) {
-            Write-LumieraLog "Porta 3005 ocupada sem health — liberando antes do PM2" "WARN"
+            Write-LumieraLog "Porta 3005 ocupada sem health - liberando antes do PM2" "WARN"
             Stop-LumieraBackendOnPort
             Start-Sleep -Seconds 2
         }
@@ -574,7 +603,7 @@ function Repair-LumieraPm2Stack {
     if (-not $frontendUp) {
         $fePid = Get-PortListenerPidFast 5176
         if ($fePid) {
-            Write-LumieraLog ("Porta 5176 ocupada sem resposta — liberando PID {0}" -f $fePid) "WARN"
+            Write-LumieraLog ("Porta 5176 ocupada sem resposta - liberando PID {0}" -f $fePid) "WARN"
             Stop-Process -Id $fePid -Force -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 1
         }
@@ -594,7 +623,8 @@ function Repair-LumieraPm2Stack {
     }
 
     if (-not (Test-LumieraPm2DaemonAlive)) {
-        Write-LumieraLog "PM2 daemon offline - resurrect" "WARN"
+        Write-LumieraLog "PM2 daemon offline - reset sockets + resurrect" "WARN"
+        Reset-LumieraPm2Daemon | Out-Null
         Invoke-LumieraPm2 @("resurrect") | Out-Null
         Start-Sleep -Seconds 4
     }
@@ -635,9 +665,8 @@ function Repair-LumieraPm2Stack {
         Start-Sleep -Seconds 2
     }
 
-    Write-LumieraLog "Reparo PM2: timeout - tentando pm2 kill + start limpo" "WARN"
-    Invoke-LumieraPm2 @("kill") | Out-Null
-    Start-Sleep -Seconds 2
+    Write-LumieraLog "Reparo PM2: timeout - reset daemon + start limpo" "WARN"
+    Reset-LumieraPm2Daemon | Out-Null
     Invoke-LumieraPm2 @("start", $ecosystem, "--update-env") | Out-Null
     $retryDeadline = (Get-Date).AddSeconds(90)
     while ((Get-Date) -lt $retryDeadline) {
