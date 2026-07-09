@@ -10,8 +10,10 @@ import {
   countTemplatesInCategory,
   filterTemplatesByCategorySubcategory,
   loadTemplateCategoryCatalog,
+  templateMatchesPaletteCategory,
   type TemplateCategoryDefinition,
 } from "./remotionTemplateStudioCategories";
+import { GEO_PIP_MEDIA_WINDOW_9x16 } from "./geoPipPreview";
 import {
   hasRunnableStudioSource,
   isStudioTemplateOrchestrationReady,
@@ -189,8 +191,15 @@ export function NicheTemplatePalette({
   const [createdTemplates, setCreatedTemplates] = useState<CatalogTemplate[]>(
     []
   );
-  const [categoryId, setCategoryId] = useState("chart-data");
-  const [subcategory, setSubcategory] = useState("Bar chart");
+  const [categoryId, setCategoryId] = useState(() =>
+    aspectRatio === "9:16" ? "maps" : "chart-data"
+  );
+  const [subcategory, setSubcategory] = useState(() =>
+    aspectRatio === "9:16" ? "PIP mapa" : "Bar chart"
+  );
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null
+  );
   const activePack =
     packs.find((p) => p.id === activePackId) || packs[0] || null;
   const niche =
@@ -227,8 +236,8 @@ export function NicheTemplatePalette({
 
   const categoryTemplates = useMemo(
     () =>
-      studioReadyTemplates.filter(
-        (tpl) => tpl.category === currentCategory?.id
+      studioReadyTemplates.filter((tpl) =>
+        templateMatchesPaletteCategory(tpl, currentCategory?.id || "")
       ),
     [studioReadyTemplates, currentCategory?.id]
   );
@@ -258,11 +267,38 @@ export function NicheTemplatePalette({
   }, [categories, categoryId]);
 
   useEffect(() => {
+    if (aspectRatio !== "9:16" || !categories.length) return;
+    const maps = categories.find((c) => c.id === "maps");
+    if (!maps) return;
+    setCategoryId("maps");
+    if (maps.subcategories.includes("PIP mapa")) {
+      setSubcategory("PIP mapa");
+    } else if (maps.subcategories[0]) {
+      setSubcategory(maps.subcategories[0]);
+    }
+  }, [aspectRatio, categories]);
+
+  useEffect(() => {
     if (!subcategories.length) return;
     if (!subcategories.includes(subcategory)) {
       setSubcategory(subcategories[0] || "");
     }
   }, [subcategories, subcategory]);
+
+  const selectedTemplate = useMemo(
+    () => visibleTemplates.find((tpl) => tpl.id === selectedTemplateId) || null,
+    [visibleTemplates, selectedTemplateId]
+  );
+
+  useEffect(() => {
+    if (!visibleTemplates.length) {
+      setSelectedTemplateId(null);
+      return;
+    }
+    if (!visibleTemplates.some((tpl) => tpl.id === selectedTemplateId)) {
+      setSelectedTemplateId(visibleTemplates[0].id);
+    }
+  }, [visibleTemplates, selectedTemplateId]);
 
   useEffect(() => {
     if (!niche) {
@@ -314,23 +350,38 @@ export function NicheTemplatePalette({
     };
   }, [getProjectUrl, niche]);
 
+  function isPipGeoStudioTemplate(tpl: CatalogTemplate, motionId: string) {
+    if (motionId === "location-intro" || motionId === "geo-map") return true;
+    const sub = String(tpl.subcategory || "").toLowerCase();
+    const cat = String(tpl.category || "").toLowerCase();
+    return cat === "image-media" && /picture|pip/.test(sub);
+  }
+
   function insertStudioTemplate(tpl: CatalogTemplate) {
     const motionId = String(tpl.motion_template_id || "counter");
     const sourceCode = resolveStudioSourceCode(tpl, aspectRatio);
     if (!sourceCode) return;
+    const props: Record<string, unknown> = {
+      template_studio_id: tpl.id,
+      template_studio_name: tpl.name,
+      template_studio_category: tpl.category,
+      template_studio_subcategory: tpl.subcategory,
+      template_studio_motion_template_id: motionId,
+      studio_source_code: sourceCode,
+      motion_scene: true,
+      media_mode: "remotion",
+      aspect_ratio: aspectRatio,
+    };
+    if (aspectRatio === "9:16" && isPipGeoStudioTemplate(tpl, motionId)) {
+      props.presentation = "pip";
+      props.layout = "pip";
+      props.geo_pip_composite = true;
+      props.geo_pip_mode = "image-media-pip";
+      props.geo_pip_window = GEO_PIP_MEDIA_WINDOW_9x16;
+    }
     onInsertTemplate(motionId, {
       label: tpl.name,
-      props: {
-        template_studio_id: tpl.id,
-        template_studio_name: tpl.name,
-        template_studio_category: tpl.category,
-        template_studio_subcategory: tpl.subcategory,
-        template_studio_motion_template_id: motionId,
-        studio_source_code: sourceCode,
-        motion_scene: true,
-        media_mode: "remotion",
-        aspect_ratio: aspectRatio,
-      },
+      props,
     });
   }
 
@@ -446,19 +497,54 @@ export function NicheTemplatePalette({
               </p>
             ) : null}
 
-            <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-              {visibleTemplates.map((tpl) => (
-                <button
-                  key={tpl.id}
-                  type="button"
-                  onClick={() => insertStudioTemplate(tpl)}
-                  className="text-[9px] px-2 py-1 rounded-full border border-violet-500/35 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20 transition cursor-pointer"
-                  title={`Inserir "${tpl.name}" em ${formatShort(playhead)}`}
-                >
-                  + {shortTemplateName(tpl.name)}
-                </button>
-              ))}
+            <div className="space-y-1">
+              <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
+                Templates
+              </p>
+              <div className="max-h-24 overflow-y-auto space-y-1 pr-0.5">
+                {visibleTemplates.map((tpl) => {
+                  const active = tpl.id === selectedTemplateId;
+                  return (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      onClick={() => setSelectedTemplateId(tpl.id)}
+                      className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left transition cursor-pointer ${
+                        active
+                          ? "border-violet-400/60 bg-violet-500/15 text-violet-100"
+                          : "border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:border-zinc-700"
+                      }`}
+                      title={tpl.name}
+                    >
+                      <span className="text-[9px] font-medium truncate">
+                        {shortTemplateName(tpl.name)}
+                      </span>
+                      {active ? (
+                        <span className="text-[8px] text-violet-300 shrink-0 ml-2">
+                          selecionado
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            <button
+              type="button"
+              disabled={!selectedTemplate}
+              onClick={() =>
+                selectedTemplate && insertStudioTemplate(selectedTemplate)
+              }
+              className="w-full rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2 py-2 text-[9px] font-bold text-emerald-100 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+              title={
+                selectedTemplate
+                  ? `Adicionar "${selectedTemplate.name}" em ${formatShort(playhead)}`
+                  : "Selecione um template"
+              }
+            >
+              Adicionar na timeline · {formatShort(playhead)}
+            </button>
           </>
         ) : (
           <p className="rounded-lg border border-zinc-800 bg-zinc-950/70 px-2 py-1.5 text-[9px] leading-relaxed text-zinc-500">

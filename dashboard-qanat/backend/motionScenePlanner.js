@@ -724,10 +724,27 @@ export function limitMotionScenesForFormat(scenes = [], aspectRatio = "16:9") {
   const approved = (Array.isArray(scenes) ? scenes : []).filter((scene) =>
     APPROVED_ORCHESTRATION_TEMPLATES.has(String(scene.template_id || ""))
   );
-  const max =
-    String(aspectRatio || "") === "9:16"
-      ? REMOTION_TEMPLATE_LIMITS.shortMax
-      : REMOTION_TEMPLATE_LIMITS.longMax;
+  const isShort = String(aspectRatio || "") === "9:16";
+  const max = isShort
+    ? REMOTION_TEMPLATE_LIMITS.shortMax
+    : REMOTION_TEMPLATE_LIMITS.longMax;
+
+  if (isShort && approved.length > 1) {
+    const geoScenes = approved.filter((scene) => {
+      const tpl = String(scene.template_id || "");
+      return tpl === "location-intro" || tpl === "geo-map";
+    });
+    if (geoScenes.length) {
+      return geoScenes
+        .sort(
+          (a, b) =>
+            motionScenePriority(b) - motionScenePriority(a) ||
+            (Number(a.start_hint) || 0) - (Number(b.start_hint) || 0)
+        )
+        .slice(0, max);
+    }
+  }
+
   if (approved.length <= max) return approved;
   return approved
     .map((scene, index) => ({ scene, index }))
@@ -1294,7 +1311,11 @@ export function syncMotionScenesToStudio(studio, motionScenes = []) {
     return migrateStudioMotionClipsFromVideo(cleanStudio);
 
   const withoutMotion = cleanStudio.clips.filter(
-    (c) => !c.motionScene && !c.props?.motion_scene
+    (c) =>
+      c.trackId !== MOTION_TRACK_ID &&
+      !c.motionScene &&
+      !c.motionScenePrimary &&
+      !c.props?.motion_scene
   );
 
   const merged = [...withoutMotion, ...motionClips].sort(

@@ -236,6 +236,52 @@ describe("motionScenePlanner", () => {
     assert.equal(clip.label, "BRASIL 62%");
   });
 
+  it("sync remove cena motion antiga ao trocar por geo (short 9:16)", () => {
+    const motionScenes = [
+      {
+        id: "ms-geo-1",
+        scene_ref: "1.1",
+        block: 1,
+        start_hint: 0,
+        duration_seconds: 8,
+        layout: "pip",
+        template_id: "location-intro",
+        media_mode: "remotion",
+        props: {
+          aspect_ratio: "9:16",
+          presentation: "pip",
+          geo_pip_composite: true,
+          studio_source_code:
+            '"use client";\nimport { useCurrentFrame } from "remotion";\nexport default function T(){useCurrentFrame();return null;}',
+        },
+      },
+    ];
+    const studio = {
+      version: 1,
+      clips: [
+        {
+          id: "motion-studio-old",
+          trackId: "motion",
+          start: 0,
+          duration: 8,
+          templateId: "bar-chart",
+          motionScene: true,
+          label: "Engenharia Bar chart Draft",
+          props: {
+            motion_scene: true,
+            studio_source_code:
+              '"use client";\nimport { useCurrentFrame } from "remotion";\nexport default function T(){useCurrentFrame();return null;}',
+          },
+        },
+      ],
+    };
+    const synced = syncMotionScenesToStudio(studio, motionScenes);
+    const motionClips = synced.clips.filter((c) => c.trackId === "motion");
+    assert.equal(motionClips.length, 1);
+    assert.equal(motionClips[0].templateId, "location-intro");
+    assert.equal(motionClips[0].id, "ms-geo-1");
+  });
+
   it("sync com B-roll ausente não remove clips video existentes", () => {
     const motionScenes = [
       {
