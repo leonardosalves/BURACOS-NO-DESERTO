@@ -18,9 +18,4 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 
 if (import.meta.env.PROD) {
   void ensureFreshDashboardShell();
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
-    });
-  }
 }
