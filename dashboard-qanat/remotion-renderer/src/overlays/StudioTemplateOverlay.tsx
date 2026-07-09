@@ -6,6 +6,10 @@ import {
   isGeoPipCompositeProps,
   mergeStudioRenderProps,
 } from "../../../shared/remotionTemplateCompile.js";
+import {
+  isGeoPipShortMode,
+  pickGeoPipMapMediaProps,
+} from "../../../shared/studioTemplateRenderProps.js";
 import { GeoPipMapSlot } from "./GeoPipMapSlot";
 
 type StudioTemplateOverlayProps = {
@@ -62,8 +66,13 @@ export const StudioTemplateOverlay: React.FC<StudioTemplateOverlayProps> = ({
     fps,
   });
 
-  const geoPipComposite = isGeoPipCompositeProps(inputProps);
-  const sanitized = mergedProps;
+  const geoPipComposite =
+    isGeoPipShortMode(inputProps) || isGeoPipCompositeProps(inputProps);
+  const mapMedia = pickGeoPipMapMediaProps({
+    ...inputProps,
+    ...(inputProps.studio_props as Record<string, unknown>),
+    ...mergedProps,
+  });
 
   if (geoPipComposite) {
     return (
@@ -76,9 +85,9 @@ export const StudioTemplateOverlay: React.FC<StudioTemplateOverlayProps> = ({
           window={
             (inputProps.geo_pip_window as Record<string, number>) || undefined
           }
-          flyoverVideo={String(sanitized.flyover_video || "")}
-          backgroundImage={String(sanitized.backgroundImage || "")}
-          backgroundImageWide={String(sanitized.backgroundImageWide || "")}
+          flyoverVideo={mapMedia.flyover_video}
+          backgroundImage={mapMedia.backgroundImage}
+          backgroundImageWide={mapMedia.backgroundImageWide}
         />
         <Component {...mergedProps} />
       </AbsoluteFill>

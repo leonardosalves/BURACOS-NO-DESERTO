@@ -1,4 +1,5 @@
 import { buildGeoPipOverlayStudioProps } from "@lumiera/shared/geoPipSceneText.js";
+import { stripGeoPipMapMediaForTemplateProps } from "@lumiera/shared/studioTemplateRenderProps.js";
 import type { StudioClip } from "./timelineStudioTypes";
 
 type TranscriptWord = { word?: string; start?: number; end?: number };
@@ -72,12 +73,16 @@ export function mergeGeoPipPreviewProps(
       flyoverDurationSec: Number(clip.duration) || 0,
     });
 
-  return {
+  const merged = {
     ...base,
     ...studio_props,
-    studio_props,
+    studio_props: stripGeoPipMapMediaForTemplateProps({
+      ...(base.studio_props as Record<string, unknown>),
+      ...studio_props,
+    }),
     referencePoint,
     scene_subject,
     narration_text: liveNarration || base.narration_text,
   };
+  return stripGeoPipMapMediaForTemplateProps(merged);
 }

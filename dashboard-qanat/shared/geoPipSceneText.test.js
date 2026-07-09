@@ -8,13 +8,20 @@ import {
 } from "./geoPipSceneText.js";
 
 describe("geoPipSceneText", () => {
-  it("resolveGeoPipReferenceLabel prioriza país", () => {
+  it("resolveGeoPipReferenceLabel usa local real da IA", () => {
     assert.equal(
       resolveGeoPipReferenceLabel({
-        country: "Brasil",
-        location: "São Paulo",
+        location: "Palmanova",
+        country: "Itália",
       }),
-      "Brasil"
+      "Palmanova"
+    );
+    assert.equal(
+      resolveGeoPipReferenceLabel({
+        referencePoint: "Golden Gate",
+        location: "San Francisco",
+      }),
+      "Golden Gate"
     );
   });
 
@@ -37,15 +44,19 @@ describe("geoPipSceneText", () => {
   it("buildGeoPipOverlayStudioProps preenche slots PIP", () => {
     const { studio_props, referencePoint, scene_subject } =
       buildGeoPipOverlayStudioProps(
-        { country: "Brasil", geo_pip_composite: true },
         {
-          narration: "No Brasil, 62% das pontes precisam de manutenção.",
+          location: "Palmanova",
+          country: "Itália",
+          geo_pip_composite: true,
+        },
+        {
+          narration: "A fortaleza estelar de Palmanova impressiona.",
           dataSlots: ["referencePoint", "sectorLabel", "subtitle"],
           flyoverDurationSec: 8.4,
         }
       );
-    assert.equal(referencePoint, "Brasil");
-    assert.match(scene_subject, /Brasil|pontes|manutenção/i);
+    assert.equal(referencePoint, "Palmanova");
+    assert.match(scene_subject, /Palmanova|fortaleza/i);
     assert.equal(studio_props.referencePoint, "Brasil");
     assert.equal(studio_props.durationSeconds, 8.4);
   });
