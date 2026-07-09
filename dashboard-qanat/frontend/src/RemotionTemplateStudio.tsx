@@ -7,10 +7,17 @@ import React, {
 } from "react";
 import { Easing, interpolate } from "remotion";
 import {
+  createCatalogNiche,
   extractTemplateTsxFromLlm,
+  fetchCatalogNiches,
   repairCommonTemplateLayoutVars,
   validateFinalTemplateCode,
 } from "./remotionTemplateStudioApi";
+import {
+  DEFAULT_TEMPLATE_NICHES,
+  mergeNicheLists,
+  normalizeNicheLabel,
+} from "@lumiera/shared/remotionTemplateNiches.js";
 import {
   isLegacySeedTemplateId,
   LEGACY_SEED_TEMPLATE_IDS,
@@ -148,19 +155,11 @@ const CATEGORIES: TemplateCategoryDefinition[] = [
   },
 ];
 
-const NICHES = [
-  "Engenharia",
-  "Historia",
-  "Financas",
-  "Tecnologia",
-  "Misterio",
-  "Natureza",
-];
-
 /** Seed vazio — templates vêm só de import/Assistir IA no Studio. */
 const TEMPLATES: TemplateItem[] = [];
 
 const TEMPLATE_STORAGE_KEY = "lumiera.remotionTemplateStudio.templates.v1";
+const NICHE_STORAGE_KEY = "lumiera.remotionTemplateStudio.niches.v1";
 const CATEGORY_STORAGE_KEY = "lumiera.remotionTemplateStudio.categories.v1";
 const DELETED_CATALOG_STORAGE_KEY =
   "lumiera.remotionTemplateStudio.deletedCatalog.v1";
@@ -982,6 +981,27 @@ function ensureSubcategoryRegistered(
       subcategories: [...item.subcategories, clean],
     };
   });
+}
+
+function readStoredNichesRaw(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(NICHE_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredNiches(niches: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(NICHE_STORAGE_KEY, JSON.stringify(niches));
+  } catch {
+    /* ignore */
+  }
 }
 
 function readStoredCategoriesRaw(): TemplateCategoryDefinition[] {
@@ -2820,17 +2840,21 @@ export function RemotionTemplateStudio({
   activeProject: string;
   projectNiche: string;
 }) {
-  const initialNiche = NICHES.includes(projectNiche)
-    ? projectNiche
-    : "Engenharia";
+  const normalizedProjectNiche = normalizeNicheLabel(projectNiche);
+  const initialNiche = normalizedProjectNiche || "Engenharia";
   const studioCatalog = useMemo(() => loadStudioCatalog(), []);
   const [niche, setNiche] = useState(initialNiche);
+  const [niches, setNiches] = useState<string[]>(() =>
+    mergeNicheLists(DEFAULT_TEMPLATE_NICHES, readStoredNichesRaw(), [
+      initialNiche,
+    ])
+  );
   const [categories, setCategories] = useState<TemplateCategoryDefinition[]>(
     studioCatalog.categories
   );
   const [category, setCategory] = useState<TemplateCategory>("maps");
   const [subcategory, setSubcategory] = useState("PIP mapa");
-  const [selectedId, setSelectedId] = useState("eng-map-pip-tactical");
+  const [selectedId, setSelectedId] = useState("");
   const [detailTemplateId, setDetailTemplateId] = useState("");
   const [templates, setTemplates] = useState<TemplateItem[]>(
     studioCatalog.templates
@@ -2841,6 +2865,36 @@ export function RemotionTemplateStudio({
   const [finalCodeDraft, setFinalCodeDraft] = useState("");
   const [studioError, setStudioError] = useState("");
   const currentCategory = categories.find((c) => c.id === category);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCatalogNiches().then((response) => {
+      if (cancelled) return;
+      const fromApi = response.niches?.map((row) => row.niche) || [];
+      setNiches((current) => {
+        const merged = mergeNicheLists(
+          DEFAULT_TEMPLATE_NICHES,
+          readStoredNichesRaw(),
+          fromApi,
+          current,
+          [niche]
+        );
+        writeStoredNiches(
+          merged.filter((item) => !DEFAULT_TEMPLATE_NICHES.includes(item))
+        );
+        return merged;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    writeStoredNiches(
+      niches.filter((item) => !DEFAULT_TEMPLATE_NICHES.includes(item))
+    );
+  }, [niches]);
 
   useEffect(() => {
     try {
@@ -2938,6 +2992,43 @@ export function RemotionTemplateStudio({
       );
       setSelectedId(nextTemplate?.id || "");
     }
+  }
+
+  async function addNicheCatalog() {
+    const label = window.prompt("Nome do novo catálogo (nicho)");
+    const cleanLabel = normalizeNicheLabel(label || "");
+    if (!cleanLabel) return;
+
+    const exists = niches.some(
+      (item) => item.toLowerCase() === cleanLabel.toLowerCase()
+    );
+    if (exists) {
+      if (
+        !window.confirm(
+          `O catalogo "${cleanLabel}" ja existe. Abrir esse nicho mesmo assim?`
+        )
+      ) {
+        return;
+      }
+      setNiche(cleanLabel);
+      setDetailTemplateId("");
+      setSelectedId("");
+      return;
+    }
+
+    const created = await createCatalogNiche(cleanLabel);
+    if (!created.success) {
+      setStudioError(created.error || "Nao foi possivel criar o catalogo.");
+      return;
+    }
+
+    setStudioError("");
+    setNiches((current) => mergeNicheLists(current, [cleanLabel]));
+    setNiche(cleanLabel);
+    setCategory(categories[0]?.id || "maps");
+    setSubcategory(categories[0]?.subcategories[0] || "Geral");
+    setDetailTemplateId("");
+    setSelectedId("");
   }
 
   function addCategory() {
@@ -3173,17 +3264,28 @@ export function RemotionTemplateStudio({
     <div className="space-y-5">
       <div className="grid gap-4 xl:grid-cols-[280px_1fr_360px]">
         <aside className="rounded-lg border border-white/10 bg-[#0b0f17] p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <Layers3 className="h-4 w-4 text-cyan-300" />
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
-                Nicho
-              </p>
-              <p className="text-sm font-bold text-white">Catalogo global</p>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Layers3 className="h-4 w-4 text-cyan-300" />
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
+                  Nicho
+                </p>
+                <p className="text-sm font-bold text-white">Catalogo global</p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => void addNicheCatalog()}
+              className="inline-flex items-center gap-1 rounded-md border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-[10px] font-black text-cyan-100 hover:border-cyan-300/70"
+              title="Criar novo catalogo de nicho"
+            >
+              <Plus className="h-3 w-3" />
+              Novo catalogo
+            </button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {NICHES.map((item) => (
+            {niches.map((item) => (
               <button
                 key={item}
                 type="button"

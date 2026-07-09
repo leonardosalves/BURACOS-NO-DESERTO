@@ -1,12 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { RefreshCw, Check, Mic, Sparkles, Layers3 } from "lucide-react";
+import { RefreshCw, Check, Mic, Sparkles, Layers3, Plus } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
 import {
+  createCatalogNiche,
+  fetchCatalogNiches,
   fetchRemotionTemplateCatalog,
   syncRemotionTemplateCatalog,
   type CatalogTemplate,
 } from "./remotionTemplateStudioApi";
 import { isLegacySeedTemplateId } from "@lumiera/shared/remotionTemplateLegacy.js";
+import {
+  DEFAULT_TEMPLATE_NICHES,
+  mergeNicheLists,
+  normalizeNicheLabel,
+} from "@lumiera/shared/remotionTemplateNiches.js";
 
 type BlockPhrase = { block: number; phrase: string };
 
@@ -82,8 +89,12 @@ export function NarrationReviewPanel({
   const [catalogTemplates, setCatalogTemplates] = useState<CatalogTemplate[]>(
     []
   );
+  const [catalogNiches, setCatalogNiches] = useState<string[]>(
+    DEFAULT_TEMPLATE_NICHES
+  );
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [creatingNiche, setCreatingNiche] = useState(false);
 
   const effectiveNiche = (motionTemplateNiche || niche || "Engenharia").trim();
   const wordCount = narrativeScript.trim()
@@ -99,6 +110,49 @@ export function NarrationReviewPanel({
     () => catalogTemplates.filter((tpl) => tpl.status === "approved"),
     [catalogTemplates]
   );
+
+  const nicheOptions = useMemo(
+    () =>
+      mergeNicheLists(
+        DEFAULT_TEMPLATE_NICHES,
+        catalogNiches,
+        [niche, motionTemplateNiche, effectiveNiche].filter(Boolean)
+      ),
+    [catalogNiches, niche, motionTemplateNiche, effectiveNiche]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCatalogNiches().then((response) => {
+      if (cancelled || !response.success) return;
+      const fromApi = response.niches?.map((row) => row.niche) || [];
+      setCatalogNiches(mergeNicheLists(DEFAULT_TEMPLATE_NICHES, fromApi));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleCreateCatalogNiche() {
+    const label = window.prompt("Nome do novo catalogo (nicho)");
+    const cleanLabel = normalizeNicheLabel(label || "");
+    if (!cleanLabel) return;
+
+    setCreatingNiche(true);
+    setCatalogError(null);
+    try {
+      const created = await createCatalogNiche(cleanLabel);
+      if (!created.success) {
+        setCatalogError(created.error || "Nao foi possivel criar o catalogo.");
+        return;
+      }
+      setCatalogNiches((current) => mergeNicheLists(current, [cleanLabel]));
+      onMotionTemplateNicheChange?.(cleanLabel);
+      onMotionTemplateIdsChange?.([]);
+    } finally {
+      setCreatingNiche(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -272,20 +326,29 @@ export function NarrationReviewPanel({
             </span>
             <select
               value={effectiveNiche}
-              disabled={loading || catalogLoading}
+              disabled={loading || catalogLoading || creatingNiche}
               onChange={(e) => {
                 onMotionTemplateNicheChange(e.target.value);
                 onMotionTemplateIdsChange?.([]);
               }}
               className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-xs text-zinc-200"
             >
-              <option value={niche || "Engenharia"}>
-                {niche || "Engenharia"}
-              </option>
-              <option value="Engenharia">Engenharia</option>
-              <option value="História">História</option>
-              <option value="Geografia">Geografia</option>
+              {nicheOptions.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
             </select>
+            <button
+              type="button"
+              disabled={loading || catalogLoading || creatingNiche}
+              onClick={() => void handleCreateCatalogNiche()}
+              className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[10px] font-bold text-cyan-200 hover:border-cyan-400/50 disabled:opacity-50"
+              title="Criar novo catalogo de nicho"
+            >
+              <Plus className="w-3 h-3" />
+              Novo catalogo
+            </button>
             {motionTemplatePackEnabled && approvedTemplates.length > 0 && (
               <span className="text-[10px] text-emerald-400/90 font-medium">
                 {approvedTemplates.length} template

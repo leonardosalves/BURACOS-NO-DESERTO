@@ -1,6 +1,8 @@
 import { adaptRemotionTemplate } from "./remotionTemplateStudioService.js";
 import {
+  createCatalogNiche,
   getCatalogForNiche,
+  listCatalogNiches,
   purgeLegacySeedTemplatesFromCatalogFile,
   syncCatalogForNiche,
 } from "./remotionTemplateCatalogService.js";
@@ -92,6 +94,36 @@ export function registerRemotionTemplateStudioRoutes(
   app.post("/api/ai/assistir-ia", (req, res) => handleAdapt(req, res, deps));
 
   purgeLegacySeedTemplatesFromCatalogFile();
+
+  app.get("/api/ai/template-studio/catalog/niches", (_req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    try {
+      const niches = listCatalogNiches();
+      res.json({ success: true, niches });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        error: err?.message || "Falha ao listar nichos.",
+      });
+    }
+  });
+
+  app.post("/api/ai/template-studio/catalog/niche", (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    try {
+      const niche = String(req.body?.niche || "").trim();
+      const result = createCatalogNiche(niche);
+      if (!result.ok) {
+        return res.status(400).json({ success: false, error: result.error });
+      }
+      res.json({ success: true, ...result });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        error: err?.message || "Falha ao criar catálogo.",
+      });
+    }
+  });
 
   app.get("/api/ai/template-studio/catalog", (req, res) => {
     res.setHeader("Content-Type", "application/json; charset=utf-8");
