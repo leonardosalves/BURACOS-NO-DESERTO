@@ -81,6 +81,12 @@ function resolveNotebooklmDataDir(backendDir) {
   if (process.env.NOTEBOOKLM_MCP_CLI_PATH) {
     return process.env.NOTEBOOKLM_MCP_CLI_PATH;
   }
+  if (process.platform === "win32") {
+    const lumieraData = "C:\\Lumiera\\.notebooklm-data";
+    if (fs.existsSync("C:\\Lumiera")) {
+      return lumieraData;
+    }
+  }
   if (backendDir) {
     return path.resolve(backendDir, "..", "..", ".notebooklm-data");
   }

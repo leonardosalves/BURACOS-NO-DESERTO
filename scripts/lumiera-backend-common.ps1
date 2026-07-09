@@ -205,12 +205,21 @@ function Stop-LumieraBackendOnPort {
     Remove-Item -LiteralPath $script:PidFile -Force -ErrorAction SilentlyContinue
 }
 
+function Get-LumieraNotebookLmDataPath {
+    $link = "C:\Lumiera"
+    if (Test-Path -LiteralPath $link) {
+        return Join-Path $link ".notebooklm-data"
+    }
+    return $script:NotebookLmData
+}
+
 function Initialize-LumieraBackendEnv {
     Ensure-LumieraLogDir
-    if (-not (Test-Path -LiteralPath $script:NotebookLmData)) {
-        New-Item -ItemType Directory -Path $script:NotebookLmData -Force | Out-Null
+    $nlmData = Get-LumieraNotebookLmDataPath
+    if (-not (Test-Path -LiteralPath $nlmData)) {
+        New-Item -ItemType Directory -Path $nlmData -Force | Out-Null
     }
-    $env:NOTEBOOKLM_MCP_CLI_PATH = $script:NotebookLmData
+    $env:NOTEBOOKLM_MCP_CLI_PATH = $nlmData
 
     $nlmBin = Resolve-NlmBin
     if ($nlmBin) {
