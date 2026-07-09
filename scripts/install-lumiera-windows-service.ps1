@@ -108,6 +108,48 @@ function Remove-LumieraService {
     sc.exe delete $ServiceName 2>$null | Out-Null
 }
 
+function Test-LumieraServiceRunning {
+    $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    return ($null -ne $svc -and $svc.Status -eq "Running")
+}
+
+function Start-LumieraWindowsService {
+    param([string]$NssmExe)
+
+    if (Test-LumieraServiceRunning) {
+        Write-Host "Servico ja em execucao." -ForegroundColor DarkGray
+        return $true
+    }
+
+    $started = $false
+    try {
+        Start-Service -Name $ServiceName -ErrorAction Stop
+        $started = $true
+        Write-Host "Servico iniciado via Start-Service." -ForegroundColor DarkGray
+    } catch {
+        Write-Host "Start-Service falhou; tentando nssm start..." -ForegroundColor DarkYellow
+        $code = Invoke-Nssm -NssmExe $NssmExe -NssmCommandArgs @("start", $ServiceName) -AllowFailure
+        if ($code -ne 0) {
+            $status = (& $NssmExe status $ServiceName 2>&1 | Out-String).Trim()
+            if ($status -match "SERVICE_RUNNING") {
+                Write-Host "nssm start exit $code mas status=$status (ignorado)." -ForegroundColor DarkYellow
+                $started = $true
+            } else {
+                Write-Host "nssm start exit $code status=$status" -ForegroundColor DarkYellow
+            }
+        } else {
+            $started = $true
+        }
+    }
+
+    $deadline = (Get-Date).AddSeconds(30)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-LumieraServiceRunning) { return $true }
+        Start-Sleep -Seconds 1
+    }
+    return $started -and (Test-LumieraServiceRunning)
+}
+
 function Test-Admin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
     $p = New-Object Security.Principal.WindowsPrincipal($id)
@@ -190,8 +232,10 @@ Set-Content -Path $script:StackModeFile -Value "service" -Encoding UTF8
 Set-Content -Path (Join-Path $script:LogDir "permanent.mode") -Value ((Get-Date).ToString("o")) -Encoding UTF8
 Set-Content -Path (Join-Path $script:LogDir "windows-service.mode") -Value ((Get-Date).ToString("o")) -Encoding UTF8
 
-Invoke-Nssm -NssmExe $NssmExe -NssmCommandArgs @("start", $ServiceName)
-Start-Sleep -Seconds 5
+if (-not (Start-LumieraWindowsService -NssmExe $NssmExe)) {
+    Write-Host "AVISO: servico nao entrou em Running; aguardando health..." -ForegroundColor Yellow
+}
+Start-Sleep -Seconds 3
 
 $ok = $false
 $deadline = (Get-Date).AddSeconds(90)
