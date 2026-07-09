@@ -68,6 +68,11 @@ const interpolate = (input, inputRange, outputRange, options) => {
   }
   return remotionInterpolate(input, safeRange, outputRange, options);
 };
+const lumieraMediaSrc = (value) => {
+  const src = String(value || "").trim();
+  if (!src || /^https?:\\/\\//i.test(src)) return src;
+  return staticFile(src.replace(/^\\/+/, ""));
+};
 `;
 
 function stripTemplateHeader(code) {
@@ -140,7 +145,7 @@ function patchCompiledMediaVideoSlots(jsBody = "") {
         : "";
     out = out.replace(
       re,
-      `React.createElement(/\\.(mp4|webm|mov|m4v|mkv)(\\?|$)/i.test(String(${slot} || "")) ? Video : Img, { src: ${slot}${videoShift}`
+      `React.createElement(/\\.(mp4|webm|mov|m4v|mkv)(\\?|$)/i.test(String(${slot} || "")) ? Video : Img, { src: lumieraMediaSrc(${slot})${videoShift}`
     );
   }
   return out;
