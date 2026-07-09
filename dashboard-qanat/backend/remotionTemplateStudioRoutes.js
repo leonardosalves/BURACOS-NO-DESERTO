@@ -3,6 +3,8 @@ import {
   createCatalogNiche,
   getCatalogForNiche,
   listCatalogNiches,
+  exportFullTemplateCatalog,
+  importFullTemplateCatalog,
   pruneCatalogEntriesWithoutSource,
   purgeLegacySeedTemplatesFromCatalogFile,
   purgeTestNichesFromCatalogFile,
@@ -134,6 +136,35 @@ export function registerRemotionTemplateStudioRoutes(
     const niche = String(req.query?.niche || "Engenharia").trim();
     const catalog = getCatalogForNiche(niche);
     res.json({ success: true, ...catalog });
+  });
+
+  app.get("/api/ai/template-studio/catalog/export", (_req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    try {
+      const payload = exportFullTemplateCatalog();
+      res.json({ success: true, ...payload });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        error: err?.message || "Falha ao exportar catalogo.",
+      });
+    }
+  });
+
+  app.post("/api/ai/template-studio/catalog/import", (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    try {
+      const result = importFullTemplateCatalog(req.body || {});
+      if (!result.ok) {
+        return res.status(400).json({ success: false, error: result.error });
+      }
+      res.json({ success: true, ...result });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        error: err?.message || "Falha ao importar catalogo.",
+      });
+    }
   });
 
   app.post("/api/ai/template-studio/catalog/sync", (req, res) => {
