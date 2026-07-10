@@ -134,4 +134,8 @@ youtube_weekly_reports/
 youtube_studio_settings.json
 storyboard.json
 data/
+!dashboard-qanat/backend/data/
+dashboard-qanat/backend/data/*
+!dashboard-qanat/backend/data/.gitkeep
+!dashboard-qanat/backend/data/remotion-template-catalog.json
 dashboard-qanat/frontend/NUL.css
