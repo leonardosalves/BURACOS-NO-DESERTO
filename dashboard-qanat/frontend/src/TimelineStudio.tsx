@@ -1197,6 +1197,22 @@ export function TimelineStudio({
           >
             {showCoverageMap ? "Ocultar gaps" : "Ver gaps"}
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              const playhead = displayStudio?.playhead ?? studio.playhead;
+              const next =
+                visualCoverage.gaps.find(
+                  (gap) => gap.start > playhead + 0.05
+                ) || visualCoverage.gaps[0];
+              if (!next) return;
+              setLocalPlayhead(null);
+              updateStudio({ playhead: next.start });
+            }}
+            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-amber-300/40 text-amber-100 cursor-pointer"
+          >
+            Próximo gap
+          </button>
         </div>
       )}
 
