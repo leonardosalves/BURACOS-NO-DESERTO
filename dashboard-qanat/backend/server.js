@@ -3092,6 +3092,63 @@ app.get("/api/studio-agents/code-map", (req, res) => {
   }
 });
 
+app.get("/api/studio-agents/docs", (req, res) => {
+  try {
+    const docFiles = [
+      { id: "home", label: "Hub de Memória", filename: "MEMORIA-LUMIERA.md" },
+      {
+        id: "architecture",
+        label: "Arquitetura Geral",
+        filename: "memory/lumiera-architecture-overview.md",
+      },
+      {
+        id: "backend",
+        label: "Mapa do Backend",
+        filename: "memory/lumiera-backend-map.md",
+      },
+      {
+        id: "frontend",
+        label: "Mapa do Frontend",
+        filename: "memory/lumiera-frontend-map.md",
+      },
+      {
+        id: "remotion",
+        label: "Mapa do Remotion",
+        filename: "memory/lumiera-remotion-map.md",
+      },
+    ];
+
+    const fileId = req.query.file;
+    if (fileId) {
+      const selected = docFiles.find((d) => d.id === fileId);
+      if (!selected) {
+        return res.status(404).json({ error: "Documento não encontrado" });
+      }
+      const filePath = path.join(WORKSPACE_DIR, ".agents", selected.filename);
+      if (!fs.existsSync(filePath)) {
+        return res
+          .status(404)
+          .json({
+            error: `Arquivo não encontrado no disco: ${selected.filename}`,
+          });
+      }
+      const content = fs.readFileSync(filePath, "utf-8");
+      return res.json({
+        id: selected.id,
+        label: selected.label,
+        filename: selected.filename,
+        content,
+      });
+    }
+
+    res.json({ files: docFiles });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: "Erro ao carregar documentos", details: err.message });
+  }
+});
+
 app.post("/api/studio-agents/config", (req, res) => {
   try {
     const config = saveStudioAgentsConfig(WORKSPACE_DIR, req.body || {});

@@ -11,6 +11,7 @@ import { AppTerminalTab } from "./AppTerminalTab";
 import { AppTimelineTab } from "./AppTimelineTab";
 import { AppUploadTab } from "./AppUploadTab";
 import { AppWorkflowTab } from "./AppWorkflowTab";
+import { AppDocsTab } from "./AppDocsTab";
 import { FlowLabPage } from "./FlowLabPage";
 import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
 import toast from "react-hot-toast";
@@ -144,6 +145,15 @@ export function AppTabPanels({
             fallback={<TabPanelFallback label="Carregando início..." />}
           >
             <AppHomeTab {...homeTabProps} />
+          </Suspense>
+        </TabErrorBoundary>
+      )}
+      {activeTab === "docs" && (
+        <TabErrorBoundary tabName="Documentação">
+          <Suspense
+            fallback={<TabPanelFallback label="Carregando documentação..." />}
+          >
+            <AppDocsTab />
           </Suspense>
         </TabErrorBoundary>
       )}

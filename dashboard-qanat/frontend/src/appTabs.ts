@@ -20,6 +20,7 @@ export type AppTab =
   | "trend-forecast"
   | "agent-reach"
   | "templates"
+  | "docs"
   | "projects";
 
 export const RESTORABLE_APP_TABS: AppTab[] = [
@@ -43,6 +44,7 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   "trend-forecast",
   "agent-reach",
   "templates",
+  "docs",
   "projects",
 ];
 
@@ -58,6 +60,7 @@ export const GLOBAL_VIEW_TABS: AppTab[] = [
   "trend-forecast",
   "agent-reach",
   "templates",
+  "docs",
   "projects",
 ];
 
