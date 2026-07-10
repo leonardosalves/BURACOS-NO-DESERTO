@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   assessEditorialContract,
   assessNarrationReadiness,
+  assessVisualStoryboardReadiness,
 } from "./scriptQuality.js";
 
 test("editorial contract flags a short without payoff", () => {
@@ -31,6 +32,21 @@ test("narration readiness flags speech-unfriendly density", () => {
   assert.ok(report.longSentenceCount > 0);
   assert.ok(report.acronyms.includes("NASA"));
   assert.ok(report.recommendations.length > 0);
+});
+
+test("visual readiness flags weak and repeated coverage", () => {
+  const report = assessVisualStoryboardReadiness({
+    format: "SHORTS",
+    visualPrompts: [
+      { prompt: "logo placeholder", narration_text: "Abertura" },
+      { prompt: "ancient bridge close up" },
+      { prompt: "ancient bridge close up", narration_text: "Detalhe" },
+    ],
+  });
+
+  assert.equal(report.ok, false);
+  assert.equal(report.missingNarrationCount, 1);
+  assert.equal(report.duplicateVisualCount, 1);
 });
 
 test("editorial contract accepts a complete short structure", () => {

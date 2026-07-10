@@ -37,6 +37,14 @@ type NarrationReadiness = {
   recommendations?: string[];
 };
 
+type VisualReadiness = {
+  ok?: boolean;
+  sceneCount?: number;
+  coveredScenes?: number;
+  issues?: string[];
+  recommendations?: string[];
+};
+
 const TEMPLATE_STORAGE_KEY = "lumiera.remotionTemplateStudio.templates.v1";
 
 function hasRunnableStudioSource(sourceCode?: {
@@ -60,6 +68,7 @@ type Props = {
   blockScript?: string;
   editorialQuality?: EditorialQuality | null;
   narrationReadiness?: NarrationReadiness | null;
+  visualReadiness?: VisualReadiness | null;
   notebooklmEnriched?: boolean;
   notebooklmImproving?: boolean;
   notebooklmAvailable?: boolean;
@@ -111,6 +120,7 @@ export function NarrationReviewPanel({
   blockScript,
   editorialQuality = null,
   narrationReadiness = null,
+  visualReadiness = null,
   notebooklmEnriched,
   notebooklmImproving = false,
   notebooklmAvailable = false,
@@ -381,6 +391,26 @@ export function NarrationReviewPanel({
                 </p>
               </div>
             )}
+          {visualReadiness && (
+            <div
+              className={`mt-2 rounded-xl border p-3 text-[11px] ${visualReadiness.ok ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-100" : "border-amber-500/20 bg-amber-500/10 text-amber-100"}`}
+            >
+              <p className="font-bold">
+                Cobertura visual · {visualReadiness.coveredScenes ?? 0}/
+                {visualReadiness.sceneCount ?? 0} cenas prontas
+              </p>
+              {(visualReadiness.issues?.length ?? 0) > 0 && (
+                <p className="mt-1 opacity-90">
+                  {visualReadiness.issues?.join(" · ")}
+                </p>
+              )}
+              {(visualReadiness.recommendations?.length ?? 0) > 0 && (
+                <p className="mt-1 opacity-90">
+                  Melhorias: {visualReadiness.recommendations?.join(" · ")}
+                </p>
+              )}
+            </div>
+          )}
           {(strategyTitle || strategyHook) && (
             <div className="mt-2 text-[10px] text-zinc-500 space-y-0.5">
               {strategyTitle && (

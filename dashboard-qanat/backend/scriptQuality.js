@@ -421,6 +421,98 @@ export function assessNarrationReadiness({
   };
 }
 
+/** Flags missing, repetitive, or weak visual coverage before assets are generated. */
+export function assessVisualStoryboardReadiness({
+  format = "LONGO",
+  visualPrompts = [],
+} = {}) {
+  const scenes = Array.isArray(visualPrompts) ? visualPrompts : [];
+  const isShort = format === "SHORTS" || format === "SHORT";
+  const issues = [];
+  const recommendations = [];
+  const usefulScenes = scenes.filter((scene) =>
+    String(
+      scene?.prompt || scene?.visual_description || scene?.stock_query || ""
+    ).trim()
+  );
+  const missingNarration = scenes.filter(
+    (scene) =>
+      !String(
+        scene?.narration_text || scene?.asset?.narration_segment || ""
+      ).trim()
+  );
+  const visualKeys = usefulScenes.map((scene) =>
+    String(scene.prompt || scene.visual_description || scene.stock_query || "")
+      .toLocaleLowerCase("pt-BR")
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .split(/\s+/)
+      .filter((word) => word.length > 3)
+      .slice(0, 8)
+      .join(" ")
+  );
+  const duplicateVisuals = [
+    ...new Set(
+      visualKeys.filter(
+        (key, index) => key && visualKeys.indexOf(key) !== index
+      )
+    ),
+  ];
+  const firstVisual = String(
+    scenes[0]?.prompt ||
+      scenes[0]?.visual_description ||
+      scenes[0]?.stock_query ||
+      scenes[0]?.asset?.asset ||
+      ""
+  ).toLocaleLowerCase("pt-BR");
+
+  if (!scenes.length) issues.push("Storyboard sem cenas visuais.");
+  if (usefulScenes.length !== scenes.length)
+    issues.push("Há cenas sem instrução visual utilizável.");
+  if (missingNarration.length)
+    issues.push(
+      `${missingNarration.length} cena(s) sem trecho de narração associado.`
+    );
+  if (firstVisual.includes("logo") || firstVisual.includes("placeholder")) {
+    issues.push(
+      "O gancho visual começa com logo ou placeholder, em vez da imagem mais forte."
+    );
+  }
+  if (duplicateVisuals.length) {
+    recommendations.push(
+      `${duplicateVisuals.length} orientação(ões) visuais repetida(s): varie enquadramento, ação ou tipo de imagem.`
+    );
+  }
+  const minimumScenes = isShort ? 3 : 6;
+  if (scenes.length > 0 && scenes.length < minimumScenes) {
+    recommendations.push(
+      `${isShort ? "Short" : "Vídeo longo"} tem poucas cenas planejadas; considere ao menos ${minimumScenes} para manter ritmo.`
+    );
+  }
+  const modes = new Set(
+    scenes
+      .map((scene) =>
+        String(scene?.media_mode || scene?.asset?.type || "").trim()
+      )
+      .filter(Boolean)
+  );
+  if (scenes.length >= 4 && modes.size <= 1) {
+    recommendations.push(
+      "Planeje variedade de linguagem visual (vídeo, foto, motion, mapa ou gráfico) para reduzir efeito slideshow."
+    );
+  }
+
+  return {
+    ok: issues.length === 0,
+    format: isShort ? "SHORTS" : "LONGO",
+    sceneCount: scenes.length,
+    coveredScenes: usefulScenes.length,
+    missingNarrationCount: missingNarration.length,
+    duplicateVisualCount: duplicateVisuals.length,
+    issues,
+    recommendations,
+  };
+}
+
 export function parseChecklistScore(value, fallback = 0) {
   if (value == null || value === "") return fallback;
   if (typeof value === "number" && Number.isFinite(value)) {
