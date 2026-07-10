@@ -966,31 +966,34 @@ export function planMotionScenesFromStoryboard(
         config,
       });
       if (!studioPick?.studio_source_code) {
-        skippedEntries.push(
-          buildTemplateReviewEntry({
-            vp,
-            narration,
-            classification: { ...classified, trigger },
-            decision: templateDecision,
-            skipped: true,
+        scene = {
+          ...scene,
+          props: {
+            ...(scene.props || {}),
+            template_studio_fallback: true,
+            template_studio_fallback_reason:
+              "nenhum template Studio aprovado com sourceCode Remotion válido para esta cena",
+          },
+          studio_template_decision: {
+            fallback: true,
             reason:
-              "nenhum template Studio aprovado com sourceCode Remotion valido",
-          })
-        );
-        continue;
+              "Template Remotion nativo preservado por falta de opção aprovada no Studio",
+          },
+        };
+      } else {
+        scene = attachStudioTemplateToScene(scene, studioPick);
+        scene = enrichStudioTemplateScene(scene, {
+          template: studioPick,
+          researchContext,
+          config,
+        });
+        scene = applyStudioRoleToScene(scene, studioPick);
+        previousStudioIds.push(studioPick.id);
+        if (studioPick.category) {
+          previousStudioCategories.push(studioPick.category);
+        }
       }
-      scene = attachStudioTemplateToScene(scene, studioPick);
-      scene = enrichStudioTemplateScene(scene, {
-        template: studioPick,
-        researchContext,
-        config,
-      });
-      scene = applyStudioRoleToScene(scene, studioPick);
       scene = applyGeoPipStudioPack(scene, studioNiche);
-      previousStudioIds.push(studioPick.id);
-      if (studioPick.category) {
-        previousStudioCategories.push(studioPick.category);
-      }
     } else {
       scene = applyGeoPipStudioPack(scene, studioNiche);
     }
@@ -1156,7 +1159,8 @@ export function motionScenesToMotionClips(motionScenes = []) {
           (ms.props?.aspect_ratio === "9:16" &&
             (ms.props?.presentation === "pip" || ms.layout === "pip"))
             ? ms.props?.presentation || ms.layout || "pip"
-            : ms.template_id === "location-intro" || ms.template_id === "geo-map"
+            : ms.template_id === "location-intro" ||
+                ms.template_id === "geo-map"
               ? "fullscreen"
               : FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))
                 ? "fullscreen"
