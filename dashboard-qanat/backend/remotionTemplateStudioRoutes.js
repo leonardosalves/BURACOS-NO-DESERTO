@@ -244,20 +244,21 @@ export function registerRemotionTemplateStudioRoutes(
       // Stage changes to template catalog
       runGit("add dashboard-qanat/backend/data/remotion-template-catalog.json");
 
-      // Attempt to commit
-      let committed = false;
+      // Check if there are staged changes to commit
+      let hasChanges = false;
       try {
+        runGit("diff --cached --quiet");
+      } catch (e) {
+        // Exit code 1 means changes are staged
+        hasChanges = true;
+      }
+
+      // Attempt to commit if changes exist
+      let committed = false;
+      if (hasChanges) {
         const commitMsg = `sync(templates): atualizar catalogo de templates do studio - ${new Date().toLocaleString("pt-BR")}`;
         runGit(`commit -m "${commitMsg}" --no-verify`);
         committed = true;
-      } catch (e) {
-        const msg = String(e.message || "");
-        if (
-          !msg.includes("nothing to commit") &&
-          !msg.includes("nada para cometer")
-        ) {
-          throw e;
-        }
       }
 
       // Push changes
