@@ -62,6 +62,7 @@ const PROPS = [
   "handleSyncTimings",
   "handleUpdateCreatorScene",
   "handleUploadSceneAsset",
+  "handleMotionScenesChange",
   "hasApiKey",
   "ideasData",
   "ideationTab",
@@ -151,6 +152,9 @@ import { NarrationReviewPanel } from './NarrationReviewPanel';
 import { NarrationChunksPanel } from './NarrationChunksPanel';
 import { TtsVoiceStudioPanel } from './TtsVoiceStudioPanel';
 import { warnLongListicleTitles } from './listicleTitleUtils';
+import { CreatorProductionPlanPanel } from './CreatorProductionPlanPanel';
+import { GeoVideoWizardPanel } from './GeoVideoWizardPanel';
+import type { GeoMotionScene } from './geoVideoFlyover';
 
 const LazyListicleCreatorStep = lazy(() =>
   import('./ListicleCreatorStep').then((m) => ({ default: m.ListicleCreatorStep })),
@@ -218,6 +222,7 @@ export type AppCreatorTabProps = {
   handleSyncTimings: (fromWizard?: boolean) => void | Promise<void>;
   handleUpdateCreatorScene: (index: number, field: string, value: string) => void;
   handleUploadSceneAsset: (blockNum: number, type: string, file: File, assetIdx: number) => void | Promise<void>;
+  handleMotionScenesChange: (scenes: GeoMotionScene[], opts?: { immediate?: boolean }) => void;
   hasApiKey: boolean;
   ideasData: any;
   ideationTab: string;

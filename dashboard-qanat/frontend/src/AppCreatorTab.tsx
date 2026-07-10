@@ -17,6 +17,9 @@ import { NarrationReviewPanel } from "./NarrationReviewPanel";
 import { NarrationChunksPanel } from "./NarrationChunksPanel";
 import { TtsVoiceStudioPanel } from "./TtsVoiceStudioPanel";
 import { warnLongListicleTitles } from "./listicleTitleUtils";
+import { CreatorProductionPlanPanel } from "./CreatorProductionPlanPanel";
+import { GeoVideoWizardPanel } from "./GeoVideoWizardPanel";
+import type { GeoMotionScene } from "./geoVideoFlyover";
 
 const LazyListicleCreatorStep = lazy(() =>
   import("./ListicleCreatorStep").then((m) => ({
@@ -108,6 +111,10 @@ export type AppCreatorTabProps = {
     file: File,
     assetIdx: number
   ) => void | Promise<void>;
+  handleMotionScenesChange: (
+    scenes: GeoMotionScene[],
+    opts?: { immediate?: boolean }
+  ) => void;
   hasApiKey: boolean;
   ideasData: any;
   ideationTab: string;
@@ -251,6 +258,7 @@ export function AppCreatorTab({
   handleSyncTimings,
   handleUpdateCreatorScene,
   handleUploadSceneAsset,
+  handleMotionScenesChange,
   hasApiKey,
   ideasData,
   ideationTab,
@@ -2236,6 +2244,18 @@ export function AppCreatorTab({
               </div>
             </div>
 
+            <CreatorProductionPlanPanel storyboard={generatedScriptData} />
+
+            <GeoVideoWizardPanel
+              motionScenes={generatedScriptData?.motion_scenes}
+              getProjectUrl={getProjectUrl}
+              getAssetUrl={getAssetUrl}
+              copyToClipboard={copyToClipboard}
+              copiedSection={copiedSection}
+              onMotionScenesChange={handleMotionScenesChange}
+              onStudioSynced={() => fetchData()}
+            />
+
             {generatedScriptData.visual_prompts &&
               (generatedScriptData?.visual_prompts || []).length > 0 && (
                 <div className="border-t border-zinc-900 pt-6 space-y-5">
@@ -2403,6 +2423,12 @@ export function AppCreatorTab({
                                         ?.includes("video") ||
                                       false;
 
+                                    const isRemotionScene =
+                                      String(
+                                        vp?.media_mode || ""
+                                      ).toLowerCase() === "remotion" ||
+                                      Boolean(vp?.motion_template_id);
+
                                     const searchQuery = resolveStockSearchQuery(
                                       vp,
                                       {
@@ -2516,15 +2542,24 @@ export function AppCreatorTab({
                                                 Cena {sceneNum}
                                               </span>
 
-                                              <span
-                                                className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                                                  isVideo
-                                                    ? "bg-blue-500/10 border border-blue-500/20 text-blue-400"
-                                                    : "bg-gold-500/10 border border-gold-500/20 text-gold-500"
-                                                }`}
-                                              >
-                                                {vp?.type || "imagem IA 2k"}
-                                              </span>
+                                              {isRemotionScene ? (
+                                                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-violet-500/15 border border-violet-500/35 text-violet-200">
+                                                  🟣 Remotion
+                                                  {vp?.motion_template_id
+                                                    ? ` · ${vp.motion_template_id}`
+                                                    : ""}
+                                                </span>
+                                              ) : (
+                                                <span
+                                                  className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                                    isVideo
+                                                      ? "bg-blue-500/10 border border-blue-500/20 text-blue-400"
+                                                      : "bg-gold-500/10 border border-gold-500/20 text-gold-500"
+                                                  }`}
+                                                >
+                                                  {vp?.type || "imagem IA 2k"}
+                                                </span>
+                                              )}
                                             </div>
 
                                             <div className="flex items-center gap-1.5">
