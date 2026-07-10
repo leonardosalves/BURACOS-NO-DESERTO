@@ -3017,6 +3017,7 @@ export function RemotionTemplateStudio({
   const [catalogSyncNote, setCatalogSyncNote] = useState("");
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipCatalogSyncAfterHydrateRef = useRef(false);
+  const nicheTemplateCountsRef = useRef<Record<string, number>>({});
   const currentCategory = categories.find((c) => c.id === category);
 
   useEffect(() => {
@@ -3052,6 +3053,14 @@ export function RemotionTemplateStudio({
         deleted
       );
       setTemplates(merged);
+      const counts: Record<string, number> = {};
+      for (const tpl of merged) {
+        const key = (
+          normalizeNicheLabel(tpl.niche) || "Engenharia"
+        ).toLowerCase();
+        counts[key] = (counts[key] || 0) + 1;
+      }
+      nicheTemplateCountsRef.current = counts;
       if (allFromApi.length > 0) {
         skipCatalogSyncAfterHydrateRef.current = true;
       }
@@ -3096,27 +3105,46 @@ export function RemotionTemplateStudio({
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     syncTimerRef.current = setTimeout(() => {
       const byNiche = new Map<string, TemplateItem[]>();
+      // Inicializa nichos conhecidos com array vazio para garantir sincronização de deleção
+      for (const key of Object.keys(nicheTemplateCountsRef.current)) {
+        byNiche.set(key, []);
+      }
       for (const tpl of templates) {
-        const key = normalizeNicheLabel(tpl.niche) || "Engenharia";
+        const key = (
+          normalizeNicheLabel(tpl.niche) || "Engenharia"
+        ).toLowerCase();
         const bucket = byNiche.get(key) || [];
         bucket.push(tpl);
         byNiche.set(key, bucket);
       }
       void (async () => {
         let synced = 0;
+        const newCounts: Record<string, number> = {};
         for (const [key, list] of byNiche) {
+          const prevCount =
+            nicheTemplateCountsRef.current[key.toLowerCase()] || 0;
+          if (list.length === 0 && prevCount === 0) continue;
+
           const payload = studioTemplatesToSyncPayload(list, key);
-          if (!payload.length) continue;
           const res = await syncRemotionTemplateCatalog({
             niche: key,
             templates: payload,
             replace: true,
           });
-          if (res.success) synced += payload.length;
+          if (res.success) {
+            synced += 1;
+            newCounts[key.toLowerCase()] = list.length;
+          } else {
+            newCounts[key.toLowerCase()] = prevCount;
+          }
         }
+        nicheTemplateCountsRef.current = {
+          ...nicheTemplateCountsRef.current,
+          ...newCounts,
+        };
         if (synced > 0) {
           setCatalogSyncNote(
-            `${synced} template${synced === 1 ? "" : "s"} sincronizado${synced === 1 ? "" : "s"} no servidor.`
+            "Catálogo sincronizado com o servidor com sucesso."
           );
         }
       })();
