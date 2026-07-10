@@ -49,7 +49,7 @@
           "has_source_code": true
         }
       ],
-      "updated_at": "2026-07-10T22:39:31.785Z"
+      "updated_at": "2026-07-10T22:44:56.127Z"
     },
     "Default": {
       "templates": [
@@ -61,7 +61,12 @@
           "niche": "DEFAULT",
           "status": "draft",
           "description": "Template importado para Chart Data / Comparison Chart.",
-          "dataSlots": ["title", "subtitle", "progress", "label"],
+          "dataSlots": [
+            "title",
+            "subtitle",
+            "progress",
+            "label"
+          ],
           "motion_template_id": "bar-chart",
           "orchestration_ready": true,
           "shortPreview": "comparison",
@@ -80,7 +85,12 @@
           "niche": "DEFAULT",
           "status": "approved",
           "description": "Template importado para Chart Data / Stat Counter.",
-          "dataSlots": ["title", "subtitle", "progress", "label"],
+          "dataSlots": [
+            "title",
+            "subtitle",
+            "progress",
+            "label"
+          ],
           "motion_template_id": "counter",
           "orchestration_ready": true,
           "shortPreview": "line",
@@ -99,7 +109,12 @@
           "niche": "DEFAULT",
           "status": "approved",
           "description": "Template importado para Chart Data / Progress Bars.",
-          "dataSlots": ["title", "subtitle", "progress", "label"],
+          "dataSlots": [
+            "title",
+            "subtitle",
+            "progress",
+            "label"
+          ],
           "motion_template_id": "counter",
           "orchestration_ready": true,
           "shortPreview": "progress-bars",
@@ -118,7 +133,12 @@
           "niche": "DEFAULT",
           "status": "approved",
           "description": "Template importado para Chart Data / Area chart.",
-          "dataSlots": ["title", "subtitle", "progress", "label"],
+          "dataSlots": [
+            "title",
+            "subtitle",
+            "progress",
+            "label"
+          ],
           "motion_template_id": "bar-chart",
           "orchestration_ready": true,
           "shortPreview": "area",
@@ -137,7 +157,12 @@
           "niche": "DEFAULT",
           "status": "approved",
           "description": "Template importado para Chart Data / Donut chart.",
-          "dataSlots": ["title", "subtitle", "progress", "label"],
+          "dataSlots": [
+            "title",
+            "subtitle",
+            "progress",
+            "label"
+          ],
           "motion_template_id": "pictogram-chart",
           "orchestration_ready": true,
           "shortPreview": "donut",
@@ -156,7 +181,12 @@
           "niche": "DEFAULT",
           "status": "approved",
           "description": "Template importado para Chart Data / Pie chart.",
-          "dataSlots": ["title", "subtitle", "progress", "label"],
+          "dataSlots": [
+            "title",
+            "subtitle",
+            "progress",
+            "label"
+          ],
           "motion_template_id": "pictogram-chart",
           "orchestration_ready": true,
           "shortPreview": "pie",
@@ -175,7 +205,12 @@
           "niche": "DEFAULT",
           "status": "approved",
           "description": "Template importado para Chart Data / Line chart.",
-          "dataSlots": ["title", "subtitle", "progress", "label"],
+          "dataSlots": [
+            "title",
+            "subtitle",
+            "progress",
+            "label"
+          ],
           "motion_template_id": "bar-chart",
           "orchestration_ready": true,
           "shortPreview": "line",
@@ -194,7 +229,12 @@
           "niche": "DEFAULT",
           "status": "approved",
           "description": "Template importado para Chart Data / Circular Progress.",
-          "dataSlots": ["title", "subtitle", "progress", "label"],
+          "dataSlots": [
+            "title",
+            "subtitle",
+            "progress",
+            "label"
+          ],
           "motion_template_id": "counter",
           "orchestration_ready": true,
           "shortPreview": "circular-progress",
@@ -213,7 +253,12 @@
           "niche": "DEFAULT",
           "status": "approved",
           "description": "Template importado para Chart Data / Bar chart.",
-          "dataSlots": ["title", "subtitle", "progress", "label"],
+          "dataSlots": [
+            "title",
+            "subtitle",
+            "progress",
+            "label"
+          ],
           "motion_template_id": "bar-chart",
           "orchestration_ready": true,
           "shortPreview": "line",
@@ -225,13 +270,8 @@
           "has_source_code": true
         }
       ],
-      "updated_at": "2026-07-10T22:39:31.800Z"
+      "updated_at": "2026-07-10T22:44:56.144Z"
     }
   },
-  "updated_at": "2026-07-10T22:39:52.726Z",
-  "deletedNiches": [
-    "ENGENHARIA CONTRUÇÃO HISTORICA",
-    "ENGENHARIA GUERRA",
-    "Customized"
-  ]
+  "updated_at": "2026-07-10T22:44:56.144Z"
 }
