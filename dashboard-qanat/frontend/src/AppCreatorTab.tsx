@@ -1404,6 +1404,7 @@ export function AppCreatorTab({
                 blockScript={narrationBlockScript}
                 editorialQuality={storyboardData?.editorial_quality}
                 narrationReadiness={storyboardData?.narration_readiness}
+                visualReadiness={storyboardData?.visual_quality}
                 notebooklmEnriched={narrationNotebooklmEnriched}
                 notebooklmImproving={notebooklmImproving}
                 notebooklmAvailable={notebooklmStatus?.authenticated ?? false}

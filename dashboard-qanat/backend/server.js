@@ -305,6 +305,7 @@ import {
   applyScriptTextQuality,
   assessEditorialContract,
   assessNarrationReadiness,
+  assessVisualStoryboardReadiness,
   buildNarrationOnlyPrompt,
   buildCreatorFullScriptPrompt,
   buildCreatorPhase2Prompt,
@@ -17590,6 +17591,10 @@ app.post(
         format,
         ideaTitle: idea.title,
         skipPromptEnrichment: preserveBrowserVisualPrompts,
+      });
+      parsedData.visual_quality = assessVisualStoryboardReadiness({
+        format,
+        visualPrompts: parsedData.visual_prompts,
       });
 
       if (isListicle) {
