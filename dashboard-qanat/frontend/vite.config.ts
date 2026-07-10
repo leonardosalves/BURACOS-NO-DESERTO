@@ -29,12 +29,14 @@ export default defineConfig({
         "../remotion-renderer/src/overlays"
       ),
       "@lumiera/shared": sharedDir,
+      // shared/*.js importa sucrase; Vite resolve a partir de shared/, nao de frontend/node_modules
       sucrase: path.resolve(__dirname, "node_modules/sucrase"),
     },
   },
   optimizeDeps: {
     include: [
       "sucrase",
+      "@lumiera/shared/remotionTemplateCompile.js",
       "@lumiera/shared/narrationMatch.js",
       "@lumiera/shared/timelineNarration.js",
       "@lumiera/shared/timelineAudioStarts.js",
