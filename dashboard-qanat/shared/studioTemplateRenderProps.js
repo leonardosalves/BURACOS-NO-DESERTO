@@ -192,7 +192,6 @@ export function mergeStudioRenderProps({
 
   for (const [key, value] of Object.entries(exampleProps)) {
     if (out[key] !== undefined) continue;
-    if (!TEMPLATE_STRUCTURAL_PROP_KEYS.has(key)) continue;
     if (!isTemplatePlaceholderValue(value, key)) {
       out[key] = value;
     }
