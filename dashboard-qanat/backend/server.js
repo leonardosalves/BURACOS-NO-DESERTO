@@ -2787,74 +2787,6 @@ app.get("/api/projects/overlay-timing-verify", async (req, res) => {
   }
 });
 
-// API: Read-only production guard. It makes automatic checks and human gates explicit.
-app.get("/api/projects/production-readiness", (req, res) => {
-  try {
-    const projDir = getProjectDir(req);
-    const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
-    const storyboard =
-      readJsonFile(path.join(projDir, "storyboard.json")) || {};
-    const quality = runVideoQualityCheck(projDir, readProjectJson);
-    const workflow = analyzeSceneGaps(projDir, { config, storyboard });
-    const hasNarration = Boolean(
-      String(
-        storyboard.narrative_script || storyboard.narration || ""
-      ).trim() ||
-      (Array.isArray(config.block_phrases) && config.block_phrases.length)
-    );
-    const blockingIssues = (quality.issues || []).filter((issue) =>
-      ["error", "critical"].includes(String(issue.severity || "").toLowerCase())
-    );
-    const gates = [
-      {
-        id: "narration",
-        label: "Roteiro ou narração disponível",
-        status: hasNarration ? "passed" : "blocked",
-        automatic: true,
-      },
-      {
-        id: "quality",
-        label: "Qualidade pré-render",
-        status: blockingIssues.length ? "blocked" : "passed",
-        automatic: true,
-        score: quality.score,
-        issues: blockingIssues.length,
-      },
-      {
-        id: "sample_approval",
-        label: "Aprovação humana da amostra",
-        status: storyboard.sample_approved_at ? "approved" : "required",
-        automatic: false,
-        approvedAt: storyboard.sample_approved_at || null,
-      },
-    ];
-    const blocked = gates.filter((gate) => gate.status === "blocked");
-    const suggestedAction = !hasNarration
-      ? "Gere ou importe a narração antes do render."
-      : blockingIssues.length
-        ? "Resolva os bloqueios da qualidade pré-render."
-        : !storyboard.sample_approved_at
-          ? "Revise e aprove a amostra antes do render completo."
-          : "Projeto pronto para iniciar o render completo.";
-
-    res.json({
-      ok: true,
-      readyForRender:
-        blocked.length === 0 && Boolean(storyboard.sample_approved_at),
-      gates,
-      suggestedAction,
-      quality,
-      workflow,
-      preRenderAdvice: buildPreRenderAdvice(quality, workflow),
-    });
-  } catch (err) {
-    res.status(500).json({
-      error: "Erro ao verificar prontidão de produção",
-      details: err.message,
-    });
-  }
-});
-
 // API: Correção automática de problemas pré-render (gancho, timing de overlays)
 app.post("/api/projects/pre-render/auto-fix", async (req, res) => {
   try {
@@ -3160,75 +3092,31 @@ app.get("/api/studio-agents/code-map", (req, res) => {
   }
 });
 
-const STUDIO_DOCUMENTATION = [
-  { id: "home", label: "Hub de Memória", filename: "MEMORIA-LUMIERA.md" },
-  {
-    id: "architecture",
-    label: "Arquitetura Geral",
-    filename: "memory/lumiera-architecture-overview.md",
-  },
-  {
-    id: "backend",
-    label: "Mapa do Backend",
-    filename: "memory/lumiera-backend-map.md",
-  },
-  {
-    id: "frontend",
-    label: "Mapa do Frontend",
-    filename: "memory/lumiera-frontend-map.md",
-  },
-  {
-    id: "remotion",
-    label: "Mapa do Remotion",
-    filename: "memory/lumiera-remotion-map.md",
-  },
-  {
-    id: "videoagent",
-    label: "VideoAgent e automação",
-    filename: "memory/videoagent-lumiera.md",
-  },
-  { id: "agents", label: "Regras dos agentes", filename: "AGENTS.md" },
-  { id: "skills", label: "Índice de skills", filename: "SKILLS.md" },
-  {
-    id: "bundles",
-    label: "Bundles de skills",
-    filename: "skill-bundles/BUNDLES.md",
-  },
-];
-
-function availableStudioDocumentation() {
-  return STUDIO_DOCUMENTATION.filter((doc) =>
-    fs.existsSync(path.join(WORKSPACE_DIR, ".agents", doc.filename))
-  );
-}
-
-function searchStudioDocumentation(query) {
-  const needle = String(query || "")
-    .trim()
-    .toLocaleLowerCase("pt-BR");
-  if (!needle) return [];
-  return availableStudioDocumentation().flatMap((doc) => {
-    const content = fs.readFileSync(
-      path.join(WORKSPACE_DIR, ".agents", doc.filename),
-      "utf8"
-    );
-    const line = content
-      .split(/\r?\n/)
-      .find((value) => value.toLocaleLowerCase("pt-BR").includes(needle));
-    return line ? [{ ...doc, excerpt: line.trim().slice(0, 240) }] : [];
-  });
-}
-
 app.get("/api/studio-agents/docs", (req, res) => {
   try {
-    const docFiles = availableStudioDocumentation();
-    const query = String(req.query.q || "").trim();
-    if (query) {
-      return res.json({
-        files: docFiles,
-        results: searchStudioDocumentation(query),
-      });
-    }
+    const docFiles = [
+      { id: "home", label: "Hub de Memória", filename: "MEMORIA-LUMIERA.md" },
+      {
+        id: "architecture",
+        label: "Arquitetura Geral",
+        filename: "memory/lumiera-architecture-overview.md",
+      },
+      {
+        id: "backend",
+        label: "Mapa do Backend",
+        filename: "memory/lumiera-backend-map.md",
+      },
+      {
+        id: "frontend",
+        label: "Mapa do Frontend",
+        filename: "memory/lumiera-frontend-map.md",
+      },
+      {
+        id: "remotion",
+        label: "Mapa do Remotion",
+        filename: "memory/lumiera-remotion-map.md",
+      },
+    ];
 
     const fileId = req.query.file;
     if (fileId) {

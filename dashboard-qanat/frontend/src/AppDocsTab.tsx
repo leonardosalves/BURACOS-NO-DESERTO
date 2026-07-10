@@ -24,10 +24,6 @@ interface SelectedDoc {
   content: string;
 }
 
-interface DocSearchResult extends DocFile {
-  excerpt: string;
-}
-
 export function AppDocsTab() {
   const [files, setFiles] = useState<DocFile[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<SelectedDoc | null>(null);
@@ -37,7 +33,6 @@ export function AppDocsTab() {
   const [searchTerm, setSearchTerm] = useState<string>(
     window.localStorage.getItem("lumiera_docs_search") || ""
   );
-  const [searchResults, setSearchResults] = useState<DocSearchResult[]>([]);
 
   useEffect(() => {
     // Carregar a lista de documentos
@@ -56,38 +51,18 @@ export function AppDocsTab() {
   }, []);
 
   useEffect(() => {
-    const requestId = window.setTimeout(() => {
-      setLoadingDoc(true);
-      fetch(`/api/studio-agents/docs?file=${activeId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setSelectedDoc(data);
-          setLoadingDoc(false);
-        })
-        .catch((err) => {
-          console.error("Erro ao buscar doc", err);
-          setLoadingDoc(false);
-        });
-    }, 0);
-    return () => window.clearTimeout(requestId);
+    setLoadingDoc(true);
+    fetch(`/api/studio-agents/docs?file=${activeId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setSelectedDoc(data);
+        setLoadingDoc(false);
+      })
+      .catch((err) => {
+        console.error("Erro ao buscar doc", err);
+        setLoadingDoc(false);
+      });
   }, [activeId]);
-
-  useEffect(() => {
-    const query = searchTerm.trim();
-    const timeoutId = window.setTimeout(() => {
-      if (!query) {
-        setSearchResults([]);
-        return;
-      }
-      fetch(`/api/studio-agents/docs?q=${encodeURIComponent(query)}`)
-        .then((res) => res.json())
-        .then((data) =>
-          setSearchResults(Array.isArray(data.results) ? data.results : [])
-        )
-        .catch(() => setSearchResults([]));
-    }, 180);
-    return () => window.clearTimeout(timeoutId);
-  }, [searchTerm]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -99,7 +74,10 @@ export function AppDocsTab() {
   const renderMarkdown = (text: string) => {
     if (!text) return null;
 
-    const lines = text.split("\n");
+    let lines = text.split("\n");
+
+    // Filtrar linhas se houver busca
+    const q = searchTerm.trim().toLowerCase();
 
     const rendered: React.ReactNode[] = [];
     let inCodeBlock = false;
@@ -111,15 +89,18 @@ export function AppDocsTab() {
       if (line.startsWith("```")) {
         if (inCodeBlock) {
           inCodeBlock = false;
+          // Se o filtro estiver ativo, só exibir se bater o termo no conteúdo do bloco
           const codeStr = codeContent.join("\n");
-          rendered.push(
-            <pre
-              key={`code-${index}`}
-              className="p-4 my-4 bg-slate-950/70 rounded-xl border border-slate-800/80 font-mono text-[13px] text-sky-400 overflow-x-auto select-all leading-relaxed shadow-inner"
-            >
-              <code className={`language-${codeLang}`}>{codeStr}</code>
-            </pre>
-          );
+          if (!q || codeStr.toLowerCase().includes(q)) {
+            rendered.push(
+              <pre
+                key={`code-${index}`}
+                className="p-4 my-4 bg-slate-950/70 rounded-xl border border-slate-800/80 font-mono text-[13px] text-sky-400 overflow-x-auto select-all leading-relaxed shadow-inner"
+              >
+                <code className={`language-${codeLang}`}>{codeStr}</code>
+              </pre>
+            );
+          }
           codeContent = [];
         } else {
           inCodeBlock = true;
@@ -130,6 +111,11 @@ export function AppDocsTab() {
 
       if (inCodeBlock) {
         codeContent.push(line);
+        return;
+      }
+
+      // Se houver filtro de busca e a linha não contiver o termo, pular (exceto títulos para contexto)
+      if (q && !line.toLowerCase().includes(q) && !line.startsWith("#")) {
         return;
       }
 
@@ -200,18 +186,6 @@ export function AppDocsTab() {
         return;
       }
 
-      if (/^\d+\.\s/.test(line)) {
-        rendered.push(
-          <ol
-            key={index}
-            className="list-decimal pl-6 mb-2 text-slate-300 text-sm space-y-1"
-          >
-            <li>{parseFormatting(line.replace(/^\d+\.\s/, ""))}</li>
-          </ol>
-        );
-        return;
-      }
-
       // Parágrafos normais (se não for vazio)
       if (line.trim()) {
         rendered.push(
@@ -225,86 +199,92 @@ export function AppDocsTab() {
       }
     });
 
+    if (rendered.length === 0 && q) {
+      return (
+        <div className="py-12 text-center text-slate-500 text-sm">
+          Nenhum resultado encontrado para "{searchTerm}" neste documento.
+        </div>
+      );
+    }
+
     return rendered;
   };
 
-  // Renderiza somente o subconjunto Markdown necessário, sem injetar HTML do documento.
+  // Substitui negritos e links básicos em Markdown
   const parseFormatting = (text: string): React.ReactNode => {
-    const wikiIds: Record<string, string> = {
-      "MEMORIA-LUMIERA": "home",
-      "memory/lumiera-architecture-overview": "architecture",
-      "memory/lumiera-backend-map": "backend",
-      "memory/lumiera-frontend-map": "frontend",
-      "memory/lumiera-remotion-map": "remotion",
-      "memory/videoagent-lumiera": "videoagent",
-      AGENTS: "agents",
-      SKILLS: "skills",
-      "skill-bundles/BUNDLES": "bundles",
-    };
-    const tokenPattern =
-      /(\[\[[^\]]+\]\]|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|`[^`]+`|_[^_]+_)/g;
-    return text
-      .split(tokenPattern)
-      .filter(Boolean)
-      .map((token, index) => {
-        const wiki = token.match(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/);
-        if (wiki) {
-          const targetId = wikiIds[wiki[1]];
-          return targetId ? (
-            <button
-              key={index}
-              type="button"
-              onClick={() => setActiveId(targetId)}
-              className="text-sky-400 font-medium hover:underline"
-            >
-              {wiki[2] || wiki[1]}
-            </button>
-          ) : (
-            <span key={index} className="text-slate-400 font-medium">
-              {wiki[2] || wiki[1]}
-            </span>
-          );
+    // Regex para encontrar links [texto](url)
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    // Regex para negritos **texto** ou __texto__
+    const boldRegex = /\*\*([^*]+)\*\*/g;
+    const italicRegex = /_([^_]+)_/g;
+    // Regex para inline code `code`
+    const codeRegex = /`([^`]+)`/g;
+    // Wikilinks [[link]]
+    const wikilinkRegex = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+
+    let currentText = text;
+
+    // Processar wikilinks [[PageName]] ou [[PageName|Display]]
+    currentText = currentText.replace(
+      wikilinkRegex,
+      (match, target, display) => {
+        const displayText = display || target;
+        // Mapear wikilinks locais para abas de docs se possível
+        let targetId = "";
+        if (target.includes("architecture")) targetId = "architecture";
+        else if (target.includes("backend")) targetId = "backend";
+        else if (target.includes("frontend")) targetId = "frontend";
+        else if (target.includes("remotion")) targetId = "remotion";
+        else if (target.includes("MEMORIA")) targetId = "home";
+
+        if (targetId) {
+          return `<a class="wiki-docs-link cursor-pointer text-sky-400 font-medium hover:underline" data-doc-id="${targetId}">${displayText}</a>`;
         }
-        const link = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-        if (link) {
-          const href = /^(https?:|file:)/i.test(link[2]) ? link[2] : undefined;
-          return href ? (
-            <a
-              key={index}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sky-400 hover:text-sky-300 underline font-medium"
-            >
-              {link[1]}
-            </a>
-          ) : (
-            <span key={index}>{link[1]}</span>
-          );
-        }
-        if (token.startsWith("**"))
-          return (
-            <strong key={index} className="font-bold text-white">
-              {token.slice(2, -2)}
-            </strong>
-          );
-        if (token.startsWith("`"))
-          return (
-            <code
-              key={index}
-              className="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono text-[13px] text-amber-400"
-            >
-              {token.slice(1, -1)}
-            </code>
-          );
-        if (token.startsWith("_"))
-          return (
-            <em key={index} className="italic text-slate-200">
-              {token.slice(1, -1)}
-            </em>
-          );
-        return <React.Fragment key={index}>{token}</React.Fragment>;
-      });
+        return `<span class="text-slate-400 font-medium">${displayText}</span>`;
+      }
+    );
+
+    // Processar links padrão
+    currentText = currentText.replace(linkRegex, (match, label, url) => {
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 underline font-medium">${label}</a>`;
+    });
+
+    // Processar negrito
+    currentText = currentText.replace(boldRegex, (match, inner) => {
+      return `<strong class="font-bold text-white">${inner}</strong>`;
+    });
+
+    // Processar itálico
+    currentText = currentText.replace(italicRegex, (match, inner) => {
+      return `<em class="italic text-slate-200">${inner}</em>`;
+    });
+
+    // Processar inline code
+    currentText = currentText.replace(codeRegex, (match, inner) => {
+      return `<code class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono text-[13px] text-amber-400">${inner}</code>`;
+    });
+
+    // Destacar termo de busca se houver
+    const q = searchTerm.trim().toLowerCase();
+    if (q) {
+      // Evitar quebrar tags HTML substituídas acima
+      // Um destaque simples sem quebrar tags
+    }
+
+    return (
+      <span
+        dangerouslySetInnerHTML={{ __html: currentText }}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.classList.contains("wiki-docs-link")) {
+            const docId = target.getAttribute("data-doc-id");
+            if (docId) {
+              setActiveId(docId);
+            }
+          }
+        }}
+      />
+    );
   };
 
   const getDocIcon = (id: string) => {
@@ -381,34 +361,6 @@ export function AppDocsTab() {
                 className="w-full bg-slate-950/60 border border-slate-800/80 rounded-xl py-2 pl-9 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500/50 transition-colors"
               />
             </div>
-            {searchTerm.trim() ? (
-              <div className="mt-3 space-y-2">
-                <p className="text-[11px] uppercase tracking-wide text-slate-500">
-                  Resultados globais
-                </p>
-                {searchResults.length ? (
-                  searchResults.map((result) => (
-                    <button
-                      key={result.id}
-                      type="button"
-                      onClick={() => setActiveId(result.id)}
-                      className="block w-full rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-left hover:border-sky-500/40"
-                    >
-                      <span className="block text-xs font-medium text-sky-400">
-                        {result.label}
-                      </span>
-                      <span className="mt-1 block line-clamp-2 text-[11px] leading-relaxed text-slate-400">
-                        {result.excerpt}
-                      </span>
-                    </button>
-                  ))
-                ) : (
-                  <p className="text-xs text-slate-500">
-                    Nenhum documento encontrado.
-                  </p>
-                )}
-              </div>
-            ) : null}
             <div className="mt-3 text-[11px] text-slate-500 leading-relaxed px-1">
               Dica: Digite termos como "server.js" ou "TimesFM" para pesquisar
               rapidamente.
