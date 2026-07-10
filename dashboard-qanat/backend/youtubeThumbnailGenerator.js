@@ -3,6 +3,7 @@ import path from "path";
 import { execSync } from "child_process";
 import sharp from "sharp";
 import { isListicleProject } from "./videoProEnhancements.js";
+import { buildPythonSpawnEnv } from "./pythonEnv.js";
 
 const THUMB_DIMS = {
   LONG: { width: 1280, height: 720 },
@@ -92,15 +93,30 @@ function listVideoCandidates(dir, scoreBase = 1, maxDepth = 3, depth = 0) {
   for (const entry of fs.readdirSync(dir)) {
     const fullPath = path.join(dir, entry);
     let stat;
-    try { stat = fs.statSync(fullPath); } catch { continue; }
+    try {
+      stat = fs.statSync(fullPath);
+    } catch {
+      continue;
+    }
 
     if (stat.isDirectory()) {
-      results.push(...listVideoCandidates(fullPath, scoreBase - depth * 0.5, maxDepth, depth + 1));
+      results.push(
+        ...listVideoCandidates(
+          fullPath,
+          scoreBase - depth * 0.5,
+          maxDepth,
+          depth + 1
+        )
+      );
       continue;
     }
 
     if (!/\.(mp4|mov|webm)$/i.test(entry)) continue;
-    results.push({ fullPath, mtime: stat.mtimeMs, score: scoreBase + stat.size / 5_000_000 });
+    results.push({
+      fullPath,
+      mtime: stat.mtimeMs,
+      score: scoreBase + stat.size / 5_000_000,
+    });
   }
 
   return results;
@@ -115,7 +131,7 @@ function extractVideoFrame(projectDir, videoPath = null) {
     if (!sourcePath || !fs.existsSync(sourcePath)) return null;
     try {
       const cmd = `ffmpeg -y -ss ${seek} -i "${sourcePath}" -frames:v 1 -q:v 2 "${framePath}"`;
-      execSync(cmd, { stdio: "pipe" });
+      execSync(cmd, { stdio: "pipe", env: buildPythonSpawnEnv() });
       return fs.existsSync(framePath) ? framePath : null;
     } catch {
       return null;
@@ -139,7 +155,10 @@ function extractVideoFrame(projectDir, videoPath = null) {
     .sort((a, b) => b.score - a.score || b.mtime - a.mtime);
 
   for (const video of videos) {
-    const frame = tryExtract(video.fullPath, videos[0] === video ? "00:00:08" : "00:00:01");
+    const frame = tryExtract(
+      video.fullPath,
+      videos[0] === video ? "00:00:08" : "00:00:01"
+    );
     if (frame) return frame;
   }
 
@@ -153,7 +172,8 @@ async function createPlaceholderHero(projectDir, palette = []) {
   const c1 = normalizeHex(palette[2] || "#121214").replace("#", "");
   const c2 = normalizeHex(palette[0] || "#D4AF37").replace("#", "");
 
-  const svg = Buffer.from(`<svg width="1280" height="720" xmlns="http://www.w3.org/2000/svg">
+  const svg =
+    Buffer.from(`<svg width="1280" height="720" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stop-color="#${c1}"/>
@@ -167,16 +187,22 @@ async function createPlaceholderHero(projectDir, palette = []) {
   return outPath;
 }
 
-export function findHeroImagePath(projectDir, { storyboard = {}, config = {}, format = "LONG" } = {}) {
+export function findHeroImagePath(
+  projectDir,
+  { storyboard = {}, config = {}, format = "LONG" } = {}
+) {
   const candidates = [];
-  const preferredBlocks = format === "SHORT" ? ["2", "3", "4", "1"] : ["2", "3", "4", "5", "1"];
+  const preferredBlocks =
+    format === "SHORT" ? ["2", "3", "4", "1"] : ["2", "3", "4", "5", "1"];
   const timeline = config.timeline_assets || {};
 
   for (let i = 0; i < preferredBlocks.length; i++) {
     const block = preferredBlocks[i];
     const assets = Array.isArray(timeline[block]) ? timeline[block] : [];
     for (const asset of assets) {
-      const isImage = asset?.type === "image" || /\.(jpe?g|png|webp)$/i.test(asset?.asset || "");
+      const isImage =
+        asset?.type === "image" ||
+        /\.(jpe?g|png|webp)$/i.test(asset?.asset || "");
       if (!isImage) continue;
       const resolved = findProjectAsset(projectDir, asset.asset);
       if (resolved) candidates.push({ path: resolved, score: 20 - i });
@@ -189,7 +215,9 @@ export function findHeroImagePath(projectDir, { storyboard = {}, config = {}, fo
     if (resolved) candidates.push({ path: resolved, score: 12 });
   }
 
-  candidates.push(...listImageCandidates(path.join(projectDir, "ASSETS", "images"), 8));
+  candidates.push(
+    ...listImageCandidates(path.join(projectDir, "ASSETS", "images"), 8)
+  );
   candidates.push(...listImageCandidates(path.join(projectDir, "ASSETS"), 6));
 
   const framePath = extractVideoFrame(projectDir);
@@ -199,7 +227,11 @@ export function findHeroImagePath(projectDir, { storyboard = {}, config = {}, fo
   return candidates[0]?.path || null;
 }
 
-export async function resolveHeroImagePath(projectDir, context = {}, palette = []) {
+export async function resolveHeroImagePath(
+  projectDir,
+  context = {},
+  palette = []
+) {
   const staticHero = findHeroImagePath(projectDir, context);
   if (staticHero) return staticHero;
   const frame = extractVideoFrame(projectDir);
@@ -207,15 +239,33 @@ export async function resolveHeroImagePath(projectDir, context = {}, palette = [
   return createPlaceholderHero(projectDir, palette);
 }
 
-function buildTextLinesSvg(lines, { x, startY, fontSize, fill, stroke = "rgba(0,0,0,0.85)", strokeWidth = 4, anchor = "start" }) {
+function buildTextLinesSvg(
+  lines,
+  {
+    x,
+    startY,
+    fontSize,
+    fill,
+    stroke = "rgba(0,0,0,0.85)",
+    strokeWidth = 4,
+    anchor = "start",
+  }
+) {
   const lineHeight = fontSize * 1.08;
-  return lines.map((line, index) => {
-    const y = startY + index * lineHeight;
-    return `<text x="${x}" y="${y}" text-anchor="${anchor}" font-family="Impact, Arial Black, sans-serif" font-size="${fontSize}" font-weight="900" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" paint-order="stroke">${escapeXml(line)}</text>`;
-  }).join("");
+  return lines
+    .map((line, index) => {
+      const y = startY + index * lineHeight;
+      return `<text x="${x}" y="${y}" text-anchor="${anchor}" font-family="Impact, Arial Black, sans-serif" font-size="${fontSize}" font-weight="900" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" paint-order="stroke">${escapeXml(line)}</text>`;
+    })
+    .join("");
 }
 
-function buildListicleHudBadgeSvg({ width, rankCount = 3, accent = "#D4AF37", format = "LONG" }) {
+function buildListicleHudBadgeSvg({
+  width,
+  rankCount = 3,
+  accent = "#D4AF37",
+  format = "LONG",
+}) {
   if (format !== "SHORT" || !rankCount) return "";
   const badgeW = Math.round(Math.min(width * 0.52, 320));
   const badgeH = 74;
@@ -358,7 +408,7 @@ export async function generateYoutubeThumbnailImages({
   const heroPath = await resolveHeroImagePath(
     projectDir,
     { storyboard, config, format },
-    palette.length ? palette : thumbnails[0]?.colors || [],
+    palette.length ? palette : thumbnails[0]?.colors || []
   );
 
   const listicleRank = isListicleProject(config, storyboard)
@@ -372,7 +422,10 @@ export async function generateYoutubeThumbnailImages({
   const generated = [];
 
   for (const variant of variants) {
-    const safeId = String(variant.id || "A").toUpperCase().replace(/[^A-Z0-9]/g, "") || "A";
+    const safeId =
+      String(variant.id || "A")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "") || "A";
     const fileName = `thumb_${safeId}_${format === "SHORT" ? "9x16" : "16x9"}.jpg`;
     const outputPath = path.join(outDir, fileName);
 
@@ -404,7 +457,7 @@ export async function generateYoutubeThumbnailImages({
   fs.writeFileSync(
     path.join(outDir, "manifest.json"),
     JSON.stringify(manifest, null, 2),
-    "utf8",
+    "utf8"
   );
 
   return {

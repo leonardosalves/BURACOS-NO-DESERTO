@@ -5,6 +5,7 @@
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
+import { buildPythonSpawnEnv } from "./pythonEnv.js";
 import {
   ensureMotionTrack,
   motionScenesToMotionClips,
@@ -33,7 +34,10 @@ export function probeFlyoverVideoDurationSec(absPath, hintSec = 0) {
 
   for (const cmd of probes) {
     try {
-      const output = execSync(cmd, { encoding: "utf8" }).trim();
+      const output = execSync(cmd, {
+        encoding: "utf8",
+        env: buildPythonSpawnEnv(),
+      }).trim();
       const dur = parseFloat(output);
       if (Number.isFinite(dur) && dur > 0) return dur;
     } catch {
