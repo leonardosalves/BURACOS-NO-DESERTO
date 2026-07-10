@@ -40,13 +40,18 @@ test("visual readiness flags weak and repeated coverage", () => {
     visualPrompts: [
       { prompt: "logo placeholder", narration_text: "Abertura" },
       { prompt: "ancient bridge close up" },
-      { prompt: "ancient bridge close up", narration_text: "Detalhe" },
+      {
+        prompt: "ancient bridge close up",
+        narration_text: "Detalhe",
+        duration_seconds: 8,
+      },
     ],
   });
 
   assert.equal(report.ok, false);
   assert.equal(report.missingNarrationCount, 1);
   assert.equal(report.duplicateVisualCount, 1);
+  assert.equal(report.longSceneCount, 1);
 });
 
 test("editorial contract accepts a complete short structure", () => {

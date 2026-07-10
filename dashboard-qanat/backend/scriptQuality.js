@@ -457,6 +457,10 @@ export function assessVisualStoryboardReadiness({
       )
     ),
   ];
+  const longScenes = scenes.filter((scene) => {
+    const duration = Number(scene?.duration_seconds ?? scene?.duration ?? 0);
+    return Number.isFinite(duration) && duration > (isShort ? 6 : 15);
+  });
   const firstVisual = String(
     scenes[0]?.prompt ||
       scenes[0]?.visual_description ||
@@ -480,6 +484,11 @@ export function assessVisualStoryboardReadiness({
   if (duplicateVisuals.length) {
     recommendations.push(
       `${duplicateVisuals.length} orientação(ões) visuais repetida(s): varie enquadramento, ação ou tipo de imagem.`
+    );
+  }
+  if (longScenes.length) {
+    recommendations.push(
+      `${longScenes.length} cena(s) longa(s) para ${isShort ? "Shorts" : "vídeo longo"}: crie uma mudança visual ou interruptor de padrão.`
     );
   }
   const minimumScenes = isShort ? 3 : 6;
@@ -508,6 +517,7 @@ export function assessVisualStoryboardReadiness({
     coveredScenes: usefulScenes.length,
     missingNarrationCount: missingNarration.length,
     duplicateVisualCount: duplicateVisuals.length,
+    longSceneCount: longScenes.length,
     issues,
     recommendations,
   };
