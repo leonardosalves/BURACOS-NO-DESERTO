@@ -1,10 +1,39 @@
 import os
-
+import sys
 import json
-
 import subprocess
-
 import numpy as np
+
+def get_ffmpeg_path():
+    ff = os.environ.get("FFMPEG_BINARY")
+    if ff and os.path.exists(ff):
+        return ff
+    candidates = [
+        "C:\\Lumiera\\tools\\ffmpeg\\bin\\ffmpeg.exe",
+        "C:\\ffmpeg\\bin\\ffmpeg.exe",
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return "ffmpeg"
+
+def get_ffprobe_path():
+    ff = os.environ.get("FFMPEG_BINARY")
+    if ff:
+        fp = ff.replace("ffmpeg.exe", "ffprobe.exe").replace("ffmpeg", "ffprobe")
+        if os.path.exists(fp):
+            return fp
+    candidates = [
+        "C:\\Lumiera\\tools\\ffmpeg\\bin\\ffprobe.exe",
+        "C:\\ffmpeg\\bin\\ffprobe.exe",
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return "ffprobe"
+
+FFMPEG_EXE = get_ffmpeg_path()
+FFPROBE_EXE = get_ffprobe_path()
 
 SR = 44100
 
@@ -28,7 +57,7 @@ else:
 
 def get_duration(filename):
 
-    cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'json', filename]
+    cmd = [FFPROBE_EXE, '-v', 'error', '-show_entries', 'format=duration', '-of', 'json', filename]
 
     res = json.loads(subprocess.check_output(cmd).decode('utf-8'))
 
@@ -38,7 +67,7 @@ def load_pcm(filename, start_s, duration_s, target_sr=SR):
 
     cmd = [
 
-        'ffmpeg', '-y', '-ss', f"{start_s:.3f}", '-i', filename, '-t', f"{duration_s:.3f}",
+        FFMPEG_EXE, '-y', '-ss', f"{start_s:.3f}", '-i', filename, '-t', f"{duration_s:.3f}",
 
         '-ar', str(target_sr), '-ac', '2', '-f', 's16le', '-'
 
@@ -96,7 +125,7 @@ def write_pcm_to_mp3(data, output_filename, sr=SR):
 
     cmd = [
 
-        'ffmpeg', '-y', '-f', 's16le', '-ar', str(sr), '-ac', '2', '-i', '-',
+        FFMPEG_EXE, '-y', '-f', 's16le', '-ar', str(sr), '-ac', '2', '-i', '-',
 
         '-c:a', 'libmp3lame', '-q:a', '2', output_filename
 
@@ -118,7 +147,7 @@ def find_best_climax_start(filename, duration_s, target_sr=SR, mood='peak'):
         if not filename or not os.path.exists(filename):
             return 0.0
         cmd = [
-            'ffmpeg', '-y', '-i', filename,
+            FFMPEG_EXE, '-y', '-i', filename,
             '-ar', '11025', '-ac', '1', '-f', 'f32le', '-'
         ]
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
