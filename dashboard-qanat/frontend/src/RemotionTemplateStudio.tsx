@@ -3299,14 +3299,18 @@ export function RemotionTemplateStudio({
       });
       const data = await res.json();
       if (data.success) {
-        window.alert(data.message || "Catálogo enviado para o GitHub com sucesso!");
+        window.alert(
+          data.message || "Catálogo enviado para o GitHub com sucesso!"
+        );
         setCatalogSyncNote("Sincronizado com o GitHub.");
       } else {
         window.alert(`Falha ao enviar: ${data.error || "Erro desconhecido"}`);
         setCatalogSyncNote("Erro ao sincronizar com Git.");
       }
     } catch (err) {
-      window.alert(`Erro de rede ao salvar no GitHub: ${err instanceof Error ? err.message : String(err)}`);
+      window.alert(
+        `Erro de rede ao salvar no GitHub: ${err instanceof Error ? err.message : String(err)}`
+      );
       setCatalogSyncNote("Erro de conexão com Git.");
     } finally {
       setGitPushing(false);
@@ -3801,22 +3805,26 @@ export function RemotionTemplateStudio({
             {categories.map((item) => (
               <div
                 key={item.id}
-                className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-xs font-bold ${
-                  category === item.id
-                    ? "border-blue-400 bg-blue-500/12 text-white"
-                    : "border-white/10 bg-white/[0.025] text-zinc-400"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setCategory(item.id);
+                  setSubcategory("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
                     setCategory(item.id);
                     setSubcategory("");
-                  }}
-                  className="min-w-0 flex-1 text-left"
-                >
-                  {item.label}
-                </button>
+                  }
+                }}
+                className={`flex w-full cursor-pointer items-center justify-between rounded-md border px-3 py-2 text-left text-xs font-bold transition-colors ${
+                  category === item.id
+                    ? "border-blue-400 bg-blue-500/12 text-white"
+                    : "border-white/10 bg-white/[0.025] text-zinc-400 hover:border-white/30 hover:text-zinc-200"
+                }`}
+              >
+                <span className="min-w-0 flex-1 text-left">{item.label}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-zinc-600">
                     {
@@ -3916,8 +3924,14 @@ export function RemotionTemplateStudio({
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm("Deseja restaurar todas as categorias, subcategorias e templates excluídos localmente?")) {
-                      window.localStorage.removeItem("lumiera.remotionTemplateStudio.deletedCatalog.v1");
+                    if (
+                      window.confirm(
+                        "Deseja restaurar todas as categorias, subcategorias e templates excluídos localmente?"
+                      )
+                    ) {
+                      window.localStorage.removeItem(
+                        "lumiera.remotionTemplateStudio.deletedCatalog.v1"
+                      );
                       window.location.reload();
                     }
                   }}
