@@ -22,6 +22,7 @@ import {
   Youtube,
   Zap,
   Bell,
+  BookOpen,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { BackendStatusBanner } from "./BackendStatusBanner";
@@ -89,6 +90,13 @@ const STUDIO_NAV: GlobalNavItem[] = [
     label: "Comfy MCP",
     icon: Cloud,
     helpId: "tab-comfy-mcp",
+    accent: "sky",
+  },
+  {
+    id: "docs",
+    label: "Documentação",
+    icon: BookOpen,
+    helpId: "tab-docs",
     accent: "sky",
   },
 ];
