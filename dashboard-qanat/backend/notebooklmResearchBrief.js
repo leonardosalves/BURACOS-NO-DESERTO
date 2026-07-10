@@ -199,6 +199,42 @@ function extractHooks(text = "") {
     .slice(0, 8);
 }
 
+export function buildNotebooklmEvidenceMap({
+  facts = [],
+  stats = [],
+  locations = [],
+} = {}) {
+  const evidence = [];
+  facts.forEach((claim, index) =>
+    evidence.push({
+      id: `nlm-fact-${index + 1}`,
+      type: "fact",
+      claim,
+      source: "notebooklm_brief",
+      confidence: "needs_source_review",
+    })
+  );
+  stats.forEach((stat, index) =>
+    evidence.push({
+      id: `nlm-stat-${index + 1}`,
+      type: "statistic",
+      claim: `${stat.value} ${stat.unit} — ${stat.label}`,
+      source: "notebooklm_brief",
+      confidence: "needs_source_review",
+    })
+  );
+  locations.forEach((location, index) =>
+    evidence.push({
+      id: `nlm-location-${index + 1}`,
+      type: "location",
+      claim: location.place,
+      source: "notebooklm_brief",
+      confidence: "needs_source_review",
+    })
+  );
+  return evidence;
+}
+
 export function parseNotebooklmBriefMarkdown(md = "") {
   const { meta, body } = parseFrontmatter(md);
   const accumulatedMatch = body.match(
@@ -212,6 +248,7 @@ export function parseNotebooklmBriefMarkdown(md = "") {
   const stats = extractStats(accumulatedSection);
   const locations = extractLocations(accumulatedSection);
   const hooks = extractHooks(accumulatedSection);
+  const evidence = buildNotebooklmEvidenceMap({ facts, stats, locations });
 
   return {
     meta,
@@ -220,6 +257,7 @@ export function parseNotebooklmBriefMarkdown(md = "") {
     stats,
     locations,
     hooks,
+    evidence,
     templateHints: {
       locations,
       stats,
@@ -476,6 +514,14 @@ export function mergeBriefIntoStoryboard(storyboard = {}, brief = {}) {
   const next = {
     ...storyboard,
     research_facts: facts,
+    research_evidence: [
+      ...new Map(
+        [
+          ...(storyboard.research_evidence || []),
+          ...(parsed.evidence || []),
+        ].map((item) => [item.id, item])
+      ).values(),
+    ],
     notebooklm_brief: {
       path: brief.relativePath || NOTEBOOKLM_BRIEF_FILENAME,
       fact_count: parsed.factCount || facts.length,
