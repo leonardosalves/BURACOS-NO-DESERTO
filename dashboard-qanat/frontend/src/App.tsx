@@ -10382,6 +10382,7 @@ export default function App() {
     handleSaveImpactText,
     handleSaveProjectRenderResolution,
     handleSaveStoryboard,
+    handleMotionScenesChange,
     handleSearchEpidemic,
     handleSendChatMessage,
     handleStartTitleExperiment,
