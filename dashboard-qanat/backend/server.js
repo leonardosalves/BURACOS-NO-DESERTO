@@ -15459,7 +15459,7 @@ app.post(
   asyncHandler(async (req, res) => {
     const projDir = getProjectDir(req);
 
-    const { prompt, useNotebooklm } = req.body;
+    const { prompt, useNotebooklm, notebooklmDeep } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: "Prompt/Tema não fornecido" });
@@ -15474,6 +15474,7 @@ app.post(
           format: "LONGO",
           idea: { title: prompt, promise: prompt, emotion: "Curiosidade" },
           projDir,
+          researchMode: notebooklmDeep === true ? "deep" : "fast",
         });
         notebooklmContext = formatNotebooklmPromptBlock(
           research,
@@ -15678,6 +15679,7 @@ app.post(
       niche,
       format,
       useNotebooklm,
+      notebooklmDeep,
       contentMode,
       rankCount,
       rankOrder,
@@ -15760,7 +15762,7 @@ app.post(
           getApiKeys: () => getApiKeys(projDir),
           apiKey: getApiKey(projDir),
           backendDir: __dirname,
-          notebooklmDeep: useNotebooklm !== false,
+          notebooklmDeep: notebooklmDeep === true,
           enqueueIdeas: false,
           diversityHint,
           excludeTopics,
@@ -15807,6 +15809,7 @@ app.post(
             listTopic: listicleTopic,
             rankOrder: rankOrder || "desc",
             projDir,
+            researchMode: notebooklmDeep === true ? "deep" : "fast",
           });
           notebooklmContext = formatNotebooklmPromptBlock(
             research,
@@ -15997,7 +16000,7 @@ app.post(
     const projDir = getProjectDir(req);
     const browserText = extractBrowserResponse(req.body);
 
-    const { niche, format = "LONGO", useNotebooklm } = req.body;
+    const { niche, format = "LONGO", useNotebooklm, notebooklmDeep } = req.body;
 
     if (!niche || !String(niche).trim()) {
       return res
@@ -16015,6 +16018,7 @@ app.post(
           backendDir: __dirname,
           contentMode: "LISTICLE",
           projDir,
+          researchMode: notebooklmDeep === true ? "deep" : "fast",
         });
         notebooklmContext = formatNotebooklmPromptBlock(
           research,
@@ -16329,6 +16333,7 @@ app.post(
       listTopic,
       listicleHudStyle,
       useNotebooklm,
+      notebooklmDeep,
       phase = "full",
       approvedNarration: approvedNarrationRaw,
       approvedNarrationTagged: approvedNarrationTaggedRaw,
@@ -16746,6 +16751,7 @@ app.post(
           listTopic: listicleTopic,
           rankOrder: rankOrder || "desc",
           projDir,
+          researchMode: notebooklmDeep === true ? "deep" : "fast",
         });
         notebooklmContext = formatNotebooklmPromptBlock(
           notebooklmResearch,

@@ -4,7 +4,10 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const srcDir = path.join(__dirname, "..", "src");
-const body = fs.readFileSync(path.join(srcDir, "_creator_tab_body.txt"), "utf8");
+const body = fs.readFileSync(
+  path.join(srcDir, "_creator_tab_body.txt"),
+  "utf8"
+);
 
 const PROPS = [
   "activeProject",
@@ -118,6 +121,7 @@ const PROPS = [
   "setTaggedNarrations",
   "setUploadSuccess",
   "setUseNotebooklm",
+  "setNotebooklmDeep",
   "showNarrationReview",
   "status",
   "storyboardData",
@@ -130,6 +134,7 @@ const PROPS = [
   "uploadedScenes",
   "uploadingNarration",
   "useNotebooklm",
+  "notebooklmDeep",
   "wizardSavedAtLabel",
   "wordTranscripts",
   "youtubeLoading",
@@ -272,6 +277,7 @@ export type AppCreatorTabProps = {
   setTaggedNarrations: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   setUploadSuccess: (v: boolean) => void;
   setUseNotebooklm: (v: boolean) => void;
+  setNotebooklmDeep: (v: boolean) => void;
   showNarrationReview: boolean;
   status: WorkspaceStatus | null;
   storyboardData: any;
@@ -284,6 +290,7 @@ export type AppCreatorTabProps = {
   uploadedScenes: Record<string, boolean>;
   uploadingNarration: boolean;
   useNotebooklm: boolean;
+  notebooklmDeep: boolean;
   wizardSavedAtLabel: string | null;
   wordTranscripts: any;
   youtubeLoading: boolean;
@@ -301,5 +308,8 @@ const footer = `  );
 }
 `;
 
-fs.writeFileSync(path.join(srcDir, "AppCreatorTab.tsx"), header + body + footer);
+fs.writeFileSync(
+  path.join(srcDir, "AppCreatorTab.tsx"),
+  header + body + footer
+);
 console.log("AppCreatorTab.tsx written,", PROPS.length, "props");

@@ -709,11 +709,78 @@ async function runOptionalFastResearchAsync(
         timeoutMs: 120000,
         backendDir,
       });
+      await waitForNotebookSourcesToLoadAsync(notebookId, backendDir);
       return true;
     }
   } catch {
     /* research is optional */
   }
+  return false;
+}
+
+async function waitForNotebookSourcesToLoadAsync(
+  notebookId,
+  backendDir,
+  maxWaitSeconds = 60
+) {
+  console.log(
+    `[NotebookLM] Aguardando fontes carregarem para o notebook ${notebookId}...`
+  );
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < maxWaitSeconds * 1000) {
+    try {
+      const listRaw = await runNlmAsync(
+        ["source", "list", notebookId, "--json"],
+        {
+          timeoutMs: 15000,
+          backendDir,
+        }
+      );
+      const sources = parseJsonOutput(listRaw) || [];
+      if (sources.length === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        continue;
+      }
+
+      const sample = sources.slice(0, 3);
+      let allSampleReady = true;
+
+      for (const src of sample) {
+        const getRaw = await runNlmAsync(["source", "get", src.id, "--json"], {
+          timeoutMs: 10000,
+          backendDir,
+        });
+        const details = parseJsonOutput(getRaw);
+        if (
+          !details ||
+          details.char_count === 0 ||
+          details.char_count == null
+        ) {
+          allSampleReady = false;
+          break;
+        }
+      }
+
+      if (allSampleReady) {
+        console.log(
+          `[NotebookLM] Fontes carregadas com sucesso em ${((Date.now() - startTime) / 1000).toFixed(1)}s`
+        );
+        return true;
+      }
+    } catch (err) {
+      console.warn(
+        "[NotebookLM] Erro ao verificar status das fontes:",
+        err.message
+      );
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
+
+  console.warn(
+    `[NotebookLM] Timeout aguardando fontes após ${maxWaitSeconds}s. Continuando assim mesmo.`
+  );
   return false;
 }
 
@@ -1057,7 +1124,7 @@ async function runNotebooklmPipeline({
       contentMode === "LISTICLE"
         ? `melhores fatos e curiosidades sobre ${listTopic || niche} para vídeo top ${rankCount}`
         : `fatos surpreendentes tendências e perguntas do público sobre ${niche}`;
-    runOptionalFastResearch(
+    await runOptionalFastResearchAsync(
       notebookId,
       researchQuery,
       backendDir,

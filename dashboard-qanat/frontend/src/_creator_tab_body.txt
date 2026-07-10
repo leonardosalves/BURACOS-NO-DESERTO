@@ -141,15 +141,28 @@
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-900/60 pt-3">
-                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={useNotebooklm}
-                            onChange={(e) => setUseNotebooklm(e.target.checked)}
-                            className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-gold-500 focus:ring-gold-500/30"
-                          />
-                          <span className="text-xs text-zinc-300 font-semibold">Usar NotebookLM na pesquisa de roteiro</span>
-                        </label>
+                        <div className="flex flex-wrap items-center gap-4">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={useNotebooklm}
+                              onChange={(e) => setUseNotebooklm(e.target.checked)}
+                              className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-gold-500 focus:ring-gold-500/30"
+                            />
+                            <span className="text-xs text-zinc-300 font-semibold">Usar NotebookLM na pesquisa de roteiro</span>
+                          </label>
+                          {useNotebooklm && (
+                            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={notebooklmDeep}
+                                onChange={(e) => setNotebooklmDeep(e.target.checked)}
+                                className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-gold-500 focus:ring-gold-500/30"
+                              />
+                              <span className="text-xs text-zinc-300 font-semibold">Web search Deep Research (~5 min)</span>
+                            </label>
+                          )}
+                        </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {creatorIdeasBundle?.bundleSlug ? (
                             <span

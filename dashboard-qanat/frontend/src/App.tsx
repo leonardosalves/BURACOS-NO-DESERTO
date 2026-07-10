@@ -692,6 +692,9 @@ export default function App() {
   const [useNotebooklm, setUseNotebooklm] = useState<boolean>(
     savedCreatorState.useNotebooklm !== false
   );
+  const [notebooklmDeep, setNotebooklmDeep] = useState<boolean>(
+    savedCreatorState.notebooklmDeep === true
+  );
   const [useDeepResearch, setUseDeepResearch] = useState<boolean>(
     savedCreatorState.useDeepResearch !== false
   );
@@ -3157,6 +3160,7 @@ export default function App() {
       narrationProjectName,
       notebooklmSession,
       useNotebooklm,
+      notebooklmDeep,
       useDeepResearch,
       motionTemplatePackEnabled,
       motionTemplateNiche,
@@ -3205,6 +3209,7 @@ export default function App() {
       narrationProjectName,
       notebooklmSession,
       useNotebooklm,
+      notebooklmDeep,
       useDeepResearch,
       motionTemplatePackEnabled,
       motionTemplateNiche,
@@ -3287,6 +3292,8 @@ export default function App() {
     }
     if (patch.useNotebooklm !== undefined)
       setUseNotebooklm(patch.useNotebooklm);
+    if (patch.notebooklmDeep !== undefined)
+      setNotebooklmDeep(patch.notebooklmDeep);
     if (patch.useDeepResearch !== undefined)
       setUseDeepResearch(patch.useDeepResearch);
     if (patch.motionTemplatePackEnabled !== undefined)
@@ -7060,7 +7067,11 @@ export default function App() {
       const { ok, data } = await postAi("/api/ai/generate-creator-script", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: creatorPrompt, useNotebooklm }),
+        body: JSON.stringify({
+          prompt: creatorPrompt,
+          useNotebooklm,
+          notebooklmDeep,
+        }),
       });
 
       if (ok && data.script) {
@@ -7295,6 +7306,7 @@ export default function App() {
         niche: nicheInput.trim(),
         format: formatSelector,
         useNotebooklm,
+        notebooklmDeep,
         useDeepResearch,
         forceVariety: regen,
         excludeIdeas: previousIdeas.map((idea: { title?: string }) => ({
@@ -7474,6 +7486,7 @@ export default function App() {
         niche: listNiche.trim(),
         format: formatSelector,
         useNotebooklm,
+        notebooklmDeep,
       });
       const { ok, data } = await postAi("/api/ai/creator/listicle-ideas", {
         method: "POST",
@@ -7614,6 +7627,7 @@ export default function App() {
         },
         project: safeProjectName,
         useNotebooklm,
+        notebooklmDeep,
         phase,
         ...fullExtras,
       };
@@ -7653,6 +7667,7 @@ export default function App() {
           : (ideasData?.ideas || [])[selectedIdeaIndex],
       project: safeProjectName,
       useNotebooklm: useNotebooklm !== false,
+      notebooklmDeep,
       phase,
       ...fullExtras,
     };
@@ -10565,6 +10580,7 @@ export default function App() {
     setUploadSuccess,
     setUploading,
     setUseNotebooklm,
+    setNotebooklmDeep,
     setVideoFileDurations,
     setXaiKeyInput,
     setYtCategoryId,
@@ -10615,6 +10631,7 @@ export default function App() {
     uploading,
     uploadingNarration,
     useNotebooklm,
+    notebooklmDeep,
     useDeepResearch,
     setUseDeepResearch,
     motionTemplatePackEnabled,
