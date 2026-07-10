@@ -1170,7 +1170,42 @@ async function runNotebooklmPipeline({
     });
   }
 
-  const answer = await queryNotebookAsync(notebookId, question, backendDir);
+  let answer;
+  try {
+    answer = await queryNotebookAsync(notebookId, question, backendDir);
+  } catch (err) {
+    const errorMsg = String(err.message || "");
+    if (
+      errorMsg.includes("no sources to query") ||
+      errorMsg.includes("no sources") ||
+      errorMsg.includes("Add a source first")
+    ) {
+      console.log(
+        `[NotebookLM] Notebook ${notebookId} está sem fontes. Subindo brief emergencial...`
+      );
+      const emergencyBrief = buildBriefText({
+        niche,
+        format,
+        idea,
+        contentMode,
+        rankCount,
+        listTopic,
+        rankOrder,
+      });
+      await addTextSourceAsync(
+        notebookId,
+        `Brief Emergencial ${new Date().toISOString().slice(0, 16)}`,
+        emergencyBrief,
+        backendDir
+      );
+      console.log(
+        "[NotebookLM] Brief emergencial enviado com sucesso. Re-executando query..."
+      );
+      answer = await queryNotebookAsync(notebookId, question, backendDir);
+    } else {
+      throw err;
+    }
+  }
   const summary = String(answer || "")
     .trim()
     .slice(0, 12000);
