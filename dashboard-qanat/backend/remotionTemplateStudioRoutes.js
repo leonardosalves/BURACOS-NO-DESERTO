@@ -235,4 +235,11 @@ export function registerRemotionTemplateStudioRoutes(
       });
     }
   });
+
+  app.post("/api/ai/template-studio/catalog/restart", (req, res) => {
+    res.json({ success: true, message: "Reiniciando servidor..." });
+    setTimeout(() => {
+      process.exit(0);
+    }, 500);
+  });
 }
