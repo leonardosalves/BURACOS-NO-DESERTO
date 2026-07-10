@@ -102,10 +102,14 @@ export function registerRemotionTemplateStudioRoutes(
   purgeTestNichesFromCatalogFile();
   pruneCatalogEntriesWithoutSource();
 
-  const engSnapshot = getCatalogForNiche("Engenharia");
-  if (engSnapshot.templates.length < 10) {
-    const { templates } = buildEngenhariaSeedTemplates("Engenharia");
-    syncCatalogForNiche("Engenharia", templates);
+  // Catalogo versionado em git — nunca auto-seedar (sobrescreve imports do usuario).
+  // Seed manual: LUMIERA_ALLOW_ENGENHARIA_SEED=1 no ambiente do backend.
+  if (process.env.LUMIERA_ALLOW_ENGENHARIA_SEED === "1") {
+    const engSnapshot = getCatalogForNiche("Engenharia");
+    if (engSnapshot.templates.length < 10) {
+      const { templates } = buildEngenhariaSeedTemplates("Engenharia");
+      syncCatalogForNiche("Engenharia", templates, { replace: true });
+    }
   }
 
   app.get("/api/ai/template-studio/catalog/niches", (_req, res) => {
