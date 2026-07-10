@@ -204,6 +204,36 @@ export async function createCatalogNiche(
   }
 }
 
+export async function deleteCatalogNiche(
+  niche: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(
+      `${CATALOG_CREATE_NICHE_ENDPOINT}?niche=${encodeURIComponent(niche)}`,
+      {
+        method: "DELETE",
+      }
+    );
+    const parsed = await readApiJsonResponse<{
+      success: boolean;
+      error?: string;
+    }>(res);
+    if (parsed.error || !parsed.data) {
+      return {
+        success: false,
+        error: parsed.error || "Falha ao excluir nicho.",
+      };
+    }
+    return parsed.data;
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error ? err.message : "Falha de rede ao excluir nicho.",
+    };
+  }
+}
+
 export async function fetchRemotionTemplateCatalog(
   niche: string
 ): Promise<CatalogResponse> {

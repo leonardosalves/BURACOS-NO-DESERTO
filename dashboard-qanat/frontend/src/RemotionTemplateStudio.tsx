@@ -8,6 +8,7 @@ import React, {
 import { Easing, interpolate } from "remotion";
 import {
   createCatalogNiche,
+  deleteCatalogNiche,
   extractTemplateTsxFromLlm,
   fetchCatalogNiches,
   exportRemotionTemplateCatalog,
@@ -3423,6 +3424,30 @@ export function RemotionTemplateStudio({
     setSelectedId("");
   }
 
+  async function removeNicheCatalog(nicheName: string) {
+    if (!window.confirm(`Deseja mesmo excluir o nicho "${nicheName}"?`)) {
+      return;
+    }
+    const res = await deleteCatalogNiche(nicheName);
+    if (!res.success) {
+      setStudioError(res.error || "Não foi possível excluir o catálogo.");
+      return;
+    }
+    setStudioError("");
+    setNiches((current) =>
+      current.filter((n) => n.toLowerCase() !== nicheName.toLowerCase())
+    );
+    if (niche.toLowerCase() === nicheName.toLowerCase()) {
+      const remaining = niches.filter(
+        (n) => n.toLowerCase() !== nicheName.toLowerCase()
+      );
+      const nextNiche = remaining[0] || "Engenharia";
+      setNiche(nextNiche);
+    }
+    setDetailTemplateId("");
+    setSelectedId("");
+  }
+
   function addCategory() {
     const label = window.prompt("Nome da nova categoria");
     const cleanLabel = String(label || "").trim();
@@ -3782,23 +3807,48 @@ export function RemotionTemplateStudio({
           <div className="grid grid-cols-2 gap-1.5">
             {niches
               .filter((item) => !isInternalTestCatalogNiche(item))
-              .map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setNiche(item)}
-                  className={`relative truncate rounded-lg border px-2.5 py-2 text-left text-[11px] font-semibold transition-all ${
-                    niche === item
-                      ? "border-cyan-400/60 bg-cyan-400/12 text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.08)]"
-                      : "border-white/8 bg-white/[0.025] text-zinc-500 hover:border-white/20 hover:text-zinc-300"
-                  }`}
-                >
-                  {niche === item && (
-                    <span className="absolute left-1.5 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-cyan-400" />
-                  )}
-                  <span className={niche === item ? "ml-3" : ""}>{item}</span>
-                </button>
-              ))}
+              .map((item) => {
+                const isActive = niche === item;
+                return (
+                  <div
+                    key={item}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setNiche(item)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setNiche(item);
+                      }
+                    }}
+                    className={`group relative flex cursor-pointer items-center justify-between overflow-hidden rounded-lg border py-2 pl-2.5 pr-1.5 text-left text-[11px] font-semibold transition-all ${
+                      isActive
+                        ? "border-cyan-400/60 bg-cyan-400/12 text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.08)]"
+                        : "border-white/8 bg-white/[0.025] text-zinc-500 hover:border-white/20 hover:text-zinc-300"
+                    }`}
+                  >
+                    {isActive && (
+                      <span className="absolute left-1.5 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-cyan-400" />
+                    )}
+                    <span
+                      className={`min-w-0 flex-1 truncate ${isActive ? "ml-3" : ""}`}
+                    >
+                      {item}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void removeNicheCatalog(item);
+                      }}
+                      className="shrink-0 rounded-md p-0.5 text-red-500/50 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+                      title={`Excluir nicho "${item}"`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
           </div>
 
           {/* Categories */}
@@ -3890,41 +3940,63 @@ export function RemotionTemplateStudio({
           </div>
         </aside>
 
-        <main className="rounded-lg border border-white/10 bg-[#101622]">
-          <div className="border-b border-white/10 p-4">
+        <main className="overflow-hidden rounded-xl border border-white/8 bg-[#0d1220]">
+          {/* Main header */}
+          <div className="border-b border-white/8 bg-[#0a0f1a] px-5 py-3.5">
             <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Breadcrumb + title */}
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
+                <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.25em] text-zinc-600">
+                  <Film className="h-2.5 w-2.5" />
                   Showcase
                 </p>
-                <h2 className="text-xl font-black text-white">
-                  {niche} / {currentCategory?.label}
+                <h2 className="mt-0.5 text-base font-black tracking-tight text-white">
+                  {niche}
+                  <span className="mx-1.5 text-zinc-600">/</span>
+                  <span className="text-cyan-300">
+                    {currentCategory?.label}
+                  </span>
                 </h2>
                 {catalogSyncNote ? (
-                  <p className="mt-1 text-xs text-emerald-400/90">
+                  <p className="mt-0.5 flex items-center gap-1 text-[10px] text-emerald-400/80">
+                    <Check className="h-2.5 w-2.5" />
                     {catalogSyncNote}
                   </p>
                 ) : null}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <span
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${
+
+              {/* Subcategory pills + actions */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {/* All pill */}
+                <button
+                  type="button"
+                  onClick={() => setSubcategory("")}
+                  className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-[10px] font-bold transition-all ${
                     !subcategory
-                      ? "border-amber-300 bg-amber-300/14 text-amber-100"
-                      : "border-white/10 bg-white/[0.03] text-zinc-400"
+                      ? "border-amber-400/50 bg-amber-400/12 text-amber-200 shadow-[0_0_8px_rgba(251,191,36,0.08)]"
+                      : "border-white/8 bg-white/[0.03] text-zinc-500 hover:border-white/15 hover:text-zinc-300"
                   }`}
                 >
-                  <button type="button" onClick={() => setSubcategory("")}>
-                    Todos ({categoryTemplates.length})
-                  </button>
-                </span>
+                  Todos
+                  <span
+                    className={`rounded-full px-1 py-0.5 text-[8px] font-black tabular-nums ${
+                      !subcategory
+                        ? "bg-amber-400/25 text-amber-300"
+                        : "bg-white/8 text-zinc-600"
+                    }`}
+                  >
+                    {categoryTemplates.length}
+                  </span>
+                </button>
+
+                {/* Subcategory pills */}
                 {subcategories.map((item) => (
                   <span
                     key={item}
-                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${
+                    className={`group inline-flex h-7 items-center gap-1 rounded-full border px-3 text-[10px] font-bold transition-all ${
                       subcategory === item
-                        ? "border-amber-300 bg-amber-300/14 text-amber-100"
-                        : "border-white/10 bg-white/[0.03] text-zinc-400"
+                        ? "border-amber-400/50 bg-amber-400/12 text-amber-200"
+                        : "border-white/8 bg-white/[0.03] text-zinc-500 hover:border-white/15 hover:text-zinc-300"
                     }`}
                   >
                     <button type="button" onClick={() => setSubcategory(item)}>
@@ -3933,32 +4005,38 @@ export function RemotionTemplateStudio({
                     <button
                       type="button"
                       onClick={() => deleteSubcategory(item)}
-                      className="text-red-300 hover:text-red-100"
+                      className="ml-0.5 opacity-0 transition-opacity group-hover:opacity-100 text-red-400/60 hover:text-red-300"
                       title="Excluir subcategoria"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-2.5 w-2.5" />
                     </button>
                   </span>
                 ))}
+
+                {/* Add subcategory */}
                 <button
                   type="button"
                   onClick={addSubcategory}
-                  className="inline-flex items-center gap-1 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 text-xs font-black text-cyan-100 hover:border-cyan-300/70"
+                  className="inline-flex h-7 items-center gap-1 rounded-full border border-cyan-400/20 bg-cyan-400/6 px-3 text-[10px] font-bold text-cyan-400/80 transition-colors hover:border-cyan-400/40 hover:text-cyan-300"
                 >
-                  <Plus className="h-3 w-3" />
-                  Subcategoria
+                  <Plus className="h-2.5 w-2.5" />
+                  Sub
                 </button>
+
+                {/* Delete all subcategories */}
                 {subcategories.length > 0 && (
                   <button
                     type="button"
                     onClick={deleteAllSubcategories}
-                    className="inline-flex items-center gap-1 rounded-full border border-red-300/30 bg-red-300/10 px-3 py-1.5 text-xs font-black text-red-100 hover:border-red-300/70"
+                    className="inline-flex h-7 items-center gap-1 rounded-full border border-red-400/15 bg-red-400/6 px-3 text-[10px] font-bold text-red-400/70 transition-colors hover:border-red-400/35 hover:text-red-300"
                     title="Excluir todas as subcategorias"
                   >
-                    <Trash2 className="h-3 w-3" />
-                    Excluir todas
+                    <Trash2 className="h-2.5 w-2.5" />
+                    Limpar
                   </button>
                 )}
+
+                {/* Restore deleted */}
                 <button
                   type="button"
                   onClick={() => {
@@ -3973,7 +4051,7 @@ export function RemotionTemplateStudio({
                       window.location.reload();
                     }
                   }}
-                  className="inline-flex items-center gap-1 rounded-full border border-zinc-500/30 bg-zinc-500/10 px-3 py-1.5 text-xs font-black text-zinc-300 hover:border-zinc-500/70"
+                  className="inline-flex h-7 items-center gap-1 rounded-full border border-white/8 bg-white/[0.025] px-3 text-[10px] font-bold text-zinc-500 transition-colors hover:border-white/18 hover:text-zinc-300"
                   title="Restaurar todos os itens da lixeira"
                 >
                   Restaurar excluídos
@@ -4002,13 +4080,16 @@ export function RemotionTemplateStudio({
           ) : (
             <div className="p-4 space-y-3">
               {showingCategoryFallback ? (
-                <p className="text-[11px] text-amber-200/80">
-                  Nenhum template em &quot;{subcategory}&quot;. Mostrando os{" "}
-                  {categoryTemplates.length} da categoria{" "}
-                  {currentCategory?.label}.
-                </p>
+                <div className="flex items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/6 px-3 py-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                  <p className="text-[10px] text-amber-200/80">
+                    Nenhum template em &quot;{subcategory}&quot;. Mostrando os{" "}
+                    {categoryTemplates.length} da categoria{" "}
+                    {currentCategory?.label}.
+                  </p>
+                </div>
               ) : null}
-              <div className="grid gap-4 2xl:grid-cols-2">
+              <div className="grid gap-3 2xl:grid-cols-2">
                 {visibleTemplates.map((template) => (
                   <article
                     key={template.id}
@@ -4028,13 +4109,14 @@ export function RemotionTemplateStudio({
                       }
                     }}
                     tabIndex={0}
-                    className={`overflow-hidden rounded-lg border bg-[#111722] text-left shadow-xl shadow-black/20 ${
+                    className={`group cursor-pointer overflow-hidden rounded-xl border text-left transition-all ${
                       selected?.id === template.id
-                        ? "border-cyan-300/70"
-                        : "border-white/10"
+                        ? "border-cyan-400/60 bg-[#0e1b2a] shadow-[0_0_20px_rgba(34,211,238,0.08)]"
+                        : "border-white/8 bg-[#0c1118] hover:border-white/18 hover:bg-[#0f1521]"
                     }`}
                   >
-                    <div className="flex gap-3 border-b border-white/10 bg-[#0c121d] p-3">
+                    {/* Preview thumbnails */}
+                    <div className="flex gap-2 border-b border-white/6 bg-black/30 p-2.5">
                       <TemplatePreviewSlot
                         template={template}
                         format="9:16"
@@ -4048,23 +4130,25 @@ export function RemotionTemplateStudio({
                         autoPlay
                       />
                     </div>
-                    <div className="p-4">
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <h3 className="text-base font-black text-white">
+
+                    {/* Card body */}
+                    <div className="p-3">
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <h3 className="truncate text-[13px] font-bold text-white">
                           {template.name}
                         </h3>
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex shrink-0 items-center gap-1.5">
                           <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${
                               template.status === "approved"
                                 ? "bg-emerald-400/12 text-emerald-300"
-                                : "bg-amber-300/12 text-amber-200"
+                                : "bg-amber-300/12 text-amber-300"
                             }`}
                           >
-                            <BadgeCheck className="h-3 w-3" />
+                            <BadgeCheck className="h-2.5 w-2.5" />
                             {template.status === "approved"
                               ? "Aprovado"
-                              : "Rascunho"}
+                              : "Draft"}
                           </span>
                           <button
                             type="button"
@@ -4072,79 +4156,85 @@ export function RemotionTemplateStudio({
                               event.stopPropagation();
                               deleteTemplate(template.id);
                             }}
-                            className="grid h-7 w-7 place-items-center rounded-md border border-red-400/20 bg-red-500/10 text-red-200 hover:border-red-300/60 hover:bg-red-500/20"
+                            className="grid h-6 w-6 place-items-center rounded-md border border-transparent text-zinc-600 opacity-0 transition-all group-hover:border-red-400/20 group-hover:bg-red-500/10 group-hover:text-red-300 group-hover:opacity-100"
                             title="Excluir template"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-3 w-3" />
                           </button>
                         </div>
                       </div>
-                      <p className="min-h-[38px] text-sm leading-relaxed text-zinc-400">
+                      <p className="line-clamp-2 text-[11px] leading-relaxed text-zinc-500">
                         {template.description}
                       </p>
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {template.dataSlots.map((slot) => (
-                          <span
-                            key={slot}
-                            className="rounded bg-white/[0.06] px-2 py-1 text-[10px] font-bold text-zinc-300"
-                          >
-                            {slot}
-                          </span>
-                        ))}
-                      </div>
+                      {template.dataSlots.length > 0 && (
+                        <div className="mt-2.5 flex flex-wrap gap-1">
+                          {template.dataSlots.map((slot) => (
+                            <span
+                              key={slot}
+                              className="rounded-md border border-white/6 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] text-zinc-400"
+                            >
+                              {slot}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </article>
                 ))}
+
+                {/* Empty state */}
                 {!visibleTemplates.length && (
-                  <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-sm text-zinc-500 space-y-2">
-                    <p>Nenhum template nesta combinacao ainda.</p>
-                    {nicheTemplates.length > 0 ? (
-                      <div className="space-y-2 text-xs text-zinc-600">
-                        <p>
-                          Voce tem {nicheTemplates.length} template
-                          {nicheTemplates.length === 1 ? "" : "s"} no nicho{" "}
-                          {niche}, mas nenhum em &quot;
-                          {currentCategory?.label}&quot;. Clique uma categoria
-                          abaixo:
-                        </p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                          {categoriesWithTemplates.map((item) => (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={() => {
-                                setCategory(item.id);
-                                setSubcategory("");
-                              }}
-                              className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[11px] font-bold text-cyan-100 hover:border-cyan-300/60"
-                            >
-                              {item.label} ({item.count})
-                            </button>
-                          ))}
+                  <div className="col-span-2 flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-white/8 p-10 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03]">
+                      <Layers3 className="h-5 w-5 text-zinc-600" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-zinc-400">
+                        Nenhum template aqui ainda
+                      </p>
+                      {nicheTemplates.length > 0 ? (
+                        <div className="space-y-3">
+                          <p className="text-[11px] text-zinc-600">
+                            Você tem {nicheTemplates.length} template
+                            {nicheTemplates.length === 1 ? "" : "s"} no nicho{" "}
+                            {niche}, mas nenhum em &quot;
+                            {currentCategory?.label}&quot;.
+                          </p>
+                          <div className="flex flex-wrap justify-center gap-1.5">
+                            {categoriesWithTemplates.map((item) => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  setCategory(item.id);
+                                  setSubcategory("");
+                                }}
+                                className="rounded-full border border-cyan-400/20 bg-cyan-400/6 px-3 py-1 text-[10px] font-semibold text-cyan-400/80 transition-colors hover:border-cyan-400/40 hover:text-cyan-300"
+                              >
+                                {item.label} ({item.count})
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2 text-xs text-zinc-600">
-                        <p>
-                          Os templates ficam no servidor e neste navegador. Se
-                          voce criou templates no dev server (porta 5176), abra{" "}
-                          <a
-                            href="http://127.0.0.1:5176/"
-                            className="text-cyan-300 hover:underline"
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            127.0.0.1:5176
-                          </a>{" "}
-                          no mesmo Chrome, entre em Templates e aguarde a
-                          sincronizacao — depois recarregue esta pagina.
-                        </p>
-                        <p>
-                          Se a lista continuar vazia em todas as categorias,
-                          crie um novo draft pelo painel da direita.
-                        </p>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="space-y-1.5 text-[11px] text-zinc-600">
+                          <p>Templates ficam no servidor e neste navegador.</p>
+                          <p>
+                            Se criou templates no dev server, abra{" "}
+                            <a
+                              href="http://127.0.0.1:5176/"
+                              className="text-cyan-400 hover:underline"
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              127.0.0.1:5176
+                            </a>{" "}
+                            e aguarde a sincronização.
+                          </p>
+                          <p>Ou crie um draft pelo painel da direita →</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -4152,118 +4242,147 @@ export function RemotionTemplateStudio({
           )}
         </main>
 
-        <aside className="space-y-4">
-          <section className="rounded-lg border border-white/10 bg-[#0b0f17] p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <PencilRuler className="h-4 w-4 text-amber-300" />
-              <h3 className="text-sm font-black text-white">
+        <aside className="flex flex-col gap-3">
+          {/* ── Implementar template ─────────────────────────────── */}
+          <section className="overflow-hidden rounded-xl border border-white/8 bg-[#080c13]">
+            <div className="flex items-center gap-2 border-b border-white/8 bg-[#0a0f1a] px-4 py-3">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-400/10">
+                <PencilRuler className="h-3 w-3 text-amber-400" />
+              </div>
+              <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">
                 Implementar template
               </h3>
             </div>
-            <p className="mb-3 text-xs leading-relaxed text-zinc-500">
-              Cole aqui o codigo Remotion TSX completo gerado fora do Lumiera.
-              Briefing, adaptacao e geracao ficam no seu fluxo externo.
-            </p>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-              Codigo final gerado
-            </label>
-            <textarea
-              value={finalCodeDraft}
-              onChange={(e) => {
-                setFinalCodeDraft(e.target.value);
-                setStudioError("");
-              }}
-              className="min-h-[420px] w-full resize-y rounded-md border border-cyan-300/20 bg-[#071018] p-3 font-mono text-[11px] leading-relaxed text-cyan-50 outline-none focus:border-cyan-300"
-              placeholder={
-                'Cole o TSX completo: imports, Props, export default, exampleProps e animacao.\n\nEx.: "use client" + remotion + componente final pronto para render.'
-              }
-              spellCheck={false}
-            />
 
-            {studioError ? (
-              <p className="mt-2 rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-                {studioError}
+            <div className="p-3">
+              <p className="mb-2.5 text-[10px] leading-relaxed text-zinc-600">
+                Cole o código Remotion TSX completo gerado externamente.
+                Briefing e geração ficam no seu fluxo.
               </p>
-            ) : null}
-            {!canSaveDraft && finalCodeDraft.trim() ? (
-              <ul className="mt-2 space-y-1 rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100">
-                {finalValidation.errors.map((item) => (
-                  <li key={item}>• {item}</li>
-                ))}
-              </ul>
-            ) : null}
-            {canSaveDraft ? (
-              <p className="mt-2 rounded-md border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
-                Codigo valido — pronto para salvar como draft.
-              </p>
-            ) : null}
 
-            <button
-              type="button"
-              onClick={() => saveAssistedDraft()}
-              disabled={!canSaveDraft}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-cyan-400 px-3 py-2.5 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Salvar draft
-            </button>
+              <label className="mb-1.5 block text-[8px] font-black uppercase tracking-[0.2em] text-zinc-600">
+                Código final gerado
+              </label>
+              <textarea
+                value={finalCodeDraft}
+                onChange={(e) => {
+                  setFinalCodeDraft(e.target.value);
+                  setStudioError("");
+                }}
+                className="min-h-[360px] w-full resize-y rounded-lg border border-cyan-400/15 bg-[#040a10] p-3 font-mono text-[10px] leading-relaxed text-cyan-100/90 outline-none transition-colors focus:border-cyan-400/40 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.04)]"
+                placeholder={
+                  'Cole o TSX completo: imports, Props, export default, exampleProps e animação.\n\nEx.: "use client" + remotion + componente final pronto para render.'
+                }
+                spellCheck={false}
+              />
+
+              {/* Validation feedback */}
+              {studioError ? (
+                <div className="mt-2 flex items-start gap-2 rounded-lg border border-red-400/25 bg-red-500/8 px-3 py-2">
+                  <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+                  <p className="text-[10px] text-red-300">{studioError}</p>
+                </div>
+              ) : null}
+              {!canSaveDraft && finalCodeDraft.trim() ? (
+                <ul className="mt-2 space-y-1 rounded-lg border border-amber-400/20 bg-amber-500/6 px-3 py-2">
+                  {finalValidation.errors.map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-start gap-1.5 text-[10px] text-amber-200/80"
+                    >
+                      <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-amber-400" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {canSaveDraft ? (
+                <div className="mt-2 flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-500/6 px-3 py-2">
+                  <Check className="h-3 w-3 shrink-0 text-emerald-400" />
+                  <p className="text-[10px] text-emerald-300">
+                    Código válido — pronto para salvar como draft.
+                  </p>
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => saveAssistedDraft()}
+                disabled={!canSaveDraft}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-400 py-2.5 text-[11px] font-black text-slate-900 transition-opacity disabled:cursor-not-allowed disabled:opacity-30 enabled:hover:bg-cyan-300"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Salvar draft
+              </button>
+            </div>
           </section>
 
-          <section className="rounded-lg border border-white/10 bg-[#0b0f17] p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Braces className="h-4 w-4 text-cyan-300" />
-              <h3 className="text-sm font-black text-white">
+          {/* ── Contrato do template ──────────────────────────────── */}
+          <section className="overflow-hidden rounded-xl border border-white/8 bg-[#080c13]">
+            <div className="flex items-center gap-2 border-b border-white/8 bg-[#0a0f1a] px-4 py-3">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-400/10">
+                <Braces className="h-3 w-3 text-cyan-400" />
+              </div>
+              <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">
                 Contrato do template
               </h3>
             </div>
-            {selected ? (
-              <>
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-bold text-white">
-                    {selected.name}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => deleteTemplate(selected.id)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-red-400/20 bg-red-500/10 px-2 py-1 text-[11px] font-bold text-red-200 hover:border-red-300/60 hover:bg-red-500/20"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Excluir
-                  </button>
-                </div>
-                <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-                  Todo template aprovado precisa ter preview 9:16 e 16:9, props
-                  declaradas e safe zones de legenda.
-                </p>
-                <div className="mt-3 space-y-2">
-                  {selected.dataSlots.map((slot) => (
-                    <div
-                      key={slot}
-                      className="flex items-center justify-between rounded border border-white/10 px-3 py-2 text-xs"
+
+            <div className="p-3">
+              {selected ? (
+                <>
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <p className="text-[12px] font-bold text-white">
+                      {selected.name}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => deleteTemplate(selected.id)}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-red-400/20 bg-red-500/8 px-2 py-1 text-[9px] font-bold text-red-300/80 transition-colors hover:border-red-400/40 hover:text-red-200"
                     >
-                      <span className="font-mono text-zinc-300">{slot}</span>
-                      <Copy className="h-3.5 w-3.5 text-zinc-500" />
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-zinc-500">
-                Nenhum template selecionado.
-              </p>
-            )}
+                      <Trash2 className="h-2.5 w-2.5" />
+                      Excluir
+                    </button>
+                  </div>
+                  <p className="mb-2.5 text-[10px] leading-relaxed text-zinc-600">
+                    Todo template aprovado precisa ter preview 9:16 e 16:9,
+                    props declaradas e safe zones de legenda.
+                  </p>
+                  <div className="space-y-1">
+                    {selected.dataSlots.map((slot) => (
+                      <div
+                        key={slot}
+                        className="flex items-center justify-between rounded-lg border border-white/6 bg-white/[0.025] px-2.5 py-1.5"
+                      >
+                        <span className="font-mono text-[10px] text-zinc-300">
+                          {slot}
+                        </span>
+                        <Copy className="h-3 w-3 text-zinc-600" />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="py-2 text-center text-[11px] text-zinc-600">
+                  Nenhum template selecionado.
+                </p>
+              )}
+            </div>
           </section>
 
-          <section className="rounded-lg border border-red-400/20 bg-red-950/10 p-4">
-            <div className="mb-2 flex items-center gap-2">
-              <Film className="h-4 w-4 text-red-300" />
-              <h3 className="text-sm font-black text-red-100">
-                Regra de orquestracao
+          {/* ── Regra de orquestração ─────────────────────────────── */}
+          <section className="overflow-hidden rounded-xl border border-red-500/15 bg-red-950/8">
+            <div className="flex items-center gap-2 border-b border-red-500/10 bg-red-950/15 px-4 py-2.5">
+              <div className="flex h-5 w-5 items-center justify-center rounded-md bg-red-500/10">
+                <Film className="h-2.5 w-2.5 text-red-400" />
+              </div>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-red-200/80">
+                Regra de orquestração
               </h3>
             </div>
-            <p className="text-xs leading-relaxed text-red-100/70">
-              Shorts usam no maximo 1 template Remotion. Longos usam ate 8.
-              Texto solto sem template aprovado nao entra automaticamente.
+            <p className="px-4 py-3 text-[10px] leading-relaxed text-red-200/50">
+              Shorts usam no máximo 1 template Remotion. Longos usam até 8.
+              Texto solto sem template aprovado não entra automaticamente.
             </p>
           </section>
         </aside>

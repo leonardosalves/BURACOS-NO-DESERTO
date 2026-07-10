@@ -5,6 +5,7 @@ import { adaptRemotionTemplate } from "./remotionTemplateStudioService.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import {
   createCatalogNiche,
+  deleteCatalogNiche,
   getCatalogForNiche,
   listCatalogNiches,
   exportFullTemplateCatalog,
@@ -146,6 +147,23 @@ export function registerRemotionTemplateStudioRoutes(
     }
   });
 
+  app.delete("/api/ai/template-studio/catalog/niche", (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    try {
+      const niche = String(req.body?.niche || req.query?.niche || "").trim();
+      const result = deleteCatalogNiche(niche);
+      if (!result.ok) {
+        return res.status(400).json({ success: false, error: result.error });
+      }
+      res.json({ success: true, ...result });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        error: err?.message || "Falha ao excluir catálogo do nicho.",
+      });
+    }
+  });
+
   app.get("/api/ai/template-studio/catalog", (req, res) => {
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     const niche = String(req.query?.niche || "Engenharia").trim();
@@ -205,23 +223,29 @@ export function registerRemotionTemplateStudioRoutes(
     try {
       const { execSync } = await import("child_process");
       const repoRoot = path.join(__dirname, "..", "..");
-      
+
       // Stage changes to template catalog
-      execSync("git add dashboard-qanat/backend/data/remotion-template-catalog.json", { cwd: repoRoot, stdio: "ignore" });
-      
+      execSync(
+        "git add dashboard-qanat/backend/data/remotion-template-catalog.json",
+        { cwd: repoRoot, stdio: "ignore" }
+      );
+
       // Attempt to commit
       let committed = false;
       try {
         const commitMsg = `sync(templates): atualizar catalogo de templates do studio - ${new Date().toLocaleString("pt-BR")}`;
-        execSync(`git commit -m "${commitMsg}" --no-verify`, { cwd: repoRoot, stdio: "ignore" });
+        execSync(`git commit -m "${commitMsg}" --no-verify`, {
+          cwd: repoRoot,
+          stdio: "ignore",
+        });
         committed = true;
       } catch (e) {
         // Fails if nothing to commit, which is fine
       }
-      
+
       // Push changes
       execSync("git push", { cwd: repoRoot, stdio: "ignore" });
-      
+
       res.json({
         success: true,
         message: committed
@@ -231,7 +255,8 @@ export function registerRemotionTemplateStudioRoutes(
     } catch (err) {
       res.status(500).json({
         success: false,
-        error: err?.message || "Falha ao executar o comando git push no servidor.",
+        error:
+          err?.message || "Falha ao executar o comando git push no servidor.",
       });
     }
   });
