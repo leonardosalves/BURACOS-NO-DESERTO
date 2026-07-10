@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildNotebooklmEvidenceMap } from "./notebooklmResearchBrief.js";
+import {
+  buildNotebooklmEvidenceMap,
+  assessNotebooklmEvidenceReadiness,
+} from "./notebooklmResearchBrief.js";
 
 test("evidence map retains claims without pretending they are verified sources", () => {
   const evidence = buildNotebooklmEvidenceMap({
@@ -9,4 +12,13 @@ test("evidence map retains claims without pretending they are verified sources",
   });
   assert.equal(evidence.length, 2);
   assert.equal(evidence[0].confidence, "needs_source_review");
+});
+
+test("long-form evidence gate requires multiple claims and a statistic", () => {
+  const report = assessNotebooklmEvidenceReadiness(
+    { evidence: [{ type: "fact" }] },
+    "LONGO"
+  );
+  assert.equal(report.ready, false);
+  assert.ok(report.issues.some((issue) => issue.includes("número")));
 });
