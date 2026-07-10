@@ -14,6 +14,70 @@ export const FORBIDDEN_FINAL_TERMS = [
   },
 ];
 
+const COMMON_LAYOUT_DEFAULTS = [
+  ["isVertical", "height > width"],
+  ["padX", "isVertical ? 36 : 64"],
+  ["padY", "isVertical ? 48 : 56"],
+  ["chartTop", "isVertical ? 132 : 118"],
+  [
+    "titleFontSize",
+    "isVertical ? Math.min(width * 0.13, 116) : Math.min(height * 0.16, 128)",
+  ],
+  [
+    "subtitleFontSize",
+    "isVertical ? Math.max(18, width * 0.038) : Math.max(18, height * 0.035)",
+  ],
+  [
+    "labelFontSize",
+    "isVertical ? Math.max(14, width * 0.03) : Math.max(13, height * 0.026)",
+  ],
+  [
+    "chipFontSize",
+    "isVertical ? Math.max(15, width * 0.034) : Math.max(15, height * 0.03)",
+  ],
+  [
+    "bodyFontSize",
+    "isVertical ? Math.max(16, width * 0.035) : Math.max(15, height * 0.03)",
+  ],
+  ["animDuration", "Math.round(fps * 2.8)"],
+  ["maxValue", "100"],
+];
+
+function identifierDeclared(code, name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(
+    `\\b(?:const|let|var|function|type|interface)\\s+${escaped}\\b|[,{]\\s*${escaped}\\s*(?:=|[,}])`
+  ).test(code);
+}
+
+function identifierUsed(code, name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escaped}\\b`).test(code);
+}
+
+/** Injeta consts de layout (padX, chartTop, etc.) quando o TSX usa mas nao declara. */
+export function repairCommonTemplateLayoutVars(code) {
+  const src = String(code || "");
+  if (!src.trim()) return src;
+
+  const missing = COMMON_LAYOUT_DEFAULTS.filter(
+    ([name]) => identifierUsed(src, name) && !identifierDeclared(src, name)
+  );
+  if (!missing.length) return src;
+
+  const hookMatch = src.match(
+    /const\s*\{\s*width\s*,\s*height\s*(?:,\s*fps)?\s*\}\s*=\s*useVideoConfig\s*\(\s*\)\s*;/
+  );
+  if (!hookMatch?.index) return src;
+
+  const insertAt = hookMatch.index + hookMatch[0].length;
+  const declarations = missing
+    .map(([name, expression]) => `\n  const ${name} = ${expression};`)
+    .join("");
+
+  return `${src.slice(0, insertAt)}${declarations}${src.slice(insertAt)}`;
+}
+
 const INCOMPLETE_ORIGINAL_MARKERS = [
   /c[oó]digo original do template/i,
   /^\/\/\s*(c[oó]digo|template|mock|exemplo)/im,

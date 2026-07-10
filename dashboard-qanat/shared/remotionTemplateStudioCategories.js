@@ -169,8 +169,80 @@ export function loadTemplateCategoryCatalog(
   return syncCategoriesFromTemplates(merged, templates);
 }
 
+const MAPS_MOTION_TEMPLATE_IDS = new Set([
+  "location-intro",
+  "flyover",
+  "map-zoom",
+  "regional-pin",
+]);
+
+const PALETTE_SUBCATEGORY_ALIASES = {
+  maps: {
+    "pip mapa": ["picture in picture", "pip media", "pip mapa"],
+    flyover: ["flyover", "map zoom"],
+    "mapa antigo": ["mapa antigo", "historic map"],
+    "pin regional": ["pin regional", "regional pin"],
+  },
+};
+
+function templateHaystack(template = {}) {
+  return [
+    template.category,
+    template.subcategory,
+    template.name,
+    template.motion_template_id,
+  ]
+    .map((part) => String(part || "").trim().toLowerCase())
+    .filter(Boolean)
+    .join(" ");
+}
+
+export function templateMatchesPaletteCategory(template = {}, paletteCategoryId = "") {
+  const paletteId = String(paletteCategoryId || "").trim().toLowerCase();
+  const templateCategory = String(template?.category || "").trim().toLowerCase();
+  if (!paletteId) return false;
+  if (paletteId === templateCategory) return true;
+
+  if (paletteId === "maps") {
+    const motionId = String(template?.motion_template_id || "")
+      .trim()
+      .toLowerCase();
+    if (MAPS_MOTION_TEMPLATE_IDS.has(motionId)) return true;
+
+    const haystack = templateHaystack(template);
+    if (templateCategory === "image-media" && haystack.includes("picture in picture")) {
+      return true;
+    }
+    if (haystack.includes("flyover") || haystack.includes("pip mapa")) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function templateMatchesPaletteSubcategory(
+  template = {},
+  paletteCategoryId = "",
+  subcategoryName = ""
+) {
+  const paletteSub = subcategoryKey(subcategoryName);
+  const templateSub = subcategoryKey(template?.subcategory || "");
+  if (!paletteSub) return true;
+  if (paletteSub === templateSub) return true;
+
+  const aliases =
+    PALETTE_SUBCATEGORY_ALIASES[String(paletteCategoryId || "").trim().toLowerCase()] ||
+    {};
+  const accepted = aliases[paletteSub] || [];
+  const haystack = templateHaystack(template);
+  return accepted.some((alias) => haystack.includes(subcategoryKey(alias)));
+}
+
 export function countTemplatesInCategory(templates = [], categoryId = "") {
-  return templates.filter((tpl) => tpl.category === categoryId).length;
+  return templates.filter((tpl) =>
+    templateMatchesPaletteCategory(tpl, categoryId)
+  ).length;
 }
 
 export function filterTemplatesByCategorySubcategory(
@@ -178,10 +250,12 @@ export function filterTemplatesByCategorySubcategory(
   categoryId = "",
   subcategoryName = ""
 ) {
-  const inCategory = templates.filter((tpl) => tpl.category === categoryId);
+  const inCategory = templates.filter((tpl) =>
+    templateMatchesPaletteCategory(tpl, categoryId)
+  );
   if (!subcategoryName) return inCategory;
-  const matched = inCategory.filter(
-    (tpl) => tpl.subcategory === subcategoryName
+  const matched = inCategory.filter((tpl) =>
+    templateMatchesPaletteSubcategory(tpl, categoryId, subcategoryName)
   );
   return matched.length ? matched : inCategory;
 }
