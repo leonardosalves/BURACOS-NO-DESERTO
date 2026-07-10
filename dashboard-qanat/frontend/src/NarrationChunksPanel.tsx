@@ -819,9 +819,9 @@ export function NarrationChunksPanel({
                             }
                             // Cache key estável
                             const cacheKey = `${chunk.audio_file}::${chunk.duration_s ?? 0}::${chunk.status ?? ""}`;
-                            const url = getMediaUrl(chunk.audio_file!);
+                            const url = `${getMediaUrl(chunk.audio_file!)}?v=${Date.now()}`;
                             console.log(
-                              "[Audio Preview] Resolved media URL:",
+                              "[Audio Preview] Resolved media URL (with cache-buster):",
                               url
                             );
 
