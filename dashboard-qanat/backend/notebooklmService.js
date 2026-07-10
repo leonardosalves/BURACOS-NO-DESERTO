@@ -84,32 +84,6 @@ const LOGIN_PENDING_TIMEOUT_MS = Number(
 
 let loginChild = null;
 let loginStartedAt = null;
-const NOTEBOOKLM_STATUS_CACHE_MS = Number(
-  process.env.NOTEBOOKLM_STATUS_CACHE_MS || 5 * 60 * 1000
-);
-const notebooklmStatusCache = new Map();
-
-function notebooklmStatusCacheKey(backendDir) {
-  return resolveNotebooklmDataDir(backendDir);
-}
-
-function cacheNotebooklmStatus(backendDir, status) {
-  notebooklmStatusCache.set(notebooklmStatusCacheKey(backendDir), {
-    checkedAt: Date.now(),
-    status,
-  });
-  return status;
-}
-
-function getCachedNotebooklmStatus(backendDir) {
-  const cached = notebooklmStatusCache.get(
-    notebooklmStatusCacheKey(backendDir)
-  );
-  if (!cached || Date.now() - cached.checkedAt > NOTEBOOKLM_STATUS_CACHE_MS) {
-    return null;
-  }
-  return { ...cached.status, cached: true, checkedAt: cached.checkedAt };
-}
 
 function resolveNotebooklmDataDir(backendDir) {
   if (process.env.NOTEBOOKLM_MCP_CLI_PATH) {
@@ -361,7 +335,7 @@ export function startNotebooklmLogin(backendDir) {
     }
   }
 
-  const current = getNotebooklmStatus(backendDir, { refresh: true });
+  const current = getNotebooklmStatus(backendDir);
   if (current.authenticated) {
     return {
       started: false,
@@ -412,17 +386,9 @@ export function startNotebooklmLogin(backendDir) {
   }
 }
 
-export function getNotebooklmStatus(
-  backendDir,
-  { quick = false, refresh = false } = {}
-) {
+export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
   const serviceMode = isLumieraWindowsServiceMode(backendDir);
   const loginState = getNotebooklmLoginState();
-
-  if (!refresh && !loginState.inProgress) {
-    const cached = getCachedNotebooklmStatus(backendDir);
-    if (cached) return cached;
-  }
 
   if (loginState.inProgress) {
     if (loginPendingTimedOut()) {
@@ -435,9 +401,9 @@ export function getNotebooklmStatus(
         });
         clearNotebooklmLoginState();
       } catch {
-        return cacheNotebooklmStatus(
+        return buildLoginPendingStatus(
           backendDir,
-          buildLoginPendingStatus(backendDir, "Aguardando login no navegador…")
+          "Aguardando login no navegador…"
         );
       }
     }
@@ -449,7 +415,7 @@ export function getNotebooklmStatus(
       backendDir,
     });
     if (quick) {
-      return cacheNotebooklmStatus(backendDir, {
+      return {
         available: true,
         authenticated: true,
         notebookCount: null,
@@ -457,7 +423,7 @@ export function getNotebooklmStatus(
         serviceMode,
         message: "NotebookLM conectado",
         dataDir: resolveNotebooklmDataDir(backendDir),
-      });
+      };
     }
     const listRaw = runNlm(["notebook", "list", "--json"], {
       timeoutMs: 25000,
@@ -465,7 +431,7 @@ export function getNotebooklmStatus(
     });
     const notebooks = parseJsonOutput(listRaw);
     const count = Array.isArray(notebooks) ? notebooks.length : 0;
-    return cacheNotebooklmStatus(backendDir, {
+    return {
       available: true,
       authenticated: true,
       notebookCount: count,
@@ -476,7 +442,7 @@ export function getNotebooklmStatus(
           ? `NotebookLM conectado (${count} notebook${count === 1 ? "" : "s"})`
           : "NotebookLM conectado — pronto para pesquisa",
       dataDir: resolveNotebooklmDataDir(backendDir),
-    });
+    };
   } catch (err) {
     const msg = String(err.message || "");
     const auth = isAuthError(msg);
@@ -484,7 +450,7 @@ export function getNotebooklmStatus(
     const cliMissing = msg.includes("ENOENT");
     const freshLoginState = getNotebooklmLoginState();
     const manualLogin = serviceMode && !cliMissing;
-    return cacheNotebooklmStatus(backendDir, {
+    return {
       available: false,
       authenticated: false,
       notebookCount: 0,
@@ -505,7 +471,7 @@ export function getNotebooklmStatus(
       dataDir: resolveNotebooklmDataDir(backendDir),
       needsLogin: auth || cliMissing || manualLogin || timedOut,
       cliMissing,
-    });
+    };
   }
 }
 
@@ -641,15 +607,6 @@ async function addTextSourceAsync(notebookId, title, text, backendDir) {
       ],
       { timeoutMs: 120000, backendDir }
     );
-    const ready = await waitForNotebookSourcesToLoadAsync(
-      notebookId,
-      backendDir
-    );
-    if (!ready) {
-      throw new Error(
-        "Fontes NotebookLM não ficaram prontas antes da consulta."
-      );
-    }
   } finally {
     try {
       fs.unlinkSync(tmpFile);
@@ -761,29 +718,6 @@ async function runOptionalFastResearchAsync(
   return false;
 }
 
-export function assessNotebooklmSourcesReadiness(sources = [], minSources = 1) {
-  const normalized = Array.isArray(sources) ? sources : [];
-  const pending = normalized.filter((source) => {
-    const chars = Number(source?.char_count ?? source?.charCount ?? 0);
-    const state = String(source?.status || source?.state || "").toLowerCase();
-    return chars <= 0 || ["processing", "pending", "queued"].includes(state);
-  });
-  const failed = normalized.filter((source) =>
-    ["failed", "error"].includes(
-      String(source?.status || source?.state || "").toLowerCase()
-    )
-  );
-  return {
-    ready:
-      normalized.length >= minSources &&
-      pending.length === 0 &&
-      failed.length === 0,
-    total: normalized.length,
-    pending: pending.length,
-    failed: failed.length,
-  };
-}
-
 async function waitForNotebookSourcesToLoadAsync(
   notebookId,
   backendDir,
@@ -809,19 +743,28 @@ async function waitForNotebookSourcesToLoadAsync(
         continue;
       }
 
-      const details = [];
-      for (const src of sources) {
+      const sample = sources.slice(0, 3);
+      let allSampleReady = true;
+
+      for (const src of sample) {
         const getRaw = await runNlmAsync(["source", "get", src.id, "--json"], {
           timeoutMs: 10000,
           backendDir,
         });
-        details.push(parseJsonOutput(getRaw) || src);
+        const details = parseJsonOutput(getRaw);
+        if (
+          !details ||
+          details.char_count === 0 ||
+          details.char_count == null
+        ) {
+          allSampleReady = false;
+          break;
+        }
       }
 
-      const readiness = assessNotebooklmSourcesReadiness(details);
-      if (readiness.ready) {
+      if (allSampleReady) {
         console.log(
-          `[NotebookLM] ${readiness.total} fonte(s) carregada(s) em ${((Date.now() - startTime) / 1000).toFixed(1)}s`
+          `[NotebookLM] Fontes carregadas com sucesso em ${((Date.now() - startTime) / 1000).toFixed(1)}s`
         );
         return true;
       }
@@ -1178,8 +1121,7 @@ async function runNotebooklmPipeline({
         backendDir
       );
     } catch (err) {
-      console.warn("[NotebookLM] Upload de brief bloqueado:", err.message);
-      throw new Error(`Pesquisa degradada: ${err.message}`);
+      console.warn("[NotebookLM] Upload de brief ignorado:", err.message);
     }
   }
 
