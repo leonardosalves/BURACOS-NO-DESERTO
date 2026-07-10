@@ -102,15 +102,15 @@ export function SavedTemplatePreviewFrame({
   const dimensions =
     size === "detail"
       ? vertical
-        ? { width: 360, height: 640, className: "w-[220px] sm:w-[270px]" }
+        ? { width: 1080, height: 1920, className: "w-[220px] sm:w-[270px]" }
         : {
-            width: 640,
-            height: 360,
+            width: 1920,
+            height: 1080,
             className: "w-[280px] sm:w-[430px] lg:w-[520px]",
           }
       : vertical
-        ? { width: 180, height: 320, className: "w-[92px]" }
-        : { width: 320, height: 180, className: "w-[190px]" };
+        ? { width: 1080, height: 1920, className: "w-[92px]" }
+        : { width: 1920, height: 1080, className: "w-[190px]" };
 
   const compiled = useMemo(
     () => compileSavedTemplateSource(sourceCode, { React, Remotion }),
@@ -193,37 +193,7 @@ export function SavedTemplatePreviewFrame({
    * Remotion autoPlay é one-shot (useState) e falha se o Player ainda não montou
    * (lazy IntersectionObserver + compile). Forçamos play() com retry.
    */
-  useEffect(() => {
-    if (!previewMeta || !studioAutoPlay) return;
 
-    let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = 48;
-
-    const ensurePlaying = () => {
-      if (cancelled || attempts >= maxAttempts) return;
-      attempts += 1;
-
-      const player = playerRef.current;
-      if (!player) {
-        requestAnimationFrame(ensurePlaying);
-        return;
-      }
-
-      if (!player.isPlaying()) {
-        player.play();
-      }
-
-      if (!cancelled && !player.isPlaying() && attempts < maxAttempts) {
-        window.setTimeout(ensurePlaying, 100);
-      }
-    };
-
-    ensurePlaying();
-    return () => {
-      cancelled = true;
-    };
-  }, [previewMeta, studioAutoPlay, sourceCode]);
 
   if (compiled.ok === false) {
     if (fallback) {
@@ -309,6 +279,7 @@ export function SavedTemplatePreviewFrame({
           autoPlay={studioAutoPlay}
           loop={studioAutoPlay || !timelineSynced}
           clickToPlay={size === "detail"}
+          muted
           noSuspense
           acknowledgeRemotionLicense
           errorFallback={({ error }) => (
