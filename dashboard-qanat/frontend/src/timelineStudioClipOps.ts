@@ -181,3 +181,49 @@ export function tightenStudioTimelineClips(clips: StudioClip[]): {
 
   return { clips: result, closed };
 }
+
+export type TimelineGap = { start: number; end: number; duration: number };
+
+/** Calculates uncovered time across one or more visual tracks without double-counting overlaps. */
+export function analyzeTimelineCoverage(
+  clips: StudioClip[],
+  trackIds: string[],
+  totalDuration: number
+): { coveredSeconds: number; coveragePercent: number; gaps: TimelineGap[] } {
+  const total = Math.max(0, Number(totalDuration) || 0);
+  if (!total) return { coveredSeconds: 0, coveragePercent: 0, gaps: [] };
+  const allowed = new Set(trackIds);
+  const ranges = clips
+    .filter((clip) => allowed.has(clip.trackId) && Number(clip.duration) > 0)
+    .map((clip) => ({
+      start: Math.max(0, Number(clip.start) || 0),
+      end: Math.min(
+        total,
+        (Number(clip.start) || 0) + (Number(clip.duration) || 0)
+      ),
+    }))
+    .filter((range) => range.end > range.start)
+    .sort((a, b) => a.start - b.start);
+  const gaps: TimelineGap[] = [];
+  let cursor = 0;
+  for (const range of ranges) {
+    if (range.start > cursor + MIN_GAP_SEC) {
+      gaps.push({
+        start: cursor,
+        end: range.start,
+        duration: range.start - cursor,
+      });
+    }
+    cursor = Math.max(cursor, range.end);
+  }
+  if (cursor < total - MIN_GAP_SEC) {
+    gaps.push({ start: cursor, end: total, duration: total - cursor });
+  }
+  const gapSeconds = gaps.reduce((sum, gap) => sum + gap.duration, 0);
+  const coveredSeconds = Math.max(0, total - gapSeconds);
+  return {
+    coveredSeconds,
+    coveragePercent: Math.round((coveredSeconds / total) * 100),
+    gaps,
+  };
+}
