@@ -55,8 +55,8 @@ function extractLocationFromContext(text = "", researchContext = {}) {
   if (building?.[2]) {
     return {
       location: building[2].trim(),
-      region: "São Paulo",
-      country: "Brasil",
+      region: "",
+      country: "",
     };
   }
 
@@ -64,7 +64,7 @@ function extractLocationFromContext(text = "", researchContext = {}) {
     /\b(?:em|na|no)\s+([A-ZÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ][a-záàâãéèêíìîóòôõúùûç]+(?:\s+[A-ZÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ][a-záàâãéèêíìîóòôõúùûç]+){0,3})\b/
   );
   if (emMatch?.[1] && emMatch[1].length > 3) {
-    return { location: emMatch[1], region: "", country: "Brasil" };
+    return { location: emMatch[1], region: "", country: "" };
   }
 
   return null;
@@ -92,7 +92,7 @@ export function resolvePlaceWithResearch(text = "", researchContext = {}) {
   if (researchContext.hasExplicitSources) {
     const topic = String(researchContext.videoTopic || "");
     if (topic.length > 4) {
-      return { location: topic.slice(0, 48), region: "", country: "Brasil" };
+      return { location: topic.slice(0, 48), region: "", country: "" };
     }
   }
 
