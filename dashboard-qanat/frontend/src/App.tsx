@@ -10653,6 +10653,7 @@ export default function App() {
     ytTags,
     ytThumbnailVariant,
     ytTitle,
+    onCancelRender: handleCancelRender,
   });
 
   return (

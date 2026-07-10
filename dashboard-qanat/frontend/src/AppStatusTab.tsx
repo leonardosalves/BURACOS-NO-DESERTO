@@ -43,6 +43,7 @@ export type AppStatusTabProps = {
   status: WorkspaceStatus | null;
   triggerRender: (...args: any[]) => void | Promise<void>;
   videoQuality: VideoQualityReport | null;
+  onCancelRender?: () => void;
 };
 
 export function AppStatusTab({
@@ -65,6 +66,7 @@ export function AppStatusTab({
   status,
   triggerRender,
   videoQuality,
+  onCancelRender,
 }: AppStatusTabProps) {
   return (
     <DashminProjectTabLayout tab="status" activeProject={activeProject}>
@@ -107,6 +109,31 @@ export function AppStatusTab({
               Resolução →
             </button>
           </div>
+
+          {rendering && onCancelRender && (
+            <div className="mb-4 p-3 bg-red-950/20 border border-red-900/50 rounded-xl flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                <div>
+                  <span className="text-[11px] font-bold text-red-200 block">
+                    Renderização em andamento (ou processo travado)
+                  </span>
+                  <span className="text-[9px] text-zinc-400 block mt-0.5">
+                    Se você não estiver renderizando nada no momento, clique no
+                    botão para destravar e liberar a tela.
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onCancelRender}
+                className="bg-red-900 hover:bg-red-800 text-white font-bold text-[10px] px-3.5 py-1.5 rounded-lg transition shrink-0 cursor-pointer shadow-lg shadow-red-950/50"
+              >
+                Forçar Parar Render
+              </button>
+            </div>
+          )}
+
           <div className="lumiera-render-engines-grid">
             {/* Compiler Card */}
             <div className="glass-panel lumiera-render-card">
