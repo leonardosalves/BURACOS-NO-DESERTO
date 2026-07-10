@@ -976,11 +976,18 @@ function resolveProjectDirFromName(rawProjName) {
 }
 
 app.use("/api/projects-media", (req, res, next) => {
+  const startTime = Date.now();
   const decodedUrl = decodeURIComponent(req.path);
-
   const parts = decodedUrl.split("/").filter(Boolean);
 
+  console.log(
+    `[Media Req] ${req.method} ${decodedUrl} - Iniciando processamento em ${new Date().toISOString()}`
+  );
+
   if (parts.length === 0) {
+    console.log(
+      `[Media Req] ${decodedUrl} - Caminho vazio. 404 retornado em ${Date.now() - startTime}ms`
+    );
     return res.status(404).end();
   }
 
@@ -996,6 +1003,9 @@ app.use("/api/projects-media", (req, res, next) => {
       parts[1] === "logos" ||
       /^logo\.(png|jpe?g|webp|svg)$/i.test(parts[1] || "");
     if (!allowedGlobalAsset) {
+      console.log(
+        `[Media Req] ${decodedUrl} - Bloqueado asset global. 404 retornado em ${Date.now() - startTime}ms`
+      );
       return res.status(404).json({
         error:
           "Assets globais desativados para midia de projeto. Informe /api/projects-media/:project/ASSETS/arquivo.",
@@ -1018,29 +1028,41 @@ app.use("/api/projects-media", (req, res, next) => {
       };
       const mime = mediaTypes[ext];
       if (mime) res.type(mime);
+      console.log(
+        `[Media Req] ${decodedUrl} - Servindo asset global: ${fullFilePath} em ${Date.now() - startTime}ms`
+      );
       return res.sendFile(path.resolve(fullFilePath), sendFileOpts);
     }
 
+    console.log(
+      `[Media Req] ${decodedUrl} - Asset global não existe: ${fullFilePath}. 404 em ${Date.now() - startTime}ms`
+    );
     return res.status(404).json({ error: "Arquivo não encontrado." });
   }
 
   const projName = parts[0].replace(/ /g, "_");
-
+  const resolveStart = Date.now();
   const projDir = resolveProjectDirFromName(projName);
+  const resolveTime = Date.now() - resolveStart;
 
   if (!projDir) {
+    console.log(
+      `[Media Req] ${decodedUrl} - Projeto não encontrado: ${projName} (busca levou ${resolveTime}ms). 404 em ${Date.now() - startTime}ms`
+    );
     return res
       .status(404)
       .json({ error: `Projeto não encontrado: ${projName}` });
   }
 
   const fileSubpath = parts.slice(1).join("/");
-
   const fullFilePath = path.join(projDir, fileSubpath);
+
+  const fileCheckStart = Date.now();
   const resolvedPath =
     fs.existsSync(fullFilePath) && fs.statSync(fullFilePath).isFile()
       ? fullFilePath
       : findProjectFileLocal(projDir, path.basename(fileSubpath));
+  const fileCheckTime = Date.now() - fileCheckStart;
 
   if (resolvedPath && fs.existsSync(resolvedPath)) {
     const ext = path.extname(resolvedPath).toLowerCase();
@@ -1064,9 +1086,15 @@ app.use("/api/projects-media", (req, res, next) => {
     };
     const mime = mediaTypes[ext];
     if (mime) res.type(mime);
+    console.log(
+      `[Media Req] ${decodedUrl} - Servindo mídia: ${resolvedPath} (resolução do projeto levou ${resolveTime}ms, check de arquivo levou ${fileCheckTime}ms, enviando arquivo em ${Date.now() - startTime}ms total)`
+    );
     return res.sendFile(path.resolve(resolvedPath), sendFileOpts);
   }
 
+  console.log(
+    `[Media Req] ${decodedUrl} - Mídia não encontrada: ${fullFilePath} (resolução do projeto levou ${resolveTime}ms, check de arquivo levou ${fileCheckTime}ms, falhou em ${Date.now() - startTime}ms total)`
+  );
   return res.status(404).json({ error: "Arquivo de mídia não encontrado." });
 });
 

@@ -796,7 +796,14 @@ export function NarrationChunksPanel({
                           type="button"
                           onClick={() => {
                             // Se já está tocando este chunk, parar
+                            console.log(
+                              "[Audio Preview] Play clicked for chunk:",
+                              chunk.id
+                            );
                             if (playingChunkId === chunk.id) {
+                              console.log(
+                                "[Audio Preview] Pausing currently playing chunk"
+                              );
                               chunkAudioRef.current?.audio.pause();
                               chunkAudioRef.current = null;
                               setPlayingChunkId(null);
@@ -804,27 +811,53 @@ export function NarrationChunksPanel({
                             }
                             // Parar áudio anterior
                             if (chunkAudioRef.current) {
+                              console.log(
+                                "[Audio Preview] Stopping previous audio instance"
+                              );
                               chunkAudioRef.current.audio.pause();
                               chunkAudioRef.current = null;
                             }
                             // Cache key estável
                             const cacheKey = `${chunk.audio_file}::${chunk.duration_s ?? 0}::${chunk.status ?? ""}`;
                             const url = getMediaUrl(chunk.audio_file!);
+                            console.log(
+                              "[Audio Preview] Resolved media URL:",
+                              url
+                            );
+
+                            console.time(
+                              "[Audio Preview] Instantiation to Play"
+                            );
                             const audio = new Audio(url);
                             audio.preload = "auto";
                             chunkAudioRef.current = { audio, key: cacheKey };
                             setPlayingChunkId(chunk.id);
+
+                            audio.onplay = () => {
+                              console.log(
+                                "[Audio Preview] Event: play started"
+                              );
+                              console.timeEnd(
+                                "[Audio Preview] Instantiation to Play"
+                              );
+                            };
                             audio.onended = () => {
+                              console.log("[Audio Preview] Event: ended");
                               setPlayingChunkId(null);
                               chunkAudioRef.current = null;
                             };
-                            audio.onerror = () => {
+                            audio.onerror = (e) => {
+                              console.error("[Audio Preview] Event: error", e);
                               setPlayingChunkId(null);
                               chunkAudioRef.current = null;
                             };
                             // Inicia a reprodução diretamente
+                            console.log("[Audio Preview] Calling audio.play()");
                             audio.play().catch((err) => {
-                              console.warn("Erro ao reproduzir áudio:", err);
+                              console.warn(
+                                "[Audio Preview] play() promise rejected:",
+                                err
+                              );
                               setPlayingChunkId(null);
                               chunkAudioRef.current = null;
                             });
