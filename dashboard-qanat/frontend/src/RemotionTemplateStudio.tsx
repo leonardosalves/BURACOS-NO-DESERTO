@@ -3527,6 +3527,60 @@ export function RemotionTemplateStudio({
     }
   }
 
+  function deleteAllSubcategories() {
+    if (!currentCategory) return;
+    if (currentCategory.subcategories.length === 0) {
+      window.alert("Não há subcategorias para excluir nesta categoria.");
+      return;
+    }
+    const shouldDelete = window.confirm(
+      `Excluir TODAS as ${currentCategory.subcategories.length} subcategorias de "${currentCategory.label}" e todos os seus templates?`
+    );
+    if (!shouldDelete) return;
+
+    const subcategoryKeys = currentCategory.subcategories.map((sub) =>
+      deletedSubcategoryKey(currentCategory.id, sub)
+    );
+
+    const subcategoryTemplateIds = templates
+      .filter(
+        (template) =>
+          template.category === currentCategory.id &&
+          currentCategory.subcategories.includes(template.subcategory)
+      )
+      .map((template) => template.id);
+
+    mutateDeletedCatalog((deleted) => ({
+      ...deleted,
+      subcategories: [
+        ...new Set([...deleted.subcategories, ...subcategoryKeys]),
+      ],
+      templates: [
+        ...new Set([...deleted.templates, ...subcategoryTemplateIds]),
+      ],
+    }));
+
+    setCategories((current) =>
+      current.map((item) =>
+        item.id === currentCategory.id ? { ...item, subcategories: [] } : item
+      )
+    );
+
+    setTemplates((current) =>
+      current.filter(
+        (template) =>
+          !(
+            template.category === currentCategory.id &&
+            currentCategory.subcategories.includes(template.subcategory)
+          )
+      )
+    );
+
+    setSubcategory("");
+    setSelectedId("");
+    setDetailTemplateId("");
+  }
+
   async function copyTemplateSource(template?: TemplateItem) {
     if (!template) return;
     try {
@@ -3809,6 +3863,17 @@ export function RemotionTemplateStudio({
                   <Plus className="h-3 w-3" />
                   Subcategoria
                 </button>
+                {subcategories.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={deleteAllSubcategories}
+                    className="inline-flex items-center gap-1 rounded-full border border-red-300/30 bg-red-300/10 px-3 py-1.5 text-xs font-black text-red-100 hover:border-red-300/70"
+                    title="Excluir todas as subcategorias"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Excluir todas
+                  </button>
+                )}
               </div>
             </div>
           </div>
