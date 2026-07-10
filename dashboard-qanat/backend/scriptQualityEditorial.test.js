@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assessEditorialContract } from "./scriptQuality.js";
+import {
+  assessEditorialContract,
+  assessNarrationReadiness,
+} from "./scriptQuality.js";
 
 test("editorial contract flags a short without payoff", () => {
   const report = assessEditorialContract({
@@ -15,6 +18,19 @@ test("editorial contract flags a short without payoff", () => {
 
   assert.equal(report.ok, false);
   assert.ok(report.issues.some((issue) => issue.includes("Final sem payoff")));
+});
+
+test("narration readiness flags speech-unfriendly density", () => {
+  const report = assessNarrationReadiness({
+    format: "SHORTS",
+    narrativeScript:
+      "NASA e ONU divulgaram 20251234 dados importantes, mas esta frase foi construída para ficar deliberadamente longa e cansativa quando alguém tenta narrá-la sem uma pausa natural no meio.",
+  });
+
+  assert.equal(report.ok, true);
+  assert.ok(report.longSentenceCount > 0);
+  assert.ok(report.acronyms.includes("NASA"));
+  assert.ok(report.recommendations.length > 0);
 });
 
 test("editorial contract accepts a complete short structure", () => {
