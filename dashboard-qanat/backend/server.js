@@ -616,6 +616,20 @@ const OPENROUTER_FREE_MODELS = [
 const app = express();
 app.disable("x-powered-by");
 
+app.use(express.json({ limit: "50mb", strict: true }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// Catch malformed JSON syntax errors to prevent crashing
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    console.warn("[Body Parser Error] Malformed JSON received:", err.message);
+    return res
+      .status(400)
+      .json({ error: "Malformed JSON payload: " + err.message });
+  }
+  next(err);
+});
+
 // --- Crash log persistente (sobrevive a restarts) ---
 const CRASH_LOG_PATH = path.join(
   WORKSPACE_DIR,
@@ -939,19 +953,7 @@ if (fs.existsSync(LOTTIE_ASSETS_DIR)) {
   );
 }
 
-app.use(express.json({ limit: "50mb", strict: true }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-
-// Catch malformed JSON syntax errors to prevent crashing
-app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
-    console.warn("[Body Parser Error] Malformed JSON received:", err.message);
-    return res
-      .status(400)
-      .json({ error: "Malformed JSON payload: " + err.message });
-  }
-  next(err);
-});
+// Body parsers moved to top of file to allow early routes to access req.body
 
 // Cache de resolução de projetos — evita readdirSync em cada request de mídia
 const _projectDirCache = new Map();
@@ -4671,7 +4673,7 @@ app.post(
 
         shell: true,
 
-        env: { ...process.env, PYTHONUNBUFFERED: "1" },
+        env: buildPythonSpawnEnv(),
       });
 
       let stdout = "";
@@ -6792,6 +6794,7 @@ app.get(
           cwd: projDir,
 
           shell: true,
+          env: buildPythonSpawnEnv(),
         });
 
         mixProcess.stdout.on("data", (data) => {
@@ -7072,7 +7075,7 @@ app.get(
 
           shell: true,
 
-          env: { ...process.env },
+          env: buildPythonSpawnEnv(),
         });
 
         activeRenderProcesses.set(renderJobId, child);
@@ -7249,11 +7252,9 @@ app.get(
 
       shell: true,
 
-      env: {
-        ...process.env,
-        PYTHONUNBUFFERED: "1",
+      env: buildPythonSpawnEnv({
         LUMIERA_RENDER_RESOLUTION: resolution,
-      },
+      }),
     });
 
     const pyKey = `python_${renderProjectName}`;
@@ -11363,7 +11364,7 @@ app.post(
                 const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
                   cwd: projDir,
                   shell: true,
-                  env: { ...process.env, PYTHONUNBUFFERED: "1" },
+                  env: buildPythonSpawnEnv(),
                 });
                 let stderr = "";
                 child.stderr.on("data", (d) => {
@@ -13923,6 +13924,7 @@ app.get(
               const child = spawn(PYTHON_PATH, [scriptName], {
                 cwd: dir,
                 shell: true,
+                env: buildPythonSpawnEnv(),
               });
               child.stdout.on("data", (d) => log(d.toString().trim()));
               child.stderr.on("data", (d) =>
