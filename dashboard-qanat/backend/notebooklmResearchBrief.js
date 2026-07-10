@@ -235,6 +235,35 @@ export function buildNotebooklmEvidenceMap({
   return evidence;
 }
 
+export function assessNotebooklmEvidenceReadiness(
+  parsed = {},
+  format = "SHORTS"
+) {
+  const isShort = format === "SHORTS" || format === "SHORT";
+  const evidence = Array.isArray(parsed.evidence) ? parsed.evidence : [];
+  const minimum = isShort ? 2 : 4;
+  const facts = evidence.filter((item) => item.type === "fact").length;
+  const statistics = evidence.filter(
+    (item) => item.type === "statistic"
+  ).length;
+  const issues = [];
+  if (evidence.length < minimum)
+    issues.push(
+      `São necessárias ${minimum} evidências para ${isShort ? "Short" : "vídeo longo"}.`
+    );
+  if (facts < 1) issues.push("Falta ao menos um fato narrável.");
+  if (!isShort && statistics < 1)
+    issues.push("Vídeo longo precisa de ao menos um número, data ou medida.");
+  return {
+    ready: issues.length === 0,
+    minimum,
+    total: evidence.length,
+    facts,
+    statistics,
+    issues,
+  };
+}
+
 export function parseNotebooklmBriefMarkdown(md = "") {
   const { meta, body } = parseFrontmatter(md);
   const accumulatedMatch = body.match(
@@ -249,6 +278,10 @@ export function parseNotebooklmBriefMarkdown(md = "") {
   const locations = extractLocations(accumulatedSection);
   const hooks = extractHooks(accumulatedSection);
   const evidence = buildNotebooklmEvidenceMap({ facts, stats, locations });
+  const evidenceReadiness = assessNotebooklmEvidenceReadiness(
+    { evidence },
+    meta.format || "SHORTS"
+  );
 
   return {
     meta,
@@ -258,6 +291,7 @@ export function parseNotebooklmBriefMarkdown(md = "") {
     locations,
     hooks,
     evidence,
+    evidenceReadiness,
     templateHints: {
       locations,
       stats,
