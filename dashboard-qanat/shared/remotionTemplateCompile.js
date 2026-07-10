@@ -142,13 +142,48 @@ function prepareRunnableSource(code) {
   src = src.replace(/^import\s+["'][^"']+["'];?\s*/gm, "");
   src = src.replace(/export\s+const\s+exampleProps[^=]*=[\s\S]*?;\s*/m, "");
 
+  let componentName = null;
+
+  // Case A: export default function Nome()
   const defaultFn = src.match(/export\s+default\s+function\s+(\w+)/);
-  const componentName = defaultFn?.[1];
-  if (!componentName) {
-    throw new Error("O codigo precisa exportar default function Componente().");
+  if (defaultFn?.[1]) {
+    componentName = defaultFn[1];
+    src = src.replace(/export\s+default\s+function\s+(\w+)/, "function $1");
+  } else {
+    // Case B: export default class Nome
+    const defaultClass = src.match(/export\s+default\s+class\s+(\w+)/);
+    if (defaultClass?.[1]) {
+      componentName = defaultClass[1];
+      src = src.replace(/export\s+default\s+class\s+(\w+)/, "class $1");
+    } else {
+      // Case C: export default Nome;
+      const defaultId = src.match(/export\s+default\s+(\w+)\s*;?/);
+      if (
+        defaultId?.[1] &&
+        defaultId[1] !== "function" &&
+        defaultId[1] !== "class"
+      ) {
+        componentName = defaultId[1];
+        src = src.replace(/export\s+default\s+(\w+)\s*;?/, "");
+      } else {
+        // Case D: anonymous arrow/standard function
+        if (
+          /export\s+default\s+\(\s*\)\s*=>/i.test(src) ||
+          /export\s+default\s+function\s*\(/i.test(src)
+        ) {
+          componentName = "__LumieraGeneratedComponent";
+          src = src.replace(/export\s+default\s+/, `const ${componentName} = `);
+        }
+      }
+    }
   }
 
-  src = src.replace(/export\s+default\s+function\s+(\w+)/, "function $1");
+  if (!componentName) {
+    throw new Error(
+      "O código precisa exportar um componente padrão (export default)."
+    );
+  }
+
   src = src.replace(/export\s+default\s+/, "");
 
   let transformed = transform(src, {
@@ -196,10 +231,10 @@ export function compileSavedTemplateSource(sourceCode, runtime) {
   if (!code) {
     return { ok: false, error: "Codigo vazio." };
   }
-  if (!/export\s+default\s+function/.test(code)) {
+  if (!/\bexport\s+default\b/.test(code)) {
     return {
       ok: false,
-      error: "Preview ao vivo exige export default function no TSX salvo.",
+      error: "Preview ao vivo exige export default no TSX salvo.",
     };
   }
   if (!/\buseCurrentFrame\s*\(/.test(code)) {
