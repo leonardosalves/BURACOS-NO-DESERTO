@@ -303,7 +303,6 @@ import {
   extractScriptSliceForRepair,
   mergeHumanizedScript,
   applyScriptTextQuality,
-  assessEditorialContract,
   buildNarrationOnlyPrompt,
   buildCreatorFullScriptPrompt,
   buildCreatorPhase2Prompt,
@@ -10675,10 +10674,8 @@ function isGeminiBrowserModeEnabled(projectDir = WORKSPACE_DIR) {
 }
 
 function shouldOfferGeminiBrowser(projectDir = WORKSPACE_DIR) {
-  // Gemini Browser is intentionally disabled until it has a dedicated, audited flow.
-  // Creator and all production routes must use the configured API provider instead.
-  void projectDir;
-  return false;
+  // gemini_browser_mode ativo = prioridade sobre ai_provider (NVIDIA, xAI, etc.)
+  return isGeminiBrowserModeEnabled(projectDir);
 }
 
 /**
@@ -17569,17 +17566,6 @@ app.post(
         apiKey,
       });
 
-      parsedData.editorial_quality = assessEditorialContract({
-        format,
-        narrativeScript: parsedData.narrative_script,
-        strategy: parsedData.strategy,
-      });
-      if (!parsedData.editorial_quality.ok) {
-        console.warn(
-          `[Creator Script] Gate editorial: ${parsedData.editorial_quality.issues.join(" | ")}`
-        );
-      }
-
       parsedData = normalizeVisualPromptBlocks(parsedData, {
         blockCount: listicleBlockCount,
         format,
@@ -19647,17 +19633,14 @@ const server = app.listen(PORT, () => {
   // NotebookLM + schedulers rodam fora do callback — health responde na hora.
   setImmediate(() => {
     try {
-      const nlmQuick = getNotebooklmStatus(__dirname, {
-        quick: true,
-        refresh: true,
-      });
+      const nlmQuick = getNotebooklmStatus(__dirname, { quick: true });
       if (nlmQuick.authenticated) {
         console.log(
           `[NotebookLM] ${nlmQuick.message} (${nlmQuick.dataDir || ".notebooklm-data"})`
         );
         setImmediate(() => {
           try {
-            const nlmFull = getNotebooklmStatus(__dirname, { refresh: true });
+            const nlmFull = getNotebooklmStatus(__dirname);
             if (nlmFull.authenticated && nlmFull.notebookCount != null) {
               console.log(`[NotebookLM] ${nlmFull.message}`);
             }
