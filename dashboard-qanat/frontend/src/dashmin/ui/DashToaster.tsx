@@ -1,5 +1,11 @@
 import React from "react";
-import { Toaster, ToastBar, resolveValue, toast, type Toast } from "react-hot-toast";
+import {
+  Toaster,
+  ToastBar,
+  resolveValue,
+  toast,
+  type Toast,
+} from "react-hot-toast";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -21,11 +27,9 @@ function toneFromToast(t: Toast): string {
 
 function ToneIcon({ tone }: { tone: string }) {
   const cls = "dash-toast-icon shrink-0";
-  if (tone === "success")
-    return <CheckCircle2 className={cls} aria-hidden />;
+  if (tone === "success") return <CheckCircle2 className={cls} aria-hidden />;
   if (tone === "danger") return <XCircle className={cls} aria-hidden />;
-  if (tone === "warning")
-    return <AlertTriangle className={cls} aria-hidden />;
+  if (tone === "warning") return <AlertTriangle className={cls} aria-hidden />;
   if (tone === "loading")
     return <Loader2 className={`${cls} animate-spin`} aria-hidden />;
   if (tone === "info") return <Info className={cls} aria-hidden />;
@@ -47,7 +51,15 @@ export function DashToaster() {
         const tone = toneFromToast(t);
         const message = resolveValue(t.message, t);
         return (
-          <ToastBar toast={t}>
+          <ToastBar
+            toast={t}
+            style={{
+              background: "transparent",
+              boxShadow: "none",
+              border: "none",
+              padding: 0,
+            }}
+          >
             {() => (
               <div
                 className={`dash-toast-card dash-toast-${tone} ${
