@@ -975,77 +975,6 @@ function resolveProjectDirFromName(rawProjName) {
   return null;
 }
 
-// --- Streaming de mídia com Range requests (áudio/vídeo inicia instantâneo) ---
-const MEDIA_TYPES = {
-  ".mp4": "video/mp4",
-  ".webm": "video/webm",
-  ".mov": "video/quicktime",
-  ".m4v": "video/mp4",
-  ".mkv": "video/x-matroska",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".webp": "image/webp",
-  ".gif": "image/gif",
-  ".mp3": "audio/mpeg",
-  ".wav": "audio/wav",
-  ".m4a": "audio/mp4",
-  ".aac": "audio/aac",
-  ".flac": "audio/flac",
-  ".ogg": "audio/ogg",
-};
-const STREAMABLE_EXTS = new Set([
-  ".mp3",
-  ".wav",
-  ".m4a",
-  ".aac",
-  ".flac",
-  ".ogg",
-  ".mp4",
-  ".webm",
-  ".mov",
-  ".m4v",
-  ".mkv",
-]);
-
-function streamMediaFile(req, res, filePath) {
-  const ext = path.extname(filePath).toLowerCase();
-  const mime = MEDIA_TYPES[ext];
-  if (!mime) {
-    return res.sendFile(path.resolve(filePath));
-  }
-
-  const stat = fs.statSync(filePath);
-  const fileSize = stat.size;
-
-  // Cache headers para mídia (browser pode cachear)
-  res.setHeader("Cache-Control", "public, max-age=3600");
-  res.setHeader("Accept-Ranges", "bytes");
-
-  // Range request — streaming parcial (browser pede pedaços)
-  const range = req.headers.range;
-  if (range && STREAMABLE_EXTS.has(ext)) {
-    const parts = range.replace(/bytes=/, "").split("-");
-    const start = parseInt(parts[0], 10);
-    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-    const chunkSize = end - start + 1;
-
-    res.writeHead(206, {
-      "Content-Range": `bytes ${start}-${end}/${fileSize}`,
-      "Content-Length": chunkSize,
-      "Content-Type": mime,
-    });
-    fs.createReadStream(filePath, { start, end }).pipe(res);
-  } else {
-    // Request normal — enviar inteiro com Content-Length (browser sabe o tamanho)
-    res.writeHead(200, {
-      "Content-Length": fileSize,
-      "Content-Type": mime,
-    });
-    fs.createReadStream(filePath).pipe(res);
-  }
-}
-
 app.use("/api/projects-media", (req, res, next) => {
   const decodedUrl = decodeURIComponent(req.path);
 
@@ -1054,6 +983,13 @@ app.use("/api/projects-media", (req, res, next) => {
   if (parts.length === 0) {
     return res.status(404).end();
   }
+
+  const sendFileOpts = {
+    maxAge: "1h",
+    acceptRanges: true,
+    lastModified: true,
+    dotfiles: "deny",
+  };
 
   if (parts[0] === "ASSETS") {
     const allowedGlobalAsset =
@@ -1069,7 +1005,20 @@ app.use("/api/projects-media", (req, res, next) => {
     const fullFilePath = path.join(WORKSPACE_DIR, parts.join("/"));
 
     if (fs.existsSync(fullFilePath)) {
-      return streamMediaFile(req, res, fullFilePath);
+      const ext = path.extname(fullFilePath).toLowerCase();
+      const mediaTypes = {
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mov": "video/quicktime",
+        ".m4v": "video/mp4",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+      };
+      const mime = mediaTypes[ext];
+      if (mime) res.type(mime);
+      return res.sendFile(path.resolve(fullFilePath), sendFileOpts);
     }
 
     return res.status(404).json({ error: "Arquivo não encontrado." });
@@ -1094,7 +1043,28 @@ app.use("/api/projects-media", (req, res, next) => {
       : findProjectFileLocal(projDir, path.basename(fileSubpath));
 
   if (resolvedPath && fs.existsSync(resolvedPath)) {
-    return streamMediaFile(req, res, resolvedPath);
+    const ext = path.extname(resolvedPath).toLowerCase();
+    const mediaTypes = {
+      ".mp4": "video/mp4",
+      ".webm": "video/webm",
+      ".mov": "video/quicktime",
+      ".m4v": "video/mp4",
+      ".mkv": "video/x-matroska",
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".webp": "image/webp",
+      ".gif": "image/gif",
+      ".mp3": "audio/mpeg",
+      ".wav": "audio/wav",
+      ".m4a": "audio/mp4",
+      ".aac": "audio/aac",
+      ".flac": "audio/flac",
+      ".ogg": "audio/ogg",
+    };
+    const mime = mediaTypes[ext];
+    if (mime) res.type(mime);
+    return res.sendFile(path.resolve(resolvedPath), sendFileOpts);
   }
 
   return res.status(404).json({ error: "Arquivo de mídia não encontrado." });
