@@ -26,6 +26,15 @@ export type NotebooklmBriefInfo = {
   skip_web_research?: boolean;
   fact_count?: number;
   location_count?: number;
+  evidence_count?: number;
+  evidence_readiness?: {
+    ready?: boolean;
+    minimum?: number;
+    total?: number;
+    facts?: number;
+    statistics?: number;
+    issues?: string[];
+  } | null;
   char_count?: number;
   markdown_preview?: string;
   checklist?: Record<string, boolean | number>;
@@ -197,6 +206,36 @@ export function NotebooklmEnrichmentPanel({
             : ""}
           {brief?.skip_web_research ? " · busca web dispensada" : ""}
         </p>
+      )}
+
+      {brief?.evidence_readiness && (
+        <div
+          className={`rounded-xl border p-3 text-[11px] ${
+            brief.evidence_readiness.ready
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+              : "border-amber-500/30 bg-amber-500/10 text-amber-100"
+          }`}
+        >
+          <p className="font-bold">
+            {brief.evidence_readiness.ready
+              ? "Evidências prontas para o roteiro"
+              : "Evidências ainda insuficientes"}
+          </p>
+          <p className="mt-1 opacity-90">
+            {brief.evidence_readiness.total ?? brief.evidence_count ?? 0}/
+            {brief.evidence_readiness.minimum ?? 0} evidências ·{" "}
+            {brief.evidence_readiness.facts ?? 0} fatos ·{" "}
+            {brief.evidence_readiness.statistics ?? 0} dados estatísticos
+          </p>
+          {!brief.evidence_readiness.ready &&
+          (brief.evidence_readiness.issues?.length ?? 0) > 0 ? (
+            <ul className="mt-2 list-disc space-y-1 pl-4 opacity-90">
+              {brief.evidence_readiness.issues?.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       )}
 
       {brief?.markdown_preview?.trim() && (
