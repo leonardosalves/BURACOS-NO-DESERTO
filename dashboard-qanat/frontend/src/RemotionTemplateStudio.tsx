@@ -3874,6 +3874,19 @@ export function RemotionTemplateStudio({
                     Excluir todas
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Deseja restaurar todas as categorias, subcategorias e templates excluídos localmente?")) {
+                      window.localStorage.removeItem("lumiera.remotionTemplateStudio.deletedCatalog.v1");
+                      window.location.reload();
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border border-zinc-500/30 bg-zinc-500/10 px-3 py-1.5 text-xs font-black text-zinc-300 hover:border-zinc-500/70"
+                  title="Restaurar todos os itens da lixeira"
+                >
+                  Restaurar excluídos
+                </button>
               </div>
             </div>
           </div>
