@@ -584,6 +584,8 @@ const REMOTION_PUBLIC_DIR = path.join(REMOTION_DIR, "public");
 
 const LOTTIE_ASSETS_DIR = path.join(REMOTION_DIR, "src/overlays/lottie_assets");
 
+const activeRenderProcesses = new Map();
+
 const PYTHON_PATH = "C:\\Users\\Leo\\AppData\\Local\\Python\\bin\\python.exe";
 
 // Desktop projects — servico Windows usa perfil SYSTEM; resolver pasta real do Leo
@@ -841,6 +843,77 @@ app.get("/api/render/active", (req, res) => {
   const projectName = String(req.query.project || "").trim();
   const job = projectName ? getActiveRenderJobForProject(projectName) : null;
   res.json({ job: job || null });
+});
+
+app.post("/api/render/cancel", (req, res) => {
+  const jobId = req.body.jobId;
+  const projectName = req.body.project;
+
+  let cancelled = false;
+
+  if (jobId) {
+    const child = activeRenderProcesses.get(jobId);
+    if (child) {
+      try {
+        if (process.platform === "win32") {
+          execSync(`taskkill /pid ${child.pid} /t /f`);
+        } else {
+          child.kill("SIGKILL");
+        }
+      } catch (e) {
+        console.warn(`Error killing process for job ${jobId}:`, e.message);
+      }
+      activeRenderProcesses.delete(jobId);
+      cancelled = true;
+    }
+    failRenderJob(jobId, "Cancelado pelo usuário");
+  }
+
+  if (projectName) {
+    const pyKey = `python_${projectName}`;
+    const child = activeRenderProcesses.get(pyKey);
+    if (child) {
+      try {
+        if (process.platform === "win32") {
+          execSync(`taskkill /pid ${child.pid} /t /f`);
+        } else {
+          child.kill("SIGKILL");
+        }
+      } catch (e) {
+        console.warn(
+          `Error killing python process for project ${projectName}:`,
+          e.message
+        );
+      }
+      activeRenderProcesses.delete(pyKey);
+      cancelled = true;
+    }
+
+    // Also cancel any active remotion job for this project
+    const activeJob = getActiveRenderJobForProject(projectName);
+    if (activeJob) {
+      const child = activeRenderProcesses.get(activeJob.jobId);
+      if (child) {
+        try {
+          if (process.platform === "win32") {
+            execSync(`taskkill /pid ${child.pid} /t /f`);
+          } else {
+            child.kill("SIGKILL");
+          }
+        } catch (e) {
+          console.warn(
+            `Error killing remotion process for job ${activeJob.jobId}:`,
+            e.message
+          );
+        }
+        activeRenderProcesses.delete(activeJob.jobId);
+        cancelled = true;
+      }
+      failRenderJob(activeJob.jobId, "Cancelado pelo usuário");
+    }
+  }
+
+  res.json({ ok: true, cancelled });
 });
 
 app.use(cors());
@@ -6638,6 +6711,7 @@ app.get(
   "/api/render/:mode",
   asyncHandler(async (req, res) => {
     const projDir = getProjectDir(req);
+    const renderProjectName = path.basename(projDir);
 
     const mode = req.params.mode; // 'standard' or 'highlighted'
 
@@ -6748,7 +6822,6 @@ app.get(
 
     if (mode === "remotion" || mode === "remotion-pro") {
       let child = null;
-      const renderProjectName = path.basename(projDir);
       const renderJobId = createRenderJobId(renderProjectName);
       createRenderJob({
         jobId: renderJobId,
@@ -7002,6 +7075,8 @@ app.get(
           env: { ...process.env },
         });
 
+        activeRenderProcesses.set(renderJobId, child);
+
         if (child?.pid) {
           updateRenderJob(renderJobId, {
             childPid: child.pid,
@@ -7066,6 +7141,7 @@ app.get(
         });
 
         child.on("close", (code) => {
+          activeRenderProcesses.delete(renderJobId);
           if (code === 0) {
             sendLog("[PROGRESSO] 100%");
             trackRenderProgress("[PROGRESSO] 100%");
@@ -7104,6 +7180,7 @@ app.get(
       } catch (err) {
         sendLog(`[ERRO] ${err.message}`);
         failRenderJob(renderJobId, err.message);
+        activeRenderProcesses.delete(renderJobId);
 
         if (!res.writableEnded) {
           res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
@@ -7179,6 +7256,9 @@ app.get(
       },
     });
 
+    const pyKey = `python_${renderProjectName}`;
+    activeRenderProcesses.set(pyKey, child);
+
     child.stdout.on("data", (data) => {
       const text = data.toString().trim();
 
@@ -7204,6 +7284,7 @@ app.get(
     });
 
     child.on("close", (code) => {
+      activeRenderProcesses.delete(pyKey);
       if (tempScriptPath && fs.existsSync(tempScriptPath)) {
         try {
           fs.unlinkSync(tempScriptPath);
