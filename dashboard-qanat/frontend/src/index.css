@@ -1988,6 +1988,13 @@
     max-width: min(360px, calc(100vw - 24px));
   }
 
+  .dash-toast {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
   .dash-toast-card {
     display: flex;
     align-items: flex-start;
