@@ -3067,15 +3067,21 @@ export function RemotionTemplateStudio({
       const mergedForNiche = merged.filter((tpl) =>
         matchesStudioNiche(tpl.niche, niche)
       );
-      const firstWithTemplates = syncCategoriesFromTemplates(
-        mergeCategoryCatalog(readStoredCategoriesRaw()),
-        mergedForNiche
+      const firstWithTemplates = filterDeletedCategories(
+        syncCategoriesFromTemplates(
+          mergeCategoryCatalog(readStoredCategoriesRaw()),
+          mergedForNiche
+        ),
+        deleted
       ).find((cat) => mergedForNiche.some((tpl) => tpl.category === cat.id));
       if (alive) {
         setCategories(
-          syncCategoriesFromTemplates(
-            mergeCategoryCatalog(readStoredCategoriesRaw()),
-            mergedForNiche
+          filterDeletedCategories(
+            syncCategoriesFromTemplates(
+              mergeCategoryCatalog(readStoredCategoriesRaw()),
+              mergedForNiche
+            ),
+            deleted
           )
         );
         if (firstWithTemplates) {
@@ -3210,8 +3216,12 @@ export function RemotionTemplateStudio({
   }, [categories]);
 
   useEffect(() => {
+    const deleted = readDeletedCatalog();
     setCategories((current) => {
-      const synced = syncCategoriesFromTemplates(current, templates);
+      const synced = filterDeletedCategories(
+        syncCategoriesFromTemplates(current, templates),
+        deleted
+      );
       const changed =
         synced.length !== current.length ||
         synced.some((cat) => {
