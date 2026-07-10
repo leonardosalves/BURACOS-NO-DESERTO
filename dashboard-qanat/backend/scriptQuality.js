@@ -192,6 +192,71 @@ REGRAS ESPECÍFICAS — VÍDEO LONGO (10–20 min, 12 blocos):
 `;
 }
 
+/**
+ * Lightweight deterministic editorial gate. It does not replace creative
+ * judgment; it exposes structural omissions before narration/TTS starts.
+ */
+export function assessEditorialContract({
+  format = "LONGO",
+  narrativeScript = "",
+  strategy = {},
+} = {}) {
+  const script = String(narrativeScript || "").trim();
+  const words = script ? script.split(/\s+/).filter(Boolean) : [];
+  const sentences = script
+    .split(/(?<=[.!?…])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  const hook = String(strategy?.hook || sentences[0] || "").trim();
+  const thesis = String(
+    strategy?.thesis || strategy?.promise || strategy?.title_main || ""
+  ).trim();
+  const ending = sentences.at(-1) || "";
+  const issues = [];
+  const isShort = format === "SHORTS" || format === "SHORT";
+
+  if (!thesis) issues.push("Sem tese ou promessa editorial identificável.");
+  if (!hook) issues.push("Sem gancho verbal identificável.");
+  if (hook.split(/\s+/).filter(Boolean).length > (isShort ? 12 : 28)) {
+    issues.push("Gancho longo demais para a abertura.");
+  }
+  if (isShort) {
+    if (words.length < 70 || words.length > 145) {
+      issues.push("Short fora da faixa editorial de 70–145 palavras.");
+    }
+    if (sentences.length < 5) {
+      issues.push(
+        "Short sem desenvolvimento suficiente entre gancho e payoff."
+      );
+    }
+  } else {
+    if (words.length < 900) {
+      issues.push("Vídeo longo ainda não tem desenvolvimento suficiente.");
+    }
+    if (sentences.length < 18) {
+      issues.push("Vídeo longo precisa de mais progressão por capítulos.");
+    }
+  }
+  if (
+    !ending ||
+    /^(comenta|o que achou|se inscreva|deixa.*coment)/i.test(ending)
+  ) {
+    issues.push("Final sem payoff declarativo ou CTA contextualizado.");
+  }
+
+  return {
+    ok: issues.length === 0,
+    score: Math.max(0, 100 - issues.length * 20),
+    format: isShort ? "SHORTS" : "LONGO",
+    wordCount: words.length,
+    sentenceCount: sentences.length,
+    hook,
+    thesis,
+    ending,
+    issues,
+  };
+}
+
 export function parseChecklistScore(value, fallback = 0) {
   if (value == null || value === "") return fallback;
   if (typeof value === "number" && Number.isFinite(value)) {
