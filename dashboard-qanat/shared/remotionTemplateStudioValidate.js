@@ -106,43 +106,15 @@ export function validateOriginalTemplateCode(code) {
 
   if (!trimmed) {
     errors.push(
-      "Template Code incompleto. Cole o código original completo do template."
+      "Por favor, insira o código do template antes de tentar adaptar."
     );
     return { ok: false, errors };
   }
 
-  if (trimmed.length < 120) {
+  if (trimmed.length < 10) {
     errors.push(
-      "Template Code incompleto. Cole o código original completo do template."
+      "O código inserido é muito curto para ser um componente válido."
     );
-  }
-
-  for (const marker of INCOMPLETE_ORIGINAL_MARKERS) {
-    if (marker.test(trimmed)) {
-      errors.push(
-        "Template Code incompleto. Cole o código original completo do template."
-      );
-      break;
-    }
-  }
-
-  const hasExport =
-    /\bexport\s+default\s+function\b/.test(trimmed) ||
-    /\bexport\s+default\s+function\s*\(/.test(trimmed) ||
-    /\bexport\s+default\b/.test(trimmed) ||
-    /\bexport\s+function\s+\w+/.test(trimmed);
-
-  if (!hasExport) {
-    errors.push("O código original precisa exportar um componente Remotion.");
-  }
-
-  const hasRemotion =
-    /from\s+["']remotion["']/.test(trimmed) ||
-    /\buseCurrentFrame\s*\(/.test(trimmed) ||
-    /\buseVideoConfig\s*\(/.test(trimmed);
-
-  if (!hasRemotion) {
-    errors.push("O código original precisa usar imports ou hooks do Remotion.");
   }
 
   return { ok: errors.length === 0, errors: [...new Set(errors)] };

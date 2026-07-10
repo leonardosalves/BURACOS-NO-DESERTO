@@ -3249,8 +3249,7 @@ export function RemotionTemplateStudio({
     () => validateFinalTemplateCode(sanitizedFinalCodeDraft),
     [sanitizedFinalCodeDraft]
   );
-  const canSaveDraft =
-    finalValidation.ok && Boolean(sanitizedFinalCodeDraft.trim());
+  const canSaveDraft = Boolean(sanitizedFinalCodeDraft.trim());
   const nicheTemplates = useMemo(
     () => templates.filter((t) => matchesStudioNiche(t.niche, niche)),
     [niche, templates]
@@ -4395,8 +4394,11 @@ Garanta que o componente principal seja exportado como padrão (default).`,
                   <p className="text-[10px] text-red-300">{studioError}</p>
                 </div>
               ) : null}
-              {!canSaveDraft && finalCodeDraft.trim() ? (
+              {!finalValidation.ok && finalCodeDraft.trim() ? (
                 <ul className="mt-2 space-y-1 rounded-lg border border-amber-400/20 bg-amber-500/6 px-3 py-2">
+                  <p className="mb-0.5 text-[8px] font-black uppercase tracking-wide text-amber-300">
+                    Avisos (Opcional para Draft, Obrigatório para Aprovação):
+                  </p>
                   {finalValidation.errors.map((item) => (
                     <li
                       key={item}
@@ -4408,11 +4410,11 @@ Garanta que o componente principal seja exportado como padrão (default).`,
                   ))}
                 </ul>
               ) : null}
-              {canSaveDraft ? (
+              {finalValidation.ok && finalCodeDraft.trim() ? (
                 <div className="mt-2 flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-500/6 px-3 py-2">
                   <Check className="h-3 w-3 shrink-0 text-emerald-400" />
                   <p className="text-[10px] text-emerald-300">
-                    Código válido — pronto para salvar como draft.
+                    Código 100% válido — pronto para aprovação.
                   </p>
                 </div>
               ) : null}
