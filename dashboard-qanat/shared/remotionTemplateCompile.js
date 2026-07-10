@@ -60,13 +60,36 @@ const interpolate = (input, inputRange, outputRange, options) => {
   if (!Array.isArray(inputRange)) {
     return remotionInterpolate(input, inputRange, outputRange, options);
   }
-  const safeRange = inputRange.map((value) => Number(value));
+  const safeRange = inputRange.map((value) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+  });
   for (let i = 1; i < safeRange.length; i += 1) {
     if (!(safeRange[i] > safeRange[i - 1])) {
       safeRange[i] = safeRange[i - 1] + 0.0001;
     }
   }
-  return remotionInterpolate(input, safeRange, outputRange, options);
+  const safeOutput = Array.isArray(outputRange)
+    ? outputRange.map((value) => {
+        if (typeof value === "number") {
+          return Number.isFinite(value) ? value : 0;
+        }
+        if (typeof value === "string") {
+          const t = value.trim();
+          if (t.endsWith("%")) {
+            const parsed = parseFloat(t);
+            return Number.isFinite(parsed) ? parsed : 0;
+          }
+          if (/^-?\\d+(?:\\.\\d+)?(?:px|deg|rad|turn)$/i.test(t)) {
+            return t;
+          }
+          const num = Number(t);
+          if (Number.isFinite(num)) return num;
+        }
+        return 0;
+      })
+    : outputRange;
+  return remotionInterpolate(input, safeRange, safeOutput, options);
 };
 const lumieraMediaSrc = (value) => {
   const src = String(value || "").trim();
