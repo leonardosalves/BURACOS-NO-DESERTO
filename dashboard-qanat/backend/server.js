@@ -3126,11 +3126,9 @@ app.get("/api/studio-agents/docs", (req, res) => {
       }
       const filePath = path.join(WORKSPACE_DIR, ".agents", selected.filename);
       if (!fs.existsSync(filePath)) {
-        return res
-          .status(404)
-          .json({
-            error: `Arquivo não encontrado no disco: ${selected.filename}`,
-          });
+        return res.status(404).json({
+          error: `Arquivo não encontrado no disco: ${selected.filename}`,
+        });
       }
       const content = fs.readFileSync(filePath, "utf-8");
       return res.json({
@@ -16700,11 +16698,10 @@ app.post(
           projDir,
         });
         if (!discoveryResearch?.available) {
-          const errMsg =
-            discoveryResearch?.needsLogin || discoveryResearch?.fallback
-              ? "NotebookLM não autenticado — conecte na aba Criador antes de gerar narração."
-              : discoveryResearch?.error ||
-                "NotebookLM indisponível neste momento.";
+          const errMsg = discoveryResearch?.needsLogin
+            ? "NotebookLM não autenticado — conecte na aba Criador antes de gerar narração."
+            : discoveryResearch?.error ||
+              "NotebookLM indisponível neste momento.";
           failJobProgress(progressJobId, errMsg);
           return activeRes.status(503).json({
             error: errMsg,
