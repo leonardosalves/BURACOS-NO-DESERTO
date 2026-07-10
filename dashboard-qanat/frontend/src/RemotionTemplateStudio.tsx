@@ -2831,6 +2831,7 @@ function TemplateDetailPanel({
                   <option value="circular-progress">Progresso Circular</option>
                   <option value="progress-bars">Barras de Progresso</option>
                   <option value="counter">Contador Estatístico</option>
+                  <option value="comparison">Gráfico de Comparação</option>
                   <option value="ring">KPI / Anel</option>
                   <option value="map">Mapa Satélite</option>
                   <option value="title">Título Slide</option>
