@@ -70,7 +70,10 @@ function localDateString(date = new Date()) {
 function formatLocalTime(iso) {
   if (!iso) return "";
   try {
-    return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    return new Date(iso).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   } catch {
     return "";
   }
@@ -86,27 +89,39 @@ export function normalizeResurrectorTrigger(trigger) {
 
 function migrateResurrectorSettings(stored = {}) {
   const legacyDaily = Number(stored.dailyBatchSize);
-  const half = Number.isFinite(legacyDaily) ? Math.max(1, Math.floor(legacyDaily / 2)) : 5;
+  const half = Number.isFinite(legacyDaily)
+    ? Math.max(1, Math.floor(legacyDaily / 2))
+    : 5;
   const morningBatchSize = Number.isFinite(Number(stored.morningBatchSize))
     ? Number(stored.morningBatchSize)
     : half;
   const afternoonBatchSize = Number.isFinite(Number(stored.afternoonBatchSize))
     ? Number(stored.afternoonBatchSize)
-    : (Number.isFinite(legacyDaily) ? Math.max(1, legacyDaily - half) : 5);
+    : Number.isFinite(legacyDaily)
+      ? Math.max(1, legacyDaily - half)
+      : 5;
 
   return {
     ...DEFAULT_SETTINGS,
     ...stored,
-    autoRunWhenAppOpen: typeof stored.autoRunWhenAppOpen === "boolean"
-      ? stored.autoRunWhenAppOpen
-      : (typeof stored.autoRunDaily === "boolean" ? stored.autoRunDaily : DEFAULT_SETTINGS.autoRunWhenAppOpen),
+    autoRunWhenAppOpen:
+      typeof stored.autoRunWhenAppOpen === "boolean"
+        ? stored.autoRunWhenAppOpen
+        : typeof stored.autoRunDaily === "boolean"
+          ? stored.autoRunDaily
+          : DEFAULT_SETTINGS.autoRunWhenAppOpen,
     morningBatchSize: Math.max(1, Math.min(20, morningBatchSize)),
     afternoonBatchSize: Math.max(1, Math.min(20, afternoonBatchSize)),
-    morningHour: Number.isFinite(Number(stored.morningHour)) ? Number(stored.morningHour) : DEFAULT_SETTINGS.morningHour,
-    afternoonHour: Number.isFinite(Number(stored.afternoonHour)) ? Number(stored.afternoonHour) : DEFAULT_SETTINGS.afternoonHour,
-    autoApplyToYoutube: typeof stored.autoApplyToYoutube === "boolean"
-      ? stored.autoApplyToYoutube
-      : DEFAULT_SETTINGS.autoApplyToYoutube,
+    morningHour: Number.isFinite(Number(stored.morningHour))
+      ? Number(stored.morningHour)
+      : DEFAULT_SETTINGS.morningHour,
+    afternoonHour: Number.isFinite(Number(stored.afternoonHour))
+      ? Number(stored.afternoonHour)
+      : DEFAULT_SETTINGS.afternoonHour,
+    autoApplyToYoutube:
+      typeof stored.autoApplyToYoutube === "boolean"
+        ? stored.autoApplyToYoutube
+        : DEFAULT_SETTINGS.autoApplyToYoutube,
   };
 }
 
@@ -154,7 +169,10 @@ export function appendResurrectorLog(state, level, message, meta = {}) {
     message: String(message || ""),
     ...meta,
   };
-  state.activityLog = [entry, ...(state.activityLog || [])].slice(0, MAX_ACTIVITY_LOG);
+  state.activityLog = [entry, ...(state.activityLog || [])].slice(
+    0,
+    MAX_ACTIVITY_LOG
+  );
   return entry;
 }
 
@@ -172,7 +190,11 @@ export function resetResurrectorFailedItems(state) {
     count += 1;
   }
   if (count > 0) {
-    appendResurrectorLog(state, "info", `${count} vídeo(s) com falha recolocados na fila.`);
+    appendResurrectorLog(
+      state,
+      "info",
+      `${count} vídeo(s) com falha recolocados na fila.`
+    );
   }
   return count;
 }
@@ -221,9 +243,14 @@ export function advanceResurrectorCycle(state) {
 export function computeResurrectorCycleProgress(state, eligible = []) {
   const total = eligible.length;
   const cycleNum = getResurrectorCycleNumber(state);
-  const batched = eligible.filter((row) => isVideoAttemptedInCurrentCycle(state, row.videoId)).length;
+  const batched = eligible.filter((row) =>
+    isVideoAttemptedInCurrentCycle(state, row.videoId)
+  ).length;
   const pending = Math.max(0, total - batched);
-  const nextVideo = eligible.find((row) => !isVideoAttemptedInCurrentCycle(state, row.videoId)) || null;
+  const nextVideo =
+    eligible.find(
+      (row) => !isVideoAttemptedInCurrentCycle(state, row.videoId)
+    ) || null;
 
   return {
     number: cycleNum,
@@ -243,9 +270,11 @@ export function maybeCompleteResurrectorCycle(state, eligible = []) {
   const progress = computeResurrectorCycleProgress(state, eligible);
   const cycleNum = getResurrectorCycleNumber(state);
   const pendingWork = (state.items || []).some(
-    (i) => i.cycleNumber === cycleNum && ["review", "generating"].includes(i.status),
+    (i) =>
+      i.cycleNumber === cycleNum && ["review", "generating"].includes(i.status)
   );
-  if (!progress.complete || pendingWork) return { state, advanced: false, progress };
+  if (!progress.complete || pendingWork)
+    return { state, advanced: false, progress };
 
   const advancedState = advanceResurrectorCycle({ ...state });
   const nextProgress = computeResurrectorCycleProgress(advancedState, eligible);
@@ -271,9 +300,22 @@ export function getMorningVideoIdsToday(state, now = new Date()) {
 export function getSlotBatchSize(settings = {}, slot = "morning") {
   const normalized = normalizeResurrectorSlot(slot);
   if (normalized === "afternoon") {
-    return Math.max(1, Math.min(20, Number(settings.afternoonBatchSize) || DEFAULT_SETTINGS.afternoonBatchSize));
+    return Math.max(
+      1,
+      Math.min(
+        20,
+        Number(settings.afternoonBatchSize) ||
+          DEFAULT_SETTINGS.afternoonBatchSize
+      )
+    );
   }
-  return Math.max(1, Math.min(20, Number(settings.morningBatchSize) || DEFAULT_SETTINGS.morningBatchSize));
+  return Math.max(
+    1,
+    Math.min(
+      20,
+      Number(settings.morningBatchSize) || DEFAULT_SETTINGS.morningBatchSize
+    )
+  );
 }
 
 function readJsonSafe(filePath) {
@@ -293,9 +335,8 @@ export function loadResurrectorState(workspaceDir) {
   const stored = readJsonSafe(statePath(workspaceDir)) || {};
   const settings = migrateResurrectorSettings(stored.settings || {});
   const today = localDateString();
-  const dailyRuns = stored.dailyRuns?.date === today
-    ? stored.dailyRuns
-    : emptyDailyRuns(today);
+  const dailyRuns =
+    stored.dailyRuns?.date === today ? stored.dailyRuns : emptyDailyRuns(today);
 
   return {
     version: 3,
@@ -306,7 +347,9 @@ export function loadResurrectorState(workspaceDir) {
     lastDailyRunDate: stored.lastDailyRunDate || null,
     items: Array.isArray(stored.items) ? stored.items : [],
     history: Array.isArray(stored.history) ? stored.history.slice(0, 200) : [],
-    activityLog: Array.isArray(stored.activityLog) ? stored.activityLog.slice(0, MAX_ACTIVITY_LOG) : [],
+    activityLog: Array.isArray(stored.activityLog)
+      ? stored.activityLog.slice(0, MAX_ACTIVITY_LOG)
+      : [],
     updatedAt: stored.updatedAt || null,
   };
 }
@@ -316,7 +359,11 @@ export function saveResurrectorState(workspaceDir, state) {
     ...state,
     updatedAt: new Date().toISOString(),
   };
-  fs.writeFileSync(statePath(workspaceDir), JSON.stringify(next, null, 2), "utf8");
+  fs.writeFileSync(
+    statePath(workspaceDir),
+    JSON.stringify(next, null, 2),
+    "utf8"
+  );
   return next;
 }
 
@@ -343,19 +390,27 @@ async function youtubeDataGet(accessToken, apiPath, params = {}) {
   });
   const data = await res.json();
   if (!res.ok) {
-    throwIfInsufficientScope(data?.error?.message || `Falha na API YouTube (${apiPath}).`);
-    throw new Error(data?.error?.message || `Falha na API YouTube (${apiPath}).`);
+    throwIfInsufficientScope(
+      data?.error?.message || `Falha na API YouTube (${apiPath}).`
+    );
+    throw new Error(
+      data?.error?.message || `Falha na API YouTube (${apiPath}).`
+    );
   }
   return data;
 }
 
-export async function fetchAllChannelUploadVideoIds(accessToken, { maxVideos = 500 } = {}) {
+export async function fetchAllChannelUploadVideoIds(
+  accessToken,
+  { maxVideos = 500 } = {}
+) {
   const channelData = await youtubeDataGet(accessToken, "channels", {
     part: "contentDetails,snippet",
     mine: "true",
   });
   const channelItem = channelData?.items?.[0];
-  const uploadsPlaylistId = channelItem?.contentDetails?.relatedPlaylists?.uploads;
+  const uploadsPlaylistId =
+    channelItem?.contentDetails?.relatedPlaylists?.uploads;
   if (!uploadsPlaylistId) {
     throw new Error("Playlist de uploads do canal não encontrada.");
   }
@@ -388,7 +443,9 @@ export async function fetchAllChannelUploadVideoIds(accessToken, { maxVideos = 5
 
 function buildLumieraProjectByVideoId(projectsRoot) {
   const map = new Map();
-  for (const row of filterExistingLumieraVideos(collectLumieraPublishedVideos(projectsRoot))) {
+  for (const row of filterExistingLumieraVideos(
+    collectLumieraPublishedVideos(projectsRoot)
+  )) {
     if (row.videoId) map.set(row.videoId, row);
   }
   return map;
@@ -401,7 +458,10 @@ function readProjectTranscript(projectPath) {
   const storyboard = readJsonSafe(storyboardPath) || {};
   const config = readJsonSafe(configPath) || {};
 
-  if (typeof storyboard.narrative_script === "string" && storyboard.narrative_script.trim().length > 80) {
+  if (
+    typeof storyboard.narrative_script === "string" &&
+    storyboard.narrative_script.trim().length > 80
+  ) {
     return storyboard.narrative_script.trim();
   }
   if (fs.existsSync(transcriptPath)) {
@@ -424,24 +484,91 @@ function readResurrectorTranscript(item = {}) {
     const fromProject = readProjectTranscript(item.projectPath);
     if (fromProject && fromProject.length >= 40) return fromProject;
   }
+  // Sem projeto Lumiera: usa título + descrição completa + tags como "roteiro" para extractTitleFacts
   const title = String(item.currentMetadata?.title || item.title || "").trim();
   const description = String(item.currentMetadata?.description || "").trim();
-  const fallback = [title, description].filter(Boolean).join("\n\n").trim();
+  const tags = (item.currentMetadata?.tags || []).join(", ");
+  const parts = [
+    title,
+    description,
+    tags ? `Palavras-chave do vídeo: ${tags}` : "",
+  ].filter(Boolean);
+  const fallback = parts.join("\n\n").trim();
   return fallback.length >= 40 ? fallback : "";
 }
 
 function parseTagsRaw(raw) {
-  if (Array.isArray(raw)) return raw.map((t) => String(t).trim()).filter(Boolean);
+  if (Array.isArray(raw))
+    return raw.map((t) => String(t).trim()).filter(Boolean);
   if (!raw) return [];
-  return String(raw).replace(/;/g, ",").split(",").map((t) => t.trim()).filter(Boolean);
+  return String(raw)
+    .replace(/;/g, ",")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
 }
 
 function appendHashtagsToDescription(description, hashtags) {
   const base = String(description || "").trim();
   const tags = String(hashtags || "").trim();
   if (!tags) return base;
-  if (base.toLowerCase().includes(tags.toLowerCase().split(/\s+/)[0]?.replace("#", ""))) return base;
+  if (
+    base
+      .toLowerCase()
+      .includes(tags.toLowerCase().split(/\s+/)[0]?.replace("#", ""))
+  )
+    return base;
   return `${base}\n\n${tags}`.trim();
+}
+
+/** Extrai palavras-chave de conteúdo específico do título + descrição + tags. */
+function extractResurrectorAnchors(title, description, tags = []) {
+  const fullText = [title, description, tags.join(" ")].join(" ");
+  // Capturar: nomes próprios, números com unidades, termos específicos
+  const properNouns = [
+    ...fullText.matchAll(
+      /\b[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+(?:\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+){0,2}\b/g
+    ),
+  ]
+    .map((m) => m[0])
+    .filter(
+      (w) =>
+        w.length > 3 &&
+        ![
+          "O",
+          "A",
+          "Os",
+          "As",
+          "Um",
+          "Uma",
+          "No",
+          "Na",
+          "Em",
+          "De",
+          "Do",
+          "Da",
+          "E",
+          "Mas",
+          "Se",
+          "Você",
+        ].includes(w)
+    );
+  const numbers = [
+    ...fullText.matchAll(
+      /\b\d+[\d.,]*\s*(?:%|mil|milhões?|bilhões?|anos?|séculos?|km|metros?|toneladas?|pessoas?|dias?|horas?|min)?\b/gi
+    ),
+  ]
+    .map((m) => m[0].trim())
+    .filter((n) => n.length >= 2 && !/^[0-9]$/.test(n));
+  const tagAnchors = tags.slice(0, 8);
+  const unique = [
+    ...new Set([
+      ...properNouns.slice(0, 8),
+      ...numbers.slice(0, 4),
+      ...tagAnchors,
+    ]),
+  ];
+  return unique.slice(0, 15);
 }
 
 export function buildResurrectorRefreshPrompt({
@@ -467,23 +594,38 @@ export function buildResurrectorRefreshPrompt({
     rpmHint: {},
   });
 
-  return `${base}
+  // Âncoras extraídas do conteúdo real do vídeo
+  const anchors = extractResurrectorAnchors(
+    currentTitle,
+    currentDescription,
+    currentTags
+  );
+  const anchorsBlock = anchors.length
+    ? `\n## ÂNCORAS DO CONTEÚDO REAL (obrigatório — cada título DEVE referenciar pelo menos 1 âncora)\n\nEstas palavras/números foram extraídos do título e descrição ATUAIS do vídeo.\nEles representam o tema específico do vídeo — não invente temas que não estejam aqui:\n${anchors.map((a) => `- ${a}`).join("\n")}`
+    : "";
+
+  // Usar mais da descrição atual como contexto (até 3000 chars)
+  const descriptionSnippet = String(currentDescription || "").slice(0, 3000);
+
+  return `${base}\n${anchorsBlock}
 
 ## CONTEXTO RESSUSCITADOR (vídeo antigo no ar)
 
 Este vídeo já está publicado há ${ageDays} dias (${views} views no período recente).
 Objetivo: **reformular** título, descrição, hashtags e tags para melhorar CTR e descoberta — SEM mentir sobre o conteúdo.
 
-Metadados ATUAIS no YouTube (referência — melhore, não copie genericamente):
+Metadados ATUAIS no YouTube (referência completa — leia antes de escrever qualquer título):
 - Título atual: ${currentTitle || "(desconhecido)"}
-- Descrição atual (trecho): ${String(currentDescription || "").slice(0, 600)}
-- Tags atuais: ${(currentTags || []).slice(0, 12).join(", ") || "(nenhuma)"}
+- Descrição atual: ${descriptionSnippet || "(vazia)"}
+- Tags atuais: ${(currentTags || []).slice(0, 20).join(", ") || "(nenhuma)"}
 
-REGRAS EXTRA:
-- O novo título deve ser claramente diferente do atual, mas sobre O MESMO vídeo (mesmos fatos do roteiro).
-- Não invente tema que não está no roteiro.
+REGRAS EXTRA (PRIORIDADE MÁXIMA):
+- O novo título deve ser claramente diferente do atual, mas sobre O MESMO vídeo (mesmos fatos, nomes, lugares e números).
+- PROIBIDO inventar tema que não aparece na descrição/roteiro acima.
+- Cada título deve mencionar pelo menos 1 âncora (nome, lugar, número ou fato específico do vídeo).
 - Priorize palavras-chave de busca + gancho de clique honesto.
-- Para LONGO: inclua capítulos se houver timestamps no projeto; thumbnails A/B são só briefing (upload manual).`;
+- Títulos genéricos como "3 top...", "As melhores...", "Tudo sobre..." sem especificidade serão rejeitados.
+- Para LONGO: inclua capítulos se houver timestamps; thumbnails A/B são só briefing (upload manual).`;
 }
 
 export async function fetchYoutubeVideosSnippet(accessToken, videoIds = []) {
@@ -496,11 +638,17 @@ export async function fetchYoutubeVideosSnippet(accessToken, videoIds = []) {
     const url = new URL("https://www.googleapis.com/youtube/v3/videos");
     url.searchParams.set("part", "snippet,statistics");
     url.searchParams.set("id", chunk.join(","));
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
     const data = await res.json();
     if (!res.ok) {
-      throwIfInsufficientScope(data?.error?.message || "Falha ao ler vídeos no YouTube.");
-      throw new Error(data?.error?.message || "Falha ao ler vídeos no YouTube.");
+      throwIfInsufficientScope(
+        data?.error?.message || "Falha ao ler vídeos no YouTube."
+      );
+      throw new Error(
+        data?.error?.message || "Falha ao ler vídeos no YouTube."
+      );
     }
     for (const item of data?.items || []) {
       const sn = item.snippet || {};
@@ -510,7 +658,8 @@ export async function fetchYoutubeVideosSnippet(accessToken, videoIds = []) {
         description: sn.description || "",
         tags: Array.isArray(sn.tags) ? sn.tags : [],
         publishedAt: sn.publishedAt || "",
-        thumbnailUrl: sn.thumbnails?.medium?.url || sn.thumbnails?.default?.url || "",
+        thumbnailUrl:
+          sn.thumbnails?.medium?.url || sn.thumbnails?.default?.url || "",
         viewCount: Number(item.statistics?.viewCount || 0),
       });
     }
@@ -518,16 +667,20 @@ export async function fetchYoutubeVideosSnippet(accessToken, videoIds = []) {
   return map;
 }
 
-export async function updateYoutubeVideoMetadata(accessToken, videoId, {
-  title,
-  description,
-  tags = [],
-  categoryId = "22",
-  defaultLanguage = "pt",
-} = {}) {
+export async function updateYoutubeVideoMetadata(
+  accessToken,
+  videoId,
+  {
+    title,
+    description,
+    tags = [],
+    categoryId = "22",
+    defaultLanguage = "pt",
+  } = {}
+) {
   const getRes = await fetch(
     `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${encodeURIComponent(videoId)}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const getData = await getRes.json();
   if (!getRes.ok) {
@@ -535,7 +688,8 @@ export async function updateYoutubeVideoMetadata(accessToken, videoId, {
     throw new Error(getData?.error?.message || "Falha ao ler vídeo.");
   }
   const video = getData?.items?.[0];
-  if (!video?.snippet) throw new Error("Vídeo não encontrado no canal conectado.");
+  if (!video?.snippet)
+    throw new Error("Vídeo não encontrado no canal conectado.");
 
   const tagList = parseTagsRaw(tags).slice(0, 30);
   const updateRes = await fetch(
@@ -554,20 +708,29 @@ export async function updateYoutubeVideoMetadata(accessToken, videoId, {
           description: String(description || "").slice(0, 4900),
           tags: tagList.length ? tagList : video.snippet.tags,
           categoryId: String(categoryId || video.snippet.categoryId || "22"),
-          defaultLanguage: defaultLanguage || video.snippet.defaultLanguage || "pt",
+          defaultLanguage:
+            defaultLanguage || video.snippet.defaultLanguage || "pt",
         },
       }),
-    },
+    }
   );
   const updateData = await updateRes.json();
   if (!updateRes.ok) {
-    throwIfInsufficientScope(updateData?.error?.message || "Falha ao atualizar metadados.");
-    throw new Error(updateData?.error?.message || "Falha ao atualizar metadados.");
+    throwIfInsufficientScope(
+      updateData?.error?.message || "Falha ao atualizar metadados."
+    );
+    throw new Error(
+      updateData?.error?.message || "Falha ao atualizar metadados."
+    );
   }
   return updateData;
 }
 
-export async function uploadYoutubeVideoThumbnail(accessToken, videoId, imagePath) {
+export async function uploadYoutubeVideoThumbnail(
+  accessToken,
+  videoId,
+  imagePath
+) {
   const buffer = fs.readFileSync(imagePath);
   const ext = path.extname(imagePath).toLowerCase();
   const contentType = ext === ".png" ? "image/png" : "image/jpeg";
@@ -611,9 +774,12 @@ function buildResurrectorRow(base, sn, merged, extras = {}) {
   const ageDays = daysSince(sn.publishedAt);
   const minAgeDays = merged.minAgeDays;
   const daysUntilEligible = Math.max(0, minAgeDays - ageDays);
-  const eligibleOn = daysUntilEligible > 0
-    ? new Date(new Date(sn.publishedAt).getTime() + minAgeDays * 24 * 60 * 60 * 1000).toISOString()
-    : sn.publishedAt;
+  const eligibleOn =
+    daysUntilEligible > 0
+      ? new Date(
+          new Date(sn.publishedAt).getTime() + minAgeDays * 24 * 60 * 60 * 1000
+        ).toISOString()
+      : sn.publishedAt;
 
   return {
     videoId: base.videoId,
@@ -638,7 +804,11 @@ function buildResurrectorRow(base, sn, merged, extras = {}) {
   };
 }
 
-export function buildResurrectorScanDiagnostics(rows = [], settings = {}, meta = {}) {
+export function buildResurrectorScanDiagnostics(
+  rows = [],
+  settings = {},
+  meta = {}
+) {
   const minAgeDays = settings.minAgeDays ?? DEFAULT_SETTINGS.minAgeDays;
   const tooYoung = rows
     .filter((row) => row.ageDays < minAgeDays)
@@ -679,37 +849,54 @@ export function buildResurrectorScanDiagnostics(rows = [], settings = {}, meta =
   };
 }
 
-export function formatResurrectorScanMessage(diagnostics, { eligible = 0, added = 0 } = {}) {
+export function formatResurrectorScanMessage(
+  diagnostics,
+  { eligible = 0, added = 0 } = {}
+) {
   const total = diagnostics?.channelTotal ?? diagnostics?.publishedOnDisk ?? 0;
-  const channelLabel = diagnostics?.channelTitle ? `canal “${diagnostics.channelTitle}”` : "canal YouTube";
+  const channelLabel = diagnostics?.channelTitle
+    ? `canal “${diagnostics.channelTitle}”`
+    : "canal YouTube";
 
   if (!total) {
     return `Nenhum vídeo encontrado no ${channelLabel} conectado.`;
   }
   if (eligible > 0) {
-    const lumiera = diagnostics.withLumieraProject ? `, ${diagnostics.withLumieraProject} com projeto Lumiera` : "";
+    const lumiera = diagnostics.withLumieraProject
+      ? `, ${diagnostics.withLumieraProject} com projeto Lumiera`
+      : "";
     return `${added} vídeo(s) na fila (${eligible} elegíveis de ${total} no ${channelLabel}${lumiera}).`;
   }
   if (diagnostics.tooYoungCount > 0 && diagnostics.nextToQualify) {
     const next = diagnostics.nextToQualify;
-    const days = next.daysUntilEligible ?? Math.max(0, diagnostics.minAgeDays - (next.ageDays || 0));
+    const days =
+      next.daysUntilEligible ??
+      Math.max(0, diagnostics.minAgeDays - (next.ageDays || 0));
     return `0 elegíveis: ${total} vídeo(s) no ${channelLabel}, mas nenhum com +${diagnostics.minAgeDays} dias. O mais antigo (“${next.title}”) tem ${next.ageDays}d — elegível em ~${days}d.`;
   }
   return `0 elegíveis de ${total} vídeo(s) no ${channelLabel}.`;
 }
 
-async function buildResurrectorCatalog(workspaceDir, projectsRoot, settings = {}) {
+async function buildResurrectorCatalog(
+  workspaceDir,
+  projectsRoot,
+  settings = {}
+) {
   const merged = { ...DEFAULT_SETTINGS, ...settings };
 
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
-  const { channelTitle, videoIds } = await fetchAllChannelUploadVideoIds(accessToken);
+  const { channelTitle, videoIds } =
+    await fetchAllChannelUploadVideoIds(accessToken);
 
   if (!videoIds.length) {
     return {
       allEligible: [],
       rows: [],
-      diagnostics: buildResurrectorScanDiagnostics([], merged, { channelTitle, channelTotal: 0 }),
+      diagnostics: buildResurrectorScanDiagnostics([], merged, {
+        channelTitle,
+        channelTotal: 0,
+      }),
     };
   }
 
@@ -723,7 +910,9 @@ async function buildResurrectorCatalog(workspaceDir, projectsRoot, settings = {}
   let formatByVideoId = new Map();
   try {
     const { tagVideosShortsLong } = await import("./youtubeStudioAdvanced.js");
-    formatByVideoId = await tagVideosShortsLong(accessToken, videoIds, { lumieraFormatById });
+    formatByVideoId = await tagVideosShortsLong(accessToken, videoIds, {
+      lumieraFormatById,
+    });
   } catch {
     formatByVideoId = new Map();
   }
@@ -744,17 +933,24 @@ async function buildResurrectorCatalog(workspaceDir, projectsRoot, settings = {}
 
     const lumiera = lumieraByVideoId.get(videoId);
     const format = formatByVideoId.get(videoId) || lumiera?.format || "LONG";
-    rows.push(buildResurrectorRow({
-      videoId,
-      projectName: lumiera?.projectName || sn.title || videoId,
-      projectPath: lumiera?.projectPath || null,
-      format,
-      niche: lumiera?.niche || "",
-      title: lumiera?.title || sn.title || "",
-    }, sn, merged, {
-      hasLumieraProject: Boolean(lumiera?.projectPath),
-      source: lumiera?.projectPath ? "lumiera" : "channel",
-    }));
+    rows.push(
+      buildResurrectorRow(
+        {
+          videoId,
+          projectName: lumiera?.projectName || sn.title || videoId,
+          projectPath: lumiera?.projectPath || null,
+          format,
+          niche: lumiera?.niche || "",
+          title: lumiera?.title || sn.title || "",
+        },
+        sn,
+        merged,
+        {
+          hasLumieraProject: Boolean(lumiera?.projectPath),
+          source: lumiera?.projectPath ? "lumiera" : "channel",
+        }
+      )
+    );
   }
 
   rows.sort(comparePublishedAtAsc);
@@ -769,21 +965,48 @@ async function buildResurrectorCatalog(workspaceDir, projectsRoot, settings = {}
   return { allEligible, rows, diagnostics };
 }
 
-export async function buildResurrectorEligibleRows(workspaceDir, projectsRoot, settings = {}) {
-  const { allEligible } = await buildResurrectorCatalog(workspaceDir, projectsRoot, settings);
+export async function buildResurrectorEligibleRows(
+  workspaceDir,
+  projectsRoot,
+  settings = {}
+) {
+  const { allEligible } = await buildResurrectorCatalog(
+    workspaceDir,
+    projectsRoot,
+    settings
+  );
   return allEligible;
 }
 
-export async function scanEligibleResurrectorVideos(workspaceDir, projectsRoot, settings = {}) {
+export async function scanEligibleResurrectorVideos(
+  workspaceDir,
+  projectsRoot,
+  settings = {}
+) {
   const state = loadResurrectorState(workspaceDir);
-  const { allEligible, diagnostics } = await buildResurrectorCatalog(workspaceDir, projectsRoot, settings);
-  const eligible = allEligible.filter((row) => !isVideoBatchedInCurrentCycle(state, row.videoId));
+  const { allEligible, diagnostics } = await buildResurrectorCatalog(
+    workspaceDir,
+    projectsRoot,
+    settings
+  );
+  const eligible = allEligible.filter(
+    (row) => !isVideoBatchedInCurrentCycle(state, row.videoId)
+  );
   return { eligible, allEligible, diagnostics, state };
 }
 
-export async function prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings = {}) {
+export async function prepareResurrectorBatchState(
+  workspaceDir,
+  projectsRoot,
+  state,
+  settings = {}
+) {
   let next = { ...state };
-  const { allEligible } = await scanEligibleResurrectorVideos(workspaceDir, projectsRoot, settings);
+  const { allEligible } = await scanEligibleResurrectorVideos(
+    workspaceDir,
+    projectsRoot,
+    settings
+  );
 
   const completion = maybeCompleteResurrectorCycle(next, allEligible);
   next = completion.state;
@@ -791,7 +1014,9 @@ export async function prepareResurrectorBatchState(workspaceDir, projectsRoot, s
     const enq = enqueueResurrectorCandidates(next, allEligible);
     next = enq.state;
   } else {
-    const pending = allEligible.filter((row) => !isVideoBatchedInCurrentCycle(next, row.videoId));
+    const pending = allEligible.filter(
+      (row) => !isVideoBatchedInCurrentCycle(next, row.videoId)
+    );
     const enq = enqueueResurrectorCandidates(next, pending);
     next = enq.state;
   }
@@ -811,7 +1036,11 @@ export function enqueueResurrectorCandidates(state, eligible = []) {
     if (existingIds.has(row.videoId)) {
       const idx = state.items.findIndex((i) => i.videoId === row.videoId);
       const item = state.items[idx];
-      if (item && ["applied", "skipped", "failed"].includes(item.status) && !isVideoBatchedInCurrentCycle(state, row.videoId)) {
+      if (
+        item &&
+        ["applied", "skipped", "failed"].includes(item.status) &&
+        !isVideoBatchedInCurrentCycle(state, row.videoId)
+      ) {
         state.items[idx] = resetItemForNewCycle(item);
         added += 1;
       }
@@ -851,7 +1080,9 @@ export function enqueueResurrectorCandidates(state, eligible = []) {
 export function pickResurrectorBatch(state, batchSize = 10, options = {}) {
   const size = Math.max(1, Math.min(20, Number(batchSize) || 10));
   const cycleNum = getResurrectorCycleNumber(state);
-  const exclude = new Set((options.excludeVideoIds || []).map(String).filter(Boolean));
+  const exclude = new Set(
+    (options.excludeVideoIds || []).map(String).filter(Boolean)
+  );
   const queued = (state.items || [])
     .filter((i) => {
       if (exclude.has(String(i.videoId))) return false;
@@ -867,29 +1098,56 @@ export function pickResurrectorBatch(state, batchSize = 10, options = {}) {
 
 export async function generateResurrectorMetadata(item, deps = {}) {
   const { workspaceDir, callGemini, getApiKey } = deps;
-  const projectPath = item.projectPath && fs.existsSync(item.projectPath) ? item.projectPath : null;
-  const configPath = projectPath ? path.join(projectPath, "config_qanat.json") : null;
-  const storyboardPath = projectPath ? path.join(projectPath, "storyboard.json") : null;
-  const timingsPath = projectPath ? path.join(projectPath, "block_timings.json") : null;
-  const config = configPath ? (readJsonSafe(configPath) || {}) : {};
-  const storyboard = storyboardPath ? (readJsonSafe(storyboardPath) || {}) : {};
-  const timings = timingsPath ? (readJsonSafe(timingsPath) || { starts: [] }) : { starts: [] };
+  const projectPath =
+    item.projectPath && fs.existsSync(item.projectPath)
+      ? item.projectPath
+      : null;
+  const configPath = projectPath
+    ? path.join(projectPath, "config_qanat.json")
+    : null;
+  const storyboardPath = projectPath
+    ? path.join(projectPath, "storyboard.json")
+    : null;
+  const timingsPath = projectPath
+    ? path.join(projectPath, "block_timings.json")
+    : null;
+  const config = configPath ? readJsonSafe(configPath) || {} : {};
+  const storyboard = storyboardPath ? readJsonSafe(storyboardPath) || {} : {};
+  const timings = timingsPath
+    ? readJsonSafe(timingsPath) || { starts: [] }
+    : { starts: [] };
   const transcript = readResurrectorTranscript(item);
   if (!transcript || transcript.length < 40) {
     throw new Error(
       projectPath
         ? "Roteiro/transcrição insuficiente para gerar metadados específicos."
-        : "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+        : "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal."
     );
   }
 
   const format = normalizeFormat(item.format);
+
+  // Para vídeos sem projeto Lumiera, usar título + tags como referência de nicho
+  const inferredProjectName = projectPath
+    ? path.basename(projectPath)
+    : [
+        item.projectName || item.title || "",
+        ...(item.currentMetadata?.tags || []).slice(0, 3),
+      ]
+        .filter(Boolean)
+        .join(" ");
   const metadataCtx = resolveYoutubeMetadataContext({
     config,
     timings,
     storyboard,
-    projectName: projectPath ? path.basename(projectPath) : (item.projectName || item.title || "canal"),
+    projectName: inferredProjectName,
   });
+
+  // Nicho: prioriza projeto > tags > item.niche > "Geral"
+  const resolvedNiche =
+    metadataCtx.niche && metadataCtx.niche !== "Geral"
+      ? metadataCtx.niche
+      : config.niche || item.niche || metadataCtx.niche || "Geral";
 
   let prompt = buildResurrectorRefreshPrompt({
     currentTitle: item.currentMetadata?.title || item.title,
@@ -897,7 +1155,7 @@ export async function generateResurrectorMetadata(item, deps = {}) {
     currentTags: item.currentMetadata?.tags || [],
     transcript,
     format,
-    niche: metadataCtx.niche || config.niche || item.niche || "Geral",
+    niche: resolvedNiche,
     ageDays: item.ageDays,
     views: item.viewCount,
   });
@@ -912,17 +1170,18 @@ export async function generateResurrectorMetadata(item, deps = {}) {
     format,
   });
 
-  const fallbackText = () => buildFallbackYoutubeMetadata({
-    transcript,
-    chaptersText: metadataCtx.chaptersText,
-    storyboard,
-    config,
-    format,
-    niche: metadataCtx.niche,
-    category: metadataCtx.category,
-    profile: metadataCtx.profile,
-    rpmHint: metadataCtx.rpmHint,
-  });
+  const fallbackText = () =>
+    buildFallbackYoutubeMetadata({
+      transcript,
+      chaptersText: metadataCtx.chaptersText,
+      storyboard,
+      config,
+      format,
+      niche: metadataCtx.niche,
+      category: metadataCtx.category,
+      profile: metadataCtx.profile,
+      rpmHint: metadataCtx.rpmHint,
+    });
 
   let text = "";
   let usedFallback = false;
@@ -930,7 +1189,10 @@ export async function generateResurrectorMetadata(item, deps = {}) {
   const apiKey = typeof getApiKey === "function" ? getApiKey(geminiDir) : null;
   try {
     if (typeof callGemini === "function" && apiKey) {
-      text = await callGemini(prompt, { temperature: 0.55, projectDir: geminiDir });
+      text = await callGemini(prompt, {
+        temperature: 0.55,
+        projectDir: geminiDir,
+      });
     } else if (apiKey && deps.callGeminiWithRetry) {
       text = await deps.callGeminiWithRetry(apiKey, prompt, {
         temperature: 0.55,
@@ -952,7 +1214,10 @@ export async function generateResurrectorMetadata(item, deps = {}) {
     throw new Error("IA não retornou títulos válidos para este vídeo.");
   }
 
-  const description = appendHashtagsToDescription(parsed.description, parsed.hashtags);
+  const description = appendHashtagsToDescription(
+    parsed.description,
+    parsed.hashtags
+  );
 
   return {
     pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
@@ -980,13 +1245,16 @@ export function computeResurrectorSchedule(state, now = new Date()) {
   const today = localDateString(now);
   const runs = getTodayDailyRuns(state, now);
   const morningHour = settings.morningHour ?? DEFAULT_SETTINGS.morningHour;
-  const afternoonHour = settings.afternoonHour ?? DEFAULT_SETTINGS.afternoonHour;
+  const afternoonHour =
+    settings.afternoonHour ?? DEFAULT_SETTINGS.afternoonHour;
   const morningRan = Boolean(runs.morning?.ranAt);
   const afternoonRan = Boolean(runs.afternoon?.ranAt);
 
   const alerts = [];
-  const morningDeadlinePassed = hour > morningHour || (hour === morningHour && minute >= 30);
-  const afternoonDeadlinePassed = hour > afternoonHour || (hour === afternoonHour && minute >= 30);
+  const morningDeadlinePassed =
+    hour > morningHour || (hour === morningHour && minute >= 30);
+  const afternoonDeadlinePassed =
+    hour > afternoonHour || (hour === afternoonHour && minute >= 30);
 
   if (morningDeadlinePassed && !morningRan) {
     alerts.push({
@@ -1025,12 +1293,18 @@ export function computeResurrectorSchedule(state, now = new Date()) {
 
   let nextSlot = null;
   if (!morningRan && hour < morningHour) nextSlot = "morning";
-  else if (!afternoonRan && (hour < afternoonHour || (morningRan && hour >= morningHour))) nextSlot = "afternoon";
-  else if (!morningRan && hour >= morningHour && hour < afternoonHour) nextSlot = "morning";
+  else if (
+    !afternoonRan &&
+    (hour < afternoonHour || (morningRan && hour >= morningHour))
+  )
+    nextSlot = "afternoon";
+  else if (!morningRan && hour >= morningHour && hour < afternoonHour)
+    nextSlot = "morning";
   else if (!afternoonRan && hour >= afternoonHour) nextSlot = "afternoon";
 
   const inMorningWindow = hour === morningHour && minute < 20 && !morningRan;
-  const inAfternoonWindow = hour === afternoonHour && minute < 20 && !afternoonRan;
+  const inAfternoonWindow =
+    hour === afternoonHour && minute < 20 && !afternoonRan;
 
   return {
     today,
@@ -1048,7 +1322,11 @@ export function computeResurrectorSchedule(state, now = new Date()) {
   };
 }
 
-export function shouldAutoTriggerResurrectorSlot(schedule, slot, settings = {}) {
+export function shouldAutoTriggerResurrectorSlot(
+  schedule,
+  slot,
+  settings = {}
+) {
   if (!settings.enabled || !settings.autoRunWhenAppOpen) return false;
   const normalized = normalizeResurrectorSlot(slot);
   if (normalized === "morning") {
@@ -1057,11 +1335,23 @@ export function shouldAutoTriggerResurrectorSlot(schedule, slot, settings = {}) 
   return schedule.inAfternoonWindow && !schedule.afternoonRan;
 }
 
-export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {}, options = {}) {
-  return withResurrectorMutex(() => runResurrectorBatchInner(workspaceDir, projectsRoot, deps, options));
+export async function runResurrectorBatch(
+  workspaceDir,
+  projectsRoot,
+  deps = {},
+  options = {}
+) {
+  return withResurrectorMutex(() =>
+    runResurrectorBatchInner(workspaceDir, projectsRoot, deps, options)
+  );
 }
 
-async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, options = {}) {
+async function runResurrectorBatchInner(
+  workspaceDir,
+  projectsRoot,
+  deps = {},
+  options = {}
+) {
   const {
     slot = "morning",
     trigger = "manual",
@@ -1075,12 +1365,21 @@ async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, o
   let state = loadResurrectorState(workspaceDir);
   const settings = state.settings;
   if (!settings.enabled) {
-    return { skipped: true, reason: "Ressuscitador desativado.", state, slot: normalizedSlot };
+    return {
+      skipped: true,
+      reason: "Ressuscitador desativado.",
+      state,
+      slot: normalizedSlot,
+    };
   }
 
   const batchSize = getSlotBatchSize(settings, normalizedSlot);
-  const processLimit = Math.max(1, Math.min(batchSize, Number(limit) || batchSize));
-  const shouldFinalizeSlot = typeof finalizeSlot === "boolean" ? finalizeSlot : (limit == null);
+  const processLimit = Math.max(
+    1,
+    Math.min(batchSize, Number(limit) || batchSize)
+  );
+  const shouldFinalizeSlot =
+    typeof finalizeSlot === "boolean" ? finalizeSlot : limit == null;
 
   if (slotAlreadyRanToday(state, normalizedSlot)) {
     return {
@@ -1091,12 +1390,18 @@ async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, o
     };
   }
 
-  let prepared = await prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings);
+  let prepared = await prepareResurrectorBatchState(
+    workspaceDir,
+    projectsRoot,
+    state,
+    settings
+  );
   state = prepared.state;
   saveResurrectorState(workspaceDir, state);
 
   const runLog = [];
-  const excludeVideoIds = normalizedSlot === "afternoon" ? getMorningVideoIdsToday(state) : [];
+  const excludeVideoIds =
+    normalizedSlot === "afternoon" ? getMorningVideoIdsToday(state) : [];
   let batch = pickResurrectorBatch(state, processLimit, { excludeVideoIds });
 
   if (processLimit >= batchSize || limit == null) {
@@ -1104,19 +1409,28 @@ async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, o
       state,
       "info",
       `Batch ${normalizedSlot === "morning" ? "manhã" : "tarde"} iniciado (${processLimit} vídeo(s) nesta etapa).`,
-      { slot: normalizedSlot, trigger: normalizedTrigger },
+      { slot: normalizedSlot, trigger: normalizedTrigger }
     );
   }
 
   if (!batch.length && !autoScanAttempted) {
-    prepared = await prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings);
+    prepared = await prepareResurrectorBatchState(
+      workspaceDir,
+      projectsRoot,
+      state,
+      settings
+    );
     state = prepared.state;
     saveResurrectorState(workspaceDir, state);
     batch = pickResurrectorBatch(state, processLimit, { excludeVideoIds });
   }
 
   if (!batch.length) {
-    appendResurrectorLog(state, "warn", "Nenhum vídeo na fila para processar nesta etapa.");
+    appendResurrectorLog(
+      state,
+      "warn",
+      "Nenhum vídeo na fila para processar nesta etapa."
+    );
     saveResurrectorState(workspaceDir, state);
     return {
       processed: 0,
@@ -1135,14 +1449,20 @@ async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, o
     const item = batch[step];
     const idx = state.items.findIndex((i) => i.id === item.id);
     if (idx < 0) continue;
-    const titlePreview = String(state.items[idx].title || item.title || item.videoId).slice(0, 72);
+    const titlePreview = String(
+      state.items[idx].title || item.title || item.videoId
+    ).slice(0, 72);
     appendResurrectorLog(
       state,
       "info",
       `[${step + 1}/${batch.length}] Gerando metadados: ${titlePreview}`,
-      { videoId: item.videoId, step: step + 1, total: batch.length },
+      { videoId: item.videoId, step: step + 1, total: batch.length }
     );
-    runLog.push({ at: new Date().toISOString(), level: "info", message: `Gerando: ${titlePreview}` });
+    runLog.push({
+      at: new Date().toISOString(),
+      level: "info",
+      message: `Gerando: ${titlePreview}`,
+    });
     saveResurrectorState(workspaceDir, state);
 
     state.items[idx].status = "generating";
@@ -1170,7 +1490,12 @@ async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, o
 
       const autoApply = settings.autoApplyToYoutube !== false;
       if (autoApply) {
-        appendResurrectorLog(state, "info", `Publicando no YouTube: ${titlePreview}`, { videoId: item.videoId });
+        appendResurrectorLog(
+          state,
+          "info",
+          `Publicando no YouTube: ${titlePreview}`,
+          { videoId: item.videoId }
+        );
         saveResurrectorState(workspaceDir, state);
         try {
           const applied = await applyResurrectorItem(workspaceDir, item.id, {
@@ -1183,8 +1508,14 @@ async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, o
           const okMsg = generated.usedFallback
             ? `Publicado (fallback IA)${thumbNote}: ${titlePreview}`
             : `Publicado no YouTube${thumbNote}: ${titlePreview}`;
-          appendResurrectorLog(state, "success", okMsg, { videoId: item.videoId });
-          runLog.push({ at: new Date().toISOString(), level: "success", message: okMsg });
+          appendResurrectorLog(state, "success", okMsg, {
+            videoId: item.videoId,
+          });
+          runLog.push({
+            at: new Date().toISOString(),
+            level: "success",
+            message: okMsg,
+          });
           results.push({
             id: item.id,
             videoId: item.videoId,
@@ -1204,18 +1535,46 @@ async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, o
               updatedAt: new Date().toISOString(),
             };
           }
-          appendResurrectorLog(state, "error", `Falha ao publicar: ${titlePreview} — ${errMsg}`, { videoId: item.videoId });
-          runLog.push({ at: new Date().toISOString(), level: "error", message: `Publicar falhou: ${errMsg}` });
-          results.push({ id: item.id, videoId: item.videoId, status: "failed", error: errMsg });
+          appendResurrectorLog(
+            state,
+            "error",
+            `Falha ao publicar: ${titlePreview} — ${errMsg}`,
+            { videoId: item.videoId }
+          );
+          runLog.push({
+            at: new Date().toISOString(),
+            level: "error",
+            message: `Publicar falhou: ${errMsg}`,
+          });
+          results.push({
+            id: item.id,
+            videoId: item.videoId,
+            status: "failed",
+            error: errMsg,
+          });
           saveResurrectorState(workspaceDir, state);
         }
       } else {
-        results.push({ id: item.id, videoId: item.videoId, status: "review", usedFallback: generated.usedFallback });
+        results.push({
+          id: item.id,
+          videoId: item.videoId,
+          status: "review",
+          usedFallback: generated.usedFallback,
+        });
         const okMsg = generated.usedFallback
           ? `OK (fallback local — Gemini indisponível): ${titlePreview}`
           : `OK (revisar): ${titlePreview}`;
-        appendResurrectorLog(state, generated.usedFallback ? "warn" : "success", okMsg, { videoId: item.videoId });
-        runLog.push({ at: new Date().toISOString(), level: "success", message: okMsg });
+        appendResurrectorLog(
+          state,
+          generated.usedFallback ? "warn" : "success",
+          okMsg,
+          { videoId: item.videoId }
+        );
+        runLog.push({
+          at: new Date().toISOString(),
+          level: "success",
+          message: okMsg,
+        });
       }
     } catch (err) {
       const errMsg = err?.message || String(err);
@@ -1225,9 +1584,23 @@ async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, o
         error: errMsg,
         updatedAt: new Date().toISOString(),
       };
-      results.push({ id: item.id, videoId: item.videoId, status: "failed", error: errMsg });
-      appendResurrectorLog(state, "error", `Falhou: ${titlePreview} — ${errMsg}`, { videoId: item.videoId });
-      runLog.push({ at: new Date().toISOString(), level: "error", message: `Falhou: ${errMsg}` });
+      results.push({
+        id: item.id,
+        videoId: item.videoId,
+        status: "failed",
+        error: errMsg,
+      });
+      appendResurrectorLog(
+        state,
+        "error",
+        `Falhou: ${titlePreview} — ${errMsg}`,
+        { videoId: item.videoId }
+      );
+      runLog.push({
+        at: new Date().toISOString(),
+        level: "error",
+        message: `Falhou: ${errMsg}`,
+      });
     }
     saveResurrectorState(workspaceDir, state);
   }
@@ -1257,7 +1630,7 @@ async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, o
       appendResurrectorLog(
         state,
         "warn",
-        `Batch ${normalizedSlot === "morning" ? "da manhã" : "da tarde"} não marcado como concluído — todos falharam. Use "Reprocessar falhas".`,
+        `Batch ${normalizedSlot === "morning" ? "da manhã" : "da tarde"} não marcado como concluído — todos falharam. Use "Reprocessar falhas".`
       );
     }
   }
@@ -1266,23 +1639,30 @@ async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, o
     state,
     failCount ? "warn" : "success",
     `Etapa concluída: ${appliedCount} publicado(s), ${reviewCount} revisão, ${failCount} falha(s).`,
-    { slot: normalizedSlot, appliedCount, reviewCount, failCount },
+    { slot: normalizedSlot, appliedCount, reviewCount, failCount }
   );
 
-  const postBatch = await prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings);
+  const postBatch = await prepareResurrectorBatchState(
+    workspaceDir,
+    projectsRoot,
+    state,
+    settings
+  );
   state = postBatch.state;
   saveResurrectorState(workspaceDir, state);
 
   const slotLabel = normalizedSlot === "morning" ? "manhã" : "tarde";
-  const triggerLabel = normalizedTrigger === "auto" ? "automaticamente" : "manualmente";
+  const triggerLabel =
+    normalizedTrigger === "auto" ? "automaticamente" : "manualmente";
   const cycleMsg = postBatch.advanced
     ? " Ciclo anterior concluído — recomeçando do mais antigo."
     : "";
-  const summary = failCount && !successCount
-    ? `Batch da ${slotLabel}: ${failCount} falha(s) — Gemini/rede indisponível? Tente "Reprocessar falhas".`
-    : appliedCount > 0
-      ? `Batch da ${slotLabel} (${triggerLabel}): ${appliedCount} aplicado(s) no YouTube${reviewCount ? `, ${reviewCount} para revisar` : ""}${failCount ? `, ${failCount} falha(s)` : ""}.${cycleMsg}`
-      : `Batch da ${slotLabel} (${triggerLabel}): ${reviewCount} para revisão, ${failCount} falha(s).${cycleMsg}`;
+  const summary =
+    failCount && !successCount
+      ? `Batch da ${slotLabel}: ${failCount} falha(s) — Gemini/rede indisponível? Tente "Reprocessar falhas".`
+      : appliedCount > 0
+        ? `Batch da ${slotLabel} (${triggerLabel}): ${appliedCount} aplicado(s) no YouTube${reviewCount ? `, ${reviewCount} para revisar` : ""}${failCount ? `, ${failCount} falha(s)` : ""}.${cycleMsg}`
+        : `Batch da ${slotLabel} (${triggerLabel}): ${reviewCount} para revisão, ${failCount} falha(s).${cycleMsg}`;
 
   return {
     processed: results.length,
@@ -1301,7 +1681,9 @@ async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, o
 }
 
 export async function applyPendingResurrectorReviews(workspaceDir) {
-  return withResurrectorMutex(() => applyPendingResurrectorReviewsInner(workspaceDir));
+  return withResurrectorMutex(() =>
+    applyPendingResurrectorReviewsInner(workspaceDir)
+  );
 }
 
 async function applyPendingResurrectorReviewsInner(workspaceDir) {
@@ -1320,7 +1702,7 @@ async function applyPendingResurrectorReviewsInner(workspaceDir) {
   }
 
   const pending = state.items.filter(
-    (i) => i.status === "review" && i.proposedMetadata?.title,
+    (i) => i.status === "review" && i.proposedMetadata?.title
   );
 
   if (!pending.length) {
@@ -1337,7 +1719,7 @@ async function applyPendingResurrectorReviewsInner(workspaceDir) {
   appendResurrectorLog(
     state,
     "info",
-    `Publicando ${pending.length} revisão(ões) pendente(s) no YouTube…`,
+    `Publicando ${pending.length} revisão(ões) pendente(s) no YouTube…`
   );
   saveResurrectorState(workspaceDir, state);
 
@@ -1346,7 +1728,12 @@ async function applyPendingResurrectorReviewsInner(workspaceDir) {
 
   for (const item of pending) {
     const titlePreview = String(item.title || item.videoId).slice(0, 72);
-    appendResurrectorLog(state, "info", `Publicando no YouTube: ${titlePreview}`, { videoId: item.videoId });
+    appendResurrectorLog(
+      state,
+      "info",
+      `Publicando no YouTube: ${titlePreview}`,
+      { videoId: item.videoId }
+    );
     saveResurrectorState(workspaceDir, state);
 
     try {
@@ -1359,8 +1746,18 @@ async function applyPendingResurrectorReviewsInner(workspaceDir) {
       const thumbNote = applied.thumbnailApplied ? " (+ thumbnail)" : "";
       const okMsg = `Publicado no YouTube${thumbNote}: ${titlePreview}`;
       appendResurrectorLog(state, "success", okMsg, { videoId: item.videoId });
-      runLog.push({ at: new Date().toISOString(), level: "success", message: okMsg, videoId: item.videoId });
-      results.push({ id: item.id, videoId: item.videoId, status: "applied", thumbnailApplied: applied.thumbnailApplied });
+      runLog.push({
+        at: new Date().toISOString(),
+        level: "success",
+        message: okMsg,
+        videoId: item.videoId,
+      });
+      results.push({
+        id: item.id,
+        videoId: item.videoId,
+        status: "applied",
+        thumbnailApplied: applied.thumbnailApplied,
+      });
       saveResurrectorState(workspaceDir, state);
     } catch (err) {
       const errMsg = err?.message || String(err);
@@ -1374,9 +1771,24 @@ async function applyPendingResurrectorReviewsInner(workspaceDir) {
           updatedAt: new Date().toISOString(),
         };
       }
-      appendResurrectorLog(state, "error", `Falha ao publicar: ${titlePreview} — ${errMsg}`, { videoId: item.videoId });
-      runLog.push({ at: new Date().toISOString(), level: "error", message: `Publicar falhou: ${errMsg}`, videoId: item.videoId });
-      results.push({ id: item.id, videoId: item.videoId, status: "failed", error: errMsg });
+      appendResurrectorLog(
+        state,
+        "error",
+        `Falha ao publicar: ${titlePreview} — ${errMsg}`,
+        { videoId: item.videoId }
+      );
+      runLog.push({
+        at: new Date().toISOString(),
+        level: "error",
+        message: `Publicar falhou: ${errMsg}`,
+        videoId: item.videoId,
+      });
+      results.push({
+        id: item.id,
+        videoId: item.videoId,
+        status: "failed",
+        error: errMsg,
+      });
       saveResurrectorState(workspaceDir, state);
     }
   }
@@ -1384,11 +1796,12 @@ async function applyPendingResurrectorReviewsInner(workspaceDir) {
   state = loadResurrectorState(workspaceDir);
   const applied = results.filter((r) => r.status === "applied").length;
   const failed = results.filter((r) => r.status === "failed").length;
-  const message = applied > 0
-    ? `${applied} vídeo(s) publicado(s) no YouTube${failed ? `, ${failed} falha(s)` : ""}.`
-    : failed > 0
-      ? `${failed} falha(s) ao publicar no YouTube.`
-      : "Nenhuma revisão publicada.";
+  const message =
+    applied > 0
+      ? `${applied} vídeo(s) publicado(s) no YouTube${failed ? `, ${failed} falha(s)` : ""}.`
+      : failed > 0
+        ? `${failed} falha(s) ao publicar no YouTube.`
+        : "Nenhuma revisão publicada.";
 
   appendResurrectorLog(state, failed ? "warn" : "success", message);
   saveResurrectorState(workspaceDir, state);
@@ -1414,8 +1827,12 @@ export async function applyResurrectorItem(workspaceDir, itemId, options = {}) {
     throw new Error("Gere e revise os metadados antes de aplicar.");
   }
 
-  const title = String(options.title || item.selectedTitle || item.proposedMetadata.title).trim();
-  const description = String(options.description || item.proposedMetadata.description || "").trim();
+  const title = String(
+    options.title || item.selectedTitle || item.proposedMetadata.title
+  ).trim();
+  const description = String(
+    options.description || item.proposedMetadata.description || ""
+  ).trim();
   const tags = options.tags || item.proposedMetadata.tags || [];
 
   await assertTitleTestScopes(workspaceDir);
@@ -1456,30 +1873,53 @@ export async function applyResurrectorItem(workspaceDir, itemId, options = {}) {
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
     }
 
-    const cachePath = path.join(item.projectPath, "youtube_metadata_cache.json");
+    const cachePath = path.join(
+      item.projectPath,
+      "youtube_metadata_cache.json"
+    );
     if (item.metadataRaw) {
-      fs.writeFileSync(cachePath, JSON.stringify({
-        generatedAt: new Date().toISOString(),
-        pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
-        format: item.format === "SHORT" ? "SHORT" : "LONG",
-        source: "video_resurrector",
-        parsed: item.proposedMetadata,
-        text: item.metadataRaw,
-      }, null, 2), "utf8");
+      fs.writeFileSync(
+        cachePath,
+        JSON.stringify(
+          {
+            generatedAt: new Date().toISOString(),
+            pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+            format: item.format === "SHORT" ? "SHORT" : "LONG",
+            source: "video_resurrector",
+            parsed: item.proposedMetadata,
+            text: item.metadataRaw,
+          },
+          null,
+          2
+        ),
+        "utf8"
+      );
     }
   }
 
-  const workspaceCachePath = path.join(workspaceDir, "resurrector_metadata_cache", `${item.videoId}.json`);
+  const workspaceCachePath = path.join(
+    workspaceDir,
+    "resurrector_metadata_cache",
+    `${item.videoId}.json`
+  );
   if (item.metadataRaw) {
     fs.mkdirSync(path.dirname(workspaceCachePath), { recursive: true });
-    fs.writeFileSync(workspaceCachePath, JSON.stringify({
-      generatedAt: new Date().toISOString(),
-      pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
-      format: item.format === "SHORT" ? "SHORT" : "LONG",
-      source: "video_resurrector",
-      parsed: item.proposedMetadata,
-      text: item.metadataRaw,
-    }, null, 2), "utf8");
+    fs.writeFileSync(
+      workspaceCachePath,
+      JSON.stringify(
+        {
+          generatedAt: new Date().toISOString(),
+          pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+          format: item.format === "SHORT" ? "SHORT" : "LONG",
+          source: "video_resurrector",
+          parsed: item.proposedMetadata,
+          text: item.metadataRaw,
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
   }
 
   state.items[idx] = {
@@ -1492,14 +1932,17 @@ export async function applyResurrectorItem(workspaceDir, itemId, options = {}) {
     error: null,
   };
 
-  state.history = [{
-    id: item.id,
-    videoId: item.videoId,
-    projectName: item.projectName,
-    title,
-    appliedAt: state.items[idx].appliedAt,
-    thumbnailApplied,
-  }, ...(state.history || [])].slice(0, 200);
+  state.history = [
+    {
+      id: item.id,
+      videoId: item.videoId,
+      projectName: item.projectName,
+      title,
+      appliedAt: state.items[idx].appliedAt,
+      thumbnailApplied,
+    },
+    ...(state.history || []),
+  ].slice(0, 200);
 
   saveResurrectorState(workspaceDir, state);
   return { item: state.items[idx], thumbnailApplied };
@@ -1537,7 +1980,11 @@ export function getResurrectorDashboard(state) {
       failed: items.filter((i) => i.status === "failed").length,
       skipped: items.filter((i) => i.status === "skipped").length,
     },
-    items: items.sort((a, b) => comparePublishedAtAsc(a, b) || (new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))),
+    items: items.sort(
+      (a, b) =>
+        comparePublishedAtAsc(a, b) ||
+        new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+    ),
     history: state.history || [],
   };
 }
