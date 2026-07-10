@@ -554,8 +554,18 @@ export function purgeInternalTestCatalogNiches() {
 export function listCatalogNiches() {
   purgeInternalTestCatalogNiches();
   const catalog = readCatalogFile();
+  const deletedNiches = new Set(
+    (Array.isArray(catalog.deletedNiches) ? catalog.deletedNiches : []).map(
+      (k) => String(k || "").toLowerCase()
+    )
+  );
+
   const fromFile = Object.keys(catalog.niches || {})
-    .filter((key) => !isInternalTestCatalogNiche(key))
+    .filter(
+      (key) =>
+        !isInternalTestCatalogNiche(key) &&
+        !deletedNiches.has(key.toLowerCase())
+    )
     .map((key) => {
       const entry = catalog.niches[key] || {};
       const templates = Array.isArray(entry.templates) ? entry.templates : [];
@@ -569,7 +579,7 @@ export function listCatalogNiches() {
     });
 
   const merged = mergeNicheLists(
-    DEFAULT_TEMPLATE_NICHES,
+    DEFAULT_TEMPLATE_NICHES.filter((n) => !deletedNiches.has(n.toLowerCase())),
     fromFile.map((row) => row.niche)
   );
 
@@ -595,6 +605,31 @@ function resolveCatalogNicheKey(catalog = {}, niche = "") {
   return existing || normalized;
 }
 
+export function deleteCatalogNiche(niche = "") {
+  const normalized = normalizeNicheLabel(niche);
+  if (!normalized) return { ok: false, error: "Nome de nicho inválido." };
+
+  const catalog = readCatalogFile();
+  if (!catalog.niches) catalog.niches = {};
+
+  const key = resolveCatalogNicheKey(catalog, normalized);
+  if (catalog.niches[key]) {
+    delete catalog.niches[key];
+  }
+
+  if (!catalog.deletedNiches) catalog.deletedNiches = [];
+  const lowerDeleted = catalog.deletedNiches.map((n) =>
+    String(n || "").toLowerCase()
+  );
+  if (!lowerDeleted.includes(key.toLowerCase())) {
+    catalog.deletedNiches.push(key);
+  }
+
+  catalog.updated_at = new Date().toISOString();
+  writeCatalogFile(catalog);
+  return { ok: true, niche: key };
+}
+
 export function createCatalogNiche(niche = "") {
   const key = normalizeNicheLabel(niche);
   if (!key) {
@@ -604,6 +639,12 @@ export function createCatalogNiche(niche = "") {
   const catalog = readCatalogFile();
   if (!catalog.niches) catalog.niches = {};
   purgeLegacyTemplatesFromCatalog(catalog);
+
+  if (catalog.deletedNiches) {
+    catalog.deletedNiches = catalog.deletedNiches.filter(
+      (n) => String(n || "").toLowerCase() !== key.toLowerCase()
+    );
+  }
 
   const existingKey = resolveCatalogNicheKey(catalog, key);
   const created = !catalog.niches[existingKey];

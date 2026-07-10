@@ -6,6 +6,7 @@ import path from "path";
 import {
   attachStudioTemplateToScene,
   createCatalogNiche,
+  deleteCatalogNiche,
   listCatalogNiches,
   mapStudioTemplateToMotionId,
   pickStudioTemplateForTrigger,
@@ -108,6 +109,30 @@ describe("remotionTemplateCatalogService bridge", () => {
 
     const niches = listCatalogNiches();
     assert.ok(!niches.some((row) => row.niche === nicheName));
+  });
+
+  it("deleteCatalogNiche remove um nicho e impede listCatalogNiches de lista-lo", () => {
+    const nicheName = "NichoDeTesteExclusao";
+
+    // 1. Criar nicho
+    createCatalogNiche(nicheName);
+    let niches = listCatalogNiches();
+    assert.ok(niches.some((row) => row.niche === nicheName));
+
+    // 2. Excluir nicho
+    const deleted = deleteCatalogNiche(nicheName);
+    assert.equal(deleted.ok, true);
+
+    niches = listCatalogNiches();
+    assert.ok(!niches.some((row) => row.niche === nicheName));
+
+    // 3. Recriar deve limpar do deletedNiches
+    createCatalogNiche(nicheName);
+    niches = listCatalogNiches();
+    assert.ok(niches.some((row) => row.niche === nicheName));
+
+    // Limpar após o teste
+    deleteCatalogNiche(nicheName);
   });
 
   it("mapStudioTemplateToMotionId mapeia bar chart corretamente", () => {
