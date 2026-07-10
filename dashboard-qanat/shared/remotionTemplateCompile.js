@@ -39,6 +39,7 @@ const {
 const {
   AbsoluteFill,
   Audio,
+  Composition: _Composition,
   Easing,
   Freeze,
   Img,
@@ -56,6 +57,7 @@ const {
   delayRender,
   continueRender,
 } = Remotion;
+const Composition = _Composition || function CompositionStub() { return null; };
 const interpolate = (input, inputRange, outputRange, options) => {
   if (!Array.isArray(inputRange)) {
     return remotionInterpolate(input, inputRange, outputRange, options);
@@ -185,6 +187,14 @@ function prepareRunnableSource(code) {
   }
 
   src = src.replace(/export\s+default\s+/, "");
+
+  // Strip remaining named exports: export const/let/var/function/class/type/interface → plain declarations
+  src = src.replace(
+    /\bexport\s+(const|let|var|function|class|type|interface)\b/g,
+    "$1"
+  );
+  // Strip re-export blocks: export { ... };
+  src = src.replace(/\bexport\s*\{[^}]*\}\s*;?/g, "");
 
   let transformed = transform(src, {
     transforms: ["typescript", "jsx"],
