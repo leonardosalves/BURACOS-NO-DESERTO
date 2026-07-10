@@ -22,6 +22,14 @@ import {
 
 type BlockPhrase = { block: number; phrase: string };
 
+type EditorialQuality = {
+  ok?: boolean;
+  score?: number;
+  issues?: string[];
+  recommendations?: string[];
+  checks?: { ctaPlacement?: number[] };
+};
+
 const TEMPLATE_STORAGE_KEY = "lumiera.remotionTemplateStudio.templates.v1";
 
 function hasRunnableStudioSource(sourceCode?: {
@@ -43,6 +51,7 @@ type Props = {
   strategyTitle?: string;
   blockPhrases?: BlockPhrase[];
   blockScript?: string;
+  editorialQuality?: EditorialQuality | null;
   notebooklmEnriched?: boolean;
   notebooklmImproving?: boolean;
   notebooklmAvailable?: boolean;
@@ -92,6 +101,7 @@ export function NarrationReviewPanel({
   strategyTitle,
   blockPhrases = [],
   blockScript,
+  editorialQuality = null,
   notebooklmEnriched,
   notebooklmImproving = false,
   notebooklmAvailable = false,
@@ -320,6 +330,34 @@ export function NarrationReviewPanel({
               <Sparkles className="w-3 h-3" />
               Enriquecida com NotebookLM
             </p>
+          )}
+          {editorialQuality && (
+            <div
+              className={`mt-3 rounded-xl border p-3 text-[11px] ${
+                editorialQuality.ok
+                  ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-100"
+                  : "border-amber-500/25 bg-amber-500/10 text-amber-100"
+              }`}
+            >
+              <p className="font-bold">
+                Revisão editorial: {editorialQuality.score ?? 0}/100
+                {editorialQuality.ok
+                  ? " · estrutura pronta"
+                  : " · precisa de atenção"}
+              </p>
+              {(editorialQuality.issues?.length ?? 0) > 0 && (
+                <ul className="mt-1 list-disc space-y-1 pl-4 opacity-90">
+                  {editorialQuality.issues?.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+              {(editorialQuality.recommendations?.length ?? 0) > 0 && (
+                <p className="mt-2 opacity-90">
+                  Melhorias: {editorialQuality.recommendations?.join(" · ")}
+                </p>
+              )}
+            </div>
           )}
           {(strategyTitle || strategyHook) && (
             <div className="mt-2 text-[10px] text-zinc-500 space-y-0.5">

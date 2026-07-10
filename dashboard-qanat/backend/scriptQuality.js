@@ -213,10 +213,37 @@ export function assessEditorialContract({
   ).trim();
   const ending = sentences.at(-1) || "";
   const issues = [];
+  const recommendations = [];
   const isShort = format === "SHORTS" || format === "SHORT";
+  const opening = (sentences[0] || hook).toLocaleLowerCase("pt-BR");
+  const ctaPattern =
+    /\b(inscrev|segue|acompanhe|comenta|deixe.*coment|salve|compartilh|veja o pr[oó]ximo)\b/i;
+  const ctaSentenceIndexes = sentences
+    .map((sentence, index) => (ctaPattern.test(sentence) ? index : -1))
+    .filter((index) => index >= 0);
+  const longestSentenceWords = sentences.reduce(
+    (longest, sentence) =>
+      Math.max(longest, sentence.split(/\s+/).filter(Boolean).length),
+    0
+  );
+  const hasExplanationBridge =
+    /\b(porque|por isso|ou seja|na pr[aá]tica|isso significa|o resultado|assim)\b/i.test(
+      script
+    );
+  const hasPayoffLanguage =
+    /\b(segredo|resultado|resposta|por isso|ent[aã]o|significa|conclus[aã]o|li[cç][aã]o)\b/i.test(
+      ending
+    );
 
   if (!thesis) issues.push("Sem tese ou promessa editorial identificável.");
   if (!hook) issues.push("Sem gancho verbal identificável.");
+  if (
+    /^(oi|ol[aá]|fala[,! ]|seja bem-vindo|bem-vindos|hoje eu vou)/i.test(
+      opening
+    )
+  ) {
+    issues.push("A abertura deve entregar a promessa, sem saudação genérica.");
+  }
   if (hook.split(/\s+/).filter(Boolean).length > (isShort ? 12 : 28)) {
     issues.push("Gancho longo demais para a abertura.");
   }
@@ -229,6 +256,19 @@ export function assessEditorialContract({
         "Short sem desenvolvimento suficiente entre gancho e payoff."
       );
     }
+    if (!hasExplanationBridge) {
+      recommendations.push(
+        "Inclua uma ponte simples de causa e consequência para o payoff ficar claro."
+      );
+    }
+    if (
+      ctaSentenceIndexes.length > 0 &&
+      ctaSentenceIndexes[0] < Math.max(1, sentences.length - 2)
+    ) {
+      recommendations.push(
+        "Deixe o CTA do Short depois do payoff para não interromper a entrega principal."
+      );
+    }
   } else {
     if (words.length < 900) {
       issues.push("Vídeo longo ainda não tem desenvolvimento suficiente.");
@@ -236,12 +276,40 @@ export function assessEditorialContract({
     if (sentences.length < 18) {
       issues.push("Vídeo longo precisa de mais progressão por capítulos.");
     }
+    if (!hasExplanationBridge) {
+      recommendations.push(
+        "Adicione conexões explícitas entre fato, causa e consequência para a narração não ficar confusa."
+      );
+    }
+    if (ctaSentenceIndexes.length === 0) {
+      recommendations.push(
+        "Inclua um CTA contextualizado depois da primeira entrega de valor, sem depender apenas do final."
+      );
+    } else if (
+      ctaSentenceIndexes.every(
+        (index) => index > Math.floor(sentences.length * 0.8)
+      )
+    ) {
+      recommendations.push(
+        "Antecipe um CTA leve para o meio do vídeo; mantenha o CTA final como fechamento."
+      );
+    }
   }
   if (
     !ending ||
     /^(comenta|o que achou|se inscreva|deixa.*coment)/i.test(ending)
   ) {
     issues.push("Final sem payoff declarativo ou CTA contextualizado.");
+  }
+  if (!hasPayoffLanguage && ending) {
+    recommendations.push(
+      "Feche retomando a resposta ou consequência central antes de convidar o espectador para a próxima ação."
+    );
+  }
+  if (longestSentenceWords > (isShort ? 28 : 38)) {
+    recommendations.push(
+      "Quebre as frases mais longas para dar respiração à voz e facilitar a compreensão."
+    );
   }
 
   return {
@@ -253,7 +321,25 @@ export function assessEditorialContract({
     hook,
     thesis,
     ending,
+    checks: {
+      promise: Boolean(thesis),
+      directOpening:
+        Boolean(hook) &&
+        !/^(oi|ol[aá]|fala[,! ]|seja bem-vindo|bem-vindos|hoje eu vou)/i.test(
+          opening
+        ),
+      explanationBridge: hasExplanationBridge,
+      payoff: hasPayoffLanguage,
+      contextualCta: ctaSentenceIndexes.length > 0,
+      ctaPlacement: ctaSentenceIndexes.length
+        ? ctaSentenceIndexes.map((index) =>
+            Math.round(((index + 1) / sentences.length) * 100)
+          )
+        : [],
+      longestSentenceWords,
+    },
     issues,
+    recommendations,
   };
 }
 

@@ -30,3 +30,23 @@ test("editorial contract accepts a complete short structure", () => {
 
   assert.equal(report.ok, true);
 });
+
+test("editorial contract recommends a mid-video CTA for long-form", () => {
+  const report = assessEditorialContract({
+    format: "LONGO",
+    strategy: {
+      hook: "Uma descoberta muda a história",
+      promise: "Entenda a causa",
+    },
+    narrativeScript: Array.from(
+      { length: 24 },
+      (_, index) =>
+        `Bloco ${index + 1}: o fato revela uma consequência importante porque muda o contexto da história.`
+    ).join(" "),
+  });
+
+  assert.equal(report.checks.contextualCta, false);
+  assert.ok(
+    report.recommendations.some((item) => item.includes("CTA contextualizado"))
+  );
+});
