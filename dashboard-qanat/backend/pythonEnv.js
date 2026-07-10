@@ -188,6 +188,31 @@ function resolvePythonDir() {
   return cachedPythonDir;
 }
 
+function resolveNodeDir() {
+  const execDir = path.dirname(process.execPath);
+  const npxExe = process.platform === "win32" ? "npx.cmd" : "npx";
+  if (fs.existsSync(path.join(execDir, npxExe))) {
+    return execDir;
+  }
+
+  const candidates =
+    process.platform === "win32"
+      ? [
+          "C:\\Program Files\\nodejs",
+          "C:\\Program Files (x86)\\nodejs",
+          path.join(process.env.APPDATA || "", "npm"),
+        ]
+      : ["/usr/local/bin", "/usr/bin", "/bin"];
+
+  for (const dir of candidates) {
+    if (fs.existsSync(path.join(dir, npxExe))) {
+      return dir;
+    }
+  }
+
+  return null;
+}
+
 /** Env vars for Python/Whisper/Kokoro subprocesses (ffmpeg + python on PATH). */
 export function buildPythonSpawnEnv(extra = {}) {
   const env = { ...process.env, PYTHONUNBUFFERED: "1", ...extra };
@@ -208,6 +233,11 @@ export function buildPythonSpawnEnv(extra = {}) {
       pythonDir,
       process.platform === "win32" ? "python.exe" : "python"
     );
+  }
+
+  const nodeDir = resolveNodeDir();
+  if (nodeDir && !env.PATH?.toLowerCase().includes(nodeDir.toLowerCase())) {
+    env.PATH = `${nodeDir}${sep}${env.PATH || ""}`;
   }
 
   return env;
