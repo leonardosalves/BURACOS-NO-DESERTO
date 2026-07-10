@@ -214,6 +214,27 @@ function normalizeVoiceRef(raw = {}, fallback = {}) {
   };
 }
 
+export function resolveExpressivePause({
+  text = "",
+  changesBlock = false,
+} = {}) {
+  const spoken = String(text || "").trim();
+  if (!spoken)
+    return {
+      ms: DEFAULT_PAUSE_BETWEEN_SCENES_MS,
+      reason: "respiro entre cenas",
+    };
+  if (changesBlock) return { ms: 850, reason: "virada de bloco" };
+  if (/\?\s*$/.test(spoken)) return { ms: 700, reason: "pausa após pergunta" };
+  if (/\b(mas|porém|só que|o detalhe|a resposta|até que)\b/i.test(spoken)) {
+    return { ms: 900, reason: "suspense antes da próxima revelação" };
+  }
+  if (/\b(por isso|resultado|finalmente|em resumo)\b/i.test(spoken)) {
+    return { ms: 550, reason: "assimilação da conclusão" };
+  }
+  return { ms: DEFAULT_PAUSE_BETWEEN_SCENES_MS, reason: "respiro entre cenas" };
+}
+
 export function chunkAudioRelativePath(chunkId) {
   const safe = String(chunkId || "chunk").replace(/[^\w.-]+/g, "_");
   return path.join(NARRATION_CHUNKS_DIR, `${safe}.mp3`).replace(/\\/g, "/");
@@ -252,10 +273,10 @@ export function buildHeuristicNarrationChunks({
     const text = String(scene.narration_text || "").trim();
     if (!text) continue;
 
-    const pauseAfter =
-      prevBlock != null && block !== prevBlock
-        ? DEFAULT_PAUSE_BETWEEN_BLOCKS_MS
-        : DEFAULT_PAUSE_BETWEEN_SCENES_MS;
+    const pause = resolveExpressivePause({
+      text,
+      changesBlock: prevBlock != null && block !== prevBlock,
+    });
 
     chunks.push({
       id: `chunk-${String(chunks.length + 1).padStart(2, "0")}`,
@@ -263,11 +284,8 @@ export function buildHeuristicNarrationChunks({
       scene_ref: sceneRef,
       text,
       text_tagged: text,
-      pause_after_ms: i === scenes.length - 1 ? 0 : pauseAfter,
-      pause_reason:
-        block !== prevBlock && prevBlock != null
-          ? "virada de bloco"
-          : "respiro entre cenas",
+      pause_after_ms: i === scenes.length - 1 ? 0 : pause.ms,
+      pause_reason: i === scenes.length - 1 ? "fim da narração" : pause.reason,
       block_phrase: phraseByBlock.get(block) || "",
       voice: { ...voice },
       audio_file: null,
