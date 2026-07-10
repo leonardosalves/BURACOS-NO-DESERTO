@@ -10,6 +10,7 @@ import {
   Trash2,
   Volume2,
   CheckCircle,
+  Package,
 } from "lucide-react";
 import { DashminPageLayout } from "./DashminPageLayout";
 import { SectionHeader } from "./SectionHeader";
