@@ -18509,6 +18509,8 @@ app.get("/api/notebooklm/session", (req, res) => {
             fact_count:
               brief.parsed?.factCount || brief.parsed?.facts?.length || 0,
             location_count: brief.parsed?.locations?.length || 0,
+            evidence_count: brief.parsed?.evidence?.length || 0,
+            evidence_readiness: brief.parsed?.evidenceReadiness || null,
             char_count: String(
               brief.parsed?.accumulated || brief.markdown || ""
             ).length,
@@ -18542,6 +18544,8 @@ app.get("/api/notebooklm/brief", (req, res) => {
         skip_web_research: brief.skipWebResearch,
         fact_count: brief.parsed?.factCount || brief.parsed?.facts?.length || 0,
         location_count: brief.parsed?.locations?.length || 0,
+        evidence_count: brief.parsed?.evidence?.length || 0,
+        evidence_readiness: brief.parsed?.evidenceReadiness || null,
         char_count: String(brief.parsed?.accumulated || brief.markdown || "")
           .length,
         markdown_preview: String(brief.markdown || "").slice(0, 2000),
@@ -18666,6 +18670,8 @@ app.post("/api/notebooklm/session/finalize", (req, res) => {
             fact_count:
               brief.parsed?.factCount || brief.parsed?.facts?.length || 0,
             location_count: brief.parsed?.locations?.length || 0,
+            evidence_count: brief.parsed?.evidence?.length || 0,
+            evidence_readiness: brief.parsed?.evidenceReadiness || null,
             char_count: String(
               brief.parsed?.accumulated || brief.markdown || ""
             ).length,
