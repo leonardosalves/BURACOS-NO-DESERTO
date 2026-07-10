@@ -11,16 +11,26 @@ import { exaWebSearch } from "./agentReachService.js";
 import { runCompetitorResearch } from "./competitorResearch.js";
 import { fetchNotebooklmResearch } from "./notebooklmService.js";
 import { enqueueEditorialIdeas } from "./youtubeEditorialQueue.js";
-import { appendDailyRunLog, ensureAgentDirs, getAgentPaths } from "./agentMemory.js";
+import {
+  appendDailyRunLog,
+  ensureAgentDirs,
+  getAgentPaths,
+} from "./agentMemory.js";
 import { repairVaultGraphLinks } from "./obsidianVault.js";
 import { compressTranscriptForPrompt } from "./lumieraContextCompress.js";
 
 const MEMORY_FILE = "deep-research-reports.md";
 const MAX_REPORT_CHARS = 24000;
 
-export function planDeepResearch(topic = "", { niche = "Geral", format = "SHORTS" } = {}) {
+export function planDeepResearch(
+  topic = "",
+  { niche = "Geral", format = "SHORTS" } = {}
+) {
   const t = String(topic || niche).trim();
-  const fmt = String(format).toUpperCase() === "LONG" || format === "LONGO" ? "LONGO" : "SHORTS";
+  const fmt =
+    String(format).toUpperCase() === "LONG" || format === "LONGO"
+      ? "LONGO"
+      : "SHORTS";
   const subQuestions = [
     `Contexto essencial: o que o público de ${niche} precisa entender sobre "${t}"?`,
     `Fatos surpreendentes, números e datas verificáveis sobre "${t}"`,
@@ -42,15 +52,18 @@ export function planDeepResearch(topic = "", { niche = "Geral", format = "SHORTS
   };
 }
 
-async function runWebLeg(workspaceDir, {
-  topic,
-  niche,
-  format,
-  getApiKeys,
-  apiKey,
-  diversityHint = "",
-  excludeTopics = [],
-}) {
+async function runWebLeg(
+  workspaceDir,
+  {
+    topic,
+    niche,
+    format,
+    getApiKeys,
+    apiKey,
+    diversityHint = "",
+    excludeTopics = [],
+  }
+) {
   const fmt = format === "LONGO" ? "LONG" : "SHORT";
   return {
     leg: "web",
@@ -67,7 +80,11 @@ async function runWebLeg(workspaceDir, {
   };
 }
 
-async function runNotebooklmLeg(workspaceDir, backendDir, { topic, niche, format, deep = false }) {
+async function runNotebooklmLeg(
+  workspaceDir,
+  backendDir,
+  { topic, niche, format, deep = false, projDir }
+) {
   const fmtApi = format === "LONGO" ? "LONG" : "SHORT";
   const result = await fetchNotebooklmResearch(niche || topic, fmtApi, {
     backendDir,
@@ -75,6 +92,7 @@ async function runNotebooklmLeg(workspaceDir, backendDir, { topic, niche, format
     idea: { title: topic, promise: topic },
     runResearch: true,
     researchMode: deep ? "deep" : "fast",
+    projDir,
   });
   return { leg: "notebooklm", ...result };
 }
@@ -83,18 +101,23 @@ function buildExecutiveSummary(artifacts = {}) {
   const parts = [];
   if (artifacts.web?.summary) parts.push(artifacts.web.summary.slice(0, 1200));
   if (artifacts.exa?.summary) parts.push(artifacts.exa.summary.slice(0, 800));
-  if (artifacts.notebooklm?.summary) parts.push(artifacts.notebooklm.summary.slice(0, 800));
+  if (artifacts.notebooklm?.summary)
+    parts.push(artifacts.notebooklm.summary.slice(0, 800));
   const merged = parts.join("\n\n").trim();
-  return merged.slice(0, 2500) || "Pesquisa concluída — veja seções detalhadas abaixo.";
+  return (
+    merged.slice(0, 2500) ||
+    "Pesquisa concluída — veja seções detalhadas abaixo."
+  );
 }
 
 export function buildDeepResearchReport(plan, artifacts = {}) {
-  const facts = [
-    ...(artifacts.web?.facts || []),
-  ].slice(0, 12);
+  const facts = [...(artifacts.web?.facts || [])].slice(0, 12);
 
   const sources = [
-    ...(artifacts.web?.sources || []).map((s) => ({ ...s, via: "web-grounding" })),
+    ...(artifacts.web?.sources || []).map((s) => ({
+      ...s,
+      via: "web-grounding",
+    })),
   ];
 
   const competitor = artifacts.competitors?.analysis || {};
@@ -119,31 +142,70 @@ export function buildDeepResearchReport(plan, artifacts = {}) {
   }
 
   if (artifacts.exa?.available && artifacts.exa.summary) {
-    lines.push("## Busca semântica (Exa)", compressTranscriptForPrompt(artifacts.exa.summary, { format: plan.format, maxChars: 6000 }), "");
+    lines.push(
+      "## Busca semântica (Exa)",
+      compressTranscriptForPrompt(artifacts.exa.summary, {
+        format: plan.format,
+        maxChars: 6000,
+      }),
+      ""
+    );
   }
 
   if (artifacts.web?.available && artifacts.web.summary) {
-    lines.push("## Pesquisa web (Gemini grounding)", compressTranscriptForPrompt(artifacts.web.summary, { format: plan.format, maxChars: 5000 }), "");
+    lines.push(
+      "## Pesquisa web (Gemini grounding)",
+      compressTranscriptForPrompt(artifacts.web.summary, {
+        format: plan.format,
+        maxChars: 5000,
+      }),
+      ""
+    );
   }
 
   if (artifacts.notebooklm?.available && artifacts.notebooklm.summary) {
-    lines.push("## NotebookLM", compressTranscriptForPrompt(artifacts.notebooklm.summary, { format: plan.format, maxChars: 6000 }), "");
+    lines.push(
+      "## NotebookLM",
+      compressTranscriptForPrompt(artifacts.notebooklm.summary, {
+        format: plan.format,
+        maxChars: 6000,
+      }),
+      ""
+    );
   }
 
   if (outliers.length) {
-    lines.push("## Outliers YouTube (concorrentes)", ...outliers.slice(0, 6).map((o) =>
-      `- **${o.title || "Vídeo"}** — ${(o.views || 0).toLocaleString("pt-BR")} views · ${o.channelTitle || ""}`,
-    ), "");
+    lines.push(
+      "## Outliers YouTube (concorrentes)",
+      ...outliers
+        .slice(0, 6)
+        .map(
+          (o) =>
+            `- **${o.title || "Vídeo"}** — ${(o.views || 0).toLocaleString("pt-BR")} views · ${o.channelTitle || ""}`
+        ),
+      ""
+    );
   }
 
   if (derivedIdeas.length) {
-    lines.push("## Ideias derivadas (Lumiera)", ...derivedIdeas.slice(0, 8).map((idea, i) =>
-      `${i + 1}. **${idea.title}** — _${idea.hookPt || idea.angle || ""}_ (${idea.mechanic || "mecânica"})`,
-    ), "");
+    lines.push(
+      "## Ideias derivadas (Lumiera)",
+      ...derivedIdeas
+        .slice(0, 8)
+        .map(
+          (idea, i) =>
+            `${i + 1}. **${idea.title}** — _${idea.hookPt || idea.angle || ""}_ (${idea.mechanic || "mecânica"})`
+        ),
+      ""
+    );
   }
 
   if (sources.length) {
-    lines.push("## Fontes", ...sources.slice(0, 10).map((s, i) => `${i + 1}. [${s.title}](${s.url})`), "");
+    lines.push(
+      "## Fontes",
+      ...sources.slice(0, 10).map((s, i) => `${i + 1}. [${s.title}](${s.url})`),
+      ""
+    );
   }
 
   lines.push(
@@ -151,7 +213,7 @@ export function buildDeepResearchReport(plan, artifacts = {}) {
     "- Revisar ideias na fila editorial (YouTube Studio)",
     "- Abrir Creator com gancho validado",
     "- Opcional: enriquecer roteiro com NotebookLM (modo script)",
-    "",
+    ""
   );
 
   let markdown = lines.join("\n");
@@ -167,12 +229,16 @@ export function buildDeepResearchReport(plan, artifacts = {}) {
 }
 
 /** Bloco compacto para o Script Master (geração de 10 ideias). */
-export function formatDeepResearchForIdeasPrompt(report = {}, plan = {}, artifacts = {}) {
+export function formatDeepResearchForIdeasPrompt(
+  report = {},
+  plan = {},
+  artifacts = {}
+) {
   const markdown = String(report?.markdown || "").trim();
-  const derived = report?.derivedIdeas
-    || artifacts?.competitors?.derivedIdeas
-    || [];
-  const competitorAnalysis = artifacts?.competitors?.analysis || artifacts?.competitors || {};
+  const derived =
+    report?.derivedIdeas || artifacts?.competitors?.derivedIdeas || [];
+  const competitorAnalysis =
+    artifacts?.competitors?.analysis || artifacts?.competitors || {};
   const outliers = competitorAnalysis.outliers || [];
 
   if (!markdown && !derived.length && !(report?.factCount > 0)) return "";
@@ -183,16 +249,22 @@ export function formatDeepResearchForIdeasPrompt(report = {}, plan = {}, artifac
     "Esta varredura rodou ANTES das 10 ideias: web (Gemini grounding), Exa, outliers YouTube e NotebookLM quando disponível.",
     "Use os fatos e ângulos abaixo como base primária — as ideias devem ser originais, não cópias de títulos de concorrentes.",
     "",
-    compressTranscriptForPrompt(markdown, { format: plan?.format || "SHORTS", maxChars: 11000 }),
+    compressTranscriptForPrompt(markdown, {
+      format: plan?.format || "SHORTS",
+      maxChars: 11000,
+    }),
   ];
 
   if (outliers.length) {
     lines.push(
       "",
       "### Outliers YouTube (referência de mecânica — não copiar título)",
-      ...outliers.slice(0, 5).map((o) =>
-        `- ${o.title || "Vídeo"} · ${(o.views || 0).toLocaleString("pt-BR")} views · ${o.channelTitle || ""}`,
-      ),
+      ...outliers
+        .slice(0, 5)
+        .map(
+          (o) =>
+            `- ${o.title || "Vídeo"} · ${(o.views || 0).toLocaleString("pt-BR")} views · ${o.channelTitle || ""}`
+        )
     );
   }
 
@@ -200,16 +272,19 @@ export function formatDeepResearchForIdeasPrompt(report = {}, plan = {}, artifac
     lines.push(
       "",
       "### Sementes derivadas da pesquisa",
-      ...derived.slice(0, 6).map((idea, i) =>
-        `${i + 1}. **${idea.title || "Ideia"}** — ${idea.hookPt || idea.angle || idea.promise || ""}`,
-      ),
+      ...derived
+        .slice(0, 6)
+        .map(
+          (idea, i) =>
+            `${i + 1}. **${idea.title || "Ideia"}** — ${idea.hookPt || idea.angle || idea.promise || ""}`
+        )
     );
   }
 
   lines.push(
     "",
     "INSTRUÇÃO: Transforme fatos verificáveis em 10 ideias DISTINTAS dentro do nicho. Não repita apenas os exemplos do relatório — combine subáreas novas.",
-    "",
+    ""
   );
 
   return lines.join("\n");
@@ -217,7 +292,10 @@ export function formatDeepResearchForIdeasPrompt(report = {}, plan = {}, artifac
 
 export function appendDeepResearchReport(workspaceDir, plan, report) {
   ensureAgentDirs(workspaceDir);
-  const memoryPath = path.join(getAgentPaths(workspaceDir).memoryDir, MEMORY_FILE);
+  const memoryPath = path.join(
+    getAgentPaths(workspaceDir).memoryDir,
+    MEMORY_FILE
+  );
   const marker = "## Relatórios gerados";
   const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
   const block = [
@@ -236,7 +314,10 @@ export function appendDeepResearchReport(workspaceDir, plan, report) {
     const parts = content.split(marker);
     const head = parts[0] + marker;
     const tail = parts.slice(1).join(marker);
-    const blocks = tail.split(/\n(?=### \d{4}-\d{2}-\d{2})/).map((b) => b.trim()).filter(Boolean);
+    const blocks = tail
+      .split(/\n(?=### \d{4}-\d{2}-\d{2})/)
+      .map((b) => b.trim())
+      .filter(Boolean);
     const kept = [block.trim(), ...blocks].slice(0, 8);
     content = `${head}\n\n${kept.join("\n\n")}\n`;
   }
@@ -245,7 +326,7 @@ export function appendDeepResearchReport(workspaceDir, plan, report) {
   repairVaultGraphLinks(workspaceDir);
   appendDailyRunLog(
     workspaceDir,
-    `- ${new Date().toISOString()} **deep-research** topic=${plan.topic.slice(0, 60)} ideas=${report.derivedIdeas?.length || 0}`,
+    `- ${new Date().toISOString()} **deep-research** topic=${plan.topic.slice(0, 60)} ideas=${report.derivedIdeas?.length || 0}`
   );
   return { memoryPath, memoryFile: MEMORY_FILE };
 }
@@ -257,29 +338,36 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
   }
 
   const niche = String(opts.niche || "Geral").trim();
-  const format = opts.format === "LONG" || opts.format === "LONGO" ? "LONGO" : "SHORTS";
+  const format =
+    opts.format === "LONG" || opts.format === "LONGO" ? "LONGO" : "SHORTS";
   const plan = planDeepResearch(topic, { niche, format });
 
   const legs = Array.isArray(opts.legs) ? opts.legs : plan.legs;
   const tasks = [];
   const diversityHint = String(opts.diversityHint || "").trim();
-  const excludeTopics = Array.isArray(opts.excludeTopics) ? opts.excludeTopics : [];
+  const excludeTopics = Array.isArray(opts.excludeTopics)
+    ? opts.excludeTopics
+    : [];
 
   if (legs.includes("web") && opts.getApiKeys) {
-    tasks.push(runWebLeg(workspaceDir, {
-      topic,
-      niche,
-      format,
-      getApiKeys: opts.getApiKeys,
-      apiKey: opts.apiKey,
-      diversityHint,
-      excludeTopics,
-    }));
+    tasks.push(
+      runWebLeg(workspaceDir, {
+        topic,
+        niche,
+        format,
+        getApiKeys: opts.getApiKeys,
+        apiKey: opts.apiKey,
+        diversityHint,
+        excludeTopics,
+      })
+    );
   }
 
   if (legs.includes("exa")) {
     tasks.push(
-      exaWebSearch(`${topic} — ${niche} YouTube`, workspaceDir, { numResults: 6 }).then((r) => ({ leg: "exa", ...r })),
+      exaWebSearch(`${topic} — ${niche} YouTube`, workspaceDir, {
+        numResults: 6,
+      }).then((r) => ({ leg: "exa", ...r }))
     );
   }
 
@@ -291,17 +379,20 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
         maxCompetitors: opts.maxCompetitors ?? 5,
         llmFn: opts.llmFn,
         repairJsonFn: opts.repairJsonFn,
-      }).then((r) => ({ leg: "competitors", ...r })),
+      }).then((r) => ({ leg: "competitors", ...r }))
     );
   }
 
   if (legs.includes("notebooklm") && opts.backendDir) {
-    tasks.push(runNotebooklmLeg(workspaceDir, opts.backendDir, {
-      topic,
-      niche,
-      format,
-      deep: opts.notebooklmDeep === true,
-    }));
+    tasks.push(
+      runNotebooklmLeg(workspaceDir, opts.backendDir, {
+        topic,
+        niche,
+        format,
+        deep: opts.notebooklmDeep === true,
+        projDir: opts.projDir,
+      })
+    );
   }
 
   const settled = await Promise.allSettled(tasks);
@@ -327,12 +418,14 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
 
   let editorialQueue = null;
   if (opts.enqueueIdeas !== false && report.derivedIdeas?.length) {
-    const enqueued = enqueueEditorialIdeas(
-      workspaceDir,
-      report.derivedIdeas,
-      { source: "deep-research", format },
-    );
-    editorialQueue = { enqueued: report.derivedIdeas.length, total: enqueued.items.length };
+    const enqueued = enqueueEditorialIdeas(workspaceDir, report.derivedIdeas, {
+      source: "deep-research",
+      format,
+    });
+    editorialQueue = {
+      enqueued: report.derivedIdeas.length,
+      total: enqueued.items.length,
+    };
   }
 
   return {

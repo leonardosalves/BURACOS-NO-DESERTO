@@ -3486,6 +3486,7 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
         backendDir: __dirname,
         notebooklmDeep: req.body?.notebooklmDeep === true,
         enqueueIdeas: wanted.includes("editorial_queue"),
+        projDir,
       });
       if (!deep.ok) throw new Error(deep.error || "Pesquisa profunda falhou");
       return {
@@ -15472,6 +15473,7 @@ app.post(
           niche: prompt,
           format: "LONGO",
           idea: { title: prompt, promise: prompt, emotion: "Curiosidade" },
+          projDir,
         });
         notebooklmContext = formatNotebooklmPromptBlock(
           research,
@@ -15762,6 +15764,7 @@ app.post(
           enqueueIdeas: false,
           diversityHint,
           excludeTopics,
+          projDir,
         });
 
         if (deep.ok) {
@@ -15803,6 +15806,7 @@ app.post(
             rankCount: listicleRank,
             listTopic: listicleTopic,
             rankOrder: rankOrder || "desc",
+            projDir,
           });
           notebooklmContext = formatNotebooklmPromptBlock(
             research,
@@ -16010,6 +16014,7 @@ app.post(
         const research = await fetchNotebooklmResearch(nicheClean, format, {
           backendDir: __dirname,
           contentMode: "LISTICLE",
+          projDir,
         });
         notebooklmContext = formatNotebooklmPromptBlock(
           research,
@@ -16630,6 +16635,7 @@ app.post(
           rankOrder: rankOrder || "desc",
           interactiveDiscovery: true,
           runResearch: false,
+          projDir,
         });
         if (!discoveryResearch?.available) {
           const errMsg =
@@ -16739,6 +16745,7 @@ app.post(
           rankCount: listicleRank,
           listTopic: listicleTopic,
           rankOrder: rankOrder || "desc",
+          projDir,
         });
         notebooklmContext = formatNotebooklmPromptBlock(
           notebooklmResearch,
@@ -17120,6 +17127,7 @@ app.post(
               niche,
               format,
               narrativeScript: parsedData.narrative_script,
+              projDir,
             });
             const enrichBlock = formatNotebooklmPromptBlock(
               improveResearch,
@@ -18622,6 +18630,7 @@ app.post(
           niche,
           format,
           narrativeScript,
+          projDir,
         });
         notebooklmBlock = formatNotebooklmPromptBlock(
           notebooklmResearch,
@@ -18770,6 +18779,7 @@ app.post(
           niche,
           format,
           narrativeScript,
+          projDir,
         });
         if (notebooklmResearch?.awaitingUser) {
           const session = persistNotebooklmResearchSession({
@@ -19346,6 +19356,7 @@ registerResearchRoutes(app, {
   callGeminiWithRetry,
   callNvidiaWithRetry,
   NVIDIA_MODELS,
+  getProjectDir,
 });
 
 registerTimesfmRoutes(app, {

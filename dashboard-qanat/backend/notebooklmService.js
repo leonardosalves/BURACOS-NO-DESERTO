@@ -475,12 +475,42 @@ export function getNotebooklmStatus(backendDir, { quick = false } = {}) {
   }
 }
 
-function findOrCreateNotebook(niche, backendDir) {
+function findOrCreateNotebook(niche, backendDir, projDir = null) {
   const cache = loadCache(backendDir);
-  const key = nicheKey(niche);
-  if (cache.notebooks[key]?.id) return cache.notebooks[key].id;
 
-  const title = `Lumiera: ${String(niche).trim().slice(0, 72) || "Geral"}`;
+  if (projDir && fs.existsSync(projDir)) {
+    const sessionPath = path.join(projDir, "notebooklm_session.json");
+    if (fs.existsSync(sessionPath)) {
+      try {
+        const session = JSON.parse(fs.readFileSync(sessionPath, "utf8"));
+        if (session?.notebookId) {
+          return session.notebookId;
+        }
+      } catch (err) {
+        console.warn(
+          "[NotebookLM] Error loading notebookId from project session:",
+          err.message
+        );
+      }
+    }
+  }
+
+  const repoRoot = path.resolve(backendDir, "..", "..");
+  const isActualProject =
+    projDir && fs.existsSync(projDir) && path.resolve(projDir) !== repoRoot;
+
+  let key;
+  let title;
+  if (isActualProject) {
+    const projName = path.basename(projDir);
+    key = `project-${nicheKey(projName)}`;
+    title = `Lumiera: ${projName.trim().slice(0, 50)} (${String(niche).trim().slice(0, 20)})`;
+  } else {
+    key = nicheKey(niche);
+    title = `Lumiera: ${String(niche).trim().slice(0, 72) || "Geral"}`;
+  }
+
+  if (cache.notebooks[key]?.id) return cache.notebooks[key].id;
 
   try {
     const listRaw = runNlm(["notebook", "list", "--json"], {
@@ -491,10 +521,15 @@ function findOrCreateNotebook(niche, backendDir) {
     if (Array.isArray(notebooks)) {
       const existing = notebooks.find((n) => {
         const t = String(n.title || "").toLowerCase();
-        return (
-          t.includes("lumiera") &&
-          t.includes(String(niche).trim().toLowerCase().slice(0, 24))
-        );
+        if (isActualProject) {
+          const projName = path.basename(projDir).toLowerCase();
+          return t.includes("lumiera") && t.includes(projName.slice(0, 24));
+        } else {
+          return (
+            t.includes("lumiera") &&
+            t.includes(String(niche).trim().toLowerCase().slice(0, 24))
+          );
+        }
       });
       if (existing?.id) {
         cache.notebooks[key] = {
@@ -980,13 +1015,14 @@ async function runNotebooklmPipeline({
   runResearch = false,
   researchMode = "fast",
   interactiveDiscovery = false,
+  projDir = null,
 }) {
   const status = getNotebooklmStatus(backendDir);
   if (!status.authenticated) {
     return buildFallbackSummary({ niche, format, purpose });
   }
 
-  const notebookId = findOrCreateNotebook(niche, backendDir);
+  const notebookId = findOrCreateNotebook(niche, backendDir, projDir);
 
   const cache = loadCache(backendDir);
   const key = nicheKey(niche);
@@ -1201,6 +1237,7 @@ export async function fetchNotebooklmResearch(niche, format, options = {}) {
       backendDir,
       runResearch: options.runResearch === true,
       researchMode: options.researchMode === "deep" ? "deep" : "fast",
+      projDir: options.projDir,
     });
   } catch (err) {
     console.warn("[NotebookLM] Ideas research failed:", err.message);
@@ -1252,6 +1289,7 @@ export async function fetchNotebooklmScriptImprovements(params) {
       purpose: "improve",
       backendDir,
       runResearch: false,
+      projDir: params.projDir,
     });
   } catch (err) {
     console.warn("[NotebookLM] Script improve failed:", err.message);
