@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { MapPin, Trash2, X } from "lucide-react";
+import { Lock, MapPin, Trash2, Unlock, X } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   formatStudioTime,
@@ -161,6 +161,20 @@ export function TimelineStudioClipInspector({
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onUpdate({ locked: !clip.locked })}
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-gold-300 hover:bg-gold-500/10 transition cursor-pointer"
+            title={
+              clip.locked ? "Destravar clip" : "Travar clip contra edições"
+            }
+          >
+            {clip.locked ? (
+              <Lock className="w-3.5 h-3.5" />
+            ) : (
+              <Unlock className="w-3.5 h-3.5" />
+            )}
+          </button>
           {editable ? (
             <button
               type="button"
