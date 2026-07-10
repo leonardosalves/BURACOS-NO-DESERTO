@@ -237,10 +237,16 @@ export function compileSavedTemplateSource(sourceCode, runtime) {
       error: "Preview ao vivo exige export default no TSX salvo.",
     };
   }
-  if (!/\buseCurrentFrame\s*\(/.test(code)) {
+  if (
+    !/\buseCurrentFrame\s*\(/.test(code) &&
+    !/\bspring\s*\(/.test(code) &&
+    !/\binterpolate\s*\(/.test(code) &&
+    !/\bSequence\b/.test(code)
+  ) {
     return {
       ok: false,
-      error: "Preview ao vivo exige componente Remotion com useCurrentFrame.",
+      error:
+        "Preview ao vivo exige componente Remotion com animação (useCurrentFrame/spring/interpolate).",
     };
   }
 
