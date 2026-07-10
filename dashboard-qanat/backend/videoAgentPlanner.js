@@ -8,23 +8,67 @@ import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { parseJsonFromLlm } from "./aiJsonParse.js";
-import { appendDailyRunLog, ensureAgentDirs, getAgentPaths } from "./agentMemory.js";
+import {
+  appendDailyRunLog,
+  ensureAgentDirs,
+  getAgentPaths,
+} from "./agentMemory.js";
 import { repairVaultGraphLinks } from "./obsidianVault.js";
 
 const MEMORY_FILE = "videoagent-lumiera.md";
 
 /** Intents VideoAgent adaptados → nós Lumiera */
 export const LUMIERA_INTENT_MAP = {
-  "Short viral": ["creator_ideas", "creator_narration", "creator_script", "overlay_plan", "render_short", "youtube_metadata", "upload_youtube"],
-  "Vídeo longo documental": ["creator_ideas", "notebooklm_enrich", "creator_script", "overlay_plan", "render_long", "youtube_metadata", "upload_youtube"],
-  "Overview / resumo (estilo NotebookLM)": ["notebooklm_enrich", "creator_script", "overlay_plan", "youtube_metadata"],
-  "Comentário / narração": ["creator_narration", "creator_script", "overlay_plan", "beat_sync", "render_short"],
+  "Short viral": [
+    "creator_ideas",
+    "creator_narration",
+    "creator_script",
+    "overlay_plan",
+    "render_short",
+    "youtube_metadata",
+    "upload_youtube",
+  ],
+  "Vídeo longo documental": [
+    "creator_ideas",
+    "notebooklm_enrich",
+    "creator_script",
+    "overlay_plan",
+    "render_long",
+    "youtube_metadata",
+    "upload_youtube",
+  ],
+  "Overview / resumo (estilo NotebookLM)": [
+    "notebooklm_enrich",
+    "creator_script",
+    "overlay_plan",
+    "youtube_metadata",
+  ],
+  "Comentário / narração": [
+    "creator_narration",
+    "creator_script",
+    "overlay_plan",
+    "beat_sync",
+    "render_short",
+  ],
   "Edição ritmada (beat-sync)": ["beat_sync", "overlay_plan", "render_short"],
-  "Pesquisa concorrentes": ["competitor_research", "editorial_queue", "creator_script"],
+  "Pesquisa concorrentes": [
+    "competitor_research",
+    "editorial_queue",
+    "creator_script",
+  ],
   "Pesquisa profunda": ["deep_research", "editorial_queue", "creator_script"],
   "Busca na internet": ["agent_reach", "editorial_queue", "creator_script"],
-  "SEO e publicação": ["youtube_metadata", "thumbnail_ab", "schedule_heatmap", "upload_youtube"],
-  "Diagnóstico pós-upload": ["retention_cliff", "top_winners", "editorial_queue"],
+  "SEO e publicação": [
+    "youtube_metadata",
+    "thumbnail_ab",
+    "schedule_heatmap",
+    "upload_youtube",
+  ],
+  "Diagnóstico pós-upload": [
+    "retention_cliff",
+    "top_winners",
+    "editorial_queue",
+  ],
   "Q&A / entender vídeo": ["notebooklm_enrich", "retention_cliff"],
 };
 
@@ -73,7 +117,8 @@ export const LUMIERA_AGENT_REGISTRY = {
     node: "BeatSync",
     label: "Sincronizar beats",
     tab: "workflow",
-    description: "Alinha cortes e legendas ao áudio (pattern interrupt 8–12s em Shorts).",
+    description:
+      "Alinha cortes e legendas ao áudio (pattern interrupt 8–12s em Shorts).",
     inputs: ["storyboard", "narration_audio"],
     outputs: ["timeline"],
   },
@@ -176,22 +221,57 @@ export const LUMIERA_AGENT_REGISTRY = {
 };
 
 const INTENT_KEYWORDS = [
-  { intent: "Short viral", re: /short|shorts|9:16|viral|tiktok|reels|listicle|gancho/i },
-  { intent: "Vídeo longo documental", re: /longo|long-form|16:9|document[aá]rio|capítulos|20\s*min/i },
-  { intent: "Overview / resumo (estilo NotebookLM)", re: /overview|resumo|podcast|notebooklm|explicar o vídeo/i },
-  { intent: "Comentário / narração", re: /coment[aá]rio|narra[cç][aã]o|voiceover|ugc|falar sobre/i },
-  { intent: "Edição ritmada (beat-sync)", re: /beat|ritmo|sync|música|montagem|cortes? rápidos/i },
-  { intent: "Pesquisa profunda", re: /pesquisa profunda|deep research|deerflow|deer-flow|investigar|relat[oó]rio de pesquisa|pesquisar na (web|internet)/i },
-  { intent: "Busca na internet", re: /buscar na (web|internet)|agent[- ]?reach|pesquisa web|procurar online|look up|pesquisar sobre/i },
-  { intent: "Pesquisa concorrentes", re: /concorrente|outlier|competitor|minera[cç][aã]o|pesquisa de canal/i },
-  { intent: "SEO e publicação", re: /seo|metadados|thumbnail|capa|publicar|upload|agendar/i },
-  { intent: "Diagnóstico pós-upload", re: /reten[cç][aã]o|analytics|performance|views|caiu|diagn[oó]stico/i },
-  { intent: "Q&A / entender vídeo", re: /pergunt|q&a|qa|entender|analisar vídeo/i },
+  {
+    intent: "Short viral",
+    re: /short|shorts|9:16|viral|tiktok|reels|listicle|gancho/i,
+  },
+  {
+    intent: "Vídeo longo documental",
+    re: /longo|long-form|16:9|document[aá]rio|capítulos|20\s*min/i,
+  },
+  {
+    intent: "Overview / resumo (estilo NotebookLM)",
+    re: /overview|resumo|podcast|notebooklm|explicar o vídeo/i,
+  },
+  {
+    intent: "Comentário / narração",
+    re: /coment[aá]rio|narra[cç][aã]o|voiceover|ugc|falar sobre/i,
+  },
+  {
+    intent: "Edição ritmada (beat-sync)",
+    re: /beat|ritmo|sync|música|montagem|cortes? rápidos/i,
+  },
+  {
+    intent: "Pesquisa profunda",
+    re: /pesquisa profunda|deep research|deerflow|deer-flow|investigar|relat[oó]rio de pesquisa|pesquisar na (web|internet)/i,
+  },
+  {
+    intent: "Busca na internet",
+    re: /buscar na (web|internet)|agent[- ]?reach|pesquisa web|procurar online|look up|pesquisar sobre/i,
+  },
+  {
+    intent: "Pesquisa concorrentes",
+    re: /concorrente|outlier|competitor|minera[cç][aã]o|pesquisa de canal/i,
+  },
+  {
+    intent: "SEO e publicação",
+    re: /seo|metadados|thumbnail|capa|publicar|upload|agendar/i,
+  },
+  {
+    intent: "Diagnóstico pós-upload",
+    re: /reten[cç][aã]o|analytics|performance|views|caiu|diagn[oó]stico/i,
+  },
+  {
+    intent: "Q&A / entender vídeo",
+    re: /pergunt|q&a|qa|entender|analisar vídeo/i,
+  },
 ];
 
 function detectIntentsRuleBased(requirement) {
   const text = String(requirement || "");
-  const matched = INTENT_KEYWORDS.filter((row) => row.re.test(text)).map((r) => r.intent);
+  const matched = INTENT_KEYWORDS.filter((row) => row.re.test(text)).map(
+    (r) => r.intent
+  );
   if (!matched.length) {
     return ["Short viral"];
   }
@@ -208,6 +288,33 @@ function toolsFromIntents(intentList) {
   return [...nodes];
 }
 
+function normalizeRequestedFormat(format = "SHORTS") {
+  const value = String(format || "SHORTS")
+    .trim()
+    .toUpperCase();
+  return value === "LONG" || value === "LONGO" || value === "16:9"
+    ? "LONGO"
+    : "SHORTS";
+}
+
+/** Keeps the selected output format authoritative when intents overlap. */
+export function normalizeVideoAgentToolsForFormat(
+  tools = [],
+  format = "SHORTS"
+) {
+  const selectedRender =
+    normalizeRequestedFormat(format) === "LONGO"
+      ? "render_long"
+      : "render_short";
+  const hasRender = tools.some(
+    (tool) => tool === "render_short" || tool === "render_long"
+  );
+  const withoutRender = tools.filter(
+    (tool) => tool !== "render_short" && tool !== "render_long"
+  );
+  return hasRender ? [...withoutRender, selectedRender] : withoutRender;
+}
+
 function buildAgentGraph(chain) {
   return chain.map((key, idx) => {
     const meta = LUMIERA_AGENT_REGISTRY[key];
@@ -215,14 +322,24 @@ function buildAgentGraph(chain) {
     const outputs = meta.outputs.map((name) => ({
       name,
       description: `Saída de ${meta.node}`,
-      links: next ? [{ [LUMIERA_AGENT_REGISTRY[next].node]: LUMIERA_AGENT_REGISTRY[next].inputs[0] || name }] : [],
+      links: next
+        ? [
+            {
+              [LUMIERA_AGENT_REGISTRY[next].node]:
+                LUMIERA_AGENT_REGISTRY[next].inputs[0] || name,
+            },
+          ]
+        : [],
     }));
     return {
       node: meta.node,
       lumieraKey: key,
       label: meta.label,
       tab: meta.tab,
-      inputs: meta.inputs.map((name) => ({ name, description: `Entrada ${name}` })),
+      inputs: meta.inputs.map((name) => ({
+        name,
+        description: `Entrada ${name}`,
+      })),
       outputs,
     };
   });
@@ -243,18 +360,22 @@ function buildLumieraActions(chain) {
 }
 
 function buildStoryboardBeatsFallback(requirement, format = "SHORTS") {
-  const isShort = format === "SHORTS" || /short/i.test(requirement);
+  const isShort = normalizeRequestedFormat(format) === "SHORTS";
   const blocks = isShort ? 5 : 8;
   const beats = [];
   for (let i = 0; i < blocks; i += 1) {
     beats.push({
       beat: i + 1,
-      visualQuery: i === 0
-        ? "Gancho visual — rosto/objeto + texto ≤8 palavras"
-        : i === blocks - 1
-          ? "CTA — pergunta específica ou parte 2"
-          : `Pattern interrupt ~${8 + i * 2}s — fato visual concreto`,
-      narrationHint: i === 0 ? "Primeira frase paga a promessa do título" : "Transição com open loop",
+      visualQuery:
+        i === 0
+          ? "Gancho visual — rosto/objeto + texto ≤8 palavras"
+          : i === blocks - 1
+            ? "CTA — pergunta específica ou parte 2"
+            : `Pattern interrupt ~${8 + i * 2}s — fato visual concreto`,
+      narrationHint:
+        i === 0
+          ? "Primeira frase paga a promessa do título"
+          : "Transição com open loop",
     });
   }
   return beats;
@@ -302,21 +423,34 @@ function parsePlannerLlmJson(text, fallback) {
   try {
     const parsed = parseJsonFromLlm(text);
     if (parsed && (parsed.agentChain || parsed.lumieraActions)) return parsed;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return fallback;
 }
 
-export function planVideoAgentLocally(requirement, { format = "SHORTS", niche = "" } = {}) {
+export function planVideoAgentLocally(
+  requirement,
+  { format = "SHORTS", niche = "" } = {}
+) {
   const explicit = detectIntentsRuleBased(requirement);
   const implicit = [];
-  if (/fato|hist[oó]ria|engenharia|curiosidade/i.test(requirement) && !explicit.includes("NotebookLM")) {
+  if (
+    /fato|hist[oó]ria|engenharia|curiosidade/i.test(requirement) &&
+    !explicit.includes("NotebookLM")
+  ) {
     implicit.push("Enriquecer com fatos (NotebookLM)");
   }
-  if (/thumb|capa|ctr/i.test(requirement) && !explicit.some((i) => i.includes("SEO"))) {
+  if (
+    /thumb|capa|ctr/i.test(requirement) &&
+    !explicit.some((i) => i.includes("SEO"))
+  ) {
     implicit.push("Otimizar packaging (thumbnail + título)");
   }
 
-  const tools = orderChain(toolsFromIntents(explicit));
+  const tools = orderChain(
+    normalizeVideoAgentToolsForFormat(toolsFromIntents(explicit), format)
+  );
   const agentChain = tools.map((t) => LUMIERA_AGENT_REGISTRY[t].node);
   const agentGraph = buildAgentGraph(tools);
   const lumieraActions = buildLumieraActions(tools);
@@ -342,7 +476,10 @@ export function planVideoAgentLocally(requirement, { format = "SHORTS", niche = 
   };
 }
 
-export async function planVideoAgentWithLlm(requirement, { format = "SHORTS", niche = "", llmFn = null } = {}) {
+export async function planVideoAgentWithLlm(
+  requirement,
+  { format = "SHORTS", niche = "", llmFn = null } = {}
+) {
   const local = planVideoAgentLocally(requirement, { format, niche });
   if (!llmFn) return local;
 
@@ -384,7 +521,12 @@ JSON puro:
     const parsed = parsePlannerLlmJson(text, null);
     if (!parsed?.agentChainKeys?.length) return { ...local, aiEnhanced: false };
 
-    const tools = orderChain(parsed.agentChainKeys.filter((k) => LUMIERA_AGENT_REGISTRY[k]));
+    const tools = orderChain(
+      normalizeVideoAgentToolsForFormat(
+        parsed.agentChainKeys.filter((k) => LUMIERA_AGENT_REGISTRY[k]),
+        format
+      )
+    );
     if (!tools.length) return { ...local, aiEnhanced: false };
 
     return {
@@ -394,7 +536,9 @@ JSON puro:
       agentGraph: buildAgentGraph(tools),
       agentChain: tools.map((t) => LUMIERA_AGENT_REGISTRY[t].node),
       lumieraActions: buildLumieraActions(tools),
-      storyboardBeats: parsed.storyboardBeats?.length ? parsed.storyboardBeats : local.storyboardBeats,
+      storyboardBeats: parsed.storyboardBeats?.length
+        ? parsed.storyboardBeats
+        : local.storyboardBeats,
       reasoning: parsed.reasoning || local.reasoning,
       source: "videoagent-lumiera-llm",
       aiEnhanced: true,
@@ -408,19 +552,29 @@ JSON puro:
 
 const MAX_PLAN_HISTORY = 12;
 
-function capVideoAgentPlanHistory(content, marker, maxPlans = MAX_PLAN_HISTORY) {
+function capVideoAgentPlanHistory(
+  content,
+  marker,
+  maxPlans = MAX_PLAN_HISTORY
+) {
   const idx = content.indexOf(marker);
   if (idx === -1) return content;
   const head = content.slice(0, idx + marker.length);
   const tail = content.slice(idx + marker.length);
-  const blocks = tail.split(/\n(?=### \d{4}-\d{2}-\d{2})/).map((b) => b.trim()).filter(Boolean);
+  const blocks = tail
+    .split(/\n(?=### \d{4}-\d{2}-\d{2})/)
+    .map((b) => b.trim())
+    .filter(Boolean);
   if (blocks.length <= maxPlans) return content;
   return `${head}\n\n${blocks.slice(0, maxPlans).join("\n\n")}\n`;
 }
 
 export function appendPlanToObsidian(workspaceDir, plan) {
   ensureAgentDirs(workspaceDir);
-  const memoryPath = path.join(getAgentPaths(workspaceDir).memoryDir, MEMORY_FILE);
+  const memoryPath = path.join(
+    getAgentPaths(workspaceDir).memoryDir,
+    MEMORY_FILE
+  );
   let content = fs.existsSync(memoryPath)
     ? fs.readFileSync(memoryPath, "utf8")
     : `# VideoAgent → Lumiera\n\n> 🔗 [[MEMORIA-LUMIERA]] · [[skills/studio-agents-hermes]]\n\n`;
@@ -436,7 +590,9 @@ export function appendPlanToObsidian(workspaceDir, plan) {
     `- **Reasoning:** ${plan.reasoning}`,
     "",
     "#### Storyboard beats",
-    ...(plan.storyboardBeats || []).map((b) => `- Beat ${b.beat}: ${b.visualQuery} · _${b.narrationHint}_`),
+    ...(plan.storyboardBeats || []).map(
+      (b) => `- Beat ${b.beat}: ${b.visualQuery} · _${b.narrationHint}_`
+    ),
     "",
   ].join("\n");
 
@@ -451,7 +607,7 @@ export function appendPlanToObsidian(workspaceDir, plan) {
   repairVaultGraphLinks(workspaceDir);
   appendDailyRunLog(
     workspaceDir,
-    `- ${new Date().toISOString()} **videoagent-plan** intents=${(plan.intents?.explicit || []).length} steps=${plan.lumieraActions?.length || 0}`,
+    `- ${new Date().toISOString()} **videoagent-plan** intents=${(plan.intents?.explicit || []).length} steps=${plan.lumieraActions?.length || 0}`
   );
 
   return { memoryPath, memoryFile: MEMORY_FILE };
