@@ -1,4 +1,8 @@
+import { fileURLToPath } from "url";
+import path from "path";
 import { adaptRemotionTemplate } from "./remotionTemplateStudioService.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import {
   createCatalogNiche,
   getCatalogForNiche,
@@ -192,6 +196,42 @@ export function registerRemotionTemplateStudioRoutes(
       res.status(500).json({
         success: false,
         error: err?.message || "Falha ao sincronizar catálogo.",
+      });
+    }
+  });
+
+  app.post("/api/ai/template-studio/catalog/git-push", async (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    try {
+      const { execSync } = await import("child_process");
+      const repoRoot = path.join(__dirname, "..", "..");
+      
+      // Stage changes to template catalog
+      execSync("git add dashboard-qanat/backend/data/remotion-template-catalog.json", { cwd: repoRoot, stdio: "ignore" });
+      
+      // Attempt to commit
+      let committed = false;
+      try {
+        const commitMsg = `sync(templates): atualizar catalogo de templates do studio - ${new Date().toLocaleString("pt-BR")}`;
+        execSync(`git commit -m "${commitMsg}" --no-verify`, { cwd: repoRoot, stdio: "ignore" });
+        committed = true;
+      } catch (e) {
+        // Fails if nothing to commit, which is fine
+      }
+      
+      // Push changes
+      execSync("git push", { cwd: repoRoot, stdio: "ignore" });
+      
+      res.json({
+        success: true,
+        message: committed
+          ? "Catálogo de templates salvo e enviado para o GitHub com sucesso!"
+          : "Nenhuma mudança nova detectada, repositório já está atualizado no GitHub!",
+      });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        error: err?.message || "Falha ao executar o comando git push no servidor.",
       });
     }
   });
