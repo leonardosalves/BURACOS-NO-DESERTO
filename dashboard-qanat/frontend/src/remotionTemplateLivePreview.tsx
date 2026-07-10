@@ -122,7 +122,7 @@ export function SavedTemplatePreviewFrame({
   const sceneDurationFrames =
     Number.isFinite(Number(durationSeconds)) && Number(durationSeconds) > 0
       ? Math.max(1, Math.round(Number(durationSeconds) * fps))
-      : (previewMeta?.durationInFrames ?? 90);
+      : Math.max(150, previewMeta?.durationInFrames ?? 150);
 
   const timelineSynced = scrubSeconds != null;
 
@@ -193,6 +193,31 @@ export function SavedTemplatePreviewFrame({
    * Remotion autoPlay é one-shot (useState) e falha se o Player ainda não montou
    * (lazy IntersectionObserver + compile). Forçamos play() com retry.
    */
+  useEffect(() => {
+    if (!previewMeta || !studioAutoPlay) return;
+
+    let cancelled = false;
+    let retries = 0;
+
+    const tryPlay = () => {
+      if (cancelled || retries > 20) return;
+      retries++;
+      const p = playerRef.current;
+      if (!p) {
+        requestAnimationFrame(tryPlay);
+        return;
+      }
+      if (!p.isPlaying()) {
+        p.play();
+      }
+      if (!cancelled && !p.isPlaying() && retries < 20) {
+        window.setTimeout(tryPlay, 150);
+      }
+    };
+
+    tryPlay();
+    return () => { cancelled = true; };
+  }, [previewMeta, studioAutoPlay, sourceCode]);
 
 
   if (compiled.ok === false) {
