@@ -39,6 +39,7 @@ export type AppTabPropContext = Record<string, unknown> & {
   renderProgress?: { percent?: number };
   renderTimelineStudio: () => React.ReactNode;
   rendering: boolean;
+  onCancelRender?: () => void;
   saveTimelinePatch: (
     cfg: ConfigData,
     opts?: { skipRefresh?: boolean }
@@ -527,6 +528,7 @@ export function buildAppTabPropBundles(
     renderResolutionLabel: ctx.renderResolutionLabel,
     rendering: ctx.rendering,
     selectedUploadVideo: ctx.selectedUploadVideo,
+    onCancelRender: ctx.onCancelRender,
     setActiveTab: ctx.setActiveTab,
     setPendingOutputDelete: ctx.setPendingOutputDelete,
     setPreviewVideoUrl: ctx.setPreviewVideoUrl,
