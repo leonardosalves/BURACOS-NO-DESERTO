@@ -7460,7 +7460,10 @@ function getAudioDuration(filePath) {
 
     const cmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`;
 
-    const output = execSync(cmd, { encoding: "utf8" }).trim();
+    const output = execSync(cmd, {
+      encoding: "utf8",
+      env: buildPythonSpawnEnv(),
+    }).trim();
 
     const dur = parseFloat(output);
 
@@ -8614,7 +8617,10 @@ async function prepareRemotionRender(
           sonoplastiaPlan.get(effectiveBlockNumbers[0])?.climaxMode || "rise";
         const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${totalDuration} ${singleClimaxMode}`;
 
-        const output = execSync(detectCmd, { encoding: "utf8" }).trim();
+        const output = execSync(detectCmd, {
+          encoding: "utf8",
+          env: buildPythonSpawnEnv(),
+        }).trim();
 
         const lines = output.split(/\r?\n/);
 
@@ -8667,7 +8673,10 @@ async function prepareRemotionRender(
           const climaxMode = blockSonoplastia?.climaxMode || "peak";
           const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${range.duration} ${climaxMode}`;
 
-          const output = execSync(detectCmd, { encoding: "utf8" }).trim();
+          const output = execSync(detectCmd, {
+            encoding: "utf8",
+            env: buildPythonSpawnEnv(),
+          }).trim();
 
           const lines = output.split(/\r?\n/);
 
@@ -8733,7 +8742,10 @@ async function prepareRemotionRender(
         const pythonPath = PYTHON_PATH || "python";
         const scriptPath = path.join(WORKSPACE_DIR, "mix_bgm.py");
         const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${duration} ${climaxMode}`;
-        const output = execSync(detectCmd, { encoding: "utf8" }).trim();
+        const output = execSync(detectCmd, {
+          encoding: "utf8",
+          env: buildPythonSpawnEnv(),
+        }).trim();
         const lines = output.split(/\r?\n/);
         const lastLine = lines[lines.length - 1].trim();
         const parsed = parseFloat(lastLine);

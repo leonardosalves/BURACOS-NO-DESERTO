@@ -5,6 +5,7 @@
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
+import { buildPythonSpawnEnv } from "./pythonEnv.js";
 import { tightenStudioTimelineClips } from "../shared/timelineStudioTighten.js";
 import {
   resolveStudioBgmSource,
@@ -261,7 +262,7 @@ function probeAudioDurationSec(filePath) {
     if (!filePath || !fs.existsSync(filePath)) return 0;
     const output = execSync(
       `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
-      { encoding: "utf8" }
+      { encoding: "utf8", env: buildPythonSpawnEnv() }
     ).trim();
     const dur = parseFloat(output);
     return Number.isFinite(dur) && dur > 0 ? dur : 0;
