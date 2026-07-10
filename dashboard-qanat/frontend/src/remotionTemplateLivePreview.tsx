@@ -102,15 +102,15 @@ export function SavedTemplatePreviewFrame({
   const dimensions =
     size === "detail"
       ? vertical
-        ? { width: 1080, height: 1920, className: "w-[220px] sm:w-[270px]" }
+        ? { width: 360, height: 640, className: "w-[220px] sm:w-[270px]" }
         : {
-            width: 1920,
-            height: 1080,
+            width: 640,
+            height: 360,
             className: "w-[280px] sm:w-[430px] lg:w-[520px]",
           }
       : vertical
-        ? { width: 1080, height: 1920, className: "w-[92px]" }
-        : { width: 1920, height: 1080, className: "w-[190px]" };
+        ? { width: 180, height: 320, className: "w-[92px]" }
+        : { width: 320, height: 180, className: "w-[190px]" };
 
   const compiled = useMemo(
     () => compileSavedTemplateSource(sourceCode, { React, Remotion }),
