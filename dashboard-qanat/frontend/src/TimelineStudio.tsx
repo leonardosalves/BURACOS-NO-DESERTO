@@ -6,7 +6,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { AlertTriangle, Bot, RefreshCw, Save, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  Bot,
+  RefreshCw,
+  Save,
+  Sparkles,
+  Undo2,
+} from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
 import { AskLumieraPanel } from "./AskLumieraPanel";
 import { StockMediaPanel } from "./StockMediaPanel";
@@ -215,6 +222,7 @@ export function TimelineStudio({
   setConfig,
 }: TimelineStudioProps) {
   const [studio, setStudio] = useState<TimelineStudioState | null>(null);
+  const undoHistoryRef = useRef<TimelineStudioState[]>([]);
   const [projectResolved, setProjectResolved] = useState(true);
   const [requestedProject, setRequestedProject] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -583,6 +591,10 @@ export function TimelineStudio({
     (clips: StudioClip[]) => {
       setStudio((prev) => {
         if (!prev) return prev;
+        undoHistoryRef.current = [
+          ...undoHistoryRef.current.slice(-14),
+          structuredClone(prev),
+        ];
         const nextIds = new Set(clips.map((clip) => String(clip.id || "")));
         const removedRemotionClips = prev.clips.filter(
           (clip) => isRemotionStudioClip(clip) && !nextIds.has(String(clip.id))
@@ -613,6 +625,24 @@ export function TimelineStudio({
     },
     [storyboardData, withClipTimingManual]
   );
+
+  const undoLastTimelineChange = useCallback(async () => {
+    const previous = undoHistoryRef.current.pop();
+    if (!previous) {
+      toast("Nenhuma alteração local para desfazer");
+      return;
+    }
+    setStudio(previous);
+    try {
+      const saved = await persistStudioSnapshot(previous);
+      setStudio(saved);
+      toast.success("Última alteração desfeita");
+    } catch (err) {
+      toast.error(
+        `Desfazer local aplicado, mas não foi salvo: ${(err as Error).message}`
+      );
+    }
+  }, [persistStudioSnapshot]);
 
   const studioPersistRef = useRef(studio);
   studioPersistRef.current = studio;
@@ -901,6 +931,10 @@ export function TimelineStudio({
         expanded || {}
       );
 
+      undoHistoryRef.current = [
+        ...undoHistoryRef.current.slice(-14),
+        structuredClone(studio),
+      ];
       setStudio(nextStudio);
       setSelectedClipId(null);
       try {
@@ -936,8 +970,6 @@ export function TimelineStudio({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!selectedClipId || !studio) return;
-      if (e.key !== "Delete" && e.key !== "Backspace") return;
       const target = e.target as HTMLElement;
       if (
         target.tagName === "INPUT" ||
@@ -946,12 +978,19 @@ export function TimelineStudio({
       ) {
         return;
       }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        void undoLastTimelineChange();
+        return;
+      }
+      if (!selectedClipId || !studio) return;
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
       e.preventDefault();
       deleteClipFromStudio(selectedClipId);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [deleteClipFromStudio, selectedClipId, studio]);
+  }, [deleteClipFromStudio, selectedClipId, studio, undoLastTimelineChange]);
 
   const videoClips = useMemo(
     () => (studio ? clipsOnTrack(studio.clips, "video") : []),
@@ -1309,6 +1348,15 @@ export function TimelineStudio({
             title="Estende clips até o próximo — remove vazios entre B-roll e palavras Whisper"
           >
             Fechar gaps
+          </button>
+          <button
+            type="button"
+            onClick={() => void undoLastTimelineChange()}
+            disabled={undoHistoryRef.current.length === 0}
+            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 cursor-pointer disabled:opacity-40 flex items-center gap-1"
+            title="Desfaz a última alteração local (Ctrl/Cmd+Z)"
+          >
+            <Undo2 className="w-3 h-3" /> Desfazer
           </button>
           <button
             type="button"
