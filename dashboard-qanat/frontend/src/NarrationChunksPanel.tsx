@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Eye,
   Loader2,
@@ -118,6 +124,10 @@ export function NarrationChunksPanel({
   const [tagPreviews, setTagPreviews] = useState<
     Record<string, { preview: string; tags: string[] }>
   >({});
+  const [playingChunkId, setPlayingChunkId] = useState<string | null>(null);
+  const chunkAudioRef = useRef<{ audio: HTMLAudioElement; key: string } | null>(
+    null
+  );
 
   useEffect(() => {
     setLocalPlan(externalPlan || null);
@@ -785,13 +795,54 @@ export function NarrationChunksPanel({
                         <button
                           type="button"
                           onClick={() => {
-                            const audio = new Audio(
-                              `${getMediaUrl(chunk.audio_file!)}?v=${Date.now()}`
-                            );
-                            void audio.play();
+                            // Se já está tocando este chunk, parar
+                            if (playingChunkId === chunk.id) {
+                              chunkAudioRef.current?.audio.pause();
+                              chunkAudioRef.current = null;
+                              setPlayingChunkId(null);
+                              return;
+                            }
+                            // Parar áudio anterior
+                            if (chunkAudioRef.current) {
+                              chunkAudioRef.current.audio.pause();
+                              chunkAudioRef.current = null;
+                            }
+                            // Cache key estável: muda só quando o áudio é regenerado
+                            const cacheKey = `${chunk.audio_file}::${chunk.duration_s ?? 0}::${chunk.status ?? ""}`;
+                            const url = getMediaUrl(chunk.audio_file!);
+                            const audio = new Audio(url);
+                            audio.preload = "auto";
+                            chunkAudioRef.current = { audio, key: cacheKey };
+                            setPlayingChunkId(chunk.id);
+                            audio.onended = () => {
+                              setPlayingChunkId(null);
+                              chunkAudioRef.current = null;
+                            };
+                            audio.onerror = () => {
+                              setPlayingChunkId(null);
+                              chunkAudioRef.current = null;
+                            };
+                            // Tocar assim que houver buffer suficiente
+                            const tryPlay = () =>
+                              void audio.play().catch(() => {});
+                            if (audio.readyState >= 3) {
+                              tryPlay();
+                            } else {
+                              audio.addEventListener("canplay", tryPlay, {
+                                once: true,
+                              });
+                            }
                           }}
-                          className="text-[9px] px-2 py-1.5 rounded border border-zinc-700 text-zinc-300"
-                          title="Ouvir trecho"
+                          className={`text-[9px] px-2 py-1.5 rounded border transition ${
+                            playingChunkId === chunk.id
+                              ? "border-gold-500 text-gold-400 bg-gold-500/10"
+                              : "border-zinc-700 text-zinc-300"
+                          }`}
+                          title={
+                            playingChunkId === chunk.id
+                              ? "Parar"
+                              : "Ouvir trecho"
+                          }
                         >
                           <Play className="w-3 h-3" />
                         </button>
