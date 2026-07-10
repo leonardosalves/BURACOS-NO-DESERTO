@@ -226,10 +226,13 @@ export function registerRemotionTemplateStudioRoutes(
 
       const runGit = (args) => {
         try {
-          return execSync(`git -c safe.directory=* ${args}`, {
-            cwd: repoRoot,
-            encoding: "utf8",
-          });
+          return execSync(
+            `git -c safe.directory=* -c user.name="Lumiera Studio" -c user.email="studio@lumiera.ai" ${args}`,
+            {
+              cwd: repoRoot,
+              encoding: "utf8",
+            }
+          );
         } catch (err) {
           const stderr = err.stderr ? String(err.stderr).trim() : "";
           const stdout = err.stdout ? String(err.stdout).trim() : "";
