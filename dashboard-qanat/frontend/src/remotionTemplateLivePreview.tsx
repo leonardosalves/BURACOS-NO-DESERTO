@@ -191,32 +191,44 @@ export function SavedTemplatePreviewFrame({
 
   /**
    * Remotion autoPlay é one-shot (useState) e falha se o Player ainda não montou
-   * (lazy IntersectionObserver + compile). Forçamos play() com retry.
+   * (lazy IntersectionObserver + compile). Forçamos play() com interval persistente.
    */
   useEffect(() => {
     if (!previewMeta || !studioAutoPlay) return;
 
     let cancelled = false;
-    let retries = 0;
 
-    const tryPlay = () => {
-      if (cancelled || retries > 20) return;
-      retries++;
-      const p = playerRef.current;
-      if (!p) {
-        requestAnimationFrame(tryPlay);
-        return;
-      }
-      if (!p.isPlaying()) {
-        p.play();
-      }
-      if (!cancelled && !p.isPlaying() && retries < 20) {
-        window.setTimeout(tryPlay, 150);
-      }
+    // Delay inicial: o Player precisa montar internamente antes de aceitar play()
+    const startDelay = window.setTimeout(() => {
+      if (cancelled) return;
+      const interval = window.setInterval(() => {
+        if (cancelled) {
+          clearInterval(interval);
+          return;
+        }
+        const p = playerRef.current;
+        if (!p) return;
+        try {
+          if (!p.isPlaying()) {
+            p.play();
+          }
+          // Se conseguiu dar play, para de tentar
+          if (p.isPlaying()) {
+            clearInterval(interval);
+          }
+        } catch {
+          // Player ainda não pronto
+        }
+      }, 200);
+
+      // Limpa após 8s de tentativas
+      window.setTimeout(() => clearInterval(interval), 8000);
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(startDelay);
     };
-
-    tryPlay();
-    return () => { cancelled = true; };
   }, [previewMeta, studioAutoPlay, sourceCode]);
 
 
