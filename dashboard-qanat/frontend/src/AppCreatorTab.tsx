@@ -2552,6 +2552,11 @@ export function AppCreatorTab({
                                                   {vp?.motion_template_id
                                                     ? ` · ${vp.motion_template_id}`
                                                     : ""}
+                                                  {vp?.production
+                                                    ?.template_props
+                                                    ?.template_studio_fallback
+                                                    ? " · fallback nativo"
+                                                    : ""}
                                                 </span>
                                               ) : (
                                                 <span
