@@ -3288,6 +3288,31 @@ export function RemotionTemplateStudio({
     setCatalogSyncNote("Backup JSON baixado.");
   }
 
+  const [gitPushing, setGitPushing] = useState(false);
+
+  async function pushTemplatesToGit() {
+    setGitPushing(true);
+    setCatalogSyncNote("Salvando no GitHub...");
+    try {
+      const res = await fetch("/api/ai/template-studio/catalog/git-push", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.alert(data.message || "Catálogo enviado para o GitHub com sucesso!");
+        setCatalogSyncNote("Sincronizado com o GitHub.");
+      } else {
+        window.alert(`Falha ao enviar: ${data.error || "Erro desconhecido"}`);
+        setCatalogSyncNote("Erro ao sincronizar com Git.");
+      }
+    } catch (err) {
+      window.alert(`Erro de rede ao salvar no GitHub: ${err instanceof Error ? err.message : String(err)}`);
+      setCatalogSyncNote("Erro de conexão com Git.");
+    } finally {
+      setGitPushing(false);
+    }
+  }
+
   async function importTemplateBackup(file: File) {
     try {
       const raw = await file.text();
@@ -3715,6 +3740,20 @@ export function RemotionTemplateStudio({
                   }}
                 />
               </label>
+              <button
+                type="button"
+                disabled={gitPushing}
+                onClick={() => void pushTemplatesToGit()}
+                className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-black ${
+                  gitPushing
+                    ? "border-amber-500 bg-amber-500/10 text-amber-200 cursor-not-allowed"
+                    : "border-green-300/30 bg-green-300/10 text-green-100 hover:border-green-300/70"
+                }`}
+                title="Enviar catálogo de templates para o GitHub"
+              >
+                <Upload className="h-3 w-3" />
+                {gitPushing ? "Enviando..." : "Salvar no GitHub"}
+              </button>
               <button
                 type="button"
                 onClick={() => void addNicheCatalog()}
