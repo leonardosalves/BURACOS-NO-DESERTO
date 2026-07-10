@@ -807,7 +807,7 @@ export function NarrationChunksPanel({
                               chunkAudioRef.current.audio.pause();
                               chunkAudioRef.current = null;
                             }
-                            // Cache key estável: muda só quando o áudio é regenerado
+                            // Cache key estável
                             const cacheKey = `${chunk.audio_file}::${chunk.duration_s ?? 0}::${chunk.status ?? ""}`;
                             const url = getMediaUrl(chunk.audio_file!);
                             const audio = new Audio(url);
@@ -822,16 +822,12 @@ export function NarrationChunksPanel({
                               setPlayingChunkId(null);
                               chunkAudioRef.current = null;
                             };
-                            // Tocar assim que houver buffer suficiente
-                            const tryPlay = () =>
-                              void audio.play().catch(() => {});
-                            if (audio.readyState >= 3) {
-                              tryPlay();
-                            } else {
-                              audio.addEventListener("canplay", tryPlay, {
-                                once: true,
-                              });
-                            }
+                            // Inicia a reprodução diretamente
+                            audio.play().catch((err) => {
+                              console.warn("Erro ao reproduzir áudio:", err);
+                              setPlayingChunkId(null);
+                              chunkAudioRef.current = null;
+                            });
                           }}
                           className={`text-[9px] px-2 py-1.5 rounded border transition ${
                             playingChunkId === chunk.id

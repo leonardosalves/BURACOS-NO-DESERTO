@@ -19322,7 +19322,7 @@ if (fs.existsSync(frontendDist)) {
 
 const PORT = 3005;
 
-const server = app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, () => {
   console.log(`Backend Server running on ${LUMIERA_BACKEND_BASE}`);
   // NotebookLM + schedulers rodam fora do callback — health responde na hora.
   setImmediate(() => {
