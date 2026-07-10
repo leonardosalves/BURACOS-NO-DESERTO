@@ -2557,6 +2557,13 @@ export function AppCreatorTab({
                                                     ?.template_studio_fallback
                                                     ? " · fallback nativo"
                                                     : ""}
+                                                  {Number(
+                                                    vp?.production
+                                                      ?.template_props
+                                                      ?.template_studio_pick_score
+                                                  ) > 0
+                                                    ? ` · Studio ${Math.round(Number(vp.production.template_props.template_studio_pick_score))}`
+                                                    : ""}
                                                 </span>
                                               ) : (
                                                 <span

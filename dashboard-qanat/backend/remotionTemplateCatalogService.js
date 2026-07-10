@@ -452,6 +452,12 @@ export function attachStudioTemplateToScene(scene = {}, studioPick = null) {
       template_studio_data_slots: Array.isArray(studioPick.dataSlots)
         ? studioPick.dataSlots
         : [],
+      template_studio_pick_score: Number(studioPick.studio_pick_score) || 0,
+      template_studio_pick_reasons: Array.isArray(
+        studioPick.studio_pick_reasons
+      )
+        ? studioPick.studio_pick_reasons
+        : [],
       studio_source_code: sourceCode,
     },
     studio_template_decision: {
