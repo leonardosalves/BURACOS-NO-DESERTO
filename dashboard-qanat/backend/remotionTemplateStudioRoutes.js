@@ -224,27 +224,41 @@ export function registerRemotionTemplateStudioRoutes(
       const { execSync } = await import("child_process");
       const repoRoot = path.join(__dirname, "..", "..");
 
+      const runGit = (args) => {
+        try {
+          return execSync(`git -c safe.directory=* ${args}`, {
+            cwd: repoRoot,
+            encoding: "utf8",
+          });
+        } catch (err) {
+          const stderr = err.stderr ? String(err.stderr).trim() : "";
+          const stdout = err.stdout ? String(err.stdout).trim() : "";
+          const msg = stderr || stdout || err.message;
+          throw new Error(`Erro no Git (${args}): ${msg}`);
+        }
+      };
+
       // Stage changes to template catalog
-      execSync(
-        "git add dashboard-qanat/backend/data/remotion-template-catalog.json",
-        { cwd: repoRoot, stdio: "ignore" }
-      );
+      runGit("add dashboard-qanat/backend/data/remotion-template-catalog.json");
 
       // Attempt to commit
       let committed = false;
       try {
         const commitMsg = `sync(templates): atualizar catalogo de templates do studio - ${new Date().toLocaleString("pt-BR")}`;
-        execSync(`git commit -m "${commitMsg}" --no-verify`, {
-          cwd: repoRoot,
-          stdio: "ignore",
-        });
+        runGit(`commit -m "${commitMsg}" --no-verify`);
         committed = true;
       } catch (e) {
-        // Fails if nothing to commit, which is fine
+        const msg = String(e.message || "");
+        if (
+          !msg.includes("nothing to commit") &&
+          !msg.includes("nada para cometer")
+        ) {
+          throw e;
+        }
       }
 
       // Push changes
-      execSync("git push", { cwd: repoRoot, stdio: "ignore" });
+      runGit("push");
 
       res.json({
         success: true,
