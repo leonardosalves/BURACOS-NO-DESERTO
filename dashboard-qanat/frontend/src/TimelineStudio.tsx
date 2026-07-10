@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Bot,
   RefreshCw,
+  Redo2,
   Save,
   Sparkles,
   Undo2,
@@ -224,6 +225,7 @@ export function TimelineStudio({
 }: TimelineStudioProps) {
   const [studio, setStudio] = useState<TimelineStudioState | null>(null);
   const undoHistoryRef = useRef<TimelineStudioState[]>([]);
+  const redoHistoryRef = useRef<TimelineStudioState[]>([]);
   const [showCoverageMap, setShowCoverageMap] = useState(false);
   const [projectResolved, setProjectResolved] = useState(true);
   const [requestedProject, setRequestedProject] = useState<string | null>(null);
@@ -597,6 +599,7 @@ export function TimelineStudio({
           ...undoHistoryRef.current.slice(-14),
           structuredClone(prev),
         ];
+        redoHistoryRef.current = [];
         const nextIds = new Set(clips.map((clip) => String(clip.id || "")));
         const removedRemotionClips = prev.clips.filter(
           (clip) => isRemotionStudioClip(clip) && !nextIds.has(String(clip.id))
@@ -634,6 +637,12 @@ export function TimelineStudio({
       toast("Nenhuma alteração local para desfazer");
       return;
     }
+    if (studio) {
+      redoHistoryRef.current = [
+        ...redoHistoryRef.current.slice(-14),
+        structuredClone(studio),
+      ];
+    }
     setStudio(previous);
     try {
       const saved = await persistStudioSnapshot(previous);
@@ -644,7 +653,31 @@ export function TimelineStudio({
         `Desfazer local aplicado, mas não foi salvo: ${(err as Error).message}`
       );
     }
-  }, [persistStudioSnapshot]);
+  }, [persistStudioSnapshot, studio]);
+
+  const redoLastTimelineChange = useCallback(async () => {
+    const next = redoHistoryRef.current.pop();
+    if (!next) {
+      toast("Nenhuma alteração para refazer");
+      return;
+    }
+    if (studio) {
+      undoHistoryRef.current = [
+        ...undoHistoryRef.current.slice(-14),
+        structuredClone(studio),
+      ];
+    }
+    setStudio(next);
+    try {
+      const saved = await persistStudioSnapshot(next);
+      setStudio(saved);
+      toast.success("Alteração refeita");
+    } catch (err) {
+      toast.error(
+        `Refazer local aplicado, mas não foi salvo: ${(err as Error).message}`
+      );
+    }
+  }, [persistStudioSnapshot, studio]);
 
   const studioPersistRef = useRef(studio);
   studioPersistRef.current = studio;
@@ -937,6 +970,7 @@ export function TimelineStudio({
         ...undoHistoryRef.current.slice(-14),
         structuredClone(studio),
       ];
+      redoHistoryRef.current = [];
       setStudio(nextStudio);
       setSelectedClipId(null);
       try {
@@ -982,7 +1016,13 @@ export function TimelineStudio({
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
-        void undoLastTimelineChange();
+        if (e.shiftKey) void redoLastTimelineChange();
+        else void undoLastTimelineChange();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        void redoLastTimelineChange();
         return;
       }
       if (!selectedClipId || !studio) return;
@@ -992,7 +1032,13 @@ export function TimelineStudio({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [deleteClipFromStudio, selectedClipId, studio, undoLastTimelineChange]);
+  }, [
+    deleteClipFromStudio,
+    redoLastTimelineChange,
+    selectedClipId,
+    studio,
+    undoLastTimelineChange,
+  ]);
 
   const videoClips = useMemo(
     () => (studio ? clipsOnTrack(studio.clips, "video") : []),
@@ -1412,6 +1458,15 @@ export function TimelineStudio({
             title="Desfaz a última alteração local (Ctrl/Cmd+Z)"
           >
             <Undo2 className="w-3 h-3" /> Desfazer
+          </button>
+          <button
+            type="button"
+            onClick={() => void redoLastTimelineChange()}
+            disabled={redoHistoryRef.current.length === 0}
+            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 cursor-pointer disabled:opacity-40 flex items-center gap-1"
+            title="Refaz a alteração desfeita (Ctrl/Cmd+Shift+Z ou Ctrl+Y)"
+          >
+            <Redo2 className="w-3 h-3" /> Refazer
           </button>
           <button
             type="button"
