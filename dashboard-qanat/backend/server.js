@@ -846,9 +846,15 @@ app.get("/api/render/active", (req, res) => {
 app.use(cors());
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
+  // Mídia de projeto pode ser cacheada pelo browser (áudio, imagens, vídeo)
+  const isMediaRoute = req.path.startsWith("/api/projects-media");
   res.setHeader(
     "Cache-Control",
-    req.path.startsWith("/api/") ? "no-store" : "public"
+    isMediaRoute
+      ? "public, max-age=3600"
+      : req.path.startsWith("/api/")
+        ? "no-store"
+        : "public"
   );
   next();
 });
@@ -874,11 +880,22 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+// Cache de resolução de projetos — evita readdirSync em cada request de mídia
+const _projectDirCache = new Map();
+const _PROJECT_DIR_CACHE_TTL = 60_000; // 60s
+
 function resolveProjectDirFromName(rawProjName) {
   if (!rawProjName) return null;
 
   const projName = Array.isArray(rawProjName) ? rawProjName[0] : rawProjName;
   if (!projName) return null;
+
+  // Checar cache primeiro
+  const cacheKey = String(projName).trim();
+  const cached = _projectDirCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < _PROJECT_DIR_CACHE_TTL) {
+    return cached.dir;
+  }
 
   const decoded = decodeURIComponent(String(projName));
   const candidates = [
@@ -899,7 +916,10 @@ function resolveProjectDirFromName(rawProjName) {
 
   for (const name of unique) {
     const hit = tryDir(name);
-    if (hit) return hit;
+    if (hit) {
+      _projectDirCache.set(cacheKey, { dir: hit, ts: Date.now() });
+      return hit;
+    }
   }
 
   const prefix = unique.sort((a, b) => b.length - a.length)[0];
@@ -917,7 +937,10 @@ function resolveProjectDirFromName(rawProjName) {
         }
       }
     }
-    if (matches.length === 1) return matches[0];
+    if (matches.length === 1) {
+      _projectDirCache.set(cacheKey, { dir: matches[0], ts: Date.now() });
+      return matches[0];
+    }
   }
 
   const slugParts = String(prefix || unique[0] || "")
@@ -942,10 +965,85 @@ function resolveProjectDirFromName(rawProjName) {
         }
       }
     }
-    if (headMatches.length === 1) return headMatches[0];
+    if (headMatches.length === 1) {
+      _projectDirCache.set(cacheKey, { dir: headMatches[0], ts: Date.now() });
+      return headMatches[0];
+    }
   }
 
+  _projectDirCache.set(cacheKey, { dir: null, ts: Date.now() });
   return null;
+}
+
+// --- Streaming de mídia com Range requests (áudio/vídeo inicia instantâneo) ---
+const MEDIA_TYPES = {
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+  ".m4v": "video/mp4",
+  ".mkv": "video/x-matroska",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".m4a": "audio/mp4",
+  ".aac": "audio/aac",
+  ".flac": "audio/flac",
+  ".ogg": "audio/ogg",
+};
+const STREAMABLE_EXTS = new Set([
+  ".mp3",
+  ".wav",
+  ".m4a",
+  ".aac",
+  ".flac",
+  ".ogg",
+  ".mp4",
+  ".webm",
+  ".mov",
+  ".m4v",
+  ".mkv",
+]);
+
+function streamMediaFile(req, res, filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const mime = MEDIA_TYPES[ext];
+  if (!mime) {
+    return res.sendFile(path.resolve(filePath));
+  }
+
+  const stat = fs.statSync(filePath);
+  const fileSize = stat.size;
+
+  // Cache headers para mídia (browser pode cachear)
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.setHeader("Accept-Ranges", "bytes");
+
+  // Range request — streaming parcial (browser pede pedaços)
+  const range = req.headers.range;
+  if (range && STREAMABLE_EXTS.has(ext)) {
+    const parts = range.replace(/bytes=/, "").split("-");
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    const chunkSize = end - start + 1;
+
+    res.writeHead(206, {
+      "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+      "Content-Length": chunkSize,
+      "Content-Type": mime,
+    });
+    fs.createReadStream(filePath, { start, end }).pipe(res);
+  } else {
+    // Request normal — enviar inteiro com Content-Length (browser sabe o tamanho)
+    res.writeHead(200, {
+      "Content-Length": fileSize,
+      "Content-Type": mime,
+    });
+    fs.createReadStream(filePath).pipe(res);
+  }
 }
 
 app.use("/api/projects-media", (req, res, next) => {
@@ -971,20 +1069,7 @@ app.use("/api/projects-media", (req, res, next) => {
     const fullFilePath = path.join(WORKSPACE_DIR, parts.join("/"));
 
     if (fs.existsSync(fullFilePath)) {
-      const ext = path.extname(fullFilePath).toLowerCase();
-      const mediaTypes = {
-        ".mp4": "video/mp4",
-        ".webm": "video/webm",
-        ".mov": "video/quicktime",
-        ".m4v": "video/mp4",
-        ".png": "image/png",
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".webp": "image/webp",
-      };
-      const mime = mediaTypes[ext];
-      if (mime) res.type(mime);
-      return res.sendFile(path.resolve(fullFilePath));
+      return streamMediaFile(req, res, fullFilePath);
     }
 
     return res.status(404).json({ error: "Arquivo não encontrado." });
@@ -1009,28 +1094,7 @@ app.use("/api/projects-media", (req, res, next) => {
       : findProjectFileLocal(projDir, path.basename(fileSubpath));
 
   if (resolvedPath && fs.existsSync(resolvedPath)) {
-    const ext = path.extname(resolvedPath).toLowerCase();
-    const mediaTypes = {
-      ".mp4": "video/mp4",
-      ".webm": "video/webm",
-      ".mov": "video/quicktime",
-      ".m4v": "video/mp4",
-      ".mkv": "video/x-matroska",
-      ".png": "image/png",
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".webp": "image/webp",
-      ".gif": "image/gif",
-      ".mp3": "audio/mpeg",
-      ".wav": "audio/wav",
-      ".m4a": "audio/mp4",
-      ".aac": "audio/aac",
-      ".flac": "audio/flac",
-      ".ogg": "audio/ogg",
-    };
-    const mime = mediaTypes[ext];
-    if (mime) res.type(mime);
-    return res.sendFile(path.resolve(resolvedPath));
+    return streamMediaFile(req, res, resolvedPath);
   }
 
   return res.status(404).json({ error: "Arquivo de mídia não encontrado." });
