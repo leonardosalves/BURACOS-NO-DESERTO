@@ -3708,29 +3708,37 @@ export function RemotionTemplateStudio({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 xl:grid-cols-[280px_1fr_360px]">
-        <aside className="rounded-lg border border-white/10 bg-[#0b0f17] p-4">
-          <div className="mb-4 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Layers3 className="h-4 w-4 text-cyan-300" />
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
-                  Nicho
-                </p>
-                <p className="text-sm font-bold text-white">Catalogo global</p>
-              </div>
+      <div className="grid gap-4 xl:grid-cols-[260px_1fr_360px]">
+        {/* ── SIDEBAR ─────────────────────────────────────────────── */}
+        <aside className="flex flex-col gap-4 rounded-xl border border-white/8 bg-[#080c13] p-3">
+          {/* Header */}
+          <div className="flex items-center gap-2 border-b border-white/8 pb-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/10">
+              <Layers3 className="h-3.5 w-3.5 text-cyan-400" />
             </div>
-            <div className="flex flex-wrap items-center gap-1">
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                Nicho
+              </p>
+              <p className="truncate text-xs font-bold text-white">
+                Catálogo global
+              </p>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex gap-1.5">
               <button
                 type="button"
                 onClick={() => void exportTemplateBackup()}
-                className="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-[10px] font-black text-zinc-300 hover:border-white/30"
+                className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] py-1.5 text-[10px] font-semibold text-zinc-400 transition-colors hover:border-white/20 hover:text-zinc-200"
                 title="Baixar backup JSON dos templates"
               >
                 <Download className="h-3 w-3" />
                 Backup
               </button>
-              <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-[10px] font-black text-zinc-300 hover:border-white/30">
+              <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] py-1.5 text-[10px] font-semibold text-zinc-400 transition-colors hover:border-white/20 hover:text-zinc-200">
                 <Upload className="h-3 w-3" />
                 Restaurar
                 <input
@@ -3744,32 +3752,34 @@ export function RemotionTemplateStudio({
                   }}
                 />
               </label>
-              <button
-                type="button"
-                disabled={gitPushing}
-                onClick={() => void pushTemplatesToGit()}
-                className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-black ${
-                  gitPushing
-                    ? "border-amber-500 bg-amber-500/10 text-amber-200 cursor-not-allowed"
-                    : "border-green-300/30 bg-green-300/10 text-green-100 hover:border-green-300/70"
-                }`}
-                title="Enviar catálogo de templates para o GitHub"
-              >
-                <Upload className="h-3 w-3" />
-                {gitPushing ? "Enviando..." : "Salvar no GitHub"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void addNicheCatalog()}
-                className="inline-flex items-center gap-1 rounded-md border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-[10px] font-black text-cyan-100 hover:border-cyan-300/70"
-                title="Criar novo catalogo de nicho"
-              >
-                <Plus className="h-3 w-3" />
-                Novo catalogo
-              </button>
             </div>
+            <button
+              type="button"
+              disabled={gitPushing}
+              onClick={() => void pushTemplatesToGit()}
+              className={`flex w-full items-center justify-center gap-1.5 rounded-lg border py-1.5 text-[10px] font-semibold transition-colors ${
+                gitPushing
+                  ? "cursor-not-allowed border-amber-500/40 bg-amber-500/10 text-amber-300"
+                  : "border-emerald-500/30 bg-emerald-500/8 text-emerald-300 hover:border-emerald-400/60 hover:bg-emerald-500/15"
+              }`}
+              title="Enviar catálogo de templates para o GitHub"
+            >
+              <Upload className="h-3 w-3" />
+              {gitPushing ? "Enviando…" : "Salvar no GitHub"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void addNicheCatalog()}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-cyan-400/25 bg-cyan-400/8 py-1.5 text-[10px] font-semibold text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-400/15"
+              title="Criar novo catálogo de nicho"
+            >
+              <Plus className="h-3 w-3" />
+              Novo catálogo
+            </button>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+
+          {/* Niche grid */}
+          <div className="grid grid-cols-2 gap-1.5">
             {niches
               .filter((item) => !isInternalTestCatalogNiche(item))
               .map((item) => (
@@ -3777,78 +3787,106 @@ export function RemotionTemplateStudio({
                   key={item}
                   type="button"
                   onClick={() => setNiche(item)}
-                  className={`rounded-md border px-3 py-2 text-left text-xs font-bold ${
+                  className={`relative truncate rounded-lg border px-2.5 py-2 text-left text-[11px] font-semibold transition-all ${
                     niche === item
-                      ? "border-cyan-300 bg-cyan-300/12 text-cyan-100"
-                      : "border-white/10 bg-white/[0.03] text-zinc-400"
+                      ? "border-cyan-400/60 bg-cyan-400/12 text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.08)]"
+                      : "border-white/8 bg-white/[0.025] text-zinc-500 hover:border-white/20 hover:text-zinc-300"
                   }`}
                 >
-                  {item}
+                  {niche === item && (
+                    <span className="absolute left-1.5 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-cyan-400" />
+                  )}
+                  <span className={niche === item ? "ml-3" : ""}>{item}</span>
                 </button>
               ))}
           </div>
 
-          <div className="mt-5 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
+          {/* Categories */}
+          <div className="flex flex-col gap-1">
+            {/* Section header */}
+            <div className="flex items-center justify-between pb-1">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600">
                 Categorias
               </p>
               <button
                 type="button"
                 onClick={addCategory}
-                className="inline-flex items-center gap-1 rounded-md border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-[10px] font-black text-cyan-100 hover:border-cyan-300/70"
+                className="flex items-center gap-1 rounded-md border border-cyan-400/25 bg-cyan-400/8 px-2 py-0.5 text-[9px] font-bold text-cyan-400 transition-colors hover:border-cyan-400/50 hover:text-cyan-200"
               >
-                <Plus className="h-3 w-3" />
-                Categoria
+                <Plus className="h-2.5 w-2.5" />
+                Nova
               </button>
             </div>
-            {categories.map((item) => (
-              <div
-                key={item.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => {
-                  setCategory(item.id);
-                  setSubcategory("");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
+
+            {/* Category list */}
+            {categories.map((item) => {
+              const count = templates.filter(
+                (tpl) =>
+                  matchesStudioNiche(tpl.niche, niche) &&
+                  tpl.category === item.id
+              ).length;
+              const isActive = category === item.id;
+
+              return (
+                <div
+                  key={item.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
                     setCategory(item.id);
                     setSubcategory("");
-                  }
-                }}
-                className={`flex w-full cursor-pointer items-center justify-between rounded-md border px-3 py-2 text-left text-xs font-bold transition-colors ${
-                  category === item.id
-                    ? "border-blue-400 bg-blue-500/12 text-white"
-                    : "border-white/10 bg-white/[0.025] text-zinc-400 hover:border-white/30 hover:text-zinc-200"
-                }`}
-              >
-                <span className="min-w-0 flex-1 text-left">{item.label}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-zinc-600">
-                    {
-                      templates.filter(
-                        (tpl) =>
-                          matchesStudioNiche(tpl.niche, niche) &&
-                          tpl.category === item.id
-                      ).length
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setCategory(item.id);
+                      setSubcategory("");
                     }
+                  }}
+                  className={`group relative flex w-full cursor-pointer items-center gap-2 overflow-hidden rounded-lg border py-2 pl-3 pr-2 text-left transition-all ${
+                    isActive
+                      ? "border-blue-500/40 bg-blue-500/10 text-white shadow-[0_0_0_1px_rgba(59,130,246,0.15)]"
+                      : "border-transparent bg-white/[0.02] text-zinc-500 hover:border-white/10 hover:bg-white/[0.05] hover:text-zinc-300"
+                  }`}
+                >
+                  {/* Active accent bar */}
+                  <span
+                    className={`absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-blue-400 transition-opacity ${
+                      isActive ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+
+                  {/* Label */}
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-semibold leading-tight">
+                    {item.label}
                   </span>
+
+                  {/* Count badge */}
+                  <span
+                    className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums transition-colors ${
+                      isActive
+                        ? "bg-blue-500/25 text-blue-200"
+                        : "bg-white/[0.06] text-zinc-600"
+                    }`}
+                  >
+                    {count}
+                  </span>
+
+                  {/* Delete button — visible on hover */}
                   <button
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
                       deleteCategory(item.id);
                     }}
-                    className="text-red-300 hover:text-red-100"
-                    title="Excluir categoria"
+                    className="shrink-0 rounded-md p-0.5 text-red-500/50 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+                    title={`Excluir categoria "${item.label}"`}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3 w-3" />
                   </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </aside>
 
