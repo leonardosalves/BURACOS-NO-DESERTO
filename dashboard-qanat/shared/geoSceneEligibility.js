@@ -188,3 +188,36 @@ export function limitGeoMotionScenes(scenes = [], aspectRatio = "16:9") {
     return keptSet.has(i);
   });
 }
+
+/**
+ * Explica a elegibilidade geografica de um segmento de narracao.
+ */
+export function explainGeoNarrationSegment(text = "", knownPlaces = []) {
+  const candidates = [];
+  const lower = String(text || "").toLowerCase();
+  
+  for (const place of knownPlaces || []) {
+    if (place && lower.includes(String(place).toLowerCase())) {
+      candidates.push({
+        place,
+        reason: "nome correspondente na lista de locais conhecidos"
+      });
+    }
+  }
+
+  const locMatch = String(text || "").match(LOCATION_RE);
+  if (locMatch?.[1]) {
+    candidates.push({
+      place: locMatch[1],
+      reason: "padrao geografico detectado (ex: em/na/no/de lugar)"
+    });
+  }
+
+  return {
+    candidates,
+    score: candidates.length ? 0.8 : 0,
+    reason: candidates.length 
+      ? `Encontrado ${candidates.length} candidato(s)` 
+      : "Nenhum padrao geografico claro detectado"
+  };
+}
