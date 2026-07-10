@@ -304,6 +304,7 @@ import {
   mergeHumanizedScript,
   applyScriptTextQuality,
   assessEditorialContract,
+  assessNarrationReadiness,
   buildNarrationOnlyPrompt,
   buildCreatorFullScriptPrompt,
   buildCreatorPhase2Prompt,
@@ -17573,6 +17574,10 @@ app.post(
         format,
         narrativeScript: parsedData.narrative_script,
         strategy: parsedData.strategy,
+      });
+      parsedData.narration_readiness = assessNarrationReadiness({
+        format,
+        narrativeScript: parsedData.narrative_script,
       });
       if (!parsedData.editorial_quality.ok) {
         console.warn(

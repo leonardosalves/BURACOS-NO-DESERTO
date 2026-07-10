@@ -343,6 +343,84 @@ export function assessEditorialContract({
   };
 }
 
+/**
+ * Checks whether the narration is comfortable to listen to and synthesize.
+ * It is advisory: a creator keeps control and can approve a deliberate style.
+ */
+export function assessNarrationReadiness({
+  format = "LONGO",
+  narrativeScript = "",
+} = {}) {
+  const script = String(narrativeScript || "").trim();
+  const sentences = script
+    .split(/(?<=[.!?…])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  const wordsBySentence = sentences.map(
+    (sentence) => sentence.split(/\s+/).filter(Boolean).length
+  );
+  const isShort = format === "SHORTS" || format === "SHORT";
+  const targetMax = isShort ? 24 : 32;
+  const longSentences = wordsBySentence.filter((count) => count > targetMax);
+  const acronyms = [
+    ...new Set(script.match(/\b[A-Z]{2,}(?:-[A-Z]{2,})?\b/g) || []),
+  ];
+  const numbers = script.match(/\b\d{4,}\b/g) || [];
+  const starters = sentences
+    .map((sentence) =>
+      sentence
+        .replace(/^['"“”]/, "")
+        .split(/\s+/)[0]
+        ?.toLocaleLowerCase("pt-BR")
+    )
+    .filter(Boolean);
+  const repeatedStarters = [
+    ...new Set(
+      starters.filter((starter, index) => starters.indexOf(starter) !== index)
+    ),
+  ];
+  const recommendations = [];
+
+  if (longSentences.length) {
+    recommendations.push(
+      `${longSentences.length} frase(s) acima de ${targetMax} palavras: quebre para a voz respirar.`
+    );
+  }
+  if (acronyms.length) {
+    recommendations.push(
+      `Revise a leitura de siglas: ${acronyms.slice(0, 4).join(", ")}.`
+    );
+  }
+  if (numbers.length >= (isShort ? 2 : 5)) {
+    recommendations.push(
+      "Há muitos números no texto; escreva por extenso os que precisam ser compreendidos ao ouvir."
+    );
+  }
+  if (repeatedStarters.length) {
+    recommendations.push(
+      `Varie o início das frases para evitar cadência mecânica (${repeatedStarters.slice(0, 3).join(", ")}).`
+    );
+  }
+
+  const averageWordsPerSentence = wordsBySentence.length
+    ? Math.round(
+        (wordsBySentence.reduce((sum, count) => sum + count, 0) /
+          wordsBySentence.length) *
+          10
+      ) / 10
+    : 0;
+  return {
+    ok: Boolean(script),
+    format: isShort ? "SHORTS" : "LONGO",
+    sentenceCount: sentences.length,
+    averageWordsPerSentence,
+    longSentenceCount: longSentences.length,
+    acronyms,
+    numberCount: numbers.length,
+    recommendations,
+  };
+}
+
 export function parseChecklistScore(value, fallback = 0) {
   if (value == null || value === "") return fallback;
   if (typeof value === "number" && Number.isFinite(value)) {

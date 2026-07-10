@@ -30,6 +30,13 @@ type EditorialQuality = {
   checks?: { ctaPlacement?: number[] };
 };
 
+type NarrationReadiness = {
+  averageWordsPerSentence?: number;
+  longSentenceCount?: number;
+  acronyms?: string[];
+  recommendations?: string[];
+};
+
 const TEMPLATE_STORAGE_KEY = "lumiera.remotionTemplateStudio.templates.v1";
 
 function hasRunnableStudioSource(sourceCode?: {
@@ -52,6 +59,7 @@ type Props = {
   blockPhrases?: BlockPhrase[];
   blockScript?: string;
   editorialQuality?: EditorialQuality | null;
+  narrationReadiness?: NarrationReadiness | null;
   notebooklmEnriched?: boolean;
   notebooklmImproving?: boolean;
   notebooklmAvailable?: boolean;
@@ -102,6 +110,7 @@ export function NarrationReviewPanel({
   blockPhrases = [],
   blockScript,
   editorialQuality = null,
+  narrationReadiness = null,
   notebooklmEnriched,
   notebooklmImproving = false,
   notebooklmAvailable = false,
@@ -359,6 +368,19 @@ export function NarrationReviewPanel({
               )}
             </div>
           )}
+          {narrationReadiness &&
+            (narrationReadiness.recommendations?.length ?? 0) > 0 && (
+              <div className="mt-2 rounded-xl border border-sky-500/20 bg-sky-500/10 p-3 text-[11px] text-sky-100">
+                <p className="font-bold">
+                  Prontidão para voz · média de{" "}
+                  {narrationReadiness.averageWordsPerSentence ?? 0} palavras por
+                  frase
+                </p>
+                <p className="mt-1 opacity-90">
+                  {narrationReadiness.recommendations?.join(" · ")}
+                </p>
+              </div>
+            )}
           {(strategyTitle || strategyHook) && (
             <div className="mt-2 text-[10px] text-zinc-500 space-y-0.5">
               {strategyTitle && (
