@@ -31,7 +31,8 @@ def main():
     result = model.transcribe(
         "narracao_mestra_premium.mp3",
         word_timestamps=True,
-        language="pt"
+        language="pt",
+        fp16=False
     )
     
     segments = result['segments']
