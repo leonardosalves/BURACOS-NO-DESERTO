@@ -20,6 +20,7 @@ export function registerResearchRoutes(app, deps) {
     callGeminiWithRetry,
     callNvidiaWithRetry,
     NVIDIA_MODELS,
+    getProjectDir,
   } = deps;
 
   app.post("/api/research/deep/plan", (req, res) => {
@@ -67,6 +68,7 @@ export function registerResearchRoutes(app, deps) {
         formatRaw === "LONG" || formatRaw === "LONGO" ? "LONGO" : "SHORTS";
       const legs = Array.isArray(req.body?.legs) ? req.body.legs : undefined;
 
+      const projDir = getProjectDir ? getProjectDir(req) : WORKSPACE_DIR;
       const result = await runDeepResearch(WORKSPACE_DIR, {
         topic,
         niche: String(req.body?.niche || "Geral").trim(),
@@ -84,6 +86,7 @@ export function registerResearchRoutes(app, deps) {
           Math.max(Number(req.body?.maxCompetitors) || 5, 1),
           8
         ),
+        projDir,
       });
 
       if (!result.ok) return res.status(400).json(result);
