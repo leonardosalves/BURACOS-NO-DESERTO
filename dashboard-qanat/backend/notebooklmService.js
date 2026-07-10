@@ -1054,7 +1054,13 @@ ROTEIRO ATUAL:
 ${excerpt}`;
 }
 
-function buildFallbackSummary({ niche, format, topic, purpose }) {
+function buildFallbackSummary({
+  niche,
+  format,
+  topic,
+  purpose,
+  needsLogin = false,
+}) {
   return {
     available: false,
     topic: topic || niche,
@@ -1064,7 +1070,7 @@ function buildFallbackSummary({ niche, format, topic, purpose }) {
         : `Pesquisa sugerida para "${niche}" (${format}): tendências recentes, dores do público, curiosidades virais e ângulos pouco explorados por concorrentes.`,
     sources: [],
     fallback: true,
-    needsLogin: true,
+    needsLogin,
   };
 }
 
@@ -1086,7 +1092,7 @@ async function runNotebooklmPipeline({
 }) {
   const status = getNotebooklmStatus(backendDir);
   if (!status.authenticated) {
-    return buildFallbackSummary({ niche, format, purpose });
+    return buildFallbackSummary({ niche, format, purpose, needsLogin: true });
   }
 
   const notebookId = findOrCreateNotebook(niche, backendDir, projDir);
