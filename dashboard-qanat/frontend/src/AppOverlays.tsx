@@ -51,8 +51,15 @@ export type AppOverlaysProps = {
   handleDeleteOutputVideo: () => void | Promise<void>;
   previewVideoUrl: string | null;
   setPreviewVideoUrl: (url: string | null) => void;
-  renderProgress: { percent: number; phase: string } | null;
-  setRenderProgress: (value: { percent: number; phase: string } | null) => void;
+  renderProgress: {
+    percent: number;
+    phase: string;
+    jobId?: string | null;
+  } | null;
+  setRenderProgress: (
+    value: { percent: number; phase: string; jobId?: string | null } | null
+  ) => void;
+  onCancelRender?: () => void;
 };
 
 export function AppOverlays({
@@ -90,6 +97,7 @@ export function AppOverlays({
   setPreviewVideoUrl,
   renderProgress,
   setRenderProgress,
+  onCancelRender,
 }: AppOverlaysProps) {
   return (
     <>
@@ -581,10 +589,19 @@ export function AppOverlays({
                 />
               </div>
 
-              <div className="flex justify-between mt-1.5">
+              <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-900">
                 <span className="text-[9px] text-zinc-600 font-mono">
                   PROCESSANDO
                 </span>
+
+                {renderProgress.percent < 100 && onCancelRender && (
+                  <button
+                    onClick={onCancelRender}
+                    className="text-[10px] px-2 py-0.5 bg-red-950/40 hover:bg-red-950 text-red-400 hover:text-red-200 border border-red-950/60 rounded transition cursor-pointer font-semibold"
+                  >
+                    Parar Render
+                  </button>
+                )}
 
                 <span
                   className={`text-[11px] font-mono font-bold ${

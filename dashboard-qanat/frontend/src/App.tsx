@@ -10012,10 +10012,56 @@ export default function App() {
       setRenderProgress((prev) =>
         prev ? { ...prev, phase: "Render interrompido" } : null
       );
-
-      setTimeout(() => setRenderProgress(null), 5000);
     };
   };
+
+  const handleCancelRender = useCallback(async () => {
+    const jobId = renderJobIdRef.current;
+
+    if (
+      !window.confirm(
+        "Tem certeza que deseja forçar a interrupção da renderização?"
+      )
+    ) {
+      return;
+    }
+
+    setRenderProgress((prev) =>
+      prev
+        ? { ...prev, phase: "Cancelando..." }
+        : { percent: 0, phase: "Cancelando..." }
+    );
+
+    try {
+      const res = await fetch("/api/render/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: jobId || undefined,
+          project: activeProject || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        toast.success("Renderização cancelada.");
+      } else {
+        toast.error("Erro ao cancelar renderização.");
+      }
+    } catch (err) {
+      console.error("Error cancelling render:", err);
+      toast.error("Falha na conexão.");
+    } finally {
+      setRendering(false);
+      renderJobIdRef.current = null;
+      setRenderProgress(null);
+      if (renderPollTimerRef.current) {
+        window.clearTimeout(renderPollTimerRef.current);
+        renderPollTimerRef.current = null;
+      }
+      fetchData();
+    }
+  }, [activeProject, fetchData]);
 
   const getFormatBytes = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
@@ -10724,6 +10770,7 @@ export default function App() {
         setPreviewVideoUrl={setPreviewVideoUrl}
         renderProgress={renderProgress}
         setRenderProgress={setRenderProgress}
+        onCancelRender={handleCancelRender}
       />
     </>
   );
