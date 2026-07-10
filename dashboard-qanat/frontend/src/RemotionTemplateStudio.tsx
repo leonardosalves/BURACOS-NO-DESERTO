@@ -3445,9 +3445,29 @@ export function RemotionTemplateStudio({
       return;
     }
     setStudioError("");
+
+    // 1. Marcar todos os templates deste nicho como excluídos no deletedCatalog
+    const templatesInNiche = templates.filter(
+      (t) => t.niche.toLowerCase() === nicheName.toLowerCase()
+    );
+    const templateIdsToDelete = templatesInNiche.map((t) => t.id);
+    if (templateIdsToDelete.length > 0) {
+      mutateDeletedCatalog((deleted) => ({
+        ...deleted,
+        templates: [...new Set([...deleted.templates, ...templateIdsToDelete])],
+      }));
+    }
+
+    // 2. Remover do estado de templates
+    setTemplates((current) =>
+      current.filter((t) => t.niche.toLowerCase() !== nicheName.toLowerCase())
+    );
+
+    // 3. Remover do estado de nichos
     setNiches((current) =>
       current.filter((n) => n.toLowerCase() !== nicheName.toLowerCase())
     );
+
     if (niche.toLowerCase() === nicheName.toLowerCase()) {
       const remaining = niches.filter(
         (n) => n.toLowerCase() !== nicheName.toLowerCase()
