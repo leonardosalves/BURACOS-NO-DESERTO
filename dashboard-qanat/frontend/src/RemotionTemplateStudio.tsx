@@ -3254,13 +3254,24 @@ export function RemotionTemplateStudio({
     setSelectedId(visibleTemplates[0]?.id || "");
   }, [category, niche, subcategory]);
 
+  const lastNicheRef = useRef(niche);
+  const initialAutoSelectDoneRef = useRef(false);
+
   useEffect(() => {
-    if (categoryTemplates.length > 0) return;
-    const first = categoriesWithTemplates[0];
-    if (!first || first.id === category) return;
-    setCategory(first.id);
-    setSubcategory(first.subcategories[0] || "");
-  }, [category, categoryTemplates.length, categoriesWithTemplates]);
+    if (!catalogReady) return;
+    const nicheChanged = lastNicheRef.current !== niche;
+    if (nicheChanged) {
+      lastNicheRef.current = niche;
+    }
+    if (nicheChanged || !initialAutoSelectDoneRef.current) {
+      initialAutoSelectDoneRef.current = true;
+      const first = categoriesWithTemplates[0];
+      if (first) {
+        setCategory(first.id);
+        setSubcategory(first.subcategories[0] || "");
+      }
+    }
+  }, [niche, catalogReady, categoriesWithTemplates]);
 
   async function exportTemplateBackup() {
     const local = buildLocalCatalogExport(templates);
