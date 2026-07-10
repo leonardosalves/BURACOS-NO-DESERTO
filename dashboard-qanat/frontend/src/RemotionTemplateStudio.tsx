@@ -84,6 +84,7 @@ type TemplateItem = {
     | "line"
     | "area"
     | "title"
+    | "text"
     | "cinematic"
     | "media";
   longPreview:
@@ -99,6 +100,7 @@ type TemplateItem = {
     | "map"
     | "bars"
     | "title"
+    | "text"
     | "cinematic"
     | "media";
 };
@@ -132,7 +134,13 @@ const CATEGORIES: TemplateCategoryDefinition[] = [
   {
     id: "text",
     label: "Text",
-    subcategories: ["Lower third", "Title", "Quote", "Callout"],
+    subcategories: [
+      "Lower third",
+      "Title",
+      "Quote",
+      "Callout",
+      "Popping Scale Text",
+    ],
   },
   {
     id: "content-animation",
@@ -544,7 +552,14 @@ function resolvePreviewVariants(
     return resolveChartDataPreview(subcategory, templateName, code);
   }
   if (category === "text") {
-    return { shortPreview: "title", longPreview: "title" };
+    const sl = sub;
+    if (sl.includes("lower third") || sl.includes("lower-third")) {
+      return { shortPreview: "title", longPreview: "title" };
+    }
+    if (sl.includes("title") || sl.includes("titulo")) {
+      return { shortPreview: "title", longPreview: "title" };
+    }
+    return { shortPreview: "text", longPreview: "text" };
   }
   if (category === "logo-branding" || category === "intro-outro") {
     return { shortPreview: "title", longPreview: "title" };
@@ -2477,6 +2492,51 @@ function TemplatePreviewCanvas({
         </div>
       )}
 
+      {variant === "text" && (
+        <div
+          style={{
+            position: "absolute",
+            left: width * 0.1,
+            right: width * 0.1,
+            top: "50%",
+            translate: `0 -50%`,
+            display: "flex",
+            flexDirection: "column",
+            gap: isVertical ? 8 : 14,
+            alignItems: "center",
+            opacity: enter,
+          }}
+        >
+          <div
+            style={{
+              height: isVertical ? 14 : 22,
+              width: "82%",
+              borderRadius: 6,
+              backgroundColor: "white",
+              transform: `scale(${interpolate(loopProgress, [0, 0.3, 0.6, 1], [0.92, 1.08, 1, 0.92])})`,
+            }}
+          />
+          <div
+            style={{
+              height: isVertical ? 10 : 16,
+              width: "56%",
+              borderRadius: 6,
+              backgroundColor: "#a78bfa",
+              transform: `scale(${interpolate(loopProgress, [0, 0.4, 0.7, 1], [0.88, 1.1, 1, 0.88])})`,
+            }}
+          />
+          <div
+            style={{
+              height: isVertical ? 8 : 12,
+              width: "38%",
+              borderRadius: 6,
+              backgroundColor: "#67e8f9",
+              transform: `scale(${interpolate(loopProgress, [0, 0.5, 0.8, 1], [0.85, 1.12, 1, 0.85])})`,
+            }}
+          />
+        </div>
+      )}
+
       {(variant === "cinematic" || variant === "media") && (
         <div
           style={{
@@ -2832,6 +2892,7 @@ function TemplateDetailPanel({
                   <option value="progress-bars">Barras de Progresso</option>
                   <option value="counter">Contador Estatístico</option>
                   <option value="comparison">Gráfico de Comparação</option>
+                  <option value="text">Texto Animado</option>
                   <option value="ring">KPI / Anel</option>
                   <option value="map">Mapa Satélite</option>
                   <option value="title">Título Slide</option>
