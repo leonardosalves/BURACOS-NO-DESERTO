@@ -1402,6 +1402,7 @@ export function AppCreatorTab({
                 strategyTitle={narrationStrategy?.title_main}
                 blockPhrases={narrationBlockPhrases}
                 blockScript={narrationBlockScript}
+                editorialQuality={storyboardData?.editorial_quality}
                 notebooklmEnriched={narrationNotebooklmEnriched}
                 notebooklmImproving={notebooklmImproving}
                 notebooklmAvailable={notebooklmStatus?.authenticated ?? false}
