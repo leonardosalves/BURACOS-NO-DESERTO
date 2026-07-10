@@ -5,9 +5,8 @@
 
 import fs from "fs";
 import path from "path";
-import crypto from "crypto";
 import { HISTORIC_DESTROYED_RE } from "../shared/motionSceneCatalog.js";
-import { enrichGeoSceneWithAiPrompt } from "./geoVideoPromptService.js";
+import crypto from "crypto";
 
 const NOMINATIM_UA = "LumieraVideoStudio/1.0 (motion-scenes-satellite)";
 
@@ -552,11 +551,15 @@ function buildTileUrl(token, lat, lng, zoom) {
 
 /** @deprecated Alias — gera prompt T2V geográfico (substitui tiles Blender/Cesium). */
 export async function fetchSatelliteAssetsForScene(projDir, scene, opts = {}) {
+  const { enrichGeoSceneWithAiPrompt } =
+    await import("./geoVideoPromptService.js");
   return enrichGeoSceneWithAiPrompt(projDir, scene, opts);
 }
 
 /** @deprecated Alias — gera prompt T2V para geo-map. */
 export async function fetchGeoMapAssetsForScene(projDir, scene, opts = {}) {
+  const { enrichGeoSceneWithAiPrompt } =
+    await import("./geoVideoPromptService.js");
   const withTpl = { ...scene, template_id: scene?.template_id || "geo-map" };
   return enrichGeoSceneWithAiPrompt(projDir, withTpl, opts);
 }
