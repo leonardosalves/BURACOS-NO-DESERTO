@@ -1,16 +1,15 @@
 import toast from "react-hot-toast";
-import React, { Suspense } from "react";
+import React, { lazy, Suspense } from "react";
 import {
   Check,
-  CheckCircle,
   Chrome,
   Copy,
-  Package,
   Play,
   RefreshCw,
   Sparkles,
   Trash2,
   Volume2,
+  CheckCircle,
 } from "lucide-react";
 import { DashminPageLayout } from "./DashminPageLayout";
 import { SectionHeader } from "./SectionHeader";
@@ -19,7 +18,11 @@ import { NarrationChunksPanel } from "./NarrationChunksPanel";
 import { TtsVoiceStudioPanel } from "./TtsVoiceStudioPanel";
 import { warnLongListicleTitles } from "./listicleTitleUtils";
 
-import { ListicleCreatorStep } from "./ListicleCreatorStep";
+const LazyListicleCreatorStep = lazy(() =>
+  import("./ListicleCreatorStep").then((m) => ({
+    default: m.ListicleCreatorStep,
+  }))
+);
 import { resolveStockSearchQuery } from "./stockSearchQuery";
 import {
   buildTaggedNarration,
@@ -38,37 +41,10 @@ import {
   getSceneDurationSeconds,
   isWhisperTimelineReady,
 } from "./sceneSpeechDuration";
-import { FacelessChannelPanel } from "./FacelessChannelPanel";
-import { canRunFacelessPipeline90 } from "./facelessChannel";
-import {
-  SeedanceDirectingPanel,
-  SeedanceDirectingToolbar,
-} from "./SeedanceDirectingPanel";
-import {
-  countScenesWithDirecting,
-  countVideoIaScenes,
-  sceneHasGeneratedVideo,
-} from "./seedanceDirecting";
-import {
-  resolveScenePreviewAsset,
-  SCENE_VIDEO_ACCEPT,
-  detectUploadMediaType,
-} from "./assetPreviewUtils";
-import { TimelineClipPreview } from "./TimelineClipPreview";
 import type { ConfigData, WorkspaceStatus } from "./appTypes";
-import { NotebookLmConnect } from "./NotebookLmConnect";
-import {
-  NotebooklmEnrichmentPanel,
-  type NotebooklmBriefInfo,
-  type NotebooklmSession,
-} from "./NotebooklmEnrichmentPanel";
-import { CreatorProductionPlanPanel } from "./CreatorProductionPlanPanel";
-import { GeoVideoWizardPanel } from "./GeoVideoWizardPanel";
-import type { GeoMotionScene } from "./geoVideoFlyover";
 
 export type AppCreatorTabProps = {
   activeProject: string;
-  applyFacelessPreset: (presetId: string) => void;
   applyMetadataToUpload: () => void | Promise<void>;
   applyWizardSessionPatch: (patch: any) => void;
   config: ConfigData | null;
@@ -92,9 +68,6 @@ export type AppCreatorTabProps = {
   dragActive: boolean;
   editorialIdeaImport: any;
   expandedBlocks: Record<number, boolean>;
-  facelessPipelineBusy: boolean;
-  facelessPipelineLog: string[];
-  facelessPresetId: string | null;
   fetchData: () => void | Promise<void>;
   formatSelector: "LONGO" | "SHORTS";
   geminiBrowserMode: boolean;
@@ -108,54 +81,15 @@ export type AppCreatorTabProps = {
   handleDrag: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent) => void;
   handleEnhanceVisualPrompts: () => void | Promise<void>;
-  handleCompileDirectingBriefs: (
-    sceneIndices?: number[]
-  ) => void | Promise<void>;
-  handleGenerateSeedanceT2v: (
-    sceneIndices?: number[],
-    provider?: "ltx" | "seedance"
-  ) => void | Promise<void>;
-  handleUpdateCreatorDirectingBrief: (
-    index: number,
-    field: string,
-    value: string
-  ) => void;
-  handleUpdateCreatorSeedanceRef: (
-    index: number,
-    slot: string,
-    value: string
-  ) => void;
-  directingSceneIndex: number | null;
-  seedanceT2vJobs: Record<
-    number,
-    {
-      prompt_id: string;
-      scene_index: number;
-      status: "queued" | "running" | "completed" | "error" | "attaching";
-      percent?: number;
-      message?: string;
-      asset?: string;
-      error?: string;
-    }
-  >;
   handleEvaluateScriptChecklist: () => void | Promise<void>;
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleGenerateFullScript: () => void | Promise<void>;
-  handleGenerateIdeas: (opts?: {
-    forceVariety?: boolean;
-  }) => void | Promise<void>;
-  clearCreatorPhase2Vestiges: () => void;
-  handleRunFacelessPipeline90: () => void | Promise<void>;
+  handleGenerateIdeas: () => void | Promise<void>;
   handleGenerateListicleScript: () => void | Promise<void>;
   handleGenerateNarration: () => void | Promise<void>;
   handleGenerateNarrationFromImport: () => void | Promise<void>;
   handleGenerateYoutubeThumbnailImages: () => void | Promise<void>;
   handleNotebooklmImproveNarrationDraft: () => void | Promise<void>;
-  handleNotebooklmReply: (reply: string) => Promise<void>;
-  handleNotebooklmProceed: () => Promise<void>;
-  notebooklmSession: NotebooklmSession | null;
-  notebooklmBrief: NotebooklmBriefInfo | null;
-  notebooklmSessionLoading: boolean;
   handleRemoveSceneAsset: (
     blockKey: string,
     assetIdx: number
@@ -174,10 +108,6 @@ export type AppCreatorTabProps = {
     file: File,
     assetIdx: number
   ) => void | Promise<void>;
-  handleMotionScenesChange: (
-    scenes: GeoMotionScene[],
-    opts?: { immediate?: boolean }
-  ) => void;
   hasApiKey: boolean;
   ideasData: any;
   ideationTab: string;
@@ -247,6 +177,7 @@ export type AppCreatorTabProps = {
   >;
   setUploadSuccess: (v: boolean) => void;
   setUseNotebooklm: (v: boolean) => void;
+  setNotebooklmDeep: (v: boolean) => void;
   showNarrationReview: boolean;
   status: WorkspaceStatus | null;
   storyboardData: any;
@@ -259,14 +190,7 @@ export type AppCreatorTabProps = {
   uploadedScenes: Record<string, boolean>;
   uploadingNarration: boolean;
   useNotebooklm: boolean;
-  useDeepResearch: boolean;
-  setUseDeepResearch: (v: boolean) => void;
-  motionTemplatePackEnabled: boolean;
-  setMotionTemplatePackEnabled: (v: boolean) => void;
-  motionTemplateNiche: string;
-  setMotionTemplateNiche: (v: string) => void;
-  motionTemplateIds: string[];
-  setMotionTemplateIds: (ids: string[]) => void;
+  notebooklmDeep: boolean;
   wizardSavedAtLabel: string | null;
   wordTranscripts: any;
   youtubeLoading: boolean;
@@ -276,7 +200,6 @@ export type AppCreatorTabProps = {
 
 export function AppCreatorTab({
   activeProject,
-  applyFacelessPreset,
   applyMetadataToUpload,
   applyWizardSessionPatch,
   config,
@@ -300,9 +223,6 @@ export function AppCreatorTab({
   dragActive,
   editorialIdeaImport,
   expandedBlocks,
-  facelessPipelineBusy,
-  facelessPipelineLog,
-  facelessPresetId,
   fetchData,
   formatSelector,
   geminiBrowserMode,
@@ -316,35 +236,21 @@ export function AppCreatorTab({
   handleDrag,
   handleDrop,
   handleEnhanceVisualPrompts,
-  handleCompileDirectingBriefs,
-  handleGenerateSeedanceT2v,
-  handleUpdateCreatorDirectingBrief,
-  handleUpdateCreatorSeedanceRef,
-  directingSceneIndex,
-  seedanceT2vJobs,
   handleEvaluateScriptChecklist,
   handleFileInput,
   handleGenerateFullScript,
   handleGenerateIdeas,
-  clearCreatorPhase2Vestiges,
-  handleRunFacelessPipeline90,
   handleGenerateListicleScript,
   handleGenerateNarration,
   handleGenerateNarrationFromImport,
   handleGenerateYoutubeThumbnailImages,
   handleNotebooklmImproveNarrationDraft,
-  handleNotebooklmReply,
-  handleNotebooklmProceed,
-  notebooklmSession,
-  notebooklmBrief,
-  notebooklmSessionLoading,
   handleRemoveSceneAsset,
   handleSaveConfig,
   handleSuggestListicleRankings,
   handleSyncTimings,
   handleUpdateCreatorScene,
   handleUploadSceneAsset,
-  handleMotionScenesChange,
   hasApiKey,
   ideasData,
   ideationTab,
@@ -404,6 +310,7 @@ export function AppCreatorTab({
   setTaggedNarrations,
   setUploadSuccess,
   setUseNotebooklm,
+  setNotebooklmDeep,
   showNarrationReview,
   status,
   storyboardData,
@@ -416,30 +323,13 @@ export function AppCreatorTab({
   uploadedScenes,
   uploadingNarration,
   useNotebooklm,
-  useDeepResearch,
-  setUseDeepResearch,
-  motionTemplatePackEnabled,
-  setMotionTemplatePackEnabled,
-  motionTemplateNiche,
-  setMotionTemplateNiche,
-  motionTemplateIds,
-  setMotionTemplateIds,
+  notebooklmDeep,
   wizardSavedAtLabel,
   wordTranscripts,
   youtubeLoading,
   youtubeMetadata,
   youtubeMetadataParsed,
 }: AppCreatorTabProps) {
-  const facelessComplianceInput = {
-    storyboardData,
-    config,
-    status,
-    wordTranscripts,
-    timelineAssets,
-    nicheInput,
-  };
-  const pipeline90Ready = canRunFacelessPipeline90(wordTranscripts, status);
-
   return (
     <DashminPageLayout
       className="lumiera-fill-view overflow-hidden"
@@ -553,31 +443,10 @@ export function AppCreatorTab({
       {/* Steps Content Area */}
 
       <div className="flex-1 glass-panel border border-dash-border rounded-lg p-6 min-h-0 overflow-y-auto">
-        {notebooklmSession &&
-          notebooklmSession.status !== "finalized" &&
-          handleNotebooklmReply &&
-          handleNotebooklmProceed && (
-            <div className="mb-6 max-w-4xl mx-auto">
-              <NotebooklmEnrichmentPanel
-                session={notebooklmSession}
-                brief={notebooklmBrief}
-                loading={notebooklmSessionLoading}
-                onReply={handleNotebooklmReply}
-                onProceed={handleNotebooklmProceed}
-              />
-            </div>
-          )}
-
         {/* STEP 1: SCRIPT MASTER Research & Selection */}
 
         {creatorStep === 1 && (
           <div className="space-y-8 max-w-4xl mx-auto font-sans">
-            <FacelessChannelPanel
-              variant="preset"
-              activePresetId={facelessPresetId}
-              onApplyPreset={applyFacelessPreset}
-            />
-
             {/* Step 1 Header & Tabs Selector */}
             <div className="bg-zinc-950/60 border border-zinc-900/85 rounded-2xl p-5 space-y-4">
               <div>
@@ -589,23 +458,7 @@ export function AppCreatorTab({
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-900/60 pt-3">
-                <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={useDeepResearch}
-                      onChange={(e) => setUseDeepResearch(e.target.checked)}
-                      className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-violet-400 focus:ring-violet-500/30"
-                    />
-                    <span className="text-xs text-zinc-300 font-semibold">
-                      Pesquisa profunda DeerFlow antes das 10 ideias
-                    </span>
-                  </label>
-                  <p className="text-[10px] text-zinc-500 pl-6 max-w-xl">
-                    Web (Gemini), Exa, outliers YouTube
-                    {useNotebooklm ? " e NotebookLM" : ""} — leva ~30–90s,
-                    ideias bem mais variadas.
-                  </p>
+                <div className="flex flex-wrap items-center gap-4">
                   <label className="flex items-center gap-2.5 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -614,9 +467,22 @@ export function AppCreatorTab({
                       className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-gold-500 focus:ring-gold-500/30"
                     />
                     <span className="text-xs text-zinc-300 font-semibold">
-                      Incluir NotebookLM na pesquisa
+                      Usar NotebookLM na pesquisa de roteiro
                     </span>
                   </label>
+                  {useNotebooklm && (
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={notebooklmDeep}
+                        onChange={(e) => setNotebooklmDeep(e.target.checked)}
+                        className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-gold-500 focus:ring-gold-500/30"
+                      />
+                      <span className="text-xs text-zinc-300 font-semibold">
+                        Web search Deep Research (~5 min)
+                      </span>
+                    </label>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {creatorIdeasBundle?.bundleSlug ? (
@@ -634,7 +500,20 @@ export function AppCreatorTab({
                       </span>
                     </span>
                   ) : null}
-                  <NotebookLmConnect autoLogin={useNotebooklm} />
+                  {notebooklmStatus && (
+                    <span
+                      className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
+                        notebooklmStatus.authenticated
+                          ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
+                          : "bg-amber-500/10 text-amber-400 border border-amber-500/25"
+                      }`}
+                      title={notebooklmStatus.message}
+                    >
+                      {notebooklmStatus.authenticated
+                        ? "NotebookLM conectado"
+                        : "Execute nlm login"}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -804,33 +683,9 @@ export function AppCreatorTab({
                     </label>
                     <select
                       value={formatSelector}
-                      onChange={(e) => {
-                        const nextFormat = e.target.value as "LONGO" | "SHORTS";
-                        setFormatSelector(nextFormat);
-                        // Ajusta blocos automaticamente ao mudar o formato
-                        const isShorts = nextFormat === "SHORTS";
-                        const minBlocks = isShorts ? 3 : 5;
-                        const maxBlocks = isShorts ? 4 : 8;
-                        const currentCount = customBlocks.length;
-                        if (currentCount < minBlocks) {
-                          // Adiciona blocos vazios até o mínimo
-                          const extra = Array.from(
-                            { length: minBlocks - currentCount },
-                            (_, i) => ({
-                              block: currentCount + i + 1,
-                              content: "",
-                            })
-                          );
-                          setCustomBlocks([...customBlocks, ...extra]);
-                        } else if (currentCount > maxBlocks) {
-                          // Remove blocos excedentes
-                          setCustomBlocks(
-                            customBlocks
-                              .slice(0, maxBlocks)
-                              .map((b, i) => ({ ...b, block: i + 1 }))
-                          );
-                        }
-                      }}
+                      onChange={(e) =>
+                        setFormatSelector(e.target.value as "LONGO" | "SHORTS")
+                      }
                       className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white cursor-pointer font-sans"
                     >
                       <option value="LONGO">
@@ -970,46 +825,33 @@ export function AppCreatorTab({
                 </div>
               </div>
             ) : ideationTab === "listicle" ? (
-              <Suspense
-                fallback={
-                  <div className="text-xs text-zinc-500 py-8 text-center">
-                    Carregando modo listicle…
-                  </div>
+              <ListicleCreatorStep
+                listNiche={listNiche}
+                setListNiche={setListNiche}
+                listTopic={listTopic}
+                setListTopic={setListTopic}
+                rankCount={rankCount}
+                setRankCount={setRankCount}
+                rankOrder={rankOrder}
+                setRankOrder={setRankOrder}
+                formatSelector={formatSelector}
+                setFormatSelector={setFormatSelector}
+                creatorProjectName={creatorProjectName}
+                setCreatorProjectName={setCreatorProjectName}
+                setNicheInput={setNicheInput}
+                creatorLoading={creatorLoading}
+                hasApiKey={hasApiKey}
+                listicleIdeasData={listicleIdeasData}
+                selectedListicleIdeaIndex={selectedListicleIdeaIndex}
+                listicleHudStyle={listicleHudStyle}
+                setListicleHudStyle={setListicleHudStyle}
+                listItems={
+                  generatedScriptData?.list_items || storyboardData?.list_items
                 }
-              >
-                <ListicleCreatorStep
-                  listNiche={listNiche}
-                  setListNiche={setListNiche}
-                  listTopic={listTopic}
-                  setListTopic={setListTopic}
-                  rankCount={rankCount}
-                  setRankCount={setRankCount}
-                  rankOrder={rankOrder as "desc" | "asc"}
-                  setRankOrder={setRankOrder}
-                  formatSelector={formatSelector}
-                  setFormatSelector={setFormatSelector}
-                  creatorProjectName={creatorProjectName}
-                  setCreatorProjectName={setCreatorProjectName}
-                  setNicheInput={setNicheInput}
-                  creatorLoading={creatorLoading}
-                  hasApiKey={hasApiKey}
-                  listicleIdeasData={listicleIdeasData}
-                  selectedListicleIdeaIndex={selectedListicleIdeaIndex}
-                  listicleHudStyle={
-                    listicleHudStyle as "auto" | "full" | "compact"
-                  }
-                  setListicleHudStyle={setListicleHudStyle}
-                  listItems={
-                    generatedScriptData?.list_items ||
-                    storyboardData?.list_items
-                  }
-                  onSuggestRankings={handleSuggestListicleRankings}
-                  onSelectRankingIdea={(idx) =>
-                    setSelectedListicleIdeaIndex(idx)
-                  }
-                  onGenerateScript={handleGenerateListicleScript}
-                />
-              </Suspense>
+                onSuggestRankings={handleSuggestListicleRankings}
+                onSelectRankingIdea={(idx) => setSelectedListicleIdeaIndex(idx)}
+                onGenerateScript={handleGenerateListicleScript}
+              />
             ) : !ideasData ? (
               <div className="space-y-6 max-w-2xl mx-auto">
                 <div>
@@ -1099,7 +941,7 @@ export function AppCreatorTab({
                       creatorLoading || !nicheInput.trim() || !hasApiKey
                     }
 
-                    onClick={() => handleGenerateIdeas()}
+                    onClick={handleGenerateIdeas}
 
                     className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-3.5 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-gold-500/10 w-full justify-center sm:w-auto"
                   >
@@ -1159,16 +1001,6 @@ export function AppCreatorTab({
                       helpId="creator-step-select-idea"
                     />
                     <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        disabled={creatorLoading || !hasApiKey}
-                        onClick={() =>
-                          handleGenerateIdeas({ forceVariety: true })
-                        }
-                        className="bg-violet-500/10 border border-violet-500/30 hover:bg-violet-500/20 text-violet-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition cursor-pointer disabled:opacity-40"
-                      >
-                        🔄 Outras 10 ideias
-                      </button>
                       <button
                         onClick={() => {
                           setSelectedIdeaIndex(999);
@@ -1504,24 +1336,13 @@ export function AppCreatorTab({
                   </span>
                 </div>
 
-                {notebooklmSession &&
-                  notebooklmSession.status !== "finalized" && (
-                    <NotebooklmEnrichmentPanel
-                      session={notebooklmSession}
-                      brief={notebooklmBrief}
-                      loading={notebooklmSessionLoading}
-                      onReply={handleNotebooklmReply}
-                      onProceed={handleNotebooklmProceed}
-                    />
-                  )}
-
                 {/* Script generation trigger */}
 
                 <div className="flex justify-between items-center pt-4 border-t border-zinc-900 font-sans">
                   <button
                     onClick={() => {
-                      clearCreatorPhase2Vestiges();
                       setIdeasData(null);
+
                       setSelectedIdeaIndex(-1);
                     }}
 
@@ -1556,63 +1377,38 @@ export function AppCreatorTab({
                       )}
                       <span>
                         {creatorLoading && creatorLoadingMode === "narration"
-                          ? useNotebooklm
-                            ? notebooklmSession
-                              ? "Gerando narração..."
-                              : "Consultando NotebookLM..."
-                            : "Gerando narração..."
-                          : useNotebooklm && notebooklmSession
-                            ? "Prosseguir → Gerar narração"
-                            : useNotebooklm
-                              ? "Consultar NotebookLM → Narração"
-                              : "Gerar Narração"}
+                          ? "Gerando narração..."
+                          : "Gerar Narração"}
                       </span>
                     </button>
                   </div>
                 </div>
               </div>
             )}
-            {showNarrationReview &&
-              (narrationDraft.trim() || narrationTaggedDraft.trim()) && (
-                <NarrationReviewPanel
-                  narrativeScript={narrationDraft}
-                  narrativeScriptTagged={narrationTaggedDraft}
-                  strategyHook={narrationStrategy?.hook}
-                  strategyTitle={narrationStrategy?.title_main}
-                  blockPhrases={narrationBlockPhrases}
-                  blockScript={narrationBlockScript}
-                  notebooklmEnriched={narrationNotebooklmEnriched}
-                  notebooklmImproving={notebooklmImproving}
-                  notebooklmAvailable={notebooklmStatus?.authenticated ?? false}
-                  niche={nicheInput.trim() || listNiche.trim() || "Engenharia"}
-                  motionTemplatePackEnabled={motionTemplatePackEnabled}
-                  motionTemplateNiche={motionTemplateNiche}
-                  motionTemplateIds={motionTemplateIds}
-                  onMotionTemplatePackEnabledChange={
-                    setMotionTemplatePackEnabled
-                  }
-                  onMotionTemplateNicheChange={setMotionTemplateNiche}
-                  onMotionTemplateIdsChange={setMotionTemplateIds}
-                  loading={creatorLoading}
-                  loadingMode={
-                    (creatorLoadingMode === "idle"
-                      ? "idle"
-                      : creatorLoadingMode) as "full" | "narration" | "idle"
-                  }
-                  onNarrativeChange={(value) => {
-                    setNarrationDraft(value);
-                    if (narrationTaggedDraft) setNarrationTaggedDraft("");
-                  }}
-                  onRegenerate={handleGenerateNarration}
-                  onApprove={handleApproveNarrationAndGenerateScript}
-                  onNotebooklmImprove={handleNotebooklmImproveNarrationDraft}
-                  notebooklmSession={notebooklmSession}
-                  notebooklmBrief={notebooklmBrief}
-                  notebooklmSessionLoading={notebooklmSessionLoading}
-                  onNotebooklmReply={handleNotebooklmReply}
-                  onNotebooklmProceed={handleNotebooklmProceed}
-                />
-              )}
+            {showNarrationReview && (
+              <NarrationReviewPanel
+                narrativeScript={narrationDraft}
+                narrativeScriptTagged={narrationTaggedDraft}
+                strategyHook={narrationStrategy?.hook}
+                strategyTitle={narrationStrategy?.title_main}
+                blockPhrases={narrationBlockPhrases}
+                blockScript={narrationBlockScript}
+                notebooklmEnriched={narrationNotebooklmEnriched}
+                notebooklmImproving={notebooklmImproving}
+                notebooklmAvailable={notebooklmStatus?.authenticated ?? false}
+                loading={creatorLoading}
+                loadingMode={
+                  creatorLoadingMode === "idle" ? "idle" : creatorLoadingMode
+                }
+                onNarrativeChange={(value) => {
+                  setNarrationDraft(value);
+                  if (narrationTaggedDraft) setNarrationTaggedDraft("");
+                }}
+                onRegenerate={handleGenerateNarration}
+                onApprove={handleApproveNarrationAndGenerateScript}
+                onNotebooklmImprove={handleNotebooklmImproveNarrationDraft}
+              />
+            )}
           </div>
         )}
 
@@ -1913,14 +1709,6 @@ export function AppCreatorTab({
 
         {creatorStep === 4 && config && (
           <div className="space-y-6 max-w-4xl mx-auto font-sans">
-            <FacelessChannelPanel
-              variant="pipeline"
-              complianceInput={facelessComplianceInput}
-              pipelineBusy={facelessPipelineBusy}
-              pipelineLog={facelessPipelineLog}
-              pipelineReady={pipeline90Ready}
-              onRunPipeline90={handleRunFacelessPipeline90}
-            />
             {renderRichTimelineEditor({
               hideAutoMap: true,
               wizardManualMode: true,
@@ -1957,11 +1745,6 @@ export function AppCreatorTab({
 
         {creatorStep === 5 && (
           <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
-            <FacelessChannelPanel
-              variant="compliance"
-              complianceInput={facelessComplianceInput}
-            />
-
             <div className="text-center font-sans">
               <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
 
@@ -2293,7 +2076,7 @@ export function AppCreatorTab({
 
         {/* Optional: Script Master Strategy Details Panel */}
 
-        {generatedScriptData && creatorStep > 1 && (
+        {generatedScriptData && (
           <div className="glass-panel p-6 rounded-3xl mt-8 space-y-6 font-sans">
             {(() => {
               const longTitles = warnLongListicleTitles(
@@ -2453,18 +2236,6 @@ export function AppCreatorTab({
               </div>
             </div>
 
-            <CreatorProductionPlanPanel storyboard={generatedScriptData} />
-
-            <GeoVideoWizardPanel
-              motionScenes={generatedScriptData?.motion_scenes}
-              getProjectUrl={getProjectUrl}
-              getAssetUrl={getAssetUrl}
-              copyToClipboard={copyToClipboard}
-              copiedSection={copiedSection}
-              onMotionScenesChange={handleMotionScenesChange}
-              onStudioSynced={() => fetchData()}
-            />
-
             {generatedScriptData.visual_prompts &&
               (generatedScriptData?.visual_prompts || []).length > 0 && (
                 <div className="border-t border-zinc-900 pt-6 space-y-5">
@@ -2478,34 +2249,7 @@ export function AppCreatorTab({
                       />
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                      {(generatedScriptData?.visual_prompts || []).length >
-                        0 && (
-                        <SeedanceDirectingToolbar
-                          sceneCount={
-                            (generatedScriptData?.visual_prompts || []).length
-                          }
-                          filledCount={countScenesWithDirecting(
-                            generatedScriptData?.visual_prompts || []
-                          )}
-                          videoIaCount={countVideoIaScenes(
-                            generatedScriptData?.visual_prompts || []
-                          )}
-                          loading={
-                            creatorLoading &&
-                            (creatorLoadingMode === "directing" ||
-                              creatorLoadingMode === "directing-scene")
-                          }
-                          t2vLoading={
-                            creatorLoading &&
-                            creatorLoadingMode === "seedance-t2v"
-                          }
-                          onCompileAll={() => handleCompileDirectingBriefs()}
-                          onGenerateAllT2v={() =>
-                            handleGenerateSeedanceT2v(undefined, "ltx")
-                          }
-                        />
-                      )}
+                    <div className="flex items-center gap-2 shrink-0">
                       {(generatedScriptData?.visual_prompts || []).length >
                         0 && (
                         <button
@@ -2659,12 +2403,6 @@ export function AppCreatorTab({
                                         ?.includes("video") ||
                                       false;
 
-                                    const isRemotionScene =
-                                      String(
-                                        vp?.media_mode || ""
-                                      ).toLowerCase() === "remotion" ||
-                                      Boolean(vp?.motion_template_id);
-
                                     const searchQuery = resolveStockSearchQuery(
                                       vp,
                                       {
@@ -2682,9 +2420,7 @@ export function AppCreatorTab({
                                         blockNum,
                                         localIdx,
                                         status,
-                                        blockPrompts,
-                                        generatedScriptData?.narration_chunk_plan ||
-                                          storyboardData?.narration_chunk_plan
+                                        blockPrompts
                                       );
                                     const durationFromWhisper =
                                       sceneDurationSeconds != null;
@@ -2707,12 +2443,10 @@ export function AppCreatorTab({
                                       vp.asset?.asset;
 
                                     const currentAsset =
-                                      resolveScenePreviewAsset(
-                                        vp?.asset,
-                                        config?.timeline_assets?.[blockKey]?.[
-                                          assetIdx
-                                        ]
-                                      );
+                                      vp.asset ||
+                                      config?.timeline_assets?.[blockKey]?.[
+                                        assetIdx
+                                      ];
 
                                     const assetUsedIn = currentAsset?.asset
                                       ? (
@@ -2782,24 +2516,15 @@ export function AppCreatorTab({
                                                 Cena {sceneNum}
                                               </span>
 
-                                              {isRemotionScene ? (
-                                                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-violet-500/15 border border-violet-500/35 text-violet-200">
-                                                  🟣 Remotion
-                                                  {vp?.motion_template_id
-                                                    ? ` · ${vp.motion_template_id}`
-                                                    : ""}
-                                                </span>
-                                              ) : (
-                                                <span
-                                                  className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                                                    isVideo
-                                                      ? "bg-blue-500/10 border border-blue-500/20 text-blue-400"
-                                                      : "bg-gold-500/10 border border-gold-500/20 text-gold-500"
-                                                  }`}
-                                                >
-                                                  {vp?.type || "imagem IA 2k"}
-                                                </span>
-                                              )}
+                                              <span
+                                                className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                                  isVideo
+                                                    ? "bg-blue-500/10 border border-blue-500/20 text-blue-400"
+                                                    : "bg-gold-500/10 border border-gold-500/20 text-gold-500"
+                                                }`}
+                                              >
+                                                {vp?.type || "imagem IA 2k"}
+                                              </span>
                                             </div>
 
                                             <div className="flex items-center gap-1.5">
@@ -2872,53 +2597,6 @@ export function AppCreatorTab({
                                               placeholder="Digite a narração da cena..."
                                             />
                                           </div>
-
-                                          <SeedanceDirectingPanel
-                                            sceneIndex={absoluteIndex}
-                                            sceneNum={sceneNum}
-                                            isVideo={isVideo}
-                                            directingBrief={vp?.directing_brief}
-                                            seedanceRefs={vp?.seedance_refs}
-                                            onUpdateBrief={(field, value) =>
-                                              handleUpdateCreatorDirectingBrief(
-                                                absoluteIndex,
-                                                field,
-                                                value
-                                              )
-                                            }
-                                            onUpdateRef={(slot, value) =>
-                                              handleUpdateCreatorSeedanceRef(
-                                                absoluteIndex,
-                                                slot,
-                                                value
-                                              )
-                                            }
-                                            onGenerateScene={(idx) =>
-                                              handleCompileDirectingBriefs([
-                                                idx,
-                                              ])
-                                            }
-                                            onGenerateT2v={(idx) =>
-                                              handleGenerateSeedanceT2v(
-                                                [idx],
-                                                "ltx"
-                                              )
-                                            }
-                                            generating={
-                                              creatorLoading &&
-                                              creatorLoadingMode ===
-                                                "directing-scene" &&
-                                              directingSceneIndex ===
-                                                absoluteIndex
-                                            }
-                                            t2vJob={
-                                              seedanceT2vJobs[absoluteIndex] ||
-                                              null
-                                            }
-                                            hasGeneratedVideo={sceneHasGeneratedVideo(
-                                              vp
-                                            )}
-                                          />
                                         </div>
 
                                         <div className="w-full lg:w-[420px] shrink-0 space-y-3">
@@ -2970,17 +2648,35 @@ export function AppCreatorTab({
 
                                           {currentAsset?.asset && (
                                             <div className="flex items-center gap-3 rounded-xl border border-zinc-850 bg-zinc-950/80 p-2.5">
-                                              <div className="w-28 shrink-0">
-                                                <TimelineClipPreview
-                                                  asset={currentAsset}
-                                                  getAssetUrl={getAssetUrl}
-                                                  clipDuration={
-                                                    durationFromWhisper
-                                                      ? sceneDurationSeconds
-                                                      : 4
-                                                  }
-                                                  compact
-                                                />
+                                              <div className="w-20 h-14 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-850 shrink-0 flex items-center justify-center">
+                                                {currentAsset.type ===
+                                                "video" ? (
+                                                  <video
+                                                    src={getAssetUrl(
+                                                      currentAsset.asset
+                                                    )}
+
+                                                    className="w-full h-full object-cover"
+
+                                                    muted
+
+                                                    playsInline
+
+                                                    preload="metadata"
+                                                  />
+                                                ) : (
+                                                  <img
+                                                    src={getAssetUrl(
+                                                      currentAsset.asset
+                                                    )}
+
+                                                    className="w-full h-full object-cover"
+
+                                                    alt=""
+
+                                                    loading="lazy"
+                                                  />
+                                                )}
                                               </div>
 
                                               <div className="min-w-0 flex-1 space-y-1">
@@ -3070,26 +2766,22 @@ export function AppCreatorTab({
 
                                               accept={
                                                 isVideo
-                                                  ? SCENE_VIDEO_ACCEPT
-                                                  : "image/png,image/jpeg,image/jpg,image/webp"
+                                                  ? "video/mp4"
+                                                  : "image/png,image/jpeg,image/jpg"
                                               }
 
                                               onChange={(e) => {
-                                                const file =
-                                                  e.target.files?.[0];
-                                                if (!file) return;
-                                                const uploadType =
-                                                  detectUploadMediaType(
-                                                    file,
-                                                    isVideo
+                                                if (
+                                                  e.target.files &&
+                                                  e.target.files[0]
+                                                ) {
+                                                  handleUploadSceneAsset(
+                                                    blockNum,
+                                                    isVideo ? "video" : "image",
+                                                    e.target.files[0],
+                                                    assetIdx
                                                   );
-                                                handleUploadSceneAsset(
-                                                  blockNum,
-                                                  uploadType,
-                                                  file,
-                                                  assetIdx
-                                                );
-                                                e.target.value = "";
+                                                }
                                               }}
 
                                               className="hidden"
