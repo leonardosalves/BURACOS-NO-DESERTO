@@ -103,6 +103,12 @@ function extractDurationInFrames(code, inputProps) {
       code.match(/durationInFrames\s*:\s*(\d+)/)?.[1]
   );
   if (Number.isFinite(fromCode) && fromCode > 0) return fromCode;
+
+  const moduloMatch = code.match(/frame\s*%\s*(\d+)/);
+  if (moduloMatch?.[1]) {
+    const fromModulo = Number(moduloMatch[1]);
+    if (fromModulo > 0) return fromModulo;
+  }
   return 90;
 }
 

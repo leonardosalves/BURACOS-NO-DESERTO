@@ -122,7 +122,7 @@ export function SavedTemplatePreviewFrame({
   const sceneDurationFrames =
     Number.isFinite(Number(durationSeconds)) && Number(durationSeconds) > 0
       ? Math.max(1, Math.round(Number(durationSeconds) * fps))
-      : Math.max(150, previewMeta?.durationInFrames ?? 150);
+      : (previewMeta?.durationInFrames ?? 90);
 
   const timelineSynced = scrubSeconds != null;
 
@@ -230,7 +230,6 @@ export function SavedTemplatePreviewFrame({
       clearTimeout(startDelay);
     };
   }, [previewMeta, studioAutoPlay, sourceCode]);
-
 
   if (compiled.ok === false) {
     if (fallback) {
