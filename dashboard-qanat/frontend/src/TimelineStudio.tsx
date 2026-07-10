@@ -22,6 +22,7 @@ import { TimelineStudioPreview } from "./TimelineStudioPreview";
 import { TimelineStudioTracks } from "./TimelineStudioTracks";
 import {
   appendClip,
+  analyzeTimelineCoverage,
   computeTotalDuration,
   deleteClip,
   findClip,
@@ -223,6 +224,7 @@ export function TimelineStudio({
 }: TimelineStudioProps) {
   const [studio, setStudio] = useState<TimelineStudioState | null>(null);
   const undoHistoryRef = useRef<TimelineStudioState[]>([]);
+  const [showCoverageMap, setShowCoverageMap] = useState(false);
   const [projectResolved, setProjectResolved] = useState(true);
   const [requestedProject, setRequestedProject] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1107,6 +1109,13 @@ export function TimelineStudio({
   const collapsedTrackIds = wordTranscripts?.length ? [] : ["captions"];
   const narrationMissingOnStudio =
     Boolean(status?.has_narration) && voiceClips.length === 0;
+  const visualCoverage = analyzeTimelineCoverage(
+    studio.clips,
+    ["video", "motion", "overlays"],
+    voiceClip?.duration || studio.totalDuration || 0
+  );
+  const hasVisualCoverageRisk =
+    Boolean(voiceClip?.duration) && visualCoverage.coveragePercent < 90;
 
   return (
     <div className="space-y-2 font-sans flex flex-col min-h-0">
@@ -1124,6 +1133,52 @@ export function TimelineStudio({
           >
             Atualizar timeline
           </button>
+        </div>
+      )}
+
+      {hasVisualCoverageRisk && (
+        <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 p-3 flex flex-wrap gap-2 items-center">
+          <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
+          <p className="flex-1 text-[11px] text-amber-50/90">
+            Cobertura visual: {visualCoverage.coveragePercent}% da narração. Há{" "}
+            {visualCoverage.gaps.length} gap(s) sem vídeo, cena Remotion ou
+            template.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowCoverageMap((value) => !value)}
+            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-amber-300/40 text-amber-100 cursor-pointer"
+          >
+            {showCoverageMap ? "Ocultar gaps" : "Ver gaps"}
+          </button>
+        </div>
+      )}
+
+      {showCoverageMap && hasVisualCoverageRisk && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3 text-[11px] text-zinc-300">
+          <p className="font-bold text-zinc-100">Mapa de gaps visuais</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {visualCoverage.gaps.slice(0, 12).map((gap) => (
+              <button
+                type="button"
+                key={`${gap.start}-${gap.end}`}
+                onClick={() => {
+                  setLocalPlayhead(null);
+                  updateStudio({ playhead: gap.start });
+                }}
+                className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-left hover:border-gold-500/50 cursor-pointer"
+                title="Ir para o início do gap"
+              >
+                {formatStudioTime(gap.start)}–{formatStudioTime(gap.end)} ·{" "}
+                {gap.duration.toFixed(1)}s
+              </button>
+            ))}
+          </div>
+          {visualCoverage.gaps.length > 12 && (
+            <p className="mt-2 text-zinc-500">
+              Mostrando os primeiros 12 gaps.
+            </p>
+          )}
         </div>
       )}
 
