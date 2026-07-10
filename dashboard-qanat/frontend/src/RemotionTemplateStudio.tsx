@@ -3269,16 +3269,15 @@ export function RemotionTemplateStudio({
         .filter((item) => item.count > 0),
     [categories, nicheTemplates]
   );
-  const showingCategoryFallback = useMemo(() => {
-    if (!subcategory || !categoryTemplates.length) return false;
-    return !categoryTemplates.some((t) => t.subcategory === subcategory);
-  }, [categoryTemplates, subcategory]);
   const visibleTemplates = useMemo(() => {
     if (!subcategory) return categoryTemplates;
-    const matched = categoryTemplates.filter(
-      (t) => t.subcategory === subcategory
+    const subLower = String(subcategory).trim().toLowerCase();
+    return categoryTemplates.filter(
+      (t) =>
+        String(t.subcategory || "")
+          .trim()
+          .toLowerCase() === subLower
     );
-    return matched.length ? matched : categoryTemplates;
   }, [categoryTemplates, subcategory]);
   const detailTemplate = visibleTemplates.find(
     (t) => t.id === detailTemplateId
@@ -4190,16 +4189,6 @@ Garanta que o componente principal seja exportado como padrão (default).`,
             />
           ) : (
             <div className="p-4 space-y-3">
-              {showingCategoryFallback ? (
-                <div className="flex items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/6 px-3 py-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                  <p className="text-[10px] text-amber-200/80">
-                    Nenhum template em &quot;{subcategory}&quot;. Mostrando os{" "}
-                    {categoryTemplates.length} da categoria{" "}
-                    {currentCategory?.label}.
-                  </p>
-                </div>
-              ) : null}
               <div className="grid gap-3 2xl:grid-cols-2">
                 {visibleTemplates.map((template) => (
                   <article
