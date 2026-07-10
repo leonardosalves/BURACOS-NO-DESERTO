@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { Easing, interpolate } from "remotion";
 import {
+  adaptRemotionTemplate,
   createCatalogNiche,
   deleteCatalogNiche,
   extractTemplateTsxFromLlm,
@@ -51,6 +52,8 @@ import {
   Trash2,
   Download,
   Upload,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 
 type TemplateCategory = string;
@@ -3013,6 +3016,7 @@ export function RemotionTemplateStudio({
   const [copiedTemplateId, setCopiedTemplateId] = useState("");
   const [finalCodeDraft, setFinalCodeDraft] = useState("");
   const [studioError, setStudioError] = useState("");
+  const [adapting, setAdapting] = useState(false);
   const [catalogReady, setCatalogReady] = useState(false);
   const [catalogSyncNote, setCatalogSyncNote] = useState("");
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3515,6 +3519,45 @@ export function RemotionTemplateStudio({
     }
     setDetailTemplateId("");
     setSelectedId("");
+  }
+
+  async function adaptWithAi() {
+    if (!finalCodeDraft.trim()) {
+      setStudioError("Por favor, cole o código antes de adaptar.");
+      return;
+    }
+    setAdapting(true);
+    setStudioError("");
+    try {
+      const res = await adaptRemotionTemplate({
+        niche,
+        templateType: category,
+        propsInput: "",
+        briefing: `Adapte este código de template para seguir as regras do Lumiera. 
+Declare uma tipagem TypeScript para as propriedades.
+Exporte um objeto literal const exampleProps que satisfaça essa tipagem.
+Garanta que o componente principal seja exportado como padrão (default).`,
+        originalCode: finalCodeDraft,
+        category,
+        subcategory,
+      });
+
+      if (!res.success) {
+        setStudioError(
+          res.error || "Não foi possível adaptar o template com IA."
+        );
+        return;
+      }
+
+      if (res.code) {
+        setFinalCodeDraft(res.code);
+        setCatalogSyncNote("Código adaptado com sucesso pela IA!");
+      }
+    } catch (err) {
+      setStudioError(err instanceof Error ? err.message : "Falha ao adaptar.");
+    } finally {
+      setAdapting(false);
+    }
   }
 
   function addCategory() {
@@ -4374,15 +4417,36 @@ export function RemotionTemplateStudio({
                 </div>
               ) : null}
 
-              <button
-                type="button"
-                onClick={() => saveAssistedDraft()}
-                disabled={!canSaveDraft}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-400 py-2.5 text-[11px] font-black text-slate-900 transition-opacity disabled:cursor-not-allowed disabled:opacity-30 enabled:hover:bg-cyan-300"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Salvar draft
-              </button>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void adaptWithAi()}
+                  disabled={adapting || !finalCodeDraft.trim()}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/8 py-2 text-[10px] font-bold text-purple-300 transition-colors hover:border-purple-400/50 hover:bg-purple-500/15 disabled:cursor-not-allowed disabled:opacity-30"
+                  title="Adaptar componente para o contrato do Lumiera usando Inteligência Artificial"
+                >
+                  {adapting ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Adaptando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3" />
+                      Adaptar com IA
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => saveAssistedDraft()}
+                  disabled={!canSaveDraft || adapting}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-cyan-400 py-2 text-[10px] font-black text-slate-900 transition-opacity disabled:cursor-not-allowed disabled:opacity-30 enabled:hover:bg-cyan-300"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Salvar draft
+                </button>
+              </div>
             </div>
           </section>
 
