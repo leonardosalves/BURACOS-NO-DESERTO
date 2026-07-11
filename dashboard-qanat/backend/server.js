@@ -7394,9 +7394,10 @@ app.get(
         }
 
         if (previewSecs > 0) {
-          remotionArgs.push("--frames", String(Math.ceil(previewSecs * 30)));
+          const frameCount = Math.ceil(previewSecs * fps);
+          remotionArgs.push("--frames", `0-${frameCount - 1}`);
           sendLog(
-            `[Remotion] Preview de ${previewSecs}s (${Math.ceil(previewSecs * 30)} frames)`
+            `[Remotion] Preview de ${previewSecs}s (0-${frameCount - 1} frames, total ${frameCount} frames a ${fps}fps)`
           );
         }
 
