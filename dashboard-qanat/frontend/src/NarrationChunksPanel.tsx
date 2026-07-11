@@ -126,6 +126,7 @@ export function NarrationChunksPanel({
   >({});
   const [playingChunkId, setPlayingChunkId] = useState<string | null>(null);
   const [auditEvents, setAuditEvents] = useState<any[]>([]);
+  const [auditComparison, setAuditComparison] = useState<any[]>([]);
   const chunkAudioRef = useRef<{ audio: HTMLAudioElement; key: string } | null>(
     null
   );
@@ -140,6 +141,7 @@ export function NarrationChunksPanel({
       setAuditEvents(
         Array.isArray(data.events) ? data.events.slice(-50).reverse() : []
       );
+      setAuditComparison(Array.isArray(data.comparison) ? data.comparison : []);
     } catch {}
   }, [getProjectUrl]);
 
@@ -522,6 +524,50 @@ export function NarrationChunksPanel({
           Auditoria da narração · {auditEvents.length} evento(s) recentes
         </summary>
         <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+          {auditComparison.length > 0 && (
+            <div className="mb-3 space-y-1.5 border-b border-zinc-800 pb-3 text-[10px]">
+              <p className="font-bold text-zinc-300">
+                Comparação texto × Whisper
+              </p>
+              {auditComparison.map((row) => (
+                <div
+                  key={row.chunk_id}
+                  className="rounded-lg bg-zinc-900/70 p-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-zinc-300">
+                      {row.chunk_id} · bloco {row.block}
+                    </span>
+                    <span
+                      className={
+                        row.status === "ok"
+                          ? "text-emerald-400"
+                          : row.status === "warning"
+                            ? "text-amber-400"
+                            : row.status === "pending"
+                              ? "text-zinc-500"
+                              : "text-red-400"
+                      }
+                    >
+                      {row.status === "pending"
+                        ? "aguardando Whisper"
+                        : `${row.coverage}% de cobertura`}
+                    </span>
+                  </div>
+                  {row.missing?.length > 0 && (
+                    <p className="mt-1 text-amber-300">
+                      Ausentes: {row.missing.join(", ")}
+                    </p>
+                  )}
+                  {row.unexpected?.length > 0 && (
+                    <p className="mt-1 text-sky-300">
+                      Inesperadas: {row.unexpected.join(", ")}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           {auditEvents.length === 0 ? (
             <p className="text-[10px] text-zinc-500">
               Nenhuma execução registrada neste projeto.
