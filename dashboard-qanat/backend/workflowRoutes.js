@@ -858,6 +858,12 @@ export function registerWorkflowRoutes(app, deps) {
         assembleMaster: assembleMaster !== false,
         onLog: (msg) => console.log(msg),
         onProgress: report,
+        onChunkUpdate: (partialPlan) => {
+          persistChunkPlanToProject(projDir, partialPlan, {
+            ...config,
+            narration_mode: NARRATION_MODE_CHUNKED,
+          });
+        },
       });
 
       persistChunkPlanToProject(projDir, nextPlan, {

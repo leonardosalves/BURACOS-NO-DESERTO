@@ -5,6 +5,7 @@
 
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { spawn } from "child_process";
 import { buildPythonSpawnEnv, getFfmpegStatus } from "./pythonEnv.js";
 import {
@@ -212,6 +213,23 @@ function normalizeVoiceRef(raw = {}, fallback = {}) {
     rate: raw.rate || fallback.rate || "+0%",
     pitch: raw.pitch || fallback.pitch || "+0Hz",
   };
+}
+
+export function buildNarrationChunkSignature(chunk = {}, voiceOverride = null) {
+  const voice = normalizeVoiceRef(voiceOverride || chunk.voice || {});
+  return crypto
+    .createHash("sha256")
+    .update(
+      JSON.stringify({
+        text: String(chunk.text || "").trim(),
+        text_tagged: sanitizeNarrationChunkTaggedText(
+          chunk.text_tagged || chunk.text || "",
+          chunk.text || ""
+        ),
+        voice,
+      })
+    )
+    .digest("hex");
 }
 
 export function resolveExpressivePause({
@@ -429,6 +447,14 @@ export function normalizeNarrationChunkPlan(
     .map((c, idx) => {
       const voice = normalizeVoiceRef(c.voice || {}, defaultVoice);
       const id = String(c.id || `chunk-${String(idx + 1).padStart(2, "0")}`);
+      const generationSignature = c.generation_signature || null;
+      const desiredSignature = buildNarrationChunkSignature(c, voice);
+      const hasGeneratedAudio = Boolean(
+        c.audio_file && Number(c.duration_s) > 0
+      );
+      const audioIsStale = Boolean(
+        hasGeneratedAudio && generationSignature !== desiredSignature
+      );
       return {
         id,
         block: Number(c.block) || 1,
@@ -453,7 +479,13 @@ export function normalizeNarrationChunkPlan(
           : null,
         start_s: Number.isFinite(Number(c.start_s)) ? Number(c.start_s) : null,
         end_s: Number.isFinite(Number(c.end_s)) ? Number(c.end_s) : null,
-        status: c.status || (c.audio_file ? "generated" : "planned"),
+        generation_signature: generationSignature,
+        generated_at: c.generated_at || null,
+        failed_at: c.failed_at || null,
+        error: c.error || null,
+        status: audioIsStale
+          ? "stale"
+          : c.status || (hasGeneratedAudio ? "generated" : "planned"),
       };
     })
     .filter((c) => c.text.length >= 2);
@@ -1297,6 +1329,7 @@ export async function generateNarrationChunksTts(
     assembleMaster = true,
     onLog = () => {},
     onProgress = () => {},
+    onChunkUpdate = () => {},
   } = {}
 ) {
   if (!plan?.chunks?.length) throw new Error("Plano de trechos vazio.");
@@ -1333,16 +1366,36 @@ export async function generateNarrationChunksTts(
       normalizeVoiceRef(defaultVoice, plan.default_voice)
     );
 
-    const result = await synthesizeNarrationChunkAudio(c.text, voice, {
-      outputPath: outPath,
-      workDir: chunksDir,
-      workspaceDir,
-      projDir,
-      useTagged,
-      taggedText: c.text_tagged,
-      stripEmphasis,
-      onLog,
-    });
+    updatedChunks[idx] = { ...c, voice, status: "generating", error: null };
+    await onChunkUpdate(
+      normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {})
+    );
+
+    let result;
+    try {
+      result = await synthesizeNarrationChunkAudio(c.text, voice, {
+        outputPath: outPath,
+        workDir: chunksDir,
+        workspaceDir,
+        projDir,
+        useTagged,
+        taggedText: c.text_tagged,
+        stripEmphasis,
+        onLog,
+      });
+    } catch (err) {
+      updatedChunks[idx] = {
+        ...c,
+        voice,
+        status: "failed",
+        error: err?.message || String(err),
+        failed_at: new Date().toISOString(),
+      };
+      await onChunkUpdate(
+        normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {})
+      );
+      throw err;
+    }
 
     const duration =
       Number(result.durationSeconds) || (await probeAudioDuration(outPath));
@@ -1351,8 +1404,14 @@ export async function generateNarrationChunksTts(
       voice,
       audio_file: rel,
       duration_s: Number(duration.toFixed(3)),
+      generation_signature: buildNarrationChunkSignature(c, voice),
+      generated_at: new Date().toISOString(),
+      error: null,
       status: "generated",
     };
+    await onChunkUpdate(
+      normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {})
+    );
   }
 
   let nextPlan = normalizeNarrationChunkPlan(
