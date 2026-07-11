@@ -7485,6 +7485,33 @@ app.get(
           if (code === 0) {
             sendLog("[PROGRESSO] 100%");
             trackRenderProgress("[PROGRESSO] 100%");
+
+            if (renderPlan.sampleMeta) {
+              try {
+                const finalOutputDir = path.join(
+                  projDir,
+                  "OUTPUT",
+                  "qanat_persa_video_final"
+                );
+                fs.mkdirSync(finalOutputDir, { recursive: true });
+                const fileExt = path.extname(renderPlan.outputPath);
+                const sampleName = `remotion_sample_v${renderPlan.sampleMeta.version}${fileExt}`;
+                const destPath = path.join(finalOutputDir, sampleName);
+                fs.copyFileSync(renderPlan.outputPath, destPath);
+                sendLog(
+                  `[Remotion] Amostra copiada para OUTPUT: ${sampleName}`
+                );
+              } catch (copyErr) {
+                console.error(
+                  "[Remotion] Falha ao copiar amostra para OUTPUT:",
+                  copyErr
+                );
+                sendLog(
+                  `[Remotion] Aviso: Não foi possível disponibilizar a amostra no painel: ${copyErr.message}`
+                );
+              }
+            }
+
             finishRenderJob(renderJobId, {
               outputPath: renderPlan.outputPath,
               phase: "Concluído!",
