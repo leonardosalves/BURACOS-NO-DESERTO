@@ -1081,6 +1081,16 @@ export function parseYoutubeMetadataMarkdown(text = "") {
     thumbnails = ensureThumbnailVariants({ titles, thumbnails, thumbnailHook });
   }
 
+  const titleHashtags = titles.flatMap(
+    (title) => title.text.match(/#[\p{L}\p{N}_]+/gu) || []
+  );
+  const genericHashtags =
+    (sections["HASHTAGS PRINCIPAIS"] || "")
+      .match(/#[\p{L}\p{N}_]+/gu)
+      ?.filter((tag) =>
+        /^(#shorts|#tecnologia|#curiosidades|#viral)$/i.test(tag)
+      ) || [];
+
   return {
     titles,
     description: sections.DESCRICAO || "",
@@ -1093,6 +1103,19 @@ export function parseYoutubeMetadataMarkdown(text = "") {
     retentionHook: sections["GANCHO DE RETENCAO"] || "",
     midVideoCta: sections["CTA DE MEIO DE VIDEO"] || "",
     recommendedTitle: titles[0]?.text || "",
+    fidelity: {
+      ok: titleHashtags.length === 0,
+      warnings: [
+        ...(titleHashtags.length
+          ? ["Remova hashtags do título; deixe-as apenas na descrição."]
+          : []),
+        ...(genericHashtags.length
+          ? [
+              `Hashtags genéricas detectadas: ${genericHashtags.join(", ")}. Use termos específicos do vídeo.`,
+            ]
+          : []),
+      ],
+    },
   };
 }
 
