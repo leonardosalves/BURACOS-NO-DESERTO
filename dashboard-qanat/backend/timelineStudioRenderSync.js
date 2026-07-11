@@ -391,13 +391,13 @@ export function collectRelativeMediaPaths(value, paths = new Set()) {
   return paths;
 }
 
-function transcodeVideoForRemotion(source, dest) {
+function transcodeVideoForRemotion(source, dest, fps = 30) {
   const ffmpegInfo = getFfmpegStatus();
   const ffmpegBin = ffmpegInfo.binary || "ffmpeg";
   const tempDest = dest + ".tmp.mp4";
 
   // Flags recomendadas pela Remotion: libx264, pix_fmt yuv420p, GOP=1, sem B-frames
-  const cmd = `"${ffmpegBin}" -y -i "${source}" -r 30 -c:v libx264 -pix_fmt yuv420p -profile:v high -level:v 4.0 -g 1 -bf 0 -crf 20 -c:a aac -b:a 128k -movflags +faststart "${tempDest}"`;
+  const cmd = `"${ffmpegBin}" -y -i "${source}" -filter:v "framerate=fps=${fps}" -c:v libx264 -pix_fmt yuv420p -profile:v high -level:v 4.0 -g 1 -bf 0 -crf 20 -c:a aac -b:a 128k -movflags +faststart "${tempDest}"`;
 
   try {
     execSync(cmd, { stdio: "ignore", env: buildPythonSpawnEnv() });
@@ -422,7 +422,8 @@ function transcodeVideoForRemotion(source, dest) {
 export function mirrorRelativeAssetsToRemotionPublic(
   relPaths,
   projectDir,
-  remotionPublicDir
+  remotionPublicDir,
+  fps = 30
 ) {
   const mirrored = [];
   for (const rel of relPaths) {
@@ -450,7 +451,7 @@ export function mirrorRelativeAssetsToRemotionPublic(
           console.log(
             `[Remotion Transcode] Preparando codec compatível para ${normalized}...`
           );
-          transcodeVideoForRemotion(source, dest);
+          transcodeVideoForRemotion(source, dest, fps);
         }
       } catch (err) {
         console.warn(

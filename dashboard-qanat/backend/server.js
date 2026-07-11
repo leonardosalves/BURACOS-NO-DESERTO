@@ -7195,6 +7195,7 @@ app.get(
           req.query.prores === "1" || req.query.transparent === "1";
         const useHyperframes = req.query.hyperframes === "1";
         const isSample = req.query.sample === "1";
+        const fps = Number(req.query.fps) === 60 ? 60 : 30;
         const previewSecs = isSample
           ? Math.min(15, Math.max(10, Number(req.query.sampleSeconds) || 12))
           : Math.min(60, Math.max(0, Number(req.query.preview) || 0));
@@ -7221,6 +7222,7 @@ app.get(
             previewDuration: previewSecs > 0 ? previewSecs : undefined,
             resolution,
             sampleRender: isSample,
+            fps,
           }
         );
         if (resolution === "2k") {
@@ -7706,11 +7708,11 @@ function findProjectFile(projectDir, fileName) {
   return candidates.find((candidate) => fs.existsSync(candidate)) || null;
 }
 
-function transcodeVideoForRemotion(source, dest) {
+function transcodeVideoForRemotion(source, dest, fps = 30) {
   const ffmpegInfo = getFfmpegStatus();
   const ffmpegBin = ffmpegInfo.binary || "ffmpeg";
   const tempDest = dest + ".tmp.mp4";
-  const cmd = `"${ffmpegBin}" -y -i "${source}" -r 30 -c:v libx264 -pix_fmt yuv420p -profile:v high -level:v 4.0 -g 1 -bf 0 -crf 20 -c:a aac -b:a 128k -movflags +faststart "${tempDest}"`;
+  const cmd = `"${ffmpegBin}" -y -i "${source}" -filter:v "framerate=fps=${fps}" -c:v libx264 -pix_fmt yuv420p -profile:v high -level:v 4.0 -g 1 -bf 0 -crf 20 -c:a aac -b:a 128k -movflags +faststart "${tempDest}"`;
 
   try {
     execSync(cmd, { stdio: "ignore", env: buildPythonSpawnEnv() });
@@ -7731,7 +7733,7 @@ function transcodeVideoForRemotion(source, dest) {
   }
 }
 
-function copyRemotionAsset(sourcePath, targetDir, prefix = "") {
+function copyRemotionAsset(sourcePath, targetDir, prefix = "", fps = 30) {
   if (!sourcePath || !fs.existsSync(sourcePath)) return null;
 
   fs.mkdirSync(targetDir, { recursive: true });
@@ -7756,7 +7758,7 @@ function copyRemotionAsset(sourcePath, targetDir, prefix = "") {
         console.log(
           `[Remotion Transcode] Preparando codec compatível para ${destName}...`
         );
-        transcodeVideoForRemotion(sourcePath, destPath);
+        transcodeVideoForRemotion(sourcePath, destPath, fps);
       }
     } catch (err) {
       console.warn(
@@ -7789,7 +7791,7 @@ function resolveProjectAssetPath(projectDir, relPath) {
 
 function copyOverlayMediaPropsForRemotion(
   overlay,
-  { projectDir, publicProjectDir, projectSlug }
+  { projectDir, publicProjectDir, projectSlug, fps = 30 }
 ) {
   if (!overlay?.props) return overlay;
   const p = overlay.props;
@@ -7813,7 +7815,8 @@ function copyOverlayMediaPropsForRemotion(
     const copied = copyRemotionAsset(
       source,
       publicProjectDir,
-      `${overlayKey}_${key}_`
+      `${overlayKey}_${key}_`,
+      fps
     );
     if (copied) p[key] = `projects/${projectSlug}/${copied}`;
   }
@@ -7829,7 +7832,8 @@ function copyOverlayMediaPropsForRemotion(
       const copied = copyRemotionAsset(
         source,
         publicProjectDir,
-        `${overlayKey}_sp_${key}_`
+        `${overlayKey}_sp_${key}_`,
+        fps
       );
       if (copied) {
         studioProps[key] = `projects/${projectSlug}/${copied}`;
@@ -8386,6 +8390,7 @@ async function prepareRemotionRender(
   useHyperframes = false,
   options = {}
 ) {
+  const targetFps = options.fps === 60 ? 60 : 30;
   // Load global render config
 
   const globalConfigPath = path.join(__dirname, "render_config_global.json");
@@ -9246,7 +9251,12 @@ async function prepareRemotionRender(
         ? stripSystemInjectedOverlays(freshSb.overlays)
         : [];
 
-  const overlayMediaCtx = { projectDir, publicProjectDir, projectSlug };
+  const overlayMediaCtx = {
+    projectDir,
+    publicProjectDir,
+    projectSlug,
+    fps: targetFps,
+  };
 
   let overlays = [];
   if (useStudioRender) {
@@ -9270,7 +9280,8 @@ async function prepareRemotionRender(
       const mirrored = mirrorRelativeAssetsToRemotionPublic(
         [...legacyMediaPaths],
         projectDir,
-        REMOTION_PUBLIC_DIR
+        REMOTION_PUBLIC_DIR,
+        targetFps
       );
       if (mirrored.length > 0) {
         console.log(
@@ -9384,6 +9395,7 @@ async function prepareRemotionRender(
     projectName: path.basename(projectDir),
     format,
     resolution,
+    fps: targetFps,
     totalDuration,
     scenes: validScenes,
     captions: finalCaptions,
