@@ -2,10 +2,15 @@
 
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const WORKSPACE_DIR = path.resolve(__dirname, "../..");
 
 export function loadNarracaoProGuidelines() {
   try {
-    const filePath = path.join(process.cwd(), ".agents", "NARRACAOPRO.md");
+    const filePath = path.join(WORKSPACE_DIR, ".agents", "NARRACAOPRO.md");
     if (fs.existsSync(filePath)) {
       return fs.readFileSync(filePath, "utf8");
     }
@@ -18,7 +23,7 @@ export function loadNarracaoProGuidelines() {
 export function loadComousarAnarracaoProGuidelines() {
   try {
     const filePath = path.join(
-      process.cwd(),
+      WORKSPACE_DIR,
       ".agents",
       "COMOUSARANARRACAOPRO.md"
     );
