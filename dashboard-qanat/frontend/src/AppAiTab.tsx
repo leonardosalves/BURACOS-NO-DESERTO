@@ -997,6 +997,64 @@ export function AppAiTab({
                       );
                     });
                   })()}
+                  {youtubeMetadataParsed?.platformPackages && (
+                    <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-3">
+                      <div>
+                        <h3 className="text-gold-500 font-bold text-xs tracking-wide font-sans uppercase">
+                          Pacotes por plataforma
+                        </h3>
+                        <p className="text-[9px] text-zinc-500 mt-1">
+                          Textos adaptados ao feed de cada rede — sem carregar
+                          hashtags genéricas do YouTube.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {Object.entries(
+                          youtubeMetadataParsed.platformPackages
+                        ).map(([platform, pack]: [string, any]) => {
+                          const copyText = [
+                            pack.title,
+                            pack.caption,
+                            pack.description,
+                            pack.hashtags,
+                          ]
+                            .filter(Boolean)
+                            .join("\n\n");
+                          const packageKey = `platform-${platform}`;
+                          return (
+                            <div
+                              key={platform}
+                              className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3"
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <span className="text-[10px] uppercase font-bold text-violet-300">
+                                  {platform}
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    copyToClipboard(copyText, packageKey)
+                                  }
+                                  className="text-[9px] text-zinc-400 hover:text-white cursor-pointer"
+                                >
+                                  {copiedSection === packageKey
+                                    ? "Copiado!"
+                                    : "Copiar"}
+                                </button>
+                              </div>
+                              <p className="text-[10px] leading-relaxed text-zinc-300 whitespace-pre-line line-clamp-5">
+                                {pack.caption || pack.title || pack.description}
+                              </p>
+                              {pack.hashtags && (
+                                <p className="mt-2 text-[9px] text-cyan-300 break-words">
+                                  {pack.hashtags}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6 text-gray-500 text-xs gap-2">
