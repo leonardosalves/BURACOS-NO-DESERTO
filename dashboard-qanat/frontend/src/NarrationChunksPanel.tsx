@@ -125,12 +125,27 @@ export function NarrationChunksPanel({
     Record<string, { preview: string; tags: string[] }>
   >({});
   const [playingChunkId, setPlayingChunkId] = useState<string | null>(null);
+  const [auditEvents, setAuditEvents] = useState<any[]>([]);
   const chunkAudioRef = useRef<{ audio: HTMLAudioElement; key: string } | null>(
     null
   );
   const blobCacheRef = useRef<Record<string, { blobUrl: string; key: string }>>(
     {}
   );
+  const loadAudit = useCallback(async () => {
+    try {
+      const res = await fetch(getProjectUrl("/api/narration/audit"));
+      if (!res.ok) return;
+      const data = await res.json();
+      setAuditEvents(
+        Array.isArray(data.events) ? data.events.slice(-50).reverse() : []
+      );
+    } catch {}
+  }, [getProjectUrl]);
+
+  useEffect(() => {
+    void loadAudit();
+  }, [loadAudit]);
 
   useEffect(() => {
     return () => {
@@ -473,6 +488,7 @@ export function NarrationChunksPanel({
         const payload = await refresh.json();
         if (payload.plan) updatePlan(payload.plan);
       }
+      void loadAudit();
       onUpdated?.();
     } catch (err) {
       const msg = describeFetchError(err, "gerar narração por trechos");
@@ -500,6 +516,70 @@ export function NarrationChunksPanel({
         icon={<Mic className="w-4 h-4 text-gold-400" />}
         subtitle="Gere voz por bloco/cena com pausas planejadas pela IA. Troque o narrador por trecho."
       />
+
+      <details className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
+        <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-wider text-cyan-300">
+          Auditoria da narração · {auditEvents.length} evento(s) recentes
+        </summary>
+        <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+          {auditEvents.length === 0 ? (
+            <p className="text-[10px] text-zinc-500">
+              Nenhuma execução registrada neste projeto.
+            </p>
+          ) : (
+            auditEvents.map((event) => (
+              <div
+                key={event.id}
+                className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2.5 text-[10px]"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-bold text-zinc-200">
+                    {event.type === "master_upload"
+                      ? "Upload master"
+                      : `TTS ${event.chunk_id || "trecho"}`}
+                    {event.block ? ` · bloco ${event.block}` : ""}
+                  </span>
+                  <span
+                    className={
+                      event.status === "failed"
+                        ? "text-red-400"
+                        : event.status === "stale"
+                          ? "text-amber-400"
+                          : event.status === "generated"
+                            ? "text-emerald-400"
+                            : "text-cyan-400"
+                    }
+                  >
+                    {event.status}
+                  </span>
+                </div>
+                <p className="mt-1 text-zinc-500">
+                  {event.at ? new Date(event.at).toLocaleString("pt-BR") : ""}
+                  {event.voice?.engine
+                    ? ` · ${event.voice.engine}/${event.voice.voice || "padrão"}`
+                    : ""}
+                  {event.duration_s
+                    ? ` · ${Number(event.duration_s).toFixed(2)}s`
+                    : ""}
+                </p>
+                {event.text && (
+                  <p className="mt-1 line-clamp-2 text-zinc-300">
+                    {event.text}
+                  </p>
+                )}
+                {event.error && (
+                  <p className="mt-1 text-red-300">Erro: {event.error}</p>
+                )}
+                {event.audio_file && (
+                  <p className="mt-1 font-mono text-zinc-600">
+                    {event.audio_file}
+                  </p>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </details>
 
       <div className="flex flex-wrap gap-2">
         <button

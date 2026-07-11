@@ -1368,7 +1368,8 @@ export async function generateNarrationChunksTts(
 
     updatedChunks[idx] = { ...c, voice, status: "generating", error: null };
     await onChunkUpdate(
-      normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {})
+      normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {}),
+      updatedChunks[idx]
     );
 
     let result;
@@ -1392,7 +1393,8 @@ export async function generateNarrationChunksTts(
         failed_at: new Date().toISOString(),
       };
       await onChunkUpdate(
-        normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {})
+        normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {}),
+        updatedChunks[idx]
       );
       throw err;
     }
@@ -1410,7 +1412,8 @@ export async function generateNarrationChunksTts(
       status: "generated",
     };
     await onChunkUpdate(
-      normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {})
+      normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {}),
+      updatedChunks[idx]
     );
   }
 
