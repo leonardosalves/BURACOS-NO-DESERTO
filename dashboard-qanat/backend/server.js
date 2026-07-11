@@ -422,7 +422,13 @@ import {
   applyChunkedTimelineAfterWhisper,
   NARRATION_MODE_CHUNKED,
   NARRATION_MODE_MASTER,
+  probeAudioDuration,
 } from "./narrationChunks.js";
+import {
+  installNarrationAtomically,
+  MAX_NARRATION_UPLOAD_BYTES,
+  removeTemporaryNarration,
+} from "./narrationUpload.js";
 import { resolveCaptionRenderSettings } from "./captionConfig.js";
 import {
   computeOverlayDisplayDuration,
@@ -15238,35 +15244,65 @@ app.get("/api/assets/validate", (req, res) => {
 
 app.post("/api/upload-narration", (req, res) => {
   const projDir = getProjectDir(req);
-
   const narrationFile = path.join(projDir, "narracao_mestra_premium.mp3");
-
-  const writeStream = fs.createWriteStream(narrationFile);
-
-  req.pipe(writeStream);
-
-  writeStream.on("finish", () => {
-    const staleFiles = ["word_transcripts.json", "block_timings.json"];
-
-    for (const fname of staleFiles) {
-      const stalePath = path.join(projDir, fname);
-
-      if (fs.existsSync(stalePath)) {
-        try {
-          fs.unlinkSync(stalePath);
-        } catch (_) {}
-      }
+  const tempFile = path.join(
+    projDir,
+    `.narration-upload-${Date.now()}-${process.pid}.tmp`
+  );
+  const writeStream = fs.createWriteStream(tempFile, { flags: "wx" });
+  let received = 0;
+  let rejected = false;
+  req.on("data", (chunk) => {
+    received += chunk.length;
+    if (received > MAX_NARRATION_UPLOAD_BYTES && !rejected) {
+      rejected = true;
+      req.unpipe(writeStream);
+      writeStream.destroy();
+      removeTemporaryNarration(tempFile);
+      res.status(413).json({ error: "Narração excede o limite de 250 MB." });
+      req.destroy();
     }
+  });
+  req.pipe(writeStream);
+  writeStream.on("finish", async () => {
+    if (rejected) return;
+    try {
+      const validated = await installNarrationAtomically(
+        tempFile,
+        narrationFile,
+        { probeDuration: probeAudioDuration }
+      );
+      const staleFiles = ["word_transcripts.json", "block_timings.json"];
 
-    res.json({
-      success: true,
-      needs_resync: true,
-      message:
-        "Narração enviada! Rode a sincronização Whisper para atualizar timings e legendas.",
-    });
+      for (const fname of staleFiles) {
+        const stalePath = path.join(projDir, fname);
+
+        if (fs.existsSync(stalePath)) {
+          try {
+            fs.unlinkSync(stalePath);
+          } catch (_) {}
+        }
+      }
+
+      res.json({
+        success: true,
+        needs_resync: true,
+        duration_seconds: validated.duration,
+        bytes: validated.bytes,
+        message:
+          "Narração enviada! Rode a sincronização Whisper para atualizar timings e legendas.",
+      });
+    } catch (err) {
+      removeTemporaryNarration(tempFile);
+      res
+        .status(400)
+        .json({ error: err.message || "MP3 de narração inválido." });
+    }
   });
 
   writeStream.on("error", (err) => {
+    removeTemporaryNarration(tempFile);
+    if (res.headersSent) return;
     res.status(500).json({
       error: "Erro ao escrever arquivo de narração",
       details: err.message,
