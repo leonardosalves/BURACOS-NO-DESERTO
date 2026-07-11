@@ -1304,6 +1304,76 @@ function getProjectDir(req) {
   return getRequestProjectContext(req).projDir;
 }
 
+function saveNarracaoProTraceReport(projDir, parsedData) {
+  if (!parsedData || !parsedData.narracao_pro_trace) return;
+  const trace = parsedData.narracao_pro_trace;
+  const reportPath = path.join(projDir, "ASSETS", "narracao_pro_report.md");
+
+  let md = `# Relatório de Planejamento NARRACAOPRO\n\n`;
+  md += `> [!NOTE]\n`;
+  md += `> Este relatório mostra as etapas de pesquisa, tese e auditoria factual executadas sob as diretrizes de \`NARRACAOPRO.md\` e \`COMOUSARANARRACAOPRO.md\`.\n\n`;
+
+  md += `## 🎯 1. Pergunta Central do Vídeo\n`;
+  md += `> **${trace.pergunta_central || "Não especificada"}**\n\n`;
+
+  md += `## 📚 2. Pesquisa de Fatos e Fontes Verificadas\n`;
+  if (Array.isArray(trace.pesquisa_fatos)) {
+    trace.pesquisa_fatos.forEach((f) => {
+      md += `* ${f}\n`;
+    });
+  } else {
+    md += `${trace.pesquisa_fatos || "Nenhum fato extraído"}\n`;
+  }
+  md += `\n`;
+
+  md += `## 🔗 3. Cadeia Lógica (Fato → Causa → Consequência)\n`;
+  if (Array.isArray(trace.cadeia_logica)) {
+    trace.cadeia_logica.forEach((c) => {
+      md += `* ${c}\n`;
+    });
+  } else {
+    md += `${trace.cadeia_logica || "Nenhuma cadeia lógica detalhada"}\n`;
+  }
+  md += `\n`;
+
+  md += `## 🔍 4. Auditoria Factual e de Coerência\n`;
+  md += `${trace.auditoria_factual || "Nenhum relatório de auditoria disponível"}\n\n`;
+
+  md += `## 📊 5. Notas de Auditoria Final (Mínimo de 9/10)\n`;
+  if (trace.notas_auditoria) {
+    md += `| Métrica | Nota |\n| :--- | :---: |\n`;
+    Object.entries(trace.notas_auditoria).forEach(([metric, val]) => {
+      const metricLabel = metric.replace(/_/g, " ").toUpperCase();
+      const statusIcon = Number(val) >= 9 ? "🟢" : "🔴";
+      md += `| ${statusIcon} **${metricLabel}** | \`${val}/10\` |\n`;
+    });
+  } else {
+    md += `*Nenhuma nota avaliada.*\n`;
+  }
+
+  try {
+    fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+    fs.writeFileSync(reportPath, md, "utf8");
+    console.log(`[NARRACAOPRO] Relatório salvo com sucesso em: ${reportPath}`);
+
+    // Also save to Antigravity IDE Artifacts directory to show directly to the user in the UI!
+    const antigravityDir =
+      "C:/Users/Leo/.gemini/antigravity-ide/brain/96790f47-42a8-4d70-baab-6f90f150d699";
+    if (fs.existsSync(antigravityDir)) {
+      const antPath = path.join(antigravityDir, "narracao_pro_report.md");
+      fs.writeFileSync(antPath, md, "utf8");
+      console.log(
+        `[NARRACAOPRO] Relatório espelhado nos artefatos Antigravity: ${antPath}`
+      );
+    }
+  } catch (e) {
+    console.warn(
+      "[NARRACAOPRO] Erro ao gravar arquivo de relatório:",
+      e.message
+    );
+  }
+}
+
 // Helper: Auto-copy missing or outdated timing and render template files to project folder on-demand
 
 function ensureFileExists(fileName, targetDir) {
@@ -17436,12 +17506,22 @@ app.post(
           });
         }
 
+        const hasNarracaoPro = !!loadNarracaoProGuidelines();
         const skipPostProcess =
-          isBrowserResponse || shouldOfferGeminiBrowser(settingsDir);
+          isBrowserResponse ||
+          shouldOfferGeminiBrowser(settingsDir) ||
+          hasNarracaoPro;
         if (skipPostProcess) {
           console.log(
-            "[Creator Script] Modo navegador — pulando humanização/enriquecimento extra na fase narração."
+            hasNarracaoPro
+              ? "[NARRACAOPRO] Pulando humanização/enriquecimento extra pós-processo para preservar a narração original premium do Lumiera Script Master."
+              : "[Creator Script] Modo navegador — pulando humanização/enriquecimento extra na fase narração."
           );
+          if (hasNarracaoPro) {
+            sendLog(
+              "[NARRACAOPRO] Preservando a narração original premium baseada no NARRACAOPRO.md."
+            );
+          }
         }
         try {
           if (skipPostProcess) throw new Error("skip_humanize");
@@ -17576,6 +17656,7 @@ app.post(
           notebooklm_enriched_at: notebooklmEnriched
             ? new Date().toISOString()
             : undefined,
+          narracao_pro_trace: parsedData.narracao_pro_trace || undefined,
           _creator_phase: "narration_pending",
         };
         report(
@@ -17593,6 +17674,14 @@ app.post(
         await new Promise((r) => setTimeout(r, 600));
 
         report("save", "Salvando narração no projeto…", 100);
+        try {
+          saveNarracaoProTraceReport(projDir, parsedData);
+        } catch (reportErr) {
+          console.warn(
+            "[NARRACAOPRO] Falha ao gravar relatório de trace:",
+            reportErr.message
+          );
+        }
         fs.writeFileSync(
           storyboardPath,
           JSON.stringify(
@@ -17867,6 +17956,15 @@ app.post(
       // Save full storyboard JSON
 
       const storyboardPath = path.join(projDir, "storyboard.json");
+
+      try {
+        saveNarracaoProTraceReport(projDir, parsedData);
+      } catch (reportErr) {
+        console.warn(
+          "[NARRACAOPRO] Falha ao gravar relatório de trace no roteiro completo:",
+          reportErr.message
+        );
+      }
 
       fs.writeFileSync(
         storyboardPath,

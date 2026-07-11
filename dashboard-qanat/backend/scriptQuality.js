@@ -2009,6 +2009,22 @@ Responda APENAS JSON válido (sem markdown):
   "technical_config": {
     "script": "Narração dividida em parágrafos — um parágrafo por bloco, separados por quebra dupla de linha.",
     "block_phrases": [{"block": 1, "phrase": "início exato do bloco (4-8 palavras)"}]
+  },
+  "narracao_pro_trace": {
+    "pergunta_central": "A pergunta central formulada para o vídeo",
+    "pesquisa_fatos": ["Lista de fatos importantes e fontes cruzadas verificadas"],
+    "cadeia_logica": ["Mapeamento da lógica Fato -> Causa -> Consequência por bloco"],
+    "auditoria_factual": "Relatório analítico da coerência, remoção de repetições e adequação",
+    "notas_auditoria": {
+      "coerencia": 10,
+      "clareza": 10,
+      "profundidade": 10,
+      "qualidade_factual": 10,
+      "progressao": 10,
+      "naturalidade": 10,
+      "retencao": 10,
+      "conclusao": 10
+    }
   }
 }`;
 }
@@ -2373,7 +2389,9 @@ ${buildVisualPromptsJsonSchema({ blockCount: listicleBlockCount, isListicle, lis
 7. "hyperframe_prompt"
 ${buildChecklistSchemaBlock()}
 9. "technical_config": { "script", "block_phrases", "impact_texts", "highlight_keywords", "bgm_mappings" }
+10. "narracao_pro_trace": { "pergunta_central", "pesquisa_fatos" (array), "cadeia_logica" (array), "auditoria_factual", "notas_auditoria": { "coerencia", "clareza", "profundidade", "qualidade_factual", "progressao", "naturalidade", "retencao", "conclusao" } }
 ${listicleJsonTail}
+
 
 REGRAS FINAIS:
 
