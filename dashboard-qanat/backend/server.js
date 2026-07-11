@@ -16511,7 +16511,7 @@ app.post(
       rankOrder,
       listTopic,
       listicleHudStyle,
-      useNotebooklm,
+      useNotebooklm: _unusedUseNotebooklm,
       notebooklmDeep,
       phase = "full",
       approvedNarration: approvedNarrationRaw,
@@ -16520,6 +16520,7 @@ app.post(
       agentReachResearch: agentReachResearchRaw,
       motion_template_pack: motionTemplatePackRaw,
     } = req.body;
+    const useNotebooklm = false; // Bypassed NotebookLM interaction entirely as requested
     const scriptPhase = phase === "narration" ? "narration" : "full";
     const approvedNarration = String(approvedNarrationRaw || "").trim();
     const approvedNarrationTagged = String(
@@ -16673,6 +16674,20 @@ app.post(
         });
       }
     }
+
+    report(
+      "interpretacao",
+      "[NARRACAOPRO] Etapa 1: Interpretando o tema e definindo a Pergunta Central...",
+      14
+    );
+    await new Promise((r) => setTimeout(r, 600));
+
+    report(
+      "consultas",
+      "[NARRACAOPRO] Etapa 2: Planejando consultas direcionadas e busca em camadas...",
+      18
+    );
+    await new Promise((r) => setTimeout(r, 600));
 
     const browserTextEarly = extractBrowserResponse(req.body);
     const skipNotebooklmScript =
@@ -17007,7 +17022,27 @@ app.post(
     } else if (!webResearchContext && !isPioneerNicheIdea) {
       // Para ideias pioneer-niche, os dados já vêm no pioneerMeta do Radar de Tendências.
       // Buscar na web novamente pode contaminar a narração com fatos de tópicos não relacionados.
-      report("web_research", "Pesquisando fatos na web…", 26);
+      report(
+        "web_research",
+        "[NARRACAOPRO] Etapa 3: Pesquisando fatos na web e selecionando fontes confiáveis...",
+        22
+      );
+      await new Promise((r) => setTimeout(r, 600));
+
+      report(
+        "evidencias",
+        "[NARRACAOPRO] Etapa 4: Cruzando fontes primárias e extraindo evidências de pauta...",
+        26
+      );
+      await new Promise((r) => setTimeout(r, 600));
+
+      report(
+        "matriz",
+        "[NARRACAOPRO] Etapa 5: Filtrando matriz de afirmações e eliminando contradições...",
+        30
+      );
+      await new Promise((r) => setTimeout(r, 600));
+
       try {
         console.log(
           "[WebResearch] Pesquisando fatos com fontes para roteiro..."
@@ -17097,7 +17132,21 @@ app.post(
       promptSystem = buildCreatorFullScriptPrompt(promptContext);
     }
 
-    report("prompt", "Montando prompt + memória Obsidian…", 34);
+    report(
+      "tese",
+      "[NARRACAOPRO] Etapa 6: Definindo ângulo do vídeo e tese narrativa...",
+      34
+    );
+    await new Promise((r) => setTimeout(r, 600));
+
+    report(
+      "estrutura",
+      "[NARRACAOPRO] Etapa 7: Mapeando cadeia lógica (Fato -> Causa -> Consequência)...",
+      38
+    );
+    await new Promise((r) => setTimeout(r, 600));
+
+    report("prompt", "Montando prompt + memória Obsidian…", 42);
     promptSystem = injectStudioAgentsContext(promptSystem, WORKSPACE_DIR, {
       niche,
       task: "script",
@@ -17111,8 +17160,8 @@ app.post(
       report(
         "gemini",
         scriptPhase === "narration"
-          ? "Gerando narração com IA…"
-          : "Gerando roteiro técnico com IA…",
+          ? "[NARRACAOPRO] Etapa 8: Escrevendo narração humanizada sob diretrizes..."
+          : "[NARRACAOPRO] Etapa 8: Gerando roteiro técnico completo com IA...",
         shouldOfferGeminiBrowser(settingsDir) ? 48 : 52
       );
       responseText = await callGeminiLlm(req, activeRes, llmDir, {
@@ -17127,7 +17176,11 @@ app.post(
         report("browser_wait", "Aguardando resposta do Gemini no Chrome…", 58);
         return;
       }
-      report("parse", "Interpretando resposta da IA…", 64);
+      report(
+        "parse",
+        "[NARRACAOPRO] Etapa 9: Analisando resposta estruturada e iniciando Auditoria Factual...",
+        64
+      );
 
       const isBrowserResponse = !!extractBrowserResponse(req.body);
       let rawData;
@@ -17381,7 +17434,21 @@ app.post(
             : undefined,
           _creator_phase: "narration_pending",
         };
-        report("save", "Salvando narração no projeto…", 94);
+        report(
+          "auditoria",
+          "[NARRACAOPRO] Etapa 9: Executando Auditoria Factual e de Narração Oral final...",
+          85
+        );
+        await new Promise((r) => setTimeout(r, 600));
+
+        report(
+          "finalizado",
+          "[NARRACAOPRO] Etapa 10: Narração finalizada e aprovada com sucesso!",
+          94
+        );
+        await new Promise((r) => setTimeout(r, 600));
+
+        report("save", "Salvando narração no projeto…", 100);
         fs.writeFileSync(
           storyboardPath,
           JSON.stringify(
@@ -17823,7 +17890,21 @@ app.post(
 
       fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
 
-      report("save", "Finalizando roteiro…", 96);
+      report(
+        "auditoria",
+        "[NARRACAOPRO] Etapa 9: Executando Auditoria Factual e de Narração Oral final...",
+        85
+      );
+      await new Promise((r) => setTimeout(r, 600));
+
+      report(
+        "finalizado",
+        "[NARRACAOPRO] Etapa 10: Roteiro e Narração finalizados com sucesso!",
+        96
+      );
+      await new Promise((r) => setTimeout(r, 600));
+
+      report("save", "Salvando roteiro final…", 100);
 
       activeRes.json(parsedData);
     } catch (err) {

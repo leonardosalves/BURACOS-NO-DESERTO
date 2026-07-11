@@ -1029,12 +1029,7 @@ export function wantsNotebooklmInteractiveNarration({
   skipNotebooklmPending,
   interactiveNotebooklm = false,
 }) {
-  return (
-    scriptPhase === "narration" &&
-    useNotebooklm !== false &&
-    !skipNotebooklmPending &&
-    interactiveNotebooklm === true
-  );
+  return false;
 }
 
 export function shouldPauseNotebooklmNarration(
@@ -1047,20 +1042,7 @@ export function shouldPauseNotebooklmNarration(
     briefFinalized = false,
   } = {}
 ) {
-  if (scriptPhase !== "narration" || skipNotebooklmPending) return false;
-  if (!research?.available) return false;
-  if (briefFinalized) {
-    return Boolean(
-      research.awaitingUser || (research.questions?.length ?? 0) > 0
-    );
-  }
-  if (needsDiscovery) return true;
-  if (userTurns === 0) return true;
-  return Boolean(
-    research.awaitingUser ||
-    research.interactiveDiscovery ||
-    (research.questions?.length ?? 0) > 0
-  );
+  return false;
 }
 
 export function shouldClearNotebooklmArtifacts(
