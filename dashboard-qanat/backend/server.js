@@ -7401,6 +7401,12 @@ app.get(
           );
         }
 
+        sendLog(
+          `[Remotion Debug] Spawning npx with args: ${JSON.stringify(remotionArgs)}`
+        );
+        trackRenderProgress(
+          `[Remotion Debug] Args: ${JSON.stringify(remotionArgs)}`
+        );
         child = spawn("npx", remotionArgs, {
           cwd: REMOTION_DIR,
 
