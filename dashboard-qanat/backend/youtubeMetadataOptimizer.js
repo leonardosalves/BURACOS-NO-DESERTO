@@ -20,7 +20,7 @@ import {
 } from "./titleGenerator.js";
 import { compressTranscriptForPrompt } from "./lumieraContextCompress.js";
 
-export const YOUTUBE_METADATA_PIPELINE_VERSION = 5;
+export const YOUTUBE_METADATA_PIPELINE_VERSION = 6;
 
 const METADATA_STOPWORDS = new Set([
   "a",
