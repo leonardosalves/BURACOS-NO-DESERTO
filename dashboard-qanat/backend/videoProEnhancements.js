@@ -447,6 +447,190 @@ export function stripTtsMarkersForPlainText(text = "") {
     .trim();
 }
 
+export function numberToWordsPtBr(num) {
+  if (num === 0) return "zero";
+
+  const unidades = [
+    "",
+    "um",
+    "dois",
+    "três",
+    "quatro",
+    "cinco",
+    "seis",
+    "sete",
+    "oito",
+    "nove",
+  ];
+  const dezenas10 = [
+    "dez",
+    "onze",
+    "doze",
+    "treze",
+    "quatorze",
+    "quinze",
+    "dezesseis",
+    "dezessete",
+    "dezoito",
+    "dezenove",
+  ];
+  const dezenas = [
+    "",
+    "",
+    "vinte",
+    "trinta",
+    "quarenta",
+    "cinquenta",
+    "sessenta",
+    "setenta",
+    "oitenta",
+    "noventa",
+  ];
+  const centenas = [
+    "",
+    "cem",
+    "duzentos",
+    "trezentos",
+    "quatrocentos",
+    "quinhentos",
+    "seiscentos",
+    "setecentos",
+    "oitocentos",
+    "novecentos",
+  ];
+
+  function converterMenorQueMil(n) {
+    if (n === 0) return "";
+    let partes = [];
+
+    // Centenas
+    let c = Math.floor(n / 100);
+    let resto = n % 100;
+
+    if (c > 0) {
+      if (c === 1 && resto > 0) {
+        partes.push("cento");
+      } else {
+        partes.push(centenas[c]);
+      }
+    }
+
+    // Dezenas e Unidades
+    if (resto >= 10 && resto <= 19) {
+      partes.push(dezenas10[resto - 10]);
+    } else {
+      let d = Math.floor(resto / 10);
+      let u = resto % 10;
+      if (d > 0) partes.push(dezenas[d]);
+      if (u > 0) partes.push(unidades[u]);
+    }
+
+    return partes.join(" e ");
+  }
+
+  let partesMilhoes = [];
+
+  // Milhões
+  let milhoes = Math.floor(num / 1000000);
+  let restoMilhoes = num % 1000000;
+  if (milhoes > 0) {
+    if (milhoes === 1) {
+      partesMilhoes.push("um milhão");
+    } else {
+      partesMilhoes.push(converterMenorQueMil(milhoes) + " milhões");
+    }
+  }
+
+  // Milhares
+  let milhares = Math.floor(restoMilhoes / 1000);
+  let restoMilhares = restoMilhoes % 1000;
+  if (milhares > 0) {
+    if (milhares === 1) {
+      partesMilhoes.push("mil");
+    } else {
+      partesMilhoes.push(converterMenorQueMil(milhares) + " mil");
+    }
+  }
+
+  // Centenas/Dezenas/Unidades restantes
+  if (restoMilhares > 0) {
+    let ligacao = "e";
+    if (restoMilhares < 100 || restoMilhares % 100 === 0) {
+      ligacao = "e";
+    } else {
+      ligacao = "";
+    }
+
+    const menorMil = converterMenorQueMil(restoMilhares);
+    if (partesMilhoes.length > 0) {
+      if (ligacao === "e") {
+        partesMilhoes.push("e " + menorMil);
+      } else {
+        partesMilhoes.push(menorMil);
+      }
+    } else {
+      partesMilhoes.push(menorMil);
+    }
+  }
+
+  return partesMilhoes.join(" ").replace(/\s+/g, " ").trim();
+}
+
+export function replaceNumbersAndAbbreviationsPtBr(text = "") {
+  let out = String(text);
+
+  // 1. Temporariamente extrair tags/marcações como [ênfase] ou (pause 300ms)
+  const tags = [];
+  out = out.replace(/(\[[^\]]+\]|\([^)]+\))/g, (match) => {
+    const placeholder = `__TAG_PLACEHOLDER_${tags.length}__`;
+    tags.push({ placeholder, original: match });
+    return placeholder;
+  });
+
+  // 2. Substituir abreviações comuns
+  const abbreviations = [
+    [/\b[dD]\.[cC]\.?(?!\w)/gi, "depois de Cristo"],
+    [/\b[aA]\.[cC]\.?(?!\w)/gi, "antes de Cristo"],
+    [/\b[dD]\s+[cC](?!\w)/gi, "depois de Cristo"],
+    [/\b[aA]\s+[cC](?!\w)/gi, "antes de Cristo"],
+    [/(\b\d+)\s*km\b/gi, "$1 quilômetros"],
+    [/(\b\d+)\s*m\b/gi, "$1 metros"],
+    [/(\b\d+)\s*kg\b/gi, "$1 quilos"],
+    [/(\b\d+)\s*%/g, "$1 por cento"],
+    [/(\b\d+)\s*°C\b/g, "$1 graus Celsius"],
+  ];
+
+  for (const [pattern, replacement] of abbreviations) {
+    out = out.replace(pattern, replacement);
+  }
+
+  // 3. Substituir números
+  out = out.replace(/\b\d+(?:[\.\s]\d{3})*(?:,\d+)?\b/g, (match) => {
+    if (match.includes(",")) {
+      const parts = match.split(",");
+      const integerPart = parseInt(parts[0].replace(/[\.\s]/g, ""), 10);
+      const decimalPart = parseInt(parts[1], 10);
+      if (isNaN(integerPart) || isNaN(decimalPart)) return match;
+      return (
+        numberToWordsPtBr(integerPart) +
+        " vírgula " +
+        numberToWordsPtBr(decimalPart)
+      );
+    } else {
+      const cleanNum = parseInt(match.replace(/[\.\s]/g, ""), 10);
+      if (isNaN(cleanNum)) return match;
+      return numberToWordsPtBr(cleanNum);
+    }
+  });
+
+  // 4. Devolver as tags originais
+  for (const tag of tags) {
+    out = out.replace(tag.placeholder, tag.original);
+  }
+
+  return out;
+}
+
 export function convertCinematicMarkersForTts(
   taggedScript = "",
   platform = "fish",
@@ -454,6 +638,8 @@ export function convertCinematicMarkersForTts(
 ) {
   const stripEmphasis = options.stripEmphasis === true;
   let text = String(taggedScript);
+
+  text = replaceNumbersAndAbbreviationsPtBr(text);
 
   if (stripEmphasis) {
     text = text.replace(/\[ênfase\]\s*/gi, "");
