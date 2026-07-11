@@ -1027,11 +1027,13 @@ export function wantsNotebooklmInteractiveNarration({
   scriptPhase,
   useNotebooklm,
   skipNotebooklmPending,
+  interactiveNotebooklm = false,
 }) {
   return (
     scriptPhase === "narration" &&
     useNotebooklm !== false &&
-    !skipNotebooklmPending
+    !skipNotebooklmPending &&
+    interactiveNotebooklm === true
   );
 }
 
