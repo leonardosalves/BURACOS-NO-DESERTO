@@ -1090,9 +1090,25 @@ export function parseYoutubeMetadataMarkdown(text = "") {
       ?.filter((tag) =>
         /^(#shorts|#tecnologia|#curiosidades|#viral)$/i.test(tag)
       ) || [];
+  const scoredTitles = titles.map((title) => {
+    const words = title.text.split(/\s+/).filter(Boolean);
+    const score = Math.max(
+      0,
+      Math.min(
+        100,
+        35 +
+          (/[0-9]/.test(title.text) ? 12 : 0) +
+          (/[?:!]/.test(title.text) ? 8 : 0) +
+          (words.length >= 4 && words.length <= 11 ? 18 : 4) -
+          (/#/.test(title.text) ? 35 : 0) -
+          (title.text.length > 65 ? 12 : 0)
+      )
+    );
+    return { ...title, score };
+  });
 
   return {
-    titles,
+    titles: scoredTitles,
     description: sections.DESCRICAO || "",
     tags: sections.TAGS || "",
     hashtags: sections["HASHTAGS PRINCIPAIS"] || "",
@@ -1102,7 +1118,8 @@ export function parseYoutubeMetadataMarkdown(text = "") {
     thumbnailHook,
     retentionHook: sections["GANCHO DE RETENCAO"] || "",
     midVideoCta: sections["CTA DE MEIO DE VIDEO"] || "",
-    recommendedTitle: titles[0]?.text || "",
+    recommendedTitle:
+      scoredTitles.slice().sort((a, b) => b.score - a.score)[0]?.text || "",
     fidelity: {
       ok: titleHashtags.length === 0,
       warnings: [
