@@ -117,6 +117,15 @@ export function validateOriginalTemplateCode(code) {
     );
   }
 
+  for (const pattern of INCOMPLETE_ORIGINAL_MARKERS) {
+    if (pattern.test(trimmed)) {
+      errors.push(
+        "O código original do template parece incompleto ou de placeholder."
+      );
+      break;
+    }
+  }
+
   return { ok: errors.length === 0, errors: [...new Set(errors)] };
 }
 
