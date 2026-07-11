@@ -4,7 +4,7 @@ import {
   Img,
   interpolate,
   staticFile,
-  Video,
+  OffthreadVideo,
   useCurrentFrame,
   useVideoConfig,
   Easing,
@@ -472,7 +472,7 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   const mapContent = () => {
     if (useBlender && flyoverSrc) {
       return (
-        <Video
+        <OffthreadVideo
           src={flyoverSrc}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
