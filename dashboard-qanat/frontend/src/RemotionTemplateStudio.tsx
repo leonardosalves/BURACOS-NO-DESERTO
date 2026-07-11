@@ -2852,6 +2852,29 @@ function TemplateDetailPanel({
   const activeSource = template.sourceCode[activeFormat];
   const activeAspectRatio = activeFormat === "short" ? "9:16" : "16:9";
 
+  const categorySubcategories = useMemo(() => {
+    const subcats = new Set<string>();
+    const catDef = CATEGORIES.find((c) => c.id === template.category);
+    if (catDef) {
+      catDef.subcategories.forEach((s) => subcats.add(s));
+    }
+    try {
+      const raw = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as TemplateItem[];
+        parsed.forEach((t) => {
+          if (t.category === template.category && t.subcategory) {
+            subcats.add(t.subcategory);
+          }
+        });
+      }
+    } catch {}
+    if (template.subcategory) {
+      subcats.add(template.subcategory);
+    }
+    return Array.from(subcats).sort();
+  }, [template.category, template.subcategory]);
+
   return (
     <section className="bg-[#0e1522]">
       <div className="border-b border-white/10 px-4 py-4">
@@ -2877,26 +2900,26 @@ function TemplateDetailPanel({
                   Preview:
                 </span>
                 <select
-                  value={template.shortPreview}
-                  onChange={(e) =>
-                    onChangePreview(e.target.value as PreviewVariant)
-                  }
+                  value={template.subcategory}
+                  onChange={(e) => {
+                    const selectedSub = e.target.value;
+                    const resolved = resolvePreviewVariants(
+                      template.category,
+                      selectedSub,
+                      template.name,
+                      template.sourceCode.short
+                    );
+                    if (onChangePreview && resolved) {
+                      onChangePreview(resolved.shortPreview);
+                    }
+                  }}
                   className="rounded bg-black/40 px-2 py-1 text-xs font-bold text-zinc-200 outline-none hover:text-white"
                 >
-                  <option value="line">Gráfico de Linha</option>
-                  <option value="bars">Gráfico de Barras</option>
-                  <option value="area">Gráfico de Área</option>
-                  <option value="pie">Gráfico de Pizza</option>
-                  <option value="donut">Gráfico de Rosca</option>
-                  <option value="circular-progress">Progresso Circular</option>
-                  <option value="progress-bars">Barras de Progresso</option>
-                  <option value="counter">Contador Estatístico</option>
-                  <option value="comparison">Gráfico de Comparação</option>
-                  <option value="text">Texto Animado</option>
-                  <option value="ring">KPI / Anel</option>
-                  <option value="map">Mapa Satélite</option>
-                  <option value="title">Título Slide</option>
-                  <option value="media">Imagem / Vídeo</option>
+                  {categorySubcategories.map((subcat) => (
+                    <option key={subcat} value={subcat}>
+                      {subcat}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}
