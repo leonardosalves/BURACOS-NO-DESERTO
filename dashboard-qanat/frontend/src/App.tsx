@@ -214,7 +214,7 @@ export default function App() {
   const [logs, setLogs] = useState<string[]>([]);
 
   const [rendering, setRendering] = useState<boolean>(false);
-  const [renderFps, setRenderFps] = useState<30 | 60>(30);
+  const [renderFps, setRenderFps] = useState<30 | 60>(60);
 
   const [mixing, setMixing] = useState<boolean>(false);
 
