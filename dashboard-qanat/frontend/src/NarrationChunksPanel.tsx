@@ -128,6 +128,48 @@ export function NarrationChunksPanel({
   const chunkAudioRef = useRef<{ audio: HTMLAudioElement; key: string } | null>(
     null
   );
+  const blobCacheRef = useRef<Record<string, { blobUrl: string; key: string }>>(
+    {}
+  );
+
+  useEffect(() => {
+    return () => {
+      // Limpeza de blob URLs criadas
+      Object.values(blobCacheRef.current).forEach(({ blobUrl }) => {
+        try {
+          URL.revokeObjectURL(blobUrl);
+        } catch (e) {}
+      });
+    };
+  }, []);
+
+  // Pre-fetch de áudios em background
+  useEffect(() => {
+    if (!localPlan?.chunks) return;
+    localPlan.chunks.forEach((chunk) => {
+      if (!chunk.audio_file) return;
+      const cacheKey = `${chunk.audio_file}::${chunk.duration_s ?? 0}::${chunk.status ?? ""}`;
+      const cached = blobCacheRef.current[chunk.id];
+      if (cached && cached.key === cacheKey) return;
+
+      const url = `${getMediaUrl(chunk.audio_file)}?v=${encodeURIComponent(cacheKey)}`;
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) throw new Error();
+          return res.blob();
+        })
+        .then((blob) => {
+          if (cached?.blobUrl) {
+            try {
+              URL.revokeObjectURL(cached.blobUrl);
+            } catch (e) {}
+          }
+          const blobUrl = URL.createObjectURL(blob);
+          blobCacheRef.current[chunk.id] = { blobUrl, key: cacheKey };
+        })
+        .catch(() => {});
+    });
+  }, [localPlan?.chunks, getMediaUrl]);
 
   useEffect(() => {
     setLocalPlan(externalPlan || null);
@@ -794,7 +836,7 @@ export function NarrationChunksPanel({
                       {chunk.audio_file && (
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             // Se já está tocando este chunk, parar
                             console.log(
                               "[Audio Preview] Play clicked for chunk:",
@@ -819,16 +861,48 @@ export function NarrationChunksPanel({
                             }
                             // Cache key estável
                             const cacheKey = `${chunk.audio_file}::${chunk.duration_s ?? 0}::${chunk.status ?? ""}`;
-                            const url = `${getMediaUrl(chunk.audio_file!)}?v=${Date.now()}`;
-                            console.log(
-                              "[Audio Preview] Resolved media URL (with cache-buster):",
-                              url
-                            );
+                            const url = `${getMediaUrl(chunk.audio_file!)}?v=${encodeURIComponent(cacheKey)}`;
+
+                            let blobUrl = "";
+                            const cached = blobCacheRef.current[chunk.id];
+                            if (cached && cached.key === cacheKey) {
+                              blobUrl = cached.blobUrl;
+                              console.log(
+                                "[Audio Preview] Using cached blob URL:",
+                                blobUrl
+                              );
+                            } else {
+                              console.log(
+                                "[Audio Preview] Blob not in cache, fetching now..."
+                              );
+                              try {
+                                const res = await fetch(url);
+                                if (!res.ok)
+                                  throw new Error("HTTP error " + res.status);
+                                const blob = await res.blob();
+                                if (cached?.blobUrl) {
+                                  try {
+                                    URL.revokeObjectURL(cached.blobUrl);
+                                  } catch (e) {}
+                                }
+                                blobUrl = URL.createObjectURL(blob);
+                                blobCacheRef.current[chunk.id] = {
+                                  blobUrl,
+                                  key: cacheKey,
+                                };
+                              } catch (err) {
+                                console.error(
+                                  "[Audio Preview] Failed to fetch blob:",
+                                  err
+                                );
+                                blobUrl = url; // Fallback para URL direta se o fetch falhar
+                              }
+                            }
 
                             console.time(
                               "[Audio Preview] Instantiation to Play"
                             );
-                            const audio = new Audio(url);
+                            const audio = new Audio(blobUrl);
                             audio.preload = "auto";
                             chunkAudioRef.current = { audio, key: cacheKey };
                             setPlayingChunkId(chunk.id);
