@@ -3,7 +3,7 @@
 import fs from "fs";
 import path from "path";
 
-function loadNarracaoProGuidelines() {
+export function loadNarracaoProGuidelines() {
   try {
     const filePath = path.join(process.cwd(), ".agents", "NARRACAOPRO.md");
     if (fs.existsSync(filePath)) {
@@ -15,7 +15,7 @@ function loadNarracaoProGuidelines() {
   return "";
 }
 
-function loadComousarAnarracaoProGuidelines() {
+export function loadComousarAnarracaoProGuidelines() {
   try {
     const filePath = path.join(
       process.cwd(),
