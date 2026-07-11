@@ -43,6 +43,8 @@ export type AppStatusTabProps = {
   status: WorkspaceStatus | null;
   triggerRender: (...args: any[]) => void | Promise<void>;
   videoQuality: VideoQualityReport | null;
+  renderFps: 30 | 60;
+  setRenderFps: (fps: 30 | 60) => void;
   onCancelRender?: () => void;
 };
 
@@ -66,6 +68,8 @@ export function AppStatusTab({
   status,
   triggerRender,
   videoQuality,
+  renderFps,
+  setRenderFps,
   onCancelRender,
 }: AppStatusTabProps) {
   return (
@@ -101,13 +105,29 @@ export function AppStatusTab({
                 </span>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab("settings")}
-              className="text-[9px] text-zinc-500 hover:text-gold-400 transition shrink-0"
-            >
-              Resolução →
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] text-zinc-500">FPS:</span>
+                <select
+                  value={renderFps}
+                  onChange={(e) =>
+                    setRenderFps(Number(e.target.value) as 30 | 60)
+                  }
+                  disabled={rendering}
+                  className="bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-300 rounded px-1.5 py-0.5 outline-none cursor-pointer focus:border-gold-500/50"
+                >
+                  <option value={30}>30 FPS</option>
+                  <option value={60}>60 FPS</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("settings")}
+                className="text-[9px] text-zinc-500 hover:text-gold-400 transition shrink-0"
+              >
+                Resolução →
+              </button>
+            </div>
           </div>
 
           {rendering && onCancelRender && (

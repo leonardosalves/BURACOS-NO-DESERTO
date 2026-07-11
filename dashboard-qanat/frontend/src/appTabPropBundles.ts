@@ -538,6 +538,8 @@ export function buildAppTabPropBundles(
     status: ctx.status,
     triggerRender: ctx.triggerRender,
     videoQuality: ctx.videoQuality,
+    renderFps: ctx.renderFps,
+    setRenderFps: ctx.setRenderFps,
   };
 
   const timelineTabProps: AppTimelineTabProps = {

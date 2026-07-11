@@ -214,6 +214,7 @@ export default function App() {
   const [logs, setLogs] = useState<string[]>([]);
 
   const [rendering, setRendering] = useState<boolean>(false);
+  const [renderFps, setRenderFps] = useState<30 | 60>(30);
 
   const [mixing, setMixing] = useState<boolean>(false);
 
@@ -9840,6 +9841,7 @@ export default function App() {
     if (sampleMode) queryParams.push("sample=1");
     else if (previewSeconds > 0) queryParams.push(`preview=${previewSeconds}`);
     if (resolution === "2k") queryParams.push("resolution=2k");
+    if (renderFps === 60) queryParams.push("fps=60");
     const queryString =
       queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
 
@@ -10301,6 +10303,8 @@ export default function App() {
     dragActive,
     editingImpact,
     editorSubTab,
+    renderFps,
+    setRenderFps,
     editorialIdeaImport,
     facelessPipelineBusy,
     facelessPipelineLog,
