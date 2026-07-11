@@ -828,6 +828,37 @@ export function AppAiTab({
                                       : "Iniciar teste A/B (títulos marcados)"}
                                   </button>
                                 </div>
+                                {youtubeMetadataParsed.fidelity && (
+                                  <div
+                                    className={`rounded-lg border px-3 py-2 text-[9px] ${youtubeMetadataParsed.fidelity.ok ? "border-emerald-500/25 bg-emerald-500/5 text-emerald-300" : "border-amber-500/25 bg-amber-500/5 text-amber-200"}`}
+                                  >
+                                    <div className="flex items-center justify-between gap-2 font-bold">
+                                      <span>
+                                        {youtubeMetadataParsed.fidelity.ok
+                                          ? "Metadados coerentes com o roteiro"
+                                          : "Revisão de coerência recomendada"}
+                                      </span>
+                                      {typeof youtubeMetadataParsed.fidelity
+                                        ?.grounding?.coverage === "number" && (
+                                        <span className="font-mono">
+                                          {
+                                            youtubeMetadataParsed.fidelity
+                                              .grounding.coverage
+                                          }
+                                          % dos termos sustentados
+                                        </span>
+                                      )}
+                                    </div>
+                                    {youtubeMetadataParsed.fidelity.warnings
+                                      ?.length > 0 && (
+                                      <p className="mt-1 leading-relaxed">
+                                        {youtubeMetadataParsed.fidelity.warnings.join(
+                                          " "
+                                        )}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
                                 {youtubeMetadataParsed.titles.map((t, tIdx) => {
                                   const hasHashtag = /#[\wÀ-ÿ]+/i.test(t.text);
                                   const hasEmoji =
@@ -891,10 +922,22 @@ export function AppAiTab({
                                           </span>
                                           {typeof t.score === "number" && (
                                             <span
-                                              className="ml-1 text-[8px] text-zinc-600 font-mono"
-                                              title="Score de qualidade"
+                                              className="ml-1 text-[8px] text-zinc-500 font-mono"
+                                              title={[
+                                                "Score de qualidade",
+                                                ...(t.scoreReasons || []),
+                                                ...(t.scoreWarnings || []),
+                                              ].join(" · ")}
                                             >
                                               · {t.score}pts
+                                            </span>
+                                          )}
+                                          {t.scoreReasons?.length > 0 && (
+                                            <span className="block mt-0.5 text-[8px] text-zinc-500">
+                                              {t.scoreReasons.join(" · ")}
+                                              {t.scoreWarnings?.length
+                                                ? ` · atenção: ${t.scoreWarnings.join(", ")}`
+                                                : ""}
                                             </span>
                                           )}
                                           {isActiveVariant && (
