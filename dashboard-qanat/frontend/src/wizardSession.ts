@@ -223,7 +223,7 @@ export function saveWizardSession(patch: WizardSessionPatch): WizardSession {
       patch.notebooklmSession !== undefined
         ? patch.notebooklmSession
         : (prev.notebooklmSession ?? null),
-    useNotebooklm: patch.useNotebooklm ?? prev.useNotebooklm ?? true,
+    useNotebooklm: patch.useNotebooklm ?? prev.useNotebooklm ?? false,
     notebooklmDeep: patch.notebooklmDeep ?? prev.notebooklmDeep ?? false,
     useDeepResearch: patch.useDeepResearch ?? prev.useDeepResearch ?? true,
     uploadedScenes: patch.uploadedScenes ?? prev.uploadedScenes ?? {},
@@ -295,7 +295,7 @@ export function buildEmptyWizardSession(activeTab = "creator"): WizardSession {
     narrationNotebooklmEnriched: false,
     narrationProjectName: "",
     notebooklmSession: null,
-    useNotebooklm: true,
+    useNotebooklm: false,
     notebooklmDeep: false,
     useDeepResearch: true,
     uploadedScenes: {},

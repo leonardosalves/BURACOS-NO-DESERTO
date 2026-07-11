@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import {
   Check,
   Clapperboard,
@@ -10,9 +10,12 @@ import {
   Trash2,
   Wand2,
   X,
-} from 'lucide-react';
-import { FlowStudioPage } from './FlowStudioPage';
-import { FLOW_LAB_NOTEBOOKLM_STORAGE_KEY, FLOW_LAB_PROJECT } from './flowLabConstants';
+} from "lucide-react";
+import { FlowStudioPage } from "./FlowStudioPage";
+import {
+  FLOW_LAB_NOTEBOOKLM_STORAGE_KEY,
+  FLOW_LAB_PROJECT,
+} from "./flowLabConstants";
 import {
   deleteFlowLabSandbox,
   fetchFlowLabConfig,
@@ -28,10 +31,10 @@ import {
   type FlowLabAiContext,
   type FlowLabIdeasResult,
   type FlowLabVpeMeta,
-} from './flowLabApi';
-import { mergeStoryboardWithTimelineAssets } from './assetPreviewUtils';
-import type { ConfigData, WorkspaceStatus } from './appTypes';
-import { NotebookLmConnect } from './NotebookLmConnect';
+} from "./flowLabApi";
+import { mergeStoryboardWithTimelineAssets } from "./assetPreviewUtils";
+import type { ConfigData, WorkspaceStatus } from "./appTypes";
+import { NotebookLmConnect } from "./NotebookLmConnect";
 
 type Props = FlowLabAiContext & {
   hasApiKey: boolean;
@@ -47,10 +50,10 @@ function parseAvoidTopics(raw: string): string[] {
 function readFlowLabNotebooklmPref(): boolean {
   try {
     const raw = localStorage.getItem(FLOW_LAB_NOTEBOOKLM_STORAGE_KEY);
-    if (raw === '0' || raw === 'false') return false;
-    return true;
+    if (raw === "1" || raw === "true") return true;
+    return false;
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -60,10 +63,10 @@ export function FlowLabPage({
   resolveBrowserResponse,
   hasApiKey,
 }: Props) {
-  const [title, setTitle] = useState('');
-  const [avoidTopics, setAvoidTopics] = useState('');
-  const [format, setFormat] = useState<'LONGO' | 'SHORTS'>('SHORTS');
-  const [niche, setNiche] = useState('Geral');
+  const [title, setTitle] = useState("");
+  const [avoidTopics, setAvoidTopics] = useState("");
+  const [format, setFormat] = useState<"LONGO" | "SHORTS">("SHORTS");
+  const [niche, setNiche] = useState("Geral");
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [ideasData, setIdeasData] = useState<FlowLabIdeasResult | null>(null);
@@ -80,7 +83,11 @@ export function FlowLabPage({
   const [fishVoiceLabel, setFishVoiceLabel] = useState<string | null>(null);
   const [useNotebooklm, setUseNotebooklm] = useState(readFlowLabNotebooklmPref);
 
-  const aiCtx: FlowLabAiContext = { geminiBrowserMode, aiProvider, resolveBrowserResponse };
+  const aiCtx: FlowLabAiContext = {
+    geminiBrowserMode,
+    aiProvider,
+    resolveBrowserResponse,
+  };
 
   useEffect(() => {
     void resolveFlowLabFishVoice().then((v) => setFishVoiceLabel(v.label));
@@ -89,7 +96,10 @@ export function FlowLabPage({
   const handleNotebooklmToggle = (checked: boolean) => {
     setUseNotebooklm(checked);
     try {
-      localStorage.setItem(FLOW_LAB_NOTEBOOKLM_STORAGE_KEY, checked ? '1' : '0');
+      localStorage.setItem(
+        FLOW_LAB_NOTEBOOKLM_STORAGE_KEY,
+        checked ? "1" : "0"
+      );
     } catch {
       /* ignore */
     }
@@ -97,7 +107,9 @@ export function FlowLabPage({
 
   const excludeTitles = useMemo(() => {
     const manual = parseAvoidTopics(avoidTopics);
-    const previous = (ideasData?.ideas || []).map((idea) => idea.title || '').filter(Boolean);
+    const previous = (ideasData?.ideas || [])
+      .map((idea) => idea.title || "")
+      .filter(Boolean);
     return [...new Set([...manual, ...previous])];
   }, [avoidTopics, ideasData]);
 
@@ -112,14 +124,22 @@ export function FlowLabPage({
     const hasPrompts = Array.isArray(prompts) && prompts.length > 0;
     setSandboxExists(hasPrompts);
     if (hasPrompts) {
-      const merged = mergeStoryboardWithTimelineAssets(sb, cfg?.timeline_assets) as typeof storyboard;
+      const merged = mergeStoryboardWithTimelineAssets(
+        sb,
+        cfg?.timeline_assets
+      ) as typeof storyboard;
       setStoryboard(merged);
-      const checklist = sb?._vpe_checklist as { quality_score?: number; nicho_detectado?: string } | undefined;
-      setVpeMeta(checklist ? {
-        enhanced: true,
-        qualityScore: checklist.quality_score,
-        nicheDetected: checklist.nicho_detectado,
-      } : null);
+      const checklist = sb?._vpe_checklist as
+        { quality_score?: number; nicho_detectado?: string } | undefined;
+      setVpeMeta(
+        checklist
+          ? {
+              enhanced: true,
+              qualityScore: checklist.quality_score,
+              nicheDetected: checklist.nicho_detectado,
+            }
+          : null
+      );
     } else {
       setStoryboard(null);
       setVpeMeta(null);
@@ -135,39 +155,45 @@ export function FlowLabPage({
 
   const handleGenerateIdeas = async (forceVariety = false) => {
     if (!title.trim()) {
-      toast.error('Digite o tema ou nicho do video.');
+      toast.error("Digite o tema ou nicho do video.");
       return;
     }
     if (!hasApiKey) {
-      toast.error('Configure um provedor de IA em Configuracoes.');
+      toast.error("Configure um provedor de IA em Configuracoes.");
       return;
     }
     setBusy(true);
-    setPipelineStep(forceVariety ? 'Gerando outras ideias...' : 'Gerando ideias...');
+    setPipelineStep(
+      forceVariety ? "Gerando outras ideias..." : "Gerando ideias..."
+    );
     try {
       const result = await generateFlowLabIdeas(aiCtx, {
         niche: title.trim(),
         format,
-        excludeTitles: forceVariety ? excludeTitles : parseAvoidTopics(avoidTopics),
+        excludeTitles: forceVariety
+          ? excludeTitles
+          : parseAvoidTopics(avoidTopics),
         forceVariety,
         useNotebooklm,
       });
       if (!result.ok || !result.data) {
-        toast.error(result.error || 'Falha ao gerar ideias.');
+        toast.error(result.error || "Falha ao gerar ideias.");
         return;
       }
       setIdeasData(result.data);
       setSelectedIdeaIndex(result.data.best_idea_index);
       const meta = result.data._ideas_meta;
       if (forceVariety) {
-        toast.success(`Nova leva de ideias${meta?.excludedCount ? ` (${meta.excludedCount} assuntos bloqueados)` : ''}.`);
+        toast.success(
+          `Nova leva de ideias${meta?.excludedCount ? ` (${meta.excludedCount} assuntos bloqueados)` : ""}.`
+        );
       } else if (meta?.usedDeepResearch) {
-        toast.success('10 ideias geradas com pesquisa profunda.');
+        toast.success("10 ideias geradas com pesquisa profunda.");
       } else {
-        toast.success('10 ideias geradas — escolha uma antes de continuar.');
+        toast.success("10 ideias geradas — escolha uma antes de continuar.");
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao gerar ideias.');
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar ideias.");
     } finally {
       setBusy(false);
       setPipelineStep(null);
@@ -177,23 +203,28 @@ export function FlowLabPage({
   const handleApproveAndGenerate = async () => {
     const idea = ideasData?.ideas[selectedIdeaIndex];
     if (!idea?.title?.trim()) {
-      toast.error('Selecione uma ideia para aprovar.');
+      toast.error("Selecione uma ideia para aprovar.");
       return;
     }
     if (!hasApiKey) {
-      toast.error('Configure um provedor de IA em Configuracoes.');
+      toast.error("Configure um provedor de IA em Configuracoes.");
       return;
     }
     setBusy(true);
-    setPipelineStep('Iniciando pipeline...');
+    setPipelineStep("Iniciando pipeline...");
     try {
       const result = await generateFlowLabPipeline(
         aiCtx,
-        { idea, format, niche: niche.trim() || title.trim() || 'Geral', useNotebooklm },
-        setPipelineStep,
+        {
+          idea,
+          format,
+          niche: niche.trim() || title.trim() || "Geral",
+          useNotebooklm,
+        },
+        setPipelineStep
       );
       if (!result.ok || !result.storyboard) {
-        toast.error(result.error || 'Pipeline falhou.');
+        toast.error(result.error || "Pipeline falhou.");
         return;
       }
       setStoryboard(result.storyboard);
@@ -207,14 +238,17 @@ export function FlowLabPage({
       const voice = result.narration?.fishVoice;
       const whisperOk = result.narration?.whisperSynced;
       toast.success(
-        `Pronto — ${n} cenas${score != null ? ` · VPE ${score}` : ''}${voice ? ` · voz ${voice}` : ''}${whisperOk ? ' · segundos por cena (Whisper)' : ''}. Copie no Flow com a duração indicada.`,
-        { duration: 6000 },
+        `Pronto — ${n} cenas${score != null ? ` · VPE ${score}` : ""}${voice ? ` · voz ${voice}` : ""}${whisperOk ? " · segundos por cena (Whisper)" : ""}. Copie no Flow com a duração indicada.`,
+        { duration: 6000 }
       );
       if (result.narration?.whisperError) {
-        toast(`Whisper: ${result.narration.whisperError}`, { icon: '⚠️', duration: 7000 });
+        toast(`Whisper: ${result.narration.whisperError}`, {
+          icon: "⚠️",
+          duration: 7000,
+        });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro no pipeline.');
+      toast.error(err instanceof Error ? err.message : "Erro no pipeline.");
     } finally {
       setBusy(false);
       setPipelineStep(null);
@@ -224,21 +258,25 @@ export function FlowLabPage({
   const handleRejectIdeas = () => {
     setIdeasData(null);
     setSelectedIdeaIndex(-1);
-    toast('Ideias descartadas — ajuste o tema ou assuntos a evitar e gere de novo.');
+    toast(
+      "Ideias descartadas — ajuste o tema ou assuntos a evitar e gere de novo."
+    );
   };
 
   const handleDeleteSandbox = async () => {
-    if (!window.confirm(
-      `Excluir o sandbox "${FLOW_LAB_PROJECT}"? Roteiro, prompts, assets e uploads serao apagados.`,
-    )) {
+    if (
+      !window.confirm(
+        `Excluir o sandbox "${FLOW_LAB_PROJECT}"? Roteiro, prompts, assets e uploads serao apagados.`
+      )
+    ) {
       return;
     }
     setBusy(true);
-    setPipelineStep('Excluindo sandbox...');
+    setPipelineStep("Excluindo sandbox...");
     try {
       const result = await deleteFlowLabSandbox();
       if (!result.ok) {
-        toast.error(result.error || 'Falha ao excluir sandbox.');
+        toast.error(result.error || "Falha ao excluir sandbox.");
         return;
       }
       setStoryboard(null);
@@ -249,7 +287,7 @@ export function FlowLabPage({
       setSandboxExists(false);
       setStatus(null);
       setWordTranscripts([]);
-      toast.success('Sandbox excluido. Gere novas ideias quando quiser.');
+      toast.success("Sandbox excluido. Gere novas ideias quando quiser.");
     } finally {
       setBusy(false);
       setPipelineStep(null);
@@ -258,25 +296,27 @@ export function FlowLabPage({
 
   const handleVisualProOnly = async () => {
     if (!storyboard?.visual_prompts?.length) {
-      toast.error('Gere o roteiro primeiro.');
+      toast.error("Gere o roteiro primeiro.");
       return;
     }
     if (!hasApiKey) {
-      toast.error('Configure um provedor de IA em Configuracoes.');
+      toast.error("Configure um provedor de IA em Configuracoes.");
       return;
     }
     setBusy(true);
-    setPipelineStep('Engenharia Visual PRO...');
+    setPipelineStep("Engenharia Visual PRO...");
     try {
       const result = await runFlowLabVisualPro(aiCtx);
       if (!result.ok || !result.storyboard) {
-        toast.error(result.error || 'Engenharia Visual PRO falhou.');
+        toast.error(result.error || "Engenharia Visual PRO falhou.");
         return;
       }
       setStoryboard(result.storyboard);
       setVpeMeta(result.meta || { enhanced: true });
       const score = result.meta?.qualityScore;
-      toast.success(`Engenharia Visual PRO concluida${score != null ? ` · score ${score}` : ''}.`);
+      toast.success(
+        `Engenharia Visual PRO concluida${score != null ? ` · score ${score}` : ""}.`
+      );
     } finally {
       setBusy(false);
       setPipelineStep(null);
@@ -285,25 +325,35 @@ export function FlowLabPage({
 
   const handleUpload = async (
     blockNum: number,
-    type: 'video' | 'image',
+    type: "video" | "image",
     file: File,
-    assetIdx: number,
+    assetIdx: number
   ) => {
     if (!storyboard) return;
-    const result = await uploadFlowLabSceneAsset(blockNum, type, file, assetIdx, storyboard);
+    const result = await uploadFlowLabSceneAsset(
+      blockNum,
+      type,
+      file,
+      assetIdx,
+      storyboard
+    );
     if (!result.ok) {
-      toast.error(result.error || 'Falha no upload');
+      toast.error(result.error || "Falha no upload");
       return;
     }
     if (result.storyboard) {
       const cfg = await fetchFlowLabConfig();
       if (cfg) setConfig(cfg);
-      const merged = mergeStoryboardWithTimelineAssets(result.storyboard, cfg?.timeline_assets);
+      const merged = mergeStoryboardWithTimelineAssets(
+        result.storyboard,
+        cfg?.timeline_assets
+      );
       setStoryboard(merged as typeof storyboard);
     }
   };
 
-  const selectedIdea = selectedIdeaIndex >= 0 ? ideasData?.ideas[selectedIdeaIndex] : null;
+  const selectedIdea =
+    selectedIdeaIndex >= 0 ? ideasData?.ideas[selectedIdeaIndex] : null;
 
   return (
     <div className="space-y-6 min-w-0">
@@ -313,17 +363,23 @@ export function FlowLabPage({
             <Clapperboard className="w-5 h-5 text-violet-300" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">Flow Lab (teste global)</h3>
+            <h3 className="text-base font-bold text-white">
+              Flow Lab (teste global)
+            </h3>
             <p className="text-xs text-[var(--dash-muted)] leading-relaxed mt-1">
-              Pagina fora do projeto ativo. A IA propoe ideias para voce aprovar, depois gera roteiro e prompts no sandbox{' '}
-              <code className="text-violet-300/90">{FLOW_LAB_PROJECT}</code>. Voce so gera imagem/video no Google Flow e faz upload aqui.
+              Pagina fora do projeto ativo. A IA propoe ideias para voce
+              aprovar, depois gera roteiro e prompts no sandbox{" "}
+              <code className="text-violet-300/90">{FLOW_LAB_PROJECT}</code>.
+              Voce so gera imagem/video no Google Flow e faz upload aqui.
             </p>
           </div>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
           <div className="sm:col-span-2 space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-[var(--dash-muted)]">Tema ou nicho</label>
+            <label className="text-[10px] uppercase tracking-wider text-[var(--dash-muted)]">
+              Tema ou nicho
+            </label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -332,10 +388,12 @@ export function FlowLabPage({
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-[var(--dash-muted)]">Formato</label>
+            <label className="text-[10px] uppercase tracking-wider text-[var(--dash-muted)]">
+              Formato
+            </label>
             <select
               value={format}
-              onChange={(e) => setFormat(e.target.value as 'LONGO' | 'SHORTS')}
+              onChange={(e) => setFormat(e.target.value as "LONGO" | "SHORTS")}
               className="dash-select w-full"
             >
               <option value="SHORTS">Shorts (9:16)</option>
@@ -343,7 +401,9 @@ export function FlowLabPage({
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-[var(--dash-muted)]">Nicho</label>
+            <label className="text-[10px] uppercase tracking-wider text-[var(--dash-muted)]">
+              Nicho
+            </label>
             <input
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
@@ -361,7 +421,9 @@ export function FlowLabPage({
               onChange={(e) => handleNotebooklmToggle(e.target.checked)}
               className="w-4 h-4 rounded border-violet-500/40 bg-zinc-900 text-violet-500 focus:ring-violet-500/30"
             />
-            <span className="text-xs text-violet-100 font-semibold">NotebookLM no roteiro e ideias</span>
+            <span className="text-xs text-violet-100 font-semibold">
+              NotebookLM no roteiro e ideias
+            </span>
           </label>
           <NotebookLmConnect autoLogin={useNotebooklm} compact />
         </div>
@@ -373,7 +435,9 @@ export function FlowLabPage({
           <textarea
             value={avoidTopics}
             onChange={(e) => setAvoidTopics(e.target.value)}
-            placeholder={'Ex: Como os romanos construiram aquedutos\nPor que as escadas dos castelos eram tortas'}
+            placeholder={
+              "Ex: Como os romanos construiram aquedutos\nPor que as escadas dos castelos eram tortas"
+            }
             className="dash-input w-full text-sm min-h-[72px] resize-y"
           />
         </div>
@@ -385,8 +449,12 @@ export function FlowLabPage({
             onClick={() => void handleGenerateIdeas(false)}
             className="dash-btn-primary text-sm px-5 py-2.5 flex items-center gap-2"
           >
-            {busy && !ideasData ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-            {busy && !ideasData ? 'Gerando...' : 'Gerar ideias'}
+            {busy && !ideasData ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Wand2 className="w-4 h-4" />
+            )}
+            {busy && !ideasData ? "Gerando..." : "Gerar ideias"}
           </button>
           {ideasData && (
             <>
@@ -396,8 +464,12 @@ export function FlowLabPage({
                 onClick={() => void handleApproveAndGenerate()}
                 className="dash-btn-primary text-sm px-5 py-2.5 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500"
               >
-                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                {busy ? 'Gerando...' : 'Aprovar ideia e gerar roteiro'}
+                {busy ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Check className="w-4 h-4" />
+                )}
+                {busy ? "Gerando..." : "Aprovar ideia e gerar roteiro"}
               </button>
               <button
                 type="button"
@@ -451,7 +523,8 @@ export function FlowLabPage({
           )}
           {vpeMeta?.enhanced && (
             <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-200">
-              VPE PRO{vpeMeta.qualityScore != null ? ` · ${vpeMeta.qualityScore}` : ''}
+              VPE PRO
+              {vpeMeta.qualityScore != null ? ` · ${vpeMeta.qualityScore}` : ""}
             </span>
           )}
           {pipelineStep && (
@@ -463,19 +536,29 @@ export function FlowLabPage({
         </div>
 
         <p className="text-[10px] text-[var(--dash-muted)] mt-3 leading-relaxed">
-          Fluxo: tema → <strong className="text-violet-300">aprovar ideia</strong> → roteiro
-          {useNotebooklm ? <> com <strong className="text-violet-300">NotebookLM</strong></> : null} →{' '}
-          <strong className="text-violet-300">narração Fish Speech S2</strong>
-          {fishVoiceLabel ? ` (${fishVoiceLabel})` : ''} → Whisper mede segundos/cena → VPE → copiar no Flow com{' '}
+          Fluxo: tema →{" "}
+          <strong className="text-violet-300">aprovar ideia</strong> → roteiro
+          {useNotebooklm ? (
+            <>
+              {" "}
+              com <strong className="text-violet-300">NotebookLM</strong>
+            </>
+          ) : null}{" "}
+          → <strong className="text-violet-300">narração Fish Speech S2</strong>
+          {fishVoiceLabel ? ` (${fishVoiceLabel})` : ""} → Whisper mede
+          segundos/cena → VPE → copiar no Flow com{" "}
           <strong className="text-emerald-400/90">~Xs voz</strong> em cada card.
-          Use &quot;Assuntos a evitar&quot; para bloquear videos que voce ja publicou.
+          Use &quot;Assuntos a evitar&quot; para bloquear videos que voce ja
+          publicou.
         </p>
       </div>
 
       {ideasData && (
         <div className="glass-panel rounded-3xl p-5 sm:p-6 border border-violet-500/25 space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <h4 className="text-sm font-bold text-white">Escolha a ideia antes de gerar</h4>
+            <h4 className="text-sm font-bold text-white">
+              Escolha a ideia antes de gerar
+            </h4>
             <span className="text-[10px] uppercase tracking-wider text-violet-300/80 font-bold">
               {ideasData.ideas.length} opcoes
             </span>
@@ -483,7 +566,9 @@ export function FlowLabPage({
 
           {ideasData.diagnostic?.strong_angle && (
             <p className="text-[11px] text-[var(--dash-muted)] leading-relaxed border-l-2 border-violet-500/40 pl-3">
-              <span className="text-violet-300 font-semibold">Angulo forte: </span>
+              <span className="text-violet-300 font-semibold">
+                Angulo forte:{" "}
+              </span>
               {ideasData.diagnostic.strong_angle}
             </p>
           )}
@@ -499,19 +584,23 @@ export function FlowLabPage({
                   onClick={() => setSelectedIdeaIndex(index)}
                   className={`text-left p-4 rounded-2xl border transition-all ${
                     isSelected
-                      ? 'bg-violet-500/10 border-violet-400/50 shadow-lg shadow-violet-500/5'
-                      : 'bg-[var(--dash-surface)]/40 border-[var(--dash-border)] hover:border-violet-500/30'
+                      ? "bg-violet-500/10 border-violet-400/50 shadow-lg shadow-violet-500/5"
+                      : "bg-[var(--dash-surface)]/40 border-[var(--dash-border)] hover:border-violet-500/30"
                   }`}
                 >
                   <div className="flex justify-between items-start gap-2 mb-1.5">
-                    <span className="text-[10px] font-mono text-[var(--dash-muted)]">Ideia {index + 1}</span>
+                    <span className="text-[10px] font-mono text-[var(--dash-muted)]">
+                      Ideia {index + 1}
+                    </span>
                     {isBest && (
                       <span className="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/30">
                         Recomendada
                       </span>
                     )}
                   </div>
-                  <h5 className={`text-xs font-bold leading-snug ${isSelected ? 'text-violet-200' : 'text-white'}`}>
+                  <h5
+                    className={`text-xs font-bold leading-snug ${isSelected ? "text-violet-200" : "text-white"}`}
+                  >
                     {idea.title}
                   </h5>
                   {idea.promise && (
@@ -526,18 +615,26 @@ export function FlowLabPage({
 
           {selectedIdea && (
             <div className="rounded-2xl border border-violet-500/25 bg-violet-500/5 p-4 space-y-2">
-              <p className="text-[10px] uppercase tracking-wider text-violet-300 font-bold">Preview da ideia selecionada</p>
-              <p className="text-sm font-semibold text-white">{selectedIdea.title}</p>
+              <p className="text-[10px] uppercase tracking-wider text-violet-300 font-bold">
+                Preview da ideia selecionada
+              </p>
+              <p className="text-sm font-semibold text-white">
+                {selectedIdea.title}
+              </p>
               {selectedIdea.promise && (
-                <p className="text-xs text-[var(--dash-muted)] leading-relaxed">{selectedIdea.promise}</p>
-              )}
-              {selectedIdeaIndex === ideasData.best_idea_index && ideasData.best_idea_reason && (
-                <p className="text-[11px] text-violet-200/90 leading-relaxed border-t border-violet-500/20 pt-2 mt-2">
-                  {ideasData.best_idea_reason}
+                <p className="text-xs text-[var(--dash-muted)] leading-relaxed">
+                  {selectedIdea.promise}
                 </p>
               )}
+              {selectedIdeaIndex === ideasData.best_idea_index &&
+                ideasData.best_idea_reason && (
+                  <p className="text-[11px] text-violet-200/90 leading-relaxed border-t border-violet-500/20 pt-2 mt-2">
+                    {ideasData.best_idea_reason}
+                  </p>
+                )}
               <p className="text-[10px] text-[var(--dash-muted)]">
-                Nao gostou? Clique em &quot;Outras ideias&quot; ou adicione titulos em &quot;Assuntos a evitar&quot;.
+                Nao gostou? Clique em &quot;Outras ideias&quot; ou adicione
+                titulos em &quot;Assuntos a evitar&quot;.
               </p>
             </div>
           )}
