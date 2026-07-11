@@ -56,7 +56,7 @@ export type AppCreatorTabProps = {
   copyToClipboard: (text: string, section: string) => void;
   creatorIdeasBundle: any;
   creatorLoading: boolean;
-  creatorLoadingMode: string;
+  creatorLoadingMode: "narration" | "full" | "idle";
   creatorProjectName: string;
   creatorScenesNeedRepair: boolean;
   creatorStep: number;
@@ -122,7 +122,7 @@ export type AppCreatorTabProps = {
   leaveGlobalViewForProject: (tab: string) => void;
   listNiche: string;
   listTopic: string;
-  listicleHudStyle: string;
+  listicleHudStyle: "auto" | "full" | "compact";
   listicleIdeasData: any;
   mixBGM: (fromWizard?: boolean) => void | Promise<void>;
   mixing: boolean;
@@ -137,7 +137,7 @@ export type AppCreatorTabProps = {
   notebooklmImproving: boolean;
   notebooklmStatus: any;
   rankCount: number;
-  rankOrder: string;
+  rankOrder: "desc" | "asc";
   renderRichTimelineEditor: (opts: {
     hideAutoMap?: boolean;
     wizardManualMode?: boolean;
@@ -834,33 +834,45 @@ export function AppCreatorTab({
                 </div>
               </div>
             ) : ideationTab === "listicle" ? (
-              <ListicleCreatorStep
-                listNiche={listNiche}
-                setListNiche={setListNiche}
-                listTopic={listTopic}
-                setListTopic={setListTopic}
-                rankCount={rankCount}
-                setRankCount={setRankCount}
-                rankOrder={rankOrder}
-                setRankOrder={setRankOrder}
-                formatSelector={formatSelector}
-                setFormatSelector={setFormatSelector}
-                creatorProjectName={creatorProjectName}
-                setCreatorProjectName={setCreatorProjectName}
-                setNicheInput={setNicheInput}
-                creatorLoading={creatorLoading}
-                hasApiKey={hasApiKey}
-                listicleIdeasData={listicleIdeasData}
-                selectedListicleIdeaIndex={selectedListicleIdeaIndex}
-                listicleHudStyle={listicleHudStyle}
-                setListicleHudStyle={setListicleHudStyle}
-                listItems={
-                  generatedScriptData?.list_items || storyboardData?.list_items
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center gap-2 py-12 text-xs text-zinc-400">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Carregando criador de listicle...
+                  </div>
                 }
-                onSuggestRankings={handleSuggestListicleRankings}
-                onSelectRankingIdea={(idx) => setSelectedListicleIdeaIndex(idx)}
-                onGenerateScript={handleGenerateListicleScript}
-              />
+              >
+                <LazyListicleCreatorStep
+                  listNiche={listNiche}
+                  setListNiche={setListNiche}
+                  listTopic={listTopic}
+                  setListTopic={setListTopic}
+                  rankCount={rankCount}
+                  setRankCount={setRankCount}
+                  rankOrder={rankOrder}
+                  setRankOrder={setRankOrder}
+                  formatSelector={formatSelector}
+                  setFormatSelector={setFormatSelector}
+                  creatorProjectName={creatorProjectName}
+                  setCreatorProjectName={setCreatorProjectName}
+                  setNicheInput={setNicheInput}
+                  creatorLoading={creatorLoading}
+                  hasApiKey={hasApiKey}
+                  listicleIdeasData={listicleIdeasData}
+                  selectedListicleIdeaIndex={selectedListicleIdeaIndex}
+                  listicleHudStyle={listicleHudStyle}
+                  setListicleHudStyle={setListicleHudStyle}
+                  listItems={
+                    generatedScriptData?.list_items ||
+                    storyboardData?.list_items
+                  }
+                  onSuggestRankings={handleSuggestListicleRankings}
+                  onSelectRankingIdea={(idx) =>
+                    setSelectedListicleIdeaIndex(idx)
+                  }
+                  onGenerateScript={handleGenerateListicleScript}
+                />
+              </Suspense>
             ) : !ideasData ? (
               <div className="space-y-6 max-w-2xl mx-auto">
                 <div>
@@ -1409,9 +1421,7 @@ export function AppCreatorTab({
                 notebooklmImproving={notebooklmImproving}
                 notebooklmAvailable={notebooklmStatus?.authenticated ?? false}
                 loading={creatorLoading}
-                loadingMode={
-                  creatorLoadingMode === "idle" ? "idle" : creatorLoadingMode
-                }
+                loadingMode={creatorLoadingMode}
                 onNarrativeChange={(value) => {
                   setNarrationDraft(value);
                   if (narrationTaggedDraft) setNarrationTaggedDraft("");
@@ -1739,9 +1749,13 @@ export function AppCreatorTab({
                   !timelineAssets ||
                   !isWhisperTimelineReady(wordTranscripts, status)
                 }
-                onClick={() => {
-                  void handleSaveConfig();
-                  setCreatorStep(5);
+                onClick={async () => {
+                  try {
+                    await handleSaveConfig();
+                    setCreatorStep(5);
+                  } catch {
+                    // O salvamento já exibe o erro; permaneça no passo atual.
+                  }
                 }}
                 className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg"
                 title="Salva a timeline e avança — confirme que cada cena tem mídia e segundos da voz"
