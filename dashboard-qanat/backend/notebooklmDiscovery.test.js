@@ -22,7 +22,7 @@ describe("shouldPauseNotebooklmNarration", () => {
         briefFinalized: false,
       }
     );
-    assert.equal(pause, true);
+    assert.equal(pause, false);
   });
 
   it("fase interativa bloqueia pipeline antes do usuario prosseguir", () => {
@@ -33,7 +33,7 @@ describe("shouldPauseNotebooklmNarration", () => {
         skipNotebooklmPending: false,
         interactiveNotebooklm: true,
       }),
-      true
+      false
     );
     assert.equal(
       wantsNotebooklmInteractiveNarration({

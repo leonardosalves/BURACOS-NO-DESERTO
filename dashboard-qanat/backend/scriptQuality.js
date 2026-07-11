@@ -1,5 +1,36 @@
 /** Regras e pós-processamento para roteiros naturais, coerentes e com mensagem clara. */
 
+import fs from "fs";
+import path from "path";
+
+function loadNarracaoProGuidelines() {
+  try {
+    const filePath = path.join(process.cwd(), ".agents", "NARRACAOPRO.md");
+    if (fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath, "utf8");
+    }
+  } catch (e) {
+    console.warn("Aviso ao carregar NARRACAOPRO.md:", e.message);
+  }
+  return "";
+}
+
+function loadComousarAnarracaoProGuidelines() {
+  try {
+    const filePath = path.join(
+      process.cwd(),
+      ".agents",
+      "COMOUSARANARRACAOPRO.md"
+    );
+    if (fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath, "utf8");
+    }
+  } catch (e) {
+    console.warn("Aviso ao carregar COMOUSARANARRACAOPRO.md:", e.message);
+  }
+  return "";
+}
+
 import { resolveStockSearchQuery } from "./stockSearchQuery.js";
 import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
 import { buildTitleCraftRules } from "./titleGenerator.js";
@@ -1298,6 +1329,52 @@ BLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)`;
   return header;
 }
 
+export function buildNarracaoProInputsBlock({
+  niche,
+  format,
+  idea = {},
+  listTopic = "",
+}) {
+  const tema = String(idea.title || listTopic || niche || "").trim();
+  const nicho = String(niche || "").trim();
+  const formato = format === "SHORTS" ? "SHORTS" : "LONGO";
+  const duracao =
+    format === "SHORTS"
+      ? "40 a 60 segundos"
+      : "10 a 20 minutos (1500 a 3000 palavras)";
+  const publico = String(
+    idea.target_audience ||
+      "Pessoas interessadas em documentários, curiosidades e storytelling envolvente."
+  ).trim();
+  const objetivo = String(
+    idea.purpose ||
+      idea.objective ||
+      (format === "SHORTS"
+        ? "Gerar retenção extrema e engajamento rápido."
+        : "Contar uma narrativa aprofundada, instrutiva e surpreendente.")
+  ).trim();
+  const tom = String(
+    idea.tone ||
+      (format === "SHORTS"
+        ? "Dramático, dinâmico e intrigante"
+        : "Documental cinematográfico e envolvente")
+  ).trim();
+  const dataAtual = new Date().toLocaleDateString("pt-BR");
+
+  return `### ENTRADAS PARA A GERAÇÃO (DIRETRIZES NARRACAOPRO)
+
+TEMA DO VÍDEO: ${tema}
+NICHO DO CANAL: ${nicho}
+FORMATO: ${formato}
+DURAÇÃO ESTIMADA: ${duracao}
+PÚBLICO-ALVO: ${publico}
+OBJETIVO DO VÍDEO: ${objetivo}
+TOM DESEJADO: ${tom}
+CONTEXTO DO CANAL: Canal focado em conteúdo audiovisual de alto impacto para o nicho ${nicho}.
+DATA DE REFERÊNCIA: ${dataAtual}
+IDIOMA DA SAÍDA: português brasileiro (PT-BR)`;
+}
+
 export const SHORTS_MIN_VIDEO_SCENES = 3;
 export const SHORTS_VIDEO_SCENE_TYPE = "vídeo IA (max 10s)";
 
@@ -1813,15 +1890,33 @@ export function buildNarrationOnlyPrompt({
   webResearchContext = "",
   cinematicNarrationRules = "",
 }) {
+  const guidelines = loadNarracaoProGuidelines();
+  const comousar = loadComousarAnarracaoProGuidelines();
+
+  let guidelinesBlock = "";
+  if (guidelines) {
+    guidelinesBlock += `\n[DIRETRIZES DE ROTEIRO E NARRAÇÃO OBRIGATÓRIAS (NARRACAOPRO.md)]:\n${guidelines}\n`;
+  }
+  if (comousar) {
+    guidelinesBlock += `\n[INSTRUÇÕES DE EXECUÇÃO E CURADORIA DA PESQUISA (COMOUSARANARRACAOPRO.md)]:\n${comousar}\n`;
+  }
+
   const ideaHeader = buildIdeaContextHeader({
     niche,
     format,
     idea,
     isListicle,
     listicleRank,
-    listicleTopic,
+    listTopic: listicleTopic,
     rankOrder,
-    listicleBlockCount,
+    blockCount: listicleBlockCount,
+  });
+
+  const inputsBlock = buildNarracaoProInputsBlock({
+    niche,
+    format,
+    idea,
+    listTopic: listicleTopic,
   });
 
   const userBlockCount =
@@ -1844,6 +1939,9 @@ export function buildNarrationOnlyPrompt({
   return `Você é o "Lumiera Script Master" (Roteirista Profissional para YouTube).
 
 ${ideaHeader}
+
+${inputsBlock}
+
 ${nlmBlock}${webResearchContext}
 
 FASE 1 — APENAS NARRAÇÃO (o usuário revisará e aprovará antes dos blocos visuais):
@@ -1867,6 +1965,7 @@ ${
 ${format === "SHORTS" && !isListicle ? VIRAL_SHORT_FORM_REINFORCEMENT : ""}
 
 ${cinematicNarrationRules}
+${guidelinesBlock}
 
 REGRAS DESTA FASE:
 - HUMANIZE: escreva como narração FALADA — alguém contando ao vivo para um amigo curioso. Frases que soam bem em voz alta.
@@ -2070,6 +2169,17 @@ ${isListicle ? `10. "listicle" e 11. "list_items" (${listicleRank} itens)` : ""}
 
 /** Roteiro completo em uma fase (narração + visual_prompts + technical_config). */
 export function buildCreatorFullScriptPrompt(ctx = {}) {
+  const guidelines = loadNarracaoProGuidelines();
+  const comousar = loadComousarAnarracaoProGuidelines();
+
+  let guidelinesBlock = "";
+  if (guidelines) {
+    guidelinesBlock += `\n[DIRETRIZES DE ROTEIRO E NARRAÇÃO OBRIGATÓRIAS (NARRACAOPRO.md)]:\n${guidelines}\n`;
+  }
+  if (comousar) {
+    guidelinesBlock += `\n[INSTRUÇÕES DE EXECUÇÃO E CURADORIA DA PESQUISA (COMOUSARANARRACAOPRO.md)]:\n${comousar}\n`;
+  }
+
   const {
     niche,
     format,
@@ -2092,9 +2202,16 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
     idea,
     isListicle,
     listicleRank,
-    listicleTopic,
+    listTopic: listicleTopic,
     rankOrder,
-    listicleBlockCount,
+    blockCount: listicleBlockCount,
+  });
+
+  const inputsBlock = buildNarracaoProInputsBlock({
+    niche,
+    format,
+    idea,
+    listTopic: listicleTopic,
   });
 
   let customAddendum = "";
@@ -2157,7 +2274,7 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
 
   const visualTypeMix =
     format === "SHORTS"
-      ? `- SHORTS: mínimo ${SHORTS_MIN_VIDEO_SCENES} cenas com type "${SHORTS_VIDEO_SCENE_TYPE}" — gancho (cena 1), virada (meio) e payoff (final) devem ter movimento ativo. Distribua os vídeos ao longo do Short; não concentre todos no fim.
+      ? `- SHORTS: mínimo ${SHORTS_MIN_VIDEO_SCENES} cenas com type "${SHORTS_VIDEO_SCENE_TYPE}" — gancho (cena 1), virada (meio) e payoff (final) devem ter movimento active. Distribua os vídeos ao longo do Short; não concentre todos no fim.
 - SHORTS: demais cenas = "imagem IA 2k" (photorealistic 2k, Ken Burns).`
       : `- 80-90% devem ser IMAGEM IA 2K (photorealistic 2k resolution, cinematic, para usar com efeito Ken Burns zoom lento).
 - 10-20% devem ser VÍDEO IA (máximo estrito de 10 segundos, apenas para movimento ativo: água, fogo, multidão, câmera em movimento).`;
@@ -2183,6 +2300,9 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
   return `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
 
 ${ideaHeader}${customAddendum}
+
+${inputsBlock}
+
 ${notebooklmContext}
 
 SUA MISSÃO PRINCIPAL:
@@ -2198,6 +2318,7 @@ ${titleRules}
 ${cinemaRules}
 
 ${moodPrompt}
+${guidelinesBlock}
 
 Reforco especifico para montagem do roteiro:
 
