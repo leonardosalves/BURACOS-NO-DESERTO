@@ -570,7 +570,7 @@ export function syncTimelineFromChunkPlan({
 
   for (const [blockNum, blockChunks] of byBlock) {
     const blockKey = String(blockNum);
-    const assets = [...(out[blockKey] || [])];
+    let assets = [...(out[blockKey] || [])];
     const sortedRaw = [...blockChunks].sort(
       (a, b) =>
         Number(a.start_s) - Number(b.start_s) ||
@@ -595,6 +595,17 @@ export function syncTimelineFromChunkPlan({
       }
       return [...merged, chunk];
     }, []);
+
+    // Após compactar resíduos, descarte apenas placeholders excedentes. Assets
+    // reais e slots bloqueados do usuário nunca são removidos automaticamente.
+    if (assets.length > sorted.length) {
+      assets = assets.filter(
+        (asset, index) =>
+          index < sorted.length ||
+          Boolean(String(asset?.asset || "").trim()) ||
+          asset?.user_locked === true
+      );
+    }
 
     while (assets.length < sorted.length) {
       assets.push({ asset: "", type: "image" });
