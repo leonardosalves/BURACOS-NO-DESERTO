@@ -691,7 +691,7 @@ export default function App() {
     savedCreatorState.narrationProjectName || ""
   );
   const [useNotebooklm, setUseNotebooklm] = useState<boolean>(
-    savedCreatorState.useNotebooklm !== false
+    savedCreatorState.useNotebooklm === true
   );
   const [notebooklmDeep, setNotebooklmDeep] = useState<boolean>(
     savedCreatorState.notebooklmDeep === true
@@ -7920,7 +7920,7 @@ export default function App() {
       setSelectedListicleIdeaIndex(-1);
       setListicleSearchNiche("");
       setIdeasSearchNiche("");
-      setUseNotebooklm(true);
+      setUseNotebooklm(false);
       setUseDeepResearch(true);
       setUploadedScenes({});
       setExpandedBlocks({ 1: true });
@@ -8502,7 +8502,7 @@ export default function App() {
     const briefReady =
       Boolean(notebooklmBrief?.checklist?.editor_respondeu) &&
       !notebooklmSession?.awaitingUser;
-    if (nlmPending || nlmReadyToProceed || briefReady) {
+    if (useNotebooklm && (nlmPending || nlmReadyToProceed || briefReady)) {
       toast("Prosseguindo com o material do NotebookLM — gerando narração…", {
         icon: "✨",
         duration: 6000,
