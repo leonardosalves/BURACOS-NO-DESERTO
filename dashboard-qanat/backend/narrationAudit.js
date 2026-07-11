@@ -32,3 +32,12 @@ export function appendNarrationAuditEvent(projDir, event = {}) {
   fs.renameSync(temp, file);
   return entry;
 }
+
+export function latestNarrationReviews(events = []) {
+  const reviews = {};
+  for (const event of events) {
+    if (event.type === "review" && event.chunk_id)
+      reviews[event.chunk_id] = event;
+  }
+  return reviews;
+}
