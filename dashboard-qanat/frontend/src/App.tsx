@@ -3514,6 +3514,22 @@ export default function App() {
   }, [activeTab]);
 
   useEffect(() => {
+    if (activeTab !== "creator") return;
+    const refreshAfterExternalLogin = () => {
+      if (document.visibilityState === "visible") fetchNotebooklmStatus();
+    };
+    window.addEventListener("focus", refreshAfterExternalLogin);
+    document.addEventListener("visibilitychange", refreshAfterExternalLogin);
+    return () => {
+      window.removeEventListener("focus", refreshAfterExternalLogin);
+      document.removeEventListener(
+        "visibilitychange",
+        refreshAfterExternalLogin
+      );
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
     if (activeTab === "scene-timing") {
       setTimelineDataRevision((r) => r + 1);
     }
