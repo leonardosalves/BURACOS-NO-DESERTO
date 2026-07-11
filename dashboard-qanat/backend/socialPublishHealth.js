@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { spawnSync } from "child_process";
 import { getInstagramConnectionStatus } from "./instagramOAuth.js";
+import { buildPythonSpawnEnv } from "./pythonEnv.js";
 
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".webm", ".avi", ".mkv"]);
 
@@ -15,15 +16,18 @@ function commandWorks(command, args = ["-version"]) {
       ? [command, `${command}.cmd`, `${command}.exe`]
       : [command];
 
+  const spawnEnv = buildPythonSpawnEnv();
+
   for (const candidate of candidates) {
     const result = spawnSync(candidate, args, {
       encoding: "utf8",
       windowsHide: true,
+      env: spawnEnv,
     });
     if (result.error?.code === "ENOENT") continue;
     const output =
       (result.stdout || result.stderr || "").trim().split(/\r?\n/)[0] || "";
-    return { ok: result.status === 0, output };
+    return { ok: result.status === 0 || result.status === null, output };
   }
   return { ok: false, output: "" };
 }
