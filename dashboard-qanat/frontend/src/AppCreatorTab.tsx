@@ -2455,7 +2455,8 @@ export function AppCreatorTab({
                                           blockNum,
                                           localIdx,
                                           status,
-                                          blockPrompts
+                                          blockPrompts,
+                                          generatedScriptData?.narration_chunk_plan
                                         );
                                       const durationFromWhisper =
                                         sceneDurationSeconds != null;
