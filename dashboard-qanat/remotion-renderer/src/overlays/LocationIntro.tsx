@@ -4,13 +4,13 @@ import {
   Img,
   interpolate,
   staticFile,
-  OffthreadVideo,
   useCurrentFrame,
   useVideoConfig,
   Easing,
   delayRender,
   continueRender,
 } from "remotion";
+import { Video } from "@remotion/media";
 import {
   boundaryToSvgPaths,
   estimatePathLength,
@@ -472,7 +472,7 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   const mapContent = () => {
     if (useBlender && flyoverSrc) {
       return (
-        <OffthreadVideo
+        <Video
           src={flyoverSrc}
           muted
           volume={0}
