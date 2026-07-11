@@ -3634,12 +3634,8 @@ export default function App() {
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
-        if (data?.session) {
-          setNotebooklmSession(data.session as NotebooklmSession);
-        }
-        if (data?.brief) {
-          setNotebooklmBrief(data.brief as NotebooklmBriefInfo);
-        }
+        setNotebooklmSession((data?.session as NotebooklmSession) || null);
+        setNotebooklmBrief((data?.brief as NotebooklmBriefInfo) || null);
       })
       .catch(() => {});
     void fetchNotebooklmBrief();
