@@ -16743,6 +16743,9 @@ app.post(
     ).trim();
     const progressJobId = normalizeJobId(req.body?.progress_job_id);
     const report = createProgressReporter(progressJobId);
+    const sendLog = (text) => {
+      report("running", text);
+    };
     const phaseTitle =
       scriptPhase === "narration" ? "Narração" : "Roteiro completo";
     report("prepare", `${phaseTitle}: validando projeto…`, 4);
