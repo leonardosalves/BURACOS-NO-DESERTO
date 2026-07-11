@@ -38,6 +38,7 @@ import {
   buildFallbackYoutubeMetadata,
   normalizeMetadataMarkdown,
   parseYoutubeMetadataMarkdown,
+  assessMetadataFidelity,
   resolveYoutubeMetadataContext,
   ensureThumbnailVariants,
   YOUTUBE_METADATA_PIPELINE_VERSION,
@@ -11858,6 +11859,7 @@ function reprocessYoutubeMetadataCache(cache = {}, projDir) {
   const format = cache.format === "SHORT" ? "SHORT" : "LONG";
   const facts = extractTitleFacts({ transcript, storyboard, config });
   parsed = applyTitleQualityToParsed(parsed, { format, facts });
+  parsed.fidelity = assessMetadataFidelity({ parsed, transcript });
 
   return {
     ...cache,
@@ -11919,6 +11921,8 @@ async function enhanceYoutubeTitlesMetadata(
       "[YouTube Metadata] Títulos com score OK — refino IA ignorado."
     );
   }
+
+  parsed.fidelity = assessMetadataFidelity({ parsed, transcript });
 
   return parsed;
 }

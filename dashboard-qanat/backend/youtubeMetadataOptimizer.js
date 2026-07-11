@@ -20,7 +20,124 @@ import {
 } from "./titleGenerator.js";
 import { compressTranscriptForPrompt } from "./lumieraContextCompress.js";
 
-export const YOUTUBE_METADATA_PIPELINE_VERSION = 4;
+export const YOUTUBE_METADATA_PIPELINE_VERSION = 5;
+
+const METADATA_STOPWORDS = new Set([
+  "a",
+  "ao",
+  "aos",
+  "as",
+  "com",
+  "como",
+  "da",
+  "das",
+  "de",
+  "do",
+  "dos",
+  "e",
+  "em",
+  "essa",
+  "esse",
+  "esta",
+  "este",
+  "eu",
+  "na",
+  "nas",
+  "no",
+  "nos",
+  "o",
+  "os",
+  "ou",
+  "para",
+  "por",
+  "que",
+  "se",
+  "sem",
+  "sobre",
+  "um",
+  "uma",
+  "video",
+  "videos",
+  "youtube",
+  "canal",
+  "short",
+  "shorts",
+  "hoje",
+  "agora",
+  "incrivel",
+  "incriveis",
+  "viral",
+  "viralizar",
+  "curiosidade",
+  "curiosidades",
+]);
+
+function normalizeMetadataTerm(value = "") {
+  return String(value)
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/^#/, "")
+    .replace(/(?:es|s)$/i, "")
+    .trim();
+}
+
+function extractMetadataTerms(value = "") {
+  return Array.from(
+    new Set(
+      (String(value).match(/[\p{L}\p{N}]{3,}/gu) || [])
+        .map(normalizeMetadataTerm)
+        .filter((term) => term && !METADATA_STOPWORDS.has(term))
+    )
+  );
+}
+
+/**
+ * Checks whether the discoverability terms promised by metadata are grounded in
+ * the project's narration. It is intentionally advisory: a creative title can
+ * still be used, but unsupported terms are never silently treated as facts.
+ */
+export function assessMetadataFidelity({ parsed = {}, transcript = "" } = {}) {
+  const sourceTerms = new Set(extractMetadataTerms(transcript));
+  const titleTerms = extractMetadataTerms(
+    (parsed.titles || []).map((title) => title?.text || "").join(" ")
+  );
+  const tagTerms = extractMetadataTerms(
+    `${parsed.tags || ""} ${parsed.hashtags || ""}`
+  );
+  const promisedTerms = Array.from(new Set([...titleTerms, ...tagTerms]));
+  const unsupportedTerms = promisedTerms.filter(
+    (term) => !sourceTerms.has(term)
+  );
+  const supportedTerms = promisedTerms.length - unsupportedTerms.length;
+  const coverage = promisedTerms.length
+    ? Math.round((supportedTerms / promisedTerms.length) * 100)
+    : 100;
+  const warnings = [
+    ...(Array.isArray(parsed?.fidelity?.warnings)
+      ? parsed.fidelity.warnings
+      : []),
+    ...(unsupportedTerms.length >= 3
+      ? [
+          `Confira estes termos sem evidência direta no roteiro: ${unsupportedTerms
+            .slice(0, 6)
+            .join(", ")}.`,
+        ]
+      : []),
+  ];
+
+  return {
+    ...(parsed.fidelity || {}),
+    ok: warnings.length === 0,
+    warnings: Array.from(new Set(warnings)),
+    grounding: {
+      coverage,
+      supportedTerms,
+      totalTerms: promisedTerms.length,
+      unsupportedTerms: unsupportedTerms.slice(0, 12),
+    },
+  };
+}
 
 const LONG_BLOCK_NAMES = [
   "Abertura",
@@ -1092,6 +1209,17 @@ export function parseYoutubeMetadataMarkdown(text = "") {
       ) || [];
   const scoredTitles = titles.map((title) => {
     const words = title.text.split(/\s+/).filter(Boolean);
+    const scoreReasons = [];
+    const scoreWarnings = [];
+    if (/[0-9]/.test(title.text)) scoreReasons.push("dado concreto");
+    if (/[?:!]/.test(title.text)) scoreReasons.push("gancho de curiosidade");
+    if (words.length >= 4 && words.length <= 11) {
+      scoreReasons.push("leitura rápida");
+    } else {
+      scoreWarnings.push("comprimento pouco ideal para leitura rápida");
+    }
+    if (/#/.test(title.text)) scoreWarnings.push("hashtag no título");
+    if (title.text.length > 65) scoreWarnings.push("título longo");
     const score = Math.max(
       0,
       Math.min(
@@ -1104,7 +1232,7 @@ export function parseYoutubeMetadataMarkdown(text = "") {
           (title.text.length > 65 ? 12 : 0)
       )
     );
-    return { ...title, score };
+    return { ...title, score, scoreReasons, scoreWarnings };
   });
 
   return {
