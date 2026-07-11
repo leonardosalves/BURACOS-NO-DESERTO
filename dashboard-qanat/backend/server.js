@@ -959,6 +959,26 @@ if (fs.existsSync(LOTTIE_ASSETS_DIR)) {
   );
 }
 
+// Serve Remotion public projects directory (for dashboard preview player and static assets)
+app.use(
+  "/projects",
+  (req, res, next) => {
+    const remotionPublicProjectsDir = path.join(
+      REMOTION_PUBLIC_DIR,
+      "projects"
+    );
+    if (!fs.existsSync(remotionPublicProjectsDir)) {
+      fs.mkdirSync(remotionPublicProjectsDir, { recursive: true });
+    }
+    next();
+  },
+  express.static(path.join(REMOTION_PUBLIC_DIR, "projects"), {
+    maxAge: "1d",
+    acceptRanges: true,
+    fallthrough: true,
+  })
+);
+
 // Body parsers moved to top of file to allow early routes to access req.body
 
 // Cache de resolução de projetos — evita readdirSync em cada request de mídia
