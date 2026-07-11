@@ -39,6 +39,7 @@ import {
   normalizeMetadataMarkdown,
   parseYoutubeMetadataMarkdown,
   assessMetadataFidelity,
+  buildPlatformMetadataPackages,
   resolveYoutubeMetadataContext,
   ensureThumbnailVariants,
   YOUTUBE_METADATA_PIPELINE_VERSION,
@@ -11860,6 +11861,7 @@ function reprocessYoutubeMetadataCache(cache = {}, projDir) {
   const facts = extractTitleFacts({ transcript, storyboard, config });
   parsed = applyTitleQualityToParsed(parsed, { format, facts });
   parsed.fidelity = assessMetadataFidelity({ parsed, transcript });
+  parsed.platformPackages = buildPlatformMetadataPackages(parsed);
 
   return {
     ...cache,
@@ -11923,6 +11925,7 @@ async function enhanceYoutubeTitlesMetadata(
   }
 
   parsed.fidelity = assessMetadataFidelity({ parsed, transcript });
+  parsed.platformPackages = buildPlatformMetadataPackages(parsed);
 
   return parsed;
 }

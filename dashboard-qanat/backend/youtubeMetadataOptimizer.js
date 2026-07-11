@@ -372,8 +372,8 @@ REGRAS DE TÍTULO (${maxChars} chars cada):
 - Título #1 RECOMENDADO: incluir "Top ${listicleCtx.rankCount}" ou o número + tema do ranking
 - Máximo 2 dos 5 títulos podem citar 1 item — sempre com o conceito do ranking junto
 - Ângulos: curiosidade do conjunto, "você usa todo dia", origem bizarra/absurda, cliffhanger do #1
-- Variedade Shorts: pelo menos 2 títulos com hashtag (#Shorts + tema) e 2 com 1 emoji (🤯 😳 🔥)
-- Com hashtag/emoji o limite sobe para 55 chars — frase sempre COMPLETA, nunca truncada
+- Variedade Shorts: nenhum título leva hashtag; no máximo 1 emoji, somente quando reforçar o sentido.
+- Frase sempre COMPLETA, nunca truncada. O limite permanece ${maxChars} caracteres.
 
 DESCRIÇÃO (listicle):
 - Linha 1: Top ${listicleCtx.rankCount} + tema + gancho
@@ -1133,6 +1133,69 @@ function looksLikeLumieraPromptInline(text) {
   );
 }
 
+function collectSpecificHashtags(value = "", { includeShorts = false } = {}) {
+  const generic = new Set(["shorts", "tecnologia", "curiosidades", "viral"]);
+  const seen = new Set();
+  return (String(value).match(/#[\p{L}\p{N}_]+/gu) || [])
+    .map((tag) => tag.trim())
+    .filter((tag) => {
+      const key = normalizeMetadataTerm(tag);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return includeShorts
+        ? key === "short" || !generic.has(key)
+        : !generic.has(key);
+    });
+}
+
+/** Builds ready-to-paste copy for each vertical platform without blindly
+ * carrying YouTube's title or generic hashtag set into another feed. */
+export function buildPlatformMetadataPackages(parsed = {}) {
+  const title = String(
+    parsed.recommendedTitle || parsed.titles?.[0]?.text || ""
+  )
+    .replace(/#[\p{L}\p{N}_]+/gu, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  const description = String(parsed.description || "").trim();
+  const specificTags = collectSpecificHashtags(parsed.hashtags);
+  const youtubeTags = collectSpecificHashtags(parsed.hashtags, {
+    includeShorts: true,
+  });
+  const captionBase = description
+    .replace(/#[\p{L}\p{N}_]+/gu, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  const compactCaption = (limit) =>
+    `${title}${captionBase ? `\n\n${captionBase}` : ""}`.slice(0, limit).trim();
+  const withTags = (caption, tags) =>
+    [caption, tags.slice(0, 4).join(" ")].filter(Boolean).join("\n\n");
+
+  return {
+    youtube: {
+      title,
+      description,
+      hashtags: youtubeTags.slice(0, 4).join(" "),
+      tags: String(parsed.tags || "").trim(),
+    },
+    tiktok: {
+      caption: withTags(compactCaption(300), specificTags),
+      hashtags: specificTags.slice(0, 4).join(" "),
+      note: "Legenda direta para retenção; sem #Shorts e sem hashtags genéricas.",
+    },
+    instagram: {
+      caption: withTags(compactCaption(500), specificTags),
+      hashtags: specificTags.slice(0, 4).join(" "),
+      note: "Reel com primeira linha forte e hashtags específicas do assunto.",
+    },
+    kwai: {
+      caption: withTags(compactCaption(220), specificTags),
+      hashtags: specificTags.slice(0, 3).join(" "),
+      note: "Legenda curta, concreta e própria para descoberta no feed.",
+    },
+  };
+}
+
 export function parseYoutubeMetadataMarkdown(text = "") {
   const normalized = normalizeMetadataMarkdown(text);
   const sections = {};
@@ -1235,7 +1298,7 @@ export function parseYoutubeMetadataMarkdown(text = "") {
     return { ...title, score, scoreReasons, scoreWarnings };
   });
 
-  return {
+  const parsed = {
     titles: scoredTitles,
     description: sections.DESCRICAO || "",
     tags: sections.TAGS || "",
@@ -1262,6 +1325,8 @@ export function parseYoutubeMetadataMarkdown(text = "") {
       ],
     },
   };
+  parsed.platformPackages = buildPlatformMetadataPackages(parsed);
+  return parsed;
 }
 
 export function resolveYoutubeMetadataContext({
