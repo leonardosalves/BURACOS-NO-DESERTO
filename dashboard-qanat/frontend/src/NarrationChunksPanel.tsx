@@ -85,6 +85,10 @@ type Props = {
   onPlanChange?: (plan: NarrationChunkPlan) => void;
   onModeChange?: (mode: "chunked" | "master") => void;
   onUpdated?: () => void;
+  onReadinessChange?: (readiness: {
+    ready: boolean;
+    blockers: string[];
+  }) => void;
 };
 
 const ENGINE_LABELS: Record<string, string> = {
@@ -106,6 +110,7 @@ export function NarrationChunksPanel({
   onPlanChange,
   onModeChange,
   onUpdated,
+  onReadinessChange,
 }: Props) {
   const [localPlan, setLocalPlan] = useState<NarrationChunkPlan | null>(
     externalPlan || null
@@ -569,6 +574,26 @@ export function NarrationChunksPanel({
 
   const chunks = localPlan?.chunks || [];
   const isChunked = narrationMode === "chunked";
+  const readiness = useMemo(() => {
+    if (!isChunked) return { ready: true, blockers: [] as string[] };
+    if (!chunks.length)
+      return { ready: false, blockers: ["Planeje os trechos de narração."] };
+    const blockers: string[] = [];
+    for (const chunk of chunks) {
+      if (chunk.status !== "generated")
+        blockers.push(`${chunk.id}: áudio ${chunk.status || "pendente"}`);
+      const decision = auditReviews[chunk.id]?.decision;
+      if (decision !== "approved")
+        blockers.push(
+          `${chunk.id}: ${decision === "rejected" ? "rejeitado" : decision === "needs_fix" ? "correção solicitada" : "aguardando aprovação"}`
+        );
+    }
+    return { ready: blockers.length === 0, blockers };
+  }, [isChunked, chunks, auditReviews]);
+
+  useEffect(() => {
+    onReadinessChange?.(readiness);
+  }, [onReadinessChange, readiness]);
 
   return (
     <div className="space-y-4 border border-zinc-800 rounded-2xl p-4 bg-zinc-950/40">
@@ -731,6 +756,19 @@ export function NarrationChunksPanel({
           )}
         </div>
       </details>
+
+      {isChunked && !readiness.ready && (
+        <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-[10px] text-amber-100">
+          <p className="font-bold uppercase tracking-wider">
+            Pendências antes de avançar
+          </p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            {readiness.blockers.slice(0, 12).map((blocker) => (
+              <li key={blocker}>{blocker}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <button

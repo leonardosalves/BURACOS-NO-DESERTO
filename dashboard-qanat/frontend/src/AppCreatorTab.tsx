@@ -339,6 +339,11 @@ export function AppCreatorTab({
   youtubeMetadata,
   youtubeMetadataParsed,
 }: AppCreatorTabProps) {
+  const [narrationWizardReadiness, setNarrationWizardReadiness] =
+    React.useState<{
+      ready: boolean;
+      blockers: string[];
+    }>({ ready: false, blockers: [] });
   return (
     <DashminPageLayout
       className="lumiera-fill-view overflow-hidden"
@@ -1484,6 +1489,7 @@ export function AppCreatorTab({
                   setUploadSuccess(true);
                   fetchData();
                 }}
+                onReadinessChange={setNarrationWizardReadiness}
               />
             )}
 
@@ -1618,11 +1624,21 @@ export function AppCreatorTab({
               </button>
 
               <button
-                disabled={!uploadSuccess && !status?.has_narration}
+                disabled={
+                  config?.narration_mode === "chunked"
+                    ? !narrationWizardReadiness.ready
+                    : !uploadSuccess && !status?.has_narration
+                }
 
                 onClick={() => setCreatorStep(3)}
 
                 className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg"
+                title={
+                  config?.narration_mode === "chunked" &&
+                  !narrationWizardReadiness.ready
+                    ? narrationWizardReadiness.blockers.join(" · ")
+                    : "Prosseguir para sincronização"
+                }
               >
                 <span>Prosseguir para Sincronização</span>
 
