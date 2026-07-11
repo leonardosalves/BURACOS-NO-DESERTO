@@ -5,6 +5,8 @@
 
 import fs from "fs";
 import path from "path";
+import { execSync } from "child_process";
+import { getFfmpegStatus } from "./pythonEnv.js";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
 import { STUDIO_FILENAME } from "./timelineStudioMigration.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
@@ -389,6 +391,33 @@ export function collectRelativeMediaPaths(value, paths = new Set()) {
   return paths;
 }
 
+function transcodeVideoForRemotion(source, dest) {
+  const ffmpegInfo = getFfmpegStatus();
+  const ffmpegBin = ffmpegInfo.binary || "ffmpeg";
+  const tempDest = dest + ".tmp.mp4";
+
+  // Flags recomendadas pela Remotion: libx264, pix_fmt yuv420p, GOP=1, sem B-frames
+  const cmd = `"${ffmpegBin}" -y -i "${source}" -c:v libx264 -pix_fmt yuv420p -profile:v high -level:v 4.0 -g 1 -bf 0 -crf 20 -c:a aac -b:a 128k -movflags +faststart "${tempDest}"`;
+
+  try {
+    execSync(cmd, { stdio: "ignore" });
+    if (fs.existsSync(tempDest)) {
+      if (fs.existsSync(dest)) fs.unlinkSync(dest);
+      fs.renameSync(tempDest, dest);
+      console.log(`[Remotion Transcode] Transcodificado com sucesso: ${dest}`);
+    } else {
+      throw new Error("Temporário não criado");
+    }
+  } catch (err) {
+    if (fs.existsSync(tempDest)) {
+      try {
+        fs.unlinkSync(tempDest);
+      } catch {}
+    }
+    throw err;
+  }
+}
+
 /** Espelha ASSETS/ do projeto em remotion-renderer/public/ (fallback para staticFile). */
 export function mirrorRelativeAssetsToRemotionPublic(
   relPaths,
@@ -405,7 +434,34 @@ export function mirrorRelativeAssetsToRemotionPublic(
     if (!fs.existsSync(source)) continue;
     const dest = path.join(remotionPublicDir, normalized);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.copyFileSync(source, dest);
+
+    const ext = path.extname(source).toLowerCase();
+    if (ext === ".mp4" || ext === ".mov" || ext === ".mkv" || ext === ".webm") {
+      try {
+        let needTranscode = true;
+        if (fs.existsSync(dest)) {
+          const mtimeSource = fs.statSync(source).mtimeMs;
+          const mtimeDest = fs.statSync(dest).mtimeMs;
+          if (mtimeDest >= mtimeSource) {
+            needTranscode = false;
+          }
+        }
+        if (needTranscode) {
+          console.log(
+            `[Remotion Transcode] Preparando codec compatível para ${normalized}...`
+          );
+          transcodeVideoForRemotion(source, dest);
+        }
+      } catch (err) {
+        console.warn(
+          `[Remotion Transcode] Falha ao transcodificar ${normalized}, copiando original:`,
+          err.message
+        );
+        fs.copyFileSync(source, dest);
+      }
+    } else {
+      fs.copyFileSync(source, dest);
+    }
     mirrored.push(normalized);
   }
   return mirrored;
