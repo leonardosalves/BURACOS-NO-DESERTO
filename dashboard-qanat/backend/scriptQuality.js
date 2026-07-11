@@ -2347,7 +2347,8 @@ Regras do Roteiro:
 3. Prenda a atenção nos primeiros 3 segundos.
 4. Use open loop, curiosidade progressiva, microcliffhangers e payoff final.
 5. Narração em português brasileiro: deve ser extremamente humana, fluida, natural, carismática e cheia de vida.
-6. Formato: "${format}"${isListicle ? ` — LISTICLE TOP ${listicleRank}` : ""}.
+6. Comentário Fixado (pinned_comment em strategy): Deve ser curto (1-2 frases), em português, focado em retenção ou engajamento orgânico. Use ou uma "Extensão de Contexto/Segundo Gancho" (fato inédito ou detalhe intrigante que complementa o vídeo) ou "Matador de Objeção" (defende a veracidade do conteúdo/fontes) ou "Pergunta com Stakes Reais" (escolha que divide opiniões de forma inteligente). Nunca use clichês como "Você sabia?", "O que achou?", "Prefere Sim ou Não?" ou baits de engajamento vazio.
+7. Formato: "${format}"${isListicle ? ` — LISTICLE TOP ${listicleRank}` : ""}.
    ${durationRule}
 
 ${buildVisualPromptsRules({ format, isListicle, listicleRank })}

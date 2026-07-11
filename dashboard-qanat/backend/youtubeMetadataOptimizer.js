@@ -423,9 +423,13 @@ ${buildTitleCraftRules("SHORT")}
 - Não use tags genéricas só para aumentar quantidade; tags têm impacto secundário.
 
 ## REGRAS PARA O COMENTÁRIO PINADO:
-- Pergunta de escolha rápida (ex: "Você já sabia disso? Sim / Não / Só metade")
-- Ou enquete implícita com 2-3 opções numeradas
-- Máximo 2 frases — comentários curtos geram mais respostas em Shorts
+- O comentário fixado deve ser extremamente curto, persuasivo e focado em estender a retenção ou instigar engajamento real e natural (sem usar bait genérico como "Gostou? Comente SIM").
+- Use um destes 3 padrões comprovados de alta performance:
+  1. SEGUNDO GANCHO / EXTENSÃO DE CONTEXTO: Responde à pergunta óbvia ou curiosidade que o espectador terá ao ver o vídeo, ou traz uma atualização/stakes do tema (ex: "Mesmo com o custo de $4B, o olho gigante chinês levou apenas 5 anos para provar que...").
+  2. MATADOR DE OBJEÇÃO: Elimina críticas óbvias sobre o assunto, fontes ou autenticidade (ex: "Antes que digam que é CGI: as imagens de satélite e dados de escala são públicos...").
+  3. GANCHO COM PERGUNTA DE STAKES REAIS (opinião forte): Uma pergunta inteligente com stakes reais que force o espectador a refletir e tomar um lado (ex: "Se você pudesse escolher: a China deve continuar expandindo o FAST ou focar na exploração espacial?").
+- Proibido usar "Você imaginava que...", "O que você achou?", "O que você prefere? Sim ou Não?" ou perguntas vazias de sim/não/talvez.
+- Máximo 2 frases.
 
 ${buildThumbnailAbRules("SHORT")}`;
 }
@@ -455,9 +459,13 @@ ${buildTitleCraftRules("LONG")}
 - Mix: alto volume + cauda longa + variações comuns de digitação
 
 ## REGRAS PARA O COMENTÁRIO PINADO:
-- Pergunta aberta que gera debate (não sim/não fechado)
-- Convite sutil para inscrição ou para assistir outro vídeo relacionado
-- 2-3 frases máximo
+- O comentário fixado deve ser extremamente curto, persuasivo e focado em estender a retenção ou instigar engajamento real e natural (sem usar bait genérico como "Gostou? Comente SIM").
+- Use um destes 3 padrões comprovados de alta performance:
+  1. SEGUNDO GANCHO / EXTENSÃO DE CONTEXTO: Responde à pergunta óbvia ou curiosidade que o espectador terá ao ver o vídeo, ou traz uma atualização/stakes do tema (ex: "Mesmo com o custo de $4B, o olho gigante chinês levou apenas 5 anos para provar que...").
+  2. MATADOR DE OBJEÇÃO: Elimina críticas óbvias sobre o assunto, fontes ou autenticidade (ex: "Antes que digam que é CGI: as imagens de satélite e dados de escala são públicos...").
+  3. GANCHO COM PERGUNTA DE STAKES REAIS (opinião forte): Uma pergunta inteligente com stakes reais que force o espectador a refletir e tomar um lado (ex: "Se você pudesse escolher: a China deve continuar expandindo o FAST ou focar na exploração espacial?").
+- Proibido usar "Você imaginava que...", "O que você achou?", "O que você prefere? Sim ou Não?" ou perguntas vazias de sim/não/talvez.
+- Máximo 2 frases.
 
 ## REGRAS PARA OS CAPÍTULOS:
 - Use os timestamps reais fornecidos
