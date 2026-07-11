@@ -1056,6 +1056,53 @@ function resolveProjectDirFromName(rawProjName) {
   return null;
 }
 
+function streamMediaWithRanges(req, res, filePath, mimeType) {
+  try {
+    const stat = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (start >= fileSize) {
+        res
+          .status(416)
+          .send(
+            "Requested range not satisfiable\n" + start + " >= " + fileSize
+          );
+        return;
+      }
+
+      const chunksize = end - start + 1;
+      const file = fs.createReadStream(filePath, { start, end });
+      const head = {
+        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": chunksize,
+        "Content-Type": mimeType,
+      };
+
+      res.writeHead(206, head);
+      file.pipe(res);
+    } else {
+      const head = {
+        "Content-Length": fileSize,
+        "Content-Type": mimeType,
+        "Accept-Ranges": "bytes",
+      };
+      res.writeHead(200, head);
+      fs.createReadStream(filePath).pipe(res);
+    }
+  } catch (e) {
+    if (!res.headersSent) {
+      res.status(500).send("Streaming error: " + e.message);
+    }
+  }
+}
+
 app.use("/api/projects-media", (req, res, next) => {
   const startTime = Date.now();
   const decodedUrl = decodeURIComponent(req.path);
@@ -1108,7 +1155,15 @@ app.use("/api/projects-media", (req, res, next) => {
         ".webp": "image/webp",
       };
       const mime = mediaTypes[ext];
-      if (mime) res.type(mime);
+      if (mime) {
+        if (mime.startsWith("video/") || mime.startsWith("audio/")) {
+          console.log(
+            `[Media Req] ${decodedUrl} - Streaming com Ranges (asset global): ${fullFilePath} em ${Date.now() - startTime}ms`
+          );
+          return streamMediaWithRanges(req, res, fullFilePath, mime);
+        }
+        res.type(mime);
+      }
       console.log(
         `[Media Req] ${decodedUrl} - Servindo asset global: ${fullFilePath} em ${Date.now() - startTime}ms`
       );
@@ -1166,7 +1221,15 @@ app.use("/api/projects-media", (req, res, next) => {
       ".ogg": "audio/ogg",
     };
     const mime = mediaTypes[ext];
-    if (mime) res.type(mime);
+    if (mime) {
+      if (mime.startsWith("video/") || mime.startsWith("audio/")) {
+        console.log(
+          `[Media Req] ${decodedUrl} - Streaming com Ranges (mídia de projeto): ${resolvedPath} em ${Date.now() - startTime}ms`
+        );
+        return streamMediaWithRanges(req, res, resolvedPath, mime);
+      }
+      res.type(mime);
+    }
     console.log(
       `[Media Req] ${decodedUrl} - Servindo mídia: ${resolvedPath} (resolução do projeto levou ${resolveTime}ms, check de arquivo levou ${fileCheckTime}ms, enviando arquivo em ${Date.now() - startTime}ms total)`
     );
