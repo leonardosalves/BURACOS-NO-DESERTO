@@ -7710,7 +7710,7 @@ function transcodeVideoForRemotion(source, dest) {
   const ffmpegInfo = getFfmpegStatus();
   const ffmpegBin = ffmpegInfo.binary || "ffmpeg";
   const tempDest = dest + ".tmp.mp4";
-  const cmd = `"${ffmpegBin}" -y -i "${source}" -c:v libx264 -pix_fmt yuv420p -profile:v high -level:v 4.0 -g 1 -bf 0 -crf 20 -c:a aac -b:a 128k -movflags +faststart "${tempDest}"`;
+  const cmd = `"${ffmpegBin}" -y -i "${source}" -r 30 -c:v libx264 -pix_fmt yuv420p -profile:v high -level:v 4.0 -g 1 -bf 0 -crf 20 -c:a aac -b:a 128k -movflags +faststart "${tempDest}"`;
 
   try {
     execSync(cmd, { stdio: "ignore", env: buildPythonSpawnEnv() });
