@@ -17836,31 +17836,42 @@ app.post(
           }
         }
       } else {
-        try {
-          const blockCount = listicleBlockCount;
-          const repairPrompt = buildHumanizeRepairPrompt({
-            format,
-            ideaTitle: idea.title,
-            rawScript: extractScriptSliceForRepair(parsedData),
-            blockCount,
-          });
-          const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
-            temperature: 0.55,
-            maxRetries: 2,
-            models: ["gemini-2.5-flash", "gemini-2.0-flash"],
-          });
-          const repaired = normalizeKeys(
-            await parseAiJsonResponse(repairText, apiKey, "Humanizacao roteiro")
-          );
-          parsedData = mergeHumanizedScript(parsedData, repaired, format);
+        const hasNarracaoPro = !!loadNarracaoProGuidelines();
+        if (hasNarracaoPro) {
           console.log(
-            "[Creator Script] Passagem de humanização/clareza aplicada."
+            "[NARRACAOPRO] Pulando humanização secundária no roteiro de passo único para preservar a narração original premium do Lumiera Script Master."
           );
-        } catch (repairErr) {
-          console.warn(
-            "[Creator Script] Humanização secundária falhou, usando rascunho:",
-            repairErr.message
-          );
+        } else {
+          try {
+            const blockCount = listicleBlockCount;
+            const repairPrompt = buildHumanizeRepairPrompt({
+              format,
+              ideaTitle: idea.title,
+              rawScript: extractScriptSliceForRepair(parsedData),
+              blockCount,
+            });
+            const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+              temperature: 0.55,
+              maxRetries: 2,
+              models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+            });
+            const repaired = normalizeKeys(
+              await parseAiJsonResponse(
+                repairText,
+                apiKey,
+                "Humanizacao roteiro"
+              )
+            );
+            parsedData = mergeHumanizedScript(parsedData, repaired, format);
+            console.log(
+              "[Creator Script] Passagem de humanização/clareza aplicada."
+            );
+          } catch (repairErr) {
+            console.warn(
+              "[Creator Script] Humanização secundária falhou, usando rascunho:",
+              repairErr.message
+            );
+          }
         }
       }
 
