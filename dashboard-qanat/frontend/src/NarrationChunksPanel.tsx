@@ -52,6 +52,11 @@ export type NarrationChunk = {
   duration_s?: number | null;
   start_s?: number | null;
   status?: string;
+  versions?: Array<{
+    file: string;
+    archived_at: string;
+    duration_s?: number | null;
+  }>;
 };
 
 export type NarrationChunkPlan = {
@@ -538,6 +543,27 @@ export function NarrationChunksPanel({
       setGenerating(false);
       setGeneratingChunkId(null);
       setTtsProgress(null);
+    }
+  };
+
+  const restoreChunkVersion = async (chunkId: string, file: string) => {
+    try {
+      const res = await fetch(
+        getProjectUrl("/api/narration-chunks/restore-version"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chunk_id: chunkId, file }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Falha ao restaurar versão.");
+      if (data.plan) updatePlan(data.plan);
+      toast("Versão anterior restaurada.");
+      void loadAudit();
+      onUpdated?.();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Falha ao restaurar versão.");
     }
   };
 
@@ -1157,6 +1183,41 @@ export function NarrationChunksPanel({
                       )}
                     </div>
                   </div>
+                  {(chunk.versions?.length ?? 0) > 0 && (
+                    <details className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-2 text-[9px]">
+                      <summary className="cursor-pointer font-bold text-zinc-400">
+                        Versões anteriores · {chunk.versions!.length}
+                      </summary>
+                      <div className="mt-2 space-y-2">
+                        {[...chunk.versions!].reverse().map((version) => (
+                          <div
+                            key={version.file}
+                            className="flex flex-wrap items-center gap-2 rounded bg-zinc-950 p-2"
+                          >
+                            <audio
+                              controls
+                              preload="none"
+                              src={getMediaUrl(version.file)}
+                              className="h-7 max-w-[230px]"
+                            />
+                            <span className="text-zinc-500">
+                              {new Date(version.archived_at).toLocaleString(
+                                "pt-BR"
+                              )}
+                            </span>
+                            <button
+                              onClick={() =>
+                                void restoreChunkVersion(chunk.id, version.file)
+                              }
+                              className="ml-auto rounded bg-cyan-500/15 px-2 py-1 text-cyan-300"
+                            >
+                              Restaurar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                   {chunk.pause_reason && (
                     <p className="text-[9px] text-zinc-600">
                       {chunk.pause_reason}

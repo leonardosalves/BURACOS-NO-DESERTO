@@ -1075,6 +1075,55 @@ export function registerWorkflowRoutes(app, deps) {
     }
   });
 
+  app.post("/api/narration-chunks/restore-version", (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const storyboardPath = path.join(projDir, "storyboard.json");
+      const configPath = path.join(projDir, "config_qanat.json");
+      const storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      const plan = storyboard.narration_chunk_plan;
+      const chunk = plan?.chunks?.find(
+        (item) => item.id === req.body?.chunk_id
+      );
+      if (!chunk)
+        return res.status(404).json({ error: "Trecho não encontrado." });
+      const version = (chunk.versions || []).find(
+        (item) => item.file === req.body?.file
+      );
+      if (!version)
+        return res.status(404).json({ error: "Versão não encontrada." });
+      const source = path.resolve(projDir, version.file);
+      const destination = path.resolve(projDir, chunk.audio_file);
+      const projectRoot = path.resolve(projDir) + path.sep;
+      if (
+        !source.startsWith(projectRoot) ||
+        !destination.startsWith(projectRoot) ||
+        !fs.existsSync(source)
+      ) {
+        return res.status(400).json({ error: "Arquivo da versão é inválido." });
+      }
+      fs.copyFileSync(source, destination);
+      chunk.duration_s = version.duration_s || chunk.duration_s;
+      chunk.voice = version.voice || chunk.voice;
+      chunk.generation_signature =
+        version.generation_signature || chunk.generation_signature;
+      chunk.status = "generated";
+      persistChunkPlanToProject(projDir, plan, config);
+      appendNarrationAuditEvent(projDir, {
+        type: "version_restore",
+        status: "restored",
+        chunk_id: chunk.id,
+        audio_file: version.file,
+      });
+      res.json({ success: true, plan });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ error: err.message || "Falha ao restaurar versão." });
+    }
+  });
+
   app.post("/api/tts/generate-narration", async (req, res) => {
     const projDir = getProjectDir(req);
     const {

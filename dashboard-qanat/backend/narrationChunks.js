@@ -258,6 +258,28 @@ export function chunkAudioRelativePath(chunkId) {
   return path.join(NARRATION_CHUNKS_DIR, `${safe}.mp3`).replace(/\\/g, "/");
 }
 
+export function archiveNarrationChunkAudio(projDir, chunk = {}) {
+  const activeRel = String(
+    chunk.audio_file || chunkAudioRelativePath(chunk.id)
+  ).replace(/\\/g, "/");
+  const activePath = path.join(projDir, activeRel);
+  if (!fs.existsSync(activePath)) return null;
+  const safeId = String(chunk.id || "chunk").replace(/[^\w.-]+/g, "_");
+  const versionRel = path
+    .join(NARRATION_CHUNKS_DIR, "versions", `${safeId}-${Date.now()}.mp3`)
+    .replace(/\\/g, "/");
+  const versionPath = path.join(projDir, versionRel);
+  fs.mkdirSync(path.dirname(versionPath), { recursive: true });
+  fs.copyFileSync(activePath, versionPath);
+  return {
+    file: versionRel,
+    archived_at: new Date().toISOString(),
+    duration_s: chunk.duration_s || null,
+    voice: chunk.voice || null,
+    generation_signature: chunk.generation_signature || null,
+  };
+}
+
 /** Trechos heurísticos a partir de visual_prompts + block_phrases. */
 export function buildHeuristicNarrationChunks({
   storyboard = {},
@@ -483,6 +505,7 @@ export function normalizeNarrationChunkPlan(
         generated_at: c.generated_at || null,
         failed_at: c.failed_at || null,
         error: c.error || null,
+        versions: Array.isArray(c.versions) ? c.versions : [],
         status: audioIsStale
           ? "stale"
           : c.status || (hasGeneratedAudio ? "generated" : "planned"),
@@ -1365,8 +1388,20 @@ export async function generateNarrationChunksTts(
       c.voice || {},
       normalizeVoiceRef(defaultVoice, plan.default_voice)
     );
+    const archivedVersion = archiveNarrationChunkAudio(projDir, c);
+    if (archivedVersion) {
+      updatedChunks[idx] = {
+        ...c,
+        versions: [...(c.versions || []), archivedVersion],
+      };
+    }
 
-    updatedChunks[idx] = { ...c, voice, status: "generating", error: null };
+    updatedChunks[idx] = {
+      ...updatedChunks[idx],
+      voice,
+      status: "generating",
+      error: null,
+    };
     await onChunkUpdate(
       normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {}),
       updatedChunks[idx]
@@ -1386,12 +1421,14 @@ export async function generateNarrationChunksTts(
       });
     } catch (err) {
       updatedChunks[idx] = {
-        ...c,
+        ...updatedChunks[idx],
         voice,
         status: "failed",
         error: err?.message || String(err),
         failed_at: new Date().toISOString(),
       };
+      if (archivedVersion)
+        fs.copyFileSync(path.join(projDir, archivedVersion.file), outPath);
       await onChunkUpdate(
         normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {}),
         updatedChunks[idx]
@@ -1402,7 +1439,7 @@ export async function generateNarrationChunksTts(
     const duration =
       Number(result.durationSeconds) || (await probeAudioDuration(outPath));
     updatedChunks[idx] = {
-      ...c,
+      ...updatedChunks[idx],
       voice,
       audio_file: rel,
       duration_s: Number(duration.toFixed(3)),
