@@ -431,6 +431,7 @@ import {
 } from "./narrationUpload.js";
 import {
   appendNarrationAuditEvent,
+  latestNarrationReviews,
   readNarrationAudit,
 } from "./narrationAudit.js";
 import { compareNarrationChunksWithWhisper } from "./narrationComparison.js";
@@ -15333,11 +15334,43 @@ app.get("/api/narration/audit", (req, res) => {
       storyboard.narration_chunk_plan || {},
       flattenWordTranscripts(transcripts)
     );
-    res.json({ ...audit, comparison });
+    res.json({
+      ...audit,
+      comparison,
+      reviews: latestNarrationReviews(audit.events),
+    });
   } catch (err) {
     res
       .status(500)
       .json({ error: err.message || "Falha ao carregar auditoria." });
+  }
+});
+
+app.post("/api/narration/audit/review", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const chunkId = String(req.body?.chunk_id || "").trim();
+    const decision = String(req.body?.decision || "").trim();
+    const note = String(req.body?.note || "").trim();
+    if (!chunkId) return res.status(400).json({ error: "Trecho obrigatório." });
+    if (!["approved", "rejected", "needs_fix"].includes(decision)) {
+      return res.status(400).json({ error: "Decisão de revisão inválida." });
+    }
+    if (decision !== "approved" && !note) {
+      return res
+        .status(400)
+        .json({ error: "Informe o motivo da rejeição ou correção." });
+    }
+    const event = appendNarrationAuditEvent(projDir, {
+      type: "review",
+      chunk_id: chunkId,
+      decision,
+      status: decision,
+      note: note || null,
+    });
+    res.json({ success: true, review: event });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Falha ao salvar revisão." });
   }
 });
 

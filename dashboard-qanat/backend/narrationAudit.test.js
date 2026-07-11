@@ -5,6 +5,7 @@ import os from "os";
 import path from "path";
 import {
   appendNarrationAuditEvent,
+  latestNarrationReviews,
   readNarrationAudit,
 } from "./narrationAudit.js";
 
@@ -25,4 +26,13 @@ test("narration audit appends immutable ordered events", () => {
   assert.equal(audit.events[1].status, "generated");
   assert.ok(audit.events.every((event) => event.id && event.at));
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("latest review selects newest decision without deleting history", () => {
+  const events = [
+    { type: "review", chunk_id: "c1", decision: "rejected" },
+    { type: "review", chunk_id: "c1", decision: "approved" },
+  ];
+  assert.equal(latestNarrationReviews(events).c1.decision, "approved");
+  assert.equal(events.length, 2);
 });

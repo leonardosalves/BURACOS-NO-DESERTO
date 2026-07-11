@@ -127,6 +127,9 @@ export function NarrationChunksPanel({
   const [playingChunkId, setPlayingChunkId] = useState<string | null>(null);
   const [auditEvents, setAuditEvents] = useState<any[]>([]);
   const [auditComparison, setAuditComparison] = useState<any[]>([]);
+  const [auditReviews, setAuditReviews] = useState<Record<string, any>>({});
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+  const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
   const chunkAudioRef = useRef<{ audio: HTMLAudioElement; key: string } | null>(
     null
   );
@@ -142,8 +145,40 @@ export function NarrationChunksPanel({
         Array.isArray(data.events) ? data.events.slice(-50).reverse() : []
       );
       setAuditComparison(Array.isArray(data.comparison) ? data.comparison : []);
+      setAuditReviews(
+        data.reviews && typeof data.reviews === "object" ? data.reviews : {}
+      );
     } catch {}
   }, [getProjectUrl]);
+
+  const saveReview = async (
+    chunkId: string,
+    decision: "approved" | "rejected" | "needs_fix"
+  ) => {
+    const note = String(reviewNotes[chunkId] || "").trim();
+    if (decision !== "approved" && !note) {
+      toast("Informe uma observação antes de rejeitar ou pedir correção.");
+      return;
+    }
+    setSavingReviewId(chunkId);
+    try {
+      const res = await fetch(getProjectUrl("/api/narration/audit/review"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chunk_id: chunkId, decision, note }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Falha ao salvar revisão.");
+      toast(
+        decision === "approved" ? "Trecho aprovado." : "Revisão registrada."
+      );
+      await loadAudit();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Falha ao salvar revisão.");
+    } finally {
+      setSavingReviewId(null);
+    }
+  };
 
   useEffect(() => {
     void loadAudit();
@@ -564,6 +599,50 @@ export function NarrationChunksPanel({
                       Inesperadas: {row.unexpected.join(", ")}
                     </p>
                   )}
+                  <textarea
+                    rows={2}
+                    value={
+                      reviewNotes[row.chunk_id] ??
+                      auditReviews[row.chunk_id]?.note ??
+                      ""
+                    }
+                    onChange={(e) =>
+                      setReviewNotes((prev) => ({
+                        ...prev,
+                        [row.chunk_id]: e.target.value,
+                      }))
+                    }
+                    placeholder="Observação do revisor..."
+                    className="mt-2 w-full rounded-md border border-zinc-700 bg-zinc-950 p-2 text-zinc-200 outline-none focus:border-gold-500"
+                  />
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <button
+                      disabled={savingReviewId === row.chunk_id}
+                      onClick={() => void saveReview(row.chunk_id, "approved")}
+                      className="rounded bg-emerald-500/15 px-2 py-1 text-emerald-300"
+                    >
+                      Aprovar
+                    </button>
+                    <button
+                      disabled={savingReviewId === row.chunk_id}
+                      onClick={() => void saveReview(row.chunk_id, "needs_fix")}
+                      className="rounded bg-amber-500/15 px-2 py-1 text-amber-300"
+                    >
+                      Pedir correção
+                    </button>
+                    <button
+                      disabled={savingReviewId === row.chunk_id}
+                      onClick={() => void saveReview(row.chunk_id, "rejected")}
+                      className="rounded bg-red-500/15 px-2 py-1 text-red-300"
+                    >
+                      Rejeitar
+                    </button>
+                    {auditReviews[row.chunk_id]?.decision && (
+                      <span className="ml-auto text-zinc-400">
+                        Última decisão: {auditReviews[row.chunk_id].decision}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
