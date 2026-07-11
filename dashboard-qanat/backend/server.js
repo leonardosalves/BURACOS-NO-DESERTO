@@ -433,6 +433,7 @@ import {
   appendNarrationAuditEvent,
   readNarrationAudit,
 } from "./narrationAudit.js";
+import { compareNarrationChunksWithWhisper } from "./narrationComparison.js";
 import { resolveCaptionRenderSettings } from "./captionConfig.js";
 import {
   computeOverlayDisplayDuration,
@@ -15324,7 +15325,15 @@ app.post("/api/upload-narration", (req, res) => {
 
 app.get("/api/narration/audit", (req, res) => {
   try {
-    res.json(readNarrationAudit(getProjectDir(req)));
+    const projDir = getProjectDir(req);
+    const audit = readNarrationAudit(projDir);
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const transcripts = readProjectJson(projDir, "word_transcripts.json", []);
+    const comparison = compareNarrationChunksWithWhisper(
+      storyboard.narration_chunk_plan || {},
+      flattenWordTranscripts(transcripts)
+    );
+    res.json({ ...audit, comparison });
   } catch (err) {
     res
       .status(500)
