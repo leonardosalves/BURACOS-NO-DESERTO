@@ -571,11 +571,30 @@ export function syncTimelineFromChunkPlan({
   for (const [blockNum, blockChunks] of byBlock) {
     const blockKey = String(blockNum);
     const assets = [...(out[blockKey] || [])];
-    const sorted = [...blockChunks].sort(
+    const sortedRaw = [...blockChunks].sort(
       (a, b) =>
         Number(a.start_s) - Number(b.start_s) ||
         String(a.scene_ref).localeCompare(String(b.scene_ref))
     );
+    // Um resíduo muito curto (ex.: a última palavra com 0,5s) não merece
+    // criar um segundo asset vazio; ele deve permanecer na cena anterior.
+    const sorted = sortedRaw.reduce((merged, chunk) => {
+      const duration = Number(chunk.end_s) - Number(chunk.start_s);
+      const previous = merged.at(-1);
+      if (previous && Number.isFinite(duration) && duration < 1.1) {
+        return [
+          ...merged.slice(0, -1),
+          {
+            ...previous,
+            end_s: chunk.end_s,
+            text: `${String(previous.text || "").trim()} ${String(chunk.text || "").trim()}`.trim(),
+            text_tagged:
+              `${String(previous.text_tagged || previous.text || "").trim()} ${String(chunk.text_tagged || chunk.text || "").trim()}`.trim(),
+          },
+        ];
+      }
+      return [...merged, chunk];
+    }, []);
 
     while (assets.length < sorted.length) {
       assets.push({ asset: "", type: "image" });
