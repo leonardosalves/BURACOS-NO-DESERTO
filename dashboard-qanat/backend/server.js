@@ -337,6 +337,7 @@ import {
   buildVisualPromptEngineerRequest,
   sanitizeVisualPromptDurations,
   enforceShortsVideoSceneMix,
+  loadNarracaoProGuidelines,
 } from "./scriptQuality.js";
 import {
   buildSeedanceDirectingRequest,
