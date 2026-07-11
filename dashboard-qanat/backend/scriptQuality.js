@@ -1112,9 +1112,22 @@ export function buildHumanizeRepairPrompt({
   rawScript,
   blockCount,
 }) {
+  const guidelines = loadNarracaoProGuidelines();
+  const comousar = loadComousarAnarracaoProGuidelines();
+
+  let guidelinesBlock = "";
+  if (guidelines) {
+    guidelinesBlock += `\n[DIRETRIZES DE ROTEIRO E NARRAÇÃO OBRIGATÓRIAS (NARRACAOPRO.md)]:\n${guidelines}\n`;
+  }
+  if (comousar) {
+    guidelinesBlock += `\n[INSTRUÇÕES DE EXECUÇÃO E CURADORIA DA PESQUISA (COMOUSARANARRACAOPRO.md)]:\n${comousar}\n`;
+  }
+
   return `Você é um roteirista brasileiro especialista em clareza e naturalidade para YouTube.
 
-O roteiro abaixo foi gerado por IA e pode estar robótico, confuso ou com mensagem difusa. REESCREVA apenas os campos de texto da narração.
+${guidelinesBlock}
+
+O roteiro abaixo foi gerado por IA e pode estar robótico, confuso ou com mensagem difusa. REESCREVA apenas os campos de texto da narração mantendo a fidelidade das diretrizes acima.
 
 FORMATO: ${format}
 TÍTULO DA IDEIA: ${ideaTitle}
@@ -2617,6 +2630,17 @@ export function buildNarrationHumanizeRepairPrompt({
   listicleRank = 20,
   listTopic = "",
 } = {}) {
+  const guidelines = loadNarracaoProGuidelines();
+  const comousar = loadComousarAnarracaoProGuidelines();
+
+  let guidelinesBlock = "";
+  if (guidelines) {
+    guidelinesBlock += `\n[DIRETRIZES DE ROTEIRO E NARRAÇÃO OBRIGATÓRIAS (NARRACAOPRO.md)]:\n${guidelines}\n`;
+  }
+  if (comousar) {
+    guidelinesBlock += `\n[INSTRUÇÕES DE EXECUÇÃO E CURADORIA DA PESQUISA (COMOUSARANARRACAOPRO.md)]:\n${comousar}\n`;
+  }
+
   const wordCeiling =
     format === "SHORTS"
       ? isListicle && listicleRank <= 3
@@ -2637,7 +2661,9 @@ ${wordCeiling ? `- TETO: ${wordCeiling} palavras no total. Se passar, CORTE até
 
   return `Você é um roteirista brasileiro especialista em narração natural, enxuta e clara para YouTube.
 
-A narração abaixo pode estar robótica, longa demais ou confusa. REESCREVA apenas os campos de narração.
+${guidelinesBlock}
+
+A narração abaixo pode estar robótica, longa demais ou confusa. REESCREVA apenas os campos de narração mantendo a fidelidade das diretrizes acima.
 
 FORMATO: ${format}
 TÍTULO: ${ideaTitle}
