@@ -2088,939 +2088,951 @@ export function AppCreatorTab({
 
         {/* Optional: Script Master Strategy Details Panel */}
 
-        {generatedScriptData && (
-          <div className="glass-panel p-6 rounded-3xl mt-8 space-y-6 font-sans">
-            {(() => {
-              const longTitles = warnLongListicleTitles(
-                (generatedScriptData.list_items || []).map(
-                  (it: { title?: string; name?: string }) =>
-                    String(it.title || it.name || "")
-                )
-              );
-              if (!longTitles.length) return null;
-              return (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 mb-4">
-                  <p className="text-[10px] text-amber-300 font-bold uppercase tracking-wide">
-                    Títulos longos para o HUD
-                  </p>
-                  <ul className="mt-2 space-y-1">
-                    {longTitles.map((entry) => (
-                      <li
-                        key={`long-title-${entry.index}`}
-                        className="text-[10px] text-amber-200/90 leading-relaxed"
-                      >
-                        Item {entry.index + 1}: {entry.title.length} caracteres
-                        — encurte antes do render
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })()}
-
-            <SectionHeader
-              title="ESTRATÉGIA DO ROTEIRO (SCRIPT MASTER OUTPUT)"
-              helpId="creator-script-strategy"
-              className="border-b border-zinc-900 pb-2"
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-300">
-              <div className="space-y-4">
-                <div>
-                  <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">
-                    Título Principal
-                  </span>
-                  <p className="text-white font-bold text-sm mt-1">
-                    {generatedScriptData.strategy?.title_main || ""}
-                  </p>
-                  <p className="text-[9px] text-zinc-500 mt-0.5">
-                    Ancorado no roteiro — específico, sem clickbait genérico
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
-                    Variações de Título
-                  </span>
-
-                  <ul className="list-disc pl-4 space-y-1 mt-1">
-                    {(generatedScriptData.strategy?.title_variations || []).map(
-                      (v: string, i: number) => (
-                        <li key={i}>{v}</li>
-                      )
-                    )}
-                  </ul>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
-                    Gancho de Retenção (Hook)
-                  </span>
-
-                  <p className="italic text-gray-300 mt-1">
-                    "{generatedScriptData.strategy?.hook || ""}"
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                      Checklist de Qualidade
-                    </span>
-                    <button
-                      type="button"
-                      disabled={creatorLoading}
-                      onClick={handleEvaluateScriptChecklist}
-                      className="text-[9px] font-bold uppercase tracking-wider text-gold-400 border border-gold-500/30 hover:bg-gold-500/10 disabled:opacity-50 px-2 py-1 rounded-lg cursor-pointer"
-                    >
-                      {creatorLoading && creatorLoadingMode === "full"
-                        ? "Avaliando..."
-                        : "Avaliar"}
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 mt-1.5 text-center font-mono">
-                    <div className="bg-zinc-950 p-2 rounded-lg border border-zinc-900">
-                      <span className="text-[8px] text-zinc-500 block">
-                        CLIQUE
-                      </span>
-
-                      <span className="text-gold-500 font-bold text-xs">
-                        {generatedScriptData.checklist?.click_potential || 0}/10
-                      </span>
-                    </div>
-
-                    <div className="bg-zinc-950 p-2 rounded-lg border border-zinc-900">
-                      <span className="text-[8px] text-zinc-500 block">
-                        RETENÇÃO
-                      </span>
-
-                      <span className="text-gold-500 font-bold text-xs">
-                        {generatedScriptData.checklist?.retention_potential ||
-                          0}
-                        /10
-                      </span>
-                    </div>
-
-                    <div className="bg-zinc-950 p-2 rounded-lg border border-zinc-900">
-                      <span className="text-[8px] text-zinc-500 block">
-                        COMENTÁRIOS
-                      </span>
-
-                      <span className="text-gold-500 font-bold text-xs">
-                        {generatedScriptData.checklist?.comments_potential || 0}
-                        /10
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
-                    Recomendações IA
-                  </span>
-
-                  <p className="mt-1 leading-relaxed text-gray-400">
-                    {generatedScriptData.checklist?.feedback ||
-                      (generatedScriptData.checklist?.click_potential
-                        ? ""
-                        : "Clique em Avaliar para gerar notas e recomendações.")}
-                  </p>
-                </div>
-
-                {Array.isArray(generatedScriptData.checklist?.corrections) &&
-                  generatedScriptData.checklist.corrections.length > 0 && (
-                    <div>
-                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
-                        Correções
-                      </span>
-                      <ul className="mt-1 space-y-1 list-disc pl-4 text-gray-400">
-                        {generatedScriptData.checklist.corrections.map(
-                          (item: string, i: number) => (
-                            <li key={i}>{item}</li>
-                          )
-                        )}
-                      </ul>
-                    </div>
-                  )}
-              </div>
-            </div>
-
-            <CreatorProductionPlanPanel storyboard={generatedScriptData} />
-
-            <GeoVideoWizardPanel
-              motionScenes={generatedScriptData?.motion_scenes}
-              getProjectUrl={getProjectUrl}
-              getAssetUrl={getAssetUrl}
-              copyToClipboard={copyToClipboard}
-              copiedSection={copiedSection}
-              onMotionScenesChange={handleMotionScenesChange}
-              onStudioSynced={() => fetchData()}
-            />
-
-            {generatedScriptData.visual_prompts &&
-              (generatedScriptData?.visual_prompts || []).length > 0 && (
-                <div className="border-t border-zinc-900 pt-6 space-y-5">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <SectionHeader
-                        title="ROTEIRO COMPLETO POR BLOCOS"
-                        helpId="creator-blocks"
-                        size="sm"
-                        subtitle="Narração e prompt visual editáveis. A duração (segundos) de cada cena só aparece após narração (passo 2) + Whisper (passo 3) — calculada 100% da voz, sem estimativa."
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      {(generatedScriptData?.visual_prompts || []).length >
-                        0 && (
-                        <button
-                          type="button"
-                          disabled={creatorLoading}
-                          onClick={handleEnhanceVisualPrompts}
-                          className={`bg-purple-500/15 hover:bg-purple-500/30 border ${
-                            creatorScenesNeedRepair
-                              ? "border-amber-500/50 text-amber-200"
-                              : "border-purple-500/30 text-purple-200"
-                          } disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer transition-all`}
-                          title={
-                            creatorScenesNeedRepair
-                              ? "Aviso: Suas cenas precisam ser alinhadas/reparadas. Use a Engenharia Visual PRO para corrigir e aprimorar tudo."
-                              : "Reprocessa todos os prompts visuais com engenharia de nível profissional: detecção de nicho, texto PT-BR, aspect ratio, chain of thought"
-                          }
+        {generatedScriptData &&
+          (String(generatedScriptData.strategy?.title_main || "").trim() ||
+            String(generatedScriptData.strategy?.hook || "").trim() ||
+            String(generatedScriptData.narrative_script || "").trim()) && (
+            <div className="glass-panel p-6 rounded-3xl mt-8 space-y-6 font-sans">
+              {(() => {
+                const longTitles = warnLongListicleTitles(
+                  (generatedScriptData.list_items || []).map(
+                    (it: { title?: string; name?: string }) =>
+                      String(it.title || it.name || "")
+                  )
+                );
+                if (!longTitles.length) return null;
+                return (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 mb-4">
+                    <p className="text-[10px] text-amber-300 font-bold uppercase tracking-wide">
+                      Títulos longos para o HUD
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {longTitles.map((entry) => (
+                        <li
+                          key={`long-title-${entry.index}`}
+                          className="text-[10px] text-amber-200/90 leading-relaxed"
                         >
-                          {creatorLoading && creatorLoadingMode === "full"
-                            ? "✨ Processando..."
-                            : "✨ Engenharia Visual PRO"}
-                        </button>
-                      )}
-                      <span className="bg-gold-500/10 border border-gold-500/20 text-gold-500 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono">
-                        {(generatedScriptData?.visual_prompts || []).length}{" "}
-                        cenas
+                          Item {entry.index + 1}: {entry.title.length}{" "}
+                          caracteres — encurte antes do render
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
+
+              <SectionHeader
+                title="ESTRATÉGIA DO ROTEIRO (SCRIPT MASTER OUTPUT)"
+                helpId="creator-script-strategy"
+                className="border-b border-zinc-900 pb-2"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-300">
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">
+                      Título Principal
+                    </span>
+                    <p className="text-white font-bold text-sm mt-1">
+                      {generatedScriptData.strategy?.title_main || ""}
+                    </p>
+                    <p className="text-[9px] text-zinc-500 mt-0.5">
+                      Ancorado no roteiro — específico, sem clickbait genérico
+                    </p>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                      Variações de Título
+                    </span>
+
+                    <ul className="list-disc pl-4 space-y-1 mt-1">
+                      {(
+                        generatedScriptData.strategy?.title_variations || []
+                      ).map((v: string, i: number) => (
+                        <li key={i}>{v}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                      Gancho de Retenção (Hook)
+                    </span>
+
+                    <p className="italic text-gray-300 mt-1">
+                      "{generatedScriptData.strategy?.hook || ""}"
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                        Checklist de Qualidade
                       </span>
+                      <button
+                        type="button"
+                        disabled={creatorLoading}
+                        onClick={handleEvaluateScriptChecklist}
+                        className="text-[9px] font-bold uppercase tracking-wider text-gold-400 border border-gold-500/30 hover:bg-gold-500/10 disabled:opacity-50 px-2 py-1 rounded-lg cursor-pointer"
+                      >
+                        {creatorLoading && creatorLoadingMode === "full"
+                          ? "Avaliando..."
+                          : "Avaliar"}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 mt-1.5 text-center font-mono">
+                      <div className="bg-zinc-950 p-2 rounded-lg border border-zinc-900">
+                        <span className="text-[8px] text-zinc-500 block">
+                          CLIQUE
+                        </span>
+
+                        <span className="text-gold-500 font-bold text-xs">
+                          {generatedScriptData.checklist?.click_potential || 0}
+                          /10
+                        </span>
+                      </div>
+
+                      <div className="bg-zinc-950 p-2 rounded-lg border border-zinc-900">
+                        <span className="text-[8px] text-zinc-500 block">
+                          RETENÇÃO
+                        </span>
+
+                        <span className="text-gold-500 font-bold text-xs">
+                          {generatedScriptData.checklist?.retention_potential ||
+                            0}
+                          /10
+                        </span>
+                      </div>
+
+                      <div className="bg-zinc-950 p-2 rounded-lg border border-zinc-900">
+                        <span className="text-[8px] text-zinc-500 block">
+                          COMENTÁRIOS
+                        </span>
+
+                        <span className="text-gold-500 font-bold text-xs">
+                          {generatedScriptData.checklist?.comments_potential ||
+                            0}
+                          /10
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-4 font-sans">
-                    {(() => {
-                      const promptsByBlock: Record<number, any[]> = {};
+                  <div>
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                      Recomendações IA
+                    </span>
 
-                      (generatedScriptData?.visual_prompts || []).forEach(
-                        (vp: any) => {
-                          const b = parseCreatorBlockNumber(
-                            vp?.block ?? vp?.bloco,
-                            vp?.scene ?? vp?.cena
-                          );
+                    <p className="mt-1 leading-relaxed text-gray-400">
+                      {generatedScriptData.checklist?.feedback ||
+                        (generatedScriptData.checklist?.click_potential
+                          ? ""
+                          : "Clique em Avaliar para gerar notas e recomendações.")}
+                    </p>
+                  </div>
 
-                          if (!promptsByBlock[b]) promptsByBlock[b] = [];
+                  {Array.isArray(generatedScriptData.checklist?.corrections) &&
+                    generatedScriptData.checklist.corrections.length > 0 && (
+                      <div>
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                          Correções
+                        </span>
+                        <ul className="mt-1 space-y-1 list-disc pl-4 text-gray-400">
+                          {generatedScriptData.checklist.corrections.map(
+                            (item: string, i: number) => (
+                              <li key={i}>{item}</li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                </div>
+              </div>
 
-                          promptsByBlock[b].push(vp);
-                        }
-                      );
+              <CreatorProductionPlanPanel storyboard={generatedScriptData} />
 
-                      const blockPhrases =
-                        generatedScriptData?.technical_config?.block_phrases ||
-                        [];
-                      const expectedBlocks =
-                        blockPhrases.length > 0
-                          ? blockPhrases.length
-                          : formatSelector === "SHORTS"
-                            ? 5
-                            : 12;
-                      for (let i = 1; i <= expectedBlocks; i += 1) {
-                        if (!promptsByBlock[i]) promptsByBlock[i] = [];
-                      }
+              <GeoVideoWizardPanel
+                motionScenes={generatedScriptData?.motion_scenes}
+                getProjectUrl={getProjectUrl}
+                getAssetUrl={getAssetUrl}
+                copyToClipboard={copyToClipboard}
+                copiedSection={copiedSection}
+                onMotionScenesChange={handleMotionScenesChange}
+                onStudioSynced={() => fetchData()}
+              />
 
-                      const sortedBlocks = Object.keys(promptsByBlock)
-                        .map(Number)
-                        .sort((a, b) => a - b);
+              {generatedScriptData.visual_prompts &&
+                (generatedScriptData?.visual_prompts || []).length > 0 && (
+                  <div className="border-t border-zinc-900 pt-6 space-y-5">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <SectionHeader
+                          title="ROTEIRO COMPLETO POR BLOCOS"
+                          helpId="creator-blocks"
+                          size="sm"
+                          subtitle="Narração e prompt visual editáveis. A duração (segundos) de cada cena só aparece após narração (passo 2) + Whisper (passo 3) — calculada 100% da voz, sem estimativa."
+                        />
+                      </div>
 
-                      return sortedBlocks.map((blockNum) => {
-                        const blockPrompts = promptsByBlock[blockNum];
+                      <div className="flex items-center gap-2 shrink-0">
+                        {(generatedScriptData?.visual_prompts || []).length >
+                          0 && (
+                          <button
+                            type="button"
+                            disabled={creatorLoading}
+                            onClick={handleEnhanceVisualPrompts}
+                            className={`bg-purple-500/15 hover:bg-purple-500/30 border ${
+                              creatorScenesNeedRepair
+                                ? "border-amber-500/50 text-amber-200"
+                                : "border-purple-500/30 text-purple-200"
+                            } disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer transition-all`}
+                            title={
+                              creatorScenesNeedRepair
+                                ? "Aviso: Suas cenas precisam ser alinhadas/reparadas. Use a Engenharia Visual PRO para corrigir e aprimorar tudo."
+                                : "Reprocessa todos os prompts visuais com engenharia de nível profissional: detecção de nicho, texto PT-BR, aspect ratio, chain of thought"
+                            }
+                          >
+                            {creatorLoading && creatorLoadingMode === "full"
+                              ? "✨ Processando..."
+                              : "✨ Engenharia Visual PRO"}
+                          </button>
+                        )}
+                        <span className="bg-gold-500/10 border border-gold-500/20 text-gold-500 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono">
+                          {(generatedScriptData?.visual_prompts || []).length}{" "}
+                          cenas
+                        </span>
+                      </div>
+                    </div>
 
-                        const blockTiming = getBlockTimingSummary(
-                          generatedScriptData?.visual_prompts || [],
-                          blockNum,
-                          2,
-                          wordTranscripts,
-                          status
+                    <div className="space-y-4 font-sans">
+                      {(() => {
+                        const promptsByBlock: Record<number, any[]> = {};
+
+                        (generatedScriptData?.visual_prompts || []).forEach(
+                          (vp: any) => {
+                            const b = parseCreatorBlockNumber(
+                              vp?.block ?? vp?.bloco,
+                              vp?.scene ?? vp?.cena
+                            );
+
+                            if (!promptsByBlock[b]) promptsByBlock[b] = [];
+
+                            promptsByBlock[b].push(vp);
+                          }
                         );
 
-                        const blockKey = String(blockNum);
+                        const blockPhrases =
+                          generatedScriptData?.technical_config
+                            ?.block_phrases || [];
+                        const expectedBlocks =
+                          blockPhrases.length > 0
+                            ? blockPhrases.length
+                            : formatSelector === "SHORTS"
+                              ? 5
+                              : 12;
+                        for (let i = 1; i <= expectedBlocks; i += 1) {
+                          if (!promptsByBlock[i]) promptsByBlock[i] = [];
+                        }
 
-                        const isExpanded = !!expandedBlocks[blockNum];
+                        const sortedBlocks = Object.keys(promptsByBlock)
+                          .map(Number)
+                          .sort((a, b) => a - b);
 
-                        return (
-                          <div
-                            key={blockNum}
-                            className="glass-panel rounded-2xl border border-zinc-900/60 overflow-hidden transition-all duration-300"
-                          >
+                        return sortedBlocks.map((blockNum) => {
+                          const blockPrompts = promptsByBlock[blockNum];
+
+                          const blockTiming = getBlockTimingSummary(
+                            generatedScriptData?.visual_prompts || [],
+                            blockNum,
+                            2,
+                            wordTranscripts,
+                            status
+                          );
+
+                          const blockKey = String(blockNum);
+
+                          const isExpanded = !!expandedBlocks[blockNum];
+
+                          return (
                             <div
-                              onClick={() =>
-                                setExpandedBlocks((prev) => ({
-                                  ...prev,
-                                  [blockNum]: !prev[blockNum],
-                                }))
-                              }
-
-                              className="flex justify-between items-center p-4 bg-zinc-950/40 hover:bg-zinc-900/20 cursor-pointer transition select-none border-b border-zinc-900/40"
+                              key={blockNum}
+                              className="glass-panel rounded-2xl border border-zinc-900/60 overflow-hidden transition-all duration-300"
                             >
-                              <div className="flex items-center gap-3">
-                                <span className="bg-gold-500 text-zinc-950 text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-md">
-                                  BLOCO{" "}
-                                  {String(Math.floor(blockNum)).padStart(
-                                    2,
-                                    "0"
-                                  )}
-                                </span>
+                              <div
+                                onClick={() =>
+                                  setExpandedBlocks((prev) => ({
+                                    ...prev,
+                                    [blockNum]: !prev[blockNum],
+                                  }))
+                                }
 
-                                <div className="flex items-center gap-2 text-[10px] text-zinc-400">
-                                  <span className="font-semibold">
-                                    {blockPrompts.length} cenas
+                                className="flex justify-between items-center p-4 bg-zinc-950/40 hover:bg-zinc-900/20 cursor-pointer transition select-none border-b border-zinc-900/40"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className="bg-gold-500 text-zinc-950 text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-md">
+                                    BLOCO{" "}
+                                    {String(Math.floor(blockNum)).padStart(
+                                      2,
+                                      "0"
+                                    )}
                                   </span>
 
-                                  <span>•</span>
-
-                                  {blockTiming.sceneSeconds != null ? (
-                                    <>
-                                      <span className="text-emerald-400">
-                                        {blockTiming.sceneSeconds}s (+
-                                        {blockTiming.gapSeconds}s gap)
-                                      </span>
-                                      <span>=</span>
-                                      <span className="text-emerald-400 font-bold">
-                                        {blockTiming.totalSeconds}s total
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <span className="text-zinc-500 italic">
-                                      duração após Whisper (passo 3)
+                                  <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+                                    <span className="font-semibold">
+                                      {blockPrompts.length} cenas
                                     </span>
-                                  )}
+
+                                    <span>•</span>
+
+                                    {blockTiming.sceneSeconds != null ? (
+                                      <>
+                                        <span className="text-emerald-400">
+                                          {blockTiming.sceneSeconds}s (+
+                                          {blockTiming.gapSeconds}s gap)
+                                        </span>
+                                        <span>=</span>
+                                        <span className="text-emerald-400 font-bold">
+                                          {blockTiming.totalSeconds}s total
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="text-zinc-500 italic">
+                                        duração após Whisper (passo 3)
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
+
+                                <span className="text-zinc-500 text-xs font-mono transition-transform duration-300">
+                                  {isExpanded ? "▲ Recolher" : "▼ Expandir"}
+                                </span>
                               </div>
 
-                              <span className="text-zinc-500 text-xs font-mono transition-transform duration-300">
-                                {isExpanded ? "▲ Recolher" : "▼ Expandir"}
-                              </span>
-                            </div>
+                              {isExpanded && (
+                                <div className="p-4 space-y-5 bg-zinc-950/20 divide-y divide-zinc-900/60">
+                                  {blockPrompts.map(
+                                    (vp: any, localIdx: number) => {
+                                      const absoluteIndex = (
+                                        generatedScriptData?.visual_prompts ||
+                                        []
+                                      ).indexOf(vp);
 
-                            {isExpanded && (
-                              <div className="p-4 space-y-5 bg-zinc-950/20 divide-y divide-zinc-900/60">
-                                {blockPrompts.map(
-                                  (vp: any, localIdx: number) => {
-                                    const absoluteIndex = (
-                                      generatedScriptData?.visual_prompts || []
-                                    ).indexOf(vp);
+                                      const sceneNum =
+                                        vp?.scene || absoluteIndex + 1;
 
-                                    const sceneNum =
-                                      vp?.scene || absoluteIndex + 1;
+                                      const isVideo =
+                                        vp?.type
+                                          ?.toLowerCase()
+                                          ?.includes("vídeo") ||
+                                        vp?.type
+                                          ?.toLowerCase()
+                                          ?.includes("video") ||
+                                        false;
 
-                                    const isVideo =
-                                      vp?.type
-                                        ?.toLowerCase()
-                                        ?.includes("vídeo") ||
-                                      vp?.type
-                                        ?.toLowerCase()
-                                        ?.includes("video") ||
-                                      false;
+                                      const isRemotionScene =
+                                        String(
+                                          vp?.media_mode || ""
+                                        ).toLowerCase() === "remotion" ||
+                                        Boolean(vp?.motion_template_id);
 
-                                    const isRemotionScene =
-                                      String(
-                                        vp?.media_mode || ""
-                                      ).toLowerCase() === "remotion" ||
-                                      Boolean(vp?.motion_template_id);
+                                      const searchQuery =
+                                        resolveStockSearchQuery(vp, {
+                                          strategyTitle:
+                                            generatedScriptData?.strategy
+                                              ?.title_main || "",
+                                          projectTitle:
+                                            customTitle?.trim() || "",
+                                        });
 
-                                    const searchQuery = resolveStockSearchQuery(
-                                      vp,
-                                      {
-                                        strategyTitle:
-                                          generatedScriptData?.strategy
-                                            ?.title_main || "",
-                                        projectTitle: customTitle?.trim() || "",
-                                      }
-                                    );
+                                      const sceneDurationSeconds =
+                                        getSceneDurationSeconds(
+                                          vp,
+                                          wordTranscripts,
+                                          blockNum,
+                                          localIdx,
+                                          status,
+                                          blockPrompts
+                                        );
+                                      const durationFromWhisper =
+                                        sceneDurationSeconds != null;
 
-                                    const sceneDurationSeconds =
-                                      getSceneDurationSeconds(
-                                        vp,
-                                        wordTranscripts,
-                                        blockNum,
-                                        localIdx,
-                                        status,
-                                        blockPrompts
-                                      );
-                                    const durationFromWhisper =
-                                      sceneDurationSeconds != null;
+                                      const assetIdx = localIdx;
 
-                                    const assetIdx = localIdx;
+                                      const isUploaded =
+                                        uploadedScenes[
+                                          `${blockKey}:${assetIdx}`
+                                        ] ||
+                                        (config &&
+                                          config.timeline_assets &&
+                                          config.timeline_assets[blockKey] &&
+                                          config.timeline_assets[blockKey][
+                                            assetIdx
+                                          ] &&
+                                          config.timeline_assets[blockKey][
+                                            assetIdx
+                                          ].asset) ||
+                                        vp.asset?.asset;
 
-                                    const isUploaded =
-                                      uploadedScenes[
-                                        `${blockKey}:${assetIdx}`
-                                      ] ||
-                                      (config &&
-                                        config.timeline_assets &&
-                                        config.timeline_assets[blockKey] &&
-                                        config.timeline_assets[blockKey][
+                                      const currentAsset =
+                                        vp.asset ||
+                                        config?.timeline_assets?.[blockKey]?.[
                                           assetIdx
-                                        ] &&
-                                        config.timeline_assets[blockKey][
-                                          assetIdx
-                                        ].asset) ||
-                                      vp.asset?.asset;
+                                        ];
 
-                                    const currentAsset =
-                                      vp.asset ||
-                                      config?.timeline_assets?.[blockKey]?.[
-                                        assetIdx
-                                      ];
+                                      const assetUsedIn = currentAsset?.asset
+                                        ? (
+                                            generatedScriptData?.visual_prompts ||
+                                            []
+                                          ).reduce(
+                                            (
+                                              usedIn: string[],
+                                              item: any,
+                                              itemIndex: number
+                                            ) => {
+                                              const itemBlock =
+                                                item?.block || 1;
 
-                                    const assetUsedIn = currentAsset?.asset
-                                      ? (
-                                          generatedScriptData?.visual_prompts ||
-                                          []
-                                        ).reduce(
-                                          (
-                                            usedIn: string[],
-                                            item: any,
-                                            itemIndex: number
-                                          ) => {
-                                            const itemBlock = item?.block || 1;
+                                              const itemBlockKey =
+                                                String(itemBlock);
 
-                                            const itemBlockKey =
-                                              String(itemBlock);
+                                              let itemAssetIdx = 0;
 
-                                            let itemAssetIdx = 0;
-
-                                            for (
-                                              let prevIdx = 0;
-                                              prevIdx < itemIndex;
-                                              prevIdx++
-                                            ) {
-                                              if (
-                                                ((generatedScriptData?.visual_prompts ||
-                                                  [])[prevIdx]?.block || 1) ===
-                                                itemBlock
+                                              for (
+                                                let prevIdx = 0;
+                                                prevIdx < itemIndex;
+                                                prevIdx++
                                               ) {
-                                                itemAssetIdx++;
-                                              }
-                                            }
-
-                                            const itemAsset =
-                                              item.asset ||
-                                              config?.timeline_assets?.[
-                                                itemBlockKey
-                                              ]?.[itemAssetIdx];
-
-                                            if (
-                                              itemAsset?.asset ===
-                                              currentAsset.asset
-                                            ) {
-                                              usedIn.push(
-                                                String(
-                                                  item?.scene || itemIndex + 1
-                                                )
-                                              );
-                                            }
-
-                                            return usedIn;
-                                          },
-                                          []
-                                        )
-                                      : [];
-
-                                    return (
-                                      <div
-                                        key={absoluteIndex}
-                                        className={`pt-4 first:pt-0 flex flex-col lg:flex-row gap-4 ${localIdx > 0 ? "mt-4" : ""}`}
-                                      >
-                                        <div className="flex-1 space-y-3">
-                                          <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                              <span
-                                                className={`font-mono text-xs font-bold ${isUploaded ? "text-green-400" : "text-zinc-500"}`}
-                                              >
-                                                Cena {sceneNum}
-                                              </span>
-
-                                              {isRemotionScene ? (
-                                                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-violet-500/15 border border-violet-500/35 text-violet-200">
-                                                  🟣 Remotion
-                                                  {vp?.motion_template_id
-                                                    ? ` · ${vp.motion_template_id}`
-                                                    : ""}
-                                                  {vp?.production
-                                                    ?.template_props
-                                                    ?.template_studio_fallback
-                                                    ? " · fallback nativo"
-                                                    : ""}
-                                                  {Number(
-                                                    vp?.production
-                                                      ?.template_props
-                                                      ?.template_studio_pick_score
-                                                  ) > 0
-                                                    ? ` · Studio ${Math.round(Number(vp.production.template_props.template_studio_pick_score))}`
-                                                    : ""}
-                                                </span>
-                                              ) : (
-                                                <span
-                                                  className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                                                    isVideo
-                                                      ? "bg-blue-500/10 border border-blue-500/20 text-blue-400"
-                                                      : "bg-gold-500/10 border border-gold-500/20 text-gold-500"
-                                                  }`}
-                                                >
-                                                  {vp?.type || "imagem IA 2k"}
-                                                </span>
-                                              )}
-                                            </div>
-
-                                            <div className="flex items-center gap-1.5">
-                                              <span
-                                                className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${
-                                                  durationFromWhisper
-                                                    ? "text-emerald-400 border-emerald-500/20 bg-emerald-500/10"
-                                                    : "text-zinc-500 border-zinc-800 bg-zinc-900/60"
-                                                }`}
-                                              >
-                                                {durationFromWhisper
-                                                  ? "Voz (Whisper)"
-                                                  : "Whisper"}
-                                              </span>
-
-                                              <div
-                                                className={`flex items-center border rounded-lg px-2 py-0.5 min-w-[3.5rem] justify-end ${
-                                                  durationFromWhisper
-                                                    ? "bg-emerald-500/5 border-emerald-500/25"
-                                                    : "bg-zinc-950 border-zinc-850"
-                                                }`}
-                                                title={
-                                                  durationFromWhisper
-                                                    ? "Segundos reais desta frase na narração (Whisper)"
-                                                    : "Rode narração (passo 2) e Whisper (passo 3) para calcular os segundos"
+                                                if (
+                                                  ((generatedScriptData?.visual_prompts ||
+                                                    [])[prevIdx]?.block ||
+                                                    1) === itemBlock
+                                                ) {
+                                                  itemAssetIdx++;
                                                 }
-                                              >
+                                              }
+
+                                              const itemAsset =
+                                                item.asset ||
+                                                config?.timeline_assets?.[
+                                                  itemBlockKey
+                                                ]?.[itemAssetIdx];
+
+                                              if (
+                                                itemAsset?.asset ===
+                                                currentAsset.asset
+                                              ) {
+                                                usedIn.push(
+                                                  String(
+                                                    item?.scene || itemIndex + 1
+                                                  )
+                                                );
+                                              }
+
+                                              return usedIn;
+                                            },
+                                            []
+                                          )
+                                        : [];
+
+                                      return (
+                                        <div
+                                          key={absoluteIndex}
+                                          className={`pt-4 first:pt-0 flex flex-col lg:flex-row gap-4 ${localIdx > 0 ? "mt-4" : ""}`}
+                                        >
+                                          <div className="flex-1 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-2">
                                                 <span
-                                                  className={`text-xs font-mono tabular-nums ${
+                                                  className={`font-mono text-xs font-bold ${isUploaded ? "text-green-400" : "text-zinc-500"}`}
+                                                >
+                                                  Cena {sceneNum}
+                                                </span>
+
+                                                {isRemotionScene ? (
+                                                  <span className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-violet-500/15 border border-violet-500/35 text-violet-200">
+                                                    🟣 Remotion
+                                                    {vp?.motion_template_id
+                                                      ? ` · ${vp.motion_template_id}`
+                                                      : ""}
+                                                    {vp?.production
+                                                      ?.template_props
+                                                      ?.template_studio_fallback
+                                                      ? " · fallback nativo"
+                                                      : ""}
+                                                    {Number(
+                                                      vp?.production
+                                                        ?.template_props
+                                                        ?.template_studio_pick_score
+                                                    ) > 0
+                                                      ? ` · Studio ${Math.round(Number(vp.production.template_props.template_studio_pick_score))}`
+                                                      : ""}
+                                                  </span>
+                                                ) : (
+                                                  <span
+                                                    className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                                      isVideo
+                                                        ? "bg-blue-500/10 border border-blue-500/20 text-blue-400"
+                                                        : "bg-gold-500/10 border border-gold-500/20 text-gold-500"
+                                                    }`}
+                                                  >
+                                                    {vp?.type || "imagem IA 2k"}
+                                                  </span>
+                                                )}
+                                              </div>
+
+                                              <div className="flex items-center gap-1.5">
+                                                <span
+                                                  className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${
                                                     durationFromWhisper
-                                                      ? "text-emerald-300"
-                                                      : "text-zinc-600"
+                                                      ? "text-emerald-400 border-emerald-500/20 bg-emerald-500/10"
+                                                      : "text-zinc-500 border-zinc-800 bg-zinc-900/60"
                                                   }`}
                                                 >
                                                   {durationFromWhisper
-                                                    ? sceneDurationSeconds
-                                                    : "—"}
+                                                    ? "Voz (Whisper)"
+                                                    : "Whisper"}
                                                 </span>
-                                                <span className="text-[10px] text-zinc-500 ml-1 font-mono">
-                                                  s
-                                                </span>
+
+                                                <div
+                                                  className={`flex items-center border rounded-lg px-2 py-0.5 min-w-[3.5rem] justify-end ${
+                                                    durationFromWhisper
+                                                      ? "bg-emerald-500/5 border-emerald-500/25"
+                                                      : "bg-zinc-950 border-zinc-850"
+                                                  }`}
+                                                  title={
+                                                    durationFromWhisper
+                                                      ? "Segundos reais desta frase na narração (Whisper)"
+                                                      : "Rode narração (passo 2) e Whisper (passo 3) para calcular os segundos"
+                                                  }
+                                                >
+                                                  <span
+                                                    className={`text-xs font-mono tabular-nums ${
+                                                      durationFromWhisper
+                                                        ? "text-emerald-300"
+                                                        : "text-zinc-600"
+                                                    }`}
+                                                  >
+                                                    {durationFromWhisper
+                                                      ? sceneDurationSeconds
+                                                      : "—"}
+                                                  </span>
+                                                  <span className="text-[10px] text-zinc-500 ml-1 font-mono">
+                                                    s
+                                                  </span>
+                                                </div>
                                               </div>
                                             </div>
-                                          </div>
 
-                                          <div className="space-y-1">
-                                            <label className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">
-                                              NARRACAO DA CENA
-                                            </label>
-
-                                            <textarea
-                                              rows={2}
-
-                                              value={
-                                                vp?.narration_text ||
-                                                vp?.narration_excerpt ||
-                                                ""
-                                              }
-
-                                              onChange={(e) =>
-                                                handleUpdateCreatorScene(
-                                                  absoluteIndex,
-                                                  "narration_text",
-                                                  e.target.value
-                                                )
-                                              }
-
-                                              className="bg-zinc-950/80 border border-zinc-850 rounded-xl text-xs text-white p-2.5 w-full focus:border-gold-500/50 focus:outline-none transition leading-relaxed font-sans"
-
-                                              placeholder="Digite a narração da cena..."
-                                            />
-                                          </div>
-                                        </div>
-
-                                        <div className="w-full lg:w-[420px] shrink-0 space-y-3">
-                                          <div className="space-y-1">
-                                            <div className="flex justify-between items-center">
+                                            <div className="space-y-1">
                                               <label className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">
-                                                PROMPT VISUAL IA
+                                                NARRACAO DA CENA
                                               </label>
 
-                                              <button
-                                                onClick={() =>
-                                                  copyToClipboard(
-                                                    vp?.prompt || "",
-                                                    `prompt-${absoluteIndex}`
+                                              <textarea
+                                                rows={2}
+
+                                                value={
+                                                  vp?.narration_text ||
+                                                  vp?.narration_excerpt ||
+                                                  ""
+                                                }
+
+                                                onChange={(e) =>
+                                                  handleUpdateCreatorScene(
+                                                    absoluteIndex,
+                                                    "narration_text",
+                                                    e.target.value
                                                   )
                                                 }
 
-                                                className="text-[9px] text-zinc-400 hover:text-white flex items-center gap-1 transition"
-                                              >
-                                                {copiedSection ===
-                                                `prompt-${absoluteIndex}` ? (
-                                                  <span className="text-emerald-500 font-bold">
-                                                    OK
-                                                  </span>
-                                                ) : (
-                                                  <span>Copiar</span>
-                                                )}
-                                              </button>
+                                                className="bg-zinc-950/80 border border-zinc-850 rounded-xl text-xs text-white p-2.5 w-full focus:border-gold-500/50 focus:outline-none transition leading-relaxed font-sans"
+
+                                                placeholder="Digite a narração da cena..."
+                                              />
                                             </div>
-
-                                            <textarea
-                                              rows={2}
-
-                                              value={vp?.prompt || ""}
-
-                                              onChange={(e) =>
-                                                handleUpdateCreatorScene(
-                                                  absoluteIndex,
-                                                  "prompt",
-                                                  e.target.value
-                                                )
-                                              }
-
-                                              className="bg-zinc-950/80 border border-zinc-850 rounded-xl text-[11px] text-zinc-300 italic p-2.5 w-full focus:border-gold-500/50 focus:outline-none transition leading-normal font-sans"
-
-                                              placeholder="Descreva o prompt visual..."
-                                            />
                                           </div>
 
-                                          {currentAsset?.asset && (
-                                            <div className="flex items-center gap-3 rounded-xl border border-zinc-850 bg-zinc-950/80 p-2.5">
-                                              <div className="w-20 h-14 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-850 shrink-0 flex items-center justify-center">
-                                                {currentAsset.type ===
-                                                "video" ? (
-                                                  <video
-                                                    src={getAssetUrl(
-                                                      currentAsset.asset
-                                                    )}
+                                          <div className="w-full lg:w-[420px] shrink-0 space-y-3">
+                                            <div className="space-y-1">
+                                              <div className="flex justify-between items-center">
+                                                <label className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">
+                                                  PROMPT VISUAL IA
+                                                </label>
 
-                                                    className="w-full h-full object-cover"
+                                                <button
+                                                  onClick={() =>
+                                                    copyToClipboard(
+                                                      vp?.prompt || "",
+                                                      `prompt-${absoluteIndex}`
+                                                    )
+                                                  }
 
-                                                    muted
-
-                                                    playsInline
-
-                                                    preload="metadata"
-                                                  />
-                                                ) : (
-                                                  <img
-                                                    src={getAssetUrl(
-                                                      currentAsset.asset
-                                                    )}
-
-                                                    className="w-full h-full object-cover"
-
-                                                    alt=""
-
-                                                    loading="lazy"
-                                                  />
-                                                )}
+                                                  className="text-[9px] text-zinc-400 hover:text-white flex items-center gap-1 transition"
+                                                >
+                                                  {copiedSection ===
+                                                  `prompt-${absoluteIndex}` ? (
+                                                    <span className="text-emerald-500 font-bold">
+                                                      OK
+                                                    </span>
+                                                  ) : (
+                                                    <span>Copiar</span>
+                                                  )}
+                                                </button>
                                               </div>
 
-                                              <div className="min-w-0 flex-1 space-y-1">
-                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                  <span
-                                                    className="text-[10px] text-white font-semibold truncate"
-                                                    title={currentAsset.asset}
-                                                  >
-                                                    {currentAsset.asset}
-                                                  </span>
-                                                </div>
+                                              <textarea
+                                                rows={2}
 
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                  <span className="text-[8px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
-                                                    Cenas:{" "}
-                                                    {assetUsedIn.join(", ") ||
-                                                      sceneNum}
-                                                  </span>
+                                                value={vp?.prompt || ""}
 
-                                                  <button
-                                                    type="button"
+                                                onChange={(e) =>
+                                                  handleUpdateCreatorScene(
+                                                    absoluteIndex,
+                                                    "prompt",
+                                                    e.target.value
+                                                  )
+                                                }
 
-                                                    onClick={() =>
-                                                      handleRemoveSceneAsset(
-                                                        blockKey,
-                                                        assetIdx
-                                                      )
-                                                    }
+                                                className="bg-zinc-950/80 border border-zinc-850 rounded-xl text-[11px] text-zinc-300 italic p-2.5 w-full focus:border-gold-500/50 focus:outline-none transition leading-normal font-sans"
 
-                                                    className="text-[9px] text-red-400 hover:text-red-300 font-bold transition"
-                                                  >
-                                                    Excluir
-                                                  </button>
-                                                </div>
-                                              </div>
+                                                placeholder="Descreva o prompt visual..."
+                                              />
                                             </div>
-                                          )}
 
-                                          <div className="flex items-center gap-1.5 pt-1">
-                                            <a
-                                              href={`https://www.pexels.com/search/${isVideo ? "videos/" : ""}${encodeURIComponent(searchQuery)}`}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
+                                            {currentAsset?.asset && (
+                                              <div className="flex items-center gap-3 rounded-xl border border-zinc-850 bg-zinc-950/80 p-2.5">
+                                                <div className="w-20 h-14 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-850 shrink-0 flex items-center justify-center">
+                                                  {currentAsset.type ===
+                                                  "video" ? (
+                                                    <video
+                                                      src={getAssetUrl(
+                                                        currentAsset.asset
+                                                      )}
 
-                                              className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
-                                            >
-                                              <span>Pexels</span>
-                                            </a>
+                                                      className="w-full h-full object-cover"
 
-                                            <a
-                                              href={
-                                                isVideo
-                                                  ? `https://pixabay.com/videos/search/${encodeURIComponent(searchQuery)}/`
-                                                  : `https://pixabay.com/images/search/${encodeURIComponent(searchQuery)}/`
-                                              }
-                                              target="_blank"
-                                              rel="noopener noreferrer"
+                                                      muted
 
-                                              className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
-                                            >
-                                              <span>Pixabay</span>
-                                            </a>
+                                                      playsInline
 
-                                            {!isVideo && (
-                                              <a
-                                                href={`https://www.bing.com/images/search?q=${encodeURIComponent(searchQuery)}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
-                                              >
-                                                <span>Bing</span>
-                                              </a>
+                                                      preload="metadata"
+                                                    />
+                                                  ) : (
+                                                    <img
+                                                      src={getAssetUrl(
+                                                        currentAsset.asset
+                                                      )}
+
+                                                      className="w-full h-full object-cover"
+
+                                                      alt=""
+
+                                                      loading="lazy"
+                                                    />
+                                                  )}
+                                                </div>
+
+                                                <div className="min-w-0 flex-1 space-y-1">
+                                                  <div className="flex items-center gap-1.5 min-w-0">
+                                                    <span
+                                                      className="text-[10px] text-white font-semibold truncate"
+                                                      title={currentAsset.asset}
+                                                    >
+                                                      {currentAsset.asset}
+                                                    </span>
+                                                  </div>
+
+                                                  <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-[8px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                                                      Cenas:{" "}
+                                                      {assetUsedIn.join(", ") ||
+                                                        sceneNum}
+                                                    </span>
+
+                                                    <button
+                                                      type="button"
+
+                                                      onClick={() =>
+                                                        handleRemoveSceneAsset(
+                                                          blockKey,
+                                                          assetIdx
+                                                        )
+                                                      }
+
+                                                      className="text-[9px] text-red-400 hover:text-red-300 font-bold transition"
+                                                    >
+                                                      Excluir
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              </div>
                                             )}
 
-                                            <a
-                                              href={`https://www.canva.com/search?q=${encodeURIComponent(searchQuery)}`}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
+                                            <div className="flex items-center gap-1.5 pt-1">
+                                              <a
+                                                href={`https://www.pexels.com/search/${isVideo ? "videos/" : ""}${encodeURIComponent(searchQuery)}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
 
-                                              className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
-                                            >
-                                              <span>Canva</span>
-                                            </a>
+                                                className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                                              >
+                                                <span>Pexels</span>
+                                              </a>
 
-                                            <input
-                                              type="file"
-
-                                              accept={
-                                                isVideo
-                                                  ? "video/mp4"
-                                                  : "image/png,image/jpeg,image/jpg"
-                                              }
-
-                                              onChange={(e) => {
-                                                if (
-                                                  e.target.files &&
-                                                  e.target.files[0]
-                                                ) {
-                                                  handleUploadSceneAsset(
-                                                    blockNum,
-                                                    isVideo ? "video" : "image",
-                                                    e.target.files[0],
-                                                    assetIdx
-                                                  );
+                                              <a
+                                                href={
+                                                  isVideo
+                                                    ? `https://pixabay.com/videos/search/${encodeURIComponent(searchQuery)}/`
+                                                    : `https://pixabay.com/images/search/${encodeURIComponent(searchQuery)}/`
                                                 }
-                                              }}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
 
-                                              className="hidden"
+                                                className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                                              >
+                                                <span>Pixabay</span>
+                                              </a>
 
-                                              id={`scene-upload-${absoluteIndex}`}
-                                            />
+                                              {!isVideo && (
+                                                <a
+                                                  href={`https://www.bing.com/images/search?q=${encodeURIComponent(searchQuery)}`}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                                                >
+                                                  <span>Bing</span>
+                                                </a>
+                                              )}
 
-                                            <label
-                                              htmlFor={`scene-upload-${absoluteIndex}`}
+                                              <a
+                                                href={`https://www.canva.com/search?q=${encodeURIComponent(searchQuery)}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
 
-                                              className={`border px-2.5 py-1.5 rounded-lg text-[9px] font-bold flex items-center gap-1 transition cursor-pointer ml-auto ${
-                                                isUploaded
-                                                  ? "bg-green-500/10 border-green-500/20 text-green-400 hover:text-green-300"
-                                                  : "bg-zinc-900 border-zinc-850 text-zinc-400 hover:text-white"
-                                              }`}
-                                            >
-                                              <span>
-                                                {currentAsset?.asset
-                                                  ? "Trocar"
-                                                  : isUploaded
-                                                    ? "Enviado"
-                                                    : "Upload"}
-                                              </span>
-                                            </label>
+                                                className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                                              >
+                                                <span>Canva</span>
+                                              </a>
+
+                                              <input
+                                                type="file"
+
+                                                accept={
+                                                  isVideo
+                                                    ? "video/mp4"
+                                                    : "image/png,image/jpeg,image/jpg"
+                                                }
+
+                                                onChange={(e) => {
+                                                  if (
+                                                    e.target.files &&
+                                                    e.target.files[0]
+                                                  ) {
+                                                    handleUploadSceneAsset(
+                                                      blockNum,
+                                                      isVideo
+                                                        ? "video"
+                                                        : "image",
+                                                      e.target.files[0],
+                                                      assetIdx
+                                                    );
+                                                  }
+                                                }}
+
+                                                className="hidden"
+
+                                                id={`scene-upload-${absoluteIndex}`}
+                                              />
+
+                                              <label
+                                                htmlFor={`scene-upload-${absoluteIndex}`}
+
+                                                className={`border px-2.5 py-1.5 rounded-lg text-[9px] font-bold flex items-center gap-1 transition cursor-pointer ml-auto ${
+                                                  isUploaded
+                                                    ? "bg-green-500/10 border-green-500/20 text-green-400 hover:text-green-300"
+                                                    : "bg-zinc-900 border-zinc-850 text-zinc-400 hover:text-white"
+                                                }`}
+                                              >
+                                                <span>
+                                                  {currentAsset?.asset
+                                                    ? "Trocar"
+                                                    : isUploaded
+                                                      ? "Enviado"
+                                                      : "Upload"}
+                                                </span>
+                                              </label>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
-                                    );
-                                  }
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      });
-                    })()}
+                                      );
+                                    }
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-            <div className="border-t border-zinc-900 pt-4 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider font-sans">
-                  ROTEIRO COMPLETO (NARRAÇÃO LIMPA)
-                </span>
-
-                <button
-                  onClick={() =>
-                    copyToClipboard(
-                      generatedScriptData.narrative_script || "",
-                      "narrative_script"
-                    )
-                  }
-
-                  className="bg-zinc-900 border border-zinc-800 text-gray-400 hover:text-white px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 transition cursor-pointer"
-                >
-                  {copiedSection === "narrative_script" ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-
-                  <span>
-                    {copiedSection === "narrative_script"
-                      ? "Copiado!"
-                      : "Copiar Narração Limpa"}
-                  </span>
-                </button>
-              </div>
-
-              <pre className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl text-[10px] font-mono text-gray-300 overflow-x-auto whitespace-pre-wrap select-text leading-relaxed">
-                {generatedScriptData.narrative_script || ""}
-              </pre>
-            </div>
-
-            {(generatedScriptData.narrative_script || "").trim() && (
               <div className="border-t border-zinc-900 pt-4 space-y-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider font-sans flex items-center gap-2">
-                      NARRACAO COM TAGS PARA TTS
-                    </span>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider font-sans">
+                    ROTEIRO COMPLETO (NARRAÇÃO LIMPA)
+                  </span>
 
-                    <p className="text-[10px] text-zinc-500 mt-1">
-                      Tags por frase com pausas em viradas, numeros e gancho —
-                      usa a narracao taggeada do roteiro quando disponivel.
-                    </p>
-                  </div>
                   <button
-                    type="button"
-                    onClick={() => {
-                      const cleanNarration =
-                        generatedScriptData?.narrative_script || "";
-                      const taggedScript =
-                        generatedScriptData?.narrative_script_tagged || "";
-                      if (!cleanNarration && !taggedScript) {
-                        toast("Gere o roteiro primeiro.");
-                        return;
-                      }
-                      setTaggedNarrations({
-                        fish: buildTaggedNarration(cleanNarration, "fish", {
-                          taggedScript,
-                        }),
-                        eleven: buildTaggedNarration(cleanNarration, "eleven", {
-                          taggedScript,
-                        }),
-                        minimax: buildTaggedNarration(
-                          cleanNarration,
-                          "minimax",
-                          { taggedScript }
-                        ),
-                      });
-                      toast("Tags TTS regeneradas.");
-                    }}
-                    className="text-[9px] font-bold text-purple-300 border border-purple-500/30 hover:border-purple-500/50 px-2.5 py-1.5 rounded-lg transition cursor-pointer shrink-0"
+                    onClick={() =>
+                      copyToClipboard(
+                        generatedScriptData.narrative_script || "",
+                        "narrative_script"
+                      )
+                    }
+
+                    className="bg-zinc-900 border border-zinc-800 text-gray-400 hover:text-white px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 transition cursor-pointer"
                   >
-                    Regenerar tags
+                    {copiedSection === "narrative_script" ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+
+                    <span>
+                      {copiedSection === "narrative_script"
+                        ? "Copiado!"
+                        : "Copiar Narração Limpa"}
+                    </span>
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-                  {(
-                    ["fish", "eleven", "minimax"] as TaggedNarrationPlatform[]
-                  ).map((platform) => {
-                    const meta = taggedNarrationMeta[platform];
+                <pre className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl text-[10px] font-mono text-gray-300 overflow-x-auto whitespace-pre-wrap select-text leading-relaxed">
+                  {generatedScriptData.narrative_script || ""}
+                </pre>
+              </div>
 
-                    return (
-                      <div
-                        key={platform}
-                        className={`rounded-xl border p-3 space-y-3 ${meta.borderClass}`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h5
-                              className={`text-[10px] font-bold uppercase tracking-wider font-sans ${meta.accentClass}`}
+              {(generatedScriptData.narrative_script || "").trim() && (
+                <div className="border-t border-zinc-900 pt-4 space-y-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider font-sans flex items-center gap-2">
+                        NARRACAO COM TAGS PARA TTS
+                      </span>
+
+                      <p className="text-[10px] text-zinc-500 mt-1">
+                        Tags por frase com pausas em viradas, numeros e gancho —
+                        usa a narracao taggeada do roteiro quando disponivel.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cleanNarration =
+                          generatedScriptData?.narrative_script || "";
+                        const taggedScript =
+                          generatedScriptData?.narrative_script_tagged || "";
+                        if (!cleanNarration && !taggedScript) {
+                          toast("Gere o roteiro primeiro.");
+                          return;
+                        }
+                        setTaggedNarrations({
+                          fish: buildTaggedNarration(cleanNarration, "fish", {
+                            taggedScript,
+                          }),
+                          eleven: buildTaggedNarration(
+                            cleanNarration,
+                            "eleven",
+                            {
+                              taggedScript,
+                            }
+                          ),
+                          minimax: buildTaggedNarration(
+                            cleanNarration,
+                            "minimax",
+                            { taggedScript }
+                          ),
+                        });
+                        toast("Tags TTS regeneradas.");
+                      }}
+                      className="text-[9px] font-bold text-purple-300 border border-purple-500/30 hover:border-purple-500/50 px-2.5 py-1.5 rounded-lg transition cursor-pointer shrink-0"
+                    >
+                      Regenerar tags
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+                    {(
+                      ["fish", "eleven", "minimax"] as TaggedNarrationPlatform[]
+                    ).map((platform) => {
+                      const meta = taggedNarrationMeta[platform];
+
+                      return (
+                        <div
+                          key={platform}
+                          className={`rounded-xl border p-3 space-y-3 ${meta.borderClass}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h5
+                                className={`text-[10px] font-bold uppercase tracking-wider font-sans ${meta.accentClass}`}
+                              >
+                                {meta.title}
+                              </h5>
+
+                              <span className="text-[9px] text-zinc-500">
+                                {meta.subtitle}
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() =>
+                                copyToClipboard(
+                                  taggedNarrations[platform],
+                                  `tagged-${platform}`
+                                )
+                              }
+
+                              className="bg-zinc-950 border border-zinc-800 text-gray-400 hover:text-white px-2.5 py-1 rounded-lg text-[9px] flex items-center gap-1 transition cursor-pointer shrink-0"
                             >
-                              {meta.title}
-                            </h5>
+                              {copiedSection === `tagged-${platform}` ? (
+                                <Check className="w-3 h-3 text-emerald-500" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
 
-                            <span className="text-[9px] text-zinc-500">
-                              {meta.subtitle}
-                            </span>
+                              <span>
+                                {copiedSection === `tagged-${platform}`
+                                  ? "Copiado!"
+                                  : "Copiar"}
+                              </span>
+                            </button>
                           </div>
 
-                          <button
-                            onClick={() =>
-                              copyToClipboard(
-                                taggedNarrations[platform],
-                                `tagged-${platform}`
-                              )
+                          <textarea
+                            value={taggedNarrations[platform]}
+
+                            onChange={(e) =>
+                              setTaggedNarrations((prev) => ({
+                                ...prev,
+                                [platform]: e.target.value,
+                              }))
                             }
 
-                            className="bg-zinc-950 border border-zinc-800 text-gray-400 hover:text-white px-2.5 py-1 rounded-lg text-[9px] flex items-center gap-1 transition cursor-pointer shrink-0"
-                          >
-                            {copiedSection === `tagged-${platform}` ? (
-                              <Check className="w-3 h-3 text-emerald-500" />
-                            ) : (
-                              <Copy className="w-3 h-3" />
-                            )}
-
-                            <span>
-                              {copiedSection === `tagged-${platform}`
-                                ? "Copiado!"
-                                : "Copiar"}
-                            </span>
-                          </button>
+                            className="w-full min-h-[220px] bg-zinc-950/80 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-lg p-3 text-[10px] font-mono text-gray-300 leading-relaxed resize-y"
+                          />
                         </div>
-
-                        <textarea
-                          value={taggedNarrations[platform]}
-
-                          onChange={(e) =>
-                            setTaggedNarrations((prev) => ({
-                              ...prev,
-                              [platform]: e.target.value,
-                            }))
-                          }
-
-                          className="w-full min-h-[220px] bg-zinc-950/80 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-lg p-3 text-[10px] font-mono text-gray-300 leading-relaxed resize-y"
-                        />
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
       </div>
     </DashminPageLayout>
   );
