@@ -4741,13 +4741,16 @@ export default function App() {
   };
 
   const handleSaveConfig = async () => {
-    if (config) {
-      const saved = await saveTimelinePatch(config, { skipRefresh: true });
-      if (saved) {
-        void fetchStatusAndOutputs();
-        toast.success("Linha do tempo salva com sucesso!");
-      }
+    if (!config) {
+      toast.error("Configuração do projeto não carregada.");
+      throw new Error("Configuração do projeto não carregada.");
     }
+
+    const saved = await saveTimelinePatch(config, { skipRefresh: true });
+    if (!saved) throw new Error("Falha ao salvar a linha do tempo.");
+
+    void fetchStatusAndOutputs();
+    toast.success("Linha do tempo salva com sucesso!");
   };
 
   const resolveAssetDuration = useMemo(
@@ -9034,7 +9037,19 @@ export default function App() {
     const eventSource = new EventSource(getProjectUrl("/api/sync-timings"));
 
     eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      let data: { type?: string; text?: string; code?: number };
+      try {
+        data = JSON.parse(event.data);
+      } catch {
+        setLogs((prev) => [
+          ...prev,
+          "[Erro] O sincronizador enviou uma resposta inválida.",
+        ]);
+        eventSource.close();
+        setSyncingTimings(false);
+        toast.error("Sincronização interrompida por resposta inválida.");
+        return;
+      }
 
       if (data.type === "log") {
         setLogs((prev) => [...prev, data.text]);
@@ -9070,6 +9085,10 @@ export default function App() {
 
         setSyncingTimings(false);
 
+        toast.error(
+          `Sincronização falhou${data.code != null ? ` (código ${data.code})` : ""}. Consulte os logs.`
+        );
+
         fetchData();
       }
     };
@@ -9083,6 +9102,9 @@ export default function App() {
       eventSource.close();
 
       setSyncingTimings(false);
+      toast.error(
+        "Sincronização interrompida. Verifique o servidor e tente novamente."
+      );
     };
   };
 
