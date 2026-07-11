@@ -46,11 +46,15 @@ const SHORT_BLOCK_NAMES = [
 ];
 
 const NICHE_TITLE_BIAS = {
-  finance: "Priorize consequência financeira, números concretos e clareza de valor — nicho de RPM alto.",
+  finance:
+    "Priorize consequência financeira, números concretos e clareza de valor — nicho de RPM alto.",
   tech: "Priorize novidade, impacto futuro e 'por que isso importa agora'.",
-  history: "Priorize mistério histórico, anacronismos e 'como era possível na época'.",
-  nature: "Priorize escala, contraste visual e fenômenos que desafiam o senso comum.",
-  industrial: "Priorize engenharia, escala humana vs. máquina e impacto físico.",
+  history:
+    "Priorize mistério histórico, anacronismos e 'como era possível na época'.",
+  nature:
+    "Priorize escala, contraste visual e fenômenos que desafiam o senso comum.",
+  industrial:
+    "Priorize engenharia, escala humana vs. máquina e impacto físico.",
   default: "Priorize curiosidade universal e payoff claro no final.",
 };
 
@@ -108,8 +112,20 @@ const PROFILE_TITLE_TYPES = {
 
 const NICHE_TAG_POOLS = {
   finance: ["finanças", "investimentos", "dinheiro", "economia", "negócios"],
-  tech: ["tecnologia", "inovação", "ciência", "futuro", "inteligência artificial"],
-  history: ["história", "documentário", "curiosidades", "arqueologia", "mistérios"],
+  tech: [
+    "tecnologia",
+    "inovação",
+    "ciência",
+    "futuro",
+    "inteligência artificial",
+  ],
+  history: [
+    "história",
+    "documentário",
+    "curiosidades",
+    "arqueologia",
+    "mistérios",
+  ],
   nature: ["natureza", "geografia", "mundo", "viagem", "curiosidades"],
   industrial: ["engenharia", "industrial", "militar", "construção", "mecânica"],
   default: ["curiosidades", "educação", "documentário", "história", "mundo"],
@@ -146,8 +162,14 @@ export function buildChaptersText(timings = {}, format = "LONG") {
   return chaptersText.trim();
 }
 
-function buildNicheStrategyBlock({ category = "default", profile = {}, rpmHint = {}, format = "LONG" }) {
-  const titleTypes = PROFILE_TITLE_TYPES[profile.id] || PROFILE_TITLE_TYPES.default;
+function buildNicheStrategyBlock({
+  category = "default",
+  profile = {},
+  rpmHint = {},
+  format = "LONG",
+}) {
+  const titleTypes =
+    PROFILE_TITLE_TYPES[profile.id] || PROFILE_TITLE_TYPES.default;
   const bias = NICHE_TITLE_BIAS[category] || NICHE_TITLE_BIAS.default;
 
   return `
@@ -163,9 +185,11 @@ function buildNicheStrategyBlock({ category = "default", profile = {}, rpmHint =
   4. ${titleTypes[3]}
   5. ${titleTypes[4]}
 - NUNCA force um ângulo de nicho que não combine com o roteiro — especificidade do vídeo vem antes de RPM.
-- Formato ${format === "SHORT" ? "SHORT" : "LONG"}: ${format === "SHORT"
-    ? "título precisa funcionar sozinho no feed; thumbnail é secundária"
-    : "título + thumbnail formam um par — nunca repita as mesmas palavras nos dois"}`;
+- Formato ${format === "SHORT" ? "SHORT" : "LONG"}: ${
+    format === "SHORT"
+      ? "título precisa funcionar sozinho no feed; thumbnail é secundária"
+      : "título + thumbnail formam um par — nunca repita as mesmas palavras nos dois"
+  }`;
 }
 
 function buildThumbnailAbRules(format = "LONG") {
@@ -187,7 +211,12 @@ function buildStoryContext(storyboard = {}, config = {}) {
   const strategy = storyboard.strategy || {};
   const listicleCtx = resolveListicleContext(storyboard, config);
 
-  if (!storyboard.strategy && !listicleCtx && !(storyboard.list_items || []).length) return "";
+  if (
+    !storyboard.strategy &&
+    !listicleCtx &&
+    !(storyboard.list_items || []).length
+  )
+    return "";
 
   const itemDetails = (listicleCtx?.items || [])
     .slice(0, 5)
@@ -254,11 +283,11 @@ Objetivo duplo:
 
 ${buildTitleCraftRules("SHORT")}
 
-## HASHTAGS E EMOJIS NOS TÍTULOS (Shorts):
-- 2 títulos devem ter 1-2 hashtags relevantes no final (ex: #Shorts #Curiosidades #OrigensBizarras)
-- 2 títulos devem ter 1 emoji contextual (🤯 😳 🔥 😱 💡)
-- Pode combinar emoji + hashtag no mesmo título se couber em 55 caracteres
-- Nunca sacrifice o sentido da frase para encaixar hashtag — reescreva mais curto
+## TÍTULOS (Shorts):
+- NUNCA use hashtags no título. Hashtags pertencem à descrição.
+- Emoji é opcional: no máximo 1 e somente se reforçar a emoção sem substituir informação.
+- O título precisa ter assunto concreto, consequência clara e promessa que o vídeo realmente entrega.
+- Proibido usar #Shorts, #Engenharia, #Curiosidades ou qualquer hashtag como preenchimento.
 
 ## REGRAS PARA A DESCRIÇÃO (DESCOBERTA NO FEED):
 - Linha 1: palavras-chave pesquisáveis + gancho (YouTube indexa isso no Shorts)
@@ -268,12 +297,13 @@ ${buildTitleCraftRules("SHORT")}
 - NÃO use capítulos longos — Shorts não precisa de timestamps
 
 ## REGRAS PARA HASHTAGS PRINCIPAIS:
-- 5-8 hashtags: #Shorts + nicho + tema específico do vídeo + 1 trending genérica
-- Ordem: mais específica primeiro, mais ampla por último
+- Use 2-4 hashtags, no máximo 60 caracteres no total.
+- Inclua #Shorts e somente termos diretamente presentes no vídeo.
+- Proibido usar hashtags genéricas de preenchimento (#Tecnologia, #Curiosidades, #Viral) sem ligação específica ao assunto.
 
 ## REGRAS PARA AS TAGS:
-- 10-12 tags curtas (Shorts usa menos tags que vídeos longos)
-- Mix: termos do feed + nicho + variações de busca
+- Use 6-10 tags: termo exato, 2-3 variações pesquisáveis, nomes próprios e grafias alternativas.
+- Não use tags genéricas só para aumentar quantidade; tags têm impacto secundário.
 
 ## REGRAS PARA O COMENTÁRIO PINADO:
 - Pergunta de escolha rápida (ex: "Você já sabia disso? Sim / Não / Só metade")
@@ -368,14 +398,22 @@ export function buildYoutubeMetadataPrompt({
   const titleFacts = extractTitleFacts({ transcript, storyboard, config });
   const titleFactsBlock = buildTitleFactsBlock(titleFacts);
   const listicleRules = buildListicleMetadataRules(listicleCtx, format);
-  const nicheStrategy = buildNicheStrategyBlock({ category, profile, rpmHint, format });
-  const formatRules = format === "SHORT" ? buildShortMetadataRules() : buildLongMetadataRules();
-  const durationHint = totalDuration > 0
-    ? `Duração estimada: ~${Math.round(totalDuration)}s (${format === "SHORT" ? "Short" : "Longo"})`
-    : `Formato detectado: ${format === "SHORT" ? "Short (9:16)" : "Longo (16:9)"}`;
+  const nicheStrategy = buildNicheStrategyBlock({
+    category,
+    profile,
+    rpmHint,
+    format,
+  });
+  const formatRules =
+    format === "SHORT" ? buildShortMetadataRules() : buildLongMetadataRules();
+  const durationHint =
+    totalDuration > 0
+      ? `Duração estimada: ~${Math.round(totalDuration)}s (${format === "SHORT" ? "Short" : "Longo"})`
+      : `Formato detectado: ${format === "SHORT" ? "Short (9:16)" : "Longo (16:9)"}`;
 
-  const outputSections = format === "SHORT"
-    ? `## TÍTULOS
+  const outputSections =
+    format === "SHORT"
+      ? `## TÍTULOS
 (liste os 5 títulos numerados, com contagem de caracteres ao lado: "1. Título aqui (38 chars)")
 
 ## DESCRIÇÃO
@@ -391,7 +429,7 @@ export function buildYoutubeMetadataPrompt({
 (texto do comentário pinado)
 
 ${THUMBNAIL_OUTPUT_TEMPLATE}`
-    : `## TÍTULOS
+      : `## TÍTULOS
 (liste os 5 títulos numerados, com contagem de caracteres ao lado: "1. Título aqui (47 chars)")
 
 ## DESCRIÇÃO
@@ -443,7 +481,11 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
 ${outputSections}`;
 }
 
-function buildFallbackThumbnails({ titles = [], rpmHint = {}, format = "LONG" }) {
+function buildFallbackThumbnails({
+  titles = [],
+  rpmHint = {},
+  format = "LONG",
+}) {
   const palette = rpmHint.palette || ["#D4AF37", "#00E5FF", "#121214"];
   const aspect = format === "SHORT" ? "9:16" : "16:9";
   const paired = (idx) => titles[idx]?.text || `Título #${idx + 1}`;
@@ -472,24 +514,46 @@ function buildFallbackThumbnails({ titles = [], rpmHint = {}, format = "LONG" })
 - Expressão/elemento: dado ou contagem do roteiro em destaque`;
 }
 
-function buildFallbackTitles({ baseTitle, category, profile, format, facts = {} }) {
+function buildFallbackTitles({
+  baseTitle,
+  category,
+  profile,
+  format,
+  facts = {},
+}) {
   if (!facts.coreTopic) facts.coreTopic = sanitizeTitle(baseTitle).slice(0, 80);
-  const polished = polishTitles(generateTitlesFromFacts(facts, { format }), { format, facts });
-  const titles = polished.length >= 5
-    ? polished
-    : polishTitles([
-        ...polished,
-        ...generateTitlesFromFacts({ ...facts, coreTopic: baseTitle }, { format }),
-      ], { format, facts });
+  const polished = polishTitles(generateTitlesFromFacts(facts, { format }), {
+    format,
+    facts,
+  });
+  const titles =
+    polished.length >= 5
+      ? polished
+      : polishTitles(
+          [
+            ...polished,
+            ...generateTitlesFromFacts(
+              { ...facts, coreTopic: baseTitle },
+              { format }
+            ),
+          ],
+          { format, facts }
+        );
 
   const final = titles.slice(0, 5);
   while (final.length < 5 && facts.coreTopic) {
-    const seed = fitTitleToLimit(facts.coreTopic, format === "SHORT" ? 40 : 50, format);
+    const seed = fitTitleToLimit(
+      facts.coreTopic,
+      format === "SHORT" ? 40 : 50,
+      format
+    );
     if (!seed) break;
     final.push({ text: seed, chars: seed.length });
   }
 
-  return final.map((t, i) => `${i + 1}. ${t.text} (${t.text.length} chars)`).join("\n");
+  return final
+    .map((t, i) => `${i + 1}. ${t.text} (${t.text.length} chars)`)
+    .join("\n");
 }
 
 export function buildFallbackYoutubeMetadata({
@@ -504,12 +568,22 @@ export function buildFallbackYoutubeMetadata({
   rpmHint = {},
 }) {
   const strategy = storyboard?.strategy || {};
-  const baseTitle = strategy.title_main || getFirstSentences(transcript, 1) || "O detalhe que muda tudo nessa história";
-  const hook = strategy.hook || getFirstSentences(transcript, 2) || "Uma história que parece impossível, mas foi real.";
+  const baseTitle =
+    strategy.title_main ||
+    getFirstSentences(transcript, 1) ||
+    "O detalhe que muda tudo nessa história";
+  const hook =
+    strategy.hook ||
+    getFirstSentences(transcript, 2) ||
+    "Uma história que parece impossível, mas foi real.";
   const resolvedCategory = category || detectNicheCategory(niche);
-  const nicheTags = NICHE_TAG_POOLS[resolvedCategory] || NICHE_TAG_POOLS.default;
+  const nicheTags =
+    NICHE_TAG_POOLS[resolvedCategory] || NICHE_TAG_POOLS.default;
   const keywords = extractKeywords(`${baseTitle} ${hook} ${transcript}`, 12);
-  const tags = [...new Set([...keywords, ...nicheTags])].slice(0, format === "SHORT" ? 12 : 15);
+  const tags = [...new Set([...keywords, ...nicheTags])].slice(
+    0,
+    format === "SHORT" ? 12 : 15
+  );
   const titleFacts = extractTitleFacts({ transcript, storyboard, config });
   const listicleCtx = resolveListicleContext(storyboard, config);
   const titlesBlock = buildFallbackTitles({
@@ -519,8 +593,14 @@ export function buildFallbackYoutubeMetadata({
     format,
     facts: titleFacts,
   });
-  const parsedTitles = parseYoutubeMetadataMarkdown(`## TÍTULOS\n${titlesBlock}`).titles;
-  const thumbnailsBlock = buildFallbackThumbnails({ titles: parsedTitles, rpmHint, format });
+  const parsedTitles = parseYoutubeMetadataMarkdown(
+    `## TÍTULOS\n${titlesBlock}`
+  ).titles;
+  const thumbnailsBlock = buildFallbackThumbnails({
+    titles: parsedTitles,
+    rpmHint,
+    format,
+  });
 
   if (format === "SHORT") {
     const hashtags = `#Shorts #${nicheTags[0].replace(/\s/g, "")} #${nicheTags[1]?.replace(/\s/g, "") || "curiosidades"}`;
@@ -560,12 +640,18 @@ ${thumbnailsBlock}`;
   }
 
   const chapters = chaptersText?.trim()
-    ? chaptersText.trim().split(/\r?\n/).map((line) => {
-        const [ts, ...rest] = line.split(" - ");
-        const label = rest.join(" - ").trim();
-        const catchy = label.replace(/^Bloco \d+$/i, "O que aconteceu aqui").replace(/^Abertura$/i, "O começo que ninguém esperava");
-        return `${ts} - ${catchy}`;
-      }).join("\n")
+    ? chaptersText
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => {
+          const [ts, ...rest] = line.split(" - ");
+          const label = rest.join(" - ").trim();
+          const catchy = label
+            .replace(/^Bloco \d+$/i, "O que aconteceu aqui")
+            .replace(/^Abertura$/i, "O começo que ninguém esperava");
+          return `${ts} - ${catchy}`;
+        })
+        .join("\n")
     : "00:00 - O começo que prende até o final";
 
   return `## TÍTULOS
@@ -584,7 +670,10 @@ Neste vídeo você entende os detalhes por trás dessa história e por que ela c
 
 Assista até o final e comenta qual parte mais te surpreendeu.
 
-${nicheTags.slice(0, 4).map((t) => `#${t.replace(/\s/g, "")}`).join(" ")}
+${nicheTags
+  .slice(0, 4)
+  .map((t) => `#${t.replace(/\s/g, "")}`)
+  .join(" ")}
 
 ## TAGS
 
@@ -620,18 +709,69 @@ function getFirstSentences(text, count = 2) {
 
 function extractKeywords(text, limit = 15) {
   const stopWords = new Set([
-    "a", "o", "os", "as", "um", "uma", "de", "da", "do", "das", "dos", "em", "no", "na", "nos", "nas",
-    "e", "ou", "que", "para", "por", "com", "sem", "como", "mais", "mas", "foi", "ser", "são", "seu",
-    "sua", "seus", "suas", "esse", "essa", "este", "esta", "isso", "não", "sim", "ao", "aos", "pela",
-    "pelo", "pelos", "pelas", "quando", "onde", "porque", "sobre", "entre", "até", "também", "muito",
+    "a",
+    "o",
+    "os",
+    "as",
+    "um",
+    "uma",
+    "de",
+    "da",
+    "do",
+    "das",
+    "dos",
+    "em",
+    "no",
+    "na",
+    "nos",
+    "nas",
+    "e",
+    "ou",
+    "que",
+    "para",
+    "por",
+    "com",
+    "sem",
+    "como",
+    "mais",
+    "mas",
+    "foi",
+    "ser",
+    "são",
+    "seu",
+    "sua",
+    "seus",
+    "suas",
+    "esse",
+    "essa",
+    "este",
+    "esta",
+    "isso",
+    "não",
+    "sim",
+    "ao",
+    "aos",
+    "pela",
+    "pelo",
+    "pelos",
+    "pelas",
+    "quando",
+    "onde",
+    "porque",
+    "sobre",
+    "entre",
+    "até",
+    "também",
+    "muito",
   ]);
 
   const counts = new Map();
-  const words = String(text || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .match(/[a-z0-9]{4,}/g) || [];
+  const words =
+    String(text || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .match(/[a-z0-9]{4,}/g) || [];
 
   for (const word of words) {
     if (!stopWords.has(word)) {
@@ -646,14 +786,22 @@ function extractKeywords(text, limit = 15) {
 }
 
 function shortOverlayFromTitle(title = "", fallback = "ASSISTA AGORA") {
-  const words = String(title).replace(/\s*\(\d+\s*chars?\)\s*$/i, "").trim().split(/\s+/).filter(Boolean);
+  const words = String(title)
+    .replace(/\s*\(\d+\s*chars?\)\s*$/i, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   if (words.length === 0) return fallback;
   const chunk = words.slice(0, 4).join(" ").toUpperCase();
-  return chunk.length > 22 ? `${words.slice(0, 3).join(" ").toUpperCase()}` : chunk;
+  return chunk.length > 22
+    ? `${words.slice(0, 3).join(" ").toUpperCase()}`
+    : chunk;
 }
 
 export function ensureThumbnailVariants(parsed = {}, palette = []) {
-  const existing = Array.isArray(parsed.thumbnails) ? parsed.thumbnails.filter(Boolean) : [];
+  const existing = Array.isArray(parsed.thumbnails)
+    ? parsed.thumbnails.filter(Boolean)
+    : [];
   if (existing.length >= 3) return existing.slice(0, 3);
 
   const titles = parsed.titles || [];
@@ -662,7 +810,9 @@ export function ensureThumbnailVariants(parsed = {}, palette = []) {
     {
       id: "A",
       label: "Curiosidade",
-      overlayText: parsed.thumbnailHook || shortOverlayFromTitle(titles[0]?.text, "IMPOSSÍVEL?"),
+      overlayText:
+        parsed.thumbnailHook ||
+        shortOverlayFromTitle(titles[0]?.text, "IMPOSSÍVEL?"),
       pairedTitle: titles[0]?.text ? `1. ${titles[0].text}` : "",
       colors,
     },
@@ -694,12 +844,14 @@ export function ensureThumbnailVariants(parsed = {}, palette = []) {
 function isThumbnailPlaceholder(value = "") {
   const v = String(value || "").trim();
   if (!v || v === "..." || v === "…") return true;
-  return /^\([^)]*\)$/i.test(v)
-    || /máx 5 palavras/i.test(v)
-    || /número e texto do título escolhido/i.test(v)
-    || /layout, posição do texto/i.test(v)
-    || /rosto, objeto ou cena de destaque/i.test(v)
-    || /3 hex da paleta/i.test(v);
+  return (
+    /^\([^)]*\)$/i.test(v) ||
+    /máx 5 palavras/i.test(v) ||
+    /número e texto do título escolhido/i.test(v) ||
+    /layout, posição do texto/i.test(v) ||
+    /rosto, objeto ou cena de destaque/i.test(v) ||
+    /3 hex da paleta/i.test(v)
+  );
 }
 
 function parseThumbnailVariants(content = "") {
@@ -708,37 +860,61 @@ function parseThumbnailVariants(content = "") {
   if (!normalized) return variants;
 
   const blocks = normalized.split(/^###\s+/m).filter(Boolean);
-  const extraBlocks = normalized.split(/^(?:\*\*)?Variante\s+[A-C]/gim).filter(Boolean);
+  const extraBlocks = normalized
+    .split(/^(?:\*\*)?Variante\s+[A-C]/gim)
+    .filter(Boolean);
   const allBlocks = blocks.length > 1 ? blocks : extraBlocks;
 
   for (const block of allBlocks) {
     const lines = block.split("\n");
     const header = lines[0]?.trim() || "";
-    const headerMatch = header.match(/^(?:\*\*)?Variante\s+([A-C])\s*(?:\*\*)?\s*[—–:-]\s*(.+)$/i)
-      || header.match(/^(?:\*\*)?Variante\s+([A-C])\b/i);
-    const id = headerMatch?.[1]?.toUpperCase() || String.fromCharCode(65 + variants.length);
+    const headerMatch =
+      header.match(
+        /^(?:\*\*)?Variante\s+([A-C])\s*(?:\*\*)?\s*[—–:-]\s*(.+)$/i
+      ) || header.match(/^(?:\*\*)?Variante\s+([A-C])\b/i);
+    const id =
+      headerMatch?.[1]?.toUpperCase() ||
+      String.fromCharCode(65 + variants.length);
     const label = headerMatch?.[2]?.trim() || header;
     const fields = {};
 
     for (const line of lines.slice(1)) {
       const fieldMatch = line.match(/^-\s*(.+?):\s*(.+)$/);
       if (!fieldMatch) continue;
-      const key = fieldMatch[1].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const key = fieldMatch[1]
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
       fields[key] = fieldMatch[2].trim();
     }
 
     const pairedTitle = fields["titulo pareado"] || fields.titulo || "";
     const overlayText = fields["texto na capa"] || fields.texto || "";
-    if (isThumbnailPlaceholder(pairedTitle) && isThumbnailPlaceholder(overlayText)) continue;
+    if (
+      isThumbnailPlaceholder(pairedTitle) &&
+      isThumbnailPlaceholder(overlayText)
+    )
+      continue;
 
     variants.push({
       id,
       label,
       pairedTitle: isThumbnailPlaceholder(pairedTitle) ? "" : pairedTitle,
       overlayText: isThumbnailPlaceholder(overlayText) ? "" : overlayText,
-      composition: isThumbnailPlaceholder(fields.composicao) ? "" : (fields.composicao || ""),
-      colors: (fields.cores || "").split(/[,;]/).map((c) => c.trim()).filter((c) => c && !isThumbnailPlaceholder(c)),
-      focalElement: isThumbnailPlaceholder(fields["expressao/elemento"]) ? "" : (fields["expressao/elemento"] || fields.expressao || fields.elemento || fields.foco || ""),
+      composition: isThumbnailPlaceholder(fields.composicao)
+        ? ""
+        : fields.composicao || "",
+      colors: (fields.cores || "")
+        .split(/[,;]/)
+        .map((c) => c.trim())
+        .filter((c) => c && !isThumbnailPlaceholder(c)),
+      focalElement: isThumbnailPlaceholder(fields["expressao/elemento"])
+        ? ""
+        : fields["expressao/elemento"] ||
+          fields.expressao ||
+          fields.elemento ||
+          fields.foco ||
+          "",
     });
   }
 
@@ -762,12 +938,14 @@ const METADATA_PLAIN_HEADERS = [
 ];
 
 function stripHeaderAccents(value = "") {
-  return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function normalizePlainMetadataHeaders(text = "") {
   const headerKeys = new Set(
-    METADATA_PLAIN_HEADERS.map((h) => stripHeaderAccents(h).toUpperCase()),
+    METADATA_PLAIN_HEADERS.map((h) => stripHeaderAccents(h).toUpperCase())
   );
 
   return String(text)
@@ -786,13 +964,16 @@ export function normalizeMetadataMarkdown(text = "") {
   return normalizePlainMetadataHeaders(
     String(text)
       .replace(/\r\n/g, "\n")
-      .replace(/^\s*\*\*(##\s+[^*\n]+)\*\*\s*$/gm, "$1"),
+      .replace(/^\s*\*\*(##\s+[^*\n]+)\*\*\s*$/gm, "$1")
   ).trim();
 }
 
 function extractMetadataSectionBlock(text, headerPattern) {
   const m = String(text).match(
-    new RegExp(`##\\s*${headerPattern}[^\\n]*\\n([\\s\\S]*?)(?=\\n##\\s+|$)`, "i"),
+    new RegExp(
+      `##\\s*${headerPattern}[^\\n]*\\n([\\s\\S]*?)(?=\\n##\\s+|$)`,
+      "i"
+    )
   );
   return m?.[1]?.trim() || "";
 }
@@ -801,11 +982,21 @@ export function hasCompleteMetadataSections(text = "") {
   const normalized = normalizeMetadataMarkdown(text);
   if (!normalized || looksLikeLumieraPromptInline(normalized)) return false;
 
-  const hasTitles = /\d+\.\s+.{10,}/m.test(normalized) || /##\s*T[ÍI]TULOS/i.test(normalized);
-  const description = extractMetadataSectionBlock(normalized, "DESCRI[ÇC][ÃA]O");
+  const hasTitles =
+    /\d+\.\s+.{10,}/m.test(normalized) || /##\s*T[ÍI]TULOS/i.test(normalized);
+  const description = extractMetadataSectionBlock(
+    normalized,
+    "DESCRI[ÇC][ÃA]O"
+  );
   const tags = extractMetadataSectionBlock(normalized, "TAGS");
-  const hashtags = extractMetadataSectionBlock(normalized, "HASHTAGS(?:\\s+PRINCIPAIS)?");
-  const pinned = extractMetadataSectionBlock(normalized, "COMENT[ÁA]RIO\\s+PINADO");
+  const hashtags = extractMetadataSectionBlock(
+    normalized,
+    "HASHTAGS(?:\\s+PRINCIPAIS)?"
+  );
+  const pinned = extractMetadataSectionBlock(
+    normalized,
+    "COMENT[ÁA]RIO\\s+PINADO"
+  );
 
   const hasDesc = description.length >= 50;
   const hasTags = tags.length >= 8;
@@ -820,7 +1011,9 @@ export function hasCompleteMetadataSections(text = "") {
 }
 
 function looksLikeLumieraPromptInline(text) {
-  return /LUMIERA_TASK:|PRIORIDADE ABSOLUTA|--- INÍCIO DO ROTEIRO ---/i.test(String(text || ""));
+  return /LUMIERA_TASK:|PRIORIDADE ABSOLUTA|--- INÍCIO DO ROTEIRO ---/i.test(
+    String(text || "")
+  );
 }
 
 export function parseYoutubeMetadataMarkdown(text = "") {
@@ -830,18 +1023,33 @@ export function parseYoutubeMetadataMarkdown(text = "") {
 
   for (const part of parts) {
     const lines = part.split("\n");
-    const key = lines[0]?.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const key = lines[0]
+      ?.trim()
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
     const content = lines.slice(1).join("\n").trim();
     if (key) sections[key] = content;
   }
 
-  if (!sections.DESCRICAO) sections.DESCRICAO = extractMetadataSectionBlock(normalized, "DESCRI[ÇC][ÃA]O");
-  if (!sections.TAGS) sections.TAGS = extractMetadataSectionBlock(normalized, "TAGS");
+  if (!sections.DESCRICAO)
+    sections.DESCRICAO = extractMetadataSectionBlock(
+      normalized,
+      "DESCRI[ÇC][ÃA]O"
+    );
+  if (!sections.TAGS)
+    sections.TAGS = extractMetadataSectionBlock(normalized, "TAGS");
   if (!sections["HASHTAGS PRINCIPAIS"]) {
-    sections["HASHTAGS PRINCIPAIS"] = extractMetadataSectionBlock(normalized, "HASHTAGS(?:\\s+PRINCIPAIS)?");
+    sections["HASHTAGS PRINCIPAIS"] = extractMetadataSectionBlock(
+      normalized,
+      "HASHTAGS(?:\\s+PRINCIPAIS)?"
+    );
   }
   if (!sections["COMENTARIO PINADO"]) {
-    sections["COMENTARIO PINADO"] = extractMetadataSectionBlock(normalized, "COMENT[ÁA]RIO\\s+PINADO");
+    sections["COMENTARIO PINADO"] = extractMetadataSectionBlock(
+      normalized,
+      "COMENT[ÁA]RIO\\s+PINADO"
+    );
   }
 
   const titlesRaw = sections.TITULOS || "";
@@ -851,16 +1059,23 @@ export function parseYoutubeMetadataMarkdown(text = "") {
     .filter(Boolean)
     .map((line) => {
       const match = line.match(/^(.+?)\s*\((\d+)\s*chars?\)\s*$/i);
-      const raw = match ? match[1].trim() : line.replace(/\s*\(\d+\s*chars?\)\s*$/i, "").trim();
+      const raw = match
+        ? match[1].trim()
+        : line.replace(/\s*\(\d+\s*chars?\)\s*$/i, "").trim();
       const text = sanitizeTitle(raw);
       const chars = match ? Number(match[2]) : text.length;
       return { text, chars: text.length || chars };
     })
     .filter((t) => t.text.length >= 8);
 
-  const thumbnailsRaw = sections["THUMBNAILS A/B"] || sections["THUMBNAILS AB"] || sections.THUMBNAILS || "";
+  const thumbnailsRaw =
+    sections["THUMBNAILS A/B"] ||
+    sections["THUMBNAILS AB"] ||
+    sections.THUMBNAILS ||
+    "";
   let thumbnails = parseThumbnailVariants(thumbnailsRaw);
-  const thumbnailHook = sections["GANCHO PARA THUMBNAIL"] || thumbnails[0]?.overlayText || "";
+  const thumbnailHook =
+    sections["GANCHO PARA THUMBNAIL"] || thumbnails[0]?.overlayText || "";
 
   if (thumbnails.length < 3) {
     thumbnails = ensureThumbnailVariants({ titles, thumbnails, thumbnailHook });
@@ -889,10 +1104,13 @@ export function resolveYoutubeMetadataContext({
 }) {
   const totalDuration = estimateTotalDuration(timings);
   const format = detectVideoFormat(config, totalDuration);
-  const niche = config.niche || storyboard?.strategy?.niche || storyboard?.niche || "Geral";
+  const niche =
+    config.niche || storyboard?.strategy?.niche || storyboard?.niche || "Geral";
   const chaptersText = isListicleProject(config, storyboard)
     ? buildListicleYoutubeChapters(storyboard, config, timings)
-    : (format === "LONG" ? buildChaptersText(timings, format) : "");
+    : format === "LONG"
+      ? buildChaptersText(timings, format)
+      : "";
   const { profile, category } = selectVarietyProfile(projectName, niche);
   const rpmHint = NICHE_RPM_HINTS[category] || NICHE_RPM_HINTS.default;
 
