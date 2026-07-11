@@ -2088,7 +2088,8 @@ export function AppCreatorTab({
 
         {/* Optional: Script Master Strategy Details Panel */}
 
-        {generatedScriptData &&
+        {creatorStep > 1 &&
+          generatedScriptData &&
           (String(generatedScriptData.strategy?.title_main || "").trim() ||
             String(generatedScriptData.strategy?.hook || "").trim() ||
             String(generatedScriptData.narrative_script || "").trim()) && (
