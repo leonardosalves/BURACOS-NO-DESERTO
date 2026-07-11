@@ -6,7 +6,7 @@
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
-import { getFfmpegStatus } from "./pythonEnv.js";
+import { getFfmpegStatus, buildPythonSpawnEnv } from "./pythonEnv.js";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
 import { STUDIO_FILENAME } from "./timelineStudioMigration.js";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
@@ -400,7 +400,7 @@ function transcodeVideoForRemotion(source, dest) {
   const cmd = `"${ffmpegBin}" -y -i "${source}" -c:v libx264 -pix_fmt yuv420p -profile:v high -level:v 4.0 -g 1 -bf 0 -crf 20 -c:a aac -b:a 128k -movflags +faststart "${tempDest}"`;
 
   try {
-    execSync(cmd, { stdio: "ignore" });
+    execSync(cmd, { stdio: "ignore", env: buildPythonSpawnEnv() });
     if (fs.existsSync(tempDest)) {
       if (fs.existsSync(dest)) fs.unlinkSync(dest);
       fs.renameSync(tempDest, dest);
