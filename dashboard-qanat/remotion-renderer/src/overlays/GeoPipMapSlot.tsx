@@ -1,5 +1,6 @@
 import React from "react";
-import { AbsoluteFill, Img, OffthreadVideo, staticFile } from "remotion";
+import { AbsoluteFill, Img, staticFile } from "remotion";
+import { Video } from "@remotion/media";
 import type { ZoomKeyframe } from "./locationIntroGeo";
 
 export type GeoPipWindow = {
@@ -67,7 +68,7 @@ export const GeoPipMapSlot: React.FC<Props> = ({
   let inner: React.ReactNode = mapContent || null;
   if (!inner && flyoverSrc) {
     inner = (
-      <OffthreadVideo
+      <Video
         src={flyoverSrc}
         muted
         volume={0}
