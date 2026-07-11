@@ -31,6 +31,7 @@ describe("shouldPauseNotebooklmNarration", () => {
         scriptPhase: "narration",
         useNotebooklm: true,
         skipNotebooklmPending: false,
+        interactiveNotebooklm: true,
       }),
       true
     );
