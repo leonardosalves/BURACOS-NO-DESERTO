@@ -73,6 +73,7 @@ import {
   isChunkedNarrationProject,
   NARRATION_MODE_CHUNKED,
 } from "./narrationChunks.js";
+import { appendNarrationAuditEvent } from "./narrationAudit.js";
 import {
   convertCinematicMarkersForTts,
   sanitizeNarrationChunkTaggedText,
@@ -858,11 +859,30 @@ export function registerWorkflowRoutes(app, deps) {
         assembleMaster: assembleMaster !== false,
         onLog: (msg) => console.log(msg),
         onProgress: report,
-        onChunkUpdate: (partialPlan) => {
+        onChunkUpdate: (partialPlan, changedChunk) => {
           persistChunkPlanToProject(projDir, partialPlan, {
             ...config,
             narration_mode: NARRATION_MODE_CHUNKED,
           });
+          const changed = partialPlan.chunks.find(
+            (chunk) => chunk.id === changedChunk?.id
+          );
+          if (changed) {
+            appendNarrationAuditEvent(projDir, {
+              type: "chunk_tts",
+              run_id: progressJobId || null,
+              status: changed.status,
+              chunk_id: changed.id,
+              block: changed.block,
+              text: changed.text,
+              text_tagged: changed.text_tagged,
+              voice: changed.voice,
+              audio_file: changed.audio_file,
+              duration_s: changed.duration_s,
+              error: changed.error,
+              generation_signature: changed.generation_signature,
+            });
+          }
         },
       });
 

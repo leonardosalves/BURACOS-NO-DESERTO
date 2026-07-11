@@ -429,6 +429,10 @@ import {
   MAX_NARRATION_UPLOAD_BYTES,
   removeTemporaryNarration,
 } from "./narrationUpload.js";
+import {
+  appendNarrationAuditEvent,
+  readNarrationAudit,
+} from "./narrationAudit.js";
 import { resolveCaptionRenderSettings } from "./captionConfig.js";
 import {
   computeOverlayDisplayDuration,
@@ -15272,6 +15276,14 @@ app.post("/api/upload-narration", (req, res) => {
         narrationFile,
         { probeDuration: probeAudioDuration }
       );
+      appendNarrationAuditEvent(projDir, {
+        type: "master_upload",
+        status: "generated",
+        engine: "upload",
+        audio_file: "narracao_mestra_premium.mp3",
+        duration_s: validated.duration,
+        bytes: validated.bytes,
+      });
       const staleFiles = ["word_transcripts.json", "block_timings.json"];
 
       for (const fname of staleFiles) {
@@ -15308,6 +15320,16 @@ app.post("/api/upload-narration", (req, res) => {
       details: err.message,
     });
   });
+});
+
+app.get("/api/narration/audit", (req, res) => {
+  try {
+    res.json(readNarrationAudit(getProjectDir(req)));
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: err.message || "Falha ao carregar auditoria." });
+  }
 });
 
 // API: Binary stream upload for background music
