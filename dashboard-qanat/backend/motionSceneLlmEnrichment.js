@@ -2,6 +2,28 @@
  * Fase 3 — enriquecimento LLM opcional + dedupe com overlays_ai.
  */
 
+import fs from "fs";
+import path from "path";
+
+function loadRemotionTemplatesInstruction() {
+  try {
+    const filePath = path.join(
+      process.cwd(),
+      ".agents",
+      "remotiontemplatesinstruction.md"
+    );
+    if (fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath, "utf8");
+    }
+  } catch (e) {
+    console.warn(
+      "Aviso ao carregar remotiontemplatesinstruction.md:",
+      e.message
+    );
+  }
+  return "";
+}
+
 import {
   DEFAULT_DURATIONS,
   MOTION_SCENE_TRIGGERS,
@@ -200,6 +222,11 @@ export function buildMotionSceneEnrichmentPrompt({
   config = {},
   overlaysAi = [],
 }) {
+  const templateGuidelines = loadRemotionTemplatesInstruction();
+  const guidelinesBlock = templateGuidelines
+    ? `\n[DIRETRIZES DE ENRIQUECIMENTO E PREENCHIMENTO DE TEMPLATES (remotiontemplatesinstruction.md)]:\n${templateGuidelines}\n`
+    : "";
+
   const niche = String(config.niche || storyboard?.strategy?.niche || "Geral");
   const nichePack =
     heuristicPlan.niche_pack || resolveNichePack(config, storyboard);
@@ -290,6 +317,8 @@ export function buildMotionSceneEnrichmentPrompt({
     studioContracts.length
       ? `CONTRATOS_STUDIO:\n${JSON.stringify(studioContracts, null, 2)}`
       : "",
+    "",
+    guidelinesBlock,
     "",
     nicheDesignPromptBlock(nichePack),
     "",
