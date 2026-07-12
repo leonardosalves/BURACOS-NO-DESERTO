@@ -155,7 +155,7 @@ export function AppAiTab({
       activeProject={activeProject}
       className="lumiera-fill-view overflow-hidden"
     >
-      <div className="lumiera-fill-view space-y-6 overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 space-y-6 overflow-y-auto">
         <div className="dash-status-card">
           <div className="flex items-center gap-3">
             <div
@@ -198,7 +198,7 @@ export function AppAiTab({
 
         {/* Two Column Layout: YouTube Metadata & AI Chat */}
 
-        <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0 min-w-0 overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0 min-w-0">
           {/* Column 1: YouTube Metadata */}
 
           <div className="flex-1 dash-chat-panel">
