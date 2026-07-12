@@ -318,9 +318,11 @@ def post_pinned_comment(access_token, video_id, comment_text):
         return False
 
 def upload_file_chunks(upload_url, video_path):
-    print("[INFO] Enviando blocos de vídeo...")
     file_size = os.path.getsize(video_path)
+    file_size_mb = file_size / (1024 * 1024)
     chunk_size = 10 * 1024 * 1024
+    total_chunks = (file_size + chunk_size - 1) // chunk_size
+    print(f"[INFO] Enviando vídeo ({file_size_mb:.1f} MB) em {total_chunks} blocos de 10 MB...", flush=True)
 
     uploaded_bytes = 0
     with open(video_path, "rb") as f:
@@ -347,18 +349,23 @@ def upload_file_chunks(upload_url, video_path):
             try:
                 with urllib.request.urlopen(req) as response:
                     res_body = response.read().decode("utf-8")
-                    percent = int((uploaded_bytes + chunk_len) / file_size * 100)
-                    print(f"[PROGRESSO] {percent}%")
+                    uploaded_bytes += chunk_len
+                    percent = int(uploaded_bytes / file_size * 100)
+                    sent_mb = uploaded_bytes / (1024 * 1024)
+                    print(f"[PROGRESSO] {percent}%", flush=True)
+                    print(f"[INFO] Enviado {sent_mb:.1f} / {file_size_mb:.1f} MB", flush=True)
                     return json.loads(res_body)
             except urllib.error.HTTPError as e:
                 if e.code == 308:
                     uploaded_bytes += chunk_len
                     percent = int(uploaded_bytes / file_size * 100)
-                    print(f"[PROGRESSO] {percent}%")
+                    sent_mb = uploaded_bytes / (1024 * 1024)
+                    print(f"[PROGRESSO] {percent}%", flush=True)
+                    print(f"[INFO] Enviado {sent_mb:.1f} / {file_size_mb:.1f} MB", flush=True)
                     continue
                 else:
                     err_msg = e.read().decode('utf-8')
-                    print(f"[ERROR] Falha no envio do bloco {content_range}: {err_msg}")
+                    print(f"[ERROR] Falha no envio do bloco {content_range}: {err_msg}", flush=True)
                     raise
 
 def main():
