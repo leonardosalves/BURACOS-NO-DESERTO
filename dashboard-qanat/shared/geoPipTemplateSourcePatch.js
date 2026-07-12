@@ -78,7 +78,7 @@ function wrapBlockOnce(src, marker, opener, closer, wrapperOpen, wrapperClose) {
 }
 
 function ensureGeoPipOverlayChromeProp(src = "") {
-  let out = String(src);
+  let out = String(src).replace(/\r\n/g, "\n");
   if (!/durationInFrames\s*\??:/.test(out)) {
     out = out.replace(
       `  textColor?: string;
@@ -121,7 +121,7 @@ function ensureGeoPipOverlayChromeProp(src = "") {
 
 export function patchGeoPipTemplateSourceForChrome(code = "") {
   if (!isGeoPipTemplateSource(code)) return String(code || "");
-  let src = ensureGeoPipOverlayChromeProp(String(code));
+  let src = ensureGeoPipOverlayChromeProp(String(code).replace(/\r\n/g, "\n"));
 
   src = src.replace(
     "{showMainContentLabel && (",
