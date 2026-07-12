@@ -153,9 +153,9 @@ export function AppAiTab({
     <DashminProjectTabLayout
       tab="ai"
       activeProject={activeProject}
-      className="lumiera-fill-view overflow-hidden"
+      className=""
     >
-      <div className="flex flex-col flex-1 min-h-0 space-y-6 overflow-y-auto">
+      <div className="space-y-6">
         <div className="dash-status-card">
           <div className="flex items-center gap-3">
             <div
@@ -201,7 +201,7 @@ export function AppAiTab({
         <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0 min-w-0">
           {/* Column 1: YouTube Metadata */}
 
-          <div className="flex-1 dash-chat-panel">
+          <div className="flex-1 dash-chat-panel overflow-visible">
             <div className="flex justify-between items-start dash-chat-panel-header">
               <div>
                 <SectionHeader
