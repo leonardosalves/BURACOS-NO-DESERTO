@@ -21,6 +21,8 @@ import { warnLongListicleTitles } from "./listicleTitleUtils";
 import { CreatorProductionPlanPanel } from "./CreatorProductionPlanPanel";
 import { GeoVideoWizardPanel } from "./GeoVideoWizardPanel";
 import type { GeoMotionScene } from "./geoVideoFlyover";
+import { HistoricalWitnessCreatorStep } from "./HistoricalWitnessCreatorStep";
+import type { HistoricalWitnessContext } from "./historicalWitnessTypes";
 
 const LazyListicleCreatorStep = lazy(() =>
   import("./ListicleCreatorStep").then((m) => ({
@@ -117,6 +119,7 @@ export type AppCreatorTabProps = {
     opts?: { immediate?: boolean }
   ) => void;
   hasApiKey: boolean;
+  historicalWitnessContext: HistoricalWitnessContext | null;
   ideasData: any;
   ideationTab: string;
   leaveGlobalViewForProject: (tab: string) => void;
@@ -134,6 +137,9 @@ export type AppCreatorTabProps = {
   narrationStrategy: any;
   narrationTaggedDraft: string;
   nicheInput: string;
+  motionTemplatePackEnabled: boolean;
+  motionTemplateNiche: string;
+  motionTemplateIds: string[];
   notebooklmImproving: boolean;
   notebooklmStatus: any;
   rankCount: number;
@@ -168,6 +174,7 @@ export type AppCreatorTabProps = {
     React.SetStateAction<Record<number, boolean>>
   >;
   setFormatSelector: (v: "LONGO" | "SHORTS") => void;
+  setHistoricalWitnessContext: (v: HistoricalWitnessContext | null) => void;
   setIdeasData: (v: any) => void;
   setIdeationTab: (v: string) => void;
   setListNiche: (v: string) => void;
@@ -176,6 +183,9 @@ export type AppCreatorTabProps = {
   setNarrationDraft: (v: string) => void;
   setNarrationTaggedDraft: (v: string) => void;
   setNicheInput: (v: string) => void;
+  setMotionTemplatePackEnabled: (v: boolean) => void;
+  setMotionTemplateNiche: (v: string) => void;
+  setMotionTemplateIds: (v: string[]) => void;
   setRankCount: (v: number) => void;
   setRankOrder: (v: string) => void;
   setSelectedIdeaIndex: (v: number) => void;
@@ -261,6 +271,7 @@ export function AppCreatorTab({
   handleUploadSceneAsset,
   handleMotionScenesChange,
   hasApiKey,
+  historicalWitnessContext,
   ideasData,
   ideationTab,
   leaveGlobalViewForProject,
@@ -278,6 +289,9 @@ export function AppCreatorTab({
   narrationStrategy,
   narrationTaggedDraft,
   nicheInput,
+  motionTemplatePackEnabled,
+  motionTemplateNiche,
+  motionTemplateIds,
   notebooklmImproving,
   notebooklmStatus,
   rankCount,
@@ -304,6 +318,7 @@ export function AppCreatorTab({
   setEditorialIdeaImport,
   setExpandedBlocks,
   setFormatSelector,
+  setHistoricalWitnessContext,
   setIdeasData,
   setIdeationTab,
   setListNiche,
@@ -312,6 +327,9 @@ export function AppCreatorTab({
   setNarrationDraft,
   setNarrationTaggedDraft,
   setNicheInput,
+  setMotionTemplatePackEnabled,
+  setMotionTemplateNiche,
+  setMotionTemplateIds,
   setRankCount,
   setRankOrder,
   setSelectedIdeaIndex,
@@ -623,30 +641,76 @@ export function AppCreatorTab({
               <div className="flex flex-wrap gap-2 border-t border-zinc-900/60 pt-3">
                 <button
                   type="button"
-                  onClick={() => setIdeationTab("ai")}
+                  onClick={() => {
+                    setHistoricalWitnessContext(null);
+                    setIdeationTab("ai");
+                  }}
                   className={`dash-segment-btn ${ideationTab === "ai" ? "dash-segment-btn-active" : ""}`}
                 >
                   <span>💡 Gerar com IA</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIdeationTab("custom")}
+                  onClick={() => {
+                    setHistoricalWitnessContext(null);
+                    setIdeationTab("custom");
+                  }}
                   className={`dash-segment-btn ${ideationTab === "custom" ? "dash-segment-btn-active" : ""}`}
                 >
                   <span>✏️ Ideia Personalizada</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIdeationTab("listicle")}
+                  onClick={() => {
+                    setHistoricalWitnessContext(null);
+                    setIdeationTab("listicle");
+                  }}
                   className={`dash-segment-btn ${ideationTab === "listicle" ? "dash-segment-btn-active" : ""}`}
                 >
                   <span>📊 Top N / Listicle</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHistoricalWitnessContext(null);
+                    setIdeationTab("historical-witness");
+                  }}
+                  className={`dash-segment-btn ${ideationTab === "historical-witness" ? "dash-segment-btn-active" : ""}`}
+                >
+                  <span>🎥 História Viva</span>
+                </button>
               </div>
             </div>
 
-            {ideationTab === "custom" ? (
+            {ideationTab === "historical-witness" ? (
+              <HistoricalWitnessCreatorStep
+                creatorLoading={creatorLoading}
+                formatSelector={formatSelector}
+                setFormatSelector={setFormatSelector}
+                setIdeationTab={setIdeationTab}
+                setCustomTitle={setCustomTitle}
+                setCustomHooks={setCustomHooks}
+                setCustomOutline={setCustomOutline}
+                setCustomBlocks={setCustomBlocks}
+                setCreatorProjectName={setCreatorProjectName}
+                setNicheInput={setNicheInput}
+                setHistoricalWitnessContext={setHistoricalWitnessContext}
+              />
+            ) : ideationTab === "custom" ? (
               <div className="space-y-6 max-w-2xl mx-auto">
+                {historicalWitnessContext?.contentMode ===
+                  "HISTORICAL_WITNESS" && (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/8 px-4 py-3">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-amber-300">
+                      NARRADORPRO · História Viva conectada
+                    </p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-zinc-400">
+                      O roteiro pode ser revisado, mas personagem, época, local,
+                      verdade central e continuidade dos prompts permanecem
+                      travados.
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-4">
                   {/* Title input */}
                   <div className="space-y-2 font-sans">
@@ -1425,6 +1489,10 @@ export function AppCreatorTab({
                 notebooklmEnriched={narrationNotebooklmEnriched}
                 notebooklmImproving={notebooklmImproving}
                 notebooklmAvailable={notebooklmStatus?.authenticated ?? false}
+                niche={nicheInput}
+                motionTemplatePackEnabled={motionTemplatePackEnabled}
+                motionTemplateNiche={motionTemplateNiche}
+                motionTemplateIds={motionTemplateIds}
                 loading={creatorLoading}
                 loadingMode={creatorLoadingMode}
                 onNarrativeChange={(value) => {
@@ -1434,6 +1502,9 @@ export function AppCreatorTab({
                 onRegenerate={handleGenerateNarration}
                 onApprove={handleApproveNarrationAndGenerateScript}
                 onNotebooklmImprove={handleNotebooklmImproveNarrationDraft}
+                onMotionTemplatePackEnabledChange={setMotionTemplatePackEnabled}
+                onMotionTemplateNicheChange={setMotionTemplateNiche}
+                onMotionTemplateIdsChange={setMotionTemplateIds}
               />
             )}
           </div>

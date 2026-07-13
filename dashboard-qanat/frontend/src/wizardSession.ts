@@ -1,4 +1,5 @@
 import type { EditorialIdeaImport } from "./creatorEditorialImport";
+import type { HistoricalWitnessContext } from "./historicalWitnessTypes";
 
 export const WIZARD_SESSION_KEY = "qanat_wizard_session";
 export const LEGACY_CREATOR_STATE_KEY = "qanat_creator_state";
@@ -20,7 +21,8 @@ export type WizardSession = {
   generatedScriptData: unknown;
   creatorProjectName: string;
   creatorScript: string;
-  ideationTab: "ai" | "custom" | "listicle";
+  ideationTab: "ai" | "custom" | "listicle" | "historical-witness";
+  historicalWitnessContext?: HistoricalWitnessContext | null;
   customTitle: string;
   customHooks: string;
   customOutline: string;
@@ -177,6 +179,10 @@ export function saveWizardSession(patch: WizardSessionPatch): WizardSession {
       patch.creatorProjectName ?? prev.creatorProjectName ?? "",
     creatorScript: patch.creatorScript ?? prev.creatorScript ?? "",
     ideationTab: patch.ideationTab ?? prev.ideationTab ?? "ai",
+    historicalWitnessContext:
+      patch.historicalWitnessContext !== undefined
+        ? patch.historicalWitnessContext
+        : (prev.historicalWitnessContext ?? null),
     customTitle: patch.customTitle ?? prev.customTitle ?? "",
     customHooks: patch.customHooks ?? prev.customHooks ?? "",
     customOutline: patch.customOutline ?? prev.customOutline ?? "",
@@ -268,6 +274,7 @@ export function buildEmptyWizardSession(activeTab = "creator"): WizardSession {
     creatorProjectName: "",
     creatorScript: "",
     ideationTab: "ai",
+    historicalWitnessContext: null,
     customTitle: "",
     customHooks: "",
     customOutline: "",
