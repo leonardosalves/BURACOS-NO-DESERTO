@@ -4,6 +4,8 @@ import {
   Bookmark,
   Compass,
   ExternalLink,
+  Loader2,
+  RefreshCw,
   Trash2,
   TrendingUp,
   Users,
@@ -67,6 +69,7 @@ export type TrendRadarSavedItem = {
   status?: string;
   pioneerScore?: number;
   macroNiche?: string;
+  parentScanId?: string;
   niche?: Record<string, unknown>;
   detail?: {
     label?: string;
@@ -162,6 +165,7 @@ type NicheDetailViewProps = {
   onBack: () => void;
   onDelete?: (id: string) => void;
   onOpenNicheFromScan?: (entry: NicheDetailEntry) => void;
+  onItemUpdated?: (item: TrendRadarSavedItem) => void;
   onApplyCreatorIdea?: (
     title: string,
     hook: string,
@@ -174,8 +178,11 @@ export function TrendRadarNicheDetailView({
   onBack,
   onDelete,
   onOpenNicheFromScan,
+  onItemUpdated,
   onApplyCreatorIdea,
 }: NicheDetailViewProps) {
+  const [refreshingSuggestion, setRefreshingSuggestion] = React.useState(false);
+  const [suggestionError, setSuggestionError] = React.useState("");
   if (item.type === "scan" && item.niches?.length) {
     return (
       <div className="space-y-4 animate-fade-in">
@@ -247,11 +254,48 @@ export function TrendRadarNicheDetailView({
   const competition = aspects?.competition;
   const pioneer = aspects?.pioneerAnalysis;
 
+  const refreshSuggestion = async () => {
+    if (refreshingSuggestion) return;
+    setRefreshingSuggestion(true);
+    setSuggestionError("");
+    try {
+      const response = await fetch(
+        `/api/trends/saved/${item.id}/new-suggestion`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nicheLabel: item.label,
+            niche: item.niche,
+            detail: item.detail,
+          }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok || !data?.ok || !data?.item) {
+        throw new Error(
+          data?.error || "Não foi possível pesquisar outra sugestão."
+        );
+      }
+      onItemUpdated?.(data.item as TrendRadarSavedItem);
+    } catch (error) {
+      setSuggestionError(
+        error instanceof Error
+          ? error.message
+          : "Falha ao pesquisar nova sugestão."
+      );
+    } finally {
+      setRefreshingSuggestion(false);
+    }
+  };
+
   const openCreator = () => {
     if (!onApplyCreatorIdea) return;
     const pioneerMeta = {
       macroNiche: String(raw.macroNiche || item.macroNiche || ""),
-      angle: String(raw.angle || aspects?.specificAngle || ""),
+      angle: String(
+        aspects?.specificAngle || raw.currentCaseAngle || raw.angle || ""
+      ),
       formatPattern: String(raw.formatPattern || ""),
       youtubeSearchQuery: String(raw.youtubeSearchQuery || ""),
       // Dados ricos do resultado de pesquisa
@@ -264,9 +308,7 @@ export function TrendRadarNicheDetailView({
       specificAngle: String(
         aspects?.specificAngle || raw.specificAngle || raw.angle || ""
       ),
-      contentPillars: Array.isArray(aspects?.contentPillars)
-        ? aspects.contentPillars
-        : [],
+      contentPillars: aspects?.contentPillars?.items || [],
       competitionLevel: String(competition?.level || ""),
       searchQuery: String(
         aspects?.searchQuery || raw.youtubeSearchQuery || item.label || ""
@@ -412,6 +454,26 @@ export function TrendRadarNicheDetailView({
           {aspects?.firstVideo?.hook && (
             <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">
               {aspects.firstVideo.hook}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => void refreshSuggestion()}
+            disabled={refreshingSuggestion || !onItemUpdated}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-[10px] font-bold text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {refreshingSuggestion ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            {refreshingSuggestion
+              ? "Pesquisando outro caso…"
+              : "Pesquisar novo vídeo nesta perspectiva"}
+          </button>
+          {suggestionError && (
+            <p className="mt-2 text-[10px] leading-relaxed text-red-300">
+              {suggestionError}
             </p>
           )}
         </AspectCard>

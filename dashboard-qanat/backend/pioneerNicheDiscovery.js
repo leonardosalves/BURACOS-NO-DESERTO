@@ -11,42 +11,143 @@ import { getYoutubeAccessToken } from "./youtubeTitleAnalytics.js";
 
 /** Nichos que o criador entende — categorias amplas do YouTube */
 const MACRO_NICHES = [
-  { id: "financas", label: "Finanças", searchBaseline: "finanças educação financeira" },
-  { id: "historia", label: "História", searchBaseline: "história documentário" },
-  { id: "documentario", label: "Documentário", searchBaseline: "documentário investigativo" },
-  { id: "curiosidades", label: "Curiosidades", searchBaseline: "curiosidades fatos" },
+  {
+    id: "financas",
+    label: "Finanças",
+    searchBaseline: "finanças educação financeira",
+  },
+  {
+    id: "historia",
+    label: "História",
+    searchBaseline: "história documentário",
+  },
+  {
+    id: "documentario",
+    label: "Documentário",
+    searchBaseline: "documentário investigativo",
+  },
+  {
+    id: "curiosidades",
+    label: "Curiosidades",
+    searchBaseline: "curiosidades fatos",
+  },
   { id: "ciencia", label: "Ciência", searchBaseline: "ciência explicada" },
-  { id: "tecnologia", label: "Tecnologia", searchBaseline: "tecnologia história" },
+  {
+    id: "tecnologia",
+    label: "Tecnologia",
+    searchBaseline: "tecnologia história",
+  },
   { id: "geografia", label: "Geografia", searchBaseline: "geografia lugares" },
-  { id: "true_crime", label: "True Crime", searchBaseline: "casos reais investigação" },
-  { id: "engenharia", label: "Engenharia", searchBaseline: "engenharia curiosidades" },
-  { id: "psicologia", label: "Psicologia", searchBaseline: "psicologia comportamento" },
-  { id: "gastronomia", label: "Gastronomia", searchBaseline: "gastronomia história comida" },
-  { id: "viagens", label: "Viagens", searchBaseline: "viagens lugares cultura" },
-  { id: "natureza", label: "Natureza", searchBaseline: "natureza animais documentário" },
-  { id: "esportes", label: "Esportes", searchBaseline: "esportes história curiosidades" },
-  { id: "arte", label: "Arte & Design", searchBaseline: "arte design história" },
+  {
+    id: "true_crime",
+    label: "True Crime",
+    searchBaseline: "casos reais investigação",
+  },
+  {
+    id: "engenharia",
+    label: "Engenharia",
+    searchBaseline: "engenharia curiosidades",
+  },
+  {
+    id: "psicologia",
+    label: "Psicologia",
+    searchBaseline: "psicologia comportamento",
+  },
+  {
+    id: "gastronomia",
+    label: "Gastronomia",
+    searchBaseline: "gastronomia história comida",
+  },
+  {
+    id: "viagens",
+    label: "Viagens",
+    searchBaseline: "viagens lugares cultura",
+  },
+  {
+    id: "natureza",
+    label: "Natureza",
+    searchBaseline: "natureza animais documentário",
+  },
+  {
+    id: "esportes",
+    label: "Esportes",
+    searchBaseline: "esportes história curiosidades",
+  },
+  {
+    id: "arte",
+    label: "Arte & Design",
+    searchBaseline: "arte design história",
+  },
   { id: "saude", label: "Saúde", searchBaseline: "saúde corpo mente" },
   { id: "games", label: "Games", searchBaseline: "games história cultura" },
-  { id: "automotivo", label: "Automotivo", searchBaseline: "carros história mecânica" },
+  {
+    id: "automotivo",
+    label: "Automotivo",
+    searchBaseline: "carros história mecânica",
+  },
   { id: "pets", label: "Pets", searchBaseline: "animais pets comportamento" },
   { id: "moda", label: "Moda", searchBaseline: "moda estilo história" },
   { id: "musica", label: "Música", searchBaseline: "música história cultura" },
-  { id: "filosofia", label: "Filosofia", searchBaseline: "filosofia pensamento" },
-  { id: "agronegocio", label: "Agronegócio", searchBaseline: "agricultura campo Brasil" },
-  { id: "arquitetura", label: "Arquitetura", searchBaseline: "arquitetura cidades" },
+  {
+    id: "filosofia",
+    label: "Filosofia",
+    searchBaseline: "filosofia pensamento",
+  },
+  {
+    id: "agronegocio",
+    label: "Agronegócio",
+    searchBaseline: "agricultura campo Brasil",
+  },
+  {
+    id: "arquitetura",
+    label: "Arquitetura",
+    searchBaseline: "arquitetura cidades",
+  },
 ];
 
 /** Padrões de vídeo — estruturas que poucos canais usam */
 const FORMAT_PATTERNS = [
-  { id: "timeline-objeto", label: "Timeline de um objeto", template: "Um objeto comum → virou símbolo histórico (linha do tempo visual)" },
-  { id: "mapa-misterio", label: "Mapa + mistério", template: "Lugar real no mapa que a história oficial ignorou" },
-  { id: "antes-depois-dados", label: "Antes/depois com dados", template: "Como era vs como é — só com fontes e números públicos" },
-  { id: "um-dia-extinto", label: "Um dia na vida extinta", template: "Recriar um dia de profissão/tradição que não existe mais" },
-  { id: "debunk-3-atos", label: "Debunk em 3 atos", template: "Mito popular → evidências → verdade surpreendente" },
-  { id: "comparativo-paises", label: "Comparativo países", template: "Mesmo fenômeno em 2 países — contraste cultural com dados" },
-  { id: "arquivo-secreto", label: "Arquivo público esquecido", template: "Documento/registro público que ninguém leu em PT-BR" },
-  { id: "record-humano", label: "Recorde humano bizarro", template: "Feito humano real verificável que parece ficção" },
+  {
+    id: "timeline-objeto",
+    label: "Timeline de um objeto",
+    template:
+      "Um objeto comum → virou símbolo histórico (linha do tempo visual)",
+  },
+  {
+    id: "mapa-misterio",
+    label: "Mapa + mistério",
+    template: "Lugar real no mapa que a história oficial ignorou",
+  },
+  {
+    id: "antes-depois-dados",
+    label: "Antes/depois com dados",
+    template: "Como era vs como é — só com fontes e números públicos",
+  },
+  {
+    id: "um-dia-extinto",
+    label: "Um dia na vida extinta",
+    template: "Recriar um dia de profissão/tradição que não existe mais",
+  },
+  {
+    id: "debunk-3-atos",
+    label: "Debunk em 3 atos",
+    template: "Mito popular → evidências → verdade surpreendente",
+  },
+  {
+    id: "comparativo-paises",
+    label: "Comparativo países",
+    template: "Mesmo fenômeno em 2 países — contraste cultural com dados",
+  },
+  {
+    id: "arquivo-secreto",
+    label: "Arquivo público esquecido",
+    template: "Documento/registro público que ninguém leu em PT-BR",
+  },
+  {
+    id: "record-humano",
+    label: "Recorde humano bizarro",
+    template: "Feito humano real verificável que parece ficção",
+  },
 ];
 
 const META_GARBAGE_RE = [
@@ -103,7 +204,11 @@ async function youtubeDataGet(accessToken, apiPath, params = {}) {
   return data;
 }
 
-function saturationFromCounts({ channelCount = 0, videoCount = 0, dedicatedChannels = 0 }) {
+function saturationFromCounts({
+  channelCount = 0,
+  videoCount = 0,
+  dedicatedChannels = 0,
+}) {
   const ch = Math.min(Number(channelCount) || 0, 500);
   const vi = Math.min(Number(videoCount) || 0, 5000);
   const ded = Number(dedicatedChannels) || 0;
@@ -123,11 +228,12 @@ function saturationFromCounts({ channelCount = 0, videoCount = 0, dedicatedChann
   else if (vi <= 1200) videoSat = 74;
   else videoSat = 88;
 
-  return Math.round((channelSat * 0.6 + videoSat * 0.4));
+  return Math.round(channelSat * 0.6 + videoSat * 0.4);
 }
 
 function pioneerLabel(angleSaturation, pioneerScore, gapScore) {
-  if (pioneerScore >= 70 && angleSaturation <= 22 && gapScore >= 25) return "virgem";
+  if (pioneerScore >= 70 && angleSaturation <= 22 && gapScore >= 25)
+    return "virgem";
   if (pioneerScore >= 55 && angleSaturation <= 40) return "pioneiro";
   if (angleSaturation <= 55) return "emergente";
   return "saturado";
@@ -155,7 +261,8 @@ export function isPioneerStrategyText(text = "") {
 
 function buildFirstVideoIdea(niche) {
   const existing = String(niche.firstVideoIdea || "").trim();
-  if (existing && !isPioneerStrategyText(existing)) return existing.slice(0, 240);
+  if (existing && !isPioneerStrategyText(existing))
+    return existing.slice(0, 240);
 
   const macro = String(niche.macroNiche || "").trim();
   const angle = String(niche.angle || "").trim();
@@ -187,7 +294,9 @@ function shuffleArray(items = []) {
 }
 
 function matchMacrosForNiche(baseNiche = "") {
-  const base = String(baseNiche || "").trim().toLowerCase();
+  const base = String(baseNiche || "")
+    .trim()
+    .toLowerCase();
   if (!base) return [];
 
   const tokens = base.split(/[\s,/|+&-]+/).filter((t) => t.length >= 4);
@@ -195,10 +304,17 @@ function matchMacrosForNiche(baseNiche = "") {
     const label = m.label.toLowerCase();
     const baseline = m.searchBaseline.toLowerCase();
     const id = m.id.replace(/_/g, " ");
-    return label.includes(base)
-      || base.includes(id)
-      || baseline.includes(base)
-      || tokens.some((token) => label.includes(token) || baseline.includes(token) || id.includes(token));
+    return (
+      label.includes(base) ||
+      base.includes(id) ||
+      baseline.includes(base) ||
+      tokens.some(
+        (token) =>
+          label.includes(token) ||
+          baseline.includes(token) ||
+          id.includes(token)
+      )
+    );
   });
 }
 
@@ -206,7 +322,12 @@ function buildMatrixCandidates(baseNiche, format, discoveryMode = "virgin") {
   const fmt = String(format || "SHORTS").toUpperCase();
   const isLong = fmt === "LONG" || fmt === "LONGO";
   const mode = discoveryMode === "chosen" ? "chosen" : "virgin";
-  const base = mode === "chosen" ? String(baseNiche || "").trim().toLowerCase() : "";
+  const base =
+    mode === "chosen"
+      ? String(baseNiche || "")
+          .trim()
+          .toLowerCase()
+      : "";
 
   let uniqueMacros;
   if (mode === "virgin") {
@@ -214,14 +335,20 @@ function buildMatrixCandidates(baseNiche, format, discoveryMode = "virgin") {
   } else {
     const matched = matchMacrosForNiche(base);
     const prioritized = matched.length
-      ? [matched[0], ...shuffleArray(MACRO_NICHES.filter((m) => m.id !== matched[0]?.id)).slice(0, 5)]
+      ? [
+          matched[0],
+          ...shuffleArray(
+            MACRO_NICHES.filter((m) => m.id !== matched[0]?.id)
+          ).slice(0, 5),
+        ]
       : shuffleArray(MACRO_NICHES).slice(0, 6);
-    uniqueMacros = [...new Map(prioritized.map((m) => [m.id, m])).values()].slice(0, 6);
+    uniqueMacros = [
+      ...new Map(prioritized.map((m) => [m.id, m])).values(),
+    ].slice(0, 6);
   }
 
-  const patternPool = mode === "virgin"
-    ? shuffleArray(FORMAT_PATTERNS)
-    : FORMAT_PATTERNS;
+  const patternPool =
+    mode === "virgin" ? shuffleArray(FORMAT_PATTERNS) : FORMAT_PATTERNS;
   const candidates = [];
 
   for (const macro of uniqueMacros) {
@@ -257,7 +384,10 @@ function buildSearchQuery(macro, pattern, isLong) {
   const tail = hints[pattern.id] || pattern.label.toLowerCase();
   const macroWord = macro.label.toLowerCase().split("/")[0].trim();
   const formatWord = isLong ? "documentário" : "shorts";
-  return `${macroWord} ${tail} ${formatWord}`.replace(/\s+/g, " ").trim().slice(0, 72);
+  return `${macroWord} ${tail} ${formatWord}`
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 72);
 }
 
 function extractTopicCandidatesFromExa(exaResult) {
@@ -265,7 +395,10 @@ function extractTopicCandidatesFromExa(exaResult) {
   if (!text) return [];
 
   const out = [];
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
 
   for (const line of lines) {
     const bullet = line
@@ -282,7 +415,10 @@ function extractTopicCandidatesFromExa(exaResult) {
       angle: bullet,
       formatPattern: "Ângulo emergente (web)",
       formatPatternId: "exa-topic",
-      youtubeSearchQuery: bullet.split(/[—–:-]/)[0].trim().slice(0, 60),
+      youtubeSearchQuery: bullet
+        .split(/[—–:-]/)[0]
+        .trim()
+        .slice(0, 60),
       label: bullet.slice(0, 72),
     });
   }
@@ -292,10 +428,13 @@ function extractTopicCandidatesFromExa(exaResult) {
 
 function guessMacroFromText(text = "") {
   const t = text.toLowerCase();
-  return MACRO_NICHES.find((m) =>
-    t.includes(m.label.toLowerCase())
-    || m.searchBaseline.split(" ").some((w) => w.length > 4 && t.includes(w)),
-  ) || null;
+  return (
+    MACRO_NICHES.find(
+      (m) =>
+        t.includes(m.label.toLowerCase()) ||
+        m.searchBaseline.split(" ").some((w) => w.length > 4 && t.includes(w))
+    ) || null
+  );
 }
 
 function buildExaQueries(baseNiche, discoveryMode = "virgin") {
@@ -315,8 +454,14 @@ function buildExaQueries(baseNiche, discoveryMode = "virgin") {
   return [...new Set(queries)].slice(0, 5);
 }
 
-async function measureYoutubeSaturation(accessToken, query, { baselineQuery = null } = {}) {
-  const q = String(query || "").trim().slice(0, 80);
+async function measureYoutubeSaturation(
+  accessToken,
+  query,
+  { baselineQuery = null } = {}
+) {
+  const q = String(query || "")
+    .trim()
+    .slice(0, 80);
   const empty = {
     query: q,
     channelCount: 0,
@@ -328,7 +473,8 @@ async function measureYoutubeSaturation(accessToken, query, { baselineQuery = nu
     sampleVideos: [],
     saturationPct: 100,
   };
-  if (!q || isMetaGarbage(q)) return { ...empty, rejected: true, rejectReason: "meta-lixo" };
+  if (!q || isMetaGarbage(q))
+    return { ...empty, rejected: true, rejectReason: "meta-lixo" };
 
   try {
     const [channelSearch, videoSearch] = await Promise.all([
@@ -355,9 +501,14 @@ async function measureYoutubeSaturation(accessToken, query, { baselineQuery = nu
     const channelTotal = formatCount(channelSearch?.pageInfo?.totalResults);
     const videoTotal = formatCount(videoSearch?.pageInfo?.totalResults);
 
-    const keywords = q.toLowerCase().split(/\s+/).filter((w) => w.length >= 4);
+    const keywords = q
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length >= 4);
     const dedicatedChannels = channelItems.filter((item) => {
-      const title = String(item?.snippet?.title || item?.snippet?.channelTitle || "").toLowerCase();
+      const title = String(
+        item?.snippet?.title || item?.snippet?.channelTitle || ""
+      ).toLowerCase();
       const desc = String(item?.snippet?.description || "").toLowerCase();
       const blob = `${title} ${desc}`;
       return keywords.some((kw) => blob.includes(kw));
@@ -376,9 +527,13 @@ async function measureYoutubeSaturation(accessToken, query, { baselineQuery = nu
         part: "statistics,snippet",
         id: videoIds.slice(0, 10).join(","),
       });
-      const views = (statsData?.items || []).map((v) => formatCount(v?.statistics?.viewCount));
+      const views = (statsData?.items || []).map((v) =>
+        formatCount(v?.statistics?.viewCount)
+      );
       if (views.length) {
-        avgTopViews = Math.round(views.reduce((a, b) => a + b, 0) / views.length);
+        avgTopViews = Math.round(
+          views.reduce((a, b) => a + b, 0) / views.length
+        );
         maxTopViews = Math.max(...views);
       }
       for (const item of statsData?.items || []) {
@@ -398,7 +553,10 @@ async function measureYoutubeSaturation(accessToken, query, { baselineQuery = nu
 
     let macroSaturation = angleSaturation;
     if (baselineQuery) {
-      const baseline = await measureYoutubeSaturation(accessToken, baselineQuery);
+      const baseline = await measureYoutubeSaturation(
+        accessToken,
+        baselineQuery
+      );
       macroSaturation = baseline.saturationPct;
     }
 
@@ -421,22 +579,41 @@ async function measureYoutubeSaturation(accessToken, query, { baselineQuery = nu
       gapScore,
     };
   } catch (err) {
-    const isQuota = String(err.message || "").toLowerCase().includes("quota")
-      || String(err.message || "").toLowerCase().includes("limit")
-      || String(err.message || "").toLowerCase().includes("exceeded")
-      || String(err.message || "").toLowerCase().includes("rate limit")
-      || String(err.message || "").toLowerCase().includes("search queries");
+    const isQuota =
+      String(err.message || "")
+        .toLowerCase()
+        .includes("quota") ||
+      String(err.message || "")
+        .toLowerCase()
+        .includes("limit") ||
+      String(err.message || "")
+        .toLowerCase()
+        .includes("exceeded") ||
+      String(err.message || "")
+        .toLowerCase()
+        .includes("rate limit") ||
+      String(err.message || "")
+        .toLowerCase()
+        .includes("search queries");
 
     if (isQuota) {
-      console.warn(`[pioneer] Limite ou Quota do YouTubeSearch excedida para a query "${q}". Ativando estimativa offline inteligente.`);
-      
+      console.warn(
+        `[pioneer] Limite ou Quota do YouTubeSearch excedida para a query "${q}". Ativando estimativa offline inteligente.`
+      );
+
       const wordCount = q.split(/\s+/).length;
       const isSpecific = wordCount > 2;
 
       // Gera numeros plausiveis consistentes para que o app continue 100% funcional!
-      const channelCount = isSpecific ? Math.floor(1 + Math.random() * 4) : Math.floor(15 + Math.random() * 60);
-      const videoCount = isSpecific ? Math.floor(8 + Math.random() * 30) : Math.floor(120 + Math.random() * 600);
-      const dedicatedChannels = isSpecific ? Math.floor(Math.random() * 1.2) : Math.floor(1 + Math.random() * 2);
+      const channelCount = isSpecific
+        ? Math.floor(1 + Math.random() * 4)
+        : Math.floor(15 + Math.random() * 60);
+      const videoCount = isSpecific
+        ? Math.floor(8 + Math.random() * 30)
+        : Math.floor(120 + Math.random() * 600);
+      const dedicatedChannels = isSpecific
+        ? Math.floor(Math.random() * 1.2)
+        : Math.floor(1 + Math.random() * 2);
 
       const angleSaturation = saturationFromCounts({
         channelCount,
@@ -445,10 +622,14 @@ async function measureYoutubeSaturation(accessToken, query, { baselineQuery = nu
       });
 
       // Se a cota estourou, o macroNicho tem saturação padrão ~55% a ~75%
-      const macroSaturation = isSpecific ? Math.floor(55 + Math.random() * 10) : Math.floor(65 + Math.random() * 10);
+      const macroSaturation = isSpecific
+        ? Math.floor(55 + Math.random() * 10)
+        : Math.floor(65 + Math.random() * 10);
       const gapScore = Math.max(0, macroSaturation - angleSaturation);
 
-      const avgTopViews = isSpecific ? Math.floor(3000 + Math.random() * 12000) : Math.floor(35000 + Math.random() * 180000);
+      const avgTopViews = isSpecific
+        ? Math.floor(3000 + Math.random() * 12000)
+        : Math.floor(35000 + Math.random() * 180000);
       const maxTopViews = avgTopViews * Math.floor(3 + Math.random() * 4);
 
       return {
@@ -479,9 +660,7 @@ function scorePioneerOpportunity(candidate, yt, format) {
 
   const interest = 42 + Math.min(35, gap) + (dedicated <= 2 ? 12 : 0);
   const pioneerScore = Math.round(
-    (100 - angleSat) * 0.5
-    + gap * 0.3
-    + Math.min(interest, 55) * 0.2,
+    (100 - angleSat) * 0.5 + gap * 0.3 + Math.min(interest, 55) * 0.2
   );
 
   const status = pioneerLabel(angleSat, pioneerScore, gap);
@@ -494,9 +673,11 @@ function scorePioneerOpportunity(candidate, yt, format) {
   } else if (status === "pioneiro") {
     whyPioneer = `Macro-nicho mais concorrido (saturação ~${yt.macroSaturationPct}%), mas este ângulo está vazio (gap ${gap} pts) — pioneirismo real.`;
   } else if (status === "emergente") {
-    whyPioneer = "Alguns criadores começaram, mas o formato ainda não tem referência clara em PT-BR.";
+    whyPioneer =
+      "Alguns criadores começaram, mas o formato ainda não tem referência clara em PT-BR.";
   } else {
-    whyPioneer = "Muitos canais já cobrem este ângulo — só vale com twist visual ou narrativo único.";
+    whyPioneer =
+      "Muitos canais já cobrem este ângulo — só vale com twist visual ou narrativo único.";
   }
 
   const scored = {
@@ -521,21 +702,29 @@ function scorePioneerOpportunity(candidate, yt, format) {
   return scored;
 }
 
-async function generateAnglesWithLlm({ llmFn, baseNiche, format, discoveryMode = "virgin" }) {
+async function generateAnglesWithLlm({
+  llmFn,
+  baseNiche,
+  format,
+  discoveryMode = "virgin",
+}) {
   if (!llmFn) return [];
 
   const macroList = MACRO_NICHES.map((m) => m.label).join(", ");
-  const patternList = FORMAT_PATTERNS.map((p) => `${p.label}: ${p.template}`).join("\n");
-  const modeHint = discoveryMode === "chosen"
-    ? `Modo ESCOLHIDO: explore ângulos pioneiros DENTRO do nicho "${baseNiche || "geral"}".`
-    : `Modo VIRGEM: descubra nichos em CATEGORIAS DIFERENTES — varie macro-nichos (finanças, gastronomia, pets, filosofia, viagens…). NÃO repita só engenharia/tecnologia.`;
+  const patternList = FORMAT_PATTERNS.map(
+    (p) => `${p.label}: ${p.template}`
+  ).join("\n");
+  const modeHint =
+    discoveryMode === "chosen"
+      ? `Modo ESCOLHIDO: explore ângulos pioneiros DENTRO do nicho "${baseNiche || "geral"}".`
+      : `Modo VIRGEM: descubra nichos em CATEGORIAS DIFERENTES — varie macro-nichos (finanças, gastronomia, pets, filosofia, viagens…). NÃO repita só engenharia/tecnologia.`;
 
   const prompt = `Você é estrategista YouTube BR especializado em OCEANO AZUL.
 
 O criador quer NICHOS REAIS (finanças, história, documentário…) combinados com ÂNGULOS e PADRÕES DE VÍDEO que quase NÃO EXISTEM no YouTube em português — poucos ou nenhum canal dedicado.
 
 ${modeHint}
-Nicho base do criador (se houver): "${discoveryMode === "chosen" ? (baseNiche || "geral") : "qualquer macro-nicho — diversifique!"}"
+Nicho base do criador (se houver): "${discoveryMode === "chosen" ? baseNiche || "geral" : "qualquer macro-nicho — diversifique!"}"
 Formato alvo: ${format}
 
 Macro-nichos válidos: ${macroList}
@@ -569,16 +758,22 @@ Retorne APENAS JSON:
   try {
     const raw = await llmFn(prompt);
     const parsed = parseJsonLocally(extractJsonCandidate(raw));
-    const rows = Array.isArray(parsed?.opportunities) ? parsed.opportunities : [];
+    const rows = Array.isArray(parsed?.opportunities)
+      ? parsed.opportunities
+      : [];
     return rows
-      .filter((r) => r?.macroNiche && r?.youtubeSearchQuery && !isMetaGarbage(r.angle))
+      .filter(
+        (r) => r?.macroNiche && r?.youtubeSearchQuery && !isMetaGarbage(r.angle)
+      )
       .map((r) => ({
         macroNiche: String(r.macroNiche).trim(),
         macroId: guessMacroFromText(r.macroNiche)?.id || "custom",
         angle: String(r.angle || "").trim(),
         formatPattern: String(r.formatPattern || "Formato pioneiro").trim(),
         formatPatternId: "llm",
-        youtubeSearchQuery: String(r.youtubeSearchQuery || "").trim().slice(0, 72),
+        youtubeSearchQuery: String(r.youtubeSearchQuery || "")
+          .trim()
+          .slice(0, 72),
         label: `${r.macroNiche}: ${String(r.angle || "").slice(0, 48)}`,
         firstVideoIdea: String(r.firstVideoIdea || "").trim(),
         risk: String(r.risk || "").trim(),
@@ -618,18 +813,22 @@ JSON apenas:
 }
 
 Dados:
-${JSON.stringify(scored.slice(0, 12).map((s) => ({
-  macroNiche: s.macroNiche,
-  angle: s.angle,
-  formatPattern: s.formatPattern,
-  label: s.label,
-  pioneerScore: s.pioneerScore,
-  saturationPct: s.saturationPct,
-  macroSaturationPct: s.macroSaturationPct,
-  gapScore: s.gapScore,
-  dedicatedChannels: s.dedicatedChannels,
-  youtubeSearchQuery: s.youtubeSearchQuery,
-})), null, 2)}`;
+${JSON.stringify(
+  scored.slice(0, 12).map((s) => ({
+    macroNiche: s.macroNiche,
+    angle: s.angle,
+    formatPattern: s.formatPattern,
+    label: s.label,
+    pioneerScore: s.pioneerScore,
+    saturationPct: s.saturationPct,
+    macroSaturationPct: s.macroSaturationPct,
+    gapScore: s.gapScore,
+    dedicatedChannels: s.dedicatedChannels,
+    youtubeSearchQuery: s.youtubeSearchQuery,
+  })),
+  null,
+  2
+)}`;
 
   try {
     const raw = await llmFn(prompt);
@@ -638,19 +837,34 @@ ${JSON.stringify(scored.slice(0, 12).map((s) => ({
     if (!niches.length) return scored;
 
     return niches.map((n, i) => {
-      const src = scored.find((c) =>
-        String(c.macroNiche || "").toLowerCase() === String(n.macroNiche || "").toLowerCase()
-        && String(c.angle || "").toLowerCase().includes(String(n.angle || "").toLowerCase().slice(0, 20)),
-      ) || scored[i] || scored[0];
+      const src =
+        scored.find(
+          (c) =>
+            String(c.macroNiche || "").toLowerCase() ===
+              String(n.macroNiche || "").toLowerCase() &&
+            String(c.angle || "")
+              .toLowerCase()
+              .includes(
+                String(n.angle || "")
+                  .toLowerCase()
+                  .slice(0, 20)
+              )
+        ) ||
+        scored[i] ||
+        scored[0];
       return {
         ...src,
         macroNiche: String(n.macroNiche || src.macroNiche || "").trim(),
         angle: String(n.angle || src.angle || "").trim(),
-        formatPattern: String(n.formatPattern || src.formatPattern || "").trim(),
+        formatPattern: String(
+          n.formatPattern || src.formatPattern || ""
+        ).trim(),
         label: String(n.label || src.label || "").trim(),
         pioneerScore: Number(n.pioneerScore) || src.pioneerScore,
         whyPioneer: String(n.whyPioneer || src.whyPioneer || "").trim(),
-        firstVideoIdea: String(n.firstVideoIdea || src.firstVideoIdea || "").trim(),
+        firstVideoIdea: String(
+          n.firstVideoIdea || src.firstVideoIdea || ""
+        ).trim(),
         risk: String(n.risk || src.risk || "").trim(),
       };
     });
@@ -679,9 +893,11 @@ function buildPioneerIdea(niche) {
 }
 
 const AUDIENCE_HINTS = {
-  financas: "Adultos 25–45 buscando independência financeira e clareza sem guru.",
+  financas:
+    "Adultos 25–45 buscando independência financeira e clareza sem guru.",
   historia: "Curiosos 18–40 que consomem documentário e fatos surpreendentes.",
-  documentario: "Público de true story e investigação com paciência para narrativa.",
+  documentario:
+    "Público de true story e investigação com paciência para narrativa.",
   curiosidades: "Scrollers 16–35 que querem aprender algo novo em <60s.",
   ciencia: "Estudantes e autodidatas que gostam de explicação visual.",
   tecnologia: "Entusiastas de tech e história da inovação.",
@@ -706,14 +922,17 @@ const AUDIENCE_HINTS = {
 };
 
 export function buildNicheDetailBreakdown(niche = {}, context = {}) {
-  const macroKey = guessMacroFromText(niche.macroNiche || "")?.id || "curiosidades";
+  const macroKey =
+    guessMacroFromText(niche.macroNiche || "")?.id || "curiosidades";
   const yt = niche.youtube || {};
   const riskText = String(niche.risk || "").trim();
   const pillars = [
     niche.formatPattern ? `Formato: ${niche.formatPattern}` : null,
     niche.angle ? `Ângulo: ${niche.angle}` : null,
     niche.firstVideoIdea ? `Gancho inicial: ${niche.firstVideoIdea}` : null,
-    yt.sampleVideos?.[0]?.title ? `Referência: ${yt.sampleVideos[0].title}` : null,
+    yt.sampleVideos?.[0]?.title
+      ? `Referência: ${yt.sampleVideos[0].title}`
+      : null,
   ].filter(Boolean);
 
   return {
@@ -727,7 +946,8 @@ export function buildNicheDetailBreakdown(niche = {}, context = {}) {
     aspects: {
       overview: {
         title: "Visão geral",
-        summary: niche.whyPioneer || "Oportunidade com baixa saturação no YouTube BR.",
+        summary:
+          niche.whyPioneer || "Oportunidade com baixa saturação no YouTube BR.",
         headline: niche.label || niche.angle,
       },
       macroNiche: {
@@ -738,12 +958,14 @@ export function buildNicheDetailBreakdown(niche = {}, context = {}) {
       angle: {
         title: "Ângulo específico",
         value: niche.angle || "—",
-        description: "Recorte temático que diferencia este canal dos genéricos.",
+        description:
+          "Recorte temático que diferencia este canal dos genéricos.",
       },
       formatPattern: {
         title: "Padrão de vídeo",
         value: niche.formatPattern || "—",
-        description: "Estrutura narrativa/visual sugerida para os primeiros vídeos.",
+        description:
+          "Estrutura narrativa/visual sugerida para os primeiros vídeos.",
       },
       competition: {
         title: "Concorrência no YouTube",
@@ -752,7 +974,8 @@ export function buildNicheDetailBreakdown(niche = {}, context = {}) {
         channelCount: yt.channelCount ?? 0,
         videoCount: yt.videoCount ?? 0,
         saturationPct: niche.saturationPct ?? yt.saturationPct ?? null,
-        macroSaturationPct: niche.macroSaturationPct ?? yt.macroSaturationPct ?? null,
+        macroSaturationPct:
+          niche.macroSaturationPct ?? yt.macroSaturationPct ?? null,
         gapScore: niche.gapScore ?? yt.gapScore ?? null,
         avgTopViews: yt.avgTopViews ?? 0,
         maxTopViews: yt.maxTopViews ?? 0,
@@ -779,18 +1002,28 @@ export function buildNicheDetailBreakdown(niche = {}, context = {}) {
       },
       audience: {
         title: "Público-alvo",
-        description: AUDIENCE_HINTS[macroKey] || "Curiosos 18–40 no YouTube BR buscando conteúdo educativo de nicho.",
+        description:
+          AUDIENCE_HINTS[macroKey] ||
+          "Curiosos 18–40 no YouTube BR buscando conteúdo educativo de nicho.",
       },
       contentPillars: {
         title: "Pilares de conteúdo",
-        items: pillars.length ? pillars : ["Série piloto", "Formato recorrente", "Gancho de curiosidade"],
+        items: pillars.length
+          ? pillars
+          : ["Série piloto", "Formato recorrente", "Gancho de curiosidade"],
       },
       monetization: {
         title: "Sinais de monetização",
         items: [
-          niche.gapScore >= 20 ? "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho." : "Gap moderado — monetização depende de retenção e frequência.",
-          (yt.avgTopViews || 0) >= 10000 ? "Vídeos similares já provam demanda de views." : "Demanda ainda a validar — foque em retenção nos primeiros uploads.",
-          niche.status === "virgem" ? "Categoria virgem: menos concorrência por patrocínio de nicho." : "Concorrência crescente — diferencie pelo formato visual.",
+          niche.gapScore >= 20
+            ? "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho."
+            : "Gap moderado — monetização depende de retenção e frequência.",
+          (yt.avgTopViews || 0) >= 10000
+            ? "Vídeos similares já provam demanda de views."
+            : "Demanda ainda a validar — foque em retenção nos primeiros uploads.",
+          niche.status === "virgem"
+            ? "Categoria virgem: menos concorrência por patrocínio de nicho."
+            : "Concorrência crescente — diferencie pelo formato visual.",
         ],
       },
       searchStrategy: {
@@ -808,20 +1041,293 @@ export function buildNicheDetailBreakdown(niche = {}, context = {}) {
   };
 }
 
-export async function discoverPioneerNiches(workspaceDir, {
-  niche = "",
-  format = "SHORTS",
-  discoveryMode = "virgin",
-  risingNiches = [],
-  maxCandidates = 10,
-  useAi = true,
-  llmFn = null,
-} = {}) {
+function normalizeSuggestionKey(value = "") {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+const GENERIC_SUBJECT_WORDS = new Set([
+  "engenheiro",
+  "engenheira",
+  "profissao",
+  "profissional",
+  "especialista",
+  "tecnico",
+  "tecnica",
+  "operador",
+  "operadora",
+  "trabalhador",
+  "trabalhadora",
+  "mestre",
+  "oficial",
+  "guardiao",
+  "guardia",
+  "homem",
+  "mulher",
+  "pessoa",
+]);
+
+function distinctiveSubjectTokens(value = "") {
+  return normalizeSuggestionKey(value)
+    .split(" ")
+    .filter((word) => word.length >= 5 && !GENERIC_SUBJECT_WORDS.has(word));
+}
+
+export function alternativeSuggestionConflict(
+  draft = {},
+  previousIdeas = [],
+  previousSubjects = []
+) {
+  const title = String(draft?.title || "").trim();
+  const subject = String(draft?.primarySubject || "").trim();
+  if (!title) return "titulo ausente";
+  if (!subject) return "profissao ou assunto principal ausente";
+
+  const normalizedTitle = normalizeSuggestionKey(title);
+  const normalizedSubject = normalizeSuggestionKey(subject);
+  const priorIdeas = previousIdeas.map(normalizeSuggestionKey).filter(Boolean);
+  const priorSubjects = previousSubjects
+    .map(normalizeSuggestionKey)
+    .filter(Boolean);
+
+  if (priorIdeas.includes(normalizedTitle)) return "titulo ja sugerido";
+  if (
+    priorSubjects.some(
+      (prior) =>
+        prior === normalizedSubject ||
+        prior.includes(normalizedSubject) ||
+        normalizedSubject.includes(prior)
+    )
+  ) {
+    return "profissao ou assunto principal ja sugerido";
+  }
+
+  const subjectTokens = distinctiveSubjectTokens(subject);
+  const priorText = [...priorIdeas, ...priorSubjects].join(" ");
+  if (subjectTokens.some((token) => priorText.split(" ").includes(token))) {
+    return "profissao, tecnologia ou objeto principal repetido";
+  }
+
+  const draftText = normalizeSuggestionKey(
+    [draft?.title, draft?.specificAngle, draft?.searchQuery]
+      .filter(Boolean)
+      .join(" ")
+  );
+  if (
+    subjectTokens.length &&
+    !subjectTokens.some((token) => draftText.split(" ").includes(token))
+  ) {
+    return "assunto declarado nao corresponde ao titulo proposto";
+  }
+  return "";
+}
+
+export async function researchAlternativeVideoSuggestion(
+  workspaceDir,
+  item,
+  { llmFn } = {}
+) {
+  if (!llmFn)
+    throw new Error("IA nÃ£o configurada para pesquisar a nova sugestÃ£o.");
+
+  const aspects = item?.detail?.aspects || {};
+  const raw = item?.detail?.raw || item?.niche || {};
+  const previousIdeas = [
+    aspects?.firstVideo?.idea,
+    ...(Array.isArray(item?.suggestionHistory)
+      ? item.suggestionHistory.map((entry) => entry?.idea)
+      : []),
+  ].filter(Boolean);
+  const previousSubjects = [
+    aspects?.firstVideo?.primarySubject,
+    ...(Array.isArray(item?.suggestionHistory)
+      ? item.suggestionHistory.map((entry) => entry?.primarySubject)
+      : []),
+  ].filter(Boolean);
+  const references = (aspects?.competition?.sampleVideos || [])
+    .slice(0, 8)
+    .map((video) => `${video.title || ""} (${Number(video.views || 0)} views)`)
+    .filter(Boolean);
+  const format =
+    String(
+      item?.format || aspects?.searchStrategy?.format || "SHORTS"
+    ).toUpperCase() === "LONGO"
+      ? "LONGO"
+      : "SHORTS";
+
+  let draft = null;
+  const rejectedDrafts = [];
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const prompt = `VocÃª Ã© um pesquisador e estrategista de YouTube. Gere UMA NOVA proposta de vÃ­deo em portuguÃªs do Brasil para a mesma perspectiva editorial, sem repetir nenhum vÃ­deo jÃ¡ sugerido.
+
+NICHO: ${raw.macroNiche || item?.macroNiche || item?.label || ""}
+PERSPECTIVA EDITORIAL QUE DEVE SER PRESERVADA (tema amplo, nÃ£o o caso atual):
+${[
+  item?.label || raw.label,
+  aspects?.overview?.summary,
+  raw.formatPattern || aspects?.formatPattern?.value,
+]
+  .filter(Boolean)
+  .join("\n")}
+CASO ATUAL QUE DEVE SER SUBSTITUÃ�DO: ${[
+      aspects?.firstVideo?.idea,
+      aspects?.specificAngle || aspects?.angle?.value,
+      aspects?.competition?.searchQuery,
+    ]
+      .filter(Boolean)
+      .join(" | ")}
+PADRÃƒO: ${raw.formatPattern || aspects?.formatPattern?.value || ""}
+FORMATO: ${format}
+PÃšBLICO: ${aspects?.audience?.description || ""}
+ANÃ�LISE DE DEMANDA: ${aspects?.demandAnalysis || aspects?.pioneerAnalysis?.whyPioneer || ""}
+VÃ�DEOS ENCONTRADOS NA PESQUISA ANTERIOR:
+${references.length ? references.join("\n") : "Nenhuma referÃªncia disponÃ­vel."}
+
+PROIBIDO REPETIR OU PARAFRASEAR ESTES VÃ�DEOS JÃ� SUGERIDOS:
+${previousIdeas.map((idea, i) => `${i + 1}. ${idea}`).join("\n") || "Nenhum"}
+${rejectedDrafts.length ? `\nTENTATIVAS DESTA PESQUISA QUE TAMBÃ‰M FORAM REJEITADAS:\n${rejectedDrafts.join("\n")}` : ""}
+
+Crie uma profissÃ£o/personagem/objeto principal realmente diferente, mas mantenha a perspectiva editorial ampla. Se a perspectiva for sobre profissÃµes extintas, Ã‰ OBRIGATÃ“RIO escolher OUTRA PROFISSÃƒO: trocar apenas a tarefa, especialidade ou etapa do trabalho da mesma profissÃ£o nÃ£o conta. NÃ£o permaneÃ§a no mesmo veÃ­culo, tecnologia ou personagem do caso atual. O tÃ­tulo deve nomear o assunto real, nÃ£o falar de concorrÃªncia, nicho ou algoritmo. A consulta deve servir para validar a nova proposta no YouTube.
+Responda somente JSON vÃ¡lido:
+{
+  "title": "tÃ­tulo concreto, especÃ­fico e clicÃ¡vel",
+  "primarySubject": "nome curto e literal da nova profissÃ£o, personagem ou objeto principal",
+  "hook": "gancho que abre uma lacuna de curiosidade sem repetir o tÃ­tulo",
+  "specificAngle": "recorte factual desta nova proposta",
+  "searchQuery": "consulta curta para YouTube em portuguÃªs",
+  "audience": "por que este recorte interessa ao pÃºblico",
+  "demandAnalysis": "como a proposta se diferencia dos resultados existentes",
+  "contentPillars": ["pilar 1", "pilar 2", "pilar 3"],
+  "searchTips": ["dica de pesquisa 1", "dica de pesquisa 2"]
+}`;
+    const parsed = parseJsonLocally(extractJsonCandidate(await llmFn(prompt)));
+    const conflict = alternativeSuggestionConflict(
+      parsed,
+      previousIdeas,
+      previousSubjects
+    );
+    if (!conflict) {
+      draft = parsed;
+      break;
+    }
+    rejectedDrafts.push(
+      `${String(parsed?.title || "Sem tÃ­tulo")} — ${conflict}`
+    );
+  }
+  if (!draft?.title) {
+    throw new Error(
+      "A IA repetiu sugestÃµes anteriores. Tente novamente para buscar outro caso."
+    );
+  }
+
+  let competition = null;
+  try {
+    const accessToken = await getYoutubeAccessToken(workspaceDir);
+    competition = await measureYoutubeSaturation(
+      accessToken,
+      String(draft.searchQuery || draft.title),
+      { baselineQuery: String(raw.macroNiche || item?.macroNiche || "") }
+    );
+  } catch (err) {
+    console.warn("[TrendRadar] Pesquisa alternativa no YouTube:", err.message);
+  }
+
+  const contentPillars = Array.isArray(draft.contentPillars)
+    ? draft.contentPillars
+        .map((value) => String(value).trim())
+        .filter(Boolean)
+        .slice(0, 5)
+    : [];
+  const searchTips = Array.isArray(draft.searchTips)
+    ? draft.searchTips
+        .map((value) => String(value).trim())
+        .filter(Boolean)
+        .slice(0, 5)
+    : [];
+  const nextCompetition =
+    competition && !competition.rejected
+      ? {
+          ...(aspects.competition || {}),
+          ...competition,
+          title: aspects.competition?.title || "ConcorrÃªncia no YouTube",
+          level:
+            competition.saturationPct <= 25
+              ? "Baixa"
+              : competition.saturationPct <= 55
+                ? "MÃ©dia"
+                : "Alta",
+          searchQuery: competition.query,
+        }
+      : aspects.competition;
+
+  return {
+    firstVideo: {
+      title: "Novo vÃ­deo sugerido",
+      idea: String(draft.title).trim().slice(0, 180),
+      hook: String(draft.hook || "")
+        .trim()
+        .slice(0, 500),
+      primarySubject: String(draft.primarySubject || "")
+        .trim()
+        .slice(0, 160),
+    },
+    aspects: {
+      specificAngle: String(draft.specificAngle || "").trim(),
+      demandAnalysis: String(draft.demandAnalysis || "").trim(),
+      searchQuery: String(draft.searchQuery || draft.title).trim(),
+      angle: {
+        ...(aspects.angle || {}),
+        value: String(draft.specificAngle || draft.title).trim(),
+        description: String(draft.demandAnalysis || "").trim(),
+      },
+      audience: {
+        ...(aspects.audience || {}),
+        description: String(
+          draft.audience || aspects.audience?.description || ""
+        ).trim(),
+      },
+      contentPillars: {
+        ...(aspects.contentPillars || {}),
+        items: contentPillars,
+      },
+      competition: nextCompetition,
+      searchStrategy: {
+        ...(aspects.searchStrategy || {}),
+        primaryQuery: String(draft.searchQuery || draft.title).trim(),
+        tips: searchTips,
+      },
+    },
+    research: {
+      source: competition?.simulated
+        ? "fallback"
+        : competition
+          ? "youtube-api"
+          : "ai-only",
+      searchedAt: new Date().toISOString(),
+    },
+  };
+}
+
+export async function discoverPioneerNiches(
+  workspaceDir,
+  {
+    niche = "",
+    format = "SHORTS",
+    discoveryMode = "virgin",
+    risingNiches = [],
+    maxCandidates = 10,
+    useAi = true,
+    llmFn = null,
+  } = {}
+) {
   const cfg = readJsonSafe(path.join(workspaceDir, "config_qanat.json"));
   const mode = discoveryMode === "chosen" ? "chosen" : "virgin";
-  const baseNiche = mode === "chosen"
-    ? String(niche || cfg.niche || "").trim()
-    : "";
+  const baseNiche =
+    mode === "chosen" ? String(niche || cfg.niche || "").trim() : "";
   const fmt = String(format || "SHORTS").toUpperCase();
 
   let accessToken;
@@ -836,10 +1342,18 @@ export async function discoverPioneerNiches(workspaceDir, {
 
   const candidateMap = new Map();
 
-  const llmAngles = useAi && llmFn
-    ? await generateAnglesWithLlm({ llmFn, baseNiche, format: fmt, discoveryMode: mode })
-    : [];
-  llmAngles.forEach((c) => candidateMap.set(`${c.macroNiche}|${c.youtubeSearchQuery}`, c));
+  const llmAngles =
+    useAi && llmFn
+      ? await generateAnglesWithLlm({
+          llmFn,
+          baseNiche,
+          format: fmt,
+          discoveryMode: mode,
+        })
+      : [];
+  llmAngles.forEach((c) =>
+    candidateMap.set(`${c.macroNiche}|${c.youtubeSearchQuery}`, c)
+  );
 
   buildMatrixCandidates(baseNiche, fmt, mode).forEach((c) => {
     const key = `${c.macroNiche}|${c.youtubeSearchQuery}`;
@@ -847,13 +1361,16 @@ export async function discoverPioneerNiches(workspaceDir, {
   });
 
   const exaResults = await Promise.all(
-    buildExaQueries(baseNiche, mode).map((q) => exaWebSearch(q, workspaceDir, { numResults: 5 })),
+    buildExaQueries(baseNiche, mode).map((q) =>
+      exaWebSearch(q, workspaceDir, { numResults: 5 })
+    )
   );
   const exaAvailable = exaResults.some((r) => r.available);
   for (const exa of exaResults) {
     extractTopicCandidatesFromExa(exa).forEach((c) => {
       const key = `${c.macroNiche}|${c.youtubeSearchQuery}`;
-      if (!candidateMap.has(key) && !isMetaGarbage(c.label)) candidateMap.set(key, c);
+      if (!candidateMap.has(key) && !isMetaGarbage(c.label))
+        candidateMap.set(key, c);
     });
   }
 
@@ -874,14 +1391,17 @@ export async function discoverPioneerNiches(workspaceDir, {
   }
 
   const rawCandidates = [...candidateMap.values()]
-    .filter((c) => !isMetaGarbage(c.label) && !isMetaGarbage(c.youtubeSearchQuery))
+    .filter(
+      (c) => !isMetaGarbage(c.label) && !isMetaGarbage(c.youtubeSearchQuery)
+    )
     .slice(0, 24);
 
   const baselineCache = new Map();
   const measured = [];
   for (const candidate of rawCandidates) {
-    const macro = MACRO_NICHES.find((m) => m.label === candidate.macroNiche)
-      || guessMacroFromText(candidate.macroNiche);
+    const macro =
+      MACRO_NICHES.find((m) => m.label === candidate.macroNiche) ||
+      guessMacroFromText(candidate.macroNiche);
     const baseline = macro?.searchBaseline || null;
 
     try {
@@ -894,22 +1414,36 @@ export async function discoverPioneerNiches(workspaceDir, {
         macroSaturationPct = baselineCache.get(baseline);
       }
 
-      const yt = await measureYoutubeSaturation(accessToken, candidate.youtubeSearchQuery);
+      const yt = await measureYoutubeSaturation(
+        accessToken,
+        candidate.youtubeSearchQuery
+      );
       yt.macroSaturationPct = macroSaturationPct;
       yt.gapScore = Math.max(0, macroSaturationPct - yt.saturationPct);
       const scored = scorePioneerOpportunity(candidate, yt, fmt);
       if (scored && scored.status !== "saturado") measured.push(scored);
     } catch (err) {
-      console.warn("[pioneer] measure:", candidate.youtubeSearchQuery, err.message);
+      console.warn(
+        "[pioneer] measure:",
+        candidate.youtubeSearchQuery,
+        err.message
+      );
     }
   }
 
   measured.sort((a, b) => b.pioneerScore - a.pioneerScore);
 
-  let pioneerNiches = measured.slice(0, Math.min(Math.max(Number(maxCandidates) || 10, 4), 12));
+  let pioneerNiches = measured.slice(
+    0,
+    Math.min(Math.max(Number(maxCandidates) || 10, 4), 12)
+  );
 
   if (useAi && llmFn && pioneerNiches.length) {
-    pioneerNiches = await refineWithLlm(pioneerNiches, { llmFn, baseNiche, format: fmt });
+    pioneerNiches = await refineWithLlm(pioneerNiches, {
+      llmFn,
+      baseNiche,
+      format: fmt,
+    });
   }
 
   const pioneerIdeas = pioneerNiches
@@ -918,7 +1452,9 @@ export async function discoverPioneerNiches(workspaceDir, {
     .map(buildPioneerIdea);
 
   const virginCount = pioneerNiches.filter((n) => n.status === "virgem").length;
-  const pioneerCount = pioneerNiches.filter((n) => n.status === "pioneiro" || n.status === "virgem").length;
+  const pioneerCount = pioneerNiches.filter(
+    (n) => n.status === "pioneiro" || n.status === "virgem"
+  ).length;
 
   return {
     ok: true,
@@ -928,9 +1464,10 @@ export async function discoverPioneerNiches(workspaceDir, {
     exaAvailable,
     logic: {
       version: "macro-angle-gap-v2",
-      description: mode === "virgin"
-        ? "Descoberta aberta: varre macro-nichos diversos (não preso ao nicho do projeto). Virgem = poucos canais dedicados no ângulo."
-        : "Exploração focada: ângulos pioneiros dentro do nicho escolhido.",
+      description:
+        mode === "virgin"
+          ? "Descoberta aberta: varre macro-nichos diversos (não preso ao nicho do projeto). Virgem = poucos canais dedicados no ângulo."
+          : "Exploração focada: ângulos pioneiros dentro do nicho escolhido.",
     },
     pioneerNiches,
     pioneerIdeas,
