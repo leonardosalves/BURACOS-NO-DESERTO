@@ -11289,6 +11289,7 @@ async function callGeminiLlm(
     prompt = null,
     bodyOverride = null,
     temperature = null,
+    models = null,
   } = {}
 ) {
   const browserText = extractBrowserResponse(req.body);
@@ -11338,6 +11339,7 @@ async function callGeminiLlm(
     bodyOverride,
     temperature,
     projectDir: projDir,
+    models,
   });
 }
 
@@ -18217,6 +18219,12 @@ app.post(
           : "[NARRACAOPRO] Etapa 8: Gerando roteiro técnico completo com IA...",
         shouldOfferGeminiBrowser(settingsDir) ? 48 : 52
       );
+      // Narração exige raciocínio avançado — priorizar melhor modelo disponível
+      const NARRATION_MODEL_PRIORITY = [
+        "gemini-2.5-pro",
+        "gemini-3.5-flash",
+        "gemini-2.5-flash",
+      ];
       responseText = await callGeminiLlm(req, activeRes, llmDir, {
         title:
           scriptPhase === "narration"
@@ -18224,6 +18232,7 @@ app.post(
             : "Gerar roteiro Creator",
         prompt: promptSystem,
         temperature: isListicle ? 0.75 : isHistoricalWitness ? 0.5 : 0.85,
+        models: NARRATION_MODEL_PRIORITY,
       });
       if (responseText == null) {
         report("browser_wait", "Aguardando resposta do Gemini no Chrome…", 58);

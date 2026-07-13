@@ -2195,6 +2195,9 @@ REGRAS DESTA FASE:
 - Escreva BLOCO A BLOCO primeiro (frases curtas, 1 ideia por bloco), depois una em narrative_script.
 - Se houver pesquisa NotebookLM acima, priorize fatos verificáveis dela — estilo documental brasileiro enxuto.
 
+EXECUÇÃO OBRIGATÓRIA DAS 12 ETAPAS DO NARRACAOPRO:
+Antes de escrever a narração, execute INTERNAMENTE cada uma das 12 etapas do NARRACAOPRO em ordem (recorte → pesquisa → entidades → tese → seleção de fatos → cadeia causal → gancho → redação → remoção de vazios → validação factual → validação da narração → validação da entrega). Preencha TODOS os campos de "narracao_pro_trace" com evidência REAL do trabalho feito — não copie templates. Se um portão falhar, reescreva o trecho ANTES de entregar o JSON final. O trace deve refletir raciocínio real, não respostas pré-fabricadas. Mesmo que demore, NÃO pule nenhuma etapa.
+
 Responda APENAS JSON válido (sem markdown):
 {
   "strategy": {
@@ -2210,10 +2213,40 @@ Responda APENAS JSON válido (sem markdown):
     "block_phrases": [{"block": 1, "phrase": "início exato do bloco (4-8 palavras)"}]
   },
   "narracao_pro_trace": {
-    "pergunta_central": "A pergunta central formulada para o vídeo",
-    "pesquisa_fatos": ["Lista de fatos importantes e fontes cruzadas verificadas"],
-    "cadeia_logica": ["Mapeamento da lógica Fato -> Causa -> Consequência por bloco"],
-    "auditoria_factual": "Relatório analítico da coerência, remoção de repetições e adequação",
+    "etapa_1_recorte": "Pergunta respondível definida para este vídeo (não o tema amplo)",
+    "etapa_2_pesquisa": ["Fato 1 + fonte confiável", "Fato 2 + fonte confiável"],
+    "etapa_3_entidades": [
+      {"entidade": "nome", "funcao": "papel no tema", "local": "onde", "periodo": "quando", "certeza": "confirmado|hipotese|estimativa"}
+    ],
+    "etapa_4_tese": {
+      "objeto": "o que está sendo explicado",
+      "mecanismo": "como funciona ou funcionou",
+      "consequencia": "o que resultou disso",
+      "tese_completa": "Frase ÚNICA com OBJETO + MECANISMO + CONSEQUÊNCIA"
+    },
+    "etapa_5_fatos_selecionados": ["Somente os fatos que provam a tese — os demais foram cortados"],
+    "etapa_6_cadeia_causal": "PROBLEMA → CAUSA → MECANISMO → MUDANÇA → CONSEQUÊNCIA (texto corrido mostrando a progressão lógica)",
+    "etapa_7_gancho": {
+      "texto": "Gancho ≤12 palavras, específico ao tema",
+      "tipo": "pergunta|choque|problema_solucao|antes_depois|urgencia|desafio|segredo|impacto"
+    },
+    "etapa_8_redacao": "EXECUTADA — narração escrita em narrative_script seguindo regras de linguagem do NARRACAOPRO",
+    "etapa_9_vazios_removidos": ["Frase cortada ou reescrita: motivo"],
+    "etapa_10_validacao_factual": {
+      "teste_identidade_passou": true,
+      "fusao_detectada": false,
+      "auditoria": "Nomes, datas, medidas, fontes verificados — relatório resumido"
+    },
+    "etapa_11_validacao_narracao": {
+      "portoes_15_resultado": "Todos passaram | Portão X falhou: motivo e correção aplicada",
+      "auditoria_oral": "Frases longas corrigidas, ritmo ajustado, resultado"
+    },
+    "etapa_12_validacao_entrega": {
+      "duracao_ok": true,
+      "block_phrases_validadas": true,
+      "fechamento_declarativo": true,
+      "palavras_contadas": 120
+    },
     "notas_auditoria": {
       "coerencia": 10,
       "clareza": 10,
@@ -2594,9 +2627,11 @@ ${buildVisualPromptsJsonSchema({ blockCount: listicleBlockCount, isListicle, lis
 7. "hyperframe_prompt"
 ${buildChecklistSchemaBlock()}
 9. "technical_config": { "script", "block_phrases", "impact_texts", "highlight_keywords", "bgm_mappings" }
-10. "narracao_pro_trace": { "pergunta_central", "pesquisa_fatos" (array), "cadeia_logica" (array), "auditoria_factual", "notas_auditoria": { "coerencia", "clareza", "profundidade", "qualidade_factual", "progressao", "naturalidade", "retencao", "conclusao" } }
+10. "narracao_pro_trace": { "etapa_1_recorte", "etapa_2_pesquisa" (array de fatos+fontes), "etapa_3_entidades" (array com entidade/funcao/local/periodo/certeza), "etapa_4_tese" (objeto/mecanismo/consequencia/tese_completa), "etapa_5_fatos_selecionados" (array), "etapa_6_cadeia_causal" (PROBLEMA→CAUSA→MECANISMO→MUDANÇA→CONSEQUÊNCIA), "etapa_7_gancho" (texto+tipo), "etapa_8_redacao": "EXECUTADA", "etapa_9_vazios_removidos" (array de frases cortadas+motivo), "etapa_10_validacao_factual" (teste_identidade_passou/fusao_detectada/auditoria), "etapa_11_validacao_narracao" (portoes_15_resultado/auditoria_oral), "etapa_12_validacao_entrega" (duracao_ok/block_phrases_validadas/fechamento_declarativo/palavras_contadas), "notas_auditoria" (coerencia/clareza/profundidade/qualidade_factual/progressao/naturalidade/retencao/conclusao) }
 ${listicleJsonTail}
 
+EXECUÇÃO OBRIGATÓRIA DAS 12 ETAPAS DO NARRACAOPRO:
+Antes de escrever a narração, execute INTERNAMENTE cada uma das 12 etapas do NARRACAOPRO em ordem. Preencha TODOS os campos de "narracao_pro_trace" com evidência REAL. Mesmo que demore, NÃO pule nenhuma etapa.
 
 REGRAS FINAIS:
 
