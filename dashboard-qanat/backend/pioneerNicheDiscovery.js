@@ -1077,10 +1077,64 @@ function distinctiveSubjectTokens(value = "") {
     .filter((word) => word.length >= 5 && !GENERIC_SUBJECT_WORDS.has(word));
 }
 
+const SUBJECT_CONNECTORS = new Set([
+  "o",
+  "a",
+  "os",
+  "as",
+  "um",
+  "uma",
+  "de",
+  "da",
+  "do",
+  "das",
+  "dos",
+  "em",
+]);
+
+const OCCUPATION_ROLE_WORDS = new Set([
+  "engenheiro",
+  "engenheira",
+  "guardiao",
+  "guardia",
+  "operador",
+  "operadora",
+  "tecnico",
+  "tecnica",
+  "mestre",
+  "oficial",
+  "artesao",
+  "artesa",
+  "calculista",
+  "inspetor",
+  "inspetora",
+  "mecanico",
+  "mecanica",
+  "piloto",
+  "faroleiro",
+  "faroleira",
+]);
+
+function firstSubjectRoleToken(value = "") {
+  return normalizeSuggestionKey(value)
+    .split(" ")
+    .find((word) => word.length >= 4 && !SUBJECT_CONNECTORS.has(word));
+}
+
+function isExtinctProfessionPerspective(value = "") {
+  const normalized = normalizeSuggestionKey(value);
+  return (
+    normalized.includes("profissoes extintas") ||
+    normalized.includes("profissao extinta") ||
+    normalized.includes("vida extinta")
+  );
+}
+
 export function alternativeSuggestionConflict(
   draft = {},
   previousIdeas = [],
-  previousSubjects = []
+  previousSubjects = [],
+  { requireDifferentProfession = false } = {}
 ) {
   const title = String(draft?.title || "").trim();
   const subject = String(draft?.primarySubject || "").trim();
@@ -1093,6 +1147,27 @@ export function alternativeSuggestionConflict(
   const priorSubjects = previousSubjects
     .map(normalizeSuggestionKey)
     .filter(Boolean);
+  const priorText = [...priorIdeas, ...priorSubjects].join(" ");
+
+  if (requireDifferentProfession) {
+    const draftText = normalizeSuggestionKey(
+      [draft?.title, draft?.primarySubject, draft?.specificAngle]
+        .filter(Boolean)
+        .join(" ")
+    );
+    const repeatedKnownRole = [...OCCUPATION_ROLE_WORDS].find(
+      (role) =>
+        priorText.split(" ").includes(role) &&
+        draftText.split(" ").includes(role)
+    );
+    const declaredRole = firstSubjectRoleToken(subject);
+    if (
+      repeatedKnownRole ||
+      (declaredRole && priorText.split(" ").includes(declaredRole))
+    ) {
+      return "a profissao principal continua sendo a mesma";
+    }
+  }
 
   if (priorIdeas.includes(normalizedTitle)) return "titulo ja sugerido";
   if (
@@ -1107,7 +1182,6 @@ export function alternativeSuggestionConflict(
   }
 
   const subjectTokens = distinctiveSubjectTokens(subject);
-  const priorText = [...priorIdeas, ...priorSubjects].join(" ");
   if (subjectTokens.some((token) => priorText.split(" ").includes(token))) {
     return "profissao, tecnologia ou objeto principal repetido";
   }
@@ -1148,6 +1222,17 @@ export async function researchAlternativeVideoSuggestion(
       ? item.suggestionHistory.map((entry) => entry?.primarySubject)
       : []),
   ].filter(Boolean);
+  const perspectiveText = [
+    item?.label,
+    raw?.label,
+    aspects?.overview?.summary,
+    raw?.formatPattern,
+    aspects?.formatPattern?.value,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const requireDifferentProfession =
+    isExtinctProfessionPerspective(perspectiveText);
   const references = (aspects?.competition?.sampleVideos || [])
     .slice(0, 8)
     .map((video) => `${video.title || ""} (${Number(video.views || 0)} views)`)
@@ -1208,7 +1293,8 @@ Responda somente JSON vÃ¡lido:
     const conflict = alternativeSuggestionConflict(
       parsed,
       previousIdeas,
-      previousSubjects
+      previousSubjects,
+      { requireDifferentProfession }
     );
     if (!conflict) {
       draft = parsed;
