@@ -1754,6 +1754,112 @@ export function normalizeVisualPromptBlocks(
     }
   }
 
+  // --- Narration coverage check: detect missing sentences ---
+  const approvedNarration = String(result.narrative_script || "").trim();
+  if (approvedNarration && normalized.length > 0) {
+    const sentences = approvedNarration
+      .split(/(?<=[.!?…])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 8);
+
+    if (sentences.length > 0) {
+      const coveredByScene = (sentence) => {
+        const needle = sentence.slice(0, 30).toLowerCase();
+        return normalized.some((vp) => {
+          const haystack = String(
+            vp.narration_text || vp.narration_excerpt || ""
+          ).toLowerCase();
+          return haystack.includes(needle);
+        });
+      };
+
+      const missing = [];
+      for (const sentence of sentences) {
+        if (!coveredByScene(sentence)) {
+          missing.push(sentence);
+        }
+      }
+
+      if (missing.length > 0) {
+        // Group consecutive missing sentences
+        const groups = [];
+        let currentGroup = [missing[0]];
+        for (let m = 1; m < missing.length; m++) {
+          const prevIdx = sentences.indexOf(
+            currentGroup[currentGroup.length - 1]
+          );
+          const curIdx = sentences.indexOf(missing[m]);
+          if (curIdx === prevIdx + 1) {
+            currentGroup.push(missing[m]);
+          } else {
+            groups.push(currentGroup);
+            currentGroup = [missing[m]];
+          }
+        }
+        groups.push(currentGroup);
+
+        for (const group of groups) {
+          const narration_text = group.join(" ");
+          const firstGroupSentenceIdx = sentences.indexOf(group[0]);
+
+          // Find insertion point: before the first VP whose narration starts after this sentence
+          let insertAt = 0;
+          for (let vi = 0; vi < normalized.length; vi++) {
+            const vpNarr = String(
+              normalized[vi]?.narration_text || ""
+            ).toLowerCase();
+            const vpSentenceIdx = sentences.findIndex((s) =>
+              vpNarr.includes(s.slice(0, 30).toLowerCase())
+            );
+            if (vpSentenceIdx >= 0 && vpSentenceIdx > firstGroupSentenceIdx) {
+              insertAt = vi;
+              break;
+            }
+            insertAt = vi + 1;
+          }
+
+          const targetBlock =
+            insertAt < normalized.length
+              ? normalized[insertAt].block
+              : normalized[normalized.length - 1]?.block || 1;
+
+          const sceneDraft = {
+            scene: `${targetBlock}.0`,
+            block: targetBlock,
+            narration_text,
+            type: "imagem IA 2k",
+            editor_notes: "Ken Burns zoom in",
+          };
+          const prompt = buildSceneSpecificPrompt(sceneDraft);
+          normalized.splice(insertAt, 0, {
+            ...sceneDraft,
+            prompt,
+            stock_query: resolveStockSearchQuery(
+              { ...sceneDraft, prompt },
+              { strategyTitle: ideaTitle }
+            ),
+          });
+        }
+
+        // Renumber scenes after injection
+        const blockGroups = {};
+        for (const vp of normalized) {
+          const b = vp.block || 1;
+          if (!blockGroups[b]) blockGroups[b] = [];
+          blockGroups[b].push(vp);
+        }
+        for (const [b, scenes] of Object.entries(blockGroups)) {
+          scenes.forEach((vp, idx) => {
+            vp.scene = `${b}.${idx + 1}`;
+          });
+        }
+        console.log(
+          `[scriptQuality] Narration coverage fix: injected ${missing.length} missing sentence(s) into visual_prompts`
+        );
+      }
+    }
+  }
+
   const mixed = enforceShortsVideoSceneMix(normalized, { format });
   result.visual_prompts = sanitizeVisualPromptDurations(
     skipPromptEnrichment
