@@ -341,6 +341,7 @@ import {
   sanitizeVisualPromptDurations,
   enforceShortsVideoSceneMix,
   loadNarracaoProGuidelines,
+  ensureNarrationCoverage,
 } from "./scriptQuality.js";
 import {
   buildSeedanceDirectingRequest,
@@ -6287,12 +6288,10 @@ REGRA DE SINCRONIA PRIORITARIA: retorne tambem "offset" (segundos depois do star
     });
   } catch (error) {
     console.error("[SFX Professional]", error);
-    res
-      .status(500)
-      .json({
-        error: "Falha no design profissional de SFX",
-        details: error.message,
-      });
+    res.status(500).json({
+      error: "Falha no design profissional de SFX",
+      details: error.message,
+    });
   }
 });
 
@@ -19297,6 +19296,13 @@ app.post(
           scene: sceneInBlock ? sceneStr : `${block}.${index + 1}`,
         };
       });
+      storyboard.visual_prompts = ensureNarrationCoverage(
+        storyboard.visual_prompts,
+        {
+          narrativeScript: narrative,
+          ideaTitle: storyboard.strategy?.title_main || "",
+        }
+      );
       storyboard.visual_prompts = sanitizeVisualPromptDurations(
         enforceShortsVideoSceneMix(storyboard.visual_prompts, { format })
       );
