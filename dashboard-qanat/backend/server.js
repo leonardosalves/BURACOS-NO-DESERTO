@@ -167,6 +167,7 @@ import {
   stripAiOverlaysFromStoryboard,
 } from "../shared/productionConfig.js";
 import { motionScenesToMotionClips } from "./motionScenePlanner.js";
+import { getCatalogForNiche } from "./remotionTemplateCatalogService.js";
 import {
   loadStudioForRender,
   shouldUseStudioForRender,
@@ -329,12 +330,14 @@ import {
   mergeVisualPromptsRepair,
   buildBatchScenePromptsAiRequest,
   applyBatchScenePromptsAiResponse,
+  buildHistoricalWitnessContractBlock,
   normalizeScriptChecklist,
   isChecklistEmpty,
   buildScriptChecklistEvaluationPrompt,
   buildChecklistSchemaBlock,
   VISUAL_PROMPT_SPECIFICITY_RULES,
   buildVisualPromptEngineerRequest,
+  enforceVisualLocalizedTextRule,
   sanitizeVisualPromptDurations,
   enforceShortsVideoSceneMix,
   loadNarracaoProGuidelines,
@@ -527,6 +530,7 @@ import {
   applyWhisperDurationsToStoryboard,
   fillSceneTimelineGaps,
 } from "./timelineSceneSync.js";
+import { sanitizeTranscriptSegmentWords } from "../shared/wordTranscripts.js";
 import {
   hasMojibakeDeep,
   repairOverlayPropsEncoding,
@@ -4397,6 +4401,7 @@ app.post("/api/render/cleanup-public-cache", (req, res) => {
 
 app.get("/api/render/config", (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     const data = ensureBrandCatalogMigrated(WORKSPACE_DIR, __dirname);
 
     res.json(data);
@@ -4439,6 +4444,7 @@ app.post("/api/render/config", (req, res) => {
 // GET /api/settings/studio-defaults — Visual + Produção globais (todos os projetos)
 app.get("/api/settings/studio-defaults", (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     const renderConfig = loadRenderConfig(__dirname);
     const defaults = getStudioDefaultsFromRenderConfig(renderConfig);
     res.json(defaults);
@@ -4452,6 +4458,7 @@ app.get("/api/settings/studio-defaults", (req, res) => {
 // POST /api/settings/studio-defaults — patch visual/production (null remove chave)
 app.post("/api/settings/studio-defaults", (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     const { visual, production } = req.body || {};
     const existing = loadRenderConfig(__dirname);
     const merged = applyStudioDefaultsPatch(existing, { visual, production });
@@ -4571,6 +4578,24 @@ app.get("/api/music", (req, res) => {
     res.json(files);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/sfx/timeline", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const timeline = readProjectJson(projDir, "sfx_timeline.json", {
+      sfx_events: [],
+    });
+    res.json({
+      ...timeline,
+      sfx_events: (timeline.sfx_events || []).map((event) => ({
+        ...event,
+        exists: Boolean(findProjectFile(projDir, event.file)),
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -5734,6 +5759,12 @@ async function runAutoSoundtrackLogic(projDir, token, mode, options = {}) {
     config.single_bgm = "";
     if (!Array.isArray(config.bgm_emotion_mappings))
       config.bgm_emotion_mappings = [];
+    if (force) {
+      config.bgm_emotion_mappings = [];
+      logs.push(
+        "Novo plano emocional: seleção anterior liberada para substituição automática."
+      );
+    }
 
     let plan = storyboard.bgm_emotion_plan;
     if (!plan?.segments?.length) {
@@ -6042,6 +6073,229 @@ app.post(
   })
 );
 
+// Design profissional de SFX: contexto -> decisão editorial -> busca -> validação -> download.
+app.post("/api/ai/plan-sfx", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const timings = readProjectJson(projDir, "block_timings.json", {});
+    const totalDuration = Number(timings.total_duration) || 60;
+    const isShort = config.aspect_ratio === "9:16" || totalDuration <= 90;
+    const maxEvents = isShort
+      ? Math.min(9, Math.max(4, Math.ceil(totalDuration / 9)))
+      : Math.min(24, Math.max(6, Math.ceil(totalDuration / 35)));
+    const scenes = (storyboard.visual_prompts || [])
+      .slice(0, 180)
+      .map((vp) => ({
+        scene_ref:
+          vp.scene_ref || vp.scene || vp.production?.scene_ref || vp.id,
+        block: vp.block,
+        start: Number.isFinite(Number(vp.speech_start))
+          ? Number(vp.speech_start)
+          : Number(vp.start ?? vp.start_time) || 0,
+        end: Number.isFinite(Number(vp.speech_end))
+          ? Number(vp.speech_end)
+          : null,
+        duration: Number(vp.duration_seconds) || null,
+        narration: String(vp.narration_text || vp.text || "").slice(0, 220),
+        visual: String(vp.prompt || vp.visual_description || "").slice(0, 220),
+      }));
+    const scenesByRef = new Map(
+      scenes.map((scene) => [String(scene.scene_ref || ""), scene])
+    );
+    const prompt = `Você é um sound designer sênior de documentários e YouTube.
+Crie no máximo ${maxEvents} eventos SFX para um vídeo ${isShort ? "Short 9:16" : "longo 16:9"} de ${totalDuration.toFixed(1)}s.
+Use efeitos somente quando reforçarem uma ação visível, mudança narrativa ou ambiente reconhecível. Não sonorize cada corte. Não use sons literais se a cena apenas menciona algo sem mostrá-lo. Preserve inteligibilidade da narração.
+Retorne JSON {"events":[{"scene_ref":"1.2","time":12.4,"duration":1.2,"category":"transition|impact|detail|ambience|riser","query_en":"precise English Epidemic Sound query","intent":"por que este som pertence à cena","volume":0.28,"fade_in":0.08,"fade_out":0.25,"confidence":0.82}]}.
+Regras: time absoluto; volume linear audível: ambience 0.10-0.16, detail 0.22-0.32, transition 0.24-0.34, riser 0.18-0.28, impact 0.30-0.42; ambience 2-6s, demais 0.25-2.5s; confidence >=0.62; distância mínima ${isShort ? 2.5 : 5}s; sem sobreposição salvo ambience.
+REGRA DE SINCRONIA PRIORITARIA: retorne tambem "offset" (segundos depois do start da cena) e "sync_anchor" (acao visual exata). O campo time absoluto e apenas legado. Ambience usa offset 0; detail e impact usam o quadro em que a acao comeca; riser deve terminar na virada visual.\nCENAS:\n${JSON.stringify(scenes)}`;
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Design profissional de SFX",
+      prompt,
+    });
+    if (responseText == null) return;
+    const parsed = await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Plano SFX"
+    );
+    const raw = Array.isArray(parsed?.events) ? parsed.events : [];
+    const gap = isShort ? 2.5 : 5;
+    const caps = {
+      ambience: 0.18,
+      transition: 0.36,
+      detail: 0.36,
+      impact: 0.46,
+      riser: 0.32,
+    };
+    const floors = {
+      ambience: 0.12,
+      transition: 0.26,
+      detail: 0.26,
+      impact: 0.34,
+      riser: 0.22,
+    };
+    const planned = [];
+    for (const row of raw.sort((a, b) => Number(a.time) - Number(b.time))) {
+      const scene = scenesByRef.get(String(row.scene_ref || ""));
+      const sceneStart = Number(scene?.start) || 0;
+      const sceneEnd =
+        scene?.end != null && Number.isFinite(Number(scene.end))
+          ? Number(scene.end)
+          : Math.min(
+              totalDuration,
+              sceneStart + (Number(scene?.duration) || 6)
+            );
+      const offset = Math.max(0, Number(row.offset) || 0);
+      const legacyTime = Number(row.time);
+      const proposedTime = scene
+        ? sceneStart + offset
+        : Number.isFinite(legacyTime)
+          ? legacyTime
+          : 0;
+      const time = Math.max(
+        sceneStart,
+        Math.min(
+          scene ? Math.max(sceneStart, sceneEnd - 0.05) : totalDuration - 0.1,
+          proposedTime
+        )
+      );
+      const category = String(row.category || "detail").toLowerCase();
+      if ((Number(row.confidence) || 0) < 0.62) continue;
+      if (
+        planned.some(
+          (e) => category !== "ambience" && Math.abs(e.time - time) < gap
+        )
+      )
+        continue;
+      const maxDuration = category === "ambience" ? 6 : 2.5;
+      planned.push({
+        ...row,
+        time: Number(time.toFixed(3)),
+        offset: Number(Math.max(0, time - sceneStart).toFixed(3)),
+        scene_start: Number(sceneStart.toFixed(3)),
+        scene_end: Number(sceneEnd.toFixed(3)),
+        duration: Number(
+          Math.max(
+            0.25,
+            Math.min(maxDuration, Number(row.duration) || 0.8)
+          ).toFixed(3)
+        ),
+        category,
+        volume: Number(
+          Math.max(
+            floors[category] || 0.18,
+            Math.min(
+              caps[category] || 0.32,
+              Number(row.volume) || floors[category] || 0.22
+            )
+          ).toFixed(3)
+        ),
+        fade_in: Number(
+          Math.max(0.02, Math.min(0.8, Number(row.fade_in) || 0.08)).toFixed(3)
+        ),
+        fade_out: Number(
+          Math.max(0.08, Math.min(1.2, Number(row.fade_out) || 0.25)).toFixed(3)
+        ),
+      });
+      if (planned.length >= maxEvents) break;
+    }
+
+    const token = getEpidemicSoundKey(projDir) || "";
+    const assetsDir = path.join(projDir, "ASSETS");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    const events = [];
+    const logs = [];
+    for (const [index, item] of planned.entries()) {
+      try {
+        const results = await searchSoundEffects(
+          token,
+          String(item.query_en || item.category)
+        );
+        const queryTokens = String(item.query_en || "")
+          .toLowerCase()
+          .split(/\W+/)
+          .filter((x) => x.length > 2);
+        const ranked = [...results].sort((a, b) => {
+          const score = (track) =>
+            queryTokens.filter((t) =>
+              String(track.title || "")
+                .toLowerCase()
+                .includes(t)
+            ).length;
+          return score(b) - score(a);
+        });
+        const chosen = ranked.find(
+          (candidate) => candidate?.id && candidate?.previewUrl
+        );
+        if (!chosen?.id || !chosen?.previewUrl) {
+          logs.push(
+            `[${item.scene_ref}] nenhum SFX verificável para "${item.query_en}"`
+          );
+          continue;
+        }
+        const safe = String(chosen.title || item.category)
+          .replace(/[^a-zA-Z0-9_-]/g, "_")
+          .slice(0, 55);
+        const filename = `sfx_ai_${String(index + 1).padStart(2, "0")}_${safe}.mp3`;
+        await downloadSoundEffect(
+          token,
+          chosen.id,
+          path.join(assetsDir, filename),
+          chosen.previewUrl
+        );
+        events.push({
+          ...item,
+          file: `ASSETS/${filename}`,
+          provider_id: chosen.id,
+          provider_title: chosen.title,
+          verified_query_match: true,
+          source: "epidemic-sound",
+        });
+        logs.push(
+          `[${item.scene_ref}] ${chosen.title} @ ${item.time}s vol=${item.volume}`
+        );
+      } catch (error) {
+        logs.push(`[${item.scene_ref}] erro: ${error.message}`);
+      }
+    }
+    const timeline = {
+      version: 2,
+      generated_by: "ai-professional-sound-design",
+      generated_at: new Date().toISOString(),
+      format: isShort ? "SHORT" : "LONG",
+      sfx_events: events,
+    };
+    fs.writeFileSync(
+      path.join(projDir, "sfx_timeline.json"),
+      JSON.stringify(timeline, null, 2),
+      "utf8"
+    );
+    config.sfx_enabled = true;
+    fs.writeFileSync(
+      path.join(projDir, "config_qanat.json"),
+      JSON.stringify(config, null, 2),
+      "utf8"
+    );
+    res.json({
+      success: true,
+      planned_count: planned.length,
+      downloaded_count: events.length,
+      events,
+      logs,
+    });
+  } catch (error) {
+    console.error("[SFX Professional]", error);
+    res
+      .status(500)
+      .json({
+        error: "Falha no design profissional de SFX",
+        details: error.message,
+      });
+  }
+});
+
 // Helper: Ensure all mapped BGM files are downloaded from Epidemic Sound before rendering
 
 async function ensureProjectBgmTracks(projDir) {
@@ -6337,15 +6591,31 @@ function sanitizeProjectBlockTimings(projDir) {
 
 async function ensureProjectSfxTracks(projDir) {
   const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+  const autoSfxTimelinePath = path.join(projDir, "sfx_auto_timeline.json");
   if (!isSfxEnabled(projectConfig)) {
     console.log(
       "[SFX Auto-Fetch] Efeitos sonoros desativados (sfx_enabled=false)."
     );
-    const sfxTimelinePath = path.join(projDir, "sfx_timeline.json");
     fs.writeFileSync(
-      sfxTimelinePath,
+      autoSfxTimelinePath,
       JSON.stringify({ sfx_events: [] }, null, 2),
       "utf8"
+    );
+    return;
+  }
+
+  if (projectConfig.overlay_sfx_sync === false) {
+    fs.writeFileSync(
+      autoSfxTimelinePath,
+      JSON.stringify(
+        { version: 1, source: "automatic-assets", sfx_events: [] },
+        null,
+        2
+      ),
+      "utf8"
+    );
+    console.log(
+      "[SFX Auto-Fetch] TransiÃ§Ãµes de assets desativadas; sonoplastia profissional preservada."
     );
     return;
   }
@@ -6634,18 +6904,20 @@ async function ensureProjectSfxTracks(projDir) {
         break; // Max 1 thematic SFX per block
       }
     }
-  } // Write map to sfx_timeline.json
-
-  const sfxTimelinePath = path.join(projDir, "sfx_timeline.json");
+  } // Write automatic asset map without touching professional sound design.
 
   fs.writeFileSync(
-    sfxTimelinePath,
-    JSON.stringify({ sfx_events: sfxEvents }, null, 2),
+    autoSfxTimelinePath,
+    JSON.stringify(
+      { version: 1, source: "automatic-assets", sfx_events: sfxEvents },
+      null,
+      2
+    ),
     "utf8"
   );
 
   console.log(
-    `[SFX Auto-Fetch] Timeline de sonoplastia salva em ${sfxTimelinePath} com ${sfxEvents.length} eventos.`
+    `[SFX Auto-Fetch] Timeline automÃ¡tica salva em ${autoSfxTimelinePath} com ${sfxEvents.length} eventos.`
   );
 }
 
@@ -7999,9 +8271,9 @@ function normalizeWordTranscriptEnds(wordTranscripts) {
   if (!Array.isArray(wordTranscripts)) return [];
   return wordTranscripts.map((segment) => {
     const segmentStart = Number(segment?.start_time || 0);
-    const words = Array.isArray(segment?.words)
-      ? segment.words.map((w) => ({ ...w }))
-      : [];
+    const words = sanitizeTranscriptSegmentWords(segment).map((w) => ({
+      ...w,
+    }));
     for (let i = 0; i < words.length; i++) {
       const relStart = Number(words[i]?.start || 0);
       let relEnd = Number(words[i]?.end || relStart + 0.4);
@@ -8085,13 +8357,23 @@ function sanitizeCaptionsForRemotion(captions, maxDurationSeconds) {
       (caption) =>
         caption.text.trim() &&
         Number.isFinite(caption.startMs) &&
-        caption.startMs < maxMs
+        // Não crie uma legenda residual de 120 ms encostada no fim do áudio.
+        caption.startMs < maxMs - 80
     )
 
     .sort((a, b) => a.startMs - b.startMs);
 
-  return sorted.map((caption, index) => {
-    const nextStart = sorted[index + 1]?.startMs;
+  const deduped = sorted.filter((caption, index) => {
+    const previous = sorted[index - 1];
+    if (!previous) return true;
+    const sameText =
+      previous.text.trim().toLocaleLowerCase("pt-BR") ===
+      caption.text.trim().toLocaleLowerCase("pt-BR");
+    return !(sameText && Math.abs(caption.startMs - previous.startMs) < 90);
+  });
+
+  return deduped.map((caption, index) => {
+    const nextStart = deduped[index + 1]?.startMs;
 
     const naturalEnd =
       caption.endMs > caption.startMs ? caption.endMs : caption.startMs + 420;
@@ -8109,7 +8391,9 @@ function sanitizeCaptionsForRemotion(captions, maxDurationSeconds) {
 
       startMs: Math.round(caption.startMs),
 
-      endMs: Math.round(Math.max(caption.startMs + 120, endMs)),
+      endMs: Math.round(
+        Math.min(maxMs, Math.max(caption.startMs + 120, endMs))
+      ),
 
       timestampMs: Math.round(caption.startMs),
     };
@@ -8159,13 +8443,32 @@ function collectRemotionSfxTracks(
     return [];
   }
 
-  const sfxTimeline = readProjectJson(projectDir, "sfx_timeline.json", {
-    sfx_events: [],
-  });
-
-  const events = Array.isArray(sfxTimeline.sfx_events)
-    ? sfxTimeline.sfx_events
+  const professionalTimeline = readProjectJson(
+    projectDir,
+    "sfx_timeline.json",
+    {
+      sfx_events: [],
+    }
+  );
+  const overlaySfxEnabled = projectConfig.overlay_sfx_sync !== false;
+  const automaticTimeline = overlaySfxEnabled
+    ? readProjectJson(projectDir, "sfx_auto_timeline.json", { sfx_events: [] })
+    : { sfx_events: [] };
+  const professionalEvents = Array.isArray(professionalTimeline.sfx_events)
+    ? professionalTimeline.sfx_events.filter((event) => {
+        if (
+          event?.category ||
+          /^sfx_ai_/i.test(path.basename(String(event?.file || "")))
+        ) {
+          return true;
+        }
+        return overlaySfxEnabled;
+      })
     : [];
+  const automaticEvents = Array.isArray(automaticTimeline.sfx_events)
+    ? automaticTimeline.sfx_events
+    : [];
+  const events = [...professionalEvents, ...automaticEvents];
 
   const tracks = [];
 
@@ -8176,6 +8479,13 @@ function collectRemotionSfxTracks(
 
     const source = findProjectFile(projectDir, event?.file);
 
+    if (!source) {
+      console.warn(
+        `[Remotion SFX] Arquivo ausente; evento ignorado: ${event?.file || "sem arquivo"}`
+      );
+      continue;
+    }
+
     const copied = copyRemotionAsset(
       source,
       publicProjectDir,
@@ -8185,18 +8495,34 @@ function collectRemotionSfxTracks(
     if (!copied) continue;
 
     const rawVolume = Number(event?.volume);
+    const professionalFloor =
+      {
+        ambience: 0.12,
+        transition: 0.26,
+        detail: 0.26,
+        impact: 0.34,
+        riser: 0.22,
+      }[String(event?.category || "detail")] || 0.22;
 
     tracks.push({
       file: `projects/${projectSlug}/${copied}`,
 
       start,
 
-      duration: Math.max(0.3, Math.min(6, totalDuration - start)),
+      duration: Math.max(
+        0.25,
+        Math.min(6, Number(event?.duration) || 0.8, totalDuration - start)
+      ),
 
       volume: Math.min(
-        0.12,
-        Math.max(0.025, Number.isFinite(rawVolume) ? rawVolume * 0.45 : 0.06)
+        0.5,
+        Math.max(
+          professionalFloor,
+          Number.isFinite(rawVolume) ? rawVolume : professionalFloor
+        )
       ),
+      fadeInS: Math.max(0.02, Math.min(0.8, Number(event?.fade_in) || 0.08)),
+      fadeOutS: Math.max(0.08, Math.min(1.2, Number(event?.fade_out) || 0.25)),
     });
   }
 
@@ -9323,9 +9649,11 @@ async function prepareRemotionRender(
 
   let rawCaptions;
   if (useStudioRender) {
-    rawCaptions = buildCaptionsFromStudio(timelineStudio);
+    // O Whisper é a fonte de verdade. A trilha de captions do Studio pode ter
+    // sido criada por uma sincronização antiga e conter sobras corrompidas.
+    rawCaptions = captionsFromWordTranscripts(wordTranscripts);
     if (rawCaptions.length === 0) {
-      rawCaptions = captionsFromWordTranscripts(wordTranscripts);
+      rawCaptions = buildCaptionsFromStudio(timelineStudio);
     }
     if (rawCaptions.length === 0) {
       rawCaptions = fallbackCaptionsFromScenes(validScenes);
@@ -9336,10 +9664,13 @@ async function prepareRemotionRender(
       captions.length > 0 ? captions : fallbackCaptionsFromScenes(validScenes);
   }
 
-  const captionMaxDuration = Math.max(
-    Number(narrationDuration) || 0,
-    Number(totalDuration) || 0
-  );
+  // Legendas pertencem à narração, não à duração visual da timeline/outro.
+  // Usar totalDuration aqui fazia palavras residuais reaparecerem rapidamente
+  // depois que o MP3 já havia terminado.
+  const captionMaxDuration =
+    Number(narrationDuration) > 0
+      ? Number(narrationDuration)
+      : Number(totalDuration) || 0;
   const finalCaptions = sanitizeCaptionsForRemotion(
     rawCaptions,
     captionMaxDuration
@@ -14811,8 +15142,13 @@ Responda APENAS com um JSON valido no formato:
 
 app.post("/api/ai/plan-bgm-emotions", async (req, res) => {
   const projDir = getProjectDir(req);
+  const autoDownload = req.body?.auto_download !== false;
 
   try {
+    console.log("[BGM Emotion] planejamento iniciado", {
+      project: path.basename(projDir),
+      autoDownload,
+    });
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
     const config = readProjectJson(projDir, "config_qanat.json", {});
     const timings = readProjectJson(projDir, "block_timings.json", {
@@ -14894,10 +15230,33 @@ app.post("/api/ai/plan-bgm-emotions", async (req, res) => {
       "utf8"
     );
 
+    let downloadLogs = [];
+    let downloadedMappings = [];
+    if (autoDownload && plan.segments?.length) {
+      const token = getEpidemicSoundKey(projDir) || "";
+      downloadLogs = await runAutoSoundtrackLogic(projDir, token, "emotion", {
+        force: true,
+      });
+      const updatedConfig = readProjectJson(projDir, "config_qanat.json", {});
+      downloadedMappings = Array.isArray(updatedConfig.bgm_emotion_mappings)
+        ? updatedConfig.bgm_emotion_mappings
+        : [];
+    }
+
+    console.log("[BGM Emotion] fluxo concluído", {
+      project: path.basename(projDir),
+      segments: plan.segments?.length || 0,
+      downloaded: downloadedMappings.length,
+    });
+
     res.json({
       success: true,
       plan,
       logs: formatEmotionPlanLog(plan),
+      auto_download: autoDownload,
+      download_logs: downloadLogs,
+      downloaded_count: downloadedMappings.length,
+      mappings: downloadedMappings,
     });
   } catch (err) {
     console.error("[Plan BGM Emotions]", err);
@@ -15371,6 +15730,40 @@ app.post("/api/narration/audit/review", (req, res) => {
     res.json({ success: true, review: event });
   } catch (err) {
     res.status(500).json({ error: err.message || "Falha ao salvar revisão." });
+  }
+});
+
+app.post("/api/narration/audit/review-all", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const chunkIds = Array.isArray(req.body?.chunk_ids)
+      ? [
+          ...new Set(req.body.chunk_ids.map((id) => String(id || "").trim())),
+        ].filter(Boolean)
+      : [];
+    const decision = String(req.body?.decision || "approved").trim();
+    if (!chunkIds.length) {
+      return res.status(400).json({ error: "Nenhum trecho selecionado." });
+    }
+    if (decision !== "approved") {
+      return res.status(400).json({
+        error: "A revisão em massa permite apenas aprovação.",
+      });
+    }
+    const reviews = chunkIds.map((chunkId) =>
+      appendNarrationAuditEvent(projDir, {
+        type: "review",
+        chunk_id: chunkId,
+        decision: "approved",
+        status: "approved",
+        note: "Aprovação em massa pela auditoria da narração.",
+      })
+    );
+    res.json({ success: true, count: reviews.length, reviews });
+  } catch (err) {
+    res.status(500).json({
+      error: err.message || "Falha ao aprovar todos os trechos.",
+    });
   }
 });
 
@@ -16197,6 +16590,235 @@ function getExistingProjectsMetadata() {
 // API: SCRIPT MASTER Step 1 - Generate Research & 10 Ideas
 
 app.post(
+  "/api/ai/creator/historical-witness-ideas",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const {
+      niche = "Historia",
+      format = "SHORTS",
+      character = "reporter de campo",
+    } = req.body || {};
+    const isShort = String(format).toUpperCase() !== "LONGO";
+    const prompt = `Voce e um pesquisador historico e estrategista de videos do LUMIERA HISTORIA VIVA.
+
+Gere exatamente 10 ideias DIFERENTES para ${isShort ? "Shorts 9:16" : "videos longos 16:9"} no nicho "${String(niche).trim()}".
+O narrador-personagem sera: ${String(character).trim()}.
+
+OBJETIVO EDITORIAL
+- Fazer o publico descobrir uma verdade historica verificavel que contradiga, complete ou aprofunde a versao popular.
+- Escolher acontecimentos com causa, acao, mecanismo, resultado e importancia claramente conectados.
+- Dar ao personagem um ponto de vista plausivel DENTRO da epoca: ele fala como se aquilo estivesse acontecendo hoje, sem conhecer o futuro.
+- O personagem testemunha, investiga ou explica; nunca executa acoes impossiveis para sua identidade.
+- Cada ideia deve pertencer a uma unica entidade, local e periodo. Nunca fundir fatos de casos distintos.
+- Priorizar recortes visuais, concretos e surpreendentes, sem sensacionalismo ou misterios inventados.
+
+Retorne SOMENTE JSON valido:
+{
+  "ideas": [
+    {
+      "title": "titulo concreto e clicavel em PT-BR",
+      "event": "acontecimento ou processo historico especifico",
+      "period": "data ou periodo correto",
+      "location": "local correto",
+      "hiddenTruth": "verdade que o espectador descobrira",
+      "popularBelief": "versao popular que sera corrigida ou aprofundada",
+      "characterView": "o que este personagem presencia e por que pode contar isso",
+      "hook": "gancho falado como se o acontecimento fosse o presente",
+      "certainty": "alto|medio|disputado",
+      "whyItMatters": "consequencia que responde ao gancho"
+    }
+  ]
+}`;
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Gerar 10 ideias de Historia Viva",
+      prompt,
+      temperature: 0.55,
+    });
+    if (responseText == null) return;
+    const parsed = await parseAiJsonResponse(
+      responseText,
+      getApiKey(projDir),
+      "Ideias de Historia Viva"
+    );
+    const ideas = (Array.isArray(parsed?.ideas) ? parsed.ideas : [])
+      .filter((idea) => idea?.title && idea?.event)
+      .slice(0, 10);
+    if (ideas.length < 10) {
+      return res.status(502).json({
+        error: `A IA retornou apenas ${ideas.length} ideias validas. Gere novamente.`,
+      });
+    }
+    res.json({ ideas });
+  })
+);
+
+app.post(
+  "/api/ai/creator/historical-witness",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const {
+      niche = "HistÃ³ria",
+      topic,
+      period = "",
+      location = "",
+      characterProfile = "reporter",
+      customCharacter = "",
+      format = "SHORTS",
+      editorialTruth = "",
+      characterView = "",
+      selectedHook = "",
+    } = req.body || {};
+    if (!String(topic || "").trim()) {
+      return res
+        .status(400)
+        .json({ error: "Informe o acontecimento histÃ³rico." });
+    }
+
+    const profiles = {
+      reporter:
+        "repÃ³rter de campo curiosa, didÃ¡tica e direta; roupa civil historicamente plausÃ­vel",
+      archaeologist:
+        "arqueÃ³loga especialista, observadora e precisa; roupa de campo discreta adaptada ao perÃ­odo",
+      chronicler:
+        "cronista militar nÃ£o combatente, sÃ³brio e atento Ã  estratÃ©gia; nunca executa aÃ§Ãµes de soldado",
+      resident:
+        "morador ou moradora local que presencia o acontecimento; linguagem humana sem conhecimento impossÃ­vel do futuro",
+      scholar:
+        "pesquisador viajante que explica documentos, objetos e mecanismos; postura analÃ­tica e acessÃ­vel",
+      custom: String(
+        customCharacter || "personagem testemunha definido pelo usuÃ¡rio"
+      ).trim(),
+    };
+    const character = profiles[characterProfile] || profiles.reporter;
+    const isShort = String(format).toUpperCase() !== "LONGO";
+    const sceneCount = isShort ? 10 : 18;
+    const sceneDuration = isShort ? "5 a 7 segundos" : "7 a 10 segundos";
+
+    const prompt = `VocÃª Ã© o motor LUMIERA HISTÃ“RIA VIVA. Crie um roteiro explicativo em estilo "testemunha dentro da HistÃ³ria": uma pessoa recorrente segura a cÃ¢mera em selfie e explica o acontecimento enquanto a prova visual ocorre ao fundo.
+
+ENTRADAS
+Nicho: ${String(niche).trim()}
+Acontecimento: ${String(topic).trim()}
+PerÃ­odo: ${String(period).trim() || "determinar pela pesquisa"}
+Local: ${String(location).trim() || "determinar pela pesquisa"}
+Formato: ${isShort ? "SHORTS 9:16" : "LONGO 16:9"}
+Perfil escolhido: ${character}
+Verdade editorial escolhida: ${String(editorialTruth).trim() || "descobrir pela pesquisa"}
+Ponto de vista plausivel do personagem: ${String(characterView).trim() || "definir pela pesquisa"}
+Gancho escolhido: ${String(selectedHook).trim() || "criar a partir da verdade editorial"}
+Quantidade alvo: ${sceneCount} cenas de ${sceneDuration}
+
+ESTRUTURA NARRATIVA OBRIGATÃ“RIA
+1. Mito/versÃ£o popular em uma frase.
+2. CorreÃ§Ã£o: "mas o que quase sempre fica de fora...".
+3. Contexto espacial e temporal.
+4. Escala com nÃºmeros contextualizados.
+5. Mecanismo: mostrar COMO a geografia, tecnologia, decisÃ£o ou limitaÃ§Ã£o produziu o resultado.
+6. Virada/complicaÃ§Ã£o.
+7. ConsequÃªncia imediata.
+8. ImportÃ¢ncia histÃ³rica que responde ao gancho.
+
+VALIDAÃ‡ÃƒO
+- Preserve a verdade editorial, o ponto de vista e o gancho escolhidos nas entradas; nao troque o caso por outro.
+- O personagem fala no presente daquele periodo, como se o acontecimento estivesse ocorrendo hoje, sem antecipar consequencias futuras que ele nao poderia conhecer.
+- Cada cena segue CAUSA â†’ AÃ‡ÃƒO â†’ MECANISMO â†’ RESULTADO â†’ IMPORTÃ‚NCIA.
+- Nunca fundir locais, datas, dimensÃµes, funÃ§Ãµes ou fontes de casos diferentes.
+- NÃ£o inventar falas, objetos, uniformes, arquitetura ou conhecimentos anacrÃ´nicos.
+- O personagem observa e explica; nÃ£o realiza aÃ§Ã£o biologicamente, historicamente ou tecnicamente impossÃ­vel.
+- Se houver incerteza histÃ³rica, declarar o nÃ­vel de certeza no campo factBasis.
+
+ENGENHARIA DE PROMPT VISUAL
+- O visualPrompt deve ser em INGLÃŠS e autossuficiente.
+- Repetir integralmente o characterLock em TODA cena; nunca escrever "same character".
+- CÃ¢mera handheld selfie, braÃ§o estendido, lente grande-angular moderada, microtremor natural, personagem falando para a lente e apontando para evidÃªncia ao fundo.
+- Continuidade estrita de rosto, idade, cabelo, olhos, roupa, acessÃ³rios e proporÃ§Ãµes.
+- Fundo ativo, mas legÃ­vel: uma Ãºnica aÃ§Ã£o histÃ³rica principal por cena.
+- Incluir negativePrompt contra face drift, age change, costume change, body morph, extra fingers, 360-degree head rotation, duplicate people, modern objects, unreadable text e arquitetura errada.
+- NÃ£o gerar placas com traduÃ§Ã£o brasileira em local estrangeiro. Texto diegÃ©tico usa a lÃ­ngua e escrita do local; traduÃ§Ã£o PT-BR Ã© adicionada depois como legenda.
+
+Retorne SOMENTE JSON vÃ¡lido:
+{
+  "title": "tÃ­tulo em PT-BR",
+  "hook": "gancho falado em PT-BR",
+  "promise": "tese central em uma frase",
+  "nicheMode": "subnicho histÃ³rico escolhido",
+  "characterLock": "descriÃ§Ã£o visual completa em inglÃªs, 70-120 palavras",
+  "voiceDirection": "direÃ§Ã£o de atuaÃ§Ã£o e narraÃ§Ã£o",
+  "globalNegativePrompt": "restriÃ§Ãµes globais em inglÃªs",
+  "historicalFrame": {"entity":"", "location":"", "period":"", "certainty":"", "centralThesis":""},
+  "blocks": [
+    {
+      "block": 1,
+      "narration": "fala em PT-BR",
+      "causalRole": "causa|aÃ§Ã£o|mecanismo|resultado|importÃ¢ncia",
+      "factBasis": "o que precisa ser comprovado e nÃ­vel de certeza",
+      "visualEvidence": "o que o fundo comprova",
+      "visualPrompt": "prompt completo em inglÃªs, incluindo characterLock",
+      "negativePrompt": "restriÃ§Ãµes especÃ­ficas em inglÃªs",
+      "durationSeconds": 6
+    }
+  ]
+}`;
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Criar HistÃ³ria Viva",
+      prompt,
+      temperature: 0.45,
+    });
+    if (responseText == null) return;
+    const parsed = await parseAiJsonResponse(
+      responseText,
+      getApiKey(projDir),
+      "HistÃ³ria Viva"
+    );
+    const characterLock = String(parsed?.characterLock || "").trim();
+    const globalNegative = String(parsed?.globalNegativePrompt || "").trim();
+    const blocks = (Array.isArray(parsed?.blocks) ? parsed.blocks : [])
+      .slice(0, sceneCount)
+      .map((block, index) => {
+        const scenePrompt = String(block?.visualPrompt || "").trim();
+        const hasLiteralLock =
+          characterLock &&
+          scenePrompt.toLowerCase().includes(characterLock.toLowerCase());
+        return {
+          ...block,
+          block: index + 1,
+          durationSeconds: Math.max(
+            4,
+            Math.min(
+              isShort ? 7 : 10,
+              Number(block?.durationSeconds) || (isShort ? 6 : 8)
+            )
+          ),
+          visualPrompt: [
+            characterLock && !hasLiteralLock
+              ? `CHARACTER LOCK: ${characterLock}`
+              : "",
+            scenePrompt,
+            "Handheld selfie camera at arm's length, direct eye contact, natural micro-shake, one historically accurate background action that visibly proves the narration.",
+          ]
+            .filter(Boolean)
+            .join("\n\n"),
+          negativePrompt: [
+            globalNegative,
+            String(block?.negativePrompt || "").trim(),
+            "face drift, identity change, age change, hairstyle change, costume change, body morphing, extra fingers, duplicated people, impossible head rotation, modern objects, wrong architecture, unreadable text",
+          ]
+            .filter(Boolean)
+            .join(", "),
+        };
+      });
+    res.json({
+      ...parsed,
+      characterLock,
+      globalNegativePrompt: globalNegative,
+      blocks,
+    });
+  })
+);
+
+app.post(
   "/api/ai/creator/ideas",
   asyncHandler(async (req, res) => {
     const projDir = getProjectDir(req);
@@ -16868,6 +17490,7 @@ app.post(
       existingStrategy: existingStrategyRaw,
       agentReachResearch: agentReachResearchRaw,
       motion_template_pack: motionTemplatePackRaw,
+      historicalWitness: historicalWitnessRaw,
     } = req.body;
     const useNotebooklm = false; // Bypassed NotebookLM interaction entirely as requested
     const scriptPhase = phase === "narration" ? "narration" : "full";
@@ -16893,13 +17516,34 @@ app.post(
     }
 
     const isListicle = contentMode === "LISTICLE";
+    const isHistoricalWitness = contentMode === "HISTORICAL_WITNESS";
+    const historicalWitness =
+      isHistoricalWitness &&
+      historicalWitnessRaw &&
+      typeof historicalWitnessRaw === "object"
+        ? {
+            ...historicalWitnessRaw,
+            contentMode: "HISTORICAL_WITNESS",
+          }
+        : null;
     const listicleRank = clampListicleRankCount(rankCount, format);
     const listicleTopic = String(listTopic || idea.title || niche).trim();
+    const historicalBlockCount = Math.max(
+      2,
+      Math.min(
+        24,
+        Array.isArray(historicalWitness?.blueprint?.blocks)
+          ? historicalWitness.blueprint.blocks.length
+          : 0
+      )
+    );
     const listicleBlockCount = isListicle
       ? resolveListicleBlockCount({ rankCount: listicleRank, format })
-      : format === "SHORTS"
-        ? 5
-        : 12;
+      : isHistoricalWitness && historicalBlockCount > 2
+        ? historicalBlockCount
+        : format === "SHORTS"
+          ? 5
+          : 12;
 
     const safeProjectName = project.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
 
@@ -17180,7 +17824,11 @@ app.post(
           niche: nlmNiche,
           format,
           idea,
-          contentMode: isListicle ? "LISTICLE" : undefined,
+          contentMode: isListicle
+            ? "LISTICLE"
+            : isHistoricalWitness
+              ? "HISTORICAL_WITNESS"
+              : undefined,
           rankCount: listicleRank,
           listTopic: listicleTopic,
           rankOrder: rankOrder || "desc",
@@ -17291,7 +17939,11 @@ app.post(
           niche: nlmNiche,
           format,
           idea,
-          contentMode: isListicle ? "LISTICLE" : undefined,
+          contentMode: isListicle
+            ? "LISTICLE"
+            : isHistoricalWitness
+              ? "HISTORICAL_WITNESS"
+              : undefined,
           rankCount: listicleRank,
           listTopic: listicleTopic,
           rankOrder: rankOrder || "desc",
@@ -17317,7 +17969,16 @@ app.post(
 
     let webResearchContext = "";
     let webResearchMeta = null;
-    const researchTopic = isListicle ? listicleTopic : idea.title || niche;
+    const researchTopic = isListicle
+      ? listicleTopic
+      : isHistoricalWitness
+        ? String(
+            historicalWitness?.idea?.event ||
+              historicalWitness?.blueprint?.historicalFrame?.entity ||
+              idea.title ||
+              niche
+          ).trim()
+        : idea.title || niche;
     const isPioneerNicheIdea =
       idea?.pioneerNiche === true || Boolean(idea?.pioneerMeta);
     const prefetchedReach =
@@ -17446,11 +18107,47 @@ app.post(
         ? existingStrategyRaw
         : phase1Strategy;
 
+    let remotionTemplateContext = "";
+    if (motionTemplatePackRaw?.enabled) {
+      const templateNiche = String(
+        motionTemplatePackRaw.niche || niche || "Geral"
+      ).trim();
+      const catalog = getCatalogForNiche(templateNiche);
+      const requestedIds = new Set(
+        Array.isArray(motionTemplatePackRaw.template_ids)
+          ? motionTemplatePackRaw.template_ids.map(String)
+          : []
+      );
+      const available = (catalog.orchestration_ready || [])
+        .filter(
+          (tpl) => requestedIds.size === 0 || requestedIds.has(String(tpl.id))
+        )
+        .slice(0, 40)
+        .map((tpl) => ({
+          id: tpl.id,
+          name: tpl.name,
+          category: tpl.category,
+          subcategory: tpl.subcategory,
+          description: tpl.description,
+          motion_template_id: tpl.motion_template_id,
+          data_slots: tpl.data_slots || tpl.dataSlots || [],
+        }));
+      if (available.length) {
+        remotionTemplateContext = JSON.stringify(
+          { niche: catalog.niche || templateNiche, templates: available },
+          null,
+          2
+        );
+      }
+    }
+
     const promptContext = {
       niche,
       format,
       idea,
       isListicle,
+      isHistoricalWitness,
+      historicalWitness,
       listicleRank,
       listicleTopic,
       rankOrder: rankOrder || "desc",
@@ -17465,7 +18162,11 @@ app.post(
         niche,
         {
           niche,
-          content_mode: isListicle ? "LISTICLE" : undefined,
+          content_mode: isListicle
+            ? "LISTICLE"
+            : isHistoricalWitness
+              ? "HISTORICAL_WITNESS"
+              : undefined,
           list_topic: listicleTopic,
         },
         { listicle: { topic: listicleTopic } }
@@ -17473,6 +18174,7 @@ app.post(
       approvedNarration,
       approvedNarrationTagged,
       existingStrategy,
+      remotionTemplateContext,
     };
 
     let promptSystem;
@@ -17522,7 +18224,7 @@ app.post(
             ? "Gerar narração Creator"
             : "Gerar roteiro Creator",
         prompt: promptSystem,
-        temperature: isListicle ? 0.75 : 0.85,
+        temperature: isListicle ? 0.75 : isHistoricalWitness ? 0.5 : 0.85,
       });
       if (responseText == null) {
         report("browser_wait", "Aguardando resposta do Gemini no Chrome…", 58);
@@ -17561,6 +18263,10 @@ app.post(
       }
 
       let parsedData = applyScriptTextQuality(normalizeKeys(rawData), format);
+      if (isHistoricalWitness) {
+        parsedData.content_mode = "HISTORICAL_WITNESS";
+        parsedData.historical_witness = historicalWitness;
+      }
       if (scriptPhase === "narration" && isBrowserResponse) {
         parsedData = applyScriptTextQuality(
           normalizeKeys(enrichBrowserNarrationParsed(parsedData, responseText)),
@@ -17784,6 +18490,12 @@ app.post(
           }
         }
         const partialStoryboard = {
+          ...(isHistoricalWitness
+            ? {
+                content_mode: "HISTORICAL_WITNESS",
+                historical_witness: historicalWitness,
+              }
+            : {}),
           strategy: parsedData.strategy || {},
           narrative_script: parsedData.narrative_script || "",
           narrative_script_tagged: parsedData.narrative_script_tagged || "",
@@ -17867,6 +18579,7 @@ app.post(
               rankOrder: rankOrder || "desc",
               ideaTitle: idea.title,
               existingPrompts: parsedData.visual_prompts || [],
+              historicalWitness,
             });
             const vpRepairText = await callGeminiWithRetry(
               apiKey,
@@ -17925,6 +18638,7 @@ app.post(
                 deterministic,
                 {
                   ideaTitle: idea.title,
+                  historicalWitness,
                 }
               );
               const batchText = await callGeminiWithRetry(apiKey, batchPrompt, {
@@ -18259,6 +18973,12 @@ app.post(
                   : "full",
             }
           : {}),
+        ...(isHistoricalWitness
+          ? {
+              content_mode: "HISTORICAL_WITNESS",
+              historical_witness: historicalWitness,
+            }
+          : {}),
       };
 
       const presetApplied = applyDocumentaryHistoryPreset(
@@ -18572,6 +19292,7 @@ app.post(
         const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
         return {
           ...vp,
+          prompt: enforceVisualLocalizedTextRule(vp.prompt || ""),
           block,
           scene: sceneInBlock ? sceneStr : `${block}.${index + 1}`,
         };
@@ -19401,6 +20122,8 @@ app.post(
       ideaTitle,
       isListicle,
       listicleRank,
+      contentMode,
+      historicalWitness,
     } = req.body || {};
 
     const narrativeScript = String(narrativeScriptRaw || "").trim();
@@ -19510,7 +20233,7 @@ app.post(
           String(narrativeScriptTaggedRaw || "").trim() || narrativeScript,
       };
 
-      const improvePrompt = buildNotebooklmNarrationEnrichPrompt({
+      const improvePromptBase = buildNotebooklmNarrationEnrichPrompt({
         niche,
         format,
         ideaTitle: ideaTitle || niche,
@@ -19520,6 +20243,11 @@ app.post(
         isListicle: Boolean(isListicle),
         listicleRank: Number(listicleRank) || 20,
       });
+      const improvePrompt = `${improvePromptBase}\n${
+        contentMode === "HISTORICAL_WITNESS"
+          ? buildHistoricalWitnessContractBlock(historicalWitness)
+          : ""
+      }`;
 
       const responseText = await callGeminiLlm(req, res, projDir, {
         title: "Melhorar narração draft (NotebookLM)",
@@ -19567,6 +20295,12 @@ app.post(
 
       return res.json({
         success: true,
+        ...(contentMode === "HISTORICAL_WITNESS"
+          ? {
+              content_mode: "HISTORICAL_WITNESS",
+              historical_witness: historicalWitness,
+            }
+          : {}),
         narrative_script: parsed.narrative_script || narrativeScript,
         narrative_script_tagged:
           parsed.narrative_script_tagged || parsed.narrative_script || "",

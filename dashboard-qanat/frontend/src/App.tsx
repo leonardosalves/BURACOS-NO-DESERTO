@@ -139,6 +139,7 @@ import {
 } from "./creatorEditorialImport";
 import { sanitizeTimelineAssets } from "./timelineAssetSanitize";
 import type { ListicleIdeasResponse } from "./ListicleRankingIdeas";
+import type { HistoricalWitnessContext } from "./historicalWitnessTypes";
 import type {
   BgmEmotionMapping,
   ConfigData,
@@ -210,6 +211,7 @@ export default function App() {
   );
 
   const [musicFiles, setMusicFiles] = useState<MusicFile[]>([]);
+  const [professionalSfxEvents, setProfessionalSfxEvents] = useState<any[]>([]);
 
   const [logs, setLogs] = useState<string[]>([]);
 
@@ -469,6 +471,7 @@ export default function App() {
   >(null);
 
   const [autoSoundtracking, setAutoSoundtracking] = useState<boolean>(false);
+  const [planningProfessionalSfx, setPlanningProfessionalSfx] = useState(false);
 
   const [epidemicSearchType, setEpidemicSearchType] = useState<"bgm" | "sfx">(
     "bgm"
@@ -806,9 +809,14 @@ export default function App() {
     savedCreatorState.customIdeaBlocks || ""
   );
 
-  const [ideationTab, setIdeationTab] = useState<"ai" | "custom" | "listicle">(
-    savedCreatorState.ideationTab || "ai"
-  );
+  const [ideationTab, setIdeationTab] = useState<
+    "ai" | "custom" | "listicle" | "historical-witness"
+  >(savedCreatorState.ideationTab || "ai");
+  const [historicalWitnessContext, setHistoricalWitnessContext] =
+    useState<HistoricalWitnessContext | null>(
+      (savedCreatorState.historicalWitnessContext as HistoricalWitnessContext | null) ||
+        null
+    );
   const [listNiche, setListNiche] = useState<string>(
     savedCreatorState.listNiche || ""
   );
@@ -928,7 +936,9 @@ export default function App() {
 
   const fetchGlobalStudioDefaults = async () => {
     try {
-      const res = await fetch("/api/settings/studio-defaults");
+      const res = await fetch("/api/settings/studio-defaults", {
+        cache: "no-store",
+      });
       if (!res.ok) return;
       const data = await res.json();
       setGlobalStudioVisual(pickVisualConfig(data.visual || {}));
@@ -987,7 +997,7 @@ export default function App() {
 
   const fetchGlobalRenderConfig = async () => {
     try {
-      const res = await fetch("/api/render/config");
+      const res = await fetch("/api/render/config", { cache: "no-store" });
 
       if (res.ok) {
         const data = await res.json();
@@ -2827,15 +2837,23 @@ export default function App() {
         if (!Array.isArray(loadedConfig.bgm_emotion_mappings))
           loadedConfig.bgm_emotion_mappings = [];
 
-        // Auto-set aspect_ratio if not defined, based on format
+        // O projeto carregado é a fonte de verdade. `formatSelector` pertence
+        // ao projeto anterior e só pode ser usado quando o arquivo não traz
+        // nenhuma informação de formato.
+        const declaredFormat = String(
+          loadedConfig.video_format || loadedConfig.format || ""
+        ).toUpperCase();
+        const resolvedIsShort = loadedConfig.aspect_ratio
+          ? loadedConfig.aspect_ratio === "9:16"
+          : declaredFormat.includes("SHORT")
+            ? true
+            : declaredFormat.includes("LONG")
+              ? false
+              : formatSelector === "SHORTS";
+        loadedConfig.aspect_ratio = resolvedIsShort ? "9:16" : "16:9";
+        setFormatSelector(resolvedIsShort ? "SHORTS" : "LONGO");
 
-        if (!loadedConfig.aspect_ratio) {
-          loadedConfig.aspect_ratio =
-            formatSelector === "SHORTS" ? "9:16" : "16:9";
-        }
-
-        const isShortProject =
-          loadedConfig.aspect_ratio === "9:16" || formatSelector === "SHORTS";
+        const isShortProject = resolvedIsShort;
         if (
           !loadedConfig.use_single_bgm &&
           !loadedConfig.bgm_mode &&
@@ -2924,6 +2942,14 @@ export default function App() {
         );
       }
 
+      const sfxRes = await fetch(getProjectUrl("/api/sfx/timeline"));
+      if (sfxRes.ok) {
+        const sfxData = await sfxRes.json();
+        setProfessionalSfxEvents(
+          Array.isArray(sfxData.sfx_events) ? sfxData.sfx_events : []
+        );
+      }
+
       const aiKeyStatusRes = await fetch(getProjectUrl("/api/ai/key-status"));
 
       if (aiKeyStatusRes.ok) {
@@ -2992,7 +3018,9 @@ export default function App() {
       try {
         const transUrl = getMusicUrl("word_transcripts.json");
 
-        const transRes = await fetch(transUrl);
+        // Arquivo gerado durante o lote TTS + Whisper. Não reutilize a resposta
+        // anterior (inclusive um 404) quando o usuário acabou de gerar os trechos.
+        const transRes = await fetch(transUrl, { cache: "no-store" });
 
         if (transRes.ok) {
           setWordTranscripts(await transRes.json());
@@ -3133,6 +3161,7 @@ export default function App() {
       creatorProjectName,
       creatorScript,
       ideationTab,
+      historicalWitnessContext,
       customTitle,
       customHooks,
       customOutline,
@@ -3182,6 +3211,7 @@ export default function App() {
       creatorProjectName,
       creatorScript,
       ideationTab,
+      historicalWitnessContext,
       customTitle,
       customHooks,
       customOutline,
@@ -3242,6 +3272,8 @@ export default function App() {
     if (patch.creatorScript !== undefined)
       setCreatorScript(patch.creatorScript);
     if (patch.ideationTab) setIdeationTab(patch.ideationTab);
+    if (patch.historicalWitnessContext !== undefined)
+      setHistoricalWitnessContext(patch.historicalWitnessContext || null);
     if (patch.customTitle !== undefined) setCustomTitle(patch.customTitle);
     if (patch.customHooks !== undefined) setCustomHooks(patch.customHooks);
     if (patch.customOutline !== undefined)
@@ -4889,8 +4921,9 @@ export default function App() {
     status?.block_timings?.durations,
   ]);
 
-  const isShortVideo =
-    config?.aspect_ratio === "9:16" || formatSelector === "SHORTS";
+  const isShortVideo = config
+    ? config.aspect_ratio === "9:16"
+    : formatSelector === "SHORTS";
 
   const activeBgmMode = resolveBgmMode(
     config || {},
@@ -5223,9 +5256,11 @@ export default function App() {
     }
   };
 
+  const timelineTimingStarts =
+    status?.block_timings?.starts || config?.block_timings?.starts || [];
   const timelineNeedsWhisperSync = Boolean(
     status?.has_narration &&
-    (!wordTranscripts?.length || !status?.block_timings?.starts?.length)
+    (!wordTranscripts?.length || !timelineTimingStarts.length)
   );
 
   const timelineScenesNeedRepair = useMemo(() => {
@@ -5780,6 +5815,37 @@ export default function App() {
       toast.error("Falha de conexão ao processar sonoplastia automática.");
     } finally {
       setAutoSoundtracking(false);
+    }
+  };
+
+  const handlePlanProfessionalSfx = async () => {
+    setPlanningProfessionalSfx(true);
+    const toastId = toast.loading(
+      "IA desenhando, verificando e baixando efeitos sonoros…"
+    );
+    try {
+      const { ok, data } = await postAi("/api/ai/plan-sfx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ auto_download: true }),
+      });
+      if (!ok || data.needs_browser)
+        throw new Error(
+          data.error || data.details || "Falha no planejamento de SFX"
+        );
+      toast.success(
+        `${data.downloaded_count || 0} efeito(s) verificado(s), baixado(s) e posicionado(s).`,
+        { id: toastId, duration: 7000 }
+      );
+      setProfessionalSfxEvents(Array.isArray(data.events) ? data.events : []);
+      await fetchData();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Falha no design de SFX",
+        { id: toastId }
+      );
+    } finally {
+      setPlanningProfessionalSfx(false);
     }
   };
 
@@ -7007,7 +7073,7 @@ export default function App() {
       const { ok, data } = await postAi("/api/ai/plan-bgm-emotions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ auto_download: true }),
       });
 
       if (ok && !data.needs_browser) {
@@ -7028,7 +7094,31 @@ export default function App() {
         const count =
           data.plan?.segment_count || data.plan?.segments?.length || 0;
 
-        toast.success(`Plano emocional gerado: ${count} segmento(s).`);
+        const downloaded = Number(data.downloaded_count) || 0;
+        const downloadErrors = Array.isArray(data.download_logs)
+          ? data.download_logs.filter((line: string) =>
+              /erro:/i.test(String(line))
+            )
+          : [];
+        if (downloaded > 0) {
+          toast.success(
+            `Plano concluído: ${count} segmento(s) · ${downloaded} faixa(s) baixada(s) e mapeada(s).`,
+            { duration: 8000 }
+          );
+        } else if (downloadErrors.length > 0) {
+          toast.error(
+            `Plano gerado, mas os downloads falharam: ${downloadErrors[0]}`,
+            { duration: 9000 }
+          );
+        } else {
+          toast(
+            `Plano gerado: ${count} segmento(s), sem downloads pendentes.`,
+            {
+              icon: "✓",
+              duration: 6000,
+            }
+          );
+        }
 
         fetchData();
       } else {
@@ -7222,6 +7312,11 @@ export default function App() {
             useNotebooklm,
             ideaTitle: selectedIdea?.title || niche,
             isListicle: ideationTab === "listicle",
+            contentMode:
+              historicalWitnessContext?.contentMode === "HISTORICAL_WITNESS"
+                ? "HISTORICAL_WITNESS"
+                : undefined,
+            historicalWitness: historicalWitnessContext || undefined,
             listicleRank: ideationTab === "listicle" ? rankCount : undefined,
             ...(opts?.accumulated
               ? {
@@ -7583,33 +7678,94 @@ export default function App() {
     phase: "narration" | "full",
     options?: { approvedNarration?: string; approvedNarrationTagged?: string }
   ) => {
+    const readLegacyHistoricalField = (label: string) => {
+      const match = customOutline.match(
+        new RegExp(`(?:^|\\n)${label}:\\s*([^\\n]+)`, "i")
+      );
+      return String(match?.[1] || "").trim();
+    };
+    const legacyHistoricalWitness =
+      !historicalWitnessContext &&
+      ideationTab === "custom" &&
+      /MODO ESPECIAL:\s*HIST[ÓO]RIA VIVA|TESTEMUNHA NO PRESENTE DA [ÉE]POCA/i.test(
+        customOutline
+      )
+        ? ({
+            contentMode: "HISTORICAL_WITNESS",
+            niche: nicheInput.trim() || "História",
+            format: formatSelector,
+            character: {
+              id: "legacy-history-witness",
+              label: "Personagem da História Viva",
+              hint: readLegacyHistoricalField("PONTO DE VISTA"),
+              description:
+                readLegacyHistoricalField("PONTO DE VISTA") ||
+                readLegacyHistoricalField("DIREÇÃO DE VOZ"),
+            },
+            idea: {
+              title: customTitle.trim(),
+              event:
+                readLegacyHistoricalField("ENTIDADE") || customTitle.trim(),
+              period: readLegacyHistoricalField("PERÍODO"),
+              location: readLegacyHistoricalField("LOCAL"),
+              hiddenTruth: readLegacyHistoricalField("VERDADE CENTRAL"),
+              popularBelief: readLegacyHistoricalField("VERSÃO POPULAR"),
+              characterView: readLegacyHistoricalField("PONTO DE VISTA"),
+              hook: customHooks.trim(),
+              certainty: readLegacyHistoricalField("CERTEZA"),
+            },
+            blueprint: {
+              title: customTitle.trim(),
+              hook: customHooks.trim(),
+              promise: readLegacyHistoricalField("TESE CENTRAL"),
+              characterLock: readLegacyHistoricalField("CHARACTER LOCK"),
+              voiceDirection: readLegacyHistoricalField("DIREÇÃO DE VOZ"),
+              globalNegativePrompt: readLegacyHistoricalField(
+                "NEGATIVE PROMPT GLOBAL"
+              ),
+              historicalFrame: {
+                entity: readLegacyHistoricalField("ENTIDADE"),
+                location: readLegacyHistoricalField("LOCAL"),
+                period: readLegacyHistoricalField("PERÍODO"),
+                certainty: readLegacyHistoricalField("CERTEZA"),
+              },
+              blocks: customBlocks.map((block) => ({
+                block: block.block,
+                narration: block.content,
+              })),
+            },
+            appliedAt: new Date().toISOString(),
+          } satisfies HistoricalWitnessContext)
+        : null;
+    const resolvedHistoricalWitness =
+      historicalWitnessContext || legacyHistoricalWitness;
+    const isHistoricalWitness =
+      resolvedHistoricalWitness?.contentMode === "HISTORICAL_WITNESS";
     const scriptNiche =
       ideationTab === "listicle"
         ? listNiche.trim() || listTopic.trim()
-        : ideationTab === "custom"
-          ? editorialIdeaImport?.pioneerMeta?.macroNiche?.trim() ||
-            nicheInput.trim() ||
-            "Customized"
-          : nicheInput.trim();
+        : isHistoricalWitness
+          ? resolvedHistoricalWitness.niche || nicheInput.trim()
+          : ideationTab === "custom"
+            ? editorialIdeaImport?.pioneerMeta?.macroNiche?.trim() ||
+              nicheInput.trim() ||
+              "Customized"
+            : nicheInput.trim();
 
+    const templatePack = motionTemplatePackEnabled
+      ? {
+          enabled: true,
+          niche: (motionTemplateNiche || scriptNiche || "Engenharia").trim(),
+          template_ids: motionTemplateIds,
+          auto: motionTemplateIds.length === 0,
+        }
+      : { enabled: false };
     const fullExtras =
       phase === "full"
         ? {
             approvedNarration: options?.approvedNarration,
             approvedNarrationTagged: options?.approvedNarrationTagged,
             existingStrategy: narrationStrategy || undefined,
-            motion_template_pack: motionTemplatePackEnabled
-              ? {
-                  enabled: true,
-                  niche: (
-                    motionTemplateNiche ||
-                    scriptNiche ||
-                    "Engenharia"
-                  ).trim(),
-                  template_ids: [],
-                  auto: true,
-                }
-              : { enabled: false },
           }
         : {};
     const isCustom = ideationTab === "custom";
@@ -7646,6 +7802,61 @@ export default function App() {
         notebooklmDeep,
         phase,
         ...fullExtras,
+        motion_template_pack: templatePack,
+      };
+    }
+
+    if (isHistoricalWitness) {
+      const historical = resolvedHistoricalWitness;
+      const blueprint = historical.blueprint || {};
+      const sourceIdea = historical.idea;
+      return {
+        niche: historical.niche || nicheInput.trim(),
+        format: formatSelector,
+        contentMode: "HISTORICAL_WITNESS",
+        historicalWitness: {
+          ...historical,
+          format: formatSelector,
+          userEdits: {
+            title: customTitle.trim(),
+            hook: customHooks.trim(),
+            outline: customOutline.trim(),
+            blocks: customBlocks.filter((block) => block.content.trim() !== ""),
+          },
+        },
+        idea: {
+          title: customTitle.trim() || blueprint.title || sourceIdea.title,
+          promise:
+            blueprint.promise ||
+            sourceIdea.whyItMatters ||
+            customOutline.trim(),
+          emotion: "Descoberta histórica / imersão",
+          isCustom: true,
+          isHistoricalWitness: true,
+          hook: customHooks.trim() || blueprint.hook || sourceIdea.hook,
+          event: sourceIdea.event,
+          period: sourceIdea.period,
+          location: sourceIdea.location,
+          hiddenTruth: sourceIdea.hiddenTruth,
+          popularBelief: sourceIdea.popularBelief,
+          characterView: sourceIdea.characterView,
+          certainty: sourceIdea.certainty,
+          character: historical.character,
+          characterLock: blueprint.characterLock,
+          voiceDirection: blueprint.voiceDirection,
+          historicalFrame: blueprint.historicalFrame,
+          globalNegativePrompt: blueprint.globalNegativePrompt,
+          blocks: blueprint.blocks || [],
+          userEditedBlocks: customBlocks.filter(
+            (block) => block.content.trim() !== ""
+          ),
+        },
+        project: safeProjectName,
+        useNotebooklm: useNotebooklm !== false,
+        notebooklmDeep,
+        phase,
+        ...fullExtras,
+        motion_template_pack: templatePack,
       };
     }
 
@@ -7686,6 +7897,7 @@ export default function App() {
       notebooklmDeep,
       phase,
       ...fullExtras,
+      motion_template_pack: templatePack,
     };
   };
 
@@ -7908,6 +8120,7 @@ export default function App() {
       setCustomHooks("");
       setCustomOutline("");
       setCustomBlocks([{ block: 1, content: "" }]);
+      setHistoricalWitnessContext(null);
       setIdeationTab("ai");
       setCustomIdeaTitle("");
       setCustomIdeaPromise("");
@@ -10290,6 +10503,8 @@ export default function App() {
     applyVisualPatchToConfig,
     applyWizardSessionPatch,
     autoSoundtracking,
+    planningProfessionalSfx,
+    professionalSfxEvents,
     bgmBlockRows,
     bgmEmotionRows,
     bgmSuggestions,
@@ -10319,6 +10534,7 @@ export default function App() {
     customIdeaTitle,
     customOutline,
     customTitle,
+    historicalWitnessContext,
     debounceSaveStoryboard,
     deleteScene,
     downloadingEpidemicId,
@@ -10374,6 +10590,7 @@ export default function App() {
     handleApplyTitleVariant,
     handleApproveNarrationAndGenerateScript,
     handleAutoSoundtrack,
+    handlePlanProfessionalSfx,
     handleCaptureGeminiNarration,
     handleClearProjectRenderResolution,
     handleDeleteAllMusic,
@@ -10556,6 +10773,7 @@ export default function App() {
     setEpidemicSearchType,
     setExpandedBlocks,
     setFormatSelector,
+    setHistoricalWitnessContext,
     setGeminiBrowserMode,
     setGeminiExtensionTesting,
     setGeminiKeysInput,

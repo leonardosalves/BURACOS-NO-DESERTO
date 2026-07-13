@@ -1773,7 +1773,10 @@ export function buildVisualPromptsFromNarrationPrompt({
   rankOrder = "desc",
   ideaTitle = "",
   existingPrompts = [],
+  historicalWitness = null,
 }) {
+  const historicalWitnessBlock =
+    buildHistoricalWitnessContractBlock(historicalWitness);
   const skeleton =
     Array.isArray(existingPrompts) && existingPrompts.length > 0
       ? `\nESQUELETO DE CENAS (mantenha scene/block/type; PREENCHA narration_text e prompt em TODOS):\n${JSON.stringify(
@@ -1797,7 +1800,7 @@ NARRAÇÃO APROVADA (fonte única — copie trechos para narration_text):
 """
 ${approvedNarration.trim()}
 """
-${skeleton}
+${skeleton}${historicalWitnessBlock}
 
 ${buildVisualPromptsRules({ format, isListicle, listicleRank })}
 
@@ -1841,8 +1844,10 @@ export function mergeVisualPromptsRepair(original = {}, repaired = {}) {
  */
 export function buildBatchScenePromptsAiRequest(
   scenes = [],
-  { ideaTitle = "" } = {}
+  { ideaTitle = "", historicalWitness = null } = {}
 ) {
+  const historicalWitnessBlock =
+    buildHistoricalWitnessContractBlock(historicalWitness);
   const sceneSummary = scenes.map((s) => ({
     scene: s.scene,
     narration: String(s.narration_text || "").slice(0, 300),
@@ -1853,6 +1858,7 @@ export function buildBatchScenePromptsAiRequest(
   return `You are an expert Prompt Engineer specialized in creating hyper-detailed, cinematic visual prompts for YouTube documentary videos. The niche/subject of the video can be anything (history, science, space, nature, technology, finance, philosophy, pop culture, life hacks, mystery, and infinite other subjects).
 
 TITLE: ${ideaTitle}
+${historicalWitnessBlock}
 
 Your goal is to translate abstract narration blocks into CONCRETE visual descriptions. What should the viewer physically see?
 
@@ -1895,6 +1901,50 @@ export function applyBatchScenePromptsAiResponse(scenes = [], aiScenes = []) {
   });
 }
 
+export function buildHistoricalWitnessContractBlock(context = {}) {
+  if (!context || context.contentMode !== "HISTORICAL_WITNESS") return "";
+  const character = context.character || {};
+  const idea = context.idea || {};
+  const blueprint = context.blueprint || {};
+  const compactContext = {
+    contentMode: "HISTORICAL_WITNESS",
+    niche: context.niche,
+    format: context.format,
+    character,
+    idea,
+    blueprint: {
+      title: blueprint.title,
+      hook: blueprint.hook,
+      promise: blueprint.promise,
+      characterLock: blueprint.characterLock,
+      voiceDirection: blueprint.voiceDirection,
+      globalNegativePrompt: blueprint.globalNegativePrompt,
+      historicalFrame: blueprint.historicalFrame,
+      blocks: Array.isArray(blueprint.blocks) ? blueprint.blocks : [],
+    },
+    userEdits: context.userEdits || {},
+  };
+
+  return `
+[CONTRATO EDITORIAL OBRIGATORIO — HISTORICAL_WITNESS / HISTORIA VIVA]
+Este projeto NAO e uma ideia personalizada generica. O Creator ja definiu um personagem recorrente, uma entidade historica, periodo, local, tese, nivel de certeza e um esqueleto causal/visual. O NARRADORPRO deve pesquisar, revisar e aprimorar esse material, sem descaracteriza-lo.
+
+REGRAS INQUEBRAVEIS:
+- Preserve a identidade e o ponto de vista do personagem. Ele narra como alguem presente naquele tempo e NAO conhece fatos futuros, salvo quando o contrato indicar explicitamente um narrador contemporaneo.
+- Preserve entidade/sitio, local, periodo, tese central, verdade revelada e nivel de certeza. Nunca funda dados de entidades, sitios, datas ou fontes diferentes em um unico caso.
+- O NARRADORPRO pode reescrever frases, fortalecer causalidade, corrigir fatos e melhorar retencao. Nao pode transformar o tema em uma explicacao generica nem trocar o acontecimento escolhido.
+- Organize a progressao em CAUSA -> ACAO -> MECANISMO -> RESULTADO -> IMPORTANCIA, mantendo uma ligacao clara entre blocos e respondendo ao gancho inicial.
+- Cada afirmacao historica deve ser sustentada pela pesquisa fornecida; quando a certeza for limitada, declare a incerteza em vez de inventar.
+- Na fase visual, redesenhe e enriqueça os prompts em ingles, mas mantenha o characterLock completo em toda cena com o personagem. Nunca use atalhos como "same person" ou "same character".
+- Cada prompt deve corresponder ao trecho de narracao aprovado e respeitar causalRole, factBasis e visualEvidence do bloco de origem.
+- Placas, documentos e textos diegeticos pertencem ao idioma real do local/epoca; quando houver traducao para o publico, forneca portugues do Brasil abaixo como legenda/overlay editorial, sem trocar a geografia.
+- Retorne content_mode="HISTORICAL_WITNESS" e preserve historical_witness no resultado.
+
+DADOS ESTRUTURADOS DO CREATOR:
+${JSON.stringify(compactContext, null, 2).slice(0, 28000)}
+`;
+}
+
 export function buildNarrationOnlyPrompt({
   niche,
   format,
@@ -1907,6 +1957,9 @@ export function buildNarrationOnlyPrompt({
   notebooklmContext = "",
   webResearchContext = "",
   cinematicNarrationRules = "",
+  remotionTemplateContext = "",
+  isHistoricalWitness = false,
+  historicalWitness = null,
 }) {
   const guidelines = loadNarracaoProGuidelines();
   const comousar = loadComousarAnarracaoProGuidelines();
@@ -1953,6 +2006,12 @@ export function buildNarrationOnlyPrompt({
       ? `\n[ESTILO/HUMANIZAÇÃO — use apenas como referência de tom e fluência, NÃO como fonte de fatos. Os fatos devem vir exclusivamente do tema descrito acima]:\n${notebooklmContext}\n`
       : notebooklmContext
     : "";
+  const narrationTemplateBlock = remotionTemplateContext
+    ? `\n[CONTRATOS DOS TEMPLATES REMOTION APROVADOS]\n${remotionTemplateContext}\nUse esses contratos apenas para tornar a narração visualmente orquestrável: quando for natural e sustentado pelas fontes, deixe explícitos entidade, local, data, número, unidade, comparação e relação causal necessários aos data_slots. Não acrescente fatos, listas ou números apenas para alimentar um template. A tese e a clareza do NARRACAOPRO continuam prioritárias.\n`
+    : "";
+  const historicalWitnessBlock = isHistoricalWitness
+    ? buildHistoricalWitnessContractBlock(historicalWitness)
+    : "";
 
   return `Você é o "Lumiera Script Master" (Roteirista Profissional para YouTube).
 
@@ -1960,7 +2019,7 @@ ${ideaHeader}
 
 ${inputsBlock}
 
-${nlmBlock}${webResearchContext}
+${nlmBlock}${webResearchContext}${narrationTemplateBlock}${historicalWitnessBlock}
 
 FASE 1 — APENAS NARRAÇÃO (o usuário revisará e aprovará antes dos blocos visuais):
 
@@ -2145,6 +2204,9 @@ export function buildCreatorPhase2Prompt(ctx = {}) {
     notebooklmContext = "",
     webResearchContext = "",
     epidemicMoodPrompt = "",
+    remotionTemplateContext = "",
+    isHistoricalWitness = false,
+    historicalWitness = null,
   } = ctx;
 
   const ideaHeader = buildIdeaContextHeader({
@@ -2167,9 +2229,16 @@ export function buildCreatorPhase2Prompt(ctx = {}) {
     ? `\nNARRAÇÃO COM TAGS:\n"""\n${approvedNarrationTagged.trim()}\n"""`
     : "";
 
+  const templateBlock = remotionTemplateContext
+    ? `\nCATÁLOGO REMOTION TEMPLATE STUDIO APROVADO PARA ESTE VÍDEO:\n${remotionTemplateContext}\n\nUse somente esses templates nas cenas Remotion. Para cada cena compatível, escolha o template que melhor explica o trecho e forneça em production os fatos necessários para preencher seus data_slots. Não invente dados para preencher slots: quando a narração ou a pesquisa não sustentar um campo, escolha outro template ou use B-roll. Preserve a narração aprovada sem alterações.`
+    : "";
+  const historicalWitnessBlock = isHistoricalWitness
+    ? buildHistoricalWitnessContractBlock(historicalWitness)
+    : "";
+
   return `Você é o Lumiera Script Master — FASE 2: montar roteiro técnico.
 
-${ideaHeader}
+${ideaHeader}${templateBlock}${historicalWitnessBlock}
 ${notebooklmContext}${webResearchContext}${strategySeed}
 
 A narração abaixo foi APROVADA — copie EXATAMENTE em narrative_script (não reescreva).
@@ -2228,6 +2297,8 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
     cinematicNarrationRules = "",
     titleCraftRules = "",
     epidemicMoodPrompt = "",
+    isHistoricalWitness = false,
+    historicalWitness = null,
   } = ctx;
 
   const ideaHeader = buildIdeaContextHeader({
@@ -2289,6 +2360,9 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
       },
       { listicle: { topic: listicleTopic } }
     );
+  const historicalWitnessBlock = isHistoricalWitness
+    ? buildHistoricalWitnessContractBlock(historicalWitness)
+    : "";
 
   const userBlockCount =
     Array.isArray(idea?.blocks) && idea.blocks.length > 0
@@ -2333,7 +2407,7 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
 
   return `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
 
-${ideaHeader}${customAddendum}
+${ideaHeader}${customAddendum}${historicalWitnessBlock}
 
 ${inputsBlock}
 
@@ -2814,6 +2888,28 @@ export function normalizeNarrationBlocks(parsedData = {}, expectedBlocks = 5) {
 // Visual Prompt Engineer — Premium reprocessing
 // ---------------------------------------------------------------------------
 
+export const VISUAL_LOCALIZED_TEXT_RULE =
+  "Texto diegético e ambiental deve respeitar o local real da cena: placas de trânsito, fachadas, avisos, letreiros, documentos, uniformes, sinalização e inscrições devem aparecer primeiro no idioma oficial ou historicamente correto daquele país/região. Logo abaixo, inclua tradução legível em português do Brasil, menor e visualmente secundária. Não use placas, símbolos viários, nomes de estados, órgãos públicos, moedas, domínios, telefones ou padrões brasileiros em cenas ambientadas fora do Brasil. Textos editoriais sobrepostos pelo vídeo, como títulos, contadores, legendas e explicações, permanecem em português do Brasil. Se o local for o Brasil, use somente português do Brasil e não duplique tradução.";
+
+export function enforceVisualLocalizedTextRule(prompt = "") {
+  let clean = String(prompt || "").trim();
+  clean = clean
+    .replace(
+      /Todo e qualquer texto,[\s\S]*?Nunca gere texto em ingl(?:ê|e)s\.?/gi,
+      ""
+    )
+    .replace(
+      /Qualquer texto visível na imagem deve estar em português do Brasil\.?/gi,
+      ""
+    )
+    .replace(/Texto visível em português do Brasil\.?/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return clean.includes(VISUAL_LOCALIZED_TEXT_RULE)
+    ? clean
+    : `${clean}${clean ? " " : ""}${VISUAL_LOCALIZED_TEXT_RULE}`;
+}
+
 const NICHE_STYLE_MAP = {
   mystery:
     "Dark cinematic mood, deep shadows, volumetric lighting, warm gold accents, mysterious atmosphere, heavy realistic textures (oxidized bronze, ancient clay, forged steel)",
@@ -2968,9 +3064,12 @@ ${isListicle ? `LISTICLE TOP ${listicleRank} — ordem ${rankOrder === "asc" ? "
 - Cada prompt visual deve ilustrar EXATAMENTE o que está sendo dito no narration_text da cena.
 - O visual deve funcionar como "prova visual" ou reforço emocional da fala.
 
-**2. Texto em Português do Brasil (REGRA INQUEBRÁVEL)**
+**2. Idioma Local + Tradução PT-BR (REGRA INQUEBRÁVEL)**
 - Em TODO prompt gerado, adicione no final esta instrução exata:
-  "Todo e qualquer texto, rótulo, número, inscrição, legenda, display ou elemento visível e legível na imagem ou vídeo deve estar escrito em português do Brasil. Exemplos corretos: '1,4 VOLTS', '#3 — AÇO DE DAMASCO', 'MECANISMO DE ANTICÍTERA', 'R$ 47.900', 'NÚMERO 1'. Nunca gere texto em inglês."
+  "${VISUAL_LOCALIZED_TEXT_RULE}"
+- Estados Unidos: uma placa realista deve trazer primeiro "ROAD CLOSED" e logo abaixo, menor, "ESTRADA FECHADA", preservando formato, cores, símbolos e padrão viário dos Estados Unidos. Nunca use placa ou identificação de estado brasileiro fora do Brasil.
+- Japão: letreiro principal em japonês e tradução menor em português do Brasil. A mesma lógica vale para qualquer outro país, região ou período histórico.
+- Texto editorial criado pelo vídeo — títulos, contadores, legendas e explicações — continua em português do Brasil.
 
 **3. Estilo Visual Adaptado ao Nicho**
 - Use o estilo do nicho detectado: ${nicheStyle}
@@ -3023,7 +3122,7 @@ ${
 4. Verifique se o prompt atual está alinhado ou precisa de correção.
 5. Escolha o melhor shot + movimento de câmera.
 6. Garanta que segue o estilo do nicho.
-7. Adicione instrução de português brasileiro.
+7. Adicione a instrução de idioma local com tradução em português brasileiro, distinguindo texto ambiental de texto editorial.
 8. Escreva o prompt mais detalhado e cinematográfico possível.
 
 ### FORMATO DE SAÍDA OBRIGATÓRIO
