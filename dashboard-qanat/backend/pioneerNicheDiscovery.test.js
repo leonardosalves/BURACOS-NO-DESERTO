@@ -51,3 +51,35 @@ test("aceita outra profissao extinta dentro da perspectiva editorial", () => {
 
   assert.equal(conflict, "");
 });
+
+test("rejeita o caso real de engenheiro de equilibrio suspenso", () => {
+  const conflict = alternativeSuggestionConflict(
+    {
+      title:
+        "O Engenheiro do Equilíbrio Suspenso: A Calibração Final para o Primeiro Flutuar do Dirigível",
+      primarySubject: "engenheiro de equilíbrio suspenso",
+      specificAngle:
+        "A micro-rotina de calibração das células de hidrogênio de um dirigível",
+    },
+    previousIdeas,
+    [],
+    { requireDifferentProfession: true }
+  );
+
+  assert.equal(conflict, "a profissao principal continua sendo a mesma");
+});
+
+test("nao permite esconder engenheiro atras de outro nome de assunto", () => {
+  const conflict = alternativeSuggestionConflict(
+    {
+      title: "O Engenheiro que Ensinava o Dirigível a Flutuar",
+      primarySubject: "especialista em equilíbrio suspenso",
+      specificAngle: "O engenheiro calibra o dirigível antes do primeiro voo",
+    },
+    previousIdeas,
+    [],
+    { requireDifferentProfession: true }
+  );
+
+  assert.equal(conflict, "a profissao principal continua sendo a mesma");
+});
