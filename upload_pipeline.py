@@ -36,7 +36,7 @@ def get_video_specs(video_path):
         video_path
     ]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
         data = json.loads(result.stdout)
         duration = float(data.get("format", {}).get("duration", 0))
         
@@ -71,7 +71,7 @@ def run_upload_script(script_name, project_dir):
         env["LUMIERA_UPLOAD_VIDEO"] = upload_video
     cmd = [sys.executable, script_path, project_dir]
     try:
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', env=env)
         while True:
             output = process.stdout.readline()
             if output == '' and process.poll() is not None:
