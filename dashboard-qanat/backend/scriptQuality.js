@@ -36,6 +36,37 @@ export function loadComousarAnarracaoProGuidelines() {
   return "";
 }
 
+/**
+ * Compila as diretrizes de narração com hierarquia explícita.
+ * Resolve duplicações e conflitos ANTES de injetar no prompt.
+ * Chamado por todos os prompt builders que usam NARRACAOPRO + COMOUSARANARRACAOPRO.
+ */
+export function buildConsolidatedGuidelines() {
+  const guidelines = loadNarracaoProGuidelines();
+  const comousar = loadComousarAnarracaoProGuidelines();
+
+  let block = "";
+
+  block += `\n=== HIERARQUIA DE DIRETRIZES (resolva conflitos por prioridade) ===
+PRIORIDADE 1: Precisão factual e teste de entidade (NARRACAOPRO)
+PRIORIDADE 2: Tese única, causalidade e concretude (NARRACAOPRO)
+PRIORIDADE 3: Clareza e naturalidade oral (NARRACAOPRO)
+PRIORIDADE 4: Adequação à duração e ao formato (NARRACAOPRO)
+PRIORIDADE 5: Retenção e ritmo (NARRACAOPRO + VIRAL quando Shorts)
+PRIORIDADE 6: Recursos criativos (SCRIPT_CREATIVE — submissa)
+PRIORIDADE 7: CTA (fechamento declarativo é o padrão)
+Regra: nível superior SEMPRE vence conflito com nível inferior.\n`;
+
+  if (guidelines) {
+    block += `\n[PRIORIDADE 1-4 — SOBERANA] DIRETRIZES DE ROTEIRO E NARRAÇÃO (NARRACAOPRO.md):\n${guidelines}\n`;
+  }
+  if (comousar) {
+    block += `\n[PRIORIDADE 1-2 — PESQUISA] CURADORIA FACTUAL (COMOUSARANARRACAOPRO.md — escopo: pesquisa, fontes, cruzamento, certeza. NÃO controla estrutura narrativa, tom, fechamento, CTA ou formato de saída):\n${comousar}\n`;
+  }
+
+  return block;
+}
+
 import { resolveStockSearchQuery } from "./stockSearchQuery.js";
 import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
 import { buildTitleCraftRules } from "./titleGenerator.js";
@@ -119,7 +150,9 @@ export const VIRAL_STORY_CATEGORIES = [
 ];
 
 export const VIRAL_SHORT_FORM_REINFORCEMENT = `
-FRAMEWORK VIRAL SHORT-FORM (n8n/Lucas Walter — adaptado Lumiera):
+[CAMADA OPCIONAL DE APRESENTAÇÃO — PRIORIDADE 5-6. Submissa ao NARRACAOPRO. Aplicar somente após tese definida, fatos verificados e cadeia causal construída.]
+
+FRAMEWORK VIRAL SHORT-FORM (adaptado Lumiera):
 
 CURADORIA DE HISTÓRIA (escolha 1 categoria antes de escrever):
 - impactful: consequência real na vida das pessoas
@@ -132,14 +165,10 @@ GANCHO (≤10 palavras, voz ativa, gatilho emocional, número quando couber):
 Tipos: pergunta | choque | problema/solução | antes/depois | urgência | desafio | segredo leve | impacto pessoal.
 O gancho ANUNCIA o payoff — não prometa o que o roteiro não entrega.
 
-ESTRUTURA 30–50s (80–130 palavras, ritmo oral):
-1. Gancho escolhido (bloco 1)
-2. Uma frase que contextualiza (bloco 2)
-3. 3–5 wow-facts com números, datas, analogias do dia a dia (blocos 3–4)
-4. 1–2 frases sobre por que importa / risco / consequência moderna (bloco 4)
-5. Fechamento DECLARATIVO (mic drop factual) — fecha o loop do gancho
+ORÇAMENTO DE FATOS (definido pelo NARRACAOPRO — não sobrepor):
+- Shorts 30–60s: máximo 2–3 fatos centrais, pelo menos 1 mecanismo explicado, pelo menos 1 consequência concreta, nenhum fato decorativo.
 
-POWER-UPS (use 1–2 por roteiro, sem forçar):
+POWER-UPS (use 1–2 por roteiro, sem forçar — não adicionar fatos extras):
 - authority bump: cite fonte, órgão ou especialista em 1 frase
 - hook spice: número + consequência imediata no gancho
 - then-vs-now: contraste temporal em 1 linha
@@ -148,50 +177,52 @@ POWER-UPS (use 1–2 por roteiro, sem forçar):
 - zoom-out: última frase liga o micro ao macro
 - rhythm check: alterne frases de 3–5 palavras com 1 frase explicativa
 
-FINAL — REGRA LUMIERA (prioridade sobre CTA de comentário):
+FINAL — REGRA LUMIERA (conforme NARRACAOPRO — fechamento declarativo é o padrão):
 - PREFERIDO: frase declarativa com consequência, ironia factual ou número final
-- PERMITIDO com moderação: pergunta forward-looking COM stakes reais ligadas ao tema (ex.: "Quantos aviões ainda voam com janelas quadradas?")
+- PERMITIDO com moderação: pergunta forward-looking COM stakes reais ligadas ao tema
 - PROIBIDO: "Você prefere…?", "Qual você escolheria…?", "Comenta aí", "O que achou?", perguntas binárias sem payoff
+
+RESTRIÇÕES DESTA CAMADA (invioláveis):
+- NÃO substituir explicação por impacto visual ou emocional
+- NÃO exigir fatos além do orçamento do NARRACAOPRO
+- NÃO exagerar conclusões além do que as fontes sustentam
+- NÃO alterar relações causais estabelecidas pela pesquisa
+- NÃO forçar linguagem sensacionalista
+- NÃO modificar o nível de certeza de uma afirmação
+- NÃO transformar hipótese em fato
 `;
 
-/** Princípios UGC (Motion-Creative/ugc-scriptwriter) — narração falada autêntica. */
+/** Princípios UGC — referência compacta (regras completas no NARRACAOPRO). */
 export const UGC_SCRIPTWRITER_REINFORCEMENT = `
-MODO UGC / NARRAÇÃO FALADA (skill ugc-scriptwriter):
-- Escreva como alguém CONTANDO ao vivo — passa no teste "ler em voz alta sem tropeçar".
-- Especificidade > adjetivos: nomes, datas, números, cenas concretas (não "incrível" sem prova).
-- Arco: gancho → problema (1 frase) → virada → prova (dado) → fechamento DECLARATIVO.
-- PROIBIDO no final: "Você prefere…?", "Qual você…?", "Comenta aí", "Deixa nos comentários", "O que achou?".
-- BOM final: consequência moderna, ironia factual ou mic drop — ex.: "Por isso toda janela de avião hoje é oval."
-- Máximo 2–3 fatos fortes no Short; corte tudo que não avança a tese.
+LEMBRETE UGC: Escreva como alguém CONTANDO ao vivo. Teste: ler em voz alta sem tropeçar. Especificidade > adjetivos. Fechamento DECLARATIVO conforme NARRACAOPRO.
 `;
 
 export const SCRIPT_CREATIVE_REINFORCEMENT = `
-ARQUITETURA DA MENSAGEM (OBRIGATÓRIO — não pule):
+[CAMADA CRIATIVA — PRIORIDADE 6-7. Submissa ao NARRACAOPRO. Em caso de conflito, o NARRACAOPRO prevalece.]
 
-1. TESE ÚNICA: Antes de escrever, defina em UMA frase o que o espectador deve entender ao final. Todo o roteiro serve só essa tese. Se um parágrafo não ajuda a explicar a tese, remova.
+RECURSOS CRIATIVOS PERMITIDOS (sugestões, não ordens):
 
-2. PROGRESSÃO LÓGICA: Cada bloco responde implicitamente: "Por que estou ouvindo isso AGORA?" e "O que eu aprendo neste trecho?". Proibido saltar de assunto sem ponte.
+1. RITMO: Alterne frases curtas (impacto) com frases médias (explicação). Nunca dois blocos densos seguidos.
 
-3. LINGUAGEM HUMANA (PT-BR oral): Escreva como alguém contando para um amigo inteligente — frases curtas, verbos concretos, exemplos específicos (nomes, datas, números, cenas). Evite tom de redação escolar, release de imprensa ou Wikipedia.
+2. CONTRASTE: antigo vs. moderno, aparência vs. realidade, promessa vs. consequência — somente quando verdadeiro e sustentado pelas fontes.
 
-4. PROIBIDO (soa robótico / vazio / clickbait falso):
-   - "Neste vídeo vamos...", "Sem mais delongas", "Fique até o final", "Você não vai acreditar"
-   - "Prepare-se", "Mergulhe", "Desvende os segredos", "Jornada fascinante", "Universo intrigante"
-   - "É importante ressaltar", "Vale a pena mencionar", "Em conclusão", "No mundo de hoje"
-   - Adjetivos vazios sem prova: incrível, surpreendente, impressionante, extraordinário (use só com dado ou exemplo logo em seguida)
-   - Três frases seguidas começando igual ou com a mesma estrutura
+3. ORDEM DAS FRASES: Reorganize para progressão de aposta (menor → maior), mas não altere relações causais.
 
-5. CLAREZA PARA QUEM NUNCA OUVIU FALAR DO ASSUNTO:
-   - Na primeira menção de um conceito, explique em linguagem simples (1 frase).
-   - Use analogias do dia a dia quando o tema for técnico ou histórico.
-   - Feche loops abertos: se abrir uma pergunta no bloco 1, responda antes do final.
+4. IMAGEM MENTAL: Quando o tema for abstrato, sugira cena concreta do dia a dia para ancorar a explicação.
 
-6. RETENÇÃO SEM ENROLAR: Gancho forte nos 3 primeiros segundos, mas o gancho deve ANUNCIAR o payoff real — não prometer o que o roteiro não entrega.
+5. TRANSIÇÃO: Use pontes causais ("Mas esse era apenas o primeiro problema", "A explicação está no modo como..."). Não use suspense artificial.
 
-7. REVISÃO FINAL (faça mentalmente antes de responder):
-   - Leia a narração em voz alta. Onde tropeçar ou soar artificial, reescreva.
-   - O espectador consegue resumir o vídeo em uma frase? Se não, o roteiro está confuso.
-   - Cada block_phrase deve ser o início EXATO da narração daquele bloco (4-8 palavras, únicas entre si).
+6. REVISÃO ORAL: Leia mentalmente em voz alta. Onde tropeçar ou soar artificial, reescreva.
+
+7. BLOCK_PHRASE: Cada block_phrase = início EXATO da narração do bloco (4-8 palavras, únicas entre si).
+
+RESTRIÇÕES DESTA CAMADA (invioláveis):
+- NÃO adicionar fatos além do orçamento do NARRACAOPRO
+- NÃO mudar a tese (definida pelo NARRACAOPRO)
+- NÃO criar frases de grandiosidade ("símbolo do progresso", "mudou o mundo para sempre")
+- NÃO introduzir clichês ou frases proibidas pelo NARRACAOPRO
+- NÃO alterar o tipo de fechamento (declarativo é o padrão)
+- NÃO aumentar a duração artificialmente com repetições ou abstrações
 
 ${UGC_SCRIPTWRITER_REINFORCEMENT}
 `;
@@ -202,9 +233,10 @@ export function buildFormatScriptRules(format = "LONGO") {
 REGRAS ESPECÍFICAS — SHORTS (30–50 segundos, 3–4 blocos):
 
 - UMA ideia, UMA virada, UM payoff. Nada de sub-temas paralelos.
+- Orçamento de fatos conforme NARRACAOPRO: máximo 2–3 fatos centrais, pelo menos 1 mecanismo, pelo menos 1 consequência concreta, nenhum fato decorativo.
 - Bloco 1 (gancho): ≤10 palavras, voz ativa — use um dos tipos de gancho viral (pergunta, choque, problema/solução, antes/depois, urgência, desafio, segredo leve, impacto pessoal).
 - Bloco 2 (contexto): 1 frase — quem/o quê/onde. Sem história paralela.
-- Bloco 3 (wow-facts): 2–3 fatos com números, datas ou analogias do dia a dia — cada fato sobe a aposta.
+- Bloco 3 (desenvolvimento): 2–3 fatos centrais com números, datas ou analogias do dia a dia — cada fato sobe a aposta.
 - Bloco 4 (virada + stakes): o detalhe que muda a perspectiva + por que isso importa hoje (risco, consequência moderna).
 - Bloco 5 (payoff): responde o gancho do bloco 1 em 1-2 frases DECLARATIVAS — mic drop factual. Sem pergunta vazia ao espectador.
 - Narração total: 80–130 palavras. Frases de até 12 palavras na maioria.
@@ -647,7 +679,7 @@ export function buildChecklistSchemaBlock() {
 }
 Critérios:
 - click_potential: título + gancho geram curiosidade real (não clickbait vazio)
-- retention_potential: open loops, wow-facts, ritmo oral, payoff no final
+- retention_potential: open loops, fatos de impacto, ritmo oral, payoff no final
 - comments_potential: polêmia saudável, pergunta com stakes ou dado que convida debate
 - corrections: máximo 4 itens curtos e específicos ao roteiro (ex.: "Gancho promete X mas bloco 3 não entrega")`;
 }
@@ -716,7 +748,7 @@ ${
     ? `PROCESSO MENTAL POR IDEIA SHORT (não entregue rascunho — só metadados):
 1. Esboce 3 ganchos candidatos (campo "hook_candidates": array de 3 strings ≤10 palavras)
 2. Escolha o melhor em "hook_angle" + "hooks" (gancho principal para o roteiro)
-3. Planeje 3–5 wow-facts verificáveis em "wow_facts_preview" (números/datas curtos)`
+3. Planeje 2–3 fatos centrais verificáveis em "wow_facts_preview" (números/datas curtos, conforme orçamento NARRACAOPRO)`
     : `Para LONGO: "hook_angle" indica o tipo de abertura; "hooks" = gancho de retenção dos primeiros 30s.`
 }
 
@@ -1117,16 +1149,7 @@ export function buildHumanizeRepairPrompt({
   rawScript,
   blockCount,
 }) {
-  const guidelines = loadNarracaoProGuidelines();
-  const comousar = loadComousarAnarracaoProGuidelines();
-
-  let guidelinesBlock = "";
-  if (guidelines) {
-    guidelinesBlock += `\n[DIRETRIZES DE ROTEIRO E NARRAÇÃO OBRIGATÓRIAS (NARRACAOPRO.md)]:\n${guidelines}\n`;
-  }
-  if (comousar) {
-    guidelinesBlock += `\n[INSTRUÇÕES DE EXECUÇÃO E CURADORIA DA PESQUISA (COMOUSARANARRACAOPRO.md)]:\n${comousar}\n`;
-  }
+  const guidelinesBlock = buildConsolidatedGuidelines();
 
   return `Você é um roteirista brasileiro especialista em clareza e naturalidade para YouTube.
 
@@ -1322,7 +1345,7 @@ BLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)`;
     header += `\nCategoria viral: ${idea.viral_category}`;
   }
   if (Array.isArray(idea.wow_facts_preview) && idea.wow_facts_preview.length) {
-    header += `\nWow-facts planejados (use ou refine com pesquisa): ${idea.wow_facts_preview.join(" | ")}`;
+    header += `\nFatos centrais planejados (use ou refine com pesquisa): ${idea.wow_facts_preview.join(" | ")}`;
   }
   if (Array.isArray(idea.hook_candidates) && idea.hook_candidates.length) {
     header += `\nGanchos candidatos: ${idea.hook_candidates.join(" / ")}`;
@@ -2082,16 +2105,7 @@ export function buildNarrationOnlyPrompt({
   isHistoricalWitness = false,
   historicalWitness = null,
 }) {
-  const guidelines = loadNarracaoProGuidelines();
-  const comousar = loadComousarAnarracaoProGuidelines();
-
-  let guidelinesBlock = "";
-  if (guidelines) {
-    guidelinesBlock += `\n[DIRETRIZES DE ROTEIRO E NARRAÇÃO OBRIGATÓRIAS (NARRACAOPRO.md)]:\n${guidelines}\n`;
-  }
-  if (comousar) {
-    guidelinesBlock += `\n[INSTRUÇÕES DE EXECUÇÃO E CURADORIA DA PESQUISA (COMOUSARANARRACAOPRO.md)]:\n${comousar}\n`;
-  }
+  const guidelinesBlock = buildConsolidatedGuidelines();
 
   const ideaHeader = buildIdeaContextHeader({
     niche,
@@ -2393,16 +2407,7 @@ ${isListicle ? `10. "listicle" e 11. "list_items" (${listicleRank} itens)` : ""}
 
 /** Roteiro completo em uma fase (narração + visual_prompts + technical_config). */
 export function buildCreatorFullScriptPrompt(ctx = {}) {
-  const guidelines = loadNarracaoProGuidelines();
-  const comousar = loadComousarAnarracaoProGuidelines();
-
-  let guidelinesBlock = "";
-  if (guidelines) {
-    guidelinesBlock += `\n[DIRETRIZES DE ROTEIRO E NARRAÇÃO OBRIGATÓRIAS (NARRACAOPRO.md)]:\n${guidelines}\n`;
-  }
-  if (comousar) {
-    guidelinesBlock += `\n[INSTRUÇÕES DE EXECUÇÃO E CURADORIA DA PESQUISA (COMOUSARANARRACAOPRO.md)]:\n${comousar}\n`;
-  }
+  const guidelinesBlock = buildConsolidatedGuidelines();
 
   const {
     niche,
@@ -2849,16 +2854,7 @@ export function buildNarrationHumanizeRepairPrompt({
   listicleRank = 20,
   listTopic = "",
 } = {}) {
-  const guidelines = loadNarracaoProGuidelines();
-  const comousar = loadComousarAnarracaoProGuidelines();
-
-  let guidelinesBlock = "";
-  if (guidelines) {
-    guidelinesBlock += `\n[DIRETRIZES DE ROTEIRO E NARRAÇÃO OBRIGATÓRIAS (NARRACAOPRO.md)]:\n${guidelines}\n`;
-  }
-  if (comousar) {
-    guidelinesBlock += `\n[INSTRUÇÕES DE EXECUÇÃO E CURADORIA DA PESQUISA (COMOUSARANARRACAOPRO.md)]:\n${comousar}\n`;
-  }
+  const guidelinesBlock = buildConsolidatedGuidelines();
 
   const wordCeiling =
     format === "SHORTS"

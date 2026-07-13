@@ -1,4 +1,10 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[SKILLS]]
+
 # SCRIPT 2 — AGENTE DE PESQUISA NA INTERNET E PREPARAÇÃO DA NARRAÇÃO
+
+> **ESCOPO EXCLUSIVO**: pesquisa, fontes, cruzamento de informações, curadoria factual, nível de certeza.
+> **NÃO CONTROLA**: estrutura narrativa, quantidade de fatos no roteiro final, tom, fechamento, CTA, formato de saída.
+> Essas decisões pertencem ao NARRACAOPRO.md (prioridade soberana).
 
 ## IDENTIDADE DO AGENTE
 
@@ -467,11 +473,11 @@ O grupo C deve ser explicitamente marcado como descartado.
 
 ---
 
-# 14. ETAPA 10 — DEFINIÇÃO DO ÂNGULO
+# 14. ETAPA 10 — RECOMENDAÇÃO DE ÂNGULO
 
-Com base na pesquisa, escolha apenas um ângulo principal.
+Com base na pesquisa, recomende um ângulo narrativo ao agente roteirista. A decisão final sobre o ângulo, a tese e a estrutura do roteiro pertence ao NARRACAOPRO.
 
-O ângulo deve apresentar:
+O ângulo recomendado deve apresentar:
 
 - uma pergunta clara;
 - um conflito;
@@ -497,17 +503,15 @@ Um vídeo deve possuir uma ideia central dominante.
 
 ---
 
-# 15. ETAPA 11 — DEFINIÇÃO DA TESE
+# 15. ETAPA 11 — RECOMENDAÇÃO DE TESE
 
-Crie uma tese central com uma frase.
+Recomende uma tese central ao agente roteirista, com base nos fatos confirmados.
 
-A tese deve responder à pergunta principal.
+A definição final da tese, incluindo a estrutura OBJETO + MECANISMO + CONSEQUÊNCIA, pertence ao NARRACAOPRO.
 
-Exemplo:
+Exemplo de recomendação:
 
-“O concreto romano não era magicamente indestrutível, mas determinados métodos de produção e reações químicas ajudaram algumas estruturas a resistir e, em certas condições, preencher pequenas fissuras.”
-
-Essa tese orientará toda a narração.
+"O concreto romano não era magicamente indestrutível, mas determinados métodos de produção e reações químicas ajudaram algumas estruturas a resistir e, em certas condições, preencher pequenas fissuras."
 
 Qualquer informação que não contribua para essa tese deverá ser removida ou tratada como secundária.
 
@@ -553,18 +557,20 @@ Não entregue fatos fora de ordem.
 
 ---
 
-# 17. ETAPA 13 — ADAPTAÇÃO PARA SHORTS
+# 17. ETAPA 13 — PREPARAÇÃO PARA SHORTS
 
-Caso o formato seja SHORTS, selecione:
+Caso o formato seja SHORTS, prepare o pacote de pesquisa otimizado para duração curta.
 
-- uma pergunta central;
-- uma contradição;
-- no máximo cinco fatos essenciais;
-- uma explicação curta;
-- uma revelação;
-- uma conclusão clara.
+O orçamento final de fatos no roteiro (máximo 2–3 fatos centrais, pelo menos 1 mecanismo, pelo menos 1 consequência concreta) é definido pelo NARRACAOPRO. O agente de pesquisa deve:
 
-Elimine:
+- selecionar uma pergunta central;
+- identificar a contradição ou transformação mais forte;
+- preparar os fatos indispensáveis com fontes;
+- preparar uma explicação curta do mecanismo;
+- identificar a revelação principal;
+- preparar uma conclusão clara.
+
+Eliminar na pesquisa:
 
 - detalhes históricos excessivos;
 - personagens secundários;
