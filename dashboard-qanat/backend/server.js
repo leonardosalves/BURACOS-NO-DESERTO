@@ -17073,7 +17073,7 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 
       "hook_angle": "question | shock | problem_solution | before_after | breaking | challenge | secret | personal",
 
-      "hooks": "Gancho principal ≤10 palavras, voz ativa, PT-BR"${format === "SHORTS" ? ',\n\n      "hook_candidates": ["gancho 1 ≤10 palavras", "gancho 2", "gancho 3"],\n\n      "wow_facts_preview": ["fato 1 com número", "fato 2", "fato 3"]' : ""}${isListicle ? ',\n\n      "listicle_angle": "ângulo do ranking (surpresa, impacto diário, mito vs realidade, etc.)"' : ""}
+      "hooks": "Gancho principal ≤10 palavras, voz ativa, PT-BR"${format === "SHORTS" ? ',\n\n      "hook_candidates": ["gancho 1 ≤10 palavras", "gancho 2", "gancho 3"],\n\n      "wow_facts_preview": ["fato central 1 com número", "fato central 2"]' : ""}${isListicle ? ',\n\n      "listicle_angle": "ângulo do ranking (surpresa, impacto diário, mito vs realidade, etc.)"' : ""}
 
     }
 
