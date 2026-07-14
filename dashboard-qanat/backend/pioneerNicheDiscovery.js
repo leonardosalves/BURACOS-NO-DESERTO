@@ -1367,16 +1367,6 @@ Responda somente JSON válido:
       searchQuery: String(draft.searchQuery || draft.title).trim(),
       angle: {
         ...(aspects.angle || {}),
-        value: String(draft.specificAngle || draft.title).trim(),(draft.primarySubject || "")
-        .trim()
-        .slice(0, 160),
-    },
-    aspects: {
-      specificAngle: String(draft.specificAngle || "").trim(),
-      demandAnalysis: String(draft.demandAnalysis || "").trim(),
-      searchQuery: String(draft.searchQuery || draft.title).trim(),
-      angle: {
-        ...(aspects.angle || {}),
         value: String(draft.specificAngle || draft.title).trim(),
         description: String(draft.demandAnalysis || "").trim(),
       },
