@@ -699,6 +699,9 @@ export default function App() {
   const [notebooklmDeep, setNotebooklmDeep] = useState<boolean>(
     savedCreatorState.notebooklmDeep === true
   );
+  const [enablePov, setEnablePov] = useState<boolean>(
+    savedCreatorState.enablePov === true
+  );
   const [useDeepResearch, setUseDeepResearch] = useState<boolean>(
     savedCreatorState.useDeepResearch !== false
   );
@@ -2753,12 +2756,26 @@ export default function App() {
         );
       }
       const timelineMotion = Number(data.timeline_motion_count) || 0;
+      const meta = (
+        data.storyboard as
+          { motion_scenes_meta?: Record<string, unknown> } | undefined
+      )?.motion_scenes_meta;
+      const narradorN = Number(meta?.narrador_placement_count) || 0;
+      const policyMode = String(
+        (meta?.render_template_policy as { mode?: string } | undefined)?.mode ||
+          ""
+      );
       toast.success(
         count > 0
-          ? timelineMotion > 0
-            ? `${count} template(s) salvos — ${timelineMotion} na Timeline Studio.`
-            : `${count} template(s) planejado(s) e salvos no storyboard.`
-          : "Orquestração concluída — nenhum template gerado.",
+          ? [
+              `${count} template(s)`,
+              timelineMotion > 0 ? `${timelineMotion} na Timeline` : null,
+              narradorN > 0 ? `${narradorN} NARRADORPRO` : null,
+              policyMode ? `policy ${policyMode}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : "Orquestração concluída — nenhum template gerado (semântica / policy).",
         { id: toastId }
       );
       setTimelineDataRevision((r) => r + 1);
@@ -3191,6 +3208,7 @@ export default function App() {
       notebooklmSession,
       useNotebooklm,
       notebooklmDeep,
+      enablePov,
       useDeepResearch,
       motionTemplatePackEnabled,
       motionTemplateNiche,
@@ -3241,6 +3259,7 @@ export default function App() {
       notebooklmSession,
       useNotebooklm,
       notebooklmDeep,
+      enablePov,
       useDeepResearch,
       motionTemplatePackEnabled,
       motionTemplateNiche,
@@ -3327,6 +3346,7 @@ export default function App() {
       setUseNotebooklm(patch.useNotebooklm);
     if (patch.notebooklmDeep !== undefined)
       setNotebooklmDeep(patch.notebooklmDeep);
+    if (patch.enablePov !== undefined) setEnablePov(patch.enablePov === true);
     if (patch.useDeepResearch !== undefined)
       setUseDeepResearch(patch.useDeepResearch);
     if (patch.motionTemplatePackEnabled !== undefined)
@@ -4224,18 +4244,26 @@ export default function App() {
           }
 
           if (targetSceneIndex !== -1) {
+            const prevVp = nextPrompts[targetSceneIndex] || {};
             nextPrompts[targetSceneIndex] = {
-              ...nextPrompts[targetSceneIndex],
-
+              ...prevVp,
+              ...(type === "video"
+                ? {
+                    type: "vídeo IA (max 10s)",
+                    production: {
+                      ...(prevVp.production &&
+                      typeof prevVp.production === "object"
+                        ? prevVp.production
+                        : {}),
+                      broll_type: "video",
+                    },
+                  }
+                : {}),
               asset: {
                 asset: data.asset,
-
                 type,
-
                 user_locked: true,
-
                 manual_asset: true,
-
                 ...(type === "video" ? { fixed: 8.0 } : {}),
               },
             };
@@ -4271,18 +4299,26 @@ export default function App() {
           }
 
           if (targetSceneIndex !== -1) {
+            const prevVp = nextPrompts[targetSceneIndex] || {};
             nextPrompts[targetSceneIndex] = {
-              ...nextPrompts[targetSceneIndex],
-
+              ...prevVp,
+              ...(type === "video"
+                ? {
+                    type: "vídeo IA (max 10s)",
+                    production: {
+                      ...(prevVp.production &&
+                      typeof prevVp.production === "object"
+                        ? prevVp.production
+                        : {}),
+                      broll_type: "video",
+                    },
+                  }
+                : {}),
               asset: {
                 asset: data.asset,
-
                 type,
-
                 user_locked: true,
-
                 manual_asset: true,
-
                 ...(type === "video" ? { fixed: 8.0 } : {}),
               },
             };
@@ -7800,6 +7836,7 @@ export default function App() {
         project: safeProjectName,
         useNotebooklm,
         notebooklmDeep,
+        enablePov,
         phase,
         ...fullExtras,
         motion_template_pack: templatePack,
@@ -7854,6 +7891,7 @@ export default function App() {
         project: safeProjectName,
         useNotebooklm: useNotebooklm !== false,
         notebooklmDeep,
+        enablePov,
         phase,
         ...fullExtras,
         motion_template_pack: templatePack,
@@ -7895,6 +7933,7 @@ export default function App() {
       project: safeProjectName,
       useNotebooklm: useNotebooklm !== false,
       notebooklmDeep,
+      enablePov,
       phase,
       ...fullExtras,
       motion_template_pack: templatePack,
@@ -9148,13 +9187,17 @@ export default function App() {
         const orch = data.production_orchestration || {};
         const motionN =
           orch.motion_count ?? (data.motion_scenes || []).length ?? 0;
+        const povN = (data.visual_prompts || []).filter(
+          (vp: { is_pov?: boolean }) => vp?.is_pov === true
+        ).length;
         toast.success(
-          `✨ VPE PRO — ${data.visual_prompts?.length || 0} cenas · ${motionN} Remotion${score ? ` · Score: ${score}` : ""}${niche ? ` · ${niche}` : ""}${orch.quality_score != null ? ` · QC ${orch.quality_score}` : ""}`
+          `✨ VPE PRO — ${data.visual_prompts?.length || 0} cenas · ${motionN} Remotion${povN ? ` · ${povN} POV` : ""}${score ? ` · Score: ${score}` : ""}${niche ? ` · ${niche}` : ""}${orch.quality_score != null ? ` · QC ${orch.quality_score}` : ""}`
         );
       } else {
         const errMsg =
           data.error || data.details || "Erro ao aprimorar prompts visuais.";
         stopAiJobProgress(false, String(errMsg));
+        toast.error(String(errMsg), { duration: 12000 });
       }
     } catch (err: unknown) {
       const msg =
@@ -9162,6 +9205,7 @@ export default function App() {
           ? err.message
           : "Falha ao aprimorar prompts visuais.";
       stopAiJobProgress(false, msg);
+      toast.error(msg, { duration: 12000 });
     } finally {
       setCreatorLoading(false);
       setCreatorLoadingMode("idle");
@@ -9278,7 +9322,8 @@ export default function App() {
           storyboardData ?? generatedScriptData,
           wordTranscripts
         );
-        if (!chunked) setShouldAutoAlign(true);
+        // Backend (syncProjectTimelineAfterWhisper) já sincronizou
+        // timeline_assets com Whisper — não duplicar no frontend.
         setCreatorStep(4);
         toast.success(
           chunked
@@ -9886,6 +9931,63 @@ export default function App() {
     setRenderProgress({ percent: 0, phase: "Inicializando..." });
     if (!fromWizard) setActiveTab("terminal");
     setLogs([]);
+
+    // Remotion: aplicar policy do projeto (intro/end/chapter/efeitos) na timeline antes do render
+    if (mode === "remotion" || mode === "remotion-pro") {
+      try {
+        setRenderProgress({
+          percent: 0,
+          phase: "Aplicando templates & camadas do projeto…",
+        });
+        setLogs((prev) => [
+          ...prev,
+          "[Dashboard] Aplicando render_template_policy na timeline…",
+        ]);
+        const applyRes = await fetch(
+          getProjectUrl("/api/ai/creator/render-template-policy/apply"),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              render_template_policy: (config as any)?.render_template_policy,
+              persist: true,
+              sync_timeline: true,
+            }),
+          }
+        );
+        const applyData = (await applyRes.json().catch(() => ({}))) as {
+          ok?: boolean;
+          injected_count?: number;
+          motion_count?: number;
+          message?: string;
+          error?: string;
+          storyboard?: Record<string, unknown>;
+        };
+        if (applyRes.ok && applyData.ok) {
+          setLogs((prev) => [
+            ...prev,
+            `[Dashboard] Policy: ${applyData.message || "ok"} (${applyData.injected_count || 0} camadas, ${applyData.motion_count || 0} scenes).`,
+          ]);
+          if (applyData.storyboard) {
+            applyStoryboardToCreatorState(
+              applyData.storyboard as any,
+              "generation"
+            );
+          }
+          setTimelineDataRevision((r) => r + 1);
+        } else {
+          setLogs((prev) => [
+            ...prev,
+            `[Dashboard] Aviso policy: ${applyData.error || applyRes.status} — render segue com timeline atual.`,
+          ]);
+        }
+      } catch (err) {
+        setLogs((prev) => [
+          ...prev,
+          `[Dashboard] Aviso: falha ao aplicar policy (${err instanceof Error ? err.message : "erro"}).`,
+        ]);
+      }
+    }
 
     if (needsOverlayPlan) {
       try {
@@ -10889,6 +10991,8 @@ export default function App() {
     uploadingNarration,
     useNotebooklm,
     notebooklmDeep,
+    enablePov,
+    setEnablePov,
     useDeepResearch,
     setUseDeepResearch,
     motionTemplatePackEnabled,

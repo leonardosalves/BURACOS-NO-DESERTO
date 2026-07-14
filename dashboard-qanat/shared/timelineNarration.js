@@ -3,12 +3,23 @@
  */
 
 import { findNarrationMatch } from "./narrationMatch.js";
+import { isPromptOnlyKeyframe } from "./timelineKeyframeUtils.js";
 
-export function getAssetNarrationText(blockNum, assetIdx, { visualPrompts = [], blockPhrases = [], timelineAssets = {} } = {}) {
-  const blockScenes = visualPrompts.filter((vp) => Number(vp?.block) === blockNum);
+export function getAssetNarrationText(
+  blockNum,
+  assetIdx,
+  { visualPrompts = [], blockPhrases = [], timelineAssets = {} } = {}
+) {
+  // Filtra keyframes POV/prompt-only — alinha com groupVisualPromptsByBlock
+  // que também os exclui ao criar slots em timeline_assets.
+  const blockScenes = visualPrompts.filter(
+    (vp) => Number(vp?.block) === blockNum && !isPromptOnlyKeyframe(vp)
+  );
   if (blockScenes.length > assetIdx) {
     const sceneText = String(
-      blockScenes[assetIdx]?.narration_text || blockScenes[assetIdx]?.narration_excerpt || "",
+      blockScenes[assetIdx]?.narration_text ||
+        blockScenes[assetIdx]?.narration_excerpt ||
+        ""
     ).trim();
     if (sceneText) return sceneText;
   }
@@ -29,7 +40,9 @@ export function getBlockNarrationText(blockNum, context = {}) {
   const { visualPrompts = [], blockPhrases = [] } = context;
   const scenes = visualPrompts.filter((vp) => Number(vp?.block) === blockNum);
   const sceneTexts = scenes
-    .map((vp) => String(vp?.narration_text || vp?.narration_excerpt || "").trim())
+    .map((vp) =>
+      String(vp?.narration_text || vp?.narration_excerpt || "").trim()
+    )
     .filter(Boolean);
   if (sceneTexts.length > 0) return sceneTexts.join(" ");
   const bp = blockPhrases.find((x) => Number(x?.block) === blockNum);
@@ -39,7 +52,12 @@ export function getBlockNarrationText(blockNum, context = {}) {
 /**
  * Âncora de fala do bloco = timestamp da primeira palavra casada (bloco ou assets).
  */
-export function getBlockNarrationAnchor(blockNum, assets, flatTranscriptWords, context = {}) {
+export function getBlockNarrationAnchor(
+  blockNum,
+  assets,
+  flatTranscriptWords,
+  context = {}
+) {
   const searchAfter = Number(context.blockStart);
   const searchBefore = Number(context.blockEnd);
   const bounds = {
@@ -49,14 +67,22 @@ export function getBlockNarrationAnchor(blockNum, assets, flatTranscriptWords, c
 
   const blockText = getBlockNarrationText(blockNum, context);
   if (blockText) {
-    const blockMatch = findNarrationMatch(blockText, flatTranscriptWords, bounds);
+    const blockMatch = findNarrationMatch(
+      blockText,
+      flatTranscriptWords,
+      bounds
+    );
     if (blockMatch) return blockMatch.start;
   }
 
   const allStarts = [];
   for (let idx = 0; idx < assets.length; idx += 1) {
     const narrationText = getAssetNarrationText(blockNum, idx, context);
-    const matched = findNarrationMatch(narrationText, flatTranscriptWords, bounds);
+    const matched = findNarrationMatch(
+      narrationText,
+      flatTranscriptWords,
+      bounds
+    );
     if (matched) allStarts.push(matched.start);
   }
   if (allStarts.length > 0) return Math.min(...allStarts);
