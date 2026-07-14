@@ -1195,7 +1195,7 @@ export function alternativeSuggestionConflict(
     subjectTokens.length &&
     !subjectTokens.some((token) => draftText.split(" ").includes(token))
   ) {
-    return "assunto declarado nao corresponde ao titulo proposto";
+    return "assunto declarado não corresponde ao título proposto";
   }
   return "";
 }
@@ -1206,7 +1206,7 @@ export async function researchAlternativeVideoSuggestion(
   { llmFn } = {}
 ) {
   if (!llmFn)
-    throw new Error("IA nÃ£o configurada para pesquisar a nova sugestÃ£o.");
+    throw new Error("IA não configurada para pesquisar a nova sugestão.");
 
   const aspects = item?.detail?.aspects || {};
   const raw = item?.detail?.raw || item?.niche || {};
@@ -1247,10 +1247,10 @@ export async function researchAlternativeVideoSuggestion(
   let draft = null;
   const rejectedDrafts = [];
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const prompt = `VocÃª Ã© um pesquisador e estrategista de YouTube. Gere UMA NOVA proposta de vÃ­deo em portuguÃªs do Brasil para a mesma perspectiva editorial, sem repetir nenhum vÃ­deo jÃ¡ sugerido.
+    const prompt = `Você é um pesquisador e estrategista de YouTube. Gere UMA NOVA proposta de vídeo em português do Brasil para a mesma perspectiva editorial, sem repetir nenhum vídeo já sugerido.
 
 NICHO: ${raw.macroNiche || item?.macroNiche || item?.label || ""}
-PERSPECTIVA EDITORIAL QUE DEVE SER PRESERVADA (tema amplo, nÃ£o o caso atual):
+PERSPECTIVA EDITORIAL QUE DEVE SER PRESERVADA (tema amplo, não o caso atual):
 ${[
   item?.label || raw.label,
   aspects?.overview?.summary,
@@ -1258,33 +1258,33 @@ ${[
 ]
   .filter(Boolean)
   .join("\n")}
-CASO ATUAL QUE DEVE SER SUBSTITUÃ�DO: ${[
+CASO ATUAL QUE DEVE SER SUBSTITUÍDO: ${[
       aspects?.firstVideo?.idea,
       aspects?.specificAngle || aspects?.angle?.value,
       aspects?.competition?.searchQuery,
     ]
       .filter(Boolean)
       .join(" | ")}
-PADRÃƒO: ${raw.formatPattern || aspects?.formatPattern?.value || ""}
+PADRÃO: ${raw.formatPattern || aspects?.formatPattern?.value || ""}
 FORMATO: ${format}
-PÃšBLICO: ${aspects?.audience?.description || ""}
-ANÃ�LISE DE DEMANDA: ${aspects?.demandAnalysis || aspects?.pioneerAnalysis?.whyPioneer || ""}
-VÃ�DEOS ENCONTRADOS NA PESQUISA ANTERIOR:
-${references.length ? references.join("\n") : "Nenhuma referÃªncia disponÃ­vel."}
+PÚBLICO: ${aspects?.audience?.description || ""}
+ANÁLISE DE DEMANDA: ${aspects?.demandAnalysis || aspects?.pioneerAnalysis?.whyPioneer || ""}
+VÍDEOS ENCONTRADOS NA PESQUISA ANTERIOR:
+${references.length ? references.join("\n") : "Nenhuma referência disponível."}
 
-PROIBIDO REPETIR OU PARAFRASEAR ESTES VÃ�DEOS JÃ� SUGERIDOS:
+PROIBIDO REPETIR OU PARAFRASEAR ESTES VÍDEOS JÁ SUGERIDOS:
 ${previousIdeas.map((idea, i) => `${i + 1}. ${idea}`).join("\n") || "Nenhum"}
-${rejectedDrafts.length ? `\nTENTATIVAS DESTA PESQUISA QUE TAMBÃ‰M FORAM REJEITADAS:\n${rejectedDrafts.join("\n")}` : ""}
+${rejectedDrafts.length ? `\nTENTATIVAS DESTA PESQUISA QUE TAMBÉM FORAM REJEITADAS:\n${rejectedDrafts.join("\n")}` : ""}
 
-Crie uma profissÃ£o/personagem/objeto principal realmente diferente, mas mantenha a perspectiva editorial ampla. Se a perspectiva for sobre profissÃµes extintas, Ã‰ OBRIGATÃ“RIO escolher OUTRA PROFISSÃƒO: trocar apenas a tarefa, especialidade ou etapa do trabalho da mesma profissÃ£o nÃ£o conta. NÃ£o permaneÃ§a no mesmo veÃ­culo, tecnologia ou personagem do caso atual. O tÃ­tulo deve nomear o assunto real, nÃ£o falar de concorrÃªncia, nicho ou algoritmo. A consulta deve servir para validar a nova proposta no YouTube.
-Responda somente JSON vÃ¡lido:
+Crie uma profissão/personagem/objeto principal realmente diferente, mas mantenha a perspectiva editorial ampla. Se a perspectiva for sobre profissões extintas, É OBRIGATÓRIO escolher OUTRA PROFISSÃO: trocar apenas a tarefa, especialidade ou etapa do trabalho da mesma profissão não conta. Não permaneça no mesmo veículo, tecnologia ou personagem do caso atual. O título deve nomear o assunto real, não falar de concorrência, nicho ou algoritmo. A consulta deve servir para validar a nova proposta no YouTube.
+Responda somente JSON válido:
 {
-  "title": "tÃ­tulo concreto, especÃ­fico e clicÃ¡vel",
-  "primarySubject": "nome curto e literal da nova profissÃ£o, personagem ou objeto principal",
-  "hook": "gancho que abre uma lacuna de curiosidade sem repetir o tÃ­tulo",
+  "title": "título concreto, específico e clicável",
+  "primarySubject": "nome curto e literal da nova profissão, personagem ou objeto principal",
+  "hook": "gancho que abre uma lacuna de curiosidade sem repetir o título",
   "specificAngle": "recorte factual desta nova proposta",
-  "searchQuery": "consulta curta para YouTube em portuguÃªs",
-  "audience": "por que este recorte interessa ao pÃºblico",
+  "searchQuery": "consulta curta para YouTube em português",
+  "audience": "por que este recorte interessa ao público",
   "demandAnalysis": "como a proposta se diferencia dos resultados existentes",
   "contentPillars": ["pilar 1", "pilar 2", "pilar 3"],
   "searchTips": ["dica de pesquisa 1", "dica de pesquisa 2"]
@@ -1301,12 +1301,12 @@ Responda somente JSON vÃ¡lido:
       break;
     }
     rejectedDrafts.push(
-      `${String(parsed?.title || "Sem tÃ­tulo")} — ${conflict}`
+      `${String(parsed?.title || "Sem título")} — ${conflict}`
     );
   }
   if (!draft?.title) {
     throw new Error(
-      "A IA repetiu sugestÃµes anteriores. Tente novamente para buscar outro caso."
+      "A IA repetiu sugestões anteriores. Tente novamente para buscar outro caso."
     );
   }
 
@@ -1339,12 +1339,12 @@ Responda somente JSON vÃ¡lido:
       ? {
           ...(aspects.competition || {}),
           ...competition,
-          title: aspects.competition?.title || "ConcorrÃªncia no YouTube",
+          title: aspects.competition?.title || "Concorrência no YouTube",
           level:
             competition.saturationPct <= 25
               ? "Baixa"
               : competition.saturationPct <= 55
-                ? "MÃ©dia"
+                ? "Média"
                 : "Alta",
           searchQuery: competition.query,
         }
@@ -1352,12 +1352,22 @@ Responda somente JSON vÃ¡lido:
 
   return {
     firstVideo: {
-      title: "Novo vÃ­deo sugerido",
+      title: "Novo vídeo sugerido",
       idea: String(draft.title).trim().slice(0, 180),
       hook: String(draft.hook || "")
         .trim()
         .slice(0, 500),
       primarySubject: String(draft.primarySubject || "")
+        .trim()
+        .slice(0, 160),
+    },
+    aspects: {
+      specificAngle: String(draft.specificAngle || "").trim(),
+      demandAnalysis: String(draft.demandAnalysis || "").trim(),
+      searchQuery: String(draft.searchQuery || draft.title).trim(),
+      angle: {
+        ...(aspects.angle || {}),
+        value: String(draft.specificAngle || draft.title).trim(),(draft.primarySubject || "")
         .trim()
         .slice(0, 160),
     },

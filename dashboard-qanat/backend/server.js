@@ -1,6 +1,13 @@
 import express from "express";
 import https from "https";
 import { getFfmpegStatus } from "./pythonEnv.js";
+import { ensureMp4Faststart } from "./mp4Faststart.js";
+import { applyExclusiveIntroEndToRemotionProps } from "../shared/exclusiveIntroEndLayout.js";
+import {
+  resolvePovPlacement,
+  applyPovToStoryboard,
+  enforcePovNoChannelNarrationPolicy,
+} from "../shared/povBlock.js";
 
 import {
   getLumieraServiceOpsStatus,
@@ -342,6 +349,8 @@ import {
   enforceShortsVideoSceneMix,
   loadNarracaoProGuidelines,
   ensureNarrationCoverage,
+  dedupeNearDuplicateVisualPromptsInBlocks,
+  normalizeVisualPromptMediaTypes,
 } from "./scriptQuality.js";
 import {
   buildSeedanceDirectingRequest,
@@ -1099,40 +1108,81 @@ function streamMediaWithRanges(req, res, filePath, mimeType) {
     const stat = fs.statSync(filePath);
     const fileSize = stat.size;
     const range = req.headers.range;
+    const wantsDownload =
+      String(req.query?.download || "").trim() === "true" ||
+      String(req.query?.download || "").trim() === "1";
+    const baseName = path.basename(filePath);
+    const commonHeaders = {
+      "Content-Type": mimeType,
+      "Accept-Ranges": "bytes",
+      "Cache-Control": "private, max-age=0, must-revalidate",
+      "X-Content-Type-Options": "nosniff",
+    };
+    if (wantsDownload) {
+      commonHeaders["Content-Disposition"] =
+        `attachment; filename*=UTF-8''${encodeURIComponent(baseName)}`;
+    } else if (mimeType.startsWith("video/") || mimeType.startsWith("audio/")) {
+      commonHeaders["Content-Disposition"] =
+        `inline; filename*=UTF-8''${encodeURIComponent(baseName)}`;
+    }
+
+    // HEAD: metadados para o player (sem corpo)
+    if (req.method === "HEAD") {
+      res.writeHead(200, {
+        ...commonHeaders,
+        "Content-Length": fileSize,
+      });
+      return res.end();
+    }
 
     if (range) {
       const parts = range.replace(/bytes=/, "").split("-");
       const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      let end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      if (!Number.isFinite(start) || start < 0) {
+        res.status(416).end();
+        return;
+      }
+      if (!Number.isFinite(end) || end >= fileSize) end = fileSize - 1;
+      // Limita chunk para não travar proxy com ranges enormes
+      const maxChunk = 8 * 1024 * 1024;
+      if (end - start + 1 > maxChunk) {
+        end = Math.min(fileSize - 1, start + maxChunk - 1);
+      }
 
       if (start >= fileSize) {
         res
           .status(416)
-          .send(
-            "Requested range not satisfiable\n" + start + " >= " + fileSize
-          );
+          .setHeader("Content-Range", `bytes */${fileSize}`)
+          .end();
         return;
       }
 
       const chunksize = end - start + 1;
       const file = fs.createReadStream(filePath, { start, end });
-      const head = {
+      file.on("error", (err) => {
+        console.error("[Media] stream error:", err.message);
+        if (!res.headersSent) res.status(500).end();
+        else res.destroy(err);
+      });
+      res.writeHead(206, {
+        ...commonHeaders,
         "Content-Range": `bytes ${start}-${end}/${fileSize}`,
-        "Accept-Ranges": "bytes",
         "Content-Length": chunksize,
-        "Content-Type": mimeType,
-      };
-
-      res.writeHead(206, head);
+      });
       file.pipe(res);
     } else {
-      const head = {
+      const file = fs.createReadStream(filePath);
+      file.on("error", (err) => {
+        console.error("[Media] stream error:", err.message);
+        if (!res.headersSent) res.status(500).end();
+        else res.destroy(err);
+      });
+      res.writeHead(200, {
+        ...commonHeaders,
         "Content-Length": fileSize,
-        "Content-Type": mimeType,
-        "Accept-Ranges": "bytes",
-      };
-      res.writeHead(200, head);
-      fs.createReadStream(filePath).pipe(res);
+      });
+      file.pipe(res);
     }
   } catch (e) {
     if (!res.headersSent) {
@@ -1143,7 +1193,13 @@ function streamMediaWithRanges(req, res, filePath, mimeType) {
 
 app.use("/api/projects-media", (req, res, next) => {
   const startTime = Date.now();
-  const decodedUrl = decodeURIComponent(req.path);
+  // Express já decodifica req.path; decode duplo quebra nomes com %
+  let decodedUrl = req.path || "";
+  try {
+    decodedUrl = decodeURIComponent(req.path);
+  } catch {
+    decodedUrl = req.path || "";
+  }
   const parts = decodedUrl.split("/").filter(Boolean);
 
   console.log(
@@ -2796,7 +2852,37 @@ app.get("/api/projects/storyboard", (req, res) => {
   }
 
   try {
-    const data = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    let data = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+
+    // Política GLOBAL POV: sem VO de canal nas cenas is_pov (qualquer projeto)
+    try {
+      const beforePov = JSON.stringify(
+        (data.visual_prompts || []).map((vp) => ({
+          s: vp.scene,
+          n: vp.narration_text || "",
+          pov: !!vp.is_pov,
+        }))
+      );
+      data = enforcePovNoChannelNarrationPolicy(data);
+      const afterPov = JSON.stringify(
+        (data.visual_prompts || []).map((vp) => ({
+          s: vp.scene,
+          n: vp.narration_text || "",
+          pov: !!vp.is_pov,
+        }))
+      );
+      if (beforePov !== afterPov) {
+        fs.writeFileSync(storyboardPath, JSON.stringify(data, null, 2), "utf8");
+        console.log(
+          `[POV] Política global aplicada em ${path.basename(projDir)} (sem VO de canal nas cenas POV)`
+        );
+      }
+    } catch (povPolErr) {
+      console.warn(
+        "[POV] Falha ao aplicar política global no GET storyboard:",
+        povPolErr.message
+      );
+    }
 
     // Auto-migrate: Bind assets from config.timeline_assets to storyboard scenes if not already bound
 
@@ -4301,16 +4387,27 @@ app.post("/api/projects/storyboard", (req, res) => {
   const transcriptPath = path.join(projDir, "transcripts_readable.txt");
 
   try {
-    const cleanStoryboardData = repairStoryboardEncoding(storyboardData);
+    // Política GLOBAL POV em todo save (qualquer projeto)
+    const enforced = enforcePovNoChannelNarrationPolicy(storyboardData);
+    const cleanStoryboardData = repairStoryboardEncoding(enforced);
     fs.writeFileSync(
       storyboardPath,
       JSON.stringify(cleanStoryboardData, null, 2),
       "utf8"
     );
 
-    const visualPrompts = storyboardData.visual_prompts || [];
+    const visualPrompts = cleanStoryboardData.visual_prompts || [];
 
+    // Transcript de canal: ignora cenas POV (sem VO de canal)
     const narrativeText = visualPrompts
+      .filter(
+        (vp) =>
+          !(
+            vp?.is_pov === true ||
+            vp?.no_channel_narration === true ||
+            String(vp?.scene_kind || "").toLowerCase() === "pov"
+          )
+      )
       .map((vp) => vp.narration_text || "")
       .filter(Boolean)
       .join("\n\n");
@@ -5713,7 +5810,7 @@ async function runAutoSoundtrackLogic(projDir, token, mode, options = {}) {
 
       if (removed.length > 0) {
         logs.push(
-          `Removendo ${removed.length} BGM automÃ¡ticas antigas antes de escolher uma nova trilha.`
+          `Removendo ${removed.length} BGM automáticas antigas antes de escolher uma nova trilha.`
         );
       }
 
@@ -6170,19 +6267,36 @@ REGRA DE SINCRONIA PRIORITARIA: retorne tambem "offset" (segundos depois do star
         )
       )
         continue;
-      const maxDuration = category === "ambience" ? 6 : 2.5;
+      // Duração precisa: não deixar o SFX sumir com a cena ainda na tela
+      const remainingInScene = Math.max(0.25, sceneEnd - time);
+      const sceneLen = Math.max(0.5, sceneEnd - sceneStart);
+      const softMax =
+        category === "ambience"
+          ? Math.min(8, remainingInScene)
+          : category === "riser"
+            ? Math.min(3.5, remainingInScene)
+            : category === "transition"
+              ? Math.min(2.8, remainingInScene)
+              : Math.min(3.2, remainingInScene);
+      const preferred =
+        category === "ambience"
+          ? Math.min(remainingInScene, Math.max(2, sceneLen * 0.75))
+          : category === "impact" || category === "detail"
+            ? Math.min(remainingInScene, Math.max(0.9, sceneLen * 0.35))
+            : Number(row.duration) || 1.0;
+      const duration = Number(
+        Math.max(
+          0.35,
+          Math.min(softMax, preferred, Number(row.duration) || preferred)
+        ).toFixed(3)
+      );
       planned.push({
         ...row,
         time: Number(time.toFixed(3)),
         offset: Number(Math.max(0, time - sceneStart).toFixed(3)),
         scene_start: Number(sceneStart.toFixed(3)),
         scene_end: Number(sceneEnd.toFixed(3)),
-        duration: Number(
-          Math.max(
-            0.25,
-            Math.min(maxDuration, Number(row.duration) || 0.8)
-          ).toFixed(3)
-        ),
+        duration,
         category,
         volume: Number(
           Math.max(
@@ -6614,7 +6728,7 @@ async function ensureProjectSfxTracks(projDir) {
       "utf8"
     );
     console.log(
-      "[SFX Auto-Fetch] TransiÃ§Ãµes de assets desativadas; sonoplastia profissional preservada."
+      "[SFX Auto-Fetch] Transições de assets desativadas; sonoplastia profissional preservada."
     );
     return;
   }
@@ -6916,7 +7030,7 @@ async function ensureProjectSfxTracks(projDir) {
   );
 
   console.log(
-    `[SFX Auto-Fetch] Timeline automÃ¡tica salva em ${autoSfxTimelinePath} com ${sfxEvents.length} eventos.`
+    `[SFX Auto-Fetch] Timeline automática salva em ${autoSfxTimelinePath} com ${sfxEvents.length} eventos.`
   );
 }
 
@@ -7769,6 +7883,22 @@ app.get(
             sendLog("[PROGRESSO] 100%");
             trackRenderProgress("[PROGRESSO] 100%");
 
+            // Faststart: moov no início → preview no browser não fica “carregando”
+            try {
+              const fsResult = ensureMp4Faststart(renderPlan.outputPath, {
+                log: (msg) => sendLog(msg),
+              });
+              if (fsResult.ok && !fsResult.skipped) {
+                sendLog(
+                  "[Remotion] MP4 otimizado para streaming (faststart)."
+                );
+              }
+            } catch (fsErr) {
+              sendLog(
+                `[Remotion] Aviso faststart: ${fsErr.message || fsErr}`
+              );
+            }
+
             if (renderPlan.sampleMeta) {
               try {
                 const finalOutputDir = path.join(
@@ -7781,6 +7911,7 @@ app.get(
                 const sampleName = `remotion_sample_v${renderPlan.sampleMeta.version}${fileExt}`;
                 const destPath = path.join(finalOutputDir, sampleName);
                 fs.copyFileSync(renderPlan.outputPath, destPath);
+                ensureMp4Faststart(destPath, { log: (msg) => sendLog(msg) });
                 sendLog(
                   `[Remotion] Amostra copiada para OUTPUT: ${sampleName}`
                 );
@@ -7792,6 +7923,32 @@ app.get(
                 sendLog(
                   `[Remotion] Aviso: Não foi possível disponibilizar a amostra no painel: ${copyErr.message}`
                 );
+              }
+            } else if (
+              renderPlan.outputPath &&
+              String(renderPlan.outputPath).includes("qanat_persa_video_final")
+            ) {
+              // Output já na pasta final — faststart já rodou no outputPath
+            } else if (renderPlan.outputPath) {
+              // Garante cópia em OUTPUT com faststart quando o path final é a pasta OUTPUT
+              try {
+                const finalOutputDir = path.join(
+                  projDir,
+                  "OUTPUT",
+                  "qanat_persa_video_final"
+                );
+                if (
+                  path.dirname(renderPlan.outputPath) === finalOutputDir ||
+                  path
+                    .normalize(renderPlan.outputPath)
+                    .includes(`OUTPUT${path.sep}qanat_persa_video_final`)
+                ) {
+                  ensureMp4Faststart(renderPlan.outputPath, {
+                    log: (msg) => sendLog(msg),
+                  });
+                }
+              } catch {
+                /* ignore */
               }
             }
 
@@ -8503,15 +8660,29 @@ function collectRemotionSfxTracks(
         riser: 0.22,
       }[String(event?.category || "detail")] || 0.22;
 
+    const sceneEnd = Number(event?.scene_end);
+    const remainingToSceneEnd =
+      Number.isFinite(sceneEnd) && sceneEnd > start
+        ? sceneEnd - start
+        : totalDuration - start;
+    const plannedDur = Number(event?.duration) || 0.8;
+    // Alinha ao fim da cena: não corta o SFX enquanto a cena ainda está visível
+    const duration = Math.max(
+      0.35,
+      Math.min(
+        Math.max(plannedDur, Math.min(plannedDur * 1.15, remainingToSceneEnd)),
+        remainingToSceneEnd,
+        totalDuration - start,
+        10
+      )
+    );
+
     tracks.push({
       file: `projects/${projectSlug}/${copied}`,
 
       start,
 
-      duration: Math.max(
-        0.25,
-        Math.min(6, Number(event?.duration) || 0.8, totalDuration - start)
-      ),
+      duration,
 
       volume: Math.min(
         0.5,
@@ -9187,6 +9358,15 @@ async function prepareRemotionRender(
           ? Math.min(2, Math.max(0.25, Number(item.playback_rate)))
           : 1;
 
+        // Extensão do arquivo vence type do timeline (evita .mp4 como <Img>)
+        const assetIsVideo =
+          /\.(mp4|webm|mov|m4v|mkv)(\?|$)/i.test(String(copiedName || "")) ||
+          /\.(mp4|webm|mov|m4v|mkv)(\?|$)/i.test(String(item?.asset || "")) ||
+          String(item?.type || "").toLowerCase() === "video" ||
+          String(item?.type || "")
+            .toLowerCase()
+            .includes("vídeo");
+
         scenes.push({
           block,
 
@@ -9194,7 +9374,7 @@ async function prepareRemotionRender(
 
           asset: `projects/${projectSlug}/${copiedName}`,
 
-          type: item?.type === "video" ? "video" : "image",
+          type: assetIsVideo ? "video" : "image",
 
           start: timing.start,
 
@@ -9336,13 +9516,23 @@ async function prepareRemotionRender(
     "config_qanat.json",
     {}
   );
-  const logoSource =
-    resolveLogoFilePath(
-      WORKSPACE_DIR,
-      projectDir,
-      globalConfigForLogo,
-      projectConfigForLogo
-    ) || findProjectFile(projectDir, "logo.png");
+  const renderTemplatePolicy =
+    projectConfigForLogo.render_template_policy ||
+    globalConfigForLogo.render_template_policy ||
+    {};
+  const endCardReplacesLogo =
+    renderTemplatePolicy?.mode !== "legacy" &&
+    renderTemplatePolicy?.end_card?.enabled === true &&
+    renderTemplatePolicy?.end_card?.replace_brand_outro !== false;
+
+  const logoSource = endCardReplacesLogo
+    ? null
+    : resolveLogoFilePath(
+        WORKSPACE_DIR,
+        projectDir,
+        globalConfigForLogo,
+        projectConfigForLogo
+      ) || findProjectFile(projectDir, "logo.png");
 
   if (logoSource) {
     const copiedLogo = copyRemotionAsset(
@@ -9906,9 +10096,15 @@ async function prepareRemotionRender(
     canvasBackground: config.canvas_background || "#050506",
   };
 
-  let finalProps = props;
+  // Intro / end card: segmentos exclusivos (não cobrem B-roll; intro sem áudio; end só música)
+  let finalProps = applyExclusiveIntroEndToRemotionProps(props);
+  if (finalProps.exclusiveLayout) {
+    console.log(
+      `[Remotion] Layout exclusivo: intro ${finalProps.exclusiveLayout.introDur}s · conteúdo até ${Number(finalProps.exclusiveLayout.contentEnd).toFixed(1)}s · end card ${finalProps.exclusiveLayout.endDur}s · total ${Number(finalProps.totalDuration).toFixed(1)}s`
+    );
+  }
   if (options.previewDuration) {
-    finalProps = truncatePropsForPreview(props, options.previewDuration);
+    finalProps = truncatePropsForPreview(finalProps, options.previewDuration);
     console.log(`[Remotion] Modo preview: ${options.previewDuration}s`);
   }
 
@@ -9955,8 +10151,11 @@ async function prepareRemotionRender(
     propsPath,
     outputPath,
     sampleMeta,
-    totalDuration,
-    sceneCount: validScenes.length,
+    totalDuration: Number(finalProps.totalDuration) || totalDuration,
+    exclusiveLayout: finalProps.exclusiveLayout || null,
+    sceneCount: Array.isArray(finalProps.scenes)
+      ? finalProps.scenes.length
+      : validScenes.length,
     captionCount: finalCaptions.length,
     sfxCount: sfxTracks.length,
     overlayCount: Array.isArray(overlays) ? overlays.length : 0,
@@ -10121,6 +10320,16 @@ function buildTimelineFromStoryboard(
 
   const promptsByBlock = new Map();
   for (const prompt of visualPrompts) {
+    // Keyframes POV (A_START / ponte / B_END) = só prompt para gerar vídeo, não slot de upload
+    if (
+      prompt?.prompt_only === true ||
+      prompt?.exclude_from_timeline === true ||
+      prompt?.pov_keyframe === true ||
+      prompt?.is_pov_keyframe === true ||
+      String(prompt?.scene_kind || "").toLowerCase() === "pov_keyframe"
+    ) {
+      continue;
+    }
     const block = Number(prompt?.block || 1);
     if (!promptsByBlock.has(block)) promptsByBlock.set(block, []);
     promptsByBlock.get(block).push(prompt);
@@ -16659,7 +16868,7 @@ app.post(
   asyncHandler(async (req, res) => {
     const projDir = getProjectDir(req);
     const {
-      niche = "HistÃ³ria",
+      niche = "História",
       topic,
       period = "",
       location = "",
@@ -16673,22 +16882,22 @@ app.post(
     if (!String(topic || "").trim()) {
       return res
         .status(400)
-        .json({ error: "Informe o acontecimento histÃ³rico." });
+        .json({ error: "Informe o acontecimento histórico." });
     }
 
     const profiles = {
       reporter:
-        "repÃ³rter de campo curiosa, didÃ¡tica e direta; roupa civil historicamente plausÃ­vel",
+        "repórter de campo curiosa, didática e direta; roupa civil historicamente plausível",
       archaeologist:
-        "arqueÃ³loga especialista, observadora e precisa; roupa de campo discreta adaptada ao perÃ­odo",
+        "arqueóloga especialista, observadora e precisa; roupa de campo discreta adaptada ao período",
       chronicler:
-        "cronista militar nÃ£o combatente, sÃ³brio e atento Ã  estratÃ©gia; nunca executa aÃ§Ãµes de soldado",
+        "cronista militar não combatente, sóbrio e atento à estratégia; nunca executa ações de soldado",
       resident:
-        "morador ou moradora local que presencia o acontecimento; linguagem humana sem conhecimento impossÃ­vel do futuro",
+        "morador ou moradora local que presencia o acontecimento; linguagem humana sem conhecimento impossível do futuro",
       scholar:
-        "pesquisador viajante que explica documentos, objetos e mecanismos; postura analÃ­tica e acessÃ­vel",
+        "pesquisador viajante que explica documentos, objetos e mecanismos; postura analítica e acessível",
       custom: String(
-        customCharacter || "personagem testemunha definido pelo usuÃ¡rio"
+        customCharacter || "personagem testemunha definido pelo usuário"
       ).trim(),
     };
     const character = profiles[characterProfile] || profiles.reporter;
@@ -16696,12 +16905,12 @@ app.post(
     const sceneCount = isShort ? 10 : 18;
     const sceneDuration = isShort ? "5 a 7 segundos" : "7 a 10 segundos";
 
-    const prompt = `VocÃª Ã© o motor LUMIERA HISTÃ“RIA VIVA. Crie um roteiro explicativo em estilo "testemunha dentro da HistÃ³ria": uma pessoa recorrente segura a cÃ¢mera em selfie e explica o acontecimento enquanto a prova visual ocorre ao fundo.
+    const prompt = `Você é o motor LUMIERA HISTÓRIA VIVA. Crie um roteiro explicativo em estilo "testemunha dentro da História": uma pessoa recorrente segura a câmera em selfie e explica o acontecimento enquanto a prova visual ocorre ao fundo.
 
 ENTRADAS
 Nicho: ${String(niche).trim()}
 Acontecimento: ${String(topic).trim()}
-PerÃ­odo: ${String(period).trim() || "determinar pela pesquisa"}
+Período: ${String(period).trim() || "determinar pela pesquisa"}
 Local: ${String(location).trim() || "determinar pela pesquisa"}
 Formato: ${isShort ? "SHORTS 9:16" : "LONGO 16:9"}
 Perfil escolhido: ${character}
@@ -16710,60 +16919,60 @@ Ponto de vista plausivel do personagem: ${String(characterView).trim() || "defin
 Gancho escolhido: ${String(selectedHook).trim() || "criar a partir da verdade editorial"}
 Quantidade alvo: ${sceneCount} cenas de ${sceneDuration}
 
-ESTRUTURA NARRATIVA OBRIGATÃ“RIA
-1. Mito/versÃ£o popular em uma frase.
-2. CorreÃ§Ã£o: "mas o que quase sempre fica de fora...".
+ESTRUTURA NARRATIVA OBRIGATÓRIA
+1. Mito/versão popular em uma frase.
+2. Correção: "mas o que quase sempre fica de fora...".
 3. Contexto espacial e temporal.
-4. Escala com nÃºmeros contextualizados.
-5. Mecanismo: mostrar COMO a geografia, tecnologia, decisÃ£o ou limitaÃ§Ã£o produziu o resultado.
-6. Virada/complicaÃ§Ã£o.
-7. ConsequÃªncia imediata.
-8. ImportÃ¢ncia histÃ³rica que responde ao gancho.
+4. Escala com números contextualizados.
+5. Mecanismo: mostrar COMO a geografia, tecnologia, decisão ou limitação produziu o resultado.
+6. Virada/complicação.
+7. Consequência imediata.
+8. Importância histórica que responde ao gancho.
 
-VALIDAÃ‡ÃƒO
+VALIDAÇÃO
 - Preserve a verdade editorial, o ponto de vista e o gancho escolhidos nas entradas; nao troque o caso por outro.
 - O personagem fala no presente daquele periodo, como se o acontecimento estivesse ocorrendo hoje, sem antecipar consequencias futuras que ele nao poderia conhecer.
-- Cada cena segue CAUSA â†’ AÃ‡ÃƒO â†’ MECANISMO â†’ RESULTADO â†’ IMPORTÃ‚NCIA.
-- Nunca fundir locais, datas, dimensÃµes, funÃ§Ãµes ou fontes de casos diferentes.
-- NÃ£o inventar falas, objetos, uniformes, arquitetura ou conhecimentos anacrÃ´nicos.
-- O personagem observa e explica; nÃ£o realiza aÃ§Ã£o biologicamente, historicamente ou tecnicamente impossÃ­vel.
-- Se houver incerteza histÃ³rica, declarar o nÃ­vel de certeza no campo factBasis.
+- Cada cena segue CAUSA → AÇÃO → MECANISMO → RESULTADO → IMPORTÂNCIA.
+- Nunca fundir locais, datas, dimensões, funções ou fontes de casos diferentes.
+- Não inventar falas, objetos, uniformes, arquitetura ou conhecimentos anacrônicos.
+- O personagem observa e explica; não realiza ação biologicamente, historicamente ou tecnicamente impossível.
+- Se houver incerteza histórica, declarar o nível de certeza no campo factBasis.
 
 ENGENHARIA DE PROMPT VISUAL
-- O visualPrompt deve ser em INGLÃŠS e autossuficiente.
+- O visualPrompt deve ser em ENGLISH e autossuficiente.
 - Repetir integralmente o characterLock em TODA cena; nunca escrever "same character".
-- CÃ¢mera handheld selfie, braÃ§o estendido, lente grande-angular moderada, microtremor natural, personagem falando para a lente e apontando para evidÃªncia ao fundo.
-- Continuidade estrita de rosto, idade, cabelo, olhos, roupa, acessÃ³rios e proporÃ§Ãµes.
-- Fundo ativo, mas legÃ­vel: uma Ãºnica aÃ§Ã£o histÃ³rica principal por cena.
+- Câmera handheld selfie, braço estendido, lente grande-angular moderada, microtremor natural, personagem falando para a lente e apontando para evidência ao fundo.
+- Continuidade estrita de rosto, idade, cabelo, olhos, roupa, acessórios e proporções.
+- Fundo ativo, mas legível: uma única ação histórica principal por cena.
 - Incluir negativePrompt contra face drift, age change, costume change, body morph, extra fingers, 360-degree head rotation, duplicate people, modern objects, unreadable text e arquitetura errada.
-- NÃ£o gerar placas com traduÃ§Ã£o brasileira em local estrangeiro. Texto diegÃ©tico usa a lÃ­ngua e escrita do local; traduÃ§Ã£o PT-BR Ã© adicionada depois como legenda.
+- Não gerar placas com tradução brasileira em local estrangeiro. Texto diegético usa a língua e escrita do local; tradução PT-BR é adicionada depois como legenda.
 
-Retorne SOMENTE JSON vÃ¡lido:
+Retorne SOMENTE JSON válido:
 {
-  "title": "tÃ­tulo em PT-BR",
+  "title": "título em PT-BR",
   "hook": "gancho falado em PT-BR",
   "promise": "tese central em uma frase",
-  "nicheMode": "subnicho histÃ³rico escolhido",
-  "characterLock": "descriÃ§Ã£o visual completa em inglÃªs, 70-120 palavras",
-  "voiceDirection": "direÃ§Ã£o de atuaÃ§Ã£o e narraÃ§Ã£o",
-  "globalNegativePrompt": "restriÃ§Ãµes globais em inglÃªs",
+  "nicheMode": "subnicho histórico escolhido",
+  "characterLock": "descrição visual completa em inglês, 70-120 palavras",
+  "voiceDirection": "direção de atuação e narração",
+  "globalNegativePrompt": "restrições globais em inglês",
   "historicalFrame": {"entity":"", "location":"", "period":"", "certainty":"", "centralThesis":""},
   "blocks": [
     {
       "block": 1,
       "narration": "fala em PT-BR",
-      "causalRole": "causa|aÃ§Ã£o|mecanismo|resultado|importÃ¢ncia",
-      "factBasis": "o que precisa ser comprovado e nÃ­vel de certeza",
+      "causalRole": "causa|ação|mecanismo|resultado|importância",
+      "factBasis": "o que precisa ser comprovado e nível de certeza",
       "visualEvidence": "o que o fundo comprova",
-      "visualPrompt": "prompt completo em inglÃªs, incluindo characterLock",
-      "negativePrompt": "restriÃ§Ãµes especÃ­ficas em inglÃªs",
+      "visualPrompt": "prompt completo em inglês, incluindo characterLock",
+      "negativePrompt": "restrições específicas em inglês",
       "durationSeconds": 6
     }
   ]
 }`;
 
     const responseText = await callGeminiLlm(req, res, projDir, {
-      title: "Criar HistÃ³ria Viva",
+      title: "Criar História Viva",
       prompt,
       temperature: 0.45,
     });
@@ -16771,7 +16980,7 @@ Retorne SOMENTE JSON vÃ¡lido:
     const parsed = await parseAiJsonResponse(
       responseText,
       getApiKey(projDir),
-      "HistÃ³ria Viva"
+      "História Viva"
     );
     const characterLock = String(parsed?.characterLock || "").trim();
     const globalNegative = String(parsed?.globalNegativePrompt || "").trim();
@@ -17492,8 +17701,14 @@ app.post(
       agentReachResearch: agentReachResearchRaw,
       motion_template_pack: motionTemplatePackRaw,
       historicalWitness: historicalWitnessRaw,
+      enablePov: enablePovRaw,
+      povBlockIndex: povBlockIndexRaw,
     } = req.body;
     const useNotebooklm = false; // Bypassed NotebookLM interaction entirely as requested
+    const enablePov =
+      enablePovRaw === true ||
+      enablePovRaw === 1 ||
+      String(enablePovRaw || "").toLowerCase() === "true";
     const scriptPhase = phase === "narration" ? "narration" : "full";
     const approvedNarration = String(approvedNarrationRaw || "").trim();
     const approvedNarrationTagged = String(
@@ -17545,6 +17760,25 @@ app.post(
         : format === "SHORTS"
           ? 5
           : 12;
+
+    const ideaBlockCount = Math.max(
+      0,
+      Array.isArray(idea?.blocks) ? idea.blocks.length : 0
+    );
+    const povTotalBlocks =
+      ideaBlockCount >= 3
+        ? ideaBlockCount
+        : Math.max(3, listicleBlockCount || (format === "SHORTS" ? 5 : 8));
+    const povPlacement = resolvePovPlacement({
+      enablePov,
+      totalBlocks: povTotalBlocks,
+      povBlockIndex: povBlockIndexRaw,
+    });
+    if (povPlacement.enabled) {
+      sendLog(
+        `[POV] Bloco POV sorteado: #${povPlacement.blockIndex}/${povPlacement.totalBlocks} (~20s, 2 cenas) — miolo, nunca intro/outro fixos.`
+      );
+    }
 
     const safeProjectName = project.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
 
@@ -18149,6 +18383,8 @@ app.post(
       isListicle,
       isHistoricalWitness,
       historicalWitness,
+      enablePov: povPlacement.enabled,
+      povPlacement,
       listicleRank,
       listicleTopic,
       rankOrder: rankOrder || "desc",
@@ -18275,6 +18511,8 @@ app.post(
         parsedData.content_mode = "HISTORICAL_WITNESS";
         parsedData.historical_witness = historicalWitness;
       }
+      // POV NÃO é aplicado aqui: repair/fallback de visual_prompts roda depois e apagava as tags.
+      // applyPovToStoryboard roda no final, antes do save (fase full).
       if (scriptPhase === "narration" && isBrowserResponse) {
         parsedData = applyScriptTextQuality(
           normalizeKeys(enrichBrowserNarrationParsed(parsedData, responseText)),
@@ -18588,6 +18826,10 @@ app.post(
               ideaTitle: idea.title,
               existingPrompts: parsedData.visual_prompts || [],
               historicalWitness,
+              enablePov: povPlacement.enabled,
+              povPlacement,
+              idea,
+              niche,
             });
             const vpRepairText = await callGeminiWithRetry(
               apiKey,
@@ -18822,6 +19064,26 @@ app.post(
       }
       if (notebooklmBriefDisk?.available) {
         parsedData = mergeBriefIntoStoryboard(parsedData, notebooklmBriefDisk);
+      }
+
+      // POV por último — depois de repair/fallback/normalize (senão tags somem)
+      if (povPlacement.enabled) {
+        parsedData.niche = parsedData.niche || niche;
+        parsedData.idea = parsedData.idea || idea;
+        parsedData = applyPovToStoryboard(parsedData, {
+          enabled: true,
+          blockIndex: povPlacement.blockIndex,
+          totalBlocks: povPlacement.totalBlocks,
+        });
+        const povN = (parsedData.visual_prompts || []).filter(
+          (vp) => vp?.is_pov === true
+        ).length;
+        sendLog(
+          `[POV] Aplicado no storyboard final: bloco #${povPlacement.blockIndex}, ${povN} cena(s) VIDEO A/B (~20s).`
+        );
+        console.log(
+          `[POV] Storyboard final: block=${povPlacement.blockIndex} povScenes=${povN} keyframes=${parsedData.pov?.keyframe_prompts?.length || 0}`
+        );
       }
 
       // Save full storyboard JSON
@@ -19204,6 +19466,7 @@ app.post(
       report("vpe_prepare", "Engenharia Visual PRO: carregando storyboard…", 6);
 
       let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      const prevSnapshot = JSON.parse(JSON.stringify(storyboard));
       const narrative = String(storyboard.narrative_script || "").trim();
       if (!narrative) {
         const msg = "Não há narrative_script no storyboard.";
@@ -19250,6 +19513,13 @@ app.post(
         title: "✨ Engenharia Visual PRO",
         prompt: fullPrompt,
         temperature: 0.7,
+        // Pro costuma estourar quota (429) — fallback flash
+        models: [
+          "gemini-2.5-flash",
+          "gemini-3.5-flash",
+          "gemini-2.5-pro",
+          "gemini-2.0-flash",
+        ],
       });
       if (responseText == null) return;
 
@@ -19289,6 +19559,13 @@ app.post(
         : format === "SHORTS"
           ? 5
           : 12;
+      // Preserva flags POV se o Gemini devolver cenas sem is_pov
+      const prevPovByScene = new Map();
+      for (const prev of prevSnapshot.visual_prompts || []) {
+        if (prev?.is_pov || prev?.scene_kind === "pov") {
+          prevPovByScene.set(String(prev.scene || ""), prev);
+        }
+      }
       storyboard.visual_prompts = vps.map((vp, index) => {
         const block =
           parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ??
@@ -19298,11 +19575,29 @@ app.post(
           );
         const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
         const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
+        const scene = sceneInBlock ? sceneStr : `${block}.${index + 1}`;
+        const prev = prevPovByScene.get(String(vp.scene || scene)) || null;
         return {
           ...vp,
+          ...(prev
+            ? {
+                is_pov: prev.is_pov,
+                scene_kind: prev.scene_kind || vp.scene_kind,
+                video_role: prev.video_role || vp.video_role,
+                pov_pair_id: prev.pov_pair_id || vp.pov_pair_id,
+                use_source_audio: prev.use_source_audio,
+                no_channel_narration: prev.no_channel_narration,
+                volume: prev.volume,
+                pov_image_prompts: prev.pov_image_prompts || vp.pov_image_prompts,
+                seedance_refs: {
+                  ...(prev.seedance_refs || {}),
+                  ...(vp.seedance_refs || {}),
+                },
+              }
+            : {}),
           prompt: enforceVisualLocalizedTextRule(vp.prompt || ""),
           block,
-          scene: sceneInBlock ? sceneStr : `${block}.${index + 1}`,
+          scene,
         };
       });
       storyboard.visual_prompts = ensureNarrationCoverage(
@@ -19315,6 +19610,22 @@ app.post(
       storyboard.visual_prompts = sanitizeVisualPromptDurations(
         enforceShortsVideoSceneMix(storyboard.visual_prompts, { format })
       );
+
+      // Reaplica POV se o projeto tinha bloco POV (VPE costuma apagar tags)
+      const povMeta = storyboard.pov || prevSnapshot.pov;
+      if (povMeta?.enabled || povMeta?.block) {
+        storyboard = applyPovToStoryboard(storyboard, {
+          enabled: true,
+          blockIndex: Number(povMeta.block) || 2,
+          totalBlocks:
+            Number(povMeta.total_blocks) ||
+            expectedBlocks ||
+            (format === "SHORTS" ? 5 : 12),
+        });
+        console.log(
+          `[VPE PRO] POV reaplicado no bloco #${storyboard.pov?.block} (${(storyboard.visual_prompts || []).filter((v) => v.is_pov).length} cenas).`
+        );
+      }
 
       report("vpe_save", "Salvando storyboard aprimorado…", 92);
 
