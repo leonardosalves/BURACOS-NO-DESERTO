@@ -11,6 +11,8 @@ import {
   getBlockNarrationText,
 } from "../shared/timelineNarration.js";
 import { flattenWordTranscripts } from "../shared/wordTranscripts.js";
+import { dedupeNearDuplicateVisualPromptsInBlocks } from "./scriptQuality.js";
+import { isPromptOnlyKeyframe } from "../shared/timelineKeyframeUtils.js";
 
 /**
  * Shared timeline scene timing logic — mirrors the editor preview in App.tsx
@@ -425,6 +427,36 @@ export function buildTimelineAssetMap({
           promptObj.narration_text || promptObj.narration_excerpt || ""
         ).trim();
         if (seg) entry.narration_segment = seg;
+      }
+      // POV Video A/B: propaga flags para o render usar só áudio do asset
+      const isPovPrompt =
+        promptObj?.is_pov === true ||
+        promptObj?.use_source_audio === true ||
+        promptObj?.no_channel_narration === true ||
+        String(promptObj?.scene_kind || "").toLowerCase() === "pov" ||
+        String(promptObj?.video_role || "").toUpperCase() === "A" ||
+        String(promptObj?.video_role || "").toUpperCase() === "B" ||
+        prevSlot?.is_pov === true;
+      if (isPovPrompt) {
+        entry.is_pov = true;
+        entry.scene_kind = "pov";
+        entry.use_source_audio = true;
+        entry.no_channel_narration = true;
+        // Sem VO de canal no trecho POV (só fala embutida no asset)
+        entry.narration_segment = "";
+        entry.volume = Number.isFinite(Number(entry.volume)) ? entry.volume : 1;
+        if (promptObj?.video_role || prevSlot?.video_role) {
+          entry.video_role = promptObj?.video_role || prevSlot?.video_role;
+        }
+        if (promptObj?.continuity || prevSlot?.continuity) {
+          entry.continuity = promptObj?.continuity || prevSlot?.continuity;
+        }
+        if (promptObj?.pov_pair_id || prevSlot?.pov_pair_id) {
+          entry.pov_pair_id = promptObj?.pov_pair_id || prevSlot?.pov_pair_id;
+        }
+        if (promptObj?.pov_scene != null || prevSlot?.pov_scene != null) {
+          entry.pov_scene = promptObj?.pov_scene ?? prevSlot?.pov_scene;
+        }
       }
       blockAssets.push(entry);
     }
@@ -916,9 +948,13 @@ export function realignTimelineAssetsToSpeech({
   return tightenTimelineRetentionDurations(out, blockTimings);
 }
 
+// isPromptOnlyKeyframe importado de ../shared/timelineKeyframeUtils.js
+
 function groupVisualPromptsByBlock(visualPrompts = []) {
   const byBlock = new Map();
   for (const vp of visualPrompts) {
+    // Keyframes POV: só prompt para gerar vídeo — não criam slot de upload/timeline
+    if (isPromptOnlyKeyframe(vp)) continue;
     const block = Number(vp?.block || 1);
     if (!byBlock.has(block)) byBlock.set(block, []);
     byBlock.get(block).push(vp);
@@ -960,17 +996,40 @@ export function bootstrapTimelineSlotsFromWhisper({
     const segments = getTranscriptSegmentsForBlock(wordTranscripts, blockNum);
     const scenes = promptsByBlock.get(blockNum) || [];
     const existing = Array.isArray(out[blockKey]) ? out[blockKey] : [];
-    const slotCount = Math.max(
-      segments.length,
-      scenes.length,
-      existing.length,
-      1
-    );
+    // Fonte de verdade: visual_prompts do bloco.
+    // NÃO criar slot extra porque o Whisper tem mais segmentos — isso gerava
+    // "última cena do bloco" duplicada (uma com segundos, uma sem / ~2s).
+    const lockedExisting = existing.filter(
+      (e) => e?.user_locked === true || e?.manual_asset === true
+    ).length;
+    const slotCount =
+      scenes.length > 0
+        ? Math.max(scenes.length, lockedExisting)
+        : Math.max(segments.length, existing.length, 1);
     const blockAssets = [];
 
     for (let idx = 0; idx < slotCount; idx++) {
       const prev = existing[idx] || {};
-      const seg = segments[idx];
+      // Se há mais segmentos Whisper que cenas, o ÚLTIMO slot absorve o resto
+      // (evita residual ~2s como “cena fantasma” no fim do bloco).
+      let seg = segments[idx];
+      if (
+        scenes.length > 0 &&
+        idx === scenes.length - 1 &&
+        segments.length > scenes.length
+      ) {
+        const tail = segments.slice(idx);
+        if (tail.length) {
+          const start = Number(tail[0].start_time);
+          const end = Math.max(...tail.map((s) => Number(s.end_time)));
+          seg = {
+            ...tail[0],
+            start_time: start,
+            end_time: end,
+            text: tail.map((s) => String(s.text || "").trim()).join(" "),
+          };
+        }
+      }
       const scene = scenes[idx];
       const narrationText = scene
         ? String(scene.narration_text || scene.narration_excerpt || "").trim()
@@ -1067,13 +1126,18 @@ export function applyWhisperDurationsToStoryboard(
   wordTranscripts = [],
   { flatTranscriptWords = null, blockTimings = null } = {}
 ) {
-  const prompts = Array.isArray(storyboard.visual_prompts)
+  let prompts = Array.isArray(storyboard.visual_prompts)
     ? storyboard.visual_prompts
     : [];
   if (!prompts.length || !wordTranscripts.length) return storyboard;
 
+  // Antes do Whisper: remove última cena do bloco duplicada (com/sem segundos)
+  prompts = dedupeNearDuplicateVisualPromptsInBlocks(prompts);
+
   const flat = flatTranscriptWords || flattenWordTranscripts(wordTranscripts);
-  if (!flat.length) return storyboard;
+  if (!flat.length) {
+    return { ...storyboard, visual_prompts: prompts };
+  }
 
   const timings =
     blockTimings || rebuildBlockTimingsFromTranscriptSegments(wordTranscripts);
@@ -1159,11 +1223,12 @@ export function syncProjectTimelineAfterWhisper({
 } = {}) {
   const rebuilt = rebuildBlockTimingsFromTranscriptSegments(wordTranscripts);
   const timings = rebuilt || blockTimings;
+  const cleanPrompts = dedupeNearDuplicateVisualPromptsInBlocks(visualPrompts);
 
   let slots = bootstrapTimelineSlotsFromWhisper({
     timelineAssets,
     wordTranscripts,
-    visualPrompts,
+    visualPrompts: cleanPrompts,
     blockPhrases,
     flatTranscriptWords,
   });
@@ -1173,12 +1238,13 @@ export function syncProjectTimelineAfterWhisper({
     blockTimings: timings,
     flatTranscriptWords,
     wordTranscripts,
-    visualPrompts,
+    visualPrompts: cleanPrompts,
     blockPhrases,
     preserveExplicitFixed,
   });
 
   return {
+    visualPrompts: cleanPrompts,
     timelineAssets: tightenTimelineRetentionDurations(
       timelineAssetsSynced,
       timings
