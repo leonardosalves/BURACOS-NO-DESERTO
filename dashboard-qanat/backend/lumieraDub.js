@@ -307,7 +307,7 @@ async function synthesizeDubBlock(text, {
   return finalOut;
 }
 
-async function renderDubbedVideo({ videoPath, blocks, outputPath, workDir, bgmVolume = 0.35, onLog = () => {} }) {
+async function renderDubbedVideo({ videoPath, blocks, outputPath, workDir, bgmVolume = 0.35, bgmFile = null, onLog = () => {} }) {
   const script = path.join(WORKSPACE_SCRIPTS, "lumiera_dub_render.py");
   const cfgPath = path.join(workDir, "dub_render_config.json");
   const renderBlocks = blocks.map((b) => ({
@@ -320,6 +320,7 @@ async function renderDubbedVideo({ videoPath, blocks, outputPath, workDir, bgmVo
     output: outputPath,
     work_dir: workDir,
     bgm_volume: bgmVolume,
+    bgm_file: bgmFile,
   }, null, 2), "utf8");
 
   onLog("[Dub] Muxando vídeo + voz dublada + BGM...");
@@ -456,12 +457,22 @@ export async function runLumieraDub(projDir, options = {}, deps = {}) {
   fs.mkdirSync(outputDir, { recursive: true });
   const outputPath = path.join(outputDir, outName);
 
+  const bgmCandidates = [
+    path.join(projDir, "trilha_documentario.mp3"),
+    path.join(projDir, "trilha_documentario.wav"),
+  ];
+  const bgmFile = bgmCandidates.find((f) => fs.existsSync(f)) || null;
+  if (bgmFile) {
+    onLog(`[Dub] Trilhas limpas detectadas: ${path.basename(bgmFile)} — a voz original será removida.`);
+  }
+
   const renderResult = await renderDubbedVideo({
     videoPath: source.path,
     blocks: dubbedBlocks,
     outputPath,
     workDir,
     bgmVolume,
+    bgmFile,
     onLog,
   });
 

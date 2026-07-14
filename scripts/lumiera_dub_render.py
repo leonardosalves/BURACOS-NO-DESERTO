@@ -32,6 +32,7 @@ def main():
     blocks = cfg.get("blocks") or []
     output = cfg["output"]
     bgm_volume = float(cfg.get("bgm_volume", 0.35))
+    bgm_file = cfg.get("bgm_file")
 
     work = cfg.get("work_dir") or os.path.dirname(output)
     os.makedirs(work, exist_ok=True)
@@ -40,10 +41,16 @@ def main():
     orig_wav = os.path.join(work, "_dub_orig_audio.wav")
     final_wav = os.path.join(work, "_dub_final_audio.wav")
 
-    run([
-        "ffmpeg", "-y", "-i", video, "-vn",
-        "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", orig_wav,
-    ])
+    if bgm_file and os.path.exists(bgm_file):
+        run([
+            "ffmpeg", "-y", "-i", bgm_file,
+            "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", orig_wav,
+        ])
+    else:
+        run([
+            "ffmpeg", "-y", "-i", video, "-vn",
+            "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", orig_wav,
+        ])
 
     if not blocks:
         raise SystemExit("no dubbed blocks")
