@@ -223,6 +223,11 @@ export function analyzeSceneGaps(projDir, { config = {}, storyboard = {} } = {})
         narration_text: String(vp.narration_text || "").slice(0, 120),
         stock_query: resolveStockSearchQuery(vp, {
           strategyTitle: storyboard?.strategy?.title_main || "",
+          format:
+            config?.video_format ||
+            storyboard?.format ||
+            storyboard?.video_format ||
+            "LONGO",
         }),
         type: vp.type || "image",
         isVideo: isVideoScene(vp),
@@ -747,7 +752,7 @@ export function runPythonScript(pythonPath, projDir, script, args = []) {
   return new Promise((resolve, reject) => {
     const child = spawn(pythonPath, [script, ...args], {
       cwd: projDir,
-      shell: true,
+      shell: false,
       env: buildPythonSpawnEnv(),
     });
     let stdout = "";
