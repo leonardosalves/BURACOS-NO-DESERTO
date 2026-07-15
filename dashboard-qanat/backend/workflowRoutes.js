@@ -1446,7 +1446,6 @@ export function registerWorkflowRoutes(app, deps) {
       if (browserText) {
         llmFn = async () => browserText;
       } else if (useAi && callGeminiLlm) {
-        let browserPending = false;
         llmFn = async (prompt) => {
           const text = await callGeminiLlm(req, res, projDir, {
             title: "OpenMontage · Análise de referência",
@@ -1454,7 +1453,6 @@ export function registerWorkflowRoutes(app, deps) {
             temperature: 0.45,
           });
           if (text == null) {
-            browserPending = true;
             return "";
           }
           return text;
@@ -1468,10 +1466,6 @@ export function registerWorkflowRoutes(app, deps) {
         topic,
         llmFn,
       });
-
-      if (llmFn && !res.headersSent && result.ok) {
-        /* browser pending handled inside callGeminiLlm */
-      }
 
       if (!result.ok) {
         return res
