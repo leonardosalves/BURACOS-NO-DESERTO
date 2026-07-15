@@ -85,22 +85,22 @@ import {
 export { VISUAL_PROMPT_SPECIFICITY_RULES } from "./scenePromptSpecificity.js";
 
 export const ROBOTIC_PHRASE_PATTERNS = [
-  /neste vídeo vamos/gi,
-  /sem mais delongas/gi,
-  /fique até o final/gi,
-  /você não vai acreditar/gi,
-  /prepare-se para/gi,
-  /mergulhe (?:neste|nesta|no|na)/gi,
-  /desvende os segredos/gi,
-  /jornada fascinante/gi,
-  /universo (?:intrigante|fascinante)/gi,
-  /é importante ressaltar/gi,
-  /vale a pena mencionar/gi,
-  /em conclusão/gi,
-  /sem dúvida alguma/gi,
-  /cada vez mais/gi,
-  /no mundo de hoje/gi,
-  /a verdade é que/gi,
+  /neste vídeo vamos/i,
+  /sem mais delongas/i,
+  /fique até o final/i,
+  /você não vai acreditar/i,
+  /prepare-se para/i,
+  /mergulhe (?:neste|nesta|no|na)/i,
+  /desvende os segredos/i,
+  /jornada fascinante/i,
+  /universo (?:intrigante|fascinante)/i,
+  /é importante ressaltar/i,
+  /vale a pena mencionar/i,
+  /em conclusão/i,
+  /sem dúvida alguma/i,
+  /cada vez mais/i,
+  /no mundo de hoje/i,
+  /a verdade é que/i,
 ];
 
 /** Framework viral short-form (Lucas Walter / n8n — adaptado Lumiera). */
@@ -1176,7 +1176,7 @@ TAREFAS OBRIGATÓRIAS:
 8. NÃO altere visual_prompts, bgm_mappings nem impact_texts.
 
 ${UGC_SCRIPTWRITER_REINFORCEMENT}
-8. Em "narrative_script_tagged", use marcadores cinematográficos com moderação: [pausa], [ênfase], [rápido], [lento] — ver regras de narração cinematográfica.
+9. Em "narrative_script_tagged", use marcadores cinematográficos com moderação: [pausa], [ênfase], [rápido], [lento] — ver regras de narração cinematográfica.
 
 Responda APENAS JSON com as chaves:
 {
@@ -1503,7 +1503,7 @@ export function normalizeVisualPromptMediaTypes(visualPrompts = []) {
     const promptLooksLikeVideo =
       MOTION_PROMPT_RE.test(prompt) ||
       /\b(video|vídeo|footage|film|clip)\b/i.test(notes) ||
-      /\b(8|9|10)\s*(s|sec|seconds|segundos)?\b/i.test(prompt) ||
+      /\b(8|9|10)\s*(s\b|sec\b|secs\b|seconds\b|segundos\b)/i.test(prompt) ||
       /\b(first[\s-]?person|pov|gopro|point of view)\b/i.test(prompt);
 
     const assetIsVideo = VIDEO_EXT_RE.test(
@@ -3167,10 +3167,7 @@ export function buildDeterministicVisualPromptsFromNarration(
       {
         ...sceneDraft,
         prompt,
-        stock_query: resolveSceneStockQuery(
-          { ...sceneDraft, prompt },
-          { strategyTitle: ideaTitle }
-        ),
+        stock_query: resolveSceneStockQuery({ ...sceneDraft, prompt }),
       },
     ];
     return enrichVisualPromptsSpecificity(
@@ -3199,10 +3196,7 @@ export function buildDeterministicVisualPromptsFromNarration(
     vps.push({
       ...sceneDraft,
       prompt,
-      stock_query: resolveSceneStockQuery(
-        { ...sceneDraft, prompt },
-        { strategyTitle: ideaTitle }
-      ),
+      stock_query: resolveSceneStockQuery({ ...sceneDraft, prompt }),
     });
     sceneInBlock += 1;
     if (sceneInBlock > Math.max(2, Math.ceil(blockCount / 4))) {
