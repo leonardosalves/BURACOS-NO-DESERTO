@@ -1,5 +1,7 @@
 import { APPROVED_ORCHESTRATION_TEMPLATES } from "./motionSceneCatalog.js";
 
+export const STUDIO_RUNTIME_MOTION_ID = "studio-runtime";
+
 export function hasRunnableStudioSource(sourceCode = null) {
   const code = String(sourceCode?.short || sourceCode?.long || "").trim();
   if (!code) return false;
@@ -13,9 +15,17 @@ export function mapStudioTemplateToMotionId(template = {}) {
   const category = String(template.category || "")
     .trim()
     .toLowerCase();
-  if (category === "transition" || category === "background") {
-    return "counter";
+
+  if (
+    category === "cinematic" ||
+    category === "transition" ||
+    category === "intro-outro" ||
+    category === "background" ||
+    category === "frame"
+  ) {
+    return STUDIO_RUNTIME_MOTION_ID;
   }
+
   if (category === "logo-branding") return "lower-third";
 
   const haystack = [
@@ -57,7 +67,8 @@ export function isStudioTemplateOrchestrationReady(template = {}) {
   const motionId = mapStudioTemplateToMotionId(template);
   return Boolean(
     motionId &&
-    APPROVED_ORCHESTRATION_TEMPLATES.has(motionId) &&
+    (APPROVED_ORCHESTRATION_TEMPLATES.has(motionId) ||
+      motionId === STUDIO_RUNTIME_MOTION_ID) &&
     hasRunnableStudioSource(template.sourceCode)
   );
 }
