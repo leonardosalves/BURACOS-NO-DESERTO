@@ -424,6 +424,63 @@ function buildExaQueries(baseNiche, discoveryMode = "virgin") {
   return [...new Set(queries)].slice(0, 5);
 }
 
+const QUOTA_ERROR_HINTS = ["quota", "limit", "exceeded", "rate limit", "search queries"];
+
+function isQuotaError(err) {
+  const msg = String(err?.message || "").toLowerCase();
+  return QUOTA_ERROR_HINTS.some((hint) => msg.includes(hint));
+}
+
+/** Estimativa offline plausível quando a quota do YouTube estoura. */
+function buildSimulatedSaturation(q) {
+  const isSpecific = q.split(/\s+/).length > 2;
+  const rand = (min, span) => Math.floor(min + Math.random() * span);
+
+  const channelCount = isSpecific ? rand(1, 4) : rand(15, 60);
+  const videoCount = isSpecific ? rand(8, 30) : rand(120, 600);
+  const dedicatedChannels = isSpecific ? Math.floor(Math.random() * 1.2) : rand(1, 2);
+
+  const angleSaturation = saturationFromCounts({ channelCount, videoCount, dedicatedChannels });
+  const macroSaturation = isSpecific ? rand(55, 10) : rand(65, 10);
+  const avgTopViews = isSpecific ? rand(3000, 12000) : rand(35000, 180000);
+
+  return {
+    query: q,
+    channelCount,
+    videoCount,
+    dedicatedChannels,
+    avgTopViews,
+    maxTopViews: avgTopViews * rand(3, 4),
+    sampleChannels: [],
+    sampleVideos: [],
+    saturationPct: angleSaturation,
+    macroSaturationPct: macroSaturation,
+    gapScore: Math.max(0, macroSaturation - angleSaturation),
+    simulated: true,
+  };
+}
+
+async function fetchVideoStatsSample(accessToken, videoIds = []) {
+  if (!videoIds.length) return { avgTopViews: 0, maxTopViews: 0, sampleVideos: [] };
+  const statsData = await youtubeDataGet(accessToken, "videos", {
+    part: "statistics,snippet",
+    id: videoIds.slice(0, 10).join(","),
+  });
+  const items = statsData?.items || [];
+  const views = items.map((v) => toFiniteNumber(v?.statistics?.viewCount));
+  return {
+    avgTopViews: views.length
+      ? Math.round(views.reduce((a, b) => a + b, 0) / views.length)
+      : 0,
+    maxTopViews: views.length ? Math.max(...views) : 0,
+    sampleVideos: items.map((item) => ({
+      title: item?.snippet?.title || "",
+      views: toFiniteNumber(item?.statistics?.viewCount),
+      videoId: item?.id,
+    })),
+  };
+}
+
 async function measureYoutubeSaturation(
   accessToken,
   query,
@@ -488,32 +545,7 @@ async function measureYoutubeSaturation(
       .map((item) => item?.id?.videoId)
       .filter(Boolean);
 
-    let avgTopViews = 0;
-    let maxTopViews = 0;
-    const sampleVideos = [];
-
-    if (videoIds.length) {
-      const statsData = await youtubeDataGet(accessToken, "videos", {
-        part: "statistics,snippet",
-        id: videoIds.slice(0, 10).join(","),
-      });
-      const views = (statsData?.items || []).map((v) =>
-        toFiniteNumber(v?.statistics?.viewCount)
-      );
-      if (views.length) {
-        avgTopViews = Math.round(
-          views.reduce((a, b) => a + b, 0) / views.length
-        );
-        maxTopViews = Math.max(...views);
-      }
-      for (const item of statsData?.items || []) {
-        sampleVideos.push({
-          title: item?.snippet?.title || "",
-          views: toFiniteNumber(item?.statistics?.viewCount),
-          videoId: item?.id,
-        });
-      }
-    }
+    const { avgTopViews, maxTopViews, sampleVideos } = await fetchVideoStatsSample(accessToken, videoIds);
 
     const angleSaturation = saturationFromCounts({
       channelCount: channelTotal,
@@ -549,73 +581,11 @@ async function measureYoutubeSaturation(
       gapScore,
     };
   } catch (err) {
-    const isQuota =
-      String(err.message || "")
-        .toLowerCase()
-        .includes("quota") ||
-      String(err.message || "")
-        .toLowerCase()
-        .includes("limit") ||
-      String(err.message || "")
-        .toLowerCase()
-        .includes("exceeded") ||
-      String(err.message || "")
-        .toLowerCase()
-        .includes("rate limit") ||
-      String(err.message || "")
-        .toLowerCase()
-        .includes("search queries");
-
-    if (isQuota) {
+    if (isQuotaError(err)) {
       console.warn(
-        `[pioneer] Limite ou Quota do YouTubeSearch excedida para a query "${q}". Ativando estimativa offline inteligente.`
+        `[pioneer] Quota/limite do YouTube excedido para "${q}". Ativando estimativa offline.`
       );
-
-      const wordCount = q.split(/\s+/).length;
-      const isSpecific = wordCount > 2;
-
-      // Gera numeros plausiveis consistentes para que o app continue 100% funcional!
-      const channelCount = isSpecific
-        ? Math.floor(1 + Math.random() * 4)
-        : Math.floor(15 + Math.random() * 60);
-      const videoCount = isSpecific
-        ? Math.floor(8 + Math.random() * 30)
-        : Math.floor(120 + Math.random() * 600);
-      const dedicatedChannels = isSpecific
-        ? Math.floor(Math.random() * 1.2)
-        : Math.floor(1 + Math.random() * 2);
-
-      const angleSaturation = saturationFromCounts({
-        channelCount,
-        videoCount,
-        dedicatedChannels,
-      });
-
-      // Se a cota estourou, o macroNicho tem saturação padrão ~55% a ~75%
-      const macroSaturation = isSpecific
-        ? Math.floor(55 + Math.random() * 10)
-        : Math.floor(65 + Math.random() * 10);
-      const gapScore = Math.max(0, macroSaturation - angleSaturation);
-
-      const avgTopViews = isSpecific
-        ? Math.floor(3000 + Math.random() * 12000)
-        : Math.floor(35000 + Math.random() * 180000);
-      const maxTopViews = avgTopViews * Math.floor(3 + Math.random() * 4);
-
-      return {
-        query: q,
-        channelCount,
-        videoCount,
-        dedicatedChannels,
-        avgTopViews,
-        maxTopViews,
-        sampleChannels: [],
-        sampleVideos: [],
-        saturationPct: angleSaturation,
-        macroSaturationPct: macroSaturation,
-        gapScore,
-        simulated: true,
-      };
+      return buildSimulatedSaturation(q);
     }
     throw err;
   }
