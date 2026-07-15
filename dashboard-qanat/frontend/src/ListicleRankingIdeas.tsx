@@ -11,6 +11,15 @@ export type ListicleRankingIdea = {
   sample_items?: string[];
   emotion?: string;
   best_format?: string;
+  reality_status?: string;
+  evidence_anchor?: string;
+  saturation_level?: string;
+  saturation_evidence?: string;
+  undercovered_reason?: string;
+  format_fit?: string;
+  recommended_duration?: string;
+  premium_upgrade?: string;
+  validation_needed?: string;
 };
 
 export type ListicleIdeasResponse = {
@@ -95,6 +104,20 @@ export function ListicleRankingIdeas({ data, selectedIndex, onSelect }: Props) {
               )}
               {idea.why_interesting && (
                 <p className="text-[9px] text-zinc-500 mt-1.5 leading-relaxed">{idea.why_interesting}</p>
+              )}
+              <div className="mt-2 flex flex-wrap gap-1 text-[8px] uppercase">
+                <span className="rounded bg-zinc-900 px-1.5 py-0.5 text-zinc-400">Realidade: {idea.reality_status || 'validar'}</span>
+                <span className="rounded bg-zinc-900 px-1.5 py-0.5 text-zinc-400">Saturação: {idea.saturation_level || 'unknown'}</span>
+                <span className="rounded bg-zinc-900 px-1.5 py-0.5 text-zinc-400">{idea.format_fit || idea.best_format} · {idea.recommended_duration}</span>
+              </div>
+              {idea.undercovered_reason && (
+                <p className="mt-1.5 text-[8px] leading-relaxed text-cyan-300/70">Lacuna: {idea.undercovered_reason}</p>
+              )}
+              {idea.premium_upgrade && (
+                <p className="mt-1 text-[8px] leading-relaxed text-violet-300/70">Premium: {idea.premium_upgrade}</p>
+              )}
+              {idea.validation_needed && (
+                <p className="mt-1 text-[8px] leading-relaxed text-amber-400/70">Validar: {idea.validation_needed}</p>
               )}
               {idea.sample_items && idea.sample_items.length > 0 && (
                 <p className="text-[8px] text-zinc-600 mt-1 truncate" title={idea.sample_items.join(', ')}>

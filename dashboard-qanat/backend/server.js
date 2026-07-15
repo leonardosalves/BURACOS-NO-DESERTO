@@ -301,6 +301,9 @@ import {
   SCRIPT_CREATIVE_REINFORCEMENT,
   buildFormatScriptRules,
   buildIdeasQualityAddendum,
+  buildIdeaOpportunityAddendum,
+  buildCustomIdeaEvaluationPrompt,
+  normalizeIdeaOpportunity,
   buildViralIdeasAddendum,
   buildListicleIdeasAddendum,
   buildListicleRankingIdeasPrompt,
@@ -16926,6 +16929,25 @@ app.post(
       character = "reporter de campo",
     } = req.body || {};
     const isShort = String(format).toUpperCase() !== "LONGO";
+    let opportunityResearch = "";
+    if (!extractBrowserResponse(req.body) && !shouldOfferGeminiBrowser(projDir)) {
+      try {
+        const research = await fetchWebResearchForTopic({
+          topic: String(niche).trim(),
+          niche: String(niche).trim(),
+          format,
+          apiKey: getApiKey(projDir),
+          getApiKeys: () => getApiKeys(projDir),
+          workspaceDir: WORKSPACE_DIR,
+        });
+        opportunityResearch = formatWebResearchPromptBlock(
+          research,
+          "BASE FACTUAL E SINAIS DE OPORTUNIDADE"
+        );
+      } catch {
+        opportunityResearch = "";
+      }
+    }
     const prompt = `Voce e um pesquisador historico e estrategista de videos do LUMIERA HISTORIA VIVA.
 
 Gere exatamente 10 ideias DIFERENTES para ${isShort ? "Shorts 9:16" : "videos longos 16:9"} no nicho "${String(niche).trim()}".
@@ -16938,6 +16960,10 @@ OBJETIVO EDITORIAL
 - O personagem testemunha, investiga ou explica; nunca executa acoes impossiveis para sua identidade.
 - Cada ideia deve pertencer a uma unica entidade, local e periodo. Nunca fundir fatos de casos distintos.
 - Priorizar recortes visuais, concretos e surpreendentes, sem sensacionalismo ou misterios inventados.
+
+${opportunityResearch}
+
+${buildIdeaOpportunityAddendum(format)}
 
 Retorne SOMENTE JSON valido:
 {
@@ -16952,7 +16978,16 @@ Retorne SOMENTE JSON valido:
       "characterView": "o que este personagem presencia e por que pode contar isso",
       "hook": "gancho falado como se o acontecimento fosse o presente",
       "certainty": "alto|medio|disputado",
-      "whyItMatters": "consequencia que responde ao gancho"
+      "whyItMatters": "consequencia que responde ao gancho",
+      "reality_status": "documented | current | plausible | disputed",
+      "evidence_anchor": "fonte, caso, objeto ou evento verificavel",
+      "saturation_level": "low | medium | high | unknown",
+      "saturation_evidence": "sinal observado ou nao confirmado",
+      "undercovered_reason": "por que o recorte e pouco tratado",
+      "format_fit": "SHORTS | LONGO",
+      "recommended_duration": "duracao adequada",
+      "premium_upgrade": "como elevar o video",
+      "validation_needed": "o que validar antes do roteiro"
     }
   ]
 }`;
@@ -16969,6 +17004,7 @@ Retorne SOMENTE JSON valido:
       "Ideias de Historia Viva"
     );
     const ideas = (Array.isArray(parsed?.ideas) ? parsed.ideas : [])
+      .map((idea) => normalizeIdeaOpportunity(idea, { format }))
       .filter((idea) => idea?.title && idea?.event)
       .slice(0, 10);
     if (ideas.length < 10) {
@@ -17353,6 +17389,8 @@ Diversidade obrigatoria de ideias:
 
 ${buildIdeasQualityAddendum()}
 
+${buildIdeaOpportunityAddendum(format)}
+
 ${buildViralIdeasAddendum(format)}
 
 ${isListicle ? buildListicleIdeasAddendum({ rankCount: listicleRank, listTopic: listicleTopic, rankOrder: rankOrder || "desc" }) : ""}
@@ -17379,7 +17417,10 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 
     "retention_topics": "Tópicos com maior potencial de retenção",
 
-    "strong_angle": "Qual o ângulo mais forte para o vídeo"
+    "strong_angle": "Qual o ângulo mais forte para o vídeo",
+    "market_gap": "lacuna pouco coberta encontrada no nicho",
+    "saturation_warning": "clichês e temas saturados a evitar",
+    "format_strategy": "o que cabe em Shorts e o que exige Longo"
 
   },
 
@@ -17401,7 +17442,16 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 
       "hook_angle": "question | shock | problem_solution | before_after | breaking | challenge | secret | personal",
 
-      "hooks": "Gancho principal ≤10 palavras, voz ativa, PT-BR"${format === "SHORTS" ? ',\n\n      "hook_candidates": ["gancho 1 ≤10 palavras", "gancho 2", "gancho 3"],\n\n      "wow_facts_preview": ["fato central 1 com número", "fato central 2"]' : ""}${isListicle ? ',\n\n      "listicle_angle": "ângulo do ranking (surpresa, impacto diário, mito vs realidade, etc.)"' : ""}
+      "hooks": "Gancho principal ≤10 palavras, voz ativa, PT-BR",
+      "reality_status": "documented | current | plausible | disputed",
+      "evidence_anchor": "fato/caso verificável",
+      "saturation_level": "low | medium | high | unknown",
+      "saturation_evidence": "sinal observado ou não confirmado",
+      "undercovered_reason": "lacuna e diferencial do recorte",
+      "format_fit": "LONGO | SHORTS",
+      "recommended_duration": "duração adequada",
+      "premium_upgrade": "melhoria de tese, narrativa, evidência e visual",
+      "validation_needed": "checagens antes do roteiro"${format === "SHORTS" ? ',\n\n      "hook_candidates": ["gancho 1 ≤10 palavras", "gancho 2", "gancho 3"],\n\n      "wow_facts_preview": ["fato central 1 com número", "fato central 2"]' : ""}${isListicle ? ',\n\n      "listicle_angle": "ângulo do ranking (surpresa, impacto diário, mito vs realidade, etc.)"' : ""}
 
     }
 
@@ -17443,6 +17493,12 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
         "Ideias e diagnostico"
       );
 
+      if (Array.isArray(parsedData?.ideas)) {
+        parsedData.ideas = parsedData.ideas.map((idea) =>
+          normalizeIdeaOpportunity(idea, { format })
+        );
+      }
+
       if (Array.isArray(parsedData?.ideas) && parsedData.ideas.length) {
         appendIdeasHistory(WORKSPACE_DIR, nicheClean, parsedData.ideas);
       }
@@ -17469,6 +17525,65 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
   })
 );
 
+// API: IDEIA PERSONALIZADA — validar oportunidade e propor melhoria premium
+
+app.post(
+  "/api/ai/creator/evaluate-custom-idea",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const {
+      niche = "",
+      format = "LONGO",
+      title = "",
+      hook = "",
+      outline = "",
+    } = req.body || {};
+    if (!String(title).trim()) {
+      return res.status(400).json({ error: "Informe sua ideia ou título." });
+    }
+
+    let researchContext = "";
+    if (!extractBrowserResponse(req.body) && !shouldOfferGeminiBrowser(projDir)) {
+      try {
+        const research = await fetchWebResearchForTopic({
+          topic: String(title).trim(),
+          niche: String(niche).trim() || String(title).trim(),
+          format,
+          apiKey: getApiKey(projDir),
+          getApiKeys: () => getApiKeys(projDir),
+          workspaceDir: WORKSPACE_DIR,
+        });
+        researchContext = formatWebResearchPromptBlock(
+          research,
+          "PESQUISA PARA VALIDAR A IDEIA DO USUARIO"
+        );
+      } catch {
+        researchContext = "";
+      }
+    }
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Analisar e melhorar ideia personalizada",
+      prompt: buildCustomIdeaEvaluationPrompt({
+        niche,
+        format,
+        title,
+        hook,
+        outline,
+        researchContext,
+      }),
+      temperature: 0.4,
+    });
+    if (responseText == null) return;
+    const parsed = await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Analise de ideia personalizada"
+    );
+    res.json(normalizeIdeaOpportunity(parsed, { format }));
+  })
+);
+
 // API: LISTICLE — Sugerir rankings interessantes para um nicho
 
 app.post(
@@ -17488,6 +17603,7 @@ app.post(
     const nicheClean = String(niche).trim();
 
     let notebooklmContext = "";
+    let webOpportunityContext = "";
     const skipNotebooklm = browserText || shouldOfferGeminiBrowser(projDir);
     if (useNotebooklm !== false && !skipNotebooklm) {
       try {
@@ -17506,10 +17622,31 @@ app.post(
       }
     }
 
+    if (!skipNotebooklm) {
+      try {
+        const research = await fetchWebResearchForTopic({
+          topic: nicheClean,
+          niche: nicheClean,
+          format,
+          apiKey: getApiKey(projDir),
+          getApiKeys: () => getApiKeys(projDir),
+          workspaceDir: WORKSPACE_DIR,
+        });
+        webOpportunityContext = formatWebResearchPromptBlock(
+          research,
+          "CASOS REAIS E SINAIS DE OPORTUNIDADE"
+        );
+      } catch {
+        webOpportunityContext = "";
+      }
+    }
+
     const useCompactPrompt = skipNotebooklm || !!browserText;
     const prompt = `${buildListicleRankingIdeasPrompt({ niche: nicheClean, format, compact: useCompactPrompt })}
 
 ${notebooklmContext}
+
+${webOpportunityContext}
 
 [ID: ${Date.now()}]`;
 

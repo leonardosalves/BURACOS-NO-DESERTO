@@ -118,6 +118,104 @@ Evite ideias cujo título promete algo que 40 segundos (Shorts) ou 12 minutos (L
 `;
 }
 
+export function buildIdeaOpportunityAddendum(format = "LONGO") {
+  const isShorts = String(format).toUpperCase() === "SHORTS";
+  return `
+CONTRATO DE OPORTUNIDADE EDITORIAL (OBRIGATÓRIO):
+- Não confunda assunto interessante com oportunidade pouco explorada. Evite clichês e temas já cobertos por muitos canais sem um recorte novo comprovável.
+- Toda ideia precisa nascer de algo documentado que aconteceu/acontece ou, quando o nicho aceitar previsão, de um cenário plausível apoiado em mecanismo e evidência. Nunca apresente hipótese como fato.
+- "reality_status": documented | current | plausible | disputed. Use "plausible" apenas para futuro/cenário possível e explique a condição; use "disputed" quando fontes divergem.
+- "evidence_anchor": fato, caso, evento, dado, estudo, pessoa, local ou mecanismo específico que permite pesquisar e verificar a ideia.
+- "saturation_level": low | medium | high | unknown. Só use "low" quando a pesquisa/concorrência trouxer sinal concreto de pouca cobertura. Sem evidência, use "unknown".
+- "saturation_evidence": sinal observado que justifica o nível. Não invente volume de busca, quantidade de vídeos ou métricas.
+- "undercovered_reason": por que este recorte permanece pouco tratado e como ele difere dos vídeos comuns do nicho.
+- "premium_upgrade": melhoria prática de tese, recorte, narrativa, evidência e proposta visual para o vídeo parecer premium.
+- "validation_needed": o que ainda precisa ser confirmado antes do roteiro. Pode ser "nenhuma validação crítica" somente quando o contexto de pesquisa sustentar a ideia.
+- Descarte ideias com saturation_level="high", salvo quando houver um recorte claramente novo em undercovered_reason.
+- Se uma afirmação não estiver apoiada no contexto de pesquisa, formule-a como pergunta de investigação, não como verdade.
+
+ADEQUAÇÃO AO FORMATO:
+${isShorts
+    ? `- O vídeo deve caber em no máximo 60 segundos. Escolha UMA revelação central, 2–3 evidências curtas e conclusão direta.
+- "format_fit" deve ser SHORTS. Se o tema exigir antecedentes, múltiplas causas, controvérsia ou mais de 3 evidências, descarte-o desta lista e proponha um recorte menor.
+- "recommended_duration": entre 30 e 60 segundos.`
+    : `- O vídeo deve justificar explicação aprofundada: causa, contexto, mecanismo, consequência e pelo menos 3 evidências ou exemplos.
+- "format_fit" deve ser LONGO. Ideias explicáveis por inteiro em menos de 60 segundos devem ser aprofundadas com um recorte legítimo ou descartadas desta lista.
+- "recommended_duration": entre 6 e 12 minutos.`}
+`;
+}
+
+export function normalizeIdeaOpportunity(item = {}, { format = "LONGO" } = {}) {
+  const pick = (...values) => String(values.find((value) => value != null && value !== "") ?? "").trim();
+  const allowedReality = new Set(["documented", "current", "plausible", "disputed"]);
+  const allowedSaturation = new Set(["low", "medium", "high", "unknown"]);
+  const realityRaw = pick(item.reality_status, item.realityStatus).toLowerCase();
+  const saturationRaw = pick(item.saturation_level, item.saturationLevel).toLowerCase();
+  const fallbackFormat = String(format).toUpperCase() === "SHORTS" ? "SHORTS" : "LONGO";
+  const formatRaw = pick(item.format_fit, item.formatFit, item.best_format, item.bestFormat).toUpperCase();
+
+  return {
+    ...item,
+    reality_status: allowedReality.has(realityRaw) ? realityRaw : "disputed",
+    evidence_anchor: pick(item.evidence_anchor, item.evidenceAnchor),
+    saturation_level: allowedSaturation.has(saturationRaw) ? saturationRaw : "unknown",
+    saturation_evidence: pick(item.saturation_evidence, item.saturationEvidence),
+    undercovered_reason: pick(item.undercovered_reason, item.undercoveredReason),
+    format_fit: ["SHORTS", "LONGO"].includes(formatRaw) ? formatRaw : fallbackFormat,
+    recommended_duration: pick(item.recommended_duration, item.recommendedDuration),
+    premium_upgrade: pick(item.premium_upgrade, item.premiumUpgrade),
+    validation_needed: pick(item.validation_needed, item.validationNeeded),
+  };
+}
+
+export function buildCustomIdeaEvaluationPrompt({
+  niche = "",
+  format = "LONGO",
+  title = "",
+  hook = "",
+  outline = "",
+  researchContext = "",
+} = {}) {
+  return `Você é o editor-chefe de desenvolvimento do Lumiera. Avalie a ideia do usuário sem apagar sua intenção.
+
+NICHO: ${String(niche).trim() || "não informado"}
+FORMATO ESCOLHIDO: ${format}
+IDEIA/TÍTULO: ${String(title).trim()}
+GANCHO ATUAL: ${String(hook).trim() || "não informado"}
+PROMESSA/ESTRUTURA ATUAL: ${String(outline).trim() || "não informada"}
+
+${researchContext}
+
+${buildIdeaOpportunityAddendum(format)}
+
+TAREFA:
+1. Preserve o núcleo da ideia e diga se ela é real, plausível, disputada ou não verificável com o contexto disponível.
+2. Avalie saturação com honestidade. Sem evidência competitiva, marque unknown.
+3. Verifique se cabe no formato escolhido e recomende SHORTS ou LONGO conforme a profundidade real.
+4. Crie uma versão premium mais específica, verificável e visual, sem clickbait falso.
+5. Dê ações concretas para melhorar a ideia antes de gerar o roteiro.
+
+Responda SOMENTE JSON válido:
+{
+  "verdict": "strong | promising | needs_research | weak",
+  "summary": "diagnóstico editorial direto",
+  "reality_status": "documented | current | plausible | disputed",
+  "evidence_anchor": "âncora factual específica ou lacuna encontrada",
+  "saturation_level": "low | medium | high | unknown",
+  "saturation_evidence": "evidência honesta ou 'não confirmado'",
+  "undercovered_reason": "lacuna e diferencial do recorte",
+  "format_fit": "SHORTS | LONGO",
+  "recommended_duration": "duração recomendada",
+  "premium_upgrade": "como elevar tese, narrativa, evidência e visual",
+  "validation_needed": "checagens ainda necessárias",
+  "improved_title": "título premium no idioma da ideia",
+  "improved_hook": "gancho fiel e específico",
+  "improved_promise": "promessa clara e entregável",
+  "suggested_blocks": ["bloco ou beat 1", "bloco ou beat 2"],
+  "actions": ["ação concreta 1", "ação concreta 2", "ação concreta 3"]
+}`;
+}
+
 export function buildViralIdeasAddendum(format = "LONGO") {
   const hookList = VIRAL_HOOK_TYPES.map(
     (h) => `  - ${h.id}: ${h.label} (ex.: "${h.example}")`
@@ -275,6 +373,8 @@ ${formatRules}
 - Proibido: rankings vagos ("Top 10 coisas legais"), clichês saturados, itens fictícios
 - Priorize ângulos que o público do nicho BUSCA mas raramente encontra em listas bem feitas
 
+${buildIdeaOpportunityAddendum(format)}
+
 Responda APENAS JSON válido (sem markdown, sem texto extra):
 {
   "niche_analysis": {
@@ -294,7 +394,16 @@ Responda APENAS JSON válido (sem markdown, sem texto extra):
       "controversy_hook": "gancho do #1 surpreendente",
       "sample_items": ["item real 1", "item real 2", "item real 3"],
       "emotion": "emoção dominante",
-      "best_format": "LONGO ou SHORTS"
+      "best_format": "LONGO ou SHORTS",
+      "reality_status": "documented | current | plausible | disputed",
+      "evidence_anchor": "fato/caso verificável que sustenta a lista",
+      "saturation_level": "low | medium | high | unknown",
+      "saturation_evidence": "sinal de cobertura observado ou não confirmado",
+      "undercovered_reason": "por que este recorte é pouco tratado",
+      "format_fit": "LONGO ou SHORTS",
+      "recommended_duration": "duração recomendada",
+      "premium_upgrade": "como tornar o ranking premium",
+      "validation_needed": "o que validar antes do roteiro"
     }
   ],
   "best_index": 0,
@@ -311,7 +420,7 @@ function normalizeRankingIdeaItem(item = {}) {
       item.quantidade ??
       0
   );
-  return {
+  return normalizeIdeaOpportunity({
     title: pickStr(item.title, item.titulo),
     suggested_rank_count: count > 0 ? count : 15,
     list_topic: pickStr(item.list_topic, item.listTopic, item.tema, item.topic),
@@ -328,7 +437,7 @@ function normalizeRankingIdeaItem(item = {}) {
           : [],
     emotion: pickStr(item.emotion, item.emocao),
     best_format: pickStr(item.best_format, item.bestFormat, item.formato) || "LONGO",
-  };
+  }, { format: pickStr(item.best_format, item.bestFormat, item.formato) || "LONGO" });
 }
 
 export function normalizeListicleIdeasResponse(

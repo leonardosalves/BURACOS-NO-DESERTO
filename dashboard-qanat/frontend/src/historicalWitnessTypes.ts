@@ -31,6 +31,15 @@ export type HistoricalWitnessIdea = {
   hook: string;
   certainty?: string;
   whyItMatters?: string;
+  reality_status?: string;
+  evidence_anchor?: string;
+  saturation_level?: string;
+  saturation_evidence?: string;
+  undercovered_reason?: string;
+  format_fit?: string;
+  recommended_duration?: string;
+  premium_upgrade?: string;
+  validation_needed?: string;
 };
 
 export type HistoricalWitnessCharacter = {

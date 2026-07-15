@@ -12,6 +12,9 @@ import {
   buildNarrationHumanizeRepairPrompt,
   buildListicleRankingIdeasPrompt,
   normalizeListicleIdeasResponse,
+  buildIdeaOpportunityAddendum,
+  buildCustomIdeaEvaluationPrompt,
+  normalizeIdeaOpportunity,
 } from "./promptBuilders.js";
 
 test("promptBuilders module", async (t) => {
@@ -133,5 +136,31 @@ test("promptBuilders module", async (t) => {
     const res = normalizeListicleIdeasResponse(rawData, { format: "SHORTS" });
     assert.equal(res.ranking_ideas[0].title, "Ideia 1");
     assert.equal(res.ranking_ideas[0].suggested_rank_count, 5);
+  });
+
+  await t.test("opportunity contract distinguishes evidence, saturation and format", () => {
+    const prompt = buildIdeaOpportunityAddendum("SHORTS");
+    assert.match(prompt, /saturation_level/i);
+    assert.match(prompt, /no máximo 60 segundos/i);
+    assert.match(prompt, /não invente volume/i);
+  });
+
+  await t.test("custom idea evaluation preserves the user idea and requests premium improvements", () => {
+    const prompt = buildCustomIdeaEvaluationPrompt({
+      niche: "história",
+      format: "LONGO",
+      title: "A ponte esquecida",
+      researchContext: "CASO DOCUMENTADO: ponte X",
+    });
+    assert.match(prompt, /A ponte esquecida/);
+    assert.match(prompt, /CASO DOCUMENTADO/);
+    assert.match(prompt, /improved_title/);
+  });
+
+  await t.test("opportunity normalization never assumes low saturation", () => {
+    const idea = normalizeIdeaOpportunity({ title: "Tema" }, { format: "SHORTS" });
+    assert.equal(idea.saturation_level, "unknown");
+    assert.equal(idea.format_fit, "SHORTS");
+    assert.equal(idea.reality_status, "disputed");
   });
 });
