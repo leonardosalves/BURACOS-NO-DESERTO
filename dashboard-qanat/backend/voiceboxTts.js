@@ -13,7 +13,7 @@ export const VOICEBOX_DEFAULT_URLS = [
   "http://127.0.0.1:17600",
   "http://127.0.0.1:8000",
 ];
-export const VOICEBOX_DEFAULT_ENGINE = "chatterbox";
+export const VOICEBOX_DEFAULT_ENGINE = "qwen";
 export const VOICEBOX_DEFAULT_LANGUAGE = "pt";
 
 export const VOICEBOX_DEFAULTS = {
@@ -36,9 +36,16 @@ function readJsonSafe(filePath) {
   }
 }
 
-export function loadVoiceboxConfig({ workspaceDir = null, projectDir = null } = {}) {
-  const wsCfg = workspaceDir ? readJsonSafe(path.join(workspaceDir, "config_qanat.json")) : {};
-  const projCfg = projectDir ? readJsonSafe(path.join(projectDir, "config_qanat.json")) : {};
+export function loadVoiceboxConfig({
+  workspaceDir = null,
+  projectDir = null,
+} = {}) {
+  const wsCfg = workspaceDir
+    ? readJsonSafe(path.join(workspaceDir, "config_qanat.json"))
+    : {};
+  const projCfg = projectDir
+    ? readJsonSafe(path.join(projectDir, "config_qanat.json"))
+    : {};
   const ws = wsCfg.voicebox || {};
   const proj = projCfg.voicebox || {};
   return { voicebox: { ...ws, ...proj } };
@@ -54,13 +61,25 @@ export function resolveVoiceboxConfig(config = {}) {
       : [...VOICEBOX_DEFAULT_URLS];
   return {
     baseUrls: baseUrls.length ? baseUrls : [...VOICEBOX_DEFAULT_URLS],
-    defaultProfileId: String(vb.default_profile_id || vb.defaultProfileId || ""),
+    defaultProfileId: String(
+      vb.default_profile_id || vb.defaultProfileId || ""
+    ),
     engine: String(vb.engine || VOICEBOX_DEFAULT_ENGINE),
     language: String(vb.language || VOICEBOX_DEFAULT_LANGUAGE),
-    maxChunkChars: Number(vb.max_chunk_chars ?? vb.maxChunkChars ?? VOICEBOX_DEFAULTS.maxChunkChars),
-    crossfadeMs: Number(vb.crossfade_ms ?? vb.crossfadeMs ?? VOICEBOX_DEFAULTS.crossfadeMs),
-    pollIntervalMs: Number(vb.poll_interval_ms ?? vb.pollIntervalMs ?? VOICEBOX_DEFAULTS.pollIntervalMs),
-    timeoutMs: Number(vb.timeout_ms ?? vb.timeoutMs ?? VOICEBOX_DEFAULTS.timeoutMs),
+    maxChunkChars: Number(
+      vb.max_chunk_chars ?? vb.maxChunkChars ?? VOICEBOX_DEFAULTS.maxChunkChars
+    ),
+    crossfadeMs: Number(
+      vb.crossfade_ms ?? vb.crossfadeMs ?? VOICEBOX_DEFAULTS.crossfadeMs
+    ),
+    pollIntervalMs: Number(
+      vb.poll_interval_ms ??
+        vb.pollIntervalMs ??
+        VOICEBOX_DEFAULTS.pollIntervalMs
+    ),
+    timeoutMs: Number(
+      vb.timeout_ms ?? vb.timeoutMs ?? VOICEBOX_DEFAULTS.timeoutMs
+    ),
   };
 }
 
@@ -86,7 +105,10 @@ async function fetchVoiceboxJson(baseUrl, endpoint, options = {}) {
   return res.json();
 }
 
-export async function probeVoiceboxServer(config = {}, { timeoutMs = 5000 } = {}) {
+export async function probeVoiceboxServer(
+  config = {},
+  { timeoutMs = 5000 } = {}
+) {
   const cfg = resolveVoiceboxConfig(config);
   const errors = [];
 
@@ -109,7 +131,11 @@ export async function probeVoiceboxServer(config = {}, { timeoutMs = 5000 } = {}
         baseUrl,
         gpuAvailable: Boolean(health.gpu_available),
         backendType: health.backend_type || null,
-        profiles: list.map((p) => ({ id: p.id, name: p.name, language: p.language })),
+        profiles: list.map((p) => ({
+          id: p.id,
+          name: p.name,
+          language: p.language,
+        })),
         defaultProfileId: cfg.defaultProfileId || list[0]?.id || "",
       };
     } catch (err) {
@@ -150,9 +176,10 @@ export function buildVoiceboxStatusHint(probe = {}, voices = []) {
     ? "GPU ativa (mais rapido)"
     : "modo CPU (funciona, mas mais lento)";
   const backend = String(probe.backendType || "pytorch");
-  const profileLine = profileCount > 0
-    ? `${profileCount} perfil(is) de voz`
-    : "nenhum perfil — crie em Voices no app";
+  const profileLine =
+    profileCount > 0
+      ? `${profileCount} perfil(is) de voz`
+      : "nenhum perfil — crie em Voices no app";
   return `Voicebox online | ${gpuLine} | backend ${backend} | ${profileLine}`;
 }
 
@@ -164,7 +191,9 @@ function resolveProfileId(voice, profiles = [], fallbackId = "") {
   const byId = profiles.find((p) => p.id === needle);
   if (byId) return byId.id;
   const lower = needle.toLowerCase();
-  const byName = profiles.find((p) => String(p.name || "").toLowerCase() === lower);
+  const byName = profiles.find(
+    (p) => String(p.name || "").toLowerCase() === lower
+  );
   if (byName) return byName.id;
   if (/^[0-9a-f-]{36}$/i.test(needle)) return needle;
   return fallbackId || profiles[0]?.id || "";
@@ -174,13 +203,26 @@ function runFfmpegToMp3(inputPath, outputPath) {
   const ff = getFfmpegStatus();
   if (!ff.found || !ff.binary) {
     fs.copyFileSync(inputPath, outputPath.replace(/\.mp3$/i, ".wav"));
-    throw new Error("ffmpeg ausente — salvo como WAV. Instale ffmpeg para MP3.");
+    throw new Error(
+      "ffmpeg ausente — salvo como WAV. Instale ffmpeg para MP3."
+    );
   }
   return new Promise((resolve, reject) => {
-    const args = ["-y", "-i", inputPath, "-codec:a", "libmp3lame", "-q:a", "2", outputPath];
+    const args = [
+      "-y",
+      "-i",
+      inputPath,
+      "-codec:a",
+      "libmp3lame",
+      "-q:a",
+      "2",
+      outputPath,
+    ];
     const proc = spawn(ff.binary, args, { windowsHide: true });
     let stderr = "";
-    proc.stderr?.on("data", (d) => { stderr += d; });
+    proc.stderr?.on("data", (d) => {
+      stderr += d;
+    });
     proc.on("close", (code) => {
       if (code === 0 && fs.existsSync(outputPath)) resolve();
       else reject(new Error(`ffmpeg falhou (${code}): ${stderr.slice(-400)}`));
@@ -191,12 +233,15 @@ function runFfmpegToMp3(inputPath, outputPath) {
 
 function bufferLooksMp3(buffer) {
   if (!buffer?.length) return false;
-  if (buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33) return true; // ID3
+  if (buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33)
+    return true; // ID3
   return buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0;
 }
 
 async function writeAudioBuffer(buffer, outputPath, contentType = "") {
-  const isWav = String(contentType).includes("wav") || buffer.slice(0, 4).toString() === "RIFF";
+  const isWav =
+    String(contentType).includes("wav") ||
+    buffer.slice(0, 4).toString() === "RIFF";
   const isMp3 = String(contentType).includes("mpeg") || bufferLooksMp3(buffer);
 
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -212,18 +257,26 @@ async function writeAudioBuffer(buffer, outputPath, contentType = "") {
     await runFfmpegToMp3(tmpWav, outputPath);
     return { format: "mp3", bytes: fs.statSync(outputPath).size };
   } finally {
-    try { fs.unlinkSync(tmpWav); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(tmpWav);
+    } catch {
+      /* ignore */
+    }
   }
 }
 
-async function waitForGeneration(baseUrl, generationId, {
-  onLog,
-  onProgress,
-  pollIntervalMs,
-  timeoutMs,
-  startPercent = 38,
-  endPercent = 82,
-}) {
+async function waitForGeneration(
+  baseUrl,
+  generationId,
+  {
+    onLog,
+    onProgress,
+    pollIntervalMs,
+    timeoutMs,
+    startPercent = 38,
+    endPercent = 82,
+  }
+) {
   const deadline = Date.now() + timeoutMs;
   const startedAt = Date.now();
   while (Date.now() < deadline) {
@@ -235,11 +288,15 @@ async function waitForGeneration(baseUrl, generationId, {
     const elapsed = Date.now() - startedAt;
     const pct = Math.min(
       endPercent,
-      startPercent + Math.floor((elapsed / Math.max(timeoutMs, 1)) * (endPercent - startPercent)),
+      startPercent +
+        Math.floor(
+          (elapsed / Math.max(timeoutMs, 1)) * (endPercent - startPercent)
+        )
     );
-    const statusLabel = status === "processing" || status === "pending"
-      ? "Sintetizando voz no Voicebox…"
-      : `Voicebox: ${status}…`;
+    const statusLabel =
+      status === "processing" || status === "pending"
+        ? "Sintetizando voz no Voicebox…"
+        : `Voicebox: ${status}…`;
     onProgress?.(pct, statusLabel);
     if (status === "completed") return gen;
     if (status === "failed") {
@@ -250,16 +307,20 @@ async function waitForGeneration(baseUrl, generationId, {
   throw new Error("Voicebox timeout — roteiro longo ou fila GPU ocupada");
 }
 
-export async function synthesizeVoiceboxNarration(text, {
-  outputPath,
-  voice = null,
-  config = {},
-  onLog = () => {},
-  onProgress = null,
-} = {}) {
-  const report = typeof onProgress === "function"
-    ? (pct, label) => onProgress("voicebox", label, pct)
-    : () => {};
+export async function synthesizeVoiceboxNarration(
+  text,
+  {
+    outputPath,
+    voice = null,
+    config = {},
+    onLog = () => {},
+    onProgress = null,
+  } = {}
+) {
+  const report =
+    typeof onProgress === "function"
+      ? (pct, label) => onProgress("voicebox", label, pct)
+      : () => {};
   const plain = String(text || "").trim();
   if (!plain || plain.length < 20) {
     throw new Error("Texto muito curto para Voicebox.");
@@ -273,21 +334,26 @@ export async function synthesizeVoiceboxNarration(text, {
   const probe = await probeVoiceboxServer(config);
   if (!probe.ok) {
     throw new Error(
-      `Voicebox indisponível. ${probe.error || ""} Instale: .\\scripts\\setup-voicebox.ps1`.trim(),
+      `Voicebox indisponível. ${probe.error || ""} Instale: .\\scripts\\setup-voicebox.ps1`.trim()
     );
   }
 
-  const profileId = resolveProfileId(voice, probe.profiles, probe.defaultProfileId);
+  const profileId = resolveProfileId(
+    voice,
+    probe.profiles,
+    probe.defaultProfileId
+  );
   if (!profileId) {
     throw new Error(
-      "Nenhum perfil de voz no Voicebox. Abra o app → Voices → crie/importe um perfil (clone ou preset Kokoro PT).",
+      "Nenhum perfil de voz no Voicebox. Abra o app → Voices → crie/importe um perfil (clone ou preset Kokoro PT)."
     );
   }
 
-  const profileLabel = probe.profiles.find((p) => p.id === profileId)?.name || profileId;
+  const profileLabel =
+    probe.profiles.find((p) => p.id === profileId)?.name || profileId;
 
   onLog(
-    `[Voicebox] ${plain.length} chars · perfil=${profileLabel} · engine=${cfg.engine} · ${probe.baseUrl}`,
+    `[Voicebox] ${plain.length} chars · perfil=${profileLabel} · engine=${cfg.engine} · ${probe.baseUrl}`
   );
   report(18, `Perfil «${profileLabel}» · ${plain.length} caracteres`);
 
@@ -320,13 +386,18 @@ export async function synthesizeVoiceboxNarration(text, {
   });
 
   report(86, "Exportando áudio do Voicebox…");
-  const audioRes = await fetch(`${probe.baseUrl}/history/${generationId}/export-audio`, {
-    headers: { "X-Voicebox-Client-Id": "lumiera" },
-    signal: AbortSignal.timeout(300000),
-  });
+  const audioRes = await fetch(
+    `${probe.baseUrl}/history/${generationId}/export-audio`,
+    {
+      headers: { "X-Voicebox-Client-Id": "lumiera" },
+      signal: AbortSignal.timeout(300000),
+    }
+  );
   if (!audioRes.ok) {
     const errText = await audioRes.text().catch(() => "");
-    throw new Error(`Voicebox export-audio HTTP ${audioRes.status}: ${errText.slice(0, 300)}`);
+    throw new Error(
+      `Voicebox export-audio HTTP ${audioRes.status}: ${errText.slice(0, 300)}`
+    );
   }
 
   const contentType = audioRes.headers.get("content-type") || "";

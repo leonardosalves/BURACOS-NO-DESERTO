@@ -9,6 +9,7 @@ import {
   Globe,
   Home,
   LayoutTemplate,
+  Laugh,
   Menu,
   RefreshCw,
   RotateCcw,
@@ -42,6 +43,13 @@ type GlobalNavItem = {
 };
 
 const STUDIO_NAV: GlobalNavItem[] = [
+  {
+    id: "humor-facts",
+    label: "Fatos com Graca",
+    icon: Laugh,
+    helpId: "tab-humor-facts",
+    accent: "amber",
+  },
   { id: "agents", label: "Studio Agents", icon: Bot, helpId: "tab-agents" },
   {
     id: "templates",

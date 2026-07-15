@@ -11,6 +11,7 @@ import { AppTerminalTab } from "./AppTerminalTab";
 import { AppTimelineTab } from "./AppTimelineTab";
 import { AppUploadTab } from "./AppUploadTab";
 import { AppWorkflowTab } from "./AppWorkflowTab";
+import { HumorFactsLab } from "./HumorFactsLab";
 import { AppDocsTab } from "./AppDocsTab";
 import { FlowLabPage } from "./FlowLabPage";
 import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
@@ -21,6 +22,7 @@ import {
   Cloud,
   Globe,
   LayoutTemplate,
+  Laugh,
   TrendingUp,
   Tv,
   Youtube,
@@ -155,6 +157,18 @@ export function AppTabPanels({
           >
             <AppDocsTab />
           </Suspense>
+        </TabErrorBoundary>
+      )}
+      {activeTab === "humor-facts" && (
+        <TabErrorBoundary tabName="Fatos com Graca">
+          <DashminPageLayout
+            title="Fatos com Graca"
+            subtitle="Pautas pouco exploradas e narracao humoristica factual em uma feature totalmente separada."
+            breadcrumb={["Dashboard", "Estudio", "Fatos com Graca"]}
+            icon={<Laugh className="h-5 w-5 text-orange-300" />}
+          >
+            <HumorFactsLab getProjectUrl={getProjectUrl} />
+          </DashminPageLayout>
         </TabErrorBoundary>
       )}
 
