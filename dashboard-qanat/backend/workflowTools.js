@@ -8,7 +8,10 @@ import https from "https";
 import { spawn } from "child_process";
 import { buildPythonSpawnEnv } from "./pythonEnv.js";
 import { adaptMetadataForPlatforms } from "./platformMetadataAdapter.js";
-import { convertCinematicMarkersForTts, isListicleProject } from "./videoProEnhancements.js";
+import {
+  convertCinematicMarkersForTts,
+  isListicleProject,
+} from "./videoProEnhancements.js";
 import {
   synthesizeKokoroNarration,
   KOKORO_DEFAULT_VOICE,
@@ -123,7 +126,9 @@ function httpsGetJson(url, headers = {}) {
         return;
       }
       let body = "";
-      res.on("data", (chunk) => { body += chunk; });
+      res.on("data", (chunk) => {
+        body += chunk;
+      });
       res.on("end", () => {
         if (res.statusCode >= 400) {
           reject(new Error(`HTTP ${res.statusCode}: ${body.slice(0, 200)}`));
@@ -137,75 +142,160 @@ function httpsGetJson(url, headers = {}) {
       });
     });
     req.on("error", reject);
-    req.setTimeout(30000, () => { req.destroy(); reject(new Error("Timeout")); });
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error("Timeout"));
+    });
     req.end();
   });
 }
 
-function downloadFile(url, destPath) {
+function downloadFile(url, destPath, redirectsCount = 0) {
+  if (redirectsCount > 5) {
+    return Promise.reject(new Error("Too many redirects (possible loop)"));
+  }
+
   return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(destPath);
-    https.get(url, (res) => {
-      if (res.statusCode === 301 || res.statusCode === 302) {
+    let file = fs.createWriteStream(destPath);
+    let requestDestroyed = false;
+
+    const cleanup = () => {
+      if (file) {
         file.close();
-        fs.unlinkSync(destPath);
-        downloadFile(res.headers.location, destPath).then(resolve).catch(reject);
+        file = null;
+      }
+      try {
+        if (fs.existsSync(destPath)) {
+          fs.unlinkSync(destPath);
+        }
+      } catch (_) {}
+    };
+
+    const req = https.get(url, (res) => {
+      if (
+        res.statusCode === 301 ||
+        res.statusCode === 302 ||
+        res.statusCode === 307 ||
+        res.statusCode === 308
+      ) {
+        cleanup();
+        const redirectUrl = res.headers.location;
+        if (!redirectUrl) {
+          reject(
+            new Error(
+              `Redirect status ${res.statusCode} but no Location header`
+            )
+          );
+          return;
+        }
+        downloadFile(redirectUrl, destPath, redirectsCount + 1)
+          .then(resolve)
+          .catch(reject);
         return;
       }
+
       if (res.statusCode >= 400) {
-        file.close();
-        reject(new Error(`Download failed: ${res.statusCode}`));
+        cleanup();
+        reject(new Error(`Download failed with HTTP status ${res.statusCode}`));
         return;
       }
+
       res.pipe(file);
-      file.on("finish", () => file.close(() => resolve(destPath)));
-    }).on("error", reject);
+
+      file.on("finish", () => {
+        if (file) {
+          file.close(() => resolve(destPath));
+        }
+      });
+    });
+
+    req.setTimeout(25000, () => {
+      requestDestroyed = true;
+      req.destroy();
+      cleanup();
+      reject(new Error("Download timeout (25s)"));
+    });
+
+    req.on("error", (err) => {
+      if (!requestDestroyed) {
+        cleanup();
+        reject(err);
+      }
+    });
   });
 }
 
 function slugify(text = "") {
-  return String(text)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 48) || "asset";
+  return (
+    String(text)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 48) || "asset"
+  );
 }
 
 function isVideoScene(vp = {}) {
   const type = String(vp.type || "").toLowerCase();
-  return type.includes("vídeo") || type.includes("video") || type.includes("mp4");
+  return (
+    type.includes("vídeo") || type.includes("video") || type.includes("mp4")
+  );
 }
 
 function sceneHasAsset(vp = {}, timelineAssets = {}, blockAssets = new Set()) {
   if (vp?.asset?.asset) return true;
   const block = String(vp.block || 1);
   const items = timelineAssets[block] || [];
-  return items.some((item) => item?.asset && blockAssets.has(String(item.asset).split("/").pop()));
+  return items.some(
+    (item) =>
+      item?.asset && blockAssets.has(String(item.asset).split("/").pop())
+  );
 }
 
 export function getWorkflowApiKeys(workspaceDir, projDir) {
-  const globalPath = path.join(workspaceDir, "dashboard-qanat", "backend", "render_config_global.json");
+  const globalPath = path.join(
+    workspaceDir,
+    "dashboard-qanat",
+    "backend",
+    "render_config_global.json"
+  );
   const globalCfg = readJson(globalPath, {});
   const projCfg = readJson(path.join(projDir, "config_qanat.json"), {});
   return {
-    pexels: projCfg.pexels_api_key || globalCfg.pexels_api_key || process.env.PEXELS_API_KEY || "",
-    pixabay: projCfg.pixabay_api_key || globalCfg.pixabay_api_key || process.env.PIXABAY_API_KEY || "",
+    pexels:
+      projCfg.pexels_api_key ||
+      globalCfg.pexels_api_key ||
+      process.env.PEXELS_API_KEY ||
+      "",
+    pixabay:
+      projCfg.pixabay_api_key ||
+      globalCfg.pixabay_api_key ||
+      process.env.PIXABAY_API_KEY ||
+      "",
   };
 }
 
-export function analyzeSceneGaps(projDir, { config = {}, storyboard = {} } = {}) {
-  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+export function analyzeSceneGaps(
+  projDir,
+  { config = {}, storyboard = {} } = {}
+) {
+  const visualPrompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
   const timelineAssets = config.timeline_assets || {};
   const assetsDir = path.join(projDir, "ASSETS");
   const blockAssets = new Set();
 
   if (fs.existsSync(assetsDir)) {
     const scan = (dir, prefix = "") => {
-      for (const item of fs.readdirSync(dir)) {
-        const full = path.join(dir, item);
-        if (fs.statSync(full).isDirectory()) scan(full, prefix ? `${prefix}/${item}` : item);
-        else blockAssets.add(prefix ? `${prefix}/${item}` : item);
+      for (const dirent of fs.readdirSync(dir, { withFileTypes: true })) {
+        const item = dirent.name;
+        if (dirent.isDirectory()) {
+          scan(path.join(dir, item), prefix ? `${prefix}/${item}` : item);
+        } else {
+          blockAssets.add(prefix ? `${prefix}/${item}` : item);
+        }
       }
     };
     scan(assetsDir);
@@ -214,7 +304,8 @@ export function analyzeSceneGaps(projDir, { config = {}, storyboard = {} } = {})
   const gaps = [];
   for (let i = 0; i < visualPrompts.length; i++) {
     const vp = visualPrompts[i];
-    const hasAsset = vp?.asset?.asset || sceneHasAsset(vp, timelineAssets, blockAssets);
+    const hasAsset =
+      vp?.asset?.asset || sceneHasAsset(vp, timelineAssets, blockAssets);
     if (!hasAsset) {
       gaps.push({
         index: i,
@@ -238,24 +329,55 @@ export function analyzeSceneGaps(projDir, { config = {}, storyboard = {} } = {})
 
   const actions = [];
   if (!fs.existsSync(path.join(projDir, NARRATION_FILENAME))) {
-    actions.push({ id: "generate_tts", label: "Gerar narração TTS", severity: "error" });
+    actions.push({
+      id: "generate_tts",
+      label: "Gerar narração TTS",
+      severity: "error",
+    });
   }
   if (gaps.length > 0) {
-    actions.push({ id: "fetch_stock", label: `Buscar B-roll (${gaps.length} cenas)`, severity: "warning", count: gaps.length });
+    actions.push({
+      id: "fetch_stock",
+      label: `Buscar B-roll (${gaps.length} cenas)`,
+      severity: "warning",
+      count: gaps.length,
+    });
   }
-  if (gaps.length > 0 || !config.timeline_assets || !Object.keys(config.timeline_assets).length) {
-    actions.push({ id: "auto_map", label: "Associar mídias com IA", severity: "info" });
+  if (
+    gaps.length > 0 ||
+    !config.timeline_assets ||
+    !Object.keys(config.timeline_assets).length
+  ) {
+    actions.push({
+      id: "auto_map",
+      label: "Associar mídias com IA",
+      severity: "info",
+    });
   }
   const cachePath = path.join(projDir, "youtube_metadata_cache.json");
   if (!fs.existsSync(cachePath)) {
-    actions.push({ id: "publish_prep", label: "Preparar publicação (metadados + thumbs)", severity: "info" });
+    actions.push({
+      id: "publish_prep",
+      label: "Preparar publicação (metadados + thumbs)",
+      severity: "info",
+    });
   }
-  const hasBgm = config.use_single_bgm || (Array.isArray(config.bgm_mappings) && config.bgm_mappings.length > 0);
+  const hasBgm =
+    config.use_single_bgm ||
+    (Array.isArray(config.bgm_mappings) && config.bgm_mappings.length > 0);
   if (!hasBgm) {
-    actions.push({ id: "apply_bgm", label: "Aplicar trilha Epidemic", severity: "info" });
+    actions.push({
+      id: "apply_bgm",
+      label: "Aplicar trilha Epidemic",
+      severity: "info",
+    });
   }
   if (!fs.existsSync(path.join(projDir, "block_timings.json"))) {
-    actions.push({ id: "sync_timings", label: "Sincronizar narração (Whisper)", severity: "error" });
+    actions.push({
+      id: "sync_timings",
+      label: "Sincronizar narração (Whisper)",
+      severity: "error",
+    });
   }
 
   return {
@@ -270,7 +392,10 @@ export function analyzeSceneGaps(projDir, { config = {}, storyboard = {} } = {})
   };
 }
 
-async function searchPexels(query, { apiKey, isVideo = false, skipSourceIds = new Set() }) {
+async function searchPexels(
+  query,
+  { apiKey, isVideo = false, skipSourceIds = new Set() }
+) {
   if (!apiKey) return null;
   const base = isVideo
     ? `https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=12`
@@ -280,7 +405,9 @@ async function searchPexels(query, { apiKey, isVideo = false, skipSourceIds = ne
     for (const video of data.videos || []) {
       const sourceId = `pexels:${video.id}`;
       if (skipSourceIds.has(sourceId)) continue;
-      const file = video?.video_files?.find((f) => f.quality === "hd") || video?.video_files?.[0];
+      const file =
+        video?.video_files?.find((f) => f.quality === "hd") ||
+        video?.video_files?.[0];
       if (file?.link) {
         return { url: file.link, ext: ".mp4", source: "pexels", sourceId };
       }
@@ -296,7 +423,10 @@ async function searchPexels(query, { apiKey, isVideo = false, skipSourceIds = ne
   return null;
 }
 
-async function searchPixabay(query, { apiKey, isVideo = false, skipSourceIds = new Set() }) {
+async function searchPixabay(
+  query,
+  { apiKey, isVideo = false, skipSourceIds = new Set() }
+) {
   if (!apiKey) return null;
   const url = `https://pixabay.com/api/${isVideo ? "videos/" : ""}?key=${encodeURIComponent(apiKey)}&q=${encodeURIComponent(query)}&per_page=12&safesearch=true`;
   const data = await httpsGetJson(url);
@@ -305,14 +435,21 @@ async function searchPixabay(query, { apiKey, isVideo = false, skipSourceIds = n
       const sourceId = `pixabay:${hit.id}`;
       if (skipSourceIds.has(sourceId)) continue;
       const videoUrl = hit?.videos?.medium?.url || hit?.videos?.small?.url;
-      if (videoUrl) return { url: videoUrl, ext: ".mp4", source: "pixabay", sourceId };
+      if (videoUrl)
+        return { url: videoUrl, ext: ".mp4", source: "pixabay", sourceId };
     }
     return null;
   }
   for (const hit of data.hits || []) {
     const sourceId = `pixabay:${hit.id}`;
     if (skipSourceIds.has(sourceId)) continue;
-    if (hit?.largeImageURL) return { url: hit.largeImageURL, ext: ".jpg", source: "pixabay", sourceId };
+    if (hit?.largeImageURL)
+      return {
+        url: hit.largeImageURL,
+        ext: ".jpg",
+        source: "pixabay",
+        sourceId,
+      };
   }
   return null;
 }
@@ -321,26 +458,26 @@ function buildStockQuery(target = {}, { strategyTitle = "" } = {}) {
   return resolveStockSearchQuery(target, { strategyTitle });
 }
 
-export async function fetchStockForScenes(projDir, {
-  workspaceDir,
-  maxScenes = 12,
-  onlyMissing = true,
-  onLog = () => {},
-} = {}) {
+export async function fetchStockForScenes(
+  projDir,
+  { workspaceDir, maxScenes = 12, onlyMissing = true, onLog = () => {} } = {}
+) {
   const config = readJson(path.join(projDir, "config_qanat.json"), {});
   const storyboard = readJson(path.join(projDir, "storyboard.json"), {});
   const keys = getWorkflowApiKeys(workspaceDir, projDir);
   const gapReport = analyzeSceneGaps(projDir, { config, storyboard });
   const strategyTitle = storyboard?.strategy?.title_main || "";
-  const targets = onlyMissing ? gapReport.gaps : (storyboard.visual_prompts || []).map((vp, index) => ({
-    index,
-    scene: vp.scene,
-    block: vp.block,
-    stock_query: resolveStockSearchQuery(vp, { strategyTitle }),
-    narration_text: vp.narration_text,
-    prompt: vp.prompt,
-    isVideo: isVideoScene(vp),
-  }));
+  const targets = onlyMissing
+    ? gapReport.gaps
+    : (storyboard.visual_prompts || []).map((vp, index) => ({
+        index,
+        scene: vp.scene,
+        block: vp.block,
+        stock_query: resolveStockSearchQuery(vp, { strategyTitle }),
+        narration_text: vp.narration_text,
+        prompt: vp.prompt,
+        isVideo: isVideoScene(vp),
+      }));
 
   const useBing = config.use_bing_images !== false;
   const useArchive = config.use_archive_org !== false;
@@ -348,7 +485,8 @@ export async function fetchStockForScenes(projDir, {
   if (!keys.pexels && !keys.pixabay && !useBing && !useArchive) {
     return {
       success: false,
-      error: "Configure Pexels/Pixabay ou mantenha Bing Images / Archive.org ativos.",
+      error:
+        "Configure Pexels/Pixabay ou mantenha Bing Images / Archive.org ativos.",
       fetched: [],
       skipped: targets.length,
     };
@@ -358,22 +496,36 @@ export async function fetchStockForScenes(projDir, {
   fs.mkdirSync(assetsDir, { recursive: true });
   const fetched = [];
   const errors = [];
-  const registry = workspaceDir ? loadStockUsageRegistry(workspaceDir) : { bySourceId: {} };
+  const registry = workspaceDir
+    ? loadStockUsageRegistry(workspaceDir)
+    : { bySourceId: {} };
   const skipSourceIds = new Set(
-    Object.keys(registry.bySourceId || {}).filter((id) => (registry.bySourceId[id]?.count || 0) > 0),
+    Object.keys(registry.bySourceId || {}).filter(
+      (id) => (registry.bySourceId[id]?.count || 0) > 0
+    )
   );
   const projectName = path.basename(projDir);
 
   for (const target of targets.slice(0, maxScenes)) {
     const query = buildStockQuery(target, { strategyTitle });
     if (!query) continue;
-    onLog(`[Stock] Buscando: "${query}" (cena ${target.scene || target.index + 1})...`);
+    onLog(
+      `[Stock] Buscando: "${query}" (cena ${target.scene || target.index + 1})...`
+    );
 
     let media = null;
     try {
-      media = await searchPexels(query, { apiKey: keys.pexels, isVideo: target.isVideo, skipSourceIds });
+      media = await searchPexels(query, {
+        apiKey: keys.pexels,
+        isVideo: target.isVideo,
+        skipSourceIds,
+      });
       if (!media && keys.pixabay) {
-        media = await searchPixabay(query, { apiKey: keys.pixabay, isVideo: target.isVideo, skipSourceIds });
+        media = await searchPixabay(query, {
+          apiKey: keys.pixabay,
+          isVideo: target.isVideo,
+          skipSourceIds,
+        });
       }
       if (!media && useBing && !target.isVideo) {
         media = await searchBingImagesMedia(query, { skipSourceIds });
@@ -397,10 +549,17 @@ export async function fetchStockForScenes(projDir, {
       continue;
     }
 
-    const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
+    const stamp = new Date()
+      .toISOString()
+      .replace(/[-:TZ.]/g, "")
+      .slice(0, 14);
     const block = Number(target.block || 1);
-    const sceneTag = String(target.scene || `${block}.${(target.index ?? 0) + 1}`).replace(/\./g, "_");
-    const sourceTag = media.sourceId ? media.sourceId.replace(":", "_") : media.source;
+    const sceneTag = String(
+      target.scene || `${block}.${(target.index ?? 0) + 1}`
+    ).replace(/\./g, "_");
+    const sourceTag = media.sourceId
+      ? media.sourceId.replace(":", "_")
+      : media.source;
     const filename = `b${block}_s${sceneTag}_${slugify(query)}_${sourceTag}_${stamp}${media.ext}`;
     const destPath = path.join(assetsDir, filename);
 
@@ -416,16 +575,28 @@ export async function fetchStockForScenes(projDir, {
           query,
         });
       }
-      fetched.push({ scene: target.scene, block: target.block, file: filename, source: media.source, query, sourceId: media.sourceId });
+      fetched.push({
+        scene: target.scene,
+        block: target.block,
+        file: filename,
+        source: media.source,
+        query,
+        sourceId: media.sourceId,
+      });
       onLog(`[Stock] ✓ ${filename} (${media.source})`);
 
-      if (Array.isArray(storyboard.visual_prompts) && storyboard.visual_prompts[target.index]) {
+      if (
+        Array.isArray(storyboard.visual_prompts) &&
+        storyboard.visual_prompts[target.index]
+      ) {
         storyboard.visual_prompts[target.index].asset = {
           asset: filename,
           type: target.isVideo ? "video" : "image",
           fixed: target.isVideo ? 8 : undefined,
         };
-        const narration = String(storyboard.visual_prompts[target.index].narration_text || "").trim();
+        const narration = String(
+          storyboard.visual_prompts[target.index].narration_text || ""
+        ).trim();
         if (narration) {
           storyboard.visual_prompts[target.index].stock_query = query;
         }
@@ -439,45 +610,78 @@ export async function fetchStockForScenes(projDir, {
     writeJson(path.join(projDir, "storyboard.json"), storyboard);
   }
 
-  return { success: fetched.length > 0, fetched, errors, skipped: targets.length - fetched.length };
+  return {
+    success: fetched.length > 0,
+    fetched,
+    errors,
+    skipped: targets.length - fetched.length,
+  };
 }
 
-export async function generateNarrationTts(projDir, {
-  voice,
-  rate = "+0%",
-  pitch = "+0Hz",
-  speed = KOKORO_DEFAULT_SPEED,
-  platform = "kokoro",
-  workspaceDir = null,
-  onLog = () => {},
-  onProgress = () => {},
-  ttsOptions = {},
-} = {}) {
+export async function generateNarrationTts(
+  projDir,
+  {
+    voice,
+    rate = "+0%",
+    pitch = "+0Hz",
+    speed = KOKORO_DEFAULT_SPEED,
+    platform = "kokoro",
+    workspaceDir = null,
+    onLog = () => {},
+    onProgress = () => {},
+    ttsOptions = {},
+  } = {}
+) {
   const storyboard = readJson(path.join(projDir, "storyboard.json"), {});
-  const taggedFromBoard = storyboard.narrative_script_tagged || storyboard.narrative_script || "";
-  const plainFromBoard = storyboard.narrative_script
-    || String(taggedFromBoard).replace(/\[[^\]]+\]/g, " ").replace(/\s+/g, " ").trim();
-  const tagged = String(ttsOptions.customTaggedText || "").trim() || taggedFromBoard;
-  const plain = String(ttsOptions.customPlainText || "").trim() || plainFromBoard;
+  const taggedFromBoard =
+    storyboard.narrative_script_tagged || storyboard.narrative_script || "";
+  const plainFromBoard =
+    storyboard.narrative_script ||
+    String(taggedFromBoard)
+      .replace(/\[[^\]]+\]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  const tagged =
+    String(ttsOptions.customTaggedText || "").trim() || taggedFromBoard;
+  const plain =
+    String(ttsOptions.customPlainText || "").trim() || plainFromBoard;
 
   if (!plain || plain.length < 40) {
-    throw new Error("Roteiro de narração ausente ou muito curto no storyboard.");
+    throw new Error(
+      "Roteiro de narração ausente ou muito curto no storyboard."
+    );
   }
 
   const useTaggedOverride = ttsOptions.useTaggedScript;
 
-  const engine = String(platform || "kokoro").toLowerCase();
-  const engineLabel = engine === "voicebox"
-    ? "Voicebox"
-    : (engine === "gptsovits" || engine === "gpt_sovits" || engine === "gpt-sovits")
-      ? "GPT-SoVITS"
-      : (engine === "fish" || engine === "fish-speech" || engine === "fish_speech")
-        ? "Fish Audio"
-        : engine === "kokoro"
-          ? "Kokoro"
-          : engine === "edge"
-            ? "Edge TTS"
-            : "TTS";
+  const engineRaw = String(platform || "kokoro")
+    .toLowerCase()
+    .trim();
+  const ttsEngineAliases = {
+    kokoro: "kokoro",
+    edge: "edge",
+    chatterbox: "chatterbox",
+    "chatterbox-tts": "chatterbox",
+    voicebox: "voicebox",
+    gptsovits: "gptsovits",
+    gpt_sovits: "gptsovits",
+    "gpt-sovits": "gptsovits",
+    fish: "fish",
+    "fish-speech": "fish",
+    fish_speech: "fish",
+  };
+  const engine = ttsEngineAliases[engineRaw] || engineRaw;
+
+  const ttsEngineLabels = {
+    kokoro: "Kokoro",
+    edge: "Edge TTS",
+    chatterbox: "Chatterbox",
+    voicebox: "Voicebox",
+    gptsovits: "GPT-SoVITS",
+    fish: "Fish Audio",
+  };
+  const engineLabel = ttsEngineLabels[engine] || "TTS";
+
   onProgress("prepare", `${engineLabel}: preparando narração…`, 4);
   const dest = path.join(projDir, NARRATION_FILENAME);
 
@@ -485,7 +689,9 @@ export async function generateNarrationTts(projDir, {
     for (const fname of ["word_transcripts.json", "block_timings.json"]) {
       const stalePath = path.join(projDir, fname);
       if (fs.existsSync(stalePath)) {
-        try { fs.unlinkSync(stalePath); } catch (_) {}
+        try {
+          fs.unlinkSync(stalePath);
+        } catch (_) {}
       }
     }
   };
@@ -521,7 +727,9 @@ export async function generateNarrationTts(projDir, {
     try {
       ({ EdgeTTS } = await import("edge-tts-universal"));
     } catch {
-      throw new Error("Pacote edge-tts-universal não instalado. Rode npm install no backend.");
+      throw new Error(
+        "Pacote edge-tts-universal não instalado. Rode npm install no backend."
+      );
     }
 
     const tts = new EdgeTTS(textForTts, edgeVoice, { rate, pitch });
@@ -540,16 +748,25 @@ export async function generateNarrationTts(projDir, {
     };
   }
 
-  if (engine === "chatterbox" || engine === "chatterbox-tts") {
-    const cbConfig = loadChatterboxConfig({ workspaceDir, projectDir: projDir });
+  if (engine === "chatterbox") {
+    const cbConfig = loadChatterboxConfig({
+      workspaceDir,
+      projectDir: projDir,
+    });
     const cbCfg = cbConfig.chatterbox || {};
-    const voicePreset = voice || cbCfg.default_voice || cbCfg.defaultVoice || CHATTERBOX_DEFAULT_VOICE;
+    const voicePreset =
+      voice ||
+      cbCfg.default_voice ||
+      cbCfg.defaultVoice ||
+      CHATTERBOX_DEFAULT_VOICE;
     const useTurboTags = String(voicePreset).includes("turbo");
     const tagPlatform = useTurboTags ? "turbo" : "chatterbox";
-    const useTagged = cbCfg.use_tagged_script !== false && cbCfg.useTaggedScript !== false;
-    const textForTts = useTagged && String(tagged).trim().length > 40
-      ? convertCinematicMarkersForTts(tagged, tagPlatform)
-      : plain;
+    const useTagged =
+      cbCfg.use_tagged_script !== false && cbCfg.useTaggedScript !== false;
+    const textForTts =
+      useTagged && String(tagged).trim().length > 40
+        ? convertCinematicMarkersForTts(tagged, tagPlatform)
+        : plain;
 
     const result = await synthesizeChatterboxNarration(textForTts, {
       voice: voicePreset,
@@ -577,18 +794,29 @@ export async function generateNarrationTts(projDir, {
     const vbCfg = vbConfig.voicebox || {};
     const vbOpt = ttsOptions.voicebox || {};
     if (vbOpt.engine) vbConfig.voicebox = { ...vbCfg, engine: vbOpt.engine };
-    if (vbOpt.language) vbConfig.voicebox = { ...vbConfig.voicebox, language: vbOpt.language };
+    if (vbOpt.language)
+      vbConfig.voicebox = { ...vbConfig.voicebox, language: vbOpt.language };
     if (vbOpt.maxChunkChars) {
-      vbConfig.voicebox = { ...vbConfig.voicebox, max_chunk_chars: vbOpt.maxChunkChars };
+      vbConfig.voicebox = {
+        ...vbConfig.voicebox,
+        max_chunk_chars: vbOpt.maxChunkChars,
+      };
     }
-    const useTagged = useTaggedOverride !== undefined
-      ? Boolean(useTaggedOverride)
-      : (vbCfg.use_tagged_script !== false && vbCfg.useTaggedScript !== false);
-    const tagPlatform = String(vbConfig.voicebox.engine || "chatterbox").includes("turbo") ? "turbo" : "chatterbox";
-    const textForTts = useTagged && String(tagged).trim().length > 40
-      ? convertCinematicMarkersForTts(tagged, tagPlatform)
-      : plain;
-    const vbVoice = voice || vbCfg.default_profile_id || vbCfg.defaultProfileId || "";
+    const useTagged =
+      useTaggedOverride !== undefined
+        ? Boolean(useTaggedOverride)
+        : vbCfg.use_tagged_script !== false && vbCfg.useTaggedScript !== false;
+    const tagPlatform = String(
+      vbConfig.voicebox.engine || "chatterbox"
+    ).includes("turbo")
+      ? "turbo"
+      : "chatterbox";
+    const textForTts =
+      useTagged && String(tagged).trim().length > 40
+        ? convertCinematicMarkersForTts(tagged, tagPlatform)
+        : plain;
+    const vbVoice =
+      voice || vbCfg.default_profile_id || vbCfg.defaultProfileId || "";
 
     const result = await synthesizeVoiceboxNarration(textForTts, {
       voice: vbVoice,
@@ -611,12 +839,15 @@ export async function generateNarrationTts(projDir, {
     };
   }
 
-  if (engine === "gptsovits" || engine === "gpt_sovits" || engine === "gpt-sovits") {
+  if (engine === "gptsovits") {
     const gsConfig = applyGptSovitsOptionOverrides(
       loadGptSovitsConfig({ workspaceDir, projectDir: projDir }),
-      ttsOptions.gptSovits || ttsOptions.gpt_sovits || {},
+      ttsOptions.gptSovits || ttsOptions.gpt_sovits || {}
     );
-    const gsVoice = voice || gsConfig.gpt_sovits?.default_voice_id || GPT_SOVITS_DEFAULT_VOICE;
+    const gsVoice =
+      voice ||
+      gsConfig.gpt_sovits?.default_voice_id ||
+      GPT_SOVITS_DEFAULT_VOICE;
     const textForTts = plain;
 
     const result = await synthesizeGptSovitsNarration(textForTts, {
@@ -640,31 +871,59 @@ export async function generateNarrationTts(projDir, {
     };
   }
 
-  if (engine === "fish" || engine === "fish-speech" || engine === "fish_speech") {
-    const fishConfig = loadFishSpeechConfig({ workspaceDir, projectDir: projDir });
+  if (engine === "fish") {
+    const fishConfig = loadFishSpeechConfig({
+      workspaceDir,
+      projectDir: projDir,
+    });
     const fishCfg = fishConfig.fish_speech || {};
     const fishOpt = ttsOptions.fish || {};
     fishConfig.fish_speech = {
       ...fishCfg,
-      ...(fishOpt.temperature != null ? { temperature: Number(fishOpt.temperature) } : {}),
+      ...(fishOpt.temperature != null
+        ? { temperature: Number(fishOpt.temperature) }
+        : {}),
       ...(fishOpt.topP != null ? { top_p: Number(fishOpt.topP) } : {}),
       ...(fishOpt.top_p != null ? { top_p: Number(fishOpt.top_p) } : {}),
-      ...(fishOpt.repetitionPenalty != null ? { repetition_penalty: Number(fishOpt.repetitionPenalty) } : {}),
-      ...(fishOpt.repetition_penalty != null ? { repetition_penalty: Number(fishOpt.repetition_penalty) } : {}),
-      ...(fishOpt.chunkLength != null ? { chunk_length: Number(fishOpt.chunkLength) } : {}),
-      ...(fishOpt.chunk_length != null ? { chunk_length: Number(fishOpt.chunk_length) } : {}),
-      ...(fishOpt.prosodySpeed != null ? { prosody_speed: Number(fishOpt.prosodySpeed) } : {}),
-      ...(fishOpt.prosody_speed != null ? { prosody_speed: Number(fishOpt.prosody_speed) } : {}),
-      ...(fishOpt.cloudModel ? { cloud_model: String(fishOpt.cloudModel) } : {}),
-      ...(fishOpt.cloud_model ? { cloud_model: String(fishOpt.cloud_model) } : {}),
+      ...(fishOpt.repetitionPenalty != null
+        ? { repetition_penalty: Number(fishOpt.repetitionPenalty) }
+        : {}),
+      ...(fishOpt.repetition_penalty != null
+        ? { repetition_penalty: Number(fishOpt.repetition_penalty) }
+        : {}),
+      ...(fishOpt.chunkLength != null
+        ? { chunk_length: Number(fishOpt.chunkLength) }
+        : {}),
+      ...(fishOpt.chunk_length != null
+        ? { chunk_length: Number(fishOpt.chunk_length) }
+        : {}),
+      ...(fishOpt.prosodySpeed != null
+        ? { prosody_speed: Number(fishOpt.prosodySpeed) }
+        : {}),
+      ...(fishOpt.prosody_speed != null
+        ? { prosody_speed: Number(fishOpt.prosody_speed) }
+        : {}),
+      ...(fishOpt.cloudModel
+        ? { cloud_model: String(fishOpt.cloudModel) }
+        : {}),
+      ...(fishOpt.cloud_model
+        ? { cloud_model: String(fishOpt.cloud_model) }
+        : {}),
     };
-    const useTagged = useTaggedOverride !== undefined
-      ? Boolean(useTaggedOverride)
-      : (fishCfg.use_tagged_script !== false && fishCfg.useTaggedScript !== false);
-    const textForTts = useTagged && String(tagged).trim().length > 40
-      ? convertCinematicMarkersForTts(tagged, "fish")
-      : plain;
-    const fishVoice = voice || fishCfg.default_reference_id || fishCfg.defaultReferenceId || FISH_SPEECH_DEFAULT_VOICE;
+    const useTagged =
+      useTaggedOverride !== undefined
+        ? Boolean(useTaggedOverride)
+        : fishCfg.use_tagged_script !== false &&
+          fishCfg.useTaggedScript !== false;
+    const textForTts =
+      useTagged && String(tagged).trim().length > 40
+        ? convertCinematicMarkersForTts(tagged, "fish")
+        : plain;
+    const fishVoice =
+      voice ||
+      fishCfg.default_reference_id ||
+      fishCfg.defaultReferenceId ||
+      FISH_SPEECH_DEFAULT_VOICE;
 
     const result = await synthesizeFishSpeech(textForTts, {
       outputPath: dest,
@@ -688,11 +947,14 @@ export async function generateNarrationTts(projDir, {
   }
 
   const textForTts = convertCinematicMarkersForTts(tagged, engine);
-  throw new Error(`Engine TTS "${engine}" não suportado. Use kokoro, voicebox, gptsovits, chatterbox, fish ou edge. Texto: ${textForTts.slice(0, 80)}...`);
+  throw new Error(
+    `Engine TTS "${engine}" não suportado. Use kokoro, voicebox, gptsovits, chatterbox, fish ou edge. Texto: ${textForTts.slice(0, 80)}...`
+  );
 }
 
 export function applyListiclePreset(preset = {}, { format = "SHORTS" } = {}) {
-  const list = LISTICLE_WORKFLOW_PRESETS[format] || LISTICLE_WORKFLOW_PRESETS.SHORTS;
+  const list =
+    LISTICLE_WORKFLOW_PRESETS[format] || LISTICLE_WORKFLOW_PRESETS.SHORTS;
   const found = list.find((p) => p.id === preset.id) || preset;
   return {
     format: format === "SHORTS" ? "SHORTS" : "LONGO",
@@ -708,11 +970,10 @@ export function applyListiclePreset(preset = {}, { format = "SHORTS" } = {}) {
   };
 }
 
-export async function runPublishPrep(projDir, {
-  generateMetadata,
-  generateThumbnails,
-  onLog = () => {},
-} = {}) {
+export async function runPublishPrep(
+  projDir,
+  { generateMetadata, generateThumbnails, onLog = () => {} } = {}
+) {
   if (!generateMetadata) throw new Error("generateMetadata handler ausente");
 
   onLog("[Publish Prep] Gerando metadados YouTube...");
@@ -727,7 +988,10 @@ export async function runPublishPrep(projDir, {
     onLog(`[Publish Prep] ${thumbnails.length} thumbnails prontas.`);
   }
 
-  const adapted = adaptMetadataForPlatforms(metadata.parsed || {}, metadata.format || "LONG");
+  const adapted = adaptMetadataForPlatforms(
+    metadata.parsed || {},
+    metadata.format || "LONG"
+  );
   const configPath = path.join(projDir, "config_qanat.json");
   const config = readJson(configPath, {});
   config.upload_metadata = {
@@ -757,8 +1021,12 @@ export function runPythonScript(pythonPath, projDir, script, args = []) {
     });
     let stdout = "";
     let stderr = "";
-    child.stdout.on("data", (d) => { stdout += d.toString(); });
-    child.stderr.on("data", (d) => { stderr += d.toString(); });
+    child.stdout.on("data", (d) => {
+      stdout += d.toString();
+    });
+    child.stderr.on("data", (d) => {
+      stderr += d.toString();
+    });
     child.on("close", (code) => {
       if (code === 0) resolve({ stdout, stderr });
       else reject(new Error(stderr || stdout || `Exit ${code}`));
@@ -776,7 +1044,12 @@ export const CREATOR_PIPELINE_STEPS = [
   { id: "thumbnails", label: "Thumbnails A/B" },
 ];
 
-export async function runCreatorPipelineStep(stepId, projDir, handlers = {}, onLog = () => {}) {
+export async function runCreatorPipelineStep(
+  stepId,
+  projDir,
+  handlers = {},
+  onLog = () => {}
+) {
   const step = CREATOR_PIPELINE_STEPS.find((s) => s.id === stepId);
   if (!step) throw new Error(`Step desconhecido: ${stepId}`);
   onLog(`[Pipeline] ▶ ${step.label}...`);
@@ -790,11 +1063,22 @@ export async function runCreatorPipelineStep(stepId, projDir, handlers = {}, onL
   throw new Error(`Handler ausente para: ${stepId}`);
 }
 
-export async function runCreatorPipeline(projDir, {
-  steps = ["sync", "stock", "automap", "bgm", "mix", "metadata", "thumbnails"],
-  handlers = {},
-  onLog = () => {},
-} = {}) {
+export async function runCreatorPipeline(
+  projDir,
+  {
+    steps = [
+      "sync",
+      "stock",
+      "automap",
+      "bgm",
+      "mix",
+      "metadata",
+      "thumbnails",
+    ],
+    handlers = {},
+    onLog = () => {},
+  } = {}
+) {
   const results = [];
   for (const stepId of steps) {
     try {

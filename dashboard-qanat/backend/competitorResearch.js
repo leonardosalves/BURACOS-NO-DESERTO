@@ -19,8 +19,19 @@ import { extractJsonCandidate, parseJsonLocally } from "./aiJsonParse.js";
 
 const COMPETITOR_MEMORY_FILE = "competitor-intelligence.md";
 const OUTLIER_MULTIPLIER = 3.5;
+const OUTLIER_MIN_VIEWS = 1000;
 const DEFAULT_MAX_COMPETITORS = 5;
+const MAX_COMPETITORS_HARD_CAP = 10;
 const DEFAULT_VIDEOS_PER_CHANNEL = 20;
+const YT_API_BASE = "https://www.googleapis.com/youtube/v3";
+const YT_RETRY_DELAY_MS = 600;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// ---------------------------------------------------------------------------
+// Helpers genéricos
+// ---------------------------------------------------------------------------
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function readJsonFile(filePath) {
   if (!fs.existsSync(filePath)) return null;
@@ -31,18 +42,18 @@ function readJsonFile(filePath) {
   }
 }
 
-function formatCount(value) {
+function toCount(value) {
   const num = Number(value || 0);
   return Number.isFinite(num) ? num : 0;
 }
 
 function parseIso8601Duration(iso = "") {
-  const match = String(iso).match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  const match = String(iso).match(
+    /P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/
+  );
   if (!match) return 0;
-  const h = Number(match[1] || 0);
-  const m = Number(match[2] || 0);
-  const s = Number(match[3] || 0);
-  return h * 3600 + m * 60 + s;
+  const [, d, h, m, s] = match.map((v) => Number(v || 0));
+  return d * 86400 + h * 3600 + m * 60 + s;
 }
 
 function median(values = []) {
@@ -56,17 +67,29 @@ function median(values = []) {
 
 function daysSince(isoDate = "") {
   if (!isoDate) return null;
-  const ms = Date.now() - new Date(isoDate).getTime();
-  return Math.max(0, Math.round(ms / (24 * 60 * 60 * 1000)));
+  const ts = new Date(isoDate).getTime();
+  if (!Number.isFinite(ts)) return null;
+  return Math.max(0, Math.round((Date.now() - ts) / DAY_MS));
+}
+
+function todayStamp() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function nowStamp() {
+  return new Date().toISOString().slice(0, 16).replace("T", " ");
 }
 
 function titleSuggestsShort(title = "") {
-  return /#shorts?\b|#short\b|\bshorts\b/i.test(String(title));
+  return /#shorts?\b|\bshorts?\b/i.test(String(title));
+}
+
+function normalizeFormat(format) {
+  return String(format || "SHORT").toUpperCase() === "LONG" ? "LONG" : "SHORT";
 }
 
 function videoMatchesFormat(video, format = "SHORT") {
-  const fmt = String(format || "SHORT").toUpperCase();
-  if (fmt === "LONG") {
+  if (normalizeFormat(format) === "LONG") {
     return video.durationSec > 60 && !titleSuggestsShort(video.title);
   }
   return (
@@ -75,17 +98,31 @@ function videoMatchesFormat(video, format = "SHORT") {
   );
 }
 
-async function youtubeDataGet(accessToken, apiPath, params = {}) {
-  const url = new URL(`https://www.googleapis.com/youtube/v3/${apiPath}`);
-  Object.entries(params).forEach(([key, value]) => {
+function pickThumbnailUrl(thumbnails = {}) {
+  return thumbnails?.medium?.url || thumbnails?.default?.url || "";
+}
+
+// ---------------------------------------------------------------------------
+// API YouTube (com retry leve em 5xx/429)
+// ---------------------------------------------------------------------------
+
+async function youtubeDataGet(accessToken, apiPath, params = {}, attempt = 0) {
+  const url = new URL(`${YT_API_BASE}/${apiPath}`);
+  for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== "") {
       url.searchParams.set(key, String(value));
     }
-  });
+  }
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  const data = await res.json();
+
+  if (!res.ok && attempt < 1 && (res.status >= 500 || res.status === 429)) {
+    await sleep(YT_RETRY_DELAY_MS * (attempt + 1));
+    return youtubeDataGet(accessToken, apiPath, params, attempt + 1);
+  }
+
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(
       data?.error?.message || `Falha na API YouTube (${apiPath}).`
@@ -93,6 +130,10 @@ async function youtubeDataGet(accessToken, apiPath, params = {}) {
   }
   return data;
 }
+
+// ---------------------------------------------------------------------------
+// Resolução de nicho
+// ---------------------------------------------------------------------------
 
 function readNicheFromCompetitorMemory(workspaceDir) {
   const memoryPath = path.join(
@@ -107,10 +148,6 @@ function readNicheFromCompetitorMemory(workspaceDir) {
   } catch {
     return "";
   }
-}
-
-function defaultProjectsRoot() {
-  return resolveProjectsRoot();
 }
 
 function isChannelBrandNiche(niche, channelTitle = "") {
@@ -134,7 +171,6 @@ const GENERIC_NICHE_KEYS = new Set([
   "customized",
   "geral",
   "tecnologia",
-  "geral",
   "shorts",
   "youtube",
 ]);
@@ -156,30 +192,31 @@ function nichePriorityScore(niche, count) {
 function collectProjectNiches(projectsRoot) {
   const counts = new Map();
   const labels = new Map();
-  const root = projectsRoot || defaultProjectsRoot();
-  const roots = [
+  const root = projectsRoot || resolveProjectsRoot();
+  const scanRoots = [
     path.join(root, "videos longos"),
     path.join(root, "videos curtos shorts"),
   ];
-  for (const scanRoot of roots) {
+
+  for (const scanRoot of scanRoots) {
     if (!fs.existsSync(scanRoot)) continue;
     for (const item of fs.readdirSync(scanRoot)) {
-      const cfgPath = path.join(scanRoot, item, "config_qanat.json");
-      const cfg = readJsonFile(cfgPath);
+      const cfg = readJsonFile(path.join(scanRoot, item, "config_qanat.json"));
       const niche = String(cfg?.niche || "").trim();
       if (!niche || isChannelBrandNiche(niche)) continue;
       const key = niche.toLowerCase();
       counts.set(key, (counts.get(key) || 0) + 1);
-      if (!labels.has(key) || niche.length > labels.get(key).length)
+      if (!labels.has(key) || niche.length > labels.get(key).length) {
         labels.set(key, niche);
+      }
     }
   }
+
   return [...counts.entries()]
-    .map(([key, count]) => ({
-      niche: labels.get(key) || key,
-      score: nichePriorityScore(labels.get(key) || key, count),
-      count,
-    }))
+    .map(([key, count]) => {
+      const label = labels.get(key) || key;
+      return { niche: label, score: nichePriorityScore(label, count), count };
+    })
     .sort((a, b) => b.score - a.score || b.count - a.count)
     .map((entry) => entry.niche);
 }
@@ -201,30 +238,29 @@ function resolveResearchNiche(
   const keywords = Array.isArray(config.highlight_keywords)
     ? config.highlight_keywords
     : [];
-  if (keywords.length >= 3) {
-    return `${keywords[0]} ${keywords[1]} ${keywords[2]}`.trim();
-  }
+  if (keywords.length >= 3) return keywords.slice(0, 3).join(" ").trim();
 
   return "engenharia antiga curiosidades história";
 }
 
+// ---------------------------------------------------------------------------
+// Descoberta de canais
+// ---------------------------------------------------------------------------
+
 function buildSearchQueries(niche, format) {
   const base = String(niche || "").trim();
-  const fmt = String(format || "SHORT").toUpperCase();
+  const fmt = normalizeFormat(format);
   const queries = [];
   if (base) {
     queries.push(base);
     if (fmt === "SHORT") {
-      queries.push(`${base} shorts`);
-      queries.push(`${base} curiosidades`);
+      queries.push(`${base} shorts`, `${base} curiosidades`);
     } else {
-      queries.push(`${base} documentário`);
-      queries.push(`${base} documentary`);
+      queries.push(`${base} documentário`, `${base} documentary`);
     }
   }
   if (fmt === "SHORT") {
-    queries.push("curiosidades história shorts");
-    queries.push("fatos surpreendentes shorts");
+    queries.push("curiosidades história shorts", "fatos surpreendentes shorts");
   } else {
     queries.push("documentário história engenharia");
   }
@@ -238,28 +274,33 @@ async function searchCompetitorChannels(
   const queries = buildSearchQueries(niche, format);
   const found = new Map();
 
+  // Sequencial de propósito: interrompe cedo e economiza quota da API.
   for (const q of queries) {
     if (found.size >= maxCompetitors) break;
-    const data = await youtubeDataGet(accessToken, "search", {
-      part: "snippet",
-      type: "channel",
-      q,
-      maxResults: Math.min(maxCompetitors * 2, 15),
-      relevanceLanguage: "pt",
-      safeSearch: "none",
-    });
+    let data;
+    try {
+      data = await youtubeDataGet(accessToken, "search", {
+        part: "snippet",
+        type: "channel",
+        q,
+        maxResults: Math.min(maxCompetitors * 2, 15),
+        relevanceLanguage: "pt",
+        safeSearch: "none",
+      });
+    } catch (err) {
+      console.warn(`[CompetitorResearch] Busca "${q}" falhou:`, err.message);
+      continue;
+    }
+
     for (const item of data?.items || []) {
       const channelId = item?.id?.channelId || item?.snippet?.channelId;
-      if (!channelId || channelId === excludeChannelId) continue;
-      if (found.has(channelId)) continue;
+      if (!channelId || channelId === excludeChannelId || found.has(channelId))
+        continue;
       found.set(channelId, {
         id: channelId,
         title: item?.snippet?.channelTitle || item?.snippet?.title || "",
         description: (item?.snippet?.description || "").slice(0, 280),
-        thumbnailUrl:
-          item?.snippet?.thumbnails?.medium?.url ||
-          item?.snippet?.thumbnails?.default?.url ||
-          "",
+        thumbnailUrl: pickThumbnailUrl(item?.snippet?.thumbnails),
         url: `https://www.youtube.com/channel/${channelId}`,
         sourceQuery: q,
       });
@@ -270,62 +311,70 @@ async function searchCompetitorChannels(
   return [...found.values()];
 }
 
+async function resolveSeedChannelId(accessToken, raw) {
+  if (/^UC[\w-]{20,}$/.test(raw)) return raw;
+
+  const idMatch = raw.match(/channel\/(UC[\w-]+)/);
+  if (idMatch) return idMatch[1];
+
+  const handleMatch = raw.includes("youtube.com")
+    ? raw.match(/@([\w.-]+)/)
+    : raw.startsWith("@")
+      ? [null, raw.slice(1)]
+      : null;
+
+  if (handleMatch) {
+    const data = await youtubeDataGet(accessToken, "search", {
+      part: "snippet",
+      type: "channel",
+      q: `@${handleMatch[1]}`,
+      maxResults: 1,
+    });
+    return data?.items?.[0]?.id?.channelId || null;
+  }
+
+  return raw; // assume que já é um channelId
+}
+
 async function resolveSeedChannels(accessToken, seedChannels = []) {
   const resolved = [];
   for (const seed of seedChannels) {
     const raw = String(seed || "").trim();
     if (!raw) continue;
-
-    let channelId = raw;
-    if (raw.includes("youtube.com")) {
-      const handleMatch = raw.match(/@([\w.-]+)/);
-      const idMatch = raw.match(/channel\/(UC[\w-]+)/);
-      if (idMatch) channelId = idMatch[1];
-      else if (handleMatch) {
-        const data = await youtubeDataGet(accessToken, "search", {
-          part: "snippet",
-          type: "channel",
-          q: `@${handleMatch[1]}`,
-          maxResults: 1,
-        });
-        channelId = data?.items?.[0]?.id?.channelId;
-        if (!channelId) continue;
-      }
-    } else if (raw.startsWith("@")) {
-      const data = await youtubeDataGet(accessToken, "search", {
-        part: "snippet",
-        type: "channel",
-        q: raw,
-        maxResults: 1,
-      });
-      channelId = data?.items?.[0]?.id?.channelId;
+    try {
+      const channelId = await resolveSeedChannelId(accessToken, raw);
       if (!channelId) continue;
-    }
 
-    const data = await youtubeDataGet(accessToken, "channels", {
-      part: "snippet,statistics",
-      id: channelId,
-    });
-    const item = data?.items?.[0];
-    if (!item) continue;
-    const stats = item.statistics || {};
-    const snippet = item.snippet || {};
-    resolved.push({
-      id: item.id,
-      title: snippet.title || "",
-      description: (snippet.description || "").slice(0, 280),
-      thumbnailUrl:
-        snippet.thumbnails?.medium?.url ||
-        snippet.thumbnails?.default?.url ||
-        "",
-      url: `https://www.youtube.com/channel/${item.id}`,
-      subscriberCount: formatCount(stats.subscriberCount),
-      videoCount: formatCount(stats.videoCount),
-      sourceQuery: "seed",
-    });
+      const data = await youtubeDataGet(accessToken, "channels", {
+        part: "snippet,statistics",
+        id: channelId,
+      });
+      const item = data?.items?.[0];
+      if (!item) continue;
+
+      const stats = item.statistics || {};
+      const snippet = item.snippet || {};
+      resolved.push({
+        id: item.id,
+        title: snippet.title || "",
+        description: (snippet.description || "").slice(0, 280),
+        thumbnailUrl: pickThumbnailUrl(snippet.thumbnails),
+        url: `https://www.youtube.com/channel/${item.id}`,
+        subscriberCount: toCount(stats.subscriberCount),
+        videoCount: toCount(stats.videoCount),
+        sourceQuery: "seed",
+      });
+    } catch (err) {
+      // Um seed inválido não deve abortar a pesquisa inteira.
+      console.warn(`[CompetitorResearch] Seed "${raw}" ignorado:`, err.message);
+    }
   }
   return resolved;
 }
+
+// ---------------------------------------------------------------------------
+// Coleta de vídeos por canal
+// ---------------------------------------------------------------------------
 
 async function fetchChannelRecentVideos(
   accessToken,
@@ -338,7 +387,18 @@ async function fetchChannelRecentVideos(
   });
   const item = channelData?.items?.[0];
   const uploadsPlaylistId = item?.contentDetails?.relatedPlaylists?.uploads;
-  if (!uploadsPlaylistId) return { channel: null, videos: [] };
+
+  const channelInfo = item
+    ? {
+        id: channelId,
+        title: item?.snippet?.title || "",
+        subscriberCount: toCount(item?.statistics?.subscriberCount),
+        videoCount: toCount(item?.statistics?.videoCount),
+        url: `https://www.youtube.com/channel/${channelId}`,
+      }
+    : null;
+
+  if (!uploadsPlaylistId) return { channel: channelInfo, videos: [] };
 
   const playlistData = await youtubeDataGet(accessToken, "playlistItems", {
     part: "snippet,contentDetails",
@@ -347,24 +407,10 @@ async function fetchChannelRecentVideos(
   });
 
   const videoIds = (playlistData?.items || [])
-    .map(
-      (entry) =>
-        entry?.contentDetails?.videoId || entry?.snippet?.resourceId?.videoId
-    )
+    .map((e) => e?.contentDetails?.videoId || e?.snippet?.resourceId?.videoId)
     .filter(Boolean);
 
-  if (!videoIds.length) {
-    return {
-      channel: {
-        id: channelId,
-        title: item?.snippet?.title || "",
-        subscriberCount: formatCount(item?.statistics?.subscriberCount),
-        videoCount: formatCount(item?.statistics?.videoCount),
-        url: `https://www.youtube.com/channel/${channelId}`,
-      },
-      videos: [],
-    };
-  }
+  if (!videoIds.length) return { channel: channelInfo, videos: [] };
 
   const videosData = await youtubeDataGet(accessToken, "videos", {
     part: "snippet,statistics,contentDetails",
@@ -381,70 +427,66 @@ async function fetchChannelRecentVideos(
       description: (snippet.description || "").slice(0, 400),
       publishedAt: snippet.publishedAt || "",
       ageDays: daysSince(snippet.publishedAt),
-      views: formatCount(stats.viewCount),
-      likes: formatCount(stats.likeCount),
-      comments: formatCount(stats.commentCount),
+      views: toCount(stats.viewCount),
+      likes: toCount(stats.likeCount),
+      comments: toCount(stats.commentCount),
       durationSec,
       durationLabel: durationSec ? `${Math.round(durationSec)}s` : "—",
       url: `https://www.youtube.com/watch?v=${v.id}`,
-      thumbnailUrl:
-        snippet.thumbnails?.medium?.url ||
-        snippet.thumbnails?.default?.url ||
-        "",
+      thumbnailUrl: pickThumbnailUrl(snippet.thumbnails),
     };
   });
 
+  // Filtro por formato com relaxamento progressivo (garante amostra mínima).
   let filtered = videos.filter((v) => videoMatchesFormat(v, format));
   if (filtered.length < 3 && videos.length > filtered.length) {
-    filtered = videos.filter((v) => {
-      const fmt = String(format || "SHORT").toUpperCase();
-      if (fmt === "LONG") return v.durationSec > 60;
-      return v.durationSec <= 300 || titleSuggestsShort(v.title);
-    });
+    const fmt = normalizeFormat(format);
+    filtered = videos.filter((v) =>
+      fmt === "LONG"
+        ? v.durationSec > 60
+        : v.durationSec <= 300 || titleSuggestsShort(v.title)
+    );
   }
   if (filtered.length < 3) filtered = videos;
 
-  return {
-    channel: {
-      id: channelId,
-      title: item?.snippet?.title || "",
-      subscriberCount: formatCount(item?.statistics?.subscriberCount),
-      videoCount: formatCount(item?.statistics?.videoCount),
-      url: `https://www.youtube.com/channel/${channelId}`,
-    },
-    videos: filtered,
-  };
+  return { channel: channelInfo, videos: filtered };
 }
 
 function detectOutliers(videos = []) {
   if (!videos.length) return [];
-  const viewCounts = videos.map((v) => v.views).filter((v) => v > 0);
-  const baseline = median(viewCounts) || 1;
+  const baseline = median(videos.map((v) => v.views)) || 1;
   const threshold = baseline * OUTLIER_MULTIPLIER;
 
   return videos
     .map((v) => ({
       ...v,
       channelMedianViews: Math.round(baseline),
-      outlierRatio: baseline > 0 ? Number((v.views / baseline).toFixed(2)) : 0,
-      isOutlier: v.views >= threshold && v.views >= 1000,
+      outlierRatio: Number((v.views / baseline).toFixed(2)),
+      isOutlier: v.views >= threshold && v.views >= OUTLIER_MIN_VIEWS,
     }))
     .filter((v) => v.isOutlier)
     .sort((a, b) => b.outlierRatio - a.outlierRatio);
 }
 
+// ---------------------------------------------------------------------------
+// Parse da análise IA
+// ---------------------------------------------------------------------------
+
+const SALVAGE_KEYS = [
+  "derivedIdeas",
+  "outlierAnalyses",
+  "promotedPatterns",
+  "competitorErrors",
+  "competitors",
+];
+
 function salvagePartialAnalysis(text = "", fallback = {}) {
   const salvaged = { ...fallback };
   const candidate = extractJsonCandidate(text);
-  for (const key of [
-    "derivedIdeas",
-    "outlierAnalyses",
-    "promotedPatterns",
-    "competitorErrors",
-    "competitors",
-  ]) {
-    const re = new RegExp(`"${key}"\\s*:\\s*(\\[[\\s\\S]*?\\])`);
-    const match = candidate.match(re);
+  for (const key of SALVAGE_KEYS) {
+    const match = candidate.match(
+      new RegExp(`"${key}"\\s*:\\s*(\\[[\\s\\S]*?\\])`)
+    );
     if (!match) continue;
     try {
       const arr = JSON.parse(match[1].replace(/,\s*]/g, "]"));
@@ -482,6 +524,7 @@ async function parseCompetitorAnalysis(
 ) {
   if (!llmText) return { analysis: null, repaired: false, salvaged: false };
 
+  // 1) Parse direto
   try {
     return {
       analysis: normalizeAnalysisShape(parseJsonLocally(llmText), fallback),
@@ -492,6 +535,7 @@ async function parseCompetitorAnalysis(
     console.warn("[CompetitorResearch] JSON parse:", firstErr.message);
   }
 
+  // 2) Reparo via IA
   if (repairFn) {
     try {
       const candidate = extractJsonCandidate(llmText).slice(0, 14000);
@@ -511,6 +555,7 @@ async function parseCompetitorAnalysis(
     }
   }
 
+  // 3) Salvage parcial (regex por chave)
   const partial = salvagePartialAnalysis(llmText, fallback);
   const hasUseful =
     (partial.derivedIdeas?.length || 0) > 0 ||
@@ -528,8 +573,6 @@ async function parseCompetitorAnalysis(
 
 function buildAnalysisPrompt({ niche, format, competitors, outliers }) {
   const payload = {
-    niche,
-    format,
     outliers: outliers.slice(0, 4).map((o) => ({
       channel: o.channelTitle,
       title: o.title.slice(0, 120),
@@ -544,7 +587,7 @@ function buildAnalysisPrompt({ niche, format, competitors, outliers }) {
     })),
   };
 
-  return `Analista YouTube Shorts — nicho "${niche}".
+  return `Analista YouTube ${format === "LONG" ? "" : "Shorts "}— nicho "${niche}".
 
 OUTLIERS (views ≥ ${OUTLIER_MULTIPLIER}× mediana):
 ${JSON.stringify(payload.outliers)}
@@ -564,6 +607,10 @@ Retorne SOMENTE um objeto JSON (sem markdown, sem comentários). Aspas duplas em
 Regras: PT-BR; mecânica (não cópia); derivedIdeas=3; outlierAnalyses=1 por outlier.`;
 }
 
+// ---------------------------------------------------------------------------
+// Formatação Markdown / memória Obsidian
+// ---------------------------------------------------------------------------
+
 function formatSubscriberCount(n) {
   const num = Number(n || 0);
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
@@ -582,7 +629,7 @@ function upsertChannelRow(existingTable, channel) {
   const title = escapeTableCell(channel.title);
   const url = channel.url || "";
   if (
-    existingTable.includes(url) ||
+    (url && existingTable.includes(url)) ||
     (title && existingTable.includes(`| ${title} |`))
   ) {
     return existingTable;
@@ -596,8 +643,7 @@ function upsertChannelRow(existingTable, channel) {
 
 function appendResearchSection(content, section) {
   const marker = "## Pesquisas automáticas (IA)";
-  const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
-  const block = `\n\n${marker}\n\n### ${stamp} — ${section.title}\n\n${section.body}\n`;
+  const block = `\n\n${marker}\n\n### ${nowStamp()} — ${section.title}\n\n${section.body}\n`;
   if (content.includes(marker)) {
     return content.replace(marker, `${marker}${block}`);
   }
@@ -606,64 +652,53 @@ function appendResearchSection(content, section) {
 
 function appendCandidates(content, ideas = []) {
   if (!ideas.length) return content;
-  const lines = ideas.map((idea) => {
-    const title = escapeTableCell(idea.title);
-    const hook = escapeTableCell(idea.hookPt);
-    return `- **${title}** — ${hook} _(inbox · IA ${new Date().toISOString().slice(0, 10)})_`;
-  });
+  const stamp = todayStamp();
+  const lines = ideas.map(
+    (idea) =>
+      `- **${escapeTableCell(idea.title)}** — ${escapeTableCell(idea.hookPt)} _(inbox · IA ${stamp})_`
+  );
   const marker = "## Candidatos em observação";
   if (!content.includes(marker)) return content;
-  const parts = content.split(marker);
-  const tail = parts[1] || "";
-  const nextTail = `${tail.trimEnd()}\n${lines.join("\n")}\n`;
-  return `${parts[0]}${marker}${nextTail}`;
+  const [head, ...rest] = content.split(marker);
+  const tail = rest.join(marker);
+  return `${head}${marker}${tail.trimEnd()}\n${lines.join("\n")}\n`;
 }
 
 function appendPromotedPatterns(content, patterns = []) {
   if (!patterns.length) return content;
   const marker = "## Padrões promovidos (concorrentes → nosso formato)";
-  const additions = patterns.map(
-    (p) =>
-      `- ${escapeTableCell(p)} _(IA ${new Date().toISOString().slice(0, 10)})_`
-  );
   if (!content.includes(marker)) return content;
+  const stamp = todayStamp();
+  const additions = patterns.map(
+    (p) => `- ${escapeTableCell(p)} _(IA ${stamp})_`
+  );
   return content.replace(marker, `${marker}\n${additions.join("\n")}`);
 }
 
 function appendCompetitorErrors(content, errors = []) {
   if (!errors.length) return content;
   const marker = "## Erros dos concorrentes (nosso diferencial)";
-  const additions = errors.map((e) => `- ${escapeTableCell(e)}`);
   if (!content.includes(marker)) return content;
+  const additions = errors.map((e) => `- ${escapeTableCell(e)}`);
   const afterMarker = content.split(marker)[1] || "";
   if (additions.every((a) => afterMarker.includes(a.slice(2)))) return content;
   return content.replace(marker, `${marker}\n${additions.join("\n")}`);
 }
 
 function formatVideoAge(publishedAt) {
-  if (!publishedAt) return "—";
-  const days = Math.max(
-    0,
-    Math.round(
-      (Date.now() - new Date(publishedAt).getTime()) / (24 * 60 * 60 * 1000)
-    )
-  );
+  const days = daysSince(publishedAt);
+  if (days == null) return "—";
   if (days < 30) return `${days}d`;
   if (days < 365) return `${Math.round(days / 30)}m`;
   return `${Math.round(days / 365)}a`;
 }
 
 function buildFullOutlierFicha(outlier = {}, analysisEntry = {}) {
+  const fmtNum = (v) => (v != null ? Number(v).toLocaleString("pt-BR") : "—");
   const title = escapeTableCell(
     analysisEntry.videoTitle || outlier.title || "Outlier"
   );
-  const views =
-    outlier.views != null ? Number(outlier.views).toLocaleString("pt-BR") : "—";
   const ratio = outlier.outlierRatio != null ? `${outlier.outlierRatio}×` : "—";
-  const median =
-    outlier.channelMedianViews != null
-      ? Number(outlier.channelMedianViews).toLocaleString("pt-BR")
-      : "—";
   const duration =
     outlier.durationLabel ||
     (outlier.durationSec ? `${outlier.durationSec}s` : "—");
@@ -677,8 +712,8 @@ function buildFullOutlierFicha(outlier = {}, analysisEntry = {}) {
     `### ${title}`,
     `- **Canal:** ${escapeTableCell(analysisEntry.channel || outlier.channelTitle)}`,
     `- **videoId / URL:** ${videoId || "—"} · ${url}`,
-    `- **Views / idade / duração:** ${views} / ${formatVideoAge(outlier.publishedAt)} / ${duration}`,
-    `- **Outlier?** ${ratio} vs mediana do canal (${median} views)`,
+    `- **Views / idade / duração:** ${fmtNum(outlier.views)} / ${formatVideoAge(outlier.publishedAt)} / ${duration}`,
+    `- **Outlier?** ${ratio} vs mediana do canal (${fmtNum(outlier.channelMedianViews)} views)`,
     "",
     "#### Hook (0–3s)",
     `- Visual (1º frame): ${escapeTableCell(analysisEntry.hook?.visual)}`,
@@ -715,33 +750,37 @@ function buildFullOutlierFicha(outlier = {}, analysisEntry = {}) {
     .join("\n");
 }
 
+function mapAnalysesByTitle(analyses = []) {
+  return new Map(
+    analyses.map((a) => [String(a.videoTitle || "").toLowerCase(), a])
+  );
+}
+
 function appendFichaArchive(content, outliers = [], analyses = []) {
   const marker = "## Ficha de dissecção (por vídeo outlier)";
   if (!outliers.length) return content;
 
-  const analysisByTitle = new Map(
-    (analyses || []).map((a) => [String(a.videoTitle || "").toLowerCase(), a])
-  );
+  const analysisByTitle = mapAnalysesByTitle(analyses);
+  const contentLower = content.toLowerCase();
 
-  const blocks = outliers.map((o) => {
-    const key = String(o.title || "").toLowerCase();
-    const entry = analysisByTitle.get(key) || {};
-    return buildFullOutlierFicha(o, entry);
-  });
+  const blocks = outliers
+    .map((o) => {
+      const entry =
+        analysisByTitle.get(String(o.title || "").toLowerCase()) || {};
+      return buildFullOutlierFicha(o, entry);
+    })
+    .filter((block) => {
+      const titleLine = block
+        .split("\n")[0]
+        .replace(/^###\s*/, "")
+        .trim()
+        .toLowerCase();
+      return titleLine && !contentLower.includes(titleLine);
+    });
 
-  const deduped = blocks.filter((block) => {
-    const titleLine = block
-      .split("\n")[0]
-      .replace(/^###\s*/, "")
-      .trim()
-      .toLowerCase();
-    return titleLine && !content.toLowerCase().includes(titleLine);
-  });
-  if (!deduped.length) return content;
+  if (!blocks.length) return content;
 
-  const stamp = new Date().toISOString().slice(0, 10);
-  const sectionBody = `\n\n<!-- auto:${stamp} -->\n${deduped.join("\n\n---\n\n")}\n`;
-
+  const sectionBody = `\n\n<!-- auto:${todayStamp()} -->\n${blocks.join("\n\n---\n\n")}\n`;
   if (!content.includes(marker)) {
     return `${content.trimEnd()}\n\n${marker}\n${sectionBody}`;
   }
@@ -754,12 +793,7 @@ function buildFichaMarkdown(analysis, outliers = []) {
       .map((o) => buildFullOutlierFicha({}, o))
       .join("\n\n---\n\n");
   }
-  const analysisByTitle = new Map(
-    (analysis.outlierAnalyses || []).map((a) => [
-      String(a.videoTitle || "").toLowerCase(),
-      a,
-    ])
-  );
+  const analysisByTitle = mapAnalysesByTitle(analysis.outlierAnalyses || []);
   return outliers
     .slice(0, 4)
     .map((o) => {
@@ -803,7 +837,7 @@ export function appendCompetitorResearchToMemory(
     ? fs.readFileSync(memoryPath, "utf8")
     : `# Inteligência competitiva\n\n> 🔗 [[MEMORIA-LUMIERA]]\n\n`;
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Frontmatter: nicho + data (preserva nicho bom já existente)
   const existingNiche =
     (content.match(/^niche:\s*(.+)$/m) || [])[1]?.trim() || "";
   const nicheToPersist = isChannelBrandNiche(niche, channelTitle)
@@ -814,8 +848,9 @@ export function appendCompetitorResearchToMemory(
   if (!isChannelBrandNiche(nicheToPersist, channelTitle)) {
     content = content.replace(/niche: .*/m, `niche: ${nicheToPersist}`);
   }
-  content = content.replace(/updated: .*/m, `updated: ${today}`);
+  content = content.replace(/updated: .*/m, `updated: ${todayStamp()}`);
 
+  // Tabela "quem monitorar"
   const tableMarker = "## Quem monitorar (lista viva)";
   if (content.includes(tableMarker)) {
     const tableHeader = "| Canal | Nicho | Tamanho | URL | Notas |";
@@ -839,7 +874,9 @@ export function appendCompetitorResearchToMemory(
           sourceQuery: c.sourceQuery,
         });
       }
-      content = `${content.slice(0, tableStart)}${nextTable}${content.slice(tableEnd > 0 ? tableEnd : content.length)}`;
+      content = `${content.slice(0, tableStart)}${nextTable}${content.slice(
+        tableEnd > 0 ? tableEnd : content.length
+      )}`;
     }
   }
 
@@ -857,7 +894,6 @@ export function appendCompetitorResearchToMemory(
     title: `${niche} (${format})`,
     body: researchBody,
   });
-
   content = appendFichaArchive(
     content,
     outliers,
@@ -878,97 +914,12 @@ export function appendCompetitorResearchToMemory(
   return { memoryPath, memoryFile: COMPETITOR_MEMORY_FILE };
 }
 
-export async function runCompetitorResearch(
-  workspaceDir,
-  {
-    niche,
-    format = "SHORT",
-    maxCompetitors = DEFAULT_MAX_COMPETITORS,
-    videosPerChannel = DEFAULT_VIDEOS_PER_CHANNEL,
-    seedChannels = [],
-    projectsRoot = "",
-    llmFn = null,
-    repairJsonFn = null,
-  } = {}
-) {
-  await assertTitleTestScopes(workspaceDir);
-  const accessToken = await getYoutubeAccessToken(workspaceDir);
+// ---------------------------------------------------------------------------
+// Análise fallback (sem IA)
+// ---------------------------------------------------------------------------
 
-  const ownOverview = await youtubeDataGet(accessToken, "channels", {
-    part: "snippet",
-    mine: "true",
-  });
-  const ownChannelId = ownOverview?.items?.[0]?.id || null;
-
-  const config =
-    readJsonFile(path.join(workspaceDir, "config_qanat.json")) || {};
-  const channelTitle = ownOverview?.items?.[0]?.snippet?.title || "";
-  const resolvedNiche = resolveResearchNiche(workspaceDir, {
-    niche,
-    config,
-    channelTitle,
-    projectsRoot: projectsRoot || defaultProjectsRoot(),
-  });
-  const resolvedFormat =
-    String(format || "SHORT").toUpperCase() === "LONG" ? "LONG" : "SHORT";
-  const maxC = Math.min(
-    Math.max(Number(maxCompetitors) || DEFAULT_MAX_COMPETITORS, 1),
-    10
-  );
-
-  let competitors = await resolveSeedChannels(accessToken, seedChannels);
-  if (competitors.length < maxC) {
-    const discovered = await searchCompetitorChannels(accessToken, {
-      niche: resolvedNiche,
-      format: resolvedFormat,
-      maxCompetitors: maxC - competitors.length,
-      excludeChannelId: ownChannelId,
-    });
-    const seen = new Set(competitors.map((c) => c.id));
-    for (const c of discovered) {
-      if (seen.has(c.id)) continue;
-      competitors.push(c);
-      seen.add(c.id);
-      if (competitors.length >= maxC) break;
-    }
-  }
-
-  const allOutliers = [];
-  const channelReports = [];
-
-  for (const competitor of competitors) {
-    const { channel, videos } = await fetchChannelRecentVideos(
-      accessToken,
-      competitor.id,
-      {
-        limit: videosPerChannel,
-        format: resolvedFormat,
-      }
-    );
-    if (!channel) continue;
-
-    const outliers = detectOutliers(videos).map((o) => ({
-      ...o,
-      channelId: channel.id,
-      channelTitle: channel.title,
-      channelUrl: channel.url,
-    }));
-
-    channelReports.push({
-      ...competitor,
-      ...channel,
-      videosScanned: videos.length,
-      medianViews: videos.length ? median(videos.map((v) => v.views)) : 0,
-      outliers,
-    });
-
-    allOutliers.push(...outliers);
-  }
-
-  allOutliers.sort((a, b) => b.outlierRatio - a.outlierRatio);
-  const topOutliers = allOutliers.slice(0, 6);
-
-  let analysis = {
+function buildFallbackAnalysis(competitors, topOutliers) {
+  return {
     competitors: competitors.map((c) => ({
       title: c.title,
       url: c.url,
@@ -998,7 +949,113 @@ export async function runCompetitorResearch(
     promotedPatterns: [],
     competitorErrors: [],
   };
+}
 
+// ---------------------------------------------------------------------------
+// Pipeline principal
+// ---------------------------------------------------------------------------
+
+export async function runCompetitorResearch(
+  workspaceDir,
+  {
+    niche,
+    format = "SHORT",
+    maxCompetitors = DEFAULT_MAX_COMPETITORS,
+    videosPerChannel = DEFAULT_VIDEOS_PER_CHANNEL,
+    seedChannels = [],
+    projectsRoot = "",
+    llmFn = null,
+    repairJsonFn = null,
+  } = {}
+) {
+  await assertTitleTestScopes(workspaceDir);
+  const accessToken = await getYoutubeAccessToken(workspaceDir);
+
+  const ownOverview = await youtubeDataGet(accessToken, "channels", {
+    part: "snippet",
+    mine: "true",
+  });
+  const ownChannel = ownOverview?.items?.[0] || null;
+  const ownChannelId = ownChannel?.id || null;
+  const channelTitle = ownChannel?.snippet?.title || "";
+
+  const config =
+    readJsonFile(path.join(workspaceDir, "config_qanat.json")) || {};
+  const resolvedNiche = resolveResearchNiche(workspaceDir, {
+    niche,
+    config,
+    channelTitle,
+    projectsRoot: projectsRoot || resolveProjectsRoot(),
+  });
+  const resolvedFormat = normalizeFormat(format);
+  const maxC = Math.min(
+    Math.max(Number(maxCompetitors) || DEFAULT_MAX_COMPETITORS, 1),
+    MAX_COMPETITORS_HARD_CAP
+  );
+
+  // 1) Seeds + descoberta
+  const competitors = await resolveSeedChannels(accessToken, seedChannels);
+  if (competitors.length < maxC) {
+    const discovered = await searchCompetitorChannels(accessToken, {
+      niche: resolvedNiche,
+      format: resolvedFormat,
+      maxCompetitors: maxC - competitors.length,
+      excludeChannelId: ownChannelId,
+    });
+    const seen = new Set(competitors.map((c) => c.id));
+    for (const c of discovered) {
+      if (seen.has(c.id) || competitors.length >= maxC) continue;
+      competitors.push(c);
+      seen.add(c.id);
+    }
+  }
+
+  // 2) Coleta de vídeos em paralelo (falha de um canal não derruba os demais)
+  const fetchResults = await Promise.allSettled(
+    competitors.map((competitor) =>
+      fetchChannelRecentVideos(accessToken, competitor.id, {
+        limit: videosPerChannel,
+        format: resolvedFormat,
+      }).then((result) => ({ competitor, ...result }))
+    )
+  );
+
+  const allOutliers = [];
+  const channelReports = [];
+
+  for (const settled of fetchResults) {
+    if (settled.status === "rejected") {
+      console.warn(
+        "[CompetitorResearch] Canal ignorado:",
+        settled.reason?.message || settled.reason
+      );
+      continue;
+    }
+    const { competitor, channel, videos } = settled.value;
+    if (!channel) continue;
+
+    const outliers = detectOutliers(videos).map((o) => ({
+      ...o,
+      channelId: channel.id,
+      channelTitle: channel.title,
+      channelUrl: channel.url,
+    }));
+
+    channelReports.push({
+      ...competitor,
+      ...channel,
+      videosScanned: videos.length,
+      medianViews: videos.length ? median(videos.map((v) => v.views)) : 0,
+      outliers,
+    });
+    allOutliers.push(...outliers);
+  }
+
+  allOutliers.sort((a, b) => b.outlierRatio - a.outlierRatio);
+  const topOutliers = allOutliers.slice(0, 6);
+
+  // 3) Análise IA (com fallback determinístico)
+  let analysis = buildFallbackAnalysis(competitors, topOutliers);
   let aiAnalysisFailed = false;
   let aiAnalysisWarning = null;
 
@@ -1046,6 +1103,7 @@ export async function runCompetitorResearch(
     }
   }
 
+  // 4) Persistência na memória Obsidian
   const memory = appendCompetitorResearchToMemory(workspaceDir, {
     niche: resolvedNiche,
     format: resolvedFormat,
