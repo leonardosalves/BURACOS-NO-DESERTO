@@ -2413,6 +2413,15 @@ export default function App() {
     setUploadScope(
       activeProject === "Buracos no Deserto" ? "global" : "project"
     );
+    // Reset project-specific states to prevent stale leakage from the previously active project
+    setConfig(null);
+    setStatus(null);
+    setStoryboardData(null);
+    setWordTranscripts([]);
+    setOutputs([]);
+    setLogs([]);
+    setRendering(false);
+    setSelectedUploadVideo(null);
   }, [activeProject]);
 
   useEffect(() => {
