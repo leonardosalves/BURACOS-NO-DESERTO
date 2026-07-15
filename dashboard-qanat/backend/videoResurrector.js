@@ -1194,6 +1194,28 @@ export async function generateResurrectorMetadata(item, deps = {}) {
   };
 }
 
+function buildSlotAlerts({ slot, slotLabel, slotHour, ran, run, deadlinePassed }) {
+  const alerts = [];
+  if (deadlinePassed && !ran) {
+    alerts.push({
+      type: "missed_batch",
+      slot,
+      severity: "warning",
+      message: `Batch da ${slotLabel} (${slotHour}h) não foi executado. Dispare manualmente.`,
+    });
+  }
+  if (run?.trigger === "auto") {
+    alerts.push({
+      type: "auto_ran",
+      slot,
+      severity: "success",
+      message: `Batch da ${slotLabel} executado automaticamente às ${formatLocalTime(run.ranAt)} (${run.count || 0} vídeos).`,
+      ranAt: run.ranAt,
+    });
+  }
+  return alerts;
+}
+
 export function computeResurrectorSchedule(state, now = new Date()) {
   const settings = state.settings || DEFAULT_SETTINGS;
   const hour = now.getHours();
@@ -1206,46 +1228,29 @@ export function computeResurrectorSchedule(state, now = new Date()) {
   const morningRan = Boolean(runs.morning?.ranAt);
   const afternoonRan = Boolean(runs.afternoon?.ranAt);
 
-  const alerts = [];
   const morningDeadlinePassed =
     hour > morningHour || (hour === morningHour && minute >= 30);
   const afternoonDeadlinePassed =
     hour > afternoonHour || (hour === afternoonHour && minute >= 30);
 
-  if (morningDeadlinePassed && !morningRan) {
-    alerts.push({
-      type: "missed_batch",
+  const alerts = [
+    ...buildSlotAlerts({
       slot: "morning",
-      severity: "warning",
-      message: `Batch da manhã (${morningHour}h) não foi executado. Dispare manualmente.`,
-    });
-  }
-  if (afternoonDeadlinePassed && !afternoonRan) {
-    alerts.push({
-      type: "missed_batch",
+      slotLabel: "manhã",
+      slotHour: morningHour,
+      ran: morningRan,
+      run: runs.morning,
+      deadlinePassed: morningDeadlinePassed,
+    }),
+    ...buildSlotAlerts({
       slot: "afternoon",
-      severity: "warning",
-      message: `Batch da tarde (${afternoonHour}h) não foi executado. Dispare manualmente.`,
-    });
-  }
-  if (runs.morning?.trigger === "auto") {
-    alerts.push({
-      type: "auto_ran",
-      slot: "morning",
-      severity: "success",
-      message: `Batch da manhã executado automaticamente às ${formatLocalTime(runs.morning.ranAt)} (${runs.morning.count || 0} vídeos).`,
-      ranAt: runs.morning.ranAt,
-    });
-  }
-  if (runs.afternoon?.trigger === "auto") {
-    alerts.push({
-      type: "auto_ran",
-      slot: "afternoon",
-      severity: "success",
-      message: `Batch da tarde executado automaticamente às ${formatLocalTime(runs.afternoon.ranAt)} (${runs.afternoon.count || 0} vídeos).`,
-      ranAt: runs.afternoon.ranAt,
-    });
-  }
+      slotLabel: "tarde",
+      slotHour: afternoonHour,
+      ran: afternoonRan,
+      run: runs.afternoon,
+      deadlinePassed: afternoonDeadlinePassed,
+    }),
+  ];
 
   let nextSlot = null;
   if (!morningRan && hour < morningHour) nextSlot = "morning";
@@ -1300,6 +1305,55 @@ export async function runResurrectorBatch(
   return withResurrectorMutex(() =>
     runResurrectorBatchInner(workspaceDir, projectsRoot, deps, options)
   );
+}
+
+/**
+ * Publica um item no YouTube com logging padronizado.
+ * Recarrega o state do disco após aplicar (applyResurrectorItem salva internamente).
+ */
+async function publishResurrectorItemWithLogging(workspaceDir, state, item, metadata, runLog, { usedFallback = false } = {}) {
+  const titlePreview = String(item.title || item.videoId).slice(0, 72);
+  appendResurrectorLog(state, "info", `Publicando no YouTube: ${titlePreview}`, {
+    videoId: item.videoId,
+  });
+  saveResurrectorState(workspaceDir, state);
+
+  try {
+    const applied = await applyResurrectorItem(workspaceDir, item.id, metadata);
+    const freshState = loadResurrectorState(workspaceDir);
+    const thumbNote = applied.thumbnailApplied ? " (+ thumbnail)" : "";
+    const okMsg = usedFallback
+      ? `Publicado (fallback IA)${thumbNote}: ${titlePreview}`
+      : `Publicado no YouTube${thumbNote}: ${titlePreview}`;
+    appendResurrectorLog(freshState, "success", okMsg, { videoId: item.videoId });
+    runLog.push({ at: new Date().toISOString(), level: "success", message: okMsg, videoId: item.videoId });
+    saveResurrectorState(workspaceDir, freshState);
+    return {
+      state: freshState,
+      result: { id: item.id, videoId: item.videoId, status: "applied", thumbnailApplied: applied.thumbnailApplied },
+    };
+  } catch (err) {
+    const errMsg = err?.message || String(err);
+    const freshState = loadResurrectorState(workspaceDir);
+    const failIdx = freshState.items.findIndex((i) => i.id === item.id);
+    if (failIdx >= 0) {
+      freshState.items[failIdx] = {
+        ...freshState.items[failIdx],
+        status: "failed",
+        error: `YouTube: ${errMsg}`,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    appendResurrectorLog(freshState, "error", `Falha ao publicar: ${titlePreview} — ${errMsg}`, {
+      videoId: item.videoId,
+    });
+    runLog.push({ at: new Date().toISOString(), level: "error", message: `Publicar falhou: ${errMsg}`, videoId: item.videoId });
+    saveResurrectorState(workspaceDir, freshState);
+    return {
+      state: freshState,
+      result: { id: item.id, videoId: item.videoId, status: "failed", error: errMsg },
+    };
+  }
 }
 
 async function runResurrectorBatchInner(
@@ -1446,70 +1500,24 @@ async function runResurrectorBatchInner(
 
       const autoApply = settings.autoApplyToYoutube !== false;
       if (autoApply) {
-        appendResurrectorLog(
+        const { state: nextState, result } = await publishResurrectorItemWithLogging(
+          workspaceDir,
           state,
-          "info",
-          `Publicando no YouTube: ${titlePreview}`,
-          { videoId: item.videoId }
-        );
-        saveResurrectorState(workspaceDir, state);
-        try {
-          const applied = await applyResurrectorItem(workspaceDir, item.id, {
+          item,
+          {
             title: generated.proposed.title,
             description: generated.proposed.description,
             tags: generated.proposed.tags,
-          });
-          state = loadResurrectorState(workspaceDir);
-          const thumbNote = applied.thumbnailApplied ? " (+ thumbnail)" : "";
-          const okMsg = generated.usedFallback
-            ? `Publicado (fallback IA)${thumbNote}: ${titlePreview}`
-            : `Publicado no YouTube${thumbNote}: ${titlePreview}`;
-          appendResurrectorLog(state, "success", okMsg, {
-            videoId: item.videoId,
-          });
-          runLog.push({
-            at: new Date().toISOString(),
-            level: "success",
-            message: okMsg,
-          });
-          results.push({
-            id: item.id,
-            videoId: item.videoId,
-            status: "applied",
-            usedFallback: generated.usedFallback,
-            thumbnailApplied: applied.thumbnailApplied,
-          });
-        } catch (applyErr) {
-          const errMsg = applyErr?.message || String(applyErr);
-          state = loadResurrectorState(workspaceDir);
-          const failIdx = state.items.findIndex((i) => i.id === item.id);
-          if (failIdx >= 0) {
-            state.items[failIdx] = {
-              ...state.items[failIdx],
-              status: "failed",
-              error: `YouTube: ${errMsg}`,
-              updatedAt: new Date().toISOString(),
-            };
-          }
-          appendResurrectorLog(
-            state,
-            "error",
-            `Falha ao publicar: ${titlePreview} — ${errMsg}`,
-            { videoId: item.videoId }
-          );
-          runLog.push({
-            at: new Date().toISOString(),
-            level: "error",
-            message: `Publicar falhou: ${errMsg}`,
-          });
-          results.push({
-            id: item.id,
-            videoId: item.videoId,
-            status: "failed",
-            error: errMsg,
-          });
-          saveResurrectorState(workspaceDir, state);
-        }
+          },
+          runLog,
+          { usedFallback: generated.usedFallback }
+        );
+        state = nextState;
+        results.push(
+          result.status === "applied"
+            ? { ...result, usedFallback: generated.usedFallback }
+            : result
+        );
       } else {
         results.push({
           id: item.id,
@@ -1683,70 +1691,19 @@ async function applyPendingResurrectorReviewsInner(workspaceDir) {
   const runLog = [];
 
   for (const item of pending) {
-    const titlePreview = String(item.title || item.videoId).slice(0, 72);
-    appendResurrectorLog(
+    const { state: nextState, result } = await publishResurrectorItemWithLogging(
+      workspaceDir,
       state,
-      "info",
-      `Publicando no YouTube: ${titlePreview}`,
-      { videoId: item.videoId }
-    );
-    saveResurrectorState(workspaceDir, state);
-
-    try {
-      const applied = await applyResurrectorItem(workspaceDir, item.id, {
+      item,
+      {
         title: item.selectedTitle || item.proposedMetadata.title,
         description: item.proposedMetadata.description,
         tags: item.proposedMetadata.tags,
-      });
-      state = loadResurrectorState(workspaceDir);
-      const thumbNote = applied.thumbnailApplied ? " (+ thumbnail)" : "";
-      const okMsg = `Publicado no YouTube${thumbNote}: ${titlePreview}`;
-      appendResurrectorLog(state, "success", okMsg, { videoId: item.videoId });
-      runLog.push({
-        at: new Date().toISOString(),
-        level: "success",
-        message: okMsg,
-        videoId: item.videoId,
-      });
-      results.push({
-        id: item.id,
-        videoId: item.videoId,
-        status: "applied",
-        thumbnailApplied: applied.thumbnailApplied,
-      });
-      saveResurrectorState(workspaceDir, state);
-    } catch (err) {
-      const errMsg = err?.message || String(err);
-      state = loadResurrectorState(workspaceDir);
-      const failIdx = state.items.findIndex((i) => i.id === item.id);
-      if (failIdx >= 0) {
-        state.items[failIdx] = {
-          ...state.items[failIdx],
-          status: "failed",
-          error: `YouTube: ${errMsg}`,
-          updatedAt: new Date().toISOString(),
-        };
-      }
-      appendResurrectorLog(
-        state,
-        "error",
-        `Falha ao publicar: ${titlePreview} — ${errMsg}`,
-        { videoId: item.videoId }
-      );
-      runLog.push({
-        at: new Date().toISOString(),
-        level: "error",
-        message: `Publicar falhou: ${errMsg}`,
-        videoId: item.videoId,
-      });
-      results.push({
-        id: item.id,
-        videoId: item.videoId,
-        status: "failed",
-        error: errMsg,
-      });
-      saveResurrectorState(workspaceDir, state);
-    }
+      },
+      runLog
+    );
+    state = nextState;
+    results.push(result);
   }
 
   state = loadResurrectorState(workspaceDir);
@@ -1770,6 +1727,17 @@ async function applyPendingResurrectorReviewsInner(workspaceDir) {
     runLog,
     message,
     state,
+  };
+}
+
+function buildMetadataCachePayload(item) {
+  return {
+    generatedAt: new Date().toISOString(),
+    pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+    format: item.format === "SHORT" ? "SHORT" : "LONG",
+    source: "video_resurrector",
+    parsed: item.proposedMetadata,
+    text: item.metadataRaw,
   };
 }
 
@@ -1836,18 +1804,7 @@ export async function applyResurrectorItem(workspaceDir, itemId, options = {}) {
     if (item.metadataRaw) {
       fs.writeFileSync(
         cachePath,
-        JSON.stringify(
-          {
-            generatedAt: new Date().toISOString(),
-            pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
-            format: item.format === "SHORT" ? "SHORT" : "LONG",
-            source: "video_resurrector",
-            parsed: item.proposedMetadata,
-            text: item.metadataRaw,
-          },
-          null,
-          2
-        ),
+        JSON.stringify(buildMetadataCachePayload(item), null, 2),
         "utf8"
       );
     }
@@ -1862,18 +1819,7 @@ export async function applyResurrectorItem(workspaceDir, itemId, options = {}) {
     fs.mkdirSync(path.dirname(workspaceCachePath), { recursive: true });
     fs.writeFileSync(
       workspaceCachePath,
-      JSON.stringify(
-        {
-          generatedAt: new Date().toISOString(),
-          pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
-          format: item.format === "SHORT" ? "SHORT" : "LONG",
-          source: "video_resurrector",
-          parsed: item.proposedMetadata,
-          text: item.metadataRaw,
-        },
-        null,
-        2
-      ),
+      JSON.stringify(buildMetadataCachePayload(item), null, 2),
       "utf8"
     );
   }
@@ -1954,7 +1900,7 @@ export function getResurrectorDashboard(state) {
       failed: items.filter((i) => i.status === "failed").length,
       skipped: items.filter((i) => i.status === "skipped").length,
     },
-    items: items.sort(
+    items: [...items].sort(
       (a, b) =>
         comparePublishedAtAsc(a, b) ||
         new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
