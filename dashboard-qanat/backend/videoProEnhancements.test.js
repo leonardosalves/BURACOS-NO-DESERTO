@@ -32,6 +32,22 @@ test("replaceNumbersAndAbbreviationsPtBr - números e abreviações com preserva
     "O templo foi construído em quatrocentos e cinquenta antes de Cristo e destruído em setenta depois de Cristo"
   );
 
+  // Teste com abreviações a. C. (com espaço após ponto) e AC/DC sem pontos
+  assert.strictEqual(
+    replaceNumbersAndAbbreviationsPtBr(
+      "Construído em 450 a. C. e reconstruído em 100 AC. Queda em 45 DC."
+    ),
+    "Construído em quatrocentos e cinquenta antes de Cristo e reconstruído em cem antes de Cristo. Queda em quarenta e cinco depois de Cristo."
+  );
+
+  // Regressão: verificar se "a câmara" não vira "antes de Cristoâmara"
+  assert.strictEqual(
+    replaceNumbersAndAbbreviationsPtBr(
+      "Esta é a câmara anecoica da Microsoft, projetada em Redmond."
+    ),
+    "Esta é a câmara anecoica da Microsoft, projetada em Redmond."
+  );
+
   // Teste com km, m, kg e %
   assert.strictEqual(
     replaceNumbersAndAbbreviationsPtBr(
