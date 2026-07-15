@@ -1,9 +1,5 @@
-/**
- * Ancora prompts visuais (imagem e vídeo) no trecho da narração — sem colar o texto da narração.
- * Gera descrição visual em inglês com sujeito/ação/objeto específicos.
- */
-
 import { resolveStockSearchQuery } from "./stockSearchQuery.js";
+import { isVideoSceneType } from "./shared/mediaTypes.js";
 
 export const VISUAL_PROMPT_SPECIFICITY_RULES = `
 ESPECIFICIDADE VISUAL (CRÍTICO — imagem E vídeo):
@@ -247,17 +243,30 @@ const TERM_PT_EN = {
   inteiro: "entire",
 };
 
-function isVideoSceneType(type = "") {
-  const t = String(type || "").toLowerCase();
-  return t.includes("vídeo") || t.includes("video") || t.includes("mp4");
-}
-
 function normalizeText(text = "") {
   return String(text || "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 }
+
+/** Pré-compila entradas UMA vez no load do módulo — não por cena. */
+function compileGlossary(glossary) {
+  return Object.entries(glossary)
+    .map(([pt, en]) => {
+      const key = normalizeText(pt).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return {
+        en,
+        len: key.length,
+        re: new RegExp(`(?:^|[\\s,.;:!?()\\[\\]"'])${key}(?=$|[\\s,.;:!?()\\[\\]"'])`),
+      };
+    })
+    .sort((a, b) => b.len - a.len);
+}
+
+const COMPILED_ACTIONS = compileGlossary(ACTION_PT_EN);
+const COMPILED_OBJECTS = compileGlossary(OBJECT_PT_EN);
+const COMPILED_TERMS = compileGlossary(TERM_PT_EN);
 
 function hasPortugueseInPrompt(prompt = "") {
   // Accented characters are a strong Portuguese indicator
@@ -280,17 +289,12 @@ function findSpeciesInNarration(narration = "") {
   return best;
 }
 
-function findLongestGlossaryMatches(narration = "", glossary = {}) {
-  const lower = normalizeText(narration);
+function findLongestGlossaryMatches(narration = "", compiled = []) {
+  let scanned = normalizeText(narration);
   const found = [];
-  const keys = Object.keys(glossary).sort((a, b) => b.length - a.length);
-  let scanned = lower;
-  for (const pt of keys) {
-    const key = normalizeText(pt);
-    // Use word boundary to avoid matching "ar" inside "arrastaram" etc.
-    const re = new RegExp(`(?:^|[\\s,.;:!?()\\[\\]"'])${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[\\s,.;:!?()\\[\\]"'])`);
+  for (const { en, re } of compiled) {
     if (re.test(scanned)) {
-      found.push(glossary[pt]);
+      found.push(en);
       scanned = scanned.replace(re, " ");
     }
   }
@@ -298,12 +302,16 @@ function findLongestGlossaryMatches(narration = "", glossary = {}) {
 }
 
 function findActionInNarration(narration = "") {
-  const matches = findLongestGlossaryMatches(narration, ACTION_PT_EN);
+  const matches = findLongestGlossaryMatches(narration, COMPILED_ACTIONS);
   return matches[0] || "";
 }
 
 function findObjectsInNarration(narration = "") {
-  return findLongestGlossaryMatches(narration, OBJECT_PT_EN);
+  return findLongestGlossaryMatches(narration, COMPILED_OBJECTS);
+}
+
+function collectSceneModifiers(narration = "") {
+  return findLongestGlossaryMatches(narration, COMPILED_TERMS);
 }
 
 export function extractSceneAnchors(narration = "") {
@@ -329,10 +337,6 @@ export function extractSceneAnchors(narration = "") {
   }
 
   return anchors;
-}
-
-function collectSceneModifiers(narration = "") {
-  return findLongestGlossaryMatches(narration, TERM_PT_EN);
 }
 
 function collectEnglishSubjects(narration = "", anchors = {}) {

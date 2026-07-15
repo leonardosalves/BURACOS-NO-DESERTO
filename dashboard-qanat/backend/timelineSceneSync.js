@@ -13,6 +13,7 @@ import {
 import { flattenWordTranscripts } from "../shared/wordTranscripts.js";
 import { dedupeNearDuplicateVisualPromptsInBlocks } from "./scriptQuality.js";
 import { isPromptOnlyKeyframe } from "../shared/timelineKeyframeUtils.js";
+import { isVideoAssetPath, isVideoSceneType } from "./shared/mediaTypes.js";
 
 /**
  * Shared timeline scene timing logic — mirrors the editor preview in App.tsx
@@ -380,13 +381,9 @@ export function buildTimelineAssetMap({
 
       let resolvedType = "image";
       if (assetPath) {
-        resolvedType = /\.(mp4|mov|webm)$/i.test(assetPath) ? "video" : "image";
+        resolvedType = isVideoAssetPath(assetPath) ? "video" : "image";
       } else if (promptObj?.type) {
-        resolvedType =
-          String(promptObj.type).includes("video") ||
-          String(promptObj.type).includes("vídeo")
-            ? "video"
-            : "image";
+        resolvedType = isVideoSceneType(promptObj.type) ? "video" : "image";
       } else if (prevSlot?.type) {
         resolvedType = prevSlot.type;
       }
