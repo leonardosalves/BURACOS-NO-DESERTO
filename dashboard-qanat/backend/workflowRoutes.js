@@ -3,6 +3,7 @@
  */
 
 import fs from "fs";
+import { writeJsonAtomicSync } from "./shared/atomicJson.js";
 import path from "path";
 import { spawn } from "child_process";
 import { applyNarrationSyncToProject } from "./timelineStudioMigration.js";
@@ -287,25 +288,20 @@ export function registerWorkflowRoutes(app, deps) {
       fallback,
     };
 
-    fs.writeFileSync(
+    writeJsonAtomicSync(
       path.join(projDir, "youtube_metadata_cache.json"),
-      JSON.stringify(
-        {
-          generatedAt: new Date().toISOString(),
-          pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
-          format,
-          niche,
-          category,
-          profile: payload.profile,
-          rpm: rpmHint.rpm,
-          palette: rpmHint.palette,
-          parsed,
-          text,
-        },
-        null,
-        2
-      ),
-      "utf8"
+      {
+        generatedAt: new Date().toISOString(),
+        pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+        format,
+        niche,
+        category,
+        profile: payload.profile,
+        rpm: rpmHint.rpm,
+        palette: rpmHint.palette,
+        parsed,
+        text,
+      }
     );
 
     return payload;
@@ -361,14 +357,8 @@ export function registerWorkflowRoutes(app, deps) {
       preserveExplicitFixed: false,
     });
     config.timeline_assets = synced.timelineAssets;
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-    if (synced.blockTimings?.starts?.length) {
-      fs.writeFileSync(
-        timingsPath,
-        JSON.stringify(synced.blockTimings, null, 2),
-        "utf8"
-      );
-    }
+    writeJsonAtomicSync(configPath, config);
+      writeJsonAtomicSync(timingsPath, synced.blockTimings);
     if (fs.existsSync(storyboardPath)) {
       const storyboardNext = applyWhisperDurationsToStoryboard(
         storyboard,
@@ -378,11 +368,7 @@ export function registerWorkflowRoutes(app, deps) {
           blockTimings: synced.blockTimings,
         }
       );
-      fs.writeFileSync(
-        storyboardPath,
-        JSON.stringify(storyboardNext, null, 2),
-        "utf8"
-      );
+      writeJsonAtomicSync(storyboardPath, storyboardNext);
     }
     log(
       "[Pipeline] Timeline com segundos da voz (Whisper). Mídia: manual ou auto-map no Workflow."
@@ -426,7 +412,7 @@ export function registerWorkflowRoutes(app, deps) {
         });
         config.timeline_assets = mapped.timelineAssets;
         config.timeline_map_epoch = mapEpoch + 1;
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+        writeJsonAtomicSync(configPath, config);
         persistRealignedTimeline(projDir, log);
         log(
           `[Pipeline] Timeline mapeada (${mapped.assetCount} assets no pool).`
@@ -548,7 +534,7 @@ export function registerWorkflowRoutes(app, deps) {
         });
       }
       const wordsPath = path.join(projDir, "word_transcripts.json");
-      fs.writeFileSync(wordsPath, JSON.stringify(normalized, null, 2), "utf8");
+      writeJsonAtomicSync(wordsPath, normalized);
       const wordCount = flattenWordTranscripts(normalized).length;
       res.json({ ok: true, wordCount, segmentCount: normalized.length });
     } catch (err) {
@@ -968,10 +954,9 @@ export function registerWorkflowRoutes(app, deps) {
         );
       }
       storyboard.narration_chunk_plan = nextPlan;
-      fs.writeFileSync(
+      writeJsonAtomicSync(
         path.join(projDir, "storyboard.json"),
-        JSON.stringify(storyboard, null, 2),
-        "utf8"
+        storyboard
       );
 
       const logs = formatNarrationChunkPlanLog(nextPlan);
@@ -1371,11 +1356,7 @@ export function registerWorkflowRoutes(app, deps) {
           globalCfg.pexels_api_key = pexels_api_key.trim();
         if (typeof pixabay_api_key === "string")
           globalCfg.pixabay_api_key = pixabay_api_key.trim();
-        fs.writeFileSync(
-          globalPath,
-          JSON.stringify(globalCfg, null, 2),
-          "utf8"
-        );
+        writeJsonAtomicSync(globalPath, globalCfg);
       } else {
         const configPath = path.join(projDir, "config_qanat.json");
         let config = readJsonFile(configPath) || {};
@@ -1383,7 +1364,7 @@ export function registerWorkflowRoutes(app, deps) {
           config.pexels_api_key = pexels_api_key.trim();
         if (typeof pixabay_api_key === "string")
           config.pixabay_api_key = pixabay_api_key.trim();
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+        writeJsonAtomicSync(configPath, config);
       }
 
       res.json({

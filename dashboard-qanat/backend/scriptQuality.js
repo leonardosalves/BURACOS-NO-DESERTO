@@ -9,32 +9,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const WORKSPACE_DIR = path.resolve(__dirname, "../..");
 
+import { loadFileCached } from "./shared/cachedFileLoader.js";
+import { isVideoSceneType, isExplicitStillType, VIDEO_EXT_RE } from "./shared/mediaTypes.js";
+
 export function loadNarracaoProGuidelines() {
-  try {
-    const filePath = path.join(WORKSPACE_DIR, ".agents", "NARRACAOPRO.md");
-    if (fs.existsSync(filePath)) {
-      return fs.readFileSync(filePath, "utf8");
-    }
-  } catch (e) {
-    console.warn("Aviso ao carregar NARRACAOPRO.md:", e.message);
-  }
-  return "";
+  return loadFileCached(path.join(WORKSPACE_DIR, ".agents", "NARRACAOPRO.md"));
 }
 
 export function loadComousarAnarracaoProGuidelines() {
-  try {
-    const filePath = path.join(
-      WORKSPACE_DIR,
-      ".agents",
-      "COMOUSARANARRACAOPRO.md"
-    );
-    if (fs.existsSync(filePath)) {
-      return fs.readFileSync(filePath, "utf8");
-    }
-  } catch (e) {
-    console.warn("Aviso ao carregar COMOUSARANARRACAOPRO.md:", e.message);
-  }
-  return "";
+  return loadFileCached(
+    path.join(WORKSPACE_DIR, ".agents", "COMOUSARANARRACAOPRO.md")
+  );
 }
 
 /**
@@ -1449,24 +1434,8 @@ export const SHORTS_MIN_VIDEO_SCENES = 3;
 export const SHORTS_VIDEO_SCENE_TYPE = "vídeo IA (max 10s)";
 export const IMAGE_SCENE_TYPE = "imagem IA 2k";
 
-/** Extensões de vídeo para coercer type image→video quando o asset já é mp4 etc. */
-const VIDEO_EXT_RE = /\.(mp4|webm|mov|m4v|mkv|avi|mpeg|mpg)(?:\?|#|$)/i;
-
 const MOTION_PROMPT_RE =
   /\b(motion|moving|drone|aerial|timelapse|slow[\s-]?motion|camera pan|fly[\s-]?through|storm|drilling|pecking|tracking shot|handheld|dolly|crane|zoom in|zoom out|cinematic motion|max\s*\d{1,2}\s*s(?:ec(?:onds)?)?|\d{1,2}\s*(?:s|sec|secs|seconds))\b/i;
-
-function isVideoSceneType(type = "") {
-  const t = String(type || "").toLowerCase();
-  if (!t) return false;
-  if (t.includes("imagem") || t === "image" || t.includes("still")) return false;
-  return (
-    t.includes("vídeo") ||
-    t.includes("video") ||
-    t.includes("seedance") ||
-    t.includes("mp4") ||
-    t === SHORTS_VIDEO_SCENE_TYPE.toLowerCase()
-  );
-}
 
 /**
  * Alinha type da cena com intenção real (prompt / production / POV / asset).
@@ -1536,20 +1505,6 @@ export function normalizeVisualPromptMediaTypes(visualPrompts = []) {
     next.production = production;
     return next;
   });
-}
-
-function isVideoAssetPath(src = "") {
-  return /\.(mp4|webm|mov|m4v|mkv)(\?|$)/i.test(String(src || ""));
-}
-
-function isExplicitStillType(type = "") {
-  const t = String(type || "").toLowerCase();
-  return (
-    t.includes("imagem ia") ||
-    t === "image" ||
-    t === "imagem" ||
-    t.includes("still")
-  );
 }
 
 function adaptPromptForVideoScene(prompt = "") {
