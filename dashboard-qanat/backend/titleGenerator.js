@@ -189,6 +189,46 @@ const TITLE_COMPACT_REWRITES = [
 ];
 
 const SHORT_FEED_EMOJIS = ["🤯", "😳", "🔥", "😱", "💡"];
+function baseTitleMax(format = "LONG") {
+  return format === "SHORT" ? 40 : 50;
+}
+
+function factsRelevanceSource(facts = {}) {
+  return facts.oneLineSummary || facts.coreTopic || "";
+}
+
+function probeToken(value = "", minLen = 3) {
+  const lower = String(value).toLowerCase();
+  return lower.split(/\s+/).find((w) => w.length > minLen) || lower;
+}
+
+function fitCandidateList(candidates = [], max, format) {
+  return candidates
+    .filter(Boolean)
+    .map((c) => {
+      const fitted = fitTitleToLimit(c.text, max, format);
+      if (!fitted) return null;
+      return {
+        text: fitted,
+        angle: c.angle,
+        chars: fitted.length,
+        _source: "fallback",
+      };
+    })
+    .filter(Boolean);
+}
+
+function countLowRelevance(titles = [], facts = {}, threshold = 0.12) {
+  const source = factsRelevanceSource(facts);
+  const scores = titles.map((item) =>
+    titleRelevanceScore(item.text || item, source, facts)
+  );
+  return {
+    scores,
+    lowCount: scores.filter((s) => s < threshold).length,
+    total: scores.length,
+  };
+}
 
 function clip(text = "", max = 50) {
   return String(text || "")
@@ -206,7 +246,7 @@ export function titleHasEmoji(text = "") {
 }
 
 export function getTitleMaxChars(format = "LONG", text = "") {
-  const base = format === "SHORT" ? 40 : 50;
+  const base = baseTitleMax(format);
   if (format !== "SHORT") return base;
   if (titleHasHashtag(text) || titleHasEmoji(text)) return 55;
   return base;
@@ -587,7 +627,7 @@ export function extractTitleFacts({
 }
 
 export function buildTitleCraftRules(format = "LONG") {
-  const maxChars = format === "SHORT" ? 40 : 50;
+  const maxChars = baseTitleMax(format);
   const shortExtra =
     format === "SHORT"
       ? `
@@ -757,7 +797,7 @@ function buildListicleTitleCandidates(facts = {}, { format = "LONG" } = {}) {
   const listicle = facts.listicle;
   if (!listicle?.isListicle) return [];
 
-  const max = format === "SHORT" ? 40 : 50;
+  const max = baseTitleMax(format);
   const rank = listicle.rankCount || 3;
   const theme =
     listicle.topic ||
@@ -788,22 +828,11 @@ function buildListicleTitleCandidates(facts = {}, { format = "LONG" } = {}) {
     ...buildShortStyledTitleCandidates(facts, { format }),
   ].filter(Boolean);
 
-  return templates
-    .map((c) => {
-      const fitted = fitTitleToLimit(c.text, max, format);
-      if (!fitted) return null;
-      return {
-        text: fitted,
-        angle: c.angle,
-        chars: fitted.length,
-        _source: "fallback",
-      };
-    })
-    .filter(Boolean);
+  return fitCandidateList(templates, max, format);
 }
 
 export function generateTitlesFromFacts(facts = {}, { format = "LONG" } = {}) {
-  const max = format === "SHORT" ? 40 : 50;
+  const max = baseTitleMax(format);
   const listicleCandidates = buildListicleTitleCandidates(facts, { format });
   const noun = facts.properNouns?.find((n) => isValidTitleNoun(n)) || "";
   const noun2 =
@@ -866,18 +895,7 @@ export function generateTitlesFromFacts(facts = {}, { format = "LONG" } = {}) {
       : null,
   ].filter(Boolean);
 
-  return candidates
-    .map((c) => {
-      const fitted = fitTitleToLimit(c.text, max, format);
-      if (!fitted) return null;
-      return {
-        text: fitted,
-        angle: c.angle,
-        chars: fitted.length,
-        _source: "fallback",
-      };
-    })
-    .filter(Boolean);
+  return fitCandidateList(candidates, max, format);
 }
 
 export function buildTitleRepairPrompt({
@@ -886,7 +904,7 @@ export function buildTitleRepairPrompt({
   format = "LONG",
   facts = {},
 }) {
-  const maxChars = format === "SHORT" ? 40 : 50;
+  const maxChars = baseTitleMax(format);
   const titleList = titles
     .map(
       (t, i) =>
@@ -1124,16 +1142,8 @@ export function titlesNeedRepair(titles = [], format = "LONG", facts = {}) {
     titles.length >= 2 &&
     titleSimilarity(titles[0].text || titles[0], titles[1].text || titles[1]) >
       0.6;
-  const relevance = titles.map((item) =>
-    titleRelevanceScore(
-      item.text || item,
-      facts.oneLineSummary || facts.coreTopic || "",
-      facts
-    )
-  );
-  const lowRelevance =
-    relevance.filter((score) => score < 0.12).length >=
-    Math.ceil(titles.length * 0.6);
+  const { lowCount, total } = countLowRelevance(titles, facts);
+  const lowRelevance = lowCount >= Math.ceil(total * 0.6);
   return (
     avg < 28 ||
     hasBanned ||
@@ -1148,7 +1158,7 @@ export function polishTitles(
   titles = [],
   { format = "LONG", facts = {} } = {}
 ) {
-  const max = format === "SHORT" ? 40 : 50;
+  const max = baseTitleMax(format);
   const polished = [];
   const seen = [];
 
@@ -1193,11 +1203,7 @@ function isRankingListicleTitle(text = "", facts = {}) {
   }
 
   const itemHits = (facts.listicle.itemTitles || []).filter((item) => {
-    const probe =
-      String(item)
-        .toLowerCase()
-        .split(/\s+/)
-        .find((w) => w.length > 3) || String(item).toLowerCase();
+    const probe = probeToken(item, 3);
     return probe.length > 2 && t.includes(probe);
   }).length;
 
@@ -1207,11 +1213,7 @@ function isRankingListicleTitle(text = "", facts = {}) {
 function listicleItemHitsInText(text = "", facts = {}) {
   const t = sanitizeTitle(text).toLowerCase();
   return (facts.listicle?.itemTitles || []).filter((item) => {
-    const probe =
-      String(item)
-        .toLowerCase()
-        .split(/\s+/)
-        .find((w) => w.length > 3) || String(item).toLowerCase();
+    const probe = probeToken(item, 3);
     return probe.length > 2 && t.includes(probe);
   }).length;
 }
@@ -1360,17 +1362,8 @@ export function applyTitleQualityToParsed(parsed = {}, context = {}) {
     (t) => t.score >= 18 && isCompleteTitle(t.text, format)
   ).length;
 
-  const relevance = titles.map((item) =>
-    titleRelevanceScore(
-      item.text,
-      facts.oneLineSummary || facts.coreTopic || "",
-      facts
-    )
-  );
-  const lowRelevance =
-    relevance.length &&
-    relevance.filter((score) => score < 0.12).length >=
-      Math.ceil(relevance.length * 0.6);
+  const { lowCount, total } = countLowRelevance(titles, facts);
+  const lowRelevance = total > 0 && lowCount >= Math.ceil(total * 0.6);
 
   if (goodAiCount < 3 || lowRelevance) {
     const generated = generateTitlesFromFacts(facts, { format });
@@ -1380,7 +1373,7 @@ export function applyTitleQualityToParsed(parsed = {}, context = {}) {
   while (titles.length < 5 && facts.coreTopic) {
     const seed = fitTitleToLimit(
       facts.coreTopic,
-      format === "SHORT" ? 40 : 50,
+      baseTitleMax(format),
       format
     );
     if (!seed) break;
