@@ -1,5 +1,6 @@
 import { resolveStockSearchQuery } from "./stockSearchQuery.js";
 import { isVideoSceneType } from "./shared/mediaTypes.js";
+import { stripAccents } from "./shared/commonUtils.js";
 
 export const VISUAL_PROMPT_SPECIFICITY_RULES = `
 ESPECIFICIDADE VISUAL (CRÍTICO — imagem E vídeo):
@@ -244,10 +245,7 @@ const TERM_PT_EN = {
 };
 
 function normalizeText(text = "") {
-  return String(text || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+  return stripAccents(String(text || "").toLowerCase());
 }
 
 /** Pré-compila entradas UMA vez no load do módulo — não por cena. */
@@ -268,6 +266,16 @@ const COMPILED_ACTIONS = compileGlossary(ACTION_PT_EN);
 const COMPILED_OBJECTS = compileGlossary(OBJECT_PT_EN);
 const COMPILED_TERMS = compileGlossary(TERM_PT_EN);
 
+const SPECIES_COMPILED = Object.entries(SPECIES_PT_EN).map(([pt, en]) => ({
+  key: normalizeText(pt),
+  en,
+}));
+const FALLBACK_STYLE_IMAGE =
+  "Documentary science style, dramatic lighting, sharp detail, no text overlay.";
+const FALLBACK_STYLE_VIDEO =
+  "Documentary science style, dramatic lighting, sharp motion detail, no text overlay, max 10 seconds.";
+const FALLBACK_STYLE_MARKER = /Documentary science style, dramatic lighting/i;
+
 function hasPortugueseInPrompt(prompt = "") {
   // Accented characters are a strong Portuguese indicator
   if (/[àáâãéêíóôõúç]/i.test(prompt)) return true;
@@ -280,10 +288,9 @@ function hasPortugueseInPrompt(prompt = "") {
 function findSpeciesInNarration(narration = "") {
   const lower = normalizeText(narration);
   let best = null;
-  for (const [pt, en] of Object.entries(SPECIES_PT_EN)) {
-    const key = normalizeText(pt);
+  for (const { key, en } of SPECIES_COMPILED) {
     if (lower.includes(key) && (!best || key.length > best.pt.length)) {
-      best = { pt, en };
+      best = { pt: key, en };
     }
   }
   return best;
@@ -367,9 +374,9 @@ function isPromptNarrationPaste(prompt = "", narration = "") {
   return false;
 }
 
-function inferShotType(narration = "", terms = []) {
+function inferShotType(narration = "", subjects = []) {
   const lower = normalizeText(narration);
-  if (/\b(bico|macro|close|detalhe|textura)\b/.test(lower) || terms.includes("beak")) {
+  if (/\b(bico|macro|close|detalhe|textura)\b/.test(lower) || subjects.includes("beak")) {
     return "macro close-up";
   }
   if (/\b(ponte|cidade|city|paisagem|horizon|drone|aerial|rua|estrada|panorama)\b/.test(lower)) {
@@ -443,8 +450,8 @@ function extractKeyNounsFromNarration(narration = "") {
 
 /** Detecta prompts gerados pelo fallback buildSceneSpecificPrompt (glossário local). */
 export function isSceneSpecificFallbackPrompt(prompt = "") {
-  const p = String(prompt || "").trim();
-  return /Photorealistic (?:2k |cinematic ).*Documentary science style, dramatic lighting/i.test(p);
+  return /^Photorealistic /i.test(String(prompt).trim()) &&
+    FALLBACK_STYLE_MARKER.test(prompt);
 }
 
 export function isPromptTooGeneric(prompt = "", narration = "") {
@@ -479,9 +486,9 @@ export function buildSceneSpecificPrompt(vp = {}) {
   const langNote = hasTextOverlay ? " Any visible text/words in the image must be in Portuguese (Brazilian)." : "";
 
   if (isVideo) {
-    return `Photorealistic ${focal}. Documentary science style, dramatic lighting, sharp motion detail, no text overlay, max 10 seconds.${langNote}`;
+    return `Photorealistic ${focal}. ${FALLBACK_STYLE_VIDEO}${langNote}`;
   }
-  return `Photorealistic 2k ${focal}. Documentary science style, dramatic lighting, sharp detail, no text overlay.${langNote}`;
+  return `Photorealistic 2k ${focal}. ${FALLBACK_STYLE_IMAGE}${langNote}`;
 }
 
 function isStockGeneric(stock = "") {
