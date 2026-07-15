@@ -317,12 +317,14 @@ export default function App() {
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
 
   const [aiProvider, setAiProvider] = useState<
-    "gemini" | "xai" | "openrouter" | "nvidia" | "inference"
+    "gemini" | "xai" | "openrouter" | "nvidia" | "inference" | "local"
   >("gemini");
   const [nvidiaKeyInput, setNvidiaKeyInput] = useState<string>("");
   const [hasNvidiaKey, setHasNvidiaKey] = useState<boolean>(false);
   const [inferenceKeyInput, setInferenceKeyInput] = useState<string>("");
   const [hasInferenceKey, setHasInferenceKey] = useState<boolean>(false);
+  const [localLlmUrlInput, setLocalLlmUrlInput] = useState<string>("");
+  const [localLlmModelInput, setLocalLlmModelInput] = useState<string>("");
 
   const [geminiKeysInput, setGeminiKeysInput] = useState<string>("");
 
@@ -3016,6 +3018,8 @@ export default function App() {
         setHasEpidemicKey(!!settingsData.has_epidemic_key);
 
         setGeminiBrowserMode(!!settingsData.gemini_browser_mode);
+        setLocalLlmUrlInput(settingsData.local_llm_url || "");
+        setLocalLlmModelInput(settingsData.local_llm_model || "");
 
         setHasApiKey(
           !!settingsData.gemini_browser_mode ||
@@ -3026,7 +3030,8 @@ export default function App() {
             settingsData.provider === "nvidia" ||
             !!settingsData.has_nvidia_key ||
             settingsData.provider === "inference" ||
-            !!settingsData.has_inference_key
+            !!settingsData.has_inference_key ||
+            settingsData.provider === "local"
         );
       }
 
@@ -6010,6 +6015,8 @@ export default function App() {
           inference_key: inferenceKeyInput,
 
           gemini_browser_mode: geminiBrowserMode,
+          local_llm_url: localLlmUrlInput,
+          local_llm_model: localLlmModelInput,
         }),
       });
 
@@ -6045,6 +6052,8 @@ export default function App() {
         setHasEpidemicKey(!!data.has_epidemic_key);
 
         setGeminiBrowserMode(!!data.gemini_browser_mode);
+        if (data.local_llm_url) setLocalLlmUrlInput(data.local_llm_url);
+        if (data.local_llm_model) setLocalLlmModelInput(data.local_llm_model);
 
         setHasApiKey(
           !!data.gemini_browser_mode ||
@@ -6055,7 +6064,8 @@ export default function App() {
             data.provider === "nvidia" ||
             !!data.has_nvidia_key ||
             data.provider === "inference" ||
-            !!data.has_inference_key
+            !!data.has_inference_key ||
+            data.provider === "local"
         );
 
         setGeminiKeysInput("");
@@ -10796,6 +10806,10 @@ export default function App() {
     notebooklmSuggestions,
     nvidiaKeyInput,
     inferenceKeyInput,
+    localLlmUrlInput,
+    setLocalLlmUrlInput,
+    localLlmModelInput,
+    setLocalLlmModelInput,
     openCanvaThumbnailDesigner,
     openCreatorTab,
     handleSelectProject,

@@ -351,3 +351,96 @@ export function applyBatchScenePromptsAiResponse(scenes = [], aiScenes = []) {
     };
   });
 }
+
+export function mergeHumanizedNarration(
+  original = {},
+  repaired = {},
+  format = "LONGO"
+) {
+  const merged = { ...original };
+  if (repaired.narrative_script)
+    merged.narrative_script = repaired.narrative_script;
+  if (repaired.narrative_script_tagged)
+    merged.narrative_script_tagged = repaired.narrative_script_tagged;
+  return applyScriptTextQuality(merged, format);
+}
+
+export function mergeEnrichedNarration(
+  original = {},
+  enriched = {},
+  format = "LONGO"
+) {
+  const merged = mergeHumanizedNarration(original, enriched, format);
+  if (enriched.strategy && typeof enriched.strategy === "object") {
+    merged.strategy = { ...merged.strategy, ...enriched.strategy };
+  }
+  if (
+    enriched.technical_config &&
+    typeof enriched.technical_config === "object"
+  ) {
+    merged.technical_config = {
+      ...merged.technical_config,
+      ...enriched.technical_config,
+    };
+  }
+  return merged;
+}
+
+export function normalizeNarrationBlocks(parsedData = {}, expectedBlocks = 5) {
+  const result = { ...parsedData };
+  const tc = { ...(result.technical_config || {}) };
+
+  if (Array.isArray(tc.script)) {
+    tc.script = tc.script
+      .map((p) => String(p).trim())
+      .filter(Boolean)
+      .join("\n\n");
+  }
+
+  let paragraphs =
+    typeof tc.script === "string"
+      ? tc.script
+          .split(/\n\n+/)
+          .map((p) => p.trim())
+          .filter(Boolean)
+      : [];
+
+  if (!paragraphs.length && result.narrative_script?.trim()) {
+    const sentences = result.narrative_script.trim().split(/(?<=[.!?…])\s+/);
+    if (expectedBlocks > 1 && sentences.length >= expectedBlocks) {
+      const perBlock = Math.ceil(sentences.length / expectedBlocks);
+      paragraphs = [];
+      for (let i = 0; i < expectedBlocks; i += 1) {
+        const chunk = sentences
+          .slice(i * perBlock, (i + 1) * perBlock)
+          .join(" ")
+          .trim();
+        if (chunk) paragraphs.push(chunk);
+      }
+    }
+  }
+
+  if (paragraphs.length && !result.narrative_script?.trim()) {
+    result.narrative_script = paragraphs.join(" ");
+  }
+
+  if (paragraphs.length) {
+    tc.script = paragraphs.join("\n\n");
+    if (!Array.isArray(tc.block_phrases) || !tc.block_phrases.length) {
+      tc.block_phrases = paragraphs.map((p, i) => ({
+        block: i + 1,
+        phrase: p.split(/\s+/).slice(0, 6).join(" "),
+      }));
+    }
+  }
+
+  if (
+    Array.isArray(tc.block_phrases) &&
+    tc.block_phrases.length > expectedBlocks
+  ) {
+    tc.block_phrases = tc.block_phrases.slice(0, expectedBlocks);
+  }
+
+  result.technical_config = tc;
+  return result;
+}

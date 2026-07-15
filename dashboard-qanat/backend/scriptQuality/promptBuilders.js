@@ -286,6 +286,134 @@ Responda APENAS JSON válido (sem markdown, sem texto extra):
 }`;
 }
 
+function normalizeRankingIdeaItem(item = {}) {
+  const count = Number(
+    item.suggested_rank_count ??
+      item.suggestedRankCount ??
+      item.rank_count ??
+      item.quantidade ??
+      0
+  );
+  return {
+    title: String(item.title || item.titulo || "").trim(),
+    suggested_rank_count: count > 0 ? count : 15,
+    list_topic: String(
+      item.list_topic || item.listTopic || item.tema || item.topic || ""
+    ).trim(),
+    listicle_angle: String(
+      item.listicle_angle ||
+        item.listicleAngle ||
+        item.angle ||
+        item.angulo ||
+        ""
+    ).trim(),
+    promise: String(item.promise || item.promessa || "").trim(),
+    why_interesting: String(
+      item.why_interesting ||
+        item.whyInteresting ||
+        item.why_it_works ||
+        item.por_que ||
+        ""
+    ).trim(),
+    controversy_hook: String(
+      item.controversy_hook ||
+        item.controversyHook ||
+        item.gancho ||
+        item.hook ||
+        ""
+    ).trim(),
+    sample_items: Array.isArray(item.sample_items)
+      ? item.sample_items
+      : Array.isArray(item.sampleItems)
+        ? item.sampleItems
+        : Array.isArray(item.exemplos)
+          ? item.exemplos
+          : [],
+    emotion: String(item.emotion || item.emocao || "").trim(),
+    best_format: String(
+      item.best_format || item.bestFormat || item.formato || "LONGO"
+    ).trim(),
+  };
+}
+
+export function normalizeListicleIdeasResponse(
+  data = {},
+  { format = "LONGO" } = {}
+) {
+  if (Array.isArray(data)) {
+    return normalizeListicleIdeasResponse({ ranking_ideas: data }, { format });
+  }
+  if (!data || typeof data !== "object") {
+    return {
+      niche_analysis: {},
+      ranking_ideas: [],
+      best_index: 0,
+      best_reason: "",
+    };
+  }
+
+  const ideasKey = Object.keys(data).find((k) =>
+    /ranking_ideas|rankingideas|ideias_ranking|ideias_de_ranking|lista_rankings|rankings|ideias/i.test(
+      k
+    )
+  );
+  const analysisKey = Object.keys(data).find((k) =>
+    /niche_analysis|analise_nicho|nicheanalysis|analise_do_nicho/i.test(k)
+  );
+
+  let rawIdeas =
+    data.ranking_ideas ?? data[ideasKey] ?? data.ideas ?? data.rankings ?? [];
+  if (!Array.isArray(rawIdeas) && rawIdeas && typeof rawIdeas === "object") {
+    rawIdeas = Object.values(rawIdeas);
+  }
+  if (!Array.isArray(rawIdeas)) rawIdeas = [];
+
+  const ranking_ideas = rawIdeas
+    .map(normalizeRankingIdeaItem)
+    .map((item) => {
+      if (format !== "SHORTS") return item;
+      const rank = clampListicleRankCount(item.suggested_rank_count, "SHORTS");
+      return {
+        ...item,
+        suggested_rank_count: rank,
+        best_format: "SHORTS",
+        title: item.title.replace(/\btop\s+\d+\b/gi, `Top ${rank}`),
+      };
+    })
+    .filter((item) => item.title.length > 3);
+
+  const rawAnalysis = data.niche_analysis ?? data[analysisKey] ?? {};
+  const niche_analysis =
+    typeof rawAnalysis === "object" && rawAnalysis !== null ? rawAnalysis : {};
+
+  const best_index = Math.max(
+    0,
+    Math.min(
+      ranking_ideas.length - 1,
+      Number(
+        data.best_index ??
+          data.bestIndex ??
+          data.melhor_indice ??
+          data.best_idea_index ??
+          0
+      ) || 0
+    )
+  );
+
+  return {
+    niche_analysis,
+    ranking_ideas,
+    best_index,
+    best_reason: String(
+      data.best_reason ??
+        data.bestReason ??
+        data.melhor_motivo ??
+        data.best_idea_reason ??
+        ""
+    ).trim(),
+  };
+}
+
 export function buildListicleScriptRules({
   rankCount = 20,
   rankOrder = "desc",
