@@ -194,7 +194,10 @@ import {
   syncStudioTimingToStoryboard,
   syncStudioBrollToTimelineAssets,
 } from "./timelineStudioMigration.js";
-import { registerVideoResurrectorRoutes } from "./videoResurrectorRoutes.js";
+import {
+  registerVideoResurrectorRoutes,
+  startVideoResurrectorScheduler,
+} from "./videoResurrectorRoutes.js";
 import { registerSocialPublishRoutes } from "./socialPublishRoutes.js";
 import {
   markSocialPublishPosted,
@@ -21430,6 +21433,12 @@ const server = app.listen(PORT, () => {
     startTitleRotationScheduler({
       workspaceDir: WORKSPACE_DIR,
       projectsRoot: PROJECTS_ROOT,
+    });
+    startVideoResurrectorScheduler({
+      WORKSPACE_DIR,
+      PROJECTS_ROOT,
+      getApiKey,
+      callGeminiWithRetry,
     });
     startSocialPublishScheduler({
       workspaceDir: WORKSPACE_DIR,
