@@ -3,6 +3,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { buildPovContractBlock } from "../shared/povBlock.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1185,8 +1186,23 @@ Responda APENAS JSON com as chaves:
     "script": "...",
     "block_phrases": [{"block": 1, "phrase": "..."}]
   },
-  "strategy": { "hook": "..." }
-}`;
+  "strategy": { "hook": "..." },
+  "visual_orchestration": {
+    "chapters": [{ "block": 1, "title": "titulo do capitulo", "start_hint_sec": 0 }],
+    "placements": [
+      {
+        "kind": "chart|quote|lower_third|text_overlay|content_animation|background",
+        "reason": "por que o visual ajuda",
+        "anchor": { "type": "block|time|narration_span", "block": 1, "text": "trecho", "start": 0, "duration": 4 },
+        "data": { "value": 0, "unit": "%", "label": "...", "quote": "...", "attribution": "..." },
+        "preferred_subcategories": ["Stat Counter"]
+      }
+    ],
+    "avoid": ["fake_stats", "credits_roll_generic"]
+  }
+}
+
+visual_orchestration e OPCIONAL mas recomendado: so inclua placements com dados reais da narração (numero, citação, nome/lugar). Nao invente estatisticas. Quote e lower_third so se fizerem sentido.`;
 }
 
 const LAME_ENDING_RE =
@@ -1268,7 +1284,7 @@ export function applyScriptTextQuality(parsedData = {}, format = "LONGO") {
 }
 
 export function extractScriptSliceForRepair(parsedData = {}) {
-  return {
+  const slice = {
     narrative_script: parsedData.narrative_script || "",
     narrative_script_tagged: parsedData.narrative_script_tagged || "",
     technical_config: {
@@ -1279,6 +1295,13 @@ export function extractScriptSliceForRepair(parsedData = {}) {
       hook: parsedData.strategy?.hook || "",
     },
   };
+  if (
+    parsedData.visual_orchestration &&
+    typeof parsedData.visual_orchestration === "object"
+  ) {
+    slice.visual_orchestration = parsedData.visual_orchestration;
+  }
+  return slice;
 }
 
 export function mergeHumanizedScript(
@@ -1299,6 +1322,12 @@ export function mergeHumanizedScript(
       ...merged.technical_config,
       ...repaired.technical_config,
     };
+  }
+  if (
+    repaired.visual_orchestration &&
+    typeof repaired.visual_orchestration === "object"
+  ) {
+    merged.visual_orchestration = repaired.visual_orchestration;
   }
   return applyScriptTextQuality(merged, format);
 }
@@ -1418,13 +1447,109 @@ IDIOMA DA SAÍDA: português brasileiro (PT-BR)`;
 
 export const SHORTS_MIN_VIDEO_SCENES = 3;
 export const SHORTS_VIDEO_SCENE_TYPE = "vídeo IA (max 10s)";
+export const IMAGE_SCENE_TYPE = "imagem IA 2k";
+
+/** Extensões de vídeo para coercer type image→video quando o asset já é mp4 etc. */
+const VIDEO_EXT_RE = /\.(mp4|webm|mov|m4v|mkv|avi|mpeg|mpg)(?:\?|#|$)/i;
 
 const MOTION_PROMPT_RE =
-  /\b(motion|moving|drone|aerial|crowd|water|waves|fire|explosion|walking|running|traffic|timelapse|slow motion|camera pan|fly through|flowing|storm|wind|spinning|rotating|collapse|falling|crashing|surge|ripple)\b/i;
+  /\b(motion|moving|drone|aerial|timelapse|slow[\s-]?motion|camera pan|fly[\s-]?through|storm|drilling|pecking|tracking shot|handheld|dolly|crane|zoom in|zoom out|cinematic motion|max\s*\d{1,2}\s*s(?:ec(?:onds)?)?|\d{1,2}\s*(?:s|sec|secs|seconds))\b/i;
 
-export function isVideoSceneType(type = "") {
+function isVideoSceneType(type = "") {
   const t = String(type || "").toLowerCase();
-  return t.includes("vídeo") || t.includes("video") || t.includes("mp4");
+  if (!t) return false;
+  if (t.includes("imagem") || t === "image" || t.includes("still")) return false;
+  return (
+    t.includes("vídeo") ||
+    t.includes("video") ||
+    t.includes("seedance") ||
+    t.includes("mp4") ||
+    t === SHORTS_VIDEO_SCENE_TYPE.toLowerCase()
+  );
+}
+
+/**
+ * Alinha type da cena com intenção real (prompt / production / POV / asset).
+ * Corrige o caso: prompt pede vídeo (ex. 8s) mas type veio "image" ou "imagem IA 2k".
+ * type "image" sozinho é tratado como still — a menos que o prompt indique vídeo.
+ */
+export function normalizeVisualPromptMediaTypes(visualPrompts = []) {
+  if (!Array.isArray(visualPrompts) || !visualPrompts.length) {
+    return Array.isArray(visualPrompts) ? visualPrompts : [];
+  }
+
+  return visualPrompts.map((vp) => {
+    const next = { ...vp };
+    const production =
+      next.production && typeof next.production === "object"
+        ? { ...next.production }
+        : {};
+    const prompt = String(next.prompt || next.visual_prompt || "").trim();
+    const notes = String(next.editor_notes || "").trim();
+    const rawType = String(next.type || next.tipo || "").trim();
+    const broll = String(
+      production.broll_type || production.media_type || ""
+    ).toLowerCase();
+    const assetPath = String(
+      next.asset?.asset || next.asset || next.file || ""
+    );
+
+    const isPov =
+      next.is_pov === true ||
+      String(next.scene_kind || "").toLowerCase() === "pov" ||
+      String(next.video_role || "").toUpperCase() === "A" ||
+      String(next.video_role || "").toUpperCase() === "B";
+
+    const promptLooksLikeVideo =
+      MOTION_PROMPT_RE.test(prompt) ||
+      /\b(video|vídeo|footage|film|clip)\b/i.test(notes) ||
+      /\b(8|9|10)\s*(s|sec|seconds|segundos)?\b/i.test(prompt) ||
+      /\b(first[\s-]?person|pov|gopro|point of view)\b/i.test(prompt);
+
+    const assetIsVideo = VIDEO_EXT_RE.test(
+      String(next.asset?.asset || next.asset || "")
+    );
+
+    // Prompt com movimento/POV/8–10s vence type genérico "image"/"imagem"
+    // (caso clássico: type image + prompt 8s video → deve virar vídeo).
+    const wantsVideo =
+      isPov ||
+      isVideoSceneType(rawType) ||
+      broll === "video" ||
+      broll === "vídeo" ||
+      assetIsVideo ||
+      promptLooksLikeVideo;
+
+    if (wantsVideo) {
+      next.type = SHORTS_VIDEO_SCENE_TYPE;
+      production.broll_type = "video";
+      next.prompt = adaptPromptForVideoScene(prompt);
+    } else if (isExplicitStillType(rawType) || !rawType) {
+      next.type = IMAGE_SCENE_TYPE;
+      production.broll_type = "image";
+    } else {
+      // preserva type desconhecido sem forçar imagem
+      next.type = rawType || IMAGE_SCENE_TYPE;
+      if (!production.broll_type) production.broll_type = "image";
+    }
+
+    next.production = production;
+    return next;
+  });
+}
+
+function isVideoAssetPath(src = "") {
+  return /\.(mp4|webm|mov|m4v|mkv)(\?|$)/i.test(String(src || ""));
+}
+
+function isExplicitStillType(type = "") {
+  const t = String(type || "").toLowerCase();
+  return (
+    t.includes("imagem ia") ||
+    t === "image" ||
+    t === "imagem" ||
+    t.includes("still")
+  );
 }
 
 function adaptPromptForVideoScene(prompt = "") {
@@ -1580,6 +1705,11 @@ REGRAS DOS PROMPTS VISUAIS (OBRIGATÓRIO — sem isso o roteiro fica inutilizáv
 - O "prompt" deve descrever VISUALMENTE a cena: sujeito ESPECÍFICO + ação + enquadramento + texturas + iluminação. NUNCA use frases vagas como "the exact subject from this scene" ou "subject".
 - Se a cena incluir text_overlay, impact_text ou qualquer texto visível na imagem/vídeo, adicione ao final do prompt: "Any visible text must be in Portuguese (Brazilian)."
 ${typeMixRule}
+- CONSISTÊNCIA type ↔ prompt (CRÍTICO):
+  - Se o prompt descreve movimento ativo (drone, água, fogo, multidão, ferramenta em ação, câmera em movimento, drill, pour, walk…) → type DEVE ser "${SHORTS_VIDEO_SCENE_TYPE}".
+  - Se type for "${SHORTS_VIDEO_SCENE_TYPE}", o prompt DEVE pedir cinematic motion e production.broll_type="video".
+  - NUNCA marque type "imagem IA 2k" quando a cena for para gerar/upload de VÍDEO. Imagem = still + Ken Burns; vídeo = clip com movimento real.
+  - Cenas POV / Video A–B: type SEMPRE "${SHORTS_VIDEO_SCENE_TYPE}".
 - Nunca deixe narration_text ou prompt vazios.
 - NÃO inclua "duration" nem "duration_seconds" — os segundos de cada cena são calculados pelo Whisper após a narração (100% da voz, sem estimativa).
 - Inclua stock_query em inglês em cada cena.
@@ -1770,7 +1900,10 @@ export function normalizeVisualPromptBlocks(
       result.visual_prompts = sanitizeVisualPromptDurations(
         enrichVisualPromptsSpecificity(
           enforceShortsVideoSceneMix(deterministic, { format }),
-          { strategyTitle: ideaTitle }
+          {
+            strategyTitle: ideaTitle,
+            format: format === "SHORTS" ? "SHORTS" : "LONGO",
+          }
         )
       );
       return result;
@@ -1783,13 +1916,144 @@ export function normalizeVisualPromptBlocks(
     ideaTitle,
   });
 
+  // Remove última cena duplicada dentro do mesmo bloco (IA / coverage / salvage)
+  normalized = dedupeNearDuplicateVisualPromptsInBlocks(normalized);
+
+  // type imagem vs vídeo: alinha com prompt/production/POV (não deixar vídeo como "imagem IA")
+  normalized = normalizeVisualPromptMediaTypes(normalized);
+
   const mixed = enforceShortsVideoSceneMix(normalized, { format });
+  // Reaplica após shorts mix (converte algumas imagens em vídeo)
+  const typed = normalizeVisualPromptMediaTypes(mixed);
   result.visual_prompts = sanitizeVisualPromptDurations(
     skipPromptEnrichment
-      ? mixed
-      : enrichVisualPromptsSpecificity(mixed, { strategyTitle: ideaTitle })
+      ? typed
+      : enrichVisualPromptsSpecificity(typed, {
+          strategyTitle: ideaTitle,
+          format: format === "SHORTS" ? "SHORTS" : "LONGO",
+        })
   );
   return result;
+}
+
+/** Normaliza texto de narração para comparar cenas quase iguais. */
+export function normalizeNarrationCompareKey(text = "") {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Similaridade 0–1 entre duas narrações de cena.
+ * 1 = idênticas; inclusão de uma na outra conta como alta.
+ */
+export function narrationTextSimilarity(a = "", b = "") {
+  const na = normalizeNarrationCompareKey(a);
+  const nb = normalizeNarrationCompareKey(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  const shorter = na.length <= nb.length ? na : nb;
+  const longer = na.length <= nb.length ? nb : na;
+  // Uma narração contida na outra = mesma cena (ex.: cópia truncada no fim do bloco)
+  if (longer.includes(shorter) && shorter.length >= 12) {
+    return Math.max(0.88, shorter.length / longer.length);
+  }
+  const ta = new Set(na.split(" ").filter((w) => w.length > 2));
+  const tb = new Set(nb.split(" ").filter((w) => w.length > 2));
+  if (!ta.size || !tb.size) return 0;
+  let inter = 0;
+  for (const t of ta) if (tb.has(t)) inter += 1;
+  return inter / Math.max(ta.size, tb.size);
+}
+
+function preferVisualPromptKeep(a = {}, b = {}) {
+  // Prefere cena com Whisper, prompt mais rico, narração mais longa
+  const score = (vp) => {
+    let s = 0;
+    if (vp.duration_from_whisper) s += 8;
+    if (Number(vp.duration_seconds) > 0 || Number(vp.duration) > 0) s += 3;
+    const narr = String(vp.narration_text || vp.narration_excerpt || "").trim();
+    const prompt = String(vp.prompt || vp.visual_prompt || "").trim();
+    s += Math.min(6, Math.floor(narr.length / 40));
+    s += Math.min(4, Math.floor(prompt.length / 80));
+    if (vp.is_pov) s += 2;
+    return s;
+  };
+  return score(a) >= score(b) ? a : b;
+}
+
+/**
+ * Remove cenas quase-duplicadas no MESMO bloco (comum: última cena do bloco 2x —
+ * uma com segundos Whisper e a cópia sem). Não mexe entre blocos.
+ */
+export function dedupeNearDuplicateVisualPromptsInBlocks(
+  visualPrompts = [],
+  { similarityThreshold = 0.82 } = {}
+) {
+  if (!Array.isArray(visualPrompts) || visualPrompts.length < 2) {
+    return Array.isArray(visualPrompts) ? visualPrompts : [];
+  }
+
+  const byBlock = new Map();
+  const order = [];
+  visualPrompts.forEach((vp, globalIdx) => {
+    const block = Math.max(1, Math.floor(Number(vp?.block) || 1));
+    if (!byBlock.has(block)) {
+      byBlock.set(block, []);
+      order.push(block);
+    }
+    byBlock.get(block).push({ vp, globalIdx });
+  });
+
+  const kept = [];
+  let removed = 0;
+
+  for (const block of order) {
+    const items = byBlock.get(block) || [];
+    const blockKept = [];
+    for (const { vp } of items) {
+      const narr = String(vp?.narration_text || vp?.narration_excerpt || "").trim();
+      let dupeIdx = -1;
+      for (let i = 0; i < blockKept.length; i += 1) {
+        const prev = blockKept[i];
+        const prevNarr = String(
+          prev?.narration_text || prev?.narration_excerpt || ""
+        ).trim();
+        // Só dedupe se houver narração e similaridade alta
+        if (!narr || !prevNarr) continue;
+        const sim = narrationTextSimilarity(narr, prevNarr);
+        if (sim >= similarityThreshold) {
+          dupeIdx = i;
+          break;
+        }
+      }
+      if (dupeIdx >= 0) {
+        blockKept[dupeIdx] = preferVisualPromptKeep(blockKept[dupeIdx], vp);
+        removed += 1;
+      } else {
+        blockKept.push(vp);
+      }
+    }
+    // Renumera cenas do bloco  b.1, b.2, ...
+    blockKept.forEach((vp, idx) => {
+      kept.push({
+        ...vp,
+        block,
+        scene: `${block}.${idx + 1}`,
+      });
+    });
+  }
+
+  if (removed > 0) {
+    console.log(
+      `[scriptQuality] Dedupe visual_prompts: removed ${removed} near-duplicate scene(s) within blocks`
+    );
+  }
+  return kept;
 }
 
 /**
@@ -1808,6 +2072,14 @@ export function ensureNarrationCoverage(
   const approvedNarration = String(narrativeScript || "").trim();
   if (!approvedNarration || !vps.length) return vps;
 
+  const isPovVp = (vp) =>
+    vp?.is_pov === true ||
+    vp?.no_channel_narration === true ||
+    String(vp?.scene_kind || "").toLowerCase() === "pov";
+
+  // POV = sem VO de canal; nunca cobrir / reinjetar narração nessas cenas
+  const channelVps = vps.filter((vp) => !isPovVp(vp));
+
   const sentences = approvedNarration
     .split(/(?<=[.!?…])\s+/)
     .map((s) => s.trim())
@@ -1815,12 +2087,19 @@ export function ensureNarrationCoverage(
   if (!sentences.length) return vps;
 
   const coveredByScene = (sentence) => {
-    const needle = sentence.slice(0, 30).toLowerCase();
-    return vps.some((vp) => {
-      const haystack = String(
+    const sent = normalizeNarrationCompareKey(sentence);
+    if (!sent) return true;
+    const needle = sent.slice(0, Math.min(40, sent.length));
+    return channelVps.some((vp) => {
+      const haystack = normalizeNarrationCompareKey(
         vp.narration_text || vp.narration_excerpt || ""
-      ).toLowerCase();
-      return haystack.includes(needle);
+      );
+      if (!haystack) return false;
+      if (haystack.includes(needle) || sent.includes(haystack.slice(0, 40))) {
+        return true;
+      }
+      // Evita reinjetar frase já coberta por cena quase igual (fim de bloco)
+      return narrationTextSimilarity(sent, haystack) >= 0.75;
     });
   };
 
@@ -1851,9 +2130,10 @@ export function ensureNarrationCoverage(
     const narration_text = group.join(" ");
     const firstGroupSentenceIdx = sentences.indexOf(group[0]);
 
-    // Find insertion point: before the first VP whose narration starts after this sentence
+    // Find insertion point among NON-POV scenes only (POV = gap de VO)
     let insertAt = 0;
     for (let vi = 0; vi < vps.length; vi++) {
+      if (isPovVp(vps[vi])) continue;
       const vpNarr = String(vps[vi]?.narration_text || "").toLowerCase();
       const vpSentenceIdx = sentences.findIndex((s) =>
         vpNarr.includes(s.slice(0, 30).toLowerCase())
@@ -1864,11 +2144,20 @@ export function ensureNarrationCoverage(
       }
       insertAt = vi + 1;
     }
+    // Nunca inserir no meio do par POV A/B
+    while (insertAt < vps.length && isPovVp(vps[insertAt])) insertAt += 1;
 
-    const targetBlock =
+    let targetBlock =
       insertAt < vps.length
         ? vps[insertAt].block
         : vps[vps.length - 1]?.block || 1;
+    if (insertAt < vps.length && isPovVp(vps[insertAt])) {
+      const prevNon = [...vps]
+        .slice(0, insertAt)
+        .reverse()
+        .find((vp) => !isPovVp(vp));
+      targetBlock = prevNon?.block || targetBlock;
+    }
 
     const sceneDraft = {
       scene: `${targetBlock}.0`,
@@ -1883,7 +2172,7 @@ export function ensureNarrationCoverage(
       prompt,
       stock_query: resolveStockSearchQuery(
         { ...sceneDraft, prompt },
-        { strategyTitle: ideaTitle }
+        { strategyTitle: ideaTitle, format: "LONGO" }
       ),
     });
   }
@@ -1904,7 +2193,8 @@ export function ensureNarrationCoverage(
     `[scriptQuality] Narration coverage fix: injected ${missing.length} missing sentence(s) into visual_prompts`
   );
 
-  return vps;
+  // Coverage inject pode deixar a última cena do bloco quase duplicada
+  return dedupeNearDuplicateVisualPromptsInBlocks(vps);
 }
 
 export function buildVisualPromptsFromNarrationPrompt({
@@ -1918,9 +2208,21 @@ export function buildVisualPromptsFromNarrationPrompt({
   ideaTitle = "",
   existingPrompts = [],
   historicalWitness = null,
+  enablePov = false,
+  povPlacement = null,
+  idea = {},
+  niche = "",
 }) {
   const historicalWitnessBlock =
     buildHistoricalWitnessContractBlock(historicalWitness);
+  const povBlock = buildPovContractBlock({
+    enablePov,
+    placement: povPlacement,
+    niche: niche || ideaTitle,
+    idea: { title: ideaTitle, ...idea },
+    format,
+    totalBlocks: blockCount,
+  });
   const skeleton =
     Array.isArray(existingPrompts) && existingPrompts.length > 0
       ? `\nESQUELETO DE CENAS (mantenha scene/block/type; PREENCHA narration_text e prompt em TODOS):\n${JSON.stringify(
@@ -1944,7 +2246,7 @@ NARRAÇÃO APROVADA (fonte única — copie trechos para narration_text):
 """
 ${approvedNarration.trim()}
 """
-${skeleton}${historicalWitnessBlock}
+${skeleton}${historicalWitnessBlock}${povBlock}
 
 ${buildVisualPromptsRules({ format, isListicle, listicleRank })}
 
@@ -2104,6 +2406,8 @@ export function buildNarrationOnlyPrompt({
   remotionTemplateContext = "",
   isHistoricalWitness = false,
   historicalWitness = null,
+  enablePov = false,
+  povPlacement = null,
 }) {
   const guidelinesBlock = buildConsolidatedGuidelines();
 
@@ -2147,6 +2451,16 @@ export function buildNarrationOnlyPrompt({
   const historicalWitnessBlock = isHistoricalWitness
     ? buildHistoricalWitnessContractBlock(historicalWitness)
     : "";
+  const povBlock = buildPovContractBlock({
+    enablePov,
+    placement: povPlacement,
+    niche,
+    idea,
+    format,
+    totalBlocks: isListicle
+      ? listicleBlockCount
+      : userBlockCount || listicleBlockCount,
+  });
 
   return `Você é o "Lumiera Script Master" (Roteirista Profissional para YouTube).
 
@@ -2154,7 +2468,7 @@ ${ideaHeader}
 
 ${inputsBlock}
 
-${nlmBlock}${webResearchContext}${narrationTemplateBlock}${historicalWitnessBlock}
+${nlmBlock}${webResearchContext}${narrationTemplateBlock}${historicalWitnessBlock}${povBlock}
 
 FASE 1 — APENAS NARRAÇÃO (o usuário revisará e aprovará antes dos blocos visuais):
 
@@ -2375,6 +2689,8 @@ export function buildCreatorPhase2Prompt(ctx = {}) {
     remotionTemplateContext = "",
     isHistoricalWitness = false,
     historicalWitness = null,
+    enablePov = false,
+    povPlacement = null,
   } = ctx;
 
   const ideaHeader = buildIdeaContextHeader({
@@ -2403,10 +2719,18 @@ export function buildCreatorPhase2Prompt(ctx = {}) {
   const historicalWitnessBlock = isHistoricalWitness
     ? buildHistoricalWitnessContractBlock(historicalWitness)
     : "";
+  const povBlock = buildPovContractBlock({
+    enablePov,
+    placement: povPlacement,
+    niche,
+    idea,
+    format,
+    totalBlocks: listicleBlockCount,
+  });
 
   return `Você é o Lumiera Script Master — FASE 2: montar roteiro técnico.
 
-${ideaHeader}${templateBlock}${historicalWitnessBlock}
+${ideaHeader}${templateBlock}${historicalWitnessBlock}${povBlock}
 ${notebooklmContext}${webResearchContext}${strategySeed}
 
 A narração abaixo foi APROVADA — copie EXATAMENTE em narrative_script (não reescreva).
@@ -2458,6 +2782,8 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
     epidemicMoodPrompt = "",
     isHistoricalWitness = false,
     historicalWitness = null,
+    enablePov = false,
+    povPlacement = null,
   } = ctx;
 
   const ideaHeader = buildIdeaContextHeader({
@@ -2529,6 +2855,14 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
       : format === "SHORTS"
         ? 4
         : 8;
+  const povBlock = buildPovContractBlock({
+    enablePov,
+    placement: povPlacement,
+    niche,
+    idea,
+    format,
+    totalBlocks: isListicle ? listicleBlockCount : userBlockCount,
+  });
   const blockStructureRule = isListicle
     ? `MODO LISTICLE ATIVO: use EXATAMENTE ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). Cada item = 1 bloco. Não resuma vários itens no mesmo bloco.`
     : `ESTRUTURA OBRIGATÓRIA: use EXATAMENTE ${userBlockCount} blocos na narração e em 'technical_config.block_phrases' — esse é o número definido pelo usuário. NÃO adicione nem remova blocos. Cada bloco deve cobrir o conteúdo descrito na Estrutura/Ganchos por Bloco fornecida acima.`;
@@ -2566,7 +2900,7 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
 
   return `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
 
-${ideaHeader}${customAddendum}${historicalWitnessBlock}
+${ideaHeader}${customAddendum}${historicalWitnessBlock}${povBlock}
 
 ${inputsBlock}
 
@@ -2815,7 +3149,10 @@ export function buildDeterministicVisualPromptsFromNarration(
     .map((s) => s.trim())
     .filter((s) => s.length > 8);
   const resolveSceneStockQuery = (scene) =>
-    resolveStockSearchQuery(scene, { strategyTitle: ideaTitle });
+    resolveStockSearchQuery(scene, {
+      strategyTitle: ideaTitle,
+      format: format === "SHORTS" ? "SHORTS" : "LONGO",
+    });
   if (!sentences.length) {
     const narration_text = text.slice(0, 280);
     const sceneDraft = {
