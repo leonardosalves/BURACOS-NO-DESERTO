@@ -4,6 +4,7 @@
 
 import fs from "fs";
 import { writeJsonAtomicSync } from "./shared/atomicJson.js";
+import os from "os";
 import path from "path";
 import { spawn } from "child_process";
 import { applyNarrationSyncToProject } from "./timelineStudioMigration.js";
@@ -42,7 +43,14 @@ import {
   probeVoiceboxServer,
   buildVoiceboxVoiceList,
   buildVoiceboxStatusHint,
+  synthesizeVoiceboxNarration,
 } from "./voiceboxTts.js";
+import {
+  buildHumorIdeasPrompt,
+  buildHumorNarrationPrompt,
+  parseHumorIdeasResponse,
+  parseHumorNarrationResponse,
+} from "./humorFacts.js";
 import {
   loadGptSovitsConfig,
   probeGptSovitsServer,
@@ -579,6 +587,46 @@ export function registerWorkflowRoutes(app, deps) {
     }
   });
 
+  app.post("/api/humor-facts/ideas", async (req, res) => {
+    try {
+      const apiKey = getApiKeys(WORKSPACE_DIR)[0];
+      if (!apiKey)
+        throw new Error(
+          "Configure uma chave Gemini para pesquisar ideias factuais."
+        );
+      const prompt = buildHumorIdeasPrompt(req.body || {});
+      const raw = await callGeminiWithRetry(apiKey, prompt, {
+        maxRetries: 3,
+        models: ["gemini-2.5-flash"],
+        forceProvider: "gemini",
+        bodyOverride: {
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          tools: [{ google_search: {} }],
+          generationConfig: { temperature: 0.65 },
+        },
+      });
+      res.json({ ok: true, ideas: parseHumorIdeasResponse(raw) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/humor-facts/narration", async (req, res) => {
+    try {
+      const apiKey = getApiKeys(WORKSPACE_DIR)[0];
+      if (!apiKey)
+        throw new Error("Configure uma chave Gemini para gerar a narracao.");
+      const prompt = buildHumorNarrationPrompt(req.body || {});
+      const raw = await callGeminiWithRetry(apiKey, prompt, {
+        maxRetries: 3,
+        models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+      });
+      res.json({ ok: true, result: parseHumorNarrationResponse(raw) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/tts/voices", async (_req, res) => {
     try {
       const fishConfig = loadFishSpeechConfig({ workspaceDir: WORKSPACE_DIR });
@@ -599,104 +647,201 @@ export function registerWorkflowRoutes(app, deps) {
         gptSovitsConfig
       );
 
+      const engines = [
+        {
+          id: "kokoro",
+          label: "Kokoro (local, grátis)",
+          defaultVoice: KOKORO_DEFAULT_VOICE,
+          defaultSpeed: KOKORO_DEFAULT_SPEED,
+          voices: KOKORO_VOICES,
+        },
+        {
+          id: "chatterbox",
+          label: "Chatterbox (local, GPU)",
+          defaultVoice: CHATTERBOX_DEFAULT_VOICE,
+          voices: CHATTERBOX_VOICES,
+          available: chatterboxProbe.ok,
+          hint: chatterboxProbe.ok
+            ? `Pacote OK — device: ${chatterboxProbe.device || "auto"}. Clone opcional via reference_audio no config.`
+            : `Indisponível: ${chatterboxProbe.error || "pip install chatterbox-tts"}`,
+        },
+        {
+          id: "voicebox",
+          label: "Voicebox (clone local)",
+          defaultVoice:
+            voiceboxProbe.defaultProfileId || voiceboxVoices[0]?.id || "",
+          voices: voiceboxVoices,
+          available: voiceboxProbe.ok,
+          serverUrl: voiceboxProbe.baseUrl,
+          gpuAvailable: Boolean(voiceboxProbe.gpuAvailable),
+          backendType: voiceboxProbe.backendType || null,
+          profileCount: (voiceboxProbe.profiles || []).length,
+          hint: buildVoiceboxStatusHint(voiceboxProbe, voiceboxVoices),
+        },
+        {
+          id: "gptsovits",
+          label: "GPT-SoVITS (clone few-shot)",
+          defaultVoice: gptSovitsProbe.ok
+            ? gptSovitsVoices.find((v) => v.id !== GPT_SOVITS_DEFAULT_VOICE)
+                ?.id || GPT_SOVITS_DEFAULT_VOICE
+            : GPT_SOVITS_DEFAULT_VOICE,
+          voices: gptSovitsVoices,
+          available:
+            gptSovitsProbe.ok &&
+            gptSovitsVoices.some((v) => v.id !== GPT_SOVITS_DEFAULT_VOICE),
+          serverUrl: gptSovitsProbe.baseUrl,
+          hint: buildGptSovitsStatusHint(gptSovitsProbe, gptSovitsVoices),
+        },
+        {
+          id: "fish",
+          label: "Fish Speech S2",
+          defaultVoice:
+            fishProbe.defaultReferenceId || FISH_SPEECH_DEFAULT_VOICE,
+          voices: fishVoices,
+          available: fishProbe.ok,
+          mode: fishProbe.mode || "local",
+          serverUrl: fishProbe.baseUrl,
+          cloudModel:
+            fishConfig.fish_speech?.cloud_model ||
+            fishConfig.fish_speech?.cloudModel ||
+            "s2.1-pro-free",
+          hint: fishProbe.ok
+            ? fishProbe.mode === "cloud"
+              ? `Fish Audio API (cloud) · ${fishConfig.fish_speech?.cloud_model || fishConfig.fish_speech?.cloudModel || "s2.1-pro-free"} · ${fishProbe.modelCount || fishProbe.references?.length || 0} voz(es) — tags [pausa], [ênfase]`
+              : "Servidor local ativo — tags inline [pausa], [ênfase]"
+            : fishProbe.error ||
+              "Offline: .\\scripts\\start-fish-speech.ps1 ou fish_speech.api_key no config",
+        },
+        {
+          id: "edge",
+          label: "Edge TTS (Microsoft)",
+          defaultVoice: "pt-BR-AntonioNeural",
+          voices: [
+            {
+              id: "pt-BR-AntonioNeural",
+              label: "Antonio — PT-BR masculino",
+              group: "pt",
+            },
+            {
+              id: "pt-BR-FranciscaNeural",
+              label: "Francisca — PT-BR feminino",
+              group: "pt",
+            },
+            {
+              id: "en-US-RogerNeural",
+              label: "Roger — EN grave",
+              group: "en",
+            },
+            {
+              id: "en-US-ChristopherNeural",
+              label: "Christopher — EN maduro",
+              group: "en",
+            },
+            { id: "en-US-GuyNeural", label: "Guy — EN seco", group: "en" },
+          ],
+        },
+      ];
+      const workspaceConfig =
+        readJsonFile(path.join(WORKSPACE_DIR, "config_qanat.json")) || {};
+      const savedDefaults =
+        workspaceConfig.tts_default_voices &&
+        typeof workspaceConfig.tts_default_voices === "object"
+          ? workspaceConfig.tts_default_voices
+          : {};
+      for (const engine of engines) {
+        const savedVoice = String(savedDefaults[engine.id] || "").trim();
+        if (
+          savedVoice &&
+          (!engine.voices?.length ||
+            engine.voices.some((voice) => voice.id === savedVoice))
+        ) {
+          engine.defaultVoice = savedVoice;
+        }
+      }
+      res.json({ engines, defaults: savedDefaults });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/tts/default-voice", (req, res) => {
+    try {
+      const engine = String(req.body?.engine || "")
+        .trim()
+        .toLowerCase();
+      const voice = String(req.body?.voice || "").trim();
+      const allowed = new Set([
+        "kokoro",
+        "chatterbox",
+        "voicebox",
+        "gptsovits",
+        "fish",
+        "edge",
+      ]);
+      if (!allowed.has(engine))
+        return res.status(400).json({ error: "Motor TTS invalido." });
+      if (!voice || voice.length > 240 || /[\r\n]/.test(voice)) {
+        return res.status(400).json({ error: "Voz TTS invalida." });
+      }
+      const configPath = path.join(WORKSPACE_DIR, "config_qanat.json");
+      const config = readJsonFile(configPath) || {};
+      config.tts_default_voices = {
+        ...(config.tts_default_voices &&
+        typeof config.tts_default_voices === "object"
+          ? config.tts_default_voices
+          : {}),
+        [engine]: voice,
+      };
+      writeJsonAtomicSync(configPath, config);
       res.json({
-        engines: [
-          {
-            id: "kokoro",
-            label: "Kokoro (local, grátis)",
-            defaultVoice: KOKORO_DEFAULT_VOICE,
-            defaultSpeed: KOKORO_DEFAULT_SPEED,
-            voices: KOKORO_VOICES,
-          },
-          {
-            id: "chatterbox",
-            label: "Chatterbox (local, GPU)",
-            defaultVoice: CHATTERBOX_DEFAULT_VOICE,
-            voices: CHATTERBOX_VOICES,
-            available: chatterboxProbe.ok,
-            hint: chatterboxProbe.ok
-              ? `Pacote OK — device: ${chatterboxProbe.device || "auto"}. Clone opcional via reference_audio no config.`
-              : `Indisponível: ${chatterboxProbe.error || "pip install chatterbox-tts"}`,
-          },
-          {
-            id: "voicebox",
-            label: "Voicebox (clone local)",
-            defaultVoice:
-              voiceboxProbe.defaultProfileId || voiceboxVoices[0]?.id || "",
-            voices: voiceboxVoices,
-            available: voiceboxProbe.ok,
-            serverUrl: voiceboxProbe.baseUrl,
-            gpuAvailable: Boolean(voiceboxProbe.gpuAvailable),
-            backendType: voiceboxProbe.backendType || null,
-            profileCount: (voiceboxProbe.profiles || []).length,
-            hint: buildVoiceboxStatusHint(voiceboxProbe, voiceboxVoices),
-          },
-          {
-            id: "gptsovits",
-            label: "GPT-SoVITS (clone few-shot)",
-            defaultVoice: gptSovitsProbe.ok
-              ? gptSovitsVoices.find((v) => v.id !== GPT_SOVITS_DEFAULT_VOICE)
-                  ?.id || GPT_SOVITS_DEFAULT_VOICE
-              : GPT_SOVITS_DEFAULT_VOICE,
-            voices: gptSovitsVoices,
-            available:
-              gptSovitsProbe.ok &&
-              gptSovitsVoices.some((v) => v.id !== GPT_SOVITS_DEFAULT_VOICE),
-            serverUrl: gptSovitsProbe.baseUrl,
-            hint: buildGptSovitsStatusHint(gptSovitsProbe, gptSovitsVoices),
-          },
-          {
-            id: "fish",
-            label: "Fish Speech S2",
-            defaultVoice:
-              fishProbe.defaultReferenceId || FISH_SPEECH_DEFAULT_VOICE,
-            voices: fishVoices,
-            available: fishProbe.ok,
-            mode: fishProbe.mode || "local",
-            serverUrl: fishProbe.baseUrl,
-            cloudModel:
-              fishConfig.fish_speech?.cloud_model ||
-              fishConfig.fish_speech?.cloudModel ||
-              "s2.1-pro-free",
-            hint: fishProbe.ok
-              ? fishProbe.mode === "cloud"
-                ? `Fish Audio API (cloud) · ${fishConfig.fish_speech?.cloud_model || fishConfig.fish_speech?.cloudModel || "s2.1-pro-free"} · ${fishProbe.modelCount || fishProbe.references?.length || 0} voz(es) — tags [pausa], [ênfase]`
-                : "Servidor local ativo — tags inline [pausa], [ênfase]"
-              : fishProbe.error ||
-                "Offline: .\\scripts\\start-fish-speech.ps1 ou fish_speech.api_key no config",
-          },
-          {
-            id: "edge",
-            label: "Edge TTS (Microsoft)",
-            defaultVoice: "pt-BR-AntonioNeural",
-            voices: [
-              {
-                id: "pt-BR-AntonioNeural",
-                label: "Antonio — PT-BR masculino",
-                group: "pt",
-              },
-              {
-                id: "pt-BR-FranciscaNeural",
-                label: "Francisca — PT-BR feminino",
-                group: "pt",
-              },
-              {
-                id: "en-US-RogerNeural",
-                label: "Roger — EN grave",
-                group: "en",
-              },
-              {
-                id: "en-US-ChristopherNeural",
-                label: "Christopher — EN maduro",
-                group: "en",
-              },
-              { id: "en-US-GuyNeural", label: "Guy — EN seco", group: "en" },
-            ],
-          },
-        ],
+        ok: true,
+        engine,
+        voice,
+        defaults: config.tts_default_voices,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/tts/voicebox-preview", async (req, res) => {
+    const outputPath = path.join(
+      os.tmpdir(),
+      `lumiera-voicebox-preview-${process.pid}-${Date.now()}.mp3`
+    );
+    try {
+      const projDir = getProjectDir(req);
+      const sampleText = String(req.body?.sampleText || "")
+        .trim()
+        .slice(0, 240);
+      const voice = String(req.body?.voice || "").trim();
+      const voicebox =
+        req.body?.voicebox && typeof req.body.voicebox === "object"
+          ? req.body.voicebox
+          : {};
+      if (sampleText.length < 20)
+        throw new Error("Digite ao menos 20 caracteres para a amostra.");
+      const config = loadVoiceboxConfig({
+        workspaceDir: WORKSPACE_DIR,
+        projectDir: projDir,
+      });
+      config.voicebox = { ...config.voicebox, ...voicebox };
+      const result = await synthesizeVoiceboxNarration(sampleText, {
+        outputPath,
+        voice,
+        config,
+      });
+      const buffer = fs.readFileSync(outputPath);
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("X-Voicebox-Sample-Text", encodeURIComponent(sampleText));
+      res.setHeader("X-Voicebox-Profile-Id", String(result.profileId || voice));
+      res.send(buffer);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    } finally {
+      try {
+        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+      } catch {}
     }
   });
 
@@ -842,10 +987,7 @@ export function registerWorkflowRoutes(app, deps) {
           "Plano de trechos ausente — use 'Planejar trechos (IA)' antes."
         );
       }
-      assertNarrationPlanMatchesSource(
-        plan,
-        storyboard.narrative_script || ""
-      );
+      assertNarrationPlanMatchesSource(plan, storyboard.narrative_script || "");
 
       report(
         "prepare",

@@ -1,9 +1,24 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
-  ExternalLink, Loader2, Mic, Play, Sparkles, Square, Volume2, Wand2,
-} from 'lucide-react';
-import { SectionHeader } from './SectionHeader';
-import { buildTaggedNarration } from './taggedNarration';
+  Check,
+  ExternalLink,
+  Loader2,
+  Mic,
+  Play,
+  Save,
+  Sparkles,
+  Square,
+  Volume2,
+  Wand2,
+} from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
+import { buildTaggedNarration } from "./taggedNarration";
 import {
   createProgressJobId,
   startAiJobProgress,
@@ -11,7 +26,7 @@ import {
   subscribeAiJobProgress,
   waitForAiJobDone,
   type AiJobProgressState,
-} from './aiJobProgressClient';
+} from "./aiJobProgressClient";
 
 type TtsVoiceOption = {
   id: string;
@@ -35,31 +50,40 @@ type TtsEngineOption = {
 };
 
 const FISH_TAG_CHIPS = [
-  '[ênfase]', '[pausa]', '[pausa longa]', '[rápido]', '[lento]',
-  '[suspiro]', '[inhale]', '[risada leve]', '[tom de narrador documental em português brasileiro]',
+  "[ênfase]",
+  "[pausa]",
+  "[pausa longa]",
+  "[rápido]",
+  "[lento]",
+  "[suspiro]",
+  "[inhale]",
+  "[risada leve]",
+  "[tom de narrador documental em português brasileiro]",
 ];
 
 const FISH_PREVIEW_FALLBACK =
-  'Esta é uma amostra da voz do narrador. Tom documental, natural e claro em português brasileiro.';
+  "Esta é uma amostra da voz do narrador. Tom documental, natural e claro em português brasileiro.";
 
 const VOICEBOX_ENGINES = [
-  { id: 'chatterbox', label: 'Chatterbox (multilíngue PT)' },
-  { id: 'kokoro', label: 'Kokoro (leve)' },
-  { id: 'qwen3-tts', label: 'Qwen3-TTS' },
-  { id: 'chatterbox-turbo', label: 'Chatterbox Turbo (tags EN)' },
-  { id: 'luxtts', label: 'LuxTTS (EN)' },
+  { id: "qwen", label: "Qwen3-TTS (clone multilíngue)" },
+  { id: "qwen_custom_voice", label: "Qwen CustomVoice (presets)" },
+  { id: "chatterbox", label: "Chatterbox (multilíngue PT)" },
+  { id: "kokoro", label: "Kokoro (leve)" },
+  { id: "chatterbox_turbo", label: "Chatterbox Turbo (tags EN)" },
+  { id: "luxtts", label: "LuxTTS (EN)" },
+  { id: "tada", label: "TADA" },
 ];
 
 const GPT_SOVITS_TEXT_LANGS = [
-  { id: 'en', label: 'English (cross-lingual PT-BR)' },
-  { id: 'zh', label: '中文 Chinese' },
-  { id: 'ja', label: '日本語 Japanese' },
-  { id: 'ko', label: '한국어 Korean' },
-  { id: 'yue', label: '粤语 Cantonese' },
+  { id: "en", label: "English (cross-lingual PT-BR)" },
+  { id: "zh", label: "中文 Chinese" },
+  { id: "ja", label: "日本語 Japanese" },
+  { id: "ko", label: "한국어 Korean" },
+  { id: "yue", label: "粤语 Cantonese" },
 ];
 
 const GPT_SOVITS_PREVIEW_FALLBACK =
-  'Esta é uma amostra da voz clonada com GPT-SoVITS. Tom natural em português brasileiro.';
+  "Esta é uma amostra da voz clonada com GPT-SoVITS. Tom natural em português brasileiro.";
 
 type Props = {
   getProjectUrl: (path: string) => string;
@@ -73,20 +97,28 @@ type Props = {
 export function TtsVoiceStudioPanel({
   getProjectUrl,
   toast,
-  narrativeScript = '',
-  taggedScript = '',
+  narrativeScript = "",
+  taggedScript = "",
   onUpdated,
   onTaggedScriptChange,
 }: Props) {
-  const [studioEngine, setStudioEngine] = useState<'fish' | 'voicebox' | 'gptsovits'>('fish');
+  const [studioEngine, setStudioEngine] = useState<
+    "fish" | "voicebox" | "gptsovits"
+  >("fish");
   const [engines, setEngines] = useState<TtsEngineOption[]>([]);
   const [loadingEngines, setLoadingEngines] = useState(false);
+  const [defaultDrafts, setDefaultDrafts] = useState<Record<string, string>>(
+    {}
+  );
+  const [savingDefault, setSavingDefault] = useState("");
   const [generating, setGenerating] = useState(false);
-  const [ttsProgress, setTtsProgress] = useState<AiJobProgressState | null>(null);
+  const [ttsProgress, setTtsProgress] = useState<AiJobProgressState | null>(
+    null
+  );
 
-  const [fishVoice, setFishVoice] = useState('__default__');
+  const [fishVoice, setFishVoice] = useState("__default__");
   const [fishUseTags, setFishUseTags] = useState(true);
-  const [fishTaggedText, setFishTaggedText] = useState('');
+  const [fishTaggedText, setFishTaggedText] = useState("");
   const [fishTemperature, setFishTemperature] = useState(0.8);
   const [fishTopP, setFishTopP] = useState(0.8);
   const [fishRepPenalty, setFishRepPenalty] = useState(1.1);
@@ -94,86 +126,135 @@ export function TtsVoiceStudioPanel({
   const [fishProsodySpeed, setFishProsodySpeed] = useState(1);
   const [fishPreviewing, setFishPreviewing] = useState(false);
   const [fishPreviewPlaying, setFishPreviewPlaying] = useState(false);
-  const [fishPreviewSample, setFishPreviewSample] = useState('');
+  const [fishPreviewSample, setFishPreviewSample] = useState("");
 
   const fishPreviewAudioRef = useRef<HTMLAudioElement | null>(null);
   const fishPreviewUrlRef = useRef<string | null>(null);
   const toastRef = useRef(toast);
   toastRef.current = toast;
 
-  const [vbVoice, setVbVoice] = useState('');
-  const [vbEngine, setVbEngine] = useState('chatterbox');
-  const [vbLanguage, setVbLanguage] = useState('pt');
+  const [vbVoice, setVbVoice] = useState("");
+  const [vbEngine, setVbEngine] = useState("qwen");
+  const [vbLanguage, setVbLanguage] = useState("pt");
   const [vbUseTags, setVbUseTags] = useState(false);
+  const [vbPreviewing, setVbPreviewing] = useState(false);
+  const [vbPreviewPlaying, setVbPreviewPlaying] = useState(false);
+  const [vbPreviewSample, setVbPreviewSample] = useState("");
+  const vbPreviewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const vbPreviewUrlRef = useRef<string | null>(null);
 
-  const [gsVoice, setGsVoice] = useState('');
-  const [gsTextLang, setGsTextLang] = useState('en');
+  const [gsVoice, setGsVoice] = useState("");
+  const [gsTextLang, setGsTextLang] = useState("en");
   const [gsSpeed, setGsSpeed] = useState(1);
   const [gsTemperature, setGsTemperature] = useState(1);
   const [gsTopP, setGsTopP] = useState(1);
   const [gsRepPenalty, setGsRepPenalty] = useState(1.35);
   const [gsPreviewing, setGsPreviewing] = useState(false);
   const [gsPreviewPlaying, setGsPreviewPlaying] = useState(false);
-  const [gsPreviewSample, setGsPreviewSample] = useState('');
+  const [gsPreviewSample, setGsPreviewSample] = useState("");
 
   const gsPreviewAudioRef = useRef<HTMLAudioElement | null>(null);
   const gsPreviewUrlRef = useRef<string | null>(null);
 
-  const fishEngine = engines.find((e) => e.id === 'fish');
-  const voiceboxEngine = engines.find((e) => e.id === 'voicebox');
-  const gptsovitsEngine = engines.find((e) => e.id === 'gptsovits');
-  const activeEngine = studioEngine === 'fish'
-    ? fishEngine
-    : studioEngine === 'voicebox'
-      ? voiceboxEngine
-      : gptsovitsEngine;
+  const fishEngine = engines.find((e) => e.id === "fish");
+  const voiceboxEngine = engines.find((e) => e.id === "voicebox");
+  const gptsovitsEngine = engines.find((e) => e.id === "gptsovits");
+  const activeEngine =
+    studioEngine === "fish"
+      ? fishEngine
+      : studioEngine === "voicebox"
+        ? voiceboxEngine
+        : gptsovitsEngine;
 
   const pickValidVoice = (
     current: string,
     voices: TtsVoiceOption[] = [],
-    fallback = '',
+    fallback = ""
   ) => {
     if (current && voices.some((v) => v.id === current)) return current;
     if (fallback && voices.some((v) => v.id === fallback)) return fallback;
-    const first = voices.find((v) => v.id && v.id !== '__configure__');
+    const first = voices.find((v) => v.id && v.id !== "__configure__");
     return first?.id || current || fallback;
   };
 
   const loadEngines = useCallback(async () => {
     setLoadingEngines(true);
     try {
-      const res = await fetch(getProjectUrl('/api/tts/voices'));
+      const res = await fetch(getProjectUrl("/api/tts/voices"));
       const data = await res.json();
       const list = (data.engines || []) as TtsEngineOption[];
       setEngines(list);
-      const fish = list.find((e) => e.id === 'fish');
-      const vb = list.find((e) => e.id === 'voicebox');
-      setFishVoice((current) => pickValidVoice(
-        current,
-        fish?.voices || [],
-        fish?.defaultVoice || '__default__',
-      ));
-      setVbVoice((current) => pickValidVoice(
-        current,
-        vb?.voices || [],
-        vb?.defaultVoice && vb.defaultVoice !== '__configure__'
-          ? vb.defaultVoice
-          : (vb?.voices?.[0]?.id || ''),
-      ));
-      const gs = list.find((e) => e.id === 'gptsovits');
-      setGsVoice((current) => pickValidVoice(
-        current,
-        gs?.voices || [],
-        gs?.defaultVoice && gs.defaultVoice !== '__configure__'
-          ? gs.defaultVoice
-          : (gs?.voices?.find((v) => v.id !== '__configure__')?.id || ''),
-      ));
+      setDefaultDrafts(
+        Object.fromEntries(
+          list.map((engine) => [engine.id, engine.defaultVoice || ""])
+        )
+      );
+      const fish = list.find((e) => e.id === "fish");
+      const vb = list.find((e) => e.id === "voicebox");
+      setFishVoice((current) =>
+        pickValidVoice(
+          current,
+          fish?.voices || [],
+          fish?.defaultVoice || "__default__"
+        )
+      );
+      setVbVoice((current) =>
+        pickValidVoice(
+          current,
+          vb?.voices || [],
+          vb?.defaultVoice && vb.defaultVoice !== "__configure__"
+            ? vb.defaultVoice
+            : vb?.voices?.[0]?.id || ""
+        )
+      );
+      const gs = list.find((e) => e.id === "gptsovits");
+      setGsVoice((current) =>
+        pickValidVoice(
+          current,
+          gs?.voices || [],
+          gs?.defaultVoice && gs.defaultVoice !== "__configure__"
+            ? gs.defaultVoice
+            : gs?.voices?.find((v) => v.id !== "__configure__")?.id || ""
+        )
+      );
     } catch {
-      toastRef.current('Erro ao carregar motores TTS.');
+      toastRef.current("Erro ao carregar motores TTS.");
     } finally {
       setLoadingEngines(false);
     }
   }, [getProjectUrl]);
+
+  const saveDefaultVoice = async (engine: string) => {
+    const voice = String(defaultDrafts[engine] || "").trim();
+    if (!voice || voice === "__configure__") {
+      toast("Escolha uma voz valida antes de definir o padrao.");
+      return;
+    }
+    setSavingDefault(engine);
+    try {
+      const res = await fetch(getProjectUrl("/api/tts/default-voice"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ engine, voice }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(String(data.error || "Falha ao salvar voz padrao"));
+      setEngines((current) =>
+        current.map((item) =>
+          item.id === engine ? { ...item, defaultVoice: voice } : item
+        )
+      );
+      if (engine === "fish") setFishVoice(voice);
+      if (engine === "voicebox") setVbVoice(voice);
+      if (engine === "gptsovits") setGsVoice(voice);
+      toast(`Voz padrao de ${engine} salva.`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Erro ao salvar voz padrao.");
+    } finally {
+      setSavingDefault("");
+    }
+  };
 
   useEffect(() => {
     void loadEngines();
@@ -193,12 +274,17 @@ export function TtsVoiceStudioPanel({
       return;
     }
     if (narrativeScript.trim().length > 40) {
-      setFishTaggedText(buildTaggedNarration(narrativeScript, 'fish', { taggedScript }));
+      setFishTaggedText(
+        buildTaggedNarration(narrativeScript, "fish", { taggedScript })
+      );
     }
   }, [narrativeScript, taggedScript]);
 
   const fishPreviewText = useMemo(() => {
-    const plain = narrativeScript.replace(/\[[^\]]+\]/g, ' ').replace(/\s+/g, ' ').trim();
+    const plain = narrativeScript
+      .replace(/\[[^\]]+\]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     if (plain.length >= 40) {
       const sentence = plain.match(/[^.!?]+[.!?]?/)?.[0]?.trim() || plain;
       return sentence.slice(0, 180).trim();
@@ -221,29 +307,40 @@ export function TtsVoiceStudioPanel({
     }
   }, []);
 
-  useEffect(() => () => {
-    stopFishPreview();
-    revokeFishPreviewUrl();
-  }, [stopFishPreview, revokeFishPreviewUrl]);
+  useEffect(
+    () => () => {
+      stopFishPreview();
+      revokeFishPreviewUrl();
+    },
+    [stopFishPreview, revokeFishPreviewUrl]
+  );
 
   useEffect(() => {
     stopFishPreview();
     revokeFishPreviewUrl();
-    setFishPreviewSample('');
-  }, [fishVoice, fishTemperature, fishTopP, fishRepPenalty, fishProsodySpeed, stopFishPreview, revokeFishPreviewUrl]);
+    setFishPreviewSample("");
+  }, [
+    fishVoice,
+    fishTemperature,
+    fishTopP,
+    fishRepPenalty,
+    fishProsodySpeed,
+    stopFishPreview,
+    revokeFishPreviewUrl,
+  ]);
 
   const handleFishPreview = async () => {
     if (!fishEngine?.available) {
-      toast('Fish Audio indisponível — verifique API key ou servidor local.');
+      toast("Fish Audio indisponível — verifique API key ou servidor local.");
       return;
     }
     setFishPreviewing(true);
     stopFishPreview();
     revokeFishPreviewUrl();
     try {
-      const res = await fetch(getProjectUrl('/api/tts/fish-preview'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(getProjectUrl("/api/tts/fish-preview"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           voice: fishVoice,
           narrativeScript,
@@ -259,24 +356,26 @@ export function TtsVoiceStudioPanel({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(String(err.error || 'Falha na amostra de voz'));
+        throw new Error(String(err.error || "Falha na amostra de voz"));
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       fishPreviewUrlRef.current = url;
-      const sampleHeader = res.headers.get('X-Fish-Sample-Text');
-      setFishPreviewSample(sampleHeader ? decodeURIComponent(sampleHeader) : fishPreviewText);
+      const sampleHeader = res.headers.get("X-Fish-Sample-Text");
+      setFishPreviewSample(
+        sampleHeader ? decodeURIComponent(sampleHeader) : fishPreviewText
+      );
       const audio = new Audio(url);
       fishPreviewAudioRef.current = audio;
       audio.onended = () => setFishPreviewPlaying(false);
       audio.onerror = () => {
         setFishPreviewPlaying(false);
-        toast('Erro ao reproduzir amostra.');
+        toast("Erro ao reproduzir amostra.");
       };
       await audio.play();
       setFishPreviewPlaying(true);
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao gerar amostra Fish.');
+      toast(err instanceof Error ? err.message : "Erro ao gerar amostra Fish.");
     } finally {
       setFishPreviewing(false);
     }
@@ -286,12 +385,88 @@ export function TtsVoiceStudioPanel({
     const voices = fishEngine?.voices || [];
     const groups = new Map<string, TtsVoiceOption[]>();
     for (const v of voices) {
-      const g = v.group || 'vozes';
+      const g = v.group || "vozes";
       if (!groups.has(g)) groups.set(g, []);
       groups.get(g)!.push(v);
     }
     return [...groups.entries()];
   }, [fishEngine]);
+
+  const voiceboxPreviewText = useMemo(() => {
+    if (vbPreviewSample.trim()) return vbPreviewSample.trim().slice(0, 240);
+    const plain = narrativeScript
+      .replace(/\[[^\]]+\]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const sentence = plain.match(/[^.!?]+[.!?]?/)?.[0]?.trim() || plain;
+    return (
+      sentence.length >= 20
+        ? sentence
+        : "Esta e uma amostra curta da voz escolhida para a narracao em portugues brasileiro."
+    ).slice(0, 240);
+  }, [narrativeScript, vbPreviewSample]);
+
+  const stopVbPreview = useCallback(() => {
+    if (vbPreviewAudioRef.current) {
+      vbPreviewAudioRef.current.pause();
+      vbPreviewAudioRef.current.currentTime = 0;
+    }
+    setVbPreviewPlaying(false);
+  }, []);
+
+  const revokeVbPreviewUrl = useCallback(() => {
+    if (vbPreviewUrlRef.current) {
+      URL.revokeObjectURL(vbPreviewUrlRef.current);
+      vbPreviewUrlRef.current = null;
+    }
+  }, []);
+
+  useEffect(
+    () => () => {
+      stopVbPreview();
+      revokeVbPreviewUrl();
+    },
+    [stopVbPreview, revokeVbPreviewUrl]
+  );
+
+  const handleVoiceboxPreview = async () => {
+    if (!voiceboxEngine?.available || !vbVoice || vbVoice === "__configure__") {
+      toast("Voicebox offline ou sem perfil de voz.");
+      return;
+    }
+    setVbPreviewing(true);
+    stopVbPreview();
+    revokeVbPreviewUrl();
+    try {
+      const res = await fetch(getProjectUrl("/api/tts/voicebox-preview"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          voice: vbVoice,
+          sampleText: voiceboxPreviewText,
+          voicebox: { engine: vbEngine, language: vbLanguage },
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(String(data.error || "Falha na amostra Voicebox"));
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      vbPreviewUrlRef.current = url;
+      const audio = new Audio(url);
+      vbPreviewAudioRef.current = audio;
+      audio.onended = () => setVbPreviewPlaying(false);
+      await audio.play();
+      setVbPreviewPlaying(true);
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "Erro ao gerar amostra Voicebox."
+      );
+    } finally {
+      setVbPreviewing(false);
+    }
+  };
 
   const insertFishTag = (tag: string) => {
     setFishTaggedText((prev) => `${prev.trimEnd()} ${tag} `.trimStart());
@@ -299,17 +474,22 @@ export function TtsVoiceStudioPanel({
 
   const autoGenerateFishTags = () => {
     if (!narrativeScript.trim()) {
-      toast('Preencha o texto da narração no storyboard primeiro.');
+      toast("Preencha o texto da narração no storyboard primeiro.");
       return;
     }
-    const built = buildTaggedNarration(narrativeScript, 'fish', { taggedScript });
+    const built = buildTaggedNarration(narrativeScript, "fish", {
+      taggedScript,
+    });
     setFishTaggedText(built);
     onTaggedScriptChange?.(built);
-    toast('Tags Fish geradas a partir do roteiro.');
+    toast("Tags Fish geradas a partir do roteiro.");
   };
 
   const gsPreviewText = useMemo(() => {
-    const plain = narrativeScript.replace(/\[[^\]]+\]/g, ' ').replace(/\s+/g, ' ').trim();
+    const plain = narrativeScript
+      .replace(/\[[^\]]+\]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     if (plain.length >= 20) {
       const sentence = plain.match(/[^.!?]+[.!?]?/)?.[0]?.trim() || plain;
       return sentence.slice(0, 180).trim();
@@ -332,27 +512,30 @@ export function TtsVoiceStudioPanel({
     }
   }, []);
 
-  useEffect(() => () => {
-    stopGsPreview();
-    revokeGsPreviewUrl();
-  }, [stopGsPreview, revokeGsPreviewUrl]);
+  useEffect(
+    () => () => {
+      stopGsPreview();
+      revokeGsPreviewUrl();
+    },
+    [stopGsPreview, revokeGsPreviewUrl]
+  );
 
   const handleGsPreview = async () => {
     if (!gptsovitsEngine?.available) {
-      toast('GPT-SoVITS offline — rode .\\scripts\\start-gpt-sovits.ps1');
+      toast("GPT-SoVITS offline — rode .\\scripts\\start-gpt-sovits.ps1");
       return;
     }
-    if (!gsVoice || gsVoice === '__configure__') {
-      toast('Configure gpt_sovits.voices no config_qanat.json');
+    if (!gsVoice || gsVoice === "__configure__") {
+      toast("Configure gpt_sovits.voices no config_qanat.json");
       return;
     }
     setGsPreviewing(true);
     stopGsPreview();
     revokeGsPreviewUrl();
     try {
-      const res = await fetch(getProjectUrl('/api/tts/gpt-sovits-preview'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(getProjectUrl("/api/tts/gpt-sovits-preview"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           voice: gsVoice,
           narrativeScript,
@@ -368,20 +551,24 @@ export function TtsVoiceStudioPanel({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(String(err.error || 'Falha na amostra GPT-SoVITS'));
+        throw new Error(String(err.error || "Falha na amostra GPT-SoVITS"));
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       gsPreviewUrlRef.current = url;
-      const sampleHeader = res.headers.get('X-Gpt-Sovits-Sample-Text');
-      setGsPreviewSample(sampleHeader ? decodeURIComponent(sampleHeader) : gsPreviewText);
+      const sampleHeader = res.headers.get("X-Gpt-Sovits-Sample-Text");
+      setGsPreviewSample(
+        sampleHeader ? decodeURIComponent(sampleHeader) : gsPreviewText
+      );
       const audio = new Audio(url);
       gsPreviewAudioRef.current = audio;
       audio.onended = () => setGsPreviewPlaying(false);
       await audio.play();
       setGsPreviewPlaying(true);
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao gerar amostra GPT-SoVITS.');
+      toast(
+        err instanceof Error ? err.message : "Erro ao gerar amostra GPT-SoVITS."
+      );
     } finally {
       setGsPreviewing(false);
     }
@@ -389,87 +576,110 @@ export function TtsVoiceStudioPanel({
 
   const handleGenerate = async () => {
     if (!narrativeScript.trim() || narrativeScript.trim().length < 40) {
-      toast('Texto da narração muito curto — edite o storyboard acima.');
+      toast("Texto da narração muito curto — edite o storyboard acima.");
       return;
     }
-    if (studioEngine === 'voicebox' && (!voiceboxEngine?.available || !vbVoice || vbVoice === '__configure__')) {
-      toast('Voicebox offline ou sem perfil — abra o app e crie um perfil de voz.');
+    if (
+      studioEngine === "voicebox" &&
+      (!voiceboxEngine?.available || !vbVoice || vbVoice === "__configure__")
+    ) {
+      toast(
+        "Voicebox offline ou sem perfil — abra o app e crie um perfil de voz."
+      );
       return;
     }
-    if (studioEngine === 'gptsovits' && (!gptsovitsEngine?.available || !gsVoice || gsVoice === '__configure__')) {
-      toast('GPT-SoVITS offline ou sem voz — configure gpt_sovits.voices no config.');
+    if (
+      studioEngine === "gptsovits" &&
+      (!gptsovitsEngine?.available || !gsVoice || gsVoice === "__configure__")
+    ) {
+      toast(
+        "GPT-SoVITS offline ou sem voz — configure gpt_sovits.voices no config."
+      );
       return;
     }
-    if (studioEngine === 'fish' && !fishEngine?.available) {
-      toast('Fish Audio indisponível — verifique API key ou servidor local.');
+    if (studioEngine === "fish" && !fishEngine?.available) {
+      toast("Fish Audio indisponível — verifique API key ou servidor local.");
       return;
     }
 
     setGenerating(true);
     const progressJobId = createProgressJobId();
-    const progressTitle = studioEngine === 'fish'
-      ? 'Fish Audio TTS'
-      : studioEngine === 'gptsovits'
-        ? 'GPT-SoVITS TTS'
-        : 'Voicebox TTS';
+    const progressTitle =
+      studioEngine === "fish"
+        ? "Fish Audio TTS"
+        : studioEngine === "gptsovits"
+          ? "GPT-SoVITS TTS"
+          : "Voicebox TTS";
     startAiJobProgress(progressJobId, progressTitle);
 
     try {
       const body: Record<string, unknown> = {
         engine: studioEngine,
-        voice: studioEngine === 'fish'
-          ? fishVoice
-          : studioEngine === 'gptsovits'
-            ? gsVoice
-            : vbVoice,
+        voice:
+          studioEngine === "fish"
+            ? fishVoice
+            : studioEngine === "gptsovits"
+              ? gsVoice
+              : vbVoice,
         progress_job_id: progressJobId,
         ttsOptions: {
-          useTaggedScript: studioEngine === 'fish' ? fishUseTags : vbUseTags,
+          useTaggedScript: studioEngine === "fish" ? fishUseTags : vbUseTags,
           customPlainText: narrativeScript.trim() || undefined,
-          customTaggedText: studioEngine === 'fish' && fishUseTags ? fishTaggedText : undefined,
-          fish: studioEngine === 'fish' ? {
-            temperature: fishTemperature,
-            topP: fishTopP,
-            repetitionPenalty: fishRepPenalty,
-            chunkLength: fishChunkLength,
-            prosodySpeed: fishProsodySpeed,
-            cloudModel: fishEngine?.cloudModel,
-          } : undefined,
-          voicebox: studioEngine === 'voicebox' ? {
-            engine: vbEngine,
-            language: vbLanguage,
-          } : undefined,
-          gptSovits: studioEngine === 'gptsovits' ? {
-            textLang: gsTextLang,
-            speedFactor: gsSpeed,
-            temperature: gsTemperature,
-            topP: gsTopP,
-            repetitionPenalty: gsRepPenalty,
-          } : undefined,
+          customTaggedText:
+            studioEngine === "fish" && fishUseTags ? fishTaggedText : undefined,
+          fish:
+            studioEngine === "fish"
+              ? {
+                  temperature: fishTemperature,
+                  topP: fishTopP,
+                  repetitionPenalty: fishRepPenalty,
+                  chunkLength: fishChunkLength,
+                  prosodySpeed: fishProsodySpeed,
+                  cloudModel: fishEngine?.cloudModel,
+                }
+              : undefined,
+          voicebox:
+            studioEngine === "voicebox"
+              ? {
+                  engine: vbEngine,
+                  language: vbLanguage,
+                }
+              : undefined,
+          gptSovits:
+            studioEngine === "gptsovits"
+              ? {
+                  textLang: gsTextLang,
+                  speedFactor: gsSpeed,
+                  temperature: gsTemperature,
+                  topP: gsTopP,
+                  repetitionPenalty: gsRepPenalty,
+                }
+              : undefined,
         },
       };
 
-      const res = await fetch(getProjectUrl('/api/tts/generate-narration'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(getProjectUrl("/api/tts/generate-narration"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(String(data.error || 'Falha na geração'));
+      if (!res.ok) throw new Error(String(data.error || "Falha na geração"));
 
       if (data.started && data.jobId) {
         await waitForAiJobDone(String(data.jobId));
       } else {
-        stopAiJobProgress(true, String(data.message || 'Narração gerada'));
+        stopAiJobProgress(true, String(data.message || "Narração gerada"));
       }
 
-      toast('Narração gerada! Rode Sincronizar timings (Whisper) abaixo.');
-      if (studioEngine === 'fish' && fishUseTags && onTaggedScriptChange) {
+      toast("Narração gerada! Rode Sincronizar timings (Whisper) abaixo.");
+      if (studioEngine === "fish" && fishUseTags && onTaggedScriptChange) {
         onTaggedScriptChange(fishTaggedText);
       }
       onUpdated?.();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erro ao gerar narração TTS.';
+      const msg =
+        err instanceof Error ? err.message : "Erro ao gerar narração TTS.";
       stopAiJobProgress(false, msg);
       toast(msg);
     } finally {
@@ -490,71 +700,161 @@ export function TtsVoiceStudioPanel({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => setStudioEngine('fish')}
+          onClick={() => setStudioEngine("fish")}
           className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
-            studioEngine === 'fish'
-              ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-200'
-              : 'border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300'
+            studioEngine === "fish"
+              ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-200"
+              : "border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300"
           }`}
         >
           Fish Audio
         </button>
         <button
           type="button"
-          onClick={() => setStudioEngine('gptsovits')}
+          onClick={() => setStudioEngine("gptsovits")}
           className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
-            studioEngine === 'gptsovits'
-              ? 'border-fuchsia-500/50 bg-fuchsia-500/15 text-fuchsia-200'
-              : 'border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300'
+            studioEngine === "gptsovits"
+              ? "border-fuchsia-500/50 bg-fuchsia-500/15 text-fuchsia-200"
+              : "border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300"
           }`}
         >
           GPT-SoVITS
         </button>
         <button
           type="button"
-          onClick={() => setStudioEngine('voicebox')}
+          onClick={() => setStudioEngine("voicebox")}
           className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
-            studioEngine === 'voicebox'
-              ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-200'
-              : 'border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300'
+            studioEngine === "voicebox"
+              ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-200"
+              : "border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300"
           }`}
         >
           Voicebox
         </button>
         <button
           type="button"
-          onClick={() => { void loadEngines(); }}
+          onClick={() => {
+            void loadEngines();
+          }}
           disabled={loadingEngines}
           className="text-[10px] px-2 py-1.5 rounded-lg border border-zinc-800 text-zinc-500 hover:text-zinc-300 ml-auto"
         >
-          {loadingEngines ? 'Atualizando...' : 'Atualizar vozes'}
+          {loadingEngines ? "Atualizando..." : "Atualizar vozes"}
         </button>
       </div>
 
+      <details className="rounded-xl border border-violet-500/20 bg-zinc-950/45 p-3">
+        <summary className="cursor-pointer select-none text-[10px] font-bold text-violet-200">
+          Voz padrao por motor TTS
+        </summary>
+        <p className="mt-2 text-[8px] leading-relaxed text-zinc-500">
+          Cada motor guarda sua propria escolha. Trocar a voz do Fish nao altera
+          Voicebox, Kokoro, Chatterbox, GPT-SoVITS ou Edge.
+        </p>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          {engines.map((engine) => {
+            const usableVoices = (engine.voices || []).filter(
+              (voice) => voice.id && voice.id !== "__configure__"
+            );
+            const draft = defaultDrafts[engine.id] || engine.defaultVoice || "";
+            const saved = draft === engine.defaultVoice;
+            return (
+              <div
+                key={engine.id}
+                className="rounded-lg border border-zinc-800 bg-black/20 p-2.5"
+              >
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <span className="text-[9px] font-black uppercase tracking-wide text-zinc-300">
+                    {engine.label}
+                  </span>
+                  {saved && draft && (
+                    <span className="inline-flex items-center gap-1 text-[8px] text-emerald-400">
+                      <Check className="h-3 w-3" /> salvo
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={draft}
+                    disabled={!usableVoices.length}
+                    onChange={(event) =>
+                      setDefaultDrafts((current) => ({
+                        ...current,
+                        [engine.id]: event.target.value,
+                      }))
+                    }
+                    className="min-w-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-[9px] text-zinc-200 disabled:opacity-40"
+                  >
+                    {!usableVoices.length && (
+                      <option value="">Sem voz disponivel</option>
+                    )}
+                    {usableVoices.map((voice) => (
+                      <option key={voice.id} value={voice.id}>
+                        {voice.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={
+                      !usableVoices.length ||
+                      !draft ||
+                      saved ||
+                      savingDefault === engine.id
+                    }
+                    onClick={() => {
+                      void saveDefaultVoice(engine.id);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-violet-500/30 px-2 py-1.5 text-[9px] font-bold text-violet-200 disabled:opacity-35"
+                  >
+                    {savingDefault === engine.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Save className="h-3 w-3" />
+                    )}
+                    Salvar
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </details>
+
       {activeEngine && (
         <div className="space-y-1">
-          <p className={`text-[9px] px-2 py-1 rounded-lg border ${
-            activeEngine.available
-              ? 'text-emerald-300/90 border-emerald-500/25 bg-emerald-500/5'
-              : 'text-amber-300/90 border-amber-500/25 bg-amber-500/5'
-          }`}>
-            {activeEngine.available ? activeEngine.hint : (activeEngine.hint || 'Motor offline')}
-            {activeEngine.serverUrl ? ` | ${activeEngine.serverUrl}` : ''}
+          <p
+            className={`text-[9px] px-2 py-1 rounded-lg border ${
+              activeEngine.available
+                ? "text-emerald-300/90 border-emerald-500/25 bg-emerald-500/5"
+                : "text-amber-300/90 border-amber-500/25 bg-amber-500/5"
+            }`}
+          >
+            {activeEngine.available
+              ? activeEngine.hint
+              : activeEngine.hint || "Motor offline"}
+            {activeEngine.serverUrl ? ` | ${activeEngine.serverUrl}` : ""}
           </p>
-          {studioEngine === 'voicebox' && activeEngine.available && activeEngine.gpuAvailable === false && (
-            <p className="text-[8px] text-zinc-500 px-2 leading-relaxed">
-              GPU nao detectada — Voicebox usa CPU ({activeEngine.backendType || 'pytorch'}). Funciona normalmente, mas a geracao demora mais.
-              Com placa NVIDIA e drivers CUDA, reinicie o app Voicebox para tentar acelerar.
-            </p>
-          )}
+          {studioEngine === "voicebox" &&
+            activeEngine.available &&
+            activeEngine.gpuAvailable === false && (
+              <p className="text-[8px] text-zinc-500 px-2 leading-relaxed">
+                GPU nao detectada — Voicebox usa CPU (
+                {activeEngine.backendType || "pytorch"}). Funciona normalmente,
+                mas a geracao demora mais. Com placa NVIDIA e drivers CUDA,
+                reinicie o app Voicebox para tentar acelerar.
+              </p>
+            )}
         </div>
       )}
 
-      {studioEngine === 'fish' && (
+      {studioEngine === "fish" && (
         <div className="space-y-3 rounded-lg border border-cyan-500/20 bg-zinc-950/50 p-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2">
-              <span className="text-[9px] text-zinc-500 uppercase font-bold">Voz (biblioteca Fish)</span>
+              <span className="text-[9px] text-zinc-500 uppercase font-bold">
+                Voz (biblioteca Fish)
+              </span>
               <div className="flex gap-2">
                 <select
                   value={fishVoice}
@@ -564,7 +864,9 @@ export function TtsVoiceStudioPanel({
                   {fishVoicesGrouped.map(([group, voices]) => (
                     <optgroup key={group} label={group}>
                       {voices.map((v) => (
-                        <option key={v.id} value={v.id}>{v.label}</option>
+                        <option key={v.id} value={v.id}>
+                          {v.label}
+                        </option>
                       ))}
                     </optgroup>
                   ))}
@@ -572,13 +874,17 @@ export function TtsVoiceStudioPanel({
                 <button
                   type="button"
                   disabled={fishPreviewing || !fishEngine?.available}
-                  onClick={() => { void handleFishPreview(); }}
+                  onClick={() => {
+                    void handleFishPreview();
+                  }}
                   className="shrink-0 inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-2 rounded-lg border border-cyan-500/35 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 transition disabled:opacity-40"
                   title="Gerar e ouvir amostra curta com a voz selecionada"
                 >
-                  {fishPreviewing
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : <Play className="w-3.5 h-3.5" />}
+                  {fishPreviewing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5" />
+                  )}
                   Ouvir
                 </button>
                 {fishPreviewPlaying && (
@@ -598,34 +904,74 @@ export function TtsVoiceStudioPanel({
             </div>
 
             <label className="space-y-1">
-              <span className="text-[9px] text-zinc-500">Temperatura ({fishTemperature})</span>
-              <input type="range" min={0.3} max={1} step={0.05} value={fishTemperature}
+              <span className="text-[9px] text-zinc-500">
+                Temperatura ({fishTemperature})
+              </span>
+              <input
+                type="range"
+                min={0.3}
+                max={1}
+                step={0.05}
+                value={fishTemperature}
                 onChange={(e) => setFishTemperature(Number(e.target.value))}
-                className="w-full accent-cyan-500" />
+                className="w-full accent-cyan-500"
+              />
             </label>
             <label className="space-y-1">
-              <span className="text-[9px] text-zinc-500">Top P ({fishTopP})</span>
-              <input type="range" min={0.3} max={1} step={0.05} value={fishTopP}
+              <span className="text-[9px] text-zinc-500">
+                Top P ({fishTopP})
+              </span>
+              <input
+                type="range"
+                min={0.3}
+                max={1}
+                step={0.05}
+                value={fishTopP}
                 onChange={(e) => setFishTopP(Number(e.target.value))}
-                className="w-full accent-cyan-500" />
+                className="w-full accent-cyan-500"
+              />
             </label>
             <label className="space-y-1">
-              <span className="text-[9px] text-zinc-500">Repetição ({fishRepPenalty})</span>
-              <input type="range" min={1} max={1.5} step={0.05} value={fishRepPenalty}
+              <span className="text-[9px] text-zinc-500">
+                Repetição ({fishRepPenalty})
+              </span>
+              <input
+                type="range"
+                min={1}
+                max={1.5}
+                step={0.05}
+                value={fishRepPenalty}
                 onChange={(e) => setFishRepPenalty(Number(e.target.value))}
-                className="w-full accent-cyan-500" />
+                className="w-full accent-cyan-500"
+              />
             </label>
             <label className="space-y-1">
-              <span className="text-[9px] text-zinc-500">Velocidade ({fishProsodySpeed}x)</span>
-              <input type="range" min={0.75} max={1.25} step={0.05} value={fishProsodySpeed}
+              <span className="text-[9px] text-zinc-500">
+                Velocidade ({fishProsodySpeed}x)
+              </span>
+              <input
+                type="range"
+                min={0.75}
+                max={1.25}
+                step={0.05}
+                value={fishProsodySpeed}
                 onChange={(e) => setFishProsodySpeed(Number(e.target.value))}
-                className="w-full accent-cyan-500" />
+                className="w-full accent-cyan-500"
+              />
             </label>
             <label className="space-y-1 sm:col-span-2">
-              <span className="text-[9px] text-zinc-500">Chunk length ({fishChunkLength} chars)</span>
-              <input type="range" min={100} max={300} step={10} value={fishChunkLength}
+              <span className="text-[9px] text-zinc-500">
+                Chunk length ({fishChunkLength} chars)
+              </span>
+              <input
+                type="range"
+                min={100}
+                max={300}
+                step={10}
+                value={fishChunkLength}
                 onChange={(e) => setFishChunkLength(Number(e.target.value))}
-                className="w-full accent-cyan-500" />
+                className="w-full accent-cyan-500"
+              />
             </label>
           </div>
 
@@ -668,17 +1014,20 @@ export function TtsVoiceStudioPanel({
                 placeholder="[tom de narrador documental...]&#10;&#10;Texto com [ênfase] palavras-chave e [pausa] entre frases..."
               />
               <p className="text-[8px] text-zinc-600">
-                Modelo: {fishEngine?.cloudModel || 's2.1-pro-free'} · {narrativeScript.length} chars no storyboard
+                Modelo: {fishEngine?.cloudModel || "s2.1-pro-free"} ·{" "}
+                {narrativeScript.length} chars no storyboard
               </p>
             </div>
           )}
         </div>
       )}
 
-      {studioEngine === 'gptsovits' && (
+      {studioEngine === "gptsovits" && (
         <div className="space-y-3 rounded-lg border border-fuchsia-500/20 bg-zinc-950/50 p-3">
           <div className="space-y-1">
-            <span className="text-[9px] text-zinc-500 uppercase font-bold">Voz clone (config)</span>
+            <span className="text-[9px] text-zinc-500 uppercase font-bold">
+              Voz clone (config)
+            </span>
             <div className="flex gap-2">
               <select
                 value={gsVoice}
@@ -686,7 +1035,11 @@ export function TtsVoiceStudioPanel({
                 className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-[11px] text-zinc-200"
               >
                 {(gptsovitsEngine?.voices || []).map((v) => (
-                  <option key={v.id} value={v.id} disabled={v.id === '__configure__'}>
+                  <option
+                    key={v.id}
+                    value={v.id}
+                    disabled={v.id === "__configure__"}
+                  >
                     {v.label}
                   </option>
                 ))}
@@ -694,10 +1047,16 @@ export function TtsVoiceStudioPanel({
               <button
                 type="button"
                 disabled={gsPreviewing || !gptsovitsEngine?.available}
-                onClick={() => { void handleGsPreview(); }}
+                onClick={() => {
+                  void handleGsPreview();
+                }}
                 className="shrink-0 inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-2 rounded-lg border border-fuchsia-500/35 bg-fuchsia-500/10 text-fuchsia-200 hover:bg-fuchsia-500/20 transition disabled:opacity-40"
               >
-                {gsPreviewing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                {gsPreviewing ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Play className="w-3.5 h-3.5" />
+                )}
                 Ouvir
               </button>
               {gsPreviewPlaying && (
@@ -719,8 +1078,12 @@ export function TtsVoiceStudioPanel({
             <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-2.5 space-y-1.5 text-[9px] text-amber-200/90">
               <p className="font-bold">GPT-SoVITS offline</p>
               <p className="text-amber-200/70 leading-relaxed">
-                Instale o repo e rode <code className="text-amber-100">.\scripts\start-gpt-sovits.ps1</code>
-                {' '}(API v2 na porta 9880). Configure vozes em config_qanat.json → gpt_sovits.voices.
+                Instale o repo e rode{" "}
+                <code className="text-amber-100">
+                  .\scripts\start-gpt-sovits.ps1
+                </code>{" "}
+                (API v2 na porta 9880). Configure vozes em config_qanat.json →
+                gpt_sovits.voices.
               </p>
               <a
                 href="https://github.com/RVC-Boss/GPT-SoVITS"
@@ -734,79 +1097,175 @@ export function TtsVoiceStudioPanel({
             </div>
           )}
 
-          {gsVoice === '__configure__' && gptsovitsEngine?.available && (
+          {gsVoice === "__configure__" && gptsovitsEngine?.available && (
             <p className="text-[10px] text-amber-300/90">
-              Adicione vozes em config_qanat.json com ref_audio_path (caminho no PC onde roda o GPT-SoVITS).
+              Adicione vozes em config_qanat.json com ref_audio_path (caminho no
+              PC onde roda o GPT-SoVITS).
             </p>
           )}
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1 sm:col-span-2">
-              <span className="text-[9px] text-zinc-500">Idioma do texto (text_lang)</span>
+              <span className="text-[9px] text-zinc-500">
+                Idioma do texto (text_lang)
+              </span>
               <select
                 value={gsTextLang}
                 onChange={(e) => setGsTextLang(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] text-zinc-200"
               >
                 {GPT_SOVITS_TEXT_LANGS.map((l) => (
-                  <option key={l.id} value={l.id}>{l.label}</option>
+                  <option key={l.id} value={l.id}>
+                    {l.label}
+                  </option>
                 ))}
               </select>
             </label>
             <label className="space-y-1">
-              <span className="text-[9px] text-zinc-500">Velocidade ({gsSpeed}x)</span>
-              <input type="range" min={0.75} max={1.35} step={0.05} value={gsSpeed}
+              <span className="text-[9px] text-zinc-500">
+                Velocidade ({gsSpeed}x)
+              </span>
+              <input
+                type="range"
+                min={0.75}
+                max={1.35}
+                step={0.05}
+                value={gsSpeed}
                 onChange={(e) => setGsSpeed(Number(e.target.value))}
-                className="w-full accent-fuchsia-500" />
+                className="w-full accent-fuchsia-500"
+              />
             </label>
             <label className="space-y-1">
-              <span className="text-[9px] text-zinc-500">Temperatura ({gsTemperature})</span>
-              <input type="range" min={0.3} max={1.5} step={0.05} value={gsTemperature}
+              <span className="text-[9px] text-zinc-500">
+                Temperatura ({gsTemperature})
+              </span>
+              <input
+                type="range"
+                min={0.3}
+                max={1.5}
+                step={0.05}
+                value={gsTemperature}
                 onChange={(e) => setGsTemperature(Number(e.target.value))}
-                className="w-full accent-fuchsia-500" />
+                className="w-full accent-fuchsia-500"
+              />
             </label>
             <label className="space-y-1">
               <span className="text-[9px] text-zinc-500">Top P ({gsTopP})</span>
-              <input type="range" min={0.3} max={1} step={0.05} value={gsTopP}
+              <input
+                type="range"
+                min={0.3}
+                max={1}
+                step={0.05}
+                value={gsTopP}
                 onChange={(e) => setGsTopP(Number(e.target.value))}
-                className="w-full accent-fuchsia-500" />
+                className="w-full accent-fuchsia-500"
+              />
             </label>
             <label className="space-y-1">
-              <span className="text-[9px] text-zinc-500">Repetição ({gsRepPenalty})</span>
-              <input type="range" min={1} max={2} step={0.05} value={gsRepPenalty}
+              <span className="text-[9px] text-zinc-500">
+                Repetição ({gsRepPenalty})
+              </span>
+              <input
+                type="range"
+                min={1}
+                max={2}
+                step={0.05}
+                value={gsRepPenalty}
                 onChange={(e) => setGsRepPenalty(Number(e.target.value))}
-                className="w-full accent-fuchsia-500" />
+                className="w-full accent-fuchsia-500"
+              />
             </label>
           </div>
           <p className="text-[8px] text-zinc-600">
-            Few-shot clone: 5s de amostra bastam. PT-BR costuma funcionar com text_lang=en (cross-lingual).
+            Few-shot clone: 5s de amostra bastam. PT-BR costuma funcionar com
+            text_lang=en (cross-lingual).
           </p>
         </div>
       )}
 
-      {studioEngine === 'voicebox' && (
+      {studioEngine === "voicebox" && (
         <div className="space-y-3 rounded-lg border border-emerald-500/20 bg-zinc-950/50 p-3">
           <label className="space-y-1 block">
-            <span className="text-[9px] text-zinc-500 uppercase font-bold">Perfil de voz</span>
-            <select
-              value={vbVoice}
-              onChange={(e) => setVbVoice(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-[11px] text-zinc-200"
-            >
-              {(voiceboxEngine?.voices || []).map((v) => (
-                <option key={v.id} value={v.id} disabled={v.id === '__configure__'}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
+            <span className="text-[9px] text-zinc-500 uppercase font-bold">
+              Perfil de voz
+            </span>
+            <div className="flex gap-2">
+              <select
+                value={vbVoice}
+                onChange={(e) => setVbVoice(e.target.value)}
+                className="min-w-0 flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-[11px] text-zinc-200"
+              >
+                {(voiceboxEngine?.voices || []).map((v) => (
+                  <option
+                    key={v.id}
+                    value={v.id}
+                    disabled={v.id === "__configure__"}
+                  >
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={
+                  vbPreviewing ||
+                  !voiceboxEngine?.available ||
+                  !vbVoice ||
+                  vbVoice === "__configure__"
+                }
+                onClick={() => {
+                  void handleVoiceboxPreview();
+                }}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-3 py-2 text-[10px] font-bold text-emerald-200 disabled:opacity-40"
+              >
+                {vbPreviewing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Play className="h-3.5 w-3.5" />
+                )}
+                Ouvir
+              </button>
+              {vbPreviewPlaying && (
+                <button
+                  type="button"
+                  onClick={stopVbPreview}
+                  className="rounded-lg border border-zinc-700 px-2.5 text-zinc-400"
+                  title="Parar amostra"
+                >
+                  <Square className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </label>
+
+          <label className="block space-y-1">
+            <span className="text-[9px] font-bold uppercase text-zinc-500">
+              Texto da amostra (antes da narracao inteira)
+            </span>
+            <textarea
+              value={vbPreviewSample}
+              onChange={(event) =>
+                setVbPreviewSample(event.target.value.slice(0, 240))
+              }
+              rows={2}
+              placeholder={voiceboxPreviewText}
+              className="w-full resize-y rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-[10px] leading-relaxed text-emerald-100/90"
+            />
+            <p className="text-[8px] text-zinc-600">
+              Vazio usa a primeira frase do roteiro. Limite de 240 caracteres.
+            </p>
           </label>
 
           {!voiceboxEngine?.available && (
             <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-2.5 space-y-1.5 text-[9px] text-amber-200/90">
               <p className="font-bold">Voicebox offline</p>
               <p className="text-amber-200/70 leading-relaxed">
-                No PowerShell, na pasta do Lumiera: <code className="text-amber-100">.\scripts\start-voicebox.ps1</code>
-                {' '}— usa o app instalado (porta 17493) ou Docker (17600). Docker Desktop precisa estar aberto para Docker.
+                No PowerShell, na pasta do Lumiera:{" "}
+                <code className="text-amber-100">
+                  .\scripts\start-voicebox.ps1
+                </code>{" "}
+                — usa o app instalado (porta 17493) ou Docker (17600). Docker
+                Desktop precisa estar aberto para Docker.
               </p>
               <a
                 href="https://voicebox.sh/download/windows"
@@ -820,9 +1279,10 @@ export function TtsVoiceStudioPanel({
             </div>
           )}
 
-          {vbVoice === '__configure__' && voiceboxEngine?.available && (
+          {vbVoice === "__configure__" && voiceboxEngine?.available && (
             <p className="text-[10px] text-amber-300/90">
-              Crie um perfil no app Voicebox (aba Voices) e clique em Atualizar vozes.
+              Crie um perfil no app Voicebox (aba Voices) e clique em Atualizar
+              vozes.
             </p>
           )}
 
@@ -835,7 +1295,9 @@ export function TtsVoiceStudioPanel({
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] text-zinc-200"
               >
                 {VOICEBOX_ENGINES.map((e) => (
-                  <option key={e.id} value={e.id}>{e.label}</option>
+                  <option key={e.id} value={e.id}>
+                    {e.label}
+                  </option>
                 ))}
               </select>
             </label>
@@ -868,8 +1330,12 @@ export function TtsVoiceStudioPanel({
       {generating && ttsProgress?.active && (
         <div className="rounded-xl border border-violet-500/30 bg-zinc-950/80 overflow-hidden">
           <div className="px-3 py-2 flex items-center justify-between gap-2 text-[10px]">
-            <span className="font-semibold text-violet-100 truncate">{ttsProgress.label}</span>
-            <span className="font-mono text-violet-300 tabular-nums shrink-0">{ttsProgress.percent}%</span>
+            <span className="font-semibold text-violet-100 truncate">
+              {ttsProgress.label}
+            </span>
+            <span className="font-mono text-violet-300 tabular-nums shrink-0">
+              {ttsProgress.percent}%
+            </span>
           </div>
           <div className="h-1.5 bg-zinc-800">
             <div
@@ -883,26 +1349,36 @@ export function TtsVoiceStudioPanel({
       <button
         type="button"
         disabled={generating || !activeEngine?.available}
-        onClick={() => { void handleGenerate(); }}
+        onClick={() => {
+          void handleGenerate();
+        }}
         className="w-full inline-flex items-center justify-center gap-2 text-[11px] font-bold py-2.5 px-4 rounded-xl border border-violet-500/40 bg-violet-500/15 hover:bg-violet-500/25 text-violet-100 transition disabled:opacity-40"
       >
-        {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
+        {generating ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Mic className="w-4 h-4" />
+        )}
         {generating
-          ? (ttsProgress?.active
+          ? ttsProgress?.active
             ? `${ttsProgress.percent}% — ${ttsProgress.label}`
-            : 'Gerando narração...')
+            : "Gerando narração..."
           : `Gerar MP3 com ${
-            studioEngine === 'fish'
-              ? 'Fish Audio'
-              : studioEngine === 'gptsovits'
-                ? 'GPT-SoVITS'
-                : 'Voicebox'
-          }`}
+              studioEngine === "fish"
+                ? "Fish Audio"
+                : studioEngine === "gptsovits"
+                  ? "GPT-SoVITS"
+                  : "Voicebox"
+            }`}
       </button>
 
       <p className="text-[8px] text-zinc-600 flex items-start gap-1">
         <Sparkles className="w-3 h-3 shrink-0 mt-0.5 text-zinc-500" />
-        Após gerar, use <strong className="text-zinc-500">Sincronizar timings (Whisper)</strong> no painel acima para alinhar blocos e legendas.
+        Após gerar, use{" "}
+        <strong className="text-zinc-500">
+          Sincronizar timings (Whisper)
+        </strong>{" "}
+        no painel acima para alinhar blocos e legendas.
       </p>
     </div>
   );
