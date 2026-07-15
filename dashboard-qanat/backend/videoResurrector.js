@@ -24,6 +24,10 @@ import {
   YOUTUBE_METADATA_PIPELINE_VERSION,
 } from "./youtubeMetadataOptimizer.js";
 import { injectStudioAgentsContext } from "./studioAgents.js";
+import {
+  diagnoseResurrectionOpportunity,
+} from "./videoResurrectionDiagnosis.js";
+import { readJsonSafe, writeJsonAtomic, localDateString, daysSince, youtubeDataGet } from "./shared/commonUtils.js";
 
 export const RESURRECTOR_FILE = "youtube_video_resurrector.json";
 const MAX_ACTIVITY_LOG = 250;
@@ -60,12 +64,6 @@ const DEFAULT_SETTINGS = {
   cooldownDays: 45,
 };
 
-function localDateString(date = new Date()) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
 
 function formatLocalTime(iso) {
   if (!iso) return "";
@@ -318,15 +316,6 @@ export function getSlotBatchSize(settings = {}, slot = "morning") {
   );
 }
 
-function readJsonSafe(filePath) {
-  if (!fs.existsSync(filePath)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch {
-    return null;
-  }
-}
-
 function statePath(workspaceDir) {
   return path.join(workspaceDir, RESURRECTOR_FILE);
 }
@@ -359,18 +348,8 @@ export function saveResurrectorState(workspaceDir, state) {
     ...state,
     updatedAt: new Date().toISOString(),
   };
-  fs.writeFileSync(
-    statePath(workspaceDir),
-    JSON.stringify(next, null, 2),
-    "utf8"
-  );
+  writeJsonAtomic(statePath(workspaceDir), next);
   return next;
-}
-
-function daysSince(isoDate) {
-  if (!isoDate) return 0;
-  const ms = Date.now() - new Date(isoDate).getTime();
-  return Math.max(0, Math.floor(ms / (24 * 60 * 60 * 1000)));
 }
 
 function normalizeFormat(format) {
@@ -378,33 +357,14 @@ function normalizeFormat(format) {
   return f === "SHORTS" || f === "SHORT" ? "SHORT" : "LONG";
 }
 
-async function youtubeDataGet(accessToken, apiPath, params = {}) {
-  const url = new URL(`https://www.googleapis.com/youtube/v3/${apiPath}`);
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, String(value));
-    }
-  });
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throwIfInsufficientScope(
-      data?.error?.message || `Falha na API YouTube (${apiPath}).`
-    );
-    throw new Error(
-      data?.error?.message || `Falha na API YouTube (${apiPath}).`
-    );
-  }
-  return data;
-}
+const ytGet = (token, apiPath, params) =>
+  youtubeDataGet(token, apiPath, params, { onError: throwIfInsufficientScope });
 
 export async function fetchAllChannelUploadVideoIds(
   accessToken,
   { maxVideos = 500 } = {}
 ) {
-  const channelData = await youtubeDataGet(accessToken, "channels", {
+  const channelData = await ytGet(accessToken, "channels", {
     part: "contentDetails,snippet",
     mine: "true",
   });
@@ -420,7 +380,7 @@ export async function fetchAllChannelUploadVideoIds(
   const cap = Math.max(1, Math.min(2000, Number(maxVideos) || 500));
 
   while (videoIds.length < cap) {
-    const playlistData = await youtubeDataGet(accessToken, "playlistItems", {
+    const playlistData = await ytGet(accessToken, "playlistItems", {
       part: "contentDetails",
       playlistId: uploadsPlaylistId,
       maxResults: Math.min(50, cap - videoIds.length),
@@ -635,21 +595,10 @@ export async function fetchYoutubeVideosSnippet(accessToken, videoIds = []) {
   const map = new Map();
   for (let i = 0; i < ids.length; i += 50) {
     const chunk = ids.slice(i, i + 50);
-    const url = new URL("https://www.googleapis.com/youtube/v3/videos");
-    url.searchParams.set("part", "snippet,statistics");
-    url.searchParams.set("id", chunk.join(","));
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+    const data = await ytGet(accessToken, "videos", {
+      part: "snippet,statistics",
+      id: chunk.join(","),
     });
-    const data = await res.json();
-    if (!res.ok) {
-      throwIfInsufficientScope(
-        data?.error?.message || "Falha ao ler vídeos no YouTube."
-      );
-      throw new Error(
-        data?.error?.message || "Falha ao ler vídeos no YouTube."
-      );
-    }
     for (const item of data?.items || []) {
       const sn = item.snippet || {};
       map.set(item.id, {
@@ -1029,7 +978,12 @@ export function enqueueResurrectorCandidates(state, eligible = []) {
   const existingIds = new Set((state.items || []).map((i) => i.videoId));
   const now = new Date().toISOString();
   let added = 0;
-  const sorted = [...eligible].sort(comparePublishedAtAsc);
+  const sorted = [...eligible]
+    .map((row) => ({
+      ...row,
+      diagnosis: row.diagnosis || diagnoseResurrectionOpportunity(row),
+    }))
+    .sort(comparePublishedAtAsc);
 
   for (const row of sorted) {
     if (hasActiveQueueItem(state, row.videoId)) continue;
@@ -1060,6 +1014,8 @@ export function enqueueResurrectorCandidates(state, eligible = []) {
       thumbnailUrl: row.thumbnailUrl,
       hasLumieraProject: Boolean(row.hasLumieraProject),
       source: row.source || "channel",
+      diagnosis: row.diagnosis,
+      opportunityScore: row.diagnosis?.score || 0,
       status: "queued",
       currentMetadata: row.currentMetadata,
       proposedMetadata: null,
@@ -1922,13 +1878,29 @@ export async function applyResurrectorItem(workspaceDir, itemId, options = {}) {
     );
   }
 
+  const appliedAt = new Date().toISOString();
+  const checkpointAt = (days) =>
+    new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
   state.items[idx] = {
     ...state.items[idx],
     status: "applied",
     selectedTitle: title,
-    appliedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    appliedAt,
+    updatedAt: appliedAt,
     thumbnailApplied,
+    experiment: {
+      version: 1,
+      status: "tracking",
+      treatment: item.diagnosis?.recommendedTreatment || "metadata_search_refresh",
+      startedAt: appliedAt,
+      baseline: item.analyticsBaseline || null,
+      checkpoints: [
+        { label: "48h", dueAt: checkpointAt(2), status: "pending" },
+        { label: "7d", dueAt: checkpointAt(7), status: "pending" },
+        { label: "28d", dueAt: checkpointAt(28), status: "pending" },
+      ],
+      originalMetadata: item.currentMetadata || null,
+    },
     error: null,
   };
 
@@ -1940,6 +1912,8 @@ export async function applyResurrectorItem(workspaceDir, itemId, options = {}) {
       title,
       appliedAt: state.items[idx].appliedAt,
       thumbnailApplied,
+      treatment: state.items[idx].experiment?.treatment,
+      experimentStartedAt: appliedAt,
     },
     ...(state.history || []),
   ].slice(0, 200);
