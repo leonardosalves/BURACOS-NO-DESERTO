@@ -50,7 +50,12 @@ export type NarrationChunk = {
   voice: ChunkVoice;
   audio_file?: string | null;
   duration_s?: number | null;
+  speech_duration_s?: number | null;
   start_s?: number | null;
+  end_s?: number | null;
+  observed_pause_after_ms?: number | null;
+  timing_source?: "whisper" | "chunk-plan-fallback" | string;
+  alignment_coverage?: number | null;
   status?: string;
   versions?: Array<{
     file: string;
@@ -1257,13 +1262,29 @@ export function NarrationChunksPanel({
                     </details>
                   )}
                   {chunk.pause_reason && (
-                    <p className="text-[9px] text-zinc-600">
-                      {chunk.pause_reason}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-[9px] text-zinc-600">
+                      <span>{chunk.pause_reason}</span>
+                      {chunk.timing_source === "whisper" && (
+                        <span className="rounded border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 font-bold text-emerald-300">
+                          Whisper alinhado
+                          {Number.isFinite(Number(chunk.alignment_coverage))
+                            ? ` · ${Math.round(Number(chunk.alignment_coverage) * 100)}%`
+                            : ""}
+                        </span>
+                      )}
+                      {Number.isFinite(Number(chunk.observed_pause_after_ms)) &&
+                        chunk.timing_source === "whisper" && (
+                          <span className="text-cyan-400/80">
+                            pausa real:{" "}
+                            {Math.round(Number(chunk.observed_pause_after_ms))}
+                            ms
+                          </span>
+                        )}
+                    </div>
                   )}
                   {idx < chunks.length - 1 && (
                     <p className="text-[8px] text-zinc-600 text-center">
-                      ↓ pausa {chunk.pause_after_ms}ms
+                      ↓ pausa planejada {chunk.pause_after_ms}ms
                     </p>
                   )}
                 </div>
