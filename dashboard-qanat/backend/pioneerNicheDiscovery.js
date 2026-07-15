@@ -8,6 +8,7 @@ import path from "path";
 import { exaWebSearch } from "./agentReachService.js";
 import { extractJsonCandidate, parseJsonLocally } from "./aiJsonParse.js";
 import { getYoutubeAccessToken } from "./youtubeTitleAnalytics.js";
+import { readJsonSafe, toFiniteNumber, youtubeDataGet } from "./shared/commonUtils.js";
 
 /** Nichos que o criador entende — categorias amplas do YouTube */
 const MACRO_NICHES = [
@@ -165,43 +166,12 @@ const META_GARBAGE_RE = [
   /—\s*Tierlist/i,
 ];
 
-function readJsonSafe(filePath) {
-  if (!filePath || !fs.existsSync(filePath)) return {};
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8")) || {};
-  } catch {
-    return {};
-  }
-}
-
-function formatCount(value) {
-  const num = Number(value || 0);
-  return Number.isFinite(num) ? num : 0;
-}
-
 function isMetaGarbage(text = "") {
   const t = String(text || "").trim();
   if (t.length < 6) return true;
   if (t.length > 95) return true;
   if (/^https?:\/\//i.test(t)) return true;
   return META_GARBAGE_RE.some((re) => re.test(t));
-}
-
-async function youtubeDataGet(accessToken, apiPath, params = {}) {
-  const url = new URL(`https://www.googleapis.com/youtube/v3/${apiPath}`);
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, String(value));
-    }
-  });
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data?.error?.message || `YouTube API (${apiPath})`);
-  }
-  return data;
 }
 
 function saturationFromCounts({
@@ -498,8 +468,8 @@ async function measureYoutubeSaturation(
     ]);
 
     const channelItems = channelSearch?.items || [];
-    const channelTotal = formatCount(channelSearch?.pageInfo?.totalResults);
-    const videoTotal = formatCount(videoSearch?.pageInfo?.totalResults);
+    const channelTotal = toFiniteNumber(channelSearch?.pageInfo?.totalResults);
+    const videoTotal = toFiniteNumber(videoSearch?.pageInfo?.totalResults);
 
     const keywords = q
       .toLowerCase()
@@ -528,7 +498,7 @@ async function measureYoutubeSaturation(
         id: videoIds.slice(0, 10).join(","),
       });
       const views = (statsData?.items || []).map((v) =>
-        formatCount(v?.statistics?.viewCount)
+        toFiniteNumber(v?.statistics?.viewCount)
       );
       if (views.length) {
         avgTopViews = Math.round(
@@ -539,7 +509,7 @@ async function measureYoutubeSaturation(
       for (const item of statsData?.items || []) {
         sampleVideos.push({
           title: item?.snippet?.title || "",
-          views: formatCount(item?.statistics?.viewCount),
+          views: toFiniteNumber(item?.statistics?.viewCount),
           videoId: item?.id,
         });
       }
@@ -1410,7 +1380,7 @@ export async function discoverPioneerNiches(
     llmFn = null,
   } = {}
 ) {
-  const cfg = readJsonSafe(path.join(workspaceDir, "config_qanat.json"));
+  const cfg = readJsonSafe(path.join(workspaceDir, "config_qanat.json"), {});
   const mode = discoveryMode === "chosen" ? "chosen" : "virgin";
   const baseNiche =
     mode === "chosen" ? String(niche || cfg.niche || "").trim() : "";
