@@ -653,6 +653,16 @@ export function AppSettingsTab({
                         className="dash-input"
                       />
                     </div>
+
+                    <div className="bg-violet-950/20 border border-violet-500/20 rounded-2xl p-4 text-[10px] text-zinc-400 space-y-2 leading-relaxed mt-2">
+                      <p className="font-bold text-violet-300">💡 Instruções para Uso do LLM Local / Bonsai:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>Certifique-se de que o seu servidor local está rodando (Ollama, LM Studio, vLLM ou similar).</li>
+                        <li><b>Ollama:</b> Por padrão, use a URL <code className="text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded font-mono">http://127.0.0.1:11434/v1/chat/completions</code>. Certifique-se de baixar o modelo (ex: <code className="text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded font-mono">ollama run bonsai-27b</code>).</li>
+                        <li><b>LM Studio:</b> Certifique-se de ativar o servidor local (Local Server) na porta indicada, e use a URL <code className="text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded font-mono">http://127.0.0.1:1234/v1/chat/completions</code>.</li>
+                        <li>Na sua RTX 4060 Ti (8GB), limite o contexto para conversas normais (~4k-8k) para evitar estouro de VRAM. Se for a versão de 16GB, pode usar sem restrições.</li>
+                      </ul>
+                    </div>
                   </>
                 )}
 
