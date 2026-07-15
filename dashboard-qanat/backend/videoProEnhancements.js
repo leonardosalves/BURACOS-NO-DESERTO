@@ -589,10 +589,10 @@ export function replaceNumbersAndAbbreviationsPtBr(text = "") {
 
   // 2. Substituir abreviações comuns
   const abbreviations = [
-    [/\b[dD]\.[cC]\.?(?!\w)/gi, "depois de Cristo"],
-    [/\b[aA]\.[cC]\.?(?!\w)/gi, "antes de Cristo"],
-    [/\b[dD]\s+[cC](?!\w)/gi, "depois de Cristo"],
-    [/\b[aA]\s+[cC](?!\w)/gi, "antes de Cristo"],
+    [/\b[dD]\.\s*[cC]\.?(?!\w)/gi, "depois de Cristo"],
+    [/\b[aA]\.\s*[cC]\.?(?!\w)/gi, "antes de Cristo"],
+    [/\b[dD][cC]\b/gi, "depois de Cristo"],
+    [/\b[aA][cC]\b/gi, "antes de Cristo"],
     [/(\b\d+)\s*km\b/gi, "$1 quilômetros"],
     [/(\b\d+)\s*m\b/gi, "$1 metros"],
     [/(\b\d+)\s*kg\b/gi, "$1 quilos"],

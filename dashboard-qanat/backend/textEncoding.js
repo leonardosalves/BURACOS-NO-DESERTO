@@ -33,7 +33,6 @@ const PT_MOJIBAKE_LITERALS = [
   ["Â·", "·"],
   ["Â«", "«"],
   ["Â»", "»"],
-  ["Â", ""],
 ];
 
 /** Palavras técnicas frequentes em overlays (após reparo parcial). */
@@ -98,7 +97,14 @@ export function repairMojibake(text) {
     if (!out.includes("Ã") && !out.includes("Â")) break;
     try {
       const repaired = Buffer.from(out, "latin1").toString("utf8");
-      if (countMojibakeMarkers(repaired) < countMojibakeMarkers(out)) {
+      const originalReplacementCount = out.split(REPLACEMENT_CHAR).length - 1;
+      const repairedReplacementCount =
+        repaired.split(REPLACEMENT_CHAR).length - 1;
+
+      if (
+        repairedReplacementCount <= originalReplacementCount &&
+        countMojibakeMarkers(repaired) < countMojibakeMarkers(out)
+      ) {
         out = repaired;
       } else {
         break;

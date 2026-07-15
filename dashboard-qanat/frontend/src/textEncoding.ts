@@ -29,7 +29,6 @@ const PT_MOJIBAKE_LITERALS: [string, string][] = [
   ["Â·", "·"],
   ["Â«", "«"],
   ["Â»", "»"],
-  ["Â", ""],
 ];
 
 const PT_WORD_CORRUPTION_FIXES: [string, string][] = [
@@ -69,7 +68,12 @@ function repairReplacementCharInPortuguese(text: string) {
 }
 
 export function repairMojibake(text: string): string {
-  if (!text || (!text.includes("Ã") && !text.includes("Â") && !text.includes(REPLACEMENT_CHAR))) {
+  if (
+    !text ||
+    (!text.includes("Ã") &&
+      !text.includes("Â") &&
+      !text.includes(REPLACEMENT_CHAR))
+  ) {
     return text;
   }
   let out = text;
@@ -77,9 +81,18 @@ export function repairMojibake(text: string): string {
   for (let pass = 0; pass < 4; pass += 1) {
     if (!out.includes("Ã") && !out.includes("Â")) break;
     try {
-      const bytes = new Uint8Array([...out].map((ch) => ch.charCodeAt(0) & 0xff));
+      const bytes = new Uint8Array(
+        [...out].map((ch) => ch.charCodeAt(0) & 0xff)
+      );
       const repaired = new TextDecoder("utf-8").decode(bytes);
-      if (countMojibakeMarkers(repaired) < countMojibakeMarkers(out)) {
+      const originalReplacementCount = out.split(REPLACEMENT_CHAR).length - 1;
+      const repairedReplacementCount =
+        repaired.split(REPLACEMENT_CHAR).length - 1;
+
+      if (
+        repairedReplacementCount <= originalReplacementCount &&
+        countMojibakeMarkers(repaired) < countMojibakeMarkers(out)
+      ) {
         out = repaired;
       } else {
         break;
