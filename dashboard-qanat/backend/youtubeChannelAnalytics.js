@@ -1,5 +1,12 @@
 import fs from "fs";
 import path from "path";
+import {
+  readJsonSafe,
+  writeJsonAtomic,
+  toFiniteNumber,
+  periodDates,
+  youtubeDataGet as sharedYoutubeDataGet,
+} from "./shared/commonUtils.js";
 import { getHandledCommentIds } from "./youtubeStudioSettings.js";
 import {
   assertTitleTestScopes,
@@ -10,6 +17,9 @@ import {
   getYoutubeTokenScopes,
   throwIfInsufficientScope,
 } from "./youtubeTitleAnalytics.js";
+
+const ytGet = (token, apiPath, params) =>
+  sharedYoutubeDataGet(token, apiPath, params, { onError: throwIfInsufficientScope });
 
 const DEFAULT_VIEWS_48H_THRESHOLD = 100;
 const DEFAULT_POLL_INTERVAL_MINUTES = 20;
@@ -30,7 +40,7 @@ function readCacheStore(workspaceDir) {
 }
 
 function writeCacheStore(workspaceDir, store) {
-  fs.writeFileSync(getCacheFilePath(workspaceDir), JSON.stringify(store, null, 2), "utf8");
+  writeJsonAtomic(getCacheFilePath(workspaceDir), store);
 }
 
 function normalizeVideoFormat(value) {
@@ -63,47 +73,37 @@ export function filterExistingLumieraVideos(items = []) {
   return (items || []).filter((item) => lumieraProjectDirExists(item?.projectPath));
 }
 
+const LUMIERA_LIST_KEYS = ["videos", "lumieraVideos", "hotVideos", "deadVideos"];
+
+/** Predicado de alertas mantidos — duplicado 2x no arquivo. */
+function shouldKeepAlert(alert) {
+  return (
+    !alert ||
+    !Array.isArray(alert.videos) ||
+    alert.videos.length > 0 ||
+    alert.type === "views_drop" ||
+    alert.type === "unanswered_comments"
+  );
+}
+
 function sanitizeCachedLumieraPayload(data, cacheKey = "") {
   if (!data || typeof data !== "object") return { data, changed: false };
-
   let changed = false;
   const next = { ...data };
 
-  if (Array.isArray(next.videos)) {
-    const filtered = filterExistingLumieraVideos(next.videos);
-    if (filtered.length !== next.videos.length) {
-      next.videos = filtered;
-      changed = true;
-    }
-  }
-
-  if (Array.isArray(next.lumieraVideos)) {
-    const filtered = filterExistingLumieraVideos(next.lumieraVideos);
-    if (filtered.length !== next.lumieraVideos.length) {
-      next.lumieraVideos = filtered;
-      changed = true;
-    }
-  }
-
-  if (Array.isArray(next.hotVideos)) {
-    const filtered = filterExistingLumieraVideos(next.hotVideos);
-    if (filtered.length !== next.hotVideos.length) {
-      next.hotVideos = filtered;
-      changed = true;
-    }
-  }
-
-  if (Array.isArray(next.deadVideos)) {
-    const filtered = filterExistingLumieraVideos(next.deadVideos);
-    if (filtered.length !== next.deadVideos.length) {
-      next.deadVideos = filtered;
+  for (const key of LUMIERA_LIST_KEYS) {
+    if (!Array.isArray(next[key])) continue;
+    const filtered = filterExistingLumieraVideos(next[key]);
+    if (filtered.length !== next[key].length) {
+      next[key] = filtered;
       changed = true;
     }
   }
 
   if (next.lumieraVideoById && typeof next.lumieraVideoById === "object") {
     const filteredMap = Object.fromEntries(
-      filterExistingLumieraVideos(Object.values(next.lumieraVideoById)).map((item) => [item.videoId, item]),
+      filterExistingLumieraVideos(Object.values(next.lumieraVideoById))
+        .map((item) => [item.videoId, item])
     );
     if (Object.keys(filteredMap).length !== Object.keys(next.lumieraVideoById).length) {
       next.lumieraVideoById = filteredMap;
@@ -112,13 +112,15 @@ function sanitizeCachedLumieraPayload(data, cacheKey = "") {
   }
 
   if (Array.isArray(next.alerts)) {
-    const alerts = next.alerts.map((alert) => {
-      if (!Array.isArray(alert?.videos)) return alert;
-      const filtered = filterExistingLumieraVideos(alert.videos);
-      if (filtered.length === alert.videos.length) return alert;
-      changed = true;
-      return { ...alert, videos: filtered, count: filtered.length };
-    }).filter((alert) => !Array.isArray(alert?.videos) || alert.videos.length > 0 || alert.type === "views_drop" || alert.type === "unanswered_comments");
+    const alerts = next.alerts
+      .map((alert) => {
+        if (!Array.isArray(alert?.videos)) return alert;
+        const filtered = filterExistingLumieraVideos(alert.videos);
+        if (filtered.length === alert.videos.length) return alert;
+        changed = true;
+        return { ...alert, videos: filtered, count: filtered.length };
+      })
+      .filter(shouldKeepAlert);
     next.alerts = alerts;
   }
 
@@ -159,7 +161,7 @@ export function purgeYoutubeChannelCacheForProject(workspaceDir, { projectName =
             if (!Array.isArray(alert?.videos)) return alert;
             const filtered = alert.videos.filter((item) => !matches(item));
             return { ...alert, videos: filtered, count: filtered.length };
-          }).filter((alert) => !Array.isArray(alert?.videos) || alert.videos.length > 0 || alert.type === "views_drop" || alert.type === "unanswered_comments")
+          }).filter(shouldKeepAlert)
         : entry.data.alerts,
     }, cacheKey);
 
@@ -194,6 +196,7 @@ export function sanitizeYoutubeChannelCacheStore(workspaceDir) {
 }
 
 function getCachedPayload(workspaceDir, cacheKey, ttlMs) {
+  // TODO(perf): sanitize por entrada, não o store inteiro — requer aprovação
   sanitizeYoutubeChannelCacheStore(workspaceDir);
   const entry = readCacheStore(workspaceDir)[cacheKey];
   if (!entry?.fetchedAt || !entry?.data) return null;
@@ -264,25 +267,7 @@ function parseAnalyticsRows(analyticsData = {}) {
   });
 }
 
-async function youtubeDataGet(accessToken, path, params = {}) {
-  const url = new URL(`https://www.googleapis.com/youtube/v3/${path}`);
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, String(value));
-    }
-  });
 
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    const message = data?.error?.message || `Falha na API YouTube Data (${path}).`;
-    throwIfInsufficientScope(message);
-    throw new Error(message);
-  }
-  return data;
-}
 
 /** YouTube Data API aceita no máximo 50 IDs por chamada em videos.list. */
 async function fetchVideoSnippetMapByIds(accessToken, videoIds = [], part = "snippet") {
@@ -290,7 +275,7 @@ async function fetchVideoSnippetMapByIds(accessToken, videoIds = [], part = "sni
   const unique = [...new Set((videoIds || []).map((id) => String(id || "").trim()).filter(Boolean))];
   for (let i = 0; i < unique.length; i += 50) {
     const chunk = unique.slice(i, i + 50);
-    const videosData = await youtubeDataGet(accessToken, "videos", {
+    const videosData = await ytGet(accessToken, "videos", {
       part,
       id: chunk.join(","),
     });
@@ -315,25 +300,14 @@ async function queryYoutubeAnalytics(accessToken, params) {
   return data;
 }
 
-function periodDates(days = 28) {
-  const endDate = new Date().toISOString().slice(0, 10);
-  const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  return { startDate, endDate };
-}
-
-function formatCount(value) {
-  const num = Number(value || 0);
-  return Number.isFinite(num) ? num : 0;
-}
-
 function mapAnalyticsRow(row) {
   return {
-    views: formatCount(row.views),
-    estimatedMinutesWatched: formatCount(row.estimatedMinutesWatched),
-    likes: formatCount(row.likes),
-    comments: formatCount(row.comments),
-    shares: formatCount(row.shares),
-    subscribersGained: formatCount(row.subscribersGained),
+    views: toFiniteNumber(row.views),
+    estimatedMinutesWatched: toFiniteNumber(row.estimatedMinutesWatched),
+    likes: toFiniteNumber(row.likes),
+    comments: toFiniteNumber(row.comments),
+    shares: toFiniteNumber(row.shares),
+    subscribersGained: toFiniteNumber(row.subscribersGained),
   };
 }
 
@@ -390,7 +364,7 @@ async function fetchChannelOverviewUncached(workspaceDir) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
 
-  const data = await youtubeDataGet(accessToken, "channels", {
+  const data = await ytGet(accessToken, "channels", {
     part: "snippet,statistics",
     mine: "true",
   });
@@ -442,7 +416,7 @@ async function fetchChannelVideosWithAnalyticsUncached(
   const { startDate, endDate } = periodDates(days);
   const maxResults = Math.min(Math.max(Number(limit) || 25, 1), 50);
 
-  const channelData = await youtubeDataGet(accessToken, "channels", {
+  const channelData = await ytGet(accessToken, "channels", {
     part: "contentDetails,snippet",
     mine: "true",
   });
@@ -453,7 +427,7 @@ async function fetchChannelVideosWithAnalyticsUncached(
     throw new Error("Playlist de uploads do canal não encontrada.");
   }
 
-  const playlistData = await youtubeDataGet(accessToken, "playlistItems", {
+  const playlistData = await ytGet(accessToken, "playlistItems", {
     part: "snippet,contentDetails",
     playlistId: uploadsPlaylistId,
     maxResults,
@@ -583,7 +557,7 @@ async function threadHasChannelReplyDeep(accessToken, thread, channelId, channel
   const parentId = thread?.snippet?.topLevelComment?.id;
   if (!parentId) return false;
   try {
-    const data = await youtubeDataGet(accessToken, "comments", {
+    const data = await ytGet(accessToken, "comments", {
       part: "snippet",
       parentId,
       maxResults: 100,
@@ -669,7 +643,7 @@ export async function fetchChannelComments(workspaceDir, {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
 
-  const channelData = await youtubeDataGet(accessToken, "channels", {
+  const channelData = await ytGet(accessToken, "channels", {
     part: "snippet",
     mine: "true",
   });
@@ -696,7 +670,7 @@ export async function fetchChannelComments(workspaceDir, {
   };
   if (pageToken) threadParams.pageToken = pageToken;
 
-  const threadsData = await youtubeDataGet(accessToken, "commentThreads", threadParams);
+  const threadsData = await ytGet(accessToken, "commentThreads", threadParams);
 
   const handledIds = getHandledCommentIds(workspaceDir);
   const mapped = await Promise.all(
@@ -875,7 +849,7 @@ async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { da
         const [metricResult, velocity, videoData] = await Promise.all([
           fetchSingleVideoMetrics(accessToken, entry.videoId, startDate, endDate),
           fetchVideoVelocity(workspaceDir, entry.videoId).catch(() => ({ views48h: 0 })),
-          youtubeDataGet(accessToken, "videos", { part: "snippet", id: entry.videoId }),
+          ytGet(accessToken, "videos", { part: "snippet", id: entry.videoId }),
         ]);
 
         metrics = metricResult;
@@ -938,15 +912,6 @@ export async function fetchLumieraVideosReport(
   );
 }
 
-function readJsonSafe(filePath) {
-  if (!fs.existsSync(filePath)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch {
-    return null;
-  }
-}
-
 export function collectLumieraPublishedVideos(projectsRoot) {
   const results = [];
   const seen = new Set();
@@ -996,7 +961,7 @@ async function countUnansweredComments(
   channelTitle = "",
   channelHandle = "",
 ) {
-  const threadsData = await youtubeDataGet(accessToken, "commentThreads", {
+  const threadsData = await ytGet(accessToken, "commentThreads", {
     part: "snippet,replies",
     allThreadsRelatedToChannelId: channelId,
     order: "time",
@@ -1060,7 +1025,7 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
 
-  const channelData = await youtubeDataGet(accessToken, "channels", {
+  const channelData = await ytGet(accessToken, "channels", {
     part: "snippet",
     mine: "true",
   });
@@ -1085,7 +1050,7 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
         try {
           const [velocity, videoData] = await Promise.all([
             fetchVideoVelocity(workspaceDir, entry.videoId),
-            youtubeDataGet(accessToken, "videos", { part: "snippet,statistics", id: entry.videoId }),
+            ytGet(accessToken, "videos", { part: "snippet,statistics", id: entry.videoId }),
           ]);
           const snippet = videoData?.items?.[0]?.snippet || {};
           const stats = videoData?.items?.[0]?.statistics || {};
