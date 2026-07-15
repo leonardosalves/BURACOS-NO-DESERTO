@@ -7,11 +7,27 @@ import path from "path";
 import crypto from "crypto";
 import { slugifyNiche } from "./agentMemory.js";
 
+// -----------------------------------------------------------------------------
+// CONSTANTES
+// -----------------------------------------------------------------------------
 const MAX_HISTORY_TITLES = 80;
 const MAX_EXCLUSION_IN_PROMPT = 40;
 
+const LCG_MULTIPLIER = 1103515245;
+const LCG_INCREMENT = 12345;
+const LCG_MODULUS = 0x7fffffff;
+
+const SKIP_DIRS = Object.freeze([
+  "ASSETS",
+  "OUTPUT",
+  "node_modules",
+  "temp_clips",
+  "temp_clips_destacado",
+  ".git",
+]);
+
 /** Assuntos que saturam canais de curiosidades — só bloquear quando já apareceram no histórico. */
-export const OVERUSED_CURIOSITY_CANON = [
+export const OVERUSED_CURIOSITY_CANON = Object.freeze([
   "sonda de 327 milhões",
   "mars climate orbiter",
   "erro de unidades nas marte",
@@ -31,9 +47,9 @@ export const OVERUSED_CURIOSITY_CANON = [
   "ferdinand cheval",
   "carteiro que ergueu um castelo",
   "palácio ideal",
-];
+]);
 
-const EXPLORATION_LENSES = [
+const EXPLORATION_LENSES = Object.freeze([
   "fenômenos naturais raros e clima extremo",
   "biologia e comportamento animal inusitado",
   "física e química do cotidiano (objetos comuns)",
@@ -44,7 +60,7 @@ const EXPLORATION_LENSES = [
   "astronomia e espaço fora do clichê NASA",
   "oceanografia e profundezas pouco cobertas",
   "meteorologia extrema e desastres pouco lembrados",
-  "linguística, idiomas e comunicação humana",
+  "linguística, idioms e comunicação humana",
   "economia bizarra e decisões absurdas com números",
   "arquitetura e infraestrutura moderna pouco comentada",
   "acústica, som e percepção sensorial",
@@ -58,8 +74,17 @@ const EXPLORATION_LENSES = [
   "direito, burocracia e regras que mudaram vidas",
   "tecnologia digital e falhas de software famosas (além do MCO)",
   "cidades fantasma e urbanismo inesperado",
-];
+]);
 
+// -----------------------------------------------------------------------------
+// HELPERS LOCAIS
+// -----------------------------------------------------------------------------
+
+/**
+ * Normaliza um texto para comparação sem acentuação ou espaços extras.
+ * @param {string} text
+ * @returns {string}
+ */
 function normalizeTopic(text = "") {
   return String(text)
     .toLowerCase()
@@ -69,11 +94,67 @@ function normalizeTopic(text = "") {
     .trim();
 }
 
+/**
+ * Retorna o caminho do arquivo de histórico de ideias do nicho.
+ * @param {string} workspaceDir
+ * @param {string} niche
+ * @returns {string}
+ */
 function ideasHistoryPath(workspaceDir, niche) {
   const dir = path.join(workspaceDir, ".agents", "ideas-history");
   return path.join(dir, `${slugifyNiche(niche)}.json`);
 }
 
+/**
+ * Lê o título principal de um projeto a partir do seu storyboard.json.
+ * @param {string} projectPath
+ * @param {string} fallbackTitle
+ * @returns {string}
+ */
+function readProjectTitle(projectPath, fallbackTitle) {
+  const storyboardPath = path.join(projectPath, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) return fallbackTitle;
+  try {
+    const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    if (sb.strategy?.title_main) {
+      return String(sb.strategy.title_main).trim();
+    }
+    if (sb.narrative_script) {
+      return String(sb.narrative_script).split("\n")[0].slice(0, 120).trim();
+    }
+  } catch {
+    /* ignore */
+  }
+  return fallbackTitle;
+}
+
+/**
+ * Embaralha uma lista utilizando um gerador congruente linear (LCG) determinístico.
+ * @param {any[]} items
+ * @param {number} seed
+ * @returns {any[]}
+ */
+function seededShuffle(items, seed) {
+  const arr = [...items];
+  let s = Number(seed) || Date.now();
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    s = (s * LCG_MULTIPLIER + LCG_INCREMENT) & LCG_MODULUS;
+    const j = s % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// -----------------------------------------------------------------------------
+// FUNÇÕES EXPORTADAS
+// -----------------------------------------------------------------------------
+
+/**
+ * Carrega a lista de ideias salvas no histórico do nicho.
+ * @param {string} workspaceDir
+ * @param {string} niche
+ * @returns {string[]}
+ */
 export function loadIdeasHistory(workspaceDir, niche) {
   const file = ideasHistoryPath(workspaceDir, niche);
   if (!fs.existsSync(file)) return [];
@@ -85,6 +166,12 @@ export function loadIdeasHistory(workspaceDir, niche) {
   }
 }
 
+/**
+ * Adiciona novas ideias geradas ao histórico do nicho.
+ * @param {string} workspaceDir
+ * @param {string} niche
+ * @param {object[]} ideas
+ */
 export function appendIdeasHistory(workspaceDir, niche, ideas = []) {
   const titles = (ideas || [])
     .map((i) => String(i?.title || "").trim())
@@ -98,6 +185,7 @@ export function appendIdeasHistory(workspaceDir, niche, ideas = []) {
   const merged = [...titles, ...prev];
   const seen = new Set();
   const unique = [];
+
   for (const t of merged) {
     const key = normalizeTopic(t);
     if (!key || seen.has(key)) continue;
@@ -105,13 +193,27 @@ export function appendIdeasHistory(workspaceDir, niche, ideas = []) {
     unique.push(t);
     if (unique.length >= MAX_HISTORY_TITLES) break;
   }
-  fs.writeFileSync(file, JSON.stringify({
-    niche: String(niche).trim(),
-    updatedAt: new Date().toISOString(),
-    titles: unique,
-  }, null, 2), "utf8");
+
+  fs.writeFileSync(
+    file,
+    JSON.stringify(
+      {
+        niche: String(niche).trim(),
+        updatedAt: new Date().toISOString(),
+        titles: unique,
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
 }
 
+/**
+ * Coleta os títulos e tópicos de todos os projetos ativos no workspace.
+ * @param {string} projectsRoot
+ * @returns {string[]}
+ */
 export function collectProjectTopics(projectsRoot) {
   const projects = [];
   const longsDir = path.join(projectsRoot, "videos longos");
@@ -119,36 +221,35 @@ export function collectProjectTopics(projectsRoot) {
 
   const scanDir = (dir, format) => {
     if (!fs.existsSync(dir)) return;
-    for (const item of fs.readdirSync(dir)) {
-      const fullPath = path.join(dir, item);
-      try {
-        if (!fs.statSync(fullPath).isDirectory()) continue;
-        if (["ASSETS", "OUTPUT", "node_modules", "temp_clips", "temp_clips_destacado", ".git"].includes(item)) {
-          continue;
-        }
-        if (!fs.existsSync(path.join(fullPath, "build_video.py")) && item !== "FINANCAS") continue;
+    for (const dirent of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (!dirent.isDirectory()) continue;
+      const item = dirent.name;
+      if (SKIP_DIRS.includes(item)) continue;
 
-        let title = item;
-        const storyboardPath = path.join(fullPath, "storyboard.json");
-        if (fs.existsSync(storyboardPath)) {
-          try {
-            const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-            if (sb.strategy?.title_main) title = sb.strategy.title_main;
-            else if (sb.narrative_script) {
-              title = String(sb.narrative_script).split("\n")[0].slice(0, 120);
-            }
-          } catch { /* ignore */ }
-        }
-        projects.push({ name: item, title: String(title).trim(), format });
-      } catch { /* ignore */ }
+      const fullPath = path.join(dir, item);
+      const hasBuildScript = fs.existsSync(path.join(fullPath, "build_video.py"));
+      if (!hasBuildScript && item !== "FINANCAS") continue;
+
+      const title = readProjectTitle(fullPath, item);
+      projects.push({ name: item, title, format });
     }
   };
 
   scanDir(longsDir, "LONGO");
   scanDir(shortsDir, "SHORTS");
+
   return projects.map((p) => p.title).filter(Boolean);
 }
 
+/**
+ * Une e deduz a lista de tópicos a serem excluídos do prompt da rodada.
+ * @param {object} args
+ * @param {string[]} [args.projectTopics]
+ * @param {string[]} [args.historyTopics]
+ * @param {string[]} [args.previousIdeas]
+ * @param {string[]} [args.extraExclude]
+ * @returns {string[]}
+ */
 export function mergeExclusionTopics({
   projectTopics = [],
   historyTopics = [],
@@ -167,29 +268,27 @@ export function mergeExclusionTopics({
     out.push(t);
   };
 
-  for (const t of [...previousIdeas, ...historyTopics, ...projectTopics, ...extraExclude]) {
+  const pool = [...previousIdeas, ...historyTopics, ...projectTopics, ...extraExclude];
+  for (const t of pool) {
     push(t);
   }
 
-  const historyNorm = new Set([...historyTopics, ...previousIdeas, ...projectTopics].map(normalizeTopic));
+  // Se o assunto clássico já foi abordado, joga no blocklist explicitamente
+  const historyNorm = new Set(pool.map(normalizeTopic));
   for (const canon of OVERUSED_CURIOSITY_CANON) {
-    if (historyNorm.has(normalizeTopic(canon))) push(canon);
+    if (historyNorm.has(normalizeTopic(canon))) {
+      push(canon);
+    }
   }
 
   return out.slice(0, MAX_EXCLUSION_IN_PROMPT);
 }
 
-function seededShuffle(items, seed) {
-  const arr = [...items];
-  let s = Number(seed) || Date.now();
-  for (let i = arr.length - 1; i > 0; i -= 1) {
-    s = (s * 1103515245 + 12345) & 0x7fffffff;
-    const j = s % (i + 1);
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
+/**
+ * Constrói o bloco de instruções e eixos de exploração com base em uma semente.
+ * @param {number} [seed]
+ * @returns {string}
+ */
 export function buildIdeasExplorationAxes(seed = Date.now()) {
   const picked = seededShuffle(EXPLORATION_LENSES, seed).slice(0, 5);
   return `
@@ -200,6 +299,11 @@ ${picked.map((l, i) => `${i + 1}. ${l}`).join("\n")}
 Regra: pelo menos 6 das 10 ideias devem vir de eixos que NÃO sejam "engenharia clássica / impérios / invenções famosas" — busque fatos pouco cobertos no YouTube BR.`;
 }
 
+/**
+ * Constrói a seção de exclusão com base nos tópicos já explorados.
+ * @param {string[]} excludeTopics
+ * @returns {string}
+ */
 export function buildIdeasExclusionAddendum(excludeTopics = []) {
   if (!excludeTopics.length) return "";
 
@@ -219,6 +323,10 @@ INSTRUÇÃO CRÍTICA:
 - Se a pesquisa web trouxer só temas da lista, escolha ângulos laterais inéditos ou subnichos diferentes.`;
 }
 
+/**
+ * Retorna as regras de novidade criativa contra clichês de curiosidades comuns.
+ * @returns {string}
+ */
 export function buildIdeasFreshnessInstruction() {
   return `
 FRESHNESS / ANTI-CLICHÊ:
@@ -228,6 +336,10 @@ FRESHNESS / ANTI-CLICHÊ:
 - NotebookLM (se presente) complementa; não substitui variedade nem justifica repetir temas já listados em TÓPICOS JÁ EXPLORADOS.`;
 }
 
+/**
+ * Cria uma semente numérica aleatória para a geração de eixos.
+ * @returns {number}
+ */
 export function makeIdeasGenerationSeed() {
   return crypto.randomInt(100000, 999999999);
 }

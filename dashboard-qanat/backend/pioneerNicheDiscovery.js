@@ -209,7 +209,6 @@ function pioneerLabel(angleSaturation, pioneerScore, gapScore) {
   return "saturado";
 }
 
-/** Texto de estratégia YouTube — não é tema de vídeo. */
 const PIONEER_STRATEGY_RE = [
   /macro-nicho/i,
   /satura[cç][aã]o/i,
@@ -415,7 +414,7 @@ function buildExaQueries(baseNiche, discoveryMode = "virgin") {
     "fenômenos sociais novos pouco cobertos mídia",
     "profissões e ofícios esquecidos redescoberta",
     "temas documentário curiosidades fora do mainstream Brasil",
-    "comunidades de nicho Brasil crescendo pouco exploradas",
+    "comunidades de niche Brasil crescendo pouco exploradas",
   ];
   if (base) {
     queries.unshift(`temas emergentes ${base} documentário curiosidades`);
@@ -431,7 +430,6 @@ function isQuotaError(err) {
   return QUOTA_ERROR_HINTS.some((hint) => msg.includes(hint));
 }
 
-/** Estimativa offline plausível quando a quota do YouTube estoura. */
 function buildSimulatedSaturation(q) {
   const isSpecific = q.split(/\s+/).length > 2;
   const rand = (min, span) => Math.floor(min + Math.random() * span);
@@ -698,9 +696,7 @@ Retorne APENAS JSON:
   try {
     const raw = await llmFn(prompt);
     const parsed = parseJsonLocally(extractJsonCandidate(raw));
-    const rows = Array.isArray(parsed?.opportunities)
-      ? parsed.opportunities
-      : [];
+    const rows = Array.isArray(parsed?.opportunities) ? parsed.opportunities : [];
     return rows
       .filter(
         (r) => r?.macroNiche && r?.youtubeSearchQuery && !isMetaGarbage(r.angle)
@@ -724,6 +720,7 @@ Retorne APENAS JSON:
   }
 }
 
+/** Refina e reordena oportunidades com LLM. */
 async function refineWithLlm(scored, { llmFn, baseNiche, format }) {
   if (!llmFn || !scored.length) return scored;
 
@@ -754,21 +751,21 @@ JSON apenas:
 
 Dados:
 ${JSON.stringify(
-  scored.slice(0, 12).map((s) => ({
-    macroNiche: s.macroNiche,
-    angle: s.angle,
-    formatPattern: s.formatPattern,
-    label: s.label,
-    pioneerScore: s.pioneerScore,
-    saturationPct: s.saturationPct,
-    macroSaturationPct: s.macroSaturationPct,
-    gapScore: s.gapScore,
-    dedicatedChannels: s.dedicatedChannels,
-    youtubeSearchQuery: s.youtubeSearchQuery,
-  })),
-  null,
-  2
-)}`;
+    scored.slice(0, 12).map((s) => ({
+      macroNiche: s.macroNiche,
+      angle: s.angle,
+      formatPattern: s.formatPattern,
+      label: s.label,
+      pioneerScore: s.pioneerScore,
+      saturationPct: s.saturationPct,
+      macroSaturationPct: s.macroSaturationPct,
+      gapScore: s.gapScore,
+      dedicatedChannels: s.dedicatedChannels,
+      youtubeSearchQuery: s.youtubeSearchQuery,
+    })),
+    null,
+    2
+  )}`;
 
   try {
     const raw = await llmFn(prompt);
@@ -813,6 +810,7 @@ ${JSON.stringify(
   }
 }
 
+/** Converte um nicho pioneiro em uma ideia de vídeo para o pipeline principal. */
 function buildPioneerIdea(niche) {
   const title = buildFirstVideoIdea(niche);
   const hookPt = buildContentHook(niche);
@@ -861,6 +859,11 @@ const AUDIENCE_HINTS = {
   arquitetura: "Urbanistas amadores e fãs de cidades e espaços.",
 };
 
+// -----------------------------------------------------------------------------
+// DETALHE / ASPECTOS PARA UI
+// -----------------------------------------------------------------------------
+
+/** Constrói o breakdown completo de aspectos para a UI de detalhes. */
 export function buildNicheDetailBreakdown(niche = {}, context = {}) {
   const macroKey =
     guessMacroFromText(niche.macroNiche || "")?.id || "curiosidades";
@@ -898,8 +901,7 @@ export function buildNicheDetailBreakdown(niche = {}, context = {}) {
       angle: {
         title: "Ângulo específico",
         value: niche.angle || "—",
-        description:
-          "Recorte temático que diferencia este canal dos genéricos.",
+        description: "Recorte temático que diferencia este canal dos genéricos.",
       },
       formatPattern: {
         title: "Padrão de vídeo",
@@ -910,7 +912,8 @@ export function buildNicheDetailBreakdown(niche = {}, context = {}) {
       competition: {
         title: "Concorrência no YouTube",
         searchQuery: niche.youtubeSearchQuery || yt.query || "",
-        dedicatedChannels: niche.dedicatedChannels ?? yt.dedicatedChannels ?? 0,
+        dedicatedChannels:
+          niche.dedicatedChannels ?? yt.dedicatedChannels ?? 0,
         channelCount: yt.channelCount ?? 0,
         videoCount: yt.videoCount ?? 0,
         saturationPct: niche.saturationPct ?? yt.saturationPct ?? null,
@@ -981,6 +984,11 @@ export function buildNicheDetailBreakdown(niche = {}, context = {}) {
   };
 }
 
+// -----------------------------------------------------------------------------
+// NORMALIZAÇÃO / CONFLITO DE SUGESTÕES ALTERNATIVAS
+// -----------------------------------------------------------------------------
+
+/** Normaliza um texto para comparação (lowercase, sem acentos, sem pontuação). */
 function normalizeSuggestionKey(value = "") {
   return String(value || "")
     .normalize("NFD")
@@ -1011,6 +1019,7 @@ const GENERIC_SUBJECT_WORDS = new Set([
   "pessoa",
 ]);
 
+/** Tokens distintivos do assunto (exclui palavras genéricas). */
 function distinctiveSubjectTokens(value = "") {
   return normalizeSuggestionKey(value)
     .split(" ")
@@ -1055,12 +1064,14 @@ const OCCUPATION_ROLE_WORDS = new Set([
   "faroleira",
 ]);
 
+/** Retorna o primeiro token significativo do assunto (papel profissional). */
 function firstSubjectRoleToken(value = "") {
   return normalizeSuggestionKey(value)
     .split(" ")
     .find((word) => word.length >= 4 && !SUBJECT_CONNECTORS.has(word));
 }
 
+/** Detecta se a perspectiva é sobre "profissões extintas" (exige troca real). */
 function isExtinctProfessionPerspective(value = "") {
   const normalized = normalizeSuggestionKey(value);
   return (
@@ -1070,6 +1081,16 @@ function isExtinctProfessionPerspective(value = "") {
   );
 }
 
+/**
+ * Detecta conflito entre uma nova sugestão e o histórico.
+ * Retorna string vazia se OK ou a razão do conflito.
+ * @param {object} draft
+ * @param {string[]} previousIdeas
+ * @param {string[]} previousSubjects
+ * @param {object} [opts]
+ * @param {boolean} [opts.requireDifferentProfession]
+ * @returns {string}
+ */
 export function alternativeSuggestionConflict(
   draft = {},
   previousIdeas = [],
@@ -1140,71 +1161,43 @@ export function alternativeSuggestionConflict(
   return "";
 }
 
-export async function researchAlternativeVideoSuggestion(
-  workspaceDir,
-  item,
-  { llmFn } = {}
-) {
-  if (!llmFn)
-    throw new Error("IA não configurada para pesquisar a nova sugestão.");
+// -----------------------------------------------------------------------------
+// PESQUISA DE SUGESTÃO ALTERNATIVA
+// -----------------------------------------------------------------------------
 
-  const aspects = item?.detail?.aspects || {};
-  const raw = item?.detail?.raw || item?.niche || {};
-  const previousIdeas = [
+/** Mapeia string → array com trim + filtro de vazios + corte. */
+function cleanStringArray(value, max = 5) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((v) => String(v).trim())
+    .filter(Boolean)
+    .slice(0, max);
+}
+
+/** Monta o prompt para o LLM gerar uma sugestão alternativa. */
+function buildAlternativePrompt({
+  raw,
+  aspects,
+  perspectiveText,
+  references,
+  format,
+  previousIdeas,
+  previousSubjects,
+  requireDifferentProfession,
+  rejectedDrafts,
+}) {
+  return `Você é um pesquisador e estrategista de YouTube. Gere UMA NOVA proposta de vídeo em português do Brasil para a mesma perspectiva editorial, sem repetir nenhum vídeo já sugerido.
+
+NICHO: ${raw.macroNiche || ""}
+PERSPECTIVA EDITORIAL QUE DEVE SER PRESERVADA (tema amplo, não o caso atual):
+${perspectiveText}
+CASO ATUAL QUE DEVE SER SUBSTITUÍDO: ${[
     aspects?.firstVideo?.idea,
-    ...(Array.isArray(item?.suggestionHistory)
-      ? item.suggestionHistory.map((entry) => entry?.idea)
-      : []),
-  ].filter(Boolean);
-  const previousSubjects = [
-    aspects?.firstVideo?.primarySubject,
-    ...(Array.isArray(item?.suggestionHistory)
-      ? item.suggestionHistory.map((entry) => entry?.primarySubject)
-      : []),
-  ].filter(Boolean);
-  const perspectiveText = [
-    item?.label,
-    raw?.label,
-    aspects?.overview?.summary,
-    raw?.formatPattern,
-    aspects?.formatPattern?.value,
+    aspects?.specificAngle || aspects?.angle?.value,
+    aspects?.competition?.searchQuery,
   ]
     .filter(Boolean)
-    .join(" ");
-  const requireDifferentProfession =
-    isExtinctProfessionPerspective(perspectiveText);
-  const references = (aspects?.competition?.sampleVideos || [])
-    .slice(0, 8)
-    .map((video) => `${video.title || ""} (${Number(video.views || 0)} views)`)
-    .filter(Boolean);
-  const format =
-    String(
-      item?.format || aspects?.searchStrategy?.format || "SHORTS"
-    ).toUpperCase() === "LONGO"
-      ? "LONGO"
-      : "SHORTS";
-
-  let draft = null;
-  const rejectedDrafts = [];
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const prompt = `Você é um pesquisador e estrategista de YouTube. Gere UMA NOVA proposta de vídeo em português do Brasil para a mesma perspectiva editorial, sem repetir nenhum vídeo já sugerido.
-
-NICHO: ${raw.macroNiche || item?.macroNiche || item?.label || ""}
-PERSPECTIVA EDITORIAL QUE DEVE SER PRESERVADA (tema amplo, não o caso atual):
-${[
-  item?.label || raw.label,
-  aspects?.overview?.summary,
-  raw.formatPattern || aspects?.formatPattern?.value,
-]
-  .filter(Boolean)
-  .join("\n")}
-CASO ATUAL QUE DEVE SER SUBSTITUÍDO: ${[
-      aspects?.firstVideo?.idea,
-      aspects?.specificAngle || aspects?.angle?.value,
-      aspects?.competition?.searchQuery,
-    ]
-      .filter(Boolean)
-      .join(" | ")}
+    .join(" | ")}
 PADRÃO: ${raw.formatPattern || aspects?.formatPattern?.value || ""}
 FORMATO: ${format}
 PÚBLICO: ${aspects?.audience?.description || ""}
@@ -1229,6 +1222,115 @@ Responda somente JSON válido:
   "contentPillars": ["pilar 1", "pilar 2", "pilar 3"],
   "searchTips": ["dica de pesquisa 1", "dica de pesquisa 2"]
 }`;
+}
+
+/** Mede concorrência da nova sugestão e atualiza os aspectos de competição. */
+async function measureAlternativeCompetition(workspaceDir, draft, raw) {
+  try {
+    const accessToken = await getYoutubeAccessToken(workspaceDir);
+    return await measureYoutubeSaturation(
+      accessToken,
+      String(draft.searchQuery || draft.title),
+      { baselineQuery: String(raw.macroNiche || "") }
+    );
+  } catch (err) {
+    console.warn("[TrendRadar] Pesquisa alternativa no YouTube:", err.message);
+    return null;
+  }
+}
+
+/** Classifica a concorrência em "Baixa" / "Média" / "Alta". */
+function classifyCompetitionLevel(saturationPct) {
+  if (saturationPct <= 25) return "Baixa";
+  if (saturationPct <= 55) return "Média";
+  return "Alta";
+}
+
+/** Combina a nova medição com os aspects anteriores. */
+function mergeCompetition(aspects, competition) {
+  if (!competition || competition.rejected) return aspects.competition;
+  return {
+    ...(aspects.competition || {}),
+    ...competition,
+    title: aspects.competition?.title || "Concorrência no YouTube",
+    level: classifyCompetitionLevel(competition.saturationPct),
+    searchQuery: competition.query,
+  };
+}
+
+/**
+ * Pesquisa uma sugestão alternativa de vídeo dentro de uma perspectiva editorial.
+ * @param {string} workspaceDir
+ * @param {object} item
+ * @param {object} [opts]
+ * @param {Function} [opts.llmFn]
+ */
+export async function researchAlternativeVideoSuggestion(
+  workspaceDir,
+  item,
+  { llmFn } = {}
+) {
+  if (!llmFn)
+    throw new Error("IA não configurada para pesquisar a nova sugestão.");
+
+  const aspects = item?.detail?.aspects || {};
+  const raw = item?.detail?.raw || item?.niche || {};
+
+  const previousIdeas = [
+    aspects?.firstVideo?.idea,
+    ...(Array.isArray(item?.suggestionHistory)
+      ? item.suggestionHistory.map((entry) => entry?.idea)
+      : []),
+  ].filter(Boolean);
+
+  const previousSubjects = [
+    aspects?.firstVideo?.primarySubject,
+    ...(Array.isArray(item?.suggestionHistory)
+      ? item.suggestionHistory.map((entry) => entry?.primarySubject)
+      : []),
+  ].filter(Boolean);
+
+  const perspectiveText = [
+    item?.label,
+    raw?.label,
+    aspects?.overview?.summary,
+    raw?.formatPattern,
+    aspects?.formatPattern?.value,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const requireDifferentProfession =
+    isExtinctProfessionPerspective(perspectiveText);
+
+  const references = (aspects?.competition?.sampleVideos || [])
+    .slice(0, 8)
+    .map((video) => `${video.title || ""} (${Number(video.views || 0)} views)`)
+    .filter(Boolean);
+
+  const format =
+    String(
+      item?.format || aspects?.searchStrategy?.format || "SHORTS"
+    ).toUpperCase() === "LONGO"
+      ? "LONGO"
+      : "SHORTS";
+
+  // Tenta até 3 vezes até obter uma sugestão que não conflite com o histórico.
+  let draft = null;
+  const rejectedDrafts = [];
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const prompt = buildAlternativePrompt({
+      raw,
+      aspects,
+      perspectiveText,
+      references,
+      format,
+      previousIdeas,
+      previousSubjects,
+      requireDifferentProfession,
+      rejectedDrafts,
+    });
+
     const parsed = parseJsonLocally(extractJsonCandidate(await llmFn(prompt)));
     const conflict = alternativeSuggestionConflict(
       parsed,
@@ -1244,59 +1346,21 @@ Responda somente JSON válido:
       `${String(parsed?.title || "Sem título")} — ${conflict}`
     );
   }
+
   if (!draft?.title) {
     throw new Error(
       "A IA repetiu sugestões anteriores. Tente novamente para buscar outro caso."
     );
   }
 
-  let competition = null;
-  try {
-    const accessToken = await getYoutubeAccessToken(workspaceDir);
-    competition = await measureYoutubeSaturation(
-      accessToken,
-      String(draft.searchQuery || draft.title),
-      { baselineQuery: String(raw.macroNiche || item?.macroNiche || "") }
-    );
-  } catch (err) {
-    console.warn("[TrendRadar] Pesquisa alternativa no YouTube:", err.message);
-  }
-
-  const contentPillars = Array.isArray(draft.contentPillars)
-    ? draft.contentPillars
-        .map((value) => String(value).trim())
-        .filter(Boolean)
-        .slice(0, 5)
-    : [];
-  const searchTips = Array.isArray(draft.searchTips)
-    ? draft.searchTips
-        .map((value) => String(value).trim())
-        .filter(Boolean)
-        .slice(0, 5)
-    : [];
-  const nextCompetition =
-    competition && !competition.rejected
-      ? {
-          ...(aspects.competition || {}),
-          ...competition,
-          title: aspects.competition?.title || "Concorrência no YouTube",
-          level:
-            competition.saturationPct <= 25
-              ? "Baixa"
-              : competition.saturationPct <= 55
-                ? "Média"
-                : "Alta",
-          searchQuery: competition.query,
-        }
-      : aspects.competition;
+  const competition = await measureAlternativeCompetition(workspaceDir, draft, raw);
+  const nextCompetition = mergeCompetition(aspects, competition);
 
   return {
     firstVideo: {
       title: "Novo vídeo sugerido",
       idea: String(draft.title).trim().slice(0, 180),
-      hook: String(draft.hook || "")
-        .trim()
-        .slice(0, 500),
+      hook: String(draft.hook || "").trim().slice(0, 500),
       primarySubject: String(draft.primarySubject || "")
         .trim()
         .slice(0, 160),
@@ -1318,13 +1382,13 @@ Responda somente JSON válido:
       },
       contentPillars: {
         ...(aspects.contentPillars || {}),
-        items: contentPillars,
+        items: cleanStringArray(draft.contentPillars, 5),
       },
       competition: nextCompetition,
       searchStrategy: {
         ...(aspects.searchStrategy || {}),
         primaryQuery: String(draft.searchQuery || draft.title).trim(),
-        tips: searchTips,
+        tips: cleanStringArray(draft.searchTips, 5),
       },
     },
     research: {
@@ -1338,6 +1402,198 @@ Responda somente JSON válido:
   };
 }
 
+// -----------------------------------------------------------------------------
+// DESCOBERTA PRINCIPAL DE NICHOS PIONEIROS
+// -----------------------------------------------------------------------------
+
+/** ETAPA 1: monta lista de candidatos a partir de LLM + matriz + Exa + sinais. */
+async function collectCandidates({
+  workspaceDir,
+  baseNiche,
+  format,
+  discoveryMode,
+  risingNiches,
+  useAi,
+  llmFn,
+}) {
+  const candidateMap = new Map();
+  const candidateKey = (c) => `${c.macroNiche}|${c.youtubeSearchQuery}`;
+
+  // LLM (se habilitado)
+  if (useAi && llmFn) {
+    const llmAngles = await generateAnglesWithLlm({
+      llmFn,
+      baseNiche,
+      format,
+      discoveryMode,
+    });
+    for (const c of llmAngles) candidateMap.set(candidateKey(c), c);
+  }
+
+  // Matriz macro × pattern (sempre)
+  for (const c of buildMatrixCandidates(baseNiche, format, discoveryMode)) {
+    if (!candidateMap.has(candidateKey(c))) candidateMap.set(candidateKey(c), c);
+  }
+
+  // Exa (tópicos emergentes da web)
+  let exaAvailable = false;
+  try {
+    const exaResults = await Promise.all(
+      buildExaQueries(baseNiche, discoveryMode).map((q) =>
+        exaWebSearch(q, workspaceDir, { numResults: 5 })
+      )
+    );
+    exaAvailable = exaResults.some((r) => r.available);
+    for (const exa of exaResults) {
+      for (const c of extractTopicCandidatesFromExa(exa)) {
+        if (!candidateMap.has(candidateKey(c)) && !isMetaGarbage(c.label)) {
+          candidateMap.set(candidateKey(c), c);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[pioneer] Exa indisponível:", err.message);
+  }
+
+  // Rising niches (sinais externos)
+  if (risingNiches?.length) {
+    for (const row of risingNiches.slice(0, 3)) {
+      const macro = guessMacroFromText(row.niche) || MACRO_NICHES[2];
+      const c = {
+        macroNiche: macro.label,
+        macroId: macro.id,
+        angle: `Profundidade inédita em "${row.niche}" com formato narrativo novo`,
+        formatPattern: "Série investigativa curta",
+        formatPatternId: "channel-signal",
+        youtubeSearchQuery: `${row.niche} documentário`.slice(0, 72),
+        label: `${macro.label}: ${row.niche}`,
+      };
+      if (!candidateMap.has(candidateKey(c))) candidateMap.set(candidateKey(c), c);
+    }
+  }
+
+  return { candidates: [...candidateMap.values()], exaAvailable };
+}
+
+/** ETAPA 2: mede concorrência YouTube e pontua cada candidato. */
+async function measureAndScoreCandidates(candidates, { accessToken, format }) {
+  const baselineCache = new Map();
+  const measured = [];
+
+  for (const candidate of candidates) {
+    if (isMetaGarbage(candidate.label) || isMetaGarbage(candidate.youtubeSearchQuery)) {
+      continue;
+    }
+
+    const macro =
+      MACRO_NICHES.find((m) => m.label === candidate.macroNiche) ||
+      guessMacroFromText(candidate.macroNiche);
+    const baseline = macro?.searchBaseline || null;
+
+    try {
+      let macroSaturationPct = 55;
+      if (baseline) {
+        if (!baselineCache.has(baseline)) {
+          const b = await measureYoutubeSaturation(accessToken, baseline);
+          baselineCache.set(baseline, b.saturationPct);
+        }
+        macroSaturationPct = baselineCache.get(baseline);
+      }
+
+      const yt = await measureYoutubeSaturation(
+        accessToken,
+        candidate.youtubeSearchQuery
+      );
+      yt.macroSaturationPct = macroSaturationPct;
+      yt.gapScore = Math.max(0, macroSaturationPct - yt.saturationPct);
+
+      const scored = scorePioneerOpportunity(candidate, yt, format);
+      if (scored && scored.status !== "saturado") measured.push(scored);
+    } catch (err) {
+      console.warn(
+        "[pioneer] measure:",
+        candidate.youtubeSearchQuery,
+        err.message
+      );
+    }
+  }
+
+  measured.sort((a, b) => b.pioneerScore - a.pioneerScore);
+  return measured;
+}
+
+/** ETAPA 3: corta, refina com LLM e monta a resposta final. */
+async function composeResults(measured, {
+  maxCandidates,
+  useAi,
+  llmFn,
+  baseNiche,
+  format,
+  exaAvailable,
+  discoveryMode,
+  baseNicheFinal,
+  rawCandidatesCount,
+}) {
+  const sliceSize = Math.min(Math.max(Number(maxCandidates) || 10, 4), 12);
+  let pioneerNiches = measured.slice(0, sliceSize);
+
+  if (useAi && llmFn && pioneerNiches.length) {
+    pioneerNiches = await refineWithLlm(pioneerNiches, {
+      llmFn,
+      baseNiche,
+      format,
+    });
+  }
+
+  const pioneerIdeas = pioneerNiches
+    .filter((n) => n.pioneerScore >= 48)
+    .slice(0, 6)
+    .map(buildPioneerIdea);
+
+  const virginCount = pioneerNiches.filter((n) => n.status === "virgem").length;
+  const pioneerCount = pioneerNiches.filter(
+    (n) => n.status === "pioneiro" || n.status === "virgem"
+  ).length;
+
+  return {
+    ok: true,
+    discoveryMode,
+    baseNiche: baseNicheFinal || null,
+    format,
+    exaAvailable,
+    logic: {
+      version: "macro-angle-gap-v2",
+      description:
+        discoveryMode === "virgin"
+          ? "Descoberta aberta: varre macro-nichos diversos (não preso ao nicho do projeto). Virgem = poucos canais dedicados no ângulo."
+          : "Exploração focada: ângulos pioneiros dentro do nicho escolhido.",
+    },
+    pioneerNiches,
+    pioneerIdeas,
+    summary: {
+      scanned: rawCandidatesCount,
+      validated: measured.length,
+      virginCount,
+      pioneerCount,
+      topPick: pioneerNiches[0]?.label || null,
+      topMacro: pioneerNiches[0]?.macroNiche || null,
+    },
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Descobre nichos pioneiros combinando macro-nichos + ângulos + padrões.
+ * @param {string} workspaceDir
+ * @param {object} [opts]
+ * @param {string} [opts.niche]
+ * @param {"SHORTS"|"LONGO"} [opts.format]
+ * @param {"virgin"|"chosen"} [opts.discoveryMode]
+ * @param {Array} [opts.risingNiches]
+ * @param {number} [opts.maxCandidates]
+ * @param {boolean} [opts.useAi]
+ * @param {Function} [opts.llmFn]
+ */
 export async function discoverPioneerNiches(
   workspaceDir,
   {
@@ -1366,145 +1622,39 @@ export async function discoverPioneerNiches(
     };
   }
 
-  const candidateMap = new Map();
-
-  const llmAngles =
-    useAi && llmFn
-      ? await generateAnglesWithLlm({
-          llmFn,
-          baseNiche,
-          format: fmt,
-          discoveryMode: mode,
-        })
-      : [];
-  llmAngles.forEach((c) =>
-    candidateMap.set(`${c.macroNiche}|${c.youtubeSearchQuery}`, c)
-  );
-
-  buildMatrixCandidates(baseNiche, fmt, mode).forEach((c) => {
-    const key = `${c.macroNiche}|${c.youtubeSearchQuery}`;
-    if (!candidateMap.has(key)) candidateMap.set(key, c);
+  // ETAPA 1 — coleta candidatos (LLM + matriz + Exa + sinais)
+  const { candidates, exaAvailable } = await collectCandidates({
+    workspaceDir,
+    baseNiche,
+    format: fmt,
+    discoveryMode: mode,
+    risingNiches,
+    useAi,
+    llmFn,
   });
 
-  const exaResults = await Promise.all(
-    buildExaQueries(baseNiche, mode).map((q) =>
-      exaWebSearch(q, workspaceDir, { numResults: 5 })
-    )
-  );
-  const exaAvailable = exaResults.some((r) => r.available);
-  for (const exa of exaResults) {
-    extractTopicCandidatesFromExa(exa).forEach((c) => {
-      const key = `${c.macroNiche}|${c.youtubeSearchQuery}`;
-      if (!candidateMap.has(key) && !isMetaGarbage(c.label))
-        candidateMap.set(key, c);
-    });
-  }
-
-  if (risingNiches?.length) {
-    for (const row of risingNiches.slice(0, 3)) {
-      const macro = guessMacroFromText(row.niche) || MACRO_NICHES[2];
-      const c = {
-        macroNiche: macro.label,
-        macroId: macro.id,
-        angle: `Profundidade inédita em "${row.niche}" com formato narrativo novo`,
-        formatPattern: "Série investigativa curta",
-        formatPatternId: "channel-signal",
-        youtubeSearchQuery: `${row.niche} documentário`.slice(0, 72),
-        label: `${macro.label}: ${row.niche}`,
-      };
-      candidateMap.set(`${c.macroNiche}|${c.youtubeSearchQuery}`, c);
-    }
-  }
-
-  const rawCandidates = [...candidateMap.values()]
+  const rawCandidates = candidates
     .filter(
       (c) => !isMetaGarbage(c.label) && !isMetaGarbage(c.youtubeSearchQuery)
     )
     .slice(0, 24);
 
-  const baselineCache = new Map();
-  const measured = [];
-  for (const candidate of rawCandidates) {
-    const macro =
-      MACRO_NICHES.find((m) => m.label === candidate.macroNiche) ||
-      guessMacroFromText(candidate.macroNiche);
-    const baseline = macro?.searchBaseline || null;
+  // ETAPA 2 — mede concorrência no YouTube e pontua
+  const measured = await measureAndScoreCandidates(rawCandidates, {
+    accessToken,
+    format: fmt,
+  });
 
-    try {
-      let macroSaturationPct = 55;
-      if (baseline) {
-        if (!baselineCache.has(baseline)) {
-          const b = await measureYoutubeSaturation(accessToken, baseline);
-          baselineCache.set(baseline, b.saturationPct);
-        }
-        macroSaturationPct = baselineCache.get(baseline);
-      }
-
-      const yt = await measureYoutubeSaturation(
-        accessToken,
-        candidate.youtubeSearchQuery
-      );
-      yt.macroSaturationPct = macroSaturationPct;
-      yt.gapScore = Math.max(0, macroSaturationPct - yt.saturationPct);
-      const scored = scorePioneerOpportunity(candidate, yt, fmt);
-      if (scored && scored.status !== "saturado") measured.push(scored);
-    } catch (err) {
-      console.warn(
-        "[pioneer] measure:",
-        candidate.youtubeSearchQuery,
-        err.message
-      );
-    }
-  }
-
-  measured.sort((a, b) => b.pioneerScore - a.pioneerScore);
-
-  let pioneerNiches = measured.slice(
-    0,
-    Math.min(Math.max(Number(maxCandidates) || 10, 4), 12)
-  );
-
-  if (useAi && llmFn && pioneerNiches.length) {
-    pioneerNiches = await refineWithLlm(pioneerNiches, {
-      llmFn,
-      baseNiche,
-      format: fmt,
-    });
-  }
-
-  const pioneerIdeas = pioneerNiches
-    .filter((n) => n.pioneerScore >= 48)
-    .slice(0, 6)
-    .map(buildPioneerIdea);
-
-  const virginCount = pioneerNiches.filter((n) => n.status === "virgem").length;
-  const pioneerCount = pioneerNiches.filter(
-    (n) => n.status === "pioneiro" || n.status === "virgem"
-  ).length;
-
-  return {
-    ok: true,
-    discoveryMode: mode,
-    baseNiche: baseNiche || null,
+  // ETAPA 3 — corta, refina com LLM e compõe a resposta
+  return composeResults(measured, {
+    maxCandidates,
+    useAi,
+    llmFn,
+    baseNiche,
     format: fmt,
     exaAvailable,
-    logic: {
-      version: "macro-angle-gap-v2",
-      description:
-        mode === "virgin"
-          ? "Descoberta aberta: varre macro-nichos diversos (não preso ao nicho do projeto). Virgem = poucos canais dedicados no ângulo."
-          : "Exploração focada: ângulos pioneiros dentro do nicho escolhido.",
-    },
-    pioneerNiches,
-    pioneerIdeas,
-    summary: {
-      scanned: rawCandidates.length,
-      validated: measured.length,
-      virginCount,
-      pioneerCount,
-      topPick: pioneerNiches[0]?.label || null,
-      topMacro: pioneerNiches[0]?.macroNiche || null,
-    },
-    fetchedAt: new Date().toISOString(),
-  };
+    discoveryMode: mode,
+    baseNicheFinal: baseNiche,
+    rawCandidatesCount: rawCandidates.length,
+  });
 }
