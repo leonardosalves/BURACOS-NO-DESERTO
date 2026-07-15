@@ -777,6 +777,81 @@ function resolveSceneSpeechMatch({
 /**
  * Reancora audio_start / speech_end por cena — storyboard + segmentos Whisper, sem estender até o fim do bloco.
  */
+export function resolveBlockBounds(
+  blockNum,
+  wordTranscripts,
+  starts,
+  durations
+) {
+  const transcriptSegments = getTranscriptSegmentsForBlock(
+    wordTranscripts,
+    blockNum
+  );
+  const blockStart = Number(
+    transcriptSegments[0]?.start_time ?? starts[blockNum - 1]
+  );
+  const blockDuration = Number(durations[blockNum - 1]);
+  const segmentBlockEnd = transcriptSegments.length
+    ? Math.max(...transcriptSegments.map((s) => Number(s.end_time)))
+    : NaN;
+  const timingBlockEnd =
+    Number.isFinite(blockStart) && Number.isFinite(blockDuration)
+      ? blockStart + blockDuration
+      : NaN;
+  const blockEnd = Number.isFinite(segmentBlockEnd)
+    ? segmentBlockEnd
+    : timingBlockEnd;
+
+  const isValid =
+    Number.isFinite(blockStart) &&
+    Number.isFinite(blockEnd) &&
+    blockEnd > blockStart;
+
+  return {
+    transcriptSegments,
+    blockStart,
+    blockDuration,
+    blockEnd,
+    isValid,
+  };
+}
+
+export function applySpeechWindowToAsset(
+  asset,
+  start,
+  end,
+  { idx, assets, blockEnd, narrationText, preserveExplicitFixed }
+) {
+  asset.audio_start = parseFloat(start.toFixed(3));
+  asset.speech_end = parseFloat(end.toFixed(3));
+  asset.synced_to_speech = true;
+  if (narrationText) {
+    asset.narration_segment = narrationText;
+  }
+
+  if (
+    !isAssetDurationLocked(asset) &&
+    !(preserveExplicitFixed && assetHasExplicitDuration(asset))
+  ) {
+    const chained = computeChainedSceneDuration(
+      asset,
+      assets,
+      idx,
+      blockEnd
+    );
+    if (chained != null) {
+      asset.fixed = parseFloat(chained.toFixed(1));
+    } else {
+      asset.fixed = parseFloat(
+        Math.max(0.5, end - start).toFixed(1)
+      );
+    }
+  }
+}
+
+/**
+ * Reancora audio_start / speech_end por cena — storyboard + segmentos Whisper, sem estender até o fim do bloco.
+ */
 export function realignTimelineAssetsToSpeech({
   timelineAssets = {},
   blockTimings = { starts: [], durations: [] },
@@ -796,31 +871,10 @@ export function realignTimelineAssetsToSpeech({
     const assets = (out[blockKey] || []).map((a) => ({ ...a }));
     if (!assets.length) continue;
 
-    const transcriptSegments = getTranscriptSegmentsForBlock(
-      wordTranscripts,
-      blockNum
-    );
-    const blockStart = Number(
-      transcriptSegments[0]?.start_time ?? starts[blockNum - 1]
-    );
-    const blockDuration = Number(durations[blockNum - 1]);
-    const segmentBlockEnd = transcriptSegments.length
-      ? Math.max(...transcriptSegments.map((s) => Number(s.end_time)))
-      : NaN;
-    const timingBlockEnd =
-      Number.isFinite(blockStart) && Number.isFinite(blockDuration)
-        ? blockStart + blockDuration
-        : NaN;
-    const blockEnd = Number.isFinite(segmentBlockEnd)
-      ? segmentBlockEnd
-      : timingBlockEnd;
+    const { transcriptSegments, blockStart, blockDuration, blockEnd, isValid } =
+      resolveBlockBounds(blockNum, wordTranscripts, starts, durations);
 
-    if (
-      !Number.isFinite(blockStart) ||
-      !Number.isFinite(blockEnd) ||
-      blockEnd <= blockStart
-    )
-      continue;
+    if (!isValid) continue;
 
     const context = {
       visualPrompts,
@@ -847,31 +901,13 @@ export function realignTimelineAssetsToSpeech({
       const speechStart = Math.max(matched.start, searchAfter - 0.05);
       const speechEnd = Math.max(matched.end, speechStart + 0.25);
 
-      assets[idx].audio_start = parseFloat(speechStart.toFixed(3));
-      assets[idx].speech_end = parseFloat(speechEnd.toFixed(3));
-      assets[idx].synced_to_speech = true;
-      if (narrationText) {
-        assets[idx].narration_segment = narrationText;
-      }
-
-      if (
-        !isAssetDurationLocked(assets[idx]) &&
-        !(preserveExplicitFixed && assetHasExplicitDuration(assets[idx]))
-      ) {
-        const chained = computeChainedSceneDuration(
-          assets[idx],
-          assets,
-          idx,
-          blockEnd
-        );
-        if (chained != null) {
-          assets[idx].fixed = parseFloat(chained.toFixed(1));
-        } else {
-          assets[idx].fixed = parseFloat(
-            Math.max(0.5, speechEnd - speechStart).toFixed(1)
-          );
-        }
-      }
+      applySpeechWindowToAsset(assets[idx], speechStart, speechEnd, {
+        idx,
+        assets,
+        blockEnd,
+        narrationText,
+        preserveExplicitFixed,
+      });
 
       searchAfter = speechEnd;
       aligned++;
@@ -891,30 +927,14 @@ export function realignTimelineAssetsToSpeech({
         continue;
 
       const narrationText = getAssetNarrationText(blockNum, idx, context);
-      assets[idx].audio_start = parseFloat(segStart.toFixed(3));
-      assets[idx].speech_end = parseFloat(segEnd.toFixed(3));
-      assets[idx].synced_to_speech = true;
-      if (narrationText) assets[idx].narration_segment = narrationText;
+      applySpeechWindowToAsset(assets[idx], segStart, segEnd, {
+        idx,
+        assets,
+        blockEnd,
+        narrationText,
+        preserveExplicitFixed,
+      });
       if (seg.chunk_id) assets[idx].chunk_id = seg.chunk_id;
-
-      if (
-        !isAssetDurationLocked(assets[idx]) &&
-        !(preserveExplicitFixed && assetHasExplicitDuration(assets[idx]))
-      ) {
-        const chained = computeChainedSceneDuration(
-          assets[idx],
-          assets,
-          idx,
-          blockEnd
-        );
-        if (chained != null) {
-          assets[idx].fixed = parseFloat(chained.toFixed(1));
-        } else {
-          assets[idx].fixed = parseFloat(
-            Math.max(0.5, segEnd - segStart).toFixed(1)
-          );
-        }
-      }
       aligned++;
     }
 
@@ -1147,31 +1167,10 @@ export function applyWhisperDurationsToStoryboard(
 
   const nextPrompts = [...prompts];
   for (const [blockNum, scenes] of scenesByBlock) {
-    const transcriptSegments = getTranscriptSegmentsForBlock(
-      wordTranscripts,
-      blockNum
-    );
-    const blockStart = Number(
-      transcriptSegments[0]?.start_time ?? starts[blockNum - 1]
-    );
-    const segmentBlockEnd = transcriptSegments.length
-      ? Math.max(...transcriptSegments.map((s) => Number(s.end_time)))
-      : NaN;
-    const timingBlockEnd =
-      Number.isFinite(blockStart) &&
-      Number.isFinite(Number(durations[blockNum - 1]))
-        ? blockStart + Number(durations[blockNum - 1])
-        : NaN;
-    const blockEnd = Number.isFinite(segmentBlockEnd)
-      ? segmentBlockEnd
-      : timingBlockEnd;
+    const { transcriptSegments, blockStart, blockEnd, isValid } =
+      resolveBlockBounds(blockNum, wordTranscripts, starts, durations);
 
-    if (
-      !Number.isFinite(blockStart) ||
-      !Number.isFinite(blockEnd) ||
-      blockEnd <= blockStart
-    )
-      continue;
+    if (!isValid) continue;
 
     let searchAfter = blockStart;
     scenes.forEach((vp, localIdx) => {
