@@ -6,6 +6,9 @@ import {
   computeChunkTimeline,
   mergeWhisperTranscriptsWithChunkPlan,
   assessWhisperWordQuality,
+  alignNarrationChunkPlanToWhisper,
+  resolveChunkTimeline,
+  stabilizeNarrationChunkPauses,
 } from "../backend/narrationChunks.js";
 import { flattenWordTranscripts } from "./wordTranscripts.js";
 import { tightenTimelineRetentionDurations } from "../backend/timelineSceneSync.js";
@@ -162,5 +165,61 @@ describe("mergeWhisperTranscriptsWithChunkPlan", () => {
       last.end - flat[flat.length - 2].end < 1.5,
       "últimas palavras não colapsam no fim"
     );
+  });
+});
+
+describe("planejamento estável e alinhamento real por Whisper", () => {
+  it("remove escada artificial 800/900/1000ms e posiciona virada no fim do bloco", () => {
+    const chunks = stabilizeNarrationChunkPauses([
+      { id: "c1", block: 1, text: "Primeira ideia.", pause_after_ms: 800 },
+      { id: "c2", block: 1, text: "Segunda ideia.", pause_after_ms: 900 },
+      { id: "c3", block: 2, text: "Terceira ideia.", pause_after_ms: 1000 },
+    ]);
+    assert.deepEqual(
+      chunks.map((chunk) => chunk.pause_after_ms),
+      [350, 850, 0]
+    );
+    assert.equal(chunks[1].pause_reason, "virada de bloco");
+  });
+
+  it("reancora cenas nas palavras reais e preserva esses tempos", () => {
+    const plan = {
+      chunks: [
+        {
+          id: "c1",
+          block: 1,
+          scene_ref: "1.1",
+          text: "A ponte caiu",
+          duration_s: 2,
+          pause_after_ms: 800,
+        },
+        {
+          id: "c2",
+          block: 1,
+          scene_ref: "1.2",
+          text: "A cidade reagiu",
+          duration_s: 2,
+          pause_after_ms: 0,
+        },
+      ],
+    };
+    const words = [
+      { word: "A", start: 0.18, end: 0.32 },
+      { word: "ponte", start: 0.32, end: 0.72 },
+      { word: "caiu", start: 0.72, end: 1.16 },
+      { word: "A", start: 2.04, end: 2.18 },
+      { word: "cidade", start: 2.18, end: 2.62 },
+      { word: "reagiu", start: 2.62, end: 3.1 },
+    ];
+    const aligned = alignNarrationChunkPlanToWhisper(plan, words);
+    assert.equal(aligned.chunks[0].start_s, 0.18);
+    assert.equal(aligned.chunks[0].end_s, 1.16);
+    assert.equal(aligned.chunks[1].start_s, 2.04);
+    assert.equal(aligned.chunks[0].observed_pause_after_ms, 880);
+    assert.equal(aligned.chunks[0].pause_after_ms, 800);
+
+    const preserved = resolveChunkTimeline(aligned.chunks);
+    assert.equal(preserved[0].start_s, 0.18);
+    assert.equal(preserved[1].start_s, 2.04);
   });
 });

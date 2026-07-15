@@ -288,21 +288,18 @@ export function registerWorkflowRoutes(app, deps) {
       fallback,
     };
 
-    writeJsonAtomicSync(
-      path.join(projDir, "youtube_metadata_cache.json"),
-      {
-        generatedAt: new Date().toISOString(),
-        pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
-        format,
-        niche,
-        category,
-        profile: payload.profile,
-        rpm: rpmHint.rpm,
-        palette: rpmHint.palette,
-        parsed,
-        text,
-      }
-    );
+    writeJsonAtomicSync(path.join(projDir, "youtube_metadata_cache.json"), {
+      generatedAt: new Date().toISOString(),
+      pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+      format,
+      niche,
+      category,
+      profile: payload.profile,
+      rpm: rpmHint.rpm,
+      palette: rpmHint.palette,
+      parsed,
+      text,
+    });
 
     return payload;
   }
@@ -358,7 +355,7 @@ export function registerWorkflowRoutes(app, deps) {
     });
     config.timeline_assets = synced.timelineAssets;
     writeJsonAtomicSync(configPath, config);
-      writeJsonAtomicSync(timingsPath, synced.blockTimings);
+    writeJsonAtomicSync(timingsPath, synced.blockTimings);
     if (fs.existsSync(storyboardPath)) {
       const storyboardNext = applyWhisperDurationsToStoryboard(
         storyboard,
@@ -835,7 +832,7 @@ export function registerWorkflowRoutes(app, deps) {
               speed,
             };
 
-      const nextPlan = await generateNarrationChunksTts(projDir, {
+      let nextPlan = await generateNarrationChunksTts(projDir, {
         plan,
         chunkIds: Array.isArray(chunkIds) ? chunkIds : null,
         defaultVoice: voiceRef,
@@ -945,8 +942,11 @@ export function registerWorkflowRoutes(app, deps) {
         });
         config = applied.config;
         storyboard = applied.storyboard;
+        nextPlan = applied.storyboard.narration_chunk_plan || nextPlan;
         console.log(
-          "[TTS Chunks] Timeline sincronizada por trecho (1 segmento por cena)."
+          whisperSynced
+            ? "[TTS Chunks] Timeline reancorada pela fala real do Whisper (1 segmento por cena)."
+            : "[TTS Chunks] Timeline sincronizada pelo plano de trechos (1 segmento por cena)."
         );
       } else if (!fullBatch) {
         console.log(
@@ -954,10 +954,7 @@ export function registerWorkflowRoutes(app, deps) {
         );
       }
       storyboard.narration_chunk_plan = nextPlan;
-      writeJsonAtomicSync(
-        path.join(projDir, "storyboard.json"),
-        storyboard
-      );
+      writeJsonAtomicSync(path.join(projDir, "storyboard.json"), storyboard);
 
       const logs = formatNarrationChunkPlanLog(nextPlan);
       let message = masterReady

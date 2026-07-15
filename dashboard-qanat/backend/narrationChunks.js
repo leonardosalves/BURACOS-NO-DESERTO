@@ -253,6 +253,35 @@ export function resolveExpressivePause({
   return { ms: DEFAULT_PAUSE_BETWEEN_SCENES_MS, reason: "respiro entre cenas" };
 }
 
+/**
+ * Pausas automáticas determinísticas. A IA decide o texto/corte, mas não cria
+ * rampas arbitrárias como 800 → 900 → 1000 ms entre cenas equivalentes.
+ * Edições manuais posteriores continuam preservadas pela normalização comum.
+ */
+export function stabilizeNarrationChunkPauses(chunks = []) {
+  const list = Array.isArray(chunks) ? chunks : [];
+  return list.map((chunk, index) => {
+    if (index === list.length - 1) {
+      return {
+        ...chunk,
+        pause_after_ms: 0,
+        pause_reason: "fim da narração",
+      };
+    }
+    const next = list[index + 1];
+    const changesBlock = Number(next?.block || 1) !== Number(chunk?.block || 1);
+    const pause = resolveExpressivePause({
+      text: chunk?.text,
+      changesBlock,
+    });
+    return {
+      ...chunk,
+      pause_after_ms: pause.ms,
+      pause_reason: pause.reason,
+    };
+  });
+}
+
 export function chunkAudioRelativePath(chunkId) {
   const safe = String(chunkId || "chunk").replace(/[^\w.-]+/g, "_");
   return path.join(NARRATION_CHUNKS_DIR, `${safe}.mp3`).replace(/\\/g, "/");
@@ -302,8 +331,6 @@ export function buildHeuristicNarrationChunks({
   );
   const voice = normalizeVoiceRef(defaultVoice);
   const chunks = [];
-  let prevBlock = null;
-
   for (let i = 0; i < scenes.length; i += 1) {
     const scene = scenes[i];
     const block = Number(scene.block) || 1;
@@ -315,7 +342,8 @@ export function buildHeuristicNarrationChunks({
 
     const pause = resolveExpressivePause({
       text,
-      changesBlock: prevBlock != null && block !== prevBlock,
+      changesBlock:
+        i < scenes.length - 1 && Number(scenes[i + 1]?.block || 1) !== block,
     });
 
     chunks.push({
@@ -334,7 +362,6 @@ export function buildHeuristicNarrationChunks({
       end_s: null,
       status: "planned",
     });
-    prevBlock = block;
   }
 
   return normalizeNarrationChunkPlan(
@@ -376,7 +403,8 @@ REGRAS:
 - Um trecho = uma cena OU um bloco inteiro se a cena for muito curta (< 8 palavras); prefira 1 trecho por cena quando houver narration_text.
 - "text" = exatamente o que será falado em PT-BR (pode condensar levemente, sem mudar o sentido).
 - "text_tagged" = igual a "text" (texto limpo, sem tags inline). PROIBIDO: (breath), [ênfase], [emphasis], [ênfase dramática] — pausas entre trechos são só "pause_after_ms".
-- "pause_after_ms": silêncio APÓS o trecho antes do próximo (0–3000). Virada de bloco: 600–1200ms; mesma cena/bloco: 200–500ms; clímax→resolução: até 1500ms.
+- "pause_after_ms": silêncio APÓS o trecho. Use apenas estes presets: 350ms entre cenas, 700ms após pergunta, 850ms na última cena antes da virada de bloco e 550ms após conclusão. Último trecho: 0ms.
+- PROIBIDO criar progressão numérica artificial (ex.: 800, 900, 1000ms). Cenas com a mesma função narrativa usam a mesma pausa.
 - "pause_reason": frase curta explicando a pausa.
 - Cobrir 100% da narração sem repetir trechos.
 - NÃO inclua voz/engine — só texto e pausas.
@@ -450,6 +478,154 @@ export function computeChunkTimeline(chunks = []) {
       pause_after_ms: pauseMs,
     };
   });
+}
+
+function hasCompleteChunkTimeline(chunks = []) {
+  return (
+    chunks.length > 0 &&
+    chunks.every((chunk) => {
+      const start = Number(chunk?.start_s);
+      const end = Number(chunk?.end_s);
+      return Number.isFinite(start) && Number.isFinite(end) && end > start;
+    })
+  );
+}
+
+/** Preserva tempos reais (Whisper) quando disponíveis; senão calcula pelo plano. */
+export function resolveChunkTimeline(
+  chunks = [],
+  { preferExisting = true } = {}
+) {
+  const list = Array.isArray(chunks) ? chunks : [];
+  if (preferExisting && hasCompleteChunkTimeline(list)) {
+    return list.map((chunk, index) => ({
+      ...chunk,
+      start_s: Number(Number(chunk.start_s).toFixed(3)),
+      end_s: Number(Number(chunk.end_s).toFixed(3)),
+      pause_after_ms:
+        index === list.length - 1 ? 0 : clampPauseMs(chunk.pause_after_ms, 0),
+    }));
+  }
+  return computeChunkTimeline(list);
+}
+
+function findWhisperChunkWindow(expectedTokens, words, cursor) {
+  if (!expectedTokens.length || cursor >= words.length) return null;
+  const searchEnd = Math.min(
+    words.length,
+    cursor + Math.max(48, expectedTokens.length * 5)
+  );
+  let best = null;
+
+  for (let candidate = cursor; candidate < searchEnd; candidate += 1) {
+    const firstToken = cleanText(String(words[candidate]?.word || ""))[0] || "";
+    if (!matchWords(expectedTokens[0], firstToken)) continue;
+
+    let wi = candidate;
+    const matchedIndices = [];
+    for (const expected of expectedTokens) {
+      const maxSkip = Math.min(words.length, wi + 8);
+      while (wi < maxSkip) {
+        const actual = cleanText(String(words[wi]?.word || ""))[0] || "";
+        if (matchWords(expected, actual)) break;
+        wi += 1;
+      }
+      if (wi >= maxSkip) continue;
+      matchedIndices.push(wi);
+      wi += 1;
+    }
+
+    const coverage = matchedIndices.length / expectedTokens.length;
+    const span = matchedIndices.length
+      ? matchedIndices[matchedIndices.length - 1] - matchedIndices[0] + 1
+      : Infinity;
+    const score = coverage - Math.max(0, span - expectedTokens.length) * 0.004;
+    if (!best || score > best.score) {
+      best = { score, coverage, matchedIndices };
+    }
+    if (coverage >= 0.96) break;
+  }
+
+  if (!best || best.coverage < 0.65 || best.matchedIndices.length < 2) {
+    return null;
+  }
+  const first = best.matchedIndices[0];
+  const last = best.matchedIndices[best.matchedIndices.length - 1];
+  return { first, last, nextCursor: last + 1, coverage: best.coverage };
+}
+
+/**
+ * Reancora cada trecho nas palavras reais do Whisper. A pausa planejada não é
+ * alterada; a pausa observada fica separada para diagnóstico e não realimenta
+ * o planejador em execuções futuras.
+ */
+export function alignNarrationChunkPlanToWhisper(
+  chunkPlan = {},
+  flatWords = []
+) {
+  const words = (Array.isArray(flatWords) ? flatWords : [])
+    .filter(
+      (word) =>
+        Number.isFinite(Number(word?.start)) &&
+        Number.isFinite(Number(word?.end)) &&
+        Number(word.end) > Number(word.start)
+    )
+    .sort((a, b) => Number(a.start) - Number(b.start));
+  const planned = computeChunkTimeline(chunkPlan?.chunks || []);
+  if (!planned.length || !words.length)
+    return { ...chunkPlan, chunks: planned };
+
+  let cursor = 0;
+  const aligned = planned.map((chunk, index) => {
+    const expected = cleanText(stripTtsMarkersForPlainText(chunk.text || ""));
+    const window = findWhisperChunkWindow(expected, words, cursor);
+    if (!window) {
+      const previous = index > 0 ? planned[index - 1] : null;
+      return {
+        ...chunk,
+        timing_source: "chunk-plan-fallback",
+        alignment_coverage: 0,
+        ...(previous && Number.isFinite(Number(previous.end_s))
+          ? {
+              start_s: Number(
+                (
+                  Number(previous.end_s) +
+                  Number(previous.pause_after_ms || 0) / 1000
+                ).toFixed(3)
+              ),
+            }
+          : {}),
+      };
+    }
+    cursor = window.nextCursor;
+    const start = Number(words[window.first].start);
+    const end = Number(words[window.last].end);
+    return {
+      ...chunk,
+      start_s: Number(start.toFixed(3)),
+      end_s: Number(end.toFixed(3)),
+      speech_duration_s: Number(Math.max(0.05, end - start).toFixed(3)),
+      timing_source: "whisper",
+      alignment_coverage: Number(window.coverage.toFixed(3)),
+    };
+  });
+
+  const withObservedPauses = aligned.map((chunk, index) => {
+    const next = aligned[index + 1];
+    const observed = next
+      ? Math.max(
+          0,
+          Math.round((Number(next.start_s) - Number(chunk.end_s)) * 1000)
+        )
+      : 0;
+    return { ...chunk, observed_pause_after_ms: observed };
+  });
+  return {
+    ...chunkPlan,
+    timing_source: "whisper",
+    aligned_at: new Date().toISOString(),
+    chunks: withObservedPauses,
+  };
 }
 
 export function normalizeNarrationChunkPlan(
@@ -605,7 +781,9 @@ export function syncTimelineFromChunkPlan({
   chunkPlan = {},
   visualPrompts = [],
 } = {}) {
-  const timed = computeChunkTimeline(chunkPlan?.chunks || []);
+  const timed = resolveChunkTimeline(chunkPlan?.chunks || [], {
+    preferExisting: true,
+  });
   if (!timed.length) {
     return {
       timelineAssets: { ...timelineAssets },
@@ -716,7 +894,9 @@ export function mergeWhisperTranscriptsWithChunkPlan(
   chunkPlan = {},
   flatWords = []
 ) {
-  const timed = computeChunkTimeline(chunkPlan?.chunks || []);
+  const timed = resolveChunkTimeline(chunkPlan?.chunks || [], {
+    preferExisting: true,
+  });
   if (!timed.length) return [];
 
   return timed.map((chunk, idx) => {
@@ -889,9 +1069,19 @@ export function applyChunkedNarrationSyncToProject(
     return { config, storyboard, timings: null, transcripts: null };
   }
 
+  const flat = flatWords?.length
+    ? flatWords
+    : Array.isArray(whisperTranscripts) && whisperTranscripts.length
+      ? flattenWordTranscripts(whisperTranscripts)
+      : [];
+  const alignedPlan = flat.length
+    ? alignNarrationChunkPlanToWhisper(chunkPlan, flat)
+    : chunkPlan;
   const timedPlan = {
-    ...chunkPlan,
-    chunks: computeChunkTimeline(chunkPlan.chunks),
+    ...alignedPlan,
+    chunks: resolveChunkTimeline(alignedPlan.chunks, {
+      preferExisting: true,
+    }),
   };
 
   const synced = syncTimelineFromChunkPlan({
@@ -901,11 +1091,6 @@ export function applyChunkedNarrationSyncToProject(
   });
 
   let transcripts = buildWordTranscriptsFromChunks(timedPlan.chunks);
-  const flat = flatWords?.length
-    ? flatWords
-    : Array.isArray(whisperTranscripts) && whisperTranscripts.length
-      ? flattenWordTranscripts(whisperTranscripts)
-      : [];
   if (flat.length) {
     transcripts = mergeWhisperTranscriptsWithChunkPlan(timedPlan, flat);
   }
@@ -993,7 +1178,7 @@ export function buildNarrationChunkPlan({
   if (aiChunks.length > 0) {
     return normalizeNarrationChunkPlan(
       {
-        chunks: aiChunks,
+        chunks: stabilizeNarrationChunkPauses(aiChunks),
         default_voice: defaultVoice,
         source: "ai",
         planned_at: new Date().toISOString(),
