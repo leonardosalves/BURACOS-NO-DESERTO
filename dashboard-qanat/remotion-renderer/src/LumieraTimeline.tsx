@@ -111,6 +111,11 @@ type SfxTrack = {
   duration: number;
 
   volume: number;
+  fadeInS?: number;
+  fadeOutS?: number;
+  loop?: boolean;
+  category?: string;
+  repeatIndex?: number;
 };
 
 export type LumieraTimelineProps = {
@@ -1419,26 +1424,40 @@ const SfxAudio: React.FC<{ track: SfxTrack }> = ({ track }) => {
 
   const durationMs = Math.max(300, track.duration * 1000);
 
-  const baseVolume = Math.min(0.07, Math.max(0.012, track.volume || 0.035));
+  const baseVolume = Math.min(0.42, Math.max(0.01, track.volume || 0.035));
+  const fadeInMs = Math.min(
+    durationMs * 0.4,
+    Math.max(20, (track.fadeInS ?? 0.06) * 1000)
+  );
+  const fadeOutMs = Math.min(
+    durationMs * 0.45,
+    Math.max(60, (track.fadeOutS ?? 0.22) * 1000)
+  );
 
   return (
     <Audio
       src={assetUrl(track.file)}
+      loop={track.loop === true}
       delayRenderTimeoutInMilliseconds={MEDIA_DELAY_RENDER_TIMEOUT_MS}
       volume={(localFrame) => {
         const localMs = (localFrame / fps) * 1000;
 
-        const fadeIn = interpolate(localMs, [0, 120], [0, 1], {
+        const fadeIn = interpolate(localMs, [0, fadeInMs], [0, 1], {
           extrapolateLeft: "clamp",
 
           extrapolateRight: "clamp",
         });
 
-        const fadeOut = interpolate(durationMs - localMs, [0, 300], [0, 1], {
-          extrapolateLeft: "clamp",
+        const fadeOut = interpolate(
+          durationMs - localMs,
+          [0, fadeOutMs],
+          [0, 1],
+          {
+            extrapolateLeft: "clamp",
 
-          extrapolateRight: "clamp",
-        });
+            extrapolateRight: "clamp",
+          }
+        );
 
         return baseVolume * Math.min(fadeIn, fadeOut);
       }}

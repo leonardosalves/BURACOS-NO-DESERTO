@@ -387,6 +387,11 @@ import {
   filterOverlaysByVisualConfig,
 } from "./videoProEnhancements.js";
 import {
+  buildProfessionalSfxScenes,
+  buildSfxPlaybackSegments,
+  normalizeProfessionalSfxEvents,
+} from "./professionalSfxTiming.js";
+import {
   buildBlockSonoplastiaPlan,
   buildProjectBlockRanges,
   blocksNeedingBgmDownload,
@@ -6184,31 +6189,13 @@ app.post("/api/ai/plan-sfx", async (req, res) => {
     const maxEvents = isShort
       ? Math.min(9, Math.max(4, Math.ceil(totalDuration / 9)))
       : Math.min(24, Math.max(6, Math.ceil(totalDuration / 35)));
-    const scenes = (storyboard.visual_prompts || [])
-      .slice(0, 180)
-      .map((vp) => ({
-        scene_ref:
-          vp.scene_ref || vp.scene || vp.production?.scene_ref || vp.id,
-        block: vp.block,
-        start: Number.isFinite(Number(vp.speech_start))
-          ? Number(vp.speech_start)
-          : Number(vp.start ?? vp.start_time) || 0,
-        end: Number.isFinite(Number(vp.speech_end))
-          ? Number(vp.speech_end)
-          : null,
-        duration: Number(vp.duration_seconds) || null,
-        narration: String(vp.narration_text || vp.text || "").slice(0, 220),
-        visual: String(vp.prompt || vp.visual_description || "").slice(0, 220),
-      }));
-    const scenesByRef = new Map(
-      scenes.map((scene) => [String(scene.scene_ref || ""), scene])
-    );
+    const scenes = buildProfessionalSfxScenes(storyboard.visual_prompts);
     const prompt = `Você é um sound designer sênior de documentários e YouTube.
 Crie no máximo ${maxEvents} eventos SFX para um vídeo ${isShort ? "Short 9:16" : "longo 16:9"} de ${totalDuration.toFixed(1)}s.
 Use efeitos somente quando reforçarem uma ação visível, mudança narrativa ou ambiente reconhecível. Não sonorize cada corte. Não use sons literais se a cena apenas menciona algo sem mostrá-lo. Preserve inteligibilidade da narração.
-Retorne JSON {"events":[{"scene_ref":"1.2","time":12.4,"duration":1.2,"category":"transition|impact|detail|ambience|riser","query_en":"precise English Epidemic Sound query","intent":"por que este som pertence à cena","volume":0.28,"fade_in":0.08,"fade_out":0.25,"confidence":0.82}]}.
+Retorne JSON {"events":[{"scene_ref":"1.2","offset":1.4,"anchor_position":0.35,"duration":1.2,"action_duration":2.8,"category":"transition|impact|detail|ambience|riser","repeat_mode":"none|pulse|loop","repeat_interval":1.0,"repeat_count":2,"query_en":"precise English Epidemic Sound query","intent":"por que este som pertence à cena","sync_anchor":"ação visual exata","volume":0.28,"fade_in":0.08,"fade_out":0.25,"confidence":0.82}]}.
 Regras: time absoluto; volume linear audível: ambience 0.10-0.16, detail 0.22-0.32, transition 0.24-0.34, riser 0.18-0.28, impact 0.30-0.42; ambience 2-6s, demais 0.25-2.5s; confidence >=0.62; distância mínima ${isShort ? 2.5 : 5}s; sem sobreposição salvo ambience.
-REGRA DE SINCRONIA PRIORITARIA: retorne tambem "offset" (segundos depois do start da cena) e "sync_anchor" (acao visual exata). O campo time absoluto e apenas legado. Ambience usa offset 0; detail e impact usam o quadro em que a acao comeca; riser deve terminar na virada visual.\nCENAS:\n${JSON.stringify(scenes)}`;
+REGRA DE SINCRONIA PRIORITARIA: offset é medido depois do início da cena; anchor_position vai de 0 a 1. Ambience usa offset 0; detail e impact usam o quadro em que a ação começa; riser deve terminar na virada visual. Só use repeat_mode=pulse em detalhes de ação realmente contínua (passos, máquina, chuva pontual), no máximo 3 pulsos com volume decrescente. Impact, riser e transition nunca repetem. Ambience pode usar loop suave.\nCENAS:\n${JSON.stringify(scenes)}`;
     const responseText = await callGeminiLlm(req, res, projDir, {
       title: "Design profissional de SFX",
       prompt,
@@ -6220,103 +6207,13 @@ REGRA DE SINCRONIA PRIORITARIA: retorne tambem "offset" (segundos depois do star
       "Plano SFX"
     );
     const raw = Array.isArray(parsed?.events) ? parsed.events : [];
-    const gap = isShort ? 2.5 : 5;
-    const caps = {
-      ambience: 0.18,
-      transition: 0.36,
-      detail: 0.36,
-      impact: 0.46,
-      riser: 0.32,
-    };
-    const floors = {
-      ambience: 0.12,
-      transition: 0.26,
-      detail: 0.26,
-      impact: 0.34,
-      riser: 0.22,
-    };
-    const planned = [];
-    for (const row of raw.sort((a, b) => Number(a.time) - Number(b.time))) {
-      const scene = scenesByRef.get(String(row.scene_ref || ""));
-      const sceneStart = Number(scene?.start) || 0;
-      const sceneEnd =
-        scene?.end != null && Number.isFinite(Number(scene.end))
-          ? Number(scene.end)
-          : Math.min(
-              totalDuration,
-              sceneStart + (Number(scene?.duration) || 6)
-            );
-      const offset = Math.max(0, Number(row.offset) || 0);
-      const legacyTime = Number(row.time);
-      const proposedTime = scene
-        ? sceneStart + offset
-        : Number.isFinite(legacyTime)
-          ? legacyTime
-          : 0;
-      const time = Math.max(
-        sceneStart,
-        Math.min(
-          scene ? Math.max(sceneStart, sceneEnd - 0.05) : totalDuration - 0.1,
-          proposedTime
-        )
-      );
-      const category = String(row.category || "detail").toLowerCase();
-      if ((Number(row.confidence) || 0) < 0.62) continue;
-      if (
-        planned.some(
-          (e) => category !== "ambience" && Math.abs(e.time - time) < gap
-        )
-      )
-        continue;
-      // Duração precisa: não deixar o SFX sumir com a cena ainda na tela
-      const remainingInScene = Math.max(0.25, sceneEnd - time);
-      const sceneLen = Math.max(0.5, sceneEnd - sceneStart);
-      const softMax =
-        category === "ambience"
-          ? Math.min(8, remainingInScene)
-          : category === "riser"
-            ? Math.min(3.5, remainingInScene)
-            : category === "transition"
-              ? Math.min(2.8, remainingInScene)
-              : Math.min(3.2, remainingInScene);
-      const preferred =
-        category === "ambience"
-          ? Math.min(remainingInScene, Math.max(2, sceneLen * 0.75))
-          : category === "impact" || category === "detail"
-            ? Math.min(remainingInScene, Math.max(0.9, sceneLen * 0.35))
-            : Number(row.duration) || 1.0;
-      const duration = Number(
-        Math.max(
-          0.35,
-          Math.min(softMax, preferred, Number(row.duration) || preferred)
-        ).toFixed(3)
-      );
-      planned.push({
-        ...row,
-        time: Number(time.toFixed(3)),
-        offset: Number(Math.max(0, time - sceneStart).toFixed(3)),
-        scene_start: Number(sceneStart.toFixed(3)),
-        scene_end: Number(sceneEnd.toFixed(3)),
-        duration,
-        category,
-        volume: Number(
-          Math.max(
-            floors[category] || 0.18,
-            Math.min(
-              caps[category] || 0.32,
-              Number(row.volume) || floors[category] || 0.22
-            )
-          ).toFixed(3)
-        ),
-        fade_in: Number(
-          Math.max(0.02, Math.min(0.8, Number(row.fade_in) || 0.08)).toFixed(3)
-        ),
-        fade_out: Number(
-          Math.max(0.08, Math.min(1.2, Number(row.fade_out) || 0.25)).toFixed(3)
-        ),
-      });
-      if (planned.length >= maxEvents) break;
-    }
+    const planned = normalizeProfessionalSfxEvents({
+      rawEvents: raw,
+      scenes,
+      totalDuration,
+      isShort,
+      maxEvents,
+    });
 
     const token = getEpidemicSoundKey(projDir) || "";
     const assetsDir = path.join(projDir, "ASSETS");
@@ -6355,17 +6252,20 @@ REGRA DE SINCRONIA PRIORITARIA: retorne tambem "offset" (segundos depois do star
           .replace(/[^a-zA-Z0-9_-]/g, "_")
           .slice(0, 55);
         const filename = `sfx_ai_${String(index + 1).padStart(2, "0")}_${safe}.mp3`;
+        const downloadedPath = path.join(assetsDir, filename);
         await downloadSoundEffect(
           token,
           chosen.id,
-          path.join(assetsDir, filename),
+          downloadedPath,
           chosen.previewUrl
         );
+        const sourceDuration = await probeAudioDuration(downloadedPath);
         events.push({
           ...item,
           file: `ASSETS/${filename}`,
           provider_id: chosen.id,
           provider_title: chosen.title,
+          source_duration: Number(sourceDuration.toFixed(3)),
           verified_query_match: true,
           source: "epidemic-sound",
         });
@@ -8647,50 +8547,42 @@ function collectRemotionSfxTracks(
 
     if (!copied) continue;
 
+    const isProfessional =
+      Boolean(event?.category) ||
+      /^sfx_ai_/i.test(path.basename(String(event?.file || "")));
     const rawVolume = Number(event?.volume);
-    const professionalFloor =
-      {
-        ambience: 0.12,
-        transition: 0.26,
-        detail: 0.26,
-        impact: 0.34,
-        riser: 0.22,
-      }[String(event?.category || "detail")] || 0.22;
-
-    const sceneEnd = Number(event?.scene_end);
-    const remainingToSceneEnd =
-      Number.isFinite(sceneEnd) && sceneEnd > start
-        ? sceneEnd - start
-        : totalDuration - start;
-    const plannedDur = Number(event?.duration) || 0.8;
-    // Alinha ao fim da cena: não corta o SFX enquanto a cena ainda está visível
-    const duration = Math.max(
-      0.35,
-      Math.min(
-        Math.max(plannedDur, Math.min(plannedDur * 1.15, remainingToSceneEnd)),
-        remainingToSceneEnd,
-        totalDuration - start,
-        10
-      )
-    );
-
-    tracks.push({
-      file: `projects/${projectSlug}/${copied}`,
-
-      start,
-
-      duration,
-
-      volume: Math.min(
-        0.5,
-        Math.max(
-          professionalFloor,
-          Number.isFinite(rawVolume) ? rawVolume : professionalFloor
+    const volume = isProfessional
+      ? Math.max(
+          0.08,
+          Math.min(0.42, Number.isFinite(rawVolume) ? rawVolume : 0.18)
         )
-      ),
-      fadeInS: Math.max(0.02, Math.min(0.8, Number(event?.fade_in) || 0.08)),
-      fadeOutS: Math.max(0.08, Math.min(1.2, Number(event?.fade_out) || 0.25)),
+      : Math.max(
+          0.012,
+          Math.min(0.12, Number.isFinite(rawVolume) ? rawVolume : 0.035)
+        );
+    const sourceDuration =
+      Number(event?.source_duration) || getAudioDuration(source);
+    const playbackSegments = buildSfxPlaybackSegments({
+      event: {
+        ...event,
+        category: isProfessional
+          ? String(event?.category || "detail")
+          : "utility",
+        repeat_mode: isProfessional ? event?.repeat_mode : "none",
+        volume,
+      },
+      sourceDuration,
+      totalDuration,
     });
+
+    for (const segment of playbackSegments) {
+      tracks.push({
+        ...segment,
+        file: `projects/${projectSlug}/${copied}`,
+        fadeInS: Number(segment.fadeInS ?? event?.fade_in) || 0.06,
+        fadeOutS: Number(segment.fadeOutS ?? event?.fade_out) || 0.22,
+      });
+    }
   }
 
   return tracks;
@@ -16931,7 +16823,10 @@ app.post(
     } = req.body || {};
     const isShort = String(format).toUpperCase() !== "LONGO";
     let opportunityResearch = "";
-    if (!extractBrowserResponse(req.body) && !shouldOfferGeminiBrowser(projDir)) {
+    if (
+      !extractBrowserResponse(req.body) &&
+      !shouldOfferGeminiBrowser(projDir)
+    ) {
       try {
         const research = await fetchWebResearchForTopic({
           topic: String(niche).trim(),
@@ -17544,7 +17439,10 @@ app.post(
     }
 
     let researchContext = "";
-    if (!extractBrowserResponse(req.body) && !shouldOfferGeminiBrowser(projDir)) {
+    if (
+      !extractBrowserResponse(req.body) &&
+      !shouldOfferGeminiBrowser(projDir)
+    ) {
       try {
         const research = await fetchWebResearchForTopic({
           topic: String(title).trim(),
