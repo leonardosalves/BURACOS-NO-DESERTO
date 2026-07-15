@@ -163,4 +163,22 @@ test("promptBuilders module", async (t) => {
     assert.equal(idea.format_fit, "SHORTS");
     assert.equal(idea.reality_status, "disputed");
   });
+
+  await t.test("narration prompt carries the premium opportunity contract", () => {
+    const prompt = buildNarrationOnlyPrompt({
+      niche: "história",
+      format: "LONGO",
+      idea: {
+        title: "A ponte esquecida",
+        reality_status: "documented",
+        evidence_anchor: "relatório técnico de 1924",
+        undercovered_reason: "os vídeos tratam apenas da inauguração",
+        premium_upgrade: "comparar a planta ao estado atual",
+        validation_needed: "confirmar a data da reforma",
+      },
+    });
+    assert.match(prompt, /CONTRATO DE OPORTUNIDADE DA IDEIA/);
+    assert.match(prompt, /relatório técnico de 1924/);
+    assert.match(prompt, /confirmar a data da reforma/);
+  });
 });

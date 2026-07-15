@@ -1,10 +1,61 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  assertNarrationChunksPreserveSource,
+  buildNarrationChunkPlan,
   buildNarrationChunkSignature,
+  hashNarrationIntegrityText,
   normalizeNarrationChunkPlan,
   resolveExpressivePause,
 } from "./narrationChunks.js";
+
+test("AI chunk plan preserves the approved narration literally", () => {
+  const narration = "Primeira frase. Segunda frase, sem alteração.";
+  const chunks = [
+    { id: "chunk-01", block: 1, text: "Primeira frase." },
+    { id: "chunk-02", block: 1, text: "Segunda frase, sem alteração." },
+  ];
+  assert.equal(
+    assertNarrationChunksPreserveSource(chunks, narration),
+    hashNarrationIntegrityText(narration)
+  );
+  const plan = buildNarrationChunkPlan({
+    aiChunks: chunks,
+    storyboard: { narrative_script: narration },
+  });
+  assert.equal(
+    plan.source_narration_hash,
+    hashNarrationIntegrityText(narration)
+  );
+});
+
+test("AI chunk plan blocks paraphrases of the approved narration", () => {
+  assert.throws(
+    () =>
+      assertNarrationChunksPreserveSource(
+        [{ text: "Primeira frase resumida." }],
+        "Primeira frase completa e intacta."
+      ),
+    /tentou alterar a narração aprovada/i
+  );
+});
+
+test("AI chunk plan blocks tagged text with different words", () => {
+  assert.throws(
+    () =>
+      assertNarrationChunksPreserveSource(
+        [
+          {
+            id: "chunk-01",
+            text: "Texto aprovado.",
+            text_tagged: "[ênfase] Texto alterado.",
+          },
+        ],
+        "Texto aprovado."
+      ),
+    /texto com tags/i
+  );
+});
 
 test("expressive narration pauses preserve questions and reveals", () => {
   assert.equal(
