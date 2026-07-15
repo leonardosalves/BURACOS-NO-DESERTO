@@ -1,6 +1,216 @@
 {
   "items": [
     {
+      "id": "01fdd768-7985-4329-82ce-39b5a22ddf23",
+      "title": "Explorar nicho em alta: calor",
+      "hookPt": "Nicho \"calor\" com tração estável — teste de formato Short.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-niche",
+      "whyWorks": "Série agregada do canal + concorrentes; previsão 0.0%.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.309Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
+      "id": "515805c7-aabf-4014-93f6-d8e77d58814d",
+      "title": "Explorar nicho em alta: nasa",
+      "hookPt": "Nicho \"nasa\" com tração estável — teste de formato Short.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-niche",
+      "whyWorks": "Série agregada do canal + concorrentes; previsão 0.0%.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.309Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
+      "id": "9c72d9e8-2e47-442d-b403-48d54c6a2936",
+      "title": "Variação #4: Tigre e Eufrates exigiram esgoto 🔥 #Shorts",
+      "hookPt": "Tendência em alta (+64% previsto) — variação do formato que já performa no canal.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 63.8% no horizonte; 754 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.309Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
+      "id": "632de8a9-8d90-4e63-85c1-d1a709e032c0",
+      "title": "Variação #3: SchoolBusbanker 2026",
+      "hookPt": "Tendência em alta (+100% previsto) — variação do formato que já performa no canal.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 100.0% no horizonte; 907 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.309Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
+      "id": "b281db0d-7afd-40fb-ac17-a85bf03416cc",
+      "title": "Variação #2: CozyHouseDesert",
+      "hookPt": "Tendência em alta (+100% previsto) — variação do formato que já performa no canal.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 100.0% no horizonte; 2081 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.308Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
+      "id": "bb3715bc-8c9d-4c2f-9e6f-12dd904a2ce6",
+      "title": "Variação #1: BunkerRebuild",
+      "hookPt": "Tendência em alta (+555% previsto) — variação do formato que já performa no canal.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 554.7% no horizonte; 852 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.308Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
+      "id": "b2389108-591e-4eaf-aa99-546e6b99f7dc",
+      "title": "Onde Fica a Atlântida? Mitos e Teorias de um Lugar Perdido",
+      "hookPt": "Filosofia — Lugar real no mapa que a história oficial ignorou",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "A saturação moderada (40%) e um gap razoável (49%), combinados com zero canais dedicados, oferecem um bom potencial para ser o pioneiro em um formato visualmente atraente.",
+      "pioneerMeta": {
+        "macroNiche": "Filosofia",
+        "angle": "Filosofia — Lugar real no mapa que a história oficial ignorou",
+        "formatPattern": "Mapa + mistério",
+        "youtubeSearchQuery": "filosofia lugar misterioso mapa shorts"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.308Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
+      "id": "437a86e4-87f4-4505-9ed6-9c41e86fae2f",
+      "title": "Um Dia na Vida de um Carrasco Medieval: Justiça ou Brutalidade?",
+      "hookPt": "True Crime — Recriar um dia de profissão/tradição que não existe mais",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Com baixa saturação (26%) e nenhum canal dedicado, há um espaço para explorar um ângulo único e intrigante dentro do popular nicho de True Crime.",
+      "pioneerMeta": {
+        "macroNiche": "True Crime",
+        "angle": "True Crime — Recriar um dia de profissão/tradição que não existe mais",
+        "formatPattern": "Um dia na vida extinta",
+        "youtubeSearchQuery": "true crime profissão extinta dia shorts"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.308Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
+      "id": "0c9a37ec-6660-414b-95da-c7992843c88b",
+      "title": "Um Dia na Vida de um Operador de Telégrafo: A Internet do Século XIX",
+      "hookPt": "Tecnologia — Recriar um dia de profissão/tradição que não existe mais",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "A baixa saturação (26%) e a ausência de canais dedicados indicam uma oportunidade para inovar, mesmo com um gap menor (30%), em um macro-nicho popular.",
+      "pioneerMeta": {
+        "macroNiche": "Tecnologia",
+        "angle": "Tecnologia — Recriar um dia de profissão/tradição que não existe mais",
+        "formatPattern": "Um dia na vida extinta",
+        "youtubeSearchQuery": "tecnologia profissão extinta dia shorts"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.308Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
+      "id": "b618aeb0-3811-411b-84fc-6ba7331e272f",
+      "title": "Um Dia na Vida de um Alquimista: Ciência ou Magia?",
+      "hookPt": "Ciência — Recriar um dia de profissão/tradição que não existe mais",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "A saturação é moderada (34%) e o gap é bom (55%). A ausência de canais dedicados permite ser o pioneiro neste ângulo dentro da Ciência.",
+      "pioneerMeta": {
+        "macroNiche": "Ciência",
+        "angle": "Ciência — Recriar um dia de profissão/tradição que não existe mais",
+        "formatPattern": "Um dia na vida extinta",
+        "youtubeSearchQuery": "ciência profissão extinta dia shorts"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.308Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
+      "id": "f6b686e6-4dba-4b41-b550-453a271d739f",
+      "title": "A História Secreta da Caneta: De Ferramenta a Símbolo de Poder",
+      "hookPt": "Filosofia — Um objeto comum → virou símbolo histórico (linha do tempo visual)",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Com baixa saturação (26%) e um gap significativo (63%), e apenas um canal dedicado, há espaço para se destacar com conteúdo visualmente atraente e informativo.",
+      "pioneerMeta": {
+        "macroNiche": "Filosofia",
+        "angle": "Filosofia — Um objeto comum → virou símbolo histórico (linha do tempo visual)",
+        "formatPattern": "Timeline de um objeto",
+        "youtubeSearchQuery": "filosofia objeto história timeline shorts"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.308Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
+      "id": "a9dd7d2e-3311-4645-b34f-e3a8c1e35ee6",
+      "title": "Um Dia na Vida de um Bibliotecário da Biblioteca de Alexandria",
+      "hookPt": "Filosofia — Recriar um dia de profissão/tradição que não existe mais",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Este formato tem baixíssima saturação (16%) e um gap muito alto (73%), com nenhum canal dedicado, oferecendo uma oportunidade única para dominar o nicho.",
+      "pioneerMeta": {
+        "macroNiche": "Filosofia",
+        "angle": "Filosofia — Recriar um dia de profissão/tradição que não existe mais",
+        "formatPattern": "Um dia na vida extinta",
+        "youtubeSearchQuery": "filosofia profissão extinta dia shorts"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-15T13:27:07.308Z",
+      "updatedAt": "2026-07-15T13:27:07.309Z"
+    },
+    {
       "id": "31369e5b-63ef-4282-9667-49c35ec904e8",
       "title": "Explorar nicho em alta: engenharia",
       "hookPt": "Nicho \"engenharia\" com tração estável — teste de formato Short.",
@@ -13,7 +223,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "35bd1554-700d-4669-9a4e-a90e263a781a",
@@ -28,7 +238,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "6b8721b2-336b-432a-b9af-25bf74b0097e",
@@ -43,7 +253,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "2579fbab-6ab5-485a-a4c5-bb7312ed077a",
@@ -58,7 +268,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "2da6d0dd-c179-46c9-b3c1-0f2afa610e98",
@@ -73,7 +283,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "ecb3d8f8-74f8-462a-98c5-07a5f6a8e33f",
@@ -93,7 +303,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "2e98363d-5b50-4bab-9fd2-336ba667c952",
@@ -113,7 +323,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "62f47830-3cf6-4ec0-8c04-4620c9dfbb89",
@@ -133,7 +343,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "dfe3ca93-6be6-4b53-883f-914750a07632",
@@ -153,7 +363,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "bea26f3c-d1de-40f6-a340-9684be9bc1dc",
@@ -173,7 +383,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "8212c691-4bc9-4084-9259-b970cc69305d",
@@ -193,7 +403,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "0b8376f7-270a-404a-b178-21e113fcea9e",
@@ -208,7 +418,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "4989f813-9c16-45bb-93c8-244c4e866080",
@@ -223,7 +433,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "13ab90ae-f1d4-47c1-bf78-5f010db3f9b1",
@@ -238,7 +448,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "8c84fa68-4a2d-4c91-93ef-17eb6f265828",
@@ -253,7 +463,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "d87dd6e1-5644-4314-9611-db81b1dcabbe",
@@ -268,7 +478,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "5d3a2ede-9965-4b00-9c31-8342a6d8f714",
@@ -283,7 +493,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "e86ea360-4efa-4589-b54b-5affee150895",
@@ -303,7 +513,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "e7f17f53-781d-4f27-9b9e-4af01a35d583",
@@ -323,7 +533,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "8cb70fbe-998b-445f-ae53-6f2692c4a6f7",
@@ -343,7 +553,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "39eb694c-c2a8-445a-a610-b919131afdfe",
@@ -363,7 +573,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "4eb4645d-f6bd-435b-8727-e728369bd61f",
@@ -383,7 +593,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "5f7800b7-91e4-4c89-99bf-f73f7c260a20",
@@ -403,7 +613,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "0ab40a1c-4d6b-4f24-a423-02a9e63d6cca",
@@ -418,7 +628,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-02T05:48:20.662Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "75746370-5617-4390-84be-dc0106b53182",
@@ -433,7 +643,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-02T05:48:20.662Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "1be1aedf-08d7-4548-9666-8f9448f3873f",
@@ -448,7 +658,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-02T05:48:20.662Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "0400a443-cbd5-4a6e-a55b-68cef675d9e2",
@@ -463,7 +673,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:45:20.315Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "ecc75411-a0c6-4487-8bde-3da7ece92a2f",
@@ -478,7 +688,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:33:13.296Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "56a310b1-a87f-4f10-bb2c-59e0192224f7",
@@ -493,7 +703,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:33:13.296Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "1f3ad1d4-95c7-4089-92c3-cac6947e27ab",
@@ -508,7 +718,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:33:13.296Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "f603d07a-383a-4627-92a3-31e3f15c4018",
@@ -523,7 +733,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T06:37:01.849Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "31c9bc3f-3f14-4342-a816-8b28fca68a2d",
@@ -538,7 +748,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:45:20.315Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     },
     {
       "id": "aea9711a-1f74-4cc7-92b6-41380f892f1f",
@@ -553,8 +763,8 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-05T04:51:21.020Z"
+      "updatedAt": "2026-07-15T13:27:07.309Z"
     }
   ],
-  "updatedAt": "2026-07-05T04:51:21.020Z"
+  "updatedAt": "2026-07-15T13:27:07.309Z"
 }

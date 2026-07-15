@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[SKILLS]]
+
 # SCRIPT 3 — AGENTE ORQUESTRADOR DE ASSETS, DADOS E TEMPLATES REMOTION
 
 Este agente deve ser executado **depois da pesquisa e da criação da narração**. Ele receberá a narração aprovada, os fatos verificados, os assets disponíveis e o catálogo de templates Remotion. Em seguida, decidirá **qual template utilizar, quais dados preencher e em que segundo ele aparecerá**.

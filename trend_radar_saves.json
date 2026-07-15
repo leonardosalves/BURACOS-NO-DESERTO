@@ -1,7 +1,2048 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-05T04:51:37.939Z",
+  "updatedAt": "2026-07-15T13:29:22.424Z",
   "items": [
+    {
+      "id": "7a8db4c4-5d0a-4813-9909-cfd32b6694d3",
+      "type": "scan",
+      "savedAt": "2026-07-15T13:29:22.422Z",
+      "label": "Varredura BIBLIA — 6 nicho(s)",
+      "discoveryMode": "chosen",
+      "nicheFilter": "BIBLIA",
+      "format": "SHORTS",
+      "status": "virgem",
+      "pioneerScore": 75,
+      "macroNiche": "Filosofia",
+      "summary": {
+        "scanned": 24,
+        "validated": 13,
+        "virginCount": 1,
+        "pioneerCount": 6,
+        "topPick": "Filosofia: Um dia na vida extinta",
+        "topMacro": "Filosofia"
+      },
+      "discovery": {
+        "ok": true,
+        "discoveryMode": "chosen",
+        "baseNiche": "BIBLIA",
+        "format": "SHORTS",
+        "exaAvailable": false,
+        "logic": {
+          "version": "macro-angle-gap-v2",
+          "description": "Exploração focada: ângulos pioneiros dentro do nicho escolhido."
+        },
+        "pioneerNiches": [
+          {
+            "label": "Filosofia: Um dia na vida extinta",
+            "macroNiche": "Filosofia",
+            "angle": "Filosofia — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "filosofia profissão extinta dia shorts",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Este formato tem baixíssima saturação (16%) e um gap muito alto (73%), com nenhum canal dedicado, oferecendo uma oportunidade única para dominar o nicho.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia profissão extinta dia shorts",
+              "channelCount": 0,
+              "videoCount": 55,
+              "dedicatedChannels": 0,
+              "avgTopViews": 137655,
+              "maxTopViews": 833142,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "A HUMANIDADE VAI ACABAR EM 40 ANOS #shorts",
+                  "views": 3551,
+                  "videoId": "TxjyhCHKMk0"
+                },
+                {
+                  "title": "Enéas‎ Carneiro‎ 🔥‎ Homossexual‎ é‎ Um‎ Ser‎ Humano‎ #eneascarneiro‎ #debate‎ #rodaviva‎ #cortes‎",
+                  "views": 105418,
+                  "videoId": "iu6cVbFHabs"
+                },
+                {
+                  "title": "A VERDADE OCULTA SOBRE O DESPERTADOR HUMANO #shorts #short #fatosinteressantes #curiosidades",
+                  "views": 3188,
+                  "videoId": "PapWrajcXIM"
+                },
+                {
+                  "title": "Antes do despertador ser inventado , havia despertadores humanos .",
+                  "views": 2009,
+                  "videoId": "A6J51TfFw8M"
+                },
+                {
+                  "title": "Profissões do Futuro: O Que Esperar em Tecnologia",
+                  "views": 24400,
+                  "videoId": "DP0e4fylFrE"
+                },
+                {
+                  "title": "O único homem na bíblia que teve o privilégio de ser sepultado por Deus #shorts",
+                  "views": 48566,
+                  "videoId": "cNVsYWT1rBA"
+                },
+                {
+                  "title": "Conheça 7 profissões que foram extintas",
+                  "views": 86,
+                  "videoId": "rLhpcFm0oJI"
+                },
+                {
+                  "title": "COMO SERIA SE OS NEANDERTAIS AINDA ESTIVESSEM VIVOS?",
+                  "views": 833142,
+                  "videoId": "GXw6RkMK54A"
+                },
+                {
+                  "title": "Antônio Abujamra no Vale do Amanhecer | Jornal da Cidade | 1992",
+                  "views": 564,
+                  "videoId": "jY5l_2hEZv8"
+                },
+                {
+                  "title": "5 Faculdades mais RECLAMADAS no Reclame Aqui em 2023 #reclameaqui #faculdades #cursos #universidade",
+                  "views": 355625,
+                  "videoId": "B0GIVUk9lp0"
+                }
+              ],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73
+            },
+            "firstVideoIdea": "Um Dia na Vida de um Bibliotecário da Biblioteca de Alexandria",
+            "risk": "Dificuldade em encontrar material visual autêntico ou criar roteiros envolventes para profissões muito antigas em formato curto."
+          },
+          {
+            "label": "Filosofia: Timeline de um objeto",
+            "macroNiche": "Filosofia",
+            "angle": "Filosofia — Um objeto comum → virou símbolo histórico (linha do tempo visual)",
+            "formatPattern": "Timeline de um objeto",
+            "youtubeSearchQuery": "filosofia objeto história timeline shorts",
+            "pioneerScore": 67,
+            "saturationPct": 26,
+            "macroSaturationPct": 89,
+            "gapScore": 63,
+            "dedicatedChannels": 1,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Com baixa saturação (26%) e um gap significativo (63%), e apenas um canal dedicado, há espaço para se destacar com conteúdo visualmente atraente e informativo.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia objeto história timeline shorts",
+              "channelCount": 1,
+              "videoCount": 111,
+              "dedicatedChannels": 1,
+              "avgTopViews": 553835,
+              "maxTopViews": 1676102,
+              "sampleChannels": [
+                {
+                  "title": "Divine stories",
+                  "channelId": "UCF8-aaVt_nPksaS9t3FWTLw"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "COMO ERA A VIDA DE UM ADOLESCENTE NA IDADE MÉDIA #shorts",
+                  "views": 1542205,
+                  "videoId": "ahf1DUmgbXc"
+                },
+                {
+                  "title": "Línea del tiempo",
+                  "views": 359994,
+                  "videoId": "nk-pPRkfHto"
+                },
+                {
+                  "title": "Linha do tempo para trabalhar qualquer conteúdo de História.",
+                  "views": 8061,
+                  "videoId": "DFUAHoKGHvU"
+                },
+                {
+                  "title": "Infografía Línea del Tiempo Historia",
+                  "views": 201965,
+                  "videoId": "LKK8rgRrWig"
+                },
+                {
+                  "title": "Faça isso no seu caderno - linha do tempo",
+                  "views": 36116,
+                  "videoId": "zBe4XLlcMKw"
+                },
+                {
+                  "title": "Línea del tiempo - historia del la psicología",
+                  "views": 3514,
+                  "videoId": "Wd2q1Mta3Eg"
+                },
+                {
+                  "title": "Uma Breve História (do Início) do Universo",
+                  "views": 1676102,
+                  "videoId": "8UqNVzY0EVg"
+                },
+                {
+                  "title": "Faraó do antigo Egito",
+                  "views": 241996,
+                  "videoId": "GU0Qf-u_ugw"
+                },
+                {
+                  "title": "Línea  del Tiempo 🤩👌",
+                  "views": 795633,
+                  "videoId": "XMHPUX1Rwyg"
+                },
+                {
+                  "title": "3 Novos segredos do Canva que poucos conhecem!",
+                  "views": 672766,
+                  "videoId": "ZDa6cziRVjo"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63
+            },
+            "firstVideoIdea": "A História Secreta da Caneta: De Ferramenta a Símbolo de Poder",
+            "risk": "Exige pesquisa aprofundada para traçar a evolução de objetos e criatividade para torná-la visualmente interessante em um formato de Shorts."
+          },
+          {
+            "label": "Ciência: Um dia na vida extinta",
+            "macroNiche": "Ciência",
+            "angle": "Ciência — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "ciência profissão extinta dia shorts",
+            "pioneerScore": 61,
+            "saturationPct": 34,
+            "macroSaturationPct": 89,
+            "gapScore": 55,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "A saturação é moderada (34%) e o gap é bom (55%). A ausência de canais dedicados permite ser o pioneiro neste ângulo dentro da Ciência.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "ciência profissão extinta dia shorts",
+              "channelCount": 0,
+              "videoCount": 346,
+              "dedicatedChannels": 0,
+              "avgTopViews": 3353775,
+              "maxTopViews": 13810119,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Possíveis formas da evolução humana no futuro😳😨 #shorts #curiosidades #short #shortvideo",
+                  "views": 587756,
+                  "videoId": "F1cOSXlK5Tw"
+                },
+                {
+                  "title": "COMO SÃO OS ANIMAIS QUE VIVEM EM CHERNOBYL! PT.1 😯😲 #shorts #youtubeshorts #youtube",
+                  "views": 2622659,
+                  "videoId": "57TsvdnhXv4"
+                },
+                {
+                  "title": "ESSA É A VERDADEIRA PROFUNDIDADE DO OCEANO! #Shorts",
+                  "views": 13810119,
+                  "videoId": "d1I84UaY3BY"
+                },
+                {
+                  "title": "Como Eram Os Planetas 4 Bilhões De Anos Atrás? 🌋 #curiosidades #universo",
+                  "views": 1555620,
+                  "videoId": "CRAcT3K7qio"
+                },
+                {
+                  "title": "Criaturas de Deus 🙏✝️ #jesus #edit #shorts",
+                  "views": 931953,
+                  "videoId": "5JcbphECgYU"
+                },
+                {
+                  "title": "Profissões em Risco com as IA'S (Inteligência Artificial) #ias",
+                  "views": 61766,
+                  "videoId": "PgpsPgL52YU"
+                },
+                {
+                  "title": "animais que os cientistas está tentando trazer de volta",
+                  "views": 989708,
+                  "videoId": "U-fjd5zMFTE"
+                },
+                {
+                  "title": "entenda quanto podes ganhar estando no início da profissão em psicologia (EslenDelanogare)",
+                  "views": 5267,
+                  "videoId": "XpuVuyz5uno"
+                },
+                {
+                  "title": "Profissões que vão acabar até 2030 #shots",
+                  "views": 3364,
+                  "videoId": "KAJKr6ZSr7U"
+                },
+                {
+                  "title": "animais EXTINTOS que cientistas estão tentando trazer de volta",
+                  "views": 12969535,
+                  "videoId": "QcV6USue_Fs"
+                }
+              ],
+              "saturationPct": 34,
+              "macroSaturationPct": 89,
+              "gapScore": 55
+            },
+            "firstVideoIdea": "Um Dia na Vida de um Alquimista: Ciência ou Magia?",
+            "risk": "Necessidade de equilibrar precisão histórica/científica com uma narrativa envolvente para o formato de vídeo curto."
+          },
+          {
+            "label": "Tecnologia: Um dia na vida extinta",
+            "macroNiche": "Tecnologia",
+            "angle": "Tecnologia — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "tecnologia profissão extinta dia shorts",
+            "pioneerScore": 57,
+            "saturationPct": 26,
+            "macroSaturationPct": 56,
+            "gapScore": 30,
+            "dedicatedChannels": 0,
+            "interestScore": 84,
+            "status": "pioneiro",
+            "whyPioneer": "A baixa saturação (26%) e a ausência de canais dedicados indicam uma oportunidade para inovar, mesmo com um gap menor (30%), em um macro-nicho popular.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "tecnologia profissão extinta dia shorts",
+              "channelCount": 1,
+              "videoCount": 225,
+              "dedicatedChannels": 0,
+              "avgTopViews": 122406,
+              "maxTopViews": 587756,
+              "sampleChannels": [
+                {
+                  "title": "Expertise Segurança",
+                  "channelId": "UC7aZYT9z8KLofEcH2qAq8gQ"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Sua profissão sera extinta daqui a pouco #inteligenciaartificial #tecnologia #shorts",
+                  "views": 1799,
+                  "videoId": "777whrU-P70"
+                },
+                {
+                  "title": "As Profissões que vão acabar - profissões que serão extintas até 2030 por robôs #shorts",
+                  "views": 98746,
+                  "videoId": "psyQcPnFdlo"
+                },
+                {
+                  "title": "Profissões que foram extintas 😳",
+                  "views": 3596,
+                  "videoId": "7aXoLGWh4yk"
+                },
+                {
+                  "title": "Profissões em Risco com as IA'S (Inteligência Artificial) #ias",
+                  "views": 61766,
+                  "videoId": "PgpsPgL52YU"
+                },
+                {
+                  "title": "Possíveis formas da evolução humana no futuro😳😨 #shorts #curiosidades #short #shortvideo",
+                  "views": 587756,
+                  "videoId": "F1cOSXlK5Tw"
+                },
+                {
+                  "title": "PROFISSÕES QUE FORAM EXTINTAS #curiosidades",
+                  "views": 3376,
+                  "videoId": "V4ji2UDe_hw"
+                },
+                {
+                  "title": "Profissões que vão acabar até 2030 #shots",
+                  "views": 3364,
+                  "videoId": "KAJKr6ZSr7U"
+                },
+                {
+                  "title": "A Família Mitchell e a Revolta das Máquinas | Netflix Brasil #Shorts",
+                  "views": 436549,
+                  "videoId": "gE0lIB9GF6A"
+                },
+                {
+                  "title": "Profissões do Futuro: O Que Esperar em Tecnologia",
+                  "views": 24400,
+                  "videoId": "DP0e4fylFrE"
+                },
+                {
+                  "title": "Profissões que serão extintas até 2030",
+                  "views": 2711,
+                  "videoId": "l9kmapW0Q50"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 56,
+              "gapScore": 30
+            },
+            "firstVideoIdea": "Um Dia na Vida de um Operador de Telégrafo: A Internet do Século XIX",
+            "risk": "Encontrar profissões tecnológicas 'extintas' que sejam suficientemente interessantes e visualmente adaptáveis para Shorts."
+          },
+          {
+            "label": "True Crime: Um dia na vida extinta",
+            "macroNiche": "True Crime",
+            "angle": "True Crime — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "true crime profissão extinta dia shorts",
+            "pioneerScore": 57,
+            "saturationPct": 26,
+            "macroSaturationPct": 56,
+            "gapScore": 30,
+            "dedicatedChannels": 0,
+            "interestScore": 84,
+            "status": "pioneiro",
+            "whyPioneer": "Com baixa saturação (26%) e nenhum canal dedicado, há um espaço para explorar um ângulo único e intrigante dentro do popular nicho de True Crime.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "true crime profissão extinta dia shorts",
+              "channelCount": 0,
+              "videoCount": 94,
+              "dedicatedChannels": 0,
+              "avgTopViews": 1791190,
+              "maxTopViews": 17669799,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Com a inteligencia artificial, sua profissão será extinta?",
+                  "views": 136,
+                  "videoId": "cBQuf1ghBrQ"
+                },
+                {
+                  "title": "FOTO RARA DE UM DESPERTADOR HUMANO",
+                  "views": 1727,
+                  "videoId": "rauUVZ1_B6w"
+                },
+                {
+                  "title": "Despertador humano – Você sabia que era uma profissão?",
+                  "views": 401,
+                  "videoId": "PhIZs14uFwo"
+                },
+                {
+                  "title": "Pessoas que zombaram de Deus e foram castigadas #shorts #curiosidades",
+                  "views": 17669799,
+                  "videoId": "GaAXCKv61e4"
+                },
+                {
+                  "title": "扶持單親媽媽八年，直到我把檢測報告甩她身上，筆摔在地上，墨水潑她臉上，她才開始後悔",
+                  "views": 1871,
+                  "videoId": "B02K72d4Dx0"
+                },
+                {
+                  "title": "4 People Who Vanished Without A Trace | What the Stuff?!",
+                  "views": 128788,
+                  "videoId": "07L1G-xyrtc"
+                },
+                {
+                  "title": "💔Divorced and Disappeared—5 Years Later, She Returns with His Child as a Powerful CEO!",
+                  "views": 8664,
+                  "videoId": "5qNdPlIRZI4"
+                },
+                {
+                  "title": "Dulu Korban Bullying🌟Kini Jadi Rebutan Miliarder💥Si Dingin Malah Jadi Bucin😍#cinta #transformasi",
+                  "views": 65607,
+                  "videoId": "UF3Adop_-0I"
+                },
+                {
+                  "title": "💥 Revealing Behavior in Elizabeth Holmes",
+                  "views": 30024,
+                  "videoId": "nTJhSutgSu8"
+                },
+                {
+                  "title": "🔥🔥My ex flaunted her power with her lover. I calmly exposed them and made them a laughingstock.",
+                  "views": 4882,
+                  "videoId": "J_uBNiRFrTw"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 56,
+              "gapScore": 30
+            },
+            "firstVideoIdea": "Um Dia na Vida de um Carrasco Medieval: Justiça ou Brutalidade?",
+            "risk": "Sensibilidade do tema True Crime e a necessidade de pesquisa rigorosa para evitar informações errôneas ou sensacionalismo excessivo."
+          },
+          {
+            "label": "Filosofia: Mapa + mistério",
+            "macroNiche": "Filosofia",
+            "angle": "Filosofia — Lugar real no mapa que a história oficial ignorou",
+            "formatPattern": "Mapa + mistério",
+            "youtubeSearchQuery": "filosofia lugar misterioso mapa shorts",
+            "pioneerScore": 56,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "A saturação moderada (40%) e um gap razoável (49%), combinados com zero canais dedicados, oferecem um bom potencial para ser o pioneiro em um formato visualmente atraente.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia lugar misterioso mapa shorts",
+              "channelCount": 6,
+              "videoCount": 1669,
+              "dedicatedChannels": 0,
+              "avgTopViews": 4270200,
+              "maxTopViews": 23484203,
+              "sampleChannels": [
+                {
+                  "title": "Você Sabia?",
+                  "channelId": "UCj0O6W8yDuLg3iraAXKgCrQ"
+                },
+                {
+                  "title": "Masha y el Oso",
+                  "channelId": "UCuSo4gcgxJRf4Bzu43wwVyg"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Olhem essas diferenças entre assassinos e psicopatas 😱😳😱 #shorts #curiosidades",
+                  "views": 8090858,
+                  "videoId": "yPMEa2fYnEc"
+                },
+                {
+                  "title": "O Mapa Misterioso",
+                  "views": 816,
+                  "videoId": "CAm9CvsrWVM"
+                },
+                {
+                  "title": "Esse é o maior mistério do Egito Antigo 🤯 #Shorts",
+                  "views": 637504,
+                  "videoId": "xC0V4MIcgsc"
+                },
+                {
+                  "title": "Abu Simbel é um lugar misterioso no mapa. Da Like 👍👍",
+                  "views": 38,
+                  "videoId": "GqHHSjdkr_U"
+                },
+                {
+                  "title": "NA ROMA ANTIGA VOCÊ SERIA RICO OU POBRE? #curiosidades #historia #shorts",
+                  "views": 23484203,
+                  "videoId": "HIy1cSiSXVY"
+                },
+                {
+                  "title": "Positivismo é uma ideia completamente maluca! #shorts",
+                  "views": 33106,
+                  "videoId": "95n3tcg1RHg"
+                },
+                {
+                  "title": "O Segredo Que Está Escondido Neste Manuscrito #shorts #suspense",
+                  "views": 211,
+                  "videoId": "NRgZ3btXpxA"
+                },
+                {
+                  "title": "TODA SALA TINHA ESSES ALUNOS! #shorts",
+                  "views": 10452645,
+                  "videoId": "RYvAnDW8364"
+                },
+                {
+                  "title": "Aventuras filosoficas",
+                  "views": 16,
+                  "videoId": "Wq_pxPFS000"
+                },
+                {
+                  "title": "TOP 3 SÍMBOLOS MISTERIOSOS DA BÍBLIA #shorts",
+                  "views": 2603,
+                  "videoId": "6AB75osijUE"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "Onde Fica a Atlântida? Mitos e Teorias de um Lugar Perdido",
+            "risk": "Dificuldade de encontrar lugares 'ignorados' que tenham uma narrativa filosófica forte e evidências visuais para Shorts."
+          }
+        ],
+        "pioneerIdeas": [
+          {
+            "title": "Um Dia na Vida de um Bibliotecário da Biblioteca de Alexandria",
+            "hookPt": "Filosofia — Recriar um dia de profissão/tradição que não existe mais",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Este formato tem baixíssima saturação (16%) e um gap muito alto (73%), com nenhum canal dedicado, oferecendo uma oportunidade única para dominar o nicho.",
+            "format": "SHORTS",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "status": "virgem",
+            "macroNiche": "Filosofia",
+            "angle": "Filosofia — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "filosofia profissão extinta dia shorts"
+          },
+          {
+            "title": "A História Secreta da Caneta: De Ferramenta a Símbolo de Poder",
+            "hookPt": "Filosofia — Um objeto comum → virou símbolo histórico (linha do tempo visual)",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Com baixa saturação (26%) e um gap significativo (63%), e apenas um canal dedicado, há espaço para se destacar com conteúdo visualmente atraente e informativo.",
+            "format": "SHORTS",
+            "pioneerScore": 67,
+            "saturationPct": 26,
+            "status": "pioneiro",
+            "macroNiche": "Filosofia",
+            "angle": "Filosofia — Um objeto comum → virou símbolo histórico (linha do tempo visual)",
+            "formatPattern": "Timeline de um objeto",
+            "youtubeSearchQuery": "filosofia objeto história timeline shorts"
+          },
+          {
+            "title": "Um Dia na Vida de um Alquimista: Ciência ou Magia?",
+            "hookPt": "Ciência — Recriar um dia de profissão/tradição que não existe mais",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "A saturação é moderada (34%) e o gap é bom (55%). A ausência de canais dedicados permite ser o pioneiro neste ângulo dentro da Ciência.",
+            "format": "SHORTS",
+            "pioneerScore": 61,
+            "saturationPct": 34,
+            "status": "pioneiro",
+            "macroNiche": "Ciência",
+            "angle": "Ciência — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "ciência profissão extinta dia shorts"
+          },
+          {
+            "title": "Um Dia na Vida de um Operador de Telégrafo: A Internet do Século XIX",
+            "hookPt": "Tecnologia — Recriar um dia de profissão/tradição que não existe mais",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "A baixa saturação (26%) e a ausência de canais dedicados indicam uma oportunidade para inovar, mesmo com um gap menor (30%), em um macro-nicho popular.",
+            "format": "SHORTS",
+            "pioneerScore": 57,
+            "saturationPct": 26,
+            "status": "pioneiro",
+            "macroNiche": "Tecnologia",
+            "angle": "Tecnologia — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "tecnologia profissão extinta dia shorts"
+          },
+          {
+            "title": "Um Dia na Vida de um Carrasco Medieval: Justiça ou Brutalidade?",
+            "hookPt": "True Crime — Recriar um dia de profissão/tradição que não existe mais",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Com baixa saturação (26%) e nenhum canal dedicado, há um espaço para explorar um ângulo único e intrigante dentro do popular nicho de True Crime.",
+            "format": "SHORTS",
+            "pioneerScore": 57,
+            "saturationPct": 26,
+            "status": "pioneiro",
+            "macroNiche": "True Crime",
+            "angle": "True Crime — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "true crime profissão extinta dia shorts"
+          },
+          {
+            "title": "Onde Fica a Atlântida? Mitos e Teorias de um Lugar Perdido",
+            "hookPt": "Filosofia — Lugar real no mapa que a história oficial ignorou",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "A saturação moderada (40%) e um gap razoável (49%), combinados com zero canais dedicados, oferecem um bom potencial para ser o pioneiro em um formato visualmente atraente.",
+            "format": "SHORTS",
+            "pioneerScore": 56,
+            "saturationPct": 40,
+            "status": "pioneiro",
+            "macroNiche": "Filosofia",
+            "angle": "Filosofia — Lugar real no mapa que a história oficial ignorou",
+            "formatPattern": "Mapa + mistério",
+            "youtubeSearchQuery": "filosofia lugar misterioso mapa shorts"
+          }
+        ],
+        "summary": {
+          "scanned": 24,
+          "validated": 13,
+          "virginCount": 1,
+          "pioneerCount": 6,
+          "topPick": "Filosofia: Um dia na vida extinta",
+          "topMacro": "Filosofia"
+        },
+        "fetchedAt": "2026-07-15T13:27:07.306Z"
+      },
+      "niches": [
+        {
+          "label": "Filosofia: Um dia na vida extinta",
+          "status": "virgem",
+          "pioneerScore": 75,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "BIBLIA",
+          "savedAt": "2026-07-15T13:29:22.422Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Este formato tem baixíssima saturação (16%) e um gap muito alto (73%), com nenhum canal dedicado, oferecendo uma oportunidade única para dominar o nicho.",
+              "headline": "Filosofia: Um dia na vida extinta"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Filosofia",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Filosofia — Recriar um dia de profissão/tradição que não existe mais",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Um dia na vida extinta",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "filosofia profissão extinta dia shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 0,
+              "videoCount": 55,
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "avgTopViews": 137655,
+              "maxTopViews": 833142,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "A HUMANIDADE VAI ACABAR EM 40 ANOS #shorts",
+                  "views": 3551,
+                  "videoId": "TxjyhCHKMk0"
+                },
+                {
+                  "title": "Enéas‎ Carneiro‎ 🔥‎ Homossexual‎ é‎ Um‎ Ser‎ Humano‎ #eneascarneiro‎ #debate‎ #rodaviva‎ #cortes‎",
+                  "views": 105418,
+                  "videoId": "iu6cVbFHabs"
+                },
+                {
+                  "title": "A VERDADE OCULTA SOBRE O DESPERTADOR HUMANO #shorts #short #fatosinteressantes #curiosidades",
+                  "views": 3188,
+                  "videoId": "PapWrajcXIM"
+                },
+                {
+                  "title": "Antes do despertador ser inventado , havia despertadores humanos .",
+                  "views": 2009,
+                  "videoId": "A6J51TfFw8M"
+                },
+                {
+                  "title": "Profissões do Futuro: O Que Esperar em Tecnologia",
+                  "views": 24400,
+                  "videoId": "DP0e4fylFrE"
+                },
+                {
+                  "title": "O único homem na bíblia que teve o privilégio de ser sepultado por Deus #shorts",
+                  "views": 48566,
+                  "videoId": "cNVsYWT1rBA"
+                },
+                {
+                  "title": "Conheça 7 profissões que foram extintas",
+                  "views": 86,
+                  "videoId": "rLhpcFm0oJI"
+                },
+                {
+                  "title": "COMO SERIA SE OS NEANDERTAIS AINDA ESTIVESSEM VIVOS?",
+                  "views": 833142,
+                  "videoId": "GXw6RkMK54A"
+                },
+                {
+                  "title": "Antônio Abujamra no Vale do Amanhecer | Jornal da Cidade | 1992",
+                  "views": 564,
+                  "videoId": "jY5l_2hEZv8"
+                },
+                {
+                  "title": "5 Faculdades mais RECLAMADAS no Reclame Aqui em 2023 #reclameaqui #faculdades #cursos #universidade",
+                  "views": 355625,
+                  "videoId": "B0GIVUk9lp0"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 75,
+              "interestScore": 89,
+              "status": "virgem",
+              "whyPioneer": "Este formato tem baixíssima saturação (16%) e um gap muito alto (73%), com nenhum canal dedicado, oferecendo uma oportunidade única para dominar o nicho."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "Um Dia na Vida de um Bibliotecário da Biblioteca de Alexandria",
+              "hook": "Filosofia — Recriar um dia de profissão/tradição que não existe mais"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Dificuldade em encontrar material visual autêntico ou criar roteiros envolventes para profissões muito antigas em formato curto."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Pensadores que querem ideias complexas em linguagem clara."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Um dia na vida extinta",
+                "Ângulo: Filosofia — Recriar um dia de profissão/tradição que não existe mais",
+                "Gancho inicial: Um Dia na Vida de um Bibliotecário da Biblioteca de Alexandria",
+                "Referência: A HUMANIDADE VAI ACABAR EM 40 ANOS #shorts"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Categoria virgem: menos concorrência por patrocínio de nicho."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "filosofia profissão extinta dia shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Filosofia: Um dia na vida extinta",
+            "macroNiche": "Filosofia",
+            "angle": "Filosofia — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "filosofia profissão extinta dia shorts",
+            "pioneerScore": 75,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Este formato tem baixíssima saturação (16%) e um gap muito alto (73%), com nenhum canal dedicado, oferecendo uma oportunidade única para dominar o nicho.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia profissão extinta dia shorts",
+              "channelCount": 0,
+              "videoCount": 55,
+              "dedicatedChannels": 0,
+              "avgTopViews": 137655,
+              "maxTopViews": 833142,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "A HUMANIDADE VAI ACABAR EM 40 ANOS #shorts",
+                  "views": 3551,
+                  "videoId": "TxjyhCHKMk0"
+                },
+                {
+                  "title": "Enéas‎ Carneiro‎ 🔥‎ Homossexual‎ é‎ Um‎ Ser‎ Humano‎ #eneascarneiro‎ #debate‎ #rodaviva‎ #cortes‎",
+                  "views": 105418,
+                  "videoId": "iu6cVbFHabs"
+                },
+                {
+                  "title": "A VERDADE OCULTA SOBRE O DESPERTADOR HUMANO #shorts #short #fatosinteressantes #curiosidades",
+                  "views": 3188,
+                  "videoId": "PapWrajcXIM"
+                },
+                {
+                  "title": "Antes do despertador ser inventado , havia despertadores humanos .",
+                  "views": 2009,
+                  "videoId": "A6J51TfFw8M"
+                },
+                {
+                  "title": "Profissões do Futuro: O Que Esperar em Tecnologia",
+                  "views": 24400,
+                  "videoId": "DP0e4fylFrE"
+                },
+                {
+                  "title": "O único homem na bíblia que teve o privilégio de ser sepultado por Deus #shorts",
+                  "views": 48566,
+                  "videoId": "cNVsYWT1rBA"
+                },
+                {
+                  "title": "Conheça 7 profissões que foram extintas",
+                  "views": 86,
+                  "videoId": "rLhpcFm0oJI"
+                },
+                {
+                  "title": "COMO SERIA SE OS NEANDERTAIS AINDA ESTIVESSEM VIVOS?",
+                  "views": 833142,
+                  "videoId": "GXw6RkMK54A"
+                },
+                {
+                  "title": "Antônio Abujamra no Vale do Amanhecer | Jornal da Cidade | 1992",
+                  "views": 564,
+                  "videoId": "jY5l_2hEZv8"
+                },
+                {
+                  "title": "5 Faculdades mais RECLAMADAS no Reclame Aqui em 2023 #reclameaqui #faculdades #cursos #universidade",
+                  "views": 355625,
+                  "videoId": "B0GIVUk9lp0"
+                }
+              ],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73
+            },
+            "firstVideoIdea": "Um Dia na Vida de um Bibliotecário da Biblioteca de Alexandria",
+            "risk": "Dificuldade em encontrar material visual autêntico ou criar roteiros envolventes para profissões muito antigas em formato curto."
+          }
+        },
+        {
+          "label": "Filosofia: Timeline de um objeto",
+          "status": "pioneiro",
+          "pioneerScore": 67,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "BIBLIA",
+          "savedAt": "2026-07-15T13:29:22.422Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Com baixa saturação (26%) e um gap significativo (63%), e apenas um canal dedicado, há espaço para se destacar com conteúdo visualmente atraente e informativo.",
+              "headline": "Filosofia: Timeline de um objeto"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Filosofia",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Filosofia — Um objeto comum → virou símbolo histórico (linha do tempo visual)",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Timeline de um objeto",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "filosofia objeto história timeline shorts",
+              "dedicatedChannels": 1,
+              "channelCount": 1,
+              "videoCount": 111,
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63,
+              "avgTopViews": 553835,
+              "maxTopViews": 1676102,
+              "sampleChannels": [
+                {
+                  "title": "Divine stories",
+                  "channelId": "UCF8-aaVt_nPksaS9t3FWTLw"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "COMO ERA A VIDA DE UM ADOLESCENTE NA IDADE MÉDIA #shorts",
+                  "views": 1542205,
+                  "videoId": "ahf1DUmgbXc"
+                },
+                {
+                  "title": "Línea del tiempo",
+                  "views": 359994,
+                  "videoId": "nk-pPRkfHto"
+                },
+                {
+                  "title": "Linha do tempo para trabalhar qualquer conteúdo de História.",
+                  "views": 8061,
+                  "videoId": "DFUAHoKGHvU"
+                },
+                {
+                  "title": "Infografía Línea del Tiempo Historia",
+                  "views": 201965,
+                  "videoId": "LKK8rgRrWig"
+                },
+                {
+                  "title": "Faça isso no seu caderno - linha do tempo",
+                  "views": 36116,
+                  "videoId": "zBe4XLlcMKw"
+                },
+                {
+                  "title": "Línea del tiempo - historia del la psicología",
+                  "views": 3514,
+                  "videoId": "Wd2q1Mta3Eg"
+                },
+                {
+                  "title": "Uma Breve História (do Início) do Universo",
+                  "views": 1676102,
+                  "videoId": "8UqNVzY0EVg"
+                },
+                {
+                  "title": "Faraó do antigo Egito",
+                  "views": 241996,
+                  "videoId": "GU0Qf-u_ugw"
+                },
+                {
+                  "title": "Línea  del Tiempo 🤩👌",
+                  "views": 795633,
+                  "videoId": "XMHPUX1Rwyg"
+                },
+                {
+                  "title": "3 Novos segredos do Canva que poucos conhecem!",
+                  "views": 672766,
+                  "videoId": "ZDa6cziRVjo"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 67,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "Com baixa saturação (26%) e um gap significativo (63%), e apenas um canal dedicado, há espaço para se destacar com conteúdo visualmente atraente e informativo."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "A História Secreta da Caneta: De Ferramenta a Símbolo de Poder",
+              "hook": "Filosofia — Um objeto comum → virou símbolo histórico (linha do tempo visual)"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Exige pesquisa aprofundada para traçar a evolução de objetos e criatividade para torná-la visualmente interessante em um formato de Shorts."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Pensadores que querem ideias complexas em linguagem clara."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Timeline de um objeto",
+                "Ângulo: Filosofia — Um objeto comum → virou símbolo histórico (linha do tempo visual)",
+                "Gancho inicial: A História Secreta da Caneta: De Ferramenta a Símbolo de Poder",
+                "Referência: COMO ERA A VIDA DE UM ADOLESCENTE NA IDADE MÉDIA #shorts"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "filosofia objeto história timeline shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Filosofia: Timeline de um objeto",
+            "macroNiche": "Filosofia",
+            "angle": "Filosofia — Um objeto comum → virou símbolo histórico (linha do tempo visual)",
+            "formatPattern": "Timeline de um objeto",
+            "youtubeSearchQuery": "filosofia objeto história timeline shorts",
+            "pioneerScore": 67,
+            "saturationPct": 26,
+            "macroSaturationPct": 89,
+            "gapScore": 63,
+            "dedicatedChannels": 1,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Com baixa saturação (26%) e um gap significativo (63%), e apenas um canal dedicado, há espaço para se destacar com conteúdo visualmente atraente e informativo.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia objeto história timeline shorts",
+              "channelCount": 1,
+              "videoCount": 111,
+              "dedicatedChannels": 1,
+              "avgTopViews": 553835,
+              "maxTopViews": 1676102,
+              "sampleChannels": [
+                {
+                  "title": "Divine stories",
+                  "channelId": "UCF8-aaVt_nPksaS9t3FWTLw"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "COMO ERA A VIDA DE UM ADOLESCENTE NA IDADE MÉDIA #shorts",
+                  "views": 1542205,
+                  "videoId": "ahf1DUmgbXc"
+                },
+                {
+                  "title": "Línea del tiempo",
+                  "views": 359994,
+                  "videoId": "nk-pPRkfHto"
+                },
+                {
+                  "title": "Linha do tempo para trabalhar qualquer conteúdo de História.",
+                  "views": 8061,
+                  "videoId": "DFUAHoKGHvU"
+                },
+                {
+                  "title": "Infografía Línea del Tiempo Historia",
+                  "views": 201965,
+                  "videoId": "LKK8rgRrWig"
+                },
+                {
+                  "title": "Faça isso no seu caderno - linha do tempo",
+                  "views": 36116,
+                  "videoId": "zBe4XLlcMKw"
+                },
+                {
+                  "title": "Línea del tiempo - historia del la psicología",
+                  "views": 3514,
+                  "videoId": "Wd2q1Mta3Eg"
+                },
+                {
+                  "title": "Uma Breve História (do Início) do Universo",
+                  "views": 1676102,
+                  "videoId": "8UqNVzY0EVg"
+                },
+                {
+                  "title": "Faraó do antigo Egito",
+                  "views": 241996,
+                  "videoId": "GU0Qf-u_ugw"
+                },
+                {
+                  "title": "Línea  del Tiempo 🤩👌",
+                  "views": 795633,
+                  "videoId": "XMHPUX1Rwyg"
+                },
+                {
+                  "title": "3 Novos segredos do Canva que poucos conhecem!",
+                  "views": 672766,
+                  "videoId": "ZDa6cziRVjo"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63
+            },
+            "firstVideoIdea": "A História Secreta da Caneta: De Ferramenta a Símbolo de Poder",
+            "risk": "Exige pesquisa aprofundada para traçar a evolução de objetos e criatividade para torná-la visualmente interessante em um formato de Shorts."
+          }
+        },
+        {
+          "label": "Ciência: Um dia na vida extinta",
+          "status": "pioneiro",
+          "pioneerScore": 61,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "BIBLIA",
+          "savedAt": "2026-07-15T13:29:22.422Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "A saturação é moderada (34%) e o gap é bom (55%). A ausência de canais dedicados permite ser o pioneiro neste ângulo dentro da Ciência.",
+              "headline": "Ciência: Um dia na vida extinta"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Ciência",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Ciência — Recriar um dia de profissão/tradição que não existe mais",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Um dia na vida extinta",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "ciência profissão extinta dia shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 0,
+              "videoCount": 346,
+              "saturationPct": 34,
+              "macroSaturationPct": 89,
+              "gapScore": 55,
+              "avgTopViews": 3353775,
+              "maxTopViews": 13810119,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Possíveis formas da evolução humana no futuro😳😨 #shorts #curiosidades #short #shortvideo",
+                  "views": 587756,
+                  "videoId": "F1cOSXlK5Tw"
+                },
+                {
+                  "title": "COMO SÃO OS ANIMAIS QUE VIVEM EM CHERNOBYL! PT.1 😯😲 #shorts #youtubeshorts #youtube",
+                  "views": 2622659,
+                  "videoId": "57TsvdnhXv4"
+                },
+                {
+                  "title": "ESSA É A VERDADEIRA PROFUNDIDADE DO OCEANO! #Shorts",
+                  "views": 13810119,
+                  "videoId": "d1I84UaY3BY"
+                },
+                {
+                  "title": "Como Eram Os Planetas 4 Bilhões De Anos Atrás? 🌋 #curiosidades #universo",
+                  "views": 1555620,
+                  "videoId": "CRAcT3K7qio"
+                },
+                {
+                  "title": "Criaturas de Deus 🙏✝️ #jesus #edit #shorts",
+                  "views": 931953,
+                  "videoId": "5JcbphECgYU"
+                },
+                {
+                  "title": "Profissões em Risco com as IA'S (Inteligência Artificial) #ias",
+                  "views": 61766,
+                  "videoId": "PgpsPgL52YU"
+                },
+                {
+                  "title": "animais que os cientistas está tentando trazer de volta",
+                  "views": 989708,
+                  "videoId": "U-fjd5zMFTE"
+                },
+                {
+                  "title": "entenda quanto podes ganhar estando no início da profissão em psicologia (EslenDelanogare)",
+                  "views": 5267,
+                  "videoId": "XpuVuyz5uno"
+                },
+                {
+                  "title": "Profissões que vão acabar até 2030 #shots",
+                  "views": 3364,
+                  "videoId": "KAJKr6ZSr7U"
+                },
+                {
+                  "title": "animais EXTINTOS que cientistas estão tentando trazer de volta",
+                  "views": 12969535,
+                  "videoId": "QcV6USue_Fs"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 61,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "A saturação é moderada (34%) e o gap é bom (55%). A ausência de canais dedicados permite ser o pioneiro neste ângulo dentro da Ciência."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "Um Dia na Vida de um Alquimista: Ciência ou Magia?",
+              "hook": "Ciência — Recriar um dia de profissão/tradição que não existe mais"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Necessidade de equilibrar precisão histórica/científica com uma narrativa envolvente para o formato de vídeo curto."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Estudantes e autodidatas que gostam de explicação visual."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Um dia na vida extinta",
+                "Ângulo: Ciência — Recriar um dia de profissão/tradição que não existe mais",
+                "Gancho inicial: Um Dia na Vida de um Alquimista: Ciência ou Magia?",
+                "Referência: Possíveis formas da evolução humana no futuro😳😨 #shorts #curiosidades #short #shortvideo"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "ciência profissão extinta dia shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Ciência: Um dia na vida extinta",
+            "macroNiche": "Ciência",
+            "angle": "Ciência — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "ciência profissão extinta dia shorts",
+            "pioneerScore": 61,
+            "saturationPct": 34,
+            "macroSaturationPct": 89,
+            "gapScore": 55,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "A saturação é moderada (34%) e o gap é bom (55%). A ausência de canais dedicados permite ser o pioneiro neste ângulo dentro da Ciência.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "ciência profissão extinta dia shorts",
+              "channelCount": 0,
+              "videoCount": 346,
+              "dedicatedChannels": 0,
+              "avgTopViews": 3353775,
+              "maxTopViews": 13810119,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Possíveis formas da evolução humana no futuro😳😨 #shorts #curiosidades #short #shortvideo",
+                  "views": 587756,
+                  "videoId": "F1cOSXlK5Tw"
+                },
+                {
+                  "title": "COMO SÃO OS ANIMAIS QUE VIVEM EM CHERNOBYL! PT.1 😯😲 #shorts #youtubeshorts #youtube",
+                  "views": 2622659,
+                  "videoId": "57TsvdnhXv4"
+                },
+                {
+                  "title": "ESSA É A VERDADEIRA PROFUNDIDADE DO OCEANO! #Shorts",
+                  "views": 13810119,
+                  "videoId": "d1I84UaY3BY"
+                },
+                {
+                  "title": "Como Eram Os Planetas 4 Bilhões De Anos Atrás? 🌋 #curiosidades #universo",
+                  "views": 1555620,
+                  "videoId": "CRAcT3K7qio"
+                },
+                {
+                  "title": "Criaturas de Deus 🙏✝️ #jesus #edit #shorts",
+                  "views": 931953,
+                  "videoId": "5JcbphECgYU"
+                },
+                {
+                  "title": "Profissões em Risco com as IA'S (Inteligência Artificial) #ias",
+                  "views": 61766,
+                  "videoId": "PgpsPgL52YU"
+                },
+                {
+                  "title": "animais que os cientistas está tentando trazer de volta",
+                  "views": 989708,
+                  "videoId": "U-fjd5zMFTE"
+                },
+                {
+                  "title": "entenda quanto podes ganhar estando no início da profissão em psicologia (EslenDelanogare)",
+                  "views": 5267,
+                  "videoId": "XpuVuyz5uno"
+                },
+                {
+                  "title": "Profissões que vão acabar até 2030 #shots",
+                  "views": 3364,
+                  "videoId": "KAJKr6ZSr7U"
+                },
+                {
+                  "title": "animais EXTINTOS que cientistas estão tentando trazer de volta",
+                  "views": 12969535,
+                  "videoId": "QcV6USue_Fs"
+                }
+              ],
+              "saturationPct": 34,
+              "macroSaturationPct": 89,
+              "gapScore": 55
+            },
+            "firstVideoIdea": "Um Dia na Vida de um Alquimista: Ciência ou Magia?",
+            "risk": "Necessidade de equilibrar precisão histórica/científica com uma narrativa envolvente para o formato de vídeo curto."
+          }
+        },
+        {
+          "label": "Tecnologia: Um dia na vida extinta",
+          "status": "pioneiro",
+          "pioneerScore": 57,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "BIBLIA",
+          "savedAt": "2026-07-15T13:29:22.422Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "A baixa saturação (26%) e a ausência de canais dedicados indicam uma oportunidade para inovar, mesmo com um gap menor (30%), em um macro-nicho popular.",
+              "headline": "Tecnologia: Um dia na vida extinta"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Tecnologia",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Tecnologia — Recriar um dia de profissão/tradição que não existe mais",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Um dia na vida extinta",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "tecnologia profissão extinta dia shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 1,
+              "videoCount": 225,
+              "saturationPct": 26,
+              "macroSaturationPct": 56,
+              "gapScore": 30,
+              "avgTopViews": 122406,
+              "maxTopViews": 587756,
+              "sampleChannels": [
+                {
+                  "title": "Expertise Segurança",
+                  "channelId": "UC7aZYT9z8KLofEcH2qAq8gQ"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Sua profissão sera extinta daqui a pouco #inteligenciaartificial #tecnologia #shorts",
+                  "views": 1799,
+                  "videoId": "777whrU-P70"
+                },
+                {
+                  "title": "As Profissões que vão acabar - profissões que serão extintas até 2030 por robôs #shorts",
+                  "views": 98746,
+                  "videoId": "psyQcPnFdlo"
+                },
+                {
+                  "title": "Profissões que foram extintas 😳",
+                  "views": 3596,
+                  "videoId": "7aXoLGWh4yk"
+                },
+                {
+                  "title": "Profissões em Risco com as IA'S (Inteligência Artificial) #ias",
+                  "views": 61766,
+                  "videoId": "PgpsPgL52YU"
+                },
+                {
+                  "title": "Possíveis formas da evolução humana no futuro😳😨 #shorts #curiosidades #short #shortvideo",
+                  "views": 587756,
+                  "videoId": "F1cOSXlK5Tw"
+                },
+                {
+                  "title": "PROFISSÕES QUE FORAM EXTINTAS #curiosidades",
+                  "views": 3376,
+                  "videoId": "V4ji2UDe_hw"
+                },
+                {
+                  "title": "Profissões que vão acabar até 2030 #shots",
+                  "views": 3364,
+                  "videoId": "KAJKr6ZSr7U"
+                },
+                {
+                  "title": "A Família Mitchell e a Revolta das Máquinas | Netflix Brasil #Shorts",
+                  "views": 436549,
+                  "videoId": "gE0lIB9GF6A"
+                },
+                {
+                  "title": "Profissões do Futuro: O Que Esperar em Tecnologia",
+                  "views": 24400,
+                  "videoId": "DP0e4fylFrE"
+                },
+                {
+                  "title": "Profissões que serão extintas até 2030",
+                  "views": 2711,
+                  "videoId": "l9kmapW0Q50"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 57,
+              "interestScore": 84,
+              "status": "pioneiro",
+              "whyPioneer": "A baixa saturação (26%) e a ausência de canais dedicados indicam uma oportunidade para inovar, mesmo com um gap menor (30%), em um macro-nicho popular."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "Um Dia na Vida de um Operador de Telégrafo: A Internet do Século XIX",
+              "hook": "Tecnologia — Recriar um dia de profissão/tradição que não existe mais"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Encontrar profissões tecnológicas 'extintas' que sejam suficientemente interessantes e visualmente adaptáveis para Shorts."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Entusiastas de tech e história da inovação."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Um dia na vida extinta",
+                "Ângulo: Tecnologia — Recriar um dia de profissão/tradição que não existe mais",
+                "Gancho inicial: Um Dia na Vida de um Operador de Telégrafo: A Internet do Século XIX",
+                "Referência: Sua profissão sera extinta daqui a pouco #inteligenciaartificial #tecnologia #shorts"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "tecnologia profissão extinta dia shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Tecnologia: Um dia na vida extinta",
+            "macroNiche": "Tecnologia",
+            "angle": "Tecnologia — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "tecnologia profissão extinta dia shorts",
+            "pioneerScore": 57,
+            "saturationPct": 26,
+            "macroSaturationPct": 56,
+            "gapScore": 30,
+            "dedicatedChannels": 0,
+            "interestScore": 84,
+            "status": "pioneiro",
+            "whyPioneer": "A baixa saturação (26%) e a ausência de canais dedicados indicam uma oportunidade para inovar, mesmo com um gap menor (30%), em um macro-nicho popular.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "tecnologia profissão extinta dia shorts",
+              "channelCount": 1,
+              "videoCount": 225,
+              "dedicatedChannels": 0,
+              "avgTopViews": 122406,
+              "maxTopViews": 587756,
+              "sampleChannels": [
+                {
+                  "title": "Expertise Segurança",
+                  "channelId": "UC7aZYT9z8KLofEcH2qAq8gQ"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Sua profissão sera extinta daqui a pouco #inteligenciaartificial #tecnologia #shorts",
+                  "views": 1799,
+                  "videoId": "777whrU-P70"
+                },
+                {
+                  "title": "As Profissões que vão acabar - profissões que serão extintas até 2030 por robôs #shorts",
+                  "views": 98746,
+                  "videoId": "psyQcPnFdlo"
+                },
+                {
+                  "title": "Profissões que foram extintas 😳",
+                  "views": 3596,
+                  "videoId": "7aXoLGWh4yk"
+                },
+                {
+                  "title": "Profissões em Risco com as IA'S (Inteligência Artificial) #ias",
+                  "views": 61766,
+                  "videoId": "PgpsPgL52YU"
+                },
+                {
+                  "title": "Possíveis formas da evolução humana no futuro😳😨 #shorts #curiosidades #short #shortvideo",
+                  "views": 587756,
+                  "videoId": "F1cOSXlK5Tw"
+                },
+                {
+                  "title": "PROFISSÕES QUE FORAM EXTINTAS #curiosidades",
+                  "views": 3376,
+                  "videoId": "V4ji2UDe_hw"
+                },
+                {
+                  "title": "Profissões que vão acabar até 2030 #shots",
+                  "views": 3364,
+                  "videoId": "KAJKr6ZSr7U"
+                },
+                {
+                  "title": "A Família Mitchell e a Revolta das Máquinas | Netflix Brasil #Shorts",
+                  "views": 436549,
+                  "videoId": "gE0lIB9GF6A"
+                },
+                {
+                  "title": "Profissões do Futuro: O Que Esperar em Tecnologia",
+                  "views": 24400,
+                  "videoId": "DP0e4fylFrE"
+                },
+                {
+                  "title": "Profissões que serão extintas até 2030",
+                  "views": 2711,
+                  "videoId": "l9kmapW0Q50"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 56,
+              "gapScore": 30
+            },
+            "firstVideoIdea": "Um Dia na Vida de um Operador de Telégrafo: A Internet do Século XIX",
+            "risk": "Encontrar profissões tecnológicas 'extintas' que sejam suficientemente interessantes e visualmente adaptáveis para Shorts."
+          }
+        },
+        {
+          "label": "True Crime: Um dia na vida extinta",
+          "status": "pioneiro",
+          "pioneerScore": 57,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "BIBLIA",
+          "savedAt": "2026-07-15T13:29:22.422Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Com baixa saturação (26%) e nenhum canal dedicado, há um espaço para explorar um ângulo único e intrigante dentro do popular nicho de True Crime.",
+              "headline": "True Crime: Um dia na vida extinta"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "True Crime",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "True Crime — Recriar um dia de profissão/tradição que não existe mais",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Um dia na vida extinta",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "true crime profissão extinta dia shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 0,
+              "videoCount": 94,
+              "saturationPct": 26,
+              "macroSaturationPct": 56,
+              "gapScore": 30,
+              "avgTopViews": 1791190,
+              "maxTopViews": 17669799,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Com a inteligencia artificial, sua profissão será extinta?",
+                  "views": 136,
+                  "videoId": "cBQuf1ghBrQ"
+                },
+                {
+                  "title": "FOTO RARA DE UM DESPERTADOR HUMANO",
+                  "views": 1727,
+                  "videoId": "rauUVZ1_B6w"
+                },
+                {
+                  "title": "Despertador humano – Você sabia que era uma profissão?",
+                  "views": 401,
+                  "videoId": "PhIZs14uFwo"
+                },
+                {
+                  "title": "Pessoas que zombaram de Deus e foram castigadas #shorts #curiosidades",
+                  "views": 17669799,
+                  "videoId": "GaAXCKv61e4"
+                },
+                {
+                  "title": "扶持單親媽媽八年，直到我把檢測報告甩她身上，筆摔在地上，墨水潑她臉上，她才開始後悔",
+                  "views": 1871,
+                  "videoId": "B02K72d4Dx0"
+                },
+                {
+                  "title": "4 People Who Vanished Without A Trace | What the Stuff?!",
+                  "views": 128788,
+                  "videoId": "07L1G-xyrtc"
+                },
+                {
+                  "title": "💔Divorced and Disappeared—5 Years Later, She Returns with His Child as a Powerful CEO!",
+                  "views": 8664,
+                  "videoId": "5qNdPlIRZI4"
+                },
+                {
+                  "title": "Dulu Korban Bullying🌟Kini Jadi Rebutan Miliarder💥Si Dingin Malah Jadi Bucin😍#cinta #transformasi",
+                  "views": 65607,
+                  "videoId": "UF3Adop_-0I"
+                },
+                {
+                  "title": "💥 Revealing Behavior in Elizabeth Holmes",
+                  "views": 30024,
+                  "videoId": "nTJhSutgSu8"
+                },
+                {
+                  "title": "🔥🔥My ex flaunted her power with her lover. I calmly exposed them and made them a laughingstock.",
+                  "views": 4882,
+                  "videoId": "J_uBNiRFrTw"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 57,
+              "interestScore": 84,
+              "status": "pioneiro",
+              "whyPioneer": "Com baixa saturação (26%) e nenhum canal dedicado, há um espaço para explorar um ângulo único e intrigante dentro do popular nicho de True Crime."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "Um Dia na Vida de um Carrasco Medieval: Justiça ou Brutalidade?",
+              "hook": "True Crime — Recriar um dia de profissão/tradição que não existe mais"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Sensibilidade do tema True Crime e a necessidade de pesquisa rigorosa para evitar informações errôneas ou sensacionalismo excessivo."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Fãs de casos reais, mistério e narrativa investigativa."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Um dia na vida extinta",
+                "Ângulo: True Crime — Recriar um dia de profissão/tradição que não existe mais",
+                "Gancho inicial: Um Dia na Vida de um Carrasco Medieval: Justiça ou Brutalidade?",
+                "Referência: Com a inteligencia artificial, sua profissão será extinta?"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "true crime profissão extinta dia shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "True Crime: Um dia na vida extinta",
+            "macroNiche": "True Crime",
+            "angle": "True Crime — Recriar um dia de profissão/tradição que não existe mais",
+            "formatPattern": "Um dia na vida extinta",
+            "youtubeSearchQuery": "true crime profissão extinta dia shorts",
+            "pioneerScore": 57,
+            "saturationPct": 26,
+            "macroSaturationPct": 56,
+            "gapScore": 30,
+            "dedicatedChannels": 0,
+            "interestScore": 84,
+            "status": "pioneiro",
+            "whyPioneer": "Com baixa saturação (26%) e nenhum canal dedicado, há um espaço para explorar um ângulo único e intrigante dentro do popular nicho de True Crime.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "true crime profissão extinta dia shorts",
+              "channelCount": 0,
+              "videoCount": 94,
+              "dedicatedChannels": 0,
+              "avgTopViews": 1791190,
+              "maxTopViews": 17669799,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Com a inteligencia artificial, sua profissão será extinta?",
+                  "views": 136,
+                  "videoId": "cBQuf1ghBrQ"
+                },
+                {
+                  "title": "FOTO RARA DE UM DESPERTADOR HUMANO",
+                  "views": 1727,
+                  "videoId": "rauUVZ1_B6w"
+                },
+                {
+                  "title": "Despertador humano – Você sabia que era uma profissão?",
+                  "views": 401,
+                  "videoId": "PhIZs14uFwo"
+                },
+                {
+                  "title": "Pessoas que zombaram de Deus e foram castigadas #shorts #curiosidades",
+                  "views": 17669799,
+                  "videoId": "GaAXCKv61e4"
+                },
+                {
+                  "title": "扶持單親媽媽八年，直到我把檢測報告甩她身上，筆摔在地上，墨水潑她臉上，她才開始後悔",
+                  "views": 1871,
+                  "videoId": "B02K72d4Dx0"
+                },
+                {
+                  "title": "4 People Who Vanished Without A Trace | What the Stuff?!",
+                  "views": 128788,
+                  "videoId": "07L1G-xyrtc"
+                },
+                {
+                  "title": "💔Divorced and Disappeared—5 Years Later, She Returns with His Child as a Powerful CEO!",
+                  "views": 8664,
+                  "videoId": "5qNdPlIRZI4"
+                },
+                {
+                  "title": "Dulu Korban Bullying🌟Kini Jadi Rebutan Miliarder💥Si Dingin Malah Jadi Bucin😍#cinta #transformasi",
+                  "views": 65607,
+                  "videoId": "UF3Adop_-0I"
+                },
+                {
+                  "title": "💥 Revealing Behavior in Elizabeth Holmes",
+                  "views": 30024,
+                  "videoId": "nTJhSutgSu8"
+                },
+                {
+                  "title": "🔥🔥My ex flaunted her power with her lover. I calmly exposed them and made them a laughingstock.",
+                  "views": 4882,
+                  "videoId": "J_uBNiRFrTw"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 56,
+              "gapScore": 30
+            },
+            "firstVideoIdea": "Um Dia na Vida de um Carrasco Medieval: Justiça ou Brutalidade?",
+            "risk": "Sensibilidade do tema True Crime e a necessidade de pesquisa rigorosa para evitar informações errôneas ou sensacionalismo excessivo."
+          }
+        },
+        {
+          "label": "Filosofia: Mapa + mistério",
+          "status": "pioneiro",
+          "pioneerScore": 56,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "BIBLIA",
+          "savedAt": "2026-07-15T13:29:22.422Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "A saturação moderada (40%) e um gap razoável (49%), combinados com zero canais dedicados, oferecem um bom potencial para ser o pioneiro em um formato visualmente atraente.",
+              "headline": "Filosofia: Mapa + mistério"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Filosofia",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Filosofia — Lugar real no mapa que a história oficial ignorou",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Mapa + mistério",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "filosofia lugar misterioso mapa shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 6,
+              "videoCount": 1669,
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49,
+              "avgTopViews": 4270200,
+              "maxTopViews": 23484203,
+              "sampleChannels": [
+                {
+                  "title": "Você Sabia?",
+                  "channelId": "UCj0O6W8yDuLg3iraAXKgCrQ"
+                },
+                {
+                  "title": "Masha y el Oso",
+                  "channelId": "UCuSo4gcgxJRf4Bzu43wwVyg"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Olhem essas diferenças entre assassinos e psicopatas 😱😳😱 #shorts #curiosidades",
+                  "views": 8090858,
+                  "videoId": "yPMEa2fYnEc"
+                },
+                {
+                  "title": "O Mapa Misterioso",
+                  "views": 816,
+                  "videoId": "CAm9CvsrWVM"
+                },
+                {
+                  "title": "Esse é o maior mistério do Egito Antigo 🤯 #Shorts",
+                  "views": 637504,
+                  "videoId": "xC0V4MIcgsc"
+                },
+                {
+                  "title": "Abu Simbel é um lugar misterioso no mapa. Da Like 👍👍",
+                  "views": 38,
+                  "videoId": "GqHHSjdkr_U"
+                },
+                {
+                  "title": "NA ROMA ANTIGA VOCÊ SERIA RICO OU POBRE? #curiosidades #historia #shorts",
+                  "views": 23484203,
+                  "videoId": "HIy1cSiSXVY"
+                },
+                {
+                  "title": "Positivismo é uma ideia completamente maluca! #shorts",
+                  "views": 33106,
+                  "videoId": "95n3tcg1RHg"
+                },
+                {
+                  "title": "O Segredo Que Está Escondido Neste Manuscrito #shorts #suspense",
+                  "views": 211,
+                  "videoId": "NRgZ3btXpxA"
+                },
+                {
+                  "title": "TODA SALA TINHA ESSES ALUNOS! #shorts",
+                  "views": 10452645,
+                  "videoId": "RYvAnDW8364"
+                },
+                {
+                  "title": "Aventuras filosoficas",
+                  "views": 16,
+                  "videoId": "Wq_pxPFS000"
+                },
+                {
+                  "title": "TOP 3 SÍMBOLOS MISTERIOSOS DA BÍBLIA #shorts",
+                  "views": 2603,
+                  "videoId": "6AB75osijUE"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 56,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "A saturação moderada (40%) e um gap razoável (49%), combinados com zero canais dedicados, oferecem um bom potencial para ser o pioneiro em um formato visualmente atraente."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "Onde Fica a Atlântida? Mitos e Teorias de um Lugar Perdido",
+              "hook": "Filosofia — Lugar real no mapa que a história oficial ignorou"
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Dificuldade de encontrar lugares 'ignorados' que tenham uma narrativa filosófica forte e evidências visuais para Shorts."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Pensadores que querem ideias complexas em linguagem clara."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Mapa + mistério",
+                "Ângulo: Filosofia — Lugar real no mapa que a história oficial ignorou",
+                "Gancho inicial: Onde Fica a Atlântida? Mitos e Teorias de um Lugar Perdido",
+                "Referência: Olhem essas diferenças entre assassinos e psicopatas 😱😳😱 #shorts #curiosidades"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "filosofia lugar misterioso mapa shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Filosofia: Mapa + mistério",
+            "macroNiche": "Filosofia",
+            "angle": "Filosofia — Lugar real no mapa que a história oficial ignorou",
+            "formatPattern": "Mapa + mistério",
+            "youtubeSearchQuery": "filosofia lugar misterioso mapa shorts",
+            "pioneerScore": 56,
+            "saturationPct": 40,
+            "macroSaturationPct": 89,
+            "gapScore": 49,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "A saturação moderada (40%) e um gap razoável (49%), combinados com zero canais dedicados, oferecem um bom potencial para ser o pioneiro em um formato visualmente atraente.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "filosofia lugar misterioso mapa shorts",
+              "channelCount": 6,
+              "videoCount": 1669,
+              "dedicatedChannels": 0,
+              "avgTopViews": 4270200,
+              "maxTopViews": 23484203,
+              "sampleChannels": [
+                {
+                  "title": "Você Sabia?",
+                  "channelId": "UCj0O6W8yDuLg3iraAXKgCrQ"
+                },
+                {
+                  "title": "Masha y el Oso",
+                  "channelId": "UCuSo4gcgxJRf4Bzu43wwVyg"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Olhem essas diferenças entre assassinos e psicopatas 😱😳😱 #shorts #curiosidades",
+                  "views": 8090858,
+                  "videoId": "yPMEa2fYnEc"
+                },
+                {
+                  "title": "O Mapa Misterioso",
+                  "views": 816,
+                  "videoId": "CAm9CvsrWVM"
+                },
+                {
+                  "title": "Esse é o maior mistério do Egito Antigo 🤯 #Shorts",
+                  "views": 637504,
+                  "videoId": "xC0V4MIcgsc"
+                },
+                {
+                  "title": "Abu Simbel é um lugar misterioso no mapa. Da Like 👍👍",
+                  "views": 38,
+                  "videoId": "GqHHSjdkr_U"
+                },
+                {
+                  "title": "NA ROMA ANTIGA VOCÊ SERIA RICO OU POBRE? #curiosidades #historia #shorts",
+                  "views": 23484203,
+                  "videoId": "HIy1cSiSXVY"
+                },
+                {
+                  "title": "Positivismo é uma ideia completamente maluca! #shorts",
+                  "views": 33106,
+                  "videoId": "95n3tcg1RHg"
+                },
+                {
+                  "title": "O Segredo Que Está Escondido Neste Manuscrito #shorts #suspense",
+                  "views": 211,
+                  "videoId": "NRgZ3btXpxA"
+                },
+                {
+                  "title": "TODA SALA TINHA ESSES ALUNOS! #shorts",
+                  "views": 10452645,
+                  "videoId": "RYvAnDW8364"
+                },
+                {
+                  "title": "Aventuras filosoficas",
+                  "views": 16,
+                  "videoId": "Wq_pxPFS000"
+                },
+                {
+                  "title": "TOP 3 SÍMBOLOS MISTERIOSOS DA BÍBLIA #shorts",
+                  "views": 2603,
+                  "videoId": "6AB75osijUE"
+                }
+              ],
+              "saturationPct": 40,
+              "macroSaturationPct": 89,
+              "gapScore": 49
+            },
+            "firstVideoIdea": "Onde Fica a Atlântida? Mitos e Teorias de um Lugar Perdido",
+            "risk": "Dificuldade de encontrar lugares 'ignorados' que tenham uma narrativa filosófica forte e evidências visuais para Shorts."
+          }
+        }
+      ]
+    },
     {
       "id": "e3c7b6ab-7952-42a1-9e8f-8938ac74cb02",
       "type": "scan",

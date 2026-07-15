@@ -23,6 +23,7 @@
 - [[skills/edit-article|edit article]] — doc: [[skills/edit-article/SKILL]]
 - [[skills/epidemic_sound|Epidemic Sound]] — doc: [[skills/epidemic_sound/SKILL]]
 - [[skills/frontend-design|frontend design]] — doc: [[skills/frontend-design/SKILL]]
+- [[skills/geo-video-prompts|geo video prompts]] — doc: [[skills/geo-video-prompts/SKILL]]
 - [[skills/git-guardrails-claude-code|git guardrails claude code]] — doc: [[skills/git-guardrails-claude-code/SKILL]]
 - [[skills/grill-me|grill me]] — doc: [[skills/grill-me/SKILL]]
 - [[skills/grill-with-docs|grill with docs]] — doc: [[skills/grill-with-docs/SKILL]]
@@ -92,4 +93,4 @@
 ## Por que vários arquivos SKILL?
 
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-07T19:13:21.628Z
+atualizado: 2026-07-15T15:45:40.485Z

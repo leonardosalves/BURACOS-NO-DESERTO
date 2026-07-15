@@ -1,240 +1,220 @@
 {
   "version": 2,
-  "savedAt": "2026-07-07T14:31:48.262Z",
+  "savedAt": "2026-07-15T04:32:39.590Z",
   "wasInWizard": true,
   "activeTab": "creator",
-  "activeProject": "ponte_cortada_erro",
+  "activeProject": "Espelho_concreto_ouvia",
   "creatorStep": 1,
-  "nicheInput": "curiosidade engenharia brasil",
+  "nicheInput": "ENGENHARIA",
   "formatSelector": "SHORTS",
   "ideasData": {
     "diagnostic": {
-      "looking_for": "As pessoas buscam explicações lógicas e visuais sobre segredos de infraestrutura e ciência prática escondidos no dia a dia do Brasil.",
-      "pain_points": "Canais concorrentes que trazem fatos muito teóricos ou históricos europeus sem conexão direta com a engenharia prática e curiosa do território nacional.",
-      "desires": "Compreender como desafios gigantescos ou bizarros do cotidiano brasileiro foram resolvidos com soluções geniais ou como falhas ocultas geraram desastres.",
-      "retention_fears": "Explicações excessivamente acadêmicas com fórmulas complexas ou falta de contexto visual claro nos primeiros 3 segundos.",
-      "comment_hooks": "Debates sobre infraestrutura regional, orgulho de invenções locais desconhecidas ou discussões sobre decisões de segurança polêmicas no Brasil.",
-      "title_style": "Títulos extremamente curtos, com substantivo concreto forte, contextualizados com um único emoji ou hashtag relevante no final.",
-      "core_emotion": "Fascinante choque de realidade e revelação ('Eu passo por isso sempre e nunca percebi a genialidade/erro').",
-      "retention_topics": "Estruturas que as pessoas conhecem de nome, mas cujo princípio técnico de funcionamento (acústico, aerodinâmico ou biológico) é um segredo absoluto.",
-      "strong_angle": "Foco no bastidor técnico invisível por trás de eventos culturais, biológicos e urbanos tipicamente brasileiros."
+      "looking_for": "Engenharia aplicada a problemas inusitados, otimizações surpreendentes inspiradas na natureza e sistemas que mudam o funcionamento de esportes ou comunicações extremas.",
+      "pain_points": "Cansaço de explicações teóricas repetitivas ou de megaestruturas já saturadas no YouTube BR.",
+      "desires": "Compreender como o mundo físico à nossa volta é silenciosamente moldado e manipulado por regras lógicas precisas de design.",
+      "retention_fears": "Medo de vídeos puramente acadêmicos que parecem uma aula monótona de física.",
+      "comment_hooks": "Comparações entre custos, limites do corpo humano e debates sobre soluções complexas versus simples em projetos históricos.",
+      "title_style": "Sentenças completas e diretas, com menos de 40 caracteres, focadas em fatos tangíveis ou paradoxos visuais e sonoros.",
+      "core_emotion": "Deslumbramento analítico diante de soluções engenhosas e contraintuitivas.",
+      "retention_topics": "Estruturas que operam nos limites físicos da matéria, acústica espacial extrema e biomimética militar.",
+      "strong_angle": "Mostrar a ciência invisível por trás de objetos, comportamentos ou estruturas que o leigo nunca imaginou terem sido projetados."
     },
     "ideas": [
       {
-        "title": "O som perfeito do Teatro Amazonas 🎭",
-        "promise": "Como os engenheiros de 1896 criaram uma acústica perfeita sem usar nenhuma tecnologia moderna.",
+        "title": "Camarão boxeador inspirou blindagem 🦐",
+        "promise": "Como os engenheiros adaptaram a microestrutura da pata hiperveloz do camarão-pavão para criar novos compósitos blindados ultra-leves.",
         "emotion": "astonishing",
-        "why_works": "Usa a curiosidade cultural do Teatro Amazonas para explicar como uma estrutura côncava e madeiras específicas da Bahia funcionam como um amplificador mecânico gigante.",
         "best_format": "SHORTS",
         "viral_category": "astonishing",
-        "hook_angle": "secret",
-        "hooks": "O segredo acústico escondido sob o palco do Amazonas.",
+        "hook_angle": "shock",
+        "hooks": "Este camarão quebra vidros com força de bala",
         "hook_candidates": [
-          "Por que esse teatro de 1896 tem som perfeito?",
-          "O segredo acústico escondido sob o Teatro Amazonas.",
-          "Como engenheiros antigos amplificaram o som sem caixas?"
+          "O camarão que quebra vidros de aquários",
+          "Engenheiros copiaram o soco desse animal",
+          "A blindagem inspirada em um camarão marinho"
         ],
         "wow_facts_preview": [
-          "Inaugurado em 1896 no auge do ciclo da borracha",
-          "A cúpula usa 36.000 escamas de cerâmica importada",
-          "Teto côncavo funciona como refletor acústico natural de 100%"
+          "Aceleração equivalente a uma bala de calibre 22 sob a água",
+          "Padrão helicoidal de fibras impede a propagação de rachaduras"
         ]
       },
       {
-        "title": "Como os gigantes da Sapucaí andam #Rio",
-        "promise": "A engenharia mecânica oculta que impede carros alegóricos de 15 metros de derrubar fiação elétrica.",
-        "emotion": "impactful",
-        "why_works": "Explica a engenharia hidráulica pesada e os sistemas de rebaixamento de eixos que tornam o carnaval tecnicamente viável.",
+        "title": "O prédio resfriado por cupins #Shorts",
+        "promise": "O funcionamento do Council House 2 que usa a engenharia de circulação térmica passiva de colônias de cupins para eliminar o ar-condicionado convencional.",
+        "emotion": "astonishing",
         "best_format": "SHORTS",
         "viral_category": "practical",
         "hook_angle": "problem_solution",
-        "hooks": "Como carros de 15 metros passam sob os fios?",
+        "hooks": "Este prédio economiza energia imitando cupins gigantes",
         "hook_candidates": [
-          "A engenharia secreta dos carros gigantes da Sapucaí.",
-          "Como monstros de ferro passam embaixo dos fios elétricos?",
-          "O truque hidráulico dos maiores carros de Carnaval."
+          "Ar-condicionado sem energia elétrica?",
+          "Como cupins ensinaram engenharia a Melbourne",
+          "Este edifício funciona como um cupinzeiro"
         ],
         "wow_facts_preview": [
-          "Carros chegam a medir mais de 15 metros de altura",
-          "Sistemas hidráulicos rebaixam a estrutura em até 4 metros",
-          "Chassis pesam mais de 8 toneladas com suspensão adaptada"
+          "Economia de 85 por cento no consumo anual de energia",
+          "Uso de dutos de concreto que imitam chaminés de ventilação biológica"
         ]
       },
       {
-        "title": "A prótese brasileira que lê músculos 💪",
-        "promise": "A tecnologia desenvolvida em Minas Gerais que faz próteses responderem a sinais musculares em milissegundos.",
+        "title": "O avião supersônico sem barulho 🤯",
+        "promise": "A tecnologia aerodinâmica por trás do NASA X-59 que manipula as ondas de choque para fazer jatos supersônicos voarem sem o estrondo clássico.",
         "emotion": "astonishing",
-        "why_works": "Mostra engenharia biomédica de ponta feita no Brasil, trazendo forte identificação e apelo científico moderno.",
         "best_format": "SHORTS",
-        "viral_category": "impactful",
-        "hook_angle": "shock",
-        "hooks": "Cientistas brasileiros criaram uma mão robótica que lê músculos.",
+        "viral_category": "astonishing",
+        "hook_angle": "before_after",
+        "hooks": "A NASA tirou o estrondo dos jatos supersônicos",
         "hook_candidates": [
-          "A prótese brasileira barata que lê movimentos musculares.",
-          "Cientistas de Minas criaram uma mão robótica incrível.",
-          "Como a engenharia biomédica nacional imita o cérebro humano."
+          "O jato supersônico que não faz barulho",
+          "Como a NASA calou o Concorde",
+          "Este avião supersônico faz apenas um clique"
         ],
         "wow_facts_preview": [
-          "Desenvolvida por engenheiros do Inatel em Minas Gerais",
-          "Sensores leem microcorrentes elétricas da pele em tempo real",
-          "Prótese reduz custo de fabricação em até 85%"
+          "Redução do estampido de 110 para apenas 75 decibéis em solo",
+          "Design de nariz alongado de 9 metros impede o choque das ondas de ar"
         ]
       },
       {
-        "title": "O labirinto dos operários a 290m 🤯",
-        "promise": "Como o corpo humano dos operários reage ao balanço físico no topo dos maiores prédios de Santa Catarina.",
-        "emotion": "provocative",
-        "why_works": "Aborda o impacto biofísico da oscilação de edifícios altos sobre o labirinto e o equilíbrio dos construtores brasileiros.",
+        "title": "A sala mais silenciosa da Terra #Tech",
+        "promise": "A engenharia mecânica de isolamento da câmara anecoica da Microsoft projetada para romper os limites físicos de captação sonora.",
+        "emotion": "astonishing",
         "best_format": "SHORTS",
         "viral_category": "provocative",
         "hook_angle": "personal",
-        "hooks": "O que acontece com o corpo a 290 metros?",
+        "hooks": "Ninguém aguenta quarenta e cinco minutos aqui",
         "hook_candidates": [
-          "O efeito bizarro nos operários dos maiores prédios brasileiros.",
-          "Como o cérebro lida com prédios que balançam 1 metro?",
-          "O enjoo de vento que afeta trabalhadores em SC."
+          "A sala mais silenciosa do planeta inteiro",
+          "Onde você ouve seu próprio cérebro funcionando",
+          "A engenharia do quarto sem nenhum eco"
         ],
         "wow_facts_preview": [
-          "Prédios de Balneário Camboriú oscilam até 1 metro no topo",
-          "Labirinto do ouvido humano perde referência de gravidade",
-          "Amortecedores de massa evitam o enjoo de movimento"
+          "Nível recorde de ruído de menos vinte decibéis",
+          "Prédio flutua sobre amortecedores hidráulicos e molas gigantes"
         ]
       },
       {
-        "title": "A língua secreta criada em Itaipu #Obra",
-        "promise": "Como engenheiros criaram um jargão misto de três idiomas para evitar erros fatais na usina.",
+        "title": "A ilha artificial que mudou a Europa",
+        "promise": "A fantástica solução da ilha Peberholm criada para permitir a transição dinâmica entre uma ponte elevada e um túnel submerso.",
         "emotion": "astonishing",
-        "why_works": "Mostra a barreira linguística na maior obra binacional do país e como termos técnicos precisaram ser reinventados.",
         "best_format": "SHORTS",
-        "viral_category": "practical",
-        "hook_angle": "secret",
-        "hooks": "A língua secreta que salvou a usina de Itaipu.",
-        "hook_candidates": [
-          "A mistura de idiomas que evitou desastres em Itaipu.",
-          "Como operários inventaram um dialeto técnico para a barragem.",
-          "O dialeto de três línguas usado na maior usina."
-        ],
-        "wow_facts_preview": [
-          "Mistura de Português, Espanhol e Guarani nos anos 70",
-          "Mais de 40.000 operários trabalhavam simultaneamente sem tradutores",
-          "Manuais técnicos unificados criaram termos exclusivos para segurança"
-        ]
-      },
-      {
-        "title": "Como o trem do Brasil não colide #Trem",
-        "promise": "O antigo sistema mecânico de chaveamento físico que impede colisões frontais até hoje.",
-        "emotion": "impactful",
-        "why_works": "Explica de forma simples e mecânica o funcionamento de um objeto físico pesado de latão usado para controle de tráfego ferroviário.",
-        "best_format": "SHORTS",
-        "viral_category": "practical",
-        "hook_angle": "question",
-        "hooks": "Por que trens de linha única nunca batem de frente?",
-        "hook_candidates": [
-          "O segredo do anel de latão que impede colisões de trens.",
-          "Como ferrovias brasileiras antigas operam sem sinal digital?",
-          "O bastão físico que garante a segurança da linha."
-        ],
-        "wow_facts_preview": [
-          "O sistema usa o 'bastão de staff' mecânico inventado no século 19",
-          "Um trem só pode andar se o maquinista segurar o anel",
-          "Apenas um bastão físico existe para cada trecho ferroviário"
-        ]
-      },
-      {
-        "title": "Represa de Orós quase ruiu em 1960 🌊",
-        "promise": "Como engenheiros correram contra o tempo para evacuar 100 mil pessoas antes do rompimento parcial da barragem.",
-        "emotion": "provocative",
-        "why_works": "Narra o desastre climático histórico no Ceará que testou os limites da engenharia de solo e as decisões extremas sob chuva.",
-        "best_format": "SHORTS",
-        "viral_category": "astonishing",
+        "viral_category": "impactful",
         "hook_angle": "breaking",
-        "hooks": "O dia em que o Ceará quase afundou em 1960.",
+        "hooks": "Engenheiros criaram uma ilha do absoluto zero",
         "hook_candidates": [
-          "A grande corrida contra o colapso da barragem de Orós.",
-          "Como a maior barragem de terra do Brasil quase sumiu.",
-          "O plano de evacuação de 100 mil cearenses na tempestade."
+          "A ponte que vira túnel no mar",
+          "O aeroporto que obrigou a criar uma ilha",
+          "Por que a ponte de Oresund some do nada"
         ],
         "wow_facts_preview": [
-          "Ocorreu em março de 1960 após chuvas recordes no Nordeste",
-          "A barragem de terra ainda não estava totalmente concluída",
-          "A água galgou a crista abrindo uma fenda gigante"
+          "Túnel sob a água construído para não interromper pousos de aviões",
+          "Peberholm foi erguida apenas com material dragado do leito marítimo"
         ]
       },
       {
-        "title": "O erro térmico que condenou o Joelma",
-        "promise": "Como o projeto aerodinâmico do topo do prédio impediu o resgate por helicópteros em 1974.",
-        "emotion": "provocative",
-        "why_works": "Análise técnica fria de um erro de engenharia de segurança térmica em São Paulo que mudou as normas nacionais para sempre.",
+        "title": "A barreira de Veneza contra o mar",
+        "promise": "A mecânica do sistema MOSE que flutua comportas de metal gigantes com ar comprimido para repelir tempestades oceânicas históricas.",
+        "emotion": "astonishing",
+        "best_format": "SHORTS",
+        "viral_category": "practical",
+        "hook_angle": "problem_solution",
+        "hooks": "Veneza estava afundando até criarem estas comportas",
+        "hook_candidates": [
+          "O escudo gigante que salva Veneza",
+          "Comportas que sobem com ar comprimido",
+          "A engenharia que para o mar adriático"
+        ],
+        "wow_facts_preview": [
+          "78 barreiras metálicas móveis instaladas no fundo da lagoa",
+          "Sistema acionado em apenas 30 minutos esvaziando água com ar"
+        ]
+      },
+      {
+        "title": "Pedras de curling vêm de uma ilha 🥌",
+        "promise": "A engenharia mineral e física por trás do granito de Ailsa Craig que permite às pedras olímpicas deslizarem sem rachar sob colisões extremas.",
+        "emotion": "astonishing",
         "best_format": "SHORTS",
         "viral_category": "provocative",
-        "hook_angle": "shock",
-        "hooks": "Por que helicópteros não conseguiram pousar no Joelma?",
+        "hook_angle": "secret",
+        "hooks": "Toda pedra olímpica de curling vem deste local",
         "hook_candidates": [
-          "O erro aerodinâmico fatal no topo do Edifício Joelma.",
-          "Como a física do ar quente impediu o resgate aéreo.",
-          "A falha de engenharia térmica no pior incêndio de SP."
+          "O esporte que depende de uma ilha isolada",
+          "O segredo por trás do granito olímpico",
+          "Por que o curling só usa pedra escocesa"
         ],
         "wow_facts_preview": [
-          "Incêndio de 1974 em São Paulo gerou calor extremo no topo",
-          "A coluna de ar quente subindo atingiu temperaturas acima de 200°C",
-          "A turbulência gerada impediu a aproximação estável de helicópteros"
+          "Único depósito mineral no mundo livre de absorção de água que evita congelamento interno",
+          "Lapidação micrométrica sob estritas especificações de coeficiente de atrito"
         ]
       },
       {
-        "title": "Prédio brasileiro copiado de cupins 🐜",
-        "promise": "Como arquitetos copiaram a ventilação interna de ninhos de insetos para refrigerar prédios no Cerrado.",
+        "title": "Cadeira de rodas com túnel de vento",
+        "promise": "Como engenheiros automobilísticos projetaram cadeiras de rodas de paratletas usando os mesmos testes aerodinâmicos de carros de corrida.",
         "emotion": "astonishing",
-        "why_works": "Mostra a fantástica conexão da biomimética aplicada à arquitetura corporativa moderna no Centro-Oeste brasileiro.",
+        "best_format": "SHORTS",
+        "viral_category": "impactful",
+        "hook_angle": "personal",
+        "hooks": "Esta cadeira de rodas usa tecnologia de Fórmula um",
+        "hook_candidates": [
+          "Fórmula 1 desenhando cadeira de rodas",
+          "Aerodinâmica oculta nos esportes paralímpicos",
+          "Cadeira de fibra de carbono ultra rápida"
+        ],
+        "wow_facts_preview": [
+          "Redução de arrasto em mais de vinte por cento com testes em escala real",
+          "Posicionamento do piloto ajustado com scanners a laser milimétricos"
+        ]
+      },
+      {
+        "title": "O pedal que impede trens de bater #Trem",
+        "promise": "A lógica do sistema de vigilância por pedal nos trens rápidos que avalia ativamente o comportamento neurológico dos operadores.",
+        "emotion": "astonishing",
         "best_format": "SHORTS",
         "viral_category": "practical",
-        "hook_angle": "before_after",
-        "hooks": "Eles usaram arquitetura de insetos para esfriar este prédio.",
+        "hook_angle": "challenge",
+        "hooks": "Este pedal impede desastres de trem a cada minuto",
         "hook_candidates": [
-          "Como cupinzeiros inspiraram o design de prédios no Brasil.",
-          "O prédio que imita a refrigeração natural do cupim.",
-          "Design biomimético brasileiro reduz ar condicionado usando insetos."
+          "O botão do homem morto em ferrovias",
+          "Se o maquinista dormir, o pedal para",
+          "O teste físico constante para trens velozes"
         ],
         "wow_facts_preview": [
-          "Inspirado no projeto do edifício Solum Hub e termorregulação de cupins",
-          "Túneis subterrâneos puxam ar frio e expelem ar quente no topo",
-          "Reduz a necessidade de uso de ar condicionado ativo em até 40%"
+          "Exige pulsação manual periódica e randômica a cada sessenta segundos",
+          "Freio automático absoluto engatado caso o maquinista perca a consciência"
         ]
       },
       {
-        "title": "O molusco que quase parou Itaipu #Fato",
-        "promise": "A guerra biológica travada por engenheiros contra o mexilhão-dourado que entope os sistemas de refrigeração.",
-        "emotion": "impactful",
-        "why_works": "Une ecologia de espécies invasoras e a manutenção pesada da maior hidrelétrica do Brasil em um Short dinâmico.",
+        "title": "A voz humana compactada para guerra",
+        "promise": "A engenharia de compressão digital de som usada por militares para transmitir mensagens em largura de banda minúscula sob interferência eletrônica extrema.",
+        "emotion": "astonishing",
         "best_format": "SHORTS",
-        "viral_category": "astonishing",
-        "hook_angle": "challenge",
-        "hooks": "Este pequeno animal asiático quase apagou o Brasil.",
+        "viral_category": "provocative",
+        "hook_angle": "secret",
+        "hooks": "Criptografia de rádio reduz sua voz ao mínimo",
         "hook_candidates": [
-          "Como um mini mexilhão ameaçou desligar a hidrelétrica de Itaipu.",
-          "A batalha secreta dos engenheiros contra mexilhões em Itaipu.",
-          "O molusco invasor que entope os sistemas de refrigeração."
+          "A voz eletrônica que cruza linhas inimigas",
+          "Como exércitos comprimem som sem perder sinal",
+          "O algoritmo matemático da voz em rádio"
         ],
         "wow_facts_preview": [
-          "O mexilhão-dourado chegou da Ásia acidentalmente em navios",
-          "Milhares de mexilhões grudam nos tubos de resfriamento das turbinas",
-          "Engenheiros usam revestimentos químicos e de cobre para conter a praga"
+          "Compactação para meros 2400 bits por segundo sem perda de inteligibilidade",
+          "Tecnologia LPC que imita o aparelho fonador humano para recriar o áudio sinteticamente"
         ]
       }
     ],
-    "best_idea_index": 8,
-    "best_idea_reason": "A ideia 'Prédio brasileiro copiado de cupins 🐜' une perfeitamente a engenharia bioclimática com a biologia prática e inusitada do Cerrado (biomimética). Ela explica de forma incrivelmente simples e visual como uma solução da natureza resolveu o maior problema da arquitetura moderna no calor brasileiro: o custo energético de refrigeração. O gancho inicial que conecta insetos à construção civil desperta curiosidade extrema imediata, garantindo alta retenção nos primeiros segundos de Short.",
+    "best_idea_index": 3,
+    "best_idea_reason": "A ideia de índice 3 ('A sala mais silenciosa da Terra #Tech') explora a área de acústica e design sensorial, criando forte apelo pessoal ao cruzar os limites biológicos do cérebro com uma solução física extrema (menos de zero decibéis reais). Vídeos sobre salas anecoicas convertem em grande número de cliques e mantêm alta retenção pelo senso de curiosidade mórbida de 'enlouquecer no silêncio', sendo idealmente explicados por conceitos mecânicos tangíveis de absorção de ondas.",
     "_ideas_meta": {
-      "generationSeed": 979425889,
+      "generationSeed": 442976508,
       "excludedCount": 40,
       "usedDeepResearch": true,
       "deepResearch": {
-        "factCount": 12,
-        "derivedIdeas": 3,
+        "factCount": 0,
+        "derivedIdeas": 0,
         "outlierCount": 0,
         "legs": {
-          "web": true,
-          "exa": true,
-          "notebooklm": true,
+          "web": false,
+          "exa": false,
+          "notebooklm": false,
           "competitors": true
         },
         "legErrors": 0
@@ -243,11 +223,12 @@
       "usedNotebooklm": false
     }
   },
-  "selectedIdeaIndex": 5,
+  "selectedIdeaIndex": 3,
   "generatedScriptData": null,
-  "creatorProjectName": "trem_Brasil_nao",
+  "creatorProjectName": "sala_silenciosa_Terra",
   "creatorScript": "",
   "ideationTab": "ai",
+  "historicalWitnessContext": null,
   "customTitle": "",
   "customHooks": "",
   "customOutline": "",
@@ -257,10 +238,10 @@
       "content": ""
     }
   ],
-  "customIdeaTitle": "Como o trem do Brasil não colide #Trem",
-  "customIdeaPromise": "O antigo sistema mecânico de chaveamento físico que impede colisões frontais até hoje.",
+  "customIdeaTitle": "A sala mais silenciosa da Terra #Tech",
+  "customIdeaPromise": "A engenharia mecânica de isolamento da câmara anecoica da Microsoft projetada para romper os limites físicos de captação sonora.",
   "customIdeaHook": "",
-  "customIdeaEmotion": "impactful",
+  "customIdeaEmotion": "astonishing",
   "customIdeaBlocks": "",
   "listNiche": "",
   "listTopic": "",
@@ -269,7 +250,7 @@
   "listicleHudStyle": "auto",
   "listicleIdeasData": null,
   "listicleSearchNiche": "",
-  "ideasSearchNiche": "curiosidade engenharia brasil",
+  "ideasSearchNiche": "ENGENHARIA",
   "selectedListicleIdeaIndex": -1,
   "showNarrationReview": false,
   "narrationDraft": "",
@@ -279,7 +260,9 @@
   "narrationBlockScript": "",
   "narrationNotebooklmEnriched": false,
   "narrationProjectName": "",
-  "useNotebooklm": true,
+  "notebooklmSession": null,
+  "useNotebooklm": false,
+  "notebooklmDeep": false,
   "useDeepResearch": true,
   "uploadedScenes": {},
   "expandedBlocks": {
