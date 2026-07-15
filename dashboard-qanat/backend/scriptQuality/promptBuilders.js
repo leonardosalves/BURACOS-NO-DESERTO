@@ -1,5 +1,3 @@
-import { fileURLToPath } from "url";
-import path from "path";
 import { buildConsolidatedGuidelines } from "./guidelines.js";
 import {
   VIRAL_HOOK_TYPES,
@@ -22,10 +20,28 @@ import {
   SHORTS_VIDEO_SCENE_TYPE,
   IMAGE_SCENE_TYPE,
 } from "./visualPromptPipeline.js";
+function resolveUserBlockCount(idea = {}, format = "LONGO") {
+  if (Array.isArray(idea?.blocks) && idea.blocks.length > 0) return idea.blocks.length;
+  return format === "SHORTS" ? 4 : 8;
+}
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const WORKSPACE_DIR = path.resolve(__dirname, "../../..");
+function resolveScriptRules({ isListicle, listicleRank, rankOrder, format, listicleTopic, listicleBlockCount }) {
+  return isListicle
+    ? buildListicleScriptRules({
+        rankCount: listicleRank,
+        rankOrder: rankOrder || "desc",
+        format,
+        listTopic: listicleTopic,
+        blockCount: listicleBlockCount,
+      })
+    : buildFormatScriptRules(format);
+}
+
+function resolveHistoricalWitnessBlock(isHistoricalWitness, historicalWitness) {
+  return isHistoricalWitness
+    ? buildHistoricalWitnessContractBlock(historicalWitness)
+    : "";
+}
 
 export function buildFormatScriptRules(format = "LONGO") {
   if (format === "SHORTS") {
@@ -287,6 +303,7 @@ Responda APENAS JSON válido (sem markdown, sem texto extra):
 }
 
 function normalizeRankingIdeaItem(item = {}) {
+  const pickStr = (...vals) => String(vals.find((v) => v) ?? "").trim();
   const count = Number(
     item.suggested_rank_count ??
       item.suggestedRankCount ??
@@ -295,33 +312,13 @@ function normalizeRankingIdeaItem(item = {}) {
       0
   );
   return {
-    title: String(item.title || item.titulo || "").trim(),
+    title: pickStr(item.title, item.titulo),
     suggested_rank_count: count > 0 ? count : 15,
-    list_topic: String(
-      item.list_topic || item.listTopic || item.tema || item.topic || ""
-    ).trim(),
-    listicle_angle: String(
-      item.listicle_angle ||
-        item.listicleAngle ||
-        item.angle ||
-        item.angulo ||
-        ""
-    ).trim(),
-    promise: String(item.promise || item.promessa || "").trim(),
-    why_interesting: String(
-      item.why_interesting ||
-        item.whyInteresting ||
-        item.why_it_works ||
-        item.por_que ||
-        ""
-    ).trim(),
-    controversy_hook: String(
-      item.controversy_hook ||
-        item.controversyHook ||
-        item.gancho ||
-        item.hook ||
-        ""
-    ).trim(),
+    list_topic: pickStr(item.list_topic, item.listTopic, item.tema, item.topic),
+    listicle_angle: pickStr(item.listicle_angle, item.listicleAngle, item.angle, item.angulo),
+    promise: pickStr(item.promise, item.promessa),
+    why_interesting: pickStr(item.why_interesting, item.whyInteresting, item.why_it_works, item.por_que),
+    controversy_hook: pickStr(item.controversy_hook, item.controversyHook, item.gancho, item.hook),
     sample_items: Array.isArray(item.sample_items)
       ? item.sample_items
       : Array.isArray(item.sampleItems)
@@ -329,10 +326,8 @@ function normalizeRankingIdeaItem(item = {}) {
         : Array.isArray(item.exemplos)
           ? item.exemplos
           : [],
-    emotion: String(item.emotion || item.emocao || "").trim(),
-    best_format: String(
-      item.best_format || item.bestFormat || item.formato || "LONGO"
-    ).trim(),
+    emotion: pickStr(item.emotion, item.emocao),
+    best_format: pickStr(item.best_format, item.bestFormat, item.formato) || "LONGO",
   };
 }
 
@@ -448,7 +443,7 @@ ESTRUTURA DOS BLOCOS:
 - Blocos 2-${blockCount - 1} (ITENS): EXATAMENTE 1 item por bloco, nesta ordem:
   ${orderDesc ? `  • Bloco 2 = item #${itemBlocks}, bloco 3 = #${itemBlocks - 1} ... bloco ${blockCount - 1} = #1` : `  • Bloco 2 = item #1, bloco 3 = #2 ... bloco ${blockCount - 1} = #${itemBlocks}`}
   Cada bloco de item DEVE conter:
-    1. Chamada do ranking ("Número ${orderDesc ? "X" : "X"}..." ou "Em ${orderDesc ? "X" : "X"}º lugar...")
+    1. Chamada do ranking ("Número X..." ou "Em Xº lugar...")
     2. Nome do item/invenção/evento (claro e específico)
     3. Contexto: ano, inventor, país ou civilização (quando aplicável)
     4. ${format === "SHORTS" ? "1 fato concreto que surpreende (o mais forte — não enfileire fatos)" : "2 fatos concretos que surpreendem"}
@@ -577,16 +572,20 @@ Responda APENAS JSON com as chaves:
 visual_orchestration e OPCIONAL mas recomendado: so inclua placements com dados reais da narração (numero, citação, nome/lugar). Nao invente estatisticas. Quote e lower_third so se fizerem sentido.`;
 }
 
-export function buildIdeaContextHeader({
-  niche,
-  format,
-  idea = {},
-  isListicle = false,
-  listicleRank = 20,
-  listicleTopic = "",
-  rankOrder = "desc",
-  listicleBlockCount = 22,
-} = {}) {
+export function buildIdeaContextHeader(params = {}) {
+  if (process.env.NODE_ENV !== "production" && ("listTopic" in params || "blockCount" in params)) {
+    console.warn("[promptBuilders] buildIdeaContextHeader: use listicleTopic/listicleBlockCount");
+  }
+  const {
+    niche,
+    format,
+    idea = {},
+    isListicle = false,
+    listicleRank = 20,
+    listicleTopic = "",
+    rankOrder = "desc",
+    listicleBlockCount = 22,
+  } = params;
   let header = `O usuário selecionou a seguinte ideia de vídeo para o nicho "${niche}" (Formato: "${format}")${isListicle ? ` — MODO LISTICLE TOP ${listicleRank}` : ""}:
 
 Título: "${idea.title || ""}"
@@ -731,11 +730,8 @@ ${VISUAL_PROMPT_SPECIFICITY_RULES}
 `;
 }
 
-export function buildVisualPromptsJsonSchema({
-  blockCount = 5,
-  isListicle = false,
-  listicleRank = 20,
-} = {}) {
+export function buildVisualPromptsJsonSchema() {
+  // Nota: parâmetros blockCount, isListicle e listicleRank removidos pois não são usados.
   return `
 4. "visual_prompts": [
    GERE UM OBJETO PARA CADA SEGMENTO DA NARRAÇÃO. Cubra o vídeo inteiro. Cada objeto:
@@ -931,9 +927,9 @@ export function buildNarrationOnlyPrompt({
     idea,
     isListicle,
     listicleRank,
-    listTopic: listicleTopic,
+    listicleTopic,
     rankOrder,
-    blockCount: listicleBlockCount,
+    listicleBlockCount,
   });
 
   const inputsBlock = buildNarracaoProInputsBlock({
@@ -943,12 +939,7 @@ export function buildNarrationOnlyPrompt({
     listTopic: listicleTopic,
   });
 
-  const userBlockCount =
-    Array.isArray(idea?.blocks) && idea.blocks.length > 0
-      ? idea.blocks.length
-      : format === "SHORTS"
-        ? 4
-        : 8;
+  const userBlockCount = resolveUserBlockCount(idea, format);
 
   const isPioneerNiche =
     idea?.pioneerNiche === true || Boolean(idea?.pioneerMeta);
@@ -960,9 +951,7 @@ export function buildNarrationOnlyPrompt({
   const narrationTemplateBlock = remotionTemplateContext
     ? `\n[CONTRATOS DOS TEMPLATES REMOTION APROVADOS]\n${remotionTemplateContext}\nUse esses contratos apenas para tornar a narração visualmente orquestrável: quando for natural e sustentado pelas fontes, deixe explícitos entidade, local, data, número, unidade, comparação e relação causal necessários aos data_slots. Não acrescente fatos, listas ou números apenas para alimentar um template. A tese e a clareza do NARRACAOPRO continuam prioritárias.\n`
     : "";
-  const historicalWitnessBlock = isHistoricalWitness
-    ? buildHistoricalWitnessContractBlock(historicalWitness)
-    : "";
+  const historicalWitnessBlock = resolveHistoricalWitnessBlock(isHistoricalWitness, historicalWitness);
   const povBlock = buildPovContractBlock({
     enablePov,
     placement: povPlacement,
@@ -988,17 +977,7 @@ Gere SOMENTE a narração completa do vídeo em português brasileiro. NÃO gere
 
 ${SCRIPT_CREATIVE_REINFORCEMENT}
 
-${
-  isListicle
-    ? buildListicleScriptRules({
-        rankCount: listicleRank,
-        rankOrder: rankOrder || "desc",
-        format,
-        listTopic: listicleTopic,
-        blockCount: listicleBlockCount,
-      })
-    : buildFormatScriptRules(format)
-}
+${resolveScriptRules({ isListicle, listicleRank, rankOrder, format, listicleTopic, listicleBlockCount })}
 
 ${format === "SHORTS" && !isListicle ? VIRAL_SHORT_FORM_REINFORCEMENT : ""}
 
@@ -1136,17 +1115,7 @@ ${taggedBlock}
 
 ${SCRIPT_CREATIVE_REINFORCEMENT}
 
-${
-  isListicle
-    ? buildListicleScriptRules({
-        rankCount: listicleRank,
-        rankOrder: rankOrder || "desc",
-        format,
-        listTopic: listicleTopic,
-        blockCount: listicleBlockCount,
-      })
-    : buildFormatScriptRules(format)
-}
+${resolveScriptRules({ isListicle, listicleRank, rankOrder, format, listicleTopic, listicleBlockCount })}
 
 ${titleCraftRules}
 
@@ -1168,7 +1137,7 @@ FORMATO DE RESPOSTA — JSON válido com:
 1. "strategy" (title_main, title_variations, hook, target_audience, tone, pinned_comment, cta)
 2. "narrative_script" (texto aprovado, idêntico)
 3. "narrative_script_tagged"
-${buildVisualPromptsJsonSchema({ blockCount: listicleBlockCount, isListicle, listicleRank })}
+${buildVisualPromptsJsonSchema()}
 5. "bgm_recommendations"
 6. "editing_map"
 7. "hyperframe_prompt"
@@ -1227,9 +1196,7 @@ export function buildCreatorPhase2Prompt(ctx = {}) {
   const templateBlock = remotionTemplateContext
     ? `\nCATÁLOGO REMOTION TEMPLATE STUDIO APROVADO PARA ESTE VÍDEO:\n${remotionTemplateContext}\n\nUse somente esses templates nas cenas Remotion. Para cada cena compatível, escolha o template que melhor explica o trecho e forneça em production os fatos necessários para preencher seus data_slots. Não invente dados para preencher slots. Preserve a narração aprovada sem alterações.`
     : "";
-  const historicalWitnessBlock = isHistoricalWitness
-    ? buildHistoricalWitnessContractBlock(historicalWitness)
-    : "";
+  const historicalWitnessBlock = resolveHistoricalWitnessBlock(isHistoricalWitness, historicalWitness);
   const povBlock = buildPovContractBlock({
     enablePov,
     placement: povPlacement,
@@ -1264,7 +1231,7 @@ Responda APENAS JSON válido (sem markdown) com:
 1. "strategy" (title_main, title_variations[3], hook, target_audience, tone, pinned_comment, cta)
 2. "narrative_script" (idêntico à narração aprovada)
 3. "narrative_script_tagged"
-${buildVisualPromptsJsonSchema({ blockCount: listicleBlockCount, isListicle, listicleRank })}
+${buildVisualPromptsJsonSchema()}
 5. "bgm_recommendations" (um por bloco)
 6. "editing_map"
 7. "hyperframe_prompt"
@@ -1302,9 +1269,9 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
     idea,
     isListicle,
     listicleRank,
-    listTopic: listicleTopic,
+    listicleTopic,
     rankOrder,
-    blockCount: listicleBlockCount,
+    listicleBlockCount,
   });
 
   const inputsBlock = buildNarracaoProInputsBlock({
@@ -1330,15 +1297,7 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
     if (webResearchContext) customAddendum += webResearchContext;
   }
 
-  const formatRules = isListicle
-    ? buildListicleScriptRules({
-        rankCount: listicleRank,
-        rankOrder: rankOrder || "desc",
-        format,
-        listTopic: listicleTopic,
-        blockCount: listicleBlockCount,
-      })
-    : buildFormatScriptRules(format);
+  const formatRules = resolveScriptRules({ isListicle, listicleRank, rankOrder, format, listicleTopic, listicleBlockCount });
 
   const titleRules =
     titleCraftRules ||
@@ -1355,16 +1314,9 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
       },
       { listicle: { topic: listicleTopic } }
     );
-  const historicalWitnessBlock = isHistoricalWitness
-    ? buildHistoricalWitnessContractBlock(historicalWitness)
-    : "";
+  const historicalWitnessBlock = resolveHistoricalWitnessBlock(isHistoricalWitness, historicalWitness);
 
-  const userBlockCount =
-    Array.isArray(idea?.blocks) && idea.blocks.length > 0
-      ? idea.blocks.length
-      : format === "SHORTS"
-        ? 4
-        : 8;
+  const userBlockCount = resolveUserBlockCount(idea, format);
   const povBlock = buildPovContractBlock({
     enablePov,
     placement: povPlacement,
@@ -1465,7 +1417,7 @@ FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 1. "strategy": { "title_main", "title_variations" (5), "hook", "target_audience", "tone", "pinned_comment", "cta" }
 2. "narrative_script": narração COMPLETA em texto corrido (limpa, sem tags).
 3. "narrative_script_tagged": mesma narração com tags de áudio ([pause], (breath), <break time="1.5s"/>, etc.).
-${buildVisualPromptsJsonSchema({ blockCount: listicleBlockCount, isListicle, listicleRank })}
+${buildVisualPromptsJsonSchema()}
 5. "bgm_recommendations": [ um objeto por bloco com "block", "recommendation", "search_theme" ]
 6. "editing_map"
 7. "hyperframe_prompt"
