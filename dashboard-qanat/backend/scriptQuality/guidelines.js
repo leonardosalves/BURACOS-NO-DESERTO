@@ -1,3 +1,4 @@
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { loadFileCached } from "../shared/cachedFileLoader.js";
@@ -7,12 +8,18 @@ const __dirname = path.dirname(__filename);
 const WORKSPACE_DIR = path.resolve(__dirname, "../../..");
 
 export function loadNarracaoProGuidelines() {
-  return loadFileCached(path.join(WORKSPACE_DIR, ".agents", "NARRACAOPRO.md"));
+  return loadPreferredGuideline("NARRACAOPRO.md");
 }
 
 export function loadComousarAnarracaoProGuidelines() {
+  return loadPreferredGuideline("COMOUSARANARRACAOPRO.md");
+}
+
+function loadPreferredGuideline(filename) {
+  const workspaceVersion = path.join(WORKSPACE_DIR, filename);
+  const legacyAgentVersion = path.join(WORKSPACE_DIR, ".agents", filename);
   return loadFileCached(
-    path.join(WORKSPACE_DIR, ".agents", "COMOUSARANARRACAOPRO.md")
+    fs.existsSync(workspaceVersion) ? workspaceVersion : legacyAgentVersion
   );
 }
 

@@ -69,10 +69,12 @@ export type AppCreatorTabProps = {
   customIdeaHook: string;
   customIdeaPromise: string;
   customIdeaTitle: string;
+  customIdeaOpportunity: any;
   customOutline: string;
   customTitle: string;
   dragActive: boolean;
   editorialIdeaImport: any;
+  enablePov: boolean;
   expandedBlocks: Record<number, boolean>;
   fetchData: () => void | Promise<void>;
   formatSelector: "LONGO" | "SHORTS";
@@ -167,9 +169,11 @@ export type AppCreatorTabProps = {
   setCustomIdeaHook: (v: string) => void;
   setCustomIdeaPromise: (v: string) => void;
   setCustomIdeaTitle: (v: string) => void;
+  setCustomIdeaOpportunity: (v: any) => void;
   setCustomOutline: (v: string) => void;
   setCustomTitle: (v: string) => void;
   setEditorialIdeaImport: (v: any) => void;
+  setEnablePov: (v: boolean) => void;
   setExpandedBlocks: React.Dispatch<
     React.SetStateAction<Record<number, boolean>>
   >;
@@ -236,10 +240,12 @@ export function AppCreatorTab({
   customIdeaHook,
   customIdeaPromise,
   customIdeaTitle,
+  customIdeaOpportunity,
   customOutline,
   customTitle,
   dragActive,
   editorialIdeaImport,
+  enablePov,
   expandedBlocks,
   fetchData,
   formatSelector,
@@ -313,9 +319,11 @@ export function AppCreatorTab({
   setCustomIdeaHook,
   setCustomIdeaPromise,
   setCustomIdeaTitle,
+  setCustomIdeaOpportunity,
   setCustomOutline,
   setCustomTitle,
   setEditorialIdeaImport,
+  setEnablePov,
   setExpandedBlocks,
   setFormatSelector,
   setHistoricalWitnessContext,
@@ -362,7 +370,6 @@ export function AppCreatorTab({
       ready: boolean;
       blockers: string[];
     }>({ ready: false, blockers: [] });
-  const [customIdeaReview, setCustomIdeaReview] = React.useState<any>(null);
   const [customIdeaReviewLoading, setCustomIdeaReviewLoading] =
     React.useState(false);
 
@@ -388,7 +395,10 @@ export function AppCreatorTab({
       if (!response.ok) {
         throw new Error(data.error || "Falha ao analisar a ideia.");
       }
-      setCustomIdeaReview(data);
+      setCustomIdeaOpportunity({
+        ...data,
+        _evaluated_title: customTitle.trim(),
+      });
       toast.success("Diagnóstico editorial concluído.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha na análise.");
@@ -398,23 +408,23 @@ export function AppCreatorTab({
   };
 
   const applyCustomIdeaReview = () => {
-    if (!customIdeaReview) return;
-    if (customIdeaReview.improved_title)
-      setCustomTitle(customIdeaReview.improved_title);
-    if (customIdeaReview.improved_hook)
-      setCustomHooks(customIdeaReview.improved_hook);
-    if (customIdeaReview.improved_promise)
-      setCustomOutline(customIdeaReview.improved_promise);
-    if (Array.isArray(customIdeaReview.suggested_blocks)) {
+    if (!customIdeaOpportunity) return;
+    if (customIdeaOpportunity.improved_title)
+      setCustomTitle(customIdeaOpportunity.improved_title);
+    if (customIdeaOpportunity.improved_hook)
+      setCustomHooks(customIdeaOpportunity.improved_hook);
+    if (customIdeaOpportunity.improved_promise)
+      setCustomOutline(customIdeaOpportunity.improved_promise);
+    if (Array.isArray(customIdeaOpportunity.suggested_blocks)) {
       setCustomBlocks(
-        customIdeaReview.suggested_blocks.map((content: string, index: number) => ({
+        customIdeaOpportunity.suggested_blocks.map((content: string, index: number) => ({
           block: index + 1,
           content,
         }))
       );
     }
-    if (["SHORTS", "LONGO"].includes(customIdeaReview.format_fit)) {
-      setFormatSelector(customIdeaReview.format_fit);
+    if (["SHORTS", "LONGO"].includes(customIdeaOpportunity.format_fit)) {
+      setFormatSelector(customIdeaOpportunity.format_fit);
     }
     toast.success("Melhorias premium aplicadas. Você ainda pode editar tudo.");
   };
@@ -468,6 +478,22 @@ export function AppCreatorTab({
           >
             Restaurar sessão
           </button>
+          <label
+            className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1 font-bold transition ${
+              enablePov
+                ? "border-violet-400/45 bg-violet-500/15 text-violet-200"
+                : "border-zinc-700 bg-zinc-900/70 text-zinc-400 hover:border-violet-500/35"
+            }`}
+            title="Mantém a narração e os prompts visuais no ponto de vista do personagem ou testemunha escolhido."
+          >
+            <input
+              type="checkbox"
+              checked={enablePov}
+              onChange={(event) => setEnablePov(event.target.checked)}
+              className="accent-violet-500"
+            />
+            POV em primeira pessoa
+          </label>
         </div>
 
         <button
@@ -836,30 +862,30 @@ export function AppCreatorTab({
                       : "Analisar e melhorar minha ideia"}
                   </button>
 
-                  {customIdeaReview && (
+                  {customIdeaOpportunity && (
                     <div className="space-y-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4 text-[10px]">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded bg-cyan-500/15 px-2 py-1 font-bold uppercase text-cyan-200">
-                          {customIdeaReview.verdict || "analisada"}
+                          {customIdeaOpportunity.verdict || "analisada"}
                         </span>
                         <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-300">
-                          Realidade: {customIdeaReview.reality_status}
+                          Realidade: {customIdeaOpportunity.reality_status}
                         </span>
                         <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-300">
-                          Saturação: {customIdeaReview.saturation_level}
+                          Saturação: {customIdeaOpportunity.saturation_level}
                         </span>
                         <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-300">
-                          {customIdeaReview.format_fit} · {customIdeaReview.recommended_duration}
+                          {customIdeaOpportunity.format_fit} · {customIdeaOpportunity.recommended_duration}
                         </span>
                       </div>
-                      <p className="leading-relaxed text-zinc-300">{customIdeaReview.summary}</p>
-                      {customIdeaReview.evidence_anchor && (
-                        <p className="text-zinc-400"><strong className="text-zinc-200">Base real:</strong> {customIdeaReview.evidence_anchor}</p>
+                      <p className="leading-relaxed text-zinc-300">{customIdeaOpportunity.summary}</p>
+                      {customIdeaOpportunity.evidence_anchor && (
+                        <p className="text-zinc-400"><strong className="text-zinc-200">Base real:</strong> {customIdeaOpportunity.evidence_anchor}</p>
                       )}
-                      <p className="text-zinc-400"><strong className="text-zinc-200">Lacuna:</strong> {customIdeaReview.undercovered_reason || "não confirmada"}</p>
-                      <p className="text-zinc-400"><strong className="text-zinc-200">Upgrade premium:</strong> {customIdeaReview.premium_upgrade}</p>
-                      {customIdeaReview.validation_needed && (
-                        <p className="text-amber-300/80"><strong>Validar:</strong> {customIdeaReview.validation_needed}</p>
+                      <p className="text-zinc-400"><strong className="text-zinc-200">Lacuna:</strong> {customIdeaOpportunity.undercovered_reason || "não confirmada"}</p>
+                      <p className="text-zinc-400"><strong className="text-zinc-200">Upgrade premium:</strong> {customIdeaOpportunity.premium_upgrade}</p>
+                      {customIdeaOpportunity.validation_needed && (
+                        <p className="text-amber-300/80"><strong>Validar:</strong> {customIdeaOpportunity.validation_needed}</p>
                       )}
                       <button
                         type="button"

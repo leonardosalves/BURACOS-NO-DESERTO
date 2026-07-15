@@ -44,6 +44,58 @@ const MAX_WHISPER_WORD_DURATION_S = 2.5;
 const MAX_WHISPER_INTER_WORD_GAP_S = 1.2;
 const MIN_WHISPER_TOKEN_COVERAGE = 0.72;
 
+export function normalizeNarrationIntegrityText(text = "") {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
+
+export function hashNarrationIntegrityText(text = "") {
+  return crypto
+    .createHash("sha256")
+    .update(normalizeNarrationIntegrityText(text), "utf8")
+    .digest("hex");
+}
+
+export function assertNarrationChunksPreserveSource(chunks = [], sourceText = "") {
+  const source = normalizeNarrationIntegrityText(sourceText);
+  for (const chunk of chunks || []) {
+    const plainChunk = normalizeNarrationIntegrityText(chunk?.text || "");
+    const taggedChunk = normalizeNarrationIntegrityText(
+      stripTtsMarkersForPlainText(chunk?.text_tagged || chunk?.text || "")
+    );
+    if (taggedChunk !== plainChunk) {
+      throw new Error(
+        `O texto com tags do trecho ${chunk?.id || "sem ID"} não corresponde ao texto aprovado.`
+      );
+    }
+  }
+  const planned = normalizeNarrationIntegrityText(
+    (chunks || []).map((chunk) => chunk?.text || "").join(" ")
+  );
+  if (!source) throw new Error("Narração aprovada ausente para planejar trechos.");
+  if (planned !== source) {
+    throw new Error(
+      "O planejador tentou alterar a narração aprovada. O plano foi bloqueado; gere novamente sem condensar, remover ou acrescentar palavras."
+    );
+  }
+  return hashNarrationIntegrityText(source);
+}
+
+export function assertNarrationPlanMatchesSource(plan = {}, sourceText = "") {
+  const sourceHash = assertNarrationChunksPreserveSource(
+    plan.chunks || [],
+    sourceText
+  );
+  if (
+    plan.source_narration_hash &&
+    plan.source_narration_hash !== sourceHash
+  ) {
+    throw new Error(
+      "A narração aprovada mudou depois que os trechos foram planejados. Gere um novo plano antes do TTS."
+    );
+  }
+  return sourceHash;
+}
+
 function tokenizePlainNarration(text = "") {
   return stripTtsMarkersForPlainText(text).split(/\s+/).filter(Boolean);
 }
@@ -391,7 +443,7 @@ Nicho: ${niche} — tom documental natural, ritmo de respiração entre ideias.
 NARRAÇÃO COMPLETA:
 ${String(narrativeScript || "")
   .trim()
-  .slice(0, 12000)}
+  .slice(0, 40000)}
 
 CENAS (visual_prompts — use como mapa principal):
 ${JSON.stringify(sceneLines, null, 2)}
@@ -401,12 +453,13 @@ ${JSON.stringify(blockPhrases || [], null, 2)}
 
 REGRAS:
 - Um trecho = uma cena OU um bloco inteiro se a cena for muito curta (< 8 palavras); prefira 1 trecho por cena quando houver narration_text.
-- "text" = exatamente o que será falado em PT-BR (pode condensar levemente, sem mudar o sentido).
+- "text" = trecho LITERAL da NARRAÇÃO COMPLETA. PROIBIDO condensar, resumir, corrigir, parafrasear, remover ou acrescentar qualquer palavra.
 - "text_tagged" = igual a "text" (texto limpo, sem tags inline). PROIBIDO: (breath), [ênfase], [emphasis], [ênfase dramática] — pausas entre trechos são só "pause_after_ms".
 - "pause_after_ms": silêncio APÓS o trecho. Use apenas estes presets: 350ms entre cenas, 700ms após pergunta, 850ms na última cena antes da virada de bloco e 550ms após conclusão. Último trecho: 0ms.
 - PROIBIDO criar progressão numérica artificial (ex.: 800, 900, 1000ms). Cenas com a mesma função narrativa usam a mesma pausa.
 - "pause_reason": frase curta explicando a pausa.
 - Cobrir 100% da narração sem repetir trechos.
+- A concatenação de todos os campos "text", na ordem e ignorando apenas espaços/quebras de linha, deve ser IDÊNTICA à NARRAÇÃO COMPLETA.
 - NÃO inclua voz/engine — só texto e pausas.
 
 Retorne APENAS JSON:
@@ -707,6 +760,11 @@ export function normalizeNarrationChunkPlan(
     default_voice: defaultVoice,
     chunk_count: timed.length,
     total_duration: Number(totalDuration.toFixed(3)) || null,
+    source_narration_hash:
+      plan.source_narration_hash ||
+      (storyboard.narrative_script
+        ? hashNarrationIntegrityText(storyboard.narrative_script)
+        : null),
     chunks: timed,
     source: plan.source || "normalized",
     narrative_script_snapshot:
@@ -1176,11 +1234,17 @@ export function buildNarrationChunkPlan({
   defaultVoice = {},
 } = {}) {
   if (aiChunks.length > 0) {
+    const sourceNarration = String(storyboard.narrative_script || "");
+    const sourceHash = assertNarrationChunksPreserveSource(
+      aiChunks,
+      sourceNarration
+    );
     return normalizeNarrationChunkPlan(
       {
         chunks: stabilizeNarrationChunkPauses(aiChunks),
         default_voice: defaultVoice,
         source: "ai",
+        source_narration_hash: sourceHash,
         planned_at: new Date().toISOString(),
       },
       { storyboard, config }

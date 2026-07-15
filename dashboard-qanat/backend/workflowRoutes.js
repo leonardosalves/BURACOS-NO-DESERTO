@@ -65,6 +65,7 @@ import {
   applyWhisperDurationsToStoryboard,
 } from "./timelineSceneSync.js";
 import {
+  assertNarrationPlanMatchesSource,
   generateNarrationChunksTts,
   isFullNarrationChunkBatch,
   allNarrationChunksHaveAudio,
@@ -841,6 +842,10 @@ export function registerWorkflowRoutes(app, deps) {
           "Plano de trechos ausente — use 'Planejar trechos (IA)' antes."
         );
       }
+      assertNarrationPlanMatchesSource(
+        plan,
+        storyboard.narrative_script || ""
+      );
 
       report(
         "prepare",

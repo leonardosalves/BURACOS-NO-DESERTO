@@ -11,6 +11,7 @@ import { adaptMetadataForPlatforms } from "./platformMetadataAdapter.js";
 import {
   convertCinematicMarkersForTts,
   isListicleProject,
+  stripTtsMarkersForPlainText,
 } from "./videoProEnhancements.js";
 import {
   synthesizeKokoroNarration,
@@ -22,6 +23,7 @@ import {
   synthesizeFishSpeech,
   FISH_SPEECH_DEFAULT_VOICE,
 } from "./fishSpeechTts.js";
+import { hashNarrationIntegrityText } from "./narrationChunks.js";
 import {
   loadChatterboxConfig,
   synthesizeChatterboxNarration,
@@ -645,6 +647,30 @@ export async function generateNarrationTts(
     String(ttsOptions.customTaggedText || "").trim() || taggedFromBoard;
   const plain =
     String(ttsOptions.customPlainText || "").trim() || plainFromBoard;
+
+  const approvedHash = String(
+    storyboard.narration_integrity?.approved_text_sha256 || ""
+  ).trim();
+  if (
+    approvedHash &&
+    !String(ttsOptions.customPlainText || "").trim() &&
+    hashNarrationIntegrityText(plainFromBoard) !== approvedHash
+  ) {
+    throw new Error(
+      "Integridade bloqueada: o texto atual da narração difere da versão aprovada. Revise ou aprove novamente antes do TTS."
+    );
+  }
+  const customTagged = String(ttsOptions.customTaggedText || "").trim();
+  if (
+    !customTagged &&
+    String(storyboard.narrative_script_tagged || "").trim() &&
+    hashNarrationIntegrityText(stripTtsMarkersForPlainText(taggedFromBoard)) !==
+      hashNarrationIntegrityText(plainFromBoard)
+  ) {
+    throw new Error(
+      "Integridade bloqueada: a versão com tags contém palavras diferentes da narração aprovada. Regenere as tags antes do TTS."
+    );
+  }
 
   if (!plain || plain.length < 40) {
     throw new Error(

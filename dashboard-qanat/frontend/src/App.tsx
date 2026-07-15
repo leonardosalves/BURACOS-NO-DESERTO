@@ -862,6 +862,8 @@ export default function App() {
   const [customOutline, setCustomOutline] = useState<string>(
     savedCreatorState.customOutline || ""
   );
+  const [customIdeaOpportunity, setCustomIdeaOpportunity] =
+    useState<any | null>(null);
   const [customBlocks, setCustomBlocks] = useState<
     { block: number; content: string }[]
   >(savedCreatorState.customBlocks || [{ block: 1, content: "" }]);
@@ -7768,6 +7770,7 @@ export default function App() {
               characterView: readLegacyHistoricalField("PONTO DE VISTA"),
               hook: customHooks.trim(),
               certainty: readLegacyHistoricalField("CERTEZA"),
+              whyItMatters: readLegacyHistoricalField("TESE CENTRAL"),
             },
             blueprint: {
               title: customTitle.trim(),
@@ -7844,6 +7847,7 @@ export default function App() {
         listTopic: listTopic.trim(),
         listicleHudStyle,
         idea: {
+          ...(selectedRanking || {}),
           title,
           promise:
             selectedRanking?.promise ||
@@ -7926,6 +7930,12 @@ export default function App() {
       format: formatSelector,
       idea: isCustom
         ? {
+            ...([
+              customIdeaOpportunity?._evaluated_title,
+              customIdeaOpportunity?.improved_title,
+            ].includes(customTitle.trim())
+              ? customIdeaOpportunity
+              : {}),
             title: customTitle.trim(),
             promise: customOutline.trim(),
             emotion: "Curiosity / Action",
@@ -10653,6 +10663,7 @@ export default function App() {
     customIdeaHook,
     customIdeaPromise,
     customIdeaTitle,
+    customIdeaOpportunity,
     customOutline,
     customTitle,
     historicalWitnessContext,
@@ -10887,6 +10898,7 @@ export default function App() {
     setCustomIdeaHook,
     setCustomIdeaPromise,
     setCustomIdeaTitle,
+    setCustomIdeaOpportunity,
     setCustomOutline,
     setCustomTitle,
     setEditingImpact,

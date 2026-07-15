@@ -430,6 +430,7 @@ import {
   buildNarrationChunkPlan,
   buildNarrationChunkPlanPrompt,
   formatNarrationChunkPlanLog,
+  hashNarrationIntegrityText,
   normalizeNarrationChunkPlan,
   parseAiNarrationChunkResponse,
   persistChunkPlanToProject,
@@ -19058,6 +19059,14 @@ app.post(
       if (approvedNarration) {
         report("visual_prompts", "Montando prompts visuais e list_items…", 70);
         parsedData.narrative_script = approvedNarration;
+        parsedData.narration_integrity = {
+          approved_text_sha256: hashNarrationIntegrityText(approvedNarration),
+          approved_tagged_sha256: approvedNarrationTagged
+            ? hashNarrationIntegrityText(approvedNarrationTagged)
+            : null,
+          locked: true,
+          approved_at: new Date().toISOString(),
+        };
         if (approvedNarrationTagged) {
           parsedData.narrative_script_tagged = approvedNarrationTagged;
         } else if (!parsedData.narrative_script_tagged?.trim()) {
@@ -19422,6 +19431,40 @@ app.post(
           "[Creator Script] Orquestração de produção (não bloqueante):",
           orchErr.message
         );
+      }
+
+      if (approvedNarration) {
+        const approvedHash = hashNarrationIntegrityText(approvedNarration);
+        const changedByPipeline =
+          hashNarrationIntegrityText(parsedData.narrative_script || "") !==
+          approvedHash;
+        parsedData.narrative_script = approvedNarration;
+        parsedData.narrative_script_tagged =
+          approvedNarrationTagged || approvedNarration;
+        parsedData.technical_config = {
+          ...(parsedData.technical_config || {}),
+          script: approvedNarration,
+        };
+        parsedData.narration_integrity = {
+          ...(parsedData.narration_integrity || {}),
+          approved_text_sha256: approvedHash,
+          approved_tagged_sha256: approvedNarrationTagged
+            ? hashNarrationIntegrityText(approvedNarrationTagged)
+            : null,
+          locked: true,
+          pipeline_restored_approved_text: changedByPipeline,
+          verified_at: new Date().toISOString(),
+        };
+        fs.writeFileSync(
+          storyboardPath,
+          JSON.stringify(parsedData, null, 2),
+          "utf8"
+        );
+        if (changedByPipeline) {
+          console.warn(
+            "[Narration Integrity] Uma etapa posterior tentou alterar a narração; o texto aprovado foi restaurado."
+          );
+        }
       }
 
       // Save technical configurations to active project directory

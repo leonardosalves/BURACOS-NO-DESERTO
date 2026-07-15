@@ -749,6 +749,24 @@ BLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)`;
     header += `\n\nATENÇÃO: A ideia original pode estar em inglês. A narração deve ser em PT-BR natural e humana.`;
   }
 
+  const opportunityFields = [
+    ["STATUS DE REALIDADE", idea.reality_status],
+    ["ÂNCORA DE EVIDÊNCIA", idea.evidence_anchor],
+    ["NÍVEL DE SATURAÇÃO", idea.saturation_level],
+    ["EVIDÊNCIA DE SATURAÇÃO", idea.saturation_evidence],
+    ["LACUNA EDITORIAL", idea.undercovered_reason],
+    ["ADEQUAÇÃO AO FORMATO", idea.format_fit],
+    ["DURAÇÃO RECOMENDADA", idea.recommended_duration],
+    ["UPGRADE PREMIUM", idea.premium_upgrade],
+    ["VALIDAÇÃO PENDENTE", idea.validation_needed],
+  ].filter(([, value]) => String(value || "").trim());
+  if (opportunityFields.length) {
+    header += `\n\nCONTRATO DE OPORTUNIDADE DA IDEIA (preserve no roteiro):\n${opportunityFields
+      .map(([label, value]) => `${label}: ${String(value).trim()}`)
+      .join("\n")}`;
+    header += `\nREGRAS: use a âncora de evidência como ponto inicial da pesquisa; não transforme "plausible" ou "disputed" em fato; resolva a validação pendente antes de afirmar; use a lacuna editorial e o upgrade premium para diferenciar o vídeo sem inventar dados.`;
+  }
+
   return header;
 }
 
