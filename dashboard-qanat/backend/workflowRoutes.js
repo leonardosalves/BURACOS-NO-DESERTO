@@ -28,6 +28,8 @@ import {
   probeFishSpeechServer,
   buildFishSpeechVoiceList,
   previewFishSpeechVoice,
+  buildFishSpeechRequestBody,
+  resolveFishSpeechConfig,
   FISH_SPEECH_DEFAULT_VOICE,
 } from "./fishSpeechTts.js";
 import {
@@ -760,19 +762,42 @@ export function registerWorkflowRoutes(app, deps) {
   app.post("/api/tts/preview-tagged-text", (req, res) => {
     try {
       const { text_tagged: taggedText = "", engine = "fish" } = req.body || {};
-      const platform = String(engine).toLowerCase().includes("chatterbox")
+      const normalizedEngine = String(engine).toLowerCase();
+      const isFishEngine = normalizedEngine.includes("fish");
+      const platform = normalizedEngine.includes("chatterbox")
         ? "chatterbox"
-        : String(engine).toLowerCase().includes("eleven")
+        : normalizedEngine.includes("eleven")
           ? "eleven"
           : "fish";
       const sanitized = sanitizeNarrationChunkTaggedText(taggedText);
       const preview = convertCinematicMarkersForTts(sanitized, platform, {
         stripEmphasis: true,
       });
+      const fishRequest = isFishEngine
+        ? buildFishSpeechRequestBody(
+            preview,
+            resolveFishSpeechConfig(
+              loadFishSpeechConfig({
+                workspaceDir: WORKSPACE_DIR,
+                projectDir: getProjectDir(req),
+              })
+            ),
+            null,
+            { independentChunk: true }
+          )
+        : null;
       const tags = [...sanitized.matchAll(/\[[^\]]+\]|\([^)]+\)/g)]
         .map((m) => m[0])
         .filter((v, i, arr) => arr.indexOf(v) === i);
-      res.json({ preview, tags, platform });
+      res.json({
+        preview: fishRequest?.text || preview,
+        tags,
+        platform,
+        normalization: fishRequest?.normalize ?? null,
+        independent_chunk: fishRequest
+          ? !fishRequest.condition_on_previous_chunks
+          : null,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
