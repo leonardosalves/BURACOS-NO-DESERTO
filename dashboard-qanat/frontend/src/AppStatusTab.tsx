@@ -15,6 +15,7 @@ import { DashminProjectTabLayout } from "./DashminProjectTabLayout";
 import { SectionHeader } from "./SectionHeader";
 import { BrandSettingsPanel } from "./BrandSettingsPanel";
 import { PreRenderAdvicePanel } from "./PreRenderAdvice";
+import { ProjectRenderTemplatePolicyPanel } from "./ProjectRenderTemplatePolicyPanel";
 import type { AppTab } from "./appTabs";
 import type {
   ConfigData,
@@ -46,6 +47,11 @@ export type AppStatusTabProps = {
   renderFps: 30 | 60;
   setRenderFps: (fps: 30 | 60) => void;
   onCancelRender?: () => void;
+  getProjectUrl: (path: string) => string;
+  saveConfigPatch: (
+    patch: Partial<ConfigData>,
+    opts?: { skipRefresh?: boolean }
+  ) => void | Promise<void>;
 };
 
 export function AppStatusTab({
@@ -71,6 +77,8 @@ export function AppStatusTab({
   renderFps,
   setRenderFps,
   onCancelRender,
+  getProjectUrl,
+  saveConfigPatch,
 }: AppStatusTabProps) {
   return (
     <DashminProjectTabLayout tab="status" activeProject={activeProject}>
@@ -332,6 +340,14 @@ export function AppStatusTab({
             </div>
           </div>
         </div>
+
+        <ProjectRenderTemplatePolicyPanel
+          config={config}
+          activeProject={activeProject}
+          getProjectUrl={getProjectUrl}
+          saveConfigPatch={saveConfigPatch}
+          setActiveTab={setActiveTab}
+        />
 
         <BrandSettingsPanel {...(brandPanelProps as any)} />
 

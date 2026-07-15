@@ -121,3 +121,61 @@ export function stripConfigApiMetadata<T extends Record<string, unknown>>(
   const { _bgm_production_hints: _hints, ...rest } = config;
   return rest as T;
 }
+
+export type RenderTemplatePolicy = {
+  mode: "legacy" | "smart";
+  preset_id?: string;
+  template_niche?: string;
+  effects: {
+    enabled: boolean;
+    selection?: "auto" | "manual" | "off";
+    template_id?: string;
+    intensity?: "subtle" | "normal" | "strong";
+  };
+  intro: { enabled: boolean; template_id?: string | "auto" };
+  end_card: {
+    enabled: boolean;
+    template_id?: string | "auto";
+    replace_brand_outro?: boolean;
+  };
+  chapter_title: {
+    enabled: boolean;
+    template_id?: string | "auto";
+    source?: "youtube_chapters" | "narrador_blocks" | "auto";
+  };
+  subscribe_mid: {
+    enabled: boolean;
+    position?: "mid" | "percent";
+    percent?: number;
+  };
+  frame: {
+    enabled: boolean;
+    template_id?: string | "auto";
+  };
+  media_layouts: { enabled: boolean; selection?: "auto" | "manual" | "off" };
+  transitions: { enabled: boolean; selection?: "auto" | "manual" | "off" };
+  overlay_budget?: { max_coverage?: number; max_dense_per_minute?: number };
+};
+
+export const RENDER_TEMPLATE_PRESET_OPTIONS = [
+  {
+    id: "legacy",
+    label: "Legado",
+    hint: "Comportamento original do renderer sem novas camadas.",
+  },
+  {
+    id: "doc-engenharia",
+    label: "Doc Engenharia",
+    hint: "Efeitos sutis, chapters, charts; end card opcional off.",
+  },
+  {
+    id: "shorts-curiosidade",
+    label: "Shorts Curiosidade",
+    hint: "Subscribe no meio, efeitos leves, sem chapter.",
+  },
+  {
+    id: "smart",
+    label: "Inteligente (completo)",
+    hint: "Automático em efeitos, mídia e transições.",
+  },
+];
