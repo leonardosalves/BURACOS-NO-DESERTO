@@ -19,6 +19,7 @@ import {
   sanitizeTitle,
 } from "./titleGenerator.js";
 import { compressTranscriptForPrompt } from "./lumieraContextCompress.js";
+import { stripAccents } from "./shared/commonUtils.js";
 
 export const YOUTUBE_METADATA_PIPELINE_VERSION = 6;
 
@@ -73,10 +74,7 @@ const METADATA_STOPWORDS = new Set([
 ]);
 
 function normalizeMetadataTerm(value = "") {
-  return String(value)
-    .toLocaleLowerCase("pt-BR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  return stripAccents(String(value).toLocaleLowerCase("pt-BR"))
     .replace(/^#/, "")
     .replace(/(?:es|s)$/i, "")
     .trim();
@@ -389,6 +387,14 @@ EXEMPLOS RUINS (NÃO gere):
 - Título só sobre 1 item do ranking
 - Títulos genéricos sem "Top ${listicleCtx.rankCount}" ou tema do vídeo`;
 }
+const PINNED_COMMENT_RULES = `## REGRAS PARA O COMENTÁRIO PINADO:
+- O comentário fixado deve ser extremamente curto, persuasivo e focado em estender a retenção ou instigar engajamento real e natural (sem usar bait genérico como "Gostou? Comente SIM").
+- Use um destes 3 padrões comprovados de alta performance:
+  1. SEGUNDO GANCHO / EXTENSÃO DE CONTEXTO: Responde à pergunta óbvia ou curiosidade que o espectador terá ao ver o vídeo, ou traz uma atualização/stakes do tema (ex: "Mesmo com o custo de $4B, o olho gigante chinês levou apenas 5 anos para provar que...").
+  2. MATADOR DE OBJEÇÃO: Elimina críticas óbvias sobre o assunto, fontes ou autenticidade (ex: "Antes que digam que é CGI: as imagens de satélite e dados de escala são públicos...").
+  3. GANCHO COM PERGUNTA DE STAKES REAIS (opinião forte): Uma pergunta inteligente com stakes reais que force o espectador a refletir e tomar um lado (ex: "Se você pudesse escolher: a China deve continuar expandindo o FAST ou focar na exploração espacial?").
+- Proibido usar "Você imaginava que...", "O que você achou?", "O que você prefere? Sim ou Não?" ou perguntas vazias de sim/não/talvez.
+- Máximo 2 frases.`;
 
 function buildShortMetadataRules() {
   return `
@@ -422,14 +428,7 @@ ${buildTitleCraftRules("SHORT")}
 - Use 6-10 tags: termo exato, 2-3 variações pesquisáveis, nomes próprios e grafias alternativas.
 - Não use tags genéricas só para aumentar quantidade; tags têm impacto secundário.
 
-## REGRAS PARA O COMENTÁRIO PINADO:
-- O comentário fixado deve ser extremamente curto, persuasivo e focado em estender a retenção ou instigar engajamento real e natural (sem usar bait genérico como "Gostou? Comente SIM").
-- Use um destes 3 padrões comprovados de alta performance:
-  1. SEGUNDO GANCHO / EXTENSÃO DE CONTEXTO: Responde à pergunta óbvia ou curiosidade que o espectador terá ao ver o vídeo, ou traz uma atualização/stakes do tema (ex: "Mesmo com o custo de $4B, o olho gigante chinês levou apenas 5 anos para provar que...").
-  2. MATADOR DE OBJEÇÃO: Elimina críticas óbvias sobre o assunto, fontes ou autenticidade (ex: "Antes que digam que é CGI: as imagens de satélite e dados de escala são públicos...").
-  3. GANCHO COM PERGUNTA DE STAKES REAIS (opinião forte): Uma pergunta inteligente com stakes reais que force o espectador a refletir e tomar um lado (ex: "Se você pudesse escolher: a China deve continuar expandindo o FAST ou focar na exploração espacial?").
-- Proibido usar "Você imaginava que...", "O que você achou?", "O que você prefere? Sim ou Não?" ou perguntas vazias de sim/não/talvez.
-- Máximo 2 frases.
+${PINNED_COMMENT_RULES}
 
 ${buildThumbnailAbRules("SHORT")}`;
 }
@@ -458,14 +457,7 @@ ${buildTitleCraftRules("LONG")}
 - 15 tags ordenadas por volume de busca estimado
 - Mix: alto volume + cauda longa + variações comuns de digitação
 
-## REGRAS PARA O COMENTÁRIO PINADO:
-- O comentário fixado deve ser extremamente curto, persuasivo e focado em estender a retenção ou instigar engajamento real e natural (sem usar bait genérico como "Gostou? Comente SIM").
-- Use um destes 3 padrões comprovados de alta performance:
-  1. SEGUNDO GANCHO / EXTENSÃO DE CONTEXTO: Responde à pergunta óbvia ou curiosidade que o espectador terá ao ver o vídeo, ou traz uma atualização/stakes do tema (ex: "Mesmo com o custo de $4B, o olho gigante chinês levou apenas 5 anos para provar que...").
-  2. MATADOR DE OBJEÇÃO: Elimina críticas óbvias sobre o assunto, fontes ou autenticidade (ex: "Antes que digam que é CGI: as imagens de satélite e dados de escala são públicos...").
-  3. GANCHO COM PERGUNTA DE STAKES REAIS (opinião forte): Uma pergunta inteligente com stakes reais que force o espectador a refletir e tomar um lado (ex: "Se você pudesse escolher: a China deve continuar expandindo o FAST ou focar na exploração espacial?").
-- Proibido usar "Você imaginava que...", "O que você achou?", "O que você prefere? Sim ou Não?" ou perguntas vazias de sim/não/talvez.
-- Máximo 2 frases.
+${PINNED_COMMENT_RULES}
 
 ## REGRAS PARA OS CAPÍTULOS:
 - Use os timestamps reais fornecidos
@@ -641,8 +633,6 @@ function buildFallbackThumbnails({
 
 function buildFallbackTitles({
   baseTitle,
-  category,
-  profile,
   format,
   facts = {},
 }) {
@@ -713,8 +703,6 @@ export function buildFallbackYoutubeMetadata({
   const listicleCtx = resolveListicleContext(storyboard, config);
   const titlesBlock = buildFallbackTitles({
     baseTitle: listicleCtx?.coreTopic || baseTitle,
-    category: resolvedCategory,
-    profile,
     format,
     facts: titleFacts,
   });
@@ -892,10 +880,7 @@ function extractKeywords(text, limit = 15) {
 
   const counts = new Map();
   const words =
-    String(text || "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
+    stripAccents(String(text || "").toLowerCase())
       .match(/[a-z0-9]{4,}/g) || [];
 
   for (const word of words) {
@@ -1006,10 +991,7 @@ function parseThumbnailVariants(content = "") {
     for (const line of lines.slice(1)) {
       const fieldMatch = line.match(/^-\s*(.+?):\s*(.+)$/);
       if (!fieldMatch) continue;
-      const key = fieldMatch[1]
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
+      const key = stripAccents(fieldMatch[1].toLowerCase());
       fields[key] = fieldMatch[2].trim();
     }
 
@@ -1062,15 +1044,9 @@ const METADATA_PLAIN_HEADERS = [
   "CTA DE MEIO DE VÍDEO",
 ];
 
-function stripHeaderAccents(value = "") {
-  return String(value)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
 function normalizePlainMetadataHeaders(text = "") {
   const headerKeys = new Set(
-    METADATA_PLAIN_HEADERS.map((h) => stripHeaderAccents(h).toUpperCase())
+    METADATA_PLAIN_HEADERS.map((h) => stripAccents(h).toUpperCase())
   );
 
   return String(text)
@@ -1078,7 +1054,7 @@ function normalizePlainMetadataHeaders(text = "") {
     .map((line) => {
       const trimmed = line.trim().replace(/:+$/, "");
       if (!trimmed || /^##\s+/i.test(trimmed)) return line;
-      const key = stripHeaderAccents(trimmed).toUpperCase();
+      const key = stripAccents(trimmed).toUpperCase();
       if (headerKeys.has(key)) return `## ${trimmed}`;
       return line;
     })
@@ -1211,33 +1187,22 @@ export function parseYoutubeMetadataMarkdown(text = "") {
 
   for (const part of parts) {
     const lines = part.split("\n");
-    const key = lines[0]
-      ?.trim()
-      .toUpperCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+    const key = stripAccents(lines[0]?.trim()).toUpperCase();
     const content = lines.slice(1).join("\n").trim();
     if (key) sections[key] = content;
   }
 
-  if (!sections.DESCRICAO)
-    sections.DESCRICAO = extractMetadataSectionBlock(
-      normalized,
-      "DESCRI[ÇC][ÃA]O"
-    );
-  if (!sections.TAGS)
-    sections.TAGS = extractMetadataSectionBlock(normalized, "TAGS");
-  if (!sections["HASHTAGS PRINCIPAIS"]) {
-    sections["HASHTAGS PRINCIPAIS"] = extractMetadataSectionBlock(
-      normalized,
-      "HASHTAGS(?:\\s+PRINCIPAIS)?"
-    );
-  }
-  if (!sections["COMENTARIO PINADO"]) {
-    sections["COMENTARIO PINADO"] = extractMetadataSectionBlock(
-      normalized,
-      "COMENT[ÁA]RIO\\s+PINADO"
-    );
+  const SECTION_FALLBACKS = [
+    ["DESCRICAO", "DESCRI[ÇC][ÃA]O"],
+    ["TAGS", "TAGS"],
+    ["HASHTAGS PRINCIPAIS", "HASHTAGS(?:\\s+PRINCIPAIS)?"],
+    ["COMENTARIO PINADO", "COMENT[ÁA]RIO\\s+PINADO"],
+  ];
+
+  for (const [key, pattern] of SECTION_FALLBACKS) {
+    if (!sections[key]) {
+      sections[key] = extractMetadataSectionBlock(normalized, pattern);
+    }
   }
 
   const titlesRaw = sections.TITULOS || "";
