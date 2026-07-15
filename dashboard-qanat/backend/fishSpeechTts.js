@@ -35,9 +35,16 @@ function readJsonSafe(filePath) {
   }
 }
 
-export function loadFishSpeechConfig({ workspaceDir = null, projectDir = null } = {}) {
-  const wsCfg = workspaceDir ? readJsonSafe(path.join(workspaceDir, "config_qanat.json")) : {};
-  const projCfg = projectDir ? readJsonSafe(path.join(projectDir, "config_qanat.json")) : {};
+export function loadFishSpeechConfig({
+  workspaceDir = null,
+  projectDir = null,
+} = {}) {
+  const wsCfg = workspaceDir
+    ? readJsonSafe(path.join(workspaceDir, "config_qanat.json"))
+    : {};
+  const projCfg = projectDir
+    ? readJsonSafe(path.join(projectDir, "config_qanat.json"))
+    : {};
   const wsFish = wsCfg.fish_speech || wsCfg.fishSpeech || {};
   const projFish = projCfg.fish_speech || projCfg.fishSpeech || {};
   return { fish_speech: { ...wsFish, ...projFish } };
@@ -48,21 +55,38 @@ export function resolveFishSpeechConfig(config = {}) {
   const modeRaw = String(fish.mode || FISH_SPEECH_DEFAULTS.mode).toLowerCase();
   const mode = ["auto", "local", "cloud"].includes(modeRaw) ? modeRaw : "auto";
   return {
-    baseUrl: String(fish.base_url || fish.baseUrl || FISH_SPEECH_DEFAULTS.baseUrl).replace(/\/$/, ""),
-    cloudBaseUrl: String(fish.cloud_base_url || fish.cloudBaseUrl || FISH_CLOUD_BASE).replace(/\/$/, ""),
+    baseUrl: String(
+      fish.base_url || fish.baseUrl || FISH_SPEECH_DEFAULTS.baseUrl
+    ).replace(/\/$/, ""),
+    cloudBaseUrl: String(
+      fish.cloud_base_url || fish.cloudBaseUrl || FISH_CLOUD_BASE
+    ).replace(/\/$/, ""),
     apiKey: String(fish.api_key || fish.apiKey || ""),
     mode,
-    cloudModel: String(fish.cloud_model || fish.cloudModel || FISH_SPEECH_DEFAULTS.cloudModel),
+    cloudModel: String(
+      fish.cloud_model || fish.cloudModel || FISH_SPEECH_DEFAULTS.cloudModel
+    ),
     format: fish.format || FISH_SPEECH_DEFAULTS.format,
     temperature: Number(fish.temperature ?? FISH_SPEECH_DEFAULTS.temperature),
     topP: Number(fish.top_p ?? fish.topP ?? FISH_SPEECH_DEFAULTS.topP),
     repetitionPenalty: Number(
-      fish.repetition_penalty ?? fish.repetitionPenalty ?? FISH_SPEECH_DEFAULTS.repetitionPenalty,
+      fish.repetition_penalty ??
+        fish.repetitionPenalty ??
+        FISH_SPEECH_DEFAULTS.repetitionPenalty
     ),
-    chunkLength: Number(fish.chunk_length ?? fish.chunkLength ?? FISH_SPEECH_DEFAULTS.chunkLength),
-    maxNewTokens: Number(fish.max_new_tokens ?? fish.maxNewTokens ?? FISH_SPEECH_DEFAULTS.maxNewTokens),
-    useTaggedScript: fish.use_tagged_script !== false && fish.useTaggedScript !== false,
-    defaultReferenceId: String(fish.default_reference_id || fish.defaultReferenceId || ""),
+    chunkLength: Number(
+      fish.chunk_length ?? fish.chunkLength ?? FISH_SPEECH_DEFAULTS.chunkLength
+    ),
+    maxNewTokens: Number(
+      fish.max_new_tokens ??
+        fish.maxNewTokens ??
+        FISH_SPEECH_DEFAULTS.maxNewTokens
+    ),
+    useTaggedScript:
+      fish.use_tagged_script !== false && fish.useTaggedScript !== false,
+    defaultReferenceId: String(
+      fish.default_reference_id || fish.defaultReferenceId || ""
+    ),
     prosodySpeed: Number(fish.prosody_speed ?? fish.prosodySpeed ?? 1),
   };
 }
@@ -81,18 +105,27 @@ async function probeFishSpeechLocal(cfg, { timeoutMs = 6000 } = {}) {
       signal,
     });
     if (!healthRes.ok) {
-      return { ok: false, baseUrl: cfg.baseUrl, error: `Health HTTP ${healthRes.status}` };
+      return {
+        ok: false,
+        baseUrl: cfg.baseUrl,
+        error: `Health HTTP ${healthRes.status}`,
+      };
     }
 
     let references = [];
     try {
-      const listRes = await fetch(`${cfg.baseUrl}/v1/references/list?format=json`, {
-        headers: authHeaders(cfg.apiKey, { Accept: "application/json" }),
-        signal,
-      });
+      const listRes = await fetch(
+        `${cfg.baseUrl}/v1/references/list?format=json`,
+        {
+          headers: authHeaders(cfg.apiKey, { Accept: "application/json" }),
+          signal,
+        }
+      );
       if (listRes.ok) {
         const data = await listRes.json();
-        references = Array.isArray(data.reference_ids) ? data.reference_ids : [];
+        references = Array.isArray(data.reference_ids)
+          ? data.reference_ids
+          : [];
       }
     } catch {
       /* referências opcionais */
@@ -131,7 +164,10 @@ function normalizeFishModel(item, group) {
   };
 }
 
-async function fetchFishCloudModels(cfg, { timeoutMs = 15000, libraryLanguage = "pt" } = {}) {
+async function fetchFishCloudModels(
+  cfg,
+  { timeoutMs = 15000, libraryLanguage = "pt" } = {}
+) {
   if (!cfg.apiKey) return [];
   const signal = AbortSignal.timeout(timeoutMs);
   const headers = authHeaders(cfg.apiKey, { Accept: "application/json" });
@@ -148,7 +184,10 @@ async function fetchFishCloudModels(cfg, { timeoutMs = 15000, libraryLanguage = 
   };
 
   try {
-    const selfRes = await fetch(`${cfg.cloudBaseUrl}/model?self=true&page_size=50`, { headers, signal });
+    const selfRes = await fetch(
+      `${cfg.cloudBaseUrl}/model?self=true&page_size=50`,
+      { headers, signal }
+    );
     if (selfRes.ok) {
       const data = await selfRes.json();
       ingest(data.items, "minhas vozes");
@@ -162,7 +201,7 @@ async function fetchFishCloudModels(cfg, { timeoutMs = 15000, libraryLanguage = 
     try {
       const libRes = await fetch(
         `${cfg.cloudBaseUrl}/model?page_size=40&language=${encodeURIComponent(lang)}&sort_by=score`,
-        { headers, signal },
+        { headers, signal }
       );
       if (libRes.ok) {
         const data = await libRes.json();
@@ -175,7 +214,10 @@ async function fetchFishCloudModels(cfg, { timeoutMs = 15000, libraryLanguage = 
 
   if (!models.length) {
     try {
-      const fallbackRes = await fetch(`${cfg.cloudBaseUrl}/model?page_size=30&sort_by=score`, { headers, signal });
+      const fallbackRes = await fetch(
+        `${cfg.cloudBaseUrl}/model?page_size=30&sort_by=score`,
+        { headers, signal }
+      );
       if (fallbackRes.ok) {
         const data = await fallbackRes.json();
         ingest(data.items, "biblioteca");
@@ -197,9 +239,11 @@ async function probeFishSpeechCloud(cfg, opts = {}) {
     models = [];
   }
 
-  const configuredDefault = cfg.defaultReferenceId && cfg.defaultReferenceId !== FISH_SPEECH_DEFAULT_VOICE
-    ? cfg.defaultReferenceId
-    : "";
+  const configuredDefault =
+    cfg.defaultReferenceId &&
+    cfg.defaultReferenceId !== FISH_SPEECH_DEFAULT_VOICE
+      ? cfg.defaultReferenceId
+      : "";
 
   return {
     ok: true,
@@ -248,17 +292,35 @@ export function applyFishOptionOverrides(config = {}, fishOpt = {}) {
   return {
     fish_speech: {
       ...fish,
-      ...(fishOpt.temperature != null ? { temperature: Number(fishOpt.temperature) } : {}),
+      ...(fishOpt.temperature != null
+        ? { temperature: Number(fishOpt.temperature) }
+        : {}),
       ...(fishOpt.topP != null ? { top_p: Number(fishOpt.topP) } : {}),
       ...(fishOpt.top_p != null ? { top_p: Number(fishOpt.top_p) } : {}),
-      ...(fishOpt.repetitionPenalty != null ? { repetition_penalty: Number(fishOpt.repetitionPenalty) } : {}),
-      ...(fishOpt.repetition_penalty != null ? { repetition_penalty: Number(fishOpt.repetition_penalty) } : {}),
-      ...(fishOpt.chunkLength != null ? { chunk_length: Number(fishOpt.chunkLength) } : {}),
-      ...(fishOpt.chunk_length != null ? { chunk_length: Number(fishOpt.chunk_length) } : {}),
-      ...(fishOpt.prosodySpeed != null ? { prosody_speed: Number(fishOpt.prosodySpeed) } : {}),
-      ...(fishOpt.prosody_speed != null ? { prosody_speed: Number(fishOpt.prosody_speed) } : {}),
-      ...(fishOpt.cloudModel ? { cloud_model: String(fishOpt.cloudModel) } : {}),
-      ...(fishOpt.cloud_model ? { cloud_model: String(fishOpt.cloud_model) } : {}),
+      ...(fishOpt.repetitionPenalty != null
+        ? { repetition_penalty: Number(fishOpt.repetitionPenalty) }
+        : {}),
+      ...(fishOpt.repetition_penalty != null
+        ? { repetition_penalty: Number(fishOpt.repetition_penalty) }
+        : {}),
+      ...(fishOpt.chunkLength != null
+        ? { chunk_length: Number(fishOpt.chunkLength) }
+        : {}),
+      ...(fishOpt.chunk_length != null
+        ? { chunk_length: Number(fishOpt.chunk_length) }
+        : {}),
+      ...(fishOpt.prosodySpeed != null
+        ? { prosody_speed: Number(fishOpt.prosodySpeed) }
+        : {}),
+      ...(fishOpt.prosody_speed != null
+        ? { prosody_speed: Number(fishOpt.prosody_speed) }
+        : {}),
+      ...(fishOpt.cloudModel
+        ? { cloud_model: String(fishOpt.cloudModel) }
+        : {}),
+      ...(fishOpt.cloud_model
+        ? { cloud_model: String(fishOpt.cloud_model) }
+        : {}),
     },
   };
 }
@@ -279,7 +341,10 @@ export function buildFishSpeechVoiceList(probe = {}) {
   const voices = [
     {
       id: FISH_SPEECH_DEFAULT_VOICE,
-      label: probe.mode === "cloud" ? "Voz padrão S2.1 (sem clone)" : "Voz padrão do modelo S2",
+      label:
+        probe.mode === "cloud"
+          ? "Voz padrão S2.1 (sem clone)"
+          : "Voz padrão do modelo S2",
       group: "padrão",
     },
   ];
@@ -309,16 +374,73 @@ export function buildFishSpeechVoiceList(probe = {}) {
   return voices;
 }
 
-export async function fetchFishSpeechAudio(text, {
+/**
+ * Decide se o normalizador textual do Fish ainda e necessario. Textos que ja
+ * chegam por extenso nao devem passar por uma segunda normalizacao, pois ela
+ * pode reinterpretar unidades e abreviacoes em portugues.
+ */
+export function shouldNormalizeFishSpeechText(text = "") {
+  const value = String(text || "");
+  return /\d|[%°º]|\b(?:min|seg|km|cm|mm|kg|mph|hz|khz|mhz)\b/i.test(value);
+}
+
+/** Monta o payload em um unico lugar para preview e sintese usarem as mesmas regras. */
+export function buildFishSpeechRequestBody(
+  text,
+  cfg,
   referenceId = null,
-  config = {},
-  onLog = () => {},
-  onProgress = null,
-  timeoutMs = 900000,
-} = {}) {
-  const report = typeof onProgress === "function"
-    ? (pct, label) => onProgress("fish", label, pct)
-    : () => {};
+  { independentChunk = false, normalizeText = "auto" } = {}
+) {
+  const preparedText = String(text || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const normalize =
+    normalizeText === "auto"
+      ? shouldNormalizeFishSpeechText(preparedText)
+      : Boolean(normalizeText);
+  const configuredTemperature = Number(cfg.temperature);
+  const configuredTopP = Number(cfg.topP);
+
+  return {
+    text: preparedText,
+    format: cfg.format,
+    references: [],
+    reference_id: referenceId || null,
+    chunk_length: cfg.chunkLength,
+    // Trechos curtos precisam privilegiar fidelidade ao texto, nao variacao.
+    temperature: independentChunk
+      ? Math.min(configuredTemperature, 0.7)
+      : configuredTemperature,
+    top_p: independentChunk ? Math.min(configuredTopP, 0.75) : configuredTopP,
+    repetition_penalty: cfg.repetitionPenalty,
+    max_new_tokens: cfg.maxNewTokens,
+    latency: "normal",
+    use_memory_cache: "off",
+    normalize,
+    streaming: false,
+    condition_on_previous_chunks: !independentChunk,
+    min_chunk_length: independentChunk
+      ? Math.max(1, Math.min(50, preparedText.length))
+      : 50,
+  };
+}
+
+export async function fetchFishSpeechAudio(
+  text,
+  {
+    referenceId = null,
+    config = {},
+    onLog = () => {},
+    onProgress = null,
+    timeoutMs = 900000,
+    independentChunk = false,
+    normalizeText = "auto",
+  } = {}
+) {
+  const report =
+    typeof onProgress === "function"
+      ? (pct, label) => onProgress("fish", label, pct)
+      : () => {};
   const cfg = resolveFishSpeechConfig(config);
   const plain = String(text || "").trim();
   if (!plain || plain.length < 20) {
@@ -332,31 +454,24 @@ export async function fetchFishSpeechAudio(text, {
   }
 
   const mode = probe.mode || "local";
-  report(18, mode === "cloud" ? "Fish Audio cloud · preparando síntese…" : "Fish Audio local · preparando síntese…");
+  report(
+    18,
+    mode === "cloud"
+      ? "Fish Audio cloud · preparando síntese…"
+      : "Fish Audio local · preparando síntese…"
+  );
   const baseUrl = mode === "cloud" ? cfg.cloudBaseUrl : cfg.baseUrl;
 
-  const refId = referenceId && referenceId !== FISH_SPEECH_DEFAULT_VOICE
-    ? referenceId
-    : (cfg.defaultReferenceId || null);
+  const refId =
+    referenceId && referenceId !== FISH_SPEECH_DEFAULT_VOICE
+      ? referenceId
+      : cfg.defaultReferenceId || null;
 
   const prosodySpeed = Number(cfg.prosodySpeed ?? cfg.prosody_speed);
-  const body = {
-    text: plain,
-    format: cfg.format,
-    references: [],
-    reference_id: refId || null,
-    chunk_length: cfg.chunkLength,
-    temperature: cfg.temperature,
-    top_p: cfg.topP,
-    repetition_penalty: cfg.repetitionPenalty,
-    max_new_tokens: cfg.maxNewTokens,
-    latency: "normal",
-    use_memory_cache: "off",
-    normalize: true,
-    streaming: false,
-    condition_on_previous_chunks: true,
-    min_chunk_length: 50,
-  };
+  const body = buildFishSpeechRequestBody(plain, cfg, refId, {
+    independentChunk,
+    normalizeText,
+  });
   if (Number.isFinite(prosodySpeed) && prosodySpeed > 0 && prosodySpeed !== 1) {
     body.prosody = {
       speed: prosodySpeed,
@@ -365,7 +480,11 @@ export async function fetchFishSpeechAudio(text, {
     };
   }
 
-  onLog(`[Fish Speech] ${plain.length} chars · ref=${refId || "padrão"} · ${mode} · ${baseUrl}`);
+  onLog(
+    `[Fish Speech] ${body.text.length} chars · ref=${refId || "padrão"} · ${mode} · ` +
+      `normalização=${body.normalize ? "ativa" : "desativada"} · ` +
+      `contexto=${body.condition_on_previous_chunks ? "contínuo" : "trecho independente"} · ${baseUrl}`
+  );
   report(28, `Sintetizando ${plain.length} caracteres…`);
 
   const headers = authHeaders(cfg.apiKey, {
@@ -379,8 +498,16 @@ export async function fetchFishSpeechAudio(text, {
   const synthStarted = Date.now();
   const progressTicker = setInterval(() => {
     const elapsed = Date.now() - synthStarted;
-    const pct = Math.min(88, 32 + Math.floor((elapsed / Math.max(timeoutMs, 1)) * 56));
-    report(pct, mode === "cloud" ? "Fish Audio cloud processando…" : "Fish Audio sintetizando voz…");
+    const pct = Math.min(
+      88,
+      32 + Math.floor((elapsed / Math.max(timeoutMs, 1)) * 56)
+    );
+    report(
+      pct,
+      mode === "cloud"
+        ? "Fish Audio cloud processando…"
+        : "Fish Audio sintetizando voz…"
+    );
   }, 2500);
 
   let res;
@@ -425,7 +552,8 @@ export async function previewFishSpeechVoice({
   onLog = () => {},
 } = {}) {
   const mergedConfig = applyFishOptionOverrides(config, fishOptions);
-  const text = String(sampleText || "").trim() || buildFishPreviewSample(narrativeScript);
+  const text =
+    String(sampleText || "").trim() || buildFishPreviewSample(narrativeScript);
   const result = await fetchFishSpeechAudio(text, {
     referenceId: voice,
     config: mergedConfig,
@@ -438,18 +566,26 @@ export async function previewFishSpeechVoice({
   };
 }
 
-export async function synthesizeFishSpeech(text, {
-  outputPath,
-  referenceId = null,
-  config = {},
-  onLog = () => {},
-  onProgress = null,
-} = {}) {
+export async function synthesizeFishSpeech(
+  text,
+  {
+    outputPath,
+    referenceId = null,
+    config = {},
+    onLog = () => {},
+    onProgress = null,
+  } = {}
+) {
   if (!outputPath) {
     throw new Error("Caminho de saída ausente para Fish Speech.");
   }
 
-  const result = await fetchFishSpeechAudio(text, { referenceId, config, onLog, onProgress });
+  const result = await fetchFishSpeechAudio(text, {
+    referenceId,
+    config,
+    onLog,
+    onProgress,
+  });
   if (typeof onProgress === "function") {
     onProgress("fish", "Salvando narracao_mestra_premium.mp3…", 99);
   }

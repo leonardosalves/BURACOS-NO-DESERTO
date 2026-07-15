@@ -1368,6 +1368,7 @@ export async function synthesizeNarrationChunkAudio(
       referenceId: voice.voice,
       config: fishConfig,
       onLog,
+      independentChunk: true,
     });
     fs.writeFileSync(outputPath, result.buffer);
     const durationSeconds = await probeAudioDuration(outputPath);

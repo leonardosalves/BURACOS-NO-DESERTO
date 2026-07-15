@@ -137,7 +137,15 @@ export function NarrationChunksPanel({
     null
   );
   const [tagPreviews, setTagPreviews] = useState<
-    Record<string, { preview: string; tags: string[] }>
+    Record<
+      string,
+      {
+        preview: string;
+        tags: string[];
+        normalization: boolean | null;
+        independentChunk: boolean | null;
+      }
+    >
   >({});
   const [playingChunkId, setPlayingChunkId] = useState<string | null>(null);
   const [auditEvents, setAuditEvents] = useState<any[]>([]);
@@ -394,6 +402,14 @@ export function NarrationChunksPanel({
           [chunkId]: {
             preview: String(data.preview || ""),
             tags: Array.isArray(data.tags) ? data.tags : [],
+            normalization:
+              typeof data.normalization === "boolean"
+                ? data.normalization
+                : null,
+            independentChunk:
+              typeof data.independent_chunk === "boolean"
+                ? data.independent_chunk
+                : null,
           },
         }));
       } catch {
@@ -1014,6 +1030,14 @@ export function NarrationChunksPanel({
                           <p className="font-mono text-zinc-400 leading-relaxed break-words">
                             {tagPreviews[chunk.id].preview}
                           </p>
+                          {tagPreviews[chunk.id].independentChunk && (
+                            <p className="text-zinc-600">
+                              Trecho independente · normalização automática{" "}
+                              {tagPreviews[chunk.id].normalization
+                                ? "ativa"
+                                : "desativada"}
+                            </p>
+                          )}
                           {tagPreviews[chunk.id].tags.length > 0 && (
                             <p className="text-zinc-600">
                               Tags: {tagPreviews[chunk.id].tags.join(" · ")}
