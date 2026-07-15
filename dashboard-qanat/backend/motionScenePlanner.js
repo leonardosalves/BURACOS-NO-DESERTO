@@ -76,7 +76,7 @@ function applyGeoPipStudioPack(scene = {}, niche = "") {
   });
 }
 const STAT_RE =
-  /(\d{1,3}(?:[.,]\d+)?)\s*(%|por\s*cento|bilh[oõ]es?|milh[oõ]es?|mil\b|anos?|km|m\b|volts?|reais|R\$)/i;
+  /(\d{1,3}(?:[.,]\d+)?)\s*(%|por\s*cento|bilh[oõ]es?|milh[oõ]es?|mil\b|anos?|km|m\b|volts?|reais|R\$|MPa|Pa\b)/i;
 const COMPARISON_RE =
   /\b(maior|menor|versus|vs\.?|comparad[oa]|dobro|triplo|supera|ultrapassa)\b/i;
 const LOCATION_RE =
@@ -88,9 +88,10 @@ const HISTORICAL_RE =
 
 function hasRealTimelineSequence(text = "") {
   const years = [...new Set(String(text).match(YEAR_GLOBAL_RE) || [])];
-  const sequenceMarkers = String(text).match(
-    /\b(primeiro|depois|em seguida|entao|antes|mais tarde|por fim|finalmente)\b/gi
-  ) || [];
+  const sequenceMarkers =
+    String(text).match(
+      /\b(primeiro|depois|em seguida|entao|antes|mais tarde|por fim|finalmente)\b/gi
+    ) || [];
   return years.length >= 2 || sequenceMarkers.length >= 2;
 }
 
@@ -111,7 +112,12 @@ function sceneDedupeKey(trigger, templateId, vp = {}) {
 }
 
 /** Duração da cena — lógica duplicada em plan + boost, agora unificada. */
-function resolveSceneDuration(templateId, vpDurRaw, aspectRatio = "16:9", { locationFallback } = {}) {
+function resolveSceneDuration(
+  templateId,
+  vpDurRaw,
+  aspectRatio = "16:9",
+  { locationFallback } = {}
+) {
   const vpDur = Number(vpDurRaw);
   const templateDefault = DEFAULT_DURATIONS[templateId] || 4;
 
@@ -124,7 +130,9 @@ function resolveSceneDuration(templateId, vpDurRaw, aspectRatio = "16:9", { loca
       max,
       Math.max(
         LOCATION_INTRO_DEFAULTS.duration_seconds,
-        vpDur > 0 ? vpDur : (locationFallback ?? LOCATION_INTRO_DEFAULTS.duration_seconds)
+        vpDur > 0
+          ? vpDur
+          : (locationFallback ?? LOCATION_INTRO_DEFAULTS.duration_seconds)
       )
     );
   }
@@ -150,7 +158,8 @@ function normalizePlannerTrigger(trigger, narration) {
 /** Layout/presentation "efetivos" do clip — substitui os ternários aninhados. */
 function resolveClipLayout(ms = {}) {
   if (isGeoTemplate(ms.template_id)) return "fullscreen";
-  if (FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))) return "fullscreen";
+  if (FULLSCREEN_TEMPLATES.has(String(ms.template_id || "")))
+    return "fullscreen";
   return ms.layout || resolveLayoutForTemplate(ms.template_id, ms.trigger);
 }
 
@@ -161,7 +170,8 @@ function resolveClipPresentation(ms = {}) {
       (ms.props?.presentation === "pip" || ms.layout === "pip"));
   if (keepPip) return ms.props?.presentation || ms.layout || "pip";
   if (isGeoTemplate(ms.template_id)) return "fullscreen";
-  if (FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))) return "fullscreen";
+  if (FULLSCREEN_TEMPLATES.has(String(ms.template_id || "")))
+    return "fullscreen";
   return ms.props?.presentation;
 }
 
@@ -199,7 +209,12 @@ function buildBaseMotionScene({
     scene_ref: String(vp.scene || ""),
     block: Number(vp.block) || 1,
     start_hint: sceneStartHint(vp, blockTimings),
-    duration_seconds: resolveSceneDuration(templateId, vp.duration_seconds, aspectRatio, { locationFallback }),
+    duration_seconds: resolveSceneDuration(
+      templateId,
+      vp.duration_seconds,
+      aspectRatio,
+      { locationFallback }
+    ),
     layout,
     template_id: templateId,
     trigger,
@@ -860,7 +875,9 @@ export function limitMotionScenesForFormat(scenes = [], aspectRatio = "16:9") {
 
   if (isShort && approved.length > 1) {
     const geoScenes = approved.filter((scene) => {
-      return isGeoTemplate(scene.props?.legacy_motion_template_id || scene.template_id);
+      return isGeoTemplate(
+        scene.props?.legacy_motion_template_id || scene.template_id
+      );
     });
     if (geoScenes.length) {
       return geoScenes
@@ -942,8 +959,8 @@ export function planMotionScenesFromStoryboard(
               : null,
           skipped: true,
           reason: classified
-             ? "confianca baixa para acionar template automatico"
-             : "sem trigger de mapa, numero, comparacao ou cronologia",
+            ? "confianca baixa para acionar template automatico"
+            : "sem trigger de mapa, numero, comparacao ou cronologia",
         })
       );
       continue;
@@ -1065,10 +1082,11 @@ export function planMotionScenesFromStoryboard(
       scene = applyGeoPipStudioPack(scene, studioNiche);
     }
 
-    if (studioPackEnabled && (
-      !String(scene.props?.template_studio_id || "").trim() ||
-      !String(scene.props?.studio_source_code || "").trim()
-    )) {
+    if (
+      studioPackEnabled &&
+      (!String(scene.props?.template_studio_id || "").trim() ||
+        !String(scene.props?.studio_source_code || "").trim())
+    ) {
       continue;
     }
 

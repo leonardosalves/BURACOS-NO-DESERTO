@@ -67,3 +67,66 @@ export function applyStudioRoleToScene(scene = {}, template = {}) {
 
   return { ...scene, props };
 }
+
+export function subcategoryMatchesRole(template = {}, role = "") {
+  const sub = String(template.subcategory || "")
+    .trim()
+    .toLowerCase();
+  const cat = String(template.category || "")
+    .trim()
+    .toLowerCase();
+
+  if (role === "transition") {
+    return (
+      cat === "transition" ||
+      /transition|wipe|dissolve|fade|burn|pulse/i.test(sub)
+    );
+  }
+  if (role === "background_frame") {
+    return (
+      cat === "background" ||
+      cat === "frame" ||
+      /background|backdrop|pattern|frame|border/i.test(sub)
+    );
+  }
+  if (role === "logo_bug") {
+    return cat === "logo-branding" || /logo|bug|watermark|branding/i.test(sub);
+  }
+  if (role === "overlay") {
+    if (
+      cat === "transition" ||
+      cat === "background" ||
+      cat === "frame" ||
+      cat === "logo-branding"
+    ) {
+      return false;
+    }
+    if (/transition|wipe|dissolve|fade|backdrop|logo|watermark/i.test(sub)) {
+      return false;
+    }
+    return true;
+  }
+  return true;
+}
+
+export function catalogCategoryForRole(role = "") {
+  const r = String(role || "")
+    .trim()
+    .toLowerCase();
+  if (r === "transition") return "transition";
+  if (r === "background_frame" || r === "frame" || r === "background")
+    return "background";
+  if (r === "logo_bug" || r === "logo_branding" || r === "logo-branding")
+    return "logo-branding";
+  if (r === "cinematic" || r === "scene_effect") return "cinematic";
+  if (r === "chart" || r === "chart_data" || r === "chart-data")
+    return "chart-data";
+  if (r === "text" || r === "text_overlay" || r === "text-overlay")
+    return "text";
+  if (r === "content_animation" || r === "content-animation")
+    return "content-animation";
+  if (r === "media_layout" || r === "image_media" || r === "image-media")
+    return "image-media";
+  if (r === "intro_outro" || r === "intro-outro") return "intro-outro";
+  return "text";
+}

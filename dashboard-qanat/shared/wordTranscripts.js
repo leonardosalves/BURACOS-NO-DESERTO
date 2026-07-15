@@ -3,17 +3,25 @@ import { cleanText } from "./narrationMatch.js";
 /**
  * Achata word_transcripts.json em lista de palavras com timestamps absolutos.
  */
-export function flattenWordTranscripts(wordTranscripts, { synthesizeFromText = false } = {}) {
+export function flattenWordTranscripts(
+  wordTranscripts,
+  { synthesizeFromText = false } = {}
+) {
   const flatList = [];
   if (!Array.isArray(wordTranscripts)) return flatList;
 
   wordTranscripts.forEach((segment, segIdx) => {
     const segStart = segment.start_time || 0;
-    const segDuration = Number(segment.duration)
-      || Math.max(0.5, (segment.end_time || 0) - segStart);
+    const segDuration =
+      Number(segment.duration) ||
+      Math.max(0.5, (segment.end_time || 0) - segStart);
     const segText = String(segment.text || "").trim();
 
-    if (segment.words && Array.isArray(segment.words) && segment.words.length > 0) {
+    if (
+      segment.words &&
+      Array.isArray(segment.words) &&
+      segment.words.length > 0
+    ) {
       for (const w of segment.words) {
         let wStart = w.start;
         let wEnd = w.end;
@@ -49,4 +57,36 @@ export function flattenWordTranscripts(wordTranscripts, { synthesizeFromText = f
   });
 
   return flatList;
+}
+
+export function sanitizeTranscriptSegmentWords(segment = {}) {
+  if (
+    segment?.words &&
+    Array.isArray(segment.words) &&
+    segment.words.length > 0
+  ) {
+    return segment.words.map((w) => ({
+      word: String(w.word || "").trim(),
+      start: Number(w.start) || 0,
+      end: Number(w.end) || 0,
+    }));
+  }
+
+  const text = String(segment?.text || "").trim();
+  if (!text) return [];
+
+  const rawWords = text.split(/\s+/).filter(Boolean);
+  const duration =
+    Number(segment?.duration) ||
+    Math.max(
+      0.5,
+      Number(segment?.end_time || 0) - Number(segment?.start_time || 0)
+    );
+
+  const wordDuration = duration / Math.max(1, rawWords.length);
+  return rawWords.map((word, index) => ({
+    word,
+    start: index * wordDuration,
+    end: (index + 1) * wordDuration,
+  }));
 }

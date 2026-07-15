@@ -19,7 +19,9 @@ import {
 } from "./youtubeTitleAnalytics.js";
 
 const ytGet = (token, apiPath, params) =>
-  sharedYoutubeDataGet(token, apiPath, params, { onError: throwIfInsufficientScope });
+  sharedYoutubeDataGet(token, apiPath, params, {
+    onError: throwIfInsufficientScope,
+  });
 
 const DEFAULT_VIEWS_48H_THRESHOLD = 100;
 const DEFAULT_POLL_INTERVAL_MINUTES = 20;
@@ -44,7 +46,9 @@ function writeCacheStore(workspaceDir, store) {
 }
 
 function normalizeVideoFormat(value) {
-  const raw = String(value || "").trim().toUpperCase();
+  const raw = String(value || "")
+    .trim()
+    .toUpperCase();
   if (raw === "SHORT" || raw === "SHORTS") return "SHORT";
   return "LONG";
 }
@@ -70,10 +74,17 @@ function lumieraProjectDirExists(projectPath) {
 }
 
 export function filterExistingLumieraVideos(items = []) {
-  return (items || []).filter((item) => lumieraProjectDirExists(item?.projectPath));
+  return (items || []).filter((item) =>
+    lumieraProjectDirExists(item?.projectPath)
+  );
 }
 
-const LUMIERA_LIST_KEYS = ["videos", "lumieraVideos", "hotVideos", "deadVideos"];
+const LUMIERA_LIST_KEYS = [
+  "videos",
+  "lumieraVideos",
+  "hotVideos",
+  "deadVideos",
+];
 
 /** Predicado de alertas mantidos — duplicado 2x no arquivo. */
 function shouldKeepAlert(alert) {
@@ -102,10 +113,14 @@ function sanitizeCachedLumieraPayload(data, cacheKey = "") {
 
   if (next.lumieraVideoById && typeof next.lumieraVideoById === "object") {
     const filteredMap = Object.fromEntries(
-      filterExistingLumieraVideos(Object.values(next.lumieraVideoById))
-        .map((item) => [item.videoId, item])
+      filterExistingLumieraVideos(Object.values(next.lumieraVideoById)).map(
+        (item) => [item.videoId, item]
+      )
     );
-    if (Object.keys(filteredMap).length !== Object.keys(next.lumieraVideoById).length) {
+    if (
+      Object.keys(filteredMap).length !==
+      Object.keys(next.lumieraVideoById).length
+    ) {
       next.lumieraVideoById = filteredMap;
       changed = true;
     }
@@ -124,18 +139,25 @@ function sanitizeCachedLumieraPayload(data, cacheKey = "") {
     next.alerts = alerts;
   }
 
-  if (changed && (cacheKey.startsWith("alerts:") || cacheKey.startsWith("lumiera:"))) {
+  if (
+    changed &&
+    (cacheKey.startsWith("alerts:") || cacheKey.startsWith("lumiera:"))
+  ) {
     const hot = next.hotVideos?.length ?? 0;
     const dead = next.deadVideos?.length ?? 0;
     const unanswered = Number(next.unansweredComments || 0);
-    const viewsDrop = next.alerts?.filter((a) => a.type === "views_drop").length ?? 0;
+    const viewsDrop =
+      next.alerts?.filter((a) => a.type === "views_drop").length ?? 0;
     next.badgeCount = unanswered + hot + dead + viewsDrop;
   }
 
   return { data: next, changed };
 }
 
-export function purgeYoutubeChannelCacheForProject(workspaceDir, { projectName = "", projectPath = "" } = {}) {
+export function purgeYoutubeChannelCacheForProject(
+  workspaceDir,
+  { projectName = "", projectPath = "" } = {}
+) {
   const store = readCacheStore(workspaceDir);
   const name = String(projectName || "").trim();
   const dir = String(projectPath || "").trim();
@@ -150,24 +172,37 @@ export function purgeYoutubeChannelCacheForProject(workspaceDir, { projectName =
 
   for (const [cacheKey, entry] of Object.entries(store)) {
     if (!entry?.data) continue;
-    const { data, changed } = sanitizeCachedLumieraPayload({
-      ...entry.data,
-      videos: (entry.data.videos || []).filter((item) => !matches(item)),
-      lumieraVideos: (entry.data.lumieraVideos || []).filter((item) => !matches(item)),
-      hotVideos: (entry.data.hotVideos || []).filter((item) => !matches(item)),
-      deadVideos: (entry.data.deadVideos || []).filter((item) => !matches(item)),
-      alerts: Array.isArray(entry.data.alerts)
-        ? entry.data.alerts.map((alert) => {
-            if (!Array.isArray(alert?.videos)) return alert;
-            const filtered = alert.videos.filter((item) => !matches(item));
-            return { ...alert, videos: filtered, count: filtered.length };
-          }).filter(shouldKeepAlert)
-        : entry.data.alerts,
-    }, cacheKey);
+    const { data, changed } = sanitizeCachedLumieraPayload(
+      {
+        ...entry.data,
+        videos: (entry.data.videos || []).filter((item) => !matches(item)),
+        lumieraVideos: (entry.data.lumieraVideos || []).filter(
+          (item) => !matches(item)
+        ),
+        hotVideos: (entry.data.hotVideos || []).filter(
+          (item) => !matches(item)
+        ),
+        deadVideos: (entry.data.deadVideos || []).filter(
+          (item) => !matches(item)
+        ),
+        alerts: Array.isArray(entry.data.alerts)
+          ? entry.data.alerts
+              .map((alert) => {
+                if (!Array.isArray(alert?.videos)) return alert;
+                const filtered = alert.videos.filter((item) => !matches(item));
+                return { ...alert, videos: filtered, count: filtered.length };
+              })
+              .filter(shouldKeepAlert)
+          : entry.data.alerts,
+      },
+      cacheKey
+    );
 
-    const explicitRemoved = changed
-      || (entry.data.videos || []).length !== (data.videos || []).length
-      || (entry.data.lumieraVideos || []).length !== (data.lumieraVideos || []).length;
+    const explicitRemoved =
+      changed ||
+      (entry.data.videos || []).length !== (data.videos || []).length ||
+      (entry.data.lumieraVideos || []).length !==
+        (data.lumieraVideos || []).length;
 
     if (explicitRemoved) {
       store[cacheKey] = { ...entry, data };
@@ -184,8 +219,12 @@ export function sanitizeYoutubeChannelCacheStore(workspaceDir) {
   let touched = false;
   for (const [cacheKey, entry] of Object.entries(store)) {
     if (!entry?.data) continue;
-    if (!cacheKey.startsWith("lumiera:") && !cacheKey.startsWith("alerts:")) continue;
-    const { data, changed } = sanitizeCachedLumieraPayload(entry.data, cacheKey);
+    if (!cacheKey.startsWith("lumiera:") && !cacheKey.startsWith("alerts:"))
+      continue;
+    const { data, changed } = sanitizeCachedLumieraPayload(
+      entry.data,
+      cacheKey
+    );
     if (changed) {
       store[cacheKey] = { ...entry, data };
       touched = true;
@@ -234,7 +273,13 @@ function setCachedPayload(workspaceDir, cacheKey, data) {
   writeCacheStore(workspaceDir, store);
 }
 
-async function withChannelCache(workspaceDir, cacheKey, ttlMs, forceRefresh, loader) {
+async function withChannelCache(
+  workspaceDir,
+  cacheKey,
+  ttlMs,
+  forceRefresh,
+  loader
+) {
   if (!forceRefresh) {
     const cached = getCachedPayload(workspaceDir, cacheKey, ttlMs);
     if (cached) return cached;
@@ -267,12 +312,18 @@ function parseAnalyticsRows(analyticsData = {}) {
   });
 }
 
-
-
 /** YouTube Data API aceita no máximo 50 IDs por chamada em videos.list. */
-async function fetchVideoSnippetMapByIds(accessToken, videoIds = [], part = "snippet") {
+async function fetchVideoSnippetMapByIds(
+  accessToken,
+  videoIds = [],
+  part = "snippet"
+) {
   const titleById = new Map();
-  const unique = [...new Set((videoIds || []).map((id) => String(id || "").trim()).filter(Boolean))];
+  const unique = [
+    ...new Set(
+      (videoIds || []).map((id) => String(id || "").trim()).filter(Boolean)
+    ),
+  ];
   for (let i = 0; i < unique.length; i += 50) {
     const chunk = unique.slice(i, i + 50);
     const videosData = await ytGet(accessToken, "videos", {
@@ -289,11 +340,12 @@ async function fetchVideoSnippetMapByIds(accessToken, videoIds = [], part = "sni
 async function queryYoutubeAnalytics(accessToken, params) {
   const res = await fetch(
     `https://youtubeanalytics.googleapis.com/v2/reports?${params.toString()}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const data = await res.json();
   if (!res.ok) {
-    const message = data?.error?.message || "Falha ao buscar analytics do YouTube.";
+    const message =
+      data?.error?.message || "Falha ao buscar analytics do YouTube.";
     throwIfInsufficientScope(message);
     throw new Error(message);
   }
@@ -311,7 +363,12 @@ function mapAnalyticsRow(row) {
   };
 }
 
-async function fetchSingleVideoMetrics(accessToken, videoId, startDate, endDate) {
+async function fetchSingleVideoMetrics(
+  accessToken,
+  videoId,
+  startDate,
+  endDate
+) {
   const analyticsParams = new URLSearchParams({
     ids: "channel==MINE",
     startDate,
@@ -321,24 +378,37 @@ async function fetchSingleVideoMetrics(accessToken, videoId, startDate, endDate)
     filters: `video==${videoId}`,
   });
 
-  const analyticsData = await queryYoutubeAnalytics(accessToken, analyticsParams);
+  const analyticsData = await queryYoutubeAnalytics(
+    accessToken,
+    analyticsParams
+  );
   const row = parseAnalyticsRows(analyticsData)[0];
   return row ? mapAnalyticsRow(row) : null;
 }
 
-async function fetchVideoMetricsBatched(accessToken, videoIds, startDate, endDate) {
+async function fetchVideoMetricsBatched(
+  accessToken,
+  videoIds,
+  startDate,
+  endDate
+) {
   const metricsByVideoId = new Map();
   if (!videoIds.length) return metricsByVideoId;
 
   const results = await Promise.all(
     videoIds.map(async (videoId) => {
       try {
-        const metrics = await fetchSingleVideoMetrics(accessToken, videoId, startDate, endDate);
+        const metrics = await fetchSingleVideoMetrics(
+          accessToken,
+          videoId,
+          startDate,
+          endDate
+        );
         return { videoId, metrics };
       } catch {
         return { videoId, metrics: null };
       }
-    }),
+    })
   );
 
   results.forEach(({ videoId, metrics }) => {
@@ -346,6 +416,11 @@ async function fetchVideoMetricsBatched(accessToken, videoIds, startDate, endDat
   });
 
   return metricsByVideoId;
+}
+
+function formatCount(value) {
+  const num = Number(value || 0);
+  return Number.isFinite(num) ? num : 0;
 }
 
 async function fetchChannelOverviewUncached(workspaceDir) {
@@ -397,19 +472,22 @@ async function fetchChannelOverviewUncached(workspaceDir) {
   };
 }
 
-export async function fetchChannelOverview(workspaceDir, { forceRefresh = false } = {}) {
+export async function fetchChannelOverview(
+  workspaceDir,
+  { forceRefresh = false } = {}
+) {
   return withChannelCache(
     workspaceDir,
     "overview",
     CACHE_TTL_MS.overview,
     forceRefresh,
-    () => fetchChannelOverviewUncached(workspaceDir),
+    () => fetchChannelOverviewUncached(workspaceDir)
   );
 }
 
 async function fetchChannelVideosWithAnalyticsUncached(
   workspaceDir,
-  { days = 28, limit = 25, projectsRoot = null } = {},
+  { days = 28, limit = 25, projectsRoot = null } = {}
 ) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
@@ -422,7 +500,8 @@ async function fetchChannelVideosWithAnalyticsUncached(
   });
 
   const channelItem = channelData?.items?.[0];
-  const uploadsPlaylistId = channelItem?.contentDetails?.relatedPlaylists?.uploads;
+  const uploadsPlaylistId =
+    channelItem?.contentDetails?.relatedPlaylists?.uploads;
   if (!uploadsPlaylistId) {
     throw new Error("Playlist de uploads do canal não encontrada.");
   }
@@ -437,7 +516,8 @@ async function fetchChannelVideosWithAnalyticsUncached(
   const videoMetaById = new Map();
 
   playlistItems.forEach((entry) => {
-    const videoId = entry?.contentDetails?.videoId || entry?.snippet?.resourceId?.videoId;
+    const videoId =
+      entry?.contentDetails?.videoId || entry?.snippet?.resourceId?.videoId;
     if (!videoId) return;
     const snippet = entry.snippet || {};
     const thumbs = snippet.thumbnails || {};
@@ -460,7 +540,8 @@ async function fetchChannelVideosWithAnalyticsUncached(
     fetchVideoMetricsBatched(accessToken, videoIds, startDate, endDate),
     (async () => {
       try {
-        const { tagVideosShortsLong } = await import("./youtubeStudioAdvanced.js");
+        const { tagVideosShortsLong } =
+          await import("./youtubeStudioAdvanced.js");
         return tagVideosShortsLong(accessToken, videoIds, {
           lumieraFormatById,
           startDate,
@@ -484,7 +565,9 @@ async function fetchChannelVideosWithAnalyticsUncached(
   const videos = [...videoMetaById.values()]
     .map((meta) => ({
       ...meta,
-      videoFormat: normalizeVideoFormat(formatByVideoId.get(meta.videoId) || "LONG"),
+      videoFormat: normalizeVideoFormat(
+        formatByVideoId.get(meta.videoId) || "LONG"
+      ),
       metrics: metricsByVideoId.get(meta.videoId) || emptyMetrics,
     }))
     .sort((a, b) => (b.metrics.views || 0) - (a.metrics.views || 0));
@@ -504,7 +587,13 @@ async function fetchChannelVideosWithAnalyticsUncached(
 
 export async function fetchChannelVideosWithAnalytics(
   workspaceDir,
-  { days = 28, limit = 25, forceRefresh = false, format = "all", projectsRoot = null } = {},
+  {
+    days = 28,
+    limit = 25,
+    forceRefresh = false,
+    format = "all",
+    projectsRoot = null,
+  } = {}
 ) {
   const cacheKey = `videos:v3:${days}:${limit}`;
   const report = await withChannelCache(
@@ -512,7 +601,12 @@ export async function fetchChannelVideosWithAnalytics(
     cacheKey,
     CACHE_TTL_MS.videos,
     forceRefresh,
-    () => fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days, limit, projectsRoot }),
+    () =>
+      fetchChannelVideosWithAnalyticsUncached(workspaceDir, {
+        days,
+        limit,
+        projectsRoot,
+      })
   );
   const normalizedFormat = String(format || "all").toUpperCase();
   if (normalizedFormat === "ALL" || !report?.videos) return report;
@@ -532,26 +626,58 @@ function normalizeCommentText(value = "") {
 }
 
 function normalizeAuthorChannelId(snippet = {}) {
-  return String(snippet?.authorChannelId?.value || snippet?.authorChannelId || "").trim();
+  return String(
+    snippet?.authorChannelId?.value || snippet?.authorChannelId || ""
+  ).trim();
 }
 
-function replyAuthorIsChannel(snippet = {}, channelId, channelTitle = "", channelHandle = "") {
+function replyAuthorIsChannel(
+  snippet = {},
+  channelId,
+  channelTitle = "",
+  channelHandle = ""
+) {
   if (normalizeAuthorChannelId(snippet) === channelId) return true;
-  const author = String(snippet.authorDisplayName || "").trim().toLowerCase();
-  const titleNorm = String(channelTitle || "").trim().toLowerCase();
+  const author = String(snippet.authorDisplayName || "")
+    .trim()
+    .toLowerCase();
+  const titleNorm = String(channelTitle || "")
+    .trim()
+    .toLowerCase();
   if (titleNorm && author === titleNorm) return true;
-  const handleNorm = String(channelHandle || "").trim().toLowerCase().replace(/^@/, "");
-  if (handleNorm && (author === `@${handleNorm}` || author.includes(handleNorm))) return true;
+  const handleNorm = String(channelHandle || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, "");
+  if (
+    handleNorm &&
+    (author === `@${handleNorm}` || author.includes(handleNorm))
+  )
+    return true;
   return false;
 }
 
-function threadHasChannelReply(thread, channelId, channelTitle = "", channelHandle = "") {
+function threadHasChannelReply(
+  thread,
+  channelId,
+  channelTitle = "",
+  channelHandle = ""
+) {
   const replies = thread?.replies?.comments || [];
-  return replies.some((reply) => replyAuthorIsChannel(reply?.snippet, channelId, channelTitle, channelHandle));
+  return replies.some((reply) =>
+    replyAuthorIsChannel(reply?.snippet, channelId, channelTitle, channelHandle)
+  );
 }
 
-async function threadHasChannelReplyDeep(accessToken, thread, channelId, channelTitle = "", channelHandle = "") {
-  if (threadHasChannelReply(thread, channelId, channelTitle, channelHandle)) return true;
+async function threadHasChannelReplyDeep(
+  accessToken,
+  thread,
+  channelId,
+  channelTitle = "",
+  channelHandle = ""
+) {
+  if (threadHasChannelReply(thread, channelId, channelTitle, channelHandle))
+    return true;
   const replyCount = Number(thread?.snippet?.totalReplyCount || 0);
   if (replyCount === 0) return false;
   const parentId = thread?.snippet?.topLevelComment?.id;
@@ -562,19 +688,33 @@ async function threadHasChannelReplyDeep(accessToken, thread, channelId, channel
       parentId,
       maxResults: 100,
     });
-    return (data?.items || []).some((reply) => (
-      replyAuthorIsChannel(reply?.snippet, channelId, channelTitle, channelHandle)
-    ));
+    return (data?.items || []).some((reply) =>
+      replyAuthorIsChannel(
+        reply?.snippet,
+        channelId,
+        channelTitle,
+        channelHandle
+      )
+    );
   } catch {
     return false;
   }
 }
 
 function isOwnChannelComment(topSnippet, channelId) {
-  return Boolean(normalizeAuthorChannelId(topSnippet) && normalizeAuthorChannelId(topSnippet) === channelId);
+  return Boolean(
+    normalizeAuthorChannelId(topSnippet) &&
+    normalizeAuthorChannelId(topSnippet) === channelId
+  );
 }
 
-async function mapCommentThread(thread, channelId, channelTitle = "", channelHandle = "", accessToken = null) {
+async function mapCommentThread(
+  thread,
+  channelId,
+  channelTitle = "",
+  channelHandle = "",
+  accessToken = null
+) {
   const snippet = thread?.snippet || {};
   const top = snippet.topLevelComment?.snippet || {};
   const videoId = snippet.videoId || "";
@@ -584,7 +724,13 @@ async function mapCommentThread(thread, channelId, channelTitle = "", channelHan
   let isAnswered = false;
   if (replyCount > 0) {
     isAnswered = accessToken
-      ? await threadHasChannelReplyDeep(accessToken, thread, channelId, channelTitle, channelHandle)
+      ? await threadHasChannelReplyDeep(
+          accessToken,
+          thread,
+          channelId,
+          channelTitle,
+          channelHandle
+        )
       : threadHasChannelReply(thread, channelId, channelTitle, channelHandle);
   }
   const ownChannelComment = isOwnChannelComment(top, channelId);
@@ -605,25 +751,34 @@ async function mapCommentThread(thread, channelId, channelTitle = "", channelHan
     studioUrl: videoId
       ? `https://studio.youtube.com/video/${videoId}/comments`
       : `https://studio.youtube.com/channel/${channelId}/comments`,
-    watchUrl: videoId && topCommentId
-      ? `https://www.youtube.com/watch?v=${videoId}&lc=${topCommentId}`
-      : videoId
-        ? `https://www.youtube.com/watch?v=${videoId}`
-        : null,
+    watchUrl:
+      videoId && topCommentId
+        ? `https://www.youtube.com/watch?v=${videoId}&lc=${topCommentId}`
+        : videoId
+          ? `https://www.youtube.com/watch?v=${videoId}`
+          : null,
   };
 }
 
-function applyCommentFilters(comments, { filter = "all", keyword = "", handledIds = new Set() } = {}) {
-  let result = comments.filter((item) => !item.isOwnChannelComment && !handledIds.has(item.threadId));
+function applyCommentFilters(
+  comments,
+  { filter = "all", keyword = "", handledIds = new Set() } = {}
+) {
+  let result = comments.filter(
+    (item) => !item.isOwnChannelComment && !handledIds.has(item.threadId)
+  );
 
   if (filter === "unanswered") {
     result = result.filter((item) => !item.isAnswered);
   }
 
-  const keywordNorm = String(keyword || "").trim().toLowerCase();
+  const keywordNorm = String(keyword || "")
+    .trim()
+    .toLowerCase();
   if (keywordNorm) {
     result = result.filter((item) => {
-      const haystack = `${item.text} ${item.videoTitle} ${item.authorDisplayName}`.toLowerCase();
+      const haystack =
+        `${item.text} ${item.videoTitle} ${item.authorDisplayName}`.toLowerCase();
       return haystack.includes(keywordNorm);
     });
   }
@@ -631,15 +786,18 @@ function applyCommentFilters(comments, { filter = "all", keyword = "", handledId
   return result;
 }
 
-export async function fetchChannelComments(workspaceDir, {
-  limit = 20,
-  filter = "all",
-  keyword = "",
-  pageToken = "",
-  projectsRoot = null,
-  views48hThreshold = 100,
-  enrich = true,
-} = {}) {
+export async function fetchChannelComments(
+  workspaceDir,
+  {
+    limit = 20,
+    filter = "all",
+    keyword = "",
+    pageToken = "",
+    projectsRoot = null,
+    views48hThreshold = 100,
+    enrich = true,
+  } = {}
+) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
 
@@ -657,7 +815,8 @@ export async function fetchChannelComments(workspaceDir, {
   }
 
   const maxResults = Math.min(Math.max(Number(limit) || 20, 1), 50);
-  const wantsFilter = filter === "unanswered" || String(keyword || "").trim().length > 0;
+  const wantsFilter =
+    filter === "unanswered" || String(keyword || "").trim().length > 0;
   // Busca extra: comentários do próprio canal e já respondidos são filtrados depois.
   const fetchCount = wantsFilter ? 100 : Math.min(maxResults * 2, 100);
 
@@ -674,16 +833,29 @@ export async function fetchChannelComments(workspaceDir, {
 
   const handledIds = getHandledCommentIds(workspaceDir);
   const mapped = await Promise.all(
-    (threadsData?.items || []).map((thread) => (
-      mapCommentThread(thread, channelId, channelTitle, channelHandle, accessToken)
-    )),
+    (threadsData?.items || []).map((thread) =>
+      mapCommentThread(
+        thread,
+        channelId,
+        channelTitle,
+        channelHandle,
+        accessToken
+      )
+    )
   );
 
   const missingTitleIds = [
-    ...new Set(mapped.filter((item) => item.videoId && !item.videoTitle).map((item) => item.videoId)),
+    ...new Set(
+      mapped
+        .filter((item) => item.videoId && !item.videoTitle)
+        .map((item) => item.videoId)
+    ),
   ];
   if (missingTitleIds.length > 0) {
-    const snippetById = await fetchVideoSnippetMapByIds(accessToken, missingTitleIds);
+    const snippetById = await fetchVideoSnippetMapByIds(
+      accessToken,
+      missingTitleIds
+    );
     mapped.forEach((item) => {
       if (!item.videoTitle && item.videoId) {
         item.videoTitle = snippetById.get(item.videoId)?.title || "";
@@ -691,24 +863,40 @@ export async function fetchChannelComments(workspaceDir, {
     });
   }
 
-  let filtered = applyCommentFilters(mapped, { filter, keyword, handledIds }).slice(0, maxResults);
+  let filtered = applyCommentFilters(mapped, {
+    filter,
+    keyword,
+    handledIds,
+  }).slice(0, maxResults);
 
   if (enrich) {
-    const { enrichComments, getExtendedStudioSettings } = await import("./youtubeStudioAdvanced.js");
+    const { enrichComments, getExtendedStudioSettings } =
+      await import("./youtubeStudioAdvanced.js");
     const settings = getExtendedStudioSettings(workspaceDir);
-    const lumieraVideos = projectsRoot ? collectLumieraPublishedVideos(projectsRoot) : [];
+    const lumieraVideos = projectsRoot
+      ? collectLumieraPublishedVideos(projectsRoot)
+      : [];
     const lumieraVideoIds = new Set(lumieraVideos.map((item) => item.videoId));
     const hotVideoIds = new Set();
     const views48hByVideoId = {};
     if (projectsRoot) {
-      await Promise.all(lumieraVideos.slice(0, 8).map(async (entry) => {
-        try {
-          const { fetchVideoVelocity } = await import("./youtubeTitleAnalytics.js");
-          const velocity = await fetchVideoVelocity(workspaceDir, entry.videoId);
-          views48hByVideoId[entry.videoId] = velocity.views48h || 0;
-          if ((velocity.views48h || 0) >= views48hThreshold) hotVideoIds.add(entry.videoId);
-        } catch { /* ignore */ }
-      }));
+      await Promise.all(
+        lumieraVideos.slice(0, 8).map(async (entry) => {
+          try {
+            const { fetchVideoVelocity } =
+              await import("./youtubeTitleAnalytics.js");
+            const velocity = await fetchVideoVelocity(
+              workspaceDir,
+              entry.videoId
+            );
+            views48hByVideoId[entry.videoId] = velocity.views48h || 0;
+            if ((velocity.views48h || 0) >= views48hThreshold)
+              hotVideoIds.add(entry.videoId);
+          } catch {
+            /* ignore */
+          }
+        })
+      );
     }
     filtered = enrichComments(filtered, {
       settings,
@@ -725,14 +913,19 @@ export async function fetchChannelComments(workspaceDir, {
     keyword: String(keyword || "").trim(),
     comments: filtered,
     totalFetched: mapped.length,
-    handledHidden: mapped.filter((item) => handledIds.has(item.threadId)).length,
+    handledHidden: mapped.filter((item) => handledIds.has(item.threadId))
+      .length,
     nextPageToken: threadsData?.nextPageToken || null,
     fetchedAt: new Date().toISOString(),
-    replyNote: "Comentários do canal e marcados como tratados ficam ocultos. Responda pelo Lumiera ou abra no Studio.",
+    replyNote:
+      "Comentários do canal e marcados como tratados ficam ocultos. Responda pelo Lumiera ou abra no Studio.",
   };
 }
 
-export async function replyToChannelComment(workspaceDir, { parentId, text } = {}) {
+export async function replyToChannelComment(
+  workspaceDir,
+  { parentId, text } = {}
+) {
   await assertTitleTestScopes(workspaceDir);
   const commentParentId = String(parentId || "").trim();
   const replyText = String(text || "").trim();
@@ -745,23 +938,27 @@ export async function replyToChannelComment(workspaceDir, { parentId, text } = {
   }
 
   const accessToken = await getYoutubeAccessToken(workspaceDir);
-  const res = await fetch("https://www.googleapis.com/youtube/v3/comments?part=snippet", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      snippet: {
-        parentId: commentParentId,
-        textOriginal: replyText.slice(0, 10000),
+  const res = await fetch(
+    "https://www.googleapis.com/youtube/v3/comments?part=snippet",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-    }),
-  });
+      body: JSON.stringify({
+        snippet: {
+          parentId: commentParentId,
+          textOriginal: replyText.slice(0, 10000),
+        },
+      }),
+    }
+  );
 
   const data = await res.json();
   if (!res.ok) {
-    const message = data?.error?.message || "Falha ao publicar resposta no YouTube.";
+    const message =
+      data?.error?.message || "Falha ao publicar resposta no YouTube.";
     throwIfInsufficientScope(message);
     throw new Error(message);
   }
@@ -773,11 +970,13 @@ export async function replyToChannelComment(workspaceDir, { parentId, text } = {
   };
 }
 
-async function fetchVideoStudioDetailUncached(workspaceDir, videoId, { days = 28 } = {}) {
-  const {
-    fetchVideoVelocityTimeline,
-    fetchVideoCtrAndRevenue,
-  } = await import("./youtubeStudioAdvanced.js");
+async function fetchVideoStudioDetailUncached(
+  workspaceDir,
+  videoId,
+  { days = 28 } = {}
+) {
+  const { fetchVideoVelocityTimeline, fetchVideoCtrAndRevenue } =
+    await import("./youtubeStudioAdvanced.js");
   const normalizedVideoId = String(videoId || "").trim();
   if (!normalizedVideoId) {
     throw new Error("videoId é obrigatório.");
@@ -786,21 +985,32 @@ async function fetchVideoStudioDetailUncached(workspaceDir, videoId, { days = 28
   await assertTitleTestScopes(workspaceDir);
   const { startDate, endDate } = periodDates(days);
 
-  const [analytics, retention, velocity, velocityTimeline, ctrRevenue] = await Promise.all([
-    fetchVideoAnalytics(workspaceDir, normalizedVideoId, { startDate, endDate }),
-    fetchRetentionCurve(workspaceDir, normalizedVideoId, { startDate, endDate }).catch((err) => ({
-      videoId: normalizedVideoId,
-      points: [],
-      error: err.message,
-    })),
-    fetchVideoVelocity(workspaceDir, normalizedVideoId).catch((err) => ({
-      videoId: normalizedVideoId,
-      views48h: 0,
-      error: err.message,
-    })),
-    fetchVideoVelocityTimeline(workspaceDir, normalizedVideoId, { days: Math.min(days, 7) }).catch(() => null),
-    fetchVideoCtrAndRevenue(workspaceDir, normalizedVideoId, { days }).catch(() => null),
-  ]);
+  const [analytics, retention, velocity, velocityTimeline, ctrRevenue] =
+    await Promise.all([
+      fetchVideoAnalytics(workspaceDir, normalizedVideoId, {
+        startDate,
+        endDate,
+      }),
+      fetchRetentionCurve(workspaceDir, normalizedVideoId, {
+        startDate,
+        endDate,
+      }).catch((err) => ({
+        videoId: normalizedVideoId,
+        points: [],
+        error: err.message,
+      })),
+      fetchVideoVelocity(workspaceDir, normalizedVideoId).catch((err) => ({
+        videoId: normalizedVideoId,
+        views48h: 0,
+        error: err.message,
+      })),
+      fetchVideoVelocityTimeline(workspaceDir, normalizedVideoId, {
+        days: Math.min(days, 7),
+      }).catch(() => null),
+      fetchVideoCtrAndRevenue(workspaceDir, normalizedVideoId, { days }).catch(
+        () => null
+      ),
+    ]);
 
   return {
     videoId: normalizedVideoId,
@@ -816,7 +1026,11 @@ async function fetchVideoStudioDetailUncached(workspaceDir, videoId, { days = 28
   };
 }
 
-export async function fetchVideoStudioDetail(workspaceDir, videoId, { days = 28, forceRefresh = false } = {}) {
+export async function fetchVideoStudioDetail(
+  workspaceDir,
+  videoId,
+  { days = 28, forceRefresh = false } = {}
+) {
   const normalizedVideoId = String(videoId || "").trim();
   if (!normalizedVideoId) {
     throw new Error("videoId é obrigatório.");
@@ -827,16 +1041,24 @@ export async function fetchVideoStudioDetail(workspaceDir, videoId, { days = 28,
     cacheKey,
     CACHE_TTL_MS.videoDetail,
     forceRefresh,
-    () => fetchVideoStudioDetailUncached(workspaceDir, normalizedVideoId, { days }),
+    () =>
+      fetchVideoStudioDetailUncached(workspaceDir, normalizedVideoId, { days })
   );
 }
 
-async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { days = 28 } = {}) {
+async function fetchLumieraVideosReportUncached(
+  workspaceDir,
+  projectsRoot,
+  { days = 28 } = {}
+) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
   const { startDate, endDate } = periodDates(days);
-  const lumieraVideos = filterExistingLumieraVideos(collectLumieraPublishedVideos(projectsRoot));
-  const { getExtendedStudioSettings, loadLumieraExperiments } = await import("./youtubeStudioAdvanced.js");
+  const lumieraVideos = filterExistingLumieraVideos(
+    collectLumieraPublishedVideos(projectsRoot)
+  );
+  const { getExtendedStudioSettings, loadLumieraExperiments } =
+    await import("./youtubeStudioAdvanced.js");
   const studioSettings = getExtendedStudioSettings(workspaceDir);
 
   const enriched = await Promise.all(
@@ -847,15 +1069,25 @@ async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { da
 
       try {
         const [metricResult, velocity, videoData] = await Promise.all([
-          fetchSingleVideoMetrics(accessToken, entry.videoId, startDate, endDate),
-          fetchVideoVelocity(workspaceDir, entry.videoId).catch(() => ({ views48h: 0 })),
+          fetchSingleVideoMetrics(
+            accessToken,
+            entry.videoId,
+            startDate,
+            endDate
+          ),
+          fetchVideoVelocity(workspaceDir, entry.videoId).catch(() => ({
+            views48h: 0,
+          })),
           ytGet(accessToken, "videos", { part: "snippet", id: entry.videoId }),
         ]);
 
         metrics = metricResult;
         views48h = Number(velocity?.views48h || 0);
         const snippet = videoData?.items?.[0]?.snippet || {};
-        thumbnailUrl = snippet?.thumbnails?.medium?.url || snippet?.thumbnails?.default?.url || "";
+        thumbnailUrl =
+          snippet?.thumbnails?.medium?.url ||
+          snippet?.thumbnails?.default?.url ||
+          "";
         if (!entry.title && snippet?.title) {
           entry.title = snippet.title;
         }
@@ -863,9 +1095,10 @@ async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { da
         metrics = null;
       }
 
-      const goalViews48h = studioSettings.projectGoals?.[entry.projectName]?.views48h
-        ?? studioSettings.defaultProjectGoalViews48h
-        ?? 100;
+      const goalViews48h =
+        studioSettings.projectGoals?.[entry.projectName]?.views48h ??
+        studioSettings.defaultProjectGoalViews48h ??
+        100;
       return {
         ...entry,
         thumbnailUrl,
@@ -883,7 +1116,7 @@ async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { da
         studioUrl: `https://studio.youtube.com/video/${entry.videoId}/analytics/tab-overview/period-default`,
         watchUrl: `https://www.youtube.com/watch?v=${entry.videoId}`,
       };
-    }),
+    })
   );
 
   const withExperiments = await loadLumieraExperiments(projectsRoot, enriched);
@@ -892,7 +1125,9 @@ async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { da
     periodDays: days,
     startDate,
     endDate,
-    videos: withExperiments.sort((a, b) => (b.metrics?.views || 0) - (a.metrics?.views || 0)),
+    videos: withExperiments.sort(
+      (a, b) => (b.metrics?.views || 0) - (a.metrics?.views || 0)
+    ),
     fetchedAt: new Date().toISOString(),
   };
 }
@@ -900,7 +1135,7 @@ async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { da
 export async function fetchLumieraVideosReport(
   workspaceDir,
   projectsRoot,
-  { days = 28, forceRefresh = false } = {},
+  { days = 28, forceRefresh = false } = {}
 ) {
   const cacheKey = `lumiera:${days}`;
   return withChannelCache(
@@ -908,7 +1143,7 @@ export async function fetchLumieraVideosReport(
     cacheKey,
     CACHE_TTL_MS.lumiera,
     forceRefresh,
-    () => fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { days }),
+    () => fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { days })
   );
 }
 
@@ -932,9 +1167,11 @@ export function collectLumieraPublishedVideos(projectsRoot) {
       if (!lumieraProjectDirExists(fullPath)) continue;
 
       const cfg = readJsonSafe(path.join(fullPath, "config_qanat.json"));
-      const experiment = readJsonSafe(path.join(fullPath, "youtube_title_experiment.json"));
+      const experiment = readJsonSafe(
+        path.join(fullPath, "youtube_title_experiment.json")
+      );
       const videoId = String(
-        cfg?.upload_metadata?.youtube?.post_id || experiment?.videoId || "",
+        cfg?.upload_metadata?.youtube?.post_id || experiment?.videoId || ""
       ).trim();
       if (!videoId || seen.has(videoId)) continue;
 
@@ -945,7 +1182,10 @@ export function collectLumieraPublishedVideos(projectsRoot) {
         format,
         videoId,
         niche: cfg?.niche || "",
-        title: cfg?.upload_metadata?.youtube?.title || cfg?.strategy?.title_main || "",
+        title:
+          cfg?.upload_metadata?.youtube?.title ||
+          cfg?.strategy?.title_main ||
+          "",
       });
     }
   }
@@ -959,7 +1199,7 @@ async function countUnansweredComments(
   scanLimit = 50,
   handledIds = new Set(),
   channelTitle = "",
-  channelHandle = "",
+  channelHandle = ""
 ) {
   const threadsData = await ytGet(accessToken, "commentThreads", {
     part: "snippet,replies",
@@ -977,19 +1217,29 @@ async function countUnansweredComments(
     const top = snippet.topLevelComment?.snippet || {};
     if (isOwnChannelComment(top, channelId)) continue;
     const replyCount = Number(snippet.totalReplyCount || 0);
-    const isAnswered = replyCount > 0 && await threadHasChannelReplyDeep(
-      accessToken, thread, channelId, channelTitle, channelHandle,
-    );
+    const isAnswered =
+      replyCount > 0 &&
+      (await threadHasChannelReplyDeep(
+        accessToken,
+        thread,
+        channelId,
+        channelTitle,
+        channelHandle
+      ));
     if (!isAnswered) count += 1;
   }
   return count;
 }
 
-async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
-  views48hThreshold = DEFAULT_VIEWS_48H_THRESHOLD,
-  maxProjects = 12,
-  commentScanLimit = 50,
-} = {}) {
+async function fetchChannelAlertsUncached(
+  workspaceDir,
+  projectsRoot,
+  {
+    views48hThreshold = DEFAULT_VIEWS_48H_THRESHOLD,
+    maxProjects = 12,
+    commentScanLimit = 50,
+  } = {}
+) {
   const scopeStatus = await getYoutubeTokenScopes(workspaceDir);
   if (!scopeStatus.connected) {
     return {
@@ -1013,7 +1263,9 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
       badgeCount: 0,
       unansweredComments: 0,
       hotVideos: [],
-      lumieraVideos: filterExistingLumieraVideos(collectLumieraPublishedVideos(projectsRoot)),
+      lumieraVideos: filterExistingLumieraVideos(
+        collectLumieraPublishedVideos(projectsRoot)
+      ),
       alerts: [],
       views48hThreshold,
       pollIntervalMinutes: DEFAULT_POLL_INTERVAL_MINUTES,
@@ -1037,59 +1289,80 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
     throw new Error("Nenhum canal encontrado na conta conectada.");
   }
 
-  const lumieraVideos = filterExistingLumieraVideos(collectLumieraPublishedVideos(projectsRoot));
+  const lumieraVideos = filterExistingLumieraVideos(
+    collectLumieraPublishedVideos(projectsRoot)
+  );
   const lumieraVideoIds = lumieraVideos.map((item) => item.videoId);
 
   const handledIds = getHandledCommentIds(workspaceDir);
   const [unansweredComments, velocityResults] = await Promise.all([
     countUnansweredComments(
-      accessToken, channelId, commentScanLimit, handledIds, channelTitle, channelHandle,
+      accessToken,
+      channelId,
+      commentScanLimit,
+      handledIds,
+      channelTitle,
+      channelHandle
     ),
     Promise.all(
-      lumieraVideos.slice(0, Math.min(Math.max(maxProjects, 1), 20)).map(async (entry) => {
-        try {
-          const [velocity, videoData] = await Promise.all([
-            fetchVideoVelocity(workspaceDir, entry.videoId),
-            ytGet(accessToken, "videos", { part: "snippet,statistics", id: entry.videoId }),
-          ]);
-          const snippet = videoData?.items?.[0]?.snippet || {};
-          const stats = videoData?.items?.[0]?.statistics || {};
-          const publishedAt = snippet.publishedAt || "";
-          const ageHours = publishedAt
-            ? (Date.now() - new Date(publishedAt).getTime()) / (3600 * 1000)
-            : 0;
-          const totalViews = Number(stats.viewCount || 0);
-          return {
-            ...entry,
-            title: entry.title || snippet.title || "",
-            views48h: velocity.views48h,
-            publishedAt,
-            ageHours,
-            totalViews,
-            available: true,
-          };
-        } catch (err) {
-          return { ...entry, views48h: 0, available: false, error: err.message };
-        }
-      }),
+      lumieraVideos
+        .slice(0, Math.min(Math.max(maxProjects, 1), 20))
+        .map(async (entry) => {
+          try {
+            const [velocity, videoData] = await Promise.all([
+              fetchVideoVelocity(workspaceDir, entry.videoId),
+              ytGet(accessToken, "videos", {
+                part: "snippet,statistics",
+                id: entry.videoId,
+              }),
+            ]);
+            const snippet = videoData?.items?.[0]?.snippet || {};
+            const stats = videoData?.items?.[0]?.statistics || {};
+            const publishedAt = snippet.publishedAt || "";
+            const ageHours = publishedAt
+              ? (Date.now() - new Date(publishedAt).getTime()) / (3600 * 1000)
+              : 0;
+            const totalViews = Number(stats.viewCount || 0);
+            return {
+              ...entry,
+              title: entry.title || snippet.title || "",
+              views48h: velocity.views48h,
+              publishedAt,
+              ageHours,
+              totalViews,
+              available: true,
+            };
+          } catch (err) {
+            return {
+              ...entry,
+              views48h: 0,
+              available: false,
+              error: err.message,
+            };
+          }
+        })
     ),
   ]);
 
   const hotVideos = velocityResults.filter(
-    (item) => item.available && item.views48h >= views48hThreshold,
+    (item) => item.available && item.views48h >= views48hThreshold
   );
 
   const deadVideos = velocityResults.filter(
-    (item) => item.available
-      && item.ageHours >= 48
-      && item.views48h === 0
-      && item.totalViews < 20,
+    (item) =>
+      item.available &&
+      item.ageHours >= 48 &&
+      item.views48h === 0 &&
+      item.totalViews < 20
   );
 
   const alerts = [];
   try {
-    const { fetchChannelPeriodComparison } = await import("./youtubeStudioExtras.js");
-    const period = await fetchChannelPeriodComparison(workspaceDir, { days: 7 });
+    const { fetchChannelPeriodComparison } =
+      await import("./youtubeStudioExtras.js");
+    const period = await fetchChannelPeriodComparison(workspaceDir, {
+      days: 7,
+    });
     const viewsChange = period?.comparison?.views?.changePct;
     if (period?.available && viewsChange != null && viewsChange <= -30) {
       alerts.push({
@@ -1143,16 +1416,19 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
   const report = {
     connected: true,
     scopesReady: true,
-    badgeCount: unansweredComments
-      + hotVideos.length
-      + deadVideos.length
-      + alerts.filter((a) => a.type === "views_drop").length,
+    badgeCount:
+      unansweredComments +
+      hotVideos.length +
+      deadVideos.length +
+      alerts.filter((a) => a.type === "views_drop").length,
     deadVideos,
     unansweredComments,
     hotVideos,
     lumieraVideos,
     lumieraVideoIds,
-    lumieraVideoById: Object.fromEntries(lumieraVideos.map((item) => [item.videoId, item])),
+    lumieraVideoById: Object.fromEntries(
+      lumieraVideos.map((item) => [item.videoId, item])
+    ),
     alerts,
     views48hThreshold,
     pollIntervalMinutes: DEFAULT_POLL_INTERVAL_MINUTES,
@@ -1160,15 +1436,29 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
   };
 
   try {
-    const { getExtendedStudioSettings, saveExtendedStudioSettings, sendWebhookNotification } = await import("./youtubeStudioAdvanced.js");
+    const {
+      getExtendedStudioSettings,
+      saveExtendedStudioSettings,
+      sendWebhookNotification,
+    } = await import("./youtubeStudioAdvanced.js");
     const settings = getExtendedStudioSettings(workspaceDir);
     const prevBadge = Number(settings.lastAlertBadge || 0);
-    if (report.badgeCount > prevBadge && (settings.webhooks?.telegram || settings.webhooks?.discord)) {
+    if (
+      report.badgeCount > prevBadge &&
+      (settings.webhooks?.telegram || settings.webhooks?.discord)
+    ) {
       const lines = report.alerts.map((a) => a.label).join(" · ");
-      await sendWebhookNotification(settings.webhooks, `YouTube Lumiera: ${lines || `${report.badgeCount} alertas`}`);
+      await sendWebhookNotification(
+        settings.webhooks,
+        `YouTube Lumiera: ${lines || `${report.badgeCount} alertas`}`
+      );
     }
-    saveExtendedStudioSettings(workspaceDir, { lastAlertBadge: report.badgeCount });
-  } catch { /* ignore webhook errors */ }
+    saveExtendedStudioSettings(workspaceDir, {
+      lastAlertBadge: report.badgeCount,
+    });
+  } catch {
+    /* ignore webhook errors */
+  }
 
   return report;
 }
@@ -1181,7 +1471,7 @@ export async function fetchChannelAlerts(
     maxProjects = 12,
     commentScanLimit = 50,
     forceRefresh = false,
-  } = {},
+  } = {}
 ) {
   const cacheKey = `alerts:${views48hThreshold}:${maxProjects}`;
   return withChannelCache(
@@ -1189,11 +1479,12 @@ export async function fetchChannelAlerts(
     cacheKey,
     CACHE_TTL_MS.alerts,
     forceRefresh,
-    () => fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
-      views48hThreshold,
-      maxProjects,
-      commentScanLimit,
-    }),
+    () =>
+      fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
+        views48hThreshold,
+        maxProjects,
+        commentScanLimit,
+      })
   );
 }
 
@@ -1206,23 +1497,37 @@ export async function fetchChannelSummary(
     views48hThreshold = DEFAULT_VIEWS_48H_THRESHOLD,
     maxProjects = 12,
     forceRefresh = false,
-  } = {},
+  } = {}
 ) {
-  const { fetchChannelPeriodComparison, fetchChannelReachMetrics } = await import("./youtubeStudioExtras.js");
+  const { fetchChannelPeriodComparison, fetchChannelReachMetrics } =
+    await import("./youtubeStudioExtras.js");
   const { loadStudioSettings } = await import("./youtubeStudioSettings.js");
 
-  const [overview, videos, lumiera, alerts, periodComparison, reach] = await Promise.all([
-    fetchChannelOverview(workspaceDir, { forceRefresh }),
-    fetchChannelVideosWithAnalytics(workspaceDir, { days, limit, forceRefresh, projectsRoot }),
-    fetchLumieraVideosReport(workspaceDir, projectsRoot, { days, forceRefresh }),
-    fetchChannelAlerts(workspaceDir, projectsRoot, {
-      views48hThreshold,
-      maxProjects,
-      forceRefresh,
-    }),
-    fetchChannelPeriodComparison(workspaceDir, { days: 7 }).catch(() => ({ available: false })),
-    fetchChannelReachMetrics(workspaceDir, { days }).catch(() => ({ available: false })),
-  ]);
+  const [overview, videos, lumiera, alerts, periodComparison, reach] =
+    await Promise.all([
+      fetchChannelOverview(workspaceDir, { forceRefresh }),
+      fetchChannelVideosWithAnalytics(workspaceDir, {
+        days,
+        limit,
+        forceRefresh,
+        projectsRoot,
+      }),
+      fetchLumieraVideosReport(workspaceDir, projectsRoot, {
+        days,
+        forceRefresh,
+      }),
+      fetchChannelAlerts(workspaceDir, projectsRoot, {
+        views48hThreshold,
+        maxProjects,
+        forceRefresh,
+      }),
+      fetchChannelPeriodComparison(workspaceDir, { days: 7 }).catch(() => ({
+        available: false,
+      })),
+      fetchChannelReachMetrics(workspaceDir, { days }).catch(() => ({
+        available: false,
+      })),
+    ]);
 
   return {
     overview,
@@ -1236,7 +1541,10 @@ export async function fetchChannelSummary(
     },
     fetchedAt: new Date().toISOString(),
     fromCache: Boolean(
-      overview?.fromCache || videos?.fromCache || lumiera?.fromCache || alerts?.fromCache,
+      overview?.fromCache ||
+      videos?.fromCache ||
+      lumiera?.fromCache ||
+      alerts?.fromCache
     ),
     cacheTtlMinutes: Math.round(CACHE_TTL_MS.videos / 60000),
   };
