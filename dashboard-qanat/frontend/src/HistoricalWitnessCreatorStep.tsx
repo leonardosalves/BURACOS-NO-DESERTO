@@ -226,6 +226,12 @@ export function HistoricalWitnessCreatorStep(props: Props) {
       `LOCAL: ${frame.location || idea.location}`,
       `PERÍODO: ${frame.period || idea.period}`,
       `CERTEZA: ${frame.certainty || idea.certainty || "validar em fontes"}`,
+      `STATUS DE REALIDADE: ${idea.reality_status || "disputed"}`,
+      `ÂNCORA DE EVIDÊNCIA: ${idea.evidence_anchor || "validar antes do roteiro"}`,
+      `SATURAÇÃO: ${idea.saturation_level || "unknown"} — ${idea.saturation_evidence || "não confirmada"}`,
+      `LACUNA EDITORIAL: ${idea.undercovered_reason || "não confirmada"}`,
+      `UPGRADE PREMIUM: ${idea.premium_upgrade || ""}`,
+      `VALIDAÇÃO PENDENTE: ${idea.validation_needed || ""}`,
       `PONTO DE VISTA: ${idea.characterView}`,
       `CHARACTER LOCK: ${blueprint.characterLock || ""}`,
       `DIREÇÃO DE VOZ: ${blueprint.voiceDirection || ""}`,
@@ -457,6 +463,14 @@ export function HistoricalWitnessCreatorStep(props: Props) {
                     <p className="mt-1 text-[9px] leading-relaxed text-cyan-200/75">
                       {entry.hiddenTruth}
                     </p>
+                    <div className="mt-2 flex flex-wrap gap-1 text-[8px] uppercase text-zinc-500">
+                      <span className="rounded bg-zinc-900 px-1.5 py-0.5">Realidade: {entry.reality_status || "validar"}</span>
+                      <span className="rounded bg-zinc-900 px-1.5 py-0.5">Saturação: {entry.saturation_level || "unknown"}</span>
+                      <span className="rounded bg-zinc-900 px-1.5 py-0.5">{entry.format_fit || formatSelector} · {entry.recommended_duration}</span>
+                    </div>
+                    {entry.undercovered_reason && (
+                      <p className="mt-1 text-[8px] leading-relaxed text-amber-200/65">Lacuna: {entry.undercovered_reason}</p>
+                    )}
                     <p className="mt-2 text-[8px] uppercase tracking-wide text-zinc-600">
                       {entry.period} · {entry.location}
                     </p>
@@ -483,6 +497,12 @@ export function HistoricalWitnessCreatorStep(props: Props) {
               <p className="mt-2 border-l border-cyan-500/40 pl-3 text-[10px] italic text-cyan-100/80">
                 “{idea.hook}”
               </p>
+              {idea.premium_upgrade && (
+                <p className="mt-2 text-[9px] leading-relaxed text-violet-200/75">Upgrade premium: {idea.premium_upgrade}</p>
+              )}
+              {idea.validation_needed && (
+                <p className="mt-1 text-[9px] leading-relaxed text-amber-200/70">Validar antes do roteiro: {idea.validation_needed}</p>
+              )}
             </div>
           </div>
           <button

@@ -362,6 +362,62 @@ export function AppCreatorTab({
       ready: boolean;
       blockers: string[];
     }>({ ready: false, blockers: [] });
+  const [customIdeaReview, setCustomIdeaReview] = React.useState<any>(null);
+  const [customIdeaReviewLoading, setCustomIdeaReviewLoading] =
+    React.useState(false);
+
+  const evaluateCustomIdea = async () => {
+    if (!customTitle.trim()) {
+      toast.error("Escreva sua ideia antes de analisar.");
+      return;
+    }
+    setCustomIdeaReviewLoading(true);
+    try {
+      const response = await fetch("/api/ai/creator/evaluate-custom-idea", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          niche: nicheInput.trim(),
+          format: formatSelector,
+          title: customTitle.trim(),
+          hook: customHooks.trim(),
+          outline: customOutline.trim(),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "Falha ao analisar a ideia.");
+      }
+      setCustomIdeaReview(data);
+      toast.success("Diagnóstico editorial concluído.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha na análise.");
+    } finally {
+      setCustomIdeaReviewLoading(false);
+    }
+  };
+
+  const applyCustomIdeaReview = () => {
+    if (!customIdeaReview) return;
+    if (customIdeaReview.improved_title)
+      setCustomTitle(customIdeaReview.improved_title);
+    if (customIdeaReview.improved_hook)
+      setCustomHooks(customIdeaReview.improved_hook);
+    if (customIdeaReview.improved_promise)
+      setCustomOutline(customIdeaReview.improved_promise);
+    if (Array.isArray(customIdeaReview.suggested_blocks)) {
+      setCustomBlocks(
+        customIdeaReview.suggested_blocks.map((content: string, index: number) => ({
+          block: index + 1,
+          content,
+        }))
+      );
+    }
+    if (["SHORTS", "LONGO"].includes(customIdeaReview.format_fit)) {
+      setFormatSelector(customIdeaReview.format_fit);
+    }
+    toast.success("Melhorias premium aplicadas. Você ainda pode editar tudo.");
+  };
   return (
     <DashminPageLayout
       className="lumiera-fill-view overflow-hidden"
@@ -712,14 +768,29 @@ export function AppCreatorTab({
                   </div>
                 )}
                 <div className="space-y-4">
-                  {/* Title input */}
                   <div className="space-y-2 font-sans">
                     <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                      Título do Vídeo (em Inglês)
+                      Nicho da ideia
                     </label>
                     <input
                       type="text"
-                      placeholder="Ex: The Secrets Behind the Great Wall of China"
+                      placeholder="Ex: história pouco conhecida, tecnologia, finanças..."
+                      value={nicheInput}
+                      onChange={(e) => setNicheInput(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                    />
+                    <p className="text-[9px] text-zinc-600">
+                      Usado para comparar a ideia com o que já é comum no nicho.
+                    </p>
+                  </div>
+                  {/* Title input */}
+                  <div className="space-y-2 font-sans">
+                    <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                      Sua ideia / título provisório
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: A vila que continuou vivendo sob um vulcão ativo"
                       value={customTitle}
                       onChange={(e) => setCustomTitle(e.target.value)}
                       className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
@@ -729,11 +800,11 @@ export function AppCreatorTab({
                   {/* Hooks input */}
                   <div className="space-y-2 font-sans">
                     <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                      Ganchos / Hooks de Retenção (em Inglês)
+                      Gancho atual (opcional)
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="Ex: What if the Great Wall wasn't built to keep humans out, but to lock something else inside?"
+                      placeholder="Ex: Por que essas pessoas nunca abandonaram a vila?"
                       value={customHooks}
                       onChange={(e) => setCustomHooks(e.target.value)}
                       className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
@@ -743,16 +814,62 @@ export function AppCreatorTab({
                   {/* Outline / Promise input */}
                   <div className="space-y-2 font-sans">
                     <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                      Roteiro Base / Promessa Geral (em Inglês)
+                      Promessa ou estrutura atual (opcional)
                     </label>
                     <textarea
                       rows={3}
-                      placeholder="Ex: A historical documentary uncovering unknown architectural elements and defense strategies of the ancient Great Wall..."
+                      placeholder="Explique o que você quer revelar e por que isso importa para o público."
                       value={customOutline}
                       onChange={(e) => setCustomOutline(e.target.value)}
                       className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
                     />
                   </div>
+
+                  <button
+                    type="button"
+                    disabled={customIdeaReviewLoading || !customTitle.trim() || !hasApiKey}
+                    onClick={() => void evaluateCustomIdea()}
+                    className="w-full rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-5 py-3.5 text-xs font-bold text-cyan-200 transition hover:bg-cyan-500/15 disabled:opacity-50"
+                  >
+                    {customIdeaReviewLoading
+                      ? "Pesquisando realidade, saturação e formato…"
+                      : "Analisar e melhorar minha ideia"}
+                  </button>
+
+                  {customIdeaReview && (
+                    <div className="space-y-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4 text-[10px]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded bg-cyan-500/15 px-2 py-1 font-bold uppercase text-cyan-200">
+                          {customIdeaReview.verdict || "analisada"}
+                        </span>
+                        <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-300">
+                          Realidade: {customIdeaReview.reality_status}
+                        </span>
+                        <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-300">
+                          Saturação: {customIdeaReview.saturation_level}
+                        </span>
+                        <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-300">
+                          {customIdeaReview.format_fit} · {customIdeaReview.recommended_duration}
+                        </span>
+                      </div>
+                      <p className="leading-relaxed text-zinc-300">{customIdeaReview.summary}</p>
+                      {customIdeaReview.evidence_anchor && (
+                        <p className="text-zinc-400"><strong className="text-zinc-200">Base real:</strong> {customIdeaReview.evidence_anchor}</p>
+                      )}
+                      <p className="text-zinc-400"><strong className="text-zinc-200">Lacuna:</strong> {customIdeaReview.undercovered_reason || "não confirmada"}</p>
+                      <p className="text-zinc-400"><strong className="text-zinc-200">Upgrade premium:</strong> {customIdeaReview.premium_upgrade}</p>
+                      {customIdeaReview.validation_needed && (
+                        <p className="text-amber-300/80"><strong>Validar:</strong> {customIdeaReview.validation_needed}</p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={applyCustomIdeaReview}
+                        className="w-full rounded-lg bg-cyan-300 px-4 py-2.5 font-black text-slate-950 hover:bg-cyan-200"
+                      >
+                        Aplicar versão premium sugerida
+                      </button>
+                    </div>
+                  )}
 
                   {/* Format dropdown */}
                   <div className="space-y-2 font-sans">
@@ -770,7 +887,7 @@ export function AppCreatorTab({
                         Vídeo Longo (6 a 12 minutos - Documentário)
                       </option>
                       <option value="SHORTS">
-                        Shorts (30 a 50 segundos - Rápido e Viral)
+                        Shorts (30 a 60 segundos - Uma revelação central)
                       </option>
                     </select>
                   </div>
@@ -779,7 +896,7 @@ export function AppCreatorTab({
                   <div className="space-y-4 pt-2 font-sans">
                     <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
                       <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                        Estrutura de Blocos (em Inglês)
+                        Estrutura de blocos (opcional)
                       </label>
                       <span className="text-[9px] bg-zinc-900 px-2 py-0.5 rounded text-zinc-400 font-mono font-bold">
                         {customBlocks.length}{" "}
@@ -817,7 +934,7 @@ export function AppCreatorTab({
                           </div>
                           <textarea
                             rows={3}
-                            placeholder={`Descreva o conteúdo do bloco ${idx + 1} em inglês (ex: Explain how the foundation was built...)`}
+                            placeholder={`Descreva o conteúdo do bloco ${idx + 1} (ex: mostrar a evidência principal e explicar o mecanismo...)`}
                             value={b.content}
                             onChange={(e) => {
                               const newBlocks = [...customBlocks];
@@ -858,9 +975,9 @@ export function AppCreatorTab({
                       className="w-full bg-white border border-zinc-300 hover:border-zinc-400 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-zinc-900 font-semibold placeholder:text-zinc-400"
                     />
                     <span className="text-[9px] text-zinc-500 block leading-normal mt-1">
-                      * A IA traduzirá a narração para Português BR e gerará os
-                      ganchos, prompts e assets baseados no seu roteiro
-                      personalizado em inglês.
+                      * A IA preservará sua ideia, adaptará a narração para
+                      Português BR e gerará ganchos, prompts e assets de acordo
+                      com o diagnóstico editorial.
                     </span>
                   </div>
                 </div>
@@ -998,7 +1115,7 @@ export function AppCreatorTab({
                       </option>
 
                       <option value="SHORTS">
-                        Shorts (30 a 50 segundos - Rápido e Viral)
+                        Shorts (30 a 60 segundos - Uma revelação central)
                       </option>
                     </select>
                   </div>
@@ -1062,6 +1179,24 @@ export function AppCreatorTab({
                           {ideasData?.diagnostic?.looking_for}
                         </p>
                       </div>
+                      {ideasData?.diagnostic?.market_gap && (
+                        <div className="bg-zinc-900/40 p-3 rounded-xl border border-cyan-500/20">
+                          <span className="text-[9px] text-cyan-400 font-bold block uppercase tracking-wider">Lacuna do mercado</span>
+                          <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData.diagnostic.market_gap}</p>
+                        </div>
+                      )}
+                      {ideasData?.diagnostic?.saturation_warning && (
+                        <div className="bg-zinc-900/40 p-3 rounded-xl border border-amber-500/20">
+                          <span className="text-[9px] text-amber-400 font-bold block uppercase tracking-wider">Evitar saturação</span>
+                          <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData.diagnostic.saturation_warning}</p>
+                        </div>
+                      )}
+                      {ideasData?.diagnostic?.format_strategy && (
+                        <div className="bg-zinc-900/40 p-3 rounded-xl border border-violet-500/20">
+                          <span className="text-[9px] text-violet-400 font-bold block uppercase tracking-wider">Estratégia de formato</span>
+                          <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData.diagnostic.format_strategy}</p>
+                        </div>
+                      )}
                       <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
                         <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">
                           Dores do público
@@ -1241,6 +1376,20 @@ export function AppCreatorTab({
                               {idea.emotion}
                             </span>
                           </div>
+                          <div className="mt-2 flex flex-wrap gap-1.5 text-[8px] uppercase">
+                            <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-400">Realidade: {idea.reality_status || "validar"}</span>
+                            <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-400">Saturação: {idea.saturation_level || "unknown"}</span>
+                            <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-400">{idea.format_fit || idea.best_format} · {idea.recommended_duration}</span>
+                          </div>
+                          {idea.undercovered_reason && (
+                            <p className="mt-2 text-[9px] leading-relaxed text-cyan-200/70">Lacuna: {idea.undercovered_reason}</p>
+                          )}
+                          {idea.premium_upgrade && (
+                            <p className="mt-1 text-[9px] leading-relaxed text-violet-200/70">Premium: {idea.premium_upgrade}</p>
+                          )}
+                          {idea.validation_needed && (
+                            <p className="mt-1 text-[9px] leading-relaxed text-amber-200/70">Validar: {idea.validation_needed}</p>
+                          )}
                         </div>
                       );
                     })}
