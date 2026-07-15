@@ -71,6 +71,9 @@ export type AppMusicTabProps = {
     blockNumber?: number
   ) => void | Promise<void>;
   storyboardData: any;
+  planningProfessionalSfx: boolean;
+  handlePlanProfessionalSfx: () => void | Promise<void>;
+  professionalSfxEvents: any[];
 };
 
 export function AppMusicTab({
@@ -116,6 +119,9 @@ export function AppMusicTab({
   downloadingEpidemicId,
   handleDownloadEpidemic,
   storyboardData,
+  planningProfessionalSfx,
+  handlePlanProfessionalSfx,
+  professionalSfxEvents,
 }: AppMusicTabProps) {
   return (
     <DashminProjectTabLayout
@@ -776,25 +782,43 @@ export function AppMusicTab({
             </div>
 
             {hasEpidemicKey ? (
-              <button
-                disabled={autoSoundtracking}
+              <div className="flex gap-2.5 flex-wrap">
+                <button
+                  disabled={autoSoundtracking}
+                  onClick={handleAutoSoundtrack}
+                  className="bg-gradient-to-r from-dash-primary to-dash-primary-dark hover:from-dash-primary-dark hover:to-dash-primary disabled:opacity-50 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl transition shadow-lg shadow-dash-primary/15 cursor-pointer flex items-center gap-2"
+                  title="Detecta sentimentos e monta a trilha sonora (BGM) por bloco ou emoção automaticamente"
+                >
+                  {autoSoundtracking ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  <span>
+                    {autoSoundtracking
+                      ? "Processando BGM..."
+                      : "Sonoplastia IA Inteligente (BGM)"}
+                  </span>
+                </button>
 
-                onClick={handleAutoSoundtrack}
-
-                className="bg-gradient-to-r from-dash-primary to-dash-primary-dark hover:from-dash-primary-dark hover:to-dash-primary disabled:opacity-50 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl transition shadow-lg shadow-dash-primary/15 cursor-pointer flex items-center gap-2"
-              >
-                {autoSoundtracking ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
-
-                <span>
-                  {autoSoundtracking
-                    ? "Processando Sonoplastia..."
-                    : "Sonoplastia IA Inteligente (Autodetect & Download)"}
-                </span>
-              </button>
+                <button
+                  disabled={planningProfessionalSfx}
+                  onClick={handlePlanProfessionalSfx}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl transition shadow-lg shadow-emerald-600/15 cursor-pointer flex items-center gap-2"
+                  title="Analisa o storyboard e a narração para desenhar, baixar e posicionar efeitos sonoros (SFX) profissionais"
+                >
+                  {planningProfessionalSfx ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  <span>
+                    {planningProfessionalSfx
+                      ? "Planejando SFX..."
+                      : "Sonoplastia SFX Profissional"}
+                  </span>
+                </button>
+              </div>
             ) : (
               <span className="text-xs bg-red-950/40 border border-red-800 text-red-400 px-3 py-1.5 rounded-xl font-bold font-sans">
                 ⚠️ Configure a Chave da API nas Configurações para habilitar a
