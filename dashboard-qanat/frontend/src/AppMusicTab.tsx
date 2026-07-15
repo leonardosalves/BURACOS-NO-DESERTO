@@ -166,148 +166,331 @@ export function AppMusicTab({
         {/* Music mappings grid */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Mappings */}
+          {/* Mappings & SFX Column */}
+          <div className="space-y-6">
+            <div className="glass-panel p-4 rounded-xl space-y-3">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-zinc-900 pb-3 gap-2">
+                <SectionHeader
+                  title="Configuração de Trilha"
+                  helpId="music-mapping"
+                  size="sm"
+                  titleClassName="tracking-widest uppercase text-xs"
+                />
 
-          <div className="glass-panel p-4 rounded-xl space-y-3">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-zinc-900 pb-3 gap-2">
-              <SectionHeader
-                title="Configuração de Trilha"
-                helpId="music-mapping"
-                size="sm"
-                titleClassName="tracking-widest uppercase text-xs"
-              />
+                <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-900 gap-1 flex-wrap">
+                  {!isShortVideo && (
+                    <button
+                      onClick={() =>
+                        saveConfig({
+                          ...config,
+                          bgm_mode: "emotion",
+                          use_single_bgm: false,
+                          single_bgm: "",
+                        })
+                      }
 
-              <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-900 gap-1 flex-wrap">
-                {!isShortVideo && (
+                      className={`text-[9px] font-bold px-2 py-1 rounded transition cursor-pointer ${
+                        activeBgmMode === "emotion"
+                          ? "bg-gold-500 text-zinc-950 font-bold"
+                          : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      Por Emoção (IA)
+                    </button>
+                  )}
+
+                  {!isShortVideo && (
+                    <button
+                      onClick={() =>
+                        saveConfig({
+                          ...config,
+                          bgm_mode: "block",
+                          use_single_bgm: false,
+                          single_bgm: "",
+                        })
+                      }
+
+                      className={`text-[9px] font-bold px-2 py-1 rounded transition cursor-pointer ${
+                        activeBgmMode === "block"
+                          ? "bg-gold-500 text-zinc-950 font-bold"
+                          : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      Por Bloco
+                    </button>
+                  )}
+
                   <button
                     onClick={() =>
                       saveConfig({
                         ...config,
-                        bgm_mode: "emotion",
-                        use_single_bgm: false,
-                        single_bgm: "",
-                      })
-                    }
-
-                    className={`text-[9px] font-bold px-2 py-1 rounded transition cursor-pointer ${
-                      activeBgmMode === "emotion"
-                        ? "bg-gold-500 text-zinc-950 font-bold"
-                        : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    Por Emoção (IA)
-                  </button>
-                )}
-
-                {!isShortVideo && (
-                  <button
-                    onClick={() =>
-                      saveConfig({
-                        ...config,
+                        use_single_bgm: true,
                         bgm_mode: "block",
-                        use_single_bgm: false,
-                        single_bgm: "",
                       })
                     }
 
                     className={`text-[9px] font-bold px-2 py-1 rounded transition cursor-pointer ${
-                      activeBgmMode === "block"
+                      activeBgmMode === "single"
                         ? "bg-gold-500 text-zinc-950 font-bold"
                         : "text-zinc-400 hover:text-white"
                     }`}
                   >
-                    Por Bloco
-                  </button>
-                )}
-
-                <button
-                  onClick={() =>
-                    saveConfig({
-                      ...config,
-                      use_single_bgm: true,
-                      bgm_mode: "block",
-                    })
-                  }
-
-                  className={`text-[9px] font-bold px-2 py-1 rounded transition cursor-pointer ${
-                    activeBgmMode === "single"
-                      ? "bg-gold-500 text-zinc-950 font-bold"
-                      : "text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  Trilha Única
-                </button>
-              </div>
-            </div>
-
-            {activeBgmMode === "emotion" ? (
-              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 animate-fade-in">
-                <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-2">
-                  <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">
-                    Trilha por emoção/temática
-                  </span>
-
-                  <p className="text-[11px] text-gray-500 leading-normal">
-                    A IA planeja segmentos temporais pela narração — emoções
-                    iguais adjacentes são fundidas automaticamente. Cada
-                    segmento pode cobrir vários blocos.
-                  </p>
-
-                  <button
-                    disabled={planningBgmEmotions || !hasApiKey}
-
-                    onClick={handlePlanBgmEmotions}
-
-                    className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-[10px] font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    {planningBgmEmotions ? (
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-3.5 h-3.5" />
-                    )}
-
-                    <span>
-                      {planningBgmEmotions
-                        ? "Planejando..."
-                        : "Planejar trilhas por emoção (IA)"}
-                    </span>
+                    Trilha Única
                   </button>
                 </div>
+              </div>
 
-                {bgmEmotionRows.length === 0 ? (
-                  <p className="text-[11px] text-zinc-500 italic px-1">
-                    Nenhum segmento planejado. Clique no botão acima para gerar
-                    o plano emocional.
-                  </p>
-                ) : (
-                  bgmEmotionRows.map((seg: any) => (
-                    <div key={seg.id} className="space-y-1">
-                      <div className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-900 rounded-xl gap-3">
-                        <div className="min-w-0 flex-1">
-                          <span className="text-xs font-bold text-white font-mono block truncate">
-                            {seg.id} · {seg.emotion}
-                          </span>
+              {activeBgmMode === "emotion" ? (
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 animate-fade-in">
+                  <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-2">
+                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">
+                      Trilha por emoção/temática
+                    </span>
 
-                          <span className="text-[10px] text-zinc-500 block">
-                            {Number(seg.start).toFixed(1)}s →{" "}
-                            {Number(seg.end).toFixed(1)}s
-                            {seg.mood_label ? ` · ${seg.mood_label}` : ""}
-                          </span>
+                    <p className="text-[11px] text-gray-500 leading-normal">
+                      A IA planeja segmentos temporais pela narração — emoções
+                      iguais adjacentes são fundidas automaticamente. Cada
+                      segmento pode cobrir vários blocos.
+                    </p>
+
+                    <button
+                      disabled={planningBgmEmotions || !hasApiKey}
+
+                      onClick={handlePlanBgmEmotions}
+
+                      className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-[10px] font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {planningBgmEmotions ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5" />
+                      )}
+
+                      <span>
+                        {planningBgmEmotions
+                          ? "Planejando..."
+                          : "Planejar trilhas por emoção (IA)"}
+                      </span>
+                    </button>
+                  </div>
+
+                  {bgmEmotionRows.length === 0 ? (
+                    <p className="text-[11px] text-zinc-500 italic px-1">
+                      Nenhum segmento planejado. Clique no botão acima para
+                      gerar o plano emocional.
+                    </p>
+                  ) : (
+                    bgmEmotionRows.map((seg: any) => (
+                      <div key={seg.id} className="space-y-1">
+                        <div className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-900 rounded-xl gap-3">
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs font-bold text-white font-mono block truncate">
+                              {seg.id} · {seg.emotion}
+                            </span>
+
+                            <span className="text-[10px] text-zinc-500 block">
+                              {Number(seg.start).toFixed(1)}s →{" "}
+                              {Number(seg.end).toFixed(1)}s
+                              {seg.mood_label ? ` · ${seg.mood_label}` : ""}
+                            </span>
+                          </div>
+
+                          <div className="flex gap-2 items-center shrink-0">
+                            <select
+                              value={seg.file}
+
+                              onChange={(e) =>
+                                handleEmotionMusicChange(
+                                  seg.id,
+                                  e.target.value,
+                                  seg
+                                )
+                              }
+
+                              className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[180px] truncate"
+                            >
+                              <option value="">-- Nenhuma --</option>
+
+                              {safeMusicFiles.map((file) => (
+                                <option key={file.name} value={file.name}>
+                                  {file.name}
+                                </option>
+                              ))}
+                            </select>
+
+                            {seg.file && (
+                              <button
+                                onClick={() => togglePlayMusic(seg.file)}
+
+                                className="text-gold-500 hover:text-gold-400 p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
+
+                                title="Ouvir trilha"
+                              >
+                                {playingMusic === seg.file ? (
+                                  <Pause className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Play className="w-3.5 h-3.5 text-gold-500" />
+                                )}
+                              </button>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="flex gap-2 items-center shrink-0">
+                        {seg.search_theme && (
+                          <div className="ml-2 px-3 py-1.5 text-[9px] text-zinc-500 border-l-2 border-gold-500/30">
+                            🔍 {seg.search_theme}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : activeBgmMode === "single" ? (
+                <div className="space-y-4 py-2 animate-fade-in">
+                  <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-2">
+                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">
+                      Trilha Sonora Única (Vídeo Inteiro)
+                    </span>
+
+                    <p className="text-[11px] text-gray-500 leading-normal">
+                      Esta música tocará do início ao fim do vídeo, repetindo se
+                      for menor do que a duração total. Recomendado para Shorts
+                      e vídeos curtos. Arquivos{" "}
+                      <span className="font-mono text-zinc-400">4.mp3</span>,{" "}
+                      <span className="font-mono text-zinc-400">5.mp3</span>… na
+                      pasta do projeto são trechos da{" "}
+                      <strong className="text-zinc-400">narração</strong>, não
+                      BGM — use Epidemic ou «Add Música».
+                    </p>
+                  </div>
+
+                  {bgmSuggestions?.recommendation && (
+                    <div className="bg-zinc-950 border border-gold-500/30 rounded-xl p-4 space-y-2 animate-fade-in relative group">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-gold-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                          ✨ Sugestão da IA
+                        </span>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(
+                                bgmSuggestions.recommendation || ""
+                              );
+
+                              toast.success("Ideia copiada!");
+                            }}
+
+                            className="text-[10px] text-zinc-400 hover:text-white px-2 py-0.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+
+                            title="Copiar sugestão"
+                          >
+                            <Copy className="w-3 h-3" /> Copiar Ideia
+                          </button>
+
+                          {(bgmSuggestions as any).search_theme && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(
+                                  (bgmSuggestions as any).search_theme || ""
+                                );
+
+                                toast.success("Termo de busca copiado!");
+                              }}
+
+                              className="text-[10px] text-gold-500 hover:text-gold-400 px-2 py-0.5 bg-gold-950/20 border border-gold-500/30 hover:border-gold-500/50 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+
+                              title="Copiar termo de busca"
+                            >
+                              <Search className="w-3 h-3" /> Copiar Busca
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-zinc-300 leading-relaxed italic">
+                        {bgmSuggestions.recommendation}
+                      </p>
+
+                      {(bgmSuggestions as any).search_theme && (
+                        <div className="text-[10px] text-zinc-400 font-sans border-t border-zinc-900 pt-2 flex items-center gap-1.5">
+                          <span className="font-bold text-gold-500">
+                            🔍 Buscar por:
+                          </span>
+
+                          <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded font-mono text-zinc-300 select-all">
+                            {(bgmSuggestions as any).search_theme}
+                          </code>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-zinc-400 uppercase tracking-wider block font-bold">
+                      Selecione a Trilha:
+                    </label>
+
+                    <div className="flex gap-2">
+                      <select
+                        value={config.single_bgm || ""}
+
+                        onChange={(e) =>
+                          saveConfig({
+                            ...config,
+                            single_bgm: e.target.value,
+                            use_single_bgm: true,
+                            bgm_mode: "block",
+                          })
+                        }
+
+                        className="flex-1 bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-xl px-3 py-2 text-xs cursor-pointer"
+                      >
+                        <option value="">-- Nenhuma Selecionada --</option>
+
+                        {safeMusicFiles.map((file) => (
+                          <option key={file.name} value={file.name}>
+                            {file.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      {config.single_bgm && (
+                        <button
+                          onClick={() => togglePlayMusic(config.single_bgm!)}
+
+                          className="text-gold-500 hover:text-gold-400 p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 cursor-pointer transition flex items-center justify-center shrink-0 w-9 h-9"
+
+                          title="Ouvir trilha"
+                        >
+                          {playingMusic === config.single_bgm ? (
+                            <Pause className="w-4 h-4" />
+                          ) : (
+                            <Play className="w-4 h-4 text-gold-500" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 animate-fade-in">
+                  {bgmBlockRows.map((bgm) => (
+                    <div key={bgm.block} className="space-y-1">
+                      <div className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-900 rounded-xl gap-4">
+                        <span className="text-xs font-bold text-white font-mono shrink-0">
+                          Bloco {bgm.block}
+                        </span>
+
+                        <div className="flex gap-2 items-center flex-1 justify-end min-w-0">
                           <select
-                            value={seg.file}
+                            value={bgm.file}
 
                             onChange={(e) =>
-                              handleEmotionMusicChange(
-                                seg.id,
-                                e.target.value,
-                                seg
-                              )
+                              handleMusicChange(bgm.block, e.target.value)
                             }
 
-                            className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[180px] truncate"
+                            className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[200px] truncate"
                           >
                             <option value="">-- Nenhuma --</option>
 
@@ -318,15 +501,15 @@ export function AppMusicTab({
                             ))}
                           </select>
 
-                          {seg.file && (
+                          {bgm.file && (
                             <button
-                              onClick={() => togglePlayMusic(seg.file)}
+                              onClick={() => togglePlayMusic(bgm.file)}
 
                               className="text-gold-500 hover:text-gold-400 p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
 
                               title="Ouvir trilha"
                             >
-                              {playingMusic === seg.file ? (
+                              {playingMusic === bgm.file ? (
                                 <Pause className="w-3.5 h-3.5" />
                               ) : (
                                 <Play className="w-3.5 h-3.5 text-gold-500" />
@@ -336,263 +519,185 @@ export function AppMusicTab({
                         </div>
                       </div>
 
-                      {seg.search_theme && (
-                        <div className="ml-2 px-3 py-1.5 text-[9px] text-zinc-500 border-l-2 border-gold-500/30">
-                          🔍 {seg.search_theme}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            ) : activeBgmMode === "single" ? (
-              <div className="space-y-4 py-2 animate-fade-in">
-                <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-2">
-                  <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">
-                    Trilha Sonora Única (Vídeo Inteiro)
-                  </span>
+                      {(() => {
+                        const suggestion = bgmSuggestions?.suggestions?.find(
+                          (s: any) => s.block === bgm.block
+                        );
 
-                  <p className="text-[11px] text-gray-500 leading-normal">
-                    Esta música tocará do início ao fim do vídeo, repetindo se
-                    for menor do que a duração total. Recomendado para Shorts e
-                    vídeos curtos. Arquivos{" "}
-                    <span className="font-mono text-zinc-400">4.mp3</span>,{" "}
-                    <span className="font-mono text-zinc-400">5.mp3</span>… na
-                    pasta do projeto são trechos da{" "}
-                    <strong className="text-zinc-400">narração</strong>, não BGM
-                    — use Epidemic ou «Add Música».
-                  </p>
-                </div>
+                        if (!suggestion) return null;
 
-                {bgmSuggestions?.recommendation && (
-                  <div className="bg-zinc-950 border border-gold-500/30 rounded-xl p-4 space-y-2 animate-fade-in relative group">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] text-gold-500 font-bold uppercase tracking-wider flex items-center gap-1">
-                        ✨ Sugestão da IA
-                      </span>
+                        return (
+                          <div className="ml-2 px-3 py-2 border-l-2 border-gold-500/40 bg-zinc-950/40 rounded-r space-y-1.5 animate-fade-in">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[9px] text-gold-500 font-bold uppercase tracking-wider">
+                                ✨ Sugestão da IA (Bloco {bgm.block})
+                              </span>
 
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(
-                              bgmSuggestions.recommendation || ""
-                            );
-
-                            toast.success("Ideia copiada!");
-                          }}
-
-                          className="text-[10px] text-zinc-400 hover:text-white px-2 py-0.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded transition flex items-center gap-1 font-sans cursor-pointer"
-
-                          title="Copiar sugestão"
-                        >
-                          <Copy className="w-3 h-3" /> Copiar Ideia
-                        </button>
-
-                        {(bgmSuggestions as any).search_theme && (
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                (bgmSuggestions as any).search_theme || ""
-                              );
-
-                              toast.success("Termo de busca copiado!");
-                            }}
-
-                            className="text-[10px] text-gold-500 hover:text-gold-400 px-2 py-0.5 bg-gold-950/20 border border-gold-500/30 hover:border-gold-500/50 rounded transition flex items-center gap-1 font-sans cursor-pointer"
-
-                            title="Copiar termo de busca"
-                          >
-                            <Search className="w-3 h-3" /> Copiar Busca
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-[11px] text-zinc-300 leading-relaxed italic">
-                      {bgmSuggestions.recommendation}
-                    </p>
-
-                    {(bgmSuggestions as any).search_theme && (
-                      <div className="text-[10px] text-zinc-400 font-sans border-t border-zinc-900 pt-2 flex items-center gap-1.5">
-                        <span className="font-bold text-gold-500">
-                          🔍 Buscar por:
-                        </span>
-
-                        <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded font-mono text-zinc-300 select-all">
-                          {(bgmSuggestions as any).search_theme}
-                        </code>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-zinc-400 uppercase tracking-wider block font-bold">
-                    Selecione a Trilha:
-                  </label>
-
-                  <div className="flex gap-2">
-                    <select
-                      value={config.single_bgm || ""}
-
-                      onChange={(e) =>
-                        saveConfig({
-                          ...config,
-                          single_bgm: e.target.value,
-                          use_single_bgm: true,
-                          bgm_mode: "block",
-                        })
-                      }
-
-                      className="flex-1 bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-xl px-3 py-2 text-xs cursor-pointer"
-                    >
-                      <option value="">-- Nenhuma Selecionada --</option>
-
-                      {safeMusicFiles.map((file) => (
-                        <option key={file.name} value={file.name}>
-                          {file.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    {config.single_bgm && (
-                      <button
-                        onClick={() => togglePlayMusic(config.single_bgm!)}
-
-                        className="text-gold-500 hover:text-gold-400 p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 cursor-pointer transition flex items-center justify-center shrink-0 w-9 h-9"
-
-                        title="Ouvir trilha"
-                      >
-                        {playingMusic === config.single_bgm ? (
-                          <Pause className="w-4 h-4" />
-                        ) : (
-                          <Play className="w-4 h-4 text-gold-500" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 animate-fade-in">
-                {bgmBlockRows.map((bgm) => (
-                  <div key={bgm.block} className="space-y-1">
-                    <div className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-900 rounded-xl gap-4">
-                      <span className="text-xs font-bold text-white font-mono shrink-0">
-                        Bloco {bgm.block}
-                      </span>
-
-                      <div className="flex gap-2 items-center flex-1 justify-end min-w-0">
-                        <select
-                          value={bgm.file}
-
-                          onChange={(e) =>
-                            handleMusicChange(bgm.block, e.target.value)
-                          }
-
-                          className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[200px] truncate"
-                        >
-                          <option value="">-- Nenhuma --</option>
-
-                          {safeMusicFiles.map((file) => (
-                            <option key={file.name} value={file.name}>
-                              {file.name}
-                            </option>
-                          ))}
-                        </select>
-
-                        {bgm.file && (
-                          <button
-                            onClick={() => togglePlayMusic(bgm.file)}
-
-                            className="text-gold-500 hover:text-gold-400 p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
-
-                            title="Ouvir trilha"
-                          >
-                            {playingMusic === bgm.file ? (
-                              <Pause className="w-3.5 h-3.5" />
-                            ) : (
-                              <Play className="w-3.5 h-3.5 text-gold-500" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {(() => {
-                      const suggestion = bgmSuggestions?.suggestions?.find(
-                        (s: any) => s.block === bgm.block
-                      );
-
-                      if (!suggestion) return null;
-
-                      return (
-                        <div className="ml-2 px-3 py-2 border-l-2 border-gold-500/40 bg-zinc-950/40 rounded-r space-y-1.5 animate-fade-in">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[9px] text-gold-500 font-bold uppercase tracking-wider">
-                              ✨ Sugestão da IA (Bloco {bgm.block})
-                            </span>
-
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(
-                                    suggestion.recommendation || ""
-                                  );
-
-                                  toast.success("Ideia do bloco copiada!");
-                                }}
-
-                                className="text-[9px] text-zinc-400 hover:text-white px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded transition flex items-center gap-1 font-sans cursor-pointer"
-
-                                title="Copiar sugestão"
-                              >
-                                <Copy className="w-2.5 h-2.5" /> Copiar Ideia
-                              </button>
-
-                              {suggestion.search_theme && (
+                              <div className="flex items-center gap-1.5">
                                 <button
                                   onClick={() => {
                                     navigator.clipboard.writeText(
-                                      suggestion.search_theme || ""
+                                      suggestion.recommendation || ""
                                     );
 
-                                    toast.success("Busca do bloco copiada!");
+                                    toast.success("Ideia do bloco copiada!");
                                   }}
 
-                                  className="text-[9px] text-gold-500 hover:text-gold-400 px-1.5 py-0.5 bg-gold-950/20 border border-gold-500/30 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+                                  className="text-[9px] text-zinc-400 hover:text-white px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded transition flex items-center gap-1 font-sans cursor-pointer"
 
-                                  title="Copiar busca"
+                                  title="Copiar sugestão"
                                 >
-                                  <Search className="w-2.5 h-2.5" /> Copiar
-                                  Busca
+                                  <Copy className="w-2.5 h-2.5" /> Copiar Ideia
                                 </button>
-                              )}
+
+                                {suggestion.search_theme && (
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(
+                                        suggestion.search_theme || ""
+                                      );
+
+                                      toast.success("Busca do bloco copiada!");
+                                    }}
+
+                                    className="text-[9px] text-gold-500 hover:text-gold-400 px-1.5 py-0.5 bg-gold-950/20 border border-gold-500/30 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+
+                                    title="Copiar busca"
+                                  >
+                                    <Search className="w-2.5 h-2.5" /> Copiar
+                                    Busca
+                                  </button>
+                                )}
+                              </div>
                             </div>
+
+                            <p className="text-[10px] text-zinc-300 leading-relaxed italic">
+                              {suggestion.recommendation}
+                            </p>
+
+                            {suggestion.search_theme && (
+                              <div className="text-[9px] text-zinc-400 font-sans pt-1.5 border-t border-zinc-900 flex items-center gap-1.5">
+                                <span className="font-bold text-gold-500">
+                                  🔍 Buscar:
+                                </span>
+
+                                <code className="px-1 py-0.5 bg-zinc-900 border border-zinc-800 rounded font-mono text-zinc-300 select-all">
+                                  {suggestion.search_theme}
+                                </code>
+                              </div>
+                            )}
                           </div>
+                        );
+                      })()}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-                          <p className="text-[10px] text-zinc-300 leading-relaxed italic">
-                            {suggestion.recommendation}
-                          </p>
+            {/* Painel de Sonoplastia SFX Profissional */}
+            <div className="glass-panel p-4 rounded-xl space-y-4">
+              <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
+                <SectionHeader
+                  title="Sonoplastia SFX Profissional"
+                  helpId="sfx-sonoplastia"
+                  size="sm"
+                  titleClassName="tracking-widest uppercase text-xs"
+                />
 
-                          {suggestion.search_theme && (
-                            <div className="text-[9px] text-zinc-400 font-sans pt-1.5 border-t border-zinc-900 flex items-center gap-1.5">
-                              <span className="font-bold text-gold-500">
-                                🔍 Buscar:
-                              </span>
-
-                              <code className="px-1 py-0.5 bg-zinc-900 border border-zinc-800 rounded font-mono text-zinc-300 select-all">
-                                {suggestion.search_theme}
-                              </code>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                ))}
+                {hasEpidemicKey && (
+                  <button
+                    disabled={planningProfessionalSfx}
+                    onClick={handlePlanProfessionalSfx}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[10px] font-extrabold px-3 py-2 rounded-lg transition shadow-md shadow-emerald-600/10 cursor-pointer flex items-center gap-1.5"
+                  >
+                    {planningProfessionalSfx ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    <span>
+                      {planningProfessionalSfx
+                        ? "Gerando..."
+                        : "Gerar SFX Inteligente"}
+                    </span>
+                  </button>
+                )}
               </div>
-            )}
+
+              <p className="text-[11px] text-zinc-400 leading-relaxed">
+                Analisa a narração e as ações visuais do storyboard para buscar,
+                baixar e programar efeitos sonoros adequados (impactos,
+                transições, risers e detalhes) para cada cena automaticamente.
+              </p>
+
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 font-sans">
+                {professionalSfxEvents.length === 0 ? (
+                  <p className="text-[11px] text-zinc-500 italic px-1 py-4 text-center border border-dashed border-zinc-900 rounded-xl">
+                    Nenhum efeito SFX planejado para este projeto. Clique em
+                    "Gerar SFX Inteligente" para iniciar.
+                  </p>
+                ) : (
+                  professionalSfxEvents.map((evt: any, idx: number) => {
+                    let catColor = "bg-zinc-800 text-zinc-300";
+                    switch (String(evt.category).toLowerCase()) {
+                      case "impact":
+                        catColor =
+                          "bg-red-950/60 border border-red-900/40 text-red-300";
+                        break;
+                      case "transition":
+                        catColor =
+                          "bg-blue-950/60 border border-blue-900/40 text-blue-300";
+                        break;
+                      case "ambience":
+                        catColor =
+                          "bg-emerald-950/60 border border-emerald-900/40 text-emerald-300";
+                        break;
+                      case "detail":
+                        catColor =
+                          "bg-purple-950/60 border border-purple-900/40 text-purple-300";
+                        break;
+                      case "riser":
+                        catColor =
+                          "bg-amber-950/60 border border-amber-900/40 text-amber-300";
+                        break;
+                    }
+
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3 bg-zinc-950 border border-zinc-900 rounded-xl space-y-2"
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] font-bold text-white font-mono block">
+                              Cena {evt.scene_ref} · {evt.time?.toFixed(1)}s
+                            </span>
+                            <span className="text-[9px] text-zinc-500 block">
+                              Duração: {evt.duration?.toFixed(1)}s | Vol:{" "}
+                              {Math.round((evt.volume || 1) * 100)}%
+                            </span>
+                          </div>
+                          <span
+                            className={`text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${catColor}`}
+                          >
+                            {evt.category}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-zinc-300 leading-normal font-sans italic bg-zinc-900/40 border border-zinc-900 px-2 py-1 rounded">
+                          &ldquo;{evt.query_en}&rdquo;
+                        </p>
+                        {evt.intent && (
+                          <p className="text-[9px] text-zinc-500 leading-relaxed">
+                            💡 {evt.intent}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Available songs list */}
