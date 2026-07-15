@@ -46,6 +46,15 @@ import {
   isGeoPipShortScene,
 } from "../shared/geoPipStudioTemplate.js";
 import { injectStudioRoleScenes } from "../shared/studioTemplateRoleInjector.js";
+import { applyRenderTemplatePolicyToScenes } from "../shared/applyRenderTemplatePolicy.js";
+import {
+  enforceOverlayBudget,
+  resolveRenderTemplatePolicy,
+} from "../shared/renderTemplatePolicy.js";
+import {
+  injectNarradorProPlacements,
+  resolveVisualOrchestration,
+} from "../shared/visualOrchestration.js";
 import {
   classifyGeoNarrationSegment,
   explainGeoNarrationSegment,
@@ -58,7 +67,7 @@ const YEAR_GLOBAL_RE = /\b(1\d{3}|20\d{2})\b/g;
 function applyGeoPipStudioPack(scene = {}, niche = "") {
   if (!isGeoPipShortScene(scene)) return scene;
   const tpl = String(scene.template_id || "").trim();
-  if (tpl !== "location-intro" && tpl !== "geo-map") return scene;
+  if (!isGeoTemplate(tpl)) return scene;
   const catalog = niche ? getCatalogForNiche(niche) : { approved: [] };
   return attachGeoPipStudioTemplate(scene, {
     niche,
@@ -76,6 +85,145 @@ const CURIOSITY_RE =
   /\b(chocante|incr[ií]vel|segredo|enigma|mist[eé]rio|nunca|ningu[eé]m|descobr|revela|imposs[ií]vel|absurdo)\b/i;
 const HISTORICAL_RE =
   /\b(em\s+\d{3,4}|s[eé]culo|antig[oa]s?|imp[eé]rio|dinastia|guerra|revolu[cç][aã]o)\b/i;
+
+function hasRealTimelineSequence(text = "") {
+  const years = [...new Set(String(text).match(YEAR_GLOBAL_RE) || [])];
+  const sequenceMarkers = String(text).match(
+    /\b(primeiro|depois|em seguida|entao|antes|mais tarde|por fim|finalmente)\b/gi
+  ) || [];
+  return years.length >= 2 || sequenceMarkers.length >= 2;
+}
+
+const GEO_TEMPLATES = new Set(["location-intro", "geo-map"]);
+
+function isGeoTemplate(templateId) {
+  return GEO_TEMPLATES.has(String(templateId || ""));
+}
+
+/** Extrai narração do visual prompt — padrão repetido 6x no arquivo. */
+function narrationFromVp(vp = {}) {
+  return String(vp.narration_text || vp.asset?.narration_segment || "").trim();
+}
+
+/** Chave de dedupe de cena — padrão repetido 2x. */
+function sceneDedupeKey(trigger, templateId, vp = {}) {
+  return `${trigger}-${templateId}-${vp.scene || vp.block}`;
+}
+
+/** Duração da cena — lógica duplicada em plan + boost, agora unificada. */
+function resolveSceneDuration(templateId, vpDurRaw, aspectRatio = "16:9", { locationFallback } = {}) {
+  const vpDur = Number(vpDurRaw);
+  const templateDefault = DEFAULT_DURATIONS[templateId] || 4;
+
+  if (templateId === "location-intro") {
+    const max =
+      aspectRatio === "9:16"
+        ? LOCATION_INTRO_DEFAULTS.duration_seconds_short_max
+        : LOCATION_INTRO_DEFAULTS.duration_seconds_long_max;
+    return Math.min(
+      max,
+      Math.max(
+        LOCATION_INTRO_DEFAULTS.duration_seconds,
+        vpDur > 0 ? vpDur : (locationFallback ?? LOCATION_INTRO_DEFAULTS.duration_seconds)
+      )
+    );
+  }
+  return vpDur > 0 ? Math.min(vpDur, templateDefault) : templateDefault;
+}
+
+/**
+ * Normaliza o trigger classificado — regras de re-mapeamento que estavam
+ * inline em planMotionScenesFromStoryboard.
+ */
+function normalizePlannerTrigger(trigger, narration) {
+  let t = trigger;
+  if (t === "historical_fact" && !hasRealTimelineSequence(narration)) {
+    t = "curiosity_punch";
+  }
+  if (t === "curiosity_punch") {
+    if (STAT_RE.test(narration)) t = "stat_number";
+    else if (hasRealTimelineSequence(narration)) t = "historical_fact";
+  }
+  return t;
+}
+
+/** Layout/presentation "efetivos" do clip — substitui os ternários aninhados. */
+function resolveClipLayout(ms = {}) {
+  if (isGeoTemplate(ms.template_id)) return "fullscreen";
+  if (FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))) return "fullscreen";
+  return ms.layout || resolveLayoutForTemplate(ms.template_id, ms.trigger);
+}
+
+function resolveClipPresentation(ms = {}) {
+  const keepPip =
+    ms.props?.geo_pip_composite ||
+    (ms.props?.aspect_ratio === "9:16" &&
+      (ms.props?.presentation === "pip" || ms.layout === "pip"));
+  if (keepPip) return ms.props?.presentation || ms.layout || "pip";
+  if (isGeoTemplate(ms.template_id)) return "fullscreen";
+  if (FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))) return "fullscreen";
+  return ms.props?.presentation;
+}
+
+function buildBaseMotionScene({
+  idPrefix = "ms",
+  vp,
+  index,
+  trigger,
+  templateId,
+  narration,
+  confidence,
+  blockTimings,
+  aspectRatio,
+  accentColor,
+  nichePack,
+  niche,
+  researchContext,
+  locationFallback,
+}) {
+  const layout = resolveLayoutForTemplate(templateId, trigger, {
+    text: narration,
+    aspectRatio,
+    niche,
+  });
+  const presentation = resolvePresentationForScene({
+    templateId,
+    trigger,
+    text: narration,
+    aspectRatio,
+    niche,
+  });
+
+  return {
+    id: `${idPrefix}-${String(vp.scene || vp.block || index).replace(/\s/g, "")}`,
+    scene_ref: String(vp.scene || ""),
+    block: Number(vp.block) || 1,
+    start_hint: sceneStartHint(vp, blockTimings),
+    duration_seconds: resolveSceneDuration(templateId, vp.duration_seconds, aspectRatio, { locationFallback }),
+    layout,
+    template_id: templateId,
+    trigger,
+    confidence,
+    props: {
+      ...buildPropsForTemplate(
+        templateId,
+        trigger,
+        narration,
+        accentColor,
+        aspectRatio,
+        niche,
+        researchContext
+      ),
+      presentation,
+      layout,
+      aspect_ratio: aspectRatio,
+      scene_asset: resolveSceneAssetFromVp(vp),
+    },
+    narration_text: narration,
+    media_mode: "remotion",
+    niche_pack: nichePack,
+  };
+}
 
 const KNOWN_PLACES = [
   {
@@ -502,14 +650,6 @@ function sceneStartHint(vp, blockTimings = {}) {
   return Number(starts[idx]) || 0;
 }
 
-const BOOST_TRIGGERS = [
-  "curiosity_punch",
-  "stat_number",
-  "comparison",
-  "timeline_date",
-  "historical_fact",
-];
-
 function vpRefKey(vp = {}) {
   return String(vp.scene || `block-${vp.block || 0}` || "").trim();
 }
@@ -540,20 +680,29 @@ function motionScenePriority(scene = {}) {
   return score;
 }
 
-function resolveBoostTrigger(narration = "", index = 0, classified = null) {
-  if (classified?.trigger && classified.confidence >= 0.45) {
+/**
+ * Resolve trigger só com semântica real — nunca rotação modular.
+ * @returns {string|null}
+ */
+function resolveSemanticBoostTrigger(narration = "", classified = null) {
+  if (classified?.trigger && classified.confidence >= 0.65) {
     return classified.trigger;
   }
   if (STAT_RE.test(narration) && COMPARISON_RE.test(narration)) {
     return "comparison";
   }
   if (STAT_RE.test(narration)) return "stat_number";
-  if (YEAR_RE.test(narration) || HISTORICAL_RE.test(narration)) {
-    return "timeline_date";
+  if (hasRealTimelineSequence(narration)) return "timeline_date";
+  if (YEAR_RE.test(narration) && HISTORICAL_RE.test(narration)) {
+    return "historical_fact";
   }
-  return BOOST_TRIGGERS[index % BOOST_TRIGGERS.length];
+  return null;
 }
 
+/**
+ * Boost opcional: só preenche oportunidades com trigger semântico real.
+ * NÃO força longTargetMin com templates aleatórios.
+ */
 export function boostStudioMotionScenesForLongForm({
   scenes = [],
   visualPrompts = [],
@@ -568,7 +717,6 @@ export function boostStudioMotionScenesForLongForm({
   preferredTemplates = [],
   aspectRatio = "16:9",
 } = {}) {
-  const targetMin = REMOTION_TEMPLATE_LIMITS.longTargetMin;
   if (String(aspectRatio) === "9:16") return scenes;
   if (!studioNiche || config.motion_template_pack?.enabled !== true) {
     return scenes;
@@ -580,17 +728,15 @@ export function boostStudioMotionScenesForLongForm({
       (s) => `${s.trigger}-${s.template_id}-${s.scene_ref || s.block}`
     )
   );
-  let previousStudioIds = boosted
+  const previousStudioIds = boosted
     .map((s) => String(s.props?.template_studio_id || "").trim())
     .filter(Boolean);
-  let previousStudioCategories = studioCategoriesFromScenes(boosted);
+  const previousStudioCategories = studioCategoriesFromScenes(boosted);
   const previousTemplates = boosted.map((s) => String(s.template_id || ""));
 
   const candidates = (Array.isArray(visualPrompts) ? visualPrompts : [])
     .filter((vp) => {
-      const narration = String(
-        vp.narration_text || vp.asset?.narration_segment || ""
-      ).trim();
+      const narration = narrationFromVp(vp);
       return narration.length >= 8 && !consumedVpRefs.has(vpRefKey(vp));
     })
     .sort(
@@ -598,24 +744,21 @@ export function boostStudioMotionScenesForLongForm({
         sceneStartHint(a, blockTimings) - sceneStartHint(b, blockTimings)
     );
 
-  let boostIndex = 0;
-  while (
-    countStudioScenes(boosted) < targetMin &&
-    boostIndex < candidates.length
-  ) {
-    const vp = candidates[boostIndex];
-    boostIndex += 1;
-    const narration = String(
-      vp.narration_text || vp.asset?.narration_segment || ""
-    ).trim();
+  const maxExtra = Math.max(
+    0,
+    REMOTION_TEMPLATE_LIMITS.longMax - countStudioScenes(boosted)
+  );
+  let added = 0;
+
+  for (const vp of candidates) {
+    if (added >= maxExtra) break;
+    const narration = narrationFromVp(vp);
     const classified = classifyNarrationSegment(narration);
-    let trigger = resolveBoostTrigger(
-      narration,
-      countStudioScenes(boosted),
-      classified
-    );
+    let trigger = resolveSemanticBoostTrigger(narration, classified);
+    if (!trigger) continue;
     if (trigger === "curiosity_punch") {
-      trigger = STAT_RE.test(narration) ? "stat_number" : "stat_number";
+      if (!STAT_RE.test(narration)) continue;
+      trigger = "stat_number";
     }
 
     const templateDecision = pickTemplateDecisionForTrigger(
@@ -627,63 +770,28 @@ export function boostStudioMotionScenesForLongForm({
     const templateId = templateDecision.template_id;
     if (!APPROVED_ORCHESTRATION_TEMPLATES.has(templateId)) continue;
 
-    const dedupeKey = `${trigger}-${templateId}-${vp.scene || vp.block}`;
+    const dedupeKey = sceneDedupeKey(trigger, templateId, vp);
     if (usedDedupe.has(dedupeKey)) continue;
     usedDedupe.add(dedupeKey);
-    consumedVpRefs.add(vpRefKey(vp));
-
-    const layout = resolveLayoutForTemplate(templateId, trigger, {
-      text: narration,
-      aspectRatio,
-      niche: config.niche || nichePack,
-    });
-    const presentation = resolvePresentationForScene({
-      templateId,
-      trigger,
-      text: narration,
-      aspectRatio,
-      niche: config.niche || nichePack,
-    });
-    const templateDefault = DEFAULT_DURATIONS[templateId] || 4;
-    const vpDur = Number(vp.duration_seconds);
-    const duration =
-      templateId === "location-intro"
-        ? Math.min(
-            LOCATION_INTRO_DEFAULTS.duration_seconds_long_max,
-            Math.max(LOCATION_INTRO_DEFAULTS.duration_seconds, vpDur || 8)
-          )
-        : vpDur > 0
-          ? Math.min(vpDur, templateDefault)
-          : templateDefault;
 
     let scene = {
-      id: `ms-boost-${String(vp.scene || vp.block || boostIndex).replace(/\s/g, "")}`,
-      scene_ref: String(vp.scene || ""),
-      block: Number(vp.block) || 1,
-      start_hint: sceneStartHint(vp, blockTimings),
-      duration_seconds: duration,
-      layout,
-      template_id: templateId,
-      trigger,
-      confidence: classified?.confidence || 0.5,
-      props: {
-        ...buildPropsForTemplate(
-          templateId,
-          trigger,
-          narration,
-          accentColor,
-          aspectRatio,
-          config.niche || nichePack,
-          researchContext
-        ),
-        presentation,
-        layout,
-        aspect_ratio: aspectRatio,
-      },
-      narration_text: narration,
-      media_mode: "remotion",
-      niche_pack: nichePack,
-      source: "studio_boost",
+      ...buildBaseMotionScene({
+        idPrefix: "ms-boost",
+        vp,
+        index: added + 1,
+        trigger,
+        templateId,
+        narration,
+        confidence: classified?.confidence || 0.7,
+        blockTimings,
+        aspectRatio,
+        accentColor,
+        nichePack,
+        niche: config.niche || nichePack,
+        researchContext,
+        locationFallback: 8,
+      }),
+      source: "studio_boost_semantic",
       boosted: true,
     };
 
@@ -712,7 +820,9 @@ export function boostStudioMotionScenesForLongForm({
     previousStudioIds.push(studioPick.id);
     if (studioPick.category) previousStudioCategories.push(studioPick.category);
     previousTemplates.push(templateId);
+    consumedVpRefs.add(vpRefKey(vp));
     boosted.push(scene);
+    added += 1;
   }
 
   return boosted.sort(
@@ -720,10 +830,29 @@ export function boostStudioMotionScenesForLongForm({
   );
 }
 
-export function limitMotionScenesForFormat(scenes = [], aspectRatio = "16:9") {
-  const approved = (Array.isArray(scenes) ? scenes : []).filter((scene) =>
-    APPROVED_ORCHESTRATION_TEMPLATES.has(String(scene.template_id || ""))
+function resolveSceneAssetFromVp(vp = {}) {
+  const asset = vp.asset || {};
+  return (
+    String(
+      asset.path ||
+        asset.file ||
+        asset.url ||
+        asset.filename ||
+        vp.image_path ||
+        vp.video_path ||
+        vp.file ||
+        ""
+    ).trim() || ""
   );
+}
+
+export function limitMotionScenesForFormat(scenes = [], aspectRatio = "16:9") {
+  const approved = (Array.isArray(scenes) ? scenes : []).filter((scene) => {
+    const semanticTemplateId = String(
+      scene.props?.legacy_motion_template_id || scene.template_id || ""
+    );
+    return APPROVED_ORCHESTRATION_TEMPLATES.has(semanticTemplateId);
+  });
   const isShort = String(aspectRatio || "") === "9:16";
   const max = isShort
     ? REMOTION_TEMPLATE_LIMITS.shortMax
@@ -731,8 +860,7 @@ export function limitMotionScenesForFormat(scenes = [], aspectRatio = "16:9") {
 
   if (isShort && approved.length > 1) {
     const geoScenes = approved.filter((scene) => {
-      const tpl = String(scene.template_id || "");
-      return tpl === "location-intro" || tpl === "geo-map";
+      return isGeoTemplate(scene.props?.legacy_motion_template_id || scene.template_id);
     });
     if (geoScenes.length) {
       return geoScenes
@@ -796,9 +924,7 @@ export function planMotionScenesFromStoryboard(
   const consumedVpRefs = new Set();
 
   for (const vp of visualPrompts) {
-    const narration = String(
-      vp.narration_text || vp.asset?.narration_segment || ""
-    ).trim();
+    const narration = narrationFromVp(vp);
     if (!narration) continue;
 
     const classified = classifyNarrationSegment(narration);
@@ -816,23 +942,14 @@ export function planMotionScenesFromStoryboard(
               : null,
           skipped: true,
           reason: classified
-            ? "confianca baixa para acionar template automatico"
-            : "sem trigger de mapa, numero, comparacao ou cronologia",
+             ? "confianca baixa para acionar template automatico"
+             : "sem trigger de mapa, numero, comparacao ou cronologia",
         })
       );
       continue;
     }
 
-    let trigger = classified.trigger;
-    if (trigger === "curiosity_punch") {
-      if (STAT_RE.test(narration)) {
-        trigger = "stat_number";
-      } else if (HISTORICAL_RE.test(narration) || YEAR_RE.test(narration)) {
-        trigger = "historical_fact";
-      } else {
-        trigger = "stat_number";
-      }
-    }
+    const trigger = normalizePlannerTrigger(classified.trigger, narration);
     const templateDecision = pickTemplateDecisionForTrigger(
       trigger,
       nichePack,
@@ -856,20 +973,8 @@ export function planMotionScenesFromStoryboard(
       );
       continue;
     }
-    const layout = resolveLayoutForTemplate(templateId, trigger, {
-      text: narration,
-      aspectRatio,
-      niche: config.niche || nichePack,
-    });
-    const presentation = resolvePresentationForScene({
-      templateId,
-      trigger,
-      text: narration,
-      aspectRatio,
-      niche: config.niche || nichePack,
-    });
 
-    const dedupeKey = `${trigger}-${templateId}-${vp.scene || vp.block}`;
+    const dedupeKey = sceneDedupeKey(trigger, templateId, vp);
     if (usedTriggers.has(dedupeKey)) {
       skippedEntries.push(
         buildTemplateReviewEntry({
@@ -885,55 +990,26 @@ export function planMotionScenesFromStoryboard(
     }
     usedTriggers.add(dedupeKey);
 
-    const templateDefault = DEFAULT_DURATIONS[templateId] || 4;
-    const vpDur = Number(vp.duration_seconds);
-    const duration =
-      templateId === "location-intro"
-        ? Math.min(
-            aspectRatio === "9:16"
-              ? LOCATION_INTRO_DEFAULTS.duration_seconds_short_max
-              : LOCATION_INTRO_DEFAULTS.duration_seconds_long_max,
-            Math.max(
-              LOCATION_INTRO_DEFAULTS.duration_seconds,
-              vpDur > 0 ? vpDur : LOCATION_INTRO_DEFAULTS.duration_seconds
-            )
-          )
-        : vpDur > 0
-          ? Math.min(vpDur, templateDefault)
-          : templateDefault;
-
     const triggerMeta = MOTION_SCENE_TRIGGERS[trigger] || {};
 
     let scene = {
-      id: `ms-${String(vp.scene || vp.block || scenes.length + 1).replace(/\s/g, "")}`,
-      scene_ref: String(vp.scene || ""),
-      block: Number(vp.block) || 1,
-      start_hint: sceneStartHint(vp, blockTimings),
-      duration_seconds: duration,
-      layout,
-      template_id: templateId,
-      trigger,
-      confidence: classified.confidence,
+      ...buildBaseMotionScene({
+        vp,
+        index: scenes.length + 1,
+        trigger,
+        templateId,
+        narration,
+        confidence: classified.confidence,
+        blockTimings,
+        aspectRatio,
+        accentColor,
+        nichePack,
+        niche: config.niche || nichePack,
+        researchContext,
+      }),
       geo_kind: trigger === "location" ? classified.geo_kind : undefined,
       geo_score: trigger === "location" ? classified.score : undefined,
       geo_reason: trigger === "location" ? classified.reason : undefined,
-      props: {
-        ...buildPropsForTemplate(
-          templateId,
-          trigger,
-          narration,
-          accentColor,
-          aspectRatio,
-          config.niche || nichePack,
-          researchContext
-        ),
-        presentation,
-        layout,
-        aspect_ratio: aspectRatio,
-      },
-      narration_text: narration,
-      media_mode: "remotion",
-      niche_pack: nichePack,
       template_decision: {
         score: templateDecision.score,
         fallback: Boolean(templateDecision.fallback),
@@ -947,7 +1023,11 @@ export function planMotionScenesFromStoryboard(
       rve_ref: triggerMeta.rveRef || null,
       remotion_ref: triggerMeta.remotionRef || null,
       pip:
-        layout === "pip"
+        resolveLayoutForTemplate(templateId, trigger, {
+          text: narration,
+          aspectRatio,
+          niche: config.niche || nichePack,
+        }) === "pip"
           ? { position: "bottom-right", background: "stock_or_satellite" }
           : null,
     };
@@ -966,20 +1046,9 @@ export function planMotionScenesFromStoryboard(
         config,
       });
       if (!studioPick?.studio_source_code) {
-        scene = {
-          ...scene,
-          props: {
-            ...(scene.props || {}),
-            template_studio_fallback: true,
-            template_studio_fallback_reason:
-              "nenhum template Studio aprovado com sourceCode Remotion válido para esta cena",
-          },
-          studio_template_decision: {
-            fallback: true,
-            reason:
-              "Template Remotion nativo preservado por falta de opção aprovada no Studio",
-          },
-        };
+        // Sem TSX aprovado no Studio, mantenha esta posicao como B-roll.
+        // O fallback nativo/legado esta proibido.
+        continue;
       } else {
         scene = attachStudioTemplateToScene(scene, studioPick);
         scene = enrichStudioTemplateScene(scene, {
@@ -994,8 +1063,13 @@ export function planMotionScenesFromStoryboard(
         }
       }
       scene = applyGeoPipStudioPack(scene, studioNiche);
-    } else {
-      scene = applyGeoPipStudioPack(scene, studioNiche);
+    }
+
+    if (studioPackEnabled && (
+      !String(scene.props?.template_studio_id || "").trim() ||
+      !String(scene.props?.studio_source_code || "").trim()
+    )) {
+      continue;
     }
 
     scenes.push(scene);
@@ -1030,6 +1104,14 @@ export function planMotionScenesFromStoryboard(
   let boostedCount = 0;
   let transitionCount = 0;
   let backgroundCount = 0;
+  let narradorPlacementCount = 0;
+  let policyInjected = null;
+  const renderPolicy = resolveRenderTemplatePolicy(config, aspectRatio);
+  const visualOrchestration =
+    resolveVisualOrchestration(storyboard, config) ||
+    config.visual_orchestration ||
+    null;
+
   if (studioPackEnabled && studioNiche) {
     plannedScenes = boostStudioMotionScenesForLongForm({
       scenes,
@@ -1047,8 +1129,10 @@ export function planMotionScenesFromStoryboard(
     });
     boostedCount = Math.max(0, plannedScenes.length - scenes.length);
 
-    const roleInjected = injectStudioRoleScenes({
+    // Placements do NARRADORPRO (quote, chart, lower third…)
+    const narradorResult = injectNarradorProPlacements({
       scenes: plannedScenes,
+      visualOrchestration,
       visualPrompts,
       blockTimings,
       config,
@@ -1060,13 +1144,68 @@ export function planMotionScenesFromStoryboard(
       preferredStudioIds,
       pickStudioTemplateByCategory,
     });
-    plannedScenes = roleInjected.scenes;
-    transitionCount = roleInjected.transitions?.length || 0;
-    backgroundCount = roleInjected.backgrounds?.length || 0;
+    plannedScenes = narradorResult.scenes;
+    narradorPlacementCount = narradorResult.injected?.length || 0;
+
+    // Transitions/backgrounds só se policy smart permitir
+    if (renderPolicy.mode === "smart") {
+      const roleConfig = {
+        ...config,
+        motion_template_pack: {
+          ...(config.motion_template_pack || {}),
+          enabled: true,
+        },
+      };
+      const roleInjected = injectStudioRoleScenes({
+        scenes: plannedScenes,
+        visualPrompts,
+        blockTimings,
+        config: roleConfig,
+        studioNiche,
+        aspectRatio,
+        accentColor,
+        nichePack,
+        researchContext,
+        preferredStudioIds,
+        pickStudioTemplateByCategory,
+      });
+      plannedScenes = roleInjected.scenes;
+      if (!renderPolicy.transitions.enabled) {
+        plannedScenes = plannedScenes.filter(
+          (s) => String(s.props?.studio_role || "") !== "transition"
+        );
+        transitionCount = 0;
+      } else {
+        transitionCount = roleInjected.transitions?.length || 0;
+      }
+      backgroundCount = roleInjected.backgrounds?.length || 0;
+    }
+
+    const policyResult = applyRenderTemplatePolicyToScenes({
+      scenes: plannedScenes,
+      visualPrompts,
+      blockTimings,
+      config,
+      studioNiche,
+      aspectRatio,
+      accentColor,
+      nichePack,
+      researchContext,
+      preferredStudioIds,
+      pickStudioTemplateByCategory,
+      visualOrchestration,
+    });
+    plannedScenes = policyResult.scenes;
+    policyInjected = policyResult.injected;
   }
 
   const geoCapped = limitGeoMotionScenes(plannedScenes, aspectRatio);
-  const limitedScenes = limitMotionScenesForFormat(geoCapped, aspectRatio);
+  let limitedScenes = limitMotionScenesForFormat(geoCapped, aspectRatio);
+  limitedScenes = enforceOverlayBudget(
+    limitedScenes,
+    renderPolicy,
+    totalDurationFromBlockTimings(blockTimings, visualPrompts)
+  );
   const enrichedScenes = enrichMotionScenesWithResearch(
     limitedScenes,
     researchContext
@@ -1075,6 +1214,8 @@ export function planMotionScenesFromStoryboard(
   return {
     motion_scenes: enrichedScenes,
     niche_pack: nichePack,
+    render_template_policy: renderPolicy,
+    policy_injected: policyInjected,
     motion_scenes_review: buildMotionPlanReview({
       scenes: enrichedScenes,
       reviewEntries,
@@ -1094,9 +1235,23 @@ export function planMotionScenesFromStoryboard(
       researchContext.globalSources?.length
     ),
     planned_at: new Date().toISOString(),
-    planner_version: 1,
+    planner_version: 3,
     source: "heuristic",
+    narrador_placement_count: narradorPlacementCount,
+    visual_orchestration: visualOrchestration,
   };
+}
+
+function totalDurationFromBlockTimings(blockTimings = {}, visualPrompts = []) {
+  const ends = blockTimings.ends || [];
+  if (ends.length) return Number(ends[ends.length - 1]) || 0;
+  let max = 0;
+  for (const vp of visualPrompts || []) {
+    const start = Number(vp.speech_start || vp.asset?.audio_start) || 0;
+    const dur = Number(vp.duration_seconds) || 4;
+    max = Math.max(max, start + dur);
+  }
+  return max;
 }
 
 export function clipsTimeOverlap(a, b, epsilon = 0.35) {
@@ -1135,36 +1290,13 @@ export function motionScenesToMotionClips(motionScenes = []) {
       templateId: ms.template_id,
       props: {
         ...(ms.props || {}),
-        template_studio_id: ms.props?.template_studio_id,
-        template_studio_name: ms.props?.template_studio_name,
-        template_studio_category: ms.props?.template_studio_category,
-        template_studio_subcategory: ms.props?.template_studio_subcategory,
-        template_studio_motion_template_id:
-          ms.props?.template_studio_motion_template_id,
-        studio_source_code: ms.props?.studio_source_code,
         media_mode: "remotion",
         motion_scene: true,
         narration_text: String(ms.narration_text || ""),
         scene_ref: String(ms.scene_ref || ""),
         block: Number(ms.block) || 1,
-        layout:
-          ms.template_id === "location-intro" || ms.template_id === "geo-map"
-            ? "fullscreen"
-            : FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))
-              ? "fullscreen"
-              : ms.layout ||
-                resolveLayoutForTemplate(ms.template_id, ms.trigger),
-        presentation:
-          ms.props?.geo_pip_composite ||
-          (ms.props?.aspect_ratio === "9:16" &&
-            (ms.props?.presentation === "pip" || ms.layout === "pip"))
-            ? ms.props?.presentation || ms.layout || "pip"
-            : ms.template_id === "location-intro" ||
-                ms.template_id === "geo-map"
-              ? "fullscreen"
-              : FULLSCREEN_TEMPLATES.has(String(ms.template_id || ""))
-                ? "fullscreen"
-                : ms.props?.presentation,
+        layout: resolveClipLayout(ms),
+        presentation: resolveClipPresentation(ms),
         motion_quality_ok: ms.quality?.ok !== false,
         motion_quality_score: Number(ms.quality?.score) || 100,
         trigger: ms.trigger,
