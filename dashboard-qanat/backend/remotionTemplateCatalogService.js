@@ -5,8 +5,17 @@ import { APPROVED_ORCHESTRATION_TEMPLATES } from "../shared/motionSceneCatalog.j
 import {
   hasRunnableStudioSource,
   mapStudioTemplateToMotionId,
+  STUDIO_RUNTIME_MOTION_ID,
+  isStudioTemplateOrchestrationReady,
 } from "../shared/remotionTemplateStudioCatalog.js";
 import { bindStudioTemplateProps } from "../shared/studioTemplatePropsBinder.js";
+import {
+  resolveStudioRole,
+  subcategoryMatchesRole,
+} from "../shared/studioTemplateRoles.js";
+import { injectStudioPropsContract } from "../shared/studioTemplateSourcePropsInject.js";
+import { resolveTemplateDataSlots } from "../shared/studioTemplateDataSlots.js";
+import { seedIdentityFramesForNiche } from "../shared/identityFrameTemplates.js";
 import {
   isLegacySeedTemplateId,
   LEGACY_SEED_TEMPLATE_IDS,
@@ -119,10 +128,15 @@ export { hasRunnableStudioSource };
 
 function normalizeCatalogTemplate(raw = {}) {
   if (isLegacySeedTemplateId(raw.id)) return null;
-  const motionTemplateId = mapStudioTemplateToMotionId(raw);
   const sourceCode = normalizeSourceCode(raw);
   const runnableSource = hasRunnableStudioSource(sourceCode);
-  return {
+  const withSource = { ...raw, sourceCode };
+  const motionTemplateId = mapStudioTemplateToMotionId(withSource);
+  const orchestrationReady = isStudioTemplateOrchestrationReady({
+    ...withSource,
+    sourceCode,
+  });
+  const base = {
     id: String(raw.id || "").trim(),
     name: String(raw.name || "").trim(),
     category: String(raw.category || "").trim(),
@@ -132,16 +146,23 @@ function normalizeCatalogTemplate(raw = {}) {
     description: String(raw.description || "").trim(),
     dataSlots: Array.isArray(raw.dataSlots) ? raw.dataSlots : [],
     motion_template_id: motionTemplateId,
+    orchestration_role: resolveStudioRole(withSource),
     orchestration_ready: Boolean(
-      motionTemplateId &&
-      APPROVED_ORCHESTRATION_TEMPLATES.has(motionTemplateId) &&
-      runnableSource
+      orchestrationReady ||
+        (motionTemplateId &&
+          APPROVED_ORCHESTRATION_TEMPLATES.has(motionTemplateId) &&
+          runnableSource)
     ),
     shortPreview: raw.shortPreview || null,
     longPreview: raw.longPreview || null,
     sourceCode,
     has_source_code: runnableSource,
   };
+  base.dataSlots = resolveTemplateDataSlots(base);
+  if (!base.orchestration_role) {
+    base.orchestration_role = resolveStudioRole(base);
+  }
+  return base;
 }
 
 const TRIGGER_STUDIO_HINTS = {
@@ -175,11 +196,24 @@ function scoreStudioTemplateForTrigger(
     .join(" ")
     .toLowerCase();
 
-  if (tpl.motion_template_id === motionTemplateId) {
-    score += 40;
-    reasons.push("motion_template_id coincide com o trigger");
-  } else {
-    score -= 50;
+  const tplMotion = String(tpl.motion_template_id || "").trim();
+  const wantMotion = String(motionTemplateId || "").trim();
+  if (
+    tplMotion &&
+    wantMotion &&
+    (tplMotion === wantMotion ||
+      wantMotion === STUDIO_RUNTIME_MOTION_ID ||
+      tplMotion === STUDIO_RUNTIME_MOTION_ID)
+  ) {
+    score += tplMotion === wantMotion ? 40 : 18;
+    reasons.push(
+      tplMotion === wantMotion
+        ? "motion_template_id coincide com o trigger"
+        : "runtime Studio compativel com o trigger"
+    );
+  } else if (wantMotion && tplMotion && tplMotion !== wantMotion) {
+    score -= 25;
+    reasons.push("motion_template_id diferente do trigger operacional");
   }
 
   const hint = TRIGGER_STUDIO_HINTS[trigger];
@@ -266,11 +300,28 @@ function scoreStudioTemplateCoverage(tpl, context = {}) {
     config: context.config || {},
   });
   const confidence = Number(studio_props_meta?.confidence) || 0;
+  const structuredSlots = new Set([
+    "steps", "events", "milestones", "items", "segments", "bars", "series",
+    "data", "points", "values", "notifications", "cards", "slides", "cells",
+  ]);
+  const requiredStructured = (tpl.dataSlots || []).filter((slot) =>
+    structuredSlots.has(String(slot || "").trim())
+  );
+  const filled = new Set(studio_props_meta?.filled_slots || []);
+  const missingStructured = requiredStructured.filter((slot) => !filled.has(slot));
+  if (missingStructured.length > 0) {
+    return {
+      bonus: -1000,
+      eligible: false,
+      reasons: [`rejeitado: slots estruturais sem dados (${missingStructured.join(", ")})`],
+    };
+  }
   if (confidence <= 0) {
     return { bonus: 0, reasons: ["contrato sem dados preenchiveis"] };
   }
   return {
     bonus: Math.round(confidence * 20),
+    eligible: true,
     reasons: [
       `cobertura do contrato ${Math.round(confidence * 100)}% (${studio_props_meta.filled_slots?.length || 0} slots)`,
     ],
@@ -283,12 +334,16 @@ export function resolveStudioSourceCode(template = {}, aspectRatio = "16:9") {
   const vertical = String(aspectRatio || "16:9") === "9:16";
   const primary = vertical ? src.short : src.long;
   const fallback = vertical ? src.long : src.short;
-  return String(primary || fallback || "").trim();
+  const raw = String(primary || fallback || "").trim();
+  if (!raw) return "";
+  // Limpa placeholders de demo e garante props no runtime
+  return injectStudioPropsContract(raw);
 }
 
 export function pickStudioTemplateByCategory({
   category = "",
   motionTemplateId = "",
+  role = "",
   niche = "",
   aspectRatio = "16:9",
   preferredStudioIds = [],
@@ -297,22 +352,38 @@ export function pickStudioTemplateByCategory({
   scene = null,
   researchContext = {},
   config = {},
+  requiredSubcategoryHint = "",
 } = {}) {
   const targetCat = String(category || "")
     .trim()
     .toLowerCase();
-  if (!targetCat) return null;
+  const targetRole = String(role || "").trim();
+  if (!targetCat && !targetRole) return null;
 
   const catalog = getCatalogForNiche(niche);
-  let candidates = catalog.approved.filter(
-    (tpl) =>
-      tpl.orchestration_ready &&
-      tpl.has_source_code &&
-      tpl.status === "approved" &&
+  let candidates = catalog.approved.filter((tpl) => {
+    if (!tpl.orchestration_ready || !tpl.has_source_code) return false;
+    if (tpl.status !== "approved") return false;
+    if (
+      targetCat &&
       String(tpl.category || "")
         .trim()
-        .toLowerCase() === targetCat
-  );
+        .toLowerCase() !== targetCat
+    ) {
+      return false;
+    }
+    if (targetRole) {
+      const tplRole = tpl.orchestration_role || resolveStudioRole(tpl);
+      if (tplRole !== targetRole) return false;
+      if (!subcategoryMatchesRole(tpl, targetRole)) return false;
+    }
+    if (requiredSubcategoryHint) {
+      const hint = String(requiredSubcategoryHint).toLowerCase();
+      const hay = `${tpl.subcategory || ""} ${tpl.name || ""}`.toLowerCase();
+      if (!hay.includes(hint)) return false;
+    }
+    return true;
+  });
 
   const motionId = String(motionTemplateId || "").trim();
   if (!candidates.length && motionId) {
@@ -321,7 +392,8 @@ export function pickStudioTemplateByCategory({
         tpl.orchestration_ready &&
         tpl.has_source_code &&
         tpl.status === "approved" &&
-        tpl.motion_template_id === motionId
+        (tpl.motion_template_id === motionId ||
+          tpl.motion_template_id === STUDIO_RUNTIME_MOTION_ID)
     );
   }
   if (!candidates.length) return null;
@@ -331,7 +403,7 @@ export function pickStudioTemplateByCategory({
       const base = scoreStudioTemplateForTrigger(
         tpl,
         "curiosity_punch",
-        tpl.motion_template_id,
+        motionId || tpl.motion_template_id || STUDIO_RUNTIME_MOTION_ID,
         {
           preferredStudioIds,
           previousStudioIds,
@@ -346,9 +418,11 @@ export function pickStudioTemplateByCategory({
       return {
         tpl,
         score: base.score + coverage.bonus,
+        eligible: coverage.eligible !== false,
         reasons: [...base.reasons, ...coverage.reasons],
       };
     })
+    .filter((entry) => entry.eligible)
     .sort((a, b) => b.score - a.score);
 
   const best = scored[0];
@@ -384,13 +458,41 @@ export function pickStudioTemplateForTrigger({
   if (!motionId) return null;
 
   const catalog = getCatalogForNiche(niche);
-  const candidates = catalog.approved.filter(
+  let candidates = catalog.approved.filter(
     (tpl) =>
       tpl.orchestration_ready &&
       tpl.has_source_code &&
       tpl.motion_template_id === motionId &&
       tpl.status === "approved"
   );
+  // Fallback: runtime Studio do mesmo trigger semântico (chart/text/etc.)
+  if (!candidates.length) {
+    candidates = catalog.approved.filter((tpl) => {
+      if (!tpl.orchestration_ready || !tpl.has_source_code) return false;
+      if (tpl.status !== "approved") return false;
+      if (tpl.motion_template_id !== STUDIO_RUNTIME_MOTION_ID) return false;
+      const role = tpl.orchestration_role || resolveStudioRole(tpl);
+      if (trigger === "stat_number" || trigger === "comparison") {
+        return role === "chart" || String(tpl.category) === "chart-data";
+      }
+      if (trigger === "timeline_date" || trigger === "historical_fact") {
+        return (
+          role === "content_animation" ||
+          role === "chart" ||
+          /timeline|process|step|cronolog/i.test(
+            `${tpl.subcategory} ${tpl.name}`
+          )
+        );
+      }
+      if (trigger === "location" || trigger === "region_pin") {
+        return (
+          role === "media_layout" ||
+          /map|geo|pip|location/i.test(`${tpl.subcategory} ${tpl.name}`)
+        );
+      }
+      return role === "text_overlay" || role === "content_animation";
+    });
+  }
   if (!candidates.length) return null;
 
   const scored = candidates
@@ -409,9 +511,11 @@ export function pickStudioTemplateForTrigger({
       return {
         tpl,
         score: base.score + coverage.bonus,
+        eligible: coverage.eligible !== false,
         reasons: [...base.reasons, ...coverage.reasons],
       };
     })
+    .filter((entry) => entry.eligible)
     .sort((a, b) => b.score - a.score);
 
   const best = scored[0];
@@ -433,6 +537,7 @@ export function pickStudioTemplateForTrigger({
 
 export function attachStudioTemplateToScene(scene = {}, studioPick = null) {
   if (!scene || !studioPick?.id) return scene;
+  // resolveStudioSourceCode já aplica injectStudioPropsContract (anti-placeholder)
   const sourceCode = String(
     studioPick.studio_source_code ||
       resolveStudioSourceCode(studioPick, scene.props?.aspect_ratio)
@@ -441,9 +546,12 @@ export function attachStudioTemplateToScene(scene = {}, studioPick = null) {
 
   return {
     ...scene,
-    template_id: studioPick.motion_template_id || scene.template_id,
+    // Identidade publica: sempre o template aprovado do Studio.
+    // motion_template_id permanece apenas como gatilho semantico interno.
+    template_id: studioPick.id,
     props: {
       ...(scene.props || {}),
+      legacy_motion_template_id: scene.template_id,
       template_studio_id: studioPick.id,
       template_studio_name: studioPick.name,
       template_studio_category: studioPick.category,
@@ -678,11 +786,19 @@ export function getCatalogForNiche(niche = "") {
   const catalog = readCatalogFile();
   const key = resolveCatalogNicheKey(catalog, niche);
   const entry = catalog.niches?.[key] || { templates: [], updated_at: null };
-  const templates = (Array.isArray(entry.templates) ? entry.templates : [])
+  let templates = (Array.isArray(entry.templates) ? entry.templates : [])
     .map(normalizeCatalogTemplate)
     .filter((tpl) => tpl?.id);
+  // Seeds de frame de identidade se o nicho ainda não tem category=frame
+  const nicheLabel = normalizeNicheLabel(niche) || key || "Default";
+  const frameSeeds = seedIdentityFramesForNiche(nicheLabel, templates).map(
+    (tpl) => normalizeCatalogTemplate(tpl)
+  ).filter((tpl) => tpl?.id);
+  if (frameSeeds.length) {
+    templates = [...templates, ...frameSeeds];
+  }
   return {
-    niche: normalizeNicheLabel(niche) || key,
+    niche: nicheLabel,
     templates,
     approved: templates.filter((tpl) => tpl.status === "approved"),
     orchestration_ready: templates.filter((tpl) => tpl.orchestration_ready),
