@@ -4,8 +4,8 @@
 
 ## Meta
 
-niche: curiosidade engenharia brasil
-updated: 2026-07-07
+niche: ENGENHARIA
+updated: 2026-07-15
 purpose: minerar o que funciona nos concorrentes → ideias originais no Lumiera (nunca cópia frame-a-frame)
 
 ## Regra de ouro
@@ -805,6 +805,17 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - `skills/viral-captions-and-ctas/references/ctas-that-work.md`
 
 ## Pesquisas automáticas (IA)
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-15 04:29 — ENGENHARIA (SHORT)
+
+**Nicho:** ENGENHARIA · **Formato:** SHORT
+**Outliers detectados:** 0
+
+#### Fichas de dissecção (IA)
+
+#### Ideias Lumiera derivadas
 
 ## Pesquisas automáticas (IA)
 

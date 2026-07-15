@@ -10,7 +10,6 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[SKILLS]] — índice das skills (HyperFrames, viral, UGC, etc.)
 - [[memory/agent-frameworks-reference]] · [[memory/google-gemini-sdk-reference]] · [[memory/google-research-reference]]
 - [[memory/lumiera-code-map]] · [[memory/videoagent-lumiera]]
-- [[memory/lumiera-architecture-overview|Arquitetura Geral]] · [[memory/lumiera-backend-map|Backend Map]] · [[memory/lumiera-frontend-map|Frontend Map]] · [[memory/lumiera-remotion-map|Remotion Map]]
 - [[skill-bundles/BUNDLES|Skill bundles (Hermes)]]
 
 ## Skills
@@ -99,13 +98,6 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/youtube-seo|youtube seo]]
 - [[skills/youtube-thumbnail|youtube thumbnail]]
 
-## Mapeamento do Sistema
-
-- [[memory/lumiera-architecture-overview]] — Visão geral da arquitetura, fluxo de dados e integrações
-- [[memory/lumiera-backend-map]] — Catálogo estruturado dos módulos e rotas de backend Express
-- [[memory/lumiera-frontend-map]] — Catálogo dos painéis, abas e utilitários de UI do frontend React Vite
-- [[memory/lumiera-remotion-map]] — Catálogo do motor de renderização Remotion, overlays e Lottie
-
 ## Memória por nicho
 
 - [[memory/agent-frameworks-reference]]
@@ -123,7 +115,6 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[memory/engenharia-antiga-curiosidade]]
 - [[memory/engenharia-antiga-curioso]]
 - [[memory/engenharia-antiga]]
-- [[memory/engenharia-brasil]]
 - [[memory/engenharia-curiosidade]]
 - [[memory/engenharia-japao]]
 - [[memory/engenharia-medieval]]
@@ -133,7 +124,11 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[memory/google-gemini-sdk-reference]]
 - [[memory/google-research-reference]]
 - [[memory/historia]]
+- [[memory/lumiera-architecture-overview]]
+- [[memory/lumiera-backend-map]]
 - [[memory/lumiera-code-map]]
+- [[memory/lumiera-frontend-map]]
+- [[memory/lumiera-remotion-map]]
 - [[memory/mattpocock-skills]]
 - [[memory/openmontage-lumiera]]
 - [[memory/video-reference-analyses]]
@@ -141,13 +136,13 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 
 ## Logs recentes
 
+- [[agent_runs/2026-07-15]]
+- [[agent_runs/2026-07-14]]
+- [[agent_runs/2026-07-13]]
+- [[agent_runs/2026-07-12]]
+- [[agent_runs/2026-07-11]]
 - [[agent_runs/2026-07-10]]
 - [[agent_runs/2026-07-09]]
-- [[agent_runs/2026-07-08]]
-- [[agent_runs/2026-07-07]]
-- [[agent_runs/2026-07-06]]
-- [[agent_runs/2026-07-05]]
-- [[agent_runs/2026-07-04]]
 
 ## Regras por formato
 
@@ -160,4 +155,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-07-10T04:13:06.725Z
+atualizado: 2026-07-15T15:45:40.478Z
