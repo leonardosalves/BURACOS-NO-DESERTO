@@ -109,6 +109,21 @@ function buildExecutiveSummary(artifacts = {}) {
     "Pesquisa concluída — veja seções detalhadas abaixo."
   );
 }
+function extractCompetitorOutliers(competitorsArtifact = {}) {
+  return (
+    competitorsArtifact?.outliers ||
+    competitorsArtifact?.analysis?.outliers ||
+    []
+  );
+}
+
+function extractDerivedIdeas(competitorsArtifact = {}) {
+  return (
+    competitorsArtifact?.analysis?.derivedIdeas ||
+    competitorsArtifact?.derivedIdeas ||
+    []
+  );
+}
 
 export function buildDeepResearchReport(plan, artifacts = {}) {
   const facts = [...(artifacts.web?.facts || [])].slice(0, 12);
@@ -120,9 +135,8 @@ export function buildDeepResearchReport(plan, artifacts = {}) {
     })),
   ];
 
-  const competitor = artifacts.competitors?.analysis || {};
-  const derivedIdeas = competitor.derivedIdeas || [];
-  const outliers = competitor.outliers || [];
+  const derivedIdeas = extractDerivedIdeas(artifacts.competitors);
+  const outliers = extractCompetitorOutliers(artifacts.competitors);
 
   const lines = [
     `# Relatório de pesquisa — ${plan.topic}`,
@@ -235,11 +249,10 @@ export function formatDeepResearchForIdeasPrompt(
   artifacts = {}
 ) {
   const markdown = String(report?.markdown || "").trim();
-  const derived =
-    report?.derivedIdeas || artifacts?.competitors?.derivedIdeas || [];
-  const competitorAnalysis =
-    artifacts?.competitors?.analysis || artifacts?.competitors || {};
-  const outliers = competitorAnalysis.outliers || [];
+  const derived = report?.derivedIdeas?.length
+    ? report.derivedIdeas
+    : extractDerivedIdeas(artifacts?.competitors);
+  const outliers = extractCompetitorOutliers(artifacts?.competitors);
 
   if (!markdown && !derived.length && !(report?.factCount > 0)) return "";
 
@@ -359,6 +372,8 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
         apiKey: opts.apiKey,
         diversityHint,
         excludeTopics,
+      }).catch((err) => {
+        throw new Error(`[web] ${err.message}`);
       })
     );
   }
@@ -367,7 +382,11 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
     tasks.push(
       exaWebSearch(`${topic} — ${niche} YouTube`, workspaceDir, {
         numResults: 6,
-      }).then((r) => ({ leg: "exa", ...r }))
+      })
+        .then((r) => ({ leg: "exa", ...r }))
+        .catch((err) => {
+          throw new Error(`[exa] ${err.message}`);
+        })
     );
   }
 
@@ -379,7 +398,11 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
         maxCompetitors: opts.maxCompetitors ?? 5,
         llmFn: opts.llmFn,
         repairJsonFn: opts.repairJsonFn,
-      }).then((r) => ({ leg: "competitors", ...r }))
+      })
+        .then((r) => ({ leg: "competitors", ...r }))
+        .catch((err) => {
+          throw new Error(`[competitors] ${err.message}`);
+        })
     );
   }
 
@@ -391,6 +414,8 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
         format,
         deep: opts.notebooklmDeep === true,
         projDir: opts.projDir,
+      }).catch((err) => {
+        throw new Error(`[notebooklm] ${err.message}`);
       })
     );
   }
@@ -401,7 +426,13 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
 
   for (const item of settled) {
     if (item.status === "rejected") {
-      legErrors.push({ error: item.reason?.message || String(item.reason) });
+      const errMsg = item.reason?.message || String(item.reason);
+      const match = errMsg.match(/^\[(.*?)\] (.*)/);
+      if (match) {
+        legErrors.push({ leg: match[1], error: match[2] });
+      } else {
+        legErrors.push({ leg: "unknown", error: errMsg });
+      }
       continue;
     }
     const val = item.value || {};
@@ -437,9 +468,10 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
       notebooklm: artifacts.notebooklm || null,
       competitors: artifacts.competitors
         ? {
-            outlierCount: artifacts.competitors.analysis?.outliers?.length || 0,
+            outlierCount: extractCompetitorOutliers(artifacts.competitors)
+              .length,
             derivedIdeas: report.derivedIdeas,
-            memoryFile: artifacts.competitors.memoryFile,
+            memoryFile: artifacts.competitors.memory?.memoryFile,
           }
         : null,
     },
