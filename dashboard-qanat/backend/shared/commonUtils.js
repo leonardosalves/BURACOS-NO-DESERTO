@@ -2,6 +2,7 @@
  * Utilitários compartilhados — JSON seguro, datas e YouTube Data API.
  */
 import fs from "fs";
+import { spawn } from "child_process";
 
 /** Lê JSON com fallback. `fallback` padrão = null (compatível com videoResurrector). */
 export function readJsonSafe(filePath, fallback = null) {
@@ -60,3 +61,61 @@ export async function youtubeDataGet(accessToken, apiPath, params = {}, { onErro
   }
   return data;
 }
+
+/** Remove acentos — padrão repetido em 4+ arquivos. */
+export function stripAccents(value = "") {
+  return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/** User-Agent de navegador para fetches externos (TikTok oEmbed, redirects). */
+export const BROWSER_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+/** Janela de datas para YouTube Analytics (usado em channelAnalytics e studioAdvanced). */
+export function periodDates(days = 28) {
+  const endDate = new Date().toISOString().slice(0, 10);
+  const startDate = new Date(Date.now() - days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  return { startDate, endDate };
+}
+
+/** Runner de processo com timeout — movido de videoUnderstandingService. */
+export function runCommand(cmd, args, { timeoutMs = 120_000, env = process.env } = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, {
+      shell: false,
+      windowsHide: true,
+      env,
+    });
+    let stdout = "";
+    let stderr = "";
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      reject(new Error(`${cmd} timeout ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    child.stdout.on("data", (d) => {
+      stdout += d.toString();
+    });
+    child.stderr.on("data", (d) => {
+      stderr += d.toString();
+    });
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolve({ stdout, stderr });
+      else {
+        reject(
+          new Error(
+            (stderr || stdout || `${cmd} exit ${code}`).trim().split(/\r?\n/)[0]
+          )
+        );
+      }
+    });
+  });
+}
+
