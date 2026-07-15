@@ -54,6 +54,10 @@ export type AppTabPropContext = Record<string, unknown> & {
   wordTranscripts: unknown;
   youtubeChannelAlerts: YoutubeChannelAlerts | null;
   safeMusicFiles: MusicFile[];
+  localLlmUrlInput: string;
+  setLocalLlmUrlInput: (v: string) => void;
+  localLlmModelInput: string;
+  setLocalLlmModelInput: (v: string) => void;
 };
 
 export type AppTabPropBundles = {
@@ -193,6 +197,7 @@ export function buildAppTabPropBundles(
     setUploadSuccess: ctx.setUploadSuccess,
     setUseNotebooklm: ctx.setUseNotebooklm,
     setNotebooklmDeep: ctx.setNotebooklmDeep,
+    setEnablePov: ctx.setEnablePov,
     motionTemplatePackEnabled: ctx.motionTemplatePackEnabled,
     setMotionTemplatePackEnabled: ctx.setMotionTemplatePackEnabled,
     motionTemplateNiche: ctx.motionTemplateNiche,
@@ -211,6 +216,7 @@ export function buildAppTabPropBundles(
     uploadedScenes: ctx.uploadedScenes,
     uploadingNarration: ctx.uploadingNarration,
     useNotebooklm: ctx.useNotebooklm,
+    enablePov: ctx.enablePov,
     notebooklmDeep: ctx.notebooklmDeep,
     wizardSavedAtLabel: ctx.wizardSavedAtLabel,
     wordTranscripts: ctx.wordTranscripts,
@@ -437,6 +443,10 @@ export function buildAppTabPropBundles(
     nvidiaKeyInput: ctx.nvidiaKeyInput,
     openrouterKeyInput: ctx.openrouterKeyInput,
     pexelsKeyInput: ctx.pexelsKeyInput,
+    localLlmUrlInput: ctx.localLlmUrlInput,
+    setLocalLlmUrlInput: ctx.setLocalLlmUrlInput,
+    localLlmModelInput: ctx.localLlmModelInput,
+    setLocalLlmModelInput: ctx.setLocalLlmModelInput,
     pickProductionConfig: ctx.pickProductionConfig,
     pickVisualConfig: ctx.pickVisualConfig,
     pixabayKeyInput: ctx.pixabayKeyInput,
@@ -507,6 +517,7 @@ export function buildAppTabPropBundles(
     effectiveRenderResolution: ctx.effectiveRenderResolution,
     fetchVideoQuality: ctx.fetchVideoQuality,
     getFormatBytes: ctx.getFormatBytes,
+    getProjectUrl: ctx.getProjectUrl,
     handlePreRenderAutoFix: ctx.handlePreRenderAutoFix,
     outputs: ctx.outputs,
     preRenderFixingId: ctx.preRenderFixingId,
@@ -523,6 +534,7 @@ export function buildAppTabPropBundles(
     videoQuality: ctx.videoQuality,
     renderFps: ctx.renderFps,
     setRenderFps: ctx.setRenderFps,
+    saveConfigPatch: ctx.saveConfigPatch,
   };
 
   const timelineTabProps: AppTimelineTabProps = {

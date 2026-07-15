@@ -1151,10 +1151,7 @@ function streamMediaWithRanges(req, res, filePath, mimeType) {
       }
 
       if (start >= fileSize) {
-        res
-          .status(416)
-          .setHeader("Content-Range", `bytes */${fileSize}`)
-          .end();
+        res.status(416).setHeader("Content-Range", `bytes */${fileSize}`).end();
         return;
       }
 
@@ -7889,14 +7886,10 @@ app.get(
                 log: (msg) => sendLog(msg),
               });
               if (fsResult.ok && !fsResult.skipped) {
-                sendLog(
-                  "[Remotion] MP4 otimizado para streaming (faststart)."
-                );
+                sendLog("[Remotion] MP4 otimizado para streaming (faststart).");
               }
             } catch (fsErr) {
-              sendLog(
-                `[Remotion] Aviso faststart: ${fsErr.message || fsErr}`
-              );
+              sendLog(`[Remotion] Aviso faststart: ${fsErr.message || fsErr}`);
             }
 
             if (renderPlan.sampleMeta) {
@@ -10992,6 +10985,107 @@ function getInferenceModelChain(
   return [...new Set([primary, ...INFERENCE_MODEL_FALLBACKS])];
 }
 
+function getLocalLlmUrl(projectDir = WORKSPACE_DIR) {
+  const readConfigKey = (configPath) => {
+    const config = readJsonFile(configPath);
+    return config?.local_llm_url || null;
+  };
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+  if (projectKey) return projectKey;
+  if (projectDir !== WORKSPACE_DIR) {
+    return (
+      readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json")) ||
+      "http://127.0.0.1:11434/v1/chat/completions"
+    );
+  }
+  return "http://127.0.0.1:11434/v1/chat/completions";
+}
+
+function getLocalLlmModel(projectDir = WORKSPACE_DIR) {
+  const readConfigKey = (configPath) => {
+    const config = readJsonFile(configPath);
+    return config?.local_llm_model || null;
+  };
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+  if (projectKey) return projectKey;
+  if (projectDir !== WORKSPACE_DIR) {
+    return (
+      readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json")) ||
+      "bonsai-27b"
+    );
+  }
+  return "bonsai-27b";
+}
+
+async function callLocalLlmWithRetry(
+  promptOrBody,
+  {
+    maxRetries = 3,
+    bodyOverride = null,
+    projectDir = WORKSPACE_DIR,
+    temperature = null,
+  } = {}
+) {
+  const url = getLocalLlmUrl(projectDir);
+  const model = getLocalLlmModel(projectDir);
+  const messages = convertGeminiToOpenRouterMessages(
+    promptOrBody,
+    bodyOverride
+  );
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(
+        `[Local LLM] Tentando url=${url} modelo=${model} (Tentativa ${attempt}/${maxRetries})`
+      );
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          ...(temperature !== null ? { temperature } : {}),
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        let responseText = result.choices?.[0]?.message?.content || "";
+        responseText = responseText
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+        console.log(
+          `[Local LLM] Sucesso com url=${url} na tentativa ${attempt}`
+        );
+        return responseText;
+      }
+
+      const errText = await response.text().catch(() => "");
+      lastError = new Error(
+        `${response.status}: ${errText || response.statusText}`
+      );
+      console.warn(
+        `[Local LLM] ${response.status} de ${url} (tentativa ${attempt}/${maxRetries}): ${errText || response.statusText}`
+      );
+    } catch (err) {
+      lastError = err;
+      console.warn(
+        `[Local LLM] Erro ao conectar com local LLM (tentativa ${attempt}/${maxRetries}):`,
+        err.message
+      );
+    }
+    if (attempt < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+  }
+
+  throw lastError || new Error("Falha ao consultar LLM local.");
+}
+
 async function callGeminiWithRetry(
   apiKey,
   promptOrBody,
@@ -11034,6 +11128,14 @@ async function callGeminiWithRetry(
   }
   if (provider === "xai") {
     return await callXaiWithRetry(promptOrBody, {
+      maxRetries,
+      bodyOverride,
+      projectDir: projDir,
+      temperature,
+    });
+  }
+  if (provider === "local") {
+    return await callLocalLlmWithRetry(promptOrBody, {
       maxRetries,
       bodyOverride,
       projectDir: projDir,
@@ -11932,6 +12034,8 @@ app.get("/api/ai/settings", (req, res) => {
     has_epidemic_key: true,
 
     gemini_browser_mode: isGeminiBrowserModeEnabled(projDir),
+    local_llm_url: getLocalLlmUrl(projDir),
+    local_llm_model: getLocalLlmModel(projDir),
   });
 });
 
@@ -11956,6 +12060,8 @@ app.post("/api/ai/settings", (req, res) => {
     inference_key,
     epidemic_sound_key,
     gemini_browser_mode,
+    local_llm_url,
+    local_llm_model,
   } = req.body || {};
 
   try {
@@ -11967,7 +12073,8 @@ app.post("/api/ai/settings", (req, res) => {
         provider === "xai" ||
         provider === "openrouter" ||
         provider === "nvidia" ||
-        provider === "inference"
+        provider === "inference" ||
+        provider === "local"
       ) {
         next.ai_provider = provider;
       }
@@ -12019,6 +12126,14 @@ app.post("/api/ai/settings", (req, res) => {
         next.gemini_browser_mode = gemini_browser_mode;
       }
 
+      if (typeof local_llm_url === "string") {
+        next.local_llm_url = local_llm_url.trim();
+      }
+
+      if (typeof local_llm_model === "string") {
+        next.local_llm_model = local_llm_model.trim();
+      }
+
       return next;
     };
 
@@ -12044,6 +12159,8 @@ app.post("/api/ai/settings", (req, res) => {
       has_inference_key: !!getInferenceApiKey(projDir),
       has_epidemic_key: true,
       gemini_browser_mode: isGeminiBrowserModeEnabled(projDir),
+      local_llm_url: getLocalLlmUrl(projDir),
+      local_llm_model: getLocalLlmModel(projDir),
     });
   } catch (err) {
     res.status(500).json({
@@ -19588,7 +19705,8 @@ app.post(
                 use_source_audio: prev.use_source_audio,
                 no_channel_narration: prev.no_channel_narration,
                 volume: prev.volume,
-                pov_image_prompts: prev.pov_image_prompts || vp.pov_image_prompts,
+                pov_image_prompts:
+                  prev.pov_image_prompts || vp.pov_image_prompts,
                 seedance_refs: {
                   ...(prev.seedance_refs || {}),
                   ...(vp.seedance_refs || {}),

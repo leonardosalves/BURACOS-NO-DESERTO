@@ -133,6 +133,10 @@ export type AppSettingsTabProps = {
   xaiKeyInput: string;
   ytClientId: string;
   ytClientSecret: string;
+  localLlmUrlInput: string;
+  setLocalLlmUrlInput: (v: string) => void;
+  localLlmModelInput: string;
+  setLocalLlmModelInput: (v: string) => void;
 };
 
 export function AppSettingsTab({
@@ -249,6 +253,10 @@ export function AppSettingsTab({
   xaiKeyInput,
   ytClientId,
   ytClientSecret,
+  localLlmUrlInput,
+  setLocalLlmUrlInput,
+  localLlmModelInput,
+  setLocalLlmModelInput,
 }: AppSettingsTabProps) {
   return (
     <DashminPageLayout
@@ -299,7 +307,7 @@ export function AppSettingsTab({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               <button
                 onClick={() => setAiProvider("gemini")}
                 className={`dash-provider-card ${aiProvider === "gemini" ? "dash-provider-card-active" : ""}`}
@@ -419,6 +427,31 @@ export function AppSettingsTab({
                 <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
                   Modelos open-source hospedados na Inference.net com rotação
                   automática de fallback.
+                </p>
+              </button>
+
+              <button
+                onClick={() => setAiProvider("local")}
+                className={`dash-provider-card ${aiProvider === "local" ? "dash-provider-card-active" : ""}`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
+                    LLM Local (Bonsai)
+                    <SettingHelpTip title="LLM Local (Bonsai)" align="start">
+                      Conecta com um servidor compatível com OpenAI rodando
+                      localmente no seu PC (ex.: Ollama ou LM Studio). Ideal
+                      para rodar o Bonsai 27B ou outros modelos locais.
+                    </SettingHelpTip>
+                  </span>
+
+                  {aiProvider === "local" && (
+                    <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />
+                  )}
+                </div>
+
+                <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
+                  Usa uma API de IA local rodando no seu computador (porta 11434
+                  por padrão).
                 </p>
               </button>
             </div>
@@ -581,6 +614,46 @@ export function AppSettingsTab({
                       </span>
                     </p>
                   </div>
+                )}
+
+                {aiProvider === "local" && (
+                  <>
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="URL do Servidor Local"
+                        help="Endpoint compatível com chat completions do OpenAI. Ex.: http://127.0.0.1:11434/v1/chat/completions (Ollama) ou http://127.0.0.1:1234/v1/chat/completions (LM Studio)."
+                        align="start"
+                      >
+                        URL da API Local
+                      </SettingLabel>
+
+                      <input
+                        type="text"
+                        value={localLlmUrlInput}
+                        onChange={(e) => setLocalLlmUrlInput(e.target.value)}
+                        placeholder="http://127.0.0.1:11434/v1/chat/completions"
+                        className="dash-input"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Modelo Local"
+                        help="Nome do modelo local que foi carregado no seu servidor (ex.: bonsai-27b, qwen3.6-27b, llama3, etc.)."
+                        align="start"
+                      >
+                        Modelo Local
+                      </SettingLabel>
+
+                      <input
+                        type="text"
+                        value={localLlmModelInput}
+                        onChange={(e) => setLocalLlmModelInput(e.target.value)}
+                        placeholder="bonsai-27b"
+                        className="dash-input"
+                      />
+                    </div>
+                  </>
                 )}
 
                 <div className="space-y-2">
