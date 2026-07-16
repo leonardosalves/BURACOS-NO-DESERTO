@@ -135,3 +135,119 @@ export function parseHumorNarrationResponse(text) {
     factIntegrity: clean(parsed?.factIntegrity, "intacta"),
   };
 }
+
+function splitNarrationForScenes(narration, sceneCount) {
+  const sentences = clean(narration)
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => clean(sentence))
+    .filter(Boolean);
+  const count = Math.max(1, Math.min(sceneCount || 1, sentences.length || 1));
+  const groups = Array.from({ length: count }, () => []);
+  sentences.forEach((sentence, index) => {
+    const groupIndex = Math.min(
+      count - 1,
+      Math.floor((index * count) / Math.max(sentences.length, 1))
+    );
+    groups[groupIndex].push(sentence);
+  });
+  return groups.map((group) => group.join(" ")).filter(Boolean);
+}
+
+export function buildHumorProductionPrompt(input = {}) {
+  const narration = clean(input.narration);
+  const title = clean(input.title);
+  const hook = clean(input.hook);
+  const format = input.format === "SHORTS" ? "SHORTS" : "LONGO";
+  const humorStyle = clean(input.humorStyle, "observacional inteligente");
+  const premise = clean(input.factualPremise);
+  if (narration.length < 40)
+    throw new Error("Gere a narracao humoristica antes de planejar as cenas.");
+
+  return `Voce e o diretor visual da feature Fatos com Graca do Lumiera.
+
+Crie um plano de producao cena a cena para a narracao abaixo. A graca visual deve complementar a fala sem transformar o video em meme poluido.
+
+TITULO: ${title}
+GANCHO: ${hook}
+PREMISSA FACTUAL: ${premise}
+FORMATO: ${format} — ${FORMAT_RULES[format]}
+HUMOR: ${humorStyle}
+
+NARRACAO APROVADA — NAO ALTERAR NENHUMA PALAVRA:
+${narration}
+
+Responda APENAS JSON valido:
+{
+  "title":"",
+  "hook":"",
+  "visualComedyDirection":"como o humor aparece nos visuais sem exagero",
+  "continuityBible":"personagem, paleta, lente, luz e elementos consistentes",
+  "musicDirection":"direcao musical",
+  "sfxDirection":"efeitos pontuais e sincronizados, sem poluicao",
+  "scenes":[{
+    "id":"scene-01",
+    "durationSeconds":5,
+    "narration":"trecho EXATO da narracao aprovada",
+    "visualBeat":"acao visual e timing da piada",
+    "imagePrompt":"prompt autonomo de imagem com sujeito, ambiente, composicao, luz e estilo",
+    "videoPrompt":"prompt autonomo de video com acao, camera, timing, continuidade e humor visual",
+    "shot":"plano e lente",
+    "camera":"movimento",
+    "onScreenText":"texto curto ou vazio",
+    "sfxCue":"efeito e momento exato ou vazio",
+    "transition":"transicao"
+  }]
+}
+
+Regras:
+- Cubra a narracao inteira, na ordem, sem omitir, resumir ou reescrever palavras.
+- Shorts: 5 a 9 cenas. Longo: 10 a 24 cenas.
+- Cada prompt deve funcionar isoladamente, mas respeitar continuityBible.
+- Humor visual elegante: no maximo um gag principal por cena.
+- SFX somente quando reforcar uma virada; nunca em toda cena.
+- Nao invente fatos alem da premissa e da narracao.`;
+}
+
+export function parseHumorProductionResponse(text, narration) {
+  const parsed = extractJson(text);
+  const rawScenes = Array.isArray(parsed?.scenes) ? parsed.scenes : [];
+  if (!rawScenes.length)
+    throw new Error("A IA nao retornou cenas humoristicas validas.");
+
+  // Prompts vêm da IA; a fala é redistribuída localmente para preservar cada
+  // palavra aprovada antes de o plano entrar no wizard.
+  const narrationParts = splitNarrationForScenes(narration, rawScenes.length);
+  const scenes = rawScenes
+    .slice(0, narrationParts.length)
+    .map((scene, index) => ({
+      id: clean(scene?.id, `scene-${String(index + 1).padStart(2, "0")}`),
+      order: index + 1,
+      durationSeconds: Math.max(2, Number(scene?.durationSeconds) || 5),
+      narration: narrationParts[index],
+      visualBeat: clean(scene?.visualBeat),
+      imagePrompt: clean(scene?.imagePrompt),
+      videoPrompt: clean(scene?.videoPrompt),
+      shot: clean(scene?.shot, "plano medio cinematografico"),
+      camera: clean(scene?.camera, "movimento suave"),
+      onScreenText: clean(scene?.onScreenText),
+      sfxCue: clean(scene?.sfxCue),
+      transition: clean(scene?.transition),
+    }));
+
+  if (
+    clean(scenes.map((scene) => scene.narration).join(" ")) !== clean(narration)
+  ) {
+    throw new Error("Falha de integridade ao distribuir a narracao nas cenas.");
+  }
+
+  return {
+    title: clean(parsed?.title),
+    hook: clean(parsed?.hook),
+    narration: clean(narration),
+    visualComedyDirection: clean(parsed?.visualComedyDirection),
+    continuityBible: clean(parsed?.continuityBible),
+    musicDirection: clean(parsed?.musicDirection),
+    sfxDirection: clean(parsed?.sfxDirection),
+    scenes,
+  };
+}

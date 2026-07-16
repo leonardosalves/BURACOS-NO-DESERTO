@@ -53,8 +53,10 @@ import {
 import {
   buildHumorIdeasPrompt,
   buildHumorNarrationPrompt,
+  buildHumorProductionPrompt,
   parseHumorIdeasResponse,
   parseHumorNarrationResponse,
+  parseHumorProductionResponse,
 } from "./humorFacts.js";
 import {
   loadGptSovitsConfig,
@@ -627,6 +629,27 @@ export function registerWorkflowRoutes(app, deps) {
         models: ["gemini-2.5-flash", "gemini-2.0-flash"],
       });
       res.json({ ok: true, result: parseHumorNarrationResponse(raw) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/humor-facts/production-plan", async (req, res) => {
+    try {
+      const apiKey = getApiKeys(WORKSPACE_DIR)[0];
+      if (!apiKey)
+        throw new Error("Configure uma chave Gemini para planejar as cenas.");
+      const narration = String(req.body?.narration || "").trim();
+      const prompt = buildHumorProductionPrompt(req.body || {});
+      const raw = await callGeminiWithRetry(apiKey, prompt, {
+        maxRetries: 3,
+        models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+        temperature: 0.35,
+      });
+      res.json({
+        ok: true,
+        result: parseHumorProductionResponse(raw, narration),
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

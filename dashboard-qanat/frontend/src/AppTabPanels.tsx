@@ -176,7 +176,10 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estudio", "Fatos com Graca"]}
             icon={<Laugh className="h-5 w-5 text-orange-300" />}
           >
-            <HumorFactsLab getProjectUrl={getProjectUrl} />
+            <HumorFactsLab
+              getProjectUrl={getProjectUrl}
+              onApplyCreator={handleApplyYoutubeStudioIdea}
+            />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
