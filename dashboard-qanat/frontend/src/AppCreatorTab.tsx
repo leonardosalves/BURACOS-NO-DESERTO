@@ -3042,14 +3042,22 @@ export function AppCreatorTab({
                         const blockPhrases =
                           generatedScriptData?.technical_config
                             ?.block_phrases || [];
-                        const expectedBlocks =
-                          blockPhrases.length > 0
-                            ? blockPhrases.length
-                            : formatSelector === "SHORTS"
-                              ? 5
-                              : 12;
-                        for (let i = 1; i <= expectedBlocks; i += 1) {
-                          if (!promptsByBlock[i]) promptsByBlock[i] = [];
+                        const isReverseEngineeredStoryboard = (
+                          generatedScriptData?.visual_prompts || []
+                        ).some(
+                          (vp: any) =>
+                            vp?.provenance === "video-reverse-engineering"
+                        );
+                        if (!isReverseEngineeredStoryboard) {
+                          const expectedBlocks =
+                            blockPhrases.length > 0
+                              ? blockPhrases.length
+                              : formatSelector === "SHORTS"
+                                ? 5
+                                : 12;
+                          for (let i = 1; i <= expectedBlocks; i += 1) {
+                            if (!promptsByBlock[i]) promptsByBlock[i] = [];
+                          }
                         }
 
                         const sortedBlocks = Object.keys(promptsByBlock)
