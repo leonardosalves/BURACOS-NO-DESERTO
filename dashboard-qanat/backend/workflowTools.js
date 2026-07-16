@@ -46,6 +46,7 @@ import {
 import { searchArchiveOrgMedia } from "./archiveOrgStock.js";
 import { searchBingImagesMedia } from "./bingImageStock.js";
 import { resolveStockSearchQuery } from "./stockSearchQuery.js";
+import { normalizeTtsEngine, resolveTtsVoice } from "./ttsPreferences.js";
 
 const NARRATION_FILENAME = "narracao_mestra_premium.mp3";
 
@@ -680,23 +681,18 @@ export async function generateNarrationTts(
 
   const useTaggedOverride = ttsOptions.useTaggedScript;
 
-  const engineRaw = String(platform || "kokoro")
-    .toLowerCase()
-    .trim();
-  const ttsEngineAliases = {
-    kokoro: "kokoro",
-    edge: "edge",
-    chatterbox: "chatterbox",
-    "chatterbox-tts": "chatterbox",
-    voicebox: "voicebox",
-    gptsovits: "gptsovits",
-    gpt_sovits: "gptsovits",
-    "gpt-sovits": "gptsovits",
-    fish: "fish",
-    "fish-speech": "fish",
-    fish_speech: "fish",
-  };
-  const engine = ttsEngineAliases[engineRaw] || engineRaw;
+  const engine = normalizeTtsEngine(
+    platform,
+    String(platform || "kokoro")
+      .trim()
+      .toLowerCase()
+  );
+  const preferredVoice = resolveTtsVoice({
+    workspaceDir,
+    projectDir: projDir,
+    engine,
+    requestedVoice: voice,
+  });
 
   const ttsEngineLabels = {
     kokoro: "Kokoro",
@@ -723,7 +719,7 @@ export async function generateNarrationTts(
   };
 
   if (engine === "kokoro") {
-    const kokoroVoice = voice || KOKORO_DEFAULT_VOICE;
+    const kokoroVoice = preferredVoice || KOKORO_DEFAULT_VOICE;
     const kokoroSpeed = Number(speed);
     const result = await synthesizeKokoroNarration(plain, {
       voice: kokoroVoice,
@@ -747,7 +743,7 @@ export async function generateNarrationTts(
 
   if (engine === "edge") {
     const textForTts = plain;
-    const edgeVoice = voice || "pt-BR-AntonioNeural";
+    const edgeVoice = preferredVoice || "pt-BR-AntonioNeural";
 
     let EdgeTTS;
     try {
@@ -781,7 +777,7 @@ export async function generateNarrationTts(
     });
     const cbCfg = cbConfig.chatterbox || {};
     const voicePreset =
-      voice ||
+      preferredVoice ||
       cbCfg.default_voice ||
       cbCfg.defaultVoice ||
       CHATTERBOX_DEFAULT_VOICE;
@@ -842,7 +838,10 @@ export async function generateNarrationTts(
         ? convertCinematicMarkersForTts(tagged, tagPlatform)
         : plain;
     const vbVoice =
-      voice || vbCfg.default_profile_id || vbCfg.defaultProfileId || "";
+      preferredVoice ||
+      vbCfg.default_profile_id ||
+      vbCfg.defaultProfileId ||
+      "";
 
     const result = await synthesizeVoiceboxNarration(textForTts, {
       voice: vbVoice,
@@ -871,7 +870,7 @@ export async function generateNarrationTts(
       ttsOptions.gptSovits || ttsOptions.gpt_sovits || {}
     );
     const gsVoice =
-      voice ||
+      preferredVoice ||
       gsConfig.gpt_sovits?.default_voice_id ||
       GPT_SOVITS_DEFAULT_VOICE;
     const textForTts = plain;
@@ -946,7 +945,7 @@ export async function generateNarrationTts(
         ? convertCinematicMarkersForTts(tagged, "fish")
         : plain;
     const fishVoice =
-      voice ||
+      preferredVoice ||
       fishCfg.default_reference_id ||
       fishCfg.defaultReferenceId ||
       FISH_SPEECH_DEFAULT_VOICE;
