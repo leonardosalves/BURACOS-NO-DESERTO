@@ -21,6 +21,35 @@ function asList(value, max = 100) {
     : [];
 }
 
+function normalizeSpeechSegments(scene, narration) {
+  const raw = Array.isArray(scene?.speech_segments)
+    ? scene.speech_segments
+    : Array.isArray(scene?.dialogue_turns)
+      ? scene.dialogue_turns
+      : [];
+  const segments = raw
+    .map((segment, index) => ({
+      id:
+        cleanText(segment?.id, 80) ||
+        `speech-${String(index + 1).padStart(2, "0")}`,
+      speaker:
+        cleanText(segment?.speaker || segment?.character, 160) ||
+        `Personagem ${index + 1}`,
+      role: cleanText(segment?.role, 80) || "character",
+      text: cleanText(segment?.text || segment?.speech, 3_000),
+    }))
+    .filter((segment) => segment.text);
+  if (!segments.length) return [];
+
+  const normalizedNarration = cleanText(narration, 6_000).replace(/\s+/g, " ");
+  const normalizedSegments = segments
+    .map((segment) => segment.text)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return normalizedSegments === normalizedNarration ? segments : [];
+}
+
 export function extractReverseEngineeringJson(text) {
   const raw = cleanText(text, 200_000);
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -37,13 +66,15 @@ export function extractReverseEngineeringJson(text) {
 
 function normalizeScene(scene, index) {
   const duration = Math.max(1, Math.min(Number(scene?.duration_sec) || 5, 120));
+  const narration = cleanText(scene?.narration, 6_000);
   return {
     id:
       cleanText(scene?.id, 80) || `scene-${String(index + 1).padStart(2, "0")}`,
     order: index + 1,
     timecode: cleanText(scene?.timecode, 50),
     duration_sec: duration,
-    narration: cleanText(scene?.narration, 6_000),
+    narration,
+    speech_segments: normalizeSpeechSegments(scene, narration),
     visual_description: cleanText(scene?.visual_description, 4_000),
     shot: cleanText(scene?.shot, 300) || "medium shot",
     camera:
@@ -79,7 +110,7 @@ export function normalizeReverseEngineeringResult(raw = {}, context = {}) {
   );
 
   return {
-    version: 1,
+    version: 2,
     source: {
       url: cleanText(context.url, 2_000),
       platform: cleanText(context.platform, 80),
@@ -163,7 +194,13 @@ Retorne APENAS JSON valido neste schema:
     "id": "scene-01",
     "timecode": "00:00-00:05",
     "duration_sec": 5,
-    "narration": "fala deste trecho",
+    "narration": "todas as falas desta cena, em ordem, sem nomes/rotulos de personagem",
+    "speech_segments": [{
+      "id": "speech-01",
+      "speaker": "Narrador ou nome do personagem",
+      "role": "narrator|character",
+      "text": "fala literal deste personagem"
+    }],
     "visual_description": "o que aparece e como se move",
     "shot": "tipo de plano/enquadramento",
     "camera": "movimento de camera",
@@ -180,6 +217,9 @@ Retorne APENAS JSON valido neste schema:
 REGRAS
 - Cubra o video inteiro na ordem; nao devolva apenas um resumo.
 - Cada cena deve ter prompts utilizaveis isoladamente e consistencia visual entre cenas.
+- Se duas ou mais pessoas falarem DENTRO DA MESMA CENA, mantenha uma unica cena e crie um item em "speech_segments" para cada turno de fala, na ordem correta. Nao divida nem duplique a cena visual.
+- A concatenacao de speech_segments[].text, separada apenas por espacos, deve ser IDENTICA a scenes[].narration. Nao inclua "Fulano:" ou rotulos de personagem no texto falado.
+- Use "role":"narrator" para a voz externa e "role":"character" para falas diegeticas. Mesmo quando houver apenas uma voz, devolva um speech_segment para explicitar quem fala.
 - A soma aproximada das duracoes deve acompanhar a fonte ou o formato solicitado.
 - Nunca alegue ter visto um detalhe que nao aparece nas evidencias.
 - No modo transformativo, nao copie frases distintivas literalmente; reescreva com a mesma informacao.

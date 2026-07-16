@@ -48,5 +48,37 @@ test("prompt exige cobertura integral e prompts por cena", () => {
   assert.match(prompt, /Cubra o video inteiro/i);
   assert.match(prompt, /image_prompt/);
   assert.match(prompt, /video_prompt/);
+  assert.match(prompt, /speech_segments/);
+  assert.match(prompt, /mesma cena/i);
   assert.match(prompt, /TRANSFORMACAO CRIATIVA/);
+});
+
+test("preserva duas vozes dentro de uma única cena sem alterar o texto", () => {
+  const result = normalizeReverseEngineeringResult({
+    scenes: [
+      {
+        narration: "Você encontrou a chave? Encontrei, mas ela não abre.",
+        speech_segments: [
+          {
+            speaker: "Lia",
+            role: "character",
+            text: "Você encontrou a chave?",
+          },
+          {
+            speaker: "Rui",
+            role: "character",
+            text: "Encontrei, mas ela não abre.",
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(result.scenes.length, 1);
+  assert.equal(result.scenes[0].speech_segments.length, 2);
+  assert.equal(result.scenes[0].speech_segments[0].speaker, "Lia");
+  assert.equal(
+    result.scenes[0].speech_segments.map((segment) => segment.text).join(" "),
+    result.scenes[0].narration
+  );
 });

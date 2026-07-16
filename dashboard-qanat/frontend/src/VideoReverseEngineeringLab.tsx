@@ -25,6 +25,12 @@ type ReverseScene = {
   timecode: string;
   duration_sec: number;
   narration: string;
+  speech_segments: Array<{
+    id: string;
+    speaker: string;
+    role: "narrator" | "character" | string;
+    text: string;
+  }>;
   visual_description: string;
   shot: string;
   camera: string;
@@ -125,7 +131,14 @@ function groupScenes(scenes: ReverseScene[], maxBlocks: number) {
 }
 
 function resolveReconstructedNarration(result: ReverseResult) {
+  const sceneNarration = result.scenes.every((scene) => scene.narration?.trim())
+    ? result.scenes
+        .map((scene) => scene.narration.trim())
+        .filter(Boolean)
+        .join(" ")
+    : "";
   return (
+    sceneNarration ||
     result.reconstructed_narration?.trim() ||
     result.scenes
       .map((scene) => scene.narration?.trim())
@@ -165,6 +178,9 @@ function buildPrebuiltStoryboard(result: ReverseResult) {
       source_timecode: scene.timecode,
       narration_text: scene.narration,
       narration_excerpt: scene.narration,
+      speech_segments: Array.isArray(scene.speech_segments)
+        ? scene.speech_segments
+        : [],
       visual_description: scene.visual_description,
       duration: `${Math.max(2, Number(scene.duration_sec) || 5)} segundos`,
       duration_seconds: Math.max(2, Number(scene.duration_sec) || 5),

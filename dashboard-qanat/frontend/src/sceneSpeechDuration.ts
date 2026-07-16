@@ -157,9 +157,10 @@ export function getSceneDurationFromChunkPlan(
 
   const sceneRef = String(scene?.scene ?? scene?.scene_ref ?? "").trim();
   const block = Number(scene?.block) || 1;
-  let chunk = sceneRef
-    ? chunks.find((c) => String(c.scene_ref || "").trim() === sceneRef)
-    : undefined;
+  const sceneChunks = sceneRef
+    ? chunks.filter((c) => String(c.scene_ref || "").trim() === sceneRef)
+    : [];
+  let chunk = sceneChunks[0];
 
   if (!chunk) {
     const inBlock = chunks
@@ -172,6 +173,26 @@ export function getSceneDurationFromChunkPlan(
     chunk = inBlock[sceneIdxInBlock];
   }
   if (!chunk) return null;
+  if (sceneChunks.length > 1) {
+    const starts = sceneChunks
+      .map((candidate) => Number(candidate.start_s))
+      .filter(Number.isFinite);
+    const ends = sceneChunks
+      .map((candidate) => Number(candidate.end_s))
+      .filter(Number.isFinite);
+    if (
+      starts.length === sceneChunks.length &&
+      ends.length === sceneChunks.length
+    ) {
+      const duration = Math.max(...ends) - Math.min(...starts);
+      return duration > 0 ? parseFloat(duration.toFixed(1)) : null;
+    }
+    const duration = sceneChunks.reduce(
+      (sum, candidate) => sum + Math.max(0, Number(candidate.duration_s) || 0),
+      0
+    );
+    return duration > 0 ? parseFloat(duration.toFixed(1)) : null;
+  }
   const start = Number(chunk.start_s);
   const end = Number(chunk.end_s);
   if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
