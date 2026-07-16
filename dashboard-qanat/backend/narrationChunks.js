@@ -647,15 +647,23 @@ function findWhisperChunkWindow(expectedTokens, words, cursor) {
     let wi = candidate;
     const matchedIndices = [];
     for (const expected of expectedTokens) {
-      const maxSkip = Math.min(words.length, wi + 8);
-      while (wi < maxSkip) {
-        const actual = cleanText(String(words[wi]?.word || ""))[0] || "";
-        if (matchWords(expected, actual)) break;
-        wi += 1;
+      // Uma divergência comum do Whisper ("dez" -> "10", por exemplo)
+      // não pode consumir várias palavras reais. O comportamento anterior
+      // avançava até 8 posições por token ausente e acabava atravessando a
+      // próxima cena. Procuramos apenas na vizinhança imediata; se a palavra
+      // esperada não existir, mantemos o cursor para a próxima tentativa.
+      let matchedAt = -1;
+      const lookAheadEnd = Math.min(words.length, wi + 3);
+      for (let probe = wi; probe < lookAheadEnd; probe += 1) {
+        const actual = cleanText(String(words[probe]?.word || ""))[0] || "";
+        if (matchWords(expected, actual)) {
+          matchedAt = probe;
+          break;
+        }
       }
-      if (wi >= maxSkip) continue;
-      matchedIndices.push(wi);
-      wi += 1;
+      if (matchedAt < 0) continue;
+      matchedIndices.push(matchedAt);
+      wi = matchedAt + 1;
     }
 
     const coverage = matchedIndices.length / expectedTokens.length;
@@ -699,31 +707,37 @@ export function alignNarrationChunkPlanToWhisper(
     return { ...chunkPlan, chunks: planned };
 
   let cursor = 0;
-  const aligned = planned.map((chunk, index) => {
+  let previousAligned = null;
+  const aligned = planned.map((chunk) => {
     const expected = cleanText(stripTtsMarkersForPlainText(chunk.text || ""));
     const window = findWhisperChunkWindow(expected, words, cursor);
     if (!window) {
-      const previous = index > 0 ? planned[index - 1] : null;
-      return {
+      const duration = Math.max(
+        0.05,
+        Number(chunk.duration_s) ||
+          Number(chunk.speech_duration_s) ||
+          Number(chunk.end_s) - Number(chunk.start_s) ||
+          0.05
+      );
+      const fallbackStart = previousAligned
+        ? Number(previousAligned.end_s) +
+          Number(previousAligned.pause_after_ms || 0) / 1000
+        : Number(chunk.start_s) || 0;
+      const fallback = {
         ...chunk,
         timing_source: "chunk-plan-fallback",
         alignment_coverage: 0,
-        ...(previous && Number.isFinite(Number(previous.end_s))
-          ? {
-              start_s: Number(
-                (
-                  Number(previous.end_s) +
-                  Number(previous.pause_after_ms || 0) / 1000
-                ).toFixed(3)
-              ),
-            }
-          : {}),
+        start_s: Number(fallbackStart.toFixed(3)),
+        end_s: Number((fallbackStart + duration).toFixed(3)),
+        speech_duration_s: Number(duration.toFixed(3)),
       };
+      previousAligned = fallback;
+      return fallback;
     }
     cursor = window.nextCursor;
     const start = Number(words[window.first].start);
     const end = Number(words[window.last].end);
-    return {
+    const matched = {
       ...chunk,
       start_s: Number(start.toFixed(3)),
       end_s: Number(end.toFixed(3)),
@@ -731,6 +745,8 @@ export function alignNarrationChunkPlanToWhisper(
       timing_source: "whisper",
       alignment_coverage: Number(window.coverage.toFixed(3)),
     };
+    previousAligned = matched;
+    return matched;
   });
 
   const withObservedPauses = aligned.map((chunk, index) => {
@@ -749,6 +765,29 @@ export function alignNarrationChunkPlanToWhisper(
     aligned_at: new Date().toISOString(),
     chunks: withObservedPauses,
   };
+}
+
+/** Extrai as palavras absolutas do JSON bruto do Whisper, sem realinhamento textual. */
+export function extractWhisperRawWords(rawTranscript = {}) {
+  const segments = Array.isArray(rawTranscript)
+    ? rawTranscript
+    : Array.isArray(rawTranscript?.segments)
+      ? rawTranscript.segments
+      : [];
+  return segments
+    .flatMap((segment) => (Array.isArray(segment?.words) ? segment.words : []))
+    .filter(
+      (word) =>
+        Number.isFinite(Number(word?.start)) &&
+        Number.isFinite(Number(word?.end)) &&
+        Number(word.end) > Number(word.start)
+    )
+    .map((word) => ({
+      word: String(word.word || ""),
+      start: Number(word.start),
+      end: Number(word.end),
+    }))
+    .sort((a, b) => a.start - b.start);
 }
 
 export function normalizeNarrationChunkPlan(
@@ -1182,12 +1221,24 @@ export function applyChunkedTimelineAfterWhisper(
   ) {
     return null;
   }
+  let canonicalWords = Array.isArray(flatWords) ? flatWords : [];
+  const rawTranscriptPath = path.join(projDir, "whisper_raw_transcript.json");
+  if (fs.existsSync(rawTranscriptPath)) {
+    try {
+      const rawWords = extractWhisperRawWords(
+        JSON.parse(fs.readFileSync(rawTranscriptPath, "utf8"))
+      );
+      if (rawWords.length) canonicalWords = rawWords;
+    } catch {
+      // Mantém o alinhamento já fornecido quando o artefato bruto está inválido.
+    }
+  }
   return applyChunkedNarrationSyncToProject(projDir, {
     chunkPlan: { ...chunkPlan, chunks: timedChunks },
     config,
     storyboard,
     whisperTranscripts: wordTranscripts,
-    flatWords,
+    flatWords: canonicalWords,
   });
 }
 

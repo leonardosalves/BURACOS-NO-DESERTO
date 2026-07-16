@@ -7,6 +7,7 @@ import {
   mergeWhisperTranscriptsWithChunkPlan,
   assessWhisperWordQuality,
   alignNarrationChunkPlanToWhisper,
+  extractWhisperRawWords,
   resolveChunkTimeline,
   stabilizeNarrationChunkPauses,
 } from "../backend/narrationChunks.js";
@@ -221,5 +222,81 @@ describe("planejamento estável e alinhamento real por Whisper", () => {
     const preserved = resolveChunkTimeline(aligned.chunks);
     assert.equal(preserved[0].start_s, 0.18);
     assert.equal(preserved[1].start_s, 2.04);
+  });
+
+  it("não atravessa cenas quando o Whisper troca números por algarismos", () => {
+    const chunks = [
+      {
+        id: "c1",
+        text: "Começando com os Estados Unidos, com dez cidades.",
+        duration_s: 3,
+        pause_after_ms: 300,
+      },
+      {
+        id: "c2",
+        text: "Em seguida, o Brasil, com doze cidades.",
+        duration_s: 3,
+        pause_after_ms: 300,
+      },
+      {
+        id: "c3",
+        text: "A China tem impressionantes cento e duas cidades no ranking mundial hoje.",
+        duration_s: 3,
+        pause_after_ms: 0,
+      },
+    ];
+    const phrases = [
+      ["Começando", "com", "os", "Estados", "Unidos", "com", "10", "cidades"],
+      ["Em", "seguida", "o", "Brasil", "com", "12", "cidades"],
+      [
+        "A",
+        "China",
+        "tem",
+        "impressionantes",
+        "102",
+        "cidades",
+        "no",
+        "ranking",
+        "mundial",
+        "hoje",
+      ],
+    ];
+    let cursor = 0;
+    const words = phrases.flatMap((phrase, phraseIndex) => {
+      const start = cursor;
+      const entries = phrase.map((word, index) => ({
+        word,
+        start: start + index * 0.25,
+        end: start + (index + 1) * 0.25,
+      }));
+      cursor += phrase.length * 0.25 + (phraseIndex < 2 ? 0.5 : 0);
+      return entries;
+    });
+
+    const aligned = alignNarrationChunkPlanToWhisper({ chunks }, words);
+    assert.deepEqual(
+      aligned.chunks.map((chunk) => chunk.start_s),
+      [0, 2.5, 4.75]
+    );
+    assert.deepEqual(
+      aligned.chunks.map((chunk) => chunk.end_s),
+      [2, 4.25, 7.25]
+    );
+    assert.ok(
+      aligned.chunks.every((chunk) => chunk.timing_source === "whisper")
+    );
+  });
+
+  it("extrai palavras absolutas diretamente do artefato bruto", () => {
+    const words = extractWhisperRawWords({
+      segments: [
+        { words: [{ word: " Um", start: 1.2, end: 1.5 }] },
+        { words: [{ word: " teste", start: 1.5, end: 1.9 }] },
+      ],
+    });
+    assert.deepEqual(words, [
+      { word: " Um", start: 1.2, end: 1.5 },
+      { word: " teste", start: 1.5, end: 1.9 },
+    ]);
   });
 });
