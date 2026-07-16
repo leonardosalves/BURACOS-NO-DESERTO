@@ -8,6 +8,7 @@ import {
   analyzeVideoUnderstanding,
   runAnalyzeReferenceVideoDeep,
 } from "./videoUnderstandingService.js";
+import { runVideoReverseEngineering } from "./videoReverseEngineering.js";
 
 export function registerResearchRoutes(app, deps) {
   const {
@@ -152,6 +153,55 @@ export function registerResearchRoutes(app, deps) {
     } catch (err) {
       res.status(500).json({
         error: "Falha na análise multimodal do vídeo",
+        details: err.message,
+      });
+    }
+  });
+
+  app.post("/api/research/reverse-engineer-video", async (req, res) => {
+    try {
+      const url = String(req.body?.url || "").trim();
+      if (!url)
+        return res.status(400).json({ error: "Informe a URL do video." });
+      if (req.body?.rightsConfirmed !== true) {
+        return res.status(400).json({
+          error:
+            "Confirme que voce possui o video, tem permissao ou usara o resultado de forma transformativa.",
+        });
+      }
+
+      const formatRaw = String(req.body?.format || "SHORTS").toUpperCase();
+      const format =
+        formatRaw === "LONG" || formatRaw === "LONGO" ? "LONGO" : "SHORTS";
+      const mode =
+        String(req.body?.mode || "transformative").toLowerCase() === "faithful"
+          ? "faithful"
+          : "transformative";
+      const geminiKeys = getApiKeys(WORKSPACE_DIR);
+      const apiKey = geminiKeys[0] || null;
+      if (!apiKey) {
+        return res.status(400).json({
+          error:
+            "Configure uma chave Gemini em Configuracoes -> IA para a engenharia reversa multimodal.",
+        });
+      }
+
+      const result = await runVideoReverseEngineering({
+        url,
+        format,
+        mode,
+        niche: String(req.body?.niche || "Geral").trim(),
+        instructions: String(req.body?.instructions || "").trim(),
+        callGeminiWithRetry,
+        apiKey,
+        workspaceDir: WORKSPACE_DIR,
+        getGeminiModel,
+      });
+      if (!result.ok) return res.status(400).json(result);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({
+        error: "Falha na engenharia reversa do video.",
         details: err.message,
       });
     }

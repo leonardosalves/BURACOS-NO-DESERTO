@@ -21,6 +21,7 @@ import {
   Bot,
   Clapperboard,
   Cloud,
+  Fingerprint,
   Globe,
   HeartPulse,
   LayoutTemplate,
@@ -53,6 +54,12 @@ import {
   LazyYoutubeStudioPanel,
   TabPanelFallback,
 } from "./appLazyPanels";
+
+const LazyVideoReverseEngineeringLab = React.lazy(() =>
+  import("./VideoReverseEngineeringLab").then((module) => ({
+    default: module.VideoReverseEngineeringLab,
+  }))
+);
 
 type ResurrectorAlert = {
   type: string;
@@ -170,6 +177,28 @@ export function AppTabPanels({
             icon={<Laugh className="h-5 w-5 text-orange-300" />}
           >
             <HumorFactsLab getProjectUrl={getProjectUrl} />
+          </DashminPageLayout>
+        </TabErrorBoundary>
+      )}
+      {activeTab === "video-reverse-engineering" && (
+        <TabErrorBoundary tabName="Engenharia Reversa do Video">
+          <DashminPageLayout
+            title="Engenharia Reversa do Video"
+            subtitle="Reconstrucao multimodal de narracao, roteiro visual, edicao e prompts por cena, isolada dos projetos existentes."
+            breadcrumb={["Dashboard", "Criadores", "Engenharia Reversa"]}
+            icon={<Fingerprint className="h-5 w-5 text-cyan-300" />}
+          >
+            <Suspense
+              fallback={
+                <TabPanelFallback label="Carregando laboratorio forense..." />
+              }
+            >
+              <LazyVideoReverseEngineeringLab
+                getProjectUrl={getProjectUrl}
+                initialNiche={nicheInput || config?.niche || ""}
+                onApplyCreator={handleApplyYoutubeStudioIdea}
+              />
+            </Suspense>
           </DashminPageLayout>
         </TabErrorBoundary>
       )}

@@ -417,10 +417,12 @@ export function AppCreatorTab({
       setCustomOutline(customIdeaOpportunity.improved_promise);
     if (Array.isArray(customIdeaOpportunity.suggested_blocks)) {
       setCustomBlocks(
-        customIdeaOpportunity.suggested_blocks.map((content: string, index: number) => ({
-          block: index + 1,
-          content,
-        }))
+        customIdeaOpportunity.suggested_blocks.map(
+          (content: string, index: number) => ({
+            block: index + 1,
+            content,
+          })
+        )
       );
     }
     if (["SHORTS", "LONGO"].includes(customIdeaOpportunity.format_fit)) {
@@ -720,14 +722,14 @@ export function AppCreatorTab({
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2 border-t border-zinc-900/60 pt-3">
+              <div className="grid gap-2 border-t border-zinc-900/60 pt-4 sm:grid-cols-2 lg:grid-cols-4">
                 <button
                   type="button"
                   onClick={() => {
                     setHistoricalWitnessContext(null);
                     setIdeationTab("ai");
                   }}
-                  className={`dash-segment-btn ${ideationTab === "ai" ? "dash-segment-btn-active" : ""}`}
+                  className={`min-h-16 rounded-2xl border px-4 py-3 text-left text-xs font-black transition ${ideationTab === "ai" ? "border-violet-300/45 bg-violet-300/10 text-violet-100 shadow-lg shadow-violet-950/20" : "border-zinc-800 bg-black/20 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"}`}
                 >
                   <span>💡 Gerar com IA</span>
                 </button>
@@ -737,7 +739,7 @@ export function AppCreatorTab({
                     setHistoricalWitnessContext(null);
                     setIdeationTab("custom");
                   }}
-                  className={`dash-segment-btn ${ideationTab === "custom" ? "dash-segment-btn-active" : ""}`}
+                  className={`min-h-16 rounded-2xl border px-4 py-3 text-left text-xs font-black transition ${ideationTab === "custom" ? "border-cyan-300/45 bg-cyan-300/10 text-cyan-100 shadow-lg shadow-cyan-950/20" : "border-zinc-800 bg-black/20 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"}`}
                 >
                   <span>✏️ Ideia Personalizada</span>
                 </button>
@@ -747,7 +749,7 @@ export function AppCreatorTab({
                     setHistoricalWitnessContext(null);
                     setIdeationTab("listicle");
                   }}
-                  className={`dash-segment-btn ${ideationTab === "listicle" ? "dash-segment-btn-active" : ""}`}
+                  className={`min-h-16 rounded-2xl border px-4 py-3 text-left text-xs font-black transition ${ideationTab === "listicle" ? "border-emerald-300/45 bg-emerald-300/10 text-emerald-100 shadow-lg shadow-emerald-950/20" : "border-zinc-800 bg-black/20 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"}`}
                 >
                   <span>📊 Top N / Listicle</span>
                 </button>
@@ -757,7 +759,7 @@ export function AppCreatorTab({
                     setHistoricalWitnessContext(null);
                     setIdeationTab("historical-witness");
                   }}
-                  className={`dash-segment-btn ${ideationTab === "historical-witness" ? "dash-segment-btn-active" : ""}`}
+                  className={`min-h-16 rounded-2xl border px-4 py-3 text-left text-xs font-black transition ${ideationTab === "historical-witness" ? "border-amber-300/45 bg-amber-300/10 text-amber-100 shadow-lg shadow-amber-950/20" : "border-zinc-800 bg-black/20 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"}`}
                 >
                   <span>🎥 História Viva</span>
                 </button>
@@ -853,7 +855,11 @@ export function AppCreatorTab({
 
                   <button
                     type="button"
-                    disabled={customIdeaReviewLoading || !customTitle.trim() || !hasApiKey}
+                    disabled={
+                      customIdeaReviewLoading ||
+                      !customTitle.trim() ||
+                      !hasApiKey
+                    }
                     onClick={() => void evaluateCustomIdea()}
                     className="w-full rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-5 py-3.5 text-xs font-bold text-cyan-200 transition hover:bg-cyan-500/15 disabled:opacity-50"
                   >
@@ -875,17 +881,35 @@ export function AppCreatorTab({
                           Saturação: {customIdeaOpportunity.saturation_level}
                         </span>
                         <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-300">
-                          {customIdeaOpportunity.format_fit} · {customIdeaOpportunity.recommended_duration}
+                          {customIdeaOpportunity.format_fit} ·{" "}
+                          {customIdeaOpportunity.recommended_duration}
                         </span>
                       </div>
-                      <p className="leading-relaxed text-zinc-300">{customIdeaOpportunity.summary}</p>
+                      <p className="leading-relaxed text-zinc-300">
+                        {customIdeaOpportunity.summary}
+                      </p>
                       {customIdeaOpportunity.evidence_anchor && (
-                        <p className="text-zinc-400"><strong className="text-zinc-200">Base real:</strong> {customIdeaOpportunity.evidence_anchor}</p>
+                        <p className="text-zinc-400">
+                          <strong className="text-zinc-200">Base real:</strong>{" "}
+                          {customIdeaOpportunity.evidence_anchor}
+                        </p>
                       )}
-                      <p className="text-zinc-400"><strong className="text-zinc-200">Lacuna:</strong> {customIdeaOpportunity.undercovered_reason || "não confirmada"}</p>
-                      <p className="text-zinc-400"><strong className="text-zinc-200">Upgrade premium:</strong> {customIdeaOpportunity.premium_upgrade}</p>
+                      <p className="text-zinc-400">
+                        <strong className="text-zinc-200">Lacuna:</strong>{" "}
+                        {customIdeaOpportunity.undercovered_reason ||
+                          "não confirmada"}
+                      </p>
+                      <p className="text-zinc-400">
+                        <strong className="text-zinc-200">
+                          Upgrade premium:
+                        </strong>{" "}
+                        {customIdeaOpportunity.premium_upgrade}
+                      </p>
                       {customIdeaOpportunity.validation_needed && (
-                        <p className="text-amber-300/80"><strong>Validar:</strong> {customIdeaOpportunity.validation_needed}</p>
+                        <p className="text-amber-300/80">
+                          <strong>Validar:</strong>{" "}
+                          {customIdeaOpportunity.validation_needed}
+                        </p>
                       )}
                       <button
                         type="button"
@@ -1207,20 +1231,32 @@ export function AppCreatorTab({
                       </div>
                       {ideasData?.diagnostic?.market_gap && (
                         <div className="bg-zinc-900/40 p-3 rounded-xl border border-cyan-500/20">
-                          <span className="text-[9px] text-cyan-400 font-bold block uppercase tracking-wider">Lacuna do mercado</span>
-                          <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData.diagnostic.market_gap}</p>
+                          <span className="text-[9px] text-cyan-400 font-bold block uppercase tracking-wider">
+                            Lacuna do mercado
+                          </span>
+                          <p className="text-gray-300 mt-1 font-medium leading-relaxed">
+                            {ideasData.diagnostic.market_gap}
+                          </p>
                         </div>
                       )}
                       {ideasData?.diagnostic?.saturation_warning && (
                         <div className="bg-zinc-900/40 p-3 rounded-xl border border-amber-500/20">
-                          <span className="text-[9px] text-amber-400 font-bold block uppercase tracking-wider">Evitar saturação</span>
-                          <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData.diagnostic.saturation_warning}</p>
+                          <span className="text-[9px] text-amber-400 font-bold block uppercase tracking-wider">
+                            Evitar saturação
+                          </span>
+                          <p className="text-gray-300 mt-1 font-medium leading-relaxed">
+                            {ideasData.diagnostic.saturation_warning}
+                          </p>
                         </div>
                       )}
                       {ideasData?.diagnostic?.format_strategy && (
                         <div className="bg-zinc-900/40 p-3 rounded-xl border border-violet-500/20">
-                          <span className="text-[9px] text-violet-400 font-bold block uppercase tracking-wider">Estratégia de formato</span>
-                          <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData.diagnostic.format_strategy}</p>
+                          <span className="text-[9px] text-violet-400 font-bold block uppercase tracking-wider">
+                            Estratégia de formato
+                          </span>
+                          <p className="text-gray-300 mt-1 font-medium leading-relaxed">
+                            {ideasData.diagnostic.format_strategy}
+                          </p>
                         </div>
                       )}
                       <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
@@ -1403,18 +1439,31 @@ export function AppCreatorTab({
                             </span>
                           </div>
                           <div className="mt-2 flex flex-wrap gap-1.5 text-[8px] uppercase">
-                            <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-400">Realidade: {idea.reality_status || "validar"}</span>
-                            <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-400">Saturação: {idea.saturation_level || "unknown"}</span>
-                            <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-400">{idea.format_fit || idea.best_format} · {idea.recommended_duration}</span>
+                            <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-400">
+                              Realidade: {idea.reality_status || "validar"}
+                            </span>
+                            <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-400">
+                              Saturação: {idea.saturation_level || "unknown"}
+                            </span>
+                            <span className="rounded bg-zinc-900 px-2 py-1 text-zinc-400">
+                              {idea.format_fit || idea.best_format} ·{" "}
+                              {idea.recommended_duration}
+                            </span>
                           </div>
                           {idea.undercovered_reason && (
-                            <p className="mt-2 text-[9px] leading-relaxed text-cyan-200/70">Lacuna: {idea.undercovered_reason}</p>
+                            <p className="mt-2 text-[9px] leading-relaxed text-cyan-200/70">
+                              Lacuna: {idea.undercovered_reason}
+                            </p>
                           )}
                           {idea.premium_upgrade && (
-                            <p className="mt-1 text-[9px] leading-relaxed text-violet-200/70">Premium: {idea.premium_upgrade}</p>
+                            <p className="mt-1 text-[9px] leading-relaxed text-violet-200/70">
+                              Premium: {idea.premium_upgrade}
+                            </p>
                           )}
                           {idea.validation_needed && (
-                            <p className="mt-1 text-[9px] leading-relaxed text-amber-200/70">Validar: {idea.validation_needed}</p>
+                            <p className="mt-1 text-[9px] leading-relaxed text-amber-200/70">
+                              Validar: {idea.validation_needed}
+                            </p>
                           )}
                         </div>
                       );
