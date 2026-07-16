@@ -16,7 +16,10 @@ import {
 } from "./lumieraServiceOps.js";
 import { registerProjectHealthRoutes } from "./projectHealthRoutes.js";
 import { registerAssetCleanupRoutes } from "./assetCleanupRoutes.js";
-import { appendProjectEventLog } from "./projectEventLog.js";
+import {
+  appendProjectEventLog,
+  summarizeTimelineAssets,
+} from "./projectEventLog.js";
 import { buildGeminiKeyPool, shouldRotateGeminiKey } from "./geminiApiKeys.js";
 import {
   searchMusic,
@@ -429,6 +432,7 @@ import {
   bindStoryboardAssetsFromTimeline,
   bootstrapNewProjectConfig,
   mergeTimelineSlotFromStoryboard,
+  reconcileTimelineAssetsToStoryboard,
   sanitizeTimelineAssetsForProject,
 } from "./projectConfigBootstrap.js";
 import {
@@ -2003,14 +2007,35 @@ app.get("/api/config", (req, res) => {
       sanitizeTimelineAssetsForProject(responseConfig.timeline_assets, {
         assetFiles,
       });
-    if (stripped > 0 || dedupeRemoved > 0) {
-      responseConfig = { ...responseConfig, timeline_assets: timeline };
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const reconciled = reconcileTimelineAssetsToStoryboard(
+      timeline,
+      storyboard.visual_prompts || []
+    );
+    if (stripped > 0 || dedupeRemoved > 0 || reconciled.removed > 0) {
+      responseConfig = {
+        ...responseConfig,
+        timeline_assets: reconciled.timeline,
+      };
       try {
         fs.writeFileSync(
           configPath,
           JSON.stringify(responseConfig, null, 2),
           "utf8"
         );
+        if (reconciled.removed > 0) {
+          appendProjectEventLog(projDir, {
+            component: "timeline",
+            event: "surplus_empty_slots_blocked",
+            message:
+              "Slots vazios excedentes foram removidos sem alterar mídias ou timings.",
+            details: {
+              source: "config_get",
+              removed: reconciled.removed,
+              blocks: reconciled.blocks,
+            },
+          });
+        }
       } catch {
         /* leitura segue com timeline saneada */
       }
@@ -2137,7 +2162,7 @@ app.post("/api/config", (req, res) => {
     const timings = readProjectJson(projDir, "block_timings.json", {
       total_duration: 0,
     });
-    const finalConfig = applyBgmProductionDefaults(
+    const configured = applyBgmProductionDefaults(
       mergedConfig,
       Number(timings.total_duration) || 0,
       {
@@ -2145,7 +2170,34 @@ app.post("/api/config", (req, res) => {
       }
     );
 
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const reconciled = reconcileTimelineAssetsToStoryboard(
+      configured.timeline_assets || {},
+      storyboard.visual_prompts || []
+    );
+    const finalConfig = {
+      ...configured,
+      timeline_assets: reconciled.timeline,
+    };
+
     fs.writeFileSync(configPath, JSON.stringify(finalConfig, null, 2), "utf8");
+
+    if (reconciled.removed > 0) {
+      appendProjectEventLog(projDir, {
+        component: "timeline",
+        event: "stale_timeline_save_blocked",
+        message:
+          "Uma configuração antiga tentou reintroduzir slots vazios excedentes e foi bloqueada.",
+        details: {
+          removed: reconciled.removed,
+          blocks: reconciled.blocks,
+          timeline: summarizeTimelineAssets(
+            finalConfig.timeline_assets,
+            storyboard.visual_prompts || []
+          ),
+        },
+      });
+    }
 
     res.json({
       success: true,
@@ -4498,9 +4550,23 @@ app.post("/api/projects/storyboard", (req, res) => {
       );
     });
 
-    config.timeline_assets = nextTimelineAssets;
+    const reconciled = reconcileTimelineAssetsToStoryboard(
+      nextTimelineAssets,
+      visualPrompts
+    );
+    config.timeline_assets = reconciled.timeline;
 
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+    if (reconciled.removed > 0) {
+      appendProjectEventLog(projDir, {
+        component: "timeline",
+        event: "storyboard_surplus_slots_blocked",
+        message:
+          "O save do storyboard descartou placeholders excedentes sem tocar nos timings.",
+        details: { removed: reconciled.removed, blocks: reconciled.blocks },
+      });
+    }
 
     res.json({
       success: true,
@@ -16218,12 +16284,27 @@ app.post("/api/upload-scene-asset", (req, res) => {
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
       syncStoryboardAssetsFromTimeline(projDir);
 
+      appendProjectEventLog(projDir, {
+        component: "timeline",
+        event: "scene_asset_uploaded",
+        message: `Mídia vinculada ao bloco ${scene}, slot ${idx ?? "novo"}.`,
+        details: {
+          block: String(scene),
+          slot_index: idx !== undefined ? Number(idx) : null,
+          asset: destFileName,
+          type: resolvedType,
+          timeline: summarizeTimelineAssets(config.timeline_assets, []),
+        },
+      });
+
       res.json({
         success: true,
 
         message: `Arquivo ${destFileName} salvo e vinculado ao Bloco/Cena ${scene} com sucesso!`,
 
         asset: destFileName,
+
+        timeline_assets: config.timeline_assets,
       });
     } catch (err) {
       res.status(500).json({

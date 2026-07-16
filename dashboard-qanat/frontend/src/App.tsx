@@ -4373,6 +4373,15 @@ export default function App() {
           config &&
           (!projectOverride || projectOverride === activeProject)
         ) {
+          if (
+            data.timeline_assets &&
+            typeof data.timeline_assets === "object"
+          ) {
+            setConfig((prev) =>
+              prev ? { ...prev, timeline_assets: data.timeline_assets } : prev
+            );
+            return;
+          }
           const blockKey =
             assetIdx !== undefined
               ? String(sceneNum)
