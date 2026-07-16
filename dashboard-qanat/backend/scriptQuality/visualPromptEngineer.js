@@ -1,9 +1,24 @@
-export const VISUAL_LOCALIZED_TEXT_RULE =
+const LEGACY_LOCALIZED_TEXT_RULE =
   "Texto diegético e ambiental deve respeitar o local real da cena: placas de trânsito, fachadas, avisos, letreiros, documentos, uniformes, sinalização e inscrições devem aparecer primeiro no idioma oficial ou historicamente correto daquele país/região. Logo abaixo, inclua tradução legível em português do Brasil, menor e visualmente secundária. Não use placas, símbolos viários, nomes de estados, órgãos públicos, moedas, domínios, telefones ou padrões brasileiros em cenas ambientadas fora do Brasil. Textos editoriais sobrepostos pelo vídeo, como títulos, contadores, legendas e explicações, permanecem em português do Brasil. Se o local for o Brasil, use somente português do Brasil e não duplique tradução.";
 
-export function enforceVisualLocalizedTextRule(prompt = "") {
+export const VISUAL_MINIMAL_TEXT_RULE =
+  "Clean source media: no baked-in titles, subtitles, captions, paragraphs, labels, logos, watermarks, letters or readable editorial text. All editorial text is added later as a separate Remotion overlay.";
+
+export const VISUAL_DIEGETIC_TEXT_RULE =
+  "If a real sign, document or interface is indispensable to the fact, preserve at most four essential words in its authentic local language; never duplicate a translation inside the generated media. Put the Brazilian Portuguese translation only in editor_notes or text_overlay metadata.";
+
+// Compatibilidade com integrações antigas que importam este nome.
+export const VISUAL_LOCALIZED_TEXT_RULE = VISUAL_MINIMAL_TEXT_RULE;
+
+export function enforceVisualLocalizedTextRule(
+  prompt = "",
+  { allowDiegeticText = false } = {}
+) {
   let clean = String(prompt || "").trim();
   clean = clean
+    .replace(LEGACY_LOCALIZED_TEXT_RULE, "")
+    .replace(VISUAL_MINIMAL_TEXT_RULE, "")
+    .replace(VISUAL_DIEGETIC_TEXT_RULE, "")
     .replace(
       /Todo e qualquer texto,[\s\S]*?Nunca gere texto em ingl(?:ê|e)s\.?/gi,
       ""
@@ -13,11 +28,17 @@ export function enforceVisualLocalizedTextRule(prompt = "") {
       ""
     )
     .replace(/Texto visível em português do Brasil\.?/gi, "")
+    .replace(
+      /Any visible text(?:\/words)?[^.]*Portuguese \(Brazilian\)\.?/gi,
+      ""
+    )
+    .replace(/Any visible text must be in Portuguese \(Brazilian\)\.?/gi, "")
     .replace(/\s{2,}/g, " ")
     .trim();
-  return clean.includes(VISUAL_LOCALIZED_TEXT_RULE)
-    ? clean
-    : `${clean}${clean ? " " : ""}${VISUAL_LOCALIZED_TEXT_RULE}`;
+  const policy = allowDiegeticText
+    ? `${VISUAL_MINIMAL_TEXT_RULE} ${VISUAL_DIEGETIC_TEXT_RULE}`
+    : VISUAL_MINIMAL_TEXT_RULE;
+  return `${clean}${clean ? " " : ""}${policy}`;
 }
 
 export const NICHE_STYLE_MAP = {
@@ -174,12 +195,12 @@ ${isListicle ? `LISTICLE TOP ${listicleRank} — ordem ${rankOrder === "asc" ? "
 - Cada prompt visual deve ilustrar EXATAMENTE o que está sendo dito no narration_text da cena.
 - O visual deve funcionar como "prova visual" ou reforço emocional da fala.
 
-**2. Idioma Local + Tradução PT-BR (REGRA INQUEBRÁVEL)**
-- Em TODO prompt gerado, adicione no final esta instrução exata:
-  "${VISUAL_LOCALIZED_TEXT_RULE}"
-- Estados Unidos: uma placa realista deve trazer primeiro "ROAD CLOSED" e logo abaixo, menor, "ESTRADA FECHADA", preservando formato, cores, símbolos e padrão viário dos Estados Unidos. Nunca use placa ou identificação de estado brasileiro fora do Brasil.
-- Japão: letreiro principal em japonês e tradução menor em português do Brasil. A mesma lógica vale para qualquer outro país, região ou período histórico.
-- Texto editorial criado pelo vídeo — títulos, contadores, legendas e explicações — continua em português do Brasil.
+**2. Mídia Visual Limpa — Texto é Exceção (REGRA INQUEBRÁVEL)**
+- Imagens e vídeos devem contar a história visualmente. Não grave títulos, legendas, frases, parágrafos, explicações, logos ou marcas d'água na mídia gerada.
+- text_overlay e impact_text são metadados para o Remotion e NUNCA devem ser copiados para o prompt da imagem/vídeo.
+- Regra padrão no fim de todo prompt: "${VISUAL_MINIMAL_TEXT_RULE}"
+- Só marque diegetic_text_required=true quando ler uma placa, documento ou interface real for indispensável para compreender o fato. Nesse caso, limite o texto ambiental a quatro palavras no idioma autêntico e acrescente: "${VISUAL_DIEGETIC_TEXT_RULE}"
+- Traduções e explicações em português ficam em editor_notes ou text_overlay, nunca duplicadas dentro da imagem/vídeo.
 
 **3. Estilo Visual Adaptado ao Nicho**
 - Use o estilo do nicho detectado: ${nicheStyle}
@@ -196,7 +217,7 @@ ${hyperframePrompt ? `- Combine com o hyperframe do projeto: ${hyperframePrompt}
 - A ação importante deve terminar antes do prazo crítico; use o post-roll apenas para sustentar o estado final e a transição.
 
 **5. Prompts de Imagem (type contém "imagem")**
-- Composição cinematográfica forte com espaço para overlays de texto.
+- Composição cinematográfica forte. Quando houver overlay editorial, reserve apenas área negativa limpa; não renderize palavras na imagem.
 - Impacto visual imediato.
 - Descreva iluminação, ângulo, profundidade e mood com precisão.
 
@@ -224,7 +245,8 @@ ${
 - Em vídeo IA: movimento de câmera sobre o objeto REAL (órbita do satélite real, eclusas reais, estrutura real) — não cena sci-fi inventada.
 
 **9. Editor Notes**
-- Melhore editor_notes com sincronia de texto, transições, SFX e pattern interrupts.
+- Melhore editor_notes com transições, SFX e pattern interrupts.
+- No máximo um overlay editorial curto por cena, idealmente de 2 a 5 palavras. Não repita a narração inteira na tela.
 
 ### PROCESSO DE RACIOCÍNIO (CHAIN OF THOUGHT — faça internamente antes de cada prompt)
 
@@ -234,7 +256,7 @@ ${
 4. Verifique se o prompt atual está alinhado ou precisa de correção.
 5. Escolha o melhor shot + movimento de câmera.
 6. Garanta que segue o estilo do nicho.
-7. Adicione a instrução de idioma local com tradução em português brasileiro, distinguindo texto ambiental de texto editorial.
+7. Remova texto editorial da mídia. Se texto diegético for indispensável, limite-o e mande a tradução para os metadados de edição.
 8. Escreva o prompt mais detalhado e cinematográfico possível.
 
 ### FORMATO DE SAÍDA OBRIGATÓRIO
@@ -248,7 +270,8 @@ Retorne APENAS um JSON válido:
       "block": 1,
       "narration_text": "trecho exato da narração",
       "type": "imagem IA 2k" ou "vídeo IA (max 10s)",
-      "prompt": "prompt cinematográfico completo em inglês + instrução PT-BR no final",
+      "prompt": "prompt cinematográfico completo em inglês + política de mídia sem texto no final",
+      "diegetic_text_required": false,
       "editor_notes": "instruções de edição aprimoradas",
       "stock_query": "2-5 palavras em inglês"
     }
@@ -304,6 +327,7 @@ export function buildVisualPromptEngineerRequest(storyboard = {}, opts = {}) {
       editor_notes: String(vp.editor_notes || "").slice(0, 200),
       stock_query: String(vp.stock_query || "").slice(0, 80),
       text_overlay: vp.text_overlay || undefined,
+      diegetic_text_required: vp.diegetic_text_required === true,
       duration_seconds: vp.duration_seconds || undefined,
       speech_start: vp.speech_start ?? undefined,
       speech_end: vp.speech_end ?? undefined,

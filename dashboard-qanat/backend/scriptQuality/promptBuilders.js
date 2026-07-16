@@ -21,11 +21,19 @@ import {
   IMAGE_SCENE_TYPE,
 } from "./visualPromptPipeline.js";
 function resolveUserBlockCount(idea = {}, format = "LONGO") {
-  if (Array.isArray(idea?.blocks) && idea.blocks.length > 0) return idea.blocks.length;
+  if (Array.isArray(idea?.blocks) && idea.blocks.length > 0)
+    return idea.blocks.length;
   return format === "SHORTS" ? 4 : 8;
 }
 
-function resolveScriptRules({ isListicle, listicleRank, rankOrder, format, listicleTopic, listicleBlockCount }) {
+function resolveScriptRules({
+  isListicle,
+  listicleRank,
+  rankOrder,
+  format,
+  listicleTopic,
+  listicleBlockCount,
+}) {
   return isListicle
     ? buildListicleScriptRules({
         rankCount: listicleRank,
@@ -135,34 +143,67 @@ CONTRATO DE OPORTUNIDADE EDITORIAL (OBRIGATÓRIO):
 - Se uma afirmação não estiver apoiada no contexto de pesquisa, formule-a como pergunta de investigação, não como verdade.
 
 ADEQUAÇÃO AO FORMATO:
-${isShorts
+${
+  isShorts
     ? `- O vídeo deve caber em no máximo 60 segundos. Escolha UMA revelação central, 2–3 evidências curtas e conclusão direta.
 - "format_fit" deve ser SHORTS. Se o tema exigir antecedentes, múltiplas causas, controvérsia ou mais de 3 evidências, descarte-o desta lista e proponha um recorte menor.
 - "recommended_duration": entre 30 e 60 segundos.`
     : `- O vídeo deve justificar explicação aprofundada: causa, contexto, mecanismo, consequência e pelo menos 3 evidências ou exemplos.
 - "format_fit" deve ser LONGO. Ideias explicáveis por inteiro em menos de 60 segundos devem ser aprofundadas com um recorte legítimo ou descartadas desta lista.
-- "recommended_duration": entre 6 e 12 minutos.`}
+- "recommended_duration": entre 6 e 12 minutos.`
+}
 `;
 }
 
 export function normalizeIdeaOpportunity(item = {}, { format = "LONGO" } = {}) {
-  const pick = (...values) => String(values.find((value) => value != null && value !== "") ?? "").trim();
-  const allowedReality = new Set(["documented", "current", "plausible", "disputed"]);
+  const pick = (...values) =>
+    String(values.find((value) => value != null && value !== "") ?? "").trim();
+  const allowedReality = new Set([
+    "documented",
+    "current",
+    "plausible",
+    "disputed",
+  ]);
   const allowedSaturation = new Set(["low", "medium", "high", "unknown"]);
-  const realityRaw = pick(item.reality_status, item.realityStatus).toLowerCase();
-  const saturationRaw = pick(item.saturation_level, item.saturationLevel).toLowerCase();
-  const fallbackFormat = String(format).toUpperCase() === "SHORTS" ? "SHORTS" : "LONGO";
-  const formatRaw = pick(item.format_fit, item.formatFit, item.best_format, item.bestFormat).toUpperCase();
+  const realityRaw = pick(
+    item.reality_status,
+    item.realityStatus
+  ).toLowerCase();
+  const saturationRaw = pick(
+    item.saturation_level,
+    item.saturationLevel
+  ).toLowerCase();
+  const fallbackFormat =
+    String(format).toUpperCase() === "SHORTS" ? "SHORTS" : "LONGO";
+  const formatRaw = pick(
+    item.format_fit,
+    item.formatFit,
+    item.best_format,
+    item.bestFormat
+  ).toUpperCase();
 
   return {
     ...item,
     reality_status: allowedReality.has(realityRaw) ? realityRaw : "disputed",
     evidence_anchor: pick(item.evidence_anchor, item.evidenceAnchor),
-    saturation_level: allowedSaturation.has(saturationRaw) ? saturationRaw : "unknown",
-    saturation_evidence: pick(item.saturation_evidence, item.saturationEvidence),
-    undercovered_reason: pick(item.undercovered_reason, item.undercoveredReason),
-    format_fit: ["SHORTS", "LONGO"].includes(formatRaw) ? formatRaw : fallbackFormat,
-    recommended_duration: pick(item.recommended_duration, item.recommendedDuration),
+    saturation_level: allowedSaturation.has(saturationRaw)
+      ? saturationRaw
+      : "unknown",
+    saturation_evidence: pick(
+      item.saturation_evidence,
+      item.saturationEvidence
+    ),
+    undercovered_reason: pick(
+      item.undercovered_reason,
+      item.undercoveredReason
+    ),
+    format_fit: ["SHORTS", "LONGO"].includes(formatRaw)
+      ? formatRaw
+      : fallbackFormat,
+    recommended_duration: pick(
+      item.recommended_duration,
+      item.recommendedDuration
+    ),
     premium_upgrade: pick(item.premium_upgrade, item.premiumUpgrade),
     validation_needed: pick(item.validation_needed, item.validationNeeded),
   };
@@ -420,24 +461,51 @@ function normalizeRankingIdeaItem(item = {}) {
       item.quantidade ??
       0
   );
-  return normalizeIdeaOpportunity({
-    title: pickStr(item.title, item.titulo),
-    suggested_rank_count: count > 0 ? count : 15,
-    list_topic: pickStr(item.list_topic, item.listTopic, item.tema, item.topic),
-    listicle_angle: pickStr(item.listicle_angle, item.listicleAngle, item.angle, item.angulo),
-    promise: pickStr(item.promise, item.promessa),
-    why_interesting: pickStr(item.why_interesting, item.whyInteresting, item.why_it_works, item.por_que),
-    controversy_hook: pickStr(item.controversy_hook, item.controversyHook, item.gancho, item.hook),
-    sample_items: Array.isArray(item.sample_items)
-      ? item.sample_items
-      : Array.isArray(item.sampleItems)
-        ? item.sampleItems
-        : Array.isArray(item.exemplos)
-          ? item.exemplos
-          : [],
-    emotion: pickStr(item.emotion, item.emocao),
-    best_format: pickStr(item.best_format, item.bestFormat, item.formato) || "LONGO",
-  }, { format: pickStr(item.best_format, item.bestFormat, item.formato) || "LONGO" });
+  return normalizeIdeaOpportunity(
+    {
+      title: pickStr(item.title, item.titulo),
+      suggested_rank_count: count > 0 ? count : 15,
+      list_topic: pickStr(
+        item.list_topic,
+        item.listTopic,
+        item.tema,
+        item.topic
+      ),
+      listicle_angle: pickStr(
+        item.listicle_angle,
+        item.listicleAngle,
+        item.angle,
+        item.angulo
+      ),
+      promise: pickStr(item.promise, item.promessa),
+      why_interesting: pickStr(
+        item.why_interesting,
+        item.whyInteresting,
+        item.why_it_works,
+        item.por_que
+      ),
+      controversy_hook: pickStr(
+        item.controversy_hook,
+        item.controversyHook,
+        item.gancho,
+        item.hook
+      ),
+      sample_items: Array.isArray(item.sample_items)
+        ? item.sample_items
+        : Array.isArray(item.sampleItems)
+          ? item.sampleItems
+          : Array.isArray(item.exemplos)
+            ? item.exemplos
+            : [],
+      emotion: pickStr(item.emotion, item.emocao),
+      best_format:
+        pickStr(item.best_format, item.bestFormat, item.formato) || "LONGO",
+    },
+    {
+      format:
+        pickStr(item.best_format, item.bestFormat, item.formato) || "LONGO",
+    }
+  );
 }
 
 export function normalizeListicleIdeasResponse(
@@ -682,8 +750,13 @@ visual_orchestration e OPCIONAL mas recomendado: so inclua placements com dados 
 }
 
 export function buildIdeaContextHeader(params = {}) {
-  if (process.env.NODE_ENV !== "production" && ("listTopic" in params || "blockCount" in params)) {
-    console.warn("[promptBuilders] buildIdeaContextHeader: use listicleTopic/listicleBlockCount");
+  if (
+    process.env.NODE_ENV !== "production" &&
+    ("listTopic" in params || "blockCount" in params)
+  ) {
+    console.warn(
+      "[promptBuilders] buildIdeaContextHeader: use listicleTopic/listicleBlockCount"
+    );
   }
   const {
     niche,
@@ -842,7 +915,7 @@ REGRAS DOS PROMPTS VISUAIS (OBRIGATÓRIO — sem isso o roteiro fica inutilizáv
 - CADA objeto DEVE ter "narration_text" preenchido com o trecho EXATO falado na cena (copiado da narração aprovada).
 - CADA objeto DEVE ter "prompt" em inglês — hiper-detalhado e cinematográfico (NÃO genérico).
 - O "prompt" deve descrever VISUALMENTE a cena: sujeito ESPECÍFICO + ação + enquadramento + texturas + iluminação. NUNCA use frases vagas como "the exact subject from this scene" ou "subject".
-- Se a cena incluir text_overlay, impact_text ou qualquer texto visível na imagem/vídeo, adicione ao final do prompt: "Any visible text must be in Portuguese (Brazilian)."
+- text_overlay e impact_text são metadados renderizados depois pelo Remotion. NUNCA copie esses textos para o prompt nem peça palavras, títulos, legendas ou parágrafos dentro da imagem/vídeo.
 ${typeMixRule}
 - CONSISTÊNCIA type ↔ prompt (CRÍTICO):
   - Se o prompt descreve movimento ativo (drone, água, fogo, multidão, ferramenta em ação, câmera em movimento, drill, pour, walk…) → type DEVE ser "${SHORTS_VIDEO_SCENE_TYPE}".
@@ -867,7 +940,7 @@ export function buildVisualPromptsJsonSchema() {
      "block": 1,
      "narration_text": "Trecho EXATO da narração aprovada para esta cena (1-2 frases, NUNCA vazio)",
      "type": "imagem IA 2k" ou "vídeo IA (max 10s)",
-     "prompt": "Prompt CINEMATOGRÁFICO em inglês: sujeito ESPECÍFICO + ação + ângulo de câmera + texturas + iluminação. Se tiver texto visível: 'Any visible text must be in Portuguese (Brazilian).'",
+     "prompt": "Prompt CINEMATOGRÁFICO em inglês: sujeito ESPECÍFICO + ação + ângulo de câmera + texturas + iluminação. Termine pedindo mídia limpa, sem texto editorial renderizado.",
      "editor_notes": "Ken Burns zoom in, dissolve, etc.",
      "stock_query": "2-5 palavras em inglês: sujeito específico + ação (ex.: gannet plunge dive)"
    }
@@ -973,7 +1046,7 @@ For EACH scene below, generate:
    - Slow down motion for heavy things: use "slow deliberate motion", "inch by inch" or "snail pace" to depict scale/weight.
    - Image: end with "photorealistic, 2K resolution, highly detailed".
    - Video: end with "photorealistic, highly detailed, 8K".
-   - If has_text_overlay is true, append: "Any visible text must be in Portuguese (Brazilian)."
+   - If has_text_overlay is true, reserve clean negative space for post-production, but do not render the overlay or any editorial text in the source media.
 2. "stock_query": 2-5 words in English for stock footage search (e.g. "quantum computing server room", "1930s style vintage phone", "deep forest sunlight").
 3. "editor_notes": Editing instructions (timing, transitions, text layout spacing).
 
@@ -1078,7 +1151,10 @@ export function buildNarrationOnlyPrompt({
   const narrationTemplateBlock = remotionTemplateContext
     ? `\n[CONTRATOS DOS TEMPLATES REMOTION APROVADOS]\n${remotionTemplateContext}\nUse esses contratos apenas para tornar a narração visualmente orquestrável: quando for natural e sustentado pelas fontes, deixe explícitos entidade, local, data, número, unidade, comparação e relação causal necessários aos data_slots. Não acrescente fatos, listas ou números apenas para alimentar um template. A tese e a clareza do NARRACAOPRO continuam prioritárias.\n`
     : "";
-  const historicalWitnessBlock = resolveHistoricalWitnessBlock(isHistoricalWitness, historicalWitness);
+  const historicalWitnessBlock = resolveHistoricalWitnessBlock(
+    isHistoricalWitness,
+    historicalWitness
+  );
   const povBlock = buildPovContractBlock({
     enablePov,
     placement: povPlacement,
@@ -1323,7 +1399,10 @@ export function buildCreatorPhase2Prompt(ctx = {}) {
   const templateBlock = remotionTemplateContext
     ? `\nCATÁLOGO REMOTION TEMPLATE STUDIO APROVADO PARA ESTE VÍDEO:\n${remotionTemplateContext}\n\nUse somente esses templates nas cenas Remotion. Para cada cena compatível, escolha o template que melhor explica o trecho e forneça em production os fatos necessários para preencher seus data_slots. Não invente dados para preencher slots. Preserve a narração aprovada sem alterações.`
     : "";
-  const historicalWitnessBlock = resolveHistoricalWitnessBlock(isHistoricalWitness, historicalWitness);
+  const historicalWitnessBlock = resolveHistoricalWitnessBlock(
+    isHistoricalWitness,
+    historicalWitness
+  );
   const povBlock = buildPovContractBlock({
     enablePov,
     placement: povPlacement,
@@ -1424,7 +1503,14 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
     if (webResearchContext) customAddendum += webResearchContext;
   }
 
-  const formatRules = resolveScriptRules({ isListicle, listicleRank, rankOrder, format, listicleTopic, listicleBlockCount });
+  const formatRules = resolveScriptRules({
+    isListicle,
+    listicleRank,
+    rankOrder,
+    format,
+    listicleTopic,
+    listicleBlockCount,
+  });
 
   const titleRules =
     titleCraftRules ||
@@ -1441,7 +1527,10 @@ export function buildCreatorFullScriptPrompt(ctx = {}) {
       },
       { listicle: { topic: listicleTopic } }
     );
-  const historicalWitnessBlock = resolveHistoricalWitnessBlock(isHistoricalWitness, historicalWitness);
+  const historicalWitnessBlock = resolveHistoricalWitnessBlock(
+    isHistoricalWitness,
+    historicalWitness
+  );
 
   const userBlockCount = resolveUserBlockCount(idea, format);
   const povBlock = buildPovContractBlock({
@@ -1535,7 +1624,7 @@ ${visualTypeMix}
 - Prompts variados: close-ups, planos abertos, aéreas, texturas, detalhes, paisagens, mapas, infográficos visuais.
 - Nunca coloque texto dentro dos prompts visuais.
 - Cada prompt deve ter um stock_query para busca em Pexels/Pixabay/Canva.
-- REGRA INQUEBRÁVEL DE TEXTO PT-BR: Se a cena incluir text_overlay, impact_text, rótulo, número, display ou QUALQUER texto visível na imagem/vídeo, adicione ao final do prompt: "Todo e qualquer texto, rótulo, número, inscrição, legenda, display ou elemento visível e legível na imagem ou vídeo deve estar escrito em português do Brasil."
+- REGRA INQUEBRÁVEL DE MÍDIA LIMPA: text_overlay e impact_text são renderizados depois pelo Remotion. Não peça títulos, frases, legendas, parágrafos, logos ou marcas d'água dentro da imagem/vídeo. Se houver overlay, apenas reserve espaço negativo limpo na composição.
 - COMPOSIÇÃO DE ASPECTO: ${aspectRule}
 ${isListicle ? `- LISTICLE: inclua "text_overlay" em toda primeira cena de cada item (ex: "#15 — PÓLVORA").` : ""}
 

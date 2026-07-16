@@ -19838,7 +19838,9 @@ app.post(
                 },
               }
             : {}),
-          prompt: enforceVisualLocalizedTextRule(vp.prompt || ""),
+          prompt: enforceVisualLocalizedTextRule(vp.prompt || "", {
+            allowDiegeticText: vp.diegetic_text_required === true,
+          }),
           block,
           scene,
         };
