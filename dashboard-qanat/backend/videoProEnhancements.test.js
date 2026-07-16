@@ -24,6 +24,13 @@ test("numberToWordsPtBr - conversões corretas", () => {
 });
 
 test("replaceNumbersAndAbbreviationsPtBr - números e abreviações com preservação de tags", () => {
+  assert.strictEqual(
+    replaceNumbersAndAbbreviationsPtBr(
+      "Ela começa no Alasca, nos EUA, e retorna aos E.U.A."
+    ),
+    "Ela começa no Alasca, nos Estados Unidos, e retorna aos Estados Unidos."
+  );
+
   // Teste com abreviações d.C. e a.C.
   assert.strictEqual(
     replaceNumbersAndAbbreviationsPtBr(

@@ -71,6 +71,10 @@ test("Voicebox reinforces interrogative prosody and preserves manual emphasis", 
     prepareVoiceboxExpressiveText("Isso aconteceu mesmo???"),
     "Isso aconteceu mesmo???"
   );
+  assert.equal(
+    prepareVoiceboxExpressiveText("Qual é a maior estrada dos EUA?"),
+    "Qual é a maior estrada dos Estados Unidos???"
+  );
 });
 
 test("expressive narration pauses preserve questions and reveals", () => {

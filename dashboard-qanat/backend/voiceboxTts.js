@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { getFfmpegStatus } from "./pythonEnv.js";
+import { replaceNumbersAndAbbreviationsPtBr } from "./videoProEnhancements.js";
 
 export const VOICEBOX_DEFAULT_URLS = [
   "http://127.0.0.1:17493",
@@ -32,7 +33,7 @@ export const VOICEBOX_DEFAULTS = {
  * explícita. Preserva reforços manuais e eleva "?" ou "??" para "???".
  */
 export function prepareVoiceboxExpressiveText(text = "") {
-  return String(text || "")
+  return replaceNumbersAndAbbreviationsPtBr(String(text || ""))
     .trim()
     .replace(/\?+/g, (marks) => (marks.length >= 3 ? marks : "???"));
 }
