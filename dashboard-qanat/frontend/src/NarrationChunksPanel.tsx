@@ -43,6 +43,9 @@ export type NarrationChunk = {
   id: string;
   block: number;
   scene_ref: string;
+  speech_segment_id?: string;
+  speaker?: string;
+  speech_role?: string;
   text: string;
   text_tagged?: string;
   pause_after_ms: number;
@@ -297,6 +300,36 @@ export function NarrationChunksPanel({
         c.id === chunkId ? { ...c, ...patch } : c
       ),
     });
+  };
+
+  const applyChunkVoiceToScope = (
+    source: NarrationChunk,
+    scope: "scene" | "block" | "speaker"
+  ) => {
+    if (!localPlan) return;
+    const voice = {
+      engine: source.voice?.engine || defaultEngine,
+      voice: source.voice?.voice || defaultVoice,
+      ...(source.voice?.speed != null ? { speed: source.voice.speed } : {}),
+    };
+    const matches = (candidate: NarrationChunk) => {
+      if (scope === "scene") return candidate.scene_ref === source.scene_ref;
+      if (scope === "block") return candidate.block === source.block;
+      return Boolean(source.speaker && candidate.speaker === source.speaker);
+    };
+    updatePlan({
+      ...localPlan,
+      chunks: localPlan.chunks.map((candidate) =>
+        matches(candidate) ? { ...candidate, voice: { ...voice } } : candidate
+      ),
+    });
+    const label =
+      scope === "scene"
+        ? `cena ${source.scene_ref}`
+        : scope === "block"
+          ? `bloco ${source.block}`
+          : `personagem ${source.speaker}`;
+    toast(`Voz aplicada a ${label}.`);
   };
 
   const applyDefaultVoiceToAll = () => {
@@ -969,6 +1002,17 @@ export function NarrationChunksPanel({
                       {chunk.status || "planned"}
                     </span>
                   </div>
+                  {chunk.speaker && (
+                    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-2 py-1.5">
+                      <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-cyan-300">
+                        {chunk.speaker}
+                        {chunk.speech_role === "narrator" ? " · narrador" : ""}
+                      </span>
+                      <span className="text-[8px] text-zinc-500">
+                        Fala separada, mantendo a mesma cena visual
+                      </span>
+                    </div>
+                  )}
                   <label className="text-[8px] text-zinc-500 uppercase font-bold">
                     Texto falado
                   </label>
@@ -1250,6 +1294,71 @@ export function NarrationChunksPanel({
                       )}
                     </div>
                   </div>
+                  {chunk.speaker && (
+                    <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-cyan-500/15 bg-cyan-500/5 p-2">
+                      <span className="mr-1 text-[8px] font-bold uppercase tracking-wide text-cyan-300/75">
+                        Voz separada
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => applyChunkVoiceToScope(chunk, "scene")}
+                        className="rounded border border-zinc-700 px-2 py-1 text-[8px] text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-200"
+                      >
+                        Aplicar nesta cena
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyChunkVoiceToScope(chunk, "block")}
+                        className="rounded border border-zinc-700 px-2 py-1 text-[8px] text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-200"
+                      >
+                        Aplicar neste bloco
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyChunkVoiceToScope(chunk, "speaker")}
+                        className="rounded border border-zinc-700 px-2 py-1 text-[8px] text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-200"
+                      >
+                        Usar para {chunk.speaker}
+                      </button>
+                      {chunks.filter(
+                        (candidate) => candidate.scene_ref === chunk.scene_ref
+                      ).length > 1 && (
+                        <button
+                          type="button"
+                          disabled={generating}
+                          onClick={() =>
+                            void runChunkTts(
+                              chunks
+                                .filter(
+                                  (candidate) =>
+                                    candidate.scene_ref === chunk.scene_ref
+                                )
+                                .map((candidate) => candidate.id)
+                            )
+                          }
+                          className="rounded border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[8px] font-bold text-cyan-200 disabled:opacity-50"
+                        >
+                          Gerar todas as falas da cena
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={generating}
+                        onClick={() =>
+                          void runChunkTts(
+                            chunks
+                              .filter(
+                                (candidate) => candidate.block === chunk.block
+                              )
+                              .map((candidate) => candidate.id)
+                          )
+                        }
+                        className="rounded border border-violet-500/25 bg-violet-500/10 px-2 py-1 text-[8px] font-bold text-violet-200 disabled:opacity-50"
+                      >
+                        Gerar falas do bloco
+                      </button>
+                    </div>
+                  )}
                   {(chunk.versions?.length ?? 0) > 0 && (
                     <details className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-2 text-[9px]">
                       <summary className="cursor-pointer font-bold text-zinc-400">

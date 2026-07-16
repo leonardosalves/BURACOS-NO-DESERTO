@@ -45,7 +45,9 @@ const MAX_WHISPER_INTER_WORD_GAP_S = 1.2;
 const MIN_WHISPER_TOKEN_COVERAGE = 0.72;
 
 export function normalizeNarrationIntegrityText(text = "") {
-  return String(text || "").replace(/\s+/g, " ").trim();
+  return String(text || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function hashNarrationIntegrityText(text = "") {
@@ -55,7 +57,10 @@ export function hashNarrationIntegrityText(text = "") {
     .digest("hex");
 }
 
-export function assertNarrationChunksPreserveSource(chunks = [], sourceText = "") {
+export function assertNarrationChunksPreserveSource(
+  chunks = [],
+  sourceText = ""
+) {
   const source = normalizeNarrationIntegrityText(sourceText);
   for (const chunk of chunks || []) {
     const plainChunk = normalizeNarrationIntegrityText(chunk?.text || "");
@@ -71,7 +76,8 @@ export function assertNarrationChunksPreserveSource(chunks = [], sourceText = ""
   const planned = normalizeNarrationIntegrityText(
     (chunks || []).map((chunk) => chunk?.text || "").join(" ")
   );
-  if (!source) throw new Error("Narração aprovada ausente para planejar trechos.");
+  if (!source)
+    throw new Error("Narração aprovada ausente para planejar trechos.");
   if (planned !== source) {
     throw new Error(
       "O planejador tentou alterar a narração aprovada. O plano foi bloqueado; gere novamente sem condensar, remover ou acrescentar palavras."
@@ -85,10 +91,7 @@ export function assertNarrationPlanMatchesSource(plan = {}, sourceText = "") {
     plan.chunks || [],
     sourceText
   );
-  if (
-    plan.source_narration_hash &&
-    plan.source_narration_hash !== sourceHash
-  ) {
+  if (plan.source_narration_hash && plan.source_narration_hash !== sourceHash) {
     throw new Error(
       "A narração aprovada mudou depois que os trechos foram planejados. Gere um novo plano antes do TTS."
     );
@@ -392,27 +395,53 @@ export function buildHeuristicNarrationChunks({
     const text = String(scene.narration_text || "").trim();
     if (!text) continue;
 
+    const speechSegments = (
+      Array.isArray(scene.speech_segments) ? scene.speech_segments : []
+    )
+      .map((segment, segmentIndex) => ({
+        id: String(segment?.id || `speech-${segmentIndex + 1}`),
+        speaker: String(segment?.speaker || "Narrador").trim() || "Narrador",
+        role: String(segment?.role || "narrator").trim() || "narrator",
+        text: String(segment?.text || "").trim(),
+      }))
+      .filter((segment) => segment.text);
+    const turns =
+      speechSegments.length > 0 &&
+      normalizeNarrationIntegrityText(
+        speechSegments.map((segment) => segment.text).join(" ")
+      ) === normalizeNarrationIntegrityText(text)
+        ? speechSegments
+        : [{ id: "speech-01", speaker: "Narrador", role: "narrator", text }];
+
     const pause = resolveExpressivePause({
       text,
       changesBlock:
         i < scenes.length - 1 && Number(scenes[i + 1]?.block || 1) !== block,
     });
 
-    chunks.push({
-      id: `chunk-${String(chunks.length + 1).padStart(2, "0")}`,
-      block,
-      scene_ref: sceneRef,
-      text,
-      text_tagged: text,
-      pause_after_ms: i === scenes.length - 1 ? 0 : pause.ms,
-      pause_reason: i === scenes.length - 1 ? "fim da narração" : pause.reason,
-      block_phrase: phraseByBlock.get(block) || "",
-      voice: { ...voice },
-      audio_file: null,
-      duration_s: null,
-      start_s: null,
-      end_s: null,
-      status: "planned",
+    turns.forEach((turn, turnIndex) => {
+      const isLastTurn = turnIndex === turns.length - 1;
+      const isLastScene = i === scenes.length - 1;
+      chunks.push({
+        id: `chunk-${String(chunks.length + 1).padStart(2, "0")}`,
+        block,
+        scene_ref: sceneRef,
+        speech_segment_id: turn.id,
+        speaker: turn.speaker,
+        speech_role: turn.role,
+        text: turn.text,
+        text_tagged: turn.text,
+        pause_after_ms: !isLastTurn ? 180 : isLastScene ? 0 : pause.ms,
+        pause_reason:
+          i === scenes.length - 1 ? "fim da narração" : pause.reason,
+        block_phrase: phraseByBlock.get(block) || "",
+        voice: { ...voice },
+        audio_file: null,
+        duration_s: null,
+        start_s: null,
+        end_s: null,
+        status: "planned",
+      });
     });
   }
 
@@ -560,6 +589,58 @@ export function resolveChunkTimeline(
     }));
   }
   return computeChunkTimeline(list);
+}
+
+/**
+ * Une somente a janela visual de turnos que pertencem à mesma cena. Os áudios
+ * continuam separados por voz; a timeline recebe um único asset/cena cobrindo
+ * do início da primeira fala ao fim da última.
+ */
+export function aggregateNarrationChunksByScene(chunks = []) {
+  const groups = new Map();
+  const order = [];
+  for (const chunk of Array.isArray(chunks) ? chunks : []) {
+    const sceneRef = String(chunk?.scene_ref || "").trim();
+    const key = sceneRef
+      ? `${Number(chunk?.block) || 1}:${sceneRef}`
+      : `chunk:${chunk?.id || order.length}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        ...chunk,
+        chunk_ids: [chunk?.id].filter(Boolean),
+        speakers: [chunk?.speaker].filter(Boolean),
+      });
+      order.push(key);
+      continue;
+    }
+    const current = groups.get(key);
+    const startValues = [
+      Number(current.start_s),
+      Number(chunk?.start_s),
+    ].filter(Number.isFinite);
+    const endValues = [Number(current.end_s), Number(chunk?.end_s)].filter(
+      Number.isFinite
+    );
+    groups.set(key, {
+      ...current,
+      text: `${String(current.text || "").trim()} ${String(chunk?.text || "").trim()}`.trim(),
+      text_tagged:
+        `${String(current.text_tagged || current.text || "").trim()} ${String(chunk?.text_tagged || chunk?.text || "").trim()}`.trim(),
+      start_s: startValues.length ? Math.min(...startValues) : current.start_s,
+      end_s: endValues.length ? Math.max(...endValues) : current.end_s,
+      duration_s:
+        endValues.length && startValues.length
+          ? Math.max(...endValues) - Math.min(...startValues)
+          : current.duration_s,
+      chunk_ids: [...(current.chunk_ids || []), chunk?.id].filter(Boolean),
+      speakers: [
+        ...new Set(
+          [...(current.speakers || []), chunk?.speaker].filter(Boolean)
+        ),
+      ],
+    });
+  }
+  return order.map((key) => groups.get(key));
 }
 
 function findWhisperChunkWindow(expectedTokens, words, cursor) {
@@ -712,6 +793,9 @@ export function normalizeNarrationChunkPlan(
         scene_ref: String(
           c.scene_ref || c.scene || `${Number(c.block) || 1}.${idx + 1}`
         ),
+        speech_segment_id: c.speech_segment_id || undefined,
+        speaker: c.speaker || undefined,
+        speech_role: c.speech_role || undefined,
         text: String(c.text || "").trim(),
         text_tagged: sanitizeNarrationChunkTaggedText(
           c.text_tagged || c.text || "",
@@ -839,9 +923,11 @@ export function syncTimelineFromChunkPlan({
   chunkPlan = {},
   visualPrompts = [],
 } = {}) {
-  const timed = resolveChunkTimeline(chunkPlan?.chunks || [], {
-    preferExisting: true,
-  });
+  const timed = aggregateNarrationChunksByScene(
+    resolveChunkTimeline(chunkPlan?.chunks || [], {
+      preferExisting: true,
+    })
+  );
   if (!timed.length) {
     return {
       timelineAssets: { ...timelineAssets },
@@ -1023,7 +1109,10 @@ export function applyChunkPlanToVisualPrompts(
       ? rawChunks
       : computeChunkTimeline(rawChunks);
   const chunkByScene = new Map(
-    timed.map((c) => [String(c.scene_ref || "").trim(), c])
+    aggregateNarrationChunksByScene(timed).map((c) => [
+      String(c.scene_ref || "").trim(),
+      c,
+    ])
   );
   const sceneOrdinalInBlock = new Map();
   const blockCounters = new Map();

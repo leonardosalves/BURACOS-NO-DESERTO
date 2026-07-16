@@ -15566,7 +15566,14 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
       }),
     };
 
-    if (useHeuristic) {
+    const hasReverseDialogue = (storyboard.visual_prompts || []).some(
+      (scene) =>
+        scene?.provenance === "video-reverse-engineering" &&
+        Array.isArray(scene?.speech_segments) &&
+        scene.speech_segments.length > 1
+    );
+
+    if (useHeuristic || hasReverseDialogue) {
       const plan = buildHeuristicNarrationChunks({
         storyboard,
         config,
@@ -15580,7 +15587,7 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
         success: true,
         plan,
         logs: formatNarrationChunkPlanLog(plan),
-        source: "heuristic",
+        source: hasReverseDialogue ? "reverse-dialogue" : "heuristic",
       });
     }
 

@@ -2,11 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   assertNarrationChunksPreserveSource,
+  aggregateNarrationChunksByScene,
+  buildHeuristicNarrationChunks,
   buildNarrationChunkPlan,
   buildNarrationChunkSignature,
   hashNarrationIntegrityText,
   normalizeNarrationChunkPlan,
   resolveExpressivePause,
+  syncTimelineFromChunkPlan,
 } from "./narrationChunks.js";
 
 test("AI chunk plan preserves the approved narration literally", () => {
@@ -100,4 +103,66 @@ test("changing narration text or voice marks generated audio as stale", () => {
     }).chunks[0].status,
     "stale"
   );
+});
+
+test("multi-character speech creates separate TTS chunks but one visual scene", () => {
+  const narration = "Você chegou cedo. Eu nunca fui embora.";
+  const plan = buildHeuristicNarrationChunks({
+    storyboard: {
+      narrative_script: narration,
+      visual_prompts: [
+        {
+          block: 1,
+          scene: "1.1",
+          narration_text: narration,
+          speech_segments: [
+            {
+              id: "a",
+              speaker: "Ana",
+              role: "character",
+              text: "Você chegou cedo.",
+            },
+            {
+              id: "b",
+              speaker: "Bruno",
+              role: "character",
+              text: "Eu nunca fui embora.",
+            },
+          ],
+        },
+      ],
+    },
+  });
+
+  assert.equal(plan.chunks.length, 2);
+  assert.equal(plan.chunks[0].scene_ref, "1.1");
+  assert.equal(plan.chunks[1].scene_ref, "1.1");
+  assert.deepEqual(
+    plan.chunks.map((chunk) => chunk.speaker),
+    ["Ana", "Bruno"]
+  );
+
+  const visualScenes = aggregateNarrationChunksByScene([
+    { ...plan.chunks[0], start_s: 0, end_s: 1.2 },
+    { ...plan.chunks[1], start_s: 1.38, end_s: 2.8 },
+  ]);
+  assert.equal(visualScenes.length, 1);
+  assert.equal(visualScenes[0].start_s, 0);
+  assert.equal(visualScenes[0].end_s, 2.8);
+  assert.deepEqual(visualScenes[0].speakers, ["Ana", "Bruno"]);
+
+  const synced = syncTimelineFromChunkPlan({
+    timelineAssets: { 1: [{ asset: "scene.mp4", type: "video" }] },
+    chunkPlan: {
+      chunks: [
+        { ...plan.chunks[0], start_s: 0, end_s: 1.2 },
+        { ...plan.chunks[1], start_s: 1.38, end_s: 2.8 },
+      ],
+    },
+    visualPrompts: [{ block: 1, scene: "1.1", narration_text: narration }],
+  });
+  assert.equal(synced.timelineAssets["1"].length, 1);
+  assert.equal(synced.timelineAssets["1"][0].fixed, 2.8);
+  assert.equal(synced.visualPrompts.length, 1);
+  assert.equal(synced.visualPrompts[0].narration_text, narration);
 });
