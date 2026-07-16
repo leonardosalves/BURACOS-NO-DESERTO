@@ -22,6 +22,7 @@ import { SectionHeader } from "./SectionHeader";
 import { NarrationReviewPanel } from "./NarrationReviewPanel";
 import { NarrationChunksPanel } from "./NarrationChunksPanel";
 import { TtsVoiceStudioPanel } from "./TtsVoiceStudioPanel";
+import { AssetCleanupPanel } from "./AssetCleanupPanel";
 import { warnLongListicleTitles } from "./listicleTitleUtils";
 import { CreatorProductionPlanPanel } from "./CreatorProductionPlanPanel";
 import { GeoVideoWizardPanel } from "./GeoVideoWizardPanel";
@@ -2274,6 +2275,14 @@ export function AppCreatorTab({
               identity={modeIdentity}
               icon={CheckCircle}
               status={rendering ? "Renderizando" : "Pronto para compilar"}
+            />
+
+            <AssetCleanupPanel
+              timelineAssets={config?.timeline_assets || {}}
+              getProjectUrl={getProjectUrl}
+              getMediaUrl={(file) => getMusicUrl(file, activeProject)}
+              toast={(message) => toast(message)}
+              onApplied={fetchData}
             />
 
             {(youtubeLoading || youtubeMetadataParsed?.titles?.length) && (

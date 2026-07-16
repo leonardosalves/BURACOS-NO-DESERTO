@@ -15,6 +15,7 @@ import {
   scheduleLumieraServiceRestart,
 } from "./lumieraServiceOps.js";
 import { registerProjectHealthRoutes } from "./projectHealthRoutes.js";
+import { registerAssetCleanupRoutes } from "./assetCleanupRoutes.js";
 import { buildGeminiKeyPool, shouldRotateGeminiKey } from "./geminiApiKeys.js";
 import {
   searchMusic,
@@ -21287,6 +21288,8 @@ registerProjectHealthRoutes(app, {
   getProjectDir,
   countActiveRenderJobs,
 });
+
+registerAssetCleanupRoutes(app, { getProjectDir });
 
 registerTimelineStudioRoutes(app, {
   getProjectDir,
