@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Cloud,
+  Fingerprint,
   Globe,
   Home,
   HeartPulse,
@@ -50,13 +51,6 @@ const STUDIO_NAV: GlobalNavItem[] = [
     icon: HeartPulse,
     helpId: "tab-project-health",
     accent: "sky",
-  },
-  {
-    id: "humor-facts",
-    label: "Fatos com Graca",
-    icon: Laugh,
-    helpId: "tab-humor-facts",
-    accent: "amber",
   },
   { id: "agents", label: "Studio Agents", icon: Bot, helpId: "tab-agents" },
   {
@@ -347,18 +341,36 @@ export function AppShell({
               helpId="tab-home"
             />
             <SidebarLink
-              active={activeTab === "creator"}
-              onClick={onOpenCreator}
-              icon={Sparkles}
-              label="Novo Projeto com IA"
-              helpId="tab-creator"
-            />
-            <SidebarLink
               active={activeTab === "projects"}
               onClick={() => setActiveTab("projects")}
               icon={Tv}
               label="Biblioteca de Projetos"
               helpId="tab-projects"
+            />
+          </ul>
+
+          <p className="dash-nav-category">Criadores</p>
+          <ul className="dash-nav-list">
+            <SidebarLink
+              active={activeTab === "creator"}
+              onClick={onOpenCreator}
+              icon={Sparkles}
+              label="Criador Principal"
+              helpId="tab-creator"
+            />
+            <SidebarLink
+              active={activeTab === "humor-facts"}
+              onClick={() => setActiveTab("humor-facts")}
+              icon={Laugh}
+              label="Fatos com Graca"
+              helpId="tab-humor-facts"
+            />
+            <SidebarLink
+              active={activeTab === "video-reverse-engineering"}
+              onClick={() => setActiveTab("video-reverse-engineering")}
+              icon={Fingerprint}
+              label="Engenharia Reversa"
+              helpId="tab-video-reverse-engineering"
             />
           </ul>
 

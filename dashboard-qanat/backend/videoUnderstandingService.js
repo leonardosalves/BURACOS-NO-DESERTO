@@ -42,8 +42,6 @@ function extractJsonFromText(text) {
   }
 }
 
-
-
 /** Candidatos a yt-dlp — serviço Windows (SYSTEM) NÃO vê o PATH do usuário Leo. */
 export function ytDlpCandidates() {
   const home = os.homedir();
@@ -60,10 +58,44 @@ export function ytDlpCandidates() {
     "C:\\Users\\Leo\\.agent-reach-venv\\Scripts\\yt-dlp.exe",
     path.join(home, ".agent-reach-venv", "Scripts", "yt-dlp.exe"),
     path.join(home, ".agent-reach-venv", "bin", "yt-dlp"),
-    path.join(home, "AppData", "Local", "Programs", "Python", "Python312", "Scripts", "yt-dlp.exe"),
-    path.join(home, "AppData", "Local", "Programs", "Python", "Python311", "Scripts", "yt-dlp.exe"),
-    path.join(home, "AppData", "Roaming", "Python", "Python312", "Scripts", "yt-dlp.exe"),
-    path.join(home, "AppData", "Local", "Microsoft", "WinGet", "Links", "yt-dlp.exe"),
+    path.join(
+      home,
+      "AppData",
+      "Local",
+      "Programs",
+      "Python",
+      "Python312",
+      "Scripts",
+      "yt-dlp.exe"
+    ),
+    path.join(
+      home,
+      "AppData",
+      "Local",
+      "Programs",
+      "Python",
+      "Python311",
+      "Scripts",
+      "yt-dlp.exe"
+    ),
+    path.join(
+      home,
+      "AppData",
+      "Roaming",
+      "Python",
+      "Python312",
+      "Scripts",
+      "yt-dlp.exe"
+    ),
+    path.join(
+      home,
+      "AppData",
+      "Local",
+      "Microsoft",
+      "WinGet",
+      "Links",
+      "yt-dlp.exe"
+    ),
     "C:\\yt-dlp\\yt-dlp.exe",
     "yt-dlp",
     "yt-dlp.exe",
@@ -100,7 +132,11 @@ export async function fetchTikTokOembed(url) {
     const data = await res.json();
     // TikTok joga a legenda inteira em title; separamos título curto + descrição
     const full = String(data.title || data.author_name || "").trim();
-    const shortTitle = full.split(/[.!?\n]/)[0]?.trim().slice(0, 120) || full.slice(0, 120);
+    const shortTitle =
+      full
+        .split(/[.!?\n]/)[0]
+        ?.trim()
+        .slice(0, 120) || full.slice(0, 120);
     return {
       ok: Boolean(full),
       source: "tiktok_oembed",
@@ -137,7 +173,8 @@ export function mergeVideoContexts(...contexts) {
     if (!base.thumbnail && c.thumbnail) base.thumbnail = c.thumbnail;
     if (!base.webpage_url && c.webpage_url) base.webpage_url = c.webpage_url;
     if (!base.transcript && c.transcript) base.transcript = c.transcript;
-    if (!base.duration_sec && c.duration_sec) base.duration_sec = c.duration_sec;
+    if (!base.duration_sec && c.duration_sec)
+      base.duration_sec = c.duration_sec;
     if ((!base.tags || !base.tags.length) && c.tags?.length) base.tags = c.tags;
   }
   base.ok = Boolean(base.title || base.description || base.transcript);
@@ -155,7 +192,10 @@ async function runYtDlp(args, { timeoutMs = 120_000 } = {}) {
       return await runCommand(bin, args, { timeoutMs });
     } catch (err) {
       lastErr = err;
-      if (err.code === "ENOENT" || /ENOENT|not found|não é reconhecido/i.test(err.message)) {
+      if (
+        err.code === "ENOENT" ||
+        /ENOENT|not found|não é reconhecido/i.test(err.message)
+      ) {
         continue;
       }
       // Outros erros (rede, extractor) — tenta próximo bin só se for ENOENT
@@ -163,7 +203,12 @@ async function runYtDlp(args, { timeoutMs = 120_000 } = {}) {
       throw err;
     }
   }
-  throw lastErr || new Error("yt-dlp não encontrado no PATH (serviço Windows sem venv do usuário)");
+  throw (
+    lastErr ||
+    new Error(
+      "yt-dlp não encontrado no PATH (serviço Windows sem venv do usuário)"
+    )
+  );
 }
 
 /** Resolve vt.tiktok.com → URL canônica quando possível. */
@@ -200,7 +245,9 @@ export async function fetchVideoContextViaYtDlp(url) {
     );
     const meta = JSON.parse(stdout.trim().split(/\r?\n/).pop() || "{}");
     const title = String(meta.title || meta.fulltitle || "").trim();
-    const description = String(meta.description || "").trim().slice(0, 4000);
+    const description = String(meta.description || "")
+      .trim()
+      .slice(0, 4000);
     const duration = Number(meta.duration) || null;
     const uploader = String(
       meta.uploader || meta.channel || meta.creator || ""
@@ -212,7 +259,10 @@ export async function fetchVideoContextViaYtDlp(url) {
       meta.thumbnail || meta.thumbnails?.[0]?.url || ""
     ).trim();
     const tags = Array.isArray(meta.tags)
-      ? meta.tags.map((t) => String(t)).filter(Boolean).slice(0, 20)
+      ? meta.tags
+          .map((t) => String(t))
+          .filter(Boolean)
+          .slice(0, 20)
       : [];
 
     let transcript = "";
@@ -251,7 +301,10 @@ export async function fetchVideoContextViaYtDlp(url) {
             .filter(Boolean)
             .join(" ")
             .replace(/\s+/g, " ")
-            .slice(0, 12_000);
+            // Engenharia reversa precisa do roteiro inteiro, não só de um
+            // resumo curto. O limite ainda protege o contexto contra VTTs
+            // anormalmente grandes.
+            .slice(0, 80_000);
         }
       } catch {
         /* optional */
@@ -331,7 +384,9 @@ const STOPWORDS = new Set(
   `a o e de da do das dos um uma em no na nos nas que se por para com sem sobre
    the a an of to and in on for with your you this that is are was were it
    video vídeo sobre como mais maior maiores ja já pela pelo pelas pelos
-   descubra conheça conheca neste nessa`.split(/\s+/).filter(Boolean)
+   descubra conheça conheca neste nessa`
+    .split(/\s+/)
+    .filter(Boolean)
 );
 
 export function tokenizeEvidence(text = "") {
@@ -369,7 +424,10 @@ export function scoreSummaryGrounding(summary = "", evidence = "") {
   return Math.min(1, hits / Math.max(1, Math.min(uniqueEv.length, 12)));
 }
 
-export function buildMetadataGroundedUnderstanding(ytContext = {}, metadata = {}) {
+export function buildMetadataGroundedUnderstanding(
+  ytContext = {},
+  metadata = {}
+) {
   const title = String(ytContext.title || metadata.title || "").trim();
   const description = String(
     ytContext.description || metadata.description || ""
@@ -587,7 +645,10 @@ async function resolveVideoEvidence(url, format, workspaceDir) {
 
   // Evidência real: yt-dlp (se existir no serviço) + oEmbed TikTok (sempre no SYSTEM)
   let ytContext = await fetchVideoContextViaYtDlp(parsed.canonicalUrl);
-  if (parsed.platform === "tiktok" || /tiktok\.com/i.test(parsed.canonicalUrl)) {
+  if (
+    parsed.platform === "tiktok" ||
+    /tiktok\.com/i.test(parsed.canonicalUrl)
+  ) {
     const oembed = await fetchTikTokOembed(parsed.canonicalUrl || url);
     ytContext = mergeVideoContexts(ytContext, oembed);
     if (oembed.ok) {
@@ -643,11 +704,7 @@ async function runVideoAnalysis({
   });
 
   async function runTextAnalysis(ctx) {
-    return callGeminiWithRetry(
-      apiKey,
-      prompt,
-      geminiVideoOpts(workspaceDir)
-    );
+    return callGeminiWithRetry(apiKey, prompt, geminiVideoOpts(workspaceDir));
   }
 
   async function runInlineVideoAnalysis(sample) {
@@ -659,7 +716,11 @@ async function runVideoAnalysis({
       },
     };
     const bodyOverride = buildMultimodalBody(prompt, mediaPart);
-    return callGeminiWithRetry(apiKey, prompt, geminiVideoOpts(workspaceDir, { bodyOverride }));
+    return callGeminiWithRetry(
+      apiKey,
+      prompt,
+      geminiVideoOpts(workspaceDir, { bodyOverride })
+    );
   }
 
   let text = "";
@@ -727,8 +788,8 @@ async function runVideoAnalysis({
         if (!ytContext?.ok) {
           throw new Error(
             sample.error ||
-            ytContext?.error ||
-            "Não foi possível baixar nem ler metadados do TikTok/Instagram. Verifique yt-dlp no serviço Windows."
+              ytContext?.error ||
+              "Não foi possível baixar nem ler metadados do TikTok/Instagram. Verifique yt-dlp no serviço Windows."
           );
         }
         text = await runTextAnalysis(ytContext);
@@ -899,7 +960,11 @@ export async function analyzeVideoUnderstanding({
   }
 }
 
-function buildEnrichedReferencePrompt(basePrompt, understanding, metadata = {}) {
+function buildEnrichedReferencePrompt(
+  basePrompt,
+  understanding,
+  metadata = {}
+) {
   if (!understanding) return basePrompt;
   const metaBlock =
     metadata.title || metadata.description
@@ -991,10 +1056,7 @@ export async function runAnalyzeReferenceVideoDeep(opts = {}) {
 
   const understanding = video.ok ? video.understanding : null;
   if (!video.ok) {
-    console.warn(
-      "[VideoUnderstanding] Multimodal falhou:",
-      video.error
-    );
+    console.warn("[VideoUnderstanding] Multimodal falhou:", video.error);
     // TikTok sem metadados: NÃO seguir com brief inventado
     if (/tiktok\.com/i.test(url) || video.parsed?.platform === "tiktok") {
       return {
@@ -1060,11 +1122,7 @@ export async function runAnalyzeReferenceVideoDeep(opts = {}) {
   }
 
   // Se o brief inventar tema alheio, ancora content_summary no understanding
-  if (
-    understanding?.summary &&
-    reference.brief &&
-    video.metadata?.title
-  ) {
+  if (understanding?.summary && reference.brief && video.metadata?.title) {
     const briefScore = scoreSummaryGrounding(
       String(reference.brief.content_summary || ""),
       `${video.metadata.title} ${video.metadata.description || ""} ${understanding.summary}`

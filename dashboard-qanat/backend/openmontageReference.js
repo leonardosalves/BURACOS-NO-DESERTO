@@ -25,27 +25,44 @@ export function parseReferenceUrl(rawUrl) {
   }
 
   if (/tiktok\.com/i.test(url)) {
-    return { valid: true, platform: "tiktok", videoId: null, canonicalUrl: url };
+    const videoId = url.match(/\/video\/(\d+)/i)?.[1] || null;
+    return { valid: true, platform: "tiktok", videoId, canonicalUrl: url };
   }
   if (/instagram\.com\/(reel|p)\//i.test(url)) {
-    return { valid: true, platform: "instagram", videoId: null, canonicalUrl: url };
+    return {
+      valid: true,
+      platform: "instagram",
+      videoId: null,
+      canonicalUrl: url,
+    };
   }
 
   try {
     const parsed = new URL(url);
     if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-      return { valid: true, platform: "generic", videoId: null, canonicalUrl: url };
+      return {
+        valid: true,
+        platform: "generic",
+        videoId: null,
+        canonicalUrl: url,
+      };
     }
   } catch {
     /* fallthrough */
   }
 
-  return { valid: false, error: "URL não reconhecida — use YouTube, Shorts, TikTok ou Instagram" };
+  return {
+    valid: false,
+    error: "URL não reconhecida — use YouTube, Shorts, TikTok ou Instagram",
+  };
 }
 
 async function fetchJson(url, opts = {}) {
   const res = await fetch(url, {
-    headers: { "User-Agent": "Lumiera-OpenMontage/1.0", ...(opts.headers || {}) },
+    headers: {
+      "User-Agent": "Lumiera-OpenMontage/1.0",
+      ...(opts.headers || {}),
+    },
     signal: AbortSignal.timeout(15000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -60,7 +77,8 @@ export async function fetchYoutubeMetadata(videoId) {
     return {
       title: data.title || "",
       author: data.author_name || "",
-      thumbnail: data.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      thumbnail:
+        data.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
       provider: data.provider_name || "YouTube",
       watchUrl,
     };
@@ -76,7 +94,13 @@ export async function fetchYoutubeMetadata(videoId) {
   }
 }
 
-export function buildReferenceAnalysisPrompt({ parsed, metadata, format, niche, topic }) {
+export function buildReferenceAnalysisPrompt({
+  parsed,
+  metadata,
+  format,
+  niche,
+  topic,
+}) {
   const fmt = format === "LONGO" ? "vídeo longo (16:9)" : "Short (9:16, ≤60s)";
   return `Você é o analista de vídeo de referência do Lumiera (padrão OpenMontage).
 
@@ -149,14 +173,17 @@ function extractJsonFromText(text) {
 export function buildFallbackBrief({ parsed, metadata, format, niche, topic }) {
   const isShort = format !== "LONGO";
   const title = metadata.title || "Vídeo de referência";
-  const twist = topic || `versão ${niche || "curiosidades"} com ângulo surpreendente`;
+  const twist =
+    topic || `versão ${niche || "curiosidades"} com ângulo surpreendente`;
   const creatorTitle = isShort
     ? `${title.slice(0, 40)} — reimaginado`
     : title.slice(0, 60);
 
   return {
     content_summary: `Referência: "${title}" (${metadata.author || parsed.platform}). Análise heurística — configure Gemini para brief completo.`,
-    style_profile: isShort ? "Ritmo rápido, cortes curtos, gancho nos 3s" : "Narrativa documental, blocos temáticos",
+    style_profile: isShort
+      ? "Ritmo rápido, cortes curtos, gancho nos 3s"
+      : "Narrativa documental, blocos temáticos",
     structure: {
       estimated_duration_sec: isShort ? 45 : 480,
       scene_count_estimate: isShort ? 6 : 12,
@@ -167,7 +194,11 @@ export function buildFallbackBrief({ parsed, metadata, format, niche, topic }) {
       slideshow_risk: "medium",
     },
     hook_technique: "Pergunta ou fato chocante nos primeiros 3 segundos",
-    what_works: ["Gancho claro no título", "Estrutura em blocos", "Visual de apoio à narração"],
+    what_works: [
+      "Gancho claro no título",
+      "Estrutura em blocos",
+      "Visual de apoio à narração",
+    ],
     five_aspects: {
       subject: "Derivar do tema do título",
       subject_motion: "N/A — inferir com IA",
@@ -198,7 +229,9 @@ export function buildFallbackBrief({ parsed, metadata, format, niche, topic }) {
     recommended_concept: "A",
     lumiera_requirement: `Criar ${isShort ? "Short viral" : "vídeo longo"} inspirado em "${title}" (${parsed.canonicalUrl}) com twist: ${twist}. Manter gancho forte e pacing ${isShort ? "rápido" : "documental"}, usar stock + overlays Lumiera, metadados SEO.`,
     creator_title: creatorTitle,
-    creator_hook: isShort ? "Você viu isso — mas não dessa forma." : "A história que o vídeo original não contou.",
+    creator_hook: isShort
+      ? "Você viu isso — mas não dessa forma."
+      : "A história que o vídeo original não contou.",
     _fallback: true,
   };
 }
@@ -231,7 +264,13 @@ export async function analyzeReferenceVideo(opts) {
     metadata = { ...metadata, ...(await fetchYoutubeMetadata(parsed.videoId)) };
   }
 
-  const prompt = buildReferenceAnalysisPrompt({ parsed, metadata, format, niche, topic });
+  const prompt = buildReferenceAnalysisPrompt({
+    parsed,
+    metadata,
+    format,
+    niche,
+    topic,
+  });
   let brief = null;
   let aiEnhanced = false;
 
@@ -256,6 +295,7 @@ export async function analyzeReferenceVideo(opts) {
     metadata,
     brief,
     aiEnhanced,
-    promptHint: "Use lumiera_requirement no VideoAgent ou creator_title/hook no Creator",
+    promptHint:
+      "Use lumiera_requirement no VideoAgent ou creator_title/hook no Creator",
   };
 }
