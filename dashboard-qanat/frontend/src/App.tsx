@@ -4378,6 +4378,23 @@ export default function App() {
             );
             return;
           }
+          // Compatibilidade com backends ainda não reiniciados: a geração
+          // TTS pode ter consolidado os slots no disco enquanto o React ainda
+          // carrega a timeline antiga. Releia a fonte de verdade antes de
+          // permitir qualquer save local, evitando ressuscitar placeholders.
+          const freshConfigRes = await fetch(getProjectUrl("/api/config"), {
+            cache: "no-store",
+          });
+          if (freshConfigRes.ok) {
+            const freshConfig = await freshConfigRes.json();
+            if (
+              freshConfig?.timeline_assets &&
+              typeof freshConfig.timeline_assets === "object"
+            ) {
+              setConfig(freshConfig);
+              return;
+            }
+          }
           const blockKey =
             assetIdx !== undefined
               ? String(sceneNum)
