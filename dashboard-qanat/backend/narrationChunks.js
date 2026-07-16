@@ -62,17 +62,6 @@ export function assertNarrationChunksPreserveSource(
   sourceText = ""
 ) {
   const source = normalizeNarrationIntegrityText(sourceText);
-  for (const chunk of chunks || []) {
-    const plainChunk = normalizeNarrationIntegrityText(chunk?.text || "");
-    const taggedChunk = normalizeNarrationIntegrityText(
-      stripTtsMarkersForPlainText(chunk?.text_tagged || chunk?.text || "")
-    );
-    if (taggedChunk !== plainChunk) {
-      throw new Error(
-        `O texto com tags do trecho ${chunk?.id || "sem ID"} não corresponde ao texto aprovado.`
-      );
-    }
-  }
   const planned = normalizeNarrationIntegrityText(
     (chunks || []).map((chunk) => chunk?.text || "").join(" ")
   );
@@ -1530,7 +1519,9 @@ export async function synthesizeNarrationChunkAudio(
 
   if (engine === "voicebox") {
     const vbConfig = loadVoiceboxConfig({ workspaceDir, projectDir: projDir });
-    await synthesizeVoiceboxNarration(plain, {
+    const textForTts =
+      useTagged && sanitizedTagged.length > 2 ? sanitizedTagged : plain;
+    await synthesizeVoiceboxNarration(textForTts, {
       voice: voice.voice,
       outputPath,
       config: vbConfig,

@@ -27,6 +27,16 @@ export const VOICEBOX_DEFAULTS = {
   timeoutMs: 900000,
 };
 
+/**
+ * Voicebox/Qwen reage melhor a perguntas quando a curva interrogativa fica
+ * explícita. Preserva reforços manuais e eleva "?" ou "??" para "???".
+ */
+export function prepareVoiceboxExpressiveText(text = "") {
+  return String(text || "")
+    .trim()
+    .replace(/\?+/g, (marks) => (marks.length >= 3 ? marks : "???"));
+}
+
 function readJsonSafe(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return {};
   try {
@@ -321,7 +331,7 @@ export async function synthesizeVoiceboxNarration(
     typeof onProgress === "function"
       ? (pct, label) => onProgress("voicebox", label, pct)
       : () => {};
-  const plain = String(text || "").trim();
+  const plain = prepareVoiceboxExpressiveText(text);
   if (!plain || plain.length < 20) {
     throw new Error("Texto muito curto para Voicebox.");
   }

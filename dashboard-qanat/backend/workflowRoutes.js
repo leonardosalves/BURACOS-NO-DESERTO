@@ -48,6 +48,7 @@ import {
   probeVoiceboxServer,
   buildVoiceboxVoiceList,
   buildVoiceboxStatusHint,
+  prepareVoiceboxExpressiveText,
   synthesizeVoiceboxNarration,
 } from "./voiceboxTts.js";
 import {
@@ -901,15 +902,18 @@ export function registerWorkflowRoutes(app, deps) {
       const { text_tagged: taggedText = "", engine = "fish" } = req.body || {};
       const normalizedEngine = String(engine).toLowerCase();
       const isFishEngine = normalizedEngine.includes("fish");
+      const isVoiceboxEngine = normalizedEngine.includes("voicebox");
       const platform = normalizedEngine.includes("chatterbox")
         ? "chatterbox"
         : normalizedEngine.includes("eleven")
           ? "eleven"
           : "fish";
       const sanitized = sanitizeNarrationChunkTaggedText(taggedText);
-      const preview = convertCinematicMarkersForTts(sanitized, platform, {
-        stripEmphasis: true,
-      });
+      const preview = isVoiceboxEngine
+        ? prepareVoiceboxExpressiveText(sanitized)
+        : convertCinematicMarkersForTts(sanitized, platform, {
+            stripEmphasis: true,
+          });
       const fishRequest = isFishEngine
         ? buildFishSpeechRequestBody(
             preview,
@@ -929,7 +933,7 @@ export function registerWorkflowRoutes(app, deps) {
       res.json({
         preview: fishRequest?.text || preview,
         tags,
-        platform,
+        platform: isVoiceboxEngine ? "voicebox" : platform,
         normalization: fishRequest?.normalize ?? null,
         independent_chunk: fishRequest
           ? !fishRequest.condition_on_previous_chunks

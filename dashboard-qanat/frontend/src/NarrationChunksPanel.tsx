@@ -156,6 +156,7 @@ export function NarrationChunksPanel({
   const [auditReviews, setAuditReviews] = useState<Record<string, any>>({});
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
+  const [approvingAll, setApprovingAll] = useState(false);
   const chunkAudioRef = useRef<{ audio: HTMLAudioElement; key: string } | null>(
     null
   );
@@ -203,6 +204,38 @@ export function NarrationChunksPanel({
       toast(err instanceof Error ? err.message : "Falha ao salvar revisão.");
     } finally {
       setSavingReviewId(null);
+    }
+  };
+
+  const approveAllAuditChunks = async () => {
+    const sourceIds = auditComparison.length
+      ? auditComparison.map((row) => String(row.chunk_id || ""))
+      : (localPlan?.chunks || []).map((chunk) => chunk.id);
+    const chunkIds = [...new Set(sourceIds.filter(Boolean))].filter(
+      (chunkId) => auditReviews[chunkId]?.decision !== "approved"
+    );
+    if (!chunkIds.length) {
+      toast("Todos os trechos já estão aprovados.");
+      return;
+    }
+    setApprovingAll(true);
+    try {
+      const res = await fetch(
+        getProjectUrl("/api/narration/audit/review-all"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chunk_ids: chunkIds, decision: "approved" }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Falha ao aprovar trechos.");
+      toast(`${data.count || chunkIds.length} trecho(s) aprovado(s).`);
+      await loadAudit();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Falha ao aprovar trechos.");
+    } finally {
+      setApprovingAll(false);
     }
   };
 
@@ -663,6 +696,20 @@ export function NarrationChunksPanel({
         <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-wider text-cyan-300">
           Auditoria da narração · {auditEvents.length} evento(s) recentes
         </summary>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-500/15 bg-emerald-500/[0.05] p-2.5">
+          <p className="text-[9px] text-zinc-400">
+            Revise exceções individualmente ou aprove todos os trechos de uma
+            vez.
+          </p>
+          <button
+            type="button"
+            disabled={approvingAll || !chunks.length}
+            onClick={() => void approveAllAuditChunks()}
+            className="rounded-lg border border-emerald-500/25 bg-emerald-500/15 px-3 py-1.5 text-[9px] font-bold text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {approvingAll ? "Aprovando…" : "Aprovar todas"}
+          </button>
+        </div>
         <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
           {auditComparison.length > 0 && (
             <div className="mb-3 space-y-1.5 border-b border-zinc-800 pb-3 text-[10px]">
@@ -1045,27 +1092,51 @@ export function NarrationChunksPanel({
                   {expandedTagsChunkId === chunk.id && (
                     <div className="space-y-1.5 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-2">
                       <label className="text-[8px] text-cyan-300/80 uppercase font-bold flex items-center gap-1">
-                        <Eye className="w-3 h-3" /> Texto com tags (enviado ao
-                        TTS se ativo)
+                        <Eye className="w-3 h-3" /> Texto expressivo enviado ao
+                        TTS
                       </label>
+                      <p className="text-[9px] leading-4 text-zinc-500">
+                        Você pode corrigir palavras, pontuação ou acrescentar
+                        interrogações. Este campo controla somente o áudio deste
+                        trecho; o texto aprovado continua preservado para
+                        auditoria.
+                      </p>
                       <textarea
                         value={chunk.text_tagged ?? chunk.text}
-                        onChange={(e) =>
-                          patchChunk(chunk.id, { text_tagged: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setUseTagged(true);
+                          patchChunk(chunk.id, { text_tagged: e.target.value });
+                        }}
                         rows={3}
-                        placeholder="Texto do trecho (sem breath nem ênfase — pausas no campo ms)"
+                        placeholder="Edite exatamente como deseja enviar ao TTS. Ex.: Isso aconteceu mesmo???"
                         className="w-full text-[11px] font-mono bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-zinc-200"
                       />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          patchChunk(chunk.id, { text_tagged: chunk.text })
-                        }
-                        className="text-[8px] text-zinc-500 hover:text-zinc-300"
-                      >
-                        Copiar texto limpo → tags
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            patchChunk(chunk.id, { text_tagged: chunk.text })
+                          }
+                          className="text-[8px] text-zinc-500 hover:text-zinc-300"
+                        >
+                          Restaurar texto original
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUseTagged(true);
+                            const current = String(
+                              chunk.text_tagged || chunk.text || ""
+                            ).trim();
+                            patchChunk(chunk.id, {
+                              text_tagged: `${current.replace(/[.!?]+$/g, "")}???`,
+                            });
+                          }}
+                          className="rounded-md border border-cyan-500/25 bg-cyan-500/10 px-2 py-1 text-[8px] font-bold text-cyan-200 hover:bg-cyan-500/20"
+                        >
+                          Forçar entonação de pergunta ???
+                        </button>
+                      </div>
                       {useTagged && tagPreviews[chunk.id]?.preview && (
                         <div className="text-[9px] text-zinc-500 space-y-1">
                           <p className="text-cyan-400/70 uppercase text-[7px] font-bold">
