@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  BarChart3,
   Bot,
   Clapperboard,
   CalendarDays,
@@ -12,7 +13,9 @@ import {
   HeartPulse,
   LayoutTemplate,
   Laugh,
+  Lightbulb,
   Menu,
+  PenTool,
   RefreshCw,
   RotateCcw,
   Search,
@@ -34,6 +37,7 @@ import { SECTION_HELP } from "./sectionHelpContent";
 import { useBackendHealth } from "./useBackendHealth";
 import type { ProjectListItem } from "./ProjectsLibraryPanel";
 import type { AppTab } from "./appTabs";
+import type { CreatorIdeationMode } from "./creatorModeIdentity";
 
 type GlobalNavItem = {
   id: AppTab;
@@ -118,7 +122,8 @@ type AppShellProps = {
   projects: ProjectListItem[];
   recentProjects: string[];
   onSelectProject: (name: string) => void;
-  onOpenCreator: () => void;
+  creatorMode: CreatorIdeationMode;
+  onSelectCreatorMode: (mode: CreatorIdeationMode) => void;
   formattedHeaderDate: string;
   headerTemperatureLabel: string;
   youtubeAlertCount?: number;
@@ -181,7 +186,8 @@ export function AppShell({
   projects,
   recentProjects,
   onSelectProject,
-  onOpenCreator,
+  creatorMode,
+  onSelectCreatorMode,
   formattedHeaderDate,
   headerTemperatureLabel,
   youtubeAlertCount = 0,
@@ -352,11 +358,34 @@ export function AppShell({
           <p className="dash-nav-category">Criadores</p>
           <ul className="dash-nav-list">
             <SidebarLink
-              active={activeTab === "creator"}
-              onClick={onOpenCreator}
-              icon={Sparkles}
-              label="Criador Principal"
+              active={activeTab === "creator" && creatorMode === "ai"}
+              onClick={() => onSelectCreatorMode("ai")}
+              icon={Lightbulb}
+              label="Radar de Ideias"
               helpId="tab-creator"
+            />
+            <SidebarLink
+              active={activeTab === "creator" && creatorMode === "custom"}
+              onClick={() => onSelectCreatorMode("custom")}
+              icon={PenTool}
+              label="Oficina Autoral"
+              helpId="creator-script-strategy"
+            />
+            <SidebarLink
+              active={activeTab === "creator" && creatorMode === "listicle"}
+              onClick={() => onSelectCreatorMode("listicle")}
+              icon={BarChart3}
+              label="Ranking Lab"
+              helpId="creator-listicle"
+            />
+            <SidebarLink
+              active={
+                activeTab === "creator" && creatorMode === "historical-witness"
+              }
+              onClick={() => onSelectCreatorMode("historical-witness")}
+              icon={Clapperboard}
+              label="História Viva"
+              helpId="creator-step-ideas"
             />
             <SidebarLink
               active={activeTab === "humor-facts"}

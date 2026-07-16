@@ -1,9 +1,14 @@
 import toast from "react-hot-toast";
 import React, { lazy, Suspense } from "react";
 import {
+  ArrowRight,
+  BarChart3,
   Check,
   Chrome,
   Copy,
+  Film,
+  Lightbulb,
+  PenTool,
   Play,
   RefreshCw,
   Sparkles,
@@ -53,6 +58,7 @@ import {
   creatorTimelineReady,
   creatorWizardPhaseIndex,
 } from "./creatorWizardFlow";
+import { resolveCreatorModeIdentity } from "./creatorModeIdentity";
 
 export type AppCreatorTabProps = {
   activeProject: string;
@@ -441,19 +447,29 @@ export function AppCreatorTab({
     chunkPlanReady: narrationWizardReadiness.ready,
     whisperReady: isWhisperTimelineReady(wordTranscripts, status),
   });
+  const modeIdentity = resolveCreatorModeIdentity(ideationTab);
+  const ModeIcon =
+    ideationTab === "custom"
+      ? PenTool
+      : ideationTab === "listicle"
+        ? BarChart3
+        : ideationTab === "historical-witness"
+          ? Film
+          : Lightbulb;
   return (
     <DashminPageLayout
       className="lumiera-fill-view overflow-hidden"
-      title="Criador de Vídeos com IA"
-      subtitle={`Fluxo editorial em 5 fases · ${CREATOR_WIZARD_PHASES[wizardPhaseIndex].label}`}
-      breadcrumb={["Dashboard", "Produção", "Creator IA"]}
-      icon={<Sparkles className="w-5 h-5 animate-pulse" />}
+      title={modeIdentity.title}
+      subtitle={`${modeIdentity.subtitle} · ${CREATOR_WIZARD_PHASES[wizardPhaseIndex].label}`}
+      breadcrumb={["Dashboard", "Criadores", modeIdentity.menuLabel]}
+      icon={<ModeIcon className={`w-5 h-5 ${modeIdentity.accentText}`} />}
     >
       <div className="relative shrink-0 space-y-4 overflow-hidden rounded-3xl border border-dash-border bg-[#0a0b0e] p-5 shadow-2xl shadow-black/20">
         <div className="flex flex-wrap items-center gap-2 mb-3 text-[10px]">
           {wizardSavedAtLabel ? (
             <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
-              Sessão salva {wizardSavedAtLabel} · passo {creatorStep}/7
+              Sessão salva {wizardSavedAtLabel} · fase {wizardPhaseIndex + 1}/
+              {CREATOR_WIZARD_PHASES.length}
             </span>
           ) : null}
           <button
@@ -599,13 +615,55 @@ export function AppCreatorTab({
 
         {creatorStep === 1 && (
           <div className="space-y-8 max-w-4xl mx-auto font-sans">
-            {/* Step 1 Header & Tabs Selector */}
+            <section
+              className={`relative isolate overflow-hidden rounded-[28px] border ${modeIdentity.accentBorder} bg-[#0b0c0f] px-5 py-6 sm:px-7 sm:py-8`}
+            >
+              <div
+                className={`pointer-events-none absolute inset-0 -z-10 ${modeIdentity.halo}`}
+              />
+              <div className="pointer-events-none absolute inset-y-0 right-8 -z-10 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+              <div className="grid gap-7 md:grid-cols-[1.45fr_0.8fr] md:items-end">
+                <div>
+                  <div
+                    className={`mb-5 inline-flex items-center gap-2 rounded-full border ${modeIdentity.accentBorder} ${modeIdentity.accentSurface} px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] ${modeIdentity.accentText}`}
+                  >
+                    <ModeIcon className="h-3.5 w-3.5" />
+                    {modeIdentity.eyebrow}
+                  </div>
+                  <h2 className="max-w-xl text-3xl font-black leading-[0.98] tracking-[-0.04em] text-white sm:text-4xl">
+                    {modeIdentity.title}
+                  </h2>
+                  <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400">
+                    {modeIdentity.promise}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {modeIdentity.sequence.map((label, index) => (
+                    <div
+                      key={label}
+                      className="group flex items-center gap-3 rounded-xl border border-white/[0.07] bg-black/25 px-3 py-2.5"
+                    >
+                      <span
+                        className={`font-mono text-[10px] font-black ${modeIdentity.accentText}`}
+                      >
+                        0{index + 1}
+                      </span>
+                      <span className="flex-1 text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-300">
+                        {label}
+                      </span>
+                      <ArrowRight className="h-3.5 w-3.5 text-zinc-700 transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+            {/* Identidade e ferramentas da entrada editorial selecionada */}
             <div className="bg-zinc-950/60 border border-zinc-900/85 rounded-2xl p-5 space-y-4">
               <div>
                 <SectionHeader
-                  title="Fase 1: Ideia, Pesquisa e Roteiro"
+                  title={`Fase 1: ${modeIdentity.title}`}
                   helpId="creator-step-ideas"
-                  subtitle="Defina o assunto e a estrutura do seu vídeo. Primeiro a IA gera a narração para você revisar e editar; depois de aprovar, ela monta blocos, prompts visuais e estratégia completa."
+                  subtitle={`${modeIdentity.subtitle} Primeiro você aprova a ideia e a narração; depois o Lumiera monta cenas, prompts visuais e a estratégia de produção.`}
                 />
               </div>
 
@@ -771,48 +829,11 @@ export function AppCreatorTab({
                 </div>
               )}
 
-              <div className="grid gap-2 border-t border-zinc-900/60 pt-4 sm:grid-cols-2 lg:grid-cols-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHistoricalWitnessContext(null);
-                    setIdeationTab("ai");
-                  }}
-                  className={`min-h-16 rounded-2xl border px-4 py-3 text-left text-xs font-black transition ${ideationTab === "ai" ? "border-violet-300/45 bg-violet-300/10 text-violet-100 shadow-lg shadow-violet-950/20" : "border-zinc-800 bg-black/20 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"}`}
-                >
-                  <span>💡 Gerar com IA</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHistoricalWitnessContext(null);
-                    setIdeationTab("custom");
-                  }}
-                  className={`min-h-16 rounded-2xl border px-4 py-3 text-left text-xs font-black transition ${ideationTab === "custom" ? "border-cyan-300/45 bg-cyan-300/10 text-cyan-100 shadow-lg shadow-cyan-950/20" : "border-zinc-800 bg-black/20 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"}`}
-                >
-                  <span>✏️ Ideia Personalizada</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHistoricalWitnessContext(null);
-                    setIdeationTab("listicle");
-                  }}
-                  className={`min-h-16 rounded-2xl border px-4 py-3 text-left text-xs font-black transition ${ideationTab === "listicle" ? "border-emerald-300/45 bg-emerald-300/10 text-emerald-100 shadow-lg shadow-emerald-950/20" : "border-zinc-800 bg-black/20 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"}`}
-                >
-                  <span>📊 Top N / Listicle</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHistoricalWitnessContext(null);
-                    setIdeationTab("historical-witness");
-                  }}
-                  className={`min-h-16 rounded-2xl border px-4 py-3 text-left text-xs font-black transition ${ideationTab === "historical-witness" ? "border-amber-300/45 bg-amber-300/10 text-amber-100 shadow-lg shadow-amber-950/20" : "border-zinc-800 bg-black/20 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"}`}
-                >
-                  <span>🎥 História Viva</span>
-                </button>
-              </div>
+              <p className="border-t border-zinc-900/60 pt-4 text-[10px] leading-5 text-zinc-500">
+                Este estúdio é uma entrada exclusiva do menu lateral. Depois da
+                aprovação da narração, ele se conecta ao mesmo motor de cenas,
+                voz, edição e publicação do Lumiera.
+              </p>
             </div>
 
             {ideationTab === "historical-witness" ? (
