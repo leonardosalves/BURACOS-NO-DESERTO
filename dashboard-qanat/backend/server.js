@@ -6287,7 +6287,17 @@ app.post("/api/ai/plan-sfx", async (req, res) => {
     const maxEvents = isShort
       ? Math.min(9, Math.max(4, Math.ceil(totalDuration / 9)))
       : Math.min(24, Math.max(6, Math.ceil(totalDuration / 35)));
-    const scenes = buildProfessionalSfxScenes(storyboard.visual_prompts);
+    const wordTranscripts = readProjectJson(
+      projDir,
+      "word_transcripts.json",
+      []
+    );
+    const scenes = buildProfessionalSfxScenes(storyboard.visual_prompts, {
+      timelineAssets: config.timeline_assets || {},
+      narrationChunkPlan: storyboard.narration_chunk_plan || {},
+      wordTranscripts,
+      blockTimings: timings,
+    });
     const prompt = `Você é um sound designer sênior de documentários e YouTube.
 Crie no máximo ${maxEvents} eventos SFX para um vídeo ${isShort ? "Short 9:16" : "longo 16:9"} de ${totalDuration.toFixed(1)}s.
 Use efeitos somente quando reforçarem uma ação visível, mudança narrativa ou ambiente reconhecível. Não sonorize cada corte. Não use sons literais se a cena apenas menciona algo sem mostrá-lo. Preserve inteligibilidade da narração.
@@ -6386,6 +6396,25 @@ REGRA DE SINCRONIA PRIORITARIA: offset é medido depois do início da cena; anch
       JSON.stringify(timeline, null, 2),
       "utf8"
     );
+    appendProjectEventLog(projDir, {
+      component: "sfx",
+      event: "professional_sfx_timeline_created",
+      message: `${events.length} evento(s) SFX posicionados pela timeline visual.`,
+      details: {
+        total_duration: totalDuration,
+        scenes: scenes.map((scene) => ({
+          scene_ref: scene.scene_ref,
+          start: scene.start,
+          end: scene.end,
+        })),
+        events: events.map((event) => ({
+          scene_ref: event.scene_ref,
+          category: event.category,
+          time: event.time,
+          duration: event.duration,
+        })),
+      },
+    });
     config.sfx_enabled = true;
     fs.writeFileSync(
       path.join(projDir, "config_qanat.json"),
