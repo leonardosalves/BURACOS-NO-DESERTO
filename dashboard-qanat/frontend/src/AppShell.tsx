@@ -395,7 +395,11 @@ export function AppShell({
               helpId="tab-humor-facts"
             />
             <SidebarLink
-              active={activeTab === "video-reverse-engineering"}
+              active={
+                activeTab === "video-reverse-engineering" ||
+                (activeTab === "creator" &&
+                  creatorMode === "video-reverse-engineering")
+              }
               onClick={() => setActiveTab("video-reverse-engineering")}
               icon={Fingerprint}
               label="Engenharia Reversa"

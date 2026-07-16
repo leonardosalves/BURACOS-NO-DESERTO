@@ -1,5 +1,9 @@
 export type CreatorIdeationMode =
-  "ai" | "custom" | "listicle" | "historical-witness";
+  | "ai"
+  | "custom"
+  | "listicle"
+  | "historical-witness"
+  | "video-reverse-engineering";
 
 export type CreatorModeIdentity = {
   id: CreatorIdeationMode;
@@ -80,6 +84,24 @@ export const CREATOR_MODE_IDENTITIES: Record<
     accentBorder: "border-amber-400/30",
     accentSurface: "bg-amber-400/[0.06]",
     halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(251,191,36,0.18),transparent_34%)]",
+  },
+  "video-reverse-engineering": {
+    id: "video-reverse-engineering",
+    menuLabel: "Engenharia Reversa",
+    eyebrow: "Dossiê audiovisual importado",
+    title: "Engenharia Reversa",
+    subtitle: "Roteiro e decupagem reconstruídos diretamente da referência.",
+    promise:
+      "Preserva narração, cenas, prompts, câmera, edição, música e SFX sem passar por uma nova criação editorial.",
+    sequence: [
+      "Roteiro recuperado",
+      "Storyboard carregado",
+      "Produção liberada",
+    ],
+    accentText: "text-cyan-200",
+    accentBorder: "border-cyan-400/30",
+    accentSurface: "bg-cyan-400/[0.06]",
+    halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(34,211,238,0.2),transparent_34%)]",
   },
 };
 

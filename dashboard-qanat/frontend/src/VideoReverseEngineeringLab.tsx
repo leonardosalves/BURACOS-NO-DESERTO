@@ -124,6 +124,92 @@ function groupScenes(scenes: ReverseScene[], maxBlocks: number) {
   return blocks;
 }
 
+function resolveReconstructedNarration(result: ReverseResult) {
+  return (
+    result.reconstructed_narration?.trim() ||
+    result.scenes
+      .map((scene) => scene.narration?.trim())
+      .filter(Boolean)
+      .join(" ")
+  );
+}
+
+function buildPrebuiltStoryboard(result: ReverseResult) {
+  const maxBlocks = result.format === "SHORTS" ? 4 : 8;
+  const scenesPerBlock = Math.max(
+    1,
+    Math.ceil(result.scenes.length / maxBlocks)
+  );
+  const visualPrompts = result.scenes.map((scene, index) => {
+    const block = Math.floor(index / scenesPerBlock) + 1;
+    const sceneInBlock = (index % scenesPerBlock) + 1;
+    return {
+      scene: `${block}.${sceneInBlock}`,
+      block,
+      source_scene_id: scene.id,
+      source_timecode: scene.timecode,
+      narration_text: scene.narration,
+      narration_excerpt: scene.narration,
+      visual_description: scene.visual_description,
+      duration: `${Math.max(2, Number(scene.duration_sec) || 5)} segundos`,
+      duration_seconds: Math.max(2, Number(scene.duration_sec) || 5),
+      type: "imagem IA 2k",
+      media_mode: "image",
+      aspect_ratio: result.format === "SHORTS" ? "9:16" : "16:9",
+      prompt: scene.image_prompt || scene.visual_description,
+      image_prompt: scene.image_prompt,
+      video_prompt: scene.video_prompt,
+      ai_video_prompt: scene.video_prompt,
+      shot: scene.shot,
+      camera: scene.camera,
+      text_overlay: scene.on_screen_text,
+      transition: scene.transition,
+      sfx_cue: scene.audio_cue,
+      editor_notes: [
+        scene.visual_description,
+        scene.shot ? `Plano: ${scene.shot}` : "",
+        scene.camera ? `Camera: ${scene.camera}` : "",
+        scene.transition ? `Transicao: ${scene.transition}` : "",
+        scene.audio_cue ? `SFX: ${scene.audio_cue}` : "",
+      ]
+        .filter(Boolean)
+        .join(" | "),
+      confidence: scene.confidence,
+      provenance: "video-reverse-engineering",
+    };
+  });
+
+  return {
+    strategy: {
+      title_main: result.title,
+      title_variations: [],
+      hook: result.hook,
+      tone: result.visual_language,
+      source_reference: result.source.url,
+    },
+    narrative_script: resolveReconstructedNarration(result),
+    visual_prompts: visualPrompts,
+    music_direction: result.music_direction,
+    sfx_direction: result.sfx_direction,
+    editing_blueprint: result.editing_blueprint,
+    retention_mechanics: result.retention_mechanics,
+    technical_config: {
+      format: result.format,
+      aspect_ratio: result.format === "SHORTS" ? "9:16" : "16:9",
+      imported_scene_count: visualPrompts.length,
+    },
+    reverse_engineering: {
+      source: result.source,
+      mode: result.mode,
+      content_summary: result.content_summary,
+      source_transcript: result.source_transcript,
+      visual_language: result.visual_language,
+      warnings: result.warnings,
+      evidence: result.evidence,
+    },
+  };
+}
+
 export function VideoReverseEngineeringLab({
   getProjectUrl,
   initialNiche = "",
@@ -206,17 +292,25 @@ export function VideoReverseEngineeringLab({
   const sendToWizard = async () => {
     if (!result) return;
     const outline = buildWizardOutline(result);
+    const prebuiltStoryboard = buildPrebuiltStoryboard(result);
+    if (!prebuiltStoryboard.narrative_script || !result.scenes.length) {
+      toast.error("O dossiê precisa ter narração e pelo menos uma cena.");
+      return;
+    }
     await onApplyCreator(result.title, result.hook || result.title, {
       format: result.format,
       mechanic: "video-reverse-engineering",
       source: `reverse-engineering:${result.source.url}`,
+      targetNiche: niche.trim() || initialNiche || "Geral",
       whyWorks: outline,
       customTitle: result.title,
       customHook: result.hook,
       customPromise: outline,
+      approvedNarration: prebuiltStoryboard.narrative_script,
+      prebuiltStoryboard,
       blocks: groupScenes(result.scenes, result.format === "SHORTS" ? 4 : 8),
     });
-    toast.success("Wizard preparado com narracao, cenas e prompts.");
+    toast.success("Storyboard carregado diretamente no wizard.");
   };
 
   return (

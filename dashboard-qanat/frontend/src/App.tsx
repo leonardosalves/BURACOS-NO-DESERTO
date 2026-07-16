@@ -816,9 +816,9 @@ export default function App() {
     savedCreatorState.customIdeaBlocks || ""
   );
 
-  const [ideationTab, setIdeationTab] = useState<
-    "ai" | "custom" | "listicle" | "historical-witness"
-  >(savedCreatorState.ideationTab || "ai");
+  const [ideationTab, setIdeationTab] = useState<CreatorIdeationMode>(
+    savedCreatorState.ideationTab || "ai"
+  );
   const [historicalWitnessContext, setHistoricalWitnessContext] =
     useState<HistoricalWitnessContext | null>(
       (savedCreatorState.historicalWitnessContext as HistoricalWitnessContext | null) ||
@@ -8645,6 +8645,112 @@ export default function App() {
       approvedNarration: approvedNarration || undefined,
       whyWorks: openMontageOutline ? undefined : options?.whyWorks,
     };
+
+    if (options?.prebuiltStoryboard) {
+      cancelCreatorGeneration();
+      setAutomation({ active: false });
+      setCreatorLoading(true);
+      setCreatorLoadingMode("full");
+      const toastId = toast.loading(
+        "Montando o projeto com o dossiê da Engenharia Reversa..."
+      );
+      try {
+        let projectList: ProjectListItem[] = projects;
+        try {
+          const listResponse = await fetch("/api/projects");
+          if (listResponse.ok) projectList = await listResponse.json();
+        } catch {
+          // A lista em memória ainda permite evitar a maioria das colisões.
+        }
+        const existingNames = new Set(projectList.map((item) => item.name));
+        let directProjectSlug = projectSlug;
+        let suffix = 2;
+        while (existingNames.has(directProjectSlug)) {
+          directProjectSlug = `${projectSlug}_reverse_${suffix}`;
+          suffix += 1;
+        }
+
+        const createResponse = await fetch("/api/projects/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: directProjectSlug,
+            format,
+            niche: options.targetNiche || niche,
+          }),
+        });
+        const createData = await createResponse.json().catch(() => ({}));
+        if (!createResponse.ok) {
+          throw new Error(
+            createData.error || "Não foi possível criar o projeto importado."
+          );
+        }
+
+        const saveResponse = await fetch(
+          getProjectUrl("/api/projects/storyboard", directProjectSlug),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(options.prebuiltStoryboard),
+          }
+        );
+        const saveData = await saveResponse.json().catch(() => ({}));
+        if (!saveResponse.ok) {
+          throw new Error(
+            saveData.error || "Não foi possível salvar o storyboard importado."
+          );
+        }
+
+        const blockNumbers = [
+          ...new Set(
+            options.prebuiltStoryboard.visual_prompts.map((scene) =>
+              Number(scene.block || 1)
+            )
+          ),
+        ];
+        applyStoryboardToCreatorState(options.prebuiltStoryboard, "generation");
+        setExpandedBlocks(
+          Object.fromEntries(blockNumbers.map((block) => [block, true]))
+        );
+        setShowNarrationReview(false);
+        setNarrationDraft(options.prebuiltStoryboard.narrative_script);
+        setNarrationTaggedDraft("");
+        setNarrationStrategy(options.prebuiltStoryboard.strategy as any);
+        setNarrationBlockPhrases([]);
+        setNarrationBlockScript("");
+        setNarrationProjectName(directProjectSlug);
+        setCreatorProjectName(directProjectSlug);
+        setCreatorScript(options.prebuiltStoryboard.narrative_script);
+        setCustomTitle(options?.customTitle || cleaned);
+        setCustomHooks(options?.customHook || hook);
+        setCustomOutline(options?.customPromise || "");
+        setCustomBlocks(options.blocks || []);
+        setNicheInput(options.targetNiche || niche);
+        setFormatSelector(format);
+        setEditorialIdeaImport(importData);
+        setUploadSuccess(false);
+        setIdeationTab("video-reverse-engineering");
+        setCreatorStep(2);
+        setActiveProject(directProjectSlug);
+        setActiveTab("creator");
+        await fetchProjects();
+        toast.success(
+          "Roteiro, narração e prompts importados. Continue em Voz e Timing.",
+          { id: toastId }
+        );
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Falha ao carregar o dossiê no wizard.",
+          { id: toastId }
+        );
+      } finally {
+        setCreatorLoading(false);
+        setCreatorLoadingMode("idle");
+      }
+      return;
+    }
 
     cancelCreatorGeneration();
     setAutomation({ active: false });

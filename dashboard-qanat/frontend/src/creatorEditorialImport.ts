@@ -123,6 +123,15 @@ export type CreatorApplyIdeaOptions = {
   customPromise?: string;
   /** Narração já aprovada por um criador especializado; abre revisão sem regenerar. */
   approvedNarration?: string;
+  /** Nicho definido pelo criador especializado para a pasta do projeto. */
+  targetNiche?: string;
+  /** Storyboard completo: pula a ideação e entra no wizard sem chamar o roteirista. */
+  prebuiltStoryboard?: {
+    strategy: Record<string, unknown>;
+    narrative_script: string;
+    visual_prompts: Array<Record<string, unknown>>;
+    [key: string]: unknown;
+  };
   blocks?: Array<{ block: number; content: string }>;
 };
 
