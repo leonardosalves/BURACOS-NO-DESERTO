@@ -1,5 +1,6 @@
 import type { EditorialIdeaImport } from "./creatorEditorialImport";
 import type { HistoricalWitnessContext } from "./historicalWitnessTypes";
+import type { CreatorIdeationMode } from "./creatorModeIdentity";
 
 export const WIZARD_SESSION_KEY = "qanat_wizard_session";
 export const LEGACY_CREATOR_STATE_KEY = "qanat_creator_state";
@@ -21,7 +22,7 @@ export type WizardSession = {
   generatedScriptData: unknown;
   creatorProjectName: string;
   creatorScript: string;
-  ideationTab: "ai" | "custom" | "listicle" | "historical-witness";
+  ideationTab: CreatorIdeationMode;
   historicalWitnessContext?: HistoricalWitnessContext | null;
   customTitle: string;
   customHooks: string;
@@ -53,6 +54,7 @@ export type WizardSession = {
   useNotebooklm: boolean;
   notebooklmDeep: boolean;
   useDeepResearch: boolean;
+  enablePov?: boolean;
   motionTemplatePackEnabled?: boolean;
   motionTemplateNiche?: string;
   motionTemplateIds?: string[];

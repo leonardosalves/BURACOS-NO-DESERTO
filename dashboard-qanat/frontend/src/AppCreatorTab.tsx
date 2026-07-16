@@ -7,6 +7,7 @@ import {
   Chrome,
   Copy,
   Film,
+  Fingerprint,
   Lightbulb,
   PenTool,
   Play,
@@ -449,13 +450,15 @@ export function AppCreatorTab({
   });
   const modeIdentity = resolveCreatorModeIdentity(ideationTab);
   const ModeIcon =
-    ideationTab === "custom"
-      ? PenTool
-      : ideationTab === "listicle"
-        ? BarChart3
-        : ideationTab === "historical-witness"
-          ? Film
-          : Lightbulb;
+    ideationTab === "video-reverse-engineering"
+      ? Fingerprint
+      : ideationTab === "custom"
+        ? PenTool
+        : ideationTab === "listicle"
+          ? BarChart3
+          : ideationTab === "historical-witness"
+            ? Film
+            : Lightbulb;
   return (
     <DashminPageLayout
       className="lumiera-fill-view overflow-hidden"
@@ -836,7 +839,91 @@ export function AppCreatorTab({
               </p>
             </div>
 
-            {ideationTab === "historical-witness" ? (
+            {ideationTab === "video-reverse-engineering" &&
+            generatedScriptData ? (
+              <section className="space-y-5 rounded-[28px] border border-cyan-400/25 bg-[#071115] p-5 sm:p-7">
+                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-cyan-300/10 pb-5">
+                  <div>
+                    <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">
+                      <Fingerprint className="h-4 w-4" /> Storyboard importado
+                    </p>
+                    <h3 className="mt-2 text-xl font-black text-white">
+                      Roteiro pronto para produção
+                    </h3>
+                    <p className="mt-2 max-w-2xl text-[11px] leading-5 text-zinc-400">
+                      Nenhum roteirista será chamado novamente. Revise a
+                      reconstrução abaixo ou avance para sintetizar a voz.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/10 px-4 py-3 text-right">
+                    <p className="text-[8px] font-black uppercase tracking-wider text-emerald-300">
+                      Integridade
+                    </p>
+                    <p className="mt-1 text-sm font-black text-white">
+                      {(generatedScriptData.visual_prompts || []).length} cenas
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/[0.07] bg-black/25 p-4">
+                  <p className="mb-3 text-[9px] font-black uppercase tracking-[0.16em] text-cyan-300">
+                    Narração reconstruída
+                  </p>
+                  <p className="max-h-52 overflow-y-auto whitespace-pre-wrap text-xs leading-6 text-zinc-300">
+                    {generatedScriptData.narrative_script}
+                  </p>
+                </div>
+
+                <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">
+                  {(generatedScriptData.visual_prompts || []).map(
+                    (scene: any) => (
+                      <article
+                        key={
+                          scene.source_scene_id ||
+                          `reverse-scene-${String(scene.scene)}`
+                        }
+                        className="rounded-2xl border border-white/[0.07] bg-black/20 p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-mono text-[9px] font-black uppercase text-cyan-300">
+                            Cena {scene.scene} · {scene.duration_seconds}s
+                          </p>
+                          <span className="text-[8px] uppercase tracking-wider text-zinc-600">
+                            imagem + vídeo
+                          </span>
+                        </div>
+                        <p className="mt-2 text-[11px] leading-5 text-zinc-300">
+                          {scene.narration_text}
+                        </p>
+                        <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                          <p className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3 text-[9px] leading-4 text-zinc-500">
+                            <strong className="mb-1 block text-zinc-300">
+                              Prompt de imagem
+                            </strong>
+                            {scene.image_prompt || scene.prompt}
+                          </p>
+                          <p className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3 text-[9px] leading-4 text-zinc-500">
+                            <strong className="mb-1 block text-zinc-300">
+                              Prompt de vídeo
+                            </strong>
+                            {scene.video_prompt || "Sem movimento adicional"}
+                          </p>
+                        </div>
+                      </article>
+                    )
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCreatorStep(2)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 text-xs font-black text-slate-950 transition hover:bg-cyan-200"
+                >
+                  Continuar para Voz e Timing
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </section>
+            ) : ideationTab === "historical-witness" ? (
               <HistoricalWitnessCreatorStep
                 creatorLoading={creatorLoading}
                 formatSelector={formatSelector}
