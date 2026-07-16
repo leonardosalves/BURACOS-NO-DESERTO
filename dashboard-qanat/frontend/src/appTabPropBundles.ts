@@ -212,7 +212,7 @@ export function buildAppTabPropBundles(
     syncCreatorStoryboard: ctx.syncCreatorStoryboard,
     syncingTimings: ctx.syncingTimings,
     taggedNarrations: ctx.taggedNarrations,
-    timelineAssets: ctx.timelineAssets,
+    timelineAssets: ctx.config?.timeline_assets || ctx.timelineAssets,
     triggerRender: ctx.triggerRender,
     uploadSuccess: ctx.uploadSuccess,
     uploadedScenes: ctx.uploadedScenes,
