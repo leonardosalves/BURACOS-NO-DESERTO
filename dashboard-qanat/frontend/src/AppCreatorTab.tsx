@@ -59,7 +59,65 @@ import {
   creatorTimelineReady,
   creatorWizardPhaseIndex,
 } from "./creatorWizardFlow";
-import { resolveCreatorModeIdentity } from "./creatorModeIdentity";
+import {
+  resolveCreatorModeIdentity,
+  type CreatorModeIdentity,
+} from "./creatorModeIdentity";
+
+function CreatorPhaseMasthead({
+  phase,
+  title,
+  description,
+  identity,
+  icon: Icon,
+  status,
+}: {
+  phase: string;
+  title: string;
+  description: string;
+  identity: CreatorModeIdentity;
+  icon: React.ElementType;
+  status?: string;
+}) {
+  return (
+    <section
+      className={`relative isolate overflow-hidden rounded-[28px] border ${identity.accentBorder} bg-[#0b0c0f] px-5 py-6 sm:px-7`}
+    >
+      <div
+        className={`pointer-events-none absolute inset-0 -z-10 ${identity.halo}`}
+      />
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-2xl">
+          <p
+            className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] ${identity.accentText}`}
+          >
+            <Icon className="h-4 w-4" /> {phase} · {identity.menuLabel}
+          </p>
+          <h2 className="mt-3 text-2xl font-black tracking-[-0.03em] text-white sm:text-3xl">
+            {title}
+          </h2>
+          <p className="mt-3 text-[11px] leading-5 text-zinc-400">
+            {description}
+          </p>
+        </div>
+        {status ? (
+          <span
+            className={`w-fit rounded-full border ${identity.accentBorder} ${identity.accentSurface} px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] ${identity.accentText}`}
+          >
+            {status}
+          </span>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+const PUBLICATION_CHECKS = [
+  ["Vídeo", "Render final e duração"],
+  ["Áudio", "Voz, trilha e SFX"],
+  ["Embalagem", "Título e thumbnail"],
+  ["Canal", "Destino e visibilidade"],
+] as const;
 
 export type AppCreatorTabProps = {
   activeProject: string;
@@ -617,7 +675,7 @@ export function AppCreatorTab({
         {/* STEP 1: SCRIPT MASTER Research & Selection */}
 
         {creatorStep === 1 && (
-          <div className="space-y-8 max-w-4xl mx-auto font-sans">
+          <div className="mx-auto max-w-5xl space-y-6 font-sans">
             <section
               className={`relative isolate overflow-hidden rounded-[28px] border ${modeIdentity.accentBorder} bg-[#0b0c0f] px-5 py-6 sm:px-7 sm:py-8`}
             >
@@ -660,47 +718,45 @@ export function AppCreatorTab({
                 </div>
               </div>
             </section>
-            {/* Identidade e ferramentas da entrada editorial selecionada */}
-            <div className="bg-zinc-950/60 border border-zinc-900/85 rounded-2xl p-5 space-y-4">
-              <div>
-                <SectionHeader
-                  title={`Fase 1: ${modeIdentity.title}`}
-                  helpId="creator-step-ideas"
-                  subtitle={`${modeIdentity.subtitle} Primeiro você aprova a ideia e a narração; depois o Lumiera monta cenas, prompts visuais e a estratégia de produção.`}
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-900/60 pt-3">
-                <div className="flex flex-wrap items-center gap-4">
-                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            {/* Ferramentas de pesquisa sem repetir o cabeçalho do módulo */}
+            <section className="space-y-4 rounded-[24px] border border-white/[0.07] bg-[#0b0c0f] p-4 sm:p-5">
+              <div className="grid gap-3 md:grid-cols-[1.25fr_1fr_auto] md:items-stretch">
+                <div className="rounded-2xl border border-white/[0.06] bg-black/25 p-4">
+                  <p className="text-[8px] font-black uppercase tracking-[0.18em] text-zinc-600">
+                    Pesquisa de apoio
+                  </p>
+                  <label className="mt-3 flex cursor-pointer items-center gap-2.5 select-none">
                     <input
                       type="checkbox"
                       checked={useNotebooklm}
                       onChange={(e) => setUseNotebooklm(e.target.checked)}
                       className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-gold-500 focus:ring-gold-500/30"
                     />
-                    <span className="text-xs text-zinc-300 font-semibold">
-                      Usar NotebookLM na pesquisa de roteiro
+                    <span className="text-[11px] font-bold text-zinc-300">
+                      Conectar NotebookLM
                     </span>
                   </label>
                   {useNotebooklm && (
-                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <label className="mt-3 flex cursor-pointer items-center gap-2.5 select-none">
                       <input
                         type="checkbox"
                         checked={notebooklmDeep}
                         onChange={(e) => setNotebooklmDeep(e.target.checked)}
                         className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-gold-500 focus:ring-gold-500/30"
                       />
-                      <span className="text-xs text-zinc-300 font-semibold">
-                        Web search Deep Research (~5 min)
+                      <span className="text-[10px] font-semibold text-zinc-400">
+                        Ativar Deep Research (~5 min)
                       </span>
                     </label>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="rounded-2xl border border-white/[0.06] bg-black/25 p-4">
+                  <p className="text-[8px] font-black uppercase tracking-[0.18em] text-zinc-600">
+                    Inteligência carregada
+                  </p>
                   {creatorIdeasBundle?.bundleSlug ? (
                     <span
-                      className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-300 border border-sky-500/25 inline-flex items-center gap-1.5"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-sky-500/25 bg-sky-500/10 px-2.5 py-1 text-[9px] font-bold text-sky-300"
                       title={creatorIdeasBundle.skillSlugs.join(" · ")}
                     >
                       <Package className="w-3 h-3 opacity-70" />
@@ -712,10 +768,19 @@ export function AppCreatorTab({
                         ({creatorIdeasBundle.injectedCount} skills)
                       </span>
                     </span>
-                  ) : null}
+                  ) : (
+                    <p className="mt-3 text-[10px] text-zinc-600">
+                      Bundle editorial aguardando contexto.
+                    </p>
+                  )}
+                </div>
+                <div className="flex min-w-40 flex-col justify-center rounded-2xl border border-white/[0.06] bg-black/25 p-4">
+                  <p className="text-[8px] font-black uppercase tracking-[0.18em] text-zinc-600">
+                    Conexão
+                  </p>
                   {notebooklmStatus && (
                     <span
-                      className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
+                      className={`mt-3 w-fit rounded-lg px-2.5 py-1 text-[9px] font-bold ${
                         notebooklmStatus.authenticated
                           ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
                           : "bg-amber-500/10 text-amber-400 border border-amber-500/25"
@@ -727,6 +792,11 @@ export function AppCreatorTab({
                         : "Execute nlm login"}
                     </span>
                   )}
+                  {!notebooklmStatus ? (
+                    <span className="mt-3 text-[10px] text-zinc-600">
+                      Verificação pendente
+                    </span>
+                  ) : null}
                 </div>
               </div>
 
@@ -832,12 +902,11 @@ export function AppCreatorTab({
                 </div>
               )}
 
-              <p className="border-t border-zinc-900/60 pt-4 text-[10px] leading-5 text-zinc-500">
-                Este estúdio é uma entrada exclusiva do menu lateral. Depois da
-                aprovação da narração, ele se conecta ao mesmo motor de cenas,
-                voz, edição e publicação do Lumiera.
+              <p className="border-t border-white/[0.06] pt-3 text-[9px] leading-4 text-zinc-600">
+                Entrada exclusiva do menu lateral · a narração aprovada segue
+                para voz, cenas, edição e publicação sem trocar de módulo.
               </p>
-            </div>
+            </section>
 
             {ideationTab === "video-reverse-engineering" &&
             generatedScriptData ? (
@@ -938,7 +1007,33 @@ export function AppCreatorTab({
                 setHistoricalWitnessContext={setHistoricalWitnessContext}
               />
             ) : ideationTab === "custom" ? (
-              <div className="space-y-6 max-w-2xl mx-auto">
+              <div className="mx-auto max-w-4xl space-y-6 rounded-[28px] border border-cyan-300/20 bg-[#071115] p-5 shadow-2xl shadow-black/20 sm:p-7">
+                <div className="grid gap-5 border-b border-cyan-300/10 pb-5 md:grid-cols-[1fr_auto] md:items-end">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">
+                      Briefing autoral
+                    </p>
+                    <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-white">
+                      Transforme a intenção em uma pauta filmável
+                    </h3>
+                    <p className="mt-2 max-w-2xl text-[11px] leading-5 text-zinc-400">
+                      Registre a ideia como você pensou. O diagnóstico separa
+                      realidade, oportunidade e retenção antes de tocar no seu
+                      texto.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 text-center text-[8px] font-black uppercase tracking-wider text-zinc-500">
+                    <span className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] px-2 py-2">
+                      Ideia
+                    </span>
+                    <span className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] px-2 py-2">
+                      Análise
+                    </span>
+                    <span className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] px-2 py-2">
+                      Narração
+                    </span>
+                  </div>
+                </div>
                 {historicalWitnessContext?.contentMode ===
                   "HISTORICAL_WITNESS" && (
                   <div className="rounded-xl border border-amber-500/30 bg-amber-500/8 px-4 py-3">
@@ -1179,7 +1274,7 @@ export function AppCreatorTab({
                       placeholder="Ex: Secrets_Roman_Concrete, Great_Wall_Secrets, etc."
                       value={creatorProjectName}
                       onChange={(e) => setCreatorProjectName(e.target.value)}
-                      className="w-full bg-white border border-zinc-300 hover:border-zinc-400 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-zinc-900 font-semibold placeholder:text-zinc-400"
+                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-xs font-semibold text-white outline-none placeholder:text-zinc-600 focus:border-cyan-400/50"
                     />
                     <span className="text-[9px] text-zinc-500 block leading-normal mt-1">
                       * A IA preservará sua ideia, adaptará a narração para
@@ -1267,12 +1362,12 @@ export function AppCreatorTab({
                 />
               </Suspense>
             ) : !ideasData ? (
-              <div className="space-y-6 max-w-2xl mx-auto">
-                <div>
+              <div className="mx-auto max-w-4xl space-y-6 rounded-[28px] border border-violet-300/20 bg-[#0c0914] p-5 shadow-2xl shadow-black/20 sm:p-7">
+                <div className="border-b border-violet-300/10 pb-5">
                   <SectionHeader
-                    title="Passo 1: Pesquisa e Ideias (Script Master)"
+                    title="Mesa de descoberta"
                     helpId="creator-step-ideas"
-                    subtitle="Insira seu nicho de atuação e o formato desejado. O gerador irá analisar as dores, medos e ganchos de retenção antes de propor 10 ideias de alto impacto."
+                    subtitle="Defina o território editorial. O Radar procura pautas verdadeiras, pouco saturadas e adequadas à duração do vídeo antes de apresentar as dez melhores oportunidades."
                   />
                 </div>
 
@@ -1471,8 +1566,10 @@ export function AppCreatorTab({
                       const isBest = ideasData?.best_idea_index === index;
 
                       return (
-                        <div
-                          key={index}
+                        <button
+                          key={`${idea.title}-${index}`}
+                          type="button"
+                          aria-pressed={isSelected}
 
                           onClick={() => {
                             setSelectedIdeaIndex(index);
@@ -1556,7 +1653,7 @@ export function AppCreatorTab({
                             setCreatorProjectName(shortName);
                           }}
 
-                          className={`p-5 rounded-2xl border transition-all duration-150 cursor-pointer flex flex-col justify-between hover:border-zinc-800 ${
+                          className={`flex cursor-pointer flex-col justify-between rounded-2xl border p-5 text-left transition-all duration-150 hover:border-zinc-800 ${
                             isSelected
                               ? "bg-gold-500/5 border-gold-500 shadow-lg shadow-gold-500/5"
                               : "bg-zinc-950/20 border-zinc-900"
@@ -1622,7 +1719,7 @@ export function AppCreatorTab({
                               Validar: {idea.validation_needed}
                             </p>
                           )}
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -1797,7 +1894,7 @@ export function AppCreatorTab({
 
                     onChange={(e) => setCreatorProjectName(e.target.value)}
 
-                    className="w-full bg-white border border-zinc-300 hover:border-zinc-400 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-zinc-900 font-semibold placeholder:text-zinc-400"
+                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-xs font-semibold text-white outline-none placeholder:text-zinc-600 focus:border-violet-400/50"
                   />
 
                   <span className="text-[9px] text-zinc-500 block leading-normal mt-1">
@@ -1894,19 +1991,19 @@ export function AppCreatorTab({
         {/* STEP 2: Narration Audio Upload */}
 
         {creatorStep === 2 && (
-          <div className="space-y-6 max-w-4xl mx-auto py-10">
-            <div className="text-center">
-              <SectionHeader
-                title="Fase 2: Voz e Timing"
-                helpId="creator-step-narration"
-              />
-
-              <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-2xl mx-auto">
-                {config?.narration_mode === "chunked"
-                  ? "Planeje e gere os trechos. Quando os timings estiverem prontos, o wizard libera as cenas sem obrigar uma segunda etapa de Whisper."
-                  : "Envie ou gere a voz. No mesmo botão final desta fase, o Whisper sincroniza os segundos reais e abre Cenas e Edição automaticamente."}
-              </p>
-            </div>
+          <div className="mx-auto max-w-5xl space-y-5 py-4">
+            <CreatorPhaseMasthead
+              phase="Fase 2"
+              title="Voz e timing no mesmo estúdio"
+              description={
+                config?.narration_mode === "chunked"
+                  ? "Planeje, escute e aprove os trechos. Quando os tempos estiverem válidos, as cenas são liberadas sem exigir uma segunda passagem pelo Whisper."
+                  : "Escolha a voz ou envie o áudio final. A sincronização mede os segundos reais da fala e prepara a montagem automaticamente."
+              }
+              identity={modeIdentity}
+              icon={Volume2}
+              status={timelineReady ? "Timing pronto" : "Voz em preparação"}
+            />
 
             {config && (
               <NarrationChunksPanel
@@ -1959,12 +2056,12 @@ export function AppCreatorTab({
                   onDragOver={handleDrag}
                   onDragLeave={handleDrag}
                   onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center gap-4 transition-all duration-150 font-sans text-center ${
+                  className={`flex flex-col items-center justify-center gap-4 rounded-[28px] border border-dashed p-12 text-center font-sans transition-all duration-150 ${
                     dragActive
                       ? "border-gold-500 bg-gold-500/5"
                       : uploadSuccess || status?.has_narration
                         ? "border-emerald-500 bg-emerald-500/5"
-                        : "border-zinc-800 bg-zinc-950/20 hover:border-zinc-700"
+                        : `${modeIdentity.accentBorder} bg-[#0b0c0f] hover:border-zinc-600`
                   }`}
                 >
                   {uploadingNarration ? (
@@ -2211,23 +2308,15 @@ export function AppCreatorTab({
         {/* STEP 4: Automap assets */}
 
         {creatorStep === 4 && config && (
-          <div className="space-y-6 max-w-4xl mx-auto font-sans">
-            <div className="relative overflow-hidden rounded-3xl border border-emerald-300/20 bg-[#08110e] p-5">
-              <div className="absolute -right-12 -top-16 h-40 w-40 rounded-full border-[28px] border-emerald-300/[0.04]" />
-              <div className="relative">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-300">
-                  Fase 3 · Direcao visual
-                </p>
-                <h2 className="mt-2 font-serif text-2xl text-zinc-100">
-                  Cenas e Edicao
-                </h2>
-                <p className="mt-2 max-w-2xl text-[11px] leading-5 text-zinc-500">
-                  Prompts, B-roll, motion, overlays e duracoes da voz vivem
-                  agora numa unica timeline. No modo por trechos, os timings
-                  validados substituem a exigencia de Whisper.
-                </p>
-              </div>
-            </div>
+          <div className="mx-auto max-w-6xl space-y-5 font-sans">
+            <CreatorPhaseMasthead
+              phase="Fase 3"
+              title="Cenas e edição"
+              description="Prompts, B-roll, motion, overlays e duração da voz vivem na mesma timeline. A identidade visual escolhida no criador acompanha todas as decisões de montagem."
+              identity={modeIdentity}
+              icon={Film}
+              status={timelineReady ? "Voz sincronizada" : "Revisar timing"}
+            />
             {renderRichTimelineEditor({
               hideAutoMap: true,
               wizardManualMode: true,
@@ -2264,21 +2353,15 @@ export function AppCreatorTab({
         {/* STEP 5: Final Render shortcuts */}
 
         {creatorStep === 5 && (
-          <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
-            <div className="text-center font-sans">
-              <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-
-              <SectionHeader
-                title="Fase 4: Finalizar o Vídeo"
-                helpId="creator-step-ready"
-              />
-
-              <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-lg mx-auto font-sans">
-                Mixe, renderize e prepare título, descrição e thumbnail no mesmo
-                lugar. O pacote de publicação pode ser criado enquanto o vídeo
-                compila.
-              </p>
-            </div>
+          <div className="mx-auto max-w-6xl space-y-5 py-4 font-sans">
+            <CreatorPhaseMasthead
+              phase="Fase 4"
+              title="Finalização e pacote de lançamento"
+              description="Escolha o motor de render, finalize o áudio e prepare título, descrição e thumbnail sem abandonar o fluxo do criador."
+              identity={modeIdentity}
+              icon={CheckCircle}
+              status={rendering ? "Renderizando" : "Pronto para compilar"}
+            />
 
             {(youtubeLoading || youtubeMetadataParsed?.titles?.length) && (
               <div
@@ -2306,10 +2389,10 @@ export function AppCreatorTab({
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 pt-4 font-sans">
+            <div className="grid grid-cols-1 gap-3 pt-2 font-sans sm:grid-cols-2 xl:grid-cols-3">
               {/* Mix audio card */}
 
-              <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-zinc-800 transition">
+              <div className="flex min-h-48 flex-col justify-between rounded-2xl border border-zinc-800 bg-[#0b0c0f] p-5 transition hover:border-zinc-700">
                 <div>
                   <h5 className="text-xs font-bold text-white tracking-wider font-sans">
                     1. MIXAR ÁUDIO
@@ -2338,7 +2421,7 @@ export function AppCreatorTab({
 
               {/* Render standard card */}
 
-              <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-zinc-800 transition">
+              <div className="flex min-h-48 flex-col justify-between rounded-2xl border border-zinc-800 bg-[#0b0c0f] p-5 transition hover:border-zinc-700">
                 <div>
                   <h5 className="text-xs font-bold text-white tracking-wider font-sans">
                     2. RENDER PADRÃO
@@ -2364,7 +2447,7 @@ export function AppCreatorTab({
               </div>
 
               {/* Render Remotion card */}
-              <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-zinc-800 transition">
+              <div className="flex min-h-48 flex-col justify-between rounded-2xl border border-zinc-800 bg-[#0b0c0f] p-5 transition hover:border-zinc-700">
                 <div>
                   <h5 className="text-xs font-bold text-white tracking-wider font-sans">
                     3. RENDER REMOTION
@@ -2384,7 +2467,7 @@ export function AppCreatorTab({
               </div>
 
               {/* Render Remotion PRO card */}
-              <div className="bg-zinc-950 border border-amber-500/20 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-amber-500/30 transition">
+              <div className="flex min-h-48 flex-col justify-between rounded-2xl border border-amber-500/20 bg-[#0b0c0f] p-5 transition hover:border-amber-500/30">
                 <div>
                   <div className="flex justify-between items-start">
                     <h5 className="text-xs font-bold text-white tracking-wider font-sans">
@@ -2410,7 +2493,7 @@ export function AppCreatorTab({
               </div>
 
               {/* Render Remotion PRO + HyperFrames AI card */}
-              <div className="bg-zinc-950 border border-emerald-500/20 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-emerald-500/30 transition">
+              <div className="flex min-h-48 flex-col justify-between rounded-2xl border border-emerald-500/20 bg-[#0b0c0f] p-5 transition hover:border-emerald-500/30">
                 <div>
                   <div className="flex justify-between items-start">
                     <h5 className="text-xs font-bold text-white tracking-wider font-sans">
@@ -2651,22 +2734,67 @@ export function AppCreatorTab({
         )}
 
         {creatorStep === 7 && (
-          <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
-            <SectionHeader
-              title="Fase 5: Revisar e Publicar"
-              helpId="creator-step-publish"
+          <div className="mx-auto max-w-5xl space-y-5 py-4 font-sans">
+            <CreatorPhaseMasthead
+              phase="Fase 5"
+              title="Revisar e publicar"
+              description="Faça a última conferência do arquivo, do pacote editorial e do destino antes de abrir o envio para o canal."
+              identity={modeIdentity}
+              icon={Package}
+              status="Revisão final"
             />
+            <section className="grid gap-4 rounded-[28px] border border-white/[0.07] bg-[#0b0c0f] p-5 sm:p-7 lg:grid-cols-[1fr_0.78fr]">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-zinc-500">
+                  Conferência de saída
+                </p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {PUBLICATION_CHECKS.map(([label, detail]) => (
+                    <div
+                      key={label}
+                      className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-black/20 p-3"
+                    >
+                      <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
+                      <div>
+                        <p className="text-[10px] font-bold text-zinc-200">
+                          {label}
+                        </p>
+                        <p className="mt-0.5 text-[8px] text-zinc-600">
+                          {detail}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div
+                className={`flex flex-col justify-between rounded-2xl border ${modeIdentity.accentBorder} ${modeIdentity.accentSurface} p-5`}
+              >
+                <div>
+                  <p
+                    className={`text-[9px] font-black uppercase tracking-[0.18em] ${modeIdentity.accentText}`}
+                  >
+                    Sala de publicação
+                  </p>
+                  <p className="mt-3 text-sm font-bold leading-6 text-white">
+                    O projeto continua editável mesmo depois de abrir o upload.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => leaveGlobalViewForProject("upload")}
+                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-xs font-black text-zinc-950 transition hover:bg-zinc-200"
+                >
+                  Abrir Upload <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </section>
             <button
-              onClick={() => leaveGlobalViewForProject("upload")}
-              className="w-full bg-gold-500 text-zinc-950 font-bold py-3 rounded-xl text-xs"
-            >
-              Abrir Upload
-            </button>
-            <button
+              type="button"
               onClick={() => setCreatorStep(5)}
-              className="text-xs text-zinc-500"
+              className="text-xs font-semibold text-zinc-500 transition hover:text-white"
             >
-              ← Finalização
+              ← Voltar para Finalização
             </button>
           </div>
         )}
