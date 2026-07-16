@@ -589,6 +589,7 @@ export function replaceNumbersAndAbbreviationsPtBr(text = "") {
 
   // 2. Substituir abreviações comuns
   const abbreviations = [
+    [/\bE\.?\s*U\.?\s*A\.?\b/gi, "Estados Unidos"],
     [/\b[dD]\.\s*[cC]\.?(?!\w)/gi, "depois de Cristo"],
     [/\b[aA]\.\s*[cC]\.?(?!\w)/gi, "antes de Cristo"],
     [/\b[dD][cC]\b/gi, "depois de Cristo"],
