@@ -13,7 +13,6 @@ import {
   Play,
   RefreshCw,
   Sparkles,
-  Trash2,
   Volume2,
   CheckCircle,
   Package,
@@ -63,6 +62,7 @@ import {
   resolveCreatorModeIdentity,
   type CreatorModeIdentity,
 } from "./creatorModeIdentity";
+import { CreatorWizardNavigator } from "./CreatorWizardNavigator";
 
 function CreatorPhaseMasthead({
   phase,
@@ -81,28 +81,41 @@ function CreatorPhaseMasthead({
 }) {
   return (
     <section
-      className={`relative isolate overflow-hidden rounded-[28px] border ${identity.accentBorder} bg-[#0b0c0f] px-5 py-6 sm:px-7`}
+      className={`relative isolate overflow-hidden rounded-[26px] border ${identity.accentBorder} bg-[#0b0c0f] px-5 py-5 sm:px-6`}
     >
       <div
         className={`pointer-events-none absolute inset-0 -z-10 ${identity.halo}`}
       />
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.08]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
+        }}
+      />
+      <div className="grid gap-5 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+        <div
+          className={`grid h-14 w-14 place-items-center rounded-2xl border ${identity.accentBorder} ${identity.accentSurface}`}
+        >
+          <Icon className={`h-6 w-6 ${identity.accentText}`} />
+        </div>
         <div className="max-w-2xl">
           <p
             className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] ${identity.accentText}`}
           >
-            <Icon className="h-4 w-4" /> {phase} · {identity.menuLabel}
+            {phase} · estação {identity.menuLabel}
           </p>
-          <h2 className="mt-3 text-2xl font-black tracking-[-0.03em] text-white sm:text-3xl">
+          <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-white sm:text-[28px]">
             {title}
           </h2>
-          <p className="mt-3 text-[11px] leading-5 text-zinc-400">
+          <p className="mt-2 text-[11px] leading-5 text-zinc-400">
             {description}
           </p>
         </div>
         {status ? (
           <span
-            className={`w-fit rounded-full border ${identity.accentBorder} ${identity.accentSurface} px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] ${identity.accentText}`}
+            className={`w-fit rounded-full border ${identity.accentBorder} ${identity.accentSurface} px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.13em] ${identity.accentText}`}
           >
             {status}
           </span>
@@ -517,6 +530,37 @@ export function AppCreatorTab({
           : ideationTab === "historical-witness"
             ? Film
             : Lightbulb;
+  const restoreWizardSession = async () => {
+    const project =
+      creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
+    if (!project) {
+      toast.error("Defina o nome do projeto antes de restaurar.");
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/projects/wizard-session?project=${encodeURIComponent(project)}`
+      );
+      const data = await res.json();
+      if (!res.ok || !data.session) {
+        toast.error("Nenhuma sessão salva no servidor para este projeto.");
+        return;
+      }
+      applyWizardSessionPatch(data.session);
+      saveWizardSession(data.session);
+      toast.success(
+        `Wizard restaurado do servidor — passo ${data.session.creatorStep || 1}`
+      );
+    } catch {
+      toast.error("Falha ao restaurar sessão do servidor.");
+    }
+  };
+  const resetWizardProject = () => {
+    const project =
+      creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
+    resetCreatorWizard({ deleteServerSessionFor: project });
+    toast.success("Progresso limpo! Novo rascunho iniciado.");
+  };
   return (
     <DashminPageLayout
       className="lumiera-fill-view overflow-hidden"
@@ -525,153 +569,21 @@ export function AppCreatorTab({
       breadcrumb={["Dashboard", "Criadores", modeIdentity.menuLabel]}
       icon={<ModeIcon className={`w-5 h-5 ${modeIdentity.accentText}`} />}
     >
-      <div className="relative shrink-0 space-y-4 overflow-hidden rounded-3xl border border-dash-border bg-[#0a0b0e] p-5 shadow-2xl shadow-black/20">
-        <div className="flex flex-wrap items-center gap-2 mb-3 text-[10px]">
-          {wizardSavedAtLabel ? (
-            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
-              Sessão salva {wizardSavedAtLabel} · fase {wizardPhaseIndex + 1}/
-              {CREATOR_WIZARD_PHASES.length}
-            </span>
-          ) : null}
-          <button
-            type="button"
-            onClick={async () => {
-              const project =
-                creatorProjectName.trim() ||
-                narrationProjectName.trim() ||
-                activeProject;
-              if (!project) {
-                toast.error("Defina o nome do projeto antes de restaurar.");
-                return;
-              }
-              try {
-                const res = await fetch(
-                  `/api/projects/wizard-session?project=${encodeURIComponent(project)}`
-                );
-                const data = await res.json();
-                if (!res.ok || !data.session) {
-                  toast.error(
-                    "Nenhuma sessão salva no servidor para este projeto."
-                  );
-                  return;
-                }
-                applyWizardSessionPatch(data.session);
-                saveWizardSession(data.session);
-                toast.success(
-                  `Wizard restaurado do servidor — passo ${data.session.creatorStep || 1}`
-                );
-              } catch {
-                toast.error("Falha ao restaurar sessão do servidor.");
-              }
-            }}
-            className="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-300 font-bold hover:bg-sky-500/20 transition"
-          >
-            Restaurar sessão
-          </button>
-          <label
-            className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1 font-bold transition ${
-              enablePov
-                ? "border-violet-400/45 bg-violet-500/15 text-violet-200"
-                : "border-zinc-700 bg-zinc-900/70 text-zinc-400 hover:border-violet-500/35"
-            }`}
-            title="Mantém a narração e os prompts visuais no ponto de vista do personagem ou testemunha escolhido."
-          >
-            <input
-              type="checkbox"
-              checked={enablePov}
-              onChange={(event) => setEnablePov(event.target.checked)}
-              className="accent-violet-500"
-            />
-            POV em primeira pessoa
-          </label>
-        </div>
-
-        <button
-          onClick={() => {
-            const project =
-              creatorProjectName.trim() ||
-              narrationProjectName.trim() ||
-              activeProject;
-            resetCreatorWizard({ deleteServerSessionFor: project });
-            toast.success("Progresso limpo! Novo rascunho iniciado.");
-          }}
-
-          className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 text-[10px] px-3 py-1.5 rounded uppercase font-bold transition flex items-center gap-1 ml-auto cursor-pointer"
-        >
-          <Trash2 className="w-3 h-3" /> Limpar Progresso e Novo
-        </button>
-
-        <div className="flex justify-between items-center relative">
-          <div className="absolute left-4 right-4 h-0.5 bg-zinc-800 top-1/2 -translate-y-1/2 -z-10"></div>
-
-          <div
-            className="absolute left-4 h-0.5 bg-dash-primary top-1/2 -translate-y-1/2 -z-10 transition-all duration-300"
-
-            style={{
-              width: `${(wizardPhaseIndex / (CREATOR_WIZARD_PHASES.length - 1)) * 100}%`,
-            }}
-          ></div>
-
-          {CREATOR_WIZARD_PHASES.map((phase, index) => (
-            <button
-              key={phase.id}
-              type="button"
-              disabled={wizardPhaseIndex <= index}
-
-              onClick={() =>
-                wizardPhaseIndex > index && setCreatorStep(phase.entryStep)
-              }
-
-              className={`w-9 h-9 rounded-full flex items-center justify-center font-mono text-xs font-bold transition-all duration-150 disabled:cursor-default ${
-                wizardPhaseIndex === index
-                  ? "bg-dash-primary text-white shadow-lg shadow-dash-primary/25 scale-110"
-                  : wizardPhaseIndex > index
-                    ? "bg-emerald-500 text-white"
-                    : "bg-zinc-900 border border-zinc-800 text-zinc-500"
-              }`}
-              title={`${phase.label}: ${phase.description}`}
-            >
-              {wizardPhaseIndex > index ? "✓" : index + 1}
-            </button>
-          ))}
-        </div>
-
-        <div className="hidden">
-          <span>1. Roteiro IA</span>
-
-          <span>2. Narração Master</span>
-
-          <span>3. Sincronizar</span>
-
-          <span>4. Montar B-roll</span>
-
-          <span>5. Render</span>
-          <span>6. Metadados</span>
-          <span>7. Publicar</span>
-        </div>
-        <div className="grid grid-cols-5 gap-2 px-1 text-center text-[8px] font-black uppercase tracking-[0.12em] text-zinc-500 sm:text-[9px]">
-          {CREATOR_WIZARD_PHASES.map((phase, index) => (
-            <span
-              key={phase.id}
-              className={wizardPhaseIndex === index ? "text-dash-primary" : ""}
-            >
-              {phase.shortLabel}
-            </span>
-          ))}
-        </div>
-        <div className="rounded-2xl border border-dash-primary/15 bg-dash-primary/[0.04] px-4 py-3">
-          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-dash-primary">
-            Agora · {CREATOR_WIZARD_PHASES[wizardPhaseIndex].label}
-          </p>
-          <p className="mt-1 text-[10px] leading-4 text-zinc-500">
-            {CREATOR_WIZARD_PHASES[wizardPhaseIndex].description}
-          </p>
-        </div>
-      </div>
+      <CreatorWizardNavigator
+        phaseIndex={wizardPhaseIndex}
+        identity={modeIdentity}
+        savedAtLabel={wizardSavedAtLabel}
+        enablePov={enablePov}
+        onPovChange={setEnablePov}
+        onNavigate={setCreatorStep}
+        onRestore={restoreWizardSession}
+        onReset={resetWizardProject}
+      />
 
       {/* Steps Content Area */}
 
-      <div className="flex-1 min-h-0 overflow-y-auto rounded-3xl border border-dash-border bg-[#08090c]/95 p-6 shadow-2xl shadow-black/20">
+      <div className="relative flex-1 min-h-0 overflow-y-auto rounded-[30px] border border-white/[0.07] bg-[#07080a]/95 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.34)] sm:p-6">
+        <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         {/* STEP 1: SCRIPT MASTER Research & Selection */}
 
         {creatorStep === 1 && (
