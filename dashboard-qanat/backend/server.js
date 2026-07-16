@@ -450,6 +450,7 @@ import {
   NARRATION_MODE_MASTER,
   probeAudioDuration,
 } from "./narrationChunks.js";
+import { normalizeTtsEngine, resolveTtsVoice } from "./ttsPreferences.js";
 import {
   installNarrationAtomically,
   MAX_NARRATION_UPLOAD_BYTES,
@@ -15547,12 +15548,29 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
     const config = readProjectJson(projDir, "config_qanat.json", {});
     const { useHeuristic, defaultVoice } = req.body || {};
+    const configuredVoice = config.narration_default_voice || {};
+    const defaultEngine = normalizeTtsEngine(
+      defaultVoice?.engine || configuredVoice.engine || "kokoro",
+      "kokoro"
+    );
+    const effectiveDefaultVoice = {
+      ...configuredVoice,
+      ...(defaultVoice && typeof defaultVoice === "object" ? defaultVoice : {}),
+      engine: defaultEngine,
+      voice: resolveTtsVoice({
+        workspaceDir: WORKSPACE_DIR,
+        projectDir: projDir,
+        engine: defaultEngine,
+        requestedVoice: defaultVoice?.voice,
+        fallback: configuredVoice.voice,
+      }),
+    };
 
     if (useHeuristic) {
       const plan = buildHeuristicNarrationChunks({
         storyboard,
         config,
-        defaultVoice: defaultVoice || {},
+        defaultVoice: effectiveDefaultVoice,
       });
       persistChunkPlanToProject(projDir, plan, {
         ...config,
@@ -15594,7 +15612,7 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
       aiChunks,
       storyboard,
       config,
-      defaultVoice: defaultVoice || {},
+      defaultVoice: effectiveDefaultVoice,
     });
     persistChunkPlanToProject(projDir, plan, {
       ...config,

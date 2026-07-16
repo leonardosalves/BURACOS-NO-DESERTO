@@ -4,6 +4,11 @@
 
 import fs from "fs";
 import { writeJsonAtomicSync } from "./shared/atomicJson.js";
+import {
+  applyTtsDefaultsToEngines,
+  readTtsDefaultVoices,
+  saveTtsDefaultVoice,
+} from "./ttsPreferences.js";
 import os from "os";
 import path from "path";
 import { spawn } from "child_process";
@@ -741,24 +746,13 @@ export function registerWorkflowRoutes(app, deps) {
           ],
         },
       ];
-      const workspaceConfig =
-        readJsonFile(path.join(WORKSPACE_DIR, "config_qanat.json")) || {};
-      const savedDefaults =
-        workspaceConfig.tts_default_voices &&
-        typeof workspaceConfig.tts_default_voices === "object"
-          ? workspaceConfig.tts_default_voices
-          : {};
-      for (const engine of engines) {
-        const savedVoice = String(savedDefaults[engine.id] || "").trim();
-        if (
-          savedVoice &&
-          (!engine.voices?.length ||
-            engine.voices.some((voice) => voice.id === savedVoice))
-        ) {
-          engine.defaultVoice = savedVoice;
-        }
-      }
-      res.json({ engines, defaults: savedDefaults });
+      const savedDefaults = readTtsDefaultVoices({
+        workspaceDir: WORKSPACE_DIR,
+      });
+      res.json({
+        engines: applyTtsDefaultsToEngines(engines, savedDefaults),
+        defaults: savedDefaults,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -766,41 +760,15 @@ export function registerWorkflowRoutes(app, deps) {
 
   app.post("/api/tts/default-voice", (req, res) => {
     try {
-      const engine = String(req.body?.engine || "")
-        .trim()
-        .toLowerCase();
-      const voice = String(req.body?.voice || "").trim();
-      const allowed = new Set([
-        "kokoro",
-        "chatterbox",
-        "voicebox",
-        "gptsovits",
-        "fish",
-        "edge",
-      ]);
-      if (!allowed.has(engine))
-        return res.status(400).json({ error: "Motor TTS invalido." });
-      if (!voice || voice.length > 240 || /[\r\n]/.test(voice)) {
-        return res.status(400).json({ error: "Voz TTS invalida." });
-      }
-      const configPath = path.join(WORKSPACE_DIR, "config_qanat.json");
-      const config = readJsonFile(configPath) || {};
-      config.tts_default_voices = {
-        ...(config.tts_default_voices &&
-        typeof config.tts_default_voices === "object"
-          ? config.tts_default_voices
-          : {}),
-        [engine]: voice,
-      };
-      writeJsonAtomicSync(configPath, config);
-      res.json({
-        ok: true,
-        engine,
-        voice,
-        defaults: config.tts_default_voices,
+      const saved = saveTtsDefaultVoice({
+        workspaceDir: WORKSPACE_DIR,
+        engine: req.body?.engine,
+        voice: req.body?.voice,
       });
+      res.json({ ok: true, ...saved });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      const status = /invalido|nao informado/i.test(err.message) ? 400 : 500;
+      res.status(status).json({ error: err.message });
     }
   });
 
