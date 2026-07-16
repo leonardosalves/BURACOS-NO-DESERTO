@@ -16,6 +16,8 @@ import {
   Volume2,
   CheckCircle,
   Package,
+  ExternalLink,
+  Images,
 } from "lucide-react";
 import { DashminPageLayout } from "./DashminPageLayout";
 import { SectionHeader } from "./SectionHeader";
@@ -36,6 +38,7 @@ const LazyListicleCreatorStep = lazy(() =>
   }))
 );
 import { resolveStockSearchQuery } from "./stockSearchQuery";
+import { buildStockAssetSearchContext } from "./stockAssetLinks";
 import {
   buildTaggedNarration,
   taggedNarrationMeta,
@@ -3100,6 +3103,18 @@ export function AppCreatorTab({
                                         );
                                       const durationFromWhisper =
                                         sceneDurationSeconds != null;
+                                      const stockSearch =
+                                        buildStockAssetSearchContext({
+                                          query: searchQuery,
+                                          prompt: vp?.prompt || "",
+                                          isVideo,
+                                          aspectRatio:
+                                            config?.aspect_ratio === "9:16" ||
+                                            formatSelector === "SHORTS"
+                                              ? "9:16"
+                                              : "16:9",
+                                          durationSeconds: sceneDurationSeconds,
+                                        });
 
                                       const assetIdx = localIdx;
 
@@ -3413,99 +3428,146 @@ export function AppCreatorTab({
                                               </div>
                                             )}
 
-                                            <div className="flex items-center gap-1.5 pt-1">
-                                              <a
-                                                href={`https://www.pexels.com/search/${isVideo ? "videos/" : ""}${encodeURIComponent(searchQuery)}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-
-                                                className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
-                                              >
-                                                <span>Pexels</span>
-                                              </a>
-
-                                              <a
-                                                href={
-                                                  isVideo
-                                                    ? `https://pixabay.com/videos/search/${encodeURIComponent(searchQuery)}/`
-                                                    : `https://pixabay.com/images/search/${encodeURIComponent(searchQuery)}/`
+                                            <div className="rounded-xl border border-cyan-500/15 bg-cyan-500/[0.035] p-2.5">
+                                              <div className="mb-2 flex items-center justify-between gap-3">
+                                                <div className="flex min-w-0 items-center gap-2">
+                                                  <Images className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                                                  <span className="text-[8px] font-black uppercase tracking-[0.16em] text-cyan-200">
+                                                    Buscar asset compatível
+                                                  </span>
+                                                </div>
+                                                <span
+                                                  className="shrink-0 rounded-md border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 font-mono text-[8px] font-bold text-cyan-200"
+                                                  title={`Orientação ${stockSearch.orientationLabel}`}
+                                                >
+                                                  {stockSearch.mediaLabel} ·{" "}
+                                                  {stockSearch.aspectRatio} ·{" "}
+                                                  {stockSearch.dimensions}
+                                                </span>
+                                              </div>
+                                              <p
+                                                className="mb-2 line-clamp-1 text-[8px] text-zinc-500"
+                                                title={
+                                                  stockSearch.enrichedQuery
                                                 }
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-
-                                                className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
                                               >
-                                                <span>Pixabay</span>
-                                              </a>
-
-                                              {!isVideo && (
+                                                Busca:{" "}
+                                                {stockSearch.enrichedQuery}
+                                              </p>
+                                              <div className="flex flex-wrap items-center gap-1.5">
                                                 <a
-                                                  href={`https://www.bing.com/images/search?q=${encodeURIComponent(searchQuery)}`}
+                                                  href={
+                                                    stockSearch.links.pexels
+                                                  }
                                                   target="_blank"
                                                   rel="noopener noreferrer"
-                                                  className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
+
+                                                  className="group flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-[9px] font-bold text-zinc-300 transition hover:border-emerald-400/35 hover:text-emerald-300"
                                                 >
-                                                  <span>Bing</span>
+                                                  <span>Pexels</span>
+                                                  <ExternalLink className="h-2.5 w-2.5 opacity-40 transition group-hover:opacity-100" />
                                                 </a>
-                                              )}
 
-                                              <a
-                                                href={`https://www.canva.com/search?q=${encodeURIComponent(searchQuery)}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-
-                                                className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
-                                              >
-                                                <span>Canva</span>
-                                              </a>
-
-                                              <input
-                                                type="file"
-
-                                                accept={
-                                                  isVideo
-                                                    ? "video/mp4"
-                                                    : "image/png,image/jpeg,image/jpg"
-                                                }
-
-                                                onChange={(e) => {
-                                                  if (
-                                                    e.target.files &&
-                                                    e.target.files[0]
-                                                  ) {
-                                                    handleUploadSceneAsset(
-                                                      blockNum,
-                                                      isVideo
-                                                        ? "video"
-                                                        : "image",
-                                                      e.target.files[0],
-                                                      assetIdx
-                                                    );
+                                                <a
+                                                  href={
+                                                    stockSearch.links.pixabay
                                                   }
-                                                }}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
 
-                                                className="hidden"
+                                                  className="group flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-[9px] font-bold text-zinc-300 transition hover:border-emerald-400/35 hover:text-emerald-300"
+                                                >
+                                                  <span>Pixabay</span>
+                                                  <ExternalLink className="h-2.5 w-2.5 opacity-40 transition group-hover:opacity-100" />
+                                                </a>
 
-                                                id={`scene-upload-${absoluteIndex}`}
-                                              />
+                                                <a
+                                                  href={stockSearch.links.bing}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="group flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-[9px] font-bold text-zinc-300 transition hover:border-sky-400/35 hover:text-sky-300"
+                                                >
+                                                  <span>
+                                                    Bing{" "}
+                                                    {isVideo
+                                                      ? "Vídeos"
+                                                      : "Imagens"}
+                                                  </span>
+                                                  <ExternalLink className="h-2.5 w-2.5 opacity-40 transition group-hover:opacity-100" />
+                                                </a>
 
-                                              <label
-                                                htmlFor={`scene-upload-${absoluteIndex}`}
+                                                <a
+                                                  href={stockSearch.links.canva}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  onClick={() => {
+                                                    void copyToClipboard(
+                                                      stockSearch.productionBrief,
+                                                      `asset-brief-${absoluteIndex}`
+                                                    );
+                                                    toast.success(
+                                                      `Briefing ${stockSearch.aspectRatio} copiado. Cole no Canva.`
+                                                    );
+                                                  }}
 
-                                                className={`border px-2.5 py-1.5 rounded-lg text-[9px] font-bold flex items-center gap-1 transition cursor-pointer ml-auto ${
-                                                  isUploaded
-                                                    ? "bg-green-500/10 border-green-500/20 text-green-400 hover:text-green-300"
-                                                    : "bg-zinc-900 border-zinc-850 text-zinc-400 hover:text-white"
-                                                }`}
-                                              >
-                                                <span>
-                                                  {currentAsset?.asset
-                                                    ? "Trocar"
-                                                    : isUploaded
-                                                      ? "Enviado"
-                                                      : "Upload"}
-                                                </span>
-                                              </label>
+                                                  className="group flex items-center gap-1.5 rounded-lg border border-cyan-400/20 bg-cyan-400/[0.07] px-2.5 py-1.5 text-[9px] font-bold text-cyan-200 transition hover:border-cyan-300/45 hover:bg-cyan-400/10"
+                                                  title="Copia o prompt com formato e abre um design nas dimensões corretas"
+                                                >
+                                                  <span>
+                                                    Canva{" "}
+                                                    {stockSearch.aspectRatio}
+                                                  </span>
+                                                  <ExternalLink className="h-2.5 w-2.5 opacity-50 transition group-hover:opacity-100" />
+                                                </a>
+
+                                                <input
+                                                  type="file"
+
+                                                  accept={
+                                                    isVideo
+                                                      ? "video/mp4"
+                                                      : "image/png,image/jpeg,image/jpg"
+                                                  }
+
+                                                  onChange={(e) => {
+                                                    if (
+                                                      e.target.files &&
+                                                      e.target.files[0]
+                                                    ) {
+                                                      handleUploadSceneAsset(
+                                                        blockNum,
+                                                        isVideo
+                                                          ? "video"
+                                                          : "image",
+                                                        e.target.files[0],
+                                                        assetIdx
+                                                      );
+                                                    }
+                                                  }}
+
+                                                  className="hidden"
+
+                                                  id={`scene-upload-${absoluteIndex}`}
+                                                />
+
+                                                <label
+                                                  htmlFor={`scene-upload-${absoluteIndex}`}
+
+                                                  className={`ml-auto flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[9px] font-bold transition ${
+                                                    isUploaded
+                                                      ? "bg-green-500/10 border-green-500/20 text-green-400 hover:text-green-300"
+                                                      : "bg-zinc-900 border-zinc-850 text-zinc-400 hover:text-white"
+                                                  }`}
+                                                >
+                                                  <span>
+                                                    {currentAsset?.asset
+                                                      ? "Trocar"
+                                                      : isUploaded
+                                                        ? "Enviado"
+                                                        : "Upload"}
+                                                  </span>
+                                                </label>
+                                              </div>
                                             </div>
                                           </div>
                                         </div>
