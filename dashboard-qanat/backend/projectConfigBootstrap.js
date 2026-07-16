@@ -72,6 +72,60 @@ export function mergeTimelineSlotFromStoryboard(
 }
 
 /**
+ * Impede que uma configuração antiga do frontend ressuscite placeholders
+ * vazios depois que TTS/Whisper já consolidaram a quantidade real de cenas.
+ *
+ * A função nunca remove mídia, slot manual ou template de motion. Ela apenas
+ * descarta slots vazios, automáticos e excedentes à contagem do storyboard.
+ */
+export function reconcileTimelineAssetsToStoryboard(
+  timelineAssets = {},
+  visualPrompts = []
+) {
+  const expectedByBlock = {};
+  for (const prompt of Array.isArray(visualPrompts) ? visualPrompts : []) {
+    const blockKey = String(Number(prompt?.block) || 1);
+    expectedByBlock[blockKey] = (expectedByBlock[blockKey] || 0) + 1;
+  }
+
+  const timeline = {};
+  let removed = 0;
+  const blocks = {};
+
+  for (const [blockKey, rawSlots] of Object.entries(timelineAssets || {})) {
+    const slots = Array.isArray(rawSlots) ? rawSlots : [];
+    const expected = expectedByBlock[blockKey];
+    if (!Number.isInteger(expected)) {
+      timeline[blockKey] = [...slots];
+      continue;
+    }
+
+    const kept = slots.filter((slot, index) => {
+      if (index < expected) return true;
+      const hasAsset = Boolean(String(slot?.asset || "").trim());
+      const isManual = isTimelineAssetUserOwned(slot || {});
+      const hasMotion = Boolean(
+        String(slot?.motion_template_id || "").trim() ||
+        String(slot?.motion_scene_id || "").trim()
+      );
+      if (hasAsset || isManual || hasMotion) return true;
+      removed += 1;
+      return false;
+    });
+
+    timeline[blockKey] = kept;
+    blocks[blockKey] = {
+      expected_scenes: expected,
+      before_slots: slots.length,
+      after_slots: kept.length,
+      removed_empty_surplus: slots.length - kept.length,
+    };
+  }
+
+  return { timeline, removed, blocks };
+}
+
+/**
  * Vincula assets da timeline ao storyboard (upload manual tem prioridade).
  */
 export function bindStoryboardAssetsFromTimeline(
