@@ -11,6 +11,7 @@ import {
   resolveExpressivePause,
   syncTimelineFromChunkPlan,
 } from "./narrationChunks.js";
+import { prepareVoiceboxExpressiveText } from "./voiceboxTts.js";
 
 test("AI chunk plan preserves the approved narration literally", () => {
   const narration = "Primeira frase. Segunda frase, sem alteração.";
@@ -43,20 +44,32 @@ test("AI chunk plan blocks paraphrases of the approved narration", () => {
   );
 });
 
-test("AI chunk plan blocks tagged text with different words", () => {
-  assert.throws(
-    () =>
-      assertNarrationChunksPreserveSource(
-        [
-          {
-            id: "chunk-01",
-            text: "Texto aprovado.",
-            text_tagged: "[ênfase] Texto alterado.",
-          },
-        ],
-        "Texto aprovado."
-      ),
-    /texto com tags/i
+test("TTS override may change punctuation or wording without rewriting approved text", () => {
+  assert.equal(
+    assertNarrationChunksPreserveSource(
+      [
+        {
+          id: "chunk-01",
+          text: "Texto aprovado.",
+          text_tagged: "Texto aprovado???",
+        },
+      ],
+      "Texto aprovado."
+    ),
+    hashNarrationIntegrityText("Texto aprovado.")
+  );
+});
+
+test("Voicebox reinforces interrogative prosody and preserves manual emphasis", () => {
+  assert.equal(
+    prepareVoiceboxExpressiveText(
+      "Já se perguntou qual é a estrada mais longa?"
+    ),
+    "Já se perguntou qual é a estrada mais longa???"
+  );
+  assert.equal(
+    prepareVoiceboxExpressiveText("Isso aconteceu mesmo???"),
+    "Isso aconteceu mesmo???"
   );
 });
 
