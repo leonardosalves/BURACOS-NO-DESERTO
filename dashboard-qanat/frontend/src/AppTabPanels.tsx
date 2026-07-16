@@ -12,6 +12,7 @@ import { AppTimelineTab } from "./AppTimelineTab";
 import { AppUploadTab } from "./AppUploadTab";
 import { AppWorkflowTab } from "./AppWorkflowTab";
 import { HumorFactsLab } from "./HumorFactsLab";
+import { ProjectHealthPanel } from "./ProjectHealthPanel";
 import { AppDocsTab } from "./AppDocsTab";
 import { FlowLabPage } from "./FlowLabPage";
 import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
@@ -21,6 +22,7 @@ import {
   Clapperboard,
   Cloud,
   Globe,
+  HeartPulse,
   LayoutTemplate,
   Laugh,
   TrendingUp,
@@ -168,6 +170,21 @@ export function AppTabPanels({
             icon={<Laugh className="h-5 w-5 text-orange-300" />}
           >
             <HumorFactsLab getProjectUrl={getProjectUrl} />
+          </DashminPageLayout>
+        </TabErrorBoundary>
+      )}
+      {activeTab === "project-health" && (
+        <TabErrorBoundary tabName="Saude do Sistema">
+          <DashminPageLayout
+            title="Saude do Sistema"
+            subtitle="Integridade da narracao, servicos, TTS, arquivos essenciais e armazenamento em um unico diagnostico."
+            breadcrumb={["Dashboard", "Estudio", "Saude do Sistema"]}
+            icon={<HeartPulse className="h-5 w-5 text-cyan-300" />}
+          >
+            <ProjectHealthPanel
+              activeProject={activeProject}
+              getProjectUrl={getProjectUrl}
+            />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
