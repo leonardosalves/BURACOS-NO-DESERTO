@@ -2533,6 +2533,10 @@ export default function App() {
             sb.duration_from_whisper ?? vp.duration_from_whisper,
           speech_start: sb.speech_start ?? vp.speech_start,
           speech_end: sb.speech_end ?? vp.speech_end,
+          temporal_plan: sb.temporal_plan ?? vp.temporal_plan,
+          video_prompt_temporal:
+            sb.video_prompt_temporal ?? vp.video_prompt_temporal,
+          prompt: sb.temporal_plan ? sb.prompt : vp.prompt,
           narration_text: sb.narration_text ?? vp.narration_text,
           narration_excerpt: sb.narration_excerpt ?? vp.narration_excerpt,
           asset: sb.asset?.asset ? sb.asset : vp.asset,
@@ -9431,7 +9435,7 @@ export default function App() {
 
   // Run dynamic transcription synchronization
 
-  const handleSyncTimings = (fromWizard = false) => {
+  const handleSyncTimings = async (fromWizard = false) => {
     if (syncingTimings) return;
 
     setSyncingTimings(true);
@@ -9439,6 +9443,44 @@ export default function App() {
     if (!fromWizard) setActiveTab("terminal");
 
     setLogs([]);
+
+    const chunked = isChunkedNarrationProject(
+      config,
+      storyboardData ?? generatedScriptData,
+      wordTranscripts
+    );
+    if (chunked) {
+      try {
+        setLogs((prev) => [
+          ...prev,
+          "[Revisão] Validando aprovações e montando a narração master…",
+        ]);
+        const finalizeRes = await fetch(
+          getProjectUrl("/api/narration-chunks/finalize-approved"),
+          { method: "POST" }
+        );
+        const finalizeData = await finalizeRes.json().catch(() => ({}));
+        if (!finalizeRes.ok) {
+          throw new Error(
+            String(
+              finalizeData.error ||
+                "Revise e aprove todos os trechos antes do Whisper."
+            )
+          );
+        }
+        setLogs((prev) => [
+          ...prev,
+          `[Revisão] ${finalizeData.message || "Narração aprovada e montada."}`,
+        ]);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Falha ao finalizar narração.";
+        setLogs((prev) => [...prev, `[Bloqueado] ${message}`]);
+        setSyncingTimings(false);
+        toast.error(message, { duration: 7000 });
+        return;
+      }
+    }
 
     const eventSource = new EventSource(getProjectUrl("/api/sync-timings"));
 

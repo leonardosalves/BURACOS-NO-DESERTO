@@ -39,6 +39,7 @@ import {
 import { flattenWordTranscripts } from "../shared/wordTranscripts.js";
 import { cleanText, matchWords } from "../shared/narrationMatch.js";
 import { tightenTimelineRetentionDurations } from "./timelineSceneSync.js";
+import { applyNarrationFirstVisualPlan } from "../shared/narrationFirstVisualPlan.js";
 
 const MAX_WHISPER_WORD_DURATION_S = 2.5;
 const MAX_WHISPER_INTER_WORD_GAP_S = 1.2;
@@ -993,7 +994,7 @@ export function syncTimelineFromChunkPlan({
         speech_end: parseFloat(end.toFixed(3)),
         fixed: parseFloat(Math.max(0.5, end - start).toFixed(1)),
         synced_to_speech: true,
-        duration_from_whisper: true,
+        duration_from_whisper: chunkPlan?.timing_source === "whisper",
         chunk_id: chunk.id,
       };
 
@@ -1236,7 +1237,7 @@ export function applyChunkedNarrationSyncToProject(
     synced.timelineAssets,
     timings
   );
-  const nextConfig = {
+  let nextConfig = {
     ...config,
     timeline_assets: tightenedTimeline,
     narration_mode: NARRATION_MODE_CHUNKED,
@@ -1246,11 +1247,21 @@ export function applyChunkedNarrationSyncToProject(
     timedPlan,
     tightenedTimeline
   );
-  const nextStoryboard = {
+  let nextStoryboard = {
     ...storyboard,
     visual_prompts: visualPrompts,
     narration_chunk_plan: timedPlan,
   };
+
+  const temporal = applyNarrationFirstVisualPlan({
+    storyboard: nextStoryboard,
+    timelineAssets: nextConfig.timeline_assets,
+    chunkPlan: timedPlan,
+  });
+  if (temporal.applied) {
+    nextStoryboard = temporal.storyboard;
+    nextConfig = { ...nextConfig, timeline_assets: temporal.timelineAssets };
+  }
 
   fs.writeFileSync(
     path.join(projDir, "config_qanat.json"),

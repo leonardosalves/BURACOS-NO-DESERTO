@@ -459,7 +459,9 @@ import {
 } from "./narrationUpload.js";
 import {
   appendNarrationAuditEvent,
+  assertApprovedNarrationMasterReady,
   latestNarrationReviews,
+  narrationChunkApprovalState,
   readNarrationAudit,
 } from "./narrationAudit.js";
 import { compareNarrationChunksWithWhisper } from "./narrationComparison.js";
@@ -15960,6 +15962,10 @@ app.get("/api/narration/audit", (req, res) => {
       ...audit,
       comparison,
       reviews: latestNarrationReviews(audit.events),
+      approval: narrationChunkApprovalState(
+        storyboard.narration_chunk_plan || {},
+        audit.events
+      ),
     });
   } catch (err) {
     res
@@ -21068,6 +21074,27 @@ app.get("/api/sync-timings", (req, res) => {
     res.end();
     cleanup();
     return;
+  }
+
+  const syncConfig = readProjectJson(projDir, "config_qanat.json", {});
+  const syncStoryboard = readProjectJson(projDir, "storyboard.json", {});
+  if (isChunkedNarrationProject(syncConfig, syncStoryboard)) {
+    try {
+      const audit = readNarrationAudit(projDir);
+      assertApprovedNarrationMasterReady(
+        syncStoryboard.narration_chunk_plan || {},
+        audit.events
+      );
+      sendLog("[Revisão] Todos os trechos aprovados; master atual confirmado.");
+    } catch (err) {
+      sendLog(`[BLOQUEADO] ${err?.message || String(err)}`);
+      res.write(
+        `data: ${JSON.stringify({ type: "failed", code: err?.code || "NARRATION_REVIEW_REQUIRED" })}\n\n`
+      );
+      res.end();
+      cleanup();
+      return;
+    }
   }
 
   sendLog("[1/2] Executando análise do Whisper (find_block_timings.py)...");

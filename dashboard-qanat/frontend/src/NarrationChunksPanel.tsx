@@ -89,6 +89,7 @@ type Props = {
   toast: (msg: string, opts?: unknown) => void;
   hasApiKey?: boolean;
   narrationMode?: "chunked" | "master" | string;
+  lockChunkedMode?: boolean;
   plan?: NarrationChunkPlan | null;
   onPlanChange?: (plan: NarrationChunkPlan) => void;
   onModeChange?: (mode: "chunked" | "master") => void;
@@ -114,6 +115,7 @@ export function NarrationChunksPanel({
   toast,
   hasApiKey = false,
   narrationMode = "master",
+  lockChunkedMode = false,
   plan: externalPlan,
   onPlanChange,
   onModeChange,
@@ -154,6 +156,9 @@ export function NarrationChunksPanel({
   const [auditEvents, setAuditEvents] = useState<any[]>([]);
   const [auditComparison, setAuditComparison] = useState<any[]>([]);
   const [auditReviews, setAuditReviews] = useState<Record<string, any>>({});
+  const [auditApprovalItems, setAuditApprovalItems] = useState<
+    Record<string, { approved: boolean; reason?: string | null }>
+  >({});
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
   const [approvingAll, setApprovingAll] = useState(false);
@@ -174,6 +179,14 @@ export function NarrationChunksPanel({
       setAuditComparison(Array.isArray(data.comparison) ? data.comparison : []);
       setAuditReviews(
         data.reviews && typeof data.reviews === "object" ? data.reviews : {}
+      );
+      const approvalItems = Array.isArray(data.approval?.items)
+        ? data.approval.items
+        : [];
+      setAuditApprovalItems(
+        Object.fromEntries(
+          approvalItems.map((item: any) => [String(item.id || ""), item])
+        )
       );
     } catch {}
   }, [getProjectUrl]);
@@ -212,7 +225,7 @@ export function NarrationChunksPanel({
       ? auditComparison.map((row) => String(row.chunk_id || ""))
       : (localPlan?.chunks || []).map((chunk) => chunk.id);
     const chunkIds = [...new Set(sourceIds.filter(Boolean))].filter(
-      (chunkId) => auditReviews[chunkId]?.decision !== "approved"
+      (chunkId) => !auditApprovalItems[chunkId]?.approved
     );
     if (!chunkIds.length) {
       toast("Todos os trechos já estão aprovados.");
@@ -563,9 +576,7 @@ export function NarrationChunksPanel({
       return;
     }
 
-    const progressTitle = isFullBatch
-      ? "Narração por trechos + Whisper"
-      : "Narração por trechos";
+    const progressTitle = "Narração por trechos";
     let jobStarted = false;
 
     try {
@@ -578,8 +589,8 @@ export function NarrationChunksPanel({
             chunk_ids: chunkIds,
             default_voice: { engine: defaultEngine, voice: defaultVoice },
             use_tagged: useTagged,
-            sync_whisper: isFullBatch,
-            assemble_master: isFullBatch,
+            sync_whisper: false,
+            assemble_master: false,
             progress_job_id: progressJobId,
           }),
         }
@@ -599,10 +610,7 @@ export function NarrationChunksPanel({
           whisper_error?: string | null;
         };
         const doneMsg =
-          result.message ||
-          (result.whisper_synced
-            ? "Trechos montados · legendas sincronizadas (Whisper)."
-            : "Trechos montados.");
+          result.message || "Trechos gerados. Ouça e aprove antes do Whisper.";
         if (result.whisper_error && isFullBatch) {
           toast(`Whisper: ${result.whisper_error}`, { icon: "⚠️" });
         }
@@ -660,7 +668,7 @@ export function NarrationChunksPanel({
   };
 
   const chunks = localPlan?.chunks || [];
-  const isChunked = narrationMode === "chunked";
+  const isChunked = lockChunkedMode || narrationMode === "chunked";
   const readiness = useMemo(() => {
     if (!isChunked) return { ready: true, blockers: [] as string[] };
     if (!chunks.length)
@@ -669,14 +677,15 @@ export function NarrationChunksPanel({
     for (const chunk of chunks) {
       if (chunk.status !== "generated")
         blockers.push(`${chunk.id}: áudio ${chunk.status || "pendente"}`);
+      const approval = auditApprovalItems[chunk.id];
       const decision = auditReviews[chunk.id]?.decision;
-      if (decision !== "approved")
+      if (!approval?.approved)
         blockers.push(
-          `${chunk.id}: ${decision === "rejected" ? "rejeitado" : decision === "needs_fix" ? "correção solicitada" : "aguardando aprovação"}`
+          `${chunk.id}: ${approval?.reason === "audio_changed_after_review" ? "áudio alterado; aprove novamente" : decision === "rejected" ? "rejeitado" : decision === "needs_fix" ? "correção solicitada" : "aguardando aprovação"}`
         );
     }
     return { ready: blockers.length === 0, blockers };
-  }, [isChunked, chunks, auditReviews]);
+  }, [isChunked, chunks, auditReviews, auditApprovalItems]);
 
   useEffect(() => {
     onReadinessChange?.(readiness);
@@ -871,28 +880,31 @@ export function NarrationChunksPanel({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {!lockChunkedMode && (
+          <button
+            type="button"
+            onClick={() => onModeChange?.("master")}
+            className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
+              !isChunked
+                ? "bg-gold-500 text-zinc-950 border-gold-500"
+                : "border-zinc-800 text-zinc-400"
+            }`}
+          >
+            Arquivo único
+          </button>
+        )}
         <button
           type="button"
-          onClick={() => onModeChange?.("master")}
-          className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
-            !isChunked
-              ? "bg-gold-500 text-zinc-950 border-gold-500"
-              : "border-zinc-800 text-zinc-400"
-          }`}
-        >
-          Arquivo único
-        </button>
-        <button
-          type="button"
-          onClick={() => onModeChange?.("chunked")}
+          onClick={() => !lockChunkedMode && onModeChange?.("chunked")}
+          disabled={lockChunkedMode}
           className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
             isChunked
               ? "bg-gold-500 text-zinc-950 border-gold-500"
               : "border-zinc-800 text-zinc-400"
           }`}
         >
-          Por trechos
+          Por trechos{lockChunkedMode ? " · fluxo oficial" : ""}
         </button>
       </div>
 
@@ -961,8 +973,8 @@ export function NarrationChunksPanel({
               [ênfase] no texto.
             </span>
             <span className="text-[9px] text-zinc-600">
-              «Gerar todos os trechos» monta o MP3 master e roda Whisper
-              automaticamente nas legendas.
+              Gere, escute e aprove. O MP3 master e o Whisper só são liberados
+              depois da aprovação de todos os trechos.
             </span>
           </div>
 
@@ -1008,7 +1020,7 @@ export function NarrationChunksPanel({
               ) : (
                 <Volume2 className="w-3.5 h-3.5" />
               )}
-              Gerar todos os trechos + Whisper
+              Gerar todos os trechos
             </button>
           </div>
 

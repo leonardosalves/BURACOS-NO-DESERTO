@@ -521,6 +521,14 @@ export function AppCreatorTab({
     whisperReady: isWhisperTimelineReady(wordTranscripts, status),
   });
   const modeIdentity = resolveCreatorModeIdentity(ideationTab);
+  const temporalScenes = (
+    storyboardData?.visual_prompts ||
+    generatedScriptData?.visual_prompts ||
+    []
+  ).filter((scene: any) => scene?.temporal_plan);
+  const temporalMultiClipScenes = temporalScenes.filter(
+    (scene: any) => Number(scene?.temporal_plan?.clip_count_required) > 1
+  );
   const ModeIcon =
     ideationTab === "video-reverse-engineering"
       ? Fingerprint
@@ -1910,7 +1918,7 @@ export function AppCreatorTab({
               title="Voz e timing no mesmo estúdio"
               description={
                 config?.narration_mode === "chunked"
-                  ? "Planeje, escute e aprove os trechos. Quando os tempos estiverem válidos, as cenas são liberadas sem exigir uma segunda passagem pelo Whisper."
+                  ? "Gere por trechos, escute, corrija e aprove cada áudio. Só depois o Whisper mede a fala real e o Diretor Temporal ajusta cenas e prompts."
                   : "Escolha a voz ou envie o áudio final. A sincronização mede os segundos reais da fala e prepara a montagem automaticamente."
               }
               identity={modeIdentity}
@@ -1924,7 +1932,8 @@ export function AppCreatorTab({
                 getMediaUrl={(file) => getMusicUrl(file, activeProject)}
                 toast={(msg) => toast(msg)}
                 hasApiKey={hasApiKey}
-                narrationMode={config.narration_mode || "master"}
+                narrationMode="chunked"
+                lockChunkedMode
                 plan={
                   storyboardData?.narration_chunk_plan ||
                   generatedScriptData?.narration_chunk_plan ||
@@ -1957,8 +1966,8 @@ export function AppCreatorTab({
 
             {config?.narration_mode === "chunked" ? (
               <p className="text-[10px] text-zinc-500 text-center border border-zinc-800 rounded-xl p-3 max-w-2xl mx-auto">
-                Com trechos gerados, o passo 3 pode ser pulado se os timings já
-                aparecerem — Whisper fica opcional para refinamento de legendas.
+                Ordem obrigatória: gerar → ouvir/corrigir → aprovar todos →
+                montar master → Whisper → calcular a cobertura visual.
               </p>
             ) : (
               <>
@@ -2094,7 +2103,7 @@ export function AppCreatorTab({
                 }
 
                 onClick={() => {
-                  if (timelineReady) {
+                  if (isWhisperTimelineReady(wordTranscripts, status)) {
                     setCreatorStep(4);
                     return;
                   }
@@ -2112,9 +2121,9 @@ export function AppCreatorTab({
                 }
               >
                 <span>
-                  {timelineReady
+                  {isWhisperTimelineReady(wordTranscripts, status)
                     ? "Avançar para Cenas e Edição"
-                    : "Sincronizar Voz e Continuar"}
+                    : "Montar Aprovada + Executar Whisper"}
                 </span>
 
                 <span>→</span>
@@ -2135,7 +2144,7 @@ export function AppCreatorTab({
 
               <p className="text-xs text-gray-400 mt-1 leading-relaxed">
                 {config?.narration_mode === "chunked" ? (
-                  "Narração por trechos já grava timings e timeline. Rode Whisper só se quiser refinamento palavra a palavra nas legendas — caso contrário, avance quando os timings estiverem prontos."
+                  "Obrigatório depois de revisar e aprovar todos os trechos. O Whisper mede a fala real; em seguida o Diretor Temporal calcula pausas visuais, quantidade de clipes e o instante em que a ação importante deve terminar."
                 ) : (
                   <>
                     Obrigatório após a narração (passo 2). O Whisper transcreve
@@ -2230,6 +2239,25 @@ export function AppCreatorTab({
               icon={Film}
               status={timelineReady ? "Voz sincronizada" : "Revisar timing"}
             />
+            {temporalScenes.length > 0 && (
+              <section className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.04] px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-300">
+                      Diretor Temporal · TTS + Whisper
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-300">
+                      {temporalScenes.length} cenas medidas pela fala aprovada;{" "}
+                      {temporalMultiClipScenes.length} exigem tomadas múltiplas
+                      para não cortar a ação.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-[9px] font-bold text-cyan-200">
+                    Prompts ajustados aos segundos reais
+                  </span>
+                </div>
+              </section>
+            )}
             {renderRichTimelineEditor({
               hideAutoMap: true,
               wizardManualMode: true,

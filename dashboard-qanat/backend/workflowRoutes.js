@@ -83,6 +83,7 @@ import {
 import {
   assertNarrationPlanMatchesSource,
   generateNarrationChunksTts,
+  assembleNarrationChunksToMaster,
   isFullNarrationChunkBatch,
   allNarrationChunksHaveAudio,
   persistChunkPlanToProject,
@@ -93,7 +94,11 @@ import {
   isChunkedNarrationProject,
   NARRATION_MODE_CHUNKED,
 } from "./narrationChunks.js";
-import { appendNarrationAuditEvent } from "./narrationAudit.js";
+import {
+  appendNarrationAuditEvent,
+  assertNarrationChunksApproved,
+  readNarrationAudit,
+} from "./narrationAudit.js";
 import {
   convertCinematicMarkersForTts,
   sanitizeNarrationChunkTaggedText,
@@ -1006,7 +1011,9 @@ export function registerWorkflowRoutes(app, deps) {
         workspaceDir: WORKSPACE_DIR,
         useTagged: useTagged !== false,
         stripEmphasis: true,
-        assembleMaster: assembleMaster !== false,
+        // Geração nunca monta o master: o usuário precisa ouvir e aprovar
+        // a versão atual de cada trecho antes da etapa final.
+        assembleMaster: false,
         onLog: (msg) => console.log(msg),
         onProgress: report,
         onChunkUpdate: (partialPlan, changedChunk) => {
@@ -1042,7 +1049,7 @@ export function registerWorkflowRoutes(app, deps) {
       });
 
       const fullBatch = isFullNarrationChunkBatch(chunkIds, plan);
-      const shouldSyncWhisper = fullBatch && syncWhisper !== false;
+      const shouldSyncWhisper = false;
       let whisperSynced = false;
       let whisperError = null;
 
@@ -1125,17 +1132,16 @@ export function registerWorkflowRoutes(app, deps) {
 
       const logs = formatNarrationChunkPlanLog(nextPlan);
       let message = masterReady
-        ? `Narração por trechos: ${nextPlan.chunk_count} trecho(s) montados.`
+        ? `Narração por trechos: ${nextPlan.chunk_count} áudio(s) gerados; ouça e aprove antes do Whisper.`
         : `Trecho(s) gerado(s) — ${nextPlan.chunk_count} no plano; master aguardando trechos faltantes.`;
       if (whisperSynced) {
         message += " Legendas sincronizadas com Whisper.";
       } else if (shouldSyncWhisper && whisperError) {
         message += ` Whisper não concluiu: ${whisperError}`;
       } else if (!fullBatch) {
-        message +=
-          " Gere todos os trechos para montar o master e sincronizar legendas.";
+        message += " Gere os trechos restantes; depois revise e aprove todos.";
       } else if (!masterReady) {
-        message += " Gere os trechos restantes para montar o MP3 master.";
+        message += " Gere os trechos restantes antes da revisão final.";
       }
       if (progressJobId) {
         finishJobProgressWithResult(
@@ -1181,6 +1187,56 @@ export function registerWorkflowRoutes(app, deps) {
     } catch (err) {
       if (progressJobId) failJobProgress(progressJobId, err.message);
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/narration-chunks/finalize-approved", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const storyboardPath = path.join(projDir, "storyboard.json");
+      const configPath = path.join(projDir, "config_qanat.json");
+      const storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      if (!isChunkedNarrationProject(config, storyboard)) {
+        return res.status(400).json({
+          error: "O fluxo oficial exige narração por trechos.",
+          code: "CHUNKED_NARRATION_REQUIRED",
+        });
+      }
+      const plan = storyboard.narration_chunk_plan;
+      if (
+        !plan?.chunks?.length ||
+        !allNarrationChunksHaveAudio(plan, projDir)
+      ) {
+        return res.status(409).json({
+          error: "Gere todos os trechos antes de finalizar a narração.",
+          code: "NARRATION_AUDIO_INCOMPLETE",
+        });
+      }
+      const audit = readNarrationAudit(projDir);
+      const approval = assertNarrationChunksApproved(plan, audit.events);
+      await assembleNarrationChunksToMaster(projDir, plan, {
+        onLog: (message) => console.log(`[Narration Finalize] ${message}`),
+      });
+      writeTimingsFromChunkPlan(projDir, plan);
+      appendNarrationAuditEvent(projDir, {
+        type: "master_assembled",
+        status: "approved",
+        chunk_count: plan.chunks.length,
+        approval_count: approval.approved_count,
+      });
+      res.json({
+        success: true,
+        message:
+          "Narração aprovada montada. O Whisper pode calcular o plano visual.",
+        approval,
+      });
+    } catch (err) {
+      res.status(err?.code === "NARRATION_REVIEW_REQUIRED" ? 409 : 500).json({
+        error: err?.message || String(err),
+        code: err?.code || "NARRATION_FINALIZE_FAILED",
+        approval: err?.approval,
+      });
     }
   });
 

@@ -187,11 +187,13 @@ ${hyperframePrompt ? `- Combine com o hyperframe do projeto: ${hyperframePrompt}
 - Mantenha coerência visual em TODAS as cenas.
 
 **4. Prompts de Vídeo (type contém "vídeo")**
-- Duração implícita de 7-10 segundos.
+- Se houver temporal_plan, ele é a fonte obrigatória: respeite target_duration_seconds, clip_count_required, clips e critical_action_deadline_seconds.
+- Nunca presuma 7-10 segundos quando o TTS + Whisper já mediu a cena. Para cenas com vários clipes, descreva continuidade entre as tomadas sem repetir a ação.
+- Sem temporal_plan, use duração provisória de 7-10 segundos e marque que aguarda a medição da voz.
 - Movimento de câmera claro e intencional: slow tracking shot, push-in, slow motion, orbit, pan, tilt, whip pan, match cut.
 - Ação ou evolução visual que combine com o ritmo da narração.
 - Algo visualmente forte nos primeiros 2-3 segundos.
-- Use termos: "dynamic video", "cinematic camera movement", "8-10 seconds duration".
+- A ação importante deve terminar antes do prazo crítico; use o post-roll apenas para sustentar o estado final e a transição.
 
 **5. Prompts de Imagem (type contém "imagem")**
 - Composição cinematográfica forte com espaço para overlays de texto.
@@ -302,6 +304,10 @@ export function buildVisualPromptEngineerRequest(storyboard = {}, opts = {}) {
       editor_notes: String(vp.editor_notes || "").slice(0, 200),
       stock_query: String(vp.stock_query || "").slice(0, 80),
       text_overlay: vp.text_overlay || undefined,
+      duration_seconds: vp.duration_seconds || undefined,
+      speech_start: vp.speech_start ?? undefined,
+      speech_end: vp.speech_end ?? undefined,
+      temporal_plan: vp.temporal_plan || undefined,
     })),
     hyperframe_prompt: hyperframe.slice(0, 500),
     editing_map:
