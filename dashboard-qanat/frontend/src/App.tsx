@@ -138,6 +138,7 @@ import {
   resolvePioneerCreatorSeed,
 } from "./creatorEditorialImport";
 import { normalizeCreatorWizardStep } from "./creatorWizardFlow";
+import type { CreatorIdeationMode } from "./creatorModeIdentity";
 import { sanitizeTimelineAssets } from "./timelineAssetSanitize";
 import type { ListicleIdeasResponse } from "./ListicleRankingIdeas";
 import type { HistoricalWitnessContext } from "./historicalWitnessTypes";
@@ -10566,6 +10567,13 @@ export default function App() {
     }
   };
 
+  const openCreatorMode = (mode: CreatorIdeationMode) => {
+    setIdeationTab(mode);
+    setHistoricalWitnessContext(null);
+    setCreatorStep(1);
+    setActiveTab("creator");
+  };
+
   const projectWorkspaceBar = !isGlobalViewTab(activeTab) ? (
     <div className="lumiera-project-bar">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
@@ -11103,7 +11111,8 @@ export default function App() {
         projects={projects}
         recentProjects={recentProjects}
         onSelectProject={handleSelectProject}
-        onOpenCreator={openCreatorTab}
+        creatorMode={ideationTab}
+        onSelectCreatorMode={openCreatorMode}
         formattedHeaderDate={formattedHeaderDate}
         headerTemperatureLabel={headerTemperatureLabel}
         youtubeAlertCount={youtubeChannelAlerts?.badgeCount ?? 0}

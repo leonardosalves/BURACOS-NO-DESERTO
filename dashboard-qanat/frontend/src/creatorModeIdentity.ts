@@ -1,0 +1,91 @@
+export type CreatorIdeationMode =
+  "ai" | "custom" | "listicle" | "historical-witness";
+
+export type CreatorModeIdentity = {
+  id: CreatorIdeationMode;
+  menuLabel: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  promise: string;
+  sequence: [string, string, string];
+  accentText: string;
+  accentBorder: string;
+  accentSurface: string;
+  halo: string;
+};
+
+export const CREATOR_MODE_IDENTITIES: Record<
+  CreatorIdeationMode,
+  CreatorModeIdentity
+> = {
+  ai: {
+    id: "ai",
+    menuLabel: "Radar de Ideias",
+    eyebrow: "Inteligência editorial",
+    title: "Radar de Ideias",
+    subtitle:
+      "Encontre histórias verdadeiras que o seu nicho ainda não percebeu.",
+    promise:
+      "Cruza oportunidade, baixa saturação e potencial de retenção antes de escrever a narração.",
+    sequence: ["Mapear o nicho", "Escolher a pauta", "Construir a história"],
+    accentText: "text-violet-200",
+    accentBorder: "border-violet-400/30",
+    accentSurface: "bg-violet-400/[0.07]",
+    halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(167,139,250,0.22),transparent_34%)]",
+  },
+  custom: {
+    id: "custom",
+    menuLabel: "Oficina Autoral",
+    eyebrow: "Sala de roteiro",
+    title: "Oficina Autoral",
+    subtitle: "Sua ideia entra bruta. O estúdio devolve uma premissa filmável.",
+    promise:
+      "Diagnostica gancho, promessa, estrutura e formato sem apagar a sua intenção criativa.",
+    sequence: ["Registrar a ideia", "Lapidar o ângulo", "Aprovar a narração"],
+    accentText: "text-cyan-200",
+    accentBorder: "border-cyan-400/30",
+    accentSurface: "bg-cyan-400/[0.06]",
+    halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(34,211,238,0.18),transparent_34%)]",
+  },
+  listicle: {
+    id: "listicle",
+    menuLabel: "Ranking Lab",
+    eyebrow: "Engenharia de listas",
+    title: "Ranking Lab",
+    subtitle:
+      "Listas com progressão, evidência e uma recompensa real no primeiro lugar.",
+    promise:
+      "Organiza critérios, tensão crescente e identidade visual para fugir do Top N genérico.",
+    sequence: ["Definir o critério", "Ordenar a tensão", "Dirigir o ranking"],
+    accentText: "text-emerald-200",
+    accentBorder: "border-emerald-400/30",
+    accentSurface: "bg-emerald-400/[0.06]",
+    halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(52,211,153,0.18),transparent_34%)]",
+  },
+  "historical-witness": {
+    id: "historical-witness",
+    menuLabel: "História Viva",
+    eyebrow: "Arquivo cinematográfico",
+    title: "História Viva",
+    subtitle: "O passado narrado por quem poderia ter estado dentro dele.",
+    promise:
+      "Trava época, personagem e causalidade para criar cenas históricas coerentes e pesquisáveis.",
+    sequence: [
+      "Abrir o arquivo",
+      "Escolher a testemunha",
+      "Reconstruir a época",
+    ],
+    accentText: "text-amber-200",
+    accentBorder: "border-amber-400/30",
+    accentSurface: "bg-amber-400/[0.06]",
+    halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(251,191,36,0.18),transparent_34%)]",
+  },
+};
+
+export function resolveCreatorModeIdentity(mode: string): CreatorModeIdentity {
+  return (
+    CREATOR_MODE_IDENTITIES[mode as CreatorIdeationMode] ||
+    CREATOR_MODE_IDENTITIES.ai
+  );
+}
