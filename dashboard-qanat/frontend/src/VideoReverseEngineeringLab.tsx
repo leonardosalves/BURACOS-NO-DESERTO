@@ -134,6 +134,20 @@ function resolveReconstructedNarration(result: ReverseResult) {
   );
 }
 
+function resolveReverseSceneVideoPrompt(scene: ReverseScene) {
+  const explicitPrompt = scene.video_prompt?.trim();
+  if (explicitPrompt) return explicitPrompt;
+
+  return [
+    scene.visual_description?.trim() || scene.image_prompt?.trim(),
+    scene.shot?.trim() ? `Shot: ${scene.shot.trim()}.` : "",
+    scene.camera?.trim() ? `Camera movement: ${scene.camera.trim()}.` : "",
+    "Natural continuous action, cinematic motion, coherent subject and environment, no static slideshow, no text or watermark.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function buildPrebuiltStoryboard(result: ReverseResult) {
   const maxBlocks = result.format === "SHORTS" ? 4 : 8;
   const scenesPerBlock = Math.max(
@@ -143,6 +157,7 @@ function buildPrebuiltStoryboard(result: ReverseResult) {
   const visualPrompts = result.scenes.map((scene, index) => {
     const block = Math.floor(index / scenesPerBlock) + 1;
     const sceneInBlock = (index % scenesPerBlock) + 1;
+    const videoPrompt = resolveReverseSceneVideoPrompt(scene);
     return {
       scene: `${block}.${sceneInBlock}`,
       block,
@@ -153,13 +168,17 @@ function buildPrebuiltStoryboard(result: ReverseResult) {
       visual_description: scene.visual_description,
       duration: `${Math.max(2, Number(scene.duration_sec) || 5)} segundos`,
       duration_seconds: Math.max(2, Number(scene.duration_sec) || 5),
-      type: "imagem IA 2k",
-      media_mode: "image",
+      type: "vídeo IA (max 10s)",
+      media_mode: "video",
       aspect_ratio: result.format === "SHORTS" ? "9:16" : "16:9",
-      prompt: scene.image_prompt || scene.visual_description,
+      prompt: videoPrompt,
       image_prompt: scene.image_prompt,
-      video_prompt: scene.video_prompt,
-      ai_video_prompt: scene.video_prompt,
+      video_prompt: videoPrompt,
+      ai_video_prompt: videoPrompt,
+      production: {
+        broll_type: "video",
+        generation_source: "video-reverse-engineering",
+      },
       shot: scene.shot,
       camera: scene.camera,
       text_overlay: scene.on_screen_text,
