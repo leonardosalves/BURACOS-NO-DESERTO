@@ -2,6 +2,7 @@ import express from "express";
 import https from "https";
 import { getFfmpegStatus } from "./pythonEnv.js";
 import { ensureMp4Faststart } from "./mp4Faststart.js";
+import { normalizeReverseEngineeredStoryboard } from "../shared/reverseEngineeringMedia.js";
 import { applyExclusiveIntroEndToRemotionProps } from "../shared/exclusiveIntroEndLayout.js";
 import {
   resolvePovPlacement,
@@ -2864,6 +2865,14 @@ app.get("/api/projects/storyboard", (req, res) => {
 
   try {
     let data = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    const reverseNormalized = normalizeReverseEngineeredStoryboard(data);
+    if (reverseNormalized !== data) {
+      data = reverseNormalized;
+      fs.writeFileSync(storyboardPath, JSON.stringify(data, null, 2), "utf8");
+      console.log(
+        `[Engenharia Reversa] Cenas restauradas como vídeo em ${path.basename(projDir)}`
+      );
+    }
 
     // Política GLOBAL POV: sem VO de canal nas cenas is_pov (qualquer projeto)
     try {
@@ -4400,7 +4409,9 @@ app.post("/api/projects/storyboard", (req, res) => {
   try {
     // Política GLOBAL POV em todo save (qualquer projeto)
     const enforced = enforcePovNoChannelNarrationPolicy(storyboardData);
-    const cleanStoryboardData = repairStoryboardEncoding(enforced);
+    const cleanStoryboardData = normalizeReverseEngineeredStoryboard(
+      repairStoryboardEncoding(enforced)
+    );
     fs.writeFileSync(
       storyboardPath,
       JSON.stringify(cleanStoryboardData, null, 2),
