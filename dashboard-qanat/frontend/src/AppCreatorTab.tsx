@@ -63,6 +63,7 @@ import {
   type CreatorModeIdentity,
 } from "./creatorModeIdentity";
 import { CreatorWizardNavigator } from "./CreatorWizardNavigator";
+import { isVideoVisualPrompt } from "@lumiera/shared/reverseEngineeringMedia.js";
 
 function CreatorPhaseMasthead({
   phase,
@@ -3058,14 +3059,10 @@ export function AppCreatorTab({
                                       const sceneNum =
                                         vp?.scene || absoluteIndex + 1;
 
-                                      const isVideo =
-                                        vp?.type
-                                          ?.toLowerCase()
-                                          ?.includes("vídeo") ||
-                                        vp?.type
-                                          ?.toLowerCase()
-                                          ?.includes("video") ||
-                                        false;
+                                      const isVideo = isVideoVisualPrompt(
+                                        vp,
+                                        generatedScriptData
+                                      );
 
                                       const isRemotionScene =
                                         String(

@@ -182,51 +182,7 @@ import { AppOverlays } from "./AppOverlays";
 import { AppTabPanels } from "./AppTabPanels";
 import { RichTimelineEditor } from "./RichTimelineEditor";
 import { TimelineStudio } from "./TimelineStudio";
-
-function normalizeReverseEngineeredStoryboard(data: any) {
-  if (!Array.isArray(data?.visual_prompts)) return data;
-
-  let changed = false;
-  const visualPrompts = data.visual_prompts.map((scene: any) => {
-    if (scene?.provenance !== "video-reverse-engineering") return scene;
-
-    const videoPrompt = String(
-      scene.video_prompt ||
-        scene.ai_video_prompt ||
-        scene.visual_description ||
-        scene.prompt ||
-        ""
-    ).trim();
-    const production = {
-      ...(scene.production && typeof scene.production === "object"
-        ? scene.production
-        : {}),
-      broll_type: "video",
-      generation_source: "video-reverse-engineering",
-    };
-    const alreadyNormalized =
-      scene.type === "vídeo IA (max 10s)" &&
-      scene.media_mode === "video" &&
-      scene.prompt === videoPrompt &&
-      scene.video_prompt === videoPrompt &&
-      scene.ai_video_prompt === videoPrompt &&
-      scene.production?.broll_type === "video";
-    if (alreadyNormalized) return scene;
-
-    changed = true;
-    return {
-      ...scene,
-      type: "vídeo IA (max 10s)",
-      media_mode: "video",
-      prompt: videoPrompt,
-      video_prompt: videoPrompt,
-      ai_video_prompt: videoPrompt,
-      production,
-    };
-  });
-
-  return changed ? { ...data, visual_prompts: visualPrompts } : data;
-}
+import { normalizeReverseEngineeredStoryboard } from "@lumiera/shared/reverseEngineeringMedia.js";
 
 const initialWizardSession = loadWizardSession();
 const initialActiveProject = resolveInitialActiveProject(initialWizardSession);
@@ -917,7 +873,9 @@ export default function App() {
   >(savedCreatorState.customBlocks || [{ block: 1, content: "" }]);
 
   const [generatedScriptData, setGeneratedScriptData] = useState<any | null>(
-    savedCreatorState.generatedScriptData || null
+    normalizeReverseEngineeredStoryboard(
+      savedCreatorState.generatedScriptData || null
+    )
   );
 
   // Accordion blocks and autosave states for Wizard Step 5
