@@ -13,6 +13,7 @@ import {
   getLumieraServiceOpsStatus,
   scheduleLumieraServiceRestart,
 } from "./lumieraServiceOps.js";
+import { registerProjectHealthRoutes } from "./projectHealthRoutes.js";
 import { buildGeminiKeyPool, shouldRotateGeminiKey } from "./geminiApiKeys.js";
 import {
   searchMusic,
@@ -21243,6 +21244,12 @@ workflowApi = registerWorkflowRoutes(app, {
   generateYoutubeThumbnailImages,
   runAutoSoundtrackLogic,
   readJsonFile,
+});
+
+registerProjectHealthRoutes(app, {
+  WORKSPACE_DIR,
+  getProjectDir,
+  countActiveRenderJobs,
 });
 
 registerTimelineStudioRoutes(app, {

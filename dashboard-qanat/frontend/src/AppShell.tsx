@@ -8,6 +8,7 @@ import {
   Cloud,
   Globe,
   Home,
+  HeartPulse,
   LayoutTemplate,
   Laugh,
   Menu,
@@ -43,6 +44,13 @@ type GlobalNavItem = {
 };
 
 const STUDIO_NAV: GlobalNavItem[] = [
+  {
+    id: "project-health",
+    label: "Saude do Sistema",
+    icon: HeartPulse,
+    helpId: "tab-project-health",
+    accent: "sky",
+  },
   {
     id: "humor-facts",
     label: "Fatos com Graca",
