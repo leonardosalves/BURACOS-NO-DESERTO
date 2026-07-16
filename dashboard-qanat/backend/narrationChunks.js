@@ -40,6 +40,7 @@ import { flattenWordTranscripts } from "../shared/wordTranscripts.js";
 import { cleanText, matchWords } from "../shared/narrationMatch.js";
 import { tightenTimelineRetentionDurations } from "./timelineSceneSync.js";
 import { applyNarrationFirstVisualPlan } from "../shared/narrationFirstVisualPlan.js";
+import { isPromptOnlyKeyframe } from "../shared/timelineKeyframeUtils.js";
 
 const MAX_WHISPER_WORD_DURATION_S = 2.5;
 const MAX_WHISPER_INTER_WORD_GAP_S = 1.2;
@@ -905,6 +906,119 @@ export function resolveChunkAssetIndex(chunk, assets = [], ordinalInBlock = 0) {
   return Math.min(ordinalInBlock, list.length - 1);
 }
 
+function splitNarrationText(text = "", partCount = 1) {
+  const words = String(text || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const count = Math.max(1, Number(partCount) || 1);
+  if (count === 1 || words.length < 2) return [words.join(" ")];
+  return Array.from({ length: count }, (_, index) => {
+    const start = Math.round((index * words.length) / count);
+    const end = Math.round(((index + 1) * words.length) / count);
+    return words.slice(start, end).join(" ");
+  });
+}
+
+/**
+ * Converte chunks de voz em janelas visuais sem assumir 1 chunk = 1 cena.
+ * Várias vozes podem compartilhar uma cena e uma fala pode cobrir várias cenas.
+ */
+export function buildVisualSceneTimingSegments(chunks = [], scenes = []) {
+  const timedChunks = [...(chunks || [])]
+    .filter(
+      (chunk) =>
+        Number.isFinite(Number(chunk?.start_s)) &&
+        Number.isFinite(Number(chunk?.end_s)) &&
+        Number(chunk.end_s) > Number(chunk.start_s)
+    )
+    .sort((a, b) => Number(a.start_s) - Number(b.start_s));
+  const visualScenes = (scenes || []).filter(
+    (scene) => !isPromptOnlyKeyframe(scene)
+  );
+  if (!visualScenes.length) return timedChunks;
+  if (!timedChunks.length) return [];
+
+  const sceneRefs = visualScenes.map((scene, index) =>
+    String(
+      scene?.scene || scene?.scene_ref || `${scene?.block || 1}.${index + 1}`
+    ).trim()
+  );
+  const chunksByScene = new Map();
+  timedChunks.forEach((chunk, chunkIndex) => {
+    const exactIndex = sceneRefs.indexOf(String(chunk?.scene_ref || "").trim());
+    const fallbackIndex =
+      visualScenes.length === 1 || timedChunks.length === 1
+        ? 0
+        : Math.round(
+            (chunkIndex * (visualScenes.length - 1)) / (timedChunks.length - 1)
+          );
+    const sceneIndex = exactIndex >= 0 ? exactIndex : fallbackIndex;
+    if (!chunksByScene.has(sceneIndex)) chunksByScene.set(sceneIndex, []);
+    chunksByScene.get(sceneIndex).push(chunk);
+  });
+
+  const occupied = [...chunksByScene.keys()].sort((a, b) => a - b);
+  const ownerForScene = visualScenes.map((_, sceneIndex) => {
+    if (chunksByScene.has(sceneIndex)) return sceneIndex;
+    return occupied.reduce(
+      (best, candidate) =>
+        Math.abs(candidate - sceneIndex) < Math.abs(best - sceneIndex)
+          ? candidate
+          : best,
+      occupied[0]
+    );
+  });
+
+  const scenesByOwner = new Map();
+  ownerForScene.forEach((owner, sceneIndex) => {
+    if (!scenesByOwner.has(owner)) scenesByOwner.set(owner, []);
+    scenesByOwner.get(owner).push(sceneIndex);
+  });
+
+  const segments = Array(visualScenes.length).fill(null);
+  for (const [owner, sceneIndexes] of scenesByOwner) {
+    const ownedChunks = chunksByScene.get(owner) || [];
+    const start = Math.min(
+      ...ownedChunks.map((chunk) => Number(chunk.start_s))
+    );
+    const speechEnd = Math.max(
+      ...ownedChunks.map((chunk) => Number(chunk.end_s))
+    );
+    // A janela visual inclui a pausa posterior. Sem isso, a timeline ganha
+    // buracos entre cenas e termina antes da narração mestre.
+    const end = Math.max(
+      ...ownedChunks.map(
+        (chunk) =>
+          Number(chunk.end_s) +
+          Math.max(0, Number(chunk.pause_after_ms) || 0) / 1000
+      )
+    );
+    const duration = Math.max(0.05, end - start);
+    const combinedText = ownedChunks
+      .map((chunk) => String(chunk.text || "").trim())
+      .filter(Boolean)
+      .join(" ");
+    const textParts = splitNarrationText(combinedText, sceneIndexes.length);
+    sceneIndexes.forEach((sceneIndex, partIndex) => {
+      const partStart = start + (duration * partIndex) / sceneIndexes.length;
+      const partEnd =
+        start + (duration * (partIndex + 1)) / sceneIndexes.length;
+      segments[sceneIndex] = {
+        ...ownedChunks[0],
+        id: ownedChunks.map((chunk) => chunk.id).join("+"),
+        scene_ref: sceneRefs[sceneIndex],
+        text: textParts[partIndex] || "",
+        start_s: Number(partStart.toFixed(3)),
+        end_s: Number(partEnd.toFixed(3)),
+        speech_end_s: Number(Math.min(speechEnd, partEnd).toFixed(3)),
+        source_chunk_ids: ownedChunks.map((chunk) => chunk.id),
+      };
+    });
+  }
+  return segments.filter(Boolean);
+}
+
 /**
  * Sincroniza timeline + storyboard a partir dos trechos (start_s/end_s) — fonte de verdade no modo chunked.
  */
@@ -938,6 +1052,22 @@ export function syncTimelineFromChunkPlan({
   for (const [blockNum, blockChunks] of byBlock) {
     const blockKey = String(blockNum);
     let assets = [...(out[blockKey] || [])];
+    const storyboardBlockScenes = nextPrompts.filter(
+      (scene) =>
+        Number(scene?.block) === blockNum && !isPromptOnlyKeyframe(scene)
+    );
+    // Se o editor já manteve somente slots reais/bloqueados, essa seleção é
+    // intencional (por exemplo após excluir uma cena repetida). Não recrie o
+    // slot apagado apenas porque o storyboard legado ainda o referencia.
+    const hasExplicitVisualSelection =
+      assets.length > 0 &&
+      assets.every(
+        (asset) => asset?.user_locked === true || asset?.manual_asset === true
+      );
+    const blockScenes =
+      hasExplicitVisualSelection && assets.length < storyboardBlockScenes.length
+        ? storyboardBlockScenes.slice(0, assets.length)
+        : storyboardBlockScenes;
     const sortedRaw = [...blockChunks].sort(
       (a, b) =>
         Number(a.start_s) - Number(b.start_s) ||
@@ -945,7 +1075,7 @@ export function syncTimelineFromChunkPlan({
     );
     // Um resíduo muito curto (ex.: a última palavra com 0,5s) não merece
     // criar um segundo asset vazio; ele deve permanecer na cena anterior.
-    const sorted = sortedRaw.reduce((merged, chunk) => {
+    const compactedChunks = sortedRaw.reduce((merged, chunk) => {
       const duration = Number(chunk.end_s) - Number(chunk.start_s);
       const previous = merged.at(-1);
       if (previous && Number.isFinite(duration) && duration < 1.1) {
@@ -963,6 +1093,8 @@ export function syncTimelineFromChunkPlan({
       return [...merged, chunk];
     }, []);
 
+    const sorted = buildVisualSceneTimingSegments(compactedChunks, blockScenes);
+
     // Após compactar resíduos, descarte apenas placeholders excedentes. Assets
     // reais e slots bloqueados do usuário nunca são removidos automaticamente.
     if (assets.length > sorted.length) {
@@ -975,24 +1107,39 @@ export function syncTimelineFromChunkPlan({
     }
 
     while (assets.length < sorted.length) {
-      assets.push({ asset: "", type: "image" });
+      const scene = blockScenes[assets.length];
+      const sceneAsset =
+        scene?.asset && typeof scene.asset === "object"
+          ? scene.asset.asset
+          : scene?.asset;
+      assets.push({
+        asset: String(sceneAsset || ""),
+        type:
+          scene?.asset?.type ||
+          (String(scene?.type || "")
+            .toLowerCase()
+            .includes("vídeo")
+            ? "video"
+            : "image"),
+      });
     }
 
     sorted.forEach((chunk, ordinal) => {
       const start = Number(chunk.start_s);
       const end = Number(chunk.end_s);
+      const speechEnd = Number(chunk.speech_end_s ?? chunk.end_s);
       if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
         return;
 
       const text = String(chunk.text || "").trim();
-      // 1 trecho = 1 slot na ordem do bloco (evita colisão por scene_ref incorreto).
+      // O slot segue a cena visual; chunks de voz podem ser agregados ou divididos.
       const idx = Math.min(ordinal, assets.length - 1);
       assets[idx] = {
         ...assets[idx],
         narration_segment: text,
         audio_start: parseFloat(start.toFixed(3)),
-        speech_end: parseFloat(end.toFixed(3)),
-        fixed: parseFloat(Math.max(0.5, end - start).toFixed(1)),
+        speech_end: parseFloat(speechEnd.toFixed(3)),
+        fixed: parseFloat(Math.max(0.5, end - start).toFixed(3)),
         synced_to_speech: true,
         duration_from_whisper: chunkPlan?.timing_source === "whisper",
         chunk_id: chunk.id,

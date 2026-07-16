@@ -179,7 +179,7 @@ test("multi-character speech creates separate TTS chunks but one visual scene", 
     visualPrompts: [{ block: 1, scene: "1.1", narration_text: narration }],
   });
   assert.equal(synced.timelineAssets["1"].length, 1);
-  assert.equal(synced.timelineAssets["1"][0].fixed, 2.8);
+  assert.equal(synced.timelineAssets["1"][0].fixed, 2.98);
   assert.equal(synced.visualPrompts.length, 1);
   assert.equal(synced.visualPrompts[0].narration_text, narration);
 });

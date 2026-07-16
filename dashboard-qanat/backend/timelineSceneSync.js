@@ -543,7 +543,7 @@ export function tightenTimelineRetentionDurations(
         return;
       const chained = computeChainedSceneDuration(asset, assets, idx, blockEnd);
       if (chained == null) return;
-      asset.fixed = parseFloat(chained.toFixed(1));
+      asset.fixed = parseFloat(chained.toFixed(3));
       asset.duration_from_whisper = true;
     });
 
@@ -833,18 +833,11 @@ export function applySpeechWindowToAsset(
     !isAssetDurationLocked(asset) &&
     !(preserveExplicitFixed && assetHasExplicitDuration(asset))
   ) {
-    const chained = computeChainedSceneDuration(
-      asset,
-      assets,
-      idx,
-      blockEnd
-    );
+    const chained = computeChainedSceneDuration(asset, assets, idx, blockEnd);
     if (chained != null) {
       asset.fixed = parseFloat(chained.toFixed(1));
     } else {
-      asset.fixed = parseFloat(
-        Math.max(0.5, end - start).toFixed(1)
-      );
+      asset.fixed = parseFloat(Math.max(0.5, end - start).toFixed(1));
     }
   }
 }

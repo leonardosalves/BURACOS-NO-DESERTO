@@ -100,6 +100,10 @@ import {
   readNarrationAudit,
 } from "./narrationAudit.js";
 import {
+  appendProjectEventLog,
+  summarizeTimelineAssets,
+} from "./projectEventLog.js";
+import {
   convertCinematicMarkersForTts,
   sanitizeNarrationChunkTaggedText,
 } from "./videoProEnhancements.js";
@@ -967,6 +971,12 @@ export function registerWorkflowRoutes(app, deps) {
     const report = createProgressReporter(progressJobId);
 
     const runGeneration = async () => {
+      appendProjectEventLog(projDir, {
+        component: "narration",
+        event: "tts_chunks_started",
+        message: "Geração de narração por trechos iniciada.",
+        details: { requested_chunk_ids: chunkIds || "all", engine, voice },
+      });
       if (progressJobId) {
         setJobProgress(progressJobId, {
           phase: "start",
@@ -1011,8 +1021,9 @@ export function registerWorkflowRoutes(app, deps) {
         workspaceDir: WORKSPACE_DIR,
         useTagged: useTagged !== false,
         stripEmphasis: true,
-        // Geração nunca monta o master: o usuário precisa ouvir e aprovar
-        // a versão atual de cada trecho antes da etapa final.
+        // O gerador de baixo nível não finaliza o projeto. Esta rota monta
+        // um master de revisão quando todos os chunks existem; Whisper e o
+        // master aprovado continuam bloqueados até a aprovação humana.
         assembleMaster: false,
         onLog: (msg) => console.log(msg),
         onProgress: report,
@@ -1025,6 +1036,23 @@ export function registerWorkflowRoutes(app, deps) {
             (chunk) => chunk.id === changedChunk?.id
           );
           if (changed) {
+            appendProjectEventLog(projDir, {
+              component: "narration",
+              event: "tts_chunk_updated",
+              level: changed.status === "failed" ? "error" : "info",
+              message: `${changed.id}: ${changed.status}`,
+              details: {
+                chunk_id: changed.id,
+                block: changed.block,
+                scene_ref: changed.scene_ref,
+                status: changed.status,
+                engine: changed.voice?.engine,
+                voice: changed.voice?.voice,
+                audio_file: changed.audio_file,
+                duration_s: changed.duration_s,
+                error: changed.error,
+              },
+            });
             appendNarrationAuditEvent(projDir, {
               type: "chunk_tts",
               run_id: progressJobId || null,
@@ -1092,6 +1120,16 @@ export function registerWorkflowRoutes(app, deps) {
 
       const masterReady = allNarrationChunksHaveAudio(nextPlan, projDir);
       if (masterReady) {
+        report("assemble-draft", "Montando master de revisão…", 90);
+        await assembleNarrationChunksToMaster(projDir, nextPlan, {
+          onLog: (message) => console.log(`[Narration Draft] ${message}`),
+        });
+        appendProjectEventLog(projDir, {
+          component: "narration",
+          event: "narration_master_draft_assembled",
+          message: "Master de revisão montado sem executar Whisper.",
+          details: { chunk_count: nextPlan.chunks.length, approved: false },
+        });
         let whisperTranscripts = null;
         let flatWords = [];
         if (whisperSynced) {
@@ -1117,6 +1155,16 @@ export function registerWorkflowRoutes(app, deps) {
         config = applied.config;
         storyboard = applied.storyboard;
         nextPlan = applied.storyboard.narration_chunk_plan || nextPlan;
+        appendProjectEventLog(projDir, {
+          component: "timeline",
+          event: "chunk_timeline_synchronized",
+          message:
+            "Timeline sincronizada sem acoplar quantidade de assets à quantidade de chunks.",
+          details: summarizeTimelineAssets(
+            applied.config.timeline_assets,
+            applied.storyboard.visual_prompts
+          ),
+        });
         console.log(
           whisperSynced
             ? "[TTS Chunks] Timeline reancorada pela fala real do Whisper (1 segmento por cena)."
@@ -1178,6 +1226,12 @@ export function registerWorkflowRoutes(app, deps) {
         res.json({ started: true, jobId: progressJobId });
         runGeneration().catch((err) => {
           console.error("[TTS Chunks] Falha:", err);
+          appendProjectEventLog(projDir, {
+            level: "error",
+            component: "narration",
+            event: "tts_chunks_failed",
+            message: err?.message || String(err),
+          });
           failJobProgress(progressJobId, err?.message || String(err));
         });
         return;
@@ -1185,6 +1239,12 @@ export function registerWorkflowRoutes(app, deps) {
       const result = await runGeneration();
       res.json(result);
     } catch (err) {
+      appendProjectEventLog(projDir, {
+        level: "error",
+        component: "narration",
+        event: "tts_chunks_failed",
+        message: err?.message || String(err),
+      });
       if (progressJobId) failJobProgress(progressJobId, err.message);
       res.status(500).json({ error: err.message });
     }
@@ -1225,6 +1285,15 @@ export function registerWorkflowRoutes(app, deps) {
         chunk_count: plan.chunks.length,
         approval_count: approval.approved_count,
       });
+      appendProjectEventLog(projDir, {
+        component: "narration",
+        event: "narration_master_approved",
+        message: "Master aprovado remontado; Whisper liberado.",
+        details: {
+          chunk_count: plan.chunks.length,
+          approval_count: approval.approved_count,
+        },
+      });
       res.json({
         success: true,
         message:
@@ -1232,6 +1301,14 @@ export function registerWorkflowRoutes(app, deps) {
         approval,
       });
     } catch (err) {
+      const projDir = getProjectDir(req);
+      appendProjectEventLog(projDir, {
+        level: "error",
+        component: "narration",
+        event: "narration_finalize_failed",
+        message: err?.message || String(err),
+        details: { code: err?.code, approval: err?.approval },
+      });
       res.status(err?.code === "NARRATION_REVIEW_REQUIRED" ? 409 : 500).json({
         error: err?.message || String(err),
         code: err?.code || "NARRATION_FINALIZE_FAILED",

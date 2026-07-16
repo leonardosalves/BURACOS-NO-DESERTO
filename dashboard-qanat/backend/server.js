@@ -16,6 +16,7 @@ import {
 } from "./lumieraServiceOps.js";
 import { registerProjectHealthRoutes } from "./projectHealthRoutes.js";
 import { registerAssetCleanupRoutes } from "./assetCleanupRoutes.js";
+import { appendProjectEventLog } from "./projectEventLog.js";
 import { buildGeminiKeyPool, shouldRotateGeminiKey } from "./geminiApiKeys.js";
 import {
   searchMusic,
@@ -1803,6 +1804,17 @@ app.post("/api/projects/create", (req, res) => {
       "Bloco 1...\n",
       "utf8"
     );
+
+    appendProjectEventLog(projDir, {
+      component: "project",
+      event: "project_created",
+      message: `Projeto ${safeName} criado.`,
+      details: {
+        project: safeName,
+        format: isShort ? "SHORTS" : "LONGO",
+        niche: niche || "Geral",
+      },
+    });
 
     res.json({
       success: true,
