@@ -524,7 +524,11 @@ export function AppCreatorTab({
     chunkPlanReady: narrationWizardReadiness.ready,
     whisperReady: isWhisperTimelineReady(wordTranscripts, status),
   });
-  const timelineBlockedReason = !timelineAssets
+  // A timeline exibida pelo editor vem de config.timeline_assets. O estado
+  // legado `timelineAssets` só era preenchido ao executar sincronização na
+  // sessão atual e ficava null ao restaurar um projeto já sincronizado.
+  const activeTimelineAssets = config?.timeline_assets || timelineAssets;
+  const timelineBlockedReason = !activeTimelineAssets
     ? "A timeline ainda não foi carregada."
     : !Array.isArray(wordTranscripts) || wordTranscripts.length === 0
       ? "Recarregando a transcrição Whisper do projeto…"
@@ -2284,7 +2288,7 @@ export function AppCreatorTab({
               </button>
               <div className="flex flex-col items-end gap-1.5">
                 <button
-                  disabled={!timelineAssets || !timelineReady}
+                  disabled={!activeTimelineAssets || !timelineReady}
                   onClick={async () => {
                     try {
                       await handleSaveConfig();
