@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from "react";
 import {
   BookOpenCheck,
+  ArrowRight,
   Check,
   Clock3,
   Copy,
+  Clapperboard,
   Feather,
   FlaskConical,
   Laugh,
@@ -13,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import type { CreatorApplyIdeaOptions } from "./creatorEditorialImport";
 
 type HumorIdea = {
   id: string;
@@ -40,6 +43,11 @@ type NarrationResult = {
 
 type Props = {
   getProjectUrl: (path: string) => string;
+  onApplyCreator: (
+    title: string,
+    hook: string,
+    options?: CreatorApplyIdeaOptions
+  ) => void | Promise<void>;
 };
 
 const HUMOR_STYLES = [
@@ -49,7 +57,7 @@ const HUMOR_STYLES = [
   ["energia de stand-up familiar", "Stand-up leve"],
 ] as const;
 
-export function HumorFactsLab({ getProjectUrl }: Props) {
+export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
   const [niche, setNiche] = useState("");
   const [format, setFormat] = useState<"SHORTS" | "LONGO">("SHORTS");
   const [humorStyle, setHumorStyle] = useState<string>(HUMOR_STYLES[0][0]);
@@ -60,6 +68,7 @@ export function HumorFactsLab({ getProjectUrl }: Props) {
   const [instructions, setInstructions] = useState("");
   const [loadingIdeas, setLoadingIdeas] = useState(false);
   const [loadingNarration, setLoadingNarration] = useState(false);
+  const [loadingProduction, setLoadingProduction] = useState(false);
 
   const selected = useMemo(
     () => ideas.find((idea) => idea.id === selectedId) || null,
@@ -134,6 +143,104 @@ export function HumorFactsLab({ getProjectUrl }: Props) {
     if (!narration?.narration) return;
     await navigator.clipboard.writeText(narration.narration);
     toast.success("Narracao copiada. Nenhum arquivo do Criador foi alterado.");
+  };
+
+  const createVideoFromNarration = async () => {
+    if (!selected || !narration) return;
+    setLoadingProduction(true);
+    try {
+      const data = await postJson("/api/humor-facts/production-plan", {
+        title: narration.title || selected.title,
+        hook: narration.hook || selected.hook,
+        narration: narration.narration,
+        factualPremise: selected.factualPremise,
+        format,
+        humorStyle,
+      });
+      const plan = data.result as {
+        title?: string;
+        hook?: string;
+        narration: string;
+        visualComedyDirection?: string;
+        continuityBible?: string;
+        musicDirection?: string;
+        sfxDirection?: string;
+        scenes: Array<{
+          order: number;
+          narration: string;
+          visualBeat: string;
+          imagePrompt: string;
+          videoPrompt: string;
+          shot: string;
+          camera: string;
+          onScreenText: string;
+          sfxCue: string;
+          transition: string;
+        }>;
+      };
+      const sceneText = (scene: (typeof plan.scenes)[number]) =>
+        [
+          `CENA ${scene.order}`,
+          `NARRACAO: ${scene.narration}`,
+          `HUMOR VISUAL: ${scene.visualBeat}`,
+          `PROMPT IMAGEM: ${scene.imagePrompt}`,
+          `PROMPT VIDEO: ${scene.videoPrompt}`,
+          `PLANO/CAMERA: ${scene.shot}; ${scene.camera}`,
+          scene.onScreenText ? `TEXTO NA TELA: ${scene.onScreenText}` : "",
+          scene.sfxCue ? `SFX: ${scene.sfxCue}` : "",
+          scene.transition ? `TRANSICAO: ${scene.transition}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+      if (!plan.scenes.length) {
+        throw new Error("O diretor visual nao retornou cenas aproveitaveis.");
+      }
+      const outline = [
+        "PLANO FATOS COM GRACA — preservar premissa e narracao aprovadas:",
+        `DIRECAO DO HUMOR VISUAL: ${plan.visualComedyDirection || "humor observacional elegante"}`,
+        `CONTINUIDADE: ${plan.continuityBible || "manter personagens e linguagem visual"}`,
+        `MUSICA: ${plan.musicDirection || ""}`,
+        `SONOPLASTIA: ${plan.sfxDirection || "efeitos pontuais, sem poluicao"}`,
+        "",
+        ...plan.scenes.map(sceneText),
+      ].join("\n\n");
+      const maxBlocks = format === "SHORTS" ? 4 : 8;
+      const groupSize = Math.max(1, Math.ceil(plan.scenes.length / maxBlocks));
+      const blocks = Array.from(
+        { length: Math.ceil(plan.scenes.length / groupSize) },
+        (_, index) => ({
+          block: index + 1,
+          content: plan.scenes
+            .slice(index * groupSize, (index + 1) * groupSize)
+            .map(sceneText)
+            .join("\n\n"),
+        })
+      );
+      await onApplyCreator(
+        plan.title || narration.title,
+        plan.hook || narration.hook,
+        {
+          format,
+          mechanic: "humor-facts",
+          source: `humor-facts:${selected.id}`,
+          customTitle: plan.title || narration.title,
+          customHook: plan.hook || narration.hook,
+          customPromise: outline,
+          whyWorks: outline,
+          approvedNarration: plan.narration,
+          blocks,
+        }
+      );
+      toast.success(
+        "Cenas humoristicas prontas. Narracao enviada intacta ao wizard."
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Falha ao planejar as cenas."
+      );
+    } finally {
+      setLoadingProduction(false);
+    }
   };
 
   return (
@@ -424,6 +531,29 @@ export function HumorFactsLab({ getProjectUrl }: Props) {
                   </ul>
                 </div>
               )}
+              <div className="mt-5 flex flex-col gap-3 border-t border-emerald-300/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="max-w-xl text-[10px] leading-5 text-stone-500">
+                  O diretor de humor criara cenas, prompts de imagem e video,
+                  continuidade, musica e SFX. A narracao acima sera preservada
+                  palavra por palavra no wizard.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void createVideoFromNarration()}
+                  disabled={loadingProduction}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-4 py-3 text-xs font-black text-emerald-950 hover:bg-emerald-200 disabled:opacity-50"
+                >
+                  {loadingProduction ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Clapperboard className="h-4 w-4" />
+                  )}
+                  {loadingProduction
+                    ? "Criando cenas..."
+                    : "Criar video no wizard"}
+                  {!loadingProduction && <ArrowRight className="h-4 w-4" />}
+                </button>
+              </div>
             </section>
           )}
         </div>

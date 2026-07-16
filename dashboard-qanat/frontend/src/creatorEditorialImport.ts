@@ -121,6 +121,8 @@ export type CreatorApplyIdeaOptions = {
   customTitle?: string;
   customHook?: string;
   customPromise?: string;
+  /** Narração já aprovada por um criador especializado; abre revisão sem regenerar. */
+  approvedNarration?: string;
   blocks?: Array<{ block: number; content: string }>;
 };
 
@@ -144,6 +146,7 @@ export type EditorialIdeaImport = {
   pioneerMeta?: PioneerNicheMeta;
   agentReachResearch?: AgentReachResearchPayload;
   openMontageOutline?: string;
+  approvedNarration?: string;
   /** Brief serializado — permite reidratar outline após F5 / wizard session. */
   openMontage?: OpenMontageImportPayload;
 };

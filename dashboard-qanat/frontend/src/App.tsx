@@ -137,6 +137,7 @@ import {
   resolveOpenMontageConcept,
   resolvePioneerCreatorSeed,
 } from "./creatorEditorialImport";
+import { normalizeCreatorWizardStep } from "./creatorWizardFlow";
 import { sanitizeTimelineAssets } from "./timelineAssetSanitize";
 import type { ListicleIdeasResponse } from "./ListicleRankingIdeas";
 import type { HistoricalWitnessContext } from "./historicalWitnessTypes";
@@ -634,7 +635,7 @@ export default function App() {
   const savedCreatorState = initialWizardSession || {};
 
   const [creatorStep, setCreatorStep] = useState<number>(
-    savedCreatorState.creatorStep || 1
+    normalizeCreatorWizardStep(savedCreatorState.creatorStep)
   );
 
   const [creatorPrompt, setCreatorPrompt] = useState<string>("");
@@ -862,8 +863,9 @@ export default function App() {
   const [customOutline, setCustomOutline] = useState<string>(
     savedCreatorState.customOutline || ""
   );
-  const [customIdeaOpportunity, setCustomIdeaOpportunity] =
-    useState<any | null>(null);
+  const [customIdeaOpportunity, setCustomIdeaOpportunity] = useState<
+    any | null
+  >(null);
   const [customBlocks, setCustomBlocks] = useState<
     { block: number; content: string }[]
   >(savedCreatorState.customBlocks || [{ block: 1, content: "" }]);
@@ -3287,7 +3289,8 @@ export default function App() {
   );
 
   const applyWizardSessionPatch = useCallback((patch: WizardSessionPatch) => {
-    if (patch.creatorStep !== undefined) setCreatorStep(patch.creatorStep);
+    if (patch.creatorStep !== undefined)
+      setCreatorStep(normalizeCreatorWizardStep(patch.creatorStep));
     if (patch.nicheInput !== undefined) setNicheInput(patch.nicheInput);
     if (patch.formatSelector) setFormatSelector(patch.formatSelector);
     if (patch.ideasData !== undefined)
@@ -8620,6 +8623,7 @@ export default function App() {
     );
     const sourceProject = parseEditorialSourceProject(options?.source);
     const mechanicBlock = options?.mechanic?.match(/clip-factory-bloco-(\d+)/);
+    const approvedNarration = options?.approvedNarration?.trim() || "";
     const importData: EditorialIdeaImport = {
       title: options?.customTitle || cleaned,
       hookPt: options?.customHook || hook,
@@ -8637,13 +8641,14 @@ export default function App() {
       pioneerMeta: options?.pioneerMeta,
       openMontageOutline,
       openMontage: openMontagePayload,
+      approvedNarration: approvedNarration || undefined,
       whyWorks: openMontageOutline ? undefined : options?.whyWorks,
     };
 
     cancelCreatorGeneration();
     setAutomation({ active: false });
-    setShowNarrationReview(false);
-    setNarrationDraft("");
+    setShowNarrationReview(Boolean(approvedNarration));
+    setNarrationDraft(approvedNarration);
     setNarrationTaggedDraft("");
     setNarrationStrategy(null);
     setNarrationBlockPhrases([]);
@@ -9432,9 +9437,7 @@ export default function App() {
 
   const handleRunFacelessPipeline90 = useCallback(async () => {
     if (!canRunFacelessPipeline90(wordTranscripts, status)) {
-      toast.error(
-        "Conclua a sincronização Whisper (passo 3) antes do Pipeline 90%."
-      );
+      toast.error("Conclua Voz e Timing (fase 2) antes do Pipeline 90%.");
       return;
     }
     setFacelessPipelineBusy(true);
@@ -10559,7 +10562,7 @@ export default function App() {
     setActiveTab("creator");
     const session = loadWizardSession();
     if (session?.creatorStep && session.creatorStep > 1) {
-      setCreatorStep(session.creatorStep);
+      setCreatorStep(normalizeCreatorWizardStep(session.creatorStep));
     }
   };
 

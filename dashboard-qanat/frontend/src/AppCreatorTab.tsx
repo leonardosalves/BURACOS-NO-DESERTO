@@ -48,6 +48,11 @@ import {
   isWhisperTimelineReady,
 } from "./sceneSpeechDuration";
 import type { ConfigData, WorkspaceStatus } from "./appTypes";
+import {
+  CREATOR_WIZARD_PHASES,
+  creatorTimelineReady,
+  creatorWizardPhaseIndex,
+} from "./creatorWizardFlow";
 
 export type AppCreatorTabProps = {
   activeProject: string;
@@ -430,15 +435,21 @@ export function AppCreatorTab({
     }
     toast.success("Melhorias premium aplicadas. Você ainda pode editar tudo.");
   };
+  const wizardPhaseIndex = creatorWizardPhaseIndex(creatorStep);
+  const timelineReady = creatorTimelineReady({
+    narrationMode: config?.narration_mode,
+    chunkPlanReady: narrationWizardReadiness.ready,
+    whisperReady: isWhisperTimelineReady(wordTranscripts, status),
+  });
   return (
     <DashminPageLayout
       className="lumiera-fill-view overflow-hidden"
       title="Criador de Vídeos com IA"
-      subtitle={`Wizard em 7 passos · passo ${creatorStep} de 7`}
+      subtitle={`Fluxo editorial em 5 fases · ${CREATOR_WIZARD_PHASES[wizardPhaseIndex].label}`}
       breadcrumb={["Dashboard", "Produção", "Creator IA"]}
       icon={<Sparkles className="w-5 h-5 animate-pulse" />}
     >
-      <div className="glass-panel p-5 rounded-lg shrink-0 space-y-4">
+      <div className="relative shrink-0 space-y-4 overflow-hidden rounded-3xl border border-dash-border bg-[#0a0b0e] p-5 shadow-2xl shadow-black/20">
         <div className="flex flex-wrap items-center gap-2 mb-3 text-[10px]">
           {wizardSavedAtLabel ? (
             <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
@@ -519,29 +530,36 @@ export function AppCreatorTab({
           <div
             className="absolute left-4 h-0.5 bg-dash-primary top-1/2 -translate-y-1/2 -z-10 transition-all duration-300"
 
-            style={{ width: `${((creatorStep - 1) / 6) * 100}%` }}
+            style={{
+              width: `${(wizardPhaseIndex / (CREATOR_WIZARD_PHASES.length - 1)) * 100}%`,
+            }}
           ></div>
 
-          {[1, 2, 3, 4, 5, 6, 7].map((step) => (
+          {CREATOR_WIZARD_PHASES.map((phase, index) => (
             <button
-              key={step}
+              key={phase.id}
+              type="button"
+              disabled={wizardPhaseIndex <= index}
 
-              onClick={() => creatorStep > step && setCreatorStep(step)}
+              onClick={() =>
+                wizardPhaseIndex > index && setCreatorStep(phase.entryStep)
+              }
 
-              className={`w-9 h-9 rounded-full flex items-center justify-center font-mono text-xs font-bold transition-all duration-150 cursor-pointer ${
-                creatorStep === step
+              className={`w-9 h-9 rounded-full flex items-center justify-center font-mono text-xs font-bold transition-all duration-150 disabled:cursor-default ${
+                wizardPhaseIndex === index
                   ? "bg-dash-primary text-white shadow-lg shadow-dash-primary/25 scale-110"
-                  : creatorStep > step
+                  : wizardPhaseIndex > index
                     ? "bg-emerald-500 text-white"
                     : "bg-zinc-900 border border-zinc-800 text-zinc-500"
               }`}
+              title={`${phase.label}: ${phase.description}`}
             >
-              {creatorStep > step ? "✓" : step}
+              {wizardPhaseIndex > index ? "✓" : index + 1}
             </button>
           ))}
         </div>
 
-        <div className="flex justify-between text-[9px] text-zinc-400 font-bold uppercase tracking-wider mt-2.5 px-1 font-sans">
+        <div className="hidden">
           <span>1. Roteiro IA</span>
 
           <span>2. Narração Master</span>
@@ -554,11 +572,29 @@ export function AppCreatorTab({
           <span>6. Metadados</span>
           <span>7. Publicar</span>
         </div>
+        <div className="grid grid-cols-5 gap-2 px-1 text-center text-[8px] font-black uppercase tracking-[0.12em] text-zinc-500 sm:text-[9px]">
+          {CREATOR_WIZARD_PHASES.map((phase, index) => (
+            <span
+              key={phase.id}
+              className={wizardPhaseIndex === index ? "text-dash-primary" : ""}
+            >
+              {phase.shortLabel}
+            </span>
+          ))}
+        </div>
+        <div className="rounded-2xl border border-dash-primary/15 bg-dash-primary/[0.04] px-4 py-3">
+          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-dash-primary">
+            Agora · {CREATOR_WIZARD_PHASES[wizardPhaseIndex].label}
+          </p>
+          <p className="mt-1 text-[10px] leading-4 text-zinc-500">
+            {CREATOR_WIZARD_PHASES[wizardPhaseIndex].description}
+          </p>
+        </div>
       </div>
 
       {/* Steps Content Area */}
 
-      <div className="flex-1 glass-panel border border-dash-border rounded-lg p-6 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto rounded-3xl border border-dash-border bg-[#08090c]/95 p-6 shadow-2xl shadow-black/20">
         {/* STEP 1: SCRIPT MASTER Research & Selection */}
 
         {creatorStep === 1 && (
@@ -567,7 +603,7 @@ export function AppCreatorTab({
             <div className="bg-zinc-950/60 border border-zinc-900/85 rounded-2xl p-5 space-y-4">
               <div>
                 <SectionHeader
-                  title="Passo 1: Pesquisa e Ideias (Script Master)"
+                  title="Fase 1: Ideia, Pesquisa e Roteiro"
                   helpId="creator-step-ideas"
                   subtitle="Defina o assunto e a estrutura do seu vídeo. Primeiro a IA gera a narração para você revisar e editar; depois de aprovar, ela monta blocos, prompts visuais e estratégia completa."
                 />
@@ -640,10 +676,15 @@ export function AppCreatorTab({
                       <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-300/90">
                         {isClipFactorySource(editorialIdeaImport.source)
                           ? "Ideia do Clip Factory"
-                          : editorialIdeaImport.mechanic ===
-                              "openmontage-reference"
-                            ? "Ideia OpenMontage"
-                            : "Ideia da fila editorial"}
+                          : editorialIdeaImport.mechanic === "humor-facts"
+                            ? "Fatos com Graca · cenas humoristicas"
+                            : editorialIdeaImport.mechanic ===
+                                "video-reverse-engineering"
+                              ? "Engenharia Reversa · dossie importado"
+                              : editorialIdeaImport.mechanic ===
+                                  "openmontage-reference"
+                                ? "Ideia OpenMontage"
+                                : "Ideia da fila editorial"}
                       </p>
                       <p className="text-sm font-semibold text-white leading-snug">
                         {editorialIdeaImport.title}
@@ -687,19 +728,27 @@ export function AppCreatorTab({
                     </p>
                   )}
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <button
-                      type="button"
-                      disabled={creatorLoading}
-                      onClick={() => void handleGenerateNarrationFromImport()}
-                      className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 cursor-pointer"
-                    >
-                      {creatorLoading && creatorLoadingMode === "narration" ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4" />
-                      )}
-                      Criar projeto e gerar narração
-                    </button>
+                    {editorialIdeaImport.approvedNarration ? (
+                      <span className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-xs font-bold text-emerald-300">
+                        <CheckCircle className="h-4 w-4" /> Narracao importada
+                        intacta · revise e aprove abaixo
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={creatorLoading}
+                        onClick={() => void handleGenerateNarrationFromImport()}
+                        className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                      >
+                        {creatorLoading &&
+                        creatorLoadingMode === "narration" ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
+                        Criar projeto e gerar narração
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => {
@@ -1740,14 +1789,14 @@ export function AppCreatorTab({
           <div className="space-y-6 max-w-4xl mx-auto py-10">
             <div className="text-center">
               <SectionHeader
-                title="Passo 2: Áudio de Narração"
+                title="Fase 2: Voz e Timing"
                 helpId="creator-step-narration"
               />
 
               <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-2xl mx-auto">
                 {config?.narration_mode === "chunked"
-                  ? "Modo por trechos: planeje blocos/cenas com pausas (IA), gere TTS por parte e monte o MP3 master automaticamente — timings incluídos."
-                  : "Faça upload do MP3 ou gere a narração com TTS a partir do roteiro aprovado. Sem este áudio, o passo 3 não define os segundos de cada cena."}
+                  ? "Planeje e gere os trechos. Quando os timings estiverem prontos, o wizard libera as cenas sem obrigar uma segunda etapa de Whisper."
+                  : "Envie ou gere a voz. No mesmo botão final desta fase, o Whisper sincroniza os segundos reais e abre Cenas e Edição automaticamente."}
               </p>
             </div>
 
@@ -1920,22 +1969,35 @@ export function AppCreatorTab({
 
               <button
                 disabled={
-                  config?.narration_mode === "chunked"
+                  syncingTimings ||
+                  (config?.narration_mode === "chunked"
                     ? !narrationWizardReadiness.ready
-                    : !uploadSuccess && !status?.has_narration
+                    : !uploadSuccess && !status?.has_narration)
                 }
 
-                onClick={() => setCreatorStep(3)}
+                onClick={() => {
+                  if (timelineReady) {
+                    setCreatorStep(4);
+                    return;
+                  }
+                  handleSyncTimings(true);
+                }}
 
                 className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg"
                 title={
                   config?.narration_mode === "chunked" &&
                   !narrationWizardReadiness.ready
                     ? narrationWizardReadiness.blockers.join(" · ")
-                    : "Prosseguir para sincronização"
+                    : timelineReady
+                      ? "Timings prontos: avançar para cenas"
+                      : "Sincronizar a voz e avançar automaticamente"
                 }
               >
-                <span>Prosseguir para Sincronização</span>
+                <span>
+                  {timelineReady
+                    ? "Avançar para Cenas e Edição"
+                    : "Sincronizar Voz e Continuar"}
+                </span>
 
                 <span>→</span>
               </button>
@@ -2042,6 +2104,22 @@ export function AppCreatorTab({
 
         {creatorStep === 4 && config && (
           <div className="space-y-6 max-w-4xl mx-auto font-sans">
+            <div className="relative overflow-hidden rounded-3xl border border-emerald-300/20 bg-[#08110e] p-5">
+              <div className="absolute -right-12 -top-16 h-40 w-40 rounded-full border-[28px] border-emerald-300/[0.04]" />
+              <div className="relative">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-300">
+                  Fase 3 · Direcao visual
+                </p>
+                <h2 className="mt-2 font-serif text-2xl text-zinc-100">
+                  Cenas e Edicao
+                </h2>
+                <p className="mt-2 max-w-2xl text-[11px] leading-5 text-zinc-500">
+                  Prompts, B-roll, motion, overlays e duracoes da voz vivem
+                  agora numa unica timeline. No modo por trechos, os timings
+                  validados substituem a exigencia de Whisper.
+                </p>
+              </div>
+            </div>
             {renderRichTimelineEditor({
               hideAutoMap: true,
               wizardManualMode: true,
@@ -2050,16 +2128,13 @@ export function AppCreatorTab({
             {/* Navigation Buttons */}
             <div className="flex justify-between items-center pt-6 border-t border-zinc-900 font-sans">
               <button
-                onClick={() => setCreatorStep(3)}
+                onClick={() => setCreatorStep(2)}
                 className="text-xs text-zinc-500 hover:text-white font-semibold transition cursor-pointer"
               >
-                ← Voltar para Sincronização
+                ← Voltar para Voz e Timing
               </button>
               <button
-                disabled={
-                  !timelineAssets ||
-                  !isWhisperTimelineReady(wordTranscripts, status)
-                }
+                disabled={!timelineAssets || !timelineReady}
                 onClick={async () => {
                   try {
                     await handleSaveConfig();
@@ -2086,13 +2161,14 @@ export function AppCreatorTab({
               <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
 
               <SectionHeader
-                title="Tudo Pronto! O Vídeo está configurado para Render"
+                title="Fase 4: Finalizar o Vídeo"
                 helpId="creator-step-ready"
               />
 
               <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-lg mx-auto font-sans">
-                Roteiro, narração e sincronização prontos. Com Gemini no Chrome,
-                overlays e metadados são consultados antes do render.
+                Mixe, renderize e prepare título, descrição e thumbnail no mesmo
+                lugar. O pacote de publicação pode ser criado enquanto o vídeo
+                compila.
               </p>
             </div>
 
@@ -2273,6 +2349,82 @@ export function AppCreatorTab({
               </div>
             </div>
 
+            <section className="rounded-3xl border border-cyan-300/20 bg-[#071115] p-5 shadow-xl shadow-black/20">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">
+                    Kit de publicacao · mesma fase
+                  </p>
+                  <h3 className="mt-2 font-serif text-xl text-zinc-100">
+                    Titulo, descricao e thumbnail
+                  </h3>
+                  <p className="mt-1 max-w-lg text-[10px] leading-5 text-zinc-500">
+                    Prepare o pacote enquanto o video renderiza. Nao e mais
+                    necessario atravessar uma etapa separada de metadados.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={youtubeLoading}
+                  onClick={() => void generateYoutubeMetadata()}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-4 py-2.5 text-[10px] font-black text-cyan-200 disabled:opacity-50"
+                >
+                  {youtubeLoading ? (
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  {youtubeLoading ? "Gerando pacote..." : "Gerar pacote com IA"}
+                </button>
+              </div>
+              {youtubeMetadataParsed?.titles?.length ? (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {youtubeMetadataParsed.titles
+                    .slice(0, 4)
+                    .map((title, index) => (
+                      <div
+                        key={`finish-title-${index}`}
+                        className="rounded-xl border border-zinc-800 bg-black/25 px-3 py-2.5 text-[10px] leading-4 text-zinc-300"
+                      >
+                        <span className="mr-2 font-mono text-cyan-400">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        {title.text}
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="mt-4 rounded-xl border border-dashed border-zinc-800 px-4 py-3 text-[10px] text-zinc-600">
+                  O pacote sera gerado automaticamente no render ou pelo botao
+                  acima.
+                </p>
+              )}
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => leaveGlobalViewForProject("ai")}
+                  className="rounded-xl border border-zinc-700 px-3 py-2.5 text-[10px] font-bold text-zinc-300 hover:border-cyan-300/30"
+                >
+                  Revisar metadados
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerateYoutubeThumbnailImages}
+                  className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.06] px-3 py-2.5 text-[10px] font-bold text-emerald-300"
+                >
+                  Gerar thumbnails
+                </button>
+                <button
+                  type="button"
+                  onClick={applyMetadataToUpload}
+                  disabled={!youtubeMetadataParsed}
+                  className="rounded-xl border border-violet-400/25 bg-violet-400/[0.06] px-3 py-2.5 text-[10px] font-bold text-violet-300 disabled:opacity-40"
+                >
+                  Aplicar ao upload
+                </button>
+              </div>
+            </section>
+
             <div className="flex justify-between pt-6 border-t border-zinc-900 font-sans">
               <button
                 onClick={() => setCreatorStep(4)}
@@ -2281,10 +2433,10 @@ export function AppCreatorTab({
                 ← Voltar para B-roll
               </button>
               <button
-                onClick={() => setCreatorStep(6)}
+                onClick={() => setCreatorStep(7)}
                 className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition"
               >
-                Avançar para Metadados →
+                Revisar e Publicar →
               </button>
             </div>
           </div>
@@ -2393,7 +2545,7 @@ export function AppCreatorTab({
         {creatorStep === 7 && (
           <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
             <SectionHeader
-              title="Passo 7: Publicar"
+              title="Fase 5: Revisar e Publicar"
               helpId="creator-step-publish"
             />
             <button
@@ -2403,10 +2555,10 @@ export function AppCreatorTab({
               Abrir Upload
             </button>
             <button
-              onClick={() => setCreatorStep(6)}
+              onClick={() => setCreatorStep(5)}
               className="text-xs text-zinc-500"
             >
-              ← Metadados
+              ← Finalização
             </button>
           </div>
         )}
