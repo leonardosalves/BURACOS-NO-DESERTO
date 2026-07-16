@@ -449,6 +449,7 @@ import {
   syncTimelineFromChunkPlan,
   computeChunkTimeline,
   applyChunkedTimelineAfterWhisper,
+  isChunkedNarrationProject,
   NARRATION_MODE_CHUNKED,
   NARRATION_MODE_MASTER,
   probeAudioDuration,
