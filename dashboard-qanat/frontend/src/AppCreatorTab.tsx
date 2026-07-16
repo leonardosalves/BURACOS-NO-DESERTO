@@ -524,6 +524,13 @@ export function AppCreatorTab({
     chunkPlanReady: narrationWizardReadiness.ready,
     whisperReady: isWhisperTimelineReady(wordTranscripts, status),
   });
+  const timelineBlockedReason = !timelineAssets
+    ? "A timeline ainda não foi carregada."
+    : !Array.isArray(wordTranscripts) || wordTranscripts.length === 0
+      ? "Recarregando a transcrição Whisper do projeto…"
+      : !(status?.block_timings?.starts?.length ?? 0)
+        ? "Recarregando os timings da narração…"
+        : "";
   const modeIdentity = resolveCreatorModeIdentity(ideationTab);
   const temporalScenes = (
     storyboardData?.visual_prompts ||
@@ -2275,22 +2282,32 @@ export function AppCreatorTab({
               >
                 ← Voltar para Voz e Timing
               </button>
-              <button
-                disabled={!timelineAssets || !timelineReady}
-                onClick={async () => {
-                  try {
-                    await handleSaveConfig();
-                    setCreatorStep(5);
-                  } catch {
-                    // O salvamento já exibe o erro; permaneça no passo atual.
+              <div className="flex flex-col items-end gap-1.5">
+                <button
+                  disabled={!timelineAssets || !timelineReady}
+                  onClick={async () => {
+                    try {
+                      await handleSaveConfig();
+                      setCreatorStep(5);
+                    } catch {
+                      // O salvamento já exibe o erro; permaneça no passo atual.
+                    }
+                  }}
+                  className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:cursor-wait shadow-lg"
+                  title={
+                    timelineBlockedReason ||
+                    "Salva a timeline e avança — cada cena já tem mídia e segundos da voz"
                   }
-                }}
-                className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg"
-                title="Salva a timeline e avança — confirme que cada cena tem mídia e segundos da voz"
-              >
-                <span>Salvar timeline e Render</span>
-                <span>→</span>
-              </button>
+                >
+                  <span>Salvar timeline e Render</span>
+                  <span>→</span>
+                </button>
+                {timelineBlockedReason && (
+                  <span className="max-w-xs text-right text-[10px] text-amber-300/80">
+                    {timelineBlockedReason}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}

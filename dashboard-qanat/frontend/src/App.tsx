@@ -3191,6 +3191,17 @@ export default function App() {
     setTimelineDataRevision((r) => r + 1);
   };
 
+  // O passo de cenas depende de artefatos persistidos por Whisper/TTS. Ao
+  // restaurar uma sessão do wizard, o estado React pode chegar antes desses
+  // arquivos. Revalide a fonte de verdade ao entrar no passo, sem executar
+  // Whisper novamente e sem recalcular timings.
+  useEffect(() => {
+    if (activeTab !== "creator" || creatorStep !== 4 || !activeProject) return;
+    void fetchData();
+    // fetchData é intencionalmente disparado somente na troca de passo/projeto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, creatorStep, activeProject]);
+
   const buildWizardSessionPatch = useCallback(
     (): WizardSessionPatch => ({
       wasInWizard: activeTab === "creator",
