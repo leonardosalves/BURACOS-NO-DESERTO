@@ -48,33 +48,116 @@ function firstFinite(...values) {
   return null;
 }
 
-/** Extrai cenas priorizando a timeline visual; fala serve apenas como fallback. */
-export function buildProfessionalSfxScenes(visualPrompts = []) {
+function collectSceneRanges(rows = []) {
+  const ranges = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const ref = String(row?.scene_ref || row?.scene || "").trim();
+    if (!ref) continue;
+    const start = firstFinite(row?.start_s, row?.start_time, row?.start);
+    const end = firstFinite(
+      row?.end_s,
+      row?.end_time,
+      row?.end,
+      start != null && finite(row?.duration)
+        ? start + Number(row.duration)
+        : null
+    );
+    if (start == null || end == null || end <= start) continue;
+    const previous = ranges.get(ref);
+    ranges.set(ref, {
+      start: previous ? Math.min(previous.start, start) : start,
+      end: previous ? Math.max(previous.end, end) : end,
+    });
+  }
+  return ranges;
+}
+
+/**
+ * Extrai cenas priorizando a timeline visual. Projetos do wizard guardam os
+ * segundos em config.timeline_assets; chunks/Whisper e bloco são fallbacks.
+ */
+export function buildProfessionalSfxScenes(
+  visualPrompts = [],
+  {
+    timelineAssets = {},
+    narrationChunkPlan = {},
+    wordTranscripts = [],
+    blockTimings = {},
+  } = {}
+) {
+  const chunkRanges = collectSceneRanges(narrationChunkPlan?.chunks || []);
+  const transcriptRanges = collectSceneRanges(wordTranscripts);
+  const blockCounters = {};
+
   return (Array.isArray(visualPrompts) ? visualPrompts : [])
     .slice(0, 180)
-    .map((vp) => ({
-      scene_ref:
-        vp?.scene_ref || vp?.scene || vp?.production?.scene_ref || vp?.id,
-      block: vp?.block,
-      start:
+    .map((vp) => {
+      const sceneRef = String(
+        vp?.scene_ref || vp?.scene || vp?.production?.scene_ref || vp?.id || ""
+      );
+      const block = Math.max(1, Number(vp?.block) || 1);
+      const blockKey = String(block);
+      const localIndex = blockCounters[blockKey] || 0;
+      blockCounters[blockKey] = localIndex + 1;
+      const timelineSlot = timelineAssets?.[blockKey]?.[localIndex] || {};
+      const timelineStart = firstFinite(
+        timelineSlot?.audio_start,
+        timelineSlot?.start
+      );
+      const timelineDuration = firstFinite(
+        timelineSlot?.fixed,
+        timelineSlot?.duration
+      );
+      const chunkRange = chunkRanges.get(sceneRef);
+      const transcriptRange = transcriptRanges.get(sceneRef);
+      const blockStart = firstFinite(blockTimings?.starts?.[block - 1]);
+      const blockDuration = firstFinite(blockTimings?.durations?.[block - 1]);
+
+      const start =
         firstFinite(
           vp?.start,
           vp?.start_time,
           vp?.production?.start,
           vp?.production?.start_time,
-          vp?.speech_start
-        ) ?? 0,
-      end: firstFinite(
+          vp?.speech_start,
+          timelineStart,
+          chunkRange?.start,
+          transcriptRange?.start,
+          blockStart
+        ) ?? 0;
+      const end = firstFinite(
         vp?.end,
         vp?.end_time,
         vp?.production?.end,
         vp?.production?.end_time,
-        vp?.speech_end
-      ),
-      duration: firstFinite(vp?.duration_seconds, vp?.duration),
-      narration: String(vp?.narration_text || vp?.text || "").slice(0, 220),
-      visual: String(vp?.prompt || vp?.visual_description || "").slice(0, 220),
-    }));
+        vp?.speech_end,
+        timelineStart != null && timelineDuration != null
+          ? timelineStart + timelineDuration
+          : null,
+        chunkRange?.end,
+        transcriptRange?.end,
+        blockStart != null && blockDuration != null
+          ? blockStart + blockDuration
+          : null
+      );
+
+      return {
+        scene_ref: sceneRef,
+        block,
+        start: rounded(start),
+        end: end != null ? rounded(end) : null,
+        duration: firstFinite(
+          vp?.duration_seconds,
+          vp?.duration,
+          end != null ? rounded(end - start) : null
+        ),
+        narration: String(vp?.narration_text || vp?.text || "").slice(0, 220),
+        visual: String(vp?.prompt || vp?.visual_description || "").slice(
+          0,
+          220
+        ),
+      };
+    });
 }
 
 function sceneBounds(scene, totalDuration) {

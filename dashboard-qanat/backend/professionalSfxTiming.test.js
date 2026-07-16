@@ -20,6 +20,78 @@ test("cenas SFX priorizam timing visual e usam fala apenas como fallback", () =>
   assert.deepEqual([fallback.start, fallback.end], [9, 12]);
 });
 
+test("wizard resolve cenas pelos slots da timeline quando prompts não têm start/end", () => {
+  const resolved = buildProfessionalSfxScenes(
+    [
+      { scene: "1.1", block: 1, narration_text: "Abertura" },
+      { scene: "1.2", block: 1, narration_text: "Virada" },
+    ],
+    {
+      timelineAssets: {
+        1: [
+          { audio_start: 0, fixed: 2.78825 },
+          { audio_start: 2.788, fixed: 8.36475 },
+        ],
+      },
+      narrationChunkPlan: {
+        chunks: [
+          { scene_ref: "1.1", start_s: 0, end_s: 3.631 },
+          { scene_ref: "1.2", start_s: 3.981, end_s: 10.303 },
+        ],
+      },
+    }
+  );
+
+  assert.deepEqual(
+    resolved.map(({ start, end }) => [start, end]),
+    [
+      [0, 2.788],
+      [2.788, 11.153],
+    ]
+  );
+});
+
+test("SFX do wizard não colapsa em 0.25s nem posiciona riser no zero", () => {
+  const wizardScenes = buildProfessionalSfxScenes(
+    [
+      { scene: "1.1", block: 1 },
+      { scene: "1.2", block: 1 },
+    ],
+    {
+      timelineAssets: {
+        1: [
+          { audio_start: 0, fixed: 2.78825 },
+          { audio_start: 2.788, fixed: 8.36475 },
+        ],
+      },
+    }
+  );
+  const events = normalizeProfessionalSfxEvents({
+    rawEvents: [
+      {
+        scene_ref: "1.1",
+        category: "ambience",
+        duration: 0.25,
+        confidence: 0.9,
+      },
+      {
+        scene_ref: "1.2",
+        category: "riser",
+        duration: 0.25,
+        confidence: 0.9,
+      },
+    ],
+    scenes: wizardScenes,
+    totalDuration: 46.052,
+    isShort: true,
+  });
+
+  assert.equal(events[0].duration, 2);
+  assert.equal(events[0].time, 0);
+  assert.equal(events[1].duration, 0.8);
+  assert.equal(events[1].time, 10.353);
+});
+
 test("detalhe não antecipa ação sem âncora de primeiro quadro", () => {
   const [event] = normalizeProfessionalSfxEvents({
     rawEvents: [
