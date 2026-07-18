@@ -186,7 +186,17 @@ export function AppTabPanels({
             icon={<Layers className="h-5 w-5 text-violet-300" />}
             className="max-w-[1680px]"
           >
-            <CollageBrollLab getProjectUrl={getProjectUrl} />
+            <CollageBrollLab
+              getProjectUrl={getProjectUrl}
+              onSendToWizard={(sid, narration) => {
+                creatorTabProps.setIdeationTab("collage-broll");
+                creatorTabProps.setCreatorProjectName(sid);
+                creatorTabProps.setNarrationDraft(narration);
+                creatorTabProps.setCreatorStep(4);
+                setActiveTab("creator" as AppTab);
+                toast.success("Sessão enviada para o Wizard · Lab Colagem");
+              }}
+            />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}

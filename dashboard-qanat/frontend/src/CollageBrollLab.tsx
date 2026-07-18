@@ -28,6 +28,7 @@ import {
   Github,
   Image as ImageIcon,
   AlertTriangle,
+  ArrowRight,
   Download,
   Eye,
   CheckCircle2,
@@ -832,6 +833,7 @@ function pickRandomPalette(palettes: PalettePreset[]): PalettePreset {
 type Props = {
   getProjectUrl: (path: string) => string;
   initialSessionId?: string | null;
+  onSendToWizard?: (sessionId: string, narration: string) => void;
 };
 
 const DEMO_LINES_EDITORIAL = `Muita gente acha que IA veio para pensar no seu lugar — na verdade ela é um espelho que amplia os buracos da pergunta.
@@ -867,7 +869,11 @@ function copyText(label: string, text: string) {
   );
 }
 
-export function CollageBrollLab({ getProjectUrl, initialSessionId }: Props) {
+export function CollageBrollLab({
+  getProjectUrl,
+  initialSessionId,
+  onSendToWizard,
+}: Props) {
   const [mode, setMode] = useState<CollageMode>("geo");
   const [rawLines, setRawLines] = useState(DEMO_LINES_GEO);
   const [placeHint, setPlaceHint] = useState("");
@@ -2401,6 +2407,18 @@ export function CollageBrollLab({ getProjectUrl, initialSessionId }: Props) {
                 <Copy className="w-3.5 h-3.5" />
                 Exportar JSON
               </button>
+              {onSendToWizard && (
+                <button
+                  type="button"
+                  disabled={!items.length}
+                  onClick={() => onSendToWizard(sessionId, rawLines)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-100 text-[11px] font-bold px-3 py-2 disabled:opacity-50 hover:bg-emerald-500/20 transition cursor-pointer"
+                  title="Enviar sessão atual para o Wizard Creator como projeto collage-broll"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  Enviar para Wizard
+                </button>
+              )}
             </div>
           </div>
 
