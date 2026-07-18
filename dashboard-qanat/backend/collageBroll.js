@@ -921,3 +921,7 @@ export function buildGoogleFlowExport(item = {}, sessionId = "") {
     visual_proposition: item.visual_proposition,
   };
 }
+
+export function buildOmniPrompt(item) {
+  return buildMotionPrompt(item);
+}
