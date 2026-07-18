@@ -581,81 +581,79 @@ export function VisualSettings({
                   onChange={(v) => patchDraft({ shorts_caption_bgm_pulse: v })}
                 />
               )}
-              {!isWordByWordMode(shortCaptionMode) && (
-                <div className="space-y-3 pt-2.5 border-t border-dashed border-[var(--dash-border)]">
-                  <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
-                    Configuração de Agrupamento
-                  </p>
+              <div className="space-y-3 pt-2.5 border-t border-dashed border-[var(--dash-border)]">
+                <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
+                  Configuração de Agrupamento
+                </p>
 
-                  <div className="space-y-2">
-                    <SettingLabel
-                      helpTitle="Máximo de palavras"
-                      help="Máximo de palavras exibidas por vez na tela."
-                    >
-                      Palavras por grupo
-                    </SettingLabel>
-                    <div className="flex gap-1.5">
-                      {[2, 3, 4, 5, 6].map((num) => (
-                        <button
-                          key={num}
-                          type="button"
-                          onClick={() =>
-                            patchDraft({
-                              shorts_caption_max_words_per_chunk: num,
-                            })
-                          }
-                          className={`dash-option-btn text-[10px] px-2.5 py-1 ${
-                            shortsGrouping.maxWordsPerChunk === num
-                              ? "dash-option-btn-active"
-                              : ""
-                          }`}
-                        >
-                          {num}
-                        </button>
-                      ))}
-                    </div>
+                <div className="space-y-2">
+                  <SettingLabel
+                    helpTitle="Máximo de palavras"
+                    help="Máximo de palavras exibidas por vez na tela."
+                  >
+                    Palavras por grupo
+                  </SettingLabel>
+                  <div className="flex gap-1.5">
+                    {[2, 3, 4, 5, 6].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() =>
+                          patchDraft({
+                            shorts_caption_max_words_per_chunk: num,
+                          })
+                        }
+                        className={`dash-option-btn text-[10px] px-2.5 py-1 ${
+                          shortsGrouping.maxWordsPerChunk === num
+                            ? "dash-option-btn-active"
+                            : ""
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
                   </div>
-
-                  <div className="space-y-2">
-                    <SettingLabel
-                      helpTitle="Número de linhas"
-                      help="Quebra o grupo em até 1 ou 2 linhas."
-                    >
-                      Layout de linhas
-                    </SettingLabel>
-                    <div className="flex gap-1.5">
-                      {[1, 2].map((lines) => (
-                        <button
-                          key={lines}
-                          type="button"
-                          onClick={() =>
-                            patchDraft({
-                              shorts_caption_max_lines: lines as 1 | 2,
-                            })
-                          }
-                          className={`dash-option-btn text-[10px] px-3 py-1 ${
-                            shortsGrouping.maxLines === lines
-                              ? "dash-option-btn-active"
-                              : ""
-                          }`}
-                        >
-                          {lines} {lines === 1 ? "Linha" : "Linhas"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <ToggleCard
-                    label="Respeitar frases"
-                    description="Quebra ao fim de frases e pontuações."
-                    help="Evita terminar linhas ou grupos no meio de uma frase nova. Quebra após (. , ? ! ;)."
-                    checked={shortsGrouping.respectSentences}
-                    onChange={(v) =>
-                      patchDraft({ shorts_caption_respect_sentences: v })
-                    }
-                  />
                 </div>
-              )}
+
+                <div className="space-y-2">
+                  <SettingLabel
+                    helpTitle="Número de linhas"
+                    help="Quebra o grupo em até 1 ou 2 linhas."
+                  >
+                    Layout de linhas
+                  </SettingLabel>
+                  <div className="flex gap-1.5">
+                    {[1, 2].map((lines) => (
+                      <button
+                        key={lines}
+                        type="button"
+                        onClick={() =>
+                          patchDraft({
+                            shorts_caption_max_lines: lines as 1 | 2,
+                          })
+                        }
+                        className={`dash-option-btn text-[10px] px-3 py-1 ${
+                          shortsGrouping.maxLines === lines
+                            ? "dash-option-btn-active"
+                            : ""
+                        }`}
+                      >
+                        {lines} {lines === 1 ? "Linha" : "Linhas"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <ToggleCard
+                  label="Respeitar frases"
+                  description="Quebra ao fim de frases e pontuações."
+                  help="Evita terminar linhas ou grupos no meio de uma frase nova. Quebra após (. , ? ! ;)."
+                  checked={shortsGrouping.respectSentences}
+                  onChange={(v) =>
+                    patchDraft({ shorts_caption_respect_sentences: v })
+                  }
+                />
+              </div>
             </div>
             <CaptionPreview
               format="short"
@@ -776,81 +774,79 @@ export function VisualSettings({
                   }
                 </p>
               </div>
-              {!isWordByWordMode(longCaptionMode) && (
-                <div className="space-y-3 pt-2.5 border-t border-dashed border-[var(--dash-border)]">
-                  <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
-                    Configuração de Agrupamento
-                  </p>
+              <div className="space-y-3 pt-2.5 border-t border-dashed border-[var(--dash-border)]">
+                <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
+                  Configuração de Agrupamento
+                </p>
 
-                  <div className="space-y-2">
-                    <SettingLabel
-                      helpTitle="Máximo de palavras"
-                      help="Máximo de palavras exibidas por vez na tela."
-                    >
-                      Palavras por grupo
-                    </SettingLabel>
-                    <div className="flex gap-1.5">
-                      {[2, 3, 4, 5, 6].map((num) => (
-                        <button
-                          key={num}
-                          type="button"
-                          onClick={() =>
-                            patchDraft({
-                              long_caption_max_words_per_chunk: num,
-                            })
-                          }
-                          className={`dash-option-btn text-[10px] px-2.5 py-1 ${
-                            longGrouping.maxWordsPerChunk === num
-                              ? "dash-option-btn-active"
-                              : ""
-                          }`}
-                        >
-                          {num}
-                        </button>
-                      ))}
-                    </div>
+                <div className="space-y-2">
+                  <SettingLabel
+                    helpTitle="Máximo de palavras"
+                    help="Máximo de palavras exibidas por vez na tela."
+                  >
+                    Palavras por grupo
+                  </SettingLabel>
+                  <div className="flex gap-1.5">
+                    {[2, 3, 4, 5, 6].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() =>
+                          patchDraft({
+                            long_caption_max_words_per_chunk: num,
+                          })
+                        }
+                        className={`dash-option-btn text-[10px] px-2.5 py-1 ${
+                          longGrouping.maxWordsPerChunk === num
+                            ? "dash-option-btn-active"
+                            : ""
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
                   </div>
-
-                  <div className="space-y-2">
-                    <SettingLabel
-                      helpTitle="Número de linhas"
-                      help="Quebra o grupo em até 1 ou 2 linhas."
-                    >
-                      Layout de linhas
-                    </SettingLabel>
-                    <div className="flex gap-1.5">
-                      {[1, 2].map((lines) => (
-                        <button
-                          key={lines}
-                          type="button"
-                          onClick={() =>
-                            patchDraft({
-                              long_caption_max_lines: lines as 1 | 2,
-                            })
-                          }
-                          className={`dash-option-btn text-[10px] px-3 py-1 ${
-                            longGrouping.maxLines === lines
-                              ? "dash-option-btn-active"
-                              : ""
-                          }`}
-                        >
-                          {lines} {lines === 1 ? "Linha" : "Linhas"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <ToggleCard
-                    label="Respeitar frases"
-                    description="Quebra ao fim de frases e pontuações."
-                    help="Evita terminar linhas ou grupos no meio de uma frase nova. Quebra após (. , ? ! ;)."
-                    checked={longGrouping.respectSentences}
-                    onChange={(v) =>
-                      patchDraft({ long_caption_respect_sentences: v })
-                    }
-                  />
                 </div>
-              )}
+
+                <div className="space-y-2">
+                  <SettingLabel
+                    helpTitle="Número de linhas"
+                    help="Quebra o grupo em até 1 ou 2 linhas."
+                  >
+                    Layout de linhas
+                  </SettingLabel>
+                  <div className="flex gap-1.5">
+                    {[1, 2].map((lines) => (
+                      <button
+                        key={lines}
+                        type="button"
+                        onClick={() =>
+                          patchDraft({
+                            long_caption_max_lines: lines as 1 | 2,
+                          })
+                        }
+                        className={`dash-option-btn text-[10px] px-3 py-1 ${
+                          longGrouping.maxLines === lines
+                            ? "dash-option-btn-active"
+                            : ""
+                        }`}
+                      >
+                        {lines} {lines === 1 ? "Linha" : "Linhas"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <ToggleCard
+                  label="Respeitar frases"
+                  description="Quebra ao fim de frases e pontuações."
+                  help="Evita terminar linhas ou grupos no meio de uma frase nova. Quebra após (. , ? ! ;)."
+                  checked={longGrouping.respectSentences}
+                  onChange={(v) =>
+                    patchDraft({ long_caption_respect_sentences: v })
+                  }
+                />
+              </div>
             </div>
             <CaptionPreview
               format="long"

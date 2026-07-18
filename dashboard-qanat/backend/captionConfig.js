@@ -20,6 +20,9 @@ export const CAPTION_MODE_IDS = [
   "caption-texture",
   "caption-blend-difference",
   "morph-text",
+  "caption-shimmer-gold",
+  "caption-bounce-pop",
+  "caption-border-glow",
 ];
 
 const LEGACY_SHORT_MODE = {

@@ -17,7 +17,10 @@ export type CaptionModeId =
   | "caption-parallax-layers"
   | "caption-texture"
   | "caption-blend-difference"
-  | "morph-text";
+  | "morph-text"
+  | "caption-shimmer-gold"
+  | "caption-bounce-pop"
+  | "caption-border-glow";
 
 export const CAPTION_MODE_IDS: CaptionModeId[] = [
   "caption-highlight",
@@ -37,6 +40,9 @@ export const CAPTION_MODE_IDS: CaptionModeId[] = [
   "caption-texture",
   "caption-blend-difference",
   "morph-text",
+  "caption-shimmer-gold",
+  "caption-bounce-pop",
+  "caption-border-glow",
 ];
 
 export type CaptionStyleId = "shorts-viral" | "documentary";
@@ -209,6 +215,24 @@ export const SHORT_CAPTION_MODES: {
     hint: "Transição gooey entre palavras — morph-text.",
     hyperframesId: "morph-text",
   },
+  {
+    id: "caption-shimmer-gold",
+    label: "Shimmer Gold",
+    hint: "Efeito metálico dourado brilhante na palavra ativa.",
+    hyperframesId: "caption-shimmer-gold",
+  },
+  {
+    id: "caption-bounce-pop",
+    label: "Bounce Pop",
+    hint: "Palavra ativa pula com escala elástica e sombra retro.",
+    hyperframesId: "caption-bounce-pop",
+  },
+  {
+    id: "caption-border-glow",
+    label: "Border Glow",
+    hint: "Borda neon brilhante ao redor da palavra ativa.",
+    hyperframesId: "caption-border-glow",
+  },
 ];
 
 export const LONG_CAPTION_MODES: {
@@ -318,6 +342,24 @@ export const LONG_CAPTION_MODES: {
     label: "Emoji Pop",
     hint: "Emoji com pop elástico acima do texto.",
     hyperframesId: "caption-emoji-pop",
+  },
+  {
+    id: "caption-shimmer-gold",
+    label: "Shimmer Gold",
+    hint: "Efeito metálico dourado brilhante na palavra ativa.",
+    hyperframesId: "caption-shimmer-gold",
+  },
+  {
+    id: "caption-bounce-pop",
+    label: "Bounce Pop",
+    hint: "Palavra ativa pula com escala elástica e sombra retro.",
+    hyperframesId: "caption-bounce-pop",
+  },
+  {
+    id: "caption-border-glow",
+    label: "Border Glow",
+    hint: "Borda neon brilhante ao redor da palavra ativa.",
+    hyperframesId: "caption-border-glow",
   },
 ];
 

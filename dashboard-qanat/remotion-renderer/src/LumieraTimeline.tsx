@@ -897,6 +897,9 @@ const CaptionLayer: React.FC<{
   const isTexture = mode === "caption-texture";
   const isBlendDiff = mode === "caption-blend-difference";
   const isMorph = mode === "morph-text";
+  const isShimmerGold = mode === "caption-shimmer-gold";
+  const isBouncePop = mode === "caption-bounce-pop";
+  const isBorderGlow = mode === "caption-border-glow";
   const isVertical = height > width;
 
   const viralStatic = isHighlight && captionEffect === "viral-static";
@@ -906,9 +909,7 @@ const CaptionLayer: React.FC<{
     !viralStatic;
   const viralPop = isHighlight && !viralStatic;
 
-  const maxWordsPerChunk = isWordByWordCaptionMode(mode)
-    ? 1
-    : captionMaxWordsPerChunk || (isVertical ? 4 : 5);
+  const maxWordsPerChunk = captionMaxWordsPerChunk || (isVertical ? 4 : 5);
   const pauseThresholdMs = isViralShorts ? 400 : 600;
   const maxChunkDurationMs = isViralShorts ? 1800 : 2800;
   const respectSentences = captionRespectSentences !== false;
@@ -1041,15 +1042,42 @@ const CaptionLayer: React.FC<{
 
   const maxLines = captionMaxLines || 2;
   const lines =
-    isViralShorts || isSlam || maxLines === 1
+    isSlam || maxLines === 1
       ? [wordsToRender]
       : (() => {
-          const result: Caption[][] = [];
-          const wordsPerLine = Math.ceil(wordsToRender.length / maxLines);
-          for (let i = 0; i < wordsToRender.length; i += wordsPerLine) {
-            result.push(wordsToRender.slice(i, i + wordsPerLine));
+          if (wordsToRender.length <= 1) return [wordsToRender];
+          if (wordsToRender.length === 2) {
+            return wordsToRender.map((w) => [w]);
           }
-          return result;
+
+          let splitIdx = Math.ceil(wordsToRender.length / 2);
+
+          // Busca um ponto de quebra natural no meio
+          for (let i = 1; i < wordsToRender.length - 1; i++) {
+            const prevWord = wordsToRender[i - 1];
+            const currentWord = wordsToRender[i];
+
+            // Quebra após pontuação (. ! ? , ; :)
+            if (/[.,!?;:]$/.test(prevWord.text.trim())) {
+              splitIdx = i;
+              break;
+            }
+
+            // Quebra antes de letra maiúscula
+            const cleanWord = currentWord.text.trim();
+            const startsWithCapital =
+              /^[A-ZÁÉÍÓÚÂÊÔÇÀ]/.test(cleanWord) &&
+              !/^[A-Z]{2,}/.test(cleanWord);
+            if (startsWithCapital) {
+              splitIdx = i;
+              break;
+            }
+          }
+
+          return [
+            wordsToRender.slice(0, splitIdx),
+            wordsToRender.slice(splitIdx),
+          ].filter((l) => l.length > 0);
         })();
 
   return (
@@ -1216,7 +1244,6 @@ const CaptionLayer: React.FC<{
                     : isWeight
                       ? 34
                       : 38;
-              if (isEditorial && active) baseFont *= 1.35;
               if (isEditorial && !active) baseFont *= 0.82;
               if (isParallax && !active) baseFont *= 0.78;
 
@@ -1228,15 +1255,23 @@ const CaptionLayer: React.FC<{
                 color = "#4ADE80";
               else if (isNeonAccent && active) color = neonAccentColor;
               else if (isNeon && active) color = "#22D3EE";
+              else if ((isGradient || isShimmerGold) && active)
+                color = "transparent";
               else if (active) color = accentColor;
 
               const gradientText =
-                (isGradient || isTexture) && active
+                (isGradient || isTexture || isShimmerGold) && active
                   ? {
                       backgroundImage: isTexture
                         ? `linear-gradient(${textureShift}deg, #F97316, #DC2626, #78350F, #FBBF24, #F97316)`
-                        : `linear-gradient(135deg, ${accentColor}, #F472B6, #22D3EE)`,
-                      backgroundSize: isTexture ? "200% 200%" : undefined,
+                        : isShimmerGold
+                          ? `linear-gradient(90deg, #F59E0B 0%, #FEF08A 50%, #F59E0B 100%)`
+                          : `linear-gradient(135deg, ${accentColor}, #F472B6, #22D3EE)`,
+                      backgroundSize:
+                        isTexture || isShimmerGold ? "200% 200%" : undefined,
+                      backgroundPosition: isShimmerGold
+                        ? `${(frame * 2.5) % 200}% 0`
+                        : undefined,
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                       backgroundClip: "text",
@@ -1281,8 +1316,23 @@ const CaptionLayer: React.FC<{
                       isHighlight && active
                         ? `linear-gradient(135deg, ${accentColor} 0%, #FDE047 100%)`
                         : "transparent",
-                    padding: isHighlight && active ? "6px 18px" : "0",
-                    borderRadius: isHighlight && active ? "12px" : 0,
+                    border:
+                      isBorderGlow && active
+                        ? `4px solid ${accentColor}`
+                        : "4px solid transparent",
+                    borderRadius:
+                      isHighlight && active
+                        ? "12px"
+                        : isBorderGlow
+                          ? "16px"
+                          : 0,
+                    padding:
+                      isHighlight && active
+                        ? "6px 18px"
+                        : isBorderGlow && active
+                          ? "4px 20px"
+                          : "0",
+                    WebkitTextStroke: isBouncePop ? "3px #000000" : undefined,
                     clipPath:
                       isWipe && active
                         ? `inset(0 ${Math.round((1 - wipeProgress) * 100)}% 0 0)`
@@ -1299,9 +1349,13 @@ const CaptionLayer: React.FC<{
                             ? "0 0 16px #22D3EE, 0 0 28px #F472B6"
                             : isMatrix && active && matrixProgress < 1
                               ? "0 0 12px rgba(74,222,128,0.6)"
-                              : active
-                                ? `0 0 14px ${accentColor}88, 0 2px 4px rgba(0,0,0,0.5)`
-                                : "0 2px 4px rgba(0,0,0,0.5)",
+                              : isBouncePop && active
+                                ? "0 8px 0 #000000, 0 15px 30px rgba(0,0,0,0.6)"
+                                : isBorderGlow && active
+                                  ? `0 0 16px ${accentColor}`
+                                  : active
+                                    ? `0 0 14px ${accentColor}88, 0 2px 4px rgba(0,0,0,0.5)`
+                                    : "0 2px 4px rgba(0,0,0,0.5)",
                     transform: active
                       ? isSlam
                         ? `translateX(${slamOffset}px) scale(${0.75 + slamScale * 0.35})`
@@ -1311,7 +1365,9 @@ const CaptionLayer: React.FC<{
                             ? `translate(${wiggleX}px, ${wiggleY}px) scale(1.06)`
                             : isParallax
                               ? "scale(1.06) translateY(-4px)"
-                              : `scale(${(isViralShorts || isGradient ? 0.92 + popScale * 0.14 : 1.08) * bgmBeat})`
+                              : isBouncePop
+                                ? `scale(1.18) translateY(-10px)`
+                                : `scale(${(isViralShorts || isGradient ? 0.92 + popScale * 0.14 : 1.08) * bgmBeat})`
                       : isParallax
                         ? "scale(0.78) translateY(6px)"
                         : "scale(1.0)",
@@ -1327,7 +1383,7 @@ const CaptionLayer: React.FC<{
                     opacity: active
                       ? 1
                       : isWeight || isParallax
-                        ? 0.6
+                        ? 0.65
                         : isViralShorts
                           ? 0.92
                           : 0.75,

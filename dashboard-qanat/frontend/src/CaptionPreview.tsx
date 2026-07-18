@@ -75,19 +75,40 @@ function chunkSentence(
   return groups;
 }
 
-/** Quebra um chunk em linhas (max chunkSize palavras por linha) */
-function splitIntoLines(
-  chunk: string[],
-  chunkSize: number,
-  maxLines: number
-): string[][] {
-  if (maxLines === 1) return [chunk];
-  const lines: string[][] = [];
-  for (let i = 0; i < chunk.length; i += chunkSize) {
-    lines.push(chunk.slice(i, i + chunkSize));
-    if (lines.length >= maxLines) break;
+/** Quebra um chunk em linhas de forma inteligente (max 2 linhas) */
+function splitIntoLines(chunk: string[], maxLines: number): string[][] {
+  if (maxLines === 1 || chunk.length <= 1) return [chunk];
+
+  if (chunk.length === 2) {
+    return chunk.map((w) => [w]);
   }
-  return lines;
+
+  let splitIdx = Math.ceil(chunk.length / 2);
+
+  // Busca um ponto de quebra natural no meio
+  for (let i = 1; i < chunk.length - 1; i++) {
+    const prevWord = chunk[i - 1];
+    const currentWord = chunk[i];
+
+    // Quebra após pontuação
+    if (/[.,!?;:]$/.test(prevWord.trim())) {
+      splitIdx = i;
+      break;
+    }
+
+    // Quebra antes de letra maiúscula
+    const cleanWord = currentWord.trim();
+    const startsWithCapital =
+      /^[A-ZÁÉÍÓÚÂÊÔÇÀ]/.test(cleanWord) && !/^[A-Z]{2,}/.test(cleanWord);
+    if (startsWithCapital) {
+      splitIdx = i;
+      break;
+    }
+  }
+
+  return [chunk.slice(0, splitIdx), chunk.slice(splitIdx)].filter(
+    (l) => l.length > 0
+  );
 }
 
 export function CaptionPreview({
@@ -120,22 +141,20 @@ export function CaptionPreview({
   const isTexture = mode === "caption-texture";
   const isBlendDiff = mode === "caption-blend-difference";
   const isMorph = mode === "morph-text";
+  const isShimmerGold = mode === "caption-shimmer-gold";
+  const isBouncePop = mode === "caption-bounce-pop";
+  const isBorderGlow = mode === "caption-border-glow";
+
   const wordByWord = isWordByWordMode(mode);
 
   const sentence = isShort ? SHORT_SENTENCE : LONG_SENTENCE;
 
-  // Word-by-word: cycle through individual words
-  // Multi-word: cycle through chunks of N words
-  const chunks = wordByWord
-    ? sentence.map((w) => [w])
-    : chunkSentence(sentence, maxWordsPerChunk, maxLines);
+  const chunks = chunkSentence(sentence, maxWordsPerChunk, maxLines);
 
   const activeChunkIdx = tick % chunks.length;
   const currentChunk = chunks[activeChunkIdx];
 
-  // For word-by-word, the single word cycles
-  // For multi-word, we show the whole chunk and highlight one word at a time
-  const activeWordInChunk = wordByWord ? 0 : tick % currentChunk.length;
+  const activeWordInChunk = tick % currentChunk.length;
 
   const wipeProgress = (subTick % 8) / 8;
   const matrixProgress = Math.min(1, (subTick % 10) / 10);
@@ -159,14 +178,8 @@ export function CaptionPreview({
   const EMOJIS = ["✨", "🔥", "💡"];
   const modeLabel = mode.replace(/^caption-/, "");
 
-  // For multi-word modes with 2 lines, split into lines
-  const lines = wordByWord
-    ? [currentChunk]
-    : splitIntoLines(
-        currentChunk,
-        Math.ceil(currentChunk.length / maxLines),
-        maxLines
-      );
+  // For multi-word modes with 2 lines, split into lines smartly
+  const lines = splitIntoLines(currentChunk, maxLines);
 
   // Flat index to track highlighting across lines
   let flatWordIndex = 0;
@@ -236,7 +249,7 @@ export function CaptionPreview({
               >
                 {lineWords.map((word, wIdx) => {
                   const myFlatIdx = flatWordIndex++;
-                  const active = wordByWord || myFlatIdx === activeWordInChunk;
+                  const active = myFlatIdx === activeWordInChunk;
                   const highlightActive = isHighlight && active;
                   const displayWord =
                     isMatrix && active
@@ -250,6 +263,7 @@ export function CaptionPreview({
                           WebkitBackgroundClip: "text",
                           WebkitTextFillColor: "transparent",
                           backgroundClip: "text",
+                          color: "transparent",
                         }
                       : {};
 
@@ -260,6 +274,20 @@ export function CaptionPreview({
                           WebkitBackgroundClip: "text",
                           WebkitTextFillColor: "transparent",
                           backgroundClip: "text",
+                          color: "transparent",
+                        }
+                      : {};
+
+                  const shimmerGoldStyle =
+                    isShimmerGold && active
+                      ? {
+                          background: `linear-gradient(90deg, #F59E0B 0%, #FEF08A 50%, #F59E0B 100%)`,
+                          backgroundSize: "200% 100%",
+                          backgroundPosition: `${(subTick * 15) % 200}% 0`,
+                          WebkitBackgroundClip: "text",
+                          WebkitTextFillColor: "transparent",
+                          backgroundClip: "text",
+                          color: "transparent",
                         }
                       : {};
 
@@ -304,11 +332,13 @@ export function CaptionPreview({
                               ? "scale(1.06) translateY(-0.08em)"
                               : isSlam && active
                                 ? "scale(1.05)"
-                                : highlightActive
-                                  ? pulse
-                                    ? "scale(1.06)"
-                                    : "scale(1.04)"
-                                  : undefined,
+                                : isBouncePop && active
+                                  ? "scale(1.18) translateY(-0.1em)"
+                                  : highlightActive
+                                    ? pulse
+                                      ? "scale(1.06)"
+                                      : "scale(1.04)"
+                                    : undefined,
                         color: isBlendDiff
                           ? "#FFFFFF"
                           : highlightActive
@@ -321,18 +351,31 @@ export function CaptionPreview({
                                   ? "#22D3EE"
                                   : isGradient && active
                                     ? "transparent"
-                                    : active
-                                      ? accentColor
-                                      : "#FFFFFF",
+                                    : isShimmerGold && active
+                                      ? "transparent"
+                                      : active
+                                        ? accentColor
+                                        : "#FFFFFF",
                         background: highlightActive
                           ? `linear-gradient(135deg, ${accentColor} 0%, #FDE047 100%)`
                           : "transparent",
-                        padding: highlightActive
-                          ? `${metrics.highlightPadY} ${metrics.highlightPadX}`
-                          : "0",
+                        border:
+                          isBorderGlow && active
+                            ? `0.05em solid ${accentColor}`
+                            : "0.05em solid transparent",
                         borderRadius: highlightActive
                           ? metrics.highlightRadius
-                          : 0,
+                          : isBorderGlow
+                            ? "0.2em"
+                            : 0,
+                        padding: highlightActive
+                          ? `${metrics.highlightPadY} ${metrics.highlightPadX}`
+                          : isBorderGlow && active
+                            ? "0.05em 0.25em"
+                            : "0",
+                        WebkitTextStroke: isBouncePop
+                          ? "0.04em #000000"
+                          : undefined,
                         clipPath:
                           isWipe && active
                             ? `inset(0 ${Math.round((1 - wipeProgress) * 100)}% 0 0)`
@@ -341,23 +384,29 @@ export function CaptionPreview({
                           ? 1
                           : isWeight || isParallax
                             ? 0.65
-                            : wordByWord
-                              ? 0
-                              : 0.75,
+                            : 0.75,
                         textShadow:
                           isGlitch && active
                             ? `${glitchShift - 2}px 0 #FF4D6D, ${glitchShift + 2}px 0 #22D3EE, 0 0 0.35em rgba(255,255,255,0.4)`
                             : isNeon && active
                               ? "0 0 0.4em #22D3EE, 0 0 0.65em #F472B6"
-                              : active && !isHighlight && !isGradient
-                                ? `0 0 0.35em ${accentColor}88, 0 0.12em 0.2em rgba(0,0,0,0.5)`
-                                : "0 0.12em 0.25em rgba(0,0,0,0.65)",
+                              : isBouncePop && active
+                                ? "0 0.08em 0 #000000, 0 0.15em 0.3em rgba(0,0,0,0.6)"
+                                : isBorderGlow && active
+                                  ? `0 0 0.4em ${accentColor}`
+                                  : active &&
+                                      !isHighlight &&
+                                      !isGradient &&
+                                      !isShimmerGold
+                                    ? `0 0 0.35em ${accentColor}88, 0 0.12em 0.2em rgba(0,0,0,0.5)`
+                                    : "0 0.12em 0.25em rgba(0,0,0,0.65)",
                         boxShadow:
                           pulse && highlightActive
                             ? `0 0 0.5em ${accentColor}55`
                             : undefined,
                         ...gradientStyle,
                         ...textureStyle,
+                        ...shimmerGoldStyle,
                       }}
                     >
                       {isEmojiPop && active && (
