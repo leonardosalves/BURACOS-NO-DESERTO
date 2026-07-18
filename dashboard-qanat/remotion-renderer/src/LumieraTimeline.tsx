@@ -202,6 +202,9 @@ export type LumieraTimelineProps = {
   shortsPortalTransition?: boolean;
   shortsPortalEvery?: number;
   canvasBackground?: string;
+  captionMaxWordsPerChunk?: number;
+  captionMaxLines?: 1 | 2;
+  captionRespectSentences?: boolean;
 };
 
 export const defaultLumieraProps: LumieraTimelineProps = {
@@ -260,10 +263,11 @@ export const defaultLumieraProps: LumieraTimelineProps = {
   shortsCaptionBgmPulse: true,
 
   shortsPortalTransition: true,
-
   shortsPortalEvery: 4,
-
   canvasBackground: "#050506",
+  captionMaxWordsPerChunk: undefined,
+  captionMaxLines: undefined,
+  captionRespectSentences: true,
 };
 
 const assetUrl = (file: string) => staticFile(file.replace(/\\/g, "/"));
@@ -855,6 +859,9 @@ const CaptionLayer: React.FC<{
   captionEffect?: string;
   captionBgmPulse?: boolean;
   accentColor?: string;
+  captionMaxWordsPerChunk?: number;
+  captionMaxLines?: 1 | 2;
+  captionRespectSentences?: boolean;
 }> = ({
   captions,
   captionStyle = "documentary",
@@ -862,6 +869,9 @@ const CaptionLayer: React.FC<{
   captionEffect,
   captionBgmPulse = false,
   accentColor = "#D4AF37",
+  captionMaxWordsPerChunk,
+  captionMaxLines,
+  captionRespectSentences = true,
 }) => {
   const frame = useCurrentFrame();
 
@@ -887,78 +897,115 @@ const CaptionLayer: React.FC<{
   const isTexture = mode === "caption-texture";
   const isBlendDiff = mode === "caption-blend-difference";
   const isMorph = mode === "morph-text";
+  const isVertical = height > width;
+
   const viralStatic = isHighlight && captionEffect === "viral-static";
   const viralPulse =
     isHighlight &&
     (captionBgmPulse || captionEffect === "viral-pulse") &&
     !viralStatic;
   const viralPop = isHighlight && !viralStatic;
-  const maxWordsPerChunk = isWordByWordCaptionMode(mode) ? 1 : 2;
+
+  const maxWordsPerChunk = isWordByWordCaptionMode(mode)
+    ? 1
+    : captionMaxWordsPerChunk || (isVertical ? 4 : 5);
   const pauseThresholdMs = isViralShorts ? 400 : 600;
-  const maxChunkDurationMs = isViralShorts ? 1800 : 2200;
+  const maxChunkDurationMs = isViralShorts ? 1800 : 2800;
+  const respectSentences = captionRespectSentences !== false;
 
-  // Dynamically group single words into static chunks of at most 2 words
-
-  // with a pause threshold of 600ms
-
+  // Dynamically group single words into static chunks respecting parameters and sentence boundaries
   const chunks: WordChunk[] = React.useMemo(() => {
     const list: WordChunk[] = [];
-
     let currentChunk: Caption[] = [];
 
     const safeCaptions = captions
-
       .filter(
         (caption) =>
           caption.text.trim() &&
           Number.isFinite(caption.startMs) &&
           Number.isFinite(caption.endMs)
       )
-
       .map((caption) => ({
         ...caption,
-
         endMs: Math.min(caption.endMs, caption.startMs + 900),
       }))
-
       .sort((a, b) => a.startMs - b.startMs);
 
     for (let j = 0; j < safeCaptions.length; j++) {
       const cap = safeCaptions[j];
-
       const lastCap = currentChunk[currentChunk.length - 1];
+      const nextCap = safeCaptions[j + 1];
 
-      if (
-        currentChunk.length >= maxWordsPerChunk ||
-        (lastCap && cap.startMs - lastCap.endMs > pauseThresholdMs) ||
-        (currentChunk.length > 0 &&
-          cap.endMs - currentChunk[0].startMs > maxChunkDurationMs)
-      ) {
-        if (currentChunk.length > 0) {
-          list.push({
-            words: currentChunk,
+      let shouldBreakBefore = false;
 
-            startMs: currentChunk[0].startMs,
+      if (currentChunk.length > 0) {
+        const duration = cap.endMs - currentChunk[0].startMs;
+        const gap = cap.startMs - lastCap.endMs;
 
-            endMs: Math.min(
-              currentChunk[currentChunk.length - 1].endMs,
-              currentChunk[0].startMs + 2400
-            ),
-          });
+        // Rule 1: Exceeded maximum words
+        if (currentChunk.length >= maxWordsPerChunk) {
+          shouldBreakBefore = true;
         }
+        // Rule 2: Exceeded pause threshold
+        else if (gap > pauseThresholdMs) {
+          shouldBreakBefore = true;
+        }
+        // Rule 3: Exceeded maximum duration
+        else if (duration > maxChunkDurationMs) {
+          shouldBreakBefore = true;
+        }
+        // Rule 4: Respect sentences and clauses
+        else if (respectSentences) {
+          const endsSentence = /[.!?]$/.test(lastCap.text.trim());
+          const endsClause = /[,;:]$/.test(lastCap.text.trim());
 
-        currentChunk = [cap];
-      } else {
-        currentChunk.push(cap);
+          if (endsSentence) {
+            shouldBreakBefore = true;
+          } else if (endsClause && currentChunk.length >= 2) {
+            shouldBreakBefore = true;
+          } else if (nextCap) {
+            const capClean = cap.text.trim();
+            const startsWithCapital =
+              /^[A-ZÁÉÍÓÚÂÊÔÇÀ]/.test(capClean) && !/^[A-Z]{2,}/.test(capClean);
+            if (startsWithCapital && currentChunk.length >= 2) {
+              shouldBreakBefore = true;
+            }
+          }
+        }
+      }
+
+      if (shouldBreakBefore && currentChunk.length > 0) {
+        list.push({
+          words: currentChunk,
+          startMs: currentChunk[0].startMs,
+          endMs: Math.min(
+            currentChunk[currentChunk.length - 1].endMs,
+            currentChunk[0].startMs + 2400
+          ),
+        });
+        currentChunk = [];
+      }
+
+      currentChunk.push(cap);
+
+      // If this word ends a sentence, flush it immediately (keep sentence boundaries clean)
+      if (respectSentences && /[.!?]$/.test(cap.text.trim())) {
+        list.push({
+          words: currentChunk,
+          startMs: currentChunk[0].startMs,
+          endMs: Math.min(
+            currentChunk[currentChunk.length - 1].endMs,
+            currentChunk[0].startMs + 2400
+          ),
+        });
+        currentChunk = [];
       }
     }
 
     if (currentChunk.length > 0) {
       list.push({
         words: currentChunk,
-
         startMs: currentChunk[0].startMs,
-
         endMs: Math.min(
           currentChunk[currentChunk.length - 1].endMs,
           currentChunk[0].startMs + 2400
@@ -967,10 +1014,15 @@ const CaptionLayer: React.FC<{
     }
 
     return list;
-  }, [captions, maxWordsPerChunk, pauseThresholdMs, maxChunkDurationMs]);
+  }, [
+    captions,
+    maxWordsPerChunk,
+    respectSentences,
+    pauseThresholdMs,
+    maxChunkDurationMs,
+  ]);
 
   // Find the currently active static chunk
-
   const activeChunk = chunks.find(
     (chunk) => currentMs >= chunk.startMs && currentMs <= chunk.endMs
   );
@@ -986,6 +1038,19 @@ const CaptionLayer: React.FC<{
     : activeChunk.words;
 
   if (isSlam && wordsToRender.length === 0) return null;
+
+  const maxLines = captionMaxLines || 2;
+  const lines =
+    isViralShorts || isSlam || maxLines === 1
+      ? [wordsToRender]
+      : (() => {
+          const result: Caption[][] = [];
+          const wordsPerLine = Math.ceil(wordsToRender.length / maxLines);
+          for (let i = 0; i < wordsToRender.length; i += wordsPerLine) {
+            result.push(wordsToRender.slice(i, i + wordsPerLine));
+          }
+          return result;
+        })();
 
   return (
     <AbsoluteFill
@@ -1009,10 +1074,8 @@ const CaptionLayer: React.FC<{
         style={{
           position: "relative",
           display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
+          flexDirection: "column",
           alignItems: "center",
-          columnGap: isViralShorts ? 14 : isVertical ? 22 : 16,
           rowGap: isViralShorts ? 8 : isVertical ? 12 : 8,
           maxWidth: isVertical
             ? isSlam
@@ -1042,252 +1105,278 @@ const CaptionLayer: React.FC<{
             }}
           />
         )}
-        {wordsToRender.map((word, index) => {
-          const active = currentMs >= word.startMs && currentMs <= word.endMs;
-          const wordFrame = Math.max(
-            0,
-            Math.round(((currentMs - word.startMs) / 1000) * fps)
-          );
-          const matrixProgress = Math.min(1, wordFrame / 14);
-          const wipeProgress = Math.min(1, wordFrame / 12);
-          const burstFade = active
-            ? interpolate(wordFrame, [0, 18], [1, 0], {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp",
-              })
-            : 0;
-          const glitchShift = Math.sin((frame + index * 3) / 3) * 3;
-          const displayText =
-            isMatrix && active
-              ? scrambleCaptionText(word.text, matrixProgress, word.startMs)
-              : word.text;
-          const popScale =
-            (viralPop || isGradient) && active
-              ? spring({
-                  fps,
-                  frame: wordFrame,
-                  config: { damping: 14, stiffness: 220, mass: 0.5 },
-                })
-              : 1;
-          const slamScale =
-            isSlam && active
-              ? spring({
-                  fps,
-                  frame: wordFrame,
-                  config: { damping: 12, stiffness: 180, mass: 0.8 },
-                })
-              : 1;
-          const bgmBeat =
-            viralPulse && active
-              ? 1 + 0.1 * Math.sin((frame / fps) * Math.PI * 4)
-              : 1;
-          const pulseGlow =
-            viralPulse && active
-              ? `0 0 20px ${accentColor}66, 0 0 40px ${accentColor}33`
-              : undefined;
-          const slamDir = index % 2 === 0 ? -48 : 48;
-          const slamOffset = isSlam && active ? (1 - slamScale) * slamDir : 0;
-          const morphBlur =
-            isMorph && active
-              ? interpolate(wordFrame, [0, 10], [10, 0], {
-                  extrapolateLeft: "clamp",
-                  extrapolateRight: "clamp",
-                })
-              : 0;
-          const morphScale =
-            isMorph && active
-              ? interpolate(wordFrame, [0, 12], [1.25, 1], {
-                  extrapolateLeft: "clamp",
-                  extrapolateRight: "clamp",
-                })
-              : 1;
-          const neonAccentHue = (frame * 4 + index * 40) % 360;
-          const neonAccentColor = `hsl(${neonAccentHue}, 95%, 62%)`;
-          const wiggleX =
-            isNeonAccent && active ? Math.sin((frame + index * 5) / 5) * 4 : 0;
-          const wiggleY =
-            isNeonAccent && active ? Math.cos((frame + index * 3) / 6) * 3 : 0;
-          const textureShift = (frame * 2) % 100;
-          const emojiPopScale =
-            isEmojiPop && active
-              ? spring({
-                  fps,
-                  frame: wordFrame,
-                  config: { damping: 10, stiffness: 200, mass: 0.45 },
-                })
-              : 0;
-          const emojiGlyph = EMOJI_POP_POOL[index % EMOJI_POP_POOL.length];
+        {lines.map((lineWords, lineIdx) => (
+          <div
+            key={lineIdx}
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              alignItems: "center",
+              columnGap: isViralShorts ? 14 : isVertical ? 22 : 16,
+              rowGap: isViralShorts ? 8 : isVertical ? 12 : 8,
+              width: "100%",
+            }}
+          >
+            {lineWords.map((word) => {
+              const index = wordsToRender.indexOf(word);
+              const active =
+                currentMs >= word.startMs && currentMs <= word.endMs;
+              const wordFrame = Math.max(
+                0,
+                Math.round(((currentMs - word.startMs) / 1000) * fps)
+              );
+              const matrixProgress = Math.min(1, wordFrame / 14);
+              const wipeProgress = Math.min(1, wordFrame / 12);
+              const burstFade = active
+                ? interpolate(wordFrame, [0, 18], [1, 0], {
+                    extrapolateLeft: "clamp",
+                    extrapolateRight: "clamp",
+                  })
+                : 0;
+              const glitchShift = Math.sin((frame + index * 3) / 3) * 3;
+              const displayText =
+                isMatrix && active
+                  ? scrambleCaptionText(word.text, matrixProgress, word.startMs)
+                  : word.text;
+              const popScale =
+                (viralPop || isGradient) && active
+                  ? spring({
+                      fps,
+                      frame: wordFrame,
+                      config: { damping: 14, stiffness: 220, mass: 0.5 },
+                    })
+                  : 1;
+              const slamScale =
+                isSlam && active
+                  ? spring({
+                      fps,
+                      frame: wordFrame,
+                      config: { damping: 12, stiffness: 180, mass: 0.8 },
+                    })
+                  : 1;
+              const bgmBeat =
+                viralPulse && active
+                  ? 1 + 0.1 * Math.sin((frame / fps) * Math.PI * 4)
+                  : 1;
+              const pulseGlow =
+                viralPulse && active
+                  ? `0 0 20px ${accentColor}66, 0 0 40px ${accentColor}33`
+                  : undefined;
+              const slamDir = index % 2 === 0 ? -48 : 48;
+              const slamOffset =
+                isSlam && active ? (1 - slamScale) * slamDir : 0;
+              const morphBlur =
+                isMorph && active
+                  ? interpolate(wordFrame, [0, 10], [10, 0], {
+                      extrapolateLeft: "clamp",
+                      extrapolateRight: "clamp",
+                    })
+                  : 0;
+              const morphScale =
+                isMorph && active
+                  ? interpolate(wordFrame, [0, 12], [1.25, 1], {
+                      extrapolateLeft: "clamp",
+                      extrapolateRight: "clamp",
+                    })
+                  : 1;
+              const neonAccentHue = (frame * 4 + index * 40) % 360;
+              const neonAccentColor = `hsl(${neonAccentHue}, 95%, 62%)`;
+              const wiggleX =
+                isNeonAccent && active
+                  ? Math.sin((frame + index * 5) / 5) * 4
+                  : 0;
+              const wiggleY =
+                isNeonAccent && active
+                  ? Math.cos((frame + index * 3) / 6) * 3
+                  : 0;
+              const textureShift = (frame * 2) % 100;
+              const emojiPopScale =
+                isEmojiPop && active
+                  ? spring({
+                      fps,
+                      frame: wordFrame,
+                      config: { damping: 10, stiffness: 200, mass: 0.45 },
+                    })
+                  : 0;
+              const emojiGlyph = EMOJI_POP_POOL[index % EMOJI_POP_POOL.length];
 
-          let baseFont = isVertical
-            ? isSlam
-              ? 88
-              : isViralShorts
-                ? 64
-                : isWeight
-                  ? 52
-                  : 58
-            : isSlam
-              ? 72
-              : isViralShorts
-                ? 44
-                : isWeight
-                  ? 34
-                  : 38;
-          if (isEditorial && active) baseFont *= 1.35;
-          if (isEditorial && !active) baseFont *= 0.82;
-          if (isParallax && !active) baseFont *= 0.78;
+              let baseFont = isVertical
+                ? isSlam
+                  ? 88
+                  : isViralShorts
+                    ? 64
+                    : isWeight
+                      ? 52
+                      : 58
+                : isSlam
+                  ? 72
+                  : isViralShorts
+                    ? 44
+                    : isWeight
+                      ? 34
+                      : 38;
+              if (isEditorial && active) baseFont *= 1.35;
+              if (isEditorial && !active) baseFont *= 0.82;
+              if (isParallax && !active) baseFont *= 0.78;
 
-          let color = "#FFFFFF";
-          if (isBlendDiff) color = "#FFFFFF";
-          else if (isHighlight && active) color = "#0A0A0A";
-          else if (isGlitch && active) color = "#E2E8F0";
-          else if (isMatrix && active && matrixProgress < 1) color = "#4ADE80";
-          else if (isNeonAccent && active) color = neonAccentColor;
-          else if (isNeon && active) color = "#22D3EE";
-          else if (active) color = accentColor;
+              let color = "#FFFFFF";
+              if (isBlendDiff) color = "#FFFFFF";
+              else if (isHighlight && active) color = "#0A0A0A";
+              else if (isGlitch && active) color = "#E2E8F0";
+              else if (isMatrix && active && matrixProgress < 1)
+                color = "#4ADE80";
+              else if (isNeonAccent && active) color = neonAccentColor;
+              else if (isNeon && active) color = "#22D3EE";
+              else if (active) color = accentColor;
 
-          const gradientText =
-            (isGradient || isTexture) && active
-              ? {
-                  backgroundImage: isTexture
-                    ? `linear-gradient(${textureShift}deg, #F97316, #DC2626, #78350F, #FBBF24, #F97316)`
-                    : `linear-gradient(135deg, ${accentColor}, #F472B6, #22D3EE)`,
-                  backgroundSize: isTexture ? "200% 200%" : undefined,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                  color: "transparent",
-                }
-              : {};
+              const gradientText =
+                (isGradient || isTexture) && active
+                  ? {
+                      backgroundImage: isTexture
+                        ? `linear-gradient(${textureShift}deg, #F97316, #DC2626, #78350F, #FBBF24, #F97316)`
+                        : `linear-gradient(135deg, ${accentColor}, #F472B6, #22D3EE)`,
+                      backgroundSize: isTexture ? "200% 200%" : undefined,
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                      color: "transparent",
+                    }
+                  : {};
 
-          const fontFamily =
-            isEditorial && active
-              ? "'Cinzel', 'Playfair Display', Georgia, serif"
-              : isMatrix && active && matrixProgress < 1
-                ? "'Courier New', Courier, monospace"
-                : "'Montserrat', 'Inter', Arial, sans-serif";
+              const fontFamily =
+                isEditorial && active
+                  ? "'Cinzel', 'Playfair Display', Georgia, serif"
+                  : isMatrix && active && matrixProgress < 1
+                    ? "'Courier New', Courier, monospace"
+                    : "'Montserrat', 'Inter', Arial, sans-serif";
 
-          return (
-            <span
-              key={`${word.startMs}-${index}`}
-              style={{
-                position: "relative",
-                display: "inline-flex",
-                flexDirection: isEmojiPop ? "column" : "row",
-                alignItems: "center",
-                color,
-                fontFamily,
-                fontSize: baseFont,
-                fontWeight: isWeight
-                  ? active
-                    ? 900
-                    : 300
-                  : isEditorial && !active
-                    ? 500
-                    : 900,
-                mixBlendMode: isBlendDiff ? "difference" : undefined,
-                filter: isMorph && active ? `blur(${morphBlur}px)` : undefined,
-                lineHeight: 1.1,
-                letterSpacing: isViralShorts || isSlam ? "0.02em" : "0.05em",
-                textTransform: "uppercase",
-                whiteSpace: "pre",
-                background:
-                  isHighlight && active
-                    ? `linear-gradient(135deg, ${accentColor} 0%, #FDE047 100%)`
-                    : "transparent",
-                padding: isHighlight && active ? "6px 18px" : "0",
-                borderRadius: isHighlight && active ? "12px" : 0,
-                clipPath:
-                  isWipe && active
-                    ? `inset(0 ${Math.round((1 - wipeProgress) * 100)}% 0 0)`
-                    : undefined,
-                textShadow: isHighlight
-                  ? active
-                    ? pulseGlow || "0 2px 8px rgba(0,0,0,0.35)"
-                    : "0 3px 12px rgba(0,0,0,0.85), 0 0 24px rgba(0,0,0,0.5)"
-                  : isGlitch && active
-                    ? `${glitchShift - 3}px 0 #FF4D6D, ${glitchShift + 3}px 0 #22D3EE, 0 0 10px rgba(255,255,255,0.35)`
-                    : isNeonAccent && active
-                      ? `0 0 14px ${neonAccentColor}, 0 0 26px #F472B6`
-                      : isNeon && active
-                        ? "0 0 16px #22D3EE, 0 0 28px #F472B6"
-                        : isMatrix && active && matrixProgress < 1
-                          ? "0 0 12px rgba(74,222,128,0.6)"
-                          : active
-                            ? `0 0 14px ${accentColor}88, 0 2px 4px rgba(0,0,0,0.5)`
-                            : "0 2px 4px rgba(0,0,0,0.5)",
-                transform: active
-                  ? isSlam
-                    ? `translateX(${slamOffset}px) scale(${0.75 + slamScale * 0.35})`
-                    : isMorph
-                      ? `scale(${morphScale})`
-                      : isNeonAccent
-                        ? `translate(${wiggleX}px, ${wiggleY}px) scale(1.06)`
-                        : isParallax
-                          ? "scale(1.06) translateY(-4px)"
-                          : `scale(${(isViralShorts || isGradient ? 0.92 + popScale * 0.14 : 1.08) * bgmBeat})`
-                  : isParallax
-                    ? "scale(0.78) translateY(6px)"
-                    : "scale(1.0)",
-                transition:
-                  isViralShorts ||
-                  isSlam ||
-                  isWipe ||
-                  isMatrix ||
-                  isMorph ||
-                  isNeonAccent
-                    ? "none"
-                    : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
-                opacity: active
-                  ? 1
-                  : isWeight || isParallax
-                    ? 0.6
-                    : isViralShorts
-                      ? 0.92
-                      : 0.75,
-                zIndex: isParallax && active ? 2 : isParallax ? 1 : undefined,
-                ...gradientText,
-              }}
-            >
-              {isEmojiPop && active && (
+              return (
                 <span
+                  key={`${word.startMs}-${index}`}
                   style={{
-                    fontSize: isVertical ? 42 : 32,
-                    lineHeight: 1,
-                    transform: `scale(${0.6 + emojiPopScale * 0.5})`,
-                    marginBottom: isVertical ? 6 : 4,
-                    filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))",
+                    position: "relative",
+                    display: "inline-flex",
+                    flexDirection: isEmojiPop ? "column" : "row",
+                    alignItems: "center",
+                    color,
+                    fontFamily,
+                    fontSize: baseFont,
+                    fontWeight: isWeight
+                      ? active
+                        ? 900
+                        : 300
+                      : isEditorial && !active
+                        ? 500
+                        : 900,
+                    mixBlendMode: isBlendDiff ? "difference" : undefined,
+                    filter:
+                      isMorph && active ? `blur(${morphBlur}px)` : undefined,
+                    lineHeight: 1.1,
+                    letterSpacing:
+                      isViralShorts || isSlam ? "0.02em" : "0.05em",
+                    textTransform: "uppercase",
+                    whiteSpace: "pre",
+                    background:
+                      isHighlight && active
+                        ? `linear-gradient(135deg, ${accentColor} 0%, #FDE047 100%)`
+                        : "transparent",
+                    padding: isHighlight && active ? "6px 18px" : "0",
+                    borderRadius: isHighlight && active ? "12px" : 0,
+                    clipPath:
+                      isWipe && active
+                        ? `inset(0 ${Math.round((1 - wipeProgress) * 100)}% 0 0)`
+                        : undefined,
+                    textShadow: isHighlight
+                      ? active
+                        ? pulseGlow || "0 2px 8px rgba(0,0,0,0.35)"
+                        : "0 3px 12px rgba(0,0,0,0.85), 0 0 24px rgba(0,0,0,0.5)"
+                      : isGlitch && active
+                        ? `${glitchShift - 3}px 0 #FF4D6D, ${glitchShift + 3}px 0 #22D3EE, 0 0 10px rgba(255,255,255,0.35)`
+                        : isNeonAccent && active
+                          ? `0 0 14px ${neonAccentColor}, 0 0 26px #F472B6`
+                          : isNeon && active
+                            ? "0 0 16px #22D3EE, 0 0 28px #F472B6"
+                            : isMatrix && active && matrixProgress < 1
+                              ? "0 0 12px rgba(74,222,128,0.6)"
+                              : active
+                                ? `0 0 14px ${accentColor}88, 0 2px 4px rgba(0,0,0,0.5)`
+                                : "0 2px 4px rgba(0,0,0,0.5)",
+                    transform: active
+                      ? isSlam
+                        ? `translateX(${slamOffset}px) scale(${0.75 + slamScale * 0.35})`
+                        : isMorph
+                          ? `scale(${morphScale})`
+                          : isNeonAccent
+                            ? `translate(${wiggleX}px, ${wiggleY}px) scale(1.06)`
+                            : isParallax
+                              ? "scale(1.06) translateY(-4px)"
+                              : `scale(${(isViralShorts || isGradient ? 0.92 + popScale * 0.14 : 1.08) * bgmBeat})`
+                      : isParallax
+                        ? "scale(0.78) translateY(6px)"
+                        : "scale(1.0)",
+                    transition:
+                      isViralShorts ||
+                      isSlam ||
+                      isWipe ||
+                      isMatrix ||
+                      isMorph ||
+                      isNeonAccent
+                        ? "none"
+                        : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
+                    opacity: active
+                      ? 1
+                      : isWeight || isParallax
+                        ? 0.6
+                        : isViralShorts
+                          ? 0.92
+                          : 0.75,
+                    zIndex:
+                      isParallax && active ? 2 : isParallax ? 1 : undefined,
+                    ...gradientText,
                   }}
                 >
-                  {emojiGlyph}
+                  {isEmojiPop && active && (
+                    <span
+                      style={{
+                        fontSize: isVertical ? 42 : 32,
+                        lineHeight: 1,
+                        transform: `scale(${0.6 + emojiPopScale * 0.5})`,
+                        marginBottom: isVertical ? 6 : 4,
+                        filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))",
+                      }}
+                    >
+                      {emojiGlyph}
+                    </span>
+                  )}
+                  {displayText}
+                  {isBurst &&
+                    active &&
+                    burstFade > 0 &&
+                    BURST_PARTICLES.map((p, pi) => (
+                      <span
+                        key={pi}
+                        style={{
+                          position: "absolute",
+                          left: "50%",
+                          top: "50%",
+                          width: isVertical ? 8 : 6,
+                          height: isVertical ? 8 : 6,
+                          marginLeft: p.x * burstFade,
+                          marginTop: p.y * burstFade,
+                          borderRadius: "50%",
+                          background: p.c,
+                          opacity: burstFade,
+                          boxShadow: `0 0 10px ${p.c}`,
+                          pointerEvents: "none",
+                        }}
+                      />
+                    ))}
                 </span>
-              )}
-              {displayText}
-              {isBurst &&
-                active &&
-                burstFade > 0 &&
-                BURST_PARTICLES.map((p, pi) => (
-                  <span
-                    key={pi}
-                    style={{
-                      position: "absolute",
-                      left: "50%",
-                      top: "50%",
-                      width: isVertical ? 8 : 6,
-                      height: isVertical ? 8 : 6,
-                      marginLeft: p.x * burstFade,
-                      marginTop: p.y * burstFade,
-                      borderRadius: "50%",
-                      background: p.c,
-                      opacity: burstFade,
-                      boxShadow: `0 0 10px ${p.c}`,
-                      pointerEvents: "none",
-                    }}
-                  />
-                ))}
-            </span>
-          );
-        })}
+              );
+            })}
+          </div>
+        ))}
       </div>
     </AbsoluteFill>
   );
@@ -1566,6 +1655,9 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   shortsPortalTransition = true,
   shortsPortalEvery = 4,
   canvasBackground = "#050506",
+  captionMaxWordsPerChunk,
+  captionMaxLines,
+  captionRespectSentences = true,
 }) => {
   const isShort = format === "9:16";
   const showVignette = vignette;
@@ -1787,6 +1879,9 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
         captionEffect={captionEffect}
         captionBgmPulse={isShort && shortsCaptionBgmPulse}
         accentColor={accentColor}
+        captionMaxWordsPerChunk={captionMaxWordsPerChunk}
+        captionMaxLines={captionMaxLines}
+        captionRespectSentences={captionRespectSentences}
       />
 
       {isLastSceneLogo && youtubeChannelInfo && (

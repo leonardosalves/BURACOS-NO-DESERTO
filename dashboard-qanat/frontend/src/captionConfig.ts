@@ -41,6 +41,61 @@ export const CAPTION_MODE_IDS: CaptionModeId[] = [
 
 export type CaptionStyleId = "shorts-viral" | "documentary";
 
+/** Configurações avançadas de agrupamento de legendas */
+export type CaptionGrouping = {
+  /** Máx. palavras por grupo (chunk) antes de trocar tela (2–6). */
+  maxWordsPerChunk: number;
+  /** Máx. linhas visíveis simultâneas (1 ou 2). */
+  maxLines: 1 | 2;
+  /** Quebrar chunk ao encontrar pontuação (. ! ? , ;). */
+  respectSentences: boolean;
+  /** Mín. palavras por chunk — evita 1 palavra solta. */
+  minWordsPerChunk: number;
+};
+
+export const DEFAULT_CAPTION_GROUPING_SHORT: CaptionGrouping = {
+  maxWordsPerChunk: 4,
+  maxLines: 2,
+  respectSentences: true,
+  minWordsPerChunk: 2,
+};
+
+export const DEFAULT_CAPTION_GROUPING_LONG: CaptionGrouping = {
+  maxWordsPerChunk: 5,
+  maxLines: 2,
+  respectSentences: true,
+  minWordsPerChunk: 2,
+};
+
+export const MAX_WORDS_OPTIONS = [2, 3, 4, 5, 6] as const;
+
+export function resolveCaptionGrouping(
+  config: Record<string, unknown> = {},
+  format: "short" | "long" = "short"
+): CaptionGrouping {
+  const defaults =
+    format === "short"
+      ? DEFAULT_CAPTION_GROUPING_SHORT
+      : DEFAULT_CAPTION_GROUPING_LONG;
+  const prefix = format === "short" ? "shorts" : "long";
+  const raw = (key: string) =>
+    config[`${prefix}_caption_${key}`] ?? config[`caption_${key}`];
+
+  const maxWords =
+    Number(raw("max_words_per_chunk")) || defaults.maxWordsPerChunk;
+  const maxLines = Number(raw("max_lines")) === 1 ? 1 : defaults.maxLines;
+  const respectSentences = raw("respect_sentences") !== false;
+  const minWords =
+    Number(raw("min_words_per_chunk")) || defaults.minWordsPerChunk;
+
+  return {
+    maxWordsPerChunk: Math.max(2, Math.min(6, maxWords)),
+    maxLines: maxLines as 1 | 2,
+    respectSentences,
+    minWordsPerChunk: Math.max(1, Math.min(maxWords, minWords)),
+  };
+}
+
 /** @deprecated use CaptionModeId */
 export type ShortCaptionEffectId = "viral-pop" | "viral-pulse" | "viral-static";
 /** @deprecated use CaptionModeId */

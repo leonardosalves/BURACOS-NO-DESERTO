@@ -1,26 +1,31 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Layers, Palette, Save, Smartphone, Tv } from 'lucide-react';
-import { applyVisualPatch, pickVisualConfig, pickVisualConfigFromDisk } from './visualConfig';
-import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
-import { SectionHeader } from './SectionHeader';
-import { CaptionPreview } from './CaptionPreview';
+import React, { useEffect, useMemo, useState } from "react";
+import { Layers, Palette, Save, Smartphone, Tv } from "lucide-react";
+import {
+  applyVisualPatch,
+  pickVisualConfig,
+  pickVisualConfigFromDisk,
+} from "./visualConfig";
+import { SettingHelpTip, SettingLabel } from "./SettingHelpTip";
+import { SectionHeader } from "./SectionHeader";
+import { CaptionPreview } from "./CaptionPreview";
 import {
   LONG_CAPTION_MODES,
   SHORT_CAPTION_MODES,
   resolveLongCaptionMode,
   resolveShortCaptionBgmPulse,
   resolveShortCaptionMode,
+  resolveCaptionGrouping,
+  isWordByWordMode,
   type CaptionModeId,
-} from './captionConfig';
-
+} from "./captionConfig";
 
 export type VisualConfig = {
   design_preset?: string;
   caption_style?: string;
   caption_mode_short?: CaptionModeId;
   caption_mode_long?: CaptionModeId;
-  caption_style_short?: 'shorts-viral' | 'documentary';
-  caption_style_long?: 'shorts-viral' | 'documentary';
+  caption_style_short?: "shorts-viral" | "documentary";
+  caption_style_long?: "shorts-viral" | "documentary";
   caption_effect_short?: string;
   caption_effect_long?: string;
   grain_overlay?: boolean;
@@ -31,8 +36,8 @@ export type VisualConfig = {
   overlay_sfx_sync?: boolean;
   social_proof_cards?: boolean;
   geo_map_overlays?: boolean;
-  listicle_hud_style?: 'auto' | 'full' | 'compact';
-  shorts_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
+  listicle_hud_style?: "auto" | "full" | "compact";
+  shorts_zoom_intensity?: "normal" | "aggressive" | "cinematic";
   shorts_hook_flash?: boolean;
   shorts_edge_glow?: boolean;
   shorts_caption_bgm_pulse?: boolean;
@@ -40,8 +45,15 @@ export type VisualConfig = {
   shorts_portal_every?: number;
   accent_color?: string;
   secondary_color?: string;
-  listicle_hud_theme?: 'ancient' | 'mysterious' | 'nature' | 'classic' | 'tech' | 'industrial';
-  long_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
+  listicle_hud_theme?:
+    "ancient" | "mysterious" | "nature" | "classic" | "tech" | "industrial";
+  long_zoom_intensity?: "normal" | "aggressive" | "cinematic";
+  shorts_caption_max_words_per_chunk?: number;
+  shorts_caption_max_lines?: 1 | 2;
+  shorts_caption_respect_sentences?: boolean;
+  long_caption_max_words_per_chunk?: number;
+  long_caption_max_lines?: 1 | 2;
+  long_caption_respect_sentences?: boolean;
 };
 
 type Props = {
@@ -54,97 +66,165 @@ type Props = {
 };
 
 const PRESET_OPTIONS = [
-  { id: 'auto', label: 'Automático (por nicho)', hint: 'História, mistério, geografia, dados ou finanças conforme o tema.' },
-  { id: 'documentary-history', label: 'Documentário História', hint: 'Grain + vinheta, tons quentes, títulos PT Sans.' },
-  { id: 'documentary-mystery', label: 'Documentário Mistério', hint: 'Roxo escuro, grain, atmosfera sombria.' },
-  { id: 'documentary-geography', label: 'Explorador Geográfico', hint: 'Azul-água + verde, mapas e timeline.' },
-  { id: 'documentary-data', label: 'Jornalismo de Dados', hint: 'Limpo, counters e gráficos.' },
-  { id: 'documentary-finance', label: 'Finanças Premium', hint: 'Dourado + verde neon, sem grain.' },
+  {
+    id: "auto",
+    label: "Automático (por nicho)",
+    hint: "História, mistério, geografia, dados ou finanças conforme o tema.",
+  },
+  {
+    id: "documentary-history",
+    label: "Documentário História",
+    hint: "Grain + vinheta, tons quentes, títulos PT Sans.",
+  },
+  {
+    id: "documentary-mystery",
+    label: "Documentário Mistério",
+    hint: "Roxo escuro, grain, atmosfera sombria.",
+  },
+  {
+    id: "documentary-geography",
+    label: "Explorador Geográfico",
+    hint: "Azul-água + verde, mapas e timeline.",
+  },
+  {
+    id: "documentary-data",
+    label: "Jornalismo de Dados",
+    hint: "Limpo, counters e gráficos.",
+  },
+  {
+    id: "documentary-finance",
+    label: "Finanças Premium",
+    hint: "Dourado + verde neon, sem grain.",
+  },
 ];
 
-const ZOOM_OPTIONS: { id: 'normal' | 'aggressive' | 'cinematic'; label: string; hint: string }[] = [
-  { id: 'normal', label: 'Normal', hint: 'Ken Burns 6% → 22%.' },
-  { id: 'aggressive', label: 'Agressivo', hint: '10% → 28% — máxima retenção.' },
-  { id: 'cinematic', label: 'Cine', hint: '4% → 16% — tom premium.' },
+const ZOOM_OPTIONS: {
+  id: "normal" | "aggressive" | "cinematic";
+  label: string;
+  hint: string;
+}[] = [
+  { id: "normal", label: "Normal", hint: "Ken Burns 6% → 22%." },
+  {
+    id: "aggressive",
+    label: "Agressivo",
+    hint: "10% → 28% — máxima retenção.",
+  },
+  { id: "cinematic", label: "Cine", hint: "4% → 16% — tom premium." },
 ];
 
-const LONG_ZOOM_OPTIONS: { id: 'normal' | 'aggressive' | 'cinematic'; label: string; hint: string }[] = [
-  { id: 'normal', label: 'Normal', hint: 'Ken Burns 4% → 14% — documentário clássico.' },
-  { id: 'aggressive', label: 'Agressivo', hint: '6% → 18% — mais movimento em 16:9.' },
-  { id: 'cinematic', label: 'Cine', hint: '3% → 12% — zoom sutil e premium.' },
+const LONG_ZOOM_OPTIONS: {
+  id: "normal" | "aggressive" | "cinematic";
+  label: string;
+  hint: string;
+}[] = [
+  {
+    id: "normal",
+    label: "Normal",
+    hint: "Ken Burns 4% → 14% — documentário clássico.",
+  },
+  {
+    id: "aggressive",
+    label: "Agressivo",
+    hint: "6% → 18% — mais movimento em 16:9.",
+  },
+  { id: "cinematic", label: "Cine", hint: "3% → 12% — zoom sutil e premium." },
 ];
 
 const HUD_THEME_OPTIONS: { id: string; label: string; hint: string }[] = [
-  { id: 'auto', label: 'Automático (preset)', hint: 'Herda do preset visual ou nicho.' },
-  { id: 'ancient', label: 'Antigo', hint: 'Pergaminho, sépia, ícones históricos.' },
-  { id: 'mysterious', label: 'Mistério', hint: 'Roxo escuro, atmosfera enigmática.' },
-  { id: 'nature', label: 'Natureza', hint: 'Verde-água, exploração geográfica.' },
-  { id: 'classic', label: 'Clássico', hint: 'Dourado neutro, finanças e geral.' },
-  { id: 'tech', label: 'Tech', hint: 'Ciano e roxo, tom futurista.' },
-  { id: 'industrial', label: 'Industrial', hint: 'Laranja e aço, impacto militar/engenharia.' },
+  {
+    id: "auto",
+    label: "Automático (preset)",
+    hint: "Herda do preset visual ou nicho.",
+  },
+  {
+    id: "ancient",
+    label: "Antigo",
+    hint: "Pergaminho, sépia, ícones históricos.",
+  },
+  {
+    id: "mysterious",
+    label: "Mistério",
+    hint: "Roxo escuro, atmosfera enigmática.",
+  },
+  {
+    id: "nature",
+    label: "Natureza",
+    hint: "Verde-água, exploração geográfica.",
+  },
+  {
+    id: "classic",
+    label: "Clássico",
+    hint: "Dourado neutro, finanças e geral.",
+  },
+  { id: "tech", label: "Tech", hint: "Ciano e roxo, tom futurista." },
+  {
+    id: "industrial",
+    label: "Industrial",
+    hint: "Laranja e aço, impacto militar/engenharia.",
+  },
 ];
 
 const PORTAL_EVERY_OPTIONS = [
-  { value: 3, label: 'A cada 3 cenas' },
-  { value: 4, label: 'A cada 4 cenas (padrão)' },
-  { value: 5, label: 'A cada 5 cenas' },
+  { value: 3, label: "A cada 3 cenas" },
+  { value: 4, label: "A cada 4 cenas (padrão)" },
+  { value: 5, label: "A cada 5 cenas" },
 ];
 
 const LAYER_HELP: Record<string, { title: string; body: string }> = {
   grain_overlay: {
-    title: 'Grain (filme)',
-    body: 'Camada de granulação sobre as cenas, como filme analógico. Dá textura e tom documentário. Em Shorts costuma ficar ligado por padrão.',
+    title: "Grain (filme)",
+    body: "Camada de granulação sobre as cenas, como filme analógico. Dá textura e tom documentário. Em Shorts costuma ficar ligado por padrão.",
   },
   vignette: {
-    title: 'Vinheta escura',
-    body: 'Escurece suavemente as bordas do quadro e direciona o olhar para o centro. Reforça clima cinematográfico sem poluir a imagem.',
+    title: "Vinheta escura",
+    body: "Escurece suavemente as bordas do quadro e direciona o olhar para o centro. Reforça clima cinematográfico sem poluir a imagem.",
   },
   progress_bar: {
-    title: 'Barra de progresso',
-    body: 'Barra fina clássica no topo (longos). Para barra com ícones por bloco, use o editor abaixo.',
+    title: "Barra de progresso",
+    body: "Barra fina clássica no topo (longos). Para barra com ícones por bloco, use o editor abaixo.",
   },
   chapter_stingers: {
-    title: 'Chapter stingers',
-    body: 'Pulso visual curto (flash + linha) ao entrar em capítulos ou blocos grandes. Marca mudanças de assunto no vídeo.',
+    title: "Chapter stingers",
+    body: "Pulso visual curto (flash + linha) ao entrar em capítulos ou blocos grandes. Marca mudanças de assunto no vídeo.",
   },
   source_cards: {
-    title: 'Cards de fonte',
-    body: 'Exibe cards com referências, documentos ou fontes quando o roteiro cita algo verificável. Aumenta credibilidade.',
+    title: "Cards de fonte",
+    body: "Exibe cards com referências, documentos ou fontes quando o roteiro cita algo verificável. Aumenta credibilidade.",
   },
   social_proof_cards: {
-    title: 'Cards Reddit / X',
-    body: 'Overlays estilo post de rede social (Reddit, X) com comentários ou reações. Bom para gancho e prova social.',
+    title: "Cards Reddit / X",
+    body: "Overlays estilo post de rede social (Reddit, X) com comentários ou reações. Bom para gancho e prova social.",
   },
   geo_map_overlays: {
-    title: 'Mapas geográficos',
-    body: 'Mapas animados destacando países, rotas ou regiões citadas na narração. Ideal para história e geografia.',
+    title: "Mapas geográficos",
+    body: "Mapas animados destacando países, rotas ou regiões citadas na narração. Ideal para história e geografia.",
   },
   overlay_sfx_sync: {
-    title: 'SFX nos overlays',
-    body: 'Sons curtos (whoosh, tick, impacto) quando um overlay entra ou sai. Deixa a edição mais dinâmica e sincronizada.',
+    title: "SFX nos overlays",
+    body: "Sons curtos (whoosh, tick, impacto) quando um overlay entra ou sai. Deixa a edição mais dinâmica e sincronizada.",
   },
 };
 
 function triBool(value: boolean | undefined, defaultOn: boolean) {
-  if (value === undefined) return 'default';
-  return value ? 'on' : 'off';
+  if (value === undefined) return "default";
+  return value ? "on" : "off";
 }
 
 type LayerToggleKey =
-  | 'grain_overlay'
-  | 'vignette'
-  | 'progress_bar'
-  | 'chapter_stingers'
-  | 'source_cards'
-  | 'social_proof_cards'
-  | 'geo_map_overlays'
-  | 'overlay_sfx_sync';
+  | "grain_overlay"
+  | "vignette"
+  | "progress_bar"
+  | "chapter_stingers"
+  | "source_cards"
+  | "social_proof_cards"
+  | "geo_map_overlays"
+  | "overlay_sfx_sync";
 
 type LayerToggleItem = {
   key: LayerToggleKey;
   label: string;
   defaultOn: boolean;
-  format?: 'long';
+  format?: "long";
 };
 
 function buildOverlayGroups(isShortFormat: boolean): {
@@ -155,39 +235,61 @@ function buildOverlayGroups(isShortFormat: boolean): {
 }[] {
   return [
     {
-      id: 'atmosphere',
-      title: 'Atmosfera',
-      hint: 'Textura e enquadramento sobre todo o quadro',
+      id: "atmosphere",
+      title: "Atmosfera",
+      hint: "Textura e enquadramento sobre todo o quadro",
       items: [
-        { key: 'grain_overlay', label: 'Grain (filme)', defaultOn: isShortFormat },
-        { key: 'vignette', label: 'Vinheta escura', defaultOn: true },
+        {
+          key: "grain_overlay",
+          label: "Grain (filme)",
+          defaultOn: isShortFormat,
+        },
+        { key: "vignette", label: "Vinheta escura", defaultOn: true },
       ],
     },
     {
-      id: 'long-form',
-      title: 'Vídeo longo',
-      hint: 'Elementos pensados para retenção em 16:9',
+      id: "long-form",
+      title: "Vídeo longo",
+      hint: "Elementos pensados para retenção em 16:9",
       items: [
-        { key: 'progress_bar', label: 'Barra de progresso', defaultOn: true, format: 'long' },
-        { key: 'chapter_stingers', label: 'Chapter stingers', defaultOn: true, format: 'long' },
+        {
+          key: "progress_bar",
+          label: "Barra de progresso",
+          defaultOn: true,
+          format: "long",
+        },
+        {
+          key: "chapter_stingers",
+          label: "Chapter stingers",
+          defaultOn: true,
+          format: "long",
+        },
       ],
     },
     {
-      id: 'ai-overlays',
-      title: 'Overlays da IA',
-      hint: 'Cards e mapas inseridos pelo roteiro',
+      id: "ai-overlays",
+      title: "Overlays da IA",
+      hint: "Cards e mapas inseridos pelo roteiro",
       items: [
-        { key: 'source_cards', label: 'Cards de fonte', defaultOn: true },
-        { key: 'social_proof_cards', label: 'Cards Reddit / X', defaultOn: true },
-        { key: 'geo_map_overlays', label: 'Mapas geográficos', defaultOn: true },
+        { key: "source_cards", label: "Cards de fonte", defaultOn: true },
+        {
+          key: "social_proof_cards",
+          label: "Cards Reddit / X",
+          defaultOn: true,
+        },
+        {
+          key: "geo_map_overlays",
+          label: "Mapas geográficos",
+          defaultOn: true,
+        },
       ],
     },
     {
-      id: 'audio',
-      title: 'Áudio',
-      hint: 'Sincronização sonora com entradas visuais',
+      id: "audio",
+      title: "Áudio",
+      hint: "Sincronização sonora com entradas visuais",
       items: [
-        { key: 'overlay_sfx_sync', label: 'SFX nos overlays', defaultOn: true },
+        { key: "overlay_sfx_sync", label: "SFX nos overlays", defaultOn: true },
       ],
     },
   ];
@@ -205,40 +307,48 @@ function LayerTriCard({
   const help = LAYER_HELP[item.key];
   const state = triBool(value, item.defaultOn);
   const triOptions = [
-    { id: 'default' as const, label: 'Padrão' },
-    { id: 'on' as const, label: 'Ligado' },
-    { id: 'off' as const, label: 'Desligado' },
+    { id: "default" as const, label: "Padrão" },
+    { id: "on" as const, label: "Ligado" },
+    { id: "off" as const, label: "Desligado" },
   ];
 
   return (
     <div className="dash-layer-card">
       <div className="min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-semibold text-zinc-200">{item.label}</span>
-          {item.format === 'long' && (
+          <span className="text-xs font-semibold text-zinc-200">
+            {item.label}
+          </span>
+          {item.format === "long" && (
             <span className="dash-format-badge">16:9</span>
           )}
-          <SettingHelpTip title={help.title} align="start">{help.body}</SettingHelpTip>
+          <SettingHelpTip title={help.title} align="start">
+            {help.body}
+          </SettingHelpTip>
         </div>
         <p className="text-[9px] text-[var(--dash-muted)] mt-1 leading-relaxed line-clamp-2">
           {help.body}
         </p>
       </div>
-      <div className="flex gap-1 mt-2.5" role="group" aria-label={`${item.label}: estado`}>
+      <div
+        className="flex gap-1 mt-2.5"
+        role="group"
+        aria-label={`${item.label}: estado`}
+      >
         {triOptions.map((opt) => (
           <button
             key={opt.id}
             type="button"
             onClick={() => onChange(parseTriBool(opt.id, item.defaultOn))}
-            className={`dash-layer-tri-btn ${state === opt.id ? 'dash-layer-tri-btn-active' : ''}`}
+            className={`dash-layer-tri-btn ${state === opt.id ? "dash-layer-tri-btn-active" : ""}`}
           >
             {opt.label}
           </button>
         ))}
       </div>
-      {state === 'default' && (
+      {state === "default" && (
         <p className="text-[8px] text-[var(--dash-muted)] mt-1.5">
-          Automático: {item.defaultOn ? 'ligado' : 'desligado'}
+          Automático: {item.defaultOn ? "ligado" : "desligado"}
         </p>
       )}
     </div>
@@ -246,8 +356,8 @@ function LayerTriCard({
 }
 
 function parseTriBool(raw: string, defaultValue: boolean): boolean | undefined {
-  if (raw === 'default') return undefined;
-  return raw === 'on';
+  if (raw === "default") return undefined;
+  return raw === "on";
 }
 
 function ToggleCard({
@@ -276,11 +386,17 @@ function ToggleCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-zinc-200 font-semibold">{label}</span>
-          <SettingHelpTip title={label} align="start">{help}</SettingHelpTip>
+          <SettingHelpTip title={label} align="start">
+            {help}
+          </SettingHelpTip>
         </div>
-        <span className="text-[9px] text-[var(--dash-muted)] leading-relaxed block mt-0.5">{description}</span>
+        <span className="text-[9px] text-[var(--dash-muted)] leading-relaxed block mt-0.5">
+          {description}
+        </span>
         {!checked && defaultChecked && (
-          <span className="text-[8px] text-[var(--dash-warning)] mt-1 block">Desligado (padrão: ligado)</span>
+          <span className="text-[8px] text-[var(--dash-warning)] mt-1 block">
+            Desligado (padrão: ligado)
+          </span>
         )}
       </div>
     </label>
@@ -295,10 +411,12 @@ export function VisualSettings({
   saving,
   onSave,
 }: Props) {
-  const [draft, setDraft] = useState<VisualConfig>(() => pickVisualConfig(config));
+  const [draft, setDraft] = useState<VisualConfig>(() =>
+    pickVisualConfig(config)
+  );
   const visualFingerprint = useMemo(
     () => JSON.stringify(pickVisualConfigFromDisk(config)),
-    [config],
+    [config]
   );
 
   useEffect(() => {
@@ -309,15 +427,18 @@ export function VisualSettings({
     setDraft((prev) => applyVisualPatch(prev, patch));
   };
 
-  const preset = draft.design_preset || 'auto';
+  const preset = draft.design_preset || "auto";
   const shortCaptionMode = resolveShortCaptionMode(draft);
   const longCaptionMode = resolveLongCaptionMode(draft);
   const shortBgmPulse = resolveShortCaptionBgmPulse(shortCaptionMode, draft);
-  const zoom = draft.shorts_zoom_intensity || 'normal';
-  const longZoom = draft.long_zoom_intensity || 'normal';
+  const zoom = draft.shorts_zoom_intensity || "normal";
+  const longZoom = draft.long_zoom_intensity || "normal";
   const portalEvery = draft.shorts_portal_every || 4;
-  const hudTheme = draft.listicle_hud_theme || 'auto';
-  const accent = draft.accent_color || '#FACC15';
+  const hudTheme = draft.listicle_hud_theme || "auto";
+  const accent = draft.accent_color || "#FACC15";
+
+  const shortsGrouping = resolveCaptionGrouping(draft, "short");
+  const longGrouping = resolveCaptionGrouping(draft, "long");
 
   const setShortCaptionMode = (mode: CaptionModeId) => {
     patchDraft({
@@ -344,11 +465,14 @@ export function VisualSettings({
           title="LAYOUT & EFEITOS VISUAIS"
           helpId="settings-visual"
           icon={<Palette className="w-4 h-4 text-[var(--dash-primary)]" />}
-          subtitle={(
+          subtitle={
             <>
-              Configuração global do estúdio — vale para todos os projetos. Passe o mouse ou toque no <span className="text-[var(--dash-primary)]">?</span> ao lado de cada item para entender o efeito.
+              Configuração global do estúdio — vale para todos os projetos.
+              Passe o mouse ou toque no{" "}
+              <span className="text-[var(--dash-primary)]">?</span> ao lado de
+              cada item para entender o efeito.
             </>
-          )}
+          }
         />
       </div>
 
@@ -363,14 +487,23 @@ export function VisualSettings({
           </SettingLabel>
           <select
             value={preset}
-            onChange={(e) => patchDraft({ design_preset: e.target.value === 'auto' ? undefined : e.target.value })}
+            onChange={(e) =>
+              patchDraft({
+                design_preset:
+                  e.target.value === "auto" ? undefined : e.target.value,
+              })
+            }
             className="dash-select"
           >
             {PRESET_OPTIONS.map((o) => (
-              <option key={o.id} value={o.id}>{o.label}</option>
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
             ))}
           </select>
-          <p className="text-[9px] text-[var(--dash-muted)]">{PRESET_OPTIONS.find((o) => o.id === preset)?.hint}</p>
+          <p className="text-[9px] text-[var(--dash-muted)]">
+            {PRESET_OPTIONS.find((o) => o.id === preset)?.hint}
+          </p>
         </div>
         <div className="space-y-2">
           <SettingLabel
@@ -383,16 +516,21 @@ export function VisualSettings({
           <div className="flex gap-2 items-center">
             <input
               type="color"
-              value={draft.accent_color || '#C5A880'}
+              value={draft.accent_color || "#C5A880"}
               onChange={(e) => patchDraft({ accent_color: e.target.value })}
               className="w-10 h-10 rounded-lg border cursor-pointer shrink-0"
-              style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-bg)' }}
+              style={{
+                borderColor: "var(--dash-border)",
+                background: "var(--dash-bg)",
+              }}
             />
             <input
               type="text"
-              value={draft.accent_color || ''}
+              value={draft.accent_color || ""}
               placeholder="#C5A880 (automático)"
-              onChange={(e) => patchDraft({ accent_color: e.target.value.trim() || undefined })}
+              onChange={(e) =>
+                patchDraft({ accent_color: e.target.value.trim() || undefined })
+              }
               className="dash-input flex-1 font-mono"
             />
           </div>
@@ -407,23 +545,34 @@ export function VisualSettings({
           <div className="space-y-4">
             <div className="space-y-3 min-w-0">
               <div className="space-y-2">
-                <SettingLabel helpTitle="Legenda HyperFrames (Short)" help="Estilos do catálogo HeyGen HyperFrames portados para Remotion." align="start">
+                <SettingLabel
+                  helpTitle="Legenda HyperFrames (Short)"
+                  help="Estilos do catálogo HeyGen HyperFrames portados para Remotion."
+                  align="start"
+                >
                   Estilo de legenda
                 </SettingLabel>
                 <select
                   value={shortCaptionMode}
-                  onChange={(e) => setShortCaptionMode(e.target.value as CaptionModeId)}
+                  onChange={(e) =>
+                    setShortCaptionMode(e.target.value as CaptionModeId)
+                  }
                   className="dash-select"
                 >
                   {SHORT_CAPTION_MODES.map((o) => (
-                    <option key={o.id} value={o.id}>{o.label}</option>
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
                   ))}
                 </select>
                 <p className="text-[9px] text-[var(--dash-muted)]">
-                  {SHORT_CAPTION_MODES.find((o) => o.id === shortCaptionMode)?.hint}
+                  {
+                    SHORT_CAPTION_MODES.find((o) => o.id === shortCaptionMode)
+                      ?.hint
+                  }
                 </p>
               </div>
-              {shortCaptionMode === 'caption-highlight' && (
+              {shortCaptionMode === "caption-highlight" && (
                 <ToggleCard
                   label="Pulso no BGM"
                   description="Palavra ativa pulsa no ritmo da trilha."
@@ -432,18 +581,100 @@ export function VisualSettings({
                   onChange={(v) => patchDraft({ shorts_caption_bgm_pulse: v })}
                 />
               )}
+              {!isWordByWordMode(shortCaptionMode) && (
+                <div className="space-y-3 pt-2.5 border-t border-dashed border-[var(--dash-border)]">
+                  <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
+                    Configuração de Agrupamento
+                  </p>
+
+                  <div className="space-y-2">
+                    <SettingLabel
+                      helpTitle="Máximo de palavras"
+                      help="Máximo de palavras exibidas por vez na tela."
+                    >
+                      Palavras por grupo
+                    </SettingLabel>
+                    <div className="flex gap-1.5">
+                      {[2, 3, 4, 5, 6].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() =>
+                            patchDraft({
+                              shorts_caption_max_words_per_chunk: num,
+                            })
+                          }
+                          className={`dash-option-btn text-[10px] px-2.5 py-1 ${
+                            shortsGrouping.maxWordsPerChunk === num
+                              ? "dash-option-btn-active"
+                              : ""
+                          }`}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <SettingLabel
+                      helpTitle="Número de linhas"
+                      help="Quebra o grupo em até 1 ou 2 linhas."
+                    >
+                      Layout de linhas
+                    </SettingLabel>
+                    <div className="flex gap-1.5">
+                      {[1, 2].map((lines) => (
+                        <button
+                          key={lines}
+                          type="button"
+                          onClick={() =>
+                            patchDraft({
+                              shorts_caption_max_lines: lines as 1 | 2,
+                            })
+                          }
+                          className={`dash-option-btn text-[10px] px-3 py-1 ${
+                            shortsGrouping.maxLines === lines
+                              ? "dash-option-btn-active"
+                              : ""
+                          }`}
+                        >
+                          {lines} {lines === 1 ? "Linha" : "Linhas"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <ToggleCard
+                    label="Respeitar frases"
+                    description="Quebra ao fim de frases e pontuações."
+                    help="Evita terminar linhas ou grupos no meio de uma frase nova. Quebra após (. , ? ! ;)."
+                    checked={shortsGrouping.respectSentences}
+                    onChange={(v) =>
+                      patchDraft({ shorts_caption_respect_sentences: v })
+                    }
+                  />
+                </div>
+              )}
             </div>
             <CaptionPreview
               format="short"
               mode={shortCaptionMode}
               bgmPulse={shortBgmPulse}
               accentColor={accent}
+              maxLines={shortsGrouping.maxLines}
+              maxWordsPerChunk={shortsGrouping.maxWordsPerChunk}
               className="w-full max-w-[min(100%,300px)] mx-auto"
             />
           </div>
 
           <div className="space-y-2 pt-2 border-t border-[var(--dash-border)]">
-            <SettingLabel helpTitle="Zoom Ken Burns (Short)" help="Intensidade do zoom em imagens 9:16." align="start" className="[&_span]:text-zinc-400">
+            <SettingLabel
+              helpTitle="Zoom Ken Burns (Short)"
+              help="Intensidade do zoom em imagens 9:16."
+              align="start"
+              className="[&_span]:text-zinc-400"
+            >
               Zoom Ken Burns
             </SettingLabel>
             <div className="flex flex-wrap gap-2">
@@ -452,7 +683,7 @@ export function VisualSettings({
                   key={o.id}
                   type="button"
                   onClick={() => patchDraft({ shorts_zoom_intensity: o.id })}
-                  className={`dash-option-btn ${zoom === o.id ? 'dash-option-btn-active' : ''}`}
+                  className={`dash-option-btn ${zoom === o.id ? "dash-option-btn-active" : ""}`}
                 >
                   {o.label}
                 </button>
@@ -501,7 +732,7 @@ export function VisualSettings({
                     key={o.value}
                     type="button"
                     onClick={() => patchDraft({ shorts_portal_every: o.value })}
-                    className={`dash-option-btn px-3 py-1.5 text-[10px] ${portalEvery === o.value ? 'dash-option-btn-active' : ''}`}
+                    className={`dash-option-btn px-3 py-1.5 text-[10px] ${portalEvery === o.value ? "dash-option-btn-active" : ""}`}
                   >
                     {o.label}
                   </button>
@@ -518,33 +749,126 @@ export function VisualSettings({
           <div className="space-y-4">
             <div className="space-y-3 min-w-0">
               <div className="space-y-2">
-                <SettingLabel helpTitle="Legenda HyperFrames (Longo)" help="Estilos do catálogo HeyGen HyperFrames portados para Remotion." align="start">
+                <SettingLabel
+                  helpTitle="Legenda HyperFrames (Longo)"
+                  help="Estilos do catálogo HeyGen HyperFrames portados para Remotion."
+                  align="start"
+                >
                   Estilo de legenda
                 </SettingLabel>
                 <select
                   value={longCaptionMode}
-                  onChange={(e) => setLongCaptionMode(e.target.value as CaptionModeId)}
+                  onChange={(e) =>
+                    setLongCaptionMode(e.target.value as CaptionModeId)
+                  }
                   className="dash-select"
                 >
                   {LONG_CAPTION_MODES.map((o) => (
-                    <option key={o.id} value={o.id}>{o.label}</option>
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
                   ))}
                 </select>
                 <p className="text-[9px] text-[var(--dash-muted)]">
-                  {LONG_CAPTION_MODES.find((o) => o.id === longCaptionMode)?.hint}
+                  {
+                    LONG_CAPTION_MODES.find((o) => o.id === longCaptionMode)
+                      ?.hint
+                  }
                 </p>
               </div>
+              {!isWordByWordMode(longCaptionMode) && (
+                <div className="space-y-3 pt-2.5 border-t border-dashed border-[var(--dash-border)]">
+                  <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
+                    Configuração de Agrupamento
+                  </p>
+
+                  <div className="space-y-2">
+                    <SettingLabel
+                      helpTitle="Máximo de palavras"
+                      help="Máximo de palavras exibidas por vez na tela."
+                    >
+                      Palavras por grupo
+                    </SettingLabel>
+                    <div className="flex gap-1.5">
+                      {[2, 3, 4, 5, 6].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() =>
+                            patchDraft({
+                              long_caption_max_words_per_chunk: num,
+                            })
+                          }
+                          className={`dash-option-btn text-[10px] px-2.5 py-1 ${
+                            longGrouping.maxWordsPerChunk === num
+                              ? "dash-option-btn-active"
+                              : ""
+                          }`}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <SettingLabel
+                      helpTitle="Número de linhas"
+                      help="Quebra o grupo em até 1 ou 2 linhas."
+                    >
+                      Layout de linhas
+                    </SettingLabel>
+                    <div className="flex gap-1.5">
+                      {[1, 2].map((lines) => (
+                        <button
+                          key={lines}
+                          type="button"
+                          onClick={() =>
+                            patchDraft({
+                              long_caption_max_lines: lines as 1 | 2,
+                            })
+                          }
+                          className={`dash-option-btn text-[10px] px-3 py-1 ${
+                            longGrouping.maxLines === lines
+                              ? "dash-option-btn-active"
+                              : ""
+                          }`}
+                        >
+                          {lines} {lines === 1 ? "Linha" : "Linhas"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <ToggleCard
+                    label="Respeitar frases"
+                    description="Quebra ao fim de frases e pontuações."
+                    help="Evita terminar linhas ou grupos no meio de uma frase nova. Quebra após (. , ? ! ;)."
+                    checked={longGrouping.respectSentences}
+                    onChange={(v) =>
+                      patchDraft({ long_caption_respect_sentences: v })
+                    }
+                  />
+                </div>
+              )}
             </div>
             <CaptionPreview
               format="long"
               mode={longCaptionMode}
               accentColor={accent}
+              maxLines={longGrouping.maxLines}
+              maxWordsPerChunk={longGrouping.maxWordsPerChunk}
               className="w-full"
             />
           </div>
 
           <div className="space-y-2 pt-2 border-t border-[var(--dash-border)]">
-            <SettingLabel helpTitle="Zoom Ken Burns (Longo)" help="Zoom sutil em B-roll 16:9." align="start" className="[&_span]:text-zinc-400">
+            <SettingLabel
+              helpTitle="Zoom Ken Burns (Longo)"
+              help="Zoom sutil em B-roll 16:9."
+              align="start"
+              className="[&_span]:text-zinc-400"
+            >
               Zoom Ken Burns
             </SettingLabel>
             <div className="flex flex-wrap gap-2">
@@ -553,7 +877,7 @@ export function VisualSettings({
                   key={o.id}
                   type="button"
                   onClick={() => patchDraft({ long_zoom_intensity: o.id })}
-                  className={`dash-option-btn ${longZoom === o.id ? 'dash-option-btn-active' : ''}`}
+                  className={`dash-option-btn ${longZoom === o.id ? "dash-option-btn-active" : ""}`}
                 >
                   {o.label}
                 </button>
@@ -569,16 +893,15 @@ export function VisualSettings({
             <p className="text-[10px] text-[var(--dash-primary-light)] font-bold uppercase tracking-wider flex items-center gap-2">
               <Layers className="w-3.5 h-3.5" /> Camadas & overlays
             </p>
-            <SettingHelpTip
-              title="Camadas & overlays"
-              align="start"
-            >
-              Liga ou desliga tipos de elementos visuais que a IA pode inserir no vídeo.
-              Padrão deixa o sistema decidir conforme formato e nicho; Ligado/Desligado força sua escolha.
+            <SettingHelpTip title="Camadas & overlays" align="start">
+              Liga ou desliga tipos de elementos visuais que a IA pode inserir
+              no vídeo. Padrão deixa o sistema decidir conforme formato e nicho;
+              Ligado/Desligado força sua escolha.
             </SettingHelpTip>
           </div>
           <p className="text-[9px] text-[var(--dash-muted)] leading-relaxed max-w-2xl">
-            Atmosfera, overlays gerados pela IA e elementos de retenção no vídeo longo.
+            Atmosfera, overlays gerados pela IA e elementos de retenção no vídeo
+            longo.
           </p>
         </div>
 
@@ -592,7 +915,9 @@ export function VisualSettings({
                 {group.hint}
               </span>
             </div>
-            <div className={`grid gap-3 ${group.items.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+            <div
+              className={`grid gap-3 ${group.items.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}
+            >
               {group.items.map((item) => (
                 <LayerTriCard
                   key={item.key}
@@ -625,13 +950,18 @@ export function VisualSettings({
                   Layout do HUD
                 </SettingLabel>
                 <select
-                  value={draft.listicle_hud_style || 'auto'}
-                  onChange={(e) => patchDraft({
-                    listicle_hud_style: e.target.value as 'auto' | 'full' | 'compact',
-                  })}
+                  value={draft.listicle_hud_style || "auto"}
+                  onChange={(e) =>
+                    patchDraft({
+                      listicle_hud_style: e.target.value as
+                        "auto" | "full" | "compact",
+                    })
+                  }
                   className="dash-select"
                 >
-                  <option value="auto">Automático (compacto se &gt;8 itens)</option>
+                  <option value="auto">
+                    Automático (compacto se &gt;8 itens)
+                  </option>
                   <option value="full">Completo</option>
                   <option value="compact">Compacto</option>
                 </select>
@@ -647,18 +977,26 @@ export function VisualSettings({
                 </SettingLabel>
                 <select
                   value={hudTheme}
-                  onChange={(e) => patchDraft({
-                    listicle_hud_theme: e.target.value === 'auto'
-                      ? undefined
-                      : e.target.value as VisualConfig['listicle_hud_theme'],
-                  })}
+                  onChange={(e) =>
+                    patchDraft({
+                      listicle_hud_theme:
+                        e.target.value === "auto"
+                          ? undefined
+                          : (e.target
+                              .value as VisualConfig["listicle_hud_theme"]),
+                    })
+                  }
                   className="dash-select"
                 >
                   {HUD_THEME_OPTIONS.map((o) => (
-                    <option key={o.id} value={o.id}>{o.label}</option>
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
                   ))}
                 </select>
-                <p className="text-[9px] text-[var(--dash-muted)]">{HUD_THEME_OPTIONS.find((o) => o.id === hudTheme)?.hint}</p>
+                <p className="text-[9px] text-[var(--dash-muted)]">
+                  {HUD_THEME_OPTIONS.find((o) => o.id === hudTheme)?.hint}
+                </p>
               </div>
             </div>
 
@@ -673,16 +1011,25 @@ export function VisualSettings({
               <div className="flex gap-2 items-center">
                 <input
                   type="color"
-                  value={draft.secondary_color || '#D4AF37'}
-                  onChange={(e) => patchDraft({ secondary_color: e.target.value })}
+                  value={draft.secondary_color || "#D4AF37"}
+                  onChange={(e) =>
+                    patchDraft({ secondary_color: e.target.value })
+                  }
                   className="w-10 h-10 rounded-lg border cursor-pointer shrink-0"
-                  style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-bg)' }}
+                  style={{
+                    borderColor: "var(--dash-border)",
+                    background: "var(--dash-bg)",
+                  }}
                 />
                 <input
                   type="text"
-                  value={draft.secondary_color || ''}
+                  value={draft.secondary_color || ""}
                   placeholder="Automático (preset)"
-                  onChange={(e) => patchDraft({ secondary_color: e.target.value.trim() || undefined })}
+                  onChange={(e) =>
+                    patchDraft({
+                      secondary_color: e.target.value.trim() || undefined,
+                    })
+                  }
                   className="dash-input flex-1 font-mono"
                 />
               </div>
@@ -692,8 +1039,11 @@ export function VisualSettings({
       </div>
 
       <p className="text-[9px] text-zinc-500 border border-[var(--dash-border)] rounded-xl px-3 py-2 bg-[var(--dash-bg)]">
-        A <strong className="text-zinc-300">barra de progresso por blocos</strong> (ícones + design) fica na aba{' '}
-        <strong className="text-zinc-300">Editor</strong> — é a única opção visual que continua por projeto.
+        A{" "}
+        <strong className="text-zinc-300">barra de progresso por blocos</strong>{" "}
+        (ícones + design) fica na aba{" "}
+        <strong className="text-zinc-300">Editor</strong> — é a única opção
+        visual que continua por projeto.
       </p>
 
       <div className="flex justify-end border-t border-[var(--dash-border)] pt-4">
@@ -704,7 +1054,7 @@ export function VisualSettings({
           className="dash-btn-primary text-xs px-5 py-2.5 flex items-center gap-2"
         >
           <Save className="w-4 h-4" />
-          {saving ? 'Salvando...' : 'Salvar Visual Global'}
+          {saving ? "Salvando..." : "Salvar Visual Global"}
         </button>
       </div>
     </div>

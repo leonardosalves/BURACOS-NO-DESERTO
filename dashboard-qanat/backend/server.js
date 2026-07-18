@@ -10734,6 +10734,9 @@ async function prepareRemotionRender(
     captionStyle: captionSettings.captionStyle,
     captionMode: captionSettings.captionMode,
     captionEffect: captionSettings.captionEffect,
+    captionMaxWordsPerChunk: captionSettings.captionMaxWordsPerChunk,
+    captionMaxLines: captionSettings.captionMaxLines,
+    captionRespectSentences: captionSettings.captionRespectSentences,
     designPreset: config.design_preset || null,
     grainOverlay:
       config.grain_overlay === true ||

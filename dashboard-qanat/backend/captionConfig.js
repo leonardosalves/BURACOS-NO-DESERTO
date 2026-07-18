@@ -43,9 +43,11 @@ export function isCaptionModeId(raw) {
 }
 
 export function isWordByWordMode(mode) {
-  return mode !== "caption-pill-karaoke"
-    && mode !== "caption-weight-shift"
-    && mode !== "caption-editorial-emphasis";
+  return (
+    mode !== "caption-pill-karaoke" &&
+    mode !== "caption-weight-shift" &&
+    mode !== "caption-editorial-emphasis"
+  );
 }
 
 export function resolveCaptionChunkStyle(mode) {
@@ -71,21 +73,23 @@ function migrateLegacyLongMode(style, effect, legacyCaption) {
 }
 
 export function resolveShortCaptionMode(config = {}) {
-  if (isCaptionModeId(config.caption_mode_short)) return config.caption_mode_short;
+  if (isCaptionModeId(config.caption_mode_short))
+    return config.caption_mode_short;
   return migrateLegacyShortMode(
     config.caption_style_short || config.caption_style,
     config.caption_effect_short,
     config.caption_style,
-    config.shorts_caption_bgm_pulse,
+    config.shorts_caption_bgm_pulse
   );
 }
 
 export function resolveLongCaptionMode(config = {}) {
-  if (isCaptionModeId(config.caption_mode_long)) return config.caption_mode_long;
+  if (isCaptionModeId(config.caption_mode_long))
+    return config.caption_mode_long;
   return migrateLegacyLongMode(
     config.caption_style_long || config.caption_style,
     config.caption_effect_long,
-    config.caption_style,
+    config.caption_style
   );
 }
 
@@ -115,12 +119,36 @@ export function resolveCaptionEffectForFormat(config = {}, format = "9:16") {
   return resolveCaptionModeForFormat(config, format);
 }
 
+export function resolveCaptionGroupingSettings(config = {}, format = "9:16") {
+  const isShort = format === "9:16";
+  const prefix = isShort ? "shorts" : "long";
+  const raw = (key) =>
+    config[`${prefix}_caption_${key}`] ?? config[`caption_${key}`];
+
+  const defaults = isShort
+    ? { maxWordsPerChunk: 4, maxLines: 2, respectSentences: true }
+    : { maxWordsPerChunk: 5, maxLines: 2, respectSentences: true };
+
+  const maxWords =
+    Number(raw("max_words_per_chunk")) || defaults.maxWordsPerChunk;
+  const maxLines = Number(raw("max_lines")) === 1 ? 1 : defaults.maxLines;
+  const respectSentences = raw("respect_sentences") !== false;
+
+  return {
+    captionMaxWordsPerChunk: Math.max(2, Math.min(6, maxWords)),
+    captionMaxLines: maxLines,
+    captionRespectSentences: respectSentences,
+  };
+}
+
 export function resolveCaptionRenderSettings(config = {}, format = "9:16") {
   const captionMode = resolveCaptionModeForFormat(config, format);
+  const grouping = resolveCaptionGroupingSettings(config, format);
   return {
     captionMode,
     captionStyle: resolveCaptionChunkStyle(captionMode),
     captionEffect: captionMode,
     shortsCaptionBgmPulse: resolveShortsCaptionBgmPulse(config, format),
+    ...grouping,
   };
 }

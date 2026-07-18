@@ -28,6 +28,12 @@ export const VISUAL_CONFIG_KEYS = [
   "secondary_color",
   "listicle_hud_theme",
   "long_zoom_intensity",
+  "shorts_caption_max_words_per_chunk",
+  "shorts_caption_max_lines",
+  "shorts_caption_respect_sentences",
+  "long_caption_max_words_per_chunk",
+  "long_caption_max_lines",
+  "long_caption_respect_sentences",
 ] as const;
 
 export type VisualConfigKey = (typeof VISUAL_CONFIG_KEYS)[number];
