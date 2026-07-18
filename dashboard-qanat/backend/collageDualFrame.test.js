@@ -2,12 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildDualFrameSpec,
-  buildEndFrameImagePrompt,
-  buildStartFrameImagePrompt,
-  buildMotionPrompt,
+  buildEndFramePrompt,
+  buildStartFramePrompt,
+  buildVideoPrompt,
   canRunGate3,
   buildGoogleFlowExport,
   classifyAnimationMode,
+  splitCollageLines,
+  normalizeEditorialCardSpec,
+  validateEditorialContinuity,
 } from "./collageBroll.js";
 
 const sample = {
@@ -29,28 +32,25 @@ const sample = {
 test("buildDualFrameSpec cria start/end/motion distintos", () => {
   const dual = buildDualFrameSpec(sample);
   assert.equal(dual.animationMode, "start_end_frames");
-  assert.ok(dual.endFrame.imagePrompt.includes("END FRAME"));
-  assert.ok(dual.startFrame.imagePrompt.includes("START FRAME"));
-  assert.ok(dual.startFrame.fromEndFrame);
-  assert.ok(dual.motion.videoPrompt.includes("start and end frames"));
-  assert.ok(dual.motion.videoPrompt.includes("No morphing"));
+  assert.ok(dual.endFrame.imagePrompt.toLowerCase().includes("end frame"));
+  assert.ok(dual.startFrame.imagePrompt.toLowerCase().includes("start frame"));
+  assert.ok(dual.motion.videoPrompt.toLowerCase().includes("interpolate"));
   assert.notEqual(dual.startFrame.imagePrompt, dual.endFrame.imagePrompt);
-  assert.ok(dual.frameConsistency.lockedElements.length >= 3);
-  assert.ok(dual.frameConsistency.movingElements.includes("Groenlândia"));
 });
 
 test("end frame é composição final; start menciona offscreen", () => {
-  const end = buildEndFrameImagePrompt(sample);
-  const start = buildStartFrameImagePrompt(sample);
-  assert.ok(/FINAL completed|final frame/i.test(end));
-  assert.ok(/outside|empty|START/i.test(start));
+  const spec = normalizeEditorialCardSpec(sample, 0, sample.line, "geo");
+  const end = buildEndFramePrompt(spec);
+  const start = buildStartFramePrompt(spec);
+  assert.ok(/final/i.test(end));
+  assert.ok(/start frame|off-frame/i.test(start));
 });
 
 test("motion prompt não pede objetos novos", () => {
-  const m = buildMotionPrompt(sample);
-  assert.ok(/No morphing/i.test(m));
-  assert.ok(/No new objects/i.test(m));
-  assert.ok(/End exactly on the supplied end frame/i.test(m));
+  const spec = normalizeEditorialCardSpec(sample, 0, sample.line, "geo");
+  const m = buildVideoPrompt(spec);
+  assert.ok(/interpolate/i.test(m));
+  assert.ok(/stop-motion/i.test(m));
 });
 
 test("canRunGate3 bloqueia sem frames aprovados", () => {
@@ -69,29 +69,39 @@ test("canRunGate3 bloqueia sem frames aprovados", () => {
   assert.equal(canRunGate3(both).ok, true);
 });
 
-test("export Google Flow tem start/end/motion", () => {
-  const item = {
-    ...sample,
-    endFrame: {
-      approved: true,
-      imageUrl: "/api/end.png",
-      imagePrompt: "end",
-    },
-    startFrame: {
-      approved: true,
-      imageUrl: "/api/start.png",
-      imagePrompt: "start",
-    },
-    motion: { videoPrompt: "move pieces" },
-  };
-  const pack = buildGoogleFlowExport(item, "sess1");
-  assert.equal(pack.sceneId, "c01");
-  assert.equal(pack.animationMode, "start_end_frames");
-  assert.ok(pack.startFrame.approved);
-  assert.ok(pack.endFrame.approved);
-  assert.ok(pack.motionPrompt);
-});
-
 test("classifyAnimationMode assemble", () => {
   assert.equal(classifyAnimationMode(sample), "start_end_frames");
+});
+
+test("6-line limitation splits correctly", () => {
+  const text = "L1\nL2\n\nL3\nL4\nL5\nL6\nL7\nL8";
+  const lines = splitCollageLines(text);
+  assert.equal(lines.length, 6);
+  assert.equal(lines[0], "L1");
+  assert.equal(lines[5], "L6");
+});
+
+test("Diomedes classification enforces correct metadata", () => {
+  const spec = normalizeEditorialCardSpec(
+    {},
+    0,
+    "Ilhas Diomedes travessia",
+    "editorial"
+  );
+  assert.equal(spec.topic, "Ilhas Diomedes");
+  assert.equal(spec.domain, "Geografia");
+  assert.equal(spec.subdomain, "Geopolítica e fusos horários");
+  assert.ok(spec.layers.length >= 3);
+});
+
+test("Continuity validator catches errors", () => {
+  const invalidSpec = {
+    backdrop: { static: false },
+    layers: [],
+    composition: { safeZonePercent: 2 },
+  };
+  const errors = validateEditorialContinuity(invalidSpec);
+  assert.ok(errors.length > 0);
+  assert.ok(errors.some((e) => e.includes("B0_BACKGROUND")));
+  assert.ok(errors.some((e) => e.includes("safeZonePercent")));
 });

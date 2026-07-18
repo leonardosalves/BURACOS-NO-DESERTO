@@ -83,6 +83,7 @@ import {
   COLLAGE_PALETTE,
   GEO_COLLAGE_PALETTE,
   normalizeCollageMode,
+  normalizeEditorialCardSpec,
 } from "./collageBroll.js";
 import {
   buildSemanticDirectorPrompt,
@@ -839,15 +840,35 @@ export function registerWorkflowRoutes(app, deps) {
         };
       }
 
+      const runId = req.body?.generationRunId || `run_${Date.now()}`;
+      const inputHash = req.body?.inputHash || "";
+
+      const mappedItems = parsed.items.map((item, index) => {
+        const spec = normalizeEditorialCardSpec(
+          item,
+          index,
+          lines[index] || item.line || "",
+          mode
+        );
+        return {
+          ...item,
+          ...spec,
+          generationRunId: runId,
+          inputHash: inputHash,
+          sourceLineIndex: index,
+          visual_spec: spec,
+        };
+      });
+
       res.json({
         ok: true,
         provider,
         mode: parsed.mode || mode,
         fidelity,
-        count: parsed.items.length,
-        // legado
-        items: parsed.items,
-        // Semantic Visual Director
+        count: mappedItems.length,
+        generationRunId: runId,
+        inputHash: inputHash,
+        items: mappedItems,
         scriptAnalysis: parsed.scriptAnalysis || null,
         lineAnalysis: parsed.lineAnalysis || null,
         visualMemory: parsed.visualMemory || null,
@@ -1012,9 +1033,17 @@ export function registerWorkflowRoutes(app, deps) {
         cardId: resolvedId,
         previousVersion: parsed.previousVersion,
         candidateVersion: {
-          ...parsed.candidateVersion,
+          ...normalizeEditorialCardSpec(
+            parsed.candidateVersion,
+            Number(currentItem.sourceLineIndex) || 0,
+            currentLine,
+            mode
+          ),
           id: resolvedId,
           status: "pending",
+          generationRunId: currentItem.generationRunId,
+          inputHash: currentItem.inputHash,
+          sourceLineIndex: currentItem.sourceLineIndex,
         },
         validation: parsed.validation,
         changes: parsed.changes,

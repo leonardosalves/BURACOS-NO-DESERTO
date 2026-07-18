@@ -882,6 +882,115 @@ function copyText(label: string, text: string) {
   );
 }
 
+function calculateHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16);
+}
+
+function getNormalizedLines(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .slice(0, 6);
+}
+
+export function validateEditorialContinuity(cardSpec: any): string[] {
+  const errors: string[] = [];
+  if (!cardSpec) {
+    errors.push("cardSpec está nulo ou indefinido.");
+    return errors;
+  }
+
+  const backdrop = cardSpec.backdrop || {};
+  const layers = cardSpec.layers || [];
+  const motionSequence = cardSpec.motionSequence || [];
+  const composition = cardSpec.composition || {};
+
+  if (backdrop.static !== true) {
+    errors.push("B0_BACKGROUND deve estar marcado como estático.");
+  }
+
+  const bgAnim = motionSequence.find(
+    (step: any) => step.layerId === "B0_BACKGROUND" && step.type !== "static"
+  );
+  if (bgAnim) {
+    errors.push(
+      "B0_BACKGROUND não pode fazer parte da sequência de movimento."
+    );
+  }
+
+  const layerIds = new Set(layers.map((l: any) => l.id));
+  for (const step of motionSequence) {
+    if (step.layerId !== "B0_BACKGROUND" && !layerIds.has(step.layerId)) {
+      errors.push(
+        `${step.layerId} aparece no prompt de vídeo, mas não existe no manifesto de camadas.`
+      );
+    }
+  }
+
+  for (const l of layers) {
+    if (l.isAnimated) {
+      if (!l.startTransform || !l.endTransform) {
+        errors.push(
+          `O layer animado "${l.id}" deve possuir startTransform e endTransform.`
+        );
+        continue;
+      }
+
+      const st = l.startTransform;
+      const et = l.endTransform;
+      const samePos =
+        st.x === et.x &&
+        st.y === et.y &&
+        st.width === et.width &&
+        st.height === et.height &&
+        st.rotation === et.rotation &&
+        st.scale === et.scale;
+
+      if (samePos && st.visibility !== "off-frame") {
+        errors.push(
+          `"${l.id}" está sendo animado, mas ocupa a mesma posição no Start e no End.`
+        );
+      }
+    }
+  }
+
+  if (layers.length < 3 || layers.length > 6) {
+    errors.push(
+      `O número de grupos principais deve estar entre 3 e 6 (atual: ${layers.length}).`
+    );
+  }
+
+  if (
+    typeof composition.safeZonePercent !== "number" ||
+    composition.safeZonePercent < 5
+  ) {
+    errors.push(
+      "A composição deve respeitar a zona segura (safeZonePercent >= 5)."
+    );
+  }
+
+  const lateStep = motionSequence.find(
+    (step: any) =>
+      step.layerId !== "B0_BACKGROUND" &&
+      step.type !== "static" &&
+      step.endNormalizedTime > 4.2
+  );
+  if (lateStep) {
+    errors.push(
+      `O layer animado "${lateStep.layerId}" termina muito tarde (${lateStep.endNormalizedTime}s). O vídeo deve terminar em repouso.`
+    );
+  }
+
+  return errors;
+}
+
 export function CollageBrollLab({
   getProjectUrl,
   initialSessionId,
@@ -905,11 +1014,30 @@ export function CollageBrollLab({
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [generatedFromHash, setGeneratedFromHash] = useState<string>("");
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const activeRunIdRef = useRef<string | null>(null);
+
+  const currentNormalizedLines = useMemo(() => {
+    return getNormalizedLines(rawLines);
+  }, [rawLines]);
+
+  const currentHash = useMemo(() => {
+    return calculateHash(currentNormalizedLines.join("\n"));
+  }, [currentNormalizedLines]);
+
+  const isOutOfSync = useMemo(() => {
+    if (!items || items.length === 0) return false;
+    return currentHash !== generatedFromHash;
+  }, [currentHash, generatedFromHash, items]);
 
   // Painel de revisão individual
   const [reviewPanel, setReviewPanel] = useState<"none" | "regen" | "reject">(
     "none"
   );
+  const [previewFrameMode, setPreviewFrameMode] = useState<
+    "end" | "start" | "motion"
+  >("end");
   const [regenInstruction, setRegenInstruction] = useState("");
   const [selectedQuickFixes, setSelectedQuickFixes] = useState<string[]>([]);
   const [preserveChecked, setPreserveChecked] = useState<string[]>([]);
@@ -1021,6 +1149,9 @@ export function CollageBrollLab({
     setPlaceHint("");
     setCountryHint("");
     setEraHint("");
+    setGeneratedFromHash("");
+    setActiveRunId(null);
+    activeRunIdRef.current = null;
 
     const payload = {
       sessionId,
@@ -1034,6 +1165,8 @@ export function CollageBrollLab({
       selectedId: null,
       items: [],
       updatedAt: new Date().toISOString(),
+      generatedFromHash: "",
+      activeRunId: null,
     };
 
     try {
@@ -1050,6 +1183,12 @@ export function CollageBrollLab({
         err
       );
     }
+  };
+
+  const handleRestoreDemo = () => {
+    setRawLines(isGeo ? DEMO_LINES_GEO : DEMO_LINES_EDITORIAL);
+    setGeneratedFromHash("");
+    setItems([]);
   };
 
   const postJson = useCallback(
@@ -1255,23 +1394,41 @@ export function CollageBrollLab({
 
   const runGate1 = async () => {
     setBusy(true);
+    const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    activeRunIdRef.current = runId;
+    setActiveRunId(runId);
+    const targetHash = currentHash;
+    const targetLines = currentNormalizedLines;
+
     try {
       const data = await postJson("/api/collage-broll/metaphors", {
-        text: rawLines,
+        text: targetLines.join("\n"),
         mode,
         place: placeHint,
         country: countryHint,
         era: eraHint,
         fidelity: mode === "geo" ? fidelity : "balanced",
         semantic_director: mode === "geo",
+        generationRunId: runId,
+        inputHash: targetHash,
       });
+
+      if (activeRunIdRef.current !== runId) {
+        console.warn(
+          "[CollageBroll] Ignorando resposta assíncrona de execução antiga."
+        );
+        return;
+      }
+
       const list = (data.items || []) as CollageItem[];
       if (!list.length) throw new Error("Nenhuma proposta visual retornada.");
+
+      setGeneratedFromHash(targetHash);
       setScriptAnalysis((data.scriptAnalysis as ScriptAnalysis) || null);
       const nextSid = `collage_${Date.now().toString(36)}`;
       setSessionId(nextSid);
+
       const mapped = list.map((i) => {
-        // Aplica paleta selecionada (ou aleatória) ao card
         let paletteForCard: PalettePreset | null = resolvedPalette;
         if (selectedPaletteId === RANDOM_PALETTE_ID) {
           paletteForCard = pickRandomPalette(activePalettes);
@@ -1301,11 +1458,12 @@ export function CollageBrollLab({
         base.versions = [snapshotFromItem(base, { version: 1 })];
         return base;
       });
+
       setItems(mapped);
       setSelectedId(list[0]?.id || null);
       setActiveGate(1);
       setReviewPanel("none");
-      // Persiste com sessionId novo (estado React ainda não atualizou)
+
       const gate1Payload = {
         sessionId: nextSid,
         mode,
@@ -1318,6 +1476,8 @@ export function CollageBrollLab({
         selectedId: list[0]?.id || null,
         items: mapped,
         updatedAt: new Date().toISOString(),
+        generatedFromHash: targetHash,
+        activeRunId: runId,
       };
       try {
         localStorage.setItem(LS_SESSION_KEY, JSON.stringify(gate1Payload));
@@ -1335,7 +1495,9 @@ export function CollageBrollLab({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha no Gate 1");
     } finally {
-      setBusy(false);
+      if (activeRunIdRef.current === runId) {
+        setBusy(false);
+      }
     }
   };
 
@@ -1500,6 +1662,7 @@ export function CollageBrollLab({
       ],
       candidate: null,
       candidateMeta: null,
+      isModifiedSpec: true,
     };
     setItems((prev) => prev.map((i) => (i.id === item.id ? withVersion : i)));
     toast.success(`v${nextVersion} aplicada — ainda precisa de aprovação`);
@@ -1555,6 +1718,7 @@ export function CollageBrollLab({
               candidate: null,
               candidateMeta: null,
               versions: i.versions,
+              isModifiedSpec: version !== 1,
             }
           : i
       )
@@ -2155,6 +2319,14 @@ export function CollageBrollLab({
       return;
     }
     for (const t of targets) {
+      const spec = t.visual_spec || t;
+      const errors = validateEditorialContinuity(spec);
+      if (errors.length > 0) {
+        toast.error(`Card ${t.id} possui erros de continuidade: ${errors[0]}`);
+        return;
+      }
+    }
+    for (const t of targets) {
       await generateVideoForCard(t);
     }
   };
@@ -2436,9 +2608,7 @@ export function CollageBrollLab({
                 <button
                   type="button"
                   className="text-[10px] text-zinc-400 hover:text-zinc-100 cursor-pointer bg-zinc-900/90 hover:bg-zinc-900 border border-zinc-800 rounded-md px-2 py-0.5 transition"
-                  onClick={() =>
-                    setRawLines(isGeo ? DEMO_LINES_GEO : DEMO_LINES_EDITORIAL)
-                  }
+                  onClick={handleRestoreDemo}
                 >
                   Restaurar demo
                 </button>
@@ -2530,6 +2700,19 @@ export function CollageBrollLab({
               }
               className="w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-3 py-2 text-[12px] text-zinc-200 font-mono leading-relaxed"
             />
+            {items.length > 0 && (
+              <div
+                className={`text-[11px] font-medium rounded-lg p-2.5 border ${
+                  isOutOfSync
+                    ? "bg-red-500/10 border-red-500/30 text-red-200"
+                    : "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
+                }`}
+              >
+                {isOutOfSync
+                  ? "⚠️ A narração foi alterada. Gere novamente o Gate 1."
+                  : `✅ ${items.length} cards gerados a partir da versão atual da narração.`}
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -2552,7 +2735,7 @@ export function CollageBrollLab({
               </button>
               <button
                 type="button"
-                disabled={busy || !approved.length}
+                disabled={busy || !approved.length || isOutOfSync}
                 onClick={() => void buildGate2()}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-100 text-[11px] font-bold px-3 py-2 disabled:opacity-50"
                 title="Gera imagens reais (Gemini) para todos os cards aprovados"
@@ -2566,7 +2749,9 @@ export function CollageBrollLab({
               </button>
               <button
                 type="button"
-                disabled={busy || !items.some((i) => framesReady(i))}
+                disabled={
+                  busy || !items.some((i) => framesReady(i)) || isOutOfSync
+                }
                 onClick={() => void buildGate3()}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-100 text-[11px] font-bold px-3 py-2 disabled:opacity-50"
                 title="Gera vídeos 5s com Start+End frames aprovados"
@@ -2778,6 +2963,28 @@ export function CollageBrollLab({
                           <span className="text-[8px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 font-mono">
                             v{item.activeVersion || 1}
                           </span>
+                          {(!activeRunId ||
+                            item.generationRunId !== activeRunId ||
+                            item.isModifiedSpec) && (
+                            <span className="text-[8px] px-1.5 py-0.5 rounded border border-red-500/50 text-red-300 bg-red-500/10 font-semibold">
+                              dessincronizado
+                            </span>
+                          )}
+                          {(() => {
+                            const spec = item.visual_spec || item;
+                            const errors = validateEditorialContinuity(spec);
+                            if (errors.length > 0) {
+                              return (
+                                <span
+                                  className="text-[8px] px-1.5 py-0.5 rounded border border-amber-500/50 text-amber-300 bg-amber-500/10 font-semibold"
+                                  title={errors.join("\n")}
+                                >
+                                  ⚠️ {errors.length} erro(s) de continuidade
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                           {(item.mode === "geo" || isGeo) && (
                             <span className="text-[8px] px-1.5 py-0.5 rounded border border-sky-500/30 text-sky-300">
                               {item.visualProposal?.visualMode || "geo"}
@@ -2831,80 +3038,293 @@ export function CollageBrollLab({
               <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
                 <p className="text-[9px] uppercase tracking-wide text-zinc-500 font-bold mb-2 flex items-center gap-1">
                   <Palette className="w-3 h-3" />
-                  Preview 9:16 ·{" "}
-                  {selected.mode === "geo" || isGeo
-                    ? "mapa collagem"
-                    : "color field + collage"}
+                  Visualizador do Card · {selected.id}
                 </p>
+                {/* Toggles for Preview Mode */}
+                <div className="flex items-center justify-between gap-1 mb-2 bg-zinc-900/60 p-1 rounded-lg border border-zinc-800">
+                  {(
+                    [
+                      ["start", "Start Frame"],
+                      ["end", "End Frame"],
+                      ["motion", "Motion Path"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setPreviewFrameMode(id)}
+                      className={`text-[9px] px-2 py-1 rounded font-bold transition flex-1 text-center cursor-pointer ${
+                        previewFrameMode === id
+                          ? "bg-zinc-800 text-white shadow-sm"
+                          : "text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <div className="mx-auto w-full max-w-[220px]">
-                  <div
-                    className="relative aspect-[9/16] rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50"
-                    style={{
-                      backgroundColor:
-                        selected.background_color?.hex || "#1a1a1a",
-                    }}
-                  >
-                    <div className="absolute inset-0 opacity-[0.12] bg-[radial-gradient(circle_at_30%_20%,white,transparent_45%)]" />
-                    {selected.mode === "geo" || isGeo ? (
-                      <>
-                        {/* territory blob */}
-                        <div className="absolute left-1/2 top-[32%] -translate-x-1/2 h-[28%] w-[55%] rounded-[45%_55%_50%_50%] bg-zinc-200/90 shadow-xl border border-stone-300/50" />
-                        {/* dotted route */}
-                        <svg
-                          className="absolute inset-0 w-full h-full opacity-80"
-                          viewBox="0 0 100 180"
-                          preserveAspectRatio="none"
+                  <div className="relative aspect-[9/16] rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50 bg-zinc-950">
+                    <svg
+                      viewBox="0 0 100 177.8"
+                      className="w-full h-full"
+                      style={{
+                        backgroundColor:
+                          selected.visual_spec?.backdrop?.colorHex ||
+                          selected.background_color?.hex ||
+                          "#1a1a1a",
+                      }}
+                    >
+                      <defs>
+                        <marker
+                          id="arrow"
+                          viewBox="0 0 10 10"
+                          refX="6"
+                          refY="5"
+                          markerWidth="6"
+                          markerHeight="6"
+                          orient="auto-start-reverse"
                         >
-                          <path
-                            d="M28 95 Q50 70 72 100"
-                            fill="none"
-                            stroke="#F5C542"
-                            strokeWidth="1.2"
-                            strokeDasharray="3 2"
-                          />
-                        </svg>
-                        {/* pin */}
-                        <div className="absolute left-[62%] top-[48%] -translate-x-1/2">
-                          <div className="h-3 w-3 rounded-full bg-red-500 border-2 border-white shadow" />
-                          <div className="mx-auto h-3 w-0.5 bg-red-400/90" />
-                        </div>
-                        {/* compass scrap */}
-                        <div className="absolute left-3 bottom-[30%] h-7 w-7 rounded-full border border-[#f5e6c8]/50 bg-zinc-800/80 flex items-center justify-center shadow">
-                          <div className="h-0.5 w-3 bg-amber-300 rotate-45" />
-                        </div>
-                        {(selected.place_name || selected.country) && (
-                          <div className="absolute top-2 left-2 right-2">
-                            <span className="inline-flex items-center gap-0.5 rounded bg-black/40 px-1.5 py-0.5 text-[7px] text-sky-100">
-                              <MapPin className="w-2.5 h-2.5" />
-                              {[selected.place_name, selected.country]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      (selected.key_objects || []).slice(0, 4).map((obj, i) => {
-                        const positions = [
-                          "left-[12%] top-[28%] rotate-[-8deg]",
-                          "right-[14%] top-[36%] rotate-[6deg]",
-                          "left-[22%] bottom-[28%] rotate-[3deg]",
-                          "right-[18%] bottom-[22%] rotate-[-4deg]",
-                        ];
-                        return (
-                          <div
-                            key={`${obj}-${i}`}
-                            className={`absolute ${positions[i]} w-[38%] rounded-sm shadow-lg border border-[#f5e6c8]/40 bg-zinc-200/95 p-1.5`}
-                          >
-                            <div className="h-8 bg-zinc-800/80 mb-1" />
-                            <p className="text-[6px] leading-tight text-zinc-700 font-medium line-clamp-2">
-                              {obj}
-                            </p>
-                          </div>
+                          <path d="M 0 2 L 8 5 L 0 8 z" fill="#f5e6c8" />
+                        </marker>
+                      </defs>
+
+                      {/* Render layers */}
+                      {(() => {
+                        const spec = selected.visual_spec || selected;
+                        const layersList = spec.layers || [];
+                        const sorted = [...layersList].sort(
+                          (a: any, b: any) =>
+                            (Number(a.zIndex) || 0) - (Number(b.zIndex) || 0)
                         );
-                      })
-                    )}
-                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 to-transparent p-2">
+
+                        return sorted.map((l: any, lIdx: number) => {
+                          const start = l.startTransform || {};
+                          const end = l.endTransform || {};
+                          const color =
+                            l.colorHex ||
+                            selected.accent_colors?.[
+                              lIdx % (selected.accent_colors?.length || 1)
+                            ] ||
+                            "#cccccc";
+
+                          const drawLayerRect = (
+                            tx: number,
+                            ty: number,
+                            tw: number,
+                            th: number,
+                            rot: number,
+                            sc: number,
+                            opacity: number,
+                            borderStyle: string,
+                            isStartRep: boolean
+                          ) => {
+                            const w = tw || 50;
+                            const h = th || 50;
+                            return (
+                              <g
+                                key={`${l.id}-${isStartRep ? "start" : "end"}`}
+                                transform={`translate(${tx}, ${ty}) rotate(${rot}) scale(${sc})`}
+                              >
+                                <rect
+                                  x={-w / 2}
+                                  y={-h / 2}
+                                  width={w}
+                                  height={h}
+                                  fill={color}
+                                  fillOpacity={opacity * 0.75}
+                                  stroke={l.keyline ? "#ffffff" : color}
+                                  strokeWidth={l.keyline ? "1" : "0.5"}
+                                  strokeDasharray={borderStyle}
+                                  rx="2"
+                                />
+                                {l.halftone && (
+                                  <pattern
+                                    id={`half-${l.id}`}
+                                    width="4"
+                                    height="4"
+                                    patternUnits="userSpaceOnUse"
+                                  >
+                                    <circle
+                                      cx="2"
+                                      cy="2"
+                                      r="1"
+                                      fill="#000000"
+                                      fillOpacity="0.15"
+                                    />
+                                  </pattern>
+                                )}
+                                {l.halftone && (
+                                  <rect
+                                    x={-w / 2}
+                                    y={-h / 2}
+                                    width={w}
+                                    height={h}
+                                    fill={`url(#half-${l.id})`}
+                                    rx="2"
+                                  />
+                                )}
+                                <text
+                                  x="0"
+                                  y="2"
+                                  textAnchor="middle"
+                                  fontSize="4"
+                                  fill="#000000"
+                                  fontWeight="bold"
+                                  stroke="#ffffff"
+                                  strokeWidth="0.5"
+                                  paintOrder="stroke"
+                                >
+                                  {l.id}
+                                </text>
+                              </g>
+                            );
+                          };
+
+                          if (previewFrameMode === "start") {
+                            const opacity =
+                              start.visibility === "off-frame" ? 0.35 : 1.0;
+                            const border =
+                              start.visibility === "off-frame" ? "2,2" : "none";
+                            return drawLayerRect(
+                              start.x ?? 50,
+                              start.y ?? 50,
+                              start.width ?? 50,
+                              start.height ?? 50,
+                              start.rotation ?? 0,
+                              start.scale ?? 1.0,
+                              opacity,
+                              border,
+                              true
+                            );
+                          } else if (previewFrameMode === "end") {
+                            return drawLayerRect(
+                              end.x ?? 50,
+                              end.y ?? 88.9,
+                              end.width ?? 50,
+                              end.height ?? 50,
+                              end.rotation ?? 0,
+                              end.scale ?? 1.0,
+                              1.0,
+                              "none",
+                              false
+                            );
+                          } else {
+                            const isAnimated = l.isAnimated;
+                            const startX = start.x ?? 50;
+                            const startY = start.y ?? -100;
+                            const endX = end.x ?? 50;
+                            const endY = end.y ?? 88.9;
+
+                            return (
+                              <g key={`motion-group-${l.id}`}>
+                                {isAnimated && (
+                                  <line
+                                    x1={startX}
+                                    y1={startY}
+                                    x2={endX}
+                                    y2={endY}
+                                    stroke="#f5e6c8"
+                                    strokeWidth="1.5"
+                                    strokeDasharray="2,2"
+                                    markerEnd="url(#arrow)"
+                                  />
+                                )}
+                                {isAnimated &&
+                                  drawLayerRect(
+                                    startX,
+                                    startY,
+                                    start.width ?? 50,
+                                    start.height ?? 50,
+                                    start.rotation ?? 0,
+                                    start.scale ?? 1.0,
+                                    0.25,
+                                    "2,2",
+                                    true
+                                  )}
+                                {drawLayerRect(
+                                  endX,
+                                  endY,
+                                  end.width ?? 50,
+                                  end.height ?? 50,
+                                  end.rotation ?? 0,
+                                  end.scale ?? 1.0,
+                                  1.0,
+                                  "none",
+                                  false
+                                )}
+                              </g>
+                            );
+                          }
+                        });
+                      })()}
+
+                      {/* Safe Zone Boundary Overlay */}
+                      {(() => {
+                        const spec = selected.visual_spec || selected;
+                        const safeZonePct =
+                          typeof spec.composition?.safeZonePercent === "number"
+                            ? spec.composition.safeZonePercent
+                            : 10;
+                        return (
+                          <rect
+                            x={safeZonePct}
+                            y={safeZonePct * 1.778}
+                            width={100 - safeZonePct * 2}
+                            height={177.8 - safeZonePct * 2 * 1.778}
+                            fill="none"
+                            stroke="#ff0055"
+                            strokeWidth="0.75"
+                            strokeDasharray="3,3"
+                            strokeOpacity="0.6"
+                          />
+                        );
+                      })()}
+
+                      {/* Focal Point Reticle */}
+                      {(() => {
+                        const spec = selected.visual_spec || selected;
+                        const fX =
+                          typeof spec.composition?.focalPointX === "number"
+                            ? spec.composition.focalPointX
+                            : 50;
+                        const fY =
+                          typeof spec.composition?.focalPointY === "number"
+                            ? spec.composition.focalPointY
+                            : 88.9;
+                        return (
+                          <g transform={`translate(${fX}, ${fY})`}>
+                            <circle
+                              r="2"
+                              fill="none"
+                              stroke="#00ffff"
+                              strokeWidth="0.5"
+                              strokeOpacity="0.8"
+                            />
+                            <line
+                              x1="-4"
+                              y1="0"
+                              x2="4"
+                              y2="0"
+                              stroke="#00ffff"
+                              strokeWidth="0.5"
+                              strokeOpacity="0.8"
+                            />
+                            <line
+                              x1="0"
+                              y1="-4"
+                              x2="0"
+                              y2="4"
+                              stroke="#00ffff"
+                              strokeWidth="0.5"
+                              strokeOpacity="0.8"
+                            />
+                          </g>
+                        );
+                      })()}
+                    </svg>
+
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2">
                       <p className="text-[8px] text-white/90 font-medium line-clamp-2">
                         {selected.visual_proposition}
                       </p>
