@@ -571,6 +571,7 @@ import {
   readProjectEventsTail,
   recordAiCall,
   updateAiCall,
+  cancelRequestOrJob,
 } from "./processActivityHub.js";
 import {
   getObsidianVaultStatus,
@@ -1326,6 +1327,19 @@ app.get("/api/ops/activity", async (req, res) => {
       render_jobs: renderJobs,
       project_events: projectEvents,
     });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post("/api/ops/activity/cancel", async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (id == null) {
+      return res.status(400).json({ ok: false, error: "ID é obrigatório." });
+    }
+    await cancelRequestOrJob(id);
+    res.json({ ok: true, message: `Cancelado: ${id}` });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }

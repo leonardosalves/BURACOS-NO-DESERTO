@@ -11,7 +11,9 @@ import {
   Server,
   Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 type ActivityRequest = {
   id: number;
@@ -221,6 +223,34 @@ export function BackendActivityPanel({
       setLoading(false);
     }
   }, [activeProject]);
+
+  const [cancelingId, setCancelingId] = useState<string | number | null>(null);
+
+  const handleCancelActivity = useCallback(
+    async (id: string | number) => {
+      if (!id) return;
+      setCancelingId(id);
+      try {
+        const res = await fetch("/api/ops/activity/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+        if (res.ok) {
+          toast.success("Cancelamento solicitado");
+          void fetchActivity();
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          toast.error(errData.error || "Erro ao cancelar");
+        }
+      } catch (e) {
+        toast.error("Falha ao se comunicar com o backend.");
+      } finally {
+        setCancelingId(null);
+      }
+    },
+    [fetchActivity]
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -576,10 +606,27 @@ export function BackendActivityPanel({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-bold text-sky-300">{r.method}</span>
-                    <span className={statusClass(r.status, r.ok)}>
-                      {r.status ?? "…"}
-                      {r.durationMs != null ? ` · ${r.durationMs}ms` : ""}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={statusClass(r.status, r.ok)}>
+                        {r.status ?? "…"}
+                        {r.durationMs != null ? ` · ${r.durationMs}ms` : ""}
+                      </span>
+                      {r.status == null && (
+                        <button
+                          type="button"
+                          onClick={() => void handleCancelActivity(r.id)}
+                          disabled={cancelingId === r.id}
+                          title="Cancelar chamada API"
+                          className="rounded-full p-0.5 text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition"
+                        >
+                          {cancelingId === r.id ? (
+                            <Loader2 className="h-2.5 w-2.5 animate-spin text-red-400" />
+                          ) : (
+                            <X className="h-2.5 w-2.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <p className="mt-0.5 break-all text-zinc-300">{r.path}</p>
                   {r.label ? (
@@ -636,14 +683,31 @@ export function BackendActivityPanel({
                           {item.label || item.phase || item.id}
                         </span>
                       </div>
-                      <span
-                        className={`shrink-0 text-[8px] font-bold uppercase ${aiStatusColor(item.status)}`}
-                      >
-                        {aiStatusLabel(item.status)}
-                        {item.durationMs != null
-                          ? ` · ${formatDuration(item.durationMs)}`
-                          : ""}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span
+                          className={`text-[8px] font-bold uppercase ${aiStatusColor(item.status)}`}
+                        >
+                          {aiStatusLabel(item.status)}
+                          {item.durationMs != null
+                            ? ` · ${formatDuration(item.durationMs)}`
+                            : ""}
+                        </span>
+                        {isRunning && (
+                          <button
+                            type="button"
+                            onClick={() => void handleCancelActivity(item.id)}
+                            disabled={cancelingId === item.id}
+                            title="Cancelar chamada"
+                            className="rounded-full p-0.5 text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition"
+                          >
+                            {cancelingId === item.id ? (
+                              <Loader2 className="h-2.5 w-2.5 animate-spin text-red-400" />
+                            ) : (
+                              <X className="h-2.5 w-2.5" />
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="mt-1 flex flex-wrap gap-1">

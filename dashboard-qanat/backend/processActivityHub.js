@@ -12,6 +12,7 @@ const requestRing = [];
 const aiCallRing = [];
 let requestSeq = 0;
 let aiCallSeq = 0;
+const activeRequests = new Map();
 
 const SKIP_PATH_RE =
   /^\/api\/(health|ops\/activity|ops\/service|ai\/progress)/i;
@@ -94,6 +95,8 @@ export function processActivityMiddleware(req, res, next) {
   requestRing.unshift(entry);
   if (requestRing.length > MAX_REQUESTS) requestRing.length = MAX_REQUESTS;
 
+  activeRequests.set(id, { req, res });
+
   if (isAiPath && entry.method !== "GET") {
     recordAiCall({
       source: "http",
@@ -110,6 +113,7 @@ export function processActivityMiddleware(req, res, next) {
   }
 
   const onFinish = () => {
+    activeRequests.delete(id);
     entry.status = res.statusCode || 0;
     entry.durationMs = Math.max(0, now() - started);
     entry.ok = entry.status >= 200 && entry.status < 400;
@@ -224,5 +228,59 @@ export function readProjectEventsTail(projectDir, { limit = 40 } = {}) {
       });
   } catch {
     return [];
+  }
+}
+
+export function cancelRequest(id) {
+  const numId = Number(id);
+  const entry = activeRequests.get(numId);
+  if (entry) {
+    try {
+      entry.res.destroy();
+    } catch (e) {
+      console.error("[processActivityHub] Failed to destroy response:", e);
+    }
+    activeRequests.delete(numId);
+  }
+
+  const reqEntry = requestRing.find((r) => r.id === numId);
+  if (reqEntry) {
+    reqEntry.status = 499;
+    reqEntry.ok = false;
+    reqEntry.durationMs = Date.now() - reqEntry.startedAt;
+  }
+
+  const aiCall = aiCallRing.find((c) => c.httpRequestId === numId);
+  if (aiCall) {
+    aiCall.status = "error";
+    aiCall.error = "Cancelado pelo usuário";
+    aiCall.durationMs = Date.now() - aiCall.startedAt;
+    aiCall.updatedAt = Date.now();
+  }
+}
+
+export async function cancelRequestOrJob(idOrJobId) {
+  if (typeof idOrJobId === "string" && idOrJobId.startsWith("job_")) {
+    const jobId = idOrJobId;
+    try {
+      const { failJobProgress } = await import("./aiJobProgress.js");
+      failJobProgress(jobId, "Cancelado pelo usuário");
+    } catch (e) {
+      // ignore
+    }
+    for (const [reqId, entry] of activeRequests.entries()) {
+      const reqEntry = requestRing.find((r) => r.id === reqId);
+      if (reqEntry && reqEntry.progressJobId === jobId) {
+        cancelRequest(reqId);
+      }
+    }
+  } else if (typeof idOrJobId === "string" && idOrJobId.startsWith("call-")) {
+    const aiCallId = Number(idOrJobId.replace("call-", ""));
+    const aiCall = aiCallRing.find((c) => c.id === aiCallId);
+    if (aiCall && aiCall.httpRequestId) {
+      cancelRequest(aiCall.httpRequestId);
+    }
+  } else {
+    cancelRequest(Number(idOrJobId));
   }
 }
