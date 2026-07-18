@@ -1173,7 +1173,9 @@ async function repairTechnicalVideo({
   const repairableIds = new Set([
     "video.pixel-format",
     "video.resolution",
-    "video.orientation",
+    // NÃO inclui video.orientation — mudança de orientação (ex: 16:9 → 9:16)
+    // requer re-render completo no Remotion; scale+pad via FFmpeg causa efeito
+    // "selo postal" que destrói o conteúdo visual.
     "video.progressive",
     "video.faststart",
     "video.black-frames",
@@ -1240,12 +1242,12 @@ async function repairTechnicalVideo({
   args.push("-i", source);
 
   const videoFilters = [];
-  if (ids.has("video.resolution") || ids.has("video.orientation")) {
-    const vertical =
-      expectedAspect === "9:16" ||
-      (!expectedAspect && report.video.height > report.video.width);
-    const targetWidth = vertical ? 1080 : 1920;
-    const targetHeight = vertical ? 1920 : 1080;
+  if (ids.has("video.resolution")) {
+    // Só corrige resolução baixa, NUNCA orientação (que requer re-render).
+    // Preserva a orientação real do vídeo ao invés de forçar a do config.
+    const actualVertical = report.video.height > report.video.width;
+    const targetWidth = actualVertical ? 1080 : 1920;
+    const targetHeight = actualVertical ? 1920 : 1080;
     videoFilters.push(
       `scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=decrease`,
       `pad=${targetWidth}:${targetHeight}:(ow-iw)/2:(oh-ih)/2:color=black`
