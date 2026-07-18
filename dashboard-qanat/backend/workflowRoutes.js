@@ -106,6 +106,7 @@ import {
   saveCollageSession,
   rejectCollageCard,
 } from "./collageBrollSession.js";
+import { getProjectsDirs } from "./projectsRoot.js";
 import {
   produceCollageStill,
   produceEndFrame,
@@ -3336,6 +3337,178 @@ Instruções críticas:
       res.json(buildCursorMcpConfig(cfg, WORKSPACE_DIR));
     } catch (err) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/collage-broll/send-to-project", (req, res) => {
+    try {
+      const sessionId = String(req.body?.sessionId || "").trim();
+      const projectName = String(req.body?.projectName || sessionId).trim();
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId é obrigatório" });
+      }
+
+      const session = loadCollageSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Sessão não encontrada" });
+      }
+
+      const { longsDir, shortsDir } = getProjectsDirs();
+      let targetDir = path.join(longsDir, projectName);
+      let isShorts = false;
+      if (!fs.existsSync(targetDir)) {
+        const testShorts = path.join(shortsDir, projectName);
+        if (fs.existsSync(testShorts)) {
+          targetDir = testShorts;
+          isShorts = true;
+        } else {
+          const format = session.format || "SHORTS";
+          if (format === "SHORTS") {
+            targetDir = testShorts;
+            isShorts = true;
+          }
+        }
+      }
+
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+      const assetsDir = path.join(targetDir, "ASSETS");
+      if (!fs.existsSync(assetsDir)) {
+        fs.mkdirSync(assetsDir, { recursive: true });
+      }
+
+      const items = Array.isArray(session.items) ? session.items : [];
+      const copiedFiles = [];
+      const visualPrompts = [];
+
+      items.forEach((item, idx) => {
+        const cardId = item.id || `c${idx + 1}`;
+        const outputCardDir = cardOutputDir(sessionId, cardId);
+
+        const possibleVideoPaths = [
+          item.video_path,
+          path.join(outputCardDir, "final-5s.mp4"),
+          path.join(outputCardDir, "omni", "final-5s.mp4"),
+        ].filter(Boolean);
+
+        let copiedVideoName = null;
+        for (const vPath of possibleVideoPaths) {
+          if (fs.existsSync(vPath)) {
+            const destName = `${cardId}_video.mp4`;
+            const destPath = path.join(assetsDir, destName);
+            fs.copyFileSync(vPath, destPath);
+            copiedVideoName = destName;
+            copiedFiles.push(destName);
+            break;
+          }
+        }
+
+        const possibleEndPaths = [
+          item.endFrame?.imagePath,
+          item.still_path,
+          path.join(outputCardDir, "frames", "end-frame.png"),
+          path.join(outputCardDir, "still.png"),
+        ].filter(Boolean);
+
+        let copiedEndName = null;
+        for (const ePath of possibleEndPaths) {
+          if (fs.existsSync(ePath)) {
+            const destName = `${cardId}_end.png`;
+            fs.copyFileSync(ePath, path.join(assetsDir, destName));
+            copiedEndName = destName;
+            copiedFiles.push(destName);
+            break;
+          }
+        }
+
+        const possibleStartPaths = [
+          item.startFrame?.imagePath,
+          path.join(outputCardDir, "frames", "start-frame.png"),
+        ].filter(Boolean);
+        for (const sPath of possibleStartPaths) {
+          if (fs.existsSync(sPath)) {
+            const destName = `${cardId}_start.png`;
+            fs.copyFileSync(sPath, path.join(assetsDir, destName));
+            copiedFiles.push(destName);
+            break;
+          }
+        }
+
+        visualPrompts.push({
+          scene: `${idx + 1}.1`,
+          block: idx + 1,
+          narration_text: item.line || "",
+          duration: 5.0,
+          type: copiedVideoName ? "video" : "image",
+          prompt:
+            item.motion?.videoPrompt ||
+            item.omni_prompt ||
+            buildMotionPrompt(item) ||
+            "",
+          aspect_ratio: isShorts ? "9:16" : "16:9",
+          editor_notes: "Collage b-roll step",
+          asset: copiedVideoName
+            ? {
+                asset: copiedVideoName,
+                type: "video",
+              }
+            : {
+                asset: copiedEndName || `${cardId}_end.png`,
+                type: "image",
+              },
+        });
+      });
+
+      const plainScript = items.map((i) => i.line || "").join("\n");
+      fs.writeFileSync(
+        path.join(targetDir, "transcripts_readable.txt"),
+        plainScript,
+        "utf8"
+      );
+
+      const storyboardPath = path.join(targetDir, "storyboard.json");
+      let existingStoryboard = {};
+      if (fs.existsSync(storyboardPath)) {
+        try {
+          existingStoryboard = JSON.parse(
+            fs.readFileSync(storyboardPath, "utf8")
+          );
+          fs.writeFileSync(
+            path.join(targetDir, "storyboard_backup.json"),
+            JSON.stringify(existingStoryboard, null, 2),
+            "utf8"
+          );
+        } catch (e) {}
+      }
+
+      const newStoryboard = {
+        ...existingStoryboard,
+        strategy: {
+          ...(existingStoryboard.strategy || {}),
+          title_main: projectName,
+          niche: session.niche || "Geral",
+        },
+        narrative_script: plainScript,
+        narrative_script_tagged: plainScript,
+        visual_prompts: visualPrompts,
+        design_preset: session.mode === "geo" ? "geographic" : "documentary",
+      };
+      fs.writeFileSync(
+        storyboardPath,
+        JSON.stringify(newStoryboard, null, 2),
+        "utf8"
+      );
+
+      res.json({
+        ok: true,
+        projectName,
+        targetDir,
+        copiedFilesCount: copiedFiles.length,
+        copiedFiles,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
     }
   });
 

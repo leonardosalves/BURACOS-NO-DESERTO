@@ -891,6 +891,7 @@ export function CollageBrollLab({
   const [activeGate, setActiveGate] = useState<1 | 2 | 3>(1);
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   // Painel de revisão individual
   const [reviewPanel, setReviewPanel] = useState<"none" | "regen" | "reject">(
@@ -985,6 +986,47 @@ export function CollageBrollLab({
     },
     [getProjectUrl]
   );
+
+  const handleSyncToProject = async () => {
+    if (!sessionId) {
+      toast.error("Nenhuma sessão ativa para sincronizar.");
+      return;
+    }
+    setSyncing(true);
+    toast.loading("Sincronizando mídias e roteiro com a pasta do projeto...", {
+      id: "sync-project",
+    });
+    try {
+      const payload = {
+        mode,
+        fidelity,
+        rawLines,
+        placeHint,
+        countryHint,
+        eraHint,
+        scriptAnalysis,
+        items,
+        sessionId,
+      };
+      await postJson("/api/collage-broll/session", payload);
+
+      const result = await postJson("/api/collage-broll/send-to-project", {
+        sessionId,
+        projectName: sessionId,
+      });
+
+      toast.success(
+        `Sincronizado! ${result.copiedFilesCount} arquivos enviados para o projeto.`,
+        { id: "sync-project" }
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao sincronizar com o projeto.", {
+        id: "sync-project",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   /** Hidrata sessão do localStorage (reload da página). */
   useEffect(() => {
@@ -2407,6 +2449,18 @@ export function CollageBrollLab({
                 <Copy className="w-3.5 h-3.5" />
                 Exportar JSON
               </button>
+              {sessionId && (
+                <button
+                  type="button"
+                  disabled={syncing || !items.length}
+                  onClick={() => void handleSyncToProject()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-100 text-[11px] font-bold px-3 py-2 disabled:opacity-50 hover:bg-emerald-500/20 transition cursor-pointer"
+                  title="Salvar e copiar vídeos e imagens diretamente para a pasta do projeto ativo no disco"
+                >
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  Sincronizar com o Projeto
+                </button>
+              )}
               {onSendToWizard && (
                 <button
                   type="button"
