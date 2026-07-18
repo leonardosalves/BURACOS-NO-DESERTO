@@ -79,9 +79,30 @@ export const LTX_GENERATION_OPTIONS = {
     { id: "fast", label: "Rápido (menos VRAM)" },
   ],
   presets: [
-    { id: "8gb_default", label: "8GB padrão (640×384, 17f)", width: 640, height: 384, frames: 17, aspect_ratio: "16:9" },
-    { id: "fast", label: "Rápido (512×288, 9f)", width: 512, height: 288, frames: 9, aspect_ratio: "16:9" },
-    { id: "balanced", label: "Equilibrado (640×384, 25f)", width: 640, height: 384, frames: 25, aspect_ratio: "16:9" },
+    {
+      id: "8gb_default",
+      label: "8GB padrão (640×384, 17f)",
+      width: 640,
+      height: 384,
+      frames: 17,
+      aspect_ratio: "16:9",
+    },
+    {
+      id: "fast",
+      label: "Rápido (512×288, 9f)",
+      width: 512,
+      height: 288,
+      frames: 9,
+      aspect_ratio: "16:9",
+    },
+    {
+      id: "balanced",
+      label: "Equilibrado (640×384, 25f)",
+      width: 640,
+      height: 384,
+      frames: 25,
+      aspect_ratio: "16:9",
+    },
   ],
   frame_options: [9, 17, 25, 33, 41, 49, 57, 65, 73, 81, 89, 97, 121],
   fps: 24,
@@ -91,13 +112,21 @@ export const LTX_GENERATION_OPTIONS = {
   codecs: ["auto", "h264"],
   upscale_options: [
     { id: "none", label: "Sem upscale (rápido, menos VRAM)", scale: 1 },
-    { id: "ltx-2-spatial-upscaler-x2-1.0.safetensors", label: "Spatial 2x (padrão LTX)", scale: 0.5 },
+    {
+      id: "ltx-2-spatial-upscaler-x2-1.0.safetensors",
+      label: "Spatial 2x (padrão LTX)",
+      scale: 0.5,
+    },
   ],
-  notes: "LTX exige largura/altura múltiplas de 32 e frames no formato 8n+1. Duração ≈ frames ÷ FPS (padrão 24).",
+  notes:
+    "LTX exige largura/altura múltiplas de 32 e frames no formato 8n+1. Duração ≈ frames ÷ FPS (padrão 24).",
 };
 
 export function snapLtxFrames(rawFrames, { min = 9, max = 121 } = {}) {
-  const clamped = Math.min(max, Math.max(min, Math.round(Number(rawFrames) || min)));
+  const clamped = Math.min(
+    max,
+    Math.max(min, Math.round(Number(rawFrames) || min))
+  );
   const bucket = Math.round((clamped - 1) / 8);
   return bucket * 8 + 1;
 }
@@ -110,9 +139,15 @@ export function ltxFramesToSeconds(frames, fps = 24) {
   return Math.round((Number(frames) / fps) * 100) / 100;
 }
 
-export function resolveLtxFrames({ frames, duration_seconds, fps, max_frames }) {
+export function resolveLtxFrames({
+  frames,
+  duration_seconds,
+  fps,
+  max_frames,
+}) {
   const cfg = readConfig();
-  const resolvedFps = Number(fps) || cfg?.ltx?.fps || LTX_GENERATION_OPTIONS.fps;
+  const resolvedFps =
+    Number(fps) || cfg?.ltx?.fps || LTX_GENERATION_OPTIONS.fps;
   const maxFrames = Number(max_frames) || LTX_GENERATION_OPTIONS.max_frames_8gb;
 
   if (duration_seconds != null && Number.isFinite(Number(duration_seconds))) {
@@ -143,14 +178,19 @@ function readConfig() {
 
 function scanModelFiles(dir, extensions) {
   if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir)
-    .filter((name) => extensions.some((ext) => name.toLowerCase().endsWith(ext)))
+  return fs
+    .readdirSync(dir)
+    .filter((name) =>
+      extensions.some((ext) => name.toLowerCase().endsWith(ext))
+    )
     .map((name) => {
       const fullPath = path.join(dir, name);
       let size_mb = null;
       try {
         size_mb = Math.round(fs.statSync(fullPath).size / (1024 * 1024));
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       return { id: name, label: name, size_mb };
     })
     .sort((a, b) => a.label.localeCompare(b.label));
@@ -159,14 +199,23 @@ function scanModelFiles(dir, extensions) {
 export function listAvailableLtxModels() {
   const cfg = readConfig();
   const modelsDir = path.join(COMFYUI_DIR, "models");
-  const gguf = scanModelFiles(path.join(modelsDir, "diffusion_models"), [".gguf"]);
+  const gguf = scanModelFiles(path.join(modelsDir, "diffusion_models"), [
+    ".gguf",
+  ]);
   const loras = scanModelFiles(path.join(modelsDir, "loras"), [".safetensors"]);
-  const upscalers = scanModelFiles(path.join(modelsDir, "latent_upscale_models"), [".safetensors"]);
+  const upscalers = scanModelFiles(
+    path.join(modelsDir, "latent_upscale_models"),
+    [".safetensors"]
+  );
 
   const upscaleOptions = LTX_GENERATION_OPTIONS.upscale_options.map((opt) => {
     if (opt.id === "none") return { ...opt, installed: true };
     const match = upscalers.find((u) => u.id === opt.id);
-    return { ...opt, installed: Boolean(match), size_mb: match?.size_mb ?? null };
+    return {
+      ...opt,
+      installed: Boolean(match),
+      size_mb: match?.size_mb ?? null,
+    };
   });
 
   return {
@@ -189,7 +238,8 @@ export function buildComfyuiOutputUrl({ filename, subfolder = "" }) {
 }
 
 export function resolveComfyuiOutputFile({ filename, subfolder = "" }) {
-  if (!filename || filename.includes("..") || subfolder.includes("..")) return null;
+  if (!filename || filename.includes("..") || subfolder.includes(".."))
+    return null;
   const outputDir = path.join(COMFYUI_DIR, "output");
   const filePath = path.join(outputDir, subfolder, filename);
   const resolved = path.resolve(filePath);
@@ -216,11 +266,26 @@ export function getComfyuiPaths() {
     workflowsDir: path.join(COMFYUI_ROOT, "workflows"),
     outputDir: path.join(COMFYUI_DIR, "output"),
     models: {
-      gguf: path.join(COMFYUI_DIR, "models", "diffusion_models", ltx.model_gguf || ""),
+      gguf: path.join(
+        COMFYUI_DIR,
+        "models",
+        "diffusion_models",
+        ltx.model_gguf || ""
+      ),
       videoVae: path.join(COMFYUI_DIR, "models", "vae", ltx.video_vae || ""),
       audioVae: path.join(COMFYUI_DIR, "models", "vae", ltx.audio_vae || ""),
-      embeddings: path.join(COMFYUI_DIR, "models", "text_encoders", ltx.embeddings_connector || ""),
-      gemma: path.join(COMFYUI_DIR, "models", "text_encoders", ltx.text_encoder || ""),
+      embeddings: path.join(
+        COMFYUI_DIR,
+        "models",
+        "text_encoders",
+        ltx.embeddings_connector || ""
+      ),
+      gemma: path.join(
+        COMFYUI_DIR,
+        "models",
+        "text_encoders",
+        ltx.text_encoder || ""
+      ),
     },
   };
 }
@@ -229,14 +294,20 @@ export async function getComfyuiStatus() {
   const paths = getComfyuiPaths();
   const cfg = readConfig();
   const installed = fs.existsSync(path.join(COMFYUI_DIR, "main.py"));
-  const venvOk = fs.existsSync(path.join(COMFYUI_DIR, "venv", "Scripts", "python.exe"));
+  const venvOk = fs.existsSync(
+    path.join(COMFYUI_DIR, "venv", "Scripts", "python.exe")
+  );
   const ggufOk = fileReady(paths.models.gguf, 8 * 1024 * 1024 * 1024);
   const vaeOk = fileReady(paths.models.videoVae, 100 * 1024 * 1024);
   const audioVaeOk = fileReady(paths.models.audioVae, 10 * 1024 * 1024);
   const embedOk = fileReady(paths.models.embeddings, 500 * 1024 * 1024);
   const gemmaOk = fileReady(paths.models.gemma, 500 * 1024 * 1024);
   const modelsReady = ggufOk && vaeOk && audioVaeOk && embedOk && gemmaOk;
-  const workflowT2v = path.join(COMFYUI_ROOT, "workflows", cfg?.ltx?.workflow_t2v || "LTX2_T2V_GGUF.json");
+  const workflowT2v = path.join(
+    COMFYUI_ROOT,
+    "workflows",
+    cfg?.ltx?.workflow_t2v || "LTX2_T2V_GGUF.json"
+  );
   const apiUp = await isComfyuiApiUp();
 
   return {
@@ -267,7 +338,9 @@ export async function getComfyuiStatus() {
 
 async function isComfyuiApiUp() {
   try {
-    const res = await fetch(`${COMFYUI_BASE}/system_stats`, { signal: AbortSignal.timeout(2500) });
+    const res = await fetch(`${COMFYUI_BASE}/system_stats`, {
+      signal: AbortSignal.timeout(2500),
+    });
     return res.ok;
   } catch {
     return false;
@@ -276,18 +349,28 @@ async function isComfyuiApiUp() {
 
 export async function startComfyui() {
   const status = await getComfyuiStatus();
-  if (!status.installed) throw new Error("ComfyUI não instalado. Rode a instalação primeiro.");
-  if (await isComfyuiApiUp()) return { started: false, message: "ComfyUI já está rodando.", url: `${COMFYUI_BASE}/` };
+  if (!status.installed)
+    throw new Error("ComfyUI não instalado. Rode a instalação primeiro.");
+  if (await isComfyuiApiUp())
+    return {
+      started: false,
+      message: "ComfyUI já está rodando.",
+      url: `${COMFYUI_BASE}/`,
+    };
 
   const pythonExe = path.join(COMFYUI_DIR, "venv", "Scripts", "python.exe");
   const mainPy = path.join(COMFYUI_DIR, "main.py");
   const args = [
     mainPy,
-    "--listen", "127.0.0.1",
-    "--port", String(COMFYUI_PORT),
+    "--listen",
+    "127.0.0.1",
+    "--port",
+    String(COMFYUI_PORT),
     "--lowvram",
-    "--reserve-vram", "1024",
-    "--preview-method", "auto",
+    "--reserve-vram",
+    "1024",
+    "--preview-method",
+    "auto",
   ];
 
   comfyProcess = spawn(pythonExe, args, {
@@ -296,14 +379,24 @@ export async function startComfyui() {
     windowsHide: true,
   });
 
-  comfyProcess.stdout?.on("data", (d) => console.log(`[ComfyUI] ${d.toString().trim()}`));
-  comfyProcess.stderr?.on("data", (d) => console.warn(`[ComfyUI] ${d.toString().trim()}`));
-  comfyProcess.on("exit", () => { comfyProcess = null; });
+  comfyProcess.stdout?.on("data", (d) =>
+    console.log(`[ComfyUI] ${d.toString().trim()}`)
+  );
+  comfyProcess.stderr?.on("data", (d) =>
+    console.warn(`[ComfyUI] ${d.toString().trim()}`)
+  );
+  comfyProcess.on("exit", () => {
+    comfyProcess = null;
+  });
 
   for (let i = 0; i < 60; i++) {
     await new Promise((r) => setTimeout(r, 1000));
     if (await isComfyuiApiUp()) {
-      return { started: true, message: "ComfyUI iniciado (modo lowvram 8GB).", url: `${COMFYUI_BASE}/` };
+      return {
+        started: true,
+        message: "ComfyUI iniciado (modo lowvram 8GB).",
+        url: `${COMFYUI_BASE}/`,
+      };
     }
   }
   throw new Error("ComfyUI não respondeu em 60s. Verifique o console.");
@@ -315,15 +408,25 @@ export function stopComfyui() {
     comfyProcess = null;
     return { stopped: true };
   }
-  return { stopped: false, message: "ComfyUI não estava rodando pelo Lumiera." };
+  return {
+    stopped: false,
+    message: "ComfyUI não estava rodando pelo Lumiera.",
+  };
 }
 
 export function runComfyuiInstall(onLog) {
   return new Promise((resolve, reject) => {
     const bat = path.join(COMFYUI_ROOT, "install_comfyui_ltx.bat");
-    if (!fs.existsSync(bat)) return reject(new Error("install_comfyui_ltx.bat não encontrado."));
-    const child = spawn("cmd.exe", ["/c", bat, "silent"], { cwd: COMFYUI_ROOT, windowsHide: true });
-    const log = (text) => { console.log(`[ComfyUI Install] ${text}`); onLog?.(text); };
+    if (!fs.existsSync(bat))
+      return reject(new Error("install_comfyui_ltx.bat não encontrado."));
+    const child = spawn("cmd.exe", ["/c", bat, "silent"], {
+      cwd: COMFYUI_ROOT,
+      windowsHide: true,
+    });
+    const log = (text) => {
+      console.log(`[ComfyUI Install] ${text}`);
+      onLog?.(text);
+    };
     child.stdout?.on("data", (d) => log(d.toString()));
     child.stderr?.on("data", (d) => log(d.toString()));
     child.on("close", (code) => {
@@ -337,14 +440,24 @@ export function runComfyuiModelDownload(onLog) {
   return new Promise((resolve, reject) => {
     const pythonExe = path.join(COMFYUI_DIR, "venv", "Scripts", "python.exe");
     const script = path.join(COMFYUI_ROOT, "download_ltx_models.py");
-    if (!fs.existsSync(pythonExe)) return reject(new Error("ComfyUI venv não encontrado. Instale primeiro."));
-    const child = spawn(pythonExe, [script], { cwd: COMFYUI_ROOT, windowsHide: true });
-    const log = (text) => { console.log(`[LTX Download] ${text}`); onLog?.(text); };
+    if (!fs.existsSync(pythonExe))
+      return reject(
+        new Error("ComfyUI venv não encontrado. Instale primeiro.")
+      );
+    const child = spawn(pythonExe, [script], {
+      cwd: COMFYUI_ROOT,
+      windowsHide: true,
+    });
+    const log = (text) => {
+      console.log(`[LTX Download] ${text}`);
+      onLog?.(text);
+    };
     child.stdout?.on("data", (d) => log(d.toString()));
     child.stderr?.on("data", (d) => log(d.toString()));
     child.on("close", async (code) => {
       const status = await getComfyuiStatus();
-      if (code === 0 || status.models.ready) resolve({ success: true, models: status.models });
+      if (code === 0 || status.models.ready)
+        resolve({ success: true, models: status.models });
       else reject(new Error(`Download terminou com código ${code}`));
     });
   });
@@ -355,7 +468,9 @@ function formatComfyuiError(body) {
     const data = JSON.parse(body);
     if (data.error?.message) {
       const details = data.error.details ? ` — ${data.error.details}` : "";
-      const nodeErrors = data.node_errors ? ` | nodes: ${JSON.stringify(data.node_errors).slice(0, 300)}` : "";
+      const nodeErrors = data.node_errors
+        ? ` | nodes: ${JSON.stringify(data.node_errors).slice(0, 300)}`
+        : "";
       return `${data.error.message}${details}${nodeErrors}`;
     }
     return JSON.stringify(data).slice(0, 500);
@@ -387,7 +502,10 @@ function extractHistoryOutputs(historyPayload, promptId) {
           subfolder,
           type: item.type || "output",
           filepath: path.join(COMFYUI_DIR, "output", subfolder, item.filename),
-          preview_url: buildComfyuiOutputUrl({ filename: item.filename, subfolder }),
+          preview_url: buildComfyuiOutputUrl({
+            filename: item.filename,
+            subfolder,
+          }),
         });
       }
     }
@@ -397,16 +515,27 @@ function extractHistoryOutputs(historyPayload, promptId) {
 
 function computeJobPercent(job) {
   if (job.status === "completed") return 100;
-  if (job.status === "queued") return Math.max(1, job.queue_position ? Math.max(1, 8 - job.queue_position * 2) : 3);
-  const nodeShare = job.total_nodes > 0 ? (job.executed_nodes / job.total_nodes) * 88 : 10;
-  const innerShare = job.node_max > 0 ? (job.node_value / job.node_max) * 10 : 0;
-  return Math.min(99, Math.round(nodeShare + innerShare + (job.status === "running" ? 2 : 0)));
+  if (job.status === "queued")
+    return Math.max(
+      1,
+      job.queue_position ? Math.max(1, 8 - job.queue_position * 2) : 3
+    );
+  const nodeShare =
+    job.total_nodes > 0 ? (job.executed_nodes / job.total_nodes) * 88 : 10;
+  const innerShare =
+    job.node_max > 0 ? (job.node_value / job.node_max) * 10 : 0;
+  return Math.min(
+    99,
+    Math.round(nodeShare + innerShare + (job.status === "running" ? 2 : 0))
+  );
 }
 
 function ensureComfyuiWs(clientId) {
   if (wsByClient.has(clientId)) return wsByClient.get(clientId);
 
-  const ws = new WebSocket(`ws://127.0.0.1:${COMFYUI_PORT}/ws?clientId=${encodeURIComponent(clientId)}`);
+  const ws = new WebSocket(
+    `ws://127.0.0.1:${COMFYUI_PORT}/ws?clientId=${encodeURIComponent(clientId)}`
+  );
   wsByClient.set(clientId, ws);
 
   ws.onmessage = (event) => {
@@ -438,7 +567,8 @@ function ensureComfyuiWs(clientId) {
         }
         return;
       }
-      if (job.current_node && job.current_node !== data.node) job.executed_nodes += 1;
+      if (job.current_node && job.current_node !== data.node)
+        job.executed_nodes += 1;
       job.current_node = data.node;
       job.status = "running";
       job.message = `Processando nó ${data.display_node || data.node}...`;
@@ -449,12 +579,14 @@ function ensureComfyuiWs(clientId) {
       job.node_value = Number(data.value) || 0;
       job.node_max = Number(data.max) || 0;
       if (data.node) job.current_node = data.node;
-      job.message = job.node_max > 0
-        ? `Amostragem ${job.node_value}/${job.node_max}`
-        : "Gerando...";
+      job.message =
+        job.node_max > 0
+          ? `Amostragem ${job.node_value}/${job.node_max}`
+          : "Gerando...";
     } else if (type === "execution_error") {
       job.status = "error";
-      job.error = data.exception_message || data.exception_type || "Erro na execução";
+      job.error =
+        data.exception_message || data.exception_type || "Erro na execução";
       job.message = job.error;
       job.percent = 0;
     } else if (type === "execution_success") {
@@ -479,7 +611,9 @@ async function refreshQueueState(promptId) {
   if (!job || job.status === "completed" || job.status === "error") return;
 
   try {
-    const res = await fetch(`${COMFYUI_BASE}/queue`, { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`${COMFYUI_BASE}/queue`, {
+      signal: AbortSignal.timeout(3000),
+    });
     if (!res.ok) return;
     const data = await res.json();
     const pending = data.queue_pending || [];
@@ -503,7 +637,9 @@ async function refreshQueueState(promptId) {
     }
 
     if (job.status === "queued") {
-      const histRes = await fetch(`${COMFYUI_BASE}/history/${promptId}`, { signal: AbortSignal.timeout(3000) });
+      const histRes = await fetch(`${COMFYUI_BASE}/history/${promptId}`, {
+        signal: AbortSignal.timeout(3000),
+      });
       if (histRes.ok) {
         const hist = await histRes.json();
         if (hist[promptId]) {
@@ -572,7 +708,8 @@ export function startJobTracking(promptId, clientId, meta = {}) {
 
 export function getComfyuiProgress(promptId) {
   const job = activeJobs.get(promptId);
-  if (!job) return { status: "unknown", percent: 0, message: "Job não encontrado." };
+  if (!job)
+    return { status: "unknown", percent: 0, message: "Job não encontrado." };
   return {
     prompt_id: job.prompt_id,
     status: job.error ? "error" : job.status,
@@ -610,9 +747,12 @@ function detectAspectRatio(width, height) {
 
 function resolveUpscaleOption(upscaleId) {
   const available = listAvailableLtxModels();
-  const opt = LTX_GENERATION_OPTIONS.upscale_options.find((o) => o.id === upscaleId)
-    || LTX_GENERATION_OPTIONS.upscale_options.find((o) => o.id === available.defaults.upscale)
-    || LTX_GENERATION_OPTIONS.upscale_options[0];
+  const opt =
+    LTX_GENERATION_OPTIONS.upscale_options.find((o) => o.id === upscaleId) ||
+    LTX_GENERATION_OPTIONS.upscale_options.find(
+      (o) => o.id === available.defaults.upscale
+    ) ||
+    LTX_GENERATION_OPTIONS.upscale_options[0];
   return opt;
 }
 
@@ -635,11 +775,14 @@ export async function queueLtxGeneration({
 }) {
   const cfg = readConfig();
   if (!cfg) throw new Error("Config LTX não encontrada.");
-  if (!(await isComfyuiApiUp())) throw new Error("ComfyUI offline. Inicie o servidor primeiro.");
+  if (!(await isComfyuiApiUp()))
+    throw new Error("ComfyUI offline. Inicie o servidor primeiro.");
 
-  const workflowName = mode === "i2v" ? cfg.ltx.workflow_i2v : cfg.ltx.workflow_t2v;
+  const workflowName =
+    mode === "i2v" ? cfg.ltx.workflow_i2v : cfg.ltx.workflow_t2v;
   const workflowPath = path.join(COMFYUI_ROOT, "workflows", workflowName);
-  if (!fs.existsSync(workflowPath)) throw new Error(`Workflow não encontrado: ${workflowName}`);
+  if (!fs.existsSync(workflowPath))
+    throw new Error(`Workflow não encontrado: ${workflowName}`);
 
   const resolvedWidth = clampInt(width, cfg.ltx.width, 256, 1280);
   const resolvedHeight = clampInt(height, cfg.ltx.height, 256, 1024);
@@ -647,13 +790,16 @@ export async function queueLtxGeneration({
   const resolvedFrames = timing.frames;
   const resolvedFormat = format === "mp4" ? "mp4" : "auto";
   const resolvedCodec = codec === "h264" ? "h264" : "auto";
-  const resolvedPrefix = String(filename_prefix || "video/LTX-2").trim() || "video/LTX-2";
+  const resolvedPrefix =
+    String(filename_prefix || "video/LTX-2").trim() || "video/LTX-2";
   const available = listAvailableLtxModels();
   const resolvedModel = model_gguf || cfg.ltx.model_gguf;
   const resolvedLora = lora || available.defaults.lora;
   const resolvedUpscale = upscale || available.defaults.upscale;
   const upscaleOpt = resolveUpscaleOption(resolvedUpscale);
-  const resolvedLoraStrength = Number.isFinite(Number(lora_strength)) ? Number(lora_strength) : 1;
+  const resolvedLoraStrength = Number.isFinite(Number(lora_strength))
+    ? Number(lora_strength)
+    : 1;
 
   const workflow = JSON.parse(fs.readFileSync(workflowPath, "utf8"));
   const { prompt: apiPrompt, seed } = await workflowUiToApi(workflow, {
@@ -705,7 +851,8 @@ export async function queueLtxGeneration({
     frames: resolvedFrames,
     fps: timing.fps,
     duration_seconds: timing.duration_seconds,
-    aspect_ratio: aspect_ratio || detectAspectRatio(resolvedWidth, resolvedHeight),
+    aspect_ratio:
+      aspect_ratio || detectAspectRatio(resolvedWidth, resolvedHeight),
     format: resolvedFormat,
     codec: resolvedCodec,
     filename_prefix: resolvedPrefix,
@@ -735,5 +882,24 @@ export async function getComfyuiHistory(promptId) {
   if (!res.ok) throw new Error("Histórico não encontrado.");
   const data = await res.json();
   const progress = getComfyuiProgress(promptId);
-  return { history: data, progress, outputs: extractHistoryOutputs(data, promptId) };
+  return {
+    history: data,
+    progress,
+    outputs: extractHistoryOutputs(data, promptId),
+  };
+}
+
+export function registerExternalJob(promptId, job) {
+  activeJobs.set(promptId, job);
+}
+
+export function updateExternalJob(promptId, patch) {
+  const current = activeJobs.get(promptId);
+  if (current) {
+    activeJobs.set(promptId, { ...current, ...patch, updated_at: Date.now() });
+  }
+}
+
+export function removeExternalJob(promptId) {
+  activeJobs.delete(promptId);
 }

@@ -390,6 +390,10 @@ import {
 } from "./seedanceT2v.js";
 import { loadSeedanceApiConfig } from "./seedanceApiProvider.js";
 import {
+  isMobileWanAvailable,
+  downloadMobileWanWeights,
+} from "./mobilewanService.js";
+import {
   applyDocumentaryHistoryPreset,
   injectListicleRankOverlays,
   avoidListicleHudCollisions,
@@ -22503,10 +22507,13 @@ app.post(
       const sceneIndices = Array.isArray(rawIndices)
         ? rawIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
         : null;
+      const reqProvider = String(req.body?.provider || "ltx").toLowerCase();
       const provider =
-        String(req.body?.provider || "ltx").toLowerCase() === "seedance"
+        reqProvider === "seedance"
           ? "seedance"
-          : "ltx";
+          : reqProvider === "mobilewan"
+            ? "mobilewan"
+            : "ltx";
       const wait = Boolean(req.body?.wait);
 
       if (provider === "seedance") {
@@ -22619,6 +22626,27 @@ app.post(
         .status(500)
         .json({ error: "Erro ao vincular vídeo gerado", details: err.message });
     }
+  })
+);
+
+app.get(
+  "/api/mobilewan/status",
+  asyncHandler(async (req, res) => {
+    res.json({
+      available: isMobileWanAvailable(),
+    });
+  })
+);
+
+app.post(
+  "/api/mobilewan/download",
+  asyncHandler(async (req, res) => {
+    const token = String(req.body?.token || "").trim();
+    if (!token) {
+      return res.status(400).json({ error: "Hugging Face token is required." });
+    }
+    const result = downloadMobileWanWeights(token);
+    res.json(result);
   })
 );
 

@@ -16,7 +16,11 @@ import {
   secondsToLtxFrames,
   ltxFramesToSeconds,
 } from "./comfyuiService.js";
-import { generateSeedanceApiVideo, loadSeedanceApiConfig } from "./seedanceApiProvider.js";
+import {
+  generateSeedanceApiVideo,
+  loadSeedanceApiConfig,
+} from "./seedanceApiProvider.js";
+import { queueMobileWanGeneration } from "./mobilewanService.js";
 
 const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"]);
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".mkv"]);
@@ -49,8 +53,12 @@ export function resolveRefFilePath(projDir, refValue = "") {
   const raw = String(refValue || "").trim();
   if (!raw) return null;
 
-  const fileMatch = raw.match(/([a-zA-Z0-9_.-]+\.(?:png|jpe?g|webp|gif|mp4|webm|mov|mkv))/i);
-  const candidate = fileMatch ? fileMatch[1] : raw.replace(/^@[A-Za-z]+\d*\s*[-—:]?\s*/, "").trim();
+  const fileMatch = raw.match(
+    /([a-zA-Z0-9_.-]+\.(?:png|jpe?g|webp|gif|mp4|webm|mov|mkv))/i
+  );
+  const candidate = fileMatch
+    ? fileMatch[1]
+    : raw.replace(/^@[A-Za-z]+\d*\s*[-—:]?\s*/, "").trim();
 
   if (!candidate || candidate.startsWith("@")) return null;
 
@@ -97,26 +105,35 @@ export function buildSeedanceT2vPrompt(vp = {}) {
     brief.sound_intent && `Sound mood: ${brief.sound_intent}`,
   ].filter(Boolean);
 
-  const refLines = SEEDANCE_REF_SLOTS
-    .map((s) => refs[s.id] && `${s.label}: ${refs[s.id]}`)
-    .filter(Boolean);
+  const refLines = SEEDANCE_REF_SLOTS.map(
+    (s) => refs[s.id] && `${s.label}: ${refs[s.id]}`
+  ).filter(Boolean);
 
   const parts = [];
   if (visual) parts.push(visual);
-  if (directingLines.length) parts.push(`[Directing] ${directingLines.join(". ")}`);
+  if (directingLines.length)
+    parts.push(`[Directing] ${directingLines.join(". ")}`);
   if (refLines.length) parts.push(`[Refs] ${refLines.join(" | ")}`);
-  if (narration && !visual.toLowerCase().includes(narration.slice(0, 40).toLowerCase())) {
+  if (
+    narration &&
+    !visual.toLowerCase().includes(narration.slice(0, 40).toLowerCase())
+  ) {
     parts.push(`[Narration context] ${narration}`);
   }
 
   const compiled = parts.join("\n").trim();
-  return compiled || narration || "Cinematic documentary scene, photorealistic, smooth camera motion.";
+  return (
+    compiled ||
+    narration ||
+    "Cinematic documentary scene, photorealistic, smooth camera motion."
+  );
 }
 
 export function resolveLtxDimensionsForFormat(videoFormat = "LONGO") {
   const aspect = videoFormat === "SHORTS" ? "9:16" : "16:9";
-  const preset = LTX_GENERATION_OPTIONS.aspect_ratios.find((a) => a.id === aspect)
-    || LTX_GENERATION_OPTIONS.aspect_ratios[0];
+  const preset =
+    LTX_GENERATION_OPTIONS.aspect_ratios.find((a) => a.id === aspect) ||
+    LTX_GENERATION_OPTIONS.aspect_ratios[0];
   const size = preset.sizes["8gb"] || preset.sizes.fast;
   return {
     width: size.width,
@@ -131,7 +148,11 @@ export function resolveSceneLtxTiming(vp = {}, config = {}) {
   const dims = resolveLtxDimensionsForFormat(config.video_format || "LONGO");
   const targetSec = Math.min(
     10,
-    Math.max(0.7, Number(vp.duration_seconds || vp.duration || dims.duration_seconds) || dims.duration_seconds),
+    Math.max(
+      0.7,
+      Number(vp.duration_seconds || vp.duration || dims.duration_seconds) ||
+        dims.duration_seconds
+    )
   );
   const frames = secondsToLtxFrames(targetSec);
   return {
@@ -144,7 +165,10 @@ export function resolveSceneLtxTiming(vp = {}, config = {}) {
 export function buildSceneAssetFilename(vp = {}, sceneIndex = 0, ext = ".mp4") {
   const block = vp.block || 1;
   const sceneLabel = String(vp.scene || sceneIndex + 1).replace(/\./g, "_");
-  const ts = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
+  const ts = new Date()
+    .toISOString()
+    .replace(/[-:T.Z]/g, "")
+    .slice(0, 14);
   return `b${block}_${sceneLabel}_seedance_${ts}${ext}`;
 }
 
@@ -157,11 +181,23 @@ export function computeSceneAssetIdx(visualPrompts = [], sceneIndex = 0) {
   return { block, blockKey: String(block), assetIdx };
 }
 
-export function attachVideoAssetToProject(projDir, storyboard = {}, config = {}, sceneIndex = 0, assetFilename = "") {
-  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? [...storyboard.visual_prompts] : [];
-  if (!visualPrompts[sceneIndex]) throw new Error(`Cena ${sceneIndex} não encontrada no storyboard.`);
+export function attachVideoAssetToProject(
+  projDir,
+  storyboard = {},
+  config = {},
+  sceneIndex = 0,
+  assetFilename = ""
+) {
+  const visualPrompts = Array.isArray(storyboard.visual_prompts)
+    ? [...storyboard.visual_prompts]
+    : [];
+  if (!visualPrompts[sceneIndex])
+    throw new Error(`Cena ${sceneIndex} não encontrada no storyboard.`);
 
-  const { blockKey, assetIdx } = computeSceneAssetIdx(visualPrompts, sceneIndex);
+  const { blockKey, assetIdx } = computeSceneAssetIdx(
+    visualPrompts,
+    sceneIndex
+  );
   const nextVp = {
     ...visualPrompts[sceneIndex],
     asset: {
@@ -179,8 +215,12 @@ export function attachVideoAssetToProject(projDir, storyboard = {}, config = {},
   visualPrompts[sceneIndex] = nextVp;
 
   const nextStoryboard = { ...storyboard, visual_prompts: visualPrompts };
-  const nextConfig = { ...config, timeline_assets: { ...(config.timeline_assets || {}) } };
-  if (!nextConfig.timeline_assets[blockKey]) nextConfig.timeline_assets[blockKey] = [];
+  const nextConfig = {
+    ...config,
+    timeline_assets: { ...(config.timeline_assets || {}) },
+  };
+  if (!nextConfig.timeline_assets[blockKey])
+    nextConfig.timeline_assets[blockKey] = [];
 
   const blockAssets = [...nextConfig.timeline_assets[blockKey]];
   const prevSlot = blockAssets[assetIdx] || {};
@@ -200,10 +240,21 @@ export function attachVideoAssetToProject(projDir, storyboard = {}, config = {},
   writeJson(storyboardPath, nextStoryboard);
   writeJson(configPath, nextConfig);
 
-  return { storyboard: nextStoryboard, config: nextConfig, asset: assetFilename, blockKey, assetIdx };
+  return {
+    storyboard: nextStoryboard,
+    config: nextConfig,
+    asset: assetFilename,
+    blockKey,
+    assetIdx,
+  };
 }
 
-export function importComfyOutputToProject(projDir, output = {}, vp = {}, sceneIndex = 0) {
+export function importComfyOutputToProject(
+  projDir,
+  output = {},
+  vp = {},
+  sceneIndex = 0
+) {
   const srcPath = output.filepath;
   if (!srcPath || !fs.existsSync(srcPath)) {
     throw new Error("Arquivo de saída do ComfyUI não encontrado.");
@@ -217,7 +268,10 @@ export function importComfyOutputToProject(projDir, output = {}, vp = {}, sceneI
   return destName;
 }
 
-export async function waitForComfyJob(promptId, { timeoutMs = 600_000, pollMs = 2000 } = {}) {
+export async function waitForComfyJob(
+  promptId,
+  { timeoutMs = 600_000, pollMs = 2000 } = {}
+) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const progress = getComfyuiProgress(promptId);
@@ -225,18 +279,26 @@ export async function waitForComfyJob(promptId, { timeoutMs = 600_000, pollMs = 
       return progress;
     }
     if (progress?.status === "error") {
-      throw new Error(progress.error || progress.message || "Erro na geração LTX.");
+      throw new Error(
+        progress.error || progress.message || "Erro na geração LTX."
+      );
     }
     await new Promise((r) => setTimeout(r, pollMs));
   }
   throw new Error("Timeout aguardando geração LTX.");
 }
 
-export async function queueSeedanceSceneLtx(projDir, storyboard = {}, config = {}, sceneIndex = 0) {
+export async function queueSeedanceSceneLtx(
+  projDir,
+  storyboard = {},
+  config = {},
+  sceneIndex = 0
+) {
   const visualPrompts = storyboard.visual_prompts || [];
   const vp = visualPrompts[sceneIndex];
   if (!vp) throw new Error(`Cena índice ${sceneIndex} inválida.`);
-  if (!isVideoIaScene(vp)) throw new Error(`Cena ${vp.scene || sceneIndex + 1} não é tipo vídeo IA.`);
+  if (!isVideoIaScene(vp))
+    throw new Error(`Cena ${vp.scene || sceneIndex + 1} não é tipo vídeo IA.`);
 
   const compiledPrompt = buildSeedanceT2vPrompt(vp);
   const timing = resolveSceneLtxTiming(vp, config);
@@ -266,11 +328,17 @@ export async function queueSeedanceSceneLtx(projDir, storyboard = {}, config = {
   };
 }
 
-export async function queueSeedanceSceneApi(projDir, storyboard = {}, config = {}, sceneIndex = 0) {
+export async function queueSeedanceSceneApi(
+  projDir,
+  storyboard = {},
+  config = {},
+  sceneIndex = 0
+) {
   const apiCfg = loadSeedanceApiConfig(projDir);
   const vp = storyboard.visual_prompts?.[sceneIndex];
   if (!vp) throw new Error(`Cena índice ${sceneIndex} inválida.`);
-  if (!isVideoIaScene(vp)) throw new Error(`Cena ${vp.scene || sceneIndex + 1} não é tipo vídeo IA.`);
+  if (!isVideoIaScene(vp))
+    throw new Error(`Cena ${vp.scene || sceneIndex + 1} não é tipo vídeo IA.`);
 
   const compiledPrompt = buildSeedanceT2vPrompt(vp);
   const timing = resolveSceneLtxTiming(vp, config);
@@ -296,6 +364,39 @@ export async function queueSeedanceSceneApi(projDir, storyboard = {}, config = {
   };
 }
 
+export async function queueMobileWanScene(
+  projDir,
+  storyboard = {},
+  config = {},
+  sceneIndex = 0
+) {
+  const visualPrompts = storyboard.visual_prompts || [];
+  const vp = visualPrompts[sceneIndex];
+  if (!vp) throw new Error(`Cena índice ${sceneIndex} inválida.`);
+  if (!isVideoIaScene(vp))
+    throw new Error(`Cena ${vp.scene || sceneIndex + 1} não é tipo vídeo IA.`);
+
+  const compiledPrompt = buildSeedanceT2vPrompt(vp);
+  const timing = resolveSceneLtxTiming(vp, config);
+  const { block, assetIdx } = computeSceneAssetIdx(visualPrompts, sceneIndex);
+
+  const result = await queueMobileWanGeneration({
+    prompt: compiledPrompt,
+    aspect_ratio: timing.aspect_ratio,
+    steps: 3, // default fast 3-step inference for MobileWAN
+    high_quality: false,
+  });
+
+  return {
+    provider: "mobilewan",
+    mode: "local",
+    scene_index: sceneIndex,
+    scene: vp.scene,
+    compiled_prompt: compiledPrompt,
+    ...result,
+  };
+}
+
 export async function generateSeedanceScenes({
   projDir,
   storyboard = {},
@@ -305,24 +406,52 @@ export async function generateSeedanceScenes({
   wait = false,
 }) {
   const visualPrompts = storyboard.visual_prompts || [];
-  let indices = Array.isArray(sceneIndices) && sceneIndices.length
-    ? sceneIndices.filter((i) => i >= 0 && i < visualPrompts.length)
-    : listVideoIaSceneIndices(visualPrompts);
+  let indices =
+    Array.isArray(sceneIndices) && sceneIndices.length
+      ? sceneIndices.filter((i) => i >= 0 && i < visualPrompts.length)
+      : listVideoIaSceneIndices(visualPrompts);
 
   indices = indices.filter((i) => isVideoIaScene(visualPrompts[i]));
-  if (!indices.length) throw new Error("Nenhuma cena tipo vídeo IA para gerar.");
+  if (!indices.length)
+    throw new Error("Nenhuma cena tipo vídeo IA para gerar.");
 
   const jobs = [];
   for (const sceneIndex of indices) {
-    const job = provider === "seedance"
-      ? await queueSeedanceSceneApi(projDir, storyboard, config, sceneIndex)
-      : await queueSeedanceSceneLtx(projDir, storyboard, config, sceneIndex);
+    let job;
+    if (provider === "seedance") {
+      job = await queueSeedanceSceneApi(
+        projDir,
+        storyboard,
+        config,
+        sceneIndex
+      );
+    } else if (provider === "mobilewan") {
+      job = await queueMobileWanScene(projDir, storyboard, config, sceneIndex);
+    } else {
+      job = await queueSeedanceSceneLtx(
+        projDir,
+        storyboard,
+        config,
+        sceneIndex
+      );
+    }
 
     if (wait && job.prompt_id) {
       const progress = await waitForComfyJob(job.prompt_id);
       const vp = visualPrompts[sceneIndex];
-      const assetFilename = importComfyOutputToProject(projDir, progress.outputs[0], vp, sceneIndex);
-      const attached = attachVideoAssetToProject(projDir, storyboard, config, sceneIndex, assetFilename);
+      const assetFilename = importComfyOutputToProject(
+        projDir,
+        progress.outputs[0],
+        vp,
+        sceneIndex
+      );
+      const attached = attachVideoAssetToProject(
+        projDir,
+        storyboard,
+        config,
+        sceneIndex,
+        assetFilename
+      );
       storyboard = attached.storyboard;
       config = attached.config;
       job.attached = true;
@@ -336,7 +465,13 @@ export async function generateSeedanceScenes({
   return { jobs, storyboard, config, provider, waited: wait };
 }
 
-export async function attachSeedanceT2vOutput(projDir, storyboard = {}, config = {}, sceneIndex = 0, promptId = "") {
+export async function attachSeedanceT2vOutput(
+  projDir,
+  storyboard = {},
+  config = {},
+  sceneIndex = 0,
+  promptId = ""
+) {
   const progress = getComfyuiProgress(promptId);
   if (progress?.status !== "completed" || !progress.outputs?.length) {
     return {
@@ -347,8 +482,19 @@ export async function attachSeedanceT2vOutput(projDir, storyboard = {}, config =
   }
 
   const vp = storyboard.visual_prompts?.[sceneIndex];
-  const assetFilename = importComfyOutputToProject(projDir, progress.outputs[0], vp, sceneIndex);
-  const attached = attachVideoAssetToProject(projDir, storyboard, config, sceneIndex, assetFilename);
+  const assetFilename = importComfyOutputToProject(
+    projDir,
+    progress.outputs[0],
+    vp,
+    sceneIndex
+  );
+  const attached = attachVideoAssetToProject(
+    projDir,
+    storyboard,
+    config,
+    sceneIndex,
+    assetFilename
+  );
 
   return {
     ready: true,

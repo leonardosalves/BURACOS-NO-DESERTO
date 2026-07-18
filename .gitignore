@@ -138,3 +138,10 @@ dashboard-qanat/backend/data/*
 !dashboard-qanat/backend/data/.gitkeep
 !dashboard-qanat/backend/data/remotion-template-catalog.json
 dashboard-qanat/frontend/NUL.css
+
+# MobileWAN local repository and weights models
+mobilewan/
+models/
+resurrector_metadata_cache/
+*.txt
+*.png

@@ -194,6 +194,7 @@ import {
   getComfyuiProgress,
   resolveComfyuiOutputFile,
 } from "./comfyuiService.js";
+import { queueMobileWanGeneration } from "./mobilewanService.js";
 import {
   getComfyMcpDashboard,
   saveComfyCloudConfig,
@@ -3281,6 +3282,24 @@ Instruções críticas:
         lora,
         lora_strength,
         upscale,
+      });
+      res.json({ success: true, ...result });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/mobilewan/generate", async (req, res) => {
+    try {
+      const { prompt, aspect_ratio, steps, high_quality } = req.body || {};
+      if (!prompt || !String(prompt).trim()) {
+        return res.status(400).json({ error: "Prompt obrigatório." });
+      }
+      const result = await queueMobileWanGeneration({
+        prompt: String(prompt).trim(),
+        aspect_ratio: aspect_ratio || "9:16",
+        steps: steps ? parseInt(steps, 10) : 3,
+        high_quality: Boolean(high_quality),
       });
       res.json({ success: true, ...result });
     } catch (err) {

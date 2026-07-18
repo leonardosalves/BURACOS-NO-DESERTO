@@ -194,6 +194,145 @@ export function WorkflowToolkit({
   const lastFetchRef = useRef(0);
   const mountedRef = useRef(true);
 
+  // MobileWAN States and Ref
+  const [mobileWanAvailable, setMobileWanAvailable] = useState(false);
+  const [hfToken, setHfToken] = useState("");
+  const [mobileWanPrompt, setMobileWanPrompt] = useState("");
+  const [mobileWanAspectRatio, setMobileWanAspectRatio] = useState("9:16");
+  const [mobileWanSteps, setMobileWanSteps] = useState("3");
+  const [mobileWanJob, setMobileWanJob] = useState<{
+    prompt_id: string;
+    status: string;
+    percent: number;
+    message: string;
+    outputs?: { filename: string; filepath?: string }[];
+    error?: string;
+  } | null>(null);
+  const [mobileWanPreviewUrl, setMobileWanPreviewUrl] = useState("");
+  const mobileWanPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const checkMobileWanStatus = useCallback(async () => {
+    try {
+      const res = await fetch(getProjectUrl("/api/mobilewan/status"));
+      if (res.ok && mountedRef.current) {
+        const data = await res.json();
+        setMobileWanAvailable(data.available);
+      }
+    } catch {
+      // ignore
+    }
+  }, [getProjectUrl]);
+
+  const stopMobileWanPolling = useCallback(() => {
+    if (mobileWanPollRef.current) {
+      window.clearInterval(mobileWanPollRef.current);
+      mobileWanPollRef.current = null;
+    }
+  }, []);
+
+  const startMobileWanPolling = (promptId: string, isDownload: boolean) => {
+    stopMobileWanPolling();
+    const poll = async () => {
+      try {
+        const res = await fetch(
+          getProjectUrl(`/api/comfyui/progress/${promptId}`)
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (mountedRef.current) {
+          setMobileWanJob(data);
+          if (data.status === "completed") {
+            stopMobileWanPolling();
+            if (isDownload) {
+              setMobileWanAvailable(true);
+              toast("Download dos pesos MobileWAN concluído!");
+            } else if (data.outputs?.[0]?.filename) {
+              const url = getProjectUrl(
+                `/api/comfyui/output?filename=${data.outputs[0].filename}`
+              );
+              setMobileWanPreviewUrl(url);
+              toast("Vídeo MobileWAN gerado!");
+            }
+          } else if (data.status === "error") {
+            stopMobileWanPolling();
+            toast(data.error || "Erro no processamento MobileWAN.");
+          }
+        }
+      } catch {
+        // ignore
+      }
+    };
+    poll();
+    mobileWanPollRef.current = window.setInterval(poll, 2000);
+  };
+
+  const handleMobileWanDownload = async () => {
+    if (!hfToken.trim()) {
+      toast("Por favor, insira o seu token do Hugging Face.");
+      return;
+    }
+    setBusy("mobilewan-download");
+    try {
+      const res = await fetch(getProjectUrl("/api/mobilewan/download"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: hfToken.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Erro ao iniciar download.");
+      }
+      const data = await res.json();
+      setMobileWanJob({
+        prompt_id: data.prompt_id,
+        status: "running",
+        percent: 10,
+        message: "Iniciando download...",
+      });
+      startMobileWanPolling(data.prompt_id, true);
+    } catch (err: any) {
+      toast(err.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleMobileWanGenerate = async () => {
+    if (!mobileWanPrompt.trim()) {
+      toast("Digite um prompt para o vídeo MobileWAN.");
+      return;
+    }
+    setBusy("mobilewan-gen");
+    setMobileWanPreviewUrl("");
+    try {
+      const res = await fetch(getProjectUrl("/api/mobilewan/generate"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: mobileWanPrompt.trim(),
+          aspect_ratio: mobileWanAspectRatio,
+          steps: parseInt(mobileWanSteps, 10),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Erro ao gerar vídeo.");
+      }
+      const data = await res.json();
+      setMobileWanJob({
+        prompt_id: data.prompt_id,
+        status: "running",
+        percent: 10,
+        message: "Iniciando geração MobileWAN...",
+      });
+      startMobileWanPolling(data.prompt_id, false);
+    } catch (err: any) {
+      toast(err.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const refreshGaps = useCallback(
     async (force = false) => {
       if (!enabled) return;
@@ -216,12 +355,16 @@ export function WorkflowToolkit({
   useEffect(() => {
     mountedRef.current = true;
     if (!enabled) return;
-    const t = window.setTimeout(() => refreshGaps(true), 400);
+    const t = window.setTimeout(() => {
+      refreshGaps(true);
+      checkMobileWanStatus();
+    }, 400);
     return () => {
       mountedRef.current = false;
       window.clearTimeout(t);
+      stopMobileWanPolling();
     };
-  }, [enabled, refreshGaps]);
+  }, [enabled, refreshGaps, checkMobileWanStatus, stopMobileWanPolling]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -1319,6 +1462,164 @@ export function WorkflowToolkit({
               <pre className="text-[8px] text-zinc-500 bg-zinc-900/60 rounded-lg p-2 max-h-20 overflow-y-auto font-mono">
                 {comfyLog.slice(-6).join("\n")}
               </pre>
+            )}
+          </div>
+        </div>
+      </details>
+
+      <details className="lumiera-collapsible-section">
+        <summary className="text-cyan-300/90 flex items-center gap-1.5 cursor-pointer">
+          <Video className="w-3.5 h-3.5 shrink-0" />
+          MobileWAN (Vídeo IA Local Rápido)
+        </summary>
+        <div className="lumiera-collapsible-body">
+          <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-2.5 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[9px] text-cyan-300 uppercase tracking-wide font-bold flex items-center gap-1">
+                <Video className="w-3 h-3" /> Status do Modelo Local
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              <span
+                className={`text-[8px] px-1.5 py-0.5 rounded border font-semibold ${mobileWanAvailable ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/5" : "text-amber-400 border-amber-500/30 bg-amber-500/5"}`}
+              >
+                {mobileWanAvailable
+                  ? "Pesos do Modelo: Instalados"
+                  : "Pesos do Modelo: Ausentes"}
+              </span>
+            </div>
+
+            {!mobileWanAvailable ? (
+              <div className="space-y-2 border-t border-cyan-500/10 pt-2">
+                <p className="text-[8px] text-zinc-400 leading-normal">
+                  MobileWAN é um modelo de 1.3B parâmetros que roda localmente
+                  de forma extremamente rápida. Como o modelo é gated no Hugging
+                  Face (Qualcomm Research Permissive License 1.2), você deve
+                  aceitar os termos no site e inserir seu token abaixo para
+                  baixar os pesos automáticos.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={hfToken}
+                    onChange={(e) => setHfToken(e.target.value)}
+                    placeholder="Cole seu Hugging Face Token (hf_...)"
+                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] text-zinc-200 focus:outline-none focus:border-cyan-500/50"
+                  />
+                  {btn(
+                    "Baixar Pesos",
+                    <Download className="w-3 h-3" />,
+                    handleMobileWanDownload,
+                    "cyan"
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 border-t border-cyan-500/10 pt-2.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-[8px] text-zinc-500 space-y-0.5">
+                    Proporção
+                    <select
+                      value={mobileWanAspectRatio}
+                      onChange={(e) => setMobileWanAspectRatio(e.target.value)}
+                      disabled={!!busy}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded px-1.5 py-1 text-[10px] text-zinc-200"
+                    >
+                      <option value="9:16">9:16 (Shorts/TikTok)</option>
+                      <option value="16:9">16:9 (Documentário/Longo)</option>
+                      <option value="1:1">1:1 (Feed/Quadrado)</option>
+                    </select>
+                  </label>
+                  <label className="text-[8px] text-zinc-500 space-y-0.5">
+                    Passos de Denoising (Inference Steps)
+                    <select
+                      value={mobileWanSteps}
+                      onChange={(e) => setMobileWanSteps(e.target.value)}
+                      disabled={!!busy}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded px-1.5 py-1 text-[10px] text-zinc-200"
+                    >
+                      <option value="3">3 passos (Veloz — padrão)</option>
+                      <option value="5">5 passos (Qualidade)</option>
+                      <option value="10">10 passos (Detalhado)</option>
+                    </select>
+                  </label>
+                </div>
+
+                <textarea
+                  value={mobileWanPrompt}
+                  onChange={(e) => setMobileWanPrompt(e.target.value)}
+                  placeholder="Prompt para o vídeo MobileWAN (ex: A majestic ship sailing on a stormy sea...)"
+                  disabled={!!busy}
+                  className="w-full h-16 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] text-zinc-200 resize-none focus:outline-none focus:border-cyan-500/50"
+                />
+
+                {btn(
+                  "Gerar vídeo MobileWAN",
+                  <Video className="w-3 h-3" />,
+                  handleMobileWanGenerate,
+                  "cyan"
+                )}
+              </div>
+            )}
+
+            {mobileWanJob && (
+              <div className="rounded-lg border border-cyan-500/20 bg-zinc-950/80 p-2 space-y-1.5">
+                <div className="flex items-center justify-between gap-2 text-[9px]">
+                  <span className="text-cyan-300 font-medium">
+                    {mobileWanJob.status === "completed"
+                      ? "Concluído"
+                      : mobileWanJob.status === "error"
+                        ? "Erro"
+                        : "Processando"}
+                  </span>
+                  <span className="text-zinc-400 tabular-nums">
+                    {mobileWanJob.percent}%
+                  </span>
+                </div>
+                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 rounded-full ${
+                      mobileWanJob.status === "error"
+                        ? "bg-red-500"
+                        : mobileWanJob.status === "completed"
+                          ? "bg-emerald-500"
+                          : "bg-cyan-500"
+                    }`}
+                    style={{
+                      width: `${Math.max(2, Math.min(100, mobileWanJob.percent))}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-[8px] text-zinc-500">
+                  {mobileWanJob.message}
+                </p>
+                {mobileWanJob.error && (
+                  <p className="text-[8px] text-red-400">
+                    {mobileWanJob.error}
+                  </p>
+                )}
+                {mobileWanJob.status === "completed" && mobileWanPreviewUrl && (
+                  <div className="space-y-1 pt-1">
+                    <video
+                      key={mobileWanPreviewUrl}
+                      src={mobileWanPreviewUrl}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full rounded-md border border-zinc-800 bg-black max-h-48 object-contain"
+                    />
+                    <a
+                      href={mobileWanPreviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[8px] text-cyan-400 hover:text-cyan-200 inline-flex items-center gap-0.5 font-bold"
+                    >
+                      Abrir vídeo <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

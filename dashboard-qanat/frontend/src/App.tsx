@@ -1665,7 +1665,7 @@ export default function App() {
 
   const handleGenerateSeedanceT2v = async (
     sceneIndices?: number[],
-    provider: "ltx" | "seedance" = "ltx"
+    provider: "ltx" | "seedance" | "mobilewan" = "ltx"
   ) => {
     const projectName =
       narrationProjectName || creatorProjectName || activeProject;
@@ -1717,10 +1717,13 @@ export default function App() {
             scene_index: sceneIndex,
             status: "queued",
             percent: 2,
-            message: "Na fila LTX…",
+            message:
+              provider === "mobilewan"
+                ? "Iniciando MobileWAN…"
+                : "Na fila LTX…",
           },
         }));
-        if (provider === "ltx") {
+        if (provider === "ltx" || provider === "mobilewan") {
           startSeedanceT2vPolling(normalizedProject, sceneIndex, promptId);
         }
       }
