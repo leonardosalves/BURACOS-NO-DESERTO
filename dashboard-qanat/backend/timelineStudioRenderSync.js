@@ -376,9 +376,15 @@ export function resolveStudioTotalDuration(
 }
 
 export function resolveStudioFormat(studio, config = {}) {
+  if (
+    config &&
+    (config.aspect_ratio === "9:16" || config.aspect_ratio === "16:9")
+  ) {
+    return config.aspect_ratio;
+  }
   if (studio?.format === "9:16" || studio?.format === "16:9")
     return studio.format;
-  return config.aspect_ratio === "16:9" ? "16:9" : "9:16";
+  return "9:16";
 }
 
 const RELATIVE_MEDIA_PREFIXES = ["ASSETS/", "MUSICAS/", "logos/"];
