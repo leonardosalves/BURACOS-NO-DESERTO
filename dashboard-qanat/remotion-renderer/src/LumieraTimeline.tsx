@@ -1030,8 +1030,6 @@ const CaptionLayer: React.FC<{
 
   if (!activeChunk) return null;
 
-  const isVertical = height > width;
-
   const wordsToRender = isSlam
     ? activeChunk.words.filter(
         (word) => currentMs >= word.startMs && currentMs <= word.endMs
