@@ -970,23 +970,46 @@ export function CollageBrollLab({
     }
   };
 
-  const handleResetAll = () => {
+  const handleResetAll = async () => {
     setItems([]);
     setScriptAnalysis(null);
     setSelectedId(null);
     setActiveGate(1);
     setReviewPanel("none");
     setSelectedPaletteId(RANDOM_PALETTE_ID);
-    setSessionId(`collage_${Date.now().toString(36)}`);
-    try {
-      localStorage.removeItem(LS_SESSION_KEY);
-    } catch {
-      /* ignore */
-    }
     setRawLines("");
     setPlaceHint("");
     setCountryHint("");
     setEraHint("");
+
+    const payload = {
+      sessionId,
+      mode,
+      fidelity: "balanced",
+      rawLines: "",
+      placeHint: "",
+      countryHint: "",
+      eraHint: "",
+      scriptAnalysis: null,
+      selectedId: null,
+      items: [],
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      localStorage.setItem(LS_SESSION_KEY, JSON.stringify(payload));
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      await postJson("/api/collage-broll/session", payload);
+    } catch (err) {
+      console.warn(
+        "[CollageBroll] Limpar tudo: falha ao limpar no backend",
+        err
+      );
+    }
   };
 
   const postJson = useCallback(
