@@ -19646,6 +19646,161 @@ app.post(
   })
 );
 
+// API: EXPRESS CREATOR — Gerar roteiro de 45s baseado no prompt 5
+app.post(
+  "/api/ai/creator/generate-express-short",
+  asyncHandler(async (req, res) => {
+    const projDir = getProjectDir(req);
+    const {
+      theme = "",
+      niche = "",
+      tone = "conversacional",
+      project = "",
+    } = req.body || {};
+
+    if (!theme.trim() || !niche.trim() || !project.trim()) {
+      return res
+        .status(400)
+        .json({ error: "Tema, nicho e nome do projeto são obrigatórios." });
+    }
+
+    const safeProjectName = project.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+    const targetProjDir = path.join(SHORTS_DIR, safeProjectName);
+
+    // Create project directory structure if not exists
+    if (!fs.existsSync(targetProjDir)) {
+      try {
+        fs.mkdirSync(targetProjDir, { recursive: true });
+        fs.mkdirSync(path.join(targetProjDir, "ASSETS"), { recursive: true });
+        fs.mkdirSync(path.join(targetProjDir, "OUTPUT"), { recursive: true });
+        ensureProjectSfxPack(targetProjDir);
+        ensureFileExists("build_video.py", targetProjDir);
+        ensureFileExists("build_video_destacado.py", targetProjDir);
+        ensureFileExists("mix_bgm.py", targetProjDir);
+        ensureFileExists("find_block_timings.py", targetProjDir);
+        ensureFileExists("align_transcripts.py", targetProjDir);
+        const rootLogoPath = path.join(WORKSPACE_DIR, "ASSETS", "logo.png");
+        const destLogoPath = path.join(targetProjDir, "ASSETS", "logo.png");
+        if (fs.existsSync(rootLogoPath)) {
+          fs.copyFileSync(rootLogoPath, destLogoPath);
+        }
+      } catch (err) {
+        console.error("Erro ao criar pasta do projeto Express:", err);
+      }
+    }
+
+    const promptSystem = `Você é o "AI Video Creator Engine" do Lumiera, um roteirista especializado em YouTube Shorts de alta retenção.
+Gerencie a criação de um roteiro curto em espanhol para um YouTube Short seguindo as seguintes diretrizes fornecidas pelo usuário:
+
+PROMPT 5 — Guión de Short individual
+Escribe un guión para un YouTube Short de 45 segundos sobre el tema "${theme.replace(/"/g, '\\"')}" para un canal de nicho "${niche.replace(/"/g, '\\"')}".
+El guión debe seguir esta estructura exacta:
+- GANCHO (primeros 3 segundos): una frase que genere curiosidad o tensión inmediata, sin presentaciones.
+- DESARROLLO (35-40 segundos): información con ritmo rápido, frases cortas de no más de 12 palabras, un dato o hecho sorprendente cada 8-10 segundos.
+- CIERRE (5 segundos): una pregunta que invite a comentar o una afirmación que genere debate.
+Tono: ${tone}.
+Máximo 120 palabras en total. Escribe solo el guión, sin indicaciones de escena ni aclaraciones.
+
+Importante: A saída DEVE ser um objeto JSON estrito com o seguinte esquema (não inclua marcações markdown adicionais fora do JSON):
+{
+  "narrative_script": "O roteiro final gerado completo em espanhol, apenas a narração falada sem nenhuma anotação de cena.",
+  "narrative_script_tagged": "[INTRO] (insira o gancho aqui) \\n\\n [BODY] (insira o desenvolvimento aqui) \\n\\n [OUTRO] (insira o encerramento aqui)",
+  "strategy": {
+    "target_audience": "${niche.replace(/"/g, '\\"')}",
+    "hook_angle": "Gancho sobre ${theme.replace(/"/g, '\\"')}"
+  },
+  "technical_config": {
+    "script": "O roteiro final gerado completo em espanhol.",
+    "block_phrases": [
+      { "block": 1, "phrase": "Gancho inicial de 3s" },
+      { "block": 2, "phrase": "Desenvolvimento com fatos" },
+      { "block": 3, "phrase": "Encerramento e chamada de engajamento" }
+    ],
+    "impact_texts": [
+      "Frase curta de destaque do Gancho",
+      "Fato surpreendente 1",
+      "Fato surpreendente 2",
+      "Pergunta do encerramento"
+    ],
+    "highlight_keywords": [
+      "lista",
+      "de",
+      "palavras",
+      "chave",
+      "importantes"
+    ],
+    "bgm_mappings": [
+      { "block": 1, "music_emotion": "tension" },
+      { "block": 2, "music_emotion": "epic" },
+      { "block": 3, "music_emotion": "neutral" }
+    ]
+  }
+}`;
+
+    const responseText = await callGeminiLlm(req, res, targetProjDir, {
+      title: "Gerar roteiro express",
+      prompt: promptSystem,
+      temperature: 0.8,
+    });
+    if (responseText == null) return;
+
+    const parsed = await parseAiJsonResponse(
+      responseText,
+      getApiKey(targetProjDir) || getApiKey(projDir),
+      "Roteiro express"
+    );
+
+    // Save configuration and initial wizard state inside project config
+    const configPath = path.join(targetProjDir, "config_qanat.json");
+    let currentConfig = {
+      project_name: safeProjectName,
+      niche,
+      format: "SHORTS",
+      theme,
+      tone,
+      creator_mode: "express",
+      narrative_script: parsed.narrative_script || "",
+      narrative_script_tagged: parsed.narrative_script_tagged || "",
+      strategy: parsed.strategy || {},
+      technical_config: parsed.technical_config || {},
+    };
+
+    if (fs.existsSync(configPath)) {
+      try {
+        const fileContent = fs.readFileSync(configPath, "utf8");
+        const existing = JSON.parse(fileContent);
+        currentConfig = { ...existing, ...currentConfig };
+      } catch (err) {
+        console.error("Erro ao ler config_qanat.json existente:", err);
+      }
+    }
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify(currentConfig, null, 2),
+      "utf8"
+    );
+
+    // Also write narration.txt
+    const narrationPath = path.join(targetProjDir, "narration.txt");
+    fs.writeFileSync(narrationPath, parsed.narrative_script || "", "utf8");
+
+    // Save wizard session
+    const wizardSessionPath = path.join(targetProjDir, "wizard_session.json");
+    const sessionData = {
+      project: safeProjectName,
+      creatorStep: 2,
+      lastUpdated: Date.now(),
+    };
+    fs.writeFileSync(
+      wizardSessionPath,
+      JSON.stringify(sessionData, null, 2),
+      "utf8"
+    );
+
+    res.json(parsed);
+  })
+);
+
 // API: LISTICLE — Sugerir rankings interessantes para um nicho
 
 app.post(
