@@ -15,6 +15,7 @@ import { HumorFactsLab } from "./HumorFactsLab";
 import { CollageBrollLab } from "./CollageBrollLab";
 import { ProjectHealthPanel } from "./ProjectHealthPanel";
 import { AppDocsTab } from "./AppDocsTab";
+import { AppToolsTab } from "./AppToolsTab";
 import { FlowLabPage } from "./FlowLabPage";
 import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
 import toast from "react-hot-toast";
@@ -174,6 +175,15 @@ export function AppTabPanels({
             fallback={<TabPanelFallback label="Carregando documentação..." />}
           >
             <AppDocsTab />
+          </Suspense>
+        </TabErrorBoundary>
+      )}
+      {activeTab === "tools" && (
+        <TabErrorBoundary tabName="Ferramentas">
+          <Suspense
+            fallback={<TabPanelFallback label="Carregando ferramentas..." />}
+          >
+            <AppToolsTab />
           </Suspense>
         </TabErrorBoundary>
       )}

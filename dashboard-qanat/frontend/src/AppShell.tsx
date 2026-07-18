@@ -30,6 +30,7 @@ import {
   Zap,
   Bell,
   BookOpen,
+  Wrench,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { BackendStatusBanner } from "./BackendStatusBanner";
@@ -106,6 +107,13 @@ const STUDIO_NAV: GlobalNavItem[] = [
     icon: Cloud,
     helpId: "tab-comfy-mcp",
     accent: "sky",
+  },
+  {
+    id: "tools",
+    label: "Ferramentas",
+    icon: Wrench,
+    helpId: "tab-tools",
+    accent: "amber",
   },
   {
     id: "docs",

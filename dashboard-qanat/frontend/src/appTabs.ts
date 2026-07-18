@@ -25,7 +25,8 @@ export type AppTab =
   | "agent-reach"
   | "templates"
   | "docs"
-  | "projects";
+  | "projects"
+  | "tools";
 
 export const RESTORABLE_APP_TABS: AppTab[] = [
   "home",
@@ -54,6 +55,7 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   "templates",
   "docs",
   "projects",
+  "tools",
 ];
 
 export const GLOBAL_VIEW_TABS: AppTab[] = [
@@ -74,6 +76,7 @@ export const GLOBAL_VIEW_TABS: AppTab[] = [
   "templates",
   "docs",
   "projects",
+  "tools",
 ];
 
 export function isGlobalViewTab(tab: AppTab): boolean {
