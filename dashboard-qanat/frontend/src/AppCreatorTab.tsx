@@ -9,6 +9,7 @@ import {
   Film,
   Fingerprint,
   Laugh,
+  Layers,
   Lightbulb,
   PenTool,
   Play,
@@ -38,6 +39,12 @@ const LazyListicleCreatorStep = lazy(() =>
     default: m.ListicleCreatorStep,
   }))
 );
+const LazyCollageBrollLab = lazy(() =>
+  import("./CollageBrollLab").then((m) => ({
+    default: m.CollageBrollLab,
+  }))
+);
+import { CollageCreatorStep1 } from "./CollageCreatorStep1";
 import { resolveStockSearchQuery } from "./stockSearchQuery";
 import { buildStockAssetSearchContext } from "./stockAssetLinks";
 import { VisualAssetStylePicker } from "./VisualAssetStylePicker";
@@ -557,7 +564,9 @@ export function AppCreatorTab({
             ? BarChart3
             : ideationTab === "historical-witness"
               ? Film
-              : Lightbulb;
+              : ideationTab === "collage-broll"
+                ? Layers
+                : Lightbulb;
   const restoreWizardSession = async () => {
     const project =
       creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
@@ -992,6 +1001,23 @@ export function AppCreatorTab({
                   setCreatorProjectName={setCreatorProjectName}
                   setNicheInput={setNicheInput}
                   setHistoricalWitnessContext={setHistoricalWitnessContext}
+                />
+              ) : ideationTab === "collage-broll" ? (
+                <CollageCreatorStep1
+                  creatorLoading={creatorLoading}
+                  creatorProjectName={creatorProjectName}
+                  setCreatorProjectName={setCreatorProjectName}
+                  nicheInput={nicheInput}
+                  setNicheInput={setNicheInput}
+                  narrationDraft={narrationDraft}
+                  setNarrationDraft={setNarrationDraft}
+                  formatSelector={formatSelector}
+                  setFormatSelector={setFormatSelector}
+                  hasApiKey={hasApiKey}
+                  getProjectUrl={getProjectUrl}
+                  setCreatorStep={setCreatorStep}
+                  activeProject={activeProject}
+                  modeIdentity={modeIdentity}
                 />
               ) : ideationTab === "custom" ? (
                 <div className="mx-auto max-w-4xl space-y-6 rounded-[28px] border border-cyan-300/20 bg-[#071115] p-5 shadow-2xl shadow-black/20 sm:p-7">
@@ -2322,37 +2348,67 @@ export function AppCreatorTab({
 
           {creatorStep === 4 && config && (
             <div className="mx-auto max-w-6xl space-y-5 font-sans">
-              <CreatorPhaseMasthead
-                phase="Fase 3"
-                title="Cenas e edição"
-                description="Prompts, B-roll, motion, overlays e duração da voz vivem na mesma timeline. A identidade visual escolhida no criador acompanha todas as decisões de montagem."
-                identity={modeIdentity}
-                icon={Film}
-                status={timelineReady ? "Voz sincronizada" : "Revisar timing"}
-              />
-              {temporalScenes.length > 0 && (
-                <section className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.04] px-4 py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-300">
-                        Diretor Temporal · TTS + Whisper
-                      </p>
-                      <p className="mt-1 text-xs text-zinc-300">
-                        {temporalScenes.length} cenas medidas pela fala
-                        aprovada; {temporalMultiClipScenes.length} exigem
-                        tomadas múltiplas para não cortar a ação.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-[9px] font-bold text-cyan-200">
-                      Prompts ajustados aos segundos reais
-                    </span>
-                  </div>
-                </section>
+              {ideationTab === "collage-broll" ? (
+                <>
+                  <CreatorPhaseMasthead
+                    phase="Fase 3"
+                    title="Laboratório de Colagem"
+                    description="Monte as metáforas visuais, gere os prompts de imagem, produza os frames e vídeos de colagem stop-motion."
+                    identity={modeIdentity}
+                    icon={Layers}
+                    status="Collage Lab"
+                  />
+                  <Suspense
+                    fallback={
+                      <div className="flex items-center justify-center gap-2 py-12 text-xs text-zinc-400">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Carregando Lab Colagem...
+                      </div>
+                    }
+                  >
+                    <LazyCollageBrollLab
+                      getProjectUrl={getProjectUrl}
+                      initialSessionId={activeProject}
+                    />
+                  </Suspense>
+                </>
+              ) : (
+                <>
+                  <CreatorPhaseMasthead
+                    phase="Fase 3"
+                    title="Cenas e edição"
+                    description="Prompts, B-roll, motion, overlays e duração da voz vivem na mesma timeline. A identidade visual escolhida no criador acompanha todas as decisões de montagem."
+                    identity={modeIdentity}
+                    icon={Film}
+                    status={
+                      timelineReady ? "Voz sincronizada" : "Revisar timing"
+                    }
+                  />
+                  {temporalScenes.length > 0 && (
+                    <section className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.04] px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-300">
+                            Diretor Temporal · TTS + Whisper
+                          </p>
+                          <p className="mt-1 text-xs text-zinc-300">
+                            {temporalScenes.length} cenas medidas pela fala
+                            aprovada; {temporalMultiClipScenes.length} exigem
+                            tomadas múltiplas para não cortar a ação.
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-[9px] font-bold text-cyan-200">
+                          Prompts ajustados aos segundos reais
+                        </span>
+                      </div>
+                    </section>
+                  )}
+                  {renderRichTimelineEditor({
+                    hideAutoMap: true,
+                    wizardManualMode: true,
+                  })}
+                </>
               )}
-              {renderRichTimelineEditor({
-                hideAutoMap: true,
-                wizardManualMode: true,
-              })}
 
               {/* Navigation Buttons */}
               <div className="flex justify-between items-center pt-6 border-t border-zinc-900 font-sans">
@@ -2363,29 +2419,41 @@ export function AppCreatorTab({
                   ← Voltar para Voz e Timing
                 </button>
                 <div className="flex flex-col items-end gap-1.5">
-                  <button
-                    disabled={!activeTimelineAssets || !timelineReady}
-                    onClick={async () => {
-                      try {
-                        await handleSaveConfig();
-                        setCreatorStep(5);
-                      } catch {
-                        // O salvamento já exibe o erro; permaneça no passo atual.
-                      }
-                    }}
-                    className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:cursor-wait shadow-lg"
-                    title={
-                      timelineBlockedReason ||
-                      "Salva a timeline e avança — cada cena já tem mídia e segundos da voz"
-                    }
-                  >
-                    <span>Salvar timeline e Render</span>
-                    <span>→</span>
-                  </button>
-                  {timelineBlockedReason && (
-                    <span className="max-w-xs text-right text-[10px] text-amber-300/80">
-                      {timelineBlockedReason}
-                    </span>
+                  {ideationTab === "collage-broll" ? (
+                    <button
+                      onClick={() => setCreatorStep(5)}
+                      className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg"
+                    >
+                      <span>Finalizar</span>
+                      <span>→</span>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        disabled={!activeTimelineAssets || !timelineReady}
+                        onClick={async () => {
+                          try {
+                            await handleSaveConfig();
+                            setCreatorStep(5);
+                          } catch {
+                            // O salvamento já exibe o erro; permaneça no passo atual.
+                          }
+                        }}
+                        className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:cursor-wait shadow-lg"
+                        title={
+                          timelineBlockedReason ||
+                          "Salva a timeline e avança — cada cena já tem mídia e segundos da voz"
+                        }
+                      >
+                        <span>Salvar timeline e Render</span>
+                        <span>→</span>
+                      </button>
+                      {timelineBlockedReason && (
+                        <span className="max-w-xs text-right text-[10px] text-amber-300/80">
+                          {timelineBlockedReason}
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

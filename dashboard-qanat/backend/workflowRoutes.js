@@ -1126,6 +1126,36 @@ export function registerWorkflowRoutes(app, deps) {
     handleCollageCardReject
   );
 
+  app.post("/api/collage-broll/generate-narration", async (req, res) => {
+    try {
+      const { idea = "", niche = "", format = "SHORTS" } = req.body || {};
+      const apiKey = getApiKeys(WORKSPACE_DIR)[0] || "";
+
+      const prompt = `Você é um diretor de criação e roteirista profissional para vídeos virais e conceituais do YouTube.
+Gere um roteiro narrativo de narração com ganchos fortes, ritmo dinâmico e excelente encadeamento de ideias.
+O roteiro deve ser projetado especificamente para ser ilustrado com metáforas visuais conceituais e poéticas no estilo de colagem de papel stop-motion (paper-collage table-top).
+
+Tema/Premissa: "${idea}"
+Nicho/Contexto: "${niche}"
+Formato sugerido: ${format}
+
+Instruções críticas:
+- Escreva a narração em Português BR.
+- Sem marcas de cena, sem cabeçalhos, sem indicações do tipo "[Narração]" ou "[Visual]".
+- Retorne APENAS o texto corrido da narração dividida em parágrafos ou frases curtas separadas por quebra de linha.
+- Mantenha o texto focado, poético e cativante.`;
+
+      const raw = await callGeminiWithRetry(apiKey, prompt, {
+        maxRetries: 3,
+        projectDir: WORKSPACE_DIR,
+        activityLabel: "Narração Collage B-roll",
+      });
+      res.json({ ok: true, text: raw.trim() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   /** Salva sessão completa do Gate 1 (para sobreviver a reload). */
   app.post("/api/collage-broll/session", (req, res) => {
     try {
