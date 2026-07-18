@@ -338,6 +338,63 @@ def generate_subtitles():
 
 
 
+    # Load custom settings from config
+    font_name = 'Arial Black'
+    accent_rgb = '#C5A889'
+    caption_mode = 'caption-highlight'
+
+    if os.path.exists('config_qanat.json'):
+        try:
+            with open('config_qanat.json', 'r', encoding='utf-8') as f:
+                _cfg = json.load(f)
+                font_name = _cfg.get('font_body', _cfg.get('font_title', 'Arial Black'))
+                accent_rgb = _cfg.get('accent_color', '#C5A889')
+                if ASPECT_RATIO == '9:16':
+                    caption_mode = _cfg.get('caption_mode_short', _cfg.get('caption_style', 'caption-highlight'))
+                else:
+                    caption_mode = _cfg.get('caption_mode_long', _cfg.get('caption_style', 'caption-highlight'))
+        except Exception as e:
+            print(f"Error parsing config in generate_subtitles: {e}")
+
+    # Convert hex color to BGR for ASS format
+    def rgb_to_bgr(hex_str):
+        if not hex_str:
+            return "00C5FF"
+        hex_str = hex_str.lstrip('#')
+        if len(hex_str) == 6:
+            r, g, b = hex_str[0:2], hex_str[2:4], hex_str[4:6]
+            return f"{b}{g}{r}"
+        return "00C5FF"
+
+    bgr_accent = rgb_to_bgr(accent_rgb)
+
+    primary_color = "00FFFFFF"
+    outline_color = "00000000"
+    back_color = "80000000"
+    outline_width = "4"
+    shadow_width = "2"
+    is_bold = "-1"
+
+    if caption_mode in ["caption-neon-glow", "caption-neon-accent", "caption-border-glow"]:
+        primary_color = "00FFFFFF"
+        outline_color = "EED322"  # Neon Cyan (&H22D3EE)
+        back_color = "B672F4"     # Neon Pink (&HF472B6)
+        outline_width = "5"
+        shadow_width = "3"
+    elif caption_mode in ["caption-shimmer-gold", "caption-highlight"]:
+        primary_color = "00FFFFFF"
+        outline_color = "00000000"
+        back_color = "80000000"
+    elif caption_mode == "caption-editorial-emphasis":
+        is_bold = "0"
+
+    # Redefine active word colors inside function scope
+    COLOR_GOLD = bgr_accent
+    COLOR_WATER = "FFE080"
+    if caption_mode in ["caption-neon-glow", "caption-neon-accent"]:
+        COLOR_GOLD = "EED322"
+        COLOR_WATER = "B672F4"
+
     ass_content = [
 
         "[Script Info]",
@@ -358,13 +415,11 @@ def generate_subtitles():
 
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
 
-        # Default: Arial Black 52, Translucent Black background shadow
+        # Default style customized with font_name and outline colors
+        f"Style: Default,{font_name},52,&H{primary_color},&H000000FF,&H{outline_color},&H{back_color},{is_bold},0,0,0,100,100,0,0,1,{outline_width},{shadow_width},2,30,30,{margin_v},1",
 
-        f"Style: Default,Arial Black,52,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,30,30,{margin_v},1",
-
-        # Impact: Arial Black 72 bold, Gold/Yellow color, Middle Center alignment
-
-        "Style: Impact,Arial Black,72,&H0000C5FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,0,5,30,30,30,1",
+        # Impact style customized with font_name and accent BGR
+        f"Style: Impact,{font_name},72,&H00{bgr_accent},&H000000FF,&H{outline_color},&H{back_color},-1,0,0,0,100,100,0,0,1,{outline_width},0,5,30,30,30,1",
 
         "",
 
