@@ -5,7 +5,8 @@ export type CreatorIdeationMode =
   | "historical-witness"
   | "humor-facts"
   | "video-reverse-engineering"
-  | "collage-broll";
+  | "collage-broll"
+  | "express";
 
 export type CreatorModeIdentity = {
   id: CreatorIdeationMode;
@@ -25,6 +26,20 @@ export const CREATOR_MODE_IDENTITIES: Record<
   CreatorIdeationMode,
   CreatorModeIdentity
 > = {
+  express: {
+    id: "express",
+    menuLabel: "Criador Express",
+    eyebrow: "Criação ultra rápida",
+    title: "Criador Express",
+    subtitle: "Escreva e monte um YouTube Short em segundos.",
+    promise:
+      "Gera roteiro com gancho matador e desenvolvimento acelerado a partir do tema e nicho.",
+    sequence: ["Definir Tema/Nicho", "Gerar Roteiro", "Aprovar Produção"],
+    accentText: "text-rose-200",
+    accentBorder: "border-rose-400/30",
+    accentSurface: "bg-rose-400/[0.06]",
+    halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(244,63,94,0.18),transparent_34%)]",
+  },
   ai: {
     id: "ai",
     menuLabel: "Radar de Ideias",

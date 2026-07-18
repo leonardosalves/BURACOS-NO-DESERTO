@@ -20,6 +20,7 @@ import {
   Package,
   ExternalLink,
   Images,
+  Zap,
 } from "lucide-react";
 import { DashminPageLayout } from "./DashminPageLayout";
 import { SectionHeader } from "./SectionHeader";
@@ -470,6 +471,61 @@ export function AppCreatorTab({
   const [customIdeaReviewLoading, setCustomIdeaReviewLoading] =
     React.useState(false);
 
+  const [expressTheme, setExpressTheme] = React.useState("");
+  const [expressTone, setExpressTone] = React.useState("conversacional");
+  const [expressGenerating, setExpressGenerating] = React.useState(false);
+
+  const generateExpressShort = async () => {
+    if (!expressTheme.trim()) {
+      toast.error("O tema do Short é obrigatório.");
+      return;
+    }
+    if (!nicheInput.trim()) {
+      toast.error("O nicho do canal é obrigatório.");
+      return;
+    }
+    if (!creatorProjectName.trim()) {
+      toast.error("O nome do projeto é obrigatório.");
+      return;
+    }
+
+    setExpressGenerating(true);
+    const toastId = toast.loading("Gerando roteiro Express no Gemini...");
+    const token = bumpCreatorGenToken();
+    try {
+      const response = await fetch("/api/ai/creator/generate-express-short", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          theme: expressTheme.trim(),
+          niche: nicheInput.trim(),
+          tone: expressTone,
+          project: creatorProjectName.trim(),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "Falha ao gerar o roteiro express.");
+      }
+      applyNarrationGenerationResult(
+        data,
+        creatorProjectName.trim(),
+        token,
+        "Roteiro Express gerado com sucesso! Revise abaixo.",
+        toastId
+      );
+      await fetchProjects();
+      setActiveProject(creatorProjectName.trim());
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Falha na geração.",
+        { id: toastId }
+      );
+    } finally {
+      setExpressGenerating(false);
+    }
+  };
+
   const evaluateCustomIdea = async () => {
     if (!customTitle.trim()) {
       toast.error("Escreva sua ideia antes de analisar.");
@@ -554,19 +610,21 @@ export function AppCreatorTab({
     (scene: any) => Number(scene?.temporal_plan?.clip_count_required) > 1
   );
   const ModeIcon =
-    ideationTab === "humor-facts"
-      ? Laugh
-      : ideationTab === "video-reverse-engineering"
-        ? Fingerprint
-        : ideationTab === "custom"
-          ? PenTool
-          : ideationTab === "listicle"
-            ? BarChart3
-            : ideationTab === "historical-witness"
-              ? Film
-              : ideationTab === "collage-broll"
-                ? Layers
-                : Lightbulb;
+    ideationTab === "express"
+      ? Zap
+      : ideationTab === "humor-facts"
+        ? Laugh
+        : ideationTab === "video-reverse-engineering"
+          ? Fingerprint
+          : ideationTab === "custom"
+            ? PenTool
+            : ideationTab === "listicle"
+              ? BarChart3
+              : ideationTab === "historical-witness"
+                ? Film
+                : ideationTab === "collage-broll"
+                  ? Layers
+                  : Lightbulb;
   const restoreWizardSession = async () => {
     const project =
       creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
@@ -988,6 +1046,123 @@ export function AppCreatorTab({
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </section>
+              ) : ideationTab === "express" ? (
+                <div className="mx-auto max-w-4xl space-y-6 rounded-[28px] border border-rose-300/20 bg-[#12070a] p-5 shadow-2xl shadow-black/20 sm:p-7">
+                  <div className="grid gap-5 border-b border-rose-300/10 pb-5 md:grid-cols-[1fr_auto] md:items-end">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-rose-300">
+                        Criação ultra rápida
+                      </p>
+                      <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-white">
+                        YouTube Short Express (Prompt 5)
+                      </h3>
+                      <p className="mt-2 max-w-2xl text-[11px] leading-5 text-zinc-400">
+                        Gere um roteiro de 45 segundos com estrutura viral
+                        otimizada: Gancho (3s), Desenvolvimento rápido (35-40s)
+                        e Cierre de engajamento (5s).
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 text-center text-[8px] font-black uppercase tracking-wider text-rose-300/80">
+                      <span className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2 py-2">
+                        Shorts (45s)
+                      </span>
+                      <span className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2 py-2">
+                        Español
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Project Name */}
+                    <div className="space-y-2 font-sans">
+                      <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                        Nome do Projeto (Pasta)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ex: short_misterios_egito"
+                        value={creatorProjectName}
+                        onChange={(e) =>
+                          setCreatorProjectName(
+                            e.target.value.replace(/[^a-zA-Z0-9_-]/g, "_")
+                          )
+                        }
+                        className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-rose-400 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                      />
+                      <p className="text-[9px] text-zinc-600">
+                        Apenas letras, números, hífen ou sublinhado.
+                      </p>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {/* Niche Input */}
+                      <div className="space-y-2 font-sans">
+                        <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                          Nicho do Canal
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Misterios, Curiosidades, Historia, Finanzas..."
+                          value={nicheInput}
+                          onChange={(e) => setNicheInput(e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-rose-400 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                        />
+                      </div>
+
+                      {/* Tone Dropdown */}
+                      <div className="space-y-2 font-sans">
+                        <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                          Tono del Guión
+                        </label>
+                        <select
+                          value={expressTone}
+                          onChange={(e) => setExpressTone(e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-rose-400 focus:outline-none rounded-xl px-4 py-3 text-xs text-white animate-none"
+                        >
+                          <option value="conversacional">Conversacional</option>
+                          <option value="educativo">Educativo</option>
+                          <option value="narrativo">Narrativo</option>
+                          <option value="dramático">Dramático</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Theme Input */}
+                    <div className="space-y-2 font-sans">
+                      <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                        Tema Concreto (TEMA CONCRETO)
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="Ex: Los 3 barcos perdidos más misteriosos de la historia que nunca fueron encontrados"
+                        value={expressTheme}
+                        onChange={(e) => setExpressTheme(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-rose-400 focus:outline-none rounded-xl px-4 py-3 text-xs text-white resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-3">
+                    <button
+                      type="button"
+                      disabled={expressGenerating}
+                      onClick={generateExpressShort}
+                      className="inline-flex items-center gap-2 rounded-xl bg-rose-400 px-5 py-3 text-xs font-black text-slate-950 transition hover:bg-rose-300 disabled:opacity-50"
+                    >
+                      {expressGenerating ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          Gerando roteiro no Gemini...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4" />
+                          Gerar Roteiro Express
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               ) : ideationTab === "historical-witness" ? (
                 <HistoricalWitnessCreatorStep
                   creatorLoading={creatorLoading}

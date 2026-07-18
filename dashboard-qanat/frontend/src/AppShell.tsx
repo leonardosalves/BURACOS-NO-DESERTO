@@ -441,8 +441,15 @@ export function AppShell({
             title="Criadores"
             collapsed={!!collapsed["criadores"]}
             onToggle={() => toggleSection("criadores")}
-            count={7}
+            count={8}
           >
+            <SidebarLink
+              active={activeTab === "creator" && creatorMode === "express"}
+              onClick={() => onSelectCreatorMode("express")}
+              icon={Zap}
+              label="Criador Express"
+              helpId="tab-creator-express"
+            />
             <SidebarLink
               active={activeTab === "creator" && creatorMode === "ai"}
               onClick={() => onSelectCreatorMode("ai")}

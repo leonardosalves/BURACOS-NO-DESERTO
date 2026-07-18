@@ -246,6 +246,16 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  "tab-creator-express": {
+    title: "Criador Express",
+    body: (
+      <>
+        Geração expressa de Shorts de 45 segundos. Insira o tema, nicho e tom
+        para gerar o roteiro estruturado com gancho nos primeiros 3s e
+        desenvolvimento rápido.
+      </>
+    ),
+  },
   "quality-pre-render": {
     title: "Qualidade Pré-Render",
     body: (
