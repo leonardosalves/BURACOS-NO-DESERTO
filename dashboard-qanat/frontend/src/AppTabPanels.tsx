@@ -188,13 +188,42 @@ export function AppTabPanels({
           >
             <CollageBrollLab
               getProjectUrl={getProjectUrl}
-              onSendToWizard={(sid, narration) => {
-                creatorTabProps.setIdeationTab("collage-broll");
-                creatorTabProps.setCreatorProjectName(sid);
-                creatorTabProps.setNarrationDraft(narration);
-                creatorTabProps.setCreatorStep(4);
-                setActiveTab("creator" as AppTab);
-                toast.success("Sessão enviada para o Wizard · Lab Colagem");
+              onSendToWizard={async (sid, narration) => {
+                toast.loading("Criando projeto e sincronizando mídias...", {
+                  id: "send-wizard-sync",
+                });
+                try {
+                  const res = await fetch(
+                    "/api/collage-broll/send-to-project",
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        sessionId: sid,
+                        projectName: sid,
+                      }),
+                    }
+                  );
+                  const data = await res.json();
+                  if (!res.ok)
+                    throw new Error(data.error || "Erro no servidor");
+
+                  handleSelectProject(sid);
+                  creatorTabProps.setIdeationTab("collage-broll");
+                  creatorTabProps.setCreatorProjectName(sid);
+                  creatorTabProps.setNarrationDraft(narration);
+                  creatorTabProps.setCreatorStep(4);
+                  setActiveTab("creator" as AppTab);
+                  toast.success(
+                    `Projeto "${sid}" carregado com sucesso no Wizard!`,
+                    { id: "send-wizard-sync" }
+                  );
+                } catch (err: any) {
+                  toast.error(
+                    "Falha ao sincronizar projeto com o Wizard: " + err.message,
+                    { id: "send-wizard-sync" }
+                  );
+                }
               }}
             />
           </DashminPageLayout>
