@@ -404,6 +404,28 @@ export function buildVisualSpec(item) {
   };
 }
 
+// ----------------------------------------------------------------------------
+// Blocos de vocabulário reutilizáveis (fonte única de verdade para o estilo)
+// Garante que End, Start e Motion falem EXATAMENTE a mesma língua estética.
+// ----------------------------------------------------------------------------
+const STUDIO_LIGHTING =
+  "top-down macro tabletop studio lighting, single large diffused softbox from upper-left, gentle fill card on the right, soft contact shadows anchoring every paper piece to the surface, subtle ambient occlusion where layers overlap";
+
+const PAPER_MATERIALS =
+  "matte uncoated paper stock, visible cotton fiber and deckle grain, hand-scissor-cut and razor-cut edges with tiny frayed micro-burrs, warm-cream 1–2px keyline halos, layered cut-outs casting soft low-opacity drop shadows at consistent angle, faint fingerprint-free tactile surface";
+
+const HALFTONE_LOOK =
+  "black-and-white photographic cut-outs printed in coarse newspaper halftone dot screen (vintage book/risograph feel), high-contrast grayscale, slight ink misregistration";
+
+const CAMERA_RIG =
+  "locked orthographic overhead camera, no lens distortion, shallow but flat tabletop depth, everything tack-sharp and in plane";
+
+const HARD_NEGATIVES_BASE =
+  "no typography, no readable letters, no numerals, no logos, no watermark, no UI chrome, no subtitles, no captions, no glossy 3D render, no plastic sheen, no photoreal environment, no CGI gloss, no clutter, no busy background";
+
+// ----------------------------------------------------------------------------
+// 1. PROMPT BASE DA IMAGEM FINAL (End Frame)
+// ----------------------------------------------------------------------------
 export function buildImagegenPrompt(item) {
   const geo = isGeoItem(item);
   const hex = item?.background_color?.hex || (geo ? "#0B3D5C" : "#3D2463");
@@ -416,64 +438,218 @@ export function buildImagegenPrompt(item) {
     .filter(Boolean)
     .join(", ");
   const mapType = item?.map_type || "territory_outline";
-  const era = item?.era ? ` Era: ${item.era}.` : "";
+  const era = item?.era ? ` Historical map era cue: ${item.era}.` : "";
 
   if (geo) {
     return `Use case: ads-marketing
 Asset type: final still frame for a 9:16 image-to-video geographic B-roll clip
-Primary request: Create a finished editorial paper-collage MAP image expressing ${prop}.${place ? ` Place focus: ${place}.` : ""}${era}
+Primary request: Create a finished, museum-quality editorial paper-collage MAP composition expressing ${prop}.${place ? ` Place focus: ${place}.` : ""}${era}
 Map type: ${mapType}.
-Scene/backdrop: perfectly flat ${name} paper field ${hex} with subtle map-paper or parchment fiber.
-Style/medium: premium editorial stop-motion paper collage of cartography — black-and-white halftone map/satellite cut-outs, country or city silhouettes as paper shapes, dotted paper routes, paper push-pin or flag, optional compass cardstock accents in ${accents}.
-Composition/framing: vertical 9:16 locked poster frame; territory/route readable in the middle 70 percent; generous clean color-field negative space; 3–6 large separable paper map layers for assemble-from-empty animation.
-Materials/textures: printed map grain, crisp cut edges of continents/countries, cream keylines, soft drop shadows, tactile atlas paper.
-Constraints: geographic relationship must read at a glance — ${item?.core_meaning || prop}. Accurate silhouette feel for real places when named; abstract cartography if conceptual.
-Avoid: no readable street names, no Google Maps UI, no Apple Maps chrome, no GPS HUD, no logos, no watermark, no subtitles, no photoreal 3D city flythrough, no clutter.`;
+Scene/backdrop: perfectly flat, evenly lit ${name} paper field ${hex} with subtle parchment / atlas-paper fiber grain; wide clean negative space.
+Style/medium: premium editorial stop-motion paper collage of classic cartography — ${HALFTONE_LOOK}; country/city silhouettes as solid flat-color cardstock shapes; hand-punched dotted paper travel routes; folded map creases; paper push-pins and torn-corner flags; optional compass-rose and legend cardstock accents in ${accents}.
+Lighting: ${STUDIO_LIGHTING}.
+Camera: ${CAMERA_RIG}.
+Composition/framing: vertical 9:16 locked poster frame; primary territory/route sits within the safe central 70 percent, away from all four edges; strong asymmetric editorial balance; 3–6 large, clearly separable paper map layers designed for an assemble-from-empty animation.
+Materials/textures: ${PAPER_MATERIALS}; crisp cut continental coastlines; printed map grain; tactile folded-atlas feel.
+Constraints: the geographic relationship must read at a glance — ${item?.core_meaning || prop}. Silhouettes must feel accurate for named real places; use abstract cartography only when the concept is non-literal.
+Avoid: ${HARD_NEGATIVES_BASE}, no readable street names, no Google/Apple Maps UI, no GPS HUD, no photoreal 3D city flythrough, no satellite-photo realism.`;
   }
 
   return `Use case: ads-marketing
 Asset type: final still frame for a 9:16 image-to-video B-roll clip
-Primary request: Create a finished editorial paper-collage image expressing ${prop}.
-Scene/backdrop: perfectly flat ${name} paper field ${hex} with subtle uncoated paper fiber.
-Style/medium: premium editorial stop-motion paper collage; black-and-white halftone photographic cut-outs mixed with selective ${accents} colored cardstock.
-Composition/framing: vertical 9:16 locked poster frame; central subject within the middle 70 percent; generous clean color-field negative space; 3–6 large separable paper groups for later assemble-from-empty animation.
-Materials/textures: visible printed haultone dots, crisp machine-cut edges, thin warm-cream paper keylines, soft low-opacity physical drop shadows.
-Constraints: the visual relationship must be readable at a glance — ${item?.core_meaning || prop}.
-Avoid: no typography, no readable letters, no numerals, no logos, no watermark, no UI, no subtitles, no glossy 3D, no photoreal environment, no clutter.`.replace(
-    "haultone",
-    "halftone"
+Primary request: Create a finished, museum-quality editorial paper-collage composition expressing ${prop}.
+Scene/backdrop: perfectly flat, evenly lit ${name} paper field ${hex} with subtle uncoated paper fiber grain; wide clean negative space.
+Style/medium: premium editorial stop-motion paper collage; ${HALFTONE_LOOK} combined with selective solid flat-color cardstock accents in ${accents}.
+Lighting: ${STUDIO_LIGHTING}.
+Camera: ${CAMERA_RIG}.
+Composition/framing: vertical 9:16 locked poster frame; central subject held within the safe central 70 percent, clear of all four edges; strong asymmetric editorial balance; 3–6 large, clearly separable paper groups designed for an assemble-from-empty animation.
+Materials/textures: ${PAPER_MATERIALS}; visible coarse halftone dots; thin warm-cream keylines.
+Constraints: the visual metaphor must be readable at a glance — ${item?.core_meaning || prop}.
+Avoid: ${HARD_NEGATIVES_BASE}.`;
+}
+
+// ----------------------------------------------------------------------------
+// 2. COMPOSIÇÃO COMPLETA DO END FRAME (Fim do B-roll — fonte de verdade)
+// ----------------------------------------------------------------------------
+export function buildEndFrameImagePrompt(item = {}) {
+  return (
+    buildImagegenPrompt(item) +
+    `
+
+END FRAME REQUIREMENTS (source of truth for the entire clip):
+- This is the FINAL, fully-assembled state of the paper collage.
+- Every intended paper cut-out is completely visible and physically settled in its final resting position, each casting its own soft contact shadow.
+- Centered, balanced, finished assembly that reads clearly within 5 seconds.
+- Vertical 9:16 locked poster; nothing cropped, nothing bleeding off-frame.
+- Absolutely no text, labels, letters, numerals, logos, or watermark.
+- This exact image will be the LAST frame of the video — lock lighting, palette, shadow direction and paper texture as the canonical reference.`
   );
 }
 
-export function buildOmniPrompt(item) {
+// ----------------------------------------------------------------------------
+// 3. PROMPT DO START FRAME (Início do B-roll — fidelidade idêntica ao End)
+// ----------------------------------------------------------------------------
+export function buildStartFrameImagePrompt(item = {}) {
   const geo = isGeoItem(item);
   const hex = item?.background_color?.hex || (geo ? "#0B3D5C" : "#3D2463");
-  const name = item?.background_color?.name || (geo ? "ocean" : "color");
-  const order = (item?.assembly_order || item?.key_objects || [])
-    .map(String)
-    .join("; ");
-  const place = [item?.place_name, item?.country].filter(Boolean).join(", ");
+  const name =
+    item?.background_color?.name || (geo ? "ocean ink" : "deep purple");
+  const objects = (item.visualProposal?.objects || item.key_objects || []).map(
+    String
+  );
+  const moving = objects.slice(0, 4);
 
-  if (geo) {
-    return `Paper-collage stop-motion MAP assembly, using Image 1 as the exact empty first frame and Image 2 as the exact completed last frame. In one continuous locked-off vertical shot, open on the empty flat ${name} paper field${place ? ` (story of ${place})` : ""}.
+  const offscreenPlan =
+    moving.length >= 2
+      ? `Move the exact cut-out "${moving[0]}" fully off-frame past the upper-left edge (only a hint of its shadow may remain). Move the exact cut-out "${moving[1]}" fully off-frame past the lower-right edge. Any remaining background/structure pieces stay EXACTLY where they are in the end frame. Keep the central 70 percent essentially empty — only the bare paper field.`
+      : moving.length === 1
+        ? `Move the exact cut-out "${moving[0]}" fully off-frame past the nearest edge, staged and ready to slide in. Keep the central 70 percent essentially empty — only the bare paper field.`
+        : `Show only the bare, flat paper field with all foreground cut-outs removed; the surface is clean and ready for assembly.`;
 
-Assemble the cartographic collage piece by piece with crisp physical stop-motion timing: ${order || "map base, territory outline, route line, pin or POI"}. End by holding the supplied completed map composition.
+  return `Use case: ads-marketing
+Asset type: START FRAME (empty / pre-assembly state) for a 9:16 paper-collage image-to-video clip
+Primary request: Recreate the INITIAL, pre-assembly state of the SAME editorial paper collage that resolves into the already-approved end composition. This is an image-to-image continuity task, NOT a new design.
+Scene/backdrop: the IDENTICAL flat ${name} paper field ${hex} — same exact hue, same fiber grain / parchment texture, same ${STUDIO_LIGHTING}.
+Style/medium: premium editorial stop-motion paper collage${geo ? " of cartography" : ""}; ${HALFTONE_LOOK}; solid flat-color cardstock accents — all matching the end frame precisely.
+Camera: ${CAMERA_RIG} — IDENTICAL framing, focal plane and crop to the end frame.
+Staging: ${offscreenPlan}
+STRICT CONSISTENCY (must match end frame pixel-for-pixel where unchanged): background color and texture, lighting direction and softness, shadow angle, halftone dot scale, cardstock colors, cut-edge style, keyline color, object identity, silhouette and scale of every retained piece.
+Constraints: fromEndFrame=true — do NOT redesign, recolor, rescale, or restyle anything. ONLY reposition or remove the moving foreground pieces to represent the "before assembly" moment. Removed pieces are simply off-frame, not altered.
+Avoid: ${geo ? "no morphing or reshaping of geographic silhouettes, " : ""}no new objects, no new background, no lighting change, no palette shift, no texture change, no text, no labels, no letters, no logos, no watermark.`;
+}
 
-Preserve the exact 9:16 framing, ${hex} color field, map-paper grain, country/city silhouettes, dotted routes, cream keylines, crisp cut edges and soft shadows. Restrained tactile 2D paper craft only — cartography as collage, not live satellite UI.
+// ----------------------------------------------------------------------------
+// HELPER: Normaliza e formata o objeto de consistência (metadados dos gates 2A/2B)
+// Aceita qualquer subconjunto de campos — tudo é opcional e retrocompatível.
+// ----------------------------------------------------------------------------
+function buildConsistencyBlock(consistency) {
+  if (!consistency || typeof consistency !== "object") return "";
 
-No scene cuts, no camera movement, no zoom, no morphing, no new objects, no readable street labels, no Google Maps UI, no logos, no watermark, no sound.`;
+  const c = consistency;
+  const lines = [];
+
+  // Paleta travada (aceita array de hex, array de {name,hex}, ou string)
+  const palette = c.palette || c.colors || c.locked_palette;
+  if (palette) {
+    const flat = Array.isArray(palette)
+      ? palette
+          .map((p) =>
+            typeof p === "string"
+              ? p
+              : [p?.name, p?.hex].filter(Boolean).join(" ")
+          )
+          .filter(Boolean)
+          .join(", ")
+      : String(palette);
+    if (flat) lines.push(`- Locked palette (do not shift): ${flat}.`);
   }
 
-  return `Paper-collage stop-motion assembly, using Image 1 as the exact empty first frame and Image 2 as the exact completed last frame. In one continuous locked-off vertical shot, open on the empty flat ${name} paper field.
+  // Fundo canônico
+  const bg = c.background_hex || c.background_color?.hex || c.bg_hex;
+  if (bg) lines.push(`- Locked background field: exactly ${bg}.`);
 
-Assemble the scene piece by piece with crisp physical stop-motion timing: ${order || "structure, subjects, connectors, final result"}. End by holding the supplied completed composition.
+  // Direção/ângulo de sombra
+  if (c.shadow_angle || c.shadow_direction) {
+    lines.push(
+      `- Locked shadow direction: ${c.shadow_angle || c.shadow_direction} (keep identical on every frame).`
+    );
+  }
 
-Preserve the exact 9:16 framing, ${hex} color field, colored cardstock accents, uncoated paper grain, halfone dots, cream keylines, crisp cut edges and soft shadows. Restrained tactile 2D paper craft only.
+  // Escala do halftone / grão de papel
+  if (c.halftone_scale || c.halftone) {
+    lines.push(
+      `- Locked halftone dot scale: ${c.halftone_scale || c.halftone} (no re-screening, no resampling).`
+    );
+  }
+  if (c.paper_texture || c.texture_id || c.texture_seed) {
+    lines.push(
+      `- Locked paper texture reference: ${c.paper_texture || c.texture_id || c.texture_seed} (same fiber grain throughout).`
+    );
+  }
 
-No scene cuts, no camera movement, no zoom, no morphing, no new objects, no text, no letters, no numbers, no logos, no watermark, no UI, no sound.`.replace(
-    "halfone",
-    "halftone"
+  // Iluminação
+  if (c.lighting) lines.push(`- Locked lighting setup: ${c.lighting}.`);
+
+  // Seed do gerador (para reprodutibilidade quando o modelo suportar)
+  if (c.seed !== undefined && c.seed !== null) {
+    lines.push(`- Reference generation seed: ${c.seed}.`);
+  }
+
+  // Elementos que NUNCA devem se mover (já assentados / estrutura de fundo)
+  const staticEls = c.static_elements || c.locked_elements || c.do_not_move;
+  if (Array.isArray(staticEls) && staticEls.length) {
+    lines.push(
+      `- These elements are already placed and MUST stay perfectly still: ${staticEls
+        .map(String)
+        .join("; ")}.`
+    );
+  }
+
+  // Referências de quadro (URLs/ids das imagens canônicas)
+  if (c.start_frame_ref || c.startFrame) {
+    lines.push(
+      `- Canonical START frame reference: ${c.start_frame_ref || c.startFrame}.`
+    );
+  }
+  if (c.end_frame_ref || c.endFrame) {
+    lines.push(
+      `- Canonical END frame reference (must land exactly here): ${c.end_frame_ref || c.endFrame}.`
+    );
+  }
+
+  // Notas livres do diretor de arte
+  if (c.notes) lines.push(`- Art-director note: ${c.notes}.`);
+
+  if (!lines.length) return "";
+
+  return `
+
+CANONICAL CONSISTENCY ANCHORS (inherited from the approved still frames — treat as immutable ground truth):
+${lines.join("\n")}`;
+}
+
+// ----------------------------------------------------------------------------
+// 4. PROMPT DE MOVIMENTO (Gate 3 — Interpolação Start -> End)
+// ----------------------------------------------------------------------------
+export function buildMotionPrompt(item = {}, consistency = null) {
+  const objects = (item.visualProposal?.objects || item.key_objects || []).map(
+    String
   );
+  const moving = objects.slice(0, 4);
+  const order = (item.assembly_order || moving).map(String).join("; ");
+  const geo = isGeoItem(item);
+
+  const moveLine =
+    moving.length >= 2
+      ? `Animate the exact paper cut-out "${moving[0]}" sliding in rigidly from beyond the upper-left edge while the exact paper cut-out "${moving[1]}" slides in rigidly from beyond the lower-right edge. Any further pieces drop into place one at a time in this order: ${order}.`
+      : moving.length === 1
+        ? `Animate the exact paper cut-out "${moving[0]}" sliding rigidly into its final resting position with restrained, handcrafted stop-motion steps.`
+        : `Assemble the collage one flat piece at a time with crisp physical stop-motion timing in this order: ${order || "background structure, subjects, accent result"}.`;
+
+  // Bloco opcional de âncoras herdadas dos gates 2A/2B
+  const consistencyBlock = buildConsistencyBlock(consistency);
+
+  return `TASK: Interpolate ONLY between the supplied start frame and end frame. The end frame is the exact, locked final image — land on it precisely.
+
+MOTION: ${moveLine}
+
+STOP-MOTION PHYSICS (tactile paper on a tabletop — this is the priority):
+- Each piece is a RIGID flat paper cut-out. It translates and rotates as a solid shape; it never bends, stretches, melts, or dissolves.
+- Move on 2s/3s stop-motion cadence: small stepped increments, ~8–12 fps stutter feel, tiny easing-in before each piece settles.
+- On landing, each piece shows a subtle micro-bounce and a 1–2 frame settle jitter (physical vibration against the table), then locks still.
+- Contact drop-shadows shift and soften in sync with each piece as it lowers onto the surface.
+- Slight in-plane paper friction: pieces may nudge a hair on arrival, then rest.
+
+HARD CONSISTENCY LOCK:
+- Preserve the exact silhouettes${geo ? " of every geographic shape" : ""}, colors, scale, halftone dot size, paper fiber texture, cardstock hues, keylines, background field and 9:16 framing from the supplied frames.
+- Static elements (background, folds, grid, texture, already-placed pieces) must remain perfectly still — zero drift.${consistencyBlock}
+
+FORBIDDEN (critical — reject these behaviors):
+- NO morphing, NO gel/liquid warp, NO one object transforming into another, NO cross-fade blending between shapes.
+- NO new objects, NO object removal after landing, NO shape distortion, NO scale pumping.
+- NO scene cuts, NO flicker of the background, NO relighting.
+- NO text, letters, numerals, logos or watermark appearing at any frame.
+- NO camera movement whatsoever: no zoom, no pan, no tilt, no parallax, no dolly. The overhead camera is fully locked.`;
 }
 
 export function buildOmniJob(
@@ -485,7 +661,7 @@ export function buildOmniJob(
   } = {}
 ) {
   return {
-    prompt: buildOmniPrompt(item),
+    prompt: buildMotionPrompt(item),
     image: [firstFrame, lastFrame],
     output,
     aspect_ratio: "9:16",
@@ -657,77 +833,6 @@ export function buildDualFrameSpec(item = {}) {
     },
     frameConsistency: consistency,
   };
-}
-
-export function buildEndFrameImagePrompt(item = {}) {
-  // End frame = composição aprovada (fonte de verdade)
-  return (
-    buildImagegenPrompt(item) +
-    `
-
-END FRAME REQUIREMENTS:
-- This is the FINAL completed composition of the paper collage.
-- All intended paper cut-outs are fully visible and settled in their final positions.
-- Centered finished assembly, readable in 5 seconds.
-- Vertical 9:16 locked poster.
-- No text, no labels, no letters, no logos, no watermark.
-- This frame will be the exact last frame of the video.`
-  );
-}
-
-export function buildStartFrameImagePrompt(item = {}) {
-  const hex = item?.background_color?.hex || "#0B3D5C";
-  const name =
-    item?.background_color?.name ||
-    (normalizeCollageMode(item?.mode) === "geo" ? "ocean ink" : "deep purple");
-  const objects = (item.visualProposal?.objects || item.key_objects || []).map(
-    String
-  );
-  const moving = objects.slice(0, 4);
-  const geo = normalizeCollageMode(item?.mode) === "geo";
-
-  const offscreenPlan =
-    moving.length >= 2
-      ? `Place the exact first cut-out "${moving[0]}" partially outside the upper-left edge. Place the exact second cut-out "${moving[1]}" partially outside the lower-right edge. Keep the center mostly empty.`
-      : moving.length === 1
-        ? `Place the exact cut-out "${moving[0]}" partially outside the frame edge, ready to slide in. Keep the center mostly empty.`
-        : `Keep the center empty; only the flat paper field is visible.`;
-
-  return `Use case: ads-marketing
-Asset type: START FRAME (empty / pre-assembly) for 9:16 paper-collage image-to-video
-Primary request: Create the INITIAL state of the same editorial paper collage that will finish as the approved end composition.
-Scene/backdrop: perfectly flat ${name} paper field ${hex} with the SAME paper grain / parchment texture as the end frame.
-Style/medium: premium editorial stop-motion paper collage${geo ? " of cartography" : ""}; black-and-white halftone; colored cardstock accents.
-Composition/framing: vertical 9:16 locked poster — IDENTICAL framing to the end frame.
-${offscreenPlan}
-Preserve from the end frame: silhouettes, colors, scale, cut edges, shadows, palette, texture, lighting, object identity.
-Constraints: fromEndFrame=true — do NOT invent a new design. Only reposition/hide elements for the start state.
-Avoid: no new objects, no text, no labels, no letters, no logos, no watermark, no morphing of geographic shapes.`;
-}
-
-/**
- * Motion prompt — apenas a passagem entre frames (sem redescrever a cena).
- */
-export function buildMotionPrompt(item = {}, consistency = null) {
-  const cons = consistency || buildFrameConsistency(item);
-  const moving = cons.movingElements || [];
-  const order = (item.assembly_order || moving).map(String).join("; ");
-  const geo = normalizeCollageMode(item?.mode) === "geo";
-
-  const moveLine =
-    moving.length >= 2
-      ? `Animate the exact paper cut-out "${moving[0]}" sliding in from the upper-left while the exact paper cut-out "${moving[1]}" slides in from the lower-right. Additional pieces assemble in order: ${order}.`
-      : moving.length === 1
-        ? `Animate the exact paper cut-out "${moving[0]}" sliding into its final position with restrained handcrafted stop-motion steps.`
-        : `Assemble the collage piece by piece with crisp physical stop-motion timing: ${order || "structure, subjects, result"}.`;
-
-  return `Using the supplied start and end frames, ${moveLine}
-Both pieces settle with softly shifting physical shadows.
-Preserve the exact silhouettes${geo ? " of geographic shapes" : ""}, colors, scale, paper texture, background, grid and 9:16 framing.
-Static elements (background, grid, texture) must not move.
-End exactly on the supplied end frame.
-No morphing, no new objects, no object removal, no scene cuts, no text, no letters, no logos, no watermark.
-No camera movement, no zoom, no pan, no tilt.`;
 }
 
 /**
