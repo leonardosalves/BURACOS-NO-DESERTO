@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import type { CreatorApplyIdeaOptions } from "./creatorEditorialImport";
+import { VisualAssetStylePicker } from "./VisualAssetStylePicker";
 
 type HumorIdea = {
   id: string;
@@ -41,8 +42,40 @@ type NarrationResult = {
   factIntegrity: string;
 };
 
+type HumorProductionScene = {
+  id?: string;
+  order: number;
+  durationSeconds: number;
+  narration: string;
+  visualBeat: string;
+  mediaType: "image" | "video";
+  mediaReason: string;
+  imagePrompt: string;
+  videoPrompt: string;
+  shot: string;
+  camera: string;
+  onScreenText: string;
+  sfxCue: string;
+  transition: string;
+};
+
+type HumorProductionPlan = {
+  title?: string;
+  hook?: string;
+  narration: string;
+  visualComedyDirection?: string;
+  continuityBible?: string;
+  musicDirection?: string;
+  sfxDirection?: string;
+  scenes: HumorProductionScene[];
+};
+
 type Props = {
   getProjectUrl: (path: string) => string;
+  visualAssetStyle?: string;
+  visualMapOnly?: boolean;
+  onVisualAssetStyleChange?: (styleId: string) => void;
+  onVisualMapOnlyChange?: (enabled: boolean) => void;
   onApplyCreator: (
     title: string,
     hook: string,
@@ -57,7 +90,125 @@ const HUMOR_STYLES = [
   ["energia de stand-up familiar", "Stand-up leve"],
 ] as const;
 
-export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
+function buildHumorStoryboard({
+  plan,
+  idea,
+  format,
+  humorStyle,
+}: {
+  plan: HumorProductionPlan;
+  idea: HumorIdea;
+  format: "SHORTS" | "LONGO";
+  humorStyle: string;
+}) {
+  const maxBlocks = format === "SHORTS" ? 4 : 8;
+  const scenesPerBlock = Math.max(1, Math.ceil(plan.scenes.length / maxBlocks));
+  const visualPrompts = plan.scenes.map((scene, index) => {
+    const block = Math.floor(index / scenesPerBlock) + 1;
+    const sceneInBlock = (index % scenesPerBlock) + 1;
+    const durationSeconds = Math.max(2, Number(scene.durationSeconds) || 5);
+    const continuity = plan.continuityBible?.trim();
+    const mediaType = scene.mediaType === "video" ? "video" : "image";
+    const selectedPrompt =
+      mediaType === "video"
+        ? scene.videoPrompt?.trim()
+        : scene.imagePrompt?.trim();
+    const productionPrompt = [
+      continuity ? `CONTINUITY BIBLE: ${continuity}` : "",
+      selectedPrompt,
+      scene.visualBeat?.trim()
+        ? `VISUAL COMEDY BEAT: ${scene.visualBeat.trim()}`
+        : "",
+      scene.shot?.trim() ? `SHOT: ${scene.shot.trim()}` : "",
+      scene.camera?.trim() ? `CAMERA: ${scene.camera.trim()}` : "",
+      mediaType === "video"
+        ? "Natural continuous action, precise visual-comedy timing, one readable gag, no meme clutter, no watermark."
+        : "Single decisive still frame, precise factual composition, editorial depth, no meme clutter, no watermark.",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    return {
+      scene: `${block}.${sceneInBlock}`,
+      block,
+      source_scene_id:
+        scene.id || `humor-scene-${String(index + 1).padStart(2, "0")}`,
+      narration_text: scene.narration,
+      narration_excerpt: scene.narration,
+      visual_description: scene.visualBeat,
+      duration: `${durationSeconds} segundos`,
+      duration_seconds: durationSeconds,
+      type: mediaType === "video" ? "vídeo IA (max 10s)" : "imagem IA",
+      media_mode: mediaType,
+      aspect_ratio: format === "SHORTS" ? "9:16" : "16:9",
+      prompt: productionPrompt,
+      image_prompt: mediaType === "image" ? productionPrompt : "",
+      video_prompt: mediaType === "video" ? productionPrompt : "",
+      ai_video_prompt: mediaType === "video" ? productionPrompt : "",
+      production: {
+        broll_type: mediaType,
+        generation_source: "humor-facts",
+        media_reason: scene.mediaReason,
+      },
+      shot: scene.shot,
+      camera: scene.camera,
+      text_overlay: scene.onScreenText,
+      transition: scene.transition,
+      sfx_cue: scene.sfxCue,
+      editor_notes: [
+        scene.visualBeat,
+        `Mídia: ${mediaType === "video" ? "vídeo" : "imagem"}`,
+        scene.mediaReason ? `Motivo: ${scene.mediaReason}` : "",
+        scene.shot ? `Plano: ${scene.shot}` : "",
+        scene.camera ? `Câmera: ${scene.camera}` : "",
+        scene.sfxCue ? `SFX: ${scene.sfxCue}` : "",
+      ]
+        .filter(Boolean)
+        .join(" | "),
+      provenance: "humor-facts",
+    };
+  });
+
+  return {
+    strategy: {
+      title_main: plan.title || idea.title,
+      title_variations: [],
+      hook: plan.hook || idea.hook,
+      tone: humorStyle,
+      factual_premise: idea.factualPremise,
+    },
+    narrative_script: plan.narration,
+    visual_prompts: visualPrompts,
+    research_facts: [idea.factualPremise],
+    research_sources: idea.sources,
+    music_direction: plan.musicDirection || "",
+    sfx_direction: plan.sfxDirection || "",
+    visual_comedy_direction: plan.visualComedyDirection || "",
+    continuity_bible: plan.continuityBible || "",
+    technical_config: {
+      format,
+      aspect_ratio: format === "SHORTS" ? "9:16" : "16:9",
+      imported_scene_count: visualPrompts.length,
+    },
+    specialized_import: {
+      source: "humor-facts",
+      title: plan.title || idea.title,
+      hook: plan.hook || idea.hook,
+      factual_premise: idea.factualPremise,
+      humor_style: humorStyle,
+      source_idea_id: idea.id,
+    },
+  };
+}
+
+export function HumorFactsLab({
+  getProjectUrl,
+  visualAssetStyle: visualAssetStyleProp = "photorealistic",
+  visualMapOnly: visualMapOnlyProp = false,
+  onVisualAssetStyleChange,
+  onVisualMapOnlyChange,
+  onApplyCreator,
+}: Props) {
   const [niche, setNiche] = useState("");
   const [format, setFormat] = useState<"SHORTS" | "LONGO">("SHORTS");
   const [humorStyle, setHumorStyle] = useState<string>(HUMOR_STYLES[0][0]);
@@ -69,6 +220,23 @@ export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
   const [loadingIdeas, setLoadingIdeas] = useState(false);
   const [loadingNarration, setLoadingNarration] = useState(false);
   const [loadingProduction, setLoadingProduction] = useState(false);
+  const [localVisualStyle, setLocalVisualStyle] =
+    useState(visualAssetStyleProp);
+  const [localMapOnly, setLocalMapOnly] = useState(visualMapOnlyProp);
+  const visualAssetStyle = onVisualAssetStyleChange
+    ? visualAssetStyleProp
+    : localVisualStyle;
+  const visualMapOnly = onVisualMapOnlyChange
+    ? visualMapOnlyProp
+    : localMapOnly;
+  const setVisualAssetStyle = (id: string) => {
+    if (onVisualAssetStyleChange) onVisualAssetStyleChange(id);
+    else setLocalVisualStyle(id);
+  };
+  const setVisualMapOnly = (v: boolean) => {
+    if (onVisualMapOnlyChange) onVisualMapOnlyChange(v);
+    else setLocalMapOnly(v);
+  };
 
   const selected = useMemo(
     () => ideas.find((idea) => idea.id === selectedId) || null,
@@ -100,12 +268,15 @@ export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
         humorStyle,
         audience,
         count: 6,
+        excludeIdeas: ideas.map((idea) => idea.title),
+        forceVariety: ideas.length > 0,
       });
       const next = (data.ideas || []) as HumorIdea[];
       setIdeas(next);
       setSelectedId(next[0]?.id || "");
+      const blocked = Number(data.meta?.rejectedCount || 0);
       toast.success(
-        `${next.length} pautas encontradas sem misturar com o Criador principal.`
+        `${next.length} pautas novas encontradas${blocked ? `; ${blocked} repetidas foram bloqueadas` : ""}.`
       );
     } catch (err) {
       toast.error(
@@ -156,35 +327,20 @@ export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
         factualPremise: selected.factualPremise,
         format,
         humorStyle,
+        visualAssetStyle,
+        visual_map_only_prompts: visualMapOnly,
       });
-      const plan = data.result as {
-        title?: string;
-        hook?: string;
-        narration: string;
-        visualComedyDirection?: string;
-        continuityBible?: string;
-        musicDirection?: string;
-        sfxDirection?: string;
-        scenes: Array<{
-          order: number;
-          narration: string;
-          visualBeat: string;
-          imagePrompt: string;
-          videoPrompt: string;
-          shot: string;
-          camera: string;
-          onScreenText: string;
-          sfxCue: string;
-          transition: string;
-        }>;
-      };
+      const plan = data.result as HumorProductionPlan;
       const sceneText = (scene: (typeof plan.scenes)[number]) =>
         [
           `CENA ${scene.order}`,
           `NARRACAO: ${scene.narration}`,
           `HUMOR VISUAL: ${scene.visualBeat}`,
-          `PROMPT IMAGEM: ${scene.imagePrompt}`,
-          `PROMPT VIDEO: ${scene.videoPrompt}`,
+          `MIDIA ESCOLHIDA: ${scene.mediaType === "video" ? "VIDEO" : "IMAGEM"}`,
+          scene.mediaReason ? `MOTIVO DA MIDIA: ${scene.mediaReason}` : "",
+          scene.mediaType === "image"
+            ? `PROMPT IMAGEM: ${scene.imagePrompt}`
+            : `PROMPT VIDEO: ${scene.videoPrompt}`,
           `PLANO/CAMERA: ${scene.shot}; ${scene.camera}`,
           scene.onScreenText ? `TEXTO NA TELA: ${scene.onScreenText}` : "",
           scene.sfxCue ? `SFX: ${scene.sfxCue}` : "",
@@ -216,6 +372,20 @@ export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
             .join("\n\n"),
         })
       );
+      const prebuiltStoryboard = {
+        ...buildHumorStoryboard({
+          plan,
+          idea: selected,
+          format,
+          humorStyle,
+        }),
+        visual_asset_style: visualAssetStyle,
+        visual_map_only_prompts: visualMapOnly,
+        technical_config: {
+          visual_asset_style: visualAssetStyle,
+          visual_map_only_prompts: visualMapOnly,
+        },
+      };
       await onApplyCreator(
         plan.title || narration.title,
         plan.hook || narration.hook,
@@ -228,12 +398,16 @@ export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
           customPromise: outline,
           whyWorks: outline,
           approvedNarration: plan.narration,
+          targetNiche: niche.trim() || "Geral",
+          prebuiltStoryboard,
+          wizardMode: "humor-facts",
+          directImportLabel: "Fatos com Graça",
+          visualAssetStyle,
+          visualMapOnly,
           blocks,
         }
       );
-      toast.success(
-        "Cenas humoristicas prontas. Narracao enviada intacta ao wizard."
-      );
+      toast.success("Storyboard humorístico carregado diretamente no Wizard.");
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Falha ao planejar as cenas."
@@ -244,18 +418,18 @@ export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-14">
-      <section className="relative overflow-hidden rounded-[28px] border border-orange-300/20 bg-[#17120f] px-6 py-7 shadow-2xl shadow-black/20 sm:px-9">
+    <div className="mx-auto w-full max-w-[1680px] space-y-6 px-1 pb-14 sm:px-2">
+      <section className="relative overflow-hidden rounded-[28px] border border-orange-300/20 bg-[#17120f] px-6 py-7 shadow-2xl shadow-black/20 sm:px-10 lg:px-12">
         <div className="absolute right-[-70px] top-[-90px] h-64 w-64 rounded-full border-[42px] border-orange-400/5" />
-        <div className="relative grid gap-7 lg:grid-cols-[1.25fr_.75fr] lg:items-end">
+        <div className="relative grid gap-7 lg:grid-cols-[1.35fr_.65fr] lg:items-end">
           <div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-300/25 bg-orange-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-orange-200">
               <Laugh className="h-3.5 w-3.5" /> Feature exclusiva
             </div>
-            <h1 className="max-w-3xl font-serif text-4xl font-semibold leading-[1.02] tracking-tight text-stone-50 sm:text-5xl">
+            <h1 className="max-w-4xl font-serif text-4xl font-semibold leading-[1.02] tracking-tight text-stone-50 sm:text-5xl">
               Fatos com <span className="italic text-orange-300">Graca</span>
             </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-stone-400">
+            <p className="mt-4 max-w-3xl text-sm leading-6 text-stone-400">
               Uma redacao separada para descobrir fatos pouco explorados e
               transforma-los em narracoes engraçadas sem inventar a realidade.
             </p>
@@ -272,8 +446,8 @@ export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
         </div>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
-        <div className="h-fit space-y-5 rounded-3xl border border-stone-800 bg-stone-950/70 p-5 lg:sticky lg:top-5">
+      <section className="grid gap-6 lg:grid-cols-[minmax(420px,32%)_minmax(0,1fr)] xl:grid-cols-[minmax(460px,30%)_minmax(0,1fr)]">
+        <div className="h-fit space-y-5 rounded-3xl border border-stone-800 bg-stone-950/70 p-5 sm:p-6 lg:sticky lg:top-5">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-300">
               Briefing da pauta
@@ -332,6 +506,21 @@ export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
               className="w-full rounded-xl border border-stone-700 bg-black/40 px-3 py-2.5 text-xs text-stone-200"
             />
           </label>
+          <div className="space-y-2 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/[0.06] p-3">
+            <span className="text-xs font-bold text-fuchsia-200">
+              Estilo visual dos prompts
+            </span>
+            <p className="text-[10px] leading-4 text-stone-500">
+              Look dos assets no plano visual e no wizard (3D, realista,
+              anime…).
+            </p>
+            <VisualAssetStylePicker
+              value={visualAssetStyle}
+              onChange={setVisualAssetStyle}
+              mapOnly={visualMapOnly}
+              onMapOnlyChange={setVisualMapOnly}
+            />
+          </div>
           <button
             type="button"
             onClick={() => void generateIdeas()}
@@ -345,7 +534,9 @@ export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
             )}
             {loadingIdeas
               ? "Investigando angulos..."
-              : "Descobrir pautas raras"}
+              : ideas.length
+                ? "Buscar outras sem repetir"
+                : "Descobrir pautas raras"}
           </button>
         </div>
 
@@ -533,9 +724,9 @@ export function HumorFactsLab({ getProjectUrl, onApplyCreator }: Props) {
               )}
               <div className="mt-5 flex flex-col gap-3 border-t border-emerald-300/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
                 <p className="max-w-xl text-[10px] leading-5 text-stone-500">
-                  O diretor de humor criara cenas, prompts de imagem e video,
-                  continuidade, musica e SFX. A narracao acima sera preservada
-                  palavra por palavra no wizard.
+                  O diretor escolhera imagem ou video para cada cena conforme a
+                  acao realmente exigir, alem de continuidade, musica e SFX. A
+                  narracao acima sera preservada palavra por palavra no wizard.
                 </p>
                 <button
                   type="button"

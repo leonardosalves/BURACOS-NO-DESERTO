@@ -119,6 +119,24 @@ function pickNeighborSample(region, width, height) {
   return options.sort((a, b) => b.score - a.score)[0] || null;
 }
 
+function createFeatherMask(width, height) {
+  const feather = Math.max(
+    2,
+    Math.min(16, Math.round(Math.min(width, height) * 0.12))
+  );
+  return Buffer.from(
+    `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="soft"><feGaussianBlur stdDeviation="${feather / 2}"/></filter>
+      </defs>
+      <rect x="${feather / 2}" y="${feather / 2}"
+        width="${Math.max(1, width - feather)}"
+        height="${Math.max(1, height - feather)}"
+        rx="${feather / 2}" fill="white" filter="url(#soft)"/>
+    </svg>`
+  );
+}
+
 async function processImage(source, destination, rect, method) {
   const metadata = await sharp(source).metadata();
   const width = Number(metadata.width);
@@ -146,10 +164,14 @@ async function processImage(source, destination, rect, method) {
     const sample = pickNeighborSample(region, width, height);
     if (!sample)
       throw new Error("Não existe área vizinha suficiente para reconstruir.");
-    patch = await sharp(source)
+    const reconstructed = await sharp(source)
       .extract(sample)
       .resize(region.width, region.height, { fit: "fill" })
-      .blur(2.2)
+      .blur(1.4)
+      .toBuffer();
+    patch = await sharp(reconstructed)
+      .joinChannel(createFeatherMask(region.width, region.height))
+      .png()
       .toBuffer();
   }
   await sharp(source)
@@ -204,16 +226,29 @@ async function probeVideo(source, ffmpegBinary) {
 }
 
 export function buildVideoCleanupArgs({ source, destination, region }) {
+  const sample = pickNeighborSample(
+    region,
+    region.frameWidth,
+    region.frameHeight
+  );
+  if (!sample) {
+    throw new Error("Não existe área vizinha suficiente para reconstruir.");
+  }
+  const filter = [
+    "[0:v]split=2[base][sample]",
+    `[sample]crop=${sample.width}:${sample.height}:${sample.left}:${sample.top},scale=${region.width}:${region.height}:flags=lanczos,gblur=sigma=1.4[patch]`,
+    `[base][patch]overlay=${region.x}:${region.y}:format=auto[outv]`,
+  ].join(";");
   return [
     "-y",
     "-i",
     source,
     "-map",
-    "0:v:0",
+    "[outv]",
     "-map",
     "0:a?",
-    "-vf",
-    `delogo=x=${region.x}:y=${region.y}:w=${region.width}:h=${region.height}:show=0`,
+    "-filter_complex",
+    filter,
     "-c:v",
     "libx264",
     "-preset",
@@ -237,7 +272,11 @@ async function processVideo(source, destination, rect) {
   if (!ff.binary)
     throw new Error("FFmpeg não encontrado para processar vídeo.");
   const dimensions = await probeVideo(source, ff.binary);
-  const region = pixelRect(rect, dimensions.width, dimensions.height);
+  const region = {
+    ...pixelRect(rect, dimensions.width, dimensions.height),
+    frameWidth: dimensions.width,
+    frameHeight: dimensions.height,
+  };
   await runProcess(
     ff.binary,
     buildVideoCleanupArgs({ source, destination, region })
@@ -310,7 +349,7 @@ export async function createAssetCleanupResult(
     media_type: source.mediaType,
     block: String(block ?? ""),
     asset_index: Number(assetIndex),
-    method: source.mediaType === "video" ? "ffmpeg_delogo" : method,
+    method: source.mediaType === "video" ? "neighbor_patch" : method,
     rect: normalizedRect,
     ...details,
   };
@@ -345,9 +384,14 @@ export function applyAssetCleanupResult(projDir, jobId) {
   if (!slot) throw new Error("A cena original não existe mais na timeline.");
   const current = normalizeRelativeAsset(slot.asset);
   if (current !== job.source_asset && current !== job.result_asset) {
-    throw new Error(
+    const error = new Error(
       "O asset da cena mudou; gere uma nova comparação antes de aplicar."
     );
+    error.code = "ASSET_CLEANUP_SOURCE_CHANGED";
+    error.current_asset = current;
+    error.block = blockKey;
+    error.asset_index = index;
+    throw error;
   }
   slots[index] = {
     ...slot,

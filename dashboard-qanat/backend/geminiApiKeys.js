@@ -28,3 +28,31 @@ export function buildGeminiKeyPool(preferredKey, poolKeys = []) {
 export function shouldRotateGeminiKey(status) {
   return status === 429 || status === 503 || status === 500 || status === 502;
 }
+
+/** Sobrecarga do modelo (não da chave): varrer todas as chaves costuma só atrasar. */
+export function isGeminiModelOverloadStatus(status) {
+  return status === 503 || status === 500 || status === 502;
+}
+
+/** Cota / rate limit por chave ou projeto. */
+export function isGeminiQuotaStatus(status) {
+  return status === 429;
+}
+
+/**
+ * Quantas chaves tentar no mesmo modelo antes de falhar-rápido.
+ * - 503/500/502: default 2 (high demand é do modelo)
+ * - 429: default 3 (outra chave/projeto pode ter cota)
+ * Override: GEMINI_OVERLOAD_KEY_LIMIT / GEMINI_QUOTA_KEY_LIMIT
+ */
+export function geminiMaxKeysBeforeModelSwitch(status) {
+  if (isGeminiModelOverloadStatus(status)) {
+    const n = Number(process.env.GEMINI_OVERLOAD_KEY_LIMIT);
+    return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 2;
+  }
+  if (isGeminiQuotaStatus(status)) {
+    const n = Number(process.env.GEMINI_QUOTA_KEY_LIMIT);
+    return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 3;
+  }
+  return Infinity;
+}

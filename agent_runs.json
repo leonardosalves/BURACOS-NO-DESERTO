@@ -297,5 +297,141 @@
       }
     ],
     "issueCount": 1
+  },
+  {
+    "id": "1784262806334",
+    "at": "2026-07-17T04:33:26.334Z",
+    "project": "LUMIERA",
+    "niche": "Geral",
+    "format": "SHORT",
+    "score": 98,
+    "source": "auto_quality",
+    "patterns": [
+      {
+        "category": "SHORT/no_bgm",
+        "description": "Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia",
+        "increment": 1
+      }
+    ],
+    "issueCount": 1
+  },
+  {
+    "id": "1784265315437",
+    "at": "2026-07-17T05:15:15.437Z",
+    "project": "LUMIERA",
+    "niche": "Geral",
+    "format": "SHORT",
+    "score": 98,
+    "source": "auto_quality",
+    "patterns": [
+      {
+        "category": "SHORT/no_bgm",
+        "description": "Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia",
+        "increment": 1
+      }
+    ],
+    "issueCount": 1
+  },
+  {
+    "id": "1784295210451",
+    "at": "2026-07-17T13:33:30.451Z",
+    "project": "LUMIERA",
+    "niche": "Geral",
+    "format": "SHORT",
+    "score": 98,
+    "source": "auto_quality",
+    "patterns": [
+      {
+        "category": "SHORT/no_bgm",
+        "description": "Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia",
+        "increment": 1
+      }
+    ],
+    "issueCount": 1
+  },
+  {
+    "id": "1784299591588",
+    "at": "2026-07-17T14:46:31.588Z",
+    "project": "LUMIERA",
+    "niche": "Geral",
+    "format": "SHORT",
+    "score": 98,
+    "source": "auto_quality",
+    "patterns": [
+      {
+        "category": "SHORT/no_bgm",
+        "description": "Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia",
+        "increment": 1
+      }
+    ],
+    "issueCount": 1
+  },
+  {
+    "id": "1784304087509",
+    "at": "2026-07-17T16:01:27.509Z",
+    "project": "LUMIERA",
+    "niche": "Geral",
+    "format": "SHORT",
+    "score": 98,
+    "source": "auto_quality",
+    "patterns": [
+      {
+        "category": "SHORT/no_bgm",
+        "description": "Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia",
+        "increment": 1
+      }
+    ],
+    "issueCount": 1
+  },
+  {
+    "id": "1784305140443",
+    "at": "2026-07-17T16:19:00.443Z",
+    "project": "LUMIERA",
+    "niche": "Geral",
+    "format": "SHORT",
+    "score": 98,
+    "source": "auto_quality",
+    "patterns": [
+      {
+        "category": "SHORT/no_bgm",
+        "description": "Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia",
+        "increment": 1
+      }
+    ],
+    "issueCount": 1
+  },
+  {
+    "id": "1784308911402",
+    "at": "2026-07-17T17:21:51.402Z",
+    "project": "LUMIERA",
+    "niche": "Geral",
+    "format": "SHORT",
+    "score": 98,
+    "source": "auto_quality",
+    "patterns": [
+      {
+        "category": "SHORT/no_bgm",
+        "description": "Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia",
+        "increment": 1
+      }
+    ],
+    "issueCount": 1
+  },
+  {
+    "id": "1784327913880",
+    "at": "2026-07-17T22:38:33.880Z",
+    "project": "LUMIERA",
+    "niche": "Geral",
+    "format": "SHORT",
+    "score": 98,
+    "source": "auto_quality",
+    "patterns": [
+      {
+        "category": "SHORT/no_bgm",
+        "description": "Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia",
+        "increment": 1
+      }
+    ],
+    "issueCount": 1
   }
 ]

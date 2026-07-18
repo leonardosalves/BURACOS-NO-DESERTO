@@ -44,6 +44,12 @@ import {
   CHATTERBOX_DEFAULT_VOICE,
 } from "./chatterboxTts.js";
 import {
+  probeQwen3Tts,
+  prepareQwen3ExpressiveNarration,
+  QWEN3_TTS_VOICES,
+  QWEN3_TTS_DEFAULT_VOICE,
+} from "./qwen3Tts.js";
+import {
   loadVoiceboxConfig,
   probeVoiceboxServer,
   buildVoiceboxVoiceList,
@@ -55,10 +61,71 @@ import {
   buildHumorIdeasPrompt,
   buildHumorNarrationPrompt,
   buildHumorProductionPrompt,
+  filterNovelHumorIdeas,
   parseHumorIdeasResponse,
   parseHumorNarrationResponse,
   parseHumorProductionResponse,
 } from "./humorFacts.js";
+import {
+  splitCollageLines,
+  buildCollageMetaphorPrompt,
+  parseCollageMetaphorResponse,
+  buildVisualSpec,
+  buildImagegenPrompt,
+  buildOmniPrompt,
+  buildOmniJob,
+  buildDualFrameSpec,
+  buildEndFrameImagePrompt,
+  buildStartFrameImagePrompt,
+  buildMotionPrompt,
+  canRunGate3,
+  buildGoogleFlowExport,
+  COLLAGE_PALETTE,
+  GEO_COLLAGE_PALETTE,
+  normalizeCollageMode,
+} from "./collageBroll.js";
+import {
+  buildSemanticDirectorPrompt,
+  parseSemanticDirectorResponse,
+  analyzeScriptLocally,
+  analyzeLineLocally,
+  FIDELITY_LEVELS,
+  GEO_SUBDOMAIN_PRESETS,
+  QUICK_FIXES,
+  REJECTION_REASONS,
+  EDIT_SCOPES,
+  buildCardRegenerationPrompt,
+  parseCardRegenerationResponse,
+  listPreservableElements,
+  snapshotCardVersion,
+  summarizeCardChanges,
+  validateVisualProposal,
+} from "./collageSemanticDirector.js";
+import {
+  loadCollageSession,
+  saveCollageSession,
+  rejectCollageCard,
+} from "./collageBrollSession.js";
+import {
+  produceCollageStill,
+  produceEndFrame,
+  produceStartFrame,
+  produceCollageVideo,
+  resolveCollageMediaFile,
+  exportGoogleFlowPackage,
+  cardOutputDir,
+  ensureCardDir,
+  mediaUrl,
+} from "./collageBrollMedia.js";
+import {
+  appendIdeasHistory,
+  buildIdeasExclusionAddendum,
+  buildIdeasFreshnessInstruction,
+  collectProjectTopics,
+  loadIdeasHistory,
+  makeIdeasGenerationSeed,
+  mergeExclusionTopics,
+} from "./ideasVariety.js";
 import {
   loadGptSovitsConfig,
   probeGptSovitsServer,
@@ -83,6 +150,7 @@ import {
 import {
   assertNarrationPlanMatchesSource,
   generateNarrationChunksTts,
+  assembleNarrationChunksToMaster,
   isFullNarrationChunkBatch,
   allNarrationChunksHaveAudio,
   persistChunkPlanToProject,
@@ -93,7 +161,15 @@ import {
   isChunkedNarrationProject,
   NARRATION_MODE_CHUNKED,
 } from "./narrationChunks.js";
-import { appendNarrationAuditEvent } from "./narrationAudit.js";
+import {
+  appendNarrationAuditEvent,
+  assertNarrationChunksApproved,
+  readNarrationAudit,
+} from "./narrationAudit.js";
+import {
+  appendProjectEventLog,
+  summarizeTimelineAssets,
+} from "./projectEventLog.js";
 import {
   convertCinematicMarkersForTts,
   sanitizeNarrationChunkTaggedText,
@@ -141,6 +217,7 @@ export function registerWorkflowRoutes(app, deps) {
   const {
     getProjectDir,
     WORKSPACE_DIR,
+    PROJECTS_ROOT,
     PYTHON_PATH,
     getApiKeys,
     getXaiApiKey,
@@ -595,39 +672,1247 @@ export function registerWorkflowRoutes(app, deps) {
     }
   });
 
+  app.get("/api/collage-broll/meta", (_req, res) => {
+    res.json({
+      repo: "https://github.com/pyang5166/gbro-collage-broll",
+      skill: "gbro-collage-broll",
+      default_model: "gemini-omni-flash-preview",
+      delivery: {
+        aspect_ratio: "9:16",
+        duration_s: 5,
+        resolution: "720x1280",
+        fps: 24,
+        audio: false,
+      },
+      modes: [
+        {
+          id: "editorial",
+          label: "Editorial",
+          hint: "Metáforas abstratas (relógio, espelho, arquivo…)",
+        },
+        {
+          id: "geo",
+          label: "Geo / Mapas",
+          hint: "Territórios, rotas, contornos, cartografia em papel · Semantic Visual Director",
+        },
+      ],
+      fidelity_levels: FIDELITY_LEVELS,
+      subdomain_presets: GEO_SUBDOMAIN_PRESETS,
+      quick_fixes: QUICK_FIXES,
+      rejection_reasons: REJECTION_REASONS,
+      edit_scopes: EDIT_SCOPES,
+      palette: COLLAGE_PALETTE,
+      geo_palette: GEO_COLLAGE_PALETTE,
+      gates: [
+        { id: 1, name: "Proposta visual", cost: "LLM + validação semântica" },
+        { id: 2, name: "Still", cost: "imagegen" },
+        { id: 3, name: "Vídeo", cost: "Omni Flash" },
+      ],
+      semantic_director: true,
+      card_regeneration: true,
+    });
+  });
+
+  app.post("/api/collage-broll/metaphors", async (req, res) => {
+    try {
+      const provider = getAiProvider(WORKSPACE_DIR);
+      const apiKey = getApiKeys(WORKSPACE_DIR)[0] || "";
+      if (provider === "gemini" && !apiKey) {
+        throw new Error(
+          "Configure uma chave Gemini ou outro provedor em Configurações → IA."
+        );
+      }
+      if (
+        provider === "openrouter" &&
+        getOpenRouterApiKey &&
+        !getOpenRouterApiKey(WORKSPACE_DIR)
+      ) {
+        throw new Error("Configure OpenRouter em Configurações → IA.");
+      }
+      if (
+        provider === "nvidia" &&
+        getNvidiaApiKey &&
+        !getNvidiaApiKey(WORKSPACE_DIR)
+      ) {
+        throw new Error("Configure NVIDIA em Configurações → IA.");
+      }
+
+      const lines = splitCollageLines(req.body?.text || req.body?.lines || "");
+      if (!lines.length) {
+        throw new Error("Informe ao menos uma linha de narração (~5s).");
+      }
+      if (lines.length > 12) {
+        throw new Error("Máximo 12 linhas por lote no Gate 1.");
+      }
+
+      const mode = normalizeCollageMode(req.body?.mode || "editorial");
+      const placeHint = String(
+        req.body?.place || req.body?.location || req.body?.place_hint || ""
+      ).trim();
+      const countryHint = String(
+        req.body?.country || req.body?.country_hint || ""
+      ).trim();
+      const eraHint = String(req.body?.era || req.body?.era_hint || "").trim();
+      const fidelityRaw = String(req.body?.fidelity || "balanced")
+        .trim()
+        .toLowerCase();
+      const fidelity = FIDELITY_LEVELS.includes(fidelityRaw)
+        ? fidelityRaw
+        : "balanced";
+      const subdomainPreset = String(
+        req.body?.subdomain || req.body?.subdomain_preset || "auto"
+      )
+        .trim()
+        .toLowerCase();
+
+      // Geo (e fidelity explícita) usam Semantic Visual Director
+      const useDirector =
+        mode === "geo" ||
+        req.body?.semantic_director === true ||
+        req.body?.use_semantic_director === true;
+
+      let raw;
+      let parsed;
+
+      if (useDirector) {
+        const prompt = buildSemanticDirectorPrompt(lines, {
+          language: req.body?.language || "pt",
+          fidelity,
+          subdomainPreset: GEO_SUBDOMAIN_PRESETS.includes(subdomainPreset)
+            ? subdomainPreset
+            : "auto",
+          placeHint,
+          countryHint,
+          eraHint,
+        });
+        const llmOpts = {
+          projectDir: WORKSPACE_DIR,
+          temperature: 0.55,
+          maxTokens: 8192,
+          activityLabel: "Collage B-roll · Semantic Visual Director",
+          activityDetail: `${lines.length} linha(s) · ${mode} · ${fidelity}`,
+        };
+        if (provider === "gemini") {
+          llmOpts.models = [
+            "gemini-3.5-flash",
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+          ];
+        }
+        raw = await callGeminiWithRetry(apiKey, prompt, llmOpts);
+        parsed = parseSemanticDirectorResponse(raw, lines, {
+          mode: "geo",
+          fidelity,
+        });
+      } else {
+        const prompt = buildCollageMetaphorPrompt(lines, {
+          language: req.body?.language || "pt",
+          mode,
+          placeHint,
+          countryHint,
+          eraHint,
+        });
+        const llmOpts = {
+          projectDir: WORKSPACE_DIR,
+          temperature: 0.75,
+          activityLabel: "Collage B-roll · Gate 1 metáforas",
+          activityDetail: `${lines.length} linha(s) · ${mode}`,
+        };
+        if (provider === "gemini") {
+          llmOpts.models = [
+            "gemini-3.5-flash",
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+          ];
+        }
+        raw = await callGeminiWithRetry(apiKey, prompt, llmOpts);
+        parsed = parseCollageMetaphorResponse(raw, lines, { mode });
+        // Envelope mínimo compatível
+        parsed = {
+          scriptAnalysis: analyzeScriptLocally(lines),
+          lineAnalysis: lines.map((l, i) => analyzeLineLocally(l, i)),
+          items: parsed.items,
+          visualMemory: null,
+          fidelity,
+          mode,
+        };
+      }
+
+      res.json({
+        ok: true,
+        provider,
+        mode: parsed.mode || mode,
+        fidelity,
+        count: parsed.items.length,
+        // legado
+        items: parsed.items,
+        // Semantic Visual Director
+        scriptAnalysis: parsed.scriptAnalysis || null,
+        lineAnalysis: parsed.lineAnalysis || null,
+        visualMemory: parsed.visualMemory || null,
+        semantic_director: useDirector,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  // Cache curto de idempotência para regeneração de card (evita double-click)
+  const regenIdempotency = new Map();
+  const REGEN_TTL_MS = 90_000;
+
+  /**
+   * Regenera UM card do Gate 1 sem reexecutar o lote.
+   * POST body (ou :cardId na rota): cardId, currentItem, fullScript, ...
+   * Não persiste no servidor — devolve candidateVersion para o cliente comparar.
+   */
+  const handleCollageCardRegenerate = async (req, res) => {
+    try {
+      const provider = getAiProvider(WORKSPACE_DIR);
+      const apiKey = getApiKeys(WORKSPACE_DIR)[0] || "";
+      if (provider === "gemini" && !apiKey) {
+        throw new Error(
+          "Configure uma chave Gemini ou outro provedor em Configurações → IA."
+        );
+      }
+
+      const cardId = String(
+        req.params?.cardId || req.body?.cardId || req.body?.id || ""
+      ).trim();
+      const currentItem =
+        req.body?.currentItem ||
+        req.body?.currentVersion ||
+        req.body?.item ||
+        null;
+      if (!currentItem || typeof currentItem !== "object") {
+        throw new Error(
+          "Envie currentItem com a proposta atual do card a regenerar."
+        );
+      }
+      const resolvedId = cardId || String(currentItem.id || "").trim();
+      if (!resolvedId) {
+        throw new Error("cardId obrigatório.");
+      }
+
+      const idempotencyKey = String(
+        req.body?.idempotencyKey || req.headers["x-idempotency-key"] || ""
+      ).trim();
+      if (idempotencyKey) {
+        const hit = regenIdempotency.get(idempotencyKey);
+        if (hit && Date.now() - hit.ts < REGEN_TTL_MS) {
+          return res.json({ ...hit.payload, idempotentReplay: true });
+        }
+      }
+
+      const fullScript = Array.isArray(req.body?.fullScript)
+        ? req.body.fullScript.map(String)
+        : splitCollageLines(req.body?.text || req.body?.lines || "");
+      const currentLine = String(
+        req.body?.currentLine || currentItem.line || ""
+      ).trim();
+      if (!currentLine) {
+        throw new Error("currentLine / currentItem.line obrigatório.");
+      }
+
+      const mode = normalizeCollageMode(
+        req.body?.mode || currentItem.mode || "editorial"
+      );
+      const fidelityRaw = String(req.body?.fidelity || "balanced")
+        .trim()
+        .toLowerCase();
+      const fidelity = FIDELITY_LEVELS.includes(fidelityRaw)
+        ? fidelityRaw
+        : "balanced";
+      const editScopeRaw = String(req.body?.editScope || "all").trim();
+      const editScope = EDIT_SCOPES.includes(editScopeRaw)
+        ? editScopeRaw
+        : "all";
+
+      const quickFixes = Array.isArray(req.body?.quickFixes)
+        ? req.body.quickFixes.map(String)
+        : [];
+      const rejectionReasons = Array.isArray(req.body?.rejectionReasons)
+        ? req.body.rejectionReasons.map(String)
+        : [];
+      const preserveElements = Array.isArray(req.body?.preserveElements)
+        ? req.body.preserveElements.map(String)
+        : listPreservableElements(currentItem).slice(0, 8);
+      const replaceElements = Array.isArray(req.body?.replaceElements)
+        ? req.body.replaceElements.map(String)
+        : [];
+      const customInstruction = String(
+        req.body?.instruction || req.body?.customInstruction || ""
+      ).trim();
+
+      const scriptLines = fullScript.length > 0 ? fullScript : [currentLine];
+      const idx = scriptLines.findIndex((l) => l.trim() === currentLine.trim());
+      const previousLine =
+        String(req.body?.previousLine || "").trim() ||
+        (idx > 0 ? scriptLines[idx - 1] : "");
+      const nextLine =
+        String(req.body?.nextLine || "").trim() ||
+        (idx >= 0 && idx < scriptLines.length - 1 ? scriptLines[idx + 1] : "");
+
+      const globalContext =
+        req.body?.scriptAnalysis ||
+        req.body?.globalContext ||
+        analyzeScriptLocally(scriptLines);
+
+      const prompt = buildCardRegenerationPrompt({
+        fullScript: scriptLines,
+        previousLine,
+        currentLine,
+        nextLine,
+        globalContext,
+        currentProposal: { ...currentItem, id: resolvedId, line: currentLine },
+        currentValidation: currentItem.validation || {},
+        selectedQuickFixes: quickFixes,
+        customInstruction,
+        rejectionReasons,
+        preserveElements,
+        replaceElements,
+        editScope,
+        mode,
+        fidelity,
+        placeHint: String(req.body?.place || req.body?.place_hint || "").trim(),
+        countryHint: String(
+          req.body?.country || req.body?.country_hint || ""
+        ).trim(),
+        eraHint: String(req.body?.era || req.body?.era_hint || "").trim(),
+        language: req.body?.language || "pt",
+      });
+
+      const llmOpts = {
+        projectDir: WORKSPACE_DIR,
+        temperature: 0.5,
+        maxTokens: 4096,
+        activityLabel: "Collage B-roll · regenerar card",
+        activityDetail: `${resolvedId} · ${mode} · ${editScope}`,
+      };
+      if (provider === "gemini") {
+        llmOpts.models = [
+          "gemini-3.5-flash",
+          "gemini-2.5-flash",
+          "gemini-2.0-flash",
+        ];
+      }
+      const raw = await callGeminiWithRetry(apiKey, prompt, llmOpts);
+      const parsed = parseCardRegenerationResponse(raw, {
+        currentItem: { ...currentItem, id: resolvedId },
+        currentLine,
+        mode,
+        fidelity,
+        preserveElements,
+      });
+
+      const payload = {
+        ok: true,
+        provider,
+        cardId: resolvedId,
+        previousVersion: parsed.previousVersion,
+        candidateVersion: {
+          ...parsed.candidateVersion,
+          id: resolvedId,
+          status: "pending",
+        },
+        validation: parsed.validation,
+        changes: parsed.changes,
+        scoreDiffs: parsed.scoreDiffs,
+        warnings: parsed.warnings,
+        costNote: "Esta ação gerou uma nova proposta para apenas 1 card.",
+      };
+
+      if (idempotencyKey) {
+        regenIdempotency.set(idempotencyKey, {
+          ts: Date.now(),
+          payload,
+        });
+        // limpa entradas antigas
+        if (regenIdempotency.size > 40) {
+          const now = Date.now();
+          for (const [k, v] of regenIdempotency) {
+            if (now - v.ts > REGEN_TTL_MS) regenIdempotency.delete(k);
+          }
+        }
+      }
+
+      res.json(payload);
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  };
+
+  app.post(
+    "/api/collage-broll/metaphors/regenerate",
+    handleCollageCardRegenerate
+  );
+  app.post(
+    "/api/collage-broll/metaphors/:cardId/regenerate",
+    handleCollageCardRegenerate
+  );
+
+  /**
+   * Rejeita UM card (sem regenerar o lote).
+   * POST /api/collage-broll/metaphors/reject
+   * POST /api/collage-broll/metaphors/:cardId/reject
+   */
+  const handleCollageCardReject = (req, res) => {
+    try {
+      const cardId = String(
+        req.params?.cardId || req.body?.cardId || req.body?.id || ""
+      ).trim();
+      if (!cardId) throw new Error("cardId obrigatório.");
+
+      const regenerate = Boolean(
+        req.body?.regenerate === true || req.body?.andRegen === true
+      );
+      const reason = String(
+        req.body?.reason || req.body?.rejectionReason || ""
+      ).trim();
+      const note = String(
+        req.body?.note || req.body?.rejectionNote || ""
+      ).trim();
+      const reasons = Array.isArray(req.body?.reasons)
+        ? req.body.reasons.map(String)
+        : Array.isArray(req.body?.rejectionReasons)
+          ? req.body.rejectionReasons.map(String)
+          : [];
+
+      const sessionId = String(
+        req.body?.sessionId || req.body?.session_id || ""
+      ).trim();
+      const currentItem = req.body?.currentItem || req.body?.item || null;
+
+      // Se não há sessão mas há item, cria/atualiza sessão padrão
+      let sid = sessionId;
+      if (!sid && currentItem) {
+        sid =
+          String(req.body?.fallbackSessionId || "default").trim() || "default";
+        const existing = loadCollageSession(sid);
+        const items = Array.isArray(existing?.items) ? [...existing.items] : [];
+        const ix = items.findIndex((i) => String(i.id) === cardId);
+        if (ix >= 0) items[ix] = { ...items[ix], ...currentItem, id: cardId };
+        else items.push({ ...currentItem, id: cardId });
+        saveCollageSession(sid, {
+          ...(existing || {}),
+          mode: req.body?.mode || existing?.mode || currentItem.mode,
+          items,
+        });
+      }
+
+      const result = rejectCollageCard({
+        sessionId: sid || null,
+        cardId,
+        reason,
+        note,
+        reasons,
+        regenerate,
+        currentItem,
+      });
+
+      res.json({
+        ...result,
+        // compat
+        message: `Card ${cardId} rejeitado.`,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  };
+
+  app.post("/api/collage-broll/metaphors/reject", handleCollageCardReject);
+  app.post(
+    "/api/collage-broll/metaphors/:cardId/reject",
+    handleCollageCardReject
+  );
+
+  /** Salva sessão completa do Gate 1 (para sobreviver a reload). */
+  app.post("/api/collage-broll/session", (req, res) => {
+    try {
+      const sessionId = String(
+        req.body?.sessionId || req.body?.id || `sess_${Date.now()}`
+      ).trim();
+      const saved = saveCollageSession(sessionId, {
+        mode: req.body?.mode,
+        fidelity: req.body?.fidelity,
+        rawLines: req.body?.rawLines,
+        placeHint: req.body?.placeHint,
+        countryHint: req.body?.countryHint,
+        eraHint: req.body?.eraHint,
+        scriptAnalysis: req.body?.scriptAnalysis || null,
+        items: Array.isArray(req.body?.items) ? req.body.items : [],
+      });
+      res.json({
+        ok: true,
+        sessionId: saved.sessionId,
+        updatedAt: saved.updatedAt,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  app.get("/api/collage-broll/session/:sessionId", (req, res) => {
+    try {
+      const session = loadCollageSession(req.params.sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Sessão não encontrada." });
+      }
+      res.json({ ok: true, session });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  /** Revalida proposta sem LLM (edição manual / após restore). */
+  app.post("/api/collage-broll/metaphors/validate-card", (req, res) => {
+    try {
+      const item = req.body?.item || req.body?.currentItem || {};
+      const line = String(item.line || req.body?.currentLine || "").trim();
+      const lineAnalysis = item.lineAnalysis || analyzeLineLocally(line, 0);
+      const visualProposal = item.visualProposal || {
+        composition: item.visual_proposition,
+        objects: item.key_objects || [],
+        primarySubject: item.visual_proposition,
+        semanticAnchors: lineAnalysis.requiredVisualAnchors || [],
+      };
+      const validation = validateVisualProposal({
+        lineAnalysis,
+        visualProposal,
+        scriptAnalysis: req.body?.scriptAnalysis || {},
+      });
+      res.json({
+        ok: true,
+        cardId: item.id || null,
+        validation,
+        lineAnalysis,
+        preservable: listPreservableElements({
+          ...item,
+          lineAnalysis,
+          visualProposal,
+        }),
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  /** Snapshot helpers para o cliente (sem persistência server-side). */
+  app.post("/api/collage-broll/metaphors/snapshot", (req, res) => {
+    try {
+      const item = req.body?.item || {};
+      const version = Number(req.body?.version) || 1;
+      res.json({
+        ok: true,
+        snapshot: snapshotCardVersion(item, {
+          version,
+          regenerationInstruction: req.body?.instruction || "",
+          quickFixes: req.body?.quickFixes || [],
+          rejectionReasons: req.body?.rejectionReasons || [],
+        }),
+        preservable: listPreservableElements(item),
+        changes: summarizeCardChanges(req.body?.previous || {}, item),
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  app.post("/api/collage-broll/specs", (req, res) => {
+    try {
+      const itemsIn = Array.isArray(req.body?.items) ? req.body.items : [];
+      if (!itemsIn.length) {
+        throw new Error("Envie items aprovados do Gate 1.");
+      }
+      const items = itemsIn.map((item) => {
+        const visual_spec = buildVisualSpec(item);
+        const imagegen_prompt = buildImagegenPrompt(item);
+        return {
+          ...item,
+          visual_spec,
+          imagegen_prompt,
+          gate: 2,
+        };
+      });
+      res.json({ ok: true, items });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  const requireGeminiKeys = () => {
+    const keys = getApiKeys(WORKSPACE_DIR) || [];
+    const preferred = keys[0] || "";
+    if (!preferred) {
+      throw new Error(
+        "Configure uma chave Gemini em Configurações → IA para gerar frames."
+      );
+    }
+    return { keys, preferred };
+  };
+
+  /**
+   * Prévia dos prompts dual-frame (sem gerar imagem).
+   */
+  app.post("/api/collage-broll/frames/spec", (req, res) => {
+    try {
+      const item = req.body?.item || req.body || {};
+      const dual = buildDualFrameSpec(item);
+      res.json({ ok: true, dual, item: { ...item, ...dual } });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  /**
+   * Gate 2A — END FRAME (fonte de verdade).
+   * Body: { item | items, sessionId }
+   * Legado: /stills chama o mesmo fluxo de end frame.
+   */
+  const handleEndFrame = async (req, res) => {
+    try {
+      const sessionId = String(
+        req.body?.sessionId || req.body?.session_id || `sess_${Date.now()}`
+      ).trim();
+      const itemsIn = Array.isArray(req.body?.items)
+        ? req.body.items
+        : req.body?.item
+          ? [req.body.item]
+          : [];
+      if (!itemsIn.length) {
+        throw new Error("Envie item ou items aprovados do Gate 1.");
+      }
+
+      const { keys, preferred } = requireGeminiKeys();
+      const results = [];
+      for (const raw of itemsIn) {
+        const dual = buildDualFrameSpec(raw);
+        const item = {
+          ...raw,
+          ...dual,
+          visual_spec: raw.visual_spec || buildVisualSpec(raw),
+          imagegen_prompt: raw.imagegen_prompt || buildEndFrameImagePrompt(raw),
+        };
+        const produced = await produceEndFrame({
+          item,
+          sessionId,
+          apiKeys: keys,
+          preferredKey: preferred,
+        });
+        results.push({
+          ...item,
+          ...produced,
+          still_approved: false,
+          still_note:
+            "End Frame gerado — aprove (Gate 2A) antes do Start Frame",
+          gate: 2,
+        });
+      }
+
+      res.json({
+        ok: true,
+        sessionId,
+        count: results.length,
+        items: results,
+        item: results.length === 1 ? results[0] : undefined,
+        frame: "end",
+      });
+    } catch (err) {
+      console.error("[collage-broll/end-frame]", err);
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  };
+
+  app.post("/api/collage-broll/frames/end", handleEndFrame);
+  app.post("/api/collage-broll/stills", handleEndFrame); // legado = end frame
+
+  /**
+   * Gate 2B — START FRAME a partir do End Frame aprovado.
+   */
+  app.post("/api/collage-broll/frames/start", async (req, res) => {
+    try {
+      const sessionId = String(
+        req.body?.sessionId || req.body?.session_id || `sess_${Date.now()}`
+      ).trim();
+      const itemsIn = Array.isArray(req.body?.items)
+        ? req.body.items
+        : req.body?.item
+          ? [req.body.item]
+          : [];
+      if (!itemsIn.length) throw new Error("Envie item com End Frame.");
+
+      const { keys, preferred } = requireGeminiKeys();
+      const results = [];
+      for (const raw of itemsIn) {
+        if (!(raw.endFrame?.approved || raw.still_approved)) {
+          throw new Error(
+            `Card ${raw.id || "?"}: aprove o End Frame (Gate 2A) antes do Start Frame.`
+          );
+        }
+        if (!(
+          raw.endFrame?.imageUrl ||
+          raw.endFrame?.imagePath ||
+          raw.still_url ||
+          raw.still_path
+        )) {
+          throw new Error(
+            `Card ${raw.id || "?"}: End Frame sem imagem. Gere o End Frame primeiro.`
+          );
+        }
+        const produced = await produceStartFrame({
+          item: raw,
+          sessionId,
+          apiKeys: keys,
+          preferredKey: preferred,
+        });
+        results.push({
+          ...raw,
+          ...produced,
+          gate: 2,
+        });
+      }
+
+      res.json({
+        ok: true,
+        sessionId,
+        count: results.length,
+        items: results,
+        item: results.length === 1 ? results[0] : undefined,
+        frame: "start",
+      });
+    } catch (err) {
+      console.error("[collage-broll/start-frame]", err);
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  /** Aprova End Frame e/ou Start Frame. */
+  app.post("/api/collage-broll/frames/approve", (req, res) => {
+    try {
+      const cardId = String(req.body?.cardId || req.body?.id || "").trim();
+      const sessionId = String(req.body?.sessionId || "").trim();
+      const which = String(req.body?.frame || req.body?.which || "end")
+        .trim()
+        .toLowerCase();
+      if (!cardId) throw new Error("cardId obrigatório.");
+      const item = req.body?.item || {};
+
+      let updated = { ...item, id: cardId };
+      if (which === "start" || which === "startframe" || which === "2b") {
+        updated = {
+          ...updated,
+          startFrame: {
+            ...(updated.startFrame || {}),
+            approved: true,
+            status: "approved",
+          },
+        };
+      } else {
+        // end frame (+ legado still_approved)
+        updated = {
+          ...updated,
+          endFrame: {
+            ...(updated.endFrame || {}),
+            approved: true,
+            status: "approved",
+          },
+          still_approved: true,
+          still_status: "approved",
+          still_note: "End Frame aprovado",
+          gate: Math.max(Number(item.gate) || 2, 2),
+        };
+      }
+
+      // motion prompt ready when both approved
+      if (updated.endFrame?.approved && updated.startFrame?.approved) {
+        const dual = buildDualFrameSpec(updated);
+        updated.motion = {
+          ...(updated.motion || dual.motion),
+          videoPrompt:
+            updated.motion?.videoPrompt ||
+            dual.motion.videoPrompt ||
+            buildMotionPrompt(updated),
+        };
+        updated.omni_prompt = updated.motion.videoPrompt;
+      }
+
+      if (sessionId) {
+        try {
+          const session = loadCollageSession(sessionId);
+          if (session?.items) {
+            const items = session.items.map((i) =>
+              String(i.id) === cardId ? { ...i, ...updated } : i
+            );
+            saveCollageSession(sessionId, { ...session, items });
+          }
+        } catch {
+          /* best-effort */
+        }
+      }
+
+      const gate3 = canRunGate3(updated);
+      res.json({
+        ok: true,
+        cardId,
+        frame:
+          which === "start" || which === "startframe" || which === "2b"
+            ? "start"
+            : "end",
+        item: updated,
+        canRunGate3: gate3.ok,
+        gate3Reason: gate3.reason,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  /** Legado: /stills/approve = aprova end frame */
+  app.post("/api/collage-broll/stills/approve", (req, res) => {
+    req.body = { ...req.body, frame: "end" };
+    // reutilizar handler via fetch interno — chamar lógica duplicada mínima
+    try {
+      const cardId = String(req.body?.cardId || req.body?.id || "").trim();
+      const sessionId = String(req.body?.sessionId || "").trim();
+      if (!cardId) throw new Error("cardId obrigatório.");
+      const item = req.body?.item || {};
+      const updated = {
+        ...item,
+        id: cardId,
+        endFrame: {
+          ...(item.endFrame || {}),
+          approved: true,
+          status: "approved",
+          imageUrl: item.endFrame?.imageUrl || item.still_url,
+          imagePath: item.endFrame?.imagePath || item.still_path,
+        },
+        still_approved: true,
+        still_status: "approved",
+        still_note: "End Frame aprovado",
+        gate: Math.max(Number(item.gate) || 2, 2),
+      };
+      if (sessionId) {
+        try {
+          const session = loadCollageSession(sessionId);
+          if (session?.items) {
+            const items = session.items.map((i) =>
+              String(i.id) === cardId ? { ...i, ...updated } : i
+            );
+            saveCollageSession(sessionId, { ...session, items });
+          }
+        } catch {
+          /* best-effort */
+        }
+      }
+      res.json({
+        ok: true,
+        cardId,
+        item: updated,
+        canRunGate3: canRunGate3(updated).ok,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  /** Export Google Flow (start/end/motion files). */
+  app.post("/api/collage-broll/export-flow", (req, res) => {
+    try {
+      const sessionId = String(req.body?.sessionId || "export").trim();
+      const itemsIn = Array.isArray(req.body?.items)
+        ? req.body.items
+        : req.body?.item
+          ? [req.body.item]
+          : [];
+      if (!itemsIn.length) throw new Error("Envie items para exportar.");
+      const packs = itemsIn.map((it) => exportGoogleFlowPackage(it, sessionId));
+      res.json({ ok: true, sessionId, packages: packs });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  app.post("/api/collage-broll/omni-jobs", (req, res) => {
+    try {
+      const itemsIn = Array.isArray(req.body?.items) ? req.body.items : [];
+      if (!itemsIn.length) {
+        throw new Error("Envie items com still aprovado (Gate 2).");
+      }
+      const jobs = [];
+      const items = itemsIn.map((item, idx) => {
+        const omni_prompt = buildOmniPrompt(item);
+        const job = buildOmniJob(item, {
+          firstFrame: `${item.id || `c${idx + 1}`}/frames/first-frame.png`,
+          lastFrame: `${item.id || `c${idx + 1}`}/frames/last-frame.png`,
+          output: `${item.id || `c${idx + 1}`}/omni/run-v01/final-5s.mp4`,
+        });
+        jobs.push(job);
+        return {
+          ...item,
+          omni_prompt,
+          omni_job: job,
+          gate: 3,
+        };
+      });
+      res.json({
+        ok: true,
+        model: "gemini-omni-flash-preview",
+        jobs,
+        items,
+        script_hint:
+          "python scripts/generate_video.py --batch omni-jobs.json --concurrency 3",
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  /**
+   * Gate 3: vídeo com Start Frame + End Frame aprovados.
+   * Body: { item | items, sessionId }
+   */
+  app.post("/api/collage-broll/videos", async (req, res) => {
+    try {
+      const sessionId = String(
+        req.body?.sessionId || req.body?.session_id || `sess_${Date.now()}`
+      ).trim();
+      const itemsIn = Array.isArray(req.body?.items)
+        ? req.body.items
+        : req.body?.item
+          ? [req.body.item]
+          : [];
+      if (!itemsIn.length) {
+        throw new Error("Envie item com Start + End frames aprovados.");
+      }
+
+      const results = [];
+      for (const raw of itemsIn) {
+        const check = canRunGate3(raw);
+        if (!check.ok) {
+          throw new Error(`Card ${raw.id || "?"}: ${check.reason}`);
+        }
+        const produced = await produceCollageVideo({
+          item: raw,
+          sessionId,
+        });
+        results.push({
+          ...raw,
+          ...produced,
+          gate: 3,
+        });
+      }
+
+      res.json({
+        ok: true,
+        sessionId,
+        count: results.length,
+        items: results,
+        item: results.length === 1 ? results[0] : undefined,
+      });
+    } catch (err) {
+      console.error("[collage-broll/videos]", err);
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  /** Serve stills/vídeos gerados (path-safe). */
+  app.get("/api/collage-broll/media/:sessionId/:cardId/:file", (req, res) => {
+    try {
+      const filePath = resolveCollageMediaFile(
+        req.params.sessionId,
+        req.params.cardId,
+        req.params.file
+      );
+      if (!filePath) {
+        return res.status(404).json({ error: "Arquivo não encontrado." });
+      }
+      const ext = path.extname(filePath).toLowerCase();
+      const types = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+        ".mp4": "video/mp4",
+      };
+      res.setHeader("Content-Type", types[ext] || "application/octet-stream");
+      res.setHeader("Cache-Control", "private, max-age=3600");
+      fs.createReadStream(filePath).pipe(res);
+    } catch (err) {
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
+  /** Upload manual de imagem/vídeo para o card (Fase 1: end, start, video). */
+  app.post("/api/collage-broll/media/upload", (req, res) => {
+    try {
+      const sessionId = String(req.body?.sessionId || "").trim();
+      const cardId = String(req.body?.cardId || req.body?.id || "").trim();
+      const frame = String(req.body?.frame || "")
+        .trim()
+        .toLowerCase(); // 'end', 'start', 'video'
+      const fileBase64 = String(req.body?.fileBase64 || "").trim();
+
+      if (!sessionId || !cardId || !frame || !fileBase64) {
+        throw new Error(
+          "Parâmetros obrigatórios: sessionId, cardId, frame, fileBase64."
+        );
+      }
+
+      const dir = ensureCardDir(sessionId, cardId);
+      const buf = Buffer.from(fileBase64, "base64");
+      let updated = {};
+
+      if (frame === "end" || frame === "endframe" || frame === "2a") {
+        const endPath = path.join(dir, "frames", "end-frame.png");
+        const lastPath = path.join(dir, "frames", "last-frame.png");
+        const stillPath = path.join(dir, "still.png");
+        const exportEnd = path.join(dir, "end_frame.png");
+
+        fs.writeFileSync(endPath, buf);
+        fs.writeFileSync(lastPath, buf);
+        fs.writeFileSync(stillPath, buf);
+        fs.writeFileSync(exportEnd, buf);
+
+        updated = {
+          still_path: stillPath,
+          still_url: mediaUrl(sessionId, cardId, "still.png"),
+          last_frame_path: lastPath,
+          last_frame_url: mediaUrl(sessionId, cardId, "last-frame.png"),
+          still_status: "generated",
+          still_approved: false,
+          still_note: "End Frame manual (upload)",
+          endFrame: {
+            description: "End Frame manual (upload)",
+            imageUrl: mediaUrl(sessionId, cardId, "end-frame.png"),
+            imagePath: endPath,
+            status: "generated",
+            approved: false,
+            model: "manual_upload",
+          },
+          gate: 2,
+        };
+      } else if (
+        frame === "start" ||
+        frame === "startframe" ||
+        frame === "2b"
+      ) {
+        const startPath = path.join(dir, "frames", "start-frame.png");
+        const firstPath = path.join(dir, "frames", "first-frame.png");
+        const exportStart = path.join(dir, "start_frame.png");
+
+        fs.writeFileSync(startPath, buf);
+        fs.writeFileSync(firstPath, buf);
+        fs.writeFileSync(exportStart, buf);
+
+        updated = {
+          first_frame_path: firstPath,
+          first_frame_url: mediaUrl(sessionId, cardId, "first-frame.png"),
+          startFrame: {
+            description: "Start Frame manual (upload)",
+            imageUrl: mediaUrl(sessionId, cardId, "start-frame.png"),
+            imagePath: startPath,
+            status: "generated",
+            approved: false,
+            fromEndFrame: true,
+            model: "manual_upload",
+          },
+          gate: 2,
+        };
+      } else if (frame === "video" || frame === "g3" || frame === "gate3") {
+        const outPath = path.join(dir, "final-5s.mp4");
+        fs.writeFileSync(outPath, buf);
+
+        updated = {
+          video_path: outPath,
+          video_url: mediaUrl(sessionId, cardId, "final-5s.mp4"),
+          video_status: "generated",
+          video_note: "Vídeo manual (upload)",
+          video_mode: "manual_upload",
+          gate: 3,
+        };
+      } else {
+        throw new Error(`Frame inválido: ${frame}`);
+      }
+
+      if (sessionId) {
+        try {
+          const session = loadCollageSession(sessionId);
+          if (session?.items) {
+            const items = session.items.map((i) =>
+              String(i.id) === cardId ? { ...i, ...updated } : i
+            );
+            saveCollageSession(sessionId, { ...session, items });
+          }
+        } catch (err) {
+          console.warn("[collage-broll/upload] falha ao atualizar sessao", err);
+        }
+      }
+
+      res.json({
+        ok: true,
+        cardId,
+        frame,
+        item: updated,
+      });
+    } catch (err) {
+      console.error("[collage-broll/upload]", err);
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
   app.post("/api/humor-facts/ideas", async (req, res) => {
     try {
-      const apiKey = getApiKeys(WORKSPACE_DIR)[0];
-      if (!apiKey)
+      // Qualquer provedor das configs (Gemini, OpenRouter, xAI, NVIDIA, Inference, Local)
+      const humorProvider = getAiProvider(WORKSPACE_DIR);
+      const apiKey = getApiKeys(WORKSPACE_DIR)[0] || "";
+      if (humorProvider === "gemini" && !apiKey) {
         throw new Error(
-          "Configure uma chave Gemini para pesquisar ideias factuais."
+          "Configure uma chave Gemini ou escolha outro provedor em Configurações → IA."
         );
-      const prompt = buildHumorIdeasPrompt(req.body || {});
-      const raw = await callGeminiWithRetry(apiKey, prompt, {
-        maxRetries: 3,
-        models: ["gemini-2.5-flash"],
-        forceProvider: "gemini",
-        bodyOverride: {
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          tools: [{ google_search: {} }],
-          generationConfig: { temperature: 0.65 },
+      }
+      if (
+        humorProvider === "openrouter" &&
+        getOpenRouterApiKey &&
+        !getOpenRouterApiKey(WORKSPACE_DIR)
+      ) {
+        throw new Error("Configure a chave OpenRouter em Configurações → IA.");
+      }
+      if (
+        humorProvider === "nvidia" &&
+        getNvidiaApiKey &&
+        !getNvidiaApiKey(WORKSPACE_DIR)
+      ) {
+        throw new Error("Configure a chave NVIDIA em Configurações → IA.");
+      }
+      const input = req.body || {};
+      const niche = String(input.niche || "").trim();
+      const requestedCount = Math.min(
+        10,
+        Math.max(3, Number(input.count) || 6)
+      );
+      const previousIdeas = Array.isArray(input.excludeIdeas)
+        ? input.excludeIdeas
+            .map((idea) => String(idea?.title || idea || "").trim())
+            .filter(Boolean)
+        : [];
+      const defaultBlocklist = [
+        "concreto romano autorreparavel",
+        "mecanismo de Anticitera ou computador grego antigo",
+        "estradas incas e Qhapaq Nan",
+        "badgir ou ar-condicionado persa",
+        "bateria de Bagda",
+        "caimento dos aquedutos romanos",
+      ];
+      const historyTopics = loadIdeasHistory(WORKSPACE_DIR, niche);
+      const humorHistoryTopics = loadIdeasHistory(
+        WORKSPACE_DIR,
+        `fatos-com-graca-${niche}`
+      );
+      const projectTopics = collectProjectTopics(PROJECTS_ROOT);
+      const allExcludedTopics = [
+        ...defaultBlocklist,
+        ...previousIdeas,
+        ...historyTopics,
+        ...humorHistoryTopics,
+        ...projectTopics,
+      ];
+      const baseExcludedTopics = mergeExclusionTopics({
+        projectTopics,
+        historyTopics: [...historyTopics, ...humorHistoryTopics],
+        previousIdeas: [...defaultBlocklist, ...previousIdeas],
+      });
+      const accepted = [];
+      const rejected = [];
+      let attempts = 0;
+
+      while (accepted.length < requestedCount && attempts < 3) {
+        attempts += 1;
+        const generationSeed = makeIdeasGenerationSeed();
+        const retryExcluded = mergeExclusionTopics({
+          previousIdeas: [
+            ...baseExcludedTopics,
+            ...accepted.map((idea) => idea.title),
+            ...rejected.map((item) => item.title),
+          ],
+        });
+        const prompt = buildHumorIdeasPrompt({
+          ...input,
+          count: 10,
+          generationSeed,
+          freshnessInstruction: buildIdeasFreshnessInstruction(),
+          exclusionAddendum: buildIdeasExclusionAddendum(retryExcluded),
+        });
+        // Respeita o provedor das configs. Google Search grounding só na API Gemini.
+        const humorLlmOpts = {
+          maxRetries: 3,
+          projectDir: WORKSPACE_DIR,
+          temperature: 0.82,
+          activityLabel: "Ideias Fatos com Graça",
+        };
+        if (humorProvider === "gemini") {
+          humorLlmOpts.models = [
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.0-flash",
+          ];
+          humorLlmOpts.bodyOverride = {
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            tools: [{ google_search: {} }],
+            generationConfig: { temperature: 0.82 },
+          };
+        }
+        const raw = await callGeminiWithRetry(apiKey, prompt, humorLlmOpts);
+        const parsed = parseHumorIdeasResponse(raw);
+        const filtered = filterNovelHumorIdeas(
+          parsed,
+          [
+            ...allExcludedTopics,
+            ...accepted.map((idea) => idea.title),
+            ...rejected.map((item) => item.title),
+          ],
+          accepted,
+          { niche }
+        );
+        accepted.push(
+          ...filtered.ideas.slice(0, requestedCount - accepted.length)
+        );
+        rejected.push(...filtered.rejected);
+        console.log(
+          `[HUMOR FACTS IDEAS] attempt=${attempts} niche="${niche}" parsed=${parsed.length} accepted=${accepted.length} rejected=${rejected.length} excluded=${retryExcluded.length}`
+        );
+      }
+
+      if (accepted.length < requestedCount) {
+        throw new Error(
+          `A pesquisa nao encontrou ${requestedCount} pautas realmente novas. ${rejected.length} repeticoes foram bloqueadas; tente um nicho mais especifico.`
+        );
+      }
+
+      appendIdeasHistory(WORKSPACE_DIR, niche, accepted);
+      appendIdeasHistory(WORKSPACE_DIR, `fatos-com-graca-${niche}`, accepted);
+      res.json({
+        ok: true,
+        ideas: accepted,
+        meta: {
+          attempts,
+          excludedCount: baseExcludedTopics.length,
+          rejectedCount: rejected.length,
         },
       });
-      res.json({ ok: true, ideas: parseHumorIdeasResponse(raw) });
     } catch (err) {
+      console.error("[HUMOR FACTS IDEAS ERROR]", err);
       res.status(500).json({ error: err.message });
     }
   });
 
   app.post("/api/humor-facts/narration", async (req, res) => {
     try {
-      const apiKey = getApiKeys(WORKSPACE_DIR)[0];
-      if (!apiKey)
-        throw new Error("Configure uma chave Gemini para gerar a narracao.");
+      const apiKey = getApiKeys(WORKSPACE_DIR)[0] || "";
       const prompt = buildHumorNarrationPrompt(req.body || {});
       const raw = await callGeminiWithRetry(apiKey, prompt, {
         maxRetries: 3,
-        models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+        projectDir: WORKSPACE_DIR,
+        activityLabel: "Narração Fatos com Graça",
       });
       res.json({ ok: true, result: parseHumorNarrationResponse(raw) });
     } catch (err) {
@@ -637,15 +1922,14 @@ export function registerWorkflowRoutes(app, deps) {
 
   app.post("/api/humor-facts/production-plan", async (req, res) => {
     try {
-      const apiKey = getApiKeys(WORKSPACE_DIR)[0];
-      if (!apiKey)
-        throw new Error("Configure uma chave Gemini para planejar as cenas.");
+      const apiKey = getApiKeys(WORKSPACE_DIR)[0] || "";
       const narration = String(req.body?.narration || "").trim();
       const prompt = buildHumorProductionPrompt(req.body || {});
       const raw = await callGeminiWithRetry(apiKey, prompt, {
         maxRetries: 3,
-        models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+        projectDir: WORKSPACE_DIR,
         temperature: 0.35,
+        activityLabel: "Plano de produção Fatos com Graça",
       });
       res.json({
         ok: true,
@@ -662,6 +1946,7 @@ export function registerWorkflowRoutes(app, deps) {
       const fishProbe = await probeFishSpeechServer(fishConfig);
       const fishVoices = buildFishSpeechVoiceList(fishProbe);
       const chatterboxProbe = await probeChatterbox();
+      const qwen3Probe = await probeQwen3Tts();
       const voiceboxConfig = loadVoiceboxConfig({
         workspaceDir: WORKSPACE_DIR,
       });
@@ -693,6 +1978,16 @@ export function registerWorkflowRoutes(app, deps) {
           hint: chatterboxProbe.ok
             ? `Pacote OK — device: ${chatterboxProbe.device || "auto"}. Clone opcional via reference_audio no config.`
             : `Indisponível: ${chatterboxProbe.error || "pip install chatterbox-tts"}`,
+        },
+        {
+          id: "qwen3",
+          label: "Qwen3-TTS CustomVoice (local, PT/EN)",
+          defaultVoice: QWEN3_TTS_DEFAULT_VOICE,
+          voices: QWEN3_TTS_VOICES,
+          available: qwen3Probe.ok,
+          hint: qwen3Probe.ok
+            ? `Pacote OK — ${qwen3Probe.model || "CustomVoice 1.7B"} · device: ${qwen3Probe.device || "auto"}${qwen3Probe.cuda ? " (CUDA)" : ""}. Idiomas: Portuguese + English.`
+            : `Indisponível: ${qwen3Probe.error || "pip install -U qwen-tts no .venv-qwen3-tts"}`,
         },
         {
           id: "voicebox",
@@ -899,16 +2194,44 @@ export function registerWorkflowRoutes(app, deps) {
 
   app.post("/api/tts/preview-tagged-text", (req, res) => {
     try {
-      const { text_tagged: taggedText = "", engine = "fish" } = req.body || {};
+      const {
+        text_tagged: taggedText = "",
+        engine = "fish",
+        voice = "",
+      } = req.body || {};
       const normalizedEngine = String(engine).toLowerCase();
       const isFishEngine = normalizedEngine.includes("fish");
       const isVoiceboxEngine = normalizedEngine.includes("voicebox");
+      const isQwen3Engine =
+        normalizedEngine.includes("qwen3") ||
+        normalizedEngine === "qwen" ||
+        normalizedEngine.includes("qwen-tts") ||
+        normalizedEngine.includes("qwen_tts");
       const platform = normalizedEngine.includes("chatterbox")
         ? "chatterbox"
         : normalizedEngine.includes("eleven")
           ? "eleven"
-          : "fish";
+          : isQwen3Engine
+            ? "qwen3"
+            : "fish";
       const sanitized = sanitizeNarrationChunkTaggedText(taggedText);
+      if (isQwen3Engine) {
+        // Mantém tags de estilo ([tom …]) no raw — sanitize só tira [ênfase]
+        const prepared = prepareQwen3ExpressiveNarration(
+          String(taggedText || sanitized || ""),
+          { voiceId: String(voice || "") }
+        );
+        res.json({
+          preview: prepared.preview,
+          instruct: prepared.instruct,
+          tags: prepared.tags,
+          platform: "qwen3",
+          language: prepared.language,
+          normalization: null,
+          independent_chunk: true,
+        });
+        return;
+      }
       const preview = isVoiceboxEngine
         ? prepareVoiceboxExpressiveText(sanitized)
         : convertCinematicMarkersForTts(sanitized, platform, {
@@ -962,6 +2285,12 @@ export function registerWorkflowRoutes(app, deps) {
     const report = createProgressReporter(progressJobId);
 
     const runGeneration = async () => {
+      appendProjectEventLog(projDir, {
+        component: "narration",
+        event: "tts_chunks_started",
+        message: "Geração de narração por trechos iniciada.",
+        details: { requested_chunk_ids: chunkIds || "all", engine, voice },
+      });
       if (progressJobId) {
         setJobProgress(progressJobId, {
           phase: "start",
@@ -1006,7 +2335,10 @@ export function registerWorkflowRoutes(app, deps) {
         workspaceDir: WORKSPACE_DIR,
         useTagged: useTagged !== false,
         stripEmphasis: true,
-        assembleMaster: assembleMaster !== false,
+        // O gerador de baixo nível não finaliza o projeto. Esta rota monta
+        // um master de revisão quando todos os chunks existem; Whisper e o
+        // master aprovado continuam bloqueados até a aprovação humana.
+        assembleMaster: false,
         onLog: (msg) => console.log(msg),
         onProgress: report,
         onChunkUpdate: (partialPlan, changedChunk) => {
@@ -1018,6 +2350,23 @@ export function registerWorkflowRoutes(app, deps) {
             (chunk) => chunk.id === changedChunk?.id
           );
           if (changed) {
+            appendProjectEventLog(projDir, {
+              component: "narration",
+              event: "tts_chunk_updated",
+              level: changed.status === "failed" ? "error" : "info",
+              message: `${changed.id}: ${changed.status}`,
+              details: {
+                chunk_id: changed.id,
+                block: changed.block,
+                scene_ref: changed.scene_ref,
+                status: changed.status,
+                engine: changed.voice?.engine,
+                voice: changed.voice?.voice,
+                audio_file: changed.audio_file,
+                duration_s: changed.duration_s,
+                error: changed.error,
+              },
+            });
             appendNarrationAuditEvent(projDir, {
               type: "chunk_tts",
               run_id: progressJobId || null,
@@ -1042,7 +2391,7 @@ export function registerWorkflowRoutes(app, deps) {
       });
 
       const fullBatch = isFullNarrationChunkBatch(chunkIds, plan);
-      const shouldSyncWhisper = fullBatch && syncWhisper !== false;
+      const shouldSyncWhisper = false;
       let whisperSynced = false;
       let whisperError = null;
 
@@ -1085,6 +2434,16 @@ export function registerWorkflowRoutes(app, deps) {
 
       const masterReady = allNarrationChunksHaveAudio(nextPlan, projDir);
       if (masterReady) {
+        report("assemble-draft", "Montando master de revisão…", 90);
+        await assembleNarrationChunksToMaster(projDir, nextPlan, {
+          onLog: (message) => console.log(`[Narration Draft] ${message}`),
+        });
+        appendProjectEventLog(projDir, {
+          component: "narration",
+          event: "narration_master_draft_assembled",
+          message: "Master de revisão montado sem executar Whisper.",
+          details: { chunk_count: nextPlan.chunks.length, approved: false },
+        });
         let whisperTranscripts = null;
         let flatWords = [];
         if (whisperSynced) {
@@ -1110,6 +2469,16 @@ export function registerWorkflowRoutes(app, deps) {
         config = applied.config;
         storyboard = applied.storyboard;
         nextPlan = applied.storyboard.narration_chunk_plan || nextPlan;
+        appendProjectEventLog(projDir, {
+          component: "timeline",
+          event: "chunk_timeline_synchronized",
+          message:
+            "Timeline sincronizada sem acoplar quantidade de assets à quantidade de chunks.",
+          details: summarizeTimelineAssets(
+            applied.config.timeline_assets,
+            applied.storyboard.visual_prompts
+          ),
+        });
         console.log(
           whisperSynced
             ? "[TTS Chunks] Timeline reancorada pela fala real do Whisper (1 segmento por cena)."
@@ -1125,17 +2494,16 @@ export function registerWorkflowRoutes(app, deps) {
 
       const logs = formatNarrationChunkPlanLog(nextPlan);
       let message = masterReady
-        ? `Narração por trechos: ${nextPlan.chunk_count} trecho(s) montados.`
+        ? `Narração por trechos: ${nextPlan.chunk_count} áudio(s) gerados; ouça e aprove antes do Whisper.`
         : `Trecho(s) gerado(s) — ${nextPlan.chunk_count} no plano; master aguardando trechos faltantes.`;
       if (whisperSynced) {
         message += " Legendas sincronizadas com Whisper.";
       } else if (shouldSyncWhisper && whisperError) {
         message += ` Whisper não concluiu: ${whisperError}`;
       } else if (!fullBatch) {
-        message +=
-          " Gere todos os trechos para montar o master e sincronizar legendas.";
+        message += " Gere os trechos restantes; depois revise e aprove todos.";
       } else if (!masterReady) {
-        message += " Gere os trechos restantes para montar o MP3 master.";
+        message += " Gere os trechos restantes antes da revisão final.";
       }
       if (progressJobId) {
         finishJobProgressWithResult(
@@ -1172,6 +2540,12 @@ export function registerWorkflowRoutes(app, deps) {
         res.json({ started: true, jobId: progressJobId });
         runGeneration().catch((err) => {
           console.error("[TTS Chunks] Falha:", err);
+          appendProjectEventLog(projDir, {
+            level: "error",
+            component: "narration",
+            event: "tts_chunks_failed",
+            message: err?.message || String(err),
+          });
           failJobProgress(progressJobId, err?.message || String(err));
         });
         return;
@@ -1179,8 +2553,81 @@ export function registerWorkflowRoutes(app, deps) {
       const result = await runGeneration();
       res.json(result);
     } catch (err) {
+      appendProjectEventLog(projDir, {
+        level: "error",
+        component: "narration",
+        event: "tts_chunks_failed",
+        message: err?.message || String(err),
+      });
       if (progressJobId) failJobProgress(progressJobId, err.message);
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/narration-chunks/finalize-approved", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const storyboardPath = path.join(projDir, "storyboard.json");
+      const configPath = path.join(projDir, "config_qanat.json");
+      const storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      if (!isChunkedNarrationProject(config, storyboard)) {
+        return res.status(400).json({
+          error: "O fluxo oficial exige narração por trechos.",
+          code: "CHUNKED_NARRATION_REQUIRED",
+        });
+      }
+      const plan = storyboard.narration_chunk_plan;
+      if (
+        !plan?.chunks?.length ||
+        !allNarrationChunksHaveAudio(plan, projDir)
+      ) {
+        return res.status(409).json({
+          error: "Gere todos os trechos antes de finalizar a narração.",
+          code: "NARRATION_AUDIO_INCOMPLETE",
+        });
+      }
+      const audit = readNarrationAudit(projDir);
+      const approval = assertNarrationChunksApproved(plan, audit.events);
+      await assembleNarrationChunksToMaster(projDir, plan, {
+        onLog: (message) => console.log(`[Narration Finalize] ${message}`),
+      });
+      writeTimingsFromChunkPlan(projDir, plan);
+      appendNarrationAuditEvent(projDir, {
+        type: "master_assembled",
+        status: "approved",
+        chunk_count: plan.chunks.length,
+        approval_count: approval.approved_count,
+      });
+      appendProjectEventLog(projDir, {
+        component: "narration",
+        event: "narration_master_approved",
+        message: "Master aprovado remontado; Whisper liberado.",
+        details: {
+          chunk_count: plan.chunks.length,
+          approval_count: approval.approved_count,
+        },
+      });
+      res.json({
+        success: true,
+        message:
+          "Narração aprovada montada. O Whisper pode calcular o plano visual.",
+        approval,
+      });
+    } catch (err) {
+      const projDir = getProjectDir(req);
+      appendProjectEventLog(projDir, {
+        level: "error",
+        component: "narration",
+        event: "narration_finalize_failed",
+        message: err?.message || String(err),
+        details: { code: err?.code, approval: err?.approval },
+      });
+      res.status(err?.code === "NARRATION_REVIEW_REQUIRED" ? 409 : 500).json({
+        error: err?.message || String(err),
+        code: err?.code || "NARRATION_FINALIZE_FAILED",
+        approval: err?.approval,
+      });
     }
   });
 

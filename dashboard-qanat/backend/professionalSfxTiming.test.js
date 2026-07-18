@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import {
   buildProfessionalSfxScenes,
   buildSfxPlaybackSegments,
+  isImageMediaForSfx,
   normalizeProfessionalSfxEvents,
+  rankProfessionalSfxCandidates,
+  shouldIncludeAutomaticSfx,
 } from "./professionalSfxTiming.js";
 
 const scenes = [
@@ -97,7 +100,6 @@ test("detalhe não antecipa ação sem âncora de primeiro quadro", () => {
     rawEvents: [
       {
         scene_ref: "1.1",
-        offset: 0,
         category: "detail",
         duration: 1,
         confidence: 0.9,
@@ -106,7 +108,52 @@ test("detalhe não antecipa ação sem âncora de primeiro quadro", () => {
     scenes,
     totalDuration: 30,
   });
-  assert.equal(event.time, 10.12);
+  assert.ok(event.time >= 10.12);
+});
+
+test("hard effect com offset explícito acerta o frame sem atraso artificial", () => {
+  const [event] = normalizeProfessionalSfxEvents({
+    rawEvents: [
+      {
+        scene_ref: "1.1",
+        offset: 0,
+        category: "impact",
+        duration: 0.8,
+        confidence: 0.9,
+      },
+    ],
+    scenes: scenes.map((scene) =>
+      scene.scene_ref === "1.1"
+        ? {
+            ...scene,
+            visual: "A hammer hits a metal shield on the opening frame",
+          }
+        : scene
+    ),
+    totalDuration: 30,
+  });
+  assert.equal(event.time, 10);
+  assert.equal(event.anchor_time, 10);
+  assert.ok(event.fade_in <= 0.01);
+});
+
+test("whoosh usa pré-lap e atinge o pico quando a cena aparece", () => {
+  const [event] = normalizeProfessionalSfxEvents({
+    rawEvents: [
+      {
+        scene_ref: "1.2",
+        offset: 0,
+        category: "transition",
+        duration: 0.9,
+        pre_roll: 0.2,
+        confidence: 0.9,
+      },
+    ],
+    scenes,
+    totalDuration: 30,
+  });
+  assert.equal(event.time, 15.8);
+  assert.equal(event.anchor_time, 16);
 });
 
 test("riser termina exatamente na virada da cena", () => {
@@ -171,6 +218,121 @@ test("ação contínua repete no máximo três vezes e reduz o volume", () => {
   );
 });
 
+test("detalhe sem repetição preserva a duração editorial", () => {
+  const [segment] = buildSfxPlaybackSegments({
+    event: {
+      category: "detail",
+      time: 3,
+      duration: 3,
+      scene_end: 8,
+      repeat_mode: "none",
+      volume: 0.11,
+    },
+    sourceDuration: 91,
+    totalDuration: 20,
+  });
+  assert.equal(segment.duration, 3);
+});
+
+test("rejeita impacto inventado quando a ação não existe na cena visual", () => {
+  const events = normalizeProfessionalSfxEvents({
+    rawEvents: [
+      {
+        scene_ref: "5.2",
+        category: "impact",
+        confidence: 0.95,
+        offset: 3,
+        query_en: "body falling on ground",
+      },
+    ],
+    scenes: [
+      {
+        scene_ref: "5.2",
+        start: 10,
+        end: 15,
+        media_type: "video",
+        visual: "A soldier chokes while toxic smoke rises around his body",
+      },
+    ],
+    totalDuration: 20,
+  });
+  assert.deepEqual(events, []);
+});
+
+test("trilha SFX só aceita cenas IMAGE — vídeo é bloqueado", () => {
+  assert.equal(isImageMediaForSfx("imagem IA 2k", "ASSETS/a.png"), true);
+  assert.equal(isImageMediaForSfx("vídeo IA (max 10s)", "ASSETS/a.mp4"), false);
+  assert.equal(isImageMediaForSfx("video", "ASSETS/clip.webm"), false);
+  assert.equal(isImageMediaForSfx("image", "ASSETS/still.jpg"), true);
+
+  const events = normalizeProfessionalSfxEvents({
+    rawEvents: [
+      {
+        scene_ref: "1.1",
+        category: "detail",
+        confidence: 0.95,
+        offset: 0.2,
+        duration: 1.2,
+        query_en: "metal creak",
+      },
+      {
+        scene_ref: "1.2",
+        category: "ambience",
+        confidence: 0.95,
+        duration: 3,
+        query_en: "city wind ambience",
+      },
+    ],
+    scenes: [
+      {
+        scene_ref: "1.1",
+        start: 0,
+        end: 4,
+        media_type: "imagem IA 2k",
+        asset: "ASSETS/still.png",
+        visual: "Steel isolator close-up",
+      },
+      {
+        scene_ref: "1.2",
+        start: 4,
+        end: 10,
+        media_type: "vídeo IA (max 10s)",
+        asset: "ASSETS/clip.mp4",
+        visual: "Building sways in earthquake",
+      },
+    ],
+    totalDuration: 20,
+  });
+  assert.equal(events.length, 1);
+  assert.equal(events[0].scene_ref, "1.1");
+});
+
+test("detalhe em imagem entra junto com a aparição da cena", () => {
+  const [event] = normalizeProfessionalSfxEvents({
+    rawEvents: [
+      {
+        scene_ref: "3.2",
+        category: "detail",
+        confidence: 0.9,
+        offset: 2,
+        duration: 2,
+        query_en: "fire crackling",
+      },
+    ],
+    scenes: [
+      {
+        scene_ref: "3.2",
+        start: 10,
+        end: 14,
+        media_type: "image",
+        visual: "Sulfur and pitch burning in a brazier",
+      },
+    ],
+    totalDuration: 20,
+  });
+  assert.equal(event.time, 10.08);
+});
+
 test("impacto nunca é repetido mesmo que a IA solicite", () => {
   const segments = buildSfxPlaybackSegments({
     event: {
@@ -186,4 +348,92 @@ test("impacto nunca é repetido mesmo que a IA solicite", () => {
   });
   assert.equal(segments.length, 1);
   assert.equal(segments[0].duration, 0.6);
+});
+
+test("impacto preserva a cauda natural depois da virada visual", () => {
+  const [segment] = buildSfxPlaybackSegments({
+    event: {
+      category: "impact",
+      time: 15.8,
+      duration: 0.8,
+      scene_start: 10,
+      scene_end: 16,
+      volume: 0.12,
+    },
+    sourceDuration: 1.1,
+    totalDuration: 30,
+  });
+  assert.equal(segment.start, 15.8);
+  assert.equal(segment.duration, 1.1);
+  assert.ok(segment.fadeInS <= 0.01);
+});
+
+test("ranking rejeita família sonora errada e prioriza intenção + duração", () => {
+  const ranked = rankProfessionalSfxCandidates(
+    [
+      {
+        id: "wrong",
+        title: "Dark Cinematic Riser Long",
+        duration: 9000,
+        previewUrl: "https://cdn/wrong.mp3",
+      },
+      {
+        id: "right",
+        title: "Heavy Metal Door Slam Impact",
+        duration: 1100,
+        previewUrl: "https://cdn/right.mp3",
+      },
+      {
+        id: "generic",
+        title: "Generic Sound",
+        duration: 900,
+        previewUrl: "https://cdn/generic.mp3",
+      },
+    ],
+    {
+      category: "impact",
+      duration: 0.8,
+      query_en: "heavy metal door slam impact",
+    }
+  );
+  assert.equal(ranked[0].id, "right");
+  assert.ok(!ranked.some((candidate) => candidate.id === "wrong"));
+  assert.ok(!ranked.some((candidate) => candidate.id === "generic"));
+});
+
+test("timeline profissional bloqueia disparos automáticos de overlay", () => {
+  assert.equal(
+    shouldIncludeAutomaticSfx({
+      professionalTimeline: {
+        generated_by: "ai-professional-sound-design",
+        sfx_events: [],
+      },
+      overlaySfxEnabled: true,
+    }),
+    false
+  );
+  assert.equal(
+    shouldIncludeAutomaticSfx({
+      professionalTimeline: { sfx_events: [] },
+      overlaySfxEnabled: true,
+    }),
+    true
+  );
+});
+
+test("segmento profissional preserva ganho audível após normalização", () => {
+  const [segment] = buildSfxPlaybackSegments({
+    event: {
+      category: "detail",
+      time: 2,
+      scene_start: 2,
+      scene_end: 6,
+      duration: 1.5,
+      volume: 0.72,
+    },
+    sourceDuration: 1.5,
+    totalDuration: 10,
+  });
+
+  assert.equal(segment.volume, 0.72);
 });

@@ -52,14 +52,13 @@ blob-report/
 # Venv Python dedicado (Chatterbox TTS)
 dashboard-qanat/backend/.venv-chatterbox/
 dashboard-qanat/backend/.venv-timesfm/
+dashboard-qanat/backend/.venv-qwen3-tts/
+
+# Local tools & helper binaries
+tools/
 
 # Deps Python do Blender (Pillow/PyProj) — instaladas via install-blendergis.ps1
 dashboard-qanat/scripts/blender/python-deps/
-
-# Temp files & tool directories
-.gemini/
-.tempmediaStorage/
-browser/
 **/browser/
 *.log
 npm-debug.log*

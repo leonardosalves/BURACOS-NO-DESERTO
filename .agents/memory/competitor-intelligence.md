@@ -4,8 +4,8 @@
 
 ## Meta
 
-niche: ENGENHARIA
-updated: 2026-07-15
+niche: Curiosidade Engenharia
+updated: 2026-07-17
 purpose: minerar o que funciona nos concorrentes → ideias originais no Lumiera (nunca cópia frame-a-frame)
 
 ## Regra de ouro
@@ -121,6 +121,48 @@ Critério: **seu tamanho ou 1 tier acima** — não só os gigantes (sinal dilu�
 ---
 
 ## Ficha de dissecção (por vídeo outlier)
+
+<!-- auto:2026-07-15 -->
+
+### Por que TORRES DE TRANSMISSÃO tem formatos diferentes?
+
+- **Canal:** Engenharia Detalhada
+- **videoId / URL:** MWFSdvqGbOY · https://www.youtube.com/watch?v=MWFSdvqGbOY
+- **Views / idade / duração:** 39.828 / 9d / 582s
+- **Outlier?** 4.86× vs mediana do canal (8.200 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Por que TORRES DE TRANSMISSÃO tem formatos diferentes?
+- Texto na tela:
+- Arquétipo:
+
+#### Estrutura
+
+- Formato:
+- Blocos / beats:
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo:
+- Tipo:
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Por que TORRES DE TRANSMISSÃO tem formatos diferentes?
+
+#### Mecânica extraída (1 linha)
+
+> Outlier 4.86× no nicho
 
 <!-- auto:2026-07-07 -->
 
@@ -673,6 +715,20 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 
 ## Padrões promovidos (concorrentes → nosso formato)
 
+- Humanização de Gênios/Ícones: Apresentar figuras históricas da ciência e engenharia (e.g., Einstein, Tesla) sob uma luz inesperada, humorística ou relatable, revelando aspectos menos conhecidos de suas vidas ou processos de pensamento. _(IA 2026-07-17)_
+- Desmistificação de Conceitos Complexos: Tornar tópicos de engenharia ou física complexos acessíveis, seja explicando o 'como' de algo aparentemente impossível, ou mostrando o lado humano por trás do gênio. _(IA 2026-07-17)_
+- Resolução de Dilemas Práticos: Abordar perguntas comuns e dilemas do dia a dia que têm uma base em engenharia ou ciência, oferecendo respostas claras e baseadas em fatos (e.g., escolha de combustível, impacto de carregadores). _(IA 2026-07-17)_
+- Uso de Hipérbole e Curiosidade Instigante: Criar ganchos que provocam a curiosidade através de perguntas ousadas, afirmações surpreendentes ou a exploração de 'segredos' e 'mistérios'. _(IA 2026-07-17)_
+- Títulos e hooks paradoxais ou que criam um mistério imediato (ex: 'ponte que balança', 'prédio que quase fica invisível'). _(IA 2026-07-16)_
+- Foco em maravilhas visuais ou fenômenos que desafiam a expectativa. _(IA 2026-07-16)_
+- Narrativas de problema-solução, onde uma solução de engenharia inteligente (e muitas vezes contraintuitiva) é revelada. _(IA 2026-07-16)_
+- Conteúdo explicativo conciso que desvenda o 'como' ou 'porquê' por trás da curiosidade. _(IA 2026-07-16)_
+- Combinação de tecnologia moderna (IA) com mistérios e descobertas antigas para gerar curiosidade. _(IA 2026-07-16)_
+- Uso de gatilhos de 'surpresa' ou 'choque' (ex: 'surpreendeu cientistas', 'avisa que algo está por vir') para prender a atenção. _(IA 2026-07-16)_
+- Apresentação de artefatos ou construções misteriosas com origens ou propósitos desconhecidos. _(IA 2026-07-16)_
+- Conexão de conhecimentos ou engenharia antiga com problemas ou relevância contemporânea. _(IA 2026-07-16)_
+- Criação de um senso de urgência ou premonição sobre o futuro, ligado a descobertas do passado. _(IA 2026-07-16)_
+
 - Demonstração Visual de Ferramentas e Processos Eficientes: Vídeos que mostram o 'como funciona' de equipamentos ou técnicas de engenharia de forma clara, satisfatória e prática. _(IA 2026-07-07)_
 - Narrativas Históricas e Locais de Engenharia: Conteúdo que explora a história de grandes obras, eventos ou transformações urbanas no Brasil, com forte apelo visual e emocional. _(IA 2026-07-07)_
 - Inovação Tecnológica e Soluções Inteligentes: Apresentação de novas tecnologias, robôs ou métodos que revolucionam a engenharia ou facilitam a vida, mostrando-os em ação. _(IA 2026-07-07)_
@@ -727,6 +783,16 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - (nenhum ainda — promover quando mecânica + resultado confirmado 2×)
 
 ## Erros dos concorrentes (nosso diferencial)
+
+- Baixa Qualidade de Produção Visual: Canais menores frequentemente utilizam imagens estáticas, transições simples e narração básica, o que pode limitar o engajamento e a retenção, apesar de boas ideias de conteúdo.
+- Falta de Call to Action Claro e Estratégico: Embora CTAs existam, muitas vezes são genéricos ('curta e siga'). Poderiam ser mais integrados ao conteúdo ou oferecer um valor adicional para o engajamento (ex: 'comente sua experiência com X').
+- Dependência Excessiva de um Único Tema/Figura: A repetição de um único tema (como Einstein) pode limitar a diversidade de público e a longevidade do canal se não houver expansão para outros tópicos ou figuras.
+- Falta de foco no nicho: Canais com outliers de sucesso que não estão alinhados ao tema principal ('curiosidade engenharia antiga') diluem sua audiência e potencial de crescimento no nicho específico.
+- Conteúdo genérico: Muitos canais de 'curiosidades' são muito amplos, perdendo a oportunidade de se aprofundar em um sub-nicho com alto potencial de engajamento.
+- Canais com pouco ou nenhum conteúdo, como 'Terra Antiga', perdem a oportunidade de capitalizar um nicho relevante.
+- Canais menores podem não estar utilizando ganchos fortes o suficiente ou elementos de mistério/surpresa para Shorts, focando apenas em fatos históricos.
+- Falta de conexão entre a engenharia antiga e a relevância para o público moderno ou problemas atuais, o que pode diminuir o engajamento.
+- CTAs implícitas ou fracas, não direcionando o espectador para uma ação clara (inscrever-se, comentar, assistir mais).
 
 - Conteúdo excessivamente teórico ou abstrato, sem demonstrações visuais claras ou aplicações práticas que engajem o público.
 - Falta de contextualização local (Brasil) ou histórica, tornando o conteúdo menos relevante e menos 'curioso' para o público-alvo.
@@ -805,6 +871,1374 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - `skills/viral-captions-and-ctas/references/ctas-that-work.md`
 
 ## Pesquisas automáticas (IA)
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-17 14:44 — Curiosidade Engenharia (SHORT)
+
+**Nicho:** Curiosidade Engenharia · **Formato:** SHORT
+**Outliers detectados:** 6
+
+#### Fichas de dissecção (IA)
+
+### Rindo com Einstein: A Língua que Quebra Paradigmas!#curiosidades#einstein#engenharia #memes #shorts
+
+- **Canal:** Curiosidades e Sucessos na Engenharia
+- **videoId / URL:** UDSfWAgdl_c · https://www.youtube.com/watch?v=UDSfWAgdl_c
+- **Views / idade / duração:** 7.338 / 3a / 17s
+- **Outlier?** 54.97× vs mediana do canal (134 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Você sabia que Einstein tinha um senso de humor peculiar?
+- Texto na tela: Imagem de Einstein mostrando a língua com texto 'A língua que quebra paradigmas!'
+- Arquétipo: Intriga/Humor
+
+#### Estrutura
+
+- Formato: Narração rápida sobre imagens e vídeos curtos
+- Blocos / beats: Pergunta intrigante sobre Einstein -> Revelação da foto icônica -> Contexto da foto e sua mensagem de quebra de formalidade -> Conexão com inovação e engenharia.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Deixe seu like e siga para mais curiosidades!
+- Tipo: Implícito/Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Rindo com Einstein: A Língua que Quebra Paradigmas!#curiosidades#einstein#engenharia #memes #shorts
+
+#### Mecânica extraída (1 linha)
+
+> Humanizar um gênio icônico através de uma anedota inesperada e humorística, tornando-o mais acessível e relatable, e conectando isso a um conceito maior (quebra de paradigmas).
+
+#### Erros do concorrente
+
+- Qualidade visual básica com imagens estáticas e transições simples, o que pode limitar o dinamismo e a retenção em comparação com produções mais elaboradas.
+
+---
+
+### Einstein Extraterrestre: Conhecimentos Além da Imaginação!#curiosidades #engenharia#einstein#shorts
+
+- **Canal:** Curiosidades e Sucessos na Engenharia
+- **videoId / URL:** UO-vUgdxTtU · https://www.youtube.com/watch?v=UO-vUgdxTtU
+- **Views / idade / duração:** 4.180 / 3a / 32s
+- **Outlier?** 31.31× vs mediana do canal (134 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Será que Einstein era um extraterrestre?
+- Texto na tela: Imagem de Einstein com um efeito sutil de brilho alienígena e texto 'Einstein Extraterrestre?'
+- Arquétipo: Conspiração/Mistério/Choque
+
+#### Estrutura
+
+- Formato: Narração provocativa sobre imagens e vídeos curtos
+- Blocos / beats: Pergunta ousada e provocativa -> Apresentação de 'evidências' (sua genialidade e pensamento único) -> Conexão com a ideia de 'além do humano' -> Conclusão com uma reflexão sobre sua mente extraordinária.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: O que você acha? Deixe nos comentários!
+- Tipo: Engajamento Direto
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Einstein Extraterrestre: Conhecimentos Além da Imaginação!#curiosidades #engenharia#einstein#shorts
+
+#### Mecânica extraída (1 linha)
+
+> Utilizar hipérbole e uma estrutura de 'teoria da conspiração' para discutir a genialidade de uma figura histórica, exagerando uma característica conhecida (inteligência) para criar uma narrativa cativante e misteriosa.
+
+#### Erros do concorrente
+
+- Produção visual simples e repetitiva. A natureza retórica da pergunta 'extraterrestre' pode frustrar alguns espectadores que esperam uma 'prova' real, embora seja eficaz como gancho.
+
+---
+
+### PARA EINSTEIN ERA MAIS FÁCIL? #einstein #física #facil #shorts #memes #curiosidades #sucesso #dicas
+
+- **Canal:** Curiosidades e Sucessos na Engenharia
+- **videoId / URL:** jDVrJ5nQj-8 · https://www.youtube.com/watch?v=jDVrJ5nQj-8
+- **Views / idade / duração:** 2.435 / 2a / 22s
+- **Outlier?** 18.24× vs mediana do canal (134 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Você já se perguntou se para Einstein a física era fácil?
+- Texto na tela: Imagem de Einstein pensativo/confuso com texto 'Para Einstein era mais fácil?'
+- Arquétipo: Relatabilidade/Intriga
+
+#### Estrutura
+
+- Formato: Narração sobre imagens e vídeos curtos
+- Blocos / beats: Pergunta relatable conectando a dificuldade do espectador à de Einstein -> Discussão sobre os desafios e a persistência de Einstein -> Ênfase na dedicação e esforço -> Mensagem inspiradora sobre o processo de aprendizado.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Siga para mais curiosidades e dicas!
+- Tipo: Implícito/Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: PARA EINSTEIN ERA MAIS FÁCIL? #einstein #física #facil #shorts #memes #curiosidades #sucesso #dicas
+
+#### Mecânica extraída (1 linha)
+
+> Desmistificar a genialidade ao mostrar o lado humano da luta e do esforço por trás do sucesso, tornando um tema complexo (física) e um gênio (Einstein) mais acessíveis e inspiradores.
+
+#### Erros do concorrente
+
+- Apresentação visual básica. A narrativa poderia ser mais aprofundada ou ter exemplos mais concretos dos desafios de Einstein para aumentar o impacto.
+
+---
+
+### Etanol ou Gasolina qual o melhor para o motor?
+
+- **Canal:** Engenharia Detalhada
+- **videoId / URL:** Z1wHRMLkPuw · https://www.youtube.com/watch?v=Z1wHRMLkPuw
+- **Views / idade / duração:** 75.184 / 2m / 581s
+- **Outlier?** 10.54× vs mediana do canal (7.135 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Etanol ou Gasolina, qual o melhor para o motor?
+- Texto na tela: Visual de motor de carro ou bomba de combustível com texto 'Etanol ou Gasolina?'
+- Arquétipo: Problema/Solução, Conselho Prático
+
+#### Estrutura
+
+- Formato: Explicação direta e comparativa
+- Blocos / beats: Gancho com pergunta comum -> Apresentação dos prós e contras do Etanol -> Apresentação dos prós e contras da Gasolina -> Conclusão com recomendação baseada em fatores como custo, desempenho e tipo de motor.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Deixe seu comentário e compartilhe com seus amigos!
+- Tipo: Implícito/Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Etanol ou Gasolina qual o melhor para o motor?
+
+#### Mecânica extraída (1 linha)
+
+> Fornecer respostas claras, concisas e práticas para dilemas técnicos comuns que afetam o dia a dia, utilizando uma abordagem de comparação e conselho de especialista.
+
+#### Erros do concorrente
+
+- Nenhum erro significativo. O vídeo é bem produzido e eficaz para o formato Short. Uma animação ou demonstração visual poderia adicionar um pouco mais de valor, mas não é uma falha.
+
+#### Ideias Lumiera derivadas
+
+1. **O Segredo de Tesla: Ele Realmente Dormia?**
+   - Gancho: Você sabia que um dos maiores inventores da história tinha hábitos de sono... peculiares? Descubra como Tesla revolucionou a engenharia com uma rotina de sono inacreditável!
+   - Mecânica: Humanização de gênio através de anedotas inesperadas (similar ao Einstein da língua), mas focado em um hábito específico e seu impacto na criatividade/engenharia.
+   - Por que não é cópia: Em vez de focar em uma anedota humorística ou na luta geral de um gênio, esta ideia explora um hábito específico e incomum de outro ícone da engenharia (Tesla) – seu padrão de sono – e como isso pode ter influenciado sua genialidade e produtividade, oferecendo uma perspectiva única sobre a vida de um inventor.
+   - Pilar: astonishing
+
+2. **A Ponte que Desafia a Gravidade: Como Ela Ainda Está de Pé?**
+   - Gancho: Existe uma ponte que parece flutuar, desafiando todas as leis da física! Como os engenheiros conseguiram construir essa maravilha que desafia a gravidade?
+   - Mecânica: Sensacionalização de um feito da engenharia através da percepção de 'impossível' ou 'mágico', similar à hipérbole do 'Einstein extraterrestre', mas aplicado a uma estrutura física.
+   - Por que não é cópia: Ao invés de uma pessoa sendo 'extraterrestre', a mecânica é aplicada a uma estrutura de engenharia que parece desafiar as leis naturais, criando um senso similar de admiração e mistério. O foco é no 'como' por trás de um feito aparentemente impossível, ancorado na engenharia real.
+   - Pilar: astonishing
+
+3. **Carregador Rápido vs. Lento: Qual Estraga Menos a Bateria do Seu Celular?**
+   - Gancho: Seu carregador rápido está matando a bateria do seu celular? A verdade sobre a vida útil da sua bateria e qual carregador é o melhor para ela!
+   - Mecânica: Resolução de dilemas práticos e desmistificação de mitos tecnológicos, seguindo o formato de comparação e conselho do 'Etanol ou Gasolina'.
+   - Por que não é cópia: Esta ideia aplica a mecânica de resolução de problemas práticos a uma tecnologia pessoal e onipresente (smartphones), em vez de automotiva. Desmistifica um mito comum e oferece conselhos acionáveis, tornando o conteúdo altamente relevante e útil para o público geral.
+   - Pilar: practical
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-17 04:17 — Curiosidade da Engenharia (SHORT)
+
+**Nicho:** Curiosidade da Engenharia · **Formato:** SHORT
+**Outliers detectados:** 6
+
+#### Fichas de dissecção (IA)
+
+### Etanol ou Gasolina qual o melhor para o motor?
+
+- **Canal:** Engenharia Detalhada
+- **videoId / URL:** Z1wHRMLkPuw · https://www.youtube.com/watch?v=Z1wHRMLkPuw
+- **Views / idade / duração:** 75.120 / 2m / 581s
+- **Outlier?** 10.57× vs mediana do canal (7.108 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Apresenta um dilema comum e de interesse geral: 'Etanol ou Gasolina, qual o melhor para o motor?'
+- Texto na tela: Imagens de carros, bombas de combustível ou componentes do motor, com texto na tela reforçando a pergunta e a busca pela melhor opção.
+- Arquétipo: Dilema Cotidiano / Mito vs. Verdade
+
+#### Estrutura
+
+- Formato: Comparação Direta e Explicação
+- Blocos / beats: 1. Apresentação do dilema (Etanol vs. Gasolina). 2. Explicação dos prós e contras de cada combustível sob a ótica da engenharia. 3. Fatores a considerar (custo, desempenho, impacto). 4. Conclusão/Recomendação baseada em dados.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: 'Deixe sua opinião nos comentários!' ou 'Qual combustível você usa?'
+- Tipo: Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Etanol ou Gasolina qual o melhor para o motor?
+
+#### Mecânica extraída (1 linha)
+
+> Explicação de Dilema Cotidiano: Pega uma dúvida ou escolha comum do dia a dia e a desvenda com princípios de engenharia.
+
+---
+
+### A mistura e estrutura metálica, madeira e concreto existe!!
+
+- **Canal:** Engenharia Curiosa
+- **videoId / URL:** JgCE8FKA-o4 · https://www.youtube.com/watch?v=JgCE8FKA-o4
+- **Views / idade / duração:** 1.160 / 3m / 28s
+- **Outlier?** 8.03× vs mediana do canal (145 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Afirmação surpreendente que desafia a percepção comum: 'A mistura e estrutura metálica, madeira e concreto existe!!'
+- Texto na tela: Imagens impactantes de estruturas que combinam esses materiais de forma inovadora, talvez com close-ups nos pontos de união. Texto na tela: 'Você sabia que é possível?'
+- Arquétipo: Revelação Surpreendente / Quebra de Paradigma
+
+#### Estrutura
+
+- Formato: Fato Inesperado com Prova Visual
+- Blocos / beats: 1. Afirmação chocante sobre a existência da mistura. 2. Apresentação de exemplos visuais concretos (fotos/vídeos de construções). 3. Breve explicação de como e por que essa combinação funciona (vantagens, técnicas de engenharia). 4. Conclusão sobre a inovação e aplicabilidade.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: 'Incrível, não é?' ou 'A engenharia sempre surpreende!'
+- Tipo: Implícito / Curiosidade
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: A mistura e estrutura metálica, madeira e concreto existe!!
+
+#### Mecânica extraída (1 linha)
+
+> Desmistificação Visual: Mostra algo que parece improvável ou impossível e prova visualmente sua existência, seguido de uma breve explicação técnica.
+
+---
+
+### Esse prédio é uma experiência sensorial
+
+- **Canal:** Engenharia Curiosa
+- **videoId / URL:** WE4l3t0Vu1g · https://www.youtube.com/watch?v=WE4l3t0Vu1g
+- **Views / idade / duração:** 1.121 / 3m / 38s
+- **Outlier?** 7.76× vs mediana do canal (145 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Título intrigante que atribui uma característica incomum a uma construção: 'Esse prédio é uma experiência sensorial'.
+- Texto na tela: Cenas do prédio com foco em detalhes que estimulam os sentidos (texturas, iluminação, sons, interações). Texto na tela: 'Como um prédio pode ser sensorial?'
+- Arquétipo: Curiosidade Inusitada / Inovação Arquitetônica
+
+#### Estrutura
+
+- Formato: Showcase de Projeto Inovador
+- Blocos / beats: 1. Apresentação do prédio e a afirmação sobre a experiência sensorial. 2. Demonstração visual e verbal de como o prédio estimula os sentidos (ex: materiais táteis, jogos de luz, acústica especial). 3. Explicação do conceito e da engenharia por trás do design. 4. Conclusão sobre o impacto ou propósito do projeto.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: 'Você visitaria um prédio assim?' ou 'A engenharia vai além da funcionalidade!'
+- Tipo: Implícito / Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Esse prédio é uma experiência sensorial
+
+#### Mecânica extraída (1 linha)
+
+> Foco em Inovação e Impacto Humano: Destaca projetos de engenharia que transcendem a funcionalidade básica, explorando o impacto na experiência e percepção humana.
+
+---
+
+### O que é AÇO CORTEN? O Segredo Por Trás Da Ferrugem Do Aço Corten
+
+- **Canal:** Engenharia Detalhada
+- **videoId / URL:** 0NBhItok8is · https://www.youtube.com/watch?v=0NBhItok8is
+- **Views / idade / duração:** 54.808 / 2m / 685s
+- **Outlier?** 7.71× vs mediana do canal (7.108 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Combina uma pergunta direta ('O que é AÇO CORTEN?') com a promessa de desvendar um mistério ('O Segredo Por Trás Da Ferrugem').
+- Texto na tela: Imagens de estruturas e objetos feitos de Aço Corten, destacando sua aparência enferrujada e elegante. Texto na tela: 'Ferrugem que protege?'
+- Arquétipo: Explicação de Conceito Específico / Desvendando um Mistério
+
+#### Estrutura
+
+- Formato: Definição e Aplicação de Material
+- Blocos / beats: 1. Apresentação do Aço Corten e a questão da ferrugem. 2. Explicação da composição e do processo de oxidação controlada que o torna resistente. 3. Vantagens e desvantagens do material. 4. Exemplos de aplicação na arquitetura e design. 5. Conclusão sobre a inovação e uso.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: 'Conhecia esse material?' ou 'Qual outro material você quer conhecer?'
+- Tipo: Implícito / Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: O que é AÇO CORTEN? O Segredo Por Trás Da Ferrugem Do Aço Corten
+
+#### Mecânica extraída (1 linha)
+
+> Desmistificação de Material Específico: Pega um material ou tecnologia específica, explica seu funcionamento, suas propriedades e suas aplicações de forma acessível e intrigante.
+
+#### Ideias Lumiera derivadas
+
+1. **Por que os aviões não caem com um motor só? A engenharia da segurança aérea!**
+   - Gancho: Um motor falha no ar... e o avião continua voando? Descubra a engenharia incrível por trás da segurança aérea que garante que você chegue ao seu destino!
+   - Mecânica: Explicação de Dilema Cotidiano e Desmistificação Visual
+   - Por que não é cópia: Aplica a mecânica de 'Explicação de Dilema Cotidiano' (medo de voar, falha de motor) e 'Desmistificação Visual' (mostrar como um avião pode voar com um motor a menos) a um novo contexto de alto interesse e impacto emocional, focando na resiliência da engenharia aeronáutica.
+   - Pilar: astonishing
+
+2. **A ponte que se move para deixar navios passarem: Engenharia que desafia a lógica!**
+   - Gancho: Uma ponte inteira se dobra, gira ou afunda para dar passagem a navios gigantes? Veja a engenharia por trás das pontes móveis mais incríveis e complexas do mundo!
+   - Mecânica: Foco em Inovação e Impacto Humano e Desmistificação Visual
+   - Por que não é cópia: Combina a mecânica de 'Foco em Inovação e Impacto Humano' (facilitar navegação e comércio) com a 'Desmistificação Visual' de como estruturas gigantes podem ser móveis, focando na engenharia por trás do movimento e da complexidade de tais obras.
+   - Pilar: astonishing
+
+3. **O concreto que se 'cura' sozinho: A engenharia do futuro já é real!**
+   - Gancho: Rachaduras no concreto? E se ele pudesse se consertar sozinho, como um organismo vivo? Conheça o concreto autorreparável e como essa tecnologia revolucionária funciona!
+   - Mecânica: Desmistificação Visual e Desmistificação de Material Específico
+   - Por que não é cópia: Pega um conceito técnico avançado ('Desmistificação de Material Específico') e o apresenta de forma 'Desmistificadora Visual', mostrando algo que parece ficção científica mas é uma realidade da engenharia, gerando um efeito 'astonishing' pela capacidade de auto-reparo de um material inerte.
+   - Pilar: astonishing
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-16 19:24 — curiosidade engenharia antiga (SHORT)
+
+**Nicho:** curiosidade engenharia antiga · **Formato:** SHORT
+**Outliers detectados:** 3
+
+#### Fichas de dissecção (IA)
+
+### Essa é a ponte que balança #curiosidades #engenharia #arquitetura
+
+- **Canal:** Engenharia com Felipe
+- **videoId / URL:** J9x9KPShA8A · https://www.youtube.com/watch?v=J9x9KPShA8A
+- **Views / idade / duração:** 17.854 / 1a / 37s
+- **Outlier?** 5.79× vs mediana do canal (3.086 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): "Essa é a ponte que balança" - Cria um paradoxo imediato, gerando curiosidade sobre o porquê de uma ponte, que deveria ser estável, balançar.
+- Texto na tela: Vídeo da ponte balançando visivelmente, talvez com pessoas reagindo ou uma explicação visual da engenharia por trás.
+- Arquétipo: Paradoxo/Inesperado
+
+#### Estrutura
+
+- Formato: Documentário curto/Explicativo
+- Blocos / beats: Hook (ponte balançando) -> Revelação da razão (design intencional para absorver forças) -> Benefício/Funcionalidade (segurança, experiência única).
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: "Você teria coragem de atravessar?" ou "O que achou dessa engenharia?"
+- Tipo: Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Essa é a ponte que balança #curiosidades #engenharia #arquitetura
+
+#### Mecânica extraída (1 linha)
+
+> Revelação de uma solução de engenharia contraintuitiva que resolve um problema de forma eficaz.
+
+#### Erros do concorrente
+
+- N/A (vídeo de sucesso)
+
+---
+
+### Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!
+
+- **Canal:** Curiosidades Históricas
+- **videoId / URL:** R_NCWje1Asg · https://www.youtube.com/watch?v=R_NCWje1Asg
+- **Views / idade / duração:** 1.326 / 1a / 9s
+- **Outlier?** 4.24× vs mediana do canal (313 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): "Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!" - Destaca a raridade e a beleza visual do animal.
+- Texto na tela: Close-up da tartaruga albina, mostrando suas características únicas.
+- Arquétipo: Raridade/Maravilha Visual
+
+#### Estrutura
+
+- Formato: Showcase/Fato Curioso
+- Blocos / beats: Hook (mostra animal raro) -> Breves fatos sobre sua condição/raridade -> Apelo à admiração.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: "Que animal incrível!" ou "Você já viu uma?"
+- Tipo: Engajamento/Apreciação
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!
+
+#### Mecânica extraída (1 linha)
+
+> Exibição de um fenômeno natural raro e visualmente impactante.
+
+#### Erros do concorrente
+
+- O vídeo é um outlier, mas está fora do nicho 'curiosidade engenharia antiga'. O erro do concorrente, para o nosso nicho, é a falta de foco temático.
+
+---
+
+### O prédio que quase fica invisível #curiosidades #engenharia #arquitetura
+
+- **Canal:** Engenharia com Felipe
+- **videoId / URL:** x_rSdWqdzmk · https://www.youtube.com/watch?v=x_rSdWqdzmk
+- **Views / idade / duração:** 11.242 / 1a / 31s
+- **Outlier?** 3.64× vs mediana do canal (3.086 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): "O prédio que quase fica invisível" - Cria um mistério visual e um paradoxo, atraindo a atenção para como isso é possível.
+- Texto na tela: Imagens do prédio se camuflando no ambiente, mostrando o efeito de invisibilidade em diferentes ângulos ou condições de luz.
+- Arquétipo: Paradoxo/Maravilha Visual
+
+#### Estrutura
+
+- Formato: Documentário curto/Explicativo
+- Blocos / beats: Hook (prédio invisível) -> Explicação de como o efeito é alcançado (materiais, design, reflexão) -> Impacto estético/funcional.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: "Engenharia incrível, não é?" ou "Qual sua opinião sobre essa arquitetura?"
+- Tipo: Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: O prédio que quase fica invisível #curiosidades #engenharia #arquitetura
+
+#### Mecânica extraída (1 linha)
+
+> Revelação de um efeito visual surpreendente alcançado através de engenharia ou arquitetura inteligente.
+
+#### Erros do concorrente
+
+- N/A (vídeo de sucesso)
+
+#### Ideias Lumiera derivadas
+
+1. **A cidade submersa que NINGUÉM consegue explicar: Engenharia perdida?**
+   - Gancho: Imagens de ruínas subaquáticas perfeitamente preservadas, com texto 'Como foi construída? E por que afundou?'
+   - Mecânica: Outlier 1 (paradoxo da ponte que balança) e Outlier 3 (efeito visual surpreendente do prédio invisível). A mecânica é 'Desvendando o Mistério Inexplicável'.
+   - Por que não é cópia: Em vez de focar em uma única estrutura, a ideia explora o mistério de uma civilização inteira e sua engenharia que desafia a compreensão moderna, adicionando um elemento de 'tecnologia perdida'.
+   - Pilar: astonishing
+
+2. **O 'computador' de 2000 anos que previa o futuro: Antikythera!**
+   - Gancho: Animação ou reconstrução do Mecanismo de Antikythera em funcionamento, com a pergunta 'Como eles construíram isso sem eletricidade?'
+   - Mecânica: Outlier 3 (prédio invisível - efeito surpreendente). A mecânica é 'Tecnologia Antiga Inacreditável'.
+   - Por que não é cópia: Foca em um artefato específico de engenharia antiga que é incrivelmente complexo e 'fora de seu tempo', destacando a genialidade e o mistério de sua criação, em vez de uma construção estática.
+   - Pilar: astonishing
+
+3. **A muralha que 'cresce' sozinha: O segredo da engenharia Inca!**
+   - Gancho: Vídeo mostrando pedras incas se encaixando perfeitamente, com a legenda 'Sem argamassa, sem falhas. Como?'
+   - Mecânica: Outlier 1 (ponte que balança - solução contraintuitiva). A mecânica é 'Engenharia Adaptativa Misteriosa'.
+   - Por que não é cópia: Explora a técnica de construção sísmica dos Incas de uma perspectiva de 'crescimento' ou 'adaptação' da estrutura, enfatizando a inteligência por trás da ausência de argamassa e a durabilidade contra terremotos, algo que parece impossível.
+   - Pilar: astonishing
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-16 17:48 — ENGENHARIA ANTIGA (SHORT)
+
+**Nicho:** ENGENHARIA ANTIGA · **Formato:** SHORT
+**Outliers detectados:** 3
+
+#### Fichas de dissecção (IA)
+
+### SUPER EL NIÑO vindo aí? [Como se preparar sem Pânico]
+
+- **Canal:** meiodeSobrevivência
+- **videoId / URL:** 1i7Ib97uD3U · https://www.youtube.com/watch?v=1i7Ib97uD3U
+- **Views / idade / duração:** 8.165 / 2m / 2055s
+- **Outlier?** 14.49× vs mediana do canal (564 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): SUPER EL NIÑO vindo aí? Como se preparar sem Pânico.
+- Texto na tela: Texto chamativo sobre 'SUPER EL NIÑO' e 'Como se preparar'.
+- Arquétipo: urgency
+
+#### Estrutura
+
+- Formato: Provavelmente talking head ou narração sobre imagens/vídeos de arquivo.
+- Blocos / beats: 1. Alerta sobre ameaça iminente (El Niño). 2. Reconhecimento do pânico potencial. 3. Oferecimento de solução/preparação para acalmar.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Para mais dicas de sobrevivência e preparação, inscreva-se.
+- Tipo: implied_subscribe
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: SUPER EL NIÑO vindo aí? [Como se preparar sem Pânico]
+
+#### Mecânica extraída (1 linha)
+
+> Aproveita um tópico de alta relevância e preocupação atual, oferecendo uma solução prática e calmante. Cria urgência e depois alívio, posicionando o canal como fonte de conhecimento útil em crises.
+
+#### Erros do concorrente
+
+- O vídeo não explora diretamente a engenharia antiga, mas a mecânica de 'preparação' pode ser adaptada. Poderia ter feito uma conexão com como civilizações antigas lidavam com desastres naturais.
+
+---
+
+### A IA acaba de decodificar um tablet egípcio perdido – e avisa que algo está por vir
+
+- **Canal:** Genomas Antigos
+- **videoId / URL:** fp5qBKCWa7k · https://www.youtube.com/watch?v=fp5qBKCWa7k
+- **Views / idade / duração:** 2.798 / 1m / 1442s
+- **Outlier?** 12.35× vs mediana do canal (227 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): A IA acaba de decodificar um tablet egípcio perdido – e avisa que algo está por vir.
+- Texto na tela: Imagens de IA, hieróglifos, tablet egípcio, texto intrigante.
+- Arquétipo: curiosity
+
+#### Estrutura
+
+- Formato: Montagem de imagens/vídeos com narração e texto na tela.
+- Blocos / beats: 1. Anúncio de avanço tecnológico (IA). 2. Descoberta arqueológica (tablet egípcio perdido). 3. Revelação de conteúdo misterioso (aviso). 4. Implicação de futuro desconhecido.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Inscreva-se para não perder o que está por vir!
+- Tipo: implied_subscribe
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: A IA acaba de decodificar um tablet egípcio perdido – e avisa que algo está por vir
+
+#### Mecânica extraída (1 linha)
+
+> Combina tecnologia de ponta (IA) com mistérios antigos, criando uma narrativa de descoberta e premonição. O elemento 'aviso' gera suspense e a necessidade de saber mais, apelando à curiosidade e ao medo do desconhecido.
+
+#### Erros do concorrente
+
+- Nenhum erro evidente. O vídeo capitaliza bem a fusão de temas. Outros canais poderiam falhar ao não criar um senso de urgência ou implicação futura.
+
+---
+
+### Homem encontra objeto semelhante a uma bolsa suméria. O que aconteceu depois surpreendeu cientistas.
+
+- **Canal:** Genomas Antigos
+- **videoId / URL:** ygC-MJIIMhg · https://www.youtube.com/watch?v=ygC-MJIIMhg
+- **Views / idade / duração:** 2.626 / 1m / 1998s
+- **Outlier?** 11.59× vs mediana do canal (227 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Homem encontra objeto semelhante a uma bolsa suméria. O que aconteceu depois surpreendeu cientistas.
+- Texto na tela: Imagens do objeto misterioso, talvez comparado a artefatos sumérios, texto de surpresa.
+- Arquétipo: shock
+
+#### Estrutura
+
+- Formato: Montagem de imagens/vídeos com narração e texto na tela.
+- Blocos / beats: 1. Descoberta inesperada por um indivíduo. 2. Comparação com artefato antigo conhecido (bolsa suméria). 3. Reação de especialistas (surpresa). 4. Implicação de mistério não resolvido ou conhecimento perdido.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: O que você acha que é? Deixe seu comentário!
+- Tipo: implied_comment
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Homem encontra objeto semelhante a uma bolsa suméria. O que aconteceu depois surpreendeu cientistas.
+
+#### Mecânica extraída (1 linha)
+
+> Apresenta um artefato misterioso e incomum, ligando-o a uma civilização antiga e destacando a perplexidade de especialistas. Isso valida a importância da descoberta e alimenta a curiosidade sobre tecnologias ou conhecimentos perdidos.
+
+#### Erros do concorrente
+
+- Nenhum erro evidente. O vídeo usa a 'surpresa dos cientistas' de forma eficaz. Um erro comum seria apenas apresentar o objeto sem o elemento de 'surpresa' ou 'mistério'.
+
+#### Ideias Lumiera derivadas
+
+1. **A 'Bateria de Bagdá' era real? Engenheiros recriam e chocam o mundo!**
+   - Gancho: Engenheiros modernos tentam replicar a 'Bateria de Bagdá' e os resultados desafiam a história da tecnologia.
+   - Mecânica: Homem encontra objeto semelhante a uma bolsa suméria. O que aconteceu depois surpreendeu cientistas.
+   - Por que não é cópia: Adapta a mecânica de 'descoberta surpreendente e reação de especialistas' para um experimento prático de engenharia, focando na recriação e nos resultados chocantes, em vez de apenas uma descoberta passiva.
+   - Pilar: astonishing
+
+2. **IA decifra mapa maia perdido: Onde está a cidade de ouro que eles previram?**
+   - Gancho: Inteligência Artificial revela segredos de um mapa maia antigo, apontando para uma cidade lendária e uma profecia esquecida.
+   - Mecânica: A IA acaba de decodificar um tablet egípcio perdido – e avisa que algo está por vir
+   - Por que não é cópia: Expande a ideia de 'IA decodificando artefatos' para um mapa, adicionando o elemento de 'cidade perdida' e 'profecia', que são fortes gatilhos de curiosidade e aventura, em vez de um 'aviso' genérico.
+   - Pilar: futuristic
+
+3. **Como os Romanos construíram aquedutos que ainda funcionam? Lições para a crise hídrica atual.**
+   - Gancho: A engenharia romana de aquedutos, que desafia o tempo, oferece soluções surpreendentes para os problemas de água que enfrentamos hoje.
+   - Mecânica: SUPER EL NIÑO vindo aí? [Como se preparar sem Pânico]
+   - Por que não é cópia: Aplica a mecânica de 'solução para um problema atual' (do El Niño) à engenharia antiga, conectando diretamente a sabedoria ancestral a uma necessidade moderna, tornando o conteúdo prático e relevante.
+   - Pilar: practical
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-16 16:59 — ENGENHARIA ANTIGA CURIOSIDADE (SHORT)
+
+**Nicho:** ENGENHARIA ANTIGA CURIOSIDADE · **Formato:** SHORT
+**Outliers detectados:** 1
+
+#### Fichas de dissecção (IA)
+
+### Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!
+
+- **Canal:** Curiosidades Históricas
+- **videoId / URL:** R_NCWje1Asg · https://www.youtube.com/watch?v=R_NCWje1Asg
+- **Views / idade / duração:** 1.326 / 1a / 9s
+- **Outlier?** 4.24× vs mediana do canal (313 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Você já viu algo tão raro e fascinante na natureza?
+- Texto na tela: Imagem impactante e nítida de uma tartaruga albina, destacando sua cor incomum.
+- Arquétipo: Curiosidade/Espanto
+
+#### Estrutura
+
+- Formato: Vídeo curto com narração informativa e visual impactante.
+- Blocos / beats: 1. Apresentação visual imediata da tartaruga albina. 2. Breve explicação sobre a raridade do albinismo na espécie. 3. Curiosidades adicionais sobre o animal ou o fenômeno. 4. Convite ao engajamento.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: O que você achou dessa raridade? Deixe seu comentário!
+- Tipo: Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!
+
+#### Mecânica extraída (1 linha)
+
+> Revelação de Raridade Visual: O sucesso vem da apresentação de algo visualmente único, raro e surpreendente, que naturalmente gera curiosidade e espanto no espectador.
+
+#### Erros do concorrente
+
+- O outlier não comete erros, mas o sucesso dele, apesar de não ser do nicho, revela que canais no nicho de 'Engenharia Antiga Curiosidade' podem estar falhando em focar no elemento 'uau' e na raridade visual dos feitos da engenharia antiga, optando por uma abordagem mais factual e menos impactante, ao invés de explorar o espanto e a curiosidade gerados por algo visualmente único e difícil de acreditar.
+
+#### Ideias Lumiera derivadas
+
+1. **Como os Romanos Construíram Aquedutos que Desafiam a Gravidade?**
+   - Gancho: Imagens aéreas e detalhadas de aquedutos romanos ainda de pé, com uma pergunta intrigante sobre a engenharia e a tecnologia da época que permitiu tais feitos sem bombas modernas.
+   - Mecânica: Revelação de Raridade Visual / Foco no Incomum
+   - Por que não é cópia: Não é uma cópia do conteúdo (tartaruga), mas aplica a mecânica de 'revelação de raridade/complexidade visual' a um feito de engenharia antiga, gerando espanto e curiosidade sobre como algo tão avançado foi construído.
+   - Pilar: astonishing
+
+2. **O Segredo Escondido nas Pedras de Machu Picchu: Encaixes Perfeitos Sem Cimento!**
+   - Gancho: Close-ups dramáticos dos encaixes de pedras em Machu Picchu, mostrando a precisão milimétrica sem o uso de argamassa, com narração questionando as ferramentas e técnicas usadas pelos Incas.
+   - Mecânica: Revelação de Raridade Visual / Foco no Incomum
+   - Por que não é cópia: Adapta a ideia de mostrar algo 'raro' e 'difícil de acreditar' visualmente (a precisão dos encaixes), mas dentro do contexto da engenharia antiga, focando no espanto pela habilidade e mistério.
+   - Pilar: astonishing
+
+3. **A Bateria de Bagdá: Uma Tecnologia Antiga Que Ninguém Entende!**
+   - Gancho: Imagem da 'Bateria de Bagdá' ou uma reconstituição visual, com uma pergunta sobre sua função e como um objeto capaz de gerar eletricidade poderia existir na antiguidade, desafiando a compreensão moderna.
+   - Mecânica: Revelação de Raridade Visual / Foco no Incomum
+   - Por que não é cópia: Utiliza a mecânica de apresentar um objeto 'raro' e 'misterioso' que desafia a compreensão moderna, gerando espanto e curiosidade sobre uma tecnologia antiga 'fora de seu tempo'.
+   - Pilar: astonishing
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-16 15:33 — ENGENHARIA ANTIGA CURIOSIDADE (SHORT)
+
+**Nicho:** ENGENHARIA ANTIGA CURIOSIDADE · **Formato:** SHORT
+**Outliers detectados:** 3
+
+#### Fichas de dissecção (IA)
+
+### Essa é a ponte que balança #curiosidades #engenharia #arquitetura
+
+- **Canal:** Engenharia com Felipe
+- **videoId / URL:** J9x9KPShA8A · https://www.youtube.com/watch?v=J9x9KPShA8A
+- **Views / idade / duração:** 17.854 / 1a / 37s
+- **Outlier?** 5.79× vs mediana do canal (3.086 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Essa é a ponte que balança.
+- Texto na tela: Vídeo mostrando uma ponte que oscila visivelmente.
+- Arquétipo: astonishing
+
+#### Estrutura
+
+- Formato: Short-form, rápido e visual
+- Blocos / beats: 1. Apresentação do fenômeno (ponte balançando). 2. Breve explicação do motivo (engenharia por trás). 3. Conclusão sobre a segurança/funcionalidade.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo:
+- Tipo: none
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Essa é a ponte que balança #curiosidades #engenharia #arquitetura
+
+#### Mecânica extraída (1 linha)
+
+> Revelação de um fenômeno inesperado com explicação técnica
+
+---
+
+### Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!
+
+- **Canal:** Curiosidades Históricas
+- **videoId / URL:** R_NCWje1Asg · https://www.youtube.com/watch?v=R_NCWje1Asg
+- **Views / idade / duração:** 1.326 / 1a / 9s
+- **Outlier?** 4.24× vs mediana do canal (313 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!
+- Texto na tela: Imagens de uma tartaruga albina, destacando sua cor e características únicas.
+- Arquétipo: rare
+
+#### Estrutura
+
+- Formato: Short-form, visualmente cativante
+- Blocos / beats: 1. Exibição da raridade (tartaruga albina). 2. Breve contextualização sobre o que a torna rara (albinismo). 3. Fatos curiosos sobre a espécie ou condição.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo:
+- Tipo: none
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!
+
+#### Mecânica extraída (1 linha)
+
+> Exibição de raridade natural com fatos curiosos
+
+---
+
+### O prédio que quase fica invisível #curiosidades #engenharia #arquitetura
+
+- **Canal:** Engenharia com Felipe
+- **videoId / URL:** x_rSdWqdzmk · https://www.youtube.com/watch?v=x_rSdWqdzmk
+- **Views / idade / duração:** 11.242 / 1a / 31s
+- **Outlier?** 3.64× vs mediana do canal (3.086 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): O prédio que quase fica invisível.
+- Texto na tela: Vídeo mostrando um edifício que se camufla no ambiente, com efeito de quase invisibilidade.
+- Arquétipo: astonishing
+
+#### Estrutura
+
+- Formato: Short-form, visual e explicativo
+- Blocos / beats: 1. Apresentação do efeito visual (prédio 'invisível'). 2. Explicação do design ou material que cria o efeito. 3. Contexto ou curiosidade adicional sobre a construção.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo:
+- Tipo: none
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: O prédio que quase fica invisível #curiosidades #engenharia #arquitetura
+
+#### Mecânica extraída (1 linha)
+
+> Revelação de design engenhoso com efeito visual surpreendente
+
+#### Ideias Lumiera derivadas
+
+1. **A cidade antiga que flutua no deserto?**
+   - Gancho: Como os antigos construíram cidades inteiras em penhascos, desafiando a gravidade e a lógica? (Verbal) / Visual de Petra ou Machu Picchu com foco na engenharia de sustentação. (On-screen)
+   - Mecânica: Revelação de um fenômeno inesperado com explicação técnica
+   - Por que não é cópia: Em vez de uma ponte ou prédio moderno, aplica a mecânica de 'engenharia inesperada' a estruturas antigas, focando em como alcançaram feitos aparentemente impossíveis com tecnologia limitada.
+   - Pilar: astonishing
+
+2. **O segredo perdido da engenharia romana que ninguém consegue replicar hoje**
+   - Gancho: Existe um material de construção romano que é mais forte e durável que o concreto moderno. Por que perdemos essa fórmula? (Verbal) / Visual de ruínas romanas incrivelmente preservadas e um contraste com concreto moderno deteriorado. (On-screen)
+   - Mecânica: Exibição de raridade natural com fatos curiosos
+   - Por que não é cópia: Foca em uma tecnologia antiga _perdida_, criando intriga em torno de um mistério e um desafio para a engenharia moderna, em vez de apenas exibir uma raridade natural.
+   - Pilar: mysterious
+
+3. **A pirâmide que foi construída de cabeça para baixo?**
+   - Gancho: Você sabia que algumas pirâmides egípcias foram projetadas para serem construídas de uma forma que desafia nossa compreensão atual de engenharia? (Verbal) / Animação ou imagem de uma pirâmide sendo construída de uma maneira não convencional ou com uma base 'invertida'. (On-screen)
+   - Mecânica: Revelação de design engenhoso com efeito visual surpreendente
+   - Por que não é cópia: Em vez de um prédio 'invisível' moderno, foca no _processo_ ou _método_ de construção antiga que parece contraintuitivo ou incrivelmente complexo para a época.
+   - Pilar: ingenious
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-16 04:55 — ENGENHARIA CURIOSIDADE (SHORT)
+
+**Nicho:** ENGENHARIA CURIOSIDADE · **Formato:** SHORT
+**Outliers detectados:** 6
+
+#### Fichas de dissecção (IA)
+
+### Etanol ou Gasolina qual o melhor para o motor?
+
+- **Canal:** Engenharia Detalhada
+- **videoId / URL:** Z1wHRMLkPuw · https://www.youtube.com/watch?v=Z1wHRMLkPuw
+- **Views / idade / duração:** 74.934 / 2m / 581s
+- **Outlier?** 9.12× vs mediana do canal (8.219 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Etanol ou Gasolina qual o melhor para o motor?
+- Texto na tela: Comparação visual de combustíveis ou motores, talvez com gráficos simples ou animações.
+- Arquétipo: Dilema/Comparação
+
+#### Estrutura
+
+- Formato: Comparativo Direto
+- Blocos / beats: Apresenta a pergunta, lista prós e contras de cada combustível (desempenho, custo, impacto ambiental), conclui com uma recomendação ou resumo.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Qual você prefere? Deixe nos comentários.
+- Tipo: Implícito
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Etanol ou Gasolina qual o melhor para o motor?
+
+#### Mecânica extraída (1 linha)
+
+> Comparação de Tecnologias/Materiais
+
+#### Erros do concorrente
+
+- Outros canais podem focar demais em dados técnicos complexos, sem simplificar a informação para o público geral, ou não apresentar um dilema claro no início.
+
+---
+
+### A mistura e estrutura metálica, madeira e concreto existe!!
+
+- **Canal:** Engenharia Curiosa
+- **videoId / URL:** JgCE8FKA-o4 · https://www.youtube.com/watch?v=JgCE8FKA-o4
+- **Views / idade / duração:** 1.160 / 3m / 28s
+- **Outlier?** 8.03× vs mediana do canal (145 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): A mistura e estrutura metálica, madeira e concreto existe!!
+- Texto na tela: Imagens impactantes de uma estrutura que combina esses materiais de forma inesperada.
+- Arquétipo: Surpresa/Revelação
+
+#### Estrutura
+
+- Formato: Revelação e Explicação Rápida
+- Blocos / beats: Apresenta a afirmação surpreendente, mostra a estrutura, explica brevemente como a combinação funciona ou por que é inovadora.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Incrível, não é? Siga para mais curiosidades.
+- Tipo: Implícito
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: A mistura e estrutura metálica, madeira e concreto existe!!
+
+#### Mecânica extraída (1 linha)
+
+> Quebra de Paradigma / Inovação Inesperada
+
+#### Erros do concorrente
+
+- Não conseguir transmitir a surpresa ou a 'impossibilidade' inicial da ideia, ou focar em detalhes técnicos antes de capturar a atenção com a inovação.
+
+---
+
+### Esse prédio é uma experiência sensorial
+
+- **Canal:** Engenharia Curiosa
+- **videoId / URL:** WE4l3t0Vu1g · https://www.youtube.com/watch?v=WE4l3t0Vu1g
+- **Views / idade / duração:** 1.121 / 3m / 38s
+- **Outlier?** 7.76× vs mediana do canal (145 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Esse prédio é uma experiência sensorial
+- Texto na tela: Cenas dinâmicas de diferentes partes do prédio que evocam sensações (luz, textura, som).
+- Arquétipo: Curiosidade/Inovação
+
+#### Estrutura
+
+- Formato: Tour Conceitual Rápido
+- Blocos / beats: Introduz a ideia de um prédio sensorial, mostra exemplos visuais e auditivos de como o design afeta os sentidos, destaca a intenção do arquiteto.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Você visitaria um prédio assim?
+- Tipo: Implícito
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Esse prédio é uma experiência sensorial
+
+#### Mecânica extraída (1 linha)
+
+> Design Inovador / Arquitetura Experiencial
+
+#### Erros do concorrente
+
+- Focar apenas na estética ou na funcionalidade, sem explorar o impacto humano e a experiência que a arquitetura pode proporcionar.
+
+---
+
+### O que é AÇO CORTEN? O Segredo Por Trás Da Ferrugem Do Aço Corten
+
+- **Canal:** Engenharia Detalhada
+- **videoId / URL:** 0NBhItok8is · https://www.youtube.com/watch?v=0NBhItok8is
+- **Views / idade / duração:** 54.788 / 2m / 685s
+- **Outlier?** 6.67× vs mediana do canal (8.219 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): O que é AÇO CORTEN? O Segredo Por Trás Da Ferrugem Do Aço Corten
+- Texto na tela: Imagens de estruturas com Aço Corten, destacando sua aparência enferrujada e elegante.
+- Arquétipo: Explicação/Desmistificação
+
+#### Estrutura
+
+- Formato: Definição e Desmistificação
+- Blocos / beats: Apresenta o material (Aço Corten), explica o que o torna especial (camada protetora de ferrugem), mostra exemplos de aplicação e benefícios.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Conhecia esse material? Deixe seu like!
+- Tipo: Implícito
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: O que é AÇO CORTEN? O Segredo Por Trás Da Ferrugem Do Aço Corten
+
+#### Mecânica extraída (1 linha)
+
+> Desmistificação de Material / Ciência por Trás
+
+#### Erros do concorrente
+
+- Não conseguir explicar de forma simples e visual um conceito técnico, ou não mostrar a relevância e as aplicações práticas do material.
+
+#### Ideias Lumiera derivadas
+
+1. **O Carro Que Anda na Água: Engenharia ou Ilusão?**
+   - Gancho: Mostrar um veículo que parece desafiar as leis da física ao se mover sobre a água, gerando curiosidade e ceticismo.
+   - Mecânica: Quebra de Paradigma / Inovação Inesperada
+   - Por que não é cópia: Aplica a mecânica de 'Quebra de Paradigma' a um contexto diferente (veículos vs. estruturas), focando na surpresa e na desmistificação de algo que parece impossível.
+   - Pilar: astonishing
+
+2. **A Ponte Que Se Move: Como Ela Evita Desastres?**
+   - Gancho: Apresentar uma ponte com design incomum que se adapta a condições extremas (ventos, terremotos), prometendo revelar a engenharia por trás de sua resiliência.
+   - Mecânica: Design Inovador / Arquitetura Experiencial
+   - Por que não é cópia: Utiliza a mecânica de 'Design Inovador', mas com foco na solução de um problema crítico (segurança estrutural) e na adaptabilidade, não apenas na experiência sensorial.
+   - Pilar: problem-solution
+
+3. **Tijolo Ecológico vs. Tijolo Comum: Qual Salva Mais o Planeta?**
+   - Gancho: Criar um dilema direto sobre qual tipo de tijolo é mais sustentável e eficiente para construções, apelando para a consciência ambiental do espectador.
+   - Mecânica: Comparação de Tecnologias/Materiais
+   - Por que não é cópia: É uma 'Comparação de Tecnologias/Materiais', mas com um foco específico na sustentabilidade e impacto ambiental, um tópico de grande relevância atual, diferente da comparação de combustíveis.
+   - Pilar: comparison
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-15 22:23 — ENGENHARIA CURIOSIDADE (SHORT)
+
+**Nicho:** ENGENHARIA CURIOSIDADE · **Formato:** SHORT
+**Outliers detectados:** 6
+
+#### Fichas de dissecção (IA)
+
+### Etanol ou Gasolina qual o melhor para o motor?
+
+- **Canal:** Engenharia Detalhada
+- **videoId / URL:** Z1wHRMLkPuw · https://www.youtube.com/watch?v=Z1wHRMLkPuw
+- **Views / idade / duração:** 74.849 / 2m / 581s
+- **Outlier?** 9.13× vs mediana do canal (8.200 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Etanol ou Gasolina, qual o melhor para o motor?
+- Texto na tela: Imagens dinâmicas de motores, combustíveis e carros, com uma pergunta clara em texto ou voz.
+- Arquétipo: Pergunta Direta / Comparação / Dilema Comum
+
+#### Estrutura
+
+- Formato: Narração com voz over e B-roll de alta qualidade, intercalado com gráficos ou textos explicativos.
+- Blocos / beats: Apresenta a pergunta comum -> Explica brevemente os prós e contras do Etanol -> Explica os prós e contras da Gasolina -> Oferece uma conclusão balanceada e contextualizada.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Deixe sua opinião nos comentários!
+- Tipo: Implícito / Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Etanol ou Gasolina qual o melhor para o motor?
+
+#### Mecânica extraída (1 linha)
+
+> Comparação de duas opções populares, desmistificando um dilema cotidiano com base em princípios de engenharia e desempenho. Aborda uma dúvida prática e relevante para muitos.
+
+---
+
+### A mistura e estrutura metálica, madeira e concreto existe!!
+
+- **Canal:** Engenharia Curiosa
+- **videoId / URL:** JgCE8FKA-o4 · https://www.youtube.com/watch?v=JgCE8FKA-o4
+- **Views / idade / duração:** 1.160 / 3m / 28s
+- **Outlier?** 7.2× vs mediana do canal (161 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): A mistura e estrutura metálica, madeira e concreto existe!!
+- Texto na tela: Visual de uma estrutura arquitetônica que claramente combina os três materiais de forma inovadora e surpreendente.
+- Arquétipo: Afirmação Surpreendente / Intriga / Revelação
+
+#### Estrutura
+
+- Formato: Narração com voz over e B-roll mostrando a estrutura em diferentes ângulos e detalhes.
+- Blocos / beats: Apresenta a ideia contraintuitiva da combinação de materiais -> Mostra exemplos visuais da aplicação -> Explica brevemente a funcionalidade ou benefício dessa mistura.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Você já imaginava essa combinação?
+- Tipo: Implícito / Curiosidade
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: A mistura e estrutura metálica, madeira e concreto existe!!
+
+#### Mecânica extraída (1 linha)
+
+> Revelação de uma solução de engenharia ou arquitetura inovadora e pouco conhecida, que desafia a percepção comum sobre materiais de construção. Foca no 'uau' visual e na quebra de expectativa.
+
+---
+
+### Esse prédio é uma experiência sensorial
+
+- **Canal:** Engenharia Curiosa
+- **videoId / URL:** WE4l3t0Vu1g · https://www.youtube.com/watch?v=WE4l3t0Vu1g
+- **Views / idade / duração:** 1.121 / 3m / 38s
+- **Outlier?** 6.96× vs mediana do canal (161 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Esse prédio é uma experiência sensorial
+- Texto na tela: Imagens intrigantes de um edifício com características arquitetônicas incomuns, talvez com pessoas interagindo com o espaço de forma única.
+- Arquétipo: Intriga / Característica Única / Experiência
+
+#### Estrutura
+
+- Formato: Narração com voz over e B-roll que explora as diferentes facetas e ambientes do prédio.
+- Blocos / beats: Introduz a ideia de um prédio que oferece uma experiência sensorial -> Mostra exemplos visuais de como a arquitetura estimula os sentidos -> Explica o conceito por trás do design.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Você visitaria um prédio assim?
+- Tipo: Implícito / Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Esse prédio é uma experiência sensorial
+
+#### Mecânica extraída (1 linha)
+
+> Destaque de uma aplicação de engenharia/arquitetura que vai além da funcionalidade básica, focando na experiência humana e no impacto emocional/sensorial. Gera curiosidade sobre o 'como' e o 'porquê'.
+
+---
+
+### O que é AÇO CORTEN? O Segredo Por Trás Da Ferrugem Do Aço Corten
+
+- **Canal:** Engenharia Detalhada
+- **videoId / URL:** 0NBhItok8is · https://www.youtube.com/watch?v=0NBhItok8is
+- **Views / idade / duração:** 54.781 / 2m / 685s
+- **Outlier?** 6.68× vs mediana do canal (8.200 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): O que é AÇO CORTEN? O Segredo Por Trás Da Ferrugem Do Aço Corten
+- Texto na tela: Close-ups de superfícies de Aço Corten, mostrando sua textura enferrujada característica em diferentes contextos arquitetônicos.
+- Arquétipo: Pergunta / Segredo Revelado / Desmistificação
+
+#### Estrutura
+
+- Formato: Narração com voz over e B-roll que exibe o Aço Corten em diversas aplicações, com textos na tela para termos técnicos.
+- Blocos / beats: Põe a questão sobre o Aço Corten e sua aparência enferrujada -> Explica o que é o material e sua composição -> Revela o 'segredo' da ferrugem controlada e protetora -> Mostra exemplos de uso e benefícios.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Você já conhecia o Aço Corten?
+- Tipo: Implícito / Engajamento
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: O que é AÇO CORTEN? O Segredo Por Trás Da Ferrugem Do Aço Corten
+
+#### Mecânica extraída (1 linha)
+
+> Explicação de um material ou conceito de engenharia específico que é visualmente distinto e muitas vezes mal compreendido. Desmistifica uma característica (ferrugem) que seria vista como defeito em outros materiais, transformando-a em um diferencial.
+
+#### Ideias Lumiera derivadas
+
+1. **O Concreto Que Se Cura Sozinho: A Engenharia do Futuro?**
+   - Gancho: Imagine um concreto que conserta suas próprias rachaduras! (Verbal) + Visual de rachaduras em uma superfície de concreto se fechando magicamente (On-screen).
+   - Mecânica: Aço Corten (propriedade surpreendente de material), Mistura de materiais (inovação em materiais).
+   - Por que não é cópia: Não é uma cópia direta, mas aplica a mecânica de 'material surpreendente/tecnologia inovadora' vista no Aço Corten e na mistura de materiais. Foca em uma tecnologia futurista e contraintuitiva, gerando um forte 'uau'.
+   - Pilar: astonishing
+
+2. **Como Prédios Gigantes Não Afundam? O Segredo das Fundações Flutuantes!**
+   - Gancho: Um arranha-céu de 100 andares pode 'flutuar' no solo? (Verbal) + Visual de um arranha-céu imponente com uma base que parece leve ou em um terreno desafiador (On-screen).
+   - Mecânica: O que é AÇO CORTEN? (explicando um segredo/conceito), Esse prédio é uma experiência sensorial (fator 'uau' em arquitetura).
+   - Por que não é cópia: Aborda uma questão comum de 'como isso é possível?' sobre grandes estruturas, similar à curiosidade gerada pela 'mistura de materiais' e pelo 'prédio sensorial', mas focado na estabilidade e engenharia estrutural. Revela um 'segredo' da engenharia civil.
+   - Pilar: astonishing
+
+3. **Vidro é Líquido ou Sólido? A Curiosa Verdade da Engenharia!**
+   - Gancho: Seu copo de vidro está 'escorrendo' muito devagar? (Verbal) + Visual de um vidro antigo com distorções e um vidro novo, talvez com uma gota estilizada para representar o fluxo (On-screen).
+   - Mecânica: Etanol ou Gasolina (desmistificação/esclarecimento), O que é AÇO CORTEN? (explicando a natureza de um material).
+   - Por que não é cópia: Pega uma 'lenda urbana' ou debate científico comum e o aborda sob a ótica da engenharia de materiais. Similar ao 'Etanol ou Gasolina' por desmistificar uma dúvida popular e ao 'Aço Corten' por explicar a verdadeira natureza de um material.
+   - Pilar: astonishing
 
 ## Pesquisas automáticas (IA)
 
@@ -4940,3 +6374,27 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - **O Segredo da Ponte Rio-Niterói: Como ela foi construída?** — A maior ponte do Brasil esconde um segredo de engenharia que poucos conhecem. Veja a tecnologia por trás dessa obra monumental. _(inbox · IA 2026-07-07)_
 - **A Máquina que Constrói Prédios em Tempo Recorde no Brasil** — Esqueça os andaimes! Veja como essa tecnologia brasileira está revolucionando a construção civil, erguendo edifícios em semanas. _(inbox · IA 2026-07-07)_
 - **O Rio Subterrâneo de São Paulo: Onde ele foi parar?** — Você sabia que um rio inteiro desapareceu sob São Paulo? A engenharia por trás disso é inacreditável e esconde uma cidade secreta. _(inbox · IA 2026-07-07)_
+- **O Concreto Que Se Cura Sozinho: A Engenharia do Futuro?** — Imagine um concreto que conserta suas próprias rachaduras! (Verbal) + Visual de rachaduras em uma superfície de concreto se fechando magicamente (On-screen). _(inbox · IA 2026-07-15)_
+- **Como Prédios Gigantes Não Afundam? O Segredo das Fundações Flutuantes!** — Um arranha-céu de 100 andares pode 'flutuar' no solo? (Verbal) + Visual de um arranha-céu imponente com uma base que parece leve ou em um terreno desafiador (On-screen). _(inbox · IA 2026-07-15)_
+- **Vidro é Líquido ou Sólido? A Curiosa Verdade da Engenharia!** — Seu copo de vidro está 'escorrendo' muito devagar? (Verbal) + Visual de um vidro antigo com distorções e um vidro novo, talvez com uma gota estilizada para representar o fluxo (On-screen). _(inbox · IA 2026-07-15)_
+- **O Carro Que Anda na Água: Engenharia ou Ilusão?** — Mostrar um veículo que parece desafiar as leis da física ao se mover sobre a água, gerando curiosidade e ceticismo. _(inbox · IA 2026-07-16)_
+- **A Ponte Que Se Move: Como Ela Evita Desastres?** — Apresentar uma ponte com design incomum que se adapta a condições extremas (ventos, terremotos), prometendo revelar a engenharia por trás de sua resiliência. _(inbox · IA 2026-07-16)_
+- **Tijolo Ecológico vs. Tijolo Comum: Qual Salva Mais o Planeta?** — Criar um dilema direto sobre qual tipo de tijolo é mais sustentável e eficiente para construções, apelando para a consciência ambiental do espectador. _(inbox · IA 2026-07-16)_
+- **A cidade antiga que flutua no deserto?** — Como os antigos construíram cidades inteiras em penhascos, desafiando a gravidade e a lógica? (Verbal) / Visual de Petra ou Machu Picchu com foco na engenharia de sustentação. (On-screen) _(inbox · IA 2026-07-16)_
+- **O segredo perdido da engenharia romana que ninguém consegue replicar hoje** — Existe um material de construção romano que é mais forte e durável que o concreto moderno. Por que perdemos essa fórmula? (Verbal) / Visual de ruínas romanas incrivelmente preservadas e um contraste com concreto moderno deteriorado. (On-screen) _(inbox · IA 2026-07-16)_
+- **A pirâmide que foi construída de cabeça para baixo?** — Você sabia que algumas pirâmides egípcias foram projetadas para serem construídas de uma forma que desafia nossa compreensão atual de engenharia? (Verbal) / Animação ou imagem de uma pirâmide sendo construída de uma maneira não convencional ou com uma base 'invertida'. (On-screen) _(inbox · IA 2026-07-16)_
+- **Como os Romanos Construíram Aquedutos que Desafiam a Gravidade?** — Imagens aéreas e detalhadas de aquedutos romanos ainda de pé, com uma pergunta intrigante sobre a engenharia e a tecnologia da época que permitiu tais feitos sem bombas modernas. _(inbox · IA 2026-07-16)_
+- **O Segredo Escondido nas Pedras de Machu Picchu: Encaixes Perfeitos Sem Cimento!** — Close-ups dramáticos dos encaixes de pedras em Machu Picchu, mostrando a precisão milimétrica sem o uso de argamassa, com narração questionando as ferramentas e técnicas usadas pelos Incas. _(inbox · IA 2026-07-16)_
+- **A Bateria de Bagdá: Uma Tecnologia Antiga Que Ninguém Entende!** — Imagem da 'Bateria de Bagdá' ou uma reconstituição visual, com uma pergunta sobre sua função e como um objeto capaz de gerar eletricidade poderia existir na antiguidade, desafiando a compreensão moderna. _(inbox · IA 2026-07-16)_
+- **A 'Bateria de Bagdá' era real? Engenheiros recriam e chocam o mundo!** — Engenheiros modernos tentam replicar a 'Bateria de Bagdá' e os resultados desafiam a história da tecnologia. _(inbox · IA 2026-07-16)_
+- **IA decifra mapa maia perdido: Onde está a cidade de ouro que eles previram?** — Inteligência Artificial revela segredos de um mapa maia antigo, apontando para uma cidade lendária e uma profecia esquecida. _(inbox · IA 2026-07-16)_
+- **Como os Romanos construíram aquedutos que ainda funcionam? Lições para a crise hídrica atual.** — A engenharia romana de aquedutos, que desafia o tempo, oferece soluções surpreendentes para os problemas de água que enfrentamos hoje. _(inbox · IA 2026-07-16)_
+- **A cidade submersa que NINGUÉM consegue explicar: Engenharia perdida?** — Imagens de ruínas subaquáticas perfeitamente preservadas, com texto 'Como foi construída? E por que afundou?' _(inbox · IA 2026-07-16)_
+- **O 'computador' de 2000 anos que previa o futuro: Antikythera!** — Animação ou reconstrução do Mecanismo de Antikythera em funcionamento, com a pergunta 'Como eles construíram isso sem eletricidade?' _(inbox · IA 2026-07-16)_
+- **A muralha que 'cresce' sozinha: O segredo da engenharia Inca!** — Vídeo mostrando pedras incas se encaixando perfeitamente, com a legenda 'Sem argamassa, sem falhas. Como?' _(inbox · IA 2026-07-16)_
+- **Por que os aviões não caem com um motor só? A engenharia da segurança aérea!** — Um motor falha no ar... e o avião continua voando? Descubra a engenharia incrível por trás da segurança aérea que garante que você chegue ao seu destino! _(inbox · IA 2026-07-17)_
+- **A ponte que se move para deixar navios passarem: Engenharia que desafia a lógica!** — Uma ponte inteira se dobra, gira ou afunda para dar passagem a navios gigantes? Veja a engenharia por trás das pontes móveis mais incríveis e complexas do mundo! _(inbox · IA 2026-07-17)_
+- **O concreto que se 'cura' sozinho: A engenharia do futuro já é real!** — Rachaduras no concreto? E se ele pudesse se consertar sozinho, como um organismo vivo? Conheça o concreto autorreparável e como essa tecnologia revolucionária funciona! _(inbox · IA 2026-07-17)_
+- **O Segredo de Tesla: Ele Realmente Dormia?** — Você sabia que um dos maiores inventores da história tinha hábitos de sono... peculiares? Descubra como Tesla revolucionou a engenharia com uma rotina de sono inacreditável! _(inbox · IA 2026-07-17)_
+- **A Ponte que Desafia a Gravidade: Como Ela Ainda Está de Pé?** — Existe uma ponte que parece flutuar, desafiando todas as leis da física! Como os engenheiros conseguiram construir essa maravilha que desafia a gravidade? _(inbox · IA 2026-07-17)_
+- **Carregador Rápido vs. Lento: Qual Estraga Menos a Bateria do Seu Celular?** — Seu carregador rápido está matando a bateria do seu celular? A verdade sobre a vida útil da sua bateria e qual carregador é o melhor para ela! _(inbox · IA 2026-07-17)_

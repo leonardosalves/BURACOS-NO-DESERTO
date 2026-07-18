@@ -65,30 +65,17 @@ export function scheduleLumieraServiceRestart(backendDir) {
   }
 
   const windowsService = isWindowsServiceMode(backendDir);
-  const nssmExe = resolveNssmExe(backendDir);
 
-  if (windowsService && nssmExe) {
-    const ps = [
-      "Start-Sleep -Seconds 2",
-      `& '${nssmExe.replace(/'/g, "''")}' restart ${SERVICE_NAME}`,
-    ].join("; ");
-    const child = spawn(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-WindowStyle",
-        "Hidden",
-        "-Command",
-        ps,
-      ],
-      { detached: true, stdio: "ignore", windowsHide: true }
-    );
-    child.unref();
+  if (windowsService) {
+    // O processo do serviço não precisa abrir o Service Control Manager para
+    // reiniciar a si próprio. Encerrar normalmente é mais confiável: o NSSM
+    // está configurado com AppExit=Restart e inicia um Node novo com o código
+    // atualizado. A resposta HTTP tem tempo de ser enviada antes da saída.
+    const timer = setTimeout(() => process.exit(0), 1500);
+    timer.unref();
     return {
       scheduled: true,
-      mode: "windows-service",
+      mode: "windows-service-self-exit",
       serviceName: SERVICE_NAME,
       message: "Reiniciando serviço LumieraBackend (~10–20s)…",
     };

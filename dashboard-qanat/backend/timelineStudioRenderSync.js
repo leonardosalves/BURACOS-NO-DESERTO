@@ -244,18 +244,33 @@ export function buildScenesFromStudio(
     );
     if (!copiedName) return;
 
+    const assetType = inferAssetType(clip);
+    const isVideo = assetType === "video";
+    // Vídeo: bed diegético sob narração; imagem fica muda (SFX na trilha).
     const volume = Number.isFinite(Number(clip.props?.volume))
       ? Math.min(1, Math.max(0, Number(clip.props.volume)))
-      : 0;
+      : isVideo
+        ? 0.28
+        : 0;
     const playbackRate = Number.isFinite(Number(clip.props?.playback_rate))
       ? Math.min(2, Math.max(0.25, Number(clip.props.playback_rate)))
       : 1;
+    const fadeInS = isVideo
+      ? Number.isFinite(Number(clip.props?.fadeInS ?? clip.props?.fade_in_s))
+        ? Math.max(0.05, Number(clip.props.fadeInS ?? clip.props.fade_in_s))
+        : 0.32
+      : 0;
+    const fadeOutS = isVideo
+      ? Number.isFinite(Number(clip.props?.fadeOutS ?? clip.props?.fade_out_s))
+        ? Math.max(0.05, Number(clip.props.fadeOutS ?? clip.props.fade_out_s))
+        : 0.42
+      : 0;
 
     scenes.push({
       block,
       scene_id: String(clip.id || `studio.${index + 1}`),
       asset: `projects/${projectSlug}/${copiedName}`,
-      type: inferAssetType(clip),
+      type: assetType,
       start,
       duration,
       durationLocked: Boolean(clip.locked),
@@ -263,6 +278,8 @@ export function buildScenesFromStudio(
       editorNotes: "",
       volume,
       playback_rate: playbackRate,
+      fadeInS,
+      fadeOutS,
     });
   });
 

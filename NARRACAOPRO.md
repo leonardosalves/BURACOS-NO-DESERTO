@@ -17,15 +17,15 @@ A narração será usada diretamente em um vídeo. Deve estar pronta para grava�
 
 Quando múltiplas diretrizes forem injetadas no mesmo prompt, a seguinte hierarquia prevalece. Regra de nível superior sempre vence conflito com nível inferior.
 
-| Prioridade | Domínio | Fonte soberana |
+| Prioridade | Domínio                              | Fonte soberana                                  |
 | ---------- | ------------------------------------ | ----------------------------------------------- |
-| 1 | Precisão factual e teste de entidade | NARRACAOPRO |
-| 2 | Tese única, causalidade e concretude | NARRACAOPRO |
-| 3 | Clareza e naturalidade oral | NARRACAOPRO |
-| 4 | Adequação à duração e ao formato | NARRACAOPRO |
-| 5 | Retenção e ritmo | NARRACAOPRO + VIRAL (quando Shorts) |
-| 6 | Recursos criativos | SCRIPT_CREATIVE (submissa ao NARRACAOPRO) |
-| 7 | CTA | NARRACAOPRO (fechamento declarativo é o padrão) |
+| 1          | Precisão factual e teste de entidade | NARRACAOPRO                                     |
+| 2          | Tese única, causalidade e concretude | NARRACAOPRO                                     |
+| 3          | Clareza e naturalidade oral          | NARRACAOPRO                                     |
+| 4          | Adequação à duração e ao formato     | NARRACAOPRO                                     |
+| 5          | Retenção e ritmo                     | NARRACAOPRO + VIRAL (quando Shorts)             |
+| 6          | Recursos criativos                   | SCRIPT_CREATIVE (submissa ao NARRACAOPRO)       |
+| 7          | CTA                                  | NARRACAOPRO (fechamento declarativo é o padrão) |
 
 ### Jurisdições exclusivas
 
@@ -210,10 +210,12 @@ Proibido:
 - "Prepare-se", "Mergulhe", "Desvende os segredos", "Jornada fascinante", "Universo intrigante"
 - "É importante ressaltar", "Vale a pena mencionar", "Em conclusão", "No mundo de hoje"
 - Adjetivos vazios sem prova: incrível, surpreendente, impressionante, extraordinário (use só com dado ou exemplo imediato)
+- **Grandiosidade de plantão (máx. 1× no vídeo inteiro, e só com medida/prova na mesma frase):** colossal, gigantesco, monumental, épico, titânico, imenso, descomunal, "maior de todos", "nunca visto", "sem precedentes". Prefira tamanho, peso, distância, tempo ou comparação concreta.
 - Três frases seguidas começando igual ou com a mesma estrutura
 - Gírias: "cara", "mano", "bizarro demais", "do nada", "tipo assim", "tá ligado", "isso é insano"
 - "Desde os primórdios da humanidade", "Em um mundo onde tudo é possível"
 - Repetição da mesma ideia com palavras diferentes para preencher duração
+- **Profissão genérica de nicho:** em engenharia (e nichos técnicos afins), não repita só "engenheiro"/"engenheiros". Especifique de forma natural o papel real: engenheiro civil, estrutural, naval, mecânico, de solo, de saneamento, projetista, mestre de obras, etc. — sem lista forçada nem jargão. Varie também com o que a pessoa _faz_ ("quem calcula a fundação", "a equipe de estrutura").
 
 ### ETAPA 9 — REMOVER VAZIOS
 
@@ -268,7 +270,9 @@ Exemplo inadequado: "Essa invenção mudou o mundo para sempre."
 
 Exemplo adequado: "A padronização das roscas permitiu que um parafuso produzido em uma fábrica encaixasse em uma porca produzida em outra, reduzindo reparos artesanais e acelerando a montagem de máquinas."
 
-**Regra do adjetivo justificado:** Sempre que uma frase contiver palavras como "revolucionário", "essencial", "histórico", "fundamental", "extraordinário", "transformador", "engenhoso" ou "importante", responda internamente: "Qual fato demonstra isso?". Se não houver resposta concreta na própria frase ou na frase seguinte, remova o adjetivo ou reescreva o trecho.
+**Regra do adjetivo justificado:** Sempre que uma frase contiver palavras como "revolucionário", "essencial", "histórico", "fundamental", "extraordinário", "transformador", "engenhoso", "importante", "colossal", "gigantesco" ou "monumental", responda internamente: "Qual fato demonstra isso?". Se não houver resposta concreta na própria frase ou na frase seguinte, remova o adjetivo ou reescreva o trecho.
+
+**Regra da profissão específica (nicho técnico):** Se o texto disser "engenheiro" (ou o substantivo genérico do nicho: "cientista", "médico", "arquiteto"), pergunte: "Qual especialidade ou função real cabe aqui?". Prefira a forma mais natural da especialidade ou da função ("engenheiro civil", "quem projeta a ponte") em vez de repetir o rótulo genérico. Não invente especialidade se a fonte não indicar — nesse caso use a função concreta ("a equipe da obra", "quem calculou a base").
 
 ### 5.2 TESTE MOSTRE, NÃO DECLARE
 
@@ -474,14 +478,14 @@ O roteiro não deve tentar resumir toda a história de uma tecnologia. Deve esco
 
 ### Estrutura proporcional
 
-| Faixa | Função | Conteúdo |
+| Faixa    | Função                | Conteúdo                                                                               |
 | -------- | --------------------- | -------------------------------------------------------------------------------------- |
-| 0%–8% | Gancho | Descoberta, contradição, risco, pergunta, fato surpreendente — ligado ao conteúdo real |
-| 8%–20% | Contexto mínimo | Onde, quando, quem, qual é o problema — só o essencial |
-| 20%–55% | Desenvolvimento | Como e por que aconteceu, mecanismo, dificuldade |
-| 55%–80% | Escalada ou revelação | Informação mais importante ou transformadora |
-| 80%–94% | Recompensa | Resposta clara à pergunta principal |
-| 94%–100% | Fechamento | Consequência concreta ou ironia factual — declarativo |
+| 0%–8%    | Gancho                | Descoberta, contradição, risco, pergunta, fato surpreendente — ligado ao conteúdo real |
+| 8%–20%   | Contexto mínimo       | Onde, quando, quem, qual é o problema — só o essencial                                 |
+| 20%–55%  | Desenvolvimento       | Como e por que aconteceu, mecanismo, dificuldade                                       |
+| 55%–80%  | Escalada ou revelação | Informação mais importante ou transformadora                                           |
+| 80%–94%  | Recompensa            | Resposta clara à pergunta principal                                                    |
+| 94%–100% | Fechamento            | Consequência concreta ou ironia factual — declarativo                                  |
 
 ### Fechamento de Shorts
 
@@ -579,20 +583,20 @@ Não use transições aleatórias apenas para simular suspense.
 
 ### Tabela de referência (ritmo de narrador brasileiro, com pausas — ~130 a 155 palavras/min)
 
-| Duração | Palavras |
-| ------- | ----------- |
-| 15s | 35–45 |
-| 20s | 45–60 |
-| 30s | 65–85 |
-| 40s | 85–110 |
-| 50s | 105–135 |
-| 60s | 125–155 |
-| 90s | 190–230 |
-| 3min | 390–465 |
-| 5min | 650–775 |
-| 8min | 1040–1240 |
-| 10min | 1300–1550 |
-| 15min | 1950–2325 |
+| Duração | Palavras  |
+| ------- | --------- |
+| 15s     | 35–45     |
+| 20s     | 45–60     |
+| 30s     | 65–85     |
+| 40s     | 85–110    |
+| 50s     | 105–135   |
+| 60s     | 125–155   |
+| 90s     | 190–230   |
+| 3min    | 390–465   |
+| 5min    | 650–775   |
+| 8min    | 1040–1240 |
+| 10min   | 1300–1550 |
+| 15min   | 1950–2325 |
 
 Para durações intermediárias, interpole proporcionalmente (~130–155 palavras por minuto).
 

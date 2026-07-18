@@ -65,13 +65,13 @@ export function normalizeCreatorWizardStep(step: unknown) {
 }
 
 export function creatorTimelineReady({
-  narrationMode,
-  chunkPlanReady,
   whisperReady,
 }: {
   narrationMode?: string;
   chunkPlanReady: boolean;
   whisperReady: boolean;
 }) {
-  return whisperReady || (narrationMode === "chunked" && chunkPlanReady);
+  // O plano de chunks conhece a duração dos arquivos, mas somente o Whisper
+  // posterior à aprovação conhece a janela real de cada fala/cena.
+  return whisperReady;
 }

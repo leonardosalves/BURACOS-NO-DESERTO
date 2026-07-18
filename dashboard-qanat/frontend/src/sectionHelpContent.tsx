@@ -7,6 +7,17 @@ export type SectionHelpEntry = {
 
 /** Textos de ajuda (? ) por seção — reutilizados em todo o dashboard. */
 export const SECTION_HELP: Record<string, SectionHelpEntry> = {
+  "tab-collage-broll": {
+    title: "Collage B-roll",
+    body: (
+      <>
+        Laboratório de B-roll paper-collage (halftone) baseado em{" "}
+        <strong>gbro-collage-broll</strong>. Workflow em 3 gates: metáfora →
+        still → vídeo Omni Flash. Exporta specs e jobs JSON para o pipeline do
+        repositório.
+      </>
+    ),
+  },
   "tab-status": {
     title: "Aba Render",
     body: (

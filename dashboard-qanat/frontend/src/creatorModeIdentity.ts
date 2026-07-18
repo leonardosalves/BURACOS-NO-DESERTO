@@ -3,6 +3,7 @@ export type CreatorIdeationMode =
   | "custom"
   | "listicle"
   | "historical-witness"
+  | "humor-facts"
   | "video-reverse-engineering";
 
 export type CreatorModeIdentity = {
@@ -84,6 +85,24 @@ export const CREATOR_MODE_IDENTITIES: Record<
     accentBorder: "border-amber-400/30",
     accentSurface: "bg-amber-400/[0.06]",
     halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(251,191,36,0.18),transparent_34%)]",
+  },
+  "humor-facts": {
+    id: "humor-facts",
+    menuLabel: "Fatos com Graça",
+    eyebrow: "Comédia factual importada",
+    title: "Fatos com Graça",
+    subtitle: "Narração aprovada e direção de humor carregadas diretamente.",
+    promise:
+      "Preserva cada palavra da narração e leva cenas, prompts, câmera, música e SFX ao Wizard sem passar pela Oficina Autoral.",
+    sequence: [
+      "Narração preservada",
+      "Cenas humorísticas carregadas",
+      "Produção liberada",
+    ],
+    accentText: "text-orange-200",
+    accentBorder: "border-orange-400/30",
+    accentSurface: "bg-orange-400/[0.07]",
+    halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(251,146,60,0.2),transparent_34%)]",
   },
   "video-reverse-engineering": {
     id: "video-reverse-engineering",

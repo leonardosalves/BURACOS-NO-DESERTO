@@ -15,9 +15,10 @@ import {
 import { runCommand, BROWSER_UA } from "./shared/commonUtils.js";
 
 const VIDEO_GEMINI_MODELS = [
+  "gemini-3.5-flash",
+  "gemini-2.5-pro",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
-  "gemini-2.0-flash-lite",
 ];
 
 const VIDEO_MIME_BY_EXT = {
@@ -593,15 +594,38 @@ function mergeMetadataFromYt(metadata, ytContext) {
   };
 }
 
+/**
+ * Multimodal nativo (fileUri YouTube / inline vídeo) só na API Gemini.
+ * forceProvider aqui NÃO troca o provedor do projeto — só o endpoint técnico
+ * de "assistir vídeo". Texto/roteiro sempre seguem getAiProvider(config).
+ */
 const GEMINI_VIDEO_OPTS = {
   models: VIDEO_GEMINI_MODELS,
   forceProvider: "gemini",
   maxRetries: 2,
   temperature: 0.25,
+  activityLabel: "Análise multimodal vídeo (Gemini API)",
 };
 
 function geminiVideoOpts(workspaceDir, extra = {}) {
   return { ...GEMINI_VIDEO_OPTS, projectDir: workspaceDir, ...extra };
+}
+
+/** Lê ai_provider do config do workspace (sem importar server.js). */
+function readPreferredAiProvider(workspaceDir) {
+  try {
+    const cfgPath = path.join(workspaceDir || "", "config_qanat.json");
+    if (cfgPath && fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+      const p = String(cfg?.ai_provider || cfg?.metadata_provider || "")
+        .trim()
+        .toLowerCase();
+      if (p) return p;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "gemini";
 }
 
 /** bodyOverride para análise multimodal — unifica fileData (YouTube) e inlineData (TikTok). */
@@ -681,7 +705,13 @@ async function resolveVideoEvidence(url, format, workspaceDir) {
   return { ok: true, parsed, metadata, ytContext };
 }
 
-/** Fase 2: executa a análise Gemini adequada (fileUri / inline / texto). */
+/**
+ * Fase 2: análise de vídeo.
+ * - Multimodal (assistir o vídeo) só existe na API Gemini.
+ * - Se houver chave Gemini, usamos multimodal SEMPRE (mesmo com OpenRouter/NVIDIA
+ *   como provedor principal) — senão o resultado fica raso ("uncertain"/incerto).
+ * - Texto/roteiro depois segue o provedor escolhido nas configs.
+ */
 async function runVideoAnalysis({
   parsed,
   metadata,
@@ -695,6 +725,11 @@ async function runVideoAnalysis({
   const useYoutubeFileUri =
     parsed.platform.startsWith("youtube") && Boolean(parsed.videoId);
 
+  const preferredProvider = readPreferredAiProvider(workspaceDir);
+  const hasGeminiKey = Boolean(apiKey && String(apiKey).trim());
+  // Capacidade multimodal = chave Gemini, não o card de provedor.
+  const useMultimodalGemini = hasGeminiKey;
+
   const prompt = buildVideoUnderstandingPrompt({
     parsed,
     metadata,
@@ -703,8 +738,15 @@ async function runVideoAnalysis({
     format,
   });
 
-  async function runTextAnalysis(ctx) {
-    return callGeminiWithRetry(apiKey, prompt, geminiVideoOpts(workspaceDir));
+  async function runTextAnalysis() {
+    return callGeminiWithRetry(apiKey, prompt, {
+      projectDir: workspaceDir,
+      maxRetries: 2,
+      temperature: 0.25,
+      activityLabel: `Análise de vídeo (texto · ${preferredProvider})`,
+      // JSON longo de compreensão
+      maxTokens: 4096,
+    });
   }
 
   async function runInlineVideoAnalysis(sample) {
@@ -725,10 +767,25 @@ async function runVideoAnalysis({
 
   let text = "";
   let multimodalUsed = false;
-  let analysisSource = "gemini_text";
+  let analysisSource = `${preferredProvider}_text`;
   let sampleDir = null;
 
   try {
+    if (!useMultimodalGemini) {
+      console.log(
+        `[VideoUnderstanding] Sem chave Gemini — multimodal indisponível (provedor=${preferredProvider}); análise textual.`
+      );
+      text = await runTextAnalysis();
+      analysisSource = `${preferredProvider}_text`;
+      return { text, multimodalUsed, analysisSource, sampleDir };
+    }
+
+    if (preferredProvider !== "gemini") {
+      console.log(
+        `[VideoUnderstanding] Provedor=${preferredProvider} mas há chave Gemini — usando multimodal Gemini para qualidade (o provedor ativo segue no roteiro/JSON).`
+      );
+    }
+
     if (useYoutubeFileUri) {
       const mediaPart = {
         fileData: {
@@ -750,7 +807,7 @@ async function runVideoAnalysis({
           "[VideoUnderstanding] Multimodal YouTube falhou:",
           err.message
         );
-        text = await runTextAnalysis(ytContext);
+        text = await runTextAnalysis();
         analysisSource = "gemini_text";
       }
     } else if (
@@ -778,7 +835,7 @@ async function runVideoAnalysis({
             "[VideoUnderstanding] Multimodal TikTok/IG falhou:",
             err.message
           );
-          text = await runTextAnalysis(ytContext);
+          text = await runTextAnalysis();
         }
       } else {
         console.warn(
@@ -792,10 +849,10 @@ async function runVideoAnalysis({
               "Não foi possível baixar nem ler metadados do TikTok/Instagram. Verifique yt-dlp no serviço Windows."
           );
         }
-        text = await runTextAnalysis(ytContext);
+        text = await runTextAnalysis();
       }
     } else {
-      text = await runTextAnalysis(ytContext);
+      text = await runTextAnalysis();
     }
     return { text, multimodalUsed, analysisSource, sampleDir };
   } finally {
@@ -1071,7 +1128,8 @@ export async function runAnalyzeReferenceVideoDeep(opts = {}) {
     }
   }
 
-  // Passa metadados reais (título/descrição TikTok) para o brief OpenMontage
+  // Brief textual OpenMontage — respeita o provedor escolhido nas configs.
+  // (A análise multimodal do vídeo acima continua em Gemini via GEMINI_VIDEO_OPTS.)
   const llmFn = async (basePrompt) => {
     const prompt = understanding
       ? buildEnrichedReferencePrompt(
@@ -1081,13 +1139,10 @@ export async function runAnalyzeReferenceVideoDeep(opts = {}) {
         )
       : basePrompt;
     return callGeminiWithRetry(apiKey, prompt, {
-      models: getGeminiModel
-        ? [getGeminiModel(workspaceDir), ...VIDEO_GEMINI_MODELS]
-        : VIDEO_GEMINI_MODELS,
       projectDir: workspaceDir,
-      forceProvider: "gemini",
       maxRetries: 2,
       temperature: 0.4,
+      activityLabel: "Brief OpenMontage",
     });
   };
 

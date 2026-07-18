@@ -3,42 +3,129 @@ const CATEGORY_RULES = {
     minDuration: 2,
     maxDuration: 10,
     defaultDuration: 4,
-    minVolume: 0.1,
-    maxVolume: 0.18,
+    minVolume: 0.035,
+    maxVolume: 0.1,
   },
   transition: {
     minDuration: 0.35,
     maxDuration: 2.5,
     defaultDuration: 0.9,
-    minVolume: 0.18,
-    maxVolume: 0.32,
+    minVolume: 0.06,
+    maxVolume: 0.16,
   },
   detail: {
     minDuration: 0.5,
     maxDuration: 3.2,
     defaultDuration: 1.2,
-    minVolume: 0.16,
-    maxVolume: 0.3,
+    minVolume: 0.05,
+    maxVolume: 0.14,
   },
   impact: {
     minDuration: 0.35,
-    maxDuration: 2.2,
+    maxDuration: 3.5,
     defaultDuration: 0.8,
-    minVolume: 0.22,
-    maxVolume: 0.38,
+    minVolume: 0.08,
+    maxVolume: 0.2,
   },
   riser: {
     minDuration: 0.8,
     maxDuration: 4,
     defaultDuration: 1.8,
-    minVolume: 0.16,
-    maxVolume: 0.28,
+    minVolume: 0.05,
+    maxVolume: 0.14,
   },
 };
 
+const CATEGORY_TITLE_TERMS = {
+  ambience: {
+    positive: [
+      "ambience",
+      "ambient",
+      "atmosphere",
+      "room tone",
+      "wind",
+      "rain",
+      "crowd",
+      "hum",
+    ],
+    negative: ["hit", "impact", "whoosh", "riser", "sting", "click"],
+  },
+  transition: {
+    positive: ["whoosh", "swoosh", "swish", "pass by", "transition", "sweep"],
+    negative: ["ambience", "room tone", "footstep", "loop", "riser"],
+  },
+  detail: {
+    positive: [
+      "click",
+      "step",
+      "footstep",
+      "mechanical",
+      "metal",
+      "cloth",
+      "door",
+      "switch",
+      "movement",
+    ],
+    negative: ["riser", "trailer", "boom", "ambience", "atmosphere"],
+  },
+  impact: {
+    positive: [
+      "impact",
+      "hit",
+      "slam",
+      "thud",
+      "boom",
+      "drop",
+      "crash",
+      "punch",
+    ],
+    negative: ["ambience", "room tone", "riser", "whoosh", "loop"],
+  },
+  riser: {
+    positive: ["riser", "rise", "build", "tension", "crescendo", "swell"],
+    negative: ["impact", "hit", "click", "footstep", "ambience"],
+  },
+};
+
+const QUERY_STOP_WORDS = new Set([
+  "sound",
+  "effect",
+  "effects",
+  "sfx",
+  "cinematic",
+  "professional",
+  "audio",
+  "the",
+  "and",
+  "with",
+  "short",
+]);
+
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const finite = (value) => Number.isFinite(Number(value));
+const providedFinite = (value) =>
+  value !== null && value !== undefined && finite(value);
 const rounded = (value) => Number(Number(value).toFixed(3));
+
+/**
+ * SFX de trilha (Epidemic/overlay) só em assets IMAGE.
+ * Vídeos IA já carregam sonoplastia diegética no próprio arquivo;
+ * sonorizar de novo na trilha SFX cria empilhamento e “seca” o mix.
+ * Desconhecido/legado (sem type) continua elegível — só bloqueia VIDEO explícito.
+ */
+export function isImageMediaForSfx(mediaType = "", asset = "") {
+  const type = String(mediaType || "").toLowerCase();
+  const file = String(asset || "").toLowerCase();
+  if (/\.(mp4|webm|mov|m4v|mkv)(\?|$)/i.test(file)) return false;
+  if (
+    type.includes("vídeo") ||
+    type.includes("video") ||
+    /\bvídeo\b|\bvideo\b/.test(type)
+  ) {
+    return false;
+  }
+  return true;
+}
 
 function firstFinite(...values) {
   for (const value of values) {
@@ -141,6 +228,20 @@ export function buildProfessionalSfxScenes(
           : null
       );
 
+      const mediaType = String(
+        timelineSlot?.type ||
+          vp?.media_mode ||
+          vp?.production?.broll_type ||
+          vp?.type ||
+          ""
+      ).toLowerCase();
+      const asset = String(
+        timelineSlot?.asset ||
+          vp?.asset?.asset ||
+          vp?.asset ||
+          vp?.production?.asset ||
+          ""
+      );
       return {
         scene_ref: sceneRef,
         block,
@@ -156,6 +257,9 @@ export function buildProfessionalSfxScenes(
           0,
           220
         ),
+        media_type: mediaType,
+        asset,
+        sfx_eligible: isImageMediaForSfx(mediaType, asset),
       };
     });
 }
@@ -174,6 +278,101 @@ function openingFrameAnchor(row) {
   );
 }
 
+function tokenize(value = "") {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(/\s+/)
+    .filter((token) => token.length > 2 && !QUERY_STOP_WORDS.has(token));
+}
+
+function candidateDurationSeconds(candidate) {
+  const raw = Number(candidate?.duration);
+  if (!Number.isFinite(raw) || raw <= 0) return null;
+  return raw > 120 ? raw / 1000 : raw;
+}
+
+export function rankProfessionalSfxCandidates(results = [], event = {}) {
+  const category = String(event?.category || "detail").toLowerCase();
+  const rules = CATEGORY_RULES[category] || CATEGORY_RULES.detail;
+  const titleRules =
+    CATEGORY_TITLE_TERMS[category] || CATEGORY_TITLE_TERMS.detail;
+  const query = String(event?.query_en || "");
+  const queryTokens = tokenize(query);
+  const desiredDuration = clamp(
+    Number(event?.duration) || rules.defaultDuration,
+    rules.minDuration,
+    rules.maxDuration
+  );
+
+  return (Array.isArray(results) ? results : [])
+    .filter((candidate) => candidate?.id && candidate?.previewUrl)
+    .map((candidate) => {
+      const title = String(candidate?.title || "").toLowerCase();
+      const titleTokens = new Set(tokenize(title));
+      const matchedTokens = queryTokens.filter((token) =>
+        titleTokens.has(token)
+      );
+      const positiveHits = titleRules.positive.filter((term) =>
+        title.includes(term)
+      );
+      const negativeHits = titleRules.negative.filter((term) =>
+        title.includes(term)
+      );
+      const duration = candidateDurationSeconds(candidate);
+
+      let score = matchedTokens.length * 3;
+      score += positiveHits.length * 4;
+      score -= negativeHits.length * 6;
+      if (query.trim().length > 5 && title.includes(query.toLowerCase())) {
+        score += 5;
+      }
+      if (duration != null) {
+        const ratio = duration / desiredDuration;
+        if (category === "ambience") {
+          score += duration >= Math.min(2, desiredDuration) ? 3 : -5;
+        } else if (ratio >= 0.55 && ratio <= 2.8) {
+          score += 3;
+        } else if (ratio > 5 || ratio < 0.2) {
+          score -= 4;
+        }
+      }
+
+      return {
+        ...candidate,
+        duration_seconds: duration,
+        professional_match_score: score,
+        professional_match_evidence: matchedTokens.length + positiveHits.length,
+        professional_match: {
+          matched_query_tokens: matchedTokens,
+          positive_family_terms: positiveHits,
+          negative_family_terms: negativeHits,
+        },
+      };
+    })
+    .filter(
+      (candidate) =>
+        candidate.professional_match_score >= 2 &&
+        candidate.professional_match_evidence > 0
+    )
+    .sort(
+      (a, b) =>
+        b.professional_match_score - a.professional_match_score ||
+        Math.abs((a.duration_seconds || desiredDuration) - desiredDuration) -
+          Math.abs((b.duration_seconds || desiredDuration) - desiredDuration)
+    );
+}
+
+export function shouldIncludeAutomaticSfx({
+  professionalTimeline = {},
+  overlaySfxEnabled = true,
+} = {}) {
+  const hasProfessionalPlan =
+    professionalTimeline?.generated_by === "ai-professional-sound-design" &&
+    Array.isArray(professionalTimeline.sfx_events);
+  return overlaySfxEnabled && !hasProfessionalPlan;
+}
+
 /** Normaliza a resposta da IA e ancora cada som na ação visual da cena. */
 export function normalizeProfessionalSfxEvents({
   rawEvents = [],
@@ -190,9 +389,19 @@ export function normalizeProfessionalSfxEvents({
   for (const row of Array.isArray(rawEvents) ? rawEvents : []) {
     const category = String(row?.category || "detail").toLowerCase();
     const rule = CATEGORY_RULES[category];
-    if (!rule || (Number(row?.confidence) || 0) < 0.62) continue;
+    if (!rule || (Number(row?.confidence) || 0) < 0.68) continue;
 
     const scene = sceneMap.get(String(row?.scene_ref || ""));
+    // Trilha SFX só em IMAGE — vídeo usa áudio diegético do próprio arquivo.
+    if (scene && !isImageMediaForSfx(scene.media_type, scene.asset)) {
+      continue;
+    }
+    const visibleAction = `${scene?.visual || ""} ${scene?.narration || ""}`;
+    const impactHasVisualEvidence =
+      /\b(fall(?:s|ing|en)?|collapse[sd]?|hit(?:s|ting)?|slam(?:s|ming)?|crash(?:es|ing)?|strike[sd]?|explode[sd]?|land(?:s|ing)?|cai|caindo|queda|desaba|colide|bate|atinge|explode)\b/i.test(
+        visibleAction
+      );
+    if (category === "impact" && !impactHasVisualEvidence) continue;
     const { start: sceneStart, end: sceneEnd } = sceneBounds(
       scene,
       totalDuration
@@ -207,32 +416,49 @@ export function normalizeProfessionalSfxEvents({
       Math.min(rule.maxDuration, sceneLength)
     );
 
+    const hasExplicitAnchor =
+      providedFinite(row?.offset) ||
+      providedFinite(row?.anchor_position) ||
+      providedFinite(row?.time);
     let offset;
-    if (finite(row?.offset)) offset = Number(row.offset);
-    else if (finite(row?.anchor_position))
+    if (providedFinite(row?.offset)) offset = Number(row.offset);
+    else if (providedFinite(row?.anchor_position))
       offset = clamp(Number(row.anchor_position), 0, 1) * sceneLength;
-    else if (finite(row?.time)) offset = Number(row.time) - sceneStart;
+    else if (providedFinite(row?.time)) offset = Number(row.time) - sceneStart;
     else
       offset =
         category === "ambience" || category === "transition"
           ? 0
           : sceneLength * 0.3;
 
-    let time = sceneStart + clamp(offset, 0, Math.max(0, sceneLength - 0.05));
-    if (category === "riser") {
+    const anchorTime =
+      sceneStart + clamp(offset, 0, Math.max(0, sceneLength - 0.05));
+    let time = anchorTime;
+    if (category === "detail" && String(scene?.media_type).includes("image")) {
+      time = sceneStart + Math.min(0.08, sceneLength * 0.04);
+    } else if (category === "riser") {
       // O riser pertence à virada: seu último frame deve coincidir com o fim da cena.
       time = Math.max(sceneStart, sceneEnd - duration);
     } else if (category === "transition") {
-      // Evita que o ataque seja ouvido durante o último quadro da cena anterior.
-      time = Math.max(sceneStart + Math.min(0.06, sceneLength * 0.05), time);
+      const preRoll = clamp(
+        finite(row?.pre_roll) ? Number(row.pre_roll) : 0.18,
+        0.04,
+        Math.min(0.75, duration * 0.7)
+      );
+      time = Math.max(0, anchorTime - preRoll);
     } else if (
       (category === "detail" || category === "impact") &&
-      !openingFrameAnchor(row)
+      !openingFrameAnchor(row) &&
+      !hasExplicitAnchor
     ) {
       // Um pequeno assentamento impede o som de antecipar uma ação ainda não visível.
       time = Math.max(sceneStart + Math.min(0.12, sceneLength * 0.08), time);
     }
-    time = clamp(time, sceneStart, Math.max(sceneStart, sceneEnd - 0.05));
+    time = clamp(
+      time,
+      category === "transition" ? Math.max(0, sceneStart - 0.75) : sceneStart,
+      Math.max(sceneStart, sceneEnd - 0.05)
+    );
 
     const actionDuration = finite(row?.action_duration)
       ? clamp(Number(row.action_duration), 0, sceneEnd - time)
@@ -270,8 +496,12 @@ export function normalizeProfessionalSfxEvents({
         ? Number(row.fade_in)
         : category === "ambience"
           ? 0.35
-          : 0.06,
-      0.02,
+          : category === "riser"
+            ? 0.08
+            : category === "transition"
+              ? 0.015
+              : 0.008,
+      0.004,
       Math.min(0.8, duration * 0.35)
     );
     const fadeOut = clamp(
@@ -279,8 +509,12 @@ export function normalizeProfessionalSfxEvents({
         ? Number(row.fade_out)
         : category === "ambience"
           ? 0.6
-          : 0.22,
-      0.06,
+          : category === "impact"
+            ? 0.45
+            : category === "transition"
+              ? 0.28
+              : 0.18,
+      0.04,
       Math.min(1.2, duration * 0.45)
     );
 
@@ -288,6 +522,7 @@ export function normalizeProfessionalSfxEvents({
       ...row,
       category,
       time: rounded(time),
+      anchor_time: rounded(category === "riser" ? sceneEnd : anchorTime),
       offset: rounded(time - sceneStart),
       scene_start: rounded(sceneStart),
       scene_end: rounded(sceneEnd),
@@ -308,7 +543,7 @@ export function normalizeProfessionalSfxEvents({
     });
   }
 
-  const minimumGap = isShort ? 2.2 : 4;
+  const minimumGap = isShort ? 2.8 : 6;
   const accepted = [];
   for (const candidate of candidates.sort((a, b) => a.time - b.time)) {
     const conflicts = accepted.some((previous) => {
@@ -342,11 +577,22 @@ export function buildSfxPlaybackSegments({
     0,
     Math.max(0, totalDuration - 0.01)
   );
-  const endLimit = Math.max(start + 0.05, Math.min(totalDuration, sceneEnd));
+  const tailAllowance =
+    category === "impact" ? 1.25 : category === "transition" ? 0.65 : 0.15;
+  const endLimit = Math.max(
+    start + 0.05,
+    Math.min(
+      totalDuration,
+      category === "ambience" || category === "riser"
+        ? sceneEnd
+        : sceneEnd + tailAllowance
+    )
+  );
   const requestedDuration = Math.max(0.2, Number(event?.duration) || 0.8);
   const realSourceDuration =
     Number(sourceDuration) > 0.05 ? Number(sourceDuration) : requestedDuration;
-  const volume = clamp(Number(event?.volume) || 0.04, 0.01, 0.42);
+  const maxPlaybackVolume = category === "utility" ? 0.42 : 0.82;
+  const volume = clamp(Number(event?.volume) || 0.04, 0.01, maxPlaybackVolume);
 
   if (category === "riser") {
     const duration = Math.min(
@@ -384,6 +630,35 @@ export function buildSfxPlaybackSegments({
     ];
   }
 
+  if (category === "impact" || category === "transition") {
+    const naturalMax = category === "impact" ? 3.5 : 2.5;
+    const duration = Math.max(
+      0.08,
+      Math.min(
+        Math.max(requestedDuration, Math.min(realSourceDuration, naturalMax)),
+        realSourceDuration,
+        naturalMax,
+        endLimit - start
+      )
+    );
+    return [
+      {
+        ...event,
+        start: rounded(start),
+        duration: rounded(duration),
+        volume,
+        fadeInS: rounded(
+          Math.min(Number(event?.fade_in) || 0.008, duration * 0.12)
+        ),
+        fadeOutS: rounded(
+          Math.min(Number(event?.fade_out) || 0.35, duration * 0.45)
+        ),
+        loop: false,
+        repeatIndex: 0,
+      },
+    ];
+  }
+
   const repeatMode =
     category === "detail" ? String(event?.repeat_mode || "none") : "none";
   const repeatCount =
@@ -404,7 +679,7 @@ export function buildSfxPlaybackSegments({
       Math.min(
         requestedDuration,
         realSourceDuration,
-        interval * 0.88,
+        repeatMode === "pulse" ? interval * 0.88 : requestedDuration,
         endLimit - segmentStart
       )
     );

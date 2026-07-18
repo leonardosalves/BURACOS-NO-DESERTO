@@ -1,0 +1,72 @@
+{
+  "generatedAt": "2026-07-16T21:02:14.482Z",
+  "pipelineVersion": 6,
+  "format": "SHORT",
+  "source": "video_resurrector",
+  "parsed": {
+    "title": "O prédio de 1996 que imita cupins 🐜",
+    "titleVariants": [
+      "O prédio de 1996 que imita cupins 🐜",
+      "Shopping do Zimbábue que não usa ar ❄️",
+      "Mick Pearce copiou insetos em 1996 💡",
+      "Eastgate Centre: o prédio que respira",
+      "Biomimética: o shopping feito de cupins"
+    ],
+    "description": "Este shopping no Zimbábue não usa ar-condicionado porque imita a arquitetura dos cupinzeiros.\nEntenda como o arquiteto Mick Pearce economizou 90% de energia no Eastgate Centre usando biomimética.\n#Shorts\nA engenharia civil encontrou na natureza a climatização perfeita muito antes da eletricidade existir. Salva para assistir depois e não perder essa curiosidade de engenharia!",
+    "tags": [
+      "eastgate centre",
+      "mick pearce",
+      "biomimética engenharia",
+      "arquitetura cupinzeiro",
+      "shopping sem ar condicionado",
+      "engenharia civil",
+      "zimbábue",
+      "curiosidades engenharia"
+    ],
+    "hashtags": "#Shorts #Biomimética #EastgateCentre #MickPearce",
+    "pinnedComment": "Antes que digam que é impossível: o Eastgate Centre funciona perfeitamente desde 1996 usando apenas túneis de vento inspirados em cupins. Os dados de economia de 90% de energia são públicos e comprovados pela engenharia!",
+    "chapters": "",
+    "thumbnails": [
+      {
+        "id": "A",
+        "label": "Curiosidade",
+        "pairedTitle": "1. O prédio de 1996 que imita cupins 🐜",
+        "overlayText": "PRÉDIO FEITO DE CUPINS?",
+        "composition": "Imagem dividida ao meio verticalmente. Do lado esquerdo, a fachada realista do Eastgate Centre; do lado direito, um cupinzeiro gigante no Zimbábue. Uma seta amarela brilhante conecta os dois elementos.",
+        "colors": [
+          "#FFD700 (Amarelo Ouro)",
+          "#808080 (Cinza Concreto)",
+          "#228B22 (Verde Natureza)"
+        ],
+        "focalElement": "O contraste visual direto entre a engenharia humana de concreto e a estrutura de terra dos insetos."
+      },
+      {
+        "id": "B",
+        "label": "Contraste",
+        "pairedTitle": "2. Shopping do Zimbábue que não usa ar ❄️",
+        "overlayText": "ZERO AR-CONDICIONADO!",
+        "composition": "Plano médio do interior do shopping com grandes setas em neon azul (ar frio subindo) e vermelho (ar quente saindo pelas chaminés). Texto em caixa alta no topo com forte contraste.",
+        "colors": [
+          "#00BFFF (Azul Gelo)",
+          "#FF0000 (Vermelho Alerta)",
+          "#FFFFFF (Branco Puro)"
+        ],
+        "focalElement": "Diagrama dinâmico e simplificado do fluxo de ar térmico dentro do prédio."
+      },
+      {
+        "id": "C",
+        "label": "Prova Visual",
+        "pairedTitle": "4. Eastgate Centre: o prédio que respira",
+        "overlayText": "COMO ISSO RESPIRA?",
+        "composition": "Detalhe macro das chaminés de concreto do topo do Eastgate Centre sob um céu azul limpo, com um close-up de um cupim operário em sobreposição translúcida no canto inferior.",
+        "colors": [
+          "#E97451 (Laranja Terracota)",
+          "#A9A9A9 (Cinza Escuro)",
+          "#CCFF00 (Amarelo Neon)"
+        ],
+        "focalElement": "Textura áspera do concreto em contraste com o detalhe biológico do inseto."
+      }
+    ]
+  },
+  "text": "## TÍTULOS\n1. O prédio de 1996 que imita cupins 🐜 (36 chars)\n2. Shopping do Zimbábue que não usa ar ❄️ (38 chars)\n3. Mick Pearce copiou insetos em 1996 💡 (36 chars)\n4. Eastgate Centre: o prédio que respira (37 chars)\n5. Biomimética: o shopping feito de cupins (39 chars)\n\n## DESCRIÇÃO\nEste shopping no Zimbábue não usa ar-condicionado porque imita a arquitetura dos cupinzeiros.\nEntenda como o arquiteto Mick Pearce economizou 90% de energia no Eastgate Centre usando biomimética.\n#Shorts\nA engenharia civil encontrou na natureza a climatização perfeita muito antes da eletricidade existir. Salva para assistir depois e não perder essa curiosidade de engenharia!\n\n## HASHTAGS PRINCIPAIS\n#Shorts #Biomimética #EastgateCentre #MickPearce\n\n## TAGS\neastgate centre, mick pearce, biomimética engenharia, arquitetura cupinzeiro, shopping sem ar condicionado, engenharia civil, zimbábue, curiosidades engenharia\n\n## COMENTÁRIO PINADO\nAntes que digam que é impossível: o Eastgate Centre funciona perfeitamente desde 1996 usando apenas túneis de vento inspirados em cupins. Os dados de economia de 90% de energia são públicos e comprovados pela engenharia!\n\n## THUMBNAILS A/B\n\n### Variante A — Curiosidade\n- Título pareado: 1. O prédio de 1996 que imita cupins 🐜\n- Texto na capa: PRÉDIO FEITO DE CUPINS?\n- Composição: Imagem dividida ao meio verticalmente. Do lado esquerdo, a fachada realista do Eastgate Centre; do lado direito, um cupinzeiro gigante no Zimbábue. Uma seta amarela brilhante conecta os dois elementos.\n- Cores: #FFD700 (Amarelo Ouro), #808080 (Cinza Concreto), #228B22 (Verde Natureza)\n- Expressão/elemento: O contraste visual direto entre a engenharia humana de concreto e a estrutura de terra dos insetos.\n\n### Variante B — Contraste\n- Título pareado: 2. Shopping do Zimbábue que não usa ar ❄️\n- Texto na capa: ZERO AR-CONDICIONADO!\n- Composição: Plano médio do interior do shopping com grandes setas em neon azul (ar frio subindo) e vermelho (ar quente saindo pelas chaminés). Texto em caixa alta no topo com forte contraste.\n- Cores: #00BFFF (Azul Gelo), #FF0000 (Vermelho Alerta), #FFFFFF (Branco Puro)\n- Expressão/elemento: Diagrama dinâmico e simplificado do fluxo de ar térmico dentro do prédio.\n\n### Variante C — Prova Visual\n- Título pareado: 4. Eastgate Centre: o prédio que respira\n- Texto na capa: COMO ISSO RESPIRA?\n- Composição: Detalhe macro das chaminés de concreto do topo do Eastgate Centre sob um céu azul limpo, com um close-up de um cupim operário em sobreposição translúcida no canto inferior.\n- Cores: #E97451 (Laranja Terracota), #A9A9A9 (Cinza Escuro), #CCFF00 (Amarelo Neon)\n- Expressão/elemento: Textura áspera do concreto em contraste com o detalhe biológico do inseto."
+}

@@ -111,21 +111,25 @@ function ideasHistoryPath(workspaceDir, niche) {
  * @param {string} fallbackTitle
  * @returns {string}
  */
-function readProjectTitle(projectPath, fallbackTitle) {
+function readProjectTopics(projectPath, fallbackTitle) {
   const storyboardPath = path.join(projectPath, "storyboard.json");
-  if (!fs.existsSync(storyboardPath)) return fallbackTitle;
+  if (!fs.existsSync(storyboardPath)) return [fallbackTitle];
   try {
     const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-    if (sb.strategy?.title_main) {
-      return String(sb.strategy.title_main).trim();
-    }
-    if (sb.narrative_script) {
-      return String(sb.narrative_script).split("\n")[0].slice(0, 120).trim();
-    }
+    const topics = [
+      sb.strategy?.title_main,
+      ...(Array.isArray(sb.strategy?.title_variations)
+        ? sb.strategy.title_variations
+        : []),
+      sb.strategy?.hook,
+    ]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+    return topics.length ? topics : [fallbackTitle];
   } catch {
     /* ignore */
   }
-  return fallbackTitle;
+  return [fallbackTitle];
 }
 
 /**
@@ -227,18 +231,20 @@ export function collectProjectTopics(projectsRoot) {
       if (SKIP_DIRS.includes(item)) continue;
 
       const fullPath = path.join(dir, item);
-      const hasBuildScript = fs.existsSync(path.join(fullPath, "build_video.py"));
+      const hasBuildScript = fs.existsSync(
+        path.join(fullPath, "build_video.py")
+      );
       if (!hasBuildScript && item !== "FINANCAS") continue;
 
-      const title = readProjectTitle(fullPath, item);
-      projects.push({ name: item, title, format });
+      const topics = readProjectTopics(fullPath, item);
+      projects.push({ name: item, topics, format });
     }
   };
 
   scanDir(longsDir, "LONGO");
   scanDir(shortsDir, "SHORTS");
 
-  return projects.map((p) => p.title).filter(Boolean);
+  return projects.flatMap((p) => p.topics).filter(Boolean);
 }
 
 /**
@@ -268,7 +274,12 @@ export function mergeExclusionTopics({
     out.push(t);
   };
 
-  const pool = [...previousIdeas, ...historyTopics, ...projectTopics, ...extraExclude];
+  const pool = [
+    ...previousIdeas,
+    ...historyTopics,
+    ...projectTopics,
+    ...extraExclude,
+  ];
   for (const t of pool) {
     push(t);
   }

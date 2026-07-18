@@ -68,6 +68,22 @@ test("editorial contract accepts a complete short structure", () => {
   assert.equal(report.ok, true);
 });
 
+test("editorial contract accepts a dense 4-sentence short in range", () => {
+  const report = assessEditorialContract({
+    format: "SHORTS",
+    strategy: {
+      hook: "Em cidades como Tóquio a engenharia desafia terremotos",
+      promise: "Isoladores de base salvam o prédio",
+    },
+    narrativeScript:
+      "Em cidades como Tóquio, a engenharia civil desafia os terremotos mais violentos com uma tática contra-intuitiva. Em vez de fixar a estrutura ao chão, engenheiros instalam isoladores de base feitos de borracha e aço. Esses blocos absorvem o impacto e estendem o período de vibração do edifício em até três vezes, diminuindo a força destrutiva do sismo em até oitenta por cento. Ao permitir que a fundação se mova enquanto o topo permanece estável, a física transforma o impacto violento em uma oscilação segura.",
+  });
+
+  assert.equal(report.ok, true);
+  assert.equal(report.sentenceCount, 4);
+  assert.ok(report.wordCount >= 70);
+});
+
 test("editorial contract recommends a mid-video CTA for long-form", () => {
   const report = assessEditorialContract({
     format: "LONGO",

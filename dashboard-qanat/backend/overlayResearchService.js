@@ -627,9 +627,10 @@ Responda APENAS com um objeto JSON válido, sem markdown:
       const rawRes = await callGemini(extractionPrompt, {
         temperature: 0.1,
         models: [
+          "gemini-3.5-flash",
+          "gemini-2.5-flash",
           "gemini-2.5-flash-lite",
           "gemini-2.0-flash",
-          "gemini-2.5-flash",
         ],
       });
       const cleanJsonText = rawRes

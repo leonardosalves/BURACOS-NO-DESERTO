@@ -417,7 +417,11 @@ NARRAÇÃO CINEMATOGRÁFICA (obrigatório em "narrative_script_tagged"):
 - Em listicles: [ênfase] no número do ranking ("Número três...") e [pausa] antes do impacto do #1.`;
 }
 
-/** Trechos IA: remove (breath) e ênfase — pausas ficam em pause_after_ms, não em tags inline. */
+/**
+ * Trechos: remove só marcadores que viram fala residual ((breath)/(sigh)/(laughs)).
+ * Mantém tags de performance ([tom …], [pausa], [ênfase], [rápido]…) para Fish/Qwen3.
+ * Pausas entre trechos continuam em pause_after_ms; tags inline são opcionais.
+ */
 export function sanitizeNarrationChunkTaggedText(
   text = "",
   plainFallback = ""
@@ -425,9 +429,6 @@ export function sanitizeNarrationChunkTaggedText(
   let t = String(text || "").trim();
   if (!t) t = String(plainFallback || "").trim();
   t = t
-    .replace(/\[ênfase\s+dramática\]\s*/gi, "")
-    .replace(/\[ênfase\]\s*/gi, "")
-    .replace(/\[emphasis\]\s*/gi, "")
     .replace(/\(breath\)/gi, " ")
     .replace(/\(sigh\)/gi, " ")
     .replace(/\(laughs?\)/gi, " ")
@@ -590,10 +591,16 @@ export function replaceNumbersAndAbbreviationsPtBr(text = "") {
   // 2. Substituir abreviações comuns
   const abbreviations = [
     [/\bE\.?\s*U\.?\s*A\.?\b/gi, "Estados Unidos"],
-    [/\b[dD]\.\s*[cC]\.?(?!\w)/gi, "depois de Cristo"],
-    [/\b[aA]\.\s*[cC]\.?(?!\w)/gi, "antes de Cristo"],
-    [/\b[dD][cC]\b/gi, "depois de Cristo"],
-    [/\b[aA][cC]\b/gi, "antes de Cristo"],
+    [
+      /(?<![\p{L}\p{N}_])[dD]\.\s*[cC]\.?(?![\p{L}\p{N}_])/gu,
+      "depois de Cristo",
+    ],
+    [
+      /(?<![\p{L}\p{N}_])[aA]\.\s*[cC]\.?(?![\p{L}\p{N}_])/gu,
+      "antes de Cristo",
+    ],
+    [/(?<![\p{L}\p{N}_])[dD][cC](?![\p{L}\p{N}_])/gu, "depois de Cristo"],
+    [/(?<![\p{L}\p{N}_])[aA][cC](?![\p{L}\p{N}_])/gu, "antes de Cristo"],
     [/(\b\d+)\s*km\b/gi, "$1 quilômetros"],
     [/(\b\d+)\s*m\b/gi, "$1 metros"],
     [/(\b\d+)\s*kg\b/gi, "$1 quilos"],

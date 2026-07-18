@@ -179,33 +179,36 @@ export function AssetCleanupPanel({
     drawStartRef.current = null;
   };
 
-  const processAsset = async () => {
+  const createComparison = async (asset = selected?.asset) => {
     if (!selected) return;
     if (!rightsConfirmed) {
       toast("Confirme os direitos da mídia antes de processar.");
       return;
     }
+    const response = await fetch(getProjectUrl("/api/asset-cleanup/process"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        asset,
+        block: selected.block,
+        asset_index: selected.assetIndex,
+        rect,
+        method,
+        rights_confirmed: true,
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok)
+      throw new Error(data.error || "Falha ao higienizar asset.");
+    setJob(data.job);
+    return data.job as CleanupJob;
+  };
+
+  const processAsset = async () => {
     setProcessing(true);
     try {
-      const response = await fetch(
-        getProjectUrl("/api/asset-cleanup/process"),
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            asset: selected.asset,
-            block: selected.block,
-            asset_index: selected.assetIndex,
-            rect,
-            method,
-            rights_confirmed: true,
-          }),
-        }
-      );
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok)
-        throw new Error(data.error || "Falha ao higienizar asset.");
-      setJob(data.job);
+      const nextJob = await createComparison();
+      if (!nextJob) return;
       toast("Prévia criada. Compare antes de aplicar na timeline.");
     } catch (error) {
       toast(
@@ -216,31 +219,62 @@ export function AssetCleanupPanel({
     }
   };
 
+  const requestAppliedState = async (
+    action: "apply" | "revert",
+    targetJob: CleanupJob
+  ) => {
+    const response = await fetch(
+      getProjectUrl(`/api/asset-cleanup/${action}`),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ job_id: targetJob.id }),
+      }
+    );
+    const data = await response.json().catch(() => ({}));
+    return { response, data };
+  };
+
   const changeAppliedState = async (action: "apply" | "revert") => {
     if (!job) return;
     setApplying(true);
     try {
-      const response = await fetch(
-        getProjectUrl(`/api/asset-cleanup/${action}`),
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ job_id: job.id }),
+      let autoRefreshed = false;
+      let { response, data } = await requestAppliedState(action, job);
+      if (
+        action === "apply" &&
+        response.status === 409 &&
+        data.code === "ASSET_CLEANUP_SOURCE_CHANGED" &&
+        data.current_asset
+      ) {
+        const refreshedJob = await createComparison(data.current_asset);
+        if (!refreshedJob) return;
+        ({ response, data } = await requestAppliedState("apply", refreshedJob));
+        if (response.ok) {
+          autoRefreshed = true;
+          toast(
+            "O asset havia sido atualizado. A comparação foi refeita e aplicada automaticamente.",
+            { id: "asset-cleanup-auto-refreshed" }
+          );
         }
-      );
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok)
+      }
+      if (!response.ok) {
         throw new Error(data.error || "Falha ao atualizar timeline.");
+      }
       setJob(data.job);
       await onApplied?.();
-      toast(
-        action === "apply"
-          ? "Resultado aprovado e aplicado somente nesta cena."
-          : "Asset original restaurado na timeline."
-      );
+      if (!autoRefreshed) {
+        toast(
+          action === "apply"
+            ? "Resultado aprovado e aplicado somente nesta cena."
+            : "Asset original restaurado na timeline.",
+          { id: `asset-cleanup-${action}-success` }
+        );
+      }
     } catch (error) {
       toast(
-        error instanceof Error ? error.message : "Falha ao atualizar timeline."
+        error instanceof Error ? error.message : "Falha ao atualizar timeline.",
+        { id: "asset-cleanup-apply-error" }
       );
     } finally {
       setApplying(false);
@@ -262,6 +296,10 @@ export function AssetCleanupPanel({
   const sourceUrl = selected ? getMediaUrl(selected.asset) : "";
   const resultUrl = job ? getMediaUrl(job.result_asset) : "";
   const aspectRatio = `${dimensions.width} / ${dimensions.height}`;
+  const previewMaxWidth = `${Math.min(
+    896,
+    Math.max(220, (520 * dimensions.width) / dimensions.height)
+  )}px`;
 
   return (
     <section className="relative overflow-hidden rounded-[26px] border border-cyan-500/25 bg-[#070b0d] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
@@ -376,8 +414,12 @@ export function AssetCleanupPanel({
                   </span>
                 </div>
                 <div
-                  className="relative mx-auto max-h-[520px] w-full max-w-4xl cursor-crosshair overflow-hidden rounded-2xl border border-zinc-700 bg-black select-none"
-                  style={{ aspectRatio, touchAction: "none" }}
+                  className="relative mx-auto w-full cursor-crosshair overflow-hidden rounded-2xl border border-zinc-700 bg-black select-none"
+                  style={{
+                    aspectRatio,
+                    maxWidth: previewMaxWidth,
+                    touchAction: "none",
+                  }}
                   onPointerDown={beginMask}
                   onPointerMove={moveMask}
                   onPointerUp={endMask}

@@ -8,6 +8,7 @@ import {
   buildNarrationChunkSignature,
   hashNarrationIntegrityText,
   normalizeNarrationChunkPlan,
+  promoteNarrationChunkPlanAsApprovedSource,
   resolveExpressivePause,
   syncTimelineFromChunkPlan,
 } from "./narrationChunks.js";
@@ -57,6 +58,58 @@ test("TTS override may change punctuation or wording without rewriting approved 
       "Texto aprovado."
     ),
     hashNarrationIntegrityText("Texto aprovado.")
+  );
+});
+
+test("manual chunk edits become the new approved narration source", () => {
+  const original = "Uma das primeiras arma química.";
+  const edited = "Uma das primeiras armas químicas documentadas.";
+  const previousHash = hashNarrationIntegrityText(original);
+  const result = promoteNarrationChunkPlanAsApprovedSource(
+    {
+      narrative_script: original,
+      narrative_script_tagged: original,
+      narration_integrity: {
+        approved_text_sha256: previousHash,
+        locked: true,
+      },
+      narracao_pro_audit: {
+        approved: true,
+        narrative_sha256: previousHash,
+      },
+    },
+    {
+      chunks: [
+        {
+          id: "chunk-01",
+          text: edited,
+          text_tagged:
+            "[ênfase] Uma das primeiras armas quí\u2060micas documentadas.",
+        },
+      ],
+      source_narration_hash: previousHash,
+    }
+  );
+
+  const editedHash = hashNarrationIntegrityText(edited);
+  assert.equal(result.changed, true);
+  assert.equal(result.storyboard.narrative_script, edited);
+  assert.equal(
+    result.storyboard.narrative_script_tagged,
+    "[ênfase] Uma das primeiras armas químicas documentadas."
+  );
+  assert.equal(
+    result.storyboard.narration_integrity.approved_text_sha256,
+    editedHash
+  );
+  assert.equal(
+    result.storyboard.narracao_pro_audit.narrative_sha256,
+    editedHash
+  );
+  assert.equal(result.plan.source_narration_hash, editedHash);
+  assert.equal(
+    assertNarrationChunksPreserveSource(result.plan.chunks, edited),
+    editedHash
   );
 });
 
@@ -122,6 +175,32 @@ test("changing narration text or voice marks generated audio as stale", () => {
   );
 });
 
+test("planned chunks do not invent audio_file paths for Play button", () => {
+  const planned = normalizeNarrationChunkPlan({
+    chunks: [
+      {
+        id: "chunk-01",
+        text: "Prepare-se para histórias inacreditáveis.",
+        status: "planned",
+        audio_file: "narration_chunks/chunk-01.mp3",
+        duration_s: 0,
+      },
+      {
+        id: "chunk-02",
+        text: "Outro trecho ainda sem TTS.",
+        status: "planned",
+        audio_file: null,
+        duration_s: null,
+      },
+    ],
+  });
+
+  assert.equal(planned.chunks[0].audio_file, null);
+  assert.equal(planned.chunks[0].status, "planned");
+  assert.equal(planned.chunks[1].audio_file, null);
+  assert.equal(planned.chunks[1].status, "planned");
+});
+
 test("multi-character speech creates separate TTS chunks but one visual scene", () => {
   const narration = "Você chegou cedo. Eu nunca fui embora.";
   const plan = buildHeuristicNarrationChunks({
@@ -179,7 +258,7 @@ test("multi-character speech creates separate TTS chunks but one visual scene", 
     visualPrompts: [{ block: 1, scene: "1.1", narration_text: narration }],
   });
   assert.equal(synced.timelineAssets["1"].length, 1);
-  assert.equal(synced.timelineAssets["1"][0].fixed, 2.8);
+  assert.equal(synced.timelineAssets["1"][0].fixed, 2.98);
   assert.equal(synced.visualPrompts.length, 1);
   assert.equal(synced.visualPrompts[0].narration_text, narration);
 });

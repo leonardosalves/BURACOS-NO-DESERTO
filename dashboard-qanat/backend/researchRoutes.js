@@ -2,6 +2,8 @@
  * Rotas de pesquisa profunda (padrão DeerFlow → Lumiera).
  */
 
+import fs from "fs";
+import path from "path";
 import { runDeepResearch, planDeepResearch } from "./deerFlowResearch.js";
 import { buildCompetitorLlmFns } from "./researchLlmHelpers.js";
 import {
@@ -177,19 +179,58 @@ export function registerResearchRoutes(app, deps) {
         String(req.body?.mode || "transformative").toLowerCase() === "faithful"
           ? "faithful"
           : "transformative";
+      const mediaStrategy =
+        String(req.body?.mediaStrategy || "").toLowerCase() === "video_only"
+          ? "video_only"
+          : "adaptive";
+      // Provedor ativo: gemini | openrouter | xai | nvidia | inference | local
+      // Multimodal (entender o vídeo) usa Gemini se houver chave; o JSON/roteiro usa o provedor escolhido.
+      const provider =
+        typeof getAiProvider === "function"
+          ? getAiProvider(WORKSPACE_DIR)
+          : "gemini";
       const geminiKeys = getApiKeys(WORKSPACE_DIR);
       const apiKey = geminiKeys[0] || null;
-      if (!apiKey) {
+      if (provider === "gemini" && !apiKey) {
         return res.status(400).json({
           error:
-            "Configure uma chave Gemini em Configuracoes -> IA para a engenharia reversa multimodal.",
+            "Configure uma chave Gemini em Configurações → IA, ou escolha outro provedor (OpenRouter, xAI, NVIDIA, Inference, Local).",
         });
+      }
+
+      let visualAssetStyle = String(
+        req.body?.visualAssetStyle || req.body?.visual_asset_style || ""
+      ).trim();
+      let visualMapOnly =
+        req.body?.visualMapOnly === true ||
+        req.body?.visual_map_only_prompts === true;
+      try {
+        const projDir = getProjectDir ? getProjectDir(req) : null;
+        if (projDir) {
+          const cfgPath = path.join(projDir, "config_qanat.json");
+          if (fs.existsSync(cfgPath)) {
+            const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+            if (!visualAssetStyle)
+              visualAssetStyle = String(cfg.visual_asset_style || "").trim();
+            if (
+              req.body?.visualMapOnly === undefined &&
+              req.body?.visual_map_only_prompts === undefined
+            ) {
+              visualMapOnly = Boolean(cfg.visual_map_only_prompts);
+            }
+          }
+        }
+      } catch {
+        /* ignore */
       }
 
       const result = await runVideoReverseEngineering({
         url,
         format,
         mode,
+        mediaStrategy,
+        visualAssetStyle: visualAssetStyle || "photorealistic",
+        visualMapOnly,
         niche: String(req.body?.niche || "Geral").trim(),
         instructions: String(req.body?.instructions || "").trim(),
         callGeminiWithRetry,

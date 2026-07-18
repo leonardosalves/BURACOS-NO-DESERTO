@@ -84,6 +84,7 @@ import {
   updateCachedProjectSnapshot,
 } from "./offlineProjectCache";
 import { AppShell } from "./AppShell";
+import { BackendActivityPanel } from "./BackendActivityPanel";
 import { resolveStockSearchQuery } from "./stockSearchQuery";
 import type { AppTab } from "./appTabs";
 import {
@@ -139,6 +140,10 @@ import {
 } from "./creatorEditorialImport";
 import { normalizeCreatorWizardStep } from "./creatorWizardFlow";
 import type { CreatorIdeationMode } from "./creatorModeIdentity";
+import {
+  sanitizeCreatorIdeasData,
+  type CreatorIdeasData,
+} from "./creatorIdeaEligibility";
 import { sanitizeTimelineAssets } from "./timelineAssetSanitize";
 import type { ListicleIdeasResponse } from "./ListicleRankingIdeas";
 import type { HistoricalWitnessContext } from "./historicalWitnessTypes";
@@ -320,12 +325,84 @@ export default function App() {
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
 
   const [aiProvider, setAiProvider] = useState<
-    "gemini" | "xai" | "openrouter" | "nvidia" | "inference" | "local"
-  >("gemini");
+    | "gemini"
+    | "xai"
+    | "openrouter"
+    | "nvidia"
+    | "alibaba"
+    | "tokenrouter"
+    | "local"
+  >(() => {
+    // Evita flash "Gemini" → OpenRouter ao recarregar a página de configs
+    try {
+      const saved = localStorage.getItem("lumiera_ai_provider");
+      const allowed = [
+        "gemini",
+        "xai",
+        "openrouter",
+        "nvidia",
+        "alibaba",
+        "tokenrouter",
+        "local",
+      ] as const;
+      // Inference.net removido — migra legado para Gemini
+      if (saved === "inference") return "gemini";
+      if (saved === "dashscope") return "alibaba";
+      if (saved === "token_router") return "tokenrouter";
+      if (saved && (allowed as readonly string[]).includes(saved)) {
+        return saved as (typeof allowed)[number];
+      }
+    } catch {
+      /* ignore */
+    }
+    return "gemini";
+  });
+  const [aiSettingsHydrated, setAiSettingsHydrated] = useState(false);
   const [nvidiaKeyInput, setNvidiaKeyInput] = useState<string>("");
   const [hasNvidiaKey, setHasNvidiaKey] = useState<boolean>(false);
-  const [inferenceKeyInput, setInferenceKeyInput] = useState<string>("");
-  const [hasInferenceKey, setHasInferenceKey] = useState<boolean>(false);
+  const [alibabaKeyInput, setAlibabaKeyInput] = useState<string>("");
+  const [hasAlibabaKey, setHasAlibabaKey] = useState<boolean>(false);
+  const [alibabaBaseUrlInput, setAlibabaBaseUrlInput] = useState<string>(
+    "https://ws-7pwlysxpwyxkd7j2.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+  );
+  const [alibabaModel, setAlibabaModel] = useState<string>("qwen-plus");
+  const [alibabaModelOptions, setAlibabaModelOptions] = useState<
+    Array<{ id: string; label: string; hint?: string }>
+  >([
+    { id: "qwen-plus", label: "Qwen-Plus", hint: "Padrão Model Studio" },
+    { id: "qwen-turbo", label: "Qwen-Turbo", hint: "Rápido" },
+    { id: "qwen-max", label: "Qwen-Max", hint: "Máxima qualidade" },
+  ]);
+  const [tokenrouterKeyInput, setTokenrouterKeyInput] = useState<string>("");
+  const [hasTokenrouterKey, setHasTokenrouterKey] = useState<boolean>(false);
+  const [tokenrouterBaseUrlInput, setTokenrouterBaseUrlInput] =
+    useState<string>("https://api.tokenrouter.com/v1");
+  const [tokenrouterModel, setTokenrouterModel] =
+    useState<string>("z-ai/glm-5.2-free");
+  const [tokenrouterModelOptions, setTokenrouterModelOptions] = useState<
+    Array<{ id: string; label: string; hint?: string }>
+  >([
+    {
+      id: "z-ai/glm-5.2-free",
+      label: "GLM-5.2 Free (Z.AI)",
+      hint: "Padrão free TokenRouter",
+    },
+    {
+      id: "openai/gpt-5.4-nano",
+      label: "GPT-5.4 Nano",
+      hint: "Rápido e barato",
+    },
+    {
+      id: "openai/gpt-5.6-luna",
+      label: "GPT-5.6 Luna",
+      hint: "Qualidade OpenAI",
+    },
+    {
+      id: "qwen/qwen3.5-plus-02-15",
+      label: "Qwen 3.5 Plus",
+      hint: "Roteiros PT",
+    },
+  ]);
   const [localLlmUrlInput, setLocalLlmUrlInput] = useState<string>("");
   const [localLlmModelInput, setLocalLlmModelInput] = useState<string>("");
 
@@ -337,29 +414,43 @@ export default function App() {
 
   const [geminiKeyCount, setGeminiKeyCount] = useState<number>(0);
 
-  const [geminiModel, setGeminiModel] = useState<string>("gemini-2.5-flash");
+  const [geminiModel, setGeminiModel] = useState<string>("gemini-3.5-flash");
 
   const [geminiModelOptions, setGeminiModelOptions] = useState<
     Array<{ id: string; label: string; hint?: string }>
   >([
     {
-      id: "gemini-2.5-flash",
-      label: "Gemini 2.5 Flash",
-      hint: "Rápido, gratuito no AI Studio, contexto 1M",
+      id: "gemini-3.5-flash",
+      label: "Gemini 3.5 Flash",
+      hint: "Padrão · mais recente, multimodal",
     },
   ]);
 
-  const [inferenceModel, setInferenceModel] = useState<string>(
-    "google/gemma-3-27b-instruct/bf-16"
+  const [openrouterModel, setOpenrouterModel] = useState<string>(
+    "inclusionai/ling-2.6-1t:free"
   );
 
-  const [inferenceModelOptions, setInferenceModelOptions] = useState<
+  const [openrouterModelOptions, setOpenrouterModelOptions] = useState<
     Array<{ id: string; label: string; hint?: string }>
   >([
     {
-      id: "google/gemma-3-27b-instruct/bf-16",
-      label: "Gemma 3 27B Instruct",
-      hint: "Padrão Inference.net",
+      id: "inclusionai/ling-2.6-1t:free",
+      label: "Ling 2.6 1T (free)",
+      hint: "OpenRouter free",
+    },
+  ]);
+
+  const [nvidiaModel, setNvidiaModel] = useState<string>(
+    "minimaxai/minimax-m3"
+  );
+
+  const [nvidiaModelOptions, setNvidiaModelOptions] = useState<
+    Array<{ id: string; label: string; hint?: string }>
+  >([
+    {
+      id: "minimaxai/minimax-m3",
+      label: "Minimax M3",
+      hint: "Padrão NVIDIA",
     },
   ]);
 
@@ -635,6 +726,11 @@ export default function App() {
   // Creator states
 
   const savedCreatorState = initialWizardSession || {};
+  const savedIdeasData =
+    savedCreatorState.ideasSearchNiche &&
+    savedCreatorState.nicheInput?.trim() === savedCreatorState.ideasSearchNiche
+      ? sanitizeCreatorIdeasData(savedCreatorState.ideasData)
+      : null;
 
   const [creatorStep, setCreatorStep] = useState<number>(
     normalizeCreatorWizardStep(savedCreatorState.creatorStep)
@@ -779,26 +875,16 @@ export default function App() {
     savedCreatorState.formatSelector || "LONGO"
   );
 
-  const [ideasData, setIdeasData] = useState<{
-    diagnostic: any;
-
-    ideas: any[];
-
-    best_idea_index: number;
-
-    best_idea_reason: string;
-  } | null>(
-    savedCreatorState.ideasSearchNiche &&
-      savedCreatorState.nicheInput?.trim() ===
-        savedCreatorState.ideasSearchNiche
-      ? (savedCreatorState.ideasData as any) || null
-      : null
+  const [ideasData, setIdeasData] = useState<CreatorIdeasData | null>(
+    savedIdeasData
   );
 
   const [selectedIdeaIndex, setSelectedIdeaIndex] = useState<number>(
-    savedCreatorState.selectedIdeaIndex !== undefined
-      ? savedCreatorState.selectedIdeaIndex
-      : -1
+    savedIdeasData?.ideas?.length
+      ? savedIdeasData.best_idea_index
+      : savedCreatorState.selectedIdeaIndex === 999
+        ? 999
+        : -1
   );
 
   const [customIdeaTitle, setCustomIdeaTitle] = useState(
@@ -896,6 +982,9 @@ export default function App() {
   const chunkTimelineResyncAttemptedRef = useRef<Set<string>>(new Set());
   const storyboardDirtyRef = useRef(false);
   const storyboardFetchGenRef = useRef(0);
+  /** Invalidates in-flight AI·Metadados / thumbnail loads when the project changes. */
+  const youtubeMetadataLoadGenRef = useRef(0);
+  const activeProjectRef = useRef(activeProject);
   const wizardRestoreCompleteRef = useRef(false);
   const wizardResettingRef = useRef(false);
   const wizardStoryboardSuppressedRef = useRef(false);
@@ -1672,6 +1761,8 @@ export default function App() {
     null
   );
   const creatorGenTokenRef = useRef(0);
+  const creatorNarrationInFlightTokenRef = useRef(0);
+  const creatorFullScriptInFlightTokenRef = useRef(0);
   const wizardRestoredRef = useRef(false);
 
   const [storyboardData, setStoryboardData] = useState<any | null>(null);
@@ -1849,14 +1940,18 @@ export default function App() {
   const postCreatorScriptAi = useCallback(
     async (
       init: RequestInit = { method: "POST" },
-      progress?: { jobId?: string }
+      progress?: { jobId?: string; project?: string }
     ) =>
-      fetchCreatorScriptAi(getProjectUrl("/api/ai/creator/script"), init, {
-        geminiBrowserMode,
-        aiProvider,
-        resolveBrowserResponse,
-        progressJobId: progress?.jobId,
-      }),
+      fetchCreatorScriptAi(
+        getProjectUrl("/api/ai/creator/script", progress?.project),
+        init,
+        {
+          geminiBrowserMode,
+          aiProvider,
+          resolveBrowserResponse,
+          progressJobId: progress?.jobId,
+        }
+      ),
     [getProjectUrl, geminiBrowserMode, aiProvider, resolveBrowserResponse]
   );
 
@@ -1868,18 +1963,12 @@ export default function App() {
       };
     }
     if (aiProvider === "openrouter") {
+      const modelLabel =
+        openrouterModelOptions.find((option) => option.id === openrouterModel)
+          ?.label || openrouterModel;
       return {
         short: "OpenRouter",
-        detail: "Chamadas de IA via API OpenRouter.",
-      };
-    }
-    if (aiProvider === "inference") {
-      const modelLabel =
-        inferenceModelOptions.find((option) => option.id === inferenceModel)
-          ?.label || inferenceModel;
-      return {
-        short: "Inference.net",
-        detail: `Modelo: ${modelLabel}. Ative Gemini no Chrome para usar o navegador.`,
+        detail: `Modelo: ${modelLabel}. Fallback automático nos outros free se falhar.`,
       };
     }
     if (geminiBrowserMode) {
@@ -1891,10 +1980,32 @@ export default function App() {
       };
     }
     if (aiProvider === "nvidia") {
+      const modelLabel =
+        nvidiaModelOptions.find((option) => option.id === nvidiaModel)?.label ||
+        nvidiaModel;
       return {
         short: "NVIDIA API",
-        detail:
-          "Chamadas de IA via NVIDIA API (Qwen, Kimi, etc.). Ative Gemini no Chrome para usar o navegador.",
+        detail: `Modelo: ${modelLabel}. Fallback nos outros modelos NVIDIA se falhar.`,
+      };
+    }
+    if (aiProvider === "tokenrouter") {
+      const modelLabel =
+        tokenrouterModelOptions.find((option) => option.id === tokenrouterModel)
+          ?.label || tokenrouterModel;
+      return {
+        short: "TokenRouter",
+        detail: hasTokenrouterKey
+          ? `TokenRouter · ${modelLabel}`
+          : "TokenRouter sem chave",
+      };
+    }
+    if (aiProvider === "alibaba") {
+      const modelLabel =
+        alibabaModelOptions.find((option) => option.id === alibabaModel)
+          ?.label || alibabaModel;
+      return {
+        short: "Alibaba",
+        detail: `Model Studio · ${modelLabel}. Endpoint workspace DashScope (Qwen).`,
       };
     }
     if (aiProvider === "xai") {
@@ -1912,8 +2023,15 @@ export default function App() {
     hasApiKey,
     aiProvider,
     geminiBrowserMode,
-    inferenceModel,
-    inferenceModelOptions,
+    openrouterModel,
+    openrouterModelOptions,
+    nvidiaModel,
+    nvidiaModelOptions,
+    alibabaModel,
+    alibabaModelOptions,
+    tokenrouterModel,
+    tokenrouterModelOptions,
+    hasTokenrouterKey,
   ]);
 
   const readApiError = async (res: Response, fallback: string) => {
@@ -2533,6 +2651,10 @@ export default function App() {
             sb.duration_from_whisper ?? vp.duration_from_whisper,
           speech_start: sb.speech_start ?? vp.speech_start,
           speech_end: sb.speech_end ?? vp.speech_end,
+          temporal_plan: sb.temporal_plan ?? vp.temporal_plan,
+          video_prompt_temporal:
+            sb.video_prompt_temporal ?? vp.video_prompt_temporal,
+          prompt: sb.temporal_plan ? sb.prompt : vp.prompt,
           narration_text: sb.narration_text ?? vp.narration_text,
           narration_excerpt: sb.narration_excerpt ?? vp.narration_excerpt,
           asset: sb.asset?.asset ? sb.asset : vp.asset,
@@ -2859,12 +2981,23 @@ export default function App() {
   // Fetch initial project-specific data (run on project change, does not poll periodically to avoid overwriting user inputs)
 
   const fetchInitialProjectData = async () => {
+    const projectAtStart = activeProject;
+    const metaGenAtStart = youtubeMetadataLoadGenRef.current;
     setProjectDataLoading(true);
     try {
-      const configRes = await fetch(getProjectUrl("/api/config"));
+      const configRes = await fetch(
+        getProjectUrl("/api/config", projectAtStart)
+      );
 
       if (configRes.ok) {
         const loadedConfig = await configRes.json();
+        // Project switched while this request was in flight — discard.
+        if (
+          projectAtStart !== activeProjectRef.current ||
+          metaGenAtStart !== youtubeMetadataLoadGenRef.current
+        ) {
+          return;
+        }
         if (!Array.isArray(loadedConfig.highlight_keywords))
           loadedConfig.highlight_keywords = [];
         if (!Array.isArray(loadedConfig.impact_texts))
@@ -2900,7 +3033,7 @@ export default function App() {
         }
 
         setConfig(loadedConfig);
-        updateCachedProjectSnapshot(activeProject, { config: loadedConfig });
+        updateCachedProjectSnapshot(projectAtStart, { config: loadedConfig });
         setGeneratedScriptData((prev) => {
           if (!prev) return prev;
           const merged = mergeStoryboardWithTimelineAssets(
@@ -2913,7 +3046,7 @@ export default function App() {
           }
           return prev;
         });
-        fetchStoryboard(activeProject, {
+        fetchStoryboard(projectAtStart, {
           timelineAssets: loadedConfig.timeline_assets,
         });
         if (
@@ -2963,14 +3096,20 @@ export default function App() {
         setTtCaption(meta.tiktok?.title || "");
         setKwCaption(meta.kwai?.title || "");
         fetchUploadStatus();
-        fetchYoutubeMetadataCache();
-        fetchYoutubeThumbnailImages();
+        void fetchYoutubeMetadataCache(projectAtStart);
+        void fetchYoutubeThumbnailImages(projectAtStart);
         fetchTitleExperiment();
       }
 
-      const musicRes = await fetch(getProjectUrl("/api/music"));
+      const musicRes = await fetch(getProjectUrl("/api/music", projectAtStart));
 
       if (musicRes.ok) {
+        if (
+          projectAtStart !== activeProjectRef.current ||
+          metaGenAtStart !== youtubeMetadataLoadGenRef.current
+        ) {
+          return;
+        }
         const musicData = await musicRes.json();
         setMusicFiles(
           Array.isArray(musicData)
@@ -2979,8 +3118,16 @@ export default function App() {
         );
       }
 
-      const sfxRes = await fetch(getProjectUrl("/api/sfx/timeline"));
+      const sfxRes = await fetch(
+        getProjectUrl("/api/sfx/timeline", projectAtStart)
+      );
       if (sfxRes.ok) {
+        if (
+          projectAtStart !== activeProjectRef.current ||
+          metaGenAtStart !== youtubeMetadataLoadGenRef.current
+        ) {
+          return;
+        }
         const sfxData = await sfxRes.json();
         setProfessionalSfxEvents(
           Array.isArray(sfxData.sfx_events) ? sfxData.sfx_events : []
@@ -3003,9 +3150,18 @@ export default function App() {
       if (aiSettingsRes.ok) {
         const settingsData = await aiSettingsRes.json();
 
-        setAiProvider(settingsData.provider || "gemini");
+        let nextProvider = settingsData.provider || "gemini";
+        // Inference.net removido
+        if (nextProvider === "inference") nextProvider = "gemini";
+        setAiProvider(nextProvider);
+        try {
+          localStorage.setItem("lumiera_ai_provider", String(nextProvider));
+        } catch {
+          /* ignore */
+        }
+        setAiSettingsHydrated(true);
 
-        setGeminiModel(settingsData.gemini_model || "gemini-2.5-flash");
+        setGeminiModel(settingsData.gemini_model || "gemini-3.5-flash");
 
         if (
           Array.isArray(settingsData.gemini_model_options) &&
@@ -3014,15 +3170,48 @@ export default function App() {
           setGeminiModelOptions(settingsData.gemini_model_options);
         }
 
-        setInferenceModel(
-          settingsData.inference_model || "google/gemma-3-27b-instruct/bf-16"
+        setOpenrouterModel(
+          settingsData.openrouter_model || "inclusionai/ling-2.6-1t:free"
         );
 
         if (
-          Array.isArray(settingsData.inference_model_options) &&
-          settingsData.inference_model_options.length > 0
+          Array.isArray(settingsData.openrouter_model_options) &&
+          settingsData.openrouter_model_options.length > 0
         ) {
-          setInferenceModelOptions(settingsData.inference_model_options);
+          setOpenrouterModelOptions(settingsData.openrouter_model_options);
+        }
+
+        setNvidiaModel(settingsData.nvidia_model || "minimaxai/minimax-m3");
+
+        if (
+          Array.isArray(settingsData.nvidia_model_options) &&
+          settingsData.nvidia_model_options.length > 0
+        ) {
+          setNvidiaModelOptions(settingsData.nvidia_model_options);
+        }
+
+        setAlibabaModel(settingsData.alibaba_model || "qwen-plus");
+        if (
+          Array.isArray(settingsData.alibaba_model_options) &&
+          settingsData.alibaba_model_options.length > 0
+        ) {
+          setAlibabaModelOptions(settingsData.alibaba_model_options);
+        }
+        if (settingsData.alibaba_base_url) {
+          setAlibabaBaseUrlInput(String(settingsData.alibaba_base_url));
+        }
+
+        setTokenrouterModel(
+          settingsData.tokenrouter_model || "z-ai/glm-5.2-free"
+        );
+        if (
+          Array.isArray(settingsData.tokenrouter_model_options) &&
+          settingsData.tokenrouter_model_options.length > 0
+        ) {
+          setTokenrouterModelOptions(settingsData.tokenrouter_model_options);
+        }
+        if (settingsData.tokenrouter_base_url) {
+          setTokenrouterBaseUrlInput(String(settingsData.tokenrouter_base_url));
         }
 
         setGeminiKeyCount(settingsData.gemini_key_count || 0);
@@ -3031,7 +3220,8 @@ export default function App() {
 
         setHasOpenRouterKey(!!settingsData.has_openrouter_key);
         setHasNvidiaKey(!!settingsData.has_nvidia_key);
-        setHasInferenceKey(!!settingsData.has_inference_key);
+        setHasAlibabaKey(!!settingsData.has_alibaba_key);
+        setHasTokenrouterKey(!!settingsData.has_tokenrouter_key);
 
         setHasEpidemicKey(!!settingsData.has_epidemic_key);
 
@@ -3047,8 +3237,10 @@ export default function App() {
             !!settingsData.has_openrouter_key ||
             settingsData.provider === "nvidia" ||
             !!settingsData.has_nvidia_key ||
-            settingsData.provider === "inference" ||
-            !!settingsData.has_inference_key ||
+            settingsData.provider === "alibaba" ||
+            !!settingsData.has_alibaba_key ||
+            settingsData.provider === "tokenrouter" ||
+            !!settingsData.has_tokenrouter_key ||
             settingsData.provider === "local"
         );
       }
@@ -3790,6 +3982,43 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    activeProjectRef.current = activeProject;
+  }, [activeProject]);
+
+  useEffect(() => {
+    // Drop previous project's AI · Metadados / upload form so they never flash
+    // or stick when the new project has no cache yet (or a slower fetch loses the race).
+    youtubeMetadataLoadGenRef.current += 1;
+    setYoutubeMetadata("");
+    setYoutubeMetadataFormat("");
+    setYoutubeMetadataParsed(null);
+    setYoutubeMetadataStrategy(null);
+    setYoutubeThumbnailsGenerated([]);
+    setYoutubeLoading(false);
+    setYoutubeThumbnailsLoading(false);
+    setCanvaThumbnailsLoading(false);
+    setTitleExperiment(null);
+    setTitleExperimentAnalytics(null);
+    setTitleExperimentRankings([]);
+    setTitleExperimentWinner(null);
+    setTitleExperimentVideoId("");
+    setTitleAbSelected({});
+    setTitleRetention(null);
+    setThumbnailExperiment(null);
+    setYtTitle("");
+    setYtDescription("");
+    setYtTags("");
+    setYtChapters("");
+    setYtPinnedComment("");
+    setYtPublishAt("");
+    setYtThumbnailPath("");
+    setYtThumbnailVariant("");
+    setYtPlaylistId("");
+    setIgCaption("");
+    setTtCaption("");
+    setKwCaption("");
+    setCopiedSection(null);
+
     const inCreatorFlow = activeTab === "creator" && creatorStep > 1;
     const cached = loadCachedProjectSnapshot(activeProject);
     setConfig(cached?.config || null);
@@ -6047,10 +6276,68 @@ export default function App() {
     }
   };
 
+  const updateAiProvider = useCallback(
+    (
+      next:
+        | "gemini"
+        | "xai"
+        | "openrouter"
+        | "nvidia"
+        | "alibaba"
+        | "tokenrouter"
+        | "local"
+    ) => {
+      setAiProvider(next);
+      try {
+        localStorage.setItem("lumiera_ai_provider", next);
+      } catch {
+        /* ignore */
+      }
+      // Persiste já no backend (workspace + projeto ativo) — senão o card muda
+      // mas o job LLM ainda lê ai_provider do config_qanat.json do projeto.
+      void (async () => {
+        try {
+          const res = await fetch(getProjectUrl("/api/ai/settings"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ provider: next }),
+          });
+          if (!res.ok) {
+            console.warn(
+              "[IA] Falha ao gravar provedor no backend:",
+              res.status
+            );
+            return;
+          }
+          const labels: Record<string, string> = {
+            gemini: "Gemini",
+            openrouter: "OpenRouter",
+            nvidia: "NVIDIA",
+            xai: "xAI",
+            alibaba: "Alibaba",
+            tokenrouter: "TokenRouter",
+            local: "Local",
+          };
+          toast.success(`Provedor ${labels[next] || next} ativo no projeto`, {
+            duration: 2200,
+          });
+        } catch (err) {
+          console.warn("[IA] Erro ao gravar provedor:", err);
+        }
+      })();
+    },
+    [getProjectUrl]
+  );
+
   const handleSaveAiSettings = async () => {
     setSavingAiSettings(true);
 
     try {
+      try {
+        localStorage.setItem("lumiera_ai_provider", aiProvider);
+      } catch {
+        /* ignore */
+      }
       const res = await fetch(getProjectUrl("/api/ai/settings"), {
         method: "POST",
 
@@ -6060,7 +6347,12 @@ export default function App() {
           provider: aiProvider,
 
           gemini_model: geminiModel,
-          inference_model: inferenceModel,
+          openrouter_model: openrouterModel,
+          nvidia_model: nvidiaModel,
+          alibaba_model: alibabaModel,
+          alibaba_base_url: alibabaBaseUrlInput,
+          tokenrouter_model: tokenrouterModel,
+          tokenrouter_base_url: tokenrouterBaseUrlInput,
 
           gemini_keys: geminiKeysInput,
 
@@ -6068,7 +6360,8 @@ export default function App() {
 
           openrouter_key: openrouterKeyInput,
           nvidia_key: nvidiaKeyInput,
-          inference_key: inferenceKeyInput,
+          alibaba_key: alibabaKeyInput,
+          tokenrouter_key: tokenrouterKeyInput,
 
           gemini_browser_mode: geminiBrowserMode,
           local_llm_url: localLlmUrlInput,
@@ -6090,20 +6383,53 @@ export default function App() {
           setGeminiModelOptions(data.gemini_model_options);
         }
 
-        if (data.inference_model) setInferenceModel(data.inference_model);
+        if (data.openrouter_model) setOpenrouterModel(data.openrouter_model);
 
         if (
-          Array.isArray(data.inference_model_options) &&
-          data.inference_model_options.length > 0
+          Array.isArray(data.openrouter_model_options) &&
+          data.openrouter_model_options.length > 0
         ) {
-          setInferenceModelOptions(data.inference_model_options);
+          setOpenrouterModelOptions(data.openrouter_model_options);
+        }
+
+        if (data.nvidia_model) setNvidiaModel(data.nvidia_model);
+
+        if (
+          Array.isArray(data.nvidia_model_options) &&
+          data.nvidia_model_options.length > 0
+        ) {
+          setNvidiaModelOptions(data.nvidia_model_options);
+        }
+
+        if (data.alibaba_model) setAlibabaModel(data.alibaba_model);
+        if (
+          Array.isArray(data.alibaba_model_options) &&
+          data.alibaba_model_options.length > 0
+        ) {
+          setAlibabaModelOptions(data.alibaba_model_options);
+        }
+        if (data.alibaba_base_url) {
+          setAlibabaBaseUrlInput(String(data.alibaba_base_url));
+        }
+
+        if (data.tokenrouter_model) setTokenrouterModel(data.tokenrouter_model);
+        if (
+          Array.isArray(data.tokenrouter_model_options) &&
+          data.tokenrouter_model_options.length > 0
+        ) {
+          setTokenrouterModelOptions(data.tokenrouter_model_options);
+        }
+        if (data.tokenrouter_base_url) {
+          setTokenrouterBaseUrlInput(String(data.tokenrouter_base_url));
         }
 
         setHasXaiKey(!!data.has_xai_key);
 
         setHasOpenRouterKey(!!data.has_openrouter_key);
         setHasNvidiaKey(!!data.has_nvidia_key);
-        setHasInferenceKey(!!data.has_inference_key);
+        setHasAlibabaKey(!!data.has_alibaba_key);
+        setHasTokenrouterKey(!!data.has_tokenrouter_key);
+        if (tokenrouterKeyInput.trim()) setTokenrouterKeyInput("");
 
         setHasEpidemicKey(!!data.has_epidemic_key);
 
@@ -6119,8 +6445,8 @@ export default function App() {
             !!data.has_openrouter_key ||
             data.provider === "nvidia" ||
             !!data.has_nvidia_key ||
-            data.provider === "inference" ||
-            !!data.has_inference_key ||
+            data.provider === "alibaba" ||
+            !!data.has_alibaba_key ||
             data.provider === "local"
         );
 
@@ -6130,7 +6456,7 @@ export default function App() {
 
         setOpenRouterKeyInput("");
         setNvidiaKeyInput("");
-        setInferenceKeyInput("");
+        setAlibabaKeyInput("");
 
         setEpidemicKeyInput("");
 
@@ -6288,6 +6614,8 @@ export default function App() {
   }) => {
     if (youtubeLoading) return false;
 
+    const projectAtStart = activeProjectRef.current;
+    const genAtStart = youtubeMetadataLoadGenRef.current;
     setYoutubeLoading(true);
     if (!options?.keepExistingOnError) {
       setYoutubeMetadata("");
@@ -6303,6 +6631,13 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ require_browser: useGeminiChrome }),
       });
+      // User switched project while Gemini was generating — do not apply.
+      if (
+        projectAtStart !== activeProjectRef.current ||
+        genAtStart !== youtubeMetadataLoadGenRef.current
+      ) {
+        return false;
+      }
 
       if (ok && !data.needs_browser && data.text) {
         const provider = (data as { provider?: string }).provider;
@@ -6417,14 +6752,23 @@ export default function App() {
     void generateYoutubeMetadata();
   };
 
-  const fetchYoutubeThumbnailImages = async () => {
+  const fetchYoutubeThumbnailImages = async (projectOverride?: string) => {
+    const projectForLoad = projectOverride || activeProject;
+    const genAtStart = youtubeMetadataLoadGenRef.current;
     try {
-      const res = await fetch(getProjectUrl("/api/ai/youtube-thumbnails"));
+      const res = await fetch(
+        getProjectUrl("/api/ai/youtube-thumbnails", projectForLoad)
+      );
+      if (genAtStart !== youtubeMetadataLoadGenRef.current) return;
       if (res.ok) {
         const data = await res.json();
+        if (genAtStart !== youtubeMetadataLoadGenRef.current) return;
         setYoutubeThumbnailsGenerated(data.thumbnails || []);
+      } else {
+        setYoutubeThumbnailsGenerated([]);
       }
     } catch {
+      if (genAtStart !== youtubeMetadataLoadGenRef.current) return;
       setYoutubeThumbnailsGenerated([]);
     }
   };
@@ -6481,19 +6825,41 @@ export default function App() {
     }
   };
 
-  const loadYoutubeMetadataFromCache = async () => {
+  const clearYoutubeMetadataUiState = () => {
+    setYoutubeMetadata("");
+    setYoutubeMetadataFormat("");
+    setYoutubeMetadataParsed(null);
+    setYoutubeMetadataStrategy(null);
+  };
+
+  const loadYoutubeMetadataFromCache = async (projectOverride?: string) => {
+    const projectForLoad = projectOverride || activeProject;
+    const genAtStart = youtubeMetadataLoadGenRef.current;
     try {
-      const res = await fetch(getProjectUrl("/api/ai/youtube-metadata-cache"));
-      if (!res.ok) return null;
+      const res = await fetch(
+        getProjectUrl("/api/ai/youtube-metadata-cache", projectForLoad)
+      );
+      if (genAtStart !== youtubeMetadataLoadGenRef.current) return null;
+      if (!res.ok) {
+        clearYoutubeMetadataUiState();
+        return null;
+      }
       const data = await res.json();
-      if (!data.cached) return null;
+      if (genAtStart !== youtubeMetadataLoadGenRef.current) return null;
+      if (!data.cached) {
+        // No cache for THIS project — never keep the previous project's metadata.
+        clearYoutubeMetadataUiState();
+        return null;
+      }
       if (
         data.text &&
         /LUMIERA_TASK:|PRIORIDADE ABSOLUTA|--- INÍCIO DO ROTEIRO ---/i.test(
           data.text
         )
-      )
+      ) {
+        clearYoutubeMetadataUiState();
         return null;
+      }
       if (data.text)
         setYoutubeMetadata(normalizeYoutubeMetadataDisplay(data.text));
       const fmt: "SHORT" | "LONG" | "" =
@@ -6515,12 +6881,15 @@ export default function App() {
       });
       return { parsed: data.parsed || null, format: fmt };
     } catch {
+      if (genAtStart === youtubeMetadataLoadGenRef.current) {
+        clearYoutubeMetadataUiState();
+      }
       return null;
     }
   };
 
-  const fetchYoutubeMetadataCache = async () => {
-    await loadYoutubeMetadataFromCache();
+  const fetchYoutubeMetadataCache = async (projectOverride?: string) => {
+    await loadYoutubeMetadataFromCache(projectOverride);
   };
 
   type UploadMetadataPayload = {
@@ -7542,10 +7911,14 @@ export default function App() {
       });
 
       if (ok && data.ideas) {
-        setIdeasData(data as any);
+        const verifiedIdeasData = sanitizeCreatorIdeasData(data);
+        if (!verifiedIdeasData) {
+          throw new Error("A resposta de ideias não possui estrutura válida.");
+        }
+        setIdeasData(verifiedIdeasData);
         setIdeasSearchNiche(nicheInput.trim());
 
-        setSelectedIdeaIndex(data.best_idea_index);
+        setSelectedIdeaIndex(verifiedIdeasData.best_idea_index);
 
         const meta = data._ideas_meta;
         const deep = meta?.deepResearch;
@@ -7560,12 +7933,17 @@ export default function App() {
             { id: "gemini-ideas" }
           );
         } else {
-          toast.success("10 ideias geradas.", { id: "gemini-ideas" });
+          toast.success(
+            `${verifiedIdeasData.ideas.length} ideias factualmente elegíveis.`,
+            { id: "gemini-ideas" }
+          );
         }
 
         // Auto-fill project name from best idea title (short 3-word summary)
 
-        const bestTitle = data.ideas[data.best_idea_index]?.title || "";
+        const bestTitle =
+          verifiedIdeasData.ideas[verifiedIdeasData.best_idea_index]?.title ||
+          "";
 
         const stopWords = [
           "o",
@@ -8150,6 +8528,8 @@ export default function App() {
   /** Cancela geração em voo e evita botão preso em "Gerando narração…". */
   const cancelCreatorGeneration = () => {
     bumpCreatorGenToken();
+    creatorNarrationInFlightTokenRef.current = 0;
+    creatorFullScriptInFlightTokenRef.current = 0;
     setCreatorLoading(false);
     setCreatorLoadingMode("idle");
   };
@@ -8430,7 +8810,14 @@ export default function App() {
       toastId?: string;
     }
   ) => {
+    if (creatorNarrationInFlightTokenRef.current) {
+      toast("A narração já está sendo gerada — aguarde a conclusão.", {
+        icon: "⏳",
+      });
+      return;
+    }
     const token = bumpCreatorGenToken();
+    creatorNarrationInFlightTokenRef.current = token;
     const toastId = opts?.toastId || "creator-narration-gen";
     const niche =
       (opts?.niche || config?.niche || nicheInput || "Geral").trim() || "Geral";
@@ -8445,6 +8832,7 @@ export default function App() {
       );
       if (token !== creatorGenTokenRef.current) return;
       if (!proj.ok) {
+        creatorNarrationInFlightTokenRef.current = 0;
         toast.error(proj.error || "Erro ao criar projeto", { id: toastId });
         return;
       }
@@ -8456,6 +8844,9 @@ export default function App() {
       payload.project = proj.safeName;
     }
 
+    if (activeProject !== projectName) {
+      setActiveProject(projectName);
+    }
     creatorNarrationPayloadRef.current = { ...payload };
     creatorNarrationProjectRef.current = projectName;
 
@@ -8481,7 +8872,7 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         },
-        { jobId: progressJobId }
+        { jobId: progressJobId, project: projectName }
       );
       if (token !== creatorGenTokenRef.current) return;
       if (ok && data.phase === "notebooklm_pending") {
@@ -8524,7 +8915,6 @@ export default function App() {
               : "Narração gerada — revise antes do roteiro."
           );
           await fetchProjects();
-          setActiveProject(projectName);
         }
       } else if (token === creatorGenTokenRef.current) {
         const errMsg =
@@ -8545,6 +8935,9 @@ export default function App() {
         stopAiJobProgress(false, msg);
       }
     } finally {
+      if (creatorNarrationInFlightTokenRef.current === token) {
+        creatorNarrationInFlightTokenRef.current = 0;
+      }
       if (token === creatorGenTokenRef.current) {
         setCreatorLoading(false);
         setCreatorLoadingMode("idle");
@@ -8688,14 +9081,45 @@ export default function App() {
     };
 
     if (options?.prebuiltStoryboard) {
+      const directSource =
+        options.mechanic === "humor-facts"
+          ? "humor-facts"
+          : "video-reverse-engineering";
+      const directLabel =
+        options.directImportLabel ||
+        (directSource === "humor-facts"
+          ? "Fatos com Graça"
+          : "Engenharia Reversa");
+      const directSuffix = directSource === "humor-facts" ? "humor" : "reverse";
       cancelCreatorGeneration();
       setAutomation({ active: false });
       setCreatorLoading(true);
       setCreatorLoadingMode("full");
-      const toastId = toast.loading(
-        "Montando o projeto com o dossiê da Engenharia Reversa..."
-      );
+      const toastId = toast.loading(`Montando o projeto com ${directLabel}...`);
       try {
+        const validationResponse = await fetch(
+          "/api/projects/validate-specialized-storyboard",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              storyboard: options.prebuiltStoryboard,
+              source: directSource,
+              format,
+            }),
+          }
+        );
+        const validationData = await validationResponse
+          .json()
+          .catch(() => ({}));
+        if (!validationResponse.ok || !validationData.storyboard) {
+          throw new Error(
+            validationData.error ||
+              "O storyboard especializado não passou pela validação."
+          );
+        }
+        const validatedStoryboard = validationData.storyboard;
+
         let projectList: ProjectListItem[] = projects;
         try {
           const listResponse = await fetch("/api/projects");
@@ -8707,7 +9131,7 @@ export default function App() {
         let directProjectSlug = projectSlug;
         let suffix = 2;
         while (existingNames.has(directProjectSlug)) {
-          directProjectSlug = `${projectSlug}_reverse_${suffix}`;
+          directProjectSlug = `${projectSlug}_${directSuffix}_${suffix}`;
           suffix += 1;
         }
 
@@ -8727,12 +9151,49 @@ export default function App() {
           );
         }
 
+        // Propaga estilo visual escolhido no painel inicial (ex.: Engenharia Reversa)
+        const visualAssetStyle =
+          options.visualAssetStyle ||
+          config?.visual_asset_style ||
+          "photorealistic";
+        const visualMapOnly = Boolean(
+          options.visualMapOnly ?? config?.visual_map_only_prompts
+        );
+        try {
+          await fetch(getProjectUrl("/api/config", directProjectSlug), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              visual_asset_style: visualAssetStyle,
+              visual_map_only_prompts: visualMapOnly,
+            }),
+          });
+        } catch {
+          /* não bloqueia o import */
+        }
+        if (validatedStoryboard && typeof validatedStoryboard === "object") {
+          validatedStoryboard.visual_asset_style = visualAssetStyle;
+          validatedStoryboard.visual_map_only_prompts = visualMapOnly;
+          validatedStoryboard.technical_config = {
+            ...(validatedStoryboard.technical_config || {}),
+            visual_asset_style: visualAssetStyle,
+            visual_map_only_prompts: visualMapOnly,
+          };
+        }
+
         const saveResponse = await fetch(
-          getProjectUrl("/api/projects/storyboard", directProjectSlug),
+          getProjectUrl(
+            "/api/projects/import-specialized-storyboard",
+            directProjectSlug
+          ),
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(options.prebuiltStoryboard),
+            body: JSON.stringify({
+              storyboard: validatedStoryboard,
+              source: directSource,
+              format,
+            }),
           }
         );
         const saveData = await saveResponse.json().catch(() => ({}));
@@ -8741,27 +9202,29 @@ export default function App() {
             saveData.error || "Não foi possível salvar o storyboard importado."
           );
         }
+        const importedStoryboard =
+          saveData.storyboard || options.prebuiltStoryboard;
 
         const blockNumbers = [
           ...new Set(
-            options.prebuiltStoryboard.visual_prompts.map((scene) =>
+            importedStoryboard.visual_prompts.map((scene: any) =>
               Number(scene.block || 1)
             )
           ),
         ];
-        applyStoryboardToCreatorState(options.prebuiltStoryboard, "generation");
+        applyStoryboardToCreatorState(importedStoryboard, "generation");
         setExpandedBlocks(
           Object.fromEntries(blockNumbers.map((block) => [block, true]))
         );
         setShowNarrationReview(false);
-        setNarrationDraft(options.prebuiltStoryboard.narrative_script);
+        setNarrationDraft(importedStoryboard.narrative_script);
         setNarrationTaggedDraft("");
-        setNarrationStrategy(options.prebuiltStoryboard.strategy as any);
+        setNarrationStrategy(importedStoryboard.strategy as any);
         setNarrationBlockPhrases([]);
         setNarrationBlockScript("");
         setNarrationProjectName(directProjectSlug);
         setCreatorProjectName(directProjectSlug);
-        setCreatorScript(options.prebuiltStoryboard.narrative_script);
+        setCreatorScript(importedStoryboard.narrative_script);
         setCustomTitle(options?.customTitle || cleaned);
         setCustomHooks(options?.customHook || hook);
         setCustomOutline(options?.customPromise || "");
@@ -8770,13 +9233,13 @@ export default function App() {
         setFormatSelector(format);
         setEditorialIdeaImport(importData);
         setUploadSuccess(false);
-        setIdeationTab("video-reverse-engineering");
+        setIdeationTab(options.wizardMode || directSource);
         setCreatorStep(2);
         setActiveProject(directProjectSlug);
         setActiveTab("creator");
         await fetchProjects();
         toast.success(
-          "Roteiro, narração e prompts importados. Continue em Voz e Timing.",
+          `${directLabel}: roteiro, narração e prompts importados. Continue em Voz e Timing.`,
           { id: toastId }
         );
       } catch (error) {
@@ -9132,8 +9595,21 @@ export default function App() {
       toast.error("Projeto não definido — gere a narração novamente.");
       return;
     }
+    if (creatorFullScriptInFlightTokenRef.current) {
+      toast("O roteiro completo já está sendo gerado — aguarde a conclusão.", {
+        icon: "⏳",
+      });
+      return;
+    }
 
+    const safeNarrationProject = narrationProjectName
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "_");
     const token = bumpCreatorGenToken();
+    creatorFullScriptInFlightTokenRef.current = token;
+    if (activeProject !== safeNarrationProject) {
+      setActiveProject(safeNarrationProject);
+    }
     setCreatorLoading(true);
     setCreatorLoadingMode("full");
     const progressJobId = createProgressJobId();
@@ -9155,7 +9631,7 @@ export default function App() {
             })
           ),
         },
-        { jobId: progressJobId }
+        { jobId: progressJobId, project: safeNarrationProject }
       );
       if (token !== creatorGenTokenRef.current) return;
       if (ok && !data.needs_browser) {
@@ -9175,9 +9651,6 @@ export default function App() {
         setShowNarrationReview(false);
         setCreatorStep(2);
         await fetchProjects();
-        const safeNarrationProject = narrationProjectName
-          .trim()
-          .replace(/[^a-zA-Z0-9_-]/g, "_");
         let projectList: ProjectListItem[] = [];
         try {
           const listRes = await fetch("/api/projects");
@@ -9214,8 +9687,9 @@ export default function App() {
             );
           }
         }
-        setActiveProject(safeNarrationProject);
-        fetchData();
+        if (activeProject === safeNarrationProject) {
+          void fetchData();
+        }
         const listicleMsg =
           ideationTab === "listicle"
             ? ` com ${data.list_items?.length || rankCount} itens`
@@ -9237,27 +9711,42 @@ export default function App() {
           );
         }
       } else if (token === creatorGenTokenRef.current) {
-        const detail = data.details ? `: ${data.details}` : "";
+        const detailsList = Array.isArray(data.details)
+          ? data.details.filter(Boolean).join(" | ")
+          : data.details
+            ? String(data.details)
+            : "";
+        const detail =
+          detailsList && !String(data.error || "").includes(detailsList)
+            ? `: ${detailsList}`
+            : "";
         const hint = data.hint ? ` ${data.hint}` : "";
-        stopAiJobProgress(
-          false,
-          `${data.error || "Erro ao gerar roteiro completo"}${detail}${hint}`
-        );
+        const rawMessage = `${data.error || "Erro ao gerar roteiro completo"}${detail}${hint}`;
+        const quotaFailure = /quota|429|rate.?limit|cota/i.test(rawMessage);
+        const failureMessage = quotaFailure
+          ? "O provedor de IA esgotou a cota durante o roteiro completo. A narração foi preservada; aguarde a cota liberar ou troque o provedor em Configurações → IA."
+          : rawMessage;
+        stopAiJobProgress(false, failureMessage);
+        toast.error(failureMessage, {
+          id: "creator-full-script-error",
+          duration: 15000,
+        });
       }
     } catch (err: unknown) {
       if (token === creatorGenTokenRef.current) {
-        stopAiJobProgress(
-          false,
-          err instanceof Error ? err.message : "Falha ao gerar roteiro."
-        );
+        const msg =
+          err instanceof Error ? err.message : "Falha ao gerar roteiro.";
+        stopAiJobProgress(false, msg);
         console.error(err);
-        toast.error(
-          err instanceof Error
-            ? err.message
-            : "Conexão falhou ao gerar roteiro."
-        );
+        toast.error(msg, {
+          id: "creator-full-script-error",
+          duration: 15000,
+        });
       }
     } finally {
+      if (creatorFullScriptInFlightTokenRef.current === token) {
+        creatorFullScriptInFlightTokenRef.current = 0;
+      }
       if (token === creatorGenTokenRef.current) {
         setCreatorLoading(false);
         setCreatorLoadingMode("idle");
@@ -9278,10 +9767,12 @@ export default function App() {
         !String(vp?.prompt || "").trim()
     );
     if (missingFields) return true;
-    const isReverseEngineeredStoryboard = vps.some(
-      (vp: any) => vp?.provenance === "video-reverse-engineering"
+    const isSpecializedImportedStoryboard = vps.some(
+      (vp: any) =>
+        vp?.provenance === "video-reverse-engineering" ||
+        vp?.provenance === "humor-facts"
     );
-    if (isReverseEngineeredStoryboard) return false;
+    if (isSpecializedImportedStoryboard) return false;
     const blockPhrases =
       generatedScriptData?.technical_config?.block_phrases || [];
     const expectedBlocks =
@@ -9468,7 +9959,7 @@ export default function App() {
 
   // Run dynamic transcription synchronization
 
-  const handleSyncTimings = (fromWizard = false) => {
+  const handleSyncTimings = async (fromWizard = false) => {
     if (syncingTimings) return;
 
     setSyncingTimings(true);
@@ -9476,6 +9967,44 @@ export default function App() {
     if (!fromWizard) setActiveTab("terminal");
 
     setLogs([]);
+
+    const chunked = isChunkedNarrationProject(
+      config,
+      storyboardData ?? generatedScriptData,
+      wordTranscripts
+    );
+    if (chunked) {
+      try {
+        setLogs((prev) => [
+          ...prev,
+          "[Revisão] Validando aprovações e montando a narração master…",
+        ]);
+        const finalizeRes = await fetch(
+          getProjectUrl("/api/narration-chunks/finalize-approved"),
+          { method: "POST" }
+        );
+        const finalizeData = await finalizeRes.json().catch(() => ({}));
+        if (!finalizeRes.ok) {
+          throw new Error(
+            String(
+              finalizeData.error ||
+                "Revise e aprove todos os trechos antes do Whisper."
+            )
+          );
+        }
+        setLogs((prev) => [
+          ...prev,
+          `[Revisão] ${finalizeData.message || "Narração aprovada e montada."}`,
+        ]);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Falha ao finalizar narração.";
+        setLogs((prev) => [...prev, `[Bloqueado] ${message}`]);
+        setSyncingTimings(false);
+        toast.error(message, { duration: 7000 });
+        return;
+      }
+    }
 
     const eventSource = new EventSource(getProjectUrl("/api/sync-timings"));
 
@@ -10861,8 +11390,21 @@ export default function App() {
     geminiKeysInput,
     geminiModel,
     geminiModelOptions,
-    inferenceModel,
-    inferenceModelOptions,
+    openrouterModel,
+    openrouterModelOptions,
+    nvidiaModel,
+    nvidiaModelOptions,
+    alibabaModel,
+    alibabaModelOptions,
+    alibabaBaseUrlInput,
+    alibabaKeyInput,
+    tokenrouterModel,
+    tokenrouterModelOptions,
+    tokenrouterBaseUrlInput,
+    tokenrouterKeyInput,
+    setTokenrouterModel,
+    setTokenrouterBaseUrlInput,
+    setTokenrouterKeyInput,
     generateYoutubeMetadata,
     generatedScriptData,
     generatingOverlays,
@@ -10944,7 +11486,8 @@ export default function App() {
     hasApiKey,
     hasEpidemicKey,
     hasNvidiaKey,
-    hasInferenceKey,
+    hasAlibabaKey,
+    hasTokenrouterKey,
     hasOpenRouterKey,
     hasPexelsKey,
     hasPixabayKey,
@@ -10987,7 +11530,6 @@ export default function App() {
     notebooklmStatus,
     notebooklmSuggestions,
     nvidiaKeyInput,
-    inferenceKeyInput,
     localLlmUrlInput,
     setLocalLlmUrlInput,
     localLlmModelInput,
@@ -11046,7 +11588,7 @@ export default function App() {
     selectedProject,
     selectedUploadVideo,
     setActiveTab,
-    setAiProvider,
+    setAiProvider: updateAiProvider,
     setCanvaClientId,
     setCanvaClientSecret,
     setChatInput,
@@ -11077,7 +11619,8 @@ export default function App() {
     setGeminiExtensionTesting,
     setGeminiKeysInput,
     setGeminiModel,
-    setInferenceModel,
+    setOpenrouterModel,
+    setNvidiaModel,
     setGlobalBlockGap,
     setGlobalDebugOverlay,
     setGlobalFps,
@@ -11101,7 +11644,9 @@ export default function App() {
     setNewKeyword,
     setNicheInput,
     setNvidiaKeyInput,
-    setInferenceKeyInput,
+    setAlibabaKeyInput,
+    setAlibabaBaseUrlInput,
+    setAlibabaModel,
     setOpenRouterKeyInput,
     setPendingOutputDelete,
     setPexelsKeyInput,
@@ -11255,6 +11800,8 @@ export default function App() {
         />
       )}
 
+      <BackendActivityPanel activeProject={activeProject} />
+
       <AppShell
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -11296,6 +11843,8 @@ export default function App() {
           setNewProjectFormat={setNewProjectFormat}
           setNewProjectNiche={setNewProjectNiche}
           setShowCreateModal={setShowCreateModal}
+          saveConfigPatch={saveConfigPatch}
+          setConfig={setConfig}
           creatorTabProps={creatorTabProps}
           aiTabProps={aiTabProps}
           uploadTabProps={uploadTabProps}

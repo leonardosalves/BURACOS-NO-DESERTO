@@ -23,6 +23,8 @@ function withWorkspace(run) {
 test("normaliza aliases dos motores TTS", () => {
   assert.equal(normalizeTtsEngine("GPT-SoVITS"), "gptsovits");
   assert.equal(normalizeTtsEngine("fish_speech"), "fish");
+  assert.equal(normalizeTtsEngine("qwen3-tts"), "qwen3");
+  assert.equal(normalizeTtsEngine("qwen"), "qwen3");
   assert.equal(normalizeTtsEngine("desconhecido"), "");
 });
 

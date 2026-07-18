@@ -55,9 +55,11 @@ export function assessEditorialContract({
     if (words.length < 70 || words.length > 145) {
       issues.push("Short fora da faixa editorial de 70–145 palavras.");
     }
-    if (sentences.length < 5) {
+    // 4 frases bem formadas bastam para um short denso; 3 ou menos costuma
+    // faltar gancho + desenvolvimento + payoff.
+    if (sentences.length < 4) {
       issues.push(
-        "Short sem desenvolvimento suficiente entre gancho e payoff."
+        "Short sem desenvolvimento suficiente entre gancho e payoff (mínimo 4 frases)."
       );
     }
     if (!hasExplanationBridge) {
@@ -222,6 +224,230 @@ export function assessNarrationReadiness({
     acronyms,
     numberCount: numbers.length,
     recommendations,
+  };
+}
+
+const ASSERTIVE_CAUSAL_PATTERN =
+  /\b(influenci(?:ar|a|am|ou|aram|ado|ados|ada|adas)|inspir(?:ar|a|am|ou|aram|ado|ados|ada|adas)|imit(?:ar|a|am|ou|aram|ado|ados|ada|adas)|copi(?:ar|a|am|ou|aram|ado|ados|ada|adas)|replic(?:ar|a|am|ou|aram|ado|ados|ada|adas)|adot(?:ar|a|am|ou|aram|ado|ados|ada|adas)|aplic(?:ar|a|am|ou|aram|ado|ados|ada|adas)|prov(?:ar|a|am|ou|aram|ado|ados|ada|adas)|comprov(?:ar|a|am|ou|aram|ado|ados|ada|adas)|demonstr(?:ar|a|am|ou|aram|ado|ados|ada|adas)|garant(?:ir|e|em|iu|iram|ido|idos|ida|idas)|fornec(?:er|e|em|eu|eram|ido|idos|ida|idas) (?:o |um )?(?:modelo|projeto|gabarito)|deu origem|deram origem|lev(?:ar|a|am|ou|aram) (?:os|as|ao|à)|graças a)\b/i;
+const UNCERTAINTY_PATTERN =
+  /\b(pode ter|talvez|é possível|hipótese|não há evidência|não foi comprovad|não significa que|sem prova de|analogia|semelhança)\b/i;
+const VALIDATION_PENDING_PATTERN =
+  /\b(confirmar|verificar|identificar|provar|comprovar|validar|investigar|fontes? acadêmicas?|evidência direta)\b/i;
+const PSYCHOLOGICAL_INTENT_PATTERN =
+  /\b(design sensorial|afeta (?:o )?cérebro|bloqueia (?:a )?visão lateral|anul(?:a|ando|ou) (?:a )?percepção|perda de referência espacial|caus(?:a|ava|ou) desorientação|profunda reverência|control(?:a|ava|ou) fisicamente (?:a )?percepção|projetad[oa]s? para (?:desorientar|intimidar|causar medo|provocar reverência|controlar))\b/i;
+const SENSATIONAL_NEURO_PATTERN =
+  /\b(?:mente|cérebro)\s+(?:seria\s+)?["“”']?hacke(?:ad[oa]|ar)|hacke(?:ar|ad[oa])\s+(?:a\s+)?(?:mente|cérebro)\b/i;
+const VAGUE_STUDY_ATTRIBUTION_PATTERN =
+  /\b(?:estudos?|pesquisas?|especialistas?)\s+(?:de|da|do|sobre|em)?[^.!?]{0,80}\b(?:sugerem|mostram|comprovam|demonstram|indicam|revelam)\b/i;
+
+function asList(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function textOfFact(fact) {
+  if (typeof fact === "string") return fact;
+  if (!fact || typeof fact !== "object") return "";
+  const base = String(
+    fact.claim || fact.afirmacao || fact.fact || fact.text || fact.summary || ""
+  ).trim();
+  const url = String(fact.url || fact.source_url || "").trim();
+  const sourceLabel = String(fact.source || fact.title || "").trim();
+  if (url && !base.toLowerCase().includes(url.toLowerCase())) {
+    return [base, sourceLabel ? `fonte: ${sourceLabel}` : "", `fonte: ${url}`]
+      .filter(Boolean)
+      .join(" — ")
+      .trim();
+  }
+  if (
+    sourceLabel &&
+    !/https?:\/\//i.test(base) &&
+    !base.toLowerCase().includes(sourceLabel.toLowerCase())
+  ) {
+    return [base, `fonte: ${sourceLabel}`].filter(Boolean).join(" — ").trim();
+  }
+  return base;
+}
+
+/**
+ * Portão factual executável do NARRACAOPRO.
+ * Não confia nas notas que a própria IA atribui a si mesma.
+ */
+export function assessNarracaoProIntegrity({
+  format = "LONGO",
+  narrativeScript = "",
+  idea = {},
+  trace = {},
+  researchFacts = [],
+  researchSources = [],
+} = {}) {
+  const script = String(narrativeScript || "").trim();
+  const isShort = format === "SHORTS" || format === "SHORT";
+  const issues = [];
+  const warnings = [];
+  const selectedFacts = asList(trace?.etapa_5_fatos_selecionados);
+  const entities = asList(trace?.etapa_3_entidades).filter(
+    (item) => item && typeof item === "object"
+  );
+  const traceResearch = asList(trace?.etapa_2_pesquisa);
+  const externalResearchFacts = asList(researchFacts)
+    .map(textOfFact)
+    .filter((item) => item.length >= 12);
+  const usableResearchFacts = [
+    ...externalResearchFacts,
+    ...traceResearch.map(textOfFact),
+  ].filter((item) => item.length >= 12);
+  const externalSourceCount = asList(researchSources).filter(
+    (source) =>
+      source &&
+      (String(source.url || "").trim() || String(source.title || "").trim())
+  ).length;
+  const sourceCount =
+    externalSourceCount +
+    traceResearch.filter((item) =>
+      /https?:\/\/|\bdoi\s*:?|\bfonte:\s*\S{4,}/i.test(textOfFact(item))
+    ).length;
+  const realityStatus = String(idea?.reality_status || "").toLowerCase();
+  const validationNeeded = String(idea?.validation_needed || "").trim();
+  const premise = [
+    idea?.title,
+    idea?.promise,
+    idea?.hooks,
+    idea?.evidence_anchor,
+  ]
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .join(" ");
+  const assertsCausality =
+    ASSERTIVE_CAUSAL_PATTERN.test(script) ||
+    ASSERTIVE_CAUSAL_PATTERN.test(premise);
+  const assertsPsychologicalIntent = PSYCHOLOGICAL_INTENT_PATTERN.test(script);
+  const usesSensationalNeuroscience = SENSATIONAL_NEURO_PATTERN.test(script);
+  const usesVagueStudyAttribution =
+    VAGUE_STUDY_ATTRIBUTION_PATTERN.test(script);
+  const qualifiesUncertainty = UNCERTAINTY_PATTERN.test(script);
+  const pendingCriticalValidation =
+    validationNeeded &&
+    !/^(nenhuma|nenhum|não há)\b/i.test(validationNeeded) &&
+    VALIDATION_PENDING_PATTERN.test(validationNeeded);
+
+  if (!script) issues.push("Narração vazia.");
+  if (assertsCausality && pendingCriticalValidation && !qualifiesUncertainty) {
+    issues.push(
+      "A narração afirma uma relação causal que a própria ideia marcou como ainda não comprovada."
+    );
+  }
+  if (
+    assertsCausality &&
+    ["plausible", "disputed"].includes(realityStatus) &&
+    !qualifiesUncertainty
+  ) {
+    issues.push(
+      `A ideia tem status "${realityStatus}", mas a narração apresenta a hipótese como fato.`
+    );
+  }
+  if (assertsCausality && usableResearchFacts.length === 0) {
+    issues.push(
+      "Relação histórica de causa ou influência sem fato de pesquisa verificável."
+    );
+  }
+  if (assertsCausality && sourceCount === 0) {
+    issues.push(
+      "Relação histórica de causa ou influência sem fonte identificável."
+    );
+  }
+  if (usesSensationalNeuroscience && !qualifiesUncertainty) {
+    issues.push(
+      'Linguagem neuropsicológica sensacionalista ("hackear a mente/cérebro") apresentada como explicação factual.'
+    );
+  }
+  if (
+    assertsPsychologicalIntent &&
+    !qualifiesUncertainty &&
+    (externalResearchFacts.length === 0 || externalSourceCount === 0)
+  ) {
+    issues.push(
+      "Intenção psicológica atribuída à arquitetura sem pesquisa externa e fonte identificável."
+    );
+  }
+  if (usesVagueStudyAttribution && externalSourceCount === 0) {
+    issues.push(
+      'A narração usa atribuição vaga como "estudos sugerem" sem estudo identificável nos dados de pesquisa.'
+    );
+  }
+  if (isShort && selectedFacts.length > 3) {
+    issues.push(
+      `Short selecionou ${selectedFacts.length} fatos centrais; o limite é 3.`
+    );
+  }
+  if (isShort && entities.length > 3) {
+    issues.push(
+      `Short mistura ${entities.length} entidades; reduza para uma tese e no máximo três entidades indispensáveis.`
+    );
+  }
+  if (
+    trace?.etapa_10_validacao_factual?.fusao_detectada === true ||
+    trace?.etapa_10_validacao_factual?.teste_identidade_passou === false
+  ) {
+    issues.push("O próprio trace detectou fusão ou falha de identidade.");
+  }
+  if (
+    trace?.etapa_11_validacao_narracao?.portoes_15_resultado &&
+    !/todos passaram|aprovad/i.test(
+      String(trace.etapa_11_validacao_narracao.portoes_15_resultado)
+    )
+  ) {
+    issues.push("O trace informa que os portões editoriais não passaram.");
+  }
+  if (!trace || Object.keys(trace).length === 0) {
+    issues.push(
+      "A IA não entregou o trace NARRACAOPRO; a narração não pode ser aprovada."
+    );
+  }
+
+  const requiredTraceFields = [
+    "etapa_1_recorte",
+    "etapa_2_pesquisa",
+    "etapa_3_entidades",
+    "etapa_4_tese",
+    "etapa_5_fatos_selecionados",
+    "etapa_6_cadeia_causal",
+    "etapa_10_validacao_factual",
+    "etapa_11_validacao_narracao",
+    "etapa_12_validacao_entrega",
+  ];
+  const missingTraceFields = requiredTraceFields.filter(
+    (field) =>
+      trace?.[field] === null ||
+      trace?.[field] === undefined ||
+      trace?.[field] === "" ||
+      (Array.isArray(trace?.[field]) && trace[field].length === 0)
+  );
+  if (missingTraceFields.length) {
+    issues.push(
+      `Trace NARRACAOPRO incompleto: ${missingTraceFields.join(", ")}.`
+    );
+  }
+
+  return {
+    ok: issues.length === 0,
+    format: isShort ? "SHORTS" : "LONGO",
+    issues,
+    warnings,
+    evidence: {
+      researchFactCount: usableResearchFacts.length,
+      sourceCount,
+      externalResearchFactCount: externalResearchFacts.length,
+      externalSourceCount,
+      selectedFactCount: selectedFacts.length,
+      entityCount: entities.length,
+      assertsCausality,
+      assertsPsychologicalIntent,
+      usesSensationalNeuroscience,
+      usesVagueStudyAttribution,
+      pendingCriticalValidation,
+      realityStatus: realityStatus || "unknown",
+      missingTraceFields,
+    },
   };
 }
 

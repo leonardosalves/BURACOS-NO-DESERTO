@@ -1,17 +1,18 @@
 > 🔗 [[MEMORIA-LUMIERA]] · [[skills/lumiera-seedance-directing|lumiera seedance directing]] · [[SKILLS]]
 
 ---
+
 name: lumiera-seedance-directing
 description: |
-  Direção dramática por cena no estilo Seedance 2.0 — directing_brief + refs multimodais por papel ANTES do visual_prompt.
-  Princípio: "direct the model, don't micro-manage the frame."
-  Use ao preparar cenas de vídeo IA no Creator, antes da Engenharia Visual PRO ou geração LTX/Seedance.
-  Triggers: seedance, directing, directing brief, refs por cena, direção de cena, compile directing, multimodal refs.
+Direção dramática por cena no estilo Seedance 2.0 — directing_brief + refs multimodais por papel ANTES do visual_prompt.
+Princípio: "direct the model, don't micro-manage the frame."
+Use ao preparar cenas de vídeo IA no Creator, antes da Engenharia Visual PRO ou geração LTX/Seedance.
+Triggers: seedance, directing, directing brief, refs por cena, direção de cena, compile directing, multimodal refs.
 metadata:
-  lumiera: true
-  source: custom
-  tasks: [creator, production]
-  category: creator
+lumiera: true
+source: custom
+tasks: [creator, production]
+category: creator
 ---
 
 # Lumiera Seedance Directing (Fase 1 + Fase 2)
@@ -21,9 +22,12 @@ Adaptação do [Skill OS seedance-2.0](https://github.com/Emily2040/seedance-2.0
 **Endpoint:** `POST /api/ai/creator/compile-directing-briefs`
 **UI Creator:** botão "🎬 Seedance Directing" + painel por cena no passo de revisão de roteiro
 
-Complementa [[skills/visual-prompt-engineer]] — ordem recomendada:
+Complementa [[skills/visual-prompt-engineer]] e [[skills/ai-camera-movements]] (catálogo de moves para `camera_intent`).
+
+Ordem recomendada:
+
 1. Roteiro + visual_prompts base
-2. **Seedance Directing** (esta skill)
+2. **Seedance Directing** (esta skill) — `camera_intent` com move de [[skills/ai-camera-movements]]
 3. Engenharia Visual PRO
 4. **Geração T2V** via LTX/Comfy ou API Seedance (Fase 2 — implementado)
 
@@ -89,14 +93,14 @@ O `directing_brief` captura **intenção** (drama, câmera, luz, performance, so
 
 ## Slots de referência
 
-| Slot | Papel |
-|------|-------|
-| identity | Quem/o quê é o sujeito visual |
-| motion | Movimento corporal ou ação |
-| camera | Movimento de câmera desejado |
-| audio | Tom/ritmo sonoro |
-| style | Look, grading, paleta |
-| environment | Cenário, época, clima |
+| Slot                     | Papel                             |
+| ------------------------ | --------------------------------- |
+| identity                 | Quem/o quê é o sujeito visual     |
+| motion                   | Movimento corporal ou ação        |
+| camera                   | Movimento de câmera desejado      |
+| audio                    | Tom/ritmo sonoro                  |
+| style                    | Look, grading, paleta             |
+| environment              | Cenário, época, clima             |
 | first_frame / last_frame | Composição de abertura/fechamento |
 
 Use notação `@Image1`, `@Video1`, `@Audio1` quando o asset ainda não existir — o humano anexa depois.
@@ -118,20 +122,22 @@ Use notação `@Image1`, `@Video1`, `@Audio1` quando o asset ainda não existir 
 ## Fase 2 — Geração T2V
 
 **Endpoints:**
+
 - `POST /api/ai/creator/generate-seedance-t2v` — enfileira geração
 - `POST /api/ai/creator/attach-seedance-t2v` — copia output LTX → ASSETS + storyboard
 - `GET /api/ai/creator/seedance-t2v/preview-prompt?scene_index=N` — preview do prompt compilado
 
 **UI Creator:**
+
 - Botão global **🎥 T2V LTX (N)** — todas as cenas vídeo IA
 - Por cena vídeo IA: **Gerar vídeo LTX** no painel Directing
 
 ### Providers
 
-| Provider | Quando usar | Requisito |
-|----------|-------------|-----------|
-| `ltx` (padrão) | RTX local, ComfyUI | ComfyUI online + modelos LTX |
-| `seedance` | API externa multimodal | `seedance_api.enabled` + `api_key` em config_qanat.json |
+| Provider       | Quando usar            | Requisito                                               |
+| -------------- | ---------------------- | ------------------------------------------------------- |
+| `ltx` (padrão) | RTX local, ComfyUI     | ComfyUI online + modelos LTX                            |
+| `seedance`     | API externa multimodal | `seedance_api.enabled` + `api_key` em config_qanat.json |
 
 ### Config API Seedance (opcional)
 
@@ -149,6 +155,7 @@ Use notação `@Image1`, `@Video1`, `@Audio1` quando o asset ainda não existir 
 ### Prompt compilado (LTX)
 
 Combina em ordem:
+
 1. `visual_prompt` (engenharia visual)
 2. `[Directing]` — dramatic_function, camera, lighting, performance, sound
 3. `[Refs]` — slots seedance_refs preenchidos
@@ -164,6 +171,7 @@ POST /api/ai/creator/generate-seedance-t2v
 Poll: `GET /api/comfyui/progress/:prompt_id`
 
 Quando `status === "completed"`:
+
 ```json
 POST /api/ai/creator/attach-seedance-t2v
 { "project": "meu_projeto", "prompt_id": "...", "scene_index": 2 }

@@ -537,7 +537,7 @@ export function TimelineStudioPreview({
       }
     }
     a?.pause();
-    publishMotionPlayhead(studio.playhead, true);
+    publishMotionPlayhead(studio.playhead);
     syncVideoToTime(studio.playhead, true);
     syncBgmToPlayhead(studio.playhead, false);
     videoRef.current?.pause();

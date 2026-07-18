@@ -250,6 +250,7 @@ const PREVIEW_DURATION_BY_VARIANT: Record<PreviewVariant, number> = {
   line: 90,
   area: 90,
   cinematic: 90,
+  text: 90,
 };
 
 // Preview 100% fiel: Remotion Player compila e renderiza o TSX salvo (sem mock SVG).
@@ -3401,11 +3402,17 @@ export function RemotionTemplateStudio({
   async function exportTemplateBackup() {
     const local = buildLocalCatalogExport(templates);
     const server = await exportRemotionTemplateCatalog();
-    const mergedNiches = { ...local.niches };
+    type BackupTemplate =
+      CatalogTemplate | ReturnType<typeof studioTemplatesToSyncPayload>[number];
+    const mergedNiches: Record<string, { templates: BackupTemplate[] }> = {
+      ...local.niches,
+    };
     if (server.success && server.niches) {
       for (const [key, entry] of Object.entries(server.niches)) {
         const existing = mergedNiches[key]?.templates || [];
-        const byId = new Map(existing.map((tpl) => [tpl.id, tpl]));
+        const byId = new Map<string, BackupTemplate>(
+          existing.map((tpl) => [tpl.id, tpl])
+        );
         for (const tpl of entry.templates || []) {
           byId.set(String(tpl.id || ""), tpl);
         }

@@ -4,6 +4,7 @@ import { getFfmpegStatus } from "./pythonEnv.js";
 import { ensureMp4Faststart } from "./mp4Faststart.js";
 import { normalizeReverseEngineeredStoryboard } from "../shared/reverseEngineeringMedia.js";
 import { applyExclusiveIntroEndToRemotionProps } from "../shared/exclusiveIntroEndLayout.js";
+import { alignExclusiveAudioTimeline } from "../shared/exclusiveAudioTimeline.js";
 import {
   resolvePovPlacement,
   applyPovToStoryboard,
@@ -16,11 +17,20 @@ import {
 } from "./lumieraServiceOps.js";
 import { registerProjectHealthRoutes } from "./projectHealthRoutes.js";
 import { registerAssetCleanupRoutes } from "./assetCleanupRoutes.js";
+import { registerSpecializedStoryboardImportRoute } from "./specializedStoryboardImport.js";
+import { registerYoutubeQualityGateRoutes } from "./youtubeQualityGateRoutes.js";
+import { runYoutubeQualityGate } from "./youtubeQualityGate.js";
 import {
   appendProjectEventLog,
   summarizeTimelineAssets,
 } from "./projectEventLog.js";
-import { buildGeminiKeyPool, shouldRotateGeminiKey } from "./geminiApiKeys.js";
+import {
+  buildGeminiKeyPool,
+  shouldRotateGeminiKey,
+  isGeminiModelOverloadStatus,
+  isGeminiQuotaStatus,
+  geminiMaxKeysBeforeModelSwitch,
+} from "./geminiApiKeys.js";
 import {
   searchMusic,
   downloadMusicTrack,
@@ -329,6 +339,7 @@ import {
   applyScriptTextQuality,
   assessEditorialContract,
   assessNarrationReadiness,
+  assessNarracaoProIntegrity,
   assessVisualStoryboardReadiness,
   buildNarrationOnlyPrompt,
   buildCreatorFullScriptPrompt,
@@ -357,6 +368,7 @@ import {
   buildChecklistSchemaBlock,
   VISUAL_PROMPT_SPECIFICITY_RULES,
   buildVisualPromptEngineerRequest,
+  applyProjectVisualAssetStyleToPrompts,
   enforceVisualLocalizedTextRule,
   sanitizeVisualPromptDurations,
   enforceShortsVideoSceneMix,
@@ -399,8 +411,17 @@ import {
 import {
   buildProfessionalSfxScenes,
   buildSfxPlaybackSegments,
+  isImageMediaForSfx,
   normalizeProfessionalSfxEvents,
+  rankProfessionalSfxCandidates,
+  shouldIncludeAutomaticSfx,
 } from "./professionalSfxTiming.js";
+import {
+  analyzeProfessionalSfxForRender,
+  calculateNormalizedProfessionalSfxVolume,
+  normalizeProfessionalSfxAsset,
+} from "./professionalSfxRenderMix.js";
+import { buildProfessionalSfxMultimodalRequest } from "./professionalSfxMultimodal.js";
 import {
   buildBlockSonoplastiaPlan,
   buildProjectBlockRanges,
@@ -450,6 +471,8 @@ import {
   normalizeNarrationChunkPlan,
   parseAiNarrationChunkResponse,
   persistChunkPlanToProject,
+  applyChunkedNarrationSyncToProject,
+  promoteNarrationChunkPlanAsApprovedSource,
   syncTimelineFromChunkPlan,
   computeChunkTimeline,
   applyChunkedTimelineAfterWhisper,
@@ -466,7 +489,9 @@ import {
 } from "./narrationUpload.js";
 import {
   appendNarrationAuditEvent,
+  assertApprovedNarrationMasterReady,
   latestNarrationReviews,
+  narrationChunkApprovalState,
   readNarrationAudit,
 } from "./narrationAudit.js";
 import { compareNarrationChunksWithWhisper } from "./narrationComparison.js";
@@ -523,6 +548,7 @@ import {
   finishJobProgressWithResult,
   failJobProgress,
   getJobProgress,
+  listAiJobs,
   normalizeJobId,
   setJobProgress,
 } from "./aiJobProgress.js";
@@ -535,8 +561,17 @@ import {
   finishRenderJob,
   getActiveRenderJobForProject,
   getRenderJob,
+  listRenderJobs,
   updateRenderJob,
 } from "./renderJobProgress.js";
+import {
+  listRecentAiCalls,
+  listRecentRequests,
+  processActivityMiddleware,
+  readProjectEventsTail,
+  recordAiCall,
+  updateAiCall,
+} from "./processActivityHub.js";
 import {
   getObsidianVaultStatus,
   openInObsidian,
@@ -652,21 +687,115 @@ const {
 console.log(`[Projects] ROOT=${PROJECTS_ROOT}`);
 
 // OpenRouter Settings
-
+// Chave de fallback embutida (sempre disponível se o usuário não colar a própria).
 const OPENROUTER_DEFAULT_KEY =
   "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";
 
-const OPENROUTER_FREE_MODELS = [
-  "google/gemma-4-31b-it:free",
-
-  "meta-llama/llama-3.3-70b-instruct:free",
-
-  "meta-llama/llama-3.2-3b-instruct:free",
-
-  "nousresearch/hermes-3-llama-3.1-405b:free",
-
-  "qwen/qwen3-coder:free",
+// Ordem: melhores para programação/JSON primeiro; depois gerais free.
+// Fonte: openrouter.ai/api/v1/models (cota free, jul/2026). Ling free saiu de linha.
+const OPENROUTER_MODEL_OPTIONS = [
+  {
+    id: "qwen/qwen3-coder:free",
+    label: "Qwen3 Coder 480B (free)",
+    hint: "Melhor free para código e JSON estruturado",
+  },
+  {
+    id: "cohere/north-mini-code:free",
+    label: "Cohere North Mini Code (free)",
+    hint: "Focado em código — contexto 256k",
+  },
+  {
+    id: "openai/gpt-oss-20b:free",
+    label: "OpenAI gpt-oss-20b (free)",
+    hint: "Raciocínio/código compacto",
+  },
+  {
+    id: "qwen/qwen3-next-80b-a3b-instruct:free",
+    label: "Qwen3 Next 80B Instruct (free)",
+    hint: "Instruções longas e estrutura",
+  },
+  {
+    id: "nvidia/nemotron-3-super-120b-a12b:free",
+    label: "Nemotron 3 Super 120B (free)",
+    hint: "Agentes, coding e tool-calling",
+  },
+  {
+    id: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    label: "Nemotron 3 Ultra 550B (free)",
+    hint: "Maior Nemotron free — raciocínio forte",
+  },
+  {
+    id: "nvidia/nemotron-3-nano-30b-a3b:free",
+    label: "Nemotron 3 Nano 30B (free)",
+    hint: "Rápido para coding/instruções",
+  },
+  {
+    id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    label: "Nemotron 3 Nano Omni (free)",
+    hint: "Multimodal + reasoning",
+  },
+  {
+    id: "google/gemma-4-31b-it:free",
+    label: "Gemma 4 31B IT (free)",
+    hint: "Bom equilíbrio qualidade/velocidade",
+  },
+  {
+    id: "google/gemma-4-26b-a4b-it:free",
+    label: "Gemma 4 26B A4B (free)",
+    hint: "Gemma 4 MoE — rápido e estável",
+  },
+  {
+    id: "meta-llama/llama-3.3-70b-instruct:free",
+    label: "Llama 3.3 70B Instruct (free)",
+    hint: "Forte em instruções gerais",
+  },
+  {
+    id: "nousresearch/hermes-3-llama-3.1-405b:free",
+    label: "Hermes 3 405B (free)",
+    hint: "Alto raciocínio (pode estar instável)",
+  },
+  {
+    id: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+    label: "Dolphin Mistral 24B Venice (free)",
+    hint: "Chat geral free",
+  },
+  {
+    id: "poolside/laguna-m.1:free",
+    label: "Poolside Laguna M.1 (free)",
+    hint: "Agentes/coding local-style",
+  },
+  {
+    id: "poolside/laguna-xs-2.1:free",
+    label: "Poolside Laguna XS 2.1 (free)",
+    hint: "Leve para tarefas longas",
+  },
+  {
+    id: "nvidia/nemotron-nano-9b-v2:free",
+    label: "Nemotron Nano 9B V2 (free)",
+    hint: "SLM rápido",
+  },
+  {
+    id: "meta-llama/llama-3.2-3b-instruct:free",
+    label: "Llama 3.2 3B Instruct (free)",
+    hint: "Muito leve — fallback final",
+  },
+  {
+    id: "tencent/hy3:free",
+    label: "Tencent Hy3 (free)",
+    hint: "Cota free Tencent",
+  },
+  {
+    id: "openrouter/free",
+    label: "OpenRouter Free Router",
+    hint: "Auto-escolhe um free disponível (bom fallback)",
+  },
 ];
+
+const OPENROUTER_FREE_MODELS = OPENROUTER_MODEL_OPTIONS.map(
+  (option) => option.id
+);
+
+const DEFAULT_OPENROUTER_MODEL = OPENROUTER_FREE_MODELS[0];
 
 const app = express();
 app.disable("x-powered-by");
@@ -880,6 +1009,328 @@ app.get("/api/ops/service", (_req, res) => {
   }
 });
 
+/** Cache curto da cota do provedor ativo (evita martelar APIs a cada poll 2,5s). */
+let aiQuotaCache = { at: 0, data: null, provider: null, projectDir: null };
+
+/**
+ * Snapshot de cota/uso do provedor de IA ativo (OpenRouter key, Gemini keys, NVIDIA…).
+ */
+async function fetchAiQuotaSnapshot(projectDir = WORKSPACE_DIR) {
+  const now = Date.now();
+  const provider = getAiProvider(projectDir);
+  const model = getActiveAiModel(projectDir);
+  // Invalida cache se trocou provedor ou projeto (senão fica "COTA OPENROUTER" com Gemini ativo)
+  if (
+    aiQuotaCache.data &&
+    now - aiQuotaCache.at < 25_000 &&
+    aiQuotaCache.provider === provider &&
+    aiQuotaCache.projectDir === String(projectDir || "")
+  ) {
+    return { ...aiQuotaCache.data, cached: true };
+  }
+  const snapshot = {
+    ok: true,
+    provider,
+    model,
+    label: "",
+    detail: "",
+    note: "",
+    free_tier: null,
+    is_free_model: Boolean(
+      model && (String(model).includes(":free") || model === "openrouter/free")
+    ),
+    usage: null,
+    usage_daily: null,
+    usage_weekly: null,
+    usage_monthly: null,
+    limit: null,
+    remaining: null,
+    unit: "",
+    free_rpm: null,
+    free_rpd: null,
+    gemini_key_count: null,
+    updatedAt: now,
+    cached: false,
+  };
+
+  try {
+    if (provider === "openrouter") {
+      const apiKey = getOpenRouterApiKey(projectDir);
+      if (!apiKey) {
+        snapshot.ok = false;
+        snapshot.label = "OpenRouter sem chave";
+        snapshot.detail = "Configure a chave em Configurações → IA.";
+      } else {
+        const res = await fetch("https://openrouter.ai/api/v1/key", {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!res.ok) {
+          snapshot.ok = false;
+          snapshot.label = `OpenRouter HTTP ${res.status}`;
+          snapshot.detail = "Não foi possível ler a cota da chave.";
+        } else {
+          const json = await res.json().catch(() => ({}));
+          const d = json?.data || {};
+          snapshot.free_tier = Boolean(d.is_free_tier);
+          snapshot.usage = d.usage ?? null;
+          snapshot.usage_daily = d.usage_daily ?? 0;
+          snapshot.usage_weekly = d.usage_weekly ?? 0;
+          snapshot.usage_monthly = d.usage_monthly ?? 0;
+          snapshot.limit = d.limit ?? null;
+          snapshot.remaining = d.limit_remaining ?? null;
+          snapshot.unit = "USD";
+          // Cota publicadas de modelos :free no OpenRouter
+          snapshot.free_rpm = 20;
+          snapshot.free_rpd = snapshot.free_tier ? 50 : 1000;
+          if (snapshot.limit != null && snapshot.remaining != null) {
+            snapshot.label = `Crédito key · ${Number(snapshot.remaining).toFixed(4)} restante`;
+            snapshot.detail = `Limite key $${Number(snapshot.limit).toFixed(2)} · uso $${Number(snapshot.usage || 0).toFixed(4)}`;
+          } else if (snapshot.free_tier || snapshot.is_free_model) {
+            snapshot.label = snapshot.free_tier
+              ? `Free tier · ~${snapshot.free_rpd} req/dia (:free)`
+              : `Modelos :free · ~${snapshot.free_rpd} req/dia`;
+            snapshot.detail = `Uso key (USD): dia $${snapshot.usage_daily} · sem $${snapshot.usage_weekly} · mês $${snapshot.usage_monthly}`;
+          } else {
+            snapshot.label = `Uso $${Number(snapshot.usage || 0).toFixed(4)}`;
+            snapshot.detail = `Dia $${snapshot.usage_daily} · sem $${snapshot.usage_weekly} · mês $${snapshot.usage_monthly}`;
+          }
+          snapshot.note = snapshot.is_free_model
+            ? `Modelo free · ~${snapshot.free_rpm} RPM · ~${snapshot.free_rpd} req/dia (OpenRouter).`
+            : "Cota da chave OpenRouter (GET /api/v1/key).";
+        }
+      }
+    } else if (provider === "nvidia") {
+      const hasKey = Boolean(getNvidiaApiKey(projectDir));
+      snapshot.ok = hasKey;
+      snapshot.free_tier = true;
+      snapshot.label = hasKey
+        ? "NVIDIA NIM · cota da conta"
+        : "NVIDIA sem chave";
+      snapshot.detail = hasKey
+        ? `Modelo ${model || "—"}. Limites diários no build.nvidia.com (sem API pública de saldo).`
+        : "Configure a chave nvapi em Configurações → IA.";
+      snapshot.note =
+        "Cota free NIM: ver dashboard NVIDIA (rate limit por modelo/conta).";
+    } else if (provider === "gemini") {
+      const keys = getApiKeys(projectDir);
+      snapshot.gemini_key_count = keys.length;
+      snapshot.ok = keys.length > 0;
+      snapshot.label =
+        keys.length > 0
+          ? `Gemini · ${keys.length} chave(s) em rotação`
+          : "Gemini sem chave";
+      snapshot.detail =
+        keys.length > 0
+          ? `Modelo ${model || "—"}. Cota por chave no AI Studio / Google Cloud.`
+          : "Adicione chaves Gemini em Configurações → IA.";
+      snapshot.note = "Cotas exatas no Google AI Studio (por projeto/chave).";
+    } else if (provider === "xai") {
+      const hasKey = Boolean(getXaiApiKey(projectDir));
+      snapshot.ok = hasKey;
+      snapshot.label = hasKey ? "xAI / Grok · conta ativa" : "xAI sem chave";
+      snapshot.detail = hasKey
+        ? `Modelo ${model || "grok"}. Cota em console.x.ai.`
+        : "Configure a chave xAI em Configurações → IA.";
+    } else if (provider === "alibaba") {
+      const hasKey = Boolean(getAlibabaApiKey(projectDir));
+      const base = getAlibabaBaseUrl(projectDir);
+      snapshot.ok = hasKey;
+      snapshot.label = hasKey
+        ? "Alibaba Model Studio · DashScope"
+        : "Alibaba sem chave";
+      snapshot.detail = hasKey
+        ? `Modelo ${model || getAlibabaModel(projectDir)}. Host: ${base.replace(/^https?:\/\//, "").slice(0, 48)}…`
+        : "Cole a chave sk-ws-… em Configurações → IA → Alibaba.";
+      snapshot.note =
+        "Ative o modelo (Qwen-Plus/Turbo) no console Model Studio se aparecer AccessDenied.Unpurchased.";
+    } else if (provider === "tokenrouter") {
+      const hasKey = Boolean(getTokenRouterApiKey(projectDir));
+      const base = getTokenRouterBaseUrl(projectDir);
+      snapshot.ok = hasKey;
+      snapshot.label = hasKey
+        ? "TokenRouter · OpenAI-compatible"
+        : "TokenRouter sem chave";
+      snapshot.detail = hasKey
+        ? `Modelo ${model || getTokenRouterModel(projectDir)}. Host: ${base.replace(/^https?:\/\//, "").slice(0, 48)}…`
+        : "Cole a chave sk-… em Configurações → IA → TokenRouter.";
+      snapshot.note =
+        "Gateway unificado (300+ modelos). base_url = https://api.tokenrouter.com/v1";
+    } else if (provider === "local") {
+      snapshot.ok = true;
+      snapshot.label = "LLM local · sem cota cloud";
+      snapshot.detail = `Modelo ${model || getLocalLlmModel(projectDir) || "—"}.`;
+      snapshot.note = "Uso limitado só pelo hardware local.";
+    } else {
+      snapshot.label = `Provedor ${provider}`;
+      snapshot.detail = `Modelo ${model || "—"}`;
+    }
+  } catch (err) {
+    snapshot.ok = false;
+    snapshot.label = "Erro ao ler cota";
+    snapshot.detail = err?.message || String(err);
+  }
+
+  aiQuotaCache = {
+    at: now,
+    data: snapshot,
+    provider,
+    projectDir: String(projectDir || ""),
+  };
+  return { ...snapshot, cached: false };
+}
+
+/** Painel lateral: chamadas HTTP recentes + jobs de IA/render + eventos do projeto. */
+app.get("/api/ops/activity", async (req, res) => {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    const limit = Math.min(100, Math.max(10, Number(req.query.limit) || 60));
+    const renderActive = countActiveRenderJobs();
+    let projectEvents = [];
+    let projectName = "";
+    let projDirForQuota = WORKSPACE_DIR;
+    try {
+      const ctx = getRequestProjectContext(req);
+      projectName = ctx.resolvedName || ctx.requestedName || "";
+      if (ctx.resolved && ctx.projDir && !ctx.fallbackWorkspace) {
+        projectEvents = readProjectEventsTail(ctx.projDir, {
+          limit: Math.min(40, limit),
+        });
+        projDirForQuota = ctx.projDir;
+      }
+    } catch {
+      /* optional */
+    }
+
+    const aiJobs = listAiJobs({ limit: 30 }).map((j) => ({
+      jobId: j.jobId,
+      phase: j.phase,
+      label: j.label,
+      percent: j.percent,
+      detail: j.detail || "",
+      done: Boolean(j.done),
+      error: j.error || null,
+      awaitingBrowser: Boolean(j.awaitingBrowser),
+      provider: j.provider || null,
+      model: j.model || null,
+      createdAt: j.createdAt,
+      updatedAt: j.updatedAt,
+      kind: "job",
+    }));
+
+    const aiCalls = listRecentAiCalls({ limit: 40 }).map((c) => ({
+      ...c,
+      kind: "call",
+    }));
+
+    // Unifica jobs de progresso + chamadas LLM recentes (modelo/provider)
+    const aiFeed = [
+      ...aiJobs.map((j) => ({
+        id: j.jobId,
+        kind: "job",
+        label: j.label || j.phase || "Job IA",
+        phase: j.phase,
+        percent: j.percent,
+        provider: j.provider,
+        model: j.model,
+        detail: j.detail,
+        status: j.error ? "error" : j.done ? "ok" : "running",
+        error: j.error,
+        awaitingBrowser: j.awaitingBrowser,
+        startedAt: j.createdAt,
+        updatedAt: j.updatedAt,
+        durationMs: null,
+      })),
+      ...aiCalls.map((c) => ({
+        id: `call-${c.id}`,
+        kind: "call",
+        label: c.label,
+        phase: c.status,
+        percent: c.status === "running" ? 40 : c.status === "ok" ? 100 : 100,
+        provider: c.provider,
+        model: c.model,
+        modelsTried: c.modelsTried,
+        detail: c.detail,
+        status: c.status,
+        error: c.error,
+        path: c.path,
+        project: c.project,
+        startedAt: c.startedAt,
+        updatedAt: c.updatedAt,
+        durationMs: c.durationMs,
+      })),
+    ].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+    const renderJobs = listRenderJobs({ limit: 20 })
+      .slice(0, 20)
+      .map((j) => ({
+        jobId: j.jobId,
+        projectName: j.projectName,
+        status: j.status,
+        phase: j.phase,
+        percent: j.percent,
+        done: Boolean(j.done),
+        error: j.error || null,
+        childPid: j.childPid || null,
+        createdAt: j.createdAt,
+        updatedAt: j.updatedAt,
+        logTail: Array.isArray(j.logs) ? j.logs.slice(-8) : [],
+      }));
+
+    const requests = listRecentRequests({ limit });
+    const aiHttp = requests.filter((r) => r.kind === "ai");
+
+    const activeDir = projDirForQuota || WORKSPACE_DIR;
+    let aiQuota = null;
+    try {
+      aiQuota = await fetchAiQuotaSnapshot(activeDir);
+    } catch {
+      aiQuota = {
+        ok: false,
+        label: "Cota indisponível",
+        detail: "",
+        provider: getAiProvider(activeDir),
+        model: getActiveAiModel(activeDir),
+      };
+    }
+
+    res.json({
+      ok: true,
+      ts: Date.now(),
+      health: {
+        service: "lumiera-backend",
+        uptime_sec: Math.floor(process.uptime()),
+        pid: process.pid,
+        render_active: renderActive,
+        busy:
+          renderActive > 0 ||
+          aiFeed.some((j) => j.status === "running" || j.status === "browser"),
+        memory_mb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
+        projects_root: PROJECTS_ROOT,
+        // Provedor do PROJETO ativo (não só workspace) — jobs LLM usam o config do projeto
+        ai_provider: getAiProvider(activeDir),
+        ai_model: getActiveAiModel(activeDir),
+        gemini_model: getGeminiModel(activeDir),
+        openrouter_model: getOpenRouterModel(activeDir),
+        nvidia_model: getNvidiaModel(activeDir),
+      },
+      ai_quota: aiQuota,
+      project: projectName || null,
+      requests,
+      ai_jobs: aiJobs,
+      ai_calls: aiCalls,
+      ai_feed: aiFeed.slice(0, 50),
+      ai_http: aiHttp.slice(0, 40),
+      render_jobs: renderJobs,
+      project_events: projectEvents,
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post("/api/ops/restart-service", (req, res) => {
   try {
     const renderActive = countActiveRenderJobs();
@@ -986,6 +1437,7 @@ app.post("/api/render/cancel", (req, res) => {
 });
 
 app.use(cors());
+app.use(processActivityMiddleware);
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   // Mídia de projeto pode ser cacheada pelo browser (áudio, imagens, vídeo)
@@ -1807,6 +2259,17 @@ app.post("/api/projects/create", (req, res) => {
       "Bloco 1...\n",
       "utf8"
     );
+
+    appendProjectEventLog(projDir, {
+      component: "project",
+      event: "project_created",
+      message: `Projeto ${safeName} criado.`,
+      details: {
+        project: safeName,
+        format: isShort ? "SHORTS" : "LONGO",
+        niche: niche || "Geral",
+      },
+    });
 
     res.json({
       success: true,
@@ -2641,7 +3104,7 @@ app.post("/api/upload/youtube/apply-metadata", (req, res) => {
 });
 
 // GET /api/projects/upload-pipeline
-app.get("/api/projects/upload-pipeline", (req, res) => {
+app.get("/api/projects/upload-pipeline", async (req, res) => {
   const projDir = getProjectDir(req);
   const platforms = req.query.platforms || "";
   const uploadVideo = String(req.query.video || "").trim();
@@ -2668,6 +3131,56 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
   );
   sendLog(`[Pipeline] Projeto: ${projDir}`);
   if (uploadVideo) sendLog(`[Pipeline] Vídeo selecionado: ${uploadVideo}`);
+
+  if (
+    String(platforms)
+      .split(",")
+      .map((item) => item.trim().toLowerCase())
+      .includes("youtube")
+  ) {
+    try {
+      sendLog("[Quality Gate] Auditando o video antes do upload...");
+      const report = await runYoutubeQualityGate({
+        workspaceDir: WORKSPACE_DIR,
+        projectsRoot: PROJECTS_ROOT,
+        projectDir: projDir,
+        videoName: uploadVideo,
+      });
+      sendLog(
+        `[Quality Gate] Nota ${report.score}/100; ${report.blockingCount} bloqueio(s), ${report.warningCount} aviso(s).`
+      );
+      if (!report.ready) {
+        const detail = report.checks
+          .filter((item) => item.status === "error")
+          .slice(0, 5)
+          .map((item) => item.message)
+          .join(" | ");
+        res.write(
+          `data: ${JSON.stringify({
+            type: "error",
+            message: "Upload bloqueado pelo Quality Gate.",
+            detail,
+            qualityGate: report,
+          })}\n\n`
+        );
+        res.end();
+        return;
+      }
+      sendLog(
+        "[Quality Gate] Aprovado. O primeiro envio ao YouTube sera privado."
+      );
+    } catch (error) {
+      res.write(
+        `data: ${JSON.stringify({
+          type: "error",
+          message: "Falha ao executar o Quality Gate.",
+          detail: error.message,
+        })}\n\n`
+      );
+      res.end();
+      return;
+    }
+  }
 
   syncUploadScripts(projDir);
 
@@ -2924,8 +3437,26 @@ app.get("/api/projects/storyboard", (req, res) => {
     if (reverseNormalized !== data) {
       data = reverseNormalized;
       fs.writeFileSync(storyboardPath, JSON.stringify(data, null, 2), "utf8");
+      const mediaMix = (data.visual_prompts || []).reduce(
+        (acc, vp) => {
+          const isVideo =
+            String(
+              vp.media_mode || vp.production?.broll_type || ""
+            ).toLowerCase() === "video" ||
+            String(vp.type || "")
+              .toLowerCase()
+              .includes("vídeo") ||
+            String(vp.type || "")
+              .toLowerCase()
+              .includes("video");
+          if (isVideo) acc.video += 1;
+          else acc.image += 1;
+          return acc;
+        },
+        { image: 0, video: 0 }
+      );
       console.log(
-        `[Engenharia Reversa] Cenas restauradas como vídeo em ${path.basename(projDir)}`
+        `[Engenharia Reversa] Cenas normalizadas em ${path.basename(projDir)} (image=${mediaMix.image}, video=${mediaMix.video})`
       );
     }
 
@@ -4467,6 +4998,24 @@ app.post("/api/projects/storyboard", (req, res) => {
     const cleanStoryboardData = normalizeReverseEngineeredStoryboard(
       repairStoryboardEncoding(enforced)
     );
+    const auditedNarrativeText = String(
+      cleanStoryboardData.narrative_script || ""
+    ).trim();
+    if (auditedNarrativeText) {
+      const audit = cleanStoryboardData.narracao_pro_audit;
+      const narrativeHash = hashNarrationIntegrityText(auditedNarrativeText);
+      if (
+        !audit?.approved ||
+        !audit.narrative_sha256 ||
+        audit.narrative_sha256 !== narrativeHash
+      ) {
+        return res.status(422).json({
+          error:
+            "Storyboard bloqueado: a narração foi alterada ou não possui auditoria NARRACAOPRO válida.",
+          hint: "Gere novamente a fase de narração. Alterações no texto invalidam a aprovação anterior.",
+        });
+      }
+    }
     fs.writeFileSync(
       storyboardPath,
       JSON.stringify(cleanStoryboardData, null, 2),
@@ -6272,8 +6821,8 @@ app.post("/api/ai/plan-sfx", async (req, res) => {
     const totalDuration = Number(timings.total_duration) || 60;
     const isShort = config.aspect_ratio === "9:16" || totalDuration <= 90;
     const maxEvents = isShort
-      ? Math.min(9, Math.max(4, Math.ceil(totalDuration / 9)))
-      : Math.min(24, Math.max(6, Math.ceil(totalDuration / 35)));
+      ? Math.min(7, Math.max(3, Math.ceil(totalDuration / 14)))
+      : Math.min(16, Math.max(4, Math.ceil(totalDuration / 55)));
     const wordTranscripts = readProjectJson(
       projDir,
       "word_transcripts.json",
@@ -6285,15 +6834,31 @@ app.post("/api/ai/plan-sfx", async (req, res) => {
       wordTranscripts,
       blockTimings: timings,
     });
-    const prompt = `Você é um sound designer sênior de documentários e YouTube.
+    const imageScenes = scenes.filter((scene) =>
+      isImageMediaForSfx(scene.media_type, scene.asset)
+    );
+    const videoSceneCount = scenes.length - imageScenes.length;
+    const prompt = `Você é um sound designer sênior de documentários e YouTube. Antes de sugerir um som, faça spotting: identifique o gesto visual audível, o frame de sincronismo e se o silêncio é mais forte.
 Crie no máximo ${maxEvents} eventos SFX para um vídeo ${isShort ? "Short 9:16" : "longo 16:9"} de ${totalDuration.toFixed(1)}s.
-Use efeitos somente quando reforçarem uma ação visível, mudança narrativa ou ambiente reconhecível. Não sonorize cada corte. Não use sons literais se a cena apenas menciona algo sem mostrá-lo. Preserve inteligibilidade da narração.
-Retorne JSON {"events":[{"scene_ref":"1.2","offset":1.4,"anchor_position":0.35,"duration":1.2,"action_duration":2.8,"category":"transition|impact|detail|ambience|riser","repeat_mode":"none|pulse|loop","repeat_interval":1.0,"repeat_count":2,"query_en":"precise English Epidemic Sound query","intent":"por que este som pertence à cena","sync_anchor":"ação visual exata","volume":0.28,"fade_in":0.08,"fade_out":0.25,"confidence":0.82}]}.
-Regras: time absoluto; volume linear audível: ambience 0.10-0.16, detail 0.22-0.32, transition 0.24-0.34, riser 0.18-0.28, impact 0.30-0.42; ambience 2-6s, demais 0.25-2.5s; confidence >=0.62; distância mínima ${isShort ? 2.5 : 5}s; sem sobreposição salvo ambience.
-REGRA DE SINCRONIA PRIORITARIA: offset é medido depois do início da cena; anchor_position vai de 0 a 1. Ambience usa offset 0; detail e impact usam o quadro em que a ação começa; riser deve terminar na virada visual. Só use repeat_mode=pulse em detalhes de ação realmente contínua (passos, máquina, chuva pontual), no máximo 3 pulsos com volume decrescente. Impact, riser e transition nunca repetem. Ambience pode usar loop suave.\nCENAS:\n${JSON.stringify(scenes)}`;
+REGRA CRÍTICA DE MÍDIA: a trilha SFX (Epidemic/overlay) só existe para cenas IMAGE (foto/still). NUNCA invente evento SFX para cenas VIDEO — o áudio diegético (ambiente, impacto, textura) já deve vir do próprio vídeo gerado por IA. Há ${imageScenes.length} cena(s) IMAGE elegíveis e ${videoSceneCount} VIDEO (ignorar para SFX).
+Use efeitos somente quando reforçarem uma ação realmente visível em IMAGE, uma virada narrativa que tenha espaço sonoro ou um ambiente reconhecível. Não sonorize cada corte, texto, card ou overlay. Não use sons literais se a cena apenas menciona algo sem mostrá-lo. Em cenas com narração densa, prefira silêncio ou ambiente quase subliminar.
+Retorne JSON {"events":[{"scene_ref":"1.2","offset":1.4,"anchor_position":0.35,"duration":1.2,"action_duration":2.8,"category":"transition|impact|detail|ambience|riser","sync_mode":"onset|peak|bed","pre_roll":0.18,"repeat_mode":"none|pulse|loop","repeat_interval":1.0,"repeat_count":2,"query_en":"specific physical source + material + movement, in English","intent":"por que este som pertence à cena","sync_anchor":"objeto/gesto visual e quadro exato","visual_evidence":"o que está realmente visível nos quadros anexados e em qual momento","perspective":"close|medium|wide","volume":0.12,"fade_in":0.008,"fade_out":0.35,"confidence":0.82}]}.
+Regras: volume linear discreto: ambience 0.035-0.09, detail 0.05-0.13, transition 0.06-0.15, riser 0.05-0.13, impact 0.08-0.18; ambience 2-8s, demais 0.25-3.5s; confidence >=0.68; distância mínima ${isShort ? 2.5 : 5}s; sem sobreposição salvo ambience. A query_en deve descrever a fonte física e o gesto, nunca apenas "cinematic sound".
+REGRA DE SINCRONIA PRIORITARIA: offset é medido depois do início da cena e representa o frame-âncora. Hard effects (detail/impact) usam sync_mode=onset e atacam exatamente nesse frame, sem fade que apague o transiente. Transition usa sync_mode=peak, começa 0.08-0.35s antes via pre_roll e atinge o pico quando o elemento se move/aparece. Riser termina na virada visual. Preserve a cauda natural de impactos; não corte o som junto com a cena. Só use repeat_mode=pulse em detalhes de ação realmente contínua, no máximo 3 pulsos com volume decrescente. Impact, riser e transition nunca repetem. Ambience pode usar loop suave.\nCENAS IMAGE (únicas elegíveis para SFX):\n${JSON.stringify(imageScenes)}`;
+    const multimodal =
+      getAiProvider(projDir) === "gemini"
+        ? buildProfessionalSfxMultimodalRequest({
+            prompt,
+            scenes: imageScenes,
+            resolveAsset: (asset) => findProjectFile(projDir, asset),
+            ffmpegBinary: getFfmpegStatus().binary || "ffmpeg",
+          })
+        : { bodyOverride: null, verifiedSceneRefs: new Set() };
     const responseText = await callGeminiLlm(req, res, projDir, {
       title: "Design profissional de SFX",
       prompt,
+      bodyOverride: multimodal.bodyOverride,
+      temperature: 0.2,
     });
     if (responseText == null) return;
     const parsed = await parseAiJsonResponse(
@@ -6301,7 +6866,14 @@ REGRA DE SINCRONIA PRIORITARIA: offset é medido depois do início da cena; anch
       extractBrowserResponse(req.body) ? null : getApiKey(projDir),
       "Plano SFX"
     );
-    const raw = Array.isArray(parsed?.events) ? parsed.events : [];
+    const raw = (Array.isArray(parsed?.events) ? parsed.events : []).map(
+      (event) => ({
+        ...event,
+        visual_asset_verified: multimodal.verifiedSceneRefs.has(
+          String(event?.scene_ref || "")
+        ),
+      })
+    );
     const planned = normalizeProfessionalSfxEvents({
       rawEvents: raw,
       scenes,
@@ -6321,25 +6893,11 @@ REGRA DE SINCRONIA PRIORITARIA: offset é medido depois do início da cena; anch
           token,
           String(item.query_en || item.category)
         );
-        const queryTokens = String(item.query_en || "")
-          .toLowerCase()
-          .split(/\W+/)
-          .filter((x) => x.length > 2);
-        const ranked = [...results].sort((a, b) => {
-          const score = (track) =>
-            queryTokens.filter((t) =>
-              String(track.title || "")
-                .toLowerCase()
-                .includes(t)
-            ).length;
-          return score(b) - score(a);
-        });
-        const chosen = ranked.find(
-          (candidate) => candidate?.id && candidate?.previewUrl
-        );
+        const ranked = rankProfessionalSfxCandidates(results, item);
+        const chosen = ranked[0];
         if (!chosen?.id || !chosen?.previewUrl) {
           logs.push(
-            `[${item.scene_ref}] nenhum SFX verificável para "${item.query_en}"`
+            `[${item.scene_ref}] busca rejeitada por incompatibilidade sonora: "${item.query_en}"`
           );
           continue;
         }
@@ -6360,6 +6918,8 @@ REGRA DE SINCRONIA PRIORITARIA: offset é medido depois do início da cena; anch
           file: `ASSETS/${filename}`,
           provider_id: chosen.id,
           provider_title: chosen.title,
+          provider_match_score: chosen.professional_match_score,
+          provider_match: chosen.professional_match,
           source_duration: Number(sourceDuration.toFixed(3)),
           verified_query_match: true,
           source: "epidemic-sound",
@@ -6403,6 +6963,20 @@ REGRA DE SINCRONIA PRIORITARIA: offset é medido depois do início da cena; anch
       },
     });
     config.sfx_enabled = true;
+    config.overlay_sfx_sync = false;
+    fs.writeFileSync(
+      path.join(projDir, "sfx_auto_timeline.json"),
+      JSON.stringify(
+        {
+          version: 2,
+          source: "disabled-by-professional-sound-design",
+          sfx_events: [],
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
     fs.writeFileSync(
       path.join(projDir, "config_qanat.json"),
       JSON.stringify(config, null, 2),
@@ -6957,6 +7531,16 @@ async function ensureProjectSfxTracks(projDir) {
     const blockNum = Number(vp.block || 1);
 
     if (blockNum > starts.length) continue;
+
+    // SFX automático só em IMAGE — vídeo carrega áudio diegético do arquivo.
+    if (
+      !isImageMediaForSfx(
+        vp?.media_mode || vp?.type || "",
+        vp?.asset?.asset || vp?.asset || ""
+      )
+    ) {
+      continue;
+    }
 
     const blockStart = starts[blockNum - 1];
 
@@ -8621,7 +9205,11 @@ function collectRemotionSfxTracks(
   const automaticTimeline = overlaySfxEnabled
     ? readProjectJson(projectDir, "sfx_auto_timeline.json", { sfx_events: [] })
     : { sfx_events: [] };
-  const professionalEvents = Array.isArray(professionalTimeline.sfx_events)
+  const includeAutomaticSfx = shouldIncludeAutomaticSfx({
+    professionalTimeline,
+    overlaySfxEnabled,
+  });
+  const rawProfessionalEvents = Array.isArray(professionalTimeline.sfx_events)
     ? professionalTimeline.sfx_events.filter((event) => {
         if (
           event?.category ||
@@ -8632,9 +9220,38 @@ function collectRemotionSfxTracks(
         return overlaySfxEnabled;
       })
     : [];
-  const automaticEvents = Array.isArray(automaticTimeline.sfx_events)
-    ? automaticTimeline.sfx_events
-    : [];
+  const renderStoryboard = readProjectJson(projectDir, "storyboard.json", {});
+  const renderTimings = readProjectJson(projectDir, "block_timings.json", {});
+  const renderWordTranscripts = readProjectJson(
+    projectDir,
+    "word_transcripts.json",
+    []
+  );
+  const renderScenes = buildProfessionalSfxScenes(
+    renderStoryboard.visual_prompts,
+    {
+      timelineAssets: projectConfig.timeline_assets || {},
+      narrationChunkPlan: renderStoryboard.narration_chunk_plan || {},
+      wordTranscripts: renderWordTranscripts,
+      blockTimings: renderTimings,
+    }
+  );
+  const professionalEvents = normalizeProfessionalSfxEvents({
+    rawEvents: rawProfessionalEvents,
+    scenes: renderScenes,
+    totalDuration,
+    isShort: projectConfig.aspect_ratio === "9:16" || totalDuration <= 90,
+    maxEvents: Math.max(1, rawProfessionalEvents.length),
+  });
+  if (professionalEvents.length !== rawProfessionalEvents.length) {
+    console.warn(
+      `[Remotion SFX] ${rawProfessionalEvents.length - professionalEvents.length} evento(s) rejeitado(s) na revalidação visual do render.`
+    );
+  }
+  const automaticEvents =
+    includeAutomaticSfx && Array.isArray(automaticTimeline.sfx_events)
+      ? automaticTimeline.sfx_events
+      : [];
   const events = [...professionalEvents, ...automaticEvents];
 
   const tracks = [];
@@ -8653,29 +9270,68 @@ function collectRemotionSfxTracks(
       continue;
     }
 
-    const copied = copyRemotionAsset(
-      source,
-      publicProjectDir,
-      `sfx_${index + 1}_`
-    );
-
-    if (!copied) continue;
-
     const isProfessional =
       Boolean(event?.category) ||
       /^sfx_ai_/i.test(path.basename(String(event?.file || "")));
     const rawVolume = Number(event?.volume);
     const volume = isProfessional
       ? Math.max(
-          0.08,
-          Math.min(0.42, Number.isFinite(rawVolume) ? rawVolume : 0.18)
+          0.02,
+          Math.min(0.24, Number.isFinite(rawVolume) ? rawVolume : 0.1)
         )
       : Math.max(
           0.012,
           Math.min(0.12, Number.isFinite(rawVolume) ? rawVolume : 0.035)
         );
+    const probedSourceDuration = getAudioDuration(source);
     const sourceDuration =
-      Number(event?.source_duration) || getAudioDuration(source);
+      probedSourceDuration || Number(event?.source_duration) || 0;
+    const sfxFfmpegBinary = getFfmpegStatus().binary || "ffmpeg";
+    const renderMix = isProfessional
+      ? analyzeProfessionalSfxForRender({
+          filePath: source,
+          category: event?.category || "detail",
+          requestedDuration: Number(event?.duration) || 0.8,
+          requestedVolume: volume,
+          sourceDuration,
+          ffmpegBinary: sfxFfmpegBinary,
+        })
+      : null;
+    let copied = null;
+    let playbackSourceDuration = sourceDuration;
+    let playbackVolume = renderMix?.volume || volume;
+    let playbackSourceStart = renderMix?.sourceStart || 0;
+    if (renderMix) {
+      const safeBase = path.parse(source).name.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const normalizedName = `sfx_${index + 1}_${safeBase}_normalized.wav`;
+      const normalizedPath = path.join(publicProjectDir, normalizedName);
+      const normalized = normalizeProfessionalSfxAsset({
+        sourcePath: source,
+        destinationPath: normalizedPath,
+        sourceStart: renderMix.sourceStart,
+        duration: renderMix.sampleDuration,
+        ffmpegBinary: sfxFfmpegBinary,
+      });
+      if (normalized) {
+        copied = normalizedName;
+        playbackSourceDuration = renderMix.sampleDuration;
+        playbackSourceStart = 0;
+        playbackVolume = calculateNormalizedProfessionalSfxVolume({
+          category: event?.category || "detail",
+          requestedVolume: volume,
+        });
+      }
+    }
+    copied ||= copyRemotionAsset(source, publicProjectDir, `sfx_${index + 1}_`);
+    if (!copied) continue;
+    if (renderMix) {
+      console.log(
+        `[Remotion SFX] ${event?.provider_title || event?.file}: ` +
+          `volume ${volume.toFixed(3)} -> ${playbackVolume.toFixed(3)}, ` +
+          `fonte @ ${renderMix.sourceStart.toFixed(3)}s, ` +
+          `média ${renderMix.meanDb ?? "n/a"} dB, pico ${renderMix.maxDb ?? "n/a"} dB`
+      );
+    }
     const playbackSegments = buildSfxPlaybackSegments({
       event: {
         ...event,
@@ -8683,9 +9339,12 @@ function collectRemotionSfxTracks(
           ? String(event?.category || "detail")
           : "utility",
         repeat_mode: isProfessional ? event?.repeat_mode : "none",
-        volume,
+        volume: playbackVolume,
+        source_start: playbackSourceStart,
+        source_mean_db: renderMix?.meanDb ?? null,
+        source_max_db: renderMix?.maxDb ?? null,
       },
-      sourceDuration,
+      sourceDuration: playbackSourceDuration,
       totalDuration,
     });
 
@@ -9354,13 +10013,6 @@ async function prepareRemotionRender(
           ? String(prompt.scene).trim()
           : `${block}.${index + 1}`;
 
-        const clipVolume = Number.isFinite(Number(item?.volume))
-          ? Math.min(1, Math.max(0, Number(item.volume)))
-          : 0;
-        const clipRate = Number.isFinite(Number(item?.playback_rate))
-          ? Math.min(2, Math.max(0.25, Number(item.playback_rate)))
-          : 1;
-
         // Extensão do arquivo vence type do timeline (evita .mp4 como <Img>)
         const assetIsVideo =
           /\.(mp4|webm|mov|m4v|mkv)(\?|$)/i.test(String(copiedName || "")) ||
@@ -9369,6 +10021,28 @@ async function prepareRemotionRender(
           String(item?.type || "")
             .toLowerCase()
             .includes("vídeo");
+
+        // Vídeo: áudio diegético do arquivo (baixo sob a narração) + fades naturais.
+        // Imagem: mudo — SFX vai na trilha sfxTracks quando houver.
+        const defaultVideoBed = 0.28;
+        const clipVolume = Number.isFinite(Number(item?.volume))
+          ? Math.min(1, Math.max(0, Number(item.volume)))
+          : assetIsVideo
+            ? defaultVideoBed
+            : 0;
+        const clipRate = Number.isFinite(Number(item?.playback_rate))
+          ? Math.min(2, Math.max(0.25, Number(item.playback_rate)))
+          : 1;
+        const fadeInS = assetIsVideo
+          ? Number.isFinite(Number(item?.fade_in_s ?? item?.fadeInS))
+            ? Math.max(0.05, Number(item.fade_in_s ?? item.fadeInS))
+            : 0.32
+          : 0;
+        const fadeOutS = assetIsVideo
+          ? Number.isFinite(Number(item?.fade_out_s ?? item?.fadeOutS))
+            ? Math.max(0.05, Number(item.fade_out_s ?? item.fadeOutS))
+            : 0.42
+          : 0;
 
         scenes.push({
           block,
@@ -9392,6 +10066,10 @@ async function prepareRemotionRender(
           volume: clipVolume,
 
           playback_rate: clipRate,
+
+          fadeInS,
+
+          fadeOutS,
         });
       });
     } else {
@@ -10100,7 +10778,10 @@ async function prepareRemotionRender(
   };
 
   // Intro / end card: segmentos exclusivos (não cobrem B-roll; intro sem áudio; end só música)
-  let finalProps = applyExclusiveIntroEndToRemotionProps(props);
+  let finalProps = alignExclusiveAudioTimeline(
+    props,
+    applyExclusiveIntroEndToRemotionProps(props)
+  );
   if (finalProps.exclusiveLayout) {
     console.log(
       `[Remotion] Layout exclusivo: intro ${finalProps.exclusiveLayout.introDur}s · conteúdo até ${Number(finalProps.exclusiveLayout.contentEnd).toFixed(1)}s · end card ${finalProps.exclusiveLayout.endDur}s · total ${Number(finalProps.totalDuration).toFixed(1)}s`
@@ -10373,59 +11054,75 @@ function buildTimelineFromStoryboard(
 }
 
 function getOpenRouterApiKey(projectDir = WORKSPACE_DIR) {
-  if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY;
+  if (process.env.OPENROUTER_API_KEY) {
+    return String(process.env.OPENROUTER_API_KEY).trim() || null;
+  }
 
   const readConfigKey = (configPath) => {
     const config = readJsonFile(configPath);
-
-    return config?.openrouter_api_key || null;
+    const k = config?.openrouter_api_key;
+    return typeof k === "string" && k.trim() ? k.trim() : null;
   };
 
   const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
-
   if (projectKey) return projectKey;
 
   if (projectDir !== WORKSPACE_DIR) {
     const rootKey = readConfigKey(
       path.join(WORKSPACE_DIR, "config_qanat.json")
     );
-
     if (rootKey) return rootKey;
   }
 
-  return OPENROUTER_DEFAULT_KEY;
+  // Fallback: chave embutida (NÃO remover) — usada se o usuário não colar a própria
+  return OPENROUTER_DEFAULT_KEY || null;
+}
+
+/** true se existe chave do usuário no config/env (não conta só a embutida). */
+function hasUserOpenRouterApiKey(projectDir = WORKSPACE_DIR) {
+  if (process.env.OPENROUTER_API_KEY) return true;
+  const readConfigKey = (configPath) => {
+    const config = readJsonFile(configPath);
+    const k = config?.openrouter_api_key;
+    return typeof k === "string" && k.trim().length > 0;
+  };
+  if (readConfigKey(path.join(projectDir, "config_qanat.json"))) return true;
+  if (
+    projectDir !== WORKSPACE_DIR &&
+    readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json"))
+  )
+    return true;
+  return false;
 }
 
 function convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride) {
   const messages = [];
 
-  if (bodyOverride?.systemInstruction?.parts?.[0]?.text) {
-    messages.push({
-      role: "system",
+  const partsToText = (parts) =>
+    (Array.isArray(parts) ? parts : [])
+      .map((p) => (p && typeof p.text === "string" ? p.text : ""))
+      .filter(Boolean)
+      .join("\n");
 
-      content: bodyOverride.systemInstruction.parts[0].text,
-    });
-  } else if (bodyOverride?.system_instruction?.parts?.[0]?.text) {
-    messages.push({
-      role: "system",
-
-      content: bodyOverride.system_instruction.parts[0].text,
-    });
+  if (bodyOverride?.systemInstruction?.parts) {
+    const sys = partsToText(bodyOverride.systemInstruction.parts);
+    if (sys) messages.push({ role: "system", content: sys });
+  } else if (bodyOverride?.system_instruction?.parts) {
+    const sys = partsToText(bodyOverride.system_instruction.parts);
+    if (sys) messages.push({ role: "system", content: sys });
   }
 
   if (bodyOverride?.contents && Array.isArray(bodyOverride.contents)) {
     for (const item of bodyOverride.contents) {
       const role = item.role === "model" ? "assistant" : "user";
-
-      const content = item.parts?.[0]?.text || "";
-
-      messages.push({ role, content });
+      // Junta TODAS as parts de texto (antes só pegava a 1ª — truncava prompts longos)
+      const content = partsToText(item.parts);
+      if (content) messages.push({ role, content });
     }
   } else if (promptOrBody) {
     messages.push({
       role: "user",
-
-      content: promptOrBody,
+      content: String(promptOrBody),
     });
   }
 
@@ -10439,6 +11136,8 @@ async function callOpenRouterWithRetry(
     bodyOverride = null,
     projectDir = WORKSPACE_DIR,
     temperature = null,
+    models = null,
+    maxTokens = null,
   } = {}
 ) {
   const apiKey = getOpenRouterApiKey(projectDir);
@@ -10449,8 +11148,13 @@ async function callOpenRouterWithRetry(
   );
 
   let lastError = null;
+  const modelList =
+    Array.isArray(models) && models.length
+      ? models
+      : getOpenRouterModelChain(projectDir);
+  const tokenLimit = Math.max(256, Math.min(32000, Number(maxTokens) || 8192));
 
-  for (const model of OPENROUTER_FREE_MODELS) {
+  for (const model of modelList) {
     console.log("\n==================================================");
 
     console.log(`[OpenRouter] ATIVO - TENTANDO MODELO: ${model}`);
@@ -10478,6 +11182,7 @@ async function callOpenRouterWithRetry(
             body: JSON.stringify({
               model: model,
               messages: messages,
+              max_tokens: tokenLimit,
               ...(temperature !== null ? { temperature } : {}),
             }),
           }
@@ -10486,19 +11191,41 @@ async function callOpenRouterWithRetry(
         if (response.ok) {
           const result = await response.json();
 
-          let responseText = result.choices?.[0]?.message?.content || "";
+          const msg = result.choices?.[0]?.message || {};
+          // Alguns modelos devolvem content como array de parts
+          let responseText = "";
+          if (typeof msg.content === "string") {
+            responseText = msg.content;
+          } else if (Array.isArray(msg.content)) {
+            responseText = msg.content
+              .map((p) => (typeof p === "string" ? p : p?.text || ""))
+              .join("");
+          } else {
+            responseText = msg.content || msg.reasoning || "";
+          }
 
-          responseText = responseText
+          responseText = String(responseText || "")
             .replace(/```json/g, "")
             .replace(/```/g, "")
             .trim();
+
+          // Resposta vazia NÃO é sucesso (causava "uncertain" / contingência)
+          if (!responseText || responseText.length < 8) {
+            lastError = new Error(
+              `OpenRouter [${model}]: resposta vazia ou truncada`
+            );
+            console.warn(
+              `[OpenRouter] ${model} retornou vazio (tentativa ${attempt}/${maxRetries})`
+            );
+            break;
+          }
 
           console.log("\n==================================================");
 
           console.log(`[OpenRouter] SUCESSO - MODELO EM USO: ${model}`);
 
           console.log(
-            `[OpenRouter] Sucesso na tentativa ${attempt} do modelo ${model}`
+            `[OpenRouter] Sucesso na tentativa ${attempt} do modelo ${model} (${responseText.length} chars)`
           );
 
           console.log("==================================================");
@@ -10508,9 +11235,13 @@ async function callOpenRouterWithRetry(
 
         const errData = await response.json().catch(() => ({}));
 
-        const errMsg = errData.error?.message || response.statusText;
-
-        const status = response.status;
+        const errRaw =
+          errData.error?.metadata?.raw ||
+          errData.error?.message ||
+          response.statusText;
+        const errMsg = String(errRaw || response.statusText);
+        const status =
+          Number(errData.error?.code || response.status) || response.status;
 
         console.warn(
           `[OpenRouter] Erro ${status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`
@@ -10518,24 +11249,38 @@ async function callOpenRouterWithRetry(
 
         lastError = new Error(`OpenRouter [${model}]: ${errMsg}`);
 
+        const lower = errMsg.toLowerCase();
         const isQuotaOrRateLimit =
           status === 429 ||
           status === 403 ||
           status === 402 ||
-          errMsg.toLowerCase().includes("quota") ||
-          errMsg.toLowerCase().includes("credit");
+          lower.includes("quota") ||
+          lower.includes("credit") ||
+          lower.includes("rate-limited") ||
+          lower.includes("rate limit") ||
+          lower.includes("provider returned error");
 
         const isUnavailableOrNotFound =
           status === 404 ||
           status === 400 ||
           status === 401 ||
-          errMsg.toLowerCase().includes("unavailable") ||
-          errMsg.toLowerCase().includes("no endpoints found");
+          status === 410 ||
+          lower.includes("unavailable") ||
+          lower.includes("no endpoints found") ||
+          lower.includes("no longer available") ||
+          lower.includes("not a free model");
 
         if (isQuotaOrRateLimit || isUnavailableOrNotFound) {
           console.warn(
             `[OpenRouter] Erro crítico/limite/indisponibilidade detectado para ${model} (${status}: ${errMsg}). Rotacionando imediatamente...`
           );
+
+          // Respeita Retry-After em 429 (free tier)
+          const retryAfter =
+            Number(errData.error?.metadata?.retry_after_seconds) || 0;
+          if (retryAfter > 0 && retryAfter < 15) {
+            await new Promise((r) => setTimeout(r, retryAfter * 1000));
+          }
 
           break;
         }
@@ -10566,13 +11311,84 @@ async function callOpenRouterWithRetry(
   );
 }
 
-const NVIDIA_MODELS = [
-  "minimaxai/minimax-m3",
-  "qwen/qwen3.5-397b-a17b",
-  "moonshotai/kimi-k2.6",
-  "zhipuai/glm-5.1",
-  "deepseek/deepseek-v4-flash",
+// Ordem: melhores para programação/JSON e agentes primeiro (NIM free em build.nvidia.com).
+// IDs testados com integrate.api.nvidia.com — modelos EOL/404 removidos.
+const NVIDIA_MODEL_OPTIONS = [
+  {
+    id: "minimaxai/minimax-m2.7",
+    label: "MiniMax M2.7",
+    hint: "Excelente em coding, raciocínio e tarefas de escritório",
+  },
+  {
+    id: "minimaxai/minimax-m3",
+    label: "MiniMax M3",
+    hint: "Multimodal MoE — coding + tool-calling (estável)",
+  },
+  {
+    id: "nvidia/llama-3.3-nemotron-super-49b-v1",
+    label: "Nemotron Super 49B v1",
+    hint: "NVIDIA — reasoning, tool calling e instruções",
+  },
+  {
+    id: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+    label: "Nemotron Super 49B v1.5",
+    hint: "NVIDIA — precisão alta em chat e function calling",
+  },
+  {
+    id: "nvidia/nemotron-3-nano-30b-a3b",
+    label: "Nemotron 3 Nano 30B",
+    hint: "Coding, tool calling, contexto longo",
+  },
+  {
+    id: "nvidia/nemotron-3-super-120b-a12b",
+    label: "Nemotron 3 Super 120B",
+    hint: "Agentes, planning e coding pesado",
+  },
+  {
+    id: "nvidia/mistral-nemotron",
+    label: "Mistral Nemotron",
+    hint: "Coding, instruction following e function calling",
+  },
+  {
+    id: "meta/llama-3.3-70b-instruct",
+    label: "Llama 3.3 70B Instruct",
+    hint: "Instruções gerais e function calling",
+  },
+  {
+    id: "meta/llama-4-maverick-17b-128e-instruct",
+    label: "Llama 4 Maverick 17B",
+    hint: "Multimodal MoE — uso geral",
+  },
+  {
+    id: "google/gemma-4-31b-it",
+    label: "Gemma 4 31B IT",
+    hint: "Coding e workflows agentic",
+  },
+  {
+    id: "openai/gpt-oss-120b",
+    label: "gpt-oss-120b",
+    hint: "MoE reasoning (texto)",
+  },
+  {
+    id: "openai/gpt-oss-20b",
+    label: "gpt-oss-20b",
+    hint: "Reasoning compacto",
+  },
+  {
+    id: "poolside/laguna-xs-2.1",
+    label: "Laguna XS 2.1",
+    hint: "Coding agentic / terminal tasks",
+  },
+  {
+    id: "nvidia/nemotron-mini-4b-instruct",
+    label: "Nemotron Mini 4B",
+    hint: "Leve — RAG e function calling",
+  },
 ];
+
+const NVIDIA_MODELS = NVIDIA_MODEL_OPTIONS.map((option) => option.id);
+
+const DEFAULT_NVIDIA_MODEL = NVIDIA_MODELS[0];
 
 const INFERENCE_API_BASE = "https://api.inference.net/v1";
 
@@ -10618,6 +11434,7 @@ async function callNvidiaWithRetry(
     projectDir = WORKSPACE_DIR,
     temperature = null,
     models = null,
+    maxTokens = null,
   } = {}
 ) {
   const apiKey = getNvidiaApiKey(projectDir);
@@ -10629,9 +11446,12 @@ async function callNvidiaWithRetry(
     promptOrBody,
     bodyOverride
   );
+  const tokenLimit = Math.max(256, Math.min(32000, Number(maxTokens) || 8192));
   let lastError = null;
   const modelList =
-    Array.isArray(models) && models.length ? models : NVIDIA_MODELS;
+    Array.isArray(models) && models.length
+      ? models
+      : getNvidiaModelChain(projectDir);
 
   for (const model of modelList) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -10650,6 +11470,7 @@ async function callNvidiaWithRetry(
             body: JSON.stringify({
               model: model,
               messages: messages,
+              max_tokens: tokenLimit,
               ...(temperature !== null ? { temperature } : {}),
             }),
           }
@@ -10811,6 +11632,115 @@ const XAI_MODELS = [
   "grok-4.3",
 ];
 
+/** Alibaba Cloud Model Studio / DashScope (Qwen) — OpenAI-compatible. */
+const ALIBABA_DEFAULT_BASE_URL =
+  "https://ws-7pwlysxpwyxkd7j2.cn-beijing.maas.aliyuncs.com/compatible-mode/v1";
+
+const ALIBABA_MODEL_OPTIONS = [
+  {
+    id: "qwen-plus",
+    label: "Qwen-Plus",
+    hint: "Equilíbrio custo/qualidade — padrão Model Studio",
+  },
+  {
+    id: "qwen-turbo",
+    label: "Qwen-Turbo",
+    hint: "Mais rápido e barato para volume",
+  },
+  {
+    id: "qwen-max",
+    label: "Qwen-Max",
+    hint: "Máxima qualidade Alibaba",
+  },
+  {
+    id: "qwen-long",
+    label: "Qwen-Long",
+    hint: "Contexto longo (roteiros extensos)",
+  },
+  {
+    id: "qwen-plus-latest",
+    label: "Qwen-Plus Latest",
+    hint: "Sempre a revisão mais recente do Plus",
+  },
+  {
+    id: "qwen-turbo-latest",
+    label: "Qwen-Turbo Latest",
+    hint: "Revisão mais recente do Turbo",
+  },
+  {
+    id: "qwen3-max",
+    label: "Qwen3-Max",
+    hint: "Geração Qwen3 (se habilitada na conta)",
+  },
+  {
+    id: "qwen3-coder-plus",
+    label: "Qwen3-Coder-Plus",
+    hint: "Código / JSON estruturado",
+  },
+];
+
+const ALIBABA_MODELS = ALIBABA_MODEL_OPTIONS.map((o) => o.id);
+const DEFAULT_ALIBABA_MODEL = ALIBABA_MODELS[0];
+
+/** TokenRouter — gateway OpenAI-compatible (https://api.tokenrouter.com/v1) */
+const TOKENROUTER_DEFAULT_BASE_URL = "https://api.tokenrouter.com/v1";
+
+const TOKENROUTER_MODEL_OPTIONS = [
+  {
+    id: "z-ai/glm-5.2-free",
+    label: "GLM-5.2 Free (Z.AI)",
+    hint: "Padrão free TokenRouter — bom para volume",
+  },
+  {
+    id: "openai/gpt-5.4-nano",
+    label: "GPT-5.4 Nano",
+    hint: "Rápido e barato",
+  },
+  {
+    id: "openai/gpt-5.6-luna",
+    label: "GPT-5.6 Luna",
+    hint: "Qualidade OpenAI via TokenRouter",
+  },
+  {
+    id: "qwen/qwen3.5-plus-02-15",
+    label: "Qwen 3.5 Plus",
+    hint: "Bom equilíbrio para roteiros PT",
+  },
+  {
+    id: "qwen/qwen3.7-max",
+    label: "Qwen 3.7 Max",
+    hint: "Máxima qualidade Qwen",
+  },
+  {
+    id: "qwen/qwen3.5-9b",
+    label: "Qwen 3.5 9B",
+    hint: "Leve e rápido",
+  },
+  {
+    id: "deepseek/deepseek-v4-pro",
+    label: "DeepSeek V4 Pro",
+    hint: "Forte em raciocínio / código",
+  },
+  {
+    id: "MiniMax-M3",
+    label: "MiniMax M3",
+    hint: "Modelo MiniMax via TokenRouter",
+  },
+  {
+    id: "anthropic/claude-fable-5",
+    label: "Claude Fable 5",
+    hint: "Claude via TokenRouter",
+  },
+  {
+    id: "x-ai/grok-4.20-beta",
+    label: "Grok 4.20 Beta",
+    hint: "xAI Grok via TokenRouter",
+  },
+];
+
+const TOKENROUTER_MODELS = TOKENROUTER_MODEL_OPTIONS.map((o) => o.id);
+const DEFAULT_TOKENROUTER_MODEL = "z-ai/glm-5.2-free";
+
 async function callXaiWithRetry(
   promptOrBody,
   {
@@ -10892,49 +11822,51 @@ async function callXaiWithRetry(
 }
 
 // Gemini API call with automatic retry and model fallback for 503/429 errors
+// Default = melhor Flash atual; FALLBACKS em qualidade decrescente se o anterior falhar.
 
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
 
 const GEMINI_MODEL_OPTIONS = [
   {
-    id: "gemini-2.5-flash",
-    label: "Gemini 2.5 Flash",
-    hint: "Rápido, gratuito no AI Studio, contexto 1M",
-  },
-  {
-    id: "gemini-2.5-flash-lite",
-    label: "Gemini 2.5 Flash-Lite",
-    hint: "Mais barato/rápido, alto volume",
+    id: "gemini-3.5-flash",
+    label: "Gemini 3.5 Flash",
+    hint: "Padrão · mais recente, multimodal e melhor equilíbrio",
   },
   {
     id: "gemini-2.5-pro",
     label: "Gemini 2.5 Pro",
-    hint: "Raciocínio avançado",
+    hint: "Raciocínio avançado (mais lento/caro)",
   },
   {
-    id: "gemini-2.0-flash",
-    label: "Gemini 2.0 Flash",
-    hint: "Fallback estável",
-  },
-  {
-    id: "gemini-3.5-flash",
-    label: "Gemini 3.5 Flash",
-    hint: "Mais recente, multimodal",
+    id: "gemini-2.5-flash",
+    label: "Gemini 2.5 Flash",
+    hint: "Rápido, estável, contexto 1M",
   },
   {
     id: "gemini-3.1-flash-lite",
     label: "Gemini 3.1 Flash-Lite",
     hint: "Leve e econômico",
   },
+  {
+    id: "gemini-2.5-flash-lite",
+    label: "Gemini 2.5 Flash-Lite",
+    hint: "Alto volume / fallback barato",
+  },
+  {
+    id: "gemini-2.0-flash",
+    label: "Gemini 2.0 Flash",
+    hint: "Fallback legado estável",
+  },
 ];
 
+/** Cadeia de rotação: do melhor Flash atual → qualidade menor se 503/429/indisponível. */
 const GEMINI_MODEL_FALLBACKS = [
+  "gemini-3.5-flash",
+  "gemini-2.5-pro",
   "gemini-2.5-flash",
+  "gemini-3.1-flash-lite",
   "gemini-2.5-flash-lite",
   "gemini-2.0-flash",
-  "gemini-3.5-flash",
-  "gemini-3.1-flash-lite",
-  "gemini-2.5-pro",
   "gemini-flash-latest",
   "gemini-pro-latest",
 ];
@@ -10993,6 +11925,60 @@ function getInferenceModelChain(
   }
   const primary = getInferenceModel(projectDir);
   return [...new Set([primary, ...INFERENCE_MODEL_FALLBACKS])];
+}
+
+function getOpenRouterModel(projectDir = WORKSPACE_DIR) {
+  const readModel = (configPath) => {
+    const config = readJsonFile(configPath);
+    const model = String(config?.openrouter_model || "").trim();
+    return OPENROUTER_FREE_MODELS.includes(model) ? model : null;
+  };
+  return (
+    readModel(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    process.env.OPENROUTER_MODEL ||
+    DEFAULT_OPENROUTER_MODEL
+  );
+}
+
+function getOpenRouterModelChain(
+  projectDir = WORKSPACE_DIR,
+  overrideModels = null
+) {
+  if (Array.isArray(overrideModels) && overrideModels.length > 0) {
+    return [...new Set(overrideModels.filter(Boolean))];
+  }
+  const primary = getOpenRouterModel(projectDir);
+  return [...new Set([primary, ...OPENROUTER_FREE_MODELS])];
+}
+
+function getNvidiaModel(projectDir = WORKSPACE_DIR) {
+  const readModel = (configPath) => {
+    const config = readJsonFile(configPath);
+    const model = String(config?.nvidia_model || "").trim();
+    return NVIDIA_MODELS.includes(model) ? model : null;
+  };
+  return (
+    readModel(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    process.env.NVIDIA_MODEL ||
+    DEFAULT_NVIDIA_MODEL
+  );
+}
+
+function getNvidiaModelChain(
+  projectDir = WORKSPACE_DIR,
+  overrideModels = null
+) {
+  if (Array.isArray(overrideModels) && overrideModels.length > 0) {
+    return [...new Set(overrideModels.filter(Boolean))];
+  }
+  const primary = getNvidiaModel(projectDir);
+  return [...new Set([primary, ...NVIDIA_MODELS])];
 }
 
 function getLocalLlmUrl(projectDir = WORKSPACE_DIR) {
@@ -11106,151 +12092,352 @@ async function callGeminiWithRetry(
     temperature = null,
     projectDir = null,
     forceProvider = null,
+    activityLabel = null,
+    activityDetail = null,
+    jobId = null,
+    maxTokens = null,
   } = {}
 ) {
   const projDir = projectDir || global.lastActiveProjectDir || WORKSPACE_DIR;
-  const modelChain = getGeminiModelChain(projDir, models);
   const provider = forceProvider || getAiProvider(projDir);
-  if (provider === "nvidia") {
-    return await callNvidiaWithRetry(promptOrBody, {
-      maxRetries,
-      bodyOverride,
-      projectDir: projDir,
-      temperature,
-    });
-  }
-  if (provider === "inference") {
-    return await callInferenceWithRetry(promptOrBody, {
-      maxRetries,
-      bodyOverride,
-      projectDir: projDir,
-      temperature,
-      models: models || getInferenceModelChain(projDir),
-    });
-  }
-  if (provider === "openrouter") {
-    return await callOpenRouterWithRetry(promptOrBody, {
-      maxRetries,
-      bodyOverride,
-      projectDir: projDir,
-      temperature,
-    });
-  }
-  if (provider === "xai") {
-    return await callXaiWithRetry(promptOrBody, {
-      maxRetries,
-      bodyOverride,
-      projectDir: projDir,
-      temperature,
-    });
-  }
-  if (provider === "local") {
-    return await callLocalLlmWithRetry(promptOrBody, {
-      maxRetries,
-      bodyOverride,
-      projectDir: projDir,
-      temperature,
-    });
-  }
 
-  const keyPool = buildGeminiKeyPool(apiKey, getApiKeys(projDir));
-
-  if (keyPool.length === 0) {
-    throw new Error("Nenhuma chave de API do Gemini configurada.");
-  }
-
-  console.log(
-    `[Gemini] Pool: ${keyPool.length} chave(s) | modelos: ${modelChain.join(" → ")}`
+  // Overrides `models` com IDs Gemini NÃO devem vazar para OpenRouter/NVIDIA/xAI.
+  // Só aplicamos a lista quando o provedor ativo é Gemini (ou forceProvider gemini).
+  const looksLikeGeminiModelList =
+    Array.isArray(models) &&
+    models.length > 0 &&
+    models.every((m) => {
+      const s = String(m || "").toLowerCase();
+      return (
+        s.startsWith("gemini-") ||
+        s.startsWith("models/gemini") ||
+        s.includes("gemini")
+      );
+    });
+  const geminiModelsOnly =
+    provider === "gemini" ? models : looksLikeGeminiModelList ? null : models;
+  const modelChain = getGeminiModelChain(
+    projDir,
+    provider === "gemini" ? geminiModelsOnly : null
   );
 
-  let lastError = null;
+  let modelsTriedPreview = modelChain;
+  let primaryModel = modelChain[0] || null;
+  // Modelos nativos do provedor (config do usuário), nunca a cadeia Gemini por engano
+  let providerModelsOverride = null;
+  if (
+    provider !== "gemini" &&
+    Array.isArray(models) &&
+    !looksLikeGeminiModelList
+  ) {
+    providerModelsOverride = models;
+  }
+  try {
+    if (provider === "nvidia") {
+      modelsTriedPreview = getNvidiaModelChain(projDir, providerModelsOverride);
+      primaryModel = modelsTriedPreview[0] || getNvidiaModel(projDir);
+    } else if (provider === "openrouter") {
+      modelsTriedPreview = getOpenRouterModelChain(
+        projDir,
+        providerModelsOverride
+      );
+      primaryModel = modelsTriedPreview[0] || getOpenRouterModel(projDir);
+    } else if (provider === "xai") {
+      modelsTriedPreview =
+        typeof XAI_MODELS !== "undefined" && Array.isArray(XAI_MODELS)
+          ? [...XAI_MODELS]
+          : ["grok"];
+      primaryModel = modelsTriedPreview[0] || "grok";
+    } else if (provider === "alibaba") {
+      modelsTriedPreview = getAlibabaModelChain(
+        projDir,
+        providerModelsOverride
+      );
+      primaryModel = modelsTriedPreview[0] || getAlibabaModel(projDir);
+    } else if (provider === "tokenrouter") {
+      modelsTriedPreview = getTokenRouterModelChain(
+        projDir,
+        providerModelsOverride
+      );
+      primaryModel = modelsTriedPreview[0] || getTokenRouterModel(projDir);
+    } else if (provider === "local") {
+      primaryModel = getLocalLlmModel(projDir);
+      modelsTriedPreview = primaryModel ? [primaryModel] : [];
+    }
+  } catch {
+    /* model preview is best-effort */
+  }
 
-  for (let modelIdx = 0; modelIdx < modelChain.length; modelIdx += 1) {
-    const model = modelChain[modelIdx];
-    let keysAttempted = 0;
+  let projectLabel = "";
+  try {
+    projectLabel = path.basename(String(projDir || "")) || "";
+  } catch {
+    projectLabel = "";
+  }
 
-    for (let keyIdx = 0; keyIdx < keyPool.length; keyIdx += 1) {
-      const currentKey = keyPool[keyIdx];
-      const keyLabel = `${keyIdx + 1}/${keyPool.length}`;
-      keysAttempted += 1;
+  const callId = recordAiCall({
+    source: "llm",
+    label: activityLabel || `LLM · ${provider}`,
+    provider,
+    model: primaryModel,
+    modelsTried: modelsTriedPreview,
+    status: "running",
+    detail: activityDetail || "",
+    project: projectLabel,
+    jobId: jobId || null,
+  });
 
-      for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
-        try {
-          const requestBody = bodyOverride || {
-            contents: [{ role: "user", parts: [{ text: promptOrBody }] }],
-            ...(temperature !== null
-              ? { generationConfig: { temperature } }
-              : {}),
-          };
-          console.log(
-            `[Gemini] modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt}/${maxRetries}`
-          );
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentKey}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(requestBody),
-            }
-          );
+  const finishOk = (modelUsed) => {
+    updateAiCall(callId, {
+      status: "ok",
+      provider,
+      model: modelUsed || primaryModel,
+      modelsTried: modelsTriedPreview,
+    });
+  };
+  const finishErr = (err) => {
+    updateAiCall(callId, {
+      status: "error",
+      provider,
+      model: primaryModel,
+      error: err?.message || String(err || "erro"),
+    });
+  };
 
-          if (response.ok) {
-            const result = await response.json();
-            let responseText =
-              result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            responseText = responseText
-              .replace(/```json/g, "")
-              .replace(/```/g, "")
-              .trim();
+  try {
+    if (provider === "nvidia") {
+      const text = await callNvidiaWithRetry(promptOrBody, {
+        maxRetries,
+        bodyOverride,
+        projectDir: projDir,
+        temperature,
+        models: providerModelsOverride,
+        maxTokens,
+      });
+      finishOk(primaryModel);
+      return text;
+    }
+    if (provider === "openrouter") {
+      const text = await callOpenRouterWithRetry(promptOrBody, {
+        maxRetries,
+        bodyOverride,
+        projectDir: projDir,
+        temperature,
+        models: providerModelsOverride,
+        maxTokens,
+      });
+      finishOk(primaryModel);
+      return text;
+    }
+    if (provider === "xai") {
+      const text = await callXaiWithRetry(promptOrBody, {
+        maxRetries,
+        bodyOverride,
+        projectDir: projDir,
+        temperature,
+      });
+      finishOk(primaryModel);
+      return text;
+    }
+    if (provider === "alibaba") {
+      const text = await callAlibabaWithRetry(promptOrBody, {
+        maxRetries,
+        bodyOverride,
+        projectDir: projDir,
+        temperature,
+        models: providerModelsOverride,
+        maxTokens,
+      });
+      finishOk(primaryModel);
+      return text;
+    }
+    if (provider === "tokenrouter") {
+      const text = await callTokenRouterWithRetry(promptOrBody, {
+        maxRetries,
+        bodyOverride,
+        projectDir: projDir,
+        temperature,
+        models: providerModelsOverride,
+        maxTokens,
+      });
+      finishOk(primaryModel);
+      return text;
+    }
+    if (provider === "local") {
+      const text = await callLocalLlmWithRetry(promptOrBody, {
+        maxRetries,
+        bodyOverride,
+        projectDir: projDir,
+        temperature,
+      });
+      finishOk(primaryModel);
+      return text;
+    }
+
+    const keyPool = buildGeminiKeyPool(apiKey, getApiKeys(projDir));
+
+    if (keyPool.length === 0) {
+      const err = new Error("Nenhuma chave de API do Gemini configurada.");
+      finishErr(err);
+      throw err;
+    }
+
+    const callStartedAt = Date.now();
+    console.log(
+      `[Gemini] Pool: ${keyPool.length} chave(s) | modelos: ${modelChain.join(" → ")}`
+    );
+
+    let lastError = null;
+    let totalHttpAttempts = 0;
+
+    for (let modelIdx = 0; modelIdx < modelChain.length; modelIdx += 1) {
+      const model = modelChain[modelIdx];
+      let keysAttempted = 0;
+      let overloadKeyHits = 0;
+      let quotaKeyHits = 0;
+      let skipRemainingKeysForModel = false;
+      // Atualiza painel com o modelo em tentativa
+      updateAiCall(callId, {
+        status: "running",
+        model,
+        detail:
+          activityDetail ||
+          `Tentando ${model} (${modelIdx + 1}/${modelChain.length})`,
+      });
+
+      for (let keyIdx = 0; keyIdx < keyPool.length; keyIdx += 1) {
+        if (skipRemainingKeysForModel) break;
+
+        const currentKey = keyPool[keyIdx];
+        const keyLabel = `${keyIdx + 1}/${keyPool.length}`;
+        keysAttempted += 1;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+          const attemptStartedAt = Date.now();
+          try {
+            const requestBody = bodyOverride || {
+              contents: [{ role: "user", parts: [{ text: promptOrBody }] }],
+              ...(temperature !== null
+                ? { generationConfig: { temperature } }
+                : {}),
+            };
             console.log(
-              `[Gemini] Sucesso modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt}`
+              `[Gemini] modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt}/${maxRetries}`
             );
-            return responseText;
-          }
+            totalHttpAttempts += 1;
+            const response = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentKey}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestBody),
+              }
+            );
+            const attemptMs = Date.now() - attemptStartedAt;
 
-          const errData = await response.json().catch(() => ({}));
-          const errMsg = errData.error?.message || response.statusText;
-          const status = response.status;
+            if (response.ok) {
+              const result = await response.json();
+              let responseText =
+                result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+              responseText = responseText
+                .replace(/```json/g, "")
+                .replace(/```/g, "")
+                .trim();
+              const totalMs = Date.now() - callStartedAt;
+              console.log(
+                `[Gemini] Sucesso modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt} · ${attemptMs}ms (total ${totalMs}ms · ${totalHttpAttempts} HTTP)`
+              );
+              finishOk(model);
+              return responseText;
+            }
 
-          console.warn(
-            `[Gemini] HTTP ${status} modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...): ${errMsg}`
-          );
-          lastError = new Error(`${model}: ${errMsg}`);
+            const errData = await response.json().catch(() => ({}));
+            const errMsg = errData.error?.message || response.statusText;
+            const status = response.status;
 
-          if (shouldRotateGeminiKey(status)) {
             console.warn(
-              `[Gemini] ${status} na chave ${keyLabel} — próxima chave antes de trocar modelo`
+              `[Gemini] HTTP ${status} modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...): ${errMsg} · ${attemptMs}ms`
             );
+            lastError = new Error(`${model}: ${errMsg}`);
+
+            if (shouldRotateGeminiKey(status)) {
+              if (isGeminiModelOverloadStatus(status)) {
+                overloadKeyHits += 1;
+                const maxKeys = geminiMaxKeysBeforeModelSwitch(status);
+                if (overloadKeyHits >= maxKeys) {
+                  console.warn(
+                    `[Gemini] Fail-fast: ${status} em ${overloadKeyHits} chave(s) no modelo ${model} → próximo modelo (evita varrer ${keyPool.length} chaves)`
+                  );
+                  skipRemainingKeysForModel = true;
+                } else {
+                  console.warn(
+                    `[Gemini] ${status} na chave ${keyLabel} — próxima chave (${overloadKeyHits}/${maxKeys} antes de trocar modelo)`
+                  );
+                }
+              } else if (isGeminiQuotaStatus(status)) {
+                quotaKeyHits += 1;
+                const maxKeys = geminiMaxKeysBeforeModelSwitch(status);
+                if (quotaKeyHits >= maxKeys) {
+                  console.warn(
+                    `[Gemini] Fail-fast: 429 em ${quotaKeyHits} chave(s) no modelo ${model} → próximo modelo`
+                  );
+                  skipRemainingKeysForModel = true;
+                } else {
+                  console.warn(
+                    `[Gemini] 429 na chave ${keyLabel} — próxima chave (${quotaKeyHits}/${maxKeys} antes de trocar modelo)`
+                  );
+                }
+              } else {
+                console.warn(
+                  `[Gemini] ${status} na chave ${keyLabel} — próxima chave antes de trocar modelo`
+                );
+              }
+              break;
+            }
             break;
+          } catch (err) {
+            const attemptMs = Date.now() - attemptStartedAt;
+            lastError = err;
+            console.warn(
+              `[Gemini] Erro de rede modelo=${model} chave=${keyLabel} tentativa ${attempt}/${maxRetries}: ${err.message} · ${attemptMs}ms`
+            );
+            if (attempt >= maxRetries) break;
+            // Backoff curto (antes era 1s×attempt — em cascata virava dezenas de s)
+            await new Promise((r) =>
+              setTimeout(r, Math.min(400 * attempt, 1200))
+            );
+            continue;
           }
-          break;
-        } catch (err) {
-          lastError = err;
-          console.warn(
-            `[Gemini] Erro de rede modelo=${model} chave=${keyLabel} tentativa ${attempt}/${maxRetries}: ${err.message}`
-          );
-          if (attempt >= maxRetries) break;
-          await new Promise((r) => setTimeout(r, 1000 * attempt));
-          continue;
         }
       }
-    }
 
-    const nextModel = modelChain[modelIdx + 1];
-    if (nextModel) {
-      console.warn(
-        `[Gemini] Modelo ${model}: ${keysAttempted}/${keyPool.length} chave(s) esgotadas → tentando ${nextModel}`
-      );
-    } else {
-      console.warn(
-        `[Gemini] Modelo ${model}: ${keysAttempted}/${keyPool.length} chave(s) esgotadas — sem mais modelos na cadeia`
-      );
+      const nextModel = modelChain[modelIdx + 1];
+      if (nextModel) {
+        console.warn(
+          `[Gemini] Modelo ${model}: ${keysAttempted}/${keyPool.length} chave(s) tentadas → ${nextModel}`
+        );
+      } else {
+        console.warn(
+          `[Gemini] Modelo ${model}: ${keysAttempted}/${keyPool.length} chave(s) tentadas — sem mais modelos na cadeia (total ${Date.now() - callStartedAt}ms · ${totalHttpAttempts} HTTP)`
+        );
+      }
     }
+    const finalErr =
+      lastError ||
+      new Error("Todos os modelos Gemini falharam após múltiplas tentativas.");
+    console.warn(
+      `[Gemini] Falha total após ${Date.now() - callStartedAt}ms · ${totalHttpAttempts} HTTP`
+    );
+    finishErr(finalErr);
+    throw finalErr;
+  } catch (err) {
+    // Evita double-finish se já gravamos ok/error acima
+    const listed = listRecentAiCalls({ limit: 5 }).find((c) => c.id === callId);
+    if (listed && listed.status === "running") {
+      finishErr(err);
+    }
+    throw err;
   }
-  throw (
-    lastError ||
-    new Error("Todos os modelos Gemini falharam após múltiplas tentativas.")
-  );
 }
 
 function extractJsonCandidate(text) {
@@ -11401,7 +12588,7 @@ async function parseAiJsonResponse(
     try {
       const repairedText = await callGeminiWithRetry(apiKey, repairPrompt, {
         maxRetries: 2,
-        models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+        models: ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash"],
       });
       return parseJsonLocally(repairedText);
     } catch (repairError) {
@@ -11547,6 +12734,449 @@ function getNvidiaApiKey(projectDir = WORKSPACE_DIR) {
   return null;
 }
 
+function getAlibabaApiKey(projectDir = WORKSPACE_DIR) {
+  if (process.env.ALIBABA_API_KEY || process.env.DASHSCOPE_API_KEY) {
+    return (
+      String(
+        process.env.ALIBABA_API_KEY || process.env.DASHSCOPE_API_KEY
+      ).trim() || null
+    );
+  }
+  const readConfigKey = (configPath) => {
+    const config = readJsonFile(configPath);
+    const k =
+      config?.alibaba_api_key ||
+      config?.dashscope_api_key ||
+      config?.aliyun_api_key ||
+      null;
+    return typeof k === "string" && k.trim() ? k.trim() : null;
+  };
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+  if (projectKey) return projectKey;
+  if (projectDir !== WORKSPACE_DIR) {
+    return readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json"));
+  }
+  return null;
+}
+
+function getAlibabaBaseUrl(projectDir = WORKSPACE_DIR) {
+  const normalize = (raw) => {
+    let u = String(raw || "")
+      .trim()
+      .replace(/\/+$/, "");
+    if (!u) return "";
+    // Aceita host puro, /api/v1 (DashScope nativo) ou /compatible-mode/v1
+    if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+    if (u.endsWith("/api/v1")) {
+      u = u.replace(/\/api\/v1$/, "/compatible-mode/v1");
+    } else if (!/\/compatible-mode\/v1$/i.test(u) && !/\/v1$/i.test(u)) {
+      u = `${u}/compatible-mode/v1`;
+    }
+    return u;
+  };
+
+  if (process.env.ALIBABA_BASE_URL || process.env.DASHSCOPE_API_BASE) {
+    const fromEnv = normalize(
+      process.env.ALIBABA_BASE_URL || process.env.DASHSCOPE_API_BASE
+    );
+    if (fromEnv) return fromEnv;
+  }
+
+  const readBase = (configPath) => {
+    const config = readJsonFile(configPath);
+    return normalize(
+      config?.alibaba_base_url ||
+        config?.alibaba_api_host ||
+        config?.dashscope_base_url ||
+        ""
+    );
+  };
+
+  return (
+    readBase(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readBase(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : "") ||
+    ALIBABA_DEFAULT_BASE_URL
+  );
+}
+
+function getAlibabaModel(projectDir = WORKSPACE_DIR) {
+  const readModel = (configPath) => {
+    const config = readJsonFile(configPath);
+    const model = String(
+      config?.alibaba_model || config?.dashscope_model || ""
+    ).trim();
+    return model && ALIBABA_MODELS.includes(model) ? model : null;
+  };
+  return (
+    readModel(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    process.env.ALIBABA_MODEL ||
+    DEFAULT_ALIBABA_MODEL
+  );
+}
+
+function getAlibabaModelChain(
+  projectDir = WORKSPACE_DIR,
+  modelsOverride = null
+) {
+  if (Array.isArray(modelsOverride) && modelsOverride.length) {
+    return [...new Set(modelsOverride.map(String))];
+  }
+  const primary = getAlibabaModel(projectDir);
+  return [...new Set([primary, ...ALIBABA_MODELS])];
+}
+
+async function callAlibabaWithRetry(
+  promptOrBody,
+  {
+    maxRetries = 3,
+    bodyOverride = null,
+    projectDir = WORKSPACE_DIR,
+    temperature = null,
+    models = null,
+    maxTokens = null,
+  } = {}
+) {
+  const apiKey = getAlibabaApiKey(projectDir);
+  if (!apiKey) {
+    throw new Error("Chave de API da Alibaba (DashScope) não configurada.");
+  }
+  const baseUrl = getAlibabaBaseUrl(projectDir).replace(/\/+$/, "");
+  const messages = convertGeminiToOpenRouterMessages(
+    promptOrBody,
+    bodyOverride
+  );
+  const tokenLimit = Math.max(256, Math.min(32000, Number(maxTokens) || 8192));
+  let lastError = null;
+  const modelList =
+    Array.isArray(models) && models.length
+      ? models
+      : getAlibabaModelChain(projectDir);
+
+  for (const model of modelList) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(
+          `[Alibaba/DashScope] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries}) @ ${baseUrl}`
+        );
+        const response = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            max_tokens: tokenLimit,
+            ...(temperature !== null ? { temperature } : {}),
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const msg = result.choices?.[0]?.message || {};
+          let responseText = typeof msg.content === "string" ? msg.content : "";
+          if (!responseText && Array.isArray(msg.content)) {
+            responseText = msg.content
+              .map((part) =>
+                typeof part === "string"
+                  ? part
+                  : part?.text || part?.content || ""
+              )
+              .join("\n");
+          }
+          if (!responseText) {
+            responseText = msg.reasoning_content || msg.reasoning || "";
+          }
+          responseText = String(responseText || "")
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+          if (responseText) {
+            console.log(
+              `[Alibaba/DashScope] Sucesso model=${model} tentativa ${attempt} (${responseText.length} chars)`
+            );
+            return responseText;
+          }
+          console.warn(
+            `[Alibaba/DashScope] ${model} retornou vazio na tentativa ${attempt}/${maxRetries}`
+          );
+        }
+
+        const errData = await response.json().catch(() => ({}));
+        const errMsg =
+          errData.error?.message ||
+          errData.message ||
+          response.statusText ||
+          `HTTP ${response.status}`;
+        lastError = new Error(`${model}: ${errMsg}`);
+        console.warn(
+          `[Alibaba/DashScope] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`
+        );
+
+        // Modelo não comprado / sem cota — tenta próximo modelo
+        if (
+          response.status === 403 ||
+          /Unpurchased|AccessDenied|access_denied|not eligible/i.test(errMsg)
+        ) {
+          break;
+        }
+        if (response.status === 503 || response.status === 429) {
+          const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        if (response.status === 401) {
+          throw new Error(
+            `Alibaba: chave inválida ou sem permissão (${errMsg})`
+          );
+        }
+        break;
+      } catch (err) {
+        lastError = err;
+        console.warn(
+          `[Alibaba/DashScope] Erro na tentativa ${attempt} para ${model}: ${err.message}`
+        );
+        if (/chave inválida/i.test(err.message || "")) throw err;
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
+      }
+    }
+  }
+  throw (
+    lastError ||
+    new Error(
+      "Falha ao chamar Alibaba DashScope. Ative o modelo no Model Studio (console) e confira a cota free."
+    )
+  );
+}
+
+function getTokenRouterApiKey(projectDir = WORKSPACE_DIR) {
+  if (process.env.TOKENROUTER_API_KEY) {
+    return String(process.env.TOKENROUTER_API_KEY).trim() || null;
+  }
+  const readConfigKey = (configPath) => {
+    const config = readJsonFile(configPath);
+    const k =
+      config?.tokenrouter_api_key || config?.token_router_api_key || null;
+    return typeof k === "string" && k.trim() ? k.trim() : null;
+  };
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+  if (projectKey) return projectKey;
+  if (projectDir !== WORKSPACE_DIR) {
+    return readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json"));
+  }
+  return null;
+}
+
+function getTokenRouterBaseUrl(projectDir = WORKSPACE_DIR) {
+  const normalize = (raw) => {
+    let u = String(raw || "")
+      .trim()
+      .replace(/\/+$/, "");
+    if (!u) return "";
+    if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+    if (!/\/v1$/i.test(u)) u = `${u}/v1`;
+    return u;
+  };
+
+  if (process.env.TOKENROUTER_BASE_URL) {
+    const fromEnv = normalize(process.env.TOKENROUTER_BASE_URL);
+    if (fromEnv) return fromEnv;
+  }
+
+  const readBase = (configPath) => {
+    const config = readJsonFile(configPath);
+    return normalize(config?.tokenrouter_base_url || "");
+  };
+
+  return (
+    readBase(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readBase(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : "") ||
+    TOKENROUTER_DEFAULT_BASE_URL
+  );
+}
+
+function getTokenRouterModel(projectDir = WORKSPACE_DIR) {
+  const readModel = (configPath) => {
+    const config = readJsonFile(configPath);
+    const model = String(config?.tokenrouter_model || "").trim();
+    // Aceita modelos da lista ou IDs livres do catálogo TokenRouter
+    return model || null;
+  };
+  return (
+    readModel(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    process.env.TOKENROUTER_MODEL ||
+    DEFAULT_TOKENROUTER_MODEL
+  );
+}
+
+function getTokenRouterModelChain(
+  projectDir = WORKSPACE_DIR,
+  modelsOverride = null
+) {
+  if (Array.isArray(modelsOverride) && modelsOverride.length) {
+    return [...new Set(modelsOverride.map(String))];
+  }
+  const primary = getTokenRouterModel(projectDir);
+  return [...new Set([primary, ...TOKENROUTER_MODELS])];
+}
+
+/**
+ * TokenRouter (OpenAI SDK compatible):
+ *   from openai import OpenAI
+ *   client = OpenAI(base_url="https://api.tokenrouter.com/v1", api_key="sk-…")
+ *   client.chat.completions.create(
+ *     model="z-ai/glm-5.2-free",
+ *     messages=[{"role":"system",...},{"role":"user",...}],
+ *   )
+ * No Lumiera usamos o endpoint /chat/completions (não-stream) com a mesma API.
+ */
+async function callTokenRouterWithRetry(
+  promptOrBody,
+  {
+    maxRetries = 3,
+    bodyOverride = null,
+    projectDir = WORKSPACE_DIR,
+    temperature = null,
+    models = null,
+    maxTokens = null,
+  } = {}
+) {
+  const apiKey = getTokenRouterApiKey(projectDir);
+  if (!apiKey) {
+    throw new Error("Chave de API TokenRouter não configurada.");
+  }
+  const baseUrl = getTokenRouterBaseUrl(projectDir).replace(/\/+$/, "");
+  const messages = convertGeminiToOpenRouterMessages(
+    promptOrBody,
+    bodyOverride
+  );
+  const tokenLimit = Math.max(256, Math.min(32000, Number(maxTokens) || 8192));
+  let lastError = null;
+  const modelList =
+    Array.isArray(models) && models.length
+      ? models
+      : getTokenRouterModelChain(projectDir);
+
+  for (const model of modelList) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const t0 = Date.now();
+      try {
+        console.log(
+          `[TokenRouter] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries}) @ ${baseUrl}`
+        );
+        const response = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            max_tokens: tokenLimit,
+            ...(temperature !== null ? { temperature } : {}),
+          }),
+        });
+        const ms = Date.now() - t0;
+
+        if (response.ok) {
+          const result = await response.json();
+          const msg = result.choices?.[0]?.message || {};
+          let responseText = typeof msg.content === "string" ? msg.content : "";
+          if (!responseText && Array.isArray(msg.content)) {
+            responseText = msg.content
+              .map((part) =>
+                typeof part === "string"
+                  ? part
+                  : part?.text || part?.content || ""
+              )
+              .join("\n");
+          }
+          // GLM free (z-ai/*) e modelos "reasoning" às vezes só preenchem reasoning_content
+          const reasoning = String(
+            msg.reasoning_content || msg.reasoning || ""
+          ).trim();
+          if (!responseText && reasoning) {
+            responseText = reasoning;
+          } else if (
+            responseText &&
+            reasoning &&
+            responseText.length < 20 &&
+            reasoning.length > responseText.length * 2
+          ) {
+            // content minúsculo + reasoning longo → preferir reasoning
+            responseText = reasoning;
+          }
+          responseText = String(responseText || "")
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+          if (responseText) {
+            console.log(
+              `[TokenRouter] Sucesso model=${model} tentativa ${attempt} (${responseText.length} chars · ${ms}ms)`
+            );
+            return responseText;
+          }
+          console.warn(
+            `[TokenRouter] ${model} retornou vazio na tentativa ${attempt}/${maxRetries} · ${ms}ms`
+          );
+        }
+
+        const errData = await response.json().catch(() => ({}));
+        const errMsg =
+          errData.error?.message ||
+          errData.message ||
+          response.statusText ||
+          `HTTP ${response.status}`;
+        lastError = new Error(`${model}: ${errMsg}`);
+        console.warn(
+          `[TokenRouter] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg} · ${ms}ms`
+        );
+
+        if (response.status === 401) {
+          throw new Error(
+            `TokenRouter: chave inválida ou sem permissão (${errMsg})`
+          );
+        }
+        if (response.status === 404 || response.status === 400) {
+          // modelo inválido → próximo da cadeia
+          break;
+        }
+        if (response.status === 503 || response.status === 429) {
+          const delay = Math.min(1500 * Math.pow(2, attempt - 1), 10000);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        break;
+      } catch (err) {
+        lastError = err;
+        console.warn(
+          `[TokenRouter] Erro na tentativa ${attempt} para ${model}: ${err.message}`
+        );
+        if (/chave inválida/i.test(err.message || "")) throw err;
+        await new Promise((r) => setTimeout(r, Math.min(400 * attempt, 1200)));
+      }
+    }
+  }
+  throw (
+    lastError ||
+    new Error(
+      "Falha ao chamar TokenRouter. Confira a chave, o modelo e https://api.tokenrouter.com/v1"
+    )
+  );
+}
+
 function getInferenceApiKey(projectDir = WORKSPACE_DIR) {
   if (process.env.INFERENCE_API_KEY) return process.env.INFERENCE_API_KEY;
 
@@ -11564,11 +13194,35 @@ function getInferenceApiKey(projectDir = WORKSPACE_DIR) {
   return null;
 }
 
+/**
+ * Provedor de IA ativo — sempre flexível via config_qanat.json.
+ * Ordem: projeto ativo → workspace → default "gemini".
+ * Nunca trava em OpenRouter/NVIDIA; troca nas Configurações vale na hora.
+ */
 function getAiProvider(projectDir = WORKSPACE_DIR) {
   const readProvider = (configPath) => {
     const config = readJsonFile(configPath);
-
-    return config?.ai_provider || config?.metadata_provider || null;
+    const p = config?.ai_provider || config?.metadata_provider || null;
+    if (!p) return null;
+    const n = String(p).trim().toLowerCase();
+    // Inference.net removido — configs legadas caem no default
+    if (n === "inference") return null;
+    if (n === "dashscope" || n === "aliyun" || n === "qwen_cloud") {
+      return "alibaba";
+    }
+    if (n === "token_router" || n === "token-router") {
+      return "tokenrouter";
+    }
+    const allowed = new Set([
+      "gemini",
+      "xai",
+      "openrouter",
+      "nvidia",
+      "alibaba",
+      "tokenrouter",
+      "local",
+    ]);
+    return allowed.has(n) ? n : null;
   };
 
   return (
@@ -11578,6 +13232,26 @@ function getAiProvider(projectDir = WORKSPACE_DIR) {
       : null) ||
     "gemini"
   );
+}
+
+/** Modelo primário do provedor ativo (para painel de atividade / health). */
+function getActiveAiModel(projectDir = WORKSPACE_DIR) {
+  const provider = getAiProvider(projectDir);
+  try {
+    if (provider === "openrouter") return getOpenRouterModel(projectDir);
+    if (provider === "nvidia") return getNvidiaModel(projectDir);
+    if (provider === "alibaba") return getAlibabaModel(projectDir);
+    if (provider === "tokenrouter") return getTokenRouterModel(projectDir);
+    if (provider === "xai") {
+      return Array.isArray(XAI_MODELS) && XAI_MODELS[0]
+        ? XAI_MODELS[0]
+        : "grok";
+    }
+    if (provider === "local") return getLocalLlmModel(projectDir);
+  } catch {
+    /* fall through */
+  }
+  return getGeminiModel(projectDir);
 }
 
 function isGeminiBrowserModeEnabled(projectDir = WORKSPACE_DIR) {
@@ -11635,12 +13309,21 @@ async function callGeminiLlm(
       return null;
     }
   }
-  if (provider === "inference") {
-    const apiKey = getInferenceApiKey(projDir);
+  if (provider === "alibaba") {
+    const apiKey = getAlibabaApiKey(projDir);
     if (!apiKey) {
       res.status(401).json({
         error:
-          "Chave de API da Inference.net não configurada nas configurações.",
+          "Chave de API da Alibaba (DashScope) não configurada nas configurações.",
+      });
+      return null;
+    }
+  }
+  if (provider === "tokenrouter") {
+    const apiKey = getTokenRouterApiKey(projDir);
+    if (!apiKey) {
+      res.status(401).json({
+        error: "Chave de API TokenRouter não configurada nas configurações.",
       });
       return null;
     }
@@ -11661,6 +13344,8 @@ async function callGeminiLlm(
     temperature,
     projectDir: projDir,
     models,
+    activityLabel: title || "Consulta IA Lumiera",
+    activityDetail: String(prompt || "").slice(0, 120),
   });
 }
 
@@ -11693,14 +13378,14 @@ async function callStudioQuickLlm(
   const provider = getAiProvider(projDir);
   const quickModels =
     provider === "nvidia"
-      ? NVIDIA_MODELS.slice(0, 1)
+      ? [getNvidiaModel(projDir)]
       : provider === "inference"
         ? [getInferenceModel(projDir)]
         : provider === "xai"
           ? XAI_MODELS.slice(0, 1)
           : provider === "openrouter"
-            ? null
-            : [getGeminiModel(projDir), "gemini-2.5-flash"];
+            ? [getOpenRouterModel(projDir)]
+            : [getGeminiModel(projDir), "gemini-3.5-flash", "gemini-2.5-flash"];
 
   const text = await run(provider, () =>
     callGeminiWithRetry(getApiKey(projDir), prompt, {
@@ -11923,15 +13608,29 @@ app.get("/api/ai/key-status", (req, res) => {
     });
   }
 
-  if (provider === "inference") {
+  if (provider === "xai") {
+    return res.json({ has_key: !!getXaiApiKey(projDir), provider: "xai" });
+  }
+
+  if (provider === "alibaba") {
     return res.json({
-      has_key: !!getInferenceApiKey(projDir),
-      provider: "inference",
+      has_key: !!getAlibabaApiKey(projDir),
+      provider: "alibaba",
     });
   }
 
-  if (provider === "xai") {
-    return res.json({ has_key: !!getXaiApiKey(projDir), provider: "xai" });
+  if (provider === "tokenrouter") {
+    return res.json({
+      has_key: !!getTokenRouterApiKey(projDir),
+      provider: "tokenrouter",
+    });
+  }
+
+  if (provider === "nvidia") {
+    return res.json({
+      has_key: !!getNvidiaApiKey(projDir),
+      provider: "nvidia",
+    });
   }
 
   if (provider === "gemini" && isGeminiBrowserModeEnabled(projDir)) {
@@ -12033,12 +13732,31 @@ app.get("/api/ai/settings", (req, res) => {
 
     inference_model_options: INFERENCE_MODEL_OPTIONS,
 
+    openrouter_model: getOpenRouterModel(projDir),
+
+    openrouter_model_options: OPENROUTER_MODEL_OPTIONS,
+
+    nvidia_model: getNvidiaModel(projDir),
+
+    nvidia_model_options: NVIDIA_MODEL_OPTIONS,
+
+    alibaba_model: getAlibabaModel(projDir),
+    alibaba_model_options: ALIBABA_MODEL_OPTIONS,
+    alibaba_base_url: getAlibabaBaseUrl(projDir),
+
+    tokenrouter_model: getTokenRouterModel(projDir),
+    tokenrouter_model_options: TOKENROUTER_MODEL_OPTIONS,
+    tokenrouter_base_url: getTokenRouterBaseUrl(projDir),
+
     gemini_key_count: getApiKeys(projDir).length,
 
     has_xai_key: !!getXaiApiKey(projDir),
 
     has_openrouter_key: !!getOpenRouterApiKey(projDir),
+    has_openrouter_user_key: hasUserOpenRouterApiKey(projDir),
     has_nvidia_key: !!getNvidiaApiKey(projDir),
+    has_alibaba_key: !!getAlibabaApiKey(projDir),
+    has_tokenrouter_key: !!getTokenRouterApiKey(projDir),
     has_inference_key: !!getInferenceApiKey(projDir),
 
     has_epidemic_key: true,
@@ -12062,11 +13780,20 @@ app.post("/api/ai/settings", (req, res) => {
     provider,
     gemini_model,
     inference_model,
+    openrouter_model,
+    nvidia_model,
+    alibaba_model,
+    alibaba_base_url,
+    tokenrouter_model,
+    tokenrouter_base_url,
     gemini_key,
     gemini_keys,
     xai_key,
     openrouter_key,
     nvidia_key,
+    alibaba_key,
+    dashscope_key,
+    tokenrouter_key,
     inference_key,
     epidemic_sound_key,
     gemini_browser_mode,
@@ -12083,10 +13810,21 @@ app.post("/api/ai/settings", (req, res) => {
         provider === "xai" ||
         provider === "openrouter" ||
         provider === "nvidia" ||
-        provider === "inference" ||
+        provider === "alibaba" ||
+        provider === "dashscope" ||
+        provider === "tokenrouter" ||
+        provider === "token_router" ||
         provider === "local"
       ) {
-        next.ai_provider = provider;
+        next.ai_provider =
+          provider === "dashscope"
+            ? "alibaba"
+            : provider === "token_router"
+              ? "tokenrouter"
+              : provider;
+      } else if (provider === "inference") {
+        // Provedor removido — grava Gemini
+        next.ai_provider = "gemini";
       }
 
       if (typeof gemini_model === "string" && gemini_model.trim()) {
@@ -12101,6 +13839,58 @@ app.post("/api/ai/settings", (req, res) => {
         if (INFERENCE_MODEL_FALLBACKS.includes(normalizedInferenceModel)) {
           next.inference_model = normalizedInferenceModel;
         }
+      }
+
+      if (typeof openrouter_model === "string" && openrouter_model.trim()) {
+        const normalizedOpenRouterModel = openrouter_model.trim();
+        if (OPENROUTER_FREE_MODELS.includes(normalizedOpenRouterModel)) {
+          next.openrouter_model = normalizedOpenRouterModel;
+        }
+      }
+
+      if (typeof nvidia_model === "string" && nvidia_model.trim()) {
+        const normalizedNvidiaModel = nvidia_model.trim();
+        if (NVIDIA_MODELS.includes(normalizedNvidiaModel)) {
+          next.nvidia_model = normalizedNvidiaModel;
+        }
+      }
+
+      if (typeof alibaba_model === "string" && alibaba_model.trim()) {
+        const normalizedAlibabaModel = alibaba_model.trim();
+        if (ALIBABA_MODELS.includes(normalizedAlibabaModel)) {
+          next.alibaba_model = normalizedAlibabaModel;
+        }
+      }
+
+      if (typeof alibaba_base_url === "string" && alibaba_base_url.trim()) {
+        next.alibaba_base_url = alibaba_base_url.trim().replace(/\/+$/, "");
+      }
+
+      if (typeof tokenrouter_model === "string" && tokenrouter_model.trim()) {
+        next.tokenrouter_model = tokenrouter_model.trim();
+      }
+
+      if (
+        typeof tokenrouter_base_url === "string" &&
+        tokenrouter_base_url.trim()
+      ) {
+        let u = tokenrouter_base_url.trim().replace(/\/+$/, "");
+        if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+        if (!/\/v1$/i.test(u)) u = `${u}/v1`;
+        next.tokenrouter_base_url = u;
+      }
+
+      const alibabaKeyIn =
+        (typeof alibaba_key === "string" && alibaba_key.trim()) ||
+        (typeof dashscope_key === "string" && dashscope_key.trim()) ||
+        "";
+      if (alibabaKeyIn) {
+        next.alibaba_api_key = alibabaKeyIn;
+        next.dashscope_api_key = alibabaKeyIn;
+      }
+
+      if (typeof tokenrouter_key === "string" && tokenrouter_key.trim()) {
+        next.tokenrouter_api_key = tokenrouter_key.trim();
       }
 
       const parsedGeminiKeys = normalizeApiKeys(gemini_keys, gemini_key);
@@ -12162,10 +13952,23 @@ app.post("/api/ai/settings", (req, res) => {
       gemini_model_options: GEMINI_MODEL_OPTIONS,
       inference_model: getInferenceModel(projDir),
       inference_model_options: INFERENCE_MODEL_OPTIONS,
+      openrouter_model: getOpenRouterModel(projDir),
+      openrouter_model_options: OPENROUTER_MODEL_OPTIONS,
+      nvidia_model: getNvidiaModel(projDir),
+      nvidia_model_options: NVIDIA_MODEL_OPTIONS,
+      alibaba_model: getAlibabaModel(projDir),
+      alibaba_model_options: ALIBABA_MODEL_OPTIONS,
+      alibaba_base_url: getAlibabaBaseUrl(projDir),
+      tokenrouter_model: getTokenRouterModel(projDir),
+      tokenrouter_model_options: TOKENROUTER_MODEL_OPTIONS,
+      tokenrouter_base_url: getTokenRouterBaseUrl(projDir),
       gemini_key_count: getApiKeys(projDir).length,
       has_xai_key: !!getXaiApiKey(projDir),
       has_openrouter_key: !!getOpenRouterApiKey(projDir),
+      has_openrouter_user_key: hasUserOpenRouterApiKey(projDir),
       has_nvidia_key: !!getNvidiaApiKey(projDir),
+      has_alibaba_key: !!getAlibabaApiKey(projDir),
+      has_tokenrouter_key: !!getTokenRouterApiKey(projDir),
       has_inference_key: !!getInferenceApiKey(projDir),
       has_epidemic_key: true,
       gemini_browser_mode: isGeminiBrowserModeEnabled(projDir),
@@ -12294,7 +14097,7 @@ TIPOS DE ACAO:
 
 - "trigger_stock_fetch": Baixa B-roll do Pexels/Pixabay para cenas sem mídia.
 
-- "trigger_tts": Gera narração TTS. Params: {"engine":"kokoro","voice":"pm_alex","speed":0.82}, {"engine":"voicebox","voice":"<profile_id ou nome>"}, {"engine":"chatterbox","voice":"multilingual_pt"}, {"engine":"fish","voice":"__default__"} ou {"engine":"edge","voice":"pt-BR-AntonioNeural","rate":"+0%"}.
+- "trigger_tts": Gera narração TTS. Params: {"engine":"kokoro","voice":"pm_alex","speed":0.82}, {"engine":"voicebox","voice":"<profile_id ou nome>"}, {"engine":"chatterbox","voice":"multilingual_pt"}, {"engine":"qwen3","voice":"ryan_pt"}, {"engine":"fish","voice":"__default__"} ou {"engine":"edge","voice":"pt-BR-AntonioNeural","rate":"+0%"}.
 
 - "trigger_apply_bgm": Aplica trilha Epidemic Sound sugerida pela IA.
 
@@ -12834,7 +14637,7 @@ async function enhanceYoutubeTitlesMetadata(
       const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
         temperature: 0.4,
         maxRetries: 2,
-        models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+        models: ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash"],
       });
       const repaired = normalizeKeys(
         await parseAiJsonResponse(repairText, apiKey, "Refino titulos")
@@ -12885,7 +14688,7 @@ async function ensureScriptChecklist(
     const evalText = await callGeminiWithRetry(apiKey, evalPrompt, {
       temperature: 0.35,
       maxRetries: 2,
-      models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+      models: ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash"],
     });
     const evaluated = normalizeKeys(
       await parseAiJsonResponse(evalText, apiKey, "Checklist qualidade")
@@ -12937,7 +14740,7 @@ async function enhanceCreatorStrategyTitles(
       const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
         temperature: 0.4,
         maxRetries: 2,
-        models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+        models: ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash"],
       });
       const repaired = normalizeKeys(
         await parseAiJsonResponse(repairText, apiKey, "Refino titulos strategy")
@@ -13344,11 +15147,25 @@ app.post(
 );
 
 app.get("/api/ai/youtube-metadata-cache", (req, res) => {
-  const projDir = getProjectDir(req);
+  const ctx = getRequestProjectContext(req);
+  // Never serve workspace fallback cache for a named project that didn't resolve —
+  // that would show another project's metadata under the wrong project name.
+  if (ctx.requestedName && !ctx.resolved) {
+    return res.json({
+      cached: false,
+      projectResolved: false,
+      project: ctx.requestedName,
+    });
+  }
+  const projDir = ctx.projDir;
   const cachePath = path.join(projDir, "youtube_metadata_cache.json");
 
   if (!fs.existsSync(cachePath)) {
-    return res.json({ cached: false });
+    return res.json({
+      cached: false,
+      projectResolved: true,
+      project: path.basename(projDir),
+    });
   }
 
   try {
@@ -13389,7 +15206,11 @@ app.get("/api/ai/youtube-metadata-cache", (req, res) => {
 });
 
 app.get("/api/ai/youtube-thumbnails", (req, res) => {
-  const projDir = getProjectDir(req);
+  const ctx = getRequestProjectContext(req);
+  if (ctx.requestedName && !ctx.resolved) {
+    return res.json({ thumbnails: [], projectResolved: false });
+  }
+  const projDir = ctx.projDir;
   const projectName = path.basename(projDir);
   const manifestPath = path.join(
     projDir,
@@ -13399,7 +15220,7 @@ app.get("/api/ai/youtube-thumbnails", (req, res) => {
   );
 
   if (!fs.existsSync(manifestPath)) {
-    return res.json({ thumbnails: [] });
+    return res.json({ thumbnails: [], projectResolved: true });
   }
 
   try {
@@ -14209,13 +16030,12 @@ app.post(
               if (text) break;
             }
             if (!text) {
-              text = await tryCompetitorLlm("json-repair-gemini", () =>
+              // Provedor ativo das configs — não engessa Gemini
+              text = await tryCompetitorLlm("json-repair-provider", () =>
                 callGeminiWithRetry(getApiKey(WORKSPACE_DIR), repairPrompt, {
-                  maxRetries: 1,
-                  models: ["gemini-2.0-flash"],
+                  maxRetries: 2,
                   temperature: 0,
                   projectDir: WORKSPACE_DIR,
-                  forceProvider: "gemini",
                 })
               );
             }
@@ -14981,6 +16801,26 @@ app.get(
     };
 
     try {
+      if (steps.includes("upload")) {
+        sendLog("[Quality Gate] Auditando o video final antes do upload...");
+        const report = await runYoutubeQualityGate({
+          workspaceDir: WORKSPACE_DIR,
+          projectsRoot: PROJECTS_ROOT,
+          projectDir: projDir,
+        });
+        sendLog(
+          `[Quality Gate] Nota ${report.score}/100; ${report.blockingCount} bloqueio(s), ${report.warningCount} aviso(s).`
+        );
+        if (!report.ready) {
+          const detail = report.checks
+            .filter((item) => item.status === "error")
+            .slice(0, 5)
+            .map((item) => item.message)
+            .join(" | ");
+          throw new Error(`Upload bloqueado pelo Quality Gate: ${detail}`);
+        }
+      }
+
       const results = await runFullPipeline({
         projDir,
         pythonPath: PYTHON_PATH,
@@ -15638,14 +17478,45 @@ app.post("/api/narration/chunks", (req, res) => {
       },
       { storyboard, config }
     );
-    const saved = persistChunkPlanToProject(projDir, normalized, {
-      ...config,
-      narration_mode:
-        mode === NARRATION_MODE_MASTER
-          ? NARRATION_MODE_MASTER
-          : NARRATION_MODE_CHUNKED,
+    const nextMode =
+      mode === NARRATION_MODE_MASTER
+        ? NARRATION_MODE_MASTER
+        : NARRATION_MODE_CHUNKED;
+    const promoted =
+      nextMode === NARRATION_MODE_CHUNKED
+        ? promoteNarrationChunkPlanAsApprovedSource(storyboard, normalized)
+        : { storyboard, plan: normalized, changed: false };
+    const saved =
+      nextMode === NARRATION_MODE_CHUNKED
+        ? applyChunkedNarrationSyncToProject(projDir, {
+            chunkPlan: promoted.plan,
+            config: {
+              ...config,
+              narration_mode: NARRATION_MODE_CHUNKED,
+            },
+            storyboard: promoted.storyboard,
+          })
+        : persistChunkPlanToProject(projDir, normalized, {
+            ...config,
+            narration_mode: NARRATION_MODE_MASTER,
+          });
+    if (promoted.changed) {
+      appendNarrationAuditEvent(projDir, {
+        type: "user_text_edit",
+        status: "approved",
+        source: "narration-chunks-editor",
+        narrative_sha256:
+          promoted.storyboard.narration_integrity?.approved_text_sha256,
+        note: "A edição manual dos trechos foi promovida à narração oficial e às legendas.",
+      });
+    }
+    res.json({
+      success: true,
+      plan: saved.storyboard?.narration_chunk_plan || promoted.plan,
+      config: saved.config,
+      captions_synced: nextMode === NARRATION_MODE_CHUNKED,
+      narration_source_updated: promoted.changed,
     });
-    res.json({ success: true, plan: normalized, config: saved.config });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -16058,6 +17929,10 @@ app.get("/api/narration/audit", (req, res) => {
       ...audit,
       comparison,
       reviews: latestNarrationReviews(audit.events),
+      approval: narrationChunkApprovalState(
+        storyboard.narration_chunk_plan || {},
+        audit.events
+      ),
     });
   } catch (err) {
     res
@@ -17743,7 +19618,13 @@ ${webOpportunityContext}
   })
 );
 
-function normalizeKeys(data) {
+function normalizeKeys(data, formatHint = null) {
+  const defaultAspect =
+    formatHint === "SHORTS" || formatHint === "SHORT" || formatHint === "9:16"
+      ? "9:16"
+      : formatHint === "LONGO" || formatHint === "LONG" || formatHint === "16:9"
+        ? "16:9"
+        : null;
   if (!data || typeof data !== "object") return data;
 
   const normalized = {};
@@ -17801,6 +19682,16 @@ function normalizeKeys(data) {
 
   normalized.narrative_script =
     data[scriptKey] || data.script || data.narrativeScript || "";
+  normalized.narrative_script_tagged =
+    data.narrative_script_tagged ||
+    data.narrativeScriptTagged ||
+    data.roteiro_narrativo_marcado ||
+    "";
+  normalized.narracao_pro_trace =
+    data.narracao_pro_trace ||
+    data.narracaoProTrace ||
+    data.trace_narracao_pro ||
+    null;
 
   // Visual prompts
 
@@ -17853,6 +19744,7 @@ function normalizeKeys(data) {
         vp.aspectRatio ||
         vp.formato ||
         vp.proporcao ||
+        defaultAspect ||
         "16:9",
 
       prompt:
@@ -18526,6 +20418,9 @@ app.post(
       agentReachResearchRaw && typeof agentReachResearchRaw === "object"
         ? agentReachResearchRaw
         : null;
+    const persistedNarrationResearch = approvedNarration
+      ? readProjectJson(projDir, "storyboard.json", {})
+      : null;
     if (prefetchedReach?.summary || prefetchedReach?.facts?.length) {
       webResearchMeta = {
         available: true,
@@ -18545,6 +20440,31 @@ app.post(
       );
       console.log(
         `[WebResearch] Usando pesquisa Agent Reach do painel: ${webResearchMeta.sources?.length || 0} fontes.`
+      );
+    } else if (
+      approvedNarration &&
+      (persistedNarrationResearch?.research_facts?.length ||
+        persistedNarrationResearch?.research_sources?.length)
+    ) {
+      webResearchMeta = {
+        available: true,
+        summary:
+          "Evidências reutilizadas da narração já auditada pelo NARRACAOPRO.",
+        facts: Array.isArray(persistedNarrationResearch.research_facts)
+          ? persistedNarrationResearch.research_facts
+          : [],
+        sources: Array.isArray(persistedNarrationResearch.research_sources)
+          ? persistedNarrationResearch.research_sources
+          : [],
+        via: "narration-phase-audit",
+        fallback: false,
+      };
+      webResearchContext = formatWebResearchPromptBlock(
+        webResearchMeta,
+        "PESQUISA REUTILIZADA DA NARRAÇÃO AUDITADA"
+      );
+      console.log(
+        `[WebResearch] Fase 2 reutilizando ${webResearchMeta.facts.length} fatos e ${webResearchMeta.sources.length} fontes da narração; nova busca dispensada.`
       );
     } else if (
       !webResearchContext &&
@@ -18682,6 +20602,20 @@ app.post(
       }
     }
 
+    const projectConfigForStyle = readProjectJson(
+      projDir,
+      "config_qanat.json",
+      {}
+    );
+    const visualAssetStyle =
+      projectConfigForStyle.visual_asset_style ||
+      req.body?.visual_asset_style ||
+      "photorealistic";
+    const visualMapOnly = Boolean(
+      projectConfigForStyle.visual_map_only_prompts ??
+      req.body?.visual_map_only_prompts
+    );
+
     const promptContext = {
       niche,
       format,
@@ -18718,6 +20652,8 @@ app.post(
       approvedNarrationTagged,
       existingStrategy,
       remotionTemplateContext,
+      visualAssetStyle,
+      visualMapOnly,
     };
 
     let promptSystem;
@@ -18935,7 +20871,11 @@ app.post(
           const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
             temperature: 0.55,
             maxRetries: 2,
-            models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+            models: [
+              "gemini-3.5-flash",
+              "gemini-2.5-flash",
+              "gemini-2.0-flash",
+            ],
           });
           const repaired = normalizeKeys(
             await parseAiJsonResponse(
@@ -19004,7 +20944,11 @@ app.post(
             const enrichText = await callGeminiWithRetry(apiKey, enrichPrompt, {
               temperature: 0.55,
               maxRetries: 2,
-              models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+              models: [
+                "gemini-3.5-flash",
+                "gemini-2.5-flash",
+                "gemini-2.0-flash",
+              ],
             });
             const enriched = normalizeKeys(
               await parseAiJsonResponse(
@@ -19028,6 +20972,56 @@ app.post(
               enrichErr.message
             );
           }
+        }
+
+        report(
+          "auditoria",
+          "[NARRACAOPRO] Auditando o texto final após todas as alterações…",
+          85
+        );
+        const integrityAudit = assessNarracaoProIntegrity({
+          format,
+          narrativeScript: parsedData.narrative_script,
+          idea,
+          trace: parsedData.narracao_pro_trace,
+          researchFacts: webResearchMeta?.facts || [],
+          researchSources: webResearchMeta?.sources || [],
+        });
+        const editorialAudit = assessEditorialContract({
+          format,
+          narrativeScript: parsedData.narrative_script,
+          strategy: parsedData.strategy || {},
+        });
+        parsedData.narracao_pro_audit = {
+          integrity: integrityAudit,
+          editorial: editorialAudit,
+          approved: integrityAudit.ok && editorialAudit.ok,
+          narrative_sha256: hashNarrationIntegrityText(
+            parsedData.narrative_script
+          ),
+          audited_at: new Date().toISOString(),
+        };
+        if (!parsedData.narracao_pro_audit.approved) {
+          const issues = [
+            ...integrityAudit.issues,
+            ...editorialAudit.issues,
+          ].filter(Boolean);
+          const message = `Narração bloqueada pelo NARRACAOPRO: ${issues.join(" | ")}`;
+          console.warn(`[NARRACAOPRO] ${message}`);
+          appendProjectEventLog(projDir, {
+            component: "narration",
+            event: "narracao_pro_blocked",
+            message,
+            details: parsedData.narracao_pro_audit,
+          });
+          failJobProgress(progressJobId, message);
+          return activeRes.status(422).json({
+            error:
+              "A narração violou regras obrigatórias do NARRACAOPRO e não foi salva.",
+            details: issues,
+            audit: parsedData.narracao_pro_audit,
+            hint: "Relações históricas de influência exigem fontes diretas. Sem prova, reformule como comparação explícita ou troque a premissa.",
+          });
         }
 
         const storyboardPath = path.join(projDir, "storyboard.json");
@@ -19059,14 +21053,9 @@ app.post(
             ? new Date().toISOString()
             : undefined,
           narracao_pro_trace: parsedData.narracao_pro_trace || undefined,
+          narracao_pro_audit: parsedData.narracao_pro_audit,
           _creator_phase: "narration_pending",
         };
-        report(
-          "auditoria",
-          "[NARRACAOPRO] Etapa 9: Executando Auditoria Factual e de Narração Oral final...",
-          85
-        );
-        await new Promise((r) => setTimeout(r, 600));
 
         report(
           "finalizado",
@@ -19109,9 +21098,113 @@ app.post(
 
       if (approvedNarration) {
         report("visual_prompts", "Montando prompts visuais e list_items…", 70);
+        const approvedNarrationHash =
+          hashNarrationIntegrityText(approvedNarration);
+        const persistedStoryboard = readProjectJson(
+          projDir,
+          "storyboard.json",
+          {}
+        );
+        let persistedAudit = persistedStoryboard.narracao_pro_audit;
+        const persistedTrace = persistedStoryboard.narracao_pro_trace;
+        if (!persistedTrace) {
+          const message =
+            "A narração não possui o relatório NARRACAOPRO necessário para validar o texto.";
+          appendProjectEventLog(projDir, {
+            component: "narration",
+            event: "narracao_pro_legacy_bypass_blocked",
+            message,
+            details: {
+              expected_hash: approvedNarrationHash,
+              audited_hash: persistedAudit?.narrative_sha256 || null,
+              audit_approved: persistedAudit?.approved === true,
+              trace_present: Boolean(persistedTrace),
+            },
+          });
+          failJobProgress(progressJobId, message);
+          return activeRes.status(422).json({
+            error: message,
+            hint: "Gere novamente a fase de narração para criar o relatório de validação.",
+          });
+        }
+        if (
+          !persistedAudit?.approved ||
+          persistedAudit.narrative_sha256 !== approvedNarrationHash
+        ) {
+          const editedIntegrityAudit = assessNarracaoProIntegrity({
+            format,
+            narrativeScript: approvedNarration,
+            idea,
+            trace: persistedTrace,
+            researchFacts: persistedStoryboard.research_facts || [],
+            researchSources: persistedStoryboard.research_sources || [],
+          });
+          const editedEditorialAudit = assessEditorialContract({
+            format,
+            narrativeScript: approvedNarration,
+            strategy: existingStrategy || persistedStoryboard.strategy || {},
+          });
+          persistedAudit = {
+            integrity: editedIntegrityAudit,
+            editorial: editedEditorialAudit,
+            approved: editedIntegrityAudit.ok && editedEditorialAudit.ok,
+            narrative_sha256: approvedNarrationHash,
+            audited_at: new Date().toISOString(),
+            user_edited: true,
+          };
+          if (!persistedAudit.approved) {
+            const issues = [
+              ...editedIntegrityAudit.issues,
+              ...editedEditorialAudit.issues,
+            ].filter(Boolean);
+            const issuesText =
+              issues.join(" | ") || "auditoria editorial/factual";
+            const message = `O texto editado precisa de ajustes antes de gerar o roteiro completo: ${issuesText}`;
+            appendProjectEventLog(projDir, {
+              component: "narration",
+              event: "narracao_pro_user_edit_blocked",
+              message,
+              details: persistedAudit,
+            });
+            failJobProgress(progressJobId, message);
+            return activeRes.status(422).json({
+              error: message,
+              details: issues,
+              audit: persistedAudit,
+              hint: "Corrija os pontos da auditoria (gancho, nº de frases, payoff, fontes) e aprove de novo. Dica: mantenha o gancho de abertura e pelo menos 4 frases no Short.",
+            });
+          }
+          persistedStoryboard.narrative_script = approvedNarration;
+          persistedStoryboard.narrative_script_tagged =
+            approvedNarrationTagged || approvedNarration;
+          persistedStoryboard.narracao_pro_audit = persistedAudit;
+          fs.writeFileSync(
+            path.join(projDir, "storyboard.json"),
+            JSON.stringify(persistedStoryboard, null, 2),
+            "utf8"
+          );
+          appendProjectEventLog(projDir, {
+            component: "narration",
+            event: "narracao_pro_user_edit_approved",
+            message:
+              "Texto editado pelo usuário foi re-auditado e aprovado para o roteiro completo.",
+            details: persistedAudit,
+          });
+          console.log(
+            "[NARRACAOPRO] Texto editado pelo usuário re-auditado e aprovado."
+          );
+        }
+        parsedData.narracao_pro_trace = persistedTrace;
+        parsedData.narracao_pro_audit = persistedAudit;
+        parsedData.research_facts =
+          persistedStoryboard.research_facts || parsedData.research_facts || [];
+        parsedData.research_sources =
+          persistedStoryboard.research_sources ||
+          parsedData.research_sources ||
+          [];
         parsedData.narrative_script = approvedNarration;
         parsedData.narration_integrity = {
-          approved_text_sha256: hashNarrationIntegrityText(approvedNarration),
+          approved_text_sha256: approvedNarrationHash,
           approved_tagged_sha256: approvedNarrationTagged
             ? hashNarrationIntegrityText(approvedNarrationTagged)
             : null,
@@ -19151,7 +21244,11 @@ app.post(
               {
                 temperature: 0.6,
                 maxRetries: 2,
-                models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+                models: [
+                  "gemini-3.5-flash",
+                  "gemini-2.5-flash",
+                  "gemini-2.0-flash",
+                ],
               }
             );
             const vpRepaired = normalizeKeys(
@@ -19203,12 +21300,18 @@ app.post(
                 {
                   ideaTitle: idea.title,
                   historicalWitness,
+                  visualAssetStyle,
+                  visualMapOnly,
                 }
               );
               const batchText = await callGeminiWithRetry(apiKey, batchPrompt, {
                 temperature: 0.7,
                 maxRetries: 2,
-                models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+                models: [
+                  "gemini-3.5-flash",
+                  "gemini-2.5-flash",
+                  "gemini-2.0-flash",
+                ],
               });
               const batchParsed = await parseAiJsonResponse(
                 batchText,
@@ -19269,7 +21372,11 @@ app.post(
             const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
               temperature: 0.55,
               maxRetries: 2,
-              models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+              models: [
+                "gemini-3.5-flash",
+                "gemini-2.5-flash",
+                "gemini-2.0-flash",
+              ],
             });
             const repaired = normalizeKeys(
               await parseAiJsonResponse(
@@ -19310,14 +21417,48 @@ app.post(
         narrativeScript: parsedData.narrative_script,
         strategy: parsedData.strategy,
       });
+      const finalIntegrityAudit = assessNarracaoProIntegrity({
+        format,
+        narrativeScript: parsedData.narrative_script,
+        idea,
+        trace: parsedData.narracao_pro_trace,
+        researchFacts:
+          webResearchMeta?.facts || parsedData.research_facts || [],
+        researchSources:
+          webResearchMeta?.sources || parsedData.research_sources || [],
+      });
+      parsedData.narracao_pro_audit = {
+        integrity: finalIntegrityAudit,
+        editorial: parsedData.editorial_quality,
+        approved: finalIntegrityAudit.ok && parsedData.editorial_quality.ok,
+        narrative_sha256: hashNarrationIntegrityText(
+          parsedData.narrative_script
+        ),
+        audited_at: new Date().toISOString(),
+      };
       parsedData.narration_readiness = assessNarrationReadiness({
         format,
         narrativeScript: parsedData.narrative_script,
       });
-      if (!parsedData.editorial_quality.ok) {
-        console.warn(
-          `[Creator Script] Gate editorial: ${parsedData.editorial_quality.issues.join(" | ")}`
-        );
+      if (!parsedData.narracao_pro_audit.approved) {
+        const issues = [
+          ...finalIntegrityAudit.issues,
+          ...parsedData.editorial_quality.issues,
+        ].filter(Boolean);
+        const message = `Roteiro completo bloqueado pelo NARRACAOPRO: ${issues.join(" | ")}`;
+        appendProjectEventLog(projDir, {
+          component: "narration",
+          event: "narracao_pro_full_script_blocked",
+          message,
+          details: parsedData.narracao_pro_audit,
+        });
+        failJobProgress(progressJobId, message);
+        return activeRes.status(422).json({
+          error:
+            "O roteiro completo violou regras obrigatórias do NARRACAOPRO e não foi salvo.",
+          details: issues,
+          audit: parsedData.narracao_pro_audit,
+        });
       }
 
       parsedData = normalizeVisualPromptBlocks(parsedData, {
@@ -19841,13 +21982,25 @@ app.post(
         config.rank_count || storyboard.listicle?.rank_count || 0;
       const rankOrder =
         config.rank_order || storyboard.listicle?.rank_order || "desc";
+      const visualAssetStyle =
+        config.visual_asset_style ||
+        storyboard.visual_asset_style ||
+        storyboard.technical_config?.visual_asset_style ||
+        "photorealistic";
+      const visualMapOnly = Boolean(
+        config.visual_map_only_prompts ??
+        storyboard.visual_map_only_prompts ??
+        storyboard.technical_config?.visual_map_only_prompts
+      );
 
-      const { systemPrompt, userPrompt, detectedNiche } =
+      const { systemPrompt, userPrompt, detectedNiche, identityBrief } =
         buildVisualPromptEngineerRequest(storyboard, {
           format,
           isListicle,
           listicleRank,
           rankOrder,
+          visualAssetStyle,
+          mapOnly: visualMapOnly,
         });
 
       const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
@@ -19863,9 +22016,9 @@ app.post(
         temperature: 0.7,
         // Pro costuma estourar quota (429) — fallback flash
         models: [
-          "gemini-2.5-flash",
           "gemini-3.5-flash",
           "gemini-2.5-pro",
+          "gemini-2.5-flash",
           "gemini-2.0-flash",
         ],
       });
@@ -19900,6 +22053,13 @@ app.post(
       if (parsed.style_adaptation_notes) {
         storyboard._vpe_style_notes = parsed.style_adaptation_notes;
       }
+      if (
+        parsed.visual_identity &&
+        typeof parsed.visual_identity === "object"
+      ) {
+        storyboard.visual_identity = parsed.visual_identity;
+        storyboard._vpe_visual_identity = parsed.visual_identity;
+      }
 
       const vps = storyboard.visual_prompts || [];
       const expectedBlocks = isListicle
@@ -19925,6 +22085,16 @@ app.post(
         const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
         const scene = sceneInBlock ? sceneStr : `${block}.${index + 1}`;
         const prev = prevPovByScene.get(String(vp.scene || scene)) || null;
+        const identityTags = Array.isArray(vp.identity_tags)
+          ? vp.identity_tags
+              .map((tag) => String(tag || "").trim())
+              .filter(Boolean)
+              .slice(0, 8)
+          : undefined;
+        const narrativeJob = String(vp.narrative_job || "")
+          .trim()
+          .toLowerCase();
+        const visualHook = String(vp.visual_hook || "").trim();
         return {
           ...vp,
           ...(prev
@@ -19944,11 +22114,66 @@ app.post(
                 },
               }
             : {}),
-          prompt: enforceVisualLocalizedTextRule(vp.prompt || ""),
+          prompt: enforceVisualLocalizedTextRule(vp.prompt || "", {
+            allowDiegeticText: vp.diegetic_text_required === true,
+            mediaType: vp.type || vp.media_mode || "",
+            format,
+          }),
+          aspect_ratio:
+            format === "SHORTS" || format === "SHORT" ? "9:16" : "16:9",
+          ...(narrativeJob
+            ? {
+                narrative_job: [
+                  "prove",
+                  "reveal",
+                  "contrast",
+                  "explain",
+                  "feel",
+                ].includes(narrativeJob)
+                  ? narrativeJob
+                  : narrativeJob.slice(0, 32),
+              }
+            : {}),
+          ...(visualHook ? { visual_hook: visualHook.slice(0, 180) } : {}),
+          ...(identityTags?.length ? { identity_tags: identityTags } : {}),
           block,
           scene,
         };
       });
+      // Aplica estilo visual + modo mapas do projeto
+      storyboard.visual_asset_style = visualAssetStyle;
+      storyboard.visual_map_only_prompts = visualMapOnly;
+      storyboard.visual_prompts = applyProjectVisualAssetStyleToPrompts(
+        storyboard.visual_prompts,
+        visualAssetStyle,
+        { mapOnly: visualMapOnly }
+      );
+      if (identityBrief && typeof identityBrief === "object") {
+        storyboard.visual_identity = {
+          ...(storyboard.visual_identity || {}),
+          asset_style: identityBrief.visual_asset_style,
+          asset_style_label: identityBrief.visual_asset_style_label,
+          map_only_prompts: visualMapOnly,
+          look:
+            storyboard.visual_identity?.look ||
+            identityBrief.look ||
+            identityBrief.palette_and_light,
+        };
+      }
+      // Recalcula stock_query a partir do prompt específico da cena (não genérico)
+      try {
+        const { resolveStockSearchQuery } =
+          await import("./stockSearchQuery.js");
+        storyboard.visual_prompts = storyboard.visual_prompts.map((vp) => ({
+          ...vp,
+          stock_query: resolveStockSearchQuery(vp, {
+            strategyTitle: storyboard.strategy?.title_main || "",
+            projectTitle: storyboard.strategy?.title_main || "",
+          }),
+        }));
+      } catch (stockErr) {
+        console.warn("[VPE PRO] stock_query refresh:", stockErr.message);
+      }
       storyboard.visual_prompts = ensureNarrationCoverage(
         storyboard.visual_prompts,
         {
@@ -20639,6 +22864,12 @@ app.post(
   "/api/notebooklm/improve-script",
   asyncHandler(async (req, res) => {
     const projDir = getProjectDir(req);
+    if (loadNarracaoProGuidelines()) {
+      return res.status(409).json({
+        error: "Reescrita pós-auditoria desativada pelo NARRACAOPRO.",
+        hint: "Regere a narração pelo Lumiera Script Master para que pesquisa, trace e texto final sejam auditados juntos.",
+      });
+    }
 
     const {
       niche: nicheBody,
@@ -20814,6 +23045,12 @@ app.post(
 
     // Use any available project dir for API key resolution
     const projDir = getProjectDir(req);
+    if (loadNarracaoProGuidelines()) {
+      return res.status(409).json({
+        error: "Melhoria isolada de narração desativada pelo NARRACAOPRO.",
+        hint: "Uma reescrita isolada quebraria o vínculo entre fatos, trace e texto auditado. Regere a fase de narração completa.",
+      });
+    }
 
     // NotebookLM research
     let notebooklmResearch = null;
@@ -21183,6 +23420,27 @@ app.get("/api/sync-timings", (req, res) => {
     return;
   }
 
+  const syncConfig = readProjectJson(projDir, "config_qanat.json", {});
+  const syncStoryboard = readProjectJson(projDir, "storyboard.json", {});
+  if (isChunkedNarrationProject(syncConfig, syncStoryboard)) {
+    try {
+      const audit = readNarrationAudit(projDir);
+      assertApprovedNarrationMasterReady(
+        syncStoryboard.narration_chunk_plan || {},
+        audit.events
+      );
+      sendLog("[Revisão] Todos os trechos aprovados; master atual confirmado.");
+    } catch (err) {
+      sendLog(`[BLOQUEADO] ${err?.message || String(err)}`);
+      res.write(
+        `data: ${JSON.stringify({ type: "failed", code: err?.code || "NARRATION_REVIEW_REQUIRED" })}\n\n`
+      );
+      res.end();
+      cleanup();
+      return;
+    }
+  }
+
   sendLog("[1/2] Executando análise do Whisper (find_block_timings.py)...");
 
   ensureFileExists("find_block_timings.py", projDir);
@@ -21376,6 +23634,7 @@ let workflowApi = null;
 workflowApi = registerWorkflowRoutes(app, {
   getProjectDir,
   WORKSPACE_DIR,
+  PROJECTS_ROOT,
   PYTHON_PATH,
   getApiKeys,
   getXaiApiKey,
@@ -21420,12 +23679,31 @@ registerMotionSceneRoutes(app, {
   parseAiJson: parseAiJsonResponse,
 });
 
+registerSpecializedStoryboardImportRoute(app, { getProjectDir });
+
 registerMotionFlyoverUploadRoute(app, { getProjectDir });
 
 registerRemotionTemplateStudioRoutes(app, {
   getProjectDir,
   callGemini: (projDir, prompt, opts) =>
     callGeminiWithRetry(getApiKey(projDir), prompt, opts),
+});
+registerYoutubeQualityGateRoutes(app, {
+  workspaceDir: WORKSPACE_DIR,
+  projectsRoot: PROJECTS_ROOT,
+  getProjectDir,
+  fixWithAi: async ({ projectDir, prompt }) => {
+    const text = await callGeminiWithRetry(getApiKey(projectDir), prompt, {
+      projectDir,
+      temperature: 0.25,
+      maxRetries: 3,
+    });
+    return parseAiJsonResponse(
+      text,
+      getApiKey(projectDir),
+      "Correção automática do Quality Gate"
+    );
+  },
 });
 
 registerVideoResurrectorRoutes(app, {

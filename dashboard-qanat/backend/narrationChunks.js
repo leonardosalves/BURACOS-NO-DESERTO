@@ -36,9 +36,17 @@ import {
   synthesizeChatterboxNarration,
   CHATTERBOX_DEFAULT_VOICE,
 } from "./chatterboxTts.js";
+import {
+  loadQwen3TtsConfig,
+  synthesizeQwen3TtsNarration,
+  prepareQwen3ExpressiveNarration,
+  QWEN3_TTS_DEFAULT_VOICE,
+} from "./qwen3Tts.js";
 import { flattenWordTranscripts } from "../shared/wordTranscripts.js";
 import { cleanText, matchWords } from "../shared/narrationMatch.js";
 import { tightenTimelineRetentionDurations } from "./timelineSceneSync.js";
+import { applyNarrationFirstVisualPlan } from "../shared/narrationFirstVisualPlan.js";
+import { isPromptOnlyKeyframe } from "../shared/timelineKeyframeUtils.js";
 
 const MAX_WHISPER_WORD_DURATION_S = 2.5;
 const MAX_WHISPER_INTER_WORD_GAP_S = 1.2;
@@ -55,6 +63,87 @@ export function hashNarrationIntegrityText(text = "") {
     .createHash("sha256")
     .update(normalizeNarrationIntegrityText(text), "utf8")
     .digest("hex");
+}
+
+export function promoteNarrationChunkPlanAsApprovedSource(
+  storyboard = {},
+  plan = {}
+) {
+  const chunks = Array.isArray(plan?.chunks) ? plan.chunks : [];
+  const narrativeScript = normalizeNarrationIntegrityText(
+    chunks.map((chunk) => chunk?.text || "").join(" ")
+  );
+  if (!narrativeScript) {
+    return { storyboard, plan, changed: false };
+  }
+
+  const narrativeScriptTagged = chunks
+    .map((chunk) => String(chunk?.text_tagged || chunk?.text || "").trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/[\u200b\u2060\ufeff]/g, "")
+    .trim();
+  const sourceHash = hashNarrationIntegrityText(narrativeScript);
+  const taggedHash = narrativeScriptTagged
+    ? hashNarrationIntegrityText(narrativeScriptTagged)
+    : null;
+  const previousHash =
+    storyboard?.narration_integrity?.approved_text_sha256 ||
+    (storyboard?.narrative_script
+      ? hashNarrationIntegrityText(storyboard.narrative_script)
+      : null);
+  const changed = sourceHash !== previousHash;
+  const approvedAt = new Date().toISOString();
+  const nextPlan = {
+    ...plan,
+    source_narration_hash: sourceHash,
+    narrative_script_snapshot: narrativeScript.slice(0, 500),
+  };
+  const nextAudit = storyboard?.narracao_pro_audit
+    ? {
+        ...storyboard.narracao_pro_audit,
+        narrative_sha256: sourceHash,
+        approved: true,
+        user_edited: changed || storyboard.narracao_pro_audit.user_edited,
+        user_approved_at: changed
+          ? approvedAt
+          : storyboard.narracao_pro_audit.user_approved_at,
+        previous_narrative_sha256:
+          changed && previousHash !== sourceHash
+            ? previousHash
+            : storyboard.narracao_pro_audit.previous_narrative_sha256,
+      }
+    : storyboard?.narracao_pro_audit;
+
+  return {
+    changed,
+    plan: nextPlan,
+    storyboard: {
+      ...storyboard,
+      narrative_script: narrativeScript,
+      narrative_script_tagged: narrativeScriptTagged || narrativeScript,
+      technical_config: {
+        ...(storyboard.technical_config || {}),
+        script: narrativeScript,
+      },
+      narration_chunk_plan: nextPlan,
+      narration_integrity: {
+        ...(storyboard.narration_integrity || {}),
+        approved_text_sha256: sourceHash,
+        approved_tagged_sha256: taggedHash,
+        locked: true,
+        approved_at: approvedAt,
+        user_edited: changed,
+        previous_approved_text_sha256:
+          changed && previousHash !== sourceHash
+            ? previousHash
+            : storyboard?.narration_integrity?.previous_approved_text_sha256 ||
+              null,
+        pipeline_restored_approved_text: false,
+      },
+      ...(nextAudit ? { narracao_pro_audit: nextAudit } : {}),
+    },
+  };
 }
 
 export function assertNarrationChunksPreserveSource(
@@ -243,11 +332,20 @@ function clampPauseMs(value, fallback = 400) {
 }
 
 function normalizeVoiceRef(raw = {}, fallback = {}) {
-  const engine = String(
+  let engine = String(
     raw.engine || raw.platform || fallback.engine || "kokoro"
   ).toLowerCase();
+  if (engine === "gpt-sovits" || engine === "gpt_sovits") engine = "gptsovits";
+  if (
+    engine === "qwen3-tts" ||
+    engine === "qwen_tts" ||
+    engine === "qwen" ||
+    engine === "qwen_custom_voice"
+  ) {
+    engine = "qwen3";
+  }
   return {
-    engine: engine === "gpt-sovits" ? "gptsovits" : engine,
+    engine,
     voice: String(
       raw.voice || raw.voice_id || fallback.voice || KOKORO_DEFAULT_VOICE
     ),
@@ -809,9 +907,13 @@ export function normalizeNarrationChunkPlan(
       const id = String(c.id || `chunk-${String(idx + 1).padStart(2, "0")}`);
       const generationSignature = c.generation_signature || null;
       const desiredSignature = buildNarrationChunkSignature(c, voice);
-      const hasGeneratedAudio = Boolean(
-        c.audio_file && Number(c.duration_s) > 0
-      );
+      const rawAudioFile = String(c.audio_file || "").trim() || null;
+      const durationS = Number.isFinite(Number(c.duration_s))
+        ? Number(c.duration_s)
+        : null;
+      // Áudio real só conta com MP3 + duração > 0. Nunca inventar path em
+      // trechos "planned" — isso fazia o botão Play aparecer sem arquivo em disco.
+      const hasGeneratedAudio = Boolean(rawAudioFile && Number(durationS) > 0);
       const audioIsStale = Boolean(
         hasGeneratedAudio && generationSignature !== desiredSignature
       );
@@ -836,10 +938,10 @@ export function normalizeNarrationChunkPlan(
         pause_reason: c.pause_reason || undefined,
         block_phrase: c.block_phrase || undefined,
         voice,
-        audio_file: c.audio_file || chunkAudioRelativePath(id),
-        duration_s: Number.isFinite(Number(c.duration_s))
-          ? Number(c.duration_s)
+        audio_file: hasGeneratedAudio
+          ? rawAudioFile || chunkAudioRelativePath(id)
           : null,
+        duration_s: durationS,
         start_s: Number.isFinite(Number(c.start_s)) ? Number(c.start_s) : null,
         end_s: Number.isFinite(Number(c.end_s)) ? Number(c.end_s) : null,
         generation_signature: generationSignature,
@@ -849,7 +951,13 @@ export function normalizeNarrationChunkPlan(
         versions: Array.isArray(c.versions) ? c.versions : [],
         status: audioIsStale
           ? "stale"
-          : c.status || (hasGeneratedAudio ? "generated" : "planned"),
+          : c.status === "failed"
+            ? "failed"
+            : hasGeneratedAudio
+              ? c.status === "stale"
+                ? "stale"
+                : "generated"
+              : "planned",
       };
     })
     .filter((c) => c.text.length >= 2);
@@ -943,6 +1051,119 @@ export function resolveChunkAssetIndex(chunk, assets = [], ordinalInBlock = 0) {
   return Math.min(ordinalInBlock, list.length - 1);
 }
 
+function splitNarrationText(text = "", partCount = 1) {
+  const words = String(text || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const count = Math.max(1, Number(partCount) || 1);
+  if (count === 1 || words.length < 2) return [words.join(" ")];
+  return Array.from({ length: count }, (_, index) => {
+    const start = Math.round((index * words.length) / count);
+    const end = Math.round(((index + 1) * words.length) / count);
+    return words.slice(start, end).join(" ");
+  });
+}
+
+/**
+ * Converte chunks de voz em janelas visuais sem assumir 1 chunk = 1 cena.
+ * Várias vozes podem compartilhar uma cena e uma fala pode cobrir várias cenas.
+ */
+export function buildVisualSceneTimingSegments(chunks = [], scenes = []) {
+  const timedChunks = [...(chunks || [])]
+    .filter(
+      (chunk) =>
+        Number.isFinite(Number(chunk?.start_s)) &&
+        Number.isFinite(Number(chunk?.end_s)) &&
+        Number(chunk.end_s) > Number(chunk.start_s)
+    )
+    .sort((a, b) => Number(a.start_s) - Number(b.start_s));
+  const visualScenes = (scenes || []).filter(
+    (scene) => !isPromptOnlyKeyframe(scene)
+  );
+  if (!visualScenes.length) return timedChunks;
+  if (!timedChunks.length) return [];
+
+  const sceneRefs = visualScenes.map((scene, index) =>
+    String(
+      scene?.scene || scene?.scene_ref || `${scene?.block || 1}.${index + 1}`
+    ).trim()
+  );
+  const chunksByScene = new Map();
+  timedChunks.forEach((chunk, chunkIndex) => {
+    const exactIndex = sceneRefs.indexOf(String(chunk?.scene_ref || "").trim());
+    const fallbackIndex =
+      visualScenes.length === 1 || timedChunks.length === 1
+        ? 0
+        : Math.round(
+            (chunkIndex * (visualScenes.length - 1)) / (timedChunks.length - 1)
+          );
+    const sceneIndex = exactIndex >= 0 ? exactIndex : fallbackIndex;
+    if (!chunksByScene.has(sceneIndex)) chunksByScene.set(sceneIndex, []);
+    chunksByScene.get(sceneIndex).push(chunk);
+  });
+
+  const occupied = [...chunksByScene.keys()].sort((a, b) => a - b);
+  const ownerForScene = visualScenes.map((_, sceneIndex) => {
+    if (chunksByScene.has(sceneIndex)) return sceneIndex;
+    return occupied.reduce(
+      (best, candidate) =>
+        Math.abs(candidate - sceneIndex) < Math.abs(best - sceneIndex)
+          ? candidate
+          : best,
+      occupied[0]
+    );
+  });
+
+  const scenesByOwner = new Map();
+  ownerForScene.forEach((owner, sceneIndex) => {
+    if (!scenesByOwner.has(owner)) scenesByOwner.set(owner, []);
+    scenesByOwner.get(owner).push(sceneIndex);
+  });
+
+  const segments = Array(visualScenes.length).fill(null);
+  for (const [owner, sceneIndexes] of scenesByOwner) {
+    const ownedChunks = chunksByScene.get(owner) || [];
+    const start = Math.min(
+      ...ownedChunks.map((chunk) => Number(chunk.start_s))
+    );
+    const speechEnd = Math.max(
+      ...ownedChunks.map((chunk) => Number(chunk.end_s))
+    );
+    // A janela visual inclui a pausa posterior. Sem isso, a timeline ganha
+    // buracos entre cenas e termina antes da narração mestre.
+    const end = Math.max(
+      ...ownedChunks.map(
+        (chunk) =>
+          Number(chunk.end_s) +
+          Math.max(0, Number(chunk.pause_after_ms) || 0) / 1000
+      )
+    );
+    const duration = Math.max(0.05, end - start);
+    const combinedText = ownedChunks
+      .map((chunk) => String(chunk.text || "").trim())
+      .filter(Boolean)
+      .join(" ");
+    const textParts = splitNarrationText(combinedText, sceneIndexes.length);
+    sceneIndexes.forEach((sceneIndex, partIndex) => {
+      const partStart = start + (duration * partIndex) / sceneIndexes.length;
+      const partEnd =
+        start + (duration * (partIndex + 1)) / sceneIndexes.length;
+      segments[sceneIndex] = {
+        ...ownedChunks[0],
+        id: ownedChunks.map((chunk) => chunk.id).join("+"),
+        scene_ref: sceneRefs[sceneIndex],
+        text: textParts[partIndex] || "",
+        start_s: Number(partStart.toFixed(3)),
+        end_s: Number(partEnd.toFixed(3)),
+        speech_end_s: Number(Math.min(speechEnd, partEnd).toFixed(3)),
+        source_chunk_ids: ownedChunks.map((chunk) => chunk.id),
+      };
+    });
+  }
+  return segments.filter(Boolean);
+}
+
 /**
  * Sincroniza timeline + storyboard a partir dos trechos (start_s/end_s) — fonte de verdade no modo chunked.
  */
@@ -976,6 +1197,22 @@ export function syncTimelineFromChunkPlan({
   for (const [blockNum, blockChunks] of byBlock) {
     const blockKey = String(blockNum);
     let assets = [...(out[blockKey] || [])];
+    const storyboardBlockScenes = nextPrompts.filter(
+      (scene) =>
+        Number(scene?.block) === blockNum && !isPromptOnlyKeyframe(scene)
+    );
+    // Se o editor já manteve somente slots reais/bloqueados, essa seleção é
+    // intencional (por exemplo após excluir uma cena repetida). Não recrie o
+    // slot apagado apenas porque o storyboard legado ainda o referencia.
+    const hasExplicitVisualSelection =
+      assets.length > 0 &&
+      assets.every(
+        (asset) => asset?.user_locked === true || asset?.manual_asset === true
+      );
+    const blockScenes =
+      hasExplicitVisualSelection && assets.length < storyboardBlockScenes.length
+        ? storyboardBlockScenes.slice(0, assets.length)
+        : storyboardBlockScenes;
     const sortedRaw = [...blockChunks].sort(
       (a, b) =>
         Number(a.start_s) - Number(b.start_s) ||
@@ -983,7 +1220,7 @@ export function syncTimelineFromChunkPlan({
     );
     // Um resíduo muito curto (ex.: a última palavra com 0,5s) não merece
     // criar um segundo asset vazio; ele deve permanecer na cena anterior.
-    const sorted = sortedRaw.reduce((merged, chunk) => {
+    const compactedChunks = sortedRaw.reduce((merged, chunk) => {
       const duration = Number(chunk.end_s) - Number(chunk.start_s);
       const previous = merged.at(-1);
       if (previous && Number.isFinite(duration) && duration < 1.1) {
@@ -1001,6 +1238,8 @@ export function syncTimelineFromChunkPlan({
       return [...merged, chunk];
     }, []);
 
+    const sorted = buildVisualSceneTimingSegments(compactedChunks, blockScenes);
+
     // Após compactar resíduos, descarte apenas placeholders excedentes. Assets
     // reais e slots bloqueados do usuário nunca são removidos automaticamente.
     if (assets.length > sorted.length) {
@@ -1013,26 +1252,41 @@ export function syncTimelineFromChunkPlan({
     }
 
     while (assets.length < sorted.length) {
-      assets.push({ asset: "", type: "image" });
+      const scene = blockScenes[assets.length];
+      const sceneAsset =
+        scene?.asset && typeof scene.asset === "object"
+          ? scene.asset.asset
+          : scene?.asset;
+      assets.push({
+        asset: String(sceneAsset || ""),
+        type:
+          scene?.asset?.type ||
+          (String(scene?.type || "")
+            .toLowerCase()
+            .includes("vídeo")
+            ? "video"
+            : "image"),
+      });
     }
 
     sorted.forEach((chunk, ordinal) => {
       const start = Number(chunk.start_s);
       const end = Number(chunk.end_s);
+      const speechEnd = Number(chunk.speech_end_s ?? chunk.end_s);
       if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
         return;
 
       const text = String(chunk.text || "").trim();
-      // 1 trecho = 1 slot na ordem do bloco (evita colisão por scene_ref incorreto).
+      // O slot segue a cena visual; chunks de voz podem ser agregados ou divididos.
       const idx = Math.min(ordinal, assets.length - 1);
       assets[idx] = {
         ...assets[idx],
         narration_segment: text,
         audio_start: parseFloat(start.toFixed(3)),
-        speech_end: parseFloat(end.toFixed(3)),
-        fixed: parseFloat(Math.max(0.5, end - start).toFixed(1)),
+        speech_end: parseFloat(speechEnd.toFixed(3)),
+        fixed: parseFloat(Math.max(0.5, end - start).toFixed(3)),
         synced_to_speech: true,
-        duration_from_whisper: true,
+        duration_from_whisper: chunkPlan?.timing_source === "whisper",
         chunk_id: chunk.id,
       };
 
@@ -1287,7 +1541,7 @@ export function applyChunkedNarrationSyncToProject(
     synced.timelineAssets,
     timings
   );
-  const nextConfig = {
+  let nextConfig = {
     ...config,
     timeline_assets: tightenedTimeline,
     narration_mode: NARRATION_MODE_CHUNKED,
@@ -1297,11 +1551,21 @@ export function applyChunkedNarrationSyncToProject(
     timedPlan,
     tightenedTimeline
   );
-  const nextStoryboard = {
+  let nextStoryboard = {
     ...storyboard,
     visual_prompts: visualPrompts,
     narration_chunk_plan: timedPlan,
   };
+
+  const temporal = applyNarrationFirstVisualPlan({
+    storyboard: nextStoryboard,
+    timelineAssets: nextConfig.timeline_assets,
+    chunkPlan: timedPlan,
+  });
+  if (temporal.applied) {
+    nextStoryboard = temporal.storyboard;
+    nextConfig = { ...nextConfig, timeline_assets: temporal.timelineAssets };
+  }
 
   fs.writeFileSync(
     path.join(projDir, "config_qanat.json"),
@@ -1544,6 +1808,49 @@ export async function synthesizeNarrationChunkAudio(
       engine: "chatterbox",
       voice: result.voice,
       durationSeconds: result.durationSeconds,
+    };
+  }
+
+  if (
+    engine === "qwen3" ||
+    engine === "qwen3-tts" ||
+    engine === "qwen" ||
+    engine === "qwen_tts"
+  ) {
+    const qConfig = loadQwen3TtsConfig({
+      workspaceDir,
+      projectDir: projDir,
+    });
+    const voiceId = voice.voice || QWEN3_TTS_DEFAULT_VOICE;
+    // Prefere texto com tags (tom/pausa/ênfase) → instruct + fala limpa
+    const sourceText =
+      useTagged && sanitizedTagged.length > 2 ? sanitizedTagged : plain;
+    // sanitizeNarrationChunkTaggedText remove [ênfase]; se o plain tinha tags
+    // ricas no original, tenta o tagged bruto antes da sanitização forte
+    const taggedRaw = String(taggedText || "").trim();
+    const expressiveSource =
+      useTagged && taggedRaw.length > 2 ? taggedRaw : sourceText;
+    const prepared = prepareQwen3ExpressiveNarration(expressiveSource, {
+      voiceId,
+    });
+    const result = await synthesizeQwen3TtsNarration(prepared.text, {
+      voice: voiceId,
+      outputPath,
+      workDir: workDir || path.dirname(outputPath),
+      config: qConfig,
+      instruct: prepared.instruct,
+      applyTags: false,
+      minChars: 2,
+      onLog,
+    });
+    return {
+      engine: "qwen3",
+      voice: result.voice,
+      durationSeconds: result.durationSeconds,
+      speaker: result.speaker,
+      language: result.language,
+      instruct: prepared.instruct,
+      tags: prepared.tags,
     };
   }
 

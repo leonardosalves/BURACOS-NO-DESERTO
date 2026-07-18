@@ -141,6 +141,80 @@ export function AppMusicTab({
       }
     >
       <div className="lumiera-panel-stack font-sans">
+        <div className="glass-panel rounded-2xl border border-orange-500/25 bg-orange-500/[0.04] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-orange-300">
+              Sound Design IA · Efeitos profissionais
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-zinc-400 max-w-3xl">
+              Analisa ação, ambiente e viradas narrativas; decide quando o
+              silêncio é melhor, define timing, duração, fades e volume, valida
+              o resultado da busca e baixa os SFX para a timeline.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={planningProfessionalSfx || !hasApiKey}
+            onClick={handlePlanProfessionalSfx}
+            className="shrink-0 rounded-xl bg-orange-500 hover:bg-orange-400 disabled:opacity-50 px-4 py-2.5 text-xs font-extrabold text-zinc-950 flex items-center gap-2 cursor-pointer"
+          >
+            {planningProfessionalSfx ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            {planningProfessionalSfx
+              ? "Desenhando e baixando SFX…"
+              : "Criar sonoplastia profissional"}
+          </button>
+        </div>
+        {professionalSfxEvents.length > 0 && (
+          <div className="glass-panel rounded-2xl border border-orange-500/20 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-wider text-orange-300">
+                  Efeitos posicionados
+                </p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">
+                  {professionalSfxEvents.length} eventos sincronizados com o
+                  Editor Timing
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+              {professionalSfxEvents.map((event, index) => (
+                <div
+                  key={`${event.file}-${event.time}-${index}`}
+                  className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2.5 flex items-start gap-3"
+                >
+                  <span className="shrink-0 rounded-md bg-orange-500/10 px-2 py-1 font-mono text-[10px] text-orange-300">
+                    {Number(event.time || 0).toFixed(2)}s
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-bold text-zinc-200">
+                      {event.provider_title || event.file || `SFX ${index + 1}`}
+                    </p>
+                    <p className="mt-0.5 text-[9px] text-zinc-500">
+                      {event.category || "detail"} ·{" "}
+                      {Number(event.duration || 0.8).toFixed(2)}s · volume{" "}
+                      {Math.round(Number(event.volume || 0.04) * 100)}%
+                    </p>
+                    {event.intent && (
+                      <p className="mt-1 text-[10px] leading-relaxed text-zinc-400 line-clamp-2">
+                        {event.intent}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className={`shrink-0 text-[9px] font-bold ${event.exists === false ? "text-red-400" : "text-emerald-400"}`}
+                  >
+                    {event.exists === false ? "arquivo ausente" : "pronto"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {config._bgm_production_hints && (
           <div className="glass-panel p-4 rounded-xl border border-gold-500/20 bg-gold-500/5 space-y-1">
             <p className="text-[10px] font-bold uppercase tracking-wider text-gold-400">
@@ -596,7 +670,7 @@ export function AppMusicTab({
             </div>
 
             {/* Painel de Sonoplastia SFX Profissional */}
-            <div className="glass-panel p-4 rounded-xl space-y-4">
+            <div className="hidden glass-panel p-4 rounded-xl space-y-4">
               <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
                 <SectionHeader
                   title="Sonoplastia SFX Profissional"
@@ -909,7 +983,7 @@ export function AppMusicTab({
                 <button
                   disabled={planningProfessionalSfx}
                   onClick={handlePlanProfessionalSfx}
-                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl transition shadow-lg shadow-emerald-600/15 cursor-pointer flex items-center gap-2"
+                  className="hidden bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl transition shadow-lg shadow-emerald-600/15 cursor-pointer items-center gap-2"
                   title="Analisa o storyboard e a narração para desenhar, baixar e posicionar efeitos sonoros (SFX) profissionais"
                 >
                   {planningProfessionalSfx ? (

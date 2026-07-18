@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildVisualSceneTimingSegments,
   syncTimelineFromChunkPlan,
   buildBlockTimingsFromChunks,
   computeChunkTimeline,
@@ -16,6 +17,144 @@ import { tightenTimelineRetentionDurations } from "../backend/timelineSceneSync.
 import { computeAssetDuration } from "./timelineAudioStarts.js";
 
 describe("syncTimelineFromChunkPlan", () => {
+  it("preserva três cenas visuais quando dois chunks cobrem o bloco", () => {
+    const chunks = computeChunkTimeline([
+      {
+        id: "c1",
+        block: 3,
+        scene_ref: "3.1",
+        text: "China lidera.",
+        duration_s: 4,
+        pause_after_ms: 200,
+      },
+      {
+        id: "c2",
+        block: 3,
+        scene_ref: "3.2",
+        text: "Comente e siga para mais.",
+        duration_s: 4,
+        pause_after_ms: 0,
+      },
+    ]);
+    const visualPrompts = [
+      { block: 3, scene: "3.1", type: "vídeo IA (max 10s)" },
+      { block: 3, scene: "3.2", type: "vídeo IA (max 10s)" },
+      { block: 3, scene: "3.3", type: "vídeo IA (max 10s)" },
+    ];
+    const { timelineAssets } = syncTimelineFromChunkPlan({
+      timelineAssets: { 3: [{ asset: "china.mp4" }, { asset: "cta.mp4" }] },
+      chunkPlan: { chunks },
+      visualPrompts,
+    });
+
+    assert.equal(timelineAssets["3"].length, 3);
+    assert.equal(timelineAssets["3"][2].type, "video");
+    assert.notEqual(
+      timelineAssets["3"][1].narration_segment,
+      timelineAssets["3"][2].narration_segment
+    );
+    assert.ok(
+      timelineAssets["3"][2].audio_start > timelineAssets["3"][1].audio_start
+    );
+  });
+
+  it("mantém uma única cena quando duas vozes pertencem à mesma cena", () => {
+    const segments = buildVisualSceneTimingSegments(
+      [
+        {
+          id: "fala-a",
+          scene_ref: "1.1",
+          text: "Pessoa A fala.",
+          start_s: 0,
+          end_s: 2,
+        },
+        {
+          id: "fala-b",
+          scene_ref: "1.1",
+          text: "Pessoa B responde.",
+          start_s: 2,
+          end_s: 4,
+        },
+      ],
+      [{ block: 1, scene: "1.1" }]
+    );
+    assert.equal(segments.length, 1);
+    assert.equal(segments[0].start_s, 0);
+    assert.equal(segments[0].end_s, 4);
+    assert.match(segments[0].text, /Pessoa A fala.*Pessoa B responde/);
+  });
+
+  it("cobre as pausas com vídeo e não deixa a trilha visual menor que a narração", () => {
+    const chunks = computeChunkTimeline([
+      {
+        id: "c1",
+        block: 1,
+        scene_ref: "1.1",
+        text: "Primeira.",
+        duration_s: 2,
+        pause_after_ms: 800,
+      },
+      {
+        id: "c2",
+        block: 1,
+        scene_ref: "1.2",
+        text: "Segunda.",
+        duration_s: 3,
+        pause_after_ms: 0,
+      },
+    ]);
+    const { timelineAssets } = syncTimelineFromChunkPlan({
+      timelineAssets: { 1: [{ asset: "a.mp4" }, { asset: "b.mp4" }] },
+      chunkPlan: { chunks },
+      visualPrompts: [
+        { block: 1, scene: "1.1" },
+        { block: 1, scene: "1.2" },
+      ],
+    });
+    assert.equal(timelineAssets["1"][0].fixed, 2.8);
+    assert.equal(timelineAssets["1"][1].audio_start, 2.8);
+    assert.equal(
+      timelineAssets["1"][1].audio_start + timelineAssets["1"][1].fixed,
+      5.8
+    );
+  });
+
+  it("não recria slot que o editor excluiu de uma seleção visual já preenchida", () => {
+    const chunks = computeChunkTimeline([
+      {
+        id: "c1",
+        block: 1,
+        scene_ref: "1.1",
+        text: "Primeira.",
+        duration_s: 2,
+        pause_after_ms: 0,
+      },
+      {
+        id: "c2",
+        block: 1,
+        scene_ref: "1.2",
+        text: "Segunda.",
+        duration_s: 2,
+        pause_after_ms: 0,
+      },
+    ]);
+    const { timelineAssets } = syncTimelineFromChunkPlan({
+      timelineAssets: {
+        1: [
+          { asset: "a.mp4", user_locked: true },
+          { asset: "b.mp4", user_locked: true },
+        ],
+      },
+      chunkPlan: { chunks },
+      visualPrompts: [
+        { block: 1, scene: "1.1" },
+        { block: 1, scene: "1.2" },
+        { block: 1, scene: "1.3" },
+      ],
+    });
+    assert.equal(timelineAssets["1"].length, 2);
+  });
+
   it("mapeia 1 trecho por slot ordinal no bloco", () => {
     const chunks = [
       {

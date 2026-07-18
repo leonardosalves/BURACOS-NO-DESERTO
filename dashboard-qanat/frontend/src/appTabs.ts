@@ -10,6 +10,7 @@ export type AppTab =
   | "ai"
   | "creator"
   | "humor-facts"
+  | "collage-broll"
   | "video-reverse-engineering"
   | "project-health"
   | "editor"
@@ -37,6 +38,7 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   "ai",
   "creator",
   "humor-facts",
+  "collage-broll",
   "video-reverse-engineering",
   "project-health",
   "editor",
@@ -59,6 +61,7 @@ export const GLOBAL_VIEW_TABS: AppTab[] = [
   "settings",
   "creator",
   "humor-facts",
+  "collage-broll",
   "video-reverse-engineering",
   "project-health",
   "agents",

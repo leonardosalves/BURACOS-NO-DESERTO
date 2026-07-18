@@ -7,6 +7,8 @@ export function BlenderFlyoverPreview({
   poster,
   className = "",
   style,
+  blendMode = "lighten",
+  objectFit = "cover",
 }: {
   src: string;
   scrubSeconds?: number;
@@ -14,6 +16,8 @@ export function BlenderFlyoverPreview({
   poster?: string;
   className?: string;
   style?: React.CSSProperties;
+  blendMode?: React.CSSProperties["mixBlendMode"];
+  objectFit?: React.CSSProperties["objectFit"];
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -122,10 +126,10 @@ export function BlenderFlyoverPreview({
           inset: 0,
           width: "100%",
           height: "100%",
-          objectFit: "cover",
+          objectFit,
           zIndex: 1,
           /* Frames pretos do Blender deixam ver os tiles satélite por baixo */
-          mixBlendMode: "lighten",
+          mixBlendMode: blendMode,
         }}
       />
     </div>

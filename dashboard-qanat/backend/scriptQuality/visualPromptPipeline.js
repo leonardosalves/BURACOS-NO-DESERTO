@@ -17,12 +17,51 @@ export const IMAGE_SCENE_TYPE = "imagem IA 2k";
 const MOTION_PROMPT_RE =
   /\b(motion|moving|drone|aerial|timelapse|slow[\s-]?motion|camera pan|fly[\s-]?through|storm|drilling|pecking|tracking shot|handheld|dolly|crane|zoom in|zoom out|cinematic motion|max\s*\d{1,2}\s*s(?:ec(?:onds)?)?|\d{1,2}\s*(?:s|sec|secs|seconds))\b/i;
 
+/** Movimento REAL no prompt — ignora caudas residual "Cinematic motion, max 10 seconds". */
+const REAL_MOTION_PROMPT_RE =
+  /\b(moving|drone|aerial|timelapse|slow[\s-]?motion|camera pan|fly[\s-]?through|storm|drilling|pecking|tracking shot|handheld|dolly|crane|zoom in|zoom out|orbit|whip pan|push[\s-]?in)\b/i;
+
 function adaptPromptForVideoScene(prompt = "") {
   const p = String(prompt || "").trim();
   if (!p)
     return "Cinematic motion, photorealistic, dramatic lighting, no text, max 10 seconds";
   if (/cinematic motion|max 10/i.test(p)) return p;
   return `${p.replace(/\.\s*$/, "")}. Cinematic motion, max 10 seconds, no text.`;
+}
+
+/**
+ * Remove diretivas exclusivas de VÍDEO de prompts de IMAGE.
+ * Evita lixo tipo "Cinematic motion, max 10 seconds" em stills.
+ */
+export function stripVideoDirectivesFromImagePrompt(prompt = "") {
+  let p = String(prompt || "").trim();
+  if (!p) return p;
+  p = p
+    // caudas comuns do pipeline de vídeo
+    .replace(
+      /\s*[,.]?\s*Cinematic motion(?:\s*,\s*max\s*\d{1,2}\s*seconds?)?(?:\s*,\s*no text)?\.?/gi,
+      ""
+    )
+    .replace(/\s*[,.]?\s*max\s*\d{1,2}\s*seconds?(?:\s*,\s*no text)?\.?/gi, "")
+    .replace(/\s*[,.]?\s*Diegetic sound only:[^.]*\.?/gi, "")
+    .replace(/\s*[,.]?\s*absolutely no speech[^.]*\.?/gi, "")
+    .replace(
+      /\s*[,.]?\s*no speech,\s*no narration,\s*no dialogue[^.]*\.?/gi,
+      ""
+    )
+    .replace(
+      /\s*[,.]?\s*(?:duration|runtime|length)\s*(?:of\s*)?\d{1,2}\s*(?:s|sec|secs|seconds)\b[^.]*\.?/gi,
+      ""
+    )
+    .replace(
+      /\s*[,.]?\s*\d{1,2}\s*(?:s|sec|secs|seconds)\s*(?:clip|shot|footage)?\.?/gi,
+      ""
+    )
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;:])/g, "$1")
+    .replace(/\.\s*\./g, ".")
+    .trim();
+  return p.replace(/\s*,\s*$/, "").replace(/\s*\.\s*$/, "") + (p ? "." : "");
 }
 
 export function parseBlockNumber(blockRaw, sceneRaw) {
@@ -455,34 +494,52 @@ export function normalizeVisualPromptMediaTypes(visualPrompts = []) {
       String(next.video_role || "").toUpperCase() === "A" ||
       String(next.video_role || "").toUpperCase() === "B";
 
-    const promptLooksLikeVideo =
-      MOTION_PROMPT_RE.test(prompt) ||
-      /\b(video|vídeo|footage|film|clip)\b/i.test(notes) ||
-      /\b(8|9|10)\s*(s\b|sec\b|secs\b|seconds\b|segundos\b)/i.test(prompt) ||
-      /\b(first[\s-]?person|pov|gopro|point of view)\b/i.test(prompt);
+    const explicitStill =
+      isExplicitStillType(rawType) ||
+      broll === "image" ||
+      broll === "imagem" ||
+      broll === "still";
 
     const assetIsVideo = VIDEO_EXT_RE.test(
       String(next.asset?.asset || next.asset || "")
     );
 
-    const wantsVideo =
+    const notesSuggestVideo = /\b(video|vídeo|footage|film|clip)\b/i.test(
+      notes
+    );
+    const realMotion = REAL_MOTION_PROMPT_RE.test(prompt);
+    // Still tipado: só vira vídeo se houver movimento real (drilling, pan, etc.)
+    // NÃO promove só por "Cinematic motion, max 10 seconds" residual.
+    const residualOrGenericMotion =
+      MOTION_PROMPT_RE.test(prompt) ||
+      /\b(8|9|10)\s*(s\b|sec\b|secs\b|seconds\b|segundos\b)/i.test(prompt);
+
+    const forceVideo =
       isPov ||
+      assetIsVideo ||
       isVideoSceneType(rawType) ||
       broll === "video" ||
-      broll === "vídeo" ||
-      assetIsVideo ||
-      promptLooksLikeVideo;
+      broll === "vídeo";
+
+    const wantsVideo =
+      forceVideo ||
+      realMotion ||
+      notesSuggestVideo ||
+      (!explicitStill && residualOrGenericMotion) ||
+      (!explicitStill &&
+        /\b(first[\s-]?person|pov|gopro|point of view)\b/i.test(prompt));
 
     if (wantsVideo) {
       next.type = SHORTS_VIDEO_SCENE_TYPE;
       production.broll_type = "video";
       next.prompt = adaptPromptForVideoScene(prompt);
-    } else if (isExplicitStillType(rawType) || !rawType) {
-      next.type = IMAGE_SCENE_TYPE;
-      production.broll_type = "image";
     } else {
-      next.type = rawType || IMAGE_SCENE_TYPE;
-      if (!production.broll_type) production.broll_type = "image";
+      next.type =
+        explicitStill || !rawType
+          ? IMAGE_SCENE_TYPE
+          : rawType || IMAGE_SCENE_TYPE;
+      production.broll_type = "image";
+      next.prompt = stripVideoDirectivesFromImagePrompt(prompt);
     }
 
     next.production = production;

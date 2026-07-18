@@ -71,6 +71,24 @@ const DEFAULT_SETTINGS = {
   cooldownDays: 45,
 };
 
+/** Janela de automação: HH:00 até HH:05 (inclusive). */
+export const RESURRECTOR_AUTO_WINDOW_END_MINUTE = 5;
+
+/**
+ * true se estamos nos minutos 0–5 da hora do lote (ex.: 11:00–11:05).
+ */
+export function isWithinResurrectorAutoWindow(
+  now = new Date(),
+  hour = 11,
+  endMinute = RESURRECTOR_AUTO_WINDOW_END_MINUTE
+) {
+  const h = Number(hour);
+  if (!Number.isFinite(h)) return false;
+  const slotHour = Math.max(0, Math.min(23, Math.floor(h)));
+  const end = Math.max(0, Math.min(59, Number(endMinute) || 5));
+  return now.getHours() === slotHour && now.getMinutes() <= end;
+}
+
 function formatLocalTime(iso) {
   if (!iso) return "";
   try {
@@ -1241,10 +1259,13 @@ export function computeResurrectorSchedule(state, now = new Date()) {
   const morningRan = Boolean(runs.morning?.ranAt);
   const afternoonRan = Boolean(runs.afternoon?.ranAt);
 
+  // “Perdeu o lote” só depois da janela de 5 minutos fechar
   const morningDeadlinePassed =
-    hour > morningHour || (hour === morningHour && minute >= 30);
+    hour > morningHour ||
+    (hour === morningHour && minute > RESURRECTOR_AUTO_WINDOW_END_MINUTE);
   const afternoonDeadlinePassed =
-    hour > afternoonHour || (hour === afternoonHour && minute >= 30);
+    hour > afternoonHour ||
+    (hour === afternoonHour && minute > RESURRECTOR_AUTO_WINDOW_END_MINUTE);
 
   const alerts = [
     ...buildSlotAlerts({
@@ -1266,24 +1287,32 @@ export function computeResurrectorSchedule(state, now = new Date()) {
   ];
 
   let nextSlot = null;
-  if (!morningRan && hour < morningHour) nextSlot = "morning";
+  if (
+    !morningRan &&
+    (hour < morningHour ||
+      (hour === morningHour && minute <= RESURRECTOR_AUTO_WINDOW_END_MINUTE))
+  )
+    nextSlot = "morning";
   else if (
     !afternoonRan &&
-    (hour < afternoonHour || (morningRan && hour >= morningHour))
+    (hour < afternoonHour ||
+      (hour === afternoonHour &&
+        minute <= RESURRECTOR_AUTO_WINDOW_END_MINUTE) ||
+      (morningRan && hour >= morningHour && hour < afternoonHour))
   )
     nextSlot = "afternoon";
-  else if (!morningRan && hour >= morningHour && hour < afternoonHour)
-    nextSlot = "morning";
-  else if (!afternoonRan && hour >= afternoonHour) nextSlot = "afternoon";
 
-  const inMorningWindow = hour === morningHour && minute < 20 && !morningRan;
+  // Automação SOMENTE 11:00–11:05 e 18:00–18:05 (horas configuráveis)
+  const inMorningWindow =
+    isWithinResurrectorAutoWindow(now, morningHour) && !morningRan;
   const inAfternoonWindow =
-    hour === afternoonHour && minute < 20 && !afternoonRan;
+    isWithinResurrectorAutoWindow(now, afternoonHour) && !afternoonRan;
 
   return {
     today,
     morningHour,
     afternoonHour,
+    windowEndMinute: RESURRECTOR_AUTO_WINDOW_END_MINUTE,
     morningRan,
     afternoonRan,
     dailyRuns: runs,

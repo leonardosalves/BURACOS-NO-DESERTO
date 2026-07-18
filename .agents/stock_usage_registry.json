@@ -1,0 +1,20 @@
+{
+  "bySourceId": {
+    "pexels:33893555": {
+      "count": 1,
+      "projects": ["Uma_unica_bala_acabou"],
+      "lastScene": "timeline-studio",
+      "lastQuery": "barão vermelho",
+      "lastAt": "2026-07-13T23:27:21.028Z"
+    }
+  },
+  "byRelPath": {
+    "stock_barao_vermelho_pexels_33893555_20260713232720.mp4": {
+      "project": "Uma_unica_bala_acabou",
+      "scene": "timeline-studio",
+      "query": "barão vermelho",
+      "sourceId": "pexels:33893555",
+      "at": "2026-07-13T23:27:21.028Z"
+    }
+  }
+}

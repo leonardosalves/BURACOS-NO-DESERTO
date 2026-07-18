@@ -4,10 +4,224 @@ const FORMAT_RULES = {
   LONGO: "video de 6 a 12 minutos, contexto, viradas e explicacao aprofundada",
 };
 
+const TOPIC_STOP_WORDS = new Set([
+  "a",
+  "as",
+  "ao",
+  "aos",
+  "com",
+  "como",
+  "da",
+  "das",
+  "de",
+  "do",
+  "dos",
+  "e",
+  "em",
+  "era",
+  "essa",
+  "esse",
+  "esta",
+  "este",
+  "historia",
+  "historia",
+  "ideia",
+  "mais",
+  "na",
+  "nas",
+  "no",
+  "nos",
+  "o",
+  "os",
+  "para",
+  "por",
+  "porque",
+  "que",
+  "se",
+  "segredo",
+  "sem",
+  "sobre",
+  "sua",
+  "um",
+  "uma",
+  "voce",
+]);
+
+const TOPIC_ALIAS_GROUPS = Object.freeze([
+  ["concreto romano", "cimento romano", "pozzolana", "opus caementicium"],
+  [
+    "mecanismo de anticitera",
+    "maquina de anticitera",
+    "computador grego",
+    "computador de 2 mil anos",
+    "computador de dois mil anos",
+    "antikythera mechanism",
+  ],
+  ["estradas incas", "qhapaq nan", "qhapaq ñan", "rede viaria inca"],
+  ["badgir", "windcatcher", "torre de vento persa", "ar condicionado persa"],
+  ["bateria de bagda", "baghdad battery", "pilha de bagda"],
+  ["aquedutos romanos", "caimento dos aquedutos", "inclinacao dos aquedutos"],
+]);
+
+const ENGINEERING_SIGNALS = Object.freeze([
+  "arquitet",
+  "argamassa",
+  "canal",
+  "ceram",
+  "construc",
+  "edific",
+  "engenh",
+  "engren",
+  "estrad",
+  "estrutur",
+  "ferrament",
+  "fortific",
+  "hidraul",
+  "maquina",
+  "material",
+  "mecanism",
+  "metal",
+  "miner",
+  "obra",
+  "pedra",
+  "pedreira",
+  "ponte",
+  "porta",
+  "sistema",
+  "tecnica",
+  "templo",
+  "tunel",
+]);
+
 function clean(value, fallback = "") {
   return String(value ?? fallback)
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeTopic(value = "") {
+  return clean(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function topicTokens(value = "") {
+  return new Set(
+    normalizeTopic(value)
+      .split(" ")
+      .filter(
+        (token) =>
+          token.length >= 4 &&
+          !TOPIC_STOP_WORDS.has(token) &&
+          !["antiga", "antigo", "engenharia", "romano", "romana"].includes(
+            token
+          )
+      )
+  );
+}
+
+function matchesAliasGroup(left, right) {
+  const leftNormalized = normalizeTopic(left);
+  const rightNormalized = normalizeTopic(right);
+  return TOPIC_ALIAS_GROUPS.some((aliases) => {
+    const normalizedAliases = aliases.map(normalizeTopic);
+    return (
+      normalizedAliases.some((alias) => leftNormalized.includes(alias)) &&
+      normalizedAliases.some((alias) => rightNormalized.includes(alias))
+    );
+  });
+}
+
+export function areHumorTopicsSimilar(left, right) {
+  const leftNormalized = normalizeTopic(left);
+  const rightNormalized = normalizeTopic(right);
+  if (!leftNormalized || !rightNormalized) return false;
+  if (
+    Math.min(leftNormalized.length, rightNormalized.length) >= 12 &&
+    (leftNormalized.includes(rightNormalized) ||
+      rightNormalized.includes(leftNormalized))
+  ) {
+    return true;
+  }
+  if (matchesAliasGroup(leftNormalized, rightNormalized)) return true;
+
+  const leftTokens = topicTokens(leftNormalized);
+  const rightTokens = topicTokens(rightNormalized);
+  if (!leftTokens.size || !rightTokens.size) return false;
+  const shared = [...leftTokens].filter((token) => rightTokens.has(token));
+  const unionSize = new Set([...leftTokens, ...rightTokens]).size;
+  const containment =
+    shared.length / Math.min(leftTokens.size, rightTokens.size);
+  const jaccard = shared.length / Math.max(unionSize, 1);
+  const distinctiveShared = shared.some((token) => token.length >= 8);
+  return (
+    (shared.length >= 2 && (containment >= 0.5 || jaccard >= 0.32)) ||
+    (distinctiveShared && containment >= 0.34)
+  );
+}
+
+export function filterNovelHumorIdeas(
+  ideas = [],
+  excludedTopics = [],
+  acceptedIdeas = [],
+  options = {}
+) {
+  const accepted = [...acceptedIdeas];
+  const novel = [];
+  const rejected = [];
+  const nicheNormalized = normalizeTopic(options.niche);
+
+  for (const idea of ideas) {
+    const candidate = clean(
+      `${idea?.title || ""} ${idea?.factualPremise || ""}`
+    );
+    const candidateNormalized = normalizeTopic(candidate);
+    if (
+      /\b(alien|alienigena|extraterrestre|visitantes de outro mundo)\b/i.test(
+        candidateNormalized
+      ) ||
+      idea?.confidence === "baixa" ||
+      !Array.isArray(idea?.sources) ||
+      idea.sources.length === 0
+    ) {
+      rejected.push({
+        title: clean(idea?.title),
+        conflict: "premissa especulativa ou sem fonte verificavel",
+      });
+      continue;
+    }
+    if (
+      nicheNormalized.includes("engenharia") &&
+      !ENGINEERING_SIGNALS.some((signal) =>
+        candidateNormalized.includes(signal)
+      )
+    ) {
+      rejected.push({
+        title: clean(idea?.title),
+        conflict: `fora do nicho: ${clean(options.niche)}`,
+      });
+      continue;
+    }
+    const conflict = [
+      ...excludedTopics,
+      ...accepted.map((item) =>
+        clean(`${item?.title || ""} ${item?.factualPremise || ""}`)
+      ),
+    ]
+      .filter(Boolean)
+      .find((topic) => areHumorTopicsSimilar(candidate, topic));
+    if (conflict) {
+      rejected.push({ title: clean(idea?.title), conflict: clean(conflict) });
+      continue;
+    }
+    novel.push(idea);
+    accepted.push(idea);
+  }
+
+  return { ideas: novel, rejected };
 }
 
 export function buildHumorIdeasPrompt(input = {}) {
@@ -16,6 +230,10 @@ export function buildHumorIdeasPrompt(input = {}) {
   const humorStyle = clean(input.humorStyle, "observacional inteligente");
   const audience = clean(input.audience, "publico geral brasileiro");
   const count = Math.min(10, Math.max(3, Number(input.count) || 6));
+  const generationSeed = clean(input.generationSeed, String(Date.now()));
+  const exclusionAddendum = clean(input.exclusionAddendum);
+  const explorationAxes = clean(input.explorationAxes);
+  const freshnessInstruction = clean(input.freshnessInstruction);
   if (niche.length < 3)
     throw new Error("Informe um nicho com pelo menos 3 caracteres.");
 
@@ -26,8 +244,26 @@ NICHO: ${niche}
 FORMATO: ${format} — ${FORMAT_RULES[format]}
 PUBLICO: ${audience}
 HUMOR: ${humorStyle}
+RODADA DE PESQUISA: ${generationSeed}
 
 Crie ${count} ideias pouco saturadas baseadas em fatos reais, acontecimentos documentados ou fenomenos plausiveis claramente rotulados como hipotese. Nao invente fonte, numero, pessoa, estudo ou acontecimento. O humor deve nascer do contraste, da ironia e da observacao; nunca da falsificacao do fato. Prefira angulos que poucos canais tratam e explique por que parecem pouco explorados. Para cada ideia, indique termos concretos que o usuario possa pesquisar para confirmar o fato antes de publicar.
+
+${freshnessInstruction}
+${explorationAxes}
+${exclusionAddendum}
+
+REGRA DE NOVIDADE OBRIGATORIA:
+- Nao troque apenas o titulo, o gancho ou a piada de um assunto bloqueado.
+- Considere repeticao o mesmo objeto, pessoa, obra, evento, mecanismo, descoberta ou alegacao central.
+- Antes de responder, compare cada pauta com a lista proibida e substitua qualquer colisao por outro assunto.
+- As ideias desta mesma resposta tambem precisam tratar de assuntos diferentes entre si.
+
+ADERENCIA AO NICHO — OBRIGATORIA:
+- Todas as pautas devem pertencer LITERALMENTE a "${niche}".
+- Nao use metaforas como "engenharia da natureza", "engenharia do clima", "bioengenharia involuntaria" ou temas historicos apenas adjacentes para fingir aderencia.
+- Se o nicho mencionar engenharia, cada pauta deve tratar de uma obra, tecnica, maquina, mecanismo, material, infraestrutura, ferramenta, processo construtivo ou sistema criado por seres humanos.
+- Nao use alienigenas, visitantes de outro mundo ou sensacionalismo especulativo como premissa.
+- Toda pauta precisa ter ao menos uma fonte verificavel e confianca media ou alta.
 
 Responda APENAS JSON valido. Em sources, inclua somente paginas que voce realmente encontrou na pesquisa:
 {"ideas":[{"id":"idea-1","title":"","hook":"","factualPremise":"","whyFunny":"","whyUnderexplored":"","formatFit":"SHORTS ou LONGO","durationSeconds":60,"verificationQueries":[""],"sources":[{"title":"","url":"https://..."}],"saturationRisk":"baixo|medio|alto","confidence":"alta|media|baixa"}]}`;
@@ -189,8 +425,10 @@ Responda APENAS JSON valido:
     "durationSeconds":5,
     "narration":"trecho EXATO da narracao aprovada",
     "visualBeat":"acao visual e timing da piada",
-    "imagePrompt":"prompt autonomo de imagem com sujeito, ambiente, composicao, luz e estilo",
-    "videoPrompt":"prompt autonomo de video com acao, camera, timing, continuidade e humor visual",
+    "mediaType":"image ou video",
+    "mediaReason":"por que esta midia e a melhor opcao para comunicar esta cena",
+    "imagePrompt":"obrigatorio quando mediaType=image; vazio quando video",
+    "videoPrompt":"obrigatorio quando mediaType=video; vazio quando image",
     "shot":"plano e lente",
     "camera":"movimento",
     "onScreenText":"texto curto ou vazio",
@@ -202,7 +440,12 @@ Responda APENAS JSON valido:
 Regras:
 - Cubra a narracao inteira, na ordem, sem omitir, resumir ou reescrever palavras.
 - Shorts: 5 a 9 cenas. Longo: 10 a 24 cenas.
-- Cada prompt deve funcionar isoladamente, mas respeitar continuityBible.
+- Escolha mediaType cena por cena; nao force video em todas.
+- Use image quando a cena depende de composicao precisa, artefato, retrato, documento, mapa, arquitetura estatica, comparacao ou momento congelado. Planeje movimento editorial posterior com push-in, parallax ou recorte quando apropriado.
+- Use video somente quando movimento real e indispensavel para entender a acao, mecanismo, transformacao, deslocamento, reacao, timing fisico da piada ou movimento de camera.
+- Uma imagem forte e factual e melhor que um video generico sem acao relevante.
+- Preencha somente o prompt correspondente ao mediaType escolhido. O outro prompt deve ser vazio.
+- O prompt escolhido deve funcionar isoladamente, mas respeitar continuityBible.
 - Humor visual elegante: no maximo um gag principal por cena.
 - SFX somente quando reforcar uma virada; nunca em toda cena.
 - Nao invente fatos alem da premissa e da narracao.`;
@@ -219,20 +462,44 @@ export function parseHumorProductionResponse(text, narration) {
   const narrationParts = splitNarrationForScenes(narration, rawScenes.length);
   const scenes = rawScenes
     .slice(0, narrationParts.length)
-    .map((scene, index) => ({
-      id: clean(scene?.id, `scene-${String(index + 1).padStart(2, "0")}`),
-      order: index + 1,
-      durationSeconds: Math.max(2, Number(scene?.durationSeconds) || 5),
-      narration: narrationParts[index],
-      visualBeat: clean(scene?.visualBeat),
-      imagePrompt: clean(scene?.imagePrompt),
-      videoPrompt: clean(scene?.videoPrompt),
-      shot: clean(scene?.shot, "plano medio cinematografico"),
-      camera: clean(scene?.camera, "movimento suave"),
-      onScreenText: clean(scene?.onScreenText),
-      sfxCue: clean(scene?.sfxCue),
-      transition: clean(scene?.transition),
-    }));
+    .map((scene, index) => {
+      const imagePrompt = clean(scene?.imagePrompt);
+      const videoPrompt = clean(scene?.videoPrompt);
+      const requestedMediaType = clean(scene?.mediaType).toLowerCase();
+      const mediaType =
+        requestedMediaType === "image" || requestedMediaType === "imagem"
+          ? "image"
+          : requestedMediaType === "video" || requestedMediaType === "vídeo"
+            ? "video"
+            : videoPrompt && !imagePrompt
+              ? "video"
+              : "image";
+      const selectedPrompt = mediaType === "video" ? videoPrompt : imagePrompt;
+      if (!selectedPrompt) {
+        throw new Error(
+          `A cena ${index + 1} escolheu ${mediaType}, mas nao trouxe o prompt correspondente.`
+        );
+      }
+      return {
+        id: clean(scene?.id, `scene-${String(index + 1).padStart(2, "0")}`),
+        order: index + 1,
+        durationSeconds: Math.max(2, Number(scene?.durationSeconds) || 5),
+        narration: narrationParts[index],
+        visualBeat: clean(scene?.visualBeat),
+        mediaType,
+        mediaReason: clean(scene?.mediaReason),
+        imagePrompt: mediaType === "image" ? imagePrompt : "",
+        videoPrompt: mediaType === "video" ? videoPrompt : "",
+        shot: clean(scene?.shot, "plano medio cinematografico"),
+        camera: clean(
+          scene?.camera,
+          mediaType === "image" ? "push-in editorial suave" : "movimento suave"
+        ),
+        onScreenText: clean(scene?.onScreenText),
+        sfxCue: clean(scene?.sfxCue),
+        transition: clean(scene?.transition),
+      };
+    });
 
   if (
     clean(scenes.map((scene) => scene.narration).join(" ")) !== clean(narration)

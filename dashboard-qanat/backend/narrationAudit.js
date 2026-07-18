@@ -41,3 +41,85 @@ export function latestNarrationReviews(events = []) {
   }
   return reviews;
 }
+
+function eventTime(value) {
+  const parsed = Date.parse(String(value || ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/**
+ * Aprovação válida pertence à versão de áudio atual. Se o trecho foi
+ * regenerado depois da revisão, ele volta automaticamente para pendente.
+ */
+export function narrationChunkApprovalState(plan = {}, events = []) {
+  const reviews = latestNarrationReviews(events);
+  const chunks = Array.isArray(plan?.chunks) ? plan.chunks : [];
+  const items = chunks.map((chunk) => {
+    const id = String(chunk?.id || "").trim();
+    const review = reviews[id] || null;
+    const generatedAt = eventTime(chunk?.generated_at);
+    const reviewedAt = eventTime(review?.at);
+    const audioReady =
+      chunk?.status === "generated" && Number(chunk?.duration_s) > 0;
+    const approvalCurrent = reviewedAt > 0 && reviewedAt >= generatedAt;
+    const approved = Boolean(
+      audioReady && approvalCurrent && review?.decision === "approved"
+    );
+    let reason = null;
+    if (!audioReady) reason = "audio_not_generated";
+    else if (!review) reason = "awaiting_review";
+    else if (!approvalCurrent) reason = "audio_changed_after_review";
+    else if (review.decision !== "approved") reason = review.decision;
+    return { id, approved, reason, review };
+  });
+  const blockers = items.filter((item) => !item.approved);
+  return {
+    ready: items.length > 0 && blockers.length === 0,
+    approved_count: items.length - blockers.length,
+    total_count: items.length,
+    items,
+    blockers,
+  };
+}
+
+export function assertNarrationChunksApproved(plan = {}, events = []) {
+  const state = narrationChunkApprovalState(plan, events);
+  if (!state.ready) {
+    const labels = state.blockers
+      .slice(0, 8)
+      .map((item) => `${item.id || "trecho"}: ${item.reason}`)
+      .join("; ");
+    const error = new Error(
+      `Revise e aprove todos os áudios antes do Whisper${labels ? ` (${labels})` : ""}.`
+    );
+    error.code = "NARRATION_REVIEW_REQUIRED";
+    error.approval = state;
+    throw error;
+  }
+  return state;
+}
+
+export function assertApprovedNarrationMasterReady(plan = {}, events = []) {
+  const approval = assertNarrationChunksApproved(plan, events);
+  const latestAssembly = [...events]
+    .reverse()
+    .find((event) => event?.type === "master_assembled");
+  const assembledAt = eventTime(latestAssembly?.at);
+  const newestAudioOrReview = Math.max(
+    0,
+    ...(plan?.chunks || []).flatMap((chunk) => [
+      eventTime(chunk?.generated_at),
+      eventTime(
+        approval.items.find((item) => item.id === chunk.id)?.review?.at
+      ),
+    ])
+  );
+  if (!latestAssembly || assembledAt < newestAudioOrReview) {
+    const error = new Error(
+      "Monte novamente a narração aprovada antes de executar o Whisper."
+    );
+    error.code = "APPROVED_MASTER_REQUIRED";
+    throw error;
+  }
+  return { approval, assembly: latestAssembly };
+}

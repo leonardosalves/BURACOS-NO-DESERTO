@@ -32,8 +32,17 @@ export type AppSettingsTabProps = {
   geminiKeysInput: string;
   geminiModel: string;
   geminiModelOptions: Array<{ id: string; label: string; hint?: string }>;
-  inferenceModel: string;
-  inferenceModelOptions: Array<{ id: string; label: string; hint?: string }>;
+  openrouterModel: string;
+  openrouterModelOptions: Array<{ id: string; label: string; hint?: string }>;
+  nvidiaModel: string;
+  nvidiaModelOptions: Array<{ id: string; label: string; hint?: string }>;
+  alibabaModel: string;
+  alibabaModelOptions: Array<{ id: string; label: string; hint?: string }>;
+  alibabaBaseUrlInput: string;
+  tokenrouterModel: string;
+  tokenrouterModelOptions: Array<{ id: string; label: string; hint?: string }>;
+  tokenrouterBaseUrlInput: string;
+  tokenrouterKeyInput: string;
   globalBlockGap: number;
   globalDebugOverlay: boolean;
   globalFps: number;
@@ -54,8 +63,9 @@ export type AppSettingsTabProps = {
   handleSaveProjectRenderResolution: () => void | Promise<void>;
   handleTestSupermemory: () => void | Promise<void>;
   hasEpidemicKey: boolean;
-  hasInferenceKey: boolean;
   hasNvidiaKey: boolean;
+  hasAlibabaKey: boolean;
+  hasTokenrouterKey: boolean;
   hasOpenRouterKey: boolean;
   hasPexelsKey: boolean;
   hasPixabayKey: boolean;
@@ -65,8 +75,9 @@ export type AppSettingsTabProps = {
   igAccountId: string;
   igAppId: string;
   igAppSecret: string;
-  inferenceKeyInput: string;
   nvidiaKeyInput: string;
+  alibabaKeyInput: string;
+  alibabaBaseUrlInput: string;
   openrouterKeyInput: string;
   pexelsKeyInput: string;
   pickProductionConfig: (cfg: ConfigData) => any;
@@ -96,7 +107,13 @@ export type AppSettingsTabProps = {
   setGeminiExtensionTesting: (v: boolean) => void;
   setGeminiKeysInput: (v: string) => void;
   setGeminiModel: (v: string) => void;
-  setInferenceModel: (v: string) => void;
+  setOpenrouterModel: (v: string) => void;
+  setNvidiaModel: (v: string) => void;
+  setAlibabaModel: (v: string) => void;
+  setAlibabaBaseUrlInput: (v: string) => void;
+  setTokenrouterModel: (v: string) => void;
+  setTokenrouterBaseUrlInput: (v: string) => void;
+  setTokenrouterKeyInput: (v: string) => void;
   setGlobalBlockGap: (v: number) => void;
   setGlobalDebugOverlay: (v: boolean) => void;
   setGlobalFps: (v: number) => void;
@@ -107,8 +124,8 @@ export type AppSettingsTabProps = {
   setIgAccountId: (v: string) => void;
   setIgAppId: (v: string) => void;
   setIgAppSecret: (v: string) => void;
-  setInferenceKeyInput: (v: string) => void;
   setNvidiaKeyInput: (v: string) => void;
+  setAlibabaKeyInput: (v: string) => void;
   setOpenRouterKeyInput: (v: string) => void;
   setPexelsKeyInput: (v: string) => void;
   setPixabayKeyInput: (v: string) => void;
@@ -158,8 +175,18 @@ export function AppSettingsTab({
   geminiKeysInput,
   geminiModel,
   geminiModelOptions,
-  inferenceModel,
-  inferenceModelOptions,
+  openrouterModel,
+  openrouterModelOptions,
+  nvidiaModel,
+  nvidiaModelOptions,
+  alibabaModel,
+  alibabaModelOptions,
+  alibabaBaseUrlInput,
+  tokenrouterModel,
+  tokenrouterModelOptions,
+  tokenrouterBaseUrlInput,
+  tokenrouterKeyInput,
+  hasTokenrouterKey,
   globalBlockGap,
   globalDebugOverlay,
   globalFps,
@@ -177,8 +204,8 @@ export function AppSettingsTab({
   handleSaveProjectRenderResolution,
   handleTestSupermemory,
   hasEpidemicKey,
-  hasInferenceKey,
   hasNvidiaKey,
+  hasAlibabaKey,
   hasOpenRouterKey,
   hasPexelsKey,
   hasPixabayKey,
@@ -188,8 +215,8 @@ export function AppSettingsTab({
   igAccountId,
   igAppId,
   igAppSecret,
-  inferenceKeyInput,
   nvidiaKeyInput,
+  alibabaKeyInput,
   openrouterKeyInput,
   pexelsKeyInput,
   pickProductionConfig,
@@ -216,7 +243,13 @@ export function AppSettingsTab({
   setGeminiExtensionTesting,
   setGeminiKeysInput,
   setGeminiModel,
-  setInferenceModel,
+  setOpenrouterModel,
+  setNvidiaModel,
+  setAlibabaModel,
+  setAlibabaBaseUrlInput,
+  setTokenrouterModel,
+  setTokenrouterBaseUrlInput,
+  setTokenrouterKeyInput,
   setGlobalBlockGap,
   setGlobalDebugOverlay,
   setGlobalFps,
@@ -227,8 +260,8 @@ export function AppSettingsTab({
   setIgAccountId,
   setIgAppId,
   setIgAppSecret,
-  setInferenceKeyInput,
   setNvidiaKeyInput,
+  setAlibabaKeyInput,
   setOpenRouterKeyInput,
   setPexelsKeyInput,
   setPixabayKeyInput,
@@ -302,12 +335,15 @@ export function AppSettingsTab({
                   NVIDIA API: {hasNvidiaKey ? "configurado" : "vazio"}
                 </span>
                 <span className="dash-kpi-pill">
-                  Inference.net: {hasInferenceKey ? "configurado" : "vazio"}
+                  Alibaba: {hasAlibabaKey ? "configurado" : "vazio"}
+                </span>
+                <span className="dash-kpi-pill">
+                  TokenRouter: {hasTokenrouterKey ? "configurado" : "vazio"}
                 </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               <button
                 onClick={() => setAiProvider("gemini")}
                 className={`dash-provider-card ${aiProvider === "gemini" ? "dash-provider-card-active" : ""}`}
@@ -329,6 +365,29 @@ export function AppSettingsTab({
                 <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
                   Google AI Studio gratuito (ex.: Gemini 2.5 Flash). Chaves em
                   rotação; xAI/Grok como fallback.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAiProvider("tokenrouter")}
+                className={`dash-provider-card ${aiProvider === "tokenrouter" ? "dash-provider-card-active" : ""}`}
+                data-testid="provider-tokenrouter"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
+                    TokenRouter
+                    <SettingHelpTip title="TokenRouter" align="start">
+                      Gateway OpenAI-compatible (api.tokenrouter.com/v1). Modelo
+                      padrão z-ai/glm-5.2-free.
+                    </SettingHelpTip>
+                  </span>
+                  {aiProvider === "tokenrouter" && (
+                    <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />
+                  )}
+                </div>
+                <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
+                  https://api.tokenrouter.com/v1 · GLM free / GPT / Qwen
                 </p>
               </button>
 
@@ -406,27 +465,27 @@ export function AppSettingsTab({
               </button>
 
               <button
-                onClick={() => setAiProvider("inference")}
-                className={`dash-provider-card ${aiProvider === "inference" ? "dash-provider-card-active" : ""}`}
+                onClick={() => setAiProvider("alibaba")}
+                className={`dash-provider-card ${aiProvider === "alibaba" ? "dash-provider-card-active" : ""}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
-                    Inference.net
-                    <SettingHelpTip title="Inference.net" align="start">
-                      API OpenAI-compatible com modelos open-source hospedados
-                      (Gemma, Qwen, Llama). Observabilidade via Catalyst no
-                      dashboard inference.net.
+                    Alibaba
+                    <SettingHelpTip title="Alibaba Model Studio" align="start">
+                      Qwen via DashScope / Model Studio (endpoint OpenAI
+                      compatible do workspace). Use a chave sk-ws-… e ative o
+                      modelo no console Alibaba se aparecer Unpurchased.
                     </SettingHelpTip>
                   </span>
 
-                  {aiProvider === "inference" && (
+                  {aiProvider === "alibaba" && (
                     <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />
                   )}
                 </div>
 
                 <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
-                  Modelos open-source hospedados na Inference.net com rotação
-                  automática de fallback.
+                  Model Studio China (ws-…cn-beijing.maas.aliyuncs.com) — Qwen
+                  Plus/Turbo/Max.
                 </p>
               </button>
 
@@ -581,22 +640,22 @@ export function AppSettingsTab({
                   </p>
                 </div>
 
-                {aiProvider === "inference" && (
+                {aiProvider === "openrouter" && (
                   <div className="space-y-2">
                     <SettingLabel
-                      helpTitle="Modelo Inference.net"
-                      help="Modelo hospedado na Inference.net usado nas chamadas de IA. Se falhar, o sistema tenta os outros modelos da lista como fallback."
+                      helpTitle="Modelo OpenRouter"
+                      help="Modelo free do OpenRouter usado como preferência. Se falhar (quota, 404 ou indisponível), o sistema tenta os outros free da lista em sequência."
                       align="start"
                     >
-                      Modelo Inference.net
+                      Modelo OpenRouter
                     </SettingLabel>
 
                     <select
-                      value={inferenceModel}
-                      onChange={(e) => setInferenceModel(e.target.value)}
+                      value={openrouterModel}
+                      onChange={(e) => setOpenrouterModel(e.target.value)}
                       className="dash-select"
                     >
-                      {inferenceModelOptions.map((option) => (
+                      {openrouterModelOptions.map((option) => (
                         <option key={option.id} value={option.id}>
                           {option.label}
                         </option>
@@ -604,15 +663,157 @@ export function AppSettingsTab({
                     </select>
 
                     <p className="text-[10px] text-zinc-500 leading-relaxed">
-                      {inferenceModelOptions.find(
-                        (option) => option.id === inferenceModel
-                      )?.hint ||
-                        "Modelo open-source hospedado em inference.net."}{" "}
+                      {openrouterModelOptions.find(
+                        (option) => option.id === openrouterModel
+                      )?.hint || "Modelo free disponível no OpenRouter."}{" "}
                       ID:{" "}
                       <span className="text-zinc-300 font-mono text-[9px]">
-                        {inferenceModel}
+                        {openrouterModel}
                       </span>
                     </p>
+                  </div>
+                )}
+
+                {aiProvider === "nvidia" && (
+                  <div className="space-y-2">
+                    <SettingLabel
+                      helpTitle="Modelo NVIDIA API"
+                      help="Modelo NVIDIA preferido nas chamadas de IA. Se falhar, o sistema tenta os outros modelos da lista como fallback."
+                      align="start"
+                    >
+                      Modelo NVIDIA API
+                    </SettingLabel>
+
+                    <select
+                      value={nvidiaModel}
+                      onChange={(e) => setNvidiaModel(e.target.value)}
+                      className="dash-select"
+                    >
+                      {nvidiaModelOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <p className="text-[10px] text-zinc-500 leading-relaxed">
+                      {nvidiaModelOptions.find(
+                        (option) => option.id === nvidiaModel
+                      )?.hint || "Modelo via integrate.api.nvidia.com."}{" "}
+                      ID:{" "}
+                      <span className="text-zinc-300 font-mono text-[9px]">
+                        {nvidiaModel}
+                      </span>
+                    </p>
+                  </div>
+                )}
+
+                {aiProvider === "alibaba" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Modelo Alibaba (Qwen)"
+                        help="Modelo Qwen no Model Studio. Precisa estar habilitado na conta (erro Unpurchased = ative no console)."
+                        align="start"
+                      >
+                        Modelo Alibaba (Qwen)
+                      </SettingLabel>
+                      <select
+                        value={alibabaModel}
+                        onChange={(e) => setAlibabaModel(e.target.value)}
+                        className="dash-select"
+                      >
+                        {alibabaModelOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                        {alibabaModelOptions.find(
+                          (option) => option.id === alibabaModel
+                        )?.hint || "Qwen via DashScope."}{" "}
+                        ID:{" "}
+                        <span className="text-zinc-300 font-mono text-[9px]">
+                          {alibabaModel}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Endpoint OpenAI Compatible"
+                        help="URL do workspace Model Studio, normalmente …/compatible-mode/v1"
+                        align="start"
+                      >
+                        Endpoint OpenAI Compatible
+                      </SettingLabel>
+                      <input
+                        type="text"
+                        value={alibabaBaseUrlInput}
+                        onChange={(e) => setAlibabaBaseUrlInput(e.target.value)}
+                        placeholder="https://ws-….cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+                        className="dash-input font-mono text-[11px]"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {aiProvider === "tokenrouter" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Modelo TokenRouter"
+                        help="ID do modelo no catálogo TokenRouter (ex.: z-ai/glm-5.2-free). Você também pode colar um ID livre."
+                        align="start"
+                      >
+                        Modelo TokenRouter
+                      </SettingLabel>
+                      <select
+                        value={tokenrouterModel}
+                        onChange={(e) => setTokenrouterModel(e.target.value)}
+                        className="dash-select"
+                      >
+                        {tokenrouterModelOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={tokenrouterModel}
+                        onChange={(e) => setTokenrouterModel(e.target.value)}
+                        placeholder="ou cole um model id livre, ex.: z-ai/glm-5.2-free"
+                        className="dash-input font-mono text-[11px]"
+                      />
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                        {tokenrouterModelOptions.find(
+                          (option) => option.id === tokenrouterModel
+                        )?.hint || "OpenAI-compatible via TokenRouter."}{" "}
+                        ID:{" "}
+                        <span className="text-zinc-300 font-mono text-[9px]">
+                          {tokenrouterModel}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Base URL TokenRouter"
+                        help="Padrão: https://api.tokenrouter.com/v1 — mesmo uso do OpenAI SDK (base_url)."
+                        align="start"
+                      >
+                        Base URL (OpenAI compatible)
+                      </SettingLabel>
+                      <input
+                        type="text"
+                        value={tokenrouterBaseUrlInput}
+                        onChange={(e) =>
+                          setTokenrouterBaseUrlInput(e.target.value)
+                        }
+                        placeholder="https://api.tokenrouter.com/v1"
+                        className="dash-input font-mono text-[11px]"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -655,12 +856,39 @@ export function AppSettingsTab({
                     </div>
 
                     <div className="bg-violet-950/20 border border-violet-500/20 rounded-2xl p-4 text-[10px] text-zinc-400 space-y-2 leading-relaxed mt-2">
-                      <p className="font-bold text-violet-300">💡 Instruções para Uso do LLM Local / Bonsai:</p>
+                      <p className="font-bold text-violet-300">
+                        💡 Instruções para Uso do LLM Local / Bonsai:
+                      </p>
                       <ul className="list-disc pl-4 space-y-1">
-                        <li>Certifique-se de que o seu servidor local está rodando (Ollama, LM Studio, vLLM ou similar).</li>
-                        <li><b>Ollama:</b> Por padrão, use a URL <code className="text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded font-mono">http://127.0.0.1:11434/v1/chat/completions</code>. Certifique-se de baixar o modelo (ex: <code className="text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded font-mono">ollama run bonsai-27b</code>).</li>
-                        <li><b>LM Studio:</b> Certifique-se de ativar o servidor local (Local Server) na porta indicada, e use a URL <code className="text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded font-mono">http://127.0.0.1:1234/v1/chat/completions</code>.</li>
-                        <li>Na sua RTX 4060 Ti (8GB), limite o contexto para conversas normais (~4k-8k) para evitar estouro de VRAM. Se for a versão de 16GB, pode usar sem restrições.</li>
+                        <li>
+                          Certifique-se de que o seu servidor local está rodando
+                          (Ollama, LM Studio, vLLM ou similar).
+                        </li>
+                        <li>
+                          <b>Ollama:</b> Por padrão, use a URL{" "}
+                          <code className="text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded font-mono">
+                            http://127.0.0.1:11434/v1/chat/completions
+                          </code>
+                          . Certifique-se de baixar o modelo (ex:{" "}
+                          <code className="text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded font-mono">
+                            ollama run bonsai-27b
+                          </code>
+                          ).
+                        </li>
+                        <li>
+                          <b>LM Studio:</b> Certifique-se de ativar o servidor
+                          local (Local Server) na porta indicada, e use a URL{" "}
+                          <code className="text-zinc-200 bg-zinc-800 px-1 py-0.5 rounded font-mono">
+                            http://127.0.0.1:1234/v1/chat/completions
+                          </code>
+                          .
+                        </li>
+                        <li>
+                          Na sua RTX 4060 Ti (8GB), limite o contexto para
+                          conversas normais (~4k-8k) para evitar estouro de
+                          VRAM. Se for a versão de 16GB, pode usar sem
+                          restrições.
+                        </li>
                       </ul>
                     </div>
                   </>
@@ -689,7 +917,7 @@ export function AppSettingsTab({
                   <div className="flex items-center justify-between">
                     <SettingLabel
                       helpTitle="Chave OpenRouter"
-                      help="Opcional. Chave personalizada do openrouter.ai. Se vazia, usa a chave padrão do sistema para modelos free."
+                      help="Opcional: cole sua chave sk-or-v1-… do openrouter.ai. Se deixar vazio, usa a chave embutida do Lumiera (continua funcionando)."
                       align="start"
                     >
                       Chave OpenRouter
@@ -697,11 +925,11 @@ export function AppSettingsTab({
 
                     {hasOpenRouterKey ? (
                       <span className="dash-ui-badge dash-ui-badge-success dash-ui-badge-pill">
-                        Ativa (Personalizada)
+                        Ativa
                       </span>
                     ) : (
-                      <span className="dash-ui-badge dash-ui-badge-warning dash-ui-badge-pill">
-                        Ativa (Padrão do Sistema)
+                      <span className="dash-ui-badge dash-ui-badge-danger dash-ui-badge-pill">
+                        Sem chave
                       </span>
                     )}
                   </div>
@@ -710,13 +938,13 @@ export function AppSettingsTab({
                     type="password"
                     value={openrouterKeyInput}
                     onChange={(e) => setOpenRouterKeyInput(e.target.value)}
-                    placeholder="Deixe vazio para usar a padrão ou cole uma chave personalizada."
+                    placeholder="Opcional: cole sua chave sk-or-v1-… (vazio = mantém embutida)"
                     className="dash-input"
                   />
 
                   <p className="text-[10px] text-zinc-500 leading-relaxed">
-                    Opcional. Se não fornecida, o sistema usará a chave privada
-                    pré-configurada.
+                    Deixe vazio para manter a chave embutida do Lumiera ou a que
+                    você já salvou. Cole a sua se quiser usar a própria conta.
                   </p>
                 </div>
 
@@ -758,14 +986,13 @@ export function AppSettingsTab({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <SettingLabel
-                      helpTitle="Chave Inference.net"
-                      help="Chave sk-inference-... do dashboard inference.net. Necessária para usar modelos hospedados na plataforma."
+                      helpTitle="Chave Alibaba (DashScope)"
+                      help="Chave sk-ws-… do Model Studio / DashScope. Endpoint e modelo ficam acima quando Alibaba está selecionado."
                       align="start"
                     >
-                      Chave Inference.net
+                      Chave Alibaba (DashScope)
                     </SettingLabel>
-
-                    {hasInferenceKey ? (
+                    {hasAlibabaKey ? (
                       <span className="dash-ui-badge dash-ui-badge-success dash-ui-badge-pill">
                         Configurada
                       </span>
@@ -775,18 +1002,52 @@ export function AppSettingsTab({
                       </span>
                     )}
                   </div>
-
                   <input
                     type="password"
-                    value={inferenceKeyInput}
-                    onChange={(e) => setInferenceKeyInput(e.target.value)}
-                    placeholder="Cole a chave sk-inference-.... Deixe vazio para manter a atual."
+                    value={alibabaKeyInput}
+                    onChange={(e) => setAlibabaKeyInput(e.target.value)}
+                    placeholder="Cole a chave sk-ws-… Deixe vazio para manter a atual."
                     className="dash-input"
                   />
-
                   <p className="text-[10px] text-zinc-500 leading-relaxed">
-                    Obtenha em inference.net → API Keys. Usada quando
-                    Inference.net estiver selecionado como provedor.
+                    Workspace: ws-7pwlysxpwyxkd7j2.cn-beijing.maas.aliyuncs.com
+                    · Ative Qwen-Plus/Turbo no console se aparecer
+                    AccessDenied.Unpurchased.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <SettingLabel
+                      helpTitle="Chave TokenRouter"
+                      help="Chave sk-… do TokenRouter. Usada com base_url https://api.tokenrouter.com/v1 (OpenAI SDK)."
+                      align="start"
+                    >
+                      Chave TokenRouter
+                    </SettingLabel>
+                    {hasTokenrouterKey ? (
+                      <span className="dash-ui-badge dash-ui-badge-success dash-ui-badge-pill">
+                        Configurada
+                      </span>
+                    ) : (
+                      <span className="dash-ui-badge dash-ui-badge-danger dash-ui-badge-pill">
+                        Não Configurada
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="password"
+                    value={tokenrouterKeyInput}
+                    onChange={(e) => setTokenrouterKeyInput(e.target.value)}
+                    placeholder="Cole a chave sk-… Deixe vazio para manter a atual."
+                    className="dash-input"
+                  />
+                  <p className="text-[10px] text-zinc-500 leading-relaxed">
+                    Equivalente a:{" "}
+                    <code className="text-[9px] text-zinc-400">
+                      OpenAI(base_url=&quot;https://api.tokenrouter.com/v1&quot;,
+                      api_key=&quot;sk-…&quot;)
+                    </code>
                   </p>
                 </div>
 

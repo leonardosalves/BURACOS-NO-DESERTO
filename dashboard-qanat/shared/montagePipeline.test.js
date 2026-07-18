@@ -4,7 +4,10 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { resolveBgmMode } from "./bgmMode.js";
-import { NARRATION_MODE_MASTER, NARRATION_MODE_CHUNKED } from "../backend/narrationChunks.js";
+import {
+  NARRATION_MODE_MASTER,
+  NARRATION_MODE_CHUNKED,
+} from "../backend/narrationChunks.js";
 import {
   allNarrationChunksHaveAudio,
   computeChunkTimeline,
@@ -20,15 +23,19 @@ describe("montage pipeline", () => {
   describe("resolveBgmMode", () => {
     it("bgm_mode block tem prioridade sobre SHORTS", () => {
       assert.equal(
-        resolveBgmMode({ bgm_mode: "block", use_single_bgm: false }, {}, "SHORT"),
-        "block",
+        resolveBgmMode(
+          { bgm_mode: "block", use_single_bgm: false },
+          {},
+          "SHORT"
+        ),
+        "block"
       );
     });
 
     it("use_single_bgm força single em longos", () => {
       assert.equal(
         resolveBgmMode({ use_single_bgm: true }, {}, "LONG"),
-        "single",
+        "single"
       );
     });
 
@@ -52,7 +59,10 @@ describe("montage pipeline", () => {
       const plan = { chunks: [{ id: "chunk-01" }, { id: "chunk-02" }] };
       assert.equal(isFullNarrationChunkBatch(null, plan), true);
       assert.equal(isFullNarrationChunkBatch(["chunk-01"], plan), false);
-      assert.equal(isFullNarrationChunkBatch(["chunk-01", "chunk-02"], plan), true);
+      assert.equal(
+        isFullNarrationChunkBatch(["chunk-01", "chunk-02"], plan),
+        true
+      );
     });
 
     it("allNarrationChunksHaveAudio exige todos os MP3", () => {
@@ -64,10 +74,16 @@ describe("montage pipeline", () => {
       };
       const chunkDir = path.join(tmpDir, "narration_chunks");
       fs.mkdirSync(chunkDir, { recursive: true });
-      fs.writeFileSync(path.join(tmpDir, plan.chunks[0].audio_file.replace(/\//g, path.sep)), "x");
+      fs.writeFileSync(
+        path.join(tmpDir, plan.chunks[0].audio_file.replace(/\//g, path.sep)),
+        "x"
+      );
       assert.equal(allNarrationChunksHaveAudio(plan, tmpDir), false);
 
-      fs.writeFileSync(path.join(tmpDir, plan.chunks[1].audio_file.replace(/\//g, path.sep)), "y");
+      fs.writeFileSync(
+        path.join(tmpDir, plan.chunks[1].audio_file.replace(/\//g, path.sep)),
+        "y"
+      );
       assert.equal(allNarrationChunksHaveAudio(plan, tmpDir), true);
     });
 
@@ -83,30 +99,57 @@ describe("montage pipeline", () => {
     });
 
     it("persistChunkPlan preserva narration_mode master quando informado", async () => {
-      const { persistChunkPlanToProject } = await import("../backend/narrationChunks.js");
+      const { persistChunkPlanToProject } =
+        await import("../backend/narrationChunks.js");
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-plan-"));
       try {
         fs.writeFileSync(path.join(tmpDir, "storyboard.json"), "{}");
-        fs.writeFileSync(path.join(tmpDir, "config_qanat.json"), JSON.stringify({ niche: "Test" }));
+        fs.writeFileSync(
+          path.join(tmpDir, "config_qanat.json"),
+          JSON.stringify({ niche: "Test" })
+        );
         const plan = { chunks: [{ id: "chunk-01", text: "teste", block: 1 }] };
-        const saved = persistChunkPlanToProject(tmpDir, plan, { narration_mode: NARRATION_MODE_MASTER });
+        const saved = persistChunkPlanToProject(tmpDir, plan, {
+          narration_mode: NARRATION_MODE_MASTER,
+        });
         assert.equal(saved.config.narration_mode, NARRATION_MODE_MASTER);
         const savedChunked = persistChunkPlanToProject(tmpDir, plan, {});
-        assert.equal(savedChunked.config.narration_mode, NARRATION_MODE_CHUNKED);
+        assert.equal(
+          savedChunked.config.narration_mode,
+          NARRATION_MODE_CHUNKED
+        );
       } finally {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }
     });
 
     it("syncTimelineFromChunkPlan distribui narração por cena no bloco", async () => {
-      const { syncTimelineFromChunkPlan, computeChunkTimeline } = await import("../backend/narrationChunks.js");
+      const { syncTimelineFromChunkPlan, computeChunkTimeline } =
+        await import("../backend/narrationChunks.js");
       const chunks = computeChunkTimeline([
-        { id: "c1", block: 2, scene_ref: "2.1", text: "Primeira frase do bloco.", duration_s: 3, pause_after_ms: 300 },
-        { id: "c2", block: 2, scene_ref: "2.2", text: "Segunda frase do bloco.", duration_s: 4, pause_after_ms: 0 },
+        {
+          id: "c1",
+          block: 2,
+          scene_ref: "2.1",
+          text: "Primeira frase do bloco.",
+          duration_s: 3,
+          pause_after_ms: 300,
+        },
+        {
+          id: "c2",
+          block: 2,
+          scene_ref: "2.2",
+          text: "Segunda frase do bloco.",
+          duration_s: 4,
+          pause_after_ms: 0,
+        },
       ]);
       const synced = syncTimelineFromChunkPlan({
         timelineAssets: {
-          2: [{ asset: "a.mp4", type: "video" }, { asset: "b.jpeg", type: "image" }],
+          2: [
+            { asset: "a.mp4", type: "video" },
+            { asset: "b.jpeg", type: "image" },
+          ],
         },
         chunkPlan: { chunks },
         visualPrompts: [
@@ -114,59 +157,77 @@ describe("montage pipeline", () => {
           { block: 2, scene: "2.2", narration_text: "" },
         ],
       });
-      assert.equal(synced.timelineAssets["2"][0].narration_segment, "Primeira frase do bloco.");
-      assert.equal(synced.timelineAssets["2"][1].narration_segment, "Segunda frase do bloco.");
-      assert.ok(synced.timelineAssets["2"][0].speech_end < synced.timelineAssets["2"][1].audio_start);
+      assert.equal(
+        synced.timelineAssets["2"][0].narration_segment,
+        "Primeira frase do bloco."
+      );
+      assert.equal(
+        synced.timelineAssets["2"][1].narration_segment,
+        "Segunda frase do bloco."
+      );
+      assert.ok(
+        synced.timelineAssets["2"][0].speech_end <
+          synced.timelineAssets["2"][1].audio_start
+      );
     });
 
-    it("sanitizeNarrationChunkTaggedText remove breath e ênfase", () => {
-      const raw = "[ênfase] Mil (breath) anos depois, [ênfase dramática] tudo mudou.";
+    it("sanitizeNarrationChunkTaggedText remove breath e mantém tags de performance", () => {
+      const raw =
+        "[ênfase] Mil (breath) anos depois, [ênfase dramática] tudo mudou.";
       assert.equal(
         sanitizeNarrationChunkTaggedText(raw, "Mil anos depois, tudo mudou."),
-        "Mil anos depois, tudo mudou.",
+        "[ênfase] Mil anos depois, [ênfase dramática] tudo mudou."
       );
     });
 
     it("parseAiNarrationChunkResponse sanitiza text_tagged da IA", () => {
       const chunks = parseAiNarrationChunkResponse({
-        chunks: [{
-          id: "chunk-01",
-          block: 1,
-          scene_ref: "1.1",
-          text: "A torre resistiu.",
-          text_tagged: "[ênfase] A torre (breath) resistiu.",
-        }],
+        chunks: [
+          {
+            id: "chunk-01",
+            block: 1,
+            scene_ref: "1.1",
+            text: "A torre resistiu.",
+            text_tagged: "[ênfase] A torre (breath) resistiu.",
+          },
+        ],
       });
-      assert.equal(chunks[0].text_tagged, "A torre resistiu.");
+      assert.equal(chunks[0].text_tagged, "[ênfase] A torre resistiu.");
     });
 
     it("applyChunkPlanToVisualPrompts corrige duration_seconds e asset no storyboard", () => {
-      const prompts = [{
-        scene: "2.2",
-        block: 2,
-        duration_seconds: 40.5,
-        speech_end: 45.85,
-        asset: { asset: "old.jpeg", type: "image" },
-      }];
-      const plan = {
-        chunks: [{
-          id: "chunk-02",
+      const prompts = [
+        {
+          scene: "2.2",
           block: 2,
-          scene_ref: "2.2",
-          text: "Trecho bloco 2.",
-          duration_s: 7.027,
-          start_s: 5.388,
-          end_s: 12.415,
-          pause_after_ms: 800,
-        }],
+          duration_seconds: 40.5,
+          speech_end: 45.85,
+          asset: { asset: "old.jpeg", type: "image" },
+        },
+      ];
+      const plan = {
+        chunks: [
+          {
+            id: "chunk-02",
+            block: 2,
+            scene_ref: "2.2",
+            text: "Trecho bloco 2.",
+            duration_s: 7.027,
+            start_s: 5.388,
+            end_s: 12.415,
+            pause_after_ms: 800,
+          },
+        ],
       };
       const timeline = {
-        2: [{
-          asset: "Futuristic_buildings.jpeg",
-          type: "image",
-          fixed: 7,
-          user_locked: true,
-        }],
+        2: [
+          {
+            asset: "Futuristic_buildings.jpeg",
+            type: "image",
+            fixed: 7,
+            user_locked: true,
+          },
+        ],
       };
       const out = applyChunkPlanToVisualPrompts(prompts, plan, timeline);
       assert.equal(out[0].duration_seconds, 7);

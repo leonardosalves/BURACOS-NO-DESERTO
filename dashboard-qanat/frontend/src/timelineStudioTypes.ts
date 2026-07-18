@@ -22,6 +22,7 @@ export type StudioClip = {
   color?: string;
   locked?: boolean;
   durationLocked?: boolean;
+  timing_manual?: boolean;
   legacyOverlay?: boolean;
   motionScene?: boolean;
   motionScenePrimary?: boolean;

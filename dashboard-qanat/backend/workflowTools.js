@@ -30,6 +30,12 @@ import {
   CHATTERBOX_DEFAULT_VOICE,
 } from "./chatterboxTts.js";
 import {
+  loadQwen3TtsConfig,
+  synthesizeQwen3TtsNarration,
+  prepareQwen3ExpressiveNarration,
+  QWEN3_TTS_DEFAULT_VOICE,
+} from "./qwen3Tts.js";
+import {
   loadVoiceboxConfig,
   synthesizeVoiceboxNarration,
 } from "./voiceboxTts.js";
@@ -698,6 +704,7 @@ export async function generateNarrationTts(
     kokoro: "Kokoro",
     edge: "Edge TTS",
     chatterbox: "Chatterbox",
+    qwen3: "Qwen3-TTS",
     voicebox: "Voicebox",
     gptsovits: "GPT-SoVITS",
     fish: "Fish Audio",
@@ -808,6 +815,76 @@ export async function generateNarrationTts(
       model: result.model,
       durationSeconds: result.durationSeconds,
       message: `Narração Chatterbox gerada (${result.voice}, ${result.durationSeconds?.toFixed(1) || "?"}s, ${result.chunks || 1} bloco(s)). Rode sync Whisper para timings.`,
+    };
+  }
+
+  if (engine === "qwen3") {
+    const qConfig = loadQwen3TtsConfig({
+      workspaceDir,
+      projectDir: projDir,
+    });
+    const qCfg = qConfig.qwen3_tts || {};
+    const qOpt = ttsOptions.qwen3 || ttsOptions.qwen3_tts || {};
+    if (qOpt.instruct) {
+      qConfig.qwen3_tts = { ...qCfg, instruct: qOpt.instruct };
+    }
+    if (qOpt.device) {
+      qConfig.qwen3_tts = { ...qConfig.qwen3_tts, device: qOpt.device };
+    }
+    if (qOpt.modelId || qOpt.model_id) {
+      qConfig.qwen3_tts = {
+        ...qConfig.qwen3_tts,
+        model_id: qOpt.modelId || qOpt.model_id,
+      };
+    }
+    const voicePreset =
+      preferredVoice ||
+      qCfg.default_voice ||
+      qCfg.defaultVoice ||
+      QWEN3_TTS_DEFAULT_VOICE;
+    const useTagged =
+      useTaggedOverride !== undefined
+        ? Boolean(useTaggedOverride)
+        : qCfg.use_tagged_script !== false && qCfg.useTaggedScript !== false;
+    const taggedSource =
+      useTagged && String(tagged).trim().length > 40
+        ? String(tagged).trim()
+        : plain;
+    const prepared = prepareQwen3ExpressiveNarration(taggedSource, {
+      voiceId: voicePreset,
+    });
+    const explicitInstruct = String(
+      qOpt.instruct || qCfg.instruct || ""
+    ).trim();
+    const finalInstruct = [explicitInstruct, prepared.instruct]
+      .filter(Boolean)
+      .join("; ")
+      .slice(0, 480);
+    const result = await synthesizeQwen3TtsNarration(prepared.text, {
+      voice: voicePreset,
+      outputPath: dest,
+      workDir: projDir,
+      config: qConfig,
+      instruct: finalInstruct,
+      applyTags: false,
+      minChars: 40,
+      onLog,
+    });
+    invalidateNarrationTimings();
+
+    return {
+      success: true,
+      file: NARRATION_FILENAME,
+      chars: result.chars,
+      voice: result.voice,
+      engine: "qwen3",
+      speaker: result.speaker,
+      language: result.language,
+      model: result.model,
+      instruct: finalInstruct,
+      tags: prepared.tags,
+      durationSeconds: result.durationSeconds,
+      message: `Narração Qwen3-TTS gerada (${result.voice}, ${result.language || "PT/EN"}, ${result.durationSeconds?.toFixed(1) || "?"}s${finalInstruct ? ", expressiva" : ""}, ${result.chunks || 1} bloco(s)). Rode sync Whisper para timings.`,
     };
   }
 
@@ -973,7 +1050,7 @@ export async function generateNarrationTts(
 
   const textForTts = convertCinematicMarkersForTts(tagged, engine);
   throw new Error(
-    `Engine TTS "${engine}" não suportado. Use kokoro, voicebox, gptsovits, chatterbox, fish ou edge. Texto: ${textForTts.slice(0, 80)}...`
+    `Engine TTS "${engine}" não suportado. Use kokoro, voicebox, gptsovits, chatterbox, qwen3, fish ou edge. Texto: ${textForTts.slice(0, 80)}...`
   );
 }
 

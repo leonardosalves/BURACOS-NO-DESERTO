@@ -15,6 +15,13 @@ export const TTS_ENGINE_ALIASES = Object.freeze({
   fish: "fish",
   "fish-speech": "fish",
   fish_speech: "fish",
+  qwen3: "qwen3",
+  "qwen3-tts": "qwen3",
+  qwen3_tts: "qwen3",
+  qwen: "qwen3",
+  "qwen-tts": "qwen3",
+  qwen_tts: "qwen3",
+  qwen_custom_voice: "qwen3",
 });
 
 export const TTS_ALLOWED_ENGINES = Object.freeze([
@@ -24,6 +31,7 @@ export const TTS_ALLOWED_ENGINES = Object.freeze([
   "voicebox",
   "gptsovits",
   "fish",
+  "qwen3",
 ]);
 
 function readJson(filePath) {

@@ -120,6 +120,33 @@ export function getJobProgress(jobId) {
   return null;
 }
 
+/** Lista jobs de IA recentes (memória + disco). */
+export function listAiJobs({ limit = 40, activeOnly = false } = {}) {
+  cleanupStale();
+  ensureJobsDir();
+  const byId = new Map();
+  for (const job of jobs.values()) {
+    if (job?.jobId) byId.set(job.jobId, job);
+  }
+  try {
+    for (const file of fs.readdirSync(JOBS_DIR)) {
+      if (!file.endsWith(".json")) continue;
+      const id = file.replace(/\.json$/, "");
+      if (byId.has(id)) continue;
+      const disk = readJobFromDisk(id);
+      if (disk?.jobId) byId.set(disk.jobId, disk);
+    }
+  } catch {
+    /* optional */
+  }
+  let list = [...byId.values()];
+  if (activeOnly) {
+    list = list.filter((j) => !j.done && !j.error);
+  }
+  list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  return list.slice(0, Math.max(1, Math.min(100, Number(limit) || 40)));
+}
+
 export function finishJobProgress(jobId, label = "Concluído") {
   return setJobProgress(jobId, {
     phase: "done",
@@ -187,11 +214,18 @@ export function createProgressJobResponse(jobId) {
         return;
       }
       if (statusCode >= 400 || payload?.error) {
-        const errMsg = String(payload?.error || payload?.details || "Erro");
+        const detailText = Array.isArray(payload?.details)
+          ? payload.details.filter(Boolean).join(" | ")
+          : payload?.details
+            ? String(payload.details)
+            : "";
+        const errMsg =
+          [payload?.error, detailText].filter(Boolean).join(" — ") || "Erro";
         failJobProgress(jobId, errMsg);
         setJobProgress(jobId, {
           result: payload,
           done: true,
+          error: errMsg,
           awaitingBrowser: false,
         });
         return;

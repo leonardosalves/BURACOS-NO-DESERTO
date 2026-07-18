@@ -75,6 +75,12 @@ type TimelineScene = {
   volume?: number;
 
   playback_rate?: number;
+
+  /** Fade de áudio diegético do clip de vídeo (entrada natural na timeline). */
+  fadeInS?: number;
+
+  /** Fade de áudio diegético do clip de vídeo (saída natural na timeline). */
+  fadeOutS?: number;
 };
 
 type Caption = {
@@ -111,6 +117,7 @@ type SfxTrack = {
   duration: number;
 
   volume: number;
+  source_start?: number;
   fadeInS?: number;
   fadeOutS?: number;
   loop?: boolean;
@@ -305,6 +312,9 @@ const SceneMedia: React.FC<{
   // Overlap transitions duration: 12 frames (0.4s)
 
   const transFrames = 12;
+  // Sequence real (com overlap visual) — áudio fade-out acompanha o fim da Sequence
+  const sequenceDurationFrames =
+    durationFrames + (!isLast && !isLogo ? transFrames : 0);
 
   // 1. Zoom effect (always active)
 
@@ -615,6 +625,37 @@ const SceneMedia: React.FC<{
 
   const clipVolume = scene.volume ?? 0;
   const clipRate = scene.playback_rate ?? 1;
+  const fadeInS = Math.max(0, Number(scene.fadeInS) || 0);
+  const fadeOutS = Math.max(0, Number(scene.fadeOutS) || 0);
+  const fadeInFrames = Math.max(1, Math.round(fadeInS * fps));
+  const fadeOutFrames = Math.max(1, Math.round(fadeOutS * fps));
+  const resolveClipVolume = (localFrame: number) => {
+    if (clipVolume <= 0) return 0;
+    if (fadeInS <= 0 && fadeOutS <= 0) return clipVolume;
+    const fadeIn =
+      fadeInS > 0
+        ? interpolate(localFrame, [0, fadeInFrames], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          })
+        : 1;
+    const fadeOut =
+      fadeOutS > 0
+        ? interpolate(
+            localFrame,
+            [
+              Math.max(0, sequenceDurationFrames - fadeOutFrames),
+              Math.max(1, sequenceDurationFrames),
+            ],
+            [1, 0],
+            {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+            }
+          )
+        : 1;
+    return clipVolume * Math.min(fadeIn, fadeOut);
+  };
 
   if (scene.type === "remotion" && scene.remotionTemplate) {
     const template = scene.remotionTemplate as OverlayType;
@@ -637,7 +678,7 @@ const SceneMedia: React.FC<{
           src={assetUrl(scene.asset)}
           muted={clipVolume <= 0}
           loop={false}
-          volume={clipVolume}
+          volume={resolveClipVolume}
           playbackRate={clipRate}
           delayRenderTimeoutInMilliseconds={MEDIA_DELAY_RENDER_TIMEOUT_MS}
           delayRenderRetries={MEDIA_DELAY_RENDER_RETRIES}
@@ -1422,21 +1463,42 @@ const BgmAudio: React.FC<{
 const SfxAudio: React.FC<{ track: SfxTrack }> = ({ track }) => {
   const { fps } = useVideoConfig();
 
-  const durationMs = Math.max(300, track.duration * 1000);
+  const durationMs = Math.max(50, track.duration * 1000);
 
-  const baseVolume = Math.min(0.42, Math.max(0.01, track.volume || 0.035));
+  const baseVolume = Math.min(0.82, Math.max(0.01, track.volume || 0.035));
+  const defaultFadeIn =
+    track.category === "ambience"
+      ? 0.3
+      : track.category === "riser"
+        ? 0.08
+        : track.category === "transition"
+          ? 0.015
+          : 0.008;
+  const defaultFadeOut =
+    track.category === "ambience"
+      ? 0.6
+      : track.category === "impact"
+        ? 0.45
+        : track.category === "transition"
+          ? 0.28
+          : 0.18;
   const fadeInMs = Math.min(
-    durationMs * 0.4,
-    Math.max(20, (track.fadeInS ?? 0.06) * 1000)
+    durationMs * 0.25,
+    Math.max(4, (track.fadeInS ?? defaultFadeIn) * 1000)
   );
   const fadeOutMs = Math.min(
     durationMs * 0.45,
-    Math.max(60, (track.fadeOutS ?? 0.22) * 1000)
+    Math.max(40, (track.fadeOutS ?? defaultFadeOut) * 1000)
   );
 
   return (
     <Audio
       src={assetUrl(track.file)}
+      trimBefore={
+        track.source_start
+          ? Math.max(0, Math.round(track.source_start * fps))
+          : 0
+      }
       loop={track.loop === true}
       delayRenderTimeoutInMilliseconds={MEDIA_DELAY_RENDER_TIMEOUT_MS}
       volume={(localFrame) => {

@@ -68,6 +68,33 @@ test("detecta texto alterado depois da aprovacao", () => {
   );
 });
 
+test("aceita pronuncia fonetica aprovada sem alterar a legenda principal", () => {
+  const text = "Os persas queimaram enxofre.";
+  const tagged = "Os pérsas queimaram enxÔfre.";
+  withProject(
+    {
+      narrative_script: text,
+      narrative_script_tagged: tagged,
+      narration_integrity: {
+        approved_text_sha256: hashNarrationIntegrityText(text),
+        approved_tagged_sha256: hashNarrationIntegrityText(tagged),
+      },
+      narration_chunk_plan: {
+        source_narration_hash: hashNarrationIntegrityText(text),
+        chunks: [{ text, text_tagged: tagged }],
+      },
+    },
+    (dir) => {
+      const report = buildNarrationIntegrityReport(dir);
+      assert.equal(report.status, "ok");
+      assert.match(
+        report.checks.find((check) => check.id === "tagged").detail,
+        /pronuncia expressiva/i
+      );
+    }
+  );
+});
+
 test("relatorio acusa MP3 ausente sem alterar o projeto", () => {
   withProject({ narrative_script: "Texto pronto para sintetizar." }, (dir) => {
     const report = buildProjectHealthReport({

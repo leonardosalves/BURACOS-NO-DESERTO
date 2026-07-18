@@ -12,6 +12,7 @@ import { AppTimelineTab } from "./AppTimelineTab";
 import { AppUploadTab } from "./AppUploadTab";
 import { AppWorkflowTab } from "./AppWorkflowTab";
 import { HumorFactsLab } from "./HumorFactsLab";
+import { CollageBrollLab } from "./CollageBrollLab";
 import { ProjectHealthPanel } from "./ProjectHealthPanel";
 import { AppDocsTab } from "./AppDocsTab";
 import { FlowLabPage } from "./FlowLabPage";
@@ -26,6 +27,7 @@ import {
   HeartPulse,
   LayoutTemplate,
   Laugh,
+  Layers,
   TrendingUp,
   Tv,
   Youtube,
@@ -102,6 +104,11 @@ export type AppGlobalStudioPanelsProps = {
   setNewProjectNiche: (niche: string) => void;
   setShowCreateModal: (open: boolean) => void;
   hasApiKey: boolean;
+  saveConfigPatch?: (
+    patch: Record<string, unknown>,
+    opts?: { skipRefresh?: boolean }
+  ) => Promise<ConfigData | null>;
+  setConfig?: React.Dispatch<React.SetStateAction<ConfigData | null>>;
 };
 
 export type AppTabPanelsProps = AppTabPropBundles &
@@ -135,6 +142,8 @@ export function AppTabPanels({
   setNewProjectNiche,
   setShowCreateModal,
   hasApiKey,
+  saveConfigPatch,
+  setConfig,
   creatorTabProps,
   aiTabProps,
   uploadTabProps,
@@ -168,6 +177,20 @@ export function AppTabPanels({
           </Suspense>
         </TabErrorBoundary>
       )}
+      {activeTab === "collage-broll" && (
+        <TabErrorBoundary tabName="Collage B-roll">
+          <DashminPageLayout
+            title="Collage B-roll"
+            subtitle="Halftone paper-collage assemble B-roll · 3 gates · gbro-collage-broll"
+            breadcrumb={["Dashboard", "Estúdio", "Collage B-roll"]}
+            icon={<Layers className="h-5 w-5 text-violet-300" />}
+            className="max-w-[1680px]"
+          >
+            <CollageBrollLab getProjectUrl={getProjectUrl} />
+          </DashminPageLayout>
+        </TabErrorBoundary>
+      )}
+
       {activeTab === "humor-facts" && (
         <TabErrorBoundary tabName="Fatos com Graca">
           <DashminPageLayout
@@ -178,6 +201,26 @@ export function AppTabPanels({
           >
             <HumorFactsLab
               getProjectUrl={getProjectUrl}
+              visualAssetStyle={config?.visual_asset_style || "photorealistic"}
+              visualMapOnly={Boolean(config?.visual_map_only_prompts)}
+              onVisualAssetStyleChange={(styleId) => {
+                void saveConfigPatch?.(
+                  { visual_asset_style: styleId },
+                  { skipRefresh: true }
+                );
+                setConfig?.((prev) =>
+                  prev ? { ...prev, visual_asset_style: styleId } : prev
+                );
+              }}
+              onVisualMapOnlyChange={(enabled) => {
+                void saveConfigPatch?.(
+                  { visual_map_only_prompts: enabled },
+                  { skipRefresh: true }
+                );
+                setConfig?.((prev) =>
+                  prev ? { ...prev, visual_map_only_prompts: enabled } : prev
+                );
+              }}
               onApplyCreator={handleApplyYoutubeStudioIdea}
             />
           </DashminPageLayout>
@@ -199,6 +242,28 @@ export function AppTabPanels({
               <LazyVideoReverseEngineeringLab
                 getProjectUrl={getProjectUrl}
                 initialNiche={nicheInput || config?.niche || ""}
+                visualAssetStyle={
+                  config?.visual_asset_style || "photorealistic"
+                }
+                visualMapOnly={Boolean(config?.visual_map_only_prompts)}
+                onVisualAssetStyleChange={(styleId) => {
+                  void saveConfigPatch?.(
+                    { visual_asset_style: styleId },
+                    { skipRefresh: true }
+                  );
+                  setConfig?.((prev) =>
+                    prev ? { ...prev, visual_asset_style: styleId } : prev
+                  );
+                }}
+                onVisualMapOnlyChange={(enabled) => {
+                  void saveConfigPatch?.(
+                    { visual_map_only_prompts: enabled },
+                    { skipRefresh: true }
+                  );
+                  setConfig?.((prev) =>
+                    prev ? { ...prev, visual_map_only_prompts: enabled } : prev
+                  );
+                }}
                 onApplyCreator={handleApplyYoutubeStudioIdea}
               />
             </Suspense>

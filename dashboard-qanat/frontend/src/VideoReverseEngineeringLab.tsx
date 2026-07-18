@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import type { CreatorApplyIdeaOptions } from "./creatorEditorialImport";
+import { VisualAssetStylePicker } from "./VisualAssetStylePicker";
 
 type ReverseScene = {
   id: string;
@@ -34,6 +35,8 @@ type ReverseScene = {
   visual_description: string;
   shot: string;
   camera: string;
+  media_type: "image" | "video";
+  media_reason: string;
   image_prompt: string;
   video_prompt: string;
   on_screen_text: string;
@@ -52,6 +55,7 @@ type ReverseResult = {
     duration_sec: number | null;
   };
   mode: "faithful" | "transformative";
+  media_strategy: "video_only" | "adaptive";
   format: "SHORTS" | "LONGO";
   title: string;
   hook: string;
@@ -75,6 +79,11 @@ type ReverseResult = {
 type Props = {
   getProjectUrl: (path: string) => string;
   initialNiche?: string;
+  /** Estilo visual do projeto (config) — define o look dos prompts gerados */
+  visualAssetStyle?: string;
+  visualMapOnly?: boolean;
+  onVisualAssetStyleChange?: (styleId: string) => void;
+  onVisualMapOnlyChange?: (enabled: boolean) => void;
   onApplyCreator: (
     title: string,
     hook: string,
@@ -88,8 +97,14 @@ function sceneProductionText(scene: ReverseScene) {
     scene.narration ? `NARRACAO: ${scene.narration}` : "",
     scene.visual_description ? `VISUAL: ${scene.visual_description}` : "",
     `PLANO/CAMERA: ${scene.shot}; ${scene.camera}`,
-    scene.image_prompt ? `PROMPT IMAGEM: ${scene.image_prompt}` : "",
-    scene.video_prompt ? `PROMPT VIDEO: ${scene.video_prompt}` : "",
+    `MIDIA ESCOLHIDA: ${scene.media_type === "video" ? "VIDEO" : "IMAGEM"}`,
+    scene.media_reason ? `MOTIVO DA MIDIA: ${scene.media_reason}` : "",
+    scene.media_type === "image" && scene.image_prompt
+      ? `PROMPT IMAGEM: ${scene.image_prompt}`
+      : "",
+    scene.media_type === "video" && scene.video_prompt
+      ? `PROMPT VIDEO: ${scene.video_prompt}`
+      : "",
     scene.on_screen_text ? `TEXTO NA TELA: ${scene.on_screen_text}` : "",
     scene.transition ? `TRANSICAO: ${scene.transition}` : "",
     scene.audio_cue ? `AUDIO/SFX: ${scene.audio_cue}` : "",
@@ -170,7 +185,14 @@ function buildPrebuiltStoryboard(result: ReverseResult) {
   const visualPrompts = result.scenes.map((scene, index) => {
     const block = Math.floor(index / scenesPerBlock) + 1;
     const sceneInBlock = (index % scenesPerBlock) + 1;
-    const videoPrompt = resolveReverseSceneVideoPrompt(scene);
+    const mediaType = scene.media_type === "image" ? "image" : "video";
+    const videoPrompt =
+      mediaType === "video" ? resolveReverseSceneVideoPrompt(scene) : "";
+    const imagePrompt =
+      mediaType === "image"
+        ? scene.image_prompt?.trim() || scene.visual_description?.trim()
+        : "";
+    const selectedPrompt = mediaType === "video" ? videoPrompt : imagePrompt;
     return {
       scene: `${block}.${sceneInBlock}`,
       block,
@@ -184,16 +206,17 @@ function buildPrebuiltStoryboard(result: ReverseResult) {
       visual_description: scene.visual_description,
       duration: `${Math.max(2, Number(scene.duration_sec) || 5)} segundos`,
       duration_seconds: Math.max(2, Number(scene.duration_sec) || 5),
-      type: "vídeo IA (max 10s)",
-      media_mode: "video",
+      type: mediaType === "video" ? "vídeo IA (max 10s)" : "imagem IA",
+      media_mode: mediaType,
       aspect_ratio: result.format === "SHORTS" ? "9:16" : "16:9",
-      prompt: videoPrompt,
-      image_prompt: scene.image_prompt,
+      prompt: selectedPrompt,
+      image_prompt: imagePrompt,
       video_prompt: videoPrompt,
       ai_video_prompt: videoPrompt,
       production: {
-        broll_type: "video",
+        broll_type: mediaType,
         generation_source: "video-reverse-engineering",
+        media_reason: scene.media_reason,
       },
       shot: scene.shot,
       camera: scene.camera,
@@ -202,6 +225,8 @@ function buildPrebuiltStoryboard(result: ReverseResult) {
       sfx_cue: scene.audio_cue,
       editor_notes: [
         scene.visual_description,
+        `Mídia: ${mediaType === "video" ? "vídeo" : "imagem"}`,
+        scene.media_reason ? `Motivo: ${scene.media_reason}` : "",
         scene.shot ? `Plano: ${scene.shot}` : "",
         scene.camera ? `Camera: ${scene.camera}` : "",
         scene.transition ? `Transicao: ${scene.transition}` : "",
@@ -214,6 +239,19 @@ function buildPrebuiltStoryboard(result: ReverseResult) {
     };
   });
 
+  const factualPremise =
+    result.content_summary?.trim() ||
+    result.hook?.trim() ||
+    result.title?.trim() ||
+    "Roteiro derivado por engenharia reversa do vídeo de referência.";
+  const researchFacts = [
+    factualPremise,
+    ...result.scenes
+      .map((scene) => scene.narration?.trim())
+      .filter((item): item is string => Boolean(item && item.length >= 24))
+      .slice(0, 3),
+  ].filter((item, index, list) => list.indexOf(item) === index);
+
   return {
     strategy: {
       title_main: result.title,
@@ -221,9 +259,20 @@ function buildPrebuiltStoryboard(result: ReverseResult) {
       hook: result.hook,
       tone: result.visual_language,
       source_reference: result.source.url,
+      factual_premise: factualPremise,
     },
     narrative_script: resolveReconstructedNarration(result),
     visual_prompts: visualPrompts,
+    research_facts: researchFacts,
+    research_sources: [
+      {
+        title:
+          result.source.title ||
+          result.source.author ||
+          "Vídeo de referência (engenharia reversa)",
+        url: result.source.url,
+      },
+    ].filter((item) => item.url),
     music_direction: result.music_direction,
     sfx_direction: result.sfx_direction,
     editing_blueprint: result.editing_blueprint,
@@ -233,9 +282,17 @@ function buildPrebuiltStoryboard(result: ReverseResult) {
       aspect_ratio: result.format === "SHORTS" ? "9:16" : "16:9",
       imported_scene_count: visualPrompts.length,
     },
+    specialized_import: {
+      source: "video-reverse-engineering",
+      title: result.title,
+      hook: result.hook,
+      factual_premise: factualPremise,
+      source_url: result.source.url,
+    },
     reverse_engineering: {
       source: result.source,
       mode: result.mode,
+      media_strategy: result.media_strategy,
       content_summary: result.content_summary,
       source_transcript: result.source_transcript,
       visual_language: result.visual_language,
@@ -248,6 +305,10 @@ function buildPrebuiltStoryboard(result: ReverseResult) {
 export function VideoReverseEngineeringLab({
   getProjectUrl,
   initialNiche = "",
+  visualAssetStyle: visualAssetStyleProp = "photorealistic",
+  visualMapOnly: visualMapOnlyProp = false,
+  onVisualAssetStyleChange,
+  onVisualMapOnlyChange,
   onApplyCreator,
 }: Props) {
   const [url, setUrl] = useState("");
@@ -256,6 +317,26 @@ export function VideoReverseEngineeringLab({
   const [mode, setMode] = useState<"transformative" | "faithful">(
     "transformative"
   );
+  const [mediaStrategy, setMediaStrategy] = useState<"video_only" | "adaptive">(
+    "adaptive"
+  );
+  const [localVisualStyle, setLocalVisualStyle] =
+    useState(visualAssetStyleProp);
+  const [localMapOnly, setLocalMapOnly] = useState(visualMapOnlyProp);
+  const visualAssetStyle = onVisualAssetStyleChange
+    ? visualAssetStyleProp
+    : localVisualStyle;
+  const visualMapOnly = onVisualMapOnlyChange
+    ? visualMapOnlyProp
+    : localMapOnly;
+  const setVisualAssetStyle = (id: string) => {
+    if (onVisualAssetStyleChange) onVisualAssetStyleChange(id);
+    else setLocalVisualStyle(id);
+  };
+  const setVisualMapOnly = (v: boolean) => {
+    if (onVisualMapOnlyChange) onVisualMapOnlyChange(v);
+    else setLocalMapOnly(v);
+  };
   const [instructions, setInstructions] = useState("");
   const [rightsConfirmed, setRightsConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -302,6 +383,11 @@ export function VideoReverseEngineeringLab({
             niche,
             format,
             mode,
+            mediaStrategy,
+            visualAssetStyle,
+            visual_asset_style: visualAssetStyle,
+            visualMapOnly,
+            visual_map_only_prompts: visualMapOnly,
             instructions,
             rightsConfirmed,
           }),
@@ -332,6 +418,16 @@ export function VideoReverseEngineeringLab({
       toast.error("O dossiê precisa ter narração e pelo menos uma cena.");
       return;
     }
+    const storyboardWithStyle = {
+      ...prebuiltStoryboard,
+      visual_asset_style: visualAssetStyle,
+      visual_map_only_prompts: visualMapOnly,
+      technical_config: {
+        ...(prebuiltStoryboard.technical_config || {}),
+        visual_asset_style: visualAssetStyle,
+        visual_map_only_prompts: visualMapOnly,
+      },
+    };
     await onApplyCreator(result.title, result.hook || result.title, {
       format: result.format,
       mechanic: "video-reverse-engineering",
@@ -341,30 +437,34 @@ export function VideoReverseEngineeringLab({
       customTitle: result.title,
       customHook: result.hook,
       customPromise: outline,
-      approvedNarration: prebuiltStoryboard.narrative_script,
-      prebuiltStoryboard,
+      approvedNarration: storyboardWithStyle.narrative_script,
+      prebuiltStoryboard: storyboardWithStyle,
+      wizardMode: "video-reverse-engineering",
+      directImportLabel: "Engenharia Reversa",
+      visualAssetStyle,
+      visualMapOnly,
       blocks: groupScenes(result.scenes, result.format === "SHORTS" ? 4 : 8),
     });
     toast.success("Storyboard carregado diretamente no wizard.");
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-16">
-      <section className="relative overflow-hidden rounded-[30px] border border-cyan-300/20 bg-[#071115] px-6 py-8 shadow-2xl shadow-black/30 sm:px-9">
+    <div className="mx-auto w-full max-w-[1680px] space-y-6 px-1 pb-16 sm:px-2">
+      <section className="relative overflow-hidden rounded-[30px] border border-cyan-300/20 bg-[#071115] px-6 py-8 shadow-2xl shadow-black/30 sm:px-10 lg:px-12">
         <div className="pointer-events-none absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(103,232,249,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(103,232,249,.35)_1px,transparent_1px)] [background-size:34px_34px]" />
-        <div className="relative grid gap-8 lg:grid-cols-[1.25fr_.75fr] lg:items-end">
+        <div className="relative grid gap-8 lg:grid-cols-[1.35fr_.65fr] lg:items-end">
           <div>
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200">
               <Fingerprint className="h-3.5 w-3.5" /> Laboratorio forense
             </div>
-            <h1 className="max-w-4xl font-serif text-4xl font-semibold leading-none tracking-tight text-slate-50 sm:text-5xl">
+            <h1 className="max-w-5xl font-serif text-4xl font-semibold leading-none tracking-tight text-slate-50 sm:text-5xl">
               Engenharia Reversa do{" "}
               <span className="italic text-cyan-300">Video</span>
             </h1>
-            <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-400">
+            <p className="mt-5 max-w-3xl text-sm leading-6 text-slate-400">
               Desmonta a referencia em narracao, linguagem visual, edicao e
-              cenas. Cada cena volta como prompt de imagem e video pronto para
-              entrar no wizard Lumiera.
+              cenas. Voce pode gerar somente videos ou deixar a IA escolher
+              imagem e video nos melhores momentos do roteiro.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -375,8 +475,8 @@ export function VideoReverseEngineeringLab({
         </div>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-[370px_1fr]">
-        <aside className="h-fit space-y-5 rounded-3xl border border-slate-800 bg-[#0a0d10] p-5 lg:sticky lg:top-5">
+      <section className="grid gap-6 lg:grid-cols-[minmax(420px,32%)_minmax(0,1fr)] xl:grid-cols-[minmax(460px,30%)_minmax(0,1fr)]">
+        <aside className="h-fit space-y-5 rounded-3xl border border-slate-800 bg-[#0a0d10] p-5 sm:p-6 lg:sticky lg:top-5">
           <div>
             <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300">
               <ScanLine className="h-4 w-4" /> Entrada da analise
@@ -446,6 +546,40 @@ export function VideoReverseEngineeringLab({
               title="Adaptacao fiel autorizada"
               description="Para video proprio, licenciado ou com permissao de reproducao."
               onClick={() => setMode("faithful")}
+            />
+          </div>
+          <div className="space-y-2">
+            <span className="text-xs font-bold text-slate-300">
+              Estratégia de mídia
+            </span>
+            <ModeButton
+              active={mediaStrategy === "adaptive"}
+              tone="emerald"
+              title="IA decide: vídeos + imagens"
+              description="Analisa cada trecho e escolhe a mídia que comunica melhor a cena."
+              onClick={() => setMediaStrategy("adaptive")}
+            />
+            <ModeButton
+              active={mediaStrategy === "video_only"}
+              tone="amber"
+              title="Somente vídeos"
+              description="Todas as cenas recebem prompt de vídeo com ação e movimento planejados."
+              onClick={() => setMediaStrategy("video_only")}
+            />
+          </div>
+          <div className="space-y-2 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/[0.06] p-3">
+            <span className="text-xs font-bold text-fuchsia-200">
+              Estilo visual dos prompts
+            </span>
+            <p className="text-[10px] leading-4 text-slate-500">
+              Define o look de todos os prompts (realista, 3D, anime…). Vai
+              junto para o wizard e para o Visual PRO.
+            </p>
+            <VisualAssetStylePicker
+              value={visualAssetStyle}
+              onChange={setVisualAssetStyle}
+              mapOnly={visualMapOnly}
+              onMapOnlyChange={setVisualMapOnly}
             />
           </div>
           <label className="block space-y-2">
@@ -868,7 +1002,8 @@ function SceneCard({
         <span className="min-w-0 flex-1">
           <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600">
             {scene.timecode || `${scene.duration_sec}s`} · {scene.shot} ·
-            confianca {scene.confidence}
+            {scene.media_type === "video" ? "vídeo" : "imagem"} · confiança{" "}
+            {scene.confidence}
           </span>
           <span className="mt-2 line-clamp-2 block text-xs leading-5 text-slate-300">
             {scene.visual_description || scene.narration}
@@ -885,17 +1020,29 @@ function SceneCard({
           <SceneField label="Narracao" text={scene.narration} />
           <SceneField label="Visual" text={scene.visual_description} />
           <SceneField
-            label="Prompt de imagem"
-            text={scene.image_prompt}
-            accent="cyan"
-            onCopy={() => void onCopy(scene.image_prompt, "Prompt de imagem")}
+            label={
+              scene.media_type === "video"
+                ? "Prompt de vídeo escolhido"
+                : "Prompt de imagem escolhido"
+            }
+            text={
+              scene.media_type === "video"
+                ? scene.video_prompt
+                : scene.image_prompt
+            }
+            accent={scene.media_type === "video" ? "emerald" : "cyan"}
+            onCopy={() =>
+              void onCopy(
+                scene.media_type === "video"
+                  ? scene.video_prompt
+                  : scene.image_prompt,
+                scene.media_type === "video"
+                  ? "Prompt de vídeo"
+                  : "Prompt de imagem"
+              )
+            }
           />
-          <SceneField
-            label="Prompt de video"
-            text={scene.video_prompt}
-            accent="emerald"
-            onCopy={() => void onCopy(scene.video_prompt, "Prompt de video")}
-          />
+          <SceneField label="Por que esta mídia" text={scene.media_reason} />
           <div className="rounded-xl border border-slate-800 p-3 text-[10px] text-slate-500 md:col-span-2">
             Camera: {scene.camera || "—"} · Transicao: {scene.transition || "—"}{" "}
             · SFX: {scene.audio_cue || "—"}

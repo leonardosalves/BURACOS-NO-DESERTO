@@ -1,94 +1,113 @@
 > 🔗 [[MEMORIA-LUMIERA]] · [[skills/visual-prompt-engineer|visual prompt engineer]] · [[SKILLS]]
 
 ---
+
 name: visual-prompt-engineer
 description: |
-  Engenheiro de Prompts Visuais Sênior — reprocessa visual_prompts do storyboard com qualidade cinematográfica máxima.
-  Detecção automática de nicho, regra inquebrável de texto PT-BR, otimização 9:16 + 16:9, chain of thought, scoring.
-  Use ao revisar cenas do Creator, otimizar prompts fracos, adaptar estilo visual ao nicho ou gerar prompts profissionais.
-  Triggers: engenharia visual, visual prompt, melhorar prompts, otimizar cenas, prompts visuais, prompt engineer, enhance visual, visual PRO, reprocessar cenas.
+Engenheiro de Prompts Visuais Sênior — reprocessa visual_prompts do storyboard como UM FILME coeso.
+DNA visual (identidade), unidade roteiro↔imagem, gancho de interesse por frame, continuidade entre cenas,
+detecção de nicho, mídia limpa (texto no Remotion), 9:16/16:9, scoring.
+Use ao revisar cenas do Creator, otimizar prompts fracos, ou quando assets genéricos não “vivem” o roteiro.
+Triggers: engenharia visual, visual prompt, melhorar prompts, otimizar cenas, prompts visuais, prompt engineer, enhance visual, visual PRO, reprocessar cenas, identidade visual.
 metadata:
-  lumiera: true
-  source: custom
-  tasks: [creator, production]
-  category: creator
+lumiera: true
+source: custom
+tasks: [creator, production]
+category: creator
 ---
 
 # Lumiera
 
-**Endpoint no dashboard:** `POST /api/ai/creator/enhance-visual-prompts`
+**Endpoint no dashboard:** `POST /api/ai/creator/enhance-visual-prompts`  
 **Botão no Wizard:** "✨ Engenharia Visual PRO" (passo de revisão de roteiro)
 
-Complementa [[skills/remotion-best-practices]], [[skills/hyperframes]], [[skills/viral-short-form]].
+Implementação: `dashboard-qanat/backend/scriptQuality/visualPromptEngineer.js`
+
+Complementa [[skills/remotion-best-practices]], [[skills/hyperframes]], [[skills/viral-short-form]], [[skills/ai-camera-movements]] (moves de câmera para cenas **vídeo** — ref. aicameramovements.com).
 
 ---
 
-# Visual Prompt Engineer
+# Visual Prompt Engineer PRO
 
-Engenheiro de Prompts Visuais Sênior para transformar visual_prompts genéricos em prompts cinematográficos de altíssima qualidade, adaptados ao nicho do vídeo.
+Transforma `visual_prompts` genéricos em **peças inseparáveis do roteiro**: cada imagem/vídeo tem identidade, significado e motivo para o espectador olhar — e o conjunto parece **um só filme**, não um álbum de stock.
 
 ## Quando usar
 
-- Após gerar roteiro no Creator e os `visual_prompts` saírem fracos/genéricos
-- Para reprocessar um storyboard existente com qualidade superior
-- Quando o nicho muda e o estilo visual precisa se adaptar
-- Para garantir regra de texto PT-BR em todos os prompts
-- Para otimizar composição para 9:16 (Shorts) e 16:9 (Long form)
+- Após gerar roteiro no Creator e os prompts saírem fracos/genéricos
+- Quando imagens “bonitas” não explicam nem reforçam a fala
+- Para unificar o look do vídeo (DNA visual)
+- Para garantir mídia limpa (texto editorial só no Remotion)
+- Para otimizar 9:16 (Shorts) e 16:9 (longo)
 
-## Como usar (via agente)
+## Como usar
 
-1. Ler o storyboard.json do projeto ativo
-2. Chamar o endpoint `POST /api/ai/creator/enhance-visual-prompts` com `{ project: "nome_projeto" }`
-3. O backend monta o JSON completo e envia ao Gemini com o system prompt do Engenheiro
-4. Recebe o array `visual_prompts` corrigido + `checklist` com quality_score
-5. O storyboard é atualizado automaticamente
+1. Storyboard com `narrative_script` + `visual_prompts` no projeto
+2. `POST /api/ai/creator/enhance-visual-prompts` (ou botão no Wizard)
+3. Backend monta **DNA visual** + system prompt de direção e envia ao LLM
+4. Retorna `visual_prompts` + `visual_identity` + `checklist`
+5. Storyboard é salvo automaticamente
 
-## Regras Fundamentais
+## Missão (3 pilares)
 
-### 1. Alinhamento Total com Narração
-Cada prompt deve ilustrar EXATAMENTE o que o `narration_text` diz. O visual reforça a fala.
+| Pilar                        | O que exige                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Unidade roteiro ↔ visual** | Frame completa a fala (prova, revelação, contraste, mecanismo, emoção) — se mutar o áudio, ainda se entende a ideia |
+| **Identidade do filme**      | Mesma paleta/luz/realismo/sujeitos recorrentes; `identity_tags` estáveis                                            |
+| **Interesse por frame**      | Cada asset tem `visual_hook` — detalhe que faz scroll parar                                                         |
 
-### 1b. Fidelidade ao Real (não inventar o sujeito)
-Se a narração cita algo que **existe** (monumento, veículo, animal, pessoa histórica, máquina, lugar, artefato), o prompt deve pedir **a coisa real** — foto/filmagem documental, aparência verificável. **Proibido** substituir por versão genérica ou fictícia (“mysterious spacecraft”, “ancient ruins”) quando o objeto é identificável. Metáforas abstratas podem ser simbólicas; fatos concretos não.
+## Campos novos por cena
 
-### 2. Texto PT-BR Inquebrável
-Todo prompt deve terminar com a instrução de que qualquer texto visível na imagem/vídeo deve estar em português do Brasil.
+- `narrative_job`: `prove` \| `reveal` \| `contrast` \| `explain` \| `feel`
+- `visual_hook`: gancho de interesse em 1 frase
+- `identity_tags`: tags de continuidade do sujeito/look
+- Storyboard: `visual_identity` (look unificado, paleta, motifs, do_not)
 
-### 3. Detecção de Nicho → Estilo Adaptado
-| Nicho | Estilo Visual |
-|-------|--------------|
-| Mistério / True Crime / História | Dark cinematic, sombras profundas, volumetric lighting |
-| Pets / Animais | Cores vibrantes, iluminação suave, close-ups expressivos |
-| Luxo / Imóveis / Carros | Premium, iluminação dourada, texturas ricas, ângulos heroicos |
-| Ciência / Educacional | Limpo, moderno, iluminação clara, visual didático |
-| Motivação / Sucesso | Épico, inspirador, luz dourada, composições poderosas |
-| Horror / Creepypasta | Sombrio, perturbador, alto contraste, cores frias |
-| Finanças / Dinheiro | Luxuoso, limpo, elementos de riqueza visual |
+## Regras fundamentais
 
-### 4. Prompts de Vídeo
-- Duração 7-10 segundos
-- Movimento de câmera claro (tracking, push-in, slow motion, orbit, pan, tilt)
-- Ação forte nos primeiros 2-3 segundos
+### 1. Peça única
 
-### 5. Otimização Aspect Ratio
-- 9:16: "Composição vertical, framing apertado, sujeito centralizado, movimentos verticais"
-- 16:9: "Composição widescreen cinematográfica, shots amplos, maior profundidade"
+Proibido stock genérico (“dramatic landscape”, “thinking man”) quando a fala tem sujeito concreto.  
+A imagem **completa** o que a voz não cabe em palavras.
 
-### 6. Chain of Thought (interno)
-Antes de cada prompt, avaliar:
-1. Nicho do vídeo
-2. Tipo de conteúdo (countdown, storytelling, educativo, etc.)
-3. Objetivo emocional da cena
-4. Estilo visual mais adequado
-5. Melhor movimento de câmera
-6. Regra PT-BR aplicada
-7. Framing otimizado
+### 1b. Fidelidade ao real
 
-## Formato de Saída
+Objeto/lugar/pessoa nomeados → pedir a **coisa real**, não fantasia genérica.
+
+### 2. Mídia limpa
+
+Sem títulos/legendas/parágrafos na mídia gerada. Texto editorial = Remotion overlay.
+
+### 3. Nicho → estilo
+
+Mystery, history, science, luxury, horror, finance, etc. (mapa em `NICHE_STYLE_MAP`).
+
+### 4. Vídeo
+
+Movimento de câmera com **intenção narrativa** (push-in = revelação, orbit = ícone, tracking = investigação).  
+Respeitar `temporal_plan` quando existir (TTS+Whisper).
+
+### 5. Continuidade
+
+Payload envia `prev_narration` / `next_narration` e `visual_identity_brief` para o LLM “passar o bastão” entre cenas.
+
+### 6. Estrutura do prompt (inglês)
+
+SUBJECT+IDENTITY → NARRATIVE BEAT → VISUAL HOOK → SHOT/CAMERA → LIGHT/TEXTURE/ERA → CONTINUITY → ASPECT + clean media policy.
+
+## Formato de saída
 
 ```json
 {
-  "visual_prompts": [ /* array completo corrigido */ ],
+  "visual_identity": {
+    "title": "...",
+    "look": "...",
+    "palette": "...",
+    "recurring_motifs": ["..."],
+    "do_not": ["..."]
+  },
+  "visual_prompts": [
+    /* cenas com prompt + narrative_job + visual_hook + identity_tags */
+  ],
   "checklist": {
     "nicho_detectado": "...",
     "tipo_conteudo": "...",

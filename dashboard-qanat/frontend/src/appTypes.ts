@@ -82,6 +82,10 @@ export interface ConfigData {
     total_duration?: number;
   } | null;
   niche?: string;
+  /** Estilo visual dos assets (realista, 3D, anime, …) — usado no Creator e Visual PRO */
+  visual_asset_style?: string;
+  /** Só prompts de mapas adequados à época da narração */
+  visual_map_only_prompts?: boolean;
   rank_count?: number;
   use_gemini_chrome?: boolean;
   use_hyperframes?: boolean;

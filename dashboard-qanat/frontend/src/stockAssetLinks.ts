@@ -42,12 +42,10 @@ export function buildStockAssetSearchContext({
   const pexelsOrientation = vertical ? "portrait" : "landscape";
   const pixabayOrientation = vertical ? "vertical" : "horizontal";
   const bingAspect = vertical ? "tall" : "wide";
-  const mediaTerms = isVideo
-    ? "cinematic video footage 4k no text"
-    : "professional editorial photo high resolution no text";
-  const enrichedQuery = compactSearchTerms(
-    `${query} ${orientationLabel} ${aspectRatio} ${mediaTerms}`
-  );
+  // Preserve the scene/narration query exactly as resolved by stockSearchQuery.
+  // Aspect ratio belongs in each provider's filters, not in the search words:
+  // adding generic terms here makes the results drift away from the narration.
+  const enrichedQuery = compactSearchTerms(query);
   const encodedQuery = encodeURIComponent(enrichedQuery);
   const pexelsPath = isVideo ? "search/videos" : "search";
   const pixabayPath = isVideo ? "videos/search" : "images/search";

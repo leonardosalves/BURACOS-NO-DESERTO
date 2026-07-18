@@ -8,6 +8,7 @@
 
 - [[skills/ad-concept-generator|ad concept generator]] — doc: [[skills/ad-concept-generator/SKILL]]
 - [[skills/agent-reach|agent reach]] — doc: [[skills/agent-reach/SKILL]]
+- [[skills/ai-camera-movements|ai camera movements]] — doc: [[skills/ai-camera-movements/SKILL]] · ref: [aicameramovements.com](https://aicameramovements.com/)
 - [[skills/ai-ugc-ads|ai ugc ads]] — doc: [[skills/ai-ugc-ads/SKILL]]
 - [[skills/ask-matt|ask matt]] — doc: [[skills/ask-matt/SKILL]]
 - [[skills/claude-api|claude api]] — doc: [[skills/claude-api/SKILL]]
@@ -93,4 +94,4 @@
 ## Por que vários arquivos SKILL?
 
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-15T15:45:40.485Z
+atualizado: 2026-07-16T19:25:17.319Z

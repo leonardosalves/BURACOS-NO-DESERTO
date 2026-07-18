@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Botão vertical do painel de processos do backend */
+.writing-mode-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.08em;
+}
+
 @layer base {
   :root {
     --dash-bg: #02030a;
@@ -2125,6 +2132,14 @@
     border: 1px solid rgba(130, 128, 253, 0.12);
   }
 
+  .dash-page-hero--compact {
+    @apply p-3 sm:p-3.5 shrink-0;
+  }
+
+  .dash-page-hero--compact .dash-breadcrumb {
+    @apply mb-1.5 text-[10px];
+  }
+
   .dash-breadcrumb {
     @apply flex flex-wrap items-center gap-1 text-[11px] font-semibold mb-3;
     color: var(--dash-muted);
@@ -2151,10 +2166,11 @@
 
   .dash-page.lumiera-fill-view {
     @apply flex flex-col min-h-0 flex-1 overflow-hidden;
+    max-height: calc(100vh - 5.5rem);
   }
 
   .dash-page.lumiera-fill-view .dash-page-body {
-    @apply flex flex-col flex-1 min-h-0 gap-5 overflow-hidden;
+    @apply flex flex-col flex-1 min-h-0 gap-2 overflow-hidden;
   }
 
   .dash-nav-pill-active {

@@ -12,10 +12,12 @@ import {
   formatResurrectorScanMessage,
   getResurrectorDashboard,
   isVideoBatchedInCurrentCycle,
+  isWithinResurrectorAutoWindow,
   loadResurrectorState,
   maybeCompleteResurrectorCycle,
   normalizeResurrectorSlot,
   normalizeResurrectorTrigger,
+  RESURRECTOR_AUTO_WINDOW_END_MINUTE,
   resetResurrectorFailedItems,
   runResurrectorBatch,
   saveResurrectorState,
@@ -51,14 +53,13 @@ function slotAlreadyRanToday(state, slot, now) {
 }
 
 /**
- * Retorna todos os lotes automáticos vencidos no dia atual.
- * A recuperação inclui janelas perdidas enquanto o app/backend estava fechado.
+ * Lotes automáticos devidos AGORA — só dentro da janela HH:00–HH:05.
+ * Fora disso não dispara (evita spam e lotes o dia inteiro).
  */
 export function resolveDueResurrectorSlots(state = {}, now = new Date()) {
   const settings = state.settings || {};
   if (!settings.enabled || !settings.autoRunWhenAppOpen) return [];
 
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const slots = [
     ["morning", Number(settings.morningHour ?? 11)],
     ["afternoon", Number(settings.afternoonHour ?? 18)],
@@ -67,15 +68,23 @@ export function resolveDueResurrectorSlots(state = {}, now = new Date()) {
   return slots
     .filter(([slot, hour]) => {
       if (!Number.isFinite(hour)) return false;
-      if (currentMinutes < Math.max(0, Math.min(23, hour)) * 60) return false;
+      if (
+        !isWithinResurrectorAutoWindow(
+          now,
+          hour,
+          RESURRECTOR_AUTO_WINDOW_END_MINUTE
+        )
+      ) {
+        return false;
+      }
       return !slotAlreadyRanToday(state, slot, now);
     })
     .map(([slot]) => slot);
 }
 
 /**
- * Agenda os lotes do Ressuscitador no backend e recupera horários perdidos após
- * reinício. O mutex do domínio impede concorrência com disparos manuais/UI.
+ * Agenda lotes só nas janelas 11:00–11:05 e 18:00–18:05 (horas configuráveis).
+ * Fora da janela o tick é barato (só compara o relógio).
  */
 export function startVideoResurrectorScheduler(deps, options = {}) {
   const { WORKSPACE_DIR, PROJECTS_ROOT, getApiKey, callGeminiWithRetry } = deps;
@@ -96,10 +105,14 @@ export function startVideoResurrectorScheduler(deps, options = {}) {
 
   const tick = async () => {
     if (running) return;
+    const now = new Date();
+    // Fora de HH:00–HH:05 nenhum horário configurável entra na janela.
+    if (now.getMinutes() > RESURRECTOR_AUTO_WINDOW_END_MINUTE) return;
+
     running = true;
     try {
       let state = loadResurrectorState(WORKSPACE_DIR);
-      const dueSlots = resolveDueResurrectorSlots(state);
+      const dueSlots = resolveDueResurrectorSlots(state, now);
       for (const slot of dueSlots) {
         await runResurrectorBatch(
           WORKSPACE_DIR,
@@ -110,7 +123,7 @@ export function startVideoResurrectorScheduler(deps, options = {}) {
         state = loadResurrectorState(WORKSPACE_DIR);
         if (slotAlreadyRanToday(state, slot, new Date())) {
           console.log(
-            `[Ressuscitador] Lote ${slot} recuperado pelo agendador.`
+            `[Ressuscitador] Lote ${slot} executado na janela HH:00–HH:05.`
           );
         }
       }

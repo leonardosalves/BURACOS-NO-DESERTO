@@ -13,6 +13,7 @@ import {
   HeartPulse,
   LayoutTemplate,
   Laugh,
+  Layers,
   Lightbulb,
   Menu,
   PenTool,
@@ -393,6 +394,13 @@ export function AppShell({
               icon={Laugh}
               label="Fatos com Graca"
               helpId="tab-humor-facts"
+            />
+            <SidebarLink
+              active={activeTab === "collage-broll"}
+              onClick={() => setActiveTab("collage-broll")}
+              icon={Layers}
+              label="Collage B-roll"
+              helpId="tab-collage-broll"
             />
             <SidebarLink
               active={

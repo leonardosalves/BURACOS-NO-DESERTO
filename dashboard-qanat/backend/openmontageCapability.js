@@ -6,8 +6,12 @@
 import path from "path";
 import fs from "fs";
 import { getWorkflowApiKeys } from "./workflowTools.js";
-import { loadFishSpeechConfig, probeFishSpeechServer } from "./fishSpeechTts.js";
+import {
+  loadFishSpeechConfig,
+  probeFishSpeechServer,
+} from "./fishSpeechTts.js";
 import { probeChatterbox } from "./chatterboxTts.js";
+import { probeQwen3Tts } from "./qwen3Tts.js";
 import { loadVoiceboxConfig, probeVoiceboxServer } from "./voiceboxTts.js";
 import { loadGptSovitsConfig, probeGptSovitsServer } from "./gptSovitsTts.js";
 import { getComfyuiStatus } from "./comfyuiService.js";
@@ -50,7 +54,14 @@ export async function buildCapabilityMenu(ctx) {
   } = ctx;
 
   const stockKeys = getWorkflowApiKeys(workspaceDir, projDir);
-  const globalCfg = readJsonSafe(path.join(workspaceDir, "dashboard-qanat", "backend", "render_config_global.json"));
+  const globalCfg = readJsonSafe(
+    path.join(
+      workspaceDir,
+      "dashboard-qanat",
+      "backend",
+      "render_config_global.json"
+    )
+  );
   const projCfg = readJsonSafe(path.join(projDir, "config_qanat.json"));
 
   const geminiKeys = getApiKeys(projDir) || [];
@@ -64,6 +75,7 @@ export async function buildCapabilityMenu(ctx) {
   const fishConfig = loadFishSpeechConfig({ workspaceDir });
   const fishProbe = await probeFishSpeechServer(fishConfig);
   const chatterboxProbe = await probeChatterbox();
+  const qwen3Probe = await probeQwen3Tts();
   const voiceboxConfig = loadVoiceboxConfig({ workspaceDir });
   const voiceboxProbe = await probeVoiceboxServer(voiceboxConfig);
   const gptSovitsConfig = loadGptSovitsConfig({ workspaceDir });
@@ -85,20 +97,35 @@ export async function buildCapabilityMenu(ctx) {
   }
 
   const remotionReady = true;
-  const hyperframesReady = fs.existsSync(path.join(workspaceDir, ".agents", "skills", "hyperframes", "SKILL.md"));
+  const hyperframesReady = fs.existsSync(
+    path.join(workspaceDir, ".agents", "skills", "hyperframes", "SKILL.md")
+  );
 
   const categories = [
     {
       id: "narration",
       label: "Narração / TTS",
       items: [
-        statusRow("kokoro", "Kokoro (local)", true, { hint: "Padrão Lumiera — grátis, PT/EN" }),
-        statusRow("edge", "Edge TTS", true, { hint: "Microsoft neural — sem chave" }),
+        statusRow("kokoro", "Kokoro (local)", true, {
+          hint: "Padrão Lumiera — grátis, PT/EN",
+        }),
+        statusRow("edge", "Edge TTS", true, {
+          hint: "Microsoft neural — sem chave",
+        }),
         statusRow("fish", "Fish Speech", fishProbe.ok, {
-          hint: fishProbe.ok ? fishProbe.mode || "local" : fishProbe.error || "Inicie Fish Speech",
+          hint: fishProbe.ok
+            ? fishProbe.mode || "local"
+            : fishProbe.error || "Inicie Fish Speech",
         }),
         statusRow("chatterbox", "Chatterbox", chatterboxProbe.ok, {
-          hint: chatterboxProbe.ok ? "GPU local" : chatterboxProbe.error || "pip install chatterbox-tts",
+          hint: chatterboxProbe.ok
+            ? "GPU local"
+            : chatterboxProbe.error || "pip install chatterbox-tts",
+        }),
+        statusRow("qwen3", "Qwen3-TTS CustomVoice", qwen3Probe.ok, {
+          hint: qwen3Probe.ok
+            ? `GPU/CPU local · PT+EN · ${qwen3Probe.device || "auto"}`
+            : qwen3Probe.error || "pip install -U qwen-tts (.venv-qwen3-tts)",
         }),
         statusRow("voicebox", "Voicebox", voiceboxProbe.ok, {
           hint: voiceboxProbe.ok
@@ -122,12 +149,22 @@ export async function buildCapabilityMenu(ctx) {
         statusRow("pixabay", "Pixabay", Boolean(stockKeys.pixabay), {
           hint: stockKeys.pixabay ? "API ativa" : "Settings → Pixabay API key",
         }),
-        statusRow("bing_images", "Bing Images (scrap)", projCfg.use_bing_images !== false, {
-          hint: "Sem chave — fallback de imagens após Pexels/Pixabay",
-        }),
-        statusRow("archive_org", "Archive.org", projCfg.use_archive_org !== false, {
-          hint: "Documental — sem chave, fallback após Bing",
-        }),
+        statusRow(
+          "bing_images",
+          "Bing Images (scrap)",
+          projCfg.use_bing_images !== false,
+          {
+            hint: "Sem chave — fallback de imagens após Pexels/Pixabay",
+          }
+        ),
+        statusRow(
+          "archive_org",
+          "Archive.org",
+          projCfg.use_archive_org !== false,
+          {
+            hint: "Documental — sem chave, fallback após Bing",
+          }
+        ),
       ],
     },
     {
@@ -135,7 +172,10 @@ export async function buildCapabilityMenu(ctx) {
       label: "Composição / Render",
       items: [
         statusRow("remotion", "Remotion PRO", remotionReady, {
-          hint: globalCfg.useRemotionByDefault !== false ? "Padrão ativo" : "Ative em render config",
+          hint:
+            globalCfg.useRemotionByDefault !== false
+              ? "Padrão ativo"
+              : "Ative em render config",
         }),
         statusRow("hyperframes", "HyperFrames", hyperframesReady, {
           hint: "134 recursos no catálogo Lumiera",
@@ -155,13 +195,18 @@ export async function buildCapabilityMenu(ctx) {
       id: "ai_video",
       label: "Geração de vídeo IA",
       items: [
-        statusRow("comfyui_ltx", "ComfyUI + LTX", Boolean(comfyStatus.running), {
-          hint: comfyStatus.running
-            ? "Servidor ativo"
-            : comfyStatus.installed
-              ? "Instalado — inicie ComfyUI"
-              : "Workflow → instalar ComfyUI",
-        }),
+        statusRow(
+          "comfyui_ltx",
+          "ComfyUI + LTX",
+          Boolean(comfyStatus.running),
+          {
+            hint: comfyStatus.running
+              ? "Servidor ativo"
+              : comfyStatus.installed
+                ? "Instalado — inicie ComfyUI"
+                : "Workflow → instalar ComfyUI",
+          }
+        ),
       ],
     },
     {
@@ -169,23 +214,36 @@ export async function buildCapabilityMenu(ctx) {
       label: "IA / Metadados",
       items: [
         statusRow("gemini", "Gemini", hasGemini, {
-          hint: hasGemini ? `${geminiKeys.length} chave(s)` : "Settings → Gemini",
+          hint: hasGemini
+            ? `${geminiKeys.length} chave(s)`
+            : "Settings → Gemini",
           providers: hasGemini ? ["gemini"] : [],
         }),
-        statusRow("xai", "xAI Grok", hasXai, { hint: hasXai ? "Ativo" : "Opcional" }),
-        statusRow("openrouter", "OpenRouter", hasOpenRouter, { hint: hasOpenRouter ? "Ativo" : "Opcional" }),
-        statusRow("nvidia", "NVIDIA NIM", hasNvidia, { hint: hasNvidia ? "Ativo" : "Opcional" }),
+        statusRow("xai", "xAI Grok", hasXai, {
+          hint: hasXai ? "Ativo" : "Opcional",
+        }),
+        statusRow("openrouter", "OpenRouter", hasOpenRouter, {
+          hint: hasOpenRouter ? "Ativo" : "Opcional",
+        }),
+        statusRow("nvidia", "NVIDIA NIM", hasNvidia, {
+          hint: hasNvidia ? "Ativo" : "Opcional",
+        }),
       ],
     },
     {
       id: "research",
       label: "Pesquisa",
       items: [
-        statusRow("notebooklm", "NotebookLM", Boolean(notebooklmStatus.available), {
-          hint: notebooklmStatus.available
-            ? notebooklmStatus.message || "MCP/CLI ativo"
-            : notebooklmStatus.message || "nlm login + MCP",
-        }),
+        statusRow(
+          "notebooklm",
+          "NotebookLM",
+          Boolean(notebooklmStatus.available),
+          {
+            hint: notebooklmStatus.available
+              ? notebooklmStatus.message || "MCP/CLI ativo"
+              : notebooklmStatus.message || "nlm login + MCP",
+          }
+        ),
         statusRow("youtube_studio", "YouTube Studio Pro", true, {
           hint: "Concorrentes, fila editorial, retenção",
         }),
@@ -202,7 +260,7 @@ export async function buildCapabilityMenu(ctx) {
 
   const readyCount = categories.reduce(
     (n, c) => n + c.items.filter((i) => i.ready).length,
-    0,
+    0
   );
   const totalCount = categories.reduce((n, c) => n + c.items.length, 0);
 
@@ -218,7 +276,10 @@ export async function buildCapabilityMenu(ctx) {
     categories,
     gaps,
     recommendation: gaps.length
-      ? `Configure ${gaps.slice(0, 3).map((g) => g.label).join(", ")} para ampliar o envelope de produção.`
+      ? `Configure ${gaps
+          .slice(0, 3)
+          .map((g) => g.label)
+          .join(", ")} para ampliar o envelope de produção.`
       : "Envelope completo — todas as capacidades principais estão prontas.",
   };
 }

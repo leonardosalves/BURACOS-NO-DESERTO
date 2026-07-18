@@ -55,6 +55,19 @@ test("replaceNumbersAndAbbreviationsPtBr - números e abreviações com preserva
     "Esta é a câmara anecoica da Microsoft, projetada em Redmond."
   );
 
+  assert.strictEqual(
+    replaceNumbersAndAbbreviationsPtBr(
+      "O transe da sacerdotisa parecia divino, mas resultava de química e acústica."
+    ),
+    "O transe da sacerdotisa parecia divino, mas resultava de química e acústica."
+  );
+  assert.strictEqual(
+    replaceNumbersAndAbbreviationsPtBr(
+      "O projeto acústico analisou ação, acesso e acidentes."
+    ),
+    "O projeto acústico analisou ação, acesso e acidentes."
+  );
+
   // Teste com km, m, kg e %
   assert.strictEqual(
     replaceNumbersAndAbbreviationsPtBr(

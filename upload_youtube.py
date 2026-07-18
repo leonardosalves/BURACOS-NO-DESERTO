@@ -39,6 +39,41 @@ def save_json(filepath, data):
         return False
 
 
+def verify_youtube_quality_gate(project_dir, video_path):
+    if os.environ.get("LUMIERA_ALLOW_UNVERIFIED_UPLOAD", "").strip() == "1":
+        print("[AVISO] Quality Gate ignorado por override administrativo.")
+        return True
+
+    report_path = os.path.join(project_dir, "youtube_quality_gate.json")
+    report = load_json(report_path)
+    if not report:
+        print("[ERROR] Quality Gate ausente. Execute a auditoria na aba Upload.")
+        return False
+    if not report.get("ready"):
+        count = report.get("blockingCount") or 1
+        print(f"[ERROR] Quality Gate bloqueado por {count} problema(s).")
+        return False
+
+    audited = report.get("video") or {}
+    try:
+        audited_path = os.path.abspath(audited.get("path") or "")
+        same_path = (
+            os.path.normcase(audited_path) == os.path.normcase(os.path.abspath(video_path))
+            or (os.path.exists(audited_path) and os.path.samefile(audited_path, video_path))
+        )
+        same_size = int(audited.get("size") or -1) == int(os.path.getsize(video_path))
+        same_mtime = abs(float(audited.get("mtimeMs") or -1) - (os.path.getmtime(video_path) * 1000.0)) < 2000
+    except Exception:
+        same_path = same_size = same_mtime = False
+
+    if not (same_path and same_size and same_mtime):
+        print("[ERROR] O vídeo mudou depois da auditoria. Execute o Quality Gate novamente.")
+        return False
+
+    print(f"[INFO] Quality Gate aprovado: nota {report.get('score', '?')}/100.")
+    return True
+
+
 
 def refresh_access_token(client_id, client_secret, refresh_token):
     print("[INFO] Atualizando token de acesso do YouTube...")
@@ -405,6 +440,9 @@ def main():
     if len(sys.argv) > 2 and str(sys.argv[2]).strip() == "--fix-metadata":
         fix_video_id = str(sys.argv[3]).strip() if len(sys.argv) > 3 else fix_video_id
 
+    if not fix_video_id and not verify_youtube_quality_gate(project_dir, video_path):
+        sys.exit(1)
+
     fields = resolve_youtube_upload_fields(project_dir, proj_config)
     is_short = str(fields.get("format") or "").upper() in ("SHORTS", "SHORT")
     title = fields["title"]
@@ -414,6 +452,9 @@ def main():
         is_short=is_short,
     )
     privacy = fields["privacy"]
+    if privacy != "private":
+        print("[INFO] Publicação segura ativa: primeiro envio alterado para PRIVADO.")
+        privacy = "private"
     tags = ensure_shorts_tags(parse_tags(fields["tags_raw"]), is_short=is_short)
     category_id = fields["category_id"]
     publish_at = fields["publish_at"]

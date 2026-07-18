@@ -2,8 +2,12 @@ import {
   analyzeVideoUnderstanding,
   fetchVideoContextViaYtDlp,
 } from "./videoUnderstandingService.js";
-
-const REVERSE_ENGINEERING_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
+import {
+  DEFAULT_VISUAL_ASSET_STYLE,
+  buildVisualAssetStyleDirective,
+  isMapOnlyPromptsEnabled,
+  normalizeVisualAssetStyleId,
+} from "../shared/visualAssetStyles.js";
 
 function cleanText(value, max = 20_000) {
   return String(value || "")
@@ -64,9 +68,107 @@ export function extractReverseEngineeringJson(text) {
   }
 }
 
-function normalizeScene(scene, index) {
+function looksLikeMotionScene(scene = {}) {
+  const text = [
+    scene.visual_description,
+    scene.video_prompt,
+    scene.image_prompt,
+    scene.shot,
+    scene.camera,
+    scene.media_reason,
+  ]
+    .map((part) => cleanText(part, 2_000).toLowerCase())
+    .join(" ");
+  return /\b(move|moving|motion|walk|run|spin|rotate|pan|tilt|dolly|tracking|orbit|zoom|fly|fall|crash|pour|flow|transform|explode|reveal|open|close|gesture|hand|mechanism|girar|girando|movimento|desloca|correndo|caminhando|abre|fecha|explode|derrama|transform)\b/i.test(
+    text
+  );
+}
+
+function looksLikeStaticScene(scene = {}) {
+  const text = [
+    scene.visual_description,
+    scene.image_prompt,
+    scene.video_prompt,
+    scene.shot,
+    scene.media_reason,
+  ]
+    .map((part) => cleanText(part, 2_000).toLowerCase())
+    .join(" ");
+  if (looksLikeMotionScene(scene)) return false;
+  return /\b(document|documento|mapa|map|portrait|retrato|foto|still|estatic|estát|frozen|close-up of|facade|fachada|artefato|artifact|coin|moeda|medal|blueprint|diagram|diagrama|placa|sign|inscription|inscrição|archival|arquivo|estampa|selo)\b/i.test(
+    text
+  );
+}
+
+function normalizeScene(scene, index, mediaStrategy = "adaptive") {
   const duration = Math.max(1, Math.min(Number(scene?.duration_sec) || 5, 120));
   const narration = cleanText(scene?.narration, 6_000);
+  const visualDescription = cleanText(scene?.visual_description, 4_000);
+  let imagePrompt = cleanText(scene?.image_prompt, 6_000);
+  const explicitVideoPrompt = cleanText(scene?.video_prompt, 6_000);
+  const requestedMediaType = cleanText(
+    scene?.media_type || scene?.mediaType,
+    30
+  ).toLowerCase();
+  let mediaType =
+    mediaStrategy === "video_only"
+      ? "video"
+      : requestedMediaType === "video" || requestedMediaType === "vídeo"
+        ? "video"
+        : requestedMediaType === "image" || requestedMediaType === "imagem"
+          ? "image"
+          : explicitVideoPrompt && !imagePrompt
+            ? "video"
+            : imagePrompt && !explicitVideoPrompt
+              ? "image"
+              : looksLikeStaticScene(scene)
+                ? "image"
+                : looksLikeMotionScene(scene)
+                  ? "video"
+                  : "image";
+
+  // Adaptive: never invent video for clearly static beats
+  if (
+    mediaStrategy === "adaptive" &&
+    mediaType === "video" &&
+    looksLikeStaticScene(scene) &&
+    !looksLikeMotionScene(scene)
+  ) {
+    mediaType = "image";
+  }
+
+  if (mediaType === "image" && !imagePrompt) {
+    imagePrompt =
+      visualDescription ||
+      [
+        cleanText(scene?.shot, 300),
+        "photorealistic still, sharp detail, no text or watermark",
+      ]
+        .filter(Boolean)
+        .join(". ");
+  }
+
+  const videoPrompt =
+    mediaType === "video"
+      ? explicitVideoPrompt ||
+        [
+          visualDescription || imagePrompt,
+          cleanText(scene?.shot, 300),
+          cleanText(scene?.camera, 500),
+          "natural continuous action, cinematic movement, no text or watermark",
+        ]
+          .filter(Boolean)
+          .join(". ")
+      : "";
+
+  let mediaReason = cleanText(scene?.media_reason || scene?.mediaReason, 1_000);
+  if (!mediaReason) {
+    mediaReason =
+      mediaType === "video"
+        ? "Movimento ou transformação indispensável para a cena."
+        : "Composição estática precisa — imagem comunica melhor que vídeo genérico.";
+  }
+
   return {
     id:
       cleanText(scene?.id, 80) || `scene-${String(index + 1).padStart(2, "0")}`,
@@ -75,12 +177,17 @@ function normalizeScene(scene, index) {
     duration_sec: duration,
     narration,
     speech_segments: normalizeSpeechSegments(scene, narration),
-    visual_description: cleanText(scene?.visual_description, 4_000),
+    visual_description: visualDescription,
     shot: cleanText(scene?.shot, 300) || "medium shot",
     camera:
-      cleanText(scene?.camera, 500) || "movimento suave e cinematografico",
-    image_prompt: cleanText(scene?.image_prompt, 6_000),
-    video_prompt: cleanText(scene?.video_prompt, 6_000),
+      cleanText(scene?.camera, 500) ||
+      (mediaType === "video"
+        ? "movimento suave e cinematografico"
+        : "enquadramento estavel, sem movimento de camera"),
+    media_type: mediaType,
+    media_reason: mediaReason,
+    image_prompt: mediaType === "image" ? imagePrompt : "",
+    video_prompt: videoPrompt,
     on_screen_text: cleanText(scene?.on_screen_text, 800),
     transition: cleanText(scene?.transition, 300),
     audio_cue: cleanText(scene?.audio_cue, 500),
@@ -90,16 +197,63 @@ function normalizeScene(scene, index) {
   };
 }
 
+/**
+ * Se a IA devolveu 100% vídeo no modo adaptive, reclassifica batidas estáticas
+ * (ou a cada 3ª cena) para imagem — mínimo ~1/3 com 3+ cenas.
+ */
+function rebalanceAdaptiveMediaMix(scenes = [], mediaStrategy = "adaptive") {
+  if (mediaStrategy !== "adaptive" || scenes.length < 3) return scenes;
+  const videoCount = scenes.filter((s) => s.media_type === "video").length;
+  if (videoCount < scenes.length) return scenes;
+
+  const minImages = Math.max(1, Math.ceil(scenes.length / 3));
+  const ranked = scenes
+    .map((scene, index) => ({
+      index,
+      score:
+        (looksLikeStaticScene(scene) ? 100 : 0) +
+        (!looksLikeMotionScene(scene) ? 40 : 0) +
+        (index % 3 === 1 ? 10 : 0),
+    }))
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .slice(0, minImages)
+    .map((item) => item.index);
+  const convertSet = new Set(ranked);
+
+  return scenes.map((scene, index) => {
+    if (!convertSet.has(index)) return scene;
+    const imagePrompt =
+      cleanText(scene.image_prompt, 6_000) ||
+      cleanText(scene.visual_description, 4_000) ||
+      cleanText(scene.video_prompt, 6_000);
+    return {
+      ...scene,
+      media_type: "image",
+      media_reason:
+        scene.media_reason ||
+        "Rebalanceamento adaptive: batida estática fica melhor como imagem.",
+      image_prompt: imagePrompt,
+      video_prompt: "",
+      camera: "enquadramento estavel, sem movimento de camera",
+    };
+  });
+}
+
 export function normalizeReverseEngineeringResult(raw = {}, context = {}) {
-  const scenes = (Array.isArray(raw.scenes) ? raw.scenes : [])
-    .map(normalizeScene)
-    .filter(
-      (scene) =>
-        scene.narration ||
-        scene.visual_description ||
-        scene.image_prompt ||
-        scene.video_prompt
-    );
+  const mediaStrategy =
+    context.mediaStrategy === "video_only" ? "video_only" : "adaptive";
+  const scenes = rebalanceAdaptiveMediaMix(
+    (Array.isArray(raw.scenes) ? raw.scenes : [])
+      .map((scene, index) => normalizeScene(scene, index, mediaStrategy))
+      .filter(
+        (scene) =>
+          scene.narration ||
+          scene.visual_description ||
+          scene.image_prompt ||
+          scene.video_prompt
+      ),
+    mediaStrategy
+  );
   const sourceTranscript = cleanText(
     raw.source_transcript || context.sourceTranscript,
     80_000
@@ -121,6 +275,7 @@ export function normalizeReverseEngineeringResult(raw = {}, context = {}) {
         Number(context.durationSec) || Number(raw.duration_sec) || null,
     },
     mode: context.mode === "faithful" ? "faithful" : "transformative",
+    media_strategy: mediaStrategy,
     format: context.format === "LONGO" ? "LONGO" : "SHORTS",
     title: cleanText(raw.title, 500) || cleanText(context.title, 500),
     hook: cleanText(raw.hook, 2_000),
@@ -152,8 +307,17 @@ export function buildReverseEngineeringPrompt({
   metadata = {},
   understanding = {},
   transcript = "",
+  mediaStrategy = "adaptive",
+  visualAssetStyle = DEFAULT_VISUAL_ASSET_STYLE,
+  visualMapOnly = false,
 } = {}) {
   const faithful = mode === "faithful";
+  const videoOnly = mediaStrategy === "video_only";
+  const mapOnly = isMapOnlyPromptsEnabled(visualMapOnly);
+  const styleDirective = buildVisualAssetStyleDirective(
+    normalizeVisualAssetStyleId(visualAssetStyle),
+    { mapOnly }
+  );
   return `Voce e o diretor de engenharia reversa audiovisual do Lumiera.
 
 OBJETIVO
@@ -167,6 +331,8 @@ FONTE
 - Formato de saida: ${format === "LONGO" ? "video longo 16:9" : "Short vertical 9:16"}
 - Nicho: ${niche || "Geral"}
 - Modo: ${faithful ? "ADAPTACAO FIEL — preservar sequencia e informacao quando a fonte pertence ao usuario ou ha permissao" : "TRANSFORMACAO CRIATIVA — preservar mecanismo, fatos e ritmo, mas reescrever formulacoes e visuais"}
+- Estrategia de midia: ${videoOnly ? "SOMENTE VIDEO — todas as cenas devem ter media_type=video" : "IA DECIDE — escolher image ou video cena por cena"}
+- ${styleDirective.systemBlock}
 - Instrucao do editor: ${instructions || "nenhuma"}
 
 ENTENDIMENTO MULTIMODAL
@@ -204,8 +370,10 @@ Retorne APENAS JSON valido neste schema:
     "visual_description": "o que aparece e como se move",
     "shot": "tipo de plano/enquadramento",
     "camera": "movimento de camera",
-    "image_prompt": "prompt autonomo detalhado para gerar o frame, sem citar a fonte",
-    "video_prompt": "prompt autonomo detalhado com sujeito, acao, ambiente, camera, luz e continuidade",
+    "media_type": "image|video",
+    "media_reason": "justificativa objetiva para a midia escolhida",
+    "image_prompt": "preencher somente quando media_type=image",
+    "video_prompt": "preencher somente quando media_type=video",
     "on_screen_text": "texto na tela",
     "transition": "entrada/saida",
     "audio_cue": "SFX ou mudanca musical apenas quando necessario",
@@ -216,7 +384,11 @@ Retorne APENAS JSON valido neste schema:
 
 REGRAS
 - Cubra o video inteiro na ordem; nao devolva apenas um resumo.
-- Cada cena deve ter prompts utilizaveis isoladamente e consistencia visual entre cenas.
+- ${videoOnly ? "MODO SOMENTE VIDEO: media_type deve ser video em TODAS as cenas; gere video_prompt completo e deixe image_prompt vazio." : "MODO IA DECIDE (OBRIGATORIO VARIAR): escolha image OU video cena a cena. PROIBIDO devolver todas as cenas como video se houver 3+ cenas."}
+- ${videoOnly ? "Nao devolva nenhuma cena de imagem." : "Use image para retratos, documentos, mapas, arquitetura estatica, artefatos, placas, selos, comparacoes lado a lado e momentos congelados. Meta: ~1/3 a 2/3 das cenas em image quando o conteudo permitir."}
+- ${videoOnly ? "Todo video_prompt deve conter acao concreta, sujeito, ambiente, camera, luz, continuidade e evolucao temporal; nao descreva apenas um frame parado." : "Use video SOMENTE quando movimento for indispensavel: acao, mecanismo em funcionamento, transformacao, deslocamento, reacao, demonstracao ou timing fisico."}
+- ${videoOnly ? "Se o trecho original for estatico, planeje movimento editorial realista de camera, parallax, revelacao de detalhes ou animacao do objeto sem inventar fatos." : "Uma imagem forte e precisa e SEMPRE preferivel a um video generico de camera deslizando. Preencha SOMENTE o prompt da midia escolhida (o outro fica string vazia) e justifique em media_reason."}
+- Cada cena deve ter o prompt escolhido utilizavel isoladamente e consistencia visual entre cenas.
 - Se duas ou mais pessoas falarem DENTRO DA MESMA CENA, mantenha uma unica cena e crie um item em "speech_segments" para cada turno de fala, na ordem correta. Nao divida nem duplique a cena visual.
 - A concatenacao de speech_segments[].text, separada apenas por espacos, deve ser IDENTICA a scenes[].narration. Nao inclua "Fulano:" ou rotulos de personagem no texto falado.
 - Use "role":"narrator" para a voz externa e "role":"character" para falas diegeticas. Mesmo quando houver apenas uma voz, devolva um speech_segment para explicitar quem fala.
@@ -227,7 +399,11 @@ REGRAS
 - O roteiro visual precisa ser concreto: sujeito, acao, ambiente, camera, luz, lente, movimento e transicao.`;
 }
 
-function fallbackScenes(understanding = {}, transcript = "") {
+function fallbackScenes(
+  understanding = {},
+  transcript = "",
+  mediaStrategy = "adaptive"
+) {
   const beats = Array.isArray(understanding.structure_beats)
     ? understanding.structure_beats
     : [];
@@ -238,16 +414,34 @@ function fallbackScenes(understanding = {}, transcript = "") {
   const grouped = Array.from({ length: count }, () => []);
   parts.forEach((part, index) => grouped[index % count].push(part));
   const total = Number(understanding.duration_estimate_sec) || count * 5;
-  return Array.from({ length: count }, (_, index) => ({
-    id: `scene-${String(index + 1).padStart(2, "0")}`,
-    duration_sec: Math.max(2, Number((total / count).toFixed(1))),
-    narration: grouped[index].join(" "),
-    visual_description:
-      beats[index] || understanding.visual_description || "Visual a confirmar",
-    image_prompt: `${beats[index] || understanding.summary || "Cena documental"}, composicao cinematografica, luz natural, alta fidelidade visual`,
-    video_prompt: `${beats[index] || understanding.summary || "Cena documental"}, movimento natural, camera cinematografica suave, continuidade visual`,
-    confidence: "baixa",
-  }));
+  return Array.from({ length: count }, (_, index) => {
+    const mediaType = mediaStrategy === "video_only" ? "video" : "image";
+    const description =
+      beats[index] || understanding.summary || "Cena documental";
+    return {
+      id: `scene-${String(index + 1).padStart(2, "0")}`,
+      duration_sec: Math.max(2, Number((total / count).toFixed(1))),
+      narration: grouped[index].join(" "),
+      visual_description:
+        beats[index] ||
+        understanding.visual_description ||
+        "Visual a confirmar",
+      media_type: mediaType,
+      media_reason:
+        mediaType === "video"
+          ? "Modo configurado para somente videos."
+          : "Contingencia conservadora: imagem permite revisao antes da producao.",
+      image_prompt:
+        mediaType === "image"
+          ? `${description}, composicao cinematografica, luz natural, alta fidelidade visual`
+          : "",
+      video_prompt:
+        mediaType === "video"
+          ? `${description}, acao natural continua, camera cinematografica suave, continuidade visual`
+          : "",
+      confidence: "baixa",
+    };
+  });
 }
 
 export async function runVideoReverseEngineering({
@@ -256,10 +450,13 @@ export async function runVideoReverseEngineering({
   mode = "transformative",
   niche = "Geral",
   instructions = "",
+  mediaStrategy = "adaptive",
+  visualAssetStyle = DEFAULT_VISUAL_ASSET_STYLE,
+  visualMapOnly = false,
   callGeminiWithRetry,
   apiKey,
   workspaceDir,
-  getGeminiModel,
+  getGeminiModel: _getGeminiModel,
 } = {}) {
   const [video, context] = await Promise.all([
     analyzeVideoUnderstanding({
@@ -300,47 +497,120 @@ export async function runVideoReverseEngineering({
     mode,
     niche,
     instructions,
+    mediaStrategy,
+    visualAssetStyle,
+    visualMapOnly,
     metadata,
     understanding,
     transcript,
   });
 
+  const junkNarrationRe =
+    /^(uncertain|incerto|incerta|unknown|n\/a|none|null|undefined|sem dados|não sei|nao sei)\b/i;
+
+  function isWeakReverseResult(obj) {
+    if (!obj || typeof obj !== "object") return true;
+    const narration = cleanText(
+      obj.reconstructed_narration || obj.source_transcript || "",
+      80_000
+    );
+    const scenes = Array.isArray(obj.scenes) ? obj.scenes : [];
+    if (narration.length < 80 || junkNarrationRe.test(narration.trim())) {
+      return true;
+    }
+    if (scenes.length < 2) return true;
+    return false;
+  }
+
   let parsed = null;
+  let llmWarnings = [];
   try {
+    // 1) Provedor ativo (OpenRouter / NVIDIA / xAI / Gemini / local)
     const response = await callGeminiWithRetry(apiKey, prompt, {
-      models: getGeminiModel
-        ? [getGeminiModel(workspaceDir), ...REVERSE_ENGINEERING_MODELS]
-        : REVERSE_ENGINEERING_MODELS,
       projectDir: workspaceDir,
-      forceProvider: "gemini",
       maxRetries: 2,
       temperature: mode === "faithful" ? 0.15 : 0.35,
+      activityLabel: "Engenharia reversa",
+      activityDetail: String(url || "").slice(0, 120),
+      maxTokens: 8192,
     });
     parsed = extractReverseEngineeringJson(response);
+    if (isWeakReverseResult(parsed)) {
+      llmWarnings.push(
+        "Primeira passagem do provedor ativo devolveu narração/cenas fracas — tentando reforço."
+      );
+      parsed = null;
+    }
   } catch (error) {
     console.warn("[VideoReverseEngineering] LLM:", error.message);
+    llmWarnings.push(`Falha no provedor ativo: ${error.message}`);
+  }
+
+  // 2) Segunda passagem no MESMO provedor configurado (sem engessar Gemini)
+  if (!parsed || isWeakReverseResult(parsed)) {
+    try {
+      console.warn(
+        "[VideoReverseEngineering] Segunda passagem no provedor ativo (JSON completo)."
+      );
+      const response = await callGeminiWithRetry(apiKey, prompt, {
+        projectDir: workspaceDir,
+        maxRetries: 3,
+        temperature: mode === "faithful" ? 0.1 : 0.25,
+        activityLabel: "Engenharia reversa (2ª passagem)",
+        activityDetail: String(url || "").slice(0, 120),
+        maxTokens: 8192,
+      });
+      const repaired = extractReverseEngineeringJson(response);
+      if (repaired && !isWeakReverseResult(repaired)) {
+        parsed = repaired;
+        llmWarnings.push(
+          "Resultado obtido na 2ª passagem do provedor ativo (sem trocar de provedor)."
+        );
+      }
+    } catch (error) {
+      console.warn(
+        "[VideoReverseEngineering] 2ª passagem falhou:",
+        error.message
+      );
+    }
   }
 
   if (!parsed) {
+    // Contingência: preferir transcript real do yt-dlp, nunca "uncertain"
+    const safeNarration =
+      cleanText(transcript, 80_000) ||
+      cleanText(understanding.summary, 6_000) ||
+      cleanText(metadata.title, 500);
     parsed = {
       title: metadata.title,
       hook: understanding.hook_first_3s,
       content_summary: understanding.summary,
-      source_transcript: transcript,
-      reconstructed_narration: transcript,
+      source_transcript: transcript || safeNarration,
+      reconstructed_narration: safeNarration,
       visual_language: understanding.visual_description,
       retention_mechanics: understanding.what_works_for_retention,
-      scenes: fallbackScenes(understanding, transcript),
+      scenes: fallbackScenes(
+        understanding,
+        transcript || safeNarration,
+        mediaStrategy
+      ),
       warnings: [
-        "Resultado de contingencia: revise os prompts e a divisao de cenas antes de produzir.",
+        "Resultado de contingencia: o LLM nao devolveu JSON completo. Revise narração e cenas antes de produzir.",
+        ...llmWarnings,
       ],
     };
+  } else if (llmWarnings.length) {
+    parsed.warnings = [
+      ...(Array.isArray(parsed.warnings) ? parsed.warnings : []),
+      ...llmWarnings,
+    ];
   }
 
   const result = normalizeReverseEngineeringResult(parsed, {
     url,
     format,
     mode,
+    mediaStrategy,
     sourceTranscript: transcript,
     platform: video.parsed?.platform,
     title: metadata.title,

@@ -1,6 +1,13 @@
 import toast from "react-hot-toast";
-import React from "react";
-import { Image, RefreshCw, Share2, Sparkles } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  CheckCircle2,
+  Image,
+  RefreshCw,
+  Share2,
+  ShieldAlert,
+  Sparkles,
+} from "lucide-react";
 import { DashminProjectTabLayout } from "./DashminProjectTabLayout";
 import { ProjectYoutubeCard } from "./ProjectYoutubeCard";
 import type { AppTab } from "./appTabs";
@@ -10,9 +17,15 @@ import { SocialPublishPanel } from "./SocialPublishPanel";
 
 export type AppUploadTabProps = {
   activeProject: string;
-  applyMetadataToUpload: () => void | Promise<void>;
+  applyMetadataToUpload: (opts?: {
+    silent?: boolean;
+  }) => Promise<{ ok: true; payload: unknown } | { ok: false }>;
   config: ConfigData | null;
   getProjectUrl: (path: string) => string;
+  generateYoutubeMetadata: (options?: {
+    silent?: boolean;
+    keepExistingOnError?: boolean;
+  }) => Promise<boolean>;
   handleFixYoutubeMetadata: () => void | Promise<void>;
   handleGenerateYoutubeThumbnailImages: () => void | Promise<void>;
   handlePostUploadComplete: (
@@ -97,11 +110,29 @@ export type AppUploadTabProps = {
   ytThumbnailVariant: string;
 };
 
+type YoutubeQualityGateReport = {
+  ready: boolean;
+  missing?: boolean;
+  score?: number;
+  blockingCount?: number;
+  warningCount?: number;
+  video?: { name?: string } | null;
+  dimensions?: Record<string, number>;
+  checks?: Array<{
+    id: string;
+    category: string;
+    status: "pass" | "warning" | "error" | "info";
+    message: string;
+    fix?: string;
+  }>;
+};
+
 export function AppUploadTab({
   activeProject,
   applyMetadataToUpload,
   config,
   getProjectUrl,
+  generateYoutubeMetadata,
   handleFixYoutubeMetadata,
   handleGenerateYoutubeThumbnailImages,
   handlePostUploadComplete,
@@ -162,6 +193,185 @@ export function AppUploadTab({
   youtubeThumbnailsLoading,
   ytThumbnailVariant,
 }: AppUploadTabProps) {
+  const [qualityGate, setQualityGate] =
+    useState<YoutubeQualityGateReport | null>(null);
+  const [qualityGateLoading, setQualityGateLoading] = useState(false);
+  const [qualityGateFixing, setQualityGateFixing] = useState(false);
+  const [qualityGateFixSummary, setQualityGateFixSummary] = useState<{
+    applied: string[];
+    deferred: string[];
+  } | null>(null);
+
+  const runQualityGate = useCallback(async () => {
+    if (!selectedUploadVideo) {
+      toast.error("Selecione um vídeo renderizado.");
+      return null;
+    }
+    setQualityGateLoading(true);
+    try {
+      const response = await fetch(
+        getProjectUrl(
+          `/api/youtube/quality-gate?video=${encodeURIComponent(selectedUploadVideo)}`
+        )
+      );
+      const report = (await response.json()) as YoutubeQualityGateReport & {
+        error?: string;
+      };
+      if (report.error) throw new Error(report.error);
+      setQualityGate(report);
+      if (report.ready) {
+        toast.success(`Quality Gate aprovado: ${report.score ?? 0}/100.`);
+      } else {
+        toast.error(
+          `Quality Gate bloqueou o upload: ${report.blockingCount ?? 1} problema(s).`
+        );
+      }
+      return report;
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Falha ao executar o Quality Gate."
+      );
+      return null;
+    } finally {
+      setQualityGateLoading(false);
+    }
+  }, [getProjectUrl, selectedUploadVideo]);
+
+  const fixQualityGate = useCallback(async () => {
+    if (!selectedUploadVideo) {
+      toast.error("Selecione um vídeo renderizado.");
+      return;
+    }
+    setQualityGateFixing(true);
+    setQualityGateFixSummary(null);
+    try {
+      const response = await fetch(
+        getProjectUrl("/api/youtube/quality-gate/fix"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ video: selectedUploadVideo }),
+        }
+      );
+      const result = (await response.json()) as {
+        error?: string;
+        applied?: Array<{ id: string; message: string }>;
+        deferred?: Array<{ id: string; message: string }>;
+        metadata?: { title?: string; description?: string };
+        report?: YoutubeQualityGateReport;
+      };
+      if (response.status === 404) {
+        toast("Atualizando metadados com o mecanismo de IA disponível...");
+        const generated = await generateYoutubeMetadata({
+          silent: true,
+          keepExistingOnError: true,
+        });
+        if (!generated) {
+          throw new Error(
+            "A rota nova ainda não está ativa e a geração alternativa de metadados falhou."
+          );
+        }
+        const applied = await applyMetadataToUpload({ silent: true });
+        if (!applied || !("ok" in applied) || !applied.ok) {
+          throw new Error(
+            "A IA gerou os dados, mas não foi possível aplicá-los."
+          );
+        }
+        const saved = await saveUploadMetadataToProject(applied.payload);
+        if (!saved) {
+          throw new Error("Não foi possível salvar as correções da IA.");
+        }
+        const report = await runQualityGate();
+        setQualityGateFixSummary({
+          applied: [
+            "Metadados regenerados, aplicados e salvos pelo mecanismo de IA disponível.",
+          ],
+          deferred: report?.ready
+            ? []
+            : [
+                "O backend técnico ainda precisa ser atualizado para executar reparos no arquivo MP4.",
+              ],
+        });
+        if (report?.ready) {
+          toast.success("Problemas resolvidos e Quality Gate aprovado.");
+        } else {
+          toast(
+            "A IA aplicou as correções possíveis. Revise os avisos restantes."
+          );
+        }
+        return;
+      }
+      if (result.error) throw new Error(result.error);
+      if (result.metadata?.title) setYtTitle(result.metadata.title);
+      if (result.metadata?.description)
+        setYtDescription(result.metadata.description);
+      if (result.report) setQualityGate(result.report);
+      setQualityGateFixSummary({
+        applied: (result.applied || []).map((item) => item.message),
+        deferred: (result.deferred || []).map((item) => item.message),
+      });
+
+      const appliedCount = result.applied?.length ?? 0;
+      const deferredCount = result.deferred?.length ?? 0;
+      if (result.report?.ready) {
+        toast.success(
+          `IA resolveu ${appliedCount} problema(s). Quality Gate aprovado.`
+        );
+      } else if (appliedCount) {
+        toast.success(`IA aplicou ${appliedCount} correção(ões).`);
+        if (deferredCount) {
+          toast(
+            `${deferredCount} item(ns) ainda exigem renderização ou confirmação humana.`
+          );
+        }
+      } else {
+        toast(
+          deferredCount
+            ? "Esses itens exigem renderização ou confirmação humana."
+            : "Nenhuma correção automática foi necessária."
+        );
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Falha na correção automática."
+      );
+    } finally {
+      setQualityGateFixing(false);
+    }
+  }, [
+    getProjectUrl,
+    generateYoutubeMetadata,
+    applyMetadataToUpload,
+    saveUploadMetadataToProject,
+    runQualityGate,
+    selectedUploadVideo,
+    setYtDescription,
+    setYtTitle,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setQualityGate(null);
+    if (!selectedUploadVideo) return () => undefined;
+    void fetch(getProjectUrl("/api/youtube/quality-gate/cached"))
+      .then((response) => response.json())
+      .then((report: YoutubeQualityGateReport) => {
+        if (
+          !cancelled &&
+          !report.missing &&
+          report.video?.name === selectedUploadVideo
+        ) {
+          setQualityGate(report);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProject, getProjectUrl, selectedUploadVideo]);
+
   return (
     <DashminProjectTabLayout tab="upload" activeProject={activeProject}>
       <div className="space-y-6 font-sans">
@@ -693,6 +903,142 @@ export function AppUploadTab({
                   Nenhum vídeo em OUTPUT. Renderize na aba Render primeiro.
                 </div>
               )}
+              <div
+                className={`rounded-xl border p-3 space-y-3 ${
+                  qualityGate?.ready
+                    ? "border-emerald-500/30 bg-emerald-500/5"
+                    : qualityGate
+                      ? "border-red-500/30 bg-red-500/5"
+                      : "border-zinc-800 bg-zinc-900/40"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    {qualityGate?.ready ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <ShieldAlert className="w-4 h-4 text-amber-400" />
+                    )}
+                    <div>
+                      <div className="text-[11px] font-bold text-zinc-100">
+                        YouTube Quality Gate
+                      </div>
+                      <div className="text-[9px] text-zinc-500">
+                        Técnica, originalidade, retenção e monetização
+                      </div>
+                    </div>
+                  </div>
+                  {qualityGate && !qualityGate.missing && (
+                    <div
+                      className={`text-lg font-black ${
+                        qualityGate.ready ? "text-emerald-400" : "text-red-400"
+                      }`}
+                    >
+                      {qualityGate.score ?? 0}
+                    </div>
+                  )}
+                </div>
+                {qualityGate?.dimensions && (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {Object.entries(qualityGate.dimensions).map(
+                      ([label, score]) => (
+                        <div
+                          key={label}
+                          className="flex justify-between rounded-md bg-black/20 px-2 py-1 text-[9px]"
+                        >
+                          <span className="capitalize text-zinc-500">
+                            {label}
+                          </span>
+                          <strong className="text-zinc-200">{score}</strong>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+                {qualityGate && (
+                  <div className="text-[9px] text-zinc-400">
+                    {qualityGate.ready
+                      ? `${qualityGate.warningCount ?? 0} aviso(s), sem bloqueios.`
+                      : `${qualityGate.blockingCount ?? 0} bloqueio(s) e ${qualityGate.warningCount ?? 0} aviso(s).`}
+                  </div>
+                )}
+                {qualityGate?.checks
+                  ?.filter(
+                    (item) =>
+                      item.status === "error" || item.status === "warning"
+                  )
+                  .slice(0, 4)
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className={`text-[9px] leading-relaxed ${
+                        item.status === "error"
+                          ? "text-red-300"
+                          : "text-amber-300"
+                      }`}
+                    >
+                      • {item.message}
+                    </div>
+                  ))}
+                {qualityGateFixSummary && (
+                  <div className="space-y-1.5 rounded-lg border border-violet-400/20 bg-violet-500/5 p-2.5">
+                    {qualityGateFixSummary.applied.map((message, index) => (
+                      <div
+                        key={`applied-${index}`}
+                        className="text-[9px] leading-relaxed text-emerald-300"
+                      >
+                        ✓ {message}
+                      </div>
+                    ))}
+                    {qualityGateFixSummary.deferred.map((message, index) => (
+                      <div
+                        key={`deferred-${index}`}
+                        className="text-[9px] leading-relaxed text-amber-300"
+                      >
+                        → {message}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    void runQualityGate();
+                  }}
+                  disabled={qualityGateLoading || !selectedUploadVideo}
+                  className="w-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 disabled:opacity-40 text-cyan-200 font-bold py-2 rounded-lg text-[10px] transition"
+                >
+                  {qualityGateLoading
+                    ? "Auditando MP4..."
+                    : "Executar auditoria completa"}
+                </button>
+                {qualityGate &&
+                  ((qualityGate.blockingCount ?? 0) > 0 ||
+                    (qualityGate.warningCount ?? 0) > 0) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void fixQualityGate();
+                      }}
+                      disabled={
+                        qualityGateFixing ||
+                        qualityGateLoading ||
+                        !selectedUploadVideo
+                      }
+                      className="w-full bg-violet-500/15 hover:bg-violet-500/25 border border-violet-400/35 disabled:opacity-40 text-violet-100 font-bold py-2.5 rounded-lg text-[10px] transition flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      {qualityGateFixing
+                        ? "IA resolvendo problemas..."
+                        : "Resolver problemas com IA"}
+                    </button>
+                  )}
+                <div className="text-[8px] text-zinc-600 leading-relaxed">
+                  Upload aprovado entra como privado até os checks do YouTube
+                  terminarem. Isso reduz risco, mas não garante monetização ou
+                  alcance.
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -739,6 +1085,10 @@ export function AppUploadTab({
                   if (!saved) {
                     toast.error("Erro ao salvar metadados antes do upload.");
                     return;
+                  }
+                  if (selectedPlatforms.youtube) {
+                    const report = await runQualityGate();
+                    if (!report?.ready) return;
                   }
                   setUploading(true);
                   setUploadLogs([]);

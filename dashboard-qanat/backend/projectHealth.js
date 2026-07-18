@@ -92,6 +92,16 @@ export function buildNarrationIntegrityReport(projectDir) {
   const plannedText = normalizeNarrationIntegrityText(
     chunks.map((chunk) => chunk?.text || "").join(" ")
   );
+  const plannedTaggedText = normalizeNarrationIntegrityText(
+    chunks
+      .map((chunk) => chunk?.text_tagged || chunk?.text || "")
+      .join(" ")
+      .replace(/[\u200b\u2060\ufeff]/g, "")
+  );
+  const taggedMatchesApprovedChunkOverrides =
+    chunks.length > 0 &&
+    plannedText === source &&
+    plannedTaggedText === normalizeNarrationIntegrityText(tagged);
   const checks = [];
 
   checks.push(
@@ -146,12 +156,19 @@ export function buildNarrationIntegrityReport(projectDir) {
             "ok",
             "Tags nao mudaram as palavras faladas"
           )
-        : integrityCheck(
-            "tagged",
-            "Texto com tags TTS",
-            "error",
-            "A versao com tags mudou o texto falado"
-          )
+        : taggedMatchesApprovedChunkOverrides
+          ? integrityCheck(
+              "tagged",
+              "Texto com tags TTS",
+              "ok",
+              "Pronuncia expressiva aprovada nos trechos; legenda principal permanece intacta"
+            )
+          : integrityCheck(
+              "tagged",
+              "Texto com tags TTS",
+              "error",
+              "A versao com tags mudou o texto falado"
+            )
   );
   if (tagged && approvedTaggedHash) {
     checks.push(

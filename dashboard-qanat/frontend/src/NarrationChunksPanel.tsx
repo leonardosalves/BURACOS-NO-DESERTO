@@ -32,6 +32,7 @@ import {
   pingBackendHealth,
   waitForBackendHealth,
 } from "./describeFetchError";
+import { buildTaggedNarration } from "./taggedNarration";
 
 type ChunkVoice = {
   engine: string;
@@ -83,12 +84,25 @@ type TtsEngineOption = {
   available?: boolean;
 };
 
+const EXPRESSIVE_TAG_CHIPS = [
+  "[tom documental envolvente]",
+  "[tom interrogativo, intrigado]",
+  "[pausa]",
+  "[pausa longa]",
+  "[ênfase]",
+  "[rápido]",
+  "[lento]",
+  "[voz baixa, tensa]",
+  "[tom conclusivo]",
+];
+
 type Props = {
   getProjectUrl: (path: string) => string;
   getMediaUrl: (file: string) => string;
   toast: (msg: string, opts?: unknown) => void;
   hasApiKey?: boolean;
   narrationMode?: "chunked" | "master" | string;
+  lockChunkedMode?: boolean;
   plan?: NarrationChunkPlan | null;
   onPlanChange?: (plan: NarrationChunkPlan) => void;
   onModeChange?: (mode: "chunked" | "master") => void;
@@ -103,10 +117,36 @@ const ENGINE_LABELS: Record<string, string> = {
   kokoro: "Kokoro",
   edge: "Edge TTS",
   chatterbox: "Chatterbox",
+  qwen3: "Qwen3-TTS",
   fish: "Fish Audio",
   voicebox: "Voicebox",
   gptsovits: "GPT-SoVITS",
 };
+
+const TTS_WORD_JOINER = "\u2060";
+
+/**
+ * Compatibilidade com backends antigos que interpretavam o início de palavras
+ * como "acústica" como a abreviação histórica "a.C.". O word joiner é
+ * invisível e não cria pausa, mas impede a expressão antiga de casar "ac".
+ * O texto editorial em `chunk.text` permanece intocado.
+ */
+function protectWordsFromLegacyEraExpansion(text: string): string {
+  return String(text || "").replace(
+    /(?<![\p{L}\p{N}_])([aAdD])([cC])(?=(?![A-Za-z0-9_])[\p{L}\p{M}])/gu,
+    `$1${TTS_WORD_JOINER}$2`
+  );
+}
+
+function stripTtsMarkersForCaption(text: string): string {
+  return String(text || "")
+    .replace(/\[tom[^\]]*\]/gi, " ")
+    .replace(/\[[^\]]+\]/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/<break[^>]*\/?>/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export function NarrationChunksPanel({
   getProjectUrl,
@@ -114,6 +154,7 @@ export function NarrationChunksPanel({
   toast,
   hasApiKey = false,
   narrationMode = "master",
+  lockChunkedMode = false,
   plan: externalPlan,
   onPlanChange,
   onModeChange,
@@ -145,6 +186,7 @@ export function NarrationChunksPanel({
       {
         preview: string;
         tags: string[];
+        instruct?: string;
         normalization: boolean | null;
         independentChunk: boolean | null;
       }
@@ -154,6 +196,9 @@ export function NarrationChunksPanel({
   const [auditEvents, setAuditEvents] = useState<any[]>([]);
   const [auditComparison, setAuditComparison] = useState<any[]>([]);
   const [auditReviews, setAuditReviews] = useState<Record<string, any>>({});
+  const [auditApprovalItems, setAuditApprovalItems] = useState<
+    Record<string, { approved: boolean; reason?: string | null }>
+  >({});
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
   const [approvingAll, setApprovingAll] = useState(false);
@@ -174,6 +219,14 @@ export function NarrationChunksPanel({
       setAuditComparison(Array.isArray(data.comparison) ? data.comparison : []);
       setAuditReviews(
         data.reviews && typeof data.reviews === "object" ? data.reviews : {}
+      );
+      const approvalItems = Array.isArray(data.approval?.items)
+        ? data.approval.items
+        : [];
+      setAuditApprovalItems(
+        Object.fromEntries(
+          approvalItems.map((item: any) => [String(item.id || ""), item])
+        )
       );
     } catch {}
   }, [getProjectUrl]);
@@ -212,7 +265,7 @@ export function NarrationChunksPanel({
       ? auditComparison.map((row) => String(row.chunk_id || ""))
       : (localPlan?.chunks || []).map((chunk) => chunk.id);
     const chunkIds = [...new Set(sourceIds.filter(Boolean))].filter(
-      (chunkId) => auditReviews[chunkId]?.decision !== "approved"
+      (chunkId) => !auditApprovalItems[chunkId]?.approved
     );
     if (!chunkIds.length) {
       toast("Todos os trechos já estão aprovados.");
@@ -335,6 +388,29 @@ export function NarrationChunksPanel({
     });
   };
 
+  const patchChunkSpokenText = (chunk: NarrationChunk, nextText: string) => {
+    const previousPlain = String(chunk.text || "");
+    const previousTagged = String(chunk.text_tagged ?? previousPlain);
+    const taggedFollowedPlain = previousTagged.trim() === previousPlain.trim();
+    patchChunk(chunk.id, {
+      text: nextText,
+      ...(taggedFollowedPlain ? { text_tagged: nextText } : {}),
+      ...(chunk.duration_s ? { status: "stale" } : {}),
+    });
+  };
+
+  const patchChunkCaptionAndTts = (
+    chunk: NarrationChunk,
+    nextTaggedText: string
+  ) => {
+    setUseTagged(true);
+    patchChunk(chunk.id, {
+      text_tagged: nextTaggedText,
+      text: stripTtsMarkersForCaption(nextTaggedText),
+      ...(chunk.duration_s ? { status: "stale" } : {}),
+    });
+  };
+
   const applyChunkVoiceToScope = (
     source: NarrationChunk,
     scope: "scene" | "block" | "speaker"
@@ -443,7 +519,7 @@ export function NarrationChunksPanel({
   };
 
   const fetchTagPreview = useCallback(
-    async (chunkId: string, tagged: string, engine: string) => {
+    async (chunkId: string, tagged: string, engine: string, voiceId = "") => {
       if (!tagged.trim()) {
         setTagPreviews((prev) => {
           const next = { ...prev };
@@ -457,8 +533,9 @@ export function NarrationChunksPanel({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            text_tagged: tagged,
+            text_tagged: protectWordsFromLegacyEraExpansion(tagged),
             engine,
+            voice: voiceId,
           }),
         });
         const data = await res.json().catch(() => ({}));
@@ -468,6 +545,7 @@ export function NarrationChunksPanel({
           [chunkId]: {
             preview: String(data.preview || ""),
             tags: Array.isArray(data.tags) ? data.tags : [],
+            instruct: data.instruct ? String(data.instruct) : "",
             normalization:
               typeof data.normalization === "boolean"
                 ? data.normalization
@@ -495,7 +573,8 @@ export function NarrationChunksPanel({
       void fetchTagPreview(
         chunk.id,
         chunk.text_tagged || chunk.text,
-        chunk.voice?.engine || defaultEngine
+        chunk.voice?.engine || defaultEngine,
+        chunk.voice?.voice || defaultVoice
       );
     }, 400);
     return () => window.clearTimeout(timer);
@@ -504,11 +583,87 @@ export function NarrationChunksPanel({
     localPlan?.chunks,
     useTagged,
     defaultEngine,
+    defaultVoice,
     fetchTagPreview,
   ]);
 
-  const persistPlanBeforeTts = async (): Promise<boolean> => {
-    if (!localPlan?.chunks?.length) {
+  /** Gera tags expressivas (tom/pausa/ênfase) a partir do texto limpo do trecho. */
+  const buildExpressiveTagsForChunk = useCallback((chunk: NarrationChunk) => {
+    const plain = String(chunk.text || "").trim();
+    if (!plain) return "";
+    return buildTaggedNarration(plain, "fish", {
+      taggedScript: chunk.text_tagged || "",
+    });
+  }, []);
+
+  const applyExpressiveTagsToChunk = useCallback(
+    (chunk: NarrationChunk): NarrationChunkPlan | null => {
+      if (!localPlan) return null;
+      const tagged = buildExpressiveTagsForChunk(chunk);
+      if (!tagged.trim()) {
+        toast("Trecho sem texto para gerar tags.");
+        return null;
+      }
+      setUseTagged(true);
+      setExpandedTagsChunkId(chunk.id);
+      const next: NarrationChunkPlan = {
+        ...localPlan,
+        chunks: localPlan.chunks.map((c) =>
+          c.id === chunk.id
+            ? {
+                ...c,
+                text_tagged: tagged,
+                ...(c.duration_s ? { status: "stale" } : {}),
+              }
+            : c
+        ),
+      };
+      updatePlan(next);
+      toast("Tags expressivas aplicadas — edite se quiser e gere o áudio.");
+      return next;
+    },
+    [localPlan, buildExpressiveTagsForChunk, toast]
+  );
+
+  /** Aplica auto-tags em todos os trechos do plano (tom/pausa/ênfase). */
+  const applyExpressiveTagsToAllChunks =
+    useCallback((): NarrationChunkPlan | null => {
+      if (!localPlan?.chunks?.length) {
+        toast("Nenhum trecho no plano.");
+        return null;
+      }
+      let taggedCount = 0;
+      const nextChunks = localPlan.chunks.map((c) => {
+        const plain = String(c.text || "").trim();
+        if (!plain) return c;
+        const tagged = buildExpressiveTagsForChunk(c);
+        if (!tagged.trim()) return c;
+        taggedCount += 1;
+        return {
+          ...c,
+          text_tagged: tagged,
+          ...(c.duration_s ? { status: "stale" as const } : {}),
+        };
+      });
+      if (taggedCount === 0) {
+        toast("Nenhum trecho com texto para gerar tags.");
+        return null;
+      }
+      setUseTagged(true);
+      const next: NarrationChunkPlan = {
+        ...localPlan,
+        chunks: nextChunks,
+      };
+      updatePlan(next);
+      toast(`Tags expressivas em ${taggedCount} trecho(s). Gerando áudio…`);
+      return next;
+    }, [localPlan, buildExpressiveTagsForChunk, toast]);
+
+  const persistPlanBeforeTts = async (
+    planOverride: NarrationChunkPlan | null = null
+  ): Promise<boolean> => {
+    const planToSave = planOverride || localPlan;
+    if (!planToSave?.chunks?.length) {
       toast("Nenhum trecho no plano — planeje antes de gerar.");
       return false;
     }
@@ -527,7 +682,18 @@ export function NarrationChunksPanel({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan: localPlan, mode: "chunked" }),
+          body: JSON.stringify({
+            plan: {
+              ...planToSave,
+              chunks: planToSave.chunks.map((chunk) => ({
+                ...chunk,
+                text_tagged: protectWordsFromLegacyEraExpansion(
+                  chunk.text_tagged ?? chunk.text
+                ),
+              })),
+            },
+            mode: "chunked",
+          }),
         },
         "salvar plano de trechos"
       );
@@ -544,8 +710,16 @@ export function NarrationChunksPanel({
     }
   };
 
-  const runChunkTts = async (chunkIds: string[] | null) => {
-    if (!(await persistPlanBeforeTts())) return;
+  const runChunkTts = async (
+    chunkIds: string[] | null,
+    options: {
+      planOverride?: NarrationChunkPlan | null;
+      forceTagged?: boolean;
+    } = {}
+  ) => {
+    const forceTagged = options.forceTagged === true;
+    if (forceTagged) setUseTagged(true);
+    if (!(await persistPlanBeforeTts(options.planOverride || null))) return;
 
     const isFullBatch = chunkIds === null;
     const progressJobId = createProgressJobId();
@@ -563,8 +737,8 @@ export function NarrationChunksPanel({
       return;
     }
 
-    const progressTitle = isFullBatch
-      ? "Narração por trechos + Whisper"
+    const progressTitle = forceTagged
+      ? "Narração expressiva (tags)"
       : "Narração por trechos";
     let jobStarted = false;
 
@@ -577,9 +751,9 @@ export function NarrationChunksPanel({
           body: JSON.stringify({
             chunk_ids: chunkIds,
             default_voice: { engine: defaultEngine, voice: defaultVoice },
-            use_tagged: useTagged,
-            sync_whisper: isFullBatch,
-            assemble_master: isFullBatch,
+            use_tagged: forceTagged || useTagged,
+            sync_whisper: false,
+            assemble_master: false,
             progress_job_id: progressJobId,
           }),
         }
@@ -599,10 +773,7 @@ export function NarrationChunksPanel({
           whisper_error?: string | null;
         };
         const doneMsg =
-          result.message ||
-          (result.whisper_synced
-            ? "Trechos montados · legendas sincronizadas (Whisper)."
-            : "Trechos montados.");
+          result.message || "Trechos gerados. Ouça e aprove antes do Whisper.";
         if (result.whisper_error && isFullBatch) {
           toast(`Whisper: ${result.whisper_error}`, { icon: "⚠️" });
         }
@@ -660,7 +831,7 @@ export function NarrationChunksPanel({
   };
 
   const chunks = localPlan?.chunks || [];
-  const isChunked = narrationMode === "chunked";
+  const isChunked = lockChunkedMode || narrationMode === "chunked";
   const readiness = useMemo(() => {
     if (!isChunked) return { ready: true, blockers: [] as string[] };
     if (!chunks.length)
@@ -669,14 +840,15 @@ export function NarrationChunksPanel({
     for (const chunk of chunks) {
       if (chunk.status !== "generated")
         blockers.push(`${chunk.id}: áudio ${chunk.status || "pendente"}`);
+      const approval = auditApprovalItems[chunk.id];
       const decision = auditReviews[chunk.id]?.decision;
-      if (decision !== "approved")
+      if (!approval?.approved)
         blockers.push(
-          `${chunk.id}: ${decision === "rejected" ? "rejeitado" : decision === "needs_fix" ? "correção solicitada" : "aguardando aprovação"}`
+          `${chunk.id}: ${approval?.reason === "audio_changed_after_review" ? "áudio alterado; aprove novamente" : decision === "rejected" ? "rejeitado" : decision === "needs_fix" ? "correção solicitada" : "aguardando aprovação"}`
         );
     }
     return { ready: blockers.length === 0, blockers };
-  }, [isChunked, chunks, auditReviews]);
+  }, [isChunked, chunks, auditReviews, auditApprovalItems]);
 
   useEffect(() => {
     onReadinessChange?.(readiness);
@@ -871,28 +1043,31 @@ export function NarrationChunksPanel({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {!lockChunkedMode && (
+          <button
+            type="button"
+            onClick={() => onModeChange?.("master")}
+            className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
+              !isChunked
+                ? "bg-gold-500 text-zinc-950 border-gold-500"
+                : "border-zinc-800 text-zinc-400"
+            }`}
+          >
+            Arquivo único
+          </button>
+        )}
         <button
           type="button"
-          onClick={() => onModeChange?.("master")}
-          className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
-            !isChunked
-              ? "bg-gold-500 text-zinc-950 border-gold-500"
-              : "border-zinc-800 text-zinc-400"
-          }`}
-        >
-          Arquivo único
-        </button>
-        <button
-          type="button"
-          onClick={() => onModeChange?.("chunked")}
+          onClick={() => !lockChunkedMode && onModeChange?.("chunked")}
+          disabled={lockChunkedMode}
           className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
             isChunked
               ? "bg-gold-500 text-zinc-950 border-gold-500"
               : "border-zinc-800 text-zinc-400"
           }`}
         >
-          Por trechos
+          Por trechos{lockChunkedMode ? " · fluxo oficial" : ""}
         </button>
       </div>
 
@@ -957,12 +1132,12 @@ export function NarrationChunksPanel({
               Usar tags TTS na geração
             </label>
             <span className="text-[9px] text-zinc-600">
-              Pausas entre trechos vêm do plano IA (ms) — sem tags (breath) ou
-              [ênfase] no texto.
+              Tags [tom], [pausa], [ênfase] deixam a voz expressiva (Fish /
+              Qwen3 → instruct). Pausas entre trechos também usam ms do plano.
             </span>
             <span className="text-[9px] text-zinc-600">
-              «Gerar todos os trechos» monta o MP3 master e roda Whisper
-              automaticamente nas legendas.
+              Gere, escute e aprove. O MP3 master e o Whisper só são liberados
+              depois da aprovação de todos os trechos.
             </span>
           </div>
 
@@ -1008,7 +1183,29 @@ export function NarrationChunksPanel({
               ) : (
                 <Volume2 className="w-3.5 h-3.5" />
               )}
-              Gerar todos os trechos + Whisper
+              Gerar todos os trechos
+            </button>
+            <button
+              type="button"
+              disabled={generating || !chunks.length}
+              title="Aplica tags expressivas em todos os trechos e gera o áudio (Qwen3/Fish)"
+              onClick={() => {
+                const next = applyExpressiveTagsToAllChunks();
+                if (!next) return;
+                setGeneratingChunkId(null);
+                void runChunkTts(null, {
+                  planOverride: next,
+                  forceTagged: true,
+                });
+              }}
+              className="text-[10px] font-bold px-3 py-2 rounded-lg border border-violet-500/40 bg-violet-500/15 text-violet-100 flex items-center gap-1 hover:bg-violet-500/25"
+            >
+              {generating ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              Gerar todos com tags
             </button>
           </div>
 
@@ -1061,16 +1258,21 @@ export function NarrationChunksPanel({
                     </div>
                   )}
                   <label className="text-[8px] text-zinc-500 uppercase font-bold">
-                    Texto falado
+                    Texto da legenda e da narração
                   </label>
                   <textarea
                     value={chunk.text}
                     onChange={(e) =>
-                      patchChunk(chunk.id, { text: e.target.value })
+                      patchChunkSpokenText(chunk, e.target.value)
                     }
                     rows={2}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-zinc-200"
                   />
+                  <p className="text-[9px] leading-4 text-zinc-500">
+                    Edição livre: acrescente, apague ou reescreva. Salvar
+                    atualiza também a legenda; áudio já gerado ficará marcado
+                    para regeneração.
+                  </p>
                   <button
                     type="button"
                     onClick={() =>
@@ -1092,21 +1294,19 @@ export function NarrationChunksPanel({
                   {expandedTagsChunkId === chunk.id && (
                     <div className="space-y-1.5 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-2">
                       <label className="text-[8px] text-cyan-300/80 uppercase font-bold flex items-center gap-1">
-                        <Eye className="w-3 h-3" /> Texto expressivo enviado ao
-                        TTS
+                        <Eye className="w-3 h-3" /> Texto editável da legenda e
+                        do TTS
                       </label>
                       <p className="text-[9px] leading-4 text-zinc-500">
-                        Você pode corrigir palavras, pontuação ou acrescentar
-                        interrogações. Este campo controla somente o áudio deste
-                        trecho; o texto aprovado continua preservado para
-                        auditoria.
+                        Edição totalmente livre. O conteúdo também atualiza a
+                        legenda; marcadores técnicos como [ênfase] são retirados
+                        apenas da legenda e continuam disponíveis para o TTS.
                       </p>
                       <textarea
                         value={chunk.text_tagged ?? chunk.text}
-                        onChange={(e) => {
-                          setUseTagged(true);
-                          patchChunk(chunk.id, { text_tagged: e.target.value });
-                        }}
+                        onChange={(e) =>
+                          patchChunkCaptionAndTts(chunk, e.target.value)
+                        }
                         rows={3}
                         placeholder="Edite exatamente como deseja enviar ao TTS. Ex.: Isso aconteceu mesmo???"
                         className="w-full text-[11px] font-mono bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-zinc-200"
@@ -1120,6 +1320,13 @@ export function NarrationChunksPanel({
                           className="text-[8px] text-zinc-500 hover:text-zinc-300"
                         >
                           Restaurar texto original
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyExpressiveTagsToChunk(chunk)}
+                          className="rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[8px] font-bold text-violet-200 hover:bg-violet-500/20"
+                        >
+                          Auto-tags expressivas
                         </button>
                         <button
                           type="button"
@@ -1137,6 +1344,28 @@ export function NarrationChunksPanel({
                           Forçar entonação de pergunta ???
                         </button>
                       </div>
+                      <div className="flex flex-wrap gap-1">
+                        {EXPRESSIVE_TAG_CHIPS.map((chip) => (
+                          <button
+                            key={chip}
+                            type="button"
+                            onClick={() => {
+                              setUseTagged(true);
+                              const current = String(
+                                chunk.text_tagged || chunk.text || ""
+                              ).trim();
+                              patchChunk(chunk.id, {
+                                text_tagged: current
+                                  ? `${chip} ${current}`
+                                  : chip,
+                              });
+                            }}
+                            className="rounded border border-zinc-700/80 bg-zinc-900/80 px-1.5 py-0.5 text-[7px] font-mono text-zinc-400 hover:border-cyan-500/40 hover:text-cyan-200"
+                          >
+                            {chip}
+                          </button>
+                        ))}
+                      </div>
                       {useTagged && tagPreviews[chunk.id]?.preview && (
                         <div className="text-[9px] text-zinc-500 space-y-1">
                           <p className="text-cyan-400/70 uppercase text-[7px] font-bold">
@@ -1145,6 +1374,14 @@ export function NarrationChunksPanel({
                           <p className="font-mono text-zinc-400 leading-relaxed break-words">
                             {tagPreviews[chunk.id].preview}
                           </p>
+                          {tagPreviews[chunk.id].instruct ? (
+                            <p className="text-sky-400/80 font-mono leading-relaxed break-words">
+                              <span className="text-[7px] uppercase font-bold text-sky-500/80">
+                                Qwen3 instruct:{" "}
+                              </span>
+                              {tagPreviews[chunk.id].instruct}
+                            </p>
+                          ) : null}
                           {tagPreviews[chunk.id].independentChunk && (
                             <p className="text-zinc-600">
                               Trecho independente · normalização automática{" "}
@@ -1229,7 +1466,7 @@ export function NarrationChunksPanel({
                         ))}
                       </select>
                     </div>
-                    <div className="flex items-end gap-1">
+                    <div className="flex items-end gap-1 flex-wrap">
                       <button
                         type="button"
                         disabled={generating}
@@ -1246,7 +1483,29 @@ export function NarrationChunksPanel({
                         )}
                         Gerar
                       </button>
-                      {chunk.audio_file && (
+                      <button
+                        type="button"
+                        disabled={generating}
+                        title="Gera tags expressivas e sintetiza o áudio com elas (Qwen3/Fish)"
+                        onClick={() => {
+                          const next = applyExpressiveTagsToChunk(chunk);
+                          if (!next) return;
+                          setGeneratingChunkId(chunk.id);
+                          void runChunkTts([chunk.id], {
+                            planOverride: next,
+                            forceTagged: true,
+                          });
+                        }}
+                        className="text-[9px] font-bold px-2 py-1.5 rounded border border-violet-500/40 bg-violet-500/10 text-violet-200 flex items-center gap-1 hover:bg-violet-500/20"
+                      >
+                        {generatingChunkId === chunk.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 h-3" />
+                        )}
+                        Gerar com tags
+                      </button>
+                      {chunk.audio_file && Number(chunk.duration_s) > 0 && (
                         <button
                           type="button"
                           onClick={async () => {
@@ -1308,7 +1567,12 @@ export function NarrationChunksPanel({
                                   "[Audio Preview] Failed to fetch blob:",
                                   err
                                 );
-                                blobUrl = url; // Fallback para URL direta se o fetch falhar
+                                toast(
+                                  `Áudio do ${chunk.id} não encontrado. Clique em Gerar neste trecho primeiro.`,
+                                  { id: "chunk-play-missing" }
+                                );
+                                setPlayingChunkId(null);
+                                return;
                               }
                             }
 
@@ -1335,6 +1599,10 @@ export function NarrationChunksPanel({
                             };
                             audio.onerror = (e) => {
                               console.error("[Audio Preview] Event: error", e);
+                              toast(
+                                `Falha ao tocar ${chunk.id}. Gere o trecho de novo.`,
+                                { id: "chunk-play-error" }
+                              );
                               setPlayingChunkId(null);
                               chunkAudioRef.current = null;
                             };
@@ -1344,6 +1612,10 @@ export function NarrationChunksPanel({
                               console.warn(
                                 "[Audio Preview] play() promise rejected:",
                                 err
+                              );
+                              toast(
+                                `Não foi possível iniciar o áudio de ${chunk.id}.`,
+                                { id: "chunk-play-reject" }
                               );
                               setPlayingChunkId(null);
                               chunkAudioRef.current = null;

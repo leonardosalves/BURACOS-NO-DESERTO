@@ -132,7 +132,15 @@ export type CreatorApplyIdeaOptions = {
     visual_prompts: Array<Record<string, unknown>>;
     [key: string]: unknown;
   };
+  /** Identidade visual do Wizard para importações diretas especializadas. */
+  wizardMode?: import("./creatorModeIdentity").CreatorIdeationMode;
+  /** Texto curto usado durante a importação direta. */
+  directImportLabel?: string;
   blocks?: Array<{ block: number; content: string }>;
+  /** Estilo visual dos assets escolhido no painel inicial do criador. */
+  visualAssetStyle?: string;
+  /** Modo somente mapas (época da narração). */
+  visualMapOnly?: boolean;
 };
 
 export type OpenMontageImportPayload = {

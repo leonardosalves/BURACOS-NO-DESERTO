@@ -46,7 +46,13 @@ export function registerAssetCleanupRoutes(app, { getProjectDir }) {
       );
       res.json({ success: true, ...result });
     } catch (err) {
-      res.status(409).json({ error: err?.message || String(err) });
+      res.status(409).json({
+        error: err?.message || String(err),
+        code: err?.code || "ASSET_CLEANUP_APPLY_FAILED",
+        current_asset: err?.current_asset || null,
+        block: err?.block,
+        asset_index: err?.asset_index,
+      });
     }
   });
 

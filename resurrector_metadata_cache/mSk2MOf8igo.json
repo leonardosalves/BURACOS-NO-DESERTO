@@ -1,0 +1,73 @@
+{
+  "generatedAt": "2026-07-13T21:00:28.437Z",
+  "pipelineVersion": 6,
+  "format": "SHORT",
+  "source": "video_resurrector",
+  "parsed": {
+    "title": "3 fases da construção da Torre Eiffel",
+    "titleVariants": [
+      "Torre Eiffel levou esse tempo pra subir",
+      "Paris antes da Torre Eiffel existir",
+      "3 fases da construção da Torre Eiffel",
+      "Torre Eiffel como você nunca viu antes",
+      "Paris sem a Torre Eiffel parece vazia 🇫🇷"
+    ],
+    "description": "Veja a construção da Torre Eiffel em Paris neste timelapse realista feito por inteligência artificial.\nAcompanhe desde a fundação até o topo da maior obra de arquitetura francesa em segundos.\n#Shorts\nEste vídeo em formato timelapse de construção mostra o monumento mais famoso de Paris ganhando vida frame a frame. Uma verdadeira viagem no tempo pela engenharia histórica. Salva para assistir depois!",
+    "tags": [
+      "Torre Eiffel",
+      "Paris",
+      "timelapse Torre Eiffel",
+      "construção Torre Eiffel",
+      "timelapse de construção",
+      "arquitetura Paris",
+      "Eiffel Tower",
+      "timelapse histórico",
+      "engenharia Paris"
+    ],
+    "hashtags": "#Shorts #TorreEiffel #Paris #Timelapse",
+    "pinnedComment": "Para quem achou que era filmagem real de época: este é um timelapse ultra-realista gerado por IA recriando a engenharia de 1887. Qual detalhe da estrutura chamou mais sua atenção?",
+    "chapters": "",
+    "thumbnails": [
+      {
+        "id": "A",
+        "label": "Curiosidade",
+        "pairedTitle": "1. Torre Eiffel levou esse tempo pra subir",
+        "overlayText": "QUANTO TEMPO LEVOU?",
+        "composition": "Linhas de blueprint brilhantes da torre subindo sobre um canteiro de obras vazio no centro de Paris. Texto centralizado no topo.",
+        "colors": [
+          "#FFD700",
+          "#00FFFF",
+          "#111111"
+        ],
+        "focalElement": "O esqueleto metálico da base da torre brilhando em ciano."
+      },
+      {
+        "id": "B",
+        "label": "Contraste",
+        "pairedTitle": "2. Paris antes da Torre Eiffel existir",
+        "overlayText": "PARIS SEM ELA",
+        "composition": "Divisão vertical na tela. Lado esquerdo: campo parisiense vazio em 1887. Lado direito: a torre totalmente finalizada. Texto cruzando o centro da divisão.",
+        "colors": [
+          "#FFFFFF",
+          "#FF3333",
+          "#222222"
+        ],
+        "focalElement": "O contraste drástico da linha do horizonte de Paris antes e depois do monumento."
+      },
+      {
+        "id": "C",
+        "label": "Prova Visual",
+        "pairedTitle": "3. 3 fases da construção da Torre Eiffel",
+        "overlayText": "3 ETAPAS REVELADAS",
+        "composition": "Três faixas horizontais mostrando a evolução da obra: fundações, estrutura pela metade e o topo finalizado. Números \"1, 2, 3\" grandes em cada faixa.",
+        "colors": [
+          "#FFCC00",
+          "#FFFFFF",
+          "#000000"
+        ],
+        "focalElement": "Detalhes da montagem do ferro treliçado em etapas claras de evolução."
+      }
+    ]
+  },
+  "text": "## TÍTULOS\n1. Torre Eiffel levou esse tempo pra subir (38 chars)\n2. Paris antes da Torre Eiffel existir (35 chars)\n3. 3 fases da construção da Torre Eiffel (37 chars)\n4. Torre Eiffel como você nunca viu antes (38 chars)\n5. Paris sem a Torre Eiffel parece vazia 🇫🇷 (39 chars)\n\n## DESCRIÇÃO\nVeja a construção da Torre Eiffel em Paris neste timelapse realista feito por inteligência artificial.\nAcompanhe desde a fundação até o topo da maior obra de arquitetura francesa em segundos.\n#Shorts\nEste vídeo em formato timelapse de construção mostra o monumento mais famoso de Paris ganhando vida frame a frame. Uma verdadeira viagem no tempo pela engenharia histórica. Salva para assistir depois!\n\n## HASHTAGS PRINCIPAIS\n#Shorts #TorreEiffel #Paris #Timelapse\n\n## TAGS\nTorre Eiffel, Paris, timelapse Torre Eiffel, construção Torre Eiffel, timelapse de construção, arquitetura Paris, Eiffel Tower, timelapse histórico, engenharia Paris\n\n## COMENTÁRIO PINADO\nPara quem achou que era filmagem real de época: este é um timelapse ultra-realista gerado por IA recriando a engenharia de 1887. Qual detalhe da estrutura chamou mais sua atenção?\n\n## THUMBNAILS A/B\n\n### Variante A — Curiosidade\n- Título pareado: 1. Torre Eiffel levou esse tempo pra subir\n- Texto na capa: QUANTO TEMPO LEVOU?\n- Composição: Linhas de blueprint brilhantes da torre subindo sobre um canteiro de obras vazio no centro de Paris. Texto centralizado no topo.\n- Cores: #FFD700, #00FFFF, #111111\n- Expressão/elemento: O esqueleto metálico da base da torre brilhando em ciano.\n\n### Variante B — Contraste\n- Título pareado: 2. Paris antes da Torre Eiffel existir\n- Texto na capa: PARIS SEM ELA\n- Composição: Divisão vertical na tela. Lado esquerdo: campo parisiense vazio em 1887. Lado direito: a torre totalmente finalizada. Texto cruzando o centro da divisão.\n- Cores: #FFFFFF, #FF3333, #222222\n- Expressão/elemento: O contraste drástico da linha do horizonte de Paris antes e depois do monumento.\n\n### Variante C — Prova Visual\n- Título pareado: 3. 3 fases da construção da Torre Eiffel\n- Texto na capa: 3 ETAPAS REVELADAS\n- Composição: Três faixas horizontais mostrando a evolução da obra: fundações, estrutura pela metade e o topo finalizado. Números \"1, 2, 3\" grandes em cada faixa.\n- Cores: #FFCC00, #FFFFFF, #000000\n- Expressão/elemento: Detalhes da montagem do ferro treliçado em etapas claras de evolução.\n\n## ÂNCORAS DO CONTEÚDO REAL\n- **Torre Eiffel** (Eiffel Tower)\n- **Paris** (Paris)\n- **Construção** (construction)\n- **Timelapse** (timelapse)\n- **Arquitetura** (architecture)"
+}

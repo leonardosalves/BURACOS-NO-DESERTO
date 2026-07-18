@@ -41,6 +41,7 @@ function envInt(name, fallback) {
 /** @type {ResearchConfig} */
 export const RESEARCH_CONFIG = Object.freeze({
   models: parseEnvModels(process.env.GEMINI_RESEARCH_MODELS) || [
+    "gemini-3.5-flash",
     "gemini-2.5-flash",
     "gemini-2.0-flash",
   ],

@@ -18,11 +18,62 @@ FIDELIDADE AO REAL (imagem e vídeo):
 - Nomeie o sujeito real + aparência conhecida + "documentary photorealistic" / "archival footage style" quando couber.`;
 
 const PT_STOPWORDS = new Set([
-  "sobre", "quando", "porque", "entre", "desde", "ainda", "muito", "pouco", "todo", "toda",
-  "todos", "todas", "esse", "essa", "isso", "aquilo", "onde", "como", "mais", "menos", "cada",
-  "outro", "outra", "mesmo", "mesma", "depois", "antes", "então", "assim", "apenas", "sempre",
-  "nunca", "você", "voce", "eles", "elas", "nosso", "nossa", "seu", "sua", "segredo", "está", "esta",
-  "faz", "sem", "nao", "não", "que", "para", "pelo", "pela", "pelos", "pelas", "com", "uma", "uns",
+  "sobre",
+  "quando",
+  "porque",
+  "entre",
+  "desde",
+  "ainda",
+  "muito",
+  "pouco",
+  "todo",
+  "toda",
+  "todos",
+  "todas",
+  "esse",
+  "essa",
+  "isso",
+  "aquilo",
+  "onde",
+  "como",
+  "mais",
+  "menos",
+  "cada",
+  "outro",
+  "outra",
+  "mesmo",
+  "mesma",
+  "depois",
+  "antes",
+  "então",
+  "assim",
+  "apenas",
+  "sempre",
+  "nunca",
+  "você",
+  "voce",
+  "eles",
+  "elas",
+  "nosso",
+  "nossa",
+  "seu",
+  "sua",
+  "segredo",
+  "está",
+  "esta",
+  "faz",
+  "sem",
+  "nao",
+  "não",
+  "que",
+  "para",
+  "pelo",
+  "pela",
+  "pelos",
+  "pelas",
+  "com",
+  "uma",
+  "uns",
 ]);
 
 const GENERIC_PROMPT_PATTERNS = [
@@ -256,7 +307,9 @@ function compileGlossary(glossary) {
       return {
         en,
         len: key.length,
-        re: new RegExp(`(?:^|[\\s,.;:!?()\\[\\]"'])${key}(?=$|[\\s,.;:!?()\\[\\]"'])`),
+        re: new RegExp(
+          `(?:^|[\\s,.;:!?()\\[\\]"'])${key}(?=$|[\\s,.;:!?()\\[\\]"'])`
+        ),
       };
     })
     .sort((a, b) => b.len - a.len);
@@ -281,7 +334,8 @@ function hasPortugueseInPrompt(prompt = "") {
   if (/[àáâãéêíóôõúç]/i.test(prompt)) return true;
   // Check for distinctly Portuguese words (3+ chars to avoid "a"/"o" false positives with English)
   // NEVER match single-letter words like "a", "o" — they are also English articles/prepositions
-  const ptWords = /\b(que|para|pelo|pela|está|esta|esse|essa|isso|como|mais|sobre|quando|porque|entre|desde|ainda|muito|cada|outro|outra|mesmo|mesma|segredo|fluido|bico|onde|você|voce|nosso|nossa|então|entao)\b/i;
+  const ptWords =
+    /\b(que|para|pelo|pela|está|esta|esse|essa|isso|como|mais|sobre|quando|porque|entre|desde|ainda|muito|cada|outro|outra|mesmo|mesma|segredo|fluido|bico|onde|você|voce|nosso|nossa|então|entao)\b/i;
   return ptWords.test(prompt);
 }
 
@@ -332,13 +386,21 @@ export function extractSceneAnchors(narration = "") {
     numbers: [],
   };
 
-  for (const m of text.matchAll(/\b(1\d{3}|20\d{2})\b/g)) anchors.years.push(m[1]);
-  for (const m of text.matchAll(/\b(\d+[\d.,]*)\s*(metros?|km|quilômetros?|milhas?|toneladas?|%|graus?)\b/gi)) {
+  for (const m of text.matchAll(/\b(1\d{3}|20\d{2})\b/g))
+    anchors.years.push(m[1]);
+  for (const m of text.matchAll(
+    /\b(\d+[\d.,]*)\s*(metros?|km|quilômetros?|milhas?|toneladas?|%|graus?)\b/gi
+  )) {
     anchors.numbers.push(m[0]);
   }
-  for (const m of text.matchAll(/\b([A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wáéíóúâêôãõç-]+(?:\s+(?:de|da|do|dos|das|del|della|e)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wáéíóúâêôãõç-]+)*)\b/g)) {
+  for (const m of text.matchAll(
+    /\b([A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wáéíóúâêôãõç-]+(?:\s+(?:de|da|do|dos|das|del|della|e)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wáéíóúâêôãõç-]+)*)\b/g
+  )) {
     const phrase = m[1].trim();
-    if (phrase.length >= 4 && !PT_STOPWORDS.has(phrase.split(/\s+/)[0].toLowerCase())) {
+    if (
+      phrase.length >= 4 &&
+      !PT_STOPWORDS.has(phrase.split(/\s+/)[0].toLowerCase())
+    ) {
       anchors.properNouns.push(phrase);
     }
   }
@@ -376,16 +438,31 @@ function isPromptNarrationPaste(prompt = "", narration = "") {
 
 function inferShotType(narration = "", subjects = []) {
   const lower = normalizeText(narration);
-  if (/\b(bico|macro|close|detalhe|textura)\b/.test(lower) || subjects.includes("beak")) {
+  if (
+    /\b(bico|macro|close|detalhe|textura)\b/.test(lower) ||
+    subjects.includes("beak")
+  ) {
     return "macro close-up";
   }
-  if (/\b(ponte|cidade|city|paisagem|horizon|drone|aerial|rua|estrada|panorama)\b/.test(lower)) {
+  if (
+    /\b(ponte|cidade|city|paisagem|horizon|drone|aerial|rua|estrada|panorama)\b/.test(
+      lower
+    )
+  ) {
     return "wide aerial shot";
   }
-  if (/\b(multidao|crowd|exercito|funcionarios|operarios|trabalhadores|pessoas)\b/.test(lower)) {
+  if (
+    /\b(multidao|crowd|exercito|funcionarios|operarios|trabalhadores|pessoas)\b/.test(
+      lower
+    )
+  ) {
     return "wide shot";
   }
-  if (/\b(predio|edificio|torre|fabrica|usina|igreja|palacio|monumento|escola|telefonica)\b/.test(lower)) {
+  if (
+    /\b(predio|edificio|torre|fabrica|usina|igreja|palacio|monumento|escola|telefonica)\b/.test(
+      lower
+    )
+  ) {
     return "cinematic wide shot";
   }
   if (/\b(interior|dentro|sala|escritorio|laboratorio)\b/.test(lower)) {
@@ -403,15 +480,18 @@ function buildVisualFocalDescription(narration = "", anchors = {}) {
   // Filter out modifiers that are just noise without matching subjects
   const meaningfulModifiers = modifiers.filter((m) => {
     // Don't use standalone adjectives like "airflow" or "water flow" without a real subject
-    if (!subjects.length && ["airflow", "water flow", "fluid flow", "air pressure"].includes(m)) return false;
+    if (
+      !subjects.length &&
+      ["airflow", "water flow", "fluid flow", "air pressure"].includes(m)
+    )
+      return false;
     return true;
   });
 
   const primary = subjects[0] || null;
-  const detailParts = [
-    ...meaningfulModifiers,
-    ...subjects.slice(1),
-  ].filter(Boolean);
+  const detailParts = [...meaningfulModifiers, ...subjects.slice(1)].filter(
+    Boolean
+  );
   const actionPart = action ? ` ${action}` : "";
 
   // If we have a proper subject, build a coherent description
@@ -442,7 +522,9 @@ function buildVisualFocalDescription(narration = "", anchors = {}) {
 /** Extract meaningful nouns from PT narration as a last-resort EN description. */
 function extractKeyNounsFromNarration(narration = "") {
   const lower = normalizeText(narration);
-  const words = lower.split(/\s+/).filter((w) => w.length >= 5 && !PT_STOPWORDS.has(w));
+  const words = lower
+    .split(/\s+/)
+    .filter((w) => w.length >= 5 && !PT_STOPWORDS.has(w));
   // Try to find at least 2-3 meaningful words
   const meaningful = words.slice(0, 4);
   return meaningful.length >= 1 ? meaningful.join(" ") : null;
@@ -450,8 +532,10 @@ function extractKeyNounsFromNarration(narration = "") {
 
 /** Detecta prompts gerados pelo fallback buildSceneSpecificPrompt (glossário local). */
 export function isSceneSpecificFallbackPrompt(prompt = "") {
-  return /^Photorealistic /i.test(String(prompt).trim()) &&
-    FALLBACK_STYLE_MARKER.test(prompt);
+  return (
+    /^Photorealistic /i.test(String(prompt).trim()) &&
+    FALLBACK_STYLE_MARKER.test(prompt)
+  );
 }
 
 export function isPromptTooGeneric(prompt = "", narration = "") {
@@ -466,10 +550,14 @@ export function isPromptTooGeneric(prompt = "", narration = "") {
   if (species) {
     const promptNorm = normalizeText(p);
     const speciesTokens = species.en.split(/\s+/).filter((t) => t.length >= 4);
-    if (!speciesTokens.some((tok) => promptNorm.includes(normalizeText(tok)))) return true;
+    if (!speciesTokens.some((tok) => promptNorm.includes(normalizeText(tok))))
+      return true;
   }
 
-  if (/\b(mergulh|pássaro|passaro|ave|animal|bico)\b/i.test(n) && /\b(a bird|bird diving|random bird|generic bird|some bird)\b/i.test(p)) {
+  if (
+    /\b(mergulh|pássaro|passaro|ave|animal|bico)\b/i.test(n) &&
+    /\b(a bird|bird diving|random bird|generic bird|some bird)\b/i.test(p)
+  ) {
     return true;
   }
 
@@ -481,9 +569,11 @@ export function buildSceneSpecificPrompt(vp = {}) {
   const anchors = extractSceneAnchors(narration);
   const focal = buildVisualFocalDescription(narration, anchors);
   const isVideo = isVideoSceneType(vp.type);
-  // Check if scene has text_overlay or impact_text that should be in Portuguese
+  // Overlays são compostos depois no Remotion; nunca devem ser queimados na mídia-fonte.
   const hasTextOverlay = !!(vp.text_overlay || vp.impact_text);
-  const langNote = hasTextOverlay ? " Any visible text/words in the image must be in Portuguese (Brazilian)." : "";
+  const langNote = hasTextOverlay
+    ? " Leave clean negative space for a short overlay added later in post-production; do not render words, letters, subtitles or labels in the source media."
+    : " No readable text, subtitles, labels, logos or watermarks in the source media.";
 
   if (isVideo) {
     return `Photorealistic ${focal}. ${FALLBACK_STYLE_VIDEO}${langNote}`;
@@ -492,20 +582,38 @@ export function buildSceneSpecificPrompt(vp = {}) {
 }
 
 function isStockGeneric(stock = "") {
-  const s = String(stock || "").trim().toLowerCase();
-  return !s || ["cinematic", "documentary", "bird", "animal", "nature", "video", "image"].includes(s);
+  const s = String(stock || "")
+    .trim()
+    .toLowerCase();
+  return (
+    !s ||
+    [
+      "cinematic",
+      "documentary",
+      "bird",
+      "animal",
+      "nature",
+      "video",
+      "image",
+    ].includes(s)
+  );
 }
 
 /** Corrige prompts que colam narração ou ficam genéricos. */
-export function enrichVisualPromptsSpecificity(visualPrompts = [], options = {}) {
-  if (!Array.isArray(visualPrompts) || visualPrompts.length === 0) return visualPrompts;
+export function enrichVisualPromptsSpecificity(
+  visualPrompts = [],
+  options = {}
+) {
+  if (!Array.isArray(visualPrompts) || visualPrompts.length === 0)
+    return visualPrompts;
 
   return visualPrompts.map((vp) => {
     const narration = String(vp.narration_text || vp.narracao || "").trim();
     const currentPrompt = String(vp.prompt || vp.visual_prompt || "").trim();
-    const needsPromptFix = !currentPrompt
-      || isPromptTooGeneric(currentPrompt, narration)
-      || isPromptNarrationPaste(currentPrompt, narration);
+    const needsPromptFix =
+      !currentPrompt ||
+      isPromptTooGeneric(currentPrompt, narration) ||
+      isPromptNarrationPaste(currentPrompt, narration);
 
     if (!needsPromptFix) {
       const stock = String(vp.stock_query || "").trim();
