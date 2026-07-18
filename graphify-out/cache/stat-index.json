@@ -40,11 +40,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\MEMORIA-LUMIERA.md": {
-    "size": 7552,
-    "mtime_ns": 1784412125659464500,
+    "size": 7558,
+    "mtime_ns": 1784412935985745000,
     "word_count": 568,
     "hashes": {
-      ".agents/memoria-lumiera.md": "7caff07ce7e48dcc22d23664eb71f601cee68f65616e901d2a8e5a0c03a48578"
+      ".agents/memoria-lumiera.md": "7e887f6a6abb790d9d7b69f8727f51cfc82bf0f55b0d6cde24e2c13dfeade88e"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\MEMORY.md": {
@@ -64,11 +64,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\SKILLS.md": {
-    "size": 8288,
-    "mtime_ns": 1784412125667568900,
-    "word_count": 620,
+    "size": 8298,
+    "mtime_ns": 1784412936044475900,
+    "word_count": 622,
     "hashes": {
-      ".agents/skills.md": "2109d9c4a9e4cf6e4d938cad27623c357ce7e7553c701bcd5bfe14bbc4ddb9d5"
+      ".agents/skills.md": "86b05c02cc605cb217213a1ffe7450242487d7a957f251a9bae08390f1493f0d"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\ideas-history\\comparacao-engenharia-moderna-x-antiga-origem.json": {
@@ -112,11 +112,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\ideas-history\\curiosidade-invencao-engenharia.json": {
-    "size": 629,
-    "mtime_ns": 1784392159675848700,
+    "size": 630,
+    "mtime_ns": 1784412936075029000,
     "word_count": 91,
     "hashes": {
-      ".agents/ideas-history/curiosidade-invencao-engenharia.json": "f667b0cab7b8fb51c9c658faa2a0c5635624babff9e70f3f98612742d696ec9d"
+      ".agents/ideas-history/curiosidade-invencao-engenharia.json": "921231453294832e6d0cc97b09e773ba2ce5c119bae92eda1286999109c9e0c7"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\ideas-history\\curiosidades-historicas-construcoes.json": {
@@ -232,11 +232,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\ideas-history\\fatos-com-graca-curiosidade-invencao-engenharia.json": {
-    "size": 645,
-    "mtime_ns": 1784392159676848800,
+    "size": 646,
+    "mtime_ns": 1784412936084782000,
     "word_count": 91,
     "hashes": {
-      ".agents/ideas-history/fatos-com-graca-curiosidade-invencao-engenharia.json": "4559298cce1a879b6770251533c88a1676e5f6bb16ed5fcf4b39a46e21bf64d8"
+      ".agents/ideas-history/fatos-com-graca-curiosidade-invencao-engenharia.json": "f5f9c5b400481d9a5b4fb7f0e33f7547c46ce99be8f2df06ede64b38e91f9f14"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\ideas-history\\fatos-com-graca-engenharia-antiga.json": {
@@ -424,11 +424,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\memory\\geral.md": {
-    "size": 365,
-    "mtime_ns": 1784353489197595300,
+    "size": 368,
+    "mtime_ns": 1784412936096310700,
     "word_count": 51,
     "hashes": {
-      ".agents/memory/geral.md": "66fb94c7d0b117a9eedfaba06398369ab8ea03d6f392b7e515ab2c71a83d01ea"
+      ".agents/memory/geral.md": "186e66d77ab2e635122401105425ec7d89ee0ed478c6c87c7f4e313d9a3ecc65"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\memory\\google-gemini-sdk-reference.md": {
@@ -544,11 +544,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\rules\\graphify.md": {
-    "size": 989,
-    "mtime_ns": 1784412125584479600,
-    "word_count": 132,
+    "size": 934,
+    "mtime_ns": 1784412936117068000,
+    "word_count": 127,
     "hashes": {
-      ".agents/rules/graphify.md": "ae543b02bbe60701f3e40c57bc0b63acc606059cb3acee9fa153357435e846fd"
+      ".agents/rules/graphify.md": "4922f99bbee8ab362ebee610f96fd04e82d64f74aa8b00c12a278a54e1bf7a20"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skill-bundles\\BUNDLES.md": {
@@ -728,19 +728,19 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\ai-camera-movements.md": {
-    "size": 359,
-    "mtime_ns": 1784412125453755100,
-    "word_count": 31,
+    "size": 364,
+    "mtime_ns": 1784412936126585700,
+    "word_count": 32,
     "hashes": {
-      ".agents/skills/ai-camera-movements.md": "1b746f0c9fc8746729fd8f29f6b99f4edc80aa12e4fc63d64e7a3d000f89f0e0"
+      ".agents/skills/ai-camera-movements.md": "d7ee047f58b698ebd7d84347b80d9eb9022004ba7031e19e1d7c3bc998d2b636"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\ai-camera-movements\\REFERENCES.md": {
     "size": 197,
-    "mtime_ns": 1784412125518425000,
+    "mtime_ns": 1784412936140108100,
     "word_count": 19,
     "hashes": {
-      ".agents/skills/ai-camera-movements/references.md": "17511fd9eb947b66c8128d485d6f38bc9f4e86cdf0bca8d47662ff130d0cd383"
+      ".agents/skills/ai-camera-movements/references.md": "0cec3c36ac5631fad5e52a3626b5a49856c1e5e4def55413d4fa7fabe66258b9"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\ai-camera-movements\\SKILL.md": {
@@ -1408,19 +1408,19 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\context-engineering.md": {
-    "size": 301,
-    "mtime_ns": 1784412125458436300,
-    "word_count": 26,
+    "size": 306,
+    "mtime_ns": 1784412936227897200,
+    "word_count": 27,
     "hashes": {
-      ".agents/skills/context-engineering.md": "04754781d4754bb1870c35dfb641e31da314e4f1022b73e9bb27f52871092976"
+      ".agents/skills/context-engineering.md": "ced765264299beb727d411f7e5e3153ccc93c3d52f8540c59b89c23ada058847"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\context-engineering\\SKILL.md": {
-    "size": 6841,
-    "mtime_ns": 1784398080262868100,
+    "size": 6840,
+    "mtime_ns": 1784412936252933500,
     "word_count": 794,
     "hashes": {
-      ".agents/skills/context-engineering/skill.md": "e5136e02a98e459c33904dad89441364316d01197b4f8f86d0fae4dee4a5f61c"
+      ".agents/skills/context-engineering/skill.md": "6a33e0680834f5441ef0d206eb471d759c9c115698d190ac487427c527aa59c7"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\decision-mapping.md": {
@@ -1600,11 +1600,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\gbro-collage-broll.md": {
-    "size": 296,
-    "mtime_ns": 1784412125462448100,
-    "word_count": 28,
+    "size": 301,
+    "mtime_ns": 1784412936259457300,
+    "word_count": 29,
     "hashes": {
-      ".agents/skills/gbro-collage-broll.md": "b071e0823650623670b039545d96985ae368bea46987851e164b8ec0649a92a1"
+      ".agents/skills/gbro-collage-broll.md": "b20a18815cf69dce49c10bdb8f3f8b0939605ec3abf8d4b34874b3a999f68775"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\gbro-collage-broll\\SKILL.md": {
@@ -1616,27 +1616,27 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\gemini-prompt-strategies.md": {
-    "size": 326,
-    "mtime_ns": 1784412125462448100,
-    "word_count": 28,
+    "size": 331,
+    "mtime_ns": 1784412936264963400,
+    "word_count": 29,
     "hashes": {
-      ".agents/skills/gemini-prompt-strategies.md": "5987863c4c4484a5c0b3d6794dc5e5339389c90e835f66b6061707dc339f656f"
+      ".agents/skills/gemini-prompt-strategies.md": "db72551523329ff5aa9ffae1af65df81a1729e38319200f6cfdfcf1b56138b66"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\gemini-prompt-strategies\\SKILL.md": {
-    "size": 34074,
-    "mtime_ns": 1784398080266866200,
+    "size": 34073,
+    "mtime_ns": 1784412936379609200,
     "word_count": 3987,
     "hashes": {
-      ".agents/skills/gemini-prompt-strategies/skill.md": "b032d9f83ef58e1a3bf3a0c6a7aef47c40b1407ca75a413589ec5193d2c2bb51"
+      ".agents/skills/gemini-prompt-strategies/skill.md": "a2933e61f0b63c6002b3be8455e380d5b60ae96344aacec1a16859e30f2dbce8"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\geo-video-prompts.md": {
-    "size": 291,
-    "mtime_ns": 1784412125463447000,
-    "word_count": 28,
+    "size": 296,
+    "mtime_ns": 1784412936386402600,
+    "word_count": 29,
     "hashes": {
-      ".agents/skills/geo-video-prompts.md": "a829fb1221788e2238feea6b666b2e539f1fcbd5272dc3803905c636a1a0539c"
+      ".agents/skills/geo-video-prompts.md": "98965abbb04d119f740227cc2c0c7d0aa8acd84fc44e54b408561d93e69e40af"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\geo-video-prompts\\SKILL.md": {
@@ -1672,59 +1672,59 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\gpt-prompt-enhancement.md": {
-    "size": 316,
-    "mtime_ns": 1784412125464447400,
-    "word_count": 28,
+    "size": 321,
+    "mtime_ns": 1784412936393387600,
+    "word_count": 29,
     "hashes": {
-      ".agents/skills/gpt-prompt-enhancement.md": "bedcead1c13e6e372196255592077ea3085e0cf9acb32cdf2c304776afc7be84"
+      ".agents/skills/gpt-prompt-enhancement.md": "3b5b2f52fae7481b1ed2a02d9d882381625ccec0d0011806973ff7e0487a307e"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\gpt-prompt-enhancement\\SKILL.md": {
-    "size": 30779,
-    "mtime_ns": 1784398080267873500,
+    "size": 30778,
+    "mtime_ns": 1784412936491547900,
     "word_count": 3764,
     "hashes": {
-      ".agents/skills/gpt-prompt-enhancement/skill.md": "a5d0dd0db3685d2d47814dad62393b04191eacdc75382b6b48f55efc6891d746"
+      ".agents/skills/gpt-prompt-enhancement/skill.md": "9878404dda9afd2249b5c9e167581f310ef4e6eb94b265829f63ca230b153285"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\graphify.md": {
-    "size": 293,
-    "mtime_ns": 1784412125464907200,
-    "word_count": 27,
+    "size": 298,
+    "mtime_ns": 1784412936497384200,
+    "word_count": 28,
     "hashes": {
-      ".agents/skills/graphify.md": "bd44aa708d554ac5e7581f2a625026a4a27bc672e57eb733233a1477215cb29d"
+      ".agents/skills/graphify.md": "15335869a8eccbe53f3d49e2e11d0903115b16b140e0ed7d765539f70919c686"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\graphify\\REFERENCES.md": {
     "size": 356,
-    "mtime_ns": 1784412125526939000,
+    "mtime_ns": 1784412936506276300,
     "word_count": 31,
     "hashes": {
-      ".agents/skills/graphify/references.md": "b808776aa83eca20e385cf9ca7031e02803fadc749173744a48a04cbbe51fdfe"
+      ".agents/skills/graphify/references.md": "7019e5e8cc34bb41dfc7209b8eee477ea19fea9cf1999a8478bf50372bcf58f2"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\graphify\\SKILL.md": {
-    "size": 38858,
-    "mtime_ns": 1784412125465326600,
+    "size": 38870,
+    "mtime_ns": 1784412936539388100,
     "word_count": 4842,
     "hashes": {
-      ".agents/skills/graphify/skill.md": "2e8afd3bfc444f892e5e0fb5c2e52c8ab8295003e6fde7e046916ef0a090afef"
+      ".agents/skills/graphify/skill.md": "0ff66b77e4947eeb3c5769f776a8685062f958dd193091c97901c50ac75df791"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\graphify\\references\\add-watch.md": {
-    "size": 2609,
-    "mtime_ns": 1784412125601480800,
+    "size": 2610,
+    "mtime_ns": 1784412936550910300,
     "word_count": 375,
     "hashes": {
-      ".agents/skills/graphify/references/add-watch.md": "5755f7649daf609e8b13bd1374d6eb2a683edf9ad20b96db9fc2738ceff672fb"
+      ".agents/skills/graphify/references/add-watch.md": "e39c46b42ebbafa7d68f34677b634b25d60775e2783dbdaa416e2076a57c3e46"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\graphify\\references\\exports.md": {
-    "size": 3485,
-    "mtime_ns": 1784412125602480500,
-    "word_count": 479,
+    "size": 3518,
+    "mtime_ns": 1784412936570745100,
+    "word_count": 481,
     "hashes": {
-      ".agents/skills/graphify/references/exports.md": "e38b1f818e57c1fada78145283a494afc3121f7618497c976e3dc86575ed63cd"
+      ".agents/skills/graphify/references/exports.md": "344f54e985a3e2b887d2e7a88ac87b0aac1e883fa7cbaa06ba6a669740f80c28"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\graphify\\references\\extraction-spec.md": {
@@ -1736,11 +1736,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\graphify\\references\\github-and-merge.md": {
-    "size": 2300,
-    "mtime_ns": 1784412125603480300,
+    "size": 2302,
+    "mtime_ns": 1784412936584770200,
     "word_count": 280,
     "hashes": {
-      ".agents/skills/graphify/references/github-and-merge.md": "73d3fb761f08f04d4ae9c38526f79becbe24162a1bdc94446eed099790db2d41"
+      ".agents/skills/graphify/references/github-and-merge.md": "055283fa4d5d16bc3608a01646dd4c7154bbc50de9769e37aa70cfba8d4b133a"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\graphify\\references\\hooks.md": {
@@ -1752,27 +1752,27 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\graphify\\references\\query.md": {
-    "size": 13579,
-    "mtime_ns": 1784412125604482000,
-    "word_count": 1772,
+    "size": 13739,
+    "mtime_ns": 1784412936606975300,
+    "word_count": 1778,
     "hashes": {
-      ".agents/skills/graphify/references/query.md": "e366d5506006da0e1207f8a17d7922645caa6203201988ab18afe6d443199b27"
+      ".agents/skills/graphify/references/query.md": "7dda19f82ff74d922597cfaca983a82737861e6c4bd0d9aafdf0eb065b56dc70"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\graphify\\references\\transcribe.md": {
-    "size": 3296,
-    "mtime_ns": 1784412125605116100,
+    "size": 3297,
+    "mtime_ns": 1784412936615491200,
     "word_count": 427,
     "hashes": {
-      ".agents/skills/graphify/references/transcribe.md": "92ec35684f7f91ce192c678812906078aac0f568baf860ff184f7ed0a1851b5c"
+      ".agents/skills/graphify/references/transcribe.md": "2ead9c334b824413f77a585a4a48764f92a409d3e871ef854b6f683b5d884d81"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\graphify\\references\\update.md": {
-    "size": 9266,
-    "mtime_ns": 1784412125605116100,
+    "size": 9264,
+    "mtime_ns": 1784412935979507300,
     "word_count": 1020,
     "hashes": {
-      ".agents/skills/graphify/references/update.md": "06f013c0726000f715b413939365a5003b17aebf713fc8b2fd82869658743826"
+      ".agents/skills/graphify/references/update.md": "6801becbb904847c5e6cd6537e4c9f0aff7f539bdf445d481f6836d93a69487e"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\grill-me.md": {
@@ -1936,11 +1936,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\lumiera-security-review.md": {
-    "size": 321,
-    "mtime_ns": 1784412125470609700,
-    "word_count": 28,
+    "size": 326,
+    "mtime_ns": 1784412935989752700,
+    "word_count": 29,
     "hashes": {
-      ".agents/skills/lumiera-security-review.md": "e6345c860c61e22fe730579f0c15dcf621c159775029988bafab816fff9c3ac2"
+      ".agents/skills/lumiera-security-review.md": "fe41c89354c4e8793d8ff614daee10b157c8a6dace7f652aca947058b1e2cb10"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\lumiera-security-review\\SKILL.md": {
@@ -1952,11 +1952,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\lumiera-seedance-directing.md": {
-    "size": 336,
-    "mtime_ns": 1784412125471611600,
-    "word_count": 28,
+    "size": 341,
+    "mtime_ns": 1784412936001746500,
+    "word_count": 29,
     "hashes": {
-      ".agents/skills/lumiera-seedance-directing.md": "eb25898c1f5ba5099c8a7b47e11bb51bf21eeee8164995968908e82452b20300"
+      ".agents/skills/lumiera-seedance-directing.md": "a6f6d33e9f93ca96005d097cde4244aa5fefc022a93eb0fd9f161b7c75f706a8"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\lumiera-seedance-directing\\SKILL.md": {
@@ -1968,11 +1968,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\markdown-converter.md": {
-    "size": 296,
-    "mtime_ns": 1784412125471611600,
-    "word_count": 26,
+    "size": 301,
+    "mtime_ns": 1784412936011401000,
+    "word_count": 27,
     "hashes": {
-      ".agents/skills/markdown-converter.md": "3ea1434d853cf08939ad237f26d3ef7d9e652202b2a7eea0964004e2fae00f6e"
+      ".agents/skills/markdown-converter.md": "56e2158b6a5c3b8bcd27d4ddf57709cd5f3bfb7f9d088b2b0d18bf51e8bab3f6"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\markdown-converter\\SKILL.md": {
@@ -3064,11 +3064,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\summarize-cli.md": {
-    "size": 271,
-    "mtime_ns": 1784412125491096700,
-    "word_count": 26,
+    "size": 276,
+    "mtime_ns": 1784412936019928600,
+    "word_count": 27,
     "hashes": {
-      ".agents/skills/summarize-cli.md": "ba5d4a91e4957434dc30a991fdb70876402ce792de423f67e21745e193580a3c"
+      ".agents/skills/summarize-cli.md": "3ff3dfd2f81660e699fc18e34f88997fb0ecb665e7d1b81be03544bd9661ca04"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\summarize-cli\\SKILL.md": {
@@ -3080,11 +3080,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\tavily-search-pro.md": {
-    "size": 291,
-    "mtime_ns": 1784412125492097100,
-    "word_count": 28,
+    "size": 296,
+    "mtime_ns": 1784412936027451100,
+    "word_count": 29,
     "hashes": {
-      ".agents/skills/tavily-search-pro.md": "e5a1a3c02eb21282002feaf05fbec5297e6b736fd18901df869b4cdfe773d3cc"
+      ".agents/skills/tavily-search-pro.md": "6da08fd0572cccfc9ecd5303ae8b570770908f2622fc7bf2e0c0ab3aec6084dc"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\tavily-search-pro\\SKILL.md": {
@@ -3312,11 +3312,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\video-understanding.md": {
-    "size": 301,
-    "mtime_ns": 1784412125497199500,
-    "word_count": 26,
+    "size": 306,
+    "mtime_ns": 1784412936041970100,
+    "word_count": 27,
     "hashes": {
-      ".agents/skills/video-understanding.md": "4d11d1bd1abe80f9df4a02861c7279d76dbf9c88db6bffff806ca8b396e61f12"
+      ".agents/skills/video-understanding.md": "8c91c50f90d1a59cae309663af26f8df505e357b50cf8eaf13ad1fa0da14e305"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\video-understanding\\SKILL.md": {
@@ -3584,11 +3584,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\visual-prompt-engineer.md": {
-    "size": 316,
-    "mtime_ns": 1784412125502722700,
-    "word_count": 28,
+    "size": 321,
+    "mtime_ns": 1784412936048498000,
+    "word_count": 29,
     "hashes": {
-      ".agents/skills/visual-prompt-engineer.md": "3a7b9dd9ae65b0a2d9f3427c4e477d4078407d3ae079986a42fb6e721138b660"
+      ".agents/skills/visual-prompt-engineer.md": "d55122ab9e430345ff7aa26aa1921740e12c76f052f58a0d03b46813cd5c9f55"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\skills\\visual-prompt-engineer\\SKILL.md": {
@@ -3792,43 +3792,43 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.agents\\workflows\\graphify.md": {
-    "size": 336,
-    "mtime_ns": 1784412125631637800,
-    "word_count": 45,
+    "size": 284,
+    "mtime_ns": 1784412936065810500,
+    "word_count": 40,
     "hashes": {
-      ".agents/workflows/graphify.md": "304b8da97469b55edd870dd01f39c486bb3830904b2b6dde6aa184bd7bc0a634"
+      ".agents/workflows/graphify.md": "0b0735f4f05e7d4a64b42e14cfd1ba80d62bdb3d7bbf03a5e7c1388503164887"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.codex\\hooks.json": {
-    "size": 260,
-    "mtime_ns": 1784412069194325500,
+    "size": 247,
+    "mtime_ns": 1784412936098316300,
     "word_count": 22,
     "hashes": {
-      ".codex/hooks.json": "61d0666dc4710d52f9a45fa0d986b652c8fe822862331de9ee105c56db10c803"
+      ".codex/hooks.json": "e87593d590b5f10dea60539e35db67cf87e465002151d17ae6124e8d199e6dff"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.codex\\skills\\graphify\\SKILL.md": {
-    "size": 39022,
-    "mtime_ns": 1784412069190326100,
+    "size": 39033,
+    "mtime_ns": 1784412936217375900,
     "word_count": 4877,
     "hashes": {
-      ".codex/skills/graphify/skill.md": "1d000be914c749698303bdc9da688238c528dcd87104b1ae95d9915c60017842"
+      ".codex/skills/graphify/skill.md": "01c4218669f88d41ed0b07e40ebfb9d482e529dd7dcb80c83bff872f47ffe55a"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.codex\\skills\\graphify\\references\\add-watch.md": {
-    "size": 2486,
-    "mtime_ns": 1784412057978487700,
+    "size": 2487,
+    "mtime_ns": 1784412936235403400,
     "word_count": 366,
     "hashes": {
-      ".codex/skills/graphify/references/add-watch.md": "3d10b446efec5f2ba6d95ffc523ce2b4dd83a1981ec1b6802b6936566f5bee58"
+      ".codex/skills/graphify/references/add-watch.md": "fdccc4d042091807a3ff727548b500e2651fb4353f68cfeba15cd8a50a1cff32"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.codex\\skills\\graphify\\references\\exports.md": {
-    "size": 3362,
-    "mtime_ns": 1784412057978487700,
-    "word_count": 470,
+    "size": 3395,
+    "mtime_ns": 1784412936252933500,
+    "word_count": 472,
     "hashes": {
-      ".codex/skills/graphify/references/exports.md": "6b63e3ac1bfe4f031e335e2d64bc9d60c709046084ac0a7716e25577cf26d258"
+      ".codex/skills/graphify/references/exports.md": "164a173ebc3762fd53765cb66ad656de62f93c670a9f4f2a49c973e06ee5ae88"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.codex\\skills\\graphify\\references\\extraction-spec.md": {
@@ -3840,11 +3840,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.codex\\skills\\graphify\\references\\github-and-merge.md": {
-    "size": 2177,
-    "mtime_ns": 1784412057979486900,
+    "size": 2179,
+    "mtime_ns": 1784412936267977000,
     "word_count": 271,
     "hashes": {
-      ".codex/skills/graphify/references/github-and-merge.md": "bc0e497b056935a0b89d81dc5253b5077f0dc2fe3cfd4f16c53472f57dfc183a"
+      ".codex/skills/graphify/references/github-and-merge.md": "7176974d888d09275192cda1908a93839265660c2ce937a06256adc2f6ffe010"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.codex\\skills\\graphify\\references\\hooks.md": {
@@ -3856,27 +3856,27 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.codex\\skills\\graphify\\references\\query.md": {
-    "size": 13456,
-    "mtime_ns": 1784412057991486200,
-    "word_count": 1763,
+    "size": 13616,
+    "mtime_ns": 1784412936309107000,
+    "word_count": 1769,
     "hashes": {
-      ".codex/skills/graphify/references/query.md": "03b8b6cbef88addf4cab611c8b7041ab037764e9bc6ddcf1b6a8aa79de5168cb"
+      ".codex/skills/graphify/references/query.md": "6a86257b171e20e445c36f1f7067fcbd8e485d1236f87b2082d865810922708e"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.codex\\skills\\graphify\\references\\transcribe.md": {
-    "size": 3173,
-    "mtime_ns": 1784412057991486200,
+    "size": 3174,
+    "mtime_ns": 1784412936320630500,
     "word_count": 418,
     "hashes": {
-      ".codex/skills/graphify/references/transcribe.md": "9760f8f239d46595b278ded854cb70c704e3dc78ec57896258b51f6d599c55e1"
+      ".codex/skills/graphify/references/transcribe.md": "c2bcc9c50b563002995da586848b6098e4b7c8ffc910f6dd5691a6d6908cda4e"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.codex\\skills\\graphify\\references\\update.md": {
-    "size": 9143,
-    "mtime_ns": 1784412057992487200,
+    "size": 9141,
+    "mtime_ns": 1784412936333147500,
     "word_count": 1011,
     "hashes": {
-      ".codex/skills/graphify/references/update.md": "d3d9b8335b1fe3494f64c92713e5da027027cd45bfab9981163a6fc405d4149a"
+      ".codex/skills/graphify/references/update.md": "fbe339a9c861bf48f438aed808945778a1aea4ec580fedb0c846af63ab518e21"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.cursor\\mcp.json": {
@@ -3896,35 +3896,35 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.gemini\\settings.json": {
-    "size": 287,
-    "mtime_ns": 1784412069307934300,
+    "size": 274,
+    "mtime_ns": 1784412936348515500,
     "word_count": 23,
     "hashes": {
-      ".gemini/settings.json": "23259ccf3575507cda2b69250c416a520a68f730d121389450a9a763d75c0382"
+      ".gemini/settings.json": "239aa9360f94e061e4b672aed9325243144028190ca0190fb1302f6dae58d2af"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.gemini\\skills\\graphify\\SKILL.md": {
-    "size": 38980,
-    "mtime_ns": 1784412069303826900,
+    "size": 38993,
+    "mtime_ns": 1784412936411069000,
     "word_count": 4877,
     "hashes": {
-      ".gemini/skills/graphify/skill.md": "680e3d476123feae66096179388c7ec5a3f8d07af3417949db8a1f14f39c3dc8"
+      ".gemini/skills/graphify/skill.md": "a93fb79aa89a6f8380150f80035c454122bb14fc6dba84826eeb99dd3af3ea3c"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.gemini\\skills\\graphify\\references\\add-watch.md": {
-    "size": 2486,
-    "mtime_ns": 1784412057945369100,
+    "size": 2487,
+    "mtime_ns": 1784412936425097900,
     "word_count": 366,
     "hashes": {
-      ".gemini/skills/graphify/references/add-watch.md": "d552755563d5490e292c3914b936d56f5cade4fda6c95132f85c71acc089a3b3"
+      ".gemini/skills/graphify/references/add-watch.md": "508227d4376512815db5eadeaec9ccb47ff8345fe456f9d2cead304cb9701e5a"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.gemini\\skills\\graphify\\references\\exports.md": {
-    "size": 3362,
-    "mtime_ns": 1784412057946369300,
-    "word_count": 470,
+    "size": 3395,
+    "mtime_ns": 1784412936434619500,
+    "word_count": 472,
     "hashes": {
-      ".gemini/skills/graphify/references/exports.md": "b85e3ed94ec411b3af6933aa7deca4830a6eac9599013950c5475d2c7f3df076"
+      ".gemini/skills/graphify/references/exports.md": "0ef67cc93fc3a7e9468862413b230c56bddfdc5237c284b2a96dc5d15bdc26d2"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.gemini\\skills\\graphify\\references\\extraction-spec.md": {
@@ -3936,11 +3936,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.gemini\\skills\\graphify\\references\\github-and-merge.md": {
-    "size": 2177,
-    "mtime_ns": 1784412057946369300,
+    "size": 2179,
+    "mtime_ns": 1784412936448148200,
     "word_count": 271,
     "hashes": {
-      ".gemini/skills/graphify/references/github-and-merge.md": "d3d1a23e512adad0c2b7816a81bab4efe5194a20942778beb16ca17d328b1e22"
+      ".gemini/skills/graphify/references/github-and-merge.md": "3b8f2ce712f07f28a63b1de3cec92efb701e7f5497bafac7dc21b3772343742a"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.gemini\\skills\\graphify\\references\\hooks.md": {
@@ -3952,51 +3952,51 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.gemini\\skills\\graphify\\references\\query.md": {
-    "size": 13456,
-    "mtime_ns": 1784412057961370800,
-    "word_count": 1763,
+    "size": 13616,
+    "mtime_ns": 1784412936476062000,
+    "word_count": 1769,
     "hashes": {
-      ".gemini/skills/graphify/references/query.md": "e707d1033b08d213fb71a012e56c9e16b7eafb45564a70483a191f4bdfd713be"
+      ".gemini/skills/graphify/references/query.md": "196e36b297254230fa263ea2873673ad68e107d1ae4b22a7f21b3e3251e05ffb"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.gemini\\skills\\graphify\\references\\transcribe.md": {
-    "size": 3173,
-    "mtime_ns": 1784412057962370000,
+    "size": 3174,
+    "mtime_ns": 1784412935968958800,
     "word_count": 418,
     "hashes": {
-      ".gemini/skills/graphify/references/transcribe.md": "7aaecb65d0698b4e6982cd02bda4b45264afed4a880a1a362710090496210260"
+      ".gemini/skills/graphify/references/transcribe.md": "a9458bbc3cb0f6dfb5337cd3da4beabf4f783786849c28f831d1851ffbbe992a"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.gemini\\skills\\graphify\\references\\update.md": {
-    "size": 9143,
-    "mtime_ns": 1784412057962760300,
+    "size": 9141,
+    "mtime_ns": 1784412935994731100,
     "word_count": 1011,
     "hashes": {
-      ".gemini/skills/graphify/references/update.md": "0d4c9aaefac06d2eddf667c9724513be65209b0e8a4a9d0795282815528537b1"
+      ".gemini/skills/graphify/references/update.md": "dfa54ad147eba977dfff2aaf878ea8c8c96738f7672740965f2dd1eb18b3e06d"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.kimi\\skills\\graphify\\SKILL.md": {
-    "size": 38980,
-    "mtime_ns": 1784412069420968400,
+    "size": 38993,
+    "mtime_ns": 1784412936180689600,
     "word_count": 4877,
     "hashes": {
-      ".kimi/skills/graphify/skill.md": "f6204a0f5c9c0129d1f3a7a6cfe25a390481eac5bfc08de63df077cef038c1fd"
+      ".kimi/skills/graphify/skill.md": "3b715e29eb7e0344d4d7b7831b41339a262c6623f715b2289a793dddd6e766c5"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.kimi\\skills\\graphify\\references\\add-watch.md": {
-    "size": 2486,
-    "mtime_ns": 1784412057945369100,
+    "size": 2487,
+    "mtime_ns": 1784412936199333300,
     "word_count": 366,
     "hashes": {
-      ".kimi/skills/graphify/references/add-watch.md": "814e4118b2e1f35f8a0e19d926580ece731500027b6b032fed02fdec4d5aaa46"
+      ".kimi/skills/graphify/references/add-watch.md": "ccec302ed18b5990b6a8fe552c1dc9a9ead76843a3250140d0c3ebc5da3cc7ba"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.kimi\\skills\\graphify\\references\\exports.md": {
-    "size": 3362,
-    "mtime_ns": 1784412057946369300,
-    "word_count": 470,
+    "size": 3395,
+    "mtime_ns": 1784412936227897200,
+    "word_count": 472,
     "hashes": {
-      ".kimi/skills/graphify/references/exports.md": "5fb618316519559c6bdafb56c2cb819efde2069da53cc338e50c1ea32ab8b354"
+      ".kimi/skills/graphify/references/exports.md": "2be65c3f84d9202ecd2415fc26691b7cc54e3fe0b85d83e7e250825e3f2f3560"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.kimi\\skills\\graphify\\references\\extraction-spec.md": {
@@ -4008,11 +4008,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.kimi\\skills\\graphify\\references\\github-and-merge.md": {
-    "size": 2177,
-    "mtime_ns": 1784412057946369300,
+    "size": 2179,
+    "mtime_ns": 1784412936252933500,
     "word_count": 271,
     "hashes": {
-      ".kimi/skills/graphify/references/github-and-merge.md": "2609275e4aad06a9e9452aa1f24fd688d15fb61f74c95930ab010995ab93cfe0"
+      ".kimi/skills/graphify/references/github-and-merge.md": "c8ffc9dfc767c76509ba4482613a2374dc3a3a149e3429a97a401fe3ffbcaa98"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.kimi\\skills\\graphify\\references\\hooks.md": {
@@ -4024,27 +4024,27 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.kimi\\skills\\graphify\\references\\query.md": {
-    "size": 13456,
-    "mtime_ns": 1784412057961370800,
-    "word_count": 1763,
+    "size": 13616,
+    "mtime_ns": 1784412936289637900,
+    "word_count": 1769,
     "hashes": {
-      ".kimi/skills/graphify/references/query.md": "eb675170ceb49b82ce4bb70175331b2a566f4e633a7c4f181a025023863a39eb"
+      ".kimi/skills/graphify/references/query.md": "4351726c76fc8cd80559329234329013fdae80afc633644f7cbfa9155c78b8ab"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.kimi\\skills\\graphify\\references\\transcribe.md": {
-    "size": 3173,
-    "mtime_ns": 1784412057962370000,
+    "size": 3174,
+    "mtime_ns": 1784412936301586800,
     "word_count": 418,
     "hashes": {
-      ".kimi/skills/graphify/references/transcribe.md": "8863e301a83ff365475f8b797bc0e94150b44916ad5f6567b0a92d23d8deb60d"
+      ".kimi/skills/graphify/references/transcribe.md": "5113c68715a90a87fcdae8750a9bf6f8cc696d05456b6f6d668ff425c32f5e77"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.kimi\\skills\\graphify\\references\\update.md": {
-    "size": 9143,
-    "mtime_ns": 1784412057962760300,
+    "size": 9141,
+    "mtime_ns": 1784412936319629500,
     "word_count": 1011,
     "hashes": {
-      ".kimi/skills/graphify/references/update.md": "186f0199c381fef5637a2ee3f582afd54de03c6c150fa1e09cb161f271498edf"
+      ".kimi/skills/graphify/references/update.md": "16274131e76f25efd31b1e85af5c0cdcb21d25caeff949e98c2a3646f925d94d"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.specify\\memory\\constitution.md": {
@@ -4080,11 +4080,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\AGENTS.md": {
-    "size": 1141,
-    "mtime_ns": 1784412069191317900,
+    "size": 1130,
+    "mtime_ns": 1784412936328147900,
     "word_count": 165,
     "hashes": {
-      "agents.md": "60a156b83858ebc773b018efc4cb356646f2dfdf762a3eaae9446a6dfcf4ec20"
+      "agents.md": "b9cd8436064e2299d7759df1d4eb94f1fc9dde50ac59ad477b8fd50ac48955ad"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\AGENT_INSTRUCTIONS.md": {
@@ -4096,11 +4096,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\CLAUDE.md": {
-    "size": 781,
-    "mtime_ns": 1784412069074284400,
+    "size": 773,
+    "mtime_ns": 1784412936336659700,
     "word_count": 106,
     "hashes": {
-      "claude.md": "b5a5237f0dd262308961666186afbe48d20e935dfee4ce03b818c7badbca2cc4"
+      "claude.md": "ff660f38cb090bb2dff136d6d4af5fc33bdd77a893f49e41e11de8d043782a2b"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\COMOUSARANARRACAOPRO.md": {
@@ -4120,11 +4120,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\GEMINI.md": {
-    "size": 781,
-    "mtime_ns": 1784412069304927100,
+    "size": 773,
+    "mtime_ns": 1784412936342979200,
     "word_count": 106,
     "hashes": {
-      "gemini.md": "fd5cfdbbbdb365b38091057966891629a092288a13867117d30733f866d76604"
+      "gemini.md": "9192a8121052634babc479569b41be763e4171be96fcb3304e8f908b8752e1b6"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\NARRACAOPRO.md": {
@@ -4216,11 +4216,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\concreto_romano_CURA\\config_qanat.json": {
-    "size": 4830,
-    "mtime_ns": 1784358098309074400,
+    "size": 4831,
+    "mtime_ns": 1784412936360770000,
     "word_count": 370,
     "hashes": {
-      "concreto_romano_cura/config_qanat.json": "3c3c96202f7eb08cff280533f188acb7173ed7b6d0ca8e304643f09e0c932bcf"
+      "concreto_romano_cura/config_qanat.json": "96a15a9f06b97662028f9c3cbe50f683edc38c2ed7492902d93fee9fb848b82b"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\concreto_romano_CURA\\find_block_timings.py": {
@@ -4296,11 +4296,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\config_qanat.json": {
-    "size": 4145,
-    "mtime_ns": 1784359261274736100,
+    "size": 4146,
+    "mtime_ns": 1784412936370581800,
     "word_count": 126,
     "hashes": {
-      "config_qanat.json": "4b3c726b10b737239a6caf68d8410ae98ff511b017df6fb7027fd56d861b750e"
+      "config_qanat.json": "2dc4d1bae9aaf006e5136c942f7d38a54ef582d233981f1c2323f6c36c5d54b8"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-premium\\backend\\package.json": {
@@ -4589,11 +4589,11 @@
     "word_count": 3570
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\data\\remotion-template-catalog.json": {
-    "size": 406135,
-    "mtime_ns": 1784412090591788000,
-    "word_count": 38959,
+    "size": 409002,
+    "mtime_ns": 1784418767108175700,
+    "word_count": 39188,
     "hashes": {
-      "dashboard-qanat/backend/data/remotion-template-catalog.json": "d4100c8b7ecd60539f16a95ad522700b3ac83b0aace095c3bd3d952704294da5"
+      "dashboard-qanat/backend/data/remotion-template-catalog.json": "be15e69822d7daa35cd419e591afe9279f29a17383ca2fe0561ace00eb5c128c"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\deerFlowResearch.js": {
@@ -4652,8 +4652,8 @@
     "word_count": 436
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\globalStudioDefaults.js": {
-    "size": 3819,
-    "mtime_ns": 1784383855670516100,
+    "size": 3688,
+    "mtime_ns": 1784412936465167600,
     "word_count": 343
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\globalStudioDefaults.test.js": {
@@ -4667,9 +4667,9 @@
     "word_count": 1294
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\graphifyService.js": {
-    "size": 3015,
-    "mtime_ns": 1784412175753405700,
-    "word_count": 346
+    "size": 3059,
+    "mtime_ns": 1784412936492599500,
+    "word_count": 350
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\groundingParser.js": {
     "size": 7283,
@@ -4925,11 +4925,11 @@
     "word_count": 3064
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\package.json": {
-    "size": 2331,
-    "mtime_ns": 1784383855671517000,
+    "size": 2311,
+    "mtime_ns": 1784412936498433500,
     "word_count": 99,
     "hashes": {
-      "dashboard-qanat/backend/package.json": "9729796fdc0aafdb89569f6b4a64b4739fbb84463c781c50b53df9906bca87c3"
+      "dashboard-qanat/backend/package.json": "5ca88965fc10957b3a4ed0f8a4f7dcb915f402aa33b6b3701ba9a23c3760e2d7"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\pioneerNicheDiscovery.js": {
@@ -5241,9 +5241,9 @@
     "word_count": 1456
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\server.js": {
-    "size": 852787,
-    "mtime_ns": 1784411788914548600,
-    "word_count": 77076
+    "size": 858678,
+    "mtime_ns": 1784418688847286700,
+    "word_count": 77692
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\shared\\atomicJson.js": {
     "size": 1678,
@@ -5778,9 +5778,9 @@
     "word_count": 115
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\App.tsx": {
-    "size": 375228,
-    "mtime_ns": 1784412156975057700,
-    "word_count": 31087
+    "size": 373030,
+    "mtime_ns": 1784413947138051800,
+    "word_count": 30969
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\AppAiTab.tsx": {
     "size": 57041,
@@ -5788,9 +5788,9 @@
     "word_count": 3293
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\AppCreatorTab.tsx": {
-    "size": 193128,
-    "mtime_ns": 1784402268423673400,
-    "word_count": 10350
+    "size": 201419,
+    "mtime_ns": 1784418765714675200,
+    "word_count": 10882
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\AppDocsTab.tsx": {
     "size": 15538,
@@ -5833,9 +5833,9 @@
     "word_count": 3904
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\AppShell.tsx": {
-    "size": 19631,
-    "mtime_ns": 1784397763876563800,
-    "word_count": 1434
+    "size": 24003,
+    "mtime_ns": 1784418438611330300,
+    "word_count": 1715
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\AppStatusTab.tsx": {
     "size": 28440,
@@ -6428,8 +6428,8 @@
     "word_count": 859
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\appConstants.ts": {
-    "size": 1386,
-    "mtime_ns": 1784412135315406800,
+    "size": 1556,
+    "mtime_ns": 1784412937150130300,
     "word_count": 181
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\appLazyPanels.tsx": {
@@ -6493,9 +6493,9 @@
     "word_count": 213
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\creatorModeIdentity.ts": {
-    "size": 5464,
-    "mtime_ns": 1784348828874313500,
-    "word_count": 491
+    "size": 6052,
+    "mtime_ns": 1784418765785410700,
+    "word_count": 545
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\creatorProductionPlan.ts": {
     "size": 4536,
@@ -6778,9 +6778,9 @@
     "word_count": 1742
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\sectionHelpContent.tsx": {
-    "size": 24772,
-    "mtime_ns": 1784338719013521700,
-    "word_count": 2955
+    "size": 25056,
+    "mtime_ns": 1784418765817680700,
+    "word_count": 2992
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\frontend\\src\\seedanceDirecting.ts": {
     "size": 3734,
@@ -12439,11 +12439,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\wizard_session.json": {
-    "size": 1395,
-    "mtime_ns": 1784338770716954000,
+    "size": 1340,
+    "mtime_ns": 1784412938104761500,
     "word_count": 108,
     "hashes": {
-      "wizard_session.json": "54777adf71719bf68aa891e37a4d6d99e83215ff12b14f9222a692c1b1751c1f"
+      "wizard_session.json": "1fae95482e4c1562edf74a84a862812e5f1d510e0c2ba9caa07227dd462460c8"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\youtube_editorial_queue.json": {
@@ -12455,11 +12455,32 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\youtube_video_resurrector.json": {
-    "size": 1324477,
-    "mtime_ns": 1784408509298103600,
-    "word_count": 137355,
+    "size": 1317830,
+    "mtime_ns": 1784412938265176600,
+    "word_count": 136949,
     "hashes": {
-      "youtube_video_resurrector.json": "dfd8f5387820c055a7d8b3eb16cbcb66c318445b212b049d0cf2c7edb0ad17e4"
+      "youtube_video_resurrector.json": "7d0ee21598145106162460c9ffaaee061276b3008c694014b73b5beea5bc4546"
+    }
+  },
+  "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.kilo\\kilo.json": {
+    "size": 123,
+    "mtime_ns": 1784412936022929600,
+    "word_count": 6,
+    "hashes": {
+      ".kilo/kilo.json": "2c8fc41e65b6a9fbe161e0ce42dfb0232f144a26735591b3f2744e1728e928c3"
+    }
+  },
+  "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.kilo\\plugins\\graphify.js": {
+    "size": 1041,
+    "mtime_ns": 1784412936053777800,
+    "word_count": 141
+  },
+  "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\graphify-out\\memory\\query_20260718_235211_como_o_reposit\u00f3rio_snarktank_ralph_poderia_ser_\u00fati.md": {
+    "size": 1124,
+    "mtime_ns": 1784418731205293900,
+    "word_count": 131,
+    "hashes": {
+      "graphify-out/memory/query_20260718_235211_como_o_reposit\u00f3rio_snarktank_ralph_poderia_ser_\u00fati.md": "0342ae1e90b33d58422365113b4d4bcb0da1128cc58728dec78bcc2146808c40"
     }
   }
 }

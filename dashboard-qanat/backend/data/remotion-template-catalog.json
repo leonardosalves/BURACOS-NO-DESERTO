@@ -1875,8 +1875,8 @@
           "motion_template_id": "studio-runtime",
           "orchestration_role": "overlay",
           "orchestration_ready": true,
-          "shortPreview": "frame",
-          "longPreview": "frame",
+          "shortPreview": "media",
+          "longPreview": "media",
           "sourceCode": {
             "short": "export default function IdentityFrame(props = {}) {\n  const frame = useCurrentFrame();\n  const { width, height } = useVideoConfig();\n  const accent = props.accentColor || props.primaryColor || \"#D4AF37\";\n  const title = props.title || props.niche || \"\";\n  const opacity = Number(props.studio_opacity);\n  const a = Number.isFinite(opacity) ? Math.min(1, Math.max(0.15, opacity)) : 0.85;\n  const border = Math.max(8, Math.round(Math.min(width, height) * 0.012));\n  const pulse = 0.5 + 0.5 * Math.sin(frame * 0.04);\n  return (\n    <div style={{\n      width: \"100%\", height: \"100%\", position: \"relative\",\n      pointerEvents: \"none\", boxSizing: \"border-box\",\n      border: border + \"px solid \" + accent,\n      boxShadow: \"inset 0 0 \" + (40 + pulse * 20) + \"px rgba(0,0,0,0.45)\",\n      opacity: a,\n    }}>\n      <div style={{\n        position: \"absolute\", top: border + 8, left: border + 12,\n        color: accent, fontFamily: \"Inter, system-ui, sans-serif\",\n        fontSize: Math.max(12, Math.round(width * 0.014)),\n        fontWeight: 700, letterSpacing: \"0.12em\", textTransform: \"uppercase\",\n        textShadow: \"0 1px 4px rgba(0,0,0,0.6)\",\n      }}>{title}</div>\n      <div style={{\n        position: \"absolute\", bottom: border + 8, right: border + 12,\n        width: Math.round(width * 0.08), height: 3, background: accent, opacity: 0.7 + pulse * 0.3,\n      }} />\n    </div>\n  );\n}",
             "long": "export default function IdentityFrame(props = {}) {\n  const frame = useCurrentFrame();\n  const { width, height } = useVideoConfig();\n  const accent = props.accentColor || props.primaryColor || \"#D4AF37\";\n  const title = props.title || props.niche || \"\";\n  const opacity = Number(props.studio_opacity);\n  const a = Number.isFinite(opacity) ? Math.min(1, Math.max(0.15, opacity)) : 0.85;\n  const border = Math.max(8, Math.round(Math.min(width, height) * 0.012));\n  const pulse = 0.5 + 0.5 * Math.sin(frame * 0.04);\n  return (\n    <div style={{\n      width: \"100%\", height: \"100%\", position: \"relative\",\n      pointerEvents: \"none\", boxSizing: \"border-box\",\n      border: border + \"px solid \" + accent,\n      boxShadow: \"inset 0 0 \" + (40 + pulse * 20) + \"px rgba(0,0,0,0.45)\",\n      opacity: a,\n    }}>\n      <div style={{\n        position: \"absolute\", top: border + 8, left: border + 12,\n        color: accent, fontFamily: \"Inter, system-ui, sans-serif\",\n        fontSize: Math.max(12, Math.round(width * 0.014)),\n        fontWeight: 700, letterSpacing: \"0.12em\", textTransform: \"uppercase\",\n        textShadow: \"0 1px 4px rgba(0,0,0,0.6)\",\n      }}>{title}</div>\n      <div style={{\n        position: \"absolute\", bottom: border + 8, right: border + 12,\n        width: Math.round(width * 0.08), height: 3, background: accent, opacity: 0.7 + pulse * 0.3,\n      }} />\n    </div>\n  );\n}"
@@ -1900,8 +1900,8 @@
           "motion_template_id": "studio-runtime",
           "orchestration_role": "overlay",
           "orchestration_ready": true,
-          "shortPreview": "frame",
-          "longPreview": "frame",
+          "shortPreview": "media",
+          "longPreview": "media",
           "sourceCode": {
             "short": "export default function IdentityFrame(props = {}) {\n  const frame = useCurrentFrame();\n  const { width, height } = useVideoConfig();\n  const accent = props.accentColor || props.primaryColor || \"#D4AF37\";\n  const title = props.title || props.niche || \"\";\n  const opacity = Number(props.studio_opacity);\n  const a = Number.isFinite(opacity) ? Math.min(1, Math.max(0.15, opacity)) : 0.85;\n  const border = Math.max(8, Math.round(Math.min(width, height) * 0.012));\n  const pulse = 0.5 + 0.5 * Math.sin(frame * 0.04);\n  return (\n    <div style={{\n      width: \"100%\", height: \"100%\", position: \"relative\",\n      pointerEvents: \"none\", boxSizing: \"border-box\",\n      border: border + \"px solid \" + accent,\n      boxShadow: \"inset 0 0 \" + (40 + pulse * 20) + \"px rgba(0,0,0,0.45)\",\n      opacity: a,\n    }}>\n      <div style={{\n        position: \"absolute\", top: border + 8, left: border + 12,\n        color: accent, fontFamily: \"Inter, system-ui, sans-serif\",\n        fontSize: Math.max(12, Math.round(width * 0.014)),\n        fontWeight: 700, letterSpacing: \"0.12em\", textTransform: \"uppercase\",\n        textShadow: \"0 1px 4px rgba(0,0,0,0.6)\",\n      }}>{title}</div>\n      <div style={{\n        position: \"absolute\", bottom: border + 8, right: border + 12,\n        width: Math.round(width * 0.08), height: 3, background: accent, opacity: 0.7 + pulse * 0.3,\n      }} />\n    </div>\n  );\n}",
             "long": "export default function IdentityFrame(props = {}) {\n  const frame = useCurrentFrame();\n  const { width, height } = useVideoConfig();\n  const accent = props.accentColor || props.primaryColor || \"#D4AF37\";\n  const title = props.title || props.niche || \"\";\n  const opacity = Number(props.studio_opacity);\n  const a = Number.isFinite(opacity) ? Math.min(1, Math.max(0.15, opacity)) : 0.85;\n  const border = Math.max(8, Math.round(Math.min(width, height) * 0.012));\n  const pulse = 0.5 + 0.5 * Math.sin(frame * 0.04);\n  return (\n    <div style={{\n      width: \"100%\", height: \"100%\", position: \"relative\",\n      pointerEvents: \"none\", boxSizing: \"border-box\",\n      border: border + \"px solid \" + accent,\n      boxShadow: \"inset 0 0 \" + (40 + pulse * 20) + \"px rgba(0,0,0,0.45)\",\n      opacity: a,\n    }}>\n      <div style={{\n        position: \"absolute\", top: border + 8, left: border + 12,\n        color: accent, fontFamily: \"Inter, system-ui, sans-serif\",\n        fontSize: Math.max(12, Math.round(width * 0.014)),\n        fontWeight: 700, letterSpacing: \"0.12em\", textTransform: \"uppercase\",\n        textShadow: \"0 1px 4px rgba(0,0,0,0.6)\",\n      }}>{title}</div>\n      <div style={{\n        position: \"absolute\", bottom: border + 8, right: border + 12,\n        width: Math.round(width * 0.08), height: 3, background: accent, opacity: 0.7 + pulse * 0.3,\n      }} />\n    </div>\n  );\n}"
@@ -1925,8 +1925,8 @@
           "motion_template_id": "studio-runtime",
           "orchestration_role": "overlay",
           "orchestration_ready": true,
-          "shortPreview": "frame",
-          "longPreview": "frame",
+          "shortPreview": "media",
+          "longPreview": "media",
           "sourceCode": {
             "short": "export default function IdentityFrame(props = {}) {\n  const frame = useCurrentFrame();\n  const { width, height } = useVideoConfig();\n  const accent = props.accentColor || props.primaryColor || \"#D4AF37\";\n  const title = props.title || props.niche || \"\";\n  const opacity = Number(props.studio_opacity);\n  const a = Number.isFinite(opacity) ? Math.min(1, Math.max(0.15, opacity)) : 0.85;\n  const border = Math.max(8, Math.round(Math.min(width, height) * 0.012));\n  const pulse = 0.5 + 0.5 * Math.sin(frame * 0.04);\n  return (\n    <div style={{\n      width: \"100%\", height: \"100%\", position: \"relative\",\n      pointerEvents: \"none\", boxSizing: \"border-box\",\n      border: border + \"px solid \" + accent,\n      boxShadow: \"inset 0 0 \" + (40 + pulse * 20) + \"px rgba(0,0,0,0.45)\",\n      opacity: a,\n    }}>\n      <div style={{\n        position: \"absolute\", top: border + 8, left: border + 12,\n        color: accent, fontFamily: \"Inter, system-ui, sans-serif\",\n        fontSize: Math.max(12, Math.round(width * 0.014)),\n        fontWeight: 700, letterSpacing: \"0.12em\", textTransform: \"uppercase\",\n        textShadow: \"0 1px 4px rgba(0,0,0,0.6)\",\n      }}>{title}</div>\n      <div style={{\n        position: \"absolute\", bottom: border + 8, right: border + 12,\n        width: Math.round(width * 0.08), height: 3, background: accent, opacity: 0.7 + pulse * 0.3,\n      }} />\n    </div>\n  );\n}",
             "long": "export default function IdentityFrame(props = {}) {\n  const frame = useCurrentFrame();\n  const { width, height } = useVideoConfig();\n  const accent = props.accentColor || props.primaryColor || \"#D4AF37\";\n  const title = props.title || props.niche || \"\";\n  const opacity = Number(props.studio_opacity);\n  const a = Number.isFinite(opacity) ? Math.min(1, Math.max(0.15, opacity)) : 0.85;\n  const border = Math.max(8, Math.round(Math.min(width, height) * 0.012));\n  const pulse = 0.5 + 0.5 * Math.sin(frame * 0.04);\n  return (\n    <div style={{\n      width: \"100%\", height: \"100%\", position: \"relative\",\n      pointerEvents: \"none\", boxSizing: \"border-box\",\n      border: border + \"px solid \" + accent,\n      boxShadow: \"inset 0 0 \" + (40 + pulse * 20) + \"px rgba(0,0,0,0.45)\",\n      opacity: a,\n    }}>\n      <div style={{\n        position: \"absolute\", top: border + 8, left: border + 12,\n        color: accent, fontFamily: \"Inter, system-ui, sans-serif\",\n        fontSize: Math.max(12, Math.round(width * 0.014)),\n        fontWeight: 700, letterSpacing: \"0.12em\", textTransform: \"uppercase\",\n        textShadow: \"0 1px 4px rgba(0,0,0,0.6)\",\n      }}>{title}</div>\n      <div style={{\n        position: \"absolute\", bottom: border + 8, right: border + 12,\n        width: Math.round(width * 0.08), height: 3, background: accent, opacity: 0.7 + pulse * 0.3,\n      }} />\n    </div>\n  );\n}"
@@ -1950,8 +1950,8 @@
           "motion_template_id": "studio-runtime",
           "orchestration_role": "overlay",
           "orchestration_ready": true,
-          "shortPreview": "frame",
-          "longPreview": "frame",
+          "shortPreview": "media",
+          "longPreview": "media",
           "sourceCode": {
             "short": "export default function IdentityFrame(props = {}) {\n  const frame = useCurrentFrame();\n  const { width, height } = useVideoConfig();\n  const accent = props.accentColor || props.primaryColor || \"#D4AF37\";\n  const title = props.title || props.niche || \"\";\n  const opacity = Number(props.studio_opacity);\n  const a = Number.isFinite(opacity) ? Math.min(1, Math.max(0.15, opacity)) : 0.85;\n  const border = Math.max(8, Math.round(Math.min(width, height) * 0.012));\n  const pulse = 0.5 + 0.5 * Math.sin(frame * 0.04);\n  return (\n    <div style={{\n      width: \"100%\", height: \"100%\", position: \"relative\",\n      pointerEvents: \"none\", boxSizing: \"border-box\",\n      border: border + \"px solid \" + accent,\n      boxShadow: \"inset 0 0 \" + (40 + pulse * 20) + \"px rgba(0,0,0,0.45)\",\n      opacity: a,\n    }}>\n      <div style={{\n        position: \"absolute\", top: border + 8, left: border + 12,\n        color: accent, fontFamily: \"Inter, system-ui, sans-serif\",\n        fontSize: Math.max(12, Math.round(width * 0.014)),\n        fontWeight: 700, letterSpacing: \"0.12em\", textTransform: \"uppercase\",\n        textShadow: \"0 1px 4px rgba(0,0,0,0.6)\",\n      }}>{title}</div>\n      <div style={{\n        position: \"absolute\", bottom: border + 8, right: border + 12,\n        width: Math.round(width * 0.08), height: 3, background: accent, opacity: 0.7 + pulse * 0.3,\n      }} />\n    </div>\n  );\n}",
             "long": "export default function IdentityFrame(props = {}) {\n  const frame = useCurrentFrame();\n  const { width, height } = useVideoConfig();\n  const accent = props.accentColor || props.primaryColor || \"#D4AF37\";\n  const title = props.title || props.niche || \"\";\n  const opacity = Number(props.studio_opacity);\n  const a = Number.isFinite(opacity) ? Math.min(1, Math.max(0.15, opacity)) : 0.85;\n  const border = Math.max(8, Math.round(Math.min(width, height) * 0.012));\n  const pulse = 0.5 + 0.5 * Math.sin(frame * 0.04);\n  return (\n    <div style={{\n      width: \"100%\", height: \"100%\", position: \"relative\",\n      pointerEvents: \"none\", boxSizing: \"border-box\",\n      border: border + \"px solid \" + accent,\n      boxShadow: \"inset 0 0 \" + (40 + pulse * 20) + \"px rgba(0,0,0,0.45)\",\n      opacity: a,\n    }}>\n      <div style={{\n        position: \"absolute\", top: border + 8, left: border + 12,\n        color: accent, fontFamily: \"Inter, system-ui, sans-serif\",\n        fontSize: Math.max(12, Math.round(width * 0.014)),\n        fontWeight: 700, letterSpacing: \"0.12em\", textTransform: \"uppercase\",\n        textShadow: \"0 1px 4px rgba(0,0,0,0.6)\",\n      }}>{title}</div>\n      <div style={{\n        position: \"absolute\", bottom: border + 8, right: border + 12,\n        width: Math.round(width * 0.08), height: 3, background: accent, opacity: 0.7 + pulse * 0.3,\n      }} />\n    </div>\n  );\n}"
@@ -1959,7 +1959,7 @@
           "has_source_code": true
         }
       ],
-      "updated_at": "2026-07-18T07:46:36.257Z"
+      "updated_at": "2026-07-18T22:34:59.298Z"
     },
     "Curiosidade invenção engenharia": {
       "templates": [
@@ -2065,7 +2065,69 @@
         }
       ],
       "updated_at": "2026-07-18T21:51:02.391Z"
+    },
+    "__test_studio_role_inject__": {
+      "templates": [
+        {
+          "id": "role-transition",
+          "name": "Chapter Wipe",
+          "category": "transition",
+          "subcategory": "Wipe",
+          "niche": "__test_studio_role_inject__",
+          "status": "approved",
+          "description": "Transição entre capítulos",
+          "dataSlots": [
+            "text",
+            "sceneAsset",
+            "imageUrl",
+            "videoUrl",
+            "accentColor",
+            "durationSeconds",
+            "studio_opacity",
+            "backgroundColor",
+            "title",
+            "subtitle"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "transition",
+          "orchestration_ready": true,
+          "shortPreview": "wipe",
+          "longPreview": "wipe",
+          "sourceCode": {
+            "short": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}",
+            "long": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "role-background",
+          "name": "Tech Grid Frame",
+          "category": "background",
+          "subcategory": "Grid",
+          "niche": "__test_studio_role_inject__",
+          "status": "approved",
+          "description": "Fundo técnico",
+          "dataSlots": [
+            "text",
+            "projectCode",
+            "accentColor",
+            "backgroundColor",
+            "intensity"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "background_frame",
+          "orchestration_ready": true,
+          "shortPreview": "grid",
+          "longPreview": "grid",
+          "sourceCode": {
+            "short": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}",
+            "long": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-18T23:52:47.104Z"
     }
   },
-  "updated_at": "2026-07-18T22:01:30.590Z"
+  "updated_at": "2026-07-18T23:52:47.104Z"
 }
