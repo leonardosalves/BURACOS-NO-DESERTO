@@ -3467,6 +3467,85 @@ Instruções críticas:
         "utf8"
       );
 
+      // Copy default config_qanat.json if it doesn't exist
+      const configPath = path.join(targetDir, "config_qanat.json");
+      if (!fs.existsSync(configPath)) {
+        const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
+        if (fs.existsSync(defaultConfigSrc)) {
+          fs.copyFileSync(defaultConfigSrc, configPath);
+          try {
+            const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+            cfg.video_format = isShorts ? "SHORTS" : "LONGO";
+            cfg.aspect_ratio = isShorts ? "9:16" : "16:9";
+            cfg.niche = session.niche || "Geral";
+            fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
+          } catch (e) {}
+        }
+      }
+
+      // Initialize block_timings.json
+      const blockTimingsPath = path.join(targetDir, "block_timings.json");
+      if (!fs.existsSync(blockTimingsPath)) {
+        const starts = [];
+        const durations = [];
+        let total = 0;
+        items.forEach((item, idx) => {
+          starts.push(total);
+          durations.push(5.0);
+          total += 5.0;
+        });
+        const blockTimings = {
+          starts,
+          durations,
+          total_duration: total,
+        };
+        fs.writeFileSync(
+          blockTimingsPath,
+          JSON.stringify(blockTimings, null, 4),
+          "utf8"
+        );
+      }
+
+      // Copy script templates
+      const ensureFileExists = (fileName) => {
+        const src = path.join(WORKSPACE_DIR, fileName);
+        const dest = path.join(targetDir, fileName);
+        if (fs.existsSync(src) && !fs.existsSync(dest)) {
+          fs.copyFileSync(src, dest);
+        }
+      };
+      ensureFileExists("build_video.py");
+      ensureFileExists("build_video_destacado.py");
+      ensureFileExists("mix_bgm.py");
+      ensureFileExists("find_block_timings.py");
+      ensureFileExists("align_transcripts.py");
+      ensureFileExists("upload_pipeline.py");
+      ensureFileExists("upload_youtube.py");
+      ensureFileExists("upload_instagram.py");
+      ensureFileExists("upload_tiktok_playwright.py");
+      ensureFileExists("upload_kwai_playwright.py");
+
+      // Initialize wizard_session.json directly in the project folder
+      const wizardSessionPath = path.join(targetDir, "wizard_session.json");
+      const wizardSessionPayload = {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        wasInWizard: true,
+        activeTab: "creator",
+        activeProject: projectName,
+        creatorStep: 4,
+        ideationTab: "collage-broll",
+        creatorProjectName: projectName,
+        narrationDraft: plainScript,
+        nicheInput: session.niche || "Geral",
+        formatSelector: isShorts ? "SHORTS" : "LONGO",
+      };
+      fs.writeFileSync(
+        wizardSessionPath,
+        JSON.stringify(wizardSessionPayload, null, 2),
+        "utf8"
+      );
+
       const storyboardPath = path.join(targetDir, "storyboard.json");
       let existingStoryboard = {};
       if (fs.existsSync(storyboardPath)) {

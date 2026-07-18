@@ -208,6 +208,30 @@ export function AppTabPanels({
                   if (!res.ok)
                     throw new Error(data.error || "Erro no servidor");
 
+                  // Save the wizard session on the server
+                  const wizardSession = {
+                    activeTab: "creator",
+                    activeProject: sid,
+                    creatorStep: 4,
+                    ideationTab: "collage-broll",
+                    creatorProjectName: sid,
+                    narrationDraft: narration,
+                    savedAt: new Date().toISOString(),
+                  };
+                  await fetch(
+                    `/api/projects/wizard-session?project=${encodeURIComponent(sid)}`,
+                    {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(wizardSession),
+                    }
+                  );
+
+                  // Save the wizard session in localStorage
+                  if (typeof creatorTabProps.saveWizardSession === "function") {
+                    creatorTabProps.saveWizardSession(wizardSession);
+                  }
+
                   handleSelectProject(sid);
                   creatorTabProps.setIdeationTab("collage-broll");
                   creatorTabProps.setCreatorProjectName(sid);
