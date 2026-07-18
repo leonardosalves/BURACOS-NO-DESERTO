@@ -555,11 +555,7 @@ export function AppEditorTab({
                                     <input
                                       type="file"
 
-                                      accept={
-                                        correspondingAsset.type === "video"
-                                          ? "video/mp4"
-                                          : "image/png,image/jpeg"
-                                      }
+                                      accept="image/png,image/jpeg,video/mp4"
 
                                       className="hidden"
 
@@ -570,12 +566,16 @@ export function AppEditorTab({
                                           e.target.files &&
                                           e.target.files[0]
                                         ) {
+                                          const file = e.target.files[0];
+                                          const isVideo =
+                                            file.name.endsWith(".mp4") ||
+                                            file.name.endsWith(".webm") ||
+                                            file.name.endsWith(".mov") ||
+                                            file.type.startsWith("video/");
                                           handleUploadSceneAsset(
                                             blockNum,
-                                            correspondingAsset.type === "video"
-                                              ? "video"
-                                              : "image",
-                                            e.target.files[0],
+                                            isVideo ? "video" : "image",
+                                            file,
                                             assetIdx,
                                             selectedProject
                                           );

@@ -3698,23 +3698,34 @@ export function AppCreatorTab({
                                                   <input
                                                     type="file"
 
-                                                    accept={
-                                                      isVideo
-                                                        ? "video/mp4"
-                                                        : "image/png,image/jpeg,image/jpg"
-                                                    }
+                                                    accept="image/png,image/jpeg,image/jpg,video/mp4"
 
                                                     onChange={(e) => {
                                                       if (
                                                         e.target.files &&
                                                         e.target.files[0]
                                                       ) {
+                                                        const file =
+                                                          e.target.files[0];
+                                                        const fileIsVideo =
+                                                          file.name.endsWith(
+                                                            ".mp4"
+                                                          ) ||
+                                                          file.name.endsWith(
+                                                            ".webm"
+                                                          ) ||
+                                                          file.name.endsWith(
+                                                            ".mov"
+                                                          ) ||
+                                                          file.type.startsWith(
+                                                            "video/"
+                                                          );
                                                         handleUploadSceneAsset(
                                                           blockNum,
-                                                          isVideo
+                                                          fileIsVideo
                                                             ? "video"
                                                             : "image",
-                                                          e.target.files[0],
+                                                          file,
                                                           assetIdx
                                                         );
                                                       }
