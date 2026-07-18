@@ -18140,6 +18140,33 @@ app.post("/api/upload-scene-asset", (req, res) => {
     const configPath = path.join(projDir, "config_qanat.json");
 
     try {
+      if (resolvedType === "video") {
+        const tempTranscodeDest = destFilePath + ".transcoded.mp4";
+        try {
+          console.log(
+            `[Upload Scene Asset] Transcodificando vídeo enviado ${destFileName} para garantir compatibilidade HTML5...`
+          );
+          transcodeVideoForRemotion(destFilePath, tempTranscodeDest, 30);
+          if (fs.existsSync(tempTranscodeDest)) {
+            fs.unlinkSync(destFilePath);
+            fs.renameSync(tempTranscodeDest, destFilePath);
+            console.log(
+              `[Upload Scene Asset] Vídeo transcodificado com sucesso!`
+            );
+          }
+        } catch (transcodeErr) {
+          console.error(
+            `[Upload Scene Asset] Falha ao transcodificar vídeo:`,
+            transcodeErr.message
+          );
+          if (fs.existsSync(tempTranscodeDest)) {
+            try {
+              fs.unlinkSync(tempTranscodeDest);
+            } catch {}
+          }
+        }
+      }
+
       let config = {};
 
       if (fs.existsSync(configPath)) {
