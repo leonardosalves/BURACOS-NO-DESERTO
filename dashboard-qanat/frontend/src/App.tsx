@@ -4635,10 +4635,7 @@ export default function App() {
               return;
             }
           }
-          const blockKey =
-            assetIdx !== undefined
-              ? String(sceneNum)
-              : String(Math.floor(sceneNum));
+          const blockKey = String(Math.floor(sceneNum));
 
           const nextTimelineAssets = { ...(config.timeline_assets || {}) };
 

@@ -18188,7 +18188,7 @@ app.post("/api/upload-scene-asset", (req, res) => {
       }
 
       if (idx !== undefined) {
-        const blockKey = String(scene);
+        const blockKey = String(Math.floor(parseFloat(scene)));
 
         if (!config.timeline_assets[blockKey]) {
           config.timeline_assets[blockKey] = [];
@@ -18217,6 +18217,54 @@ app.post("/api/upload-scene-asset", (req, res) => {
           user_locked: true,
           manual_asset: true,
         };
+
+        // Update timeline_studio.json if it exists to keep B-roll sources in sync
+        try {
+          const studioPath = path.join(projDir, "timeline_studio.json");
+          if (fs.existsSync(studioPath)) {
+            const studio = JSON.parse(fs.readFileSync(studioPath, "utf8"));
+            if (studio && Array.isArray(studio.clips)) {
+              let studioChanged = false;
+              const targetBlock = String(Math.floor(parseFloat(scene)));
+              const targetIdx = parseInt(idx, 10);
+
+              for (const clip of studio.clips) {
+                if (clip.trackId === "video") {
+                  const bKey = String(
+                    clip.props?.blockKey ?? clip.props?.block ?? ""
+                  );
+                  const aIdx =
+                    clip.props?.assetIndex !== undefined
+                      ? parseInt(clip.props.assetIndex, 10)
+                      : -1;
+
+                  if (bKey === targetBlock && aIdx === targetIdx) {
+                    clip.source = destFileName;
+                    clip.label = destFileName;
+                    if (!clip.props) clip.props = {};
+                    clip.props.type = resolvedType;
+                    studioChanged = true;
+                  }
+                }
+              }
+              if (studioChanged) {
+                fs.writeFileSync(
+                  studioPath,
+                  JSON.stringify(studio, null, 2),
+                  "utf8"
+                );
+                console.log(
+                  `[Upload Scene Asset] timeline_studio.json atualizada com o novo asset: ${destFileName}`
+                );
+              }
+            }
+          }
+        } catch (studioErr) {
+          console.warn(
+            "[Upload Scene Asset] Falha ao sincronizar com timeline_studio.json:",
+            studioErr.message
+          );
+        }
       } else {
         // Extract block number (integer part) from scene number (e.g. "6" from "6.3")
 
