@@ -263,9 +263,16 @@ Constraints: the geographic relationship must read at a glance — ${item?.core_
 Avoid: ${HARD_NEGATIVES_BASE}, no readable street names, no Google/Apple Maps UI, no GPS HUD, no photoreal 3D city flythrough, no satellite-photo realism.`;
   }
 
+  const conceptStr = place ? ` Key visual concept/subject: ${place}.` : "";
+  const styleStr =
+    item?.region || item?.country
+      ? ` Style/Tone focus: ${[item.region, item.country].filter(Boolean).join(", ")}.`
+      : "";
+  const moodStr = item?.era ? ` Mood/Era cue: ${item.era}.` : "";
+
   return `Use case: ads-marketing
 Asset type: final still frame for a 9:16 image-to-video B-roll clip
-Primary request: Create a finished, museum-quality editorial paper-collage composition expressing ${prop}.
+Primary request: Create a finished, museum-quality editorial paper-collage composition expressing ${prop}.${conceptStr}${styleStr}${moodStr}
 Scene/backdrop: perfectly flat, evenly lit ${name} paper field ${hex} with subtle uncoated paper fiber grain; wide clean negative space.
 Style/medium: premium editorial stop-motion paper collage; ${HALFTONE_LOOK} combined with selective solid flat-color cardstock accents in ${accents}.
 Lighting: ${STUDIO_LIGHTING}.
@@ -838,7 +845,13 @@ type Props = {
 
 const DEMO_LINES_EDITORIAL = `Muita gente acha que IA veio para pensar no seu lugar — na verdade ela é um espelho que amplia os buracos da pergunta.
 Quando o processo só vive na cabeça de uma pessoa, cada entrega reinicia o relógio do zero.
-Normas bem escritas viram trilha: humanos julgam, máquinas executam o repetitivo.`;
+Normas bem escritas viram trilha: humanos julgam, máquinas executam o repetitivo.
+Uma ideia sem execução é como uma engrenagem girando no vácuo: consome energia mas não move a máquina.
+O fluxo de trabalho ideal funciona como uma ampulheta de precisão: a informação flui sem engarrafar no gargalo.
+Desenhar um software sem arquitetura clara é empilhar cartas de baralho sob o sopro do vento.
+O aprendizado contínuo opera como círculos concêntricos na água: cada nova habilidade expande a área de impacto.
+Decisões baseadas em achismos são como navegar no nevoeiro sem bússola, confiando apenas no instinto do capitão.
+A automação de processos não substitui a criatividade humana; ela apenas pavimenta a estrada para a mente correr livre.`;
 
 const DEMO_LINES_GEO = `No deserto do Atacama, as caravanas marcavam o caminho só pela sombra das montanhas.
 A fronteira do Império Romano no Reno era uma linha viva de fortes e mercadores.
@@ -2431,70 +2444,81 @@ export function CollageBrollLab({
                 </button>
               </div>
             </div>
-            {isGeo && (
-              <>
-                <div className="flex flex-wrap gap-2 items-center">
-                  <span className="text-[8px] uppercase text-zinc-600 font-bold">
-                    Fidelidade ao texto
-                  </span>
-                  {(
-                    [
-                      ["literal", "Literal"],
-                      ["balanced", "Equilibrada"],
-                      ["creative", "Criativa"],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setFidelity(id)}
-                      className={`rounded-md border px-2 py-1 text-[10px] font-bold ${
-                        fidelity === id
-                          ? "border-sky-400/50 bg-sky-500/20 text-sky-100"
-                          : "border-zinc-800 text-zinc-500 hover:border-zinc-700"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <label className="space-y-1">
-                    <span className="text-[8px] uppercase text-zinc-600 font-bold flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> Local / POI
-                    </span>
-                    <input
-                      value={placeHint}
-                      onChange={(e) => setPlaceHint(e.target.value)}
-                      placeholder="ex.: Atacama, Reno, Tâmisa"
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-2 py-1.5 text-[11px] text-zinc-200"
-                    />
-                  </label>
-                  <label className="space-y-1">
-                    <span className="text-[8px] uppercase text-zinc-600 font-bold">
-                      País / região
-                    </span>
-                    <input
-                      value={countryHint}
-                      onChange={(e) => setCountryHint(e.target.value)}
-                      placeholder="ex.: Chile, Império Romano"
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-2 py-1.5 text-[11px] text-zinc-200"
-                    />
-                  </label>
-                  <label className="space-y-1">
-                    <span className="text-[8px] uppercase text-zinc-600 font-bold">
-                      Época
-                    </span>
-                    <input
-                      value={eraHint}
-                      onChange={(e) => setEraHint(e.target.value)}
-                      placeholder="ex.: séc. I, 1800s"
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-2 py-1.5 text-[11px] text-zinc-200"
-                    />
-                  </label>
-                </div>
-              </>
-            )}
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-[8px] uppercase text-zinc-600 font-bold">
+                Fidelidade ao texto
+              </span>
+              {(
+                [
+                  ["literal", "Literal"],
+                  ["balanced", "Equilibrada"],
+                  ["creative", "Criativa"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setFidelity(id)}
+                  className={`rounded-md border px-2 py-1 text-[10px] font-bold ${
+                    fidelity === id
+                      ? isGeo
+                        ? "border-sky-400/50 bg-sky-500/20 text-sky-100"
+                        : "border-violet-400/50 bg-violet-500/20 text-violet-100"
+                      : "border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <label className="space-y-1">
+                <span className="text-[8px] uppercase text-zinc-600 font-bold flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />{" "}
+                  {isGeo ? "Local / POI" : "Objeto / Elemento"}
+                </span>
+                <input
+                  value={placeHint}
+                  onChange={(e) => setPlaceHint(e.target.value)}
+                  placeholder={
+                    isGeo
+                      ? "ex.: Atacama, Reno, Tâmisa"
+                      : "ex.: ampulheta, engrenagem, nevoeiro"
+                  }
+                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-2 py-1.5 text-[11px] text-zinc-200"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[8px] uppercase text-zinc-600 font-bold">
+                  {isGeo ? "País / região" : "Ambiente / Contexto"}
+                </span>
+                <input
+                  value={countryHint}
+                  onChange={(e) => setCountryHint(e.target.value)}
+                  placeholder={
+                    isGeo
+                      ? "ex.: Chile, Império Romano"
+                      : "ex.: corporativo, minimalista, surrealista"
+                  }
+                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-2 py-1.5 text-[11px] text-zinc-200"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[8px] uppercase text-zinc-600 font-bold">
+                  {isGeo ? "Época" : "Estilo / Época"}
+                </span>
+                <input
+                  value={eraHint}
+                  onChange={(e) => setEraHint(e.target.value)}
+                  placeholder={
+                    isGeo
+                      ? "ex.: séc. I, 1800s"
+                      : "ex.: colagem manual, halftone, moderno"
+                  }
+                  className="w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-2 py-1.5 text-[11px] text-zinc-200"
+                />
+              </label>
+            </div>
             <textarea
               value={rawLines}
               onChange={(e) => setRawLines(e.target.value)}
@@ -2590,9 +2614,19 @@ export function CollageBrollLab({
             </div>
           </div>
 
-          {scriptAnalysis && isGeo && (
-            <div className="rounded-xl border border-sky-500/25 bg-sky-950/30 p-3 space-y-1.5">
-              <p className="text-[10px] font-bold text-sky-200 uppercase tracking-wide">
+          {scriptAnalysis && (
+            <div
+              className={`rounded-xl border p-3 space-y-1.5 ${
+                isGeo
+                  ? "border-sky-500/25 bg-sky-950/30"
+                  : "border-violet-500/25 bg-violet-950/30"
+              }`}
+            >
+              <p
+                className={`text-[10px] font-bold uppercase tracking-wide ${
+                  isGeo ? "text-sky-200" : "text-violet-200"
+                }`}
+              >
                 Análise global do roteiro
               </p>
               <p className="text-[11px] text-zinc-300">
@@ -2605,10 +2639,10 @@ export function CollageBrollLab({
                 </p>
               )}
               <p className="text-[10px] text-zinc-500">
-                Subdomínio: {scriptAnalysis.subdomain || "—"} · Escala:{" "}
-                {scriptAnalysis.geographicScale || "—"}
+                Subdomínio: {scriptAnalysis.subdomain || "—"}
+                {isGeo && ` · Escala: ${scriptAnalysis.geographicScale || "—"}`}
               </p>
-              {(scriptAnalysis.locations || []).length > 0 && (
+              {isGeo && (scriptAnalysis.locations || []).length > 0 && (
                 <p className="text-[10px] text-sky-300/90">
                   Locais: {(scriptAnalysis.locations || []).join(" · ")}
                 </p>
