@@ -831,6 +831,7 @@ function pickRandomPalette(palettes: PalettePreset[]): PalettePreset {
 
 type Props = {
   getProjectUrl: (path: string) => string;
+  initialSessionId?: string | null;
 };
 
 const DEMO_LINES_EDITORIAL = `Muita gente acha que IA veio para pensar no seu lugar — na verdade ela é um espelho que amplia os buracos da pergunta.
@@ -866,7 +867,7 @@ function copyText(label: string, text: string) {
   );
 }
 
-export function CollageBrollLab({ getProjectUrl }: Props) {
+export function CollageBrollLab({ getProjectUrl, initialSessionId }: Props) {
   const [mode, setMode] = useState<CollageMode>("geo");
   const [rawLines, setRawLines] = useState(DEMO_LINES_GEO);
   const [placeHint, setPlaceHint] = useState("");
@@ -907,6 +908,7 @@ export function CollageBrollLab({ getProjectUrl }: Props) {
     title: string;
   } | null>(null);
   const [sessionId, setSessionId] = useState<string>(() => {
+    if (initialSessionId) return initialSessionId;
     try {
       const raw = localStorage.getItem(LS_SESSION_KEY);
       if (raw) {
@@ -918,6 +920,13 @@ export function CollageBrollLab({ getProjectUrl }: Props) {
     }
     return `collage_${Date.now().toString(36)}`;
   });
+
+  useEffect(() => {
+    if (initialSessionId && initialSessionId !== sessionId) {
+      setSessionId(initialSessionId);
+    }
+  }, [initialSessionId, sessionId]);
+
   const [hydrated, setHydrated] = useState(false);
   const regenLockRef = useRef(false);
   const rejectLockRef = useRef(false);
@@ -3159,40 +3168,19 @@ export function CollageBrollLab({ getProjectUrl }: Props) {
 
                     {!framesReady(selected) && (
                       <p className="text-[9px] text-amber-200/80">
-                        Bloqueado: aprove End Frame e Start Frame primeiro.
+                        Geração automática bloqueada: aprove End Frame e Start
+                        Frame primeiro (ou faça upload do vídeo final abaixo).
                       </p>
                     )}
                     <div className="flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        disabled={!!mediaBusyId || !framesReady(selected)}
-                        onClick={() => void generateVideoForCard(selected)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-50 text-[10px] font-bold px-2.5 py-1.5 disabled:opacity-40 cursor-pointer"
-                      >
-                        {mediaBusyId === selected.id &&
-                        mediaBusyKind === "video" ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Film className="w-3 h-3" />
-                        )}
-                        Gerar vídeo
-                      </button>
-
                       {/* Upload manual para Vídeo */}
-                      <label
-                        className={`inline-flex items-center gap-1 rounded-lg border border-zinc-600 bg-zinc-800/40 text-zinc-200 hover:bg-zinc-800 hover:text-white text-[10px] font-bold px-2.5 py-1.5 cursor-pointer transition ${
-                          !framesReady(selected)
-                            ? "opacity-40 pointer-events-none"
-                            : ""
-                        }`}
-                      >
+                      <label className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-50 hover:bg-emerald-500/20 hover:text-white text-[10px] font-bold px-2.5 py-1.5 cursor-pointer transition">
                         <Upload className="w-3 h-3" />
-                        <span>Fazer Upload</span>
+                        <span>Enviar Vídeo</span>
                         <input
                           type="file"
                           accept="video/*"
                           className="hidden"
-                          disabled={!framesReady(selected)}
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file)
@@ -3201,53 +3189,11 @@ export function CollageBrollLab({ getProjectUrl }: Props) {
                         />
                       </label>
 
-                      <button
-                        type="button"
-                        disabled={!selected.video_url}
-                        onClick={() =>
-                          setPreviewMedia({
-                            type: "video",
-                            url: mediaSrc(selected.video_url),
-                            title: `Vídeo ${selected.id}`,
-                          })
-                        }
-                        className="inline-flex items-center gap-1 rounded-lg border border-zinc-600 text-zinc-200 text-[10px] font-bold px-2.5 py-1.5 disabled:opacity-40 cursor-pointer"
-                      >
-                        <Eye className="w-3 h-3" /> Visualizar vídeo
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!selected.video_url && !selected.still_url}
-                        onClick={() => {
-                          if (selected.video_url) {
-                            downloadMedia(
-                              selected.video_url,
-                              `${selected.id}-final-5s.mp4`
-                            );
-                          } else if (
-                            selected.endFrame?.imageUrl ||
-                            selected.still_url
-                          ) {
-                            downloadMedia(
-                              selected.endFrame?.imageUrl ||
-                                selected.still_url ||
-                                "",
-                              `${selected.id}-end-frame.png`
-                            );
-                          }
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-violet-500/40 bg-violet-500/10 text-violet-100 text-[10px] font-bold px-2.5 py-1.5 disabled:opacity-40 cursor-pointer"
-                      >
-                        <Download className="w-3 h-3" /> Baixar resultado
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!framesReady(selected)}
-                        onClick={() => void exportGoogleFlow(selected)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-zinc-600 text-zinc-300 text-[10px] font-bold px-2.5 py-1.5 disabled:opacity-40 cursor-pointer"
-                      >
-                        <Copy className="w-3 h-3" /> Export Google Flow
-                      </button>
+                      {selected.video_url && (
+                        <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-[10px] font-bold px-2.5 py-1.5">
+                          <Check className="w-3 h-3" /> Vídeo enviado
+                        </span>
+                      )}
                     </div>
                     {selected.motion?.videoPrompt && (
                       <details className="text-[9px] text-zinc-500">
