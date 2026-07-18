@@ -2365,15 +2365,14 @@ export function CollageBrollLab({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="text-[9px] text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                  className="text-[10px] text-zinc-400 hover:text-zinc-100 cursor-pointer bg-zinc-900/90 hover:bg-zinc-900 border border-zinc-800 rounded-md px-2 py-0.5 transition"
                   onClick={handleResetAll}
                 >
                   Limpar tudo
                 </button>
-                <span className="text-zinc-800 text-[9px] select-none">|</span>
                 <button
                   type="button"
-                  className="text-[9px] text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                  className="text-[10px] text-zinc-400 hover:text-zinc-100 cursor-pointer bg-zinc-900/90 hover:bg-zinc-900 border border-zinc-800 rounded-md px-2 py-0.5 transition"
                   onClick={() =>
                     setRawLines(isGeo ? DEMO_LINES_GEO : DEMO_LINES_EDITORIAL)
                   }
