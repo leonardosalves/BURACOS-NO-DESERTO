@@ -945,7 +945,7 @@ export function CollageBrollLab({
     return activePalettes.find((p) => p.id === selectedPaletteId) || null;
   }, [selectedPaletteId, activePalettes]);
 
-  const switchMode = (next: CollageMode) => {
+  const switchMode = async (next: CollageMode) => {
     setMode(next);
     setItems([]);
     setScriptAnalysis(null);
@@ -953,20 +953,47 @@ export function CollageBrollLab({
     setActiveGate(1);
     setReviewPanel("none");
     setSelectedPaletteId(RANDOM_PALETTE_ID);
-    setSessionId(`collage_${Date.now().toString(36)}`);
-    try {
-      localStorage.removeItem(LS_SESSION_KEY);
-    } catch {
-      /* ignore */
-    }
+
+    let nextRawLines = "";
     if (next === "geo") {
       setRawLines(DEMO_LINES_GEO);
       setFidelity("balanced");
+      nextRawLines = DEMO_LINES_GEO;
     } else {
       setRawLines(DEMO_LINES_EDITORIAL);
       setPlaceHint("");
       setCountryHint("");
       setEraHint("");
+      nextRawLines = DEMO_LINES_EDITORIAL;
+    }
+
+    const payload = {
+      sessionId,
+      mode: next,
+      fidelity: next === "geo" ? "balanced" : fidelity,
+      rawLines: nextRawLines,
+      placeHint: next === "geo" ? placeHint : "",
+      countryHint: next === "geo" ? countryHint : "",
+      eraHint: next === "geo" ? eraHint : "",
+      scriptAnalysis: null,
+      selectedId: null,
+      items: [],
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      localStorage.setItem(LS_SESSION_KEY, JSON.stringify(payload));
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      await postJson("/api/collage-broll/session", payload);
+    } catch (err) {
+      console.warn(
+        "[CollageBroll] switchMode: falha ao salvar no backend",
+        err
+      );
     }
   };
 
@@ -2611,7 +2638,7 @@ export function CollageBrollLab({
                 com prévia de color field.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[520px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-1">
                 {items.map((item) => {
                   const active = selected?.id === item.id;
                   return (
