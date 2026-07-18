@@ -188,6 +188,7 @@ export function AppTabPanels({
           >
             <CollageBrollLab
               getProjectUrl={getProjectUrl}
+              initialSessionId={activeProject}
               onSendToWizard={async (sid, narration) => {
                 toast.loading("Criando projeto e sincronizando mídias...", {
                   id: "send-wizard-sync",

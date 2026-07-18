@@ -1074,6 +1074,42 @@ export function CollageBrollLab({
     }
   }, []);
 
+  /** Hidrata sessão a partir do servidor quando o sessionId muda */
+  useEffect(() => {
+    if (!sessionId) return;
+    let active = true;
+    const loadSessionFromServer = async () => {
+      try {
+        const res = await fetch(
+          `/api/collage-broll/session/${encodeURIComponent(sessionId)}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.ok && data?.session && active) {
+          const s = data.session;
+          if (s.mode) setMode(s.mode);
+          if (s.fidelity) setFidelity(s.fidelity);
+          if (s.rawLines) setRawLines(s.rawLines);
+          if (s.placeHint) setPlaceHint(s.placeHint);
+          if (s.countryHint) setCountryHint(s.countryHint);
+          if (s.eraHint) setEraHint(s.eraHint);
+          if (s.scriptAnalysis) setScriptAnalysis(s.scriptAnalysis);
+          if (Array.isArray(s.items) && s.items.length) {
+            setItems(s.items.map((i: any) => normalizePipelineItem(i)));
+            setSelectedId(s.selectedId || s.items[0]?.id || null);
+            setActiveGate(1);
+          }
+        }
+      } catch (err) {
+        console.warn("[CollageBroll] Erro ao carregar sessão do servidor", err);
+      }
+    };
+    loadSessionFromServer();
+    return () => {
+      active = false;
+    };
+  }, [sessionId]);
+
   /** Persiste sessão local + espelho no backend (best-effort). */
   const persistSession = useCallback(
     async (nextItems: CollageItem[], opts: { silent?: boolean } = {}) => {

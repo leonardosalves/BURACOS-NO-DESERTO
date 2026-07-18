@@ -399,7 +399,7 @@ export function AppShell({
               active={activeTab === "collage-broll"}
               onClick={() => setActiveTab("collage-broll")}
               icon={Layers}
-              label="Collage B-roll"
+              label="Lab Colagem"
               helpId="tab-collage-broll"
             />
             <SidebarLink
