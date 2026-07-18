@@ -970,6 +970,25 @@ export function CollageBrollLab({
     }
   };
 
+  const handleResetAll = () => {
+    setItems([]);
+    setScriptAnalysis(null);
+    setSelectedId(null);
+    setActiveGate(1);
+    setReviewPanel("none");
+    setSelectedPaletteId(RANDOM_PALETTE_ID);
+    setSessionId(`collage_${Date.now().toString(36)}`);
+    try {
+      localStorage.removeItem(LS_SESSION_KEY);
+    } catch {
+      /* ignore */
+    }
+    setRawLines("");
+    setPlaceHint("");
+    setCountryHint("");
+    setEraHint("");
+  };
+
   const postJson = useCallback(
     async (path: string, body: unknown) => {
       const res = await fetch(getProjectUrl(path), {
@@ -2343,15 +2362,25 @@ export function CollageBrollLab({
                 />
                 Linhas de narração (~5s cada)
               </p>
-              <button
-                type="button"
-                className="text-[9px] text-zinc-500 hover:text-zinc-300"
-                onClick={() =>
-                  setRawLines(isGeo ? DEMO_LINES_GEO : DEMO_LINES_EDITORIAL)
-                }
-              >
-                Restaurar demo
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="text-[9px] text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                  onClick={handleResetAll}
+                >
+                  Limpar tudo
+                </button>
+                <span className="text-zinc-800 text-[9px] select-none">|</span>
+                <button
+                  type="button"
+                  className="text-[9px] text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                  onClick={() =>
+                    setRawLines(isGeo ? DEMO_LINES_GEO : DEMO_LINES_EDITORIAL)
+                  }
+                >
+                  Restaurar demo
+                </button>
+              </div>
             </div>
             {isGeo && (
               <>
