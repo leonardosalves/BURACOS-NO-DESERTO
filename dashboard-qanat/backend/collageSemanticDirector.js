@@ -474,10 +474,14 @@ export function validateVisualProposal({
   scriptAnalysis = {},
 } = {}) {
   const anchors = [
-    ...(lineAnalysis.requiredVisualAnchors || []),
-    ...(lineAnalysis.geographicEntities || []),
-    ...(lineAnalysis.locations || []),
-  ].map((a) => String(a).toLowerCase());
+    ...new Set(
+      [
+        ...(lineAnalysis.requiredVisualAnchors || []),
+        ...(lineAnalysis.geographicEntities || []),
+        ...(lineAnalysis.locations || []),
+      ].map((a) => String(a).toLowerCase())
+    ),
+  ];
 
   const proposalText = [
     visualProposal.primarySubject,
