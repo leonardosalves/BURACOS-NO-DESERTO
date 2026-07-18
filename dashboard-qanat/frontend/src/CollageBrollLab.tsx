@@ -212,6 +212,119 @@ type CollageItem = CollageProposalFields & {
   rejectedAt?: string;
 };
 
+function isGeoItem(item: any) {
+  return (
+    String(item?.mode || "")
+      .trim()
+      .toLowerCase() === "geo"
+  );
+}
+
+function buildImagegenPrompt(item: any) {
+  const geo = isGeoItem(item);
+  const hex = item?.background_color?.hex || (geo ? "#0B3D5C" : "#3D2463");
+  const name =
+    item?.background_color?.name || (geo ? "ocean ink" : "deep purple");
+  const prop =
+    item?.visual_proposition || item?.core_meaning || "editorial metaphor";
+  const accents = (item?.accent_colors || ["cream", "teal"]).join(", ");
+  const place = [item?.place_name, item?.region, item?.country]
+    .filter(Boolean)
+    .join(", ");
+  const mapType = item?.map_type || "territory_outline";
+  const era = item?.era ? ` Era: ${item.era}.` : "";
+
+  if (geo) {
+    return `Use case: ads-marketing
+Asset type: final still frame for a 9:16 image-to-video geographic B-roll clip
+Primary request: Create a finished editorial paper-collage MAP image expressing ${prop}.${place ? ` Place focus: ${place}.` : ""}${era}
+Map type: ${mapType}.
+Scene/backdrop: perfectly flat ${name} paper field ${hex} with subtle map-paper or parchment fiber.
+Style/medium: premium editorial stop-motion paper collage of cartography — black-and-white halftone map/satellite cut-outs, country or city silhouettes as paper shapes, dotted paper routes, paper push-pin or flag, optional compass cardstock accents in ${accents}.
+Composition/framing: vertical 9:16 locked poster frame; territory/route readable in the middle 70 percent; generous clean color-field negative space; 3–6 large separable paper map layers for assemble-from-empty animation.
+Materials/textures: printed map grain, crisp cut edges of continents/countries, cream keylines, soft drop shadows, tactile atlas paper.
+Constraints: geographic relationship must read at a glance — ${item?.core_meaning || prop}. Accurate silhouette feel for real places when named; abstract cartography if conceptual.
+Avoid: no readable street names, no Google Maps UI, no Apple Maps chrome, no GPS HUD, no logos, no watermark, no subtitles, no photoreal 3D city flythrough, no clutter.`;
+  }
+
+  return `Use case: ads-marketing
+Asset type: final still frame for a 9:16 image-to-video B-roll clip
+Primary request: Create a finished editorial paper-collage image expressing ${prop}.
+Scene/backdrop: perfectly flat ${name} paper field ${hex} with subtle uncoated paper fiber.
+Style/medium: premium editorial stop-motion paper collage; black-and-white halftone photographic cut-outs mixed with selective ${accents} colored cardstock.
+Composition/framing: vertical 9:16 locked poster frame; central subject within the middle 70 percent; generous clean color-field negative space; 3–6 large separable paper groups for later assemble-from-empty animation.
+Materials/textures: visible printed halftone dots, crisp machine-cut edges, thin warm-cream paper keylines, soft low-opacity physical drop shadows.
+Constraints: the visual relationship must be readable at a glance — ${item?.core_meaning || prop}.
+Avoid: no typography, no readable letters, no numerals, no logos, no watermark, no UI, no subtitles, no glossy 3D, no photoreal environment, no clutter.`;
+}
+
+function buildEndFrameImagePrompt(item: any) {
+  return (
+    buildImagegenPrompt(item) +
+    `\n\nEND FRAME REQUIREMENTS:
+- This is the FINAL completed composition of the paper collage.
+- All intended paper cut-outs are fully visible and settled in their final positions.
+- Centered finished assembly, readable in 5 seconds.
+- Vertical 9:16 locked poster.
+- No text, no labels, no letters, no logos, no watermark.
+- This frame will be the exact last frame of the video.`
+  );
+}
+
+function buildStartFrameImagePrompt(item: any) {
+  const hex = item?.background_color?.hex || "#0B3D5C";
+  const name =
+    item?.background_color?.name ||
+    (isGeoItem(item) ? "ocean ink" : "deep purple");
+  const objects = (item.visualProposal?.objects || item.key_objects || []).map(
+    String
+  );
+  const moving = objects.slice(0, 4);
+  const geo = isGeoItem(item);
+
+  const offscreenPlan =
+    moving.length >= 2
+      ? `Place the exact first cut-out "${moving[0]}" partially outside the upper-left edge. Place the exact second cut-out "${moving[1]}" partially outside the lower-right edge. Keep the center mostly empty.`
+      : moving.length === 1
+        ? `Place the exact cut-out "${moving[0]}" partially outside the frame edge, ready to slide in. Keep the center mostly empty.`
+        : `Keep the center empty; only the flat paper field is visible.`;
+
+  return `Use case: ads-marketing
+Asset type: START FRAME (empty / pre-assembly) for 9:16 paper-collage image-to-video
+Primary request: Create the INITIAL state of the same editorial paper collage that will finish as the approved end composition.
+Scene/backdrop: perfectly flat ${name} paper field ${hex} with the SAME paper grain / parchment texture as the end frame.
+Style/medium: premium editorial stop-motion paper collage${geo ? " of cartography" : ""}; black-and-white halftone; colored cardstock accents.
+Composition/framing: vertical 9:16 locked poster frame — IDENTICAL framing to the end frame.
+${offscreenPlan}
+Preserve from the end frame: silhouettes, colors, scale, cut edges, shadows, palette, texture, lighting, object identity.
+Constraints: fromEndFrame=true — do NOT invent a new design. Only reposition/hide elements for the start state.
+Avoid: no new objects, no text, no labels, no letters, no logos, no watermark, no morphing of geographic shapes.`;
+}
+
+function buildMotionPrompt(item: any) {
+  const geo = isGeoItem(item);
+  const objects = (item.visualProposal?.objects || item.key_objects || []).map(
+    String
+  );
+  const moving = objects.slice(0, 4);
+  const order = (item.assembly_order || moving).map(String).join("; ");
+
+  const moveLine =
+    moving.length >= 2
+      ? `Animate the exact paper cut-out "${moving[0]}" sliding in from the upper-left while the exact paper cut-out "${moving[1]}" slides in from the lower-right. Additional pieces assemble in order: ${order}.`
+      : moving.length === 1
+        ? `Animate the exact paper cut-out "${moving[0]}" sliding into its final position with restrained handcrafted stop-motion steps.`
+        : `Assemble the collage piece by piece with crisp physical stop-motion timing: ${order || "structure, subjects, result"}.`;
+
+  return `Using the supplied start and end frames, ${moveLine}
+Both pieces settle with softly shifting physical shadows.
+Preserve the exact silhouettes${geo ? " of geographic shapes" : ""}, colors, scale, paper texture, background, grid and 9:16 framing.
+Static elements (background, grid, texture) must not move.
+End exactly on the supplied end frame.
+No morphing, no new objects, no object removal, no scene cuts, no text, no letters, no logos, no watermark.
+No camera movement, no zoom, no pan, no tilt.`;
+}
+
 const LS_SESSION_KEY = "lumiera-collage-broll-session-v1";
 
 type PipelineStepState =
@@ -2618,7 +2731,7 @@ export function CollageBrollLab({ getProjectUrl }: Props) {
                               "Prompt End Frame",
                               selected.endFrame?.imagePrompt ||
                                 selected.imagegen_prompt ||
-                                ""
+                                buildEndFrameImagePrompt(selected)
                             )
                           }
                           className="text-[8px] text-amber-300 hover:text-amber-200 font-bold cursor-pointer"
@@ -2629,7 +2742,7 @@ export function CollageBrollLab({ getProjectUrl }: Props) {
                       <p className="text-[9px] text-zinc-400 line-clamp-2 select-all font-mono leading-tight">
                         {selected.endFrame?.imagePrompt ||
                           selected.imagegen_prompt ||
-                          "Gerando prompt..."}
+                          buildEndFrameImagePrompt(selected)}
                       </p>
                     </div>
 
@@ -2719,7 +2832,8 @@ export function CollageBrollLab({ getProjectUrl }: Props) {
                           onClick={() =>
                             copyText(
                               "Prompt Start Frame",
-                              selected.startFrame?.imagePrompt || ""
+                              selected.startFrame?.imagePrompt ||
+                                buildStartFrameImagePrompt(selected)
                             )
                           }
                           className="text-[8px] text-amber-300 hover:text-amber-200 font-bold cursor-pointer"
@@ -2729,7 +2843,7 @@ export function CollageBrollLab({ getProjectUrl }: Props) {
                       </div>
                       <p className="text-[9px] text-zinc-400 line-clamp-2 select-all font-mono leading-tight">
                         {selected.startFrame?.imagePrompt ||
-                          "Gerando prompt..."}
+                          buildStartFrameImagePrompt(selected)}
                       </p>
                     </div>
 
@@ -2917,7 +3031,7 @@ export function CollageBrollLab({ getProjectUrl }: Props) {
                               "Prompt Vídeo",
                               selected.motion?.videoPrompt ||
                                 selected.omni_prompt ||
-                                ""
+                                buildMotionPrompt(selected)
                             )
                           }
                           className="text-[8px] text-amber-300 hover:text-amber-200 font-bold cursor-pointer"
@@ -2928,7 +3042,7 @@ export function CollageBrollLab({ getProjectUrl }: Props) {
                       <p className="text-[9px] text-zinc-400 line-clamp-2 select-all font-mono leading-tight">
                         {selected.motion?.videoPrompt ||
                           selected.omni_prompt ||
-                          "Gerando prompt..."}
+                          buildMotionPrompt(selected)}
                       </p>
                     </div>
 
