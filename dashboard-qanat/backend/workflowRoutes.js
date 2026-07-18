@@ -1033,6 +1033,7 @@ export function registerWorkflowRoutes(app, deps) {
         cardId: resolvedId,
         previousVersion: parsed.previousVersion,
         candidateVersion: {
+          ...parsed.candidateVersion,
           ...normalizeEditorialCardSpec(
             parsed.candidateVersion,
             Number(currentItem.sourceLineIndex) || 0,
@@ -1044,6 +1045,12 @@ export function registerWorkflowRoutes(app, deps) {
           generationRunId: currentItem.generationRunId,
           inputHash: currentItem.inputHash,
           sourceLineIndex: currentItem.sourceLineIndex,
+          visual_spec: normalizeEditorialCardSpec(
+            parsed.candidateVersion,
+            Number(currentItem.sourceLineIndex) || 0,
+            currentLine,
+            mode
+          ),
         },
         validation: parsed.validation,
         changes: parsed.changes,
