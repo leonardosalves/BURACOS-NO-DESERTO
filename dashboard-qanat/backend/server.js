@@ -18122,7 +18122,13 @@ app.post("/api/upload-scene-asset", (req, res) => {
 
   const safeFilename = path.basename(filename).replace(/[^a-zA-Z0-9.-]/g, "_");
 
-  const destFileName = idx !== undefined ? safeFilename : `cena_${scene}${ext}`;
+  const timestamp = Date.now();
+  const parsed = path.parse(safeFilename);
+  const safeBase = parsed.name.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const destFileName =
+    idx !== undefined
+      ? `${safeBase}_${timestamp}${parsed.ext.toLowerCase()}`
+      : `cena_${scene}_${timestamp}${ext}`;
 
   const destFilePath = path.join(assetsDir, destFileName);
 
@@ -18163,6 +18169,21 @@ app.post("/api/upload-scene-asset", (req, res) => {
 
         const assetIdx = parseInt(idx, 10);
         const prevSlot = config.timeline_assets[blockKey][assetIdx] || {};
+
+        if (prevSlot.asset) {
+          const oldFilePath = path.join(assetsDir, prevSlot.asset);
+          if (fs.existsSync(oldFilePath)) {
+            try {
+              fs.unlinkSync(oldFilePath);
+            } catch (err) {
+              console.warn(
+                "[Upload Scene Asset] Falha ao deletar asset antigo:",
+                err.message
+              );
+            }
+          }
+        }
+
         config.timeline_assets[blockKey][assetIdx] = {
           ...prevSlot,
           ...assetItem,
@@ -18176,6 +18197,24 @@ app.post("/api/upload-scene-asset", (req, res) => {
 
         if (!config.timeline_assets[blockKey]) {
           config.timeline_assets[blockKey] = [];
+        }
+
+        const prefixPattern = `cena_${scene}`;
+        try {
+          const files = fs.readdirSync(assetsDir);
+          for (const file of files) {
+            if (file.startsWith(prefixPattern) && file !== destFileName) {
+              const oldPath = path.join(assetsDir, file);
+              if (fs.existsSync(oldPath)) {
+                fs.unlinkSync(oldPath);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn(
+            "[Upload Scene Asset] Falha ao limpar arquivos antigos de cena:",
+            err.message
+          );
         }
 
         config.timeline_assets[blockKey].push({
