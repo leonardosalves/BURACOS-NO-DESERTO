@@ -1,0 +1,61 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_restore_lumiera_dev_mode_ps1",
+      "label": "restore-lumiera-dev-mode.ps1",
+      "file_type": "code",
+      "source_file": "scripts/restore-lumiera-dev-mode.ps1",
+      "source_location": "L1"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_restore_lumiera_dev_mode_write_step",
+      "label": "Write-Step()",
+      "file_type": "code",
+      "source_file": "scripts/restore-lumiera-dev-mode.ps1",
+      "source_location": "L10"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_restore_lumiera_dev_mode_test_admin",
+      "label": "Test-Admin()",
+      "file_type": "code",
+      "source_file": "scripts/restore-lumiera-dev-mode.ps1",
+      "source_location": "L14"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_restore_lumiera_dev_mode_ps1",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_restore_lumiera_dev_mode_write_step",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/restore-lumiera-dev-mode.ps1",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_restore_lumiera_dev_mode_ps1",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_restore_lumiera_dev_mode_test_admin",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/restore-lumiera-dev-mode.ps1",
+      "source_location": "L14",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_restore_lumiera_dev_mode_write_step",
+      "callee": "Write-Host",
+      "is_member_call": false,
+      "source_file": "scripts/restore-lumiera-dev-mode.ps1",
+      "source_location": "L11"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_restore_lumiera_dev_mode_test_admin",
+      "callee": "New-Object",
+      "is_member_call": false,
+      "source_file": "scripts/restore-lumiera-dev-mode.ps1",
+      "source_location": "L16"
+    }
+  ]
+}

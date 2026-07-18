@@ -1,0 +1,161 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_json",
+      "label": "mcp.json",
+      "file_type": "code",
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "metadata": { "mcp_kind": "mcp_config_file" }
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_supermemory",
+      "label": "supermemory",
+      "file_type": "code",
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "metadata": { "mcp_kind": "mcp_server" }
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_comfy_cloud",
+      "label": "comfy-cloud",
+      "file_type": "code",
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "metadata": { "mcp_kind": "mcp_server" }
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_notebooklm_mcp",
+      "label": "notebooklm-mcp",
+      "file_type": "code",
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "metadata": { "mcp_kind": "mcp_server" }
+    },
+    {
+      "id": "mcp_command_notebooklm_mcp",
+      "label": "notebooklm-mcp",
+      "file_type": "code",
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "metadata": { "mcp_kind": "mcp_command" }
+    },
+    {
+      "id": "env_var_notebooklm_mcp_cli_path",
+      "label": "NOTEBOOKLM_MCP_CLI_PATH",
+      "file_type": "code",
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "metadata": { "mcp_kind": "env_var" }
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_context7",
+      "label": "context7",
+      "file_type": "code",
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "metadata": { "mcp_kind": "mcp_server" }
+    },
+    {
+      "id": "mcp_command_cmd",
+      "label": "cmd",
+      "file_type": "code",
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "metadata": { "mcp_kind": "mcp_command" }
+    },
+    {
+      "id": "mcp_package_upstash_context7_mcp",
+      "label": "@upstash/context7-mcp",
+      "file_type": "code",
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "metadata": { "mcp_kind": "mcp_package" }
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_json",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_supermemory",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_json",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_comfy_cloud",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_json",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_notebooklm_mcp",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_notebooklm_mcp",
+      "target": "mcp_command_notebooklm_mcp",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "weight": 1.0,
+      "context": "command"
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_notebooklm_mcp",
+      "target": "env_var_notebooklm_mcp_cli_path",
+      "relation": "requires_env",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_json",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_context7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_context7",
+      "target": "mcp_command_cmd",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "weight": 1.0,
+      "context": "command"
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_cursor_mcp_mcp_server_context7",
+      "target": "mcp_package_upstash_context7_mcp",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".cursor/mcp.json",
+      "source_location": "L1",
+      "weight": 1.0,
+      "context": "package"
+    }
+  ]
+}

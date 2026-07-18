@@ -1,0 +1,881 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "label": "upload_instagram.py",
+      "file_type": "code",
+      "source_file": "upload_instagram.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_load_json",
+      "label": "load_json()",
+      "file_type": "code",
+      "source_file": "upload_instagram.py",
+      "source_location": "L19",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_save_json",
+      "label": "save_json()",
+      "file_type": "code",
+      "source_file": "upload_instagram.py",
+      "source_location": "L29",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "label": "get_temp_public_url()",
+      "file_type": "code",
+      "source_file": "upload_instagram.py",
+      "source_location": "L40",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "label": "create_media_container()",
+      "file_type": "code",
+      "source_file": "upload_instagram.py",
+      "source_location": "L85",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_check_container_status",
+      "label": "check_container_status()",
+      "file_type": "code",
+      "source_file": "upload_instagram.py",
+      "source_location": "L104",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "label": "publish_media()",
+      "file_type": "code",
+      "source_file": "upload_instagram.py",
+      "source_location": "L115",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "upload_instagram.py",
+      "source_location": "L132",
+      "_callable": true
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "os",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "sys",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "json",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "lumiera_workspace",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "urllib_request",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "urllib_parse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "urllib_error",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "time",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "glob",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "mimetypes",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_load_json",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_save_json",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L85",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_check_container_status",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L104",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L115",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L132",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_load_json",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L144",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_save_json",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L167",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L170",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L178",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_check_container_status",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L190",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_instagram.py",
+      "source_location": "L208",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_load_json",
+      "callee": "exists",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L20",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_load_json",
+      "callee": "load",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L24",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_load_json",
+      "callee": "f",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "upload_instagram.py",
+      "source_location": "L24"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_load_json",
+      "callee": "basename",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L26",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_save_json",
+      "callee": "dump",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L32",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_save_json",
+      "callee": "f",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "upload_instagram.py",
+      "source_location": "L32"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_save_json",
+      "callee": "basename",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L35",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "read",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L45",
+      "receiver": "f"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "basename",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L47",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "guess_type",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L48",
+      "receiver": "mimetypes"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L51",
+      "receiver": "body"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "encode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L51",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L52",
+      "receiver": "body"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "encode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L52",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L53",
+      "receiver": "body"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "encode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L53",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L54",
+      "receiver": "body"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L55",
+      "receiver": "body"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L56",
+      "receiver": "body"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "encode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L56",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L57",
+      "receiver": "body"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "join",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L59",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "urlopen",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L72",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "loads",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L73",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "decode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L73",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "read",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L73",
+      "receiver": "response"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L74",
+      "receiver": "res_body"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_get_temp_public_url",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L75",
+      "receiver": "res_body"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "callee": "encode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L88",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "callee": "urlencode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L88",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "callee": "urlopen",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L97",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "callee": "loads",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L98",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "callee": "decode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L98",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "callee": "read",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L98",
+      "receiver": "response"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L99",
+      "receiver": "res"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "callee": "decode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L101",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_create_media_container",
+      "callee": "read",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L101",
+      "receiver": "e"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_check_container_status",
+      "callee": "urlopen",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L108",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_check_container_status",
+      "callee": "loads",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L109",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_check_container_status",
+      "callee": "decode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L109",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_check_container_status",
+      "callee": "read",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L109",
+      "receiver": "response"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_check_container_status",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L110",
+      "receiver": "res"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_check_container_status",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L110",
+      "receiver": "res"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_check_container_status",
+      "callee": "e",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "upload_instagram.py",
+      "source_location": "L113"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "callee": "encode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L118",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "callee": "urlencode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L118",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "callee": "urlopen",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L125",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "callee": "loads",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L126",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "callee": "decode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L126",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "callee": "read",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L126",
+      "receiver": "response"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L127",
+      "receiver": "res"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "callee": "decode",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L129",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_publish_media",
+      "callee": "read",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L129",
+      "receiver": "e"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "resolve_project_dir",
+      "is_member_call": false,
+      "source_file": "upload_instagram.py",
+      "source_location": "L134",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "strip",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L135",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L135",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "resolve_output_video",
+      "is_member_call": false,
+      "source_file": "upload_instagram.py",
+      "source_location": "L136",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L139",
+      "receiver": "sys"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "resolve_workspace",
+      "is_member_call": false,
+      "source_file": "upload_instagram.py",
+      "source_location": "L141",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "join",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L143",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L146",
+      "receiver": "secrets"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L146",
+      "receiver": "secrets"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L148",
+      "receiver": "sys"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "join",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L154",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "resolve_platform_caption",
+      "is_member_call": false,
+      "source_file": "upload_instagram.py",
+      "source_location": "L157",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L175",
+      "receiver": "sys"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L182",
+      "receiver": "sys"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "time",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L187",
+      "receiver": "time"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "sleep",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L189",
+      "receiver": "time"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L199",
+      "receiver": "sys"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "time",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L201",
+      "receiver": "time"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L205",
+      "receiver": "sys"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_instagram_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_instagram.py",
+      "source_location": "L218",
+      "receiver": "sys"
+    }
+  ]
+}

@@ -1,7 +1,10 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/context-engineering|context engineering]] · [[SKILLS]]
+
 ---
+
 name: context-engineering
 description: >
-  Principles and patterns for Context Engineering (CE) in LLMs.
+Principles and patterns for Context Engineering (CE) in LLMs.
 ---
 
 ---

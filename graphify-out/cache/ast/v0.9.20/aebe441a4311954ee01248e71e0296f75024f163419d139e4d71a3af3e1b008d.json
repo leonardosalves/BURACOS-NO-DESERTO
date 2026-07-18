@@ -1,0 +1,190 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_py",
+      "label": "find_block_timings.py",
+      "file_type": "code",
+      "source_file": "find_block_timings.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_clean_text",
+      "label": "clean_text()",
+      "file_type": "code",
+      "source_file": "find_block_timings.py",
+      "source_location": "L23",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_main",
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "find_block_timings.py",
+      "source_location": "L26",
+      "_callable": true
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_py",
+      "target": "whisper",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "find_block_timings.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_py",
+      "target": "json",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "find_block_timings.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_py",
+      "target": "re",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "find_block_timings.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_py",
+      "target": "os",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "find_block_timings.py",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_py",
+      "target": "json",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "find_block_timings.py",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_clean_text",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "find_block_timings.py",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "find_block_timings.py",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_main",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_clean_text",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "find_block_timings.py",
+      "source_location": "L44",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_clean_text",
+      "callee": "strip",
+      "is_member_call": true,
+      "source_file": "find_block_timings.py",
+      "source_location": "L24",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_clean_text",
+      "callee": "sub",
+      "is_member_call": true,
+      "source_file": "find_block_timings.py",
+      "source_location": "L24",
+      "receiver": "re"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_clean_text",
+      "callee": "lower",
+      "is_member_call": true,
+      "source_file": "find_block_timings.py",
+      "source_location": "L24",
+      "receiver": "text"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_main",
+      "callee": "load_model",
+      "is_member_call": true,
+      "source_file": "find_block_timings.py",
+      "source_location": "L28",
+      "receiver": "whisper"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_main",
+      "callee": "transcribe",
+      "is_member_call": true,
+      "source_file": "find_block_timings.py",
+      "source_location": "L31",
+      "receiver": "model"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_main",
+      "callee": "split",
+      "is_member_call": true,
+      "source_file": "find_block_timings.py",
+      "source_location": "L54",
+      "receiver": "phrase"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_main",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "find_block_timings.py",
+      "source_location": "L58",
+      "receiver": "segment"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_main",
+      "callee": "dump",
+      "is_member_call": true,
+      "source_file": "find_block_timings.py",
+      "source_location": "L69",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_main",
+      "callee": "f",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "find_block_timings.py",
+      "source_location": "L69"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_find_block_timings_main",
+      "callee": "keys",
+      "is_member_call": true,
+      "source_file": "find_block_timings.py",
+      "source_location": "L72",
+      "receiver": "block_starts"
+    }
+  ]
+}

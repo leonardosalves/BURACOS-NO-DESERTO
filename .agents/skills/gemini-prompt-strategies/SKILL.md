@@ -1,7 +1,10 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/gemini-prompt-strategies|gemini prompt strategies]] · [[SKILLS]]
+
 ---
+
 name: gemini-prompt-strategies
 description: >
-  Prompt engineering strategies and patterns for Google Gemini and Veo models.
+Prompt engineering strategies and patterns for Google Gemini and Veo models.
 ---
 
 # Gemini 프롬프트 전략 통합 가이드

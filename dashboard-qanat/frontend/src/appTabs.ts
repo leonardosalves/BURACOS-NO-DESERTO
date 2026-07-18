@@ -26,7 +26,8 @@ export type AppTab =
   | "templates"
   | "docs"
   | "projects"
-  | "tools";
+  | "tools"
+  | "graphify";
 
 export const RESTORABLE_APP_TABS: AppTab[] = [
   "home",
@@ -56,6 +57,7 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   "docs",
   "projects",
   "tools",
+  "graphify",
 ];
 
 export const GLOBAL_VIEW_TABS: AppTab[] = [

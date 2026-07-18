@@ -4,6 +4,7 @@ import {
   Bot,
   Clapperboard,
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Cloud,
@@ -50,10 +51,11 @@ type GlobalNavItem = {
   accent?: "default" | "youtube" | "sky" | "amber";
 };
 
-const STUDIO_NAV: GlobalNavItem[] = [
+/* ── Estúdio sub-groups ──────────────────────────────────────────── */
+const STUDIO_ANALYSIS: GlobalNavItem[] = [
   {
     id: "project-health",
-    label: "Saude do Sistema",
+    label: "Saúde do Sistema",
     icon: HeartPulse,
     helpId: "tab-project-health",
     accent: "sky",
@@ -73,6 +75,9 @@ const STUDIO_NAV: GlobalNavItem[] = [
     helpId: "tab-flow-lab",
     accent: "amber",
   },
+];
+
+const STUDIO_CHANNELS: GlobalNavItem[] = [
   {
     id: "youtube-studio",
     label: "Canal YouTube",
@@ -88,18 +93,21 @@ const STUDIO_NAV: GlobalNavItem[] = [
     accent: "amber",
   },
   {
-    id: "agent-reach",
-    label: "Pesquisa Web",
-    icon: Globe,
-    helpId: "tab-agent-reach",
-    accent: "sky",
-  },
-  {
     id: "trend-forecast",
     label: "Radar Tendências",
     icon: TrendingUp,
     helpId: "tab-trend-forecast",
     accent: "amber",
+  },
+];
+
+const STUDIO_TOOLS: GlobalNavItem[] = [
+  {
+    id: "agent-reach",
+    label: "Pesquisa Web",
+    icon: Globe,
+    helpId: "tab-agent-reach",
+    accent: "sky",
   },
   {
     id: "comfy-mcp",
@@ -123,6 +131,20 @@ const STUDIO_NAV: GlobalNavItem[] = [
     accent: "sky",
   },
 ];
+
+/* ── Sidebar collapse key for localStorage ──────────────────────── */
+const SIDEBAR_COLLAPSE_KEY = "lumiera-sidebar-collapsed";
+function loadCollapsed(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_COLLAPSE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+function saveCollapsed(state: Record<string, boolean>) {
+  localStorage.setItem(SIDEBAR_COLLAPSE_KEY, JSON.stringify(state));
+}
 
 type AppShellProps = {
   activeTab: AppTab;
@@ -188,6 +210,41 @@ function SidebarLink({
   );
 }
 
+/** Collapsible sidebar section header */
+function SidebarSection({
+  title,
+  collapsed,
+  onToggle,
+  count,
+  children,
+}: {
+  title: string;
+  collapsed: boolean;
+  onToggle: () => void;
+  count?: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <button
+        type="button"
+        className="dash-nav-category-toggle"
+        onClick={onToggle}
+        aria-expanded={!collapsed}
+      >
+        <ChevronDown
+          className={`dash-nav-category-chevron ${collapsed ? "dash-nav-category-chevron-collapsed" : ""}`}
+        />
+        <span>{title}</span>
+        {collapsed && count != null && count > 0 && (
+          <span className="dash-nav-category-count">{count}</span>
+        )}
+      </button>
+      {!collapsed && <ul className="dash-nav-list">{children}</ul>}
+    </>
+  );
+}
+
 export function AppShell({
   activeTab,
   setActiveTab,
@@ -208,6 +265,16 @@ export function AppShell({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [serviceRestarting, setServiceRestarting] = useState(false);
+  const [collapsed, setCollapsed] =
+    useState<Record<string, boolean>>(loadCollapsed);
+
+  const toggleSection = useCallback((key: string) => {
+    setCollapsed((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      saveCollapsed(next);
+      return next;
+    });
+  }, []);
   const [opsCanRestart, setOpsCanRestart] = useState(
     typeof navigator !== "undefined" && /Win/i.test(navigator.userAgent || "")
   );
@@ -346,8 +413,13 @@ export function AppShell({
         </div>
 
         <div className="dash-sidebar-body">
-          <p className="dash-nav-category">Produção</p>
-          <ul className="dash-nav-list">
+          {/* ── Produção ─────────────────────────────────────── */}
+          <SidebarSection
+            title="Produção"
+            collapsed={!!collapsed["producao"]}
+            onToggle={() => toggleSection("producao")}
+            count={2}
+          >
             <SidebarLink
               active={activeTab === "home"}
               onClick={() => setActiveTab("home")}
@@ -362,10 +434,15 @@ export function AppShell({
               label="Biblioteca de Projetos"
               helpId="tab-projects"
             />
-          </ul>
+          </SidebarSection>
 
-          <p className="dash-nav-category">Criadores</p>
-          <ul className="dash-nav-list">
+          {/* ── Criadores ────────────────────────────────────── */}
+          <SidebarSection
+            title="Criadores"
+            collapsed={!!collapsed["criadores"]}
+            onToggle={() => toggleSection("criadores")}
+            count={7}
+          >
             <SidebarLink
               active={activeTab === "creator" && creatorMode === "ai"}
               onClick={() => onSelectCreatorMode("ai")}
@@ -400,7 +477,7 @@ export function AppShell({
               active={activeTab === "humor-facts"}
               onClick={() => setActiveTab("humor-facts")}
               icon={Laugh}
-              label="Fatos com Graca"
+              label="Fatos com Graça"
               helpId="tab-humor-facts"
             />
             <SidebarLink
@@ -421,20 +498,16 @@ export function AppShell({
               label="Engenharia Reversa"
               helpId="tab-video-reverse-engineering"
             />
-          </ul>
+          </SidebarSection>
 
+          {/* ── Recentes ─────────────────────────────────────── */}
           {recentItems.length > 0 && (
-            <>
-              <div className="dash-nav-category-row">
-                <p className="dash-nav-category">Recentes</p>
-                <button
-                  type="button"
-                  className="dash-link-muted"
-                  onClick={() => setActiveTab("projects")}
-                >
-                  Ver todos
-                </button>
-              </div>
+            <SidebarSection
+              title="Recentes"
+              collapsed={!!collapsed["recentes"]}
+              onToggle={() => toggleSection("recentes")}
+              count={recentItems.length}
+            >
               <ul className="dash-nav-list dash-recent-list">
                 {recentItems.map((proj) => {
                   const isSelected = activeProject === proj.name;
@@ -469,12 +542,36 @@ export function AppShell({
                   );
                 })}
               </ul>
-            </>
+            </SidebarSection>
           )}
 
-          <p className="dash-nav-category">Estúdio</p>
-          <ul className="dash-nav-list">
-            {STUDIO_NAV.map((item) => (
+          {/* ── Estúdio ▸ Análise & Gestão ───────────────────── */}
+          <SidebarSection
+            title="Análise & Gestão"
+            collapsed={!!collapsed["analise"]}
+            onToggle={() => toggleSection("analise")}
+            count={STUDIO_ANALYSIS.length}
+          >
+            {STUDIO_ANALYSIS.map((item) => (
+              <SidebarLink
+                key={item.id}
+                active={activeTab === item.id}
+                onClick={() => setActiveTab(item.id)}
+                icon={item.icon}
+                label={item.label}
+                helpId={item.helpId}
+              />
+            ))}
+          </SidebarSection>
+
+          {/* ── Estúdio ▸ Canais & Publicação ─────────────────── */}
+          <SidebarSection
+            title="Canais & Publicação"
+            collapsed={!!collapsed["canais"]}
+            onToggle={() => toggleSection("canais")}
+            count={STUDIO_CHANNELS.length}
+          >
+            {STUDIO_CHANNELS.map((item) => (
               <SidebarLink
                 key={item.id}
                 active={activeTab === item.id}
@@ -491,7 +588,26 @@ export function AppShell({
                 }
               />
             ))}
-          </ul>
+          </SidebarSection>
+
+          {/* ── Estúdio ▸ Ferramentas & Automação ─────────────── */}
+          <SidebarSection
+            title="Ferramentas & Automação"
+            collapsed={!!collapsed["ferramentas"]}
+            onToggle={() => toggleSection("ferramentas")}
+            count={STUDIO_TOOLS.length}
+          >
+            {STUDIO_TOOLS.map((item) => (
+              <SidebarLink
+                key={item.id}
+                active={activeTab === item.id}
+                onClick={() => setActiveTab(item.id)}
+                icon={item.icon}
+                label={item.label}
+                helpId={item.helpId}
+              />
+            ))}
+          </SidebarSection>
         </div>
 
         <div className="dash-sidebar-footer">

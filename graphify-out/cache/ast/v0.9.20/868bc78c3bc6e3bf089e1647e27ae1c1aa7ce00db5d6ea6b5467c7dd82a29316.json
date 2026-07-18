@@ -1,0 +1,68 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_cleanup_lumiera_temp_ps1",
+      "label": "cleanup-lumiera-temp.ps1",
+      "file_type": "code",
+      "source_file": "scripts/cleanup-lumiera-temp.ps1",
+      "source_location": "L1"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_cleanup_lumiera_temp_get_directorysizebytes",
+      "label": "Get-DirectorySizeBytes()",
+      "file_type": "code",
+      "source_file": "scripts/cleanup-lumiera-temp.ps1",
+      "source_location": "L14"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_cleanup_lumiera_temp_get_cachecategory",
+      "label": "Get-CacheCategory()",
+      "file_type": "code",
+      "source_file": "scripts/cleanup-lumiera-temp.ps1",
+      "source_location": "L21"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_cleanup_lumiera_temp_ps1",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_cleanup_lumiera_temp_get_directorysizebytes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/cleanup-lumiera-temp.ps1",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_cleanup_lumiera_temp_ps1",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_cleanup_lumiera_temp_get_cachecategory",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/cleanup-lumiera-temp.ps1",
+      "source_location": "L21",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_cleanup_lumiera_temp_get_directorysizebytes",
+      "callee": "0L",
+      "is_member_call": false,
+      "source_file": "scripts/cleanup-lumiera-temp.ps1",
+      "source_location": "L15"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_cleanup_lumiera_temp_get_directorysizebytes",
+      "callee": "Get-ChildItem",
+      "is_member_call": false,
+      "source_file": "scripts/cleanup-lumiera-temp.ps1",
+      "source_location": "L16"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_cleanup_lumiera_temp_get_directorysizebytes",
+      "callee": "ForEach-Object",
+      "is_member_call": false,
+      "source_file": "scripts/cleanup-lumiera-temp.ps1",
+      "source_location": "L17"
+    }
+  ]
+}

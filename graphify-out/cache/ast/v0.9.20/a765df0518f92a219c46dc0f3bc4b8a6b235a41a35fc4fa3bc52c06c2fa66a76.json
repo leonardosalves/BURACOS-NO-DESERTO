@@ -1,0 +1,124 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ps1",
+      "label": "setup-agent-reach.ps1",
+      "file_type": "code",
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L1"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ensure_agentreachvenv",
+      "label": "Ensure-AgentReachVenv()",
+      "file_type": "code",
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L9"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_add_userpathentry",
+      "label": "Add-UserPathEntry()",
+      "file_type": "code",
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L22"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ps1",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ensure_agentreachvenv",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ps1",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_add_userpathentry",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L22",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ensure_agentreachvenv",
+      "callee": "Test-Path",
+      "is_member_call": false,
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L10"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ensure_agentreachvenv",
+      "callee": "Join-Path",
+      "is_member_call": false,
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L10"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ensure_agentreachvenv",
+      "callee": "Write-Host",
+      "is_member_call": false,
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L11"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ensure_agentreachvenv",
+      "callee": "py",
+      "is_member_call": false,
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L12"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ensure_agentreachvenv",
+      "callee": "Join-Path",
+      "is_member_call": false,
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L14"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ensure_agentreachvenv",
+      "callee": "Test-Path",
+      "is_member_call": false,
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L15"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ensure_agentreachvenv",
+      "callee": "Write-Host",
+      "is_member_call": false,
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L16"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ensure_agentreachvenv",
+      "callee": "Join-Path",
+      "is_member_call": false,
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L17"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_ensure_agentreachvenv",
+      "callee": "Join-Path",
+      "is_member_call": false,
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L19"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_add_userpathentry",
+      "callee": "Test-Path",
+      "is_member_call": false,
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L23"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_agent_reach_add_userpathentry",
+      "callee": "Write-Host",
+      "is_member_call": false,
+      "source_file": "scripts/setup-agent-reach.ps1",
+      "source_location": "L28"
+    }
+  ]
+}

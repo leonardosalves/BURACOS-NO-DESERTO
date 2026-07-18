@@ -13,12 +13,16 @@ import {
   shouldUseStudioForRender,
 } from "./timelineStudioRenderSync.js";
 import { fillSceneTimelineGaps } from "./timelineSceneSync.js";
+import { loadRenderConfig } from "./brandAssets.js";
+import { mergeGlobalStudioIntoProjectConfig } from "./globalStudioDefaults.js";
+import { resolveCaptionRenderSettings } from "./captionConfig.js";
 
 const REMOTION_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../remotion-renderer"
 );
 const REMOTION_PUBLIC_DIR = path.join(REMOTION_DIR, "public");
+const BACKEND_DIR = path.dirname(fileURLToPath(import.meta.url));
 const FPS = 30;
 
 function safeProjectSlug(projectDir) {
@@ -138,7 +142,11 @@ export async function renderTimelineStudioFinalFrame({
   fs.rmSync(publicProjectDir, { recursive: true, force: true });
   fs.mkdirSync(publicProjectDir, { recursive: true });
 
-  const config = readProjectJson(projectDir, "config_qanat.json", {});
+  const projectConfig = readProjectJson(projectDir, "config_qanat.json", {});
+  const config = mergeGlobalStudioIntoProjectConfig(
+    projectConfig,
+    loadRenderConfig(BACKEND_DIR)
+  );
   const scenes = buildScenesFromStudio(studio, {
     projectDir,
     publicProjectDir,
@@ -165,6 +173,7 @@ export async function renderTimelineStudioFinalFrame({
     Math.max(0, totalDuration - 1 / FPS)
   );
   const format = resolveStudioFormat(studio, config);
+  const captionSettings = resolveCaptionRenderSettings(config, format);
   const props = {
     projectName: path.basename(projectDir),
     format,
@@ -178,9 +187,13 @@ export async function renderTimelineStudioFinalFrame({
     sfxTracks: [],
     overlays,
     musicVolume: 0,
-    captionStyle: format === "16:9" ? "documentary" : "shorts-viral",
-    captionMode: config.caption_mode || "caption-highlight",
-    captionEffect: config.caption_effect || "caption-highlight",
+    captionStyle: captionSettings.captionStyle,
+    captionMode: captionSettings.captionMode,
+    captionEffect: captionSettings.captionEffect,
+    captionMaxWordsPerChunk: captionSettings.captionMaxWordsPerChunk,
+    captionMaxLines: captionSettings.captionMaxLines,
+    captionRespectSentences: captionSettings.captionRespectSentences,
+    shortsCaptionBgmPulse: captionSettings.shortsCaptionBgmPulse,
     designPreset: config.design_preset || null,
     grainOverlay: false,
     vignette: config.vignette !== false,

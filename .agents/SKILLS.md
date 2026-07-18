@@ -8,13 +8,14 @@
 
 - [[skills/ad-concept-generator|ad concept generator]] — doc: [[skills/ad-concept-generator/SKILL]]
 - [[skills/agent-reach|agent reach]] — doc: [[skills/agent-reach/SKILL]]
-- [[skills/ai-camera-movements|ai camera movements]] — doc: [[skills/ai-camera-movements/SKILL]] · ref: [aicameramovements.com](https://aicameramovements.com/)
+- [[skills/ai-camera-movements|ai camera movements]] — doc: [[skills/ai-camera-movements/SKILL]]
 - [[skills/ai-ugc-ads|ai ugc ads]] — doc: [[skills/ai-ugc-ads/SKILL]]
 - [[skills/ask-matt|ask matt]] — doc: [[skills/ask-matt/SKILL]]
 - [[skills/claude-api|claude api]] — doc: [[skills/claude-api/SKILL]]
 - [[skills/code-review|code review]] — doc: [[skills/code-review/SKILL]]
 - [[skills/codebase-design|codebase design]] — doc: [[skills/codebase-design/SKILL]]
 - [[skills/content-strategy|content strategy]] — doc: [[skills/content-strategy/SKILL]]
+- [[skills/context-engineering|context engineering]] — doc: [[skills/context-engineering/SKILL]]
 - [[skills/decision-mapping|decision mapping]] — doc: [[skills/decision-mapping/SKILL]]
 - [[skills/deer-flow-research|deer flow research]] — doc: [[skills/deer-flow-research/SKILL]]
 - [[skills/design-an-interface|design an interface]] — doc: [[skills/design-an-interface/SKILL]]
@@ -24,8 +25,12 @@
 - [[skills/edit-article|edit article]] — doc: [[skills/edit-article/SKILL]]
 - [[skills/epidemic_sound|Epidemic Sound]] — doc: [[skills/epidemic_sound/SKILL]]
 - [[skills/frontend-design|frontend design]] — doc: [[skills/frontend-design/SKILL]]
+- [[skills/gbro-collage-broll|gbro collage broll]] — doc: [[skills/gbro-collage-broll/SKILL]]
+- [[skills/gemini-prompt-strategies|gemini prompt strategies]] — doc: [[skills/gemini-prompt-strategies/SKILL]]
 - [[skills/geo-video-prompts|geo video prompts]] — doc: [[skills/geo-video-prompts/SKILL]]
 - [[skills/git-guardrails-claude-code|git guardrails claude code]] — doc: [[skills/git-guardrails-claude-code/SKILL]]
+- [[skills/gpt-prompt-enhancement|gpt prompt enhancement]] — doc: [[skills/gpt-prompt-enhancement/SKILL]]
+- [[skills/graphify|graphify]] — doc: [[skills/graphify/SKILL]]
 - [[skills/grill-me|grill me]] — doc: [[skills/grill-me/SKILL]]
 - [[skills/grill-with-docs|grill with docs]] — doc: [[skills/grill-with-docs/SKILL]]
 - [[skills/grilling|grilling]] — doc: [[skills/grilling/SKILL]]
@@ -94,4 +99,4 @@
 ## Por que vários arquivos SKILL?
 
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-16T19:25:17.319Z
+atualizado: 2026-07-18T22:02:05.668Z

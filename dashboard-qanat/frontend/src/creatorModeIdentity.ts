@@ -4,7 +4,8 @@ export type CreatorIdeationMode =
   | "listicle"
   | "historical-witness"
   | "humor-facts"
-  | "video-reverse-engineering";
+  | "video-reverse-engineering"
+  | "collage-broll";
 
 export type CreatorModeIdentity = {
   id: CreatorIdeationMode;
@@ -61,7 +62,7 @@ export const CREATOR_MODE_IDENTITIES: Record<
     subtitle:
       "Listas com progressão, evidência e uma recompensa real no primeiro lugar.",
     promise:
-      "Organiza critérios, tensão crescente e identidade visual para fugir do Top N genérico.",
+      "Organiza critérios, tension crescente e identidade visual para fugir do Top N genérico.",
     sequence: ["Definir o critério", "Ordenar a tensão", "Dirigir o ranking"],
     accentText: "text-emerald-200",
     accentBorder: "border-emerald-400/30",
@@ -121,6 +122,21 @@ export const CREATOR_MODE_IDENTITIES: Record<
     accentBorder: "border-cyan-400/30",
     accentSurface: "bg-cyan-400/[0.06]",
     halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(34,211,238,0.2),transparent_34%)]",
+  },
+  "collage-broll": {
+    id: "collage-broll",
+    menuLabel: "Lab Colagem",
+    eyebrow: "Metáforas visuais stop-motion",
+    title: "Laboratório de Colagem",
+    subtitle:
+      "Crie narrações e projetos focados em colagem de papel stop-motion.",
+    promise:
+      "Gera narrações poéticas ou conceituais e já monta as metáforas do Collage B-roll automaticamente para produção tátil.",
+    sequence: ["Escrever a narração", "Refinar metáforas", "Produzir colagens"],
+    accentText: "text-emerald-200",
+    accentBorder: "border-emerald-400/30",
+    accentSurface: "bg-emerald-400/[0.06]",
+    halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(16,185,129,0.18),transparent_34%)]",
   },
 };
 

@@ -1,0 +1,577 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_py",
+      "label": "mix_bgm.py",
+      "file_type": "code",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_get_duration",
+      "label": "get_duration()",
+      "file_type": "code",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L17",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm",
+      "label": "load_pcm()",
+      "file_type": "code",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L22",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm_wrapped",
+      "label": "load_pcm_wrapped()",
+      "file_type": "code",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L34",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_write_pcm_to_mp3",
+      "label": "write_pcm_to_mp3()",
+      "file_type": "code",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L57",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L65",
+      "_callable": true
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_py",
+      "target": "os",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_py",
+      "target": "json",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_py",
+      "target": "subprocess",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_py",
+      "target": "numpy",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_get_duration",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm_wrapped",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_write_pcm_to_mp3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm_wrapped",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_get_duration",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm_wrapped",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm_wrapped",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_write_pcm_to_mp3",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L104",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_get_duration",
+      "callee": "loads",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L19",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_get_duration",
+      "callee": "decode",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L19",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_get_duration",
+      "callee": "check_output",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L19",
+      "receiver": "subprocess"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm",
+      "callee": "Popen",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L27",
+      "receiver": "subprocess"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm",
+      "callee": "communicate",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L28",
+      "receiver": "proc"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm",
+      "callee": "frombuffer",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L29",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm",
+      "callee": "zeros",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L31",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm",
+      "callee": "reshape",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L32",
+      "receiver": "data"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm_wrapped",
+      "callee": "concatenate",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L49",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm_wrapped",
+      "callee": "zeros",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L53",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_load_pcm_wrapped",
+      "callee": "concatenate",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L54",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_write_pcm_to_mp3",
+      "callee": "Popen",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L62",
+      "receiver": "subprocess"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_write_pcm_to_mp3",
+      "callee": "communicate",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L63",
+      "receiver": "proc"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_write_pcm_to_mp3",
+      "callee": "tobytes",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L63",
+      "receiver": "data"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "load",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L68",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L74",
+      "receiver": "config_data"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L75",
+      "receiver": "config_data"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "exists",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L77",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "astype",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L81",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "sin",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L85",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "linspace",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L85",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "cos",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L93",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "linspace",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L93",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "astype",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L102",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "ValueError",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "collection",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L114"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "KeyError",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "collection",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L114"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "TypeError",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "collection",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L114"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L121",
+      "receiver": "block_to_file"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "exists",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L124",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "listdir",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L126",
+      "receiver": "os"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "endswith",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L126",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "lower",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L126",
+      "receiver": "f"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "lower",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L126",
+      "receiver": "f"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L134",
+      "receiver": "ordered_mappings"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "zeros",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L137",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "astype",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L160",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "zeros",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L166",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "concatenate",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L167",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "CROSSFADE_SAMPLES",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L172"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "sin",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L173",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "linspace",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L173",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "CROSSFADE_SAMPLES",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L178"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "sin",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L179",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "linspace",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L179",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "cos",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L188",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "linspace",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L188",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "cos",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L196",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "linspace",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L196",
+      "receiver": "np"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_concreto_romano_cura_mix_bgm_main",
+      "callee": "astype",
+      "is_member_call": true,
+      "source_file": "concreto_romano_CURA/mix_bgm.py",
+      "source_location": "L220",
+      "receiver": null
+    }
+  ]
+}

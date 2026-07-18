@@ -1,0 +1,38 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_voicebox_ps1",
+      "label": "setup-voicebox.ps1",
+      "file_type": "code",
+      "source_file": "scripts/setup-voicebox.ps1",
+      "source_location": "L1"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_voicebox_test_voiceboxhealth",
+      "label": "Test-VoiceboxHealth()",
+      "file_type": "code",
+      "source_file": "scripts/setup-voicebox.ps1",
+      "source_location": "L8"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_voicebox_ps1",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_voicebox_test_voiceboxhealth",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/setup-voicebox.ps1",
+      "source_location": "L8",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_setup_voicebox_test_voiceboxhealth",
+      "callee": "Invoke-RestMethod",
+      "is_member_call": false,
+      "source_file": "scripts/setup-voicebox.ps1",
+      "source_location": "L10"
+    }
+  ]
+}

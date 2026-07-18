@@ -16,12 +16,14 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 
 - [[skills/ad-concept-generator|ad concept generator]]
 - [[skills/agent-reach|agent reach]] · [[skills/agent-reach/REFERENCES|refs]]
+- [[skills/ai-camera-movements|ai camera movements]] · [[skills/ai-camera-movements/REFERENCES|refs]]
 - [[skills/ai-ugc-ads|ai ugc ads]]
 - [[skills/ask-matt|ask matt]]
 - [[skills/claude-api|claude api]] · [[skills/claude-api/REFERENCES|refs]]
 - [[skills/code-review|code review]]
 - [[skills/codebase-design|codebase design]] · [[skills/codebase-design/REFERENCES|refs]]
 - [[skills/content-strategy|content strategy]] · [[skills/content-strategy/REFERENCES|refs]]
+- [[skills/context-engineering|context engineering]]
 - [[skills/decision-mapping|decision mapping]]
 - [[skills/deer-flow-research|deer flow research]]
 - [[skills/design-an-interface|design an interface]]
@@ -31,8 +33,12 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/edit-article|edit article]]
 - [[skills/epidemic_sound|Epidemic Sound]]
 - [[skills/frontend-design|frontend design]]
+- [[skills/gbro-collage-broll|gbro collage broll]]
+- [[skills/gemini-prompt-strategies|gemini prompt strategies]]
 - [[skills/geo-video-prompts|geo video prompts]]
 - [[skills/git-guardrails-claude-code|git guardrails claude code]]
+- [[skills/gpt-prompt-enhancement|gpt prompt enhancement]]
+- [[skills/graphify|graphify]] · [[skills/graphify/REFERENCES|refs]]
 - [[skills/grill-me|grill me]]
 - [[skills/grill-with-docs|grill with docs]]
 - [[skills/grilling|grilling]]
@@ -136,13 +142,13 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 
 ## Logs recentes
 
+- [[agent_runs/2026-07-18]]
 - [[agent_runs/2026-07-17]]
 - [[agent_runs/2026-07-16]]
 - [[agent_runs/2026-07-15]]
 - [[agent_runs/2026-07-14]]
 - [[agent_runs/2026-07-13]]
 - [[agent_runs/2026-07-12]]
-- [[agent_runs/2026-07-11]]
 
 ## Regras por formato
 
@@ -155,4 +161,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-07-17T14:44:45.004Z
+atualizado: 2026-07-18T22:02:05.660Z

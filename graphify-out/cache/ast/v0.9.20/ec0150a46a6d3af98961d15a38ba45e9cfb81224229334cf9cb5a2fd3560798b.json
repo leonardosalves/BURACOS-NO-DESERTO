@@ -1,0 +1,45 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_dashboard_premium_frontend_tsconfig_json",
+      "label": "tsconfig.json",
+      "file_type": "code",
+      "source_file": "dashboard-premium/frontend/tsconfig.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_dashboard_premium_frontend_tsconfig_files",
+      "label": "files",
+      "file_type": "code",
+      "source_file": "dashboard-premium/frontend/tsconfig.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_dashboard_premium_frontend_tsconfig_references",
+      "label": "references",
+      "file_type": "code",
+      "source_file": "dashboard-premium/frontend/tsconfig.json",
+      "source_location": "L3"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_dashboard_premium_frontend_tsconfig_json",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_dashboard_premium_frontend_tsconfig_files",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dashboard-premium/frontend/tsconfig.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_dashboard_premium_frontend_tsconfig_json",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_dashboard_premium_frontend_tsconfig_references",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "dashboard-premium/frontend/tsconfig.json",
+      "source_location": "L3",
+      "weight": 1.0
+    }
+  ]
+}

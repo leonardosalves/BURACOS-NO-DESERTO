@@ -1,231 +1,16 @@
 {
   "version": 2,
-  "savedAt": "2026-07-15T04:32:39.590Z",
-  "wasInWizard": true,
+  "savedAt": "2026-07-17T14:56:13.842Z",
+  "wasInWizard": false,
   "activeTab": "creator",
-  "activeProject": "Espelho_concreto_ouvia",
+  "activeProject": "",
   "creatorStep": 1,
-  "nicheInput": "ENGENHARIA",
-  "formatSelector": "SHORTS",
-  "ideasData": {
-    "diagnostic": {
-      "looking_for": "Engenharia aplicada a problemas inusitados, otimizações surpreendentes inspiradas na natureza e sistemas que mudam o funcionamento de esportes ou comunicações extremas.",
-      "pain_points": "Cansaço de explicações teóricas repetitivas ou de megaestruturas já saturadas no YouTube BR.",
-      "desires": "Compreender como o mundo físico à nossa volta é silenciosamente moldado e manipulado por regras lógicas precisas de design.",
-      "retention_fears": "Medo de vídeos puramente acadêmicos que parecem uma aula monótona de física.",
-      "comment_hooks": "Comparações entre custos, limites do corpo humano e debates sobre soluções complexas versus simples em projetos históricos.",
-      "title_style": "Sentenças completas e diretas, com menos de 40 caracteres, focadas em fatos tangíveis ou paradoxos visuais e sonoros.",
-      "core_emotion": "Deslumbramento analítico diante de soluções engenhosas e contraintuitivas.",
-      "retention_topics": "Estruturas que operam nos limites físicos da matéria, acústica espacial extrema e biomimética militar.",
-      "strong_angle": "Mostrar a ciência invisível por trás de objetos, comportamentos ou estruturas que o leigo nunca imaginou terem sido projetados."
-    },
-    "ideas": [
-      {
-        "title": "Camarão boxeador inspirou blindagem 🦐",
-        "promise": "Como os engenheiros adaptaram a microestrutura da pata hiperveloz do camarão-pavão para criar novos compósitos blindados ultra-leves.",
-        "emotion": "astonishing",
-        "best_format": "SHORTS",
-        "viral_category": "astonishing",
-        "hook_angle": "shock",
-        "hooks": "Este camarão quebra vidros com força de bala",
-        "hook_candidates": [
-          "O camarão que quebra vidros de aquários",
-          "Engenheiros copiaram o soco desse animal",
-          "A blindagem inspirada em um camarão marinho"
-        ],
-        "wow_facts_preview": [
-          "Aceleração equivalente a uma bala de calibre 22 sob a água",
-          "Padrão helicoidal de fibras impede a propagação de rachaduras"
-        ]
-      },
-      {
-        "title": "O prédio resfriado por cupins #Shorts",
-        "promise": "O funcionamento do Council House 2 que usa a engenharia de circulação térmica passiva de colônias de cupins para eliminar o ar-condicionado convencional.",
-        "emotion": "astonishing",
-        "best_format": "SHORTS",
-        "viral_category": "practical",
-        "hook_angle": "problem_solution",
-        "hooks": "Este prédio economiza energia imitando cupins gigantes",
-        "hook_candidates": [
-          "Ar-condicionado sem energia elétrica?",
-          "Como cupins ensinaram engenharia a Melbourne",
-          "Este edifício funciona como um cupinzeiro"
-        ],
-        "wow_facts_preview": [
-          "Economia de 85 por cento no consumo anual de energia",
-          "Uso de dutos de concreto que imitam chaminés de ventilação biológica"
-        ]
-      },
-      {
-        "title": "O avião supersônico sem barulho 🤯",
-        "promise": "A tecnologia aerodinâmica por trás do NASA X-59 que manipula as ondas de choque para fazer jatos supersônicos voarem sem o estrondo clássico.",
-        "emotion": "astonishing",
-        "best_format": "SHORTS",
-        "viral_category": "astonishing",
-        "hook_angle": "before_after",
-        "hooks": "A NASA tirou o estrondo dos jatos supersônicos",
-        "hook_candidates": [
-          "O jato supersônico que não faz barulho",
-          "Como a NASA calou o Concorde",
-          "Este avião supersônico faz apenas um clique"
-        ],
-        "wow_facts_preview": [
-          "Redução do estampido de 110 para apenas 75 decibéis em solo",
-          "Design de nariz alongado de 9 metros impede o choque das ondas de ar"
-        ]
-      },
-      {
-        "title": "A sala mais silenciosa da Terra #Tech",
-        "promise": "A engenharia mecânica de isolamento da câmara anecoica da Microsoft projetada para romper os limites físicos de captação sonora.",
-        "emotion": "astonishing",
-        "best_format": "SHORTS",
-        "viral_category": "provocative",
-        "hook_angle": "personal",
-        "hooks": "Ninguém aguenta quarenta e cinco minutos aqui",
-        "hook_candidates": [
-          "A sala mais silenciosa do planeta inteiro",
-          "Onde você ouve seu próprio cérebro funcionando",
-          "A engenharia do quarto sem nenhum eco"
-        ],
-        "wow_facts_preview": [
-          "Nível recorde de ruído de menos vinte decibéis",
-          "Prédio flutua sobre amortecedores hidráulicos e molas gigantes"
-        ]
-      },
-      {
-        "title": "A ilha artificial que mudou a Europa",
-        "promise": "A fantástica solução da ilha Peberholm criada para permitir a transição dinâmica entre uma ponte elevada e um túnel submerso.",
-        "emotion": "astonishing",
-        "best_format": "SHORTS",
-        "viral_category": "impactful",
-        "hook_angle": "breaking",
-        "hooks": "Engenheiros criaram uma ilha do absoluto zero",
-        "hook_candidates": [
-          "A ponte que vira túnel no mar",
-          "O aeroporto que obrigou a criar uma ilha",
-          "Por que a ponte de Oresund some do nada"
-        ],
-        "wow_facts_preview": [
-          "Túnel sob a água construído para não interromper pousos de aviões",
-          "Peberholm foi erguida apenas com material dragado do leito marítimo"
-        ]
-      },
-      {
-        "title": "A barreira de Veneza contra o mar",
-        "promise": "A mecânica do sistema MOSE que flutua comportas de metal gigantes com ar comprimido para repelir tempestades oceânicas históricas.",
-        "emotion": "astonishing",
-        "best_format": "SHORTS",
-        "viral_category": "practical",
-        "hook_angle": "problem_solution",
-        "hooks": "Veneza estava afundando até criarem estas comportas",
-        "hook_candidates": [
-          "O escudo gigante que salva Veneza",
-          "Comportas que sobem com ar comprimido",
-          "A engenharia que para o mar adriático"
-        ],
-        "wow_facts_preview": [
-          "78 barreiras metálicas móveis instaladas no fundo da lagoa",
-          "Sistema acionado em apenas 30 minutos esvaziando água com ar"
-        ]
-      },
-      {
-        "title": "Pedras de curling vêm de uma ilha 🥌",
-        "promise": "A engenharia mineral e física por trás do granito de Ailsa Craig que permite às pedras olímpicas deslizarem sem rachar sob colisões extremas.",
-        "emotion": "astonishing",
-        "best_format": "SHORTS",
-        "viral_category": "provocative",
-        "hook_angle": "secret",
-        "hooks": "Toda pedra olímpica de curling vem deste local",
-        "hook_candidates": [
-          "O esporte que depende de uma ilha isolada",
-          "O segredo por trás do granito olímpico",
-          "Por que o curling só usa pedra escocesa"
-        ],
-        "wow_facts_preview": [
-          "Único depósito mineral no mundo livre de absorção de água que evita congelamento interno",
-          "Lapidação micrométrica sob estritas especificações de coeficiente de atrito"
-        ]
-      },
-      {
-        "title": "Cadeira de rodas com túnel de vento",
-        "promise": "Como engenheiros automobilísticos projetaram cadeiras de rodas de paratletas usando os mesmos testes aerodinâmicos de carros de corrida.",
-        "emotion": "astonishing",
-        "best_format": "SHORTS",
-        "viral_category": "impactful",
-        "hook_angle": "personal",
-        "hooks": "Esta cadeira de rodas usa tecnologia de Fórmula um",
-        "hook_candidates": [
-          "Fórmula 1 desenhando cadeira de rodas",
-          "Aerodinâmica oculta nos esportes paralímpicos",
-          "Cadeira de fibra de carbono ultra rápida"
-        ],
-        "wow_facts_preview": [
-          "Redução de arrasto em mais de vinte por cento com testes em escala real",
-          "Posicionamento do piloto ajustado com scanners a laser milimétricos"
-        ]
-      },
-      {
-        "title": "O pedal que impede trens de bater #Trem",
-        "promise": "A lógica do sistema de vigilância por pedal nos trens rápidos que avalia ativamente o comportamento neurológico dos operadores.",
-        "emotion": "astonishing",
-        "best_format": "SHORTS",
-        "viral_category": "practical",
-        "hook_angle": "challenge",
-        "hooks": "Este pedal impede desastres de trem a cada minuto",
-        "hook_candidates": [
-          "O botão do homem morto em ferrovias",
-          "Se o maquinista dormir, o pedal para",
-          "O teste físico constante para trens velozes"
-        ],
-        "wow_facts_preview": [
-          "Exige pulsação manual periódica e randômica a cada sessenta segundos",
-          "Freio automático absoluto engatado caso o maquinista perca a consciência"
-        ]
-      },
-      {
-        "title": "A voz humana compactada para guerra",
-        "promise": "A engenharia de compressão digital de som usada por militares para transmitir mensagens em largura de banda minúscula sob interferência eletrônica extrema.",
-        "emotion": "astonishing",
-        "best_format": "SHORTS",
-        "viral_category": "provocative",
-        "hook_angle": "secret",
-        "hooks": "Criptografia de rádio reduz sua voz ao mínimo",
-        "hook_candidates": [
-          "A voz eletrônica que cruza linhas inimigas",
-          "Como exércitos comprimem som sem perder sinal",
-          "O algoritmo matemático da voz em rádio"
-        ],
-        "wow_facts_preview": [
-          "Compactação para meros 2400 bits por segundo sem perda de inteligibilidade",
-          "Tecnologia LPC que imita o aparelho fonador humano para recriar o áudio sinteticamente"
-        ]
-      }
-    ],
-    "best_idea_index": 3,
-    "best_idea_reason": "A ideia de índice 3 ('A sala mais silenciosa da Terra #Tech') explora a área de acústica e design sensorial, criando forte apelo pessoal ao cruzar os limites biológicos do cérebro com uma solução física extrema (menos de zero decibéis reais). Vídeos sobre salas anecoicas convertem em grande número de cliques e mantêm alta retenção pelo senso de curiosidade mórbida de 'enlouquecer no silêncio', sendo idealmente explicados por conceitos mecânicos tangíveis de absorção de ondas.",
-    "_ideas_meta": {
-      "generationSeed": 442976508,
-      "excludedCount": 40,
-      "usedDeepResearch": true,
-      "deepResearch": {
-        "factCount": 0,
-        "derivedIdeas": 0,
-        "outlierCount": 0,
-        "legs": {
-          "web": false,
-          "exa": false,
-          "notebooklm": false,
-          "competitors": true
-        },
-        "legErrors": 0
-      },
-      "usedWebResearch": false,
-      "usedNotebooklm": false
-    }
-  },
-  "selectedIdeaIndex": 3,
+  "nicheInput": "",
+  "formatSelector": "LONGO",
+  "ideasData": null,
+  "selectedIdeaIndex": -1,
   "generatedScriptData": null,
-  "creatorProjectName": "sala_silenciosa_Terra",
+  "creatorProjectName": "",
   "creatorScript": "",
   "ideationTab": "ai",
   "historicalWitnessContext": null,
@@ -238,10 +23,10 @@
       "content": ""
     }
   ],
-  "customIdeaTitle": "A sala mais silenciosa da Terra #Tech",
-  "customIdeaPromise": "A engenharia mecânica de isolamento da câmara anecoica da Microsoft projetada para romper os limites físicos de captação sonora.",
+  "customIdeaTitle": "",
+  "customIdeaPromise": "",
   "customIdeaHook": "",
-  "customIdeaEmotion": "astonishing",
+  "customIdeaEmotion": "",
   "customIdeaBlocks": "",
   "listNiche": "",
   "listTopic": "",
@@ -250,7 +35,7 @@
   "listicleHudStyle": "auto",
   "listicleIdeasData": null,
   "listicleSearchNiche": "",
-  "ideasSearchNiche": "ENGENHARIA",
+  "ideasSearchNiche": "",
   "selectedListicleIdeaIndex": -1,
   "showNarrationReview": false,
   "narrationDraft": "",

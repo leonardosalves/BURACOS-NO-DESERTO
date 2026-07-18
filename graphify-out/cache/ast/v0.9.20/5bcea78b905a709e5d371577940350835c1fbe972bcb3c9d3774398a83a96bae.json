@@ -1,0 +1,13 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_cleanup_lumiera_logs_ps1",
+      "label": "cleanup-lumiera-logs.ps1",
+      "file_type": "code",
+      "source_file": "scripts/cleanup-lumiera-logs.ps1",
+      "source_location": "L1"
+    }
+  ],
+  "edges": [],
+  "raw_calls": []
+}

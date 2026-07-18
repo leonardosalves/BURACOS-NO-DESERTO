@@ -1,0 +1,181 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_py",
+      "label": "download_mobilewan.py",
+      "file_type": "code",
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L7",
+      "_callable": true
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_py",
+      "target": "os",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_py",
+      "target": "sys",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_py",
+      "target": "argparse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_py",
+      "target": "json",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_py",
+      "target": "huggingface_hub",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L7",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "ArgumentParser",
+      "is_member_call": true,
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L8",
+      "receiver": "argparse"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "add_argument",
+      "is_member_call": true,
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L9",
+      "receiver": "parser"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "str",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L9"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "add_argument",
+      "is_member_call": true,
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L10",
+      "receiver": "parser"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "str",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L10"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "parse_args",
+      "is_member_call": true,
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L11",
+      "receiver": "parser"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "makedirs",
+      "is_member_call": true,
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L15",
+      "receiver": "os"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "snapshot_download",
+      "is_member_call": false,
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L17",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "dumps",
+      "is_member_call": true,
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L23",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "dumps",
+      "is_member_call": true,
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L25",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "e",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L25"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_download_mobilewan_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "scripts/download_mobilewan.py",
+      "source_location": "L26",
+      "receiver": "sys"
+    }
+  ]
+}

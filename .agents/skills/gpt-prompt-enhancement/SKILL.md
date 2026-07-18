@@ -1,7 +1,10 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/gpt-prompt-enhancement|gpt prompt enhancement]] · [[SKILLS]]
+
 ---
+
 name: gpt-prompt-enhancement
 description: >
-  Prompt engineering strategies and patterns for OpenAI GPT-5.6 and ChatGPT.
+Prompt engineering strategies and patterns for OpenAI GPT-5.6 and ChatGPT.
 ---
 
 # GPT-5.6 Sol 프롬프트 향상 스킬 (Lean Outcome-First + Legacy)

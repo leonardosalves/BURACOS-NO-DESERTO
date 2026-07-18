@@ -1,0 +1,105 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_ps1",
+      "label": "install-blendergis.ps1",
+      "file_type": "code",
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L1"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderexe",
+      "label": "Resolve-BlenderExe()",
+      "file_type": "code",
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L8"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderversion",
+      "label": "Resolve-BlenderVersion()",
+      "file_type": "code",
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L25"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderpython",
+      "label": "Resolve-BlenderPython()",
+      "file_type": "code",
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L31"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_ps1",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderexe",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_ps1",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderversion",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_ps1",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderpython",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L31",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderexe",
+      "callee": "Test-Path",
+      "is_member_call": false,
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L9"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderexe",
+      "callee": "Resolve-Path",
+      "is_member_call": false,
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L10"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderexe",
+      "callee": "Test-Path",
+      "is_member_call": false,
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L20"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderversion",
+      "callee": "Out-String",
+      "is_member_call": false,
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L26"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderpython",
+      "callee": "Where-Object",
+      "is_member_call": false,
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L37"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_scripts_install_blendergis_resolve_blenderpython",
+      "callee": "Select-Object",
+      "is_member_call": false,
+      "source_file": "scripts/install-blendergis.ps1",
+      "source_location": "L37"
+    }
+  ]
+}

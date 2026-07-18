@@ -1,0 +1,549 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_py",
+      "label": "upload_kwai_playwright.py",
+      "file_type": "code",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_load_json",
+      "label": "load_json()",
+      "file_type": "code",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L15",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_save_json",
+      "label": "save_json()",
+      "file_type": "code",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L25",
+      "_callable": true
+    },
+    {
+      "id": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L34",
+      "_callable": true
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_py",
+      "target": "os",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_py",
+      "target": "sys",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_py",
+      "target": "json",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_py",
+      "target": "lumiera_workspace",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_py",
+      "target": "time",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_py",
+      "target": "playwright_sync_api",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_load_json",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_save_json",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_py",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_load_json",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "target": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_save_json",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L66",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_load_json",
+      "callee": "exists",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L16",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_load_json",
+      "callee": "load",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L20",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_load_json",
+      "callee": "f",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L20"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_load_json",
+      "callee": "basename",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L22",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_save_json",
+      "callee": "dump",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L28",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_save_json",
+      "callee": "f",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L28"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_save_json",
+      "callee": "basename",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L31",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "resolve_project_dir",
+      "is_member_call": false,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L36",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "strip",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L38",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L38",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "resolve_output_video",
+      "is_member_call": false,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L39",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L42",
+      "receiver": "sys"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "basename",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L43",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "resolve_workspace",
+      "is_member_call": false,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L45",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "join",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L47",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "exists",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L49",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L51",
+      "receiver": "sys"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "join",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L53",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "resolve_platform_caption",
+      "is_member_call": false,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L56",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "sync_playwright",
+      "is_member_call": false,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L68",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "launch",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L69",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "new_context",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L70",
+      "receiver": "browser"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "load",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L77",
+      "receiver": "json"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "f",
+      "is_member_call": false,
+      "indirect": true,
+      "context": "argument",
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L77"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "add_cookies",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L78",
+      "receiver": "context"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "new_page",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L80",
+      "receiver": "context"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "goto",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L83",
+      "receiver": "page"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "wait_for_timeout",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L84",
+      "receiver": "page"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "exists",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L88",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "remove",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L89",
+      "receiver": "os"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "close",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L92",
+      "receiver": "browser"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L93",
+      "receiver": "sys"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "wait_for_selector",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L97",
+      "receiver": "page"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "locator",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L98",
+      "receiver": "page"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "set_input_files",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L99",
+      "receiver": "file_input"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "close",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L105",
+      "receiver": "browser"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L106",
+      "receiver": "sys"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "wait_for_timeout",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L109",
+      "receiver": "page"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "wait_for_selector",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L114",
+      "receiver": "page"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "focus",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L115",
+      "receiver": "page"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "press",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L116",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "press",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L117",
+      "receiver": null
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "wait_for_timeout",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L123",
+      "receiver": "page"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "locator",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L128",
+      "receiver": "page"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "wait_for",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L129",
+      "receiver": "publish_button"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "click",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L130",
+      "receiver": "publish_button"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "wait_for_timeout",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L132",
+      "receiver": "page"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "close",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L140",
+      "receiver": "browser"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "exit",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L141",
+      "receiver": "sys"
+    },
+    {
+      "caller_nid": "c_users_leo_documents_videos_profissionais_longos_lumiera_upload_kwai_playwright_main",
+      "callee": "close",
+      "is_member_call": true,
+      "source_file": "upload_kwai_playwright.py",
+      "source_location": "L143",
+      "receiver": "browser"
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/ai-camera-movements|ai camera movements]] · [[skills/ai-camera-movements/SKILL]] · [[skills/ai-camera-movements/REFERENCES]]
+
 # Catálogo AI Camera Movements
 
 **Fonte:** [https://aicameramovements.com/](https://aicameramovements.com/)  

@@ -194,6 +194,35 @@ const initialActiveProject = resolveInitialActiveProject(initialWizardSession);
 const initialProjectSnapshot = loadCachedProjectSnapshot(initialActiveProject);
 
 export default function App() {
+  const [collapsedGroups, setCollapsedGroups] = useState<
+    Record<string, boolean>
+  >(() => {
+    try {
+      const cached = localStorage.getItem("lumiera_sidebar_collapsed_groups");
+      return cached
+        ? JSON.parse(cached)
+        : { creation: false, studio: false, production: false, tools: false };
+    } catch {
+      return {
+        creation: false,
+        studio: false,
+        production: false,
+        tools: false,
+      };
+    }
+  });
+
+  const toggleGroupCollapse = (groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = { ...prev, [groupId]: !prev[groupId] };
+      localStorage.setItem(
+        "lumiera_sidebar_collapsed_groups",
+        JSON.stringify(next)
+      );
+      return next;
+    });
+  };
+
   const [activeTab, setActiveTab] = useState<AppTab>(
     () =>
       resolveInitialActiveTab(
@@ -11257,39 +11286,99 @@ export default function App() {
   const projectWorkspaceBar = !isGlobalViewTab(activeTab) ? (
     <div className="lumiera-project-bar">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 mb-2 lg:mb-0">
           <p className="lumiera-section-label">Projeto ativo</p>
           <p className="text-sm font-bold text-white text-balance-safe break-words">
             {activeProject}
           </p>
         </div>
-        <nav className="lumiera-tab-nav">
-          {PROJECT_WORKSPACE_TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            const help = tab.helpId ? SECTION_HELP[tab.helpId] : null;
+        <nav className="lumiera-tab-nav space-y-1.5 w-full lg:w-auto">
+          {[
+            {
+              id: "creation",
+              label: "Criadores / Criação",
+              tabs: ["timeline", "workflow", "ai"],
+              borderColor: "border-sky-500/15",
+              textColor: "text-sky-400 hover:text-sky-300",
+            },
+            {
+              id: "studio",
+              label: "Estúdio / Edição",
+              tabs: ["scene-timing", "music", "editor"],
+              borderColor: "border-violet-500/15",
+              textColor: "text-violet-400 hover:text-violet-300",
+            },
+            {
+              id: "production",
+              label: "Produção / Distribuição",
+              tabs: ["status", "upload"],
+              borderColor: "border-emerald-500/15",
+              textColor: "text-emerald-400 hover:text-emerald-300",
+            },
+            {
+              id: "tools",
+              label: "Ferramentas / IA",
+              tabs: ["terminal", "graphify"],
+              borderColor: "border-cyan-500/15",
+              textColor: "text-cyan-400 hover:text-cyan-300",
+            },
+          ].map((group) => {
+            const isCollapsed = collapsedGroups[group.id];
+            const groupTabs = PROJECT_WORKSPACE_TABS.filter((t) =>
+              group.tabs.includes(t.id)
+            );
             return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`lumiera-tab-btn ${isActive ? "dash-tab-active" : ""}`}
+              <div
+                key={group.id}
+                className={`rounded-xl border ${group.borderColor} bg-zinc-950/20 p-2 space-y-1`}
               >
-                <Icon className="w-3.5 h-3.5 shrink-0" />
-                <span className="leading-snug">{tab.label}</span>
-                {help && (
-                  <span
-                    className="inline-flex"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                    role="presentation"
-                  >
-                    <SettingHelpTip title={help.title} align="start" nested>
-                      {help.body}
-                    </SettingHelpTip>
+                <button
+                  type="button"
+                  onClick={() => toggleGroupCollapse(group.id)}
+                  className={`w-full flex items-center justify-between text-[9px] font-black uppercase tracking-wider transition ${group.textColor}`}
+                >
+                  <span>{group.label}</span>
+                  <span className="text-[10px] opacity-60">
+                    {isCollapsed ? "▲" : "▼"}
                   </span>
+                </button>
+                {!isCollapsed && (
+                  <div className="flex flex-col gap-0.5 mt-1">
+                    {groupTabs.map((tab) => {
+                      const Icon = tab.icon;
+                      const isActive = activeTab === tab.id;
+                      const help = tab.helpId ? SECTION_HELP[tab.helpId] : null;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`lumiera-tab-btn w-full flex items-center gap-2 ${isActive ? "dash-tab-active" : ""}`}
+                        >
+                          <Icon className="w-3.5 h-3.5 shrink-0" />
+                          <span className="leading-snug">{tab.label}</span>
+                          {help && (
+                            <span
+                              className="inline-flex ml-auto"
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                              role="presentation"
+                            >
+                              <SettingHelpTip
+                                title={help.title}
+                                align="start"
+                                nested
+                              >
+                                {help.body}
+                              </SettingHelpTip>
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </nav>

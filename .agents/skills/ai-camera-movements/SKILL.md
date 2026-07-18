@@ -182,3 +182,7 @@ Não copiar moves para prompts de **imagem**. Ver limpeza em `visualPromptPipeli
 ## Crédito da referência
 
 Movimentos e textos-base adaptados da biblioteca pública de [AI Camera Movements](https://aicameramovements.com/) (46 clips · 7 categories · 1 prompt each). Use o site para **previews visuais**; use esta skill para **reuso determinístico no pipeline Lumiera**.
+
+## Referências
+
+- [[skills/ai-camera-movements/REFERENCES|Índice de references/assets]]
