@@ -176,7 +176,10 @@ export type LumieraTimelineProps = {
     | "caption-parallax-layers"
     | "caption-texture"
     | "caption-blend-difference"
-    | "morph-text";
+    | "morph-text"
+    | "caption-shimmer-gold"
+    | "caption-bounce-pop"
+    | "caption-border-glow";
   captionEffect?:
     | "viral-pop"
     | "viral-pulse"
@@ -762,7 +765,10 @@ type CaptionModeId =
   | "caption-parallax-layers"
   | "caption-texture"
   | "caption-blend-difference"
-  | "morph-text";
+  | "morph-text"
+  | "caption-shimmer-gold"
+  | "caption-bounce-pop"
+  | "caption-border-glow";
 
 const HF_CAPTION_MODES = new Set<CaptionModeId>([
   "caption-highlight",
@@ -782,6 +788,9 @@ const HF_CAPTION_MODES = new Set<CaptionModeId>([
   "caption-texture",
   "caption-blend-difference",
   "morph-text",
+  "caption-shimmer-gold",
+  "caption-bounce-pop",
+  "caption-border-glow",
 ]);
 
 const EMOJI_POP_POOL = ["✨", "🔥", "💡", "⚡", "🎯", "💥"];
