@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node dist/index.js",
+    "dev": "npx tsx src/index.ts",
     "build": "tsc",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "test:pipeline": "node dist/test_pipeline.js"
+    "test:pipeline": "npx tsx src/test_pipeline.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
