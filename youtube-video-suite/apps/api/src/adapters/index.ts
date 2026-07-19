@@ -12,6 +12,8 @@ export type {
 
 export { HyperFramesAdapter } from "./hyperframes.js";
 export { RemotionAdapter } from "./remotion.js";
+export { VoxDirectorAdapter, VoxExplainerAdapter } from "./vox.js";
+export { GbroCollageAdapter } from "./gbro.js";
 export { FfmpegAdapter } from "./ffmpeg.js";
 
 export {

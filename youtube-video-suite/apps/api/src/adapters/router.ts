@@ -5,6 +5,8 @@ import type {
 import type { VideoEngineAdapter, JobContext } from "./types.js";
 import { HyperFramesAdapter } from "./hyperframes.js";
 import { RemotionAdapter } from "./remotion.js";
+import { VoxDirectorAdapter, VoxExplainerAdapter } from "./vox.js";
+import { GbroCollageAdapter } from "./gbro.js";
 import { FfmpegAdapter } from "./ffmpeg.js";
 
 // ── Adapter Registry ────────────────────────────────────────────────────────
@@ -12,11 +14,10 @@ import { FfmpegAdapter } from "./ffmpeg.js";
 const adapters: VideoEngineAdapter[] = [
   new HyperFramesAdapter(),
   new RemotionAdapter(),
-  new FfmpegAdapter(),
-  // Future adapters:
-  // new VoxDirectorAdapter(),
-  // new VoxExplainerAdapter(),
-  // new GbroCollageAdapter(),
+  new VoxDirectorAdapter(),
+  new VoxExplainerAdapter(),
+  new GbroCollageAdapter(),
+  new FfmpegAdapter(), // Always last — fallback
 ];
 
 /**
