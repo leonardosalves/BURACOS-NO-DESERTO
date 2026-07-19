@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assessAutomaticScriptQuality } from "./scriptQuality/index.js";
+import {
+  assessAutomaticScriptQuality,
+  runAutomaticScriptRepair,
+} from "./scriptQuality/index.js";
 
 function validTrace(overrides = {}) {
   return {
@@ -210,4 +213,151 @@ test("automatic script quality returns stable output for identical input", () =>
     assessAutomaticScriptQuality(input),
     assessAutomaticScriptQuality(input)
   );
+});
+
+function repairReport({ passed = false, score = 40, hardBlockers = [], factualOk = true } = {}) {
+  return {
+    passed,
+    score,
+    hardBlockers,
+    dimensions: {
+      factual: {
+        ok: factualOk,
+      },
+    },
+  };
+}
+
+test("automatic repair accepts a single objective improvement", async () => {
+  const reports = [
+    repairReport({ score: 45, hardBlockers: ["weak hook"] }),
+    repairReport({ score: 82, hardBlockers: [] }),
+  ];
+  const evaluatedScripts = [];
+  let repairCalls = 0;
+
+  const result = await runAutomaticScriptRepair({
+    script: "original script",
+    evaluate: async (script) => {
+      evaluatedScripts.push(script);
+      return reports.shift();
+    },
+    repair: async (script, beforeReport) => {
+      repairCalls += 1;
+      assert.equal(script, "original script");
+      assert.equal(beforeReport.score, 45);
+      return "repaired script";
+    },
+  });
+
+  assert.equal(repairCalls, 1);
+  assert.deepEqual(evaluatedScripts, ["original script", "repaired script"]);
+  assert.equal(result.script, "repaired script");
+  assert.equal(result.originalScript, "original script");
+  assert.equal(result.candidateScript, "repaired script");
+  assert.equal(result.beforeReport.score, 45);
+  assert.equal(result.afterReport.score, 82);
+  assert.equal(result.attempted, true);
+  assert.equal(result.accepted, true);
+  assert.equal(result.rejectionReason, null);
+});
+
+test("automatic repair rejects a score regression and keeps the original script", async () => {
+  let repairCalls = 0;
+  const result = await runAutomaticScriptRepair({
+    script: "original script",
+    evaluate: async (script) =>
+      script === "candidate script"
+        ? repairReport({ score: 44, hardBlockers: ["weak hook"] })
+        : repairReport({ score: 45, hardBlockers: ["weak hook"] }),
+    repair: async () => {
+      repairCalls += 1;
+      return "candidate script";
+    },
+  });
+
+  assert.equal(repairCalls, 1);
+  assert.equal(result.script, "original script");
+  assert.equal(result.candidateScript, "candidate script");
+  assert.equal(result.attempted, true);
+  assert.equal(result.accepted, false);
+  assert.equal(result.rejectionReason, "score_not_improved");
+});
+
+test("automatic repair rejects factual regression even when the score improves", async () => {
+  const result = await runAutomaticScriptRepair({
+    script: "original script",
+    evaluate: async (script) =>
+      script === "candidate script"
+        ? repairReport({ score: 88, factualOk: false })
+        : repairReport({ score: 45, factualOk: true }),
+    repair: async () => "candidate script",
+  });
+
+  assert.equal(result.script, "original script");
+  assert.equal(result.afterReport.dimensions.factual.ok, false);
+  assert.equal(result.attempted, true);
+  assert.equal(result.accepted, false);
+  assert.equal(result.rejectionReason, "factual_integrity_failed");
+});
+
+test("automatic repair rejects a hard blocker increase even when the score improves", async () => {
+  const result = await runAutomaticScriptRepair({
+    script: "original script",
+    evaluate: async (script) =>
+      script === "candidate script"
+        ? repairReport({ score: 72, hardBlockers: ["factual blocker"] })
+        : repairReport({ score: 45, hardBlockers: [] }),
+    repair: async () => "candidate script",
+  });
+
+  assert.equal(result.script, "original script");
+  assert.equal(result.afterReport.hardBlockers.length, 1);
+  assert.equal(result.attempted, true);
+  assert.equal(result.accepted, false);
+  assert.equal(result.rejectionReason, "hard_blockers_increased");
+});
+
+test("automatic repair returns original metadata when a callback fails", async () => {
+  const result = await runAutomaticScriptRepair({
+    script: "original script",
+    evaluate: async () => repairReport({ score: 45 }),
+    repair: async () => {
+      throw new Error("provider unavailable");
+    },
+  });
+
+  assert.equal(result.script, "original script");
+  assert.equal(result.beforeReport.score, 45);
+  assert.equal(result.afterReport, null);
+  assert.equal(result.attempted, true);
+  assert.equal(result.accepted, false);
+  assert.equal(result.rejectionReason, "repair_failed: provider unavailable");
+});
+
+test("automatic repair skips repair when the original report already passes", async () => {
+  let evaluateCalls = 0;
+  let repairCalls = 0;
+
+  const result = await runAutomaticScriptRepair({
+    script: "passing script",
+    evaluate: async () => {
+      evaluateCalls += 1;
+      return repairReport({ passed: true, score: 90 });
+    },
+    repair: async () => {
+      repairCalls += 1;
+      return "should not be used";
+    },
+  });
+
+  assert.equal(evaluateCalls, 1);
+  assert.equal(repairCalls, 0);
+  assert.equal(result.script, "passing script");
+  assert.equal(result.originalScript, "passing script");
+  assert.equal(result.candidateScript, null);
+  assert.equal(result.afterReport, null);
+  assert.equal(result.attempted, false);
+  assert.equal(result.accepted, false);
+  assert.equal(result.rejectionReason, null);
 });
