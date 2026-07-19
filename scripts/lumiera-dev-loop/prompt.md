@@ -24,6 +24,7 @@ Project description: {{DESCRIPTION}}
 5. Do not stage or commit anything. The supervisor validates and commits selectively.
 6. Do not edit `.lumiera-dev-loop/`, the PRD state, progress log, Git configuration, credentials, or files outside this worktree.
 7. Do not run costly media generation, publish content, contact external services, rotate credentials, or alter the running Lumiera installation.
-8. Run focused, inexpensive checks when helpful. The supervisor will run the declared quality gates afterward.
-9. If blocked, leave the worktree in the most useful inspectable state and explain the blocker in the final response.
-10. Finish with a concise summary of changed files and checks performed.
+8. Do not run `graphify update .` during an individual story. The supervisor runs it once after all story commits and verification are complete.
+9. Run focused, inexpensive checks when helpful. The supervisor will run the declared quality gates afterward.
+10. If blocked, leave the worktree in the most useful inspectable state and explain the blocker in the final response.
+11. Finish with a concise summary of changed files and checks performed.
