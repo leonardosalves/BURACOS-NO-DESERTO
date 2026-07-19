@@ -608,6 +608,9 @@ export function parseAiNarrationChunkResponse(parsed = {}) {
           `${Number(c.block) || 1}.${idx + 1}`
       ),
       text: String(c.text || "").trim(),
+      caption_text: String(
+        c.caption_text || c.captionText || c.text || ""
+      ).trim(),
       text_tagged: sanitizeNarrationChunkTaggedText(
         c.text_tagged || c.textTagged || c.text || "",
         c.text || ""
@@ -927,6 +930,7 @@ export function normalizeNarrationChunkPlan(
         speaker: c.speaker || undefined,
         speech_role: c.speech_role || undefined,
         text: String(c.text || "").trim(),
+        caption_text: String(c.caption_text || c.text || "").trim(),
         text_tagged: sanitizeNarrationChunkTaggedText(
           c.text_tagged || c.text || "",
           c.text || ""
@@ -1213,11 +1217,22 @@ export function syncTimelineFromChunkPlan({
       hasExplicitVisualSelection && assets.length < storyboardBlockScenes.length
         ? storyboardBlockScenes.slice(0, assets.length)
         : storyboardBlockScenes;
-    const sortedRaw = [...blockChunks].sort(
-      (a, b) =>
-        Number(a.start_s) - Number(b.start_s) ||
-        String(a.scene_ref).localeCompare(String(b.scene_ref))
-    );
+    const sortedRaw = [...blockChunks].sort((a, b) => {
+      const diff = Number(a.start_s) - Number(b.start_s);
+      if (diff !== 0) return diff;
+      const aParts = String(a.scene_ref || "")
+        .split(".")
+        .map(Number);
+      const bParts = String(b.scene_ref || "")
+        .split(".")
+        .map(Number);
+      for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+        const aPart = aParts[i] || 0;
+        const bPart = bParts[i] || 0;
+        if (aPart !== bPart) return aPart - bPart;
+      }
+      return 0;
+    });
     // Um resíduo muito curto (ex.: a última palavra com 0,5s) não merece
     // criar um segundo asset vazio; ele deve permanecer na cena anterior.
     const compactedChunks = sortedRaw.reduce((merged, chunk) => {
@@ -1329,7 +1344,7 @@ export function mergeWhisperTranscriptsWithChunkPlan(
     const start = Number(chunk.start_s) || 0;
     const end = Number(chunk.end_s) || start;
     const duration = Math.max(0.05, end - start);
-    const text = String(chunk.text || "").trim();
+    const text = String(chunk.caption_text || chunk.text || "").trim();
     const plain = stripTtsMarkersForPlainText(text);
     const wordsInWindow = (flatWords || []).filter(
       (w) => Number(w.start) >= start - 0.08 && Number(w.start) < end + 0.12
@@ -1602,7 +1617,7 @@ export function buildWordTranscriptsFromChunks(chunks = []) {
     const duration = Math.max(0.05, (Number(chunk.end_s) || start) - start);
     const end = start + duration;
     const plain = stripTtsMarkersForPlainText(
-      chunk.text || chunk.text_tagged || ""
+      chunk.caption_text || chunk.text || chunk.text_tagged || ""
     );
     const wordEntries = synthesizeWordEntriesForDuration(plain, duration);
     return {

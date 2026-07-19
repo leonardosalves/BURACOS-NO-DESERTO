@@ -970,9 +970,20 @@ function groupVisualPromptsByBlock(visualPrompts = []) {
     byBlock.get(block).push(vp);
   }
   for (const scenes of byBlock.values()) {
-    scenes.sort((a, b) =>
-      String(a?.scene || "").localeCompare(String(b?.scene || ""))
-    );
+    scenes.sort((a, b) => {
+      const aParts = String(a?.scene || "")
+        .split(".")
+        .map(Number);
+      const bParts = String(b?.scene || "")
+        .split(".")
+        .map(Number);
+      for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+        const aPart = aParts[i] || 0;
+        const bPart = bParts[i] || 0;
+        if (aPart !== bPart) return aPart - bPart;
+      }
+      return 0;
+    });
   }
   return byBlock;
 }
