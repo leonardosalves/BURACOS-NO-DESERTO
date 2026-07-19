@@ -6,14 +6,18 @@
     "dev": "node dist/index.js",
     "build": "tsc",
     "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "test:pipeline": "node dist/test_pipeline.js"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
     "fastify": "^4.27.0",
     "zod": "^3.23.8",
     "bullmq": "^5.8.3",
-    "ioredis": "^5.4.1"
+    "ioredis": "^5.4.1",
+    "@video-suite/prompt-engine": "workspace:*",
+    "@video-suite/scene-contract": "workspace:*",
+    "@video-suite/integrations": "workspace:*"
   },
   "devDependencies": {
     "prisma": "^5.14.0",

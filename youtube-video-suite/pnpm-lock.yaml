@@ -19,6 +19,15 @@ importers:
       "@prisma/client":
         specifier: ^5.14.0
         version: 5.22.0(prisma@5.22.0)
+      "@video-suite/integrations":
+        specifier: workspace:*
+        version: link:../../packages/integrations
+      "@video-suite/prompt-engine":
+        specifier: workspace:*
+        version: link:../../packages/prompt-engine
+      "@video-suite/scene-contract":
+        specifier: workspace:*
+        version: link:../../packages/scene-contract
       bullmq:
         specifier: ^5.8.3
         version: 5.80.9
@@ -38,6 +47,28 @@ importers:
       prisma:
         specifier: ^5.14.0
         version: 5.22.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/integrations:
+    devDependencies:
+      "@types/node":
+        specifier: ^22.0.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/prompt-engine:
+    dependencies:
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      "@types/node":
+        specifier: ^22.0.0
+        version: 22.20.1
       typescript:
         specifier: ^5.8.3
         version: 5.9.3

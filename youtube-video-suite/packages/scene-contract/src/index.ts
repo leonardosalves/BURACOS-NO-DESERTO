@@ -26,6 +26,7 @@ export const SceneManifestSchema = z.object({
   ]),
   script: z.string(),
   caption: z.string(),
+  visualMetaphor: z.string(),
   paletteId: z.string(),
   motionProfile: z.string(),
   assets: z.array(SceneAssetSchema),
