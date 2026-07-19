@@ -433,7 +433,7 @@ export function AppShell({
             title="Criadores"
             collapsed={!!collapsed["criadores"]}
             onToggle={() => toggleSection("criadores")}
-            count={8}
+            count={9}
           >
             <SidebarLink
               active={activeTab === "creator" && creatorMode === "express"}
@@ -485,6 +485,13 @@ export function AppShell({
               icon={Layers}
               label="Lab Colagem"
               helpId="tab-collage-broll"
+            />
+            <SidebarLink
+              active={activeTab === "whiteboard-creator"}
+              onClick={() => setActiveTab("whiteboard-creator")}
+              icon={Tv}
+              label="Vídeo Quadro Branco"
+              helpId="tab-whiteboard-creator"
             />
             <SidebarLink
               active={

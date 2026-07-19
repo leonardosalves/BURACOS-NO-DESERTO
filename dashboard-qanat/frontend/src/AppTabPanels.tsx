@@ -61,6 +61,12 @@ const LazyVideoReverseEngineeringLab = React.lazy(() =>
   }))
 );
 
+const LazyWhiteboardCreatorPanel = React.lazy(() =>
+  import("./WhiteboardCreatorPanel").then((module) => ({
+    default: module.WhiteboardCreatorPanel,
+  }))
+);
+
 type ResurrectorAlert = {
   type: string;
   slot: string;
@@ -258,6 +264,20 @@ export function AppTabPanels({
               }}
             />
           </DashminPageLayout>
+        </TabErrorBoundary>
+      )}
+
+      {activeTab === "whiteboard-creator" && (
+        <TabErrorBoundary tabName="Video Quadro Branco">
+          <Suspense
+            fallback={<TabPanelFallback label="Carregando quadro branco..." />}
+          >
+            <LazyWhiteboardCreatorPanel
+              activeProject={activeProject}
+              getProjectUrl={getProjectUrl}
+              postAi={postAi}
+            />
+          </Suspense>
         </TabErrorBoundary>
       )}
 

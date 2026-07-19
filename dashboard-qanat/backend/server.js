@@ -231,6 +231,7 @@ import { startSocialPublishScheduler } from "./socialPublishRunner.js";
 
 import { registerResearchRoutes } from "./researchRoutes.js";
 import { registerTimesfmRoutes } from "./timesfmRoutes.js";
+import { registerWhiteboardRoutes } from "./whiteboardRoutes.js";
 import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
 import { registerAgentReachRoutes } from "./agentReachRoutes.js";
 import {
@@ -346,12 +347,14 @@ import {
   clampListicleRankCount,
   buildHumanizeRepairPrompt,
   buildFactPreservingRepairPrompt,
+  buildNarrationAuditRepairPrompt,
   extractScriptSliceForRepair,
   mergeHumanizedScript,
   applyScriptTextQuality,
   assessAutomaticScriptQuality,
   runAutomaticScriptRepair,
   applyAutomaticScriptRepairToStoryboard,
+  runNarrationAuditRepairLoop,
   assessEditorialContract,
   assessNarrationReadiness,
   assessNarracaoProIntegrity,
@@ -20272,6 +20275,110 @@ async function runAutomaticQualityRepairForStoryboard(
   return applyAutomaticScriptRepairToStoryboard(storyboard, result);
 }
 
+function evaluateNarrationFinalAudit(
+  storyboard,
+  { format, idea, researchFacts = [], researchSources = [] } = {}
+) {
+  const integrity = assessNarracaoProIntegrity({
+    format,
+    narrativeScript: storyboard?.narrative_script,
+    idea,
+    trace: storyboard?.narracao_pro_trace,
+    researchFacts,
+    researchSources,
+  });
+  const editorial = assessEditorialContract({
+    format,
+    narrativeScript: storyboard?.narrative_script,
+    strategy: storyboard?.strategy || {},
+  });
+  return {
+    approved: integrity.ok && editorial.ok,
+    issues: [...integrity.issues, ...editorial.issues].filter(Boolean),
+    integrity,
+    editorial,
+  };
+}
+
+async function repairNarrationThroughFinalAudit(
+  storyboard,
+  {
+    format,
+    idea,
+    apiKey,
+    projectDir,
+    report,
+    expectedBlocks,
+    researchFacts = [],
+    researchSources = [],
+  } = {}
+) {
+  const maxAttempts = 2;
+  const result = await runNarrationAuditRepairLoop({
+    storyboard,
+    format,
+    maxAttempts,
+    evaluate: async (candidate) =>
+      evaluateNarrationFinalAudit(candidate, {
+        format,
+        idea,
+        researchFacts,
+        researchSources,
+      }),
+    onProgress: ({ attempt, issues }) => {
+      const summary = issues.slice(0, 3).join(" · ");
+      report(
+        "auto_repair",
+        `A própria IA está corrigindo a narração (${attempt}/${maxAttempts}): ${summary}`,
+        85 + attempt * 3
+      );
+    },
+    repair: async (current, audit, attempt) => {
+      const prompt = buildNarrationAuditRepairPrompt({
+        storyboard: current,
+        issues: audit?.issues || [],
+        format,
+        idea,
+        researchFacts,
+        researchSources,
+        attempt,
+        maxAttempts,
+      });
+      const response = await callGeminiWithRetry(apiKey, prompt, {
+        temperature: 0.25,
+        maxRetries: 1,
+        projectDir,
+        activityLabel: `Autorreparo NARRACAOPRO ${attempt}/${maxAttempts}`,
+        activityDetail: (audit?.issues || []).join(" | "),
+        maxTokens: 5000,
+      });
+      const repaired = normalizeKeys(
+        await parseAiJsonResponse(
+          response,
+          apiKey,
+          `Autorreparo NARRACAOPRO ${attempt}/${maxAttempts}`
+        )
+      );
+      if (!repaired.narrative_script && repaired.repaired_narrative) {
+        repaired.narrative_script = repaired.repaired_narrative;
+      }
+      return normalizeNarrationBlocks(repaired, expectedBlocks);
+    },
+  });
+
+  const repairedStoryboard = normalizeNarrationBlocks(
+    result.storyboard,
+    expectedBlocks
+  );
+  repairedStoryboard.automatic_narration_repair = {
+    attempted: result.attempts > 0,
+    attempts: result.attempts,
+    approved: result.approved,
+    failures: result.failures,
+  };
+  return { ...result, storyboard: repairedStoryboard };
+}
+
 // API: SCRIPT MASTER Step 2 - Generate Strategy, Complete Script, and technical mappings
 
 app.post(
@@ -21389,33 +21496,38 @@ app.post(
           "[NARRACAOPRO] Auditando o texto final após todas as alterações…",
           85
         );
-        const integrityAudit = assessNarracaoProIntegrity({
+        const finalRepair = await repairNarrationThroughFinalAudit(parsedData, {
           format,
-          narrativeScript: parsedData.narrative_script,
           idea,
-          trace: parsedData.narracao_pro_trace,
+          apiKey,
+          projectDir: llmDir,
+          report,
+          expectedBlocks: listicleBlockCount,
           researchFacts: webResearchMeta?.facts || [],
           researchSources: webResearchMeta?.sources || [],
         });
-        const editorialAudit = assessEditorialContract({
-          format,
-          narrativeScript: parsedData.narrative_script,
-          strategy: parsedData.strategy || {},
-        });
+        parsedData = finalRepair.storyboard;
+        const integrityAudit = finalRepair.audit.integrity;
+        const editorialAudit = finalRepair.audit.editorial;
         parsedData.narracao_pro_audit = {
           integrity: integrityAudit,
           editorial: editorialAudit,
-          approved: integrityAudit.ok && editorialAudit.ok,
+          approved: finalRepair.approved,
           narrative_sha256: hashNarrationIntegrityText(
             parsedData.narrative_script
           ),
           audited_at: new Date().toISOString(),
+          automatic_repair: parsedData.automatic_narration_repair,
         };
+        if (finalRepair.approved && finalRepair.attempts > 0) {
+          report(
+            "auditoria",
+            `Narração corrigida e aprovada após ${finalRepair.attempts} autorreparo(s).`,
+            92
+          );
+        }
         if (!parsedData.narracao_pro_audit.approved) {
-          const issues = [
-            ...integrityAudit.issues,
-            ...editorialAudit.issues,
-          ].filter(Boolean);
+          const issues = finalRepair.audit.issues;
           const message = `Narração bloqueada pelo NARRACAOPRO: ${issues.join(" | ")}`;
           console.warn(`[NARRACAOPRO] ${message}`);
           appendProjectEventLog(projDir, {
@@ -21426,10 +21538,11 @@ app.post(
           });
           failJobProgress(progressJobId, message);
           return activeRes.status(422).json({
-            error:
-              "A narração violou regras obrigatórias do NARRACAOPRO e não foi salva.",
+            error: `A IA corrigiu e reavaliou a narração ${finalRepair.attempts} vez(es), mas ainda restaram bloqueios obrigatórios.`,
             details: issues,
             audit: parsedData.narracao_pro_audit,
+            automaticRepairExhausted: true,
+            automaticRepairAttempts: finalRepair.attempts,
             hint: "Relações históricas de influência exigem fontes diretas. Sem prova, reformule como comparação explícita ou troque a premissa.",
           });
         }
@@ -21460,6 +21573,7 @@ app.post(
           research_facts: webResearchMeta?.facts || [],
           automatic_script_quality: parsedData.automatic_script_quality,
           automatic_script_repair: parsedData.automatic_script_repair,
+          automatic_narration_repair: parsedData.automatic_narration_repair,
           notebooklm_enriched: notebooklmEnriched,
           notebooklm_enriched_at: notebooklmEnriched
             ? new Date().toISOString()
@@ -21501,6 +21615,8 @@ app.post(
           narrative_script: partialStoryboard.narrative_script,
           narrative_script_tagged: partialStoryboard.narrative_script_tagged,
           technical_config: partialStoryboard.technical_config,
+          automatic_narration_repair:
+            partialStoryboard.automatic_narration_repair,
           notebooklm_enriched: notebooklmEnriched,
           notebooklm_summary: notebooklmEnrichSummary
             ? notebooklmEnrichSummary.slice(0, 500)
@@ -24298,6 +24414,17 @@ registerTimesfmRoutes(app, {
   callGeminiWithRetry,
   callNvidiaWithRetry,
   NVIDIA_MODELS,
+});
+
+registerWhiteboardRoutes(app, {
+  WORKSPACE_DIR,
+  PROJECTS_ROOT,
+  PYTHON_PATH,
+  getApiKey,
+  getApiKeys,
+  getAiProvider,
+  getGeminiModel,
+  callGeminiWithRetry,
 });
 
 registerAgentReachRoutes(app, {

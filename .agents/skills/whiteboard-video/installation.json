@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "product": "whiteboard-video",
+  "skill_name": "whiteboard-video",
+  "target": "codex",
+  "repository": "https://github.com/zkbys/whiteboard.git",
+  "version": "0.2.0",
+  "source_digest": "9c995253d59d05eb8df21cdfe11fb0af19f0bb5aea567e88cfef64e13741c78c",
+  "runtime": "runtime",
+  "internal_skill_entry": "INTERNAL_SKILL.md"
+}

@@ -229,6 +229,12 @@ export function buildPythonSpawnEnv(extra = {}) {
     if (!env.PATH?.toLowerCase().includes(pythonDir.toLowerCase())) {
       env.PATH = `${pythonDir}${sep}${env.PATH || ""}`;
     }
+    if (process.platform === "win32") {
+      const pythonScripts = path.join(pythonDir, "Scripts");
+      if (!env.PATH?.toLowerCase().includes(pythonScripts.toLowerCase())) {
+        env.PATH = `${pythonScripts}${sep}${env.PATH || ""}`;
+      }
+    }
     env.PYTHON_PATH = path.join(
       pythonDir,
       process.platform === "win32" ? "python.exe" : "python"
