@@ -685,8 +685,8 @@
     "semantic_hash": "c25b553812299a113799a7065171fdbc"
   },
   "dashboard-qanat/backend/data/remotion-template-catalog.json": {
-    "mtime": 1784418767.1081758,
-    "ast_hash": "bfb3070794ed879db38680f53880be6b",
+    "mtime": 1784419040.7522657,
+    "ast_hash": "a7d6e9af6fcfa5712e255e10147aea12",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/deerFlowResearch.js": {
@@ -8910,8 +8910,8 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1784412936.328148,
-    "ast_hash": "8f9df63ab11cde7bee5e933600a540d9",
+    "mtime": 1784419343.4128973,
+    "ast_hash": "6659b6eeb551d269dac31c5218b88fa5",
     "semantic_hash": ""
   },
   "AGENT_INSTRUCTIONS.md": {
@@ -9097,6 +9097,31 @@
   "graphify-out/memory/query_20260718_235211_como_o_reposit\u00f3rio_snarktank_ralph_poderia_ser_\u00fati.md": {
     "mtime": 1784418731.205294,
     "ast_hash": "72a3b99c272d2d8b2beb072b6c7402f7",
+    "semantic_hash": ""
+  },
+  "scripts/lumiera-dev-loop/example.prd.json": {
+    "mtime": 1784419343.4138975,
+    "ast_hash": "4815776babc46e4fe370dd2d5bbae4db",
+    "semantic_hash": ""
+  },
+  "scripts/lumiera-dev-loop/lumiera-dev-loop.ps1": {
+    "mtime": 1784419538.7182436,
+    "ast_hash": "ae44e2a91b66de6ea3db48ea25d56186",
+    "semantic_hash": ""
+  },
+  "scripts/lumiera-dev-loop/test-lumiera-dev-loop.ps1": {
+    "mtime": 1784419512.6380801,
+    "ast_hash": "8bdeff72f4ed8bc7dd8f7a6e2afb7517",
+    "semantic_hash": ""
+  },
+  "docs/LUMIERA_DEV_LOOP.md": {
+    "mtime": 1784419343.4148984,
+    "ast_hash": "b2f8ab25884b58a4cfa4d8a5ce6af4c3",
+    "semantic_hash": ""
+  },
+  "scripts/lumiera-dev-loop/prompt.md": {
+    "mtime": 1784419343.4138975,
+    "ast_hash": "f5fd44f2fab2c61de5ca13b81515e27c",
     "semantic_hash": ""
   }
 }

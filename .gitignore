@@ -125,6 +125,10 @@ dashboard-qanat/backend/_kokoro_test_proj/
 .vibe/
 .agents/pending/
 
+# Lumiera Dev Loop runtime worktrees and local execution state
+.lumiera-worktrees/
+.lumiera-dev-loop/
+
 # Local cache & temporary reports
 youtube_channel_cache.json
 youtube_daily_report_latest.txt

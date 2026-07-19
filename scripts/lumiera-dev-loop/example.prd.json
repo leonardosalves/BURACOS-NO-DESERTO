@@ -1,0 +1,46 @@
+{
+  "project": "Lumiera",
+  "branchName": "codex/dev-loop-example",
+  "baseBranch": "main",
+  "description": "Example autonomous maintenance run with isolated commits and explicit quality gates.",
+  "qualityChecks": [
+    {
+      "id": "backend-tests",
+      "workingDirectory": "dashboard-qanat/backend",
+      "file": "npm.cmd",
+      "arguments": ["test"]
+    },
+    {
+      "id": "frontend-typecheck",
+      "workingDirectory": "dashboard-qanat/frontend",
+      "file": "npm.cmd",
+      "arguments": ["run", "typecheck"]
+    },
+    {
+      "id": "frontend-lint",
+      "workingDirectory": "dashboard-qanat/frontend",
+      "file": "npm.cmd",
+      "arguments": ["run", "lint"]
+    }
+  ],
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Document a focused maintenance improvement",
+      "description": "As a maintainer, I want one small, verifiable improvement implemented without touching unrelated modules.",
+      "acceptanceCriteria": [
+        "The requested behavior is implemented in the declared paths.",
+        "A focused regression test is added or updated.",
+        "The selected quality gates pass."
+      ],
+      "allowedPaths": [
+        "dashboard-qanat/backend/exampleFeature.js",
+        "dashboard-qanat/backend/exampleFeature.test.js"
+      ],
+      "qualityChecks": ["backend-tests"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Replace the example paths and description before running."
+    }
+  ]
+}

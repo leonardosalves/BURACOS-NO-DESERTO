@@ -11,3 +11,10 @@ Rules:
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+
+## Lumiera Dev Loop
+
+- Validate a PRD before execution with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/lumiera-dev-loop/lumiera-dev-loop.ps1 -PrdPath <path> -ValidateOnly`.
+- Run autonomous stories only through the isolated worktree created by that script. Never point `codex exec` at the primary workspace.
+- Every story must declare narrow `allowedPaths` and at least one quality gate. The loop stages only those paths and never merges automatically.
+- Keep generated worktrees and runtime state under `.lumiera-worktrees/` and `.lumiera-dev-loop/`; they are intentionally ignored by Git.

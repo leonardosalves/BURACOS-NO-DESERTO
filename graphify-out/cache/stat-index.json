@@ -4080,11 +4080,11 @@
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\AGENTS.md": {
-    "size": 1130,
-    "mtime_ns": 1784412936328147900,
-    "word_count": 165,
+    "size": 1740,
+    "mtime_ns": 1784419343412897400,
+    "word_count": 246,
     "hashes": {
-      "agents.md": "b9cd8436064e2299d7759df1d4eb94f1fc9dde50ac59ad477b8fd50ac48955ad"
+      "agents.md": "630ccd3a79d4e13949e13096da352dec7f284d688011c7c27d910091b1a29c8e"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\AGENT_INSTRUCTIONS.md": {
@@ -4590,10 +4590,10 @@
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\data\\remotion-template-catalog.json": {
     "size": 409002,
-    "mtime_ns": 1784418767108175700,
+    "mtime_ns": 1784419040752265600,
     "word_count": 39188,
     "hashes": {
-      "dashboard-qanat/backend/data/remotion-template-catalog.json": "be15e69822d7daa35cd419e591afe9279f29a17383ca2fe0561ace00eb5c128c"
+      "dashboard-qanat/backend/data/remotion-template-catalog.json": "3771d5d66b20322373ec6915ef70fe8961c65ba9824b7cbcc5fc9e06b2b909ea"
     }
   },
   "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\dashboard-qanat\\backend\\deerFlowResearch.js": {
@@ -12481,6 +12481,46 @@
     "word_count": 131,
     "hashes": {
       "graphify-out/memory/query_20260718_235211_como_o_reposit\u00f3rio_snarktank_ralph_poderia_ser_\u00fati.md": "0342ae1e90b33d58422365113b4d4bcb0da1128cc58728dec78bcc2146808c40"
+    }
+  },
+  "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\docs\\LUMIERA_DEV_LOOP.md": {
+    "size": 2421,
+    "mtime_ns": 1784419343414898300,
+    "word_count": 291,
+    "hashes": {
+      "docs/lumiera_dev_loop.md": "37dcc2d29754ff4efba9e73d160479005c53e4ca5fe95b66776c05655bc58104"
+    }
+  },
+  "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\scripts\\lumiera-dev-loop\\example.prd.json": {
+    "size": 1458,
+    "mtime_ns": 1784419343413897400,
+    "word_count": 128,
+    "hashes": {
+      "scripts/lumiera-dev-loop/example.prd.json": "7b61bfd3d071ce75a684dc078cb6767ff59101d9390653da41e3977e4ee0dcd1"
+    }
+  },
+  "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\scripts\\lumiera-dev-loop\\lumiera-dev-loop.ps1": {
+    "size": 16735,
+    "mtime_ns": 1784419538718243700,
+    "word_count": 1665,
+    "hashes": {
+      "scripts/lumiera-dev-loop/lumiera-dev-loop.ps1": "a73b32e9237e95a23a478cc4a2ae8911b2f0db82c3e61ce0541d88fed059c3e3"
+    }
+  },
+  "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\scripts\\lumiera-dev-loop\\prompt.md": {
+    "size": 1230,
+    "mtime_ns": 1784419343413897400,
+    "word_count": 181,
+    "hashes": {
+      "scripts/lumiera-dev-loop/prompt.md": "03394ebc7beca053b324b6fb981128f4c67ab8aaa259aa264b5ed9eef41828bb"
+    }
+  },
+  "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\scripts\\lumiera-dev-loop\\test-lumiera-dev-loop.ps1": {
+    "size": 4916,
+    "mtime_ns": 1784419512638080100,
+    "word_count": 483,
+    "hashes": {
+      "scripts/lumiera-dev-loop/test-lumiera-dev-loop.ps1": "03d15992acea5ccd821800a054a0d29dacd3ad75739f3e51041dcb08ea405fc2"
     }
   }
 }
