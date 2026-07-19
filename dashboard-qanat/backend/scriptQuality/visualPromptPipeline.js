@@ -19,7 +19,7 @@ const MOTION_PROMPT_RE =
 
 /** Movimento REAL no prompt — ignora caudas residual "Cinematic motion, max 10 seconds". */
 const REAL_MOTION_PROMPT_RE =
-  /\b(moving|drone|aerial|timelapse|slow[\s-]?motion|camera pan|fly[\s-]?through|storm|drilling|pecking|tracking shot|handheld|dolly|crane|zoom in|zoom out|orbit|whip pan|push[\s-]?in)\b/i;
+  /\b(moving|drone|timelapse|slow[\s-]?motion|camera pan|fly[\s-]?through|storm|drilling|pecking|tracking shot|handheld|dolly|crane (?:shot|move|camera)|zoom in|zoom out|orbit|whip pan|push[\s-]?in)\b/i;
 
 function adaptPromptForVideoScene(prompt = "") {
   const p = String(prompt || "").trim();
@@ -481,6 +481,10 @@ export function normalizeVisualPromptMediaTypes(visualPrompts = []) {
     const prompt = String(next.prompt || next.visual_prompt || "").trim();
     const notes = String(next.editor_notes || "").trim();
     const rawType = String(next.type || next.tipo || "").trim();
+    const rawMediaMode = String(next.media_mode || "").trim().toLowerCase();
+    const hasSpecialMediaMode =
+      rawMediaMode &&
+      !["image", "imagem", "still", "video", "vídeo"].includes(rawMediaMode);
     const broll = String(
       production.broll_type || production.media_type || ""
     ).toLowerCase();
@@ -515,36 +519,62 @@ export function normalizeVisualPromptMediaTypes(visualPrompts = []) {
       /\b(8|9|10)\s*(s\b|sec\b|secs\b|seconds\b|segundos\b)/i.test(prompt);
 
     const forceVideo =
-      isPov ||
-      assetIsVideo ||
-      isVideoSceneType(rawType) ||
-      broll === "video" ||
-      broll === "vídeo";
+      !hasSpecialMediaMode &&
+      (isPov ||
+        assetIsVideo ||
+        isVideoSceneType(rawType) ||
+        broll === "video" ||
+        broll === "vídeo");
 
     const wantsVideo =
-      forceVideo ||
-      realMotion ||
-      notesSuggestVideo ||
-      (!explicitStill && residualOrGenericMotion) ||
-      (!explicitStill &&
-        /\b(first[\s-]?person|pov|gopro|point of view)\b/i.test(prompt));
+      !hasSpecialMediaMode &&
+      (forceVideo ||
+        realMotion ||
+        notesSuggestVideo ||
+        (!explicitStill && residualOrGenericMotion) ||
+        (!explicitStill &&
+          /\b(first[\s-]?person|pov|gopro|point of view)\b/i.test(prompt)));
 
     if (wantsVideo) {
       next.type = SHORTS_VIDEO_SCENE_TYPE;
+      if (!hasSpecialMediaMode) next.media_mode = "video";
       production.broll_type = "video";
       next.prompt = adaptPromptForVideoScene(prompt);
     } else {
-      next.type =
-        explicitStill || !rawType
-          ? IMAGE_SCENE_TYPE
-          : rawType || IMAGE_SCENE_TYPE;
+      next.type = IMAGE_SCENE_TYPE;
+      if (!hasSpecialMediaMode) next.media_mode = "image";
       production.broll_type = "image";
       next.prompt = stripVideoDirectivesFromImagePrompt(prompt);
     }
 
+    production.generate_from_prompt = next.prompt;
+    if (Object.hasOwn(next, "visual_prompt")) {
+      next.visual_prompt = next.prompt;
+    }
     next.production = production;
     return next;
   });
+}
+
+/**
+ * Contrato final para visual_prompts recém-gerados.
+ * Nunca deixa o tipo bruto "IMAGE" escapar e mantém todos os campos de mídia
+ * sincronizados antes de salvar ou devolver o storyboard ao Creator.
+ */
+export function finalizeGeneratedVisualPromptMedia(
+  visualPrompts = [],
+  { format = "LONGO" } = {}
+) {
+  const normalized = normalizeVisualPromptMediaTypes(visualPrompts);
+  const mixed = enforceShortsVideoSceneMix(normalized, { format });
+  const typed = normalizeVisualPromptMediaTypes(mixed);
+  const aspectRatio =
+    format === "SHORTS" || format === "SHORT" ? "9:16" : "16:9";
+
+  return sanitizeVisualPromptDurations(typed).map((vp) => ({
+    ...vp,
+    aspect_ratio: aspectRatio,
+  }));
 }
 
 /**
@@ -612,15 +642,16 @@ export function normalizeVisualPromptBlocks(
       }
     );
     if (deterministic.length > 0) {
-      result.visual_prompts = sanitizeVisualPromptDurations(
-        enrichVisualPromptsSpecificity(
-          enforceShortsVideoSceneMix(deterministic, { format }),
-          {
-            strategyTitle: ideaTitle,
-            format: format === "SHORTS" ? "SHORTS" : "LONGO",
-          }
-        )
+      const enriched = enrichVisualPromptsSpecificity(
+        finalizeGeneratedVisualPromptMedia(deterministic, { format }),
+        {
+          strategyTitle: ideaTitle,
+          format: format === "SHORTS" ? "SHORTS" : "LONGO",
+        }
       );
+      result.visual_prompts = finalizeGeneratedVisualPromptMedia(enriched, {
+        format,
+      });
       return result;
     }
   }
@@ -631,18 +662,16 @@ export function normalizeVisualPromptBlocks(
   });
 
   normalized = dedupeNearDuplicateVisualPromptsInBlocks(normalized);
-  normalized = normalizeVisualPromptMediaTypes(normalized);
-
-  const mixed = enforceShortsVideoSceneMix(normalized, { format });
-  const typed = normalizeVisualPromptMediaTypes(mixed);
-  result.visual_prompts = sanitizeVisualPromptDurations(
-    skipPromptEnrichment
-      ? typed
-      : enrichVisualPromptsSpecificity(typed, {
-          strategyTitle: ideaTitle,
-          format: format === "SHORTS" ? "SHORTS" : "LONGO",
-        })
-  );
+  const typed = finalizeGeneratedVisualPromptMedia(normalized, { format });
+  const enriched = skipPromptEnrichment
+    ? typed
+    : enrichVisualPromptsSpecificity(typed, {
+        strategyTitle: ideaTitle,
+        format: format === "SHORTS" ? "SHORTS" : "LONGO",
+      });
+  result.visual_prompts = finalizeGeneratedVisualPromptMedia(enriched, {
+    format,
+  });
   return result;
 }
 
