@@ -11,7 +11,34 @@ import {
   buildVisualPromptEngineerSystemPrompt,
   enforceVideoDiegeticAudioPolicy,
   enforceVisualLocalizedTextRule,
+  enforceNarrativeMaterialFidelity,
 } from "./visualPromptEngineer.js";
+
+test("material estrutural central precisa ficar visível no prompt", () => {
+  const prompt = enforceNarrativeMaterialFidelity(
+    "A cinematic low-angle shot of the completed Home Insurance Building in Chicago.",
+    {
+      narration:
+        "O primeiro arranha-céu permaneceu firme de pé e tinha paredes finas.",
+      narrativeScript:
+        "Seu esqueleto pioneiro de aço e ferro sustentava todo o peso.",
+    }
+  );
+
+  assert.match(prompt, /load-bearing riveted steel-and-iron skeleton/i);
+  assert.match(prompt, /thin non-load-bearing exterior cladding/i);
+  assert.match(
+    prompt,
+    /do not depict a conventional massive load-bearing stone building/i
+  );
+  assert.equal(
+    enforceNarrativeMaterialFidelity(prompt, {
+      narration: "O primeiro arranha-céu permaneceu firme de pé.",
+      narrativeScript: "Seu esqueleto de aço e ferro sustentava o peso.",
+    }),
+    prompt
+  );
+});
 
 test("Engenharia Visual PRO mantém a mídia-fonte sem texto editorial", async (t) => {
   await t.test("remove a regra antiga de tradução duplicada", () => {
@@ -159,7 +186,6 @@ test("Engenharia Visual PRO prioriza identidade + unidade roteiro↔imagem", asy
       assert.equal(typeof detectedNiche, "string");
     }
   );
-
 
   await t.test("gate rejeita microbeat e aceita mini-cena completa", () => {
     const sparse = assessCinematicVideoPromptDetail(

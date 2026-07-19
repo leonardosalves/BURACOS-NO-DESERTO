@@ -16,6 +16,10 @@ import {
   resolveLayoutForTemplate,
   resolvePresentationForScene,
 } from "../shared/motionSceneCatalog.js";
+import {
+  isVisualPromptNarration,
+  sanitizeNarrationCandidate,
+} from "./narrationIntegrity.js";
 import { resolvePackByAlias } from "./timelineStudioNichePacks.js";
 import { detectNicheCategory } from "./overlayOrchestration.js";
 import { classifyPlaceType } from "./satelliteMapService.js";
@@ -588,18 +592,30 @@ export function backfillVisualPromptNarration(storyboard = {}, config = {}) {
     : [];
   if (!visualPrompts.length) return storyboard;
 
-  const hasMissing = visualPrompts.some(
-    (vp) =>
-      !String(vp.narration_text || vp.asset?.narration_segment || "").trim()
-  );
+  const hasMissing = visualPrompts.some((vp) => {
+    const narration = String(
+      vp.narration_text || vp.asset?.narration_segment || ""
+    ).trim();
+    return !narration || isVisualPromptNarration(narration, vp.prompt);
+  });
   if (!hasMissing) return storyboard;
 
   const blockPhraseMap = new Map();
-  for (const bp of Array.isArray(config.block_phrases)
-    ? config.block_phrases
-    : []) {
-    const phrase = String(bp?.phrase || "").trim();
+  const configuredBlockPhrases = [
+    ...(Array.isArray(storyboard.technical_config?.block_phrases)
+      ? storyboard.technical_config.block_phrases
+      : []),
+    ...(Array.isArray(config.block_phrases) ? config.block_phrases : []),
+  ];
+  for (const bp of configuredBlockPhrases) {
     const block = Number(bp?.block);
+    let phrase = String(bp?.phrase || "").trim();
+    for (const vp of visualPrompts.filter(
+      (scene) => (Number(scene?.block) || 1) === block
+    )) {
+      phrase = sanitizeNarrationCandidate(phrase, vp?.prompt);
+    }
+    phrase = sanitizeNarrationCandidate(phrase);
     if (phrase && block > 0) blockPhraseMap.set(block, phrase);
   }
 
@@ -612,9 +628,10 @@ export function backfillVisualPromptNarration(storyboard = {}, config = {}) {
     .filter(Boolean);
 
   const filled = visualPrompts.map((vp, index) => {
-    const existing = String(
+    const rawExisting = String(
       vp.narration_text || vp.asset?.narration_segment || ""
     ).trim();
+    const existing = sanitizeNarrationCandidate(rawExisting, vp.prompt);
     if (existing) return vp;
 
     const block = Number(vp.block) || 1;
@@ -623,17 +640,24 @@ export function backfillVisualPromptNarration(storyboard = {}, config = {}) {
       return { ...vp, narration_text: fromBlock };
     }
 
-    const para = narrativeParagraphs[block - 1] || narrativeParagraphs[0];
+    const maxBlock = Math.max(
+      1,
+      ...visualPrompts.map((scene) => Number(scene?.block) || 1)
+    );
+    const para =
+      narrativeParagraphs.length >= maxBlock
+        ? narrativeParagraphs[block - 1]
+        : maxBlock === 1
+          ? narrativeParagraphs[0]
+          : "";
     if (para) {
       return { ...vp, narration_text: para };
     }
 
-    const promptText = String(vp.prompt || "").trim();
-    if (promptText.length >= 24) {
-      return { ...vp, narration_text: promptText.slice(0, 220) };
-    }
-
-    return vp;
+    // Falhar sem narração é seguro; copiar direção visual para TTS não é.
+    const cleaned = { ...vp };
+    delete cleaned.narration_text;
+    return cleaned;
   });
 
   return { ...storyboard, visual_prompts: filled };

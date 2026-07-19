@@ -13,7 +13,12 @@ import {
   limitMotionScenesForFormat,
   motionScenesToMotionClips,
   boostStudioMotionScenesForLongForm,
+  backfillVisualPromptNarration,
 } from "../backend/motionScenePlanner.js";
+import {
+  buildNarrationArtifacts,
+  isVisualPromptNarration,
+} from "../backend/narrationIntegrity.js";
 import { syncCatalogForNiche } from "../backend/remotionTemplateCatalogService.js";
 
 const BRIDGE_TSX = `"use client";
@@ -42,6 +47,85 @@ after(() => {
   } catch {
     /* ignore */
   }
+});
+
+describe("integridade entre narração e prompt visual", () => {
+  const visualPrompt =
+    "Photorealistic 2k cinematic wide shot of building flying, structure. Documentary science style, dramatic lighting, sharp detail, no text overlay. No readable text, subtitles, labels, logos or watermarks in the source media.";
+
+  it("nunca usa o prompt visual como fallback de narração", () => {
+    const repaired = backfillVisualPromptNarration(
+      {
+        narrative_script:
+          "A primeira frase. A segunda frase aprovada permanece correta.",
+        visual_prompts: [
+          {
+            scene: "1.1",
+            block: 1,
+            prompt: visualPrompt,
+            narration_text: visualPrompt,
+          },
+        ],
+      },
+      {
+        block_phrases: [
+          {
+            block: 1,
+            phrase: `${visualPrompt} A segunda frase aprovada permanece correta.`,
+          },
+        ],
+      }
+    );
+
+    assert.equal(
+      repaired.visual_prompts[0].narration_text,
+      "A segunda frase aprovada permanece correta."
+    );
+    assert.equal(
+      isVisualPromptNarration(
+        repaired.visual_prompts[0].narration_text,
+        visualPrompt
+      ),
+      false
+    );
+  });
+
+  it("deixa a narração vazia quando não existe fonte narrativa segura", () => {
+    const repaired = backfillVisualPromptNarration(
+      {
+        narrative_script: "Roteiro contínuo sem divisão confiável por blocos.",
+        visual_prompts: [
+          {
+            scene: "3.1",
+            block: 3,
+            prompt: visualPrompt,
+            narration_text: visualPrompt,
+          },
+        ],
+      },
+      {}
+    );
+
+    assert.equal(repaired.visual_prompts[0].narration_text, undefined);
+  });
+
+  it("remove instrução visual e falas duplicadas dos artefatos de voz", () => {
+    const artifacts = buildNarrationArtifacts([
+      { scene: "1.1", block: 1, narration_text: "Narração correta." },
+      { scene: "1.2", block: 1, narration_text: "Narração correta." },
+      {
+        scene: "2.1",
+        block: 2,
+        narration_text: visualPrompt,
+        prompt: visualPrompt,
+      },
+    ]);
+
+    assert.equal(artifacts.transcript, "Narração correta.");
+    assert.deepEqual(artifacts.blockPhrases, [
+      { block: 1, phrase: "Narração correta." },
+    ]);
+  });
 });
 
 describe("motionScenePlanner", () => {

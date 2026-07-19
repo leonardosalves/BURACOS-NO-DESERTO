@@ -190,7 +190,14 @@ import {
   isAiOverlaysEnabled,
   stripAiOverlaysFromStoryboard,
 } from "../shared/productionConfig.js";
-import { motionScenesToMotionClips } from "./motionScenePlanner.js";
+import {
+  backfillVisualPromptNarration,
+  motionScenesToMotionClips,
+} from "./motionScenePlanner.js";
+import {
+  buildNarrationArtifacts,
+  isVisualPromptNarration,
+} from "./narrationIntegrity.js";
 import { getCatalogForNiche } from "./remotionTemplateCatalogService.js";
 import {
   loadStudioForRender,
@@ -379,6 +386,7 @@ import {
   buildCinematicVideoPromptRepairPrompt,
   assessCinematicVideoPromptDetail,
   applyProjectVisualAssetStyleToPrompts,
+  enforceNarrativeMaterialFidelity,
   enforceVisualLocalizedTextRule,
   sanitizeVisualPromptDurations,
   enforceShortsVideoSceneMix,
@@ -5021,11 +5029,27 @@ app.post("/api/projects/storyboard", (req, res) => {
   const transcriptPath = path.join(projDir, "transcripts_readable.txt");
 
   try {
+    let config = {};
+    if (fs.existsSync(configPath)) {
+      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    }
+
     // Política GLOBAL POV em todo save (qualquer projeto)
     const enforced = enforcePovNoChannelNarrationPolicy(storyboardData);
-    const cleanStoryboardData = normalizeReverseEngineeredStoryboard(
-      repairStoryboardEncoding(enforced)
+    const cleanStoryboardData = backfillVisualPromptNarration(
+      normalizeReverseEngineeredStoryboard(repairStoryboardEncoding(enforced)),
+      config
     );
+    const contaminatedScenes = (
+      cleanStoryboardData.visual_prompts || []
+    ).filter((vp) => isVisualPromptNarration(vp?.narration_text, vp?.prompt));
+    if (contaminatedScenes.length) {
+      return res.status(422).json({
+        error: "Storyboard bloqueado: prompt visual detectado como narração.",
+        scenes: contaminatedScenes.map((vp) => vp.scene || vp.scene_ref),
+        hint: "Restaure a narração usando o roteiro aprovado antes de salvar.",
+      });
+    }
     const auditedNarrativeText = String(
       cleanStoryboardData.narrative_script || ""
     ).trim();
@@ -5052,47 +5076,13 @@ app.post("/api/projects/storyboard", (req, res) => {
 
     const visualPrompts = cleanStoryboardData.visual_prompts || [];
 
-    // Transcript de canal: ignora cenas POV (sem VO de canal)
-    const narrativeText = visualPrompts
-      .filter(
-        (vp) =>
-          !(
-            vp?.is_pov === true ||
-            vp?.no_channel_narration === true ||
-            String(vp?.scene_kind || "").toLowerCase() === "pov"
-          )
-      )
-      .map((vp) => vp.narration_text || "")
-      .filter(Boolean)
-      .join("\n\n");
+    // Narração nunca recebe prompt visual e tomadas repetidas não duplicam a voz.
+    const narrationArtifacts = buildNarrationArtifacts(visualPrompts);
+    const narrativeText = narrationArtifacts.transcript;
 
     fs.writeFileSync(transcriptPath, narrativeText, "utf8");
 
-    let config = {};
-
-    if (fs.existsSync(configPath)) {
-      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    }
-
-    const blockPhrasesMap = {};
-
-    visualPrompts.forEach((vp) => {
-      if (vp.block && vp.narration_text) {
-        if (!blockPhrasesMap[vp.block]) {
-          blockPhrasesMap[vp.block] = [];
-        }
-
-        blockPhrasesMap[vp.block].push(vp.narration_text);
-      }
-    });
-
-    const blockPhrases = Object.keys(blockPhrasesMap).map((b) => ({
-      block: parseInt(b),
-
-      phrase: blockPhrasesMap[b].join(" "),
-    }));
-
-    config.block_phrases = blockPhrases;
+    config.block_phrases = narrationArtifacts.blockPhrases;
 
     // Merge storyboard assets into timeline_assets — preserve user timing edits (fixed, audio_start)
 
@@ -20197,7 +20187,10 @@ function normalizeKeys(data, formatHint = null) {
 
 const AUTOMATIC_SCRIPT_REPAIR_TIMEOUT_MS = 45000;
 
-function withAutomaticRepairTimeout(promise, timeoutMs = AUTOMATIC_SCRIPT_REPAIR_TIMEOUT_MS) {
+function withAutomaticRepairTimeout(
+  promise,
+  timeoutMs = AUTOMATIC_SCRIPT_REPAIR_TIMEOUT_MS
+) {
   let timeout;
   return Promise.race([
     promise.finally(() => clearTimeout(timeout)),
@@ -20212,7 +20205,15 @@ function withAutomaticRepairTimeout(promise, timeoutMs = AUTOMATIC_SCRIPT_REPAIR
 
 async function runAutomaticQualityRepairForStoryboard(
   storyboard,
-  { format, idea, niche, apiKey, projectDir, researchFacts = [], researchSources = [] } = {}
+  {
+    format,
+    idea,
+    niche,
+    apiKey,
+    projectDir,
+    researchFacts = [],
+    researchSources = [],
+  } = {}
 ) {
   const narrativeScript = String(storyboard?.narrative_script || "").trim();
   const qualityContext = {
@@ -20222,11 +20223,13 @@ async function runAutomaticQualityRepairForStoryboard(
     niche,
     trace: storyboard?.narracao_pro_trace,
     researchFacts:
-      Array.isArray(storyboard?.research_facts) && storyboard.research_facts.length
+      Array.isArray(storyboard?.research_facts) &&
+      storyboard.research_facts.length
         ? storyboard.research_facts
         : researchFacts,
     researchSources:
-      Array.isArray(storyboard?.research_sources) && storyboard.research_sources.length
+      Array.isArray(storyboard?.research_sources) &&
+      storyboard.research_sources.length
         ? storyboard.research_sources
         : researchSources,
   };
@@ -21813,7 +21816,8 @@ app.post(
         niche,
         apiKey,
         projectDir: llmDir,
-        researchFacts: webResearchMeta?.facts || parsedData.research_facts || [],
+        researchFacts:
+          webResearchMeta?.facts || parsedData.research_facts || [],
         researchSources:
           webResearchMeta?.sources || parsedData.research_sources || [],
       });
@@ -22630,11 +22634,17 @@ app.post(
                 },
               }
             : {}),
-          prompt: enforceVisualLocalizedTextRule(vp.prompt || "", {
-            allowDiegeticText: vp.diegetic_text_required === true,
-            mediaType: vp.type || vp.media_mode || "",
-            format,
-          }),
+          prompt: enforceVisualLocalizedTextRule(
+            enforceNarrativeMaterialFidelity(vp.prompt || "", {
+              narration: vp.narration_text || "",
+              narrativeScript: narrative,
+            }),
+            {
+              allowDiegeticText: vp.diegetic_text_required === true,
+              mediaType: vp.type || vp.media_mode || "",
+              format,
+            }
+          ),
           aspect_ratio:
             format === "SHORTS" || format === "SHORT" ? "9:16" : "16:9",
           ...(narrativeJob

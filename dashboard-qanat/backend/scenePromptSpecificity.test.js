@@ -87,6 +87,21 @@ test("scenePromptSpecificity module", async (t) => {
   });
 
   await t.test(
+    "does not depict a feared hypothetical as a flying building",
+    () => {
+      const prompt = buildSceneSpecificPrompt({
+        narration_text:
+          "As autoridades temiam que o edifício saísse voando na primeira ventania.",
+        type: "imagem IA 2k",
+      });
+
+      assert.doesNotMatch(prompt, /building flying/i);
+      assert.match(prompt, /firmly grounded/i);
+      assert.match(prompt, /never a flying or levitating building/i);
+    }
+  );
+
+  await t.test(
     "enrichVisualPromptsSpecificity corrects unspecific or paste prompts",
     () => {
       const visualPrompts = [

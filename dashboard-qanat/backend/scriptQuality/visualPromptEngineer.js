@@ -58,6 +58,52 @@ export function enforceVideoDiegeticAudioPolicy(prompt = "", type = "") {
 }
 
 /**
+ * Torna visível um material estrutural central que uma fachada pronta esconderia.
+ * O objetivo não é falsificar o exterior histórico, e sim mostrar o mecanismo
+ * por construção exposta, corte arquitetônico plausível ou detalhe estrutural.
+ */
+export function enforceNarrativeMaterialFidelity(
+  prompt = "",
+  { narration = "", narrativeScript = "" } = {}
+) {
+  const text = String(prompt || "").trim();
+  if (!text) return text;
+
+  const context = `${narration} ${narrativeScript}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const sceneContext = String(narration || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const visual = text.toLowerCase();
+  const isBuildingScene =
+    /\b(predio|edificio|arranha-ceu|building|skyscraper|tower)\b/.test(
+      sceneContext
+    ) || /\b(building|skyscraper|tower|structural frame)\b/.test(visual);
+  const steelIsCentral =
+    /\b(aco|ferro|steel|iron|metal(?:ico|lic)?|esqueleto estrutural|structural skeleton)\b/.test(
+      context
+    );
+  const steelIsVisiblySpecified =
+    /\b(exposed|visible|cutaway|cross-section|open structural bay)\b[^.]{0,100}\b(steel|iron|metal|skeleton|frame|columns?|beams?)\b/i.test(
+      text
+    ) ||
+    /\b(steel|iron|metal)\b[^.]{0,80}\b(exposed|visible|skeleton|frame|columns?|beams?|rivets?)\b/i.test(
+      text
+    );
+
+  if (!isBuildingScene || !steelIsCentral || steelIsVisiblySpecified) {
+    return text;
+  }
+
+  const materialClause =
+    "Material fidelity is essential: make the load-bearing riveted steel-and-iron skeleton visually unmistakable through a historically plausible exposed construction bay, architectural cutaway, or clearly visible structural columns and beams. Any brick or stone is only thin non-load-bearing exterior cladding; do not depict a conventional massive load-bearing stone building or stone fortress.";
+  return `${text.replace(/\s+$/g, "")} ${materialClause}`.trim();
+}
+
+/**
  * Gate determinístico para impedir que o Visual PRO aceite um único microbeat
  * como se fosse uma mini-cena cinematográfica pronta para geração.
  */
@@ -69,15 +115,18 @@ export function assessCinematicVideoPromptDetail(prompt = "", type = "") {
   const text = String(prompt || "").trim();
   const wordCount = (text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
   const checks = {
-    opening: /\b(begin|begins|beginning|open|opens|opening|start|starts|initially|at first)\b/i.test(
-      text
-    ),
-    progression: /\b(then|suddenly|as the|as soon as|midway|next|at that moment)\b/i.test(
-      text
-    ),
-    ending: /\b(end|ends|ending|finally|final shot|aftermath|retreat|settles|comes to rest)\b/i.test(
-      text
-    ),
+    opening:
+      /\b(begin|begins|beginning|open|opens|opening|start|starts|initially|at first)\b/i.test(
+        text
+      ),
+    progression:
+      /\b(then|suddenly|as the|as soon as|midway|next|at that moment)\b/i.test(
+        text
+      ),
+    ending:
+      /\b(end|ends|ending|finally|final shot|aftermath|retreat|settles|comes to rest)\b/i.test(
+        text
+      ),
     camera:
       /\b(camera|shot|tracking|push-in|dolly|handheld|close-up|wide shot|medium shot|pan|tilt|orbit)\b/i.test(
         text
@@ -565,6 +614,8 @@ ${(identity.continuity_rules || []).map((r) => `  • ${r}`).join("\n") || "  �
   - EXPLAIN: torna um mecanismo compreensível visualmente
   - FEEL: carrega a emoção da linha (medo, maravilha, urgência, ironia)
 - Use prev_narration / next_narration do payload para continuidade: o final de uma cena deve "passar o bastão" visual para a próxima.
+- Se o fato central estiver escondido pela aparência externa — estrutura de aço sob alvenaria, mecanismo interno, fundação ou tubulação — torne essa evidência VISÍVEL com fase de construção, detalhe exposto ou corte arquitetônico plausível. Nunca mostre só uma fachada genérica quando a fala explica o material/mecanismo que a sustenta.
+- Diferencie estrutura portante de revestimento: aço/ferro estrutural deve aparecer como colunas, vigas, rebites e esqueleto; pedra/tijolo externo não pode fazer o edifício parecer uma construção maciça convencional quando a inovação narrada é o esqueleto metálico.
 
 **1c. Mapas e geografia — NUNCA MENTIR (crítico)**
 - Modelos de imagem inventam posição de cidades. **É proibido** pedir pins com nomes de cidades em posições decorativas/aleatórias.

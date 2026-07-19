@@ -474,7 +474,13 @@ function inferShotType(narration = "", subjects = []) {
 function buildVisualFocalDescription(narration = "", anchors = {}) {
   const subjects = collectEnglishSubjects(narration, anchors);
   const modifiers = collectSceneModifiers(narration);
-  const action = anchors.action;
+  const normalizedNarration = normalizeText(narration);
+  const hypotheticalFlying =
+    /\b(temia\w*|temendo|medo|receio|achavam|acreditavam|parecia|poderia|pudesse|como se)\b/.test(
+      normalizedNarration
+    ) &&
+    /\b(voa|voando|voar|voasse|levitar|levitasse)\b/.test(normalizedNarration);
+  const action = hypotheticalFlying ? "" : anchors.action;
   const shot = inferShotType(narration, subjects);
 
   // Filter out modifiers that are just noise without matching subjects
@@ -497,7 +503,10 @@ function buildVisualFocalDescription(narration = "", anchors = {}) {
   // If we have a proper subject, build a coherent description
   if (primary) {
     const details = detailParts.length ? `, ${detailParts.join(", ")}` : "";
-    return `${shot} of ${primary}${actionPart}${details}`;
+    const realityConstraint = hypotheticalFlying
+      ? ". The building remains firmly grounded and structurally realistic; show the fear through strong wind and worried observers, never a flying or levitating building"
+      : "";
+    return `${shot} of ${primary}${actionPart}${details}${realityConstraint}`;
   }
 
   // If we only have action or modifiers but no subject, build with what we have
