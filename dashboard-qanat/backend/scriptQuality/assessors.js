@@ -553,6 +553,196 @@ export function assessVisualStoryboardReadiness({
   };
 }
 
+function clampScore(value) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function uniqueMessages(messages) {
+  return [...new Set(messages.map((message) => String(message || "").trim()).filter(Boolean))];
+}
+
+function scoreNarrationReadiness(narration) {
+  const sentencePenalty = narration.longSentenceCount * 12;
+  const acronymPenalty = Math.min(12, narration.acronyms.length * 3);
+  const numberPenalty = Math.min(15, Math.max(0, narration.numberCount - 2) * 3);
+  const densityPenalty =
+    narration.averageWordsPerSentence > 26
+      ? Math.min(20, (narration.averageWordsPerSentence - 26) * 2)
+      : 0;
+  return clampScore(100 - sentencePenalty - acronymPenalty - numberPenalty - densityPenalty);
+}
+
+function assessDeterministicRetention({
+  format = "LONGO",
+  narrativeScript = "",
+  strategy = {},
+  editorial = {},
+  narration = {},
+} = {}) {
+  const script = String(narrativeScript || "").trim();
+  const sentences = script
+    .split(/(?<=[.!?…])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  const words = script ? script.split(/\s+/).filter(Boolean) : [];
+  const isShort = format === "SHORTS" || format === "SHORT";
+  const issues = [];
+  const recommendations = [];
+  const opening = sentences.slice(0, isShort ? 1 : 3).join(" ");
+  const ending = sentences.at(-1) || "";
+  const hasCuriosityGap =
+    /\b(por que|como|segredo|mist[eé]rio|ningu[eé]m|parece|mas|s[oó] que|at[eé] que)\b/i.test(
+      opening
+    ) || /[?]/.test(opening);
+  const hasStakes =
+    /\b(muda|salva|destr[oó]i|risco|perigo|prova|revela|verdade|erro|consequ[eê]ncia|impacto)\b/i.test(
+      opening
+    );
+  const hasProgression =
+    /\b(primeiro|depois|ent[aã]o|por isso|o resultado|no fim|s[eé]culos depois|a partir disso)\b/i.test(
+      script
+    );
+  const hasPayoff =
+    Boolean(editorial.checks?.payoff) ||
+    /\b(segredo|resposta|resultado|por isso|conclus[aã]o|li[cç][aã]o|significa)\b/i.test(
+      ending
+    );
+  const hasContextualCta = Boolean(editorial.checks?.contextualCta);
+  const averageWordsPerSentence = narration.averageWordsPerSentence || 0;
+
+  if (!script) issues.push("Roteiro vazio sem retenção avaliável.");
+  if (!hasCuriosityGap) {
+    recommendations.push("Abra com uma pergunta, contraste ou lacuna de curiosidade mais clara.");
+  }
+  if (!hasStakes) {
+    recommendations.push("Declare cedo o que muda, o risco ou a consequência da história.");
+  }
+  if (!hasProgression) {
+    recommendations.push("Use transições de progressão para criar sensação de avanço.");
+  }
+  if (!hasPayoff) issues.push("Retenção sem payoff explícito no final.");
+  if (!isShort && !hasContextualCta) {
+    recommendations.push("Inclua um CTA contextual no meio do vídeo sem interromper a entrega.");
+  }
+  if (averageWordsPerSentence > (isShort ? 22 : 28)) {
+    recommendations.push("Reduza a densidade média das frases para manter ritmo oral.");
+  }
+
+  const featureScore =
+    (hasCuriosityGap ? 20 : 0) +
+    (hasStakes ? 20 : 0) +
+    (hasProgression ? 25 : 0) +
+    (hasPayoff ? 25 : 0) +
+    (isShort || hasContextualCta ? 10 : 0);
+  const lengthPenalty =
+    isShort && (words.length < 70 || words.length > 145)
+      ? 15
+      : !isShort && words.length < 900
+        ? 15
+        : 0;
+
+  return {
+    ok: issues.length === 0,
+    score: clampScore(featureScore - lengthPenalty),
+    format: isShort ? "SHORTS" : "LONGO",
+    checks: {
+      curiosityGap: hasCuriosityGap,
+      stakes: hasStakes,
+      progression: hasProgression,
+      payoff: hasPayoff,
+      contextualCta: hasContextualCta,
+    },
+    issues,
+    recommendations,
+  };
+}
+
+/**
+ * Unified deterministic script-quality gate.
+ * It combines executable checks and never uses model-authored checklist scores.
+ */
+export function assessAutomaticScriptQuality({
+  format = "LONGO",
+  narrativeScript = "",
+  strategy = {},
+  idea = {},
+  trace = {},
+  researchFacts = [],
+  researchSources = [],
+} = {}) {
+  const editorial = assessEditorialContract({ format, narrativeScript, strategy });
+  const narration = assessNarrationReadiness({ format, narrativeScript });
+  const factual = assessNarracaoProIntegrity({
+    format,
+    narrativeScript,
+    idea,
+    trace,
+    researchFacts,
+    researchSources,
+  });
+  const retention = assessDeterministicRetention({
+    format,
+    narrativeScript,
+    strategy,
+    editorial,
+    narration,
+  });
+  const narrationScore = scoreNarrationReadiness(narration);
+  const factualScore = clampScore(100 - factual.issues.length * 30 - factual.warnings.length * 5);
+  const rawScore =
+    editorial.score * 0.35 +
+    narrationScore * 0.2 +
+    factualScore * 0.3 +
+    retention.score * 0.15;
+  const factualHardBlockers = factual.ok
+    ? []
+    : factual.issues.map((issue) => `Factual: ${issue}`);
+  const hardBlockers = uniqueMessages([
+    ...factualHardBlockers,
+    ...(!narrativeScript || !String(narrativeScript).trim()
+      ? ["Roteiro vazio não pode ser aprovado."]
+      : []),
+  ]);
+  const score = clampScore(hardBlockers.length ? Math.min(rawScore, 49) : rawScore);
+  const recommendations = uniqueMessages([
+    ...editorial.issues,
+    ...editorial.recommendations,
+    ...narration.recommendations,
+    ...retention.issues,
+    ...retention.recommendations,
+    ...factual.warnings,
+  ]);
+
+  return {
+    score,
+    overallScore: score,
+    passed:
+      hardBlockers.length === 0 &&
+      score >= 80 &&
+      editorial.ok &&
+      retention.ok &&
+      narration.ok,
+    hardBlockers,
+    recommendations,
+    dimensions: {
+      editorial: {
+        ...editorial,
+        score: clampScore(editorial.score),
+      },
+      narration: {
+        ...narration,
+        score: narrationScore,
+      },
+      factual: {
+        ...factual,
+        score: factualScore,
+      },
+      retention,
+    },
+  };
+}
+
 export function parseChecklistScore(value, fallback = 0) {
   if (value == null || value === "") return fallback;
   if (typeof value === "number" && Number.isFinite(value)) {
