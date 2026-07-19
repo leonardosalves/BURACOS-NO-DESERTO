@@ -1,16 +1,16 @@
-# Graph Report - codex-visual-media-contract-fix  (2026-07-18)
+# Graph Report - codex-narration-block-quality  (2026-07-19)
 
 ## Corpus Check
-- 1824 files · ~12,262,350 words
+- 1826 files · ~12,263,799 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 12716 nodes · 23290 edges · 798 communities (723 shown, 75 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 214 edges (avg confidence: 0.69)
+- 12730 nodes · 23330 edges · 815 communities (740 shown, 75 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 215 edges (avg confidence: 0.69)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f787290e`
+- Built from commit: `65717c90`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -294,6 +294,7 @@
 - block-dangerous-git.sh
 - convert_pdf_to_images.py
 - create_validation_image.py
+- comfyCloudMcp.js
 - capture_cookies.py
 - eslint
 - @types/react-dom
@@ -414,6 +415,7 @@
 - Part 6: NanoBanana2 (Gemini 3.1 Flash Image) 프롬프트 전략
 - Legacy GPT-5.2/5.4 XML Stack (참조용 — "5.4 XML 스타일" 명시 시 사용)
 - 📦 LEGACY — GPT-5.5 outcome-first / GPT-5.4·5.2 XML stack (명시 요청 시 fallback)
+- Process
 - 2. Efeitos Visuais Avançados (Visual Effects)
 - Steps
 - Video Marketing (Lumiera)
@@ -459,6 +461,7 @@
 - SKILL.md
 - Non-fillable fields
 - Prototype
+- cleanText
 - For each issue the user raises
 - On-screen text
 - Pinned comments
@@ -565,6 +568,7 @@
 - REFERENCES.md
 - SKILL.md
 - YouTube Thumbnail (Lumiera)
+- computeAssetDuration
 - Lumiera Memória
 - CocoLoop Skills — curado Lumiera
 - 2026-07-01 05:50 — construction history (SHORT)
@@ -620,6 +624,7 @@
 - Drone/Crane
 - Managed Agents — Overview
 - Migrating to Opus 4.8
+- creatorProductionPlan.ts
 - Advanced MCP Features
 - Advanced FastMCP Features
 - REFERENCES.md
@@ -653,6 +658,7 @@
 - 网页阅读
 - Breaking Changes by Source Model
 - Per-SDK Syntax Reference
+- DashminDashboard.tsx
 - Lumiera Ops (obrigatório)
 - Security Best Practices
 - Getting video duration with Mediabunny
@@ -750,6 +756,17 @@
 - comparacao-engenharia-moderna-x-antiga-origem
 - curiosidade-engenharia-brasil
 - customized
+- repairMojibake
+- timelineNarration.js
+- Managed Agents — Onboarding Flow
+- instagramOAuth.js
+- projectEventLog.js
+- DeerFlow → Lumiera (pesquisa profunda)
+- Integração Lumiera
+- SKILL.md
+- narrationUpload.js
+- DashAlert.tsx
+- DashButton.tsx
 
 ## God Nodes (most connected - your core abstractions)
 1. `registerWorkflowRoutes()` - 137 edges
@@ -778,59 +795,59 @@
 ## Import Cycles
 - 3-file cycle: `dashboard-qanat/backend/geoPipTimelineEnrich.js -> dashboard-qanat/backend/motionFlyoverUpload.js -> dashboard-qanat/backend/timelineStudioMigration.js -> dashboard-qanat/backend/geoPipTimelineEnrich.js`
 
-## Communities (798 total, 75 thin omitted)
+## Communities (815 total, 75 thin omitted)
 
 ### Community 0 - "server.js"
-Cohesion: 0.02
-Nodes (124): createProgressJobResponse(), youtubeAvatarCacheKey(), getCompactCodeMapText(), LUMIERA_CODE_MAP, hasMp3Signature(), installNarrationAtomically(), removeTemporaryNarration(), buildOverlayResearchPromptBlock() (+116 more)
+Cohesion: 0.03
+Nodes (136): createProgressJobResponse(), buildGeminiKeyPool(), geminiMaxKeysBeforeModelSwitch(), isGeminiModelOverloadStatus(), isGeminiQuotaStatus(), normalizeApiKeys(), shouldRotateGeminiKey(), buildBrowserTaskPrompt() (+128 more)
 
 ### Community 1 - "AppTabPanels.tsx"
-Cohesion: 0.03
-Nodes (88): AppAiTab(), AppAiTabProps, AppCreatorTabProps, AppDocsTab(), DocFile, DocSearchResult, SelectedDoc, AppEditorTab() (+80 more)
+Cohesion: 0.04
+Nodes (84): initialActiveProject, initialProjectSnapshot, initialWizardSession, AppAiTab(), AppAiTabProps, PROJECT_WORKSPACE_TABS, RENDER_MODE_LABELS, AppCreatorTabProps (+76 more)
 
 ### Community 2 - "workflowTools.js"
-Cohesion: 0.10
-Nodes (37): httpsGetJson(), pickMediaFile(), resolveArchiveOrgMedia(), searchArchiveOrg(), searchArchiveOrgMedia(), decodeEscapedUrl(), extFromUrl(), extractBingImageUrls() (+29 more)
+Cohesion: 0.08
+Nodes (46): httpsGetJson(), pickMediaFile(), resolveArchiveOrgMedia(), searchArchiveOrg(), searchArchiveOrgMedia(), decodeEscapedUrl(), extFromUrl(), extractBingImageUrls() (+38 more)
 
 ### Community 3 - "youtubeQualityGate.js"
-Cohesion: 0.06
-Nodes (76): registerAssetCleanupRoutes(), appendAudit(), applyAssetCleanupResult(), ASSET_CLEANUP_SUPPORTED_EXTENSIONS, atomicWriteJson(), buildVideoCleanupArgs(), CLEANUP_DIR, createAssetCleanupResult() (+68 more)
+Cohesion: 0.13
+Nodes (39): analyzeMedia(), assertYoutubeQualityGateReady(), assessMetadataAndPolicy(), assessOriginality(), assessRetention(), autoFixYoutubeQualityGate(), backupProjectConfig(), canonicalRepairVideo() (+31 more)
 
 ### Community 4 - "SectionHeader.tsx"
-Cohesion: 0.03
-Nodes (98): AppSettingsTab(), BrandLogoItem, BrandSettingsPanel(), BrandSettingsPanelProps, YoutubeChannelItem, DeepResearchPanel(), DeepResearchPanelProps, DeepResearchResult (+90 more)
+Cohesion: 0.05
+Nodes (55): AppSettingsTab(), BrandLogoItem, BrandSettingsPanel(), BrandSettingsPanelProps, YoutubeChannelItem, IntegrationSettings(), Props, UploadStatus (+47 more)
 
 ### Community 5 - "videoResurrector.js"
 Cohesion: 0.07
-Nodes (80): daysSince(), localDateString(), readJsonSafe(), writeJsonAtomic(), youtubeDataGet(), clamp(), compareResurrectionOpportunity(), diagnoseResurrectionOpportunity() (+72 more)
+Nodes (78): daysSince(), localDateString(), readJsonSafe(), clamp(), compareResurrectionOpportunity(), diagnoseResurrectionOpportunity(), safeRate(), advanceResurrectorCycle() (+70 more)
 
 ### Community 6 - "App.tsx"
-Cohesion: 0.06
-Nodes (78): App(), initialActiveProject, initialProjectSnapshot, initialWizardSession, PROJECT_WORKSPACE_TABS, RENDER_MODE_LABELS, AppCreatorTab(), PendingRenderJob (+70 more)
+Cohesion: 0.05
+Nodes (57): App(), AgentReachResearchPayload, buildAgentReachResearchOutline(), buildEditorialImportOutline(), buildOpenMontageCreatorOutline(), buildPioneerCreatorOutline(), coerceCreatorTextField(), EditorialIdeaImport (+49 more)
 
 ### Community 7 - "lumiera-backend-common.ps1"
 Cohesion: 0.06
 Nodes (70): Test-PortListening(), Ensure-LumieraServicePaths(), Ensure-NssmDownload(), Get-NlmExePath(), Get-NodeExePath(), Invoke-Nssm(), Remove-LumieraService(), Start-LumieraWindowsService() (+62 more)
 
 ### Community 8 - "callGeminiWithRetry"
-Cohesion: 0.07
-Nodes (62): buildGeminiKeyPool(), geminiMaxKeysBeforeModelSwitch(), isGeminiModelOverloadStatus(), isGeminiQuotaStatus(), normalizeApiKeys(), shouldRotateGeminiKey(), buildBrowserTaskPrompt(), getGeminiBrowserMode() (+54 more)
+Cohesion: 0.04
+Nodes (49): CreatorApplyIdeaOptions, PioneerNicheMeta, DeepResearchPanel(), DeepResearchPanelProps, DeepResearchResult, GeminiBrowserRequest, CapabilityCategory, CapabilityItem (+41 more)
 
 ### Community 9 - "timelineStudioMigration.js"
 Cohesion: 0.07
-Nodes (80): migrateStudioMotionClipsFromVideo(), normalizeMotionClipProps(), syncMotionScenesToStudio(), readJsonSafe(), registerMotionSceneRoutes(), applyClipTimingToMotionScene(), applyClipTimingToTimelineAsset(), applyNarrationSyncToProject() (+72 more)
+Nodes (76): migrateStudioMotionClipsFromVideo(), syncMotionScenesToStudio(), applyClipTimingToMotionScene(), applyClipTimingToTimelineAsset(), applyNarrationSyncToProject(), buildMotionClipLookup(), defaultTracks(), finalizeStudioForDisk() (+68 more)
 
 ### Community 10 - "videoProEnhancements.js"
 Cohesion: 0.12
-Nodes (30): clusterCommentTopics(), commentsToCsv(), computeChannelResponseStats(), DEFAULT_AUTO_REPLY_RULES, detectSentiment(), enrichComments(), fetchCreatorContentTypeByVideo(), fetchVideoCtrAndRevenue() (+22 more)
+Nodes (27): bulkReplyComments(), clusterCommentTopics(), commentsToCsv(), computeChannelResponseStats(), DEFAULT_AUTO_REPLY_RULES, detectSentiment(), enrichComments(), fetchCreatorContentTypeByVideo() (+19 more)
 
 ### Community 11 - "RemotionTemplateStudio.tsx"
-Cohesion: 0.04
-Nodes (97): BlockPhrase, EditorialQuality, hasRunnableStudioSource(), NarrationReadiness, NarrationReviewPanel(), Props, readLocalStudioTemplates(), splitBlockParagraphs() (+89 more)
+Cohesion: 0.07
+Nodes (52): addUnique(), buildLocalCatalogExport(), catalogTemplateToTemplateItem(), CATEGORIES, DEFAULT_PREVIEW_SEGMENTS, DeletedCatalog, deletedSubcategoryKey(), DetailFormat (+44 more)
 
 ### Community 12 - "timelineNarrationSync.ts"
-Cohesion: 0.07
-Nodes (65): ConfigSlice, getTransitionInfo(), getTransitionStyle(), Props, SCENE_COLORS, SceneTimingEditor(), TRANSITION_ANIMS, TRANSITION_LABELS (+57 more)
+Cohesion: 0.13
+Nodes (29): ConfigSlice, getTransitionInfo(), getTransitionStyle(), Props, SCENE_COLORS, SceneTimingEditor(), TRANSITION_ANIMS, TRANSITION_LABELS (+21 more)
 
 ### Community 13 - "bgmEmotionPlan.js"
 Cohesion: 0.07
@@ -838,31 +855,31 @@ Nodes (63): buildBgmEmotionPlan(), buildBgmEmotionPlanPrompt(), buildEmotionMapp
 
 ### Community 14 - "AppCreatorTab.tsx"
 Cohesion: 0.05
-Nodes (51): LazyCollageBrollLab, LazyListicleCreatorStep, PUBLICATION_CHECKS, AssetCleanupPanel(), CleanupAsset, CleanupJob, CleanupRect, DEFAULT_RECT (+43 more)
+Nodes (53): AppCreatorTab(), LazyCollageBrollLab, LazyListicleCreatorStep, PUBLICATION_CHECKS, AssetCleanupPanel(), CleanupAsset, CleanupJob, CleanupRect (+45 more)
 
 ### Community 15 - "OverlayTimelineEditor.tsx"
 Cohesion: 0.08
-Nodes (59): COMMON_PROPS, ContentField, MOTION_CONTENT_FIELDS, MOTION_TEMPLATE_LABELS, MOTION_TEMPLATE_OPTIONS, motionSceneSummary(), normalizeMotionScenes(), sceneOptionsFromStoryboard() (+51 more)
+Nodes (60): COMMON_PROPS, ContentField, MOTION_CONTENT_FIELDS, MOTION_TEMPLATE_LABELS, MOTION_TEMPLATE_OPTIONS, motionSceneSummary(), normalizeMotionScenes(), sceneOptionsFromStoryboard() (+52 more)
 
 ### Community 16 - "VisualSettings.tsx"
 Cohesion: 0.06
 Nodes (58): CAPTION_MODE_IDS, CaptionGrouping, CaptionModeId, CaptionStyleId, DEFAULT_CAPTION_GROUPING_LONG, DEFAULT_CAPTION_GROUPING_SHORT, isCaptionModeId(), isWordByWordMode() (+50 more)
 
 ### Community 17 - "workflowRoutes.js"
-Cohesion: 0.11
-Nodes (43): buildConsistencyBlock(), buildDualFrameSpec(), buildEndFrameImagePrompt(), buildEndFramePrompt(), buildFrameConsistency(), buildGoogleFlowExport(), buildImagegenPrompt(), buildMotionPrompt() (+35 more)
+Cohesion: 0.09
+Nodes (73): buildCollageMetaphorPrompt(), buildConsistencyBlock(), buildDualFrameSpec(), buildEndFrameImagePrompt(), buildEndFramePrompt(), buildFrameConsistency(), buildGoogleFlowExport(), buildImagegenPrompt() (+65 more)
 
 ### Community 18 - "motionScenePlanner.js"
-Cohesion: 0.06
-Nodes (77): applyGeoPipStudioPack(), applyMotionScenesToVisualPrompts(), boostStudioMotionScenesForLongForm(), buildBaseMotionScene(), buildMotionPlanReview(), buildPropsForTemplate(), buildTemplateReviewEntry(), classifyNarrationSegment() (+69 more)
+Cohesion: 0.08
+Nodes (53): applyGeoPipStudioPack(), applyMotionScenesToVisualPrompts(), boostStudioMotionScenesForLongForm(), buildBaseMotionScene(), buildMotionPlanReview(), buildPropsForTemplate(), buildTemplateReviewEntry(), classifyNarrationSegment() (+45 more)
 
 ### Community 19 - "appLazyPanels.tsx"
 Cohesion: 0.11
 Nodes (23): generate_html(), main(), Generate HTML report from loop output data. If auto_refresh is True, adds a meta, _call_claude(), improve_description(), main(), Run `claude -p` with the prompt on stdin and return the text response.      Pr, Call Claude to improve the description based on eval results. (+15 more)
 
 ### Community 20 - "videoUnderstandingService.js"
-Cohesion: 0.07
-Nodes (72): analyzeReferenceVideo(), buildFallbackBrief(), buildReferenceAnalysisPrompt(), extractJsonFromText(), fetchJson(), fetchYoutubeMetadata(), parseReferenceUrl(), YT_PATTERNS (+64 more)
+Cohesion: 0.11
+Nodes (39): planDeepResearch(), analyzeReferenceVideo(), buildFallbackBrief(), buildReferenceAnalysisPrompt(), extractJsonFromText(), fetchJson(), fetchYoutubeMetadata(), parseReferenceUrl() (+31 more)
 
 ### Community 21 - "applyRenderTemplatePolicy.js"
 Cohesion: 0.11
@@ -874,11 +891,11 @@ Nodes (51): check_container_status(), create_media_container(), get_temp_public_
 
 ### Community 23 - "StudioAgents.tsx"
 Cohesion: 0.01
-Nodes (113): CocoLoop Skills — rejeitadas, Critério, Config, Matt Pocock skills no Lumiera, Prioridade (bundle `dev-sdd`), Skill bundles (Hermes / OpenClaw), ad concept generator, agent reach (+105 more)
+Nodes (110): CocoLoop Skills — rejeitadas, Critério, Config, Matt Pocock skills no Lumiera, Prioridade (bundle `dev-sdd`), Skill bundles (Hermes / OpenClaw), ad concept generator, agent reach (+102 more)
 
 ### Community 24 - "motionSceneLlmEnrichment.js"
 Cohesion: 0.09
-Nodes (48): applyLlmEnrichmentToPlan(), applyStudioContractFromLlm(), buildMotionSceneEnrichmentPrompt(), dedupeMotionScenesAgainstOverlays(), enrichMotionScenesWithLlm(), extractJsonCandidate(), extractLlmStudioProps(), filterScenesFailingStudioContract() (+40 more)
+Nodes (49): applyLlmEnrichmentToPlan(), applyStudioContractFromLlm(), buildMotionSceneEnrichmentPrompt(), dedupeMotionScenesAgainstOverlays(), enrichMotionScenesWithLlm(), extractJsonCandidate(), extractLlmStudioProps(), filterScenesFailingStudioContract() (+41 more)
 
 ### Community 25 - "BlockProgressBarEditor.tsx"
 Cohesion: 0.08
@@ -889,28 +906,28 @@ Cohesion: 0.07
 Nodes (53): AlertIcon(), ApiIcon(), AtomIcon(), base(), BellIcon(), BoltIcon(), BookIcon(), BookmarkIcon() (+45 more)
 
 ### Community 27 - "prepareRemotionRender"
-Cohesion: 0.08
-Nodes (47): formatSonoplastiaLog(), buildPythonSpawnEnv(), fallbackCaptionsFromScenes(), getAudioDuration(), logOverlayTimingAndConflicts(), parseDurationSeconds(), prepareRemotionRender(), safeProjectSlug() (+39 more)
+Cohesion: 0.07
+Nodes (49): copyOverlayMediaPropsForRemotion(), copyRemotionAsset(), fallbackCaptionsFromScenes(), findProjectFile(), logOverlayTimingAndConflicts(), parseDurationSeconds(), prepareRemotionRender(), purgeRemotionPublicProjectCache() (+41 more)
 
 ### Community 28 - "skillsRegistry.js"
-Cohesion: 0.10
-Nodes (55): buildLearningsPromptAddendum(), extractPatternsFromQuality(), generalizeTimingEntry(), loadStudioAgentsConfig(), migrateSkillBundleMap(), saveStudioAgentsConfig(), applySkillProposal(), applyWorkshopProposalById() (+47 more)
+Cohesion: 0.11
+Nodes (52): buildLearningsPromptAddendum(), loadStudioAgentsConfig(), migrateSkillBundleMap(), saveStudioAgentsConfig(), applySkillProposal(), applyWorkshopProposalById(), buildSkillsPromptAddendum(), buildStudioAgentsPromptAddendum() (+44 more)
 
 ### Community 29 - "NarrationChunksPanel.tsx"
-Cohesion: 0.09
-Nodes (47): AiJobProgressBar(), GlobalProgressStrip(), AiJobDoneResult, AiJobProgressState, applyProgressData(), createProgressJobId(), emit(), fetchProgress() (+39 more)
+Cohesion: 0.06
+Nodes (74): AiJobProgressBar(), GlobalProgressStrip(), AiJobDoneResult, AiJobProgressState, applyProgressData(), createProgressJobId(), emit(), fetchProgress() (+66 more)
 
 ### Community 30 - "YoutubeStudioPanel.tsx"
-Cohesion: 0.06
-Nodes (45): ChecklistItem, PostPublishChecklist(), Props, formatNumber(), ProjectYoutubeCard(), Props, Snapshot, ChannelOverview (+37 more)
+Cohesion: 0.04
+Nodes (56): AppHomeTab(), formatNumber(), ProjectYoutubeCard(), Props, Snapshot, ChannelOverview, CommentFilter, CommentRow (+48 more)
 
 ### Community 31 - "MCPConnection"
 Cohesion: 0.06
 Nodes (34): ABC, Anthropic, create_connection(), MCPConnection, MCPConnectionHTTP, MCPConnectionSSE, MCPConnectionStdio, Lightweight connection handling for MCP servers. (+26 more)
 
 ### Community 32 - "competitorResearch.js"
-Cohesion: 0.11
-Nodes (44): appendCandidates(), appendCompetitorErrors(), appendCompetitorResearchToMemory(), appendFichaArchive(), appendPromotedPatterns(), appendResearchSection(), buildAnalysisPrompt(), buildFallbackAnalysis() (+36 more)
+Cohesion: 0.12
+Nodes (43): appendCandidates(), appendCompetitorErrors(), appendCompetitorResearchToMemory(), appendFichaArchive(), appendPromotedPatterns(), appendResearchSection(), buildAnalysisPrompt(), buildFallbackAnalysis() (+35 more)
 
 ### Community 33 - "productionOrchestrator.js"
 Cohesion: 0.09
@@ -925,24 +942,24 @@ Cohesion: 0.07
 Nodes (42): ChapterStinger(), ChapterStingerProps, GeoMapOverlay(), GeoMapOverlayProps, InfoCardProps, InfoCounterProps, InfoTimelineProps, KineticText() (+34 more)
 
 ### Community 36 - "titleGenerator.js"
-Cohesion: 0.05
-Nodes (97): NICHE_RPM_HINTS, enhanceCreatorStrategyTitles(), enhanceYoutubeTitlesMetadata(), reprocessYoutubeMetadataCache(), applyTitleQualityToParsed(), BANNED_TITLE_PATTERNS, baseTitleMax(), buildListicleTitleCandidates() (+89 more)
+Cohesion: 0.06
+Nodes (95): enhanceCreatorStrategyTitles(), enhanceYoutubeTitlesMetadata(), reprocessYoutubeMetadataCache(), stripAccents(), applyTitleQualityToParsed(), BANNED_TITLE_PATTERNS, baseTitleMax(), buildListicleTitleCandidates() (+87 more)
 
 ### Community 37 - "TimelineStudio.tsx"
-Cohesion: 0.13
-Nodes (33): countRemotionTracks(), focusFirstRemotionClip(), normalizeGeoMotionClips(), numericClipPatch(), readPreviewSplitRatio(), TimelineStudio(), TimelineStudioProps, analyzeTimelineCoverage() (+25 more)
+Cohesion: 0.18
+Nodes (19): deleteClip(), findClip(), isClipEditable(), isDurationLocked(), moveClip(), resizeClip(), snapTime(), tightenStudioTimelineClips() (+11 more)
 
 ### Community 38 - "TimelineStudioPreview.tsx"
-Cohesion: 0.11
-Nodes (38): BlenderFlyoverPreview(), GeoPipFlyoverVideoPreview(), Props, GeoPipWindow, isGeoMediaPipPreview(), resolveGeoPipWindowRect(), Props, SatelliteMapPreview() (+30 more)
+Cohesion: 0.09
+Nodes (54): AskLumieraPanel(), MotionSceneDraft, RichTimelineEditorProps, clipActiveOnTrack(), countRemotionTracks(), focusFirstRemotionClip(), normalizeGeoMotionClips(), numericClipPatch() (+46 more)
 
 ### Community 39 - "OverlayPreview.tsx"
 Cohesion: 0.10
 Nodes (42): normalizeOverlayPosition(), overlayPreviewFlexStyle(), OverlayScreenPosition, resolveIconStyle(), IconSlot(), OverlayPreview(), Props, computeOverlayPreviewMotion() (+34 more)
 
 ### Community 40 - "pioneerNicheDiscovery.js"
-Cohesion: 0.10
-Nodes (36): alternativeSuggestionConflict(), AUDIENCE_HINTS, buildAlternativePrompt(), buildContentHook(), buildFirstVideoIdea(), buildMatrixCandidates(), buildPioneerIdea(), buildSearchQuery() (+28 more)
+Cohesion: 0.08
+Nodes (49): extractJsonCandidate(), parseJsonFromLlm(), parseJsonLocally(), normalizeAnalysisShape(), parseCompetitorAnalysis(), salvagePartialAnalysis(), alternativeSuggestionConflict(), AUDIENCE_HINTS (+41 more)
 
 ### Community 41 - "overlayIconSlot.tsx"
 Cohesion: 0.05
@@ -950,19 +967,19 @@ Nodes (23): barIconRowOffset(), barStackBelowTrack(), BLOCK_PROGRESS_DESIGNS, Bl
 
 ### Community 42 - "overlayOrchestration.js"
 Cohesion: 0.05
-Nodes (109): buildListicleVideoSeed(), applyProductionOverlayLimits(), buildOrchestrationPrompt(), buildOverlayOrchestrationPlan(), countDataRichBlocks(), DATA_TYPES, detectNicheCategory(), enforceOverlayOrchestration() (+101 more)
+Nodes (83): applyProductionOverlayLimits(), buildOrchestrationPrompt(), buildOverlayOrchestrationPlan(), countDataRichBlocks(), DATA_TYPES, enforceOverlayOrchestration(), hashString(), KINETIC_TYPES (+75 more)
 
 ### Community 43 - "collageBrollMedia.js"
 Cohesion: 0.03
-Nodes (50): Message Batches API, Message Batches — C#, Files API (Beta), Files API — C#, Streaming, Streaming — C#, Files API (Beta), Files API — Go (+42 more)
+Nodes (43): Message Batches API, Message Batches — C#, Files API (Beta), Files API — C#, Streaming, Streaming — C#, Files API (Beta), Files API — Go (+35 more)
 
 ### Community 44 - "timelineSceneSync.js"
-Cohesion: 0.12
-Nodes (40): applySpeechWindowToAsset(), applyWhisperDurationsToStoryboard(), assetHasExplicitDuration(), blockHasExplicitSync(), blockHasLockedDurations(), blockUsesSequentialFixedLayout(), bootstrapTimelineSlotsFromWhisper(), buildBlockSceneTimings() (+32 more)
+Cohesion: 0.15
+Nodes (33): isVideoAssetPath(), applySpeechWindowToAsset(), applyWhisperDurationsToStoryboard(), assetHasExplicitDuration(), blockHasLockedDurations(), blockUsesSequentialFixedLayout(), bootstrapTimelineSlotsFromWhisper(), buildBlockSceneTimings() (+25 more)
 
 ### Community 45 - "promptBuilders.js"
-Cohesion: 0.08
-Nodes (53): buildChecklistSchemaBlock(), buildConsolidatedGuidelines(), __dirname, __filename, loadComousarAnarracaoProGuidelines(), loadNarracaoProGuidelines(), loadPreferredGuideline(), WORKSPACE_DIR (+45 more)
+Cohesion: 0.11
+Nodes (42): buildChecklistSchemaBlock(), buildConsolidatedGuidelines(), assessIdeaScriptEligibility(), buildCreatorFullScriptPrompt(), buildCreatorPhase2Prompt(), buildCustomIdeaEvaluationPrompt(), buildFactPreservingRepairPrompt(), buildFormatScriptRules() (+34 more)
 
 ### Community 46 - "listicleHudTheme.ts"
 Cohesion: 0.08
@@ -982,27 +999,27 @@ Nodes (35): mergeWebResearch(), maskApiKey(), attachSourcesToFacts(), classifySo
 
 ### Community 50 - "narrationChunks.js"
 Cohesion: 0.08
-Nodes (62): aggregateNarrationChunksByScene(), alignNarrationChunkPlanToWhisper(), allNarrationChunksHaveAudio(), applyChunkedNarrationSyncToProject(), applyChunkedTimelineAfterWhisper(), applyChunkPlanToVisualPrompts(), archiveNarrationChunkAudio(), assembleNarrationChunksToMaster() (+54 more)
+Nodes (61): aggregateNarrationChunksByScene(), alignNarrationChunkPlanToWhisper(), allNarrationChunksHaveAudio(), applyChunkedNarrationSyncToProject(), applyChunkedTimelineAfterWhisper(), applyChunkPlanToVisualPrompts(), archiveNarrationChunkAudio(), assembleNarrationChunksToMaster() (+53 more)
 
 ### Community 51 - "notebooklmService.js"
-Cohesion: 0.12
-Nodes (29): mergeBriefIntoStoryboard(), addTextSource(), buildLoginPendingStatus(), buildNotebooklmImproveApplyPrompt(), buildNotebooklmNarrationEnrichPrompt(), cacheNotebooklmStatus(), clearNotebooklmLoginState(), clearNotebooklmProjectArtifacts() (+21 more)
+Cohesion: 0.09
+Nodes (39): mergeBriefIntoStoryboard(), addTextSource(), addTextSourceAsync(), assessNotebooklmSourcesReadiness(), buildBriefText(), buildFallbackSummary(), buildIdeasQuery(), buildImproveQuery() (+31 more)
 
 ### Community 52 - "InfoBar.tsx"
 Cohesion: 0.07
 Nodes (17): DEFAULT_COLORS, InfoBar(), InfoBarItem, InfoBarProps, InfoCard(), ANIM_LINE_END(), formatWithSeparator(), InfoCounter() (+9 more)
 
 ### Community 53 - "socialPublishQueue.js"
-Cohesion: 0.12
-Nodes (38): buildInstagramAuthUrl(), exchangeInstagramCode(), getInstagramConnectionStatus(), getInstagramPaths(), IG_SCOPES, saveInstagramAppCredentials(), buildSocialPublishHealth(), commandWorks() (+30 more)
+Cohesion: 0.15
+Nodes (32): buildSocialPublishHealth(), commandWorks(), countOutputVideos(), countStatuses(), makeCheck(), overallFromCounts(), VIDEO_EXTENSIONS, enqueueSocialPublishItem() (+24 more)
 
 ### Community 54 - "dependencies"
 Cohesion: 0.05
 Nodes (41): dependencies, cesium, copy-webpack-plugin, css-loader, react, react-dom, remotion, @remotion/lottie (+33 more)
 
 ### Community 55 - "satelliteMapService.js"
-Cohesion: 0.05
-Nodes (62): BLENDER_CANDIDATES_WIN, BLENDER_PYTHON_DEPS, BLENDER_SCRIPT, buildBlenderSpawnEnv(), DASHBOARD_ROOT, __dirname, isBlenderAvailable(), parseJsonLine() (+54 more)
+Cohesion: 0.07
+Nodes (50): enrichGeoSceneWithAiPrompt(), fetchGeoMapAssetsForScene(), fetchSatelliteAssetsForScene(), resolveCoords(), resolveRenderDimensions(), bboxFromCenter(), buildEsriExportUrl(), buildGeocodeQueries() (+42 more)
 
 ### Community 56 - "LumieraTimeline.tsx"
 Cohesion: 0.07
@@ -1017,8 +1034,8 @@ Cohesion: 0.12
 Nodes (36): base64BasicAuth(), buildCanvaAuthUrl(), CANVA_SCOPES, canvaRequest(), createCanvaDesign(), downloadCanvaFile(), exchangeCanvaAuthCode(), exportCanvaDesign() (+28 more)
 
 ### Community 59 - "youtubeTitleAnalytics.js"
-Cohesion: 0.11
-Nodes (46): loadMetadataCache(), postPinnedComment(), readJson(), runPostUploadHooks(), stopTitleExperiment(), writeJson(), fetchChannelOverviewUncached(), fetchVideoStudioDetailUncached() (+38 more)
+Cohesion: 0.09
+Nodes (57): loadMetadataCache(), postPinnedComment(), readJson(), runPostUploadHooks(), stopTitleExperiment(), writeJson(), countUnansweredComments(), fetchChannelAlertsUncached() (+49 more)
 
 ### Community 60 - "flowLabApi.ts"
 Cohesion: 0.33
@@ -1029,52 +1046,52 @@ Cohesion: 0.08
 Nodes (38): applyProposalFields(), buildConsistencyBlock(), buildEndFrameImagePrompt(), buildImagegenPrompt(), buildMotionPrompt(), buildStartFrameImagePrompt(), calculateHash(), CardStatus (+30 more)
 
 ### Community 62 - "index.ts"
-Cohesion: 0.06
-Nodes (33): DashAlert(), DashAlertProps, DashAlertTone, icons, DashBadge(), DashBadgeProps, DashBadgeTone, DashButton() (+25 more)
+Cohesion: 0.13
+Nodes (14): DashBadge(), DashBadgeProps, DashBadgeTone, DashButton(), DashListGroup(), DashListGroupItem, DashListGroupProps, DashModal() (+6 more)
 
 ### Community 63 - "geoPipTemplateProps.js"
-Cohesion: 0.15
-Nodes (31): mergeGeoPipPreviewProps(), enrichGeoPipMotionClip(), isGeoPipMotionClip(), buildGeoPipOverlayStudioProps(), extractSceneSubject(), isGenericLocationPlaceholder(), isGenericPipNarration(), isGenericSectorPlaceholder() (+23 more)
+Cohesion: 0.16
+Nodes (30): mergeGeoPipPreviewProps(), enrichGeoPipMotionClip(), isGeoPipMotionClip(), extractSceneSubject(), isGenericLocationPlaceholder(), isGenericPipNarration(), isGenericSectorPlaceholder(), isGeoLocationStoryboardRow() (+22 more)
 
 ### Community 64 - "remotionTemplateCatalogService.js"
-Cohesion: 0.14
-Nodes (40): canonicalizeCatalogNiches(), createCatalogNiche(), DEFAULT_CATALOG_PATH, deleteCatalogNiche(), __dirname, exportFullTemplateCatalog(), getCatalogForNiche(), getCatalogPath() (+32 more)
+Cohesion: 0.08
+Nodes (62): canonicalizeCatalogNiches(), createCatalogNiche(), DEFAULT_CATALOG_PATH, deleteCatalogNiche(), __dirname, exportFullTemplateCatalog(), getCatalogForNiche(), getCatalogPath() (+54 more)
 
 ### Community 65 - "youtubeChannelAnalytics.js"
-Cohesion: 0.12
-Nodes (42): periodDates(), buildLumieraProjectByVideoId(), applyCommentFilters(), CACHE_TTL_MS, collectLumieraPublishedVideos(), countUnansweredComments(), enrichVideosReport(), fetchChannelAlertsUncached() (+34 more)
+Cohesion: 0.11
+Nodes (39): fetchVideoStatsSample(), measureYoutubeSaturation(), periodDates(), toFiniteNumber(), writeJsonAtomic(), youtubeDataGet(), buildLumieraProjectByVideoId(), applyCommentFilters() (+31 more)
 
 ### Community 66 - "geminiExtensionBridge.ts"
-Cohesion: 0.09
-Nodes (33): canAutoReloadDashboard(), clearDeployCaches(), getDeployReloadAttempts(), hardReloadDashboard(), isStaleChunkLoadError(), markDeployReloadAttempt(), resetDeployReloadAttempts(), GeminiBrowserResolver (+25 more)
+Cohesion: 0.16
+Nodes (15): canAutoReloadDashboard(), clearDeployCaches(), getDeployReloadAttempts(), hardReloadDashboard(), isStaleChunkLoadError(), markDeployReloadAttempt(), resetDeployReloadAttempts(), BridgeContextValue (+7 more)
 
 ### Community 67 - "blockProgressBarConfig.js"
 Cohesion: 0.10
 Nodes (36): ALLOWED_BLOCK_PROGRESS_ICONS, BLOCK_PROGRESS_DESIGNS, BLOCK_PROGRESS_ICONS_FOR_AI, BLOCK_PROGRESS_TITLE_FONTS, buildBlockProgressIconAiPrompt(), buildBlockProgressTitleAiPrompt(), buildBlockTitlesForProgressBar(), buildCandidateIconIds() (+28 more)
 
 ### Community 68 - "getYoutubeAccessToken"
-Cohesion: 0.13
-Nodes (30): fetchChannelAlerts(), fetchChannelOverview(), fetchChannelSummary(), fetchChannelVideosWithAnalytics(), fetchLumieraVideosReport(), fetchVideoStudioDetail(), withChannelCache(), execAsync (+22 more)
+Cohesion: 0.14
+Nodes (29): fetchChannelAlerts(), fetchChannelOverview(), fetchChannelSummary(), fetchChannelVideosWithAnalytics(), fetchLumieraVideosReport(), fetchVideoStudioDetail(), withChannelCache(), execAsync (+21 more)
 
 ### Community 69 - "NarrationReviewPanel.tsx"
-Cohesion: 0.16
-Nodes (20): adaptPromptForVideoScene(), buildDeterministicVisualPromptsFromNarration(), countUniqueVisualBlocks(), dedupeNearDuplicateVisualPromptsInBlocks(), enforceShortsVideoSceneMix(), ensureNarrationCoverage(), finalizeGeneratedVisualPromptMedia(), narrationTextSimilarity() (+12 more)
+Cohesion: 0.18
+Nodes (22): buildSceneSpecificPrompt(), enrichVisualPromptsSpecificity(), isSceneSpecificFallbackPrompt(), adaptPromptForVideoScene(), buildDeterministicVisualPromptsFromNarration(), countUniqueVisualBlocks(), dedupeNearDuplicateVisualPromptsInBlocks(), enforceShortsVideoSceneMix() (+14 more)
 
 ### Community 70 - "brandAssets.js"
 Cohesion: 0.15
 Nodes (34): addBrandLogo(), addYoutubeChannel(), clearYoutubeAvatarCaches(), deleteBrandLogo(), deleteYoutubeChannel(), ensureBrandCatalogMigrated(), findLegacyProjectLogo(), getGlobalConfigPath() (+26 more)
 
 ### Community 71 - "geoPipStudioTemplate.js"
-Cohesion: 0.08
-Nodes (43): applyGeoFetchToScene(), applyNarrationPropsToScene(), enrichMotionScenesWithAssets(), applyGeoPromptToScene(), ensureMotionScenesQuality(), GEO_FIX_CODES, sceneNeedsSatelliteRefetch(), enrichMotionScenesWithSatellite() (+35 more)
+Cohesion: 0.09
+Nodes (44): applyGeoFetchToScene(), applyNarrationPropsToScene(), enrichMotionScenesWithAssets(), applyGeoPromptToScene(), ensureMotionScenesQuality(), GEO_FIX_CODES, sceneNeedsSatelliteRefetch(), readJsonSafe() (+36 more)
 
 ### Community 72 - "motionFlyoverUpload.js"
-Cohesion: 0.33
-Nodes (8): buildLottieCatalog(), __dirname, KEY_ALIASES, loadRules(), lottieVariantSeed(), pickListicleLottieKey(), resolveKey(), RULES_PATH
+Cohesion: 0.07
+Nodes (66): buildListicleVideoSeed(), buildLottieCatalog(), __dirname, KEY_ALIASES, loadRules(), lottieVariantSeed(), pickListicleLottieKey(), resolveKey() (+58 more)
 
 ### Community 73 - "professionalSfxTiming.js"
 Cohesion: 0.13
-Nodes (31): analysisCache, analyzeProfessionalSfxForRender(), analyzeWindow(), calculateNormalizedProfessionalSfxVolume(), calculateProfessionalSfxRenderVolume(), CATEGORY_MIX, clamp(), normalizeProfessionalSfxAsset() (+23 more)
+Nodes (32): analysisCache, analyzeProfessionalSfxForRender(), analyzeWindow(), calculateNormalizedProfessionalSfxVolume(), calculateProfessionalSfxRenderVolume(), CATEGORY_MIX, clamp(), normalizeProfessionalSfxAsset() (+24 more)
 
 ### Community 74 - "overlayBriefingLogic.ts"
 Cohesion: 0.12
@@ -1085,32 +1102,32 @@ Cohesion: 0.10
 Nodes (29): Window, boundaryRings(), CesiumGlobeLayer(), CesiumGlobeLayerProps, CesiumModule, ringToDegreesArray(), GeoPipHudFrame(), Props (+21 more)
 
 ### Community 76 - "timesfmForecast.js"
-Cohesion: 0.19
-Nodes (18): aggregateDailySeries(), buildNicheBuckets(), buildNicheIdea(), buildVideoIdeaFromForecast(), __dirname, extractNicheSeeds(), FORECAST_SCRIPT, parseJsonLine() (+10 more)
+Cohesion: 0.13
+Nodes (34): buildNicheDetailBreakdown(), discoverPioneerNiches(), aggregateDailySeries(), buildNicheBuckets(), buildNicheIdea(), buildVideoIdeaFromForecast(), __dirname, extractNicheSeeds() (+26 more)
 
 ### Community 77 - "CesiumLocationIntro.tsx"
-Cohesion: 0.13
-Nodes (26): BoundaryGeo, boundaryRings(), CesiumLocationIntro(), CesiumModule, destroyViewer(), previewZoomFromProgress(), ringToDegreesArray(), sleep() (+18 more)
+Cohesion: 0.11
+Nodes (30): BoundaryGeo, boundaryRings(), CesiumLocationIntro(), CesiumModule, destroyViewer(), previewZoomFromProgress(), ringToDegreesArray(), sleep() (+22 more)
 
 ### Community 78 - "NicheTemplatePalette.tsx"
-Cohesion: 0.13
-Nodes (33): formatShort(), loadLocalStudioReady(), LocalStudioTemplate, localTemplateToCatalog(), matchesStudioNiche(), mergeCatalogTemplates(), NicheTemplatePalette(), Props (+25 more)
+Cohesion: 0.15
+Nodes (28): formatShort(), loadLocalStudioReady(), LocalStudioTemplate, matchesStudioNiche(), mergeCatalogTemplates(), NicheTemplatePalette(), Props, readLocalStudioTemplates() (+20 more)
 
 ### Community 79 - "run_loop"
 Cohesion: 0.13
 Nodes (24): build_timeline(), clean_subtitle_word(), generate_drone(), generate_subtitles(), get_video_duration(), is_keyword(), main(), preserve_case() (+16 more)
 
 ### Community 80 - "TimelineStudioClipInspector.tsx"
-Cohesion: 0.14
-Nodes (28): applyStudioSlotPatch(), applyTimingManualPatch(), ARRAY_SLOTS, COLOR_SLOTS, NUMBER_SLOTS, parseSlotInput(), resolveStudioInspectorSlots(), slotDisplayValue() (+20 more)
+Cohesion: 0.15
+Nodes (27): applyStudioSlotPatch(), applyTimingManualPatch(), ARRAY_SLOTS, COLOR_SLOTS, NUMBER_SLOTS, parseSlotInput(), resolveStudioInspectorSlots(), slotDisplayValue() (+19 more)
 
 ### Community 81 - "remotionTemplateEngenhariaSeed.js"
-Cohesion: 0.04
-Nodes (52): 1. NotebookLM (pesquisa + concorrentes), 2026-07-01 05:53 — curiosidades construcao historia (SHORT), 2026-07-01 06:03 — curiosidades construcao historia (SHORT), 2026-07-01 18:18 — engenharia antiga (SHORT), 2026-07-01 18:18 — engenharia antiga (SHORT), 2026-07-01 18:19 — engenharia antiga (SHORT), 2026-07-01 18:21 — AI Construction Stories (SHORT), 2026-07-02 21:04 — Customized (LONG) (+44 more)
+Cohesion: 0.03
+Nodes (63): 2026-07-01 05:53 — curiosidades construcao historia (SHORT), 2026-07-01 05:54 — curiosidades construcao historia (SHORT), 2026-07-01 05:55 — curiosidades e fatos surpreendentes (SHORT), 2026-07-01 06:01 — curiosidades construcao historia (SHORT), 2026-07-01 06:03 — curiosidades construcao historia (SHORT), 2026-07-01 18:18 — engenharia antiga (SHORT), 2026-07-01 18:18 — engenharia antiga (SHORT), 2026-07-01 18:19 — engenharia antiga (SHORT) (+55 more)
 
 ### Community 82 - "scenePromptSpecificity.js"
 Cohesion: 0.13
-Nodes (30): ACTION_PT_EN, buildSceneSpecificPrompt(), buildVisualFocalDescription(), collectEnglishSubjects(), collectSceneModifiers(), COMPILED_ACTIONS, COMPILED_OBJECTS, COMPILED_TERMS (+22 more)
+Nodes (26): ACTION_PT_EN, buildVisualFocalDescription(), collectEnglishSubjects(), collectSceneModifiers(), COMPILED_ACTIONS, COMPILED_OBJECTS, COMPILED_TERMS, compileGlossary() (+18 more)
 
 ### Community 83 - "youtubeStudioPro.js"
 Cohesion: 0.15
@@ -1121,12 +1138,12 @@ Cohesion: 0.04
 Nodes (43): Branch, Co-location, Cognitive Load, Completion Criterion, Context Load, Context Pointer, Description, Duplication (+35 more)
 
 ### Community 85 - "comfyuiService.js"
-Cohesion: 0.12
-Nodes (31): activeJobs, buildComfyuiOutputUrl(), clampInt(), COMFYUI_DIR, COMFYUI_ROOT, computeJobPercent(), CONFIG_PATH, detectAspectRatio() (+23 more)
+Cohesion: 0.10
+Nodes (36): activeJobs, buildComfyuiOutputUrl(), clampInt(), COMFYUI_DIR, COMFYUI_ROOT, computeJobPercent(), CONFIG_PATH, detectAspectRatio() (+28 more)
 
 ### Community 86 - "text"
-Cohesion: 0.19
-Nodes (17): appendNarrationAuditEvent(), assertApprovedNarrationMasterReady(), assertNarrationChunksApproved(), eventTime(), latestNarrationReviews(), narrationChunkApprovalState(), readNarrationAudit(), buildNarrationIntegrityReport() (+9 more)
+Cohesion: 0.56
+Nodes (7): appendNarrationAuditEvent(), assertApprovedNarrationMasterReady(), assertNarrationChunksApproved(), eventTime(), latestNarrationReviews(), narrationChunkApprovalState(), readNarrationAudit()
 
 ### Community 87 - "obsidianVault.js"
 Cohesion: 0.17
@@ -1137,8 +1154,8 @@ Cohesion: 0.16
 Nodes (10): AppShell(), AppShellProps, GlobalNavItem, loadCollapsed(), saveCollapsed(), STUDIO_ANALYSIS, STUDIO_CHANNELS, STUDIO_TOOLS (+2 more)
 
 ### Community 89 - "RichTimelineEditor.tsx"
-Cohesion: 0.11
-Nodes (23): LazyMotionTimelineEditor, ConfigData, EditorCollapsibleSection(), Props, MotionSceneDraft, CANVAS_BG_PRESETS, clampPlaybackRate(), clampVolume() (+15 more)
+Cohesion: 0.12
+Nodes (20): LazyMotionTimelineEditor, EditorCollapsibleSection(), Props, CANVAS_BG_PRESETS, clampPlaybackRate(), clampVolume(), clipKey(), parseClipKey() (+12 more)
 
 ### Community 90 - "seedanceT2v.js"
 Cohesion: 0.05
@@ -1149,8 +1166,8 @@ Cohesion: 0.05
 Nodes (39): Amazon Bedrock, ⚠️ API Drift — Your Training Prior May Be Stale, Architecture, Authentication (Quick Reference), Before You Start, Building LLM-Powered Applications with Claude, Claude API (Full File Reference), Claude Fable 5 (`claude-fable-5`) — most capable widely released model (+31 more)
 
 ### Community 92 - "timelineStudioRemotionSuppress.js"
-Cohesion: 0.14
-Nodes (14): registerExternalJob(), updateExternalJob(), GRAPH_HTML_PATH, GRAPH_JSON_PATH, GRAPH_REPORT_PATH, GRAPHIFY_OUT_DIR, runGraphifyExtract(), __dirname (+6 more)
+Cohesion: 0.08
+Nodes (30): BlockPhrase, EditorialQuality, hasRunnableStudioSource(), NarrationReadiness, NarrationReviewPanel(), Props, readLocalStudioTemplates(), VisualReadiness (+22 more)
 
 ### Community 93 - "comfyuiWorkflow.js"
 Cohesion: 0.17
@@ -1169,12 +1186,12 @@ Cohesion: 0.13
 Nodes (24): build_timeline(), clean_subtitle_word(), generate_drone(), generate_subtitles(), get_video_duration(), is_keyword(), main(), preserve_case() (+16 more)
 
 ### Community 97 - "storyboardResearch.js"
-Cohesion: 0.19
-Nodes (22): shouldSkipWebResearchForBrief(), researchSingleBlock(), sourceMatchesBlock(), dedupeFacts(), dedupeSources(), ensureStoryboardWebResearch(), researchTopicFromStoryboard(), buildMotionResearchContext() (+14 more)
+Cohesion: 0.18
+Nodes (23): extractFactsFromResearch(), factMatchesNarrationBlock(), readFactsFromScriptSources(), researchSingleBlock(), sourceMatchesBlock(), dedupeFacts(), dedupeSources(), ensureStoryboardWebResearch() (+15 more)
 
 ### Community 98 - "TrendForecastPanel.tsx"
-Cohesion: 0.05
-Nodes (33): CreatorApplyIdeaOptions, PioneerNicheMeta, resolvePioneerCreatorSeed(), buildHumorStoryboard(), HUMOR_STYLES, HumorFactsLab(), HumorIdea, HumorProductionPlan (+25 more)
+Cohesion: 0.08
+Nodes (28): AppDocsTab(), DocFile, DocSearchResult, SelectedDoc, LazyAgentReachPanel, LazyComfyMcpPage, LazyProjectsLibraryPanel, LazyStudioAgents (+20 more)
 
 ### Community 99 - "migrate-pip-template-to-catalog.mjs"
 Cohesion: 0.08
@@ -1198,15 +1215,15 @@ Nodes (16): ask(), ask_secret(), banner(), _clear(), finish(), note(), open_url(
 
 ### Community 104 - "build_video_destacado.py"
 Cohesion: 0.07
-Nodes (50): probeChatterbox(), loadFishSpeechConfig(), applyGptSovitsOptionOverrides(), buildGptSovitsStatusHint(), buildGptSovitsVoiceList(), fetchGptSovitsAudio(), GPT_SOVITS_DEFAULTS, loadGptSovitsConfig() (+42 more)
+Nodes (60): probeChatterbox(), loadFishSpeechConfig(), applyGptSovitsOptionOverrides(), buildGptSovitsStatusHint(), buildGptSovitsVoiceList(), fetchGptSovitsAudio(), GPT_SOVITS_DEFAULTS, loadGptSovitsConfig() (+52 more)
 
 ### Community 105 - "agentReachService.js"
 Cohesion: 0.17
 Nodes (23): registerAgentReachRoutes(), AGENT_REACH_PLATFORMS, AGENT_REACH_VENV, AR_EXE, AR_EXE_UNIX, bilibiliSearch(), buildAgentReachSpawnEnv(), exaWebSearch() (+15 more)
 
 ### Community 106 - "notebooklmResearchBrief.js"
-Cohesion: 0.20
-Nodes (22): assessNotebooklmEvidenceReadiness(), buildNotebooklmBriefMarkdown(), buildNotebooklmEvidenceMap(), buildPipelineChecklistMarkdown(), countUserTurns(), derivePipelineState(), extractHooks(), extractLocations() (+14 more)
+Cohesion: 0.19
+Nodes (23): assessNotebooklmEvidenceReadiness(), buildNotebooklmBriefMarkdown(), buildNotebooklmEvidenceMap(), buildPipelineChecklistMarkdown(), countUserTurns(), derivePipelineState(), extractHooks(), extractLocations() (+15 more)
 
 ### Community 107 - "visualPromptPipeline.js"
 Cohesion: 0.05
@@ -1221,8 +1238,8 @@ Cohesion: 0.13
 Nodes (18): BaseHTTPRequestHandler, build_run(), embed_file(), find_runs(), _find_runs_recursive(), generate_html(), get_mime_type(), _kill_port() (+10 more)
 
 ### Community 110 - "remotionTemplateStudioValidate.js"
-Cohesion: 0.07
-Nodes (44): handleAdapt(), normalizeAdaptBody(), sendAdaptError(), sendAdaptSuccess(), adaptRemotionTemplate(), buildAdaptPrompt(), generateWithGemini(), isCircularProgress() (+36 more)
+Cohesion: 0.17
+Nodes (20): adaptRemotionTemplate(), buildAdaptPrompt(), generateWithGemini(), isCircularProgress(), defaultValueForProp(), generateAdaptedTemplateLocally(), generateEngineeringCircularProgressTemplate(), isCircularProgressTemplate() (+12 more)
 
 ### Community 111 - "renderJobProgress.js"
 Cohesion: 0.20
@@ -1257,16 +1274,16 @@ Cohesion: 0.11
 Nodes (10): buildPrebuiltStoryboard(), buildWizardOutline(), groupScenes(), Props, resolveReconstructedNarration(), resolveReverseSceneVideoPrompt(), ReverseResult, ReverseScene (+2 more)
 
 ### Community 119 - "epidemicService.js"
-Cohesion: 0.25
-Nodes (22): callMcpTool(), downloadFile(), downloadMusicTrack(), downloadSoundEffect(), esDownloadFromPreviewUrl(), esInternalSearchMusic(), esInternalSearchSFX(), getMcpPostUrl() (+14 more)
+Cohesion: 0.17
+Nodes (29): youtubeAvatarCacheKey(), callMcpTool(), downloadFile(), downloadMusicTrack(), downloadSoundEffect(), esDownloadFromPreviewUrl(), esInternalSearchMusic(), esInternalSearchSFX() (+21 more)
 
 ### Community 120 - "obsidianMemoryContext.js"
 Cohesion: 0.15
 Nodes (5): Ensure-Worktree(), Get-ChangedPaths(), Get-RequiredProperty(), Invoke-Git(), Read-AndValidatePrd()
 
 ### Community 121 - "overlayResearchService.js"
-Cohesion: 0.24
-Nodes (15): applyThumbnailVariant(), getThumbnailExperimentPath(), getThumbnailExperimentReport(), loadThumbnailExperiment(), readJson(), resolveThumbnailPath(), saveThumbnailExperiment(), startThumbnailExperiment() (+7 more)
+Cohesion: 0.27
+Nodes (14): applyThumbnailVariant(), getThumbnailExperimentPath(), getThumbnailExperimentReport(), loadThumbnailExperiment(), readJson(), resolveThumbnailPath(), saveThumbnailExperiment(), startThumbnailExperiment() (+6 more)
 
 ### Community 122 - "package.json"
 Cohesion: 0.09
@@ -1310,35 +1327,35 @@ Nodes (36): Advanced: Blind comparison, Anatomy of a Skill, Capture Intent, Clau
 
 ### Community 132 - "overlayIconCatalog.ts"
 Cohesion: 0.14
-Nodes (16): OverlayAnimatedIcon(), Props, LOTTIE_FILE_BY_ID, LOTTIE_ICON_CATALOG, LOTTIE_ICON_OPTIONS, OverlayIconDef, OverlayIconStyle, SVG_ICON_CATALOG (+8 more)
+Nodes (15): OverlayAnimatedIcon(), Props, LOTTIE_FILE_BY_ID, LOTTIE_ICON_CATALOG, LOTTIE_ICON_OPTIONS, OverlayIconDef, SVG_ICON_CATALOG, SVG_ONLY_EXTRAS (+7 more)
 
 ### Community 133 - "videoAgentPlanner.js"
-Cohesion: 0.39
-Nodes (13): buildNicheDetailBreakdown(), buildPioneerLlmFn(), registerTimesfmRoutes(), deleteTrendRadarSave(), getTrendRadarSave(), listTrendRadarSaves(), newId(), readStore() (+5 more)
+Cohesion: 0.17
+Nodes (27): buildBatchScenePromptsAiRequest(), applyProjectVisualAssetStyleToPrompts(), aspectRatioClause(), buildVisualIdentityBrief(), buildVisualPromptEngineerRequest(), buildVisualPromptEngineerSystemPrompt(), detectNicheFromContent(), enforceAspectRatioInPrompt() (+19 more)
 
 ### Community 134 - "mobilewanService.js"
 Cohesion: 0.06
 Nodes (31): GLOSSARY.md Format, Rules, Structure, Learning Record Format, Numbering, Optional sections, Supersession, Template (+23 more)
 
 ### Community 135 - "fishSpeechTts.js"
-Cohesion: 0.17
-Nodes (26): getComfyuiProgress(), ltxFramesToSeconds(), buildSeedanceApiPayload(), generateSeedanceApiVideo(), loadSeedanceApiConfig(), pollSeedanceApiJob(), attachSeedanceT2vOutput(), attachVideoAssetToProject() (+18 more)
+Cohesion: 0.07
+Nodes (52): getComfyuiProgress(), ltxFramesToSeconds(), registerExternalJob(), updateExternalJob(), GRAPH_HTML_PATH, GRAPH_JSON_PATH, GRAPH_REPORT_PATH, GRAPHIFY_OUT_DIR (+44 more)
 
 ### Community 136 - "humorFacts.js"
 Cohesion: 0.26
 Nodes (18): areHumorTopicsSimilar(), buildHumorIdeasPrompt(), buildHumorNarrationPrompt(), buildHumorProductionPrompt(), clean(), ENGINEERING_SIGNALS, extractJson(), filterNovelHumorIdeas() (+10 more)
 
 ### Community 137 - "DashminAnalyticsChart.tsx"
-Cohesion: 0.18
-Nodes (16): buildEnv(), __dirname, loadQwen3TtsConfig(), parseJsonLine(), prepareQwen3ExpressiveNarration(), quoteSpawnArg(), QWEN3_SCRIPT, QWEN3_TTS_DEFAULTS (+8 more)
+Cohesion: 0.14
+Nodes (26): getBlockNarrationTextForTiming(), resolveBlockWords(), computeCoverage(), DynamicAssetWordsResult, getDynamicAssetWords(), TranscriptSegment, applySplitNarrationToBlockAssets(), BlockNarrationWord (+18 more)
 
 ### Community 138 - "seedanceDirecting.ts"
 Cohesion: 0.17
 Nodes (15): countScenesWithDirecting(), countVideoIaScenes(), DIRECTING_BRIEF_FIELDS, DirectingBrief, isVideoIaScene(), listVideoIaSceneIndices(), sceneHasDirecting(), sceneHasGeneratedVideo() (+7 more)
 
 ### Community 139 - "template.sh"
-Cohesion: 0.21
-Nodes (13): CHATTERBOX_DEFAULTS, CHATTERBOX_SCRIPT, CHATTERBOX_VENV_PYTHON, CHATTERBOX_VOICES, __dirname, loadChatterboxConfig(), parseJsonLine(), quoteSpawnArg() (+5 more)
+Cohesion: 0.09
+Nodes (35): CHATTERBOX_DEFAULTS, CHATTERBOX_SCRIPT, CHATTERBOX_VENV_PYTHON, CHATTERBOX_VOICES, __dirname, loadChatterboxConfig(), parseJsonLine(), quoteSpawnArg() (+27 more)
 
 ### Community 140 - "App.tsx"
 Cohesion: 0.15
@@ -1361,44 +1378,44 @@ Cohesion: 0.11
 Nodes (17): dependencies, cors, edge-tts-universal, express, googleapis, description, cors, edge-tts-universal (+9 more)
 
 ### Community 145 - "studioTemplateRoleInjector.js"
-Cohesion: 0.15
-Nodes (32): appendDailyRunLog(), buildNicheMemoryContent(), consolidateAllNiches(), consolidateNicheMemory(), ensureAgentDirs(), formatPatternLine(), GENERALIZED_ISSUE_RULES, getAgentPaths() (+24 more)
+Cohesion: 0.13
+Nodes (36): appendDailyRunLog(), buildNicheMemoryContent(), consolidateAllNiches(), consolidateNicheMemory(), ensureAgentDirs(), extractPatternsFromQuality(), formatPatternLine(), GENERALIZED_ISSUE_RULES (+28 more)
 
 ### Community 146 - "remotionTemplatePostgres.js"
 Cohesion: 0.32
 Nodes (17): createTemplateCatalogNiche(), databaseUrl(), dedupeTemplates(), deleteTemplateCatalogNiche(), __dirname, ensureTemplateStudioDatabase(), exportTemplateCatalogDatabase(), getPool() (+9 more)
 
 ### Community 147 - "textEncoding.js"
-Cohesion: 0.07
-Nodes (56): BGM, BgmEmotionMapping, HeaderWeather, ImpactText, OverlayTimingEntry, StudioBundlePreview, VideoQualityIssue, VideoQualityReport (+48 more)
+Cohesion: 0.19
+Nodes (19): detectUploadMediaType(), inferAssetMediaType(), mergeStoryboardWithTimelineAssets(), resolveScenePreviewAsset(), SceneAssetPreview, FilterMode, FlowStudioPage(), Props (+11 more)
 
 ### Community 148 - "facelessChannel.ts"
-Cohesion: 0.19
-Nodes (15): complianceScore(), ComplianceStatus, countTimelineAssets(), evaluateFacelessCompliance(), FACELESS_NICHE_PRESETS, FacelessComplianceInput, FacelessComplianceItem, FacelessNichePreset (+7 more)
+Cohesion: 0.18
+Nodes (16): canRunFacelessPipeline90(), complianceScore(), ComplianceStatus, countTimelineAssets(), evaluateFacelessCompliance(), FACELESS_NICHE_PRESETS, FacelessComplianceInput, FacelessComplianceItem (+8 more)
 
 ### Community 149 - "studioTemplateInspector.js"
 Cohesion: 0.22
 Nodes (15): DESIGN_KEY_ORDER, DESIGN_ROLES, DESIGN_TEXT_SLOTS, extractDesignPropKeys(), extractDestructurePropKeys(), extractExamplePropsFromSource(), isInspectorSlotKey(), looksLikeNarrationPollution() (+7 more)
 
 ### Community 150 - "deerFlowResearch.js"
-Cohesion: 0.18
-Nodes (18): buildDeepResearchReport(), buildExecutiveSummary(), extractCompetitorOutliers(), extractDerivedIdeas(), formatDeepResearchForIdeasPrompt(), planDeepResearch(), runDeepResearch(), runNotebooklmLeg() (+10 more)
+Cohesion: 0.22
+Nodes (15): buildDeepResearchReport(), buildExecutiveSummary(), extractCompetitorOutliers(), extractDerivedIdeas(), formatDeepResearchForIdeasPrompt(), runDeepResearch(), runNotebooklmLeg(), runWebLeg() (+7 more)
 
 ### Community 151 - "ttsPreferences.js"
 Cohesion: 0.26
 Nodes (12): writeJsonAtomicSync(), writeJsonQueued(), writeQueues, applyTtsDefaultsToEngines(), normalizeTtsEngine(), readJson(), readTtsDefaultVoices(), resolveTtsVoice() (+4 more)
 
 ### Community 152 - "BlockProgressBarPreview.tsx"
-Cohesion: 0.17
-Nodes (17): GEMINI_OVERLAY_TYPES, normalizeGeminiOverlayPayload(), repairOverlayPropsForRemotion(), sanitizeCustomStyle(), applyPtMojibakeLiterals(), countMojibakeMarkers(), hasMojibakeDeep(), OVERLAY_TEXT_KEYS (+9 more)
+Cohesion: 0.19
+Nodes (25): registerAssetCleanupRoutes(), appendAudit(), applyAssetCleanupResult(), ASSET_CLEANUP_SUPPORTED_EXTENSIONS, atomicWriteJson(), buildVideoCleanupArgs(), CLEANUP_DIR, createAssetCleanupResult() (+17 more)
 
 ### Community 153 - "DashminDashboard.tsx"
 Cohesion: 0.06
 Nodes (36): 2026-07-04 15:02 — engenharia curiosidade (SHORT), A mistura e estrutura metálica, madeira e concreto existe!!, CTA, CTA, CTA, CTA, Erros do concorrente, Erros do concorrente (+28 more)
 
 ### Community 154 - "YoutubeStudioPro.tsx"
-Cohesion: 0.13
-Nodes (13): BeforeInstallPromptEvent, formatCompact(), formatDateTime(), InboxStats, Milestone, MilestoneBar(), ProDashboard, Props (+5 more)
+Cohesion: 0.17
+Nodes (19): blockNarrationExcerpt(), buildRoleScene(), injectStudioBackgroundFrames(), injectStudioRoleScenes(), injectStudioTransitionScenes(), isTechnicalBlock(), sceneStartHint(), applyStudioRoleToScene() (+11 more)
 
 ### Community 155 - "generate-lottie-registry.mjs"
 Cohesion: 0.12
@@ -1409,12 +1426,12 @@ Cohesion: 0.06
 Nodes (36): 2026-07-04 16:12 — engenharia curiosidade (SHORT), A mistura e estrutura metálica, madeira e concreto existe!!, CTA, CTA, CTA, CTA, Erros do concorrente, Erros do concorrente (+28 more)
 
 ### Community 157 - "processActivityHub.js"
-Cohesion: 0.21
-Nodes (14): activeRequests, aiCallRing, cancelRequest(), cancelRequestOrJob(), guessAiLabelFromPath(), listRecentRequests(), now(), pickProject() (+6 more)
+Cohesion: 0.19
+Nodes (15): activeRequests, aiCallRing, cancelRequest(), cancelRequestOrJob(), guessAiLabelFromPath(), listRecentAiCalls(), listRecentRequests(), now() (+7 more)
 
 ### Community 158 - "thumbnailExperiment.js"
-Cohesion: 0.20
-Nodes (14): buildBriefText(), buildFallbackSummary(), buildIdeasQuery(), buildImproveQuery(), buildInteractiveDiscoveryQuery(), buildScriptQuery(), fetchNotebooklmScriptContext(), fetchNotebooklmScriptImprovements() (+6 more)
+Cohesion: 0.19
+Nodes (18): GeminiBrowserResolver, BridgeMessage, captureGeminiNarrationNow(), diagnoseGeminiExtension(), estimateGeminiQueryTimeoutMs(), formatExtensionError(), isBridgeScriptPresent(), isGeminiExtensionAvailable() (+10 more)
 
 ### Community 159 - "projectConfigBootstrap.js"
 Cohesion: 0.28
@@ -1425,8 +1442,8 @@ Cohesion: 0.06
 Nodes (36): 2026-07-04 17:43 — Curiosidade Engenharia (SHORT), CTA, CTA, CTA, CTA, Einstein Extraterrestre: Conhecimentos Além da Imaginação!#curiosidades #engenharia#einstein#shorts, Erros do concorrente, Erros do concorrente (+28 more)
 
 ### Community 161 - "timelineStudioAsk.js"
-Cohesion: 0.10
-Nodes (40): enrichGeoPipStudioClipsOnLoad(), applyGeoPipFlyoverBinding(), ensureMotionClipForProject(), ensureMotionClipInStudio(), ensureMotionSceneForUpload(), findMotionClipInStudio(), motionClipSidecarPath(), motionSceneMatches() (+32 more)
+Cohesion: 0.15
+Nodes (29): enrichGeoPipStudioClipsOnLoad(), applyGeoPipFlyoverBinding(), ensureMotionClipForProject(), ensureMotionClipInStudio(), ensureMotionSceneForUpload(), findMotionClipInStudio(), motionClipSidecarPath(), motionSceneMatches() (+21 more)
 
 ### Community 162 - "BackendActivityPanel.tsx"
 Cohesion: 0.18
@@ -1445,8 +1462,8 @@ Cohesion: 0.14
 Nodes (5): app, CREDENTIALS_PATH, __dirname, __filename, TOKENS_PATH
 
 ### Community 166 - "comfyCloudMcp.js"
-Cohesion: 0.29
-Nodes (12): applySeedanceDirectingResponse(), buildSeedanceDirectingRequest(), buildSeedanceDirectingSystemPrompt(), DIRECTING_BRIEF_FIELDS, EMPTY_DIRECTING_BRIEF(), EMPTY_SEEDANCE_REFS(), mergeDirectingIntoVisualPrompts(), normalizeDirectingBrief() (+4 more)
+Cohesion: 0.19
+Nodes (11): applyAutomaticScriptRepairToStoryboard(), buildAutomaticScriptQualityMetadata(), errorReason(), factualIntegrityPassed(), hardBlockerCount(), normalizeRepairResult(), reportScore(), runAutomaticScriptRepair() (+3 more)
 
 ### Community 167 - "getNotebooklmStatus"
 Cohesion: 0.24
@@ -1457,12 +1474,12 @@ Cohesion: 0.27
 Nodes (12): __dirname, ensureProjectsDirs(), getLegacySystemProjectsRoot(), getProjectsDirs(), isSystemServiceProfile(), listLegacySystemProjects(), pickBestProjectsRoot(), readProjectsRootFromFile() (+4 more)
 
 ### Community 169 - "ProjectHealthPanel.tsx"
-Cohesion: 0.21
-Nodes (18): parseJsonFromLlm(), buildAgentGraph(), buildLumieraActions(), buildStoryboardBeatsFallback(), buildUserInputs(), capVideoAgentPlanHistory(), detectIntentsRuleBased(), extractVideoTitleFromRequirement() (+10 more)
+Cohesion: 0.22
+Nodes (17): buildAgentGraph(), buildLumieraActions(), buildStoryboardBeatsFallback(), buildUserInputs(), capVideoAgentPlanHistory(), detectIntentsRuleBased(), extractVideoTitleFromRequirement(), INTENT_KEYWORDS (+9 more)
 
 ### Community 170 - "aggregate_benchmark.py"
-Cohesion: 0.27
-Nodes (9): extractSourceIdFromFilename(), isFilenameSourceUsedInOtherProject(), loadStockUsageRegistry(), MEDIA_EXTS, registerStockUsage(), REGISTRY_REL, registryPath(), saveStockUsageRegistry() (+1 more)
+Cohesion: 0.22
+Nodes (15): applyBatchScenePromptsAiResponse(), applyScriptTextQuality(), browserVisualPromptsUsable(), enrichBrowserNarrationParsed(), enrichBrowserVisualPromptsParsed(), extractJsonCandidateForSalvage(), extractNarrativeScriptFromRaw(), extractScriptSliceForRepair() (+7 more)
 
 ### Community 171 - "collageBrollSession.js"
 Cohesion: 0.36
@@ -1509,8 +1526,8 @@ Cohesion: 0.06
 Nodes (36): 2026-07-05 19:41 — ENGENHARIA TAILANDESA (SHORT), Adubo da Casca da Banana MÉTODO 2, Como Fazer Estaquia de Amora!!!, CTA, CTA, CTA, CTA, Erros do concorrente (+28 more)
 
 ### Community 182 - "qwen3_tts_narration.py"
-Cohesion: 0.24
-Nodes (11): addTextSourceAsync(), assessNotebooklmSourcesReadiness(), handleNotebooklmSessionReply(), parseJsonOutput(), parseNotebookQueryAnswer(), queryNotebook(), queryNotebookAsync(), runNlmAsync() (+3 more)
+Cohesion: 0.12
+Nodes (8): DashRating(), DashRatingProps, dashToast, DashToastTone, DashToaster(), toneFromToast(), DEFAULT_NEST, NestItem
 
 ### Community 183 - "patch-app-creator-tab.mjs"
 Cohesion: 0.18
@@ -1537,8 +1554,8 @@ Cohesion: 0.06
 Nodes (36): 2026-07-16 04:55 — ENGENHARIA CURIOSIDADE (SHORT), A mistura e estrutura metálica, madeira e concreto existe!!, CTA, CTA, CTA, CTA, Erros do concorrente, Erros do concorrente (+28 more)
 
 ### Community 189 - "mix_bgm.py"
-Cohesion: 0.20
-Nodes (7): PreRenderAdviceModal(), PreRenderAutoFix, PreRenderSuggestion, PRIORITY_STYLES, SlideshowRiskReport, TAB_LABELS, TabId
+Cohesion: 0.23
+Nodes (14): buildEngenhariaCatalogExport(), buildEngenhariaSeedTemplates(), defaultValue(), ENGENHARIA_SEED_CATEGORIES, ENGINEERING_BASE_PROPS, generateEngineeringTemplateSource(), previewFor(), propsForEntry() (+6 more)
 
 ### Community 190 - "app.json"
 Cohesion: 0.20
@@ -1589,8 +1606,8 @@ Cohesion: 0.40
 Nodes (7): applyNarrationFirstVisualPlan(), buildNarrationFirstScenePlan(), buildTemporalInstruction(), cleanTemporalInstruction(), isVideoScene(), scenePauseSeconds(), splitClipDurations()
 
 ### Community 202 - "bingImageStock.js"
-Cohesion: 0.39
-Nodes (9): buildExaQueries(), collectCandidates(), discoverPioneerNiches(), extractTopicCandidatesFromExa(), guessMacroFromText(), isMetaGarbage(), MACRO_NICHES, measureAndScoreCandidates() (+1 more)
+Cohesion: 0.21
+Nodes (13): BLENDER_CANDIDATES_WIN, BLENDER_PYTHON_DEPS, BLENDER_SCRIPT, buildBlenderSpawnEnv(), DASHBOARD_ROOT, __dirname, isBlenderAvailable(), parseJsonLine() (+5 more)
 
 ### Community 203 - "listicleLottieResolve.js"
 Cohesion: 0.06
@@ -1677,8 +1694,8 @@ Cohesion: 0.25
 Nodes (8): Advanced Features (where applicable), Code Quality, Implementation Quality, Project Configuration, Quality Checklist, Strategic Design, Testing and Build, TypeScript Quality
 
 ### Community 224 - "synthesize"
-Cohesion: 0.52
-Nodes (6): extractJsonCandidate(), parseJsonLocally(), parseCompetitorAnalysis(), salvagePartialAnalysis(), generateAnglesWithLlm(), refineWithLlm()
+Cohesion: 0.31
+Nodes (13): normalizeNarrationBlocks(), blockPhrases, cleanText(), deriveNarrationBlockPhrases(), distributeSegments(), findAnchorIndex(), searchableText(), searchableTextWithOffsets() (+5 more)
 
 ### Community 225 - "handleNotebooklmSessionReply"
 Cohesion: 0.43
@@ -1745,8 +1762,8 @@ Cohesion: 0.40
 Nodes (5): ASSETS_DIR, __dirname, downloadOne(), main(), PACK
 
 ### Community 241 - "align_transcripts.py"
-Cohesion: 0.15
-Nodes (14): AskLumieraPanel(), Message, Props, SUGGESTIONS, formatShortTime(), PanelMode, Props, StockMediaPanel() (+6 more)
+Cohesion: 0.16
+Nodes (13): Message, Props, SUGGESTIONS, formatShortTime(), PanelMode, Props, StockMediaPanel(), StockKeysStatus (+5 more)
 
 ### Community 242 - "pipelineOrchestrator.js"
 Cohesion: 0.06
@@ -1793,12 +1810,12 @@ Cohesion: 0.33
 Nodes (6): 2026-07-01 06:10 — curiosidades e fatos surpreendentes (SHORT), Fichas de dissecção (IA), Ideias Lumiera derivadas, Pesquisas automáticas (IA), Por que essa bola gigante custou bilhões? 🤔 #curiosidades #fatoscuriosos #shorts, Por que os navios têm bulbo de proa? 🤔🛳 #curiosidades #fatoscuriosos #shorts
 
 ### Community 253 - "extract_form_structure.py"
-Cohesion: 0.40
-Nodes (6): loadNotebooklmSession(), saveNotebooklmSession(), sessionPath(), closeNotebooklmSession(), persistNotebooklmResearchSession(), persistNotebooklmSessionBundle()
+Cohesion: 0.38
+Nodes (7): loadNotebooklmSession(), saveNotebooklmSession(), sessionPath(), closeNotebooklmSession(), handleNotebooklmSessionReply(), persistNotebooklmResearchSession(), persistNotebooklmSessionBundle()
 
 ### Community 254 - "is_server_ready"
 Cohesion: 0.25
-Nodes (8): 1.1 핵심 프롬프팅 원칙, 원칙 1: 정확하고 직접적으로 표현, 원칙 2: 일관된 구조 사용, 원칙 3: 매개변수 정의, 원칙 4: 출력 장황도 제어, 원칙 5: 중요한 안내에 우선순위 지정, 원칙 6: 긴 컨텍스트의 구조, 원칙 7: 앵커 컨텍스트
+Nodes (15): ensureOverlayAiMeta(), getOverlayBlockResearch(), matchOverlayResearchFact(), overlayAuditTextBlob(), overlayBriefingTokenOverlap(), overlayFactMatchesItsBlock(), overlayHasStoryObjectContradiction(), overlayMetaMatchesStoryBlock() (+7 more)
 
 ### Community 256 - "build-music-tab.mjs"
 Cohesion: 0.50
@@ -1829,12 +1846,12 @@ Cohesion: 0.25
 Nodes (8): scripts, build, build:lite, dev, lint, postinstall, preview, typecheck
 
 ### Community 266 - "find_block_timings.py"
-Cohesion: 0.46
-Nodes (6): clipStudioSourceCode(), GEO_MOTION_TEMPLATE_IDS, isGeoMotionTemplateId(), isLegacyStudioOverlayClip(), isStudioTemplateClip(), LEGACY_OVERLAY_TEMPLATE_IDS
+Cohesion: 0.24
+Nodes (11): extractCaptionReplacement(), extractQuotedText(), extractStockQuery(), formatTime(), handleTimelineStudioAsk(), llmAsk(), parseTimecode(), ruleBasedAsk() (+3 more)
 
 ### Community 267 - "mcp.json"
-Cohesion: 0.29
-Nodes (6): Delivery behavior & pitfalls, Managed Agents — Webhooks, Payload envelope, Register an endpoint (Console only), Supported `data.type` values, Verify the signature
+Cohesion: 0.21
+Nodes (11): BlenderFlyoverPreview(), GeoPipFlyoverVideoPreview(), Props, GeoPipWindow, isGeoMediaPipPreview(), resolveGeoPipWindowRect(), Props, SatelliteMapPreview() (+3 more)
 
 ### Community 281 - "block-dangerous-git.sh"
 Cohesion: 0.60
@@ -1845,16 +1862,20 @@ Cohesion: 0.60
 Nodes (5): convert_to_mp3(), ensure_models(), main(), resolve_lang(), synthesize()
 
 ### Community 283 - "create_validation_image.py"
-Cohesion: 0.60
-Nodes (4): bboxFromCenter(), BoundaryGeoJson, boundaryToViewBoxPaths(), ringsFromGeoJson()
+Cohesion: 0.15
+Nodes (14): ActivityLogEntry, CycleProgress, DailyRunEntry, Dashboard, Props, ResurrectorAlert, ResurrectorItem, ResurrectorSettings (+6 more)
+
+### Community 284 - "comfyCloudMcp.js"
+Cohesion: 0.27
+Nodes (13): buildAgentInstallPrompt(), buildClaudeMcpCommand(), buildCursorMcpConfig(), cloudFetch(), getComfyCloudQueue(), getComfyMcpDashboard(), loadComfyCloudConfig(), maskKey() (+5 more)
 
 ### Community 285 - "capture_cookies.py"
-Cohesion: 0.40
-Nodes (5): 2026-07-01 05:54 — curiosidades construcao historia (SHORT), Feira de ciências 2019 SUSTENTABILIDADE, Fichas de dissecção (IA), Ideias Lumiera derivadas, Pesquisas automáticas (IA)
+Cohesion: 0.25
+Nodes (14): buildLoginPendingStatus(), cacheNotebooklmStatus(), clearNotebooklmLoginState(), getCachedNotebooklmStatus(), getManualLoginMessage(), getNotebooklmLoginState(), getNotebooklmStatus(), isAuthError() (+6 more)
 
 ### Community 287 - "@types/react-dom"
-Cohesion: 0.40
-Nodes (5): 2026-07-01 06:01 — curiosidades construcao historia (SHORT), Feira de ciências 2019 SUSTENTABILIDADE, Fichas de dissecção (IA), Ideias Lumiera derivadas, Pesquisas automáticas (IA)
+Cohesion: 0.44
+Nodes (12): asList(), buildReverseEngineeringPrompt(), cleanText(), extractReverseEngineeringJson(), fallbackScenes(), looksLikeMotionScene(), looksLikeStaticScene(), normalizeReverseEngineeringResult() (+4 more)
 
 ### Community 288 - "typescript-eslint"
 Cohesion: 0.07
@@ -1869,8 +1890,8 @@ Cohesion: 0.40
 Nodes (4): name, private, type, version
 
 ### Community 298 - "install-lumiera-permanent.ps1"
-Cohesion: 0.33
-Nodes (6): 2026-07-01 05:55 — curiosidades e fatos surpreendentes (SHORT), Fichas de dissecção (IA), Ideias Lumiera derivadas, Pesquisas automáticas (IA), Por que essa bola gigante custou bilhões? 🤔 #curiosidades #fatoscuriosos #shorts, Por que os navios têm bulbo de proa? 🤔🛳 #curiosidades #fatoscuriosos #shorts
+Cohesion: 0.26
+Nodes (14): buildPreviewPropsFromSlots(), buildPreviewPropsFromTemplate(), detectChartKindFromCode(), extractDefaultPropsFromCode(), extractPreviewSegmentsFromCode(), inferChartKindFromSubcategory(), isAreaChartContext(), isBarChartContext() (+6 more)
 
 ### Community 299 - "install-lumiera-pm2.ps1"
 Cohesion: 0.40
@@ -2058,7 +2079,7 @@ Nodes (19): 1.1 Understand Modern MCP Design, 1.2 Study MCP Protocol Documentati
 
 ### Community 400 - "geminiBrowser.js"
 Cohesion: 0.20
-Nodes (19): buildBrowserChatPrompt(), buildPromptFromBodyOverride(), createMetadataSessionId(), extractBalancedJsonSpan(), extractMetadataSessionFromPrompt(), extractOverlayJsonPayload(), GEMINI_BROWSER_INSTRUCTIONS, hasCompleteMetadataSections() (+11 more)
+Nodes (18): buildBrowserChatPrompt(), buildPromptFromBodyOverride(), createMetadataSessionId(), extractBalancedJsonSpan(), extractMetadataSessionFromPrompt(), extractOverlayJsonPayload(), GEMINI_BROWSER_INSTRUCTIONS, getGeminiBrowserMode() (+10 more)
 
 ### Community 401 - "Por que os navios têm bulbo de proa? 🤔🛳 #curiosidades #fatoscuriosos #shorts"
 Cohesion: 0.11
@@ -2154,7 +2175,7 @@ Nodes (14): 1. `/speckit.constitution`, 2. `/speckit.specify`, 3. `/speckit.clar
 
 ### Community 425 - "VideoResurrectorPanel.tsx"
 Cohesion: 0.05
-Nodes (42): AgentReachPanel(), AgentReachPanelProps, Platform, PLATFORMS, PlatformStatus, SearchItem, SearchResult, statusColor() (+34 more)
+Nodes (53): AgentReachPanel(), AgentReachPanelProps, Platform, PLATFORMS, PlatformStatus, SearchItem, SearchResult, statusColor() (+45 more)
 
 ### Community 426 - "Agent Instructions & Guidelines"
 Cohesion: 0.14
@@ -2205,8 +2226,8 @@ Cohesion: 0.15
 Nodes (13): B站 / Bilibili, Facebook（OpenCLI，必须登录态）, Instagram（OpenCLI，必须登录态）, Reddit（多后端，必须登录态）, search 失败时的重试链（按序执行，成功即停）, Twitter/X (twitter-cli), 可能不稳定的命令, 后端 A：OpenCLI（桌面首选，复用浏览器登录态） (+5 more)
 
 ### Community 438 - "Beta Features & Anthropic-Defined Tools"
-Cohesion: 0.40
-Nodes (5): Beta Features & Anthropic-Defined Tools, Cache diagnostics, Memory tool (non-beta, client-executed), Task budgets, Tool search (non-beta, server-side)
+Cohesion: 0.15
+Nodes (12): Beta Features & Anthropic-Defined Tools, Cache diagnostics, Manual Loop, Memory tool (non-beta, client-executed), Raw Schema, Structured Outputs, Task budgets, Tool Runner (Beta) (+4 more)
 
 ### Community 439 - "Files API — Python"
 Cohesion: 0.15
@@ -2227,6 +2248,10 @@ Nodes (13): 10. `<eagerness_control>` — 적극성 제어, 11. `<empty_result_r
 ### Community 443 - "📦 LEGACY — GPT-5.5 outcome-first / GPT-5.4·5.2 XML stack (명시 요청 시 fallback)"
 Cohesion: 0.15
 Nodes (13): Anti-Patterns (GPT-5.5에서 회피), Creative Drafting Guardrails, Editing Tasks, 📦 LEGACY — GPT-5.5 outcome-first / GPT-5.4·5.2 XML stack (명시 요청 시 fallback), Metadata, Migration: GPT-5.4 → GPT-5.5, Phase Parameter (Responses API, 멀티턴), Preamble (멀티스텝/도구 작업 시) (+5 more)
+
+### Community 444 - "Process"
+Cohesion: 0.15
+Nodes (13): 1. State the question and pick N, 2. Generate radically different variants, 3. Wire them together, 4. Build the floating switcher, 5. Hand it over, 6. Capture the answer and clean up, Anti-patterns, Process (+5 more)
 
 ### Community 445 - "2. Efeitos Visuais Avançados (Visual Effects)"
 Cohesion: 0.15
@@ -2393,8 +2418,8 @@ Cohesion: 0.18
 Nodes (10): 1. Lossless stream reconnect, 2. `processed_at` — queued vs processed, 3. Interrupt a running session, 4. `tool_confirmation` round-trip, 5. Correct idle-break gate, 6. Post-idle status-write race, 7. Stream-first, then send, 8. File-mount gotchas (+2 more)
 
 ### Community 486 - "Part 1: Gemini 3 프롬프트 전략"
-Cohesion: 0.18
-Nodes (11): 1.2 구조화된 프롬프트 템플릿, 1.3 추론 및 계획 개선, 1.4 권장사항 통합 템플릿, 1.5 온도 설정 주의사항, Part 1: Gemini 3 프롬프트 전략, XML 형식 템플릿, 마크다운 형식 템플릿, 명시적 계획 프롬프트 (+3 more)
+Cohesion: 0.11
+Nodes (19): 1.1 핵심 프롬프팅 원칙, 1.2 구조화된 프롬프트 템플릿, 1.3 추론 및 계획 개선, 1.4 권장사항 통합 템플릿, 1.5 온도 설정 주의사항, Part 1: Gemini 3 프롬프트 전략, XML 형식 템플릿, 마크다운 형식 템플릿 (+11 more)
 
 ### Community 487 - "SKILL.md"
 Cohesion: 0.24
@@ -2405,8 +2430,12 @@ Cohesion: 0.18
 Nodes (11): A.1: Analyze the Structure, A.2: Check for Missing Elements, A.3: Create fields.json with PDF Coordinates, A.4: Validate Bounding Boxes, Approach A: Structure-Based Coordinates (Preferred), Hybrid Approach: Structure + Visual, Non-fillable fields, Step 1: Try Structure Extraction First (+3 more)
 
 ### Community 489 - "Prototype"
-Cohesion: 0.06
-Nodes (31): 1. State the question, 2. Pick the language, 3. Isolate the logic in a portable module, 4. Build the smallest TUI that exposes the state, 5. Make it runnable in one command, 6. Hand it over, 7. Capture the answer, Anti-patterns (+23 more)
+Cohesion: 0.10
+Nodes (18): 1. State the question, 2. Pick the language, 3. Isolate the logic in a portable module, 4. Build the smallest TUI that exposes the state, 5. Make it runnable in one command, 6. Hand it over, 7. Capture the answer, Anti-patterns (+10 more)
+
+### Community 490 - "cleanText"
+Cohesion: 0.32
+Nodes (9): findWhisperChunkWindow(), compareNarrationChunksWithWhisper(), lcsDiff(), mapStoryboardWordsWithTiming(), cleanText(), findNarrationMatch(), matchWords(), PORTUGUESE_STOP_WORDS (+1 more)
 
 ### Community 491 - "For each issue the user raises"
 Cohesion: 0.18
@@ -2761,8 +2790,8 @@ Cohesion: 0.20
 Nodes (21): buildFileSnippet(), buildObsidianNotesPromptAddendum(), collapse(), collapseWhitespace(), extractBullets(), extractGlobalMemoryBullets(), extractOutlierSummaries(), extractSectionBody() (+13 more)
 
 ### Community 581 - "Quality Checklist"
-Cohesion: 0.09
-Nodes (36): asList(), assessAutomaticScriptQuality(), assessDeterministicRetention(), assessEditorialContract(), assessNarracaoProIntegrity(), assessNarrationReadiness(), assessVisualStoryboardReadiness(), clampScore() (+28 more)
+Cohesion: 0.17
+Nodes (20): asList(), assessAutomaticScriptQuality(), assessDeterministicRetention(), assessEditorialContract(), assessNarracaoProIntegrity(), assessNarrationReadiness(), assessVisualStoryboardReadiness(), clampScore() (+12 more)
 
 ### Community 582 - "OpenMontage Reviewer (Lumiera)"
 Cohesion: 0.25
@@ -2823,6 +2852,10 @@ Nodes (7): Conversational feel, Format arguments to actually have, Grounding, Ou
 ### Community 596 - "YouTube Thumbnail (Lumiera)"
 Cohesion: 0.25
 Nodes (7): Formato, Integração, Não fazer, Regras CTR, Template de brief, Workflow Lumiera, YouTube Thumbnail (Lumiera)
+
+### Community 597 - "computeAssetDuration"
+Cohesion: 0.38
+Nodes (9): recalculateSequentialAudioStarts(), createBlockAssetDurationResolver(), recalculateBlockAudioStarts(), resolveBlockAudioAnchorStart(), resolveBlockNarrationAnchor(), computeAssetDuration(), computeChainedSceneDuration(), isAssetFixedDurationLocked() (+1 more)
 
 ### Community 598 - "Lumiera Memória"
 Cohesion: 0.29
@@ -2917,8 +2950,8 @@ Cohesion: 0.29
 Nodes (7): 1. `outcome_first_structure` — destination 우선 정의, 2. `personality_and_collaboration` — 톤·협업 스타일, 3. `constraints_block` — 압축 제약, 4. `output_contract` — 응답 형식 계약, 5. `stop_rules` — 도구 루프·종결, 6. `validation_rules` — 검증 안내, 필수 적용 블록 (6개)
 
 ### Community 623 - "Markdown Converter (CocoLoop → Lumiera)"
-Cohesion: 0.29
-Nodes (6): Destinos no Obsidian, Instalação, Markdown Converter (CocoLoop → Lumiera), Quando usar, Riscos, Workflow Lumiera
+Cohesion: 0.25
+Nodes (8): __dirname, __filename, loadComousarAnarracaoProGuidelines(), loadNarracaoProGuidelines(), loadPreferredGuideline(), WORKSPACE_DIR, cache, loadFileCached()
 
 ### Community 624 - "Quality Checklist"
 Cohesion: 0.33
@@ -3017,8 +3050,8 @@ Cohesion: 0.33
 Nodes (5): Authentication, Claude Platform on AWS, Client & install, Required configuration, What to tell users
 
 ### Community 650 - "2026-07-01 06:10 — curiosidades e fatos surpreendentes (SHORT)"
-Cohesion: 0.18
-Nodes (21): buildOverlayResearchTopic(), buildResearchCacheKey(), cleanTitleFromUrl(), countNumericHints(), extractBlockOverlayTopics(), extractFactsFromResearch(), extractTopicsFromNarration(), factMatchesNarrationBlock() (+13 more)
+Cohesion: 0.21
+Nodes (18): buildOverlayResearchTopic(), buildResearchCacheKey(), cleanTitleFromUrl(), countNumericHints(), extractBlockOverlayTopics(), extractTopicsFromNarration(), fetchOverlayResearchForRender(), isOverlayResearchSufficient() (+10 more)
 
 ### Community 651 - "Memória global do Lumiera Studio Agents"
 Cohesion: 0.33
@@ -3043,6 +3076,10 @@ Nodes (5): Beta Headers, Common Pitfalls, Managed Agents — Overview, Reading G
 ### Community 656 - "Migrating to Opus 4.8"
 Cohesion: 0.33
 Nodes (6): Behavioral shifts (prompt-tunable), Capability improvements, Migrating to Opus 4.8, New API feature: mid-session system prompts, No new API breaking changes (inherited from 4.7), Opus 4.8 Migration Checklist
+
+### Community 657 - "creatorProductionPlan.ts"
+Cohesion: 0.33
+Nodes (8): buildCreatorProductionPlan(), CreatorProductionPlanSummary, CreatorScenePlanRow, motionLabel(), narrationPreview(), sceneRef(), TEMPLATE_LABELS, CreatorProductionPlanPanel()
 
 ### Community 659 - "Advanced MCP Features"
 Cohesion: 0.33
@@ -3141,8 +3178,8 @@ Cohesion: 0.40
 Nodes (5): 6. ETAPA 3 — HIERARQUIA DE FONTES, NÍVEL 1 — FONTES PRIMÁRIAS, NÍVEL 2 — FONTES INSTITUCIONAIS, NÍVEL 3 — JORNALISMO CONFIÁVEL, NÍVEL 4 — FONTES SECUNDÁRIAS
 
 ### Community 683 - "2026-07-01 05:53 — curiosidades construcao historia (SHORT)"
-Cohesion: 0.06
-Nodes (44): ActivityItem, DashminActivityFeed(), DashminActivityFeedProps, iconForType(), toneClass(), DashminDashboard(), DashminDashboardProps, priorityClass() (+36 more)
+Cohesion: 0.07
+Nodes (39): ActivityItem, DashminActivityFeed(), DashminActivityFeedProps, iconForType(), toneClass(), DashminStats(), DashminStatsProps, deriveHomeNextStep() (+31 more)
 
 ### Community 684 - "2026-07-01 06:03 — curiosidades construcao historia (SHORT)"
 Cohesion: 0.60
@@ -3175,6 +3212,10 @@ Nodes (5): All models, Breaking Changes by Source Model, Migrating from Sonnet 4
 ### Community 691 - "Per-SDK Syntax Reference"
 Cohesion: 0.40
 Nodes (5): Per-SDK Syntax Reference, Prefill replacement — structured outputs via `output_config.format`, Sampling parameters — `temperature` / `top_p` / `top_k`, `thinking` — `budget_tokens` → adaptive, `thinking.display` — opt back into summarized reasoning (Opus 4.7)
+
+### Community 692 - "DashminDashboard.tsx"
+Cohesion: 0.22
+Nodes (8): DashCardMenu(), DashCardMenuItem, DashCardMenuProps, DashminDashboard(), DashminDashboardProps, priorityClass(), TodoItem, WorkspaceStatusLike
 
 ### Community 694 - "Security Best Practices"
 Cohesion: 0.40
@@ -3237,8 +3278,8 @@ Cohesion: 0.50
 Nodes (4): Candidatos (em observação), engenharia, Meta, Padrões promovidos
 
 ### Community 715 - "ideasVariety.js"
-Cohesion: 0.07
-Nodes (67): buildCollageMetaphorPrompt(), buildOmniJob(), normalizeCollageMode(), parseCollageMetaphorResponse(), analyzeLineLocally(), analyzeScriptLocally(), buildCardRegenerationPrompt(), buildSemanticAnchors() (+59 more)
+Cohesion: 0.18
+Nodes (15): appendIdeasHistory(), buildIdeasExclusionAddendum(), buildIdeasExplorationAxes(), buildIdeasFreshnessInstruction(), collectProjectTopics(), EXPLORATION_LENSES, ideasHistoryPath(), loadIdeasHistory() (+7 more)
 
 ### Community 716 - "geral"
 Cohesion: 0.50
@@ -3393,8 +3434,8 @@ Cohesion: 0.50
 Nodes (4): Candidatos (em observação), engenharia-medieval, Meta, Padrões promovidos
 
 ### Community 782 - "text"
-Cohesion: 0.17
-Nodes (19): runComfyuiInstall(), runComfyuiModelDownload(), ALLOWED_SOURCES, asArray(), buildImportTrace(), prepareSpecializedStoryboardImport(), registerSpecializedStoryboardImportRoute(), saveSpecializedStoryboardImport() (+11 more)
+Cohesion: 0.18
+Nodes (18): ALLOWED_SOURCES, asArray(), buildImportTrace(), prepareSpecializedStoryboardImport(), registerSpecializedStoryboardImportRoute(), saveSpecializedStoryboardImport(), text(), PackagingAssistant() (+10 more)
 
 ### Community 787 - "Managed Agents — Multiagent Sessions"
 Cohesion: 0.29
@@ -3420,20 +3461,64 @@ Nodes (4): Candidatos (em observação), comparacao-engenharia-moderna-x-antiga-
 Cohesion: 0.50
 Nodes (4): Candidatos (em observação), curiosidade-engenharia-brasil, Meta, Padrões promovidos
 
+### Community 804 - "repairMojibake"
+Cohesion: 0.39
+Nodes (7): applyPtMojibakeLiterals(), countMojibakeMarkers(), PT_MOJIBAKE_LITERALS, PT_WORD_CORRUPTION_FIXES, repairMojibake(), repairMojibakeDeep(), repairReplacementCharInPortuguese()
+
+### Community 805 - "timelineNarration.js"
+Cohesion: 0.50
+Nodes (5): isPromptOnlyKeyframe(), getAssetNarrationText(), getBlockNarrationAnchor(), getBlockNarrationText(), flatWords
+
+### Community 806 - "Managed Agents — Onboarding Flow"
+Cohesion: 0.29
+Nodes (6): 1. Describe the task, 2. Configure the agent — propose, don't interrogate, 3. Environment, 4. Session — auth, then test run, 5. Integrate — emit the code, Managed Agents — Onboarding Flow
+
+### Community 807 - "instagramOAuth.js"
+Cohesion: 0.52
+Nodes (6): buildInstagramAuthUrl(), exchangeInstagramCode(), getInstagramConnectionStatus(), getInstagramPaths(), IG_SCOPES, saveInstagramAppCredentials()
+
+### Community 808 - "projectEventLog.js"
+Cohesion: 0.57
+Nodes (5): appendProjectEventLog(), projectEventLogPath(), rotateProjectLog(), sanitizeLogValue(), summarizeTimelineAssets()
+
+### Community 809 - "DeerFlow → Lumiera (pesquisa profunda)"
+Cohesion: 0.33
+Nodes (5): DeerFlow → Lumiera (pesquisa profunda), Fluxo (espelho DeerFlow 1.x), Pré-requisitos, UI, VideoAgent
+
+### Community 810 - "Integração Lumiera"
+Cohesion: 0.40
+Nodes (5): 1. NotebookLM (pesquisa + concorrentes), 2. Creator (ideias e roteiro), 3. Canal YouTube → Studio Pro, 4. Após publicar (fechar o loop), Integração Lumiera
+
+### Community 811 - "SKILL.md"
+Cohesion: 0.40
+Nodes (4): Definition of done, The loop lens, The workspace, Vocabulary
+
+### Community 812 - "narrationUpload.js"
+Cohesion: 0.60
+Nodes (3): hasMp3Signature(), installNarrationAtomically(), removeTemporaryNarration()
+
+### Community 813 - "DashAlert.tsx"
+Cohesion: 0.40
+Nodes (4): DashAlert(), DashAlertProps, DashAlertTone, icons
+
+### Community 814 - "DashButton.tsx"
+Cohesion: 0.40
+Nodes (4): DashButtonProps, DashButtonSize, DashButtonVariant, sizeClass
+
 ## Knowledge Gaps
-- **5492 isolated node(s):** `readableLineLength`, `legacyEditor`, `livePreview`, `defaultViewMode`, `showLineNumber` (+5487 more)
+- **5494 isolated node(s):** `readableLineLength`, `legacyEditor`, `livePreview`, `defaultViewMode`, `showLineNumber` (+5489 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **75 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Inteligência competitiva (concorrentes)` connect `remotionTemplateEngenhariaSeed.js` to `Homem encontra objeto semelhante a uma bolsa suméria. O que aconteceu depois surpreendeu cientistas.`, `2026-07-01 05:55 — curiosidades e fatos surpreendentes (SHORT)`, `Por que os navios têm bulbo de proa? 🤔🛳 #curiosidades #fatoscuriosos #shorts`, `2026-07-01 05:51 — curiosidades construcao historia (SHORT)`, `2026-07-01 05:59 — curiosidades construcao historia (SHORT)`, `StudioAgents.tsx`, `DashminDashboard.tsx`, `geoVideoPromptEngine.js`, `capture_cookies.py`, `@types/react-dom`, `blenderMapService.js`, `install-lumiera-permanent.ps1`, `seedanceDirecting.js`, `computeAssetDuration`, `mediaUsageRegistry.js`, `guidelines.js`, `useResurrectorScheduler.ts`, `assessors.js`, `Ficha de dissecção (por vídeo outlier)`, `nicheTagStyles.ts`, `loadStudioSettings`, `Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!`, `Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!`, `Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!`, `identityFrameTemplates.js`, `HumorFactsLab.tsx`, `SocialPublishPanel.tsx`, `2026-07-01 05:50 — construction history (SHORT)`, `Python for Civil Engineering Training Course (Lesson 1/7)`, `Python for Civil Engineering Training Course (Lesson 1/7)`, `OS PIORES FINS DE HUMANOS EM FÓSSEIS #dinossauros #curiosidades #bizarro #shorts`, `projectEventLog.js`, `SUPER EL NIÑO vindo aí? [Como se preparar sem Pânico]`, `Por que o japonês tornou se miserável em troca dos estrangeiros?`, `Homem encontra objeto semelhante a uma bolsa suméria. O que aconteceu depois surpreendeu cientistas.`, `O prédio que quase fica invisível #curiosidades #engenharia #arquitetura`, `pipelineOrchestrator.js`, `Homem encontra objeto semelhante a uma bolsa suméria. O que aconteceu depois surpreendeu cientistas.`, `O prédio que quase fica invisível #curiosidades #engenharia #arquitetura`, `DashButton.tsx`, `hitl-loop.template.sh`?**
+- **Why does `Inteligência competitiva (concorrentes)` connect `remotionTemplateEngenhariaSeed.js` to `Homem encontra objeto semelhante a uma bolsa suméria. O que aconteceu depois surpreendeu cientistas.`, `2026-07-01 05:55 — curiosidades e fatos surpreendentes (SHORT)`, `Por que os navios têm bulbo de proa? 🤔🛳 #curiosidades #fatoscuriosos #shorts`, `2026-07-01 05:51 — curiosidades construcao historia (SHORT)`, `2026-07-01 05:59 — curiosidades construcao historia (SHORT)`, `StudioAgents.tsx`, `DashminDashboard.tsx`, `geoVideoPromptEngine.js`, `blenderMapService.js`, `Integração Lumiera`, `seedanceDirecting.js`, `computeAssetDuration`, `mediaUsageRegistry.js`, `guidelines.js`, `useResurrectorScheduler.ts`, `assessors.js`, `Ficha de dissecção (por vídeo outlier)`, `nicheTagStyles.ts`, `loadStudioSettings`, `Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!`, `Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!`, `Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!`, `identityFrameTemplates.js`, `HumorFactsLab.tsx`, `SocialPublishPanel.tsx`, `2026-07-01 05:50 — construction history (SHORT)`, `Python for Civil Engineering Training Course (Lesson 1/7)`, `Python for Civil Engineering Training Course (Lesson 1/7)`, `OS PIORES FINS DE HUMANOS EM FÓSSEIS #dinossauros #curiosidades #bizarro #shorts`, `projectEventLog.js`, `SUPER EL NIÑO vindo aí? [Como se preparar sem Pânico]`, `Por que o japonês tornou se miserável em troca dos estrangeiros?`, `Homem encontra objeto semelhante a uma bolsa suméria. O que aconteceu depois surpreendeu cientistas.`, `O prédio que quase fica invisível #curiosidades #engenharia #arquitetura`, `pipelineOrchestrator.js`, `Homem encontra objeto semelhante a uma bolsa suméria. O que aconteceu depois surpreendeu cientistas.`, `O prédio que quase fica invisível #curiosidades #engenharia #arquitetura`, `DashButton.tsx`, `hitl-loop.template.sh`?**
   _High betweenness centrality (0.036) - this node is a cross-community bridge._
-- **Why does `base()` connect `base` to `synthesize`, `server.js`, `TimelineStudio.tsx`, `App.tsx`, `InfoBar.tsx`, `BlockProgressBarEditor.tsx`, `CollageBrollLab.tsx`?**
-  _High betweenness centrality (0.018) - this node is a cross-community bridge._
-- **Why does `flattenWordTranscripts()` connect `narrationChunks.js` to `server.js`, `App.tsx`, `ideasVariety.js`, `timelineSceneSync.js`, `prepareRemotionRender`?**
-  _High betweenness centrality (0.012) - this node is a cross-community bridge._
+- **Why does `base()` connect `base` to `server.js`, `App.tsx`, `TimelineStudioPreview.tsx`, `pioneerNicheDiscovery.js`, `InfoBar.tsx`, `BlockProgressBarEditor.tsx`, `CollageBrollLab.tsx`?**
+  _High betweenness centrality (0.017) - this node is a cross-community bridge._
+- **Why does `flattenWordTranscripts()` connect `narrationChunks.js` to `server.js`, `AppTabPanels.tsx`, `App.tsx`, `cleanText`, `timelineSceneSync.js`, `workflowRoutes.js`, `computeAssetDuration`, `prepareRemotionRender`?**
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `registerWorkflowRoutes()` (e.g. with `text()` and `wordCount()`) actually correct?**
   _`registerWorkflowRoutes()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 11 inferred relationships involving `App()` (e.g. with `text()` and `blockNum()`) actually correct?**

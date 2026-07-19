@@ -3,8 +3,24 @@ import assert from "node:assert/strict";
 import {
   assessEditorialContract,
   assessNarrationReadiness,
+  assessNarracaoProIntegrity,
   assessVisualStoryboardReadiness,
 } from "./scriptQuality.js";
+
+const completeNarracaoTrace = {
+  etapa_1_recorte: "Como colmeias foram usadas em um cerco?",
+  etapa_2_pesquisa: ["Relato do cerco — fonte: exemplo histórico"],
+  etapa_3_entidades: [{ entidade: "Temiscira", funcao: "local do cerco" }],
+  etapa_4_tese: { tese_completa: "Colmeias foram usadas para dificultar túneis." },
+  etapa_5_fatos_selecionados: ["Colmeias foram lançadas contra túneis."],
+  etapa_6_cadeia_causal: "Colmeias lançadas → insetos dispersos → recuo nos túneis",
+  etapa_10_validacao_factual: {
+    teste_identidade_passou: true,
+    fusao_detectada: false,
+  },
+  etapa_11_validacao_narracao: { portoes_15_resultado: "Todos passaram" },
+  etapa_12_validacao_entrega: { duracao_ok: true },
+};
 
 test("editorial contract flags a short without payoff", () => {
   const report = assessEditorialContract({
@@ -33,6 +49,53 @@ test("narration readiness flags speech-unfriendly density", () => {
   assert.ok(report.acronyms.includes("NASA"));
   assert.ok(report.recommendations.length > 0);
 });
+
+test("narration readiness rejects inflated abstractions instead of concrete consequences", () => {
+  const report = assessNarrationReadiness({
+    format: "SHORTS",
+    narrativeScript:
+      "Essa tática transformou a biologia em uma engenharia de defesa brutal.",
+  });
+
+  assert.equal(report.ok, false);
+  assert.equal(report.inflatedAbstractionCount, 1);
+  assert.ok(
+    report.recommendations.some((item) => item.includes("causa e consequência"))
+  );
+});
+
+test("NARRACAOPRO blocks an inflated lethal ending without explicit evidence", () => {
+  const report = assessNarracaoProIntegrity({
+    format: "SHORTS",
+    narrativeScript:
+      "Os defensores lançavam colmeias contra os túneis. Os insetos obrigavam os soldados a recuar. A escavação terminou em picadas mortais.",
+    trace: completeNarracaoTrace,
+    researchFacts: ["O relato descreve insetos dispersos nos túneis e o recuo de soldados."],
+    researchSources: [{ title: "Relato histórico", url: "https://example.com/source" }],
+  });
+
+  assert.equal(report.ok, false);
+  assert.ok(report.issues.some((issue) => issue.includes("Fechamento sensacionalista")));
+  assert.equal(report.evidence.dramaticTerminalClaim, "picadas mortais");
+});
+
+test("NARRACAOPRO accepts a lethal ending when the research explicitly supports it", () => {
+  const report = assessNarracaoProIntegrity({
+    format: "SHORTS",
+    narrativeScript:
+      "Os defensores lançavam colmeias contra os túneis. O registro afirma que houve picadas mortais.",
+    trace: completeNarracaoTrace,
+    researchFacts: ["O registro consultado descreve mortes causadas por picadas letais."],
+    researchSources: [{ title: "Relato histórico", url: "https://example.com/source" }],
+  });
+
+  assert.equal(
+    report.issues.some((issue) => issue.includes("Fechamento sensacionalista")),
+    false
+  );
+  assert.equal(report.evidence.dramaticClaimSupported, true);
+});
+
 
 test("visual readiness flags weak and repeated coverage", () => {
   const report = assessVisualStoryboardReadiness({
