@@ -136,7 +136,59 @@ export function repairMojibakeDeep(value) {
 }
 
 export function repairStoryboardEncoding(storyboard) {
-  return repairMojibakeDeep(storyboard);
+  const repaired = repairMojibakeDeep(storyboard);
+  if (repaired && Array.isArray(repaired.visual_prompts)) {
+    repaired.visual_prompts = sortVisualPromptsList(repaired.visual_prompts);
+  }
+  return repaired;
+}
+
+function sortVisualPromptsList(visualPrompts) {
+  if (!Array.isArray(visualPrompts)) return [];
+
+  const getBlockNum = (vp) => {
+    const rawBlock = vp.block ?? vp.bloco;
+    if (rawBlock != null && rawBlock !== "") {
+      const n = Number(rawBlock);
+      if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+    }
+    const rawScene = vp.scene ?? vp.cena;
+    if (rawScene != null && rawScene !== "") {
+      const sceneStr = String(rawScene).trim();
+      const dotMatch = sceneStr.match(/^(\d+)\./);
+      if (dotMatch) return parseInt(dotMatch[1], 10);
+      const n = Number(sceneStr);
+      if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+    }
+    return 1;
+  };
+
+  const compareScenes = (aScene, bScene) => {
+    const aParts = String(aScene || "")
+      .split(".")
+      .map(Number);
+    const bParts = String(bScene || "")
+      .split(".")
+      .map(Number);
+    for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+      const aPart = aParts[i] || 0;
+      const bPart = bParts[i] || 0;
+      if (aPart !== bPart) return aPart - bPart;
+    }
+    return 0;
+  };
+
+  return [...visualPrompts].sort((a, b) => {
+    const aBlock = getBlockNum(a);
+    const bBlock = getBlockNum(b);
+
+    // Backfill block fields to ensure legacy fallbacks work correctly
+    if (a.block === undefined || a.block === null) a.block = aBlock;
+    if (b.block === undefined || b.block === null) b.block = bBlock;
+
+    if (aBlock !== bBlock) return aBlock - bBlock;
+    return compareScenes(a?.scene ?? a?.cena, b?.scene ?? b?.cena);
+  });
 }
 
 /** Repara strings de texto em props de um overlay (lower-third, counter, etc.). */
