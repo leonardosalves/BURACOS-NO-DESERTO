@@ -218,7 +218,7 @@ function Invoke-CodexIteration {
 
     $codex = Get-Command $CodexPath -ErrorAction Stop
     $arguments = @(
-        "exec", "--ephemeral", "--sandbox", "workspace-write", "--json",
+        "exec", "--ignore-user-config", "--ephemeral", "--sandbox", "workspace-write", "--json",
         "--cd", $WorktreePath, "-"
     )
     $previousErrorAction = $ErrorActionPreference
