@@ -1,0 +1,16 @@
+FROM node:20-slim AS base
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/studio-web/package.json apps/studio-web/
+RUN pnpm install --frozen-lockfile --prod=false
+
+COPY apps/studio-web/ apps/studio-web/
+RUN pnpm --filter @video-suite/studio-web run build
+
+FROM nginx:alpine AS runner
+COPY --from=base /app/apps/studio-web/dist /usr/share/nginx/html
+COPY apps/studio-web/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

@@ -4,10 +4,27 @@ import { generateBriefing, generateScript } from "./llm.js";
 import { addJobToQueue } from "./queue.js";
 import { ProjectManifestSchema } from "@video-suite/scene-contract";
 import { randomUUID } from "crypto";
+import { healthCheck, getMetrics, trackRequest } from "./observability.js";
 
 const prisma = new PrismaClient();
 
 export async function registerRoutes(fastify: FastifyInstance) {
+  // Request tracking middleware
+  fastify.addHook("onRequest", async (request) => {
+    trackRequest(request.url);
+  });
+
+  // ── System endpoints ──────────────────────────────────────────────────────
+
+  // GET /health — full system health check
+  fastify.get("/health", async () => {
+    return healthCheck(prisma);
+  });
+
+  // GET /metrics — request and render metrics
+  fastify.get("/metrics", async () => {
+    return getMetrics();
+  });
   // POST /v1/projects
   fastify.post("/v1/projects", async (request, reply) => {
     const { title, format, nicheId, language, aspectRatio, targetDurationSec } =

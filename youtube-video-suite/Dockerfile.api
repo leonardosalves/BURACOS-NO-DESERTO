@@ -1,0 +1,42 @@
+FROM node:20-slim AS base
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
+
+WORKDIR /app
+
+# ── Install dependencies ──
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/
+COPY packages/scene-contract/package.json packages/scene-contract/
+COPY packages/prompt-engine/package.json packages/prompt-engine/
+COPY packages/integrations/package.json packages/integrations/
+RUN pnpm install --frozen-lockfile --prod=false
+
+# ── Build ──
+COPY packages/ packages/
+COPY apps/api/ apps/api/
+RUN pnpm --filter @video-suite/scene-contract run build
+RUN pnpm --filter @video-suite/integrations run build
+RUN pnpm --filter @video-suite/prompt-engine run build
+RUN pnpm --filter @video-suite/api run build
+
+# ── Production ──
+FROM node:20-slim AS runner
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
+
+WORKDIR /app
+
+COPY --from=base /app/node_modules node_modules
+COPY --from=base /app/packages packages
+COPY --from=base /app/apps/api apps/api
+COPY --from=base /app/package.json .
+COPY --from=base /app/pnpm-lock.yaml .
+COPY --from=base /app/pnpm-workspace.yaml .
+
+ENV NODE_ENV=production
+ENV PORT=3001
+
+EXPOSE 3001
+
+CMD ["node", "apps/api/dist/routes.js"]

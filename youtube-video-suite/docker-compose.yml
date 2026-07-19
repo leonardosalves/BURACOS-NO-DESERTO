@@ -1,66 +1,67 @@
+version: "3.9"
+
 services:
+  # ── PostgreSQL ──
   postgres:
     image: postgres:16-alpine
-    container_name: video-suite-postgres
-    restart: unless-stopped
     environment:
-      POSTGRES_USER: video_suite
-      POSTGRES_PASSWORD: video_suite
-      POSTGRES_DB: video_suite
+      POSTGRES_USER: videosuite
+      POSTGRES_PASSWORD: videosuite_dev
+      POSTGRES_DB: videosuite
     ports:
       - "5432:5432"
     volumes:
-      - video_suite_postgres:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U video_suite -d video_suite"]
+      test: ["CMD-SHELL", "pg_isready -U videosuite"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 5
 
+  # ── Redis ──
   redis:
     image: redis:7-alpine
-    container_name: video-suite-redis
-    restart: unless-stopped
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
     volumes:
-      - video_suite_redis:/data
+      - redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 5
 
-  minio:
-    image: minio/minio:latest
-    container_name: video-suite-minio
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+  # ── API Server ──
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
     ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - video_suite_minio:/data
-
-  minio-init:
-    image: minio/mc:latest
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://videosuite:videosuite_dev@postgres:5432/videosuite
+      REDIS_URL: redis://redis:6379
+      PORT: "3001"
+      NODE_ENV: production
     depends_on:
-      minio:
-        condition: service_started
-    entrypoint: >
-      /bin/sh -c "
-      sleep 5;
-      mc alias set local http://minio:9000 minioadmin minioadmin;
-      mc mb --ignore-existing local/video-suite;
-      mc anonymous set private local/video-suite;
-      exit 0;
-      "
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - storage:/app/storage
+
+  # ── Studio Web ──
+  studio:
+    build:
+      context: .
+      dockerfile: Dockerfile.studio
+    ports:
+      - "5180:80"
+    depends_on:
+      - api
 
 volumes:
-  video_suite_postgres:
-  video_suite_redis:
-  video_suite_minio:
+  pgdata:
+  redisdata:
+  storage:
