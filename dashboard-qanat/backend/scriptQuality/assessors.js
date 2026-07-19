@@ -553,6 +553,491 @@ export function assessVisualStoryboardReadiness({
   };
 }
 
+function clampScore(value) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function uniqueMessages(messages) {
+  return [...new Set(messages.map((message) => String(message || "").trim()).filter(Boolean))];
+}
+
+function scoreNarrationReadiness(narration) {
+  const sentencePenalty = narration.longSentenceCount * 12;
+  const acronymPenalty = Math.min(12, narration.acronyms.length * 3);
+  const numberPenalty = Math.min(15, Math.max(0, narration.numberCount - 2) * 3);
+  const densityPenalty =
+    narration.averageWordsPerSentence > 26
+      ? Math.min(20, (narration.averageWordsPerSentence - 26) * 2)
+      : 0;
+  return clampScore(100 - sentencePenalty - acronymPenalty - numberPenalty - densityPenalty);
+}
+
+const RETENTION_STOPWORDS = new Set([
+  "a",
+  "agora",
+  "ai",
+  "ao",
+  "aos",
+  "as",
+  "ate",
+  "com",
+  "como",
+  "da",
+  "das",
+  "de",
+  "do",
+  "dos",
+  "e",
+  "ela",
+  "ele",
+  "em",
+  "era",
+  "essa",
+  "esse",
+  "esta",
+  "este",
+  "eu",
+  "isso",
+  "mas",
+  "na",
+  "nas",
+  "nao",
+  "no",
+  "nos",
+  "o",
+  "os",
+  "ou",
+  "para",
+  "por",
+  "porque",
+  "que",
+  "se",
+  "sem",
+  "um",
+  "uma",
+  "vai",
+  "voce",
+]);
+
+const RETENTION_THRESHOLDS = {
+  SHORTS: {
+    openingSentences: 1,
+    promiseWindowSentences: 3,
+    hookMinConcreteWords: 4,
+    minWords: 70,
+    maxWords: 145,
+    minSentences: 4,
+    maxAverageWordsPerSentence: 22,
+    maxLongSentenceWords: 28,
+    repeatedStarterLimit: 2,
+    repeatedPhraseLimit: 2,
+    payoffWindowSentences: 2,
+  },
+  LONGO: {
+    openingSentences: 3,
+    promiseWindowSentences: 5,
+    hookMinConcreteWords: 7,
+    minWords: 900,
+    maxWords: 4500,
+    minSentences: 18,
+    maxAverageWordsPerSentence: 28,
+    maxLongSentenceWords: 38,
+    repeatedStarterLimit: 4,
+    repeatedPhraseLimit: 4,
+    payoffWindowSentences: 3,
+  },
+};
+
+function normalizeRetentionText(text) {
+  return String(text || "")
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function retentionWords(text) {
+  return normalizeRetentionText(text).split(/\s+/).filter(Boolean);
+}
+
+function concreteRetentionWords(text) {
+  return retentionWords(text).filter(
+    (word) => word.length > 3 && !RETENTION_STOPWORDS.has(word)
+  );
+}
+
+function countSharedWords(source, target) {
+  const sourceWords = new Set(concreteRetentionWords(source));
+  if (!sourceWords.size) return 0;
+  return concreteRetentionWords(target).filter((word) => sourceWords.has(word)).length;
+}
+
+function repeatedSentenceStarters(sentences, limit) {
+  const counts = new Map();
+  sentences.forEach((sentence) => {
+    const starter = retentionWords(sentence)
+      .filter((word) => !RETENTION_STOPWORDS.has(word))
+      .slice(0, 2)
+      .join(" ");
+    if (starter) counts.set(starter, (counts.get(starter) || 0) + 1);
+  });
+  return [...counts.entries()]
+    .filter(([, count]) => count > limit)
+    .map(([phrase, count]) => ({ phrase, count }));
+}
+
+function repeatedContentPhrases(words, limit) {
+  const counts = new Map();
+  for (let index = 0; index <= words.length - 3; index += 1) {
+    const phraseWords = words.slice(index, index + 3);
+    if (phraseWords.filter((word) => !RETENTION_STOPWORDS.has(word)).length < 2) {
+      continue;
+    }
+    const phrase = phraseWords.join(" ");
+    counts.set(phrase, (counts.get(phrase) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .filter(([, count]) => count > limit)
+    .map(([phrase, count]) => ({ phrase, count }))
+    .slice(0, 5);
+}
+
+function assessDeterministicRetention({
+  format = "LONGO",
+  narrativeScript = "",
+  strategy = {},
+  editorial = {},
+  narration = {},
+} = {}) {
+  const script = String(narrativeScript || "").trim();
+  const sentences = script
+    .split(/(?<=[.!?…])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  const words = script ? script.split(/\s+/).filter(Boolean) : [];
+  const isShort = format === "SHORTS" || format === "SHORT";
+  const normalizedFormat = isShort ? "SHORTS" : "LONGO";
+  const thresholds = RETENTION_THRESHOLDS[normalizedFormat];
+  const issues = [];
+  const recommendations = [];
+  const diagnostics = [];
+  const opening = sentences.slice(0, thresholds.openingSentences).join(" ");
+  const earlyWindow = sentences.slice(0, thresholds.promiseWindowSentences).join(" ");
+  const payoffWindow = sentences.slice(-thresholds.payoffWindowSentences).join(" ");
+  const ending = sentences.at(-1) || "";
+  const declaredPromise = String(
+    strategy?.promise || strategy?.thesis || strategy?.title_main || ""
+  ).trim();
+  const concreteHookWords = concreteRetentionWords(opening);
+  const hasCuriosityGap =
+    /\b(por que|como|segredo|mist[eé]rio|ningu[eé]m|parece|mas|s[oó] que|at[eé] que)\b/i.test(
+      opening
+    ) || /[?]/.test(opening);
+  const hasStakes =
+    /\b(muda|salva|destr[oó]i|risco|perigo|prova|revela|verdade|erro|consequ[eê]ncia|impacto)\b/i.test(
+      opening
+    );
+  const hasProgression =
+    /\b(primeiro|depois|ent[aã]o|por isso|o resultado|no fim|s[eé]culos depois|a partir disso)\b/i.test(
+      script
+    );
+  const hasGenericGreeting =
+    /^(oi|ol[aá]|fala[,! ]|seja bem-vindo|bem-vindos|hoje eu vou)\b/i.test(
+      opening
+    );
+  const hasVagueClickbait =
+    /\b(voce n[aã]o vai acreditar|você n[aã]o vai acreditar|o segredo que ningu[eé]m conta|a verdade escondida|isso vai mudar sua vida|olha isso|chocante)\b/i.test(
+      opening
+    );
+  const promiseSharedWords = declaredPromise
+    ? countSharedWords(declaredPromise, earlyWindow)
+    : 0;
+  const promiseConcreteWords = concreteRetentionWords(declaredPromise).length;
+  const earlyPromiseDelivered =
+    !declaredPromise || promiseConcreteWords < 3 || promiseSharedWords >= (isShort ? 1 : 3);
+  const hasPayoff =
+    Boolean(editorial.checks?.payoff) ||
+    /\b(segredo|resposta|resultado|por isso|conclus[aã]o|li[cç][aã]o|significa|era|foi|revela|explica)\b/i.test(
+      payoffWindow
+    );
+  const payoffCompletesPromise =
+    !declaredPromise ||
+    promiseConcreteWords < 3 ||
+    countSharedWords(declaredPromise, payoffWindow) >= (isShort ? 2 : 3) ||
+    hasPayoff;
+  const hasContextualCta = Boolean(editorial.checks?.contextualCta);
+  const averageWordsPerSentence = narration.averageWordsPerSentence || 0;
+  const wordsBySentence = sentences.map(
+    (sentence) => sentence.split(/\s+/).filter(Boolean).length
+  );
+  const longSentenceCount = wordsBySentence.filter(
+    (count) => count > thresholds.maxLongSentenceWords
+  ).length;
+  const normalizedWords = retentionWords(script);
+  const repeatedStarters = repeatedSentenceStarters(
+    sentences,
+    thresholds.repeatedStarterLimit
+  );
+  const repeatedPhrases = repeatedContentPhrases(
+    normalizedWords,
+    thresholds.repeatedPhraseLimit
+  );
+
+  const deduct = (severity, points, message, evidence = {}) => {
+    diagnostics.push({ severity, points, message, evidence });
+    if (severity === "blocking") issues.push(message);
+    else recommendations.push(message);
+  };
+
+  if (!script) deduct("blocking", 100, "Roteiro vazio sem retenção avaliável.");
+  if (hasGenericGreeting) {
+    deduct(
+      "blocking",
+      18,
+      "Gancho abre com saudação genérica antes de entregar uma promessa específica.",
+      { opening }
+    );
+  }
+  if (concreteHookWords.length < thresholds.hookMinConcreteWords) {
+    deduct(
+      "blocking",
+      18,
+      `Gancho pouco específico: ${concreteHookWords.length} palavra(s) concretas, mínimo ${thresholds.hookMinConcreteWords} para ${normalizedFormat}.`,
+      { opening, concreteWords: concreteHookWords }
+    );
+  }
+  if (hasVagueClickbait && !payoffCompletesPromise) {
+    deduct(
+      "blocking",
+      22,
+      "Abertura usa clickbait amplo, mas o final não entrega uma resposta concreta para a promessa.",
+      { opening, payoffWindow }
+    );
+  }
+  if (!earlyPromiseDelivered) {
+    deduct(
+      "blocking",
+      16,
+      `Promessa declarada demora a aparecer: janela inicial de ${thresholds.promiseWindowSentences} frase(s) compartilha só ${promiseSharedWords} termo(s) concreto(s).`,
+      { promise: declaredPromise, earlyWindow }
+    );
+  }
+  if (!hasCuriosityGap) {
+    deduct(
+      "advisory",
+      8,
+      "Abra com uma pergunta, contraste ou lacuna de curiosidade mais clara.",
+      { opening }
+    );
+  }
+  if (!hasStakes) {
+    deduct(
+      "advisory",
+      8,
+      "Declare cedo o que muda, o risco ou a consequência da história.",
+      { opening }
+    );
+  }
+  if (!hasProgression) {
+    deduct(
+      "advisory",
+      8,
+      "Use transições de progressão para criar sensação de avanço."
+    );
+  }
+  if (!hasPayoff || !payoffCompletesPromise) {
+    deduct(
+      "blocking",
+      22,
+      "Retenção sem payoff final que retome a resposta, consequência ou promessa central.",
+      { ending, payoffWindow, promise: declaredPromise }
+    );
+  }
+  if (repeatedStarters.length) {
+    deduct(
+      "blocking",
+      14,
+      `Aberturas de frase repetidas demais: ${repeatedStarters
+        .map((item) => `${item.phrase} (${item.count}x)`)
+        .join(", ")}.`,
+      { repeatedStarters }
+    );
+  }
+  if (repeatedPhrases.length) {
+    deduct(
+      "blocking",
+      14,
+      `Frases ou blocos de palavras repetidos demais: ${repeatedPhrases
+        .map((item) => `${item.phrase} (${item.count}x)`)
+        .join(", ")}.`,
+      { repeatedPhrases }
+    );
+  }
+  if (sentences.length > 0 && sentences.length < thresholds.minSentences) {
+    deduct(
+      "blocking",
+      12,
+      `${normalizedFormat} sem quantidade mínima de frases para ritmo e payoff: ${sentences.length}/${thresholds.minSentences}.`,
+      { sentenceCount: sentences.length }
+    );
+  }
+  if (words.length > 0 && (words.length < thresholds.minWords || words.length > thresholds.maxWords)) {
+    deduct(
+      "advisory",
+      10,
+      `${normalizedFormat} fora da faixa de palavras recomendada para retenção: ${words.length} palavras, alvo ${thresholds.minWords}-${thresholds.maxWords}.`,
+      { wordCount: words.length }
+    );
+  }
+  if (longSentenceCount) {
+    deduct(
+      longSentenceCount >= (isShort ? 2 : 4) ? "blocking" : "advisory",
+      Math.min(18, longSentenceCount * 6),
+      `${longSentenceCount} frase(s) acima de ${thresholds.maxLongSentenceWords} palavras prejudicam o ritmo oral.`,
+      { longSentenceCount, maxLongSentenceWords: thresholds.maxLongSentenceWords }
+    );
+  }
+  if (averageWordsPerSentence > thresholds.maxAverageWordsPerSentence) {
+    deduct(
+      "advisory",
+      8,
+      `Densidade média alta para ${normalizedFormat}: ${averageWordsPerSentence} palavras por frase, limite ${thresholds.maxAverageWordsPerSentence}.`,
+      { averageWordsPerSentence }
+    );
+  }
+  if (!isShort && !hasContextualCta) {
+    deduct(
+      "advisory",
+      0,
+      "Inclua um CTA contextual no meio do vídeo sem interromper a entrega."
+    );
+  }
+
+  const score = clampScore(
+    100 - diagnostics.reduce((sum, item) => sum + item.points, 0)
+  );
+
+  return {
+    ok: issues.length === 0,
+    score,
+    format: normalizedFormat,
+    thresholds,
+    checks: {
+      hookSpecificity: concreteHookWords.length >= thresholds.hookMinConcreteWords,
+      curiosityGap: hasCuriosityGap,
+      stakes: hasStakes,
+      earlyPromiseDelivered,
+      progression: hasProgression,
+      payoff: hasPayoff && payoffCompletesPromise,
+      repetition: repeatedStarters.length === 0 && repeatedPhrases.length === 0,
+      pacing:
+        sentences.length >= thresholds.minSentences &&
+        longSentenceCount === 0 &&
+        averageWordsPerSentence <= thresholds.maxAverageWordsPerSentence,
+      contextualCta: hasContextualCta,
+    },
+    evidence: {
+      concreteHookWords,
+      promiseSharedWords,
+      repeatedStarters,
+      repeatedPhrases,
+      longSentenceCount,
+      averageWordsPerSentence,
+    },
+    diagnostics,
+    issues,
+    recommendations,
+  };
+}
+
+/**
+ * Unified deterministic script-quality gate.
+ * It combines executable checks and never uses model-authored checklist scores.
+ */
+export function assessAutomaticScriptQuality({
+  format = "LONGO",
+  narrativeScript = "",
+  strategy = {},
+  idea = {},
+  trace = {},
+  researchFacts = [],
+  researchSources = [],
+} = {}) {
+  const editorial = assessEditorialContract({ format, narrativeScript, strategy });
+  const narration = assessNarrationReadiness({ format, narrativeScript });
+  const factual = assessNarracaoProIntegrity({
+    format,
+    narrativeScript,
+    idea,
+    trace,
+    researchFacts,
+    researchSources,
+  });
+  const retention = assessDeterministicRetention({
+    format,
+    narrativeScript,
+    strategy,
+    editorial,
+    narration,
+  });
+  const narrationScore = scoreNarrationReadiness(narration);
+  const factualScore = clampScore(100 - factual.issues.length * 30 - factual.warnings.length * 5);
+  const rawScore =
+    editorial.score * 0.35 +
+    narrationScore * 0.2 +
+    factualScore * 0.3 +
+    retention.score * 0.15;
+  const factualHardBlockers = factual.ok
+    ? []
+    : factual.issues.map((issue) => `Factual: ${issue}`);
+  const hardBlockers = uniqueMessages([
+    ...factualHardBlockers,
+    ...(!narrativeScript || !String(narrativeScript).trim()
+      ? ["Roteiro vazio não pode ser aprovado."]
+      : []),
+  ]);
+  const score = clampScore(hardBlockers.length ? Math.min(rawScore, 49) : rawScore);
+  const recommendations = uniqueMessages([
+    ...editorial.issues,
+    ...editorial.recommendations,
+    ...narration.recommendations,
+    ...retention.issues,
+    ...retention.recommendations,
+    ...factual.warnings,
+  ]);
+
+  return {
+    score,
+    overallScore: score,
+    passed:
+      hardBlockers.length === 0 &&
+      score >= 80 &&
+      editorial.ok &&
+      retention.ok &&
+      narration.ok,
+    hardBlockers,
+    recommendations,
+    dimensions: {
+      editorial: {
+        ...editorial,
+        score: clampScore(editorial.score),
+      },
+      narration: {
+        ...narration,
+        score: narrationScore,
+      },
+      factual: {
+        ...factual,
+        score: factualScore,
+      },
+      retention,
+    },
+  };
+}
+
 export function parseChecklistScore(value, fallback = 0) {
   if (value == null || value === "") return fallback;
   if (typeof value === "number" && Number.isFinite(value)) {

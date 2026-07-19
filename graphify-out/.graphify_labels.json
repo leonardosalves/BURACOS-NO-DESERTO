@@ -797,5 +797,10 @@
   "795": "curiosidade-engenharia-brasil",
   "796": "customized",
   "797": "engenharia-medieval",
-  "798": "DashAlert.tsx"
+  "798": "DashAlert.tsx",
+  "799": "open-lumiera-dashboard.ps1",
+  "800": "recover-systemprofile-project.ps1",
+  "801": "restart-backend.ps1",
+  "802": "start-lumiera-login.ps1",
+  "803": "sync-cursor-mcp-notebooklm.ps1"
 }

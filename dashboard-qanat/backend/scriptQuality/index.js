@@ -5,3 +5,4 @@ export * from "./jsonSalvage.js";
 export * from "./visualPromptPipeline.js";
 export * from "./visualPromptEngineer.js";
 export * from "./promptBuilders.js";
+export * from "./automaticRepair.js";
