@@ -840,6 +840,75 @@ Responda APENAS JSON com as chaves:
 visual_orchestration e OPCIONAL mas recomendado: so inclua placements com dados reais da narração (numero, citação, nome/lugar). Nao invente estatisticas. Quote e lower_third so se fizerem sentido.`;
 }
 
+export function buildFactPreservingRepairPrompt({
+  originalScript = "",
+  unifiedReport = {},
+  verifiedFacts = [],
+  sources = [],
+  format = "LONGO",
+  strategy = {},
+} = {}) {
+  const reportBlock = JSON.stringify(unifiedReport, null, 2).slice(0, 10000);
+  const evidenceBlock = JSON.stringify(
+    {
+      verified_facts: verifiedFacts,
+      sources,
+      strategy,
+    },
+    null,
+    2
+  ).slice(0, 12000);
+
+  return `Você é o reparador factual do Lumiera. Faça UMA revisão segura do roteiro, corrigindo apenas as fraquezas diagnosticadas no relatório unificado.
+
+FORMATO: ${format}
+
+ROTEIRO ORIGINAL:
+"""
+${String(originalScript).trim().slice(0, 12000)}
+"""
+
+RELATÓRIO UNIFICADO DE QUALIDADE:
+${reportBlock}
+
+EVIDÊNCIA PERMITIDA:
+${evidenceBlock}
+
+BLOQUEADORES INQUEBRÁVEIS:
+- Preserve todas as alegações verificadas, fatos, fontes, entidades, datas, números, lugares, relações causais e linguagem de incerteza já sustentados pela evidência fornecida.
+- Corrija somente fraquezas diagnosticadas no relatório unificado: clareza, ritmo, retenção, narração, organização, gancho ou redundância.
+- PROIBIDO adicionar fatos, fontes, estudos, links, autores, instituições, entidades nomeadas, datas, números, percentuais, rankings, superlativos verificáveis ou relações causais ausentes da evidência permitida.
+- PROIBIDO transformar hipótese, disputa, estimativa ou incerteza em certeza. Mantenha expressões como "segundo as fontes", "é disputado", "não está claro", "há indícios" ou equivalentes quando a evidência exigir.
+- Se uma melhoria exigir informação nova, NÃO invente. Reescreva de forma mais clara usando apenas o que já está no roteiro original, relatório, fatos verificados, fontes e estratégia.
+- Não chame ferramentas, não faça pesquisa externa, não cite fontes fora do bloco EVIDÊNCIA PERMITIDA e não crie bibliografia.
+
+TAREFA:
+1. Repare a narrativa preservando o significado factual e os anchors verificados.
+2. Melhore o gancho apenas se o relatório apontar fraqueza ou se a estratégia fornecer direção suficiente.
+3. Remova ou suavize afirmações não sustentadas em vez de preencher lacunas com invenção.
+4. Liste cada mudança em termos editoriais, sem alegar novas descobertas.
+
+Responda APENAS JSON válido, sem markdown:
+{
+  "repaired_narrative": "narração reparada sem fatos novos",
+  "hook": "gancho reparado ou preservado",
+  "change_summary": [
+    {
+      "diagnosed_issue": "fraqueza do relatório corrigida",
+      "change": "o que foi alterado",
+      "evidence_used": ["fato, fonte ou estratégia fornecida que autoriza a mudança"]
+    }
+  ],
+  "preserved_factual_anchors": [
+    {
+      "anchor": "alegação, entidade, número, data, fonte, incerteza ou relação causal preservada",
+      "evidence": "onde aparece na evidência permitida",
+      "status": "verified | uncertain | disputed"
+    }
+  ]
+}`;
+}
+
 export function buildIdeaContextHeader(params = {}) {
   if (
     process.env.NODE_ENV !== "production" &&

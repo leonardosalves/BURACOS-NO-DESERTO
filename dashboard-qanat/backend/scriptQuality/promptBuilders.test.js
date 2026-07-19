@@ -9,6 +9,7 @@ import {
   buildCreatorFullScriptPrompt,
   buildVisualPromptsFromNarrationPrompt,
   buildHumanizeRepairPrompt,
+  buildFactPreservingRepairPrompt,
   buildNarrationHumanizeRepairPrompt,
   buildListicleRankingIdeasPrompt,
   normalizeListicleIdeasResponse,
@@ -123,6 +124,60 @@ test("promptBuilders module", async (t) => {
     assert.match(prompt, /Roteiro antigo/i);
     assert.match(prompt, /Pontes Romanas/i);
   });
+
+  await t.test(
+    "buildFactPreservingRepairPrompt carries blockers and evidence",
+    () => {
+      const prompt = buildFactPreservingRepairPrompt({
+        originalScript:
+          "A ponte de Alcantara foi concluida em 106 d.C., segundo as fontes.",
+        unifiedReport: {
+          status: "needs_repair",
+          issues: [
+            {
+              dimension: "retention",
+              diagnosis: "gancho demora para chegar ao conflito",
+            },
+          ],
+        },
+        verifiedFacts: [
+          {
+            claim: "A ponte de Alcantara foi concluida em 106 d.C.",
+            status: "verified",
+          },
+          {
+            claim: "A motivacao politica exata e disputada.",
+            status: "uncertain",
+          },
+        ],
+        sources: [
+          {
+            title: "Arquivo romano",
+            url: "https://example.test/alcantara",
+          },
+        ],
+        format: "SHORTS",
+        strategy: { hook: "A ponte que virou propaganda imperial" },
+      });
+
+      assert.match(prompt, /RELATÓRIO UNIFICADO DE QUALIDADE/);
+      assert.match(prompt, /EVIDÊNCIA PERMITIDA/);
+      assert.match(prompt, /gancho demora para chegar ao conflito/);
+      assert.match(prompt, /A ponte de Alcantara foi concluida em 106 d\.C\./);
+      assert.match(prompt, /Arquivo romano/);
+      assert.match(prompt, /A ponte que virou propaganda imperial/);
+      assert.match(prompt, /BLOQUEADORES INQUEBRÁVEIS/);
+      assert.match(prompt, /Preserve todas as alegações verificadas/);
+      assert.match(prompt, /linguagem de incerteza/);
+      assert.match(prompt, /PROIBIDO adicionar fatos, fontes/);
+      assert.match(prompt, /entidades nomeadas, datas, números/);
+      assert.match(prompt, /relações causais ausentes/);
+      assert.match(prompt, /Não chame ferramentas/);
+      assert.match(prompt, /repaired_narrative/);
+      assert.match(prompt, /change_summary/);
+      assert.match(prompt, /preserved_factual_anchors/);
+    }
+  );
 
   await t.test(
     "buildNarrationHumanizeRepairPrompt builds narration repair prompt",
