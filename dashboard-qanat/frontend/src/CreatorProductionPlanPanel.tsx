@@ -109,8 +109,7 @@ export function CreatorProductionPlanPanel({
 
       {orch && orch.orchestration_ok === false ? (
         <p className="text-[9px] text-amber-300/90">
-          Orquestração parcial — abra o Editor de Timing e clique «Cenas
-          Remotion» para refinar mapas/QC.
+          Orquestração parcial — revise os mapas e o QC no Editor.
         </p>
       ) : null}
     </div>

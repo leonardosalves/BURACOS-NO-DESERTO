@@ -8,7 +8,6 @@ import type { AppTimelineTabProps } from "./AppTimelineTab";
 import type { AppMusicTabPanelProps } from "./AppMusicTabPanel";
 import type { AppHomeTabProps } from "./AppHomeTab";
 import type { AppWorkflowTabProps } from "./AppWorkflowTab";
-import type { AppSceneTimingTabProps } from "./AppSceneTimingTab";
 import type { AppTerminalTabProps } from "./AppTerminalTab";
 
 import type { AppTab } from "./appTabs";
@@ -37,7 +36,6 @@ export type AppTabPropContext = Record<string, unknown> & {
   projects: ProjectListItem[];
   recentProjects: string[];
   renderProgress?: { percent?: number };
-  renderTimelineStudio: () => React.ReactNode;
   rendering: boolean;
   onCancelRender?: () => void;
   saveTimelinePatch: (
@@ -71,7 +69,6 @@ export type AppTabPropBundles = {
   musicTabPanelProps: AppMusicTabPanelProps;
   homeTabProps: AppHomeTabProps;
   workflowTabProps: AppWorkflowTabProps;
-  sceneTimingTabProps: AppSceneTimingTabProps;
   terminalTabProps: AppTerminalTabProps;
 };
 
@@ -536,7 +533,6 @@ export function buildAppTabPropBundles(
     effectiveRenderResolution: ctx.effectiveRenderResolution,
     fetchVideoQuality: ctx.fetchVideoQuality,
     getFormatBytes: ctx.getFormatBytes,
-    getProjectUrl: ctx.getProjectUrl,
     handlePreRenderAutoFix: ctx.handlePreRenderAutoFix,
     outputs: ctx.outputs,
     preRenderFixingId: ctx.preRenderFixingId,
@@ -553,7 +549,6 @@ export function buildAppTabPropBundles(
     videoQuality: ctx.videoQuality,
     renderFps: ctx.renderFps,
     setRenderFps: ctx.setRenderFps,
-    saveConfigPatch: ctx.saveConfigPatch,
   };
 
   const timelineTabProps: AppTimelineTabProps = {
@@ -646,11 +641,6 @@ export function buildAppTabPropBundles(
     setActiveTab: ctx.setActiveTab,
   };
 
-  const sceneTimingTabProps: AppSceneTimingTabProps = {
-    activeProject: ctx.activeProject,
-    renderTimelineStudio: ctx.renderTimelineStudio as () => React.ReactNode,
-  };
-
   const terminalTabProps: AppTerminalTabProps = {
     activeProject: ctx.activeProject,
     logs: ctx.logs,
@@ -669,7 +659,6 @@ export function buildAppTabPropBundles(
     musicTabPanelProps,
     homeTabProps,
     workflowTabProps,
-    sceneTimingTabProps,
     terminalTabProps,
   };
 }

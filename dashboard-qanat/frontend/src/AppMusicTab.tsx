@@ -177,7 +177,7 @@ export function AppMusicTab({
                 </p>
                 <p className="text-[10px] text-zinc-500 mt-0.5">
                   {professionalSfxEvents.length} eventos sincronizados com o
-                  Editor Timing
+                  linha do tempo automática
                 </p>
               </div>
             </div>

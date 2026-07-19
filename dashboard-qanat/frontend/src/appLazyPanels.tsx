@@ -13,7 +13,6 @@ import { NarrationReplacePanel } from "./NarrationReplacePanel";
 import { NarrationReviewPanel } from "./NarrationReviewPanel";
 import { OverlayTimelineEditor } from "./OverlayTimelineEditor";
 import { ProjectsLibraryPanel } from "./ProjectsLibraryPanel";
-import { SceneTimingEditor } from "./SceneTimingEditor";
 import { StudioAgents } from "./StudioAgents";
 import { TrendForecastPanel } from "./TrendForecastPanel";
 import { TtsVoiceStudioPanel } from "./TtsVoiceStudioPanel";
@@ -22,7 +21,6 @@ import { WorkflowToolkit } from "./WorkflowToolkit";
 import { YoutubeStudioPanel } from "./YoutubeStudioPanel";
 
 /** Uniport: imports estáticos — sem lazy chunks que quebram após deploy. */
-export const LazySceneTimingEditor = SceneTimingEditor;
 export const LazyWorkflowToolkit = WorkflowToolkit;
 export const LazyLumieraHomePage = LumieraHomePage;
 export const LazyOverlayTimelineEditor = OverlayTimelineEditor;

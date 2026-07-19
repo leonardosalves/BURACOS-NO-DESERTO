@@ -186,7 +186,6 @@ import { buildAppTabPropBundles } from "./appTabPropBundles";
 import { AppOverlays } from "./AppOverlays";
 import { AppTabPanels } from "./AppTabPanels";
 import { RichTimelineEditor } from "./RichTimelineEditor";
-import { TimelineStudio } from "./TimelineStudio";
 import { normalizeReverseEngineeredStoryboard } from "@lumiera/shared/reverseEngineeringMedia.js";
 
 const initialWizardSession = loadWizardSession();
@@ -3839,12 +3838,6 @@ export default function App() {
         refreshAfterExternalLogin
       );
     };
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === "scene-timing") {
-      setTimelineDataRevision((r) => r + 1);
-    }
   }, [activeTab]);
 
   const handleMotionScenesChangeRef = useRef(handleMotionScenesChange);
@@ -9738,10 +9731,10 @@ export default function App() {
           `Roteiro completo${listicleMsg} · ${motionN} Remotion · ${brollN} B-roll${orch.quality_score != null ? ` · QC ${orch.quality_score}` : ""}`
         );
         if (orch.orchestration_ok === false) {
-          toast(
-            "Orquestração parcial — refine mapas no Editor de Timing (Cenas Remotion).",
-            { icon: "⚠️", duration: 7000 }
-          );
+          toast("Orquestração parcial — revise os mapas no Editor.", {
+            icon: "⚠️",
+            duration: 7000,
+          });
         }
       } else if (token === creatorGenTokenRef.current) {
         const detailsList = Array.isArray(data.details)
@@ -10683,7 +10676,7 @@ export default function App() {
       try {
         setRenderProgress({
           percent: 0,
-          phase: "Aplicando templates & camadas do projeto…",
+          phase: "Aplicando composição automática do projeto…",
         });
         setLogs((prev) => [
           ...prev,
@@ -11267,11 +11260,6 @@ export default function App() {
     );
   };
 
-  const renderTimelineStudio = () => {
-    if (!config) return null;
-    return <TimelineStudio {...timelineEditorCommonProps()} />;
-  };
-
   const openCreatorTab = () => {
     setActiveTab("creator");
     const session = loadWizardSession();
@@ -11341,7 +11329,6 @@ export default function App() {
     musicTabPanelProps,
     homeTabProps,
     workflowTabProps,
-    sceneTimingTabProps,
     terminalTabProps,
   } = buildAppTabPropBundles({
     activeBgmMode,
@@ -11594,7 +11581,6 @@ export default function App() {
     renderProgress,
     renderResolutionLabel,
     renderRichTimelineEditor,
-    renderTimelineStudio,
     rendering,
     resetCreatorWizard,
     resolutionConfigScope,
@@ -11888,7 +11874,6 @@ export default function App() {
           musicTabPanelProps={musicTabPanelProps}
           homeTabProps={homeTabProps}
           workflowTabProps={workflowTabProps}
-          sceneTimingTabProps={sceneTimingTabProps}
           hasApiKey={hasApiKey}
           terminalTabProps={terminalTabProps}
         />

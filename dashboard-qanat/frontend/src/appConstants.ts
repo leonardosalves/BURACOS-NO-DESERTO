@@ -7,7 +7,6 @@ import {
   Terminal,
   Tv,
   Wand2,
-  Clock,
   Network,
 } from "lucide-react";
 import type { PendingRenderJob } from "./appTypes";
@@ -34,12 +33,6 @@ export const PROJECT_WORKSPACE_TABS = [
     label: "Roteiro e Tags",
     icon: Layers,
     helpId: "tab-timeline",
-  },
-  {
-    id: "scene-timing" as const,
-    label: "Editor de Timing",
-    icon: Clock,
-    helpId: "tab-scene-timing",
   },
   {
     id: "music" as const,

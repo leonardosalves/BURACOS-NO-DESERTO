@@ -4,7 +4,6 @@ import { AppCreatorTab } from "./AppCreatorTab";
 import { AppEditorTab } from "./AppEditorTab";
 import { AppHomeTab } from "./AppHomeTab";
 import { AppMusicTabPanel } from "./AppMusicTabPanel";
-import { AppSceneTimingTab } from "./AppSceneTimingTab";
 import { AppSettingsTab } from "./AppSettingsTab";
 import { AppStatusTab } from "./AppStatusTab";
 import { AppTerminalTab } from "./AppTerminalTab";
@@ -155,7 +154,6 @@ export function AppTabPanels({
   musicTabPanelProps,
   homeTabProps,
   workflowTabProps,
-  sceneTimingTabProps,
   terminalTabProps,
 }: AppTabPanelsProps) {
   return (
@@ -378,16 +376,6 @@ export function AppTabPanels({
             fallback={<TabPanelFallback label="Carregando workflow..." />}
           >
             <AppWorkflowTab {...workflowTabProps} />
-          </Suspense>
-        </TabErrorBoundary>
-      )}
-
-      {activeTab === "scene-timing" && (
-        <TabErrorBoundary tabName="Timing de cenas">
-          <Suspense
-            fallback={<TabPanelFallback label="Carregando timing..." />}
-          >
-            <AppSceneTimingTab {...sceneTimingTabProps} />
           </Suspense>
         </TabErrorBoundary>
       )}

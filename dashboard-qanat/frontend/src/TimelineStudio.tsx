@@ -1170,7 +1170,7 @@ export function TimelineStudio({
           <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
           <p className="flex-1 text-[11px] text-rose-100/90">
             Narração detectada no projeto, mas a trilha de áudio não carregou no
-            Editor de Timing. Clique em Atualizar ou rode o Whisper de novo.
+            Editor. Clique em Atualizar ou rode o Whisper de novo.
           </p>
           <button
             type="button"

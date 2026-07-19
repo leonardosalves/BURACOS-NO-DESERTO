@@ -51,18 +51,6 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
-  "tab-scene-timing": {
-    title: "Editor de Timing",
-    body: (
-      <>
-        Ajuste a duração de cada cena <strong>dentro do bloco</strong>. A
-        narração exibida vem do áudio Whisper — ao mudar a duração, as palavras
-        redistribuem na janela. Use <strong>Sincronizar bloco com a voz</strong>{" "}
-        para alinhar ao texto do storyboard e <strong>Salvar timing</strong>{" "}
-        antes do render.
-      </>
-    ),
-  },
   "tab-flow-lab": {
     title: "Flow Lab",
     body: (

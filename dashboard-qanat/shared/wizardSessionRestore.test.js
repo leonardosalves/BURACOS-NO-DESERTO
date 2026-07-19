@@ -13,20 +13,22 @@ function shouldRestoreWizardTab(session) {
 }
 
 function resolveInitialActiveTab(session, restorableTabs, persistedTab = "") {
-  const fromKey = String(persistedTab || "").trim();
+  const normalizeRetiredTab = (value) =>
+    value === "scene-timing" ? "editor" : value;
+  const fromKey = normalizeRetiredTab(String(persistedTab || "").trim());
   if (fromKey && restorableTabs.includes(fromKey)) return fromKey;
 
-  const saved = String(session?.activeTab || "").trim();
+  const saved = normalizeRetiredTab(String(session?.activeTab || "").trim());
   if (saved && restorableTabs.includes(saved)) return saved;
 
   if (shouldRestoreWizardTab(session)) return "creator";
   return "home";
 }
 
-const TABS = ["home", "creator", "scene-timing", "editor", "timeline"];
+const TABS = ["home", "creator", "editor", "timeline"];
 
 describe("wizardSession restore", () => {
-  it("F5 mantém Editor de Timing mesmo com creatorProjectName", () => {
+  it("sessão antiga do Editor de Timing migra para o Editor", () => {
     const tab = resolveInitialActiveTab(
       {
         wasInWizard: true,
@@ -38,7 +40,7 @@ describe("wizardSession restore", () => {
       TABS,
       "scene-timing"
     );
-    assert.equal(tab, "scene-timing");
+    assert.equal(tab, "editor");
   });
 
   it("restaura creator só quando wasInWizard e passo > 1", () => {

@@ -4,7 +4,6 @@ export type AppTab =
   | "status"
   | "workflow"
   | "timeline"
-  | "scene-timing"
   | "music"
   | "terminal"
   | "ai"
@@ -34,7 +33,6 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   "status",
   "workflow",
   "timeline",
-  "scene-timing",
   "music",
   "terminal",
   "ai",
@@ -87,5 +85,5 @@ export function isGlobalViewTab(tab: AppTab): boolean {
 
 /** Abas com edição intensa — pausar polling/fetch em background. */
 export function isEditorHeavyTab(tab: AppTab): boolean {
-  return tab === "scene-timing" || tab === "editor" || tab === "flow-lab";
+  return tab === "editor" || tab === "flow-lab";
 }
