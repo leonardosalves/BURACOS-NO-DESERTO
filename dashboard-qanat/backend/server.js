@@ -19690,27 +19690,27 @@ app.post(
     }
 
     const promptSystem = `Você é o "AI Video Creator Engine" do Lumiera, um roteirista especializado em YouTube Shorts de alta retenção.
-Gerencie a criação de um roteiro curto em espanhol para um YouTube Short seguindo as seguintes diretrizes fornecidas pelo usuário:
+Gerencie a criação de um roteiro curto em português do Brasil (PT-BR) para um YouTube Short seguindo as seguintes diretrizes fornecidas pelo usuário:
 
 PROMPT 5 — Guión de Short individual
-Escribe un guión para un YouTube Short de 45 segundos sobre el tema "${theme.replace(/"/g, '\\"')}" para un canal de nicho "${niche.replace(/"/g, '\\"')}".
-El guión debe seguir esta estructura exacta:
-- GANCHO (primeros 3 segundos): una frase que genere curiosidad o tensión inmediata, sin presentaciones.
-- DESARROLLO (35-40 segundos): información con ritmo rápido, frases cortas de no más de 12 palabras, un dato o hecho sorprendente cada 8-10 segundos.
-- CIERRE (5 segundos): una pregunta que invite a comentar o una afirmación que genere debate.
-Tono: ${tone}.
-Máximo 120 palabras en total. Escribe solo el guión, sin indicaciones de escena ni aclaraciones.
+Escreva um roteiro para um YouTube Short de 45 segundos sobre o tema "${theme.replace(/"/g, '\\"')}" para um canal de nicho "${niche.replace(/"/g, '\\"')}".
+O roteiro deve seguir esta estrutura exata:
+- GANCHO (primeiros 3 segundos): uma frase que gere curiosidade ou tensão imediata, sem apresentações.
+- DESARROLLO (35-40 segundos): informações com ritmo rápido, frases curtas de no mais de 12 palavras, um dado ou fato surpreendente a cada 8-10 segundos.
+- CIERRE (5 segundos): uma pergunta que convide a comentar ou uma afirmação que gere debate.
+Tom: ${tone}.
+Máximo de 120 palavras no total. Escreva apenas o roteiro final (narração falada) em português do Brasil (PT-BR), sem indicações de cena, sem marcadores técnicos ou esclarecimentos.
 
 Importante: A saída DEVE ser um objeto JSON estrito com o seguinte esquema (não inclua marcações markdown adicionais fora do JSON):
 {
-  "narrative_script": "O roteiro final gerado completo em espanhol, apenas a narração falada sem nenhuma anotação de cena.",
+  "narrative_script": "O roteiro final gerado completo em português do Brasil (PT-BR), apenas a narração falada sem nenhuma anotação de cena.",
   "narrative_script_tagged": "[INTRO] (insira o gancho aqui) \\n\\n [BODY] (insira o desenvolvimento aqui) \\n\\n [OUTRO] (insira o encerramento aqui)",
   "strategy": {
     "target_audience": "${niche.replace(/"/g, '\\"')}",
     "hook_angle": "Gancho sobre ${theme.replace(/"/g, '\\"')}"
   },
   "technical_config": {
-    "script": "O roteiro final gerado completo em espanhol.",
+    "script": "O roteiro final gerado completo em português do Brasil (PT-BR).",
     "block_phrases": [
       { "block": 1, "phrase": "Gancho inicial de 3s" },
       { "block": 2, "phrase": "Desenvolvimento com fatos" },

@@ -1067,7 +1067,7 @@ export function AppCreatorTab({
                         Shorts (45s)
                       </span>
                       <span className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2 py-2">
-                        Español
+                        Português
                       </span>
                     </div>
                   </div>
