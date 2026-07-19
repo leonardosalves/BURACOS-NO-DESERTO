@@ -12,12 +12,17 @@ export function loadSeedanceApiConfig(projDir) {
   const configPath = path.join(projDir, "config_qanat.json");
   let cfg = {};
   try {
-    if (fs.existsSync(configPath)) cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
-  } catch { /* ignore */ }
+    if (fs.existsSync(configPath))
+      cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  } catch {
+    /* ignore */
+  }
   const block = cfg.seedance_api || cfg.seedanceApi || {};
   return {
     enabled: Boolean(block.enabled),
-    base_url: String(block.base_url || block.baseUrl || DEFAULT_BASE_URL).replace(/\/$/, ""),
+    base_url: String(
+      block.base_url || block.baseUrl || DEFAULT_BASE_URL
+    ).replace(/\/$/, ""),
     api_key: String(block.api_key || block.apiKey || "").trim(),
     model: String(block.model || "seedance-2.0").trim(),
     timeout_ms: Number(block.timeout_ms) || 300_000,
@@ -61,11 +66,13 @@ export async function generateSeedanceApiVideo({
   const cfg = config || loadSeedanceApiConfig(projDir);
   if (!cfg.enabled) {
     throw new Error(
-      "API Seedance desabilitada. Ative seedance_api.enabled em config_qanat.json ou use provider: 'ltx'.",
+      "API Seedance desabilitada. Ative seedance_api.enabled em config_qanat.json ou use provider: 'mobilewan'."
     );
   }
   if (!cfg.api_key) {
-    throw new Error("API Seedance: configure seedance_api.api_key em config_qanat.json.");
+    throw new Error(
+      "API Seedance: configure seedance_api.api_key em config_qanat.json."
+    );
   }
 
   const payload = buildSeedanceApiPayload({
@@ -97,7 +104,11 @@ export async function generateSeedanceApiVideo({
   }
 
   if (!res.ok) {
-    const msg = data?.error?.message || data?.error || data?.message || text.slice(0, 300);
+    const msg =
+      data?.error?.message ||
+      data?.error ||
+      data?.message ||
+      text.slice(0, 300);
     throw new Error(`API Seedance (${res.status}): ${msg}`);
   }
 

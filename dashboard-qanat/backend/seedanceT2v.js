@@ -1,6 +1,6 @@
 /**
  * Seedance T2V — Fase 2 Lumiera
- * Compila directing_brief + visual_prompt + refs → geração LTX (ComfyUI) ou API Seedance.
+ * Compila directing_brief + visual_prompt + refs para os provedores de vídeo ativos.
  */
 
 import fs from "fs";
@@ -9,21 +9,37 @@ import {
   SEEDANCE_REF_SLOTS,
   normalizeSceneDirecting,
 } from "./seedanceDirecting.js";
-import {
-  queueLtxGeneration,
-  getComfyuiProgress,
-  LTX_GENERATION_OPTIONS,
-  secondsToLtxFrames,
-  ltxFramesToSeconds,
-} from "./comfyuiService.js";
+import { getExternalJobProgress } from "./externalJobRegistry.js";
 import {
   generateSeedanceApiVideo,
   loadSeedanceApiConfig,
 } from "./seedanceApiProvider.js";
 import { queueMobileWanGeneration } from "./mobilewanService.js";
 
-const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"]);
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".mkv"]);
+
+const VIDEO_GENERATION_OPTIONS = {
+  fps: 24,
+  aspect_ratios: [
+    { id: "16:9", sizes: { "8gb": { width: 640, height: 384, frames: 121 } } },
+    { id: "9:16", sizes: { "8gb": { width: 384, height: 640, frames: 121 } } },
+    { id: "1:1", sizes: { "8gb": { width: 512, height: 512, frames: 121 } } },
+  ],
+};
+
+function secondsToFrames(seconds) {
+  const raw = Math.max(
+    9,
+    Math.round(Number(seconds || 0) * VIDEO_GENERATION_OPTIONS.fps)
+  );
+  return Math.min(121, Math.round((raw - 1) / 8) * 8 + 1);
+}
+
+function framesToSeconds(frames) {
+  return (
+    Math.round((Number(frames || 1) / VIDEO_GENERATION_OPTIONS.fps) * 100) / 100
+  );
+}
 
 export function isVideoIaScene(vp = {}) {
   const type = String(vp.type || "").toLowerCase();
@@ -47,47 +63,6 @@ function readJsonSafe(filePath, fallback = {}) {
 
 function writeJson(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
-}
-
-export function resolveRefFilePath(projDir, refValue = "") {
-  const raw = String(refValue || "").trim();
-  if (!raw) return null;
-
-  const fileMatch = raw.match(
-    /([a-zA-Z0-9_.-]+\.(?:png|jpe?g|webp|gif|mp4|webm|mov|mkv))/i
-  );
-  const candidate = fileMatch
-    ? fileMatch[1]
-    : raw.replace(/^@[A-Za-z]+\d*\s*[-—:]?\s*/, "").trim();
-
-  if (!candidate || candidate.startsWith("@")) return null;
-
-  const bases = [
-    path.join(projDir, "ASSETS", candidate),
-    path.join(projDir, candidate),
-    candidate,
-  ];
-
-  for (const p of bases) {
-    if (fs.existsSync(p) && fs.statSync(p).isFile()) return p;
-  }
-  return null;
-}
-
-export function resolveSceneImageRef(projDir, vp = {}) {
-  const refs = vp.seedance_refs || {};
-  const slots = ["first_frame", "identity", "style", "environment"];
-  for (const slot of slots) {
-    const resolved = resolveRefFilePath(projDir, refs[slot]);
-    if (resolved && IMAGE_EXTS.has(path.extname(resolved).toLowerCase())) {
-      return { slot, path: resolved };
-    }
-  }
-  if (vp.asset?.type === "image" && vp.asset?.asset) {
-    const p = path.join(projDir, "ASSETS", vp.asset.asset);
-    if (fs.existsSync(p)) return { slot: "asset", path: p };
-  }
-  return null;
 }
 
 export function buildSeedanceT2vPrompt(vp = {}) {
@@ -129,23 +104,23 @@ export function buildSeedanceT2vPrompt(vp = {}) {
   );
 }
 
-export function resolveLtxDimensionsForFormat(videoFormat = "LONGO") {
+export function resolveGenerationDimensions(videoFormat = "LONGO") {
   const aspect = videoFormat === "SHORTS" ? "9:16" : "16:9";
   const preset =
-    LTX_GENERATION_OPTIONS.aspect_ratios.find((a) => a.id === aspect) ||
-    LTX_GENERATION_OPTIONS.aspect_ratios[0];
+    VIDEO_GENERATION_OPTIONS.aspect_ratios.find((a) => a.id === aspect) ||
+    VIDEO_GENERATION_OPTIONS.aspect_ratios[0];
   const size = preset.sizes["8gb"] || preset.sizes.fast;
   return {
     width: size.width,
     height: size.height,
     frames: size.frames,
     aspect_ratio: aspect,
-    duration_seconds: ltxFramesToSeconds(size.frames),
+    duration_seconds: framesToSeconds(size.frames),
   };
 }
 
-export function resolveSceneLtxTiming(vp = {}, config = {}) {
-  const dims = resolveLtxDimensionsForFormat(config.video_format || "LONGO");
+export function resolveSceneGenerationTiming(vp = {}, config = {}) {
+  const dims = resolveGenerationDimensions(config.video_format || "LONGO");
   const targetSec = Math.min(
     10,
     Math.max(
@@ -154,11 +129,11 @@ export function resolveSceneLtxTiming(vp = {}, config = {}) {
         dims.duration_seconds
     )
   );
-  const frames = secondsToLtxFrames(targetSec);
+  const frames = secondsToFrames(targetSec);
   return {
     ...dims,
     frames,
-    duration_seconds: ltxFramesToSeconds(frames),
+    duration_seconds: framesToSeconds(frames),
   };
 }
 
@@ -249,7 +224,7 @@ export function attachVideoAssetToProject(
   };
 }
 
-export function importComfyOutputToProject(
+export function importGeneratedOutputToProject(
   projDir,
   output = {},
   vp = {},
@@ -257,7 +232,7 @@ export function importComfyOutputToProject(
 ) {
   const srcPath = output.filepath;
   if (!srcPath || !fs.existsSync(srcPath)) {
-    throw new Error("Arquivo de saída do ComfyUI não encontrado.");
+    throw new Error("Arquivo de saída da geração não encontrado.");
   }
   const ext = path.extname(output.filename || srcPath) || ".mp4";
   const destName = buildSceneAssetFilename(vp, sceneIndex, ext);
@@ -268,64 +243,24 @@ export function importComfyOutputToProject(
   return destName;
 }
 
-export async function waitForComfyJob(
+export async function waitForGenerationJob(
   promptId,
   { timeoutMs = 600_000, pollMs = 2000 } = {}
 ) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    const progress = getComfyuiProgress(promptId);
+    const progress = getExternalJobProgress(promptId);
     if (progress?.status === "completed" && progress.outputs?.length) {
       return progress;
     }
     if (progress?.status === "error") {
       throw new Error(
-        progress.error || progress.message || "Erro na geração LTX."
+        progress.error || progress.message || "Erro na geração de vídeo."
       );
     }
     await new Promise((r) => setTimeout(r, pollMs));
   }
-  throw new Error("Timeout aguardando geração LTX.");
-}
-
-export async function queueSeedanceSceneLtx(
-  projDir,
-  storyboard = {},
-  config = {},
-  sceneIndex = 0
-) {
-  const visualPrompts = storyboard.visual_prompts || [];
-  const vp = visualPrompts[sceneIndex];
-  if (!vp) throw new Error(`Cena índice ${sceneIndex} inválida.`);
-  if (!isVideoIaScene(vp))
-    throw new Error(`Cena ${vp.scene || sceneIndex + 1} não é tipo vídeo IA.`);
-
-  const compiledPrompt = buildSeedanceT2vPrompt(vp);
-  const timing = resolveSceneLtxTiming(vp, config);
-  const imageRef = resolveSceneImageRef(projDir, vp);
-  const mode = imageRef ? "i2v" : "t2v";
-  const { block, assetIdx } = computeSceneAssetIdx(visualPrompts, sceneIndex);
-
-  const result = await queueLtxGeneration({
-    prompt: compiledPrompt,
-    width: timing.width,
-    height: timing.height,
-    frames: timing.frames,
-    duration_seconds: timing.duration_seconds,
-    mode,
-    aspect_ratio: timing.aspect_ratio,
-    filename_prefix: `video/seedance_b${block}_${assetIdx}`,
-  });
-
-  return {
-    provider: "ltx",
-    mode,
-    scene_index: sceneIndex,
-    scene: vp.scene,
-    compiled_prompt: compiledPrompt,
-    image_ref: imageRef?.path || null,
-    ...result,
-  };
+  throw new Error("Timeout aguardando geração de vídeo.");
 }
 
 export async function queueSeedanceSceneApi(
@@ -341,7 +276,7 @@ export async function queueSeedanceSceneApi(
     throw new Error(`Cena ${vp.scene || sceneIndex + 1} não é tipo vídeo IA.`);
 
   const compiledPrompt = buildSeedanceT2vPrompt(vp);
-  const timing = resolveSceneLtxTiming(vp, config);
+  const timing = resolveSceneGenerationTiming(vp, config);
   const refs = vp.seedance_refs || {};
 
   const result = await generateSeedanceApiVideo({
@@ -377,7 +312,7 @@ export async function queueMobileWanScene(
     throw new Error(`Cena ${vp.scene || sceneIndex + 1} não é tipo vídeo IA.`);
 
   const compiledPrompt = buildSeedanceT2vPrompt(vp);
-  const timing = resolveSceneLtxTiming(vp, config);
+  const timing = resolveSceneGenerationTiming(vp, config);
   const { block, assetIdx } = computeSceneAssetIdx(visualPrompts, sceneIndex);
 
   const result = await queueMobileWanGeneration({
@@ -402,7 +337,7 @@ export async function generateSeedanceScenes({
   storyboard = {},
   config = {},
   sceneIndices = null,
-  provider = "ltx",
+  provider = "mobilewan",
   wait = false,
 }) {
   const visualPrompts = storyboard.visual_prompts || [];
@@ -425,21 +360,14 @@ export async function generateSeedanceScenes({
         config,
         sceneIndex
       );
-    } else if (provider === "mobilewan") {
-      job = await queueMobileWanScene(projDir, storyboard, config, sceneIndex);
     } else {
-      job = await queueSeedanceSceneLtx(
-        projDir,
-        storyboard,
-        config,
-        sceneIndex
-      );
+      job = await queueMobileWanScene(projDir, storyboard, config, sceneIndex);
     }
 
     if (wait && job.prompt_id) {
-      const progress = await waitForComfyJob(job.prompt_id);
+      const progress = await waitForGenerationJob(job.prompt_id);
       const vp = visualPrompts[sceneIndex];
-      const assetFilename = importComfyOutputToProject(
+      const assetFilename = importGeneratedOutputToProject(
         projDir,
         progress.outputs[0],
         vp,
@@ -472,7 +400,7 @@ export async function attachSeedanceT2vOutput(
   sceneIndex = 0,
   promptId = ""
 ) {
-  const progress = getComfyuiProgress(promptId);
+  const progress = getExternalJobProgress(promptId);
   if (progress?.status !== "completed" || !progress.outputs?.length) {
     return {
       ready: false,
@@ -482,7 +410,7 @@ export async function attachSeedanceT2vOutput(
   }
 
   const vp = storyboard.visual_prompts?.[sceneIndex];
-  const assetFilename = importComfyOutputToProject(
+  const assetFilename = importGeneratedOutputToProject(
     projDir,
     progress.outputs[0],
     vp,

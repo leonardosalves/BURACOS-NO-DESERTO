@@ -3,7 +3,10 @@ import path from "path";
 import { spawn } from "child_process";
 import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
-import { registerExternalJob, updateExternalJob } from "./comfyuiService.js";
+import {
+  registerExternalJob,
+  updateExternalJob,
+} from "./externalJobRegistry.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_DIR = path.resolve(__dirname, "../..");
@@ -113,16 +116,10 @@ export async function queueMobileWanGeneration({
 
   const promptId = "mobilewan-gen-" + randomUUID();
   const outputFilename = `${promptId}.mp4`;
-  const comfyuiOutputDir = path.join(
-    WORKSPACE_DIR,
-    "tools",
-    "comfyui",
-    "ComfyUI",
-    "output"
-  );
+  const mobileWanOutputDir = path.join(WORKSPACE_DIR, "mobilewan", "output");
 
-  if (!fs.existsSync(comfyuiOutputDir)) {
-    fs.mkdirSync(comfyuiOutputDir, { recursive: true });
+  if (!fs.existsSync(mobileWanOutputDir)) {
+    fs.mkdirSync(mobileWanOutputDir, { recursive: true });
   }
 
   const job = {
@@ -153,7 +150,7 @@ export async function queueMobileWanGeneration({
     "--prompt",
     prompt,
     "--output_dir",
-    comfyuiOutputDir,
+    mobileWanOutputDir,
     "--output_name",
     outputFilename,
     "--num_denoising_steps",
@@ -221,7 +218,7 @@ export async function queueMobileWanGeneration({
   });
 
   child.on("close", (code) => {
-    const finalDest = path.join(comfyuiOutputDir, outputFilename);
+    const finalDest = path.join(mobileWanOutputDir, outputFilename);
     if (code === 0 && fs.existsSync(finalDest)) {
       updateExternalJob(promptId, {
         status: "completed",

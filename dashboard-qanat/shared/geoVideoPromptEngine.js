@@ -2,7 +2,7 @@
  * Motor de prompts T2V para vídeos geográficos — substitui Blender/Cesium.
  * GLOBAL: cada prompt usa apenas local/região/país e narração do projeto ativo
  * (motion_scenes / storyboard). Nenhuma cidade padrão no motor.
- * Gera instruções ricas para IA (Seedance, LTX, etc.): zoom contínuo Terra→alvo,
+ * Gera instruções ricas para IA (Seedance, MobileWAN etc.): zoom contínuo Terra→alvo,
  * destaque territorial, órbita 360° em POIs e clima conforme narração.
  */
 

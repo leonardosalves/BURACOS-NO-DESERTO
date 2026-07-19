@@ -22884,7 +22884,7 @@ app.post(
   })
 );
 
-// --- Seedance T2V (Fase 2): geração vídeo IA com directing + refs → LTX ou API Seedance ---
+// --- Seedance T2V (Fase 2): geração de vídeo IA com directing e referências ---
 app.post(
   "/api/ai/creator/generate-seedance-t2v",
   asyncHandler(async (req, res) => {
@@ -22903,13 +22903,10 @@ app.post(
       const sceneIndices = Array.isArray(rawIndices)
         ? rawIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
         : null;
-      const reqProvider = String(req.body?.provider || "ltx").toLowerCase();
-      const provider =
-        reqProvider === "seedance"
-          ? "seedance"
-          : reqProvider === "mobilewan"
-            ? "mobilewan"
-            : "ltx";
+      const reqProvider = String(
+        req.body?.provider || "mobilewan"
+      ).toLowerCase();
+      const provider = reqProvider === "seedance" ? "seedance" : "mobilewan";
       const wait = Boolean(req.body?.wait);
 
       if (provider === "seedance") {
@@ -22917,7 +22914,7 @@ app.post(
         if (!apiCfg.enabled) {
           return res.status(400).json({
             error:
-              "API Seedance desabilitada. Use provider: 'ltx' ou ative seedance_api.enabled em config_qanat.json.",
+              "API Seedance desabilitada. Use provider: 'mobilewan' ou ative seedance_api.enabled em config_qanat.json.",
           });
         }
       }
@@ -22955,7 +22952,7 @@ app.post(
     } catch (err) {
       console.error("Erro em /api/ai/creator/generate-seedance-t2v:", err);
       res.status(500).json({
-        error: "Erro ao gerar vídeo Seedance/LTX",
+        error: "Erro ao gerar vídeo",
         details: err.message,
       });
     }

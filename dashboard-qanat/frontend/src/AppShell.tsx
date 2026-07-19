@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Cloud,
   Fingerprint,
   Globe,
   Home,
@@ -107,13 +106,6 @@ const STUDIO_TOOLS: GlobalNavItem[] = [
     label: "Pesquisa Web",
     icon: Globe,
     helpId: "tab-agent-reach",
-    accent: "sky",
-  },
-  {
-    id: "comfy-mcp",
-    label: "Comfy MCP",
-    icon: Cloud,
-    helpId: "tab-comfy-mcp",
     accent: "sky",
   },
   {

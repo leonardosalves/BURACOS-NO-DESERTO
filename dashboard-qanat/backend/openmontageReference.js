@@ -138,7 +138,7 @@ Responda APENAS com JSON válido (sem markdown), neste schema:
       "title": "título do conceito",
       "inspired_by": "o que mantém do referência",
       "creative_twist": "o que muda — obrigatório ser diferente",
-      "visual_plan": "stock Remotion / HyperFrames / ComfyUI",
+      "visual_plan": "stock Remotion / HyperFrames",
       "audio_plan": "narração Kokoro/Fish + trilha",
       "duration_sec": number
     }

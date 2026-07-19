@@ -19,7 +19,6 @@ export type AppTab =
   | "agents"
   | "youtube-studio"
   | "video-resurrector"
-  | "comfy-mcp"
   | "trend-forecast"
   | "agent-reach"
   | "templates"
@@ -48,7 +47,6 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   "agents",
   "youtube-studio",
   "video-resurrector",
-  "comfy-mcp",
   "trend-forecast",
   "agent-reach",
   "templates",
@@ -70,7 +68,6 @@ export const GLOBAL_VIEW_TABS: AppTab[] = [
   "flow-lab",
   "youtube-studio",
   "video-resurrector",
-  "comfy-mcp",
   "trend-forecast",
   "agent-reach",
   "templates",

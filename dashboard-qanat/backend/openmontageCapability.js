@@ -14,7 +14,6 @@ import { probeChatterbox } from "./chatterboxTts.js";
 import { probeQwen3Tts } from "./qwen3Tts.js";
 import { loadVoiceboxConfig, probeVoiceboxServer } from "./voiceboxTts.js";
 import { loadGptSovitsConfig, probeGptSovitsServer } from "./gptSovitsTts.js";
-import { getComfyuiStatus } from "./comfyuiService.js";
 import { getNotebooklmStatus } from "./notebooklmService.js";
 
 function readJsonSafe(filePath) {
@@ -80,13 +79,6 @@ export async function buildCapabilityMenu(ctx) {
   const voiceboxProbe = await probeVoiceboxServer(voiceboxConfig);
   const gptSovitsConfig = loadGptSovitsConfig({ workspaceDir });
   const gptSovitsProbe = await probeGptSovitsServer(gptSovitsConfig);
-
-  let comfyStatus = { installed: false, running: false };
-  try {
-    comfyStatus = await getComfyuiStatus();
-  } catch {
-    /* optional */
-  }
 
   let notebooklmStatus = { ok: false };
   try {
@@ -189,24 +181,6 @@ export async function buildCapabilityMenu(ctx) {
         statusRow("epidemic", "Epidemic Sound", hasEpidemic, {
           hint: hasEpidemic ? "BGM automático" : "Settings → Epidemic token",
         }),
-      ],
-    },
-    {
-      id: "ai_video",
-      label: "Geração de vídeo IA",
-      items: [
-        statusRow(
-          "comfyui_ltx",
-          "ComfyUI + LTX",
-          Boolean(comfyStatus.running),
-          {
-            hint: comfyStatus.running
-              ? "Servidor ativo"
-              : comfyStatus.installed
-                ? "Instalado — inicie ComfyUI"
-                : "Workflow → instalar ComfyUI",
-          }
-        ),
       ],
     },
     {

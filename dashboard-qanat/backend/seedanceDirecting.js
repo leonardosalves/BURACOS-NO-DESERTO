@@ -7,22 +7,74 @@
 import { detectNicheFromContent } from "./scriptQuality.js";
 
 export const SEEDANCE_REF_SLOTS = [
-  { id: "identity", label: "Identidade", hint: "@Image1 — rosto, personagem, objeto âncora" },
-  { id: "motion", label: "Movimento", hint: "@Video1 — gesto, walk cycle, ação de referência" },
-  { id: "camera", label: "Câmera", hint: "@Video2 — movimento de câmera desejado" },
-  { id: "audio", label: "Áudio", hint: "@Audio1 — ritmo, tom, ambiência sonora" },
-  { id: "style", label: "Estilo", hint: "@Image2 — paleta, grading, look cinematográfico" },
-  { id: "environment", label: "Ambiente", hint: "@Image3 — cenário, época, clima" },
-  { id: "first_frame", label: "Primeiro frame", hint: "Composição de abertura (@Image4)" },
-  { id: "last_frame", label: "Último frame", hint: "Composição de fechamento (@Image5)" },
+  {
+    id: "identity",
+    label: "Identidade",
+    hint: "@Image1 — rosto, personagem, objeto âncora",
+  },
+  {
+    id: "motion",
+    label: "Movimento",
+    hint: "@Video1 — gesto, walk cycle, ação de referência",
+  },
+  {
+    id: "camera",
+    label: "Câmera",
+    hint: "@Video2 — movimento de câmera desejado",
+  },
+  {
+    id: "audio",
+    label: "Áudio",
+    hint: "@Audio1 — ritmo, tom, ambiência sonora",
+  },
+  {
+    id: "style",
+    label: "Estilo",
+    hint: "@Image2 — paleta, grading, look cinematográfico",
+  },
+  {
+    id: "environment",
+    label: "Ambiente",
+    hint: "@Image3 — cenário, época, clima",
+  },
+  {
+    id: "first_frame",
+    label: "Primeiro frame",
+    hint: "Composição de abertura (@Image4)",
+  },
+  {
+    id: "last_frame",
+    label: "Último frame",
+    hint: "Composição de fechamento (@Image5)",
+  },
 ];
 
 export const DIRECTING_BRIEF_FIELDS = [
-  { id: "dramatic_function", label: "Função dramática", hint: "Turno, POV, poder, subtexto da cena" },
-  { id: "camera_intent", label: "Intenção de câmera", hint: "Push-in, orbit, handheld, static hero" },
-  { id: "lighting_intent", label: "Iluminação", hint: "Golden hour, chiaroscuro, neon, flat doc" },
-  { id: "performance_intent", label: "Performance", hint: "Expressão, gesto, ritmo de ação" },
-  { id: "sound_intent", label: "Som", hint: "Silêncio tenso, SFX punch, ambiente urbano" },
+  {
+    id: "dramatic_function",
+    label: "Função dramática",
+    hint: "Turno, POV, poder, subtexto da cena",
+  },
+  {
+    id: "camera_intent",
+    label: "Intenção de câmera",
+    hint: "Push-in, orbit, handheld, static hero",
+  },
+  {
+    id: "lighting_intent",
+    label: "Iluminação",
+    hint: "Golden hour, chiaroscuro, neon, flat doc",
+  },
+  {
+    id: "performance_intent",
+    label: "Performance",
+    hint: "Expressão, gesto, ritmo de ação",
+  },
+  {
+    id: "sound_intent",
+    label: "Som",
+    hint: "Silêncio tenso, SFX punch, ambiente urbano",
+  },
 ];
 
 const EMPTY_DIRECTING_BRIEF = () => ({
@@ -73,7 +125,7 @@ export function normalizeStoryboardDirecting(storyboard = {}) {
 export function mergeDirectingIntoVisualPrompts(existing = [], incoming = []) {
   if (!Array.isArray(incoming) || incoming.length === 0) return existing;
   const byScene = new Map(
-    incoming.map((vp) => [String(vp.scene ?? "").trim(), vp]).filter(([k]) => k),
+    incoming.map((vp) => [String(vp.scene ?? "").trim(), vp]).filter(([k]) => k)
   );
   const byIndex = [...incoming];
 
@@ -96,9 +148,12 @@ export function mergeDirectingIntoVisualPrompts(existing = [], incoming = []) {
   });
 }
 
-export function buildSeedanceDirectingSystemPrompt({ niche = "geral", format = "SHORTS" } = {}) {
+export function buildSeedanceDirectingSystemPrompt({
+  niche = "geral",
+  format = "SHORTS",
+} = {}) {
   const aspect = format === "SHORTS" ? "9:16 vertical" : "16:9 widescreen";
-  return `Você é um Diretor de Cinema sênior preparando briefs de direção para geração de vídeo IA (Seedance / LTX / T2V).
+  return `Você é um Diretor de Cinema sênior preparando briefs de direção para geração de vídeo IA (Seedance / MobileWAN / T2V).
 
 PRINCÍPIO CENTRAL (Seedance): "Direct the model — don't micro-manage the frame."
 - Defina INTENÇÃO dramática, câmera, luz, performance e som — NÃO descreva pixels frame a frame.
@@ -159,10 +214,14 @@ SAÍDA: APENAS JSON válido:
 export function buildSeedanceDirectingRequest(storyboard = {}, opts = {}) {
   const strategy = storyboard.strategy || {};
   const narrative = String(storyboard.narrative_script || "").trim();
-  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+  const visualPrompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
   const hyperframe = String(storyboard.hyperframe_prompt || "").trim();
   const format = opts.format || "SHORTS";
-  const sceneIndices = Array.isArray(opts.sceneIndices) ? opts.sceneIndices : null;
+  const sceneIndices = Array.isArray(opts.sceneIndices)
+    ? opts.sceneIndices
+    : null;
 
   const niche = detectNicheFromContent(strategy, narrative, hyperframe);
   const systemPrompt = buildSeedanceDirectingSystemPrompt({ niche, format });
@@ -210,10 +269,13 @@ export function buildSeedanceDirectingRequest(storyboard = {}, opts = {}) {
 
 export function applySeedanceDirectingResponse(storyboard = {}, parsed = {}) {
   const merged = { ...storyboard };
-  if (Array.isArray(parsed.visual_prompts) && parsed.visual_prompts.length > 0) {
+  if (
+    Array.isArray(parsed.visual_prompts) &&
+    parsed.visual_prompts.length > 0
+  ) {
     merged.visual_prompts = mergeDirectingIntoVisualPrompts(
       storyboard.visual_prompts,
-      parsed.visual_prompts,
+      parsed.visual_prompts
     );
   }
   if (parsed.directing_notes) {

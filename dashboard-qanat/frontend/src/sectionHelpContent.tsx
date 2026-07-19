@@ -213,18 +213,6 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
-  "tab-comfy-mcp": {
-    title: "Comfy Cloud MCP",
-    body: (
-      <>
-        Conecta agentes (Cursor, Grok, Claude) ao <strong>Comfy Cloud</strong>{" "}
-        via MCP — geração de imagem, vídeo, áudio e 3D na nuvem. Configure API
-        key, copie o JSON para <code>.cursor/mcp.json</code> e monitore a fila.
-        O ComfyUI local (LTX) continua na aba Workflow.
-      </>
-    ),
-  },
-
   "tab-creator": {
     title: "Novo Projeto com IA",
     body: (

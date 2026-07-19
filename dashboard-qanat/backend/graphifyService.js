@@ -1,7 +1,10 @@
 import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
-import { registerExternalJob, updateExternalJob } from "./comfyuiService.js";
+import {
+  registerExternalJob,
+  updateExternalJob,
+} from "./externalJobRegistry.js";
 
 const GRAPHIFY_OUT_DIR = path.join(process.cwd(), "graphify-out");
 const GRAPH_JSON_PATH = path.join(GRAPHIFY_OUT_DIR, "graph.json");

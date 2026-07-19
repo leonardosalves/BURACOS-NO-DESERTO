@@ -65,7 +65,7 @@ function parseSceneOrder(sceneRef = "") {
 
 export function inferAssetMediaType(vp = {}) {
   const t = String(vp.type || vp.media_mode || "").toLowerCase();
-  if (/vídeo|video|clip|motion|seedance|ltx/.test(t)) return "video";
+  if (/vídeo|video|clip|motion|seedance/.test(t)) return "video";
   return "image";
 }
 

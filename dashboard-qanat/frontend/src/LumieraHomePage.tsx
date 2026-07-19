@@ -289,7 +289,6 @@ export function LumieraHomePage({
     { label: "Studio Agents", icon: Bot, tab: "agents" as AppTab },
     { label: "Pesquisa Web", icon: Globe, tab: "agent-reach" as AppTab },
     { label: "Ressuscitador", icon: Zap, tab: "video-resurrector" as AppTab },
-    { label: "Comfy MCP", icon: Share2, tab: "comfy-mcp" as AppTab },
   ];
 
   const todoNav: Record<string, () => void> = {

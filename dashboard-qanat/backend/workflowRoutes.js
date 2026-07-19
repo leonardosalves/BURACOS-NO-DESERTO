@@ -184,25 +184,10 @@ import {
 } from "./youtubeMetadataOptimizer.js";
 import { injectStudioAgentsContext } from "./studioAgents.js";
 import {
-  getComfyuiStatus,
-  startComfyui,
-  stopComfyui,
-  runComfyuiInstall,
-  runComfyuiModelDownload,
-  queueLtxGeneration,
-  getComfyuiHistory,
-  getComfyuiProgress,
-  resolveComfyuiOutputFile,
-} from "./comfyuiService.js";
+  getExternalJobProgress,
+  resolveExternalJobOutput,
+} from "./externalJobRegistry.js";
 import { queueMobileWanGeneration } from "./mobilewanService.js";
-import {
-  getComfyMcpDashboard,
-  saveComfyCloudConfig,
-  testComfyCloudConnection,
-  getComfyCloudQueue,
-  buildCursorMcpConfig,
-  loadComfyCloudConfig,
-} from "./comfyCloudMcp.js";
 import { buildCapabilityMenu } from "./openmontageCapability.js";
 import { analyzeReferenceVideo } from "./openmontageReference.js";
 import { extractBrowserResponse } from "./geminiBrowser.js";
@@ -3186,109 +3171,6 @@ Instruções críticas:
     }
   });
 
-  app.get("/api/comfyui/status", async (req, res) => {
-    try {
-      const status = await getComfyuiStatus();
-      res.json(status);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post("/api/comfyui/install", async (req, res) => {
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    const send = (type, payload) =>
-      res.write(`data: ${JSON.stringify({ type, ...payload })}\n\n`);
-    try {
-      send("log", { text: "Iniciando instalação ComfyUI + LTX..." });
-      await runComfyuiInstall((text) => send("log", { text: text.trim() }));
-      send("complete", {
-        message: "ComfyUI instalado. Baixe os modelos LTX em seguida.",
-      });
-    } catch (err) {
-      send("error", { message: err.message });
-    }
-    res.end();
-  });
-
-  app.post("/api/comfyui/download-models", async (req, res) => {
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    const send = (type, payload) =>
-      res.write(`data: ${JSON.stringify({ type, ...payload })}\n\n`);
-    try {
-      send("log", { text: "Baixando modelos LTX (~18 GB). Pode demorar..." });
-      const result = await runComfyuiModelDownload((text) =>
-        send("log", { text: text.trim() })
-      );
-      send("complete", { message: "Modelos prontos.", models: result.models });
-    } catch (err) {
-      send("error", { message: err.message });
-    }
-    res.end();
-  });
-
-  app.post("/api/comfyui/start", async (req, res) => {
-    try {
-      const result = await startComfyui();
-      res.json(result);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post("/api/comfyui/stop", (req, res) => {
-    res.json(stopComfyui());
-  });
-
-  app.post("/api/comfyui/generate", async (req, res) => {
-    try {
-      const {
-        prompt,
-        width,
-        height,
-        frames,
-        duration_seconds,
-        fps,
-        mode,
-        format,
-        codec,
-        filename_prefix,
-        aspect_ratio,
-        model_gguf,
-        lora,
-        lora_strength,
-        upscale,
-      } = req.body || {};
-      if (!prompt || !String(prompt).trim()) {
-        return res.status(400).json({ error: "Prompt obrigatório." });
-      }
-      const result = await queueLtxGeneration({
-        prompt: String(prompt).trim(),
-        width,
-        height,
-        frames,
-        duration_seconds,
-        fps,
-        mode: mode === "i2v" ? "i2v" : "t2v",
-        format,
-        codec,
-        filename_prefix,
-        aspect_ratio,
-        model_gguf,
-        lora,
-        lora_strength,
-        upscale,
-      });
-      res.json({ success: true, ...result });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
   app.post("/api/mobilewan/generate", async (req, res) => {
     try {
       const { prompt, aspect_ratio, steps, high_quality } = req.body || {};
@@ -3307,92 +3189,16 @@ Instruções críticas:
     }
   });
 
-  app.get("/api/comfyui/output", (req, res) => {
-    try {
-      const filename = String(req.query.filename || "");
-      const subfolder = String(req.query.subfolder || "");
-      const filePath = resolveComfyuiOutputFile({ filename, subfolder });
-      if (!filePath)
-        return res.status(404).json({ error: "Arquivo não encontrado." });
-      res.sendFile(filePath);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
+  app.get("/api/generation-jobs/:promptId", (req, res) => {
+    res.json(getExternalJobProgress(req.params.promptId));
   });
 
-  app.get("/api/comfyui/progress/:promptId", (req, res) => {
-    try {
-      res.json(getComfyuiProgress(req.params.promptId));
-    } catch (err) {
-      res.status(500).json({ error: err.message });
+  app.get("/api/generation-jobs/:promptId/output", (req, res) => {
+    const filePath = resolveExternalJobOutput(req.params.promptId);
+    if (!filePath || !fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "Arquivo não encontrado." });
     }
-  });
-
-  app.get("/api/comfyui/history/:promptId", async (req, res) => {
-    try {
-      const data = await getComfyuiHistory(req.params.promptId);
-      res.json(data);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/comfy-mcp/status", async (req, res) => {
-    try {
-      let localStatus = null;
-      try {
-        localStatus = await getComfyuiStatus();
-      } catch {
-        /* non-blocking */
-      }
-      res.json(await getComfyMcpDashboard(WORKSPACE_DIR, { localStatus }));
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post("/api/comfy-mcp/config", (req, res) => {
-    try {
-      const config = saveComfyCloudConfig(WORKSPACE_DIR, req.body || {});
-      res.json({ ok: true, config });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post("/api/comfy-mcp/test", async (req, res) => {
-    try {
-      const bodyKey = String(req.body?.api_key || "").trim();
-      const cfg = loadComfyCloudConfig(WORKSPACE_DIR);
-      const apiKey = bodyKey || cfg.api_key;
-      const result = await testComfyCloudConnection(apiKey);
-      res.json({ ok: true, ...result });
-    } catch (err) {
-      res
-        .status(err.status === 401 ? 401 : 500)
-        .json({ error: err.message, details: err.data });
-    }
-  });
-
-  app.get("/api/comfy-mcp/queue", async (req, res) => {
-    try {
-      const cfg = loadComfyCloudConfig(WORKSPACE_DIR);
-      if (!cfg.api_key)
-        return res.status(400).json({ error: "API key não configurada" });
-      const queue = await getComfyCloudQueue(cfg.api_key);
-      res.json(queue);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.get("/api/comfy-mcp/cursor-config", (req, res) => {
-    try {
-      const cfg = loadComfyCloudConfig(WORKSPACE_DIR);
-      res.json(buildCursorMcpConfig(cfg, WORKSPACE_DIR));
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
+    res.sendFile(path.resolve(filePath));
   });
 
   app.post("/api/collage-broll/send-to-project", (req, res) => {

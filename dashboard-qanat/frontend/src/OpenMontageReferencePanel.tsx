@@ -316,8 +316,8 @@ export function OpenMontageReferencePanel({
       <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500">
         <SettingHelpTip title="Capability envelope">
           Mostra o que seu estúdio já pode produzir (TTS, stock, Remotion,
-          ComfyUI, NotebookLM). Igual ao preflight do OpenMontage — gaps
-          aparecem em vermelho.
+          NotebookLM). Igual ao preflight do OpenMontage — gaps aparecem em
+          vermelho.
         </SettingHelpTip>
         {capability?.summary ? (
           <span>

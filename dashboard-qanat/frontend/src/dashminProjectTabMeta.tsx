@@ -41,7 +41,7 @@ export const DASH_PROJECT_TAB_META: Record<
     id: "workflow",
     title: "Workflow e Tarefas",
     subtitle:
-      "Narração TTS, ComfyUI, B-roll, trilha e pipelines — prepare o projeto antes do render.",
+      "Narração TTS, B-roll, trilha e pipelines — prepare o projeto antes do render.",
     icon: Wand2,
   },
   timeline: {

@@ -21,7 +21,6 @@ import toast from "react-hot-toast";
 import {
   Bot,
   Clapperboard,
-  Cloud,
   Fingerprint,
   Globe,
   HeartPulse,
@@ -48,7 +47,6 @@ import type {
 } from "./geminiAiFetch";
 import {
   LazyAgentReachPanel,
-  LazyComfyMcpPage,
   LazyProjectsLibraryPanel,
   LazyStudioAgents,
   LazyTrendForecastPanel,
@@ -517,23 +515,6 @@ export function AppTabPanels({
                 activeProject={activeProject}
                 projectNiche={config?.niche || nicheInput || "Engenharia"}
               />
-            </Suspense>
-          </DashminPageLayout>
-        </TabErrorBoundary>
-      )}
-
-      {activeTab === "comfy-mcp" && (
-        <TabErrorBoundary tabName="Comfy MCP">
-          <DashminPageLayout
-            title="Comfy MCP"
-            subtitle="Agente criativo na nuvem — imagem, vídeo, áudio e 3D via MCP."
-            breadcrumb={["Dashboard", "Estúdio", "Comfy MCP"]}
-            icon={<Cloud className="w-5 h-5" />}
-          >
-            <Suspense
-              fallback={<TabPanelFallback label="Carregando Comfy MCP..." />}
-            >
-              <LazyComfyMcpPage embedded />
             </Suspense>
           </DashminPageLayout>
         </TabErrorBoundary>

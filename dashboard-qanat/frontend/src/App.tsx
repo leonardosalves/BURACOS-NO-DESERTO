@@ -1621,7 +1621,7 @@ export default function App() {
             message: "Vídeo vinculado",
           },
         }));
-        toast.success(`🎥 Vídeo LTX vinculado — cena ${sceneIndex + 1}`);
+        toast.success(`🎥 Vídeo vinculado — cena ${sceneIndex + 1}`);
         return true;
       }
       return false;
@@ -1638,7 +1638,7 @@ export default function App() {
           error: err.message || "Falha ao vincular vídeo",
         },
       }));
-      toast.error(err.message || "Falha ao vincular vídeo LTX.");
+      toast.error(err.message || "Falha ao vincular vídeo.");
       return false;
     }
   };
@@ -1652,7 +1652,7 @@ export default function App() {
     const poll = async () => {
       try {
         const res = await fetch(
-          getProjectUrl(`/api/comfyui/progress/${promptId}`)
+          getProjectUrl(`/api/generation-jobs/${promptId}`)
         );
         if (!res.ok) return;
         const data = await res.json();
@@ -1681,7 +1681,9 @@ export default function App() {
         }
         if (status === "error") {
           stopSeedanceT2vPoller(sceneIndex);
-          toast.error(data.error || data.message || "Erro na geração LTX.");
+          toast.error(
+            data.error || data.message || "Erro na geração de vídeo."
+          );
         }
       } catch {
         /* ignore poll errors */
@@ -1693,7 +1695,7 @@ export default function App() {
 
   const handleGenerateSeedanceT2v = async (
     sceneIndices?: number[],
-    provider: "ltx" | "seedance" | "mobilewan" = "ltx"
+    provider: "seedance" | "mobilewan" = "mobilewan"
   ) => {
     const projectName =
       narrationProjectName || creatorProjectName || activeProject;
@@ -1748,10 +1750,10 @@ export default function App() {
             message:
               provider === "mobilewan"
                 ? "Iniciando MobileWAN…"
-                : "Na fila LTX…",
+                : "Na fila de geração…",
           },
         }));
-        if (provider === "ltx" || provider === "mobilewan") {
+        if (provider === "mobilewan") {
           startSeedanceT2vPolling(normalizedProject, sceneIndex, promptId);
         }
       }
@@ -1765,7 +1767,7 @@ export default function App() {
         `🎥 ${jobs.length} vídeo(s) enfileirado(s) via ${provider.toUpperCase()}`
       );
       if (isBatch) {
-        toast("Cenas processadas em sequência — aguarde cada LTX concluir.", {
+        toast("Cenas processadas em sequência — aguarde cada vídeo concluir.", {
           icon: "⏳",
         });
       }

@@ -1,6 +1,5 @@
 import { AgentReachPanel } from "./AgentReachPanel";
 import { AppMusicTab } from "./AppMusicTab";
-import { ComfyMcpPage } from "./ComfyMcpPage";
 import { DashminAiChat } from "./DashminAiChat";
 import { FlowLabPage } from "./FlowLabPage";
 import { ListicleCreatorStep } from "./ListicleCreatorStep";
@@ -27,7 +26,6 @@ export const LazyOverlayTimelineEditor = OverlayTimelineEditor;
 export const LazyMotionTimelineEditor = MotionTimelineEditor;
 export const LazyYoutubeStudioPanel = YoutubeStudioPanel;
 export const LazyVideoResurrectorPanel = VideoResurrectorPanel;
-export const LazyComfyMcpPage = ComfyMcpPage;
 export const LazyTrendForecastPanel = TrendForecastPanel;
 export const LazyAgentReachPanel = AgentReachPanel;
 export const LazyProjectsLibraryPanel = ProjectsLibraryPanel;

@@ -84,7 +84,7 @@ export const MOTION_CONTENT_FIELDS: Record<string, ContentField[]> = {
       label: "Prompt IA Geo (T2V)",
       kind: "textarea",
       placeholder:
-        "Zoom Terra→alvo, destaque territorial, órbita 360° — gere com Seedance/LTX",
+        "Zoom Terra→alvo, destaque territorial, órbita 360° — gere com Seedance",
     },
   ],
   "geo-map": [
