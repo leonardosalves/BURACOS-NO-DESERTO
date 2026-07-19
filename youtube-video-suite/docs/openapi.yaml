@@ -1,0 +1,245 @@
+openapi: "3.1.0"
+info:
+  title: Video Suite API
+  version: "0.1.0"
+  description: >
+    YouTube Video Suite — AI-powered video production pipeline.
+    Manages projects, scenes, engine routing, TTS, rendering, and asset management.
+
+servers:
+  - url: http://localhost:3001
+    description: Local development
+
+paths:
+  # ── System ──
+  /health:
+    get:
+      summary: System health check
+      tags: [System]
+      responses:
+        "200":
+          description: Health status with checks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /metrics:
+    get:
+      summary: Request and render metrics
+      tags: [System]
+      responses:
+        "200":
+          description: Metrics data
+
+  # ── Projects ──
+  /v1/projects:
+    get:
+      summary: List all projects
+      tags: [Projects]
+      responses:
+        "200":
+          description: Array of projects
+    post:
+      summary: Create a new project (triggers AI briefing + script)
+      tags: [Projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProject"
+      responses:
+        "200":
+          description: Created project with scenes
+
+  /v1/projects/{id}:
+    get:
+      summary: Get project with scenes
+      tags: [Projects]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Project details
+    patch:
+      summary: Update project metadata
+      tags: [Projects]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+
+  /v1/projects/{id}/generate:
+    post:
+      summary: Start VO-first pipeline (TTS → Alignment → Delivery)
+      tags: [Projects]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+
+  /v1/projects/{id}/duplicate:
+    post:
+      summary: Clone a project with all scenes
+      tags: [Projects]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+
+  /v1/projects/{id}/cancel:
+    post:
+      summary: Cancel a running pipeline
+      tags: [Projects]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+
+  /v1/projects/{id}/prompts:
+    get:
+      summary: Generate image/video prompts for each scene
+      description: >
+        Returns structured prompts for manual asset generation.
+        No API key needed — user generates images/videos externally
+        and uploads results via POST /v1/scenes/{sceneId}/assets.
+      tags: [Prompts]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Array of scene prompts with metadata
+
+  # ── Scenes ──
+  /v1/projects/{id}/scenes:
+    get:
+      summary: List scenes for a project
+      tags: [Scenes]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+
+  /v1/scenes/{sceneId}:
+    patch:
+      summary: Update scene metadata
+      tags: [Scenes]
+      parameters:
+        - $ref: "#/components/parameters/SceneId"
+
+  /v1/scenes/{sceneId}/render:
+    post:
+      summary: Queue a scene for rendering via its engine
+      tags: [Scenes]
+      parameters:
+        - $ref: "#/components/parameters/SceneId"
+
+  /v1/scenes/{sceneId}/approve:
+    post:
+      summary: Approve a scene gate (metaphor/style/motion)
+      tags: [Scenes]
+      parameters:
+        - $ref: "#/components/parameters/SceneId"
+
+  /v1/scenes/{sceneId}/regenerate:
+    post:
+      summary: Regenerate a scene (reset + re-queue)
+      tags: [Scenes]
+      parameters:
+        - $ref: "#/components/parameters/SceneId"
+
+  # ── Assets ──
+  /v1/scenes/{sceneId}/assets:
+    get:
+      summary: List assets for a scene
+      tags: [Assets]
+      parameters:
+        - $ref: "#/components/parameters/SceneId"
+    post:
+      summary: Upload/register an asset for a scene
+      tags: [Assets]
+      parameters:
+        - $ref: "#/components/parameters/SceneId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAsset"
+
+  /v1/assets/{assetId}:
+    delete:
+      summary: Delete an asset
+      tags: [Assets]
+
+  # ── Jobs ──
+  /v1/jobs:
+    get:
+      summary: List recent jobs
+      tags: [Jobs]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+
+  /v1/jobs/{jobId}:
+    get:
+      summary: Get job status
+      tags: [Jobs]
+
+  # ── Renders ──
+  /v1/renders:
+    get:
+      summary: List renders (optionally filtered by projectId)
+      tags: [Renders]
+      parameters:
+        - name: projectId
+          in: query
+          schema: { type: string, format: uuid }
+
+  /v1/renders/{renderId}:
+    get:
+      summary: Get render details
+      tags: [Renders]
+
+  # ── Engines ──
+  /v1/engines/health:
+    get:
+      summary: Check health of all registered engine adapters
+      tags: [Engines]
+
+components:
+  parameters:
+    ProjectId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    SceneId:
+      name: sceneId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    CreateProject:
+      type: object
+      required:
+        [title, format, nicheId, language, aspectRatio, targetDurationSec]
+      properties:
+        title: { type: string }
+        format: { type: string, enum: [SHORTS, LONG] }
+        nicheId: { type: string }
+        language: { type: string, default: "pt-BR" }
+        aspectRatio: { type: string, enum: ["9:16", "16:9"] }
+        targetDurationSec: { type: integer, minimum: 15 }
+
+    CreateAsset:
+      type: object
+      required: [type, role, storageKey]
+      properties:
+        type: { type: string, enum: [video, image, audio] }
+        role: { type: string, enum: [background, voiceover, music, overlay] }
+        storageKey: { type: string }
+        mimeType: { type: string }
+        width: { type: integer }
+        height: { type: integer }
+        durationSec: { type: number }
+
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string, enum: [healthy, degraded, unhealthy] }
+        uptime: { type: integer }
+        checks: { type: object }

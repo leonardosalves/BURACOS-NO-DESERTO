@@ -361,6 +361,302 @@ export async function registerRoutes(fastify: FastifyInstance) {
     const { healthcheckAll } = await import("./adapters/router.js");
     return healthcheckAll();
   });
+
+  // ── Project Management ──────────────────────────────────────────────────────
+
+  // GET /v1/projects — list all projects
+  fastify.get("/v1/projects", async () => {
+    return prisma.project.findMany({
+      include: { scenes: { select: { id: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+  });
+
+  // PATCH /v1/projects/:id — update project metadata
+  fastify.patch("/v1/projects/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const data = request.body as Record<string, unknown>;
+    try {
+      return await prisma.project.update({ where: { id }, data });
+    } catch {
+      return reply.status(404).send({ error: "Project not found" });
+    }
+  });
+
+  // POST /v1/projects/:id/duplicate — clone a project
+  fastify.post("/v1/projects/:id/duplicate", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const original = await prisma.project.findUniqueOrThrow({
+        where: { id },
+        include: { scenes: true },
+      });
+
+      const newId = randomUUID();
+      const project = await prisma.project.create({
+        data: {
+          id: newId,
+          title: `${original.title} (cópia)`,
+          format: original.format,
+          aspectRatio: original.aspectRatio,
+          language: original.language,
+          nicheId: original.nicheId,
+          targetDurationSec: original.targetDurationSec,
+          fps: original.fps,
+          status: "draft",
+          workspaceId: original.workspaceId,
+          manifestJson: original.manifestJson || {},
+        },
+      });
+
+      for (const scene of original.scenes) {
+        await prisma.scene.create({
+          data: {
+            id: randomUUID(),
+            projectId: newId,
+            order: scene.order,
+            engineHint: scene.engineHint,
+            durationSec: scene.durationSec,
+            script: scene.script,
+            caption: scene.caption,
+            visualMetaphor: scene.visualMetaphor,
+            paletteId: scene.paletteId,
+            motionProfile: scene.motionProfile,
+            status: "pending",
+            version: 1,
+            manifestJson: scene.manifestJson || {},
+          },
+        });
+      }
+
+      return project;
+    } catch {
+      return reply.status(404).send({ error: "Project not found" });
+    }
+  });
+
+  // POST /v1/projects/:id/cancel — cancel a running pipeline
+  fastify.post("/v1/projects/:id/cancel", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      return await prisma.project.update({
+        where: { id },
+        data: { status: "failed" },
+      });
+    } catch {
+      return reply.status(404).send({ error: "Project not found" });
+    }
+  });
+
+  // ── Asset Prompt Generation ─────────────────────────────────────────────────
+  // This is the core whiteboard system — generates prompts for manual image/video
+  // creation and accepts uploads of the generated assets.
+
+  // GET /v1/projects/:id/prompts — generate image/video prompts for each scene
+  fastify.get("/v1/projects/:id/prompts", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const scenes = await prisma.scene.findMany({
+        where: { projectId: id },
+        orderBy: { order: "asc" },
+      });
+
+      const prompts = scenes.map((scene) => ({
+        sceneId: scene.id,
+        sceneOrder: scene.order,
+        type: "image" as const,
+        status: scene.status,
+        prompt: buildAssetPrompt(scene),
+        videoPrompt: buildVideoPrompt(scene),
+        metadata: {
+          visualMetaphor: scene.visualMetaphor,
+          palette: scene.paletteId,
+          motionProfile: scene.motionProfile,
+          durationSec: scene.durationSec,
+          engineHint: scene.engineHint,
+        },
+      }));
+
+      return {
+        projectId: id,
+        totalScenes: scenes.length,
+        pendingAssets: scenes.filter((s) => s.status === "pending").length,
+        prompts,
+        instructions: {
+          pt: "Use estes prompts para gerar imagens/vídeos manualmente (ex: Midjourney, DALL-E, Runway). Depois, faça upload via POST /v1/scenes/:sceneId/assets.",
+          en: "Use these prompts to generate images/videos manually. Then upload via POST /v1/scenes/:sceneId/assets.",
+        },
+      };
+    } catch {
+      return reply.status(404).send({ error: "Project not found" });
+    }
+  });
+
+  // POST /v1/scenes/:sceneId/assets — upload an asset for a scene
+  fastify.post("/v1/scenes/:sceneId/assets", async (request, reply) => {
+    const { sceneId } = request.params as { sceneId: string };
+    const { type, role, storageKey, mimeType, width, height, durationSec } =
+      request.body as any;
+
+    if (!type || !role || !storageKey) {
+      return reply
+        .status(400)
+        .send({ error: "Required: type, role, storageKey" });
+    }
+
+    try {
+      // Resolve scene to get projectId and workspaceId
+      const scene = await prisma.scene.findUniqueOrThrow({
+        where: { id: sceneId },
+        include: { project: { select: { workspaceId: true } } },
+      });
+
+      const asset = await prisma.asset.create({
+        data: {
+          id: randomUUID(),
+          sceneId,
+          projectId: scene.projectId,
+          workspaceId: scene.project.workspaceId,
+          type,
+          role,
+          storageKey,
+          mimeType: mimeType || "application/octet-stream",
+          checksum: "pending",
+          width,
+          height,
+          durationSec,
+        },
+      });
+
+      return asset;
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // GET /v1/scenes/:sceneId/assets — list assets for a scene
+  fastify.get("/v1/scenes/:sceneId/assets", async (request, reply) => {
+    const { sceneId } = request.params as { sceneId: string };
+    try {
+      return await prisma.asset.findMany({
+        where: { sceneId },
+        orderBy: { createdAt: "asc" },
+      });
+    } catch {
+      return reply.status(404).send({ error: "Scene not found" });
+    }
+  });
+
+  // DELETE /v1/assets/:assetId — remove an asset
+  fastify.delete("/v1/assets/:assetId", async (request, reply) => {
+    const { assetId } = request.params as { assetId: string };
+    try {
+      await prisma.asset.delete({ where: { id: assetId } });
+      return { deleted: true };
+    } catch {
+      return reply.status(404).send({ error: "Asset not found" });
+    }
+  });
+
+  // ── Jobs ──────────────────────────────────────────────────────────────────
+
+  // GET /v1/jobs — list recent jobs
+  fastify.get("/v1/jobs", async (request) => {
+    const limit = Math.min(Number((request.query as any).limit) || 50, 100);
+    return prisma.job.findMany({
+      orderBy: { startedAt: "desc" },
+      take: limit,
+    });
+  });
+
+  // GET /v1/jobs/:jobId — job status
+  fastify.get("/v1/jobs/:jobId", async (request, reply) => {
+    const { jobId } = request.params as { jobId: string };
+    try {
+      return await prisma.job.findUniqueOrThrow({ where: { id: jobId } });
+    } catch {
+      return reply.status(404).send({ error: "Job not found" });
+    }
+  });
+
+  // ── Renders ───────────────────────────────────────────────────────────────
+
+  // GET /v1/renders — list renders for a project
+  fastify.get("/v1/renders", async (request) => {
+    const projectId = (request.query as any).projectId;
+    const where = projectId ? { projectId } : {};
+    return prisma.render.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
+  });
+
+  // GET /v1/renders/:renderId — render details
+  fastify.get("/v1/renders/:renderId", async (request, reply) => {
+    const { renderId } = request.params as { renderId: string };
+    try {
+      return await prisma.render.findUniqueOrThrow({ where: { id: renderId } });
+    } catch {
+      return reply.status(404).send({ error: "Render not found" });
+    }
+  });
+
+  // POST /v1/scenes/:sceneId/regenerate — regenerate a scene
+  fastify.post("/v1/scenes/:sceneId/regenerate", async (request, reply) => {
+    const { sceneId } = request.params as { sceneId: string };
+    try {
+      const scene = await prisma.scene.findUniqueOrThrow({
+        where: { id: sceneId },
+      });
+
+      // Reset scene status to pending
+      await prisma.scene.update({
+        where: { id: sceneId },
+        data: { status: "pending", version: { increment: 1 } },
+      });
+
+      // Queue the render for the scene
+      const queueName = engineHintToQueue(scene.engineHint);
+      await addJobToQueue(queueName as any, "regenerate-scene", {
+        projectId: scene.projectId,
+        sceneId,
+        manifestJson: scene,
+      });
+
+      return { queued: true, sceneId, queue: queueName };
+    } catch {
+      return reply.status(404).send({ error: "Scene not found" });
+    }
+  });
+}
+
+// ── Prompt Builders ─────────────────────────────────────────────────────────
+
+function buildAssetPrompt(scene: any): string {
+  const parts = [
+    `Gere uma imagem para a cena "${scene.caption || "Sem título"}".`,
+    `Metáfora visual: ${scene.visualMetaphor || "livre"}.`,
+    `Paleta: ${scene.paletteId || "default"}.`,
+    `Estilo de movimento: ${scene.motionProfile || "smooth"}.`,
+    `Proporção: vertical 9:16.`,
+    `O visual deve transmitir: "${scene.script?.slice(0, 120) || ""}..."`,
+    `Estilo: cinematográfico, profissional, cores ricas.`,
+    `Sem texto na imagem. Fundo limpo.`,
+  ];
+  return parts.join("\n");
+}
+
+function buildVideoPrompt(scene: any): string {
+  const parts = [
+    `Gere um vídeo curto (${scene.durationSec || 5}s) para a cena "${scene.caption || "Sem título"}".`,
+    `Descrição: ${scene.visualMetaphor || scene.script?.slice(0, 80) || "livre"}.`,
+    `Movimento: ${scene.motionProfile || "smooth"}, câmera suave.`,
+    `Paleta de cores: ${scene.paletteId || "default"}.`,
+    `Formato: 9:16 vertical, 24fps.`,
+    `Sem texto overlay. Sem áudio.`,
+    `Estilo: cinematográfico, profissional.`,
+  ];
+  return parts.join("\n");
 }
 
 function engineHintToQueue(engineHint: string): string {
