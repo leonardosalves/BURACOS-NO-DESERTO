@@ -11,7 +11,7 @@ import {
 import { randomUUID } from "crypto";
 
 // Import Fish Speech TTS from parent workspace
-// @ts-ignore
+// @ts-ignore — no declarations for legacy JS module
 import {
   synthesizeFishSpeech,
   loadFishSpeechConfig,
@@ -268,4 +268,60 @@ alignmentWorker.on("failed", (job, err) => {
 });
 deliveryWorker.on("failed", (job, err) => {
   console.error(`[Delivery Worker] Job failed:`, err);
+});
+
+// ── HyperFrames Render Worker ───────────────────────────────────────────────
+
+export const hyperframesRenderWorker = new Worker(
+  "hyperframes-render",
+  async (job) => {
+    const { projectId, sceneId, manifestJson } = job.data;
+    console.log(`[HyperFrames Worker] Processing scene ${sceneId}...`);
+
+    const { renderScene } = await import("./adapters/router.js");
+    const { SceneManifestSchema } = await import("@video-suite/scene-contract");
+
+    const sceneManifest = SceneManifestSchema.parse(manifestJson);
+
+    const renderManifest = await renderScene(sceneManifest, {
+      jobId: job.id || randomUUID(),
+      projectId,
+      sceneId,
+      storageDir: path.join(STORAGE_ASSETS_DIR, "renders", projectId),
+      onLog: (msg) => console.log(msg),
+      onProgress: (pct, msg) => console.log(`[${pct}%] ${msg}`),
+    });
+
+    // Persist render record
+    await prisma.render.create({
+      data: {
+        id: randomUUID(),
+        projectId,
+        sceneId,
+        engine: "hyperframes",
+        variant: "master",
+        status: "completed",
+        storageKey: renderManifest.storageKey,
+        width: renderManifest.width,
+        height: renderManifest.height,
+        fps: renderManifest.fps,
+        durationSec: renderManifest.durationSec,
+        codec: renderManifest.codec,
+        manifestJson: renderManifest.manifestJson as any,
+      },
+    });
+
+    // Update scene status
+    await prisma.scene.update({
+      where: { id: sceneId },
+      data: { status: "rendered" },
+    });
+
+    console.log(`[HyperFrames Worker] Scene ${sceneId} rendered successfully.`);
+  },
+  { connection: redisConnection }
+);
+
+hyperframesRenderWorker.on("failed", (job, err) => {
+  console.error(`[HyperFrames Worker] Job failed:`, err);
 });

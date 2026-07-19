@@ -130,11 +130,9 @@ export async function registerRoutes(fastify: FastifyInstance) {
       return project;
     } catch (err: any) {
       fastify.log.error(err);
-      return reply
-        .status(500)
-        .send({
-          error: err.message || "Failed to create project and generate script",
-        });
+      return reply.status(500).send({
+        error: err.message || "Failed to create project and generate script",
+      });
     }
   });
 
@@ -208,4 +206,154 @@ export async function registerRoutes(fastify: FastifyInstance) {
         .send({ error: "Failed to queue project generation" });
     }
   });
+
+  // GET /v1/projects/:id/scenes
+  fastify.get("/v1/projects/:id/scenes", async (request, reply) => {
+    const { id } = request.params as any;
+
+    try {
+      const scenes = await prisma.scene.findMany({
+        where: { projectId: id },
+        orderBy: { order: "asc" },
+        include: { assets: true },
+      });
+
+      return scenes;
+    } catch (err: any) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: "Failed to list scenes" });
+    }
+  });
+
+  // POST /v1/scenes/:sceneId/render
+  fastify.post("/v1/scenes/:sceneId/render", async (request, reply) => {
+    const { sceneId } = request.params as any;
+
+    try {
+      const scene = await prisma.scene.findUnique({ where: { id: sceneId } });
+      if (!scene) {
+        return reply.status(404).send({ error: "Scene not found" });
+      }
+
+      // Determine the correct render queue based on engineHint
+      const queueName = engineHintToQueue(scene.engineHint);
+
+      await addJobToQueue(queueName as any, "render-scene", {
+        projectId: scene.projectId,
+        sceneId: scene.id,
+        manifestJson: scene.manifestJson,
+      });
+
+      return {
+        message: `Scene render queued via ${queueName}`,
+        sceneId,
+        queue: queueName,
+      };
+    } catch (err: any) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: "Failed to queue scene render" });
+    }
+  });
+
+  // POST /v1/scenes/:sceneId/approve
+  fastify.post("/v1/scenes/:sceneId/approve", async (request, reply) => {
+    const { sceneId } = request.params as any;
+    const { gate } = (request.body as any) || {};
+
+    try {
+      const scene = await prisma.scene.findUnique({ where: { id: sceneId } });
+      if (!scene) {
+        return reply.status(404).send({ error: "Scene not found" });
+      }
+
+      const nextStatus =
+        gate === "metaphor"
+          ? "metaphor_approved"
+          : gate === "style"
+            ? "style_approved"
+            : "rendered";
+
+      const updated = await prisma.scene.update({
+        where: { id: sceneId },
+        data: { status: nextStatus },
+      });
+
+      // Record approval
+      await prisma.approval.create({
+        data: {
+          projectId: scene.projectId,
+          sceneId,
+          gate: gate || "general",
+          status: "approved",
+          approvedBy: "editor",
+        },
+      });
+
+      return updated;
+    } catch (err: any) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: "Failed to approve scene" });
+    }
+  });
+
+  // PATCH /v1/scenes/:sceneId
+  fastify.patch("/v1/scenes/:sceneId", async (request, reply) => {
+    const { sceneId } = request.params as any;
+    const updates = request.body as any;
+
+    try {
+      const scene = await prisma.scene.findUnique({ where: { id: sceneId } });
+      if (!scene) {
+        return reply.status(404).send({ error: "Scene not found" });
+      }
+
+      const allowedFields = [
+        "script",
+        "caption",
+        "visualMetaphor",
+        "paletteId",
+        "motionProfile",
+        "engineHint",
+        "durationSec",
+      ];
+      const data: Record<string, any> = {};
+      for (const field of allowedFields) {
+        if (updates[field] !== undefined) {
+          data[field] = updates[field];
+        }
+      }
+
+      if (Object.keys(data).length === 0) {
+        return reply.status(400).send({ error: "No valid fields to update" });
+      }
+
+      const updated = await prisma.scene.update({
+        where: { id: sceneId },
+        data,
+      });
+
+      return updated;
+    } catch (err: any) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: "Failed to update scene" });
+    }
+  });
+
+  // GET /v1/engines/health
+  fastify.get("/v1/engines/health", async (_request, _reply) => {
+    const { healthcheckAll } = await import("./adapters/router.js");
+    return healthcheckAll();
+  });
+}
+
+function engineHintToQueue(engineHint: string): string {
+  const map: Record<string, string> = {
+    hyperframes: "hyperframes-render",
+    remotion: "remotion-render",
+    "gbro-collage-broll": "gbro-render",
+    "vox-director": "vox-render",
+    "vox-explainer": "vox-render",
+    ffmpeg: "delivery",
+  };
+  return map[engineHint] || "delivery";
 }
