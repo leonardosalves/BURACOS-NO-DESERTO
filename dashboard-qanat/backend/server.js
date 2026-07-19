@@ -306,6 +306,10 @@ import {
   mergeExclusionTopics,
 } from "./ideasVariety.js";
 import {
+  CreatorIdeasContractError,
+  generateCreatorIdeasWithSingleRetry,
+} from "./creatorIdeasContract.js";
+import {
   ensureProjectsDirs,
   listLegacySystemProjects,
   recoverLegacyProject,
@@ -19543,18 +19547,25 @@ NICHO: ${nicheClean}
 FORMATO: ${format}
 ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleTopic}\nORDEM: ${rankOrder || "desc"}` : ""}`;
 
-      const responseText = await callGeminiLlm(req, res, projDir, {
-        title: "Gerar 10 ideias virais",
-        prompt: fullPrompt,
-        temperature: 1.2,
+      const generation = await generateCreatorIdeasWithSingleRetry({
+        basePrompt: fullPrompt,
+        maxAttempts: browserText ? 1 : 2,
+        generate: ({ attempt, prompt }) =>
+          callGeminiLlm(req, res, projDir, {
+            title: "Gerar 10 ideias virais",
+            prompt,
+            temperature: attempt === 1 ? 1.2 : 0.35,
+          }),
+        parse: (responseText) =>
+          parseAiJsonResponse(
+            responseText,
+            getApiKey(projDir),
+            "Ideias e diagnostico"
+          ),
       });
-      if (responseText == null) return;
+      if (generation.handledExternally) return;
 
-      const parsedData = await parseAiJsonResponse(
-        responseText,
-        getApiKey(projDir),
-        "Ideias e diagnostico"
-      );
+      const parsedData = generation.data;
 
       if (Array.isArray(parsedData?.ideas)) {
         parsedData.ideas = parsedData.ideas.map((idea) =>
@@ -19575,10 +19586,23 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
           deepResearch: deepResearchMeta,
           usedWebResearch: Boolean(webResearchContext),
           usedNotebooklm: Boolean(notebooklmContext),
+          generationAttempts: generation.attempts,
+          automaticRetry: generation.attempts > 1,
         },
       });
     } catch (err) {
       console.error("[IDEAS ENDPOINT ERROR]", err.message);
+
+      if (err instanceof CreatorIdeasContractError) {
+        const repeatedAutomatically = Number(err.details?.attempts) > 1;
+        return res.status(502).json({
+          error: repeatedAutomatically
+            ? "A IA respondeu, mas não entregou as 10 ideias corretamente. A repetição automática também falhou; tente novamente."
+            : "A resposta capturada não contém as 10 ideias esperadas. Tente novamente.",
+          code: err.code,
+          details: err.details,
+        });
+      }
 
       res.status(500).json({
         error: "Erro ao gerar ideias/diagnóstico",
