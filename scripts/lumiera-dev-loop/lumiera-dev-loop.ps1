@@ -241,7 +241,11 @@ function Get-ChangedPaths {
     $tracked = (Invoke-Git -WorkingDirectory $WorktreePath -Arguments @("diff", "--name-only", "--diff-filter=ACDMRTUXB", "HEAD")).Output
     $untracked = (Invoke-Git -WorkingDirectory $WorktreePath -Arguments @("ls-files", "--others", "--exclude-standard")).Output
     return @($tracked + $untracked | ForEach-Object { ([string]$_).Replace('\', '/') } |
-        Where-Object { $_ -and -not $_.StartsWith(".lumiera-dev-loop/") } | Sort-Object -Unique)
+        Where-Object {
+            $_ -and
+            $_ -notmatch '^(warning:|hint:)' -and
+            -not $_.StartsWith(".lumiera-dev-loop/")
+        } | Sort-Object -Unique)
 }
 
 function Test-AllowedChanges {
