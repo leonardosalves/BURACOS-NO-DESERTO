@@ -383,7 +383,7 @@ import {
   loadNarracaoProGuidelines,
   ensureNarrationCoverage,
   dedupeNearDuplicateVisualPromptsInBlocks,
-  normalizeVisualPromptMediaTypes,
+  finalizeGeneratedVisualPromptMedia,
 } from "./scriptQuality.js";
 import {
   buildSeedanceDirectingRequest,
@@ -21956,6 +21956,11 @@ app.post(
         );
       }
 
+      parsedData.visual_prompts = finalizeGeneratedVisualPromptMedia(
+        parsedData.visual_prompts,
+        { format }
+      );
+
       // Save full storyboard JSON
 
       const storyboardPath = path.join(projDir, "storyboard.json");
@@ -22023,6 +22028,10 @@ app.post(
         );
         if (merged.orch) {
           parsedData = merged.storyboard;
+          parsedData.visual_prompts = finalizeGeneratedVisualPromptMedia(
+            parsedData.visual_prompts,
+            { format }
+          );
           timelineAssets = merged.timelineAssets;
           fs.writeFileSync(
             storyboardPath,
@@ -22596,8 +22605,9 @@ app.post(
           ideaTitle: storyboard.strategy?.title_main || "",
         }
       );
-      storyboard.visual_prompts = sanitizeVisualPromptDurations(
-        enforceShortsVideoSceneMix(storyboard.visual_prompts, { format })
+      storyboard.visual_prompts = finalizeGeneratedVisualPromptMedia(
+        storyboard.visual_prompts,
+        { format }
       );
 
       // Reaplica POV se o projeto tinha bloco POV (VPE costuma apagar tags)
@@ -22641,6 +22651,10 @@ app.post(
         const merged = applyOrchestrationToStoryboard(storyboard, orch);
         if (merged.orch) {
           storyboard = merged.storyboard;
+          storyboard.visual_prompts = finalizeGeneratedVisualPromptMedia(
+            storyboard.visual_prompts,
+            { format }
+          );
           console.log(
             `[VPE PRO] Produção orquestrada: ${merged.orch.motion_count || 0} Remotion · QC ${merged.orch.quality?.score ?? "—"} · ok=${merged.orch.orchestration_ok}`
           );
