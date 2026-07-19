@@ -6,6 +6,7 @@ import {
   buildHeuristicNarrationChunks,
   buildNarrationChunkPlan,
   buildNarrationChunkSignature,
+  buildWordTranscriptsFromChunks,
   hashNarrationIntegrityText,
   normalizeNarrationChunkPlan,
   promoteNarrationChunkPlanAsApprovedSource,
@@ -58,6 +59,30 @@ test("TTS override may change punctuation or wording without rewriting approved 
       "Texto aprovado."
     ),
     hashNarrationIntegrityText("Texto aprovado.")
+  );
+});
+
+test("caption and TTS edits do not rewrite the original narration chunk", () => {
+  const plan = normalizeNarrationChunkPlan({
+    chunks: [
+      {
+        id: "chunk-01",
+        block: 1,
+        scene_ref: "1.1",
+        text: "Texto original da narração.",
+        caption_text: "Legenda editada separadamente.",
+        text_tagged: "[enfase] Legenda editada separadamente!",
+      },
+    ],
+  });
+
+  assert.equal(plan.chunks[0].text, "Texto original da narração.");
+  assert.equal(plan.chunks[0].caption_text, "Legenda editada separadamente.");
+  assert.equal(
+    buildWordTranscriptsFromChunks([
+      { ...plan.chunks[0], start_s: 0, end_s: 2 },
+    ])[0].text.trim(),
+    "Legenda editada separadamente."
   );
 });
 

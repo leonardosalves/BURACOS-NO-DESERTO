@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        width: 1080px;
+        height: 1920px;
+        background: linear-gradient(135deg, #0d0221, #1a0533, #2d1b69);
+        font-family: "Inter", "Segoe UI", sans-serif;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .title-card {
+        text-align: center;
+        padding: 40px;
+        max-width: 80%;
+      }
+      .title-card h1 {
+        color: #fff;
+        font-size: 48px;
+        font-weight: 800;
+        line-height: 1.2;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+      }
+      .lower-third {
+        position: absolute;
+        bottom: 60px;
+        left: 40px;
+        right: 40px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 16px 24px;
+        opacity: 0;
+      }
+      .lower-third p {
+        color: #e0e0e0;
+        font-size: 22px;
+        line-height: 1.4;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+  </head>
+  <body>
+    <div class="title-card">
+      <h1 id="title">O que é um buraco negro?</h1>
+    </div>
+    <div class="lower-third" id="lowerThird">
+      <p>Esfera negra absorvendo luz</p>
+    </div>
+
+    <script>
+      const duration = 5.40725;
+      const tl = gsap.timeline({ paused: true });
+
+      tl.to(
+        "#title",
+        { opacity: 1, y: -20, duration: 0.8, ease: "power2.out" },
+        0.2
+      );
+      tl.to(
+        "#lowerThird",
+        { opacity: 1, y: -10, duration: 0.6, ease: "power2.out" },
+        1.0
+      );
+      tl.to("#title", { opacity: 0, duration: 0.5 }, duration - 0.8);
+      tl.to("#lowerThird", { opacity: 0, duration: 0.4 }, duration - 0.6);
+
+      // HyperFrames seek protocol
+      window.__hf = {
+        duration,
+        seek(time) {
+          tl.seek(time);
+        },
+      };
+    </script>
+  </body>
+</html>

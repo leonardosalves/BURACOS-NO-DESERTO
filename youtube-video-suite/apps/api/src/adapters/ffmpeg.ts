@@ -2,13 +2,14 @@ import type {
   SceneManifest,
   RenderManifest,
 } from "@video-suite/scene-contract";
-import type {
+import {
   VideoEngineAdapter,
   EngineEstimate,
   PreparedEngineInput,
   EngineOutput,
   JobContext,
   HealthcheckResult,
+  getDrawtextFontOpt,
 } from "./types.js";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -96,6 +97,7 @@ export class FfmpegAdapter implements VideoEngineAdapter {
     const hasImages = (imageAssets as string[]).length > 0;
 
     let cmd: string;
+    const fontOpt = getDrawtextFontOpt();
 
     if (hasVideo) {
       // Concatenate existing video clips
@@ -125,7 +127,7 @@ export class FfmpegAdapter implements VideoEngineAdapter {
         ? escapeFFmpegText(String(caption).slice(0, 100))
         : "";
       const drawtext = captionText
-        ? `,drawtext=text='${captionText}':fontcolor=white:fontsize=36:x=(w-text_w)/2:y=(h-text_h)/2`
+        ? `,drawtext=${fontOpt}text='${captionText}':fontcolor=white:fontsize=36:x=(w-text_w)/2:y=(h-text_h)/2`
         : "";
 
       cmd = `ffmpeg -y -f lavfi -i color=c=0x1a1a2e:s=${width}x${height}:d=${durationSec} -vf "format=yuv420p${drawtext}" -c:v libx264 "${outputPath}"`;

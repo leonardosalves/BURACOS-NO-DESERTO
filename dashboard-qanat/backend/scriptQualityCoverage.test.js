@@ -1,9 +1,29 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  browserVisualPromptsUsable,
   normalizeVisualPromptBlocks,
   parseBlockNumber,
 } from "./scriptQuality.js";
+
+test("browser visual prompts are preserved only when every scene is complete", () => {
+  const complete = Array.from({ length: 8 }, (_, index) => ({
+    scene: `${index + 1}.1`,
+    narration_text: `Narração completa da cena ${index + 1}.`,
+    prompt: `Detailed cinematic documentary scene ${index + 1} with a specific physical subject and setting`,
+  }));
+
+  assert.equal(browserVisualPromptsUsable(complete, { format: "LONGO" }), true);
+  assert.equal(
+    browserVisualPromptsUsable(
+      complete.map((scene, index) =>
+        index === 3 ? { ...scene, prompt: "" } : scene
+      ),
+      { format: "LONGO" }
+    ),
+    false
+  );
+});
 
 test("normalizeVisualPromptBlocks injects missing first sentence", () => {
   const parsedData = {

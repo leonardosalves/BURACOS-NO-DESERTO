@@ -1,4 +1,7 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 ---
+
 name: whiteboard-infographic-video-renderer
 description: Generate editable HyperFrames whiteboard infographic video projects from board_manifest.json, motion_plan.json, voiceover_segments.json, and board visual assets such as board.png or asset.kind=url. Use when Codex needs to synthesize edge-tts Chinese narration, measure real segment durations, update motion timing, create captions, render MP4 previews, and extract action-level start/done keyframes for AI whiteboard explanation videos.
 ---

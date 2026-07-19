@@ -4,8 +4,8 @@
 
 ## Meta
 
-niche: Curiosidade Engenharia
-updated: 2026-07-17
+niche: CURIOSIDADE ENGENHARIA ANTIGA
+updated: 2026-07-19
 purpose: minerar o que funciona nos concorrentes → ideias originais no Lumiera (nunca cópia frame-a-frame)
 
 ## Regra de ouro
@@ -715,6 +715,18 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 
 ## Padrões promovidos (concorrentes → nosso formato)
 
+- Ganchos visuais baseados em 'impossibilidades físicas' aparentes que desafiam o senso comum do espectador. _(IA 2026-07-19)_
+- Narrativas que conectam a engenharia estrutural fria com sensações humanas (conforto, medo, surpresa, ilusão de ótica). _(IA 2026-07-19)_
+- Uso de zoom rápido e efeitos sonoros de impacto (woosh, metal batendo) nos momentos de revelação técnica. _(IA 2026-07-19)_
+- Demonstração visual e prática de forças físicas (ruptura, compressão, encaixe) em vez de explicações puramente teóricas. _(IA 2026-07-19)_
+- Uso de ganchos visuais baseados em 'satisfação' (encaixes perfeitos, alinhamentos milimétricos) para reter a atenção nos primeiros 3 segundos. _(IA 2026-07-19)_
+- Desmistificação de técnicas complexas usando analogias geométricas simples e experimentos práticos de baixo custo. _(IA 2026-07-19)_
+- Uso de terminologia técnica específica como título — atrai tanto curiosos quanto profissionais por busca _(IA 2026-07-19)_
+- Mostrar processo físico real em andamento — transformação visível gera retenção _(IA 2026-07-19)_
+- Sem CTA explícita — o conteúdo técnico por si só é o gancho _(IA 2026-07-19)_
+- Behind-the-scenes de obra real — autenticidade sem produção elaborada _(IA 2026-07-19)_
+- Foco em um conceito ou profissão por vídeo — não dilui com múltiplos temas _(IA 2026-07-19)_
+
 - Humanização de Gênios/Ícones: Apresentar figuras históricas da ciência e engenharia (e.g., Einstein, Tesla) sob uma luz inesperada, humorística ou relatable, revelando aspectos menos conhecidos de suas vidas ou processos de pensamento. _(IA 2026-07-17)_
 - Desmistificação de Conceitos Complexos: Tornar tópicos de engenharia ou física complexos acessíveis, seja explicando o 'como' de algo aparentemente impossível, ou mostrando o lado humano por trás do gênio. _(IA 2026-07-17)_
 - Resolução de Dilemas Práticos: Abordar perguntas comuns e dilemas do dia a dia que têm uma base em engenharia ou ciência, oferecendo respostas claras e baseadas em fatos (e.g., escolha de combustível, impacto de carregadores). _(IA 2026-07-17)_
@@ -783,6 +795,19 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - (nenhum ainda — promover quando mecânica + resultado confirmado 2×)
 
 ## Erros dos concorrentes (nosso diferencial)
+
+- Iniciar os vídeos com introduções lentas, logotipos do canal ou contextualizações históricas longas demais.
+- Uso excessivo de termos técnicos de engenharia civil sem tradução visual ou analógica para o público leigo.
+- Dependência de imagens estáticas do Google Imagens em vez de trechos de vídeo dinâmicos ou animações explicativas de curta duração.
+- Uso excessivo de jargões acadêmicos e fórmulas matemáticas que afastam o público leigo do YouTube Shorts.
+- Vídeos estáticos baseados apenas em narração de Inteligência Artificial sobre bancos de imagens genéricos, sem demonstração prática do conceito.
+- Demora para apresentar o conflito ou a curiosidade principal do vídeo, perdendo o usuário no scroll nos primeiros 2 segundos.
+- Canais de curiosidade usam títulos genéricos como 'curiosidades' ou 'sabia que' sem especificidade técnica, perdendo tráfego de busca e gatilho de curiosidade
+- Foco em fatos abstratos sem mostrar processo físico ou visual — perdem o apelo de transformação que retém espectadores
+- Ignoram o fator humano e profissional — não mostram quem faz nem como faz, apenas o quê
+- Não exploram a beleza estrutural de elementos técnicos — perdem público que se maravilha com engenharia
+- Canais pequenos não usam terminologia de nicho — nomes como 'curiosidade inteligente' e 'curiosidades construtivas' são amplos demais para atrair público segmentado
+- Ausência de contraste temporal ou paradoxo — apresentam informação sem criar tensão entre o esperado e o real
 
 - Baixa Qualidade de Produção Visual: Canais menores frequentemente utilizam imagens estáticas, transições simples e narração básica, o que pode limitar o engajamento e a retenção, apesar de boas ideias de conteúdo.
 - Falta de Call to Action Claro e Estratégico: Embora CTAs existam, muitas vezes são genéricos ('curta e siga'). Poderiam ser mais integrados ao conteúdo ou oferecer um valor adicional para o engajamento (ex: 'comente sua experiência com X').
@@ -871,6 +896,543 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - `skills/viral-captions-and-ctas/references/ctas-that-work.md`
 
 ## Pesquisas automáticas (IA)
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-19 02:46 — CURIOSIDADE ENGENHARIA ANTIGA (SHORT)
+
+**Nicho:** CURIOSIDADE ENGENHARIA ANTIGA · **Formato:** SHORT
+**Outliers detectados:** 2
+
+#### Fichas de dissecção (IA)
+
+### A mistura e estrutura metálica, madeira e concreto existe!!
+
+- **Canal:** Engenharia Curiosa
+- **videoId / URL:** JgCE8FKA-o4 · https://www.youtube.com/watch?v=JgCE8FKA-o4
+- **Views / idade / duração:** 1.161 / 3m / 28s
+- **Outlier?** 8.03× vs mediana do canal (145 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Você não vai acreditar que misturaram metal, madeira e concreto na mesma estrutura!
+- Texto na tela: A mistura impossível de materiais
+- Arquétipo: Quebra de Expectativa
+
+#### Estrutura
+
+- Formato: Análise visual detalhada com zoom dinâmico nos pontos de junção dos materiais.
+- Blocos / beats: 0-3s: Apresentação do choque visual dos três materiais juntos; 3-15s: Explicação física de como a madeira e o metal dividem a carga do concreto; 15-30s: Revelação do projeto arquitetônico real; 30-45s: Veredito sobre a durabilidade dessa mistura.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Se você quer ver mais bizarrices da engenharia que funcionam, se inscreve.
+- Tipo: Inscrição implícita
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: A mistura e estrutura metálica, madeira e concreto existe!!
+
+#### Mecânica extraída (1 linha)
+
+> Exploração do paradoxo visual (materiais com propriedades físicas opostas trabalhando juntos), gerando curiosidade imediata sobre colapso estrutural.
+
+#### Erros do concorrente
+
+- Explicar a teoria dos materiais usando apenas texto ou imagens estáticas sem mostrar o ponto exato de conexão física onde a mágica acontece.
+
+---
+
+### Esse prédio é uma experiência sensorial
+
+- **Canal:** Engenharia Curiosa
+- **videoId / URL:** WE4l3t0Vu1g · https://www.youtube.com/watch?v=WE4l3t0Vu1g
+- **Views / idade / duração:** 1.121 / 3m / 38s
+- **Outlier?** 7.76× vs mediana do canal (145 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Esse prédio foi projetado para fazer você sentir coisas que nenhuma outra parede consegue.
+- Texto na tela: O prédio que você consegue SENTIR
+- Arquétipo: Curiosidade Sensorial
+
+#### Estrutura
+
+- Formato: Tour imersivo focado em efeitos de luz, acústica e vento gerados pela própria estrutura.
+- Blocos / beats: 0-3s: Demonstração de um efeito sensorial bizarro (ex: som ou luz mudando); 3-15s: Revelação dos segredos geométricos que causam o efeito; 15-30s: Reação das pessoas ao interagir com o prédio; 30-45s: Reflexão sobre como a engenharia antiga já usava isso.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Você aguentaria morar em um lugar assim? Comenta aí.
+- Tipo: Engajamento por pergunta
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: Esse prédio é uma experiência sensorial
+
+#### Mecânica extraída (1 linha)
+
+> Humanização da engenharia rígida, transformando concreto e aço em uma experiência biológica e emocional para o espectador.
+
+#### Erros do concorrente
+
+- Tratar a arquitetura de forma puramente técnica (metragens, custos) em vez de focar na experiência física e psicológica de quem habita o espaço.
+
+#### Ideias Lumiera derivadas
+
+1. **O Templo Antigo que Desafia Terremotos sem Nenhum Prego**
+   - Gancho: Como este templo de 1000 anos sobrevive a terremotos usando apenas encaixes de madeira?
+   - Mecânica: Contraste de materiais e engenharia de encaixes (inspirado no Outlier 1).
+   - Por que não é cópia: Em vez de focar na história da dinastia, o foco será na mecânica física dos encaixes 'Dougong', mostrando em animação 3D simplificada como eles dissipam a energia cinética.
+   - Pilar: astonishing
+
+2. **O Segredo do Concreto Romano que se Cura Sozinho**
+   - Gancho: O segredo milenar do concreto que fica mais forte quando começa a rachar!
+   - Mecânica: Experiência sensorial e transformação de materiais rígidos (inspirado no Outlier 2).
+   - Por que não é cópia: Focar na reação química sensorial da água do mar com a cinza vulcânica (mostrando visualmente o processo de cristalização em macro), em vez de apenas narrar fatos históricos.
+   - Pilar: astonishing
+
+3. **A Ponte Inca de Capim que Suporta o Peso de um Carro**
+   - Gancho: Esta ponte antiga é feita literalmente de capim trançado, mas a física por trás dela vai te chocar.
+   - Mecânica: Mistura inusitada de materiais flexíveis gerando rigidez estrutural extrema (inspirado no Outlier 1).
+   - Por que não é cópia: Focar na tensão física e na distribuição de carga das fibras naturais tensionadas, mostrando o teste de estresse dinâmico da ponte balançando com peso real.
+   - Pilar: astonishing
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-19 02:16 — CURIOSIDADE ANTIGA ENGENHARIA (SHORT)
+
+**Nicho:** CURIOSIDADE ANTIGA ENGENHARIA · **Formato:** SHORT
+**Outliers detectados:** 4
+
+#### Fichas de dissecção (IA)
+
+### MECÂNICA DOS SOLOS
+
+- **Canal:** ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **videoId / URL:** ibdYlAghc4k · https://www.youtube.com/watch?v=ibdYlAghc4k
+- **Views / idade / duração:** 2.126 / 12m / 11s
+- **Outlier?** 90.47× vs mediana do canal (24 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Você sabe por que esse tipo de solo colapsa tão rápido?
+- Texto na tela: Demonstração prática de compressão de solo sofrendo ruptura imediata sob carga.
+- Arquétipo: The Secret Science
+
+#### Estrutura
+
+- Formato: Experimento prático + Explicação física simplificada
+- Blocos / beats: 0-3s: Ruptura visual do solo sob pressão; 3-15s: Explicação do conceito de coesão e água nos poros; 15-30s: Como os engenheiros evitam esse desastre em obras reais.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Se inscreva para entender a física por trás das grandes obras!
+- Tipo: subscription
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: MECÂNICA DOS SOLOS
+
+#### Mecânica extraída (1 linha)
+
+> Visualização física de forças invisíveis (pressão e atrito) através de experimentos simples e destrutivos.
+
+#### Erros do concorrente
+
+- Explicar mecânica dos solos usando apenas slides teóricos e fórmulas matemáticas complexas sem apelo visual.
+
+---
+
+### FECHAMENTO, SERRALHERIA
+
+- **Canal:** ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **videoId / URL:** e9Skou-VNrw · https://www.youtube.com/watch?v=e9Skou-VNrw
+- **Views / idade / duração:** 2.118 / 1a / 28s
+- **Outlier?** 90.13× vs mediana do canal (24 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Olha a precisão milimétrica desse fechamento de aço.
+- Texto na tela: Encaixe perfeito de duas peças metálicas pesadas sem nenhuma folga visível.
+- Arquétipo: Oddly Satisfying
+
+#### Estrutura
+
+- Formato: Processo de montagem em ASMR com foco em precisão
+- Blocos / beats: 0-3s: O som e o visual satisfatório do encaixe perfeito; 3-20s: Rápida sequência de solda e lixamento mostrando o trabalho manual; 20-30s: Teste final de abertura e fechamento suave.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Você daria nota 10 para esse acabamento? Comente aqui!
+- Tipo: comment
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: FECHAMENTO, SERRALHERIA
+
+#### Mecânica extraída (1 linha)
+
+> Explorar o gatilho mental da satisfação visual (perfeição geométrica e encaixes sem folga) combinado com som ambiente limpo.
+
+#### Erros do concorrente
+
+- Gravar com câmera trêmula, áudio estourado de oficina ou pular a cena do encaixe final perfeito.
+
+---
+
+### OBRA SERRALHEIRO
+
+- **Canal:** ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **videoId / URL:** ZXzxKq-JIt8 · https://www.youtube.com/watch?v=ZXzxKq-JIt8
+- **Views / idade / duração:** 1.506 / 1a / 12s
+- **Outlier?** 64.09× vs mediana do canal (24 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): O truque simples que serralheiros experientes usam para alinhar estruturas gigantes.
+- Texto na tela: Uso de uma ferramenta rudimentar ou gabarito caseiro para alinhar uma viga maciça.
+- Arquétipo: Insider Secret
+
+#### Estrutura
+
+- Formato: Dica prática de canteiro de obras (Pulo do Gato)
+- Blocos / beats: 0-3s: Apresentação do problema de desalinhamento; 3-15s: Demonstração do uso do gabarito inteligente; 15-30s: Resultado perfeito medido no nível a laser.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Mande esse vídeo para aquele seu amigo que gosta de invenções de obra!
+- Tipo: share
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: OBRA SERRALHEIRO
+
+#### Mecânica extraída (1 linha)
+
+> Revelação de métodos práticos e engenhosos que resolvem problemas complexos de forma barata e rápida.
+
+#### Erros do concorrente
+
+- Fazer introduções longas se apresentando em vez de mostrar o problema e a solução imediatamente nos primeiros segundos.
+
+---
+
+### ESTRUTURA EM AÇO TRELIÇADO
+
+- **Canal:** ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **videoId / URL:** p_mvIhaUNTw · https://www.youtube.com/watch?v=p_mvIhaUNTw
+- **Views / idade / duração:** 1.402 / 1a / 5s
+- **Outlier?** 59.66× vs mediana do canal (24 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Por que esse formato triangular consegue aguentar toneladas sem dobrar?
+- Texto na tela: Comparação visual de uma barra reta entortando vs uma estrutura treliçada resistindo ao mesmo peso.
+- Arquétipo: The Science of Strength
+
+#### Estrutura
+
+- Formato: Comparativo de resistência geométrica
+- Blocos / beats: 0-3s: Colapso da barra simples sob carga; 3-15s: Explicação de como a treliça distribui a força de tração e compressão; 15-30s: Exemplos reais em pontes e coberturas industriais.
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Quer dominar a engenharia das estruturas? Siga o canal!
+- Tipo: subscription
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: ESTRUTURA EM AÇO TRELIÇADO
+
+#### Mecânica extraída (1 linha)
+
+> Uso de analogias geométricas simples (triângulos vs retângulos) para explicar conceitos complexos de engenharia estrutural.
+
+#### Erros do concorrente
+
+- Usar termos excessivamente acadêmicos como 'momento fletor' ou 'diagrama de esforço' sem traduzir isso visualmente para o público leigo.
+
+#### Ideias Lumiera derivadas
+
+1. **O Segredo do Concreto Romano que se Cura Sozinho**
+   - Gancho: Como os romanos construíram portos que duram 2.000 anos sob a água salgada enquanto o nosso concreto racha em 50?
+   - Mecânica: MECÂNICA DOS SOLOS (Visualização de propriedades físicas e colapso de materiais antigos vs. modernos)
+   - Por que não é cópia: Não faça apenas uma colagem de fotos estáticas do Coliseu. Use a mecânica de comparação física: mostre o concreto moderno esfarelando sob pressão vs. a reação química do cal viva romano que sela as próprias rachaduras quando entra em contato com a água.
+   - Pilar: astonishing
+
+2. **O Encaixe de Madeira Japonês que Dispensa Pregos**
+   - Gancho: Como templos japoneses de 30 metros de altura resistem a terremotos sem usar um único prego de metal?
+   - Mecânica: FECHAMENTO, SERRALHERIA (Satisfação visual de encaixes perfeitos e tolerância zero)
+   - Por que não é cópia: Evite explicações puramente históricas ou geográficas. Foque na mecânica do encaixe perfeito (satisfatório): mostre uma animação 3D ou demonstração prática do encaixe 'Kanawa Tsugi' deslizando e travando sob pressão de forma milimétrica.
+   - Pilar: astonishing
+
+3. **O Prumo de Água: Como os Egípcios Alinharam as Pirâmides**
+   - Gancho: O truque incrivelmente simples que os egípcios usaram para deixar a base das pirâmides perfeitamente nivelada.
+   - Mecânica: OBRA SERRALHEIRO (Uso de ferramentas rudimentares e física básica para obter precisão extrema)
+   - Por que não é cópia: Não alimente teorias conspiratórias sobre alienígenas. Use a mecânica do 'pulo do gato' de obra: demonstre como abrir canais de água na rocha cria um nível natural perfeito, muito antes da invenção do nível a laser.
+   - Pilar: astonishing
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-19 01:51 — CURIOSIDADE ANTIGA ENGENHARIA (SHORT)
+
+**Nicho:** CURIOSIDADE ANTIGA ENGENHARIA · **Formato:** SHORT
+**Outliers detectados:** 4
+
+#### Fichas de dissecção (IA)
+
+### MECÂNICA DOS SOLOS
+
+- **Canal:** ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **videoId / URL:** ibdYlAghc4k · https://www.youtube.com/watch?v=ibdYlAghc4k
+- **Views / idade / duração:** 2.126 / 12m / 11s
+- **Outlier?** 90.47× vs mediana do canal (24 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Termo técnico 'mecânica dos solos' gera curiosidade em leigos e atrai profissionais por busca direta
+- Texto na tela: Imagem de solo sendo manipulado ou testado em contexto real de obra
+- Arquétipo: O Revelador — mostra algo técnico e complexo de forma acessível
+
+#### Estrutura
+
+- Formato: Demonstração visual de processo técnico com narração ou texto na tela
+- Blocos / beats: 1) Abertura com termo técnico no título; 2) Mostra o solo em contexto real de obra; 3) Explica conceito de forma simplificada; 4) Fecha com aplicação prática
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Sem CTA explícita — o conteúdo técnico por si só gera retenção e compartilhamento
+- Tipo: implícita
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: MECÂNICA DOS SOLOS
+
+#### Mecânica extraída (1 linha)
+
+> Uso de jargão técnico como título para criar duplo atrativo: curiosidade em leigos + busca orgânica de profissionais. Conteúdo visual de processo real.
+
+#### Erros do concorrente
+
+- Canais concorrentes usam títulos genéricos como 'curiosidades' sem especificidade técnica, perdendo tanto o tráfego de busca quanto o gatilho de curiosidade
+
+---
+
+### FECHAMENTO, SERRALHERIA
+
+- **Canal:** ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **videoId / URL:** e9Skou-VNrw · https://www.youtube.com/watch?v=e9Skou-VNrw
+- **Views / idade / duração:** 2.118 / 1a / 28s
+- **Outlier?** 90.13× vs mediana do canal (24 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): FECHAMENTO, SERRALHERIA
+- Texto na tela:
+- Arquétipo:
+
+#### Estrutura
+
+- Formato:
+- Blocos / beats:
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo:
+- Tipo:
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: FECHAMENTO, SERRALHERIA
+
+#### Mecânica extraída (1 linha)
+
+> Outlier 90.13× no nicho
+
+---
+
+### OBRA SERRALHEIRO
+
+- **Canal:** ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **videoId / URL:** ZXzxKq-JIt8 · https://www.youtube.com/watch?v=ZXzxKq-JIt8
+- **Views / idade / duração:** 1.506 / 1a / 12s
+- **Outlier?** 64.09× vs mediana do canal (24 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Palavra 'obra' + profissão 'serralheiro' cria identificação com público da construção
+- Texto na tela: Serralheiro trabalhando em ambiente real de obra
+- Arquétipo: O Profissional — valoriza o trabalho manual especializado
+
+#### Estrutura
+
+- Formato: Vitrine de profissão ou ofício em ambiente de obra real
+- Blocos / beats: 1) Título direto com profissão; 2) Mostra o profissional em ação; 3) Detalhes do trabalho manual; 4) Contexto da obra ao redor
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Sem CTA explícita — apelo está na valorização do ofício
+- Tipo: implícita
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: OBRA SERRALHEIRO
+
+#### Mecânica extraída (1 linha)
+
+> Valorização de ofício específico da construção — mostra o trabalho de um profissional especializado em seu ambiente natural, gerando identificação e respeito
+
+#### Erros do concorrente
+
+- Canais de curiosidade ignoram o fator humano e profissional, focando apenas em fatos sem mostrar quem faz
+
+---
+
+### ESTRUTURA EM AÇO TRELIÇADO
+
+- **Canal:** ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **videoId / URL:** p_mvIhaUNTw · https://www.youtube.com/watch?v=p_mvIhaUNTw
+- **Views / idade / duração:** 1.402 / 1a / 5s
+- **Outlier?** 59.66× vs mediana do canal (24 views)
+
+#### Hook (0–3s)
+
+- Visual (1º frame):
+- Verbal (1ª frase): Termo 'treliçado' é visualmente evocativo e tecnicamente preciso
+- Texto na tela: Estrutura metálica treliçada sendo montada ou já montada
+- Arquétipo: O Arquiteto — revela a complexidade escondida em estruturas
+
+#### Estrutura
+
+- Formato: Apresentação visual de estrutura engenhosa com foco na complexidade técnica
+- Blocos / beats: 1) Título com termo técnico específico; 2) Mostra a estrutura em detalhe; 3) Revela como as peças se conectam; 4) Escala ou perspectiva da estrutura completa
+- Open loops:
+- Pattern interrupts:
+
+#### Retenção & payoff
+
+- O que o gancho prometeu:
+- Onde entrega:
+
+#### CTA
+
+- Último bloco / comentário fixo: Sem CTA explícita — a estrutura por si só gera admiração
+- Tipo: implícita
+
+#### Packaging
+
+- Thumb (3–5 palavras):
+- Título: ESTRUTURA EM AÇO TRELIÇADO
+
+#### Mecânica extraída (1 linha)
+
+> Revelação de complexidade estrutural — mostra algo que parece simples mas tem engenharia sofisticada por trás, usando terminologia técnica como gancho
+
+#### Erros do concorrente
+
+- Concorrentes não exploram a beleza estrutural de elementos técnicos, perdendo o público que se maravilha com engenharia
+
+#### Ideias Lumiera derivadas
+
+1. **Como os romanos dominavam a mecânica dos solos 2000 anos antes de existir faculdade**
+   - Gancho: Você sabia que os romanos já entendiam de mecânica dos solos 2000 anos antes de virar matéria de faculdade?
+   - Mecânica: MECÂNICA DOS SOLOS — uso de jargão técnico como título + demonstração visual do conceito
+   - Por que não é cópia: Não copia o vídeo original que mostra processo moderno de obra. Adapta a mecânica de termo técnico como gancho para o contexto de engenharia antiga, criando contraste temporal que amplifica a curiosidade.
+   - Pilar: astonishing
+
+2. **A serralheria escondida que segura catedrais há 800 anos**
+   - Gancho: As ferragens escondidas dentro das catedrais góticas foram tão bem feitas que seguram o teto há 800 anos — e ninguém nunca viu.
+   - Mecânica: FECHAMENTO, SERRALHERIA — processo de transformação visual com terminologia de ofício
+   - Por que não é cópia: Não replica o formato de mostrar serralheria moderna. Pega a mecânica de processo de transformação de metal e aplica no contexto histórico de engenharia oculta, criando mistério em vez de apenas demonstração.
+   - Pilar: astonishing
+
+3. **A estrutura treliçada que os egípcios usaram antes de existir aço**
+   - Gancho: Treliça de aço é moderna, certo? Errado. Os egípcios já usavam o mesmo princípio 4000 anos atrás — com madeira e corda.
+   - Mecânica: ESTRUTURA EM AÇO TRELIÇADO — revelação de complexidade estrutural com terminologia técnica
+   - Por que não é cópia: Não copia o vídeo que mostra estrutura moderna de aço. Usa a mecânica de revelar complexidade estrutural com termo técnico mas inverte a expectativa ao mostrar que o conceito é ancestral, não moderno.
+   - Pilar: astonishing
 
 ## Pesquisas automáticas (IA)
 
@@ -6398,3 +6960,12 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - **O Segredo de Tesla: Ele Realmente Dormia?** — Você sabia que um dos maiores inventores da história tinha hábitos de sono... peculiares? Descubra como Tesla revolucionou a engenharia com uma rotina de sono inacreditável! _(inbox · IA 2026-07-17)_
 - **A Ponte que Desafia a Gravidade: Como Ela Ainda Está de Pé?** — Existe uma ponte que parece flutuar, desafiando todas as leis da física! Como os engenheiros conseguiram construir essa maravilha que desafia a gravidade? _(inbox · IA 2026-07-17)_
 - **Carregador Rápido vs. Lento: Qual Estraga Menos a Bateria do Seu Celular?** — Seu carregador rápido está matando a bateria do seu celular? A verdade sobre a vida útil da sua bateria e qual carregador é o melhor para ela! _(inbox · IA 2026-07-17)_
+- **Como os romanos dominavam a mecânica dos solos 2000 anos antes de existir faculdade** — Você sabia que os romanos já entendiam de mecânica dos solos 2000 anos antes de virar matéria de faculdade? _(inbox · IA 2026-07-19)_
+- **A serralheria escondida que segura catedrais há 800 anos** — As ferragens escondidas dentro das catedrais góticas foram tão bem feitas que seguram o teto há 800 anos — e ninguém nunca viu. _(inbox · IA 2026-07-19)_
+- **A estrutura treliçada que os egípcios usaram antes de existir aço** — Treliça de aço é moderna, certo? Errado. Os egípcios já usavam o mesmo princípio 4000 anos atrás — com madeira e corda. _(inbox · IA 2026-07-19)_
+- **O Segredo do Concreto Romano que se Cura Sozinho** — Como os romanos construíram portos que duram 2.000 anos sob a água salgada enquanto o nosso concreto racha em 50? _(inbox · IA 2026-07-19)_
+- **O Encaixe de Madeira Japonês que Dispensa Pregos** — Como templos japoneses de 30 metros de altura resistem a terremotos sem usar um único prego de metal? _(inbox · IA 2026-07-19)_
+- **O Prumo de Água: Como os Egípcios Alinharam as Pirâmides** — O truque incrivelmente simples que os egípcios usaram para deixar a base das pirâmides perfeitamente nivelada. _(inbox · IA 2026-07-19)_
+- **O Templo Antigo que Desafia Terremotos sem Nenhum Prego** — Como este templo de 1000 anos sobrevive a terremotos usando apenas encaixes de madeira? _(inbox · IA 2026-07-19)_
+- **O Segredo do Concreto Romano que se Cura Sozinho** — O segredo milenar do concreto que fica mais forte quando começa a rachar! _(inbox · IA 2026-07-19)_
+- **A Ponte Inca de Capim que Suporta o Peso de um Carro** — Esta ponte antiga é feita literalmente de capim trançado, mas a física por trás dela vai te chocar. _(inbox · IA 2026-07-19)_

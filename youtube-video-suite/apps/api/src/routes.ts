@@ -5,6 +5,8 @@ import { addJobToQueue } from "./queue.js";
 import { ProjectManifestSchema } from "@video-suite/scene-contract";
 import { randomUUID } from "crypto";
 import { healthCheck, getMetrics, trackRequest } from "./observability.js";
+import path from "path";
+import fs from "fs";
 
 const prisma = new PrismaClient();
 
@@ -18,6 +20,42 @@ export async function registerRoutes(fastify: FastifyInstance) {
   fastify.get("/metrics", async () => {
     return getMetrics();
   });
+
+  // ── Static file server for storage assets ──────────────────────────────────
+  const STORAGE_DIR = path.resolve(__dirname, "../../..", "storage");
+
+  fastify.get("/v1/storage/*", async (request, reply) => {
+    const rawPath = (request.params as any)["*"];
+    // Sanitize: prevent directory traversal
+    const safePath = path.normalize(rawPath).replace(/^\.\.[/\\]/g, "");
+    const filePath = path.join(STORAGE_DIR, safePath);
+
+    // Ensure we stay within STORAGE_DIR
+    if (!filePath.startsWith(STORAGE_DIR)) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return reply.status(404).send({ error: "File not found" });
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeMap: Record<string, string> = {
+      ".mp4": "video/mp4",
+      ".webm": "video/webm",
+      ".mp3": "audio/mpeg",
+      ".wav": "audio/wav",
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".webp": "image/webp",
+    };
+
+    const contentType = mimeMap[ext] || "application/octet-stream";
+    const stream = fs.createReadStream(filePath);
+    return reply.type(contentType).send(stream);
+  });
+
   // POST /v1/projects
   fastify.post("/v1/projects", async (request, reply) => {
     const { title, format, nicheId, language, aspectRatio, targetDurationSec } =
@@ -248,10 +286,32 @@ export async function registerRoutes(fastify: FastifyInstance) {
     const { sceneId } = request.params as any;
 
     try {
-      const scene = await prisma.scene.findUnique({ where: { id: sceneId } });
+      const scene = await prisma.scene.findUnique({
+        where: { id: sceneId },
+        include: { project: true },
+      });
       if (!scene) {
         return reply.status(404).send({ error: "Scene not found" });
       }
+
+      const existingManifest = (scene.manifestJson as any) || {};
+      const fullManifest = {
+        sceneId: scene.id,
+        projectId: scene.projectId,
+        aspectRatio:
+          existingManifest.aspectRatio || scene.project?.aspectRatio || "9:16",
+        engineHint: scene.engineHint,
+        script: scene.script,
+        caption: scene.caption,
+        visualMetaphor: scene.visualMetaphor,
+        paletteId: scene.paletteId,
+        motionProfile: scene.motionProfile,
+        assets: existingManifest.assets || [],
+        status: scene.status,
+        version: scene.version,
+        durationSec: scene.durationSec,
+        ...existingManifest,
+      };
 
       // Determine the correct render queue based on engineHint
       const queueName = engineHintToQueue(scene.engineHint);
@@ -259,7 +319,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
       await addJobToQueue(queueName as any, "render-scene", {
         projectId: scene.projectId,
         sceneId: scene.id,
-        manifestJson: scene.manifestJson,
+        manifestJson: fullManifest,
       });
 
       return {
@@ -357,10 +417,142 @@ export async function registerRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // GET /v1/engines/health
-  fastify.get("/v1/engines/health", async (_request, _reply) => {
-    const { healthcheckAll } = await import("./adapters/router.js");
-    return healthcheckAll();
+  // GET /v1/logs — retrieve central system logs
+  fastify.get("/v1/logs", async (request) => {
+    const { pushLog, getLogs } = await import("./logger.js");
+    const { limit, level } = request.query as {
+      limit?: string;
+      level?: string;
+    };
+    const max = limit ? parseInt(limit, 10) : 100;
+    return { logs: getLogs(max, level) };
+  });
+
+  // POST /v1/jobs/cancel-all — stop and cancel all active/queued processes
+  fastify.post("/v1/jobs/cancel-all", async () => {
+    const { queues } = await import("./queue.js");
+    const { pushLog } = await import("./logger.js");
+    let canceledCount = 0;
+
+    for (const [name, queue] of Object.entries(queues)) {
+      try {
+        await queue.drain();
+        await queue.clean(0, 100, "active");
+        await queue.clean(0, 100, "wait");
+        await queue.clean(0, 100, "paused");
+        canceledCount++;
+      } catch (err: any) {
+        fastify.log.warn(`Failed to drain queue ${name}: ${err.message}`);
+      }
+    }
+
+    // Update active jobs in DB
+    await prisma.job.updateMany({
+      where: { status: { in: ["active", "pending"] } },
+      data: { status: "failed", errorMessage: "Cancelado pelo usuário" },
+    });
+
+    // Reset generating projects to pending
+    await prisma.project.updateMany({
+      where: { status: "generating" },
+      data: { status: "pending" },
+    });
+
+    pushLog(
+      "warn",
+      "System",
+      "⛔ Todos os processos ativos foram encerrados a pedido do usuário."
+    );
+
+    return {
+      ok: true,
+      canceledCount,
+      message: "Todos os processos foram cancelados.",
+    };
+  });
+
+  // GET /v1/tts/options — list available TTS providers and voice profiles
+  fastify.get("/v1/tts/options", async () => {
+    const WORKSPACE_ROOT =
+      "c:/Users/Leo/Documents/VIDEOS PROFISSIONAIS/LONGOS/LUMIERA";
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const {
+      probeVoiceboxServer,
+      loadVoiceboxConfig,
+    } = require("../../../../dashboard-qanat/backend/voiceboxTts.js");
+
+    const vbConfig = loadVoiceboxConfig({ workspaceDir: WORKSPACE_ROOT });
+    const probe = await probeVoiceboxServer(vbConfig, {
+      timeoutMs: 3000,
+    }).catch(() => ({ ok: false, profiles: [] }));
+
+    const voiceboxVoices = (probe.profiles || []).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      language: p.language || "pt",
+    }));
+
+    const fishSpeechVoices = [
+      {
+        id: "default",
+        name: "Lucas — Narrador Principal PT-BR (Equilibrado)",
+        language: "pt",
+      },
+      {
+        id: "antonio_pt",
+        name: "Antônio — Documentário & História (Grave)",
+        language: "pt",
+      },
+      {
+        id: "felipe_entusiasta",
+        name: "Felipe — Shorts & YouTube (Jovem Entusiasta)",
+        language: "pt",
+      },
+      {
+        id: "carlos_noticias",
+        name: "Carlos — Jornalístico / Notícias (Firme)",
+        language: "pt",
+      },
+      {
+        id: "mariana_clara",
+        name: "Mariana — Narradora Didática (Claro)",
+        language: "pt",
+      },
+      {
+        id: "camila_suave",
+        name: "Camila — Narradora Suave (Curiosidades)",
+        language: "pt",
+      },
+      {
+        id: "gabriel_dramatico",
+        name: "Gabriel — Mistério & Terror (Dramático)",
+        language: "pt",
+      },
+      {
+        id: "ricardo_explicativo",
+        name: "Ricardo — Ciência & Tecnologia (Explicativo)",
+        language: "pt",
+      },
+    ];
+
+    return {
+      providers: [
+        {
+          id: "voicebox",
+          name: "Voicebox TTS (Local CUDA)",
+          healthy: Boolean(probe.ok),
+          baseUrl: probe.baseUrl || "http://127.0.0.1:17493",
+          voices: voiceboxVoices,
+        },
+        {
+          id: "fish-speech",
+          name: "Fish Speech S2 (Local)",
+          healthy: true,
+          voices: fishSpeechVoices,
+        },
+      ],
+    };
   });
 
   // ── Project Management ──────────────────────────────────────────────────────
@@ -373,12 +565,30 @@ export async function registerRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // PATCH /v1/projects/:id — update project metadata
+  // PATCH /v1/projects/:id — update project metadata or TTS configuration
   fastify.patch("/v1/projects/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const data = request.body as Record<string, unknown>;
+    const data = request.body as Record<string, any>;
     try {
-      return await prisma.project.update({ where: { id }, data });
+      const existing = await prisma.project.findUniqueOrThrow({
+        where: { id },
+      });
+      const manifest = (existing.manifestJson as any) || {};
+
+      if (data.ttsProvider !== undefined)
+        manifest.ttsProvider = data.ttsProvider;
+      if (data.voiceId !== undefined) manifest.voiceId = data.voiceId;
+
+      const updateData: Record<string, any> = { manifestJson: manifest };
+      if (data.title) updateData.title = data.title;
+      if (data.format) updateData.format = data.format;
+      if (data.language) updateData.language = data.language;
+      if (data.aspectRatio) updateData.aspectRatio = data.aspectRatio;
+      if (data.targetDurationSec)
+        updateData.targetDurationSec = data.targetDurationSec;
+      if (data.status) updateData.status = data.status;
+
+      return await prisma.project.update({ where: { id }, data: updateData });
     } catch {
       return reply.status(404).send({ error: "Project not found" });
     }
@@ -662,11 +872,11 @@ function buildVideoPrompt(scene: any): string {
 
 function engineHintToQueue(engineHint: string): string {
   const map: Record<string, string> = {
-    hyperframes: "hyperframes-render",
-    remotion: "remotion-render",
-    "gbro-collage-broll": "gbro-render",
-    "vox-director": "vox-render",
-    "vox-explainer": "vox-render",
+    hyperframes: "hyperframesRender",
+    remotion: "remotionRender",
+    "gbro-collage-broll": "gbroRender",
+    "vox-director": "voxRender",
+    "vox-explainer": "voxRender",
     ffmpeg: "delivery",
   };
   return map[engineHint] || "delivery";

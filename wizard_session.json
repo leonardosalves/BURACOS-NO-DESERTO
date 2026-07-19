@@ -1,26 +1,45 @@
 {
   "version": 2,
-  "savedAt": "2026-07-17T14:56:13.842Z",
-  "wasInWizard": false,
+  "savedAt": "2026-07-19T16:04:23.164Z",
+  "wasInWizard": true,
   "activeTab": "creator",
-  "activeProject": "",
+  "activeProject": "Ralph_Narration_Button",
   "creatorStep": 1,
-  "nicheInput": "",
-  "formatSelector": "LONGO",
+  "nicheInput": "engenharia histórica",
+  "formatSelector": "SHORTS",
   "ideasData": null,
   "selectedIdeaIndex": -1,
-  "generatedScriptData": null,
-  "creatorProjectName": "",
+  "generatedScriptData": {
+    "strategy": {
+      "title_main": "",
+      "title_variations": [],
+      "hook": "",
+      "target_audience": "",
+      "tone": "",
+      "pinned_comment": "",
+      "cta": ""
+    },
+    "narrative_script": "",
+    "narrative_script_tagged": "",
+    "visual_prompts": [],
+    "checklist": {
+      "click_potential": 0,
+      "retention_potential": 0,
+      "comments_potential": 0,
+      "feedback": ""
+    }
+  },
+  "creatorProjectName": "Ralph_Narration_Button",
   "creatorScript": "",
-  "ideationTab": "ai",
+  "ideationTab": "custom",
   "historicalWitnessContext": null,
-  "customTitle": "",
-  "customHooks": "",
-  "customOutline": "",
+  "customTitle": "Como os romanos erguiam pedras gigantes",
+  "customHooks": "O mecanismo parecia impossível.",
+  "customOutline": "Explicar roldanas, vantagem mecânica e travas.",
   "customBlocks": [
     {
       "block": 1,
-      "content": ""
+      "content": "Mostrar o mecanismo real."
     }
   ],
   "customIdeaTitle": "",
@@ -48,7 +67,7 @@
   "notebooklmSession": null,
   "useNotebooklm": false,
   "notebooklmDeep": false,
-  "useDeepResearch": true,
+  "useDeepResearch": false,
   "uploadedScenes": {},
   "expandedBlocks": {
     "1": true

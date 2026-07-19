@@ -4,9 +4,38 @@ import {
   normalizeVisualPromptMediaTypes,
   normalizeVisualPromptBlocks,
   finalizeGeneratedVisualPromptMedia,
+  needsVisualPromptsRepair,
   SHORTS_VIDEO_SCENE_TYPE,
   IMAGE_SCENE_TYPE,
 } from "./scriptQuality.js";
+
+test("fallback visual exige reparo por IA mesmo com cenas e blocos completos", () => {
+  const visualPrompts = Array.from({ length: 8 }, (_, index) => ({
+    scene: `${Math.floor(index / 2) + 1}.${(index % 2) + 1}`,
+    block: Math.floor(index / 2) + 1,
+    narration_text: `Trecho narrado número ${index + 1}.`,
+    prompt:
+      index === 4
+        ? "Photorealistic 2k cinematic medium shot of a historically plausible physical mechanism. Documentary science style, dramatic lighting, sharp detail, no text overlay."
+        : `Specific archival documentary photograph of mechanical apparatus number ${index + 1}, exposed gears and steel components`,
+  }));
+
+  assert.equal(
+    needsVisualPromptsRepair(
+      {
+        visual_prompts: visualPrompts,
+        technical_config: {
+          block_phrases: [1, 2, 3, 4].map((block) => ({
+            block,
+            phrase: `Bloco ${block}`,
+          })),
+        },
+      },
+      { blockCount: 4, format: "LONGO" }
+    ),
+    true
+  );
+});
 
 test("prompt de movimento com type imagem vira vídeo IA", () => {
   const out = normalizeVisualPromptMediaTypes([
@@ -150,10 +179,9 @@ test("contrato final normaliza IMAGE mesmo quando Shorts já tem vídeos suficie
     prompt: `Active historical action scene ${block}, cinematic motion, max 10 seconds`,
   }));
 
-  const out = finalizeGeneratedVisualPromptMedia(
-    [residualImage, ...videos],
-    { format: "SHORTS" }
-  );
+  const out = finalizeGeneratedVisualPromptMedia([residualImage, ...videos], {
+    format: "SHORTS",
+  });
 
   assert.equal(out[0].type, IMAGE_SCENE_TYPE);
   assert.equal(out[0].media_mode, "image");

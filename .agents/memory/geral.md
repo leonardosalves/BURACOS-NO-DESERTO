@@ -5,8 +5,8 @@
 ## Meta
 
 niche: Geral
-updated: 2026-07-18T05:44:49.197Z
-runs: 35
+updated: 2026-07-19T16:04:14.897Z
+runs: 41
 
 ## Padrões promovidos
 
@@ -14,5 +14,5 @@ runs: 35
 
 ## Candidatos (em observação)
 
-- [SHORT/no_bgm] Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia (count: 32)
+- [SHORT/no_bgm] Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia (count: 38)
 - [LONG/no_bgm] Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia (count: 3)

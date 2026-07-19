@@ -1,5 +1,5 @@
 import toast from "react-hot-toast";
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useEffect, useRef } from "react";
 import {
   ArrowRight,
   BarChart3,
@@ -463,6 +463,20 @@ export function AppCreatorTab({
   youtubeMetadata,
   youtubeMetadataParsed,
 }: AppCreatorTabProps) {
+  const narrationDeliveryRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showNarrationReview) return;
+    const timer = window.setTimeout(() => {
+      narrationDeliveryRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      narrationDeliveryRef.current?.focus({ preventScroll: true });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [showNarrationReview, narrationDraft]);
+
   const [narrationWizardReadiness, setNarrationWizardReadiness] =
     React.useState<{
       ready: boolean;
@@ -2164,38 +2178,47 @@ export function AppCreatorTab({
                 </div>
               )}
               {showNarrationReview && (
-                <NarrationReviewPanel
-                  narrativeScript={narrationDraft}
-                  narrativeScriptTagged={narrationTaggedDraft}
-                  strategyHook={narrationStrategy?.hook}
-                  strategyTitle={narrationStrategy?.title_main}
-                  blockPhrases={narrationBlockPhrases}
-                  blockScript={narrationBlockScript}
-                  editorialQuality={storyboardData?.editorial_quality}
-                  narrationReadiness={storyboardData?.narration_readiness}
-                  visualReadiness={storyboardData?.visual_quality}
-                  notebooklmEnriched={narrationNotebooklmEnriched}
-                  notebooklmImproving={notebooklmImproving}
-                  notebooklmAvailable={notebooklmStatus?.authenticated ?? false}
-                  niche={nicheInput}
-                  motionTemplatePackEnabled={motionTemplatePackEnabled}
-                  motionTemplateNiche={motionTemplateNiche}
-                  motionTemplateIds={motionTemplateIds}
-                  loading={creatorLoading}
-                  loadingMode={creatorLoadingMode}
-                  onNarrativeChange={(value) => {
-                    setNarrationDraft(value);
-                    if (narrationTaggedDraft) setNarrationTaggedDraft("");
-                  }}
-                  onRegenerate={handleGenerateNarration}
-                  onApprove={handleApproveNarrationAndGenerateScript}
-                  onNotebooklmImprove={handleNotebooklmImproveNarrationDraft}
-                  onMotionTemplatePackEnabledChange={
-                    setMotionTemplatePackEnabled
-                  }
-                  onMotionTemplateNicheChange={setMotionTemplateNiche}
-                  onMotionTemplateIdsChange={setMotionTemplateIds}
-                />
+                <div
+                  ref={narrationDeliveryRef}
+                  tabIndex={-1}
+                  data-testid="narration-delivery"
+                  className="scroll-mt-4 outline-none"
+                >
+                  <NarrationReviewPanel
+                    narrativeScript={narrationDraft}
+                    narrativeScriptTagged={narrationTaggedDraft}
+                    strategyHook={narrationStrategy?.hook}
+                    strategyTitle={narrationStrategy?.title_main}
+                    blockPhrases={narrationBlockPhrases}
+                    blockScript={narrationBlockScript}
+                    editorialQuality={storyboardData?.editorial_quality}
+                    narrationReadiness={storyboardData?.narration_readiness}
+                    visualReadiness={storyboardData?.visual_quality}
+                    notebooklmEnriched={narrationNotebooklmEnriched}
+                    notebooklmImproving={notebooklmImproving}
+                    notebooklmAvailable={
+                      notebooklmStatus?.authenticated ?? false
+                    }
+                    niche={nicheInput}
+                    motionTemplatePackEnabled={motionTemplatePackEnabled}
+                    motionTemplateNiche={motionTemplateNiche}
+                    motionTemplateIds={motionTemplateIds}
+                    loading={creatorLoading}
+                    loadingMode={creatorLoadingMode}
+                    onNarrativeChange={(value) => {
+                      setNarrationDraft(value);
+                      if (narrationTaggedDraft) setNarrationTaggedDraft("");
+                    }}
+                    onRegenerate={handleGenerateNarration}
+                    onApprove={handleApproveNarrationAndGenerateScript}
+                    onNotebooklmImprove={handleNotebooklmImproveNarrationDraft}
+                    onMotionTemplatePackEnabledChange={
+                      setMotionTemplatePackEnabled
+                    }
+                    onMotionTemplateNicheChange={setMotionTemplateNiche}
+                    onMotionTemplateIdsChange={setMotionTemplateIds}
+                  />
+                </div>
               )}
             </div>
           )}

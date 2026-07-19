@@ -188,6 +188,38 @@ import { AppTabPanels } from "./AppTabPanels";
 import { RichTimelineEditor } from "./RichTimelineEditor";
 import { normalizeReverseEngineeredStoryboard } from "@lumiera/shared/reverseEngineeringMedia.js";
 
+const MIN_CREATOR_NARRATION_LENGTH = 80;
+
+function narrationFailureText(data: Record<string, unknown>) {
+  return [data.error, data.details, data.hint]
+    .flatMap((value) => (Array.isArray(value) ? value : [value]))
+    .filter(Boolean)
+    .map(String)
+    .join(" — ");
+}
+
+function isRetryableNarrationQualityFailure(
+  ok: boolean,
+  data: Record<string, unknown>
+) {
+  if (data.needs_browser || data.needsNotebooklmLogin) return false;
+  const narrationLength = String(data.narrative_script || "").trim().length;
+  if (ok) return narrationLength < MIN_CREATOR_NARRATION_LENGTH;
+
+  const failure = narrationFailureText(data);
+  if (
+    /login|autentic|api[ -]?key|chave de api|configura|notebooklm|quota|rate limit|429|503|indispon[ií]vel|network|rede|failed to fetch|timeout/i.test(
+      failure
+    )
+  ) {
+    return false;
+  }
+  if (data.automaticRepairExhausted === true) return true;
+  return /qualidade|quality|integridade|editorial|reten[cç][aã]o|narracao_pro|narra[cç][aã]o bloqueada|violou regras|bloqueios obrigat[oó]rios|gancho|fatos centrais|texto (?:curto|incompleto)|resposta (?:curta|incompleta|truncada)|incomplet|truncad/i.test(
+    failure
+  );
+}
+
 const initialWizardSession = loadWizardSession();
 const initialActiveProject = resolveInitialActiveProject(initialWizardSession);
 const initialProjectSnapshot = loadCachedProjectSnapshot(initialActiveProject);
@@ -8886,7 +8918,7 @@ export default function App() {
     );
     /* Nunca resetar sessão NotebookLM automaticamente — progresso fica no brief MD */
     setShowNarrationReview(false);
-    const progressJobId = createProgressJobId();
+    let progressJobId = createProgressJobId();
     const progressTitle =
       ideationTab === "listicle"
         ? `Narração Top ${rankCount}`
@@ -8894,7 +8926,8 @@ export default function App() {
     startAiJobProgress(progressJobId, progressTitle);
 
     try {
-      const { ok, data } = await postCreatorScriptAi(
+      let generationAttempt = 1;
+      let { ok, data } = await postCreatorScriptAi(
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -8903,6 +8936,28 @@ export default function App() {
         { jobId: progressJobId, project: projectName }
       );
       if (token !== creatorGenTokenRef.current) return;
+      if (isRetryableNarrationQualityFailure(ok, data)) {
+        generationAttempt = 2;
+        toast.loading(
+          "A primeira versão não passou na qualidade. Aprimorando narração (tentativa 2/2)…",
+          { id: toastId }
+        );
+        progressJobId = createProgressJobId();
+        startAiJobProgress(progressJobId, `${progressTitle} · tentativa 2/2`);
+        ({ ok, data } = await postCreatorScriptAi(
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...payload,
+              qualityRetryAttempt: generationAttempt,
+              qualityRetryFeedback: narrationFailureText(data),
+            }),
+          },
+          { jobId: progressJobId, project: projectName }
+        ));
+        if (token !== creatorGenTokenRef.current) return;
+      }
       if (ok && data.phase === "notebooklm_pending") {
         stopAiJobProgress(false);
         setNotebooklmSession(
@@ -8926,21 +8981,32 @@ export default function App() {
       }
       if (ok && !data.needs_browser) {
         const scriptLen = String(data.narrative_script || "").trim().length;
-        if (scriptLen < 80) {
+        if (scriptLen < MIN_CREATOR_NARRATION_LENGTH) {
           stopAiJobProgress(false, "Resposta incompleta — tente de novo.");
           toast.error(
-            "Resposta do Gemini incompleta — o chat não terminou. Veja gemini.google.com, espere o JSON completo e clique em Gerar Narração de novo.",
-            { duration: 10000 }
+            generationAttempt === 2
+              ? "A narração continuou incompleta após 2 tentativas. Tente novamente ou verifique o provedor de IA."
+              : "Resposta do Gemini incompleta — o chat não terminou. Veja gemini.google.com, espere o JSON completo e clique em Gerar Narração de novo.",
+            { id: toastId, duration: 10000 }
           );
         } else {
           stopAiJobProgress(true);
+          const automaticRepairAttempts = Number(
+            (
+              data.automatic_narration_repair as
+                { attempts?: number } | undefined
+            )?.attempts || 0
+          );
           applyNarrationGenerationResult(
             data,
             projectName,
             token,
-            data.notebooklm_enriched
-              ? "Narração pronta (NotebookLM) — revise antes do roteiro."
-              : "Narração gerada — revise antes do roteiro."
+            automaticRepairAttempts > 0
+              ? `Narração corrigida pela IA, reavaliada e aprovada (${automaticRepairAttempts} autorreparo${automaticRepairAttempts > 1 ? "s" : ""}).`
+              : data.notebooklm_enriched
+                ? "Narração pronta (NotebookLM) — revise antes do roteiro."
+                : "Narração gerada — revise antes do roteiro.",
+            toastId
           );
           await fetchProjects();
         }
@@ -8952,8 +9018,10 @@ export default function App() {
         if (data.needsNotebooklmLogin) {
           toast.error(
             "Conecte o NotebookLM no painel do Criador (checkbox marcado) antes de gerar narração.",
-            { duration: 10000 }
+            { id: toastId, duration: 10000 }
           );
+        } else {
+          toast.error(String(errMsg), { id: toastId, duration: 12000 });
         }
       }
     } catch (err: unknown) {
@@ -8961,6 +9029,7 @@ export default function App() {
         const msg =
           err instanceof Error ? err.message : "Falha na geração da narração.";
         stopAiJobProgress(false, msg);
+        toast.error(msg, { id: toastId, duration: 12000 });
       }
     } finally {
       if (creatorNarrationInFlightTokenRef.current === token) {

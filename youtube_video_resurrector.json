@@ -19,38 +19,25 @@
     "completedAt": null
   },
   "dailyRuns": {
-    "date": "2026-07-18",
+    "date": "2026-07-19",
     "morning": {
-      "ranAt": "2026-07-18T14:01:48.247Z",
+      "ranAt": "2026-07-19T14:00:38.710Z",
       "trigger": "auto",
       "videoIds": [
         "WKcFkfVfi6w",
-        "x2s1ooLvdCM",
-        "gaYfwwN50HE",
-        "-Jf6juSP9e8",
-        "gptpczi9B7w"
-      ],
-      "count": 4,
-      "applied": 4,
-      "failed": 1
-    },
-    "afternoon": {
-      "ranAt": "2026-07-18T21:01:41.411Z",
-      "trigger": "auto",
-      "videoIds": [
-        "vhYQP2a5SNw",
-        "C2xuZ_u5SJg",
-        "Za2LJu8gv7k",
         "19AzC-l1KiM",
-        "ffdbVB3h7og"
+        "gaYajkw-DEc",
+        "MlWjCZAQrrc",
+        "edUkSV03g9E"
       ],
-      "count": 4,
-      "applied": 4,
-      "failed": 1
-    }
+      "count": 2,
+      "applied": 2,
+      "failed": 3
+    },
+    "afternoon": null
   },
-  "lastDailyRunAt": "2026-07-18T21:01:41.411Z",
-  "lastDailyRunDate": "2026-07-18",
+  "lastDailyRunAt": "2026-07-19T14:00:38.710Z",
+  "lastDailyRunDate": "2026-07-19",
   "items": [
     {
       "id": "6a773cca-d8d8-410b-81a2-8f67e4674d7d",
@@ -13412,7 +13399,7 @@
       "thumbnailUrl": "https://i.ytimg.com/vi/gaYajkw-DEc/mqdefault.jpg",
       "hasLumieraProject": false,
       "source": "channel",
-      "status": "queued",
+      "status": "applied",
       "currentMetadata": {
         "title": "1 Segredo da Amazônia que PODE SALVAR NOSSO FUTURO",
         "description": "Você sabia que a Amazônia guarda um segredo de engenharia ecológica que a ciência moderna, pasmem, JAMAIS conseguiu reproduzir?\nNeste vídeo, vamos desvendar o mistério da Terra Preta, o solo incrivelmente fértil criado por povos antigos que desafia a compreensão científica. Descubra como essa maravilha ancestral se regenera e por que ela pode ser a chave para um futuro mais verde para todo o planeta!\n\nExplore a fascinante história da Terra Preta, uma mistura perfeita de carvão vegetal, restos orgânicos e cacos de cerâmica, capaz de transformar terras pobres em super solos. Entenda por que cientistas ainda coçam a cabeça para reproduzir essa tecnologia ancestral e qual o seu potencial para a agricultura e sustentabilidade global.\n\nSe você ficou maravilhado com esse conhecimento ancestral e o potencial da Terra Preta, deixe seu like e siga para mais segredos da engenharia antiga!\n\n#TerraPreta #Amazônia #EngenhariaEcológica #Sustentabilidade #SolosAncestrais",
@@ -13434,13 +13421,77 @@
           "Futuro Verde"
         ]
       },
-      "proposedMetadata": null,
-      "selectedTitle": null,
+      "proposedMetadata": {
+        "title": "Terra Preta desafia a ciência moderna 🤯",
+        "titleVariants": [
+          "Terra Preta desafia a ciência moderna 🤯",
+          "Amazônia criou o super solo ancestral",
+          "Terra Preta pode salvar nosso futuro 💡",
+          "Solo de carvão que se regenera sozinho",
+          "Mistério da Terra Preta da Amazônia"
+        ],
+        "description": "O mistério da Terra Preta na Amazônia é o segredo que pode salvar o futuro da nossa agricultura.\nEntenda como povos antigos criaram um solo fértil que se regenera sozinho e desafia a ciência moderna.\n#Shorts\nEssa engenharia ecológica ancestral mistura carvão e cerâmica para transformar terras pobres em super solos. Salva este vídeo para assistir depois e conhecer mais mistérios da Amazônia!",
+        "tags": [
+          "Terra Preta",
+          "Amazônia",
+          "solo fértil",
+          "engenharia ecológica",
+          "sustentabilidade",
+          "agricultura sustentável",
+          "mistérios da Amazônia",
+          "tecnologia ancestral"
+        ],
+        "hashtags": "#Shorts #TerraPreta #Amazonia #Sustentabilidade",
+        "pinnedComment": "Se os povos antigos conseguiram criar um solo que se regenera sozinho, por que a ciência moderna ainda não consegue replicar essa engenharia? Será que esquecemos como ouvir a natureza?",
+        "chapters": "",
+        "thumbnails": [
+          {
+            "id": "A",
+            "label": "Curiosidade",
+            "pairedTitle": "1. Terra Preta desafia a ciência moderna 🤯",
+            "overlayText": "CIÊNCIA NÃO CONSEGUE COPIAR",
+            "composition": "Imagem dividida verticalmente. Do lado esquerdo, um cientista em um laboratório moderno olhando confuso para uma amostra. Do lado direito, mãos calejadas segurando uma terra preta fértil que brilha levemente.",
+            "colors": [
+              "#0D3B16 (Verde Floresta)",
+              "#000000 (Preto)",
+              "#FFD700 (Dourado)"
+            ],
+            "focalElement": "Expressão de extrema dúvida do cientista e o brilho sutil da terra preta."
+          },
+          {
+            "id": "B",
+            "label": "Contraste",
+            "pairedTitle": "2. Amazônia criou o super solo ancestral",
+            "overlayText": "SOLO COMUM vs TERRA PRETA",
+            "composition": "Divisão diagonal nítida no meio da tela. Lado esquerdo: terra seca, cinzenta e rachada com uma planta murcha. Lado direito: solo preto profundo, úmido, com plantas verdes vibrantes brotando intensamente.",
+            "colors": [
+              "#5A5A5A (Cinza Seco)",
+              "#00FF66 (Verde Neon)",
+              "#1A1105 (Marrom Escuro)"
+            ],
+            "focalElement": "Contraste visual extremo de fertilidade e vida entre os dois solos."
+          },
+          {
+            "id": "C",
+            "label": "Prova Visual",
+            "pairedTitle": "4. Solo de carvão que se regenera sozinho",
+            "overlayText": "ELE SE REGENERA SOZINHO!",
+            "composition": "Close-up extremo em um corte transversal do solo mostrando pedaços de carvão vegetal e fragmentos de cerâmica antiga incrustados na terra preta. Uma seta amarela neon aponta para os cacos de cerâmica.",
+            "colors": [
+              "#FFFF00 (Amarelo Neon)",
+              "#0F0F0F (Preto Carvão)",
+              "#D2691E (Terracota)"
+            ],
+            "focalElement": "Detalhe nítido dos cacos de cerâmica e do carvão misturados à terra."
+          }
+        ]
+      },
+      "selectedTitle": "Terra Preta desafia a ciência moderna 🤯",
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-06T04:21:01.958Z",
-      "updatedAt": "2026-07-18T14:20:41.979Z",
+      "updatedAt": "2026-07-19T14:00:25.787Z",
       "analyticsBaseline": {
         "videoId": "gaYajkw-DEc",
         "startDate": "2026-06-20",
@@ -13484,7 +13535,74 @@
         },
         "analyzedAt": "2026-07-18T14:20:41.964Z"
       },
-      "opportunityScore": 63
+      "opportunityScore": 63,
+      "cycleNumber": 1,
+      "metadataRaw": "## TÍTULOS\n\n1. Terra Preta desafia a ciência moderna 🤯 (39 chars)\n2. Amazônia criou o super solo ancestral (37 chars)\n3. Terra Preta pode salvar nosso futuro 💡 (38 chars)\n4. Solo de carvão que se regenera sozinho (38 chars)\n5. Mistério da Terra Preta da Amazônia (35 chars)\n\n## DESCRIÇÃO\n\nO mistério da Terra Preta na Amazônia é o segredo que pode salvar o futuro da nossa agricultura.\nEntenda como povos antigos criaram um solo fértil que se regenera sozinho e desafia a ciência moderna.\n#Shorts\nEssa engenharia ecológica ancestral mistura carvão e cerâmica para transformar terras pobres em super solos. Salva este vídeo para assistir depois e conhecer mais mistérios da Amazônia!\n\n## HASHTAGS PRINCIPAIS\n\n#Shorts #TerraPreta #Amazonia #Sustentabilidade\n\n## TAGS\n\nTerra Preta, Amazônia, solo fértil, engenharia ecológica, sustentabilidade, agricultura sustentável, mistérios da Amazônia, tecnologia ancestral\n\n## COMENTÁRIO PINADO\n\nSe os povos antigos conseguiram criar um solo que se regenera sozinho, por que a ciência moderna ainda não consegue replicar essa engenharia? Será que esquecemos como ouvir a natureza?\n\n## THUMBNAILS A/B\n\n### Variante A — Curiosidade\n- Título pareado: 1. Terra Preta desafia a ciência moderna 🤯\n- Texto na capa: CIÊNCIA NÃO CONSEGUE COPIAR\n- Composição: Imagem dividida verticalmente. Do lado esquerdo, um cientista em um laboratório moderno olhando confuso para uma amostra. Do lado direito, mãos calejadas segurando uma terra preta fértil que brilha levemente.\n- Cores: #0D3B16 (Verde Floresta), #000000 (Preto), #FFD700 (Dourado)\n- Expressão/elemento: Expressão de extrema dúvida do cientista e o brilho sutil da terra preta.\n\n### Variante B — Contraste\n- Título pareado: 2. Amazônia criou o super solo ancestral\n- Texto na capa: SOLO COMUM vs TERRA PRETA\n- Composição: Divisão diagonal nítida no meio da tela. Lado esquerdo: terra seca, cinzenta e rachada com uma planta murcha. Lado direito: solo preto profundo, úmido, com plantas verdes vibrantes brotando intensamente.\n- Cores: #5A5A5A (Cinza Seco), #00FF66 (Verde Neon), #1A1105 (Marrom Escuro)\n- Expressão/elemento: Contraste visual extremo de fertilidade e vida entre os dois solos.\n\n### Variante C — Prova Visual\n- Título pareado: 4. Solo de carvão que se regenera sozinho\n- Texto na capa: ELE SE REGENERA SOZINHO!\n- Composição: Close-up extremo em um corte transversal do solo mostrando pedaços de carvão vegetal e fragmentos de cerâmica antiga incrustados na terra preta. Uma seta amarela neon aponta para os cacos de cerâmica.\n- Cores: #FFFF00 (Amarelo Neon), #0F0F0F (Preto Carvão), #D2691E (Terracota)\n- Expressão/elemento: Detalhe nítido dos cacos de cerâmica e do carvão misturados à terra.\n\n## ÂNCORAS DO CONTEÚDO REAL\n\n- **Terra Preta** (Utilizado nos títulos 1, 3 e 5)\n- **Amazônia** (Utilizado nos títulos 2 e 5)\n- **Segredo** (Conceito explorado no título 5 através de \"Mistério\")\n- **Sustentabilidade** (Conceito explorado no título 3 através de \"salvar nosso futuro\")\n- **Conhecimento Ancestral** (Utilizado no título 2 através de \"ancestral\")\n- **Engenharia Ecológica** (Conceito explorado no título 4 através da mistura de elementos que se regeneram)",
+      "usedFallback": false,
+      "appliedAt": "2026-07-19T14:00:25.787Z",
+      "thumbnailApplied": false,
+      "experiment": {
+        "version": 1,
+        "status": "tracking",
+        "treatment": "short_recirculation",
+        "startedAt": "2026-07-19T14:00:25.787Z",
+        "baseline": {
+          "videoId": "gaYajkw-DEc",
+          "startDate": "2026-06-20",
+          "endDate": "2026-07-18",
+          "available": true,
+          "reachNote": "Impressões e CTR de thumbnail só existem no YouTube Studio (Reporting API). O Lumiera compara views por período de cada título.",
+          "metrics": {
+            "views": 486,
+            "estimatedMinutesWatched": 159,
+            "averageViewDuration": 34,
+            "likes": 44,
+            "comments": 1,
+            "shares": 2,
+            "subscribersGained": 1,
+            "impressions": null,
+            "impressionClickThroughRate": null
+          }
+        },
+        "checkpoints": [
+          {
+            "label": "48h",
+            "dueAt": "2026-07-21T14:00:25.787Z",
+            "status": "pending"
+          },
+          {
+            "label": "7d",
+            "dueAt": "2026-07-26T14:00:25.787Z",
+            "status": "pending"
+          },
+          {
+            "label": "28d",
+            "dueAt": "2026-08-16T14:00:25.787Z",
+            "status": "pending"
+          }
+        ],
+        "originalMetadata": {
+          "title": "1 Segredo da Amazônia que PODE SALVAR NOSSO FUTURO",
+          "description": "Você sabia que a Amazônia guarda um segredo de engenharia ecológica que a ciência moderna, pasmem, JAMAIS conseguiu reproduzir?\nNeste vídeo, vamos desvendar o mistério da Terra Preta, o solo incrivelmente fértil criado por povos antigos que desafia a compreensão científica. Descubra como essa maravilha ancestral se regenera e por que ela pode ser a chave para um futuro mais verde para todo o planeta!\n\nExplore a fascinante história da Terra Preta, uma mistura perfeita de carvão vegetal, restos orgânicos e cacos de cerâmica, capaz de transformar terras pobres em super solos. Entenda por que cientistas ainda coçam a cabeça para reproduzir essa tecnologia ancestral e qual o seu potencial para a agricultura e sustentabilidade global.\n\nSe você ficou maravilhado com esse conhecimento ancestral e o potencial da Terra Preta, deixe seu like e siga para mais segredos da engenharia antiga!\n\n#TerraPreta #Amazônia #EngenhariaEcológica #Sustentabilidade #SolosAncestrais",
+          "tags": [
+            "Amazônia",
+            "Terra Preta",
+            "Sustentabilidade",
+            "Meio Ambiente",
+            "Engenharia Ecológica",
+            "Conhecimento Ancestral",
+            "Agricultura Sustentável",
+            "Mistérios da Amazônia",
+            "Ecologia",
+            "Solo Fértil",
+            "Arqueologia Amazônica",
+            "Povos Antigos",
+            "Regeneração do Solo",
+            "Tecnologia Ancestral",
+            "Futuro Verde"
+          ]
+        }
+      }
     },
     {
       "id": "e3790cd5-be01-4caf-9084-c05f1919bc42",
@@ -17925,7 +18043,7 @@
         "analyzedAt": "2026-07-17T13:20:06.294Z"
       },
       "opportunityScore": 65,
-      "status": "queued",
+      "status": "failed",
       "currentMetadata": {
         "title": "SchoolBusbanker 2026",
         "description": "",
@@ -17935,9 +18053,9 @@
       "selectedTitle": null,
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
-      "error": null,
+      "error": "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
       "createdAt": "2026-07-15T14:00:07.652Z",
-      "updatedAt": "2026-07-18T14:17:46.465Z",
+      "updatedAt": "2026-07-19T14:00:09.778Z",
       "analyticsBaseline": {
         "videoId": "WKcFkfVfi6w",
         "startDate": "2026-06-19",
@@ -17960,7 +18078,8 @@
       "appliedAt": null,
       "thumbnailApplied": false,
       "thumbnailError": null,
-      "lastError": "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal."
+      "lastError": "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "cycleNumber": 1
     },
     {
       "id": "b4afc44e-5ce3-4f05-b2ee-e698d73a0993",
@@ -18550,7 +18669,7 @@
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-16T14:00:07.900Z",
-      "updatedAt": "2026-07-18T21:01:49.293Z",
+      "updatedAt": "2026-07-19T14:00:44.938Z",
       "analyticsBaseline": {
         "videoId": "19AzC-l1KiM",
         "startDate": "2026-06-20",
@@ -19051,7 +19170,7 @@
         "analyzedAt": "2026-07-18T14:20:49.005Z"
       },
       "opportunityScore": 60,
-      "status": "queued",
+      "status": "applied",
       "currentMetadata": {
         "title": "BEM VINDOS AO CANAL -  AQUI VOCÊ IRÁ DESCOBRIR CONOSCO ISSO E MUITO MAIS.",
         "description": "Google Maps esconde maravilhas da engenharia antiga! Você está olhando para os mapas do jeito errado. Um zoom tridimensional dinâmico revela uma fortaleza estelar com precisão geométrica absurda, ignorada pela tecnologia moderna. #Shorts\nDescubra como engenheiros milenares projetaram essa estrutura sem satélites ou softwares complexos. Salve para ver essa redescoberta da engenharia de milênios!\n\n#EngenhariaAntiga #FortalezaEstelar #GoogleMaps #Curiosidades #Milenios #Tecnologia #Arqueologia #Shorts",
@@ -19071,13 +19190,70 @@
           "tridimensional"
         ]
       },
-      "proposedMetadata": null,
-      "selectedTitle": null,
+      "proposedMetadata": {
+        "title": "Você olha mapas do jeito errado? 😳",
+        "titleVariants": [
+          "Google Maps esconde fortaleza antiga",
+          "Engenharia de milênios no Google Maps",
+          "Você olha mapas do jeito errado? 😳",
+          "Fortaleza estelar: design milenar 🤯",
+          "Tecnologia moderna ignora essa maravilha"
+        ],
+        "description": "Google Maps esconde maravilhas da engenharia antiga! Você está olhando para os mapas do jeito errado. Um zoom tridimensional dinâmico revela uma fortaleza estelar com precisão geométrica absurda, ignorada pela tecnologia moderna.\n#Shorts\nDescubra como engenheiros de milênios projetaram essa estrutura sem satélites ou softwares complexos. Essa maravilha está bem debaixo do seu nariz, esperando ser redescoberta. Salve para ver essa redescoberta da engenharia de milênios!",
+        "tags": [
+          "Google Maps",
+          "engenharia antiga",
+          "fortaleza estelar",
+          "zoom tridimensional",
+          "mapas do jeito errado",
+          "engenheiros milenares",
+          "tecnologia moderna",
+          "design estelar",
+          "maravilha oculta",
+          "precisão geométrica",
+          "segredo geométrico",
+          "projetar",
+          "design."
+        ],
+        "hashtags": "#Shorts #GoogleMaps #EngenhariaAntiga #FortalezaEstelar #Milenios",
+        "pinnedComment": "Antes que digam que é CGI: as imagens de satélite e dados de escala dessa fortaleza estelar são públicos no Google Maps.",
+        "chapters": "",
+        "thumbnails": [
+          {
+            "id": "A",
+            "label": "Curiosidade",
+            "pairedTitle": "1. Google Maps esconde fortaleza antiga?",
+            "overlayText": "O que você não vê",
+            "composition": "Mapa do Google Maps com um ponto de interrogação grande sobre uma área específica. Texto na parte superior central. Elemento focal é a área do mapa, talvez com um leve brilho.",
+            "colors": ["Azul escuro", "cinza", "amarelo vibrante."],
+            "focalElement": "Mapa com um ponto de interrogação ou um olho estilizado."
+          },
+          {
+            "id": "B",
+            "label": "Contraste",
+            "pairedTitle": "3. Você olha mapas do jeito errado? 😳",
+            "overlayText": "Antes vs. Depois",
+            "composition": "Tela dividida verticalmente. À esquerda, um mapa normal do Google Maps. À direita, a mesma área com o zoom tridimensional da fortaleza estelar em destaque. Texto centralizado na divisão.",
+            "colors": ["Verde-azulado", "cinza claro", "laranja."],
+            "focalElement": "Duas vistas de mapa contrastantes (plana vs. 3D)."
+          },
+          {
+            "id": "C",
+            "label": "Prova Visual",
+            "pairedTitle": "4. Fortaleza estelar: design milenar 🤯",
+            "overlayText": "A fortaleza estelar",
+            "composition": "Close-up da fortaleza estelar com seu design geométrico em destaque, como se fosse uma renderização 3D. Texto na parte inferior da tela. Elemento focal é a estrutura da fortaleza.",
+            "colors": ["Marrom terra", "dourado", "branco."],
+            "focalElement": "Imagem aérea detalhada da fortaleza estelar."
+          }
+        ]
+      },
+      "selectedTitle": "Você olha mapas do jeito errado? 😳",
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-16T21:00:14.360Z",
-      "updatedAt": "2026-07-18T14:20:49.161Z",
+      "updatedAt": "2026-07-19T14:00:38.660Z",
       "analyticsBaseline": {
         "videoId": "edUkSV03g9E",
         "startDate": "2026-06-20",
@@ -19094,6 +19270,71 @@
           "subscribersGained": 0,
           "impressions": null,
           "impressionClickThroughRate": null
+        }
+      },
+      "cycleNumber": 1,
+      "metadataRaw": "## TÍTULOS\n1.  Google Maps esconde fortaleza antiga? (34 chars)\n2.  Engenharia de milênios no Google Maps (37 chars)\n3.  Você olha mapas do jeito errado? 😳 (33 chars)\n4.  Fortaleza estelar: design milenar 🤯 (33 chars)\n5.  Tecnologia moderna ignora essa maravilha (40 chars)\n\n## DESCRIÇÃO\nGoogle Maps esconde maravilhas da engenharia antiga! Você está olhando para os mapas do jeito errado. Um zoom tridimensional dinâmico revela uma fortaleza estelar com precisão geométrica absurda, ignorada pela tecnologia moderna.\n#Shorts\nDescubra como engenheiros de milênios projetaram essa estrutura sem satélites ou softwares complexos. Essa maravilha está bem debaixo do seu nariz, esperando ser redescoberta. Salve para ver essa redescoberta da engenharia de milênios!\n\n## HASHTAGS PRINCIPAIS\n#Shorts #GoogleMaps #EngenhariaAntiga #FortalezaEstelar #Milenios\n\n## TAGS\nGoogle Maps, engenharia antiga, fortaleza estelar, zoom tridimensional, mapas do jeito errado, engenheiros milenares, tecnologia moderna, design estelar, maravilha oculta, precisão geométrica, segredo geométrico, projetar, design.\n\n## COMENTÁRIO PINADO\nAntes que digam que é CGI: as imagens de satélite e dados de escala dessa fortaleza estelar são públicos no Google Maps.\n\n## THUMBNAILS A/B\n\n### Variante A — Curiosidade\n- Título pareado: 1. Google Maps esconde fortaleza antiga?\n- Texto na capa: O que você não vê\n- Composição: Mapa do Google Maps com um ponto de interrogação grande sobre uma área específica. Texto na parte superior central. Elemento focal é a área do mapa, talvez com um leve brilho.\n- Cores: Azul escuro, cinza, amarelo vibrante.\n- Expressão/elemento: Mapa com um ponto de interrogação ou um olho estilizado.\n\n### Variante B — Contraste\n- Título pareado: 3. Você olha mapas do jeito errado? 😳\n- Texto na capa: Antes vs. Depois\n- Composição: Tela dividida verticalmente. À esquerda, um mapa normal do Google Maps. À direita, a mesma área com o zoom tridimensional da fortaleza estelar em destaque. Texto centralizado na divisão.\n- Cores: Verde-azulado, cinza claro, laranja.\n- Expressão/elemento: Duas vistas de mapa contrastantes (plana vs. 3D).\n\n### Variante C — Prova Visual\n- Título pareado: 4. Fortaleza estelar: design milenar 🤯\n- Texto na capa: A fortaleza estelar\n- Composição: Close-up da fortaleza estelar com seu design geométrico em destaque, como se fosse uma renderização 3D. Texto na parte inferior da tela. Elemento focal é a estrutura da fortaleza.\n- Cores: Marrom terra, dourado, branco.\n- Expressão/elemento: Imagem aérea detalhada da fortaleza estelar.",
+      "usedFallback": false,
+      "appliedAt": "2026-07-19T14:00:38.660Z",
+      "thumbnailApplied": false,
+      "experiment": {
+        "version": 1,
+        "status": "tracking",
+        "treatment": "short_remake",
+        "startedAt": "2026-07-19T14:00:38.660Z",
+        "baseline": {
+          "videoId": "edUkSV03g9E",
+          "startDate": "2026-06-20",
+          "endDate": "2026-07-18",
+          "available": true,
+          "reachNote": "Impressões e CTR de thumbnail só existem no YouTube Studio (Reporting API). O Lumiera compara views por período de cada título.",
+          "metrics": {
+            "views": 160,
+            "estimatedMinutesWatched": 70,
+            "averageViewDuration": 56,
+            "likes": 14,
+            "comments": 1,
+            "shares": 0,
+            "subscribersGained": 0,
+            "impressions": null,
+            "impressionClickThroughRate": null
+          }
+        },
+        "checkpoints": [
+          {
+            "label": "48h",
+            "dueAt": "2026-07-21T14:00:38.660Z",
+            "status": "pending"
+          },
+          {
+            "label": "7d",
+            "dueAt": "2026-07-26T14:00:38.660Z",
+            "status": "pending"
+          },
+          {
+            "label": "28d",
+            "dueAt": "2026-08-16T14:00:38.660Z",
+            "status": "pending"
+          }
+        ],
+        "originalMetadata": {
+          "title": "BEM VINDOS AO CANAL -  AQUI VOCÊ IRÁ DESCOBRIR CONOSCO ISSO E MUITO MAIS.",
+          "description": "Google Maps esconde maravilhas da engenharia antiga! Você está olhando para os mapas do jeito errado. Um zoom tridimensional dinâmico revela uma fortaleza estelar com precisão geométrica absurda, ignorada pela tecnologia moderna. #Shorts\nDescubra como engenheiros milenares projetaram essa estrutura sem satélites ou softwares complexos. Salve para ver essa redescoberta da engenharia de milênios!\n\n#EngenhariaAntiga #FortalezaEstelar #GoogleMaps #Curiosidades #Milenios #Tecnologia #Arqueologia #Shorts",
+          "tags": [
+            "Google Maps",
+            "Shorts",
+            "design",
+            "engenharia antiga",
+            "engenheiros",
+            "fortaleza estelar",
+            "mapa",
+            "maravilha",
+            "precisão geométrica",
+            "projetar",
+            "segredo",
+            "tecnologia moderna",
+            "tridimensional"
+          ]
         }
       }
     },
@@ -19603,7 +19844,7 @@
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-17T13:17:35.208Z",
-      "updatedAt": "2026-07-18T14:20:49.908Z",
+      "updatedAt": "2026-07-19T14:00:44.939Z",
       "analyticsBaseline": {
         "videoId": "MlWjCZAQrrc",
         "startDate": "2026-06-20",
@@ -19621,7 +19862,11 @@
           "impressions": null,
           "impressionClickThroughRate": null
         }
-      }
+      },
+      "metadataRaw": null,
+      "appliedAt": null,
+      "thumbnailApplied": false,
+      "thumbnailError": null
     },
     {
       "id": "31c8ff50-696b-4488-aae2-576de37a1623",
@@ -20425,9 +20670,81 @@
       "error": null,
       "createdAt": "2026-07-18T21:00:24.755Z",
       "updatedAt": "2026-07-18T21:00:24.755Z"
+    },
+    {
+      "id": "0ecb5591-61b8-4c33-a049-833174fa1d98",
+      "videoId": "k8stqXOxKZQ",
+      "projectName": "CasaDeAnaONaMontanha Antes e Depois Timelapse",
+      "projectPath": null,
+      "format": "SHORT",
+      "niche": "",
+      "title": "CasaDeAnaONaMontanha Antes e Depois Timelapse",
+      "publishedAt": "2026-07-09T04:01:47Z",
+      "ageDays": 10,
+      "viewCount": 126,
+      "thumbnailUrl": "https://i9.ytimg.com/vi/k8stqXOxKZQ/mqdefault.jpg?sqp=CITE8dIG&rs=AOn4CLBItoCEZk4sS4bgxIpiFIJ4IZW9hA",
+      "hasLumieraProject": false,
+      "source": "channel",
+      "diagnosis": {
+        "version": 1,
+        "score": 27,
+        "tier": "low",
+        "diagnosis": "insufficient_data",
+        "recommendedTreatment": "metadata_search_refresh",
+        "treatmentLabel": "Atualizar descoberta por busca",
+        "reasons": [],
+        "risks": [
+          "Sem projeto-fonte: remake automatizado limitado",
+          "Analytics detalhado ainda não coletado"
+        ],
+        "analyticsAvailable": false,
+        "metrics": {
+          "recentViews": 0,
+          "averageViewDuration": 0,
+          "shares": 0,
+          "subscribersGained": 0,
+          "sharesPerThousand": 0,
+          "subscribersPerThousand": 0
+        },
+        "analyzedAt": "2026-07-19T05:39:42.094Z"
+      },
+      "opportunityScore": 27,
+      "status": "queued",
+      "currentMetadata": {
+        "title": "CasaDeAnaONaMontanha Antes e Depois Timelapse",
+        "description": "",
+        "tags": []
+      },
+      "proposedMetadata": null,
+      "selectedTitle": null,
+      "thumbnailStatus": "n/a",
+      "thumbnailLocalPath": null,
+      "error": null,
+      "createdAt": "2026-07-19T05:39:42.093Z",
+      "updatedAt": "2026-07-19T05:39:42.093Z"
     }
   ],
   "history": [
+    {
+      "id": "2b8fcc09-3c23-4621-8159-91ff62deec71",
+      "videoId": "edUkSV03g9E",
+      "projectName": "Google_Maps_Hides_This",
+      "title": "Você olha mapas do jeito errado? 😳",
+      "appliedAt": "2026-07-19T14:00:38.660Z",
+      "thumbnailApplied": false,
+      "treatment": "short_remake",
+      "experimentStartedAt": "2026-07-19T14:00:38.660Z"
+    },
+    {
+      "id": "cad8408d-9210-4eae-8e9f-3de83016541d",
+      "videoId": "gaYajkw-DEc",
+      "projectName": "1 Segredo da Amazônia que PODE SALVAR NOSSO FUTURO",
+      "title": "Terra Preta desafia a ciência moderna 🤯",
+      "appliedAt": "2026-07-19T14:00:25.787Z",
+      "thumbnailApplied": false,
+      "treatment": "short_recirculation",
+      "experimentStartedAt": "2026-07-19T14:00:25.787Z"
+    },
     {
       "id": "2cd94dd6-e9b2-4f5b-b620-2b47f99d0e0a",
       "videoId": "ffdbVB3h7og",
@@ -21258,6 +21575,224 @@
     }
   ],
   "activityLog": [
+    {
+      "at": "2026-07-19T14:00:38.710Z",
+      "level": "warn",
+      "message": "Etapa concluída: 2 publicado(s), 0 revisão, 3 falha(s).",
+      "slot": "morning",
+      "appliedCount": 2,
+      "reviewCount": 0,
+      "failCount": 3
+    },
+    {
+      "at": "2026-07-19T14:00:38.684Z",
+      "level": "success",
+      "message": "Publicado no YouTube: BEM VINDOS AO CANAL -  AQUI VOCÊ IRÁ DESCOBRIR CONOSCO ISSO E MUITO MAIS",
+      "videoId": "edUkSV03g9E"
+    },
+    {
+      "at": "2026-07-19T14:00:37.392Z",
+      "level": "info",
+      "message": "Publicando no YouTube: BEM VINDOS AO CANAL -  AQUI VOCÊ IRÁ DESCOBRIR CONOSCO ISSO E MUITO MAIS",
+      "videoId": "edUkSV03g9E"
+    },
+    {
+      "at": "2026-07-19T14:00:25.868Z",
+      "level": "info",
+      "message": "[5/5] Gerando metadados: BEM VINDOS AO CANAL -  AQUI VOCÊ IRÁ DESCOBRIR CONOSCO ISSO E MUITO MAIS",
+      "videoId": "edUkSV03g9E",
+      "step": 5,
+      "total": 5
+    },
+    {
+      "at": "2026-07-19T14:00:25.857Z",
+      "level": "error",
+      "message": "Falhou: BamBOoHouSe — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "MlWjCZAQrrc"
+    },
+    {
+      "at": "2026-07-19T14:00:25.837Z",
+      "level": "info",
+      "message": "[4/5] Gerando metadados: BamBOoHouSe",
+      "videoId": "MlWjCZAQrrc",
+      "step": 4,
+      "total": 5
+    },
+    {
+      "at": "2026-07-19T14:00:25.813Z",
+      "level": "success",
+      "message": "Publicado no YouTube: 1 Segredo da Amazônia que PODE SALVAR NOSSO FUTURO",
+      "videoId": "gaYajkw-DEc"
+    },
+    {
+      "at": "2026-07-19T14:00:23.896Z",
+      "level": "info",
+      "message": "Publicando no YouTube: 1 Segredo da Amazônia que PODE SALVAR NOSSO FUTURO",
+      "videoId": "gaYajkw-DEc"
+    },
+    {
+      "at": "2026-07-19T14:00:09.814Z",
+      "level": "info",
+      "message": "[3/5] Gerando metadados: 1 Segredo da Amazônia que PODE SALVAR NOSSO FUTURO",
+      "videoId": "gaYajkw-DEc",
+      "step": 3,
+      "total": 5
+    },
+    {
+      "at": "2026-07-19T14:00:09.807Z",
+      "level": "error",
+      "message": "Falhou: AirPlaneBunker — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "19AzC-l1KiM"
+    },
+    {
+      "at": "2026-07-19T14:00:09.788Z",
+      "level": "info",
+      "message": "[2/5] Gerando metadados: AirPlaneBunker",
+      "videoId": "19AzC-l1KiM",
+      "step": 2,
+      "total": 5
+    },
+    {
+      "at": "2026-07-19T14:00:09.778Z",
+      "level": "error",
+      "message": "Falhou: SchoolBusbanker 2026 — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "WKcFkfVfi6w"
+    },
+    {
+      "at": "2026-07-19T14:00:09.757Z",
+      "level": "info",
+      "message": "[1/5] Gerando metadados: SchoolBusbanker 2026",
+      "videoId": "WKcFkfVfi6w",
+      "step": 1,
+      "total": 5
+    },
+    {
+      "at": "2026-07-19T14:00:09.757Z",
+      "level": "info",
+      "message": "Batch manhã iniciado (5 vídeo(s) nesta etapa).",
+      "slot": "morning",
+      "trigger": "auto"
+    },
+    {
+      "at": "2026-07-19T05:40:24.515Z",
+      "level": "warn",
+      "message": "Etapa concluída: 0 publicado(s), 0 revisão, 1 falha(s).",
+      "slot": "afternoon",
+      "appliedCount": 0,
+      "reviewCount": 0,
+      "failCount": 1
+    },
+    {
+      "at": "2026-07-19T05:40:24.515Z",
+      "level": "warn",
+      "message": "Batch da tarde não marcado como concluído — todos falharam. Use \"Reprocessar falhas\"."
+    },
+    {
+      "at": "2026-07-19T05:40:24.506Z",
+      "level": "error",
+      "message": "Falhou: SchoolBusbanker 2026 — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "WKcFkfVfi6w"
+    },
+    {
+      "at": "2026-07-19T05:40:24.489Z",
+      "level": "info",
+      "message": "[1/1] Gerando metadados: SchoolBusbanker 2026",
+      "videoId": "WKcFkfVfi6w",
+      "step": 1,
+      "total": 1
+    },
+    {
+      "at": "2026-07-19T05:40:13.806Z",
+      "level": "warn",
+      "message": "Etapa concluída: 0 publicado(s), 0 revisão, 1 falha(s).",
+      "slot": "afternoon",
+      "appliedCount": 0,
+      "reviewCount": 0,
+      "failCount": 1
+    },
+    {
+      "at": "2026-07-19T05:40:13.796Z",
+      "level": "error",
+      "message": "Falhou: SchoolBusbanker 2026 — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "WKcFkfVfi6w"
+    },
+    {
+      "at": "2026-07-19T05:40:13.779Z",
+      "level": "info",
+      "message": "[1/1] Gerando metadados: SchoolBusbanker 2026",
+      "videoId": "WKcFkfVfi6w",
+      "step": 1,
+      "total": 1
+    },
+    {
+      "at": "2026-07-19T05:40:03.383Z",
+      "level": "warn",
+      "message": "Etapa concluída: 0 publicado(s), 0 revisão, 1 falha(s).",
+      "slot": "afternoon",
+      "appliedCount": 0,
+      "reviewCount": 0,
+      "failCount": 1
+    },
+    {
+      "at": "2026-07-19T05:40:03.374Z",
+      "level": "error",
+      "message": "Falhou: SchoolBusbanker 2026 — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "WKcFkfVfi6w"
+    },
+    {
+      "at": "2026-07-19T05:40:03.359Z",
+      "level": "info",
+      "message": "[1/1] Gerando metadados: SchoolBusbanker 2026",
+      "videoId": "WKcFkfVfi6w",
+      "step": 1,
+      "total": 1
+    },
+    {
+      "at": "2026-07-19T05:39:52.802Z",
+      "level": "warn",
+      "message": "Etapa concluída: 0 publicado(s), 0 revisão, 1 falha(s).",
+      "slot": "afternoon",
+      "appliedCount": 0,
+      "reviewCount": 0,
+      "failCount": 1
+    },
+    {
+      "at": "2026-07-19T05:39:52.791Z",
+      "level": "error",
+      "message": "Falhou: SchoolBusbanker 2026 — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "WKcFkfVfi6w"
+    },
+    {
+      "at": "2026-07-19T05:39:52.770Z",
+      "level": "info",
+      "message": "[1/1] Gerando metadados: SchoolBusbanker 2026",
+      "videoId": "WKcFkfVfi6w",
+      "step": 1,
+      "total": 1
+    },
+    {
+      "at": "2026-07-19T05:39:42.144Z",
+      "level": "warn",
+      "message": "Etapa concluída: 0 publicado(s), 0 revisão, 1 falha(s).",
+      "slot": "afternoon",
+      "appliedCount": 0,
+      "reviewCount": 0,
+      "failCount": 1
+    },
+    {
+      "at": "2026-07-19T05:39:42.132Z",
+      "level": "error",
+      "message": "Falhou: SchoolBusbanker 2026 — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "WKcFkfVfi6w"
+    },
+    {
+      "at": "2026-07-19T05:39:42.107Z",
+      "level": "info",
+      "message": "[1/1] Gerando metadados: SchoolBusbanker 2026",
+      "videoId": "WKcFkfVfi6w",
+      "step": 1,
+      "total": 1
+    },
     {
       "at": "2026-07-18T21:01:41.411Z",
       "level": "warn",
@@ -22819,234 +23354,16 @@
       "videoId": "TvoxBiLa8dA",
       "step": 1,
       "total": 1
-    },
-    {
-      "at": "2026-07-06T04:26:46.563Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "morning",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-06T04:26:46.558Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Este Quarto Vazio Virou um Refúgio de Luxo🌿🏡 #home #interiordesign #de",
-      "videoId": "f5OIBMZeraA"
-    },
-    {
-      "at": "2026-07-06T04:26:44.666Z",
-      "level": "info",
-      "message": "Publicando no YouTube: Este Quarto Vazio Virou um Refúgio de Luxo🌿🏡 #home #interiordesign #de",
-      "videoId": "f5OIBMZeraA"
-    },
-    {
-      "at": "2026-07-06T04:26:26.399Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: Este Quarto Vazio Virou um Refúgio de Luxo🌿🏡 #home #interiordesign #de",
-      "videoId": "f5OIBMZeraA",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-06T04:26:16.904Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "morning",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-06T04:26:16.900Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Cozinha de 1950 vira Laboratório Futurista! 😱✨#reforma #interiordesign ",
-      "videoId": "llV2c6P-NLo"
-    },
-    {
-      "at": "2026-07-06T04:26:14.898Z",
-      "level": "info",
-      "message": "Publicando no YouTube: Cozinha de 1950 vira Laboratório Futurista! 😱✨#reforma #interiordesign ",
-      "videoId": "llV2c6P-NLo"
-    },
-    {
-      "at": "2026-07-06T04:25:53.805Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: Cozinha de 1950 vira Laboratório Futurista! 😱✨#reforma #interiordesign ",
-      "videoId": "llV2c6P-NLo",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-06T04:25:44.468Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "morning",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-06T04:25:44.465Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Encaixes, Tatames e Natureza: A Alma da Casa Japonesa",
-      "videoId": "9qdKuDWSOns"
-    },
-    {
-      "at": "2026-07-06T04:25:42.878Z",
-      "level": "info",
-      "message": "Publicando no YouTube: Encaixes, Tatames e Natureza: A Alma da Casa Japonesa",
-      "videoId": "9qdKuDWSOns"
-    },
-    {
-      "at": "2026-07-06T04:25:25.818Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: Encaixes, Tatames e Natureza: A Alma da Casa Japonesa",
-      "videoId": "9qdKuDWSOns",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-06T04:25:16.585Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "morning",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-06T04:25:16.582Z",
-      "level": "success",
-      "message": "Publicado no YouTube: A engenharia que DESAFIA a física 🤯⛩️#japão #arquitetura #carpintaria #",
-      "videoId": "JUIP8_Jhd8c"
-    },
-    {
-      "at": "2026-07-06T04:25:14.627Z",
-      "level": "info",
-      "message": "Publicando no YouTube: A engenharia que DESAFIA a física 🤯⛩️#japão #arquitetura #carpintaria #",
-      "videoId": "JUIP8_Jhd8c"
-    },
-    {
-      "at": "2026-07-06T04:24:51.284Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: A engenharia que DESAFIA a física 🤯⛩️#japão #arquitetura #carpintaria #",
-      "videoId": "JUIP8_Jhd8c",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-06T04:24:42.013Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "morning",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-06T04:24:42.009Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Building a Luxury Courtyard Estate From Scratch 🏡✨ | AI Construction Ti",
-      "videoId": "aHxRci8s-zk"
-    },
-    {
-      "at": "2026-07-06T04:24:40.446Z",
-      "level": "info",
-      "message": "Publicando no YouTube: Building a Luxury Courtyard Estate From Scratch 🏡✨ | AI Construction Ti",
-      "videoId": "aHxRci8s-zk"
-    },
-    {
-      "at": "2026-07-06T04:24:18.806Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: Building a Luxury Courtyard Estate From Scratch 🏡✨ | AI Construction Ti",
-      "videoId": "aHxRci8s-zk",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-06T04:23:43.839Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "afternoon",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-06T04:23:43.836Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Erros invisíveis que destroem o orçamento da sua casa",
-      "videoId": "FkLnFbO7qLw"
-    },
-    {
-      "at": "2026-07-06T04:23:42.110Z",
-      "level": "info",
-      "message": "Publicando no YouTube: Erros invisíveis que destroem o orçamento da sua casa",
-      "videoId": "FkLnFbO7qLw"
-    },
-    {
-      "at": "2026-07-06T04:23:08.628Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: Erros invisíveis que destroem o orçamento da sua casa",
-      "videoId": "FkLnFbO7qLw",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-06T04:22:59.158Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "afternoon",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-06T04:22:59.156Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Building a Futuristic Floating City From Scratch 🌊🏙️ | AI Construction",
-      "videoId": "fXuI3DYfpKY"
-    },
-    {
-      "at": "2026-07-06T04:22:57.304Z",
-      "level": "info",
-      "message": "Publicando no YouTube: Building a Futuristic Floating City From Scratch 🌊🏙️ | AI Construction",
-      "videoId": "fXuI3DYfpKY"
-    },
-    {
-      "at": "2026-07-06T04:22:41.705Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: Building a Futuristic Floating City From Scratch 🌊🏙️ | AI Construction",
-      "videoId": "fXuI3DYfpKY",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-06T04:22:32.526Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "afternoon",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-06T04:22:32.523Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Empty Cliff Becomes a Luxury Infinity Pool Villa 😱🌊 #shorts #travel #b",
-      "videoId": "oMylCLSgLc8"
     }
   ],
-  "updatedAt": "2026-07-18T21:01:49.293Z",
+  "updatedAt": "2026-07-19T14:00:44.939Z",
   "cycleProgress": {
     "number": 1,
     "startedAt": "2026-07-03T17:48:11.595Z",
     "completedAt": null,
-    "total": 131,
-    "batched": 94,
-    "pending": 37,
+    "total": 132,
+    "batched": 97,
+    "pending": 35,
     "complete": false,
     "nextVideoId": "e4lnRR4DrDs",
     "nextVideoTitle": "5 Etapas: Castelo Himeji Tradicional 🏯 (34 chars + emoji)",

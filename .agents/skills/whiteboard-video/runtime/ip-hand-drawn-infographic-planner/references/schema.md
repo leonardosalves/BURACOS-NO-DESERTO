@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 # Infographic Planner Schema
 
 Use this contract for the `infographic/` folder produced by `ip-hand-drawn-infographic-planner`.

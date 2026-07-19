@@ -10,6 +10,7 @@ import {
   buildVisualPromptsFromNarrationPrompt,
   buildHumanizeRepairPrompt,
   buildFactPreservingRepairPrompt,
+  buildNarrationAuditRepairPrompt,
   buildNarrationHumanizeRepairPrompt,
   buildListicleRankingIdeasPrompt,
   normalizeListicleIdeasResponse,
@@ -180,6 +181,31 @@ test("promptBuilders module", async (t) => {
       assert.match(prompt, /preserved_factual_anchors/);
     }
   );
+
+  await t.test("narration audit repair receives concrete blockers", () => {
+    const prompt = buildNarrationAuditRepairPrompt({
+      format: "SHORTS",
+      attempt: 1,
+      maxAttempts: 2,
+      issues: [
+        "Short selecionou 4 fatos centrais; o limite é 3.",
+        "Gancho longo demais para a abertura.",
+      ],
+      storyboard: {
+        strategy: { hook: "Um gancho muito longo que precisa ser reduzido" },
+        narrative_script: "Narração original factual.",
+        narracao_pro_trace: {
+          etapa_5_fatos_selecionados: ["a", "b", "c", "d"],
+        },
+      },
+    });
+    assert.match(prompt, /TENTATIVA: 1\/2/);
+    assert.match(prompt, /limite é 3/);
+    assert.match(prompt, /Gancho longo demais/);
+    assert.match(prompt, /no máximo 12 palavras/);
+    assert.match(prompt, /Não invente fatos/);
+    assert.match(prompt, /narracao_pro_trace/);
+  });
 
   await t.test(
     "buildNarrationHumanizeRepairPrompt builds narration repair prompt",

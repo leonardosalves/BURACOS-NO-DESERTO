@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 # Business Cognition Diagram Patterns
 
 Use these patterns for IP incubation, business cognition, and AI cognition shorts.

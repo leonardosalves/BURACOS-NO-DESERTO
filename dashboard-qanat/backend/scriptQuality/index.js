@@ -6,3 +6,4 @@ export * from "./visualPromptPipeline.js";
 export * from "./visualPromptEngineer.js";
 export * from "./promptBuilders.js";
 export * from "./automaticRepair.js";
+export * from "./narrationAuditRepair.js";

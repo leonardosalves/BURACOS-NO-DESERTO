@@ -2,13 +2,14 @@ import type {
   SceneManifest,
   RenderManifest,
 } from "@video-suite/scene-contract";
-import type {
+import {
   VideoEngineAdapter,
   EngineEstimate,
   PreparedEngineInput,
   EngineOutput,
   JobContext,
   HealthcheckResult,
+  getDrawtextFontOpt,
 } from "./types.js";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -120,10 +121,11 @@ export class HyperFramesAdapter implements VideoEngineAdapter {
       );
 
       // Fallback: generate a simple title card video using FFmpeg
+      const fontOpt = getDrawtextFontOpt();
       const fallbackCmd = [
         "ffmpeg -y",
         `-f lavfi -i color=c=0x1a1a2e:s=${width}x${height}:d=${durationSec}`,
-        `-vf "drawtext=text='${escapeFFmpegText(truncate(payload.sceneId as string, 30))}':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=(h-text_h)/2"`,
+        `-vf "drawtext=${fontOpt}text='${escapeFFmpegText(truncate(payload.sceneId as string, 30))}':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=(h-text_h)/2"`,
         `-c:v libx264 -pix_fmt yuv420p`,
         `"${outputPath}"`,
       ].join(" ");

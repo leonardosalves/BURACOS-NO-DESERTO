@@ -425,6 +425,14 @@ export function buildFishSpeechRequestBody(
   };
 }
 
+export function prepareFishSpeechInputText(text) {
+  const plain = String(text || "").trim();
+  if (!plain) {
+    throw new Error("Texto vazio para Fish Speech.");
+  }
+  return plain;
+}
+
 export async function fetchFishSpeechAudio(
   text,
   {
@@ -442,10 +450,7 @@ export async function fetchFishSpeechAudio(
       ? (pct, label) => onProgress("fish", label, pct)
       : () => {};
   const cfg = resolveFishSpeechConfig(config);
-  const plain = String(text || "").trim();
-  if (!plain || plain.length < 20) {
-    throw new Error("Texto muito curto para Fish Speech.");
-  }
+  const plain = prepareFishSpeechInputText(text);
 
   report(10, "Conectando ao Fish Audio…");
   const probe = await probeFishSpeechServer(config);

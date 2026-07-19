@@ -1,7 +1,1955 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-15T13:29:22.424Z",
+  "updatedAt": "2026-07-19T15:26:06.432Z",
   "items": [
+    {
+      "id": "6e0dc1b9-cfdf-4f77-a76a-00559d106894",
+      "type": "scan",
+      "savedAt": "2026-07-19T15:26:06.430Z",
+      "label": "Varredura ENGENHARIA CURIOSO INTERESSANTE — 6 nicho(s)",
+      "discoveryMode": "chosen",
+      "nicheFilter": "ENGENHARIA CURIOSO INTERESSANTE",
+      "format": "SHORTS",
+      "status": "virgem",
+      "pioneerScore": 85,
+      "macroNiche": "Engenharia Histórica",
+      "summary": {
+        "scanned": 24,
+        "validated": 14,
+        "virginCount": 2,
+        "pioneerCount": 6,
+        "topPick": "Engenharia: Maquinários Ancestrais",
+        "topMacro": "Engenharia Histórica"
+      },
+      "discovery": {
+        "ok": true,
+        "discoveryMode": "chosen",
+        "baseNiche": "ENGENHARIA CURIOSO INTERESSANTE",
+        "format": "SHORTS",
+        "exaAvailable": false,
+        "logic": {
+          "version": "macro-angle-gap-v2",
+          "description": "Exploração focada: ângulos pioneiros dentro do nicho escolhido."
+        },
+        "pioneerNiches": [
+          {
+            "label": "Engenharia: Maquinários Ancestrais",
+            "macroNiche": "Engenharia Histórica",
+            "angle": "Desvendar o funcionamento mecânico de guindastes, engrenagens e sistemas de elevação usados em canteiros de obras da antiguidade.",
+            "formatPattern": "Animação 3D esquemática + Narração imersiva",
+            "youtubeSearchQuery": "engenharia profissão extinta dia shorts",
+            "pioneerScore": 85,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Existe um enorme interesse por construções antigas, mas quase nenhum canal foca na física prática e no funcionamento mecânico dos guindastes de madeira medievais e romanos. Há um gap massivo de conteúdo visual explicativo em Shorts.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "engenharia profissão extinta dia shorts",
+              "channelCount": 0,
+              "videoCount": 75,
+              "dedicatedChannels": 0,
+              "avgTopViews": 241931,
+              "maxTopViews": 950023,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Profissões em Risco com as IA'S (Inteligência Artificial) #ias",
+                  "views": 62021,
+                  "videoId": "PgpsPgL52YU"
+                },
+                {
+                  "title": "As Profissões que vão acabar - profissões que serão extintas até 2030 por robôs #shorts",
+                  "views": 98900,
+                  "videoId": "psyQcPnFdlo"
+                },
+                {
+                  "title": "Profissões que serão extintas até 2030",
+                  "views": 2720,
+                  "videoId": "l9kmapW0Q50"
+                },
+                {
+                  "title": "Profissões do Futuro: O Que Esperar em Tecnologia",
+                  "views": 24777,
+                  "videoId": "DP0e4fylFrE"
+                },
+                {
+                  "title": "🔵 A profissão de PEDREIRO vai ACABAR ou VALORIZAR? #engenhariacivil #arquitetura #reportagem #shorts",
+                  "views": 2087,
+                  "videoId": "ccqP3HRU80A"
+                },
+                {
+                  "title": "Os 10 trabalhos com maior potencial de crescimento, segundo o Fórum Econômico Mundial",
+                  "views": 950023,
+                  "videoId": "Lbk-EDaySmw"
+                },
+                {
+                  "title": "COMO PRECIFICAR UM PRODUTO DA FORMA CORRETA? #Shorts - CLIQUE E CONTINUE ASSISTINDO #Shorts",
+                  "views": 439081,
+                  "videoId": "W8mLzZ1WR4s"
+                },
+                {
+                  "title": "5 PROFISSÕES COM ALTO RISCO DE EXTINÇÃO",
+                  "views": 755,
+                  "videoId": "irsmxEAu_YQ"
+                },
+                {
+                  "title": "CEO do Google fala sobre o Futuro dos Programadores",
+                  "views": 113703,
+                  "videoId": "DRwHnhsgppA"
+                },
+                {
+                  "title": "operigo do drone humano 2022",
+                  "views": 725241,
+                  "videoId": "mtTgHgHxS7E"
+                }
+              ],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73
+            },
+            "firstVideoIdea": "Como os romanos erguiam blocos de 50 toneladas sem eletricidade?",
+            "risk": "Alto custo de tempo para produzir ou encontrar animações 3D precisas que expliquem a mecânica em menos de 60 segundos."
+          },
+          {
+            "label": "Engenharia: Subterrâneos Ocultos",
+            "macroNiche": "Engenharia Civil",
+            "angle": "Explorar a engenharia de megaestruturas invisíveis, como túneis de escoamento colossais e reservatórios ocultos sob grandes cidades.",
+            "formatPattern": "Zoom-in de mapa 3D + Revelação de escala",
+            "youtubeSearchQuery": "operador guindaste medieval construcao catedral",
+            "pioneerScore": 78,
+            "saturationPct": 9,
+            "macroSaturationPct": 56,
+            "gapScore": 47,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Canais de curiosidades mencionam cidades subterrâneas, mas nenhum foca na engenharia hidráulica e estrutural dessas megaconstruções modernas. Baixa saturação no Brasil com alto apelo visual de escala.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "operador guindaste medieval construcao catedral",
+              "channelCount": 0,
+              "videoCount": 9,
+              "dedicatedChannels": 0,
+              "avgTopViews": 431,
+              "maxTopViews": 556,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 457,
+                  "videoId": "VFuf9-gztGo"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 437,
+                  "videoId": "DSkBsPbjCxE"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 554,
+                  "videoId": "voGBgWQldWQ"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 556,
+                  "videoId": "4iw6qFzlT4M"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 149,
+                  "videoId": "xM0B7IgBzCA"
+                }
+              ],
+              "saturationPct": 9,
+              "macroSaturationPct": 56,
+              "gapScore": 47
+            },
+            "firstVideoIdea": "O templo subterrâneo de Tóquio construído para salvar a cidade de tsunamis",
+            "risk": "Dificuldade de encontrar imagens reais em alta resolução de áreas restritas ou subterrâneas."
+          },
+          {
+            "label": "Engenharia: Profissões Extintas",
+            "macroNiche": "Engenharia & História",
+            "angle": "Recriar a rotina técnica, os perigos e o funcionamento das máquinas operadas por profissionais de engenharia mecânica e industrial do passado.",
+            "formatPattern": "Simulação em primeira pessoa + Efeitos sonoros imersivos",
+            "youtubeSearchQuery": "tunel subterraneo secreto engenharia mapa",
+            "pioneerScore": 74,
+            "saturationPct": 26,
+            "macroSaturationPct": 89,
+            "gapScore": 63,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "O público adora nostalgia e história industrial, mas o nicho de Shorts foca apenas em fatos genéricos. Mostrar a engenharia prática por trás de profissões perigosas extintas gera alta retenção.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "tunel subterraneo secreto engenharia mapa",
+              "channelCount": 0,
+              "videoCount": 211,
+              "dedicatedChannels": 0,
+              "avgTopViews": 327811,
+              "maxTopViews": 1931335,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Túnel secreto no meio da Imigrantes! #shorts",
+                  "views": 100060,
+                  "videoId": "8MowY2oM8O0"
+                },
+                {
+                  "title": "Underground Service Mapping in 3D",
+                  "views": 6482,
+                  "videoId": "YY6jgbM7240"
+                },
+                {
+                  "title": "O Que Há Debaixo de São Paulo?",
+                  "views": 1931335,
+                  "videoId": "kB35H-Xt_SQ"
+                },
+                {
+                  "title": "🏛️🔦 3km de Túneis Secretos em São Paulo! 🕵️‍♂️",
+                  "views": 4378,
+                  "videoId": "7c7Af7j8VW0"
+                },
+                {
+                  "title": "O que está escrito no topo da pirâmide?   #Shorts",
+                  "views": 302684,
+                  "videoId": "cqW6ZI5JFPw"
+                },
+                {
+                  "title": "How to open the gate near the teleport point in Fontaine | Check Pinned Comment for Full Guide",
+                  "views": 180925,
+                  "videoId": "U12TKrjHOcU"
+                },
+                {
+                  "title": "A FARSA da CONSTRUÇÃO PRIMITIVA! 🤯",
+                  "views": 152672,
+                  "videoId": "sxuhKsA_k3U"
+                },
+                {
+                  "title": "O sistema de esgoto dos navios de cruzeiro é bizarro #brasil🇧🇷 #curiosidades #navio #cruzeiro",
+                  "views": 599452,
+                  "videoId": "BNGue9NEOto"
+                },
+                {
+                  "title": "Inside the 'No-Map' Tunnel: Why This Mega Passage Doesn’t Officially Exist",
+                  "views": 122,
+                  "videoId": "PtNeqGFQ_GU"
+                },
+                {
+                  "title": "The Secret City Hidden Beneath Every Street | Mind-Blowing Engineering",
+                  "views": 1,
+                  "videoId": "TuY4sAYAaak"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63
+            },
+            "firstVideoIdea": "Como era o trabalho do operador de elevador hidráulico a vapor de 1890?",
+            "risk": "Escassez de registros visuais de boa qualidade para ilustrar a rotina exata dessas profissões."
+          },
+          {
+            "label": "Engenharia: Erros de Cálculo Fatais",
+            "macroNiche": "Engenharia Estrutural",
+            "angle": "Análise forense de pequenos erros de cálculo matemático ou de física que causaram colapsos catastróficos em grandes obras.",
+            "formatPattern": "Autópsia estrutural em 3 atos (O Erro, O Efeito, A Solução)",
+            "youtubeSearchQuery": "resistencia grafeno testes laboratorio dados",
+            "pioneerScore": 69,
+            "saturationPct": 26,
+            "macroSaturationPct": 89,
+            "gapScore": 63,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Embora existam documentários longos sobre desastres, faltam canais de Shorts focados puramente na física do erro de cálculo de forma didática e rápida, sem sensacionalismo barato.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "resistencia grafeno testes laboratorio dados",
+              "channelCount": 0,
+              "videoCount": 260,
+              "dedicatedChannels": 0,
+              "avgTopViews": 61723,
+              "maxTopViews": 565568,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "iniciando os testes do PLA grafeno! mais resistência para as peças! #shorts #impressao3d #grafeno",
+                  "views": 6066,
+                  "videoId": "QuAbMPBC01w"
+                },
+                {
+                  "title": "Tecnologia Grafeno - Celular flexível, Resistência e Inovação na Saúde.",
+                  "views": 2174,
+                  "videoId": "QGaN0xXJhoA"
+                },
+                {
+                  "title": "Teste de tração em corpo de prova impresso em PETG",
+                  "views": 3191,
+                  "videoId": "rQPXT7gKNT4"
+                },
+                {
+                  "title": "A descoberta INSANA do concreto com grafeno da China mudará a construção para sempre",
+                  "views": 16881,
+                  "videoId": "jEoNh0m_fBs"
+                },
+                {
+                  "title": "Teste de tração em material cirúrgico - Liga de titânio",
+                  "views": 2254,
+                  "videoId": "kZtYjTXQKWY"
+                },
+                {
+                  "title": "Mais Forte que Aço Conheça o Grafeno Nanotecnologia #ciencia #tecnologia #inovação",
+                  "views": 12616,
+                  "videoId": "UII_wAs3nV0"
+                },
+                {
+                  "title": "How is Graphene Produced on a Large Scale with @homeofgraphene",
+                  "views": 6771,
+                  "videoId": "RRqQAAEEvXk"
+                },
+                {
+                  "title": "#SHORTS PRUEBAS DE GRAFENO EN PARAGUAY",
+                  "views": 1689,
+                  "videoId": "R0Tx9knQ-YY"
+                },
+                {
+                  "title": "Benchmarking our F3 PA-CF Pro against a PETG #3dprinting #filament #fiberthree",
+                  "views": 565568,
+                  "videoId": "PRk3sFX5eXQ"
+                },
+                {
+                  "title": "A utilização do grafeno, isso será possível!!! HISTORY NOW   HISTORY",
+                  "views": 24,
+                  "videoId": "9pEEy4pEuuc"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63
+            },
+            "firstVideoIdea": "O erro de 1 milímetro que quase derrubou o arranha-céu Citigroup em Nova York",
+            "risk": "Necessidade de simplificar conceitos complexos de física estrutural sem perder o rigor técnico."
+          },
+          {
+            "label": "Engenharia: Projetos Militares Secretos",
+            "macroNiche": "Engenharia Militar",
+            "angle": "Análise de protótipos reais, patentes bizarras e soluções de engenharia militar incomuns reveladas em arquivos confidenciais desclassificados.",
+            "formatPattern": "Análise de documento oficial + Reconstrução visual",
+            "youtubeSearchQuery": "projeto militar secreto desclassificado arquivo",
+            "pioneerScore": 65,
+            "saturationPct": 16,
+            "macroSaturationPct": 46,
+            "gapScore": 30,
+            "dedicatedChannels": 0,
+            "interestScore": 84,
+            "status": "pioneiro",
+            "whyPioneer": "Histórias de guerra são comuns, mas a engenharia por trás de protótipos bizarros e fracassados é pouquíssimo explorada no formato dinâmico de Shorts no Brasil.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "projeto militar secreto desclassificado arquivo",
+              "channelCount": 0,
+              "videoCount": 65,
+              "dedicatedChannels": 0,
+              "avgTopViews": 537356,
+              "maxTopViews": 5129597,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "PODER escondido pelos EUA | EPISÓDIO COMPLETO: ARQUIVOS DESCLASSIFICADOS COM DAVID DUCHOVNY",
+                  "views": 174131,
+                  "videoId": "3Q8MiK6H8Qg"
+                },
+                {
+                  "title": "A telepatia artificial: o experimento militar oculto 📁 #Shorts",
+                  "views": 4,
+                  "videoId": "e44deKizK3k"
+                },
+                {
+                  "title": "O plano secreto para detonar uma bomba nuclear na Lua 📁 #Shorts",
+                  "views": 24,
+                  "videoId": "8NEHH-2Anwo"
+                },
+                {
+                  "title": "El Dossier Secreto del Pentágono que la ciencia no puede explicar",
+                  "views": 526,
+                  "videoId": "tgMS96BBcY4"
+                },
+                {
+                  "title": "Governo dos Estados Unidos divulga arquivos sobre OVNIs e vida alienígena | Jornal da Band",
+                  "views": 68041,
+                  "videoId": "M-UJ_czfEjM"
+                },
+                {
+                  "title": "Project Horizon | The Most Dangerous Space Race Secret",
+                  "views": 192,
+                  "videoId": "uZ7ov5iaGG8"
+                },
+                {
+                  "title": "Um Navio Foi Teletransportado 320km — O Retorno Chocou o Mundo",
+                  "views": 0,
+                  "videoId": "KO22dDBzNoc"
+                },
+                {
+                  "title": "Declassified: How the US Military Weaponized the Mind | The Phantom Dossier",
+                  "views": 3,
+                  "videoId": "09ekieR6sFY"
+                },
+                {
+                  "title": "How the US Almost Used PIGEONS to Guide NUCLEAR Missiles | Declassified",
+                  "views": 1038,
+                  "videoId": "Mkv3_iaPlcY"
+                },
+                {
+                  "title": "O HOMEM TÁ QUERENDO UMA CHANCE! OLHO NELE, ANCELOTTI! 👀🇧🇷🐐 COPA DO MUNDO DE 2026 É NA CAZÉTV! 🤩🎥",
+                  "views": 5129597,
+                  "videoId": "LVWpnkO9V10"
+                }
+              ],
+              "saturationPct": 16,
+              "macroSaturationPct": 46,
+              "gapScore": 30
+            },
+            "firstVideoIdea": "O tanque de guerra em formato de bola gigante que a Alemanha tentou criar",
+            "risk": "Alguns projetos possuem pouca documentação visual além de esquemas técnicos em preto e branco."
+          },
+          {
+            "label": "Engenharia: Materiais Impossíveis",
+            "macroNiche": "Engenharia de Materiais",
+            "angle": "Apresentar materiais sintéticos revolucionários e ligas metálicas extremas criadas em laboratório que desafiam o senso comum.",
+            "formatPattern": "Demonstração de propriedade física extrema + Aplicação prática",
+            "youtubeSearchQuery": "engenharia lugar misterioso mapa shorts",
+            "pioneerScore": 62,
+            "saturationPct": 34,
+            "macroSaturationPct": 89,
+            "gapScore": 55,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "A ciência de materiais é um dos ramos mais visuais da engenharia, mas quase não há canais dedicados a mostrar esses testes de resistência e propriedades bizarras em Shorts em português.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "engenharia lugar misterioso mapa shorts",
+              "channelCount": 3,
+              "videoCount": 323,
+              "dedicatedChannels": 0,
+              "avgTopViews": 1192580,
+              "maxTopViews": 6328841,
+              "sampleChannels": [
+                {
+                  "title": "Mente Ancestral",
+                  "channelId": "UChbYTOCt_YKWJByRpW-GCIQ"
+                },
+                {
+                  "title": "Descobrir Hoje!",
+                  "channelId": "UCDa2YaJIpPKSZnZefzW3ONw"
+                },
+                {
+                  "title": "Mistérios da história ",
+                  "channelId": "UCm9gv05JAIlgYuD9fHzspdg"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Mistério no Google maps 😨",
+                  "views": 6166,
+                  "videoId": "hfc-w2_6AXM"
+                },
+                {
+                  "title": "O que está escrito no topo da pirâmide?   #Shorts",
+                  "views": 302684,
+                  "videoId": "cqW6ZI5JFPw"
+                },
+                {
+                  "title": "Tung Tung Sahur tem uma Madastra! 🚨😱 #ia #desenho #cartoon #disney #animation",
+                  "views": 6328841,
+                  "videoId": "jO5Kn_c4LJ0"
+                },
+                {
+                  "title": "A Metanfetamina e os Soldados Alemães Durante a Segunda Guerra Mundial #shorts",
+                  "views": 3274092,
+                  "videoId": "PsHOJI6mgAc"
+                },
+                {
+                  "title": "Túnel secreto no meio da Imigrantes! #shorts",
+                  "views": 100060,
+                  "videoId": "8MowY2oM8O0"
+                },
+                {
+                  "title": "Animais de Chernobyl #shorts",
+                  "views": 683157,
+                  "videoId": "_Eij9Ve8I3I"
+                },
+                {
+                  "title": "O templo de kailasa  um dos maiores feitos da arquitetura indiana",
+                  "views": 74811,
+                  "videoId": "R1RBmh2FYgs"
+                },
+                {
+                  "title": "Eles Criaram a Escrita e Sumiram do Mapa! #sumerios #curiosidades #viral #fatos #histórias  #shorts",
+                  "views": 42,
+                  "videoId": "qQVeRrffTMk"
+                },
+                {
+                  "title": "O sistema de esgoto dos navios de cruzeiro é bizarro #brasil🇧🇷 #curiosidades #navio #cruzeiro",
+                  "views": 599452,
+                  "videoId": "BNGue9NEOto"
+                },
+                {
+                  "title": "QUEM CONSTRUIU AS PIRÂMIDES ? #sergiosacani #pirâmides",
+                  "views": 556498,
+                  "videoId": "FVzjTRxotVg"
+                }
+              ],
+              "saturationPct": 34,
+              "macroSaturationPct": 89,
+              "gapScore": 55
+            },
+            "firstVideoIdea": "O metal líquido que se regenera sozinho e conduz eletricidade",
+            "risk": "Dependência de vídeos de terceiros (laboratórios e universidades) para ilustrar as propriedades dos materiais."
+          }
+        ],
+        "pioneerIdeas": [
+          {
+            "title": "Como os romanos erguiam blocos de 50 toneladas sem eletricidade?",
+            "hookPt": "Desvendar o funcionamento mecânico de guindastes, engrenagens e sistemas de elevação usados em canteiros de obras da antiguidade.",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Existe um enorme interesse por construções antigas, mas quase nenhum canal foca na física prática e no funcionamento mecânico dos guindastes de madeira medievais e romanos. Há um gap massivo de conteúdo visual explicativo em Shorts.",
+            "format": "SHORTS",
+            "pioneerScore": 85,
+            "saturationPct": 16,
+            "status": "virgem",
+            "macroNiche": "Engenharia Histórica",
+            "angle": "Desvendar o funcionamento mecânico de guindastes, engrenagens e sistemas de elevação usados em canteiros de obras da antiguidade.",
+            "formatPattern": "Animação 3D esquemática + Narração imersiva",
+            "youtubeSearchQuery": "engenharia profissão extinta dia shorts"
+          },
+          {
+            "title": "O templo subterrâneo de Tóquio construído para salvar a cidade de tsunamis",
+            "hookPt": "Explorar a engenharia de megaestruturas invisíveis, como túneis de escoamento colossais e reservatórios ocultos sob grandes cidades.",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Canais de curiosidades mencionam cidades subterrâneas, mas nenhum foca na engenharia hidráulica e estrutural dessas megaconstruções modernas. Baixa saturação no Brasil com alto apelo visual de escala.",
+            "format": "SHORTS",
+            "pioneerScore": 78,
+            "saturationPct": 9,
+            "status": "virgem",
+            "macroNiche": "Engenharia Civil",
+            "angle": "Explorar a engenharia de megaestruturas invisíveis, como túneis de escoamento colossais e reservatórios ocultos sob grandes cidades.",
+            "formatPattern": "Zoom-in de mapa 3D + Revelação de escala",
+            "youtubeSearchQuery": "operador guindaste medieval construcao catedral"
+          },
+          {
+            "title": "Como era o trabalho do operador de elevador hidráulico a vapor de 1890?",
+            "hookPt": "Recriar a rotina técnica, os perigos e o funcionamento das máquinas operadas por profissionais de engenharia mecânica e industrial do passado.",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "O público adora nostalgia e história industrial, mas o nicho de Shorts foca apenas em fatos genéricos. Mostrar a engenharia prática por trás de profissões perigosas extintas gera alta retenção.",
+            "format": "SHORTS",
+            "pioneerScore": 74,
+            "saturationPct": 26,
+            "status": "pioneiro",
+            "macroNiche": "Engenharia & História",
+            "angle": "Recriar a rotina técnica, os perigos e o funcionamento das máquinas operadas por profissionais de engenharia mecânica e industrial do passado.",
+            "formatPattern": "Simulação em primeira pessoa + Efeitos sonoros imersivos",
+            "youtubeSearchQuery": "tunel subterraneo secreto engenharia mapa"
+          },
+          {
+            "title": "O erro de 1 milímetro que quase derrubou o arranha-céu Citigroup em Nova York",
+            "hookPt": "Análise forense de pequenos erros de cálculo matemático ou de física que causaram colapsos catastróficos em grandes obras.",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Embora existam documentários longos sobre desastres, faltam canais de Shorts focados puramente na física do erro de cálculo de forma didática e rápida, sem sensacionalismo barato.",
+            "format": "SHORTS",
+            "pioneerScore": 69,
+            "saturationPct": 26,
+            "status": "pioneiro",
+            "macroNiche": "Engenharia Estrutural",
+            "angle": "Análise forense de pequenos erros de cálculo matemático ou de física que causaram colapsos catastróficos em grandes obras.",
+            "formatPattern": "Autópsia estrutural em 3 atos (O Erro, O Efeito, A Solução)",
+            "youtubeSearchQuery": "resistencia grafeno testes laboratorio dados"
+          },
+          {
+            "title": "O tanque de guerra em formato de bola gigante que a Alemanha tentou criar",
+            "hookPt": "Análise de protótipos reais, patentes bizarras e soluções de engenharia militar incomuns reveladas em arquivos confidenciais desclassificados.",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "Histórias de guerra são comuns, mas a engenharia por trás de protótipos bizarros e fracassados é pouquíssimo explorada no formato dinâmico de Shorts no Brasil.",
+            "format": "SHORTS",
+            "pioneerScore": 65,
+            "saturationPct": 16,
+            "status": "pioneiro",
+            "macroNiche": "Engenharia Militar",
+            "angle": "Análise de protótipos reais, patentes bizarras e soluções de engenharia militar incomuns reveladas em arquivos confidenciais desclassificados.",
+            "formatPattern": "Análise de documento oficial + Reconstrução visual",
+            "youtubeSearchQuery": "projeto militar secreto desclassificado arquivo"
+          },
+          {
+            "title": "O metal líquido que se regenera sozinho e conduz eletricidade",
+            "hookPt": "Apresentar materiais sintéticos revolucionários e ligas metálicas extremas criadas em laboratório que desafiam o senso comum.",
+            "mechanic": "pioneer-niche",
+            "whyWorks": "A ciência de materiais é um dos ramos mais visuais da engenharia, mas quase não há canais dedicados a mostrar esses testes de resistência e propriedades bizarras em Shorts em português.",
+            "format": "SHORTS",
+            "pioneerScore": 62,
+            "saturationPct": 34,
+            "status": "pioneiro",
+            "macroNiche": "Engenharia de Materiais",
+            "angle": "Apresentar materiais sintéticos revolucionários e ligas metálicas extremas criadas em laboratório que desafiam o senso comum.",
+            "formatPattern": "Demonstração de propriedade física extrema + Aplicação prática",
+            "youtubeSearchQuery": "engenharia lugar misterioso mapa shorts"
+          }
+        ],
+        "summary": {
+          "scanned": 24,
+          "validated": 14,
+          "virginCount": 2,
+          "pioneerCount": 6,
+          "topPick": "Engenharia: Maquinários Ancestrais",
+          "topMacro": "Engenharia Histórica"
+        },
+        "fetchedAt": "2026-07-19T15:26:02.308Z"
+      },
+      "niches": [
+        {
+          "label": "Engenharia: Maquinários Ancestrais",
+          "status": "virgem",
+          "pioneerScore": 85,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "ENGENHARIA CURIOSO INTERESSANTE",
+          "savedAt": "2026-07-19T15:26:06.430Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Existe um enorme interesse por construções antigas, mas quase nenhum canal foca na física prática e no funcionamento mecânico dos guindastes de madeira medievais e romanos. Há um gap massivo de conteúdo visual explicativo em Shorts.",
+              "headline": "Engenharia: Maquinários Ancestrais"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Engenharia Histórica",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Desvendar o funcionamento mecânico de guindastes, engrenagens e sistemas de elevação usados em canteiros de obras da antiguidade.",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Animação 3D esquemática + Narração imersiva",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "engenharia profissão extinta dia shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 0,
+              "videoCount": 75,
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73,
+              "avgTopViews": 241931,
+              "maxTopViews": 950023,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Profissões em Risco com as IA'S (Inteligência Artificial) #ias",
+                  "views": 62021,
+                  "videoId": "PgpsPgL52YU"
+                },
+                {
+                  "title": "As Profissões que vão acabar - profissões que serão extintas até 2030 por robôs #shorts",
+                  "views": 98900,
+                  "videoId": "psyQcPnFdlo"
+                },
+                {
+                  "title": "Profissões que serão extintas até 2030",
+                  "views": 2720,
+                  "videoId": "l9kmapW0Q50"
+                },
+                {
+                  "title": "Profissões do Futuro: O Que Esperar em Tecnologia",
+                  "views": 24777,
+                  "videoId": "DP0e4fylFrE"
+                },
+                {
+                  "title": "🔵 A profissão de PEDREIRO vai ACABAR ou VALORIZAR? #engenhariacivil #arquitetura #reportagem #shorts",
+                  "views": 2087,
+                  "videoId": "ccqP3HRU80A"
+                },
+                {
+                  "title": "Os 10 trabalhos com maior potencial de crescimento, segundo o Fórum Econômico Mundial",
+                  "views": 950023,
+                  "videoId": "Lbk-EDaySmw"
+                },
+                {
+                  "title": "COMO PRECIFICAR UM PRODUTO DA FORMA CORRETA? #Shorts - CLIQUE E CONTINUE ASSISTINDO #Shorts",
+                  "views": 439081,
+                  "videoId": "W8mLzZ1WR4s"
+                },
+                {
+                  "title": "5 PROFISSÕES COM ALTO RISCO DE EXTINÇÃO",
+                  "views": 755,
+                  "videoId": "irsmxEAu_YQ"
+                },
+                {
+                  "title": "CEO do Google fala sobre o Futuro dos Programadores",
+                  "views": 113703,
+                  "videoId": "DRwHnhsgppA"
+                },
+                {
+                  "title": "operigo do drone humano 2022",
+                  "views": 725241,
+                  "videoId": "mtTgHgHxS7E"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 85,
+              "interestScore": 89,
+              "status": "virgem",
+              "whyPioneer": "Existe um enorme interesse por construções antigas, mas quase nenhum canal foca na física prática e no funcionamento mecânico dos guindastes de madeira medievais e romanos. Há um gap massivo de conteúdo visual explicativo em Shorts."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "Como os romanos erguiam blocos de 50 toneladas sem eletricidade?",
+              "hook": "Desvendar o funcionamento mecânico de guindastes, engrenagens e sistemas de elevação usados em canteiros de obras da antiguidade."
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Alto custo de tempo para produzir ou encontrar animações 3D precisas que expliquem a mecânica em menos de 60 segundos."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Curiosos sobre como as coisas funcionam e falham."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Animação 3D esquemática + Narração imersiva",
+                "Ângulo: Desvendar o funcionamento mecânico de guindastes, engrenagens e sistemas de elevação usados em canteiros de obras da antiguidade.",
+                "Gancho inicial: Como os romanos erguiam blocos de 50 toneladas sem eletricidade?",
+                "Referência: Profissões em Risco com as IA'S (Inteligência Artificial) #ias"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Categoria virgem: menos concorrência por patrocínio de nicho."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "engenharia profissão extinta dia shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Engenharia: Maquinários Ancestrais",
+            "macroNiche": "Engenharia Histórica",
+            "angle": "Desvendar o funcionamento mecânico de guindastes, engrenagens e sistemas de elevação usados em canteiros de obras da antiguidade.",
+            "formatPattern": "Animação 3D esquemática + Narração imersiva",
+            "youtubeSearchQuery": "engenharia profissão extinta dia shorts",
+            "pioneerScore": 85,
+            "saturationPct": 16,
+            "macroSaturationPct": 89,
+            "gapScore": 73,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Existe um enorme interesse por construções antigas, mas quase nenhum canal foca na física prática e no funcionamento mecânico dos guindastes de madeira medievais e romanos. Há um gap massivo de conteúdo visual explicativo em Shorts.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "engenharia profissão extinta dia shorts",
+              "channelCount": 0,
+              "videoCount": 75,
+              "dedicatedChannels": 0,
+              "avgTopViews": 241931,
+              "maxTopViews": 950023,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Profissões em Risco com as IA'S (Inteligência Artificial) #ias",
+                  "views": 62021,
+                  "videoId": "PgpsPgL52YU"
+                },
+                {
+                  "title": "As Profissões que vão acabar - profissões que serão extintas até 2030 por robôs #shorts",
+                  "views": 98900,
+                  "videoId": "psyQcPnFdlo"
+                },
+                {
+                  "title": "Profissões que serão extintas até 2030",
+                  "views": 2720,
+                  "videoId": "l9kmapW0Q50"
+                },
+                {
+                  "title": "Profissões do Futuro: O Que Esperar em Tecnologia",
+                  "views": 24777,
+                  "videoId": "DP0e4fylFrE"
+                },
+                {
+                  "title": "🔵 A profissão de PEDREIRO vai ACABAR ou VALORIZAR? #engenhariacivil #arquitetura #reportagem #shorts",
+                  "views": 2087,
+                  "videoId": "ccqP3HRU80A"
+                },
+                {
+                  "title": "Os 10 trabalhos com maior potencial de crescimento, segundo o Fórum Econômico Mundial",
+                  "views": 950023,
+                  "videoId": "Lbk-EDaySmw"
+                },
+                {
+                  "title": "COMO PRECIFICAR UM PRODUTO DA FORMA CORRETA? #Shorts - CLIQUE E CONTINUE ASSISTINDO #Shorts",
+                  "views": 439081,
+                  "videoId": "W8mLzZ1WR4s"
+                },
+                {
+                  "title": "5 PROFISSÕES COM ALTO RISCO DE EXTINÇÃO",
+                  "views": 755,
+                  "videoId": "irsmxEAu_YQ"
+                },
+                {
+                  "title": "CEO do Google fala sobre o Futuro dos Programadores",
+                  "views": 113703,
+                  "videoId": "DRwHnhsgppA"
+                },
+                {
+                  "title": "operigo do drone humano 2022",
+                  "views": 725241,
+                  "videoId": "mtTgHgHxS7E"
+                }
+              ],
+              "saturationPct": 16,
+              "macroSaturationPct": 89,
+              "gapScore": 73
+            },
+            "firstVideoIdea": "Como os romanos erguiam blocos de 50 toneladas sem eletricidade?",
+            "risk": "Alto custo de tempo para produzir ou encontrar animações 3D precisas que expliquem a mecânica em menos de 60 segundos."
+          }
+        },
+        {
+          "label": "Engenharia: Subterrâneos Ocultos",
+          "status": "virgem",
+          "pioneerScore": 78,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "ENGENHARIA CURIOSO INTERESSANTE",
+          "savedAt": "2026-07-19T15:26:06.430Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Canais de curiosidades mencionam cidades subterrâneas, mas nenhum foca na engenharia hidráulica e estrutural dessas megaconstruções modernas. Baixa saturação no Brasil com alto apelo visual de escala.",
+              "headline": "Engenharia: Subterrâneos Ocultos"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Engenharia Civil",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Explorar a engenharia de megaestruturas invisíveis, como túneis de escoamento colossais e reservatórios ocultos sob grandes cidades.",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Zoom-in de mapa 3D + Revelação de escala",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "operador guindaste medieval construcao catedral",
+              "dedicatedChannels": 0,
+              "channelCount": 0,
+              "videoCount": 9,
+              "saturationPct": 9,
+              "macroSaturationPct": 56,
+              "gapScore": 47,
+              "avgTopViews": 431,
+              "maxTopViews": 556,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 457,
+                  "videoId": "VFuf9-gztGo"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 437,
+                  "videoId": "DSkBsPbjCxE"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 554,
+                  "videoId": "voGBgWQldWQ"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 556,
+                  "videoId": "4iw6qFzlT4M"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 149,
+                  "videoId": "xM0B7IgBzCA"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 78,
+              "interestScore": 89,
+              "status": "virgem",
+              "whyPioneer": "Canais de curiosidades mencionam cidades subterrâneas, mas nenhum foca na engenharia hidráulica e estrutural dessas megaconstruções modernas. Baixa saturação no Brasil com alto apelo visual de escala."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "O templo subterrâneo de Tóquio construído para salvar a cidade de tsunamis",
+              "hook": "Explorar a engenharia de megaestruturas invisíveis, como túneis de escoamento colossais e reservatórios ocultos sob grandes cidades."
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Dificuldade de encontrar imagens reais em alta resolução de áreas restritas ou subterrâneas."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Curiosos sobre como as coisas funcionam e falham."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Zoom-in de mapa 3D + Revelação de escala",
+                "Ângulo: Explorar a engenharia de megaestruturas invisíveis, como túneis de escoamento colossais e reservatórios ocultos sob grandes cidades.",
+                "Gancho inicial: O templo subterrâneo de Tóquio construído para salvar a cidade de tsunamis",
+                "Referência: The Grueling Life of a Medieval Treadmill Crane Operator"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Demanda ainda a validar — foque em retenção nos primeiros uploads.",
+                "Categoria virgem: menos concorrência por patrocínio de nicho."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "operador guindaste medieval construcao catedral",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Engenharia: Subterrâneos Ocultos",
+            "macroNiche": "Engenharia Civil",
+            "angle": "Explorar a engenharia de megaestruturas invisíveis, como túneis de escoamento colossais e reservatórios ocultos sob grandes cidades.",
+            "formatPattern": "Zoom-in de mapa 3D + Revelação de escala",
+            "youtubeSearchQuery": "operador guindaste medieval construcao catedral",
+            "pioneerScore": 78,
+            "saturationPct": 9,
+            "macroSaturationPct": 56,
+            "gapScore": 47,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "virgem",
+            "whyPioneer": "Canais de curiosidades mencionam cidades subterrâneas, mas nenhum foca na engenharia hidráulica e estrutural dessas megaconstruções modernas. Baixa saturação no Brasil com alto apelo visual de escala.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "operador guindaste medieval construcao catedral",
+              "channelCount": 0,
+              "videoCount": 9,
+              "dedicatedChannels": 0,
+              "avgTopViews": 431,
+              "maxTopViews": 556,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 457,
+                  "videoId": "VFuf9-gztGo"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 437,
+                  "videoId": "DSkBsPbjCxE"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 554,
+                  "videoId": "voGBgWQldWQ"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 556,
+                  "videoId": "4iw6qFzlT4M"
+                },
+                {
+                  "title": "The Grueling Life of a Medieval Treadmill Crane Operator",
+                  "views": 149,
+                  "videoId": "xM0B7IgBzCA"
+                }
+              ],
+              "saturationPct": 9,
+              "macroSaturationPct": 56,
+              "gapScore": 47
+            },
+            "firstVideoIdea": "O templo subterrâneo de Tóquio construído para salvar a cidade de tsunamis",
+            "risk": "Dificuldade de encontrar imagens reais em alta resolução de áreas restritas ou subterrâneas."
+          }
+        },
+        {
+          "label": "Engenharia: Profissões Extintas",
+          "status": "pioneiro",
+          "pioneerScore": 74,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "ENGENHARIA CURIOSO INTERESSANTE",
+          "savedAt": "2026-07-19T15:26:06.430Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "O público adora nostalgia e história industrial, mas o nicho de Shorts foca apenas em fatos genéricos. Mostrar a engenharia prática por trás de profissões perigosas extintas gera alta retenção.",
+              "headline": "Engenharia: Profissões Extintas"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Engenharia & História",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Recriar a rotina técnica, os perigos e o funcionamento das máquinas operadas por profissionais de engenharia mecânica e industrial do passado.",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Simulação em primeira pessoa + Efeitos sonoros imersivos",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "tunel subterraneo secreto engenharia mapa",
+              "dedicatedChannels": 0,
+              "channelCount": 0,
+              "videoCount": 211,
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63,
+              "avgTopViews": 327811,
+              "maxTopViews": 1931335,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Túnel secreto no meio da Imigrantes! #shorts",
+                  "views": 100060,
+                  "videoId": "8MowY2oM8O0"
+                },
+                {
+                  "title": "Underground Service Mapping in 3D",
+                  "views": 6482,
+                  "videoId": "YY6jgbM7240"
+                },
+                {
+                  "title": "O Que Há Debaixo de São Paulo?",
+                  "views": 1931335,
+                  "videoId": "kB35H-Xt_SQ"
+                },
+                {
+                  "title": "🏛️🔦 3km de Túneis Secretos em São Paulo! 🕵️‍♂️",
+                  "views": 4378,
+                  "videoId": "7c7Af7j8VW0"
+                },
+                {
+                  "title": "O que está escrito no topo da pirâmide?   #Shorts",
+                  "views": 302684,
+                  "videoId": "cqW6ZI5JFPw"
+                },
+                {
+                  "title": "How to open the gate near the teleport point in Fontaine | Check Pinned Comment for Full Guide",
+                  "views": 180925,
+                  "videoId": "U12TKrjHOcU"
+                },
+                {
+                  "title": "A FARSA da CONSTRUÇÃO PRIMITIVA! 🤯",
+                  "views": 152672,
+                  "videoId": "sxuhKsA_k3U"
+                },
+                {
+                  "title": "O sistema de esgoto dos navios de cruzeiro é bizarro #brasil🇧🇷 #curiosidades #navio #cruzeiro",
+                  "views": 599452,
+                  "videoId": "BNGue9NEOto"
+                },
+                {
+                  "title": "Inside the 'No-Map' Tunnel: Why This Mega Passage Doesn’t Officially Exist",
+                  "views": 122,
+                  "videoId": "PtNeqGFQ_GU"
+                },
+                {
+                  "title": "The Secret City Hidden Beneath Every Street | Mind-Blowing Engineering",
+                  "views": 1,
+                  "videoId": "TuY4sAYAaak"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 74,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "O público adora nostalgia e história industrial, mas o nicho de Shorts foca apenas em fatos genéricos. Mostrar a engenharia prática por trás de profissões perigosas extintas gera alta retenção."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "Como era o trabalho do operador de elevador hidráulico a vapor de 1890?",
+              "hook": "Recriar a rotina técnica, os perigos e o funcionamento das máquinas operadas por profissionais de engenharia mecânica e industrial do passado."
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Escassez de registros visuais de boa qualidade para ilustrar a rotina exata dessas profissões."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Curiosos 18–40 que consomem documentário e fatos surpreendentes."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Simulação em primeira pessoa + Efeitos sonoros imersivos",
+                "Ângulo: Recriar a rotina técnica, os perigos e o funcionamento das máquinas operadas por profissionais de engenharia mecânica e industrial do passado.",
+                "Gancho inicial: Como era o trabalho do operador de elevador hidráulico a vapor de 1890?",
+                "Referência: Túnel secreto no meio da Imigrantes! #shorts"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "tunel subterraneo secreto engenharia mapa",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Engenharia: Profissões Extintas",
+            "macroNiche": "Engenharia & História",
+            "angle": "Recriar a rotina técnica, os perigos e o funcionamento das máquinas operadas por profissionais de engenharia mecânica e industrial do passado.",
+            "formatPattern": "Simulação em primeira pessoa + Efeitos sonoros imersivos",
+            "youtubeSearchQuery": "tunel subterraneo secreto engenharia mapa",
+            "pioneerScore": 74,
+            "saturationPct": 26,
+            "macroSaturationPct": 89,
+            "gapScore": 63,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "O público adora nostalgia e história industrial, mas o nicho de Shorts foca apenas em fatos genéricos. Mostrar a engenharia prática por trás de profissões perigosas extintas gera alta retenção.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "tunel subterraneo secreto engenharia mapa",
+              "channelCount": 0,
+              "videoCount": 211,
+              "dedicatedChannels": 0,
+              "avgTopViews": 327811,
+              "maxTopViews": 1931335,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "Túnel secreto no meio da Imigrantes! #shorts",
+                  "views": 100060,
+                  "videoId": "8MowY2oM8O0"
+                },
+                {
+                  "title": "Underground Service Mapping in 3D",
+                  "views": 6482,
+                  "videoId": "YY6jgbM7240"
+                },
+                {
+                  "title": "O Que Há Debaixo de São Paulo?",
+                  "views": 1931335,
+                  "videoId": "kB35H-Xt_SQ"
+                },
+                {
+                  "title": "🏛️🔦 3km de Túneis Secretos em São Paulo! 🕵️‍♂️",
+                  "views": 4378,
+                  "videoId": "7c7Af7j8VW0"
+                },
+                {
+                  "title": "O que está escrito no topo da pirâmide?   #Shorts",
+                  "views": 302684,
+                  "videoId": "cqW6ZI5JFPw"
+                },
+                {
+                  "title": "How to open the gate near the teleport point in Fontaine | Check Pinned Comment for Full Guide",
+                  "views": 180925,
+                  "videoId": "U12TKrjHOcU"
+                },
+                {
+                  "title": "A FARSA da CONSTRUÇÃO PRIMITIVA! 🤯",
+                  "views": 152672,
+                  "videoId": "sxuhKsA_k3U"
+                },
+                {
+                  "title": "O sistema de esgoto dos navios de cruzeiro é bizarro #brasil🇧🇷 #curiosidades #navio #cruzeiro",
+                  "views": 599452,
+                  "videoId": "BNGue9NEOto"
+                },
+                {
+                  "title": "Inside the 'No-Map' Tunnel: Why This Mega Passage Doesn’t Officially Exist",
+                  "views": 122,
+                  "videoId": "PtNeqGFQ_GU"
+                },
+                {
+                  "title": "The Secret City Hidden Beneath Every Street | Mind-Blowing Engineering",
+                  "views": 1,
+                  "videoId": "TuY4sAYAaak"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63
+            },
+            "firstVideoIdea": "Como era o trabalho do operador de elevador hidráulico a vapor de 1890?",
+            "risk": "Escassez de registros visuais de boa qualidade para ilustrar a rotina exata dessas profissões."
+          }
+        },
+        {
+          "label": "Engenharia: Erros de Cálculo Fatais",
+          "status": "pioneiro",
+          "pioneerScore": 69,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "ENGENHARIA CURIOSO INTERESSANTE",
+          "savedAt": "2026-07-19T15:26:06.430Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Embora existam documentários longos sobre desastres, faltam canais de Shorts focados puramente na física do erro de cálculo de forma didática e rápida, sem sensacionalismo barato.",
+              "headline": "Engenharia: Erros de Cálculo Fatais"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Engenharia Estrutural",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Análise forense de pequenos erros de cálculo matemático ou de física que causaram colapsos catastróficos em grandes obras.",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Autópsia estrutural em 3 atos (O Erro, O Efeito, A Solução)",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "resistencia grafeno testes laboratorio dados",
+              "dedicatedChannels": 0,
+              "channelCount": 0,
+              "videoCount": 260,
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63,
+              "avgTopViews": 61723,
+              "maxTopViews": 565568,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "iniciando os testes do PLA grafeno! mais resistência para as peças! #shorts #impressao3d #grafeno",
+                  "views": 6066,
+                  "videoId": "QuAbMPBC01w"
+                },
+                {
+                  "title": "Tecnologia Grafeno - Celular flexível, Resistência e Inovação na Saúde.",
+                  "views": 2174,
+                  "videoId": "QGaN0xXJhoA"
+                },
+                {
+                  "title": "Teste de tração em corpo de prova impresso em PETG",
+                  "views": 3191,
+                  "videoId": "rQPXT7gKNT4"
+                },
+                {
+                  "title": "A descoberta INSANA do concreto com grafeno da China mudará a construção para sempre",
+                  "views": 16881,
+                  "videoId": "jEoNh0m_fBs"
+                },
+                {
+                  "title": "Teste de tração em material cirúrgico - Liga de titânio",
+                  "views": 2254,
+                  "videoId": "kZtYjTXQKWY"
+                },
+                {
+                  "title": "Mais Forte que Aço Conheça o Grafeno Nanotecnologia #ciencia #tecnologia #inovação",
+                  "views": 12616,
+                  "videoId": "UII_wAs3nV0"
+                },
+                {
+                  "title": "How is Graphene Produced on a Large Scale with @homeofgraphene",
+                  "views": 6771,
+                  "videoId": "RRqQAAEEvXk"
+                },
+                {
+                  "title": "#SHORTS PRUEBAS DE GRAFENO EN PARAGUAY",
+                  "views": 1689,
+                  "videoId": "R0Tx9knQ-YY"
+                },
+                {
+                  "title": "Benchmarking our F3 PA-CF Pro against a PETG #3dprinting #filament #fiberthree",
+                  "views": 565568,
+                  "videoId": "PRk3sFX5eXQ"
+                },
+                {
+                  "title": "A utilização do grafeno, isso será possível!!! HISTORY NOW   HISTORY",
+                  "views": 24,
+                  "videoId": "9pEEy4pEuuc"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 69,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "Embora existam documentários longos sobre desastres, faltam canais de Shorts focados puramente na física do erro de cálculo de forma didática e rápida, sem sensacionalismo barato."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "O erro de 1 milímetro que quase derrubou o arranha-céu Citigroup em Nova York",
+              "hook": "Análise forense de pequenos erros de cálculo matemático ou de física que causaram colapsos catastróficos em grandes obras."
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Necessidade de simplificar conceitos complexos de física estrutural sem perder o rigor técnico."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Curiosos sobre como as coisas funcionam e falham."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Autópsia estrutural em 3 atos (O Erro, O Efeito, A Solução)",
+                "Ângulo: Análise forense de pequenos erros de cálculo matemático ou de física que causaram colapsos catastróficos em grandes obras.",
+                "Gancho inicial: O erro de 1 milímetro que quase derrubou o arranha-céu Citigroup em Nova York",
+                "Referência: iniciando os testes do PLA grafeno! mais resistência para as peças! #shorts #impressao3d #grafeno"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "resistencia grafeno testes laboratorio dados",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Engenharia: Erros de Cálculo Fatais",
+            "macroNiche": "Engenharia Estrutural",
+            "angle": "Análise forense de pequenos erros de cálculo matemático ou de física que causaram colapsos catastróficos em grandes obras.",
+            "formatPattern": "Autópsia estrutural em 3 atos (O Erro, O Efeito, A Solução)",
+            "youtubeSearchQuery": "resistencia grafeno testes laboratorio dados",
+            "pioneerScore": 69,
+            "saturationPct": 26,
+            "macroSaturationPct": 89,
+            "gapScore": 63,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "Embora existam documentários longos sobre desastres, faltam canais de Shorts focados puramente na física do erro de cálculo de forma didática e rápida, sem sensacionalismo barato.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "resistencia grafeno testes laboratorio dados",
+              "channelCount": 0,
+              "videoCount": 260,
+              "dedicatedChannels": 0,
+              "avgTopViews": 61723,
+              "maxTopViews": 565568,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "iniciando os testes do PLA grafeno! mais resistência para as peças! #shorts #impressao3d #grafeno",
+                  "views": 6066,
+                  "videoId": "QuAbMPBC01w"
+                },
+                {
+                  "title": "Tecnologia Grafeno - Celular flexível, Resistência e Inovação na Saúde.",
+                  "views": 2174,
+                  "videoId": "QGaN0xXJhoA"
+                },
+                {
+                  "title": "Teste de tração em corpo de prova impresso em PETG",
+                  "views": 3191,
+                  "videoId": "rQPXT7gKNT4"
+                },
+                {
+                  "title": "A descoberta INSANA do concreto com grafeno da China mudará a construção para sempre",
+                  "views": 16881,
+                  "videoId": "jEoNh0m_fBs"
+                },
+                {
+                  "title": "Teste de tração em material cirúrgico - Liga de titânio",
+                  "views": 2254,
+                  "videoId": "kZtYjTXQKWY"
+                },
+                {
+                  "title": "Mais Forte que Aço Conheça o Grafeno Nanotecnologia #ciencia #tecnologia #inovação",
+                  "views": 12616,
+                  "videoId": "UII_wAs3nV0"
+                },
+                {
+                  "title": "How is Graphene Produced on a Large Scale with @homeofgraphene",
+                  "views": 6771,
+                  "videoId": "RRqQAAEEvXk"
+                },
+                {
+                  "title": "#SHORTS PRUEBAS DE GRAFENO EN PARAGUAY",
+                  "views": 1689,
+                  "videoId": "R0Tx9knQ-YY"
+                },
+                {
+                  "title": "Benchmarking our F3 PA-CF Pro against a PETG #3dprinting #filament #fiberthree",
+                  "views": 565568,
+                  "videoId": "PRk3sFX5eXQ"
+                },
+                {
+                  "title": "A utilização do grafeno, isso será possível!!! HISTORY NOW   HISTORY",
+                  "views": 24,
+                  "videoId": "9pEEy4pEuuc"
+                }
+              ],
+              "saturationPct": 26,
+              "macroSaturationPct": 89,
+              "gapScore": 63
+            },
+            "firstVideoIdea": "O erro de 1 milímetro que quase derrubou o arranha-céu Citigroup em Nova York",
+            "risk": "Necessidade de simplificar conceitos complexos de física estrutural sem perder o rigor técnico."
+          }
+        },
+        {
+          "label": "Engenharia: Projetos Militares Secretos",
+          "status": "pioneiro",
+          "pioneerScore": 65,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "ENGENHARIA CURIOSO INTERESSANTE",
+          "savedAt": "2026-07-19T15:26:06.430Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "Histórias de guerra são comuns, mas a engenharia por trás de protótipos bizarros e fracassados é pouquíssimo explorada no formato dinâmico de Shorts no Brasil.",
+              "headline": "Engenharia: Projetos Militares Secretos"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Engenharia Militar",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Análise de protótipos reais, patentes bizarras e soluções de engenharia militar incomuns reveladas em arquivos confidenciais desclassificados.",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Análise de documento oficial + Reconstrução visual",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "projeto militar secreto desclassificado arquivo",
+              "dedicatedChannels": 0,
+              "channelCount": 0,
+              "videoCount": 65,
+              "saturationPct": 16,
+              "macroSaturationPct": 46,
+              "gapScore": 30,
+              "avgTopViews": 537356,
+              "maxTopViews": 5129597,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "PODER escondido pelos EUA | EPISÓDIO COMPLETO: ARQUIVOS DESCLASSIFICADOS COM DAVID DUCHOVNY",
+                  "views": 174131,
+                  "videoId": "3Q8MiK6H8Qg"
+                },
+                {
+                  "title": "A telepatia artificial: o experimento militar oculto 📁 #Shorts",
+                  "views": 4,
+                  "videoId": "e44deKizK3k"
+                },
+                {
+                  "title": "O plano secreto para detonar uma bomba nuclear na Lua 📁 #Shorts",
+                  "views": 24,
+                  "videoId": "8NEHH-2Anwo"
+                },
+                {
+                  "title": "El Dossier Secreto del Pentágono que la ciencia no puede explicar",
+                  "views": 526,
+                  "videoId": "tgMS96BBcY4"
+                },
+                {
+                  "title": "Governo dos Estados Unidos divulga arquivos sobre OVNIs e vida alienígena | Jornal da Band",
+                  "views": 68041,
+                  "videoId": "M-UJ_czfEjM"
+                },
+                {
+                  "title": "Project Horizon | The Most Dangerous Space Race Secret",
+                  "views": 192,
+                  "videoId": "uZ7ov5iaGG8"
+                },
+                {
+                  "title": "Um Navio Foi Teletransportado 320km — O Retorno Chocou o Mundo",
+                  "views": 0,
+                  "videoId": "KO22dDBzNoc"
+                },
+                {
+                  "title": "Declassified: How the US Military Weaponized the Mind | The Phantom Dossier",
+                  "views": 3,
+                  "videoId": "09ekieR6sFY"
+                },
+                {
+                  "title": "How the US Almost Used PIGEONS to Guide NUCLEAR Missiles | Declassified",
+                  "views": 1038,
+                  "videoId": "Mkv3_iaPlcY"
+                },
+                {
+                  "title": "O HOMEM TÁ QUERENDO UMA CHANCE! OLHO NELE, ANCELOTTI! 👀🇧🇷🐐 COPA DO MUNDO DE 2026 É NA CAZÉTV! 🤩🎥",
+                  "views": 5129597,
+                  "videoId": "LVWpnkO9V10"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 65,
+              "interestScore": 84,
+              "status": "pioneiro",
+              "whyPioneer": "Histórias de guerra são comuns, mas a engenharia por trás de protótipos bizarros e fracassados é pouquíssimo explorada no formato dinâmico de Shorts no Brasil."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "O tanque de guerra em formato de bola gigante que a Alemanha tentou criar",
+              "hook": "Análise de protótipos reais, patentes bizarras e soluções de engenharia militar incomuns reveladas em arquivos confidenciais desclassificados."
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Alguns projetos possuem pouca documentação visual além de esquemas técnicos em preto e branco."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Curiosos sobre como as coisas funcionam e falham."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Análise de documento oficial + Reconstrução visual",
+                "Ângulo: Análise de protótipos reais, patentes bizarras e soluções de engenharia militar incomuns reveladas em arquivos confidenciais desclassificados.",
+                "Gancho inicial: O tanque de guerra em formato de bola gigante que a Alemanha tentou criar",
+                "Referência: PODER escondido pelos EUA | EPISÓDIO COMPLETO: ARQUIVOS DESCLASSIFICADOS COM DAVID DUCHOVNY"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "projeto militar secreto desclassificado arquivo",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Engenharia: Projetos Militares Secretos",
+            "macroNiche": "Engenharia Militar",
+            "angle": "Análise de protótipos reais, patentes bizarras e soluções de engenharia militar incomuns reveladas em arquivos confidenciais desclassificados.",
+            "formatPattern": "Análise de documento oficial + Reconstrução visual",
+            "youtubeSearchQuery": "projeto militar secreto desclassificado arquivo",
+            "pioneerScore": 65,
+            "saturationPct": 16,
+            "macroSaturationPct": 46,
+            "gapScore": 30,
+            "dedicatedChannels": 0,
+            "interestScore": 84,
+            "status": "pioneiro",
+            "whyPioneer": "Histórias de guerra são comuns, mas a engenharia por trás de protótipos bizarros e fracassados é pouquíssimo explorada no formato dinâmico de Shorts no Brasil.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "projeto militar secreto desclassificado arquivo",
+              "channelCount": 0,
+              "videoCount": 65,
+              "dedicatedChannels": 0,
+              "avgTopViews": 537356,
+              "maxTopViews": 5129597,
+              "sampleChannels": [],
+              "sampleVideos": [
+                {
+                  "title": "PODER escondido pelos EUA | EPISÓDIO COMPLETO: ARQUIVOS DESCLASSIFICADOS COM DAVID DUCHOVNY",
+                  "views": 174131,
+                  "videoId": "3Q8MiK6H8Qg"
+                },
+                {
+                  "title": "A telepatia artificial: o experimento militar oculto 📁 #Shorts",
+                  "views": 4,
+                  "videoId": "e44deKizK3k"
+                },
+                {
+                  "title": "O plano secreto para detonar uma bomba nuclear na Lua 📁 #Shorts",
+                  "views": 24,
+                  "videoId": "8NEHH-2Anwo"
+                },
+                {
+                  "title": "El Dossier Secreto del Pentágono que la ciencia no puede explicar",
+                  "views": 526,
+                  "videoId": "tgMS96BBcY4"
+                },
+                {
+                  "title": "Governo dos Estados Unidos divulga arquivos sobre OVNIs e vida alienígena | Jornal da Band",
+                  "views": 68041,
+                  "videoId": "M-UJ_czfEjM"
+                },
+                {
+                  "title": "Project Horizon | The Most Dangerous Space Race Secret",
+                  "views": 192,
+                  "videoId": "uZ7ov5iaGG8"
+                },
+                {
+                  "title": "Um Navio Foi Teletransportado 320km — O Retorno Chocou o Mundo",
+                  "views": 0,
+                  "videoId": "KO22dDBzNoc"
+                },
+                {
+                  "title": "Declassified: How the US Military Weaponized the Mind | The Phantom Dossier",
+                  "views": 3,
+                  "videoId": "09ekieR6sFY"
+                },
+                {
+                  "title": "How the US Almost Used PIGEONS to Guide NUCLEAR Missiles | Declassified",
+                  "views": 1038,
+                  "videoId": "Mkv3_iaPlcY"
+                },
+                {
+                  "title": "O HOMEM TÁ QUERENDO UMA CHANCE! OLHO NELE, ANCELOTTI! 👀🇧🇷🐐 COPA DO MUNDO DE 2026 É NA CAZÉTV! 🤩🎥",
+                  "views": 5129597,
+                  "videoId": "LVWpnkO9V10"
+                }
+              ],
+              "saturationPct": 16,
+              "macroSaturationPct": 46,
+              "gapScore": 30
+            },
+            "firstVideoIdea": "O tanque de guerra em formato de bola gigante que a Alemanha tentou criar",
+            "risk": "Alguns projetos possuem pouca documentação visual além de esquemas técnicos em preto e branco."
+          }
+        },
+        {
+          "label": "Engenharia: Materiais Impossíveis",
+          "status": "pioneiro",
+          "pioneerScore": 62,
+          "format": "SHORTS",
+          "discoveryMode": "chosen",
+          "nicheFilter": "ENGENHARIA CURIOSO INTERESSANTE",
+          "savedAt": "2026-07-19T15:26:06.430Z",
+          "aspects": {
+            "overview": {
+              "title": "Visão geral",
+              "summary": "A ciência de materiais é um dos ramos mais visuais da engenharia, mas quase não há canais dedicados a mostrar esses testes de resistência e propriedades bizarras em Shorts em português.",
+              "headline": "Engenharia: Materiais Impossíveis"
+            },
+            "macroNiche": {
+              "title": "Macro-nicho",
+              "value": "Engenharia de Materiais",
+              "description": "Categoria ampla do YouTube onde este ângulo se encaixa."
+            },
+            "angle": {
+              "title": "Ângulo específico",
+              "value": "Apresentar materiais sintéticos revolucionários e ligas metálicas extremas criadas em laboratório que desafiam o senso comum.",
+              "description": "Recorte temático que diferencia este canal dos genéricos."
+            },
+            "formatPattern": {
+              "title": "Padrão de vídeo",
+              "value": "Demonstração de propriedade física extrema + Aplicação prática",
+              "description": "Estrutura narrativa/visual sugerida para os primeiros vídeos."
+            },
+            "competition": {
+              "title": "Concorrência no YouTube",
+              "searchQuery": "engenharia lugar misterioso mapa shorts",
+              "dedicatedChannels": 0,
+              "channelCount": 3,
+              "videoCount": 323,
+              "saturationPct": 34,
+              "macroSaturationPct": 89,
+              "gapScore": 55,
+              "avgTopViews": 1192580,
+              "maxTopViews": 6328841,
+              "sampleChannels": [
+                {
+                  "title": "Mente Ancestral",
+                  "channelId": "UChbYTOCt_YKWJByRpW-GCIQ"
+                },
+                {
+                  "title": "Descobrir Hoje!",
+                  "channelId": "UCDa2YaJIpPKSZnZefzW3ONw"
+                },
+                {
+                  "title": "Mistérios da história ",
+                  "channelId": "UCm9gv05JAIlgYuD9fHzspdg"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Mistério no Google maps 😨",
+                  "views": 6166,
+                  "videoId": "hfc-w2_6AXM"
+                },
+                {
+                  "title": "O que está escrito no topo da pirâmide?   #Shorts",
+                  "views": 302684,
+                  "videoId": "cqW6ZI5JFPw"
+                },
+                {
+                  "title": "Tung Tung Sahur tem uma Madastra! 🚨😱 #ia #desenho #cartoon #disney #animation",
+                  "views": 6328841,
+                  "videoId": "jO5Kn_c4LJ0"
+                },
+                {
+                  "title": "A Metanfetamina e os Soldados Alemães Durante a Segunda Guerra Mundial #shorts",
+                  "views": 3274092,
+                  "videoId": "PsHOJI6mgAc"
+                },
+                {
+                  "title": "Túnel secreto no meio da Imigrantes! #shorts",
+                  "views": 100060,
+                  "videoId": "8MowY2oM8O0"
+                },
+                {
+                  "title": "Animais de Chernobyl #shorts",
+                  "views": 683157,
+                  "videoId": "_Eij9Ve8I3I"
+                },
+                {
+                  "title": "O templo de kailasa  um dos maiores feitos da arquitetura indiana",
+                  "views": 74811,
+                  "videoId": "R1RBmh2FYgs"
+                },
+                {
+                  "title": "Eles Criaram a Escrita e Sumiram do Mapa! #sumerios #curiosidades #viral #fatos #histórias  #shorts",
+                  "views": 42,
+                  "videoId": "qQVeRrffTMk"
+                },
+                {
+                  "title": "O sistema de esgoto dos navios de cruzeiro é bizarro #brasil🇧🇷 #curiosidades #navio #cruzeiro",
+                  "views": 599452,
+                  "videoId": "BNGue9NEOto"
+                },
+                {
+                  "title": "QUEM CONSTRUIU AS PIRÂMIDES ? #sergiosacani #pirâmides",
+                  "views": 556498,
+                  "videoId": "FVzjTRxotVg"
+                }
+              ]
+            },
+            "pioneerAnalysis": {
+              "title": "Análise pioneira",
+              "pioneerScore": 62,
+              "interestScore": 89,
+              "status": "pioneiro",
+              "whyPioneer": "A ciência de materiais é um dos ramos mais visuais da engenharia, mas quase não há canais dedicados a mostrar esses testes de resistência e propriedades bizarras em Shorts em português."
+            },
+            "firstVideo": {
+              "title": "Primeiro vídeo sugerido",
+              "idea": "O metal líquido que se regenera sozinho e conduz eletricidade",
+              "hook": "Apresentar materiais sintéticos revolucionários e ligas metálicas extremas criadas em laboratório que desafiam o senso comum."
+            },
+            "risks": {
+              "title": "Riscos e cuidados",
+              "items": [
+                "Dependência de vídeos de terceiros (laboratórios e universidades) para ilustrar as propriedades dos materiais."
+              ]
+            },
+            "audience": {
+              "title": "Público-alvo",
+              "description": "Curiosos sobre como as coisas funcionam e falham."
+            },
+            "contentPillars": {
+              "title": "Pilares de conteúdo",
+              "items": [
+                "Formato: Demonstração de propriedade física extrema + Aplicação prática",
+                "Ângulo: Apresentar materiais sintéticos revolucionários e ligas metálicas extremas criadas em laboratório que desafiam o senso comum.",
+                "Gancho inicial: O metal líquido que se regenera sozinho e conduz eletricidade",
+                "Referência: Mistério no Google maps 😨"
+              ]
+            },
+            "monetization": {
+              "title": "Sinais de monetização",
+              "items": [
+                "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho.",
+                "Vídeos similares já provam demanda de views.",
+                "Concorrência crescente — diferencie pelo formato visual."
+              ]
+            },
+            "searchStrategy": {
+              "title": "Estratégia de busca",
+              "primaryQuery": "engenharia lugar misterioso mapa shorts",
+              "format": "SHORTS",
+              "tips": [
+                "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+                "Use o título do 1º vídeo como âncora de série.",
+                "Monitore canais dedicados listados abaixo como benchmark."
+              ]
+            }
+          },
+          "raw": {
+            "label": "Engenharia: Materiais Impossíveis",
+            "macroNiche": "Engenharia de Materiais",
+            "angle": "Apresentar materiais sintéticos revolucionários e ligas metálicas extremas criadas em laboratório que desafiam o senso comum.",
+            "formatPattern": "Demonstração de propriedade física extrema + Aplicação prática",
+            "youtubeSearchQuery": "engenharia lugar misterioso mapa shorts",
+            "pioneerScore": 62,
+            "saturationPct": 34,
+            "macroSaturationPct": 89,
+            "gapScore": 55,
+            "dedicatedChannels": 0,
+            "interestScore": 89,
+            "status": "pioneiro",
+            "whyPioneer": "A ciência de materiais é um dos ramos mais visuais da engenharia, mas quase não há canais dedicados a mostrar esses testes de resistência e propriedades bizarras em Shorts em português.",
+            "format": "SHORTS",
+            "youtube": {
+              "query": "engenharia lugar misterioso mapa shorts",
+              "channelCount": 3,
+              "videoCount": 323,
+              "dedicatedChannels": 0,
+              "avgTopViews": 1192580,
+              "maxTopViews": 6328841,
+              "sampleChannels": [
+                {
+                  "title": "Mente Ancestral",
+                  "channelId": "UChbYTOCt_YKWJByRpW-GCIQ"
+                },
+                {
+                  "title": "Descobrir Hoje!",
+                  "channelId": "UCDa2YaJIpPKSZnZefzW3ONw"
+                },
+                {
+                  "title": "Mistérios da história ",
+                  "channelId": "UCm9gv05JAIlgYuD9fHzspdg"
+                }
+              ],
+              "sampleVideos": [
+                {
+                  "title": "Mistério no Google maps 😨",
+                  "views": 6166,
+                  "videoId": "hfc-w2_6AXM"
+                },
+                {
+                  "title": "O que está escrito no topo da pirâmide?   #Shorts",
+                  "views": 302684,
+                  "videoId": "cqW6ZI5JFPw"
+                },
+                {
+                  "title": "Tung Tung Sahur tem uma Madastra! 🚨😱 #ia #desenho #cartoon #disney #animation",
+                  "views": 6328841,
+                  "videoId": "jO5Kn_c4LJ0"
+                },
+                {
+                  "title": "A Metanfetamina e os Soldados Alemães Durante a Segunda Guerra Mundial #shorts",
+                  "views": 3274092,
+                  "videoId": "PsHOJI6mgAc"
+                },
+                {
+                  "title": "Túnel secreto no meio da Imigrantes! #shorts",
+                  "views": 100060,
+                  "videoId": "8MowY2oM8O0"
+                },
+                {
+                  "title": "Animais de Chernobyl #shorts",
+                  "views": 683157,
+                  "videoId": "_Eij9Ve8I3I"
+                },
+                {
+                  "title": "O templo de kailasa  um dos maiores feitos da arquitetura indiana",
+                  "views": 74811,
+                  "videoId": "R1RBmh2FYgs"
+                },
+                {
+                  "title": "Eles Criaram a Escrita e Sumiram do Mapa! #sumerios #curiosidades #viral #fatos #histórias  #shorts",
+                  "views": 42,
+                  "videoId": "qQVeRrffTMk"
+                },
+                {
+                  "title": "O sistema de esgoto dos navios de cruzeiro é bizarro #brasil🇧🇷 #curiosidades #navio #cruzeiro",
+                  "views": 599452,
+                  "videoId": "BNGue9NEOto"
+                },
+                {
+                  "title": "QUEM CONSTRUIU AS PIRÂMIDES ? #sergiosacani #pirâmides",
+                  "views": 556498,
+                  "videoId": "FVzjTRxotVg"
+                }
+              ],
+              "saturationPct": 34,
+              "macroSaturationPct": 89,
+              "gapScore": 55
+            },
+            "firstVideoIdea": "O metal líquido que se regenera sozinho e conduz eletricidade",
+            "risk": "Dependência de vídeos de terceiros (laboratórios e universidades) para ilustrar as propriedades dos materiais."
+          }
+        }
+      ]
+    },
     {
       "id": "7a8db4c4-5d0a-4813-9909-cfd32b6694d3",
       "type": "scan",

@@ -88,6 +88,7 @@
 - [[skills/viral-youtube-shorts|viral youtube shorts]] — doc: [[skills/viral-youtube-shorts/SKILL]]
 - [[skills/visual-prompt-engineer|visual prompt engineer]] — doc: [[skills/visual-prompt-engineer/SKILL]]
 - [[skills/webapp-testing|webapp testing]] — doc: [[skills/webapp-testing/SKILL]]
+- [[skills/whiteboard-video|whiteboard video]] — doc: [[skills/whiteboard-video/SKILL]]
 - [[skills/wizard|wizard]] — doc: [[skills/wizard/SKILL]]
 - [[skills/writing-beats|writing beats]] — doc: [[skills/writing-beats/SKILL]]
 - [[skills/writing-fragments|writing fragments]] — doc: [[skills/writing-fragments/SKILL]]
@@ -99,4 +100,4 @@
 ## Por que vários arquivos SKILL?
 
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-18T22:02:05.668Z
+atualizado: 2026-07-19T19:53:44.786Z

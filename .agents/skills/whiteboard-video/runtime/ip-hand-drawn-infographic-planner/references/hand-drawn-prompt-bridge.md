@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 # Hand-Drawn Prompt Bridge
 
 The prompt must be ready to hand to `hand-drawn-infographic-creator`.

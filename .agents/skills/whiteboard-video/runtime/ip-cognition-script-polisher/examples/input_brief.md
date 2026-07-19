@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 # 示例输入
 
 主题：AI 工具越多，普通人反而越低效。

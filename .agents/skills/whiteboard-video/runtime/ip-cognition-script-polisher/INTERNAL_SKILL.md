@@ -1,4 +1,7 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 ---
+
 name: ip-cognition-script-polisher
 description: Polish rough topics, short opinions, or draft scripts into 30-60 second IP incubation, business cognition, and AI cognition short-video voiceover packages for whiteboard infographic videos. Use when Codex needs to preserve a user's core stance while producing polished_voiceover.md, voiceover_segments.json, and visual_beats.json with hook/反常识/例子/转折/方法/结论 segments, spokenAnchors, visualIntent, and duration-checkable output.
 ---

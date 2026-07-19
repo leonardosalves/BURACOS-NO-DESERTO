@@ -141,9 +141,16 @@ export async function fetchGeminiAi(
     !data.needs_browser &&
     !data.started &&
     /vazia|inválida|invalid/i.test(String(data.error));
+  const retryableHttpFailure =
+    firstRes.status === 408 ||
+    firstRes.status === 429 ||
+    firstRes.status >= 500;
   if (
     emptyOrInvalid ||
-    (!firstRes.ok && !data.needs_browser && !data.started)
+    (!firstRes.ok &&
+      !data.needs_browser &&
+      !data.started &&
+      retryableHttpFailure)
   ) {
     const ok = await waitForBackendHealth(30_000, 1_000);
     if (ok) {

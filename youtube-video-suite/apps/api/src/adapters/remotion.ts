@@ -2,13 +2,14 @@ import type {
   SceneManifest,
   RenderManifest,
 } from "@video-suite/scene-contract";
-import type {
+import {
   VideoEngineAdapter,
   EngineEstimate,
   PreparedEngineInput,
   EngineOutput,
   JobContext,
   HealthcheckResult,
+  getDrawtextFontOpt,
 } from "./types.js";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -153,11 +154,12 @@ export class RemotionAdapter implements VideoEngineAdapter {
       );
 
       // Fallback: generate a styled scene using FFmpeg
+      const fontOpt = getDrawtextFontOpt();
       const bgColor = "0x16213e";
       const fallbackCmd = [
         "ffmpeg -y",
         `-f lavfi -i color=c=${bgColor}:s=${width}x${height}:d=${durationSec}`,
-        `-vf "drawtext=text='Scene ${escapeFFmpegText(String(sceneId).slice(0, 8))}':fontcolor=white:fontsize=56:x=(w-text_w)/2:y=(h-text_h)/2"`,
+        `-vf "drawtext=${fontOpt}text='Scene ${escapeFFmpegText(String(sceneId).slice(0, 8))}':fontcolor=white:fontsize=56:x=(w-text_w)/2:y=(h-text_h)/2"`,
         `-c:v libx264 -pix_fmt yuv420p`,
         `"${outputPath}"`,
       ].join(" ");

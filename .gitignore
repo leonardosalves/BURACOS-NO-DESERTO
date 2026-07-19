@@ -143,11 +143,26 @@ dashboard-qanat/backend/data/*
 !dashboard-qanat/backend/data/remotion-template-catalog.json
 dashboard-qanat/frontend/NUL.css
 
+# Local cache & temporary reports
+youtube_channel_cache.json
+youtube_daily_report_latest.txt
+youtube_weekly_report_latest.txt
+youtube_weekly_reports/
+youtube_studio_settings.json
+storyboard.json
+data/
+!dashboard-qanat/backend/data/
+dashboard-qanat/backend/data/*
+!dashboard-qanat/backend/data/.gitkeep
+!dashboard-qanat/backend/data/remotion-template-catalog.json
+dashboard-qanat/frontend/NUL.css
+
 # MobileWAN local repository and weights models
 mobilewan/
 models/
 resurrector_metadata_cache/
 graphify-repo/
+graphify-out/cache/
+graphify-out/graph.json
 *.txt
 *.png
-

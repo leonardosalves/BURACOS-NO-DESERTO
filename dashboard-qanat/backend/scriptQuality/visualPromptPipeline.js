@@ -6,6 +6,7 @@ import {
 import {
   buildSceneSpecificPrompt,
   enrichVisualPromptsSpecificity,
+  isPromptTooGeneric,
   isSceneSpecificFallbackPrompt,
 } from "../scenePromptSpecificity.js";
 import { resolveStockSearchQuery } from "../stockSearchQuery.js";
@@ -101,6 +102,16 @@ export function needsVisualPromptsRepair(
     (vp) => !String(vp.prompt || vp.visual_prompt || "").trim()
   ).length;
   if (emptyNarr > 0 || emptyPrompt > 0) return true;
+
+  const unresolvedPrompts = vps.filter((vp) => {
+    const narration = String(vp.narration_text || vp.narracao || "").trim();
+    const prompt = String(vp.prompt || vp.visual_prompt || "").trim();
+    return (
+      isSceneSpecificFallbackPrompt(prompt) ||
+      isPromptTooGeneric(prompt, narration)
+    );
+  });
+  if (unresolvedPrompts.length > 0) return true;
 
   const blockPhrases = storyboard.technical_config?.block_phrases || [];
   const expectedBlocks =
@@ -481,7 +492,9 @@ export function normalizeVisualPromptMediaTypes(visualPrompts = []) {
     const prompt = String(next.prompt || next.visual_prompt || "").trim();
     const notes = String(next.editor_notes || "").trim();
     const rawType = String(next.type || next.tipo || "").trim();
-    const rawMediaMode = String(next.media_mode || "").trim().toLowerCase();
+    const rawMediaMode = String(next.media_mode || "")
+      .trim()
+      .toLowerCase();
     const hasSpecialMediaMode =
       rawMediaMode &&
       !["image", "imagem", "still", "video", "vídeo"].includes(rawMediaMode);

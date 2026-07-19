@@ -1,4 +1,7 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 ---
+
 name: hand-drawn-infographic-creator
 description: Generate concise hand-drawn whiteboard infographic prompts, layout notes, and accessibility text for AI image generation. Use this as the creator-facing prompt bridge inside the AI whiteboard infographic video pipeline.
 ---

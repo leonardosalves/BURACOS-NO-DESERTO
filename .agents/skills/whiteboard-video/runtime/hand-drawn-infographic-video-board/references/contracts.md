@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 # Board Package Contracts
 
 Coordinates are always board canvas pixels. When `board.png` is provided, its width and height define the canvas. The PNG, SVG, manifest, cursor, and annotation overlay must share the same coordinate system.

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildFishSpeechRequestBody,
+  prepareFishSpeechInputText,
   shouldNormalizeFishSpeechText,
 } from "./fishSpeechTts.js";
 
@@ -49,4 +50,23 @@ test("narracao longa conserva contexto entre chunks internos", () => {
   assert.equal(body.condition_on_previous_chunks, true);
   assert.equal(body.temperature, 0.8);
   assert.equal(body.top_p, 0.8);
+});
+
+test("Fish preserva literalmente um trecho curto de narracao", () => {
+  const text = "Sim.";
+  assert.equal(prepareFishSpeechInputText(text), text);
+  const body = buildFishSpeechRequestBody(text, cfg, "valentino", {
+    independentChunk: true,
+  });
+
+  assert.equal(body.text, text);
+  assert.equal(body.min_chunk_length, text.length);
+  assert.equal(body.condition_on_previous_chunks, false);
+});
+
+test("Fish rejeita somente trecho vazio", () => {
+  assert.throws(
+    () => prepareFishSpeechInputText("   "),
+    /Texto vazio para Fish Speech\./
+  );
 });

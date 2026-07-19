@@ -2,13 +2,14 @@ import type {
   SceneManifest,
   RenderManifest,
 } from "@video-suite/scene-contract";
-import type {
+import {
   VideoEngineAdapter,
   EngineEstimate,
   PreparedEngineInput,
   EngineOutput,
   JobContext,
   HealthcheckResult,
+  getDrawtextFontOpt,
 } from "./types.js";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -133,10 +134,11 @@ export class GbroCollageAdapter implements VideoEngineAdapter {
 
       // Fallback: paper-texture-style color card via FFmpeg
       // Uses warm beige + halftone-style noise for the collage aesthetic
+      const fontOpt = getDrawtextFontOpt();
       const fallbackCmd = [
         "ffmpeg -y",
         `-f lavfi -i "color=c=0xF5E6D3:s=${width}x${height}:d=${durationSec},noise=c0s=15:allf=t+u"`,
-        `-vf "drawtext=text='B-Roll Insert':fontcolor=0x2C1810:fontsize=44:x=(w-text_w)/2:y=(h-text_h)/2-30:shadowcolor=0xD4B896:shadowx=2:shadowy=2,drawtext=text='${escapeFFmpegText(String(sceneId).slice(0, 8))}':fontcolor=0x8B7355:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2+30"`,
+        `-vf "drawtext=${fontOpt}text='B-Roll Insert':fontcolor=0x2C1810:fontsize=44:x=(w-text_w)/2:y=(h-text_h)/2-30:shadowcolor=0xD4B896:shadowx=2:shadowy=2,drawtext=${fontOpt}text='${escapeFFmpegText(String(sceneId).slice(0, 8))}':fontcolor=0x8B7355:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2+30"`,
         `-c:v libx264 -pix_fmt yuv420p`,
         `"${outputPath}"`,
       ].join(" ");

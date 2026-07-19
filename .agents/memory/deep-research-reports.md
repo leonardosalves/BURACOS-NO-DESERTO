@@ -4,6 +4,115 @@
 
 ## Relatórios gerados
 
+### 2026-07-19 02:47 — CURIOSIDADE ENGENHARIA ANTIGA
+
+# Relatório de pesquisa — CURIOSIDADE ENGENHARIA ANTIGA
+
+> Nicho: CURIOSIDADE ENGENHARIA ANTIGA · Formato: SHORTS · 2026-07-19 02:47
+
+## Resumo executivo
+
+Pesquisa concluída — veja seções detalhadas abaixo.
+
+## Sub-perguntas investigadas
+
+1. Contexto essencial: o que o público de CURIOSIDADE ENGENHARIA ANTIGA precisa entender sobre "CURIOSIDADE ENGENHARIA ANTIGA"?
+2. Fatos surpreendentes, números e datas verificáveis sobre "CURIOSIDADE ENGENHARIA ANTIGA"
+3. Mecânicas virais: o que canais de CURIOSIDADE ENGENHARIA ANTIGA fazem bem (e mal) ao cobrir "CURIOSIDADE ENGENHARIA ANTIGA"?
+4. Ângulos para YouTube Shorts (gancho 3s, listicle, revelação) sobre "CURIOSIDADE ENGENHARIA ANTIGA"
+5. Lacunas e mitos comuns que vídeos superficiais ignoram sobre "CURIOSIDADE ENGENHARIA ANTIGA"
+
+## Outliers YouTube (concorrentes)
+
+- **A mistura e estrutura metálica, madeira e concreto existe!!** — 1.161 views · Engenharia Curiosa
+- **Esse prédio é uma experiência sensorial** — 1.121 views · Engenharia Curiosa
+
+## Ideias derivadas (Lumiera)
+
+1. **O Templo Antigo que Desafia Terremotos sem Nenhum Prego** — _Como este templo de 1000 anos sobrevive a terremotos usando apenas encaixes de madeira?_ (mecânica)
+2. **O Segredo do Concreto Romano que se Cura Sozinho** — _O segredo milenar do concreto que fica mais forte quando começa a rachar!_ (mecânica)
+3. **A Ponte Inca de Capim que Suporta o Peso de um Carro** — _Esta ponte antiga é feita literalmente de capim trançado, mas a física por trás dela vai te chocar._ (mecânica)
+
+## Próximos passos
+
+- Revisar ideias na fila editorial (YouTube Studio)
+- Abrir Creator com gancho validado
+- Opcional: enriquecer roteiro com NotebookLM (modo script)
+
+### 2026-07-19 02:17 — CURIOSIDADE ANTIGA ENGENHARIA
+
+# Relatório de pesquisa — CURIOSIDADE ANTIGA ENGENHARIA
+
+> Nicho: CURIOSIDADE ANTIGA ENGENHARIA · Formato: SHORTS · 2026-07-19 02:17
+
+## Resumo executivo
+
+Pesquisa concluída — veja seções detalhadas abaixo.
+
+## Sub-perguntas investigadas
+
+1. Contexto essencial: o que o público de CURIOSIDADE ANTIGA ENGENHARIA precisa entender sobre "CURIOSIDADE ANTIGA ENGENHARIA"?
+2. Fatos surpreendentes, números e datas verificáveis sobre "CURIOSIDADE ANTIGA ENGENHARIA"
+3. Mecânicas virais: o que canais de CURIOSIDADE ANTIGA ENGENHARIA fazem bem (e mal) ao cobrir "CURIOSIDADE ANTIGA ENGENHARIA"?
+4. Ângulos para YouTube Shorts (gancho 3s, listicle, revelação) sobre "CURIOSIDADE ANTIGA ENGENHARIA"
+5. Lacunas e mitos comuns que vídeos superficiais ignoram sobre "CURIOSIDADE ANTIGA ENGENHARIA"
+
+## Outliers YouTube (concorrentes)
+
+- **MECÂNICA DOS SOLOS** — 2.126 views · ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **FECHAMENTO, SERRALHERIA** — 2.118 views · ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **OBRA SERRALHEIRO** — 1.506 views · ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **ESTRUTURA EM AÇO TRELIÇADO** — 1.402 views · ENGENHARIA DA CONSTRUÇÃO CIVIL
+
+## Ideias derivadas (Lumiera)
+
+1. **O Segredo do Concreto Romano que se Cura Sozinho** — _Como os romanos construíram portos que duram 2.000 anos sob a água salgada enquanto o nosso concreto racha em 50?_ (mecânica)
+2. **O Encaixe de Madeira Japonês que Dispensa Pregos** — _Como templos japoneses de 30 metros de altura resistem a terremotos sem usar um único prego de metal?_ (mecânica)
+3. **O Prumo de Água: Como os Egípcios Alinharam as Pirâmides** — _O truque incrivelmente simples que os egípcios usaram para deixar a base das pirâmides perfeitamente nivelada._ (mecânica)
+
+## Próximos passos
+
+- Revisar ideias na fila editorial (YouTube Studio)
+- Abrir Creator com gancho validado
+- Opcional: enriquecer roteiro com NotebookLM (modo script)
+
+### 2026-07-19 01:52 — CURIOSIDADE ANTIGA ENGENHARIA
+
+# Relatório de pesquisa — CURIOSIDADE ANTIGA ENGENHARIA
+
+> Nicho: CURIOSIDADE ANTIGA ENGENHARIA · Formato: SHORTS · 2026-07-19 01:52
+
+## Resumo executivo
+
+Pesquisa concluída — veja seções detalhadas abaixo.
+
+## Sub-perguntas investigadas
+
+1. Contexto essencial: o que o público de CURIOSIDADE ANTIGA ENGENHARIA precisa entender sobre "CURIOSIDADE ANTIGA ENGENHARIA"?
+2. Fatos surpreendentes, números e datas verificáveis sobre "CURIOSIDADE ANTIGA ENGENHARIA"
+3. Mecânicas virais: o que canais de CURIOSIDADE ANTIGA ENGENHARIA fazem bem (e mal) ao cobrir "CURIOSIDADE ANTIGA ENGENHARIA"?
+4. Ângulos para YouTube Shorts (gancho 3s, listicle, revelação) sobre "CURIOSIDADE ANTIGA ENGENHARIA"
+5. Lacunas e mitos comuns que vídeos superficiais ignoram sobre "CURIOSIDADE ANTIGA ENGENHARIA"
+
+## Outliers YouTube (concorrentes)
+
+- **MECÂNICA DOS SOLOS** — 2.126 views · ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **FECHAMENTO, SERRALHERIA** — 2.118 views · ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **OBRA SERRALHEIRO** — 1.506 views · ENGENHARIA DA CONSTRUÇÃO CIVIL
+- **ESTRUTURA EM AÇO TRELIÇADO** — 1.402 views · ENGENHARIA DA CONSTRUÇÃO CIVIL
+
+## Ideias derivadas (Lumiera)
+
+1. **Como os romanos dominavam a mecânica dos solos 2000 anos antes de existir faculdade** — _Você sabia que os romanos já entendiam de mecânica dos solos 2000 anos antes de virar matéria de faculdade?_ (mecânica)
+2. **A serralheria escondida que segura catedrais há 800 anos** — _As ferragens escondidas dentro das catedrais góticas foram tão bem feitas que seguram o teto há 800 anos — e ninguém nunca viu._ (mecânica)
+3. **A estrutura treliçada que os egípcios usaram antes de existir aço** — _Treliça de aço é moderna, certo? Errado. Os egípcios já usavam o mesmo princípio 4000 anos atrás — com madeira e corda._ (mecânica)
+
+## Próximos passos
+
+- Revisar ideias na fila editorial (YouTube Studio)
+- Abrir Creator com gancho validado
+- Opcional: enriquecer roteiro com NotebookLM (modo script)
+
 ### 2026-07-17 14:44 — Curiosidade Engenharia
 
 # Relatório de pesquisa — Curiosidade Engenharia
@@ -181,120 +290,6 @@ Pesquisa concluída — veja seções detalhadas abaixo.
 1. **Como os Romanos Construíram Aquedutos que Desafiam a Gravidade?** — _Imagens aéreas e detalhadas de aquedutos romanos ainda de pé, com uma pergunta intrigante sobre a engenharia e a tecnologia da época que permitiu tais feitos sem bombas modernas._ (mecânica)
 2. **O Segredo Escondido nas Pedras de Machu Picchu: Encaixes Perfeitos Sem Cimento!** — _Close-ups dramáticos dos encaixes de pedras em Machu Picchu, mostrando a precisão milimétrica sem o uso de argamassa, com narração questionando as ferramentas e técnicas usadas pelos Incas._ (mecânica)
 3. **A Bateria de Bagdá: Uma Tecnologia Antiga Que Ninguém Entende!** — _Imagem da 'Bateria de Bagdá' ou uma reconstituição visual, com uma pergunta sobre sua função e como um objeto capaz de gerar eletricidade poderia existir na antiguidade, desafiando a compreensão moderna._ (mecânica)
-
-## Próximos passos
-
-- Revisar ideias na fila editorial (YouTube Studio)
-- Abrir Creator com gancho validado
-- Opcional: enriquecer roteiro com NotebookLM (modo script)
-
-### 2026-07-16 15:34 — ENGENHARIA ANTIGA CURIOSIDADE
-
-# Relatório de pesquisa — ENGENHARIA ANTIGA CURIOSIDADE
-
-> Nicho: ENGENHARIA ANTIGA CURIOSIDADE · Formato: SHORTS · 2026-07-16 15:34
-
-## Resumo executivo
-
-Pesquisa concluída — veja seções detalhadas abaixo.
-
-## Sub-perguntas investigadas
-
-1. Contexto essencial: o que o público de ENGENHARIA ANTIGA CURIOSIDADE precisa entender sobre "ENGENHARIA ANTIGA CURIOSIDADE"?
-2. Fatos surpreendentes, números e datas verificáveis sobre "ENGENHARIA ANTIGA CURIOSIDADE"
-3. Mecânicas virais: o que canais de ENGENHARIA ANTIGA CURIOSIDADE fazem bem (e mal) ao cobrir "ENGENHARIA ANTIGA CURIOSIDADE"?
-4. Ângulos para YouTube Shorts (gancho 3s, listicle, revelação) sobre "ENGENHARIA ANTIGA CURIOSIDADE"
-5. Lacunas e mitos comuns que vídeos superficiais ignoram sobre "ENGENHARIA ANTIGA CURIOSIDADE"
-
-## Outliers YouTube (concorrentes)
-
-- **Essa é a ponte que balança #curiosidades #engenharia #arquitetura** — 17.854 views · Engenharia com Felipe
-- **Tartaruga-de-orelha-vermelha Albina: Uma Raridade da Natureza!** — 1.326 views · Curiosidades Históricas
-- **O prédio que quase fica invisível #curiosidades #engenharia #arquitetura** — 11.242 views · Engenharia com Felipe
-
-## Ideias derivadas (Lumiera)
-
-1. **A cidade antiga que flutua no deserto?** — _Como os antigos construíram cidades inteiras em penhascos, desafiando a gravidade e a lógica? (Verbal) / Visual de Petra ou Machu Picchu com foco na engenharia de sustentação. (On-screen)_ (mecânica)
-2. **O segredo perdido da engenharia romana que ninguém consegue replicar hoje** — _Existe um material de construção romano que é mais forte e durável que o concreto moderno. Por que perdemos essa fórmula? (Verbal) / Visual de ruínas romanas incrivelmente preservadas e um contraste com concreto moderno deteriorado. (On-screen)_ (mecânica)
-3. **A pirâmide que foi construída de cabeça para baixo?** — _Você sabia que algumas pirâmides egípcias foram projetadas para serem construídas de uma forma que desafia nossa compreensão atual de engenharia? (Verbal) / Animação ou imagem de uma pirâmide sendo construída de uma maneira não convencional ou com uma base 'invertida'. (On-screen)_ (mecânica)
-
-## Próximos passos
-
-- Revisar ideias na fila editorial (YouTube Studio)
-- Abrir Creator com gancho validado
-- Opcional: enriquecer roteiro com NotebookLM (modo script)
-
-### 2026-07-16 04:56 — ENGENHARIA CURIOSIDADE
-
-# Relatório de pesquisa — ENGENHARIA CURIOSIDADE
-
-> Nicho: ENGENHARIA CURIOSIDADE · Formato: SHORTS · 2026-07-16 04:56
-
-## Resumo executivo
-
-Pesquisa concluída — veja seções detalhadas abaixo.
-
-## Sub-perguntas investigadas
-
-1. Contexto essencial: o que o público de ENGENHARIA CURIOSIDADE precisa entender sobre "ENGENHARIA CURIOSIDADE"?
-2. Fatos surpreendentes, números e datas verificáveis sobre "ENGENHARIA CURIOSIDADE"
-3. Mecânicas virais: o que canais de ENGENHARIA CURIOSIDADE fazem bem (e mal) ao cobrir "ENGENHARIA CURIOSIDADE"?
-4. Ângulos para YouTube Shorts (gancho 3s, listicle, revelação) sobre "ENGENHARIA CURIOSIDADE"
-5. Lacunas e mitos comuns que vídeos superficiais ignoram sobre "ENGENHARIA CURIOSIDADE"
-
-## Outliers YouTube (concorrentes)
-
-- **Etanol ou Gasolina qual o melhor para o motor?** — 74.934 views · Engenharia Detalhada
-- **A mistura e estrutura metálica, madeira e concreto existe!!** — 1.160 views · Engenharia Curiosa
-- **Esse prédio é uma experiência sensorial** — 1.121 views · Engenharia Curiosa
-- **O que é AÇO CORTEN? O Segredo Por Trás Da Ferrugem Do Aço Corten** — 54.788 views · Engenharia Detalhada
-- **O que significa AA, AAA, C e D nas pilhas?** — 44.715 views · Engenharia Detalhada
-- **Por que TORRES DE TRANSMISSÃO tem formatos diferentes?** — 40.378 views · Engenharia Detalhada
-
-## Ideias derivadas (Lumiera)
-
-1. **O Carro Que Anda na Água: Engenharia ou Ilusão?** — _Mostrar um veículo que parece desafiar as leis da física ao se mover sobre a água, gerando curiosidade e ceticismo._ (mecânica)
-2. **A Ponte Que Se Move: Como Ela Evita Desastres?** — _Apresentar uma ponte com design incomum que se adapta a condições extremas (ventos, terremotos), prometendo revelar a engenharia por trás de sua resiliência._ (mecânica)
-3. **Tijolo Ecológico vs. Tijolo Comum: Qual Salva Mais o Planeta?** — _Criar um dilema direto sobre qual tipo de tijolo é mais sustentável e eficiente para construções, apelando para a consciência ambiental do espectador._ (mecânica)
-
-## Próximos passos
-
-- Revisar ideias na fila editorial (YouTube Studio)
-- Abrir Creator com gancho validado
-- Opcional: enriquecer roteiro com NotebookLM (modo script)
-
-### 2026-07-15 22:23 — ENGENHARIA CURIOSIDADE
-
-# Relatório de pesquisa — ENGENHARIA CURIOSIDADE
-
-> Nicho: ENGENHARIA CURIOSIDADE · Formato: SHORTS · 2026-07-15 22:23
-
-## Resumo executivo
-
-Pesquisa concluída — veja seções detalhadas abaixo.
-
-## Sub-perguntas investigadas
-
-1. Contexto essencial: o que o público de ENGENHARIA CURIOSIDADE precisa entender sobre "ENGENHARIA CURIOSIDADE"?
-2. Fatos surpreendentes, números e datas verificáveis sobre "ENGENHARIA CURIOSIDADE"
-3. Mecânicas virais: o que canais de ENGENHARIA CURIOSIDADE fazem bem (e mal) ao cobrir "ENGENHARIA CURIOSIDADE"?
-4. Ângulos para YouTube Shorts (gancho 3s, listicle, revelação) sobre "ENGENHARIA CURIOSIDADE"
-5. Lacunas e mitos comuns que vídeos superficiais ignoram sobre "ENGENHARIA CURIOSIDADE"
-
-## Outliers YouTube (concorrentes)
-
-- **Etanol ou Gasolina qual o melhor para o motor?** — 74.849 views · Engenharia Detalhada
-- **A mistura e estrutura metálica, madeira e concreto existe!!** — 1.160 views · Engenharia Curiosa
-- **Esse prédio é uma experiência sensorial** — 1.121 views · Engenharia Curiosa
-- **O que é AÇO CORTEN? O Segredo Por Trás Da Ferrugem Do Aço Corten** — 54.781 views · Engenharia Detalhada
-- **O que significa AA, AAA, C e D nas pilhas?** — 44.694 views · Engenharia Detalhada
-- **Por que TORRES DE TRANSMISSÃO tem formatos diferentes?** — 39.828 views · Engenharia Detalhada
-
-## Ideias derivadas (Lumiera)
-
-1. **O Concreto Que Se Cura Sozinho: A Engenharia do Futuro?** — _Imagine um concreto que conserta suas próprias rachaduras! (Verbal) + Visual de rachaduras em uma superfície de concreto se fechando magicamente (On-screen)._ (mecânica)
-2. **Como Prédios Gigantes Não Afundam? O Segredo das Fundações Flutuantes!** — _Um arranha-céu de 100 andares pode 'flutuar' no solo? (Verbal) + Visual de um arranha-céu imponente com uma base que parece leve ou em um terreno desafiador (On-screen)._ (mecânica)
-3. **Vidro é Líquido ou Sólido? A Curiosa Verdade da Engenharia!** — _Seu copo de vidro está 'escorrendo' muito devagar? (Verbal) + Visual de um vidro antigo com distorções e um vidro novo, talvez com uma gota estilizada para representar o fluxo (On-screen)._ (mecânica)
 
 ## Próximos passos
 

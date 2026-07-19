@@ -397,6 +397,9 @@ export function extractSceneAnchors(narration = "") {
     /\b([A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wáéíóúâêôãõç-]+(?:\s+(?:de|da|do|dos|das|del|della|e)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][\wáéíóúâêôãõç-]+)*)\b/g
   )) {
     const phrase = m[1].trim();
+    const prefix = text.slice(0, m.index ?? 0);
+    const startsSentence = !prefix.trim() || /[.!?]\s*$/.test(prefix);
+    if (startsSentence && !/\s/.test(phrase)) continue;
     if (
       phrase.length >= 4 &&
       !PT_STOPWORDS.has(phrase.split(/\s+/)[0].toLowerCase())
@@ -471,7 +474,20 @@ function inferShotType(narration = "", subjects = []) {
   return "cinematic medium shot";
 }
 
+function inferKnownVisualMechanism(narration = "") {
+  const lower = normalizeText(narration);
+  if (
+    /\bbloque\w*\b.*\bqueda livre\b.*\bcorda\b.*\barrebent\w*\b/.test(lower)
+  ) {
+    return "cutaway close-up of a historically accurate mechanical safety brake snapping into a toothed guide rail as the primary load-bearing rope breaks, visibly arresting the suspended platform before it can enter free fall";
+  }
+  return "";
+}
+
 function buildVisualFocalDescription(narration = "", anchors = {}) {
+  const knownMechanism = inferKnownVisualMechanism(narration);
+  if (knownMechanism) return knownMechanism;
+
   const subjects = collectEnglishSubjects(narration, anchors);
   const modifiers = collectSceneModifiers(narration);
   const normalizedNarration = normalizeText(narration);
@@ -520,23 +536,9 @@ function buildVisualFocalDescription(narration = "", anchors = {}) {
     return `${shot} of ${meaningfulModifiers.join(", ")}`;
   }
 
-  // Absolute last resort — extract key nouns from narration directly
-  const keyWords = extractKeyNounsFromNarration(narration);
-  if (keyWords) {
-    return `${shot} of ${keyWords}`;
-  }
-  return `${shot} depicting the scene described in the narration`;
-}
-
-/** Extract meaningful nouns from PT narration as a last-resort EN description. */
-function extractKeyNounsFromNarration(narration = "") {
-  const lower = normalizeText(narration);
-  const words = lower
-    .split(/\s+/)
-    .filter((w) => w.length >= 5 && !PT_STOPWORDS.has(w));
-  // Try to find at least 2-3 meaningful words
-  const meaningful = words.slice(0, 4);
-  return meaningful.length >= 1 ? meaningful.join(" ") : null;
+  // Nunca reutilize palavras portuguesas como se fossem uma descrição em inglês.
+  // Este marcador seguro continua classificado como fallback e obriga reparo por IA.
+  return `${shot} of a historically plausible physical mechanism at the critical moment of action`;
 }
 
 /** Detecta prompts gerados pelo fallback buildSceneSpecificPrompt (glossário local). */

@@ -1,6 +1,9 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 ---
+
 name: ip-hand-drawn-infographic-planner
-description: Plan concise hand-drawn infographic inputs for IP incubation, business cognition, and AI cognition whiteboard explainer videos. Use when Codex needs to convert polished_voiceover.md, voiceover_segments.json, or visual_beats.json into infographic/infographic_plan.json, board_specs/*.json, and image_prompts/*.prompt.md for hand-drawn-infographic-creator without rendering images, writing board coordinates, or producing video.
+description: Plan concise hand-drawn infographic inputs for IP incubation, business cognition, and AI cognition whiteboard explainer videos. Use when Codex needs to convert polished_voiceover.md, voiceover_segments.json, or visual_beats.json into infographic/infographic_plan.json, board_specs/_.json, and image_prompts/_.prompt.md for hand-drawn-infographic-creator without rendering images, writing board coordinates, or producing video.
 ---
 
 # IP Hand-Drawn Infographic Planner

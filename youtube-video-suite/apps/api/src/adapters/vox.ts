@@ -2,13 +2,14 @@ import type {
   SceneManifest,
   RenderManifest,
 } from "@video-suite/scene-contract";
-import type {
+import {
   VideoEngineAdapter,
   EngineEstimate,
   PreparedEngineInput,
   EngineOutput,
   JobContext,
   HealthcheckResult,
+  getDrawtextFontOpt,
 } from "./types.js";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -115,10 +116,11 @@ export class VoxDirectorAdapter implements VideoEngineAdapter {
       );
 
       // Fallback: generate a styled placeholder using FFmpeg
+      const fontOpt = getDrawtextFontOpt();
       const fallbackCmd = [
         "ffmpeg -y",
         `-f lavfi -i color=c=0x0d2137:s=${width}x${height}:d=${durationSec}`,
-        `-vf "drawtext=text='Vox Director':fontcolor=0xE0E0E0:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2-40,drawtext=text='${escapeFFmpegText(String(sceneId).slice(0, 8))}':fontcolor=0x808080:fontsize=28:x=(w-text_w)/2:y=(h-text_h)/2+40"`,
+        `-vf "drawtext=${fontOpt}text='Vox Director':fontcolor=0xE0E0E0:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2-40,drawtext=${fontOpt}text='${escapeFFmpegText(String(sceneId).slice(0, 8))}':fontcolor=0x808080:fontsize=28:x=(w-text_w)/2:y=(h-text_h)/2+40"`,
         `-c:v libx264 -pix_fmt yuv420p`,
         `"${outputPath}"`,
       ].join(" ");
@@ -243,10 +245,11 @@ export class VoxExplainerAdapter implements VideoEngineAdapter {
     context.onLog?.(`[VoxExplainer] Rendering scene ${sceneId}...`);
 
     // Fallback to FFmpeg placeholder (vox-explainer-skill is agent-driven)
+    const fontOpt = getDrawtextFontOpt();
     const fallbackCmd = [
       "ffmpeg -y",
       `-f lavfi -i color=c=0x1a3a0a:s=${width}x${height}:d=${durationSec}`,
-      `-vf "drawtext=text='Vox Explainer':fontcolor=0xD0F0C0:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2-40,drawtext=text='${escapeFFmpegText(String(sceneId).slice(0, 8))}':fontcolor=0x808080:fontsize=28:x=(w-text_w)/2:y=(h-text_h)/2+40"`,
+      `-vf "drawtext=${fontOpt}text='Vox Explainer':fontcolor=0xD0F0C0:fontsize=52:x=(w-text_w)/2:y=(h-text_h)/2-40,drawtext=${fontOpt}text='${escapeFFmpegText(String(sceneId).slice(0, 8))}':fontcolor=0x808080:fontsize=28:x=(w-text_w)/2:y=(h-text_h)/2+40"`,
       `-c:v libx264 -pix_fmt yuv420p`,
       `"${outputPath}"`,
     ].join(" ");

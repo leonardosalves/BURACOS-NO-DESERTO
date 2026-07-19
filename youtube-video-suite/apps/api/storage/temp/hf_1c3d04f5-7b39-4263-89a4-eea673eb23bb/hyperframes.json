@@ -1,0 +1,12 @@
+{
+  "composition": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 24,
+    "duration": 5.40725
+  },
+  "output": {
+    "format": "mp4",
+    "codec": "h264"
+  }
+}

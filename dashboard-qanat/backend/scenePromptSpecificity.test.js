@@ -73,6 +73,37 @@ test("scenePromptSpecificity module", async (t) => {
     }
   );
 
+  await t.test(
+    "safety-rope narration becomes a concrete mechanism instead of copied Portuguese",
+    () => {
+      const prompt = buildSceneSpecificPrompt({
+        narration_text:
+          "Elas bloqueavam a queda livre se a corda principal arrebentasse.",
+        type: "imagem IA 2k",
+      });
+
+      assert.match(prompt, /mechanical safety brake/i);
+      assert.match(prompt, /load-bearing rope breaks/i);
+      assert.match(prompt, /arresting the suspended platform/i);
+      assert.doesNotMatch(prompt, /bloqueavam|queda livre|corda|arrebentasse/i);
+    }
+  );
+
+  await t.test(
+    "unknown narration never leaks Portuguese words into fallback",
+    () => {
+      const prompt = buildSceneSpecificPrompt({
+        narration_text: "Xilogravuras testemunhavam acontecimentos incomuns.",
+        type: "imagem IA 2k",
+      });
+
+      assert.doesNotMatch(
+        prompt,
+        /xilogravuras|testemunhavam|acontecimentos|incomuns/i
+      );
+    }
+  );
+
   await t.test("keeps Remotion overlays out of generated source media", () => {
     const prompt = buildSceneSpecificPrompt({
       narration_text: "A estrada atravessa os Estados Unidos",

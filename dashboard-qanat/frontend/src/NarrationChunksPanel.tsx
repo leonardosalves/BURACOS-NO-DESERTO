@@ -48,6 +48,7 @@ export type NarrationChunk = {
   speaker?: string;
   speech_role?: string;
   text: string;
+  caption_text?: string;
   text_tagged?: string;
   pause_after_ms: number;
   pause_reason?: string;
@@ -390,10 +391,14 @@ export function NarrationChunksPanel({
 
   const patchChunkSpokenText = (chunk: NarrationChunk, nextText: string) => {
     const previousPlain = String(chunk.text || "");
+    const previousCaption = String(chunk.caption_text ?? previousPlain);
     const previousTagged = String(chunk.text_tagged ?? previousPlain);
+    const captionFollowedPlain =
+      previousCaption.trim() === previousPlain.trim();
     const taggedFollowedPlain = previousTagged.trim() === previousPlain.trim();
     patchChunk(chunk.id, {
       text: nextText,
+      ...(captionFollowedPlain ? { caption_text: nextText } : {}),
       ...(taggedFollowedPlain ? { text_tagged: nextText } : {}),
       ...(chunk.duration_s ? { status: "stale" } : {}),
     });
@@ -406,7 +411,7 @@ export function NarrationChunksPanel({
     setUseTagged(true);
     patchChunk(chunk.id, {
       text_tagged: nextTaggedText,
-      text: stripTtsMarkersForCaption(nextTaggedText),
+      caption_text: stripTtsMarkersForCaption(nextTaggedText),
       ...(chunk.duration_s ? { status: "stale" } : {}),
     });
   };
@@ -1298,9 +1303,9 @@ export function NarrationChunksPanel({
                         do TTS
                       </label>
                       <p className="text-[9px] leading-4 text-zinc-500">
-                        Edição totalmente livre. O conteúdo também atualiza a
-                        legenda; marcadores técnicos como [ênfase] são retirados
-                        apenas da legenda e continuam disponíveis para o TTS.
+                        Edição independente do texto original acima. O conteúdo
+                        atualiza a legenda e o TTS; marcadores técnicos como
+                        [ênfase] são retirados apenas da legenda.
                       </p>
                       <textarea
                         value={chunk.text_tagged ?? chunk.text}
@@ -1315,7 +1320,10 @@ export function NarrationChunksPanel({
                         <button
                           type="button"
                           onClick={() =>
-                            patchChunk(chunk.id, { text_tagged: chunk.text })
+                            patchChunk(chunk.id, {
+                              caption_text: chunk.text,
+                              text_tagged: chunk.text,
+                            })
                           }
                           className="text-[8px] text-zinc-500 hover:text-zinc-300"
                         >

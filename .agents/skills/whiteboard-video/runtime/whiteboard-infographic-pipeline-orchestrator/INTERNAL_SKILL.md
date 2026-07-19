@@ -1,4 +1,7 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 ---
+
 name: whiteboard-infographic-pipeline-orchestrator
 description: Orchestrate the AI whiteboard infographic explainer video pipeline from a natural-language user request or a topic/script input file into a validated project package. Use when the user says things like "请使用白板总编排skill帮我做一个视频", "白板总编排 Skill", "用白板信息图流水线做视频", gives a topic such as "主题为..." and a duration such as "30-60秒左右", or asks Codex to make an AI 白板信息图讲解视频. Coordinate ip-cognition-script-polisher, ip-hand-drawn-infographic-planner, hand-drawn-infographic-creator, automatic or interactive model-image handoff, hand-drawn-infographic-video-board, and whiteboard-infographic-video-renderer to produce script assets, infographic plans, creator prompts, board_asset_manifest.json, board control packages, AI narration, captions, HyperFrames, preview.mp4, keyframes, and integration_report.md without substituting placeholder images.
 ---

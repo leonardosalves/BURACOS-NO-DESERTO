@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 # Whiteboard Infographic Pipeline Orchestrator
 
 This Codex Skill orchestrates the AI whiteboard infographic explainer video pipeline.

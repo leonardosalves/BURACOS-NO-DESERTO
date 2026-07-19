@@ -1,4 +1,7 @@
-import { isSceneSpecificFallbackPrompt } from "../scenePromptSpecificity.js";
+import {
+  isPromptTooGeneric,
+  isSceneSpecificFallbackPrompt,
+} from "../scenePromptSpecificity.js";
 import {
   deriveNarrationBlockPhrases,
   splitNarrationIntoBlocks,
@@ -120,7 +123,12 @@ export function browserVisualPromptsUsable(
 
   const withPrompt = vps.filter((vp) => {
     const p = String(vp.prompt || vp.visual_prompt || "").trim();
-    return p.length >= 40 && !isSceneSpecificFallbackPrompt(p);
+    const narration = String(vp.narration_text || vp.narracao || "").trim();
+    return (
+      p.length >= 40 &&
+      !isSceneSpecificFallbackPrompt(p) &&
+      !isPromptTooGeneric(p, narration)
+    );
   });
   const minGood =
     format === "SHORTS"
@@ -134,9 +142,7 @@ export function browserVisualPromptsUsable(
   const emptyPrompt = vps.filter(
     (vp) => !String(vp.prompt || vp.visual_prompt || "").trim()
   ).length;
-  if (emptyNarr > 0 || emptyPrompt > 0) return true;
-
-  return false;
+  return emptyNarr === 0 && emptyPrompt === 0;
 }
 
 export function enrichBrowserVisualPromptsParsed(

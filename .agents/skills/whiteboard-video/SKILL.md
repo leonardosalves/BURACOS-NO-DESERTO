@@ -1,4 +1,7 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[SKILLS]]
+
 ---
+
 name: whiteboard-video
 description: Create a complete 30-60 second AI whiteboard infographic explainer video from a topic, viewpoint, or rough script. Use when the user asks for a whiteboard video, AI whiteboard explainer, 白板信息图讲解视频, or explicitly asks to use whiteboard-video; produce editable HyperFrames, preview.mp4, action/camera QA, keyframes, and integration_report.md with automatic PNG providers when configured and a safe interactive fallback.
 ---
@@ -134,3 +137,7 @@ python3 <RUNTIME>/whiteboard-infographic-pipeline-orchestrator/scripts/validate_
 Read `references/install-layout.md` when installation resolution or target-agent behavior is unclear.
 
 Read `references/image-providers.md` before configuring OpenAI or a custom command provider.
+
+## Referências
+
+- [[skills/whiteboard-video/REFERENCES|Índice de references/assets]]

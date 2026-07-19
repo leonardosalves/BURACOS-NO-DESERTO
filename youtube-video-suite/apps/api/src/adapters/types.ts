@@ -105,3 +105,15 @@ export interface VideoEngineAdapter {
   /** Check if the engine dependencies are available */
   healthcheck(): Promise<HealthcheckResult>;
 }
+
+import fs from "fs";
+
+export function getDrawtextFontOpt(): string {
+  if (
+    process.platform === "win32" &&
+    fs.existsSync("C:/Windows/Fonts/arial.ttf")
+  ) {
+    return "fontfile=C\\\\:/Windows/Fonts/arial.ttf:";
+  }
+  return "";
+}

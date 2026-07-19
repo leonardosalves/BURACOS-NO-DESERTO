@@ -910,6 +910,88 @@ Responda APENAS JSON válido, sem markdown:
 }`;
 }
 
+export function buildNarrationAuditRepairPrompt({
+  storyboard = {},
+  issues = [],
+  format = "LONGO",
+  idea = {},
+  researchFacts = [],
+  researchSources = [],
+  attempt = 1,
+  maxAttempts = 2,
+} = {}) {
+  const current = JSON.stringify(
+    {
+      strategy: storyboard.strategy || {},
+      narrative_script: storyboard.narrative_script || "",
+      narrative_script_tagged: storyboard.narrative_script_tagged || "",
+      technical_config: storyboard.technical_config || {},
+      narracao_pro_trace: storyboard.narracao_pro_trace || {},
+    },
+    null,
+    2
+  ).slice(0, 24000);
+  const evidence = JSON.stringify(
+    { idea, researchFacts, researchSources },
+    null,
+    2
+  ).slice(0, 14000);
+  const blockers = (Array.isArray(issues) ? issues : [issues])
+    .filter(Boolean)
+    .map((issue, index) => `${index + 1}. ${String(issue)}`)
+    .join("\n");
+
+  return `Você é o autorreparador final do NARRACAOPRO. A própria IA gerou uma narração, a auditoria determinística encontrou violações e você deve corrigi-las agora.
+
+TENTATIVA: ${attempt}/${maxAttempts}
+FORMATO: ${format}
+
+VIOLAÇÕES QUE DEVEM SER RESOLVIDAS UMA A UMA:
+${blockers || "1. Reprovação editorial não especificada."}
+
+VERSÃO ATUAL COMPLETA:
+${current}
+
+EVIDÊNCIA E CONTEXTO PERMITIDOS:
+${evidence}
+
+CONTRATO INQUEBRÁVEL:
+- Corrija TODAS as violações listadas e preserve os fatos sustentados.
+- Não invente fatos, fontes, números, datas, entidades, estudos ou relações causais.
+- Se uma afirmação não tiver sustentação, remova-a ou explicite a incerteza.
+- Para SHORTS: 70–145 palavras, pelo menos 4 frases, gancho com no máximo 12 palavras, uma tese central, no máximo 3 fatos selecionados e no máximo 3 entidades no trace.
+- Atualize strategy.hook e narracao_pro_trace para refletirem exatamente o texto reparado.
+- etapa_10_validacao_factual deve manter teste_identidade_passou=true e fusao_detectada=false somente se isso for verdadeiro.
+- etapa_11_validacao_narracao.portoes_15_resultado deve dizer "Todos passaram" somente depois de você resolver os bloqueios.
+- narrative_script_tagged deve conter as mesmas palavras de narrative_script, adicionando apenas tags de performance.
+- Retorne o objeto completo. Não explique, não use markdown.
+
+Responda APENAS JSON válido:
+{
+  "strategy": { "title_main": "...", "hook": "gancho corrigido", "target_audience": "...", "tone": "..." },
+  "narrative_script": "narração final corrigida",
+  "narrative_script_tagged": "mesma narração com tags de performance",
+  "technical_config": {
+    "script": "narração dividida nos blocos existentes",
+    "block_phrases": [{ "block": 1, "phrase": "início exato do bloco" }]
+  },
+  "narracao_pro_trace": {
+    "etapa_1_recorte": "...",
+    "etapa_2_pesquisa": ["fatos e fontes já permitidos"],
+    "etapa_3_entidades": [{ "entidade": "...", "funcao": "...", "local": "...", "periodo": "...", "certeza": "..." }],
+    "etapa_4_tese": { "objeto": "...", "mecanismo": "...", "consequencia": "...", "tese_completa": "..." },
+    "etapa_5_fatos_selecionados": ["somente fatos indispensáveis"],
+    "etapa_6_cadeia_causal": "...",
+    "etapa_7_gancho": { "texto": "gancho corrigido", "tipo": "..." },
+    "etapa_8_redacao": "EXECUTADA",
+    "etapa_9_vazios_removidos": ["o que foi corrigido e por quê"],
+    "etapa_10_validacao_factual": { "teste_identidade_passou": true, "fusao_detectada": false, "auditoria": "..." },
+    "etapa_11_validacao_narracao": { "portoes_15_resultado": "Todos passaram", "auditoria_oral": "..." },
+    "etapa_12_validacao_entrega": { "duracao_ok": true, "block_phrases_validadas": true, "fechamento_declarativo": true, "palavras_contadas": 0 }
+  }
+}`;
+}
+
 export function buildIdeaContextHeader(params = {}) {
   if (
     process.env.NODE_ENV !== "production" &&

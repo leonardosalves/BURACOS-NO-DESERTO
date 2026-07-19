@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
+import { ProcessLogDrawer } from "../components/ProcessLogDrawer";
 
 interface Scene {
   id: string;
@@ -16,6 +17,7 @@ interface Scene {
 
 interface Job {
   id: string;
+  sceneId?: string | null;
   queue: string;
   type: string;
   status: string;
@@ -28,6 +30,7 @@ interface Job {
 
 interface Render {
   id: string;
+  sceneId?: string;
   engine: string;
   variant: string;
   status: string;
@@ -47,6 +50,7 @@ interface Project {
   scenes: Scene[];
   jobs?: Job[];
   renders?: Render[];
+  manifestJson?: any;
 }
 
 type EditorTab = "beats" | "timeline" | "qa" | "export";
@@ -56,6 +60,7 @@ export function ProjectEditor() {
   const [project, setProject] = useState<Project | null>(null);
   const [tab, setTab] = useState<EditorTab>("beats");
   const [loading, setLoading] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const fetchProject = useCallback(() => {
     if (!id) return;
@@ -122,6 +127,38 @@ export function ProjectEditor() {
                 ⚡ Gerar Pipeline
               </button>
             )}
+          <button
+            className="btn btn-secondary"
+            onClick={() => setIsDrawerOpen((prev) => !prev)}
+            style={{
+              background:
+                (project.jobs?.filter(
+                  (j) => j.status === "active" || j.status === "pending"
+                ).length || 0) > 0
+                  ? "rgba(6, 182, 212, 0.15)"
+                  : undefined,
+              borderColor:
+                (project.jobs?.filter(
+                  (j) => j.status === "active" || j.status === "pending"
+                ).length || 0) > 0
+                  ? "var(--accent-cyan)"
+                  : undefined,
+              color:
+                (project.jobs?.filter(
+                  (j) => j.status === "active" || j.status === "pending"
+                ).length || 0) > 0
+                  ? "var(--accent-cyan)"
+                  : undefined,
+              fontWeight: 600,
+            }}
+          >
+            ⚡ Central de Logs & Processos{" "}
+            {(project.jobs?.filter(
+              (j) => j.status === "active" || j.status === "pending"
+            ).length || 0) > 0
+              ? `(${project.jobs?.filter((j) => j.status === "active" || j.status === "pending").length} ativo)`
+              : ""}
+          </button>
           <span
             className={`badge ${
               project.status === "completed"
@@ -141,6 +178,9 @@ export function ProjectEditor() {
       {/* Pipeline Status Warnings and Stepper */}
       <PipelineStatusPanel project={project} onRefresh={fetchProject} />
 
+      {/* Voice & TTS Provider Selector */}
+      <TtsVoiceSelector project={project} onRefresh={fetchProject} />
+
       {/* Tab Navigation */}
       <div className="flex gap-2 mb-4">
         {(["beats", "timeline", "qa", "export"] as EditorTab[]).map((t) => (
@@ -157,78 +197,206 @@ export function ProjectEditor() {
         ))}
       </div>
 
-      {tab === "beats" && <BeatBoard scenes={project.scenes} />}
+      {tab === "beats" && (
+        <BeatBoard
+          scenes={project.scenes}
+          renders={project.renders || []}
+          jobs={project.jobs || []}
+          onRefresh={fetchProject}
+        />
+      )}
       {tab === "timeline" && (
-        <Timeline scenes={project.scenes} aspectRatio={project.aspectRatio} />
+        <Timeline
+          scenes={project.scenes}
+          aspectRatio={project.aspectRatio}
+          renders={project.renders || []}
+        />
       )}
       {tab === "qa" && <QAPanel scenes={project.scenes} />}
       {tab === "export" && <ExportPanel project={project} />}
+
+      {/* Central de Processos & Logs Side Drawer */}
+      <ProcessLogDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onToggle={() => setIsDrawerOpen((prev) => !prev)}
+        activeJobs={project.jobs || []}
+        onRefreshProject={fetchProject}
+      />
     </div>
   );
 }
 
 // ── Beat Board ──────────────────────────────────────────────────────────────
 
-function BeatBoard({ scenes }: { scenes: Scene[] }) {
+function BeatBoard({
+  scenes,
+  renders,
+  jobs,
+  onRefresh,
+}: {
+  scenes: Scene[];
+  renders: Render[];
+  jobs: Job[];
+  onRefresh: () => void;
+}) {
+  const [renderingIds, setRenderingIds] = useState<Set<string>>(new Set());
+
   return (
     <div className="beat-board">
-      {scenes.map((scene, i) => (
-        <div
-          key={scene.id}
-          className="beat-card animate-fadeInUp"
-          style={{ animationDelay: `${i * 40}ms` }}
-        >
-          <div className="beat-card-header">
-            <div className="flex items-center gap-2">
-              <span className="beat-card-index">{scene.order}</span>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>
-                Cena {scene.order}
-              </span>
+      {scenes.map((scene, i) => {
+        const sceneRender = renders.find(
+          (r) => r.sceneId === scene.id && r.status === "completed"
+        );
+        const activeJob = jobs.find(
+          (j) =>
+            j.sceneId === scene.id &&
+            (j.status === "active" || j.status === "pending")
+        );
+        const isRendering = Boolean(activeJob) || renderingIds.has(scene.id);
+        const progressPct = activeJob
+          ? Math.max(activeJob.progress, 15)
+          : isRendering
+            ? 30
+            : 0;
+
+        return (
+          <div
+            key={scene.id}
+            className="beat-card animate-fadeInUp"
+            style={{
+              animationDelay: `${i * 40}ms`,
+              borderColor: isRendering ? "var(--accent-cyan)" : undefined,
+              boxShadow: isRendering
+                ? "0 0 15px rgba(6, 182, 212, 0.2)"
+                : undefined,
+            }}
+          >
+            <div className="beat-card-header">
+              <div className="flex items-center gap-2">
+                <span className="beat-card-index">{scene.order}</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>
+                  Cena {scene.order}
+                </span>
+              </div>
+              <span className="beat-card-engine">{scene.engineHint}</span>
             </div>
-            <span className="beat-card-engine">{scene.engineHint}</span>
-          </div>
-          <div className="beat-card-body">
-            <p className="beat-card-script">{scene.script}</p>
-            {scene.visualMetaphor && (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--accent-cyan)",
-                  marginBottom: 8,
-                }}
-              >
-                🎨 {scene.visualMetaphor}
+            <div className="beat-card-body">
+              {sceneRender ? (
+                <div
+                  style={{
+                    marginBottom: 10,
+                    borderRadius: 6,
+                    overflow: "hidden",
+                    background: "#000",
+                    maxHeight: 180,
+                  }}
+                >
+                  <video
+                    controls
+                    style={{
+                      width: "100%",
+                      maxHeight: 180,
+                      objectFit: "contain",
+                    }}
+                    src={`/v1/storage/${sceneRender.storageKey}`}
+                  />
+                </div>
+              ) : null}
+              <p className="beat-card-script">{scene.script}</p>
+              {scene.visualMetaphor && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--accent-cyan)",
+                    marginBottom: 8,
+                  }}
+                >
+                  🎨 {scene.visualMetaphor}
+                </div>
+              )}
+              <div className="beat-card-meta">
+                <span>
+                  ⏱{" "}
+                  {scene.durationSec
+                    ? `${scene.durationSec.toFixed(1)}s`
+                    : "auto"}
+                </span>
+                <span>🎨 {scene.paletteId}</span>
+                <span>💨 {scene.motionProfile}</span>
+              </div>
+            </div>
+
+            {/* Progress Bar when rendering */}
+            {isRendering && (
+              <div className="card-progress-container">
+                <div
+                  className="flex justify-between"
+                  style={{ fontSize: 11, marginBottom: 2 }}
+                >
+                  <span
+                    style={{ color: "var(--accent-cyan)", fontWeight: 600 }}
+                  >
+                    ⚡ Processando {scene.engineHint}...
+                  </span>
+                  <strong style={{ color: "var(--accent-cyan)" }}>
+                    {progressPct}%
+                  </strong>
+                </div>
+                <div className="card-progress-bar">
+                  <div
+                    className="card-progress-fill"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
               </div>
             )}
-            <div className="beat-card-meta">
-              <span>⏱ {scene.durationSec}s</span>
-              <span>🎨 {scene.paletteId}</span>
-              <span>💨 {scene.motionProfile}</span>
+
+            <div className="beat-card-footer">
+              <span
+                className={`beat-status ${isRendering ? "rendering" : scene.status}`}
+              >
+                {isRendering
+                  ? `🎬 renderizando (${progressPct}%)`
+                  : scene.status === "pending"
+                    ? "pendente"
+                    : scene.status === "metaphor_approved"
+                      ? "metáfora ok"
+                      : scene.status === "style_approved"
+                        ? "estilo ok"
+                        : scene.status}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  className="btn-icon"
+                  title="Aprovar"
+                  disabled={isRendering}
+                  onClick={async () => {
+                    await handleApprove(scene.id, "metaphor");
+                    onRefresh();
+                  }}
+                >
+                  ✅
+                </button>
+                <button
+                  className="btn-icon"
+                  title="Renderizar Cena"
+                  disabled={isRendering}
+                  onClick={async () => {
+                    setRenderingIds((prev) => new Set(prev).add(scene.id));
+                    await handleRender(scene.id);
+                    onRefresh();
+                    // Keep polling state until refresh loads job status
+                    setTimeout(() => onRefresh(), 3000);
+                  }}
+                >
+                  {isRendering ? "⏳" : "🎬"}
+                </button>
+              </div>
             </div>
           </div>
-          <div className="beat-card-footer">
-            <span className={`beat-status ${scene.status}`}>
-              {scene.status}
-            </span>
-            <div className="flex gap-2">
-              <button
-                className="btn-icon"
-                title="Aprovar"
-                onClick={() => handleApprove(scene.id, "metaphor")}
-              >
-                ✅
-              </button>
-              <button
-                className="btn-icon"
-                title="Renderizar"
-                onClick={() => handleRender(scene.id)}
-              >
-                🎬
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -238,10 +406,15 @@ function BeatBoard({ scenes }: { scenes: Scene[] }) {
 function Timeline({
   scenes,
   aspectRatio,
+  renders,
 }: {
   scenes: Scene[];
   aspectRatio: string;
+  renders: Render[];
 }) {
+  const masterRender = renders.find(
+    (r) => r.variant === "master" && r.status === "completed"
+  );
   const totalDuration = scenes.reduce((sum, s) => sum + s.durationSec, 0);
   const pixelsPerSecond = 60;
   const totalWidth = totalDuration * pixelsPerSecond;
@@ -296,7 +469,21 @@ function Timeline({
                 : {}
             }
           >
-            <span className="preview-placeholder">🎬 Preview</span>
+            {masterRender ? (
+              <video
+                controls
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  borderRadius: 8,
+                  background: "#000",
+                }}
+                src={`/v1/storage/${masterRender.storageKey}`}
+              />
+            ) : (
+              <span className="preview-placeholder">🎬 Preview</span>
+            )}
           </div>
           <div className="preview-controls">
             <button
@@ -350,7 +537,7 @@ function Timeline({
             <div className="flex justify-between">
               <span>Renderizadas</span>
               <strong style={{ color: "var(--accent-green)" }}>
-                {scenes.filter((s) => s.status === "rendered").length}
+                {scenes.filter((s) => s.status !== "pending").length}
               </strong>
             </div>
           </div>
@@ -753,9 +940,15 @@ function PipelineStatusPanel({
   const alignStage = getStageStatus(["alignment"]);
   const renderStage = getStageStatus([
     "remotion-render",
+    "remotionRender",
     "hyperframes-render",
+    "hyperframesRender",
     "gbro-render",
+    "gbroRender",
     "vox-render",
+    "voxRender",
+    "ffmpeg-render",
+    "ffmpegRender",
   ]);
   const deliveryStage = getStageStatus(["delivery"]);
 
@@ -992,8 +1185,185 @@ async function handleApprove(sceneId: string, gate: string) {
 
 async function handleRender(sceneId: string) {
   try {
-    await fetch(`/v1/scenes/${sceneId}/render`, { method: "POST" });
-  } catch {
-    console.error("Render failed");
+    const res = await fetch(`/v1/scenes/${sceneId}/render`, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: "Unknown error" }));
+      console.error("Render error:", body.error || res.statusText);
+      return;
+    }
+    const body = await res.json();
+    console.log(`[Render] Enqueued scene ${sceneId} via queue ${body.queue}`);
+  } catch (err: any) {
+    console.error("Render network failed", err);
   }
+}
+
+interface TtsVoiceOption {
+  id: string;
+  name: string;
+  language?: string;
+}
+
+interface TtsProviderOption {
+  id: string;
+  name: string;
+  healthy: boolean;
+  voices: TtsVoiceOption[];
+}
+
+function TtsVoiceSelector({
+  project,
+  onRefresh,
+}: {
+  project: Project;
+  onRefresh: () => void;
+}) {
+  const [providers, setProviders] = useState<TtsProviderOption[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<string>(
+    project.manifestJson?.ttsProvider || "voicebox"
+  );
+  const [selectedVoice, setSelectedVoice] = useState<string>(
+    project.manifestJson?.voiceId || ""
+  );
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/v1/tts/options")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.providers) {
+          setProviders(data.providers);
+          const initialProv = data.providers.find(
+            (p: TtsProviderOption) =>
+              p.id === (project.manifestJson?.ttsProvider || "voicebox")
+          );
+          if (initialProv && !project.manifestJson?.voiceId) {
+            const defaultV = initialProv.voices[0]?.id || "";
+            setSelectedVoice(defaultV);
+          }
+        }
+      })
+      .catch(console.error);
+  }, [project.manifestJson?.ttsProvider, project.manifestJson?.voiceId]);
+
+  const currentProvider = providers.find((p) => p.id === selectedProvider);
+  const availableVoices = currentProvider?.voices || [];
+
+  const handleSaveTts = async (provider: string, voice: string) => {
+    setSaving(true);
+    try {
+      await fetch(`/v1/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ttsProvider: provider, voiceId: voice }),
+      });
+      onRefresh();
+    } catch {
+      alert("Erro ao salvar configuração de voz");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        background: "rgba(255, 255, 255, 0.02)",
+        border: "1px solid rgba(255, 255, 255, 0.06)",
+        borderRadius: 8,
+        padding: "10px 14px",
+        marginBottom: 16,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16,
+        flexWrap: "wrap",
+      }}
+    >
+      <div className="flex items-center gap-3" style={{ flexWrap: "wrap" }}>
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--text-muted)",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          🎙️ Motor & Voz TTS:
+        </span>
+
+        {/* Engine selector */}
+        <select
+          className="form-select"
+          style={{
+            width: "auto",
+            padding: "4px 10px",
+            fontSize: 12,
+            borderRadius: 6,
+          }}
+          value={selectedProvider}
+          onChange={(e) => {
+            const newProv = e.target.value;
+            setSelectedProvider(newProv);
+            const prov = providers.find((p) => p.id === newProv);
+            const defaultVoice = prov?.voices[0]?.id || "";
+            setSelectedVoice(defaultVoice);
+            handleSaveTts(newProv, defaultVoice);
+          }}
+        >
+          {providers.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name} {p.healthy ? "🟢" : "🔴"}
+            </option>
+          ))}
+          {!providers.length && (
+            <option value="voicebox">Voicebox TTS (Local CUDA)</option>
+          )}
+        </select>
+
+        {/* Voice profile selector */}
+        <select
+          className="form-select"
+          style={{
+            width: "auto",
+            maxWidth: 280,
+            padding: "4px 10px",
+            fontSize: 12,
+            borderRadius: 6,
+          }}
+          value={selectedVoice}
+          onChange={(e) => {
+            const newVoice = e.target.value;
+            setSelectedVoice(newVoice);
+            handleSaveTts(selectedProvider, newVoice);
+          }}
+        >
+          {availableVoices.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.name}
+            </option>
+          ))}
+          {!availableVoices.length && <option value="">Voz Padrão</option>}
+        </select>
+
+        {saving && (
+          <span style={{ fontSize: 11, color: "var(--accent-cyan)" }}>
+            💾 Salvando...
+          </span>
+        )}
+      </div>
+
+      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+        {currentProvider?.id === "voicebox" && currentProvider.healthy ? (
+          <span style={{ color: "var(--accent-green)" }}>
+            ⚡ Voicebox CUDA ativo ({currentProvider.voices.length} perfis)
+          </span>
+        ) : (
+          <span>{currentProvider?.name || "Local TTS"}</span>
+        )}
+      </div>
+    </div>
+  );
 }

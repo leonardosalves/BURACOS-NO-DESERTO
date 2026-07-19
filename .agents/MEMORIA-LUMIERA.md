@@ -96,6 +96,7 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/viral-youtube-shorts|viral youtube shorts]]
 - [[skills/visual-prompt-engineer|visual prompt engineer]]
 - [[skills/webapp-testing|webapp testing]]
+- [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/REFERENCES|refs]]
 - [[skills/wizard|wizard]]
 - [[skills/writing-beats|writing beats]]
 - [[skills/writing-fragments|writing fragments]]
@@ -142,13 +143,13 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 
 ## Logs recentes
 
+- [[agent_runs/2026-07-19]]
 - [[agent_runs/2026-07-18]]
 - [[agent_runs/2026-07-17]]
 - [[agent_runs/2026-07-16]]
 - [[agent_runs/2026-07-15]]
 - [[agent_runs/2026-07-14]]
 - [[agent_runs/2026-07-13]]
-- [[agent_runs/2026-07-12]]
 
 ## Regras por formato
 
@@ -161,4 +162,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-07-18T22:02:05.660Z
+atualizado: 2026-07-19T19:53:44.778Z

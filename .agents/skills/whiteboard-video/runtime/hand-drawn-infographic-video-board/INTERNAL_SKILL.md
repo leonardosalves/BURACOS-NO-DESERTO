@@ -1,4 +1,7 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video|whiteboard video]] · [[skills/whiteboard-video/SKILL]] · [[skills/whiteboard-video/REFERENCES]]
+
 ---
+
 name: hand-drawn-infographic-video-board
 description: Create single-board or multi-board video-ready control packages for hand-drawn whiteboard infographic explainer videos. Use when Codex needs to turn board_spec.json plus board.png, or a project package with board_asset_manifest.json, infographic_plan.json, board_specs, and voiceover_segments.json, into precise board_manifest.json, motion_plan.json, annotation_manifest.json, board_index.json, SVG/HTML alignment layers, and annotation keyframe checks for cursor underline, circle, box, check, and strike effects.
 ---
