@@ -221,8 +221,14 @@ function Invoke-CodexIteration {
         "exec", "--ephemeral", "--sandbox", "workspace-write", "--json",
         "--cd", $WorktreePath, "-"
     )
-    $events = @($Prompt | & $codex.Source @arguments 2>&1 | Tee-Object -FilePath $LogPath)
-    $exitCode = $LASTEXITCODE
+    $previousErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $events = @($Prompt | & $codex.Source @arguments 2>&1 | Tee-Object -FilePath $LogPath)
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorAction
+    }
     foreach ($eventLine in $events) { Write-Host $eventLine }
     return $exitCode
 }
