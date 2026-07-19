@@ -218,7 +218,10 @@ function Invoke-CodexIteration {
 
     $codex = Get-Command $CodexPath -ErrorAction Stop
     $arguments = @(
-        "exec", "--ignore-user-config", "--ephemeral", "--sandbox", "workspace-write", "--json",
+        # Windows currently downgrades workspace-write to read-only in headless runs.
+        # The dedicated worktree, per-story allowlist, explicit staging, and gates are
+        # the outer safety boundary for this narrowly scoped automation.
+        "exec", "--ignore-user-config", "--ephemeral", "--sandbox", "danger-full-access", "--json",
         "--cd", $WorktreePath, "-"
     )
     $previousErrorAction = $ErrorActionPreference

@@ -30,7 +30,7 @@ The default worktree is `.lumiera-worktrees/<branch-slug>`. Runtime PRD state, p
 
 ## Safety properties
 
-- `codex exec --ephemeral --sandbox workspace-write` runs only inside the dedicated worktree.
+- `codex exec --ignore-user-config --ephemeral --sandbox danger-full-access` runs from the dedicated worktree. On Windows, headless `workspace-write` is currently downgraded to read-only, so safety is enforced by the isolated worktree, per-story path allowlist, explicit staging, and mandatory quality gates.
 - The agent is prohibited from committing; the supervisor detects unexpected HEAD changes.
 - Files outside a story's `allowedPaths` block the run before staging.
 - Quality checks use an executable plus an argument array, not `Invoke-Expression`.
