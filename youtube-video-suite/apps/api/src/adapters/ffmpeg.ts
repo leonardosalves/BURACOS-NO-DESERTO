@@ -151,7 +151,7 @@ export class FfmpegAdapter implements VideoEngineAdapter {
     return {
       projectId: "", // filled by caller
       sceneId: (output.metadata.sceneId as string) || undefined,
-      engine: "hyperframes", // closest enum match for generic renders
+      engine: "ffmpeg",
       variant: "master",
       status: "completed",
       storageKey: output.outputPath,

@@ -4,18 +4,19 @@ import type {
 } from "@video-suite/scene-contract";
 import type { VideoEngineAdapter, JobContext } from "./types.js";
 import { HyperFramesAdapter } from "./hyperframes.js";
+import { RemotionAdapter } from "./remotion.js";
 import { FfmpegAdapter } from "./ffmpeg.js";
 
 // ── Adapter Registry ────────────────────────────────────────────────────────
 
 const adapters: VideoEngineAdapter[] = [
   new HyperFramesAdapter(),
+  new RemotionAdapter(),
   new FfmpegAdapter(),
-  // Future adapters will be added here:
+  // Future adapters:
   // new VoxDirectorAdapter(),
   // new VoxExplainerAdapter(),
   // new GbroCollageAdapter(),
-  // new RemotionAdapter(),
 ];
 
 /**

@@ -78,6 +78,7 @@ export const RenderManifestSchema = z.object({
     "gbro-collage-broll",
     "vox-director",
     "vox-explainer",
+    "ffmpeg",
   ]),
   variant: z.enum(["master", "9_16_fallback"]),
   status: z.enum(["rendering", "completed", "failed"]),

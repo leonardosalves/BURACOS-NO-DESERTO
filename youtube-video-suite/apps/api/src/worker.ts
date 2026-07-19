@@ -10,12 +10,12 @@ import {
 } from "@video-suite/integrations";
 import { randomUUID } from "crypto";
 
-// Import Fish Speech TTS from parent workspace
-// @ts-ignore — no declarations for legacy JS module
-import {
+// Import Fish Speech TTS from parent workspace (legacy JS, no declarations)
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {
   synthesizeFishSpeech,
   loadFishSpeechConfig,
-} from "../../../../dashboard-qanat/backend/fishSpeechTts.js";
+} = require("../../../../dashboard-qanat/backend/fishSpeechTts.js");
 
 const prisma = new PrismaClient();
 const WORKSPACE_ROOT =
@@ -324,4 +324,60 @@ export const hyperframesRenderWorker = new Worker(
 
 hyperframesRenderWorker.on("failed", (job, err) => {
   console.error(`[HyperFrames Worker] Job failed:`, err);
+});
+
+// ── Remotion Render Worker ──────────────────────────────────────────────────
+
+export const remotionRenderWorker = new Worker(
+  "remotion-render",
+  async (job) => {
+    const { projectId, sceneId, manifestJson } = job.data;
+    console.log(`[Remotion Worker] Processing scene ${sceneId}...`);
+
+    const { renderScene } = await import("./adapters/router.js");
+    const { SceneManifestSchema } = await import("@video-suite/scene-contract");
+
+    const sceneManifest = SceneManifestSchema.parse(manifestJson);
+
+    const renderManifest = await renderScene(sceneManifest, {
+      jobId: job.id || randomUUID(),
+      projectId,
+      sceneId,
+      storageDir: path.join(STORAGE_ASSETS_DIR, "renders", projectId),
+      onLog: (msg) => console.log(msg),
+      onProgress: (pct, msg) => console.log(`[${pct}%] ${msg}`),
+    });
+
+    // Persist render record
+    await prisma.render.create({
+      data: {
+        id: randomUUID(),
+        projectId,
+        sceneId,
+        engine: "remotion",
+        variant: "master",
+        status: "completed",
+        storageKey: renderManifest.storageKey,
+        width: renderManifest.width,
+        height: renderManifest.height,
+        fps: renderManifest.fps,
+        durationSec: renderManifest.durationSec,
+        codec: renderManifest.codec,
+        manifestJson: renderManifest.manifestJson as any,
+      },
+    });
+
+    // Update scene status
+    await prisma.scene.update({
+      where: { id: sceneId },
+      data: { status: "rendered" },
+    });
+
+    console.log(`[Remotion Worker] Scene ${sceneId} rendered successfully.`);
+  },
+  { connection: redisConnection }
+);
+
+remotionRenderWorker.on("failed", (job, err) => {
+  console.error(`[Remotion Worker] Job failed:`, err);
 });
