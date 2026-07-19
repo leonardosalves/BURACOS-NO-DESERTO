@@ -22,7 +22,7 @@ export const VISUAL_DIEGETIC_TEXT_RULE =
 export const VISUAL_LOCALIZED_TEXT_RULE = VISUAL_MINIMAL_TEXT_RULE;
 
 export const VIDEO_DIEGETIC_AUDIO_POLICY =
-  "Diegetic sound only: rich realistic ambient and action SFX matching the scene materials and motion, continuous natural room tone; absolutely no speech, no narration, no dialogue, no talking, no singing, no music, no soundtrack, no score, no beat, no jingle.";
+  "Diegetic sound only: rich realistic ambient and action SFX matching the scene materials and motion, continuous natural room tone; non-verbal human reactions such as gasps, cries, grunts, exertion and panic are allowed, but absolutely no intelligible speech, no spoken words, no dialogue, no narration, no voice-over, no singing, no music, no soundtrack, no score, no beat, no jingle.";
 
 export function isVideoPromptType(type = "") {
   const t = String(type || "").toLowerCase();
@@ -31,22 +31,113 @@ export function isVideoPromptType(type = "") {
 
 export function enforceVideoDiegeticAudioPolicy(prompt = "", type = "") {
   if (!isVideoPromptType(type)) return String(prompt || "").trim();
+  const audioDetails = [];
   let clean = String(prompt || "")
     .replace(VIDEO_DIEGETIC_AUDIO_POLICY, "")
+    .replace(/Diegetic sound only:\s*([^.]*)\.?/gi, (_match, body) => {
+      const specific = String(body || "")
+        .split(
+          /;\s*(?:absolutely|non-verbal human reactions|no intelligible speech)/i
+        )[0]
+        .trim()
+        .replace(/[;,\s]+$/g, "");
+      if (specific) audioDetails.push(specific);
+      return " ";
+    })
+    .replace(/\b(?:absolutely\s+)?no speech\b/gi, "no intelligible speech")
+    .replace(/\bno talking\b/gi, "no spoken words")
     .replace(/\s{2,}/g, " ")
     .trim();
-  if (
-    /diegetic sound only|no speech|no narration|no music|no dialogue/i.test(
-      clean
-    )
-  ) {
-    // Garante a política canônica no final sem duplicar blocos longos
-    if (!clean.includes("Diegetic sound only:")) {
-      return `${clean} ${VIDEO_DIEGETIC_AUDIO_POLICY}`.trim();
-    }
-    return clean;
+  const preservedAudio = audioDetails.length
+    ? `Diegetic audio details: ${[...new Set(audioDetails)].join("; ")}.`
+    : "";
+  return [clean, preservedAudio, VIDEO_DIEGETIC_AUDIO_POLICY]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+/**
+ * Gate determinístico para impedir que o Visual PRO aceite um único microbeat
+ * como se fosse uma mini-cena cinematográfica pronta para geração.
+ */
+export function assessCinematicVideoPromptDetail(prompt = "", type = "") {
+  if (!isVideoPromptType(type)) {
+    return { ok: true, media: "image", wordCount: 0, missing: [] };
   }
-  return `${clean}${clean ? " " : ""}${VIDEO_DIEGETIC_AUDIO_POLICY}`;
+
+  const text = String(prompt || "").trim();
+  const wordCount = (text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
+  const checks = {
+    opening: /\b(begin|begins|beginning|open|opens|opening|start|starts|initially|at first)\b/i.test(
+      text
+    ),
+    progression: /\b(then|suddenly|as the|as soon as|midway|next|at that moment)\b/i.test(
+      text
+    ),
+    ending: /\b(end|ends|ending|finally|final shot|aftermath|retreat|settles|comes to rest)\b/i.test(
+      text
+    ),
+    camera:
+      /\b(camera|shot|tracking|push-in|dolly|handheld|close-up|wide shot|medium shot|pan|tilt|orbit)\b/i.test(
+        text
+      ),
+    audio:
+      /\b(audio|sound|diegetic|ambient|buzz|rumble|crack|breathing|footsteps|wind|water|machinery)\b/i.test(
+        text
+      ),
+  };
+  const missing = Object.entries(checks)
+    .filter(([, present]) => !present)
+    .map(([name]) => name);
+  if (wordCount < 110) missing.unshift("detail");
+
+  return {
+    ok: missing.length === 0,
+    media: "video",
+    wordCount,
+    checks,
+    missing,
+  };
+}
+
+export function buildCinematicVideoPromptRepairPrompt({
+  visualPrompts = [],
+  format = "SHORTS",
+  visualAssetStyle = DEFAULT_VISUAL_ASSET_STYLE,
+} = {}) {
+  const aspect = resolveProjectAspectRatio(format);
+  const styleDirective = buildVisualAssetStyleDirective(visualAssetStyle);
+  const scenes = (Array.isArray(visualPrompts) ? visualPrompts : []).map(
+    (vp) => ({
+      scene: vp.scene,
+      block: vp.block,
+      narration_text: vp.narration_text || "",
+      type: vp.type || vp.media_mode || "vídeo IA (max 10s)",
+      duration_seconds: vp.duration_seconds || undefined,
+      source_is_pov: vp.is_pov === true || vp.scene_kind === "pov",
+      current_prompt: vp.prompt || "",
+    })
+  );
+
+  return `Reescreva somente os prompts de VÍDEO abaixo. Eles falharam no gate de detalhe cinematográfico.
+
+CONTRATO OBRIGATÓRIO POR PROMPT:
+- Escreva em inglês, entre 120 e 220 palavras, em prosa cinematográfica específica e pronta para um gerador de vídeo.
+- Construa uma mini-cena executável com no máximo 3 beats: estado inicial/tensão -> ação principal -> reação ou consequência visível.
+- Descreva cenário e época, personagens/objetos verificáveis, ação física, reação humana ou ambiental, luz, textura e atmosfera.
+- Inclua uma trajetória de câmera contínua e plausível: diga como começa, como acompanha a ação e em qual imagem termina.
+- Inclua áudio diegético específico. Reações humanas não verbais podem existir; proíba fala inteligível, palavras, diálogo, narração e qualquer música.
+- Não invente datas, idiomas falados, personagens, armas, quantidades ou fatos ausentes na narração fornecida.
+- POV somente quando source_is_pov=true. Caso contrário, use câmera cinematográfica em terceira pessoa.
+- Preserve o formato ${aspect} e o estilo ${styleDirective.label}: ${styleDirective.promptClause}
+- Não coloque títulos, legendas, logos, marcas d'água ou texto editorial dentro da mídia.
+
+Retorne APENAS JSON válido neste formato:
+{"visual_prompts":[{"scene":"1.1","prompt":"..."}]}
+
+CENAS:
+${JSON.stringify(scenes, null, 2)}`;
 }
 
 /** SHORTS / 9:16 → vertical; LONGO / 16:9 → horizontal. */
@@ -514,14 +605,20 @@ ${hyperframePrompt ? `- Combine com o hyperframe: ${hyperframePrompt}` : "- Se n
 - Movimento de câmera com **intenção narrativa** (não só estética): slow tracking = investigação; push-in = revelação; orbit = objeto icônico; whip pan = virada de ideia.
 - Ação forte nos primeiros 2-3 segundos (hook visual).
 - Ação importante termina antes do prazo crítico; post-roll sustenta o estado final e a transição para a próxima ideia.
+- Cada prompt de VÍDEO deve ter **120–220 palavras em inglês**. Uma frase curta ou um único gesto isolado NÃO passa.
+- Construa uma mini-cena executável com no máximo **3 beats temporais**: (1) estado inicial/tensão, (2) ação central, (3) reação/consequência visível. Não comprima todo o narration_text em um só arremesso, olhar ou movimento.
+- Descreva cenário/época, sujeitos historicamente ou fisicamente verificáveis, ação e reação, atmosfera, luz, materiais, continuidade e o frame final.
+- A câmera deve formar uma trajetória contínua plausível: diga explicitamente como começa, como acompanha a ação e em qual imagem termina. Não empilhe cortes impossíveis dentro de 8–10 segundos.
+- **POV NÃO É PADRÃO:** use first-person/POV somente quando o payload trouxer source_is_pov=true. Nunca invente POV para uma cena comum; prefira terceira pessoa cinematográfica.
+- Fidelidade factual: não invente data, idioma falado, personagem, arma, quantidade ou desfecho que não esteja na narração/payload.
 
 **4b. Áudio diegético do VÍDEO (SONOPLASTIA NO PROMPT — OBRIGATÓRIO)**
 A trilha SFX do editor NÃO cobre cenas de vídeo. O próprio vídeo gerado deve trazer a sonoplastia ambiente.
 Inclua SEMPRE no prompt de vídeo (em inglês, no corpo do prompt):
-1) SILÊNCIO DE VOZ: no speech, no dialogue, no talking, no narration, no voice-over, no singing, no human talking.
+1) SEM CONTEÚDO VERBAL: no intelligible speech, no spoken words, no dialogue, no narration, no voice-over. Reações humanas NÃO VERBAIS (gasps, cries, grunts, exertion, panic) são permitidas e devem ser realistas quando a ação pedir.
 2) SEM MÚSICA: no music, no soundtrack, no score, no melody, no song, no beat, no jingle.
 3) SÓ SOM DIEGÉTICO RICO: describe realistic ambient and action sound design that matches the visual (material, movement, environment) — wind, machinery, water, fire crackle, metal stress, crowd murmur, structural creaks, etc. Make the diegetic audio full and continuous (not dry silence), with natural room tone.
-4) Exemplo de sufixo útil: "Diegetic sound only: rich realistic ambient and action SFX matching the scene; absolutely no speech, no narration, no dialogue, no music, no soundtrack."
+4) Exemplo de sufixo útil: "Diegetic sound only: rich realistic ambient and action SFX matching the scene; non-verbal reactions are allowed, but no intelligible speech, no spoken words, no dialogue, no narration, no music, no soundtrack."
 
 **5. Prompts de Imagem (type contém "imagem")**
 - Uma imagem ainda precisa de **história estática**: composição que conta o beat da frase.
@@ -567,8 +664,9 @@ Monte o prompt nesta ordem, em prosa fluida (não como lista seca):
 4) SHOT + CAMERA — enquadramento e movimento com intenção
 5) LIGHT + TEXTURE + ERA — coerente com o DNA e o nicho
 6) CONTINUITY — âncora sutil com a cena anterior quando existir
-7) SE VÍDEO: DIEGETIC AUDIO ONLY — ambient/action SFX rico + proibição total de fala/música/narração
-8) ASPECT OBRIGATÓRIO ${aspect} + CLEAN MEDIA POLICY — cláusula de formato + mídia sem texto
+7) SE VÍDEO: 3 BEATS + FRAME FINAL — tensão inicial, ação, consequência, com 120–220 palavras
+8) SE VÍDEO: DIEGETIC AUDIO ONLY — SFX rico; reação não verbal permitida; sem palavras/diálogo/narração/música
+9) ASPECT OBRIGATÓRIO ${aspect} + CLEAN MEDIA POLICY — cláusula de formato + mídia sem texto
 
 ### PROCESSO (CHAIN OF THOUGHT — interno, por cena)
 1. Leia narration_text + prev + next.
@@ -694,6 +792,8 @@ export function buildVisualPromptEngineerRequest(storyboard = {}, opts = {}) {
           ? String(next.narration_text || "").slice(0, 220)
           : "",
         type: vp.type || "imagem IA 2k",
+        source_is_pov: vp.is_pov === true || vp.scene_kind === "pov",
+        scene_kind: vp.scene_kind || undefined,
         prompt: String(vp.prompt || "").slice(0, 700),
         editor_notes: String(vp.editor_notes || "").slice(0, 240),
         stock_query: String(vp.stock_query || "").slice(0, 80),

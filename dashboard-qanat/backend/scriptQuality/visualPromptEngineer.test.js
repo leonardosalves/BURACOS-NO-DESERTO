@@ -3,9 +3,13 @@ import assert from "node:assert/strict";
 import {
   VISUAL_DIEGETIC_TEXT_RULE,
   VISUAL_MINIMAL_TEXT_RULE,
+  VIDEO_DIEGETIC_AUDIO_POLICY,
+  assessCinematicVideoPromptDetail,
   buildVisualIdentityBrief,
+  buildCinematicVideoPromptRepairPrompt,
   buildVisualPromptEngineerRequest,
   buildVisualPromptEngineerSystemPrompt,
+  enforceVideoDiegeticAudioPolicy,
   enforceVisualLocalizedTextRule,
 } from "./visualPromptEngineer.js";
 
@@ -38,7 +42,8 @@ test("Engenharia Visual PRO mantém a mídia-fonte sem texto editorial", async (
 
     assert.doesNotMatch(normal, /four essential words/i);
     assert.match(essential, /four essential words/i);
-    assert.ok(essential.endsWith(VISUAL_DIEGETIC_TEXT_RULE));
+    assert.equal(essential.split(VISUAL_DIEGETIC_TEXT_RULE).length - 1, 1);
+    assert.match(essential, /9:16 portrait composition/i);
   });
 
   await t.test("system prompt separa overlays da geração de mídia", () => {
@@ -49,6 +54,25 @@ test("Engenharia Visual PRO mantém a mídia-fonte sem texto editorial", async (
     assert.doesNotMatch(prompt, /ROAD CLOSED/);
     assert.doesNotMatch(prompt, /ESTRADA FECHADA/);
   });
+
+  await t.test(
+    "vídeo permite reação não verbal, mas bloqueia palavras, narração e música",
+    () => {
+      const result = enforceVideoDiegeticAudioPolicy(
+        "Soldiers recoil with panicked gasps. Diegetic sound only: buzzing; absolutely no speech, no narration, no dialogue, no music.",
+        "vídeo IA (max 10s)"
+      );
+
+      assert.equal(result.split(VIDEO_DIEGETIC_AUDIO_POLICY).length - 1, 1);
+      assert.match(result, /non-verbal human reactions/i);
+      assert.match(result, /Diegetic audio details: buzzing/i);
+      assert.match(result, /no intelligible speech/i);
+      assert.match(result, /no spoken words/i);
+      assert.match(result, /no narration/i);
+      assert.match(result, /no music/i);
+      assert.doesNotMatch(result, /absolutely no speech/i);
+    }
+  );
 });
 
 test("Engenharia Visual PRO prioriza identidade + unidade roteiro↔imagem", async (t) => {
@@ -87,6 +111,10 @@ test("Engenharia Visual PRO prioriza identidade + unidade roteiro↔imagem", asy
     assert.match(prompt, /DNA VISUAL/i);
     assert.match(prompt, /UNIDADE ROTEIRO/i);
     assert.match(prompt, /DIEGETIC AUDIO|no speech|no music|no narration/i);
+    assert.match(prompt, /120[–-]220 palavras/i);
+    assert.match(prompt, /3 beats temporais/i);
+    assert.match(prompt, /POV NÃO É PADRÃO/i);
+    assert.match(prompt, /reações humanas NÃO VERBAIS/i);
   });
 
   await t.test(
@@ -108,6 +136,7 @@ test("Engenharia Visual PRO prioriza identidade + unidade roteiro↔imagem", asy
                 narration_text: "Prepare-se para histórias absurdas.",
                 type: "vídeo IA (max 10s)",
                 prompt: "generic people talking",
+                is_pov: false,
               },
               {
                 scene: "1.2",
@@ -126,7 +155,50 @@ test("Engenharia Visual PRO prioriza identidade + unidade roteiro↔imagem", asy
       assert.match(userPrompt, /next_narration/i);
       assert.match(userPrompt, /visual_identity_brief/i);
       assert.match(userPrompt, /UM FILME COESO/i);
+      assert.match(userPrompt, /"source_is_pov": false/i);
       assert.equal(typeof detectedNiche, "string");
     }
   );
+
+
+  await t.test("gate rejeita microbeat e aceita mini-cena completa", () => {
+    const sparse = assessCinematicVideoPromptDetail(
+      "A Greek soldier throws a clay pot into a dark tunnel. Handheld camera. Buzzing sound. Max 10 seconds.",
+      "vídeo IA (max 10s)"
+    );
+    assert.equal(sparse.ok, false);
+    assert.ok(sparse.missing.includes("detail"));
+    assert.ok(sparse.missing.includes("ending"));
+
+    const detailed = `The sequence begins inside a narrow counter-tunnel beneath an ancient city, where Greek defenders crouch behind rough timber braces and hold fragile clay vessels while loose soil trembles under warm oil-lamp light. Their bronze helmets, linen armor and dirt-streaked hands remain physically grounded and period appropriate. The camera starts in a tight third-person tracking shot behind the defenders, revealing the confined passage and the advancing vibration in the wall. Then the earth breaks open and Roman sappers appear beyond the dust. A defender hurls the clay vessel; it shatters against the timber and releases a dense swarm into the cramped breach. The camera follows the impact without cutting, swings toward the Romans as they shield their eyes, lose formation and stumble over dropped tools. Bees cross shafts of amber light while dust and splinters thicken the air. The shot ends on the Roman group retreating into darkness as the Greeks stay behind their barricade. Audio uses cracking earth, breaking pottery, escalating buzzing, metal and tools striking soil, heavy breathing, gasps and panicked non-verbal cries. No intelligible speech, spoken words, dialogue, narration or music. Vertical 9:16 portrait composition, no text.`;
+    const accepted = assessCinematicVideoPromptDetail(
+      detailed,
+      "vídeo IA (max 10s)"
+    );
+    assert.equal(accepted.ok, true);
+    assert.ok(accepted.wordCount >= 110);
+  });
+
+  await t.test("reparo exige detalhe, fidelidade factual e POV opt-in", () => {
+    const repair = buildCinematicVideoPromptRepairPrompt({
+      format: "SHORTS",
+      visualPrompts: [
+        {
+          scene: "2.2",
+          type: "vídeo IA (max 10s)",
+          narration_text: "Defensores lançaram enxames no contra-túnel.",
+          prompt: "A soldier throws a pot.",
+        },
+      ],
+    });
+
+    assert.match(repair, /120 e 220 palavras/i);
+    assert.match(repair, /no máximo 3 beats/i);
+    assert.match(repair, /Reações humanas não verbais/i);
+    assert.match(repair, /proíba fala inteligível/i);
+    assert.match(repair, /POV somente quando source_is_pov=true/i);
+    assert.match(repair, /não invente datas/i);
+    assert.match(repair, /"source_is_pov": false/i);
+    assert.match(repair, /9:16/i);
+  });
 });

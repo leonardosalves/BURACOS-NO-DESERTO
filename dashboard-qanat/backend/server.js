@@ -376,6 +376,8 @@ import {
   buildChecklistSchemaBlock,
   VISUAL_PROMPT_SPECIFICITY_RULES,
   buildVisualPromptEngineerRequest,
+  buildCinematicVideoPromptRepairPrompt,
+  assessCinematicVideoPromptDetail,
   applyProjectVisualAssetStyleToPrompts,
   enforceVisualLocalizedTextRule,
   sanitizeVisualPromptDurations,
@@ -22441,10 +22443,10 @@ app.post(
         title: "✨ Engenharia Visual PRO",
         prompt: fullPrompt,
         temperature: 0.7,
-        // Pro costuma estourar quota (429) — fallback flash
+        // Engenharia Visual PRO tenta o modelo Pro primeiro; Flash é fallback de quota.
         models: [
-          "gemini-3.5-flash",
           "gemini-2.5-pro",
+          "gemini-3.5-flash",
           "gemini-2.5-flash",
           "gemini-2.0-flash",
         ],
@@ -22466,7 +22468,94 @@ app.post(
         Array.isArray(parsed.visual_prompts) &&
         parsed.visual_prompts.length > 0
       ) {
-        storyboard.visual_prompts = parsed.visual_prompts;
+        let enhancedVisualPrompts = parsed.visual_prompts;
+        const sparseVideoPrompts = enhancedVisualPrompts.filter(
+          (vp) =>
+            !assessCinematicVideoPromptDetail(
+              vp?.prompt || "",
+              vp?.type || vp?.media_mode || ""
+            ).ok
+        );
+
+        if (sparseVideoPrompts.length > 0) {
+          report(
+            "vpe_detail_repair",
+            `Refazendo ${sparseVideoPrompts.length} prompt(s) de vídeo sem detalhe suficiente…`,
+            76
+          );
+          try {
+            const repairText = await callGeminiLlm(req, activeRes, projDir, {
+              title: "✨ Engenharia Visual PRO — detalhe cinematográfico",
+              prompt: buildCinematicVideoPromptRepairPrompt({
+                visualPrompts: sparseVideoPrompts,
+                format,
+                visualAssetStyle,
+              }),
+              temperature: 0.55,
+              models: [
+                "gemini-2.5-pro",
+                "gemini-3.5-flash",
+                "gemini-2.5-flash",
+                "gemini-2.0-flash",
+              ],
+            });
+            if (repairText != null) {
+              const repairedPayload = normalizeKeys(
+                await parseAiJsonResponse(
+                  repairText,
+                  isBrowserResponse ? null : apiKey,
+                  "Visual Prompt Engineer PRO — detalhe cinematográfico"
+                )
+              );
+              const repairedList = Array.isArray(repairedPayload)
+                ? repairedPayload
+                : repairedPayload?.visual_prompts;
+              const repairedByScene = new Map(
+                (Array.isArray(repairedList) ? repairedList : [])
+                  .filter((vp) => vp?.scene && vp?.prompt)
+                  .map((vp) => [String(vp.scene), vp])
+              );
+              enhancedVisualPrompts = enhancedVisualPrompts.map((vp) => {
+                const repaired = repairedByScene.get(String(vp?.scene || ""));
+                if (!repaired) return vp;
+                const before = assessCinematicVideoPromptDetail(
+                  vp?.prompt || "",
+                  vp?.type || vp?.media_mode || ""
+                );
+                const after = assessCinematicVideoPromptDetail(
+                  repaired.prompt || "",
+                  vp?.type || vp?.media_mode || ""
+                );
+                if (!after.ok && after.wordCount <= before.wordCount) return vp;
+                return { ...vp, ...repaired, type: vp.type || repaired.type };
+              });
+            }
+          } catch (detailRepairErr) {
+            console.warn(
+              "[VPE PRO] Reparo de detalhe cinematográfico não bloqueante:",
+              detailRepairErr.message
+            );
+          }
+        }
+
+        const remainingSparse = enhancedVisualPrompts.filter(
+          (vp) =>
+            !assessCinematicVideoPromptDetail(
+              vp?.prompt || "",
+              vp?.type || vp?.media_mode || ""
+            ).ok
+        );
+        parsed.checklist = {
+          ...(parsed.checklist || {}),
+          cinematic_video_detail_gate: {
+            ok: remainingSparse.length === 0,
+            repaired_count: sparseVideoPrompts.length - remainingSparse.length,
+            remaining_sparse_scenes: remainingSparse
+              .map((vp) => String(vp?.scene || ""))
+              .filter(Boolean),
+          },
+        };
+        storyboard.visual_prompts = enhancedVisualPrompts;
       } else {
         throw new Error(
           "Gemini não retornou visual_prompts válidos. Tente de novo."
