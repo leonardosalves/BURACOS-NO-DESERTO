@@ -25,6 +25,12 @@ function normalizeRepairResult(result) {
   if (result && typeof result.narrativeScript === "string") {
     return result.narrativeScript;
   }
+  if (result && typeof result.narrative_script === "string") {
+    return result.narrative_script;
+  }
+  if (result && typeof result.repaired_narrative === "string") {
+    return result.repaired_narrative;
+  }
   return "";
 }
 
@@ -157,3 +163,47 @@ export async function runAutomaticScriptRepair({
   };
 }
 
+function selectFinalReport(result = {}) {
+  return result.accepted && result.afterReport ? result.afterReport : result.beforeReport;
+}
+
+export function buildAutomaticScriptQualityMetadata(result = {}) {
+  const selectedReport = selectFinalReport(result) || null;
+  return {
+    quality: {
+      selected: result.accepted ? "repaired" : "original",
+      report: selectedReport,
+      original_report: result.beforeReport || null,
+      repaired_report: result.afterReport || null,
+    },
+    repair: {
+      attempted: result.attempted === true,
+      accepted: result.accepted === true,
+      rejection_reason: result.rejectionReason || null,
+      candidate_present:
+        typeof result.candidateScript === "string" && result.candidateScript.length > 0,
+    },
+  };
+}
+
+export function applyAutomaticScriptRepairToStoryboard(storyboard = {}, result = {}) {
+  const selectedScript =
+    typeof result.script === "string" ? result.script : String(storyboard.narrative_script || "");
+  const metadata = buildAutomaticScriptQualityMetadata(result);
+  const next = {
+    ...storyboard,
+    narrative_script: selectedScript,
+    automatic_script_quality: metadata.quality,
+    automatic_script_repair: metadata.repair,
+  };
+
+  if (result.accepted === true) {
+    next.narrative_script_tagged = selectedScript;
+    next.technical_config = {
+      ...(next.technical_config || {}),
+      script: selectedScript,
+    };
+  }
+
+  return next;
+}

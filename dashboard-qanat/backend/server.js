@@ -334,9 +334,13 @@ import {
   resolveListicleBlockCount,
   clampListicleRankCount,
   buildHumanizeRepairPrompt,
+  buildFactPreservingRepairPrompt,
   extractScriptSliceForRepair,
   mergeHumanizedScript,
   applyScriptTextQuality,
+  assessAutomaticScriptQuality,
+  runAutomaticScriptRepair,
+  applyAutomaticScriptRepairToStoryboard,
   assessEditorialContract,
   assessNarrationReadiness,
   assessNarracaoProIntegrity,
@@ -20165,6 +20169,80 @@ function normalizeKeys(data, formatHint = null) {
   return normalized;
 }
 
+const AUTOMATIC_SCRIPT_REPAIR_TIMEOUT_MS = 45000;
+
+function withAutomaticRepairTimeout(promise, timeoutMs = AUTOMATIC_SCRIPT_REPAIR_TIMEOUT_MS) {
+  let timeout;
+  return Promise.race([
+    promise.finally(() => clearTimeout(timeout)),
+    new Promise((_, reject) => {
+      timeout = setTimeout(
+        () => reject(new Error(`timeout_after_${timeoutMs}ms`)),
+        timeoutMs
+      );
+    }),
+  ]);
+}
+
+async function runAutomaticQualityRepairForStoryboard(
+  storyboard,
+  { format, idea, niche, apiKey, projectDir, researchFacts = [], researchSources = [] } = {}
+) {
+  const narrativeScript = String(storyboard?.narrative_script || "").trim();
+  const qualityContext = {
+    format,
+    strategy: storyboard?.strategy || {},
+    idea,
+    niche,
+    trace: storyboard?.narracao_pro_trace,
+    researchFacts:
+      Array.isArray(storyboard?.research_facts) && storyboard.research_facts.length
+        ? storyboard.research_facts
+        : researchFacts,
+    researchSources:
+      Array.isArray(storyboard?.research_sources) && storyboard.research_sources.length
+        ? storyboard.research_sources
+        : researchSources,
+  };
+
+  const result = await runAutomaticScriptRepair({
+    script: narrativeScript,
+    context: qualityContext,
+    evaluate: async (script, context) =>
+      assessAutomaticScriptQuality({
+        ...context,
+        narrativeScript: script,
+      }),
+    repair: async (script, beforeReport, context) => {
+      const repairPrompt = buildFactPreservingRepairPrompt({
+        originalScript: script,
+        unifiedReport: beforeReport,
+        verifiedFacts: context.researchFacts,
+        sources: context.researchSources,
+        format: context.format,
+        strategy: context.strategy,
+      });
+      const repairText = await withAutomaticRepairTimeout(
+        callGeminiWithRetry(apiKey, repairPrompt, {
+          temperature: 0.35,
+          maxRetries: 1,
+          projectDir,
+          activityLabel: "Reparo automatico do roteiro",
+          activityDetail: "Auditoria unificada de qualidade do roteiro",
+          maxTokens: 4000,
+        })
+      );
+      return await parseAiJsonResponse(
+        repairText,
+        apiKey,
+        "Reparo automatico do roteiro"
+      );
+    },
+  });
+
+  return applyAutomaticScriptRepairToStoryboard(storyboard, result);
+}
+
 // API: SCRIPT MASTER Step 2 - Generate Strategy, Complete Script, and technical mappings
 
 app.post(
@@ -21264,6 +21342,16 @@ app.post(
           }
         }
 
+        parsedData = await runAutomaticQualityRepairForStoryboard(parsedData, {
+          format,
+          idea,
+          niche,
+          apiKey,
+          projectDir: llmDir,
+          researchFacts: webResearchMeta?.facts || [],
+          researchSources: webResearchMeta?.sources || [],
+        });
+
         report(
           "auditoria",
           "[NARRACAOPRO] Auditando o texto final após todas as alterações…",
@@ -21338,6 +21426,8 @@ app.post(
           technical_config: parsedData.technical_config || undefined,
           research_sources: webResearchMeta?.sources || [],
           research_facts: webResearchMeta?.facts || [],
+          automatic_script_quality: parsedData.automatic_script_quality,
+          automatic_script_repair: parsedData.automatic_script_repair,
           notebooklm_enriched: notebooklmEnriched,
           notebooklm_enriched_at: notebooklmEnriched
             ? new Date().toISOString()
@@ -21687,6 +21777,17 @@ app.post(
           }
         }
       }
+
+      parsedData = await runAutomaticQualityRepairForStoryboard(parsedData, {
+        format,
+        idea,
+        niche,
+        apiKey,
+        projectDir: llmDir,
+        researchFacts: webResearchMeta?.facts || parsedData.research_facts || [],
+        researchSources:
+          webResearchMeta?.sources || parsedData.research_sources || [],
+      });
 
       parsedData = await enhanceCreatorStrategyTitles(parsedData, {
         transcript: parsedData.narrative_script || "",

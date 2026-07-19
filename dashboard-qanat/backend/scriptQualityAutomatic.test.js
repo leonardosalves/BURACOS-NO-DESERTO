@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  applyAutomaticScriptRepairToStoryboard,
   assessAutomaticScriptQuality,
+  buildAutomaticScriptQualityMetadata,
   runAutomaticScriptRepair,
 } from "./scriptQuality/index.js";
 
@@ -260,6 +262,78 @@ test("automatic repair accepts a single objective improvement", async () => {
   assert.equal(result.attempted, true);
   assert.equal(result.accepted, true);
   assert.equal(result.rejectionReason, null);
+});
+
+test("automatic repair accepts provider repaired_narrative payloads", async () => {
+  const reports = [
+    repairReport({ score: 45, hardBlockers: ["weak hook"] }),
+    repairReport({ score: 84, hardBlockers: [] }),
+  ];
+
+  const result = await runAutomaticScriptRepair({
+    script: "original script",
+    evaluate: async () => reports.shift(),
+    repair: async () => ({ repaired_narrative: "safe repaired script" }),
+  });
+
+  assert.equal(result.script, "safe repaired script");
+  assert.equal(result.attempted, true);
+  assert.equal(result.accepted, true);
+});
+
+test("automatic repair metadata is persisted onto the selected storyboard", () => {
+  const storyboard = {
+    narrative_script: "original script",
+    narrative_script_tagged: "original tagged script",
+    technical_config: { script: "original script", block_phrases: ["a"] },
+  };
+  const result = {
+    script: "repaired script",
+    beforeReport: repairReport({ score: 42 }),
+    afterReport: repairReport({ passed: true, score: 86 }),
+    attempted: true,
+    accepted: true,
+    rejectionReason: null,
+    candidateScript: "repaired script",
+  };
+
+  const metadata = buildAutomaticScriptQualityMetadata(result);
+  const next = applyAutomaticScriptRepairToStoryboard(storyboard, result);
+
+  assert.equal(metadata.quality.selected, "repaired");
+  assert.equal(metadata.repair.attempted, true);
+  assert.equal(metadata.repair.accepted, true);
+  assert.equal(next.narrative_script, "repaired script");
+  assert.equal(next.narrative_script_tagged, "repaired script");
+  assert.equal(next.technical_config.script, "repaired script");
+  assert.equal(next.automatic_script_quality.report.score, 86);
+  assert.equal(next.automatic_script_repair.candidate_present, true);
+});
+
+test("automatic repair metadata keeps original storyboard when rejected", () => {
+  const storyboard = {
+    narrative_script: "original script",
+    narrative_script_tagged: "original tagged script",
+    technical_config: { script: "original script" },
+  };
+  const result = {
+    script: "original script",
+    beforeReport: repairReport({ score: 50 }),
+    afterReport: repairReport({ score: 49 }),
+    attempted: true,
+    accepted: false,
+    rejectionReason: "score_not_improved",
+    candidateScript: "candidate script",
+  };
+
+  const next = applyAutomaticScriptRepairToStoryboard(storyboard, result);
+
+  assert.equal(next.narrative_script, "original script");
+  assert.equal(next.narrative_script_tagged, "original tagged script");
+  assert.equal(next.technical_config.script, "original script");
+  assert.equal(next.automatic_script_quality.selected, "original");
+  assert.equal(next.automatic_script_quality.report.score, 50);
+  assert.equal(next.automatic_script_repair.rejection_reason, "score_not_improved");
 });
 
 test("automatic repair rejects a score regression and keeps the original script", async () => {
