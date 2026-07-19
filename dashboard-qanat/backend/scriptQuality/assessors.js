@@ -185,6 +185,10 @@ export function assessNarrationReadiness({
       starters.filter((starter, index) => starters.indexOf(starter) !== index)
     ),
   ];
+  const inflatedAbstractions =
+    script.match(
+      /\b(?:transform(?:a|ou|aram|ado|ada)[^.!?]{0,70}\bem\s+(?:uma?\s+)?[^.!?]{0,45}\b(?:brutal|implac[aá]vel|devastador[ae]?|revolucion[aá]ri[oa])|engenharia\s+de\s+defesa\s+brutal)\b/gi
+    ) || [];
   const recommendations = [];
 
   if (longSentences.length) {
@@ -207,6 +211,11 @@ export function assessNarrationReadiness({
       `Varie o início das frases para evitar cadência mecânica (${repeatedStarters.slice(0, 3).join(", ")}).`
     );
   }
+  if (inflatedAbstractions.length) {
+    recommendations.push(
+      "Troque abstrações dramáticas por causa e consequência concretas; explique o que aconteceu em vez de rotular o fato como brutal ou revolucionário."
+    );
+  }
 
   const averageWordsPerSentence = wordsBySentence.length
     ? Math.round(
@@ -216,13 +225,15 @@ export function assessNarrationReadiness({
       ) / 10
     : 0;
   return {
-    ok: Boolean(script),
+    ok: Boolean(script) && inflatedAbstractions.length === 0,
     format: isShort ? "SHORTS" : "LONGO",
     sentenceCount: sentences.length,
     averageWordsPerSentence,
     longSentenceCount: longSentences.length,
     acronyms,
     numberCount: numbers.length,
+    inflatedAbstractionCount: inflatedAbstractions.length,
+    inflatedAbstractions,
     recommendations,
   };
 }
@@ -239,6 +250,12 @@ const SENSATIONAL_NEURO_PATTERN =
   /\b(?:mente|cérebro)\s+(?:seria\s+)?["“”']?hacke(?:ad[oa]|ar)|hacke(?:ar|ad[oa])\s+(?:a\s+)?(?:mente|cérebro)\b/i;
 const VAGUE_STUDY_ATTRIBUTION_PATTERN =
   /\b(?:estudos?|pesquisas?|especialistas?)\s+(?:de|da|do|sobre|em)?[^.!?]{0,80}\b(?:sugerem|mostram|comprovam|demonstram|indicam|revelam)\b/i;
+const DRAMATIC_TERMINAL_CLAIM_PATTERN =
+  /\b(picadas?\s+(?:mortais|letais)|mortais|letais|fatais|mortal|letal|fatal|aniquil(?:ou|aram|ado|ada)|dizim(?:ou|aram|ado|ada)|massacr(?:ou|aram|ado|ada)|impedi(?:u|ram)\s+invas(?:ão|ões)\s+inteiras?|interrompe(?:u|ram)\s+invas(?:ão|ões)\s+inteiras?)\b/i;
+const LETHAL_EVIDENCE_PATTERN =
+  /\b(mortal|mortais|letal|letais|fatal|fatais|morte|mortes|matou|mataram|causou a morte)\b/i;
+const TOTAL_DEFEAT_EVIDENCE_PATTERN =
+  /\b(aniquil|dizim|massacr|impedi(?:u|ram)[^.!?]{0,30}invas|interrompe(?:u|ram)[^.!?]{0,30}invas)/i;
 
 function asList(value) {
   return Array.isArray(value) ? value : [];
@@ -329,6 +346,20 @@ export function assessNarracaoProIntegrity({
     validationNeeded &&
     !/^(nenhuma|nenhum|não há)\b/i.test(validationNeeded) &&
     VALIDATION_PENDING_PATTERN.test(validationNeeded);
+  const ending =
+    script
+      .split(/(?<=[.!?…])\s+/)
+      .map((sentence) => sentence.trim())
+      .filter(Boolean)
+      .at(-1) || "";
+  const dramaticTerminalClaim =
+    ending.match(DRAMATIC_TERMINAL_CLAIM_PATTERN)?.[0] || "";
+  const evidenceCorpus = usableResearchFacts.join(" ");
+  const dramaticClaimSupported = !dramaticTerminalClaim
+    ? true
+    : LETHAL_EVIDENCE_PATTERN.test(dramaticTerminalClaim)
+      ? LETHAL_EVIDENCE_PATTERN.test(evidenceCorpus)
+      : TOTAL_DEFEAT_EVIDENCE_PATTERN.test(evidenceCorpus);
 
   if (!script) issues.push("Narração vazia.");
   if (assertsCausality && pendingCriticalValidation && !qualifiesUncertainty) {
@@ -372,6 +403,11 @@ export function assessNarracaoProIntegrity({
   if (usesVagueStudyAttribution && externalSourceCount === 0) {
     issues.push(
       'A narração usa atribuição vaga como "estudos sugerem" sem estudo identificável nos dados de pesquisa.'
+    );
+  }
+  if (dramaticTerminalClaim && !dramaticClaimSupported) {
+    issues.push(
+      `Fechamento sensacionalista sem apoio explícito na pesquisa: "${dramaticTerminalClaim}". Descreva a consequência documentada sem inflar o resultado.`
     );
   }
   if (isShort && selectedFacts.length > 3) {
@@ -445,6 +481,8 @@ export function assessNarracaoProIntegrity({
       usesSensationalNeuroscience,
       usesVagueStudyAttribution,
       pendingCriticalValidation,
+      dramaticTerminalClaim: dramaticTerminalClaim || null,
+      dramaticClaimSupported,
       realityStatus: realityStatus || "unknown",
       missingTraceFields,
     },
@@ -570,7 +608,18 @@ function scoreNarrationReadiness(narration) {
     narration.averageWordsPerSentence > 26
       ? Math.min(20, (narration.averageWordsPerSentence - 26) * 2)
       : 0;
-  return clampScore(100 - sentencePenalty - acronymPenalty - numberPenalty - densityPenalty);
+  const abstractionPenalty = Math.min(
+    30,
+    Number(narration.inflatedAbstractionCount || 0) * 20
+  );
+  return clampScore(
+    100 -
+      sentencePenalty -
+      acronymPenalty -
+      numberPenalty -
+      densityPenalty -
+      abstractionPenalty
+  );
 }
 
 const RETENTION_STOPWORDS = new Set([

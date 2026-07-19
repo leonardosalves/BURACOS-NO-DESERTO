@@ -9,6 +9,7 @@ import {
   type CatalogTemplate,
 } from "./remotionTemplateStudioApi";
 import { isLegacySeedTemplateId } from "@lumiera/shared/remotionTemplateLegacy.js";
+import { splitNarrationIntoBlocks } from "@lumiera/shared/narrationBlocks.js";
 import {
   DEFAULT_TEMPLATE_NICHES,
   mergeNicheLists,
@@ -92,14 +93,6 @@ type Props = {
   onNotebooklmProceed?: () => Promise<void>;
 };
 
-function splitBlockParagraphs(blockScript?: string) {
-  if (!blockScript?.trim()) return [];
-  return blockScript
-    .split(/\n\n+/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-}
-
 function readLocalStudioTemplates() {
   try {
     const raw = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
@@ -157,8 +150,14 @@ export function NarrationReviewPanel({
     ? narrativeScript.trim().split(/\s+/).length
     : 0;
   const paragraphs = useMemo(
-    () => splitBlockParagraphs(blockScript),
-    [blockScript]
+    () =>
+      splitNarrationIntoBlocks({
+        narrativeScript,
+        blockScript,
+        blockPhrases,
+        expectedBlocks: blockPhrases.length,
+      }),
+    [narrativeScript, blockScript, blockPhrases]
   );
   const showBlocks = blockPhrases.length > 0 && paragraphs.length > 0;
 

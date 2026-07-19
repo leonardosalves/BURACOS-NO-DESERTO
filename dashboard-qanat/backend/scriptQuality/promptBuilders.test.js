@@ -65,6 +65,8 @@ test("promptBuilders module", async (t) => {
       });
       assert.match(prompt, /Romanas/i);
       assert.match(prompt, /Algumas fontes romanas/i);
+      assert.match(prompt, /FECHAMENTO PRECISO/i);
+      assert.match(prompt, /engenharia de defesa brutal/i);
     }
   );
 
@@ -189,6 +191,7 @@ test("promptBuilders module", async (t) => {
         blockCount: 5,
       });
       assert.match(prompt, /Roma antiga tinha aquedutos incríveis/i);
+      assert.match(prompt, /não sensacionalista/i);
     }
   );
 

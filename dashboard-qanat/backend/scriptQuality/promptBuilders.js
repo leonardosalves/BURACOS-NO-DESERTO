@@ -887,6 +887,7 @@ TAREFA:
 2. Melhore o gancho apenas se o relatório apontar fraqueza ou se a estratégia fornecer direção suficiente.
 3. Remova ou suavize afirmações não sustentadas em vez de preencher lacunas com invenção.
 4. Liste cada mudança em termos editoriais, sem alegar novas descobertas.
+5. Revise especialmente o FECHAMENTO: troque slogans inflados e consequências absolutas por um payoff concreto sustentado. Termos como "mortal", "letal", "aniquilou", "dizimou" ou "impediu invasões inteiras" exigem confirmação explícita na evidência permitida.
 
 Responda APENAS JSON válido, sem markdown:
 {
@@ -1388,6 +1389,10 @@ REGRAS DESTA FASE:
         : `LONGO: use EXATAMENTE ${userBlockCount} blocos. 10-20 minutos, 1500-3000 palavras. Explore profundamente o tema.`
   }
 - Escreva BLOCO A BLOCO primeiro (frases curtas, 1 ideia por bloco), depois una em narrative_script.
+- FECHAMENTO PRECISO: conclua com a consequência documentada e específica do mecanismo apresentado. Não transforme perigo em morte, resistência em vitória total ou um episódio em resultado absoluto.
+- EXPRESSÕES COMO "mortal", "letal", "aniquilou", "dizimou", "impediu invasões inteiras" e equivalentes só podem aparecer quando a evidência fornecida confirmar explicitamente esse resultado. Na dúvida, descreva o efeito observável sem inflar.
+- O último bloco deve acrescentar o payoff, não apenas repetir o gancho ou reciclar a primeira frase com palavras mais dramáticas.
+- Prefira a cadeia concreta "ação → reação → consequência". Evite abstrações de redação como "transformou a biologia em engenharia de defesa brutal"; diga exatamente o que os agentes fizeram e qual efeito documentado isso produziu.
 - Se houver pesquisa NotebookLM acima, priorize fatos verificáveis dela — estilo documental brasileiro enxuto.
 
 EXECUÇÃO OBRIGATÓRIA DAS 12 ETAPAS DO NARRACAOPRO:
@@ -1901,6 +1906,9 @@ TAREFAS:
 7. Reescreva "narrative_script_tagged" com as MESMAS palavras + tags ([pause], (breath), [pausa], [ênfase], [rápido], [lento]).
 8. Mantenha a tese e a estrutura; remova clichês de IA ("neste vídeo", "prepare-se", "incrível" sem prova).
 9. FINAL: frase declarativa (mic drop) — remova perguntas vazias ("Você prefere…?", "Comenta aí").
+10. O mic drop deve ser PRECISO, não sensacionalista: não converta risco em morte nem um efeito localizado em vitória total. "Mortal", "letal", "aniquilou", "dizimou" e equivalentes só entram com confirmação explícita nas fontes fornecidas.
+11. O final precisa entregar uma consequência nova ou uma síntese útil; não repita o gancho com adjetivos mais fortes.
+12. Troque abstrações dramáticas ("transformou X em uma força brutal/revolucionária") por ação, reação e consequência observáveis.
 
 ${UGC_SCRIPTWRITER_REINFORCEMENT}
 

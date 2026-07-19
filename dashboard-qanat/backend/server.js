@@ -21375,6 +21375,9 @@ app.post(
           researchFacts: webResearchMeta?.facts || [],
           researchSources: webResearchMeta?.sources || [],
         });
+        // O reparo automático pode substituir technical_config.script pelo texto
+        // corrido. Refaça o contrato de blocos a partir da narração final aprovada.
+        parsedData = normalizeNarrationBlocks(parsedData, listicleBlockCount);
 
         report(
           "auditoria",
