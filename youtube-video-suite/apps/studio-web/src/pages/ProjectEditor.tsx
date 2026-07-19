@@ -14,6 +14,28 @@ interface Scene {
   status: string;
 }
 
+interface Job {
+  id: string;
+  queue: string;
+  type: string;
+  status: string;
+  progress: number;
+  attempts: number;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+interface Render {
+  id: string;
+  engine: string;
+  variant: string;
+  status: string;
+  storageKey: string;
+  durationSec: number;
+  createdAt: string;
+}
+
 interface Project {
   id: string;
   title: string;
@@ -23,6 +45,8 @@ interface Project {
   aspectRatio: string;
   targetDurationSec: number;
   scenes: Scene[];
+  jobs?: Job[];
+  renders?: Render[];
 }
 
 type EditorTab = "beats" | "timeline" | "qa" | "export";
@@ -33,7 +57,7 @@ export function ProjectEditor() {
   const [tab, setTab] = useState<EditorTab>("beats");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchProject = useCallback(() => {
     if (!id) return;
     fetch(`/v1/projects/${id}`)
       .then((r) => r.json())
@@ -41,6 +65,29 @@ export function ProjectEditor() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    fetchProject();
+  }, [fetchProject]);
+
+  useEffect(() => {
+    if (!project || project.status !== "generating") return;
+    const interval = setInterval(() => {
+      fetchProject();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [project?.status, fetchProject]);
+
+  const handleStartPipeline = async () => {
+    if (!project) return;
+    try {
+      setProject({ ...project, status: "generating" });
+      await fetch(`/v1/projects/${project.id}/generate`, { method: "POST" });
+      fetchProject();
+    } catch {
+      alert("Erro ao iniciar pipeline");
+    }
+  };
 
   if (loading)
     return (
@@ -68,20 +115,31 @@ export function ProjectEditor() {
             cenas · {project.targetDurationSec}s alvo
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            className="btn btn-secondary"
-            onClick={() => handleGenerate(project.id)}
-          >
-            ⚡ Gerar Pipeline
-          </button>
+        <div className="flex gap-2 items-center">
+          {project.status !== "generating" &&
+            project.status !== "completed" && (
+              <button className="btn btn-primary" onClick={handleStartPipeline}>
+                ⚡ Gerar Pipeline
+              </button>
+            )}
           <span
-            className={`badge ${project.status === "completed" ? "badge-green" : "badge-amber"}`}
+            className={`badge ${
+              project.status === "completed"
+                ? "badge-green"
+                : project.status === "failed"
+                  ? "badge-red"
+                  : project.status === "generating"
+                    ? "badge-blue animate-pulse"
+                    : "badge-amber"
+            }`}
           >
-            {project.status}
+            {project.status === "generating" ? "processando" : project.status}
           </span>
         </div>
       </div>
+
+      {/* Pipeline Status Warnings and Stepper */}
+      <PipelineStatusPanel project={project} onRefresh={fetchProject} />
 
       {/* Tab Navigation */}
       <div className="flex gap-2 mb-4">
@@ -650,13 +708,274 @@ function formatTime(sec: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-async function handleGenerate(projectId: string) {
-  try {
-    await fetch(`/v1/projects/${projectId}/generate`, { method: "POST" });
-    alert("Pipeline de geração iniciado!");
-  } catch {
-    alert("Erro ao iniciar pipeline");
-  }
+function PipelineStatusPanel({
+  project,
+  onRefresh,
+}: {
+  project: Project;
+  onRefresh: () => void;
+}) {
+  const jobs = project.jobs || [];
+  const renders = project.renders || [];
+
+  // Determine stage status
+  const getStageStatus = (queueNames: string[]) => {
+    const stageJobs = jobs.filter((j) => queueNames.includes(j.queue));
+    if (stageJobs.length === 0) {
+      return { status: "pending", progress: 0, error: null };
+    }
+    const hasFailed = stageJobs.some((j) => j.status === "failed");
+    if (hasFailed) {
+      const failedJob = stageJobs.find((j) => j.status === "failed");
+      return {
+        status: "failed",
+        progress: 0,
+        error: failedJob?.errorMessage || "Unknown error",
+      };
+    }
+    const allCompleted = stageJobs.every((j) => j.status === "completed");
+    if (allCompleted) {
+      return { status: "completed", progress: 100, error: null };
+    }
+    const hasActive = stageJobs.some((j) => j.status === "active");
+    if (hasActive) {
+      const activeJob = stageJobs.find((j) => j.status === "active");
+      return {
+        status: "active",
+        progress: activeJob?.progress || 30,
+        error: null,
+      };
+    }
+    return { status: "waiting", progress: 0, error: null };
+  };
+
+  const ttsStage = getStageStatus(["tts"]);
+  const alignStage = getStageStatus(["alignment"]);
+  const renderStage = getStageStatus([
+    "remotion-render",
+    "hyperframes-render",
+    "gbro-render",
+    "vox-render",
+  ]);
+  const deliveryStage = getStageStatus(["delivery"]);
+
+  // Find any active error across all jobs
+  const failedJob = jobs.find((j) => j.status === "failed");
+  const pipelineError = failedJob ? failedJob.errorMessage : null;
+
+  return (
+    <div
+      style={{
+        background: "rgba(255, 255, 255, 0.03)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        borderRadius: 12,
+        padding: "16px 20px",
+        marginBottom: 20,
+        backdropFilter: "blur(8px)",
+      }}
+    >
+      {/* 1. Header with Global Status */}
+      <div className="flex items-center justify-between mb-4">
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            color: "var(--text-muted)",
+          }}
+        >
+          🖥️ Monitor do Pipeline de Vídeo
+        </span>
+        <button
+          className="btn btn-secondary"
+          style={{ padding: "4px 8px", fontSize: 11 }}
+          onClick={onRefresh}
+        >
+          🔄 Atualizar
+        </button>
+      </div>
+
+      {/* 2. Error Warn Message Banner */}
+      {project.status === "failed" && (
+        <div
+          style={{
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid rgba(239, 68, 68, 0.2)",
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 16,
+            color: "#f87171",
+            fontSize: 13,
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+            ⚠️ Ocorreu uma falha na execução do pipeline:
+          </div>
+          <p style={{ margin: 0, fontFamily: "monospace", opacity: 0.9 }}>
+            {pipelineError ||
+              "Erro inesperado ao gerar os assets ou renderizar o vídeo."}
+          </p>
+        </div>
+      )}
+
+      {/* 3. Success Message Banner */}
+      {project.status === "completed" && renders.length > 0 && (
+        <div
+          style={{
+            background: "rgba(16, 185, 129, 0.1)",
+            border: "1px solid rgba(16, 185, 129, 0.2)",
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 16,
+            color: "#34d399",
+            fontSize: 13,
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+            🎉 Geração Concluída com Sucesso!
+          </div>
+          <p style={{ margin: 0, opacity: 0.9 }}>
+            O vídeo mestre foi montado e está disponível para visualização na
+            timeline ou exportação.
+          </p>
+        </div>
+      )}
+
+      {/* 4. Stepper visualization of stages */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        {/* Stage 1: TTS */}
+        <StageCard
+          title="1. Voz & TTS"
+          desc="Geração do áudio falhado/fatos"
+          status={ttsStage.status}
+          progress={ttsStage.progress}
+        />
+        {/* Stage 2: Alignment */}
+        <StageCard
+          title="2. Sincronia"
+          desc="Medição e alinhamento de tempo"
+          status={alignStage.status}
+          progress={alignStage.progress}
+        />
+        {/* Stage 3: Scene Rendering */}
+        <StageCard
+          title="3. Vídeo de Cenas"
+          desc="Renderização visual individual"
+          status={renderStage.status}
+          progress={renderStage.progress}
+        />
+        {/* Stage 4: Delivery Assembly */}
+        <StageCard
+          title="4. Montagem Final"
+          desc="Concatenação e mixagem final"
+          status={deliveryStage.status}
+          progress={deliveryStage.progress}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StageCard({
+  title,
+  desc,
+  status,
+  progress,
+}: {
+  title: string;
+  desc: string;
+  status: string;
+  progress: number;
+}) {
+  const getBadgeColor = () => {
+    switch (status) {
+      case "completed":
+        return "badge-green";
+      case "failed":
+        return "badge-red";
+      case "active":
+        return "badge-blue animate-pulse";
+      default:
+        return "badge-secondary";
+    }
+  };
+
+  const getBadgeText = () => {
+    switch (status) {
+      case "completed":
+        return "concluído";
+      case "failed":
+        return "falhou";
+      case "active":
+        return `executando (${progress}%)`;
+      case "waiting":
+        return "aguardando";
+      default:
+        return "pendente";
+    }
+  };
+
+  return (
+    <div
+      style={{
+        flex: "1 1 200px",
+        background: "rgba(255, 255, 255, 0.02)",
+        border: "1px solid rgba(255, 255, 255, 0.04)",
+        borderRadius: 8,
+        padding: 12,
+        minWidth: 200,
+      }}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <span style={{ fontSize: 13, fontWeight: 600 }}>{title}</span>
+        <span
+          className={`badge ${getBadgeColor()}`}
+          style={{ fontSize: 10, padding: "2px 6px" }}
+        >
+          {getBadgeText()}
+        </span>
+      </div>
+      <p
+        style={{
+          margin: 0,
+          fontSize: 11,
+          color: "var(--text-muted)",
+          marginBottom: 8,
+        }}
+      >
+        {desc}
+      </p>
+
+      {/* Progress Bar */}
+      {status === "active" && (
+        <div
+          style={{
+            height: 4,
+            background: "rgba(255, 255, 255, 0.08)",
+            borderRadius: 2,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              background: "var(--accent-cyan)",
+              width: `${progress}%`,
+              transition: "width 0.3s ease",
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
 }
 
 async function handleApprove(sceneId: string, gate: string) {

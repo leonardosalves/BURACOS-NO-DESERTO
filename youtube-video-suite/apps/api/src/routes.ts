@@ -157,6 +157,14 @@ export async function registerRoutes(fastify: FastifyInstance) {
           scenes: {
             orderBy: { order: "asc" },
           },
+          jobs: {
+            orderBy: { startedAt: "desc" },
+            take: 20,
+          },
+          renders: {
+            orderBy: { createdAt: "desc" },
+            take: 5,
+          },
         },
       });
 

@@ -18,6 +18,108 @@ const {
 } = require("../../../../dashboard-qanat/backend/fishSpeechTts.js");
 
 const prisma = new PrismaClient();
+
+function trackWorkerJobs(worker: Worker, queueName: string) {
+  worker.on("active", async (job) => {
+    try {
+      const jobId = job.id || randomUUID();
+      await prisma.job.upsert({
+        where: { id: jobId },
+        update: {
+          status: "active",
+          startedAt: new Date(),
+          attempts: job.attemptsMade,
+        },
+        create: {
+          id: jobId,
+          projectId: job.data.projectId || "",
+          sceneId: job.data.sceneId || null,
+          queue: queueName,
+          type: job.name || "job",
+          status: "active",
+          payloadJson: job.data || {},
+          attempts: job.attemptsMade,
+          startedAt: new Date(),
+        },
+      });
+    } catch (err) {
+      console.error(`[Job Tracker] Failed to track active job:`, err);
+    }
+  });
+
+  worker.on("progress", async (job, progress) => {
+    try {
+      const jobId = job.id || randomUUID();
+      const progressNum =
+        typeof progress === "number"
+          ? progress
+          : parseFloat(String(progress)) || 0;
+      await prisma.job.update({
+        where: { id: jobId },
+        data: {
+          progress: progressNum,
+        },
+      });
+    } catch (err) {
+      console.error(`[Job Tracker] Failed to track progress:`, err);
+    }
+  });
+
+  worker.on("completed", async (job, result) => {
+    try {
+      const jobId = job.id || randomUUID();
+      await prisma.job.update({
+        where: { id: jobId },
+        data: {
+          status: "completed",
+          progress: 100,
+          completedAt: new Date(),
+          resultJson: result || {},
+        },
+      });
+    } catch (err) {
+      console.error(`[Job Tracker] Failed to track completed job:`, err);
+    }
+  });
+
+  worker.on("failed", async (job, err) => {
+    try {
+      const jobId = job?.id || randomUUID();
+      await prisma.job.upsert({
+        where: { id: jobId },
+        update: {
+          status: "failed",
+          completedAt: new Date(),
+          errorCode: "FAILED",
+          errorMessage: err.message,
+        },
+        create: {
+          id: jobId,
+          projectId: job?.data?.projectId || "",
+          sceneId: job?.data?.sceneId || null,
+          queue: queueName,
+          type: job?.name || "unknown",
+          status: "failed",
+          payloadJson: job?.data || {},
+          attempts: job?.attemptsMade || 1,
+          completedAt: new Date(),
+          errorCode: "FAILED",
+          errorMessage: err.message,
+        },
+      });
+
+      if (job?.data?.projectId) {
+        await prisma.project.update({
+          where: { id: job.data.projectId },
+          data: { status: "failed" },
+        });
+      }
+    } catch (dbErr) {
+      console.error(`[Job Tracker] Failed to track failed job:`, dbErr);
+    }
+  });
+}
+
 const WORKSPACE_ROOT =
   "c:/Users/Leo/Documents/VIDEOS PROFISSIONAIS/LONGOS/LUMIERA";
 const STORAGE_ASSETS_DIR = path.join(
@@ -381,3 +483,10 @@ export const remotionRenderWorker = new Worker(
 remotionRenderWorker.on("failed", (job, err) => {
   console.error(`[Remotion Worker] Job failed:`, err);
 });
+
+// Register postgres database job trackers for all workers
+trackWorkerJobs(ttsWorker, "tts");
+trackWorkerJobs(alignmentWorker, "alignment");
+trackWorkerJobs(deliveryWorker, "delivery");
+trackWorkerJobs(hyperframesRenderWorker, "hyperframes-render");
+trackWorkerJobs(remotionRenderWorker, "remotion-render");
