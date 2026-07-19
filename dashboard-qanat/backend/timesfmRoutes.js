@@ -100,17 +100,17 @@ export function registerTimesfmRoutes(app, deps) {
     }
   });
 
-  app.get("/api/trends/saved", (_req, res) => {
+  app.get("/api/trends/saved", async (_req, res) => {
     try {
-      res.json(listTrendRadarSaves(WORKSPACE_DIR));
+      res.json(await listTrendRadarSaves(WORKSPACE_DIR));
     } catch (err) {
       res.status(500).json({ ok: false, error: err.message });
     }
   });
 
-  app.get("/api/trends/saved/:id", (req, res) => {
+  app.get("/api/trends/saved/:id", async (req, res) => {
     try {
-      const result = getTrendRadarSave(WORKSPACE_DIR, req.params.id);
+      const result = await getTrendRadarSave(WORKSPACE_DIR, req.params.id);
       if (!result.ok) return res.status(404).json(result);
       res.json(result);
     } catch (err) {
@@ -118,7 +118,7 @@ export function registerTimesfmRoutes(app, deps) {
     }
   });
 
-  app.post("/api/trends/saved", (req, res) => {
+  app.post("/api/trends/saved", async (req, res) => {
     try {
       const saveType = req.body?.type === "scan" ? "scan" : "niche";
       const discoveryMode =
@@ -129,7 +129,7 @@ export function registerTimesfmRoutes(app, deps) {
       const format = String(req.body?.format || "SHORTS").toUpperCase();
 
       if (saveType === "scan") {
-        const result = saveTrendRadarScan(WORKSPACE_DIR, {
+        const result = await saveTrendRadarScan(WORKSPACE_DIR, {
           discovery: req.body?.discovery || {},
           discoveryMode,
           nicheFilter,
@@ -140,7 +140,7 @@ export function registerTimesfmRoutes(app, deps) {
       }
 
       const niche = req.body?.niche || req.body?.nicheData || {};
-      const result = saveTrendRadarNiche(WORKSPACE_DIR, {
+      const result = await saveTrendRadarNiche(WORKSPACE_DIR, {
         niche,
         discoveryMode,
         nicheFilter,
@@ -157,9 +157,9 @@ export function registerTimesfmRoutes(app, deps) {
     }
   });
 
-  app.delete("/api/trends/saved/:id", (req, res) => {
+  app.delete("/api/trends/saved/:id", async (req, res) => {
     try {
-      const result = deleteTrendRadarSave(WORKSPACE_DIR, req.params.id);
+      const result = await deleteTrendRadarSave(WORKSPACE_DIR, req.params.id);
       if (!result.ok) return res.status(404).json(result);
       res.json(result);
     } catch (err) {

@@ -1,96 +1,165 @@
 /**
- * Persistência de resultados salvos do Radar de Tendências.
+ * Persistência de resultados salvos do Radar de Tendências no PostgreSQL.
  */
 
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import pg from "pg";
 import { buildNicheDetailBreakdown } from "./pioneerNicheDiscovery.js";
 
-const STORE_VERSION = 1;
+const { Pool } = pg;
 
-function storePath(workspaceDir) {
-  return path.join(workspaceDir, "trend_radar_saves.json");
-}
+let pool;
+let readyPromise;
 
-function readStore(workspaceDir) {
-  const file = storePath(workspaceDir);
-  if (!fs.existsSync(file)) {
-    return { version: STORE_VERSION, items: [] };
-  }
-  try {
-    const data = JSON.parse(fs.readFileSync(file, "utf8"));
-    return {
-      version: STORE_VERSION,
-      items: Array.isArray(data?.items) ? data.items : [],
-    };
-  } catch {
-    return { version: STORE_VERSION, items: [] };
-  }
-}
-
-function writeStore(workspaceDir, store) {
-  const file = storePath(workspaceDir);
-  fs.writeFileSync(
-    file,
-    JSON.stringify(
-      {
-        version: STORE_VERSION,
-        updatedAt: new Date().toISOString(),
-        items: store.items || [],
-      },
-      null,
-      2
-    ),
-    "utf8"
+function databaseUrl() {
+  return (
+    String(process.env.LUMIERA_DATABASE_URL || "").trim() ||
+    "postgresql://lumiera@127.0.0.1:5432/lumiera"
   );
+}
+
+function getPool() {
+  if (!pool) {
+    pool = new Pool({ connectionString: databaseUrl(), max: 5 });
+    pool.on("error", (error) =>
+      console.error("[Trend Radar/PostgreSQL] pool:", error.message)
+    );
+  }
+  return pool;
+}
+
+export async function ensureTrendRadarDatabase(workspaceDir) {
+  if (readyPromise) return readyPromise;
+  readyPromise = (async () => {
+    const db = getPool();
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS trend_radar_saves (
+        id UUID PRIMARY KEY,
+        type TEXT NOT NULL,
+        saved_at TIMESTAMPTZ NOT NULL,
+        label TEXT NOT NULL,
+        discovery_mode TEXT NOT NULL,
+        niche_filter TEXT,
+        format TEXT NOT NULL,
+        status TEXT,
+        pioneer_score INTEGER,
+        macro_niche TEXT,
+        data JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    // Auto-migration from legacy JSON
+    const file = path.join(workspaceDir, "trend_radar_saves.json");
+    if (fs.existsSync(file)) {
+      try {
+        console.log(
+          "[Trend Radar/PostgreSQL] Migrating legacy trend_radar_saves.json to database..."
+        );
+        const raw = fs.readFileSync(file, "utf8");
+        const parsed = JSON.parse(raw);
+        const items = Array.isArray(parsed?.items) ? parsed.items : [];
+        for (const item of items) {
+          if (!item.id) continue;
+          await db.query(
+            `INSERT INTO trend_radar_saves
+              (id, type, saved_at, label, discovery_mode, niche_filter, format, status, pioneer_score, macro_niche, data)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+             ON CONFLICT (id) DO NOTHING`,
+            [
+              item.id,
+              item.type || "niche",
+              item.savedAt || new Date().toISOString(),
+              item.label || "Varredura",
+              item.discoveryMode || "virgin",
+              item.nicheFilter || null,
+              item.format || "SHORTS",
+              item.status || null,
+              item.pioneerScore ?? null,
+              item.macroNiche || null,
+              JSON.stringify(item),
+            ]
+          );
+        }
+        console.log(
+          `[Trend Radar/PostgreSQL] Successfully migrated ${items.length} items.`
+        );
+
+        // Rename the legacy file to prevent future migration checks
+        fs.renameSync(file, file + ".bak");
+        console.log(
+          "[Trend Radar/PostgreSQL] Legacy file renamed to trend_radar_saves.json.bak"
+        );
+      } catch (err) {
+        console.error(
+          "[Trend Radar/PostgreSQL] Error migrating legacy trend_radar_saves.json:",
+          err.message
+        );
+      }
+    }
+    return true;
+  })().catch((err) => {
+    readyPromise = null;
+    throw err;
+  });
+  return readyPromise;
 }
 
 function newId() {
   return crypto.randomUUID();
 }
 
-export function listTrendRadarSaves(workspaceDir) {
-  const store = readStore(workspaceDir);
-  const items = [...store.items].sort(
-    (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+export async function listTrendRadarSaves(workspaceDir) {
+  await ensureTrendRadarDatabase(workspaceDir);
+  const db = getPool();
+  const res = await db.query(
+    `SELECT id, type, label, saved_at AS "savedAt", discovery_mode AS "discoveryMode", 
+            niche_filter AS "nicheFilter", format, status, pioneer_score AS "pioneerScore", 
+            macro_niche AS "macroNiche"
+     FROM trend_radar_saves 
+     ORDER BY saved_at DESC`
   );
   return {
     ok: true,
-    total: items.length,
-    items: items.map((item) => ({
-      id: item.id,
-      type: item.type,
-      label: item.label,
-      savedAt: item.savedAt,
-      discoveryMode: item.discoveryMode,
-      nicheFilter: item.nicheFilter,
-      format: item.format,
-      status: item.status,
-      pioneerScore: item.pioneerScore,
-      macroNiche: item.macroNiche,
-    })),
+    total: res.rows.length,
+    items: res.rows,
   };
 }
 
-export function getTrendRadarSave(workspaceDir, id) {
-  const store = readStore(workspaceDir);
-  const item = store.items.find((row) => row.id === id);
-  if (!item) return { ok: false, error: "Item salvo não encontrado." };
-  return { ok: true, item };
+export async function getTrendRadarSave(workspaceDir, id) {
+  await ensureTrendRadarDatabase(workspaceDir);
+  const db = getPool();
+  const res = await db.query(
+    `SELECT data FROM trend_radar_saves WHERE id = $1`,
+    [id]
+  );
+  const row = res.rows[0];
+  if (!row) return { ok: false, error: "Item salvo não encontrado." };
+  return { ok: true, item: row.data };
 }
 
-export function updateTrendRadarSuggestion(
+export async function updateTrendRadarSuggestion(
   workspaceDir,
   id,
   suggestion = {},
   { nicheLabel = "" } = {}
 ) {
-  const store = readStore(workspaceDir);
-  const index = store.items.findIndex((row) => row.id === id);
-  if (index < 0) return { ok: false, error: "Item salvo nÃ£o encontrado." };
+  await ensureTrendRadarDatabase(workspaceDir);
+  const db = getPool();
+  const currentRes = await db.query(
+    `SELECT data FROM trend_radar_saves WHERE id = $1`,
+    [id]
+  );
+  const row = currentRes.rows[0];
+  if (!row) return { ok: false, error: "Item salvo não encontrado." };
 
-  const current = store.items[index];
+  const current = row.data;
+  let updated;
+  let updatedTarget;
+
   if (current.type === "scan") {
     const targetLabel = String(nicheLabel || "").trim();
     const nicheIndex = (current.niches || []).findIndex(
@@ -112,7 +181,7 @@ export function updateTrendRadarSuggestion(
       history.push({ ...previous, replacedAt: new Date().toISOString() });
     }
 
-    const updatedTarget = {
+    updatedTarget = {
       ...target,
       aspects: {
         ...(target?.aspects || {}),
@@ -132,65 +201,72 @@ export function updateTrendRadarSuggestion(
       suggestionHistory: history.slice(-30),
       suggestionUpdatedAt: new Date().toISOString(),
     };
-    const updated = {
+    updated = {
       ...current,
       niches: current.niches.map((entry, entryIndex) =>
         entryIndex === nicheIndex ? updatedTarget : entry
       ),
       suggestionUpdatedAt: new Date().toISOString(),
     };
-    store.items[index] = updated;
-    writeStore(workspaceDir, store);
-    return { ok: true, item: updated, niche: updatedTarget };
-  }
-  if (current.type !== "niche") {
+  } else if (current.type === "niche") {
+    const previous = current.detail?.aspects?.firstVideo || null;
+    const history = Array.isArray(current.suggestionHistory)
+      ? [...current.suggestionHistory]
+      : [];
+    if (previous?.idea) {
+      history.push({ ...previous, replacedAt: new Date().toISOString() });
+    }
+
+    const aspects = {
+      ...(current.detail?.aspects || {}),
+      ...suggestion.aspects,
+      firstVideo: suggestion.firstVideo,
+    };
+    const niche = {
+      ...(current.niche || {}),
+      firstVideoIdea: suggestion.firstVideo?.idea || "",
+      firstVideoHook: suggestion.firstVideo?.hook || "",
+      currentCaseAngle: suggestion.aspects?.specificAngle || "",
+      youtubeSearchQuery:
+        suggestion.aspects?.searchQuery ||
+        current.niche?.youtubeSearchQuery ||
+        "",
+    };
+
+    updated = {
+      ...current,
+      niche,
+      detail: {
+        ...(current.detail || {}),
+        aspects,
+        raw: { ...(current.detail?.raw || {}), ...niche },
+      },
+      suggestionHistory: history.slice(-30),
+      suggestionUpdatedAt: new Date().toISOString(),
+    };
+  } else {
     return {
       ok: false,
-      error: "Abra um nicho individual para gerar uma nova sugestÃ£o.",
+      error: "Abra um nicho individual para gerar uma nova sugestão.",
     };
   }
 
-  const previous = current.detail?.aspects?.firstVideo || null;
-  const history = Array.isArray(current.suggestionHistory)
-    ? [...current.suggestionHistory]
-    : [];
-  if (previous?.idea) {
-    history.push({ ...previous, replacedAt: new Date().toISOString() });
+  // Update in DB
+  await db.query(
+    `UPDATE trend_radar_saves 
+     SET data = $1, updated_at = NOW() 
+     WHERE id = $2`,
+    [JSON.stringify(updated), id]
+  );
+
+  if (current.type === "scan") {
+    return { ok: true, item: updated, niche: updatedTarget };
+  } else {
+    return { ok: true, item: updated };
   }
-
-  const aspects = {
-    ...(current.detail?.aspects || {}),
-    ...suggestion.aspects,
-    firstVideo: suggestion.firstVideo,
-  };
-  const niche = {
-    ...(current.niche || {}),
-    firstVideoIdea: suggestion.firstVideo?.idea || "",
-    firstVideoHook: suggestion.firstVideo?.hook || "",
-    currentCaseAngle: suggestion.aspects?.specificAngle || "",
-    youtubeSearchQuery:
-      suggestion.aspects?.searchQuery ||
-      current.niche?.youtubeSearchQuery ||
-      "",
-  };
-
-  const updated = {
-    ...current,
-    niche,
-    detail: {
-      ...(current.detail || {}),
-      aspects,
-      raw: { ...(current.detail?.raw || {}), ...niche },
-    },
-    suggestionHistory: history.slice(-30),
-    suggestionUpdatedAt: new Date().toISOString(),
-  };
-  store.items[index] = updated;
-  writeStore(workspaceDir, store);
-  return { ok: true, item: updated };
 }
 
-export function saveTrendRadarNiche(
+export async function saveTrendRadarNiche(
   workspaceDir,
   {
     niche = {},
@@ -208,8 +284,9 @@ export function saveTrendRadarNiche(
     savedAt,
   });
 
+  const id = newId();
   const item = {
-    id: newId(),
+    id,
     type: "niche",
     savedAt,
     label: detail.label,
@@ -224,13 +301,31 @@ export function saveTrendRadarNiche(
     detail,
   };
 
-  const store = readStore(workspaceDir);
-  store.items.unshift(item);
-  writeStore(workspaceDir, store);
+  await ensureTrendRadarDatabase(workspaceDir);
+  const db = getPool();
+  await db.query(
+    `INSERT INTO trend_radar_saves 
+      (id, type, saved_at, label, discovery_mode, niche_filter, format, status, pioneer_score, macro_niche, data)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [
+      id,
+      item.type,
+      savedAt,
+      item.label,
+      discoveryMode,
+      item.nicheFilter,
+      format,
+      item.status,
+      item.pioneerScore,
+      item.macroNiche,
+      JSON.stringify(item),
+    ]
+  );
+
   return { ok: true, item };
 }
 
-export function saveTrendRadarScan(
+export async function saveTrendRadarScan(
   workspaceDir,
   {
     discovery = {},
@@ -244,8 +339,10 @@ export function saveTrendRadarScan(
   const niches = Array.isArray(discovery?.pioneerNiches)
     ? discovery.pioneerNiches
     : [];
+
+  const id = newId();
   const item = {
-    id: newId(),
+    id,
     type: "scan",
     savedAt,
     label:
@@ -269,19 +366,38 @@ export function saveTrendRadarScan(
     ),
   };
 
-  const store = readStore(workspaceDir);
-  store.items.unshift(item);
-  writeStore(workspaceDir, store);
+  await ensureTrendRadarDatabase(workspaceDir);
+  const db = getPool();
+  await db.query(
+    `INSERT INTO trend_radar_saves 
+      (id, type, saved_at, label, discovery_mode, niche_filter, format, status, pioneer_score, macro_niche, data)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [
+      id,
+      item.type,
+      savedAt,
+      item.label,
+      discoveryMode,
+      item.nicheFilter,
+      item.format,
+      item.status,
+      item.pioneerScore,
+      item.macroNiche,
+      JSON.stringify(item),
+    ]
+  );
+
   return { ok: true, item };
 }
 
-export function deleteTrendRadarSave(workspaceDir, id) {
-  const store = readStore(workspaceDir);
-  const before = store.items.length;
-  store.items = store.items.filter((row) => row.id !== id);
-  if (store.items.length === before) {
+export async function deleteTrendRadarSave(workspaceDir, id) {
+  await ensureTrendRadarDatabase(workspaceDir);
+  const db = getPool();
+  const res = await db.query(`DELETE FROM trend_radar_saves WHERE id = $1`, [
+    id,
+  ]);
+  if (res.rowCount === 0) {
     return { ok: false, error: "Item salvo não encontrado." };
   }
-  writeStore(workspaceDir, store);
   return { ok: true, deleted: id };
 }
