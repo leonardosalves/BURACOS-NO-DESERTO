@@ -8042,7 +8042,11 @@ export default function App() {
         setCreatorProjectName(shortName);
       } else {
         toast.dismiss("gemini-ideas");
-        const errMsg = data.error || "Erro desconhecido";
+        const errMsg =
+          data.error ||
+          (ok
+            ? "A IA respondeu, mas não entregou as 10 ideias no formato esperado."
+            : "Erro desconhecido");
         toast.error(
           errMsg.includes("extensão") ||
             errMsg.includes("Extensão") ||
