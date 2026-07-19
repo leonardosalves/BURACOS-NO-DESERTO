@@ -221,7 +221,15 @@ function Invoke-CodexIteration {
         # Windows currently downgrades workspace-write to read-only in headless runs.
         # The dedicated worktree, per-story allowlist, explicit staging, and gates are
         # the outer safety boundary for this narrowly scoped automation.
-        "exec", "--ignore-user-config", "--ephemeral", "--sandbox", "danger-full-access", "--json",
+        "exec", "--ignore-user-config",
+        "--disable", "apps",
+        "--disable", "plugins",
+        "--disable", "browser_use",
+        "--disable", "in_app_browser",
+        "--disable", "computer_use",
+        "--disable", "image_generation",
+        "--disable", "multi_agent",
+        "--ephemeral", "--sandbox", "danger-full-access", "--json",
         "--cd", $WorktreePath, "-"
     )
     $previousErrorAction = $ErrorActionPreference
