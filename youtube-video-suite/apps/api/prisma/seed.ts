@@ -19,17 +19,17 @@ async function main() {
   console.log(`  ✅ User: ${user.email}`);
 
   // Create a demo workspace
+  const workspaceId = "demo-workspace-id-12345";
   const workspace = await prisma.workspace.upsert({
-    where: { slug: "demo-workspace" },
+    where: { id: workspaceId },
     update: {},
     create: {
-      id: randomUUID(),
+      id: workspaceId,
       name: "Demo Workspace",
-      slug: "demo-workspace",
       ownerId: user.id,
     },
   });
-  console.log(`  ✅ Workspace: ${workspace.slug}`);
+  console.log(`  ✅ Workspace: ${workspace.name}`);
 
   // Create a sample project
   const project = await prisma.project.create({
@@ -44,6 +44,7 @@ async function main() {
       fps: 24,
       status: "draft",
       workspaceId: workspace.id,
+      manifestJson: {},
     },
   });
   console.log(`  ✅ Project: ${project.title}`);
@@ -112,6 +113,7 @@ async function main() {
         motionProfile: "smooth",
         status: "pending",
         version: 1,
+        manifestJson: {},
       },
     });
   }

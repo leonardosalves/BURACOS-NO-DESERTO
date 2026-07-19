@@ -14,13 +14,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
     trackRequest(request.url);
   });
 
-  // ── System endpoints ──────────────────────────────────────────────────────
-
-  // GET /health — full system health check
-  fastify.get("/health", async () => {
-    return healthCheck(prisma);
-  });
-
   // GET /metrics — request and render metrics
   fastify.get("/metrics", async () => {
     return getMetrics();

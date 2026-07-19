@@ -7,8 +7,13 @@ const fastify = Fastify({
   logger: true,
 });
 
+import { healthCheck } from "./observability.js";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
 fastify.get("/health", async () => {
-  return { status: "OK", queues: Object.keys(queues) };
+  return healthCheck(prisma);
 });
 
 const start = async () => {
