@@ -1,0 +1,179 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String     @id @default(uuid())
+  name      String
+  email     String     @unique
+  role      String     @default("editor") // editor, admin
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  workspaces Workspace[]
+}
+
+model Workspace {
+  id           String    @id @default(uuid())
+  name         String
+  ownerId      String
+  owner        User      @relation(fields: [ownerId], references: [id])
+  plan         String    @default("free")
+  storageQuota BigInt    @default(5368709120) // 5GB in bytes
+  renderQuota  Int       @default(60)         // 60 minutes/month
+  projects     Project[]
+  assets       Asset[]
+  presets      Preset[]
+}
+
+model Project {
+  id               String       @id @default(uuid())
+  workspaceId      String
+  workspace        Workspace    @relation(fields: [workspaceId], references: [id])
+  title            String
+  format           String       // SHORTS, LONG
+  nicheId          String
+  language         String       // pt-BR, en-US
+  aspectRatio      String       // 9:16, 16:9
+  fps              Int          @default(24)
+  targetDurationSec Int
+  status           String       // draft, planning, generating, completed, failed
+  currentVersion   Int          @default(1)
+  manifestJson     Json         // Full ProjectManifest matching Zod schema
+  scenes           Scene[]
+  assets           Asset[]
+  approvals        Approval[]
+  jobs             Job[]
+  renders          Render[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model Scene {
+  id             String     @id @default(uuid())
+  projectId      String
+  project        Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  order          Int
+  engineHint     String     // gbro, vox-explainer, hyperframes
+  durationSec    Float
+  script         String
+  caption        String
+  visualMetaphor String
+  paletteId      String
+  motionProfile  String
+  status         String     // pending, metaphor_approved, style_approved, rendered
+  version        Int        @default(1)
+  manifestJson   Json       // SceneManifest contract
+  assets         Asset[]
+  approvals      Approval[]
+  jobs           Job[]
+  renders        Render[]
+}
+
+model Asset {
+  id          String    @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  sceneId     String?
+  scene       Scene?    @relation(fields: [sceneId], references: [id])
+  type        String    // video, image, audio
+  role        String    // background, voiceover, music, overlay
+  storageKey  String    // S3/MinIO key
+  mimeType    String
+  width       Int?
+  height      Int?
+  durationSec Float?
+  checksum    String
+  metadataJson Json?
+  createdAt   DateTime  @default(now())
+}
+
+model Approval {
+  id          String    @id @default(uuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  sceneId     String?
+  scene       Scene?    @relation(fields: [sceneId], references: [id])
+  gate        String    // metaphor, styleframe, motion
+  status      String    // approved, rejected
+  comment     String?
+  approvedBy  String
+  createdAt   DateTime  @default(now())
+}
+
+model Job {
+  id           String    @id @default(uuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id])
+  sceneId      String?
+  scene        Scene?    @relation(fields: [sceneId], references: [id])
+  queue        String    // tts, alignment, gbro-render, etc.
+  type         String
+  status       String    // waiting, active, completed, failed
+  progress     Float     @default(0)
+  attempts     Int       @default(0)
+  errorCode    String?
+  errorMessage String?
+  payloadJson  Json
+  resultJson   Json?
+  startedAt    DateTime?
+  completedAt  DateTime?
+}
+
+model Render {
+  id           String    @id @default(uuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id])
+  sceneId      String?
+  scene        Scene?    @relation(fields: [sceneId], references: [id])
+  engine       String    // remotion, hyperframes
+  variant      String    // master, 9_16_fallback
+  status       String    // rendering, completed, failed
+  storageKey   String
+  width        Int
+  height       Int
+  fps          Int
+  durationSec  Float
+  codec        String    // h264, vp9
+  manifestJson Json
+  createdAt    DateTime  @default(now())
+}
+
+model Preset {
+  id           String     @id @default(uuid())
+  workspaceId  String?
+  workspace    Workspace? @relation(fields: [workspaceId], references: [id])
+  type         String     // design, text, system
+  nicheId      String
+  name         String
+  version      Int        @default(1)
+  configJson   Json
+  isSystem     Boolean    @default(false)
+}
+
+model PromptVersion {
+  id          String   @id @default(uuid())
+  name        String
+  stage       String   // briefing, script, metaphor, styleframe
+  version     Int      @default(1)
+  content     String
+  active      Boolean  @default(true)
+  metricsJson Json?
+}
+
+model AuditLog {
+  id           String    @id @default(uuid())
+  userId       String
+  workspaceId  String
+  action       String
+  resourceType String
+  resourceId   String
+  metadataJson Json
+  createdAt    DateTime  @default(now())
+}
