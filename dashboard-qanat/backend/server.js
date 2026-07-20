@@ -1553,6 +1553,18 @@ app.use(
 
 // Body parsers moved to top of file to allow early routes to access req.body
 
+app.use("/api/channels", channelRouter);
+app.use("/api/tools", toolsRouter);
+app.use("/api/oauth", oauthRouter);
+app.use("/api/memory", memoryRouter);
+app.use("/api/title-ab", abRouter);
+app.use("/api/editorial-calendar", calendarRouter);
+app.use("/api/search", searchRouter);
+app.use("/api/health", healthRouter);
+app.use("/api/agents", agentsRouter);
+app.use("/api/templates", templatesRouter);
+app.use("/api/flows", flowRouter);
+
 // Cache de resolução de projetos — evita readdirSync em cada request de mídia
 const _projectDirCache = new Map();
 const _PROJECT_DIR_CACHE_TTL = 60_000; // 60s
