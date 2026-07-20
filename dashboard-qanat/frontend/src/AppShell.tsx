@@ -38,6 +38,7 @@ import { BackendStatusBanner } from "./BackendStatusBanner";
 import { SettingHelpTip } from "./SettingHelpTip";
 import { SECTION_HELP } from "./sectionHelpContent";
 import { useBackendHealth } from "./useBackendHealth";
+import ChannelSwitcher from "./ChannelSwitcher";
 import type { ProjectListItem } from "./ProjectsLibraryPanel";
 import type { AppTab } from "./appTabs";
 import type { CreatorIdeationMode } from "./creatorModeIdentity";
@@ -683,6 +684,7 @@ export function AppShell({
           </div>
 
           <div className="dash-header-right">
+            <ChannelSwitcher />
             <div className="dash-status-chip hidden sm:flex">
               <span
                 className={`dash-status-dot ${backendOnline ? "" : "dash-status-dot-offline"}`}

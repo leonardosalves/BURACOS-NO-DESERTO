@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "id": "_template",
+    "nome": "Novo Canal Template",
+    "descricao": "Descrição do novo canal aqui",
+    "idioma": "pt-BR",
+    "youtube_channel_id": "",
+    "criado_em": ""
+  },
+  "nicho": {
+    "principal": "geral",
+    "sub_nichos_permitidos": [],
+    "temas_proibidos": [],
+    "palavras_chave_seo": []
+  },
+  "publico_alvo": {
+    "idade": "18-45",
+    "genero_predominante": "unissex",
+    "interesses": [],
+    "tom_preferido": "informativo, dinâmico"
+  },
+  "formato_video": {
+    "duracao_min_segundos": 480,
+    "duracao_max_segundos": 720,
+    "duracao_ideal_segundos": 600,
+    "frequencia_semanal": 2,
+    "dias_publicacao": ["quarta", "domingo"],
+    "horario_publicacao": "18:00",
+    "shorts_por_semana": 0
+  },
+  "roteiro": {
+    "hook_max_segundos": 10,
+    "hook_elementos_obrigatorios": [],
+    "hook_proibido_comecar_com": [],
+    "picos_energia_intervalo_segundos": 90,
+    "picos_energia_minimo": 3,
+    "frase_max_palavras": 18,
+    "grandiosidade_max": 2,
+    "grandiosidade_requer_ancora_numerica": true,
+    "cta_estilo": "natural"
+  },
+  "titulo": {
+    "max_caracteres": 70,
+    "templates_vencedores": [],
+    "deve_conter": [],
+    "proibido": []
+  },
+  "visual": {
+    "estilo_padrao": "cinematico",
+    "escala_humana_obrigatoria": false,
+    "acao_obrigatoria": false,
+    "angulos_preferidos": [],
+    "luz": "cinematografica",
+    "thumbnail_separada": true,
+    "thumbnail_cores": [],
+    "thumbnail_texto_max_palavras": 4
+  },
+  "tts": {
+    "engine": "gpt_sovits",
+    "voz_id": "narrador_padrao",
+    "velocidade": 1.0,
+    "fallback_engine": "kokoro"
+  },
+  "pesquisa": {
+    "modo": "rapido",
+    "ciclos_max": 2,
+    "nota_minima": 7,
+    "tempo_max_minutos": 15
+  },
+  "upload": {
+    "youtube_categoria": "22",
+    "tags_padrao": [],
+    "descricao_template": "{hook_texto}\n\n⏱️ CAPÍTULOS:\n{timestamps}"
+  },
+  "brand": {
+    "logo_id": null,
+    "intro_duracao_segundos": 3,
+    "paleta_cores": {
+      "primaria": "#1A1A2E",
+      "secundaria": "#16213E",
+      "acento": "#E94560",
+      "texto": "#FFFFFF"
+    },
+    "fonte_thumbnail": "Montserrat"
+  }
+}

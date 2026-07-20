@@ -394,11 +394,6 @@
     "ast_hash": "fd2857f6cc110825d065f8c172759b3b",
     "semantic_hash": "fd2857f6cc110825d065f8c172759b3b"
   },
-  "concreto_romano_CURA/config_qanat.json": {
-    "mtime": 1784412936.36077,
-    "ast_hash": "0dfdb3677cffd1bba2b74106ae70e79b",
-    "semantic_hash": ""
-  },
   "concreto_romano_CURA/find_block_timings.py": {
     "mtime": 1782879633.3113532,
     "ast_hash": "e5efed65db589da0ff51710e19b2259d",
@@ -437,11 +432,6 @@
   "config/mcporter.json": {
     "mtime": 1782918420.8940866,
     "ast_hash": "4f1cfe50bed8b1b3caa0a8389f9fb223",
-    "semantic_hash": ""
-  },
-  "config_qanat.json": {
-    "mtime": 1784559516.7771933,
-    "ast_hash": "c33349dec661d8587d63b66bd48ca956",
     "semantic_hash": ""
   },
   "dashboard-premium/backend/package.json": {
@@ -665,8 +655,8 @@
     "semantic_hash": "c25b553812299a113799a7065171fdbc"
   },
   "dashboard-qanat/backend/data/remotion-template-catalog.json": {
-    "mtime": 1784561525.2322521,
-    "ast_hash": "7e3e7369d7d2393ac50173f3ef6446ea",
+    "mtime": 1784564097.5233014,
+    "ast_hash": "7a2a97bb057251a4ef2c5af97cffedb2",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/deerFlowResearch.js": {
@@ -2135,8 +2125,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/LumieraHomePage.tsx": {
-    "mtime": 1784561426.8806257,
-    "ast_hash": "41a564cf5f2c8c68498374457b625c37",
+    "mtime": 1784561611.2697487,
+    "ast_hash": "184df0572800036f89f9b22731c4744d",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/MotionTemplateHeatmap.tsx": {
@@ -6740,8 +6730,8 @@
     "semantic_hash": ""
   },
   ".agents/memory/curiosidades.md": {
-    "mtime": 1784561320.015039,
-    "ast_hash": "b157518af4bb373333e32bb1f2be22b5",
+    "mtime": 1784564036.2188513,
+    "ast_hash": "380d4b3a7128008f516624aad7471476",
     "semantic_hash": ""
   },
   ".agents/memory/customized.md": {

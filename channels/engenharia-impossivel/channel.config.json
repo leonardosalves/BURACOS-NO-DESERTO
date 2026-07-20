@@ -1,0 +1,127 @@
+{
+  "meta": {
+    "id": "engenharia-impossivel",
+    "nome": "Engenharia Impossível",
+    "descricao": "Engenharia e construções que desafiam o impossível",
+    "idioma": "pt-BR",
+    "youtube_channel_id": "UCYYcyky9A8fob3t6TlIENYA",
+    "criado_em": "2026-07-21"
+  },
+  "nicho": {
+    "principal": "engenharia_e_construcao",
+    "sub_nichos_permitidos": [
+      "engenharia_historica",
+      "megaprojetos_modernos",
+      "tecnologia_construcao",
+      "fisica_aplicada",
+      "desastres_engenharia",
+      "engenharia_militar_antiga"
+    ],
+    "temas_proibidos": [
+      "guerra_moderna",
+      "curiosidades_genericas",
+      "tecnologia_sem_construcao",
+      "biologia",
+      "espaco_astronomia",
+      "politica"
+    ],
+    "palavras_chave_seo": [
+      "engenharia",
+      "construção",
+      "como construíram",
+      "megaprojeto",
+      "estrutura",
+      "fundação",
+      "concreto",
+      "ponte",
+      "arranha-céu",
+      "máquina",
+      "obra"
+    ]
+  },
+  "publico_alvo": {
+    "idade": "18-45",
+    "genero_predominante": "masculino",
+    "interesses": ["como as coisas funcionam", "história", "tecnologia"],
+    "tom_preferido": "conversacional, direto, com energia"
+  },
+  "formato_video": {
+    "duracao_min_segundos": 480,
+    "duracao_max_segundos": 720,
+    "duracao_ideal_segundos": 600,
+    "frequencia_semanal": 3,
+    "dias_publicacao": ["terca", "quinta", "sabado"],
+    "horario_publicacao": "18:00",
+    "shorts_por_semana": 2
+  },
+  "roteiro": {
+    "hook_max_segundos": 10,
+    "hook_elementos_obrigatorios": ["numero_OU_contradição_OU_acao"],
+    "hook_proibido_comecar_com": [
+      "Olá",
+      "Bem-vindo",
+      "Neste vídeo",
+      "Hoje vamos"
+    ],
+    "picos_energia_intervalo_segundos": 90,
+    "picos_energia_minimo": 4,
+    "frase_max_palavras": 15,
+    "grandiosidade_max": 2,
+    "grandiosidade_requer_ancora_numerica": true,
+    "cta_estilo": "natural"
+  },
+  "titulo": {
+    "max_caracteres": 60,
+    "templates_vencedores": [
+      "O/A {objeto} que quase foi {ação_negativa}",
+      "Máquina de {numero} {unidade} {verbo_acao} {objeto}",
+      "Como {sujeito} {acao} com '{metodo_inesperado}'",
+      "{epoca}: quando {sujeito} {acao} que {consequencia}",
+      "{numero} {unidade} de {material} em {tempo}: como?"
+    ],
+    "deve_conter": ["numero_OU_verbo_acao_OU_contradição"],
+    "proibido": [
+      "nomes_tecnicos_sem_contexto",
+      "mais_de_2_maiusculas",
+      "ponto_exclamacao"
+    ]
+  },
+  "visual": {
+    "estilo_padrao": "hiper_realista_fotografico",
+    "escala_humana_obrigatoria": true,
+    "acao_obrigatoria": true,
+    "angulos_preferidos": ["contra_plongee", "aerial_drone", "close_up", "pov"],
+    "luz": "golden_hour_ou_lateral_dramatica",
+    "thumbnail_separada": true,
+    "thumbnail_cores": ["amarelo", "vermelho", "azul_escuro"],
+    "thumbnail_texto_max_palavras": 3
+  },
+  "tts": {
+    "engine": "gpt_sovits",
+    "voz_id": "narrador_masculino_br",
+    "velocidade": 1.0,
+    "fallback_engine": "kokoro"
+  },
+  "pesquisa": {
+    "modo": "rapido",
+    "ciclos_max": 2,
+    "nota_minima": 7,
+    "tempo_max_minutos": 15
+  },
+  "upload": {
+    "youtube_categoria": "27",
+    "tags_padrao": ["engenharia", "construção", "como funciona", "megaprojeto"],
+    "descricao_template": "{hook_texto}\n\n⏱️ CAPÍTULOS:\n{timestamps}\n\n#engenharia #construção"
+  },
+  "brand": {
+    "logo_id": null,
+    "intro_duracao_segundos": 3,
+    "paleta_cores": {
+      "primaria": "#F5A623",
+      "secundaria": "#1A1A2E",
+      "acento": "#E74C3C",
+      "texto": "#FFFFFF"
+    },
+    "fonte_thumbnail": "Bebas Neue"
+  }
+}

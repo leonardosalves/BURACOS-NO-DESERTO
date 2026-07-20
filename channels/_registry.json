@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "active_channel": "engenharia-impossivel",
+  "channels": [
+    {
+      "id": "engenharia-impossivel",
+      "nome": "Engenharia Impossível",
+      "youtube_channel_id": "UCYYcyky9A8fob3t6TlIENYA",
+      "status": "ativo",
+      "criado_em": "2026-07-21",
+      "ultimo_video": null
+    }
+  ]
+}
