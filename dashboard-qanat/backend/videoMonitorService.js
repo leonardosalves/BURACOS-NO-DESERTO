@@ -92,7 +92,19 @@ function getGeminiApiKey() {
 }
 
 function getOpenAiApiKey() {
-  return process.env.OPENAI_API_KEY || null;
+  if (process.env.OPENAI_API_KEY) {
+    return process.env.OPENAI_API_KEY;
+  }
+  try {
+    const configPath = path.join(WORKSPACE_DIR, "config_qanat.json");
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      if (config.openai_api_key) return config.openai_api_key;
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
