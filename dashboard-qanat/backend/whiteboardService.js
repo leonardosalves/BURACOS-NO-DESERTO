@@ -184,8 +184,82 @@ Regras de Layout:
 - IMPORTANTE: As prompts de imagem geradas em "image_prompts" devem ser em INGLÊS. Elas devem incluir: continuous line art, engineer's notebook sketch, whiteboard explanation aesthetic, parchment background '#faf8f3', charcoal line color '#1a2332', ocean-blue annotations '#2d5a7b', e no máximo 1-2 cores de destaque semântico. Adicione prompt negativo para evitar photorealistic, 3D render e stock photo. Adicione a frase "内容简洁一点，不要逐字写满口播" (Mantenha o conteúdo simples, não escreva a narração palavra por palavra).
 
 Retorne EXCLUSIVAMENTE um único objeto JSON contendo:
-- "infographic_plan_json": Objeto correspondente ao infographic_plan.json
-- "board_specs": Objeto chaveando boardId (ex: "board-01") para seu respectivo JSON do board spec.
+- "infographic_plan_json": Objeto correspondente ao infographic_plan.json. Deve seguir rigorosamente esta estrutura:
+  {
+    "version": "0.1",
+    "source": {
+      "polishedVoiceoverPath": "script/polished_voiceover.md",
+      "voiceoverSegmentsPath": "script/voiceover_segments.json",
+      "visualBeatsPath": "script/visual_beats.json"
+    },
+    "boardDecision": {
+      "boardCount": 2, // Quantidade de quadros (geralmente 1 ou 2)
+      "reason": "Razão da escolha da quantidade de quadros",
+      "splitRule": "Regra de divisão do conteúdo entre os quadros"
+    },
+    "styleBridge": {
+      "creator": "hand-drawn-infographic-creator",
+      "rules": "Regras visuais e de estilo"
+    },
+    "boards": [
+      {
+        "id": "board-01", // ID estável: board-01, board-02, etc.
+        "title": "Título do quadro",
+        "purpose": "Propósito visual do quadro em uma frase",
+        "contentDensity": "simple",
+        "maxKeyObjects": 4, // Inteiro entre 3 e 5
+        "sourceSegments": ["seg-01", "seg-02", "seg-03"], // Segmentos de voz mapeados
+        "diagramType": "process_flow", // process_flow, comparison, two_panel_comparison, timeline, knowledge_map, checklist_flow, ou flywheel
+        "keyObjects": [
+          {
+            "id": "obj-01",
+            "label": "Rótulo curto do objeto/elemento gráfico",
+            "role": "Papel/função do objeto"
+          }
+        ],
+        "imagePromptPath": "infographic/image_prompts/board-01.prompt.md",
+        "boardSpecPath": "infographic/board_specs/board-01.board_spec.json"
+      }
+    ]
+  }
+
+- "board_specs": Objeto chaveando boardId (ex: "board-01") para seu respectivo JSON do board spec. Cada especificação de quadro no board_specs deve seguir rigorosamente esta estrutura:
+  {
+    "id": "board-01", // Mesmo ID do board no plano
+    "title": "Mesmo título do board no plano",
+    "diagramType": "process_flow", // Mesmo tipo de diagrama do plano
+    "canvas": {
+      "width": 3400,
+      "height": 1900,
+      "aspectRatio": "16:9"
+    },
+    "style": {
+      "palette": "hand-drawn",
+      "colors": ["charcoal", "ocean-blue"]
+    },
+    "layout": {
+      "zone": "Zonas semânticas e hierarquia descrita textualmente"
+    },
+    "keyObjects": [
+      {
+        "id": "obj-01",
+        "label": "Rótulo curto",
+        "role": "Papel",
+        "visualForm": "Descrição visual do elemento",
+        "sourceSegments": ["seg-01"]
+      }
+    ],
+    "relationships": [
+      {
+        "from": "obj-01",
+        "to": "obj-02",
+        "type": "flow" // flow, contrast, dependency
+      }
+    ],
+    "imagePromptPath": "infographic/image_prompts/board-01.prompt.md",
+    "handoff": "hand-drawn-infographic-creator"
+  }
+
 - "image_prompts": Objeto chaveando boardId para a string do Markdown da prompt (ex: "board-01.prompt.md" content).
 
 Não coloque nenhuma explicação ou introdução fora do JSON.
