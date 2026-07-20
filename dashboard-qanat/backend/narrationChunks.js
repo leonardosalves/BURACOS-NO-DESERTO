@@ -7,7 +7,13 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { spawn } from "child_process";
-import { buildPythonSpawnEnv, getFfmpegStatus } from "./pythonEnv.js";
+import {
+  resolveStoryboardFormat,
+  splitNarrationIntoSpeechSegments,
+  segmentsPreserveIntegrity,
+  estimateFishSpeechSeconds,
+  SHORTS_MAX_SCENE_SECONDS,
+} from "./shortsSceneChunker.js";
 import {
   convertCinematicMarkersForTts,
   sanitizeNarrationChunkTaggedText,
@@ -472,6 +478,10 @@ export function buildHeuristicNarrationChunks({
     ])
   );
   const voice = normalizeVoiceRef(defaultVoice);
+  const format = resolveStoryboardFormat(storyboard, config);
+  const prosodySpeed =
+    Number(voice.prosody_speed ?? voice.prosodySpeed ?? voice.speed ?? 1) || 1;
+
   const chunks = [];
   for (let i = 0; i < scenes.length; i += 1) {
     const scene = scenes[i];
@@ -482,7 +492,7 @@ export function buildHeuristicNarrationChunks({
     const text = String(scene.narration_text || "").trim();
     if (!text) continue;
 
-    const speechSegments = (
+    let speechSegments = (
       Array.isArray(scene.speech_segments) ? scene.speech_segments : []
     )
       .map((segment, segmentIndex) => ({
@@ -492,6 +502,27 @@ export function buildHeuristicNarrationChunks({
         text: String(segment?.text || "").trim(),
       }))
       .filter((segment) => segment.text);
+
+    const temSegmentosValidos =
+      speechSegments.length > 0 &&
+      normalizeNarrationIntegrityText(
+        speechSegments.map((segment) => segment.text).join(" ")
+      ) === normalizeNarrationIntegrityText(text);
+
+    if (
+      !temSegmentosValidos &&
+      format === "SHORTS" &&
+      estimateFishSpeechSeconds(text, prosodySpeed) > SHORTS_MAX_SCENE_SECONDS
+    ) {
+      const autoSegments = splitNarrationIntoSpeechSegments(text, {
+        maxSeconds: SHORTS_MAX_SCENE_SECONDS,
+        prosodySpeed,
+      });
+      if (segmentsPreserveIntegrity(autoSegments, text)) {
+        speechSegments = autoSegments;
+      }
+    }
+
     const turns =
       speechSegments.length > 0 &&
       normalizeNarrationIntegrityText(

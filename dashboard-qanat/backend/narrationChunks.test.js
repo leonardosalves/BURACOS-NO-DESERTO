@@ -287,3 +287,45 @@ test("multi-character speech creates separate TTS chunks but one visual scene", 
   assert.equal(synced.visualPrompts.length, 1);
   assert.equal(synced.visualPrompts[0].narration_text, narration);
 });
+
+test("SHORTS: cena com narração longa é dividida em chunks de <=10s", () => {
+  const textoLongo =
+    "Passando pelas blindagens de aço, entramos em um labirinto de túneis interconectados. " +
+    "Armadilhas ocultas vigiavam os acessos: ao pisar no gatilho certo, portas pesadas se " +
+    "fechavam sozinhas, revelando fossos profundos projetados para quedas mortais.";
+
+  const plan = buildHeuristicNarrationChunks({
+    storyboard: {
+      format: "SHORTS",
+      narrative_script: textoLongo,
+      visual_prompts: [
+        {
+          scene: 1,
+          block: 1,
+          narration_text: textoLongo,
+          duration_seconds: 10,
+        },
+      ],
+    },
+    config: { format: "SHORTS" },
+    defaultVoice: { engine: "fish", prosody_speed: 1 },
+  });
+
+  // Deve ter virado MAIS de 1 chunk
+  assert.ok(
+    plan.chunks.length > 1,
+    `esperava >1 chunk, veio ${plan.chunks.length}`
+  );
+
+  // Integridade: soma dos textos = narração original
+  const soma = plan.chunks.map((c) => c.text).join(" ");
+  assert.ok(soma.replace(/\s+/g, " ").includes("labirinto de túneis"));
+
+  // Nenhum chunk deve terminar em palavra pendurada
+  for (const c of plan.chunks) {
+    assert.ok(
+      !/(de|e|que|ao|para|um|uma)$/i.test(c.text.trim()),
+      `chunk termina pendurado: "${c.text}"`
+    );
+  }
+});

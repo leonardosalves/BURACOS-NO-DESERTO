@@ -146,6 +146,19 @@ export function prepareSpecializedStoryboardImport({
     );
   }
 
+  const shortsWarnings = [];
+  if (String(format).toUpperCase() === "SHORTS") {
+    for (const scene of scenes) {
+      const dur = Number(scene?.duration_seconds || 0);
+      const narration = text(scene?.narration_text || scene?.narration_excerpt);
+      if (dur > 10 || narration.split(/\s+/).filter(Boolean).length > 21) {
+        shortsWarnings.push(
+          `Cena ${text(scene.scene || scene.id) || "?"} tem narração longa (>10s) — será dividida em trechos menores automaticamente.`
+        );
+      }
+    }
+  }
+
   const importMeta = normalized.specialized_import || {};
   const reverseMeta = normalized.reverse_engineering || {};
   const reverseSource = reverseMeta.source || {};
@@ -261,6 +274,7 @@ export function prepareSpecializedStoryboardImport({
       ...importMeta,
       source,
       imported_at: new Date().toISOString(),
+      shorts_warnings: shortsWarnings,
     },
   };
 }
