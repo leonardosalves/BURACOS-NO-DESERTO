@@ -4,14 +4,19 @@ import CanalYouTube from "./CanalYouTube";
 import Ressuscitador from "./Ressuscitador";
 import RadarTendencias from "./RadarTendencias";
 import MonitorVideos from "./MonitorVideos";
+import MemoryPanel from "./MemoryPanel";
+import TitleAB from "./TitleAB";
+import EditorialCalendar from "./EditorialCalendar";
+
+type TabId = "torre" | "canal" | "reviver" | "radar" | "monitor" | "memoria" | "ab" | "calendario";
 
 interface CanaisEPublicacaoProps {
-  abaInicial?: "torre" | "canal" | "reviver" | "radar" | "monitor";
-  aoVirarVideo?: (opts: { tema: string; sub_nicho: string }) => void;
+  abaInicial?: TabId;
+  aoVirarVideo?: (opts: { tema: string; sub_nicho?: string | null }) => void;
 }
 
 export default function CanaisEPublicacao({ abaInicial = "torre", aoVirarVideo }: CanaisEPublicacaoProps) {
-  const [aba, setAba] = useState<"torre" | "canal" | "reviver" | "radar" | "monitor">(abaInicial);
+  const [aba, setAba] = useState<TabId>(abaInicial);
 
   useEffect(() => {
     setAba(abaInicial);
@@ -23,6 +28,9 @@ export default function CanaisEPublicacao({ abaInicial = "torre", aoVirarVideo }
     { id: "reviver" as const, rotulo: "⚰️ Ressuscitador" },
     { id: "radar" as const, rotulo: "🎯 Radar de Tendências" },
     { id: "monitor" as const, rotulo: "🔥 Monitor de Vídeos" },
+    { id: "memoria" as const, rotulo: "🧠 Memória" },
+    { id: "ab" as const, rotulo: "🔀 A/B Títulos" },
+    { id: "calendario" as const, rotulo: "📅 Calendário" },
   ];
 
   return (
@@ -54,7 +62,11 @@ export default function CanaisEPublicacao({ abaInicial = "torre", aoVirarVideo }
         {aba === "reviver" && <Ressuscitador />}
         {aba === "radar" && <RadarTendencias aoVirarVideo={aoVirarVideo} />}
         {aba === "monitor" && <MonitorVideos />}
+        {aba === "memoria" && <MemoryPanel />}
+        {aba === "ab" && <TitleAB />}
+        {aba === "calendario" && <EditorialCalendar aoAgendar={aoVirarVideo} />}
       </div>
     </div>
   );
 }
+
