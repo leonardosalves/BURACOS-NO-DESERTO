@@ -977,3 +977,66 @@ Retorne o JSON de saída válido.`;
     mapOnly,
   };
 }
+
+/**
+ * Aplica a cláusula de estilo do projeto a todos os prompts de cena.
+ */
+export function applyProjectVisualAssetStyleToPrompts(
+  visualPrompts = [],
+  styleId = DEFAULT_VISUAL_ASSET_STYLE,
+  opts = {}
+) {
+  const style = normalizeVisualAssetStyleId(styleId);
+  const mapOnly = isMapOnlyPromptsEnabled(opts.mapOnly);
+  return (Array.isArray(visualPrompts) ? visualPrompts : []).map((vp) => {
+    if (!vp || typeof vp !== "object") return vp;
+    const next = {
+      ...vp,
+      visual_asset_style: style,
+      ...(mapOnly ? { visual_map_only: true } : {}),
+    };
+    const enforceOpts = { mapOnly };
+    if (vp.prompt)
+      next.prompt = enforceVisualAssetStyleInPrompt(
+        vp.prompt,
+        style,
+        enforceOpts
+      );
+    if (vp.image_prompt)
+      next.image_prompt = enforceVisualAssetStyleInPrompt(
+        vp.image_prompt,
+        style,
+        enforceOpts
+      );
+    if (vp.video_prompt)
+      next.video_prompt = enforceVisualAssetStyleInPrompt(
+        vp.video_prompt,
+        style,
+        enforceOpts
+      );
+    if (vp.ai_video_prompt)
+      next.ai_video_prompt = enforceVisualAssetStyleInPrompt(
+        vp.ai_video_prompt,
+        style,
+        enforceOpts
+      );
+    if (mapOnly) {
+      // Mapas informativos preferem still; só vídeo se já for motion cartográfico
+      const t = String(vp.type || "").toLowerCase();
+      if (!t.includes("vídeo") && !t.includes("video")) {
+        next.type = next.type || "imagem IA 2k";
+        next.media_mode = next.media_mode || "image";
+      }
+    }
+    return next;
+  });
+}
+
+export {
+  DEFAULT_VISUAL_ASSET_STYLE,
+  enforceVisualAssetStyleInPrompt,
+  normalizeVisualAssetStyleId,
+  getVisualAssetStyle,
+  buildVisualAssetStyleDirective,
+  isMapOnlyPromptsEnabled,
+};
