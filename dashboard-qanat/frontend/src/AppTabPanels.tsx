@@ -18,12 +18,6 @@ import { AppToolsTab } from "./AppToolsTab";
 import { FlowLabPage } from "./FlowLabPage";
 import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
 import toast from "react-hot-toast";
-import CanaisEPublicacao from "./components/tools/CanaisEPublicacao";
-import PesquisarWeb from "./components/tools/PesquisarWeb";
-import CanalYouTube from "./components/tools/CanalYouTube";
-import Ressuscitador from "./components/tools/Ressuscitador";
-import RadarTendencias from "./components/tools/RadarTendencias";
-import MonitorVideos from "./components/tools/MonitorVideos";
 import {
   Bot,
   Clapperboard,
@@ -577,7 +571,28 @@ export function AppTabPanels({
 
       {activeTab === "agent-reach" && (
         <TabErrorBoundary tabName="Pesquisa Web">
-          <PesquisarWeb />
+          <DashminPageLayout
+            title="Pesquisa Web"
+            subtitle="Agent Reach — Exa, Jina, GitHub, Bilibili e RSS integrados."
+            breadcrumb={["Dashboard", "Estúdio", "Pesquisa Web"]}
+            icon={<Globe className="w-5 h-5" />}
+          >
+            <Suspense
+              fallback={<TabPanelFallback label="Carregando pesquisa web..." />}
+            >
+              <LazyAgentReachPanel
+                embedded
+                niche={config?.niche || ""}
+                onApplyCreatorIdea={(title, hookPt, options) => {
+                  void handleApplyYoutubeStudioIdea(
+                    title,
+                    hookPt,
+                    options as CreatorApplyIdeaOptions
+                  );
+                }}
+              />
+            </Suspense>
+          </DashminPageLayout>
         </TabErrorBoundary>
       )}
 
@@ -589,17 +604,23 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Radar Tendências"]}
             icon={<TrendingUp className="w-5 h-5" />}
           >
-            <CanaisEPublicacao
-              abaInicial="radar"
-              aoVirarVideo={({ tema }) => {
-                window.dispatchEvent(
-                  new CustomEvent("lumiera-prefill-creator", {
-                    detail: { tema },
-                  })
-                );
-                setActiveTab("creator");
-              }}
-            />
+            <Suspense
+              fallback={
+                <TabPanelFallback label="Carregando radar de tendências..." />
+              }
+            >
+              <LazyTrendForecastPanel
+                embedded
+                niche={config?.niche || ""}
+                onApplyCreatorIdea={(title, hookPt, options) => {
+                  void handleApplyYoutubeStudioIdea(title, hookPt, options);
+                }}
+                onGoToIntegrations={() => {
+                  setSettingsSection("integracoes");
+                  setActiveTab("settings");
+                }}
+              />
+            </Suspense>
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
@@ -612,7 +633,16 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Ressuscitador"]}
             icon={<Zap className="w-5 h-5 text-amber-400" />}
           >
-            <CanaisEPublicacao abaInicial="reviver" />
+            <Suspense
+              fallback={
+                <TabPanelFallback label="Carregando ressuscitador..." />
+              }
+            >
+              <LazyVideoResurrectorPanel
+                toast={toast}
+                externalAlerts={resurrectorAlerts as any}
+              />
+            </Suspense>
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
@@ -625,17 +655,32 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Canal YouTube"]}
             icon={<Youtube className="w-5 h-5" />}
           >
-            <CanaisEPublicacao
-              abaInicial="canal"
-              aoVirarVideo={({ tema }) => {
-                window.dispatchEvent(
-                  new CustomEvent("lumiera-prefill-creator", {
-                    detail: { tema },
-                  })
-                );
-                setActiveTab("creator");
-              }}
-            />
+            <Suspense
+              fallback={
+                <TabPanelFallback label="Carregando YouTube Studio..." />
+              }
+            >
+              <LazyYoutubeStudioPanel
+                embedded
+                toast={toast}
+                onRelinkYoutube={handleRelinkYoutube}
+                nicheKeyword={config?.niche || nicheInput || ""}
+                alerts={youtubeChannelAlerts}
+                geminiBrowserMode={geminiBrowserMode}
+                aiProvider={aiProvider}
+                resolveBrowserResponse={resolveBrowserResponse}
+                onSelectProject={handleSelectProject}
+                onAlertsSync={setYoutubeChannelAlerts}
+                onApplyCreatorIdea={(title, hookPt, options) => {
+                  void handleApplyYoutubeStudioIdea(title, hookPt, options);
+                }}
+                onSchedulePublish={handleScheduleFromHeatmap}
+                onGoToIntegrations={() => {
+                  setSettingsSection("integracoes");
+                  setActiveTab("settings");
+                }}
+              />
+            </Suspense>
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
@@ -668,14 +713,13 @@ export function AppTabPanels({
       {/* TAB: VIDEO MONITOR */}
       {activeTab === "video-monitor" && (
         <TabErrorBoundary tabName="Monitor de Vídeos">
-          <DashminPageLayout
-            title="Monitor de Vídeos"
-            subtitle="Performance ao vivo + extração de padrões."
-            breadcrumb={["Dashboard", "Estúdio", "Monitor de Vídeos"]}
-            icon={<TrendingUp className="w-5 h-5" />}
+          <Suspense
+            fallback={
+              <TabPanelFallback label="Carregando monitor de vídeos..." />
+            }
           >
-            <CanaisEPublicacao abaInicial="monitor" />
-          </DashminPageLayout>
+            <LazyVideoMonitorPage />
+          </Suspense>
         </TabErrorBoundary>
       )}
     </div>
