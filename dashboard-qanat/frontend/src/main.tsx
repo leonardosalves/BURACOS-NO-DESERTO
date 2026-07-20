@@ -41,11 +41,15 @@ if (import.meta.env.PROD) {
   }
 }
 
+import { ChannelProvider } from "./context/ChannelContext.tsx";
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <TabErrorBoundary label="Lumiera">
       <GeminiBrowserProvider>
-        <App />
+        <ChannelProvider>
+          <App />
+        </ChannelProvider>
       </GeminiBrowserProvider>
     </TabErrorBoundary>
   </React.StrictMode>

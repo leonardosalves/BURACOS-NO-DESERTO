@@ -80,6 +80,8 @@ import {
 } from "./creatorModeIdentity";
 import { CreatorWizardNavigator } from "./CreatorWizardNavigator";
 import { isVideoVisualPrompt } from "@lumiera/shared/reverseEngineeringMedia.js";
+import { useActiveChannel } from "./hooks/useActiveChannel";
+import ChannelBadge from "./components/channels/ChannelBadge";
 
 function CreatorPhaseMasthead({
   phase,
@@ -466,6 +468,13 @@ export function AppCreatorTab({
   youtubeMetadataParsed,
 }: AppCreatorTabProps) {
   const narrationDeliveryRef = useRef<HTMLDivElement>(null);
+  const activeChannel = useActiveChannel();
+
+  useEffect(() => {
+    if (activeChannel.niche && nicheInput !== activeChannel.niche) {
+      setNicheInput(activeChannel.niche);
+    }
+  }, [activeChannel.niche, nicheInput, setNicheInput]);
 
   useEffect(() => {
     if (!showNarrationReview) return;
@@ -1123,6 +1132,8 @@ export function AppCreatorTab({
                     </div>
                   </div>
 
+                  <ChannelBadge />
+
                   <div className="space-y-4">
                     {/* Project Name */}
                     <div className="space-y-2 font-sans">
@@ -1156,7 +1167,8 @@ export function AppCreatorTab({
                           placeholder="Ex: Misterios, Curiosidades, Historia, Finanzas..."
                           value={nicheInput}
                           onChange={(e) => setNicheInput(e.target.value)}
-                          className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-rose-400 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                          disabled={!!activeChannel.channelId}
+                          className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-rose-400 focus:outline-none rounded-xl px-4 py-3 text-xs text-white disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
 
@@ -1286,6 +1298,8 @@ export function AppCreatorTab({
                       </p>
                     </div>
                   )}
+                  <ChannelBadge />
+
                   <div className="space-y-4">
                     <div className="space-y-2 font-sans">
                       <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
@@ -1296,7 +1310,8 @@ export function AppCreatorTab({
                         placeholder="Ex: história pouco conhecida, tecnologia, finanças..."
                         value={nicheInput}
                         onChange={(e) => setNicheInput(e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                        disabled={!!activeChannel.channelId}
+                        className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       <p className="text-[9px] text-zinc-600">
                         Usado para comparar a ideia com o que já é comum no
@@ -1615,6 +1630,8 @@ export function AppCreatorTab({
                     />
                   </div>
 
+                  <ChannelBadge />
+
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
@@ -1622,21 +1639,20 @@ export function AppCreatorTab({
                       </label>
 
                       <input
-                        disabled={creatorLoading || !hasApiKey}
-
+                        disabled={
+                          !!activeChannel.channelId ||
+                          creatorLoading ||
+                          !hasApiKey
+                        }
                         type="text"
-
                         placeholder={
                           hasApiKey
                             ? "Ex: curiosidades e fatos surpreendentes, finanças, culinária, natureza..."
                             : "Configure um provedor na aba Configurações primeiro..."
                         }
-
                         value={nicheInput}
-
                         onChange={(e) => setNicheInput(e.target.value)}
-
-                        className="w-full bg-zinc-950 border border-zinc-855 hover:border-zinc-805 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                        className="w-full bg-zinc-950 border border-zinc-855 hover:border-zinc-805 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
 

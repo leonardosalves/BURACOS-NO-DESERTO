@@ -143,13 +143,13 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 
 ## Logs recentes
 
+- [[agent_runs/2026-07-20]]
 - [[agent_runs/2026-07-19]]
 - [[agent_runs/2026-07-18]]
 - [[agent_runs/2026-07-17]]
 - [[agent_runs/2026-07-16]]
 - [[agent_runs/2026-07-15]]
 - [[agent_runs/2026-07-14]]
-- [[agent_runs/2026-07-13]]
 
 ## Regras por formato
 
@@ -162,4 +162,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-07-19T19:53:44.778Z
+atualizado: 2026-07-20T18:09:20.310Z

@@ -38,7 +38,7 @@ import { BackendStatusBanner } from "./BackendStatusBanner";
 import { SettingHelpTip } from "./SettingHelpTip";
 import { SECTION_HELP } from "./sectionHelpContent";
 import { useBackendHealth } from "./useBackendHealth";
-import ChannelSwitcher from "./ChannelSwitcher";
+import ChannelSwitcher from "./components/channels/ChannelSwitcher";
 import type { ProjectListItem } from "./ProjectsLibraryPanel";
 import type { AppTab } from "./appTabs";
 import type { CreatorIdeationMode } from "./creatorModeIdentity";

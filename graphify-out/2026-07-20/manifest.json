@@ -655,8 +655,8 @@
     "semantic_hash": "c25b553812299a113799a7065171fdbc"
   },
   "dashboard-qanat/backend/data/remotion-template-catalog.json": {
-    "mtime": 1784564097.5233014,
-    "ast_hash": "7a2a97bb057251a4ef2c5af97cffedb2",
+    "mtime": 1784569984.1427672,
+    "ast_hash": "c28721fe6911215321e5c332b28e8bf0",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/deerFlowResearch.js": {
@@ -1295,8 +1295,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/server.js": {
-    "mtime": 1784559516.7868946,
-    "ast_hash": "49a91c814064f3c72b938ccbb3a9de03",
+    "mtime": 1784569848.6160626,
+    "ast_hash": "b2bad1540f56113eb782f903c9fbadb6",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/shared/atomicJson.js": {
@@ -1815,8 +1815,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/App.tsx": {
-    "mtime": 1784527372.1422362,
-    "ast_hash": "a8aec772ff5649eab6028d84cf460225",
+    "mtime": 1784568587.193493,
+    "ast_hash": "e4f43b9eda0f97a2a85e33be9d84c546",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/AppAiTab.tsx": {
@@ -1860,13 +1860,13 @@
     "semantic_hash": "1db91b0928cecb3d51ef23bcb928086e"
   },
   "dashboard-qanat/frontend/src/AppSettingsTab.tsx": {
-    "mtime": 1784529400.0325022,
-    "ast_hash": "1ef8a84152866573cafb106ecce4f94d",
+    "mtime": 1784568587.2694974,
+    "ast_hash": "d47770b39202e18e88d1874809d5696c",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/AppShell.tsx": {
-    "mtime": 1784559516.7898831,
-    "ast_hash": "3ceb1b550490caa3e1e47ffea4736164",
+    "mtime": 1784569894.6954868,
+    "ast_hash": "df1b1297d9241e9995fec96114a896b8",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/AppStatusTab.tsx": {
@@ -2455,8 +2455,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/appTabPropBundles.ts": {
-    "mtime": 1784438148.1722846,
-    "ast_hash": "c22e517c4a9724e6c062512fcbb1a21b",
+    "mtime": 1784568539.5391371,
+    "ast_hash": "872a1884273d20b406baf4582463476e",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/appTabs.ts": {
@@ -6645,8 +6645,8 @@
     "semantic_hash": ""
   },
   ".kilo/kilo.json": {
-    "mtime": 1784559516.7752144,
-    "ast_hash": "6373d2a7cda10168119922013ac3a404",
+    "mtime": 1784567118.2268841,
+    "ast_hash": "b5be19c6926e1bb5bc9ac0cfabef4f77",
     "semantic_hash": ""
   },
   ".kilo/plugins/graphify.js": {
@@ -6730,8 +6730,8 @@
     "semantic_hash": ""
   },
   ".agents/memory/curiosidades.md": {
-    "mtime": 1784564036.2188513,
-    "ast_hash": "380d4b3a7128008f516624aad7471476",
+    "mtime": 1784569213.7267385,
+    "ast_hash": "e93f3e0b3dcc60d2682dedb0394b0a15",
     "semantic_hash": ""
   },
   ".agents/memory/customized.md": {
@@ -9925,203 +9925,203 @@
     "semantic_hash": ""
   },
   "patch_minimax.js": {
-    "mtime": 1784526262.8398905,
-    "ast_hash": "c69360834d21e43c6dca8b6d8e801f9c",
+    "mtime": 1784566118.3823042,
+    "ast_hash": "1b1fa6c05927b9e76589aa7593301a07",
     "semantic_hash": ""
   },
   "patch_minimax_app.js": {
-    "mtime": 1784526354.3197553,
-    "ast_hash": "47b1babdf4b383732effaf5c74304e3f",
+    "mtime": 1784566118.3872998,
+    "ast_hash": "35f0472230426767a552c5a4f9b0ce76",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720063659-a-ponte-que-comecou-a-dancar-a/image_generation_report.json": {
-    "mtime": 1784529460.3540988,
-    "ast_hash": "3bcec4f025980ea24ce241c0ebd60c2c",
+    "mtime": 1784566118.4022987,
+    "ast_hash": "ab348c4a42a40249cbbc4f100f65d2e9",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720063659-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-01.board_spec.json": {
-    "mtime": 1784529449.6319675,
-    "ast_hash": "6e75b7c587cddd61a9f76d2f7a3ea787",
+    "mtime": 1784566113.167108,
+    "ast_hash": "5471a6c28561fb1f40d9c56a997268f4",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720063659-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-02.board_spec.json": {
-    "mtime": 1784529449.6319675,
-    "ast_hash": "9e32b448802684f3d1f43b5b4944a96a",
+    "mtime": 1784566113.1731071,
+    "ast_hash": "26c600c131352fa41dc788e6482013ea",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720063659-a-ponte-que-comecou-a-dancar-a/infographic/infographic_plan.json": {
-    "mtime": 1784529449.6319675,
-    "ast_hash": "34ec5cde794a878dc48762fdc70a27c4",
+    "mtime": 1784566113.206106,
+    "ast_hash": "522ec3a0ccebe3040f4c796e5a229c0d",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720063659-a-ponte-que-comecou-a-dancar-a/script/visual_beats.json": {
-    "mtime": 1784529437.2046645,
-    "ast_hash": "9ee7d6c94f66ee74a0b150622399e049",
+    "mtime": 1784566113.229108,
+    "ast_hash": "6f4bf77f0008a12d8a95fa88dcaae51a",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720063659-a-ponte-que-comecou-a-dancar-a/script/voiceover_segments.json": {
-    "mtime": 1784529437.2046645,
-    "ast_hash": "dfbed28b07b2bd6f27bc262a6731806d",
+    "mtime": 1784566113.2361069,
+    "ast_hash": "7bda4f9d71516dbc37b99bc2c9d9bdcf",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064104-a-ponte-que-comecou-a-dancar-a/image_generation_report.json": {
-    "mtime": 1784529709.3461623,
-    "ast_hash": "fccc22df63bad654a01ef67cc65eb5d5",
+    "mtime": 1784566113.2771091,
+    "ast_hash": "23bad981242c0258568903dc27470b95",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064104-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-01.board_spec.json": {
-    "mtime": 1784529694.487631,
-    "ast_hash": "7407e8270b7bb107a3cd184f5801ace0",
+    "mtime": 1784566113.285106,
+    "ast_hash": "ce0214cb35889e34a660a9b0f0f037b2",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064104-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-02.board_spec.json": {
-    "mtime": 1784529694.487631,
-    "ast_hash": "544ae12149c74294b61c8b471c128059",
+    "mtime": 1784566113.2881064,
+    "ast_hash": "9bb7b792c68f39f281653804f1263c39",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064104-a-ponte-que-comecou-a-dancar-a/infographic/infographic_plan.json": {
-    "mtime": 1784529694.487631,
-    "ast_hash": "91c4ab8937f72d97504479b260836643",
+    "mtime": 1784566113.307108,
+    "ast_hash": "76b91d8e9ed91b0477c7bc1f0690b7dd",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064104-a-ponte-que-comecou-a-dancar-a/script/visual_beats.json": {
-    "mtime": 1784529681.108403,
-    "ast_hash": "999cd206b6de2545ed902ee32b275694",
+    "mtime": 1784566113.325106,
+    "ast_hash": "97d90092751f9ddbe03ae3b3089ea127",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064104-a-ponte-que-comecou-a-dancar-a/script/voiceover_segments.json": {
-    "mtime": 1784529681.108403,
-    "ast_hash": "180a5d336641a920ba7bc6639ac209c4",
+    "mtime": 1784566113.3311062,
+    "ast_hash": "cc57a6ff0d553960f6485580931f4136",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064211-a-ponte-que-comecou-a-dancar-a/image_generation_report.json": {
-    "mtime": 1784529778.5744662,
-    "ast_hash": "7a1f302295358ed070216cc9308641af",
+    "mtime": 1784566113.1651063,
+    "ast_hash": "476f5dce7bc4aec01e6610b0c9df5bad",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064211-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-01.board_spec.json": {
-    "mtime": 1784529768.4288454,
-    "ast_hash": "d5448cbb263a92e6c8e299215477a421",
+    "mtime": 1784566113.1751065,
+    "ast_hash": "aae39014588912b858753cc79729d040",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064211-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-02.board_spec.json": {
-    "mtime": 1784529768.4288454,
-    "ast_hash": "211880ba72d1ba5b5e5d3e98ca6b3039",
+    "mtime": 1784566113.1791065,
+    "ast_hash": "c51e9b26e3590cb81c984873eff6fec1",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064211-a-ponte-que-comecou-a-dancar-a/infographic/infographic_plan.json": {
-    "mtime": 1784529768.4288454,
-    "ast_hash": "db3d27452e4f6369a5708977bbb8dc95",
+    "mtime": 1784566113.208106,
+    "ast_hash": "fa5a689d885c4b7cf1eff92fadbadb71",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064211-a-ponte-que-comecou-a-dancar-a/script/visual_beats.json": {
-    "mtime": 1784529757.0797517,
-    "ast_hash": "81e11d94069dc60a79b50b8b55f19642",
+    "mtime": 1784566113.2261055,
+    "ast_hash": "f9ad612bf468ccb3bf35c6600bbbfd72",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064211-a-ponte-que-comecou-a-dancar-a/script/voiceover_segments.json": {
-    "mtime": 1784529757.0797517,
-    "ast_hash": "f5828b5608643214de4414c151b8fce1",
+    "mtime": 1784566113.233107,
+    "ast_hash": "eb87a145deb10ef617f9abd27e7bb19e",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064505-a-ponte-que-comecou-a-dancar-a/image_generation_report.json": {
-    "mtime": 1784529948.0426288,
-    "ast_hash": "3d8dc53aeafc17732045516b1675a1ce",
+    "mtime": 1784566113.272107,
+    "ast_hash": "b1f833d64a890bd54ca7f4ac35d36124",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064505-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-01.board_spec.json": {
-    "mtime": 1784529937.2161636,
-    "ast_hash": "85d9afd2e70bcb0f80754b077457b137",
+    "mtime": 1784566113.2821069,
+    "ast_hash": "1d3ef3f6f31d7fbc6ed2448368e51a4b",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064505-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-02.board_spec.json": {
-    "mtime": 1784529937.217163,
-    "ast_hash": "0f71375abe7d0aadd3ef6b1233bdf55c",
+    "mtime": 1784566113.2871053,
+    "ast_hash": "3d76b3dd01e71f8ff42b2614e74f255f",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064505-a-ponte-que-comecou-a-dancar-a/infographic/infographic_plan.json": {
-    "mtime": 1784529937.2161636,
-    "ast_hash": "bac1507e65b458854ee1a0ac792830c4",
+    "mtime": 1784566113.304107,
+    "ast_hash": "9b1fa2dae13df70a20a4450005db33fd",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064505-a-ponte-que-comecou-a-dancar-a/script/visual_beats.json": {
-    "mtime": 1784529925.3034897,
-    "ast_hash": "9a47c139e927cb8b502570f17a640ad3",
+    "mtime": 1784566113.3221068,
+    "ast_hash": "ba4dbe44cf7dc6ed0f446d84e38bb30c",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064505-a-ponte-que-comecou-a-dancar-a/script/voiceover_segments.json": {
-    "mtime": 1784529925.3034897,
-    "ast_hash": "0eeca72314ed1022b67dacb935439448",
+    "mtime": 1784566113.327106,
+    "ast_hash": "49784cbad26fa68bc8a8af635b3bfbfe",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720065725-a-ponte-que-comecou-a-dancar-a/image_generation_report.json": {
-    "mtime": 1784530774.4944122,
-    "ast_hash": "29bd89bffff02c8f629dff5b5d5b9318",
+    "mtime": 1784566113.2011063,
+    "ast_hash": "0bed437f3cfc1b2dfd99af5fcd4625b5",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720065725-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-01.board_spec.json": {
-    "mtime": 1784530756.5284846,
-    "ast_hash": "5a8f90477ebf1aba19eff16570fbd284",
+    "mtime": 1784566113.208106,
+    "ast_hash": "9ede13ecdb6f6d82ce3362ab69496150",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720065725-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-02.board_spec.json": {
-    "mtime": 1784530756.5284846,
-    "ast_hash": "5f6255908fa81614ef338fb2f1a9d9ca",
+    "mtime": 1784566113.2141068,
+    "ast_hash": "84395bcff5e7b4221543fe86fed18d87",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720065725-a-ponte-que-comecou-a-dancar-a/infographic/infographic_plan.json": {
-    "mtime": 1784530756.5284846,
-    "ast_hash": "7856c011268ae2fc96586806728dd277",
+    "mtime": 1784566113.2461061,
+    "ast_hash": "969c3b41a6e3d72fc6041298b456ea18",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720065725-a-ponte-que-comecou-a-dancar-a/script/visual_beats.json": {
-    "mtime": 1784530671.2449002,
-    "ast_hash": "28e42fac46c83de24ab2f0dd3712c70b",
+    "mtime": 1784566113.272107,
+    "ast_hash": "aea7419e5d76bdbc36e420d772383646",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720065725-a-ponte-que-comecou-a-dancar-a/script/voiceover_segments.json": {
-    "mtime": 1784530671.2439003,
-    "ast_hash": "526412dd2fd75ab42c103091bb389c02",
+    "mtime": 1784566113.279107,
+    "ast_hash": "dbbc9631fb34b34f09aec667656b3197",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720070200-a-ponte-que-comecou-a-dancar-a/image_generation_report.json": {
-    "mtime": 1784531101.2776027,
-    "ast_hash": "1b9a63240bab181a262d446f1a3da569",
+    "mtime": 1784566113.2991061,
+    "ast_hash": "91b2695a9a6212001a6b706cc4e56046",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720070200-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-01.board_spec.json": {
-    "mtime": 1784531072.0120144,
-    "ast_hash": "f2eab7d494b4dcba2fe282d293599d20",
+    "mtime": 1784566113.3061073,
+    "ast_hash": "44770881ba4581927f53006db31f6f2c",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720070200-a-ponte-que-comecou-a-dancar-a/infographic/board_specs/board-02.board_spec.json": {
-    "mtime": 1784531072.0120144,
-    "ast_hash": "2c3d35d621f26cfab56545343089e727",
+    "mtime": 1784566113.312107,
+    "ast_hash": "3765f3e2d8a69f504966cc63f581437e",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720070200-a-ponte-que-comecou-a-dancar-a/infographic/infographic_plan.json": {
-    "mtime": 1784531072.011014,
-    "ast_hash": "670fa9fc94e91d2b850baba7d6949e66",
+    "mtime": 1784566113.3321073,
+    "ast_hash": "4cfc99639aaa0f8ec69405df8424a9da",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720070200-a-ponte-que-comecou-a-dancar-a/script/visual_beats.json": {
-    "mtime": 1784531060.216045,
-    "ast_hash": "11ec4c7dd3cf3e4fcde1c13b5f0fa68e",
+    "mtime": 1784566113.3481054,
+    "ast_hash": "5f0bc55b92d968984f1291e0f35bf8a4",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720070200-a-ponte-que-comecou-a-dancar-a/script/voiceover_segments.json": {
-    "mtime": 1784531060.216045,
-    "ast_hash": "cfd3b0cc6b69d6fde3b1c5aaec7a7967",
+    "mtime": 1784566113.3541067,
+    "ast_hash": "e71a19a1e1307d3c91e10322479522e3",
     "semantic_hash": ""
   },
   ".agents/skills/whiteboard-video.md": {
-    "mtime": 1784526031.8537762,
-    "ast_hash": "2ffd218b8afe0cc1801f4ae5a906bcc7",
+    "mtime": 1784566113.1761067,
+    "ast_hash": "54d4bafeaafdaf9fd6e617569c4f095e",
     "semantic_hash": ""
   },
   ".agents/skills/whiteboard-video/REFERENCES.md": {
-    "mtime": 1784526031.8947802,
-    "ast_hash": "d934252c8bd0ea765576afc1e35d82eb",
+    "mtime": 1784566113.1861067,
+    "ast_hash": "71b0d4dbe4f010e9e637eacd641f7ef4",
     "semantic_hash": ""
   },
   "deep-research-report2.md": {
@@ -10130,153 +10130,153 @@
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720063659-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-01.creator_output.md": {
-    "mtime": 1784529460.216966,
-    "ast_hash": "ab23b8a574e2dc2fec1082c16950ccbb",
+    "mtime": 1784566118.394301,
+    "ast_hash": "d4622d3c92c7b9b45789e32971b240c5",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720063659-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-02.creator_output.md": {
-    "mtime": 1784529460.216966,
-    "ast_hash": "c1694cbbe095f6ea2f198ac4b713dced",
+    "mtime": 1784566118.399299,
+    "ast_hash": "62e650a48fd14b0ba4a6291a91a20e17",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720063659-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-01.prompt.md.prompt.md": {
-    "mtime": 1784529449.6319675,
-    "ast_hash": "eb2a90f3c5a66dd8906c3943ed331625",
+    "mtime": 1784566113.194105,
+    "ast_hash": "52005ab03a9705df342e962c159b69fe",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720063659-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-02.prompt.md.prompt.md": {
-    "mtime": 1784529449.632964,
-    "ast_hash": "cf078b28f4b09003fdab103917c5a325",
+    "mtime": 1784566113.2001052,
+    "ast_hash": "145237f436fc086f5a64021615773184",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720063659-a-ponte-que-comecou-a-dancar-a/script/polished_voiceover.md": {
-    "mtime": 1784529437.2046645,
-    "ast_hash": "08dec27420b1b1606ea320f9ff29863a",
+    "mtime": 1784566113.221106,
+    "ast_hash": "8e5bf935c2b5f39a303b43e6dee7fc59",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064104-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-01.creator_output.md": {
-    "mtime": 1784529709.2566485,
-    "ast_hash": "0d578e11b43e90565ff6a99852bab61f",
+    "mtime": 1784566113.2531073,
+    "ast_hash": "1f398a144854017378081ea4ebb37544",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064104-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-02.creator_output.md": {
-    "mtime": 1784529709.2566485,
-    "ast_hash": "e706492772097b7a0bc414ae8907850c",
+    "mtime": 1784566113.269107,
+    "ast_hash": "f5513160d5cbd0b4712b55d0a618d55c",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064104-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-01.prompt.md": {
-    "mtime": 1784529694.487631,
-    "ast_hash": "cb9e4cd973931b52f1a0a295617c2f7e",
+    "mtime": 1784566113.2961063,
+    "ast_hash": "842f9d543b142d79f7e840015b86f776",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064104-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-02.prompt.md": {
-    "mtime": 1784529694.4887762,
-    "ast_hash": "636033fbccb9014df2b8a6d28ecc676c",
+    "mtime": 1784566113.302108,
+    "ast_hash": "5acadc22a749766a915dc40fb0e4ff7c",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064104-a-ponte-que-comecou-a-dancar-a/script/polished_voiceover.md": {
-    "mtime": 1784529681.1076026,
-    "ast_hash": "43dc2320a21832ad8fbde2b150d09aa9",
+    "mtime": 1784566113.3191063,
+    "ast_hash": "94be0f11b5da0290d20da64eb2386527",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064211-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-01.creator_output.md": {
-    "mtime": 1784529778.491108,
-    "ast_hash": "76ee6a68ea4e587245580ca91f476383",
+    "mtime": 1784566113.343107,
+    "ast_hash": "bd38cb656685df76e378c20bba67ba1f",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064211-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-02.creator_output.md": {
-    "mtime": 1784529778.491108,
-    "ast_hash": "be3cffefab9e3a8416345253b67fa1f4",
+    "mtime": 1784566113.3521075,
+    "ast_hash": "dd4e34d44cbe77e7547b83bfb18f0865",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064211-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-01.prompt.md.prompt.md": {
-    "mtime": 1784529768.4288454,
-    "ast_hash": "388b46ad89a74674f32551856fd60272",
+    "mtime": 1784566113.1981065,
+    "ast_hash": "697da4d5e07309de33fb2e119bcb4a3c",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064211-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-02.prompt.md.prompt.md": {
-    "mtime": 1784529768.4288454,
-    "ast_hash": "7459acbf2dd8eeb7fe44ee079641261a",
+    "mtime": 1784566113.2031045,
+    "ast_hash": "d272a526dc3c61a8fb681b801f4ba3c3",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064211-a-ponte-que-comecou-a-dancar-a/script/polished_voiceover.md": {
-    "mtime": 1784529757.0797517,
-    "ast_hash": "f743ecdfcd91fa0bdbb3578b9b55b360",
+    "mtime": 1784566113.2191062,
+    "ast_hash": "ad4f004206a93f97e931230c18a016ff",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064505-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-01.creator_output.md": {
-    "mtime": 1784529947.9565408,
-    "ast_hash": "280924f4430e1938d9157d3a8ee6a400",
+    "mtime": 1784566113.2501066,
+    "ast_hash": "cf0d7f2f52c8a3a34420756580f7f5a3",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064505-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-02.creator_output.md": {
-    "mtime": 1784529947.9565408,
-    "ast_hash": "14132daed09b94cf61300afe9c5c3316",
+    "mtime": 1784566113.2631066,
+    "ast_hash": "9bfd3a8bac59c4c8b2be8699ee3b507a",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064505-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-01.prompt.md": {
-    "mtime": 1784529937.217163,
-    "ast_hash": "8b9b0ea29d807571604f6c0585ce2e9d",
+    "mtime": 1784566113.293106,
+    "ast_hash": "80f5c3a199062ca3e11c5ee08644789b",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064505-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-02.prompt.md": {
-    "mtime": 1784529937.217163,
-    "ast_hash": "4d43ad82829c6f13192c63d1f34271c7",
+    "mtime": 1784566113.2991061,
+    "ast_hash": "85bc3de20234e113c4e68706c03301b3",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720064505-a-ponte-que-comecou-a-dancar-a/script/polished_voiceover.md": {
-    "mtime": 1784529925.3034897,
-    "ast_hash": "feaddb4c696ff1aa361a9a238e6e6fca",
+    "mtime": 1784566113.316107,
+    "ast_hash": "7eadb62f10b5acbfac3b32564e01562b",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720065725-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-01.creator_output.md": {
-    "mtime": 1784530774.4126194,
-    "ast_hash": "0f900e28ba11fe7a4015cacf1c9ca039",
+    "mtime": 1784566113.340108,
+    "ast_hash": "a21d0e81bf7b72626b497b2a9e2c4286",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720065725-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-02.creator_output.md": {
-    "mtime": 1784530774.4126194,
-    "ast_hash": "903624cec4c13388c4bbcd65030f5690",
+    "mtime": 1784566113.1831057,
+    "ast_hash": "31a8a9258e081e358393343dd4e92063",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720065725-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-01.prompt.md": {
-    "mtime": 1784530756.5284846,
-    "ast_hash": "0186443022d6449a2ce9e42971b75839",
+    "mtime": 1784566113.2261055,
+    "ast_hash": "863d040f00bf5e1276316a29369c4844",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720065725-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-02.prompt.md": {
-    "mtime": 1784530756.5294843,
-    "ast_hash": "adedd79438028864ee715cd84b666dde",
+    "mtime": 1784566113.233107,
+    "ast_hash": "b62cfaa9bae2790f4e8cf5d07459a94c",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720065725-a-ponte-que-comecou-a-dancar-a/script/polished_voiceover.md": {
-    "mtime": 1784530671.2439003,
-    "ast_hash": "f67a4c2eefc10723f75bd2d7bc29fd03",
+    "mtime": 1784566113.265107,
+    "ast_hash": "60e7d01ef9df36feb284e2563cd6448e",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720070200-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-01.creator_output.md": {
-    "mtime": 1784531101.1921096,
-    "ast_hash": "8a90008a18841bef5a523b149cfb8746",
+    "mtime": 1784566113.2881064,
+    "ast_hash": "cb7ea52cab480f298c4c78c704f854ef",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720070200-a-ponte-que-comecou-a-dancar-a/creator_outputs/board-02.creator_output.md": {
-    "mtime": 1784531101.1921096,
-    "ast_hash": "8e06f186258149d20df84ec409f89f33",
+    "mtime": 1784566113.293106,
+    "ast_hash": "0b78dae9d345897d884fd75b75023a7c",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720070200-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-01.prompt.md.prompt.md": {
-    "mtime": 1784531072.0120144,
-    "ast_hash": "86f49a91718554748e2717412a3be9f5",
+    "mtime": 1784566113.3211057,
+    "ast_hash": "48351c31fccdb604644943fddcecc51a",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720070200-a-ponte-que-comecou-a-dancar-a/infographic/image_prompts/board-02.prompt.md.prompt.md": {
-    "mtime": 1784531072.0120144,
-    "ast_hash": "898650fce3f33913fc384fc2c2ebbd90",
+    "mtime": 1784566113.327106,
+    "ast_hash": "9e553daf10c347deb85ae039d7eeb597",
     "semantic_hash": ""
   },
   "whiteboard-runs/20260720070200-a-ponte-que-comecou-a-dancar-a/script/polished_voiceover.md": {
-    "mtime": 1784531060.216045,
-    "ast_hash": "78bd88581a25f690c5103c1ff3f2e4e0",
+    "mtime": 1784566113.342107,
+    "ast_hash": "89638fa7def1e1bb0f5d0a3317c6fb48",
     "semantic_hash": ""
   },
   ".agents/SCRIPT_AUTOMELHORIA_NARRADORPRO.md": {
@@ -10287,6 +10287,61 @@
   ".agents/SCRIPT_AUTOMELHORIA_PESQUISA.md": {
     "mtime": 1784560142.885918,
     "ast_hash": "62f95d904710b1da7dac653bf2ca5f90",
+    "semantic_hash": ""
+  },
+  "channels/_registry.json": {
+    "mtime": 1784569760.8964102,
+    "ast_hash": "68fe206835a66112bbdea7e1309c0501",
+    "semantic_hash": ""
+  },
+  "channels/_template/channel.config.json": {
+    "mtime": 1784569784.4599361,
+    "ast_hash": "812143e2fcba7504a28acf7b78e5a680",
+    "semantic_hash": ""
+  },
+  "channels/engenharia-impossivel/channel.config.json": {
+    "mtime": 1784569769.1099458,
+    "ast_hash": "9fc180e93a6c5ded524a26ee297c3afa",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/channelProfiles.js": {
+    "mtime": 1784569807.88946,
+    "ast_hash": "3778b8a120ab1bc63fdab45f1b72c47e",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/channelProfiles.test.js": {
+    "mtime": 1784569829.5574813,
+    "ast_hash": "fae6b68be2b77cc0fab58481e9898a7d",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/channelProjectDefaults.js": {
+    "mtime": 1784569822.9549959,
+    "ast_hash": "7be92ea1af6fb75cccb91377d6a41135",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/channelRoutes.js": {
+    "mtime": 1784569815.9149132,
+    "ast_hash": "82f4bab59bd29ec93e6a9268c121f3ae",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/ChannelSwitcher.tsx": {
+    "mtime": 1784569862.29353,
+    "ast_hash": "56b40f2e0cf4c5b8ce1e34ae8b1bb1f0",
+    "semantic_hash": ""
+  },
+  "scripts/create-channel.ps1": {
+    "mtime": 1784569901.4657187,
+    "ast_hash": "a4ff746323b9b553ba87402939b37a2f",
+    "semantic_hash": ""
+  },
+  "channels/_template/prompts/narracao.md": {
+    "mtime": 1784569791.5234404,
+    "ast_hash": "eba571c419295064b488cb6b4582c01c",
+    "semantic_hash": ""
+  },
+  "channels/engenharia-impossivel/prompts/narracao.md": {
+    "mtime": 1784569776.3322625,
+    "ast_hash": "758d043acb50c9a15f5c0f762ed1a080",
     "semantic_hash": ""
   }
 }
