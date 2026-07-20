@@ -1,35 +1,44 @@
 # Agent Instructions & Guidelines
 
 ## 1. Obligatory Pre-requisite Check
+
 - Before performing any work or analysis, the agent MUST read this file and follow its rules.
 
 ## 2. Commit, Restart & Git Management Rules (OBRIGATÓRIO — SEM EXCEÇÃO)
 
 ### Commits
+
 - **COMMITS ARE MANDATORY**: Whenever you make any changes to the codebase (files added, modified, or deleted), you MUST immediately run `git add` and `git commit`.
 - Do NOT finish a turn or leave changes uncommitted.
 - Do NOT ask the user to commit — the agent commits autonomously.
 - **Não commitar por padrão** (config local do usuário): `config_qanat.json`, `dashboard-qanat/backend/studio_agents_config.json` — salvo pedido explícito.
 
-### Reinício de servidores (automático quando necessário)
-- **Backend** (`dashboard-qanat/backend/**` alterado): reiniciar `node server.js` na porta **3005** — sem esperar o usuário pedir.
-- **Frontend** (proxy `vite.config.ts` ou rotas API): reiniciar Vite na porta **5176** se a mudança exigir.
+### Reinício de servidores e Build Frontend (OBRIGATÓRIO — SEM EXCEÇÃO)
+
+- **Frontend / Interface** (`dashboard-qanat/frontend/**` alterado):
+  - **OBRIGATÓRIO**: Executar `npm run build` na pasta `dashboard-qanat/frontend` para atualizar os arquivos estáticos de produção em `dist/`.
+  - **OBRIGATÓRIO**: Reiniciar o backend (`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/restart-backend.ps1 -Force`) na porta **3005** para servir a nova build no aplicativo.
+  - Reiniciar Vite na porta **5176** (`scripts/ensure-frontend.ps1`) se estiver testando via dev server.
+- **Backend** (`dashboard-qanat/backend/**` alterado): reiniciar `node server.js` na porta **3005** via `scripts/restart-backend.ps1 -Force` — sem esperar o usuário pedir.
 - Script: `scripts/restart-backend.ps1` ou skill `.agents/skills/lumiera-ops/SKILL.md`.
 - Regra Cursor: `.cursor/rules/lumiera-ops.mdc` (`alwaysApply: true`).
 
 ### Ordem ao finalizar tarefa
-1. Implementar → 2. Reiniciar servidores afetados → 3. Commit → 4. Informar usuário (commit + servidores).
+
+1. Implementar → 2. Build Frontend (`npm run build`) se alterou frontend → 3. Reiniciar servidores afetados → 4. Commit → 5. Informar usuário.
 
 ## 3. Subtitles (Legends) and Overlays Rules
+
 - **NO OVERLAPS**: Ensure that information cards, charts, timelines, or any other overlays do NOT display on top of the subtitles. Subtitles must remain visible, uncluttered, and readable at all times.
 - **LEGEND STYLING**: Subtitles/legends must look highly premium, organized, and cinematic. Avoid messy, plain, or disorganized formatting. Use clean fonts (e.g., modern uppercase sans-serif like Montserrat or Impact, with text-shadow / outline for readability), proper word-wrapping, and professional layout sizing.
 
 ## 4. YouTube SEO, RPM & HyperFrames Orchestration Rules
+
 - **ROLE**: Act as a professional video design agent that optimizes visual retention based on YouTube's SEO algorithms.
 - **RPM DESIGN STRATEGY**: Adapt visual theme aesthetics based on the video's niche and RPM potential:
-  * *High RPM (Tech/Finance):* Premium dark backgrounds, neon-accented glows, code mockups/terminals, precise numeric counters.
-  * *Medium-High RPM (History/Mystery):* Serif typography (`Cinzel`), double borders, warm ambient glows, "ancient"/"mysterious" styles.
-  * *Medium RPM (Nature/Geography):* Green/earth tones, clean sans-serif layouts (`Montserrat`, `Inter`), minimal side rules.
+  - _High RPM (Tech/Finance):_ Premium dark backgrounds, neon-accented glows, code mockups/terminals, precise numeric counters.
+  - _Medium-High RPM (History/Mystery):_ Serif typography (`Cinzel`), double borders, warm ambient glows, "ancient"/"mysterious" styles.
+  - _Medium RPM (Nature/Geography):_ Green/earth tones, clean sans-serif layouts (`Montserrat`, `Inter`), minimal side rules.
 - **ELIMINATE THEMATIC FLOATING CARDS**: Convert all text-heavy or thematic `info-card` overlays into elegant `lower-third` overlays (mapping descriptions to subtitles and adjusting positions) to keep the center of the video clean and cinematic.
 - **INFOGRAPHIC PRIORITY**: Always show dynamic infographics (like `counter`, `bar-chart`, `timeline`) on screen instead of text overlays when displaying percentages, statistics, or steps.
 - **CATALOG EXCLUSIVITY**: Use exclusively the Remotion-transformed resources listed in `SKILL.md` (e.g., Soft Pill, Accent Underline, Shimmer, Shaders, macOS bash, etc.) to compose and edit each video.

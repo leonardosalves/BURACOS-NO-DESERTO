@@ -1,3 +1,9 @@
+## Frontend Build & Backend Restart (OBRIGATÓRIO PARA QUALQUER AGENTE)
+
+- **Mudanças no Frontend (`dashboard-qanat/frontend/**`)**:
+  - **OBRIGATÓRIO**: Executar `npm run build` na pasta `dashboard-qanat/frontend` para gerar o pacote estático de produção em `dist/`.
+  - **OBRIGATÓRIO**: Reiniciar o backend via `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/restart-backend.ps1 -Force` na porta 3005 para servir a nova build no aplicativo.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

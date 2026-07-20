@@ -17,39 +17,31 @@ Após **qualquer** alteração em arquivos do repositório (código, regras, ski
 
 **Proibido:** deixar diff pendente e pedir ao usuário para commitar.
 
-## 2. Reiniciar servidores (quando necessário)
+## 2. Build Frontend e Reiniciar servidores (OBRIGATÓRIO PARA QUALQUER AGENTE)
 
-Reinicie **sem o usuário pedir** quando alterar:
+Qualquer agente DEVE executar o checklist abaixo sempre que alterar o Frontend ou Backend:
 
-| Área | Arquivos típicos | Ação |
-|------|------------------|------|
-| Backend | `dashboard-qanat/backend/**` | Reiniciar `node server.js` na porta **3005** |
-| Frontend (rotas/proxy) | `vite.config.ts`, `App.tsx` (API) | Reiniciar Vite na porta **5176** se mudança exigir |
-| Apenas CSS/componentes React | `frontend/src/**` | Vite hot-reload — reinício opcional |
+| Área | Arquivos alterados | Ação OBRIGATÓRIA (Qualquer Agente) |
+|------|------------------|------------------------------------|
+| **Frontend / Interface** | `dashboard-qanat/frontend/**` | 1. **`cd dashboard-qanat/frontend; npm run build`** (OBRIGATÓRIO para atualizar o pacote de produção em `dist/` servido pelo aplicativo)<br>2. **`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/restart-backend.ps1 -Force`** (OBRIGATÓRIO para o backend carregar os novos arquivos de produção na porta 3005) |
+| **Backend** | `dashboard-qanat/backend/**` | **`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/restart-backend.ps1 -Force`** (reiniciar backend na porta 3005) |
 
 ### Comandos (Windows / PowerShell)
 
-Backend:
+Frontend Build + Backend Restart:
 ```powershell
-Get-NetTCPConnection -LocalPort 3005 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
-Set-Location "dashboard-qanat/backend"; node server.js
-```
-
-Ou: `.\scripts\restart-backend.ps1`
-
-Frontend (se necessário):
-```powershell
-Get-NetTCPConnection -LocalPort 5176 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
-Set-Location "dashboard-qanat/frontend"; npm run dev
+cd "dashboard-qanat/frontend"; npm run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/restart-backend.ps1 -Force
 ```
 
 ## 3. Ordem de execução ao finalizar tarefa
 
 1. Implementar / corrigir
-2. Reiniciar servidores afetados (em background)
-3. Commit
-4. Resumir para o usuário (o que mudou + commit + servidores reiniciados)
+2. **Build Frontend (`npm run build` em `dashboard-qanat/frontend`)** — SE alterou qualquer arquivo de frontend
+3. Reiniciar backend / servidores afetados
+4. Commit (`git add` + `git commit`)
+5. Resumir para o usuário (o que mudou + build + commit + servidores reiniciados)
 
 ## 4. Leitura obrigatória
 
-Antes de trabalhar no Lumiera, ler `.agents/AGENTS.md` (seção 2 e 6).
+Antes de trabalhar no Lumiera, QUALQUER agente DEVE ler `.agents/AGENTS.md` (seção 2 e 6).

@@ -12,7 +12,11 @@ Rules:
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
 
-## Lumiera Dev Loop
+## Lumiera Dev Loop & Frontend Build Rules (OBRIGATÓRIO)
+
+- **Mudanças de Frontend (`dashboard-qanat/frontend/**`)**:
+  - **SEMPRE** executar `npm run build` em `dashboard-qanat/frontend` para atualizar o pacote de produção em `dist/`.
+  - **SEMPRE** reiniciar o backend (`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/restart-backend.ps1 -Force`) na porta 3005 para servir a nova build no aplicativo.
 
 - Validate a PRD before execution with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/lumiera-dev-loop/lumiera-dev-loop.ps1 -PrdPath <path> -ValidateOnly`.
 - Run autonomous stories only through the isolated worktree created by that script. Never point `codex exec` at the primary workspace.
