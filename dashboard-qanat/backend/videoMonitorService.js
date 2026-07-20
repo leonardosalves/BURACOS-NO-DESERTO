@@ -9,7 +9,14 @@
  */
 
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { fetchWithRetry } from "./fetchWithRetry.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const WORKSPACE_DIR = path.resolve(__dirname, "../../");
 
 const YT_API_BASE = "https://www.googleapis.com/youtube/v3";
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
@@ -37,21 +44,51 @@ export function createRunId() {
 }
 
 function getYoutubeApiKey() {
-  return (
+  if (
     process.env.YOUTUBE_API_KEY ||
     process.env.YT_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    null
-  );
+    process.env.GOOGLE_API_KEY
+  ) {
+    return (
+      process.env.YOUTUBE_API_KEY ||
+      process.env.YT_API_KEY ||
+      process.env.GOOGLE_API_KEY
+    );
+  }
+  try {
+    const configPath = path.join(WORKSPACE_DIR, "config_qanat.json");
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      if (config.youtube_api_key) return config.youtube_api_key;
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  return null;
 }
 
 function getGeminiApiKey() {
-  return (
+  if (
     process.env.GEMINI_API_KEY ||
     process.env.GOOGLE_GEMINI_KEY ||
-    process.env.GOOGLE_AI_KEY ||
-    null
-  );
+    process.env.GOOGLE_AI_KEY
+  ) {
+    return (
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_GEMINI_KEY ||
+      process.env.GOOGLE_AI_KEY
+    );
+  }
+  try {
+    const configPath = path.join(WORKSPACE_DIR, "config_qanat.json");
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      if (config.gemini_api_key) return config.gemini_api_key;
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  return null;
 }
 
 function getOpenAiApiKey() {
