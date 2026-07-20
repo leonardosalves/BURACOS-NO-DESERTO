@@ -1,0 +1,50 @@
+{
+  "topic": "A ponte que começou a dançar antes de desabar",
+  "style": "explicativo, conciso, intrigante",
+  "targetDurationSec": 45,
+  "estimatedDurationSec": 45,
+  "segments": [
+    {
+      "name": "hook",
+      "text": "Imagine uma ponte moderna, elegante, mas que, com um vento leve, começa a balançar como uma fita. Uma ponte que, literalmente, começou a dançar.",
+      "spokenAnchors": ["Imagine uma ponte", "começa a dançar"],
+      "estimatedDurationSec": 7
+    },
+    {
+      "name": "反常识",
+      "text": "O mais surpreendente? Ela não desabou porque o vento era forte demais. Mas sim porque seu próprio movimento, de forma inesperada, a levou ao colapso.",
+      "spokenAnchors": [
+        "não desabou porque o vento era forte demais",
+        "seu próprio movimento"
+      ],
+      "estimatedDurationSec": 7
+    },
+    {
+      "name": "例子",
+      "text": "Em 1940, nos EUA, a Ponte Tacoma Narrows era assim. Apelidada de 'Galloping Gertie', a Gertie Galopante, ela era um espetáculo assustador.",
+      "spokenAnchors": ["Ponte Tacoma Narrows", "Galloping Gertie"],
+      "estimatedDurationSec": 7
+    },
+    {
+      "name": "转折",
+      "text": "No dia 7 de novembro, o vento fez a estrutura torcer cada vez mais. A ponte não resistiu porque seu formato permitiu que o movimento alimentasse novas oscilações.",
+      "spokenAnchors": ["torcer cada vez mais", "alimentasse novas oscilações"],
+      "estimatedDurationSec": 8
+    },
+    {
+      "name": "método",
+      "text": "Esse fenômeno é o flutter aeroelástico. Quanto mais a ponte se movia, mais energia o vento transferia para ela, num ciclo vicioso até a ruptura.",
+      "spokenAnchors": [
+        "flutter aeroelástico",
+        "mais energia o vento transferia"
+      ],
+      "estimatedDurationSec": 8
+    },
+    {
+      "name": "conclusão",
+      "text": "O desastre da Tacoma Narrows mudou a engenharia para sempre. Desde então, pontes são rigorosamente testadas em túneis de vento antes da construção.",
+      "spokenAnchors": ["mudou a engenharia", "testadas em túneis de vento"],
+      "estimatedDurationSec": 8
+    }
+  ]
+}

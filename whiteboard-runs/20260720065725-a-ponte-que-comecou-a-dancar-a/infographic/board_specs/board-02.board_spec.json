@@ -1,0 +1,42 @@
+{
+  "boardId": "board-02",
+  "layout": "single_panel",
+  "diagrams": [
+    {
+      "diagramId": "diag-04",
+      "type": "process_flow",
+      "title": "Causa Real: Design e Ressonância",
+      "labels": [
+        "Vento",
+        "Design Estreito",
+        "Transferência de Energia",
+        "Ressonância"
+      ],
+      "description": "Diagrama da seção transversal da ponte, mostrando o vento interagindo com sua forma. Setas indicando como o vento transfere energia para o movimento vertical e de torção. Texto: 'Design Estreito + Vento = Ressonância'."
+    },
+    {
+      "diagramId": "diag-05",
+      "type": "process_flow",
+      "title": "Flutter Aeroelástico: O Fenômeno",
+      "labels": [
+        "Vento",
+        "Movimento da Ponte",
+        "Amplificação",
+        "Colapso Estrutural"
+      ],
+      "description": "Texto: 'Flutter Aeroelástico'. Animação de um ciclo vicioso: vento -> movimento da ponte -> mais energia do vento -> mais movimento. A ponte se deforma e, finalmente, colapsa em pedaços."
+    },
+    {
+      "diagramId": "diag-06",
+      "type": "process_flow",
+      "title": "Legado: Engenharia de Pontes Aprimorada",
+      "labels": [
+        "Desastre Tacoma",
+        "Lição Aprendida",
+        "Túneis de Vento",
+        "Pontes Seguras"
+      ],
+      "description": "Desenho de um túnel de vento com um modelo de ponte sendo testado. Linhas de fluxo de ar. Em seguida, um blueprint de uma ponte moderna e segura. Texto: 'Engenharia Mais Segura: Testes em Túneis de Vento'."
+    }
+  ]
+}

@@ -5,8 +5,8 @@
 ## Meta
 
 niche: Curiosidades
-updated: 2026-07-20T03:46:59.845Z
-runs: 22
+updated: 2026-07-20T16:48:27.823Z
+runs: 26
 
 ## Padrões promovidos
 
@@ -14,5 +14,5 @@ runs: 22
 
 ## Candidatos (em observação)
 
-- [LONG/no_bgm] Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia (count: 16)
+- [LONG/no_bgm] Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia (count: 20)
 - [SHORT/no_bgm] Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia (count: 6)

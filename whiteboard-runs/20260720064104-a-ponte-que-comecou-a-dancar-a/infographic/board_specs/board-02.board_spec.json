@@ -1,0 +1,27 @@
+{
+  "title": "A Física e a Solução Moderna",
+  "layout": "knowledge_map",
+  "panels": [
+    {
+      "id": "panel_2_1",
+      "title": "Flutter Aeroelástico",
+      "description": "Diagrama cíclico mostrando a força do vento torcendo a ponte, e a própria torção capturando mais vento, criando um ciclo infinito de feedback de energia."
+    },
+    {
+      "id": "panel_2_2",
+      "title": "Túneis de Vento",
+      "description": "Desenho de uma câmara de teste (túnel de vento) com um grande exaustor industrial e uma maquete de ponte recebendo linhas de fumaça aerodinâmicas suaves."
+    },
+    {
+      "id": "panel_2_3",
+      "title": "Leis da Física",
+      "description": "Uma prancheta de engenharia com fórmulas matemáticas, um design de ponte elegante e um grande símbolo de 'check' verde, simbolizando segurança e aprovação."
+    }
+  ],
+  "annotations": [
+    "Flutter Aeroelástico",
+    "Ciclo de Feedback",
+    "Testes de Maquete",
+    "Estética + Física"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "topic": "A ponte que começou a dançar antes de desabar",
+  "visualStyle": "whiteboard animation",
+  "beats": [
+    {
+      "segmentId": "s1",
+      "visualIntent": "Desenho de uma ponte estática que começa a se curvar e torcer exageradamente. Linhas de vento indicam movimento.",
+      "description": "Uma ponte inicialmente sólida começa a se deformar e torcer de forma dramática, ilustrando o movimento 'dançante' e selvagem."
+    },
+    {
+      "segmentId": "s2",
+      "visualIntent": "Contraste visual: uma nuvem de tempestade com raios (riscada) e, ao lado, uma brisa suave (setas de vento leves). Um grande ponto de interrogação.",
+      "description": "Visualização da ideia errada de uma tempestade versus a realidade de ventos moderados, com um ponto de interrogação para instigar a curiosidade sobre a verdadeira causa."
+    },
+    {
+      "segmentId": "s3",
+      "visualIntent": "Desenho da Ponte Tacoma Narrows (longa, estreita e elegante). Balões de fala com o apelido 'Galloping Gertie' e setas indicando balanço.",
+      "description": "Ilustração da ponte com suas características esguias e o apelido, mostrando visualmente o balanço excessivo."
+    },
+    {
+      "segmentId": "s4",
+      "visualIntent": "Setas de vento moderado. A ponte começa a oscilar. Uma seta curva da ponte para o vento, e do vento para a ponte, formando um loop de feedback.",
+      "description": "Visualização do ciclo de feedback: o movimento da ponte interage com o vento, que por sua vez amplifica o movimento, em vez de apenas ventos fortes."
+    },
+    {
+      "segmentId": "s5",
+      "visualIntent": "Diagrama simplificado de 'flutter aeroelástico' com a ponte se torcendo. Setas indicam transferência de energia do vento para a estrutura, com um medidor de 'Energia' acumulando.",
+      "description": "Representação esquemática do fenômeno de flutter, mostrando a acumulação de energia e a torção progressiva da estrutura."
+    },
+    {
+      "segmentId": "s6",
+      "visualIntent": "Desenho de uma ponte moderna em miniatura sendo testada dentro de um túnel de vento. Engenheiros observando em um painel de controle.",
+      "description": "Uma ponte em miniatura dentro de um túnel de vento, com engenheiros analisando dados, simbolizando a mudança e a segurança na prática da engenharia moderna."
+    }
+  ]
+}

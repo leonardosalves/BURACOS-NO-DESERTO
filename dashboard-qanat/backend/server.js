@@ -1187,6 +1187,13 @@ async function fetchAiQuotaSnapshot(projectDir = WORKSPACE_DIR) {
         : "Cole a chave sk-… em Configurações → IA → TokenRouter.";
       snapshot.note =
         "Gateway unificado (300+ modelos). base_url = https://api.tokenrouter.com/v1";
+    } else if (provider === "opencode") {
+      const hasKey = Boolean(getOpenCodeApiKey(projectDir));
+      const base = getOpenCodeBaseUrl(projectDir);
+      snapshot.ok = true; // chave padrão embutida
+      snapshot.label = "OpenCode · Forge Gateway API";
+      snapshot.detail = `Modelo ${model || getOpenCodeModel(projectDir)}. Host: ${base.replace(/^https?:\/\//, "").slice(0, 48)}…`;
+      snapshot.note = `32 modelos (DeepSeek, GPT, Claude, Grok, Kimi, Gemini). base_url = ${OPENCODE_DEFAULT_BASE_URL}`;
     } else if (provider === "local") {
       snapshot.ok = true;
       snapshot.label = "LLM local · sem cota cloud";
@@ -11709,6 +11716,287 @@ const ALIBABA_MODEL_OPTIONS = [
 const ALIBABA_MODELS = ALIBABA_MODEL_OPTIONS.map((o) => o.id);
 const DEFAULT_ALIBABA_MODEL = ALIBABA_MODELS[0];
 
+/** OpenCode — Forge Gateway API (https://forge-gateway-api.fly.dev/v1) */
+const OPENCODE_DEFAULT_BASE_URL = "https://forge-gateway-api.fly.dev/v1";
+const DEFAULT_OPENCODE_API_KEY = "fg-05a25d51fb71453b9dbd04a8c59837f3";
+const DEFAULT_OPENCODE_MODEL = "deepseek-v3";
+
+const OPENCODE_MODEL_OPTIONS = [
+  {
+    id: "deepseek-v3",
+    label: "DeepSeek V3",
+    hint: "Padrão — equilíbrio custo/qualidade",
+  },
+  { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash", hint: "Rápido" },
+  {
+    id: "deepseek-v4-pro",
+    label: "DeepSeek V4 Pro",
+    hint: "Máxima qualidade DeepSeek",
+  },
+  { id: "deepseek-v3.2", label: "DeepSeek V3.2", hint: "Variante V3.2" },
+  { id: "deepseek-v3.1", label: "DeepSeek V3.1", hint: "Variante V3.1" },
+  { id: "deepseek-r1", label: "DeepSeek R1", hint: "Raciocínio avançado" },
+  { id: "gpt-5.6-luna", label: "GPT-5.6 Luna", hint: "OpenAI Luna" },
+  { id: "gpt-5.6-sol", label: "GPT-5.6 Sol", hint: "OpenAI Sol" },
+  { id: "gpt-5.6-terra", label: "GPT-5.6 Terra", hint: "OpenAI Terra" },
+  { id: "gpt-5.5", label: "GPT-5.5", hint: "OpenAI GPT-5.5" },
+  { id: "gpt-5.3-codex", label: "GPT-5.3 Codex", hint: "OpenAI Codex" },
+  {
+    id: "claude-opus-4-5-20251101",
+    label: "Claude Opus 4.5",
+    hint: "Anthropic Opus",
+  },
+  {
+    id: "claude-sonnet-4-5-20250929",
+    label: "Claude Sonnet 4.5",
+    hint: "Anthropic Sonnet 4.5",
+  },
+  {
+    id: "claude-haiku-4-5-20251001",
+    label: "Claude Haiku 4.5",
+    hint: "Anthropic Haiku 4.5",
+  },
+  {
+    id: "claude-sonnet-4-6",
+    label: "Claude Sonnet 4.6",
+    hint: "Anthropic Sonnet 4.6",
+  },
+  {
+    id: "claude-sonnet-4-6-thinking",
+    label: "Claude Sonnet 4.6 Thinking",
+    hint: "Anthropic Sonnet 4.6 Thinking",
+  },
+  {
+    id: "claude-sonnet-5",
+    label: "Claude Sonnet 5",
+    hint: "Anthropic Sonnet 5",
+  },
+  { id: "grok-4.5", label: "Grok 4.5", hint: "xAI Grok 4.5" },
+  { id: "grok-4.3", label: "Grok 4.3", hint: "xAI Grok 4.3" },
+  { id: "grok-build-0.1", label: "Grok Build 0.1", hint: "xAI Grok Build" },
+  { id: "kimi-k3", label: "Kimi K3", hint: "Moonshot Kimi K3" },
+  { id: "kimi-k2.7-code", label: "Kimi K2.7 Code", hint: "Moonshot Kimi code" },
+  { id: "kimi-k2.6", label: "Kimi K2.6", hint: "Moonshot Kimi K2.6" },
+  { id: "kimi-k2.5", label: "Kimi K2.5", hint: "Moonshot Kimi K2.5" },
+  {
+    id: "gemini-3-pro-preview",
+    label: "Gemini 3 Pro Preview",
+    hint: "Google Gemini 3 Pro",
+  },
+  {
+    id: "gemini-3.5-flash",
+    label: "Gemini 3.5 Flash",
+    hint: "Google Gemini 3.5 Flash",
+  },
+  { id: "tencent/hy3", label: "Hunyuan 3", hint: "Tencent Hunyuan" },
+  { id: "mimo-v2.5", label: "MiMo V2.5", hint: "XiaoMi MiMo" },
+  { id: "mimo-v2.5-pro", label: "MiMo V2.5 Pro", hint: "XiaoMi MiMo Pro" },
+  { id: "MiniMax-M3", label: "MiniMax M3", hint: "MiniMax M3" },
+  { id: "MiniMax-M2.5", label: "MiniMax M2.5", hint: "MiniMax M2.5" },
+  { id: "glm-5.2", label: "GLM-5.2", hint: "Zhipu GLM-5.2" },
+];
+
+const OPENCODE_MODELS = OPENCODE_MODEL_OPTIONS.map((o) => o.id);
+
+function getOpenCodeApiKey(projectDir = WORKSPACE_DIR) {
+  if (process.env.OPENCODE_API_KEY) return process.env.OPENCODE_API_KEY;
+  const readConfigKey = (configPath) => {
+    const config = readJsonFile(configPath);
+    return config?.opencode_api_key || null;
+  };
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+  if (projectKey) return projectKey;
+  if (projectDir !== WORKSPACE_DIR) {
+    return (
+      readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json")) ||
+      DEFAULT_OPENCODE_API_KEY
+    );
+  }
+  return DEFAULT_OPENCODE_API_KEY;
+}
+
+function getOpenCodeBaseUrl(projectDir = WORKSPACE_DIR) {
+  const readConfigKey = (configPath) => {
+    const config = readJsonFile(configPath);
+    return config?.opencode_base_url || null;
+  };
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+  if (projectKey) return projectKey;
+  if (projectDir !== WORKSPACE_DIR) {
+    return (
+      readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json")) ||
+      OPENCODE_DEFAULT_BASE_URL
+    );
+  }
+  return OPENCODE_DEFAULT_BASE_URL;
+}
+
+function getOpenCodeModel(projectDir = WORKSPACE_DIR) {
+  const readConfigKey = (configPath) => {
+    const config = readJsonFile(configPath);
+    return config?.opencode_model || null;
+  };
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+  if (projectKey) return projectKey;
+  if (projectDir !== WORKSPACE_DIR) {
+    return (
+      readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json")) ||
+      DEFAULT_OPENCODE_MODEL
+    );
+  }
+  return DEFAULT_OPENCODE_MODEL;
+}
+
+function getOpenCodeModelChain(
+  projectDir = WORKSPACE_DIR,
+  overrideModels = null
+) {
+  if (Array.isArray(overrideModels) && overrideModels.length > 0) {
+    return [...new Set(overrideModels.filter(Boolean))];
+  }
+  const primary = getOpenCodeModel(projectDir);
+  const fallbacks = [
+    "deepseek-v4-flash",
+    "deepseek-v3",
+    "kimi-k3",
+    "gpt-5.6-luna",
+  ];
+  return [...new Set([primary, ...fallbacks])];
+}
+
+async function callOpenCodeWithRetry(
+  promptOrBody,
+  {
+    maxRetries = 3,
+    bodyOverride = null,
+    projectDir = WORKSPACE_DIR,
+    temperature = null,
+    models = null,
+    maxTokens = null,
+  } = {}
+) {
+  const apiKey = getOpenCodeApiKey(projectDir);
+  if (!apiKey) {
+    throw new Error("Chave de API OpenCode não configurada.");
+  }
+  const baseUrl = getOpenCodeBaseUrl(projectDir).replace(/\/+$/, "");
+  const messages = convertGeminiToOpenRouterMessages(
+    promptOrBody,
+    bodyOverride
+  );
+  const tokenLimit = Math.max(256, Math.min(32000, Number(maxTokens) || 8192));
+  let lastError = null;
+  const modelList =
+    Array.isArray(models) && models.length
+      ? models
+      : getOpenCodeModelChain(projectDir);
+
+  for (const model of modelList) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const t0 = Date.now();
+      try {
+        console.log(
+          `[OpenCode] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries}) @ ${baseUrl}`
+        );
+        const response = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            max_tokens: tokenLimit,
+            ...(temperature !== null ? { temperature } : {}),
+          }),
+        });
+        const ms = Date.now() - t0;
+
+        if (response.ok) {
+          const result = await response.json();
+          const msg = result.choices?.[0]?.message || {};
+          let responseText = typeof msg.content === "string" ? msg.content : "";
+          if (!responseText && Array.isArray(msg.content)) {
+            responseText = msg.content
+              .map((part) =>
+                typeof part === "string"
+                  ? part
+                  : part?.text || part?.content || ""
+              )
+              .join("\n");
+          }
+          const reasoning = String(
+            msg.reasoning_content || msg.reasoning || ""
+          ).trim();
+          if (!responseText && reasoning) {
+            responseText = reasoning;
+          } else if (
+            responseText &&
+            reasoning &&
+            responseText.length < 20 &&
+            reasoning.length > responseText.length * 2
+          ) {
+            responseText = reasoning;
+          }
+          responseText = String(responseText || "")
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+          if (responseText) {
+            console.log(
+              `[OpenCode] Sucesso model=${model} tentativa ${attempt} (${responseText.length} chars · ${ms}ms)`
+            );
+            return responseText;
+          }
+          console.warn(
+            `[OpenCode] ${model} retornou vazio na tentativa ${attempt}/${maxRetries} · ${ms}ms`
+          );
+        }
+
+        const errData = await response.json().catch(() => ({}));
+        const errMsg =
+          errData.error?.message ||
+          errData.message ||
+          response.statusText ||
+          `HTTP ${response.status}`;
+        lastError = new Error(`${model}: ${errMsg}`);
+        console.warn(
+          `[OpenCode] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg} · ${ms}ms`
+        );
+
+        if (response.status === 401) {
+          throw new Error(
+            `OpenCode: chave inválida ou sem permissão (${errMsg})`
+          );
+        }
+        if (response.status === 404 || response.status === 400) {
+          break;
+        }
+        if (response.status === 503 || response.status === 429) {
+          const delay = Math.min(1500 * Math.pow(2, attempt - 1), 10000);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        break;
+      } catch (err) {
+        lastError = err;
+        console.warn(
+          `[OpenCode] Erro na tentativa ${attempt} para ${model}: ${err.message}`
+        );
+        if (/chave inválida/i.test(err.message || "")) throw err;
+        await new Promise((r) => setTimeout(r, Math.min(400 * attempt, 1200)));
+      }
+    }
+  }
+  throw (
+    lastError ||
+    new Error(
+      "Falha ao chamar OpenCode. Confira a chave e https://forge-gateway-api.fly.dev/v1"
+    )
+  );
+}
+
 /** TokenRouter — gateway OpenAI-compatible (https://api.tokenrouter.com/v1) */
 const TOKENROUTER_DEFAULT_BASE_URL = "https://api.tokenrouter.com/v1";
 
@@ -12187,6 +12475,12 @@ async function callGeminiWithRetry(
         providerModelsOverride
       );
       primaryModel = modelsTriedPreview[0] || getTokenRouterModel(projDir);
+    } else if (provider === "opencode") {
+      modelsTriedPreview = getOpenCodeModelChain(
+        projDir,
+        providerModelsOverride
+      );
+      primaryModel = modelsTriedPreview[0] || getOpenCodeModel(projDir);
     } else if (provider === "local") {
       primaryModel = getLocalLlmModel(projDir);
       modelsTriedPreview = primaryModel ? [primaryModel] : [];
@@ -12280,6 +12574,18 @@ async function callGeminiWithRetry(
     }
     if (provider === "tokenrouter") {
       const text = await callTokenRouterWithRetry(promptOrBody, {
+        maxRetries,
+        bodyOverride,
+        projectDir: projDir,
+        temperature,
+        models: providerModelsOverride,
+        maxTokens,
+      });
+      finishOk(primaryModel);
+      return text;
+    }
+    if (provider === "opencode") {
+      const text = await callOpenCodeWithRetry(promptOrBody, {
         maxRetries,
         bodyOverride,
         projectDir: projDir,
@@ -13306,6 +13612,7 @@ function getActiveAiModel(projectDir = WORKSPACE_DIR) {
     if (provider === "alibaba") return getAlibabaModel(projectDir);
     if (provider === "tokenrouter") return getTokenRouterModel(projectDir);
     if (provider === "minimax") return getMinimaxModel(projectDir);
+    if (provider === "opencode") return getOpenCodeModel(projectDir);
     if (provider === "xai") {
       return Array.isArray(XAI_MODELS) && XAI_MODELS[0]
         ? XAI_MODELS[0]
@@ -13821,6 +14128,11 @@ app.get("/api/ai/settings", (req, res) => {
     tokenrouter_model_options: TOKENROUTER_MODEL_OPTIONS,
     tokenrouter_base_url: getTokenRouterBaseUrl(projDir),
 
+    opencode_model: getOpenCodeModel(projDir),
+    opencode_model_options: OPENCODE_MODEL_OPTIONS,
+    opencode_base_url: getOpenCodeBaseUrl(projDir),
+    has_opencode_key: !!getOpenCodeApiKey(projDir),
+
     gemini_key_count: getApiKeys(projDir).length,
 
     has_xai_key: !!getXaiApiKey(projDir),
@@ -13862,6 +14174,9 @@ app.post("/api/ai/settings", (req, res) => {
     minimax_model,
     minimax_base_url,
     tokenrouter_base_url,
+    opencode_model,
+    opencode_base_url,
+    opencode_key,
     gemini_key,
     gemini_keys,
     xai_key,
@@ -13892,6 +14207,7 @@ app.post("/api/ai/settings", (req, res) => {
         provider === "tokenrouter" ||
         provider === "minimax" ||
         provider === "token_router" ||
+        provider === "opencode" ||
         provider === "local"
       ) {
         next.ai_provider =
@@ -14027,6 +14343,20 @@ app.post("/api/ai/settings", (req, res) => {
         next.local_llm_model = local_llm_model.trim();
       }
 
+      if (typeof opencode_model === "string" && opencode_model.trim()) {
+        next.opencode_model = opencode_model.trim();
+      }
+
+      if (typeof opencode_base_url === "string" && opencode_base_url.trim()) {
+        let u = opencode_base_url.trim().replace(/\/+$/, "");
+        if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+        next.opencode_base_url = u;
+      }
+
+      if (typeof opencode_key === "string" && opencode_key.trim()) {
+        next.opencode_api_key = opencode_key.trim();
+      }
+
       return next;
     };
 
@@ -14057,6 +14387,10 @@ app.post("/api/ai/settings", (req, res) => {
       minimax_base_url: getMinimaxBaseUrl(projDir),
       tokenrouter_model_options: TOKENROUTER_MODEL_OPTIONS,
       tokenrouter_base_url: getTokenRouterBaseUrl(projDir),
+      opencode_model: getOpenCodeModel(projDir),
+      opencode_model_options: OPENCODE_MODEL_OPTIONS,
+      opencode_base_url: getOpenCodeBaseUrl(projDir),
+      has_opencode_key: !!getOpenCodeApiKey(projDir),
       gemini_key_count: getApiKeys(projDir).length,
       has_xai_key: !!getXaiApiKey(projDir),
       has_openrouter_key: !!getOpenRouterApiKey(projDir),

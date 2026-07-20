@@ -463,6 +463,45 @@ export default function App() {
       hint: "Roteiros PT",
     },
   ]);
+  const [opencodeKeyInput, setOpencodeKeyInput] = useState<string>("");
+  const [hasOpencodeKey, setHasOpencodeKey] = useState<boolean>(true);
+  const [opencodeBaseUrlInput, setOpencodeBaseUrlInput] = useState<string>(
+    "https://forge-gateway-api.fly.dev/v1"
+  );
+  const [opencodeModel, setOpencodeModel] = useState<string>("deepseek-v3");
+  const [opencodeModelOptions, setOpencodeModelOptions] = useState<
+    Array<{ id: string; label: string; hint?: string }>
+  >([
+    {
+      id: "deepseek-v3",
+      label: "DeepSeek V3",
+      hint: "Padrão — equilíbrio custo/qualidade",
+    },
+    { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash", hint: "Rápido" },
+    {
+      id: "deepseek-v4-pro",
+      label: "DeepSeek V4 Pro",
+      hint: "Máxima qualidade DeepSeek",
+    },
+    { id: "gpt-5.6-luna", label: "GPT-5.6 Luna", hint: "OpenAI Luna" },
+    {
+      id: "claude-sonnet-4-6",
+      label: "Claude Sonnet 4.6",
+      hint: "Anthropic Sonnet 4.6",
+    },
+    {
+      id: "claude-sonnet-5",
+      label: "Claude Sonnet 5",
+      hint: "Anthropic Sonnet 5",
+    },
+    { id: "grok-4.5", label: "Grok 4.5", hint: "xAI Grok 4.5" },
+    { id: "kimi-k3", label: "Kimi K3", hint: "Moonshot Kimi K3" },
+    {
+      id: "gemini-3.5-flash",
+      label: "Gemini 3.5 Flash",
+      hint: "Google Gemini 3.5 Flash",
+    },
+  ]);
   const [localLlmUrlInput, setLocalLlmUrlInput] = useState<string>("");
   const [localLlmModelInput, setLocalLlmModelInput] = useState<string>("");
 
@@ -3279,6 +3318,18 @@ export default function App() {
           setTokenrouterBaseUrlInput(String(settingsData.tokenrouter_base_url));
         }
 
+        setOpencodeModel(settingsData.opencode_model || "deepseek-v3");
+        if (
+          Array.isArray(settingsData.opencode_model_options) &&
+          settingsData.opencode_model_options.length > 0
+        ) {
+          setOpencodeModelOptions(settingsData.opencode_model_options);
+        }
+        if (settingsData.opencode_base_url) {
+          setOpencodeBaseUrlInput(String(settingsData.opencode_base_url));
+        }
+        setHasOpencodeKey(!!settingsData.has_opencode_key);
+
         setGeminiKeyCount(settingsData.gemini_key_count || 0);
 
         setHasXaiKey(!!settingsData.has_xai_key);
@@ -3306,6 +3357,7 @@ export default function App() {
             !!settingsData.has_alibaba_key ||
             settingsData.provider === "tokenrouter" ||
             !!settingsData.has_tokenrouter_key ||
+            settingsData.provider === "opencode" ||
             settingsData.provider === "local"
         );
       }
@@ -6410,6 +6462,10 @@ export default function App() {
           tokenrouter_model: tokenrouterModel,
           tokenrouter_base_url: tokenrouterBaseUrlInput,
 
+          opencode_model: opencodeModel,
+          opencode_base_url: opencodeBaseUrlInput,
+          opencode_key: opencodeKeyInput,
+
           gemini_keys: geminiKeysInput,
 
           xai_key: xaiKeyInput,
@@ -6479,6 +6535,19 @@ export default function App() {
           setTokenrouterBaseUrlInput(String(data.tokenrouter_base_url));
         }
 
+        if (data.opencode_model) setOpencodeModel(data.opencode_model);
+        if (
+          Array.isArray(data.opencode_model_options) &&
+          data.opencode_model_options.length > 0
+        ) {
+          setOpencodeModelOptions(data.opencode_model_options);
+        }
+        if (data.opencode_base_url) {
+          setOpencodeBaseUrlInput(String(data.opencode_base_url));
+        }
+        setHasOpencodeKey(!!data.has_opencode_key);
+        if (opencodeKeyInput.trim()) setOpencodeKeyInput("");
+
         setHasXaiKey(!!data.has_xai_key);
 
         setHasOpenRouterKey(!!data.has_openrouter_key);
@@ -6503,6 +6572,7 @@ export default function App() {
             !!data.has_nvidia_key ||
             data.provider === "alibaba" ||
             !!data.has_alibaba_key ||
+            data.provider === "opencode" ||
             data.provider === "local"
         );
 
@@ -11502,6 +11572,14 @@ export default function App() {
     setTokenrouterModel,
     setTokenrouterBaseUrlInput,
     setTokenrouterKeyInput,
+    opencodeModel,
+    opencodeModelOptions,
+    opencodeBaseUrlInput,
+    opencodeKeyInput,
+    hasOpencodeKey,
+    setOpencodeModel,
+    setOpencodeBaseUrlInput,
+    setOpencodeKeyInput,
     generateYoutubeMetadata,
     generatedScriptData,
     generatingOverlays,

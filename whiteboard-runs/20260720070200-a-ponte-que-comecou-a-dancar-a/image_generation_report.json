@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "status": "handoff_required",
+  "providerRequested": "interactive",
+  "providerResolved": "interactive",
+  "automatic": false,
+  "projectDir": "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\whiteboard-runs\\20260720070200-a-ponte-que-comecou-a-dancar-a",
+  "reportPath": "image_generation_report.json",
+  "model": null,
+  "size": null,
+  "quality": null,
+  "apiKeyEnv": null,
+  "boards": [
+    {
+      "boardId": "board-01",
+      "promptPath": "imagegen_prompts/board-01.imagegen_prompt.txt",
+      "outputPath": "images/board-01.model-generated.png",
+      "status": "manual_save_required"
+    },
+    {
+      "boardId": "board-02",
+      "promptPath": "imagegen_prompts/board-02.imagegen_prompt.txt",
+      "outputPath": "images/board-02.model-generated.png",
+      "status": "manual_save_required"
+    }
+  ],
+  "manifestPath": null
+}

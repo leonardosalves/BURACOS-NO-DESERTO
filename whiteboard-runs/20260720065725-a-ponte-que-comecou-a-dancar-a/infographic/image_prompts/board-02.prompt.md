@@ -1,0 +1,5 @@
+continuous line art, engineer's notebook sketch, whiteboard explanation aesthetic, parchment background '#faf8f3', charcoal line color '#1a2332', ocean-blue annotations '#2d5a7b', subtle orange '#ff8c00' for energy transfer, subtle green '#32cd32' for safety.
+Diagram 1 (Process Flow): A process flow showing 'Vento' -> 'Design Estreito' -> 'Transferência de Energia' -> 'Ressonância'. Illustrate the bridge's cross-section with wind interaction and energy transfer arrows. Text: 'Narrow Design + Wind = Resonance'.
+Diagram 2 (Process Flow): A process flow showing 'Vento' -> 'Movimento da Ponte' -> 'Amplificação' -> 'Colapso Estrutural'. Illustrate the bridge deforming and finally collapsing into pieces. Text: 'Aeroelastic Flutter'.
+Diagram 3 (Process Flow): A process flow showing 'Desastre Tacoma' -> 'Lição Aprendida' -> 'Túneis de Vento' -> 'Pontes Seguras'. Include a drawing of a wind tunnel with a bridge model being tested, airflow lines, and a blueprint of a modern, safe bridge. Text: 'Safer Engineering: Wind Tunnel Tests'.
+Negative prompt: photorealistic, 3D render, stock photo. 内容简洁一点，不要逐字写满口播.

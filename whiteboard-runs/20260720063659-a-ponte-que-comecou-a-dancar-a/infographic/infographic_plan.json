@@ -1,0 +1,23 @@
+{
+  "topic": "A ponte que começou a dançar antes de desabar",
+  "targetDurationSec": 45,
+  "style": "Whiteboard Explainer",
+  "boards": [
+    {
+      "id": "board-01",
+      "title": "O Fenômeno de Tacoma Narrows",
+      "durationSec": 30,
+      "segments": ["hook", "反常识", "例子", "转折"],
+      "layout_type": "process_flow",
+      "description": "Fluxo visual que conecta o mito da queda por tempestades à realidade do colapso da ponte Tacoma Narrows devido ao flutter aeroelástico."
+    },
+    {
+      "id": "board-02",
+      "title": "A Solução: Engenharia do Vento",
+      "durationSec": 15,
+      "segments": ["方法", "结论"],
+      "layout_type": "two_panel_comparison",
+      "description": "Comparação entre os testes modernos em túneis de vento e a estabilização por meio do controle de ressonância harmônica."
+    }
+  ]
+}

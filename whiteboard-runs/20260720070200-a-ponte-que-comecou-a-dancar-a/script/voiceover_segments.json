@@ -1,0 +1,74 @@
+{
+  "topic": "A ponte que começou a dançar antes de desabar",
+  "style": "explicativo em quadro branco",
+  "targetDurationSec": 45,
+  "estimatedDurationSec": 45,
+  "segments": [
+    {
+      "segmentId": "s1",
+      "type": "hook",
+      "text": "Imagine uma ponte que, em vez de ser estática, começa a dançar. Não um balanço suave, mas uma torção selvagem, como uma fita ao vento.",
+      "spokenAnchors": [
+        "Imagine uma ponte que",
+        "começa a dançar",
+        "como uma fita ao vento"
+      ],
+      "estimatedDurationSec": 7
+    },
+    {
+      "segmentId": "s2",
+      "type": "反常识",
+      "text": "Você pode pensar que foi uma tempestade violenta que a derrubou. Mas a verdade é mais sutil e, ironicamente, mais perigosa.",
+      "spokenAnchors": [
+        "tempestade violenta",
+        "verdade é mais sutil",
+        "mais perigosa"
+      ],
+      "estimatedDurationSec": 6
+    },
+    {
+      "segmentId": "s3",
+      "type": "例子",
+      "text": "Em 1940, a elegante e estreita Ponte Tacoma Narrows, nos EUA, ganhou o apelido de 'Galloping Gertie' por balançar demais, mesmo com ventos moderados.",
+      "spokenAnchors": [
+        "Ponte Tacoma Narrows",
+        "'Galloping Gertie'",
+        "balançar demais"
+      ],
+      "estimatedDurationSec": 8
+    },
+    {
+      "segmentId": "s4",
+      "type": "转折",
+      "text": "No dia 7 de novembro, ela não desabou por ventos fortes demais, mas porque seu formato permitiu que o próprio movimento alimentasse novas e crescentes oscilações.",
+      "spokenAnchors": [
+        "não desabou por ventos fortes demais",
+        "próprio movimento alimentasse",
+        "novas e crescentes oscilações"
+      ],
+      "estimatedDurationSec": 9
+    },
+    {
+      "segmentId": "s5",
+      "type": "方法",
+      "text": "Esse fenômeno é o flutter aeroelástico. Quanto mais a ponte se movia, mais energia o vento transferia para ela, num ciclo vicioso até a falha estrutural.",
+      "spokenAnchors": [
+        "flutter aeroelástico",
+        "mais energia o vento transferia",
+        "ciclo vicioso"
+      ],
+      "estimatedDurationSec": 8
+    },
+    {
+      "segmentId": "s6",
+      "type": "conclusão",
+      "text": "O desastre da 'Gertie Galopante' mudou a engenharia para sempre: desde então, pontes são rigorosamente testadas em túneis de vento antes da construção.",
+      "spokenAnchors": [
+        "mudou a engenharia para sempre",
+        "testadas em túneis de vento",
+        "antes da construção"
+      ],
+      "estimatedDurationSec": 7
+    }
+  ]
+}

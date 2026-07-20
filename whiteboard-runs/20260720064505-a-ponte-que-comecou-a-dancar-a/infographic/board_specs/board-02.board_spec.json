@@ -1,0 +1,37 @@
+{
+  "title": "A Física do Flutter e a Solução",
+  "diagram_type": "two_panel_comparison",
+  "description": "Comparação entre o desastre físico causado pelo flutter aeroelástico e a solução moderna de engenharia com testes em túnel de vento.",
+  "elements": [
+    {
+      "id": "panel-left",
+      "label": "O Colapso (7 de Novembro)",
+      "description": "Calendário rasgado e a ponte se torcendo violentamente a 45 graus até se partir.",
+      "position": "esquerda"
+    },
+    {
+      "id": "panel-center",
+      "label": "Flutter Aeroelástico",
+      "description": "Diagrama de forças mostrando a interação destrutiva entre o vento, a sustentação e a torção.",
+      "position": "centro"
+    },
+    {
+      "id": "panel-right",
+      "label": "Engenharia Moderna",
+      "description": "Maquete de ponte segura sendo testada em um túnel de vento com fluxo aerodinâmico perfeito.",
+      "position": "direita"
+    }
+  ],
+  "connections": [
+    {
+      "from": "panel-left",
+      "to": "panel-center",
+      "type": "explicacao"
+    },
+    {
+      "from": "panel-center",
+      "to": "panel-right",
+      "type": "evolucao"
+    }
+  ]
+}

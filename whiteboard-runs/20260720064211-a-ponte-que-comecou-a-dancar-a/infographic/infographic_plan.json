@@ -1,0 +1,22 @@
+{
+  "topic": "A ponte que começou a dançar antes de desabar",
+  "style": "explicativo, conciso, intrigante",
+  "targetDurationSec": 45,
+  "totalBoards": 2,
+  "boards": [
+    {
+      "boardId": "board-01",
+      "title": "O Mistério de Galloping Gertie",
+      "layoutType": "timeline",
+      "durationSec": 21,
+      "segmentsCovered": ["hook", "反常识", "例子"]
+    },
+    {
+      "boardId": "board-02",
+      "title": "O Flutter Aeroelástico e a Solução",
+      "layoutType": "two_panel_comparison",
+      "durationSec": 24,
+      "segmentsCovered": ["转折", "método", "conclusão"]
+    }
+  ]
+}

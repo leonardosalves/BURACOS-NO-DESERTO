@@ -1,0 +1,50 @@
+{
+  "topic": "A Ponte que Dançou até Cair",
+  "style": "Whiteboard Explainer",
+  "targetDurationSec": 45,
+  "estimatedDurationSec": 45,
+  "segments": [
+    {
+      "id": "seg_1",
+      "type": "hook",
+      "text": "Você já viu uma ponte de aço gigante dançar como se fosse uma fita de cetim?",
+      "spokenAnchors": ["ponte de aço gigante dançar"],
+      "estimatedDurationSec": 6
+    },
+    {
+      "id": "seg_2",
+      "type": "反常识",
+      "text": "O mais bizarro: ela não caiu porque o vento era forte demais, mas porque ela mesma se alimentava da energia do vento.",
+      "spokenAnchors": ["alimentava da energia do vento"],
+      "estimatedDurationSec": 8
+    },
+    {
+      "id": "seg_3",
+      "type": "例子",
+      "text": "Em 1940, a recém-inaugurada Ponte Tacoma Narrows balançava tanto que os motoristas a apelidaram de \"Gertie Galopante\".",
+      "spokenAnchors": ["Gertie Galopante"],
+      "estimatedDurationSec": 8
+    },
+    {
+      "id": "seg_4",
+      "type": "转折",
+      "text": "Mas no dia 7 de novembro, o que era uma diversão virou um pesadelo de torção extrema.",
+      "spokenAnchors": ["pesadelo de torção extrema"],
+      "estimatedDurationSec": 7
+    },
+    {
+      "id": "seg_5",
+      "type": "方法",
+      "text": "Isso é o \"flutter aeroelástico\": quanto mais a estrutura oscilava, mais força o vento aplicava nela, até o colapso.",
+      "spokenAnchors": ["flutter aeroelástico"],
+      "estimatedDurationSec": 8
+    },
+    {
+      "id": "seg_6",
+      "type": "结论",
+      "text": "Hoje, toda ponte é testada em túneis de vento para que a engenharia nunca mais dance com o perigo.",
+      "spokenAnchors": ["testada em túneis de vento"],
+      "estimatedDurationSec": 8
+    }
+  ]
+}

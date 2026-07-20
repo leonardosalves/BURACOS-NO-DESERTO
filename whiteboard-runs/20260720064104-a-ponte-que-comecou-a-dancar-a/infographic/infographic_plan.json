@@ -1,0 +1,18 @@
+{
+  "topic": "A ponte que começou a dançar antes de desabar",
+  "visualStyle": "Whiteboard Animation",
+  "boards": [
+    {
+      "id": "board-01",
+      "title": "O Mistério da Gertie Galopante",
+      "layoutType": "process_flow",
+      "description": "Apresenta a ponte Tacoma Narrows ondulando como uma fita, o paradoxo do vento moderado versus furacão, e o apelido histórico dado pelos motoristas em 1940."
+    },
+    {
+      "id": "board-02",
+      "title": "A Física e a Solução Moderna",
+      "layoutType": "knowledge_map",
+      "description": "Explica o conceito de flutter aeroelástico através de um ciclo de feedback, a solução moderna com testes em túneis de vento e a conclusão sobre as leis da física."
+    }
+  ]
+}

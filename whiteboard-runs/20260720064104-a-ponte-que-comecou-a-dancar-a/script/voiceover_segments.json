@@ -1,0 +1,44 @@
+{
+  "topic": "A ponte que começou a dançar antes de desabar",
+  "style": "Whiteboard Explainer",
+  "targetDurationSec": 45,
+  "estimatedDurationSec": 45,
+  "segments": [
+    {
+      "id": "hook",
+      "text": "Você já viu uma ponte de aço gigante dançar como uma fita antes de desabar?",
+      "spokenAnchors": ["ponte de aço gigante", "dançar como uma fita"],
+      "estimatedDurationSec": 7
+    },
+    {
+      "id": "反常识",
+      "text": "O mais bizarro é que ela não caiu por causa de um furacão, mas sim de um vento moderado.",
+      "spokenAnchors": ["não caiu por causa de um furacão", "vento moderado"],
+      "estimatedDurationSec": 7
+    },
+    {
+      "id": "例子",
+      "text": "Em 1940, a ponte Tacoma Narrows balançava tanto que os motoristas a apelidaram de \"Gertie Galopante\".",
+      "spokenAnchors": ["Tacoma Narrows", "Gertie Galopante"],
+      "estimatedDurationSec": 8
+    },
+    {
+      "id": "转折",
+      "text": "O segredo estava no \"flutter aeroelástico\": o próprio movimento da ponte alimentava a força do vento.",
+      "spokenAnchors": ["flutter aeroelástico", "alimentava a força do vento"],
+      "estimatedDurationSec": 8
+    },
+    {
+      "id": "方法",
+      "text": "A solução? Testar tudo antes. Hoje, maquetes de pontes são colocadas em túneis de vento ultra-tecnológicos.",
+      "spokenAnchors": ["Testar tudo antes", "túneis de vento"],
+      "estimatedDurationSec": 8
+    },
+    {
+      "id": "结论",
+      "text": "A Gertie provou que a beleza de uma obra deve sempre se curvar às leis invisíveis da física.",
+      "spokenAnchors": ["beleza de uma obra", "leis invisíveis da física"],
+      "estimatedDurationSec": 7
+    }
+  ]
+}

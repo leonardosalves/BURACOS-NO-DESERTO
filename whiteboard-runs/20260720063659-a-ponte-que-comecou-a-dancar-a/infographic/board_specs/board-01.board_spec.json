@@ -1,0 +1,24 @@
+{
+  "title": "O Fenômeno de Tacoma Narrows",
+  "layout_type": "process_flow",
+  "steps": [
+    {
+      "step_number": 1,
+      "label": "Mito vs. Realidade",
+      "visual_description": "Uma nuvem de tempestade com raios riscada com um 'X' vermelho, contrastando com uma brisa leve representada por linhas suaves e folhas voando.",
+      "text_elements": ["Senso Comum: Tempestades", "Realidade: Brisa Moderada"]
+    },
+    {
+      "step_number": 2,
+      "label": "A 'Gertie Galopante'",
+      "visual_description": "Silhueta da ponte Tacoma Narrows de 1940 ondulando como gelatina verde, com um carro clássico subindo e descendo na pista.",
+      "text_elements": ["Tacoma Narrows (1940)", "Apelido: 'Gertie Galopante'"]
+    },
+    {
+      "step_number": 3,
+      "label": "O Flutter Aeroelástico",
+      "visual_description": "Setas de vento azul contornando o tabuleiro da ponte e criando redemoinhos (vórtices) que forçam a estrutura a oscilar violentamente.",
+      "text_elements": ["Vento Constante", "Flutter Aeroelástico"]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "title": "O Flutter Aeroelástico e a Solução",
+  "layout": "two_panel_comparison",
+  "description": "Painel esquerdo detalha o ciclo vicioso do Flutter Aeroelástico (Flywheel). Painel direito mostra a solução moderna com testes em túnel de vento.",
+  "elements": [
+    {
+      "id": "panel-left",
+      "type": "flywheel",
+      "label": "Ciclo Vicioso: Flutter Aeroelástico",
+      "description": "O vento move a ponte -> O movimento altera a aerodinâmica -> A ponte absorve mais energia do vento -> Oscilação extrema.",
+      "visualIndicator": "Diagrama circular com setas de feedback conectando Vento, Movimento e Energia."
+    },
+    {
+      "id": "panel-right",
+      "type": "process_flow",
+      "label": "Engenharia Moderna",
+      "description": "Modelos testados em túneis de vento para garantir estabilidade aerodinâmica antes da construção.",
+      "visualIndicator": "Desenho de uma ponte em miniatura sendo testada com fluxos de ar retos e estáveis."
+    }
+  ]
+}

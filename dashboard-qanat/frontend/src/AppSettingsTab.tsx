@@ -43,6 +43,10 @@ export type AppSettingsTabProps = {
   tokenrouterModelOptions: Array<{ id: string; label: string; hint?: string }>;
   tokenrouterBaseUrlInput: string;
   tokenrouterKeyInput: string;
+  opencodeModel: string;
+  opencodeModelOptions: Array<{ id: string; label: string; hint?: string }>;
+  opencodeBaseUrlInput: string;
+  opencodeKeyInput: string;
   globalBlockGap: number;
   globalDebugOverlay: boolean;
   globalFps: number;
@@ -66,6 +70,7 @@ export type AppSettingsTabProps = {
   hasNvidiaKey: boolean;
   hasAlibabaKey: boolean;
   hasTokenrouterKey: boolean;
+  hasOpencodeKey: boolean;
   hasOpenRouterKey: boolean;
   hasPexelsKey: boolean;
   hasPixabayKey: boolean;
@@ -113,6 +118,9 @@ export type AppSettingsTabProps = {
   setTokenrouterModel: (v: string) => void;
   setTokenrouterBaseUrlInput: (v: string) => void;
   setTokenrouterKeyInput: (v: string) => void;
+  setOpencodeModel: (v: string) => void;
+  setOpencodeBaseUrlInput: (v: string) => void;
+  setOpencodeKeyInput: (v: string) => void;
   setGlobalBlockGap: (v: number) => void;
   setGlobalDebugOverlay: (v: boolean) => void;
   setGlobalFps: (v: number) => void;
@@ -185,6 +193,11 @@ export function AppSettingsTab({
   tokenrouterModelOptions,
   tokenrouterBaseUrlInput,
   tokenrouterKeyInput,
+  opencodeModel,
+  opencodeModelOptions,
+  opencodeBaseUrlInput,
+  opencodeKeyInput,
+  hasOpencodeKey,
   hasTokenrouterKey,
   globalBlockGap,
   globalDebugOverlay,
@@ -249,6 +262,9 @@ export function AppSettingsTab({
   setTokenrouterModel,
   setTokenrouterBaseUrlInput,
   setTokenrouterKeyInput,
+  setOpencodeModel,
+  setOpencodeBaseUrlInput,
+  setOpencodeKeyInput,
   setGlobalBlockGap,
   setGlobalDebugOverlay,
   setGlobalFps,
@@ -387,6 +403,33 @@ export function AppSettingsTab({
                 </div>
                 <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
                   https://api.tokenrouter.com/v1 · GLM free / GPT / Qwen
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAiProvider("opencode")}
+                className={`dash-provider-card ${aiProvider === "opencode" ? "dash-provider-card-active" : ""}`}
+                data-testid="provider-opencode"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
+                    OpenCode
+                    <SettingHelpTip
+                      title="OpenCode / Forge Gateway"
+                      align="start"
+                    >
+                      Forge Gateway API — 32 modelos premium (DeepSeek, GPT-5,
+                      Claude, Grok, Kimi, Gemini). Chave padrão embutida, sem
+                      configuração extra.
+                    </SettingHelpTip>
+                  </span>
+                  {aiProvider === "opencode" && (
+                    <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />
+                  )}
+                </div>
+                <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
+                  forge-gateway-api.fly.dev · DeepSeek / GPT-5 / Claude / Grok
                 </p>
               </button>
 
@@ -816,6 +859,65 @@ export function AppSettingsTab({
                   </div>
                 )}
 
+                {aiProvider === "opencode" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Modelo OpenCode"
+                        help="Escolha um dos 32 modelos do Forge Gateway API ou cole um ID livre."
+                        align="start"
+                      >
+                        Modelo OpenCode
+                      </SettingLabel>
+                      <select
+                        value={opencodeModel}
+                        onChange={(e) => setOpencodeModel(e.target.value)}
+                        className="dash-select"
+                      >
+                        {opencodeModelOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={opencodeModel}
+                        onChange={(e) => setOpencodeModel(e.target.value)}
+                        placeholder="ex.: deepseek-v3, claude-sonnet-5, grok-4.5"
+                        className="dash-input font-mono text-[11px]"
+                      />
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                        {opencodeModelOptions.find(
+                          (option) => option.id === opencodeModel
+                        )?.hint || "OpenAI-compatible via Forge Gateway."}{" "}
+                        ID:{" "}
+                        <span className="text-zinc-300 font-mono text-[9px]">
+                          {opencodeModel}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Base URL OpenCode"
+                        help="Padrão: https://forge-gateway-api.fly.dev/v1"
+                        align="start"
+                      >
+                        Base URL (OpenAI compatible)
+                      </SettingLabel>
+                      <input
+                        type="text"
+                        value={opencodeBaseUrlInput}
+                        onChange={(e) =>
+                          setOpencodeBaseUrlInput(e.target.value)
+                        }
+                        placeholder="https://forge-gateway-api.fly.dev/v1"
+                        className="dash-input font-mono text-[11px]"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {aiProvider === "local" && (
                   <>
                     <div className="space-y-2">
@@ -1046,6 +1148,41 @@ export function AppSettingsTab({
                     <code className="text-[9px] text-zinc-400">
                       OpenAI(base_url=&quot;https://api.tokenrouter.com/v1&quot;,
                       api_key=&quot;sk-…&quot;)
+                    </code>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <SettingLabel
+                      helpTitle="Chave OpenCode (Forge Gateway)"
+                      help="Chave fg-… do Forge Gateway API. Deixe vazio para usar a chave padrão embutida."
+                      align="start"
+                    >
+                      Chave OpenCode
+                    </SettingLabel>
+                    {hasOpencodeKey ? (
+                      <span className="dash-ui-badge dash-ui-badge-success dash-ui-badge-pill">
+                        Ativa
+                      </span>
+                    ) : (
+                      <span className="dash-ui-badge dash-ui-badge-muted dash-ui-badge-pill">
+                        Embutida
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="password"
+                    value={opencodeKeyInput}
+                    onChange={(e) => setOpencodeKeyInput(e.target.value)}
+                    placeholder="Cole fg-… para substituir. Vazio = chave padrão."
+                    className="dash-input"
+                  />
+                  <p className="text-[10px] text-zinc-500 leading-relaxed">
+                    Forge Gateway API · 32 modelos (DeepSeek, GPT-5, Claude,
+                    Grok…).{" "}
+                    <code className="text-[9px] text-zinc-400">
+                      base_url=&quot;https://forge-gateway-api.fly.dev/v1&quot;
                     </code>
                   </p>
                 </div>
