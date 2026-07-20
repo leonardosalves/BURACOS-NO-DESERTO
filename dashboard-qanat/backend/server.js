@@ -235,6 +235,8 @@ import { registerWhiteboardRoutes } from "./whiteboardRoutes.js";
 import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
 import { registerAgentReachRoutes } from "./agentReachRoutes.js";
 import { registerVideoMonitorRoutes } from "./videoMonitorRoutes.js";
+import creatorHistoryRoutes from "./creatorHistoryRoutes.js";
+import { ensureCreatorHistoryDatabase } from "./creatorHistoryService.js";
 import {
   fetchMemoryContext,
   getSupermemoryStatus,
@@ -24439,6 +24441,8 @@ registerVideoMonitorRoutes(app, {
   WORKSPACE_DIR,
 });
 
+app.use("/api/creator-history", creatorHistoryRoutes);
+
 // --- Global Express error middleware (última barreira antes de crash) ---
 app.use((err, req, res, _next) => {
   safeConsoleError(`[Express Error] ${req.method} ${req.originalUrl}:`, err);
@@ -24518,6 +24522,11 @@ if (fs.existsSync(frontendDist)) {
 }
 
 const PORT = 3005;
+
+// Init DB and start server
+ensureCreatorHistoryDatabase().catch((err) =>
+  console.error("Error initializing creator history DB:", err)
+);
 
 const server = app.listen(PORT, () => {
   console.log(`Backend Server running on ${LUMIERA_BACKEND_BASE}`);

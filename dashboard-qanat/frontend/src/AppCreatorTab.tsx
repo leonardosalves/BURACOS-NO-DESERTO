@@ -49,6 +49,8 @@ import { CollageCreatorStep1 } from "./CollageCreatorStep1";
 import { resolveStockSearchQuery } from "./stockSearchQuery";
 import { buildStockAssetSearchContext } from "./stockAssetLinks";
 import { VisualAssetStylePicker } from "./VisualAssetStylePicker";
+import { CreatorHistoryDropdown } from "./CreatorHistoryDropdown";
+import { MapPin, Search } from "lucide-react";
 import {
   buildTaggedNarration,
   taggedNarrationMeta,
@@ -703,6 +705,14 @@ export function AppCreatorTab({
     },
   };
 
+  const currentProject =
+    creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
+  const currentTitle =
+    generatedScriptData?.title ||
+    customIdeaTitle ||
+    customTitle ||
+    currentProject;
+
   return (
     <DashminPageLayout
       className="lumiera-fill-view overflow-hidden !space-y-2"
@@ -710,6 +720,33 @@ export function AppCreatorTab({
       subtitle={`${CREATOR_WIZARD_PHASES[wizardPhaseIndex].label}`}
       breadcrumb={["Dashboard", "Criadores", modeIdentity.menuLabel]}
       icon={<ModeIcon className={`w-5 h-5 ${modeIdentity.accentText}`} />}
+      actions={
+        <CreatorHistoryDropdown
+          mode={ideationTab}
+          currentTitle={currentTitle}
+          projectName={currentProject}
+          onSaveCurrentSession={() => {
+            // Trigger a save using the context/props
+            if (typeof saveWizardSession === "function") {
+              saveWizardSession({
+                creatorProjectName,
+                ideationTab,
+                creatorStep,
+                generatedScriptData,
+                creatorIdeasBundle,
+                // The backend just needs the file to exist on disk.
+                // We rely on the fact that standard saves happen when navigating steps.
+                // Or if we need a full sync, AppTabPanels handles the auto-saving.
+              });
+            }
+          }}
+          onLoadState={(state) => {
+            if (typeof applyWizardSessionPatch === "function") {
+              applyWizardSessionPatch(state);
+            }
+          }}
+        />
+      }
     >
       <CreatorWizardNavigator
         phaseIndex={wizardPhaseIndex}
