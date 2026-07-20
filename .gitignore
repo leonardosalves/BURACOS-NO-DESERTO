@@ -94,6 +94,8 @@ dashboard-qanat/backend/render_config_global.json
 youtube_token.json
 canva_token.json
 canva_client_secrets.json
+channels/*/credentials.enc.json
+.env
 agent-tools/
 mcps/
 terminals/

@@ -1024,3 +1024,28 @@
 .glow-rose {
   box-shadow: 0 0 15px rgba(244, 63, 94, 0.1);
 }
+
+/* ── Status Conexão YouTube ── */
+.ch-conn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  margin: 6px 0;
+  border-top: 1px dashed var(--border);
+  border-bottom: 1px dashed var(--border);
+}
+.ch-conn__ok {
+  color: var(--green);
+  font-size: 11px;
+}
+.ch-conn__off {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.ch-conn__email {
+  color: var(--text-dim);
+  font-size: 10.5px;
+  flex: 1;
+}

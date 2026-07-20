@@ -1,8 +1,9 @@
+import fs from "react"; // Mentira, import fs from "fs" no Node
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import fetch from "node-fetch";
 import { loadChannelConfig } from "./channelProfiles.js";
+import { getChannelAnalytics, getChannelPublicData } from "./youtubeClient.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CHANNELS_DIR = path.resolve(__dirname, "..", "..", "channels");
@@ -35,12 +36,7 @@ async function syncChannel(channelId) {
     return;
   }
 
-  const ytId = config?.meta?.youtube_channel_id;
-  const apiKey = process.env.YOUTUBE_API_KEY;
-  const offlineMode = !ytId || !apiKey;
-
-  let stats = null;
-  let videos = [];
+  const ytChannelId = config?.meta?.youtube_channel_id;
   const cachePath = path.join(
     CHANNELS_DIR,
     channelId,
@@ -61,11 +57,24 @@ async function syncChannel(channelId) {
     series: { inscritos: [], views: [] },
   });
 
-  if (offlineMode) {
+  // 1) Dados públicos (API key do canal ou global)
+  const publicData = await getChannelPublicData(channelId, ytChannelId);
+
+  // 2) Analytics privados (OAuth do canal — CTR, retenção)
+  const analytics = await getChannelAnalytics(channelId, 28);
+
+  let stats = null;
+  let videos = [];
+  let isOffline = !publicData.disponivel;
+
+  if (publicData.disponivel) {
+    stats = publicData.stats;
+    videos = publicData.videos;
+  } else {
     console.log(
-      `[Sync] Sem API Key ou ID do canal. Executando em modo offline simulado para o canal: ${channelId}`
+      `[Sync] Dados públicos indisponíveis para o canal ${channelId}. Aplicando simulação offline.`
     );
-    // Simular estatísticas do canal
+    // Simular dados do canal
     const lastInscritos = history.series?.inscritos?.length
       ? history.series.inscritos[history.series.inscritos.length - 1]?.valor
       : 15420;
@@ -183,69 +192,54 @@ async function syncChannel(channelId) {
         };
       });
     }
-  } else {
-    // Com API Key
-    try {
-      const base = "https://www.googleapis.com/youtube/v3";
-      const statsRes = await fetch(
-        `${base}/channels?part=statistics,snippet&id=${ytId}&key=${apiKey}`
-      );
-      const statsData = await statsRes.json();
-      stats = statsData.items?.[0]?.statistics || null;
-
-      const videosRes = await fetch(
-        `${base}/search?part=snippet&channelId=${ytId}&maxResults=25&order=date&type=video&key=${apiKey}`
-      );
-      const videosData = await videosRes.json();
-      const ytVideos = (videosData.items || []).map((v) => ({
-        video_id: v.id.videoId,
-        title: v.snippet.title,
-        published_at: v.snippet.publishedAt,
-        thumbnail: v.snippet.thumbnails?.medium?.url,
-      }));
-
-      videos = ytVideos.map((ytv) => {
-        const existente = (history.videos || []).find(
-          (hv) => hv.video_id === ytv.video_id
-        );
-        const subNichos = config.nicho?.sub_nichos_permitidos || [];
-        const randomSubNicho =
-          subNichos[Math.floor(Math.random() * subNichos.length)] || "Geral";
-
-        return {
-          ...ytv,
-          views: existente?.views || Math.floor(Math.random() * 1200) + 100,
-          ctr: existente?.ctr || Number((Math.random() * 6 + 3).toFixed(1)),
-          retencao: existente?.retencao || Math.floor(Math.random() * 25) + 35,
-          drop_30s: existente?.drop_30s || Math.floor(Math.random() * 25) + 20,
-          duration_seconds:
-            existente?.duration_seconds ||
-            Math.floor(Math.random() * 400) + 300,
-          sub_nicho: existente?.sub_nicho || randomSubNicho,
-        };
-      });
-    } catch (err) {
-      console.error(
-        `[Sync] Erro ao sincronizar com a API do YouTube: ${err.message}`
-      );
-      stats = history.metrics
-        ? {
-            viewCount: String(
-              history.metrics.views_media * (history.videos?.length || 1) ||
-                50000
-            ),
-            subscriberCount: "15000",
-            videoCount: String(history.videos?.length || 10),
-          }
-        : null;
-      videos = history.videos || [];
-    }
   }
 
-  // Salvar cache de analytics
+  // Mesclar dados privados se disponíveis, senão preencher/manter os simulados
+  if (analytics.disponivel) {
+    // Para cada vídeo público, tentar preencher métricas de CTR e retenção simuladas por vídeo baseadas na média real da API de analytics
+    videos = videos.map((v) => {
+      const existente = (history.videos || []).find(
+        (hv) => hv.video_id === v.video_id
+      );
+      return {
+        ...v,
+        ctr:
+          existente?.ctr ||
+          Number(
+            (analytics.ctr_medio * (0.8 + Math.random() * 0.4)).toFixed(1)
+          ),
+        retencao:
+          existente?.retencao ||
+          Math.round(analytics.retencao_media * (0.8 + Math.random() * 0.4)),
+        drop_30s: existente?.drop_30s || Math.floor(Math.random() * 20) + 20,
+        sub_nicho:
+          existente?.sub_nicho ||
+          config.nicho?.sub_nichos_permitidos?.[0] ||
+          "Geral",
+      };
+    });
+  } else {
+    // Se o OAuth não estiver disponível, mantemos ou preenchemos valores base/simulados
+    videos = videos.map((v) => {
+      const subNichos = config.nicho?.sub_nichos_permitidos || [];
+      const randomSubNicho =
+        subNichos[Math.floor(Math.random() * subNichos.length)] || "Geral";
+      return {
+        ...v,
+        ctr: v.ctr || Number((Math.random() * 6 + 3).toFixed(1)),
+        retencao: v.retencao || Math.floor(Math.random() * 25) + 35,
+        drop_30s: v.drop_30s || Math.floor(Math.random() * 25) + 20,
+        duration_seconds:
+          v.duration_seconds || Math.floor(Math.random() * 400) + 300,
+        sub_nicho: v.sub_nicho || randomSubNicho,
+      };
+    });
+  }
+
+  // 3) Persistir no cache de analytics
   const cacheData = {
     synced_at: new Date().toISOString(),
-    offline: offlineMode,
+    offline: isOffline,
     stats,
     videos: videos.map((v) => ({
       video_id: v.video_id,
@@ -253,10 +247,11 @@ async function syncChannel(channelId) {
       published_at: v.published_at,
       thumbnail: v.thumbnail,
     })),
+    analytics_disponivel: analytics.disponivel,
   };
   writeJson(cachePath, cacheData);
 
-  // Atualizar séries e métricas
+  // 4) Atualizar performance_history com métricas reais/calculadas
   const viewsVal = stats ? parseInt(stats.viewCount) : 0;
   const subsVal = stats ? parseInt(stats.subscriberCount) : 0;
 
@@ -281,6 +276,7 @@ async function syncChannel(channelId) {
   if (seriesInscritos.length > 15) seriesInscritos.shift();
   if (seriesViews.length > 15) seriesViews.shift();
 
+  // Calcular médias locais baseadas nos dados finais
   const totalCtr = videos.reduce((acc, v) => acc + (v.ctr || 0), 0);
   const totalRet = videos.reduce((acc, v) => acc + (v.retencao || 0), 0);
   const totalDrop = videos.reduce((acc, v) => acc + (v.drop_30s || 0), 0);
@@ -303,32 +299,49 @@ async function syncChannel(channelId) {
     (v) => v.sub_nicho && !subNichosPermitidos.includes(v.sub_nicho)
   ).length;
 
-  const calculatedMetrics = {
-    ctr: videos.length ? Number((totalCtr / videos.length).toFixed(1)) : 5.0,
-    retencao: videos.length ? Math.round(totalRet / videos.length) : 45,
+  history.metrics = {
+    ctr: analytics.disponivel
+      ? analytics.ctr_medio
+      : videos.length
+        ? Number((totalCtr / videos.length).toFixed(1))
+        : 5.0,
+    retencao: analytics.disponivel
+      ? analytics.retencao_media
+      : videos.length
+        ? Math.round(totalRet / videos.length)
+        : 45,
     drop_30s: videos.length ? Math.round(totalDrop / videos.length) : 30,
     views_media: videos.length ? Math.round(totalViews / videos.length) : 1000,
     dias_desde_ultimo: diasDesdeUltimo >= 0 ? diasDesdeUltimo : 99,
     temas_fora_nicho: temasForaNicho,
+    inscritos: subsVal,
+    crescimento_inscritos_7d: analytics.disponivel
+      ? analytics.inscritos_liquido
+      : 0,
+    atualizado_em: new Date().toISOString(),
   };
 
-  const updatedHistory = {
-    metrics: calculatedMetrics,
-    videos: videos,
-    series: {
-      inscritos: seriesInscritos,
-      views: seriesViews,
-    },
-    last_sync: new Date().toISOString(),
-  };
+  history.videos = videos;
 
-  writeJson(historyPath, updatedHistory);
-  console.log(`[Sync] Canal ${channelId} sincronizado com sucesso!`);
+  if (analytics.disponivel && analytics.serie) {
+    // Sincronizar séries sparklines reais se disponíveis
+    history.series.views = analytics.serie.map((s) => ({
+      data: s.dia,
+      valor: s.views,
+    }));
+  }
+
+  writeJson(historyPath, history);
+  console.log(
+    `[${channelId}] ✅ sync ok — analytics: ${analytics.disponivel ? "OAuth (real)" : "indisponível (simulado/offline)"}`
+  );
 }
 
 // Função principal de orquestração
 async function run() {
-  console.log("[Sync] Iniciando job de sincronização de canais...");
+  console.log(
+    "[Sync] Iniciando job de sincronização de canais com cliente unificado..."
+  );
   const registry = readJson(REGISTRY_PATH, null);
   if (!registry || !registry.channels || registry.channels.length === 0) {
     console.log("[Sync] Nenhum canal registrado no registry.");
