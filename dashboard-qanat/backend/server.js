@@ -234,6 +234,7 @@ import { registerTimesfmRoutes } from "./timesfmRoutes.js";
 import { registerWhiteboardRoutes } from "./whiteboardRoutes.js";
 import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
 import { registerAgentReachRoutes } from "./agentReachRoutes.js";
+import { registerVideoMonitorRoutes } from "./videoMonitorRoutes.js";
 import {
   fetchMemoryContext,
   getSupermemoryStatus,
@@ -24428,6 +24429,10 @@ registerWhiteboardRoutes(app, {
 });
 
 registerAgentReachRoutes(app, {
+  WORKSPACE_DIR,
+});
+
+registerVideoMonitorRoutes(app, {
   WORKSPACE_DIR,
 });
 

@@ -26,7 +26,8 @@ export type AppTab =
   | "projects"
   | "tools"
   | "graphify"
-  | "whiteboard-creator";
+  | "whiteboard-creator"
+  | "video-monitor";
 
 export const RESTORABLE_APP_TABS: AppTab[] = [
   "home",
@@ -56,6 +57,7 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   "tools",
   "graphify",
   "whiteboard-creator",
+  "video-monitor",
 ];
 
 export const GLOBAL_VIEW_TABS: AppTab[] = [
@@ -77,6 +79,7 @@ export const GLOBAL_VIEW_TABS: AppTab[] = [
   "projects",
   "tools",
   "whiteboard-creator",
+  "video-monitor",
 ];
 
 export function isGlobalViewTab(tab: AppTab): boolean {

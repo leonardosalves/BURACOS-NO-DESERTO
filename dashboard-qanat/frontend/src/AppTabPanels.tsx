@@ -52,6 +52,7 @@ import {
   LazyTrendForecastPanel,
   LazyVideoResurrectorPanel,
   LazyYoutubeStudioPanel,
+  LazyVideoMonitorPage,
   TabPanelFallback,
 } from "./appLazyPanels";
 
@@ -705,6 +706,19 @@ export function AppTabPanels({
             }
           >
             <AppCreatorTab {...creatorTabProps} />
+          </Suspense>
+        </TabErrorBoundary>
+      )}
+
+      {/* TAB: VIDEO MONITOR */}
+      {activeTab === "video-monitor" && (
+        <TabErrorBoundary tabName="Monitor de Vídeos">
+          <Suspense
+            fallback={
+              <TabPanelFallback label="Carregando monitor de vídeos..." />
+            }
+          >
+            <LazyVideoMonitorPage />
           </Suspense>
         </TabErrorBoundary>
       )}

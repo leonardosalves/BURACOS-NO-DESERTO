@@ -31,6 +31,7 @@ import {
   Bell,
   BookOpen,
   Wrench,
+  MonitorPlay,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { BackendStatusBanner } from "./BackendStatusBanner";
@@ -97,6 +98,13 @@ const STUDIO_CHANNELS: GlobalNavItem[] = [
     icon: TrendingUp,
     helpId: "tab-trend-forecast",
     accent: "amber",
+  },
+  {
+    id: "video-monitor",
+    label: "Monitor de Vídeos",
+    icon: MonitorPlay,
+    helpId: undefined,
+    accent: "sky",
   },
 ];
 

@@ -18,6 +18,7 @@ import { TtsVoiceStudioPanel } from "./TtsVoiceStudioPanel";
 import { VideoResurrectorPanel } from "./VideoResurrectorPanel";
 import { WorkflowToolkit } from "./WorkflowToolkit";
 import { YoutubeStudioPanel } from "./YoutubeStudioPanel";
+import { VideoMonitorPage } from "./VideoMonitorPage";
 
 /** Uniport: imports estáticos — sem lazy chunks que quebram após deploy. */
 export const LazyWorkflowToolkit = WorkflowToolkit;
@@ -40,6 +41,7 @@ export const LazyNarrationReplacePanel = NarrationReplacePanel;
 export const LazyAppMusicTab = AppMusicTab;
 export const LazyFlowLabPage = FlowLabPage;
 export const LazyRemotionTemplateStudio = RemotionTemplateStudio;
+export const LazyVideoMonitorPage = VideoMonitorPage;
 
 export function TabPanelFallback({
   label = "Carregando...",
