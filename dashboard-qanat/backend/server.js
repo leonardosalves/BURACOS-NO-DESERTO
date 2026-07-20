@@ -22704,12 +22704,10 @@ app.post(
         : format === "SHORTS"
           ? 5
           : 12;
-      // Preserva flags POV se o Gemini devolver cenas sem is_pov
-      const prevPovByScene = new Map();
+      // Preserva a narração original, durações e flags POV
+      const prevSceneMap = new Map();
       for (const prev of prevSnapshot.visual_prompts || []) {
-        if (prev?.is_pov || prev?.scene_kind === "pov") {
-          prevPovByScene.set(String(prev.scene || ""), prev);
-        }
+        prevSceneMap.set(String(prev.scene || ""), prev);
       }
       storyboard.visual_prompts = vps.map((vp, index) => {
         const block =
@@ -22721,7 +22719,7 @@ app.post(
         const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
         const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
         const scene = sceneInBlock ? sceneStr : `${block}.${index + 1}`;
-        const prev = prevPovByScene.get(String(vp.scene || scene)) || null;
+        const prev = prevSceneMap.get(String(vp.scene || scene)) || null;
         const identityTags = Array.isArray(vp.identity_tags)
           ? vp.identity_tags
               .map((tag) => String(tag || "").trim())
@@ -22733,9 +22731,14 @@ app.post(
           .toLowerCase();
         const visualHook = String(vp.visual_hook || "").trim();
         return {
-          ...vp,
+          ...prev, // Mantém dados originais como narration_text, duration_seconds, etc
+          ...vp, // Aplica as novidades geradas pelo Gemini
           ...(prev
             ? {
+                // Força restauração de chaves vitais
+                narration_text: prev.narration_text || vp.narration_text || "",
+                narration_excerpt:
+                  prev.narration_excerpt || vp.narration_excerpt || "",
                 is_pov: prev.is_pov,
                 scene_kind: prev.scene_kind || vp.scene_kind,
                 video_role: prev.video_role || vp.video_role,
@@ -22753,7 +22756,7 @@ app.post(
             : {}),
           prompt: enforceVisualLocalizedTextRule(
             enforceNarrativeMaterialFidelity(vp.prompt || "", {
-              narration: vp.narration_text || "",
+              narration: (prev ? prev.narration_text : vp.narration_text) || "",
               narrativeScript: narrative,
             }),
             {
