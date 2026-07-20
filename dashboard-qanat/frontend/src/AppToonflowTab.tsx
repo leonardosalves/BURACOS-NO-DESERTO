@@ -31,21 +31,21 @@ export function AppToonflowTab() {
             type="text"
             value={inputUrl}
             onChange={(e) => setInputUrl(e.target.value)}
-            placeholder="URL do Toonflow (ex: http://localhost:5173)"
-            className="px-3 py-1.5 text-sm rounded bg-dash-input border border-dash-border focus:outline-none focus:border-dash-primary w-64 text-white"
+            placeholder="URL (ex: http://localhost:5173)"
+            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-zinc-300 placeholder:text-zinc-600 focus:border-sky-500/30 focus:outline-none w-64"
           />
           <button
             onClick={handleConnect}
-            className="px-3 py-1.5 text-sm bg-dash-primary text-white rounded hover:bg-opacity-80 transition-all font-medium"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/20 to-cyan-500/10 border border-sky-500/40 text-xs font-bold text-sky-300 hover:from-sky-500/30 transition"
           >
             Conectar
           </button>
           <button
             onClick={() => setKey((k) => k + 1)}
             title="Recarregar página"
-            className="p-2 text-dash-muted hover:text-dash-foreground rounded bg-dash-card border border-dash-border"
+            className="p-1.5 text-zinc-400 hover:text-white rounded-xl bg-zinc-950 border border-zinc-800 transition"
           >
-            <RotateCw className="w-4 h-4" />
+            <RotateCw className="w-3.5 h-3.5" />
           </button>
         </div>
       }
