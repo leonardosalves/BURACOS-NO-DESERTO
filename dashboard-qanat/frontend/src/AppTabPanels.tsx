@@ -15,11 +15,11 @@ import { CollageBrollLab } from "./CollageBrollLab";
 import { ProjectHealthPanel } from "./ProjectHealthPanel";
 import { AppDocsTab } from "./AppDocsTab";
 import { AppToolsTab } from "./AppToolsTab";
-import { AppToonflowTab } from "./AppToonflowTab";
 import { FlowLabPage } from "./FlowLabPage";
 import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
 import toast from "react-hot-toast";
 import CanaisEPublicacao from "./components/tools/CanaisEPublicacao";
+import PesquisarWeb from "./components/tools/PesquisarWeb";
 import {
   Bot,
   Clapperboard,
@@ -189,15 +189,6 @@ export function AppTabPanels({
             fallback={<TabPanelFallback label="Carregando ferramentas..." />}
           >
             <AppToolsTab />
-          </Suspense>
-        </TabErrorBoundary>
-      )}
-      {activeTab === "toonflow" && (
-        <TabErrorBoundary tabName="Toonflow AI">
-          <Suspense
-            fallback={<TabPanelFallback label="Carregando Toonflow..." />}
-          >
-            <AppToonflowTab />
           </Suspense>
         </TabErrorBoundary>
       )}
@@ -582,28 +573,7 @@ export function AppTabPanels({
 
       {activeTab === "agent-reach" && (
         <TabErrorBoundary tabName="Pesquisa Web">
-          <DashminPageLayout
-            title="Pesquisa Web"
-            subtitle="Agent Reach — Exa, Jina, GitHub, Bilibili e RSS integrados."
-            breadcrumb={["Dashboard", "Estúdio", "Pesquisa Web"]}
-            icon={<Globe className="w-5 h-5" />}
-          >
-            <Suspense
-              fallback={<TabPanelFallback label="Carregando pesquisa web..." />}
-            >
-              <LazyAgentReachPanel
-                embedded
-                niche={config?.niche || ""}
-                onApplyCreatorIdea={(title, hookPt, options) => {
-                  void handleApplyYoutubeStudioIdea(
-                    title,
-                    hookPt,
-                    options as CreatorApplyIdeaOptions
-                  );
-                }}
-              />
-            </Suspense>
-          </DashminPageLayout>
+          <PesquisarWeb />
         </TabErrorBoundary>
       )}
 

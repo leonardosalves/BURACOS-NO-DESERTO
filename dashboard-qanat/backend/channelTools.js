@@ -723,4 +723,260 @@ router.get("/:channelId/patterns", (req, res) => {
   }
 });
 
+// 🆕 Health Score + Benchmark + Anomalias + Projeção + Horário
+router.get("/:channelId/insights", (req, res) => {
+  const { channelId } = req.params;
+  const config = loadChannelConfig(channelId);
+  const history = readData(channelId, "performance_history.json", {
+    metrics: {},
+    videos: [],
+    series: {},
+  });
+  const m = history.metrics || {};
+  const videos = history.videos || [];
+
+  // 1. Health Score
+  let health = 50;
+  if (m.ctr >= 6) health += 15;
+  else if (m.ctr < 4) health -= 15;
+  if (m.retencao >= 50) health += 15;
+  else if (m.retencao < 40) health -= 15;
+  if (m.dias_desde_ultimo <= 4) health += 10;
+  else if (m.dias_desde_ultimo > 7) health -= 12;
+  health = Math.max(0, Math.min(100, health));
+
+  // 2. Benchmark vs nicho (médias típicas)
+  const BENCHMARKS = {
+    engenharia_e_construcao: { ctr: 5.5, retencao: 45 },
+    historia_antiga: { ctr: 6.0, retencao: 48 },
+    tecnologia: { ctr: 5.0, retencao: 42 },
+    default: { ctr: 5.0, retencao: 45 },
+  };
+  const bench = BENCHMARKS[config?.nicho?.principal] || BENCHMARKS.default;
+  const benchmark = {
+    ctr: {
+      canal: m.ctr || 0,
+      nicho: bench.ctr,
+      status: (m.ctr || 0) >= bench.ctr ? "acima" : "abaixo",
+    },
+    retencao: {
+      canal: m.retencao || 0,
+      nicho: bench.retencao,
+      status: (m.retencao || 0) >= bench.retencao ? "acima" : "abaixo",
+    },
+  };
+
+  // 3. Anomalias (último vídeo vs média)
+  const anomalias = [];
+  if (videos.length >= 3) {
+    const media =
+      videos.reduce((s, v) => s + (v.views || 0), 0) / videos.length;
+    const ultimo = videos[0];
+    if (ultimo && ultimo.views < media * 0.5) {
+      anomalias.push({
+        tipo: "queda_views",
+        msg: `Último vídeo teve ${Math.round((1 - ultimo.views / media) * 100)}% menos views que a média.`,
+        severidade: "alta",
+      });
+    }
+  }
+
+  // 4. Projeção de crescimento (regressão linear simples)
+  const serie = history.series?.inscritos || [];
+  let projecao = null;
+  if (serie.length >= 5) {
+    const n = serie.length;
+    const crescimentoMedio = (serie[n - 1] - serie[0]) / n; // por período
+    projecao = {
+      inscritos_atual: serie[n - 1],
+      em_30_dias: Math.round(serie[n - 1] + crescimentoMedio * 5),
+      em_90_dias: Math.round(serie[n - 1] + crescimentoMedio * 15),
+      tendencia: crescimentoMedio >= 0 ? "crescimento" : "declinio",
+    };
+  }
+
+  // 5. Melhor horário (baseado em published_at dos top vídeos)
+  const topVideos = [...videos]
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 5);
+  const horas = topVideos.map((v) => new Date(v.published_at).getHours());
+  const horaModal = horas.length
+    ? horas
+        .sort(
+          (a, b) =>
+            horas.filter((h) => h === a).length -
+            horas.filter((h) => h === b).length
+        )
+        .pop()
+    : 18;
+  const melhorHorario = `${horaModal}:00`;
+
+  res.json({ ok: true, health, benchmark, anomalias, projecao, melhorHorario });
+});
+
+// 🆕 Score de ressuscitabilidade + quase-viral + histórico
+router.get("/:channelId/revive-scores", (req, res) => {
+  const { channelId } = req.params;
+  const history = readData(channelId, "performance_history.json", {
+    videos: [],
+  });
+  const reviveHistory = readData(channelId, "revive_history.json", {
+    ressuscitados: [],
+  });
+  const videos = history.videos || [];
+  const media = videos.length
+    ? videos.reduce((s, v) => s + (v.views || 0), 0) / videos.length
+    : 0;
+
+  const analisados = videos
+    .filter((v) => (v.views || 0) < media * 0.4)
+    .map((v) => {
+      let score = 30;
+      const motivos = [];
+
+      // Quase viral: bom CTR mas poucas views
+      if (v.ctr && v.ctr >= 6 && v.views < media * 0.3) {
+        score += 35;
+        motivos.push("quase viral (CTR alto, distribuição baixa)");
+      }
+      // Vídeo recente tem mais chance
+      const dias = (Date.now() - new Date(v.published_at).getTime()) / 86400000;
+      if (dias < 30) {
+        score += 15;
+        motivos.push("vídeo recente");
+      } else if (dias > 180) {
+        score -= 10;
+        motivos.push("vídeo antigo");
+      }
+      // Teve alguns comentários (sinal de engajamento)
+      if (v.comments > 5) {
+        score += 10;
+        motivos.push("tem engajamento");
+      }
+
+      return {
+        ...v,
+        score_ressuscitabilidade: Math.max(0, Math.min(100, score)),
+        motivos,
+      };
+    })
+    .sort((a, b) => b.score_ressuscitabilidade - a.score_ressuscitabilidade);
+
+  res.json({ ok: true, analisados, historico: reviveHistory.ressuscitados });
+});
+
+// 🆕 Registra ressuscitação (para histórico/aprendizado)
+router.post("/:channelId/revive-log", (req, res) => {
+  const { channelId } = req.params;
+  const { video_id, titulo_antigo, titulo_novo, resultado } = req.body || {};
+  const hist = readData(channelId, "revive_history.json", {
+    ressuscitados: [],
+  });
+  hist.ressuscitados.push({
+    video_id,
+    titulo_antigo,
+    titulo_novo,
+    resultado,
+    em: new Date().toISOString(),
+  });
+  writeData(channelId, "revive_history.json", hist);
+  res.json({ ok: true });
+});
+
+// 🆕 Radar enriquecido (urgência + saturação + clusters + emergentes)
+router.get("/:channelId/trends-rich", (req, res) => {
+  const { channelId } = req.params;
+  const config = loadChannelConfig(channelId);
+  const trends = readData(channelId, "trends_feed.json", {
+    tendencias: [],
+  }).tendencias;
+  const aproveitadas = readData(channelId, "trends_history.json", {
+    usadas: [],
+  });
+
+  const enriquecidas = trends.map((t) => {
+    const urgenciaScore =
+      t.urgencia === "alta" ? 90 : t.urgencia === "media" ? 60 : 30;
+    const satuacao =
+      t.competicao === "alta" ? 85 : t.competicao === "media" ? 50 : 20;
+    const emergente = t.crescimento_48h > 50;
+
+    return {
+      ...t,
+      urgencia_score: urgenciaScore,
+      saturacao,
+      emergente,
+      oportunidade: Math.round(urgenciaScore * 0.5 + (100 - satuacao) * 0.5),
+      ja_usada: aproveitadas.usadas.some((u) => u.tema === t.tema),
+    };
+  });
+
+  const clusters = {};
+  for (const t of enriquecidas) {
+    const chave = t.sub_nicho || "geral";
+    clusters[chave] = clusters[chave] || [];
+    clusters[chave].push(t);
+  }
+
+  res.json({
+    ok: true,
+    tendencias: enriquecidas,
+    clusters,
+    emergentes: enriquecidas.filter((t) => t.emergente),
+  });
+});
+
+// 🆕 Monitor enriquecido (retenção por segmento + evergreen + recomendação)
+router.get("/:channelId/monitor-rich", (req, res) => {
+  const { channelId } = req.params;
+  const history = readData(channelId, "performance_history.json", {
+    videos: [],
+  });
+  const videos = history.videos || [];
+
+  const analisados = videos.map((v) => {
+    const dias = Math.max(
+      1,
+      (Date.now() - new Date(v.published_at).getTime()) / 86400000
+    );
+    const velocidade = (v.views || 0) / dias;
+    const evergreen = dias > 60 && velocidade > 20;
+
+    let alerta = null;
+    if (velocidade > 100 && dias <= 7) alerta = "decolando";
+    else if (velocidade < 10 && dias >= 5) alerta = "estagnado";
+
+    return {
+      ...v,
+      velocidade: Math.round(velocidade),
+      evergreen,
+      alerta,
+      dias: Math.round(dias),
+    };
+  });
+
+  const porNicho = {};
+  for (const v of videos) {
+    if (!v.sub_nicho) continue;
+    porNicho[v.sub_nicho] = (porNicho[v.sub_nicho] || 0) + (v.views || 0);
+  }
+  const melhorNicho = Object.entries(porNicho).sort(
+    (a, b) => b[1] - a[1]
+  )[0]?.[0];
+  const recomendacao = melhorNicho
+    ? {
+        tipo: "sub_nicho",
+        sugestao: `Fazer mais vídeos de '${melhorNicho}' (melhor desempenho)`,
+        confianca: "alta",
+      }
+    : null;
+
+  res.json({
+    ok: true,
+    videos: analisados,
+    evergreens: analisados.filter((v) => v.evergreen),
+    recomendacao,
+  });
+});
+
 export default router;
