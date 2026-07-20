@@ -20,6 +20,10 @@ import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
 import toast from "react-hot-toast";
 import CanaisEPublicacao from "./components/tools/CanaisEPublicacao";
 import PesquisarWeb from "./components/tools/PesquisarWeb";
+import CanalYouTube from "./components/tools/CanalYouTube";
+import Ressuscitador from "./components/tools/Ressuscitador";
+import RadarTendencias from "./components/tools/RadarTendencias";
+import MonitorVideos from "./components/tools/MonitorVideos";
 import {
   Bot,
   Clapperboard,
@@ -585,8 +589,7 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Radar Tendências"]}
             icon={<TrendingUp className="w-5 h-5" />}
           >
-            <CanaisEPublicacao
-              abaInicial="radar"
+            <RadarTendencias
               aoVirarVideo={({ tema }) => {
                 window.dispatchEvent(
                   new CustomEvent("lumiera-prefill-creator", {
@@ -608,7 +611,7 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Ressuscitador"]}
             icon={<Zap className="w-5 h-5 text-amber-400" />}
           >
-            <CanaisEPublicacao abaInicial="reviver" />
+            <Ressuscitador />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
@@ -621,17 +624,7 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Canal YouTube"]}
             icon={<Youtube className="w-5 h-5" />}
           >
-            <CanaisEPublicacao
-              abaInicial="canal"
-              aoVirarVideo={({ tema }) => {
-                window.dispatchEvent(
-                  new CustomEvent("lumiera-prefill-creator", {
-                    detail: { tema },
-                  })
-                );
-                setActiveTab("creator");
-              }}
-            />
+            <CanalYouTube />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
@@ -664,7 +657,14 @@ export function AppTabPanels({
       {/* TAB: VIDEO MONITOR */}
       {activeTab === "video-monitor" && (
         <TabErrorBoundary tabName="Monitor de Vídeos">
-          <CanaisEPublicacao abaInicial="monitor" />
+          <DashminPageLayout
+            title="Monitor de Vídeos"
+            subtitle="Performance ao vivo + extração de padrões."
+            breadcrumb={["Dashboard", "Estúdio", "Monitor de Vídeos"]}
+            icon={<TrendingUp className="w-5 h-5" />}
+          >
+            <MonitorVideos />
+          </DashminPageLayout>
         </TabErrorBoundary>
       )}
     </div>
