@@ -27,6 +27,7 @@ export type AppTab =
   | "tools"
   | "graphify"
   | "whiteboard-creator"
+  | "toonflow"
   | "video-monitor";
 
 export const RESTORABLE_APP_TABS: AppTab[] = [
@@ -57,6 +58,7 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   "tools",
   "graphify",
   "whiteboard-creator",
+  "toonflow",
   "video-monitor",
 ];
 
@@ -79,6 +81,7 @@ export const GLOBAL_VIEW_TABS: AppTab[] = [
   "projects",
   "tools",
   "whiteboard-creator",
+  "toonflow",
   "video-monitor",
 ];
 

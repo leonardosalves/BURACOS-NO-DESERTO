@@ -117,6 +117,13 @@ const STUDIO_TOOLS: GlobalNavItem[] = [
     accent: "sky",
   },
   {
+    id: "toonflow",
+    label: "Toonflow AI",
+    icon: Clapperboard,
+    helpId: undefined,
+    accent: "sky",
+  },
+  {
     id: "tools",
     label: "Ferramentas",
     icon: Wrench,

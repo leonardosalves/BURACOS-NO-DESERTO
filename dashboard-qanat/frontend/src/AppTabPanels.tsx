@@ -15,6 +15,7 @@ import { CollageBrollLab } from "./CollageBrollLab";
 import { ProjectHealthPanel } from "./ProjectHealthPanel";
 import { AppDocsTab } from "./AppDocsTab";
 import { AppToolsTab } from "./AppToolsTab";
+import { AppToonflowTab } from "./AppToonflowTab";
 import { FlowLabPage } from "./FlowLabPage";
 import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
 import toast from "react-hot-toast";
@@ -187,6 +188,15 @@ export function AppTabPanels({
             fallback={<TabPanelFallback label="Carregando ferramentas..." />}
           >
             <AppToolsTab />
+          </Suspense>
+        </TabErrorBoundary>
+      )}
+      {activeTab === "toonflow" && (
+        <TabErrorBoundary tabName="Toonflow AI">
+          <Suspense
+            fallback={<TabPanelFallback label="Carregando Toonflow..." />}
+          >
+            <AppToonflowTab />
           </Suspense>
         </TabErrorBoundary>
       )}
