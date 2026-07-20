@@ -9,8 +9,27 @@ import {
   normalizeVisualAssetStyleId,
 } from "../../shared/visualAssetStyles.js";
 
-const LEGACY_LOCALIZED_TEXT_RULE =
-  "Texto diegético e ambiental deve respeitar o local real da cena: placas de trânsito, fachadas, avisos, letreiros, documentos, uniformes, sinalização e inscrições devem aparecer primeiro no idioma oficial ou historicamente correto daquele país/região. Logo abaixo, inclua tradução legível em português do Brasil, menor e visualmente secundária. Não use placas, símbolos viários, nomes de estados, órgãos públicos, moedas, domínios, telefones ou padrões brasileiros em cenas ambientadas fora do Brasil. Textos editoriais sobrepostos pelo vídeo, como títulos, contadores, legendas e explicações, permanecem em português do Brasil. Se o local for o Brasil, use somente português do Brasil e não duplique tradução.";
+// ─────────────────────────────────────────────────────────────────────────────
+// §1  CONSTANTES E POLÍTICAS DE MÍDIA
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TRUNCATION = Object.freeze({
+  NARRATIVE_SCRIPT: 12_000,
+  NARRATION_TEXT: 600,
+  PREV_NEXT_NARRATION: 220,
+  PROMPT: 700,
+  EDITOR_NOTES: 240,
+  STOCK_QUERY: 80,
+  HYPERFRAME: 500,
+  EDITING_MAP: 500,
+});
+
+const CINEMATIC_GATE = Object.freeze({
+  MIN_WORD_COUNT: 110,
+  TARGET_MIN_WORDS: 120,
+  TARGET_MAX_WORDS: 220,
+  MAX_BEATS: 3,
+});
 
 export const VISUAL_MINIMAL_TEXT_RULE =
   "Clean source media: no baked-in titles, subtitles, captions, paragraphs, labels, logos, watermarks, letters or readable editorial text. All editorial text is added later as a separate Remotion overlay.";
@@ -18,334 +37,25 @@ export const VISUAL_MINIMAL_TEXT_RULE =
 export const VISUAL_DIEGETIC_TEXT_RULE =
   "If a real sign, document or interface is indispensable to the fact, preserve at most four essential words in its authentic local language; never duplicate a translation inside the generated media. Put the Brazilian Portuguese translation only in editor_notes or text_overlay metadata.";
 
-// Compatibilidade com integrações antigas que importam este nome.
 export const VISUAL_LOCALIZED_TEXT_RULE = VISUAL_MINIMAL_TEXT_RULE;
 
 export const VIDEO_DIEGETIC_AUDIO_POLICY =
   "Diegetic sound only: rich realistic ambient and action SFX matching the scene materials and motion, continuous natural room tone; non-verbal human reactions such as gasps, cries, grunts, exertion and panic are allowed, but absolutely no intelligible speech, no spoken words, no dialogue, no narration, no voice-over, no singing, no music, no soundtrack, no score, no beat, no jingle.";
 
-export function isVideoPromptType(type = "") {
-  const t = String(type || "").toLowerCase();
-  return t.includes("vídeo") || t.includes("video");
-}
+const LEGACY_LOCALIZED_TEXT_RULE =
+  "Texto diegético e ambiental deve respeitar o local real da cena: placas de trânsito, fachadas, avisos, letreiros, documentos, uniformes, sinalização e inscrições devem aparecer primeiro no idioma oficial ou historicamente correto daquele país/região. Logo abaixo, inclua tradução legível em português do Brasil, menor e visualmente secundária. Não use placas, símbolos viários, nomes de estados, órgãos públicos, moedas, domínios, telefones ou padrões brasileiros em cenas ambientadas fora do Brasil. Textos editoriais sobrepostos pelo vídeo, como títulos, contadores, legendas e explicações, permanecem em português do Brasil. Se o local for o Brasil, use somente português do Brasil e não duplique tradução.";
 
-export function enforceVideoDiegeticAudioPolicy(prompt = "", type = "") {
-  if (!isVideoPromptType(type)) return String(prompt || "").trim();
-  const audioDetails = [];
-  let clean = String(prompt || "")
-    .replace(VIDEO_DIEGETIC_AUDIO_POLICY, "")
-    .replace(/Diegetic sound only:\s*([^.]*)\.?/gi, (_match, body) => {
-      const specific = String(body || "")
-        .split(
-          /;\s*(?:absolutely|non-verbal human reactions|no intelligible speech)/i
-        )[0]
-        .trim()
-        .replace(/[;,\s]+$/g, "");
-      if (specific) audioDetails.push(specific);
-      return " ";
-    })
-    .replace(/\b(?:absolutely\s+)?no speech\b/gi, "no intelligible speech")
-    .replace(/\bno talking\b/gi, "no spoken words")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-  const preservedAudio = audioDetails.length
-    ? `Diegetic audio details: ${[...new Set(audioDetails)].join("; ")}.`
-    : "";
-  return [clean, preservedAudio, VIDEO_DIEGETIC_AUDIO_POLICY]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-}
-
-/**
- * Torna visível um material estrutural central que uma fachada pronta esconderia.
- * O objetivo não é falsificar o exterior histórico, e sim mostrar o mecanismo
- * por construção exposta, corte arquitetônico plausível ou detalhe estrutural.
- */
-export function enforceNarrativeMaterialFidelity(
-  prompt = "",
-  { narration = "", narrativeScript = "" } = {}
-) {
-  const text = String(prompt || "").trim();
-  if (!text) return text;
-
-  const context = `${narration} ${narrativeScript}`
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-  const sceneContext = String(narration || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-  const visual = text.toLowerCase();
-  const isBuildingScene =
-    /\b(predio|edificio|arranha-ceu|building|skyscraper|tower)\b/.test(
-      sceneContext
-    ) || /\b(building|skyscraper|tower|structural frame)\b/.test(visual);
-  const steelIsCentral =
-    /\b(aco|ferro|steel|iron|metal(?:ico|lic)?|esqueleto estrutural|structural skeleton)\b/.test(
-      context
-    );
-  const steelIsVisiblySpecified =
-    /\b(exposed|visible|cutaway|cross-section|open structural bay)\b[^.]{0,100}\b(steel|iron|metal|skeleton|frame|columns?|beams?)\b/i.test(
-      text
-    ) ||
-    /\b(steel|iron|metal)\b[^.]{0,80}\b(exposed|visible|skeleton|frame|columns?|beams?|rivets?)\b/i.test(
-      text
-    );
-
-  if (!isBuildingScene || !steelIsCentral || steelIsVisiblySpecified) {
-    return text;
-  }
-
-  const materialClause =
-    "Material fidelity is essential: make the load-bearing riveted steel-and-iron skeleton visually unmistakable through a historically plausible exposed construction bay, architectural cutaway, or clearly visible structural columns and beams. Any brick or stone is only thin non-load-bearing exterior cladding; do not depict a conventional massive load-bearing stone building or stone fortress.";
-  return `${text.replace(/\s+$/g, "")} ${materialClause}`.trim();
-}
-
-/**
- * Gate determinístico para impedir que o Visual PRO aceite um único microbeat
- * como se fosse uma mini-cena cinematográfica pronta para geração.
- */
-export function assessCinematicVideoPromptDetail(prompt = "", type = "") {
-  if (!isVideoPromptType(type)) {
-    return { ok: true, media: "image", wordCount: 0, missing: [] };
-  }
-
-  const text = String(prompt || "").trim();
-  const wordCount = (text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
-  const checks = {
-    opening:
-      /\b(begin|begins|beginning|open|opens|opening|start|starts|initially|at first)\b/i.test(
-        text
-      ),
-    progression:
-      /\b(then|suddenly|as the|as soon as|midway|next|at that moment)\b/i.test(
-        text
-      ),
-    ending:
-      /\b(end|ends|ending|finally|final shot|aftermath|retreat|settles|comes to rest)\b/i.test(
-        text
-      ),
-    camera:
-      /\b(camera|shot|tracking|push-in|dolly|handheld|close-up|wide shot|medium shot|pan|tilt|orbit)\b/i.test(
-        text
-      ),
-    audio:
-      /\b(audio|sound|diegetic|ambient|buzz|rumble|crack|breathing|footsteps|wind|water|machinery)\b/i.test(
-        text
-      ),
-  };
-  const missing = Object.entries(checks)
-    .filter(([, present]) => !present)
-    .map(([name]) => name);
-  if (wordCount < 110) missing.unshift("detail");
-
-  return {
-    ok: missing.length === 0,
-    media: "video",
-    wordCount,
-    checks,
-    missing,
-  };
-}
-
-export function buildCinematicVideoPromptRepairPrompt({
-  visualPrompts = [],
-  format = "SHORTS",
-  visualAssetStyle = DEFAULT_VISUAL_ASSET_STYLE,
-} = {}) {
-  const aspect = resolveProjectAspectRatio(format);
-  const styleDirective = buildVisualAssetStyleDirective(visualAssetStyle);
-  const scenes = (Array.isArray(visualPrompts) ? visualPrompts : []).map(
-    (vp) => ({
-      scene: vp.scene,
-      block: vp.block,
-      narration_text: vp.narration_text || "",
-      type: vp.type || vp.media_mode || "vídeo IA (max 10s)",
-      duration_seconds: vp.duration_seconds || undefined,
-      source_is_pov: vp.is_pov === true || vp.scene_kind === "pov",
-      current_prompt: vp.prompt || "",
-    })
-  );
-
-  return `Reescreva somente os prompts de VÍDEO abaixo. Eles falharam no gate de detalhe cinematográfico.
-
-CONTRATO OBRIGATÓRIO POR PROMPT:
-- Escreva em inglês, entre 120 e 220 palavras, em prosa cinematográfica específica e pronta para um gerador de vídeo.
-- Construa uma mini-cena executável com no máximo 3 beats: estado inicial/tensão -> ação principal -> reação ou consequência visível.
-- Descreva cenário e época, personagens/objetos verificáveis, ação física, reação humana ou ambiental, luz, textura e atmosfera.
-- Inclua uma trajetória de câmera contínua e plausível: diga como começa, como acompanha a ação e em qual imagem termina.
-- Inclua áudio diegético específico. Reações humanas não verbais podem existir; proíba fala inteligível, palavras, diálogo, narração e qualquer música.
-- Não invente datas, idiomas falados, personagens, armas, quantidades ou fatos ausentes na narração fornecida.
-- POV somente quando source_is_pov=true. Caso contrário, use câmera cinematográfica em terceira pessoa.
-- Preserve o formato ${aspect} e o estilo ${styleDirective.label}: ${styleDirective.promptClause}
-- Não coloque títulos, legendas, logos, marcas d'água ou texto editorial dentro da mídia.
-
-Retorne APENAS JSON válido neste formato:
-{"visual_prompts":[{"scene":"1.1","prompt":"..."}]}
-
-CENAS:
-${JSON.stringify(scenes, null, 2)}`;
-}
-
-/** SHORTS / 9:16 → vertical; LONGO / 16:9 → horizontal. */
-export function resolveProjectAspectRatio(format = "SHORTS") {
-  const f = String(format || "")
-    .toUpperCase()
-    .trim();
-  if (f === "SHORTS" || f === "SHORT" || f === "9:16" || f.includes("9:16")) {
-    return "9:16";
-  }
-  if (f === "LONGO" || f === "LONG" || f === "16:9" || f.includes("16:9")) {
-    return "16:9";
-  }
-  return f === "SHORTS" ? "9:16" : "16:9";
-}
-
-export function aspectRatioClause(format = "SHORTS") {
-  const aspect = resolveProjectAspectRatio(format);
-  if (aspect === "9:16") {
-    return "Vertical 9:16 portrait composition, full-frame mobile framing, generate strictly as 9:16 (portrait), not landscape";
-  }
-  return "Horizontal 16:9 widescreen cinematic composition, generate strictly as 16:9 (landscape), not portrait";
-}
-
-/**
- * Garante o aspect ratio do projeto no prompt (IMAGE e VIDEO).
- * Remove menções ao ratio errado e anexa a cláusula canônica.
- */
-export function enforceAspectRatioInPrompt(prompt = "", format = "SHORTS") {
-  const aspect = resolveProjectAspectRatio(format);
-  let clean = String(prompt || "").trim();
-  if (!clean) {
-    return aspectRatioClause(format);
-  }
-
-  // Remove ratios e frases de composição conflitantes
-  clean = clean
-    .replace(/\bvertical\s*9\s*[:/]\s*16(?:\s*composition)?\b/gi, "")
-    .replace(/\bhorizontal\s*16\s*[:/]\s*9(?:\s*composition)?\b/gi, "")
-    .replace(
-      /\b9\s*[:/]\s*16(?:\s*(?:portrait|vertical|composition|framing|image|video))?\b/gi,
-      ""
-    )
-    .replace(
-      /\b16\s*[:/]\s*9(?:\s*(?:landscape|widescreen|horizontal|composition|framing|image|video))?\b/gi,
-      ""
-    )
-    .replace(
-      /\bgenerate\s+strictly\s+as\s+(?:9\s*[:/]\s*16|16\s*[:/]\s*9)[^.]*\.?/gi,
-      ""
-    )
-    .replace(
-      /\b(?:full-frame\s+mobile\s+framing|widescreen\s+cinematic\s+composition|portrait\s+framing|landscape\s+framing)\b/gi,
-      ""
-    )
-    .replace(/\s{2,}/g, " ")
-    .replace(/\s*,\s*,/g, ",")
-    .trim()
-    .replace(/^[,\s.]+|[,\s.]+$/g, "");
-
-  const clause = aspectRatioClause(format);
-  // Já tem o ratio correto de forma explícita?
-  const hasCorrect =
-    aspect === "9:16"
-      ? /9\s*[:/]\s*16/.test(clean) && /vertical|portrait|mobile/i.test(clean)
-      : /16\s*[:/]\s*9/.test(clean) &&
-        /horizontal|widescreen|landscape|cinematic/i.test(clean);
-
-  if (hasCorrect) {
-    return /[.!?]$/.test(clean) ? clean : `${clean}.`;
-  }
-
-  const base = clean.replace(/\.\s*$/, "").trim();
-  return `${base}${base ? ". " : ""}${clause}.`.replace(/\.\s*\./g, ".");
-}
-
-export function enforceVisualLocalizedTextRule(
-  prompt = "",
-  { allowDiegeticText = false, mediaType = "", format = "SHORTS" } = {}
-) {
-  let clean = String(prompt || "").trim();
-  clean = clean
-    .replace(LEGACY_LOCALIZED_TEXT_RULE, "")
-    .replace(VISUAL_MINIMAL_TEXT_RULE, "")
-    .replace(VISUAL_DIEGETIC_TEXT_RULE, "")
-    .replace(VIDEO_DIEGETIC_AUDIO_POLICY, "")
-    .replace(
-      /Todo e qualquer texto,[\s\S]*?Nunca gere texto em ingl(?:ê|e)s\.?/gi,
-      ""
-    )
-    .replace(
-      /Qualquer texto visível na imagem deve estar em português do Brasil\.?/gi,
-      ""
-    )
-    .replace(/Texto visível em português do Brasil\.?/gi, "")
-    .replace(
-      /Any visible text(?:\/words)?[^.]*Portuguese \(Brazilian\)\.?/gi,
-      ""
-    )
-    .replace(/Any visible text must be in Portuguese \(Brazilian\)\.?/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-  // IMAGE: limpar lixo de vídeo (max N seconds / cinematic motion / drone moves / diegetic audio)
-  if (!isVideoPromptType(mediaType)) {
-    // import local to avoid circular deps — same rewrites as pipeline
-    clean = clean
-      .replace(
-        /\b(?:epic\s+)?wide\s+aerial\s+drone\s+shot\b/gi,
-        "wide high-angle aerial still"
-      )
-      .replace(
-        /\b(?:aerial\s+)?drone\s+shot\b/gi,
-        "high-angle aerial still photograph"
-      )
-      .replace(/\bdrone\s+(?:view|footage|clip|video)\b/gi, "aerial still view")
-      .replace(/\bdrone\b/gi, "aerial")
-      .replace(
-        /\bslightly\s+descending\s+to\s+reveal\b/gi,
-        "high angle revealing"
-      )
-      .replace(
-        /\b(?:slowly\s+)?(?:descending|ascending|rising|lowering)\s+to\s+reveal\b/gi,
-        "high angle revealing"
-      )
-      .replace(
-        /\b(?:slowly\s+)?(?:descending|ascending|rising|lowering)\b/gi,
-        ""
-      )
-      .replace(/\btracking\s+shot\b/gi, "side-angle still")
-      .replace(/\bhandheld\s+(?:shot|camera|footage)?\b/gi, "sharp still")
-      .replace(/\bdolly(?:\s+in|\s+out|\s+shot)?\b/gi, "composed still")
-      .replace(/\bpush[\s-]?in\b/gi, "close still of")
-      .replace(/\bpull[\s-]?out\b/gi, "wide still of")
-      .replace(
-        /\s*[,.]?\s*Cinematic motion(?:\s*,\s*max\s*\d{1,2}\s*seconds?)?(?:\s*,\s*no text)?\.?/gi,
-        ""
-      )
-      .replace(
-        /\s*[,.]?\s*max\s*\d{1,2}\s*seconds?(?:\s*,\s*no text)?\.?/gi,
-        ""
-      )
-      .replace(/\s*[,.]?\s*Diegetic sound only:[^.]*\.?/gi, "")
-      .replace(/\s{2,}/g, " ")
-      .replace(/\s*,\s*,/g, ",")
-      .trim();
-  }
-  const policy = allowDiegeticText
-    ? `${VISUAL_MINIMAL_TEXT_RULE} ${VISUAL_DIEGETIC_TEXT_RULE}`
-    : VISUAL_MINIMAL_TEXT_RULE;
-  const withTextPolicy = `${clean}${clean ? " " : ""}${policy}`;
-  const withAudio = enforceVideoDiegeticAudioPolicy(withTextPolicy, mediaType);
-  return enforceAspectRatioInPrompt(withAudio, format);
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// §2  DETECÇÃO DE NICHO (data-driven)
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const NICHE_STYLE_MAP = {
-  mystery:
-    "Dark cinematic mood, deep shadows, volumetric lighting, warm gold accents, mysterious atmosphere, heavy realistic textures (oxidized bronze, ancient clay, forged steel)",
   true_crime:
     "Dark moody cinematic, high contrast, cold blue shadows, tense atmosphere, forensic detail, noir lighting",
+  horror:
+    "Dark disturbing, high contrast, cold blue/red tones, deep shadows, unsettling angles, grain and noise, tension-building lighting",
+  mystery:
+    "Dark cinematic mood, deep shadows, volumetric lighting, warm gold accents, mysterious atmosphere, heavy realistic textures (oxidized bronze, ancient clay, forged steel)",
   history:
     "Period-accurate cinematic, film grain, classic lenses, warm amber lighting for ancient scenes, cool steel for modern, rich textures of the era",
   science:
@@ -355,8 +65,6 @@ export const NICHE_STYLE_MAP = {
     "Premium cinematic, golden hour lighting, rich textures (leather, marble, chrome), heroic camera angles, sophisticated composition",
   motivation:
     "Epic inspirational, golden light, powerful compositions, silhouette shots, dramatic sky backgrounds, warm tones",
-  horror:
-    "Dark disturbing, high contrast, cold blue/red tones, deep shadows, unsettling angles, grain and noise, tension-building lighting",
   finance:
     "Luxurious clean, elegant lighting, wealth visual elements (gold, graphs, modern offices), sophisticated compositions, premium feel",
   geography:
@@ -379,7 +87,7 @@ export function detectNicheFromContent(
     strategy.hook,
     strategy.tone,
     strategy.target_audience,
-    narrative.slice(0, 2000),
+    String(narrative || "").slice(0, 2000),
     hyperframe,
   ]
     .filter(Boolean)
@@ -467,10 +175,349 @@ export function detectNicheFromContent(
   return "default";
 }
 
-/**
- * Extrai um "DNA visual" estável do vídeo — identidade que todas as cenas
- * devem carregar para parecerem do mesmo filme (não um álbum genérico).
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// §3  UTILITÁRIOS DE FORMATO E ASPECT RATIO
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function isVideoPromptType(type = "") {
+  const t = String(type || "").toLowerCase();
+  return t.includes("vídeo") || t.includes("video");
+}
+
+export function resolveProjectAspectRatio(format = "SHORTS") {
+  const f = String(format || "")
+    .toUpperCase()
+    .trim();
+  if (f === "SHORTS" || f === "SHORT" || f === "9:16" || f.includes("9:16"))
+    return "9:16";
+  if (f === "LONGO" || f === "LONG" || f === "16:9" || f.includes("16:9"))
+    return "16:9";
+  return f === "SHORTS" ? "9:16" : "16:9";
+}
+
+export function aspectRatioClause(format = "SHORTS") {
+  const aspect = resolveProjectAspectRatio(format);
+  if (aspect === "9:16") {
+    return "Vertical 9:16 portrait composition, full-frame mobile framing, generate strictly as 9:16 (portrait), not landscape";
+  }
+  return "Horizontal 16:9 widescreen cinematic composition, generate strictly as 16:9 (landscape), not portrait";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §4  POLÍTICAS DE ENFORCEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function enforceVideoDiegeticAudioPolicy(prompt = "", type = "") {
+  if (!isVideoPromptType(type)) return String(prompt || "").trim();
+
+  const raw = String(prompt || "").trim();
+  const policy = VIDEO_DIEGETIC_AUDIO_POLICY;
+  const matchLegacy = raw.replace(policy, "").trim();
+
+  const audioDetails = [];
+  const cleanBase = matchLegacy.replace(
+    /Diegetic sound only:\s*([^.]*)\.?/gi,
+    (m, body) => {
+      const specific = String(body || "")
+        .split(
+          /; (?:absolutely|non-verbal human reactions|no intelligible speech)/i
+        )[0]
+        .trim();
+      if (specific && specific !== "rich realistic ambient and action SFX") {
+        audioDetails.push(specific);
+      }
+      return " ";
+    }
+  );
+
+  let clean = cleanBase
+    .replace(/\b(?:absolutely\s+)?no speech\b/gi, "no intelligible speech")
+    .replace(/\bno talking\b/gi, "no spoken words")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const preservedAudio =
+    audioDetails.length > 0
+      ? `Diegetic audio details: ${audioDetails.join("; ")}.`
+      : "";
+
+  return [clean, preservedAudio, policy].filter(Boolean).join(" ").trim();
+}
+
+export function enforceAspectRatioInPrompt(prompt = "", format = "SHORTS") {
+  const aspect = resolveProjectAspectRatio(format);
+  let clean = String(prompt || "").trim();
+
+  if (!clean) return aspectRatioClause(format);
+
+  clean = clean
+    .replace(/\bvertical\s*9\s*[:/]\s*16(?:\s*composition)?\b/gi, "")
+    .replace(/\bhorizontal\s*16\s*[:/]\s*9(?:\s*composition)?\b/gi, "")
+    .replace(
+      /\b9\s*[:/]\s*16(?:\s*(?:portrait|vertical|composition|framing|image|video))?\b/gi,
+      ""
+    )
+    .replace(
+      /\b16\s*[:/]\s*9(?:\s*(?:landscape|widescreen|horizontal|composition|framing|image|video))?\b/gi,
+      ""
+    )
+    .replace(
+      /\bgenerate\s+strictly\s+as\s+(?:9\s*[:/]\s*16|16\s*[:/]\s*9)[^.]*\.?/gi,
+      ""
+    )
+    .replace(
+      /\b(?:full-frame\s+mobile\s+framing|widescreen\s+cinematic\s+composition|portrait\s+framing|landscape\s+framing)\b/gi,
+      ""
+    )
+    .replace(/\s+/g, " ")
+    .replace(/\s*,\s*,/g, ",")
+    .trim()
+    .replace(/^[,\s.]+|[,\s.]+$/g, "");
+
+  const hasCorrectRatio =
+    aspect === "9:16"
+      ? /9\s*[:/]\s*16/.test(clean) && /vertical|portrait|mobile/i.test(clean)
+      : /16\s*[:/]\s*9/.test(clean) &&
+        /horizontal|widescreen|landscape|cinematic/i.test(clean);
+
+  if (hasCorrectRatio) {
+    return /[.!?]$/.test(clean) ? clean : `${clean}.`;
+  }
+
+  const clause = aspectRatioClause(format);
+  const base = clean.replace(/\.\s*$/, "").trim();
+  return `${base}${base ? ". " : ""}${clause}.`.replace(/\.\s*\./g, ".");
+}
+
+function stripVideoTerminologyFromImagePrompt(prompt) {
+  return String(prompt || "")
+    .replace(
+      /\b(?:epic\s+)?wide\s+aerial\s+drone\s+shot\b/gi,
+      "wide high-angle aerial still"
+    )
+    .replace(
+      /\b(?:aerial\s+)?drone\s+shot\b/gi,
+      "high-angle aerial still photograph"
+    )
+    .replace(/\bdrone\s+(?:view|footage|clip|video)\b/gi, "aerial still view")
+    .replace(/\bdrone\b/gi, "aerial")
+    .replace(
+      /\bslightly\s+descending\s+to\s+reveal\b/gi,
+      "high angle revealing"
+    )
+    .replace(
+      /\b(?:slowly\s+)?(?:descending|ascending|rising|lowering)\s+to\s+reveal\b/gi,
+      "high angle revealing"
+    )
+    .replace(/\b(?:slowly\s+)?(?:descending|ascending|rising|lowering)\b/gi, "")
+    .replace(/\btracking\s+shot\b/gi, "side-angle still")
+    .replace(/\bhandheld\s+(?:shot|camera|footage)?\b/gi, "sharp still")
+    .replace(/\bdolly(?:\s+in|\s+out|\s+shot)?\b/gi, "composed still")
+    .replace(/\bpush[\s-]?in\b/gi, "close still of")
+    .replace(/\bpull[\s-]?out\b/gi, "wide still of")
+    .replace(
+      /\s*[,.]?\s*Cinematic motion(?:\s*,\s*max\s*\d{1,2}\s*seconds?)?(?:\s*,\s*no text)?\.?/gi,
+      ""
+    )
+    .replace(/\s*[,.]?\s*max\s*\d{1,2}\s*seconds?(?:\s*,\s*no text)?\.?/gi, "")
+    .replace(/\s*[,.]?\s*Diegetic sound only:[^.]*\.?/gi, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s*,\s*,/g, ",")
+    .trim();
+}
+
+function stripLegacyRules(prompt) {
+  return String(prompt || "")
+    .replace(LEGACY_LOCALIZED_TEXT_RULE, "")
+    .replace(VISUAL_MINIMAL_TEXT_RULE, "")
+    .replace(VISUAL_DIEGETIC_TEXT_RULE, "")
+    .replace(VIDEO_DIEGETIC_AUDIO_POLICY, "")
+    .replace(
+      /Todo e qualquer texto,[\s\S]*?Nunca gere texto em ingl(?:ê|e)s\.?/gi,
+      ""
+    )
+    .replace(
+      /Qualquer texto visível na imagem deve estar em português do Brasil\.?/gi,
+      ""
+    )
+    .replace(/Texto visível em português do Brasil\.?/gi, "")
+    .replace(
+      /Any visible text(?:\/words)?[^.]*Portuguese \(Brazilian\)\.?/gi,
+      ""
+    )
+    .replace(/Any visible text must be in Portuguese \(Brazilian\)\.?/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function enforceVisualLocalizedTextRule(
+  prompt = "",
+  { allowDiegeticText = false, mediaType = "", format = "SHORTS" } = {}
+) {
+  let clean = stripLegacyRules(prompt);
+  if (!isVideoPromptType(mediaType))
+    clean = stripVideoTerminologyFromImagePrompt(clean);
+
+  const textPolicy = allowDiegeticText
+    ? `${VISUAL_MINIMAL_TEXT_RULE} ${VISUAL_DIEGETIC_TEXT_RULE}`
+    : VISUAL_MINIMAL_TEXT_RULE;
+  clean = `${clean}${clean ? " " : ""}${textPolicy}`;
+  clean = enforceVideoDiegeticAudioPolicy(clean, mediaType);
+  return enforceAspectRatioInPrompt(clean, format);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §5  FIDELIDADE NARRATIVA DE MATERIAIS
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function enforceNarrativeMaterialFidelity(
+  prompt = "",
+  { narration = "", narrativeScript = "" } = {}
+) {
+  const text = String(prompt || "").trim();
+  if (!text) return text;
+
+  const cleanVal = (s) =>
+    String(s || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  const context = cleanVal(`${narration} ${narrativeScript}`);
+  const sceneContext = cleanVal(narration);
+  const visual = text.toLowerCase();
+
+  const isBuildingScene =
+    /\b(predio|edificio|arranha-ceu|building|skyscraper|tower)\b/.test(
+      sceneContext
+    ) || /\b(building|skyscraper|tower|structural frame)\b/.test(visual);
+
+  const steelIsCentral =
+    /\b(aco|ferro|steel|iron|metal(?:ico|lic)?|esqueleto estrutural|structural skeleton)\b/.test(
+      context
+    );
+
+  const steelIsVisiblySpecified =
+    /\b(exposed|visible|cutaway|cross-section|open structural bay)\b[^.]{0,100}\b(steel|iron|metal|skeleton|frame|columns?|beams?)\b/i.test(
+      text
+    ) ||
+    /\b(steel|iron|metal)\b[^.]{0,80}\b(exposed|visible|skeleton|frame|columns?|beams?|rivets?)\b/i.test(
+      text
+    );
+
+  if (isBuildingScene && steelIsCentral && !steelIsVisiblySpecified) {
+    const clause =
+      "Material fidelity is essential: make the load-bearing riveted steel-and-iron skeleton visually unmistakable through a historically plausible exposed construction bay, architectural cutaway, or clearly visible structural columns and beams. Any brick or stone is only thin non-load-bearing exterior cladding; do not depict a conventional massive load-bearing stone building or stone fortress.";
+    return `${text.replace(/\s+$/g, "")} ${clause}`.trim();
+  }
+  return text;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §6  GATE DE DETALHE CINEMATOGRÁFICO
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function assessCinematicVideoPromptDetail(prompt = "", type = "") {
+  if (!isVideoPromptType(type)) {
+    return { ok: true, media: "image", wordCount: 0, missing: [] };
+  }
+  const text = String(prompt || "").trim();
+  const wordCount = (text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
+
+  const checks = {
+    opening:
+      /\b(begin|begins|beginning|open|opens|opening|start|starts|initially|at first)\b/i.test(
+        text
+      ),
+    progression:
+      /\b(then|suddenly|as the|as soon as|midway|next|at that moment)\b/i.test(
+        text
+      ),
+    ending:
+      /\b(end|ends|ending|finally|final shot|aftermath|retreat|settles|comes to rest)\b/i.test(
+        text
+      ),
+    camera:
+      /\b(camera|shot|tracking|push-in|dolly|handheld|close-up|wide shot|medium shot|pan|tilt|orbit)\b/i.test(
+        text
+      ),
+    audio:
+      /\b(audio|sound|diegetic|ambient|buzz|rumble|crack|breathing|footsteps|wind|water|machinery)\b/i.test(
+        text
+      ),
+  };
+
+  const missing = [];
+  if (wordCount < 110) {
+    missing.push("detail");
+  }
+  if (!checks.opening) {
+    missing.push("opening");
+  }
+  if (!checks.progression) {
+    missing.push("progression");
+  }
+  if (!checks.ending) {
+    missing.push("ending");
+  }
+  if (!checks.camera) {
+    missing.push("camera");
+  }
+  if (!checks.audio) {
+    missing.push("audio");
+  }
+
+  return {
+    ok: missing.length === 0,
+    media: "video",
+    wordCount,
+    checks,
+    missing,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §7  DNA VISUAL E REPARO
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function buildCinematicVideoPromptRepairPrompt({
+  visualPrompts = [],
+  format = "SHORTS",
+  visualAssetStyle = DEFAULT_VISUAL_ASSET_STYLE,
+} = {}) {
+  const aspect = resolveProjectAspectRatio(format);
+  const styleDirective = buildVisualAssetStyleDirective(visualAssetStyle);
+  const scenes = (Array.isArray(visualPrompts) ? visualPrompts : []).map(
+    (vp) => ({
+      scene: vp.scene,
+      block: vp.block,
+      narration_text: vp.narration_text || "",
+      type: vp.type || vp.media_mode || "vídeo IA (max 10s)",
+      duration_seconds: vp.duration_seconds || undefined,
+      source_is_pov: vp.is_pov === true || vp.scene_kind === "pov",
+      current_prompt: vp.prompt || "",
+    })
+  );
+
+  return `Reescreva somente os prompts de VÍDEO abaixo. Eles falharam no gate de detalhe cinematográfico.
+
+CONTRATO OBRIGATÓRIO POR PROMPT:
+- Escreva em inglês, entre 120 e 220 palavras, em prosa cinematográfica específica e pronta para um gerador de vídeo.
+- Construa uma mini-cena executável com no máximo 3 beats: estado inicial/tensão -> ação principal -> reação ou consequência visível.
+- Descreva cenário e época, personagens/objetos verificáveis, ação física, reação humana ou ambiental, luz, textura e atmosfera.
+- Inclua uma trajetória de câmera contínua e plausível: diga como começa, como acompanha a ação e em qual imagem termina.
+- Inclua áudio diegético específico. Reações humanas não verbais podem existir; proíba fala inteligível, palavras, diálogo, narração e qualquer música.
+- Não invente datas, idiomas falados, personagens, armas, quantidades ou fatos ausentes na narração fornecida.
+- POV somente quando source_is_pov=true. Caso contrário, use câmera cinematográfica em terceira pessoa.
+- Preserve o formato ${aspect} e o estilo ${styleDirective.label}: ${styleDirective.promptClause}
+- Não coloque títulos, legendas, logos, marcas d'água ou texto editorial dentro da mídia.
+
+Retorne APENAS JSON válido neste formato:
+{"visual_prompts":[{"scene":"1.1","prompt":"..."}]}
+
+CENAS:
+${JSON.stringify(scenes, null, 2)}`;
+}
+
 export function buildVisualIdentityBrief({
   strategy = {},
   narrative = "",
@@ -487,16 +534,16 @@ export function buildVisualIdentityBrief({
   const nicheStyle = NICHE_STYLE_MAP[niche] || NICHE_STYLE_MAP.default;
   const assetStyle = getVisualAssetStyle(visualAssetStyle);
   const mapOnlyActive = isMapOnlyPromptsEnabled(mapOnly);
-  const firstLines = String(narrative || "")
+
+  const lines = String(narrative || "")
     .split(/(?<=[.!?…])\s+/)
     .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 3)
-    .join(" ");
+    .filter(Boolean);
+  const briefHook = hook || lines.slice(0, 3).join(" ").slice(0, 180);
 
   return {
     title: title || "Vídeo sem título",
-    hook: hook || firstLines.slice(0, 180),
+    hook: briefHook,
     tone: tone || niche.replace(/_/g, " "),
     audience:
       audience || (format === "SHORTS" ? "mobile / retenção" : "YouTube longo"),
@@ -530,6 +577,10 @@ export function buildVisualIdentityBrief({
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// §8  CONSTRUÇÃO DO SYSTEM PROMPT
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function buildVisualPromptEngineerSystemPrompt({
   niche = "",
   format = "SHORTS",
@@ -550,6 +601,7 @@ export function buildVisualPromptEngineerSystemPrompt({
   const styleDirective = buildVisualAssetStyleDirective(visualAssetStyle, {
     mapOnly: mapOnlyActive,
   });
+
   const identity = identityBrief || {
     title: "(definir pelo storyboard)",
     hook: "",
@@ -580,8 +632,16 @@ FORMATO DO VÍDEO: ${format}
 ASPECT RATIO OBRIGATÓRIO DO PROJETO: ${aspect}
 CLÁUSULA DE FORMATO (cole no final de CADA prompt): "${aspectClause}"
 ${styleDirective.systemBlock}
-${hyperframePrompt ? `HYPERFRAME (ESTILO UNIFICADO DO CANAL/PROJETO): ${hyperframePrompt}` : ""}
-${isListicle ? `LISTICLE TOP ${listicleRank} — ordem ${rankOrder === "asc" ? "1→N (build-up)" : "N→1 (countdown)"}` : ""}
+${
+  hyperframePrompt
+    ? `HYPERFRAME (ESTILO UNIFICADO DO CANAL/PROJETO): ${hyperframePrompt}`
+    : ""
+}
+${
+  isListicle
+    ? `LISTICLE TOP ${listicleRank} — ordem ${rankOrder === "asc" ? "1→N (build-up)" : "N→1 (countdown)"}`
+    : ""
+}
 
 ### DNA VISUAL DESTE VÍDEO (OBRIGATÓRIO EM TODAS AS CENAS)
 - Título: ${identity.title}
@@ -595,7 +655,10 @@ ${isListicle ? `LISTICLE TOP ${listicleRank} — ordem ${rankOrder === "asc" ? "
 - Paleta / luz / textura: ${identity.palette_and_light}
 ${identity.hyperframe ? `- Hyperframe: ${identity.hyperframe}` : ""}
 - Regras de continuidade:
-${(identity.continuity_rules || []).map((r) => `  • ${r}`).join("\n") || "  • Manter coerência de cor, lente e realismo"}
+${
+  (identity.continuity_rules || []).map((r) => `  • ${r}`).join("\n") ||
+  "  • Manter coerência de cor, lente e realismo"
+}
 
 ### REGRAS OBRIGATÓRIAS (NUNCA QUEBRE)
 
@@ -614,39 +677,42 @@ ${(identity.continuity_rules || []).map((r) => `  • ${r}`).join("\n") || "  �
   - EXPLAIN: torna um mecanismo compreensível visualmente
   - FEEL: carrega a emoção da linha (medo, maravilha, urgência, ironia)
 - Use prev_narration / next_narration do payload para continuidade: o final de uma cena deve "passar o bastão" visual para a próxima.
-- Se o fato central estiver escondido pela aparência externa — estrutura de aço sob alvenaria, mecanismo interno, fundação ou tubulação — torne essa evidência VISÍVEL com fase de construção, detalhe exposto ou corte arquitetônico plausível. Nunca mostre só uma fachada genérica quando a fala explica o material/mecanismo que a sustenta.
+- Se o fato central estiver escondido pela aparência externa — estrutura de aço sob alvenaria, mecanismo interno, fundação ou tubulação — torne essa evidência VISÍVEL com fase de construção, detalhe exposto ou corte arquitetônico plausível.
 - Diferencie estrutura portante de revestimento: aço/ferro estrutural deve aparecer como colunas, vigas, rebites e esqueleto; pedra/tijolo externo não pode fazer o edifício parecer uma construção maciça convencional quando a inovação narrada é o esqueleto metálico.
+
+**1b. Identidade por asset (por que a pessoa se interessa)**
+- Todo prompt deve conter um **visual_hook** embutido na descrição (não como título na imagem): o detalhe que faz scroll parar.
+- Cada sujeito recorrente ganha **identity_tags** estáveis reutilizados nas cenas em que o mesmo sujeito volta.
+- A identidade não é logo/texto — é aparência, material, época, lente, clima.
 
 **1c. Mapas e geografia — NUNCA MENTIR (crítico)**
 - Modelos de imagem inventam posição de cidades. **É proibido** pedir pins com nomes de cidades em posições decorativas/aleatórias.
 - Em mapas: silhueta/costa/contorno da região devem ser reconhecíveis e corretos.
-- Se for citar cidades (ex. Blumenau, Brusque, Gaspar em Santa Catarina), a posição **relativa** entre elas e em relação ao litoral tem de ser real; senão **omita os nomes** e mostre só o contorno correto do estado/região.
-- Prefira mapa honesto **sem rótulos de cidade** a mapa “bonito” com geografia falsa.
+- Se for citar cidades, a posição **relativa** entre elas e em relação ao litoral tem de ser real; senão **omita os nomes** e mostre só o contorno correto do estado/região.
+- Prefira mapa honesto **sem rótulos de cidade** a mapa "bonito" com geografia falsa.
 - Nunca invente rios, fronteiras ou topônimos que a narração não exige.
 
-**1d. Idioma dos rótulos DENTRO do mapa (crítico — SEMPRE PELO PAÍS, sem engessar)**
-- O prompt de geração pode estar em inglês; o TEXTO PINTADO no mapa = idioma oficial/histórico do **país ou região que o mapa mostra**.
+**1d. Idioma dos rótulos DENTRO do mapa (crítico — SEMPRE PELO PAÍS)**
+- O TEXTO PINTADO no mapa = idioma oficial/histórico do **país ou região que o mapa mostra**.
 - Detecte o país pela narração/cena. Não force português nem inglês de forma fixa.
-- Exemplos só ilustrativos: mapa do Brasil → português; França → francês; EUA → inglês; Japão → japonês; Roma antiga → latim.
-- Proibido copiar substantivos genéricos em inglês (River, Ocean, Mountain) num mapa de país que não usa inglês — e proibido forçar português em mapa que não é do Brasil.
+- Exemplos: mapa do Brasil → português; França → francês; EUA → inglês; Japão → japonês; Roma antiga → latim.
+- Proibido copiar substantivos genéricos em inglês (River, Ocean, Mountain) num mapa de país que não usa inglês.
 - Embute em todo prompt de mapa: ${MAP_LABEL_LANGUAGE_CLAUSE}
 
-**1b. Identidade por asset (por que a pessoa se interessa)**
-- Todo prompt deve conter um **visual_hook** embutido na descrição (não como título na imagem): o detalhe que faz scroll parar.
-  Exemplos de ganchos válidos: escala impossível, textura hiper-real, contraste brutal, revelação no push-in, micro-ação humana, objeto icônico em ângulo heroico, luz volumétrica contando drama.
-- Cada sujeito recorrente ganha **identity_tags** estáveis (ex.: "titanic-deck-1912", "amber-documentary-grain", "hero-low-angle") reutilizados nas cenas em que o mesmo sujeito volta.
-- A identidade não é logo/texto — é aparência, material, época, lente, clima.
-
-**2. Mídia Visual Limpa — Texto é Exceção (REGRA INQUEBRÁVEL)**
-- Imagens e vídeos devem contar a história visualmente. Não grave títulos, legendas, frases, parágrafos, explicações, logos ou marcas d'água na mídia gerada.
-- text_overlay e impact_text são metadados para o Remotion e NUNCA devem ser copiados para o prompt da imagem/vídeo.
+**2. Mídia Visual Limpa — Texto é Exceção (INQUEBRÁVEL)**
+- Imagens e vídeos devem contar a história visualmente. Não grave títulos, legendas, frases, logos ou marcas d'água na mídia gerada.
+- text_overlay e impact_text são metadados para o Remotion e NUNCA devem ser copiados para o prompt.
 - Regra padrão no fim de todo prompt: "${VISUAL_MINIMAL_TEXT_RULE}"
-- Só marque diegetic_text_required=true quando ler uma placa, documento ou interface real for indispensável para compreender o fato. Nesse caso, limite o texto ambiental a quatro palavras no idioma autêntico e acrescente: "${VISUAL_DIEGETIC_TEXT_RULE}"
-- Traduções e explicações em português ficam em editor_notes ou text_overlay, nunca duplicadas dentro da imagem/vídeo.
+- Só marque diegetic_text_required=true quando ler uma placa, documento ou interface real for indispensável. Nesse caso: "${VISUAL_DIEGETIC_TEXT_RULE}"
+- Traduções em português ficam em editor_notes ou text_overlay, nunca dentro da imagem/vídeo.
 
 **3. Estilo Visual Adaptado ao Nicho + DNA do vídeo**
 - Use o estilo do nicho: ${nicheStyle}
-${hyperframePrompt ? `- Combine com o hyperframe: ${hyperframePrompt}` : "- Se não houver hyperframe, use o DNA do vídeo + nicho."}
+${
+  hyperframePrompt
+    ? `- Combine com o hyperframe: ${hyperframePrompt}`
+    : "- Se não houver hyperframe, use o DNA do vídeo + nicho."
+}
 - Todas as cenas devem parecer do **mesmo filme**. Se uma cena "quebrar o look", reescreva-a.
 
 **4. Prompts de Vídeo (type contém "vídeo")**
@@ -716,7 +782,7 @@ Monte o prompt nesta ordem, em prosa fluida (não como lista seca):
 5) LIGHT + TEXTURE + ERA — coerente com o DNA e o nicho
 6) CONTINUITY — âncora sutil com a cena anterior quando existir
 7) SE VÍDEO: 3 BEATS + FRAME FINAL — tensão inicial, ação, consequência, com 120–220 palavras
-8) SE VÍDEO: DIEGETIC AUDIO ONLY — SFX rico; reação não verbal permitida; sem palavras/diálogo/narração/música
+8) SE VÍDEO: DIEGETIC AUDIO ONLY — SFX rico; reações humanas não verbais permitidas; sem palavras/diálogo/narração/música
 9) ASPECT OBRIGATÓRIO ${aspect} + CLEAN MEDIA POLICY — cláusula de formato + mídia sem texto
 
 ### PROCESSO (CHAIN OF THOUGHT — interno, por cena)
@@ -767,6 +833,51 @@ Retorne APENAS um JSON válido:
 }
 
 Não adicione texto fora do JSON.`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §9  CONSTRUÇÃO DO REQUEST (user prompt + payload)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function truncate(value, max) {
+  return String(value || "").slice(0, max);
+}
+
+function mapVisualPromptsForPayload(visualPrompts) {
+  return (Array.isArray(visualPrompts) ? visualPrompts : []).map(
+    (vp, index, arr) => {
+      const prev = arr[index - 1];
+      const next = arr[index + 1];
+      return {
+        scene: vp.scene,
+        block: vp.block,
+        narration_text: truncate(vp.narration_text, TRUNCATION.NARRATION_TEXT),
+        prev_narration: prev
+          ? truncate(prev.narration_text, TRUNCATION.PREV_NEXT_NARRATION)
+          : "",
+        next_narration: next
+          ? truncate(next.narration_text, TRUNCATION.PREV_NEXT_NARRATION)
+          : "",
+        type: vp.type || "imagem IA 2k",
+        source_is_pov: vp.is_pov === true || vp.scene_kind === "pov",
+        scene_kind: vp.scene_kind || undefined,
+        prompt: truncate(vp.prompt, TRUNCATION.PROMPT),
+        editor_notes: truncate(vp.editor_notes, TRUNCATION.EDITOR_NOTES),
+        stock_query: truncate(vp.stock_query, TRUNCATION.STOCK_QUERY),
+        text_overlay: vp.text_overlay || undefined,
+        diegetic_text_required: vp.diegetic_text_required === true,
+        duration_seconds: vp.duration_seconds || undefined,
+        speech_start: vp.speech_start ?? undefined,
+        speech_end: vp.speech_end ?? undefined,
+        temporal_plan: vp.temporal_plan || undefined,
+        narrative_job: vp.narrative_job || undefined,
+        visual_hook: vp.visual_hook || undefined,
+        identity_tags: Array.isArray(vp.identity_tags)
+          ? vp.identity_tags.slice(0, 6)
+          : undefined,
+      };
+    }
+  );
 }
 
 export function buildVisualPromptEngineerRequest(storyboard = {}, opts = {}) {
@@ -827,135 +938,42 @@ export function buildVisualPromptEngineerRequest(storyboard = {}, opts = {}) {
       target_audience: strategy.target_audience || "",
       promise: strategy.promise || strategy.factual_premise || "",
     },
-    narrative_script: narrative.slice(0, 12000),
+    narrative_script: truncate(narrative, TRUNCATION.NARRATIVE_SCRIPT),
     visual_identity_brief: identityBrief,
-    visual_prompts: visualPrompts.map((vp, index) => {
-      const prev = visualPrompts[index - 1];
-      const next = visualPrompts[index + 1];
-      return {
-        scene: vp.scene,
-        block: vp.block,
-        narration_text: String(vp.narration_text || "").slice(0, 600),
-        prev_narration: prev
-          ? String(prev.narration_text || "").slice(0, 220)
-          : "",
-        next_narration: next
-          ? String(next.narration_text || "").slice(0, 220)
-          : "",
-        type: vp.type || "imagem IA 2k",
-        source_is_pov: vp.is_pov === true || vp.scene_kind === "pov",
-        scene_kind: vp.scene_kind || undefined,
-        prompt: String(vp.prompt || "").slice(0, 700),
-        editor_notes: String(vp.editor_notes || "").slice(0, 240),
-        stock_query: String(vp.stock_query || "").slice(0, 80),
-        text_overlay: vp.text_overlay || undefined,
-        diegetic_text_required: vp.diegetic_text_required === true,
-        duration_seconds: vp.duration_seconds || undefined,
-        speech_start: vp.speech_start ?? undefined,
-        speech_end: vp.speech_end ?? undefined,
-        temporal_plan: vp.temporal_plan || undefined,
-        narrative_job: vp.narrative_job || undefined,
-        visual_hook: vp.visual_hook || undefined,
-        identity_tags: Array.isArray(vp.identity_tags)
-          ? vp.identity_tags.slice(0, 6)
-          : undefined,
-      };
-    }),
-    hyperframe_prompt: hyperframe.slice(0, 500),
+    visual_prompts: mapVisualPromptsForPayload(visualPrompts),
+    hyperframe_prompt: truncate(hyperframe, TRUNCATION.HYPERFRAME),
     editing_map:
       typeof editingMap === "string"
-        ? editingMap.slice(0, 500)
-        : JSON.stringify(editingMap).slice(0, 500),
+        ? truncate(editingMap, TRUNCATION.EDITING_MAP)
+        : truncate(JSON.stringify(editingMap), TRUNCATION.EDITING_MAP),
   };
+
+  const mapRule = mapOnly
+    ? "6) MODO MAPAS: cada visual_prompt é um mapa geográfico/histórico fiel ao local e época. Não gere paisagens, objetos ou faces soltas."
+    : "";
+
+  const userPrompt = `Abaixo está o payload do Storyboard do vídeo atual.
+
+Reprocesse todos os visual_prompts gerando prompts visuais de alta qualidade e preenchendo todos os campos do formato de saída JSON para que o vídeo se torne UM FILME COESO roteiro + imagem.
+Certifique-se de que:
+1) O estilo '${visualAssetStyle}' seja estritamente aplicado.
+2) O formato '${format}' seja respeitado (aspect ratio correspondente).
+3) A sonoplastia diegética de vídeo em inglês seja embutida em todas as cenas de vídeo.
+4) Nenhuma imagem ou vídeo traga texto editorial embutido (mídia limpa).
+${mapRule}
+
+\`\`\`json
+${JSON.stringify(storyboardPayload, null, 2)}
+\`\`\`
+
+Retorne o JSON de saída válido.`;
 
   return {
     systemPrompt,
-    userPrompt: `Reprocesse TODOS os visual_prompts como UM FILME COESO.
-
-Prioridades absolutas:
-1) Unidade roteiro↔imagem: cada frame completa e explica a fala (não decora).
-2) Identidade visual estável do DNA em todas as cenas.
-3) Cada asset com gancho de interesse (por que olhar este frame).
-4) Continuidade entre prev_narration → cena → next_narration.
-5) ESTILO VISUAL DO PROJETO obrigatório: ${identityBrief.visual_asset_style_label} — embutir a cláusula de estilo em cada prompt.
-${mapOnly ? "6) MODO MAPAS: cada visual_prompt é um mapa informativo da época do trecho narrado — proibido b-roll que não seja cartografia." : "6) Se a cena for mapa/cartografia/território (mesmo fora do modo mapas): geografia REAL obrigatória — proibido inventar posição de cidades."}
-7) MAPAS / GEOGRAFIA (OBRIGATÓRIO SEMPRE QUE HOUVER MAPA): ${MAP_GEO_ACCURACY_CLAUSE}
-   - Se for citar cidades, posições relativas reais; senão omita nomes e mostre só o contorno correto da região.
-   - Embute a cláusula GEO em inglês em CADA prompt de mapa.
-8) RÓTULOS DO MAPA = IDIOMA DO PAÍS/TERRITÓRIO MOSTRADO (flexível): ${MAP_LABEL_LANGUAGE_CLAUSE}
-   - Nunca engessar um idioma: detectar o país da cena e rotular na língua daquele país.
-
-Corrija prompts genéricos, desalinhados, fracos ou "stock sem alma".
-Siga rigorosamente o system prompt.
-
-STORYBOARD:
-${JSON.stringify(storyboardPayload, null, 2)}`,
+    userPrompt,
     detectedNiche: niche,
     identityBrief,
     visualAssetStyle,
     mapOnly,
   };
 }
-
-/**
- * Aplica a cláusula de estilo do projeto a todos os prompts de cena.
- */
-export function applyProjectVisualAssetStyleToPrompts(
-  visualPrompts = [],
-  styleId = DEFAULT_VISUAL_ASSET_STYLE,
-  opts = {}
-) {
-  const style = normalizeVisualAssetStyleId(styleId);
-  const mapOnly = isMapOnlyPromptsEnabled(opts.mapOnly);
-  return (Array.isArray(visualPrompts) ? visualPrompts : []).map((vp) => {
-    if (!vp || typeof vp !== "object") return vp;
-    const next = {
-      ...vp,
-      visual_asset_style: style,
-      ...(mapOnly ? { visual_map_only: true } : {}),
-    };
-    const enforceOpts = { mapOnly };
-    if (vp.prompt)
-      next.prompt = enforceVisualAssetStyleInPrompt(
-        vp.prompt,
-        style,
-        enforceOpts
-      );
-    if (vp.image_prompt)
-      next.image_prompt = enforceVisualAssetStyleInPrompt(
-        vp.image_prompt,
-        style,
-        enforceOpts
-      );
-    if (vp.video_prompt)
-      next.video_prompt = enforceVisualAssetStyleInPrompt(
-        vp.video_prompt,
-        style,
-        enforceOpts
-      );
-    if (vp.ai_video_prompt)
-      next.ai_video_prompt = enforceVisualAssetStyleInPrompt(
-        vp.ai_video_prompt,
-        style,
-        enforceOpts
-      );
-    if (mapOnly) {
-      // Mapas informativos preferem still; só vídeo se já for motion cartográfico
-      const t = String(vp.type || "").toLowerCase();
-      if (!t.includes("vídeo") && !t.includes("video")) {
-        next.type = next.type || "imagem IA 2k";
-        next.media_mode = next.media_mode || "image";
-      }
-    }
-    return next;
-  });
-}
-
-export {
-  DEFAULT_VISUAL_ASSET_STYLE,
-  enforceVisualAssetStyleInPrompt,
-  normalizeVisualAssetStyleId,
-  getVisualAssetStyle,
-  buildVisualAssetStyleDirective,
-  isMapOnlyPromptsEnabled,
-};
