@@ -11997,6 +11997,463 @@ async function callOpenCodeWithRetry(
   );
 }
 
+// ─── AirForce (api.airforce/v1 · 209 modelos) ───────────────────────────────
+const AIRFORCE_DEFAULT_BASE_URL = "https://api.airforce/v1";
+const DEFAULT_AIRFORCE_API_KEY =
+  "sk-air-EoAkMxmWz6PVjVdLO7GIKBriUeid4VbGpwaw8byH6T7iDVPg";
+const DEFAULT_AIRFORCE_MODEL = "deepseek-v3";
+
+const AIRFORCE_MODEL_OPTIONS = [
+  { id: "deepseek-v3", label: "DeepSeek V3", hint: "Padrão — custo/qualidade" },
+  {
+    id: "deepseek-v3-0324",
+    label: "DeepSeek V3 (Mar 24)",
+    hint: "Variante estável 0324",
+  },
+  {
+    id: "deepseek-v4-flash",
+    label: "DeepSeek V4 Flash",
+    hint: "Rápido e barato",
+  },
+  {
+    id: "deepseek-reasoner",
+    label: "DeepSeek Reasoner (R1)",
+    hint: "Raciocínio avançado",
+  },
+  {
+    id: "claude-sonnet-4.6-rp",
+    label: "Claude Sonnet 4.6",
+    hint: "Anthropic · 200k ctx",
+  },
+  {
+    id: "claude-haiku-4.5",
+    label: "Claude Haiku 4.5",
+    hint: "Rápido Anthropic · 200k",
+  },
+  {
+    id: "claude-sonnet-4-20250514",
+    label: "Claude Sonnet 4 (May25)",
+    hint: "Anthropic Sonnet 4",
+  },
+  {
+    id: "claude-opus-4-1",
+    label: "Claude Opus 4.1",
+    hint: "Máxima qualidade Anthropic",
+  },
+  {
+    id: "claude-opus-4.5-rp",
+    label: "Claude Opus 4.5",
+    hint: "Anthropic Opus 4.5 · 200k",
+  },
+  {
+    id: "claude-opus-4.6-rp",
+    label: "Claude Opus 4.6",
+    hint: "Anthropic Opus 4.6 · 200k",
+  },
+  { id: "gpt-4o-mini", label: "GPT-4o Mini", hint: "OpenAI rápido e barato" },
+  { id: "gpt-4-0125", label: "GPT-4 (0125)", hint: "GPT-4 Turbo Preview" },
+  { id: "gpt-oss-20b", label: "GPT-OSS 20B", hint: "OpenAI OSS · raciocínio" },
+  { id: "gpt-oss-120b", label: "GPT-OSS 120B", hint: "OpenAI OSS 120B" },
+  { id: "o3", label: "O3", hint: "OpenAI O3 · topo raciocínio" },
+  {
+    id: "grok-4.1-fast-non-reasoning",
+    label: "Grok 4.1 Fast",
+    hint: "xAI · 2M ctx",
+  },
+  {
+    id: "grok-4.1-fast-reasoning",
+    label: "Grok 4.1 Thinking",
+    hint: "xAI raciocínio · 2M ctx",
+  },
+  {
+    id: "gemini-2.5-pro",
+    label: "Gemini 2.5 Pro",
+    hint: "Google · 2M ctx · multimodal",
+  },
+  {
+    id: "gemma3-270m:free",
+    label: "Gemma 3 270M (free)",
+    hint: "Google open-weight grátis",
+  },
+  { id: "qwen3", label: "Qwen3 4B", hint: "Alibaba Qwen3" },
+  {
+    id: "qwen3-vl-30b-a3b",
+    label: "Qwen3 VL 30B",
+    hint: "Alibaba multimodal 30B",
+  },
+  { id: "qwen3-coder", label: "Qwen3 Coder", hint: "Alibaba coder" },
+  {
+    id: "qwen3-coder-480b-a35b",
+    label: "Qwen3 Coder 480B",
+    hint: "Alibaba coder gigante",
+  },
+  {
+    id: "moonshot-v1-128k-vision",
+    label: "Moonshot V1 128K",
+    hint: "Moonshot 128K context",
+  },
+  { id: "glm-4.7-flash", label: "GLM-4.7 Flash", hint: "Z.AI GLM rápido" },
+  { id: "minimax-m2.5", label: "MiniMax M2.5", hint: "MiniMax 245k ctx" },
+  { id: "unmoderated-gpt", label: "GPT Unmoderated", hint: "Sem moderação" },
+  { id: "rnj-1", label: "RNJ-1 (Essential AI)", hint: "Essential AI" },
+  {
+    id: "seed-rp",
+    label: "Seed RP (ByteDance)",
+    hint: "ByteDance Seed · 524k ctx",
+  },
+  {
+    id: "plutotext-r3-emotional",
+    label: "PlutoText R3 Emotional",
+    hint: "AirForce custom",
+  },
+];
+
+const AIRFORCE_MODELS = AIRFORCE_MODEL_OPTIONS.map((o) => o.id);
+
+function getAirForceApiKey(projectDir = WORKSPACE_DIR) {
+  if (process.env.AIRFORCE_API_KEY) return process.env.AIRFORCE_API_KEY;
+  const readKey = (p) => readJsonFile(p)?.airforce_api_key || null;
+  return (
+    readKey(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readKey(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    DEFAULT_AIRFORCE_API_KEY
+  );
+}
+
+function getAirForceBaseUrl(projectDir = WORKSPACE_DIR) {
+  const readUrl = (p) => readJsonFile(p)?.airforce_base_url || null;
+  return (
+    readUrl(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readUrl(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    AIRFORCE_DEFAULT_BASE_URL
+  );
+}
+
+function getAirForceModel(projectDir = WORKSPACE_DIR) {
+  const readModel = (p) => readJsonFile(p)?.airforce_model || null;
+  return (
+    readModel(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    DEFAULT_AIRFORCE_MODEL
+  );
+}
+
+function getAirForceModelChain(projectDir = WORKSPACE_DIR) {
+  const primary = getAirForceModel(projectDir);
+  const fallbacks = AIRFORCE_MODELS.filter((m) => m !== primary).slice(0, 3);
+  return [primary, ...fallbacks];
+}
+
+async function callAirForceWithRetry(
+  promptOrBody,
+  {
+    maxRetries = 3,
+    bodyOverride = null,
+    projectDir = WORKSPACE_DIR,
+    temperature = null,
+    models = null,
+    maxTokens = null,
+  } = {}
+) {
+  const apiKey = getAirForceApiKey(projectDir);
+  if (!apiKey) throw new Error("Chave de API AirForce não configurada.");
+  const baseUrl = getAirForceBaseUrl(projectDir).replace(/\/+$/, "");
+  const messages = convertGeminiToOpenRouterMessages(
+    promptOrBody,
+    bodyOverride
+  );
+  const tokenLimit = Math.max(256, Math.min(32000, Number(maxTokens) || 8192));
+  let lastError = null;
+  const modelList =
+    Array.isArray(models) && models.length
+      ? models
+      : getAirForceModelChain(projectDir);
+
+  for (const model of modelList) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const t0 = Date.now();
+      try {
+        console.log(
+          `[AirForce] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries}) @ ${baseUrl}`
+        );
+        const response = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            max_tokens: tokenLimit,
+            ...(temperature !== null ? { temperature } : {}),
+          }),
+        });
+        const ms = Date.now() - t0;
+        if (response.ok) {
+          const result = await response.json();
+          const msg = result.choices?.[0]?.message || {};
+          let text =
+            typeof msg.content === "string"
+              ? msg.content
+              : Array.isArray(msg.content)
+                ? msg.content.map((p) => p?.text || p?.content || "").join("\n")
+                : "";
+          const reasoning = String(
+            msg.reasoning_content || msg.reasoning || ""
+          ).trim();
+          if (!text && reasoning) text = reasoning;
+          text = String(text || "")
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+          if (text) {
+            console.log(
+              `[AirForce] Sucesso model=${model} tentativa ${attempt} (${text.length} chars · ${ms}ms)`
+            );
+            return text;
+          }
+          console.warn(
+            `[AirForce] ${model} retornou vazio na tentativa ${attempt}/${maxRetries} · ${ms}ms`
+          );
+        }
+        const errData = await response.json().catch(() => ({}));
+        const errMsg =
+          errData.error?.message ||
+          errData.message ||
+          response.statusText ||
+          `HTTP ${response.status}`;
+        lastError = new Error(`${model}: ${errMsg}`);
+        console.warn(
+          `[AirForce] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg} · ${ms}ms`
+        );
+        if (response.status === 401)
+          throw new Error(`AirForce: chave inválida (${errMsg})`);
+        if (response.status === 404 || response.status === 400) break;
+        if (response.status === 503 || response.status === 429) {
+          await new Promise((r) =>
+            setTimeout(r, Math.min(1500 * Math.pow(2, attempt - 1), 10000))
+          );
+          continue;
+        }
+        break;
+      } catch (err) {
+        lastError = err;
+        console.warn(
+          `[AirForce] Erro na tentativa ${attempt} para ${model}: ${err.message}`
+        );
+        if (/chave inválida/i.test(err.message || "")) throw err;
+        await new Promise((r) => setTimeout(r, Math.min(400 * attempt, 1200)));
+      }
+    }
+  }
+  throw (
+    lastError ||
+    new Error(
+      "Falha ao chamar AirForce. Confira a chave e https://api.airforce/v1"
+    )
+  );
+}
+
+// ─── Moon-AI (moon-ai.pl/api · 30+ modelos) ─────────────────────────────────
+const MOONAI_DEFAULT_BASE_URL = "https://www.moon-ai.pl/api";
+const DEFAULT_MOONAI_API_KEY = "moon-ai-vrmc2tb733k9m1z5vlccwpb2";
+const DEFAULT_MOONAI_MODEL = "gpt-5-4";
+
+const MOONAI_MODEL_OPTIONS = [
+  { id: "gpt-5-4", label: "GPT-5.4", hint: "Padrão Moon-AI" },
+  {
+    id: "claude-sonnet-5",
+    label: "Claude Sonnet 5",
+    hint: "Anthropic Sonnet 5",
+  },
+  { id: "gpt-5-6-luna", label: "GPT-5.6 Luna", hint: "OpenAI Luna" },
+  { id: "gpt-5-6-terra", label: "GPT-5.6 Terra", hint: "OpenAI Terra" },
+  { id: "gpt-5-6-sol", label: "GPT-5.6 Sol", hint: "OpenAI Sol" },
+  { id: "gpt-5-5", label: "GPT-5.5", hint: "OpenAI GPT-5.5" },
+  {
+    id: "deepseek-v3-2",
+    label: "DeepSeek V3.2",
+    hint: "DeepSeek V3 variante 2",
+  },
+  {
+    id: "deepseek-v4-flash",
+    label: "DeepSeek V4 Flash",
+    hint: "Rápido e eficiente",
+  },
+  { id: "kimi-k2-5", label: "Kimi K2.5", hint: "Moonshot Kimi K2.5" },
+  { id: "gpt-oss-120b", label: "GPT-OSS 120B", hint: "OpenAI OSS 120B" },
+  {
+    id: "llama-3-3-70b-instruct",
+    label: "Llama 3.3 70B",
+    hint: "Meta Llama 70B instruct",
+  },
+  { id: "glm-5-1", label: "GLM-5.1", hint: "Z.AI GLM-5.1" },
+  { id: "glm-4-7-flash", label: "GLM-4.7 Flash", hint: "Z.AI rápido" },
+  { id: "glm-4-7", label: "GLM-4.7", hint: "Z.AI GLM-4.7" },
+  { id: "qwen-3-6-plus", label: "Qwen 3.6 Plus", hint: "Alibaba Qwen 3.6+" },
+  { id: "grok-3", label: "Grok 3", hint: "xAI Grok 3" },
+];
+
+const MOONAI_MODELS = MOONAI_MODEL_OPTIONS.map((o) => o.id);
+
+function getMoonAiApiKey(projectDir = WORKSPACE_DIR) {
+  if (process.env.MOONAI_API_KEY) return process.env.MOONAI_API_KEY;
+  const readKey = (p) => readJsonFile(p)?.moonai_api_key || null;
+  return (
+    readKey(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readKey(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    DEFAULT_MOONAI_API_KEY
+  );
+}
+
+function getMoonAiBaseUrl(projectDir = WORKSPACE_DIR) {
+  const readUrl = (p) => readJsonFile(p)?.moonai_base_url || null;
+  return (
+    readUrl(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readUrl(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    MOONAI_DEFAULT_BASE_URL
+  );
+}
+
+function getMoonAiModel(projectDir = WORKSPACE_DIR) {
+  const readModel = (p) => readJsonFile(p)?.moonai_model || null;
+  return (
+    readModel(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    DEFAULT_MOONAI_MODEL
+  );
+}
+
+function getMoonAiModelChain(projectDir = WORKSPACE_DIR) {
+  const primary = getMoonAiModel(projectDir);
+  const fallbacks = MOONAI_MODELS.filter((m) => m !== primary).slice(0, 3);
+  return [primary, ...fallbacks];
+}
+
+async function callMoonAiWithRetry(
+  promptOrBody,
+  {
+    maxRetries = 3,
+    bodyOverride = null,
+    projectDir = WORKSPACE_DIR,
+    temperature = null,
+    models = null,
+    maxTokens = null,
+  } = {}
+) {
+  const apiKey = getMoonAiApiKey(projectDir);
+  if (!apiKey) throw new Error("Chave de API Moon-AI não configurada.");
+  const baseUrl = getMoonAiBaseUrl(projectDir).replace(/\/+$/, "");
+  const messages = convertGeminiToOpenRouterMessages(
+    promptOrBody,
+    bodyOverride
+  );
+  const tokenLimit = Math.max(256, Math.min(32000, Number(maxTokens) || 8192));
+  let lastError = null;
+  const modelList =
+    Array.isArray(models) && models.length
+      ? models
+      : getMoonAiModelChain(projectDir);
+
+  for (const model of modelList) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const t0 = Date.now();
+      try {
+        console.log(
+          `[MoonAI] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries}) @ ${baseUrl}`
+        );
+        const response = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            max_tokens: tokenLimit,
+            ...(temperature !== null ? { temperature } : {}),
+          }),
+        });
+        const ms = Date.now() - t0;
+        if (response.ok) {
+          const result = await response.json();
+          const msg = result.choices?.[0]?.message || {};
+          let text =
+            typeof msg.content === "string"
+              ? msg.content
+              : Array.isArray(msg.content)
+                ? msg.content.map((p) => p?.text || p?.content || "").join("\n")
+                : "";
+          const reasoning = String(
+            msg.reasoning_content || msg.reasoning || ""
+          ).trim();
+          if (!text && reasoning) text = reasoning;
+          text = String(text || "")
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+          if (text) {
+            console.log(
+              `[MoonAI] Sucesso model=${model} tentativa ${attempt} (${text.length} chars · ${ms}ms)`
+            );
+            return text;
+          }
+          console.warn(
+            `[MoonAI] ${model} retornou vazio na tentativa ${attempt}/${maxRetries} · ${ms}ms`
+          );
+        }
+        const errData = await response.json().catch(() => ({}));
+        const errMsg =
+          errData.error?.message ||
+          errData.message ||
+          response.statusText ||
+          `HTTP ${response.status}`;
+        lastError = new Error(`${model}: ${errMsg}`);
+        console.warn(
+          `[MoonAI] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg} · ${ms}ms`
+        );
+        if (response.status === 401)
+          throw new Error(`MoonAI: chave inválida (${errMsg})`);
+        if (response.status === 404 || response.status === 400) break;
+        if (response.status === 503 || response.status === 429) {
+          await new Promise((r) =>
+            setTimeout(r, Math.min(1500 * Math.pow(2, attempt - 1), 10000))
+          );
+          continue;
+        }
+        break;
+      } catch (err) {
+        lastError = err;
+        console.warn(
+          `[MoonAI] Erro na tentativa ${attempt} para ${model}: ${err.message}`
+        );
+        if (/chave inválida/i.test(err.message || "")) throw err;
+        await new Promise((r) => setTimeout(r, Math.min(400 * attempt, 1200)));
+      }
+    }
+  }
+  throw (
+    lastError ||
+    new Error(
+      "Falha ao chamar Moon-AI. Confira a chave e https://www.moon-ai.pl/api"
+    )
+  );
+}
+
 /** TokenRouter — gateway OpenAI-compatible (https://api.tokenrouter.com/v1) */
 const TOKENROUTER_DEFAULT_BASE_URL = "https://api.tokenrouter.com/v1";
 
@@ -12586,6 +13043,30 @@ async function callGeminiWithRetry(
     }
     if (provider === "opencode") {
       const text = await callOpenCodeWithRetry(promptOrBody, {
+        maxRetries,
+        bodyOverride,
+        projectDir: projDir,
+        temperature,
+        models: providerModelsOverride,
+        maxTokens,
+      });
+      finishOk(primaryModel);
+      return text;
+    }
+    if (provider === "airforce") {
+      const text = await callAirForceWithRetry(promptOrBody, {
+        maxRetries,
+        bodyOverride,
+        projectDir: projDir,
+        temperature,
+        models: providerModelsOverride,
+        maxTokens,
+      });
+      finishOk(primaryModel);
+      return text;
+    }
+    if (provider === "moonai") {
+      const text = await callMoonAiWithRetry(promptOrBody, {
         maxRetries,
         bodyOverride,
         projectDir: projDir,
@@ -14118,6 +14599,16 @@ app.get("/api/ai/settings", (req, res) => {
     opencode_base_url: getOpenCodeBaseUrl(projDir),
     has_opencode_key: !!getOpenCodeApiKey(projDir),
 
+    airforce_model: getAirForceModel(projDir),
+    airforce_model_options: AIRFORCE_MODEL_OPTIONS,
+    airforce_base_url: getAirForceBaseUrl(projDir),
+    has_airforce_key: !!getAirForceApiKey(projDir),
+
+    moonai_model: getMoonAiModel(projDir),
+    moonai_model_options: MOONAI_MODEL_OPTIONS,
+    moonai_base_url: getMoonAiBaseUrl(projDir),
+    has_moonai_key: !!getMoonAiApiKey(projDir),
+
     gemini_key_count: getApiKeys(projDir).length,
 
     has_xai_key: !!getXaiApiKey(projDir),
@@ -14162,6 +14653,12 @@ app.post("/api/ai/settings", (req, res) => {
     opencode_model,
     opencode_base_url,
     opencode_key,
+    airforce_model,
+    airforce_base_url,
+    airforce_key,
+    moonai_model,
+    moonai_base_url,
+    moonai_key,
     gemini_key,
     gemini_keys,
     xai_key,
@@ -14182,28 +14679,20 @@ app.post("/api/ai/settings", (req, res) => {
     const applyAiSettings = (config = {}) => {
       const next = { ...config };
 
-      if (
-        provider === "gemini" ||
-        provider === "xai" ||
-        provider === "openrouter" ||
-        provider === "nvidia" ||
-        provider === "alibaba" ||
-        provider === "dashscope" ||
-        provider === "tokenrouter" ||
-        provider === "minimax" ||
-        provider === "token_router" ||
-        provider === "opencode" ||
-        provider === "local"
-      ) {
-        next.ai_provider =
-          provider === "dashscope"
-            ? "alibaba"
-            : provider === "token_router"
-              ? "tokenrouter"
-              : provider;
-      } else if (provider === "inference") {
-        // Provedor removido — grava Gemini
-        next.ai_provider = "gemini";
+      if (typeof provider === "string" && provider.trim()) {
+        const n = provider.trim().toLowerCase();
+        if (n === "inference") {
+          next.ai_provider = "gemini";
+        } else {
+          next.ai_provider =
+            n === "dashscope" || n === "aliyun" || n === "qwen_cloud"
+              ? "alibaba"
+              : n === "token_router" || n === "token-router"
+                ? "tokenrouter"
+                : n === "minimax-m3"
+                  ? "minimax"
+                  : n;
+        }
       }
 
       if (typeof gemini_model === "string" && gemini_model.trim()) {
@@ -14342,6 +14831,34 @@ app.post("/api/ai/settings", (req, res) => {
         next.opencode_api_key = opencode_key.trim();
       }
 
+      if (typeof airforce_model === "string" && airforce_model.trim()) {
+        next.airforce_model = airforce_model.trim();
+      }
+
+      if (typeof airforce_base_url === "string" && airforce_base_url.trim()) {
+        let u = airforce_base_url.trim().replace(/\/+$/, "");
+        if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+        next.airforce_base_url = u;
+      }
+
+      if (typeof airforce_key === "string" && airforce_key.trim()) {
+        next.airforce_api_key = airforce_key.trim();
+      }
+
+      if (typeof moonai_model === "string" && moonai_model.trim()) {
+        next.moonai_model = moonai_model.trim();
+      }
+
+      if (typeof moonai_base_url === "string" && moonai_base_url.trim()) {
+        let u = moonai_base_url.trim().replace(/\/+$/, "");
+        if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+        next.moonai_base_url = u;
+      }
+
+      if (typeof moonai_key === "string" && moonai_key.trim()) {
+        next.moonai_api_key = moonai_key.trim();
+      }
+
       return next;
     };
 
@@ -14376,6 +14893,14 @@ app.post("/api/ai/settings", (req, res) => {
       opencode_model_options: OPENCODE_MODEL_OPTIONS,
       opencode_base_url: getOpenCodeBaseUrl(projDir),
       has_opencode_key: !!getOpenCodeApiKey(projDir),
+      airforce_model: getAirForceModel(projDir),
+      airforce_model_options: AIRFORCE_MODEL_OPTIONS,
+      airforce_base_url: getAirForceBaseUrl(projDir),
+      has_airforce_key: !!getAirForceApiKey(projDir),
+      moonai_model: getMoonAiModel(projDir),
+      moonai_model_options: MOONAI_MODEL_OPTIONS,
+      moonai_base_url: getMoonAiBaseUrl(projDir),
+      has_moonai_key: !!getMoonAiApiKey(projDir),
       gemini_key_count: getApiKeys(projDir).length,
       has_xai_key: !!getXaiApiKey(projDir),
       has_openrouter_key: !!getOpenRouterApiKey(projDir),

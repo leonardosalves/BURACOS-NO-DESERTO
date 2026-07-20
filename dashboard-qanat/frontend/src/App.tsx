@@ -505,6 +505,42 @@ export default function App() {
   const [localLlmUrlInput, setLocalLlmUrlInput] = useState<string>("");
   const [localLlmModelInput, setLocalLlmModelInput] = useState<string>("");
 
+  // AirForce States
+  const [airforceKeyInput, setAirforceKeyInput] = useState<string>("");
+  const [hasAirforceKey, setHasAirforceKey] = useState<boolean>(true);
+  const [airforceBaseUrlInput, setAirforceBaseUrlInput] = useState<string>(
+    "https://api.airforce/v1"
+  );
+  const [airforceModel, setAirforceModel] = useState<string>("deepseek-v3");
+  const [airforceModelOptions, setAirforceModelOptions] = useState<
+    Array<{ id: string; label: string; hint?: string }>
+  >([
+    { id: "deepseek-v3", label: "DeepSeek V3", hint: "Padrão" },
+    {
+      id: "claude-sonnet-4.6-rp",
+      label: "Claude Sonnet 4.6",
+      hint: "Anthropic",
+    },
+    { id: "gpt-4o-mini", label: "GPT-4o Mini", hint: "OpenAI" },
+    { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Google" },
+  ]);
+
+  // Moon-AI States
+  const [moonaiKeyInput, setMoonaiKeyInput] = useState<string>("");
+  const [hasMoonaiKey, setHasMoonaiKey] = useState<boolean>(true);
+  const [moonaiBaseUrlInput, setMoonaiBaseUrlInput] = useState<string>(
+    "https://www.moon-ai.pl/api"
+  );
+  const [moonaiModel, setMoonaiModel] = useState<string>("gpt-5-4");
+  const [moonaiModelOptions, setMoonaiModelOptions] = useState<
+    Array<{ id: string; label: string; hint?: string }>
+  >([
+    { id: "gpt-5-4", label: "GPT-5.4", hint: "Padrão" },
+    { id: "claude-sonnet-5", label: "Claude Sonnet 5", hint: "Anthropic" },
+    { id: "grok-3", label: "Grok 3", hint: "xAI" },
+    { id: "llama-3-3-70b-instruct", label: "Llama 3.3 70B", hint: "Meta" },
+  ]);
+
   const [geminiKeysInput, setGeminiKeysInput] = useState<string>("");
 
   const [xaiKeyInput, setXaiKeyInput] = useState<string>("");
@@ -3330,6 +3366,30 @@ export default function App() {
         }
         setHasOpencodeKey(!!settingsData.has_opencode_key);
 
+        setAirforceModel(settingsData.airforce_model || "deepseek-v3");
+        if (
+          Array.isArray(settingsData.airforce_model_options) &&
+          settingsData.airforce_model_options.length > 0
+        ) {
+          setAirforceModelOptions(settingsData.airforce_model_options);
+        }
+        if (settingsData.airforce_base_url) {
+          setAirforceBaseUrlInput(String(settingsData.airforce_base_url));
+        }
+        setHasAirforceKey(!!settingsData.has_airforce_key);
+
+        setMoonaiModel(settingsData.moonai_model || "gpt-5-4");
+        if (
+          Array.isArray(settingsData.moonai_model_options) &&
+          settingsData.moonai_model_options.length > 0
+        ) {
+          setMoonaiModelOptions(settingsData.moonai_model_options);
+        }
+        if (settingsData.moonai_base_url) {
+          setMoonaiBaseUrlInput(String(settingsData.moonai_base_url));
+        }
+        setHasMoonaiKey(!!settingsData.has_moonai_key);
+
         setGeminiKeyCount(settingsData.gemini_key_count || 0);
 
         setHasXaiKey(!!settingsData.has_xai_key);
@@ -3338,6 +3398,8 @@ export default function App() {
         setHasNvidiaKey(!!settingsData.has_nvidia_key);
         setHasAlibabaKey(!!settingsData.has_alibaba_key);
         setHasTokenrouterKey(!!settingsData.has_tokenrouter_key);
+        setHasAirforceKey(!!settingsData.has_airforce_key);
+        setHasMoonaiKey(!!settingsData.has_moonai_key);
 
         setHasEpidemicKey(!!settingsData.has_epidemic_key);
 
@@ -3358,6 +3420,8 @@ export default function App() {
             settingsData.provider === "tokenrouter" ||
             !!settingsData.has_tokenrouter_key ||
             settingsData.provider === "opencode" ||
+            settingsData.provider === "airforce" ||
+            settingsData.provider === "moonai" ||
             settingsData.provider === "local"
         );
       }
@@ -6393,6 +6457,9 @@ export default function App() {
         | "nvidia"
         | "alibaba"
         | "tokenrouter"
+        | "opencode"
+        | "airforce"
+        | "moonai"
         | "local"
     ) => {
       setAiProvider(next);
@@ -6424,6 +6491,9 @@ export default function App() {
             xai: "xAI",
             alibaba: "Alibaba",
             tokenrouter: "TokenRouter",
+            opencode: "OpenCode",
+            airforce: "AirForce",
+            moonai: "Moon-AI",
             local: "Local",
           };
           toast.success(`Provedor ${labels[next] || next} ativo no projeto`, {
@@ -6465,6 +6535,14 @@ export default function App() {
           opencode_model: opencodeModel,
           opencode_base_url: opencodeBaseUrlInput,
           opencode_key: opencodeKeyInput,
+
+          airforce_model: airforceModel,
+          airforce_base_url: airforceBaseUrlInput,
+          airforce_key: airforceKeyInput,
+
+          moonai_model: moonaiModel,
+          moonai_base_url: moonaiBaseUrlInput,
+          moonai_key: moonaiKeyInput,
 
           gemini_keys: geminiKeysInput,
 
@@ -6548,12 +6626,40 @@ export default function App() {
         setHasOpencodeKey(!!data.has_opencode_key);
         if (opencodeKeyInput.trim()) setOpencodeKeyInput("");
 
+        if (data.airforce_model) setAirforceModel(data.airforce_model);
+        if (
+          Array.isArray(data.airforce_model_options) &&
+          data.airforce_model_options.length > 0
+        ) {
+          setAirforceModelOptions(data.airforce_model_options);
+        }
+        if (data.airforce_base_url) {
+          setAirforceBaseUrlInput(String(data.airforce_base_url));
+        }
+        setHasAirforceKey(!!data.has_airforce_key);
+        if (airforceKeyInput.trim()) setAirforceKeyInput("");
+
+        if (data.moonai_model) setMoonaiModel(data.moonai_model);
+        if (
+          Array.isArray(data.moonai_model_options) &&
+          data.moonai_model_options.length > 0
+        ) {
+          setMoonaiModelOptions(data.moonai_model_options);
+        }
+        if (data.moonai_base_url) {
+          setMoonaiBaseUrlInput(String(data.moonai_base_url));
+        }
+        setHasMoonaiKey(!!data.has_moonai_key);
+        if (moonaiKeyInput.trim()) setMoonaiKeyInput("");
+
         setHasXaiKey(!!data.has_xai_key);
 
         setHasOpenRouterKey(!!data.has_openrouter_key);
         setHasNvidiaKey(!!data.has_nvidia_key);
         setHasAlibabaKey(!!data.has_alibaba_key);
         setHasTokenrouterKey(!!data.has_tokenrouter_key);
+        setHasAirforceKey(!!data.has_airforce_key);
+        setHasMoonaiKey(!!data.has_moonai_key);
         if (tokenrouterKeyInput.trim()) setTokenrouterKeyInput("");
 
         setHasEpidemicKey(!!data.has_epidemic_key);
@@ -6573,6 +6679,8 @@ export default function App() {
             data.provider === "alibaba" ||
             !!data.has_alibaba_key ||
             data.provider === "opencode" ||
+            data.provider === "airforce" ||
+            data.provider === "moonai" ||
             data.provider === "local"
         );
 
@@ -6583,6 +6691,8 @@ export default function App() {
         setOpenRouterKeyInput("");
         setNvidiaKeyInput("");
         setAlibabaKeyInput("");
+        setAirforceKeyInput("");
+        setMoonaiKeyInput("");
 
         setEpidemicKeyInput("");
 
@@ -11580,6 +11690,22 @@ export default function App() {
     setOpencodeModel,
     setOpencodeBaseUrlInput,
     setOpencodeKeyInput,
+    airforceModel,
+    airforceModelOptions,
+    airforceBaseUrlInput,
+    airforceKeyInput,
+    hasAirforceKey,
+    setAirforceModel,
+    setAirforceBaseUrlInput,
+    setAirforceKeyInput,
+    moonaiModel,
+    moonaiModelOptions,
+    moonaiBaseUrlInput,
+    moonaiKeyInput,
+    hasMoonaiKey,
+    setMoonaiModel,
+    setMoonaiBaseUrlInput,
+    setMoonaiKeyInput,
     generateYoutubeMetadata,
     generatedScriptData,
     generatingOverlays,

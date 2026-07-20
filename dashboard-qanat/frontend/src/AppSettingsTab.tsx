@@ -47,6 +47,14 @@ export type AppSettingsTabProps = {
   opencodeModelOptions: Array<{ id: string; label: string; hint?: string }>;
   opencodeBaseUrlInput: string;
   opencodeKeyInput: string;
+  airforceModel: string;
+  airforceModelOptions: Array<{ id: string; label: string; hint?: string }>;
+  airforceBaseUrlInput: string;
+  airforceKeyInput: string;
+  moonaiModel: string;
+  moonaiModelOptions: Array<{ id: string; label: string; hint?: string }>;
+  moonaiBaseUrlInput: string;
+  moonaiKeyInput: string;
   globalBlockGap: number;
   globalDebugOverlay: boolean;
   globalFps: number;
@@ -71,6 +79,8 @@ export type AppSettingsTabProps = {
   hasAlibabaKey: boolean;
   hasTokenrouterKey: boolean;
   hasOpencodeKey: boolean;
+  hasAirforceKey: boolean;
+  hasMoonaiKey: boolean;
   hasOpenRouterKey: boolean;
   hasPexelsKey: boolean;
   hasPixabayKey: boolean;
@@ -121,6 +131,12 @@ export type AppSettingsTabProps = {
   setOpencodeModel: (v: string) => void;
   setOpencodeBaseUrlInput: (v: string) => void;
   setOpencodeKeyInput: (v: string) => void;
+  setAirforceModel: (v: string) => void;
+  setAirforceBaseUrlInput: (v: string) => void;
+  setAirforceKeyInput: (v: string) => void;
+  setMoonaiModel: (v: string) => void;
+  setMoonaiBaseUrlInput: (v: string) => void;
+  setMoonaiKeyInput: (v: string) => void;
   setGlobalBlockGap: (v: number) => void;
   setGlobalDebugOverlay: (v: boolean) => void;
   setGlobalFps: (v: number) => void;
@@ -198,6 +214,16 @@ export function AppSettingsTab({
   opencodeBaseUrlInput,
   opencodeKeyInput,
   hasOpencodeKey,
+  airforceModel,
+  airforceModelOptions,
+  airforceBaseUrlInput,
+  airforceKeyInput,
+  hasAirforceKey,
+  moonaiModel,
+  moonaiModelOptions,
+  moonaiBaseUrlInput,
+  moonaiKeyInput,
+  hasMoonaiKey,
   hasTokenrouterKey,
   globalBlockGap,
   globalDebugOverlay,
@@ -265,6 +291,12 @@ export function AppSettingsTab({
   setOpencodeModel,
   setOpencodeBaseUrlInput,
   setOpencodeKeyInput,
+  setAirforceModel,
+  setAirforceBaseUrlInput,
+  setAirforceKeyInput,
+  setMoonaiModel,
+  setMoonaiBaseUrlInput,
+  setMoonaiKeyInput,
   setGlobalBlockGap,
   setGlobalDebugOverlay,
   setGlobalFps,
@@ -430,6 +462,53 @@ export function AppSettingsTab({
                 </div>
                 <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
                   forge-gateway-api.fly.dev · DeepSeek / GPT-5 / Claude / Grok
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAiProvider("airforce")}
+                className={`dash-provider-card ${aiProvider === "airforce" ? "dash-provider-card-active" : ""}`}
+                data-testid="provider-airforce"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
+                    AirForce
+                    <SettingHelpTip title="AirForce API" align="start">
+                      Catálogo gigante com 209 modelos (DeepSeek V3, Claude
+                      Sonnet 4.6, Grok 4.1, Gemini 2.5 Pro). Provedor flexível e
+                      livre de moderação.
+                    </SettingHelpTip>
+                  </span>
+                  {aiProvider === "airforce" && (
+                    <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />
+                  )}
+                </div>
+                <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
+                  api.airforce/v1 · 209 Modelos premium/livres
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAiProvider("moonai")}
+                className={`dash-provider-card ${aiProvider === "moonai" ? "dash-provider-card-active" : ""}`}
+                data-testid="provider-moonai"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
+                    Moon-AI
+                    <SettingHelpTip title="Moon-AI API" align="start">
+                      Gateway polonês premium. Suporta GPT-5.4, Claude Sonnet 5,
+                      Grok 3, Kimi K2.5 e Llama 3.3.
+                    </SettingHelpTip>
+                  </span>
+                  {aiProvider === "moonai" && (
+                    <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />
+                  )}
+                </div>
+                <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
+                  www.moon-ai.pl/api · GPT-5 / Claude 5 / Grok 3 / Kimi
                 </p>
               </button>
 
@@ -918,6 +997,122 @@ export function AppSettingsTab({
                   </div>
                 )}
 
+                {aiProvider === "airforce" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Modelo AirForce"
+                        help="Escolha um dos modelos do AirForce ou cole um ID de modelo livre."
+                        align="start"
+                      >
+                        Modelo AirForce
+                      </SettingLabel>
+                      <select
+                        value={airforceModel}
+                        onChange={(e) => setAirforceModel(e.target.value)}
+                        className="dash-select"
+                      >
+                        {airforceModelOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={airforceModel}
+                        onChange={(e) => setAirforceModel(e.target.value)}
+                        placeholder="ex.: deepseek-v3, claude-sonnet-4.6-rp, grok-4.1-fast-reasoning"
+                        className="dash-input font-mono text-[11px]"
+                      />
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                        {airforceModelOptions.find(
+                          (option) => option.id === airforceModel
+                        )?.hint || "OpenAI-compatible via AirForce API."}{" "}
+                        ID:{" "}
+                        <span className="text-zinc-300 font-mono text-[9px]">
+                          {airforceModel}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Base URL AirForce"
+                        help="Padrão: https://api.airforce/v1"
+                        align="start"
+                      >
+                        Base URL (OpenAI compatible)
+                      </SettingLabel>
+                      <input
+                        type="text"
+                        value={airforceBaseUrlInput}
+                        onChange={(e) =>
+                          setAirforceBaseUrlInput(e.target.value)
+                        }
+                        placeholder="https://api.airforce/v1"
+                        className="dash-input font-mono text-[11px]"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {aiProvider === "moonai" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Modelo Moon-AI"
+                        help="Escolha um dos modelos do Moon-AI ou cole um ID de modelo livre."
+                        align="start"
+                      >
+                        Modelo Moon-AI
+                      </SettingLabel>
+                      <select
+                        value={moonaiModel}
+                        onChange={(e) => setMoonaiModel(e.target.value)}
+                        className="dash-select"
+                      >
+                        {moonaiModelOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={moonaiModel}
+                        onChange={(e) => setMoonaiModel(e.target.value)}
+                        placeholder="ex.: gpt-5-4, claude-sonnet-5, grok-3, llama-3-3-70b-instruct"
+                        className="dash-input font-mono text-[11px]"
+                      />
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                        {moonaiModelOptions.find(
+                          (option) => option.id === moonaiModel
+                        )?.hint || "OpenAI-compatible via Moon-AI API."}{" "}
+                        ID:{" "}
+                        <span className="text-zinc-300 font-mono text-[9px]">
+                          {moonaiModel}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Base URL Moon-AI"
+                        help="Padrão: https://www.moon-ai.pl/api"
+                        align="start"
+                      >
+                        Base URL (OpenAI compatible)
+                      </SettingLabel>
+                      <input
+                        type="text"
+                        value={moonaiBaseUrlInput}
+                        onChange={(e) => setMoonaiBaseUrlInput(e.target.value)}
+                        placeholder="https://www.moon-ai.pl/api"
+                        className="dash-input font-mono text-[11px]"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {aiProvider === "local" && (
                   <>
                     <div className="space-y-2">
@@ -1183,6 +1378,75 @@ export function AppSettingsTab({
                     Grok…).{" "}
                     <code className="text-[9px] text-zinc-400">
                       base_url=&quot;https://forge-gateway-api.fly.dev/v1&quot;
+                    </code>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <SettingLabel
+                      helpTitle="Chave AirForce API"
+                      help="Chave sk-air-… do AirForce API. Deixe vazio para usar a chave padrão embutida."
+                      align="start"
+                    >
+                      Chave AirForce
+                    </SettingLabel>
+                    {hasAirforceKey ? (
+                      <span className="dash-ui-badge dash-ui-badge-success dash-ui-badge-pill">
+                        Ativa
+                      </span>
+                    ) : (
+                      <span className="dash-ui-badge dash-ui-badge-muted dash-ui-badge-pill">
+                        Embutida
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="password"
+                    value={airforceKeyInput}
+                    onChange={(e) => setAirforceKeyInput(e.target.value)}
+                    placeholder="Cole sk-air-… para substituir. Vazio = chave padrão."
+                    className="dash-input"
+                  />
+                  <p className="text-[10px] text-zinc-500 leading-relaxed">
+                    AirForce API · 209 modelos (DeepSeek, Claude 4.6, Grok
+                    4.1…).{" "}
+                    <code className="text-[9px] text-zinc-400">
+                      base_url=&quot;https://api.airforce/v1&quot;
+                    </code>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <SettingLabel
+                      helpTitle="Chave Moon-AI API"
+                      help="Chave moon-ai-… da Moon-AI API. Deixe vazio para usar a chave padrão embutida."
+                      align="start"
+                    >
+                      Chave Moon-AI
+                    </SettingLabel>
+                    {hasMoonaiKey ? (
+                      <span className="dash-ui-badge dash-ui-badge-success dash-ui-badge-pill">
+                        Ativa
+                      </span>
+                    ) : (
+                      <span className="dash-ui-badge dash-ui-badge-muted dash-ui-badge-pill">
+                        Embutida
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="password"
+                    value={moonaiKeyInput}
+                    onChange={(e) => setMoonaiKeyInput(e.target.value)}
+                    placeholder="Cole moon-ai-… para substituir. Vazio = chave padrão."
+                    className="dash-input"
+                  />
+                  <p className="text-[10px] text-zinc-500 leading-relaxed">
+                    Moon-AI API · GPT-5, Claude 5, Grok 3, Kimi…{" "}
+                    <code className="text-[9px] text-zinc-400">
+                      base_url=&quot;https://www.moon-ai.pl/api&quot;
                     </code>
                   </p>
                 </div>
