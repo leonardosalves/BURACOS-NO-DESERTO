@@ -784,9 +784,7 @@ router.get("/:channelId/insights", (req, res) => {
   // 4. Projeção de crescimento (regressão linear simples ou estimativa baseada em taxa de crescimento mensal típica de 2.5%)
   const serie = history.series?.inscritos || [];
   let projecao = null;
-  const inscritosAtual = Number(
-    m.subscriberCount || s?.subscriberCount || 15462
-  );
+  const inscritosAtual = Number(m.inscritos || m.subscriberCount || 15462);
 
   if (serie.length >= 3 && serie[0]?.valor !== undefined) {
     const n = serie.length;
