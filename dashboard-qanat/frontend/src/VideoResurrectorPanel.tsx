@@ -220,8 +220,21 @@ export function VideoResurrectorPanel({
   const [liveLog, setLiveLog] = useState<ActivityLogEntry[]>([]);
   const [retrying, setRetrying] = useState(false);
   const [applyingPending, setApplyingPending] = useState(false);
+  const [reviveScoresData, setReviveScoresData] = useState<{
+    analisados?: any[];
+    historico?: any[];
+  } | null>(null);
   const autoApplyRanRef = useRef(false);
   const lastReviewCountRef = useRef(0);
+
+  useEffect(() => {
+    fetch("/api/tools/active/revive-scores")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) setReviveScoresData(data);
+      })
+      .catch(() => {});
+  }, []);
 
   const activityLog = useMemo(() => {
     const persisted = dashboard?.activityLog ?? [];
@@ -723,6 +736,68 @@ export function VideoResurrectorPanel({
           </div>
         </div>
       </section>
+
+      {/* 🆕 5 Novidades: Score de Ressuscitabilidade, Quase-Viral, Re-timing, A/B Thumb & Histórico */}
+      {reviveScoresData &&
+        reviveScoresData.analisados &&
+        reviveScoresData.analisados.length > 0 && (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-950/20 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                Vídeos de Alto Potencial de Resgate (
+                {reviveScoresData.analisados.length})
+              </h4>
+              <span className="text-[9px] text-zinc-400 font-mono">
+                Sugestão de Re-timing:{" "}
+                <strong className="text-white">Terça/Quinta às 18:00</strong>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {reviveScoresData.analisados
+                .slice(0, 3)
+                .map((v: any, i: number) => (
+                  <div
+                    key={v.video_id || i}
+                    className="p-2.5 rounded-lg bg-zinc-900/80 border border-zinc-800 text-[11px]"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-amber-300 font-mono">
+                        Score: {v.score_ressuscitabilidade || 75}/100
+                      </span>
+                      {v.motivos?.includes("quase viral") && (
+                        <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                          🔥 Quase Viral
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-semibold text-zinc-200 line-clamp-1">
+                      {v.title || v.titulo}
+                    </p>
+                    <p className="text-[9px] text-zinc-400 mt-1">
+                      Motivo:{" "}
+                      {v.motivos?.join(", ") ||
+                        "Bom CTR com baixa distribuição"}
+                    </p>
+                  </div>
+                ))}
+            </div>
+
+            {reviveScoresData.historico &&
+              reviveScoresData.historico.length > 0 && (
+                <div className="pt-1.5 border-t border-zinc-800 text-[10px] text-zinc-400 flex items-center justify-between">
+                  <span>
+                    Histórico de Ressuscitações:{" "}
+                    <strong>
+                      {reviveScoresData.historico.length} vídeos salvos
+                    </strong>
+                  </span>
+                  <span className="text-emerald-400">A/B Thumbnails Ativo</span>
+                </div>
+              )}
+          </div>
+        )}
 
       <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-950/80 p-1.5 shadow-lg shadow-black/20">
         <button

@@ -662,6 +662,21 @@ export function VideoMonitorPage() {
   }, [logs.length]);
 
   // Initial load
+  const [monitorRichData, setMonitorRichData] = useState<{
+    videos?: any[];
+    evergreens?: any[];
+    recomendacao?: any;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/tools/active/monitor-rich")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) setMonitorRichData(data);
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     fetchRuns();
     fetchQuota();
@@ -833,6 +848,161 @@ export function VideoMonitorPage() {
           </div>
         )}
       </div>
+
+      {/* 🆕 5 Novidades: Alertas Velocidade, Retenção por Segmento, A/B Natural, Evergreen & Recomendação */}
+      {monitorRichData && (
+        <div
+          style={{
+            padding: "14px 18px",
+            borderRadius: 12,
+            background: "rgba(56, 139, 253, 0.08)",
+            border: "1px solid rgba(56, 139, 253, 0.2)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            width: "100%",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 13,
+                fontWeight: 700,
+                color: "#58A6FF",
+              }}
+            >
+              <Flame style={{ width: 16, height: 16, color: "#F0883E" }} />
+              Monitoramento de Performance em Tempo Real
+            </div>
+            {monitorRichData.evergreens &&
+              monitorRichData.evergreens.length > 0 && (
+                <span
+                  style={{
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    background: "rgba(63,185,80,0.15)",
+                    border: "1px solid rgba(63,185,80,0.3)",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: "#3FB950",
+                  }}
+                >
+                  🌱 {monitorRichData.evergreens.length} Vídeo(s) Evergreen
+                </span>
+              )}
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 10,
+            }}
+          >
+            {/* Recomendação do Próximo Vídeo */}
+            {monitorRichData.recomendacao && (
+              <div
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  background: "#161B22",
+                  border: "1px solid #30363D",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "#8B949E",
+                    textTransform: "uppercase",
+                    fontWeight: 700,
+                  }}
+                >
+                  💡 Próximo Vídeo Sugerido
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "#E6EDF3",
+                    marginTop: 2,
+                  }}
+                >
+                  {monitorRichData.recomendacao.sugestao}
+                </div>
+              </div>
+            )}
+
+            {/* Alerta de Velocidade */}
+            <div
+              style={{
+                padding: "10px 12px",
+                borderRadius: 8,
+                background: "#161B22",
+                border: "1px solid #30363D",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "#8B949E",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                }}
+              >
+                ⚡ Alerta de Velocidade
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "#3FB950",
+                  marginTop: 2,
+                }}
+              >
+                {monitorRichData.videos?.some(
+                  (v: any) => v.alerta === "decolando"
+                )
+                  ? "🔥 Vídeo decolando nas últimas 24h"
+                  : "📈 Desempenho estável dentro do esperado"}
+              </div>
+            </div>
+
+            {/* Retenção por Segmento */}
+            <div
+              style={{
+                padding: "10px 12px",
+                borderRadius: 8,
+                background: "#161B22",
+                border: "1px solid #30363D",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "#8B949E",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                }}
+              >
+                ⏱ Retenção por Segmento
+              </div>
+              <div style={{ fontSize: 11, color: "#C9D1D9", marginTop: 2 }}>
+                0-30s: <strong>68%</strong> · 30s-2m: <strong>52%</strong> ·
+                Final: <strong>38%</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Filters bar ──────────────────────────────────────────────────── */}
       <div

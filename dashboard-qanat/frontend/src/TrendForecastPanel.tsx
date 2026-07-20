@@ -178,6 +178,20 @@ export function TrendForecastPanel({
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [busy, setBusy] = useState(false);
   const [format, setFormat] = useState<"all" | "SHORTS" | "LONGO">("all");
+  const [trendsRichData, setTrendsRichData] = useState<{
+    tendencias?: any[];
+    clusters?: Record<string, any[]>;
+    emergentes?: any[];
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/tools/active/trends-rich")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) setTrendsRichData(data);
+      })
+      .catch(() => {});
+  }, []);
   const [horizon, setHorizon] = useState(7);
   const [enqueueIdeas, setEnqueueIdeas] = useState(true);
   const [discoverPioneers, setDiscoverPioneers] = useState(true);
@@ -522,6 +536,69 @@ export function TrendForecastPanel({
             </p>
           )}
         </div>
+
+        {/* 🆕 5 Novidades: Score de Urgência, Saturação, Clusters Sub-nicho, Emergentes 48h */}
+        {trendsRichData &&
+          trendsRichData.tendencias &&
+          trendsRichData.tendencias.length > 0 && (
+            <div className="p-3.5 rounded-xl border border-amber-500/20 bg-amber-950/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                  <TrendingUp className="w-4 h-4 text-amber-400" />
+                  Radar Enriquecido do Canal ({
+                    trendsRichData.tendencias.length
+                  }{" "}
+                  tendências)
+                </h4>
+                {trendsRichData.emergentes &&
+                  trendsRichData.emergentes.length > 0 && (
+                    <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                      🔥 {trendsRichData.emergentes.length} Emergente(s) 48h
+                    </span>
+                  )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {trendsRichData.tendencias
+                  .slice(0, 3)
+                  .map((t: any, i: number) => (
+                    <div
+                      key={i}
+                      className="p-2.5 rounded-lg bg-zinc-900/80 border border-zinc-800 text-[11px]"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-amber-300 font-mono">
+                          Urgência: {t.urgencia_score || 80}/100
+                        </span>
+                        <span className="text-[9px] text-zinc-400 font-mono">
+                          Saturação: {t.saturacao || 30}%
+                        </span>
+                      </div>
+                      <p className="font-semibold text-zinc-200 line-clamp-1">
+                        {t.tema || t.titulo || "Tendência sem nome"}
+                      </p>
+                      <div className="flex items-center justify-between mt-1.5 text-[9px]">
+                        <span className="text-zinc-500">
+                          Sub-nicho: {t.sub_nicho || "Geral"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onApplyCreatorIdea?.(
+                              t.tema || t.titulo || "",
+                              "Gancho em alta sobre o tema"
+                            )
+                          }
+                          className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold border border-amber-500/30"
+                        >
+                          Virar vídeo 🎬
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <label className="text-[10px] text-zinc-500 space-y-1">
