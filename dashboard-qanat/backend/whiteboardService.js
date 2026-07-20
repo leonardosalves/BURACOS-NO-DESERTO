@@ -276,14 +276,22 @@ Não coloque nenhuma explicação fora do JSON.
   const python = resolvePythonPath(WORKSPACE_DIR);
   const sPaths = getSkillPaths(WORKSPACE_DIR);
 
-  execSync(
-    `"${python}" "${sPaths.generateBoardImages}" --project-dir "${runDir}" --provider interactive`,
-    {
-      cwd: WORKSPACE_DIR,
-      env: buildPythonSpawnEnv(),
-      windowsHide: true,
+  try {
+    execSync(
+      `"${python}" "${sPaths.generateBoardImages}" --project-dir "${runDir}" --provider interactive`,
+      {
+        cwd: WORKSPACE_DIR,
+        env: buildPythonSpawnEnv(),
+        windowsHide: true,
+      }
+    );
+  } catch (err) {
+    // Código de status 3 significa "handoff_required" (interativo), o que é esperado
+    // e perfeitamente válido. Outros códigos de erro devem ser relançados.
+    if (err.status !== 3) {
+      throw err;
     }
-  );
+  }
 
   // Save run to Postgres
   const client = await pool.connect();
