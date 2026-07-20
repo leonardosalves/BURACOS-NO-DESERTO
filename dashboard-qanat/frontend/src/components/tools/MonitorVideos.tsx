@@ -3,7 +3,7 @@ import { useActiveChannel } from "../../hooks/useActiveChannel";
 import { ToolShell, TierBadge } from "./pecas";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:3005";
-const ALERTA: Record<string, string> = { decolando: "🔥", estagnado: "📉" };
+const ALERTA: Record<string, string> = { decolando: "🔥 Decolando", estagnado: "📉 Estagnado", estavel: "— Estável" };
 
 interface MonitoredVideo {
   video_id: string;
@@ -13,6 +13,7 @@ interface MonitoredVideo {
   dias: number;
   tier: string;
   alerta: string | null;
+  evergreen?: boolean;
 }
 
 interface Pattern {
@@ -21,11 +22,20 @@ interface Pattern {
   acao: string;
 }
 
+interface Recomendacao {
+  tipo: string;
+  sugestao: string;
+  confianca: string;
+}
+
 export default function MonitorVideos() {
   const canal = useActiveChannel();
   const [videos, setVideos] = useState<MonitoredVideo[]>([]);
+  const [evergreens, setEvergreens] = useState<MonitoredVideo[]>([]);
+  const [recomendacao, setRecomendacao] = useState<Recomendacao | null>(null);
   const [padroes, setPadroes] = useState<Pattern[]>([]);
   const [carregando, setCarregando] = useState<boolean>(true);
+  const [filtroAba, setFiltroAba] = useState<"todos" | "evergreen">("todos");
 
   if (!canal.channelId) {
     return (
@@ -43,11 +53,13 @@ export default function MonitorVideos() {
     if (!canal.channelId) return;
     setCarregando(true);
     Promise.all([
-      fetch(`${API}/api/tools/${canal.channelId}/video-monitor`).then((r) => r.json()),
+      fetch(`${API}/api/tools/${canal.channelId}/monitor-rich`).then((r) => r.json()),
       fetch(`${API}/api/tools/${canal.channelId}/patterns`).then((r) => r.json()),
     ])
       .then(([vm, pt]) => {
         setVideos(vm.videos || []);
+        setEvergreens(vm.evergreens || []);
+        setRecomendacao(vm.recomendacao || null);
         setPadroes(pt.padroes || []);
       })
       .catch((e) => console.error("Erro ao carregar monitor de vídeos:", e))
@@ -63,6 +75,22 @@ export default function MonitorVideos() {
       canal={canal}
     >
       <div className="space-y-6">
+        {/* Recomendação Inteligente (Top Banner) */}
+        {recomendacao && (
+          <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-start gap-3">
+            <span className="text-lg">💡</span>
+            <div>
+              <strong className="text-indigo-200 text-xs font-bold block uppercase tracking-wider">
+                Próximo vídeo recomendado
+              </strong>
+              <p className="text-xs text-zinc-300 mt-1">{recomendacao.sugestao}</p>
+              <div className="text-[9px] font-mono text-zinc-500 mt-1.5 uppercase font-bold">
+                Confiança do Agente: {recomendacao.confianca}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 🔥 Extração de padrões (feedback loop) */}
         {padroes.length > 0 && (
           <div className="tool-bloco space-y-3">
@@ -92,6 +120,26 @@ export default function MonitorVideos() {
           </div>
         )}
 
+        {/* Abas e Filtros */}
+        <div className="flex gap-2 border-b border-zinc-900 pb-px">
+          <button
+            onClick={() => setFiltroAba("todos")}
+            className={`pb-2 px-4 text-xs font-bold font-sans border-b-2 transition-all ${
+              filtroAba === "todos" ? "border-amber-500 text-zinc-100" : "border-transparent text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            Todos os Vídeos ({videos.length})
+          </button>
+          <button
+            onClick={() => setFiltroAba("evergreen")}
+            className={`pb-2 px-4 text-xs font-bold font-sans border-b-2 transition-all ${
+              filtroAba === "evergreen" ? "border-amber-500 text-zinc-100" : "border-transparent text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            🌲 Apenas Evergreen ({evergreens.length})
+          </button>
+        </div>
+
         {carregando ? (
           <div className="tool-loading font-mono text-zinc-400">Carregando vídeos…</div>
         ) : (
@@ -108,7 +156,7 @@ export default function MonitorVideos() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-900 text-xs">
-                {videos.map((v) => (
+                {(filtroAba === "todos" ? videos : evergreens).map((v) => (
                   <tr
                     key={v.video_id}
                     className={`hover:bg-zinc-900/10 transition-colors ${
@@ -120,7 +168,14 @@ export default function MonitorVideos() {
                     }`}
                   >
                     <td className="p-3 font-semibold text-zinc-200 max-w-[240px] truncate" title={v.title}>
-                      {v.title}
+                      <div className="flex items-center gap-2">
+                        {v.title}
+                        {v.evergreen && (
+                          <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] font-bold px-1.5 py-0.5 rounded font-mono select-none">
+                            🌲 Evergreen
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3 text-right font-mono text-zinc-400">
                       {v.views?.toLocaleString("pt-BR")}
@@ -135,19 +190,19 @@ export default function MonitorVideos() {
                     <td className="p-3 text-center text-[10px] font-bold select-none">
                       {v.alerta ? (
                         <span className={v.alerta === "decolando" ? "text-emerald-400" : "text-rose-500"}>
-                          {ALERTA[v.alerta]} {v.alerta}
+                          {ALERTA[v.alerta]}
                         </span>
                       ) : (
-                        <span className="text-zinc-500">— estável</span>
+                        <span className="text-zinc-500">{ALERTA.estavel}</span>
                       )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {videos.length === 0 && (
+            {(filtroAba === "todos" ? videos : evergreens).length === 0 && (
               <div className="tool-vazio text-sm text-zinc-500 py-6 text-center">
-                Nenhum vídeo no histórico ainda.
+                Nenhum vídeo nesta categoria.
               </div>
             )}
           </div>
