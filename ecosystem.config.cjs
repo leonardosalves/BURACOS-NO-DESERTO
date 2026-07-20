@@ -53,5 +53,18 @@ module.exports = {
       merge_logs: true,
       time: true,
     },
+    {
+      name: "lumiera-sync",
+      cwd: path.join(repoRoot, "dashboard-qanat", "backend"),
+      script: "syncJob.js",
+      instances: 1,
+      exec_mode: "fork",
+      cron_restart: "0 */6 * * *",
+      autorestart: false,
+      error_file: path.join(logDir, "pm2-sync-error.log"),
+      out_file: path.join(logDir, "pm2-sync-out.log"),
+      merge_logs: true,
+      time: true,
+    },
   ],
 };

@@ -2,6 +2,7 @@ import express from "express";
 import https from "https";
 import channelRouter from "./channelRoutes.js";
 import toolsRouter from "./channelTools.js";
+import brainRouter from "./channelBrain.js";
 import { getFfmpegStatus } from "./pythonEnv.js";
 import { ensureMp4Faststart } from "./mp4Faststart.js";
 import { normalizeReverseEngineeredStoryboard } from "../shared/reverseEngineeringMedia.js";
@@ -832,6 +833,7 @@ const app = express();
 app.disable("x-powered-by");
 app.use("/api/channels", channelRouter);
 app.use("/api/tools", toolsRouter);
+app.use("/api/brain", brainRouter);
 
 app.use(express.json({ limit: "50mb", strict: true }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
