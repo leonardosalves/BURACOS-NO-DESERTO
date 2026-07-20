@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import pg from "pg";
+import sharp from "sharp";
 import {
   createWhiteboardRun,
   synthesizePortugueseFishSpeech,
@@ -39,12 +40,10 @@ export function registerWhiteboardRoutes(app, deps) {
       res.json({ success: true, ...result });
     } catch (err) {
       console.error("Erro em /api/whiteboard/create:", err);
-      res
-        .status(500)
-        .json({
-          error: "Erro ao criar projeto whiteboard.",
-          details: err.message,
-        });
+      res.status(500).json({
+        error: "Erro ao criar projeto whiteboard.",
+        details: err.message,
+      });
     }
   });
 
@@ -57,12 +56,10 @@ export function registerWhiteboardRoutes(app, deps) {
       res.json({ success: true, runs: result.rows });
     } catch (err) {
       console.error("Erro em /api/whiteboard/runs:", err);
-      res
-        .status(500)
-        .json({
-          error: "Erro ao listar projetos whiteboard.",
-          details: err.message,
-        });
+      res.status(500).json({
+        error: "Erro ao listar projetos whiteboard.",
+        details: err.message,
+      });
     } finally {
       client.release();
     }
@@ -83,12 +80,10 @@ export function registerWhiteboardRoutes(app, deps) {
       run = result.rows[0];
     } catch (err) {
       console.error("Erro em /api/whiteboard/detail DB:", err);
-      return res
-        .status(500)
-        .json({
-          error: "Erro ao carregar detalhes no banco.",
-          details: err.message,
-        });
+      return res.status(500).json({
+        error: "Erro ao carregar detalhes no banco.",
+        details: err.message,
+      });
     } finally {
       client.release();
     }
@@ -205,7 +200,8 @@ export function registerWhiteboardRoutes(app, deps) {
 
       const destPath = path.join(imagesDir, `${boardId}.model-generated.png`);
       const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-      fs.writeFileSync(destPath, Buffer.from(base64Data, "base64"));
+      const buffer = Buffer.from(base64Data, "base64");
+      await sharp(buffer).png().toFile(destPath);
 
       // Update image generation report
       const python = resolvePythonPath(WORKSPACE_DIR);
@@ -225,12 +221,10 @@ export function registerWhiteboardRoutes(app, deps) {
       });
     } catch (err) {
       console.error("Erro em /api/whiteboard/upload-image:", err);
-      res
-        .status(500)
-        .json({
-          error: "Erro ao salvar imagem do quadro.",
-          details: err.message,
-        });
+      res.status(500).json({
+        error: "Erro ao salvar imagem do quadro.",
+        details: err.message,
+      });
     }
   });
 
@@ -284,12 +278,10 @@ export function registerWhiteboardRoutes(app, deps) {
         "error",
         runId,
       ]);
-      res
-        .status(500)
-        .json({
-          error: "Erro ao renderizar vídeo do quadro.",
-          details: err.message,
-        });
+      res.status(500).json({
+        error: "Erro ao renderizar vídeo do quadro.",
+        details: err.message,
+      });
     }
   });
 
@@ -324,12 +316,10 @@ export function registerWhiteboardRoutes(app, deps) {
       res.sendFile(videoPath);
     } catch (err) {
       console.error("Erro em /api/whiteboard/preview-video:", err);
-      res
-        .status(500)
-        .json({
-          error: "Erro ao carregar preview do vídeo.",
-          details: err.message,
-        });
+      res.status(500).json({
+        error: "Erro ao carregar preview do vídeo.",
+        details: err.message,
+      });
     }
   });
 }
