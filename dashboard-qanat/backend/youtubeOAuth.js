@@ -17,6 +17,8 @@ import {
   loadCredentials,
   getCredentialsStatus,
 } from "./youtubeCredentials.js";
+import { getChannelAnalytics, getChannelPublicData } from "./youtubeClient.js";
+import { loadChannelConfig } from "./channelProfiles.js";
 
 const router = Router();
 
@@ -165,6 +167,66 @@ router.post("/apikey/:channelId", (req, res) => {
   const creds = loadCredentials(channelId);
   saveCredentials(channelId, { api_key: apiKey, oauth: creds.oauth });
   res.json({ ok: true });
+});
+
+// ── TESTE DE CONEXÃO (valida API key + OAuth do canal) ──
+router.get("/test/:channelId", async (req, res) => {
+  const { channelId } = req.params;
+  const config = loadChannelConfig(channelId);
+  const ytChannelId = config?.meta?.youtube_channel_id;
+
+  const resultado = {
+    canal: config?.meta?.nome || channelId,
+    youtube_channel_id: ytChannelId || null,
+    api_key: { ok: false, detalhe: null },
+    oauth: { ok: false, detalhe: null },
+    veredito: "incompleto",
+  };
+
+  // 1) Testa API key (dados públicos)
+  try {
+    if (!ytChannelId) {
+      resultado.api_key.detalhe =
+        "Falta o YouTube Channel ID na config do canal.";
+    } else {
+      const pub = await getChannelPublicData(channelId, ytChannelId);
+      if (pub.disponivel) {
+        resultado.api_key = {
+          ok: true,
+          detalhe: `${pub.videos.length} vídeos lidos · ${pub.stats?.subscriberCount || "?"} inscritos`,
+        };
+      } else {
+        resultado.api_key.detalhe =
+          "API key não configurada (canal ou global).";
+      }
+    }
+  } catch (err) {
+    resultado.api_key.detalhe = `Erro: ${err.message}`;
+  }
+
+  // 2) Testa OAuth (analytics privados — CTR/retenção)
+  try {
+    const an = await getChannelAnalytics(channelId, 7);
+    if (an.disponivel) {
+      resultado.oauth = {
+        ok: true,
+        detalhe: `CTR ${an.ctr_medio}% · retenção ${an.retencao_media}% · ${an.views} views (7d)`,
+      };
+    } else {
+      resultado.oauth.detalhe = an.motivo || "Não conectado via OAuth.";
+    }
+  } catch (err) {
+    resultado.oauth.detalhe = `Erro OAuth: ${err.message}`;
+  }
+
+  // 3) Veredito geral
+  if (resultado.api_key.ok && resultado.oauth.ok)
+    resultado.veredito = "completo";
+  else if (resultado.api_key.ok || resultado.oauth.ok)
+    resultado.veredito = "parcial";
+  else resultado.veredito = "sem_dados";
+
+  res.json({ ok: true, ...resultado });
 });
 
 export default router;

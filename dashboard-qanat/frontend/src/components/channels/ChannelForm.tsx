@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useChannels, Channel } from "../../context/ChannelContext";
+import ConnectionTest from "./ConnectionTest";
 
 const SWATCHES = [
   "#f5a623",
@@ -41,6 +42,7 @@ interface ChannelFormProps {
 export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
   const { createChannel, updateChannel } = useChannels();
   const isEdit = Boolean(channel);
+  const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:3005";
 
   const [form, setForm] = useState(() =>
     isEdit && channel
@@ -53,6 +55,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
           subNichos: (channel.sub_nichos_permitidos || []).join(", "),
           temasProibidos: (channel.temas_proibidos || []).join(", "),
           descricao: channel.descricao || "",
+          apiKey: "",
         }
       : {
           nome: "",
@@ -63,10 +66,17 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
           subNichos: "",
           temasProibidos: "",
           descricao: "",
+          apiKey: "",
         }
   );
 
   const [idTouched, setIdTouched] = useState(isEdit);
+  const [mostrarKey, setMostrarKey] = useState(false);
+  const [salvandoKey, setSalvandoKey] = useState(false);
+  const [keyMsg, setKeyMsg] = useState<{
+    tipo: "ok" | "erro";
+    texto: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -84,6 +94,30 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
         return next;
       });
     };
+
+  const salvarApiKey = async () => {
+    if (!form.apiKey.trim() || !channel) {
+      setKeyMsg({ tipo: "erro", texto: "Digite uma API key." });
+      return;
+    }
+    setSalvandoKey(true);
+    setKeyMsg(null);
+    try {
+      const res = await fetch(`${API_URL}/api/youtube/apikey/${channel.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: form.apiKey.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao salvar a API Key");
+      setKeyMsg({ tipo: "ok", texto: "API key salva (criptografada)." });
+      setForm((f) => ({ ...f, apiKey: "" }));
+    } catch (err: any) {
+      setKeyMsg({ tipo: "erro", texto: err.message });
+    } finally {
+      setSalvandoKey(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -256,6 +290,64 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
           placeholder="Sobre o que é este canal?"
         />
       </div>
+
+      {/* 🔑 API KEY POR CANAL (opcional) — só no modo edição */}
+      {isEdit && channel && (
+        <div className="ch-field">
+          <label>
+            API Key do canal{" "}
+            <span
+              style={{
+                color: "var(--text-faint)",
+                textTransform: "none",
+                fontWeight: 400,
+              }}
+            >
+              (opcional)
+            </span>
+          </label>
+          <div className="apikey-row">
+            <input
+              type={mostrarKey ? "text" : "password"}
+              value={form.apiKey}
+              onChange={set("apiKey")}
+              placeholder="Deixe vazio para usar a API key global"
+              style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}
+            />
+            <button
+              type="button"
+              className="ch-btn ch-btn--ghost"
+              onClick={() => setMostrarKey((m) => !m)}
+            >
+              {mostrarKey ? "🙈" : "👁"}
+            </button>
+            <button
+              type="button"
+              className="ch-btn"
+              onClick={salvarApiKey}
+              disabled={salvandoKey}
+            >
+              {salvandoKey ? "Salvando…" : "Salvar key"}
+            </button>
+          </div>
+          <div className="hint">
+            Usada para dados públicos. Se vazia, o programa usa a API key
+            global. Para CTR/retenção, conecte via OAuth abaixo.
+          </div>
+          {keyMsg && (
+            <div
+              className={keyMsg.tipo === "ok" ? "conn-ok" : "ch-error"}
+              style={{ marginTop: 8 }}
+            >
+              {keyMsg.tipo === "ok" ? "✅ " : "⚠ "}
+              {keyMsg.texto}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 🩺 DIAGNÓSTICO DE CONEXÃO — só no modo edição */}
+      {isEdit && channel && <ConnectionTest channelId={channel.id} />}
 
       <div className="ch-form__footer">
         <button type="button" className="ch-btn ch-btn--ghost" onClick={onDone}>
