@@ -67,44 +67,59 @@ function getYoutubeApiKey() {
   return null;
 }
 
-function getGeminiApiKey() {
-  if (
+function getGeminiApiKeys() {
+  let keys = [];
+  try {
+    const configPath = path.join(WORKSPACE_DIR, "config_qanat.json");
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      if (
+        Array.isArray(config.gemini_api_keys) &&
+        config.gemini_api_keys.length > 0
+      ) {
+        keys = [...config.gemini_api_keys];
+      }
+      if (config.gemini_api_key && !keys.includes(config.gemini_api_key)) {
+        keys.unshift(config.gemini_api_key);
+      }
+    }
+  } catch (e) {}
+
+  const envKey =
     process.env.GEMINI_API_KEY ||
     process.env.GOOGLE_GEMINI_KEY ||
-    process.env.GOOGLE_AI_KEY
-  ) {
-    return (
-      process.env.GEMINI_API_KEY ||
-      process.env.GOOGLE_GEMINI_KEY ||
-      process.env.GOOGLE_AI_KEY
-    );
+    process.env.GOOGLE_AI_KEY;
+  if (envKey && !keys.includes(envKey)) {
+    keys.unshift(envKey);
   }
-  try {
-    const configPath = path.join(WORKSPACE_DIR, "config_qanat.json");
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      if (config.gemini_api_key) return config.gemini_api_key;
-    }
-  } catch (e) {
-    // Ignore error
-  }
-  return null;
+  return keys;
 }
 
-function getOpenAiApiKey() {
-  if (process.env.OPENAI_API_KEY) {
-    return process.env.OPENAI_API_KEY;
-  }
+function getOpenAiApiKeys() {
+  let keys = [];
   try {
     const configPath = path.join(WORKSPACE_DIR, "config_qanat.json");
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      if (config.openai_api_key) return config.openai_api_key;
+      if (
+        Array.isArray(config.openai_api_keys) &&
+        config.openai_api_keys.length > 0
+      ) {
+        keys = [...config.openai_api_keys];
+      }
+      if (config.openai_api_key && !keys.includes(config.openai_api_key)) {
+        keys.unshift(config.openai_api_key);
+      }
     }
-  } catch (e) {
-    // Ignore error
+  } catch (e) {}
+
+  if (
+    process.env.OPENAI_API_KEY &&
+    !keys.includes(process.env.OPENAI_API_KEY)
+  ) {
+    keys.unshift(process.env.OPENAI_API_KEY);
   }
-  return null;
+  return keys;
 }
 
 // ---------------------------------------------------------------------------
@@ -417,62 +432,85 @@ function generateDemoVideos(niche, maxVideos = 10) {
 // ---------------------------------------------------------------------------
 
 async function callGemini(prompt, temperature = 0.7) {
-  const key = getGeminiApiKey();
-  if (!key) throw new Error("GEMINI_API_KEY não configurada.");
+  const keys = getGeminiApiKeys();
+  if (keys.length === 0) throw new Error("GEMINI_API_KEY não configurada.");
 
   const model = "gemini-2.0-flash-lite";
-  const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${key}`;
+  let lastError;
 
-  const body = {
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature, maxOutputTokens: 2048 },
-  };
+  for (const key of keys) {
+    try {
+      const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${key}`;
+      const body = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature, maxOutputTokens: 2048 },
+      };
 
-  const res = await fetchWithRetry(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    timeout: 30000,
-  });
+      const res = await fetchWithRetry(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        timeout: 30000,
+      });
 
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Gemini API ${res.status}: ${txt.slice(0, 200)}`);
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Gemini API ${res.status}: ${txt.slice(0, 200)}`);
+      }
+
+      const data = await res.json();
+      return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } catch (err) {
+      lastError = err;
+      console.warn(
+        `[callGemini] Falha com uma chave Gemini: ${err.message}. Tentando próxima...`
+      );
+    }
   }
-
-  const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  throw new Error(lastError.message);
 }
 
 async function callOpenAI(prompt, temperature = 0.7) {
-  const key = getOpenAiApiKey();
-  if (!key) throw new Error("OPENAI_API_KEY não configurada.");
+  const keys = getOpenAiApiKeys();
+  if (keys.length === 0) throw new Error("OPENAI_API_KEY não configurada.");
 
-  const res = await fetchWithRetry(
-    "https://api.openai.com/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature,
-        max_tokens: 2048,
-      }),
-      timeout: 30000,
+  let lastError;
+
+  for (const key of keys) {
+    try {
+      const res = await fetchWithRetry(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            temperature,
+            max_tokens: 2048,
+          }),
+          timeout: 30000,
+        }
+      );
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`OpenAI API ${res.status}: ${txt.slice(0, 200)}`);
+      }
+
+      const data = await res.json();
+      return data?.choices?.[0]?.message?.content || "";
+    } catch (err) {
+      lastError = err;
+      console.warn(
+        `[callOpenAI] Falha com uma chave OpenAI: ${err.message}. Tentando próxima...`
+      );
     }
-  );
-
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`OpenAI API ${res.status}: ${txt.slice(0, 200)}`);
   }
-
-  const data = await res.json();
-  return data?.choices?.[0]?.message?.content || "";
+  throw new Error(lastError.message);
 }
 
 async function callAI(prompt, temperature = 0.7) {
