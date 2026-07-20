@@ -155,6 +155,16 @@ export type AppCreatorTabProps = {
   activeProject: string;
   applyMetadataToUpload: () => void | Promise<void>;
   applyWizardSessionPatch: (patch: any) => void;
+  bumpCreatorGenToken: () => string;
+  applyNarrationGenerationResult: (
+    data: any,
+    project: string,
+    token: string,
+    successMsg: string,
+    toastId?: any
+  ) => void;
+  fetchProjects: () => Promise<void>;
+  setActiveProject: (name: string) => void;
   config: ConfigData | null;
   copiedSection: string | null;
   copyToClipboard: (text: string, section: string) => void;
@@ -257,7 +267,7 @@ export type AppCreatorTabProps = {
   saveConfigPatch: (
     patch: Partial<ConfigData>,
     opts?: { skipRefresh?: boolean }
-  ) => void | Promise<void>;
+  ) => Promise<any>;
   saveWizardSession: (session: any) => void;
   selectedIdeaIndex: number;
   selectedListicleIdeaIndex: number;
@@ -326,6 +336,10 @@ export function AppCreatorTab({
   activeProject,
   applyMetadataToUpload,
   applyWizardSessionPatch,
+  bumpCreatorGenToken,
+  applyNarrationGenerationResult,
+  fetchProjects,
+  setActiveProject,
   config,
   copiedSection,
   copyToClipboard,
@@ -475,6 +489,21 @@ export function AppCreatorTab({
       setNicheInput(activeChannel.niche);
     }
   }, [activeChannel.niche, nicheInput, setNicheInput]);
+
+  useEffect(() => {
+    const handlePrefill = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const { tema } = customEvent.detail || {};
+      if (tema) {
+        setCustomTitle(tema);
+        setExpressTheme(tema);
+        setIdeationTab("custom");
+      }
+    };
+    window.addEventListener("lumiera-prefill-creator", handlePrefill);
+    return () =>
+      window.removeEventListener("lumiera-prefill-creator", handlePrefill);
+  }, [setCustomTitle, setIdeationTab]);
 
   useEffect(() => {
     if (!showNarrationReview) return;

@@ -53,6 +53,7 @@ export const CREATOR_TEMPLATES: CreatorTemplate[] = [
         key: "gancho",
         label: "Gancho (opcional)",
         tipo: "texto",
+        obrigatorio: false,
         placeholder: "Deixe vazio para gerar automaticamente",
       },
     ],

@@ -393,6 +393,9 @@ export default function App() {
     | "alibaba"
     | "tokenrouter"
     | "local"
+    | "opencode"
+    | "airforce"
+    | "moonai"
   >(() => {
     // Evita flash "Gemini" → OpenRouter ao recarregar a página de configs
     try {
@@ -405,6 +408,9 @@ export default function App() {
         "alibaba",
         "tokenrouter",
         "local",
+        "opencode",
+        "airforce",
+        "moonai",
       ] as const;
       // Inference.net removido — migra legado para Gemini
       if (saved === "inference") return "gemini";
@@ -11595,6 +11601,10 @@ export default function App() {
     addKeyword,
     addSceneAtEnd,
     aiProvider,
+    bumpCreatorGenToken,
+    applyNarrationGenerationResult,
+    fetchProjects,
+    setActiveProject,
     aiProviderBadge,
     applyAiConfig,
     applyFacelessPreset,

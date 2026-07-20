@@ -19,6 +19,7 @@ import { AppToonflowTab } from "./AppToonflowTab";
 import { FlowLabPage } from "./FlowLabPage";
 import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
 import toast from "react-hot-toast";
+import CanaisEPublicacao from "./components/tools/CanaisEPublicacao";
 import {
   Bot,
   Clapperboard,
@@ -614,23 +615,17 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Radar Tendências"]}
             icon={<TrendingUp className="w-5 h-5" />}
           >
-            <Suspense
-              fallback={
-                <TabPanelFallback label="Carregando radar de tendências..." />
-              }
-            >
-              <LazyTrendForecastPanel
-                embedded
-                niche={config?.niche || ""}
-                onApplyCreatorIdea={(title, hookPt, options) => {
-                  void handleApplyYoutubeStudioIdea(title, hookPt, options);
-                }}
-                onGoToIntegrations={() => {
-                  setSettingsSection("integracoes");
-                  setActiveTab("settings");
-                }}
-              />
-            </Suspense>
+            <CanaisEPublicacao
+              abaInicial="radar"
+              aoVirarVideo={({ tema }) => {
+                window.dispatchEvent(
+                  new CustomEvent("lumiera-prefill-creator", {
+                    detail: { tema },
+                  })
+                );
+                setActiveTab("creator");
+              }}
+            />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
@@ -643,16 +638,7 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Ressuscitador"]}
             icon={<Zap className="w-5 h-5 text-amber-400" />}
           >
-            <Suspense
-              fallback={
-                <TabPanelFallback label="Carregando ressuscitador..." />
-              }
-            >
-              <LazyVideoResurrectorPanel
-                toast={toast}
-                externalAlerts={resurrectorAlerts as any}
-              />
-            </Suspense>
+            <CanaisEPublicacao abaInicial="reviver" />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
@@ -665,32 +651,17 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Canal YouTube"]}
             icon={<Youtube className="w-5 h-5" />}
           >
-            <Suspense
-              fallback={
-                <TabPanelFallback label="Carregando YouTube Studio..." />
-              }
-            >
-              <LazyYoutubeStudioPanel
-                embedded
-                toast={toast}
-                onRelinkYoutube={handleRelinkYoutube}
-                nicheKeyword={config?.niche || nicheInput || ""}
-                alerts={youtubeChannelAlerts}
-                geminiBrowserMode={geminiBrowserMode}
-                aiProvider={aiProvider}
-                resolveBrowserResponse={resolveBrowserResponse}
-                onSelectProject={handleSelectProject}
-                onAlertsSync={setYoutubeChannelAlerts}
-                onApplyCreatorIdea={(title, hookPt, options) => {
-                  void handleApplyYoutubeStudioIdea(title, hookPt, options);
-                }}
-                onSchedulePublish={handleScheduleFromHeatmap}
-                onGoToIntegrations={() => {
-                  setSettingsSection("integracoes");
-                  setActiveTab("settings");
-                }}
-              />
-            </Suspense>
+            <CanaisEPublicacao
+              abaInicial="canal"
+              aoVirarVideo={({ tema }) => {
+                window.dispatchEvent(
+                  new CustomEvent("lumiera-prefill-creator", {
+                    detail: { tema },
+                  })
+                );
+                setActiveTab("creator");
+              }}
+            />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
@@ -723,13 +694,7 @@ export function AppTabPanels({
       {/* TAB: VIDEO MONITOR */}
       {activeTab === "video-monitor" && (
         <TabErrorBoundary tabName="Monitor de Vídeos">
-          <Suspense
-            fallback={
-              <TabPanelFallback label="Carregando monitor de vídeos..." />
-            }
-          >
-            <LazyVideoMonitorPage />
-          </Suspense>
+          <CanaisEPublicacao abaInicial="monitor" />
         </TabErrorBoundary>
       )}
     </div>

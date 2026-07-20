@@ -144,6 +144,12 @@ type CollageItem = CollageProposalFields & {
   action_verb: string;
   status: CardStatus;
   gate: number;
+  rejectionNote?: string;
+  isModifiedSpec?: boolean;
+  generationRunId?: string;
+  layers?: any;
+  composition?: any;
+  rejectedAt?: string;
   visual_spec?: Record<string, unknown>;
   imagegen_prompt?: string;
   omni_prompt?: string;
@@ -3070,7 +3076,7 @@ export function CollageBrollLab({
                       className="w-full h-full"
                       style={{
                         backgroundColor:
-                          selected.visual_spec?.backdrop?.colorHex ||
+                          (selected.visual_spec?.backdrop as any)?.colorHex ||
                           selected.background_color?.hex ||
                           "#1a1a1a",
                       }}

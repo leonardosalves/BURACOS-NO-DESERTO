@@ -1,6 +1,7 @@
 import express from "express";
 import https from "https";
 import channelRouter from "./channelRoutes.js";
+import toolsRouter from "./channelTools.js";
 import { getFfmpegStatus } from "./pythonEnv.js";
 import { ensureMp4Faststart } from "./mp4Faststart.js";
 import { normalizeReverseEngineeredStoryboard } from "../shared/reverseEngineeringMedia.js";
@@ -830,6 +831,7 @@ const DEFAULT_OPENROUTER_MODEL = OPENROUTER_FREE_MODELS[0];
 const app = express();
 app.disable("x-powered-by");
 app.use("/api/channels", channelRouter);
+app.use("/api/tools", toolsRouter);
 
 app.use(express.json({ limit: "50mb", strict: true }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
