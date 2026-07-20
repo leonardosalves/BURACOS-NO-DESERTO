@@ -435,7 +435,7 @@ async function callGemini(prompt, temperature = 0.7) {
   const keys = getGeminiApiKeys();
   if (keys.length === 0) throw new Error("GEMINI_API_KEY não configurada.");
 
-  const model = "gemini-2.0-flash-lite";
+  const model = "gemini-2.5-flash";
   let lastError;
 
   for (const key of keys) {
@@ -443,7 +443,7 @@ async function callGemini(prompt, temperature = 0.7) {
       const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${key}`;
       const body = {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature, maxOutputTokens: 2048 },
+        generationConfig: { temperature, maxOutputTokens: 8192 },
       };
 
       const res = await fetchWithRetry(url, {
@@ -490,7 +490,7 @@ async function callOpenAI(prompt, temperature = 0.7) {
             model: "gpt-4o-mini",
             messages: [{ role: "user", content: prompt }],
             temperature,
-            max_tokens: 2048,
+            max_tokens: 4096,
           }),
           timeout: 30000,
         }

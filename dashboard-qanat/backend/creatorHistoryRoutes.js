@@ -30,23 +30,29 @@ router.get("/:mode", async (req, res) => {
 // Save a new history item for a creator mode
 router.post("/", async (req, res) => {
   try {
-    const { mode, title, projectName } = req.body;
-    if (!mode || !title || !projectName) {
+    const { mode, title, projectName, directState } = req.body;
+    if (!mode || !title || (!projectName && !directState)) {
       return res
         .status(400)
-        .json({ error: "Missing required fields: mode, title, projectName" });
+        .json({
+          error:
+            "Missing required fields: mode, title, projectName (or directState)",
+        });
+    }
+
+    if (directState) {
+      await saveCreatorHistory(mode, title, directState);
+      return res.json({ success: true });
     }
 
     const projDir = getProjectDir(req);
     const sessionPath = path.join(projDir, "wizard_session.json");
 
     if (!fs.existsSync(sessionPath)) {
-      return res
-        .status(404)
-        .json({
-          error:
-            "Nenhuma sessão encontrada para este projeto. Salve a sessão primeiro.",
-        });
+      return res.status(404).json({
+        error:
+          "Nenhuma sessão encontrada para este projeto. Salve a sessão primeiro.",
+      });
     }
 
     const statePayload = JSON.parse(fs.readFileSync(sessionPath, "utf8"));

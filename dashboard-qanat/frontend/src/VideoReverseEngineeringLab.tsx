@@ -19,6 +19,7 @@ import {
 import toast from "react-hot-toast";
 import type { CreatorApplyIdeaOptions } from "./creatorEditorialImport";
 import { VisualAssetStylePicker } from "./VisualAssetStylePicker";
+import { CreatorHistoryDropdown } from "./CreatorHistoryDropdown";
 
 type ReverseScene = {
   id: string;
@@ -443,7 +444,7 @@ export function VideoReverseEngineeringLab({
       directImportLabel: "Engenharia Reversa",
       visualAssetStyle,
       visualMapOnly,
-      blocks: groupScenes(result.scenes, result.format === "SHORTS" ? 4 : 8),
+      blocks: groupScenes(result.scenes, result.format === "SHORTS" ? 4 : 10),
     });
     toast.success("Storyboard carregado diretamente no wizard.");
   };
@@ -454,8 +455,51 @@ export function VideoReverseEngineeringLab({
         <div className="pointer-events-none absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(103,232,249,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(103,232,249,.35)_1px,transparent_1px)] [background-size:34px_34px]" />
         <div className="relative grid gap-8 lg:grid-cols-[1.35fr_.65fr] lg:items-end">
           <div>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200">
-              <Fingerprint className="h-3.5 w-3.5" /> Laboratorio forense
+            <div className="flex items-center justify-between mb-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200">
+                <Fingerprint className="h-3.5 w-3.5" /> Laboratorio forense
+              </div>
+              <CreatorHistoryDropdown
+                mode="video-reverse-engineering"
+                currentTitle={result?.title || "Rascunho de Engenharia"}
+                projectName={(result?.title || "Engenharia Reversa")
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]/g, "-")
+                  .replace(/-+/g, "-")
+                  .slice(0, 30)}
+                onSaveCurrentSession={() => {}}
+                onGetDirectState={() => {
+                  return {
+                    url,
+                    niche,
+                    format,
+                    mode,
+                    mediaStrategy,
+                    visualAssetStyle,
+                    visualMapOnly,
+                    instructions,
+                    rightsConfirmed,
+                    result,
+                  };
+                }}
+                onLoadState={(state) => {
+                  if (state.url !== undefined) setUrl(state.url);
+                  if (state.niche !== undefined) setNiche(state.niche);
+                  if (state.format !== undefined) setFormat(state.format);
+                  if (state.mode !== undefined) setMode(state.mode);
+                  if (state.mediaStrategy !== undefined)
+                    setMediaStrategy(state.mediaStrategy);
+                  if (state.visualAssetStyle !== undefined)
+                    setVisualAssetStyle(state.visualAssetStyle);
+                  if (state.visualMapOnly !== undefined)
+                    setVisualMapOnly(state.visualMapOnly);
+                  if (state.instructions !== undefined)
+                    setInstructions(state.instructions);
+                  if (state.rightsConfirmed !== undefined)
+                    setRightsConfirmed(state.rightsConfirmed);
+                  if (state.result !== undefined) setResult(state.result);
+                }}
+              />
             </div>
             <h1 className="max-w-5xl font-serif text-4xl font-semibold leading-none tracking-tight text-slate-50 sm:text-5xl">
               Engenharia Reversa do{" "}

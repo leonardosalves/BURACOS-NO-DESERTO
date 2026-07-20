@@ -7704,6 +7704,7 @@ export default function App() {
           prompt: creatorPrompt,
           useNotebooklm,
           notebooklmDeep,
+          blocksCount: formatSelector === "custom" ? customBlocks.length : 10,
         }),
       });
 
@@ -9378,7 +9379,7 @@ export default function App() {
     setEditorialIdeaImport(importData);
 
     // Configurar blocos da estrutura
-    const maxBlocksForFormat = format === "SHORTS" ? 4 : 8;
+    const maxBlocksForFormat = format === "SHORTS" ? 4 : 10;
     const minBlocksForFormat = format === "SHORTS" ? 3 : 5;
     if (options?.blocks && options.blocks.length > 0) {
       // Garante que os blocos respeitam o limite do formato

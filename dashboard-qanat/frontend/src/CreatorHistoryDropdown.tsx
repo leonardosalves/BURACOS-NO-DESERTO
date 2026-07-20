@@ -15,6 +15,7 @@ interface CreatorHistoryDropdownProps {
   projectName: string;
   onLoadState: (state: any) => void;
   onSaveCurrentSession: () => void;
+  onGetDirectState?: () => any;
   disabled?: boolean;
 }
 
@@ -24,6 +25,7 @@ export function CreatorHistoryDropdown({
   projectName,
   onLoadState,
   onSaveCurrentSession,
+  onGetDirectState,
   disabled = false,
 }: CreatorHistoryDropdownProps) {
   const [history, setHistory] = useState<CreatorHistoryItem[]>([]);
@@ -73,14 +75,20 @@ export function CreatorHistoryDropdown({
 
     setIsSaving(true);
     try {
+      const payload: any = {
+        mode,
+        project_name: projectName,
+        project_title: currentTitle,
+      };
+
+      if (onGetDirectState) {
+        payload.directState = onGetDirectState();
+      }
+
       const res = await fetch("/api/creator-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode,
-          title: currentTitle,
-          projectName: projectName,
-        }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         toast.success("Salvo no histórico!");

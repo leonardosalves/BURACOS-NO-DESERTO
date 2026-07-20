@@ -19,35 +19,9 @@
     "completedAt": null
   },
   "dailyRuns": {
-    "date": "2026-07-19",
-    "morning": {
-      "ranAt": "2026-07-19T14:00:38.710Z",
-      "trigger": "auto",
-      "videoIds": [
-        "WKcFkfVfi6w",
-        "19AzC-l1KiM",
-        "gaYajkw-DEc",
-        "MlWjCZAQrrc",
-        "edUkSV03g9E"
-      ],
-      "count": 2,
-      "applied": 2,
-      "failed": 3
-    },
-    "afternoon": {
-      "ranAt": "2026-07-19T21:02:09.049Z",
-      "trigger": "auto",
-      "videoIds": [
-        "BFp-3mN5onc",
-        "gx1FM_T6ahw",
-        "et6g1QHiRiI",
-        "UKj3Ji-5E9A",
-        "5nMBiVtaf6U"
-      ],
-      "count": 4,
-      "applied": 4,
-      "failed": 1
-    }
+    "date": "2026-07-20",
+    "morning": null,
+    "afternoon": null
   },
   "lastDailyRunAt": "2026-07-19T21:02:09.049Z",
   "lastDailyRunDate": "2026-07-19",
@@ -129,11 +103,7 @@
             "pairedTitle": "3. AI Construction cria resort do zero 🔥",
             "overlayText": "CONSTRUÇÃO COM IA?",
             "composition": "Divisão vertical em 9:16. Lado esquerdo exibe o terreno bruto com vegetação tropical; lado direito mostra a villa moderna finalizada e iluminada. Texto centralizado em fonte amarela com contorno preto.",
-            "colors": [
-              "Gold",
-              "Cyan",
-              "Dark Gray"
-            ],
+            "colors": ["Gold", "Cyan", "Dark Gray"],
             "focalElement": "O contraste direto entre a terra e a arquitetura de alto padrão."
           },
           {
@@ -142,11 +112,7 @@
             "pairedTitle": "1. Terreno tropical vira Luxury Villa 🤯",
             "overlayText": "ANTES VS DEPOIS",
             "composition": "Layout dividido horizontalmente. Metade superior exibe a terra limpa com tratores em movimento acelerado (efeito blur); metade inferior destaca a piscina de borda infinita da villa pronta. Texto em vermelho e branco de alto contraste no centro.",
-            "colors": [
-              "Red",
-              "White",
-              "Deep Blue"
-            ],
+            "colors": ["Red", "White", "Deep Blue"],
             "focalElement": "A piscina de luxo cristalina em contraste com a terra marrom da fundação."
           },
           {
@@ -155,11 +121,7 @@
             "pairedTitle": "2. 1 timelapse da Fastest Luxury Villa #Shorts",
             "overlayText": "OBRA MAIS RÁPIDA!",
             "composition": "Enquadramento de baixo para cima mostrando a estrutura de aço e concreto da villa subindo rapidamente contra o céu tropical. Texto em verde neon posicionado no topo da imagem.",
-            "colors": [
-              "Neon Green",
-              "Steel Gray",
-              "Bright Orange"
-            ],
+            "colors": ["Neon Green", "Steel Gray", "Bright Orange"],
             "focalElement": "Vigas de sustentação e guindastes em ação acelerada."
           }
         ]
@@ -204,9 +166,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 9,
@@ -289,10 +249,7 @@
             "pairedTitle": "1. Arranha-céu nasce do zero 🤯",
             "overlayText": "DO ZERO AO TOPO",
             "composition": "Imagem dividida na diagonal. Esquerda inferior mostra o terreno vazio com escavadeiras; direita superior mostra o topo espelhado tocando as nuvens.",
-            "colors": [
-              "Azul ciano",
-              "amarelo solar e cinza concreto."
-            ],
+            "colors": ["Azul ciano", "amarelo solar e cinza concreto."],
             "focalElement": "O contraste do terreno de terra batida contra o vidro moderno brilhando."
           },
           {
@@ -301,10 +258,7 @@
             "pairedTitle": "2. Terreno baldio vira arranha-céu #Timelapse",
             "overlayText": "ANTES E DEPOIS REAL",
             "composition": "Layout de comparação vertical \"Antes\" (metade superior, terreno cinza e sujo) e \"Depois\" (metade inferior, prédio futurista iluminado à noite).",
-            "colors": [
-              "Laranja neon",
-              "azul escuro e branco."
-            ],
+            "colors": ["Laranja neon", "azul escuro e branco."],
             "focalElement": "Linha divisória brilhante dividindo o passado e o futuro do lote urbano."
           },
           {
@@ -313,10 +267,7 @@
             "pairedTitle": "3. Arranha-céu construído em segundos",
             "overlayText": "CONSTRUÇÃO EM 15s",
             "composition": "Foco central no esqueleto metálico do prédio subindo rapidamente, com um cronômetro digital de alta tecnologia estilizado no canto superior esquerdo.",
-            "colors": [
-              "Verde limão",
-              "cinza metálico e azul celeste."
-            ],
+            "colors": ["Verde limão", "cinza metálico e azul celeste."],
             "focalElement": "Estrutura de aço exposta e guindastes subindo em direção ao céu."
           }
         ]
@@ -361,9 +312,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 2,
@@ -527,9 +476,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 5,
@@ -691,9 +638,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 1,
@@ -782,11 +727,7 @@
             "pairedTitle": "2. IA transformou este Empty Lot 🤯",
             "overlayText": "IA CRIOU DO ZERO?",
             "composition": "Lado esquerdo com terreno baldio em renderização 3D cinza. Lado direito com o prédio ultra-moderno brilhando. Divisão diagonal nítida.",
-            "colors": [
-              "#FFD700",
-              "#00FFFF",
-              "#121212"
-            ],
+            "colors": ["#FFD700", "#00FFFF", "#121212"],
             "focalElement": "Prédio futurista iluminado em contraste com a terra nua."
           },
           {
@@ -795,11 +736,7 @@
             "pairedTitle": "4. 1 terreno baldio vira Masterpiece #Shorts",
             "overlayText": "ANTES VS DEPOIS",
             "composition": "Divisão vertical exata de 50/50. Esquerda mostra a terraplanagem com tratores; direita mostra o empreendimento finalizado com pessoas e carros.",
-            "colors": [
-              "#FF3B30",
-              "#FFFFFF",
-              "#0A0A0A"
-            ],
+            "colors": ["#FF3B30", "#FFFFFF", "#0A0A0A"],
             "focalElement": "Trator amarelo de obras de um lado e fachada de vidro espelhado do outro."
           },
           {
@@ -808,11 +745,7 @@
             "pairedTitle": "5. Mixed-use surge de um terreno vazio",
             "overlayText": "PROJETO 100% ATIVADO",
             "composition": "Vista aérea de drone (ângulo de cima para baixo) focando no topo do edifício moderno finalizado, com carros em movimento e paisagismo realista ao redor.",
-            "colors": [
-              "#34C759",
-              "#007AFF",
-              "#F2F2F7"
-            ],
+            "colors": ["#34C759", "#007AFF", "#F2F2F7"],
             "focalElement": "Renderização hiper-realista da maquete ativa com luz natural do sol."
           }
         ]
@@ -857,9 +790,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 3,
@@ -1022,9 +953,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 20,
@@ -1115,11 +1044,7 @@
             "pairedTitle": "3. Nome para esse museu futurista? 💡",
             "overlayText": "QUE NOME DARIA?",
             "composition": "Close-up centralizado na entrada iluminada e ultra-moderna do museu de vidro, com o texto em letras garrafais amarelas no topo.",
-            "colors": [
-              "#00FFFF (Ciano)",
-              "#FFD700 (Ouro)",
-              "#FFFFFF (Branco)"
-            ],
+            "colors": ["#00FFFF (Ciano)", "#FFD700 (Ouro)", "#FFFFFF (Branco)"],
             "focalElement": "Detalhe brilhante da fachada de vidro futurista refletindo a luz."
           },
           {
@@ -1190,9 +1115,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 3,
@@ -1358,9 +1281,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 3,
@@ -1521,9 +1442,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 2,
@@ -1693,9 +1612,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 2,
@@ -1860,9 +1777,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 2,
@@ -2027,9 +1942,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 1,
@@ -2194,9 +2107,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 4,
@@ -2288,11 +2199,7 @@
             "pairedTitle": "2. Casa Minka feita sem um único prego 🤯",
             "overlayText": "\"SEM USAR PREGOS?\"",
             "composition": "Close-up extremo em um encaixe de madeira tradicional japonês (interlocking joint) sendo deslizado perfeitamente por mãos de um carpinteiro. Texto em amarelo ouro centralizado no topo.",
-            "colors": [
-              "#FFD700",
-              "#00E5FF",
-              "#1A1A1A"
-            ],
+            "colors": ["#FFD700", "#00E5FF", "#1A1A1A"],
             "focalElement": "O encaixe perfeito da madeira crua contra o fundo desfocado da floresta."
           },
           {
@@ -2301,11 +2208,7 @@
             "pairedTitle": "5. Drone filma obra de Minka sem pregos #Shorts",
             "overlayText": "\"DO ZERO AO FIM\"",
             "composition": "Tela dividida horizontalmente (Split screen). Metade superior mostra o terreno de terra limpo no campo; metade inferior mostra a casa Minka finalizada com seu telhado de palha. Texto em branco de alto contraste no centro.",
-            "colors": [
-              "#FFFFFF",
-              "#FFD700",
-              "#2E7D32"
-            ],
+            "colors": ["#FFFFFF", "#FFD700", "#2E7D32"],
             "focalElement": "O contraste geográfico e estrutural do antes e depois."
           },
           {
@@ -2314,11 +2217,7 @@
             "pairedTitle": "4. Carpintaria japonesa monta casa Minka 💡",
             "overlayText": "\"SÓ ENCAIXE DE MADEIRA\"",
             "composition": "Vista aérea diagonal (drone) mostrando a estrutura de madeira (timber framing) geométrica da casa totalmente exposta no meio da paisagem rural verde. Texto em ciano brilhante na lateral esquerda.",
-            "colors": [
-              "#00E5FF",
-              "#FFD700",
-              "#8B4513"
-            ],
+            "colors": ["#00E5FF", "#FFD700", "#8B4513"],
             "focalElement": "A complexidade do esqueleto de madeira da casa Minka sem nenhuma parede ainda."
           }
         ]
@@ -2363,9 +2262,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 31,
@@ -2531,9 +2428,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 33,
@@ -2628,11 +2523,7 @@
             "pairedTitle": "1. Oásis marroquino feito de lama pura 🏜️",
             "overlayText": "LAMA OU LUXO?",
             "composition": "Divisão vertical no centro da tela. Do lado esquerdo, lama crua e seca sendo moldada; do lado direito, o pátio marroquino finalizado com água azul brilhando na piscina. Texto centralizado em fonte amarela de alto contraste.",
-            "colors": [
-              "#D2B48C",
-              "#008080",
-              "#FFD700"
-            ],
+            "colors": ["#D2B48C", "#008080", "#FFD700"],
             "focalElement": "O contraste de texturas entre a lama rústica e o acabamento luxuoso do pátio."
           },
           {
@@ -2641,11 +2532,7 @@
             "pairedTitle": "3. Arquitetura IA cria mansão de adobe 🤯",
             "overlayText": "FEITO POR INTELIGÊNCIA ARTIFICIAL",
             "composition": "Imagem ultra-realista da casa de deserto em ângulo contra-plongée (de baixo para cima), com linhas de wireframe azul neon digital sobrepostas nas bordas da construção. Texto no topo da tela em branco com sombra preta.",
-            "colors": [
-              "#E6A15C",
-              "#00E5FF",
-              "#FFFFFF"
-            ],
+            "colors": ["#E6A15C", "#00E5FF", "#FFFFFF"],
             "focalElement": "Detalhes geométricos perfeitos da fachada de adobe contrastando com a estética tecnológica da IA."
           },
           {
@@ -2654,11 +2541,7 @@
             "pairedTitle": "4. Construção de oásis marroquino do zero #Shorts",
             "overlayText": "DO ZERO AO OÁSIS",
             "composition": "Divisão diagonal. O canto inferior esquerdo exibe o terreno de terra seca e vazia; o canto superior direito exibe a mansão de adobe totalmente pronta com palmeiras ao redor. Texto em caixa alta acompanhando a linha diagonal.",
-            "colors": [
-              "#8B4513",
-              "#228B22",
-              "#FF8C00"
-            ],
+            "colors": ["#8B4513", "#228B22", "#FF8C00"],
             "focalElement": "A mudança drástica de escala e a vegetação surgindo onde antes só havia terra seca."
           }
         ]
@@ -2703,9 +2586,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 7,
@@ -2871,9 +2752,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 16,
@@ -2962,10 +2841,7 @@
             "pairedTitle": "1. Hacienda Colonial nasce do zero 🏛️",
             "overlayText": "DO ZERO AO LUXO",
             "composition": "Divisão vertical na tela. Do lado esquerdo, a terra seca e vazia com as marcações da fundação. Do lado direito, a fachada finalizada da Hacienda com estuque quente e arcos. Texto centralizado em caixa alta com fundo contrastante.",
-            "colors": [
-              "Terracota",
-              "Branco Quente e Verde Oliva"
-            ],
+            "colors": ["Terracota", "Branco Quente e Verde Oliva"],
             "focalElement": "O contraste brutal entre o terreno baldio e a mansão finalizada."
           },
           {
@@ -2974,10 +2850,7 @@
             "pairedTitle": "2. Mato vira palácio mexicano em segundos #Shorts",
             "overlayText": "OBRA DE MILHÕES",
             "composition": "Enquadramento em ângulo baixo destacando os arcos de tijolos sendo erguidos em direção ao céu azul. O texto fica posicionado no topo esquerdo com fonte limpa e sombra preta projetada.",
-            "colors": [
-              "Vermelho Argila",
-              "Azul Céu e Marrom Escuro"
-            ],
+            "colors": ["Vermelho Argila", "Azul Céu e Marrom Escuro"],
             "focalElement": "Detalhe textural dos tijolos e do telhado colonial contrastando com o céu."
           },
           {
@@ -2986,10 +2859,7 @@
             "pairedTitle": "3. Timelapse ergue Hacienda no México",
             "overlayText": "COMO FOI FEITO?",
             "composition": "Vista aérea em perspectiva da Hacienda totalmente concluída durante o entardecer (golden hour). Um pequeno círculo de detalhe no canto superior mostra a fase inicial de terraplanagem. Texto na parte inferior central.",
-            "colors": [
-              "Laranja Solar",
-              "Creme Estuque e Madeira Escura"
-            ],
+            "colors": ["Laranja Solar", "Creme Estuque e Madeira Escura"],
             "focalElement": "A simetria perfeita do pátio interno com a fonte centralizada."
           }
         ]
@@ -3035,9 +2905,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 46,
@@ -3203,9 +3071,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 16,
@@ -3375,9 +3241,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 5,
@@ -3794,10 +3658,7 @@
             "pairedTitle": "1. Longhouse Viking erguida do zero 🔥",
             "overlayText": "\"CASA DE TERRA?\"",
             "composition": "Tela dividida verticalmente em 9:16. Do lado esquerdo, o terreno limpo na Escandinávia; do lado direito, a estrutura de madeira robusta subindo.",
-            "colors": [
-              "Marrom terra",
-              "verde floresta e dourado."
-            ],
+            "colors": ["Marrom terra", "verde floresta e dourado."],
             "focalElement": "Detalhe das toras de madeira se encaixando com fumaça ao fundo."
           },
           {
@@ -3806,10 +3667,7 @@
             "pairedTitle": "2. Viking usava terra no telhado? #Shorts",
             "overlayText": "\"TELHADO VIVO!\"",
             "composition": "Foco em close-up no topo da estrutura mostrando a aplicação da camada de grama e terra (turf roof) sobre o teto de madeira.",
-            "colors": [
-              "Verde musgo",
-              "marrom escuro e cinza pedra."
-            ],
+            "colors": ["Verde musgo", "marrom escuro e cinza pedra."],
             "focalElement": "O contraste da grama verde crescendo diretamente sobre as vigas rústicas."
           },
           {
@@ -3818,10 +3676,7 @@
             "pairedTitle": "5. Madeira e terra: a casa Viking real",
             "overlayText": "\"CONSTRUÇÃO REAL\"",
             "composition": "Plano médio mostrando a Longhouse Viking totalmente finalizada integrada à floresta nórdica enevoada.",
-            "colors": [
-              "Cinza névoa",
-              "verde pinheiro e marrom escuro."
-            ],
+            "colors": ["Cinza névoa", "verde pinheiro e marrom escuro."],
             "focalElement": "A arquitetura imponente da cabana finalizada contra o clima frio da Escandinávia."
           }
         ]
@@ -3866,9 +3721,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 3,
@@ -4037,9 +3890,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 1,
@@ -4202,9 +4053,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 4,
@@ -4298,11 +4147,7 @@
             "pairedTitle": "1. Catedral barroca de Minas em etapas 🔥",
             "overlayText": "\"COMO ERA FEITA?\"",
             "composition": "Imagem dividida ao meio na vertical (9:16). Texto centralizado em amarelo com borda preta. Elemento focal é a fundação de pedra manual contrastando com o céu azul.",
-            "colors": [
-              "#FFD700",
-              "#FFFFFF",
-              "#8B4513"
-            ],
+            "colors": ["#FFD700", "#FFFFFF", "#8B4513"],
             "focalElement": "Detalhe das fundações de pedra bruta sendo assentadas na terra vermelha."
           },
           {
@@ -4311,11 +4156,7 @@
             "pairedTitle": "3. Barro vermelho vira catedral de ouro 😱",
             "overlayText": "\"DA TERRA AO OURO\"",
             "composition": "Divisão horizontal antes/depois. Parte superior: o altar dourado finalizado. Parte inferior: o terreno de terra vermelha intocado. Texto grande centralizado em branco e ouro.",
-            "colors": [
-              "#FFD700",
-              "#B22222",
-              "#000000"
-            ],
+            "colors": ["#FFD700", "#B22222", "#000000"],
             "focalElement": "O contraste gritante entre a terra vermelha bruta e o altar barroco dourado e esculpido."
           },
           {
@@ -4324,11 +4165,7 @@
             "pairedTitle": "5. Igreja colonial de Minas em detalhes",
             "overlayText": "\"ARQUITETURA REALISTA\"",
             "composition": "Enquadramento em ângulo contra-plongé (olhando de baixo para cima) focando nas torres sineiras gêmeas contra o céu. Texto na lateral esquerda em azul ciano e branco.",
-            "colors": [
-              "#00FFFF",
-              "#FFFFFF",
-              "#D2B48C"
-            ],
+            "colors": ["#00FFFF", "#FFFFFF", "#D2B48C"],
             "focalElement": "As duas torres sineiras brancas com acabamento colonial detalhado e realista."
           }
         ]
@@ -4373,9 +4210,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 3,
@@ -4475,10 +4310,7 @@
             "pairedTitle": "4. Detalhe do terreno vazio planejado por IA",
             "overlayText": "\"IA FEZ ISSO DO ZERO?\"",
             "composition": "Lado esquerdo mostra um terreno vazio simples com uma linha digital brilhante dividindo a tela. Do lado direito, a fachada ultra moderna da casa renderizada pela IA. No centro, uma seta neon apontando para a divisão.",
-            "colors": [
-              "Azul ciano",
-              "amarelo ouro e cinza concreto."
-            ],
+            "colors": ["Azul ciano", "amarelo ouro e cinza concreto."],
             "focalElement": "O contraste nítido entre a terra batida e o vidro/madeira da fachada moderna."
           },
           {
@@ -4487,10 +4319,7 @@
             "pairedTitle": "2. Terreno vazio vira projeto de luxo feito por IA",
             "overlayText": "\"ANTES E DEPOIS DA IA\"",
             "composition": "Divisão diagonal clássica \"Antes/Depois\". No \"Antes\", o terreno vazio com mato e terra. No \"Depois\", a piscina iluminada e a área gourmet da casa dos sonhos. Texto grande em amarelo no topo.",
-            "colors": [
-              "Verde natural",
-              "amarelo vibrante e azul piscina."
-            ],
+            "colors": ["Verde natural", "amarelo vibrante e azul piscina."],
             "focalElement": "A piscina luxuosa brilhando à noite em contraste com o terreno baldio diurno."
           },
           {
@@ -4543,12 +4372,8 @@
         "diagnosis": "retention_or_topic_decay",
         "recommendedTreatment": "metadata_search_refresh",
         "treatmentLabel": "Atualizar SEO com cautela",
-        "reasons": [
-          "Ainda recebe visualizações no período recente"
-        ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "reasons": ["Ainda recebe visualizações no período recente"],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 32,
@@ -4709,9 +4534,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 2,
@@ -4879,9 +4702,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 3,
@@ -4970,10 +4791,7 @@
             "pairedTitle": "1. Estádio futurista surge no meio do mar 😱",
             "overlayText": "Estádio proibido no oceano?",
             "composition": "Centralizado no domo do estádio futurista com ondas gigantes colidindo contra as rochas ao redor. Texto posicionado no terço superior em fonte amarela de alto contraste.",
-            "colors": [
-              "Azul Marinho",
-              "Dourado e Branco."
-            ],
+            "colors": ["Azul Marinho", "Dourado e Branco."],
             "focalElement": "Ondas do mar realistas batendo nas paredes externas da arena."
           },
           {
@@ -4982,10 +4800,7 @@
             "pairedTitle": "2. Ilha rochosa vira estádio de futebol #Shorts",
             "overlayText": "Antes vs. Depois insano!",
             "composition": "Divisão vertical simétrica (Split-screen). Lado esquerdo: a ilha de pedra vazia e selvagem. Lado direito: o estádio de luxo finalizado e iluminado. Texto centralizado na linha de divisão.",
-            "colors": [
-              "Verde Esmeralda",
-              "Cinza Rochoso e Branco."
-            ],
+            "colors": ["Verde Esmeralda", "Cinza Rochoso e Branco."],
             "focalElement": "Contraste direto entre a natureza bruta e a alta tecnologia da arena de futebol."
           },
           {
@@ -4994,10 +4809,7 @@
             "pairedTitle": "4. Ilha deserta vira arena futurista 🤯 #Shorts",
             "overlayText": "Construído por Inteligência Artificial",
             "composition": "Ângulo contra-plongée (olhando de baixo para cima) destacando a grandiosidade da cobertura metálica do estádio contra o céu. Texto no terço inferior em caixa alta.",
-            "colors": [
-              "Azul Elétrico",
-              "Prata e Preto."
-            ],
+            "colors": ["Azul Elétrico", "Prata e Preto."],
             "focalElement": "Linhas de neon brilhantes da estrutura arquitetônica futurista."
           }
         ]
@@ -5042,9 +4854,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 3,
@@ -5212,9 +5022,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 10,
@@ -5386,9 +5194,7 @@
           "Compartilhamentos indicam valor recuperável",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 16,
@@ -5563,9 +5369,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 8,
@@ -5734,9 +5538,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 3,
@@ -5905,9 +5707,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 16,
@@ -6170,11 +5970,7 @@
             "pairedTitle": "1. AI constrói Mansão do Zero? ✨",
             "overlayText": "Mansão do Zero?",
             "composition": "Imagem da mansão cinematográfica pronta no centro, com um \"antes\" (terreno vazio) em um pequeno círculo no canto superior esquerdo. Texto \"Mansão do Zero?\" em fonte grande e branca, no terço superior, levemente à esquerda.",
-            "colors": [
-              "#A0A0A0",
-              "#FFFFFF",
-              "#2C3E50"
-            ],
+            "colors": ["#A0A0A0", "#FFFFFF", "#2C3E50"],
             "focalElement": "A mansão pronta, imponente, com um brilho sutil de \"magia\" (AI) e um ponto de interrogação visual."
           },
           {
@@ -6183,11 +5979,7 @@
             "pairedTitle": "2. Fazenda vira Mansão Luxuosa!",
             "overlayText": "Antes & Depois",
             "composition": "Tela dividida verticalmente ao meio. Lado esquerdo: terreno bruto (fazenda). Lado direito: a mansão luxuosa pronta. Texto \"Antes & Depois\" em fonte grande e amarela/dourada, centralizado na linha divisória.",
-            "colors": [
-              "#A0A0A0",
-              "#FFFFFF",
-              "#2C3E50"
-            ],
+            "colors": ["#A0A0A0", "#FFFFFF", "#2C3E50"],
             "focalElement": "Contraste dramático entre o terreno vazio e a mansão finalizada, destacando a transformação."
           },
           {
@@ -6196,11 +5988,7 @@
             "pairedTitle": "4. Timelapse AI: Mansão Surge! #Shorts",
             "overlayText": "Construção AI Real",
             "composition": "Imagem de um momento intermediário da construção (estrutura principal visível), com um efeito visual sutil de \"AI\" (linhas de código ou brilho digital) sobreposto. O texto \"Construção AI Real\" em fonte grande e branca, na parte inferior da tela. Um ícone de \"play\" pequeno e estilizado no canto inferior direito (simulando um vídeo).",
-            "colors": [
-              "#A0A0A0",
-              "#FFFFFF",
-              "#2C3E50"
-            ],
+            "colors": ["#A0A0A0", "#FFFFFF", "#2C3E50"],
             "focalElement": "A estrutura da mansão em construção, com elementos visuais que remetem à inteligência artificial, como um blueprint digital ou um grid."
           }
         ]
@@ -6245,9 +6033,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 13,
@@ -6355,11 +6141,7 @@
             "pairedTitle": "2. Arquitetura japonesa: encaixes precisos #Shorts",
             "overlayText": "ENCAIXES PERFEITOS",
             "composition": "Close-up extremo de um encaixe de madeira japonês impecável, mostrando a junção perfeita das peças. O texto \"ENCAIXES PERFEITOS\" aparece na parte superior ou inferior, com setas finas apontando para a precisão do encaixe.",
-            "colors": [
-              "Madeira clara",
-              "Marrom escuro",
-              "Branco para texto."
-            ],
+            "colors": ["Madeira clara", "Marrom escuro", "Branco para texto."],
             "focalElement": "Detalhe macro de um encaixe de madeira, evidenciando a perfeição e a complexidade da junção."
           }
         ]
@@ -6404,9 +6186,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 16,
@@ -6570,9 +6350,7 @@
           "Ainda recebe visualizações no período recente",
           "Compartilhamentos indicam valor recuperável"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 21,
@@ -6746,9 +6524,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 10,
@@ -6916,9 +6692,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 16,
@@ -7087,9 +6861,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 9,
@@ -7256,9 +7028,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 18,
@@ -7424,9 +7194,7 @@
           "Ainda recebe visualizações no período recente",
           "Converte espectadores em inscritos"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 6,
@@ -7597,9 +7365,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 23,
@@ -7685,33 +7451,21 @@
             "label": "Curiosidade",
             "overlayText": "RUA FILIPINA: DESTRUÍDA,",
             "pairedTitle": "1. Rua Filipina: Destruída, Restaurada em 30s! 🤯 (40 chars texto, 42 total)",
-            "colors": [
-              "#D4AF37",
-              "#00E5FF",
-              "#121214"
-            ]
+            "colors": ["#D4AF37", "#00E5FF", "#121214"]
           },
           {
             "id": "B",
             "label": "Contraste",
             "overlayText": "30 SEGUNDOS: RUA",
             "pairedTitle": "2. 30 Segundos: Rua Destruída volta à vida #Timelapse (37 chars texto, 49 total)",
-            "colors": [
-              "#D4AF37",
-              "#00E5FF",
-              "#121214"
-            ]
+            "colors": ["#D4AF37", "#00E5FF", "#121214"]
           },
           {
             "id": "C",
             "label": "Prova Visual",
             "overlayText": "FILIPINAS: RUA SE",
             "pairedTitle": "3. Filipinas: Rua se recupera pós-terremoto ✨ (39 chars texto, 41 total)",
-            "colors": [
-              "#D4AF37",
-              "#00E5FF",
-              "#121214"
-            ]
+            "colors": ["#D4AF37", "#00E5FF", "#121214"]
           }
         ]
       },
@@ -7757,9 +7511,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 37,
@@ -7928,9 +7680,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 9,
@@ -8023,11 +7773,7 @@
             "pairedTitle": "1.600 toneladas em Baalbek: como? 💡",
             "overlayText": "1.600 TONELADAS? COMO?",
             "composition": "Imagem de uma pedra colossal de Baalbek (ex: a Pedra do Sul) ocupando o centro-inferior. Texto em fonte grande e amarela (#FFD700) no terço superior, com ponto de interrogação grande. Uma pessoa minúscula (silhueta) no canto inferior para escala.",
-            "colors": [
-              "#A52A2A",
-              "#F5DEB3",
-              "#36454F"
-            ],
+            "colors": ["#A52A2A", "#F5DEB3", "#36454F"],
             "focalElement": "Pedra gigante de Baalbek, silhueta humana, ponto de interrogação."
           },
           {
@@ -8036,11 +7782,7 @@
             "pairedTitle": "Megalitos: força humana venceu gravidade #Shorts",
             "overlayText": "SEM GUINDASTE?",
             "composition": "Lado esquerdo: imagem de um guindaste moderno em uma construção (fundo embaçado, cores frias). Lado direito: imagem de trabalhadores antigos puxando uma pedra com cordas e alavancas (fundo embaçado, cores quentes). Uma linha vertical no meio. Texto em branco (#FFFFFF) no topo, com a palavra \"SEM\" no lado esquerdo e \"GUINDASTE?\" no lado direito, como um contraste.",
-            "colors": [
-              "#A52A2A",
-              "#F5DEB3",
-              "#36454F"
-            ],
+            "colors": ["#A52A2A", "#F5DEB3", "#36454F"],
             "focalElement": "Contraste entre tecnologia moderna e força humana antiga."
           },
           {
@@ -8049,11 +7791,7 @@
             "pairedTitle": "Dispositivo Lewis: a chave antiga #Física",
             "overlayText": "DISPOSITIVO LEWIS",
             "composition": "Imagem detalhada do Dispositivo Lewis encaixado em um bloco de pedra, mostrando o mecanismo de travamento. Foco no detalhe da engenharia. Texto em branco (#FFFFFF) com contorno escuro no terço superior, apontando para o dispositivo. Fundo da pedra com textura rústica.",
-            "colors": [
-              "#A52A2A",
-              "#F5DEB3",
-              "#36454F"
-            ],
+            "colors": ["#A52A2A", "#F5DEB3", "#36454F"],
             "focalElement": "O Dispositivo Lewis em ação, mostrando a engenharia."
           }
         ]
@@ -8098,9 +7836,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 20,
@@ -8268,9 +8004,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 14,
@@ -8426,9 +8160,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 1,
@@ -8592,9 +8324,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 1,
@@ -8809,9 +8539,7 @@
           "Compartilhamentos indicam valor recuperável",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 9,
@@ -9029,9 +8757,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 20,
@@ -9243,9 +8969,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 7,
@@ -9453,9 +9177,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 1,
@@ -9542,11 +9264,7 @@
             "pairedTitle": "1. Alienígenas não! Engenharia Egípcia de 4.500 anos",
             "overlayText": "Alienígenas? NÃO!",
             "composition": "Rosto de faraó (estátua ou representação) em close-up, olhando para o lado esquerdo com expressão de \"desdém\" ou \"revelação\". Texto grande no canto superior direito. Pirâmide ao fundo, menor, à direita.",
-            "colors": [
-              "#E0C79A",
-              "#4A7C9F",
-              "#A84C3F"
-            ],
+            "colors": ["#E0C79A", "#4A7C9F", "#A84C3F"],
             "focalElement": "Rosto de faraó (Tutankamon ou similar) em close-up, pirâmide ao fundo."
           },
           {
@@ -9555,11 +9273,7 @@
             "pairedTitle": "2. 2 milhões de blocos: Cobre ergueu Pirâmides do Egito",
             "overlayText": "Cobre & 2 MILHÕES",
             "composition": "Imagem dividida verticalmente. Lado esquerdo: uma pirâmide majestosa e gigante. Lado direito: close-up de uma ferramenta de cobre antiga e um bloco de pedra. Texto centralizado no meio da divisão.",
-            "colors": [
-              "#4A7C9F",
-              "#E0C79A",
-              "#A84C3F"
-            ],
+            "colors": ["#4A7C9F", "#E0C79A", "#A84C3F"],
             "focalElement": "Pirâmide gigante vs. detalhe de ferramenta de cobre e bloco."
           },
           {
@@ -9568,11 +9282,7 @@
             "pairedTitle": "3. Gizé: Imhotep e a vida real dos trabalhadores",
             "overlayText": "GIZÉ: A VERDADE",
             "composition": "Reconstrução 3D ou ilustração de uma vila de trabalhadores em Gizé, com pessoas em atividades diárias (não escravos). Pirâmides ao fundo, distantes. Texto no canto inferior esquerdo.",
-            "colors": [
-              "#A84C3F",
-              "#E0C79A",
-              "#2A2A2A"
-            ],
+            "colors": ["#A84C3F", "#E0C79A", "#2A2A2A"],
             "focalElement": "Cena de vida em vila antiga, com trabalhadores felizes ou ocupados."
           }
         ]
@@ -9662,9 +9372,7 @@
           "Ainda recebe visualizações no período recente",
           "Compartilhamentos indicam valor recuperável"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 6,
@@ -9746,11 +9454,7 @@
             "pairedTitle": "1. Jardins Suspensos: Nínive, não Babilônia!",
             "overlayText": "JARDINS? NÍNIVE!",
             "composition": "Imagem de ruínas antigas estilizadas com um toque de verde. Texto \"JARDINS?\" no topo, \"NÍNIVE!\" abaixo, centralizado. Elemento focal: mapa antigo da Mesopotâmia com dois pontos marcados (Babilônia e Nínive) em destaque.",
-            "colors": [
-              "#D4C19B",
-              "#3A506B",
-              "#E0E0E0"
-            ],
+            "colors": ["#D4C19B", "#3A506B", "#E0E0E0"],
             "focalElement": "Mapa antigo com marcações de localização."
           },
           {
@@ -9759,11 +9463,7 @@
             "pairedTitle": "3. Senaqueribe escondeu a 7ª Maravilha",
             "overlayText": "BABILÔNIA OU NÍNIVE?",
             "composition": "Imagem dividida verticalmente. À esquerda, representação artística exuberante dos Jardins da Babilônia (ilusão). À direita, uma imagem mais árida e realista de ruínas de Nínive. Texto centralizado entre as duas metades.",
-            "colors": [
-              "#8B6F4F",
-              "#B8860B",
-              "#E0E0E0"
-            ],
+            "colors": ["#8B6F4F", "#B8860B", "#E0E0E0"],
             "focalElement": "Divisão visual entre uma representação idealizada e uma realidade arqueológica."
           },
           {
@@ -9772,11 +9472,7 @@
             "pairedTitle": "2. 50km de aquedutos em Nínive 🤯",
             "overlayText": "50KM DE AQUEDUTOS",
             "composition": "Imagem imponente de um aqueduto antigo ou uma estrutura de engenharia colossal. O número \"50KM\" em fonte grande no canto superior esquerdo, e \"DE AQUEDUTOS\" logo abaixo. Elemento focal: a escala e grandiosidade da engenharia.",
-            "colors": [
-              "#3A506B",
-              "#D4C19B",
-              "#E0E0E0"
-            ],
+            "colors": ["#3A506B", "#D4C19B", "#E0E0E0"],
             "focalElement": "Aqueduto antigo, mostrando sua extensão e complexidade."
           }
         ]
@@ -9866,9 +9562,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 5,
@@ -9950,11 +9644,7 @@
             "pairedTitle": "1. 137 metros: Templo de Ártemis sumiu?",
             "overlayText": "137 METROS SUMIRAM?",
             "composition": "Fragmento de uma coluna antiga em tons dourados e escuros, envolto em névoa misteriosa. Texto grande no topo, centralizado.",
-            "colors": [
-              "Paleta Lumiera: Dourado",
-              "Ciano",
-              "Vermelho Escuro"
-            ],
+            "colors": ["Paleta Lumiera: Dourado", "Ciano", "Vermelho Escuro"],
             "focalElement": "Ruína imponente e nebulosa, evocando mistério."
           },
           {
@@ -9963,11 +9653,7 @@
             "pairedTitle": "3. Templo Perdido: achado em pântano 1869 🤯",
             "overlayText": "ACHADO NO PÂNTANO",
             "composition": "Imagem dividida verticalmente: topo, uma reconstrução gloriosa do Templo de Ártemis em seu auge; base, uma escavação arqueológica em terreno úmido (pântano) com algumas ruínas. Texto no centro, horizontal.",
-            "colors": [
-              "Paleta Lumiera: Dourado",
-              "Ciano",
-              "Vermelho Escuro"
-            ],
+            "colors": ["Paleta Lumiera: Dourado", "Ciano", "Vermelho Escuro"],
             "focalElement": "Contraste dramático entre grandiosidade e abandono/descoberta."
           },
           {
@@ -9976,11 +9662,7 @@
             "pairedTitle": "2. Heróstrato e o incêndio de 356 a.C.",
             "overlayText": "FOGO EM 356 A.C.",
             "composition": "Ilustração dramática de colunas do templo em chamas, com fumaça subindo. Uma silhueta de figura humana (Heróstrato) pode ser sutilmente vista ao fundo, observando a destruição. Texto no canto inferior esquerdo.",
-            "colors": [
-              "Paleta Lumiera: Dourado",
-              "Ciano",
-              "Vermelho Escuro"
-            ],
+            "colors": ["Paleta Lumiera: Dourado", "Ciano", "Vermelho Escuro"],
             "focalElement": "Cena de destruição, com fogo e fumaça como elementos centrais."
           }
         ]
@@ -10070,9 +9752,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 6,
@@ -10276,9 +9956,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 10,
@@ -10483,9 +10161,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 21,
@@ -10688,9 +10364,7 @@
           "Compartilhamentos indicam valor recuperável",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 102,
@@ -10776,9 +10450,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 96,
@@ -10864,9 +10536,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 69,
@@ -10952,9 +10622,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 165,
@@ -11040,9 +10708,7 @@
           "Ainda recebe visualizações no período recente",
           "Converte espectadores em inscritos"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 184,
@@ -11122,11 +10788,7 @@
             "pairedTitle": "1. Stilt house no Vietnã feita sem pregos",
             "overlayText": "SEM NENHUM PREGO?",
             "composition": "Imagem vertical focada nos encaixes de madeira de lei sendo montados manualmente, com o rio ao fundo. Texto centralizado no topo.",
-            "colors": [
-              "#FFD700",
-              "#00FFFF",
-              "#1A1A1A"
-            ],
+            "colors": ["#FFD700", "#00FFFF", "#1A1A1A"],
             "focalElement": "Detalhe macro das mãos do artesão vietnamita encaixando duas vigas de madeira rústica."
           },
           {
@@ -11135,11 +10797,7 @@
             "pairedTitle": "2. Casa de bambu flutuante no Vietnã 🌊",
             "overlayText": "BAMBU VS ÁGUA",
             "composition": "Divisão horizontal sutil. Na metade inferior, a água do rio batendo nas estacas de madeira; na metade superior, a estrutura geométrica de bambu trançado contra o céu. Texto grande no centro.",
-            "colors": [
-              "#FFD700",
-              "#00FFFF",
-              "#FFFFFF"
-            ],
+            "colors": ["#FFD700", "#00FFFF", "#FFFFFF"],
             "focalElement": "Contraste visual entre a leveza do bambu e a força da correnteza do rio sob a casa de palafitas."
           },
           {
@@ -11148,11 +10806,7 @@
             "pairedTitle": "4. Construção de palafitas no Vietnã 🛠️",
             "overlayText": "DO RIO AO TETO",
             "composition": "Perspectiva de ângulo baixo (contra-plongée) mostrando a casa de palafitas totalmente finalizada sobre a água de Ninh Binh, destacando a cobertura de palha. Texto na lateral esquerda.",
-            "colors": [
-              "#FFD700",
-              "#00FFFF",
-              "#00FF00"
-            ],
+            "colors": ["#FFD700", "#00FFFF", "#00FF00"],
             "focalElement": "A autêntica Wooden Stilt House vietnamita completa e imponente sobre o rio."
           }
         ]
@@ -11193,9 +10847,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 2114,
@@ -11349,9 +11001,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 431,
@@ -11505,9 +11155,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 174,
@@ -11660,9 +11308,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 115,
@@ -11742,9 +11388,7 @@
             "pairedTitle": "1. Château de pedra calcária no Loire",
             "overlayText": "SEGREDO DOS REIS?",
             "composition": "Zoom ultra-próximo no encaixe dos blocos de pedra calcária brancos, texto centralizado em amarelo com fundo escuro para alto contraste.",
-            "colors": [
-              "#FFFFFF #FFD700 #1A1A1A"
-            ],
+            "colors": ["#FFFFFF #FFD700 #1A1A1A"],
             "focalElement": "Detalhe realista da textura da pedra tufa sendo assentada."
           },
           {
@@ -11753,9 +11397,7 @@
             "pairedTitle": "2. Construção de um castelo no Loire 🏰",
             "overlayText": "DO ZERO AO LUXO",
             "composition": "Divisão diagonal na tela de 9:16 mostrando no topo a terraplenagem cinzenta e embaixo o castelo finalizado com seus jardins simétricos. Texto no centro da divisão.",
-            "colors": [
-              "#E6C229 #4A90E2 #2C3E50"
-            ],
+            "colors": ["#E6C229 #4A90E2 #2C3E50"],
             "focalElement": "Contraste entre o terreno de terra inicial e a simetria perfeita do jardim francês."
           },
           {
@@ -11764,9 +11406,7 @@
             "pairedTitle": "4. Timelapse do maior castelo do Loire",
             "overlayText": "OBRA DE 100 ANOS?",
             "composition": "Vista aérea em ângulo contra-plongée destacando as torres de canto e o telhado de ardósia cinza-escura. Texto em caixa alta no terço inferior.",
-            "colors": [
-              "#FFD700 #333333 #FFFFFF"
-            ],
+            "colors": ["#FFD700 #333333 #FFFFFF"],
             "focalElement": "As icônicas cúpulas pontiagudas de ardósia contrastando com o céu azul."
           }
         ]
@@ -11808,9 +11448,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 719,
@@ -11956,11 +11594,7 @@
             "pairedTitle": "2. Engenharia medieval ergueu Notre-Dame ⛪",
             "overlayText": "COMO ERGUERAM ISSO?",
             "composition": "Close-up detalhado nos andaimes de madeira medievais e arcos de pedra da catedral em construção. Texto centralizado no topo em fonte ultra-negrito.",
-            "colors": [
-              "#FFD700",
-              "#00FFFF",
-              "#1A1A1A"
-            ],
+            "colors": ["#FFD700", "#00FFFF", "#1A1A1A"],
             "focalElement": "Uma antiga grua medieval de madeira içando um bloco de pedra maciço."
           },
           {
@@ -11969,11 +11603,7 @@
             "pairedTitle": "1. Notre-Dame: a obra de 1163 em timelapse",
             "overlayText": "1163 VS HOJE",
             "composition": "Divisão horizontal simétrica da tela. A metade superior mostra o início das fundações na lama; a metade inferior mostra a catedral gótica finalizada e imponente.",
-            "colors": [
-              "#FFA500",
-              "#00E5FF",
-              "#0D0D0D"
-            ],
+            "colors": ["#FFA500", "#00E5FF", "#0D0D0D"],
             "focalElement": "O contraste visual entre o canteiro de obras medieval e o monumento finalizado."
           },
           {
@@ -11982,11 +11612,7 @@
             "pairedTitle": "3. Arcobotantes sustentam Notre-Dame 🏗️",
             "overlayText": "O SEGREDO DOS ARCOS",
             "composition": "Perspectiva dramática de baixo para cima focando nos arcobotantes (flying buttresses) laterais da catedral, com linhas de força gráficas em neon indicando a sustentação.",
-            "colors": [
-              "#FF3333",
-              "#FFCC00",
-              "#222222"
-            ],
+            "colors": ["#FF3333", "#FFCC00", "#222222"],
             "focalElement": "Os arcos de pedra externos que impedem as paredes de Notre-Dame de desabarem para os lados."
           }
         ]
@@ -12028,9 +11654,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 856,
@@ -12244,9 +11868,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 1075,
@@ -12395,9 +12017,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 601,
@@ -12554,9 +12174,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 4742,
@@ -12709,9 +12327,7 @@
           "Ainda recebe visualizações no período recente",
           "Converte espectadores em inscritos"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 115,
@@ -12800,9 +12416,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 47,
@@ -12876,9 +12490,7 @@
             "pairedTitle": "2. Dragões de bronze contra terremotos 🐉",
             "overlayText": "SEGREDO DE 1.900 ANOS",
             "composition": "Close-up dramático na cabeça de um dragão de bronze com uma esfera na boca prestes a cair. Texto centralizado no topo em amarelo de alto contraste.",
-            "colors": [
-              "#FFD700 #00FFFF #1A1A1A"
-            ],
+            "colors": ["#FFD700 #00FFFF #1A1A1A"],
             "focalElement": "Dragão de bronze detalhado e a esfera metálica brilhante."
           },
           {
@@ -12887,9 +12499,7 @@
             "pairedTitle": "4. Pêndulo que previa terremotos na China",
             "overlayText": "ANTES DA TECNOLOGIA MODERNA",
             "composition": "Divisão diagonal. Do lado esquerdo, o sismógrafo antigo de Zhang Heng em tons dourados; do lado direito, um sismógrafo digital moderno com ondas vermelhas na tela. Texto na parte inferior.",
-            "colors": [
-              "#FFD700 #FF3333 #0A0A0A"
-            ],
+            "colors": ["#FFD700 #FF3333 #0A0A0A"],
             "focalElement": "Contraste de engenharia antiga vs. moderna."
           },
           {
@@ -12898,9 +12508,7 @@
             "pairedTitle": "1. Sismógrafo de Zhang Heng de 1.900 anos",
             "overlayText": "COMO ISSO FUNCIONAVA?",
             "composition": "Corte transversal esquemático em 3D mostrando o pêndulo interno e os canais de bronze que ativam a boca do dragão. Seta neon apontando para o mecanismo interno.",
-            "colors": [
-              "#00FF00 #FFD700 #0D0D0D"
-            ],
+            "colors": ["#00FF00 #FFD700 #0D0D0D"],
             "focalElement": "Diagrama técnico do pêndulo interno."
           }
         ]
@@ -12942,9 +12550,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 640,
@@ -13092,9 +12698,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 669,
@@ -13245,9 +12849,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 874,
@@ -13400,12 +13002,8 @@
         "diagnosis": "retention_or_topic_decay",
         "recommendedTreatment": "metadata_search_refresh",
         "treatmentLabel": "Atualizar SEO com cautela",
-        "reasons": [
-          "Ainda recebe visualizações no período recente"
-        ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "reasons": ["Ainda recebe visualizações no período recente"],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 71,
@@ -13492,9 +13090,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 943,
@@ -13583,9 +13179,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 48,
@@ -13737,9 +13331,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 570,
@@ -13886,11 +13478,7 @@
             "pairedTitle": "2. Astecas plantavam em ilhas flutuantes 🌾",
             "overlayText": "COMIDA NO MEIO DO LAGO?",
             "composition": "Texto centralizado no topo em amarelo de alto contraste. Elemento focal centralizado: uma chinampa (ilha artificial) verdejante repleta de plantações, com canais de água límpida ao redor.",
-            "colors": [
-              "#FFD700",
-              "#00FFFF",
-              "#1A301E"
-            ],
+            "colors": ["#FFD700", "#00FFFF", "#1A301E"],
             "focalElement": "Detalhe das raízes das plantas descendo diretamente para a água do lago."
           },
           {
@@ -13899,11 +13487,7 @@
             "pairedTitle": "1. 7 colheitas por ano alimentavam milhões",
             "overlayText": "7 COLHEITAS POR ANO!",
             "composition": "Tela dividida ao meio na vertical. Do lado esquerdo, solo seco tradicional (1 colheita). Do lado direito, a chinampa asteca super produtiva cercada de água (7 colheitas).",
-            "colors": [
-              "#FFD700",
-              "#FF4500",
-              "#00FFFF"
-            ],
+            "colors": ["#FFD700", "#FF4500", "#00FFFF"],
             "focalElement": "Linha divisória nítida marcando o contraste de produtividade e cor entre a seca e a abundância."
           },
           {
@@ -13912,11 +13496,7 @@
             "pairedTitle": "3. Tenochtitlan: a engenharia verde asteca",
             "overlayText": "ENGENHARIA SEM TECNOLOGIA",
             "composition": "Texto na base inferior sobre uma faixa escura semitransparente. Elemento focal: vista aérea artística da grande cidade de Tenochtitlan com seus canais simétricos perfeitos e ilhas agrícolas.",
-            "colors": [
-              "#FFD700",
-              "#00FF7F",
-              "#00FFFF"
-            ],
+            "colors": ["#FFD700", "#00FF7F", "#00FFFF"],
             "focalElement": "A simetria geométrica perfeita dos canais de irrigação brilhando sob a luz do sol."
           }
         ]
@@ -13958,9 +13538,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 478,
@@ -14179,9 +13757,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 486,
@@ -14336,9 +13912,7 @@
           "Compartilhamentos indicam valor recuperável",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 148,
@@ -14425,9 +13999,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 565,
@@ -14509,9 +14081,7 @@
             "pairedTitle": "4. Muralhas medievais tinham HUD de mira? 🤯",
             "overlayText": "MIRAS SECRETAS DOS CASTELOS",
             "composition": "Zoom em uma fresta de castelo medieval em formato de \"V\", com linhas de vetor digitais amarelas (estilo HUD de videogame) projetando o campo de visão de um arqueiro.",
-            "colors": [
-              "#FFD700 #00FFFF #1A1A1A"
-            ],
+            "colors": ["#FFD700 #00FFFF #1A1A1A"],
             "focalElement": "Olho de um arqueiro focado através da fresta estreita."
           },
           {
@@ -14520,9 +14090,7 @@
             "pairedTitle": "2. Design de 800 anos que inspirou tanques",
             "overlayText": "DO CASTELO AO TANQUE",
             "composition": "Tela dividida verticalmente ao meio. Lado esquerdo: fresta de castelo medieval de 800 anos. Lado direito: fresta de visão de um tanque de guerra moderno.",
-            "colors": [
-              "#FFCC00 #3E4A3E #000000"
-            ],
+            "colors": ["#FFCC00 #3E4A3E #000000"],
             "focalElement": "Comparação direta de escala e formato geométrico idêntico."
           },
           {
@@ -14531,9 +14099,7 @@
             "pairedTitle": "5. Frestas em V paravam flechas inimigas",
             "overlayText": "COMO ELAS PARAVAM FLECHAS",
             "composition": "Visão em corte 3D de uma parede de castelo mostrando uma flecha batendo no ângulo \"V\" da fresta e sendo desviada para fora, com o arqueiro seguro do lado de dentro.",
-            "colors": [
-              "#FF3333 #FFFFFF #2B2B2B"
-            ],
+            "colors": ["#FF3333 #FFFFFF #2B2B2B"],
             "focalElement": "Flecha se estilhaçando ou mudando de trajetória no impacto com a pedra."
           }
         ]
@@ -14575,9 +14141,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 661,
@@ -14799,9 +14363,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 643,
@@ -14961,9 +14523,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 651,
@@ -15002,9 +14562,7 @@
           "Ainda recebe visualizações no período recente",
           "Converte espectadores em inscritos"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 266,
@@ -15096,9 +14654,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 657,
@@ -15408,9 +14964,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 550,
@@ -15498,9 +15052,7 @@
           "Ainda recebe visualizações no período recente",
           "Compartilhamentos indicam valor recuperável"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 234,
@@ -15595,9 +15147,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 860,
@@ -15815,9 +15365,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 1006,
@@ -16048,9 +15596,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 770,
@@ -16278,9 +15824,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 469,
@@ -16504,9 +16048,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 947,
@@ -16723,9 +16265,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 554,
@@ -16942,9 +16482,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 627,
@@ -17029,9 +16567,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 616,
@@ -17119,9 +16655,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 739,
@@ -17206,9 +16740,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 594,
@@ -17300,9 +16832,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 647,
@@ -17370,11 +16900,7 @@
             "pairedTitle": "4. Martim-pescador salvou o trem do Japão?",
             "overlayText": "PÁSSARO SALVOU O TREM?",
             "composition": "Tela dividida verticalmente em 9:16. Na metade superior, um martim-pescador mergulhando na água; na metade inferior, o trem Shinkansen saindo de um túnel em alta velocidade. Texto centralizado com fundo de alto contraste.",
-            "colors": [
-              "#FFD700",
-              "#00FFFF",
-              "#FFFFFF"
-            ],
+            "colors": ["#FFD700", "#00FFFF", "#FFFFFF"],
             "focalElement": ""
           },
           {
@@ -17383,11 +16909,7 @@
             "pairedTitle": "2. Bico de ave redesenhou o Shinkansen 💡",
             "overlayText": "ERRO DESIGN vs NATUREZA",
             "composition": "Silhueta translúcida do bico do martim-pescador sobreposta perfeitamente ao bico alongado do trem Shinkansen. O fundo é escuro para destacar o contorno brilhante das duas formas.",
-            "colors": [
-              "#FF3B30",
-              "#FFFFFF",
-              "#1C1C1E"
-            ],
+            "colors": ["#FF3B30", "#FFFFFF", "#1C1C1E"],
             "focalElement": "Linhas de aerodinâmica neon mostrando o fluxo de ar passando sem resistência."
           },
           {
@@ -17396,11 +16918,7 @@
             "pairedTitle": "5. O erro do Shinkansen que a ave resolveu",
             "overlayText": "O ERRO DE $ BILHÕES",
             "composition": "Imagem dramática do trem Shinkansen saindo de um túnel com uma onda de choque visual (efeito de ar comprimido/explosão sonora) sendo cortada ao meio pelo bico do trem.",
-            "colors": [
-              "#FFCC00",
-              "#000000",
-              "#00A3FF"
-            ],
+            "colors": ["#FFCC00", "#000000", "#00A3FF"],
             "focalElement": "Efeito visual de onda sonora destrutiva se dissipando."
           }
         ]
@@ -17803,11 +17321,7 @@
             "pairedTitle": "1. 430 quilos em palitos de sorvete 🤯",
             "overlayText": "PALITOS AGUENTAM ISSO?",
             "composition": "Rosto do apresentador com expressão de choque à esquerda, estrutura de palitos ao centro.",
-            "colors": [
-              "Amarelo",
-              "Preto",
-              "Branco."
-            ],
+            "colors": ["Amarelo", "Preto", "Branco."],
             "focalElement": "Estrutura de palitos sob peso visível."
           },
           {
@@ -17816,11 +17330,7 @@
             "pairedTitle": "2. Como palitos seguram 5 homens adultos",
             "overlayText": "5 HOMENS VS PALITOS",
             "composition": "Divisão vertical: 5 silhuetas de homens de um lado, palitos de sorvete do outro.",
-            "colors": [
-              "Ciano",
-              "Laranja",
-              "Preto."
-            ],
+            "colors": ["Ciano", "Laranja", "Preto."],
             "focalElement": "Ícone de balança comparando os dois lados."
           },
           {
@@ -17829,11 +17339,7 @@
             "pairedTitle": "5. Geometria vs 430 quilos de peso 😱",
             "overlayText": "430KG EM PALITOS",
             "composition": "Close-up extremo na estrutura de palitos com um peso pesado em cima.",
-            "colors": [
-              "Vermelho",
-              "Branco",
-              "Cinza."
-            ],
+            "colors": ["Vermelho", "Branco", "Cinza."],
             "focalElement": "Foco total na deformação da madeira antes do colapso."
           }
         ]
@@ -18305,11 +17811,7 @@
             "pairedTitle": "1. 327 milhões: NASA errou por centímetros 😳",
             "overlayText": "ERRO DE CENTÍMETROS",
             "composition": "Imagem da sonda Mars Climate Orbiter em rota de colisão com Marte ao fundo. Texto \"ERRO DE CENTÍMETROS\" no centro inferior, grande, em branco.",
-            "colors": [
-              "#0A0A2A",
-              "#FF4500",
-              "#FFFFFF"
-            ],
+            "colors": ["#0A0A2A", "#FF4500", "#FFFFFF"],
             "focalElement": "Sonda espacial em trajetória perigosa."
           },
           {
@@ -18318,11 +17820,7 @@
             "pairedTitle": "2. Mars Climate Orbiter sumiu por 1 erro",
             "overlayText": "1 CM = $327 MILHÕES",
             "composition": "Lado esquerdo: régua mostrando 1 cm. Lado direito: imagem de Marte com a sonda sumindo. Texto \"1 CM = $327 MILHÕES\" no centro, com o \"1 CM\" pequeno e \"$327 MILHÕES\" gigante.",
-            "colors": [
-              "#0A0A2A",
-              "#FF4500",
-              "#FFFFFF"
-            ],
+            "colors": ["#0A0A2A", "#FF4500", "#FFFFFF"],
             "focalElement": "Escala do erro vs. prejuízo."
           },
           {
@@ -18331,11 +17829,7 @@
             "pairedTitle": "3. NASA: Software da sonda errou em 1999 😱",
             "overlayText": "NASA: FALHA EM 1999",
             "composition": "Imagem de um gráfico de trajetória de voo com uma linha desviada dramaticamente, sobrepondo uma tela de código de computador. Texto \"NASA: FALHA EM 1999\" no topo.",
-            "colors": [
-              "#0A0A2A",
-              "#FF4500",
-              "#FFFFFF"
-            ],
+            "colors": ["#0A0A2A", "#FF4500", "#FFFFFF"],
             "focalElement": "Gráfico de trajetória errada e código de software."
           }
         ]
@@ -18711,9 +18205,7 @@
             "pairedTitle": "1. Ponte de Laufenburg teve erro bizarro",
             "overlayText": "ERRO DE 54 CM?",
             "composition": "Imagem dividida ao meio verticalmente mostrando a ponte de Laufenburg desalinhada no centro (lado esquerdo visivelmente mais alto que o direito). Texto grande no topo.",
-            "colors": [
-              "#FFD700 #00FFFF #111111"
-            ],
+            "colors": ["#FFD700 #00FFFF #111111"],
             "focalElement": "Seta vermelha 3D apontando diretamente para o vão central desalinhado."
           },
           {
@@ -18722,9 +18214,7 @@
             "pairedTitle": "3. Alemanha e Suíça esqueceram o mar",
             "overlayText": "ALEMANHA vs SUÍÇA",
             "composition": "Bandeira da Alemanha à esquerda e da Suíça à direita. No centro, um gráfico simples de duas linhas de nível do mar (Mar do Norte vs Mediterrâneo) com alturas diferentes.",
-            "colors": [
-              "#FF3B30 #FFFFFF #000000"
-            ],
+            "colors": ["#FF3B30 #FFFFFF #000000"],
             "focalElement": "Linha pontilhada vermelha destacando a diferença de 27 centímetros."
           },
           {
@@ -18733,9 +18223,7 @@
             "pairedTitle": "2. 54 cm de erro pararam esta ponte 🤯",
             "overlayText": "NÃO SE ENCAIXOU!",
             "composition": "Foto real da construção da ponte de Laufenburg com zoom dramático no ponto de encontro central das duas metades. Texto em caixa alta no canto inferior esquerdo.",
-            "colors": [
-              "#FF9500 #FFFFFF #1C1C1E"
-            ],
+            "colors": ["#FF9500 #FFFFFF #1C1C1E"],
             "focalElement": "Emoji de mente explodindo (🤯) aplicado de forma semitransparente no fundo."
           }
         ]
@@ -19045,9 +18533,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 907,
@@ -19060,7 +18546,7 @@
         "analyzedAt": "2026-07-17T13:20:06.294Z"
       },
       "opportunityScore": 65,
-      "status": "failed",
+      "status": "queued",
       "currentMetadata": {
         "title": "SchoolBusbanker 2026",
         "description": "",
@@ -19070,9 +18556,9 @@
       "selectedTitle": null,
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
-      "error": "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "error": null,
       "createdAt": "2026-07-15T14:00:07.652Z",
-      "updatedAt": "2026-07-19T14:00:09.778Z",
+      "updatedAt": "2026-07-20T03:19:34.380Z",
       "analyticsBaseline": {
         "videoId": "WKcFkfVfi6w",
         "startDate": "2026-06-19",
@@ -19095,8 +18581,7 @@
       "appliedAt": null,
       "thumbnailApplied": false,
       "thumbnailError": null,
-      "lastError": "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
-      "cycleNumber": 1
+      "lastError": "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal."
     },
     {
       "id": "b4afc44e-5ce3-4f05-b2ee-e698d73a0993",
@@ -19124,9 +18609,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 2081,
@@ -19139,7 +18622,7 @@
         "analyzedAt": "2026-07-18T14:20:47.608Z"
       },
       "opportunityScore": 56,
-      "status": "failed",
+      "status": "queued",
       "currentMetadata": {
         "title": "CozyHouseDesert",
         "description": "",
@@ -19149,9 +18632,9 @@
       "selectedTitle": null,
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
-      "error": "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "error": null,
       "createdAt": "2026-07-15T14:00:07.652Z",
-      "updatedAt": "2026-07-19T21:02:09.042Z",
+      "updatedAt": "2026-07-20T03:19:34.380Z",
       "analyticsBaseline": {
         "videoId": "5nMBiVtaf6U",
         "startDate": "2026-06-20",
@@ -19170,7 +18653,11 @@
           "impressionClickThroughRate": null
         }
       },
-      "cycleNumber": 1
+      "metadataRaw": null,
+      "appliedAt": null,
+      "thumbnailApplied": false,
+      "thumbnailError": null,
+      "lastError": "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal."
     },
     {
       "id": "1280eb03-bc2f-4f4d-8f8d-d0f09ebda0f7",
@@ -19469,11 +18956,7 @@
             "pairedTitle": "4. Kent guarda os radares de concreto 🤯",
             "overlayText": "Orelhas gigantes de concreto?",
             "composition": "Close-up no espelho acústico de concreto em Kent, com uma silhueta humana na base para dar noção de escala. Texto grande no canto superior esquerdo.",
-            "colors": [
-              "#E5D3B3",
-              "#1C2D37",
-              "#F39C12"
-            ],
+            "colors": ["#E5D3B3", "#1C2D37", "#F39C12"],
             "focalElement": "A impressionante curvatura da parábola colossal de concreto cinza contra o céu nublado."
           },
           {
@@ -19482,11 +18965,7 @@
             "pairedTitle": "5. 1920: a engenharia antiga contra aviões",
             "overlayText": "Radar antes do radar",
             "composition": "Tela dividida diagonalmente. De um lado, um bombardeiro antigo de 1920; do outro, a parede de concreto côncava focando o som. Texto centralizado em alto contraste.",
-            "colors": [
-              "#2C3E50",
-              "#BDC3C7",
-              "#E74C3C"
-            ],
+            "colors": ["#2C3E50", "#BDC3C7", "#E74C3C"],
             "focalElement": "O contraste visual entre a fragilidade do avião antigo e a brutalidade da estrutura de concreto."
           },
           {
@@ -19495,11 +18974,7 @@
             "pairedTitle": "3. 15 minutos para salvar a Inglaterra ⏱️",
             "overlayText": "15 minutos para ouvir",
             "composition": "Soldado britânico de época usando fones de ouvido primitivos gigantes, conectado à parede de concreto. Texto destacado no canto inferior direito.",
-            "colors": [
-              "#34495E",
-              "#95A5A6",
-              "#F1C40F"
-            ],
+            "colors": ["#34495E", "#95A5A6", "#F1C40F"],
             "focalElement": "Expressão de extrema concentração e tensão no rosto do operador militar."
           }
         ]
@@ -19604,9 +19079,7 @@
           "Ainda recebe visualizações no período recente",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 852,
@@ -19678,9 +19151,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 643,
@@ -20048,11 +19519,7 @@
             "pairedTitle": "1. Cano quebrado na Babilônia: escravidão 🤯",
             "overlayText": "VAZAMENTO = ESCRAVO",
             "composition": "Imagem de um dique rachado ou cano vazando, com uma silhueta de uma pessoa acorrentada ao fundo, em meio a ruínas da Babilônia. Texto \"VAZAMENTO = ESCRAVO\" em fonte grande e contrastante (dourado) na parte superior central.",
-            "colors": [
-              "#6F4E37",
-              "#2E86C1",
-              "#FFD700"
-            ],
+            "colors": ["#6F4E37", "#2E86C1", "#FFD700"],
             "focalElement": "Dique rachado, água vazando, silhueta de escravo."
           },
           {
@@ -20061,11 +19528,7 @@
             "pairedTitle": "2. Babilônia: Dique quebrado? Era escravo! 😱",
             "overlayText": "HOJE vs. BABILÔNIA",
             "composition": "Layout dividido verticalmente. Lado esquerdo (menor): uma torneira pingando moderna (contraste). Lado direito (maior): uma representação dramática de um cidadão babilônico sendo levado por guardas, com um dique rompido ao fundo. Texto \"HOJE vs. BABILÔNIA\" em fonte grande (dourado) no centro, dividindo os dois lados.",
-            "colors": [
-              "#6F4E37",
-              "#2E86C1",
-              "#FFD700"
-            ],
+            "colors": ["#6F4E37", "#2E86C1", "#FFD700"],
             "focalElement": "Torneira pingando, babilônico sendo preso, dique rompido."
           },
           {
@@ -20074,11 +19537,7 @@
             "pairedTitle": "4. Código Hamurábi: dique falho, adeus liberdade",
             "overlayText": "LEI DE HAMURÁBI",
             "composition": "Foco em uma representação artística do Código de Hamurábi (estela) com destaque para hieróglifos/cuneiforme. Uma pequena ilustração de um dique falhando e pessoas trabalhando ou sendo punidas na base da estela. Texto \"LEI DE HAMURÁBI\" em fonte grande (dourado) na parte inferior central, sobreposto à base da estela.",
-            "colors": [
-              "#6F4E37",
-              "#2E86C1",
-              "#FFD700"
-            ],
+            "colors": ["#6F4E37", "#2E86C1", "#FFD700"],
             "focalElement": "Estela do Código de Hamurábi, cuneiforme, dique ilustrado."
           }
         ]
@@ -20273,11 +19732,7 @@
             "pairedTitle": "1. Google Maps esconde fortaleza antiga?",
             "overlayText": "O que você não vê",
             "composition": "Mapa do Google Maps com um ponto de interrogação grande sobre uma área específica. Texto na parte superior central. Elemento focal é a área do mapa, talvez com um leve brilho.",
-            "colors": [
-              "Azul escuro",
-              "cinza",
-              "amarelo vibrante."
-            ],
+            "colors": ["Azul escuro", "cinza", "amarelo vibrante."],
             "focalElement": "Mapa com um ponto de interrogação ou um olho estilizado."
           },
           {
@@ -20286,11 +19741,7 @@
             "pairedTitle": "3. Você olha mapas do jeito errado? 😳",
             "overlayText": "Antes vs. Depois",
             "composition": "Tela dividida verticalmente. À esquerda, um mapa normal do Google Maps. À direita, a mesma área com o zoom tridimensional da fortaleza estelar em destaque. Texto centralizado na divisão.",
-            "colors": [
-              "Verde-azulado",
-              "cinza claro",
-              "laranja."
-            ],
+            "colors": ["Verde-azulado", "cinza claro", "laranja."],
             "focalElement": "Duas vistas de mapa contrastantes (plana vs. 3D)."
           },
           {
@@ -20299,11 +19750,7 @@
             "pairedTitle": "4. Fortaleza estelar: design milenar 🤯",
             "overlayText": "A fortaleza estelar",
             "composition": "Close-up da fortaleza estelar com seu design geométrico em destaque, como se fosse uma renderização 3D. Texto na parte inferior da tela. Elemento focal é a estrutura da fortaleza.",
-            "colors": [
-              "Marrom terra",
-              "dourado",
-              "branco."
-            ],
+            "colors": ["Marrom terra", "dourado", "branco."],
             "focalElement": "Imagem aérea detalhada da fortaleza estelar."
           }
         ]
@@ -20659,9 +20106,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 847,
@@ -20729,11 +20174,7 @@
             "pairedTitle": "2. Qutb Minar desafia a química moderna 😱",
             "overlayText": "QUÍMICA MODERNA HUMILHADA?",
             "composition": "Layout vertical 9:16. Close-up do pilar de ferro antigo texturizado à esquerda, com uma fórmula química brilhante do Fósforo (P) sobreposta à direita em neon. Texto centralizado no topo.",
-            "colors": [
-              "#00FFFF (Ciano)",
-              "#FFD700 (Ouro)",
-              "#FFFFFF (Branco)"
-            ],
+            "colors": ["#00FFFF (Ciano)", "#FFD700 (Ouro)", "#FFFFFF (Branco)"],
             "focalElement": "O imponente pilar de Qutb Minar sob um céu dramático de fim de tarde."
           },
           {
@@ -20885,9 +20326,7 @@
           "Converte espectadores em inscritos",
           "Shorts antigos dependem mais da resposta ao vídeo que dos metadados"
         ],
-        "risks": [
-          "Sem projeto-fonte: remake automatizado limitado"
-        ],
+        "risks": ["Sem projeto-fonte: remake automatizado limitado"],
         "analyticsAvailable": true,
         "metrics": {
           "recentViews": 263,
@@ -21033,9 +20472,7 @@
             "pairedTitle": "5. Tremor a 800 km escolhe alvo em Bangcoc",
             "overlayText": "O ALVO INVISÍVEL DO TREMOR",
             "composition": "Prédio de 30 andares isolado brilhando em vermelho no centro, cercado por outros prédios cinzas e apagados em Bangcoc. Linhas de onda sísmica vindo do horizonte direto para ele.",
-            "colors": [
-              "#FF0000 #808080 #00FFFF"
-            ],
+            "colors": ["#FF0000 #808080 #00FFFF"],
             "focalElement": "Prédio brilhando em vermelho contra o resto da cidade escura."
           },
           {
@@ -21044,9 +20481,7 @@
             "pairedTitle": "2. 30 andares caem com tremor a 800 km",
             "overlayText": "800 KM DE DISTÂNCIA!",
             "composition": "Divisão diagonal na tela. Do lado esquerdo, um mapa mostrando o epicentro do terremoto distante. Do lado direito, o prédio de 30 andares balançando violentamente em Bangcoc com o solo de argila simulando gelatina na base.",
-            "colors": [
-              "#FFD700 #1E90FF #FFFFFF"
-            ],
+            "colors": ["#FFD700 #1E90FF #FFFFFF"],
             "focalElement": "Solo de argila se deformando como gelatina na base do edifício."
           },
           {
@@ -21055,9 +20490,7 @@
             "pairedTitle": "3. Física derruba só um prédio em Bangcoc",
             "overlayText": "SÓ ESTE PRÉDIO CAIU",
             "composition": "Visão aérea de Bangcoc com milhares de arranha-céus intactos e apenas um prédio de 30 andares colapsando no meio deles, destacado por um círculo amarelo brilhante de foco.",
-            "colors": [
-              "#FFD700 #000000 #FFFFFF"
-            ],
+            "colors": ["#FFD700 #000000 #FFFFFF"],
             "focalElement": "Círculo amarelo destacando o único prédio em colapso na cidade."
           }
         ]
@@ -21252,11 +20685,7 @@
             "pairedTitle": "3. Tartarugas quase descarrilam trens 😱",
             "overlayText": "QUASE UM DESASTRE!",
             "composition": "Close-up de uma tartaruga presa na agulha de desvio de rota dos trilhos, com o trem desfocado ao fundo. Texto centralizado no terço superior.",
-            "colors": [
-              "#FFCC00",
-              "#FFFFFF",
-              "#000000"
-            ],
+            "colors": ["#FFCC00", "#FFFFFF", "#000000"],
             "focalElement": "O casco do animal bloqueando o mecanismo de metal dos trilhos, gerando alta tensão visual."
           },
           {
@@ -21265,11 +20694,7 @@
             "pairedTitle": "5. Tartarugas param o trem mais rápido?",
             "overlayText": "PEQUENO VS GIGANTE",
             "composition": "Divisão diagonal na tela. Do lado esquerdo, uma pequena tartaruga no chão; do lado direito, o bico aerodinâmico de um trem-bala japonês em alta velocidade. Texto centralizado com forte contraste.",
-            "colors": [
-              "#00FFFF",
-              "#FF3333",
-              "#FFFFFF"
-            ],
+            "colors": ["#00FFFF", "#FF3333", "#FFFFFF"],
             "focalElement": "Contraste extremo de escala entre o animal mais lento e o transporte mais rápido do Japão."
           },
           {
@@ -21278,11 +20703,7 @@
             "pairedTitle": "1. Japão usa bueiro contra tartarugas 🐢",
             "overlayText": "BUEIRO SALVA-VIDAS",
             "composition": "Visão de cima mostrando o bueiro em formato de \"U\" sob os trilhos e uma tartaruga caminhando em segurança por dentro dele. Texto posicionado na parte inferior.",
-            "colors": [
-              "#FFD700",
-              "#00FF00",
-              "#000000"
-            ],
+            "colors": ["#FFD700", "#00FF00", "#000000"],
             "focalElement": "A solução de engenharia real em funcionamento prático e visível."
           }
         ]
@@ -21629,12 +21050,8 @@
         "diagnosis": "insufficient_data",
         "recommendedTreatment": "creative_remake",
         "treatmentLabel": "Criar nova versão editorial",
-        "reasons": [
-          "Projeto Lumiera disponível para reedição"
-        ],
-        "risks": [
-          "Analytics detalhado ainda não coletado"
-        ],
+        "reasons": ["Projeto Lumiera disponível para reedição"],
+        "risks": ["Analytics detalhado ainda não coletado"],
         "analyticsAvailable": false,
         "metrics": {
           "recentViews": 0,
@@ -21708,12 +21125,8 @@
         "diagnosis": "insufficient_data",
         "recommendedTreatment": "creative_remake",
         "treatmentLabel": "Criar nova versão editorial",
-        "reasons": [
-          "Projeto Lumiera disponível para reedição"
-        ],
-        "risks": [
-          "Analytics detalhado ainda não coletado"
-        ],
+        "reasons": ["Projeto Lumiera disponível para reedição"],
+        "risks": ["Analytics detalhado ainda não coletado"],
         "analyticsAvailable": false,
         "metrics": {
           "recentViews": 0,
@@ -21838,12 +21251,8 @@
         "diagnosis": "insufficient_data",
         "recommendedTreatment": "creative_remake",
         "treatmentLabel": "Criar nova versão editorial",
-        "reasons": [
-          "Projeto Lumiera disponível para reedição"
-        ],
-        "risks": [
-          "Analytics detalhado ainda não coletado"
-        ],
+        "reasons": ["Projeto Lumiera disponível para reedição"],
+        "risks": ["Analytics detalhado ainda não coletado"],
         "analyticsAvailable": false,
         "metrics": {
           "recentViews": 0,
@@ -21917,12 +21326,8 @@
         "diagnosis": "insufficient_data",
         "recommendedTreatment": "creative_remake",
         "treatmentLabel": "Criar nova versão editorial",
-        "reasons": [
-          "Projeto Lumiera disponível para reedição"
-        ],
-        "risks": [
-          "Analytics detalhado ainda não coletado"
-        ],
+        "reasons": ["Projeto Lumiera disponível para reedição"],
+        "risks": ["Analytics detalhado ainda não coletado"],
         "analyticsAvailable": false,
         "metrics": {
           "recentViews": 0,
@@ -21991,12 +21396,8 @@
         "diagnosis": "insufficient_data",
         "recommendedTreatment": "creative_remake",
         "treatmentLabel": "Criar nova versão editorial",
-        "reasons": [
-          "Projeto Lumiera disponível para reedição"
-        ],
-        "risks": [
-          "Analytics detalhado ainda não coletado"
-        ],
+        "reasons": ["Projeto Lumiera disponível para reedição"],
+        "risks": ["Analytics detalhado ainda não coletado"],
         "analyticsAvailable": false,
         "metrics": {
           "recentViews": 0,
@@ -22064,12 +21465,8 @@
         "diagnosis": "insufficient_data",
         "recommendedTreatment": "creative_remake",
         "treatmentLabel": "Criar nova versão editorial",
-        "reasons": [
-          "Projeto Lumiera disponível para reedição"
-        ],
-        "risks": [
-          "Analytics detalhado ainda não coletado"
-        ],
+        "reasons": ["Projeto Lumiera disponível para reedição"],
+        "risks": ["Analytics detalhado ainda não coletado"],
         "analyticsAvailable": false,
         "metrics": {
           "recentViews": 0,
@@ -23019,6 +22416,11 @@
     }
   ],
   "activityLog": [
+    {
+      "at": "2026-07-20T03:19:34.380Z",
+      "level": "info",
+      "message": "2 vídeo(s) com falha recolocados na fila."
+    },
     {
       "at": "2026-07-19T21:02:09.049Z",
       "level": "warn",
@@ -24784,27 +24186,7 @@
       "level": "info",
       "message": "Publicando no YouTube: 🌍 Rua Destruída por Terremoto é Restaurada em 30 Segundos! ⏳#terremoto",
       "videoId": "ROyzQGu7roM"
-    },
-    {
-      "at": "2026-07-07T03:50:53.670Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: 🌍 Rua Destruída por Terremoto é Restaurada em 30 Segundos! ⏳#terremoto",
-      "videoId": "ROyzQGu7roM",
-      "step": 1,
-      "total": 1
     }
   ],
-  "updatedAt": "2026-07-19T21:02:15.611Z",
-  "cycleProgress": {
-    "number": 1,
-    "startedAt": "2026-07-03T17:48:11.595Z",
-    "completedAt": null,
-    "total": 136,
-    "batched": 101,
-    "pending": 35,
-    "complete": false,
-    "nextVideoId": "e4lnRR4DrDs",
-    "nextVideoTitle": "5 Etapas: Castelo Himeji Tradicional 🏯 (34 chars + emoji)",
-    "order": "oldest_first"
-  }
+  "updatedAt": "2026-07-20T03:19:34.380Z"
 }

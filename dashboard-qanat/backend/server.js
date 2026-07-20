@@ -18772,7 +18772,12 @@ app.post(
   asyncHandler(async (req, res) => {
     const projDir = getProjectDir(req);
 
-    const { prompt, useNotebooklm, notebooklmDeep } = req.body;
+    const {
+      prompt,
+      useNotebooklm,
+      notebooklmDeep,
+      blocksCount = 10,
+    } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: "Prompt/Tema não fornecido" });
@@ -18800,7 +18805,7 @@ app.post(
 
     const promptSystem = `Você é o "AI Video Creator Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um roteirista profissional, estrategista de retenção e editor de vídeos para YouTube.
 
-O usuário deseja criar um documentário cinematográfico de 12 blocos sobre o tema: "${prompt}".
+O usuário deseja criar um documentário cinematográfico de  blocos sobre o tema: "${prompt}".
 ${notebooklmContext}
 
 Sua missão é criar ideias, roteiros e instruções de edição com alto potencial de clique, retenção, comentários, compartilhamentos, inscritos e satisfação real do público.
@@ -18815,7 +18820,7 @@ Regras Gerais:
 
 - O espectador precisa entender a mensagem central sem esforço; cada bloco avança essa compreensão.
 
-- O roteiro completo deve durar entre 2 e 5 minutos (cerca de 300 a 600 palavras) e ser dividido em 12 blocos lógicos.
+- O roteiro completo deve durar entre 2 e 5 minutos (cerca de 300 a 600 palavras) e ser dividido em  blocos lógicos.
 
 ${buildFormatScriptRules("LONGO")}
 
@@ -18823,21 +18828,21 @@ ${buildFormatScriptRules("LONGO")}
 
 - Utilize técnicas de retenção (open loops, curiosidade progressiva, microcliffhangers, payoff final).
 
-- Defina no máximo 5 prompts visuais de cena (cada cena/vídeo gerado por IA deve ter no máximo 10 segundos). A geração de imagens e destaques estáticos (img ou svg) é ilimitada. Nunca coloque texto dentro dos prompts de imagem ou vídeo (o texto deve entrar separado na edição).
+- Defina no máximo  prompts visuais de cena (cada cena/vídeo gerado por IA deve ter no máximo 10 segundos). A geração de imagens e destaques estáticos (img ou svg) é ilimitada. Nunca coloque texto dentro dos prompts de imagem ou vídeo (o texto deve entrar separado na edição).
 
 Você deve responder com um objeto JSON válido contendo exatamente as seguintes propriedades:
 
-1. "script": O roteiro de narração completo recomendado para o vídeo (em português brasileiro). Esta narração será dividida em 12 blocos lógicos.
+1. "script": O roteiro de narração completo recomendado para o vídeo (em português brasileiro). Esta narração será dividida em  blocos lógicos.
 
-2. "block_phrases": Um array de 12 objetos, um para cada bloco. Cada objeto tem as chaves:
+2. "block_phrases": Um array de  objetos, um para cada bloco. Cada objeto tem as chaves:
 
-   - "block": (int de 1 a 12)
+   - "block": (int de 1 a )
 
    - "phrase": A frase inicial do bloco que serve para sincronizar o áudio com o Whisper. Ela deve ter cerca de 4 a 8 palavras e ser o início exato da narração daquele bloco.
 
 3. "impact_texts": Um array contendo sugestões de overlays de frases de impacto. Cada objeto deve ter:
 
-   - "block": (int de 1 a 12)
+   - "block": (int de 1 a )
 
    - "start_offset": Tempo em segundos a partir do início do bloco para exibir a frase (ex: 0.00, 2.50)
 
@@ -18849,7 +18854,7 @@ Você deve responder com um objeto JSON válido contendo exatamente as seguintes
 
 4. "highlight_keywords": Um array de strings com as palavras-chave que serão destacadas em Gold nas legendas do vídeo (em letras minúsculas).
 
-5. "bgm_mappings": Um array de 12 objetos mapeando cada bloco para um arquivo de trilha sonora recomendado. Utilize apenas os seguintes arquivos disponíveis no projeto:
+5. "bgm_mappings": Um array de  objetos mapeando cada bloco para um arquivo de trilha sonora recomendado. Utilize apenas os seguintes arquivos disponíveis no projeto:
 
    - "Middle Eastern Ambient Drone.mp3"
 

@@ -1,45 +1,26 @@
 {
   "version": 2,
-  "savedAt": "2026-07-19T16:04:23.164Z",
-  "wasInWizard": true,
+  "savedAt": "2026-07-20T03:25:22.303Z",
+  "wasInWizard": false,
   "activeTab": "creator",
-  "activeProject": "Ralph_Narration_Button",
+  "activeProject": "",
   "creatorStep": 1,
-  "nicheInput": "engenharia histórica",
-  "formatSelector": "SHORTS",
+  "nicheInput": "",
+  "formatSelector": "LONGO",
   "ideasData": null,
   "selectedIdeaIndex": -1,
-  "generatedScriptData": {
-    "strategy": {
-      "title_main": "",
-      "title_variations": [],
-      "hook": "",
-      "target_audience": "",
-      "tone": "",
-      "pinned_comment": "",
-      "cta": ""
-    },
-    "narrative_script": "",
-    "narrative_script_tagged": "",
-    "visual_prompts": [],
-    "checklist": {
-      "click_potential": 0,
-      "retention_potential": 0,
-      "comments_potential": 0,
-      "feedback": ""
-    }
-  },
-  "creatorProjectName": "Ralph_Narration_Button",
+  "generatedScriptData": null,
+  "creatorProjectName": "",
   "creatorScript": "",
-  "ideationTab": "custom",
+  "ideationTab": "ai",
   "historicalWitnessContext": null,
-  "customTitle": "Como os romanos erguiam pedras gigantes",
-  "customHooks": "O mecanismo parecia impossível.",
-  "customOutline": "Explicar roldanas, vantagem mecânica e travas.",
+  "customTitle": "",
+  "customHooks": "",
+  "customOutline": "",
   "customBlocks": [
     {
       "block": 1,
-      "content": "Mostrar o mecanismo real."
+      "content": ""
     }
   ],
   "customIdeaTitle": "",
@@ -67,7 +48,7 @@
   "notebooklmSession": null,
   "useNotebooklm": false,
   "notebooklmDeep": false,
-  "useDeepResearch": false,
+  "useDeepResearch": true,
   "uploadedScenes": {},
   "expandedBlocks": {
     "1": true

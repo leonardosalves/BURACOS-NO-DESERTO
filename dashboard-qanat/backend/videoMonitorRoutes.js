@@ -14,6 +14,9 @@
  *   GET  /api/monitor/quota               — Status de quota YouTube
  */
 
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import {
   createRun,
   executeDiscoveryPipeline,
@@ -27,6 +30,10 @@ import {
   appendLog,
   nowIso,
 } from "./videoMonitorService.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const WORKSPACE_DIR = path.resolve(__dirname, "../../");
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -310,11 +317,21 @@ export function registerVideoMonitorRoutes(app, _deps = {}) {
   // GET /api/monitor/quota — Status de quota YouTube
   // --------------------------------------------------------------------------
   app.get("/api/monitor/quota", (_req, res) => {
-    const hasKey = !!(
+    let hasKey = !!(
       process.env.YOUTUBE_API_KEY ||
       process.env.YT_API_KEY ||
       process.env.GOOGLE_API_KEY
     );
+
+    if (!hasKey) {
+      try {
+        const configPath = path.join(WORKSPACE_DIR, "config_qanat.json");
+        if (fs.existsSync(configPath)) {
+          const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+          if (config.youtube_api_key) hasKey = true;
+        }
+      } catch (e) {}
+    }
 
     const completedToday = Array.from(monitorRuns.values()).filter((r) => {
       if (!r.endedAt) return false;
