@@ -788,13 +788,15 @@ router.get("/:channelId/insights", (req, res) => {
     m.subscriberCount || s?.subscriberCount || 15462
   );
 
-  if (serie.length >= 3) {
+  if (serie.length >= 3 && serie[0]?.valor !== undefined) {
     const n = serie.length;
-    const crescimentoMedio = (serie[n - 1] - serie[0]) / n; // por período
+    const v0 = Number(serie[0].valor);
+    const vn = Number(serie[n - 1].valor);
+    const crescimentoMedio = (vn - v0) / n; // por período
     projecao = {
-      inscritos_atual: serie[n - 1],
-      em_30_dias: Math.round(serie[n - 1] + crescimentoMedio * 5),
-      em_90_dias: Math.round(serie[n - 1] + crescimentoMedio * 15),
+      inscritos_atual: vn,
+      em_30_dias: Math.round(vn + crescimentoMedio * 5),
+      em_90_dias: Math.round(vn + crescimentoMedio * 15),
       tendencia: crescimentoMedio >= 0 ? "crescimento" : "declinio",
     };
   } else {
