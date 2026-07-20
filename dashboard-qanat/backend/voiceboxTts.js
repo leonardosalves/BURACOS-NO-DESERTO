@@ -349,11 +349,40 @@ export async function synthesizeVoiceboxNarration(
     );
   }
 
-  const profileId = resolveProfileId(
+  let profileId = resolveProfileId(
     voice,
     probe.profiles,
     probe.defaultProfileId
   );
+
+  if (!profileId && probe.ok) {
+    const defaultVoiceName = voice && voice !== "__configure__" ? voice : "Critical Commentator - Conversational_Persu";
+    try {
+      onLog(`[Voicebox] Nenhum perfil encontrado. Criando perfil padrão "${defaultVoiceName}"...`);
+      const newProfile = await fetchVoiceboxJson(probe.baseUrl, "/profiles", {
+        method: "POST",
+        body: JSON.stringify({
+          name: defaultVoiceName,
+          language: "pt",
+          voice_type: "preset",
+          preset_engine: "kokoro",
+          preset_voice_id: "pm_alex"
+        })
+      });
+      if (newProfile && newProfile.id) {
+        profileId = newProfile.id;
+        probe.profiles.push({
+          id: newProfile.id,
+          name: newProfile.name,
+          language: newProfile.language
+        });
+        onLog(`[Voicebox] Perfil "${defaultVoiceName}" criado com sucesso (id: ${profileId})`);
+      }
+    } catch (createErr) {
+      onLog(`[Voicebox] Falha ao criar perfil padrão automaticamente: ${createErr.message}`);
+    }
+  }
+
   if (!profileId) {
     throw new Error(
       "Nenhum perfil de voz no Voicebox. Abra o app → Voices → crie/importe um perfil (clone ou preset Kokoro PT)."

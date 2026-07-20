@@ -67,4 +67,4 @@ Write-Host "  B) Aguarde o download terminar SEM fechar o app (pasta .tmp some)"
 Write-Host "  C) So entao clique Restart" -ForegroundColor DarkGray
 Write-Host "  D) Se falhar de novo, reinstale o MSI Voicebox" -ForegroundColor DarkGray
 Write-Host ""
-Write-Host "Lumiera funciona em CPU — use Fish Audio cloud se precisar de velocidade." -ForegroundColor DarkGray
+Write-Host "Lumiera funciona em CPU - use Fish Audio cloud se precisar de velocidade." -ForegroundColor DarkGray
