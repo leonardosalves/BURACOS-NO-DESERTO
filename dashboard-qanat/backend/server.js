@@ -13589,6 +13589,7 @@ function getAiProvider(projectDir = WORKSPACE_DIR) {
       "alibaba",
       "tokenrouter",
       "minimax",
+      "opencode",
       "local",
     ]);
     return allowed.has(n) ? n : null;
