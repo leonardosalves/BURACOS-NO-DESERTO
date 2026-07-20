@@ -77,7 +77,6 @@ export type AppSettingsTabProps = {
   igAppSecret: string;
   nvidiaKeyInput: string;
   alibabaKeyInput: string;
-  alibabaBaseUrlInput: string;
   openrouterKeyInput: string;
   pexelsKeyInput: string;
   pickProductionConfig: (cfg: ConfigData) => any;
