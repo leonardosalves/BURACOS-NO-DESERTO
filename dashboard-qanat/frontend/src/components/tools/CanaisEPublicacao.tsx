@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import TorreDeControle from "./TorreDeControle";
 import CanalYouTube from "./CanalYouTube";
 import Ressuscitador from "./Ressuscitador";
 import RadarTendencias from "./RadarTendencias";
@@ -8,14 +7,14 @@ import MemoryPanel from "./MemoryPanel";
 import TitleAB from "./TitleAB";
 import EditorialCalendar from "./EditorialCalendar";
 
-type TabId = "torre" | "canal" | "reviver" | "radar" | "monitor" | "memoria" | "ab" | "calendario";
+type TabId = "canal" | "reviver" | "radar" | "monitor" | "memoria" | "ab" | "calendario";
 
 interface CanaisEPublicacaoProps {
   abaInicial?: TabId;
   aoVirarVideo?: (opts: { tema: string; sub_nicho?: string | null }) => void;
 }
 
-export default function CanaisEPublicacao({ abaInicial = "torre", aoVirarVideo }: CanaisEPublicacaoProps) {
+export default function CanaisEPublicacao({ abaInicial = "canal", aoVirarVideo }: CanaisEPublicacaoProps) {
   const [aba, setAba] = useState<TabId>(abaInicial);
 
   useEffect(() => {
@@ -23,7 +22,6 @@ export default function CanaisEPublicacao({ abaInicial = "torre", aoVirarVideo }
   }, [abaInicial]);
 
   const ABAS = [
-    { id: "torre" as const, rotulo: "🧠 Torre de Controle" },
     { id: "canal" as const, rotulo: "📺 Canal YouTube" },
     { id: "reviver" as const, rotulo: "⚰️ Ressuscitador" },
     { id: "radar" as const, rotulo: "🎯 Radar de Tendências" },
@@ -57,7 +55,6 @@ export default function CanaisEPublicacao({ abaInicial = "torre", aoVirarVideo }
 
       {/* Renderização do Painel Ativo */}
       <div className="animate-fade-in duration-200">
-        {aba === "torre" && <TorreDeControle aoMudarAba={setAba} aoVirarVideo={aoVirarVideo} />}
         {aba === "canal" && <CanalYouTube />}
         {aba === "reviver" && <Ressuscitador />}
         {aba === "radar" && <RadarTendencias aoVirarVideo={aoVirarVideo} />}
