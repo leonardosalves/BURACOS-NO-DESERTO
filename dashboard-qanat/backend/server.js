@@ -13058,6 +13058,35 @@ function getTokenRouterModelChain(
   return [...new Set([primary, ...TOKENROUTER_MODELS])];
 }
 
+function getMinimaxApiKey(projectDir = WORKSPACE_DIR) {
+  const config = readJsonFile(path.join(projectDir, "config_qanat.json"));
+  return config?.minimax_api_key || process.env.MINIMAX_API_KEY || null;
+}
+function getMinimaxBaseUrl(projectDir = WORKSPACE_DIR) {
+  const config = readJsonFile(path.join(projectDir, "config_qanat.json"));
+  let u = String(config?.minimax_base_url || "").trim();
+  if (u) {
+    u = u.replace(/\/+$/, "");
+    if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+    if (!/\/v1$/i.test(u)) u = `${u}/v1`;
+    return u;
+  }
+  return "https://api.minimax.chat/v1";
+}
+function getMinimaxModel(projectDir = WORKSPACE_DIR) {
+  const config = readJsonFile(path.join(projectDir, "config_qanat.json"));
+  return String(config?.minimax_model || "").trim() || "minimax-m3";
+}
+function getMinimaxModelChain(
+  projectDir = WORKSPACE_DIR,
+  modelsOverride = null
+) {
+  if (Array.isArray(modelsOverride) && modelsOverride.length)
+    return [...new Set(modelsOverride.map(String))];
+  const primary = getMinimaxModel(projectDir);
+  return [...new Set([primary, ...MINIMAX_MODELS])];
+}
+
 /**
  * TokenRouter (OpenAI SDK compatible):
  *   from openai import OpenAI
@@ -13240,6 +13269,12 @@ function getAiProvider(projectDir = WORKSPACE_DIR) {
     if (n === "token_router" || n === "token-router") {
       return "tokenrouter";
     }
+    if (n === "minimax" || n === "minimax-m3") {
+      return "minimax";
+    }
+    if (n === "token-router") {
+      return "tokenrouter";
+    }
     const allowed = new Set([
       "gemini",
       "xai",
@@ -13247,6 +13282,7 @@ function getAiProvider(projectDir = WORKSPACE_DIR) {
       "nvidia",
       "alibaba",
       "tokenrouter",
+      "minimax",
       "local",
     ]);
     return allowed.has(n) ? n : null;
@@ -13269,6 +13305,7 @@ function getActiveAiModel(projectDir = WORKSPACE_DIR) {
     if (provider === "nvidia") return getNvidiaModel(projectDir);
     if (provider === "alibaba") return getAlibabaModel(projectDir);
     if (provider === "tokenrouter") return getTokenRouterModel(projectDir);
+    if (provider === "minimax") return getMinimaxModel(projectDir);
     if (provider === "xai") {
       return Array.isArray(XAI_MODELS) && XAI_MODELS[0]
         ? XAI_MODELS[0]
@@ -13653,6 +13690,13 @@ app.get("/api/ai/key-status", (req, res) => {
     });
   }
 
+  if (provider === "minimax") {
+    return res.json({
+      has_key: !!getMinimaxApiKey(projDir),
+      provider: "minimax",
+    });
+  }
+
   if (provider === "nvidia") {
     return res.json({
       has_key: !!getNvidiaApiKey(projDir),
@@ -13772,6 +13816,8 @@ app.get("/api/ai/settings", (req, res) => {
     alibaba_base_url: getAlibabaBaseUrl(projDir),
 
     tokenrouter_model: getTokenRouterModel(projDir),
+    minimax_model: getMinimaxModel(projDir),
+    minimax_base_url: getMinimaxBaseUrl(projDir),
     tokenrouter_model_options: TOKENROUTER_MODEL_OPTIONS,
     tokenrouter_base_url: getTokenRouterBaseUrl(projDir),
 
@@ -13784,6 +13830,7 @@ app.get("/api/ai/settings", (req, res) => {
     has_nvidia_key: !!getNvidiaApiKey(projDir),
     has_alibaba_key: !!getAlibabaApiKey(projDir),
     has_tokenrouter_key: !!getTokenRouterApiKey(projDir),
+    has_minimax_key: !!getMinimaxApiKey(projDir),
     has_inference_key: !!getInferenceApiKey(projDir),
 
     has_epidemic_key: true,
@@ -13812,6 +13859,8 @@ app.post("/api/ai/settings", (req, res) => {
     alibaba_model,
     alibaba_base_url,
     tokenrouter_model,
+    minimax_model,
+    minimax_base_url,
     tokenrouter_base_url,
     gemini_key,
     gemini_keys,
@@ -13821,6 +13870,7 @@ app.post("/api/ai/settings", (req, res) => {
     alibaba_key,
     dashscope_key,
     tokenrouter_key,
+    minimax_key,
     inference_key,
     epidemic_sound_key,
     gemini_browser_mode,
@@ -13840,6 +13890,7 @@ app.post("/api/ai/settings", (req, res) => {
         provider === "alibaba" ||
         provider === "dashscope" ||
         provider === "tokenrouter" ||
+        provider === "minimax" ||
         provider === "token_router" ||
         provider === "local"
       ) {
@@ -13920,6 +13971,21 @@ app.post("/api/ai/settings", (req, res) => {
         next.tokenrouter_api_key = tokenrouter_key.trim();
       }
 
+      if (typeof minimax_key === "string" && minimax_key.trim()) {
+        next.minimax_api_key = minimax_key.trim();
+      }
+
+      if (typeof minimax_model === "string" && minimax_model.trim()) {
+        next.minimax_model = minimax_model.trim();
+      }
+
+      if (typeof minimax_base_url === "string" && minimax_base_url.trim()) {
+        let u = minimax_base_url.trim().replace(/\/+$/, "");
+        if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+        if (!/\/v1$/i.test(u)) u = `${u}/v1`;
+        next.minimax_base_url = u;
+      }
+
       const parsedGeminiKeys = normalizeApiKeys(gemini_keys, gemini_key);
       if (parsedGeminiKeys.length > 0) {
         next.gemini_api_keys = parsedGeminiKeys;
@@ -13987,6 +14053,8 @@ app.post("/api/ai/settings", (req, res) => {
       alibaba_model_options: ALIBABA_MODEL_OPTIONS,
       alibaba_base_url: getAlibabaBaseUrl(projDir),
       tokenrouter_model: getTokenRouterModel(projDir),
+      minimax_model: getMinimaxModel(projDir),
+      minimax_base_url: getMinimaxBaseUrl(projDir),
       tokenrouter_model_options: TOKENROUTER_MODEL_OPTIONS,
       tokenrouter_base_url: getTokenRouterBaseUrl(projDir),
       gemini_key_count: getApiKeys(projDir).length,
@@ -13996,6 +14064,7 @@ app.post("/api/ai/settings", (req, res) => {
       has_nvidia_key: !!getNvidiaApiKey(projDir),
       has_alibaba_key: !!getAlibabaApiKey(projDir),
       has_tokenrouter_key: !!getTokenRouterApiKey(projDir),
+      has_minimax_key: !!getMinimaxApiKey(projDir),
       has_inference_key: !!getInferenceApiKey(projDir),
       has_epidemic_key: true,
       gemini_browser_mode: isGeminiBrowserModeEnabled(projDir),
@@ -19979,6 +20048,24 @@ function normalizeKeys(data, formatHint = null) {
       pinned_comment: s.pinned_comment || s.comentario_fixado || "",
 
       cta: s.cta || "",
+    };
+  }
+
+  if (provider === "minimax") {
+    const apiKey = getMinimaxApiKey(projDir);
+    if (!apiKey) {
+      res.status(401).json({
+        error: "Chave de API Minimax não configurada.",
+      });
+      return null;
+    }
+    return {
+      apiKey,
+      baseURL: getMinimaxBaseUrl(projDir),
+      modelChain: getMinimaxModelChain(projDir, providerModelsOverride),
+      systemInstruction: getSystemInstruction(options),
+      defaultModel: getMinimaxModel(projDir),
+      isGemini: false,
     };
   } else {
     normalized.strategy = {

@@ -7704,7 +7704,12 @@ export default function App() {
           prompt: creatorPrompt,
           useNotebooklm,
           notebooklmDeep,
-          blocksCount: formatSelector === "custom" ? customBlocks.length : 10,
+          blocksCount:
+            selectedIdeaIndex === 999
+              ? Math.max(1, customBlocks.length)
+              : formatSelector === "SHORTS"
+                ? 4
+                : 10,
         }),
       });
 
