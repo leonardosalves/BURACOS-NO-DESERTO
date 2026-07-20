@@ -3,11 +3,8 @@ import CanalYouTube from "./CanalYouTube";
 import Ressuscitador from "./Ressuscitador";
 import RadarTendencias from "./RadarTendencias";
 import MonitorVideos from "./MonitorVideos";
-import MemoryPanel from "./MemoryPanel";
-import TitleAB from "./TitleAB";
-import EditorialCalendar from "./EditorialCalendar";
 
-type TabId = "canal" | "reviver" | "radar" | "monitor" | "memoria" | "ab" | "calendario";
+type TabId = "canal" | "reviver" | "radar" | "monitor";
 
 interface CanaisEPublicacaoProps {
   abaInicial?: TabId;
@@ -26,9 +23,6 @@ export default function CanaisEPublicacao({ abaInicial = "canal", aoVirarVideo }
     { id: "reviver" as const, rotulo: "⚰️ Ressuscitador" },
     { id: "radar" as const, rotulo: "🎯 Radar de Tendências" },
     { id: "monitor" as const, rotulo: "🔥 Monitor de Vídeos" },
-    { id: "memoria" as const, rotulo: "🧠 Memória" },
-    { id: "ab" as const, rotulo: "🔀 A/B Títulos" },
-    { id: "calendario" as const, rotulo: "📅 Calendário" },
   ];
 
   return (
@@ -59,9 +53,6 @@ export default function CanaisEPublicacao({ abaInicial = "canal", aoVirarVideo }
         {aba === "reviver" && <Ressuscitador />}
         {aba === "radar" && <RadarTendencias aoVirarVideo={aoVirarVideo} />}
         {aba === "monitor" && <MonitorVideos />}
-        {aba === "memoria" && <MemoryPanel />}
-        {aba === "ab" && <TitleAB />}
-        {aba === "calendario" && <EditorialCalendar aoAgendar={aoVirarVideo} />}
       </div>
     </div>
   );

@@ -589,7 +589,8 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Radar Tendências"]}
             icon={<TrendingUp className="w-5 h-5" />}
           >
-            <RadarTendencias
+            <CanaisEPublicacao
+              abaInicial="radar"
               aoVirarVideo={({ tema }) => {
                 window.dispatchEvent(
                   new CustomEvent("lumiera-prefill-creator", {
@@ -611,7 +612,7 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Ressuscitador"]}
             icon={<Zap className="w-5 h-5 text-amber-400" />}
           >
-            <Ressuscitador />
+            <CanaisEPublicacao abaInicial="reviver" />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
@@ -624,7 +625,17 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Canal YouTube"]}
             icon={<Youtube className="w-5 h-5" />}
           >
-            <CanalYouTube />
+            <CanaisEPublicacao
+              abaInicial="canal"
+              aoVirarVideo={({ tema }) => {
+                window.dispatchEvent(
+                  new CustomEvent("lumiera-prefill-creator", {
+                    detail: { tema },
+                  })
+                );
+                setActiveTab("creator");
+              }}
+            />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
@@ -663,7 +674,7 @@ export function AppTabPanels({
             breadcrumb={["Dashboard", "Estúdio", "Monitor de Vídeos"]}
             icon={<TrendingUp className="w-5 h-5" />}
           >
-            <MonitorVideos />
+            <CanaisEPublicacao abaInicial="monitor" />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
