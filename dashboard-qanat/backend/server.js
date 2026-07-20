@@ -13567,32 +13567,16 @@ function getAiProvider(projectDir = WORKSPACE_DIR) {
     const p = config?.ai_provider || config?.metadata_provider || null;
     if (!p) return null;
     const n = String(p).trim().toLowerCase();
-    // Inference.net removido — configs legadas caem no default
+    if (!n) return null;
+    // Providers removidos — caem no default
     if (n === "inference") return null;
-    if (n === "dashscope" || n === "aliyun" || n === "qwen_cloud") {
+    // Aliases legados → nome canônico
+    if (n === "dashscope" || n === "aliyun" || n === "qwen_cloud")
       return "alibaba";
-    }
-    if (n === "token_router" || n === "token-router") {
-      return "tokenrouter";
-    }
-    if (n === "minimax" || n === "minimax-m3") {
-      return "minimax";
-    }
-    if (n === "token-router") {
-      return "tokenrouter";
-    }
-    const allowed = new Set([
-      "gemini",
-      "xai",
-      "openrouter",
-      "nvidia",
-      "alibaba",
-      "tokenrouter",
-      "minimax",
-      "opencode",
-      "local",
-    ]);
-    return allowed.has(n) ? n : null;
+    if (n === "token_router" || n === "token-router") return "tokenrouter";
+    if (n === "minimax-m3") return "minimax";
+    // Qualquer outro valor salvo é aceito diretamente (sem allowlist rígida)
+    return n;
   };
 
   return (
