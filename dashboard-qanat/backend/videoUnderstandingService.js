@@ -15,10 +15,10 @@ import {
 import { runCommand, BROWSER_UA } from "./shared/commonUtils.js";
 
 const VIDEO_GEMINI_MODELS = [
-  "gemini-3.5-flash",
-  "gemini-2.5-pro",
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
+  "gemini/gemini-3.5-flash",
+  "gemini/gemini-2.5-flash",
+  "gemini/gemini-2.0-flash",
+  "gemini/gemini-2.5-pro",
 ];
 
 const VIDEO_MIME_BY_EXT = {

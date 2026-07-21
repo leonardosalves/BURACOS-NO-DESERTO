@@ -190,6 +190,7 @@ import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerTimelineStudioRoutes } from "./timelineStudioRoutes.js";
 import { registerMotionSceneRoutes } from "./motionSceneRoutes.js";
+import { registerMotionRoutes } from "./motionRoutes.js";
 import { registerMotionFlyoverUploadRoute } from "./motionFlyoverUpload.js";
 import { registerRemotionTemplateStudioRoutes } from "./remotionTemplateStudioRoutes.js";
 import {
@@ -850,6 +851,16 @@ app.use("/api/ab", abRouter);
 app.use("/api/calendar", calendarRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/health", healthRouter);
+app.post("/api/admin/restart-backend", (req, res) => {
+  res.json({
+    ok: true,
+    message: "Backend process exiting for restart...",
+    pid: process.pid,
+  });
+  setTimeout(() => {
+    process.exit(0);
+  }, 300);
+});
 app.use("/api/agents", agentsRouter);
 app.use("/api/templates", templatesRouter);
 app.use("/api/flows", flowRouter);
@@ -10138,6 +10149,10 @@ async function prepareRemotionRender(
           fadeInS,
 
           fadeOutS,
+
+          motion_shot: prompt?.motion_shot || null,
+          camera_move: prompt?.camera_move || undefined,
+          transicao_entrada: prompt?.transicao_entrada || undefined,
         });
       });
     } else {
@@ -10168,6 +10183,10 @@ async function prepareRemotionRender(
           narrationText: prompt?.narration_text || "",
 
           editorNotes: prompt?.editor_notes || storyboard.editing_map || "",
+
+          motion_shot: prompt?.motion_shot || null,
+          camera_move: prompt?.camera_move || undefined,
+          transicao_entrada: prompt?.transicao_entrada || undefined,
         });
 
         localStart += sceneDuration;
@@ -12357,26 +12376,43 @@ function getOmniRouteModelChain(
     rawList = modelsOverride.map(String);
   } else {
     const primary = getOmniRouteModel(projectDir);
-    let fallbacks = [];
-    const cleanPrimary = String(primary || "").replace(/^gemini\//i, "");
-    if (/^gemini/i.test(primary) || /^gemini/i.test(cleanPrimary)) {
-      fallbacks = [
-        "gemini-3.5-flash",
-        "gemini-2.5-pro",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-      ].filter((m) => m !== cleanPrimary);
+    if (!primary || primary === "auto" || primary === "default") {
+      rawList = [
+        "gemini/gemini-3.5-flash",
+        "gemini/gemini-2.5-flash",
+        "gemini/gemini-2.0-flash",
+        "gemini/gemini-2.5-pro",
+        "auto",
+      ];
     } else {
-      fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 3);
+      let fallbacks = [];
+      const cleanPrimary = String(primary || "").replace(/^gemini\//i, "");
+      if (/^gemini/i.test(primary) || /^gemini/i.test(cleanPrimary)) {
+        fallbacks = [
+          "gemini/gemini-3.5-flash",
+          "gemini/gemini-2.5-flash",
+          "gemini/gemini-2.0-flash",
+          "gemini/gemini-2.5-pro",
+        ].filter(
+          (m) =>
+            m !== cleanPrimary &&
+            m !== primary &&
+            m !== `gemini/${cleanPrimary}`
+        );
+      } else {
+        fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 3);
+      }
+      rawList = [primary, ...fallbacks];
     }
-    rawList = [primary, ...fallbacks];
   }
-  const prefixed = rawList.map((m) => {
-    const s = String(m || "").trim();
-    if (/^gemini-/i.test(s) && !s.includes("/")) return `gemini/${s}`;
+  const prefixedList = rawList.map((m) => {
+    let s = String(m || "").trim();
+    if (s.toLowerCase().startsWith("gemini") && !s.includes("/")) {
+      return `gemini/${s}`;
+    }
     return s;
   });
-  return [...new Set(prefixed)];
+  return [...new Set(prefixedList)];
 }
 
 async function callOmniRouteWithRetry(
@@ -12397,10 +12433,7 @@ async function callOmniRouteWithRetry(
     bodyOverride
   );
   let lastError = null;
-  const modelList =
-    Array.isArray(models) && models.length
-      ? models
-      : getOmniRouteModelChain(projectDir);
+  const modelList = getOmniRouteModelChain(projectDir, models);
 
   for (const model of modelList) {
     const isGeminiModel = /gemini/i.test(model);
@@ -12435,7 +12468,31 @@ async function callOmniRouteWithRetry(
         });
         const ms = Date.now() - t0;
         if (response.ok) {
-          const result = await response.json();
+          const rawText = await response.text();
+          let result = null;
+          if (rawText.trim().startsWith("data:")) {
+            let fullContent = "";
+            for (const line of rawText.split("\n")) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("data:") && !trimmed.includes("[DONE]")) {
+                try {
+                  const chunkJson = JSON.parse(trimmed.slice(5).trim());
+                  const c =
+                    chunkJson.choices?.[0]?.delta?.content ||
+                    chunkJson.choices?.[0]?.message?.content ||
+                    "";
+                  fullContent += c;
+                } catch (e) {}
+              }
+            }
+            result = { choices: [{ message: { content: fullContent } }] };
+          } else {
+            try {
+              result = JSON.parse(rawText);
+            } catch (e) {
+              result = {};
+            }
+          }
           const msg = result.choices?.[0]?.message || {};
           let text =
             typeof msg.content === "string"
@@ -12449,29 +12506,96 @@ async function callOmniRouteWithRetry(
             .trim();
           if (text) {
             console.log(
-              `[OmniRoute] Sucesso model=${model} tentativa ${attempt} (${text.length} chars · ${ms}ms)`
+              `[OmniRoute] SUCESSO model=${model} tentativa ${attempt} (${text.length} chars · ${ms}ms)`
             );
             return text;
           }
           console.warn(
-            `[OmniRoute] ${model} retornou vazio na tentativa ${attempt}/${maxRetries} · ${ms}ms`
+            `[OmniRoute] Resposta VAZIA de ${model} na tentativa ${attempt}/${maxRetries} · ${ms}ms`
           );
         }
         const errData = await response.json().catch(() => ({}));
         const errMsg =
-          errData.error?.message ||
+          (typeof errData.error === "string"
+            ? errData.error
+            : errData.error?.message) ||
           errData.message ||
+          errData.detail ||
           response.statusText ||
           `HTTP ${response.status}`;
         lastError = new Error(`${model}: ${errMsg}`);
         console.warn(
           `[OmniRoute] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg} · ${ms}ms`
         );
-        if (response.status === 404 || response.status === 400) break;
-        if (response.status === 503 || response.status === 429) {
-          await new Promise((r) =>
-            setTimeout(r, Math.min(1500 * Math.pow(2, attempt - 1), 10000))
+
+        // Se o OmniRoute reclamar que o modelo é ambíguo, tenta desambiguar com prefixos reais do OmniRoute (ex: in-ai/ ou antigravity/)
+        if (errMsg.toLowerCase().includes("ambiguous model")) {
+          const prefixesToTry = [];
+          const match = errMsg.match(/ex:\s*([\w\-]+\/[\w\-\.]+)/i);
+          if (match && match[1]) {
+            prefixesToTry.push(match[1]);
+          }
+          prefixesToTry.push(
+            `antigravity/${model}`,
+            `in-ai/${model}`,
+            `google/${model}`
           );
+
+          for (const altModel of [...new Set(prefixesToTry)]) {
+            try {
+              console.log(
+                `[OmniRoute] Tentando modelo desambiguado: ${altModel} @ ${baseUrl}`
+              );
+              const altRes = await fetch(`${baseUrl}/chat/completions`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({
+                  model: altModel,
+                  messages,
+                  stream: false,
+                  max_tokens: tokenLimit,
+                  ...(temperature !== null ? { temperature } : {}),
+                }),
+              });
+              if (altRes.ok) {
+                const altResult = await altRes.json();
+                const msg = altResult.choices?.[0]?.message || {};
+                let text =
+                  typeof msg.content === "string"
+                    ? msg.content
+                    : Array.isArray(msg.content)
+                      ? msg.content
+                          .map((p) => p?.text || p?.content || "")
+                          .join("\n")
+                      : "";
+                text = String(text || "")
+                  .replace(/```json/g, "")
+                  .replace(/```/g, "")
+                  .trim();
+                if (text) {
+                  console.log(
+                    `[OmniRoute] Sucesso com modelo desambiguado=${altModel} (${text.length} chars)`
+                  );
+                  return text;
+                }
+              }
+            } catch (subErr) {
+              console.warn(
+                `[OmniRoute] Sub-tentativa ${altModel} falhou:`,
+                subErr.message
+              );
+            }
+          }
+        }
+
+        if (response.status === 503 || response.status === 429) {
+          if (attempt >= 2) {
+            console.warn(
+              `[OmniRoute] Modelo ${model} em cooldown/rate limit (HTTP ${response.status}). Alternando para o próximo modelo da cadeia...`
+            );
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 1000));
           continue;
         }
         break;
@@ -18913,8 +19037,9 @@ app.post("/api/narration/chunks", (req, res) => {
 });
 
 app.post("/api/ai/plan-narration-chunks", async (req, res) => {
-  const projDir = getProjectDir(req);
   try {
+    const projDir = getProjectDir(req);
+    console.log("[Plan Narration Chunks] Iniciando para projDir:", projDir);
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
     const config = readProjectJson(projDir, "config_qanat.json", {});
     const { useHeuristic, defaultVoice } = req.body || {};
@@ -18977,10 +19102,10 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
       title: "Plano de narração por trechos",
       prompt,
       models: [
-        "gemini-3.5-flash",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-2.5-pro",
+        "gemini/gemini-3.5-flash",
+        "gemini/gemini-2.5-flash",
+        "gemini/gemini-2.0-flash",
+        "gemini/gemini-2.5-pro",
       ],
     });
     if (responseText == null) return;
@@ -19012,6 +19137,7 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
     console.error("[Plan Narration Chunks]", err);
     res.status(500).json({
       error: err.message || "Falha ao planejar narração por trechos.",
+      stack: err.stack,
     });
   }
 });
@@ -24278,6 +24404,28 @@ app.post(
         );
       }
 
+      // Shotcraft: motion plan automático pós-VPE
+      try {
+        const { ensureShotcraftOnStoryboard } =
+          await import("./motionDirector.js");
+        const shotFmt =
+          format === "SHORTS" || format === "SHORT" ? "9:16" : "16:9";
+        const shotcraft = ensureShotcraftOnStoryboard(storyboard, {
+          niche:
+            detectedNiche || config.niche || storyboard.strategy?.niche || "",
+          format: shotFmt,
+        });
+        storyboard = shotcraft.storyboard;
+        console.log(
+          `[VPE PRO] Shotcraft plan: ${shotcraft.plan?.cenas?.filter((c) => c.motion_shot).length || 0}/${shotcraft.plan?.cenas?.length || 0} cenas com motion_shot`
+        );
+      } catch (shotErr) {
+        console.warn(
+          "[VPE PRO] Shotcraft motion plan (não bloqueante):",
+          shotErr?.message || shotErr
+        );
+      }
+
       report("vpe_save", "Salvando storyboard aprimorado…", 92);
 
       fs.writeFileSync(
@@ -25781,6 +25929,14 @@ registerMotionSceneRoutes(app, {
   parseAiJson: parseAiJsonResponse,
 });
 
+registerMotionRoutes(app, {
+  asyncHandler,
+  fs,
+  path,
+  getProjectDir,
+  readProjectJson,
+});
+
 registerSpecializedStoryboardImportRoute(app, { getProjectDir });
 
 registerMotionFlyoverUploadRoute(app, { getProjectDir });
@@ -25949,7 +26105,7 @@ if (fs.existsSync(frontendDist)) {
   });
 }
 
-const PORT = 3005;
+const PORT = Number(process.env.PORT) || 3005;
 
 // Init DB and start server
 ensureCreatorHistoryDatabase().catch((err) =>

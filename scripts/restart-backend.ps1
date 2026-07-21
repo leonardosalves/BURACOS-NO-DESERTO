@@ -27,6 +27,10 @@ $stackMode = Get-LumieraStackMode
 if (Test-LumieraWindowsServiceMode) {
     if ($Force) {
         Write-Host "Reiniciando servico Windows LumieraBackend..." -ForegroundColor Yellow
+        try {
+            Invoke-RestMethod -Uri "http://127.0.0.1:3005/api/admin/restart-backend" -Method Post -TimeoutSec 3 -ErrorAction SilentlyContinue | Out-Null
+            Start-Sleep -Seconds 2
+        } catch { }
         Restart-Service -Name "LumieraBackend" -Force -ErrorAction SilentlyContinue
     } else {
         $svc = Get-Service -Name "LumieraBackend" -ErrorAction SilentlyContinue
