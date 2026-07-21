@@ -30,14 +30,20 @@ router.get("/:mode", async (req, res) => {
 // Save a new history item for a creator mode
 router.post("/", async (req, res) => {
   try {
-    const { mode, title, projectName, directState } = req.body;
-    if (!mode || !title || (!projectName && !directState)) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Missing required fields: mode, title, projectName (or directState)",
-        });
+    const mode = req.body?.mode;
+    const title =
+      req.body?.title ||
+      req.body?.project_title ||
+      req.body?.project_name ||
+      "Rascunho de Engenharia";
+    const projectName = req.body?.projectName || req.body?.project_name;
+    const directState = req.body?.directState;
+
+    if (!mode || (!projectName && !directState)) {
+      return res.status(400).json({
+        error:
+          "Campos obrigatórios ausentes: mode, projectName (ou directState)",
+      });
     }
 
     if (directState) {
