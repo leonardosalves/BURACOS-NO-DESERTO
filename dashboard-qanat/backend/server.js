@@ -191,6 +191,11 @@ import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerTimelineStudioRoutes } from "./timelineStudioRoutes.js";
 import { registerMotionSceneRoutes } from "./motionSceneRoutes.js";
 import { registerMotionRoutes } from "./motionRoutes.js";
+import {
+  tagStoryboardWithMotion,
+  tagHistoricalStoryboard,
+  calcularPotencialMotion,
+} from "./creatorSceneTagger.js";
 import { registerMotionFlyoverUploadRoute } from "./motionFlyoverUpload.js";
 import { registerRemotionTemplateStudioRoutes } from "./remotionTemplateStudioRoutes.js";
 import {
@@ -21067,7 +21072,10 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
 
       if (Array.isArray(parsedData?.ideas)) {
         parsedData.ideas = parsedData.ideas.map((idea) =>
-          normalizeIdeaOpportunity(idea, { format })
+          calcularPotencialMotion(
+            normalizeIdeaOpportunity(idea, { format }),
+            { format, niche: nicheClean }
+          )
         );
       }
 
@@ -21323,7 +21331,28 @@ Importante: A saída DEVE ser um objeto JSON estrito com o seguinte esquema (nã
       "utf8"
     );
 
-    res.json(parsed);
+    // Shotcraft: tag motion em SHORT Express
+    let expressPayload = parsed;
+    try {
+      if (parsed?.visual_prompts) {
+        expressPayload = tagStoryboardWithMotion(parsed, {
+          format: "9:16",
+          niche: niche || "",
+        });
+        const sbPath = path.join(targetProjDir, "storyboard.json");
+        if (fs.existsSync(sbPath) || expressPayload.visual_prompts) {
+          fs.writeFileSync(
+            sbPath,
+            JSON.stringify(expressPayload, null, 2),
+            "utf8"
+          );
+        }
+      }
+    } catch (tagErr) {
+      console.warn("[Express] motion tag:", tagErr?.message || tagErr);
+    }
+
+    res.json(expressPayload);
   })
 );
 
@@ -23827,6 +23856,32 @@ app.post(
       await new Promise((r) => setTimeout(r, 600));
 
       report("save", "Salvando roteiro final…", 100);
+
+      // Shotcraft: tag scene_function + suggested_shot (Oficina Autoral / script)
+      try {
+        const scriptFmt =
+          String(format || newConfig?.video_format || "LONGO").toUpperCase() ===
+            "SHORTS" ||
+          String(format || "").toUpperCase() === "SHORT"
+            ? "9:16"
+            : "16:9";
+        if (parsedData?.visual_prompts) {
+          parsedData = tagStoryboardWithMotion(parsedData, {
+            format: scriptFmt,
+            niche:
+              req.body?.niche ||
+              newConfig?.niche ||
+              parsedData?.strategy?.niche ||
+              "",
+          });
+          const sbPath = path.join(projDir, "storyboard.json");
+          if (fs.existsSync(sbPath)) {
+            fs.writeFileSync(sbPath, JSON.stringify(parsedData, null, 2), "utf8");
+          }
+        }
+      } catch (tagErr) {
+        console.warn("[Creator Script] motion tag:", tagErr?.message || tagErr);
+      }
 
       activeRes.json(parsedData);
     } catch (err) {

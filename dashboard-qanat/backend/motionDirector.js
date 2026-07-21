@@ -30,7 +30,7 @@ export function detectarSceneFunctions(narration = "") {
   )
     fn.push("grafico");
   if (
-    /\b(vs\.?|versus|comparad|enquanto|diferente|maior que|menor que|melhor que|pior que)\b/.test(
+    /\b(vs\.?|versus|compara\w*|enquanto|diferente|maior que|menor que|melhor que|pior que)\b/.test(
       t
     )
   )
@@ -77,7 +77,21 @@ export function extrairDados(narration = "") {
   };
 }
 
-function escolherShotCard({ functions, narration, format, nichePrefs }) {
+function escolherShotCard({
+  functions,
+  narration,
+  format,
+  nichePrefs,
+  suggestedShot = null,
+}) {
+  // Preferência explícita do criador (suggested_shot)
+  if (suggestedShot) {
+    const suggested = findCard(suggestedShot);
+    if (suggested && suggested.supportedFormats.includes(format)) {
+      return suggested;
+    }
+  }
+
   const preferred = nichePrefs.preferidos || [];
   for (const prefId of preferred) {
     const card = findCard(prefId);
@@ -191,6 +205,7 @@ export function buildMotionPlan({
       narration,
       format: fmt,
       nichePrefs,
+      suggestedShot: scene.suggested_shot || null,
     });
 
     const props = card
@@ -321,4 +336,46 @@ export function enrichSceneFunctionsOnVisualPrompts(visualPrompts = []) {
     }
     return next;
   });
+}
+
+/**
+ * Aplica overrides manuais do MotionPlanEditor sobre o plan.
+ */
+export function applyMotionOverrides(plan, overrides = {}) {
+  if (!plan || typeof plan !== "object") return plan;
+  const merged = JSON.parse(JSON.stringify(plan));
+
+  if (overrides.abertura) Object.assign(merged.abertura || {}, overrides.abertura);
+  if (overrides.encerramento)
+    Object.assign(merged.encerramento || {}, overrides.encerramento);
+
+  if (overrides.cenas && merged.cenas) {
+    for (const cena of merged.cenas) {
+      const key = String(cena.scene_ref);
+      const ov = overrides.cenas[key] || overrides.cenas[cena.scene_ref];
+      if (!ov) continue;
+
+      if (ov.remover) {
+        cena.motion_shot = null;
+        cena.camera_move = ov.camera_move || "slow-push-in";
+        continue;
+      }
+      if (ov.templateId) {
+        cena.motion_shot = cena.motion_shot || {};
+        cena.motion_shot.templateId = ov.templateId;
+        if (ov.style) cena.motion_shot.style = ov.style;
+        if (ov.palette) cena.motion_shot.palette = ov.palette;
+      }
+      if (ov.props && cena.motion_shot) {
+        cena.motion_shot.props = {
+          ...(cena.motion_shot.props || {}),
+          ...ov.props,
+        };
+      }
+      if (ov.transicao_entrada) cena.transicao_entrada = ov.transicao_entrada;
+      if (ov.camera_move !== undefined) cena.camera_move = ov.camera_move;
+    }
+  }
+
+  return merged;
 }

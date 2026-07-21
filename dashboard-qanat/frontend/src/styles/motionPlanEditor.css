@@ -1,0 +1,234 @@
+.mpe-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  background: rgba(6, 8, 14, 0.8);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4vh 20px 20px;
+}
+.mpe-panel {
+  width: min(880px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #10131f;
+  border: 1px solid #343c5e;
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  color: #eef0f8;
+  font-family: Inter, system-ui, sans-serif;
+}
+.mpe-loading {
+  color: #9aa3c7;
+  padding: 40px;
+  text-align: center;
+}
+.mpe-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #262c45;
+  position: sticky;
+  top: 0;
+  background: #10131f;
+  z-index: 2;
+}
+.mpe-head h2 {
+  font-size: 18px;
+  margin: 0;
+  text-transform: uppercase;
+}
+.mpe-sub {
+  font-size: 11.5px;
+  color: #626b8f;
+  margin-top: 3px;
+  font-family: ui-monospace, monospace;
+}
+.mpe-palette {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+}
+.mpe-palette span {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.mpe-ends {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px 24px 0;
+}
+.mpe-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #20263c;
+  border: 1px solid #262c45;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.mpe-end__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9aa3c7;
+  white-space: nowrap;
+}
+.mpe-end select,
+.mpe-field select,
+.mpe-prop input,
+.mpe-prop textarea,
+.mpe-busca {
+  background: #171b2c;
+  border: 1px solid #343c5e;
+  border-radius: 8px;
+  color: #eef0f8;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.mpe-end select {
+  flex: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.mpe-busca {
+  margin: 14px 24px 0;
+  width: calc(100% - 48px);
+}
+.mpe-cenas {
+  display: grid;
+  gap: 8px;
+  padding: 16px 24px;
+}
+.mpe-cena {
+  background: #20263c;
+  border: 1px solid #262c45;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.mpe-cena--aberta {
+  border-color: #f5a623;
+}
+.mpe-cena--semshot {
+  opacity: 0.75;
+}
+.mpe-cena__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+.mpe-cena__num {
+  font-size: 14px;
+  color: #f5a623;
+  width: 32px;
+  font-weight: 800;
+}
+.mpe-cena__info {
+  flex: 1;
+  min-width: 0;
+}
+.mpe-cena__shot {
+  font-size: 13px;
+  font-weight: 700;
+}
+.mpe-cena__trans {
+  color: #626b8f;
+  font-weight: 400;
+  font-size: 11px;
+}
+.mpe-cena__funcs {
+  font-size: 10.5px;
+  color: #626b8f;
+  margin-top: 2px;
+  font-family: ui-monospace, monospace;
+}
+.mpe-cena__body {
+  padding: 4px 16px 16px;
+  border-top: 1px dashed #262c45;
+}
+.mpe-field {
+  margin-top: 12px;
+}
+.mpe-field label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #9aa3c7;
+  margin-bottom: 6px;
+}
+.mpe-field select,
+.mpe-prop input,
+.mpe-prop textarea {
+  width: 100%;
+}
+.mpe-props {
+  margin-top: 14px;
+  background: #171b2c;
+  border: 1px solid #262c45;
+  border-radius: 10px;
+  padding: 12px;
+}
+.mpe-props > label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #9aa3c7;
+  margin-bottom: 8px;
+}
+.mpe-prop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.mpe-prop .mono {
+  width: 110px;
+  font-size: 11px;
+  color: #626b8f;
+  flex-shrink: 0;
+  font-family: ui-monospace, monospace;
+}
+.mpe-prop--wide {
+  flex-direction: column;
+  align-items: stretch;
+}
+.mpe-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid #262c45;
+  position: sticky;
+  bottom: 0;
+  background: #10131f;
+}
+.mpe-btn {
+  border-radius: 8px;
+  border: 1px solid #343c5e;
+  background: #20263c;
+  color: #eef0f8;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mpe-btn--primary {
+  background: #f5a623;
+  border-color: #f5a623;
+  color: #111;
+  margin-left: auto;
+}
+.mpe-btn--ghost {
+  background: transparent;
+}

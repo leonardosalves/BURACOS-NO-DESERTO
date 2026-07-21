@@ -11,6 +11,7 @@ import {
 } from "../scenePromptSpecificity.js";
 import { resolveStockSearchQuery } from "../stockSearchQuery.js";
 import { enrichSceneFunctionsOnVisualPrompts } from "../motionDirector.js";
+import { tagSceneWithMotion } from "../creatorSceneTagger.js";
 
 export const SHORTS_MIN_VIDEO_SCENES = 3;
 export const SHORTS_VIDEO_SCENE_TYPE = "vídeo IA (max 10s)";
@@ -585,8 +586,13 @@ export function finalizeGeneratedVisualPromptMedia(
   const aspectRatio =
     format === "SHORTS" || format === "SHORT" ? "9:16" : "16:9";
 
-  // scene_function / extracted_data para Motion Director (shotcraft)
-  const withFunctions = enrichSceneFunctionsOnVisualPrompts(typed);
+  // scene_function / extracted_data / suggested_shot (criadores → motion)
+  const withFunctions = enrichSceneFunctionsOnVisualPrompts(typed).map((vp) =>
+    tagSceneWithMotion(vp, {
+      format: aspectRatio,
+      niche: "",
+    })
+  );
 
   return sanitizeVisualPromptDurations(withFunctions).map((vp) => ({
     ...vp,

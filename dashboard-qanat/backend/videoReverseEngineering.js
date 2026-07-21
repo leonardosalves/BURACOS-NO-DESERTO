@@ -782,6 +782,31 @@ export async function runVideoReverseEngineering({
     analysisSource: understanding.analysis_source,
   });
 
+  // Shotcraft: tag storyboard reverso com scene_function + suggested_shot
+  try {
+    if (result?.storyboard || result?.visual_prompts) {
+      const { tagStoryboardWithMotion } = await import(
+        "./creatorSceneTagger.js"
+      );
+      const sb = result.storyboard || result;
+      const tagged = tagStoryboardWithMotion(sb, {
+        format:
+          String(format || "").toUpperCase() === "SHORTS" ||
+          String(format || "").toUpperCase() === "SHORT"
+            ? "9:16"
+            : "16:9",
+        niche: niche || "",
+      });
+      if (result.storyboard) result.storyboard = tagged;
+      else Object.assign(result, tagged);
+    }
+  } catch (tagErr) {
+    console.warn(
+      "[videoReverseEngineering] motion tag:",
+      tagErr?.message || tagErr
+    );
+  }
+
   // Save to cache for future reuse
   if (result && workspaceDir) writeCache(workspaceDir, cacheKey, result);
 

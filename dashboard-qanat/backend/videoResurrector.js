@@ -1107,6 +1107,25 @@ export async function generateResurrectorMetadata(item, deps = {}) {
 
   const format = normalizeFormat(item.format);
 
+  // Shotcraft: sugerir shot card a partir do storyboard do projeto (se houver)
+  try {
+    if (Array.isArray(storyboard?.visual_prompts) && storyboard.visual_prompts.length) {
+      const { tagSceneWithMotion } = await import("./creatorSceneTagger.js");
+      const first = storyboard.visual_prompts[0];
+      const tagged = tagSceneWithMotion(first, {
+        format: format === "SHORTS" || format === "9:16" ? "9:16" : "16:9",
+        niche: String(config.niche || item.niche || "").trim(),
+      });
+      item = {
+        ...item,
+        suggested_shot: tagged.suggested_shot,
+        scene_function: tagged.scene_function,
+      };
+    }
+  } catch {
+    /* non-blocking */
+  }
+
   // Para vídeos sem projeto Lumiera, usar título + tags como referência de nicho
   const inferredProjectName = projectPath
     ? path.basename(projectPath)

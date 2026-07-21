@@ -132,6 +132,7 @@ export function buildAppTabPropBundles(
     handleDrop: ctx.handleDrop,
     handleEnhanceVisualPrompts: ctx.handleEnhanceVisualPrompts,
     handleBuildMotionPlan: ctx.handleBuildMotionPlan,
+    handleOpenMotionPlanEditor: ctx.handleOpenMotionPlanEditor,
     handleEvaluateScriptChecklist: ctx.handleEvaluateScriptChecklist,
     handleFileInput: ctx.handleFileInput,
     handleGenerateFullScript: ctx.handleGenerateFullScript,

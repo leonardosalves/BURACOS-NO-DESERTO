@@ -313,3 +313,4 @@ export function getPropsSchema(templateId) {
 }
 
 export const MAPPED_CARDS = Object.keys(SHOTCRAFT_PROPS_MAP);
+export const TOTAL_MAPPED_CARDS = MAPPED_CARDS.length;

@@ -65,6 +65,7 @@ import {
   type WizardSessionPatch,
 } from "./wizardSession";
 import { validateWizardInputForVisualPro } from "./wizardInputValidator";
+import MotionPlanEditor from "./components/MotionPlanEditor";
 import { PreRenderAdviceModal, type PreRenderAdvice } from "./PreRenderAdvice";
 import {
   applyProductionPatchToConfig,
@@ -10255,6 +10256,20 @@ export default function App() {
     }
   };
 
+  const [motionPlanEditorOpen, setMotionPlanEditorOpen] = useState(false);
+
+  const handleOpenMotionPlanEditor = () => {
+    const scenes =
+      generatedScriptData?.visual_prompts ||
+      storyboardData?.visual_prompts ||
+      [];
+    if (!scenes.length) {
+      toast.error("Nenhuma cena no storyboard para ajustar motion.");
+      return;
+    }
+    setMotionPlanEditorOpen(true);
+  };
+
   /** Motion Director — atribui shot cards video-shotcraft às cenas. */
   const handleBuildMotionPlan = async () => {
     const projectName =
@@ -11905,6 +11920,7 @@ export default function App() {
     handleEmotionMusicChange,
     handleEnhanceVisualPrompts,
     handleBuildMotionPlan,
+    handleOpenMotionPlanEditor,
     handleCompileDirectingBriefs,
     handleGenerateSeedanceT2v,
     handleUpdateCreatorDirectingBrief,
@@ -12265,6 +12281,47 @@ export default function App() {
           }}
           onAutoFix={handlePreRenderAutoFix}
           fixingFixId={preRenderFixingId}
+        />
+      )}
+
+      {motionPlanEditorOpen && (
+        <MotionPlanEditor
+          storyboard={generatedScriptData || storyboardData}
+          projectName={
+            narrationProjectName || creatorProjectName || activeProject || ""
+          }
+          niche={nicheInput || ""}
+          format={formatSelector === "SHORTS" ? "9:16" : "16:9"}
+          getProjectUrl={getProjectUrl}
+          onClose={() => setMotionPlanEditorOpen(false)}
+          onPlanSaved={(plan, sb) => {
+            if (sb) {
+              applyStoryboardToCreatorState(sb);
+              void saveCreatorStoryboard(sb);
+            } else if (plan?.cenas && generatedScriptData) {
+              const next = {
+                ...generatedScriptData,
+                motion_plan: plan,
+                visual_prompts: (generatedScriptData.visual_prompts || []).map(
+                  (vp: any, i: number) => {
+                    const cena = plan.cenas[i];
+                    if (!cena) return vp;
+                    return {
+                      ...vp,
+                      scene_function: cena.scene_functions,
+                      motion_shot: cena.motion_shot,
+                      camera_move: cena.camera_move,
+                      transicao_entrada: cena.transicao_entrada,
+                      suggested_shot: cena.motion_shot?.templateId,
+                    };
+                  }
+                ),
+              };
+              applyStoryboardToCreatorState(next);
+              void saveCreatorStoryboard(next);
+            }
+            toast.success("Motion plan aplicado às cenas.");
+          }}
         />
       )}
 

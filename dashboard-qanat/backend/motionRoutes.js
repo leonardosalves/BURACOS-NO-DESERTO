@@ -1,103 +1,199 @@
 /**
- * motionRoutes.js — API do Motion Director (video-shotcraft).
+ * motionRoutes.js
+ * Router dedicado para toda a API de motion design (video-shotcraft).
+ * Registro: registerMotionRoutes(app, deps)  OR  app.use("/api/motion", router)
  */
+
+import { Router } from "express";
 import {
   buildMotionPlan,
   validateMotionPlan,
+  applyMotionOverrides,
   detectarSceneFunctions,
   extrairDados,
   applyMotionPlanToStoryboard,
+  ensureShotcraftOnStoryboard,
 } from "./motionDirector.js";
 import {
   SHOTCRAFT_CATALOG,
   CATALOG_STATS,
   findCard,
   cardsByCategory,
+  cardsByFunction,
+  searchCardsByTags,
 } from "./shotcraftCatalog.js";
+import {
+  getPropsSchema,
+  TOTAL_MAPPED_CARDS,
+  MAPPED_CARDS,
+} from "./shotcraftPropsMap.js";
 import {
   resolveNicheMotionPrefs,
   listNichePresets,
 } from "./nicheMotionPreferences.js";
-import { MAPPED_CARDS, getPropsSchema } from "./shotcraftPropsMap.js";
+import {
+  tagStoryboardWithMotion,
+  tagSceneWithMotion,
+  calcularPotencialMotion,
+} from "./creatorSceneTagger.js";
 
-export function registerMotionRoutes(app, { asyncHandler, fs, path, getProjectDir, readProjectJson } = {}) {
-  const wrap =
-    asyncHandler ||
-    ((fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next));
+function createMotionRouter(deps = {}) {
+  const router = Router();
+  const { fs, path, getProjectDir, readProjectJson } = deps;
 
-  app.post(
-    "/api/motion/plan",
-    wrap(async (req, res) => {
-      try {
-        let { storyboard, niche, format, project, apply } = req.body || {};
-        if (!storyboard && project && getProjectDir) {
-          const projDir = getProjectDir(req);
-          const sbPath = path.join(projDir, "storyboard.json");
-          if (fs.existsSync(sbPath)) {
-            storyboard = JSON.parse(fs.readFileSync(sbPath, "utf8"));
-          }
-          if (!niche) {
-            const config = readProjectJson
-              ? readProjectJson(projDir, "config_qanat.json", {})
-              : {};
-            niche = config.niche || "";
-          }
-          if (!format) {
-            const config = readProjectJson
-              ? readProjectJson(projDir, "config_qanat.json", {})
-              : {};
-            format =
-              config.video_format === "SHORTS" || config.video_format === "SHORT"
-                ? "9:16"
-                : "16:9";
-          }
+  router.get("/health", (_req, res) => {
+    res.json({
+      ok: true,
+      catalog_total: SHOTCRAFT_CATALOG.length,
+      props_mapped: TOTAL_MAPPED_CARDS,
+      mapped_cards: MAPPED_CARDS,
+      categories: CATALOG_STATS.categories,
+      niches: listNichePresets(),
+    });
+  });
+
+  router.post("/plan", (req, res) => {
+    try {
+      let { storyboard, niche, format, project, apply } = req.body || {};
+      if (!storyboard && project && getProjectDir && fs && path) {
+        const projDir = getProjectDir(req);
+        const sbPath = path.join(projDir, "storyboard.json");
+        if (fs.existsSync(sbPath)) {
+          storyboard = JSON.parse(fs.readFileSync(sbPath, "utf8"));
         }
-        if (!storyboard) {
-          return res.status(400).json({ error: "storyboard obrigatório." });
+        if (!niche && readProjectJson) {
+          const config = readProjectJson(projDir, "config_qanat.json", {});
+          niche = config.niche || "";
         }
-        const plan = buildMotionPlan({
-          storyboard,
-          niche: niche || "",
-          format: format || "16:9",
-        });
-        const validation = validateMotionPlan(plan);
-        let applied = null;
-        if (apply && project && getProjectDir && fs) {
-          applied = applyMotionPlanToStoryboard(storyboard, plan);
-          const projDir = getProjectDir(req);
-          const sbPath = path.join(projDir, "storyboard.json");
-          fs.writeFileSync(sbPath, JSON.stringify(applied, null, 2), "utf8");
+        if (!format && readProjectJson) {
+          const config = readProjectJson(projDir, "config_qanat.json", {});
+          format =
+            config.video_format === "SHORTS" || config.video_format === "SHORT"
+              ? "9:16"
+              : "16:9";
         }
-        res.json({
-          ok: true,
-          plan,
-          validation,
-          applied: Boolean(applied),
-          storyboard: applied || undefined,
-        });
-      } catch (err) {
-        res.status(500).json({ error: err.message });
       }
-    })
-  );
+      if (!storyboard) {
+        return res.status(400).json({ error: "storyboard obrigatório." });
+      }
+      const plan = buildMotionPlan({
+        storyboard,
+        niche: niche || "",
+        format: format || "16:9",
+      });
+      const validation = validateMotionPlan(plan);
+      let applied = null;
+      if (apply && project && getProjectDir && fs && path) {
+        applied = applyMotionPlanToStoryboard(storyboard, plan);
+        const projDir = getProjectDir(req);
+        const sbPath = path.join(projDir, "storyboard.json");
+        fs.writeFileSync(sbPath, JSON.stringify(applied, null, 2), "utf8");
+      }
+      res.json({
+        ok: true,
+        plan,
+        validation,
+        applied: Boolean(applied),
+        storyboard: applied || undefined,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
-  app.get("/api/motion/catalog", (_req, res) => {
+  router.post("/plan/override", (req, res) => {
+    try {
+      const { plan, overrides, project, apply } = req.body || {};
+      if (!plan) return res.status(400).json({ error: "plan obrigatório." });
+      const merged = applyMotionOverrides(plan, overrides || {});
+      let storyboard = null;
+      if (apply && project && getProjectDir && fs && path) {
+        const projDir = getProjectDir(req);
+        const sbPath = path.join(projDir, "storyboard.json");
+        if (fs.existsSync(sbPath)) {
+          const sb = JSON.parse(fs.readFileSync(sbPath, "utf8"));
+          storyboard = applyMotionPlanToStoryboard(sb, merged);
+          fs.writeFileSync(
+            sbPath,
+            JSON.stringify(storyboard, null, 2),
+            "utf8"
+          );
+        }
+      }
+      res.json({
+        ok: true,
+        plan: merged,
+        validation: validateMotionPlan(merged),
+        storyboard,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.post("/plan/preview", (req, res) => {
+    try {
+      const { storyboard, niche, format, overrides } = req.body || {};
+      if (!storyboard) {
+        return res.status(400).json({ error: "storyboard obrigatório." });
+      }
+      let plan = buildMotionPlan({
+        storyboard,
+        niche: niche || "",
+        format: format || "16:9",
+      });
+      if (overrides) plan = applyMotionOverrides(plan, overrides);
+      res.json({ ok: true, plan, validation: validateMotionPlan(plan) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.get("/catalog", (_req, res) => {
     res.json({
       ok: true,
       stats: CATALOG_STATS,
+      total_mapped: TOTAL_MAPPED_CARDS,
       mappedCards: MAPPED_CARDS,
       templates: SHOTCRAFT_CATALOG,
     });
   });
 
-  app.get("/api/motion/catalog/:category", (req, res) => {
+  router.get("/catalog/category/:category", (req, res) => {
+    res.json({ ok: true, templates: cardsByCategory(req.params.category) });
+  });
+
+  // compat legado: /api/motion/catalog/:category
+  router.get("/catalog/:category", (req, res, next) => {
+    if (req.params.category === "category") return next();
+    // se for templateId conhecido, devolve card; senão category
+    const card = findCard(req.params.category);
+    if (card) {
+      return res.json({
+        ok: true,
+        card,
+        propsSchema: getPropsSchema(req.params.category),
+      });
+    }
+    res.json({ ok: true, templates: cardsByCategory(req.params.category) });
+  });
+
+  router.get("/catalog/function/:func", (req, res) => {
+    res.json({ ok: true, templates: cardsByFunction(req.params.func) });
+  });
+
+  router.post("/catalog/search", (req, res) => {
+    const { text, format, limit } = req.body || {};
     res.json({
       ok: true,
-      templates: cardsByCategory(req.params.category),
+      results: searchCardsByTags(text || "", {
+        format: format || "16:9",
+        limit: limit || 5,
+      }),
     });
   });
 
-  app.get("/api/motion/card/:templateId", (req, res) => {
+  router.get("/card/:templateId", (req, res) => {
     const card = findCard(req.params.templateId);
     if (!card) return res.status(404).json({ error: "card não encontrado" });
     res.json({
@@ -107,7 +203,11 @@ export function registerMotionRoutes(app, { asyncHandler, fs, path, getProjectDi
     });
   });
 
-  app.post("/api/motion/detect", (req, res) => {
+  router.get("/props-schema/:templateId", (req, res) => {
+    res.json({ ok: true, schema: getPropsSchema(req.params.templateId) });
+  });
+
+  router.post("/detect", (req, res) => {
     const { narration } = req.body || {};
     res.json({
       ok: true,
@@ -116,14 +216,97 @@ export function registerMotionRoutes(app, { asyncHandler, fs, path, getProjectDi
     });
   });
 
-  app.get("/api/motion/niches", (_req, res) => {
+  router.post("/tag-storyboard", (req, res) => {
+    const { storyboard, format, niche } = req.body || {};
+    if (!storyboard) {
+      return res.status(400).json({ error: "storyboard obrigatório." });
+    }
+    res.json({
+      ok: true,
+      storyboard: tagStoryboardWithMotion(storyboard, { format, niche }),
+    });
+  });
+
+  router.post("/tag-scene", (req, res) => {
+    const { scene, format, niche } = req.body || {};
+    if (!scene) return res.status(400).json({ error: "scene obrigatório." });
+    res.json({
+      ok: true,
+      scene: tagSceneWithMotion(scene, { format, niche }),
+    });
+  });
+
+  router.post("/idea-potential", (req, res) => {
+    const { ideia, format, niche } = req.body || {};
+    if (!ideia) return res.status(400).json({ error: "ideia obrigatório." });
+    res.json({
+      ok: true,
+      ideia: calcularPotencialMotion(ideia, { format, niche }),
+    });
+  });
+
+  router.get("/niches", (_req, res) => {
     res.json({ ok: true, niches: listNichePresets() });
   });
 
-  app.get("/api/motion/niche/:niche", (req, res) => {
+  router.get("/niche/:niche", (req, res) => {
     res.json({
       ok: true,
       prefs: resolveNicheMotionPrefs(req.params.niche),
     });
   });
+
+  // ensure shotcraft + tag on project storyboard
+  router.post("/ensure", (req, res) => {
+    try {
+      const { storyboard, niche, format, project } = req.body || {};
+      let sb = storyboard;
+      if (!sb && project && getProjectDir && fs && path) {
+        const projDir = getProjectDir(req);
+        const sbPath = path.join(projDir, "storyboard.json");
+        if (fs.existsSync(sbPath)) {
+          sb = JSON.parse(fs.readFileSync(sbPath, "utf8"));
+        }
+      }
+      if (!sb) return res.status(400).json({ error: "storyboard obrigatório." });
+      const tagged = tagStoryboardWithMotion(sb, {
+        niche: niche || "",
+        format: format || "16:9",
+      });
+      const result = ensureShotcraftOnStoryboard(tagged, {
+        niche: niche || "",
+        format: format || "16:9",
+      });
+      if (project && getProjectDir && fs && path) {
+        const projDir = getProjectDir(req);
+        const sbPath = path.join(projDir, "storyboard.json");
+        fs.writeFileSync(
+          sbPath,
+          JSON.stringify(result.storyboard, null, 2),
+          "utf8"
+        );
+      }
+      res.json({
+        ok: true,
+        storyboard: result.storyboard,
+        plan: result.plan,
+        validation: result.validation,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  return router;
 }
+
+/**
+ * Compat com registro atual do server.js
+ */
+export function registerMotionRoutes(app, deps = {}) {
+  const router = createMotionRouter(deps);
+  app.use("/api/motion", router);
+  return router;
+}
+
+export default createMotionRouter;

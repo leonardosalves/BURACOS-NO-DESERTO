@@ -202,6 +202,7 @@ export type AppCreatorTabProps = {
   handleDrop: (e: React.DragEvent) => void;
   handleEnhanceVisualPrompts: () => void | Promise<void>;
   handleBuildMotionPlan: () => void | Promise<void>;
+  handleOpenMotionPlanEditor?: () => void;
   handleEvaluateScriptChecklist: () => void | Promise<void>;
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleGenerateFullScript: () => void | Promise<void>;
@@ -378,6 +379,7 @@ export function AppCreatorTab({
   handleDrop,
   handleEnhanceVisualPrompts,
   handleBuildMotionPlan,
+  handleOpenMotionPlanEditor,
   handleEvaluateScriptChecklist,
   handleFileInput,
   handleGenerateFullScript,
@@ -3390,6 +3392,17 @@ export function AppCreatorTab({
                                   ? "🎬 Planejando..."
                                   : "🎬 Motion Plan"}
                               </button>
+                              {handleOpenMotionPlanEditor ? (
+                                <button
+                                  type="button"
+                                  disabled={creatorLoading}
+                                  onClick={handleOpenMotionPlanEditor}
+                                  className="bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/30 text-amber-200 disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer transition-all"
+                                  title="Abrir editor manual do motion plan (trocar shot cards, estilos e transições)"
+                                >
+                                  🎛️ Ajustar Motion
+                                </button>
+                              ) : null}
                             </>
                           )}
                           <span className="bg-gold-500/10 border border-gold-500/20 text-gold-500 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono">

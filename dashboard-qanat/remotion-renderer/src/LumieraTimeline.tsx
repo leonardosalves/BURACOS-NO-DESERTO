@@ -33,6 +33,11 @@ import {
   ShotcraftLayer,
   type MotionShot,
 } from "./overlays/ShotcraftLayer";
+import {
+  ShotcraftCamera,
+  type CameraMove,
+} from "./overlays/ShotcraftCamera";
+import { ShotcraftTransition } from "./overlays/ShotcraftTransition";
 
 /** Espelho de shared/studioOverlayLayers — inline para o bundler Remotion. */
 function splitOverlaysByStudioLayer(overlays: Overlay[] = []) {
@@ -89,9 +94,11 @@ type TimelineScene = {
   /** Motion shot do video-shotcraft (Motion Director). */
   motion_shot?: MotionShot | null;
 
-  camera_move?: string;
+  camera_move?: CameraMove;
 
   transicao_entrada?: string;
+
+  transicao_style?: string;
 };
 
 type Caption = {
@@ -675,23 +682,42 @@ const SceneMedia: React.FC<{
     return clipVolume * Math.min(fadeIn, fadeOut);
   };
 
+  const wrapShotcraft = (inner: React.ReactNode) => (
+    <ShotcraftTransition
+      templateId={scene.transicao_entrada}
+      style={scene.transicao_style}
+      palette={scene.motion_shot?.palette as Record<string, string> | undefined}
+    >
+      <ShotcraftCamera
+        move={scene.camera_move}
+        durationInFrames={durationFrames}
+      >
+        {inner}
+      </ShotcraftCamera>
+      {scene.motion_shot ? (
+        <AbsoluteFill style={{ zIndex: 10, pointerEvents: "none" }}>
+          <ShotcraftLayer shot={scene.motion_shot} />
+        </AbsoluteFill>
+      ) : null}
+    </ShotcraftTransition>
+  );
+
   if (scene.type === "remotion" && scene.remotionTemplate) {
     const template = scene.remotionTemplate as OverlayType;
     const props = (scene.remotionProps || {}) as Overlay["props"];
-    return (
+    return wrapShotcraft(
       <AbsoluteFill style={{ overflow: "hidden", backgroundColor: "#050506" }}>
         <MotionSceneFill
           type={template}
           props={props}
           durationInFrames={durationFrames}
         />
-        {scene.motion_shot ? <ShotcraftLayer shot={scene.motion_shot} /> : null}
       </AbsoluteFill>
     );
   }
 
   if (scene.type === "video") {
-    return (
+    return wrapShotcraft(
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <Video
           src={assetUrl(scene.asset)}
@@ -722,12 +748,11 @@ const SceneMedia: React.FC<{
             }}
           />
         )}
-        {scene.motion_shot ? <ShotcraftLayer shot={scene.motion_shot} /> : null}
       </AbsoluteFill>
     );
   }
 
-  return (
+  return wrapShotcraft(
     <AbsoluteFill style={{ overflow: "hidden" }}>
       <Img src={assetUrl(scene.asset)} style={commonStyle} />
 
@@ -749,7 +774,6 @@ const SceneMedia: React.FC<{
           }}
         />
       )}
-      {scene.motion_shot ? <ShotcraftLayer shot={scene.motion_shot} /> : null}
     </AbsoluteFill>
   );
 };
