@@ -25819,6 +25819,122 @@ ensureCreatorHistoryDatabase().catch((err) =>
 
 const server = app.listen(PORT, () => {
   console.log(`Backend Server running on ${LUMIERA_BACKEND_BASE}`);
+
+  // Auto-start OmniRoute Local gateway asynchronously (Node spawn)
+  setImmediate(async () => {
+    try {
+      let mjsPath = null;
+      const usersDir = "C:\\Users";
+      if (fs.existsSync(usersDir)) {
+        const dirs = fs.readdirSync(usersDir);
+        for (const d of dirs) {
+          const candidate = path.join(
+            usersDir,
+            d,
+            "AppData",
+            "Roaming",
+            "npm",
+            "node_modules",
+            "omniroute",
+            "bin",
+            "omniroute.mjs"
+          );
+          if (fs.existsSync(candidate)) {
+            mjsPath = candidate;
+            break;
+          }
+        }
+      }
+
+      if (!mjsPath) {
+        const candidates = [
+          "C:\\Program Files\\nodejs\\node_modules\\omniroute\\bin\\omniroute.mjs",
+          path.join(
+            process.env.APPDATA || "",
+            "npm",
+            "node_modules",
+            "omniroute",
+            "bin",
+            "omniroute.mjs"
+          ),
+        ];
+        for (const c of candidates) {
+          if (c && fs.existsSync(c)) {
+            mjsPath = c;
+            break;
+          }
+        }
+      }
+
+      if (!mjsPath) {
+        console.log(
+          "[OmniRoute] Módulo omniroute.mjs não localizado. Auto-start ignorado."
+        );
+        return;
+      }
+
+      console.log(`[OmniRoute] Iniciando local gateway via Node: ${mjsPath}`);
+
+      const logDir = path.join(__dirname, "..", "..", ".lumiera-logs");
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+
+      // Check if port 20128 is already listening to avoid duplicate runs
+      const net = await import("net");
+      const checkPort = new Promise((resolve) => {
+        const client = new net.Socket();
+        client.setTimeout(500);
+        client.on("connect", () => {
+          client.destroy();
+          resolve(true);
+        });
+        client.on("timeout", () => {
+          client.destroy();
+          resolve(false);
+        });
+        client.on("error", () => {
+          client.destroy();
+          resolve(false);
+        });
+        client.connect(20128, "127.0.0.1");
+      });
+
+      checkPort.then((inUse) => {
+        if (inUse) {
+          console.log("[OmniRoute] Gateway já ativo na porta 20128.");
+          return;
+        }
+
+        const outLog = fs.openSync(path.join(logDir, "omniroute.log"), "w");
+        const errLog = fs.openSync(
+          path.join(logDir, "omniroute-stderr.log"),
+          "w"
+        );
+
+        const child = spawn(process.execPath, [mjsPath], {
+          detached: true,
+          stdio: ["ignore", outLog, errLog],
+          windowsHide: true,
+          cwd: path.dirname(mjsPath),
+        });
+
+        fs.writeFileSync(
+          path.join(logDir, "omniroute.pid"),
+          String(child.pid),
+          "utf8"
+        );
+        child.unref();
+        console.log(`[OmniRoute] Processo disparado! PID=${child.pid}`);
+      });
+    } catch (e) {
+      console.warn(
+        "[OmniRoute] Falha ao tentar disparar auto-start:",
+        e.message
+      );
+    }
+  });
+
   // NotebookLM + schedulers rodam fora do callback — health responde na hora.
   setImmediate(() => {
     try {

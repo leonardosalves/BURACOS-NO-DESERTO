@@ -4,6 +4,9 @@ param([switch]$Quiet)
 $ErrorActionPreference = "SilentlyContinue"
 . (Join-Path $PSScriptRoot "lumiera-backend-common.ps1")
 
+# Garantir OmniRoute Local (gateway IA) rodando antes do backend
+& (Join-Path $PSScriptRoot "ensure-omniroute.ps1") -Quiet:$Quiet
+
 function Test-LogHasErrors([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path)) { return @() }
     $patterns = "ECONNREFUSED|Error:|FATAL|Unhandled|Cannot find module|SyntaxError|ENOMEM|EADDRINUSE"

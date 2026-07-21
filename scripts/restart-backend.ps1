@@ -7,6 +7,9 @@ param(
 $ErrorActionPreference = "SilentlyContinue"
 . (Join-Path $PSScriptRoot "lumiera-backend-common.ps1")
 
+# Garantir OmniRoute Local (gateway IA) rodando
+& (Join-Path $PSScriptRoot "ensure-omniroute.ps1") -Quiet
+
 $check = & nlm login --check 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Host "NotebookLM: sessao expirada ou ausente. Rode: .\nlm-login.ps1" -ForegroundColor Yellow
