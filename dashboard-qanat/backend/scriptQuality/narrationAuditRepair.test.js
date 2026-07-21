@@ -49,3 +49,17 @@ test("storyboard null devolve audit seguro", async () => {
   assert.equal(result.approved, false);
   assert.ok(result.audit.integrity);
 });
+
+test("evaluate que joga ainda devolve audit.integrity (nunca TypeError)", async () => {
+  const result = await runNarrationAuditRepairLoop({
+    storyboard: { narrative_script: "texto qualquer com palavras suficientes" },
+    maxAttempts: 2,
+    evaluate: async () => {
+      throw new Error("simulate assess crash");
+    },
+  });
+  assert.ok(result.audit, "audit deve existir mesmo com evaluate quebrado");
+  assert.ok(result.audit.integrity, "audit.integrity obrigatório");
+  assert.equal(result.approved, false);
+  assert.ok(result.failures.length >= 1);
+});

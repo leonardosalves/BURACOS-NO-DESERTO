@@ -202,10 +202,31 @@ export async function runNarrationAuditRepairLoop({
       }
     } catch (err) {
       failures.push(err?.message || String(err));
+      // Nunca deixa lastAudit null após reparo bem-sucedido
+      if (!lastAudit) lastAudit = emptyAudit(err?.message || String(err));
     }
   }
 
   const audit = lastAudit || emptyAudit();
+  // Garantia absoluta do shape (caller nunca deve ver audit.integrity undefined)
+  if (!audit.integrity) {
+    audit.integrity = {
+      ok: Boolean(audit.approved || audit.ok),
+      issues: Array.isArray(audit.issues) ? audit.issues : [],
+    };
+  }
+  if (!audit.editorial) {
+    audit.editorial = {
+      ok: Boolean(audit.approved || audit.ok),
+      issues: [],
+    };
+  }
+  if (!Array.isArray(audit.issues)) {
+    audit.issues = [
+      ...(audit.integrity.issues || []),
+      ...(audit.editorial.issues || []),
+    ].filter(Boolean);
+  }
   const approved = isAuditApproved(audit);
 
   return {

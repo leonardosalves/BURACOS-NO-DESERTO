@@ -5124,16 +5124,26 @@ app.post("/api/projects/storyboard", (req, res) => {
     if (auditedNarrativeText) {
       const audit = cleanStoryboardData.narracao_pro_audit;
       const narrativeHash = hashNarrationIntegrityText(auditedNarrativeText);
-      if (
-        !audit?.approved ||
-        !audit.narrative_sha256 ||
-        audit.narrative_sha256 !== narrativeHash
-      ) {
+      const hashMatches =
+        audit?.narrative_sha256 && audit.narrative_sha256 === narrativeHash;
+      // Soft-aprovação / revisão humana: permite salvar e continuar o fluxo.
+      // Só bloqueia se não houver auditoria nenhuma E o texto não for vazio.
+      if (!audit?.approved && !audit?.soft_approval && !audit?.needs_human_review) {
         return res.status(422).json({
           error:
-            "Storyboard bloqueado: a narração foi alterada ou não possui auditoria NARRACAOPRO válida.",
+            "Storyboard bloqueado: a narração não possui auditoria NARRACAOPRO válida.",
           hint: "Gere novamente a fase de narração. Alterações no texto invalidam a aprovação anterior.",
         });
+      }
+      if (audit?.approved && audit?.narrative_sha256 && !hashMatches) {
+        // Texto editado: re-hash e marca revisão humana em vez de descartar.
+        cleanStoryboardData.narracao_pro_audit = {
+          ...audit,
+          narrative_sha256: narrativeHash,
+          needs_human_review: true,
+          user_edited: true,
+          audited_at: new Date().toISOString(),
+        };
       }
     }
     fs.writeFileSync(
@@ -21850,29 +21860,88 @@ async function runAutomaticQualityRepairForStoryboard(
   return applyAutomaticScriptRepairToStoryboard(storyboard, result);
 }
 
+function safeAuditSlice(report, label = "audit") {
+  if (report && typeof report === "object") {
+    return {
+      ...report,
+      ok: report.ok === true,
+      issues: Array.isArray(report.issues) ? report.issues : [],
+      warnings: Array.isArray(report.warnings) ? report.warnings : [],
+    };
+  }
+  return {
+    ok: false,
+    issues: [`${label} indisponível ou inválido.`],
+    warnings: [],
+  };
+}
+
 function evaluateNarrationFinalAudit(
   storyboard,
   { format, idea, researchFacts = [], researchSources = [] } = {}
 ) {
-  const integrity = assessNarracaoProIntegrity({
-    format,
-    narrativeScript: storyboard?.narrative_script,
-    idea,
-    trace: storyboard?.narracao_pro_trace,
-    researchFacts,
-    researchSources,
-  });
-  const editorial = assessEditorialContract({
-    format,
-    narrativeScript: storyboard?.narrative_script,
-    strategy: storyboard?.strategy || {},
-  });
+  let integrity;
+  let editorial;
+  try {
+    integrity = safeAuditSlice(
+      assessNarracaoProIntegrity({
+        format,
+        narrativeScript: storyboard?.narrative_script,
+        idea,
+        trace: storyboard?.narracao_pro_trace,
+        researchFacts,
+        researchSources,
+      }),
+      "integrity"
+    );
+  } catch (err) {
+    integrity = {
+      ok: false,
+      issues: [
+        `Falha ao avaliar integridade factual: ${err?.message || String(err)}`,
+      ],
+      warnings: [],
+    };
+  }
+  try {
+    editorial = safeAuditSlice(
+      assessEditorialContract({
+        format,
+        narrativeScript: storyboard?.narrative_script,
+        strategy: storyboard?.strategy || {},
+      }),
+      "editorial"
+    );
+  } catch (err) {
+    editorial = {
+      ok: false,
+      issues: [
+        `Falha ao avaliar contrato editorial: ${err?.message || String(err)}`,
+      ],
+      warnings: [],
+    };
+  }
+  const issues = [
+    ...(integrity.issues || []),
+    ...(editorial.issues || []),
+  ].filter(Boolean);
   return {
-    approved: integrity.ok && editorial.ok,
-    issues: [...integrity.issues, ...editorial.issues].filter(Boolean),
+    approved: integrity.ok === true && editorial.ok === true,
+    issues,
     integrity,
     editorial,
   };
+}
+
+/** Conteúdo mínimo para soft-aprovar e não jogar fora 10+ min de geração. */
+function narrationHasReviewableContent(storyboard, format = "LONGO") {
+  const text = String(storyboard?.narrative_script || "").trim();
+  if (!text) return false;
+  const words = text.split(/\s+/).filter(Boolean).length;
+  const isShort =
+    String(format || "").toUpperCase() === "SHORTS" ||
+    String(format || "").toUpperCase() === "SHORT";
+  return isShort ? words >= 40 : words >= 350;
 }
 
 async function repairNarrationThroughFinalAudit(
@@ -21888,70 +21957,139 @@ async function repairNarrationThroughFinalAudit(
     researchSources = [],
   } = {}
 ) {
-  const maxAttempts = 2;
-  const result = await runNarrationAuditRepairLoop({
-    storyboard,
-    format,
-    maxAttempts,
-    evaluate: async (candidate) =>
-      evaluateNarrationFinalAudit(candidate, {
-        format,
-        idea,
-        researchFacts,
-        researchSources,
-      }),
-    onProgress: ({ attempt, issues }) => {
-      const summary = issues.slice(0, 3).join(" · ");
-      report(
-        "auto_repair",
-        `A própria IA está corrigindo a narração (${attempt}/${maxAttempts}): ${summary}`,
-        85 + attempt * 3
-      );
-    },
-    repair: async (current, audit, attempt) => {
-      const prompt = buildNarrationAuditRepairPrompt({
-        storyboard: current,
-        issues: audit?.issues || [],
-        format,
-        idea,
-        researchFacts,
-        researchSources,
-        attempt,
-        maxAttempts,
-      });
-      const response = await callGeminiWithRetry(apiKey, prompt, {
-        temperature: 0.25,
-        maxRetries: 1,
-        projectDir,
-        activityLabel: `Autorreparo NARRACAOPRO ${attempt}/${maxAttempts}`,
-        activityDetail: (audit?.issues || []).join(" | "),
-        maxTokens: 5000,
-      });
-      const repaired = normalizeKeys(
-        await parseAiJsonResponse(
-          response,
-          apiKey,
-          `Autorreparo NARRACAOPRO ${attempt}/${maxAttempts}`
-        )
-      );
-      if (!repaired.narrative_script && repaired.repaired_narrative) {
-        repaired.narrative_script = repaired.repaired_narrative;
-      }
-      return normalizeNarrationBlocks(repaired, expectedBlocks);
-    },
-  });
+  const isLong =
+    String(format || "LONGO").toUpperCase() !== "SHORTS" &&
+    String(format || "").toUpperCase() !== "SHORT";
+  // Vídeo longo: mais tentativas de autorreparo antes de soft-aprovar.
+  const maxAttempts = isLong ? 4 : 2;
+  let result;
+  try {
+    result = await runNarrationAuditRepairLoop({
+      storyboard,
+      format,
+      maxAttempts,
+      evaluate: async (candidate) =>
+        evaluateNarrationFinalAudit(candidate, {
+          format,
+          idea,
+          researchFacts,
+          researchSources,
+        }),
+      onProgress: ({ attempt, issues }) => {
+        const summary = (issues || []).slice(0, 3).join(" · ");
+        if (typeof report === "function") {
+          report(
+            "auto_repair",
+            `A própria IA está corrigindo a narração (${attempt}/${maxAttempts})${summary ? `: ${summary}` : ""}`,
+            Math.min(96, 82 + attempt * 3)
+          );
+        }
+      },
+      repair: async (current, audit, attempt) => {
+        const prompt = buildNarrationAuditRepairPrompt({
+          storyboard: current,
+          issues: audit?.issues || [],
+          format,
+          idea,
+          researchFacts,
+          researchSources,
+          attempt,
+          maxAttempts,
+        });
+        const response = await callGeminiWithRetry(apiKey, prompt, {
+          temperature: 0.25,
+          maxRetries: 2,
+          projectDir,
+          activityLabel: `Autorreparo NARRACAOPRO ${attempt}/${maxAttempts}`,
+          activityDetail: (audit?.issues || []).join(" | "),
+          maxTokens: isLong ? 8192 : 5000,
+        });
+        const repaired = normalizeKeys(
+          await parseAiJsonResponse(
+            response,
+            apiKey,
+            `Autorreparo NARRACAOPRO ${attempt}/${maxAttempts}`
+          )
+        );
+        if (!repaired.narrative_script && repaired.repaired_narrative) {
+          repaired.narrative_script = repaired.repaired_narrative;
+        }
+        // Preserva campos do storyboard atual se o reparo só devolveu o texto
+        const merged = {
+          ...current,
+          ...repaired,
+          narrative_script:
+            repaired.narrative_script || current?.narrative_script || "",
+          narracao_pro_trace:
+            repaired.narracao_pro_trace || current?.narracao_pro_trace,
+          strategy: repaired.strategy || current?.strategy,
+        };
+        return normalizeNarrationBlocks(merged, expectedBlocks);
+      },
+    });
+  } catch (err) {
+    console.error(
+      "[NARRACAOPRO] repairNarrationThroughFinalAudit falhou (não aborta):",
+      err?.message || err
+    );
+    const fallbackAudit = evaluateNarrationFinalAudit(storyboard, {
+      format,
+      idea,
+      researchFacts,
+      researchSources,
+    });
+    result = {
+      storyboard,
+      repaired: false,
+      attempts: 0,
+      approved: fallbackAudit.approved === true,
+      audit: fallbackAudit,
+      finalAudit: fallbackAudit,
+      failures: [err?.message || String(err)],
+    };
+  }
+
+  // Contrato rígido: audit.integrity SEMPRE existe (evita TypeError no caller)
+  const audit = result?.audit || result?.finalAudit || evaluateNarrationFinalAudit(
+    result?.storyboard || storyboard,
+    { format, idea, researchFacts, researchSources }
+  );
+  if (!audit.integrity) {
+    audit.integrity = {
+      ok: Boolean(audit.approved),
+      issues: Array.isArray(audit.issues) ? audit.issues : [],
+    };
+  }
+  if (!audit.editorial) {
+    audit.editorial = {
+      ok: Boolean(audit.approved),
+      issues: [],
+    };
+  }
+  if (!Array.isArray(audit.issues)) {
+    audit.issues = [
+      ...(audit.integrity?.issues || []),
+      ...(audit.editorial?.issues || []),
+    ].filter(Boolean);
+  }
 
   const repairedStoryboard = normalizeNarrationBlocks(
-    result.storyboard,
+    result?.storyboard || storyboard,
     expectedBlocks
   );
   repairedStoryboard.automatic_narration_repair = {
-    attempted: result.attempts > 0,
-    attempts: result.attempts,
-    approved: result.approved,
-    failures: result.failures,
+    attempted: (result?.attempts || 0) > 0,
+    attempts: result?.attempts || 0,
+    approved: result?.approved === true,
+    failures: result?.failures || [],
   };
-  return { ...result, storyboard: repairedStoryboard };
+  return {
+    ...result,
+    approved: result?.approved === true,
+    audit,
+    finalAudit: audit,
+    storyboard: repairedStoryboard,
+  };
 }
 
 // API: SCRIPT MASTER Step 2 - Generate Strategy, Complete Script, and technical mappings
@@ -23071,16 +23209,36 @@ app.post(
           "[NARRACAOPRO] Auditando o texto final após todas as alterações…",
           85
         );
-        const finalRepair = await repairNarrationThroughFinalAudit(parsedData, {
-          format,
-          idea,
-          apiKey,
-          projectDir: llmDir,
-          report,
-          expectedBlocks: listicleBlockCount,
-          researchFacts: webResearchMeta?.facts || [],
-          researchSources: webResearchMeta?.sources || [],
-        });
+        let finalRepair = null;
+        try {
+          finalRepair = await repairNarrationThroughFinalAudit(parsedData, {
+            format,
+            idea,
+            apiKey,
+            projectDir: llmDir,
+            report,
+            expectedBlocks: listicleBlockCount,
+            researchFacts: webResearchMeta?.facts || [],
+            researchSources: webResearchMeta?.sources || [],
+          });
+        } catch (repairFatal) {
+          console.error(
+            "[NARRACAOPRO] finalRepair crash (continúa com soft-path):",
+            repairFatal?.message || repairFatal
+          );
+          finalRepair = {
+            storyboard: parsedData,
+            approved: false,
+            attempts: 0,
+            audit: evaluateNarrationFinalAudit(parsedData, {
+              format,
+              idea,
+              researchFacts: webResearchMeta?.facts || [],
+              researchSources: webResearchMeta?.sources || [],
+            }),
+            failures: [repairFatal?.message || String(repairFatal)],
+          };
+        }
         parsedData = finalRepair?.storyboard || parsedData;
         // Defensivo: o loop de auditoria DEVE devolver audit; se não, reavalia in-place.
         let integrityAudit = finalRepair?.audit?.integrity;
@@ -23092,42 +23250,97 @@ app.post(
           finalRepair?.approved === true ||
           finalRepair?.audit?.approved === true;
         if (!integrityAudit || !editorialAudit) {
-          const fallbackAudit = evaluateNarrationFinalAudit(parsedData, {
-            format,
-            idea,
-            researchFacts: webResearchMeta?.facts || [],
-            researchSources: webResearchMeta?.sources || [],
-          });
-          integrityAudit = fallbackAudit.integrity;
-          editorialAudit = fallbackAudit.editorial;
-          auditIssues = fallbackAudit.issues || [];
-          auditApproved = fallbackAudit.approved === true;
+          try {
+            const fallbackAudit = evaluateNarrationFinalAudit(parsedData, {
+              format,
+              idea,
+              researchFacts: webResearchMeta?.facts || [],
+              researchSources: webResearchMeta?.sources || [],
+            });
+            integrityAudit = fallbackAudit?.integrity || integrityAudit;
+            editorialAudit = fallbackAudit?.editorial || editorialAudit;
+            auditIssues = fallbackAudit?.issues || auditIssues || [];
+            if (!auditApproved) {
+              auditApproved = fallbackAudit?.approved === true;
+            }
+          } catch (evalErr) {
+            console.warn(
+              "[NARRACAOPRO] fallback evaluate falhou:",
+              evalErr?.message || evalErr
+            );
+            integrityAudit = integrityAudit || {
+              ok: false,
+              issues: [evalErr?.message || "Falha na auditoria de integridade."],
+            };
+            editorialAudit = editorialAudit || {
+              ok: false,
+              issues: [],
+            };
+          }
         }
+        integrityAudit = safeAuditSlice(integrityAudit, "integrity");
+        editorialAudit = safeAuditSlice(editorialAudit, "editorial");
+        auditIssues = (
+          auditIssues.length
+            ? auditIssues
+            : [
+                ...(integrityAudit.issues || []),
+                ...(editorialAudit.issues || []),
+              ]
+        ).filter(Boolean);
+
+        // Soft-aprovação: NUNCA descarta narração longa gerada. A IA já tentou
+        // reparar; o humano revisa no editor. Pipeline continua.
+        let softApproved = false;
+        if (
+          !auditApproved &&
+          narrationHasReviewableContent(parsedData, format)
+        ) {
+          softApproved = true;
+          auditApproved = true;
+          console.warn(
+            `[NARRACAOPRO] Soft-aprovação para revisão humana após ${finalRepair?.attempts || 0} autorreparo(s). Issues: ${auditIssues.join(" | ") || "—"}`
+          );
+        }
+
         parsedData.narracao_pro_audit = {
           integrity: integrityAudit,
           editorial: editorialAudit,
           approved: auditApproved,
+          soft_approval: softApproved,
+          needs_human_review: softApproved || !integrityAudit.ok || !editorialAudit.ok,
+          gate_issues: auditIssues,
           narrative_sha256: hashNarrationIntegrityText(
             parsedData.narrative_script
           ),
           audited_at: new Date().toISOString(),
           automatic_repair: parsedData.automatic_narration_repair,
         };
-        if (auditApproved && (finalRepair?.attempts || 0) > 0) {
+        if (auditApproved && (finalRepair?.attempts || 0) > 0 && !softApproved) {
           report(
             "auditoria",
             `Narração corrigida e aprovada após ${finalRepair.attempts} autorreparo(s).`,
             92
           );
         }
+        if (softApproved) {
+          report(
+            "auditoria",
+            `Narração salva para sua revisão (${auditIssues.length} ponto(s) ainda abertos). A IA já tentou corrigir ${finalRepair?.attempts || 0} vez(es) — edite o que quiser no texto.`,
+            92
+          );
+          appendProjectEventLog(projDir, {
+            component: "narration",
+            event: "narracao_pro_soft_approved",
+            message:
+              "Narração entregue com soft-aprovação para revisão humana (não bloqueou após autorreparo).",
+            details: parsedData.narracao_pro_audit,
+          });
+        }
+        // Só bloqueia de verdade se NÃO houver texto utilizável (vazio / lixo).
         if (!parsedData.narracao_pro_audit.approved) {
-          const issues = auditIssues.length
-            ? auditIssues
-            : [
-                ...(integrityAudit?.issues || []),
-                ...(editorialAudit?.issues || []),
-              ].filter(Boolean);
-          const message = `Narração bloqueada pelo NARRACAOPRO: ${issues.join(" | ") || "critérios de qualidade não atendidos"}`;
+          const issues = auditIssues;
+          const message = `Narração bloqueada pelo NARRACAOPRO: ${issues.join(" | ") || "texto ausente ou inválido"}`;
           console.warn(`[NARRACAOPRO] ${message}`);
           appendProjectEventLog(projDir, {
             component: "narration",
@@ -23137,12 +23350,12 @@ app.post(
           });
           failJobProgress(progressJobId, message);
           return activeRes.status(422).json({
-            error: `A IA corrigiu e reavaliou a narração ${finalRepair?.attempts || 0} vez(es), mas ainda restaram bloqueios obrigatórios.`,
+            error: `Não foi possível gerar um texto de narração utilizável após ${finalRepair?.attempts || 0} autorreparo(s).`,
             details: issues,
             audit: parsedData.narracao_pro_audit,
             automaticRepairExhausted: true,
             automaticRepairAttempts: finalRepair?.attempts || 0,
-            hint: "Vídeo longo exige mais desenvolvimento (cadeia causal, números, fechamento). Tente regenerar ou enriquecer a pesquisa/tese.",
+            hint: "Confira a ideia/tese e a pesquisa; depois gere a narração de novo.",
           });
         }
 
@@ -23216,6 +23429,14 @@ app.post(
           technical_config: partialStoryboard.technical_config,
           automatic_narration_repair:
             partialStoryboard.automatic_narration_repair,
+          narracao_pro_audit: partialStoryboard.narracao_pro_audit,
+          needs_human_review: Boolean(
+            partialStoryboard.narracao_pro_audit?.needs_human_review
+          ),
+          soft_approval: Boolean(
+            partialStoryboard.narracao_pro_audit?.soft_approval
+          ),
+          warnings: partialStoryboard.narracao_pro_audit?.gate_issues || [],
           notebooklm_enriched: notebooklmEnriched,
           notebooklm_summary: notebooklmEnrichSummary
             ? notebooklmEnrichSummary.slice(0, 500)
@@ -23566,25 +23787,48 @@ app.post(
         researchSources:
           webResearchMeta?.sources || parsedData.research_sources || [],
       });
+      const editorialQ = safeAuditSlice(
+        parsedData.editorial_quality,
+        "editorial"
+      );
+      const integrityQ = safeAuditSlice(finalIntegrityAudit, "integrity");
+      let fullApproved = integrityQ.ok === true && editorialQ.ok === true;
+      const fullIssues = [
+        ...(integrityQ.issues || []),
+        ...(editorialQ.issues || []),
+      ].filter(Boolean);
+      let fullSoft = false;
+      if (!fullApproved && narrationHasReviewableContent(parsedData, format)) {
+        fullSoft = true;
+        fullApproved = true;
+        console.warn(
+          `[NARRACAOPRO] Soft-aprovação do roteiro completo para revisão humana. Issues: ${fullIssues.join(" | ") || "—"}`
+        );
+      }
       parsedData.narracao_pro_audit = {
-        integrity: finalIntegrityAudit,
-        editorial: parsedData.editorial_quality,
-        approved: finalIntegrityAudit.ok && parsedData.editorial_quality.ok,
+        integrity: integrityQ,
+        editorial: editorialQ,
+        approved: fullApproved,
+        soft_approval: fullSoft,
+        needs_human_review: fullSoft || !integrityQ.ok || !editorialQ.ok,
+        gate_issues: fullIssues,
         narrative_sha256: hashNarrationIntegrityText(
           parsedData.narrative_script
         ),
         audited_at: new Date().toISOString(),
       };
-      parsedData.narration_readiness = assessNarrationReadiness({
-        format,
-        narrativeScript: parsedData.narrative_script,
-      });
+      parsedData.editorial_quality = editorialQ;
+      try {
+        parsedData.narration_readiness = assessNarrationReadiness({
+          format,
+          narrativeScript: parsedData.narrative_script,
+        });
+      } catch {
+        parsedData.narration_readiness = { ok: true, recommendations: [] };
+      }
       if (!parsedData.narracao_pro_audit.approved) {
-        const issues = [
-          ...finalIntegrityAudit.issues,
-          ...parsedData.editorial_quality.issues,
-        ].filter(Boolean);
-        const message = `Roteiro completo bloqueado pelo NARRACAOPRO: ${issues.join(" | ")}`;
+        const issues = fullIssues;
+        const message = `Roteiro completo bloqueado pelo NARRACAOPRO: ${issues.join(" | ") || "texto ausente"}`;
         appendProjectEventLog(projDir, {
           component: "narration",
           event: "narracao_pro_full_script_blocked",
@@ -23594,9 +23838,23 @@ app.post(
         failJobProgress(progressJobId, message);
         return activeRes.status(422).json({
           error:
-            "O roteiro completo violou regras obrigatórias do NARRACAOPRO e não foi salvo.",
+            "O roteiro completo não produziu texto utilizável e não foi salvo.",
           details: issues,
           audit: parsedData.narracao_pro_audit,
+        });
+      }
+      if (fullSoft) {
+        report(
+          "auditoria",
+          `Roteiro salvo para sua revisão (${fullIssues.length} ponto(s) abertos). Continue e ajuste o texto no editor.`,
+          94
+        );
+        appendProjectEventLog(projDir, {
+          component: "narration",
+          event: "narracao_pro_full_soft_approved",
+          message:
+            "Roteiro completo soft-aprovado para revisão humana (não bloqueou).",
+          details: parsedData.narracao_pro_audit,
         });
       }
 
