@@ -53,6 +53,7 @@ import { cleanText, matchWords } from "../shared/narrationMatch.js";
 import { tightenTimelineRetentionDurations } from "./timelineSceneSync.js";
 import { applyNarrationFirstVisualPlan } from "../shared/narrationFirstVisualPlan.js";
 import { isPromptOnlyKeyframe } from "../shared/timelineKeyframeUtils.js";
+import { getFfmpegStatus, buildPythonSpawnEnv } from "./pythonEnv.js";
 
 const MAX_WHISPER_WORD_DURATION_S = 2.5;
 const MAX_WHISPER_INTER_WORD_GAP_S = 1.2;
