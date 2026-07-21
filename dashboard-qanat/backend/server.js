@@ -23038,20 +23038,39 @@ app.post(
           researchFacts: webResearchMeta?.facts || [],
           researchSources: webResearchMeta?.sources || [],
         });
-        parsedData = finalRepair.storyboard;
-        const integrityAudit = finalRepair.audit.integrity;
-        const editorialAudit = finalRepair.audit.editorial;
+        parsedData = finalRepair?.storyboard || parsedData;
+        // Defensivo: o loop de auditoria DEVE devolver audit; se não, reavalia in-place.
+        let integrityAudit = finalRepair?.audit?.integrity;
+        let editorialAudit = finalRepair?.audit?.editorial;
+        let auditIssues = Array.isArray(finalRepair?.audit?.issues)
+          ? finalRepair.audit.issues
+          : [];
+        let auditApproved =
+          finalRepair?.approved === true ||
+          finalRepair?.audit?.approved === true;
+        if (!integrityAudit || !editorialAudit) {
+          const fallbackAudit = evaluateNarrationFinalAudit(parsedData, {
+            format,
+            idea,
+            researchFacts: webResearchMeta?.facts || [],
+            researchSources: webResearchMeta?.sources || [],
+          });
+          integrityAudit = fallbackAudit.integrity;
+          editorialAudit = fallbackAudit.editorial;
+          auditIssues = fallbackAudit.issues || [];
+          auditApproved = fallbackAudit.approved === true;
+        }
         parsedData.narracao_pro_audit = {
           integrity: integrityAudit,
           editorial: editorialAudit,
-          approved: finalRepair.approved,
+          approved: auditApproved,
           narrative_sha256: hashNarrationIntegrityText(
             parsedData.narrative_script
           ),
           audited_at: new Date().toISOString(),
           automatic_repair: parsedData.automatic_narration_repair,
         };
-        if (finalRepair.approved && finalRepair.attempts > 0) {
+        if (auditApproved && (finalRepair?.attempts || 0) > 0) {
           report(
             "auditoria",
             `Narração corrigida e aprovada após ${finalRepair.attempts} autorreparo(s).`,
@@ -23059,8 +23078,13 @@ app.post(
           );
         }
         if (!parsedData.narracao_pro_audit.approved) {
-          const issues = finalRepair.audit.issues;
-          const message = `Narração bloqueada pelo NARRACAOPRO: ${issues.join(" | ")}`;
+          const issues = auditIssues.length
+            ? auditIssues
+            : [
+                ...(integrityAudit?.issues || []),
+                ...(editorialAudit?.issues || []),
+              ].filter(Boolean);
+          const message = `Narração bloqueada pelo NARRACAOPRO: ${issues.join(" | ") || "critérios de qualidade não atendidos"}`;
           console.warn(`[NARRACAOPRO] ${message}`);
           appendProjectEventLog(projDir, {
             component: "narration",
@@ -23070,12 +23094,12 @@ app.post(
           });
           failJobProgress(progressJobId, message);
           return activeRes.status(422).json({
-            error: `A IA corrigiu e reavaliou a narração ${finalRepair.attempts} vez(es), mas ainda restaram bloqueios obrigatórios.`,
+            error: `A IA corrigiu e reavaliou a narração ${finalRepair?.attempts || 0} vez(es), mas ainda restaram bloqueios obrigatórios.`,
             details: issues,
             audit: parsedData.narracao_pro_audit,
             automaticRepairExhausted: true,
-            automaticRepairAttempts: finalRepair.attempts,
-            hint: "Relações históricas de influência exigem fontes diretas. Sem prova, reformule como comparação explícita ou troque a premissa.",
+            automaticRepairAttempts: finalRepair?.attempts || 0,
+            hint: "Vídeo longo exige mais desenvolvimento (cadeia causal, números, fechamento). Tente regenerar ou enriquecer a pesquisa/tese.",
           });
         }
 

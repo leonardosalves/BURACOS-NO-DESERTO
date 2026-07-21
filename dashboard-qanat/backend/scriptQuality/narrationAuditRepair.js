@@ -1,15 +1,21 @@
 /**
  * narrationAuditRepair.js
- * Módulo de reparo automático de narração baseado em auditoria.
- * Implementação stub — mantém compatibilidade com scriptQuality/index.js
- * enquanto o módulo completo não está disponível.
+ * Loop de reparo automático de narração baseado em auditoria NARRACAOPRO.
+ *
+ * Contrato de retorno (consumido por server.js → repairNarrationThroughFinalAudit):
+ * {
+ *   storyboard,
+ *   repaired: boolean,
+ *   attempts: number,
+ *   approved: boolean,
+ *   audit: { approved, issues, integrity, editorial },
+ *   finalAudit: same as audit,
+ *   failures: string[],
+ * }
  */
 
 /**
  * Verifica se um chunk de narração precisa de reparo baseado no histórico de auditoria.
- * @param {object} chunk - Chunk de narração
- * @param {object[]} auditEvents - Eventos de auditoria
- * @returns {{ needsRepair: boolean, reason: string | null }}
  */
 export function checkNarrationChunkNeedsRepair(chunk = {}, auditEvents = []) {
   return { needsRepair: false, reason: null };
@@ -17,9 +23,6 @@ export function checkNarrationChunkNeedsRepair(chunk = {}, auditEvents = []) {
 
 /**
  * Aplica reparo automático em um chunk de narração baseado nos eventos de auditoria.
- * @param {object} chunk - Chunk de narração
- * @param {object} options - Opções de reparo
- * @returns {object} Chunk (possivelmente reparado)
  */
 export function repairNarrationChunkFromAudit(chunk = {}, _options = {}) {
   return chunk;
@@ -27,25 +30,30 @@ export function repairNarrationChunkFromAudit(chunk = {}, _options = {}) {
 
 /**
  * Gera um relatório de reparos aplicados a partir dos eventos de auditoria.
- * @param {object[]} auditEvents - Eventos de auditoria
- * @returns {{ repairsApplied: number, skipped: number, report: object[] }}
  */
 export function buildNarrationAuditRepairReport(auditEvents = []) {
   return { repairsApplied: 0, skipped: 0, report: [] };
 }
 
+function emptyAudit(message = "Auditoria de narração indisponível.") {
+  return {
+    approved: false,
+    ok: false,
+    issues: [message],
+    integrity: { ok: false, issues: [message] },
+    editorial: { ok: false, issues: [] },
+  };
+}
+
+function isAuditApproved(audit) {
+  if (!audit || typeof audit !== "object") return false;
+  if (audit.approved === true) return true;
+  if (audit.ok === true) return true;
+  return false;
+}
+
 /**
  * Executa um loop de reparo de narração com base em auditoria iterativa.
- * Tenta reparar o storyboard até maxAttempts vezes ou até não haver issues.
- *
- * @param {object} opts
- * @param {object}   opts.storyboard    - Storyboard atual
- * @param {string}   opts.format        - Formato do vídeo
- * @param {number}   opts.maxAttempts   - Máx. de tentativas de reparo
- * @param {Function} opts.evaluate      - async (storyboard) => { ok, issues }
- * @param {Function} opts.repair        - async (storyboard, audit, attempt) => storyboard
- * @param {Function} opts.onProgress    - ({ attempt, issues }) => void
- * @returns {Promise<{ storyboard: object, repaired: boolean, attempts: number, finalAudit: object | null }>}
  */
 export async function runNarrationAuditRepairLoop({
   storyboard,
@@ -55,49 +63,158 @@ export async function runNarrationAuditRepairLoop({
   onProgress,
 } = {}) {
   if (!storyboard) {
-    return { storyboard, repaired: false, attempts: 0, finalAudit: null };
+    const audit = emptyAudit("Storyboard ausente para auditoria de narração.");
+    return {
+      storyboard,
+      repaired: false,
+      attempts: 0,
+      approved: false,
+      audit,
+      finalAudit: audit,
+      failures: [audit.issues[0]],
+    };
+  }
+
+  if (typeof evaluate !== "function") {
+    const audit = emptyAudit("Função de avaliação de narração não configurada.");
+    return {
+      storyboard,
+      repaired: false,
+      attempts: 0,
+      approved: false,
+      audit,
+      finalAudit: audit,
+      failures: [audit.issues[0]],
+    };
   }
 
   let current = storyboard;
   let lastAudit = null;
   let repaired = false;
+  let attemptsUsed = 0;
+  const failures = [];
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    attemptsUsed = attempt;
     try {
-      // Avaliar qualidade atual
-      const audit = evaluate ? await evaluate(current) : { ok: true, issues: [] };
-      lastAudit = audit;
+      const audit = await evaluate(current);
+      lastAudit = audit && typeof audit === "object" ? audit : emptyAudit();
 
-      const issues = audit?.issues || [];
-
-      if (typeof onProgress === "function") {
-        onProgress({ attempt, issues });
+      // Normaliza shape: server espera approved + integrity + editorial
+      if (lastAudit.approved == null && lastAudit.ok != null) {
+        lastAudit = { ...lastAudit, approved: Boolean(lastAudit.ok) };
+      }
+      if (!lastAudit.integrity) {
+        lastAudit = {
+          ...lastAudit,
+          integrity: {
+            ok: Boolean(lastAudit.approved),
+            issues: lastAudit.issues || [],
+          },
+        };
+      }
+      if (!lastAudit.editorial) {
+        lastAudit = {
+          ...lastAudit,
+          editorial: {
+            ok: Boolean(lastAudit.approved),
+            issues: [],
+          },
+        };
       }
 
-      // Se aprovado ou sem reparador, parar
-      if (audit?.ok || issues.length === 0 || typeof repair !== "function") {
+      const issues = Array.isArray(lastAudit.issues) ? lastAudit.issues : [];
+
+      if (typeof onProgress === "function") {
+        try {
+          onProgress({ attempt, issues });
+        } catch {
+          /* progress never blocks */
+        }
+      }
+
+      if (isAuditApproved(lastAudit)) {
         break;
       }
 
-      // Aplicar reparo
-      const repaired_sb = await repair(current, audit, attempt);
-      if (repaired_sb && repaired_sb !== current) {
-        current = repaired_sb;
+      // Sem reparador → encerra com o último audit (não aprovado)
+      if (typeof repair !== "function") {
+        break;
+      }
+
+      // Última tentativa: só avalia, não repara de novo
+      if (attempt >= maxAttempts) {
+        break;
+      }
+
+      const repairedSb = await repair(current, lastAudit, attempt);
+      if (repairedSb && typeof repairedSb === "object") {
+        current = repairedSb;
         repaired = true;
       } else {
-        // Reparo não produziu mudança — parar para evitar loop infinito
+        failures.push(`repair_attempt_${attempt}_noop`);
         break;
       }
     } catch (err) {
-      console.warn(`[runNarrationAuditRepairLoop] Tentativa ${attempt} falhou:`, err?.message);
+      const msg = err?.message || String(err);
+      failures.push(msg);
+      console.warn(
+        `[runNarrationAuditRepairLoop] Tentativa ${attempt} falhou:`,
+        msg
+      );
+      // Reavalia o atual se possível para não perder o audit
+      try {
+        lastAudit = await evaluate(current);
+      } catch {
+        lastAudit = emptyAudit(msg);
+      }
       break;
     }
   }
 
+  // Reavaliação final após último reparo (garante audit coerente com o texto final)
+  if (repaired && typeof evaluate === "function") {
+    try {
+      const finalEval = await evaluate(current);
+      if (finalEval && typeof finalEval === "object") {
+        lastAudit = finalEval;
+        if (lastAudit.approved == null && lastAudit.ok != null) {
+          lastAudit = { ...lastAudit, approved: Boolean(lastAudit.ok) };
+        }
+        if (!lastAudit.integrity) {
+          lastAudit = {
+            ...lastAudit,
+            integrity: {
+              ok: Boolean(lastAudit.approved),
+              issues: lastAudit.issues || [],
+            },
+          };
+        }
+        if (!lastAudit.editorial) {
+          lastAudit = {
+            ...lastAudit,
+            editorial: {
+              ok: Boolean(lastAudit.approved),
+              issues: [],
+            },
+          };
+        }
+      }
+    } catch (err) {
+      failures.push(err?.message || String(err));
+    }
+  }
+
+  const audit = lastAudit || emptyAudit();
+  const approved = isAuditApproved(audit);
+
   return {
     storyboard: current,
     repaired,
-    attempts: maxAttempts,
-    finalAudit: lastAudit,
+    attempts: attemptsUsed,
+    approved,
+    audit,
+    finalAudit: audit,
+    failures,
   };
 }
