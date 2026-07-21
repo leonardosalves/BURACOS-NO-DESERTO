@@ -27,8 +27,25 @@ export default function ChannelSwitcher() {
         title="Gerenciar canais"
         role="button"
       >
-        <div className="ch-switcher__avatar" style={{ background: color }}>
-          {initial}
+        <div
+          className="ch-switcher__avatar"
+          style={{
+            background: color,
+            overflow: "hidden",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {active?.avatar_url ? (
+            <img
+              src={active.avatar_url}
+              alt={active.nome}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            initial
+          )}
         </div>
         <div className="ch-switcher__info">
           <div className="ch-switcher__name">

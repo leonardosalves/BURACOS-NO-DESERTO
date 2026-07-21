@@ -136,8 +136,25 @@ export default function ChannelCard({
       style={{ "--card-accent": color } as React.CSSProperties}
     >
       <div className="ch-card__top">
-        <div className="ch-avatar" style={{ background: color }}>
-          {channel.nome.charAt(0).toUpperCase()}
+        <div
+          className="ch-avatar"
+          style={{
+            background: color,
+            overflow: "hidden",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {channel.avatar_url ? (
+            <img
+              src={channel.avatar_url}
+              alt={channel.nome}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            channel.nome.charAt(0).toUpperCase()
+          )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="ch-card__name">{channel.nome}</div>

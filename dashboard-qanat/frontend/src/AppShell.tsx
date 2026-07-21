@@ -392,7 +392,10 @@ export function AppShell({
             onClick={() => setActiveTab("home")}
             title="Lumiera Studio — Início"
           >
-            <span className="dash-brand-icon" style={{ background: "transparent", boxShadow: "none" }}>
+            <span
+              className="dash-brand-icon"
+              style={{ background: "transparent", boxShadow: "none" }}
+            >
               <Logo size={28} variant="mark" glow />
             </span>
             <span className="dash-brand-text">
@@ -678,7 +681,6 @@ export function AppShell({
           </div>
 
           <div className="dash-header-right">
-            <ChannelSwitcher />
             <ThemeToggle />
             <div className="dash-status-chip hidden sm:flex">
               <span
@@ -745,12 +747,7 @@ export function AppShell({
               <RefreshCw className="w-4 h-4" />
             </button>
 
-            <div className="dash-user-pill" title={activeProject}>
-              <span className="dash-user-avatar">L</span>
-              <span className="dash-user-name hidden md:inline truncate max-w-[140px]">
-                {activeProject}
-              </span>
-            </div>
+            <ChannelSwitcher />
           </div>
         </header>
 

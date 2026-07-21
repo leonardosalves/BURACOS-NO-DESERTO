@@ -50,6 +50,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
           nome: channel.nome || "",
           id: channel.id || "",
           youtubeChannelId: channel.youtube_channel_id || "",
+          avatarUrl: channel.avatar_url || "",
           cor: channel.cor || "#f5a623",
           nicho: channel.nicho || "",
           subNichos: (channel.sub_nichos_permitidos || []).join(", "),
@@ -61,6 +62,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
           nome: "",
           id: "",
           youtubeChannelId: "",
+          avatarUrl: "",
           cor: "#f5a623",
           nicho: "",
           subNichos: "",
@@ -71,6 +73,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
   );
 
   const [idTouched, setIdTouched] = useState(isEdit);
+  const [buscandoAvatar, setBuscandoAvatar] = useState(false);
   const [mostrarKey, setMostrarKey] = useState(false);
   const [salvandoKey, setSalvandoKey] = useState(false);
   const [keyMsg, setKeyMsg] = useState<{
@@ -119,6 +122,34 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
     }
   };
 
+  const buscarAvatar = async () => {
+    if (!form.youtubeChannelId.trim()) {
+      setError("Informe o YouTube Channel ID para buscar o avatar.");
+      return;
+    }
+    setBuscandoAvatar(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/channels/fetch-avatar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          youtubeChannelId: form.youtubeChannelId.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok)
+        throw new Error(data.error || "Não foi possível encontrar o avatar.");
+      if (data.avatar_url) {
+        setForm((f) => ({ ...f, avatarUrl: data.avatar_url }));
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setBuscandoAvatar(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -139,6 +170,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
           meta: {
             nome: form.nome,
             youtube_channel_id: form.youtubeChannelId,
+            avatar_url: form.avatarUrl,
             descricao: form.descricao,
             cor: form.cor,
           },
@@ -159,6 +191,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
           id: form.id,
           nome: form.nome,
           youtubeChannelId: form.youtubeChannelId,
+          avatarUrl: form.avatarUrl,
           cor: form.cor,
           nicho: form.nicho,
           subNichos: form.subNichos,
@@ -183,7 +216,8 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
           <label>
             Nome do canal <em>*</em>
           </label>
-          <input className="input"
+          <input
+            className="input"
             value={form.nome}
             onChange={set("nome")}
             placeholder="Ex: Engenharia Impossível"
@@ -194,7 +228,8 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
           <label>
             ID interno <em>*</em>
           </label>
-          <input className="input"
+          <input
+            className="input"
             value={form.id}
             onChange={(e) => {
               setIdTouched(true);
@@ -212,13 +247,54 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
 
       <div className="ch-form__row">
         <div className="ch-field">
-          <label>YouTube Channel ID</label>
-          <input className="input"
-            value={form.youtubeChannelId}
-            onChange={set("youtubeChannelId")}
-            placeholder="UCxxxxxxxxxxxxxxxxxxxxxx"
-            style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}
-          />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <label>YouTube Channel ID</label>
+            {form.youtubeChannelId && (
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={buscarAvatar}
+                disabled={buscandoAvatar}
+                style={{ fontSize: 11, padding: "2px 8px" }}
+              >
+                {buscandoAvatar ? "Buscando..." : "✨ Obter Avatar Automático"}
+              </button>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {form.avatarUrl ? (
+              <img
+                src={form.avatarUrl}
+                alt="Avatar"
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  border: "2px solid rgba(255,255,255,0.2)",
+                }}
+                title="Avatar do canal"
+              />
+            ) : null}
+            <input
+              className="input"
+              value={form.youtubeChannelId}
+              onChange={set("youtubeChannelId")}
+              placeholder="UCxxxxxxxxxxxxxxxxxxxxxx"
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 12.5,
+                flex: 1,
+              }}
+            />
+          </div>
           <div className="hint">
             Encontre em YouTube Studio → Configurações → Canal → Informações
             avançadas
@@ -244,7 +320,8 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
       <div className="ch-form__row">
         <div className="ch-field">
           <label>Nicho principal</label>
-          <input className="input"
+          <input
+            className="input"
             value={form.nicho}
             onChange={set("nicho")}
             placeholder="engenharia_e_construcao"
@@ -258,7 +335,8 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
         </div>
         <div className="ch-field">
           <label>Sub-nichos permitidos</label>
-          <input className="input"
+          <input
+            className="input"
             value={form.subNichos}
             onChange={set("subNichos")}
             placeholder="engenharia_historica, megaprojetos, tecnologia_construcao"
@@ -271,7 +349,8 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
 
       <div className="ch-field">
         <label>Temas proibidos</label>
-        <input className="input"
+        <input
+          className="input"
           value={form.temasProibidos}
           onChange={set("temasProibidos")}
           placeholder="politica, guerra_moderna, biologia"
@@ -283,7 +362,8 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
 
       <div className="ch-field">
         <label>Descrição</label>
-        <textarea className="input"
+        <textarea
+          className="input"
           value={form.descricao}
           onChange={set("descricao")}
           rows={2}
@@ -307,7 +387,8 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
             </span>
           </label>
           <div className="apikey-row">
-            <input className="input"
+            <input
+              className="input"
               type={mostrarKey ? "text" : "password"}
               value={form.apiKey}
               onChange={set("apiKey")}
@@ -353,11 +434,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
         <button type="button" className="btn btn--ghost" onClick={onDone}>
           Cancelar
         </button>
-        <button
-          type="submit"
-          className="btn btn--primary"
-          disabled={saving}
-        >
+        <button type="submit" className="btn btn--primary" disabled={saving}>
           {saving ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar canal"}
         </button>
       </div>

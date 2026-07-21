@@ -39,11 +39,21 @@ export default function ChannelManager({
         <div className="ch-head">
           <div>
             <h2>
-              {view === "form"
-                ? editing
-                  ? "Editar <span>Canal</span>"
-                  : "Novo <span>Canal</span>"
-                : "Meus <span>Canais</span>"}
+              {view === "form" ? (
+                editing ? (
+                  <>
+                    Editar <span>Canal</span>
+                  </>
+                ) : (
+                  <>
+                    Novo <span>Canal</span>
+                  </>
+                )
+              ) : (
+                <>
+                  Meus <span>Canais</span>
+                </>
+              )}
             </h2>
             <div className="ch-sub">
               {view === "form"

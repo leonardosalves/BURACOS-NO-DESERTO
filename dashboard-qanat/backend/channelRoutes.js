@@ -9,6 +9,7 @@
  */
 
 import { Router } from "express";
+import https from "https";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
@@ -72,11 +73,106 @@ router.post("/switch", (req, res) => {
   }
 });
 
-// POST /api/channels/create — Criar novo canal
-router.post("/create", (req, res) => {
+// Helper para buscar avatar público do YouTube
+export function fetchYoutubeAvatarUrl(youtubeChannelId) {
+  return new Promise((resolve) => {
+    if (!youtubeChannelId || typeof youtubeChannelId !== "string")
+      return resolve(null);
+    const cleanId = youtubeChannelId.trim();
+    if (!cleanId) return resolve(null);
+
+    const url = cleanId.startsWith("UC")
+      ? `https://www.youtube.com/channel/${cleanId}`
+      : cleanId.startsWith("@")
+        ? `https://www.youtube.com/${cleanId}`
+        : `https://www.youtube.com/channel/${cleanId}`;
+
+    const req = https.get(
+      url,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        },
+      },
+      (res) => {
+        let html = "";
+        res.on("data", (chunk) => {
+          html += chunk;
+        });
+        res.on("end", () => {
+          const ogMatch = html.match(
+            /<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i
+          );
+          if (ogMatch && ogMatch[1]) return resolve(ogMatch[1]);
+
+          const avatarMatch = html.match(
+            /"avatar":\s*\{\s*"thumbnails":\s*\[\s*\{\s*"url":\s*"([^"]+)"/i
+          );
+          if (avatarMatch && avatarMatch[1]) return resolve(avatarMatch[1]);
+
+          resolve(null);
+        });
+      }
+    );
+    req.on("error", () => resolve(null));
+    req.setTimeout(6000, () => {
+      req.destroy();
+      resolve(null);
+    });
+  });
+}
+
+// POST /api/channels/fetch-avatar — Buscar avatar automático no YouTube
+router.post("/fetch-avatar", async (req, res) => {
   try {
-    const { id, nome, youtubeChannelId } = req.body || {};
-    const result = createChannel({ id, nome, youtubeChannelId });
+    const youtubeChannelId =
+      req.body?.youtubeChannelId || req.body?.youtube_channel_id;
+    if (!youtubeChannelId) {
+      return res.status(400).json({ error: "youtubeChannelId é obrigatório." });
+    }
+    const avatarUrl = await fetchYoutubeAvatarUrl(youtubeChannelId);
+    if (!avatarUrl) {
+      return res
+        .status(404)
+        .json({ error: "Avatar não encontrado para este ID de canal." });
+    }
+    res.json({ ok: true, avatar_url: avatarUrl });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/channels/create — Criar novo canal
+router.post("/create", async (req, res) => {
+  try {
+    const {
+      id,
+      nome,
+      youtubeChannelId,
+      avatarUrl,
+      cor,
+      nicho,
+      subNichos,
+      temasProibidos,
+      descricao,
+    } = req.body || {};
+    let finalAvatarUrl = avatarUrl;
+    if (!finalAvatarUrl && youtubeChannelId) {
+      finalAvatarUrl = await fetchYoutubeAvatarUrl(youtubeChannelId);
+    }
+    const result = createChannel({
+      id,
+      nome,
+      youtubeChannelId,
+      avatarUrl: finalAvatarUrl,
+      cor,
+      nicho,
+      subNichos,
+      temasProibidos,
+      descricao,
+    });
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -107,19 +203,27 @@ router.get("/:id/config", (req, res) => {
 });
 
 // PUT /api/channels/:id/config — Atualizar config
-router.put("/:id/config", (req, res) => {
+router.put("/:id/config", async (req, res) => {
   try {
-    const existing = loadChannelConfig(req.params.id);
-    if (!existing) {
-      return res.status(404).json({ error: "Canal não encontrado." });
-    }
+    const existing = loadChannelConfig(req.params.id) || {};
     // Deep merge (não sobrescrever meta.id)
     const merged = { ...existing, ...req.body };
     merged.meta = {
-      ...existing.meta,
+      ...(existing.meta || {}),
       ...(req.body.meta || {}),
       id: req.params.id,
     };
+
+    // Tentar buscar avatar automaticamente se não fornecido mas youtube_channel_id existe
+    if (merged.meta.youtube_channel_id && !merged.meta.avatar_url) {
+      const fetched = await fetchYoutubeAvatarUrl(
+        merged.meta.youtube_channel_id
+      );
+      if (fetched) {
+        merged.meta.avatar_url = fetched;
+      }
+    }
+
     saveChannelConfig(req.params.id, merged);
     res.json({ ok: true, config: merged });
   } catch (err) {

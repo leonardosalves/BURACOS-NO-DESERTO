@@ -177,7 +177,17 @@ export function getActivePipelineConfig() {
 
 // ─── CRIAR NOVO CANAL ─────────────────────────────────────────
 
-export function createChannel({ id, nome, youtubeChannelId = "" }) {
+export function createChannel({
+  id,
+  nome,
+  youtubeChannelId = "",
+  avatarUrl = "",
+  cor = "#f5a623",
+  nicho = "",
+  subNichos = "",
+  temasProibidos = "",
+  descricao = "",
+}) {
   if (!id || !nome) {
     throw new Error("id e nome são obrigatórios.");
   }
@@ -211,13 +221,34 @@ export function createChannel({ id, nome, youtubeChannelId = "" }) {
 
   // Atualizar config
   const configPath = path.join(channelDir, "channel.config.json");
-  const config = readJsonSafe(configPath, {});
+  const config = readJsonSafe(configPath, {}) || {};
   config.meta = {
     ...(config.meta || {}),
     id: safeId,
     nome: String(nome).trim(),
     youtube_channel_id: youtubeChannelId,
+    avatar_url: avatarUrl,
+    cor,
+    descricao,
     criado_em: new Date().toISOString().split("T")[0],
+  };
+  config.nicho = {
+    ...(config.nicho || {}),
+    principal: nicho,
+    sub_nichos_permitidos:
+      typeof subNichos === "string"
+        ? subNichos
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : subNichos || [],
+    temas_proibidos:
+      typeof temasProibidos === "string"
+        ? temasProibidos
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : temasProibidos || [],
   };
   writeJson(configPath, config);
 
@@ -227,6 +258,7 @@ export function createChannel({ id, nome, youtubeChannelId = "" }) {
     id: safeId,
     nome: String(nome).trim(),
     youtube_channel_id: youtubeChannelId,
+    avatar_url: avatarUrl,
     status: "rascunho",
     criado_em: config.meta.criado_em,
     ultimo_video: null,
