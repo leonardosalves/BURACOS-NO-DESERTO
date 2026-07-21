@@ -12353,7 +12353,14 @@ function getOmniRouteModelChain(
     return [...new Set(modelsOverride.map(String))];
   const primary = getOmniRouteModel(projectDir);
   const fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 3);
-  return [primary, ...fallbacks];
+  // Auto-prefix bare Gemini model names with "gemini/" to avoid
+  // OmniRoute "Ambiguous model" errors when multiple providers expose
+  // the same model ID.
+  const prefixed = [primary, ...fallbacks].map((m) => {
+    if (/^gemini-/i.test(m) && !m.includes("/")) return `gemini/${m}`;
+    return m;
+  });
+  return prefixed;
 }
 
 async function callOmniRouteWithRetry(
@@ -25880,7 +25887,26 @@ const server = app.listen(PORT, () => {
         fs.mkdirSync(logDir, { recursive: true });
       }
 
-      // Check if port 20128 is already listening to avoid duplicate runs
+      // Kill stale OmniRoute process from previous run using saved PID
+      const pidFile = path.join(logDir, "omniroute.pid");
+      try {
+        if (fs.existsSync(pidFile)) {
+          const oldPid = parseInt(fs.readFileSync(pidFile, "utf8").trim(), 10);
+          if (oldPid > 0) {
+            try {
+              process.kill(oldPid, "SIGTERM");
+            } catch {}
+            // Give it a moment to release the port
+            await new Promise((r) => setTimeout(r, 1500));
+            try {
+              process.kill(oldPid, "SIGKILL");
+            } catch {}
+            await new Promise((r) => setTimeout(r, 500));
+          }
+        }
+      } catch {}
+
+      // Check if port 20128 is already listening
       const net = await import("net");
       const checkPort = new Promise((resolve) => {
         const client = new net.Socket();
@@ -25919,11 +25945,7 @@ const server = app.listen(PORT, () => {
           cwd: path.dirname(mjsPath),
         });
 
-        fs.writeFileSync(
-          path.join(logDir, "omniroute.pid"),
-          String(child.pid),
-          "utf8"
-        );
+        fs.writeFileSync(pidFile, String(child.pid), "utf8");
         child.unref();
         console.log(`[OmniRoute] Processo disparado! PID=${child.pid}`);
       });
