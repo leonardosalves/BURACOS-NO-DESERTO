@@ -847,6 +847,9 @@ const DEFAULT_OPENROUTER_MODEL = OPENROUTER_FREE_MODELS[0];
 
 const app = express();
 app.disable("x-powered-by");
+app.use(express.json({ limit: "50mb", strict: true }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
 app.use("/api/channels", channelRouter);
 app.use("/api/tools", toolsRouter);
 app.use("/api/youtube", oauthRouter);
@@ -858,9 +861,6 @@ app.use("/api/health", healthRouter);
 app.use("/api/agents", agentsRouter);
 app.use("/api/templates", templatesRouter);
 app.use("/api/flows", flowRouter);
-
-app.use(express.json({ limit: "50mb", strict: true }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Catch malformed JSON syntax errors to prevent crashing
 app.use((err, req, res, next) => {

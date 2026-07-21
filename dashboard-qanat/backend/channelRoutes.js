@@ -206,11 +206,12 @@ router.get("/:id/config", (req, res) => {
 router.put("/:id/config", async (req, res) => {
   try {
     const existing = loadChannelConfig(req.params.id) || {};
+    const body = req.body || {};
     // Deep merge (não sobrescrever meta.id)
-    const merged = { ...existing, ...req.body };
+    const merged = { ...existing, ...body };
     merged.meta = {
       ...(existing.meta || {}),
-      ...(req.body.meta || {}),
+      ...(body.meta || {}),
       id: req.params.id,
     };
 
@@ -227,6 +228,7 @@ router.put("/:id/config", async (req, res) => {
     saveChannelConfig(req.params.id, merged);
     res.json({ ok: true, config: merged });
   } catch (err) {
+    console.error("ERRO PUT /:id/config:", err);
     res.status(500).json({ error: err.message });
   }
 });
