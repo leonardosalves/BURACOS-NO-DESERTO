@@ -24057,70 +24057,95 @@ app.post(
         storyboard._vpe_visual_identity = parsed.visual_identity;
       }
 
-      const vps = storyboard.visual_prompts || [];
+      const originalPrompts =
+        Array.isArray(prevSnapshot.visual_prompts) &&
+        prevSnapshot.visual_prompts.length > 0
+          ? prevSnapshot.visual_prompts
+          : storyboard.visual_prompts || [];
+
       const expectedBlocks = isListicle
         ? resolveListicleBlockCount({ rankCount: listicleRank, format })
         : format === "SHORTS"
           ? 5
           : 12;
-      // Preserva a narração original, durações e flags POV
-      const prevSceneMap = new Map();
-      for (const prev of prevSnapshot.visual_prompts || []) {
-        prevSceneMap.set(String(prev.scene || ""), prev);
-      }
-      storyboard.visual_prompts = vps.map((vp, index) => {
+
+      // Mapeia melhorias visuais geradas pelo Gemini por chave de cena ("1.1", "1.2") ou índice
+      const llmMapByScene = new Map();
+      (Array.isArray(parsed.visual_prompts)
+        ? parsed.visual_prompts
+        : []
+      ).forEach((vp, idx) => {
+        if (!vp) return;
+        const key = String(vp.scene || vp.cena || "").trim();
+        if (key) llmMapByScene.set(key, vp);
+        llmMapByScene.set(`idx_${idx}`, vp);
+      });
+
+      // Preserva 100% das cenas originais, blocos, narração e durações de prevSnapshot
+      storyboard.visual_prompts = originalPrompts.map((prev, index) => {
+        const sceneKey = String(prev.scene || prev.cena || "").trim();
+        const vp =
+          llmMapByScene.get(sceneKey) ||
+          llmMapByScene.get(`idx_${index}`) ||
+          {};
         const block =
-          parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ??
+          prev.block ||
+          parseBlockNumber(prev.block ?? prev.bloco, prev.scene ?? prev.cena) ||
+          parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ||
           Math.min(
             expectedBlocks,
-            Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1
+            Math.floor(
+              (index * expectedBlocks) / Math.max(originalPrompts.length, 1)
+            ) + 1
           );
-        const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
+        const sceneStr = String(
+          prev.scene || prev.cena || vp.scene || vp.cena || ""
+        ).trim();
         const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
         const scene = sceneInBlock ? sceneStr : `${block}.${index + 1}`;
-        const prev = prevSceneMap.get(String(vp.scene || scene)) || null;
         const identityTags = Array.isArray(vp.identity_tags)
           ? vp.identity_tags
               .map((tag) => String(tag || "").trim())
               .filter(Boolean)
               .slice(0, 8)
-          : undefined;
-        const narrativeJob = String(vp.narrative_job || "")
+          : prev.identity_tags;
+        const narrativeJob = String(
+          vp.narrative_job || prev.narrative_job || ""
+        )
           .trim()
           .toLowerCase();
-        const visualHook = String(vp.visual_hook || "").trim();
+        const visualHook = String(
+          vp.visual_hook || prev.visual_hook || ""
+        ).trim();
+
         return {
-          ...prev, // Mantém dados originais como narration_text, duration_seconds, etc
-          ...vp, // Aplica as novidades geradas pelo Gemini
-          ...(prev
-            ? {
-                // Força restauração de chaves vitais
-                narration_text: prev.narration_text || vp.narration_text || "",
-                narration_excerpt:
-                  prev.narration_excerpt || vp.narration_excerpt || "",
-                is_pov: prev.is_pov,
-                scene_kind: prev.scene_kind || vp.scene_kind,
-                video_role: prev.video_role || vp.video_role,
-                pov_pair_id: prev.pov_pair_id || vp.pov_pair_id,
-                use_source_audio: prev.use_source_audio,
-                no_channel_narration: prev.no_channel_narration,
-                volume: prev.volume,
-                pov_image_prompts:
-                  prev.pov_image_prompts || vp.pov_image_prompts,
-                seedance_refs: {
-                  ...(prev.seedance_refs || {}),
-                  ...(vp.seedance_refs || {}),
-                },
-              }
-            : {}),
+          ...prev, // Mantém dados vitais da cena original (narração, duração, audio_path, etc)
+          ...vp, // Aplica melhorias visuais do Gemini
+          // Garante integridade absoluta de chaves críticas
+          narration_text: prev.narration_text || vp.narration_text || "",
+          narration_excerpt:
+            prev.narration_excerpt || vp.narration_excerpt || "",
+          duration_seconds: prev.duration_seconds || vp.duration_seconds,
+          is_pov: prev.is_pov,
+          scene_kind: prev.scene_kind || vp.scene_kind,
+          video_role: prev.video_role || vp.video_role,
+          pov_pair_id: prev.pov_pair_id || vp.pov_pair_id,
+          use_source_audio: prev.use_source_audio,
+          no_channel_narration: prev.no_channel_narration,
+          volume: prev.volume,
+          pov_image_prompts: prev.pov_image_prompts || vp.pov_image_prompts,
+          seedance_refs: {
+            ...(prev.seedance_refs || {}),
+            ...(vp.seedance_refs || {}),
+          },
           prompt: enforceVisualLocalizedTextRule(
-            enforceNarrativeMaterialFidelity(vp.prompt || "", {
-              narration: (prev ? prev.narration_text : vp.narration_text) || "",
+            enforceNarrativeMaterialFidelity(vp.prompt || prev.prompt || "", {
+              narration: prev.narration_text || vp.narration_text || "",
               narrativeScript: narrative,
             }),
             {
               allowDiegeticText: vp.diegetic_text_required === true,
-              mediaType: vp.type || vp.media_mode || "",
+              mediaType: vp.type || vp.media_mode || prev.type || "",
               format,
             }
           ),
