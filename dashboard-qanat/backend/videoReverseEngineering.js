@@ -8,6 +8,13 @@ import {
   isMapOnlyPromptsEnabled,
   normalizeVisualAssetStyleId,
 } from "../shared/visualAssetStyles.js";
+import { SHORTS_MAX_SCENE_SECONDS } from "./shortsSceneChunker.js";
+import {
+  isCacheEnabled,
+  getCacheKey,
+  readCache,
+  writeCache,
+} from "./reverseEngineeringCache.js";
 
 function cleanText(value, max = 20_000) {
   return String(value || "")
@@ -100,8 +107,56 @@ function looksLikeStaticScene(scene = {}) {
   );
 }
 
-function normalizeScene(scene, index, mediaStrategy = "adaptive") {
-  const duration = Math.max(1, Math.min(Number(scene?.duration_sec) || 5, 120));
+/**
+ * Resolve media_type prioritizing LLM confidence; falls back to keyword heuristics.
+ */
+function resolveSceneMediaType(scene) {
+  const llmType = String(
+    scene?.media_type || scene?.mediaType || ""
+  ).toLowerCase();
+  const llmConfidence = String(scene?.confidence || "").toLowerCase();
+  const llmReason = cleanText(scene?.media_reason || scene?.mediaReason, 1_000);
+
+  // 1) LLM with high confidence and valid type → trust LLM
+  if (
+    (llmType === "video" || llmType === "image") &&
+    llmConfidence === "alta"
+  ) {
+    return {
+      media_type: llmType,
+      confidence: "alta",
+      reason: llmReason || `Decisão do LLM (${llmType})`,
+      source: "llm",
+    };
+  }
+
+  // 2) Fallback: keyword heuristics
+  const motion = looksLikeMotionScene(scene);
+  const static_ = looksLikeStaticScene(scene);
+  let heuristicType;
+  if (motion && !static_) heuristicType = "video";
+  else if (static_ && !motion) heuristicType = "image";
+  else heuristicType = llmType === "video" ? "video" : "image"; // tie-break by LLM
+
+  return {
+    media_type: heuristicType,
+    confidence: "media",
+    reason: llmReason || "Classificado por heurística de palavras-chave",
+    source: "heuristic",
+  };
+}
+
+function normalizeScene(
+  scene,
+  index,
+  mediaStrategy = "adaptive",
+  format = "SHORTS"
+) {
+  const maxSceneDuration = format === "SHORTS" ? SHORTS_MAX_SCENE_SECONDS : 120;
+  const duration = Math.max(
+    1,
+    Math.min(Number(scene?.duration_sec) || 5, maxSceneDuration)
+  );
   const narration = cleanText(scene?.narration, 6_000);
   const visualDescription = cleanText(scene?.visual_description, 4_000);
   let imagePrompt = cleanText(scene?.image_prompt, 6_000);
@@ -110,6 +165,8 @@ function normalizeScene(scene, index, mediaStrategy = "adaptive") {
     scene?.media_type || scene?.mediaType,
     30
   ).toLowerCase();
+  // Use resolveSceneMediaType for intelligent classification
+  const mediaDecision = resolveSceneMediaType(scene);
   let mediaType =
     mediaStrategy === "video_only"
       ? "video"
@@ -121,11 +178,7 @@ function normalizeScene(scene, index, mediaStrategy = "adaptive") {
             ? "video"
             : imagePrompt && !explicitVideoPrompt
               ? "image"
-              : looksLikeStaticScene(scene)
-                ? "image"
-                : looksLikeMotionScene(scene)
-                  ? "video"
-                  : "image";
+              : mediaDecision.media_type;
 
   // Adaptive: never invent video for clearly static beats
   if (
@@ -244,7 +297,9 @@ export function normalizeReverseEngineeringResult(raw = {}, context = {}) {
     context.mediaStrategy === "video_only" ? "video_only" : "adaptive";
   const scenes = rebalanceAdaptiveMediaMix(
     (Array.isArray(raw.scenes) ? raw.scenes : [])
-      .map((scene, index) => normalizeScene(scene, index, mediaStrategy))
+      .map((scene, index) =>
+        normalizeScene(scene, index, mediaStrategy, context.format)
+      )
       .filter(
         (scene) =>
           scene.narration ||
@@ -458,6 +513,15 @@ export async function runVideoReverseEngineering({
   workspaceDir,
   getGeminiModel: _getGeminiModel,
 } = {}) {
+  // Cache: return previous result if available (same video/format/mode/strategy)
+  const cacheKey = getCacheKey({ url, format, mode, mediaStrategy });
+  if (isCacheEnabled() && workspaceDir) {
+    const cached = readCache(workspaceDir, cacheKey);
+    if (cached) {
+      return { ok: true, result: cached, fromCache: true };
+    }
+  }
+
   const [video, context] = await Promise.all([
     analyzeVideoUnderstanding({
       url,
@@ -506,9 +570,9 @@ export async function runVideoReverseEngineering({
   });
 
   const junkNarrationRe =
-    /^(uncertain|incerto|incerta|unknown|n\/a|none|null|undefined|sem dados|não sei|nao sei)\b/i;
+    /^(uncertain|incerto|incerta|unknown|n\/a|none|null|undefined|sem dados|não sei|nao sei|lorem ipsum|texto de exemplo|exemplo|sample|placeholder|transcri[çc][ãa]o|transcript|sem narração|\[.*\]|\{.*\})\b/i;
 
-  function isWeakReverseResult(obj) {
+  function isWeakReverseResult(obj, context = {}) {
     if (!obj || typeof obj !== "object") return true;
     const narration = cleanText(
       obj.reconstructed_narration || obj.source_transcript || "",
@@ -519,23 +583,67 @@ export async function runVideoReverseEngineering({
       return true;
     }
     if (scenes.length < 2) return true;
+
+    // >50% scenes missing visual prompts
+    const scenesSemPrompt = scenes.filter(
+      (s) => !cleanText(s?.image_prompt || s?.video_prompt, 6_000)
+    );
+    if (scenesSemPrompt.length > scenes.length * 0.5) return true;
+
+    // >50% scenes missing narration
+    const scenesSemNarracao = scenes.filter(
+      (s) =>
+        !cleanText(
+          s?.narration_text || s?.narration || s?.narration_excerpt,
+          2_000
+        )
+    );
+    if (scenesSemNarracao.length > scenes.length * 0.5) return true;
+
+    // Total duration deviates >70% from source
+    const sourceDuration = Number(context.durationSec || 0);
+    if (sourceDuration > 0) {
+      const totalDur = scenes.reduce(
+        (sum, s) => sum + (Number(s?.duration_sec) || 0),
+        0
+      );
+      if (
+        totalDur > 0 &&
+        Math.abs(totalDur - sourceDuration) > sourceDuration * 0.7
+      ) {
+        return true;
+      }
+    }
+
     return false;
   }
+
+  // Dynamic maxTokens: longer videos generate more scenes, need more tokens to avoid JSON truncation
+  const MAX_OUTPUT_TOKENS_CAP =
+    Number(process.env.REVERSE_MAX_OUTPUT_TOKENS) || 16000;
+  const estimatedScenes = Math.max(
+    6,
+    Math.ceil((Number(metadata?.duration_sec) || 300) / 8)
+  );
+  const dynamicMaxTokens = Math.min(
+    MAX_OUTPUT_TOKENS_CAP,
+    6000 + estimatedScenes * 450
+  );
 
   let parsed = null;
   let llmWarnings = [];
   try {
-    // 1) Provedor ativo (OpenRouter / NVIDIA / xAI / Gemini / local)
+    // 1) Active provider (OpenRouter / NVIDIA / xAI / Gemini / local)
     const response = await callGeminiWithRetry(apiKey, prompt, {
       projectDir: workspaceDir,
       maxRetries: 2,
       temperature: mode === "faithful" ? 0.15 : 0.35,
       activityLabel: "Engenharia reversa",
       activityDetail: String(url || "").slice(0, 120),
-      maxTokens: 8192,
+      maxTokens: dynamicMaxTokens,
     });
     parsed = extractReverseEngineeringJson(response);
-    if (isWeakReverseResult(parsed)) {
+    if (isWeakReverseResult(parsed, { durationSec: metadata?.duration_sec })) {
       llmWarnings.push(
         "Primeira passagem do provedor ativo devolveu narração/cenas fracas — tentando reforço."
       );
@@ -546,25 +654,76 @@ export async function runVideoReverseEngineering({
     llmWarnings.push(`Falha no provedor ativo: ${error.message}`);
   }
 
-  // 2) Segunda passagem no MESMO provedor configurado (sem engessar Gemini)
-  if (!parsed || isWeakReverseResult(parsed)) {
+  // 2) Feedback-driven second pass on the SAME configured provider
+  if (
+    !parsed ||
+    isWeakReverseResult(parsed, { durationSec: metadata?.duration_sec })
+  ) {
     try {
       console.warn(
         "[VideoReverseEngineering] Segunda passagem no provedor ativo (JSON completo)."
       );
-      const response = await callGeminiWithRetry(apiKey, prompt, {
+
+      // Build feedback-enriched repair prompt
+      const problemas = [];
+      if (parsed === null) {
+        problemas.push(
+          "A resposta anterior NÃO retornou JSON válido completo (possivelmente truncado)."
+        );
+      } else {
+        const scenesPrev = Array.isArray(parsed.scenes) ? parsed.scenes : [];
+        if (scenesPrev.length < 2) {
+          problemas.push(
+            `Retornou apenas ${scenesPrev.length} cena(s) — são necessárias várias cenas cobrindo TODO o vídeo.`
+          );
+        }
+        const semPrompt = scenesPrev.filter(
+          (s) => !cleanText(s?.image_prompt || s?.video_prompt, 6_000)
+        );
+        if (semPrompt.length) {
+          problemas.push(
+            `${semPrompt.length} cena(s) sem prompt visual válido.`
+          );
+        }
+        const semNarr = scenesPrev.filter(
+          (s) => !cleanText(s?.narration || s?.narration_text, 2_000)
+        );
+        if (semNarr.length) {
+          problemas.push(`${semNarr.length} cena(s) sem narração.`);
+        }
+        const narrPrev = cleanText(
+          parsed.reconstructed_narration || "",
+          80_000
+        );
+        if (narrPrev.length < 80) {
+          problemas.push("Narração reconstruída muito curta ou incompleta.");
+        }
+      }
+
+      const repairPrompt =
+        prompt +
+        "\n\n---\n⚠️ A TENTATIVA ANTERIOR FALHOU. Problemas detectados:\n" +
+        (problemas.length
+          ? problemas.map((p) => `- ${p}`).join("\n")
+          : "- Resultado abaixo da qualidade esperada.") +
+        "\n\nCorrija TODOS os problemas acima. Retorne APENAS o JSON completo e válido, sem truncar, cobrindo o vídeo inteiro com cenas detalhadas e prompts visuais específicos.";
+
+      const response = await callGeminiWithRetry(apiKey, repairPrompt, {
         projectDir: workspaceDir,
         maxRetries: 3,
         temperature: mode === "faithful" ? 0.1 : 0.25,
         activityLabel: "Engenharia reversa (2ª passagem)",
         activityDetail: String(url || "").slice(0, 120),
-        maxTokens: 8192,
+        maxTokens: dynamicMaxTokens,
       });
       const repaired = extractReverseEngineeringJson(response);
-      if (repaired && !isWeakReverseResult(repaired)) {
+      if (
+        repaired &&
+        !isWeakReverseResult(repaired, { durationSec: metadata?.duration_sec })
+      ) {
         parsed = repaired;
         llmWarnings.push(
-          "Resultado obtido na 2ª passagem do provedor ativo (sem trocar de provedor)."
+          "Resultado obtido na 2ª passagem do provedor ativo (com feedback corretivo)."
         );
       }
     } catch (error) {
@@ -621,5 +780,8 @@ export async function runVideoReverseEngineering({
     analysisSource: understanding.analysis_source,
   });
 
-  return { ok: true, result };
+  // Save to cache for future reuse
+  if (result && workspaceDir) writeCache(workspaceDir, cacheKey, result);
+
+  return { ok: true, result, fromCache: false };
 }

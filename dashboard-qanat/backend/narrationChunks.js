@@ -64,6 +64,23 @@ export function normalizeNarrationIntegrityText(text = "") {
     .trim();
 }
 
+// Tolerant normalization for narration matching/comparison (ignores casing, accents, punctuation)
+export function normalizeNarrationForComparison(text = "") {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .replace(/[^\p{L}\p{N}\s]/gu, " ") // remove punctuation, keep letters/numbers
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function narrationsMatch(a = "", b = "") {
+  return (
+    normalizeNarrationForComparison(a) === normalizeNarrationForComparison(b)
+  );
+}
+
 export function hashNarrationIntegrityText(text = "") {
   return crypto
     .createHash("sha256")
@@ -156,13 +173,11 @@ export function assertNarrationChunksPreserveSource(
   chunks = [],
   sourceText = ""
 ) {
-  const source = normalizeNarrationIntegrityText(sourceText);
-  const planned = normalizeNarrationIntegrityText(
-    (chunks || []).map((chunk) => chunk?.text || "").join(" ")
-  );
+  const source = sourceText;
+  const planned = (chunks || []).map((chunk) => chunk?.text || "").join(" ");
   if (!source)
     throw new Error("Narração aprovada ausente para planejar trechos.");
-  if (planned !== source) {
+  if (!narrationsMatch(planned, source)) {
     throw new Error(
       "O planejador tentou alterar a narração aprovada. O plano foi bloqueado; gere novamente sem condensar, remover ou acrescentar palavras."
     );
@@ -505,9 +520,10 @@ export function buildHeuristicNarrationChunks({
 
     const temSegmentosValidos =
       speechSegments.length > 0 &&
-      normalizeNarrationIntegrityText(
-        speechSegments.map((segment) => segment.text).join(" ")
-      ) === normalizeNarrationIntegrityText(text);
+      narrationsMatch(
+        speechSegments.map((segment) => segment.text).join(" "),
+        text
+      );
 
     if (
       !temSegmentosValidos &&
@@ -525,9 +541,10 @@ export function buildHeuristicNarrationChunks({
 
     const turns =
       speechSegments.length > 0 &&
-      normalizeNarrationIntegrityText(
-        speechSegments.map((segment) => segment.text).join(" ")
-      ) === normalizeNarrationIntegrityText(text)
+      narrationsMatch(
+        speechSegments.map((segment) => segment.text).join(" "),
+        text
+      )
         ? speechSegments
         : [{ id: "speech-01", speaker: "Narrador", role: "narrator", text }];
 

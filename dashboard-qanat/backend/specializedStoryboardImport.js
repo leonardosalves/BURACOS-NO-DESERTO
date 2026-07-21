@@ -4,7 +4,9 @@ import { assessNarracaoProIntegrity } from "./scriptQuality.js";
 import {
   hashNarrationIntegrityText,
   normalizeNarrationIntegrityText,
+  narrationsMatch,
 } from "./narrationChunks.js";
+import { SHORTS_MAX_SCENE_SECONDS } from "./shortsSceneChunker.js";
 import { normalizeReverseEngineeredStoryboard } from "../shared/reverseEngineeringMedia.js";
 
 const ALLOWED_SOURCES = new Set(["humor-facts", "video-reverse-engineering"]);
@@ -135,12 +137,10 @@ export function prepareSpecializedStoryboardImport({
     );
   }
 
-  const sceneNarration = normalizeNarrationIntegrityText(
-    scenes
-      .map((scene) => scene?.narration_text || scene?.narration_excerpt)
-      .join(" ")
-  );
-  if (sceneNarration !== normalizeNarrationIntegrityText(narrativeScript)) {
+  const sceneNarration = scenes
+    .map((scene) => scene?.narration_text || scene?.narration_excerpt)
+    .join(" ");
+  if (!narrationsMatch(sceneNarration, narrativeScript)) {
     throw new Error(
       "A narração das cenas não corresponde integralmente à narração aprovada."
     );
