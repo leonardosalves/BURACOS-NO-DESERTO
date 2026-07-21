@@ -11,6 +11,7 @@ import {
   runAnalyzeReferenceVideoDeep,
 } from "./videoUnderstandingService.js";
 import { runVideoReverseEngineering } from "./videoReverseEngineering.js";
+import { saveCreatorHistory } from "./creatorHistoryService.js";
 
 export function registerResearchRoutes(app, deps) {
   const {
@@ -239,6 +240,31 @@ export function registerResearchRoutes(app, deps) {
         getGeminiModel,
       });
       if (!result.ok) return res.status(400).json(result);
+
+      // Auto-salva snapshot inicial no PostgreSQL
+      try {
+        const titleStr = result.title || "Engenharia Reversa";
+        const nowStr = new Date().toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        await saveCreatorHistory(
+          "video-reverse-engineering",
+          `[Gerado] ${titleStr} (${nowStr})`,
+          {
+            url,
+            niche: String(req.body?.niche || "Geral").trim(),
+            format,
+            result,
+          }
+        );
+      } catch (autoErr) {
+        console.warn(
+          "[ResearchRoutes] Auto-snapshot Postgres:",
+          autoErr.message
+        );
+      }
+
       res.json(result);
     } catch (err) {
       res.status(500).json({

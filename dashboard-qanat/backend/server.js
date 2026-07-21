@@ -247,7 +247,10 @@ import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
 import { registerAgentReachRoutes } from "./agentReachRoutes.js";
 import { registerVideoMonitorRoutes } from "./videoMonitorRoutes.js";
 import creatorHistoryRoutes from "./creatorHistoryRoutes.js";
-import { ensureCreatorHistoryDatabase } from "./creatorHistoryService.js";
+import {
+  ensureCreatorHistoryDatabase,
+  saveCreatorHistory,
+} from "./creatorHistoryService.js";
 import {
   fetchMemoryContext,
   getSupermemoryStatus,
@@ -23865,6 +23868,35 @@ app.post(
 
       let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
       const prevSnapshot = JSON.parse(JSON.stringify(storyboard));
+
+      // Auto-salva cópia de segurança no disco e no PostgreSQL antes de reprocessar
+      try {
+        fs.writeFileSync(
+          path.join(projDir, "storyboard_pre_vpe_backup.json"),
+          JSON.stringify(prevSnapshot, null, 2),
+          "utf8"
+        );
+        const nowStr = new Date().toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        await saveCreatorHistory(
+          "video-reverse-engineering",
+          `[Auto] Antes da Engenharia Visual PRO (${nowStr})`,
+          {
+            url: storyboard.reference_url || "",
+            niche: storyboard.niche || "",
+            format: storyboard.technical_config?.video_format || "LONGO",
+            result: prevSnapshot,
+          }
+        );
+      } catch (autoErr) {
+        console.warn(
+          "[VPE PRO] Auto-snapshot pre-enhancement:",
+          autoErr.message
+        );
+      }
+
       const narrative = String(storyboard.narrative_script || "").trim();
       if (!narrative) {
         const msg = "Não há narrative_script no storyboard.";

@@ -39,9 +39,7 @@ export async function saveCreatorHistory(mode, title, statePayload) {
       [mode, title, JSON.stringify(statePayload)]
     );
 
-    // Keep only the 5 most recent records for this mode
-    // We select the IDs of the records to keep (ordered by created_at DESC, limit 5)
-    // and delete the rest
+    // Keep up to 50 most recent records for this mode in PostgreSQL
     await client.query(
       `DELETE FROM creator_history 
        WHERE mode = $1 
@@ -49,7 +47,7 @@ export async function saveCreatorHistory(mode, title, statePayload) {
          SELECT id FROM creator_history 
          WHERE mode = $1 
          ORDER BY created_at DESC 
-         LIMIT 5
+         LIMIT 50
        )`,
       [mode]
     );
@@ -72,7 +70,7 @@ export async function getCreatorHistory(mode) {
        FROM creator_history 
        WHERE mode = $1 
        ORDER BY created_at DESC 
-       LIMIT 5`,
+       LIMIT 50`,
       [mode]
     );
     return res.rows;
