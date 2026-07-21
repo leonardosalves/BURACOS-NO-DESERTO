@@ -1984,9 +1984,39 @@ Instruções críticas:
         temperature: 0.35,
         activityLabel: "Plano de produção Fatos com Graça",
       });
+      let result = parseHumorProductionResponse(raw, narration);
+      // Shotcraft: taggeia cenas do plano de produção (humor → impacto)
+      try {
+        if (result && Array.isArray(result.scenes)) {
+          const { tagHumorStoryboard } = await import(
+            "./creatorSceneTagger.js"
+          );
+          const asBoard = {
+            visual_prompts: result.scenes.map((s, i) => ({
+              scene: s.id || s.order || i + 1,
+              narration_text: s.narration || s.visualBeat || "",
+              ...s,
+            })),
+          };
+          const tagged = tagHumorStoryboard(asBoard, {
+            format: "9:16",
+            niche: String(req.body?.niche || "humor"),
+          });
+          result = {
+            ...result,
+            scenes: tagged.visual_prompts,
+            motion_tagged: true,
+          };
+        }
+      } catch (tagErr) {
+        console.warn(
+          "[humor-facts/production-plan] motion tag:",
+          tagErr?.message || tagErr
+        );
+      }
       res.json({
         ok: true,
-        result: parseHumorProductionResponse(raw, narration),
+        result,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

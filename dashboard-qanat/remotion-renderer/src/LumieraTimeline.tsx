@@ -165,6 +165,18 @@ export type LumieraTimelineProps = {
 
   sfxTracks?: SfxTrack[];
 
+  /** Motion plan do shotcraft (opcional — cenas já podem trazer motion_shot). */
+  motionPlan?: {
+    palette?: Record<string, string>;
+    cenas?: Array<{
+      scene_ref?: string | number;
+      motion_shot?: MotionShot | null;
+      camera_move?: CameraMove;
+      transicao_entrada?: string;
+      transicao_style?: string;
+    }>;
+  } | null;
+
   editingMap?: string;
 
   musicVolume?: number;
@@ -1730,6 +1742,8 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
   sfxTracks = [],
 
+  motionPlan = null,
+
   musicVolume = 0.15,
 
   overlays = [],
@@ -1773,7 +1787,28 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
     [overlays]
   );
 
-  const lastScene = scenes[scenes.length - 1];
+  // Merge motion plan into scenes (fallback se prepareRemotionRender já injetou motion_shot)
+  const scenesWithMotion = React.useMemo(() => {
+    if (!motionPlan?.cenas?.length) return scenes;
+    const byRef = new Map(
+      motionPlan.cenas.map((c) => [String(c.scene_ref ?? ""), c])
+    );
+    return scenes.map((scene, i) => {
+      const key = String(scene.scene_id || i + 1);
+      const planCena = byRef.get(key) || motionPlan.cenas[i];
+      if (!planCena) return scene;
+      return {
+        ...scene,
+        motion_shot: scene.motion_shot || planCena.motion_shot || null,
+        camera_move: scene.camera_move || planCena.camera_move,
+        transicao_entrada:
+          scene.transicao_entrada || planCena.transicao_entrada,
+        transicao_style: scene.transicao_style || planCena.transicao_style,
+      };
+    });
+  }, [scenes, motionPlan]);
+
+  const lastScene = scenesWithMotion[scenesWithMotion.length - 1];
   const lastAsset = String(lastScene?.asset || "");
   const isLastSceneLogo =
     lastScene &&
@@ -1799,8 +1834,8 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
         </AbsoluteFill>
       ) : null}
 
-      {scenes.map((scene, index) => {
-        const isLast = index === scenes.length - 1;
+      {scenesWithMotion.map((scene, index) => {
+        const isLast = index === scenesWithMotion.length - 1;
 
         const sceneAsset = String(scene.asset || "");
         const isLogo =

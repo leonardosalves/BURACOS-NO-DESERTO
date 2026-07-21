@@ -15,6 +15,11 @@ import {
   isStudioTemplateClip,
 } from "../shared/timelineStudioLegacyStrip.js";
 import { attachStudioOverlayMeta } from "../shared/studioOverlayLayers.js";
+import {
+  buildMotionPlan,
+  applyMotionPlanToStoryboard,
+} from "./motionDirector.js";
+import { tagStoryboardWithMotion } from "./creatorSceneTagger.js";
 
 function clipsOnTrack(clips, trackId) {
   return (Array.isArray(clips) ? clips : [])
@@ -280,6 +285,10 @@ export function buildScenesFromStudio(
       playback_rate: playbackRate,
       fadeInS,
       fadeOutS,
+      motion_shot: clip.props?.motion_shot || null,
+      camera_move: clip.props?.camera_move || undefined,
+      transicao_entrada: clip.props?.transicao_entrada || undefined,
+      transicao_style: clip.props?.transicao_style || undefined,
     });
   });
 
@@ -489,4 +498,70 @@ export function mirrorRelativeAssetsToRemotionPublic(
     mirrored.push(normalized);
   }
   return mirrored;
+}
+
+/**
+ * Gera/aplica motion plan (shotcraft) no storyboard e devolve o plan.
+ * Usado pelo prepareRemotionRender para injetar motion_shot nas cenas.
+ */
+export function resolveMotionPlanForRender(storyboard = {}, config = {}) {
+  try {
+    const format =
+      String(config.video_format || "").toUpperCase() === "SHORTS" ||
+      String(config.video_format || "").toUpperCase() === "SHORT"
+        ? "9:16"
+        : "16:9";
+    const niche =
+      config.niche ||
+      storyboard.strategy?.niche ||
+      storyboard.motion_niche ||
+      storyboard._vpe_checklist?.nicho_detectado ||
+      "";
+    let sb = storyboard;
+    if (!sb.motion_tagged && Array.isArray(sb.visual_prompts)) {
+      sb = tagStoryboardWithMotion(sb, { format, niche });
+    }
+    if (sb.motion_plan?.cenas?.length) {
+      return { storyboard: sb, motionPlan: sb.motion_plan };
+    }
+    const plan = buildMotionPlan({ storyboard: sb, niche, format });
+    const next = applyMotionPlanToStoryboard(sb, plan);
+    return { storyboard: next, motionPlan: plan };
+  } catch (err) {
+    console.warn(
+      "[timelineStudioRenderSync] resolveMotionPlanForRender:",
+      err?.message || err
+    );
+    return { storyboard, motionPlan: storyboard.motion_plan || null };
+  }
+}
+
+/**
+ * Injeta motion_shot / camera_move / transicao nas cenas do Remotion
+ * a partir do motion plan (por índice ou scene_ref).
+ */
+export function enrichRemotionScenesWithMotionPlan(scenes = [], motionPlan = null) {
+  if (!Array.isArray(scenes) || !scenes.length || !motionPlan?.cenas?.length) {
+    return scenes;
+  }
+  const byRef = new Map(
+    motionPlan.cenas.map((c) => [String(c.scene_ref), c])
+  );
+  return scenes.map((scene, i) => {
+    const key = String(scene.scene_id || scene.scene || i + 1);
+    const motion =
+      byRef.get(key) ||
+      motionPlan.cenas[i] ||
+      null;
+    if (!motion) return scene;
+    return {
+      ...scene,
+      motion_shot: scene.motion_shot || motion.motion_shot || null,
+      camera_move: scene.camera_move || motion.camera_move || undefined,
+      transicao_entrada:
+        scene.transicao_entrada || motion.transicao_entrada || undefined,
+      transicao_style:
+        scene.transicao_style || motion.transicao_style || undefined,
+    };
+  });
 }

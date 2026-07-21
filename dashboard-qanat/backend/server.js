@@ -227,6 +227,8 @@ import {
   resolveStudioTotalDuration,
   resolveScenesTimelineEnd,
   resolveStudioFormat,
+  resolveMotionPlanForRender,
+  enrichRemotionScenesWithMotionPlan,
 } from "./timelineStudioRenderSync.js";
 
 const LOGO_OUTRO_DURATION_SEC = 4.5;
@@ -10230,6 +10232,29 @@ async function prepareRemotionRender(
     (scene) => scene.asset || scene.type === "remotion"
   );
 
+  // Shotcraft: injeta motion_shot / camera_move / transições do motion plan
+  let motionPlanForRender = storyboard?.motion_plan || null;
+  try {
+    const resolved = resolveMotionPlanForRender(storyboard, config);
+    if (resolved.storyboard) storyboard = resolved.storyboard;
+    motionPlanForRender = resolved.motionPlan || motionPlanForRender;
+    validScenes = enrichRemotionScenesWithMotionPlan(
+      validScenes,
+      motionPlanForRender
+    );
+    const shotN = validScenes.filter((s) => s.motion_shot).length;
+    if (shotN > 0) {
+      console.log(
+        `[Remotion] Shotcraft: ${shotN}/${validScenes.length} cena(s) com motion_shot`
+      );
+    }
+  } catch (motionErr) {
+    console.warn(
+      "[Remotion] Shotcraft motion plan (não bloqueante):",
+      motionErr?.message || motionErr
+    );
+  }
+
   if (validScenes.length === 0) {
     throw new Error(
       "Nenhum asset mapeado encontrado na linha do tempo para renderizar via Remotion."
@@ -10813,6 +10838,8 @@ async function prepareRemotionRender(
     narrationDuration: narrationDuration || 0,
     bgmTracks,
     sfxTracks,
+    // Shotcraft motion plan (abertura/cenas/encerramento + palette)
+    motionPlan: motionPlanForRender || null,
     editingMap: storyboard.editing_map || storyboard.hyperframe_prompt || "",
     musicVolume: resolveMusicVolumeForRender(
       config,
@@ -20742,12 +20769,28 @@ Retorne SOMENTE JSON válido:
             .join(", "),
         };
       });
-    res.json({
+    // Shotcraft: se o payload já tiver visual_prompts (histórico → storyboard), taggeia
+    let witnessPayload = {
       ...parsed,
       characterLock,
       globalNegativePrompt: globalNegative,
       blocks,
-    });
+    };
+    try {
+      if (Array.isArray(witnessPayload.visual_prompts)) {
+        witnessPayload = tagHistoricalStoryboard(witnessPayload, {
+          format:
+            String(format).toUpperCase() === "LONGO" ? "16:9" : "9:16",
+          niche: String(niche || "historia").trim() || "historia",
+        });
+      }
+    } catch (tagErr) {
+      console.warn(
+        "[historical-witness] motion tag:",
+        tagErr?.message || tagErr
+      );
+    }
+    res.json(witnessPayload);
   })
 );
 
