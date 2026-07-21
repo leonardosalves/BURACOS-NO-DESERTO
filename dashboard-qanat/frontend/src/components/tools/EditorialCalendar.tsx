@@ -28,8 +28,8 @@ interface EditorialCalendarProps {
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:3005";
 const ORIGEM = {
-  radar: { icone: "🎯", cor: "#4a7dff" },
-  monitor: { icone: "📊", cor: "#2ecc71" },
+  radar: { icone: "🎯", cor: "var(--info)" },
+  monitor: { icone: "📊", cor: "var(--success)" },
 };
 
 export default function EditorialCalendar({ aoAgendar }: EditorialCalendarProps) {
@@ -76,7 +76,7 @@ export default function EditorialCalendar({ aoAgendar }: EditorialCalendarProps)
             <strong style={{ color: canal.channelColor }}>{canal.channelName}</strong>
           </div>
         </div>
-        <select
+        <select className="select"
           value={semanas}
           onChange={(e) => setSemanas(Number(e.target.value))}
           style={{
@@ -140,14 +140,14 @@ export default function EditorialCalendar({ aoAgendar }: EditorialCalendarProps)
                       <div className="cal-card__acoes">
                         <button
                           type="button"
-                          className="ch-btn ch-btn--primary"
+                          className="btn btn--primary"
                           onClick={() => confirmar(slot)}
                         >
                           ✓ Agendar
                         </button>
                         <button
                           type="button"
-                          className="ch-btn"
+                          className="btn"
                           onClick={() =>
                             aoAgendar?.({ tema: slot.tema, sub_nicho: slot.sub_nicho })
                           }

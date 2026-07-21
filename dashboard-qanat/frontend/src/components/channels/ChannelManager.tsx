@@ -55,11 +55,11 @@ export default function ChannelManager({
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             {view === "form" && (
-              <button className="ch-btn ch-btn--ghost" onClick={backToList}>
+              <button className="btn btn--ghost" onClick={backToList}>
                 ← Voltar
               </button>
             )}
-            <button className="ch-btn ch-btn--ghost" onClick={onClose}>
+            <button className="btn btn--ghost" onClick={onClose}>
               ✕ Fechar
             </button>
           </div>

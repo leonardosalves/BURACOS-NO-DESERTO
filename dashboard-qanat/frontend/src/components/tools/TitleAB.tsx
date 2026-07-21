@@ -97,27 +97,27 @@ export default function TitleAB() {
         {/* Gerador de variantes */}
         <div className="ab-gerador">
           <div className="ab-campos">
-            <input
+            <input className="input"
               placeholder="objeto (ex: arranha-céu)"
               value={dados.objeto}
               onChange={set("objeto")}
             />
-            <input
+            <input className="input"
               placeholder="número (ex: 73)"
               value={dados.numero}
               onChange={set("numero")}
             />
-            <input
+            <input className="input"
               placeholder="sujeito (ex: os romanos)"
               value={dados.sujeito}
               onChange={set("sujeito")}
             />
-            <input
+            <input className="input"
               placeholder="ação (ex: erguia templos)"
               value={dados.acao}
               onChange={set("acao")}
             />
-            <input
+            <input className="input"
               placeholder="método (ex: rodas de hamster)"
               value={dados.metodo}
               onChange={set("metodo")}
@@ -125,7 +125,7 @@ export default function TitleAB() {
           </div>
           <button
             type="button"
-            className="ch-btn ch-btn--primary align-self-start"
+            className="btn btn--primary align-self-start"
             onClick={gerar}
             disabled={gerando}
           >
@@ -149,7 +149,7 @@ export default function TitleAB() {
                 </div>
                 <button
                   type="button"
-                  className="ch-btn"
+                  className="btn"
                   onClick={() => navigator.clipboard?.writeText(v.titulo)}
                 >
                   📋
@@ -179,13 +179,15 @@ export default function TitleAB() {
                 </div>
                 <div
                   className="ab-rank-item__ctr"
-                  style={{ color: r.ctr_medio >= 6 ? "#2ecc71" : "#f5a623" }}
+                  style={{
+                    color: r.ctr_medio >= 6 ? "var(--success)" : "var(--warning)",
+                  }}
                 >
                   {r.ctr_medio}%
                 </div>
                 <button
                   type="button"
-                  className="ch-btn ch-btn--ghost"
+                  className="btn btn--ghost"
                   onClick={() => promover(r.template)}
                 >
                   ↑ Promover

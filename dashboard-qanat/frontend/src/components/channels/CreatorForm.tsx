@@ -106,7 +106,7 @@ export default function CreatorForm({
 
       <button
         type="submit"
-        className="ch-btn ch-btn--primary w-full justify-center py-3 text-sm tracking-wider uppercase"
+        className="btn btn--primary w-full justify-center py-3 text-sm tracking-wider uppercase"
         disabled={!canal.channelId}
       >
         ▶ Gerar vídeo para {canal.channelName}

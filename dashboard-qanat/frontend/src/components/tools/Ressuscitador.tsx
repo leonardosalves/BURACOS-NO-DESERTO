@@ -162,17 +162,33 @@ export default function Ressuscitador() {
                       </div>
                       {/* Score de Ressuscitabilidade */}
                       <span
-                        className="ch-tag text-[9px] font-bold"
+                        className="badge text-[9px] font-bold"
                         style={{
-                          backgroundColor: score >= 70 ? "#2ecc7120" : score >= 50 ? "#f5a62320" : "#e74c3c20",
-                          color: score >= 70 ? "#2ecc71" : score >= 50 ? "#f5a623" : "#e74c3c",
-                          border: `1px solid ${score >= 70 ? "#2ecc7130" : score >= 50 ? "#f5a62330" : "#e74c3c30"}`
+                          backgroundColor:
+                            score >= 70
+                              ? "var(--success-soft)"
+                              : score >= 50
+                                ? "var(--warning-soft)"
+                                : "var(--danger-soft)",
+                          color:
+                            score >= 70
+                              ? "var(--success)"
+                              : score >= 50
+                                ? "var(--warning)"
+                                : "var(--danger)",
+                          border: `1px solid ${
+                            score >= 70
+                              ? "var(--success)"
+                              : score >= 50
+                                ? "var(--warning)"
+                                : "var(--danger)"
+                          }`,
                         }}
                       >
                         Resgate: {score}%
                       </span>
                       {v.motivos?.map((m) => (
-                        <span key={m} className="ch-tag text-[9px] font-mono bg-zinc-800 text-zinc-400">
+                        <span key={m} className="badge text-[9px] font-mono bg-zinc-800 text-zinc-400">
                           {m}
                         </span>
                       ))}
@@ -183,7 +199,7 @@ export default function Ressuscitador() {
                     </div>
                   </div>
                   <button
-                    className="ch-btn ch-btn--primary px-3 py-1.5 text-[11px] font-bold rounded-lg"
+                    className="btn btn--primary px-3 py-1.5 text-[11px] font-bold rounded-lg"
                     onClick={(e) => {
                       e.stopPropagation();
                       gerarPlano(v);
@@ -248,7 +264,7 @@ export default function Ressuscitador() {
                       </div>
                       <button
                         type="button"
-                        className="ch-btn ch-btn--success px-4 py-2 text-xs font-bold w-full md:w-auto"
+                        className="btn btn--primary px-4 py-2 text-xs font-bold w-full md:w-auto"
                         onClick={() => salvarRessuscitacao(v)}
                       >
                         💾 Salvar no Histórico

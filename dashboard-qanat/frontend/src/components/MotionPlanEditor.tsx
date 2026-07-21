@@ -354,7 +354,7 @@ function EndEditor({
   return (
     <div className="mpe-end">
       <span className="mpe-end__label">{label}</span>
-      <select
+      <select className="select"
         value={value?.templateId || ""}
         onChange={(e) => onChange({ templateId: e.target.value })}
       >
@@ -410,7 +410,7 @@ function CenaCard({
         <div className="mpe-cena__body">
           <div className="mpe-field">
             <label>Shot card</label>
-            <select
+            <select className="select"
               value={shot?.templateId || "__none__"}
               onChange={(e) => {
                 if (e.target.value === "__none__")
@@ -446,7 +446,7 @@ function CenaCard({
           ) : (
             <div className="mpe-field">
               <label>Camera move</label>
-              <select
+              <select className="select"
                 value={cena.camera_move || ""}
                 onChange={(e) => onOverride({ camera_move: e.target.value })}
               >
@@ -467,7 +467,7 @@ function CenaCard({
           )}
           <div className="mpe-field">
             <label>Transição de entrada</label>
-            <select
+            <select className="select"
               value={cena.transicao_entrada || ""}
               onChange={(e) =>
                 onOverride({ transicao_entrada: e.target.value })
@@ -528,7 +528,7 @@ function StylePicker({
   return (
     <div className="mpe-field">
       <label>Estilo / variante</label>
-      <select
+      <select className="select"
         value={value || styles[0]}
         onChange={(e) => onChange(e.target.value)}
       >

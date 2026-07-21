@@ -183,7 +183,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
           <label>
             Nome do canal <em>*</em>
           </label>
-          <input
+          <input className="input"
             value={form.nome}
             onChange={set("nome")}
             placeholder="Ex: Engenharia Impossível"
@@ -194,7 +194,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
           <label>
             ID interno <em>*</em>
           </label>
-          <input
+          <input className="input"
             value={form.id}
             onChange={(e) => {
               setIdTouched(true);
@@ -213,7 +213,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
       <div className="ch-form__row">
         <div className="ch-field">
           <label>YouTube Channel ID</label>
-          <input
+          <input className="input"
             value={form.youtubeChannelId}
             onChange={set("youtubeChannelId")}
             placeholder="UCxxxxxxxxxxxxxxxxxxxxxx"
@@ -244,7 +244,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
       <div className="ch-form__row">
         <div className="ch-field">
           <label>Nicho principal</label>
-          <input
+          <input className="input"
             value={form.nicho}
             onChange={set("nicho")}
             placeholder="engenharia_e_construcao"
@@ -258,7 +258,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
         </div>
         <div className="ch-field">
           <label>Sub-nichos permitidos</label>
-          <input
+          <input className="input"
             value={form.subNichos}
             onChange={set("subNichos")}
             placeholder="engenharia_historica, megaprojetos, tecnologia_construcao"
@@ -271,7 +271,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
 
       <div className="ch-field">
         <label>Temas proibidos</label>
-        <input
+        <input className="input"
           value={form.temasProibidos}
           onChange={set("temasProibidos")}
           placeholder="politica, guerra_moderna, biologia"
@@ -283,7 +283,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
 
       <div className="ch-field">
         <label>Descrição</label>
-        <textarea
+        <textarea className="input"
           value={form.descricao}
           onChange={set("descricao")}
           rows={2}
@@ -307,7 +307,7 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
             </span>
           </label>
           <div className="apikey-row">
-            <input
+            <input className="input"
               type={mostrarKey ? "text" : "password"}
               value={form.apiKey}
               onChange={set("apiKey")}
@@ -316,14 +316,14 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
             />
             <button
               type="button"
-              className="ch-btn ch-btn--ghost"
+              className="btn btn--ghost"
               onClick={() => setMostrarKey((m) => !m)}
             >
               {mostrarKey ? "🙈" : "👁"}
             </button>
             <button
               type="button"
-              className="ch-btn"
+              className="btn"
               onClick={salvarApiKey}
               disabled={salvandoKey}
             >
@@ -350,12 +350,12 @@ export default function ChannelForm({ channel, onDone }: ChannelFormProps) {
       {isEdit && channel && <ConnectionTest channelId={channel.id} />}
 
       <div className="ch-form__footer">
-        <button type="button" className="ch-btn ch-btn--ghost" onClick={onDone}>
+        <button type="button" className="btn btn--ghost" onClick={onDone}>
           Cancelar
         </button>
         <button
           type="submit"
-          className="ch-btn ch-btn--primary"
+          className="btn btn--primary"
           disabled={saving}
         >
           {saving ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar canal"}

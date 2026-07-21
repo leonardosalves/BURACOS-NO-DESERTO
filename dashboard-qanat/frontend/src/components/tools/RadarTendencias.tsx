@@ -60,7 +60,8 @@ export default function RadarTendencias({ aoVirarVideo }: RadarTendenciasProps) 
       .finally(() => setCarregando(false));
   }, [canal.channelId]);
 
-  const corScore = (s: number) => (s >= 70 ? "#2ecc71" : s >= 40 ? "#f5a623" : "#e74c3c");
+  const corScore = (s: number) =>
+    s >= 70 ? "var(--success)" : s >= 40 ? "var(--warning)" : "var(--danger)";
 
   const renderCard = (t: Tendencia, idx: number) => {
     const score = t.fit.score;
@@ -116,17 +117,17 @@ export default function RadarTendencias({ aoVirarVideo }: RadarTendenciasProps) 
           </div>
           <div className="radar-tags flex flex-wrap gap-1.5 mt-2">
             {t.sub_nicho && (
-              <span className="ch-tag text-[9px] font-mono bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
+              <span className="badge text-[9px] font-mono bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
                 {t.sub_nicho}
               </span>
             )}
             {t.competicao && (
-              <span className="ch-tag text-[9px] font-mono bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
+              <span className="badge text-[9px] font-mono bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
                 saturação: {t.competicao} ({t.saturacao}%)
               </span>
             )}
             {t.urgencia && (
-              <span className="ch-tag text-[9px] font-mono bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
+              <span className="badge text-[9px] font-mono bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
                 urgência: {t.urgencia}
               </span>
             )}
@@ -135,7 +136,7 @@ export default function RadarTendencias({ aoVirarVideo }: RadarTendenciasProps) 
 
         {!t.fit.bloqueado && !t.ja_usada && (
           <button
-            className="ch-btn ch-btn--primary px-3 py-1.5 text-[11px] font-bold rounded-lg shrink-0 w-full md:w-auto mt-2 md:mt-0"
+            className="btn btn--primary px-3 py-1.5 text-[11px] font-bold rounded-lg shrink-0 w-full md:w-auto mt-2 md:mt-0"
             onClick={() => aoVirarVideo?.({ tema: t.tema, sub_nicho: t.sub_nicho })}
             title="Enviar para o Criador com tema pré-preenchido"
           >

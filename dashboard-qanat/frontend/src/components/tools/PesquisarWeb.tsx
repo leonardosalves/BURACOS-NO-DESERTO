@@ -95,7 +95,7 @@ export default function PesquisarWeb() {
         ) : (
           <>
             <div className="search-bar">
-              <input
+              <input className="input"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && pesquisar()}
@@ -104,7 +104,7 @@ export default function PesquisarWeb() {
               />
               <button
                 type="button"
-                className="ch-btn ch-btn--primary"
+                className="btn btn--primary"
                 onClick={pesquisar}
                 disabled={buscando || !canal.channelId}
               >
@@ -117,7 +117,7 @@ export default function PesquisarWeb() {
               <div className="search-keywords mono">
                 Filtro ativo:{" "}
                 {canal.seoKeywords.slice(0, 5).map((k) => (
-                  <span key={k} className="ch-tag">
+                  <span key={k} className="badge">
                     {k}
                   </span>
                 ))}
@@ -181,12 +181,12 @@ export default function PesquisarWeb() {
                           <span
                             className="score-badge"
                             style={{
-                              color: r.score_autoridade >= 80 ? "#2ecc71" : "#f5a623",
+                              color: r.score_autoridade >= 80 ? "var(--success)" : "var(--warning)",
                             }}
                           >
                             aut {r.score_autoridade}
                           </span>
-                          <span className="score-badge" style={{ color: "#4a7dff" }}>
+                          <span className="score-badge" style={{ color: "var(--info)" }}>
                             rel {r.score_relevancia}
                           </span>
                         </div>

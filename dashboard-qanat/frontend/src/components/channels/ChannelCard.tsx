@@ -156,9 +156,9 @@ export default function ChannelCard({
       </div>
 
       <div className="ch-card__meta">
-        {channel.nicho && <span className="ch-tag">{channel.nicho}</span>}
+        {channel.nicho && <span className="badge">{channel.nicho}</span>}
         {channel.youtube_channel_id && (
-          <span className="ch-tag">
+          <span className="badge">
             YT: {channel.youtube_channel_id.slice(0, 10)}…
           </span>
         )}
@@ -202,17 +202,17 @@ export default function ChannelCard({
 
       <div className="ch-card__actions">
         <button
-          className="ch-btn ch-btn--primary"
+          className="btn btn--primary"
           onClick={handleActivate}
           disabled={active || busy}
         >
           {active ? "✓ Ativo" : "Ativar"}
         </button>
-        <button className="ch-btn" onClick={onEdit} disabled={busy}>
+        <button className="btn" onClick={onEdit} disabled={busy}>
           Editar
         </button>
         <button
-          className="ch-btn ch-btn--danger"
+          className="btn btn--danger"
           onClick={handleDelete}
           disabled={busy}
         >

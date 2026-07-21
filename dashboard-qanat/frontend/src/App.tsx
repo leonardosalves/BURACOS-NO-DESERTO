@@ -1,6 +1,5 @@
 import toast from "react-hot-toast";
 import { DashToaster } from "./dashmin/ui/DashToaster";
-import "./styles/channels.css";
 
 import React, {
   useState,

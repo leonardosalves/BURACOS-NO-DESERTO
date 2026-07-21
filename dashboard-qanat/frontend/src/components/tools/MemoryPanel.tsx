@@ -114,14 +114,14 @@ export default function MemoryPanel() {
                   <div className="mem-card__acoes">
                     <button
                       type="button"
-                      className="ch-btn ch-btn--ghost"
+                      className="btn btn--ghost"
                       onClick={() => toggleAtivo(l.chave, l.ativo)}
                     >
                       {l.ativo ? "✓ Ativa" : "○ Inativa"}
                     </button>
                     <button
                       type="button"
-                      className="ch-btn ch-btn--danger"
+                      className="btn btn--danger"
                       onClick={() => remover(l.chave)}
                     >
                       🗑

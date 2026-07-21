@@ -97,66 +97,7 @@
   font-family: var(--font-body);
 }
 
-/* ── Botões ── */
-.ch-btn {
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 13px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
-  background: var(--bg-elevated);
-  color: var(--text);
-  padding: 9px 16px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  transition:
-    transform 0.15s ease,
-    background 0.15s ease,
-    border-color 0.15s ease;
-}
-.ch-btn:hover {
-  transform: translateY(-1px);
-  background: var(--bg-card-hover);
-  border-color: var(--amber);
-}
-.ch-btn:active {
-  transform: translateY(0);
-}
-.ch-btn--primary {
-  background: var(--amber);
-  border-color: var(--amber);
-  color: #1a1205;
-}
-.ch-btn--primary:hover {
-  background: #ffb73d;
-  border-color: #ffb73d;
-}
-.ch-btn--danger {
-  background: var(--red-soft);
-  border-color: rgba(231, 76, 60, 0.4);
-  color: #ff8a7d;
-}
-.ch-btn--danger:hover {
-  background: rgba(231, 76, 60, 0.25);
-  border-color: var(--red);
-}
-.ch-btn--ghost {
-  background: transparent;
-  border-color: transparent;
-  color: var(--text-dim);
-}
-.ch-btn--ghost:hover {
-  color: var(--text);
-  background: var(--bg-elevated);
-  border-color: var(--border);
-}
-.ch-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
+/* ── Botões: .btn vem do design-system.css (+ legacy-compat para ch-btn) ── */
 
 /* ── Grade de canais ── */
 .ch-grid {
@@ -264,15 +205,7 @@
   gap: 6px;
   margin: 10px 0 14px;
 }
-.ch-tag {
-  font-size: 10.5px;
-  font-family: var(--font-mono);
-  color: var(--text-dim);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  padding: 3px 8px;
-  border-radius: 6px;
-}
+/* .ch-tag legado → .badge no Design System (legacy-compat) */
 
 .ch-card__actions {
   display: flex;
@@ -280,6 +213,7 @@
   border-top: 1px solid var(--border);
   padding-top: 12px;
 }
+.ch-card__actions .btn,
 .ch-card__actions .ch-btn {
   flex: 1;
   justify-content: center;
@@ -1384,6 +1318,7 @@
   gap: 8px;
   margin-top: 4px;
 }
+.cal-card__acoes .btn,
 .cal-card__acoes .ch-btn {
   flex: 1;
   justify-content: center;

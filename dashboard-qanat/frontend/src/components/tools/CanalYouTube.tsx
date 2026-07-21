@@ -101,10 +101,10 @@ export default function CanalYouTube() {
                 style={{
                   borderLeft: `3px solid ${
                     insights.health >= 75
-                      ? "#2ecc71"
+                      ? "var(--success)"
                       : insights.health >= 50
-                      ? "#f5a623"
-                      : "#e74c3c"
+                        ? "var(--warning)"
+                        : "var(--danger)"
                   }`,
                 }}
               >

@@ -10,9 +10,9 @@ export default function ChannelBadge() {
       <div
         className="ch-badge"
         style={{
-          borderColor: "rgba(231,76,60,.4)",
-          borderLeftColor: "#e74c3c",
-          background: "rgba(231,76,60,.08)",
+          borderColor: "var(--danger)",
+          borderLeftColor: "var(--danger)",
+          background: "var(--danger-soft)",
         }}
       >
         <div className="ch-badge__text">

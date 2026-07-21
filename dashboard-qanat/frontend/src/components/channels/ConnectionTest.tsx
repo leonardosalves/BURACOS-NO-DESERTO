@@ -16,22 +16,22 @@ const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:3005";
 
 const VEREDITO = {
   completo: {
-    cor: "#2ecc71",
+    cor: "var(--success)",
     icone: "✅",
     texto: "Tudo funcionando — dados públicos + analytics reais",
   },
   parcial: {
-    cor: "#f5a623",
+    cor: "var(--warning)",
     icone: "⚠️",
     texto: "Parcial — faltam analytics (conecte via OAuth)",
   },
   sem_dados: {
-    cor: "#e74c3c",
+    cor: "var(--danger)",
     icone: "❌",
     texto: "Sem dados — configure as credenciais",
   },
   incompleto: {
-    cor: "#9aa2c0",
+    cor: "var(--text-3)",
     icone: "○",
     texto: "Configure as credenciais do canal",
   },
@@ -66,7 +66,7 @@ export default function ConnectionTest({ channelId }: ConnectionTestProps) {
         <h5>🩺 Diagnóstico de conexão</h5>
         <button
           type="button"
-          className="ch-btn ch-btn--primary"
+          className="btn btn--primary"
           onClick={testar}
           disabled={testando}
         >

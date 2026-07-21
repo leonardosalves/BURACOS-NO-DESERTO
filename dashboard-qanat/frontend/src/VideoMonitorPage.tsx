@@ -1020,7 +1020,7 @@ export function VideoMonitorPage() {
       >
         {/* Niche input */}
         <div style={{ flex: "1 1 200px", minWidth: 150 }}>
-          <input
+          <input className="input"
             id="monitor-niche-input"
             value={niche}
             onChange={(e) => setNiche(e.target.value)}
@@ -1041,7 +1041,7 @@ export function VideoMonitorPage() {
         </div>
 
         {/* Region */}
-        <select
+        <select className="select"
           id="monitor-region-select"
           value={region}
           onChange={(e) => setRegion(e.target.value)}
@@ -1063,7 +1063,7 @@ export function VideoMonitorPage() {
         </select>
 
         {/* Mode */}
-        <select
+        <select className="select"
           id="monitor-mode-select"
           value={mode}
           onChange={(e) =>
@@ -1085,7 +1085,7 @@ export function VideoMonitorPage() {
         </select>
 
         {/* Max videos */}
-        <select
+        <select className="select"
           id="monitor-max-select"
           value={maxVideos}
           onChange={(e) => setMaxVideos(Number(e.target.value))}
