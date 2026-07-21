@@ -2170,7 +2170,69 @@
         }
       ],
       "updated_at": "2026-07-19T05:14:16.003Z"
+    },
+    "__test_studio_role_inject__": {
+      "templates": [
+        {
+          "id": "role-transition",
+          "name": "Chapter Wipe",
+          "category": "transition",
+          "subcategory": "Wipe",
+          "niche": "__test_studio_role_inject__",
+          "status": "approved",
+          "description": "Transição entre capítulos",
+          "dataSlots": [
+            "text",
+            "sceneAsset",
+            "imageUrl",
+            "videoUrl",
+            "accentColor",
+            "durationSeconds",
+            "studio_opacity",
+            "backgroundColor",
+            "title",
+            "subtitle"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "transition",
+          "orchestration_ready": true,
+          "shortPreview": "wipe",
+          "longPreview": "wipe",
+          "sourceCode": {
+            "short": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}",
+            "long": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "role-background",
+          "name": "Tech Grid Frame",
+          "category": "background",
+          "subcategory": "Grid",
+          "niche": "__test_studio_role_inject__",
+          "status": "approved",
+          "description": "Fundo técnico",
+          "dataSlots": [
+            "text",
+            "projectCode",
+            "accentColor",
+            "backgroundColor",
+            "intensity"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "background_frame",
+          "orchestration_ready": true,
+          "shortPreview": "grid",
+          "longPreview": "grid",
+          "sourceCode": {
+            "short": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}",
+            "long": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-21T02:32:00.802Z"
     }
   },
-  "updated_at": "2026-07-20T18:16:09.222Z"
+  "updated_at": "2026-07-21T02:32:00.802Z"
 }

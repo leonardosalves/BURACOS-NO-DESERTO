@@ -1,6 +1,231 @@
 {
   "items": [
     {
+      "id": "bce67deb-f5cd-49c5-8d97-a9ab5c796af8",
+      "title": "Explorar nicho em alta: bizarras",
+      "hookPt": "O cluster \"bizarras\" deve crescer ~108% — ângulo novo antes da saturação.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-niche",
+      "whyWorks": "Série agregada do canal + concorrentes; previsão 107.9%.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "874c13b6-71f1-46fd-b6e1-97ff35595117",
+      "title": "Explorar nicho em alta: origens",
+      "hookPt": "O cluster \"origens\" deve crescer ~108% — ângulo novo antes da saturação.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-niche",
+      "whyWorks": "Série agregada do canal + concorrentes; previsão 107.9%.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "d47e509d-8271-4e79-98d2-33203137e788",
+      "title": "Explorar nicho em alta: cta que converte",
+      "hookPt": "O cluster \"cta que converte\" deve crescer ~1070% — ângulo novo antes da saturação.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-niche",
+      "whyWorks": "Série agregada do canal + concorrentes; previsão 1070.0%.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "ca757d53-9de9-41e8-a9c7-58cd7af4b609",
+      "title": "Variação #4: Brasil: chave física evita colisão #Shorts",
+      "hookPt": "Tendência em alta (+100% previsto) — variação do formato que já performa no canal.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 100.0% no horizonte; 636 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "9e1611ac-8909-4c2c-8c7d-849a59da1ad5",
+      "title": "Variação #3: Top 3 origens bizarras 🤯 #Shorts",
+      "hookPt": "Tendência em alta (+270% previsto) — variação do formato que já performa no canal.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 270.3% no horizonte; 655 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "ef7e89f0-01cf-4af3-9e0c-0df62b2ba7dd",
+      "title": "Variação #2: Top 3 origens bizarras 🤯 #Shorts",
+      "hookPt": "Tendência em alta (+340% previsto) — variação do formato que já performa no canal.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 340.0% no horizonte; 595 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "0716b83b-0023-4d88-a553-830f0d2752b0",
+      "title": "Variação #1: Pilar de 1600 anos que não enferruja",
+      "hookPt": "Tendência em alta (+1070% previsto) — variação do formato que já performa no canal.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 1070.0% no horizonte; 847 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "8022dea1-b1a8-4917-92fc-d36f6d81e812",
+      "title": "Como uma locomotiva a vapor controlava tanta pressão sem explodir?",
+      "hookPt": "O funcionamento interno e a física por trás de maquinários pesados e históricos",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Há um público massivo fascinado por engrenagens e motores (satisfação visual), mas poucos canais explicam a engenharia termodinâmica e mecânica por trás dessas máquinas de forma simples.",
+      "pioneerMeta": {
+        "macroNiche": "Engenharia Mecânica",
+        "angle": "O funcionamento interno e a física por trás de maquinários pesados e históricos",
+        "formatPattern": "Raio-X Mecânico 3D",
+        "youtubeSearchQuery": "historia do arame farpado evolucao impacto"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "faf23cf1-8732-45f7-82d4-3462aad4e809",
+      "title": "Como o arame farpado mudou a geografia de países inteiros",
+      "hookPt": "Como a invenção de materiais e ferramentas simples revolucionou a infraestrutura humana",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "A maioria dos canais foca em grandes inventores, mas ignora o impacto de materiais específicos (como o concreto romano ou o arame farpado) no desenho das cidades modernas.",
+      "pioneerMeta": {
+        "macroNiche": "História da Tecnologia",
+        "angle": "Como a invenção de materiais e ferramentas simples revolucionou a infraestrutura humana",
+        "formatPattern": "Linha do tempo acelerada",
+        "youtubeSearchQuery": "esportes profissão extinta dia shorts"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "41f5f4a4-e40f-4c07-9e07-f07c399a85b2",
+      "title": "O tanque de guerra em formato de bola que a Alemanha tentou criar",
+      "hookPt": "Projetos e patentes de engenharia militar bizarros que foram cancelados ou arquivados",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Vídeos de armas costumam focar em modelos modernos e populares. Analisar o design de protótipos bizarros sob a ótica da engenharia atrai tanto entusiastas de história quanto de tecnologia.",
+      "pioneerMeta": {
+        "macroNiche": "Engenharia Militar",
+        "angle": "Projetos e patentes de engenharia militar bizarros que foram cancelados ou arquivados",
+        "formatPattern": "Dossiê de Arquivo Secreto",
+        "youtubeSearchQuery": "patentes militares bizarras arquivos desclassificados"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "43a2e69b-3032-4304-af4f-c9e4c6385086",
+      "title": "O que é esta estrutura gigante abandonada no meio da floresta amazônica?",
+      "hookPt": "Megaprojetos de engenharia civil abandonados ou secretos revelados por satélite",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Canais de curiosidades usam o Google Earth de forma genérica. Focar exclusivamente na engenharia e no motivo técnico do fracasso dessas megaestruturas é um ângulo inexplorado no Brasil.",
+      "pioneerMeta": {
+        "macroNiche": "Geografia e Infraestrutura",
+        "angle": "Megaprojetos de engenharia civil abandonados ou secretos revelados por satélite",
+        "formatPattern": "Zoom de Satélite + Mistério",
+        "youtubeSearchQuery": "megaprojetos abandonados satelite google earth"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "746a4e85-f801-41c9-bf78-8c49236dffd9",
+      "title": "Como era o trabalho de um 'calculista humano' antes dos computadores?",
+      "hookPt": "A rotina extrema e os métodos de trabalho de profissões extintas da engenharia antiga",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "O nicho de história foca em grandes batalhas, ignorando o trabalho braçal e técnico que construiu o mundo. Há um enorme gap de curiosidade sobre o cotidiano desses operários.",
+      "pioneerMeta": {
+        "macroNiche": "Engenharia Histórica",
+        "angle": "A rotina extrema e os métodos de trabalho de profissões extintas da engenharia antiga",
+        "formatPattern": "POV: Um dia na vida",
+        "youtubeSearchQuery": "engenharia profissão extinta dia shorts"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
+      "id": "6990ae61-c089-4734-91a8-6cba5674032b",
+      "title": "Por que o aço do Titanic quebrou tão fácil no impacto com o gelo?",
+      "hookPt": "Desmistificando falhas estruturais históricas e mitos de resistência de materiais",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Inexistência de canais em português focados em simulações físicas e debunks técnicos de engenharia. O público consome curiosidades, mas carece de explicações científicas rápidas sobre falhas reais.",
+      "pioneerMeta": {
+        "macroNiche": "Ciência e Engenharia",
+        "angle": "Desmistificando falhas estruturais históricas e mitos de resistência de materiais",
+        "formatPattern": "Debunk visual em 3 atos",
+        "youtubeSearchQuery": "mitos sobre resistencia metal titanic gelo"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-20T23:35:03.987Z",
+      "updatedAt": "2026-07-20T23:35:03.987Z"
+    },
+    {
       "id": "e6e15cd4-1021-4b73-aa7c-136c2619ba58",
       "title": "Explorar nicho em alta: seu tamanho ou 1 tier acima",
       "hookPt": "Nicho \"seu tamanho ou 1 tier acima\" com tração estável — teste de formato Short.",
@@ -13,7 +238,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.310Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "7658b916-bf30-44a1-95f6-77cc98b5c1cb",
@@ -28,7 +253,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.310Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "bf460866-151b-40d5-8a03-b9c704d0fd41",
@@ -43,7 +268,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.310Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "3ab7e99c-6d47-44cb-b889-83f3fe615ebb",
@@ -58,7 +283,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "d7086a38-cf9a-44e1-be0e-9eb20980398d",
@@ -73,7 +298,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "0010908e-10f3-47fc-a6a5-ecb3d7651f8e",
@@ -93,7 +318,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "c6c95888-2968-42aa-8b59-cbb53d3c02e3",
@@ -113,7 +338,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "f5059797-e3f1-467f-ae05-56f2606df2f3",
@@ -133,7 +358,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "9c046caf-d2a4-4c44-8812-f21d157b4c09",
@@ -153,7 +378,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "277c64d5-d57d-4f51-b55f-9881753c2ca3",
@@ -173,7 +398,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "2a39e4c1-b9fc-4022-abab-370a7d5f0efe",
@@ -193,7 +418,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "01fdd768-7985-4329-82ce-39b5a22ddf23",
@@ -208,7 +433,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "515805c7-aabf-4014-93f6-d8e77d58814d",
@@ -223,7 +448,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "9c72d9e8-2e47-442d-b403-48d54c6a2936",
@@ -238,7 +463,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "632de8a9-8d90-4e63-85c1-d1a709e032c0",
@@ -253,7 +478,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.309Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "b281db0d-7afd-40fb-ac17-a85bf03416cc",
@@ -268,7 +493,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "bb3715bc-8c9d-4c2f-9e6f-12dd904a2ce6",
@@ -283,7 +508,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "b2389108-591e-4eaf-aa99-546e6b99f7dc",
@@ -303,7 +528,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "437a86e4-87f4-4505-9ed6-9c41e86fae2f",
@@ -323,7 +548,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "0c9a37ec-6660-414b-95da-c7992843c88b",
@@ -343,7 +568,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "b618aeb0-3811-411b-84fc-6ba7331e272f",
@@ -363,7 +588,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "f6b686e6-4dba-4b41-b550-453a271d739f",
@@ -383,7 +608,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "a9dd7d2e-3311-4645-b34f-e3a8c1e35ee6",
@@ -403,7 +628,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "31369e5b-63ef-4282-9667-49c35ec904e8",
@@ -418,7 +643,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "35bd1554-700d-4669-9a4e-a90e263a781a",
@@ -433,7 +658,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "6b8721b2-336b-432a-b9af-25bf74b0097e",
@@ -448,7 +673,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "2579fbab-6ab5-485a-a4c5-bb7312ed077a",
@@ -463,7 +688,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "2da6d0dd-c179-46c9-b3c1-0f2afa610e98",
@@ -478,7 +703,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "ecb3d8f8-74f8-462a-98c5-07a5f6a8e33f",
@@ -498,7 +723,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "2e98363d-5b50-4bab-9fd2-336ba667c952",
@@ -518,7 +743,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "62f47830-3cf6-4ec0-8c04-4620c9dfbb89",
@@ -538,7 +763,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "dfe3ca93-6be6-4b53-883f-914750a07632",
@@ -558,7 +783,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "bea26f3c-d1de-40f6-a340-9684be9bc1dc",
@@ -578,7 +803,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "8212c691-4bc9-4084-9259-b970cc69305d",
@@ -598,7 +823,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "0b8376f7-270a-404a-b178-21e113fcea9e",
@@ -613,7 +838,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "4989f813-9c16-45bb-93c8-244c4e866080",
@@ -628,7 +853,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "13ab90ae-f1d4-47c1-bf78-5f010db3f9b1",
@@ -643,7 +868,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "8c84fa68-4a2d-4c91-93ef-17eb6f265828",
@@ -658,7 +883,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "d87dd6e1-5644-4314-9611-db81b1dcabbe",
@@ -673,7 +898,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "5d3a2ede-9965-4b00-9c31-8342a6d8f714",
@@ -688,7 +913,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "e86ea360-4efa-4589-b54b-5affee150895",
@@ -708,7 +933,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "e7f17f53-781d-4f27-9b9e-4af01a35d583",
@@ -728,7 +953,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "8cb70fbe-998b-445f-ae53-6f2692c4a6f7",
@@ -748,7 +973,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "39eb694c-c2a8-445a-a610-b919131afdfe",
@@ -768,7 +993,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "4eb4645d-f6bd-435b-8727-e728369bd61f",
@@ -788,7 +1013,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "5f7800b7-91e4-4c89-99bf-f73f7c260a20",
@@ -808,7 +1033,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "0ab40a1c-4d6b-4f24-a423-02a9e63d6cca",
@@ -823,7 +1048,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-02T05:48:20.662Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "75746370-5617-4390-84be-dc0106b53182",
@@ -838,7 +1063,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-02T05:48:20.662Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "1be1aedf-08d7-4548-9666-8f9448f3873f",
@@ -853,7 +1078,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-02T05:48:20.662Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "0400a443-cbd5-4a6e-a55b-68cef675d9e2",
@@ -868,7 +1093,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:45:20.315Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "ecc75411-a0c6-4487-8bde-3da7ece92a2f",
@@ -883,7 +1108,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:33:13.296Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "56a310b1-a87f-4f10-bb2c-59e0192224f7",
@@ -898,7 +1123,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:33:13.296Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "1f3ad1d4-95c7-4089-92c3-cac6947e27ab",
@@ -913,7 +1138,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:33:13.296Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "f603d07a-383a-4627-92a3-31e3f15c4018",
@@ -928,7 +1153,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T06:37:01.849Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "31c9bc3f-3f14-4342-a816-8b28fca68a2d",
@@ -943,7 +1168,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:45:20.315Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     },
     {
       "id": "aea9711a-1f74-4cc7-92b6-41380f892f1f",
@@ -958,8 +1183,8 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-19T15:26:02.310Z"
+      "updatedAt": "2026-07-20T23:35:03.987Z"
     }
   ],
-  "updatedAt": "2026-07-19T15:26:02.310Z"
+  "updatedAt": "2026-07-20T23:35:03.987Z"
 }

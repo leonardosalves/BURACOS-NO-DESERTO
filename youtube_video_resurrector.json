@@ -21,10 +21,23 @@
   "dailyRuns": {
     "date": "2026-07-20",
     "morning": null,
-    "afternoon": null
+    "afternoon": {
+      "ranAt": "2026-07-20T21:01:38.738Z",
+      "trigger": "auto",
+      "videoIds": [
+        "WKcFkfVfi6w",
+        "19AzC-l1KiM",
+        "MlWjCZAQrrc",
+        "5nMBiVtaf6U",
+        "bClur0ieP9o"
+      ],
+      "count": 1,
+      "applied": 1,
+      "failed": 4
+    }
   },
-  "lastDailyRunAt": "2026-07-19T21:02:09.049Z",
-  "lastDailyRunDate": "2026-07-19",
+  "lastDailyRunAt": "2026-07-20T21:01:38.738Z",
+  "lastDailyRunDate": "2026-07-20",
   "items": [
     {
       "id": "6a773cca-d8d8-410b-81a2-8f67e4674d7d",
@@ -13031,7 +13044,7 @@
       "thumbnailUrl": "https://i.ytimg.com/vi/bClur0ieP9o/mqdefault.jpg",
       "hasLumieraProject": false,
       "source": "channel",
-      "status": "queued",
+      "status": "applied",
       "currentMetadata": {
         "title": "Como os Vikings navegavam na névoa sem bússola?",
         "description": "Como os Vikings atravessavam oceanos mortais sem bússola e no meio de névoas impenetráveis?\nDescubra a engenharia por trás da \"Pedra do Sol\" e como esse cristal polarizava a luz para guiar os navegadores.\n\nNeste vídeo, mergulhamos no segredo arqueológico que provou que a tecnologia ancestral era muito mais avançada do que imaginávamos. Se você é fascinado por mistérios da história e engenharia antiga, prepare-se para mudar sua visão sobre os Vikings.\n\nGostou de descobrir essa tecnologia perdida? Inscreva-se no canal para mais mistérios da história e engenharia antiga!\n\n#História #Vikings #Curiosidades #TecnologiaAntiga #Arqueologia",
@@ -13053,13 +13066,79 @@
           "navegação marítima"
         ]
       },
-      "proposedMetadata": null,
-      "selectedTitle": null,
+      "proposedMetadata": {
+        "title": "Pedra do Sol: bússola secreta Viking",
+        "titleVariants": [
+          "Vikings e a Pedra do Sol na névoa 🧭",
+          "Pedra do Sol: bússola secreta Viking",
+          "Névoa não parava Vikings: cristal guiava",
+          "Engenharia Viking: Pedra do Sol na névoa 💡",
+          "Navegação Viking: o cristal que desafiou a névoa"
+        ],
+        "description": "Vikings na névoa sem bússola? A \"Pedra do Sol\" revela o segredo da navegação viking. Entenda como esse cristal polarizava a luz para guiar navios em oceanos mortais. #Shorts Uma maravilha da engenharia antiga e da arqueologia. Salve para desvendar mais mistérios da história!",
+        "tags": [
+          "Vikings",
+          "Pedra do Sol",
+          "navegação viking",
+          "mistérios história",
+          "arqueologia",
+          "engenharia antiga",
+          "bússola viking",
+          "como vikings navegavam",
+          "cristais",
+          "calcita"
+        ],
+        "hashtags": "#Shorts #Vikings #PedraDoSol #NavegacaoViking",
+        "pinnedComment": "Se a Pedra do Sol era tão eficaz, por que demoramos tanto para redescobrir seus segredos? A história ainda esconde tecnologias perdidas?",
+        "chapters": "",
+        "thumbnails": [
+          {
+            "id": "A",
+            "label": "Curiosidade",
+            "pairedTitle": "1. Vikings e a Pedra do Sol na névoa 🧭",
+            "overlayText": "NAVEGAÇÃO VIKING?",
+            "composition": "Foco central em uma mão segurando um cristal translúcido (Pedra do Sol), com névoa densa ao fundo e um navio viking em silhueta. Texto \"NAVEGAÇÃO VIKING?\" no terço superior, centralizado, em fonte grande e branca.",
+            "colors": [
+              "#2C3E50 (fundo azul escuro)",
+              "#F39C12 (cristal/luz laranja)",
+              "#ECF0F1 (texto branco)"
+            ],
+            "focalElement": "Cristal brilhando, navio viking em névoa."
+          },
+          {
+            "id": "B",
+            "label": "Contraste",
+            "pairedTitle": "2. Pedra do Sol: bússola secreta Viking!",
+            "overlayText": "SEM BÚSSOLA?",
+            "composition": "Tela dividida verticalmente. Lado esquerdo: Mar revolto e névoa densa, escuro. Lado direito: O mesmo mar, mas com um raio de luz atravessando a névoa e um cristal (Pedra do Sol) em destaque no centro, emitindo luz. Texto \"SEM BÚSSOLA?\" no terço superior, centralizado, em fonte grande e amarela.",
+            "colors": [
+              "#2C3E50 (mar escuro)",
+              "#F39C12 (luz/cristal laranja)",
+              "#ECF0F1 (texto branco/amarelo)"
+            ],
+            "focalElement": "Contraste entre escuridão/névoa e luz/cristal."
+          },
+          {
+            "id": "C",
+            "label": "Prova Visual",
+            "pairedTitle": "4. Engenharia Viking: Pedra do Sol na névoa 💡",
+            "overlayText": "CRISTAL GUIAVA",
+            "composition": "Imagem de um mapa antigo com rotas vikings marcadas, sobreposto por uma representação esquemática de um cristal polarizando a luz do sol. Um pequeno ícone de navio viking aponta para uma rota. Texto \"CRISTAL GUIAVA\" no terço superior, centralizado, em fonte grande e branca.",
+            "colors": [
+              "#2C3E50 (fundo mapa/escuro)",
+              "#F39C12 (destaque rotas/cristal laranja)",
+              "#ECF0F1 (texto branco)"
+            ],
+            "focalElement": "Mapa antigo com rotas, diagrama do cristal."
+          }
+        ]
+      },
+      "selectedTitle": "Pedra do Sol: bússola secreta Viking",
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-05T04:49:19.723Z",
-      "updatedAt": "2026-07-18T14:20:41.235Z",
+      "updatedAt": "2026-07-20T21:01:38.712Z",
       "analyticsBaseline": {
         "videoId": "bClur0ieP9o",
         "startDate": "2026-06-20",
@@ -13102,7 +13181,74 @@
         },
         "analyzedAt": "2026-07-18T14:20:41.235Z"
       },
-      "opportunityScore": 55
+      "opportunityScore": 55,
+      "cycleNumber": 1,
+      "metadataRaw": "## TÍTULOS\n1. Vikings e a Pedra do Sol na névoa 🧭 (38 chars)\n2. Pedra do Sol: bússola secreta Viking! (38 chars)\n3. Névoa não parava Vikings: cristal guiava #História (40 chars)\n4. Engenharia Viking: Pedra do Sol na névoa 💡 (39 chars)\n5. Navegação Viking: o cristal que desafiou a névoa #Arqueologia (40 chars)\n\n## DESCRIÇÃO\nVikings na névoa sem bússola? A \"Pedra do Sol\" revela o segredo da navegação viking. Entenda como esse cristal polarizava a luz para guiar navios em oceanos mortais. #Shorts Uma maravilha da engenharia antiga e da arqueologia. Salve para desvendar mais mistérios da história!\n\n## HASHTAGS PRINCIPAIS\n#Shorts #Vikings #PedraDoSol #NavegacaoViking\n\n## TAGS\nVikings, Pedra do Sol, navegação viking, mistérios história, arqueologia, engenharia antiga, bússola viking, como vikings navegavam, cristais, calcita\n\n## COMENTÁRIO PINADO\nSe a Pedra do Sol era tão eficaz, por que demoramos tanto para redescobrir seus segredos? A história ainda esconde tecnologias perdidas?\n\n## THUMBNAILS A/B\n\n### Variante A — Curiosidade\n- Título pareado: 1. Vikings e a Pedra do Sol na névoa 🧭\n- Texto na capa: NAVEGAÇÃO VIKING?\n- Composição: Foco central em uma mão segurando um cristal translúcido (Pedra do Sol), com névoa densa ao fundo e um navio viking em silhueta. Texto \"NAVEGAÇÃO VIKING?\" no terço superior, centralizado, em fonte grande e branca.\n- Cores: #2C3E50 (fundo azul escuro), #F39C12 (cristal/luz laranja), #ECF0F1 (texto branco)\n- Expressão/elemento: Cristal brilhando, navio viking em névoa.\n\n### Variante B — Contraste\n- Título pareado: 2. Pedra do Sol: bússola secreta Viking!\n- Texto na capa: SEM BÚSSOLA?\n- Composição: Tela dividida verticalmente. Lado esquerdo: Mar revolto e névoa densa, escuro. Lado direito: O mesmo mar, mas com um raio de luz atravessando a névoa e um cristal (Pedra do Sol) em destaque no centro, emitindo luz. Texto \"SEM BÚSSOLA?\" no terço superior, centralizado, em fonte grande e amarela.\n- Cores: #2C3E50 (mar escuro), #F39C12 (luz/cristal laranja), #ECF0F1 (texto branco/amarelo)\n- Expressão/elemento: Contraste entre escuridão/névoa e luz/cristal.\n\n### Variante C — Prova Visual\n- Título pareado: 4. Engenharia Viking: Pedra do Sol na névoa 💡\n- Texto na capa: CRISTAL GUIAVA\n- Composição: Imagem de um mapa antigo com rotas vikings marcadas, sobreposto por uma representação esquemática de um cristal polarizando a luz do sol. Um pequeno ícone de navio viking aponta para uma rota. Texto \"CRISTAL GUIAVA\" no terço superior, centralizado, em fonte grande e branca.\n- Cores: #2C3E50 (fundo mapa/escuro), #F39C12 (destaque rotas/cristal laranja), #ECF0F1 (texto branco)\n- Expressão/elemento: Mapa antigo com rotas, diagrama do cristal.",
+      "usedFallback": false,
+      "appliedAt": "2026-07-20T21:01:38.712Z",
+      "thumbnailApplied": false,
+      "experiment": {
+        "version": 1,
+        "status": "tracking",
+        "treatment": "short_recirculation",
+        "startedAt": "2026-07-20T21:01:38.712Z",
+        "baseline": {
+          "videoId": "bClur0ieP9o",
+          "startDate": "2026-06-20",
+          "endDate": "2026-07-18",
+          "available": true,
+          "reachNote": "Impressões e CTR de thumbnail só existem no YouTube Studio (Reporting API). O Lumiera compara views por período de cada título.",
+          "metrics": {
+            "views": 943,
+            "estimatedMinutesWatched": 227,
+            "averageViewDuration": 27,
+            "likes": 117,
+            "comments": 1,
+            "shares": 0,
+            "subscribersGained": 10,
+            "impressions": null,
+            "impressionClickThroughRate": null
+          }
+        },
+        "checkpoints": [
+          {
+            "label": "48h",
+            "dueAt": "2026-07-22T21:01:38.712Z",
+            "status": "pending"
+          },
+          {
+            "label": "7d",
+            "dueAt": "2026-07-27T21:01:38.712Z",
+            "status": "pending"
+          },
+          {
+            "label": "28d",
+            "dueAt": "2026-08-17T21:01:38.712Z",
+            "status": "pending"
+          }
+        ],
+        "originalMetadata": {
+          "title": "Como os Vikings navegavam na névoa sem bússola?",
+          "description": "Como os Vikings atravessavam oceanos mortais sem bússola e no meio de névoas impenetráveis?\nDescubra a engenharia por trás da \"Pedra do Sol\" e como esse cristal polarizava a luz para guiar os navegadores.\n\nNeste vídeo, mergulhamos no segredo arqueológico que provou que a tecnologia ancestral era muito mais avançada do que imaginávamos. Se você é fascinado por mistérios da história e engenharia antiga, prepare-se para mudar sua visão sobre os Vikings.\n\nGostou de descobrir essa tecnologia perdida? Inscreva-se no canal para mais mistérios da história e engenharia antiga!\n\n#História #Vikings #Curiosidades #TecnologiaAntiga #Arqueologia",
+          "tags": [
+            "Vikings",
+            "Pedra do Sol",
+            "navegação viking",
+            "mistérios da história",
+            "arqueologia",
+            "engenharia antiga",
+            "cristais",
+            "bússola viking",
+            "história antiga",
+            "como os vikings viajavam",
+            "calcita",
+            "documentário história",
+            "descobertas arqueológicas",
+            "segredos vikings",
+            "navegação marítima"
+          ]
+        }
+      }
     },
     {
       "id": "9fce872d-c7f7-4b1c-98f1-b06440f542ea",
@@ -18558,7 +18704,7 @@
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-15T14:00:07.652Z",
-      "updatedAt": "2026-07-20T03:19:34.380Z",
+      "updatedAt": "2026-07-20T21:01:45.766Z",
       "analyticsBaseline": {
         "videoId": "WKcFkfVfi6w",
         "startDate": "2026-06-19",
@@ -18634,7 +18780,7 @@
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-15T14:00:07.652Z",
-      "updatedAt": "2026-07-20T03:19:34.380Z",
+      "updatedAt": "2026-07-20T21:01:45.766Z",
       "analyticsBaseline": {
         "videoId": "5nMBiVtaf6U",
         "startDate": "2026-06-20",
@@ -19164,7 +19310,7 @@
         "analyzedAt": "2026-07-18T14:20:48.386Z"
       },
       "opportunityScore": 64,
-      "status": "queued",
+      "status": "failed",
       "currentMetadata": {
         "title": "AirPlaneBunker",
         "description": "",
@@ -19174,9 +19320,9 @@
       "selectedTitle": null,
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
-      "error": null,
+      "error": "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
       "createdAt": "2026-07-16T14:00:07.900Z",
-      "updatedAt": "2026-07-19T14:00:44.938Z",
+      "updatedAt": "2026-07-20T21:00:21.513Z",
       "analyticsBaseline": {
         "videoId": "19AzC-l1KiM",
         "startDate": "2026-06-20",
@@ -19198,7 +19344,8 @@
       "metadataRaw": null,
       "appliedAt": null,
       "thumbnailApplied": false,
-      "thumbnailError": null
+      "thumbnailError": null,
+      "cycleNumber": 1
     },
     {
       "id": "b8c3c299-2eff-43e3-8753-788a0e4fa75d",
@@ -20351,7 +20498,7 @@
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-17T13:17:35.208Z",
-      "updatedAt": "2026-07-19T14:00:44.939Z",
+      "updatedAt": "2026-07-20T21:01:45.766Z",
       "analyticsBaseline": {
         "videoId": "MlWjCZAQrrc",
         "startDate": "2026-06-20",
@@ -21523,9 +21670,202 @@
       "error": null,
       "createdAt": "2026-07-19T21:02:15.610Z",
       "updatedAt": "2026-07-19T21:02:15.610Z"
+    },
+    {
+      "id": "71058d3f-1619-4815-9f3d-9706a30f7baa",
+      "videoId": "lfjMMIIZgBQ",
+      "projectName": "DARPA_insetos_viram",
+      "projectPath": "C:\\Users\\Leo\\Desktop\\Lumiera Videos\\videos curtos shorts\\DARPA_insetos_viram",
+      "format": "SHORT",
+      "niche": "",
+      "title": "A DARPA está usando insetos para mudar o DNA? 🦟",
+      "publishedAt": "2026-07-10T14:30:18Z",
+      "ageDays": 10,
+      "viewCount": 22,
+      "thumbnailUrl": "https://i.ytimg.com/vi/lfjMMIIZgBQ/mqdefault.jpg",
+      "hasLumieraProject": true,
+      "source": "lumiera",
+      "diagnosis": {
+        "version": 1,
+        "score": 45,
+        "tier": "low",
+        "diagnosis": "insufficient_data",
+        "recommendedTreatment": "creative_remake",
+        "treatmentLabel": "Criar nova versão editorial",
+        "reasons": ["Projeto Lumiera disponível para reedição"],
+        "risks": ["Analytics detalhado ainda não coletado"],
+        "analyticsAvailable": false,
+        "metrics": {
+          "recentViews": 0,
+          "averageViewDuration": 0,
+          "shares": 0,
+          "subscribersGained": 0,
+          "sharesPerThousand": 0,
+          "subscribersPerThousand": 0
+        },
+        "analyzedAt": "2026-07-20T21:00:21.472Z"
+      },
+      "opportunityScore": 45,
+      "status": "queued",
+      "currentMetadata": {
+        "title": "A DARPA está usando insetos para mudar o DNA? 🦟",
+        "description": "A DARPA investiu $27 milhões no projeto Insect Allies para usar insetos e reescrever o DNA de plantas adultas. Cientistas alertam que essa tecnologia pode violar a Convenção sobre Armas Biológicas de 1972.\n#Shorts\nDescubra como pulgões e cigarrinhas podem virar \"seringas voadoras\" e o perigo real por trás da justificativa de segurança alimentar. Salve para assistir depois!\n\n#DARPA #InsectAllies #BioArmas #EngenhariaGenetica #PlantasModificadas #Shorts #TecnologiaMilitar #CRISPR",
+        "tags": [
+          "armas biologicas",
+          "biotecnologia",
+          "crispr",
+          "darpa",
+          "dna",
+          "insect allies",
+          "max planck",
+          "plantas",
+          "pulgoes",
+          "richard guy reeves",
+          "science",
+          "shorts",
+          "biotechnology",
+          "science experiment",
+          "genome",
+          "record tv brasília",
+          "edição de genes",
+          "darpa lift challenge"
+        ]
+      },
+      "proposedMetadata": null,
+      "selectedTitle": null,
+      "thumbnailStatus": "n/a",
+      "thumbnailLocalPath": null,
+      "error": null,
+      "createdAt": "2026-07-20T21:00:21.471Z",
+      "updatedAt": "2026-07-20T21:00:21.471Z"
+    },
+    {
+      "id": "f77368cb-47e9-4042-a719-f96273a05de8",
+      "videoId": "K94AjrhwsD0",
+      "projectName": "Veneza_BASALTO_construida",
+      "projectPath": "C:\\Users\\Leo\\Desktop\\Lumiera Videos\\videos curtos shorts\\Veneza_BASALTO_construida",
+      "format": "SHORT",
+      "niche": "ENGENHARIA CONTRUÇÃO HISTORICA",
+      "title": "Veneza de Basalto: 90 toneladas movidas",
+      "publishedAt": "2026-07-10T21:00:03Z",
+      "ageDays": 10,
+      "viewCount": 209,
+      "thumbnailUrl": "https://i.ytimg.com/vi/K94AjrhwsD0/mqdefault.jpg",
+      "hasLumieraProject": true,
+      "source": "lumiera",
+      "diagnosis": {
+        "version": 1,
+        "score": 45,
+        "tier": "low",
+        "diagnosis": "insufficient_data",
+        "recommendedTreatment": "creative_remake",
+        "treatmentLabel": "Criar nova versão editorial",
+        "reasons": ["Projeto Lumiera disponível para reedição"],
+        "risks": ["Analytics detalhado ainda não coletado"],
+        "analyticsAvailable": false,
+        "metrics": {
+          "recentViews": 0,
+          "averageViewDuration": 0,
+          "shares": 0,
+          "subscribersGained": 0,
+          "sharesPerThousand": 0,
+          "subscribersPerThousand": 0
+        },
+        "analyzedAt": "2026-07-20T21:00:21.472Z"
+      },
+      "opportunityScore": 45,
+      "status": "queued",
+      "currentMetadata": {
+        "title": "Veneza de Basalto: 90 toneladas movidas",
+        "description": "Uma cidade de 750 mil toneladas construída no recife. Conheça Nan Madol, a Veneza de Basalto no Pacífico.\nDescubra como blocos de 90 toneladas foram movidos sem rodas, animais de tração ou metal, um enigma de engenharia que desafia a história.\n#Shorts\nNan Madol é uma metrópole de 92 ilhas artificiais erguidas sobre recifes de coral que intriga arqueólogos e engenheiros até hoje. Salve para assistir depois!\n\n#Shorts #NanMadol #EngenhariaAntiga #VenezaDeBasalto #MisteriosHistoricos #IlhasArtificiais #Pohnpei #Historia",
+        "tags": [
+          "750 mil toneladas",
+          "Dinastia Saudeleur",
+          "Nan Madol",
+          "Pohnpei",
+          "Shorts",
+          "Veneza de Basalto",
+          "basalto",
+          "construção",
+          "engenharia antiga",
+          "história",
+          "ilhas artificiais",
+          "mistério",
+          "recife"
+        ]
+      },
+      "proposedMetadata": null,
+      "selectedTitle": null,
+      "thumbnailStatus": "n/a",
+      "thumbnailLocalPath": null,
+      "error": null,
+      "createdAt": "2026-07-20T21:00:21.471Z",
+      "updatedAt": "2026-07-20T21:00:21.471Z"
+    },
+    {
+      "id": "22facd21-98a5-414c-9238-fbbb58e46ca9",
+      "videoId": "-fy73WGsq7w",
+      "projectName": "Será que estas paredes irão agentar?",
+      "projectPath": null,
+      "format": "SHORT",
+      "niche": "",
+      "title": "Será que estas paredes irão agentar?",
+      "publishedAt": "2026-07-10T05:22:13Z",
+      "ageDays": 10,
+      "viewCount": 79,
+      "thumbnailUrl": "https://i9.ytimg.com/vi/-fy73WGsq7w/mqdefault.jpg?sqp=CKSW-tIG&rs=AOn4CLC9zSwzRohh8nffpgqHi8H-wrbJ7w",
+      "hasLumieraProject": false,
+      "source": "channel",
+      "diagnosis": {
+        "version": 1,
+        "score": 27,
+        "tier": "low",
+        "diagnosis": "insufficient_data",
+        "recommendedTreatment": "metadata_search_refresh",
+        "treatmentLabel": "Atualizar descoberta por busca",
+        "reasons": [],
+        "risks": [
+          "Sem projeto-fonte: remake automatizado limitado",
+          "Analytics detalhado ainda não coletado"
+        ],
+        "analyticsAvailable": false,
+        "metrics": {
+          "recentViews": 0,
+          "averageViewDuration": 0,
+          "shares": 0,
+          "subscribersGained": 0,
+          "sharesPerThousand": 0,
+          "subscribersPerThousand": 0
+        },
+        "analyzedAt": "2026-07-20T21:00:21.472Z"
+      },
+      "opportunityScore": 27,
+      "status": "queued",
+      "currentMetadata": {
+        "title": "Será que estas paredes irão agentar?",
+        "description": "",
+        "tags": []
+      },
+      "proposedMetadata": null,
+      "selectedTitle": null,
+      "thumbnailStatus": "n/a",
+      "thumbnailLocalPath": null,
+      "error": null,
+      "createdAt": "2026-07-20T21:00:21.471Z",
+      "updatedAt": "2026-07-20T21:00:21.471Z"
     }
   ],
   "history": [
+    {
+      "id": "55640255-5f06-4a8b-8d59-2b9b5356f5c6",
+      "videoId": "bClur0ieP9o",
+      "projectName": "Como os Vikings navegavam na névoa sem bússola?",
+      "title": "Pedra do Sol: bússola secreta Viking",
+      "appliedAt": "2026-07-20T21:01:38.712Z",
+      "thumbnailApplied": false,
+      "treatment": "short_recirculation",
+      "experimentStartedAt": "2026-07-20T21:01:38.712Z"
+    },
     {
       "id": "432c1b02-fb16-431d-9c79-a4a82e732405",
       "videoId": "UKj3Ji-5E9A",
@@ -22416,6 +22756,98 @@
     }
   ],
   "activityLog": [
+    {
+      "at": "2026-07-20T21:01:38.738Z",
+      "level": "warn",
+      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 4 falha(s).",
+      "slot": "afternoon",
+      "appliedCount": 1,
+      "reviewCount": 0,
+      "failCount": 4
+    },
+    {
+      "at": "2026-07-20T21:01:38.724Z",
+      "level": "success",
+      "message": "Publicado no YouTube: Como os Vikings navegavam na névoa sem bússola?",
+      "videoId": "bClur0ieP9o"
+    },
+    {
+      "at": "2026-07-20T21:01:36.948Z",
+      "level": "info",
+      "message": "Publicando no YouTube: Como os Vikings navegavam na névoa sem bússola?",
+      "videoId": "bClur0ieP9o"
+    },
+    {
+      "at": "2026-07-20T21:00:21.558Z",
+      "level": "info",
+      "message": "[5/5] Gerando metadados: Como os Vikings navegavam na névoa sem bússola?",
+      "videoId": "bClur0ieP9o",
+      "step": 5,
+      "total": 5
+    },
+    {
+      "at": "2026-07-20T21:00:21.552Z",
+      "level": "error",
+      "message": "Falhou: CozyHouseDesert — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "5nMBiVtaf6U"
+    },
+    {
+      "at": "2026-07-20T21:00:21.539Z",
+      "level": "info",
+      "message": "[4/5] Gerando metadados: CozyHouseDesert",
+      "videoId": "5nMBiVtaf6U",
+      "step": 4,
+      "total": 5
+    },
+    {
+      "at": "2026-07-20T21:00:21.533Z",
+      "level": "error",
+      "message": "Falhou: BamBOoHouSe — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "MlWjCZAQrrc"
+    },
+    {
+      "at": "2026-07-20T21:00:21.519Z",
+      "level": "info",
+      "message": "[3/5] Gerando metadados: BamBOoHouSe",
+      "videoId": "MlWjCZAQrrc",
+      "step": 3,
+      "total": 5
+    },
+    {
+      "at": "2026-07-20T21:00:21.513Z",
+      "level": "error",
+      "message": "Falhou: AirPlaneBunker — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "19AzC-l1KiM"
+    },
+    {
+      "at": "2026-07-20T21:00:21.500Z",
+      "level": "info",
+      "message": "[2/5] Gerando metadados: AirPlaneBunker",
+      "videoId": "19AzC-l1KiM",
+      "step": 2,
+      "total": 5
+    },
+    {
+      "at": "2026-07-20T21:00:21.494Z",
+      "level": "error",
+      "message": "Falhou: SchoolBusbanker 2026 — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "WKcFkfVfi6w"
+    },
+    {
+      "at": "2026-07-20T21:00:21.480Z",
+      "level": "info",
+      "message": "[1/5] Gerando metadados: SchoolBusbanker 2026",
+      "videoId": "WKcFkfVfi6w",
+      "step": 1,
+      "total": 5
+    },
+    {
+      "at": "2026-07-20T21:00:21.480Z",
+      "level": "info",
+      "message": "Batch tarde iniciado (5 vídeo(s) nesta etapa).",
+      "slot": "afternoon",
+      "trigger": "auto"
+    },
     {
       "at": "2026-07-20T03:19:34.380Z",
       "level": "info",
@@ -24093,100 +24525,19 @@
       "level": "success",
       "message": "Publicado no YouTube: Prédios de barro de 11 andares? Impossível! #historia #curiosidades #eng",
       "videoId": "C3ADcJ94r1g"
-    },
-    {
-      "at": "2026-07-07T03:53:26.346Z",
-      "level": "info",
-      "message": "Publicando no YouTube: Prédios de barro de 11 andares? Impossível! #historia #curiosidades #eng",
-      "videoId": "C3ADcJ94r1g"
-    },
-    {
-      "at": "2026-07-07T03:53:07.826Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: Prédios de barro de 11 andares? Impossível! #historia #curiosidades #eng",
-      "videoId": "C3ADcJ94r1g",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-07T03:52:52.402Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "afternoon",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-07T03:52:52.397Z",
-      "level": "success",
-      "message": "Publicado no YouTube: A física impossível por trás das pedras gigantes #fisica #engenharia #sh",
-      "videoId": "_HoLoVM4I8Q"
-    },
-    {
-      "at": "2026-07-07T03:52:48.521Z",
-      "level": "info",
-      "message": "Publicando no YouTube: A física impossível por trás das pedras gigantes #fisica #engenharia #sh",
-      "videoId": "_HoLoVM4I8Q"
-    },
-    {
-      "at": "2026-07-07T03:52:20.499Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: A física impossível por trás das pedras gigantes #fisica #engenharia #sh",
-      "videoId": "_HoLoVM4I8Q",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-07T03:52:11.117Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "afternoon",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-07T03:52:11.114Z",
-      "level": "success",
-      "message": "Publicado no YouTube: A química perdida das construções romanas! 🌋 #curiosidades #romaantiga ",
-      "videoId": "HYCcFUCgIBw"
-    },
-    {
-      "at": "2026-07-07T03:52:09.391Z",
-      "level": "info",
-      "message": "Publicando no YouTube: A química perdida das construções romanas! 🌋 #curiosidades #romaantiga ",
-      "videoId": "HYCcFUCgIBw"
-    },
-    {
-      "at": "2026-07-07T03:51:39.789Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: A química perdida das construções romanas! 🌋 #curiosidades #romaantiga ",
-      "videoId": "HYCcFUCgIBw",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-07T03:51:19.731Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "morning",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-07T03:51:19.729Z",
-      "level": "success",
-      "message": "Publicado no YouTube: 🌍 Rua Destruída por Terremoto é Restaurada em 30 Segundos! ⏳#terremoto",
-      "videoId": "ROyzQGu7roM"
-    },
-    {
-      "at": "2026-07-07T03:51:18.027Z",
-      "level": "info",
-      "message": "Publicando no YouTube: 🌍 Rua Destruída por Terremoto é Restaurada em 30 Segundos! ⏳#terremoto",
-      "videoId": "ROyzQGu7roM"
     }
   ],
-  "updatedAt": "2026-07-20T03:19:34.380Z"
+  "updatedAt": "2026-07-20T21:01:45.766Z",
+  "cycleProgress": {
+    "number": 1,
+    "startedAt": "2026-07-03T17:48:11.595Z",
+    "completedAt": null,
+    "total": 139,
+    "batched": 102,
+    "pending": 37,
+    "complete": false,
+    "nextVideoId": "e4lnRR4DrDs",
+    "nextVideoTitle": "5 Etapas: Castelo Himeji Tradicional 🏯 (34 chars + emoji)",
+    "order": "oldest_first"
+  }
 }
