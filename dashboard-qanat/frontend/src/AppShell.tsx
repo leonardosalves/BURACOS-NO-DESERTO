@@ -22,7 +22,6 @@ import {
   Search,
   Settings,
   Smartphone,
-  Sparkles,
   Thermometer,
   TrendingUp,
   Tv,
@@ -39,6 +38,8 @@ import { SettingHelpTip } from "./SettingHelpTip";
 import { SECTION_HELP } from "./sectionHelpContent";
 import { useBackendHealth } from "./useBackendHealth";
 import ChannelSwitcher from "./components/channels/ChannelSwitcher";
+import Logo from "./components/Logo";
+import ThemeToggle from "./components/ThemeToggle";
 import type { ProjectListItem } from "./ProjectsLibraryPanel";
 import type { AppTab } from "./appTabs";
 import type { CreatorIdeationMode } from "./creatorModeIdentity";
@@ -391,12 +392,12 @@ export function AppShell({
             onClick={() => setActiveTab("home")}
             title="Lumiera Studio — Início"
           >
-            <span className="dash-brand-icon">
-              <Sparkles className="w-5 h-5" />
+            <span className="dash-brand-icon" style={{ background: "transparent", boxShadow: "none" }}>
+              <Logo size={28} variant="mark" glow />
             </span>
             <span className="dash-brand-text">
               <span className="dash-brand-title">Lumiera</span>
-              <span className="dash-brand-sub">Cinematic Studio</span>
+              <span className="dash-brand-sub">Video Studio</span>
             </span>
           </button>
           <button
@@ -678,6 +679,7 @@ export function AppShell({
 
           <div className="dash-header-right">
             <ChannelSwitcher />
+            <ThemeToggle />
             <div className="dash-status-chip hidden sm:flex">
               <span
                 className={`dash-status-dot ${backendOnline ? "" : "dash-status-dot-offline"}`}

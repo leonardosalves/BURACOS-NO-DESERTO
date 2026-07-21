@@ -87,6 +87,8 @@ import {
   updateCachedProjectSnapshot,
 } from "./offlineProjectCache";
 import { AppShell } from "./AppShell";
+import SplashScreen from "./components/SplashScreen";
+import { useTheme } from "./hooks/useTheme";
 import { BackendActivityPanel } from "./BackendActivityPanel";
 import { resolveStockSearchQuery } from "./stockSearchQuery";
 import type { AppTab } from "./appTabs";
@@ -228,6 +230,17 @@ const initialActiveProject = resolveInitialActiveProject(initialWizardSession);
 const initialProjectSnapshot = loadCachedProjectSnapshot(initialActiveProject);
 
 export default function App() {
+  // Design System: aplica data-theme no <html> e mantém store sincronizado
+  useTheme();
+  const [splashReady, setSplashReady] = useState(() => {
+    try {
+      // Uma vez por aba de browser — evita re-splash em HMR/navegação interna
+      return sessionStorage.getItem("lumiera-splash-seen") === "1";
+    } catch {
+      return false;
+    }
+  });
+
   const [collapsedGroups, setCollapsedGroups] = useState<
     Record<string, boolean>
   >(() => {
@@ -12316,6 +12329,23 @@ export default function App() {
 
   return (
     <>
+      {!splashReady && (
+        <SplashScreen
+          onDone={() => {
+            try {
+              sessionStorage.setItem("lumiera-splash-seen", "1");
+            } catch {
+              /* ignore */
+            }
+            setSplashReady(true);
+          }}
+        />
+      )}
+
+      <div
+        className={splashReady ? "anim-fade-in" : undefined}
+        style={{ opacity: splashReady ? 1 : 0 }}
+      >
       <AiJobProgressBar />
 
       <DashToaster />
@@ -12476,6 +12506,7 @@ export default function App() {
         setRenderProgress={setRenderProgress}
         onCancelRender={handleCancelRender}
       />
+      </div>
     </>
   );
 }

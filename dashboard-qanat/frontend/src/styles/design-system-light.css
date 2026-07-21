@@ -1,0 +1,106 @@
+/* ════════════════════════════════════════════
+   LUMIERA — LIGHT MODE
+   Sobrescreve tokens quando <html data-theme="light">.
+   Papel quente (não branco puro) — identidade de estúdio.
+   ════════════════════════════════════════════ */
+:root[data-theme="light"] {
+  --bg-0: #efece5;
+  --bg-1: #f6f4ee;
+  --bg-2: #fdfcf9;
+  --bg-3: #f0ede6;
+  --bg-4: #e9e5dc;
+  --bg-5: #ddd8cc;
+
+  --border-subtle: rgba(28, 24, 16, 0.06);
+  --border: rgba(28, 24, 16, 0.1);
+  --border-strong: rgba(28, 24, 16, 0.18);
+
+  --text-1: #1e1b15;
+  --text-2: #474237;
+  --text-3: #6f6a5c;
+  --text-4: #a09a8b;
+
+  --gold-1: #946200;
+  --gold-2: #b57a06;
+  --gold-3: #e08c08;
+  --gold-4: #f59e2b;
+  --gold-5: #ffb224;
+  --accent: var(--gold-3);
+  --accent-soft: rgba(224, 140, 8, 0.12);
+  --accent-glow: rgba(224, 140, 8, 0.2);
+
+  --violet-2: #6b55e8;
+  --violet-3: #7c6cff;
+  --violet-4: #8f7bff;
+  --violet-soft: rgba(124, 108, 255, 0.1);
+
+  --success: #1f9d63;
+  --success-soft: rgba(31, 157, 99, 0.12);
+  --warning: #c97f08;
+  --warning-soft: rgba(201, 127, 8, 0.12);
+  --danger: #d94f4f;
+  --danger-soft: rgba(217, 79, 79, 0.12);
+  --info: #4a68e0;
+  --info-soft: rgba(74, 104, 224, 0.12);
+
+  --grad-accent: linear-gradient(135deg, #f5a623 0%, #e08c08 100%);
+  --grad-hero: linear-gradient(135deg, #f5a623 0%, #e08c08 45%, #7c6cff 130%);
+  --grad-surface: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+
+  --shadow-sm: 0 1px 2px rgba(28, 24, 16, 0.05), 0 2px 8px rgba(28, 24, 16, 0.05);
+  --shadow-md: 0 2px 4px rgba(28, 24, 16, 0.06), 0 8px 24px rgba(28, 24, 16, 0.08);
+  --shadow-lg: 0 4px 8px rgba(28, 24, 16, 0.07), 0 16px 48px rgba(28, 24, 16, 0.12);
+  --shadow-glow: 0 0 0 1px var(--accent-soft), 0 4px 20px var(--accent-glow);
+
+  --glass: rgba(253, 252, 249, 0.78);
+
+  /* Dashmin bridge (light) */
+  --dash-bg: var(--bg-0);
+  --dash-card: var(--bg-2);
+  --dash-card-hover: var(--bg-3);
+  --dash-border: var(--border-strong);
+  --dash-border-soft: var(--border);
+  --dash-primary: var(--gold-3);
+  --dash-primary-dark: var(--gold-2);
+  --dash-primary-light: var(--gold-1);
+  --dash-success: var(--success);
+  --dash-info: var(--info);
+  --dash-warning: var(--warning);
+  --dash-danger: var(--danger);
+  --dash-muted: var(--text-3);
+}
+
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(1200px 700px at 85% -10%, rgba(224, 140, 8, 0.06), transparent 60%),
+    radial-gradient(900px 600px at -5% 110%, rgba(124, 108, 255, 0.05), transparent 60%),
+    var(--bg-1);
+  color: var(--text-2);
+}
+
+:root[data-theme="light"] ::selection {
+  background: var(--accent-soft);
+  color: var(--text-1);
+}
+
+body,
+.card,
+.sidebar,
+.topbar,
+.btn,
+.input,
+.select,
+.badge,
+.dash-shell,
+.dash-sidebar,
+.dash-header,
+.dash-main {
+  transition:
+    background-color 0.3s var(--ease-out),
+    color 0.3s var(--ease-out),
+    border-color 0.3s var(--ease-out);
+}

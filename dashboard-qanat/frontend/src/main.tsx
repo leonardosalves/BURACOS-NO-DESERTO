@@ -4,6 +4,11 @@ import App from "./App.tsx";
 import { GeminiBrowserProvider } from "./GeminiBrowserBridge.tsx";
 import { TabErrorBoundary } from "./TabErrorBoundary.tsx";
 import { resetDeployReloadAttempts } from "./deployRecovery";
+/* Design System Lumiera (tokens → light → legacy aliases → splash → Tailwind/dash) */
+import "./styles/design-system.css";
+import "./styles/design-system-light.css";
+import "./styles/legacy-compat.css";
+import "./styles/splash.css";
 import "./index.css";
 
 if (import.meta.env.PROD) {
