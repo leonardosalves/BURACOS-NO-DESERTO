@@ -387,7 +387,7 @@ export default function App() {
 
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
 
-  const [aiProvider, setAiProvider] = useState<
+  type AiProviderId =
     | "gemini"
     | "xai"
     | "openrouter"
@@ -398,29 +398,43 @@ export default function App() {
     | "opencode"
     | "airforce"
     | "moonai"
-  >(() => {
-    // Evita flash "Gemini" → OpenRouter ao recarregar a página de configs
+    | "omniroute";
+
+  const AI_PROVIDER_ALLOWED = [
+    "gemini",
+    "xai",
+    "openrouter",
+    "nvidia",
+    "alibaba",
+    "tokenrouter",
+    "local",
+    "opencode",
+    "airforce",
+    "moonai",
+    "omniroute",
+  ] as const satisfies readonly AiProviderId[];
+
+  const normalizeAiProviderId = (raw: unknown): AiProviderId => {
+    const n = String(raw || "")
+      .trim()
+      .toLowerCase();
+    if (!n || n === "inference") return "gemini";
+    if (n === "dashscope" || n === "aliyun" || n === "qwen_cloud")
+      return "alibaba";
+    if (n === "token_router" || n === "token-router") return "tokenrouter";
+    if (n === "omni" || n === "omni-route" || n === "omni_route")
+      return "omniroute";
+    if ((AI_PROVIDER_ALLOWED as readonly string[]).includes(n)) {
+      return n as AiProviderId;
+    }
+    return "gemini";
+  };
+
+  const [aiProvider, setAiProvider] = useState<AiProviderId>(() => {
+    // Evita flash "Gemini" → provedor salvo ao recarregar a página de configs
     try {
       const saved = localStorage.getItem("lumiera_ai_provider");
-      const allowed = [
-        "gemini",
-        "xai",
-        "openrouter",
-        "nvidia",
-        "alibaba",
-        "tokenrouter",
-        "local",
-        "opencode",
-        "airforce",
-        "moonai",
-      ] as const;
-      // Inference.net removido — migra legado para Gemini
-      if (saved === "inference") return "gemini";
-      if (saved === "dashscope") return "alibaba";
-      if (saved === "token_router") return "tokenrouter";
-      if (saved && (allowed as readonly string[]).includes(saved)) {
-        return saved as (typeof allowed)[number];
-      }
+      return normalizeAiProviderId(saved);
     } catch {
       /* ignore */
     }
@@ -2183,6 +2197,35 @@ export default function App() {
           "Chat e IA via API xAI (Grok). Ative Gemini no Chrome para usar o navegador.",
       };
     }
+    if (aiProvider === "omniroute") {
+      const modelLabel =
+        omnirouteModelOptions.find((option) => option.id === omnirouteModel)
+          ?.label || omnirouteModel;
+      return {
+        short: "OmniRoute",
+        detail: hasOmnirouteKey
+          ? `Gateway local · ${modelLabel}`
+          : `Gateway local · ${modelLabel} (sem chave admin — ok se o OmniRoute não exigir)`,
+      };
+    }
+    if (aiProvider === "opencode") {
+      return {
+        short: "OpenCode",
+        detail: "Forge Gateway API (modelos premium).",
+      };
+    }
+    if (aiProvider === "airforce") {
+      return { short: "AirForce", detail: "Provedor flexível multi-modelo." };
+    }
+    if (aiProvider === "moonai") {
+      return { short: "Moon-AI", detail: "Provedor Moon-AI." };
+    }
+    if (aiProvider === "local") {
+      return {
+        short: "LLM Local",
+        detail: "API compatível OpenAI no seu PC (Ollama/LM Studio).",
+      };
+    }
     return {
       short: "Gemini API",
       detail: "IA via Google AI Studio (chave API). Sem automação no Chrome.",
@@ -2200,6 +2243,9 @@ export default function App() {
     tokenrouterModel,
     tokenrouterModelOptions,
     hasTokenrouterKey,
+    omnirouteModel,
+    omnirouteModelOptions,
+    hasOmnirouteKey,
   ]);
 
   const readApiError = async (res: Response, fallback: string) => {
@@ -3318,12 +3364,12 @@ export default function App() {
       if (aiSettingsRes.ok) {
         const settingsData = await aiSettingsRes.json();
 
-        let nextProvider = settingsData.provider || "gemini";
-        // Inference.net removido
-        if (nextProvider === "inference") nextProvider = "gemini";
+        const nextProvider = normalizeAiProviderId(
+          settingsData.provider || "gemini"
+        );
         setAiProvider(nextProvider);
         try {
-          localStorage.setItem("lumiera_ai_provider", String(nextProvider));
+          localStorage.setItem("lumiera_ai_provider", nextProvider);
         } catch {
           /* ignore */
         }
@@ -3466,6 +3512,7 @@ export default function App() {
             settingsData.provider === "airforce" ||
             settingsData.provider === "moonai" ||
             settingsData.provider === "omniroute" ||
+            !!settingsData.has_omniroute_key ||
             settingsData.provider === "local"
         );
       }
@@ -6493,19 +6540,8 @@ export default function App() {
   };
 
   const updateAiProvider = useCallback(
-    (
-      next:
-        | "gemini"
-        | "xai"
-        | "openrouter"
-        | "nvidia"
-        | "alibaba"
-        | "tokenrouter"
-        | "opencode"
-        | "airforce"
-        | "moonai"
-        | "local"
-    ) => {
+    (rawNext: string) => {
+      const next = normalizeAiProviderId(rawNext);
       setAiProvider(next);
       try {
         localStorage.setItem("lumiera_ai_provider", next);
@@ -6526,6 +6562,9 @@ export default function App() {
               "[IA] Falha ao gravar provedor no backend:",
               res.status
             );
+            toast.error(
+              `Não foi possível gravar o provedor (${res.status}). Tente “Salvar configurações de IA”.`
+            );
             return;
           }
           const labels: Record<string, string> = {
@@ -6539,12 +6578,14 @@ export default function App() {
             airforce: "AirForce",
             moonai: "Moon-AI",
             local: "Local",
+            omniroute: "OmniRoute",
           };
           toast.success(`Provedor ${labels[next] || next} ativo no projeto`, {
             duration: 2200,
           });
         } catch (err) {
           console.warn("[IA] Erro ao gravar provedor:", err);
+          toast.error("Erro de rede ao gravar o provedor de IA.");
         }
       })();
     },
@@ -6555,8 +6596,10 @@ export default function App() {
     setSavingAiSettings(true);
 
     try {
+      const providerToSave = normalizeAiProviderId(aiProvider);
+      if (providerToSave !== aiProvider) setAiProvider(providerToSave);
       try {
-        localStorage.setItem("lumiera_ai_provider", aiProvider);
+        localStorage.setItem("lumiera_ai_provider", providerToSave);
       } catch {
         /* ignore */
       }
@@ -6566,7 +6609,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
 
         body: JSON.stringify({
-          provider: aiProvider,
+          provider: providerToSave,
 
           gemini_model: geminiModel,
           openrouter_model: openrouterModel,
@@ -6609,6 +6652,17 @@ export default function App() {
       const data = await res.json();
 
       if (res.ok) {
+        // Confirma provedor retornado pelo backend (fonte de verdade)
+        if (data.provider) {
+          const confirmed = normalizeAiProviderId(data.provider);
+          setAiProvider(confirmed);
+          try {
+            localStorage.setItem("lumiera_ai_provider", confirmed);
+          } catch {
+            /* ignore */
+          }
+        }
+
         setGeminiKeyCount(data.gemini_key_count || 0);
 
         if (data.gemini_model) setGeminiModel(data.gemini_model);

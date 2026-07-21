@@ -656,8 +656,10 @@ export function AppSettingsTab({
               </button>
 
               <button
+                type="button"
                 onClick={() => setAiProvider("omniroute")}
                 className={`dash-provider-card ${aiProvider === "omniroute" ? "dash-provider-card-active" : ""}`}
+                data-testid="provider-omniroute"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
