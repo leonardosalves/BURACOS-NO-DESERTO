@@ -512,6 +512,25 @@ export default function App() {
   const [localLlmUrlInput, setLocalLlmUrlInput] = useState<string>("");
   const [localLlmModelInput, setLocalLlmModelInput] = useState<string>("");
 
+  // OmniRoute States
+  const [omnirouteKeyInput, setOmnirouteKeyInput] = useState<string>("");
+  const [hasOmnirouteKey, setHasOmnirouteKey] = useState<boolean>(true);
+  const [omnirouteBaseUrlInput, setOmnirouteBaseUrlInput] = useState<string>(
+    "http://localhost:20128/v1"
+  );
+  const [omnirouteModel, setOmnirouteModel] = useState<string>(
+    "omniroute-model-default"
+  );
+  const [omnirouteModelOptions, setOmnirouteModelOptions] = useState<
+    Array<{ id: string; label: string; hint?: string }>
+  >([
+    {
+      id: "omniroute-model-default",
+      label: "OmniRoute Auto",
+      hint: "Roteado dinamicamente pelo OmniRoute",
+    },
+  ]);
+
   // AirForce States
   const [airforceKeyInput, setAirforceKeyInput] = useState<string>("");
   const [hasAirforceKey, setHasAirforceKey] = useState<boolean>(true);
@@ -3397,6 +3416,20 @@ export default function App() {
         }
         setHasMoonaiKey(!!settingsData.has_moonai_key);
 
+        setOmnirouteModel(
+          settingsData.omniroute_model || "omniroute-model-default"
+        );
+        if (
+          Array.isArray(settingsData.omniroute_model_options) &&
+          settingsData.omniroute_model_options.length > 0
+        ) {
+          setOmnirouteModelOptions(settingsData.omniroute_model_options);
+        }
+        if (settingsData.omniroute_base_url) {
+          setOmnirouteBaseUrlInput(String(settingsData.omniroute_base_url));
+        }
+        setHasOmnirouteKey(!!settingsData.has_omniroute_key);
+
         setGeminiKeyCount(settingsData.gemini_key_count || 0);
 
         setHasXaiKey(!!settingsData.has_xai_key);
@@ -3407,6 +3440,7 @@ export default function App() {
         setHasTokenrouterKey(!!settingsData.has_tokenrouter_key);
         setHasAirforceKey(!!settingsData.has_airforce_key);
         setHasMoonaiKey(!!settingsData.has_moonai_key);
+        setHasOmnirouteKey(!!settingsData.has_omniroute_key);
 
         setHasEpidemicKey(!!settingsData.has_epidemic_key);
 
@@ -3429,6 +3463,7 @@ export default function App() {
             settingsData.provider === "opencode" ||
             settingsData.provider === "airforce" ||
             settingsData.provider === "moonai" ||
+            settingsData.provider === "omniroute" ||
             settingsData.provider === "local"
         );
       }
@@ -6563,6 +6598,9 @@ export default function App() {
           gemini_browser_mode: geminiBrowserMode,
           local_llm_url: localLlmUrlInput,
           local_llm_model: localLlmModelInput,
+          omniroute_model: omnirouteModel,
+          omniroute_base_url: omnirouteBaseUrlInput,
+          omniroute_key: omnirouteKeyInput,
         }),
       });
 
@@ -6646,7 +6684,7 @@ export default function App() {
         setHasAirforceKey(!!data.has_airforce_key);
         if (airforceKeyInput.trim()) setAirforceKeyInput("");
 
-        if (data.moonai_model) setMoonaiModel(data.moonai_model);
+        setMoonaiModel(data.moonai_model);
         if (
           Array.isArray(data.moonai_model_options) &&
           data.moonai_model_options.length > 0
@@ -6659,6 +6697,19 @@ export default function App() {
         setHasMoonaiKey(!!data.has_moonai_key);
         if (moonaiKeyInput.trim()) setMoonaiKeyInput("");
 
+        if (data.omniroute_model) setOmnirouteModel(data.omniroute_model);
+        if (
+          Array.isArray(data.omniroute_model_options) &&
+          data.omniroute_model_options.length > 0
+        ) {
+          setOmnirouteModelOptions(data.omniroute_model_options);
+        }
+        if (data.omniroute_base_url) {
+          setOmnirouteBaseUrlInput(String(data.omniroute_base_url));
+        }
+        setHasOmnirouteKey(!!data.has_omniroute_key);
+        if (omnirouteKeyInput.trim()) setOmnirouteKeyInput("");
+
         setHasXaiKey(!!data.has_xai_key);
 
         setHasOpenRouterKey(!!data.has_openrouter_key);
@@ -6667,6 +6718,7 @@ export default function App() {
         setHasTokenrouterKey(!!data.has_tokenrouter_key);
         setHasAirforceKey(!!data.has_airforce_key);
         setHasMoonaiKey(!!data.has_moonai_key);
+        setHasOmnirouteKey(!!data.has_omniroute_key);
         if (tokenrouterKeyInput.trim()) setTokenrouterKeyInput("");
 
         setHasEpidemicKey(!!data.has_epidemic_key);
@@ -6688,6 +6740,7 @@ export default function App() {
             data.provider === "opencode" ||
             data.provider === "airforce" ||
             data.provider === "moonai" ||
+            data.provider === "omniroute" ||
             data.provider === "local"
         );
 
@@ -6700,6 +6753,7 @@ export default function App() {
         setAlibabaKeyInput("");
         setAirforceKeyInput("");
         setMoonaiKeyInput("");
+        setOmnirouteKeyInput("");
 
         setEpidemicKeyInput("");
 

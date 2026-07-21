@@ -12295,6 +12295,173 @@ async function callAirForceWithRetry(
   );
 }
 
+// ─── OmniRoute (Local AI Gateway) ──────────────────────────────────────────
+const OMNIROUTE_DEFAULT_BASE_URL = "http://localhost:20128/v1";
+const DEFAULT_OMNIROUTE_MODEL = "auto";
+const OMNIROUTE_MODEL_OPTIONS = [
+  { id: "auto", label: "Auto (Recomendado)", hint: "Escolha dinâmica padrão" },
+  { id: "auto/coding", label: "Auto Coding", hint: "Otimizado para código" },
+  {
+    id: "auto/smart",
+    label: "Auto Smart",
+    hint: "Modelos mais inteligentes (Grok/Sonnet)",
+  },
+  { id: "auto/fast", label: "Auto Fast", hint: "Mais rápido (Flash/Haiku)" },
+  { id: "auto/cheap", label: "Auto Cheap", hint: "Menor custo / offline" },
+];
+const OMNIROUTE_MODELS = OMNIROUTE_MODEL_OPTIONS.map((o) => o.id);
+
+function getOmniRouteApiKey(projectDir = WORKSPACE_DIR) {
+  if (process.env.OMNIROUTE_API_KEY) return process.env.OMNIROUTE_API_KEY;
+  const readKey = (p) => readJsonFile(p)?.omniroute_api_key || null;
+  return (
+    readKey(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readKey(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    ""
+  );
+}
+
+function getOmniRouteBaseUrl(projectDir = WORKSPACE_DIR) {
+  const readUrl = (p) => readJsonFile(p)?.omniroute_base_url || null;
+  return (
+    readUrl(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readUrl(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    OMNIROUTE_DEFAULT_BASE_URL
+  );
+}
+
+function getOmniRouteModel(projectDir = WORKSPACE_DIR) {
+  const readModel = (p) => readJsonFile(p)?.omniroute_model || null;
+  return (
+    readModel(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    DEFAULT_OMNIROUTE_MODEL
+  );
+}
+
+function getOmniRouteModelChain(
+  projectDir = WORKSPACE_DIR,
+  modelsOverride = null
+) {
+  if (Array.isArray(modelsOverride) && modelsOverride.length)
+    return [...new Set(modelsOverride.map(String))];
+  const primary = getOmniRouteModel(projectDir);
+  const fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 3);
+  return [primary, ...fallbacks];
+}
+
+async function callOmniRouteWithRetry(
+  promptOrBody,
+  {
+    maxRetries = 3,
+    bodyOverride = null,
+    projectDir = WORKSPACE_DIR,
+    temperature = null,
+    models = null,
+    maxTokens = null,
+  } = {}
+) {
+  const apiKey = getOmniRouteApiKey(projectDir);
+  const baseUrl = getOmniRouteBaseUrl(projectDir).replace(/\/+$/, "");
+  const messages = convertGeminiToOpenRouterMessages(
+    promptOrBody,
+    bodyOverride
+  );
+  const tokenLimit = Math.max(256, Math.min(32000, Number(maxTokens) || 8192));
+  let lastError = null;
+  const modelList =
+    Array.isArray(models) && models.length
+      ? models
+      : getOmniRouteModelChain(projectDir);
+
+  for (const model of modelList) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const t0 = Date.now();
+      try {
+        console.log(
+          `[OmniRoute] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries}) @ ${baseUrl}`
+        );
+        const headers = {
+          "Content-Type": "application/json",
+        };
+        if (apiKey) {
+          headers["Authorization"] = `Bearer ${apiKey}`;
+        }
+        const response = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model,
+            messages,
+            max_tokens: tokenLimit,
+            ...(temperature !== null ? { temperature } : {}),
+          }),
+        });
+        const ms = Date.now() - t0;
+        if (response.ok) {
+          const result = await response.json();
+          const msg = result.choices?.[0]?.message || {};
+          let text =
+            typeof msg.content === "string"
+              ? msg.content
+              : Array.isArray(msg.content)
+                ? msg.content.map((p) => p?.text || p?.content || "").join("\n")
+                : "";
+          text = String(text || "")
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+          if (text) {
+            console.log(
+              `[OmniRoute] Sucesso model=${model} tentativa ${attempt} (${text.length} chars · ${ms}ms)`
+            );
+            return text;
+          }
+          console.warn(
+            `[OmniRoute] ${model} retornou vazio na tentativa ${attempt}/${maxRetries} · ${ms}ms`
+          );
+        }
+        const errData = await response.json().catch(() => ({}));
+        const errMsg =
+          errData.error?.message ||
+          errData.message ||
+          response.statusText ||
+          `HTTP ${response.status}`;
+        lastError = new Error(`${model}: ${errMsg}`);
+        console.warn(
+          `[OmniRoute] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg} · ${ms}ms`
+        );
+        if (response.status === 404 || response.status === 400) break;
+        if (response.status === 503 || response.status === 429) {
+          await new Promise((r) =>
+            setTimeout(r, Math.min(1500 * Math.pow(2, attempt - 1), 10000))
+          );
+          continue;
+        }
+        break;
+      } catch (err) {
+        lastError = err;
+        console.warn(
+          `[OmniRoute] Erro na tentativa ${attempt} para ${model}: ${err.message}`
+        );
+        await new Promise((r) => setTimeout(r, Math.min(400 * attempt, 1200)));
+      }
+    }
+  }
+  throw (
+    lastError ||
+    new Error(
+      `Falha ao chamar OmniRoute. Verifique se o gateway local está ativo em: ${baseUrl}`
+    )
+  );
+}
+
 // ─── Moon-AI (moon-ai.pl/api · 30+ modelos) ─────────────────────────────────
 const MOONAI_DEFAULT_BASE_URL = "https://www.moon-ai.pl/api";
 const DEFAULT_MOONAI_API_KEY = "moon-ai-vrmc2tb733k9m1z5vlccwpb2";
@@ -13101,6 +13268,18 @@ async function callGeminiWithRetry(
     }
     if (provider === "moonai") {
       const text = await callMoonAiWithRetry(promptOrBody, {
+        maxRetries,
+        bodyOverride,
+        projectDir: projDir,
+        temperature,
+        models: providerModelsOverride,
+        maxTokens,
+      });
+      finishOk(primaryModel);
+      return text;
+    }
+    if (provider === "omniroute") {
+      const text = await callOmniRouteWithRetry(promptOrBody, {
         maxRetries,
         bodyOverride,
         projectDir: projDir,
@@ -14119,6 +14298,7 @@ function getActiveAiModel(projectDir = WORKSPACE_DIR) {
         : "grok";
     }
     if (provider === "local") return getLocalLlmModel(projectDir);
+    if (provider === "omniroute") return getOmniRouteModel(projectDir);
   } catch {
     /* fall through */
   }
@@ -14472,6 +14652,14 @@ app.get("/api/ai/key-status", (req, res) => {
 
   const provider = getAiProvider(projDir);
 
+  if (provider === "omniroute") {
+    return res.json({
+      has_key: true,
+      provider: "omniroute",
+      has_custom_key: !!getOmniRouteApiKey(projDir),
+    });
+  }
+
   if (provider === "openrouter") {
     return res.json({
       has_key: !!getOpenRouterApiKey(projDir),
@@ -14643,6 +14831,11 @@ app.get("/api/ai/settings", (req, res) => {
     moonai_base_url: getMoonAiBaseUrl(projDir),
     has_moonai_key: !!getMoonAiApiKey(projDir),
 
+    omniroute_model: getOmniRouteModel(projDir),
+    omniroute_model_options: OMNIROUTE_MODEL_OPTIONS,
+    omniroute_base_url: getOmniRouteBaseUrl(projDir),
+    has_omniroute_key: !!getOmniRouteApiKey(projDir),
+
     gemini_key_count: getApiKeys(projDir).length,
 
     has_xai_key: !!getXaiApiKey(projDir),
@@ -14707,6 +14900,9 @@ app.post("/api/ai/settings", (req, res) => {
     gemini_browser_mode,
     local_llm_url,
     local_llm_model,
+    omniroute_model,
+    omniroute_base_url,
+    omniroute_key,
   } = req.body || {};
 
   try {
@@ -14893,6 +15089,20 @@ app.post("/api/ai/settings", (req, res) => {
         next.moonai_api_key = moonai_key.trim();
       }
 
+      if (typeof omniroute_model === "string" && omniroute_model.trim()) {
+        next.omniroute_model = omniroute_model.trim();
+      }
+
+      if (typeof omniroute_base_url === "string" && omniroute_base_url.trim()) {
+        let u = omniroute_base_url.trim().replace(/\/+$/, "");
+        if (!/^https?:\/\//i.test(u)) u = `http://${u}`; // Local gateway default protocol is http
+        next.omniroute_base_url = u;
+      }
+
+      if (typeof omniroute_key === "string") {
+        next.omniroute_api_key = omniroute_key.trim();
+      }
+
       return next;
     };
 
@@ -14935,6 +15145,10 @@ app.post("/api/ai/settings", (req, res) => {
       moonai_model_options: MOONAI_MODEL_OPTIONS,
       moonai_base_url: getMoonAiBaseUrl(projDir),
       has_moonai_key: !!getMoonAiApiKey(projDir),
+      omniroute_model: getOmniRouteModel(projDir),
+      omniroute_model_options: OMNIROUTE_MODEL_OPTIONS,
+      omniroute_base_url: getOmniRouteBaseUrl(projDir),
+      has_omniroute_key: !!getOmniRouteApiKey(projDir),
       gemini_key_count: getApiKeys(projDir).length,
       has_xai_key: !!getXaiApiKey(projDir),
       has_openrouter_key: !!getOpenRouterApiKey(projDir),
@@ -14954,6 +15168,129 @@ app.post("/api/ai/settings", (req, res) => {
       error: "Erro ao salvar configurações de IA",
       details: err.message,
     });
+  }
+});
+
+async function callOmniRouteAdmin(projDir, apiPath, options = {}) {
+  const baseUrl = getOmniRouteBaseUrl(projDir).replace(/\/+$/, "");
+  let adminBaseUrl = baseUrl;
+  if (baseUrl.endsWith("/v1")) {
+    adminBaseUrl = baseUrl.substring(0, baseUrl.length - 3) + "/api";
+  } else {
+    adminBaseUrl = baseUrl + "/api";
+  }
+  const apiKey = getOmniRouteApiKey(projDir);
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (apiKey) {
+    headers["Authorization"] = `Bearer ${apiKey}`;
+  }
+  const url = `${adminBaseUrl}/${apiPath.replace(/^\/+/, "")}`;
+  console.log(`[OmniRoute Admin Proxy] ${options.method || "GET"} ${url}`);
+  const response = await fetch(url, {
+    method: options.method || "GET",
+    headers,
+    ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`OmniRoute error (${response.status}): ${text}`);
+  }
+  return response.json();
+}
+
+app.get("/api/omniroute/status", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const baseUrl = getOmniRouteBaseUrl(projDir);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const resp = await fetch(baseUrl, { signal: controller.signal }).catch(
+      () => null
+    );
+    clearTimeout(timeoutId);
+    res.json({
+      online: resp !== null,
+      status: resp ? resp.status : 0,
+      url: baseUrl,
+    });
+  } catch (err) {
+    res.json({ online: false, error: err.message, url: baseUrl });
+  }
+});
+
+app.get("/api/omniroute/providers", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const data = await callOmniRouteAdmin(projDir, "/providers");
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/omniroute/providers", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const data = await callOmniRouteAdmin(projDir, "/providers", {
+      method: "POST",
+      body: req.body,
+    });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/omniroute/providers/:id", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const data = await callOmniRouteAdmin(
+      projDir,
+      `/providers/${req.params.id}`,
+      {
+        method: "DELETE",
+      }
+    );
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/omniroute/keys", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const data = await callOmniRouteAdmin(projDir, "/keys");
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/omniroute/keys", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const data = await callOmniRouteAdmin(projDir, "/keys", {
+      method: "POST",
+      body: req.body,
+    });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/omniroute/keys/:id", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const data = await callOmniRouteAdmin(projDir, `/keys/${req.params.id}`, {
+      method: "DELETE",
+    });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -20926,24 +21263,6 @@ function normalizeKeys(data, formatHint = null) {
       pinned_comment: s.pinned_comment || s.comentario_fixado || "",
 
       cta: s.cta || "",
-    };
-  }
-
-  if (provider === "minimax") {
-    const apiKey = getMinimaxApiKey(projDir);
-    if (!apiKey) {
-      res.status(401).json({
-        error: "Chave de API Minimax não configurada.",
-      });
-      return null;
-    }
-    return {
-      apiKey,
-      baseURL: getMinimaxBaseUrl(projDir),
-      modelChain: getMinimaxModelChain(projDir, providerModelsOverride),
-      systemInstruction: getSystemInstruction(options),
-      defaultModel: getMinimaxModel(projDir),
-      isGemini: false,
     };
   } else {
     normalized.strategy = {

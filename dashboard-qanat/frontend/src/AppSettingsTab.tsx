@@ -177,6 +177,17 @@ export type AppSettingsTabProps = {
   setLocalLlmUrlInput: (v: string) => void;
   localLlmModelInput: string;
   setLocalLlmModelInput: (v: string) => void;
+  omnirouteModel: string;
+  setOmnirouteModel: (v: string) => void;
+  omnirouteModelOptions: Array<{ id: string; label: string; hint?: string }>;
+  setOmnirouteModelOptions: (
+    v: Array<{ id: string; label: string; hint?: string }>
+  ) => void;
+  omnirouteBaseUrlInput: string;
+  setOmnirouteBaseUrlInput: (v: string) => void;
+  omnirouteKeyInput: string;
+  setOmnirouteKeyInput: (v: string) => void;
+  hasOmnirouteKey: boolean;
 };
 
 export function AppSettingsTab({
@@ -337,6 +348,15 @@ export function AppSettingsTab({
   setLocalLlmUrlInput,
   localLlmModelInput,
   setLocalLlmModelInput,
+  omnirouteModel,
+  setOmnirouteModel,
+  omnirouteModelOptions,
+  setOmnirouteModelOptions,
+  omnirouteBaseUrlInput,
+  setOmnirouteBaseUrlInput,
+  omnirouteKeyInput,
+  setOmnirouteKeyInput,
+  hasOmnirouteKey,
 }: AppSettingsTabProps) {
   return (
     <DashminPageLayout
@@ -632,6 +652,32 @@ export function AppSettingsTab({
                 <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
                   Usa uma API de IA local rodando no seu computador (porta 11434
                   por padrão).
+                </p>
+              </button>
+
+              <button
+                onClick={() => setAiProvider("omniroute")}
+                className={`dash-provider-card ${aiProvider === "omniroute" ? "dash-provider-card-active" : ""}`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
+                    OmniRoute Gateway
+                    <SettingHelpTip title="OmniRoute Gateway" align="start">
+                      Use a local API gateway
+                      (https://github.com/diegosouzapw/OmniRoute) to
+                      automatically route calls between your API providers and
+                      manage fallback/keys.
+                    </SettingHelpTip>
+                  </span>
+
+                  {aiProvider === "omniroute" && (
+                    <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />
+                  )}
+                </div>
+
+                <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
+                  Local smart routing and API key/provider manager for custom
+                  endpoints.
                 </p>
               </button>
             </div>
@@ -1110,6 +1156,77 @@ export function AppSettingsTab({
                         className="dash-input font-mono text-[11px]"
                       />
                     </div>
+                  </div>
+                )}
+
+                {aiProvider === "omniroute" && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Modelo OmniRoute"
+                        help="Escolha o modelo principal para enviar via OmniRoute ou digite um livre."
+                        align="start"
+                      >
+                        Modelo OmniRoute
+                      </SettingLabel>
+                      <select
+                        value={omnirouteModel}
+                        onChange={(e) => setOmnirouteModel(e.target.value)}
+                        className="dash-select"
+                      >
+                        {omnirouteModelOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={omnirouteModel}
+                        onChange={(e) => setOmnirouteModel(e.target.value)}
+                        placeholder="ex.: gpt-4o, claude-3-5-sonnet, deepseek-coder"
+                        className="dash-input font-mono text-[11px]"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Base URL OmniRoute"
+                        help="Endereço local onde o servidor OmniRoute está rodando. Padrão: http://localhost:20128/v1"
+                        align="start"
+                      >
+                        Base URL (OpenAI compatible gateway)
+                      </SettingLabel>
+                      <input
+                        type="text"
+                        value={omnirouteBaseUrlInput}
+                        onChange={(e) =>
+                          setOmnirouteBaseUrlInput(e.target.value)
+                        }
+                        placeholder="http://localhost:20128/v1"
+                        className="dash-input font-mono text-[11px]"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <SettingLabel
+                        helpTitle="Chave Admin OmniRoute"
+                        help="Token/Chave de autenticação configurada no OmniRoute para chamadas seguras (opcional)."
+                        align="start"
+                      >
+                        Chave/Token OmniRoute
+                      </SettingLabel>
+                      <input
+                        type="password"
+                        value={omnirouteKeyInput}
+                        onChange={(e) => setOmnirouteKeyInput(e.target.value)}
+                        placeholder="Token de segurança do OmniRoute"
+                        className="dash-input"
+                      />
+                    </div>
+
+                    {/* OmniRoute Live Admin Management Panel */}
+                    <OmniRouteManagerPanel />
                   </div>
                 )}
 
@@ -1921,5 +2038,395 @@ export function AppSettingsTab({
         )}
       </div>
     </DashminPageLayout>
+  );
+}
+
+function OmniRouteManagerPanel() {
+  const [status, setStatus] = React.useState<{
+    online: boolean;
+    url: string;
+    error?: string;
+  } | null>(null);
+  const [providers, setProviders] = React.useState<any[]>([]);
+  const [keys, setKeys] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(false);
+
+  // New Provider Form
+  const [newProvName, setNewProvName] = React.useState("");
+  const [newProvBaseUrl, setNewProvBaseUrl] = React.useState("");
+  const [newProvApiKey, setNewProvApiKey] = React.useState("");
+  const [newProvModels, setNewProvModels] = React.useState("");
+  const [newProvWeight, setNewProvWeight] = React.useState(1);
+
+  // New Key Form
+  const [newKeyName, setNewKeyName] = React.useState("");
+  const [newKeyExpires, setNewKeyExpires] = React.useState("");
+
+  const refreshAll = async () => {
+    setLoading(true);
+    try {
+      const statusRes = await fetch("/api/omniroute/status");
+      const statusData = await statusRes.json();
+      setStatus(statusData);
+
+      if (statusData.online) {
+        const provsRes = await fetch("/api/omniroute/providers");
+        if (provsRes.ok) {
+          const provsData = await provsRes.json();
+          setProviders(
+            Array.isArray(provsData) ? provsData : provsData.providers || []
+          );
+        }
+
+        const keysRes = await fetch("/api/omniroute/keys");
+        if (keysRes.ok) {
+          const keysData = await keysRes.json();
+          setKeys(Array.isArray(keysData) ? keysData : keysData.keys || []);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    refreshAll();
+  }, []);
+
+  const handleAddProvider = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProvName || !newProvBaseUrl) {
+      toast.error("Nome e Base URL são obrigatórios");
+      return;
+    }
+    try {
+      const resp = await fetch("/api/omniroute/providers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newProvName,
+          base_url: newProvBaseUrl,
+          api_key: newProvApiKey,
+          models: newProvModels
+            .split(",")
+            .map((m) => m.trim())
+            .filter(Boolean),
+          weight: Number(newProvWeight) || 1,
+        }),
+      });
+      if (resp.ok) {
+        toast.success("Provedor adicionado no OmniRoute");
+        setNewProvName("");
+        setNewProvBaseUrl("");
+        setNewProvApiKey("");
+        setNewProvModels("");
+        refreshAll();
+      } else {
+        const errText = await resp.text();
+        toast.error("Erro: " + errText);
+      }
+    } catch (err: any) {
+      toast.error("Falha ao adicionar: " + err.message);
+    }
+  };
+
+  const handleDeleteProvider = async (id: string | number) => {
+    if (!confirm("Deseja mesmo remover este provedor do OmniRoute?")) return;
+    try {
+      const resp = await fetch(`/api/omniroute/providers/${id}`, {
+        method: "DELETE",
+      });
+      if (resp.ok) {
+        toast.success("Provedor removido");
+        refreshAll();
+      } else {
+        const errText = await resp.text();
+        toast.error("Erro: " + errText);
+      }
+    } catch (err: any) {
+      toast.error("Falha ao remover: " + err.message);
+    }
+  };
+
+  const handleAddKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKeyName) {
+      toast.error("Nome da chave é obrigatório");
+      return;
+    }
+    try {
+      const resp = await fetch("/api/omniroute/keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newKeyName,
+          expires_at: newKeyExpires || null,
+        }),
+      });
+      if (resp.ok) {
+        toast.success("Chave criada no OmniRoute");
+        setNewKeyName("");
+        setNewKeyExpires("");
+        refreshAll();
+      } else {
+        const errText = await resp.text();
+        toast.error("Erro: " + errText);
+      }
+    } catch (err: any) {
+      toast.error("Falha ao criar chave: " + err.message);
+    }
+  };
+
+  const handleDeleteKey = async (id: string | number) => {
+    if (!confirm("Deseja mesmo revogar esta chave do OmniRoute?")) return;
+    try {
+      const resp = await fetch(`/api/omniroute/keys/${id}`, {
+        method: "DELETE",
+      });
+      if (resp.ok) {
+        toast.success("Chave revogada");
+        refreshAll();
+      } else {
+        const errText = await resp.text();
+        toast.error("Erro: " + errText);
+      }
+    } catch (err: any) {
+      toast.error("Falha ao revogar: " + err.message);
+    }
+  };
+
+  return (
+    <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 space-y-5 mt-4 text-left">
+      <div className="flex items-center justify-between border-b border-zinc-850 pb-3">
+        <div>
+          <h4 className="text-xs font-bold text-white flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Gerenciador OmniRoute Local
+          </h4>
+          <p className="text-[10px] text-zinc-400 mt-0.5">
+            Gerencie provedores e chaves de API integradas no seu gateway local.
+          </p>
+        </div>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            refreshAll();
+          }}
+          disabled={loading}
+          className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition disabled:opacity-50"
+          title="Recarregar dados"
+        >
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
+          />
+        </button>
+      </div>
+
+      {status && (
+        <div
+          className={`p-3 rounded-xl text-[10px] flex items-center justify-between ${status.online ? "bg-emerald-950/20 border border-emerald-500/20 text-emerald-400" : "bg-rose-950/20 border border-rose-500/20 text-rose-400"}`}
+        >
+          <span>
+            <b>Status:</b>{" "}
+            {status.online
+              ? `Online (${status.url})`
+              : `Offline ou Inacessível`}
+            {!status.online && status.error && (
+              <span className="block text-zinc-500 mt-0.5">
+                Erro: {status.error}
+              </span>
+            )}
+          </span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${status.online ? "bg-emerald-500/20" : "bg-rose-500/20"}`}
+          >
+            {status.online ? "CONECTADO" : "DESCONECTADO"}
+          </span>
+        </div>
+      )}
+
+      {status?.online && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="space-y-3 bg-zinc-950/30 p-4 border border-zinc-850 rounded-xl">
+            <h5 className="text-[11px] font-bold text-zinc-200">
+              Provedores Configurados
+            </h5>
+
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {providers.length === 0 ? (
+                <p className="text-[10px] text-zinc-500 italic">
+                  Nenhum provedor configurado no OmniRoute.
+                </p>
+              ) : (
+                providers.map((p) => (
+                  <div
+                    key={p.id}
+                    className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-between text-[10px]"
+                  >
+                    <div className="space-y-1">
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        {p.name}
+                        <span className="text-[8px] bg-zinc-800 px-1 py-0.5 rounded text-zinc-400">
+                          Peso: {p.weight || 1}
+                        </span>
+                      </div>
+                      <div className="text-zinc-550 font-mono text-[9px] truncate max-w-[180px]">
+                        {p.base_url}
+                      </div>
+                      {p.models && p.models.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {p.models.map((m: string) => (
+                            <span
+                              key={m}
+                              className="bg-violet-950/40 text-violet-300 border border-violet-900/50 rounded px-1 text-[8px]"
+                            >
+                              {m}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDeleteProvider(p.id);
+                      }}
+                      className="text-rose-500 hover:text-rose-450 hover:bg-rose-500/10 p-1 rounded transition text-[9px]"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="space-y-2 pt-3 border-t border-zinc-850">
+              <span className="text-[10px] font-semibold text-zinc-400 block">
+                Adicionar Provedor
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Nome (ex: OpenRouter)"
+                  value={newProvName}
+                  onChange={(e) => setNewProvName(e.target.value)}
+                  className="dash-input text-[10px] py-1 px-2"
+                />
+                <input
+                  type="text"
+                  placeholder="Base URL"
+                  value={newProvBaseUrl}
+                  onChange={(e) => setNewProvBaseUrl(e.target.value)}
+                  className="dash-input text-[10px] py-1 px-2"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="password"
+                  placeholder="API Key (opcional)"
+                  value={newProvApiKey}
+                  onChange={(e) => setNewProvApiKey(e.target.value)}
+                  className="dash-input text-[10px] py-1 px-2"
+                />
+                <input
+                  type="number"
+                  placeholder="Peso"
+                  value={newProvWeight}
+                  onChange={(e) => setNewProvWeight(Number(e.target.value))}
+                  className="dash-input text-[10px] py-1 px-2"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Modelos (ex: gpt-4o, claude-3-5)"
+                value={newProvModels}
+                onChange={(e) => setNewProvModels(e.target.value)}
+                className="dash-input text-[10px] py-1 px-2"
+              />
+              <button
+                type="button"
+                onClick={handleAddProvider}
+                className="w-full bg-violet-600 hover:bg-violet-500 text-white rounded py-1 text-[10px] font-medium transition"
+              >
+                Adicionar Provedor
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3 bg-zinc-950/30 p-4 border border-zinc-850 rounded-xl">
+            <h5 className="text-[11px] font-bold text-zinc-200">
+              Chaves de API do Gateway
+            </h5>
+
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {keys.length === 0 ? (
+                <p className="text-[10px] text-zinc-500 italic">
+                  Nenhuma chave de API gerada no OmniRoute.
+                </p>
+              ) : (
+                keys.map((k) => (
+                  <div
+                    key={k.id}
+                    className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-between text-[10px]"
+                  >
+                    <div>
+                      <div className="font-bold text-white">{k.name}</div>
+                      <div className="text-zinc-500 font-mono text-[9px] mt-0.5">
+                        {k.key_hint || k.token || k.id}
+                      </div>
+                      {k.expires_at && (
+                        <div className="text-[8px] text-zinc-500">
+                          Expira: {new Date(k.expires_at).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDeleteKey(k.id);
+                      }}
+                      className="text-rose-500 hover:text-rose-450 hover:bg-rose-500/10 p-1 rounded transition text-[9px]"
+                    >
+                      Revogar
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="space-y-2 pt-3 border-t border-zinc-850">
+              <span className="text-[10px] font-semibold text-zinc-400 block">
+                Gerar Nova Chave
+              </span>
+              <div className="grid grid-cols-1 gap-2">
+                <input
+                  type="text"
+                  placeholder="Nome/Descrição (ex: Lumiera Prod)"
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  className="dash-input text-[10px] py-1 px-2"
+                />
+                <input
+                  type="date"
+                  placeholder="Expira em"
+                  value={newKeyExpires}
+                  onChange={(e) => setNewKeyExpires(e.target.value)}
+                  className="dash-input text-[10px] py-1 px-2 text-zinc-400"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleAddKey}
+                className="w-full bg-violet-600 hover:bg-violet-500 text-white rounded py-1 text-[10px] font-medium transition"
+              >
+                Gerar Chave de API
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
