@@ -29,6 +29,10 @@ import {
   type BlockProgressBarProps,
 } from "./overlays/BlockProgressBar";
 import { ShortsVisualFx } from "./overlays/ShortsVisualFx";
+import {
+  ShotcraftLayer,
+  type MotionShot,
+} from "./overlays/ShotcraftLayer";
 
 /** Espelho de shared/studioOverlayLayers — inline para o bundler Remotion. */
 function splitOverlaysByStudioLayer(overlays: Overlay[] = []) {
@@ -81,6 +85,13 @@ type TimelineScene = {
 
   /** Fade de áudio diegético do clip de vídeo (saída natural na timeline). */
   fadeOutS?: number;
+
+  /** Motion shot do video-shotcraft (Motion Director). */
+  motion_shot?: MotionShot | null;
+
+  camera_move?: string;
+
+  transicao_entrada?: string;
 };
 
 type Caption = {
@@ -674,6 +685,7 @@ const SceneMedia: React.FC<{
           props={props}
           durationInFrames={durationFrames}
         />
+        {scene.motion_shot ? <ShotcraftLayer shot={scene.motion_shot} /> : null}
       </AbsoluteFill>
     );
   }
@@ -710,6 +722,7 @@ const SceneMedia: React.FC<{
             }}
           />
         )}
+        {scene.motion_shot ? <ShotcraftLayer shot={scene.motion_shot} /> : null}
       </AbsoluteFill>
     );
   }
@@ -736,6 +749,7 @@ const SceneMedia: React.FC<{
           }}
         />
       )}
+      {scene.motion_shot ? <ShotcraftLayer shot={scene.motion_shot} /> : null}
     </AbsoluteFill>
   );
 };

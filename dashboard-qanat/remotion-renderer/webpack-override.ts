@@ -12,6 +12,13 @@ function resolveRendererRoot(): string {
 
 const rendererRoot = resolveRendererRoot();
 const sharedRoot = path.resolve(rendererRoot, "..", "shared");
+const shotcraftDemosRoot = path.resolve(
+  rendererRoot,
+  "..",
+  "vendor",
+  "video-shotcraft",
+  "demos"
+);
 
 type WebpackAlias = NonNullable<Configuration["resolve"]>["alias"];
 
@@ -95,6 +102,7 @@ export const webpackOverride = (config: Configuration): Configuration => {
       alias: mergeWebpackAlias(config.resolve?.alias, {
         "@lumiera/shared": sharedRoot,
         "@lumiera/shared/cesiumFly.js": path.join(sharedRoot, "cesiumFly.js"),
+        "@shotcraft": shotcraftDemosRoot,
         cesium: path.join(rendererRoot, "node_modules/cesium/Source/Cesium.js"),
         sucrase: path.join(rendererRoot, "node_modules/sucrase"),
       }),

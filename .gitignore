@@ -171,3 +171,7 @@ graphify-out/graph.json
 
 # Qanat local configuration file
 config_qanat.json
+
+# video-shotcraft vendor clone (large)
+dashboard-qanat/vendor/video-shotcraft/
+
