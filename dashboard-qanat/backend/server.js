@@ -13585,6 +13585,33 @@ function parseJsonLocally(responseText) {
   ];
   const seen = new Set();
   let lastError = null;
+
+  const repairTruncated = (str) => {
+    if (!str) return str;
+    let text = String(str).trim().replace(/,\s*$/, "");
+    const stack = [];
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') inString = true;
+      else if (ch === "{" || ch === "[") stack.push(ch === "{" ? "}" : "]");
+      else if (ch === "}" || ch === "]") {
+        if (stack.length > 0 && stack[stack.length - 1] === ch) stack.pop();
+      }
+    }
+    if (inString) text += '"';
+    text = text.replace(/,\s*$/, "");
+    while (stack.length > 0) text += stack.pop();
+    return text.replace(/,\s*([}\]])/g, "$1");
+  };
+
   for (const base of variants) {
     if (!base || seen.has(base)) continue;
     seen.add(base);
@@ -13597,6 +13624,25 @@ function parseJsonLocally(responseText) {
         .replace(/['']/g, "'")
         .replace(/,\s*([}\]])/g, "$1"),
       candidate.replace(/'/g, '"').replace(/,\s*([}\]])/g, "$1"),
+      // Repair missing commas between adjacent objects/arrays/strings
+      candidate
+        .replace(/}\s*{/g, "},{")
+        .replace(/]\s*\[/g, "],[")
+        .replace(/}\s*\[/g, "},[")
+        .replace(/]\s*{/g, "],[")
+        .replace(/"\s*"/g, '","')
+        .replace(/}\s*"/g, '},"')
+        .replace(/"\s*{/g, '",{"')
+        .replace(/]\s*"/g, '],"')
+        .replace(/"\s*\[/g, '",[')
+        .replace(/,\s*([}\]])/g, "$1"),
+      repairTruncated(candidate),
+      repairTruncated(
+        candidate
+          .replace(/}\s*{/g, "},{")
+          .replace(/]\s*\[/g, "],[")
+          .replace(/"\s*"/g, '","')
+      ),
     ];
     for (const variant of attempts) {
       try {

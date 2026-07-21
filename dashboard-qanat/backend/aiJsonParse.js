@@ -3,10 +3,19 @@
  */
 
 export function extractJsonCandidate(text) {
-  const raw = String(text || "").replace(/^\uFEFF/, "").replace(/```json/gi, "").replace(/```/g, "").trim();
+  const raw = String(text || "")
+    .replace(/^\uFEFF/, "")
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
   const firstObject = raw.indexOf("{");
   const firstArray = raw.indexOf("[");
-  const start = firstObject === -1 ? firstArray : firstArray === -1 ? firstObject : Math.min(firstObject, firstArray);
+  const start =
+    firstObject === -1
+      ? firstArray
+      : firstArray === -1
+        ? firstObject
+        : Math.min(firstObject, firstArray);
   if (start === -1) return raw;
 
   const closeForOpen = raw[start] === "{" ? "}" : "]";
@@ -34,10 +43,45 @@ export function extractJsonCandidate(text) {
   return fallback ? fallback[0] : raw;
 }
 
+function repairTruncatedJson(str) {
+  if (!str) return str;
+  let text = String(str).trim().replace(/,\s*$/, "");
+
+  const stack = [];
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{" || ch === "[") stack.push(ch === "{" ? "}" : "]");
+    else if (ch === "}" || ch === "]") {
+      if (stack.length > 0 && stack[stack.length - 1] === ch) {
+        stack.pop();
+      }
+    }
+  }
+
+  if (inString) text += '"';
+  text = text.replace(/,\s*$/, "");
+  while (stack.length > 0) {
+    text += stack.pop();
+  }
+  return text.replace(/,\s*([}\]])/g, "$1");
+}
+
 export function parseJsonLocally(responseText) {
   const variants = [
     responseText,
-    String(responseText || "").replace(/^\uFEFF/, "").trim(),
+    String(responseText || "")
+      .replace(/^\uFEFF/, "")
+      .trim(),
     extractJsonCandidate(responseText),
   ];
   const seen = new Set();
@@ -50,8 +94,31 @@ export function parseJsonLocally(responseText) {
     const attempts = [
       candidate,
       candidate.replace(/,\s*([}\]])/g, "$1"),
-      candidate.replace(/[""]/g, '"').replace(/['']/g, "'").replace(/,\s*([}\]])/g, "$1"),
+      candidate
+        .replace(/[""]/g, '"')
+        .replace(/['']/g, "'")
+        .replace(/,\s*([}\]])/g, "$1"),
       candidate.replace(/'/g, '"').replace(/,\s*([}\]])/g, "$1"),
+      // Repair missing commas between adjacent objects/arrays/strings
+      candidate
+        .replace(/}\s*{/g, "},{")
+        .replace(/]\s*\[/g, "],[")
+        .replace(/}\s*\[/g, "},[")
+        .replace(/]\s*{/g, "],[")
+        .replace(/"\s*"/g, '","')
+        .replace(/}\s*"/g, '},"')
+        .replace(/"\s*{/g, '",{"')
+        .replace(/]\s*"/g, '],"')
+        .replace(/"\s*\[/g, '",[')
+        .replace(/,\s*([}\]])/g, "$1"),
+      // Repair truncated JSON by balancing quotes & brackets
+      repairTruncatedJson(candidate),
+      repairTruncatedJson(
+        candidate
+          .replace(/}\s*{/g, "},{")
+          .replace(/]\s*\[/g, "],[")
+          .replace(/"\s*"/g, '","')
+      ),
     ];
     for (const variant of attempts) {
       try {
