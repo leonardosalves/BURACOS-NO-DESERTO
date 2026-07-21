@@ -1,43 +1,18 @@
 {
   "meta": {
     "id": "engenharia-impossivel",
-    "nome": "Engenharia Impossível",
-    "descricao": "Engenharia e construções que desafiam o impossível",
+    "nome": "AI Construction Stories",
+    "descricao": "",
     "idioma": "pt-BR",
     "youtube_channel_id": "UCYYcyky9A8fob3t6TlIENYA",
-    "criado_em": "2026-07-21"
+    "criado_em": "2026-07-21",
+    "avatar_url": "https://yt3.googleusercontent.com/MnZN5dMDnLW957sZZslqNMacjOQ4j9Rde6rssehRblcCvzD1nsArzfkeYDLXl-rHeL4CaEg9=s900-c-k-c0x00ffffff-no-rj",
+    "cor": "#f5a623"
   },
   "nicho": {
-    "principal": "engenharia_e_construcao",
-    "sub_nichos_permitidos": [
-      "engenharia_historica",
-      "megaprojetos_modernos",
-      "tecnologia_construcao",
-      "fisica_aplicada",
-      "desastres_engenharia",
-      "engenharia_militar_antiga"
-    ],
-    "temas_proibidos": [
-      "guerra_moderna",
-      "curiosidades_genericas",
-      "tecnologia_sem_construcao",
-      "biologia",
-      "espaco_astronomia",
-      "politica"
-    ],
-    "palavras_chave_seo": [
-      "engenharia",
-      "construção",
-      "como construíram",
-      "megaprojeto",
-      "estrutura",
-      "fundação",
-      "concreto",
-      "ponte",
-      "arranha-céu",
-      "máquina",
-      "obra"
-    ]
+    "principal": "",
+    "sub_nichos_permitidos": [],
+    "temas_proibidos": []
   },
   "publico_alvo": {
     "idade": "18-45",
@@ -99,7 +74,7 @@
   "tts": {
     "engine": "gpt_sovits",
     "voz_id": "narrador_masculino_br",
-    "velocidade": 1.0,
+    "velocidade": 1,
     "fallback_engine": "kokoro"
   },
   "pesquisa": {

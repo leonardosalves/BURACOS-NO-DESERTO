@@ -77,13 +77,38 @@ export function setActiveChannel(channelId) {
 
 export function listChannels() {
   const reg = loadRegistry();
-  return reg.channels.map((ch) => ({
-    ...ch,
-    ativo: ch.id === reg.active_channel,
-    has_config: fs.existsSync(
-      path.join(CHANNELS_DIR, ch.id, "channel.config.json")
-    ),
-  }));
+  return reg.channels.map((ch) => {
+    const configPath = path.join(CHANNELS_DIR, ch.id, "channel.config.json");
+    const has_config = fs.existsSync(configPath);
+    const config = has_config ? readJsonSafe(configPath, null) : null;
+
+    // Mesclar metadados do config individual, se houver
+    const nome = config?.meta?.nome || ch.nome;
+    const youtube_channel_id =
+      config?.meta?.youtube_channel_id || ch.youtube_channel_id;
+    const avatar_url = config?.meta?.avatar_url || ch.avatar_url || "";
+    const cor = config?.meta?.cor || ch.cor || "#f5a623";
+    const nicho = config?.nicho?.principal || ch.nicho || "";
+    const sub_nichos_permitidos =
+      config?.nicho?.sub_nichos_permitidos || ch.sub_nichos_permitidos || [];
+    const temas_proibidos =
+      config?.nicho?.temas_proibidos || ch.temas_proibidos || [];
+    const descricao = config?.meta?.descricao || ch.descricao || "";
+
+    return {
+      ...ch,
+      nome,
+      youtube_channel_id,
+      avatar_url,
+      cor,
+      nicho,
+      sub_nichos_permitidos,
+      temas_proibidos,
+      descricao,
+      ativo: ch.id === reg.active_channel,
+      has_config,
+    };
+  });
 }
 
 // ─── CARREGAR CONFIG COMPLETA ─────────────────────────────────
@@ -96,6 +121,26 @@ export function loadChannelConfig(channelId) {
 export function saveChannelConfig(channelId, config) {
   const configPath = path.join(CHANNELS_DIR, channelId, "channel.config.json");
   writeJson(configPath, config);
+
+  // Sincronizar dados principais de volta para o registro central
+  try {
+    const reg = loadRegistry();
+    const idx = reg.channels.findIndex((c) => c.id === channelId);
+    if (idx !== -1) {
+      reg.channels[idx] = {
+        ...reg.channels[idx],
+        nome: config.meta?.nome || reg.channels[idx].nome,
+        youtube_channel_id:
+          config.meta?.youtube_channel_id ||
+          reg.channels[idx].youtube_channel_id,
+        avatar_url:
+          config.meta?.avatar_url || reg.channels[idx].avatar_url || "",
+      };
+      saveRegistry(reg);
+    }
+  } catch (err) {
+    console.error("Erro ao sincronizar config de canal com o registry:", err);
+  }
 }
 
 export function getActiveChannelConfig() {
