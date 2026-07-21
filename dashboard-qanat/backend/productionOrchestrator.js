@@ -41,6 +41,7 @@ import {
 } from "../shared/productionConfig.js";
 import { getCatalogForNiche } from "./remotionTemplateCatalogService.js";
 import { ensureStoryboardWebResearch } from "./storyboardResearchEnsure.js";
+import { ensureShotcraftOnStoryboard } from "./motionDirector.js";
 
 function readJsonSafe(filePath, fallback = null) {
   try {
@@ -306,6 +307,29 @@ export async function orchestrateProduction(
     storyboard = applyMontageAssetPolicy(storyboard, config);
   }
   storyboard = backfillVisualPromptNarration(storyboard, config);
+
+  // Shotcraft motion plan (video-shotcraft) — anota motion_shot por cena
+  try {
+    const shotFmt =
+      String(config.video_format || "").toUpperCase() === "SHORTS" ||
+      String(config.video_format || "").toUpperCase() === "SHORT"
+        ? "9:16"
+        : "16:9";
+    const shotcraft = ensureShotcraftOnStoryboard(storyboard, {
+      niche:
+        config.niche ||
+        storyboard.strategy?.niche ||
+        storyboard._vpe_checklist?.nicho_detectado ||
+        "",
+      format: shotFmt,
+    });
+    storyboard = shotcraft.storyboard;
+  } catch (shotErr) {
+    console.warn(
+      "[orchestrateProduction] shotcraft motion plan (não bloqueante):",
+      shotErr?.message || shotErr
+    );
+  }
 
   let researchFetchMeta = null;
   if (config.motion_template_pack?.enabled === true) {

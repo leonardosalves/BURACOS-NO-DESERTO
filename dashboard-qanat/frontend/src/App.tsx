@@ -10226,11 +10226,15 @@ export default function App() {
         const orch = data.production_orchestration || {};
         const motionN =
           orch.motion_count ?? (data.motion_scenes || []).length ?? 0;
+        const shotN = (data.visual_prompts || []).filter(
+          (vp: { motion_shot?: { templateId?: string } }) =>
+            Boolean(vp?.motion_shot?.templateId)
+        ).length;
         const povN = (data.visual_prompts || []).filter(
           (vp: { is_pov?: boolean }) => vp?.is_pov === true
         ).length;
         toast.success(
-          `✨ VPE PRO — ${data.visual_prompts?.length || 0} cenas · ${motionN} Remotion${povN ? ` · ${povN} POV` : ""}${score ? ` · Score: ${score}` : ""}${niche ? ` · ${niche}` : ""}${orch.quality_score != null ? ` · QC ${orch.quality_score}` : ""}`
+          `✨ VPE PRO — ${data.visual_prompts?.length || 0} cenas · ${shotN} shotcraft · ${motionN} Remotion${povN ? ` · ${povN} POV` : ""}${score ? ` · Score: ${score}` : ""}${niche ? ` · ${niche}` : ""}${orch.quality_score != null ? ` · QC ${orch.quality_score}` : ""}`
         );
       } else {
         const errMsg =
@@ -10245,6 +10249,77 @@ export default function App() {
           : "Falha ao aprimorar prompts visuais.";
       stopAiJobProgress(false, msg);
       toast.error(msg, { duration: 12000 });
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode("idle");
+    }
+  };
+
+  /** Motion Director — atribui shot cards video-shotcraft às cenas. */
+  const handleBuildMotionPlan = async () => {
+    const projectName =
+      narrationProjectName || creatorProjectName || activeProject;
+    if (!projectName?.trim()) {
+      toast.error("Projeto não identificado.");
+      return;
+    }
+    const scenes =
+      generatedScriptData?.visual_prompts ||
+      storyboardData?.visual_prompts ||
+      [];
+    if (!scenes.length) {
+      toast.error("Nenhuma cena no storyboard para planejar motion.");
+      return;
+    }
+    setCreatorLoading(true);
+    setCreatorLoadingMode("full");
+    try {
+      const res = await fetch(getProjectUrl("/api/motion/plan"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, "_"),
+          niche: nicheInput?.trim() || "",
+          format: formatSelector === "SHORTS" ? "9:16" : "16:9",
+          apply: true,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Falha ao gerar motion plan.");
+      }
+      const sb = data.storyboard || {
+        ...(generatedScriptData || storyboardData || {}),
+        motion_plan: data.plan,
+        visual_prompts: (generatedScriptData?.visual_prompts || []).map(
+          (vp: any, i: number) => {
+            const cena = data.plan?.cenas?.[i];
+            if (!cena) return vp;
+            return {
+              ...vp,
+              scene_function: cena.scene_functions,
+              extracted_data: cena.extracted_data,
+              motion_shot: cena.motion_shot,
+              camera_move: cena.camera_move,
+              suggested_shot: cena.motion_shot?.templateId,
+            };
+          }
+        ),
+      };
+      applyStoryboardToCreatorState(sb);
+      await saveCreatorStoryboard(sb);
+      const withShot =
+        data.plan?.cenas?.filter((c: { motion_shot?: unknown }) =>
+          Boolean(c.motion_shot)
+        ).length || 0;
+      toast.success(
+        `🎬 Motion plan — ${withShot}/${data.plan?.cenas?.length || 0} cenas com shotcraft · ${data.plan?.niche || nicheInput || "nicho"}`
+      );
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Falha no motion plan.",
+        { duration: 10000 }
+      );
     } finally {
       setCreatorLoading(false);
       setCreatorLoadingMode("idle");
@@ -11829,6 +11904,7 @@ export default function App() {
     handleDrop,
     handleEmotionMusicChange,
     handleEnhanceVisualPrompts,
+    handleBuildMotionPlan,
     handleCompileDirectingBriefs,
     handleGenerateSeedanceT2v,
     handleUpdateCreatorDirectingBrief,

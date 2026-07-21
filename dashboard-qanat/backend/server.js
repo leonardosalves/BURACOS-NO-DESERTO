@@ -24437,7 +24437,11 @@ app.post(
           format === "SHORTS" || format === "SHORT" ? "9:16" : "16:9";
         const shotcraft = ensureShotcraftOnStoryboard(storyboard, {
           niche:
-            detectedNiche || config.niche || storyboard.strategy?.niche || "",
+            detectedNiche ||
+            nicheHint ||
+            config.niche ||
+            storyboard.strategy?.niche ||
+            "",
           format: shotFmt,
         });
         storyboard = shotcraft.storyboard;

@@ -201,6 +201,7 @@ export type AppCreatorTabProps = {
   handleDrag: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent) => void;
   handleEnhanceVisualPrompts: () => void | Promise<void>;
+  handleBuildMotionPlan: () => void | Promise<void>;
   handleEvaluateScriptChecklist: () => void | Promise<void>;
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleGenerateFullScript: () => void | Promise<void>;
@@ -376,6 +377,7 @@ export function AppCreatorTab({
   handleDrag,
   handleDrop,
   handleEnhanceVisualPrompts,
+  handleBuildMotionPlan,
   handleEvaluateScriptChecklist,
   handleFileInput,
   handleGenerateFullScript,
@@ -3357,29 +3359,56 @@ export function AppCreatorTab({
                         <div className="flex items-center gap-2 shrink-0">
                           {(generatedScriptData?.visual_prompts || []).length >
                             0 && (
-                            <button
-                              type="button"
-                              disabled={creatorLoading}
-                              onClick={handleEnhanceVisualPrompts}
-                              className={`bg-purple-500/15 hover:bg-purple-500/30 border ${
-                                creatorScenesNeedRepair
-                                  ? "border-amber-500/50 text-amber-200"
-                                  : "border-purple-500/30 text-purple-200"
-                              } disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer transition-all`}
-                              title={
-                                creatorScenesNeedRepair
-                                  ? "Aviso: Suas cenas precisam ser alinhadas/reparadas. Use a Engenharia Visual PRO para corrigir e aprimorar tudo."
-                                  : "Reprocessa todos os prompts visuais com engenharia de nível profissional: detecção de nicho, texto PT-BR, aspect ratio, chain of thought"
-                              }
-                            >
-                              {creatorLoading && creatorLoadingMode === "full"
-                                ? "✨ Processando..."
-                                : "✨ Engenharia Visual PRO"}
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                disabled={creatorLoading}
+                                onClick={handleEnhanceVisualPrompts}
+                                className={`bg-purple-500/15 hover:bg-purple-500/30 border ${
+                                  creatorScenesNeedRepair
+                                    ? "border-amber-500/50 text-amber-200"
+                                    : "border-purple-500/30 text-purple-200"
+                                } disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer transition-all`}
+                                title={
+                                  creatorScenesNeedRepair
+                                    ? "Aviso: Suas cenas precisam ser alinhadas/reparadas. Use a Engenharia Visual PRO para corrigir e aprimorar tudo."
+                                    : "Reprocessa todos os prompts visuais com engenharia de nível profissional: detecção de nicho, texto PT-BR, aspect ratio, chain of thought"
+                                }
+                              >
+                                {creatorLoading && creatorLoadingMode === "full"
+                                  ? "✨ Processando..."
+                                  : "✨ Engenharia Visual PRO"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={creatorLoading}
+                                onClick={handleBuildMotionPlan}
+                                className="bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-200 disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer transition-all"
+                                title="Motion Director: atribui shot cards do video-shotcraft (odometer, timeline, lista…) por cena conforme nicho e narração"
+                              >
+                                {creatorLoading && creatorLoadingMode === "full"
+                                  ? "🎬 Planejando..."
+                                  : "🎬 Motion Plan"}
+                              </button>
+                            </>
                           )}
                           <span className="bg-gold-500/10 border border-gold-500/20 text-gold-500 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono">
                             {(generatedScriptData?.visual_prompts || []).length}{" "}
                             cenas
+                            {(generatedScriptData?.visual_prompts || []).some(
+                              (vp: { motion_shot?: { templateId?: string } }) =>
+                                vp?.motion_shot?.templateId
+                            )
+                              ? ` · ${
+                                  (
+                                    generatedScriptData?.visual_prompts || []
+                                  ).filter(
+                                    (vp: {
+                                      motion_shot?: { templateId?: string };
+                                    }) => vp?.motion_shot?.templateId
+                                  ).length
+                                } shotcraft`
+                              : ""}
                           </span>
                         </div>
                       </div>
@@ -3654,6 +3683,23 @@ export function AppCreatorTab({
                                                   >
                                                     Cena {sceneNum}
                                                   </span>
+
+                                                  {vp?.motion_shot
+                                                    ?.templateId ? (
+                                                    <span
+                                                      className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-cyan-500/15 border border-cyan-500/35 text-cyan-200"
+                                                      title={`Shotcraft: ${vp.motion_shot.templateId}${
+                                                        Array.isArray(
+                                                          vp.scene_function
+                                                        )
+                                                          ? ` · ${vp.scene_function.join(", ")}`
+                                                          : ""
+                                                      }`}
+                                                    >
+                                                      🎬{" "}
+                                                      {vp.motion_shot.templateId}
+                                                    </span>
+                                                  ) : null}
 
                                                   {isRemotionScene ? (
                                                     <span className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-violet-500/15 border border-violet-500/35 text-violet-200">

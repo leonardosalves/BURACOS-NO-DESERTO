@@ -5,6 +5,8 @@ import {
   detectarSceneFunctions,
   extrairDados,
   applyMotionPlanToStoryboard,
+  ensureShotcraftOnStoryboard,
+  enrichSceneFunctionsOnVisualPrompts,
 } from "./motionDirector.js";
 import { SHOTCRAFT_CATALOG, CATALOG_STATS } from "./shotcraftCatalog.js";
 
@@ -99,4 +101,27 @@ test("applyMotionPlanToStoryboard injeta motion_shot nas cenas", () => {
     next.visual_prompts[0].motion_shot ||
       next.visual_prompts[0].scene_function
   );
+});
+
+test("ensureShotcraftOnStoryboard e enrichSceneFunctions", () => {
+  const { storyboard, plan, validation } = ensureShotcraftOnStoryboard(
+    {
+      visual_prompts: [
+        {
+          scene: "1.1",
+          narration_text: "Em 1927, a estrutura atingiu 73 metros.",
+        },
+      ],
+    },
+    { niche: "engenharia", format: "16:9" }
+  );
+  assert.ok(validation.ok);
+  assert.ok(plan.abertura.templateId);
+  assert.ok(storyboard.visual_prompts[0].motion_shot);
+
+  const enriched = enrichSceneFunctionsOnVisualPrompts([
+    { narration_text: "Top 10 revela o primeiro lugar." },
+  ]);
+  assert.ok(enriched[0].scene_function.includes("ranking"));
+  assert.ok(enriched[0].extracted_data);
 });

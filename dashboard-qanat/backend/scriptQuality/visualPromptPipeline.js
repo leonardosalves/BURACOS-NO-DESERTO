@@ -10,6 +10,7 @@ import {
   isSceneSpecificFallbackPrompt,
 } from "../scenePromptSpecificity.js";
 import { resolveStockSearchQuery } from "../stockSearchQuery.js";
+import { enrichSceneFunctionsOnVisualPrompts } from "../motionDirector.js";
 
 export const SHORTS_MIN_VIDEO_SCENES = 3;
 export const SHORTS_VIDEO_SCENE_TYPE = "vídeo IA (max 10s)";
@@ -584,7 +585,10 @@ export function finalizeGeneratedVisualPromptMedia(
   const aspectRatio =
     format === "SHORTS" || format === "SHORT" ? "9:16" : "16:9";
 
-  return sanitizeVisualPromptDurations(typed).map((vp) => ({
+  // scene_function / extracted_data para Motion Director (shotcraft)
+  const withFunctions = enrichSceneFunctionsOnVisualPrompts(typed);
+
+  return sanitizeVisualPromptDurations(withFunctions).map((vp) => ({
     ...vp,
     aspect_ratio: aspectRatio,
   }));

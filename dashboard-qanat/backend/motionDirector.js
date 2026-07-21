@@ -272,3 +272,53 @@ export function validateMotionPlan(plan) {
   }
   return { ok: avisos.length === 0, avisos };
 }
+
+/**
+ * Anota storyboard com scene_function + motion_shot (shotcraft).
+ * Idempotente: reescreve motion_shot a partir da narração/nicho atuais.
+ */
+export function ensureShotcraftOnStoryboard(
+  storyboard = {},
+  { niche = "", format = "16:9" } = {}
+) {
+  const resolvedNiche =
+    niche ||
+    storyboard.niche ||
+    storyboard.strategy?.niche ||
+    storyboard._vpe_checklist?.nicho_detectado ||
+    "";
+  const resolvedFormat =
+    format ||
+    (String(storyboard.technical_config?.video_format || "").toUpperCase() ===
+    "SHORTS"
+      ? "9:16"
+      : "16:9");
+  const plan = buildMotionPlan({
+    storyboard,
+    niche: resolvedNiche,
+    format: resolvedFormat,
+  });
+  const next = applyMotionPlanToStoryboard(storyboard, plan);
+  const validation = validateMotionPlan(plan);
+  return { storyboard: next, plan, validation };
+}
+
+/**
+ * Preenche só scene_function / extracted_data quando ausentes (criadores).
+ */
+export function enrichSceneFunctionsOnVisualPrompts(visualPrompts = []) {
+  return (Array.isArray(visualPrompts) ? visualPrompts : []).map((vp) => {
+    if (!vp || typeof vp !== "object") return vp;
+    const narration =
+      vp.narration_text || vp.narration_excerpt || vp.narration || "";
+    const hasFn =
+      (Array.isArray(vp.scene_function) && vp.scene_function.length) ||
+      (typeof vp.scene_function === "string" && vp.scene_function.trim());
+    const next = { ...vp };
+    if (!hasFn) next.scene_function = detectarSceneFunctions(narration);
+    if (!vp.extracted_data || typeof vp.extracted_data !== "object") {
+      next.extracted_data = extrairDados(narration);
+    }
+    return next;
+  });
+}
