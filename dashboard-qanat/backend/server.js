@@ -12352,24 +12352,29 @@ function getOmniRouteModelChain(
   projectDir = WORKSPACE_DIR,
   modelsOverride = null
 ) {
-  if (Array.isArray(modelsOverride) && modelsOverride.length)
-    return [...new Set(modelsOverride.map(String))];
-  const primary = getOmniRouteModel(projectDir);
-  let fallbacks = [];
-  const cleanPrimary = String(primary || "").replace(/^gemini\//i, "");
-  if (/^gemini/i.test(primary) || /^gemini/i.test(cleanPrimary)) {
-    fallbacks = [
-      "gemini-3.5-flash",
-      "gemini-2.5-pro",
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-    ].filter((m) => m !== cleanPrimary);
+  let rawList = [];
+  if (Array.isArray(modelsOverride) && modelsOverride.length) {
+    rawList = modelsOverride.map(String);
   } else {
-    fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 3);
+    const primary = getOmniRouteModel(projectDir);
+    let fallbacks = [];
+    const cleanPrimary = String(primary || "").replace(/^gemini\//i, "");
+    if (/^gemini/i.test(primary) || /^gemini/i.test(cleanPrimary)) {
+      fallbacks = [
+        "gemini-3.5-flash",
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+      ].filter((m) => m !== cleanPrimary);
+    } else {
+      fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 3);
+    }
+    rawList = [primary, ...fallbacks];
   }
-  const prefixed = [primary, ...fallbacks].map((m) => {
-    if (/^gemini-/i.test(m) && !m.includes("/")) return `gemini/${m}`;
-    return m;
+  const prefixed = rawList.map((m) => {
+    const s = String(m || "").trim();
+    if (/^gemini-/i.test(s) && !s.includes("/")) return `gemini/${s}`;
+    return s;
   });
   return [...new Set(prefixed)];
 }
@@ -13123,7 +13128,10 @@ async function callGeminiWithRetry(
   let primaryModel = modelChain[0] || null;
   // Modelos nativos do provedor (config do usuário), nunca a cadeia Gemini por engano
   let providerModelsOverride = null;
-  if (
+  if (provider === "omniroute") {
+    providerModelsOverride =
+      Array.isArray(models) && models.length > 0 ? models : null;
+  } else if (
     provider !== "gemini" &&
     Array.isArray(models) &&
     !looksLikeGeminiModelList
@@ -18968,6 +18976,12 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
     const responseText = await callGeminiLlm(req, res, projDir, {
       title: "Plano de narração por trechos",
       prompt,
+      models: [
+        "gemini-3.5-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.5-pro",
+      ],
     });
     if (responseText == null) return;
 
