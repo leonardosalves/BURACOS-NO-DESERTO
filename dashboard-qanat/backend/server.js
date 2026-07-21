@@ -12352,15 +12352,23 @@ function getOmniRouteModelChain(
   if (Array.isArray(modelsOverride) && modelsOverride.length)
     return [...new Set(modelsOverride.map(String))];
   const primary = getOmniRouteModel(projectDir);
-  const fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 3);
-  // Auto-prefix bare Gemini model names with "gemini/" to avoid
-  // OmniRoute "Ambiguous model" errors when multiple providers expose
-  // the same model ID.
+  let fallbacks = [];
+  const cleanPrimary = String(primary || "").replace(/^gemini\//i, "");
+  if (/^gemini/i.test(primary) || /^gemini/i.test(cleanPrimary)) {
+    fallbacks = [
+      "gemini-3.5-flash",
+      "gemini-2.5-pro",
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+    ].filter((m) => m !== cleanPrimary);
+  } else {
+    fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 3);
+  }
   const prefixed = [primary, ...fallbacks].map((m) => {
     if (/^gemini-/i.test(m) && !m.includes("/")) return `gemini/${m}`;
     return m;
   });
-  return prefixed;
+  return [...new Set(prefixed)];
 }
 
 async function callOmniRouteWithRetry(
@@ -12380,7 +12388,6 @@ async function callOmniRouteWithRetry(
     promptOrBody,
     bodyOverride
   );
-  const tokenLimit = Math.max(256, Math.min(32000, Number(maxTokens) || 8192));
   let lastError = null;
   const modelList =
     Array.isArray(models) && models.length
@@ -12388,6 +12395,13 @@ async function callOmniRouteWithRetry(
       : getOmniRouteModelChain(projectDir);
 
   for (const model of modelList) {
+    const isGeminiModel = /gemini/i.test(model);
+    const maxAllowedTokens = isGeminiModel ? 8192 : 32000;
+    const tokenLimit = Math.max(
+      256,
+      Math.min(maxAllowedTokens, Number(maxTokens) || 8192)
+    );
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       const t0 = Date.now();
       try {
