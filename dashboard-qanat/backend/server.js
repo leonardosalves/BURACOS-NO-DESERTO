@@ -12406,6 +12406,7 @@ async function callOmniRouteWithRetry(
           body: JSON.stringify({
             model,
             messages,
+            stream: false,
             max_tokens: tokenLimit,
             ...(temperature !== null ? { temperature } : {}),
           }),
