@@ -56,6 +56,17 @@ export type AppTabPropContext = Record<string, unknown> & {
   setLocalLlmUrlInput: (v: string) => void;
   localLlmModelInput: string;
   setLocalLlmModelInput: (v: string) => void;
+  omnirouteModel: string;
+  setOmnirouteModel: (v: string) => void;
+  omnirouteModelOptions: Array<{ id: string; label: string; hint?: string }>;
+  setOmnirouteModelOptions: (
+    v: Array<{ id: string; label: string; hint?: string }>
+  ) => void;
+  omnirouteBaseUrlInput: string;
+  setOmnirouteBaseUrlInput: (v: string) => void;
+  omnirouteKeyInput: string;
+  setOmnirouteKeyInput: (v: string) => void;
+  hasOmnirouteKey: boolean;
 };
 
 export type AppTabPropBundles = {
