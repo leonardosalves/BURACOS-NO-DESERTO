@@ -1,6 +1,7 @@
 import {
   analyzeVideoUnderstanding,
   fetchVideoContextViaYtDlp,
+  cleanVttTranscript,
 } from "./videoUnderstandingService.js";
 import {
   DEFAULT_VISUAL_ASSET_STYLE,
@@ -17,7 +18,8 @@ import {
 } from "./reverseEngineeringCache.js";
 
 function cleanText(value, max = 20_000) {
-  return String(value || "")
+  const cleaned = cleanVttTranscript(value);
+  return String(cleaned || "")
     .replace(/\r/g, "")
     .trim()
     .slice(0, max);

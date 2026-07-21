@@ -237,6 +237,74 @@ export async function resolveShortMediaUrl(url) {
   }
 }
 
+export function cleanVttTranscript(vttText) {
+  if (!vttText) return "";
+  let raw = String(vttText).trim();
+
+  // Se for texto plano sem marcadores VTT, limpa eventuais prefixos e espaços
+  if (
+    !raw.includes("-->") &&
+    !raw.startsWith("WEBVTT") &&
+    !/^Kind:/im.test(raw)
+  ) {
+    return raw
+      .replace(/^Kind:\s*captions\s*Language:\s*\w+\s*/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  const lines = raw.split(/\r?\n/);
+  const cleanLines = [];
+  let prevLine = "";
+
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+
+    // Filtra cabeçalhos VTT e marcadores de tempo
+    if (
+      line.startsWith("WEBVTT") ||
+      /^Kind:/i.test(line) ||
+      /^Language:/i.test(line) ||
+      /^Style:/i.test(line) ||
+      /^NOTE/i.test(line) ||
+      /^\d+$/.test(line) ||
+      line.includes("-->")
+    ) {
+      continue;
+    }
+
+    // Remove tags HTML/VTT e prefixos Kind: captions Language:
+    let text = line
+      .replace(/<[^>]+>/g, "")
+      .replace(/^Kind:\s*captions\s*Language:\s*\w+\s*/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!text) continue;
+
+    // Deduplica repetições acumulativas das janelas roláveis do YouTube (rolling-VTT)
+    if (text === prevLine) continue;
+    if (prevLine && text.startsWith(prevLine)) {
+      cleanLines[cleanLines.length - 1] = text;
+      prevLine = text;
+      continue;
+    }
+    if (prevLine && prevLine.startsWith(text)) {
+      continue;
+    }
+
+    cleanLines.push(text);
+    prevLine = text;
+  }
+
+  let fullText = cleanLines.join(" ").replace(/\s+/g, " ").trim();
+
+  // Deduplica palavras ou frases consecutivas idênticas
+  fullText = fullText.replace(/(\b.+?\b\s*)\1+/gi, "$1");
+
+  return fullText.slice(0, 80_000);
+}
+
 export async function fetchVideoContextViaYtDlp(url) {
   try {
     const resolved = await resolveShortMediaUrl(url);
@@ -289,23 +357,7 @@ export async function fetchVideoContextViaYtDlp(url) {
         });
         if (res.ok) {
           const vtt = await res.text();
-          transcript = vtt
-            .split(/\r?\n/)
-            .filter(
-              (line) =>
-                line.trim() &&
-                !line.startsWith("WEBVTT") &&
-                !/^\d+$/.test(line.trim()) &&
-                !line.includes("-->")
-            )
-            .map((line) => line.replace(/<[^>]+>/g, "").trim())
-            .filter(Boolean)
-            .join(" ")
-            .replace(/\s+/g, " ")
-            // Engenharia reversa precisa do roteiro inteiro, não só de um
-            // resumo curto. O limite ainda protege o contexto contra VTTs
-            // anormalmente grandes.
-            .slice(0, 80_000);
+          transcript = cleanVttTranscript(vtt);
         }
       } catch {
         /* optional */
