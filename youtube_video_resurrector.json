@@ -19,22 +19,9 @@
     "completedAt": null
   },
   "dailyRuns": {
-    "date": "2026-07-20",
+    "date": "2026-07-21",
     "morning": null,
-    "afternoon": {
-      "ranAt": "2026-07-20T21:01:38.738Z",
-      "trigger": "auto",
-      "videoIds": [
-        "WKcFkfVfi6w",
-        "19AzC-l1KiM",
-        "MlWjCZAQrrc",
-        "5nMBiVtaf6U",
-        "bClur0ieP9o"
-      ],
-      "count": 1,
-      "applied": 1,
-      "failed": 4
-    }
+    "afternoon": null
   },
   "lastDailyRunAt": "2026-07-20T21:01:38.738Z",
   "lastDailyRunDate": "2026-07-20",
@@ -18704,7 +18691,7 @@
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-15T14:00:07.652Z",
-      "updatedAt": "2026-07-20T21:01:45.766Z",
+      "updatedAt": "2026-07-21T07:13:30.890Z",
       "analyticsBaseline": {
         "videoId": "WKcFkfVfi6w",
         "startDate": "2026-06-19",
@@ -19310,7 +19297,7 @@
         "analyzedAt": "2026-07-18T14:20:48.386Z"
       },
       "opportunityScore": 64,
-      "status": "failed",
+      "status": "queued",
       "currentMetadata": {
         "title": "AirPlaneBunker",
         "description": "",
@@ -19320,9 +19307,9 @@
       "selectedTitle": null,
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
-      "error": "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "error": null,
       "createdAt": "2026-07-16T14:00:07.900Z",
-      "updatedAt": "2026-07-20T21:00:21.513Z",
+      "updatedAt": "2026-07-21T07:12:11.094Z",
       "analyticsBaseline": {
         "videoId": "19AzC-l1KiM",
         "startDate": "2026-06-20",
@@ -19345,7 +19332,7 @@
       "appliedAt": null,
       "thumbnailApplied": false,
       "thumbnailError": null,
-      "cycleNumber": 1
+      "lastError": "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal."
     },
     {
       "id": "b8c3c299-2eff-43e3-8753-788a0e4fa75d",
@@ -22757,6 +22744,103 @@
   ],
   "activityLog": [
     {
+      "at": "2026-07-21T07:13:17.851Z",
+      "level": "warn",
+      "message": "Etapa concluída: 0 publicado(s), 0 revisão, 1 falha(s).",
+      "slot": "afternoon",
+      "appliedCount": 0,
+      "reviewCount": 0,
+      "failCount": 1
+    },
+    {
+      "at": "2026-07-21T07:13:17.845Z",
+      "level": "error",
+      "message": "Falhou: SchoolBusbanker 2026 — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "WKcFkfVfi6w"
+    },
+    {
+      "at": "2026-07-21T07:13:17.831Z",
+      "level": "info",
+      "message": "[1/1] Gerando metadados: SchoolBusbanker 2026",
+      "videoId": "WKcFkfVfi6w",
+      "step": 1,
+      "total": 1
+    },
+    {
+      "at": "2026-07-21T07:13:03.717Z",
+      "level": "warn",
+      "message": "Etapa concluída: 0 publicado(s), 0 revisão, 1 falha(s).",
+      "slot": "afternoon",
+      "appliedCount": 0,
+      "reviewCount": 0,
+      "failCount": 1
+    },
+    {
+      "at": "2026-07-21T07:13:03.711Z",
+      "level": "error",
+      "message": "Falhou: SchoolBusbanker 2026 — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "WKcFkfVfi6w"
+    },
+    {
+      "at": "2026-07-21T07:13:03.699Z",
+      "level": "info",
+      "message": "[1/1] Gerando metadados: SchoolBusbanker 2026",
+      "videoId": "WKcFkfVfi6w",
+      "step": 1,
+      "total": 1
+    },
+    {
+      "at": "2026-07-21T07:12:50.196Z",
+      "level": "warn",
+      "message": "Etapa concluída: 0 publicado(s), 0 revisão, 1 falha(s).",
+      "slot": "afternoon",
+      "appliedCount": 0,
+      "reviewCount": 0,
+      "failCount": 1
+    },
+    {
+      "at": "2026-07-21T07:12:50.190Z",
+      "level": "error",
+      "message": "Falhou: SchoolBusbanker 2026 — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "WKcFkfVfi6w"
+    },
+    {
+      "at": "2026-07-21T07:12:50.178Z",
+      "level": "info",
+      "message": "[1/1] Gerando metadados: SchoolBusbanker 2026",
+      "videoId": "WKcFkfVfi6w",
+      "step": 1,
+      "total": 1
+    },
+    {
+      "at": "2026-07-21T07:12:38.479Z",
+      "level": "warn",
+      "message": "Etapa concluída: 0 publicado(s), 0 revisão, 1 falha(s).",
+      "slot": "afternoon",
+      "appliedCount": 0,
+      "reviewCount": 0,
+      "failCount": 1
+    },
+    {
+      "at": "2026-07-21T07:12:38.472Z",
+      "level": "error",
+      "message": "Falhou: SchoolBusbanker 2026 — Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+      "videoId": "WKcFkfVfi6w"
+    },
+    {
+      "at": "2026-07-21T07:12:38.458Z",
+      "level": "info",
+      "message": "[1/1] Gerando metadados: SchoolBusbanker 2026",
+      "videoId": "WKcFkfVfi6w",
+      "step": 1,
+      "total": 1
+    },
+    {
+      "at": "2026-07-21T07:12:11.094Z",
+      "level": "info",
+      "message": "1 vídeo(s) com falha recolocados na fila."
+    },
+    {
       "at": "2026-07-20T21:01:38.738Z",
       "level": "warn",
       "message": "Etapa concluída: 1 publicado(s), 0 revisão, 4 falha(s).",
@@ -24431,103 +24515,9 @@
       "level": "success",
       "message": "Publicado no YouTube: O mistério das cisternas secretas de Petra 🤫 #shorts #curiosidades #pet",
       "videoId": "8PPUPNSS4uU"
-    },
-    {
-      "at": "2026-07-15T14:00:31.535Z",
-      "level": "info",
-      "message": "Publicando no YouTube: O mistério das cisternas secretas de Petra 🤫 #shorts #curiosidades #pet",
-      "videoId": "8PPUPNSS4uU"
-    },
-    {
-      "at": "2026-07-15T14:00:07.661Z",
-      "level": "info",
-      "message": "[1/5] Gerando metadados: O mistério das cisternas secretas de Petra 🤫 #shorts #curiosidades #pet",
-      "videoId": "8PPUPNSS4uU",
-      "step": 1,
-      "total": 5
-    },
-    {
-      "at": "2026-07-15T14:00:07.661Z",
-      "level": "info",
-      "message": "Batch manhã iniciado (5 vídeo(s) nesta etapa).",
-      "slot": "morning",
-      "trigger": "auto"
-    },
-    {
-      "at": "2026-07-07T03:54:34.779Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "afternoon",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-07T03:54:34.776Z",
-      "level": "success",
-      "message": "Publicado no YouTube: A vista mais perigosa do mundo #luxo #arquitetura #curiosidades",
-      "videoId": "_FEkisrNnRU"
-    },
-    {
-      "at": "2026-07-07T03:54:32.820Z",
-      "level": "info",
-      "message": "Publicando no YouTube: A vista mais perigosa do mundo #luxo #arquitetura #curiosidades",
-      "videoId": "_FEkisrNnRU"
-    },
-    {
-      "at": "2026-07-07T03:54:16.129Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: A vista mais perigosa do mundo #luxo #arquitetura #curiosidades",
-      "videoId": "_FEkisrNnRU",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-07T03:54:05.202Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "afternoon",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-07T03:54:05.198Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Andaime frenético mas obra pronta... #automobile #arquitecturabioclimati",
-      "videoId": "gQHC-dITTXw"
-    },
-    {
-      "at": "2026-07-07T03:54:03.335Z",
-      "level": "info",
-      "message": "Publicando no YouTube: Andaime frenético mas obra pronta... #automobile #arquitecturabioclimati",
-      "videoId": "gQHC-dITTXw"
-    },
-    {
-      "at": "2026-07-07T03:53:39.024Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: Andaime frenético mas obra pronta... #automobile #arquitecturabioclimati",
-      "videoId": "gQHC-dITTXw",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-07T03:53:28.142Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "afternoon",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-07T03:53:28.139Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Prédios de barro de 11 andares? Impossível! #historia #curiosidades #eng",
-      "videoId": "C3ADcJ94r1g"
     }
   ],
-  "updatedAt": "2026-07-20T21:01:45.766Z",
+  "updatedAt": "2026-07-21T07:13:30.890Z",
   "cycleProgress": {
     "number": 1,
     "startedAt": "2026-07-03T17:48:11.595Z",

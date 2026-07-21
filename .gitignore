@@ -9,6 +9,8 @@ build/
 out/
 .next/
 .nuxt/
+.cache/
+*.bak
 bin/
 obj/
 

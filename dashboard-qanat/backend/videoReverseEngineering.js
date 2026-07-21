@@ -1,7 +1,6 @@
 import {
   analyzeVideoUnderstanding,
   fetchVideoContextViaYtDlp,
-  cleanVttTranscript,
 } from "./videoUnderstandingService.js";
 import {
   DEFAULT_VISUAL_ASSET_STYLE,
@@ -18,8 +17,7 @@ import {
 } from "./reverseEngineeringCache.js";
 
 function cleanText(value, max = 20_000) {
-  const cleaned = cleanVttTranscript(value);
-  return String(cleaned || "")
+  return String(value || "")
     .replace(/\r/g, "")
     .trim()
     .slice(0, max);
@@ -785,9 +783,8 @@ export async function runVideoReverseEngineering({
   // Shotcraft: tag storyboard reverso com scene_function + suggested_shot
   try {
     if (result?.storyboard || result?.visual_prompts) {
-      const { tagStoryboardWithMotion } = await import(
-        "./creatorSceneTagger.js"
-      );
+      const { tagStoryboardWithMotion } =
+        await import("./creatorSceneTagger.js");
       const sb = result.storyboard || result;
       const tagged = tagStoryboardWithMotion(sb, {
         format:

@@ -255,10 +255,7 @@ import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
 import { registerAgentReachRoutes } from "./agentReachRoutes.js";
 import { registerVideoMonitorRoutes } from "./videoMonitorRoutes.js";
 import creatorHistoryRoutes from "./creatorHistoryRoutes.js";
-import {
-  ensureCreatorHistoryDatabase,
-  saveCreatorHistory,
-} from "./creatorHistoryService.js";
+import { ensureCreatorHistoryDatabase } from "./creatorHistoryService.js";
 import {
   fetchMemoryContext,
   getSupermemoryStatus,
@@ -858,16 +855,6 @@ app.use("/api/ab", abRouter);
 app.use("/api/calendar", calendarRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/health", healthRouter);
-app.post("/api/admin/restart-backend", (req, res) => {
-  res.json({
-    ok: true,
-    message: "Backend process exiting for restart...",
-    pid: process.pid,
-  });
-  setTimeout(() => {
-    process.exit(0);
-  }, 300);
-});
 app.use("/api/agents", agentsRouter);
 app.use("/api/templates", templatesRouter);
 app.use("/api/flows", flowRouter);
@@ -5128,7 +5115,11 @@ app.post("/api/projects/storyboard", (req, res) => {
         audit?.narrative_sha256 && audit.narrative_sha256 === narrativeHash;
       // Soft-aprovação / revisão humana: permite salvar e continuar o fluxo.
       // Só bloqueia se não houver auditoria nenhuma E o texto não for vazio.
-      if (!audit?.approved && !audit?.soft_approval && !audit?.needs_human_review) {
+      if (
+        !audit?.approved &&
+        !audit?.soft_approval &&
+        !audit?.needs_human_review
+      ) {
         return res.status(422).json({
           error:
             "Storyboard bloqueado: a narração não possui auditoria NARRACAOPRO válida.",
@@ -12413,48 +12404,26 @@ function getOmniRouteModelChain(
   projectDir = WORKSPACE_DIR,
   modelsOverride = null
 ) {
-  let rawList = [];
-  if (Array.isArray(modelsOverride) && modelsOverride.length) {
-    rawList = modelsOverride.map(String);
+  if (Array.isArray(modelsOverride) && modelsOverride.length)
+    return [...new Set(modelsOverride.map(String))];
+  const primary = getOmniRouteModel(projectDir);
+  let fallbacks = [];
+  const cleanPrimary = String(primary || "").replace(/^gemini\//i, "");
+  if (/^gemini/i.test(primary) || /^gemini/i.test(cleanPrimary)) {
+    fallbacks = [
+      "gemini-3.5-flash",
+      "gemini-2.5-pro",
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+    ].filter((m) => m !== cleanPrimary);
   } else {
-    const primary = getOmniRouteModel(projectDir);
-    if (!primary || primary === "auto" || primary === "default") {
-      rawList = [
-        "gemini/gemini-3.5-flash",
-        "gemini/gemini-2.5-flash",
-        "gemini/gemini-2.0-flash",
-        "gemini/gemini-2.5-pro",
-        "auto",
-      ];
-    } else {
-      let fallbacks = [];
-      const cleanPrimary = String(primary || "").replace(/^gemini\//i, "");
-      if (/^gemini/i.test(primary) || /^gemini/i.test(cleanPrimary)) {
-        fallbacks = [
-          "gemini/gemini-3.5-flash",
-          "gemini/gemini-2.5-flash",
-          "gemini/gemini-2.0-flash",
-          "gemini/gemini-2.5-pro",
-        ].filter(
-          (m) =>
-            m !== cleanPrimary &&
-            m !== primary &&
-            m !== `gemini/${cleanPrimary}`
-        );
-      } else {
-        fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 3);
-      }
-      rawList = [primary, ...fallbacks];
-    }
+    fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 3);
   }
-  const prefixedList = rawList.map((m) => {
-    let s = String(m || "").trim();
-    if (s.toLowerCase().startsWith("gemini") && !s.includes("/")) {
-      return `gemini/${s}`;
-    }
-    return s;
+  const prefixed = [primary, ...fallbacks].map((m) => {
+    if (/^gemini-/i.test(m) && !m.includes("/")) return `gemini/${m}`;
+    return m;
   });
-  return [...new Set(prefixedList)];
+  return [...new Set(prefixed)];
 }
 
 async function callOmniRouteWithRetry(
@@ -12475,7 +12444,10 @@ async function callOmniRouteWithRetry(
     bodyOverride
   );
   let lastError = null;
-  const modelList = getOmniRouteModelChain(projectDir, models);
+  const modelList =
+    Array.isArray(models) && models.length
+      ? models
+      : getOmniRouteModelChain(projectDir);
 
   for (const model of modelList) {
     const isGeminiModel = /gemini/i.test(model);
@@ -12510,31 +12482,7 @@ async function callOmniRouteWithRetry(
         });
         const ms = Date.now() - t0;
         if (response.ok) {
-          const rawText = await response.text();
-          let result = null;
-          if (rawText.trim().startsWith("data:")) {
-            let fullContent = "";
-            for (const line of rawText.split("\n")) {
-              const trimmed = line.trim();
-              if (trimmed.startsWith("data:") && !trimmed.includes("[DONE]")) {
-                try {
-                  const chunkJson = JSON.parse(trimmed.slice(5).trim());
-                  const c =
-                    chunkJson.choices?.[0]?.delta?.content ||
-                    chunkJson.choices?.[0]?.message?.content ||
-                    "";
-                  fullContent += c;
-                } catch (e) {}
-              }
-            }
-            result = { choices: [{ message: { content: fullContent } }] };
-          } else {
-            try {
-              result = JSON.parse(rawText);
-            } catch (e) {
-              result = {};
-            }
-          }
+          const result = await response.json();
           const msg = result.choices?.[0]?.message || {};
           let text =
             typeof msg.content === "string"
@@ -12548,96 +12496,29 @@ async function callOmniRouteWithRetry(
             .trim();
           if (text) {
             console.log(
-              `[OmniRoute] SUCESSO model=${model} tentativa ${attempt} (${text.length} chars · ${ms}ms)`
+              `[OmniRoute] Sucesso model=${model} tentativa ${attempt} (${text.length} chars · ${ms}ms)`
             );
             return text;
           }
           console.warn(
-            `[OmniRoute] Resposta VAZIA de ${model} na tentativa ${attempt}/${maxRetries} · ${ms}ms`
+            `[OmniRoute] ${model} retornou vazio na tentativa ${attempt}/${maxRetries} · ${ms}ms`
           );
         }
         const errData = await response.json().catch(() => ({}));
         const errMsg =
-          (typeof errData.error === "string"
-            ? errData.error
-            : errData.error?.message) ||
+          errData.error?.message ||
           errData.message ||
-          errData.detail ||
           response.statusText ||
           `HTTP ${response.status}`;
         lastError = new Error(`${model}: ${errMsg}`);
         console.warn(
           `[OmniRoute] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg} · ${ms}ms`
         );
-
-        // Se o OmniRoute reclamar que o modelo é ambíguo, tenta desambiguar com prefixos reais do OmniRoute (ex: in-ai/ ou antigravity/)
-        if (errMsg.toLowerCase().includes("ambiguous model")) {
-          const prefixesToTry = [];
-          const match = errMsg.match(/ex:\s*([\w\-]+\/[\w\-\.]+)/i);
-          if (match && match[1]) {
-            prefixesToTry.push(match[1]);
-          }
-          prefixesToTry.push(
-            `antigravity/${model}`,
-            `in-ai/${model}`,
-            `google/${model}`
-          );
-
-          for (const altModel of [...new Set(prefixesToTry)]) {
-            try {
-              console.log(
-                `[OmniRoute] Tentando modelo desambiguado: ${altModel} @ ${baseUrl}`
-              );
-              const altRes = await fetch(`${baseUrl}/chat/completions`, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({
-                  model: altModel,
-                  messages,
-                  stream: false,
-                  max_tokens: tokenLimit,
-                  ...(temperature !== null ? { temperature } : {}),
-                }),
-              });
-              if (altRes.ok) {
-                const altResult = await altRes.json();
-                const msg = altResult.choices?.[0]?.message || {};
-                let text =
-                  typeof msg.content === "string"
-                    ? msg.content
-                    : Array.isArray(msg.content)
-                      ? msg.content
-                          .map((p) => p?.text || p?.content || "")
-                          .join("\n")
-                      : "";
-                text = String(text || "")
-                  .replace(/```json/g, "")
-                  .replace(/```/g, "")
-                  .trim();
-                if (text) {
-                  console.log(
-                    `[OmniRoute] Sucesso com modelo desambiguado=${altModel} (${text.length} chars)`
-                  );
-                  return text;
-                }
-              }
-            } catch (subErr) {
-              console.warn(
-                `[OmniRoute] Sub-tentativa ${altModel} falhou:`,
-                subErr.message
-              );
-            }
-          }
-        }
-
+        if (response.status === 404 || response.status === 400) break;
         if (response.status === 503 || response.status === 429) {
-          if (attempt >= 2) {
-            console.warn(
-              `[OmniRoute] Modelo ${model} em cooldown/rate limit (HTTP ${response.status}). Alternando para o próximo modelo da cadeia...`
-            );
-            break;
-          }
-          await new Promise((r) => setTimeout(r, 1000));
+          await new Promise((r) =>
+            setTimeout(r, Math.min(1500 * Math.pow(2, attempt - 1), 10000))
+          );
           continue;
         }
         break;
@@ -13294,10 +13175,7 @@ async function callGeminiWithRetry(
   let primaryModel = modelChain[0] || null;
   // Modelos nativos do provedor (config do usuário), nunca a cadeia Gemini por engano
   let providerModelsOverride = null;
-  if (provider === "omniroute") {
-    providerModelsOverride =
-      Array.isArray(models) && models.length > 0 ? models : null;
-  } else if (
+  if (
     provider !== "gemini" &&
     Array.isArray(models) &&
     !looksLikeGeminiModelList
@@ -13762,33 +13640,6 @@ function parseJsonLocally(responseText) {
   ];
   const seen = new Set();
   let lastError = null;
-
-  const repairTruncated = (str) => {
-    if (!str) return str;
-    let text = String(str).trim().replace(/,\s*$/, "");
-    const stack = [];
-    let inString = false;
-    let escaped = false;
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      if (inString) {
-        if (escaped) escaped = false;
-        else if (ch === "\\") escaped = true;
-        else if (ch === '"') inString = false;
-        continue;
-      }
-      if (ch === '"') inString = true;
-      else if (ch === "{" || ch === "[") stack.push(ch === "{" ? "}" : "]");
-      else if (ch === "}" || ch === "]") {
-        if (stack.length > 0 && stack[stack.length - 1] === ch) stack.pop();
-      }
-    }
-    if (inString) text += '"';
-    text = text.replace(/,\s*$/, "");
-    while (stack.length > 0) text += stack.pop();
-    return text.replace(/,\s*([}\]])/g, "$1");
-  };
-
   for (const base of variants) {
     if (!base || seen.has(base)) continue;
     seen.add(base);
@@ -13801,25 +13652,6 @@ function parseJsonLocally(responseText) {
         .replace(/['']/g, "'")
         .replace(/,\s*([}\]])/g, "$1"),
       candidate.replace(/'/g, '"').replace(/,\s*([}\]])/g, "$1"),
-      // Repair missing commas between adjacent objects/arrays/strings
-      candidate
-        .replace(/}\s*{/g, "},{")
-        .replace(/]\s*\[/g, "],[")
-        .replace(/}\s*\[/g, "},[")
-        .replace(/]\s*{/g, "],[")
-        .replace(/"\s*"/g, '","')
-        .replace(/}\s*"/g, '},"')
-        .replace(/"\s*{/g, '",{"')
-        .replace(/]\s*"/g, '],"')
-        .replace(/"\s*\[/g, '",[')
-        .replace(/,\s*([}\]])/g, "$1"),
-      repairTruncated(candidate),
-      repairTruncated(
-        candidate
-          .replace(/}\s*{/g, "},{")
-          .replace(/]\s*\[/g, "],[")
-          .replace(/"\s*"/g, '","')
-      ),
     ];
     for (const variant of attempts) {
       try {
@@ -19079,9 +18911,8 @@ app.post("/api/narration/chunks", (req, res) => {
 });
 
 app.post("/api/ai/plan-narration-chunks", async (req, res) => {
+  const projDir = getProjectDir(req);
   try {
-    const projDir = getProjectDir(req);
-    console.log("[Plan Narration Chunks] Iniciando para projDir:", projDir);
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
     const config = readProjectJson(projDir, "config_qanat.json", {});
     const { useHeuristic, defaultVoice } = req.body || {};
@@ -19143,12 +18974,6 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
     const responseText = await callGeminiLlm(req, res, projDir, {
       title: "Plano de narração por trechos",
       prompt,
-      models: [
-        "gemini/gemini-3.5-flash",
-        "gemini/gemini-2.5-flash",
-        "gemini/gemini-2.0-flash",
-        "gemini/gemini-2.5-pro",
-      ],
     });
     if (responseText == null) return;
 
@@ -19179,7 +19004,6 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
     console.error("[Plan Narration Chunks]", err);
     res.status(500).json({
       error: err.message || "Falha ao planejar narração por trechos.",
-      stack: err.stack,
     });
   }
 });
@@ -20789,8 +20613,7 @@ Retorne SOMENTE JSON válido:
     try {
       if (Array.isArray(witnessPayload.visual_prompts)) {
         witnessPayload = tagHistoricalStoryboard(witnessPayload, {
-          format:
-            String(format).toUpperCase() === "LONGO" ? "16:9" : "9:16",
+          format: String(format).toUpperCase() === "LONGO" ? "16:9" : "9:16",
           niche: String(niche || "historia").trim() || "historia",
         });
       }
@@ -21125,10 +20948,10 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
 
       if (Array.isArray(parsedData?.ideas)) {
         parsedData.ideas = parsedData.ideas.map((idea) =>
-          calcularPotencialMotion(
-            normalizeIdeaOpportunity(idea, { format }),
-            { format, niche: nicheClean }
-          )
+          calcularPotencialMotion(normalizeIdeaOpportunity(idea, { format }), {
+            format,
+            niche: nicheClean,
+          })
         );
       }
 
@@ -22050,10 +21873,15 @@ async function repairNarrationThroughFinalAudit(
   }
 
   // Contrato rígido: audit.integrity SEMPRE existe (evita TypeError no caller)
-  const audit = result?.audit || result?.finalAudit || evaluateNarrationFinalAudit(
-    result?.storyboard || storyboard,
-    { format, idea, researchFacts, researchSources }
-  );
+  const audit =
+    result?.audit ||
+    result?.finalAudit ||
+    evaluateNarrationFinalAudit(result?.storyboard || storyboard, {
+      format,
+      idea,
+      researchFacts,
+      researchSources,
+    });
   if (!audit.integrity) {
     audit.integrity = {
       ok: Boolean(audit.approved),
@@ -23270,7 +23098,9 @@ app.post(
             );
             integrityAudit = integrityAudit || {
               ok: false,
-              issues: [evalErr?.message || "Falha na auditoria de integridade."],
+              issues: [
+                evalErr?.message || "Falha na auditoria de integridade.",
+              ],
             };
             editorialAudit = editorialAudit || {
               ok: false,
@@ -23308,7 +23138,8 @@ app.post(
           editorial: editorialAudit,
           approved: auditApproved,
           soft_approval: softApproved,
-          needs_human_review: softApproved || !integrityAudit.ok || !editorialAudit.ok,
+          needs_human_review:
+            softApproved || !integrityAudit.ok || !editorialAudit.ok,
           gate_issues: auditIssues,
           narrative_sha256: hashNarrationIntegrityText(
             parsedData.narrative_script
@@ -23316,7 +23147,11 @@ app.post(
           audited_at: new Date().toISOString(),
           automatic_repair: parsedData.automatic_narration_repair,
         };
-        if (auditApproved && (finalRepair?.attempts || 0) > 0 && !softApproved) {
+        if (
+          auditApproved &&
+          (finalRepair?.attempts || 0) > 0 &&
+          !softApproved
+        ) {
           report(
             "auditoria",
             `Narração corrigida e aprovada após ${finalRepair.attempts} autorreparo(s).`,
@@ -24186,8 +24021,7 @@ app.post(
       try {
         const scriptFmt =
           String(format || newConfig?.video_format || "LONGO").toUpperCase() ===
-            "SHORTS" ||
-          String(format || "").toUpperCase() === "SHORT"
+            "SHORTS" || String(format || "").toUpperCase() === "SHORT"
             ? "9:16"
             : "16:9";
         if (parsedData?.visual_prompts) {
@@ -24201,7 +24035,11 @@ app.post(
           });
           const sbPath = path.join(projDir, "storyboard.json");
           if (fs.existsSync(sbPath)) {
-            fs.writeFileSync(sbPath, JSON.stringify(parsedData, null, 2), "utf8");
+            fs.writeFileSync(
+              sbPath,
+              JSON.stringify(parsedData, null, 2),
+              "utf8"
+            );
           }
         }
       } catch (tagErr) {
@@ -24388,35 +24226,6 @@ app.post(
 
       let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
       const prevSnapshot = JSON.parse(JSON.stringify(storyboard));
-
-      // Auto-salva cópia de segurança no disco e no PostgreSQL antes de reprocessar
-      try {
-        fs.writeFileSync(
-          path.join(projDir, "storyboard_pre_vpe_backup.json"),
-          JSON.stringify(prevSnapshot, null, 2),
-          "utf8"
-        );
-        const nowStr = new Date().toLocaleTimeString("pt-BR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        await saveCreatorHistory(
-          "video-reverse-engineering",
-          `[Auto] Antes da Engenharia Visual PRO (${nowStr})`,
-          {
-            url: storyboard.reference_url || "",
-            niche: storyboard.niche || "",
-            format: storyboard.technical_config?.video_format || "LONGO",
-            result: prevSnapshot,
-          }
-        );
-      } catch (autoErr) {
-        console.warn(
-          "[VPE PRO] Auto-snapshot pre-enhancement:",
-          autoErr.message
-        );
-      }
-
       const narrative = String(storyboard.narrative_script || "").trim();
       if (!narrative) {
         const msg = "Não há narrative_script no storyboard.";
@@ -24479,7 +24288,10 @@ app.post(
           skillsAddendum,
         });
       // Garantia: skills do estúdio no system prompt (idempotente se já veio no request)
-      if (skillsAddendum && !String(systemPrompt).includes("SKILLS DO ESTÚDIO")) {
+      if (
+        skillsAddendum &&
+        !String(systemPrompt).includes("SKILLS DO ESTÚDIO")
+      ) {
         systemPrompt = injectStudioAgentsContext(systemPrompt, WORKSPACE_DIR, {
           niche: detectedNiche || nicheHint || "Geral",
           task: "visual-prompt",
@@ -24632,95 +24444,70 @@ app.post(
         storyboard._vpe_visual_identity = parsed.visual_identity;
       }
 
-      const originalPrompts =
-        Array.isArray(prevSnapshot.visual_prompts) &&
-        prevSnapshot.visual_prompts.length > 0
-          ? prevSnapshot.visual_prompts
-          : storyboard.visual_prompts || [];
-
+      const vps = storyboard.visual_prompts || [];
       const expectedBlocks = isListicle
         ? resolveListicleBlockCount({ rankCount: listicleRank, format })
         : format === "SHORTS"
           ? 5
           : 12;
-
-      // Mapeia melhorias visuais geradas pelo Gemini por chave de cena ("1.1", "1.2") ou índice
-      const llmMapByScene = new Map();
-      (Array.isArray(parsed.visual_prompts)
-        ? parsed.visual_prompts
-        : []
-      ).forEach((vp, idx) => {
-        if (!vp) return;
-        const key = String(vp.scene || vp.cena || "").trim();
-        if (key) llmMapByScene.set(key, vp);
-        llmMapByScene.set(`idx_${idx}`, vp);
-      });
-
-      // Preserva 100% das cenas originais, blocos, narração e durações de prevSnapshot
-      storyboard.visual_prompts = originalPrompts.map((prev, index) => {
-        const sceneKey = String(prev.scene || prev.cena || "").trim();
-        const vp =
-          llmMapByScene.get(sceneKey) ||
-          llmMapByScene.get(`idx_${index}`) ||
-          {};
+      // Preserva a narração original, durações e flags POV
+      const prevSceneMap = new Map();
+      for (const prev of prevSnapshot.visual_prompts || []) {
+        prevSceneMap.set(String(prev.scene || ""), prev);
+      }
+      storyboard.visual_prompts = vps.map((vp, index) => {
         const block =
-          prev.block ||
-          parseBlockNumber(prev.block ?? prev.bloco, prev.scene ?? prev.cena) ||
-          parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ||
+          parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ??
           Math.min(
             expectedBlocks,
-            Math.floor(
-              (index * expectedBlocks) / Math.max(originalPrompts.length, 1)
-            ) + 1
+            Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1
           );
-        const sceneStr = String(
-          prev.scene || prev.cena || vp.scene || vp.cena || ""
-        ).trim();
+        const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
         const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
         const scene = sceneInBlock ? sceneStr : `${block}.${index + 1}`;
+        const prev = prevSceneMap.get(String(vp.scene || scene)) || null;
         const identityTags = Array.isArray(vp.identity_tags)
           ? vp.identity_tags
               .map((tag) => String(tag || "").trim())
               .filter(Boolean)
               .slice(0, 8)
-          : prev.identity_tags;
-        const narrativeJob = String(
-          vp.narrative_job || prev.narrative_job || ""
-        )
+          : undefined;
+        const narrativeJob = String(vp.narrative_job || "")
           .trim()
           .toLowerCase();
-        const visualHook = String(
-          vp.visual_hook || prev.visual_hook || ""
-        ).trim();
-
+        const visualHook = String(vp.visual_hook || "").trim();
         return {
-          ...prev, // Mantém dados vitais da cena original (narração, duração, audio_path, etc)
-          ...vp, // Aplica melhorias visuais do Gemini
-          // Garante integridade absoluta de chaves críticas
-          narration_text: prev.narration_text || vp.narration_text || "",
-          narration_excerpt:
-            prev.narration_excerpt || vp.narration_excerpt || "",
-          duration_seconds: prev.duration_seconds || vp.duration_seconds,
-          is_pov: prev.is_pov,
-          scene_kind: prev.scene_kind || vp.scene_kind,
-          video_role: prev.video_role || vp.video_role,
-          pov_pair_id: prev.pov_pair_id || vp.pov_pair_id,
-          use_source_audio: prev.use_source_audio,
-          no_channel_narration: prev.no_channel_narration,
-          volume: prev.volume,
-          pov_image_prompts: prev.pov_image_prompts || vp.pov_image_prompts,
-          seedance_refs: {
-            ...(prev.seedance_refs || {}),
-            ...(vp.seedance_refs || {}),
-          },
+          ...prev, // Mantém dados originais como narration_text, duration_seconds, etc
+          ...vp, // Aplica as novidades geradas pelo Gemini
+          ...(prev
+            ? {
+                // Força restauração de chaves vitais
+                narration_text: prev.narration_text || vp.narration_text || "",
+                narration_excerpt:
+                  prev.narration_excerpt || vp.narration_excerpt || "",
+                is_pov: prev.is_pov,
+                scene_kind: prev.scene_kind || vp.scene_kind,
+                video_role: prev.video_role || vp.video_role,
+                pov_pair_id: prev.pov_pair_id || vp.pov_pair_id,
+                use_source_audio: prev.use_source_audio,
+                no_channel_narration: prev.no_channel_narration,
+                volume: prev.volume,
+                pov_image_prompts:
+                  prev.pov_image_prompts || vp.pov_image_prompts,
+                seedance_refs: {
+                  ...(prev.seedance_refs || {}),
+                  ...(vp.seedance_refs || {}),
+                },
+              }
+            : {}),
           prompt: enforceVisualLocalizedTextRule(
-            enforceNarrativeMaterialFidelity(vp.prompt || prev.prompt || "", {
-              narration: prev.narration_text || vp.narration_text || "",
+            enforceNarrativeMaterialFidelity(vp.prompt || "", {
+              narration: (prev ? prev.narration_text : vp.narration_text) || "",
               narrativeScript: narrative,
             }),
             {
               allowDiegeticText: vp.diegetic_text_required === true,
-              mediaType: vp.type || vp.media_mode || prev.type || "",
+              mediaType: vp.type || vp.media_mode || "",
               format,
             }
           ),
