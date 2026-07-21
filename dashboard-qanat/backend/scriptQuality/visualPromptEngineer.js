@@ -58,6 +58,8 @@ export const NICHE_STYLE_MAP = {
     "Dark cinematic mood, deep shadows, volumetric lighting, warm gold accents, mysterious atmosphere, heavy realistic textures (oxidized bronze, ancient clay, forged steel)",
   history:
     "Period-accurate cinematic, film grain, classic lenses, warm amber lighting for ancient scenes, cool steel for modern, rich textures of the era",
+  engineering:
+    "Technical documentary, industrial construction, load-bearing structure detail, blueprint-informed composition, human scale for machines, natural industrial light, steel/concrete textures, precise mechanical detail",
   science:
     "Clean modern cinematic, bright precise lighting with color accents, sharp detail, scientific visualization, volumetric light beams",
   pets: "Vibrant warm colors, soft cheerful lighting, expressive close-ups, playful atmosphere, shallow depth of field on animal features",
@@ -77,11 +79,45 @@ export const NICHE_STYLE_MAP = {
     "Cinematic documentary style, dramatic lighting, sharp detail, photorealistic textures, professional composition",
 };
 
+/** Normaliza hint de nicho (wizard/config) para chave de NICHE_STYLE_MAP. */
+export function normalizeNicheHint(hint = "") {
+  const t = String(hint || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  if (!t) return null;
+  if (NICHE_STYLE_MAP[t]) return t;
+  if (/engenh|constru|industrial|maquina|estrutura|arranha|bridge|foundation|machinery/.test(t))
+    return "engineering";
+  if (/true.?crime|assassin|forensic/.test(t)) return "true_crime";
+  if (/horror|terror|fantasma|assombr/.test(t)) return "horror";
+  if (/mister|mystery|enigma|arqueol|ruina|artifact/.test(t)) return "mystery";
+  if (/histor|history|guerra|empire|seculo/.test(t)) return "history";
+  if (/cienc|science|fisic|quimic|biolog/.test(t)) return "science";
+  if (/pet|cachorro|gato|animal|filhote/.test(t)) return "pets";
+  if (/luxo|luxury|mansion|supercar/.test(t)) return "luxury";
+  if (/motiv|sucesso|mindset|inspir/.test(t)) return "motivation";
+  if (/financ|dinheiro|invest|bitcoin|cripto/.test(t)) return "finance";
+  if (/geograf|mapa|pais|continent|ocean/.test(t)) return "geography";
+  if (/tecnolog|tech|robot|software|digital|ia\b|ai\b/.test(t)) return "tech";
+  if (/comida|food|receita|cozinha|chef/.test(t)) return "food";
+  if (/esporte|sport|futebol|atleta/.test(t)) return "sports";
+  return null;
+}
+
 export function detectNicheFromContent(
   strategy = {},
   narrative = "",
-  hyperframe = ""
+  hyperframe = "",
+  nicheHint = ""
 ) {
+  // Hint do canal/wizard tem prioridade quando mapeável
+  const fromHint = normalizeNicheHint(
+    nicheHint || strategy.niche || strategy.channel_niche || ""
+  );
+  if (fromHint && fromHint !== "default") return fromHint;
+
   const text = [
     strategy.title_main,
     strategy.hook,
@@ -106,6 +142,13 @@ export function detectNicheFromContent(
     )
   )
     return "horror";
+  // Engenharia ANTES de history/mystery — canal de construções/máquinas
+  if (
+    /\b(engenh|engineering|constru[cç]|estrutura|arranha.?c[eé]u|load.?bearing|esqueleto\s+de\s+a[cç]o|steel\s+frame|machinery|industrial\s+plant|fundação|foundation|bridge\s+construction|mecanismo|blueprint)\b/i.test(
+      text
+    )
+  )
+    return "engineering";
   if (
     /\b(mistério|mystery|enigma|antiq|históri|ancient|civiliza|arqueolog|ruína|artifact)\b/i.test(
       text
@@ -172,7 +215,7 @@ export function detectNicheFromContent(
     )
   )
     return "sports";
-  return "default";
+  return fromHint || "default";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -907,7 +950,19 @@ export function buildVisualPromptEngineerRequest(storyboard = {}, opts = {}) {
       storyboard.technical_config?.visual_map_only_prompts
   );
 
-  const niche = detectNicheFromContent(strategy, narrative, hyperframe);
+  const nicheHint =
+    opts.nicheHint ||
+    opts.niche ||
+    strategy.niche ||
+    strategy.channel_niche ||
+    storyboard.niche ||
+    "";
+  const niche = detectNicheFromContent(
+    strategy,
+    narrative,
+    hyperframe,
+    nicheHint
+  );
   const identityBrief = buildVisualIdentityBrief({
     strategy,
     narrative,
@@ -918,7 +973,7 @@ export function buildVisualPromptEngineerRequest(storyboard = {}, opts = {}) {
     mapOnly,
   });
 
-  const systemPrompt = buildVisualPromptEngineerSystemPrompt({
+  let systemPrompt = buildVisualPromptEngineerSystemPrompt({
     niche,
     format,
     hyperframePrompt: hyperframe,
@@ -929,6 +984,10 @@ export function buildVisualPromptEngineerRequest(storyboard = {}, opts = {}) {
     visualAssetStyle,
     mapOnly,
   });
+  // skillsAddendum opcional (injetado pelo endpoint via Studio Agents)
+  if (opts.skillsAddendum && String(opts.skillsAddendum).trim()) {
+    systemPrompt = `${systemPrompt}\n\n${String(opts.skillsAddendum).trim()}`;
+  }
 
   const storyboardPayload = {
     strategy: {

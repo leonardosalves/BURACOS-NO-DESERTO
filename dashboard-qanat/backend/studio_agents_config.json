@@ -12,6 +12,9 @@
     "script": "shorts-script",
     "script:LONG": "long-documentary",
     "metadata": "publish-seo",
+    "visual-prompt": "visual-prompt",
+    "visual-prompt:LONG": "visual-prompt",
+    "visual-prompt:SHORT": "visual-prompt",
     "default": "studio-overlay-agent"
   },
   "workshopHandled": {

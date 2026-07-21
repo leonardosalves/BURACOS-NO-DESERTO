@@ -64,6 +64,7 @@ import {
   WORKSPACE_TAB_KEY,
   type WizardSessionPatch,
 } from "./wizardSession";
+import { validateWizardInputForVisualPro } from "./wizardInputValidator";
 import { PreRenderAdviceModal, type PreRenderAdvice } from "./PreRenderAdvice";
 import {
   applyProductionPatchToConfig,
@@ -10172,10 +10173,25 @@ export default function App() {
   const handleEnhanceVisualPrompts = async () => {
     const projectName =
       narrationProjectName || creatorProjectName || activeProject;
-    if (!projectName?.trim()) {
-      toast.error("Projeto não identificado.");
+    const storyboardSource = generatedScriptData || storyboardData;
+    const validacao = validateWizardInputForVisualPro({
+      projectName,
+      nicheInput,
+      formatSelector,
+      narrativeScript:
+        storyboardSource?.narrative_script ||
+        narrationDraft ||
+        narrationBlockScript ||
+        "",
+      narrationDraft,
+      visualPrompts: storyboardSource?.visual_prompts || [],
+    });
+    if (!validacao.podeProsseguir) {
+      toast.error(validacao.problemas[0] || "Material incompleto para VPE.");
       return;
     }
+    validacao.avisos.forEach((a) => toast.warning(a, { duration: 6000 }));
+
     setCreatorLoading(true);
     setCreatorLoadingMode("full");
     const progressJobId = createProgressJobId();
@@ -10187,8 +10203,10 @@ export default function App() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, "_"),
+            project: projectName!.trim().replace(/[^a-zA-Z0-9_-]/g, "_"),
             progress_job_id: progressJobId,
+            niche: nicheInput?.trim() || "",
+            format: formatSelector || "LONGO",
           }),
         },
         {

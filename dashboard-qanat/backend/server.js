@@ -24074,7 +24074,20 @@ app.post(
         storyboard.technical_config?.visual_map_only_prompts
       );
 
-      const { systemPrompt, userPrompt, detectedNiche, identityBrief } =
+      const nicheHint =
+        req.body?.niche ||
+        config.niche ||
+        storyboard.strategy?.niche ||
+        storyboard.niche ||
+        "";
+      const skillsAddendum = buildStudioAgentsPromptAddendum(WORKSPACE_DIR, {
+        niche: nicheHint || "Geral",
+        task: "visual-prompt",
+        format,
+        maxSkills: 4,
+      });
+
+      let { systemPrompt, userPrompt, detectedNiche, identityBrief } =
         buildVisualPromptEngineerRequest(storyboard, {
           format,
           isListicle,
@@ -24082,7 +24095,17 @@ app.post(
           rankOrder,
           visualAssetStyle,
           mapOnly: visualMapOnly,
+          nicheHint,
+          skillsAddendum,
         });
+      // Garantia: skills do estúdio no system prompt (idempotente se já veio no request)
+      if (skillsAddendum && !String(systemPrompt).includes("SKILLS DO ESTÚDIO")) {
+        systemPrompt = injectStudioAgentsContext(systemPrompt, WORKSPACE_DIR, {
+          niche: detectedNiche || nicheHint || "Geral",
+          task: "visual-prompt",
+          format,
+        });
+      }
 
       const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
       const sceneCount = storyboard.visual_prompts.length;
@@ -24371,6 +24394,8 @@ app.post(
           stock_query: resolveStockSearchQuery(vp, {
             strategyTitle: storyboard.strategy?.title_main || "",
             projectTitle: storyboard.strategy?.title_main || "",
+            niche: detectedNiche || nicheHint || "",
+            preferSceneStockQuery: true,
           }),
         }));
       } catch (stockErr) {

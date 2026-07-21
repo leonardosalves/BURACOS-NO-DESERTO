@@ -644,15 +644,104 @@ function collectGenerationPromptText(scene = {}) {
     .join(" ");
 }
 
+/** Fallback de busca específico por nicho (nunca genérico puro). */
+const NICHE_FALLBACK_QUERIES = {
+  engineering: "industrial machinery construction site",
+  history: "historical site period architecture",
+  mystery: "ancient ruins archaeological site",
+  science: "scientific laboratory research equipment",
+  tech: "modern technology laboratory equipment",
+  geography: "natural landscape geographic terrain",
+  true_crime: "forensic investigation crime scene detail",
+  horror: "dark atmospheric empty corridor",
+  finance: "modern office financial district",
+  food: "food preparation kitchen ingredients",
+  sports: "athletic stadium sports action",
+  pets: "domestic animal close up portrait",
+  luxury: "premium interior luxury detail",
+  motivation: "sunrise silhouette mountain ridge",
+  default: "documentary detail object",
+};
+
+/**
+ * Resolve fallback de stock por nicho (canal / VPE).
+ * @param {string} niche
+ * @returns {string|null}
+ */
+export function resolveNicheFallbackQuery(niche = "") {
+  const t = String(niche || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  if (!t) return null;
+  if (NICHE_FALLBACK_QUERIES[t]) return NICHE_FALLBACK_QUERIES[t];
+  if (/engenh|constru|industrial|maquina|estrutura/.test(t))
+    return NICHE_FALLBACK_QUERIES.engineering;
+  if (/histor|guerra|seculo|empire/.test(t)) return NICHE_FALLBACK_QUERIES.history;
+  if (/mister|arqueol|ruina|ancient/.test(t))
+    return NICHE_FALLBACK_QUERIES.mystery;
+  if (/cienc|science|biolog|fisic/.test(t)) return NICHE_FALLBACK_QUERIES.science;
+  if (/tecnolog|digital|software|robot/.test(t)) return NICHE_FALLBACK_QUERIES.tech;
+  if (/geograf|natureza|paisagem|wildlife/.test(t))
+    return NICHE_FALLBACK_QUERIES.geography;
+  return null;
+}
+
+function isUsableDirectStockQuery(candidate, options = {}) {
+  const rejectTitles = options.rejectTitles || [];
+  const sceneMeaning = options.sceneMeaning || "";
+  const preferSceneStockQuery = options.preferSceneStockQuery === true;
+  if (!candidate || isGenericQuery(candidate)) return false;
+  if (isCgiOrRenderJunk(candidate)) return false;
+  if (looksLikeProjectTitle(candidate, rejectTitles)) return false;
+  // Com preferSceneStockQuery (pós-VPE), aceita stock_query mesmo se a narração
+  // for fraca e o match de sujeito falhar — ainda bloqueia CGI/genérico.
+  if (
+    sceneMeaning &&
+    !preferSceneStockQuery &&
+    !queryMatchesSceneSubject(candidate, sceneMeaning)
+  ) {
+    return false;
+  }
+  const wc = candidate.split(/\s+/).filter(Boolean).length;
+  return wc >= 2 || /[A-ZÀ-Ú]/.test(candidate);
+}
+
 /**
  * Busca de stock: verifica a NARRAÇÃO e do que a CENA trata.
  * Nunca prioriza prompt de Engenharia Visual PRO (Unreal/Octane/CGI).
+ * options: { niche, preferSceneStockQuery, strategyTitle, projectTitle, rejectTitles }
  */
 export function resolveStockSearchQuery(vp = {}, options = {}) {
   const rejectTitles = collectRejectTitles(options);
   const scene = vp || {};
   const sceneMeaning = collectSceneMeaningText(scene);
   const generationPrompt = collectGenerationPromptText(scene);
+  const preferSceneStockQuery = options.preferSceneStockQuery === true;
+
+  const directCandidates = [
+    scene.stock_query,
+    scene.stockQuery,
+    scene.busca_termo,
+  ]
+    .map((v) => String(v || "").trim())
+    .filter(Boolean);
+
+  // 0) Pós-VPE: prioriza stock_query da cena se for concreto e limpo
+  if (preferSceneStockQuery) {
+    for (const candidate of directCandidates) {
+      if (
+        isUsableDirectStockQuery(candidate, {
+          rejectTitles,
+          sceneMeaning,
+          preferSceneStockQuery: true,
+        })
+      ) {
+        return candidate.slice(0, 80);
+      }
+    }
+  }
 
   // 1) Narração + descrição do que a cena mostra
   if (sceneMeaning) {
@@ -668,22 +757,14 @@ export function resolveStockSearchQuery(vp = {}, options = {}) {
   }
 
   // 2) stock_query manual — só se não for CGI e casar com o assunto da cena
-  const directCandidates = [
-    scene.stock_query,
-    scene.stockQuery,
-    scene.busca_termo,
-  ]
-    .map((v) => String(v || "").trim())
-    .filter(Boolean);
-
   for (const candidate of directCandidates) {
-    if (isGenericQuery(candidate)) continue;
-    if (isCgiOrRenderJunk(candidate)) continue;
-    if (looksLikeProjectTitle(candidate, rejectTitles)) continue;
-    if (sceneMeaning && !queryMatchesSceneSubject(candidate, sceneMeaning))
-      continue;
-    const wc = candidate.split(/\s+/).filter(Boolean).length;
-    if (wc >= 2 || /[A-ZÀ-Ú]/.test(candidate)) {
+    if (
+      isUsableDirectStockQuery(candidate, {
+        rejectTitles,
+        sceneMeaning,
+        preferSceneStockQuery: false,
+      })
+    ) {
       return candidate.slice(0, 80);
     }
   }
@@ -741,5 +822,7 @@ export function resolveStockSearchQuery(vp = {}, options = {}) {
     return hook.slice(0, 80);
   }
 
-  return "documentary detail object";
+  return (
+    resolveNicheFallbackQuery(options.niche) || "documentary detail object"
+  );
 }

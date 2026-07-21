@@ -9,6 +9,8 @@ import {
   buildCinematicVideoPromptRepairPrompt,
   buildVisualPromptEngineerRequest,
   buildVisualPromptEngineerSystemPrompt,
+  detectNicheFromContent,
+  normalizeNicheHint,
   enforceVideoDiegeticAudioPolicy,
   enforceVisualLocalizedTextRule,
   enforceNarrativeMaterialFidelity,
@@ -100,6 +102,55 @@ test("Engenharia Visual PRO mantém a mídia-fonte sem texto editorial", async (
       assert.doesNotMatch(result, /absolutely no speech/i);
     }
   );
+});
+
+test("detectNicheFromContent reconhece engenharia e nicheHint", async (t) => {
+  await t.test("esqueleto de aço / engenharia civil → engineering", () => {
+    const niche = detectNicheFromContent(
+      { title_main: "O primeiro arranha-céu" },
+      "Seu esqueleto pioneiro de aço e ferro sustentava todo o peso da estrutura de engenharia civil.",
+      ""
+    );
+    assert.equal(niche, "engineering");
+  });
+
+  await t.test("nicheHint do wizard tem prioridade", () => {
+    assert.equal(normalizeNicheHint("Engenharia antiga"), "engineering");
+    const niche = detectNicheFromContent(
+      { title_main: "Algo genérico" },
+      "Texto sem palavras-chave fortes de nicho.",
+      "",
+      "engenharia"
+    );
+    assert.equal(niche, "engineering");
+  });
+
+  await t.test("skillsAddendum entra no system prompt do request", () => {
+    const { systemPrompt, detectedNiche } = buildVisualPromptEngineerRequest(
+      {
+        strategy: { title_main: "Teste" },
+        narrative_script: "Narração de teste com conteúdo suficiente para o payload.",
+        visual_prompts: [
+          {
+            scene: "1.1",
+            block: 1,
+            narration_text: "Cena de teste",
+            type: "imagem IA 2k",
+            prompt: "A steel beam close-up",
+          },
+        ],
+      },
+      {
+        format: "LONGO",
+        nicheHint: "engenharia",
+        skillsAddendum:
+          "## SKILLS DO ESTÚDIO — bundle \"visual-prompt\"\nUse stock_query concreto.",
+      }
+    );
+    assert.equal(detectedNiche, "engineering");
+    assert.match(systemPrompt, /SKILLS DO ESTÚDIO/);
+    assert.match(systemPrompt, /visual-prompt/);
+  });
 });
 
 test("Engenharia Visual PRO prioriza identidade + unidade roteiro↔imagem", async (t) => {

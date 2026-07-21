@@ -364,6 +364,7 @@ export function resolveMaxSkillsForTask(task, format = "SHORT") {
   if (task === "ideas") return 7;
   if (task === "script") return fmt === "LONG" ? 7 : 6;
   if (task === "metadata" || task === "upload") return 5;
+  if (task === "visual-prompt" || task === "enhance-visual") return 4;
   return 4;
 }
 
@@ -731,6 +732,23 @@ export function ensureDefaultSkillBundles(workspaceDir) {
         ],
         instruction:
           "Preflight capability-menu → analisar referência com twist obrigatório → reviewer em cada estágio. Nunca cópia carbono.",
+      },
+    },
+    {
+      file: "visual-prompt.json",
+      data: {
+        name: "visual-prompt",
+        description: "Engenharia de prompts visuais (imagem/vídeo) + câmera + stock",
+        tasks: ["visual-prompt", "enhance-visual", "creator"],
+        formats: ["LONG", "SHORT"],
+        skills: [
+          "visual-prompt-engineer",
+          "ai-camera-movements",
+          "remotion-best-practices",
+          "hyperframes",
+        ],
+        instruction:
+          "Aplique especificidade de sujeito, direção de câmera com intenção narrativa, mídia limpa (texto no Remotion) e stock_query concreto por cena. Proibido jargão CGI vazio (unreal/octane/8k) sem substância visual. Vídeo: 120–220 palavras com 3 beats + áudio diegético. Imagem: frame estático sem terminologia de motion.",
       },
     },
   ];

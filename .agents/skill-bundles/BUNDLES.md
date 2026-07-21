@@ -14,3 +14,4 @@ Bundles JSON usados pelo Studio Agents para injetar skills no prompt.
 - `shorts-script.json` — ver [[skills/studio-agents-hermes]]
 - `shorts-viral.json` — ver [[skills/studio-agents-hermes]]
 - `studio-overlay-agent.json` — ver [[skills/studio-agents-hermes]]
+- `visual-prompt.json` — Engenharia Visual PRO (prompts imagem/vídeo + câmera + stock)

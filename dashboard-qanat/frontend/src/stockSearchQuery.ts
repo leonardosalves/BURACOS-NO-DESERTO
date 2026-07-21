@@ -594,21 +594,102 @@ function collectGenerationPromptText(
     .join(" ");
 }
 
+/** Fallback de busca específico por nicho (nunca genérico puro). */
+const NICHE_FALLBACK_QUERIES: Record<string, string> = {
+  engineering: "industrial machinery construction site",
+  history: "historical site period architecture",
+  mystery: "ancient ruins archaeological site",
+  science: "scientific laboratory research equipment",
+  tech: "modern technology laboratory equipment",
+  geography: "natural landscape geographic terrain",
+  true_crime: "forensic investigation crime scene detail",
+  horror: "dark atmospheric empty corridor",
+  finance: "modern office financial district",
+  food: "food preparation kitchen ingredients",
+  sports: "athletic stadium sports action",
+  pets: "domestic animal close up portrait",
+  luxury: "premium interior luxury detail",
+  motivation: "sunrise silhouette mountain ridge",
+  default: "documentary detail object",
+};
+
+export function resolveNicheFallbackQuery(niche = ""): string | null {
+  const t = String(niche || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  if (!t) return null;
+  if (NICHE_FALLBACK_QUERIES[t]) return NICHE_FALLBACK_QUERIES[t];
+  if (/engenh|constru|industrial|maquina|estrutura/.test(t))
+    return NICHE_FALLBACK_QUERIES.engineering;
+  if (/histor|guerra|seculo|empire/.test(t)) return NICHE_FALLBACK_QUERIES.history;
+  if (/mister|arqueol|ruina|ancient/.test(t))
+    return NICHE_FALLBACK_QUERIES.mystery;
+  if (/cienc|science|biolog|fisic/.test(t)) return NICHE_FALLBACK_QUERIES.science;
+  if (/tecnolog|digital|software|robot/.test(t)) return NICHE_FALLBACK_QUERIES.tech;
+  if (/geograf|natureza|paisagem|wildlife/.test(t))
+    return NICHE_FALLBACK_QUERIES.geography;
+  return null;
+}
+
+function isUsableDirectStockQuery(
+  candidate: string,
+  opts: {
+    rejectTitles: string[];
+    sceneMeaning: string;
+    preferSceneStockQuery: boolean;
+  }
+): boolean {
+  if (!candidate || isGenericQuery(candidate)) return false;
+  if (isCgiOrRenderJunk(candidate)) return false;
+  if (looksLikeProjectTitle(candidate, opts.rejectTitles)) return false;
+  if (
+    opts.sceneMeaning &&
+    !opts.preferSceneStockQuery &&
+    !queryMatchesSceneSubject(candidate, opts.sceneMeaning)
+  ) {
+    return false;
+  }
+  const wc = candidate.split(/\s+/).filter(Boolean).length;
+  return wc >= 2 || /[A-ZÀ-Ú]/.test(candidate);
+}
+
 export function resolveStockSearchQuery(
   vp: Record<string, unknown> = {},
   options: {
     projectTitle?: string;
     strategyTitle?: string;
     rejectTitles?: string[];
+    niche?: string;
+    preferSceneStockQuery?: boolean;
   } = {}
 ): string {
   const rejectTitles = collectRejectTitles(options);
   const sceneMeaning = collectSceneMeaningText(vp);
   const generationPrompt = collectGenerationPromptText(vp);
+  const preferSceneStockQuery = options.preferSceneStockQuery === true;
+
+  const directCandidates = [vp.stock_query, vp.stockQuery, vp.busca_termo]
+    .map((v) => String(v || "").trim())
+    .filter(Boolean);
+
+  // 0) Pós-VPE: prioriza stock_query da cena se for concreto e limpo
+  if (preferSceneStockQuery) {
+    for (const candidate of directCandidates) {
+      if (
+        isUsableDirectStockQuery(candidate, {
+          rejectTitles,
+          sceneMeaning,
+          preferSceneStockQuery: true,
+        })
+      ) {
+        return candidate.slice(0, 80);
+      }
+    }
+  }
 
   // 1) Narração + do que a cena trata (visual_description, overlay…)
-  //    Ex.: "Santa Catarina … prósperos do Brasil" + "mapa … Santa Catarina"
-  //    → busca "Santa Catarina Brasil mapa" — NÃO "unreal engine octane"
   if (sceneMeaning) {
     const fromMeaning = extractStockQueryFromNarration(sceneMeaning);
     if (
@@ -622,19 +703,14 @@ export function resolveStockSearchQuery(
   }
 
   // 2) stock_query manual só se NÃO for lixo CGI e não for genérico
-  const directCandidates = [vp.stock_query, vp.stockQuery, vp.busca_termo]
-    .map((v) => String(v || "").trim())
-    .filter(Boolean);
-
   for (const candidate of directCandidates) {
-    if (isGenericQuery(candidate)) continue;
-    if (isCgiOrRenderJunk(candidate)) continue;
-    if (looksLikeProjectTitle(candidate, rejectTitles)) continue;
-    // Tem que casar com o significado da cena (narração/descrição), não com prompt PRO
-    if (sceneMeaning && !queryMatchesSceneSubject(candidate, sceneMeaning))
-      continue;
-    const wc = candidate.split(/\s+/).filter(Boolean).length;
-    if (wc >= 2 || /[A-ZÀ-Ú]/.test(candidate)) {
+    if (
+      isUsableDirectStockQuery(candidate, {
+        rejectTitles,
+        sceneMeaning,
+        preferSceneStockQuery: false,
+      })
+    ) {
       return candidate.slice(0, 80);
     }
   }
@@ -681,7 +757,6 @@ export function resolveStockSearchQuery(
       return fromPrompt;
     }
   } else if (generationPrompt) {
-    // Prompt é CGI mas pode ter assunto no final ("map of Brazil, Santa Catarina…")
     const cleaned = stripStyleAndPolicyNoise(generationPrompt);
     const fromPrompt = extractStockQueryFromPrompt(cleaned);
     if (
@@ -690,7 +765,6 @@ export function resolveStockSearchQuery(
       !looksLikeProjectTitle(fromPrompt, rejectTitles) &&
       !isGenericQuery(fromPrompt)
     ) {
-      // Se temos significado da cena, só aceita se casar
       if (!sceneMeaning || queryMatchesSceneSubject(fromPrompt, sceneMeaning)) {
         return fromPrompt;
       }
@@ -707,5 +781,7 @@ export function resolveStockSearchQuery(
     return hook.slice(0, 80);
   }
 
-  return "documentary detail object";
+  return (
+    resolveNicheFallbackQuery(options.niche) || "documentary detail object"
+  );
 }
