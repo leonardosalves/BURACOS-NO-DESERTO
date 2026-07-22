@@ -51,6 +51,17 @@ type LocalStudioTemplate = {
   longPreview?: string;
 };
 
+type ShotcraftCatalogItem = {
+  template_id: string;
+  name: string;
+  category: string;
+  energy?: string;
+  duration_seconds?: number;
+  approved?: boolean;
+};
+
+type PaletteMode = "shotcraft" | "studio";
+
 function readLocalStudioTemplates(): LocalStudioTemplate[] {
   try {
     const raw = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
@@ -192,6 +203,16 @@ export function NicheTemplatePalette({
   const [createdTemplates, setCreatedTemplates] = useState<CatalogTemplate[]>(
     []
   );
+  const [paletteMode, setPaletteMode] = useState<PaletteMode>("shotcraft");
+  const [shotcraftTemplates, setShotcraftTemplates] = useState<
+    ShotcraftCatalogItem[]
+  >([]);
+  const [shotcraftCategory, setShotcraftCategory] = useState<string | null>(
+    null
+  );
+  const [selectedShotcraftId, setSelectedShotcraftId] = useState<string | null>(
+    null
+  );
   const [categoryId, setCategoryId] = useState(() =>
     aspectRatio === "9:16" ? "maps" : "chart-data"
   );
@@ -307,6 +328,86 @@ export function NicheTemplatePalette({
     }
   }, [visibleTemplates, selectedTemplateId]);
 
+  /* Shotcraft catalog (PostgreSQL /api/templates) */
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await fetch(getProjectUrl("/api/templates?limit=200"));
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!alive) return;
+        const list = Array.isArray(data.templates) ? data.templates : [];
+        if (list.length === 0) {
+          // seed once if empty
+          await fetch(getProjectUrl("/api/templates/seed"), { method: "POST" });
+          const res2 = await fetch(getProjectUrl("/api/templates?limit=200"));
+          const data2 = await res2.json();
+          if (alive && Array.isArray(data2.templates)) {
+            setShotcraftTemplates(data2.templates);
+          }
+        } else {
+          setShotcraftTemplates(list);
+        }
+      } catch {
+        if (alive) setShotcraftTemplates([]);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [getProjectUrl]);
+
+  const shotcraftCategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of shotcraftTemplates) {
+      if (t.category) set.add(t.category);
+    }
+    return Array.from(set).sort();
+  }, [shotcraftTemplates]);
+
+  const visibleShotcraft = useMemo(() => {
+    let list = shotcraftTemplates;
+    if (shotcraftCategory) {
+      list = list.filter((t) => t.category === shotcraftCategory);
+    }
+    return list.slice(0, 80);
+  }, [shotcraftTemplates, shotcraftCategory]);
+
+  const selectedShotcraft = useMemo(
+    () =>
+      visibleShotcraft.find((t) => t.template_id === selectedShotcraftId) ||
+      null,
+    [visibleShotcraft, selectedShotcraftId]
+  );
+
+  useEffect(() => {
+    if (!visibleShotcraft.length) {
+      setSelectedShotcraftId(null);
+      return;
+    }
+    if (!visibleShotcraft.some((t) => t.template_id === selectedShotcraftId)) {
+      setSelectedShotcraftId(visibleShotcraft[0].template_id);
+    }
+  }, [visibleShotcraft, selectedShotcraftId]);
+
+  function insertShotcraftTemplate(tpl: ShotcraftCatalogItem) {
+    onInsertTemplate(tpl.template_id, {
+      label: tpl.name || tpl.template_id,
+      props: {
+        shotcraft: true,
+        shotcraft_template_id: tpl.template_id,
+        template_name: tpl.name,
+        duration_seconds: tpl.duration_seconds || 4,
+        motion_shot: {
+          templateId: tpl.template_id,
+          duration_seconds: tpl.duration_seconds || 4,
+          start_seconds: 0,
+        },
+      },
+    });
+  }
+
   useEffect(() => {
     if (!niche) {
       setCreatedTemplates([]);
@@ -415,154 +516,269 @@ export function NicheTemplatePalette({
         </select>
       </div>
 
-      {niche ? (
-        <p className="text-[8px] text-zinc-500 leading-relaxed">
-          Catalogo Studio: <span className="text-zinc-300">{niche}</span>
-          {studioReadyTemplates.length
-            ? ` · ${studioReadyTemplates.length} com TSX`
-            : " · sem templates prontos no navegador/servidor"}
-        </p>
+      <div className="flex gap-1">
+        <button
+          type="button"
+          onClick={() => setPaletteMode("shotcraft")}
+          className={`flex-1 text-[9px] font-bold py-1 rounded-lg border transition cursor-pointer ${
+            paletteMode === "shotcraft"
+              ? "border-amber-400/50 bg-amber-500/15 text-amber-100"
+              : "border-zinc-800 bg-zinc-950/60 text-zinc-500 hover:border-zinc-700"
+          }`}
+        >
+          Shotcraft
+        </button>
+        <button
+          type="button"
+          onClick={() => setPaletteMode("studio")}
+          className={`flex-1 text-[9px] font-bold py-1 rounded-lg border transition cursor-pointer ${
+            paletteMode === "studio"
+              ? "border-violet-400/50 bg-violet-500/15 text-violet-100"
+              : "border-zinc-800 bg-zinc-950/60 text-zinc-500 hover:border-zinc-700"
+          }`}
+        >
+          Studio TSX
+        </button>
+      </div>
+
+      {paletteMode === "shotcraft" ? (
+        <div className="border-t border-zinc-800/60 pt-2 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
+              Shotcraft Motion
+            </span>
+            <span className="text-[8px] text-zinc-600">
+              {shotcraftTemplates.length
+                ? `${shotcraftTemplates.length} cards`
+                : "vazio"}
+            </span>
+          </div>
+          {shotcraftCategories.length ? (
+            <div className="flex flex-wrap gap-1 max-h-14 overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => setShotcraftCategory(null)}
+                className={`text-[9px] px-2 py-1 rounded-full border transition cursor-pointer ${
+                  !shotcraftCategory
+                    ? "border-amber-400/50 bg-amber-400/12 text-amber-100"
+                    : "border-zinc-800 bg-zinc-950/70 text-zinc-400"
+                }`}
+              >
+                Todos
+              </button>
+              {shotcraftCategories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setShotcraftCategory(cat)}
+                  className={`text-[9px] px-2 py-1 rounded-full border transition cursor-pointer ${
+                    shotcraftCategory === cat
+                      ? "border-amber-400/50 bg-amber-400/12 text-amber-100"
+                      : "border-zinc-800 bg-zinc-950/70 text-zinc-400"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <div className="max-h-28 overflow-y-auto space-y-1 pr-0.5">
+            {visibleShotcraft.map((tpl) => {
+              const active = tpl.template_id === selectedShotcraftId;
+              return (
+                <button
+                  key={tpl.template_id}
+                  type="button"
+                  onClick={() => setSelectedShotcraftId(tpl.template_id)}
+                  className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left transition cursor-pointer ${
+                    active
+                      ? "border-amber-400/60 bg-amber-500/12 text-amber-50"
+                      : "border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:border-zinc-700"
+                  }`}
+                  title={tpl.template_id}
+                >
+                  <span className="text-[9px] font-medium truncate">
+                    {tpl.name || tpl.template_id}
+                  </span>
+                  <span className="text-[8px] text-zinc-600 shrink-0 ml-2">
+                    {tpl.category}
+                  </span>
+                </button>
+              );
+            })}
+            {!visibleShotcraft.length ? (
+              <p className="text-[8px] text-zinc-600 px-1">
+                Nenhum template Shotcraft. Abra o Editor do Lumiera para seed.
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            disabled={!selectedShotcraft}
+            onClick={() =>
+              selectedShotcraft && insertShotcraftTemplate(selectedShotcraft)
+            }
+            className="w-full text-[10px] font-bold py-1.5 rounded-lg bg-amber-600/90 hover:bg-amber-500 disabled:opacity-40 text-white transition cursor-pointer"
+          >
+            Inserir Shotcraft no playhead
+          </button>
+          <p className="text-[8px] text-zinc-600 leading-relaxed">
+            Overlay motion (video-shotcraft) · mesmo pipeline do Editor do
+            Lumiera
+          </p>
+        </div>
       ) : null}
 
-      <div className="border-t border-zinc-800/60 pt-2 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
-            Templates Studio
-          </span>
-          <span className="text-[8px] text-zinc-600">
-            {studioReadyTemplates.length
-              ? `${studioReadyTemplates.length} prontos`
-              : "nenhum aprovado com TSX"}
-          </span>
-        </div>
+      {paletteMode === "studio" ? (
+        <div className="border-t border-zinc-800/60 pt-2 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
+              Templates Studio
+            </span>
+            <span className="text-[8px] text-zinc-600">
+              {studioReadyTemplates.length
+                ? `${studioReadyTemplates.length} prontos`
+                : "nenhum aprovado com TSX"}
+            </span>
+          </div>
 
-        {studioReadyTemplates.length ? (
-          <>
-            <div className="space-y-1">
-              <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
-                Categorias
-              </p>
-              <div className="max-h-28 overflow-y-auto space-y-1 pr-0.5">
-                {categories.map((cat: TemplateCategoryDefinition) => {
-                  const count = countTemplatesInCategory(
-                    studioReadyTemplates,
-                    cat.id
-                  );
-                  const active = cat.id === currentCategory?.id;
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => {
-                        setCategoryId(cat.id);
-                        setSubcategory(cat.subcategories[0] || "");
-                      }}
-                      className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left transition cursor-pointer ${
-                        active
-                          ? "border-blue-400/60 bg-blue-500/12 text-white"
-                          : "border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:border-zinc-700"
-                      }`}
-                    >
-                      <span className="text-[9px] font-bold truncate">
-                        {cat.label}
-                      </span>
-                      <span className="text-[8px] text-zinc-600 shrink-0 ml-2">
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+          {niche ? (
+            <p className="text-[8px] text-zinc-500 leading-relaxed">
+              Catalogo Studio: <span className="text-zinc-300">{niche}</span>
+              {studioReadyTemplates.length
+                ? ` · ${studioReadyTemplates.length} com TSX`
+                : " · sem templates prontos no navegador/servidor"}
+            </p>
+          ) : null}
 
-            {subcategories.length ? (
+          {studioReadyTemplates.length ? (
+            <>
               <div className="space-y-1">
                 <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
-                  {currentCategory?.label || "Subcategorias"}
+                  Categorias
                 </p>
-                <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
-                  {subcategories.map((sub) => (
-                    <button
-                      key={sub}
-                      type="button"
-                      onClick={() => setSubcategory(sub)}
-                      className={`text-[9px] px-2 py-1 rounded-full border transition cursor-pointer ${
-                        subcategory === sub
-                          ? "border-amber-400/50 bg-amber-400/12 text-amber-100"
-                          : "border-zinc-800 bg-zinc-950/70 text-zinc-400 hover:border-zinc-700"
-                      }`}
-                    >
-                      {sub}
-                    </button>
-                  ))}
+                <div className="max-h-28 overflow-y-auto space-y-1 pr-0.5">
+                  {categories.map((cat: TemplateCategoryDefinition) => {
+                    const count = countTemplatesInCategory(
+                      studioReadyTemplates,
+                      cat.id
+                    );
+                    const active = cat.id === currentCategory?.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setCategoryId(cat.id);
+                          setSubcategory(cat.subcategories[0] || "");
+                        }}
+                        className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left transition cursor-pointer ${
+                          active
+                            ? "border-blue-400/60 bg-blue-500/12 text-white"
+                            : "border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:border-zinc-700"
+                        }`}
+                      >
+                        <span className="text-[9px] font-bold truncate">
+                          {cat.label}
+                        </span>
+                        <span className="text-[8px] text-zinc-600 shrink-0 ml-2">
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            ) : null}
 
-            {showingCategoryFallback ? (
-              <p className="text-[8px] text-amber-200/80 leading-relaxed">
-                Nenhum template em &quot;{subcategory}&quot;. Mostrando os{" "}
-                {categoryTemplates.length} da categoria {currentCategory?.label}
-                .
-              </p>
-            ) : null}
+              {subcategories.length ? (
+                <div className="space-y-1">
+                  <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
+                    {currentCategory?.label || "Subcategorias"}
+                  </p>
+                  <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                    {subcategories.map((sub) => (
+                      <button
+                        key={sub}
+                        type="button"
+                        onClick={() => setSubcategory(sub)}
+                        className={`text-[9px] px-2 py-1 rounded-full border transition cursor-pointer ${
+                          subcategory === sub
+                            ? "border-amber-400/50 bg-amber-400/12 text-amber-100"
+                            : "border-zinc-800 bg-zinc-950/70 text-zinc-400 hover:border-zinc-700"
+                        }`}
+                      >
+                        {sub}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
-            <div className="space-y-1">
-              <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
-                Templates
-              </p>
-              <div className="max-h-24 overflow-y-auto space-y-1 pr-0.5">
-                {visibleTemplates.map((tpl) => {
-                  const active = tpl.id === selectedTemplateId;
-                  return (
-                    <button
-                      key={tpl.id}
-                      type="button"
-                      onClick={() => setSelectedTemplateId(tpl.id)}
-                      className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left transition cursor-pointer ${
-                        active
-                          ? "border-violet-400/60 bg-violet-500/15 text-violet-100"
-                          : "border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:border-zinc-700"
-                      }`}
-                      title={tpl.name}
-                    >
-                      <span className="text-[9px] font-medium truncate">
-                        {shortTemplateName(tpl.name)}
-                      </span>
-                      {active ? (
-                        <span className="text-[8px] text-violet-300 shrink-0 ml-2">
-                          selecionado
+              {showingCategoryFallback ? (
+                <p className="text-[8px] text-amber-200/80 leading-relaxed">
+                  Nenhum template em &quot;{subcategory}&quot;. Mostrando os{" "}
+                  {categoryTemplates.length} da categoria{" "}
+                  {currentCategory?.label}.
+                </p>
+              ) : null}
+
+              <div className="space-y-1">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-500">
+                  Templates
+                </p>
+                <div className="max-h-24 overflow-y-auto space-y-1 pr-0.5">
+                  {visibleTemplates.map((tpl) => {
+                    const active = tpl.id === selectedTemplateId;
+                    return (
+                      <button
+                        key={tpl.id}
+                        type="button"
+                        onClick={() => setSelectedTemplateId(tpl.id)}
+                        className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left transition cursor-pointer ${
+                          active
+                            ? "border-violet-400/60 bg-violet-500/15 text-violet-100"
+                            : "border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:border-zinc-700"
+                        }`}
+                        title={tpl.name}
+                      >
+                        <span className="text-[9px] font-medium truncate">
+                          {shortTemplateName(tpl.name)}
                         </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
+                        {active ? (
+                          <span className="text-[8px] text-violet-300 shrink-0 ml-2">
+                            selecionado
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            <button
-              type="button"
-              disabled={!selectedTemplate}
-              onClick={() =>
-                selectedTemplate && insertStudioTemplate(selectedTemplate)
-              }
-              className="w-full rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2 py-2 text-[9px] font-bold text-emerald-100 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-              title={
-                selectedTemplate
-                  ? `Adicionar "${selectedTemplate.name}" em ${formatShort(playhead)}`
-                  : "Selecione um template"
-              }
-            >
-              Adicionar na timeline · {formatShort(playhead)}
-            </button>
-          </>
-        ) : (
-          <p className="rounded-lg border border-zinc-800 bg-zinc-950/70 px-2 py-1.5 text-[9px] leading-relaxed text-zinc-500">
-            Nenhum template aprovado com TSX neste nicho. No Template Studio,
-            abra o draft, confirme o codigo Remotion e clique em Aprovar.
-          </p>
-        )}
-      </div>
+              <button
+                type="button"
+                disabled={!selectedTemplate}
+                onClick={() =>
+                  selectedTemplate && insertStudioTemplate(selectedTemplate)
+                }
+                className="w-full rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2 py-2 text-[9px] font-bold text-emerald-100 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                title={
+                  selectedTemplate
+                    ? `Adicionar "${selectedTemplate.name}" em ${formatShort(playhead)}`
+                    : "Selecione um template"
+                }
+              >
+                Adicionar na timeline · {formatShort(playhead)}
+              </button>
+            </>
+          ) : (
+            <p className="rounded-lg border border-zinc-800 bg-zinc-950/70 px-2 py-1.5 text-[9px] leading-relaxed text-zinc-500">
+              Nenhum template aprovado com TSX neste nicho. Prefira a aba
+              Shotcraft (video-shotcraft) ou o Editor do Lumiera.
+            </p>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

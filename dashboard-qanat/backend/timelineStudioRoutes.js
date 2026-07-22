@@ -23,6 +23,7 @@ import {
 import {
   listNichePackCatalog,
   buildStudioCatalogMotionClip,
+  buildShotcraftOverlayClip,
   studioMotionClipToMotionScene,
 } from "./timelineStudioNichePacks.js";
 import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
@@ -395,27 +396,50 @@ export function registerTimelineStudioRoutes(
   app.post("/api/timeline-studio/template/insert", (req, res) => {
     try {
       const projDir = getProjectDir(req);
-      const { templateId, playhead, props, label } = req.body || {};
+      const { templateId, playhead, props, label, duration } = req.body || {};
       if (!templateId) {
         return res.status(400).json({ error: "templateId é obrigatório" });
       }
       const safeProps = props && typeof props === "object" ? props : {};
       const studioSource = String(safeProps.studio_source_code || "").trim();
-      if (!studioSource) {
+      const isShotcraft =
+        Boolean(safeProps.shotcraft) ||
+        Boolean(safeProps.shotcraft_template_id) ||
+        Boolean(safeProps.motion_shot?.templateId) ||
+        String(safeProps.media_mode || "") === "shotcraft";
+
+      let clip = null;
+      if (studioSource) {
+        clip = buildStudioCatalogMotionClip({
+          templateId: String(templateId),
+          playhead: Number(playhead) || 0,
+          props: safeProps,
+          label: label ? String(label) : undefined,
+          duration,
+        });
+      } else if (isShotcraft) {
+        clip = buildShotcraftOverlayClip({
+          templateId: String(
+            safeProps.shotcraft_template_id ||
+              safeProps.motion_shot?.templateId ||
+              templateId
+          ),
+          playhead: Number(playhead) || 0,
+          props: safeProps,
+          label: label ? String(label) : undefined,
+          duration,
+          palette: safeProps.palette,
+        });
+      } else {
         return res.status(400).json({
           error:
-            "Templates legados (InfoBar, CRONOLOGIA, etc.) foram removidos. Use um template do Template Studio com TSX salvo.",
+            "Informe studio_source_code (Template Studio) ou shotcraft/motion_shot (Editor do Lumiera / video-shotcraft).",
         });
       }
-      let clip = buildStudioCatalogMotionClip({
-        templateId: String(templateId),
-        playhead: Number(playhead) || 0,
-        props: safeProps,
-        label: label ? String(label) : undefined,
-      });
       if (!clip) {
         return res.status(400).json({
-          error: "Template Studio invalido (sem sourceCode ou templateId).",
+          error:
+            "Template invalido (sem sourceCode, shotcraft id ou templateId).",
         });
       }
 

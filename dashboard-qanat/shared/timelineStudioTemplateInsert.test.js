@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildStudioCatalogMotionClip,
+  buildShotcraftOverlayClip,
   studioMotionClipToMotionScene,
 } from "../backend/timelineStudioNichePacks.js";
 
@@ -24,6 +25,26 @@ describe("timeline studio template insert", () => {
     assert.ok(clip);
     assert.equal(clip.props.manual_studio_insert, true);
     assert.equal(clip.props.studio_user_locked, true);
+    assert.equal(clip.trackId, "motion");
+  });
+
+  it("buildShotcraftOverlayClip cria motion_shot sem TSX do Studio", () => {
+    const clip = buildShotcraftOverlayClip({
+      templateId: "odometer-digit-roll",
+      playhead: 12,
+      duration: 3.5,
+      props: {
+        shot_props: { value: 300, unit: "m", label: "Altura" },
+        palette: { primary: "#F5A623", accent: "#4A9EFF" },
+      },
+      label: "Odometer",
+    });
+    assert.ok(clip);
+    assert.equal(clip.props.shotcraft, true);
+    assert.equal(clip.props.motion_shot.templateId, "odometer-digit-roll");
+    assert.equal(clip.props.motion_shot.props.value, 300);
+    assert.equal(clip.duration, 3.5);
+    assert.equal(clip.start, 12);
     assert.equal(clip.trackId, "motion");
   });
 

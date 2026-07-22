@@ -205,6 +205,79 @@ export function buildStudioCatalogMotionClip({
   };
 }
 
+/**
+ * Overlay Shotcraft (video-shotcraft) na trilha motion — sem TSX do Template Studio.
+ * Render: prepareRemotionRender lê props.motion_shot → ShotcraftLayer.
+ */
+export function buildShotcraftOverlayClip({
+  templateId,
+  playhead = 0,
+  props = {},
+  duration,
+  label,
+  palette,
+}) {
+  const tpl = String(
+    templateId ||
+      props?.shotcraft_template_id ||
+      props?.motion_shot?.templateId ||
+      ""
+  ).trim();
+  if (!tpl) return null;
+
+  const dur =
+    Number(duration) > 0
+      ? Number(duration)
+      : Number(props?.duration_seconds) > 0
+        ? Number(props.duration_seconds)
+        : Number(props?.motion_shot?.duration_seconds) > 0
+          ? Number(props.motion_shot.duration_seconds)
+          : 4;
+
+  const motion_shot = {
+    templateId: tpl,
+    style: props?.style || props?.motion_shot?.style,
+    props: {
+      ...(props?.motion_shot?.props || {}),
+      ...(props?.shot_props && typeof props.shot_props === "object"
+        ? props.shot_props
+        : {}),
+    },
+    palette:
+      props?.palette || palette || props?.motion_shot?.palette || undefined,
+    start_seconds:
+      props?.start_seconds != null
+        ? Number(props.start_seconds)
+        : props?.motion_shot?.start_seconds != null
+          ? Number(props.motion_shot.start_seconds)
+          : 0,
+    duration_seconds: dur,
+  };
+
+  return {
+    id: `motion-shotcraft-${Date.now()}`,
+    trackId: MOTION_TRACK_ID,
+    start: Math.max(0, Number(playhead) || 0),
+    duration: dur,
+    label: label || String(props?.template_name || tpl),
+    templateId: tpl,
+    props: {
+      ...props,
+      motion_shot,
+      shotcraft: true,
+      shotcraft_template_id: tpl,
+      motion_scene: true,
+      media_mode: "remotion",
+      overlayType: tpl,
+      manual_studio_insert: true,
+      studio_user_locked: true,
+    },
+    color: "#F5A623",
+    motionScene: true,
+    motionScenePrimary: true,
+  };
+}
+
 /** Converte clip motion da timeline em motion_scene do storyboard. */
 export function studioMotionClipToMotionScene(clip = {}) {
   const props = clip.props || {};
