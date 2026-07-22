@@ -54,3 +54,13 @@ test("stock_query CGI continua rejeitado", () => {
   );
   assert.equal(q, "industrial machinery construction site");
 });
+
+test("extrai busca limpa em inglês para cena de técnicos mecânicos sem cognatos falsos (vestidos)", () => {
+  const q = resolveStockSearchQuery({
+    narration_text: "Nossos técnicos, verdadeiros mestres da mecânica, são os guardiões dessas máquinas.",
+    prompt: "A hyperrealistic 3D CGI render, Unreal Engine / Octane quality, physically based materials, global illumination, ray-traced reflections, clean geometry, medium shot of two skilled technicians in orange safety coveralls and hard hats, working diligently on a large, complex machinery component inside an industrial setting",
+  });
+  assert.ok(!q.includes("vestidos"), `Query "${q}" não deve conter a palavra "vestidos"`);
+  assert.ok(!q.includes("Foco"), `Query "${q}" não deve conter enquadramento "Foco"`);
+  assert.ok(q.toLowerCase().includes("technicians") || q.toLowerCase().includes("machinery") || q.toLowerCase().includes("industrial"), `Query "${q}" deve conter termos em inglês do assunto`);
+});

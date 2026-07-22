@@ -120,20 +120,6 @@ const STOP_WORDS = new Set([
   "representing",
   "visually",
   "within",
-  "onto",
-  "against",
-  "across",
-  "between",
-  "through",
-  "toward",
-  "around",
-  "above",
-  "below",
-  "behind",
-  "before",
-  "after",
-  "during",
-  "without",
   "source",
   "media",
   "overlay",
@@ -148,14 +134,6 @@ const STOP_WORDS = new Set([
   "tracking",
   "dolly",
   "handheld",
-  "push",
-  "pull",
-  "orbit",
-  "whip",
-  "pan",
-  "zoom",
-  "crane",
-  "timelapse",
   "footage",
   "clip",
   "frame",
@@ -205,6 +183,17 @@ const STOP_WORDS = new Set([
   "her",
   "our",
   "your",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "wearing",
+  "dressed",
 ]);
 
 const PT_STOP = new Set([
@@ -215,18 +204,12 @@ const PT_STOP = new Set([
   "porque",
   "pelo",
   "pela",
-  "pelos",
-  "pelas",
   "uma",
-  "umas",
-  "uns",
   "este",
   "esta",
   "esse",
   "essa",
   "isso",
-  "aquele",
-  "aquela",
   "muito",
   "mais",
   "menos",
@@ -265,6 +248,29 @@ const PT_STOP = new Set([
   "em",
   "no",
   "na",
+  "vestidos",
+  "vestido",
+  "vestimentas",
+  "vestindo",
+  "nossos",
+  "nossa",
+  "nossos",
+  "nossas",
+  "verdadeiros",
+  "verdadeiro",
+  "guardiões",
+  "guardiao",
+  "dois",
+  "três",
+  "tres",
+  "quatro",
+  "cinco",
+  "foco",
+  "medio",
+  "médio",
+  "plano",
+  "cena",
+  "etapa",
 ]);
 
 /** Adjetivos de estilo que sozinhos não ajudam stock; em compostos (residential trash) mantemos se há substantivo */
@@ -743,7 +749,20 @@ export function resolveStockSearchQuery(vp = {}, options = {}) {
     }
   }
 
-  // 1) Narração + descrição do que a cena mostra
+  // 1) Se houver prompt visual (em inglês), prioriza os termos de assunto em inglês para Pexels/Pixabay
+  if (generationPrompt) {
+    const fromPrompt = extractStockQueryFromPrompt(generationPrompt);
+    if (
+      fromPrompt.length >= 6 &&
+      !looksLikeProjectTitle(fromPrompt, rejectTitles) &&
+      !isGenericQuery(fromPrompt) &&
+      !isCgiOrRenderJunk(fromPrompt)
+    ) {
+      return fromPrompt;
+    }
+  }
+
+  // 2) Narração + descrição do que a cena mostra
   if (sceneMeaning) {
     const fromMeaning = extractStockQueryFromNarration(sceneMeaning);
     if (

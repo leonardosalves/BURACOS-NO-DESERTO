@@ -175,6 +175,17 @@ const STOP_WORDS = new Set([
   "her",
   "our",
   "your",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "wearing",
+  "dressed",
 ]);
 
 const PT_STOP = new Set([
@@ -221,6 +232,29 @@ const PT_STOP = new Set([
   "em",
   "no",
   "na",
+  "vestidos",
+  "vestido",
+  "vestimentas",
+  "vestindo",
+  "nossos",
+  "nossa",
+  "nossos",
+  "nossas",
+  "verdadeiros",
+  "verdadeiro",
+  "guardiões",
+  "guardiao",
+  "dois",
+  "três",
+  "tres",
+  "quatro",
+  "cinco",
+  "foco",
+  "medio",
+  "médio",
+  "plano",
+  "cena",
+  "etapa",
 ]);
 
 const STYLE_ADJECTIVES = new Set([
@@ -689,7 +723,20 @@ export function resolveStockSearchQuery(
     }
   }
 
-  // 1) Narração + do que a cena trata (visual_description, overlay…)
+  // 1) Se houver prompt visual (em inglês), prioriza os termos de assunto em inglês para Pexels/Pixabay
+  if (generationPrompt) {
+    const fromPrompt = extractStockQueryFromPrompt(generationPrompt);
+    if (
+      fromPrompt.length >= 6 &&
+      !looksLikeProjectTitle(fromPrompt, rejectTitles) &&
+      !isGenericQuery(fromPrompt) &&
+      !isCgiOrRenderJunk(fromPrompt)
+    ) {
+      return fromPrompt;
+    }
+  }
+
+  // 2) Narração + do que a cena trata (visual_description, overlay…)
   if (sceneMeaning) {
     const fromMeaning = extractStockQueryFromNarration(sceneMeaning);
     if (
