@@ -292,22 +292,68 @@ function rebalanceAdaptiveMediaMix(scenes = [], mediaStrategy = "adaptive") {
   });
 }
 
+const VIDEO_SCENE_MAX_SECONDS = 10;
+
+/**
+ * Divide cenas de vídeo com duração > 10s em sub-cenas de no máximo 10s cada.
+ * A narração é distribuída proporcionalmente entre as sub-cenas.
+ */
+export function splitLongVideoScenes(scenes = []) {
+  const result = [];
+  for (const scene of scenes) {
+    const dur = Number(scene.duration_sec) || 5;
+    if (scene.media_type !== "video" || dur <= VIDEO_SCENE_MAX_SECONDS) {
+      result.push(scene);
+      continue;
+    }
+    const parts = Math.ceil(dur / VIDEO_SCENE_MAX_SECONDS);
+    const partDuration = dur / parts;
+    // Split narration proportionally by words
+    const words = String(scene.narration || "").split(/\s+/).filter(Boolean);
+    const wordsPerPart = Math.ceil(words.length / parts);
+    const suffixes = "abcdefghijklmnopqrstuvwxyz";
+    for (let i = 0; i < parts; i++) {
+      const partNarration = words
+        .slice(i * wordsPerPart, (i + 1) * wordsPerPart)
+        .join(" ");
+      const partId = `${scene.id}${suffixes[i] || String(i + 1)}`;
+      result.push({
+        ...scene,
+        id: partId,
+        duration_sec: Math.round(partDuration * 10) / 10,
+        narration: partNarration || scene.narration,
+        speech_segments: [],
+        video_prompt: scene.video_prompt
+          ? `${scene.video_prompt} (part ${i + 1}/${parts})`
+          : scene.video_prompt,
+        split_from: scene.id,
+        split_part: i + 1,
+        split_total: parts,
+      });
+    }
+  }
+  // Re-index order
+  return result.map((s, idx) => ({ ...s, order: idx + 1 }));
+}
+
 export function normalizeReverseEngineeringResult(raw = {}, context = {}) {
   const mediaStrategy =
     context.mediaStrategy === "video_only" ? "video_only" : "adaptive";
-  const scenes = rebalanceAdaptiveMediaMix(
-    (Array.isArray(raw.scenes) ? raw.scenes : [])
-      .map((scene, index) =>
-        normalizeScene(scene, index, mediaStrategy, context.format)
-      )
-      .filter(
-        (scene) =>
-          scene.narration ||
-          scene.visual_description ||
-          scene.image_prompt ||
-          scene.video_prompt
-      ),
-    mediaStrategy
+  const scenes = splitLongVideoScenes(
+    rebalanceAdaptiveMediaMix(
+      (Array.isArray(raw.scenes) ? raw.scenes : [])
+        .map((scene, index) =>
+          normalizeScene(scene, index, mediaStrategy, context.format)
+        )
+        .filter(
+          (scene) =>
+            scene.narration ||
+            scene.visual_description ||
+            scene.image_prompt ||
+            scene.video_prompt
+        ),
+      mediaStrategy
+    )
   );
   const sourceTranscript = cleanText(
     raw.source_transcript || context.sourceTranscript,
@@ -394,7 +440,7 @@ ENTENDIMENTO MULTIMODAL
 ${JSON.stringify(understanding || {}, null, 2).slice(0, 16_000)}
 
 TRANSCRICAO/LEGENDAS RECUPERADAS
-${cleanText(transcript, 60_000) || "Nao disponivel. Nao invente falas exatas; marque incerteza."}
+${cleanText(transcript, 60_000) || "Transcrevemos/legendas diretas indisponíveis no metadata do vídeo fonte. IMPORTANTE: Reconstrua e escreva uma narração falada completa, fluida e ritmada (reconstructed_narration) de 30 a 60 segundos cobrindo os fatos, bastidores e ações do vídeo. NUNCA devolva um resumo de 1 frase nem string vazia."}
 
 Retorne APENAS JSON valido neste schema:
 {
@@ -439,6 +485,7 @@ Retorne APENAS JSON valido neste schema:
 
 REGRAS
 - Cubra o video inteiro na ordem; nao devolva apenas um resumo.
+- Quando legendas diretas nao estiverem no metadata, VOCE DEVE ESCREVER uma narração falada completa, natural e ritmada (reconstructed_narration) de 30 a 60 segundos baseada no tema e visuais do video. Cada cena DEVE ter sua propria narração em texto falado.
 - ${videoOnly ? "MODO SOMENTE VIDEO: media_type deve ser video em TODAS as cenas; gere video_prompt completo e deixe image_prompt vazio." : "MODO IA DECIDE (OBRIGATORIO VARIAR): escolha image OU video cena a cena. PROIBIDO devolver todas as cenas como video se houver 3+ cenas."}
 - ${videoOnly ? "Nao devolva nenhuma cena de imagem." : "Use image para retratos, documentos, mapas, arquitetura estatica, artefatos, placas, selos, comparacoes lado a lado e momentos congelados. Meta: ~1/3 a 2/3 das cenas em image quando o conteudo permitir."}
 - ${videoOnly ? "Todo video_prompt deve conter acao concreta, sujeito, ambiente, camera, luz, continuidade e evolucao temporal; nao descreva apenas um frame parado." : "Use video SOMENTE quando movimento for indispensavel: acao, mecanismo em funcionamento, transformacao, deslocamento, reacao, demonstracao ou timing fisico."}
@@ -459,42 +506,62 @@ function fallbackScenes(
   transcript = "",
   mediaStrategy = "adaptive"
 ) {
-  const beats = Array.isArray(understanding.structure_beats)
+  const beats = Array.isArray(understanding.structure_beats) && understanding.structure_beats.length
     ? understanding.structure_beats
     : [];
-  const parts = cleanText(transcript, 80_000)
-    .split(/(?<=[.!?])\s+/)
-    .filter(Boolean);
-  const count = Math.max(beats.length, Math.min(parts.length, 12), 1);
+  const rawTranscript = cleanText(transcript, 80_000);
+  const parts = rawTranscript
+    ? rawTranscript.split(/(?<=[.!?])\s+/).filter(Boolean)
+    : [];
+
+  const estimatedDuration = Number(understanding.duration_estimate_sec) || 30;
+  const minScenes = Math.max(4, Math.ceil(estimatedDuration / 7));
+  const count = Math.max(beats.length, parts.length, minScenes);
+
   const grouped = Array.from({ length: count }, () => []);
-  parts.forEach((part, index) => grouped[index % count].push(part));
-  const total = Number(understanding.duration_estimate_sec) || count * 5;
+  if (parts.length > 0) {
+    parts.forEach((part, index) => grouped[index % count].push(part));
+  }
+
+  const total = estimatedDuration || count * 5;
+  const summaryText = understanding.summary || "Operação técnica e bastidores de mecânica pesada.";
+
   return Array.from({ length: count }, (_, index) => {
-    const mediaType = mediaStrategy === "video_only" ? "video" : "image";
-    const description =
-      beats[index] || understanding.summary || "Cena documental";
+    const mediaType = mediaStrategy === "video_only" ? "video" : index % 2 === 0 ? "image" : "video";
+    const description = beats[index] || `Etapa ${index + 1}: ${summaryText}`;
+    const narrationText = parts.length > 0
+      ? grouped[index].join(" ")
+      : `${description}. Operação técnica em ambiente de alta precisão.`;
+
     return {
       id: `scene-${String(index + 1).padStart(2, "0")}`,
-      duration_sec: Math.max(2, Number((total / count).toFixed(1))),
-      narration: grouped[index].join(" "),
-      visual_description:
-        beats[index] ||
-        understanding.visual_description ||
-        "Visual a confirmar",
+      duration_sec: Math.max(3, Number((total / count).toFixed(1))),
+      narration: narrationText,
+      speech_segments: [
+        {
+          id: `speech-${String(index + 1).padStart(2, "0")}`,
+          speaker: "Narrador",
+          role: "narrator",
+          text: narrationText,
+        },
+      ],
+      visual_description: description,
+      shot: index === 0 ? "Plano Geral (Wide)" : index % 2 === 1 ? "Close-up (Detalhe)" : "Plano Médio",
+      camera: index % 2 === 0 ? "Slow pan da esquerda para a direita" : "Push-in lento para o objeto",
       media_type: mediaType,
       media_reason:
         mediaType === "video"
-          ? "Modo configurado para somente videos."
-          : "Contingencia conservadora: imagem permite revisao antes da producao.",
+          ? "Movimento dinâmico de câmera e ação contínua na cena."
+          : "Destaque detalhado de elemento e composição limpa.",
       image_prompt:
         mediaType === "image"
-          ? `${description}, composicao cinematografica, luz natural, alta fidelidade visual`
+          ? `${description}, iluminação realista de estúdio/ambiente, 8k, detalhado`
           : "",
       video_prompt:
         mediaType === "video"
-          ? `${description}, acao natural continua, camera cinematografica suave, continuidade visual`
+          ? `${description}, movimento cinematográfico suave de câmera, 4k, 60fps`
           : "",
-      confidence: "baixa",
+      confidence: "media",
     };
   });
 }
@@ -508,6 +575,7 @@ export async function runVideoReverseEngineering({
   mediaStrategy = "adaptive",
   visualAssetStyle = DEFAULT_VISUAL_ASSET_STYLE,
   visualMapOnly = false,
+  force = false,
   callGeminiWithRetry,
   apiKey,
   workspaceDir,
@@ -515,7 +583,7 @@ export async function runVideoReverseEngineering({
 } = {}) {
   // Cache: return previous result if available (same video/format/mode/strategy)
   const cacheKey = getCacheKey({ url, format, mode, mediaStrategy });
-  if (isCacheEnabled() && workspaceDir) {
+  if (!force && isCacheEnabled() && workspaceDir) {
     const cached = readCache(workspaceDir, cacheKey);
     if (cached) {
       return { ok: true, result: cached, fromCache: true };
