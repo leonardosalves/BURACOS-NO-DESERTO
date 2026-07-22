@@ -372,6 +372,40 @@ const RVE_INSPIRED_TEMPLATES = [
     default_props: { title: "" },
     duration_seconds: 2.5,
   },
+  {
+    template_id: "area-chart",
+    name: "Area Chart",
+    category: "dados",
+    energy: "medium",
+    default_props: {
+      title: "Volume",
+      items: [
+        { label: "1", value: 15 },
+        { label: "2", value: 40 },
+        { label: "3", value: 32 },
+        { label: "4", value: 68 },
+        { label: "5", value: 52 },
+        { label: "6", value: 80 },
+      ],
+    },
+    duration_seconds: 4,
+  },
+  {
+    template_id: "pie-chart",
+    name: "Pie Chart",
+    category: "dados",
+    energy: "medium",
+    default_props: {
+      title: "Distribuição",
+      items: [
+        { label: "A", value: 30 },
+        { label: "B", value: 25 },
+        { label: "C", value: 25 },
+        { label: "D", value: 20 },
+      ],
+    },
+    duration_seconds: 4,
+  },
 ];
 
 /**

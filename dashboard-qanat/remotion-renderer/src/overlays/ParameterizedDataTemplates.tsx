@@ -1343,6 +1343,233 @@ export const ParameterizedPixelReveal: React.FC<PixelRevealProps> = ({
 };
 
 /* ═══════════════════════════════════════════════════════════
+   AREA CHART — filled line path
+   Props: items [{label, value}], title
+   ═══════════════════════════════════════════════════════════ */
+
+export type AreaChartProps = {
+  items?: Array<{ label: string; value: number }>;
+  title?: string;
+};
+
+export const ParameterizedAreaChart: React.FC<AreaChartProps> = ({
+  items = [
+    { label: "1", value: 15 },
+    { label: "2", value: 40 },
+    { label: "3", value: 32 },
+    { label: "4", value: 68 },
+    { label: "5", value: 52 },
+    { label: "6", value: 80 },
+  ],
+  title = "",
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const list = items.slice(0, 12);
+  const maxVal = Math.max(...list.map((i) => i.value), 1);
+  const w = 1200;
+  const h = 420;
+  const pad = 40;
+  const progress = spring({
+    frame,
+    fps,
+    config: { damping: 18, stiffness: 55 },
+  });
+
+  const points = list.map((item, i) => {
+    const x = pad + (i / Math.max(list.length - 1, 1)) * (w - pad * 2);
+    const y = h - pad - (item.value / maxVal) * (h - pad * 2) * progress;
+    return { x, y, label: item.label };
+  });
+
+  const lineD = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+    .join(" ");
+  const areaD = `${lineD} L ${points[points.length - 1]?.x || pad} ${h - pad} L ${pad} ${h - pad} Z`;
+
+  return (
+    <div
+      style={{
+        width: 1920,
+        height: 1080,
+        background: P.bg,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "Inter, system-ui, sans-serif",
+        padding: 60,
+        boxSizing: "border-box",
+      }}
+    >
+      {title ? (
+        <div
+          style={{
+            color: P.text,
+            fontSize: 40,
+            fontWeight: 800,
+            marginBottom: 32,
+          }}
+        >
+          {title}
+        </div>
+      ) : null}
+      <svg width={w} height={h + 36} viewBox={`0 0 ${w} ${h + 36}`}>
+        <defs>
+          <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={P.primary} stopOpacity={0.55} />
+            <stop offset="100%" stopColor={P.primary} stopOpacity={0.05} />
+          </linearGradient>
+        </defs>
+        <path d={areaD} fill="url(#areaFill)" />
+        <path
+          d={lineD}
+          fill="none"
+          stroke={P.accent}
+          strokeWidth={4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {points.map((p, i) => (
+          <text
+            key={i}
+            x={p.x}
+            y={h + 20}
+            textAnchor="middle"
+            fill={P.text}
+            fontSize={16}
+            fontWeight={600}
+          >
+            {p.label}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
+   PIE CHART — classic wedges
+   Props: items [{label, value}], title
+   ═══════════════════════════════════════════════════════════ */
+
+export type PieChartProps = {
+  items?: Array<{ label: string; value: number }>;
+  title?: string;
+};
+
+export const ParameterizedPieChart: React.FC<PieChartProps> = ({
+  items = [
+    { label: "A", value: 30 },
+    { label: "B", value: 25 },
+    { label: "C", value: 25 },
+    { label: "D", value: 20 },
+  ],
+  title = "",
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const progress = spring({
+    frame,
+    fps,
+    config: { damping: 16, stiffness: 70 },
+  });
+  const list = items.slice(0, 8);
+  const total =
+    list.reduce((s, i) => s + Math.max(0, Number(i.value) || 0), 0) || 1;
+  const colors = [
+    P.primary,
+    P.accent,
+    "#00E5FF",
+    "#FF7043",
+    "#81C784",
+    "#B388FF",
+    "#FFD54F",
+    "#EF5350",
+  ];
+  const cx = 160;
+  const cy = 160;
+  const r = 130;
+
+  let angle = -Math.PI / 2;
+  const wedges = list.map((item, i) => {
+    const frac = Math.max(0, Number(item.value) || 0) / total;
+    const sweep = frac * Math.PI * 2 * progress;
+    const x1 = cx + r * Math.cos(angle);
+    const y1 = cy + r * Math.sin(angle);
+    const end = angle + sweep;
+    const x2 = cx + r * Math.cos(end);
+    const y2 = cy + r * Math.sin(end);
+    const large = sweep > Math.PI ? 1 : 0;
+    const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+    angle = end;
+    return {
+      d,
+      color: colors[i % colors.length],
+      label: item.label,
+      value: item.value,
+    };
+  });
+
+  return (
+    <div
+      style={{
+        width: 1920,
+        height: 1080,
+        background: P.bg,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "Inter, system-ui, sans-serif",
+        gap: 36,
+      }}
+    >
+      {title ? (
+        <div style={{ color: P.text, fontSize: 40, fontWeight: 800 }}>
+          {title}
+        </div>
+      ) : null}
+      <div style={{ display: "flex", alignItems: "center", gap: 72 }}>
+        <svg width={320} height={320} viewBox="0 0 320 320">
+          {wedges.map((w, i) => (
+            <path key={i} d={w.d} fill={w.color} />
+          ))}
+        </svg>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {list.map((item, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                color: P.text,
+                fontSize: 22,
+                fontWeight: 600,
+              }}
+            >
+              <div
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: 4,
+                  background: colors[i % colors.length],
+                }}
+              />
+              <span>
+                {item.label}{" "}
+                <span style={{ color: P.accent }}>{item.value}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
    Registry: maps template_id → parameterized component
    ═══════════════════════════════════════════════════════════ */
 
@@ -1367,6 +1594,8 @@ export const PARAMETERIZED_TEMPLATES: Record<
   "line-chart": ParameterizedLineChart,
   "donut-chart": ParameterizedDonutChart,
   "pixel-reveal": ParameterizedPixelReveal,
+  "area-chart": ParameterizedAreaChart,
+  "pie-chart": ParameterizedPieChart,
 };
 
 /** Templates that always use parameterized component (even without data props). */
@@ -1379,6 +1608,8 @@ export const ALWAYS_PARAMETERIZED = new Set([
   "line-chart",
   "donut-chart",
   "pixel-reveal",
+  "area-chart",
+  "pie-chart",
 ]);
 
 /** Check if a template has a parameterized version */
