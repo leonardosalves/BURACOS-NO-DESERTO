@@ -26,7 +26,8 @@ import {
   buildShotcraftOverlayClip,
   studioMotionClipToMotionScene,
 } from "./timelineStudioNichePacks.js";
-import { MOTION_TRACK_ID } from "../shared/motionSceneCatalog.js";
+import { getWorkflowApiKeys } from "./workflowTools.js";
+import { resolveStockSearchQuery } from "./stockSearchQuery.js";
 import {
   ensureMotionClipForProject,
   writeMotionClipSidecar,
@@ -43,6 +44,12 @@ import {
 import fs from "fs";
 import path from "path";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
+import {
+  ingestLumieraEditorAsset,
+  hydrateLumieraEditorFromTimelineStudio,
+  loadLumieraEditorProject,
+  saveLumieraEditorProject,
+} from "./lumieraEditorStorage.js";
 
 function readProjectConfig(projDir) {
   try {
@@ -76,6 +83,89 @@ export function registerTimelineStudioRoutes(
   app,
   { getProjectDir, getProjectContext, workspaceDir, callGemini }
 ) {
+  app.get("/api/lumiera-editor/project", (req, res) => {
+    try {
+      const projectDir = getProjectDir(req);
+      let project = loadLumieraEditorProject(projectDir);
+      let imported = 0;
+      if (project) {
+        const { studio } = loadTimelineStudio(projectDir);
+        const hydrated = hydrateLumieraEditorFromTimelineStudio(
+          project,
+          studio,
+          path.basename(projectDir)
+        );
+        project = hydrated.project;
+        imported = hydrated.imported;
+        if (hydrated.changed) project = saveLumieraEditorProject(projectDir, project);
+      }
+      res.json({ ok: true, project, imported });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/lumiera-editor/project", (req, res) => {
+    try {
+      const project = saveLumieraEditorProject(
+        getProjectDir(req),
+        req.body?.project || req.body
+      );
+      res.json({ ok: true, project });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/lumiera-editor/assets", async (req, res) => {
+    const projectDir = getProjectDir(req);
+    const projectName = path.basename(projectDir);
+    let originalName = String(req.headers["x-file-name"] || "asset.bin");
+    try { originalName = decodeURIComponent(originalName); } catch { /* already decoded */ }
+    const kind = String(req.headers["x-media-kind"] || "video");
+    if (!["video", "audio", "image", "lottie"].includes(kind)) {
+      return res.status(400).json({ error: "Tipo de midia invalido" });
+    }
+    const stagingDir = path.join(projectDir, ".lumiera-ingest");
+    fs.mkdirSync(stagingDir, { recursive: true });
+    const stagingPath = path.join(
+      stagingDir,
+      `${Date.now()}-${Math.random().toString(36).slice(2)}.upload`
+    );
+    const output = fs.createWriteStream(stagingPath, { flags: "wx" });
+    let bytes = 0;
+    let aborted = false;
+    req.on("data", (chunk) => {
+      bytes += chunk.length;
+      if (bytes > 4 * 1024 * 1024 * 1024) {
+        aborted = true;
+        req.destroy(new Error("Arquivo excede o limite de 4 GB"));
+      }
+    });
+    req.pipe(output);
+    output.on("error", (err) => {
+      if (!res.headersSent) res.status(500).json({ error: err.message });
+    });
+    output.on("finish", async () => {
+      if (aborted) return;
+      try {
+        const asset = await ingestLumieraEditorAsset({
+          projectDir,
+          projectName,
+          inputPath: stagingPath,
+          originalName,
+          mimeType: String(req.headers["content-type"] || "application/octet-stream"),
+          kind,
+          fps: Number(req.query?.fps) || 30,
+        });
+        res.json({ ok: true, asset });
+      } catch (err) {
+        try { if (fs.existsSync(stagingPath)) fs.unlinkSync(stagingPath); } catch { /* ignore */ }
+        res.status(500).json({ error: err.message });
+      }
+    });
+  });
+
   app.get("/api/timeline-studio", (req, res) => {
     try {
       const projectCtx = getProjectContext
@@ -353,6 +443,66 @@ export function registerTimelineStudioRoutes(
       });
 
       res.json({ ok: true, ...result });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/timeline-studio/stock/ai-context-query", async (req, res) => {
+    try {
+      const { narration_text, visual_description, prompt, video_theme } = req.body || {};
+      const contextText = [
+        narration_text ? `Narração da cena: "${narration_text}"` : "",
+        visual_description ? `Descrição visual: "${visual_description}"` : "",
+        prompt ? `Prompt visual: "${prompt}"` : "",
+        video_theme ? `Tema do vídeo: "${video_theme}"` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      if (!contextText.trim()) {
+        return res.status(400).json({ error: "Contexto da cena é necessário." });
+      }
+
+      const projDir = getProjectDir(req);
+      const keys = getWorkflowApiKeys ? getWorkflowApiKeys(workspaceDir, projDir) : {};
+      const apiKey = keys.gemini || process.env.GEMINI_API_KEY;
+
+      const systemPrompt = `Você é um curador de banco de imagens/vídeos (Pexels, Pixabay, Bing).
+Analise o CONTEXTO SEMÂNTICO COMPLETO da cena a seguir e deduza o assunto visual exato em INGLÊS (2 a 4 palavras) para buscar vídeos/fotos correspondentes.
+
+Exemplo 1:
+Narração: "Nossos técnicos, verdadeiros mestres da mecânica, reparam cada máquina."
+Resultado: industrial mechanics repairing heavy machinery
+
+Exemplo 2:
+Narração: "O navio partiu em direção ao horizonte sob sol forte."
+Resultado: cargo ship sailing ocean horizon
+
+Regras:
+1. Responda APENAS com a string de busca em inglês (2 a 4 palavras).
+2. NUNCA traduza palavra por palavra do português.
+3. NUNCA inclua palavras de enquadramento (close up, medium shot, foco, dois).
+4. Sem pontuação, sem aspas.`;
+
+      let query = "";
+      if (apiKey && typeof callGemini === "function") {
+        query = await callGemini(
+          apiKey,
+          `${systemPrompt}\n\nContexto da cena:\n${contextText}`,
+          { maxOutputTokens: 60, temperature: 0.2 }
+        );
+      }
+
+      query = String(query || "").replace(/["']/g, "").replace(/\n/g, " ").trim();
+      if (!query) {
+        query = resolveStockSearchQuery(
+          { narration_text, visual_description, prompt },
+          {}
+        );
+      }
+
+      res.json({ ok: true, ai_query: query });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

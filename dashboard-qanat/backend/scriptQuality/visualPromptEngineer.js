@@ -862,7 +862,7 @@ Retorne APENAS um JSON válido:
       "prompt": "prompt em inglês + cláusula ${aspect} + política de mídia limpa (IMAGE sem motion/drone/seconds; VIDEO com diegetic audio)",
       "diegetic_text_required": false,
       "editor_notes": "transição/SFX/pattern interrupt alinhados ao beat",
-      "stock_query": "3-6 palavras em INGLÊS = o que ESTA cena mostra no frame (ex: se o prompt é prédio residencial → 'multi-story apartment building Copenhagen'; se é caminhão de lixo → 'garbage truck emptying trash bins'). NUNCA repita o tema global do vídeo em cenas de detalhe. PROIBIDO genérico: building, nature, city, industrial, energy, architecture"
+      "stock_query": "3-5 palavras em INGLÊS = o CONTEXTO SEMÂNTICO COMPLETO do que ESTA cena mostra no frame para bancos de stock como Pexels/Pixabay (ex: se a narração fala de mestres da mecânica cuidando das máquinas → 'industrial mechanics repairing heavy machinery'). PROIBIDO tradução palavra por palavra de português. PROIBIDO termos de enquadramento (close up, medium shot, foco, dois). PROIBIDO genérico: building, nature, city, industrial, energy, architecture"
     }
   ],
   "checklist": {

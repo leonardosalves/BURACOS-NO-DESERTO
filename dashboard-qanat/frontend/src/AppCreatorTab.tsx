@@ -501,6 +501,12 @@ export function AppCreatorTab({
     mediaType: "video" | "image";
     blockKey: string;
     assetIdx: number;
+    sceneContext?: {
+      narration_text?: string;
+      visual_description?: string;
+      prompt?: string;
+      video_theme?: string;
+    };
   }>({ open: false, query: "", mediaType: "image", blockKey: "", assetIdx: 0 });
 
   // Fullscreen preview modal
@@ -3974,6 +3980,12 @@ export function AppCreatorTab({
                                                             mediaType: isVideo ? "video" : "image",
                                                             blockKey,
                                                             assetIdx,
+                                                            sceneContext: {
+                                                              narration_text: vp?.narration_text || vp?.narration_excerpt || "",
+                                                              visual_description: vp?.visual_description || "",
+                                                              prompt: vp?.prompt || "",
+                                                              video_theme: generatedScriptData?.strategy?.title_main || customTitle || "",
+                                                            },
                                                           })
                                                         }
                                                         className="flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-[9px] font-bold text-cyan-200 transition hover:border-cyan-400/50 hover:bg-cyan-500/15"
@@ -4252,6 +4264,7 @@ export function AppCreatorTab({
       mediaType={stockModal.mediaType}
       aspectRatio={config?.aspect_ratio === "9:16" || formatSelector === "SHORTS" ? "9:16" : "16:9"}
       projectName={activeProject}
+      sceneContext={stockModal.sceneContext}
       onSelect={(item: StockItem) => {
         // Find the absolute scene index from blockKey + assetIdx
         const prompts = generatedScriptData?.visual_prompts || [];

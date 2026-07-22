@@ -1195,7 +1195,7 @@ export function buildVisualPromptsJsonSchema() {
      "type": "imagem IA 2k" ou "vídeo IA (max 10s)",
      "prompt": "Prompt CINEMATOGRÁFICO em inglês: sujeito ESPECÍFICO + ação + ângulo de câmera + texturas + iluminação. Termine pedindo mídia limpa, sem texto editorial renderizado.",
      "editor_notes": "Ken Burns zoom in, dissolve, etc.",
-     "stock_query": "2-5 palavras em inglês: sujeito específico + ação (ex.: gannet plunge dive)"
+     "stock_query": "3-5 palavras em INGLÊS baseadas no CONTEXTO SEMÂNTICO COMPLETO da cena para busca no Pexels/Pixabay (ex.: 'industrial mechanics repairing heavy machinery'). PROIBIDO tradução palavra por palavra do português."
    }
 ]`;
 }
