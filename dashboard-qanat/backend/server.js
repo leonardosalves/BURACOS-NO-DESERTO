@@ -12494,15 +12494,17 @@ function getOmniRouteModelChain(
 
 async function callOmniRouteWithRetry(
   promptOrBody,
-  {
+  options = {}
+) {
+  const {
     maxRetries = 3,
     bodyOverride = null,
     projectDir = WORKSPACE_DIR,
     temperature = null,
     models = null,
     maxTokens = null,
-  } = {}
-) {
+    timeoutMs = null,
+  } = options || {};
   const apiKey = getOmniRouteApiKey(projectDir);
   const baseUrl = getOmniRouteBaseUrl(projectDir).replace(/\/+$/, "");
   const messages = convertGeminiToOpenRouterMessages(
@@ -13234,7 +13236,9 @@ async function callLocalLlmWithRetry(
 async function callGeminiWithRetry(
   apiKey,
   promptOrBody,
-  {
+  options = {}
+) {
+  const {
     maxRetries = 4,
     models = null,
     bodyOverride = null,
@@ -13245,8 +13249,8 @@ async function callGeminiWithRetry(
     activityDetail = null,
     jobId = null,
     maxTokens = null,
-  } = {}
-) {
+    timeoutMs = null,
+  } = options || {};
   const projDir = projectDir || global.lastActiveProjectDir || WORKSPACE_DIR;
   const provider = forceProvider || getAiProvider(projDir);
 
