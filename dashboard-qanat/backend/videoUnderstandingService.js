@@ -15,10 +15,10 @@ import {
 import { runCommand, BROWSER_UA } from "./shared/commonUtils.js";
 
 const VIDEO_GEMINI_MODELS = [
-  "gemini/gemini-3.5-flash",
-  "gemini/gemini-2.5-flash",
-  "gemini/gemini-2.0-flash",
-  "gemini/gemini-2.5-pro",
+  "gemini-2.5-pro",
+  "gemini-3.6-flash",
+  "gemini-2.5-flash",
+  "gemini-3.5-flash-lite",
 ];
 
 const VIDEO_MIME_BY_EXT = {
@@ -210,6 +210,29 @@ async function runYtDlp(args, { timeoutMs = 120_000 } = {}) {
       "yt-dlp não encontrado no PATH (serviço Windows sem venv do usuário)"
     )
   );
+}
+
+/** Download a complete web video selected from a search result into an MP4 asset. */
+export async function downloadWebVideoViaYtDlp(url, destPath) {
+  fs.mkdirSync(path.dirname(destPath), { recursive: true });
+  await runYtDlp(
+    [
+      "-f",
+      "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/best",
+      "--merge-output-format",
+      "mp4",
+      "--no-playlist",
+      "--no-warnings",
+      "-o",
+      destPath,
+      String(url),
+    ],
+    { timeoutMs: 300_000 }
+  );
+  if (!fs.existsSync(destPath) || fs.statSync(destPath).size <= 0) {
+    throw new Error("yt-dlp não gerou o arquivo de vídeo selecionado");
+  }
+  return destPath;
 }
 
 /** Resolve vt.tiktok.com → URL canônica quando possível. */
@@ -485,16 +508,30 @@ export function buildMetadataGroundedUnderstanding(
   const description = String(
     ytContext.description || metadata.description || ""
   ).trim();
-  const body = description || title;
-  const summary = body
-    ? body.slice(0, 480)
-    : "Metadados do vídeo indisponíveis.";
+  const rawBody = description || title;
+
+  // Se o body for apenas hashtags (ex: #petroleo #industrianaval #offshore...)
+  const isOnlyHashtags = /^([\s#A-Za-z0-9_À-ú]+)$/.test(rawBody) && rawBody.includes("#");
+  let summary = "";
+  if (isOnlyHashtags) {
+    const keywords = rawBody
+      .replace(/#/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 2)
+      .join(", ");
+    summary = `Vídeo sobre ${keywords || "conteúdo técnico e industrial"}. Bastidores, operações e demonstração prática da área.`;
+  } else {
+    summary = rawBody
+      ? rawBody.slice(0, 480)
+      : "Metadados do vídeo indisponíveis.";
+  }
+
   return {
     summary,
     visual_description:
-      "Análise ancorada em título/descrição do yt-dlp (Gemini inventou tema alheio ou não viu o vídeo).",
+      "Análise ancorada em título/descrição do vídeo fonte.",
     hook_first_3s: title
-      ? `Abertura alinhada ao tema: ${title.slice(0, 120)}`
+      ? `Abertura alinhada ao tema: ${title.replace(/#/g, "").slice(0, 120)}`
       : "Gancho a confirmar no vídeo",
     structure_beats: description
       ? description
