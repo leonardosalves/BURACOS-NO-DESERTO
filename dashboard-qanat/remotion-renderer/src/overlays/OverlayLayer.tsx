@@ -26,6 +26,7 @@ import { SocialPostCard, SocialPostCardProps } from "./SocialPostCard";
 import { GeoMapOverlay, GeoMapOverlayProps } from "./GeoMapOverlay";
 import { PictogramChart, PictogramChartProps } from "./PictogramChart";
 import { LocationIntro, LocationIntroProps } from "./LocationIntro";
+import { RoughNotationOverlay, RoughNotationOverlayProps } from "./RoughNotationOverlay";
 import { StudioTemplateOverlay } from "./StudioTemplateOverlay";
 import { safeCustomStyle } from "./overlayStyleUtils";
 import { repairOverlayPropsEncoding } from "../textEncoding";
@@ -53,6 +54,7 @@ export type OverlayType =
   | "geo-map"
   | "pictogram-chart"
   | "location-intro"
+  | "rough-notation"
   | "shotcraft"
   | "lottie-overlay"
   | "effect-overlay";
@@ -387,6 +389,10 @@ const OverlayComponent: React.FC<{
       const li = props as LocationIntroProps;
       if (!String(li.location || "").trim()) return null;
       return <LocationIntro {...li} />;
+    }
+    case "rough-notation": {
+      const rn = props as RoughNotationOverlayProps;
+      return <RoughNotationOverlay {...rn} />;
     }
     default:
       return null;
