@@ -501,6 +501,38 @@ REGRAS
 - O roteiro visual precisa ser concreto: sujeito, acao, ambiente, camera, luz, lente, movimento e transicao.`;
 }
 
+function buildSpokenNarrationLines(summaryText = "", count = 6) {
+  let clean = String(summaryText || "")
+    .replace(/^Vídeo sobre\s*/i, "")
+    .replace(/^Este vídeo apresenta\s*/i, "")
+    .replace(/^Análise ancorada em\s*/i, "")
+    .replace(/#/g, "")
+    .trim();
+
+  if (!clean || clean.length < 10) {
+    clean = "Operação técnica e bastidores de mecânica pesada e engenharia.";
+  }
+
+  const rawPhrases = clean.split(/[.!?]+/).map((s) => s.trim()).filter((s) => s.length > 5);
+  const spokenTemplates = [
+    (text) => `Nas operações de alta complexidade e engenharia, ${text.toLowerCase()}.`,
+    (text) => `Em ambientes de trabalho pesado, cada detalhe de ${text.toLowerCase()} exige precisão e rigor.`,
+    (text) => `Bastidores revelam como equipes especializadas lidam com procedimentos industriais e segurança.`,
+    (text) => `Equipamentos colossais e técnicas avançadas garantem a eficiência e a proteção das operações.`,
+    (text) => `No dia a dia da indústria, o planejamento minucioso evita acidentes e mantém o padrão de excelência.`,
+    (text) => `Com tecnologia de ponta e execução precisa, o resultado demonstra o poder da mecânica pesada.`,
+    (text) => `Acompanhar de perto esses processos mostra o impacto e o desafio constante da engenharia moderna.`
+  ];
+
+  const lines = [];
+  for (let i = 0; i < count; i++) {
+    const baseText = rawPhrases[i % rawPhrases.length] || clean;
+    const tpl = spokenTemplates[i % spokenTemplates.length];
+    lines.push(tpl(baseText));
+  }
+  return lines;
+}
+
 function fallbackScenes(
   understanding = {},
   transcript = "",
@@ -523,6 +555,8 @@ function fallbackScenes(
     parts.forEach((part, index) => grouped[index % count].push(part));
   }
 
+  const spokenLines = parts.length > 0 ? [] : buildSpokenNarrationLines(understanding.summary, count);
+
   const total = estimatedDuration || count * 5;
   const summaryText = understanding.summary || "Operação técnica e bastidores de mecânica pesada.";
 
@@ -531,7 +565,7 @@ function fallbackScenes(
     const description = beats[index] || `Etapa ${index + 1}: ${summaryText}`;
     const narrationText = parts.length > 0
       ? grouped[index].join(" ")
-      : `${description}. Operação técnica em ambiente de alta precisão.`;
+      : spokenLines[index] || `${description}. Operação técnica em ambiente de alta precisão.`;
 
     return {
       id: `scene-${String(index + 1).padStart(2, "0")}`,
@@ -803,24 +837,24 @@ export async function runVideoReverseEngineering({
   }
 
   if (!parsed) {
-    // Contingência: preferir transcript real do yt-dlp, nunca "uncertain"
-    const safeNarration =
-      cleanText(transcript, 80_000) ||
-      cleanText(understanding.summary, 6_000) ||
-      cleanText(metadata.title, 500);
+    // Contingência: preferir transcript real do yt-dlp, ou construir narração sintética falada
+    const safeNarration = cleanText(transcript, 80_000);
+    const scenesFallback = fallbackScenes(
+      understanding,
+      safeNarration,
+      mediaStrategy
+    );
+    const fullSpokenNarration = safeNarration || scenesFallback.map((s) => s.narration).filter(Boolean).join(" ");
+
     parsed = {
       title: metadata.title,
       hook: understanding.hook_first_3s,
       content_summary: understanding.summary,
-      source_transcript: transcript || safeNarration,
-      reconstructed_narration: safeNarration,
+      source_transcript: safeNarration || fullSpokenNarration,
+      reconstructed_narration: fullSpokenNarration,
       visual_language: understanding.visual_description,
       retention_mechanics: understanding.what_works_for_retention,
-      scenes: fallbackScenes(
-        understanding,
-        transcript || safeNarration,
-        mediaStrategy
-      ),
+      scenes: scenesFallback,
       warnings: [
         "Resultado de contingencia: o LLM nao devolveu JSON completo. Revise narração e cenas antes de produzir.",
         ...llmWarnings,
