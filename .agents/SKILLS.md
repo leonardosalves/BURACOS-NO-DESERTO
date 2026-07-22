@@ -55,6 +55,7 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/request-refactor-plan|request refactor plan]] — doc: [[skills/request-refactor-plan/SKILL]]
 - [[skills/resolving-merge-conflicts|resolving merge conflicts]] — doc: [[skills/resolving-merge-conflicts/SKILL]]
 - [[skills/scaffold-exercises|scaffold exercises]] — doc: [[skills/scaffold-exercises/SKILL]]
+- [[skills/seedance-2.0|seedance 2.0]] — doc: [[skills/seedance-2.0/SKILL]]
 - [[skills/setup-matt-pocock-skills|setup matt pocock skills]] — doc: [[skills/setup-matt-pocock-skills/SKILL]]
 - [[skills/setup-pre-commit|setup pre commit]] — doc: [[skills/setup-pre-commit/SKILL]]
 - [[skills/skill-creator|skill creator]] — doc: [[skills/skill-creator/SKILL]]
@@ -95,4 +96,4 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
 ## Por que vários arquivos SKILL?
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-22T20:39:36.590Z
+atualizado: 2026-07-22T20:46:28.450Z

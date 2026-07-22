@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/seedance-2.0|seedance 2.0]] · [[SKILLS]]
+
 ---
 name: seedance-2.0
 description: Diretrizes de direção de cena e engenharia visual Seedance 2.0 (Emily2040/seedance-2.0) para produção de roteiros e prompts visuais de alta fidelidade e cinematografia intencional.

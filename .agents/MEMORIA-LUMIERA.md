@@ -64,6 +64,7 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/request-refactor-plan|request refactor plan]]
 - [[skills/resolving-merge-conflicts|resolving merge conflicts]]
 - [[skills/scaffold-exercises|scaffold exercises]]
+- [[skills/seedance-2.0|seedance 2.0]]
 - [[skills/setup-matt-pocock-skills|setup matt pocock skills]] · [[skills/setup-matt-pocock-skills/REFERENCES|refs]]
 - [[skills/setup-pre-commit|setup pre commit]]
 - [[skills/skill-creator|skill creator]] · [[skills/skill-creator/REFERENCES|refs]]
@@ -157,4 +158,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-07-22T20:39:36.581Z
+atualizado: 2026-07-22T20:46:28.439Z
