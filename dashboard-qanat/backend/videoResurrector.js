@@ -608,6 +608,7 @@ REGRAS EXTRA (PRIORIDADE MÁXIMA):
 - PROIBIDO inventar tema que não aparece na descrição/roteiro acima.
 - Cada título deve mencionar pelo menos 1 âncora (nome, lugar, número ou fato específico do vídeo).
 - Priorize palavras-chave de busca + gancho de clique honesto.
+- Para vídeos Shorts (telas pequenas): coloque as palavras-chave mais importantes no início do título para que os espectadores em telas pequenas capturem a vibe imediatamente ("put your most important keywords at the start of your title so viewers immediately get the vibe on small screens").
 - Títulos genéricos como "3 top...", "As melhores...", "Tudo sobre..." sem especificidade serão rejeitados.
 - Para LONGO: inclua capítulos se houver timestamps; thumbnails A/B são só briefing (upload manual).`;
 }

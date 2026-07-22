@@ -632,6 +632,7 @@ export function buildTitleCraftRules(format = "LONG") {
     format === "SHORT"
       ? `
 FÓRMULAS QUE FUNCIONAM EM SHORTS (use 1 por título):
+- Palavras-chave no início: Coloque as palavras-chave mais importantes no início do título para que os espectadores em telas pequenas capturem a vibe imediatamente ("put your most important keywords at the start of your title so viewers immediately get the vibe on small screens")
 - Pergunta específica: "Por que [X] fez [Y]?"
 - Contraste: "[Coisa comum] era na verdade [twist]"
 - Número + consequência: "[Número] [unidade] e ninguém explica"
