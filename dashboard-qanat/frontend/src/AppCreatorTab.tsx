@@ -1,5 +1,5 @@
 import toast from "react-hot-toast";
-import React, { lazy, Suspense, useEffect, useRef } from "react";
+import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   BarChart3,
@@ -28,6 +28,7 @@ import { NarrationReviewPanel } from "./NarrationReviewPanel";
 import { NarrationChunksPanel } from "./NarrationChunksPanel";
 import { TtsVoiceStudioPanel } from "./TtsVoiceStudioPanel";
 import { AssetCleanupPanel } from "./AssetCleanupPanel";
+import { StockSearchModal, type StockItem } from "./StockSearchModal";
 import { warnLongListicleTitles } from "./listicleTitleUtils";
 import { CreatorProductionPlanPanel } from "./CreatorProductionPlanPanel";
 import { GeoVideoWizardPanel } from "./GeoVideoWizardPanel";
@@ -155,14 +156,18 @@ export type AppCreatorTabProps = {
   activeProject: string;
   applyMetadataToUpload: () => void | Promise<void>;
   applyWizardSessionPatch: (patch: any) => void;
-  bumpCreatorGenToken: () => string;
+  bumpCreatorGenToken: () => number;
   applyNarrationGenerationResult: (
     data: any,
     project: string,
-    token: string,
+    token: number,
     successMsg: string,
     toastId?: any
-  ) => void;
+  ) => boolean;
+  postAi: (
+    path: string,
+    init?: RequestInit
+  ) => Promise<{ ok: boolean; data: Record<string, any> }>;
   fetchProjects: () => Promise<void>;
   setActiveProject: (name: string) => void;
   config: ConfigData | null;
@@ -222,7 +227,7 @@ export type AppCreatorTabProps = {
   handleUpdateCreatorScene: (
     index: number,
     field: string,
-    value: string
+    value: any
   ) => void;
   handleUploadSceneAsset: (
     blockNum: number,
@@ -340,6 +345,7 @@ export function AppCreatorTab({
   applyWizardSessionPatch,
   bumpCreatorGenToken,
   applyNarrationGenerationResult,
+  postAi,
   fetchProjects,
   setActiveProject,
   config,
@@ -488,6 +494,24 @@ export function AppCreatorTab({
   const narrationDeliveryRef = useRef<HTMLDivElement>(null);
   const activeChannel = useActiveChannel();
 
+  // Stock search modal state
+  const [stockModal, setStockModal] = useState<{
+    open: boolean;
+    query: string;
+    mediaType: "video" | "image";
+    blockKey: string;
+    assetIdx: number;
+  }>({ open: false, query: "", mediaType: "image", blockKey: "", assetIdx: 0 });
+
+  // Fullscreen preview modal
+  const [previewAsset, setPreviewAsset] = useState<{
+    url: string;
+    type: "video" | "image";
+  } | null>(null);
+
+  // Right panel tab per scene
+  const [scenePanelTab, setScenePanelTab] = useState<Record<string, "prompt" | "asset">>({});
+
   useEffect(() => {
     if (activeChannel.niche && nicheInput !== activeChannel.niche) {
       setNicheInput(activeChannel.niche);
@@ -534,6 +558,10 @@ export function AppCreatorTab({
   const [expressGenerating, setExpressGenerating] = React.useState(false);
 
   const generateExpressShort = async () => {
+    if (!activeChannel.channelId) {
+      toast.error("Selecione um canal ativo antes de gerar o roteiro.");
+      return;
+    }
     if (!expressTheme.trim()) {
       toast.error("O tema do Short é obrigatório.");
       return;
@@ -542,8 +570,19 @@ export function AppCreatorTab({
       toast.error("O nicho do canal é obrigatório.");
       return;
     }
-    if (!creatorProjectName.trim()) {
+    const safeProjectName = creatorProjectName
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "_");
+    if (!safeProjectName) {
       toast.error("O nome do projeto é obrigatório.");
+      return;
+    }
+    if (!/[a-zA-Z0-9]/.test(safeProjectName)) {
+      toast.error("O nome do projeto deve conter pelo menos uma letra ou número.");
+      return;
+    }
+    if (safeProjectName.length > 80) {
+      toast.error("O nome do projeto deve ter no máximo 80 caracteres.");
       return;
     }
 
@@ -551,29 +590,39 @@ export function AppCreatorTab({
     const toastId = toast.loading("Gerando roteiro Express no Gemini...");
     const token = bumpCreatorGenToken();
     try {
-      const response = await fetch("/api/ai/creator/generate-express-short", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          theme: expressTheme.trim(),
-          niche: nicheInput.trim(),
-          tone: expressTone,
-          project: creatorProjectName.trim(),
-        }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error || "Falha ao gerar o roteiro express.");
+      const { ok, data } = await postAi(
+        "/api/ai/creator/generate-express-short",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            theme: expressTheme.trim(),
+            niche: nicheInput.trim(),
+            tone: expressTone,
+            project: safeProjectName,
+          }),
+        }
+      );
+      if (!ok || data.needs_browser) {
+        throw new Error(
+          data.error || data.details || "Falha ao gerar o roteiro express."
+        );
       }
-      applyNarrationGenerationResult(
+      if (String(data.narrative_script || "").trim().length < 20) {
+        throw new Error(
+          "A IA não retornou uma narração válida. Tente gerar novamente."
+        );
+      }
+      const applied = applyNarrationGenerationResult(
         data,
-        creatorProjectName.trim(),
+        safeProjectName,
         token,
         "Roteiro Express gerado com sucesso! Revise abaixo.",
         toastId
       );
+      if (!applied) return;
       await fetchProjects();
-      setActiveProject(creatorProjectName.trim());
+      setActiveProject(safeProjectName);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Falha na geração.",
@@ -756,6 +805,7 @@ export function AppCreatorTab({
     currentProject;
 
   return (
+    <>
     <DashminPageLayout
       className="lumiera-fill-view overflow-hidden !space-y-2"
       title={modeIdentity.title}
@@ -1140,80 +1190,117 @@ export function AppCreatorTab({
                   </button>
                 </section>
               ) : ideationTab === "express" ? (
-                <div className="mx-auto max-w-4xl space-y-6 rounded-[28px] border border-rose-300/20 bg-[#12070a] p-5 shadow-2xl shadow-black/20 sm:p-7">
-                  <div className="grid gap-5 border-b border-rose-300/10 pb-5 md:grid-cols-[1fr_auto] md:items-end">
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-rose-300">
-                        Criação ultra rápida
-                      </p>
-                      <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-white">
-                        YouTube Short Express (Prompt 5)
-                      </h3>
-                      <p className="mt-2 max-w-2xl text-[11px] leading-5 text-zinc-400">
-                        Gere um roteiro de 45 segundos com estrutura viral
-                        otimizada: Gancho (3s), Desenvolvimento rápido (35-40s)
-                        e Cierre de engajamento (5s).
-                      </p>
+                <div className="relative mx-auto max-w-4xl overflow-hidden rounded-[28px] border border-rose-300/20 bg-[#12070a] shadow-2xl shadow-black/30">
+                  {/* Decorative top glow */}
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(ellipse_at_50%_-20%,rgba(244,63,94,0.12),transparent_70%)]" />
+
+                  {/* Header */}
+                  <div className="relative border-b border-rose-300/10 px-6 pb-6 pt-7 sm:px-8">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-rose-400/10 ring-1 ring-rose-400/20">
+                            <Zap className="h-3.5 w-3.5 text-rose-300" />
+                          </span>
+                          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-rose-300/90">
+                            Criação ultra rápida
+                          </p>
+                        </div>
+                        <h3 className="text-2xl font-black tracking-[-0.03em] text-white">
+                          Criador Express
+                        </h3>
+                        <p className="max-w-lg text-[11px] leading-5 text-zinc-400">
+                          Gere um roteiro de 45 segundos com estrutura viral
+                          otimizada: Gancho (3s), Desenvolvimento rápido
+                          (35-40s) e Fechamento de engajamento (5s).
+                        </p>
+                      </div>
+                      {/* Format badges */}
+                      <div className="flex shrink-0 gap-1.5">
+                        <span className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2.5 py-1.5 text-center text-[8px] font-black uppercase tracking-wider text-rose-300/80">
+                          Shorts 45s
+                        </span>
+                        <span className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2.5 py-1.5 text-center text-[8px] font-black uppercase tracking-wider text-rose-300/80">
+                          PT-BR
+                        </span>
+                        <span className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2.5 py-1.5 text-center text-[8px] font-black uppercase tracking-wider text-rose-300/80">
+                          Gemini AI
+                        </span>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-1.5 text-center text-[8px] font-black uppercase tracking-wider text-rose-300/80">
-                      <span className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2 py-2">
-                        Shorts (45s)
-                      </span>
-                      <span className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2 py-2">
-                        Português
-                      </span>
+
+                    {/* Step indicator */}
+                    <div className="mt-5 flex items-center gap-2">
+                      {["Definir Tema/Nicho", "Gerar Roteiro", "Aprovar Produção"].map(
+                        (step, i) => (
+                          <React.Fragment key={step}>
+                            {i > 0 && (
+                              <div className="h-px flex-1 bg-gradient-to-r from-rose-400/20 to-rose-400/5" />
+                            )}
+                            <div className="flex items-center gap-1.5">
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-400/10 text-[8px] font-black text-rose-300 ring-1 ring-rose-400/20">
+                                {i + 1}
+                              </span>
+                              <span className="hidden text-[8px] font-bold uppercase tracking-wider text-zinc-500 sm:inline">
+                                {step}
+                              </span>
+                            </div>
+                          </React.Fragment>
+                        )
+                      )}
                     </div>
                   </div>
 
-                  <ChannelBadge />
+                  {/* Body */}
+                  <div className="relative space-y-6 px-6 py-6 sm:px-8">
+                    <ChannelBadge />
 
-                  <div className="space-y-4">
                     {/* Project Name */}
-                    <div className="space-y-2 font-sans">
-                      <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                         Nome do Projeto (Pasta)
                       </label>
                       <input
                         type="text"
                         placeholder="Ex: short_misterios_egito"
+                        maxLength={80}
                         value={creatorProjectName}
                         onChange={(e) =>
                           setCreatorProjectName(
                             e.target.value.replace(/[^a-zA-Z0-9_-]/g, "_")
                           )
                         }
-                        className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-rose-400 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                        className="w-full rounded-xl border border-zinc-800/80 bg-zinc-950/80 px-4 py-3 text-xs text-white placeholder:text-zinc-600 transition-colors hover:border-zinc-700 focus:border-rose-400/60 focus:outline-none focus:ring-1 focus:ring-rose-400/20"
                       />
                       <p className="text-[9px] text-zinc-600">
                         Apenas letras, números, hífen ou sublinhado.
                       </p>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {/* Niche Input */}
-                      <div className="space-y-2 font-sans">
-                        <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                    {/* Niche + Tone row */}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                           Nicho do Canal
                         </label>
                         <input
                           type="text"
-                          placeholder="Ex: Misterios, Curiosidades, Historia, Finanzas..."
+                          placeholder="Ex: Mistérios, Curiosidades, História, Finanças..."
                           value={nicheInput}
                           onChange={(e) => setNicheInput(e.target.value)}
                           disabled={!!activeChannel.channelId}
-                          className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-rose-400 focus:outline-none rounded-xl px-4 py-3 text-xs text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full rounded-xl border border-zinc-800/80 bg-zinc-950/80 px-4 py-3 text-xs text-white placeholder:text-zinc-600 transition-colors hover:border-zinc-700 focus:border-rose-400/60 focus:outline-none focus:ring-1 focus:ring-rose-400/20 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                       </div>
 
-                      {/* Tone Dropdown */}
-                      <div className="space-y-2 font-sans">
-                        <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
-                          Tono del Guión
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                          Tom do Roteiro
                         </label>
                         <select
                           value={expressTone}
                           onChange={(e) => setExpressTone(e.target.value)}
-                          className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-rose-400 focus:outline-none rounded-xl px-4 py-3 text-xs text-white animate-none"
+                          className="w-full appearance-none rounded-xl border border-zinc-800/80 bg-zinc-950/80 px-4 py-3 text-xs text-white transition-colors hover:border-zinc-700 focus:border-rose-400/60 focus:outline-none focus:ring-1 focus:ring-rose-400/20"
                         >
                           <option value="conversacional">Conversacional</option>
                           <option value="educativo">Educativo</option>
@@ -1224,39 +1311,46 @@ export function AppCreatorTab({
                     </div>
 
                     {/* Theme Input */}
-                    <div className="space-y-2 font-sans">
-                      <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
-                        Tema Concreto (TEMA CONCRETO)
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        Tema Concreto do Short
                       </label>
                       <textarea
                         rows={3}
-                        placeholder="Ex: Los 3 barcos perdidos más misteriosos de la historia que nunca fueron encontrados"
+                        placeholder="Ex: Os 3 navios perdidos mais misteriosos da história que nunca foram encontrados"
                         value={expressTheme}
                         onChange={(e) => setExpressTheme(e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-rose-400 focus:outline-none rounded-xl px-4 py-3 text-xs text-white resize-none"
+                        className="w-full resize-none rounded-xl border border-zinc-800/80 bg-zinc-950/80 px-4 py-3 text-xs leading-5 text-white placeholder:text-zinc-600 transition-colors hover:border-zinc-700 focus:border-rose-400/60 focus:outline-none focus:ring-1 focus:ring-rose-400/20"
                       />
+                      <p className="text-[9px] text-zinc-600">
+                        Descreva o tema específico. Quanto mais concreto, melhor o gancho gerado.
+                      </p>
                     </div>
-                  </div>
 
-                  <div className="flex justify-end pt-3">
-                    <button
-                      type="button"
-                      disabled={expressGenerating}
-                      onClick={generateExpressShort}
-                      className="inline-flex items-center gap-2 rounded-xl bg-rose-400 px-5 py-3 text-xs font-black text-slate-950 transition hover:bg-rose-300 disabled:opacity-50"
-                    >
-                      {expressGenerating ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                          Gerando roteiro no Gemini...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4" />
-                          Gerar Roteiro Express
-                        </>
-                      )}
-                    </button>
+                    {/* CTA */}
+                    <div className="flex flex-col items-center gap-3 border-t border-rose-300/10 pt-6 sm:flex-row sm:justify-between">
+                      <p className="text-[9px] text-zinc-600">
+                        O roteiro será gerado com gancho, desenvolvimento e fechamento automáticos.
+                      </p>
+                      <button
+                        type="button"
+                        disabled={expressGenerating}
+                        onClick={generateExpressShort}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-rose-400 px-6 py-3.5 text-xs font-black text-white shadow-lg shadow-rose-500/20 transition-all hover:from-rose-400 hover:to-rose-300 hover:shadow-rose-400/30 disabled:opacity-50 disabled:shadow-none sm:w-auto"
+                      >
+                        {expressGenerating ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            Gerando roteiro no Gemini...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4" />
+                            Gerar Roteiro Express
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : ideationTab === "historical-witness" ? (
@@ -2364,126 +2458,11 @@ export function AppCreatorTab({
                 />
               )}
 
-              {config?.narration_mode === "chunked" ? (
+              {config?.narration_mode === "chunked" && (
                 <p className="text-[10px] text-zinc-500 text-center border border-zinc-800 rounded-xl p-3 max-w-2xl mx-auto">
                   Ordem obrigatória: gerar → ouvir/corrigir → aprovar todos →
                   montar master → Whisper → calcular a cobertura visual.
                 </p>
-              ) : (
-                <>
-                  {/* Drag and drop zone */}
-
-                  <div
-                    onDragEnter={handleDrag}
-                    onDragOver={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDrop={handleDrop}
-                    className={`flex flex-col items-center justify-center gap-4 rounded-[28px] border border-dashed p-12 text-center font-sans transition-all duration-150 ${
-                      dragActive
-                        ? "border-gold-500 bg-gold-500/5"
-                        : uploadSuccess || status?.has_narration
-                          ? "border-emerald-500 bg-emerald-500/5"
-                          : `${modeIdentity.accentBorder} bg-[#0b0c0f] hover:border-zinc-600`
-                    }`}
-                  >
-                    {uploadingNarration ? (
-                      <div className="flex flex-col items-center gap-3">
-                        <RefreshCw className="w-8 h-8 text-gold-500 animate-spin" />
-                        <span className="text-xs text-gray-300">
-                          Enviando e salvando áudio...
-                        </span>
-                      </div>
-                    ) : uploadSuccess ? (
-                      <div className="flex flex-col items-center gap-3">
-                        <CheckCircle className="w-10 h-10 text-emerald-500" />
-                        <span className="text-xs font-bold text-white">
-                          Narração Salva com Sucesso!
-                        </span>
-                        <span className="text-[10px] text-gray-500">
-                          narracao_mestra_premium.mp3 atualizado no workspace.
-                        </span>
-                      </div>
-                    ) : status?.has_narration ? (
-                      <div className="flex flex-col items-center gap-3">
-                        <CheckCircle className="w-10 h-10 text-emerald-500/80 animate-pulse" />
-                        <span className="text-xs font-bold text-white">
-                          Narração Existente no Workspace
-                        </span>
-                        <span className="text-[10px] text-gray-400">
-                          narracao_mestra_premium.mp3 já está salvo no
-                          workspace.
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-3">
-                        <Volume2 className="w-10 h-10 text-zinc-600 animate-pulse" />
-                        <div>
-                          <span className="text-xs text-gray-300 block font-bold">
-                            Arraste seu arquivo MP3 de narração aqui
-                          </span>
-                          <span className="text-[10px] text-zinc-500 block mt-1">
-                            ou clique para selecionar do computador
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    <input
-                      type="file"
-                      accept="audio/mp3,audio/mpeg"
-                      onChange={handleFileInput}
-                      className="hidden"
-                      id="file-upload"
-                    />
-
-                    {!uploadSuccess && (
-                      <label
-                        htmlFor="file-upload"
-                        className="mt-2 bg-zinc-900 border border-zinc-800 text-gray-300 hover:text-white px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer hover:bg-zinc-850 transition"
-                      >
-                        {status?.has_narration
-                          ? "Substituir Narração"
-                          : "Selecionar Arquivo"}
-                      </label>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3 text-[10px] text-zinc-600 uppercase font-bold tracking-wider">
-                    <span className="flex-1 h-px bg-zinc-800" />
-                    ou gere com TTS
-                    <span className="flex-1 h-px bg-zinc-800" />
-                  </div>
-
-                  <TtsVoiceStudioPanel
-                    getProjectUrl={getProjectUrl}
-                    toast={(msg) => toast(msg)}
-                    narrativeScript={
-                      storyboardData?.narrative_script ||
-                      generatedScriptData?.narrative_script ||
-                      narrationDraft ||
-                      ""
-                    }
-                    taggedScript={
-                      storyboardData?.narrative_script_tagged ||
-                      generatedScriptData?.narrative_script_tagged ||
-                      narrationTaggedDraft ||
-                      ""
-                    }
-                    onUpdated={() => {
-                      setUploadSuccess(true);
-                      fetchData();
-                    }}
-                    onTaggedScriptChange={(value) => {
-                      setNarrationTaggedDraft(value);
-                      const base = storyboardData || generatedScriptData;
-                      if (!base) return;
-                      syncCreatorStoryboard({
-                        ...base,
-                        narrative_script_tagged: value,
-                      });
-                    }}
-                  />
-                </>
               )}
 
               <div className="flex justify-between items-center pt-4 font-sans">
@@ -3745,6 +3724,20 @@ export function AppCreatorTab({
                                                         "imagem IA 2k"}
                                                     </span>
                                                   )}
+
+                                                  {/* Badge: tipo do asset (imagem/vídeo) */}
+                                                  {currentAsset?.asset ? (
+                                                    <span
+                                                      className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border ${
+                                                        currentAsset.type === "video"
+                                                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                                                          : "bg-sky-500/10 border-sky-500/30 text-sky-300"
+                                                      }`}
+                                                      title={currentAsset.asset}
+                                                    >
+                                                      {currentAsset.type === "video" ? "🎬 Vídeo" : "🖼️ Imagem"}
+                                                    </span>
+                                                  ) : null}
                                                 </div>
 
                                                 <div className="flex items-center gap-1.5">
@@ -3820,280 +3813,261 @@ export function AppCreatorTab({
                                             </div>
 
                                             <div className="w-full lg:w-[420px] shrink-0 space-y-3">
-                                              <div className="space-y-1">
-                                                <div className="flex justify-between items-center">
-                                                  <label className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">
-                                                    PROMPT VISUAL IA
-                                                  </label>
-
-                                                  <button
-                                                    onClick={() =>
-                                                      copyToClipboard(
-                                                        vp?.prompt || "",
-                                                        `prompt-${absoluteIndex}`
-                                                      )
-                                                    }
-
-                                                    className="text-[9px] text-zinc-400 hover:text-white flex items-center gap-1 transition"
-                                                  >
-                                                    {copiedSection ===
-                                                    `prompt-${absoluteIndex}` ? (
-                                                      <span className="text-emerald-500 font-bold">
-                                                        OK
-                                                      </span>
-                                                    ) : (
-                                                      <span>Copiar</span>
-                                                    )}
-                                                  </button>
-                                                </div>
-
-                                                <textarea
-                                                  rows={2}
-
-                                                  value={vp?.prompt || ""}
-
-                                                  onChange={(e) =>
-                                                    handleUpdateCreatorScene(
-                                                      absoluteIndex,
-                                                      "prompt",
-                                                      e.target.value
-                                                    )
-                                                  }
-
-                                                  className="bg-zinc-950/80 border border-zinc-850 rounded-xl text-[11px] text-zinc-300 italic p-2.5 w-full focus:border-gold-500/50 focus:outline-none transition leading-normal font-sans"
-
-                                                  placeholder="Descreva o prompt visual..."
-                                                />
+                                              {/* Tab buttons */}
+                                              <div className="flex gap-1 rounded-lg border border-zinc-850 bg-zinc-950/60 p-1">
+                                                <button
+                                                  onClick={() => setScenePanelTab((prev) => ({ ...prev, [`${blockKey}:${assetIdx}`]: "prompt" }))}
+                                                  className={`flex-1 rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-wider transition ${
+                                                    (scenePanelTab[`${blockKey}:${assetIdx}`] || "prompt") === "prompt"
+                                                      ? "bg-zinc-800 text-white"
+                                                      : "text-zinc-500 hover:text-zinc-300"
+                                                  }`}
+                                                >
+                                                  Prompt
+                                                </button>
+                                                <button
+                                                  onClick={() => setScenePanelTab((prev) => ({ ...prev, [`${blockKey}:${assetIdx}`]: "asset" }))}
+                                                  className={`flex-1 rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-wider transition relative ${
+                                                    (scenePanelTab[`${blockKey}:${assetIdx}`] || "prompt") === "asset"
+                                                      ? "bg-zinc-800 text-white"
+                                                      : currentAsset?.asset
+                                                        ? "text-emerald-400 hover:text-emerald-300"
+                                                        : "text-zinc-500 hover:text-zinc-300"
+                                                  }`}
+                                                >
+                                                  {currentAsset?.asset ? (
+                                                    <span className="flex items-center justify-center gap-1">
+                                                      {currentAsset.type === "video" ? "🎬" : "🖼️"}
+                                                      Asset
+                                                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-[2px] rounded-full bg-emerald-500" />
+                                                    </span>
+                                                  ) : (
+                                                    "Asset"
+                                                  )}
+                                                </button>
                                               </div>
 
-                                              {currentAsset?.asset && (
-                                                <div className="flex items-center gap-3 rounded-xl border border-zinc-850 bg-zinc-950/80 p-2.5">
-                                                  <div className="w-20 h-14 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-850 shrink-0 flex items-center justify-center">
-                                                    {currentAsset.type ===
-                                                    "video" ? (
-                                                      <video
-                                                        src={getAssetUrl(
-                                                          currentAsset.asset
-                                                        )}
-
-                                                        className="w-full h-full object-cover"
-
-                                                        muted
-
-                                                        playsInline
-
-                                                        preload="metadata"
-                                                      />
-                                                    ) : (
-                                                      <img
-                                                        src={getAssetUrl(
-                                                          currentAsset.asset
-                                                        )}
-
-                                                        className="w-full h-full object-cover"
-
-                                                        alt=""
-
-                                                        loading="lazy"
-                                                      />
-                                                    )}
+                                              {/* PROMPT TAB */}
+                                              {(scenePanelTab[`${blockKey}:${assetIdx}`] || "prompt") === "prompt" && (
+                                                <div className="space-y-1">
+                                                  <div className="flex justify-between items-center">
+                                                    <label className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">
+                                                      PROMPT VISUAL IA
+                                                    </label>
+                                                    <button
+                                                      onClick={() =>
+                                                        copyToClipboard(
+                                                          vp?.prompt || "",
+                                                          `prompt-${absoluteIndex}`
+                                                        )
+                                                      }
+                                                      className="text-[9px] text-zinc-400 hover:text-white flex items-center gap-1 transition"
+                                                    >
+                                                      {copiedSection ===
+                                                      `prompt-${absoluteIndex}` ? (
+                                                        <span className="text-emerald-500 font-bold">OK</span>
+                                                      ) : (
+                                                        <span>Copiar</span>
+                                                      )}
+                                                    </button>
                                                   </div>
+                                                  <textarea
+                                                    rows={3}
+                                                    value={vp?.prompt || ""}
+                                                    onChange={(e) =>
+                                                      handleUpdateCreatorScene(
+                                                        absoluteIndex,
+                                                        "prompt",
+                                                        e.target.value
+                                                      )
+                                                    }
+                                                    className="bg-zinc-950/80 border border-zinc-850 rounded-xl text-[11px] text-zinc-300 italic p-2.5 w-full focus:border-gold-500/50 focus:outline-none transition leading-normal font-sans"
+                                                    placeholder="Descreva o prompt visual..."
+                                                  />
+                                                </div>
+                                              )}
 
-                                                  <div className="min-w-0 flex-1 space-y-1">
-                                                    <div className="flex items-center gap-1.5 min-w-0">
-                                                      <span
-                                                        className="text-[10px] text-white font-semibold truncate"
-                                                        title={
-                                                          currentAsset.asset
+                                              {/* ASSET TAB */}
+                                              {(scenePanelTab[`${blockKey}:${assetIdx}`] || "prompt") === "asset" && (
+                                                <div className="space-y-3">
+                                                  {/* Asset preview */}
+                                                  {currentAsset?.asset ? (
+                                                    <div className="rounded-xl border border-zinc-850 bg-zinc-950/80 p-2.5 space-y-2">
+                                                      <div
+                                                        className="w-full h-28 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-850 cursor-pointer relative group/preview"
+                                                        onClick={() =>
+                                                          setPreviewAsset({
+                                                            url: getAssetUrl(currentAsset.asset),
+                                                            type: currentAsset.type === "video" ? "video" : "image",
+                                                          })
                                                         }
+                                                        title="Clique para preview completo"
                                                       >
-                                                        {currentAsset.asset}
+                                                        {currentAsset.type === "video" ? (
+                                                          <video
+                                                            src={getAssetUrl(currentAsset.asset)}
+                                                            className="w-full h-full object-cover"
+                                                            muted
+                                                            playsInline
+                                                            preload="metadata"
+                                                          />
+                                                        ) : (
+                                                          <img
+                                                            src={getAssetUrl(currentAsset.asset)}
+                                                            className="w-full h-full object-cover"
+                                                            alt=""
+                                                            loading="lazy"
+                                                          />
+                                                        )}
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover/preview:bg-black/40">
+                                                          <span className="text-[9px] font-bold text-white bg-black/60 px-2 py-1 rounded-md opacity-0 transition group-hover/preview:opacity-100">
+                                                            {currentAsset.type === "video" ? "▶ Preview" : "🔍 Ampliar"}
+                                                          </span>
+                                                        </div>
+                                                      </div>
+                                                      <div className="flex items-center justify-between">
+                                                        <span className="text-[10px] text-white font-semibold truncate max-w-[200px]" title={currentAsset.asset}>
+                                                          {currentAsset.asset}
+                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                          <span className="text-[8px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                                                            Cenas: {assetUsedIn.join(", ") || sceneNum}
+                                                          </span>
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveSceneAsset(blockKey, assetIdx)}
+                                                            className="text-[9px] text-red-400 hover:text-red-300 font-bold transition"
+                                                          >
+                                                            Excluir
+                                                          </button>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  ) : (
+                                                    <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-950/40 p-4 text-center">
+                                                      <p className="text-[10px] text-zinc-600">Nenhum asset atribuído</p>
+                                                    </div>
+                                                  )}
+
+                                                  {/* Search + Upload + Generate */}
+                                                  <div className="rounded-xl border border-cyan-500/15 bg-cyan-500/[0.035] p-2.5 space-y-2">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                      <div className="flex min-w-0 items-center gap-2">
+                                                        <Images className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                                                        <span className="text-[8px] font-black uppercase tracking-[0.16em] text-cyan-200">
+                                                          Buscar / Gerar asset
+                                                        </span>
+                                                      </div>
+                                                      <span className="shrink-0 rounded-md border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 font-mono text-[8px] font-bold text-cyan-200">
+                                                        {stockSearch.mediaLabel} · {stockSearch.aspectRatio}
                                                       </span>
                                                     </div>
 
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                      <span className="text-[8px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
-                                                        Cenas:{" "}
-                                                        {assetUsedIn.join(
-                                                          ", "
-                                                        ) || sceneNum}
-                                                      </span>
-
+                                                    {/* In-app search button */}
+                                                    <div className="flex flex-wrap items-center gap-1.5">
                                                       <button
                                                         type="button"
-
                                                         onClick={() =>
-                                                          handleRemoveSceneAsset(
+                                                          setStockModal({
+                                                            open: true,
+                                                            query: searchQuery,
+                                                            mediaType: isVideo ? "video" : "image",
                                                             blockKey,
-                                                            assetIdx
-                                                          )
+                                                            assetIdx,
+                                                          })
                                                         }
-
-                                                        className="text-[9px] text-red-400 hover:text-red-300 font-bold transition"
+                                                        className="flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-[9px] font-bold text-cyan-200 transition hover:border-cyan-400/50 hover:bg-cyan-500/15"
                                                       >
-                                                        Excluir
+                                                        <Search className="h-3 w-3" />
+                                                        Buscar in-app
                                                       </button>
+
+                                                      {/* Upload */}
+                                                      <input
+                                                        type="file"
+                                                        accept="image/png,image/jpeg,image/jpg,video/mp4,video/webm,video/mov"
+                                                        onChange={(e) => {
+                                                          if (e.target.files && e.target.files[0]) {
+                                                            const file = e.target.files[0];
+                                                            const fileIsVideo =
+                                                              file.name.endsWith(".mp4") ||
+                                                              file.name.endsWith(".webm") ||
+                                                              file.name.endsWith(".mov") ||
+                                                              file.type.startsWith("video/");
+                                                            handleUploadSceneAsset(
+                                                              blockNum,
+                                                              fileIsVideo ? "video" : "image",
+                                                              file,
+                                                              assetIdx
+                                                            );
+                                                          }
+                                                        }}
+                                                        className="hidden"
+                                                        id={`scene-upload-${absoluteIndex}`}
+                                                      />
+                                                      <label
+                                                        htmlFor={`scene-upload-${absoluteIndex}`}
+                                                        className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[9px] font-bold transition ${
+                                                          isUploaded
+                                                            ? "bg-green-500/10 border-green-500/20 text-green-400 hover:text-green-300"
+                                                            : "bg-zinc-900 border-zinc-850 text-zinc-400 hover:text-white"
+                                                        }`}
+                                                      >
+                                                        {currentAsset?.asset ? "Trocar" : isUploaded ? "Enviado" : "Upload"}
+                                                      </label>
+
+                                                      {/* Generate video (Seedance / MobileWAN) */}
+                                                      {isVideo && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={async () => {
+                                                            try {
+                                                              toast.loading("Gerando vídeo IA...", { id: `gen-${absoluteIndex}` });
+                                                              const res = await fetch("/api/mobilewan/generate", {
+                                                                method: "POST",
+                                                                headers: { "Content-Type": "application/json" },
+                                                                body: JSON.stringify({
+                                                                  prompt: vp?.prompt || "",
+                                                                  aspect_ratio: stockSearch.aspectRatio || "16:9",
+                                                                }),
+                                                              });
+                                                              const data = await res.json();
+                                                              if (!res.ok) throw new Error(data.error || "Erro");
+                                                              toast.success("Vídeo gerado! Verifique jobs.", { id: `gen-${absoluteIndex}` });
+                                                            } catch (err: any) {
+                                                              toast.error(err.message || "Erro ao gerar", { id: `gen-${absoluteIndex}` });
+                                                            }
+                                                          }}
+                                                          className="flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2.5 py-1.5 text-[9px] font-bold text-violet-300 transition hover:border-violet-400/50 hover:bg-violet-500/15"
+                                                        >
+                                                          <Zap className="h-3 w-3" />
+                                                          Gerar Vídeo
+                                                        </button>
+                                                      )}
+                                                    </div>
+
+                                                    {/* External links (secondary) */}
+                                                    <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-zinc-850/50">
+                                                      <span className="text-[8px] text-zinc-600">Externo:</span>
+                                                      <a href={stockSearch.links.pexels} target="_blank" rel="noopener noreferrer" className="text-[8px] text-zinc-500 hover:text-emerald-300 transition">Pexels</a>
+                                                      <a href={stockSearch.links.pixabay} target="_blank" rel="noopener noreferrer" className="text-[8px] text-zinc-500 hover:text-emerald-300 transition">Pixabay</a>
+                                                      <a href={stockSearch.links.bing} target="_blank" rel="noopener noreferrer" className="text-[8px] text-zinc-500 hover:text-sky-300 transition">Bing</a>
+                                                      <a
+                                                        href={stockSearch.links.canva}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={() => {
+                                                          void copyToClipboard(stockSearch.productionBrief, `asset-brief-${absoluteIndex}`);
+                                                          toast.success(`Briefing ${stockSearch.aspectRatio} copiado.`);
+                                                        }}
+                                                        className="text-[8px] text-zinc-500 hover:text-cyan-300 transition"
+                                                      >
+                                                        Canva
+                                                      </a>
                                                     </div>
                                                   </div>
                                                 </div>
                                               )}
-
-                                              <div className="rounded-xl border border-cyan-500/15 bg-cyan-500/[0.035] p-2.5">
-                                                <div className="mb-2 flex items-center justify-between gap-3">
-                                                  <div className="flex min-w-0 items-center gap-2">
-                                                    <Images className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
-                                                    <span className="text-[8px] font-black uppercase tracking-[0.16em] text-cyan-200">
-                                                      Buscar asset compatível
-                                                    </span>
-                                                  </div>
-                                                  <span
-                                                    className="shrink-0 rounded-md border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 font-mono text-[8px] font-bold text-cyan-200"
-                                                    title={`Orientação ${stockSearch.orientationLabel}`}
-                                                  >
-                                                    {stockSearch.mediaLabel} ·{" "}
-                                                    {stockSearch.aspectRatio} ·{" "}
-                                                    {stockSearch.dimensions}
-                                                  </span>
-                                                </div>
-                                                <p
-                                                  className="mb-2 line-clamp-1 text-[8px] text-zinc-500"
-                                                  title={
-                                                    stockSearch.enrichedQuery
-                                                  }
-                                                >
-                                                  Busca:{" "}
-                                                  {stockSearch.enrichedQuery}
-                                                </p>
-                                                <div className="flex flex-wrap items-center gap-1.5">
-                                                  <a
-                                                    href={
-                                                      stockSearch.links.pexels
-                                                    }
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-
-                                                    className="group flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-[9px] font-bold text-zinc-300 transition hover:border-emerald-400/35 hover:text-emerald-300"
-                                                  >
-                                                    <span>Pexels</span>
-                                                    <ExternalLink className="h-2.5 w-2.5 opacity-40 transition group-hover:opacity-100" />
-                                                  </a>
-
-                                                  <a
-                                                    href={
-                                                      stockSearch.links.pixabay
-                                                    }
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-
-                                                    className="group flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-[9px] font-bold text-zinc-300 transition hover:border-emerald-400/35 hover:text-emerald-300"
-                                                  >
-                                                    <span>Pixabay</span>
-                                                    <ExternalLink className="h-2.5 w-2.5 opacity-40 transition group-hover:opacity-100" />
-                                                  </a>
-
-                                                  <a
-                                                    href={
-                                                      stockSearch.links.bing
-                                                    }
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="group flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-[9px] font-bold text-zinc-300 transition hover:border-sky-400/35 hover:text-sky-300"
-                                                  >
-                                                    <span>
-                                                      Bing{" "}
-                                                      {isVideo
-                                                        ? "Vídeos"
-                                                        : "Imagens"}
-                                                    </span>
-                                                    <ExternalLink className="h-2.5 w-2.5 opacity-40 transition group-hover:opacity-100" />
-                                                  </a>
-
-                                                  <a
-                                                    href={
-                                                      stockSearch.links.canva
-                                                    }
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    onClick={() => {
-                                                      void copyToClipboard(
-                                                        stockSearch.productionBrief,
-                                                        `asset-brief-${absoluteIndex}`
-                                                      );
-                                                      toast.success(
-                                                        `Briefing ${stockSearch.aspectRatio} copiado. Cole no Canva.`
-                                                      );
-                                                    }}
-
-                                                    className="group flex items-center gap-1.5 rounded-lg border border-cyan-400/20 bg-cyan-400/[0.07] px-2.5 py-1.5 text-[9px] font-bold text-cyan-200 transition hover:border-cyan-300/45 hover:bg-cyan-400/10"
-                                                    title="Copia o prompt com formato e abre um design nas dimensões corretas"
-                                                  >
-                                                    <span>
-                                                      Canva{" "}
-                                                      {stockSearch.aspectRatio}
-                                                    </span>
-                                                    <ExternalLink className="h-2.5 w-2.5 opacity-50 transition group-hover:opacity-100" />
-                                                  </a>
-
-                                                  <input
-                                                    type="file"
-
-                                                    accept="image/png,image/jpeg,image/jpg,video/mp4"
-
-                                                    onChange={(e) => {
-                                                      if (
-                                                        e.target.files &&
-                                                        e.target.files[0]
-                                                      ) {
-                                                        const file =
-                                                          e.target.files[0];
-                                                        const fileIsVideo =
-                                                          file.name.endsWith(
-                                                            ".mp4"
-                                                          ) ||
-                                                          file.name.endsWith(
-                                                            ".webm"
-                                                          ) ||
-                                                          file.name.endsWith(
-                                                            ".mov"
-                                                          ) ||
-                                                          file.type.startsWith(
-                                                            "video/"
-                                                          );
-                                                        handleUploadSceneAsset(
-                                                          blockNum,
-                                                          fileIsVideo
-                                                            ? "video"
-                                                            : "image",
-                                                          file,
-                                                          assetIdx
-                                                        );
-                                                      }
-                                                    }}
-
-                                                    className="hidden"
-
-                                                    id={`scene-upload-${absoluteIndex}`}
-                                                  />
-
-                                                  <label
-                                                    htmlFor={`scene-upload-${absoluteIndex}`}
-
-                                                    className={`ml-auto flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[9px] font-bold transition ${
-                                                      isUploaded
-                                                        ? "bg-green-500/10 border-green-500/20 text-green-400 hover:text-green-300"
-                                                        : "bg-zinc-900 border-zinc-850 text-zinc-400 hover:text-white"
-                                                    }`}
-                                                  >
-                                                    <span>
-                                                      {currentAsset?.asset
-                                                        ? "Trocar"
-                                                        : isUploaded
-                                                          ? "Enviado"
-                                                          : "Upload"}
-                                                    </span>
-                                                  </label>
-                                                </div>
-                                              </div>
                                             </div>
                                           </div>
                                         );
@@ -4269,5 +4243,77 @@ export function AppCreatorTab({
         </div>
       </div>
     </DashminPageLayout>
+
+    {/* Stock Search Modal */}
+    <StockSearchModal
+      open={stockModal.open}
+      onClose={() => setStockModal((prev) => ({ ...prev, open: false }))}
+      query={stockModal.query}
+      mediaType={stockModal.mediaType}
+      aspectRatio={config?.aspect_ratio === "9:16" || formatSelector === "SHORTS" ? "9:16" : "16:9"}
+      projectName={activeProject}
+      onSelect={(item: StockItem) => {
+        // Find the absolute scene index from blockKey + assetIdx
+        const prompts = generatedScriptData?.visual_prompts || [];
+        let targetIndex = -1;
+        let currentAssetIdx = 0;
+        for (let j = 0; j < prompts.length; j++) {
+          if (String(prompts[j].block || 1) === String(stockModal.blockKey)) {
+            if (currentAssetIdx === stockModal.assetIdx) {
+              targetIndex = j;
+              break;
+            }
+            currentAssetIdx++;
+          }
+        }
+        if (targetIndex === -1) {
+          toast.error("Cena não encontrada");
+          return;
+        }
+        const filename = item.downloadUrl?.startsWith("http") ? item.previewUrl : item.downloadUrl;
+        handleUpdateCreatorScene(targetIndex, "asset", {
+          asset: filename,
+          type: item.type === "video" ? "video" : "image",
+          user_locked: true,
+          manual_asset: true,
+          ...(item.type === "video" ? { fixed: 8.0 } : {}),
+        });
+        toast.success("Asset atribuído à cena!");
+      }}
+    />
+
+    {/* Fullscreen Preview Modal */}
+    {previewAsset && (
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+        onClick={() => setPreviewAsset(null)}
+      >
+        <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+          {previewAsset.type === "video" ? (
+            <video
+              src={previewAsset.url}
+              className="max-h-[85vh] max-w-[85vw] rounded-xl"
+              controls
+              autoPlay
+              muted
+              playsInline
+            />
+          ) : (
+            <img
+              src={previewAsset.url}
+              className="max-h-[85vh] max-w-[85vw] rounded-xl object-contain"
+              alt="Preview"
+            />
+          )}
+          <button
+            onClick={() => setPreviewAsset(null)}
+            className="absolute -right-3 -top-3 rounded-full bg-zinc-800 p-2 text-white shadow-lg transition hover:bg-zinc-700"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
