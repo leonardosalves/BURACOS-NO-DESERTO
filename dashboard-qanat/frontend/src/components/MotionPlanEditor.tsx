@@ -1,6 +1,94 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import "../styles/motionPlanEditor.css";
 
+/** Paletas padrão por nicho (espelha shared/nichePalettes.js) */
+const NICHE_PALETTE_PRESETS: Record<string, Record<string, string>> = {
+  Engenharia: {
+    primary: "#F5A623",
+    accent: "#4A9EFF",
+    bg: "rgba(10,10,18,0.82)",
+    text: "#FFFFFF",
+    bar: "#F5A623",
+  },
+  Natureza: {
+    primary: "#4CAF50",
+    accent: "#81C784",
+    bg: "rgba(8,18,10,0.82)",
+    text: "#FFFFFF",
+    bar: "#4CAF50",
+  },
+  Tecnologia: {
+    primary: "#7C4DFF",
+    accent: "#00E5FF",
+    bg: "rgba(12,8,24,0.85)",
+    text: "#FFFFFF",
+    bar: "#7C4DFF",
+  },
+  Financas: {
+    primary: "#FFD700",
+    accent: "#00C853",
+    bg: "rgba(10,12,8,0.84)",
+    text: "#FFFFFF",
+    bar: "#FFD700",
+  },
+  Saude: {
+    primary: "#FF5252",
+    accent: "#FF8A80",
+    bg: "rgba(18,8,10,0.82)",
+    text: "#FFFFFF",
+    bar: "#FF5252",
+  },
+  Ciencia: {
+    primary: "#00BCD4",
+    accent: "#B388FF",
+    bg: "rgba(6,14,18,0.84)",
+    text: "#FFFFFF",
+    bar: "#00BCD4",
+  },
+  Historia: {
+    primary: "#FF8F00",
+    accent: "#FFCC02",
+    bg: "rgba(16,12,6,0.84)",
+    text: "#FFFFFF",
+    bar: "#FF8F00",
+  },
+  Esporte: {
+    primary: "#FF3D00",
+    accent: "#FFEA00",
+    bg: "rgba(14,8,6,0.84)",
+    text: "#FFFFFF",
+    bar: "#FF3D00",
+  },
+  Educacao: {
+    primary: "#2196F3",
+    accent: "#64FFDA",
+    bg: "rgba(8,12,20,0.84)",
+    text: "#FFFFFF",
+    bar: "#2196F3",
+  },
+  Entretenimento: {
+    primary: "#E040FB",
+    accent: "#FF6E40",
+    bg: "rgba(16,6,18,0.84)",
+    text: "#FFFFFF",
+    bar: "#E040FB",
+  },
+  Viagem: {
+    primary: "#26C6DA",
+    accent: "#FFA726",
+    bg: "rgba(6,14,16,0.82)",
+    text: "#FFFFFF",
+    bar: "#26C6DA",
+  },
+  Culinaria: {
+    primary: "#FF7043",
+    accent: "#FFCA28",
+    bg: "rgba(16,10,6,0.84)",
+    text: "#FFFFFF",
+    bar: "#FF7043",
+  },
+};
+
 type ShotCard = {
   templateId: string;
   name: string;
@@ -24,6 +112,7 @@ type MotionPlan = {
       templateId?: string;
       style?: string;
       props?: Record<string, unknown>;
+      palette?: Record<string, string>;
     } | null;
     camera_move?: string;
     transicao_entrada?: string;
@@ -46,13 +135,10 @@ const CATEGORIA_LABEL: Record<string, string> = {
 };
 
 function agruparPorCategoria(templates: ShotCard[]) {
-  return (templates || []).reduce(
-    (acc: Record<string, ShotCard[]>, t) => {
-      (acc[t.category] = acc[t.category] || []).push(t);
-      return acc;
-    },
-    {}
-  );
+  return (templates || []).reduce((acc: Record<string, ShotCard[]>, t) => {
+    (acc[t.category] = acc[t.category] || []).push(t);
+    return acc;
+  }, {});
 }
 
 type Props = {
@@ -86,6 +172,54 @@ export default function MotionPlanEditor({
   const [salvando, setSalvando] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [paletteNiche, setPaletteNiche] = useState(niche || "Engenharia");
+
+  useEffect(() => {
+    setPaletteNiche(niche || "Engenharia");
+  }, [niche]);
+
+  /** Aplica paleta do nicho ao plan local e a todos os motion_shots */
+  const applyPalettePreset = useCallback((nicheKey: string) => {
+    setPaletteNiche(nicheKey);
+    const pal =
+      NICHE_PALETTE_PRESETS[nicheKey] ||
+      Object.entries(NICHE_PALETTE_PRESETS).find(
+        ([k]) => k.toLowerCase() === nicheKey.toLowerCase()
+      )?.[1] ||
+      NICHE_PALETTE_PRESETS.Engenharia;
+
+    setPlan((prev) => {
+      if (!prev) return prev;
+      const next = {
+        ...prev,
+        niche: nicheKey,
+        palette: pal,
+        cenas: (prev.cenas || []).map((c) =>
+          c.motion_shot
+            ? {
+                ...c,
+                motion_shot: { ...c.motion_shot, palette: pal },
+              }
+            : c
+        ),
+      };
+      // Propaga palette via overrides (mesmo tick)
+      setOverrides((ov) => {
+        const cenas = { ...(ov.cenas || {}) };
+        for (const c of next.cenas || []) {
+          if (!c.motion_shot?.templateId) continue;
+          const key = String(c.scene_ref);
+          cenas[key] = {
+            ...(cenas[key] || {}),
+            templateId: c.motion_shot.templateId,
+            palette: pal,
+          };
+        }
+        return { ...ov, cenas };
+      });
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!storyboard && !projectName) return;
@@ -161,6 +295,11 @@ export default function MotionPlanEditor({
         cena.motion_shot = cena.motion_shot || {};
         cena.motion_shot.templateId = String(ov.templateId);
         if (ov.style) cena.motion_shot.style = String(ov.style);
+        if (ov.palette && typeof ov.palette === "object") {
+          cena.motion_shot.palette = ov.palette as Record<string, string>;
+        }
+      } else if (ov.palette && cena.motion_shot) {
+        cena.motion_shot.palette = ov.palette as Record<string, string>;
       }
       if (ov.props && cena.motion_shot) {
         cena.motion_shot.props = {
@@ -211,7 +350,10 @@ export default function MotionPlanEditor({
   if (carregando) {
     return (
       <div className="mpe-overlay" onClick={onClose}>
-        <div className="mpe-panel mpe-loading" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="mpe-panel mpe-loading"
+          onClick={(e) => e.stopPropagation()}
+        >
           Gerando motion plan…
         </div>
       </div>
@@ -254,6 +396,30 @@ export default function MotionPlanEditor({
               <span key={i} style={{ background: c }} />
             ))}
           </div>
+          <label
+            className="mpe-sub"
+            style={{ display: "flex", alignItems: "center", gap: 6 }}
+          >
+            Paleta
+            <select
+              value={paletteNiche}
+              onChange={(e) => applyPalettePreset(e.target.value)}
+              className="mpe-busca"
+              style={{
+                margin: 0,
+                padding: "4px 8px",
+                width: "auto",
+                minWidth: 140,
+              }}
+              title="Aplicar paleta padrão do nicho a todos os shots"
+            >
+              {Object.keys(NICHE_PALETTE_PRESETS).map((k) => (
+                <option key={k} value={k}>
+                  {k}
+                </option>
+              ))}
+            </select>
+          </label>
           <button className="mpe-btn mpe-btn--ghost" onClick={onClose}>
             ✕
           </button>
@@ -354,7 +520,8 @@ function EndEditor({
   return (
     <div className="mpe-end">
       <span className="mpe-end__label">{label}</span>
-      <select className="select"
+      <select
+        className="select"
         value={value?.templateId || ""}
         onChange={(e) => onChange({ templateId: e.target.value })}
       >
@@ -410,7 +577,8 @@ function CenaCard({
         <div className="mpe-cena__body">
           <div className="mpe-field">
             <label>Shot card</label>
-            <select className="select"
+            <select
+              className="select"
               value={shot?.templateId || "__none__"}
               onChange={(e) => {
                 if (e.target.value === "__none__")
@@ -446,7 +614,8 @@ function CenaCard({
           ) : (
             <div className="mpe-field">
               <label>Camera move</label>
-              <select className="select"
+              <select
+                className="select"
                 value={cena.camera_move || ""}
                 onChange={(e) => onOverride({ camera_move: e.target.value })}
               >
@@ -467,7 +636,8 @@ function CenaCard({
           )}
           <div className="mpe-field">
             <label>Transição de entrada</label>
-            <select className="select"
+            <select
+              className="select"
               value={cena.transicao_entrada || ""}
               onChange={(e) =>
                 onOverride({ transicao_entrada: e.target.value })
@@ -528,7 +698,8 @@ function StylePicker({
   return (
     <div className="mpe-field">
       <label>Estilo / variante</label>
-      <select className="select"
+      <select
+        className="select"
         value={value || styles[0]}
         onChange={(e) => onChange(e.target.value)}
       >

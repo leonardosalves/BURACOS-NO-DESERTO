@@ -29,14 +29,8 @@ import {
   type BlockProgressBarProps,
 } from "./overlays/BlockProgressBar";
 import { ShortsVisualFx } from "./overlays/ShortsVisualFx";
-import {
-  ShotcraftLayer,
-  type MotionShot,
-} from "./overlays/ShotcraftLayer";
-import {
-  ShotcraftCamera,
-  type CameraMove,
-} from "./overlays/ShotcraftCamera";
+import { ShotcraftLayer, type MotionShot } from "./overlays/ShotcraftLayer";
+import { ShotcraftCamera, type CameraMove } from "./overlays/ShotcraftCamera";
 import { ShotcraftTransition } from "./overlays/ShotcraftTransition";
 
 /** Espelho de shared/studioOverlayLayers — inline para o bundler Remotion. */
@@ -99,6 +93,9 @@ type TimelineScene = {
   transicao_entrada?: string;
 
   transicao_style?: string;
+
+  /** Filtro visual / color grading (CSS filter string). */
+  visual_filter?: string;
 };
 
 type Caption = {
@@ -584,23 +581,14 @@ const SceneMedia: React.FC<{
   let filter = "";
 
   if (!isLogo) {
-    const effectType = index % (isShort ? 6 : 4);
-
-    if (effectType === 0) {
-      filter = "sepia(0.12) contrast(1.06) brightness(1.02) saturate(1.08)";
-    } else if (effectType === 1) {
-      filter = "contrast(1.1) brightness(0.98) saturate(1.05)";
-    } else if (effectType === 2) {
-      filter = "hue-rotate(-5deg) contrast(1.05) saturate(1.02)";
-    } else if (isShort && effectType === 3) {
-      filter =
-        "contrast(1.14) brightness(1.04) saturate(1.18) hue-rotate(8deg)";
-    } else if (isShort && effectType === 4) {
-      filter = "contrast(1.08) brightness(0.95) saturate(0.92) sepia(0.08)";
-    } else if (isShort && effectType === 5) {
-      filter = "contrast(1.12) brightness(1.0) saturate(1.1)";
+    // Use scene-level visual_filter (from visualFilterPlanner) if available
+    if (scene.visual_filter && scene.visual_filter !== "none") {
+      filter = scene.visual_filter;
     } else {
-      filter = "contrast(1.0) brightness(1.0)";
+      // Subtle default grading per format
+      filter = isShort
+        ? "contrast(1.06) brightness(1.02) saturate(1.1)"
+        : "contrast(1.04) brightness(1.0) saturate(1.05)";
     }
   } else {
     filter = "none";
@@ -694,25 +682,51 @@ const SceneMedia: React.FC<{
     return clipVolume * Math.min(fadeIn, fadeOut);
   };
 
-  const wrapShotcraft = (inner: React.ReactNode) => (
-    <ShotcraftTransition
-      templateId={scene.transicao_entrada}
-      style={scene.transicao_style}
-      palette={scene.motion_shot?.palette as Record<string, string> | undefined}
-    >
-      <ShotcraftCamera
-        move={scene.camera_move}
-        durationInFrames={durationFrames}
+  const wrapShotcraft = (inner: React.ReactNode) => {
+    // Template overlay: aparece apenas pela duração da animação (não a cena inteira)
+    const shotDurationS = scene.motion_shot?.duration_seconds || 4;
+    // Sync com narração: usa start_seconds do motion_shot (timestamp da fala do dado)
+    const shotDelayS = scene.motion_shot?.start_seconds ?? 1.2;
+    const shotDelayFrames = Math.round(shotDelayS * fps);
+    const shotDurationFrames = Math.round(shotDurationS * fps);
+    // Não deixar o overlay exceder a duração da cena
+    const maxOverlayFrames = Math.max(
+      Math.round(1 * fps),
+      durationFrames - shotDelayFrames - Math.round(0.3 * fps)
+    );
+    const overlayFrames = Math.min(shotDurationFrames, maxOverlayFrames);
+
+    return (
+      <ShotcraftTransition
+        templateId={scene.transicao_entrada}
+        style={scene.transicao_style}
+        palette={
+          scene.motion_shot?.palette as Record<string, string> | undefined
+        }
       >
-        {inner}
-      </ShotcraftCamera>
-      {scene.motion_shot ? (
-        <AbsoluteFill style={{ zIndex: 10, pointerEvents: "none" }}>
-          <ShotcraftLayer shot={scene.motion_shot} />
-        </AbsoluteFill>
-      ) : null}
-    </ShotcraftTransition>
-  );
+        <ShotcraftCamera
+          move={scene.camera_move}
+          durationInFrames={durationFrames}
+        >
+          {inner}
+        </ShotcraftCamera>
+        {scene.motion_shot && overlayFrames > 0 ? (
+          <Sequence
+            from={shotDelayFrames}
+            durationInFrames={overlayFrames}
+            name={`shotcraft-${scene.motion_shot.templateId}`}
+          >
+            <AbsoluteFill style={{ zIndex: 10, pointerEvents: "none" }}>
+              <ShotcraftLayer
+                shot={scene.motion_shot}
+                durationInFrames={overlayFrames}
+              />
+            </AbsoluteFill>
+          </Sequence>
+        ) : null}
+      </ShotcraftTransition>
+    );
+  };
 
   if (scene.type === "remotion" && scene.remotionTemplate) {
     const template = scene.remotionTemplate as OverlayType;
@@ -725,6 +739,19 @@ const SceneMedia: React.FC<{
           durationInFrames={durationFrames}
         />
       </AbsoluteFill>
+    );
+  }
+
+  // Cena sem asset (apenas narração + possível motion overlay): fundo escuro cinematográfico
+  if (!scene.asset || scene.asset.trim() === "") {
+    return wrapShotcraft(
+      <AbsoluteFill
+        style={{
+          overflow: "hidden",
+          background:
+            "radial-gradient(ellipse at 50% 40%, #12121a 0%, #050506 100%)",
+        }}
+      />
     );
   }
 
@@ -1795,7 +1822,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
     );
     return scenes.map((scene, i) => {
       const key = String(scene.scene_id || i + 1);
-      const planCena = byRef.get(key) || motionPlan.cenas[i];
+      const planCena = byRef.get(key) || motionPlan.cenas![i];
       if (!planCena) return scene;
       return {
         ...scene,

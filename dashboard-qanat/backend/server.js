@@ -198,6 +198,7 @@ import {
 } from "./creatorSceneTagger.js";
 import { registerMotionFlyoverUploadRoute } from "./motionFlyoverUpload.js";
 import { registerRemotionTemplateStudioRoutes } from "./remotionTemplateStudioRoutes.js";
+import templateRoutes from "./templateRoutes.js";
 import {
   orchestrateProduction,
   resolveCreatorOrchestrationOptions,
@@ -338,6 +339,8 @@ import {
 import {
   CreatorIdeasContractError,
   generateCreatorIdeasWithSingleRetry,
+  validateCreatorExpressInput,
+  validateCreatorExpressPayload,
 } from "./creatorIdeasContract.js";
 import {
   ensureProjectsDirs,
@@ -859,7 +862,8 @@ app.use("/api/calendar", calendarRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/health", healthRouter);
 app.use("/api/agents", agentsRouter);
-app.use("/api/templates", templatesRouter);
+// Channel title templates (legado) — path dedicado para não colidir com Template Store
+app.use("/api/channel-templates", templatesRouter);
 app.use("/api/flows", flowRouter);
 
 // Catch malformed JSON syntax errors to prevent crashing
@@ -1570,7 +1574,8 @@ app.use("/api/editorial-calendar", calendarRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/health", healthRouter);
 app.use("/api/agents", agentsRouter);
-app.use("/api/templates", templatesRouter);
+// Channel title templates (legado) — path dedicado para não colidir com Template Store
+app.use("/api/channel-templates", templatesRouter);
 app.use("/api/flows", flowRouter);
 
 // Cache de resolução de projetos — evita readdirSync em cada request de mídia
@@ -8360,7 +8365,7 @@ app.get(
           );
         }
         if (useHyperframes) {
-          sendLog("[Remotion] Modo HyperFrames AI orquestrado ativo.");
+          sendLog("[Remotion] Modo orquestrado ativo (motion templates).");
         }
         updateRenderJob(renderJobId, {
           status: "preparing",
@@ -10229,9 +10234,12 @@ async function prepareRemotionRender(
     runningStart = Math.max(runningStart, start + duration);
   }
 
-  let validScenes = scenes.filter(
-    (scene) => scene.asset || scene.type === "remotion"
-  );
+  let validScenes = useStudioRender
+    ? scenes
+    : scenes.filter(
+        (scene) =>
+          scene.asset || scene.type === "remotion" || scene.narrationText
+      );
 
   // Shotcraft: injeta motion_shot / camera_move / transições do motion plan
   let motionPlanForRender = storyboard?.motion_plan || null;
@@ -11434,9 +11442,14 @@ async function callOpenRouterWithRetry(
   );
 }
 
-// Ordem: melhores para programação/JSON e agentes primeiro (NIM free em build.nvidia.com).
+// Ordem: melhor qualidade → mais simples (NIM free em build.nvidia.com).
 // IDs testados com integrate.api.nvidia.com — modelos EOL/404 removidos.
 const NVIDIA_MODEL_OPTIONS = [
+  {
+    id: "nvidia/nemotron-3-super-120b-a12b",
+    label: "Nemotron 3 Super 120B",
+    hint: "Maior Nemotron — agentes, planning e coding pesado",
+  },
   {
     id: "minimaxai/minimax-m2.7",
     label: "MiniMax M2.7",
@@ -11448,29 +11461,19 @@ const NVIDIA_MODEL_OPTIONS = [
     hint: "Multimodal MoE — coding + tool-calling (estável)",
   },
   {
-    id: "nvidia/llama-3.3-nemotron-super-49b-v1",
-    label: "Nemotron Super 49B v1",
-    hint: "NVIDIA — reasoning, tool calling e instruções",
-  },
-  {
     id: "nvidia/llama-3.3-nemotron-super-49b-v1.5",
     label: "Nemotron Super 49B v1.5",
     hint: "NVIDIA — precisão alta em chat e function calling",
   },
   {
-    id: "nvidia/nemotron-3-nano-30b-a3b",
-    label: "Nemotron 3 Nano 30B",
-    hint: "Coding, tool calling, contexto longo",
+    id: "nvidia/llama-3.3-nemotron-super-49b-v1",
+    label: "Nemotron Super 49B v1",
+    hint: "NVIDIA — reasoning, tool calling e instruções",
   },
   {
-    id: "nvidia/nemotron-3-super-120b-a12b",
-    label: "Nemotron 3 Super 120B",
-    hint: "Agentes, planning e coding pesado",
-  },
-  {
-    id: "nvidia/mistral-nemotron",
-    label: "Mistral Nemotron",
-    hint: "Coding, instruction following e function calling",
+    id: "openai/gpt-oss-120b",
+    label: "gpt-oss-120b",
+    hint: "MoE reasoning (texto)",
   },
   {
     id: "meta/llama-3.3-70b-instruct",
@@ -11478,9 +11481,9 @@ const NVIDIA_MODEL_OPTIONS = [
     hint: "Instruções gerais e function calling",
   },
   {
-    id: "meta/llama-4-maverick-17b-128e-instruct",
-    label: "Llama 4 Maverick 17B",
-    hint: "Multimodal MoE — uso geral",
+    id: "nvidia/mistral-nemotron",
+    label: "Mistral Nemotron",
+    hint: "Coding, instruction following e function calling",
   },
   {
     id: "google/gemma-4-31b-it",
@@ -11488,9 +11491,14 @@ const NVIDIA_MODEL_OPTIONS = [
     hint: "Coding e workflows agentic",
   },
   {
-    id: "openai/gpt-oss-120b",
-    label: "gpt-oss-120b",
-    hint: "MoE reasoning (texto)",
+    id: "nvidia/nemotron-3-nano-30b-a3b",
+    label: "Nemotron 3 Nano 30B",
+    hint: "Coding, tool calling, contexto longo",
+  },
+  {
+    id: "meta/llama-4-maverick-17b-128e-instruct",
+    label: "Llama 4 Maverick 17B",
+    hint: "Multimodal MoE — uso geral",
   },
   {
     id: "openai/gpt-oss-20b",
@@ -11515,13 +11523,18 @@ const DEFAULT_NVIDIA_MODEL = NVIDIA_MODELS[0];
 
 const INFERENCE_API_BASE = "https://api.inference.net/v1";
 
-const DEFAULT_INFERENCE_MODEL = "google/gemma-3-27b-instruct/bf-16";
+const DEFAULT_INFERENCE_MODEL = "meta-llama/llama-3.3-70b-instruct";
 
 const INFERENCE_MODEL_OPTIONS = [
   {
-    id: "google/gemma-3-27b-instruct/bf-16",
-    label: "Gemma 3 27B Instruct",
-    hint: "Padrão Inference.net — bom equilíbrio velocidade/qualidade",
+    id: "meta-llama/llama-3.3-70b-instruct",
+    label: "Llama 3.3 70B Instruct",
+    hint: "Maior modelo — alto desempenho em instruções",
+  },
+  {
+    id: "deepseek/deepseek-v3",
+    label: "DeepSeek V3",
+    hint: "Modelo avançado de raciocínio",
   },
   {
     id: "qwen/qwen3-32b",
@@ -11529,14 +11542,9 @@ const INFERENCE_MODEL_OPTIONS = [
     hint: "Forte em raciocínio, código e instruções longas",
   },
   {
-    id: "meta-llama/llama-3.3-70b-instruct",
-    label: "Llama 3.3 70B Instruct",
-    hint: "Alto desempenho em tarefas de instrução",
-  },
-  {
-    id: "deepseek/deepseek-v3",
-    label: "DeepSeek V3",
-    hint: "Modelo avançado de raciocínio",
+    id: "google/gemma-3-27b-instruct/bf-16",
+    label: "Gemma 3 27B Instruct",
+    hint: "Bom equilíbrio velocidade/qualidade",
   },
   {
     id: "mistralai/mistral-small-3.1-24b-instruct-2503",
@@ -11748,11 +11756,11 @@ async function callInferenceWithRetry(
 }
 
 const XAI_MODELS = [
-  "grok-2-1212",
-  "grok-2-latest",
-  "grok-beta",
-  "grok-2",
   "grok-4.3",
+  "grok-2-latest",
+  "grok-2-1212",
+  "grok-2",
+  "grok-beta",
 ];
 
 /** Alibaba Cloud Model Studio / DashScope (Qwen) — OpenAI-compatible. */
@@ -11761,24 +11769,19 @@ const ALIBABA_DEFAULT_BASE_URL =
 
 const ALIBABA_MODEL_OPTIONS = [
   {
-    id: "qwen-plus",
-    label: "Qwen-Plus",
-    hint: "Equilíbrio custo/qualidade — padrão Model Studio",
-  },
-  {
-    id: "qwen-turbo",
-    label: "Qwen-Turbo",
-    hint: "Mais rápido e barato para volume",
+    id: "qwen3-max",
+    label: "Qwen3-Max",
+    hint: "Máxima qualidade — geração Qwen3",
   },
   {
     id: "qwen-max",
     label: "Qwen-Max",
-    hint: "Máxima qualidade Alibaba",
+    hint: "Máxima qualidade Alibaba (estável)",
   },
   {
-    id: "qwen-long",
-    label: "Qwen-Long",
-    hint: "Contexto longo (roteiros extensos)",
+    id: "qwen3-coder-plus",
+    label: "Qwen3-Coder-Plus",
+    hint: "Código / JSON estruturado",
   },
   {
     id: "qwen-plus-latest",
@@ -11786,19 +11789,24 @@ const ALIBABA_MODEL_OPTIONS = [
     hint: "Sempre a revisão mais recente do Plus",
   },
   {
+    id: "qwen-plus",
+    label: "Qwen-Plus",
+    hint: "Equilíbrio custo/qualidade — padrão Model Studio",
+  },
+  {
+    id: "qwen-long",
+    label: "Qwen-Long",
+    hint: "Contexto longo (roteiros extensos)",
+  },
+  {
     id: "qwen-turbo-latest",
     label: "Qwen-Turbo Latest",
     hint: "Revisão mais recente do Turbo",
   },
   {
-    id: "qwen3-max",
-    label: "Qwen3-Max",
-    hint: "Geração Qwen3 (se habilitada na conta)",
-  },
-  {
-    id: "qwen3-coder-plus",
-    label: "Qwen3-Coder-Plus",
-    hint: "Código / JSON estruturado",
+    id: "qwen-turbo",
+    label: "Qwen-Turbo",
+    hint: "Mais rápido e barato para volume",
   },
 ];
 
@@ -11812,28 +11820,24 @@ const DEFAULT_OPENCODE_MODEL = "deepseek-v3";
 
 const OPENCODE_MODEL_OPTIONS = [
   {
-    id: "deepseek-v3",
-    label: "DeepSeek V3",
-    hint: "Padrão — equilíbrio custo/qualidade",
-  },
-  { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash", hint: "Rápido" },
-  {
-    id: "deepseek-v4-pro",
-    label: "DeepSeek V4 Pro",
-    hint: "Máxima qualidade DeepSeek",
-  },
-  { id: "deepseek-v3.2", label: "DeepSeek V3.2", hint: "Variante V3.2" },
-  { id: "deepseek-v3.1", label: "DeepSeek V3.1", hint: "Variante V3.1" },
-  { id: "deepseek-r1", label: "DeepSeek R1", hint: "Raciocínio avançado" },
-  { id: "gpt-5.6-luna", label: "GPT-5.6 Luna", hint: "OpenAI Luna" },
-  { id: "gpt-5.6-sol", label: "GPT-5.6 Sol", hint: "OpenAI Sol" },
-  { id: "gpt-5.6-terra", label: "GPT-5.6 Terra", hint: "OpenAI Terra" },
-  { id: "gpt-5.5", label: "GPT-5.5", hint: "OpenAI GPT-5.5" },
-  { id: "gpt-5.3-codex", label: "GPT-5.3 Codex", hint: "OpenAI Codex" },
-  {
     id: "claude-opus-4-5-20251101",
     label: "Claude Opus 4.5",
-    hint: "Anthropic Opus",
+    hint: "Máxima qualidade Anthropic",
+  },
+  {
+    id: "claude-sonnet-5",
+    label: "Claude Sonnet 5",
+    hint: "Anthropic Sonnet 5",
+  },
+  {
+    id: "claude-sonnet-4-6-thinking",
+    label: "Claude Sonnet 4.6 Thinking",
+    hint: "Anthropic Sonnet 4.6 Thinking",
+  },
+  {
+    id: "claude-sonnet-4-6",
+    label: "Claude Sonnet 4.6",
+    hint: "Anthropic Sonnet 4.6",
   },
   {
     id: "claude-sonnet-4-5-20250929",
@@ -11843,26 +11847,66 @@ const OPENCODE_MODEL_OPTIONS = [
   {
     id: "claude-haiku-4-5-20251001",
     label: "Claude Haiku 4.5",
-    hint: "Anthropic Haiku 4.5",
+    hint: "Anthropic Haiku 4.5 — rápido",
   },
   {
-    id: "claude-sonnet-4-6",
-    label: "Claude Sonnet 4.6",
-    hint: "Anthropic Sonnet 4.6",
+    id: "gpt-5.6-luna",
+    label: "GPT-5.6 Luna",
+    hint: "OpenAI Luna",
   },
   {
-    id: "claude-sonnet-4-6-thinking",
-    label: "Claude Sonnet 4.6 Thinking",
-    hint: "Anthropic Sonnet 4.6 Thinking",
+    id: "gpt-5.6-sol",
+    label: "GPT-5.6 Sol",
+    hint: "OpenAI Sol",
   },
   {
-    id: "claude-sonnet-5",
-    label: "Claude Sonnet 5",
-    hint: "Anthropic Sonnet 5",
+    id: "gpt-5.6-terra",
+    label: "GPT-5.6 Terra",
+    hint: "OpenAI Terra",
   },
-  { id: "grok-4.5", label: "Grok 4.5", hint: "xAI Grok 4.5" },
-  { id: "grok-4.3", label: "Grok 4.3", hint: "xAI Grok 4.3" },
-  { id: "grok-build-0.1", label: "Grok Build 0.1", hint: "xAI Grok Build" },
+  {
+    id: "gpt-5.5",
+    label: "GPT-5.5",
+    hint: "OpenAI GPT-5.5",
+  },
+  {
+    id: "gpt-5.3-codex",
+    label: "GPT-5.3 Codex",
+    hint: "OpenAI Codex",
+  },
+  {
+    id: "grok-4.5",
+    label: "Grok 4.5",
+    hint: "xAI Grok 4.5",
+  },
+  {
+    id: "grok-4.3",
+    label: "Grok 4.3",
+    hint: "xAI Grok 4.3",
+  },
+  {
+    id: "grok-build-0.1",
+    label: "Grok Build 0.1",
+    hint: "xAI Grok Build",
+  },
+  {
+    id: "deepseek-v4-pro",
+    label: "DeepSeek V4 Pro",
+    hint: "Máxima qualidade DeepSeek",
+  },
+  {
+    id: "deepseek-v4-flash",
+    label: "DeepSeek V4 Flash",
+    hint: "Rápido",
+  },
+  {
+    id: "deepseek-v3",
+    label: "DeepSeek V3",
+    hint: "Equilíbrio custo/qualidade",
+  },
+  { id: "deepseek-v3.2", label: "DeepSeek V3.2", hint: "Variante V3.2" },
+  { id: "deepseek-v3.1", label: "DeepSeek V3.1", hint: "Variante V3.1" },
+  { id: "deepseek-r1", label: "DeepSeek R1", hint: "Raciocínio avançado" },
   { id: "kimi-k3", label: "Kimi K3", hint: "Moonshot Kimi K3" },
   { id: "kimi-k2.7-code", label: "Kimi K2.7 Code", hint: "Moonshot Kimi code" },
   { id: "kimi-k2.6", label: "Kimi K2.6", hint: "Moonshot Kimi K2.6" },
@@ -11878,8 +11922,8 @@ const OPENCODE_MODEL_OPTIONS = [
     hint: "Google Gemini 3.5 Flash",
   },
   { id: "tencent/hy3", label: "Hunyuan 3", hint: "Tencent Hunyuan" },
-  { id: "mimo-v2.5", label: "MiMo V2.5", hint: "XiaoMi MiMo" },
   { id: "mimo-v2.5-pro", label: "MiMo V2.5 Pro", hint: "XiaoMi MiMo Pro" },
+  { id: "mimo-v2.5", label: "MiMo V2.5", hint: "XiaoMi MiMo" },
   { id: "MiniMax-M3", label: "MiniMax M3", hint: "MiniMax M3" },
   { id: "MiniMax-M2.5", label: "MiniMax M2.5", hint: "MiniMax M2.5" },
   { id: "glm-5.2", label: "GLM-5.2", hint: "Zhipu GLM-5.2" },
@@ -11945,10 +11989,10 @@ function getOpenCodeModelChain(
   }
   const primary = getOpenCodeModel(projectDir);
   const fallbacks = [
-    "deepseek-v4-flash",
-    "deepseek-v3",
-    "kimi-k3",
+    "claude-opus-4-5-20251101",
+    "deepseek-v4-pro",
     "gpt-5.6-luna",
+    "kimi-k3",
   ];
   return [...new Set([primary, ...fallbacks])];
 }
@@ -12093,7 +12137,66 @@ const DEFAULT_AIRFORCE_API_KEY =
 const DEFAULT_AIRFORCE_MODEL = "deepseek-v3";
 
 const AIRFORCE_MODEL_OPTIONS = [
-  { id: "deepseek-v3", label: "DeepSeek V3", hint: "Padrão — custo/qualidade" },
+  {
+    id: "claude-opus-4.6-rp",
+    label: "Claude Opus 4.6",
+    hint: "Máxima qualidade Anthropic · 200k",
+  },
+  {
+    id: "claude-opus-4.5-rp",
+    label: "Claude Opus 4.5",
+    hint: "Anthropic Opus 4.5 · 200k",
+  },
+  {
+    id: "claude-opus-4-1",
+    label: "Claude Opus 4.1",
+    hint: "Anthropic Opus 4.1",
+  },
+  {
+    id: "o3",
+    label: "O3",
+    hint: "OpenAI O3 · topo raciocínio",
+  },
+  {
+    id: "claude-sonnet-4.6-rp",
+    label: "Claude Sonnet 4.6",
+    hint: "Anthropic · 200k ctx",
+  },
+  {
+    id: "gemini-2.5-pro",
+    label: "Gemini 2.5 Pro",
+    hint: "Google · 2M ctx · multimodal",
+  },
+  {
+    id: "gpt-oss-120b",
+    label: "GPT-OSS 120B",
+    hint: "OpenAI OSS 120B",
+  },
+  {
+    id: "grok-4.1-fast-reasoning",
+    label: "Grok 4.1 Thinking",
+    hint: "xAI raciocínio · 2M ctx",
+  },
+  {
+    id: "grok-4.1-fast-non-reasoning",
+    label: "Grok 4.1 Fast",
+    hint: "xAI · 2M ctx",
+  },
+  {
+    id: "qwen3-coder-480b-a35b",
+    label: "Qwen3 Coder 480B",
+    hint: "Alibaba coder gigante",
+  },
+  {
+    id: "deepseek-reasoner",
+    label: "DeepSeek Reasoner (R1)",
+    hint: "Raciocínio avançado",
+  },
+  {
+    id: "deepseek-v3",
+    label: "DeepSeek V3",
+    hint: "Custo/qualidade",
+  },
   {
     id: "deepseek-v3-0324",
     label: "DeepSeek V3 (Mar 24)",
@@ -12105,14 +12208,9 @@ const AIRFORCE_MODEL_OPTIONS = [
     hint: "Rápido e barato",
   },
   {
-    id: "deepseek-reasoner",
-    label: "DeepSeek Reasoner (R1)",
-    hint: "Raciocínio avançado",
-  },
-  {
-    id: "claude-sonnet-4.6-rp",
-    label: "Claude Sonnet 4.6",
-    hint: "Anthropic · 200k ctx",
+    id: "claude-sonnet-4-20250514",
+    label: "Claude Sonnet 4 (May25)",
+    hint: "Anthropic Sonnet 4",
   },
   {
     id: "claude-haiku-4.5",
@@ -12120,76 +12218,38 @@ const AIRFORCE_MODEL_OPTIONS = [
     hint: "Rápido Anthropic · 200k",
   },
   {
-    id: "claude-sonnet-4-20250514",
-    label: "Claude Sonnet 4 (May25)",
-    hint: "Anthropic Sonnet 4",
+    id: "qwen3-coder",
+    label: "Qwen3 Coder",
+    hint: "Alibaba coder",
   },
-  {
-    id: "claude-opus-4-1",
-    label: "Claude Opus 4.1",
-    hint: "Máxima qualidade Anthropic",
-  },
-  {
-    id: "claude-opus-4.5-rp",
-    label: "Claude Opus 4.5",
-    hint: "Anthropic Opus 4.5 · 200k",
-  },
-  {
-    id: "claude-opus-4.6-rp",
-    label: "Claude Opus 4.6",
-    hint: "Anthropic Opus 4.6 · 200k",
-  },
-  { id: "gpt-4o-mini", label: "GPT-4o Mini", hint: "OpenAI rápido e barato" },
-  { id: "gpt-4-0125", label: "GPT-4 (0125)", hint: "GPT-4 Turbo Preview" },
-  { id: "gpt-oss-20b", label: "GPT-OSS 20B", hint: "OpenAI OSS · raciocínio" },
-  { id: "gpt-oss-120b", label: "GPT-OSS 120B", hint: "OpenAI OSS 120B" },
-  { id: "o3", label: "O3", hint: "OpenAI O3 · topo raciocínio" },
-  {
-    id: "grok-4.1-fast-non-reasoning",
-    label: "Grok 4.1 Fast",
-    hint: "xAI · 2M ctx",
-  },
-  {
-    id: "grok-4.1-fast-reasoning",
-    label: "Grok 4.1 Thinking",
-    hint: "xAI raciocínio · 2M ctx",
-  },
-  {
-    id: "gemini-2.5-pro",
-    label: "Gemini 2.5 Pro",
-    hint: "Google · 2M ctx · multimodal",
-  },
-  {
-    id: "gemma3-270m:free",
-    label: "Gemma 3 270M (free)",
-    hint: "Google open-weight grátis",
-  },
-  { id: "qwen3", label: "Qwen3 4B", hint: "Alibaba Qwen3" },
   {
     id: "qwen3-vl-30b-a3b",
     label: "Qwen3 VL 30B",
     hint: "Alibaba multimodal 30B",
   },
-  { id: "qwen3-coder", label: "Qwen3 Coder", hint: "Alibaba coder" },
+  { id: "gpt-oss-20b", label: "GPT-OSS 20B", hint: "OpenAI OSS · raciocínio" },
+  { id: "gpt-4-0125", label: "GPT-4 (0125)", hint: "GPT-4 Turbo Preview" },
+  { id: "gpt-4o-mini", label: "GPT-4o Mini", hint: "OpenAI rápido e barato" },
   {
-    id: "qwen3-coder-480b-a35b",
-    label: "Qwen3 Coder 480B",
-    hint: "Alibaba coder gigante",
+    id: "seed-rp",
+    label: "Seed RP (ByteDance)",
+    hint: "ByteDance Seed · 524k ctx",
   },
   {
     id: "moonshot-v1-128k-vision",
     label: "Moonshot V1 128K",
     hint: "Moonshot 128K context",
   },
-  { id: "glm-4.7-flash", label: "GLM-4.7 Flash", hint: "Z.AI GLM rápido" },
   { id: "minimax-m2.5", label: "MiniMax M2.5", hint: "MiniMax 245k ctx" },
-  { id: "unmoderated-gpt", label: "GPT Unmoderated", hint: "Sem moderação" },
-  { id: "rnj-1", label: "RNJ-1 (Essential AI)", hint: "Essential AI" },
+  { id: "glm-4.7-flash", label: "GLM-4.7 Flash", hint: "Z.AI GLM rápido" },
+  { id: "qwen3", label: "Qwen3 4B", hint: "Alibaba Qwen3" },
   {
-    id: "seed-rp",
-    label: "Seed RP (ByteDance)",
-    hint: "ByteDance Seed · 524k ctx",
+    id: "gemma3-270m:free",
+    label: "Gemma 3 270M (free)",
+    hint: "Google open-weight grátis",
   },
+  { id: "rnj-1", label: "RNJ-1 (Essential AI)", hint: "Essential AI" },
+  { id: "unmoderated-gpt", label: "GPT Unmoderated", hint: "Sem moderação" },
   {
     id: "plutotext-r3-emotional",
     label: "PlutoText R3 Emotional",
@@ -12410,14 +12470,12 @@ function getOmniRouteModelChain(
   let fallbacks = [];
   const cleanPrimary = String(primary || "").replace(/^gemini\//i, "");
   if (/^gemini/i.test(primary) || /^gemini/i.test(cleanPrimary)) {
-    fallbacks = [
-      "gemini-3.5-flash",
-      "gemini-2.5-pro",
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-    ].filter((m) => m !== cleanPrimary);
+    // Máximo 3 fallbacks para não multiplicar tempo de espera
+    fallbacks = ["gemini-2.5-pro", "gemini-3.6-flash", "gemini-2.5-flash"]
+      .filter((m) => m !== cleanPrimary)
+      .slice(0, 3);
   } else {
-    fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 3);
+    fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 2);
   }
   const prefixed = [primary, ...fallbacks].map((m) => {
     if (/^gemini-/i.test(m) && !m.includes("/")) return `gemini/${m}`;
@@ -12469,9 +12527,12 @@ async function callOmniRouteWithRetry(
         if (apiKey) {
           headers["Authorization"] = `Bearer ${apiKey}`;
         }
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 45000);
         const response = await fetch(`${baseUrl}/chat/completions`, {
           method: "POST",
           headers,
+          signal: controller.signal,
           body: JSON.stringify({
             model,
             messages,
@@ -12480,6 +12541,7 @@ async function callOmniRouteWithRetry(
             ...(temperature !== null ? { temperature } : {}),
           }),
         });
+        clearTimeout(timeoutId);
         const ms = Date.now() - t0;
         if (response.ok) {
           const result = await response.json();
@@ -12517,16 +12579,19 @@ async function callOmniRouteWithRetry(
         if (response.status === 404 || response.status === 400) break;
         if (response.status === 503 || response.status === 429) {
           await new Promise((r) =>
-            setTimeout(r, Math.min(1500 * Math.pow(2, attempt - 1), 10000))
+            setTimeout(r, Math.min(800 * Math.pow(2, attempt - 1), 4000))
           );
           continue;
         }
         break;
       } catch (err) {
         lastError = err;
+        const isTimeout = err?.name === "AbortError";
         console.warn(
-          `[OmniRoute] Erro na tentativa ${attempt} para ${model}: ${err.message}`
+          `[OmniRoute] ${isTimeout ? "Timeout (45s)" : "Erro"} na tentativa ${attempt} para ${model}: ${err.message}`
         );
+        // Timeout = gateway lento, pula direto para o próximo modelo
+        if (isTimeout) break;
         await new Promise((r) => setTimeout(r, Math.min(400 * attempt, 1200)));
       }
     }
@@ -12545,38 +12610,38 @@ const DEFAULT_MOONAI_API_KEY = "moon-ai-vrmc2tb733k9m1z5vlccwpb2";
 const DEFAULT_MOONAI_MODEL = "gpt-5-4";
 
 const MOONAI_MODEL_OPTIONS = [
-  { id: "gpt-5-4", label: "GPT-5.4", hint: "Padrão Moon-AI" },
   {
     id: "claude-sonnet-5",
     label: "Claude Sonnet 5",
-    hint: "Anthropic Sonnet 5",
+    hint: "Máxima qualidade — Anthropic Sonnet 5",
   },
   { id: "gpt-5-6-luna", label: "GPT-5.6 Luna", hint: "OpenAI Luna" },
   { id: "gpt-5-6-terra", label: "GPT-5.6 Terra", hint: "OpenAI Terra" },
   { id: "gpt-5-6-sol", label: "GPT-5.6 Sol", hint: "OpenAI Sol" },
   { id: "gpt-5-5", label: "GPT-5.5", hint: "OpenAI GPT-5.5" },
-  {
-    id: "deepseek-v3-2",
-    label: "DeepSeek V3.2",
-    hint: "DeepSeek V3 variante 2",
-  },
+  { id: "gpt-5-4", label: "GPT-5.4", hint: "Padrão Moon-AI" },
   {
     id: "deepseek-v4-flash",
     label: "DeepSeek V4 Flash",
     hint: "Rápido e eficiente",
   },
-  { id: "kimi-k2-5", label: "Kimi K2.5", hint: "Moonshot Kimi K2.5" },
+  {
+    id: "deepseek-v3-2",
+    label: "DeepSeek V3.2",
+    hint: "DeepSeek V3 variante 2",
+  },
   { id: "gpt-oss-120b", label: "GPT-OSS 120B", hint: "OpenAI OSS 120B" },
+  { id: "qwen-3-6-plus", label: "Qwen 3.6 Plus", hint: "Alibaba Qwen 3.6+" },
+  { id: "kimi-k2-5", label: "Kimi K2.5", hint: "Moonshot Kimi K2.5" },
   {
     id: "llama-3-3-70b-instruct",
     label: "Llama 3.3 70B",
     hint: "Meta Llama 70B instruct",
   },
-  { id: "glm-5-1", label: "GLM-5.1", hint: "Z.AI GLM-5.1" },
-  { id: "glm-4-7-flash", label: "GLM-4.7 Flash", hint: "Z.AI rápido" },
-  { id: "glm-4-7", label: "GLM-4.7", hint: "Z.AI GLM-4.7" },
-  { id: "qwen-3-6-plus", label: "Qwen 3.6 Plus", hint: "Alibaba Qwen 3.6+" },
   { id: "grok-3", label: "Grok 3", hint: "xAI Grok 3" },
+  { id: "glm-5-1", label: "GLM-5.1", hint: "Z.AI GLM-5.1" },
+  { id: "glm-4-7", label: "GLM-4.7", hint: "Z.AI GLM-4.7" },
+  { id: "glm-4-7-flash", label: "GLM-4.7 Flash", hint: "Z.AI rápido" },
 ];
 
 const MOONAI_MODELS = MOONAI_MODEL_OPTIONS.map((o) => o.id);
@@ -12737,14 +12802,14 @@ const TOKENROUTER_DEFAULT_BASE_URL = "https://api.tokenrouter.com/v1";
 
 const TOKENROUTER_MODEL_OPTIONS = [
   {
-    id: "z-ai/glm-5.2-free",
-    label: "GLM-5.2 Free (Z.AI)",
-    hint: "Padrão free TokenRouter — bom para volume",
+    id: "anthropic/claude-fable-5",
+    label: "Claude Fable 5",
+    hint: "Máxima qualidade — Claude via TokenRouter",
   },
   {
-    id: "openai/gpt-5.4-nano",
-    label: "GPT-5.4 Nano",
-    hint: "Rápido e barato",
+    id: "x-ai/grok-4.20-beta",
+    label: "Grok 4.20 Beta",
+    hint: "xAI Grok via TokenRouter",
   },
   {
     id: "openai/gpt-5.6-luna",
@@ -12752,9 +12817,9 @@ const TOKENROUTER_MODEL_OPTIONS = [
     hint: "Qualidade OpenAI via TokenRouter",
   },
   {
-    id: "qwen/qwen3.5-plus-02-15",
-    label: "Qwen 3.5 Plus",
-    hint: "Bom equilíbrio para roteiros PT",
+    id: "deepseek/deepseek-v4-pro",
+    label: "DeepSeek V4 Pro",
+    hint: "Forte em raciocínio / código",
   },
   {
     id: "qwen/qwen3.7-max",
@@ -12762,14 +12827,14 @@ const TOKENROUTER_MODEL_OPTIONS = [
     hint: "Máxima qualidade Qwen",
   },
   {
-    id: "qwen/qwen3.5-9b",
-    label: "Qwen 3.5 9B",
-    hint: "Leve e rápido",
+    id: "openai/gpt-5.4-nano",
+    label: "GPT-5.4 Nano",
+    hint: "Rápido e barato",
   },
   {
-    id: "deepseek/deepseek-v4-pro",
-    label: "DeepSeek V4 Pro",
-    hint: "Forte em raciocínio / código",
+    id: "qwen/qwen3.5-plus-02-15",
+    label: "Qwen 3.5 Plus",
+    hint: "Bom equilíbrio para roteiros PT",
   },
   {
     id: "MiniMax-M3",
@@ -12777,14 +12842,14 @@ const TOKENROUTER_MODEL_OPTIONS = [
     hint: "Modelo MiniMax via TokenRouter",
   },
   {
-    id: "anthropic/claude-fable-5",
-    label: "Claude Fable 5",
-    hint: "Claude via TokenRouter",
+    id: "qwen/qwen3.5-9b",
+    label: "Qwen 3.5 9B",
+    hint: "Leve e rápido",
   },
   {
-    id: "x-ai/grok-4.20-beta",
-    label: "Grok 4.20 Beta",
-    hint: "xAI Grok via TokenRouter",
+    id: "z-ai/glm-5.2-free",
+    label: "GLM-5.2 Free (Z.AI)",
+    hint: "Free TokenRouter — bom para volume",
   },
 ];
 
@@ -12872,20 +12937,32 @@ async function callXaiWithRetry(
 }
 
 // Gemini API call with automatic retry and model fallback for 503/429 errors
-// Default = melhor Flash atual; FALLBACKS em qualidade decrescente se o anterior falhar.
+// Default = Flash mais recente; FALLBACKS em ordem de qualidade (melhor → mais simples).
+// Fonte: ai.google.dev/gemini-api/docs/models (jul/2026).
+// Removidos: gemini-2.0-flash (shut down), gemini-3.1-flash-lite (shut down).
 
-const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-3.6-flash";
 
 const GEMINI_MODEL_OPTIONS = [
   {
-    id: "gemini-3.5-flash",
-    label: "Gemini 3.5 Flash",
-    hint: "Padrão · mais recente, multimodal e melhor equilíbrio",
-  },
-  {
     id: "gemini-2.5-pro",
     label: "Gemini 2.5 Pro",
-    hint: "Raciocínio avançado (mais lento/caro)",
+    hint: "Máxima qualidade · raciocínio profundo e coding complexo",
+  },
+  {
+    id: "gemini-3.6-flash",
+    label: "Gemini 3.6 Flash",
+    hint: "Mais recente · equilíbrio velocidade/inteligência (agentic + multimodal)",
+  },
+  {
+    id: "gemini-3.5-flash",
+    label: "Gemini 3.5 Flash",
+    hint: "Fronteira sustentada · agentic e coding",
+  },
+  {
+    id: "gemini-3.1-pro-preview",
+    label: "Gemini 3.1 Pro (Preview)",
+    hint: "Inteligência avançada · resolução complexa (preview)",
   },
   {
     id: "gemini-2.5-flash",
@@ -12893,9 +12970,14 @@ const GEMINI_MODEL_OPTIONS = [
     hint: "Rápido, estável, contexto 1M",
   },
   {
-    id: "gemini-3.1-flash-lite",
-    label: "Gemini 3.1 Flash-Lite",
-    hint: "Leve e econômico",
+    id: "gemini-3-flash-preview",
+    label: "Gemini 3 Flash (Preview)",
+    hint: "Fronteira a fração do custo (preview)",
+  },
+  {
+    id: "gemini-3.5-flash-lite",
+    label: "Gemini 3.5 Flash-Lite",
+    hint: "Mais rápido e econômico da família 3.5",
   },
   {
     id: "gemini-2.5-flash-lite",
@@ -12903,20 +12985,27 @@ const GEMINI_MODEL_OPTIONS = [
     hint: "Alto volume / fallback barato",
   },
   {
-    id: "gemini-2.0-flash",
-    label: "Gemini 2.0 Flash",
-    hint: "Fallback legado estável",
+    id: "gemini-flash-latest",
+    label: "Gemini Flash Latest",
+    hint: "Alias — sempre o Flash mais recente",
+  },
+  {
+    id: "gemini-pro-latest",
+    label: "Gemini Pro Latest",
+    hint: "Alias — sempre o Pro mais recente",
   },
 ];
 
-/** Cadeia de rotação: do melhor Flash atual → qualidade menor se 503/429/indisponível. */
+/** Cadeia de rotação: melhor qualidade → mais simples se 503/429/indisponível. */
 const GEMINI_MODEL_FALLBACKS = [
-  "gemini-3.5-flash",
   "gemini-2.5-pro",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3.1-pro-preview",
   "gemini-2.5-flash",
-  "gemini-3.1-flash-lite",
+  "gemini-3-flash-preview",
+  "gemini-3.5-flash-lite",
   "gemini-2.5-flash-lite",
-  "gemini-2.0-flash",
   "gemini-flash-latest",
   "gemini-pro-latest",
 ];
@@ -13169,6 +13258,8 @@ async function callGeminiWithRetry(
   const modelChain = getGeminiModelChain(
     projDir,
     provider === "gemini" ? geminiModelsOnly : null
+  ).map((m) =>
+    provider === "gemini" ? String(m).replace(/^gemini\//i, "") : m
   );
 
   let modelsTriedPreview = modelChain;
@@ -13429,14 +13520,21 @@ async function callGeminiWithRetry(
               `[Gemini] modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt}/${maxRetries}`
             );
             totalHttpAttempts += 1;
+            const geminiController = new AbortController();
+            const geminiTimeoutId = setTimeout(
+              () => geminiController.abort(),
+              60000
+            );
             const response = await fetch(
               `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentKey}`,
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                signal: geminiController.signal,
                 body: JSON.stringify(requestBody),
               }
             );
+            clearTimeout(geminiTimeoutId);
             const attemptMs = Date.now() - attemptStartedAt;
 
             if (response.ok) {
@@ -14154,6 +14252,7 @@ function getMinimaxModel(projectDir = WORKSPACE_DIR) {
   const config = readJsonFile(path.join(projectDir, "config_qanat.json"));
   return String(config?.minimax_model || "").trim() || "minimax-m3";
 }
+const MINIMAX_MODELS = ["minimax-m3", "minimax-m2.7", "minimax-m2.5"];
 function getMinimaxModelChain(
   projectDir = WORKSPACE_DIR,
   modelsOverride = null
@@ -21061,43 +21160,18 @@ app.post(
   "/api/ai/creator/generate-express-short",
   asyncHandler(async (req, res) => {
     const projDir = getProjectDir(req);
+    const inputValidation = validateCreatorExpressInput(req.body || {});
+    if (!inputValidation.ok) {
+      return res.status(400).json({ error: inputValidation.error });
+    }
+
     const {
-      theme = "",
-      niche = "",
-      tone = "conversacional",
-      project = "",
-    } = req.body || {};
-
-    if (!theme.trim() || !niche.trim() || !project.trim()) {
-      return res
-        .status(400)
-        .json({ error: "Tema, nicho e nome do projeto são obrigatórios." });
-    }
-
-    const safeProjectName = project.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+      theme,
+      niche,
+      tone,
+      project: safeProjectName,
+    } = inputValidation.value;
     const targetProjDir = path.join(SHORTS_DIR, safeProjectName);
-
-    // Create project directory structure if not exists
-    if (!fs.existsSync(targetProjDir)) {
-      try {
-        fs.mkdirSync(targetProjDir, { recursive: true });
-        fs.mkdirSync(path.join(targetProjDir, "ASSETS"), { recursive: true });
-        fs.mkdirSync(path.join(targetProjDir, "OUTPUT"), { recursive: true });
-        ensureProjectSfxPack(targetProjDir);
-        ensureFileExists("build_video.py", targetProjDir);
-        ensureFileExists("build_video_destacado.py", targetProjDir);
-        ensureFileExists("mix_bgm.py", targetProjDir);
-        ensureFileExists("find_block_timings.py", targetProjDir);
-        ensureFileExists("align_transcripts.py", targetProjDir);
-        const rootLogoPath = path.join(WORKSPACE_DIR, "ASSETS", "logo.png");
-        const destLogoPath = path.join(targetProjDir, "ASSETS", "logo.png");
-        if (fs.existsSync(rootLogoPath)) {
-          fs.copyFileSync(rootLogoPath, destLogoPath);
-        }
-      } catch (err) {
-        console.error("Erro ao criar pasta do projeto Express:", err);
-      }
-    }
 
     const promptSystem = `Você é o "AI Video Creator Engine" do Lumiera, um roteirista especializado em YouTube Shorts de alta retenção.
 Gerencie a criação de um roteiro curto em português do Brasil (PT-BR) para um YouTube Short seguindo as seguintes diretrizes fornecidas pelo usuário:
@@ -21159,6 +21233,32 @@ Importante: A saída DEVE ser um objeto JSON estrito com o seguinte esquema (nã
       getApiKey(targetProjDir) || getApiKey(projDir),
       "Roteiro express"
     );
+
+    const payloadValidation = validateCreatorExpressPayload(parsed);
+    if (!payloadValidation.ok) {
+      return res.status(502).json({
+        error: `Resposta inválida da IA: ${payloadValidation.reason}.`,
+      });
+    }
+
+    // Persist only after Gemini returned a valid narration. Browser-mode offers and
+    // malformed AI responses must not leave empty project directories behind.
+    if (!fs.existsSync(targetProjDir)) {
+      fs.mkdirSync(targetProjDir, { recursive: true });
+      fs.mkdirSync(path.join(targetProjDir, "ASSETS"), { recursive: true });
+      fs.mkdirSync(path.join(targetProjDir, "OUTPUT"), { recursive: true });
+      ensureProjectSfxPack(targetProjDir);
+      ensureFileExists("build_video.py", targetProjDir);
+      ensureFileExists("build_video_destacado.py", targetProjDir);
+      ensureFileExists("mix_bgm.py", targetProjDir);
+      ensureFileExists("find_block_timings.py", targetProjDir);
+      ensureFileExists("align_transcripts.py", targetProjDir);
+      const rootLogoPath = path.join(WORKSPACE_DIR, "ASSETS", "logo.png");
+      const destLogoPath = path.join(targetProjDir, "ASSETS", "logo.png");
+      if (fs.existsSync(rootLogoPath)) {
+        fs.copyFileSync(rootLogoPath, destLogoPath);
+      }
+    }
 
     // Save configuration and initial wizard state inside project config
     const configPath = path.join(targetProjDir, "config_qanat.json");
@@ -26142,6 +26242,9 @@ registerRemotionTemplateStudioRoutes(app, {
   callGemini: (projDir, prompt, opts) =>
     callGeminiWithRetry(getApiKey(projDir), prompt, opts),
 });
+
+// Template Store (PostgreSQL) — Editor do Lumiera
+app.use("/api/templates", templateRoutes);
 registerYoutubeQualityGateRoutes(app, {
   workspaceDir: WORKSPACE_DIR,
   projectsRoot: PROJECTS_ROOT,

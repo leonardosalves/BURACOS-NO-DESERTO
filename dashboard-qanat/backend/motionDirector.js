@@ -168,7 +168,8 @@ export function buildMotionPlan({
         isShorts ? "trailer-grammar-moves" : "brand-ink-open",
         {
           dados: {},
-          narration: storyboard.strategy?.hook || storyboard.strategy?.title_main || "",
+          narration:
+            storyboard.strategy?.hook || storyboard.strategy?.title_main || "",
           palette: nichePrefs.palette,
           scene: {},
           format: fmt,
@@ -219,6 +220,14 @@ export function buildMotionPlan({
         })
       : { palette: nichePrefs.palette };
 
+    // Timing: overlay entra no momento do dado na fala (heurística)
+    // e dura o minDuration do card (fallback 4s).
+    const hasNumericData = Boolean(dados?.valor);
+    const startSeconds = hasNumericData ? 0.9 : 1.2;
+    const durationSeconds = card
+      ? Number(card.minDurationSec) || Number(card.maxDurationSec) || 4
+      : 4;
+
     plan.cenas.push({
       scene_ref: scene.scene || scene.scene_id || i + 1,
       scene_functions: functions,
@@ -229,11 +238,11 @@ export function buildMotionPlan({
             style: card.styles?.[0],
             props,
             palette: nichePrefs.palette,
+            start_seconds: startSeconds,
+            duration_seconds: durationSeconds,
           }
         : null,
-      camera_move: card
-        ? null
-        : nichePrefs.camera_padrao || "slow-push-in",
+      camera_move: card ? null : nichePrefs.camera_padrao || "slow-push-in",
       transicao_entrada:
         i === 0 ? "shot-transitions" : escolherTransicao(i, nichePrefs),
       transicao_style: i === 0 ? "flash-cut" : undefined,
@@ -248,9 +257,7 @@ export function buildMotionPlan({
  */
 export function applyMotionPlanToStoryboard(storyboard = {}, plan) {
   if (!plan?.cenas?.length) return storyboard;
-  const byRef = new Map(
-    plan.cenas.map((c) => [String(c.scene_ref), c])
-  );
+  const byRef = new Map(plan.cenas.map((c) => [String(c.scene_ref), c]));
   const visual_prompts = (storyboard.visual_prompts || []).map((vp, i) => {
     const key = String(vp.scene || vp.scene_id || i + 1);
     const motion = byRef.get(key) || plan.cenas[i];
@@ -345,7 +352,13 @@ export function applyMotionOverrides(plan, overrides = {}) {
   if (!plan || typeof plan !== "object") return plan;
   const merged = JSON.parse(JSON.stringify(plan));
 
-  if (overrides.abertura) Object.assign(merged.abertura || {}, overrides.abertura);
+  if (overrides.palette && typeof overrides.palette === "object") {
+    merged.palette = { ...(merged.palette || {}), ...overrides.palette };
+  }
+  if (overrides.niche) merged.niche = overrides.niche;
+
+  if (overrides.abertura)
+    Object.assign(merged.abertura || {}, overrides.abertura);
   if (overrides.encerramento)
     Object.assign(merged.encerramento || {}, overrides.encerramento);
 
@@ -365,6 +378,16 @@ export function applyMotionOverrides(plan, overrides = {}) {
         cena.motion_shot.templateId = ov.templateId;
         if (ov.style) cena.motion_shot.style = ov.style;
         if (ov.palette) cena.motion_shot.palette = ov.palette;
+        if (ov.start_seconds != null) {
+          cena.motion_shot.start_seconds = Number(ov.start_seconds);
+        }
+        if (ov.duration_seconds != null) {
+          cena.motion_shot.duration_seconds = Number(ov.duration_seconds);
+        }
+      }
+      // Palette-only override (sem trocar template)
+      if (ov.palette && cena.motion_shot && !ov.templateId) {
+        cena.motion_shot.palette = ov.palette;
       }
       if (ov.props && cena.motion_shot) {
         cena.motion_shot.props = {

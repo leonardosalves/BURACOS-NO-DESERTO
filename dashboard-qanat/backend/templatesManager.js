@@ -3,7 +3,9 @@
  *
  * USO no server.js:
  *   import templatesRouter from "./templatesManager.js";
- *   app.use("/api/templates", templatesRouter);
+ *   app.use("/api/channel-templates", templatesRouter);
+ *
+ * Nota: /api/templates é reservado ao Template Store (motion templates PostgreSQL).
  */
 
 import { Router } from "express";

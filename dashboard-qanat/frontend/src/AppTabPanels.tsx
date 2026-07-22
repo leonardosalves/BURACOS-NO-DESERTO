@@ -16,7 +16,7 @@ import { ProjectHealthPanel } from "./ProjectHealthPanel";
 import { AppDocsTab } from "./AppDocsTab";
 import { AppToolsTab } from "./AppToolsTab";
 import { FlowLabPage } from "./FlowLabPage";
-import { RemotionTemplateStudio } from "./RemotionTemplateStudio";
+import { LumieraEditor } from "./LumieraEditor";
 import toast from "react-hot-toast";
 import {
   Bot,
@@ -522,21 +522,17 @@ export function AppTabPanels({
       )}
 
       {activeTab === "templates" && (
-        <TabErrorBoundary tabName="Templates Remotion">
+        <TabErrorBoundary tabName="Editor do Lumiera">
           <DashminPageLayout
-            title="Remotion Template Studio"
-            subtitle="Biblioteca por nicho, categoria e formato para a IA orquestrar apenas templates aprovados."
-            breadcrumb={["Dashboard", "Estudio", "Templates"]}
+            title="Editor do Lumiera"
+            subtitle="Editor de motion templates por nicho, categoria e formato. Timeline multi-track com preview ao vivo."
+            breadcrumb={["Dashboard", "Estudio", "Editor do Lumiera"]}
             icon={<LayoutTemplate className="w-5 h-5" />}
           >
-            <Suspense
-              fallback={<TabPanelFallback label="Carregando templates..." />}
-            >
-              <RemotionTemplateStudio
-                activeProject={activeProject}
-                projectNiche={config?.niche || nicheInput || "Engenharia"}
-              />
-            </Suspense>
+            <LumieraEditor
+              activeProject={activeProject}
+              projectNiche={config?.niche || nicheInput || "Engenharia"}
+            />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}
