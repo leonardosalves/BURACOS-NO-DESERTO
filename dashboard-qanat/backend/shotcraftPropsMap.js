@@ -26,7 +26,91 @@ function extrairPalavraChave(narration) {
 }
 
 function toNum(v) {
-  return Number(String(v || "0").replace(/\./g, "").replace(",", ".")) || 0;
+  return (
+    Number(
+      String(v || "0")
+        .replace(/\./g, "")
+        .replace(",", ".")
+    ) || 0
+  );
+}
+
+/**
+ * Normaliza props do motion_shot para o ShotcraftLayer parameterizado.
+ * Aceita chaves PT (valor/unidade) e formatos legados (dataPoints/columns).
+ */
+export function normalizeMotionShotProps(props = {}) {
+  const p =
+    props && typeof props === "object" && !Array.isArray(props)
+      ? { ...props }
+      : {};
+
+  if (
+    (p.value == null || p.value === "") &&
+    p.valor != null &&
+    p.valor !== ""
+  ) {
+    const n = toNum(p.valor);
+    p.value = n || p.valor;
+  }
+  if (typeof p.value === "string" && p.value.trim() !== "") {
+    const n = toNum(p.value);
+    if (n || p.value === "0") p.value = n;
+  }
+  if (!p.unit && p.unidade) p.unit = p.unidade;
+  if (!p.label && p.titulo) p.label = p.titulo;
+  if (!p.title && p.label) p.title = p.label;
+
+  if (
+    (!Array.isArray(p.items) || !p.items.length) &&
+    Array.isArray(p.dataPoints)
+  ) {
+    p.items = p.dataPoints.map((v, i) =>
+      v && typeof v === "object"
+        ? {
+            label: v.label || String(i + 1),
+            value: toNum(v.value ?? v.valor ?? v),
+          }
+        : { label: String(i + 1), value: toNum(v) }
+    );
+  }
+  if (
+    (!Array.isArray(p.items) || !p.items.length) &&
+    Array.isArray(p.columns)
+  ) {
+    p.items = p.columns.map((c, i) => ({
+      label: c?.label || String(i + 1),
+      value: toNum(c?.value ?? c?.valor),
+    }));
+  }
+
+  return p;
+}
+
+/**
+ * Normaliza um motion_shot completo (props + timing defaults).
+ */
+export function normalizeMotionShot(shot) {
+  if (!shot || typeof shot !== "object") return shot;
+  const props = normalizeMotionShotProps(shot.props || {});
+  const next = {
+    ...shot,
+    props,
+  };
+  if (next.start_seconds == null || Number.isNaN(Number(next.start_seconds))) {
+    next.start_seconds = props.value != null && props.value !== "" ? 0.9 : 1.2;
+  } else {
+    next.start_seconds = Number(next.start_seconds);
+  }
+  if (
+    next.duration_seconds == null ||
+    Number.isNaN(Number(next.duration_seconds))
+  ) {
+    next.duration_seconds = 4;
+  } else {
+    next.duration_seconds = Number(next.duration_seconds);
+  }
+  return next;
 }
 
 export const SHOTCRAFT_PROPS_MAP = {
@@ -137,15 +221,34 @@ export const SHOTCRAFT_PROPS_MAP = {
   "chart-live-moves": {
     propsSchema: {
       dataPoints: "array",
+      items: "array",
       style: "string",
       label: "string",
+      title: "string",
     },
-    buildProps: (ctx) => ({
-      dataPoints: ctx.scene?.data_points || [toNum(ctx.dados?.valor) || 50],
-      style: ctx.scene?.chart_style || "oscilloscope-stream",
-      label: resumo(ctx.narration, 40),
-      palette: ctx.palette,
-    }),
+    buildProps: (ctx) => {
+      const rawPoints = ctx.scene?.data_points ||
+        ctx.scene?.chart_items || [toNum(ctx.dados?.valor) || 50];
+      const items = Array.isArray(rawPoints)
+        ? rawPoints.map((v, i) =>
+            v && typeof v === "object"
+              ? {
+                  label: v.label || String(i + 1),
+                  value: toNum(v.value ?? v.valor ?? v),
+                }
+              : { label: String(i + 1), value: toNum(v) }
+          )
+        : [{ label: "1", value: toNum(rawPoints) }];
+      const label = resumo(ctx.narration, 40);
+      return {
+        dataPoints: rawPoints,
+        items,
+        style: ctx.scene?.chart_style || "oscilloscope-stream",
+        label,
+        title: label,
+        palette: ctx.palette,
+      };
+    },
   },
   "gauge-readout-moves": {
     propsSchema: {
@@ -156,15 +259,18 @@ export const SHOTCRAFT_PROPS_MAP = {
       label: "string",
       style: "string",
     },
-    buildProps: (ctx) => ({
-      value: toNum(ctx.dados?.valor),
-      min: ctx.scene?.gauge_min || 0,
-      max: ctx.scene?.gauge_max || Math.max(toNum(ctx.dados?.valor) * 1.5, 100),
-      unit: ctx.dados?.unidade || "",
-      label: resumo(ctx.narration, 30),
-      style: ctx.scene?.gauge_style || "needle-sweep-selftest",
-      palette: ctx.palette,
-    }),
+    buildProps: (ctx) => {
+      const value = toNum(ctx.dados?.valor);
+      return {
+        value,
+        min: ctx.scene?.gauge_min || 0,
+        max: ctx.scene?.gauge_max || Math.max(value * 1.5, 100),
+        unit: ctx.dados?.unidade || "%",
+        label: resumo(ctx.narration, 30),
+        style: ctx.scene?.gauge_style || "needle-sweep-selftest",
+        palette: ctx.palette,
+      };
+    },
   },
   "spotlight-hero-card": {
     propsSchema: { card: "object", contextCards: "array" },
@@ -296,15 +402,18 @@ export const SHOTCRAFT_PROPS_MAP = {
 export function buildShotProps(templateId, ctx) {
   const entry = SHOTCRAFT_PROPS_MAP[templateId];
   if (!entry) {
-    return { palette: ctx.palette, label: resumo(ctx.narration, 50) };
+    return normalizeMotionShotProps({
+      palette: ctx.palette,
+      label: resumo(ctx.narration, 50),
+    });
   }
   try {
-    return entry.buildProps(ctx);
+    return normalizeMotionShotProps(entry.buildProps(ctx) || {});
   } catch (err) {
     console.warn(
       `[shotcraftPropsMap] falha em ${templateId}: ${err?.message || err}`
     );
-    return { palette: ctx.palette };
+    return normalizeMotionShotProps({ palette: ctx.palette });
   }
 }
 

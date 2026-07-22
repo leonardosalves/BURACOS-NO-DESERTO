@@ -18,7 +18,9 @@ import { attachStudioOverlayMeta } from "../shared/studioOverlayLayers.js";
 import {
   buildMotionPlan,
   applyMotionPlanToStoryboard,
+  motionPlanFromStoryboard,
 } from "./motionDirector.js";
+import { normalizeMotionShot } from "./shotcraftPropsMap.js";
 import { tagStoryboardWithMotion } from "./creatorSceneTagger.js";
 
 function clipsOnTrack(clips, trackId) {
@@ -52,10 +54,8 @@ export function loadStudioForRender(projDir) {
 export function shouldUseStudioForRender(studio) {
   if (!studio || !Array.isArray(studio.clips) || studio.clips.length === 0)
     return false;
-  if (studio.updatedAt) return true;
-  return studio.clips.some(
-    (c) => c.trackId === "video" && String(c.source || "").trim()
-  );
+  // Só usa Studio se tiver pelo menos 1 clip na track "video"
+  return studio.clips.some((c) => c.trackId === "video");
 }
 
 function inferAssetType(clip) {
@@ -228,9 +228,7 @@ export function buildScenesFromStudio(
     fillSceneTimelineGaps,
   }
 ) {
-  const videoClips = clipsOnTrack(studio.clips, "video").filter((c) =>
-    String(c.source || "").trim()
-  );
+  const videoClips = clipsOnTrack(studio.clips, "video");
 
   const scenes = [];
   videoClips.forEach((clip, index) => {
@@ -241,15 +239,20 @@ export function buildScenesFromStudio(
     const start = Number(clip.start) || 0;
     const duration = Math.max(0.08, Number(clip.duration) || 1);
 
-    const sourcePath = findProjectFile(projectDir, clip.source);
-    const copiedName = copyRemotionAsset(
-      sourcePath,
-      publicProjectDir,
-      `studio_v${index + 1}_`
-    );
-    if (!copiedName) return;
+    // Tenta copiar asset; se não existir, cena continua com fundo escuro
+    let copiedName = "";
+    const sourceStr = String(clip.source || "").trim();
+    if (sourceStr) {
+      const sourcePath = findProjectFile(projectDir, clip.source);
+      copiedName =
+        copyRemotionAsset(
+          sourcePath,
+          publicProjectDir,
+          `studio_v${index + 1}_`
+        ) || "";
+    }
 
-    const assetType = inferAssetType(clip);
+    const assetType = copiedName ? inferAssetType(clip) : "image";
     const isVideo = assetType === "video";
     // Vídeo: bed diegético sob narração; imagem fica muda (SFX na trilha).
     const volume = Number.isFinite(Number(clip.props?.volume))
@@ -274,12 +277,13 @@ export function buildScenesFromStudio(
     scenes.push({
       block,
       scene_id: String(clip.id || `studio.${index + 1}`),
-      asset: `projects/${projectSlug}/${copiedName}`,
+      asset: copiedName ? `projects/${projectSlug}/${copiedName}` : "",
       type: assetType,
       start,
       duration,
       durationLocked: Boolean(clip.locked),
-      narrationText: "",
+      narrationText:
+        clip.props?.narration_text || clip.props?.narrationText || "",
       editorNotes: "",
       volume,
       playback_rate: playbackRate,
@@ -289,6 +293,8 @@ export function buildScenesFromStudio(
       camera_move: clip.props?.camera_move || undefined,
       transicao_entrada: clip.props?.transicao_entrada || undefined,
       transicao_style: clip.props?.transicao_style || undefined,
+      visual_filter:
+        clip.props?.visual_filter || clip.props?.filter_props?.css || undefined,
     });
   });
 
@@ -297,10 +303,7 @@ export function buildScenesFromStudio(
       ? Number(studio.totalDuration)
       : scenes.reduce((max, s) => Math.max(max, s.start + s.duration), 1);
 
-  return fillSceneTimelineGaps(
-    scenes.filter((s) => s.asset),
-    coverageEnd
-  );
+  return fillSceneTimelineGaps(scenes, coverageEnd);
 }
 
 export function buildOverlaysFromStudio(
@@ -521,12 +524,19 @@ export function resolveMotionPlanForRender(storyboard = {}, config = {}) {
     if (!sb.motion_tagged && Array.isArray(sb.visual_prompts)) {
       sb = tagStoryboardWithMotion(sb, { format, niche });
     }
+
+    // Editor do Lumiera: visual_prompts.motion_shot é a fonte de verdade
+    const fromVp = motionPlanFromStoryboard(sb);
+    if (fromVp?.cenas?.some((c) => c.motion_shot?.templateId)) {
+      return { storyboard: sb, motionPlan: fromVp };
+    }
+
     if (sb.motion_plan?.cenas?.length) {
       return { storyboard: sb, motionPlan: sb.motion_plan };
     }
     const plan = buildMotionPlan({ storyboard: sb, niche, format });
     const next = applyMotionPlanToStoryboard(sb, plan);
-    return { storyboard: next, motionPlan: plan };
+    return { storyboard: next, motionPlan: next.motion_plan || plan };
   } catch (err) {
     console.warn(
       "[timelineStudioRenderSync] resolveMotionPlanForRender:",
@@ -540,28 +550,34 @@ export function resolveMotionPlanForRender(storyboard = {}, config = {}) {
  * Injeta motion_shot / camera_move / transicao nas cenas do Remotion
  * a partir do motion plan (por índice ou scene_ref).
  */
-export function enrichRemotionScenesWithMotionPlan(scenes = [], motionPlan = null) {
+export function enrichRemotionScenesWithMotionPlan(
+  scenes = [],
+  motionPlan = null
+) {
   if (!Array.isArray(scenes) || !scenes.length || !motionPlan?.cenas?.length) {
     return scenes;
   }
-  const byRef = new Map(
-    motionPlan.cenas.map((c) => [String(c.scene_ref), c])
-  );
+  const byRef = new Map(motionPlan.cenas.map((c) => [String(c.scene_ref), c]));
   return scenes.map((scene, i) => {
     const key = String(scene.scene_id || scene.scene || i + 1);
-    const motion =
-      byRef.get(key) ||
-      motionPlan.cenas[i] ||
-      null;
-    if (!motion) return scene;
+    const motion = byRef.get(key) || motionPlan.cenas[i] || null;
+    if (!motion) {
+      return scene.motion_shot
+        ? { ...scene, motion_shot: normalizeMotionShot(scene.motion_shot) }
+        : scene;
+    }
+    // Prefer shot da cena (storyboard/editor); completa com o plan se faltar
+    const rawShot = scene.motion_shot || motion.motion_shot || null;
+    const motion_shot = rawShot ? normalizeMotionShot(rawShot) : null;
     return {
       ...scene,
-      motion_shot: scene.motion_shot || motion.motion_shot || null,
+      motion_shot,
       camera_move: scene.camera_move || motion.camera_move || undefined,
       transicao_entrada:
         scene.transicao_entrada || motion.transicao_entrada || undefined,
       transicao_style:
         scene.transicao_style || motion.transicao_style || undefined,
+      visual_filter: scene.visual_filter || motion.visual_filter || undefined,
     };
   });
 }

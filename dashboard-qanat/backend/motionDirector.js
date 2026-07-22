@@ -11,7 +11,7 @@ import {
   findCard,
 } from "./shotcraftCatalog.js";
 import { resolveNicheMotionPrefs } from "./nicheMotionPreferences.js";
-import { buildShotProps } from "./shotcraftPropsMap.js";
+import { buildShotProps, normalizeMotionShot } from "./shotcraftPropsMap.js";
 
 export function detectarSceneFunctions(narration = "") {
   const t = String(narration).toLowerCase();
@@ -233,14 +233,14 @@ export function buildMotionPlan({
       scene_functions: functions,
       extracted_data: dados,
       motion_shot: card
-        ? {
+        ? normalizeMotionShot({
             templateId: card.templateId,
             style: card.styles?.[0],
             props,
             palette: nichePrefs.palette,
             start_seconds: startSeconds,
             duration_seconds: durationSeconds,
-          }
+          })
         : null,
       camera_move: card ? null : nichePrefs.camera_padrao || "slow-push-in",
       transicao_entrada:
@@ -262,20 +262,63 @@ export function applyMotionPlanToStoryboard(storyboard = {}, plan) {
     const key = String(vp.scene || vp.scene_id || i + 1);
     const motion = byRef.get(key) || plan.cenas[i];
     if (!motion) return vp;
+    const shot = motion.motion_shot
+      ? normalizeMotionShot(motion.motion_shot)
+      : null;
     return {
       ...vp,
       scene_function: motion.scene_functions,
       extracted_data: motion.extracted_data,
-      motion_shot: motion.motion_shot,
+      motion_shot: shot,
       camera_move: motion.camera_move,
       transicao_entrada: motion.transicao_entrada,
-      suggested_shot: motion.motion_shot?.templateId || vp.suggested_shot,
+      suggested_shot: shot?.templateId || vp.suggested_shot,
     };
   });
+  // Keep motion_plan.cenas in sync with normalized shots
+  const cenas = (plan.cenas || []).map((c) =>
+    c.motion_shot
+      ? { ...c, motion_shot: normalizeMotionShot(c.motion_shot) }
+      : c
+  );
   return {
     ...storyboard,
     visual_prompts,
-    motion_plan: plan,
+    motion_plan: { ...plan, cenas },
+  };
+}
+
+/**
+ * Reconstrói um motion plan a partir de visual_prompts (fonte de verdade do editor).
+ */
+export function motionPlanFromStoryboard(storyboard = {}) {
+  const prompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
+  if (!prompts.length) return storyboard.motion_plan || null;
+
+  const cenas = prompts.map((vp, i) => ({
+    scene_ref: vp.scene || vp.scene_id || i + 1,
+    scene_functions: vp.scene_function,
+    extracted_data: vp.extracted_data,
+    motion_shot: vp.motion_shot ? normalizeMotionShot(vp.motion_shot) : null,
+    camera_move: vp.camera_move || undefined,
+    transicao_entrada: vp.transicao_entrada || undefined,
+    transicao_style: vp.transicao_style || undefined,
+  }));
+
+  const hasShots = cenas.some((c) => c.motion_shot?.templateId);
+  if (!hasShots && storyboard.motion_plan?.cenas?.length) {
+    return storyboard.motion_plan;
+  }
+
+  return {
+    ...(storyboard.motion_plan || {}),
+    niche: storyboard.motion_plan?.niche || storyboard.niche,
+    palette:
+      storyboard.motion_plan?.palette ||
+      cenas.find((c) => c.motion_shot?.palette)?.motion_shot?.palette,
+    cenas,
   };
 }
 
@@ -374,8 +417,10 @@ export function applyMotionOverrides(plan, overrides = {}) {
         continue;
       }
       if (ov.templateId) {
-        cena.motion_shot = cena.motion_shot || {};
-        cena.motion_shot.templateId = ov.templateId;
+        const prevShot = cena.motion_shot || {};
+        const templateChanged =
+          prevShot.templateId && prevShot.templateId !== ov.templateId;
+        cena.motion_shot = { ...prevShot, templateId: ov.templateId };
         if (ov.style) cena.motion_shot.style = ov.style;
         if (ov.palette) cena.motion_shot.palette = ov.palette;
         if (ov.start_seconds != null) {
@@ -383,6 +428,15 @@ export function applyMotionOverrides(plan, overrides = {}) {
         }
         if (ov.duration_seconds != null) {
           cena.motion_shot.duration_seconds = Number(ov.duration_seconds);
+        }
+        // Ao trocar template sem props explícitas, reconstroi a partir dos dados da cena
+        if (templateChanged && !ov.props) {
+          cena.motion_shot.props = buildShotProps(ov.templateId, {
+            dados: cena.extracted_data || {},
+            narration: "",
+            palette: ov.palette || cena.motion_shot.palette || merged.palette,
+            scene: {},
+          });
         }
       }
       // Palette-only override (sem trocar template)
@@ -397,6 +451,9 @@ export function applyMotionOverrides(plan, overrides = {}) {
       }
       if (ov.transicao_entrada) cena.transicao_entrada = ov.transicao_entrada;
       if (ov.camera_move !== undefined) cena.camera_move = ov.camera_move;
+      if (cena.motion_shot) {
+        cena.motion_shot = normalizeMotionShot(cena.motion_shot);
+      }
     }
   }
 

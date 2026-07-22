@@ -45,9 +45,48 @@ const FADE_FRAMES = 10;
 /** Check if shot has meaningful data props worth rendering with parameterized template */
 function hasRealDataProps(shot: MotionShot): boolean {
   const p = shot.props || {};
-  if (p.value != null && p.value !== "" && Number(p.value) !== 0) return true;
+  const value = p.value ?? p.valor;
+  if (value != null && value !== "" && Number(value) !== 0) return true;
   if (Array.isArray(p.items) && p.items.length > 0) return true;
+  if (Array.isArray(p.dataPoints) && p.dataPoints.length > 0) return true;
+  if (Array.isArray(p.columns) && p.columns.length > 0) return true;
   return false;
+}
+
+/** Align PT / legacy keys with parameterized template props */
+function normalizeShotProps(
+  props: Record<string, unknown> | undefined
+): Record<string, unknown> {
+  const p = { ...(props || {}) };
+  if ((p.value == null || p.value === "") && p.valor != null) {
+    const n = Number(String(p.valor).replace(/\./g, "").replace(",", "."));
+    p.value = Number.isFinite(n) && String(p.valor).trim() !== "" ? n : p.valor;
+  }
+  if (!p.unit && p.unidade) p.unit = p.unidade;
+  if (!p.title && p.label) p.title = p.label;
+  if (
+    (!Array.isArray(p.items) || !p.items.length) &&
+    Array.isArray(p.dataPoints)
+  ) {
+    p.items = p.dataPoints.map((v: any, i: number) =>
+      v && typeof v === "object"
+        ? {
+            label: v.label || String(i + 1),
+            value: Number(v.value ?? v.valor) || 0,
+          }
+        : { label: String(i + 1), value: Number(v) || 0 }
+    );
+  }
+  if (
+    (!Array.isArray(p.items) || !p.items.length) &&
+    Array.isArray(p.columns)
+  ) {
+    p.items = p.columns.map((c: any, i: number) => ({
+      label: c?.label || String(i + 1),
+      value: Number(c?.value ?? c?.valor) || 0,
+    }));
+  }
+  return p;
 }
 
 /**
@@ -65,9 +104,12 @@ export function ShotcraftLayer({
 }) {
   if (!shot?.templateId) return null;
 
+  const normalizedProps = normalizeShotProps(shot.props);
+  const shotWithProps = { ...shot, props: normalizedProps };
+
   // If shot has real data AND a parameterized version exists, use it
   const ParamComponent =
-    hasRealDataProps(shot) && hasParameterizedVersion(shot.templateId)
+    hasRealDataProps(shotWithProps) && hasParameterizedVersion(shot.templateId)
       ? getParameterizedComponent(shot.templateId)
       : null;
 
@@ -77,7 +119,7 @@ export function ShotcraftLayer({
         DemoComponent={ParamComponent as React.ComponentType}
         durationInFrames={durationInFrames}
         palette={shot.palette}
-        templateProps={shot.props}
+        templateProps={normalizedProps}
         isParameterized
       />
     );
