@@ -12369,26 +12369,9 @@ export default function App() {
 
   return (
     <>
-      {!splashReady && (
-        <SplashScreen
-          onDone={() => {
-            try {
-              sessionStorage.setItem("lumiera-splash-seen", "1");
-            } catch {
-              /* ignore */
-            }
-            setSplashReady(true);
-          }}
-        />
-      )}
+      <AiJobProgressBar />
 
-      <div
-        className={splashReady ? "anim-fade-in" : undefined}
-        style={{ opacity: splashReady ? 1 : 0 }}
-      >
-        <AiJobProgressBar />
-
-        <DashToaster />
+      <DashToaster />
 
         {preRenderModalOpen &&
           videoQuality?.preRenderAdvice &&
@@ -12548,7 +12531,6 @@ export default function App() {
           setRenderProgress={setRenderProgress}
           onCancelRender={handleCancelRender}
         />
-      </div>
     </>
   );
 }
