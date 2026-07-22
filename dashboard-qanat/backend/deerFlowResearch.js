@@ -344,6 +344,15 @@ export function appendDeepResearchReport(workspaceDir, plan, report) {
   return { memoryPath, memoryFile: MEMORY_FILE };
 }
 
+function withLegTimeout(promise, ms, legName) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`[${legName}] Timeout (${ms}ms)`)), ms)
+    ),
+  ]);
+}
+
 export async function runDeepResearch(workspaceDir, opts = {}) {
   const topic = String(opts.topic || opts.requirement || "").trim();
   if (!topic) {
@@ -361,18 +370,23 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
   const excludeTopics = Array.isArray(opts.excludeTopics)
     ? opts.excludeTopics
     : [];
+  const legTimeoutMs = Number(opts.legTimeoutMs) || 12000;
 
   if (legs.includes("web") && opts.getApiKeys) {
     tasks.push(
-      runWebLeg(workspaceDir, {
-        topic,
-        niche,
-        format,
-        getApiKeys: opts.getApiKeys,
-        apiKey: opts.apiKey,
-        diversityHint,
-        excludeTopics,
-      }).catch((err) => {
+      withLegTimeout(
+        runWebLeg(workspaceDir, {
+          topic,
+          niche,
+          format,
+          getApiKeys: opts.getApiKeys,
+          apiKey: opts.apiKey,
+          diversityHint,
+          excludeTopics,
+        }),
+        legTimeoutMs,
+        "web"
+      ).catch((err) => {
         throw new Error(`[web] ${err.message}`);
       })
     );
@@ -380,41 +394,49 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
 
   if (legs.includes("exa")) {
     tasks.push(
-      exaWebSearch(`${topic} — ${niche} YouTube`, workspaceDir, {
-        numResults: 6,
+      withLegTimeout(
+        exaWebSearch(`${topic} — ${niche} YouTube`, workspaceDir, {
+          numResults: 6,
+        }).then((r) => ({ leg: "exa", ...r })),
+        legTimeoutMs,
+        "exa"
+      ).catch((err) => {
+        throw new Error(`[exa] ${err.message}`);
       })
-        .then((r) => ({ leg: "exa", ...r }))
-        .catch((err) => {
-          throw new Error(`[exa] ${err.message}`);
-        })
     );
   }
 
   if (legs.includes("competitors") && opts.llmFn !== undefined) {
     tasks.push(
-      runCompetitorResearch(workspaceDir, {
-        niche,
-        format: format === "LONGO" ? "LONG" : "SHORT",
-        maxCompetitors: opts.maxCompetitors ?? 5,
-        llmFn: opts.llmFn,
-        repairJsonFn: opts.repairJsonFn,
+      withLegTimeout(
+        runCompetitorResearch(workspaceDir, {
+          niche,
+          format: format === "LONGO" ? "LONG" : "SHORT",
+          maxCompetitors: opts.maxCompetitors ?? 5,
+          llmFn: opts.llmFn,
+          repairJsonFn: opts.repairJsonFn,
+        }).then((r) => ({ leg: "competitors", ...r })),
+        legTimeoutMs,
+        "competitors"
+      ).catch((err) => {
+        throw new Error(`[competitors] ${err.message}`);
       })
-        .then((r) => ({ leg: "competitors", ...r }))
-        .catch((err) => {
-          throw new Error(`[competitors] ${err.message}`);
-        })
     );
   }
 
   if (legs.includes("notebooklm") && opts.backendDir) {
     tasks.push(
-      runNotebooklmLeg(workspaceDir, opts.backendDir, {
-        topic,
-        niche,
-        format,
-        deep: opts.notebooklmDeep === true,
-        projDir: opts.projDir,
-      }).catch((err) => {
+      withLegTimeout(
+        runNotebooklmLeg(workspaceDir, opts.backendDir, {
+          topic,
+          niche,
+          format,
+          deep: opts.notebooklmDeep === true,
+          projDir: opts.projDir,
+        }),
+        legTimeoutMs,
+        "notebooklm"
+      ).catch((err) => {
         throw new Error(`[notebooklm] ${err.message}`);
       })
     );
