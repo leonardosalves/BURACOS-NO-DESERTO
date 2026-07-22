@@ -20260,7 +20260,7 @@ app.post(
     }
 
     let notebooklmContext = "";
-    if (useNotebooklm !== false) {
+    if (useNotebooklm === true) {
       try {
         const research = await fetchNotebooklmScriptContext({
           backendDir: __dirname,
@@ -20819,7 +20819,7 @@ app.post(
           );
 
         const deepLegs =
-          useNotebooklm !== false
+          useNotebooklm === true
             ? ["web", "exa", "competitors", "notebooklm"]
             : ["web", "exa", "competitors"];
 
@@ -20874,7 +20874,7 @@ app.post(
     let webResearchContext = "";
 
     if (!deepResearchContext && !skipResearch) {
-      if (useNotebooklm !== false) {
+      if (useNotebooklm === true) {
         try {
           const research = await fetchNotebooklmResearch(niche, format, {
             backendDir: __dirname,
@@ -21369,7 +21369,7 @@ app.post(
     let notebooklmContext = "";
     let webOpportunityContext = "";
     const skipNotebooklm = browserText || shouldOfferGeminiBrowser(projDir);
-    if (useNotebooklm !== false && !skipNotebooklm) {
+    if (useNotebooklm === true && !skipNotebooklm) {
       try {
         const research = await fetchNotebooklmResearch(nicheClean, format, {
           backendDir: __dirname,
@@ -25492,7 +25492,7 @@ app.post(
     let notebooklmResearch = null;
     let notebooklmBlock = "";
 
-    if (useNotebooklm !== false) {
+    if (useNotebooklm === true) {
       try {
         console.log("[NotebookLM] Analisando roteiro para melhorias...");
         notebooklmResearch = await fetchNotebooklmScriptImprovements({
