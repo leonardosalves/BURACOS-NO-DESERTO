@@ -20,7 +20,9 @@ import {
   Layout,
   Star,
   RefreshCw,
+  GripVertical,
 } from "lucide-react";
+import { ShotcraftLivePreview } from "./ShotcraftLivePreview";
 
 /* ─── Types ─── */
 
@@ -167,6 +169,9 @@ export function LumieraEditor({
     prefix: "",
     suffix: "",
   });
+  const [dragTemplateId, setDragTemplateId] = useState<string | null>(null);
+  const [dragSceneId, setDragSceneId] = useState<string | null>(null);
+  const [dropSceneId, setDropSceneId] = useState<string | null>(null);
 
   useEffect(() => {
     setActiveNiche(projectNiche || "Engenharia");
@@ -270,6 +275,23 @@ export function LumieraEditor({
     );
   }, [niches, activeNiche]);
 
+  const previewProps = useMemo(() => {
+    const base =
+      selectedScene?.props && typeof selectedScene.props === "object"
+        ? { ...selectedScene.props }
+        : {};
+    return {
+      ...base,
+      ...(propDraft.value
+        ? { value: Number(propDraft.value) || propDraft.value }
+        : {}),
+      ...(propDraft.unit ? { unit: propDraft.unit } : {}),
+      ...(propDraft.label ? { label: propDraft.label } : {}),
+      ...(propDraft.prefix ? { prefix: propDraft.prefix } : {}),
+      ...(propDraft.suffix ? { suffix: propDraft.suffix } : {}),
+    };
+  }, [selectedScene, propDraft]);
+
   /* Assign template to scene */
   const assignTemplateToScene = useCallback(
     (template: TemplateItem, scene: SceneBlock) => {
@@ -309,12 +331,36 @@ export function LumieraEditor({
             }
           : cur
       );
+      setPreviewTemplate(template);
+      setSelectedTemplate(template);
       toast.success(
         `${template.name} → Cena "${(scene.narration || "").slice(0, 30)}…"`
       );
     },
     [nichePalette, propDraft]
   );
+
+  const assignTemplateIdToScene = useCallback(
+    (templateId: string, sceneId: string) => {
+      const template = templates.find((t) => t.template_id === templateId);
+      const scene = scenes.find((s) => s.id === sceneId);
+      if (template && scene) assignTemplateToScene(template, scene);
+    },
+    [templates, scenes, assignTemplateToScene]
+  );
+
+  const reorderScenes = useCallback((fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    setScenes((prev) => {
+      const fromIdx = prev.findIndex((s) => s.id === fromId);
+      const toIdx = prev.findIndex((s) => s.id === toId);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      return next;
+    });
+  }, []);
 
   /* Save motion plan via /api/motion/plan/override */
   const saveMotionPlan = useCallback(async () => {
@@ -376,35 +422,59 @@ export function LumieraEditor({
         throw new Error(data.error);
       }
 
-      // Merge timing fields that override path may not persist on props
+      // Merge timing + reorder visual_prompts to match timeline order
       if (data.storyboard?.visual_prompts) {
-        const byRef = new Map(scenes.map((s) => [s.scene_ref, s]));
+        const byRef = new Map(
+          (data.storyboard.visual_prompts as any[]).map(
+            (vp: any, i: number) => [
+              String(vp.scene || vp.scene_id || i + 1),
+              vp,
+            ]
+          )
+        );
+        const reordered = scenes.map((local, i) => {
+          const vp = byRef.get(local.scene_ref) || {
+            scene: local.scene_ref,
+            narration_text: local.narration,
+          };
+          if (!local.template_id) {
+            return {
+              ...vp,
+              motion_shot: null,
+              _editor_order: i,
+            };
+          }
+          return {
+            ...vp,
+            _editor_order: i,
+            motion_shot: {
+              ...(vp.motion_shot || {}),
+              templateId: local.template_id,
+              style: local.style,
+              start_seconds: local.start_seconds,
+              duration_seconds:
+                local.duration_seconds && local.duration_seconds <= 8
+                  ? local.duration_seconds
+                  : 4,
+              palette: local.palette || nichePalette,
+              props: local.props || vp.motion_shot?.props || {},
+            },
+          };
+        });
+        // Keep any prompts not present in local scenes (appended)
+        for (const [key, vp] of byRef) {
+          if (!scenes.some((s) => s.scene_ref === key)) {
+            reordered.push(vp);
+          }
+        }
         const patched = {
           ...data.storyboard,
-          visual_prompts: data.storyboard.visual_prompts.map(
-            (vp: any, i: number) => {
-              const key = String(vp.scene || vp.scene_id || i + 1);
-              const local = byRef.get(key);
-              if (!local?.template_id || !vp.motion_shot) return vp;
-              return {
-                ...vp,
-                motion_shot: {
-                  ...vp.motion_shot,
-                  start_seconds: local.start_seconds,
-                  duration_seconds:
-                    local.duration_seconds && local.duration_seconds <= 8
-                      ? local.duration_seconds
-                      : 4,
-                  palette: local.palette || nichePalette,
-                  props: local.props || vp.motion_shot.props,
-                },
-              };
-            }
-          ),
+          visual_prompts: reordered,
           motion_plan: {
             ...(data.storyboard.motion_plan || plan),
             palette: nichePalette,
             niche: activeNiche,
+            cenas: plan.cenas,
           },
         };
 
@@ -565,25 +635,44 @@ export function LumieraEditor({
             ))}
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            <p className="text-[9px] text-gray-600 px-1 pb-1">
+              Arraste um template para a cena na timeline
+            </p>
             {filteredTemplates.map((t) => (
               <button
                 type="button"
                 key={t.template_id}
+                draggable
+                onDragStart={(e) => {
+                  setDragTemplateId(t.template_id);
+                  e.dataTransfer.setData(
+                    "application/x-lumiera-template",
+                    t.template_id
+                  );
+                  e.dataTransfer.effectAllowed = "copy";
+                }}
+                onDragEnd={() => {
+                  setDragTemplateId(null);
+                  setDropSceneId(null);
+                }}
                 onClick={() => {
                   setSelectedTemplate(t);
                   setPreviewTemplate(t);
                 }}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all ${
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all cursor-grab active:cursor-grabbing ${
                   selectedTemplate?.template_id === t.template_id
                     ? "bg-indigo-600/20 border border-indigo-400/40 text-white"
-                    : "bg-white/[0.02] border border-transparent text-gray-400 hover:bg-white/5 hover:text-gray-200"
+                    : dragTemplateId === t.template_id
+                      ? "bg-indigo-500/10 border border-indigo-400/30 text-white"
+                      : "bg-white/[0.02] border border-transparent text-gray-400 hover:bg-white/5 hover:text-gray-200"
                 }`}
               >
                 <div className="flex items-center gap-2">
+                  <GripVertical className="w-3 h-3 opacity-40 shrink-0" />
                   {CATEGORY_ICONS[t.category]}
                   <span className="font-medium truncate">{t.name}</span>
                 </div>
-                <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500">
+                <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500 pl-5">
                   <span className="px-1.5 py-0.5 rounded bg-white/5">
                     {t.category}
                   </span>
@@ -602,67 +691,48 @@ export function LumieraEditor({
           </div>
         </div>
 
-        {/* CENTER: Preview */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-[#080810] relative">
+        {/* CENTER: Live Remotion Preview */}
+        <div className="flex-1 flex flex-col items-center justify-center bg-[#080810] relative p-4 gap-3">
           {previewTemplate ? (
-            <div className="flex flex-col items-center gap-4">
-              <div
-                className="w-[640px] h-[360px] rounded-xl border border-white/10 flex items-center justify-center overflow-hidden relative"
-                style={{ background: nichePalette.bg || "#0c0c18" }}
-              >
-                <div className="text-center px-6">
-                  <div
-                    className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                    style={{
-                      background: `linear-gradient(135deg, ${nichePalette.primary}55, ${nichePalette.accent}55)`,
-                    }}
-                  >
-                    {CATEGORY_ICONS[previewTemplate.category] || (
-                      <Film className="w-8 h-8 text-indigo-400" />
-                    )}
-                  </div>
-                  <p
-                    className="font-bold text-lg"
-                    style={{ color: nichePalette.text || "#fff" }}
-                  >
-                    {previewTemplate.name}
-                  </p>
-                  <p className="text-gray-400 text-sm mt-1">
-                    {previewTemplate.template_id}
-                  </p>
-                  {(propDraft.value || propDraft.label) && (
-                    <div className="mt-6">
-                      <p
-                        className="text-5xl font-black tabular-nums"
-                        style={{ color: nichePalette.primary }}
-                      >
-                        {propDraft.prefix}
-                        {propDraft.value || "—"}
-                        <span
-                          className="text-2xl ml-2 font-bold"
-                          style={{ color: nichePalette.accent }}
-                        >
-                          {propDraft.suffix || propDraft.unit}
-                        </span>
-                      </p>
-                      {propDraft.label ? (
-                        <p className="text-sm text-gray-300 mt-2">
-                          {propDraft.label}
-                        </p>
-                      ) : null}
-                    </div>
-                  )}
-                </div>
+            <>
+              <ShotcraftLivePreview
+                key={`${previewTemplate.template_id}-${activeNiche}-${propDraft.value}-${propDraft.label}`}
+                templateId={previewTemplate.template_id}
+                palette={selectedScene?.palette || nichePalette}
+                props={previewProps}
+                durationSeconds={previewTemplate.duration_seconds || 4}
+                className="w-full max-w-[720px] aspect-video"
+                autoPlay
+                loop
+              />
+              <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                <span className="font-medium text-gray-400">
+                  {previewTemplate.name}
+                </span>
+                <span>·</span>
+                <span>{previewTemplate.template_id}</span>
+                <span>·</span>
+                <span>paleta {activeNiche}</span>
+                {propDraft.value ? (
+                  <>
+                    <span>·</span>
+                    <span className="text-indigo-300">
+                      value={propDraft.value}
+                      {propDraft.unit || propDraft.suffix || ""}
+                    </span>
+                  </>
+                ) : null}
               </div>
-              <p className="text-[11px] text-gray-500">
-                Preview de paleta · {activeNiche} · render final usa demos
-                Shotcraft no Remotion
-              </p>
-            </div>
+            </>
           ) : (
             <div className="text-center text-gray-500">
               <Film className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Selecione um template para preview</p>
+              <p className="text-sm">
+                Selecione um template para preview ao vivo
+              </p>
+              <p className="text-[11px] mt-1 text-gray-600">
+                Remotion Player · demos Shotcraft reais
+              </p>
             </div>
           )}
         </div>
@@ -691,7 +761,7 @@ export function LumieraEditor({
                 </div>
                 <div>
                   <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
-                    Dados (props)
+                    Dados (props) · atualiza preview
                   </label>
                   <div className="mt-2 space-y-2">
                     {(
@@ -718,6 +788,33 @@ export function LumieraEditor({
                     ))}
                   </div>
                 </div>
+                {selectedScene && (
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+                      Entrada na cena (start_seconds)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={selectedScene.start_seconds}
+                      onChange={(e) => {
+                        const v = Math.max(0, Number(e.target.value) || 0);
+                        setScenes((prev) =>
+                          prev.map((s) =>
+                            s.id === selectedScene.id
+                              ? { ...s, start_seconds: v }
+                              : s
+                          )
+                        );
+                        setSelectedScene((cur) =>
+                          cur ? { ...cur, start_seconds: v } : cur
+                        );
+                      }}
+                      className="w-full mt-2 px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
                     Paleta ({activeNiche})
@@ -773,6 +870,9 @@ export function LumieraEditor({
               .toFixed(1)}
             s total
           </span>
+          <span className="text-[9px] text-gray-600 ml-2">
+            solte template · arraste cenas para reordenar
+          </span>
         </div>
         <div className="flex-1 overflow-x-auto px-4 py-2">
           <div className="flex gap-1 h-full items-stretch min-w-max">
@@ -780,8 +880,60 @@ export function LumieraEditor({
               <button
                 type="button"
                 key={scene.id}
+                draggable
+                onDragStart={(e) => {
+                  // Prefer reordering scenes; template drag uses different mime
+                  if (dragTemplateId) return;
+                  setDragSceneId(scene.id);
+                  e.dataTransfer.setData(
+                    "application/x-lumiera-scene",
+                    scene.id
+                  );
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragEnd={() => {
+                  setDragSceneId(null);
+                  setDropSceneId(null);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  const isTpl = e.dataTransfer.types.includes(
+                    "application/x-lumiera-template"
+                  );
+                  e.dataTransfer.dropEffect = isTpl ? "copy" : "move";
+                  setDropSceneId(scene.id);
+                }}
+                onDragLeave={() => {
+                  setDropSceneId((cur) => (cur === scene.id ? null : cur));
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const tplId = e.dataTransfer.getData(
+                    "application/x-lumiera-template"
+                  );
+                  const scId = e.dataTransfer.getData(
+                    "application/x-lumiera-scene"
+                  );
+                  if (tplId) {
+                    assignTemplateIdToScene(tplId, scene.id);
+                  } else if (scId) {
+                    reorderScenes(scId, scene.id);
+                  }
+                  setDropSceneId(null);
+                  setDragTemplateId(null);
+                  setDragSceneId(null);
+                }}
                 onClick={() => {
                   setSelectedScene(scene);
+                  if (scene.template_id) {
+                    const t = templates.find(
+                      (x) => x.template_id === scene.template_id
+                    );
+                    if (t) {
+                      setSelectedTemplate(t);
+                      setPreviewTemplate(t);
+                    }
+                  }
                   if (scene.props && typeof scene.props === "object") {
                     setPropDraft({
                       value: String(
@@ -789,24 +941,33 @@ export function LumieraEditor({
                           (scene.props as any).valor ??
                           ""
                       ),
-                      unit: String((scene.props as any).unit ?? ""),
+                      unit: String(
+                        (scene.props as any).unit ??
+                          (scene.props as any).unidade ??
+                          ""
+                      ),
                       label: String((scene.props as any).label ?? ""),
                       prefix: String((scene.props as any).prefix ?? ""),
                       suffix: String((scene.props as any).suffix ?? ""),
                     });
                   }
                 }}
-                className={`relative flex flex-col justify-between px-3 py-2 rounded-lg border text-left transition-all ${
+                className={`relative flex flex-col justify-between px-3 py-2 rounded-lg border text-left transition-all cursor-grab active:cursor-grabbing ${
                   selectedScene?.id === scene.id
                     ? "border-indigo-400/60 bg-indigo-500/10"
-                    : "border-white/5 bg-white/[0.02] hover:bg-white/5"
+                    : dropSceneId === scene.id
+                      ? "border-emerald-400/70 bg-emerald-500/15 ring-1 ring-emerald-400/40"
+                      : dragSceneId === scene.id
+                        ? "border-white/20 bg-white/10 opacity-60"
+                        : "border-white/5 bg-white/[0.02] hover:bg-white/5"
                 }`}
                 style={{
                   width: Math.max(100, (scene.duration_seconds || 5) * 30),
                 }}
               >
-                <div className="text-[10px] text-gray-400 truncate font-medium">
-                  #{i + 1} {scene.narration.slice(0, 40) || "Sem narração"}
+                <div className="text-[10px] text-gray-400 truncate font-medium flex items-center gap-1">
+                  <GripVertical className="w-3 h-3 opacity-40 shrink-0" />#
+                  {i + 1} {scene.narration.slice(0, 40) || "Sem narração"}
                 </div>
                 <div className="flex items-center gap-1.5">
                   {scene.template_id ? (
@@ -815,7 +976,7 @@ export function LumieraEditor({
                     </span>
                   ) : (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500">
-                      sem template
+                      solte template
                     </span>
                   )}
                   <span className="text-[9px] text-gray-600">
