@@ -4,6 +4,46 @@
 
 ## Relatórios gerados
 
+### 2026-07-22 21:07 — engenharia_e_construcao
+# Relatório de pesquisa — engenharia_e_construcao
+
+> Nicho: engenharia_e_construcao · Formato: SHORTS · 2026-07-22 21:07
+
+## Resumo executivo
+Pesquisa concluída — veja seções detalhadas abaixo.
+
+## Sub-perguntas investigadas
+1. Contexto essencial: o que o público de engenharia_e_construcao precisa entender sobre "engenharia_e_construcao"?
+2. Fatos surpreendentes, números e datas verificáveis sobre "engenharia_e_construcao"
+3. Mecânicas virais: o que canais de engenharia_e_construcao fazem bem (e mal) ao cobrir "engenharia_e_construcao"?
+4. Ângulos para YouTube Shorts (gancho 3s, listicle, revelação) sobre "engenharia_e_construcao"
+5. Lacunas e mitos comuns que vídeos superficiais ignoram sobre "engenharia_e_construcao"
+
+## Próximos passos
+- Revisar ideias na fila editorial (YouTube Studio)
+- Abrir Creator com gancho validado
+- Opcional: enriquecer roteiro com NotebookLM (modo script)
+
+### 2026-07-22 21:05 — engenharia_e_construcao
+# Relatório de pesquisa — engenharia_e_construcao
+
+> Nicho: engenharia_e_construcao · Formato: SHORTS · 2026-07-22 21:05
+
+## Resumo executivo
+Pesquisa concluída — veja seções detalhadas abaixo.
+
+## Sub-perguntas investigadas
+1. Contexto essencial: o que o público de engenharia_e_construcao precisa entender sobre "engenharia_e_construcao"?
+2. Fatos surpreendentes, números e datas verificáveis sobre "engenharia_e_construcao"
+3. Mecânicas virais: o que canais de engenharia_e_construcao fazem bem (e mal) ao cobrir "engenharia_e_construcao"?
+4. Ângulos para YouTube Shorts (gancho 3s, listicle, revelação) sobre "engenharia_e_construcao"
+5. Lacunas e mitos comuns que vídeos superficiais ignoram sobre "engenharia_e_construcao"
+
+## Próximos passos
+- Revisar ideias na fila editorial (YouTube Studio)
+- Abrir Creator com gancho validado
+- Opcional: enriquecer roteiro com NotebookLM (modo script)
+
 ### 2026-07-22 21:03 — engenharia_e_construcao
 # Relatório de pesquisa — engenharia_e_construcao
 
@@ -121,46 +161,6 @@ Pesquisa concluída — veja seções detalhadas abaixo.
 # Relatório de pesquisa — engenharia_e_construcao
 
 > Nicho: engenharia_e_construcao · Formato: SHORTS · 2026-07-22 20:27
-
-## Resumo executivo
-Pesquisa concluída — veja seções detalhadas abaixo.
-
-## Sub-perguntas investigadas
-1. Contexto essencial: o que o público de engenharia_e_construcao precisa entender sobre "engenharia_e_construcao"?
-2. Fatos surpreendentes, números e datas verificáveis sobre "engenharia_e_construcao"
-3. Mecânicas virais: o que canais de engenharia_e_construcao fazem bem (e mal) ao cobrir "engenharia_e_construcao"?
-4. Ângulos para YouTube Shorts (gancho 3s, listicle, revelação) sobre "engenharia_e_construcao"
-5. Lacunas e mitos comuns que vídeos superficiais ignoram sobre "engenharia_e_construcao"
-
-## Próximos passos
-- Revisar ideias na fila editorial (YouTube Studio)
-- Abrir Creator com gancho validado
-- Opcional: enriquecer roteiro com NotebookLM (modo script)
-
-### 2026-07-22 20:26 — engenharia_e_construcao
-# Relatório de pesquisa — engenharia_e_construcao
-
-> Nicho: engenharia_e_construcao · Formato: SHORTS · 2026-07-22 20:26
-
-## Resumo executivo
-Pesquisa concluída — veja seções detalhadas abaixo.
-
-## Sub-perguntas investigadas
-1. Contexto essencial: o que o público de engenharia_e_construcao precisa entender sobre "engenharia_e_construcao"?
-2. Fatos surpreendentes, números e datas verificáveis sobre "engenharia_e_construcao"
-3. Mecânicas virais: o que canais de engenharia_e_construcao fazem bem (e mal) ao cobrir "engenharia_e_construcao"?
-4. Ângulos para YouTube Shorts (gancho 3s, listicle, revelação) sobre "engenharia_e_construcao"
-5. Lacunas e mitos comuns que vídeos superficiais ignoram sobre "engenharia_e_construcao"
-
-## Próximos passos
-- Revisar ideias na fila editorial (YouTube Studio)
-- Abrir Creator com gancho validado
-- Opcional: enriquecer roteiro com NotebookLM (modo script)
-
-### 2026-07-22 20:23 — engenharia_e_construcao
-# Relatório de pesquisa — engenharia_e_construcao
-
-> Nicho: engenharia_e_construcao · Formato: SHORTS · 2026-07-22 20:23
 
 ## Resumo executivo
 Pesquisa concluída — veja seções detalhadas abaixo.

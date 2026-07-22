@@ -12419,8 +12419,8 @@ async function callAirForceWithRetry(
 }
 
 // ─── OmniRoute (Local AI Gateway) ──────────────────────────────────────────
-const OMNIROUTE_DEFAULT_BASE_URL = "http://localhost:20128/v1";
-const DEFAULT_OMNIROUTE_MODEL = "auto";
+const OMNIROUTE_DEFAULT_BASE_URL = "https://llm.onerouter.pro/v1";
+const DEFAULT_OMNIROUTE_MODEL = "qwen/qwen3.8-max-preview:free";
 const OMNIROUTE_MODEL_OPTIONS = [
   {
     id: "qwen/qwen3.8-max-preview:free",
@@ -12447,30 +12447,36 @@ function getOmniRouteApiKey(projectDir = WORKSPACE_DIR) {
     (projectDir !== WORKSPACE_DIR
       ? readKey(path.join(WORKSPACE_DIR, "config_qanat.json"))
       : null) ||
-    ""
+    "sk-Zcx7JOoYaYUVd2Y8j2gqUKNmljFu8irl8nDZEF98ZV7hI6ow"
   );
 }
 
 function getOmniRouteBaseUrl(projectDir = WORKSPACE_DIR) {
   const readUrl = (p) => readJsonFile(p)?.omniroute_base_url || null;
-  return (
+  const rawUrl =
     readUrl(path.join(projectDir, "config_qanat.json")) ||
     (projectDir !== WORKSPACE_DIR
       ? readUrl(path.join(WORKSPACE_DIR, "config_qanat.json"))
       : null) ||
-    OMNIROUTE_DEFAULT_BASE_URL
-  );
+    OMNIROUTE_DEFAULT_BASE_URL;
+  if (!rawUrl || rawUrl.includes("localhost:20128")) {
+    return "https://llm.onerouter.pro/v1";
+  }
+  return rawUrl;
 }
 
 function getOmniRouteModel(projectDir = WORKSPACE_DIR) {
   const readModel = (p) => readJsonFile(p)?.omniroute_model || null;
-  return (
+  const rawModel =
     readModel(path.join(projectDir, "config_qanat.json")) ||
     (projectDir !== WORKSPACE_DIR
       ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json"))
       : null) ||
-    DEFAULT_OMNIROUTE_MODEL
-  );
+    DEFAULT_OMNIROUTE_MODEL;
+  if (!rawModel || rawModel === "auto" || rawModel === "gemini-3.6-flash" || rawModel.startsWith("auto/")) {
+    return "qwen/qwen3.8-max-preview:free";
+  }
+  return rawModel;
 }
 
 function getOmniRouteModelChain(
