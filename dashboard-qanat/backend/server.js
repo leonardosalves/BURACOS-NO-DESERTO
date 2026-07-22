@@ -189,6 +189,7 @@ import {
 import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerTimelineStudioRoutes } from "./timelineStudioRoutes.js";
+import { createLumieraRenderSnapshot } from "./lumieraEditorStorage.js";
 import { registerMotionSceneRoutes } from "./motionSceneRoutes.js";
 import { registerMotionRoutes } from "./motionRoutes.js";
 import {
@@ -8373,6 +8374,15 @@ app.get(
           percent: 3,
         });
 
+        const renderSnapshot = createLumieraRenderSnapshot(projDir, { fps });
+        sendLog(
+          `[Remotion] Snapshot imutavel criado: ${path.basename(renderSnapshot.snapshotPath)} (${renderSnapshot.hash.slice(0, 12)}).`
+        );
+        appendRenderJobLog(
+          renderJobId,
+          `[snapshot] ${renderSnapshot.snapshotPath} sha256=${renderSnapshot.hash}`
+        );
+
         const renderPlan = await prepareRemotionRender(
           projDir,
           isProres,
@@ -8382,6 +8392,7 @@ app.get(
             resolution,
             sampleRender: isSample,
             fps,
+            renderSnapshot: renderSnapshot.snapshot,
           }
         );
         if (resolution === "2k") {
@@ -9758,6 +9769,7 @@ async function prepareRemotionRender(
   options = {}
 ) {
   const targetFps = options.fps === 60 ? 60 : 30;
+  const snapshotFiles = options.renderSnapshot?.files || null;
   // Load global render config
 
   const globalConfigPath = path.join(__dirname, "render_config_global.json");
@@ -9776,21 +9788,21 @@ async function prepareRemotionRender(
     } catch (e) {}
   }
 
-  let config = readProjectJson(projectDir, "config_qanat.json", {});
+  let config = snapshotFiles?.["config_qanat.json"] || readProjectJson(projectDir, "config_qanat.json", {});
 
-  let storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  let storyboard = snapshotFiles?.["storyboard.json"] || readProjectJson(projectDir, "storyboard.json", {});
 
   try {
     const refreshed = refreshEmotionPlanTimings(projectDir);
     for (const line of refreshed.logs || [])
       console.log(`[Remotion BGM Prep] ${line}`);
-    config = refreshed.config;
-    storyboard = refreshed.storyboard;
+    config = snapshotFiles?.["config_qanat.json"] || refreshed.config;
+    storyboard = snapshotFiles?.["storyboard.json"] || refreshed.storyboard;
     const prepLogs = await prepareBgmBeforeMix(projectDir);
     for (const line of prepLogs || [])
       console.log(`[Remotion BGM Prep] ${line}`);
-    config = readProjectJson(projectDir, "config_qanat.json", {});
-    storyboard = readProjectJson(projectDir, "storyboard.json", {});
+    config = snapshotFiles?.["config_qanat.json"] || readProjectJson(projectDir, "config_qanat.json", {});
+    storyboard = snapshotFiles?.["storyboard.json"] || readProjectJson(projectDir, "storyboard.json", {});
   } catch (prepErr) {
     console.warn(
       "[Remotion BGM Prep] Falha ao preparar trilhas emocionais:",
@@ -9820,19 +9832,15 @@ async function prepareRemotionRender(
     }
   }
 
-  const timings = readProjectJson(projectDir, "block_timings.json", {
+  const timings = snapshotFiles?.["block_timings.json"] || readProjectJson(projectDir, "block_timings.json", {
     starts: [],
     durations: [],
   });
 
-  const wordTranscripts = readProjectJson(
-    projectDir,
-    "word_transcripts.json",
-    []
-  );
+  const wordTranscripts = snapshotFiles?.["word_transcripts.json"] || readProjectJson(projectDir, "word_transcripts.json", []);
   const flatTranscriptWords = flattenWordTranscripts(wordTranscripts);
 
-  const timelineStudio = loadStudioForRender(projectDir);
+  const timelineStudio = snapshotFiles?.["timeline_studio.json"] || loadStudioForRender(projectDir);
   const useStudioRender = shouldUseStudioForRender(timelineStudio);
   if (useStudioRender) {
     console.log(
@@ -12464,14 +12472,14 @@ function getOmniRouteModelChain(
   projectDir = WORKSPACE_DIR,
   modelsOverride = null
 ) {
-  if (Array.isArray(modelsOverride) && modelsOverride.length)
-    return [...new Set(modelsOverride.map(String))];
   const primary = getOmniRouteModel(projectDir);
+  if (Array.isArray(modelsOverride) && modelsOverride.length)
+    return [...new Set([primary, ...modelsOverride.map(String)])];
   let fallbacks = [];
   const cleanPrimary = String(primary || "").replace(/^gemini\//i, "");
   if (/^gemini/i.test(primary) || /^gemini/i.test(cleanPrimary)) {
-    // Máximo 3 fallbacks para não multiplicar tempo de espera
-    fallbacks = ["gemini-2.5-pro", "gemini-3.6-flash", "gemini-2.5-flash"]
+    // Máximo 3 fallbacks para não multiplicar tempo de espera (priorizando 3.6-flash)
+    fallbacks = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-pro", "gemini-2.5-flash"]
       .filter((m) => m !== cleanPrimary)
       .slice(0, 3);
   } else {
@@ -13032,10 +13040,10 @@ function getGeminiModelChain(
   projectDir = WORKSPACE_DIR,
   overrideModels = null
 ) {
-  if (Array.isArray(overrideModels) && overrideModels.length > 0) {
-    return [...new Set(overrideModels.filter(Boolean))];
-  }
   const primary = getGeminiModel(projectDir);
+  if (Array.isArray(overrideModels) && overrideModels.length > 0) {
+    return [...new Set([primary, ...overrideModels.filter(Boolean), ...GEMINI_MODEL_FALLBACKS])];
+  }
   return [...new Set([primary, ...GEMINI_MODEL_FALLBACKS])];
 }
 

@@ -193,7 +193,7 @@ import { analyzeReferenceVideo } from "./openmontageReference.js";
 import { extractBrowserResponse } from "./geminiBrowser.js";
 import { runClipFactory } from "./clipFactory.js";
 import { searchArchiveOrg } from "./archiveOrgStock.js";
-import { searchBingImages } from "./bingImageStock.js";
+import { searchBingImages, searchBingVideos } from "./bingImageStock.js";
 import {
   listDubSourceVideos,
   analyzeDubProject,
@@ -782,6 +782,7 @@ export function registerWorkflowRoutes(app, deps) {
         };
         if (provider === "gemini") {
           llmOpts.models = [
+            "gemini-3.6-flash",
             "gemini-3.5-flash",
             "gemini-2.5-flash",
             "gemini-2.0-flash",
@@ -808,6 +809,7 @@ export function registerWorkflowRoutes(app, deps) {
         };
         if (provider === "gemini") {
           llmOpts.models = [
+            "gemini-3.6-flash",
             "gemini-3.5-flash",
             "gemini-2.5-flash",
             "gemini-2.0-flash",
@@ -3195,6 +3197,18 @@ Instruções críticas:
       if (!q)
         return res.status(400).json({ error: "Informe q=termo de busca" });
       const hits = await searchBingImages(q, { count: 12 });
+      res.json({ ok: true, query: q, hits });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/workflow/bing-video-search", async (req, res) => {
+    try {
+      const q = String(req.query.q || "").trim();
+      if (!q)
+        return res.status(400).json({ error: "Informe q=termo de busca" });
+      const hits = await searchBingVideos(q, { count: 18 });
       res.json({ ok: true, query: q, hits });
     } catch (err) {
       res.status(500).json({ error: err.message });
