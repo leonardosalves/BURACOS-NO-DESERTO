@@ -514,17 +514,69 @@ export function registerTimelineStudioRoutes(
         };
       }
 
-      let motionScene = studioMotionClipToMotionScene(clip);
-      motionScene = enrichStudioTemplateScene(motionScene, { config });
-      if (motionScene.props) {
-        clip = {
-          ...clip,
-          props: { ...clip.props, ...motionScene.props },
-          duration:
-            Number(motionScene.duration_seconds) > 0
-              ? Number(motionScene.duration_seconds)
-              : clip.duration,
+      let motionScene = null;
+      if (isShotcraft && clip.props?.motion_shot) {
+        // Shotcraft: grava motion_shot no storyboard (fonte do ShotcraftLayer)
+        const shot = clip.props.motion_shot;
+        const prompts = Array.isArray(storyboard.visual_prompts)
+          ? [...storyboard.visual_prompts]
+          : [];
+        if (prompts.length) {
+          // Prefer primeira cena sem shot; senão a 1ª
+          let idx = prompts.findIndex((vp) => !vp?.motion_shot?.templateId);
+          if (idx < 0) idx = 0;
+          prompts[idx] = {
+            ...prompts[idx],
+            motion_shot: shot,
+            suggested_shot: shot.templateId,
+          };
+          storyboard.visual_prompts = prompts;
+        }
+        const planCenas = Array.isArray(storyboard.motion_plan?.cenas)
+          ? [...storyboard.motion_plan.cenas]
+          : prompts.map((vp, i) => ({
+              scene_ref: vp.scene || vp.scene_id || i + 1,
+              motion_shot: null,
+            }));
+        // Atualiza plan.cenas alinhado
+        if (planCenas.length) {
+          let pIdx = planCenas.findIndex((c) => !c?.motion_shot?.templateId);
+          if (pIdx < 0) pIdx = 0;
+          planCenas[pIdx] = {
+            ...planCenas[pIdx],
+            motion_shot: shot,
+          };
+        }
+        storyboard.motion_plan = {
+          ...(storyboard.motion_plan || {}),
+          cenas: planCenas,
+          niche:
+            storyboard.motion_plan?.niche ||
+            config.niche ||
+            safeProps.niche ||
+            "",
         };
+        motionScene = {
+          id: clip.id,
+          template_id: shot.templateId,
+          media_mode: "shotcraft",
+          start_hint: clip.start,
+          duration_seconds: clip.duration,
+          props: { motion_shot: shot, shotcraft: true },
+        };
+      } else {
+        motionScene = studioMotionClipToMotionScene(clip);
+        motionScene = enrichStudioTemplateScene(motionScene, { config });
+        if (motionScene.props) {
+          clip = {
+            ...clip,
+            props: { ...clip.props, ...motionScene.props },
+            duration:
+              Number(motionScene.duration_seconds) > 0
+                ? Number(motionScene.duration_seconds)
+                : clip.duration,
+          };
+        }
       }
       const clipIdx = clips.findIndex((c) => String(c?.id || "") === clip.id);
       if (clipIdx >= 0) clips[clipIdx] = clip;
@@ -548,7 +600,13 @@ export function registerTimelineStudioRoutes(
 
       const saved = saveTimelineStudio(projDir, studio);
       writeMotionClipSidecar(projDir, clip);
-      res.json({ ok: true, clip, studio: saved, motion_scene: motionScene });
+      res.json({
+        ok: true,
+        clip,
+        studio: saved,
+        motion_scene: motionScene,
+        shotcraft: Boolean(isShotcraft),
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

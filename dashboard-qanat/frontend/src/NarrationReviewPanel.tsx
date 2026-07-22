@@ -1,14 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Check, Mic, Sparkles, Layers3, Plus } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
-import {
-  createCatalogNiche,
-  fetchCatalogNiches,
-  fetchRemotionTemplateCatalog,
-  syncRemotionTemplateCatalog,
-  type CatalogTemplate,
-} from "./remotionTemplateStudioApi";
-import { isLegacySeedTemplateId } from "@lumiera/shared/remotionTemplateLegacy.js";
 import { splitNarrationIntoBlocks } from "@lumiera/shared/narrationBlocks.js";
 import {
   DEFAULT_TEMPLATE_NICHES,
@@ -20,6 +12,16 @@ import {
   type NotebooklmBriefInfo,
   type NotebooklmSession,
 } from "./NotebooklmEnrichmentPanel";
+
+type ShotcraftTemplate = {
+  id?: string;
+  template_id: string;
+  name: string;
+  category: string;
+  energy?: string;
+  duration_seconds?: number;
+  approved?: boolean;
+};
 
 type BlockPhrase = { block: number; phrase: string };
 
@@ -45,20 +47,6 @@ type VisualReadiness = {
   issues?: string[];
   recommendations?: string[];
 };
-
-const TEMPLATE_STORAGE_KEY = "lumiera.remotionTemplateStudio.templates.v1";
-
-function hasRunnableStudioSource(sourceCode?: {
-  short?: string;
-  long?: string;
-}) {
-  const code = String(sourceCode?.short || sourceCode?.long || "").trim();
-  if (!code) return false;
-  return (
-    /export\s+default\s+function/.test(code) &&
-    /\buseCurrentFrame\s*\(/.test(code)
-  );
-}
 
 type Props = {
   narrativeScript: string;
@@ -93,17 +81,6 @@ type Props = {
   onNotebooklmProceed?: () => Promise<void>;
 };
 
-function readLocalStudioTemplates() {
-  try {
-    const raw = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
 export function NarrationReviewPanel({
   narrativeScript,
   narrativeScriptTagged,
@@ -135,7 +112,7 @@ export function NarrationReviewPanel({
   onNotebooklmReply,
   onNotebooklmProceed,
 }: Props) {
-  const [catalogTemplates, setCatalogTemplates] = useState<CatalogTemplate[]>(
+  const [catalogTemplates, setCatalogTemplates] = useState<ShotcraftTemplate[]>(
     []
   );
   const [catalogNiches, setCatalogNiches] = useState<string[]>(
@@ -162,7 +139,10 @@ export function NarrationReviewPanel({
   const showBlocks = blockPhrases.length > 0 && paragraphs.length > 0;
 
   const approvedTemplates = useMemo(
-    () => catalogTemplates.filter((tpl) => tpl.status === "approved"),
+    () =>
+      catalogTemplates.filter(
+        (tpl) => tpl.approved !== false && Boolean(tpl.template_id)
+      ),
     [catalogTemplates]
   );
 
@@ -178,11 +158,22 @@ export function NarrationReviewPanel({
 
   useEffect(() => {
     let cancelled = false;
-    void fetchCatalogNiches().then((response) => {
-      if (cancelled || !response.success) return;
-      const fromApi = response.niches?.map((row) => row.niche) || [];
-      setCatalogNiches(mergeNicheLists(DEFAULT_TEMPLATE_NICHES, fromApi));
-    });
+    void (async () => {
+      try {
+        const res = await fetch("/api/templates/niches/list");
+        const data = await res.json();
+        if (cancelled || !data.ok) return;
+        const fromApi = (data.niches || []).map(
+          (row: { niche?: string; label?: string }) =>
+            String(row.niche || row.label || "")
+        );
+        setCatalogNiches(
+          mergeNicheLists(DEFAULT_TEMPLATE_NICHES, fromApi.filter(Boolean))
+        );
+      } catch {
+        /* keep defaults */
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -196,9 +187,18 @@ export function NarrationReviewPanel({
     setCreatingNiche(true);
     setCatalogError(null);
     try {
-      const created = await createCatalogNiche(cleanLabel);
-      if (!created.success) {
-        setCatalogError(created.error || "Nao foi possivel criar o catalogo.");
+      const res = await fetch("/api/templates/niches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          niche: cleanLabel,
+          label: cleanLabel,
+          palette: {},
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setCatalogError(data.error || "Nao foi possivel criar o catalogo.");
         return;
       }
       setCatalogNiches((current) => mergeNicheLists(current, [cleanLabel]));
@@ -214,90 +214,37 @@ export function NarrationReviewPanel({
     const loadCatalog = async () => {
       setCatalogLoading(true);
       setCatalogError(null);
-
       try {
-        const localTemplates = readLocalStudioTemplates()
-          .filter(
-            (tpl: { id?: string }) =>
-              !isLegacySeedTemplateId(String(tpl?.id || ""))
-          )
-          .filter((tpl: { niche?: string; status?: string }) => {
-            const tplNiche = String(tpl?.niche || effectiveNiche).trim();
-            return (
-              !tplNiche ||
-              tplNiche.toLowerCase() === effectiveNiche.toLowerCase()
-            );
-          })
-          .map((tpl: Record<string, unknown>) => {
-            const status: "approved" | "draft" =
-              tpl.status === "approved" ? "approved" : "draft";
-            const sourceCode = tpl.sourceCode as
-              { short?: string; long?: string } | undefined;
-            const shortCode = String(sourceCode?.short || "").trim();
-            const longCode = String(sourceCode?.long || "").trim();
-            return {
-              id: String(tpl.id || ""),
-              name: String(tpl.name || ""),
-              category: String(tpl.category || ""),
-              subcategory: String(tpl.subcategory || ""),
-              niche: String(tpl.niche || effectiveNiche),
-              status,
-              description: String(tpl.description || ""),
-              dataSlots: Array.isArray(tpl.dataSlots)
-                ? tpl.dataSlots.map(String)
-                : [],
-              shortPreview: (tpl.shortPreview as string) || null,
-              longPreview: (tpl.longPreview as string) || null,
-              ...(shortCode || longCode
-                ? { sourceCode: { short: shortCode, long: longCode } }
-                : {}),
-            };
-          })
-          .filter((tpl) => hasRunnableStudioSource(tpl.sourceCode));
-
-        if (localTemplates.length) {
-          void syncRemotionTemplateCatalog({
-            niche: effectiveNiche,
-            templates: localTemplates,
-          });
+        let res = await fetch("/api/templates?limit=200");
+        let data = await res.json();
+        if ((!data.ok || !data.templates?.length) && !cancelled) {
+          await fetch("/api/templates/seed", { method: "POST" });
+          res = await fetch("/api/templates?limit=200");
+          data = await res.json();
         }
-
-        const catalog = await fetchRemotionTemplateCatalog(effectiveNiche);
         if (cancelled) return;
-
-        const templates = Array.isArray(catalog.templates)
-          ? catalog.templates
+        const templates: ShotcraftTemplate[] = Array.isArray(data.templates)
+          ? data.templates
           : [];
-
-        if (!catalog.success && !templates.length) {
+        setCatalogTemplates(templates);
+        if (!templates.length) {
           setCatalogError(
-            catalog.error || "Catálogo vazio — modo padrão de overlays."
+            "Catálogo Shotcraft vazio — abra o Editor do Lumiera para seed."
           );
-          setCatalogTemplates([]);
-        } else {
-          setCatalogTemplates(templates);
-          if (!templates.length) {
-            setCatalogError(
-              "Nenhum template com TSX neste nicho — crie e aprove no Template Studio."
-            );
-          }
         }
       } catch (err) {
         if (!cancelled) {
           setCatalogError(
             err instanceof Error
               ? err.message
-              : "Falha ao carregar catálogo do Template Studio."
+              : "Falha ao carregar catálogo Shotcraft."
           );
           setCatalogTemplates([]);
         }
       } finally {
-        if (!cancelled) {
-          setCatalogLoading(false);
-        }
+        if (!cancelled) setCatalogLoading(false);
       }
     };
-
     void loadCatalog();
     return () => {
       cancelled = true;
@@ -306,11 +253,13 @@ export function NarrationReviewPanel({
 
   useEffect(() => {
     if (catalogLoading) return;
-    onMotionTemplateIdsChange?.([]);
+    onMotionTemplateIdsChange?.(
+      approvedTemplates.slice(0, 24).map((t) => t.template_id)
+    );
     onMotionTemplatePackEnabledChange?.(approvedTemplates.length > 0);
   }, [
     catalogLoading,
-    approvedTemplates.length,
+    approvedTemplates,
     effectiveNiche,
     onMotionTemplateIdsChange,
     onMotionTemplatePackEnabledChange,
@@ -440,14 +389,14 @@ export function NarrationReviewPanel({
         <div className="flex items-center gap-2">
           <Layers3 className="w-4 h-4 text-cyan-400" />
           <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-            Templates Remotion do nicho
+            Shotcraft Motion do nicho
           </p>
         </div>
 
         <p className="text-[11px] text-zinc-400 leading-relaxed">
-          Escolha o nicho — a IA usa todos os templates aprovados do Template
-          Studio e encaixa automaticamente nas cenas do roteiro, mesclando com
-          os assets dos prompts visuais.
+          Escolha o nicho — o pack Shotcraft (video-shotcraft) alimenta o motion
+          plan automático nas cenas do roteiro (odometer, gauges, texto, etc.),
+          em paralelo com os assets dos prompts visuais.
           {catalogLoading ? " (carregando catálogo…)" : ""}
         </p>
 
@@ -496,21 +445,20 @@ export function NarrationReviewPanel({
 
         {approvedTemplates.length > 0 && (
           <div className="grid gap-1.5 max-h-28 overflow-y-auto pr-1">
-            {approvedTemplates.map((tpl) => (
+            {approvedTemplates.slice(0, 40).map((tpl) => (
               <div
-                key={tpl.id}
+                key={tpl.template_id || tpl.id}
                 className="flex items-start gap-2 p-2 rounded-lg border border-zinc-800/80 bg-zinc-900/40"
               >
                 <Layers3 className="w-3 h-3 text-cyan-500/70 mt-0.5 shrink-0" />
                 <span className="min-w-0">
                   <span className="block text-xs text-zinc-300 font-medium">
-                    {tpl.name}
+                    {tpl.name || tpl.template_id}
                   </span>
                   <span className="block text-[10px] text-zinc-500">
                     {tpl.category}
-                    {tpl.motion_template_id
-                      ? ` · ${tpl.motion_template_id}`
-                      : ""}
+                    {tpl.template_id ? ` · ${tpl.template_id}` : ""}
+                    {tpl.energy ? ` · ${tpl.energy}` : ""}
                   </span>
                 </span>
               </div>
