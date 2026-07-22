@@ -688,5 +688,22 @@
       }
     ],
     "issueCount": 1
+  },
+  {
+    "id": "1784757085594",
+    "at": "2026-07-22T21:51:25.594Z",
+    "project": "LUMIERA",
+    "niche": "Geral",
+    "format": "SHORT",
+    "score": 98,
+    "source": "auto_quality",
+    "patterns": [
+      {
+        "category": "SHORT/no_bgm",
+        "description": "Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia",
+        "increment": 1
+      }
+    ],
+    "issueCount": 1
   }
 ]

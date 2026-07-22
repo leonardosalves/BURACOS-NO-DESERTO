@@ -544,10 +544,10 @@ export default function App() {
   const [omnirouteKeyInput, setOmnirouteKeyInput] = useState<string>("");
   const [hasOmnirouteKey, setHasOmnirouteKey] = useState<boolean>(true);
   const [omnirouteBaseUrlInput, setOmnirouteBaseUrlInput] = useState<string>(
-    "https://llm.onerouter.pro/v1"
+    "http://localhost:20128/v1"
   );
   const [omnirouteModel, setOmnirouteModel] = useState<string>(
-    "qwen/qwen3.8-max-preview:free"
+    "omniroute-model-default"
   );
   const [omnirouteModelOptions, setOmnirouteModelOptions] = useState<
     Array<{ id: string; label: string; hint?: string }>

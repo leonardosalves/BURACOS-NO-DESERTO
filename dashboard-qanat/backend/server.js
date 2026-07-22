@@ -12419,14 +12419,9 @@ async function callAirForceWithRetry(
 }
 
 // ─── OmniRoute (Local AI Gateway) ──────────────────────────────────────────
-const OMNIROUTE_DEFAULT_BASE_URL = "https://llm.onerouter.pro/v1";
-const DEFAULT_OMNIROUTE_MODEL = "qwen/qwen3.8-max-preview:free";
+const OMNIROUTE_DEFAULT_BASE_URL = "http://localhost:20128/v1";
+const DEFAULT_OMNIROUTE_MODEL = "auto";
 const OMNIROUTE_MODEL_OPTIONS = [
-  {
-    id: "qwen/qwen3.8-max-preview:free",
-    label: "Qwen 3.8 Max Preview (Free)",
-    hint: "Grátis no OneRouter até 24/07/2026",
-  },
   { id: "auto", label: "Auto (Recomendado)", hint: "Escolha dinâmica padrão" },
   { id: "auto/coding", label: "Auto Coding", hint: "Otimizado para código" },
   {
@@ -12447,36 +12442,30 @@ function getOmniRouteApiKey(projectDir = WORKSPACE_DIR) {
     (projectDir !== WORKSPACE_DIR
       ? readKey(path.join(WORKSPACE_DIR, "config_qanat.json"))
       : null) ||
-    "sk-Zcx7JOoYaYUVd2Y8j2gqUKNmljFu8irl8nDZEF98ZV7hI6ow"
+    ""
   );
 }
 
 function getOmniRouteBaseUrl(projectDir = WORKSPACE_DIR) {
   const readUrl = (p) => readJsonFile(p)?.omniroute_base_url || null;
-  const rawUrl =
+  return (
     readUrl(path.join(projectDir, "config_qanat.json")) ||
     (projectDir !== WORKSPACE_DIR
       ? readUrl(path.join(WORKSPACE_DIR, "config_qanat.json"))
       : null) ||
-    OMNIROUTE_DEFAULT_BASE_URL;
-  if (!rawUrl || rawUrl.includes("localhost:20128")) {
-    return "https://llm.onerouter.pro/v1";
-  }
-  return rawUrl;
+    OMNIROUTE_DEFAULT_BASE_URL
+  );
 }
 
 function getOmniRouteModel(projectDir = WORKSPACE_DIR) {
   const readModel = (p) => readJsonFile(p)?.omniroute_model || null;
-  const rawModel =
+  return (
     readModel(path.join(projectDir, "config_qanat.json")) ||
     (projectDir !== WORKSPACE_DIR
       ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json"))
       : null) ||
-    DEFAULT_OMNIROUTE_MODEL;
-  if (!rawModel || rawModel === "auto" || rawModel === "gemini-3.6-flash" || rawModel.startsWith("auto/")) {
-    return "qwen/qwen3.8-max-preview:free";
-  }
-  return rawModel;
+    DEFAULT_OMNIROUTE_MODEL
+  );
 }
 
 function getOmniRouteModelChain(
@@ -12563,7 +12552,6 @@ async function callOmniRouteWithRetry(
             messages,
             stream: false,
             max_tokens: tokenLimit,
-            provider: { service_tier: "standard" },
             ...(temperature !== null ? { temperature } : {}),
           }),
         });

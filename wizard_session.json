@@ -1,9 +1,9 @@
 {
   "version": 2,
-  "savedAt": "2026-07-22T21:43:07.133Z",
+  "savedAt": "2026-07-22T21:51:27.072Z",
   "wasInWizard": true,
   "activeTab": "creator",
-  "activeProject": "Imponente_Ponte_do_Rio",
+  "activeProject": "Lei_1696_lacrou",
   "creatorStep": 1,
   "nicheInput": "engenharia_e_construcao",
   "formatSelector": "SHORTS",
@@ -216,9 +216,9 @@
     },
     "rejected_idea_count": 0
   },
-  "selectedIdeaIndex": 1,
+  "selectedIdeaIndex": 0,
   "generatedScriptData": null,
-  "creatorProjectName": "Erro_bi_aeroporto",
+  "creatorProjectName": "Lei_1696_lacrou",
   "creatorScript": "",
   "ideationTab": "ai",
   "historicalWitnessContext": null,
@@ -231,10 +231,10 @@
       "content": ""
     }
   ],
-  "customIdeaTitle": "",
-  "customIdeaPromise": "",
+  "customIdeaTitle": "Lei de 1696 lacrou janelas em prédios 😳",
+  "customIdeaPromise": "Explicar como um imposto britânico do século 17 forçou pedreiros a tapar janelas com tijolos por 150 anos.",
   "customIdeaHook": "",
-  "customIdeaEmotion": "",
+  "customIdeaEmotion": "astonishing",
   "customIdeaBlocks": "",
   "listNiche": "",
   "listTopic": "",
