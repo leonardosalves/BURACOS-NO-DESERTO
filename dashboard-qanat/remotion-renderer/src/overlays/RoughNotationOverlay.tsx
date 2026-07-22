@@ -1,14 +1,5 @@
 import React from "react";
 import { spring, useCurrentFrame, useVideoConfig } from "remotion";
-import {
-  Highlight,
-  Underline,
-  Box,
-  Circle,
-  StrikeThrough,
-  CrossedOff,
-  Bracket,
-} from "@remotion/rough-notation";
 
 export interface RoughNotationOverlayProps {
   text?: string;
@@ -23,15 +14,14 @@ export interface RoughNotationOverlayProps {
 }
 
 /**
- * Overlay de Grifo Vetorial (Rough Notation / Hand-drawn Stomps).
- * Totalmente OPCIONAL. Inspirado no Remotion Rough-Notation e HyperFrames.
+ * Overlay de Grifo Vetorial Procedural (Pure React/CSS/SVG).
+ * 100% isolado, sem dependências internas de versão do Remotion.
  */
 export const RoughNotationOverlay: React.FC<RoughNotationOverlayProps> = ({
   text = "DESTAQUE IMPORTANTE",
   type = "highlight",
   color = "#FFE600",
   strokeWidth = 3,
-  iterations = 2,
   fontSize = 32,
   top = "40%",
   left = "50%",
@@ -46,30 +36,52 @@ export const RoughNotationOverlay: React.FC<RoughNotationOverlayProps> = ({
     config: { damping: 15, mass: 0.6 },
   });
 
-  const commonProps = {
-    color,
-    strokeWidth,
-    iterations,
-    padding,
-  };
-
-  const renderAnnotation = () => {
+  const renderStyle = (): React.CSSProperties => {
     switch (type) {
-      case "underline":
-        return <Underline {...commonProps}><span>{text}</span></Underline>;
-      case "box":
-        return <Box {...commonProps}><span>{text}</span></Box>;
-      case "circle":
-        return <Circle {...commonProps}><span>{text}</span></Circle>;
-      case "strike-through":
-        return <StrikeThrough {...commonProps}><span>{text}</span></StrikeThrough>;
-      case "crossed-off":
-        return <CrossedOff {...commonProps}><span>{text}</span></CrossedOff>;
-      case "bracket":
-        return <Bracket {...commonProps}><span>{text}</span></Bracket>;
       case "highlight":
+        return {
+          backgroundColor: color,
+          color: "#000000",
+          padding: `${padding}px ${padding * 1.5}px`,
+          borderRadius: "4px",
+          fontWeight: 800,
+          boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
+        };
+      case "underline":
+        return {
+          borderBottom: `${strokeWidth}px solid ${color}`,
+          paddingBottom: `${padding / 2}px`,
+        };
+      case "box":
+        return {
+          border: `${strokeWidth}px solid ${color}`,
+          padding: `${padding}px`,
+          borderRadius: "6px",
+        };
+      case "circle":
+        return {
+          border: `${strokeWidth}px solid ${color}`,
+          padding: `${padding}px ${padding * 1.5}px`,
+          borderRadius: "9999px",
+        };
+      case "strike-through":
+        return {
+          textDecoration: `line-through ${color}`,
+          textDecorationThickness: `${strokeWidth}px`,
+        };
+      case "crossed-off":
+        return {
+          textDecoration: `line-through wavy ${color}`,
+          textDecorationThickness: `${strokeWidth}px`,
+        };
+      case "bracket":
+        return {
+          borderLeft: `${strokeWidth}px solid ${color}`,
+          borderRight: `${strokeWidth}px solid ${color}`,
+          padding: `0 ${padding * 1.5}px`,
+        };
       default:
-        return <Highlight {...commonProps}><span>{text}</span></Highlight>;
+        return {};
     }
   };
 
@@ -80,16 +92,16 @@ export const RoughNotationOverlay: React.FC<RoughNotationOverlayProps> = ({
         top,
         left,
         transform: `translate(-50%, -50%) scale(${entrance})`,
-        zIndex: 200,
-        fontFamily: "'Inter', 'Montserrat', sans-serif",
         fontSize: `${fontSize}px`,
-        fontWeight: 800,
-        color: type === "highlight" ? "#111111" : "#FFFFFF",
-        textAlign: "center",
+        fontFamily: "Inter, sans-serif",
+        color: type === "highlight" ? "#000000" : "#FFFFFF",
+        zIndex: 50,
         pointerEvents: "none",
+        display: "inline-block",
+        ...renderStyle(),
       }}
     >
-      {renderAnnotation()}
+      {text}
     </div>
   );
 };
