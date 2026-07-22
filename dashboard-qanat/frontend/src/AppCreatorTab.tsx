@@ -239,6 +239,7 @@ export type AppCreatorTabProps = {
     scenes: GeoMotionScene[],
     opts?: { immediate?: boolean }
   ) => void;
+  ideasProgressLabel?: string;
   hasApiKey: boolean;
   historicalWitnessContext: HistoricalWitnessContext | null;
   ideasData: any;
@@ -353,6 +354,7 @@ export function AppCreatorTab({
   copyToClipboard,
   creatorIdeasBundle,
   creatorLoading,
+  ideasProgressLabel,
   creatorLoadingMode,
   creatorProjectName,
   creatorScenesNeedRepair,

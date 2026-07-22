@@ -559,6 +559,8 @@ export default function App() {
     },
   ]);
 
+  const [ideasProgressLabel, setIdeasProgressLabel] = useState<string>("");
+
   // AirForce States
   const [airforceKeyInput, setAirforceKeyInput] = useState<string>("");
   const [hasAirforceKey, setHasAirforceKey] = useState<boolean>(true);
@@ -8251,7 +8253,8 @@ export default function App() {
 
     try {
       const initialLoadingMsg = "🔍 [1/3] Mapeando território editorial do nicho…";
-      toast.loading(initialLoadingMsg, { id: "gemini-ideas" });
+      setIdeasProgressLabel(initialLoadingMsg);
+      toast.loading(initialLoadingMsg, { id: "gemini-ideas", duration: Infinity });
 
       progressTimer = setInterval(async () => {
         try {
@@ -11976,6 +11979,7 @@ export default function App() {
     omnirouteKeyInput,
     setOmnirouteKeyInput,
     hasOmnirouteKey,
+    ideasProgressLabel,
     generateYoutubeMetadata,
     generatedScriptData,
     generatingOverlays,

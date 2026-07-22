@@ -772,6 +772,12 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - [ ] Link `[[memory/historia]]` ou nicho correto se for fato reutilizável
 
 ## Padrões promovidos (concorrentes → nosso formato)
+- Exploração do choque tecnológico (robôs, automação, máquinas impressionantes no canteiro de obras). _(IA 2026-07-22)_
+- Perguntas provocativas no título/hook sobre o futuro e a extinção de profissões tradicionais da construção. _(IA 2026-07-22)_
+- Uso de dinamismo visual acelerado (timelapses de grandes estruturas e montagens). _(IA 2026-07-22)_
+- Alertas sobre erros graves de execução (elétrica/hidráulica) geram alto volume de salvamentos e compartilhamentos por utilidade pública. _(IA 2026-07-22)_
+- Exibição de obras e máquinas com escala monumental (espanto/curiosidade) garantem retenção alta nos primeiros 3 segundos. _(IA 2026-07-22)_
+- Vídeos focados em habilidade manual extrema ou processos hiper-sincronizados criam um efeito hipnótico ideal para loops de visualização. _(IA 2026-07-22)_
 - Uso de alertas sobre erros fatais ou perigosos na construção nos primeiros 2 segundos para gerar retenção por aversão à perda. _(IA 2026-07-22)_
 - Exibição de megaconstruções ou processos de engenharia em escala extraordinária para despertar fascínio. _(IA 2026-07-22)_
 - Vídeos do tipo 'Oddly Satisfying' mostrando alta velocidade e precisão manual em tarefas operacionais de obra. _(IA 2026-07-22)_
@@ -896,6 +902,12 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - (nenhum ainda — promover quando mecânica + resultado confirmado 2×)
 
 ## Erros dos concorrentes (nosso diferencial)
+- Criar vídeos puramente institucionais focado em autopromoção sem gerar entretenimento ou valor prático para o espectador.
+- Utilizar ritmo de edição lento e narração formal demais, desalinhado com a dinâmica de retenção dos Shorts.
+- Republicar vídeos de tecnologia de terceiros sem adicionar narração própria, contexto ou análise explicativa.
+- Publicar vídeos de projetos e maquetes 3D sem voz que narre a história ou os diferenciais da obra.
+- Utilizar títulos burocráticos ou muito teóricos em vez de ganchos orientados a problemas ou curiosidade.
+- Não incluir textos e overlays coloridos nos primeiros 2 segundos para capturar a atenção sem áudio.
 - Demora para entregar a promessa do título nos primeiros 3 segundos de vídeo.
 - Falta de narração dinâmica ou efeitos sonoros para acompanhar cortes visuais.
 - Ausência de chamadas para ação (CTAs) objetivas fofocadas em retenção ou engajamento.
@@ -1039,6 +1051,280 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - `skills/viral-captions-and-ctas/references/ctas-that-work.md`
 
 ## Pesquisas automáticas (IA)
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-22 21:42 — engenharia_e_construcao (SHORT)
+
+**Nicho:** engenharia_e_construcao · **Formato:** SHORT
+**Outliers detectados:** 3
+
+#### Fichas de dissecção (IA)
+### Lamb Engenharia: 38 anos de excelência. Inovação e tradição para construir o futuro
+- **Canal:** Lamb Engenharia e Construção
+- **videoId / URL:** 1xqDvslUFbg · https://www.youtube.com/watch?v=1xqDvslUFbg
+- **Views / idade / duração:** 316.039 / 2a / 108s
+- **Outlier?** 2912.8× vs mediana do canal (109 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Lamb Engenharia: 38 anos de excelência...
+- Texto na tela: Inovação e tradição para construir o futuro
+- Arquétipo: Authority / Corporate Branding
+#### Estrutura
+- Formato: Institutional Showreel
+- Blocos / beats: Apresentação de marca -> Mosaico cinematográfico de grandes obras -> Fechamento com slogan de futuro
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: Construir o futuro
+- Tipo: Branding
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Lamb Engenharia: 38 anos de excelência. Inovação e tradição para construir o futuro
+#### Mecânica extraída (1 linha)
+> Uso de imagens de alta produção visual de canteiros de obras aliadas a impulsionamento pago/tráfego para gerar alto volume de visualizações.
+#### Erros do concorrente
+- Foco excessivo no egocentrismo da marca sem entregar valor prático, dica ou entretenimento direto ao usuário comum.
+
+
+---
+
+### Engenharia e Construção - Pedreiros em extinção máquina robótica de construção civil
+- **Canal:** Engenharia e Construção
+- **videoId / URL:** j6GsX5PLxd4 · https://www.youtube.com/watch?v=j6GsX5PLxd4
+- **Views / idade / duração:** 15.940 / 10a / 171s
+- **Outlier?** 87.1× vs mediana do canal (183 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Pedreiros em extinção?
+- Texto na tela: Máquina robótica de construção civil
+- Arquétipo: Curiosity / Provocation
+#### Estrutura
+- Formato: Tech Showcase
+- Blocos / beats: Gancho provocativo sobre substituição de mão de obra -> Vídeo contínuo de robô assentando tijolos com precisão -> Provocação sobre o futuro da profissão
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: Deixe sua opinião nos comentários
+- Tipo: Engagement
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Engenharia e Construção - Pedreiros em extinção máquina robótica de construção civil
+#### Mecânica extraída (1 linha)
+> Gatilho do medo e da curiosidade sobre o impacto da tecnologia e robótica no mercado de trabalho tradicional.
+#### Erros do concorrente
+- Falta de narração autoral e edição simplória, dependendo exclusivamente da curiosidade gerada pelo vídeo de terceiro.
+
+
+---
+
+### 50 anos do 9° Batalhão de Engenharia de Construção
+- **Canal:** Departamento de Engenharia e Construção
+- **videoId / URL:** T-rxwEmNQts · https://www.youtube.com/watch?v=T-rxwEmNQts
+- **Views / idade / duração:** 1.015 / 6a / 119s
+- **Outlier?** 4.47× vs mediana do canal (227 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): 50 anos do 9º Batalhão de Engenharia de Construção
+- Texto na tela: 50 Anos de História
+- Arquétipo: Documentary / Heritage
+#### Estrutura
+- Formato: Mini-Documentário Solene
+- Blocos / beats: Abertura comemorativa -> Transição de fotos históricas -> Mensagem de congratulações
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: Nenhum CTA explícito
+- Tipo: None
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: 50 anos do 9° Batalhão de Engenharia de Construção
+#### Mecânica extraída (1 linha)
+> Apelo ao sentimento de pertencimento e orgulho de uma comunidade específica de engenharia militar.
+#### Erros do concorrente
+- Ritmo extremamente lento, linguagem muito formal e falta de dinamismo para o formato de retenção rápida dos Shorts.
+
+#### Ideias Lumiera derivadas
+1. **Essa máquina assenta 3.000 tijolos por hora e vai mudar as obras**
+   - Gancho: Será que esse robô vai substituir os pedreiros nos próximos 5 anos?
+   - Mecânica: Gatilho de curiosidade/provocação sobre automação robótica substituindo trabalho manual na construção.
+   - Por que não é cópia: Não republique apenas o robô trabalhando; faça um react explicativo analisando custo, velocidade e limitações reais da máquina no Brasil.
+   - Pilar: astonishing
+
+2. **Como esse prédio de 10 andares foi montado em apenas 48 horas**
+   - Gancho: Isso parece mentira, mas é a engenharia de estruturas pré-moldadas levada ao extremo!
+   - Mecânica: Uso de grande porte estrutural e timelapses de velocidade surpreendente na construção civil.
+   - Por que não é cópia: Em vez de um vídeo institucional genérico da construtora, apresente em formato de timelapse acelerado narrando as soluções técnicas de montagem rápida.
+   - Pilar: astonishing
+
+3. **O teste de pressão que destruiu um bloco de concreto de 100 toneladas**
+   - Gancho: Até quantos quilos esse pilar aguenta antes de explodir ao vivo?
+   - Mecânica: Impacto visual e apelo à curiosidade com testes de resistência e força física de materiais de engenharia.
+   - Por que não é cópia: Substitua vídeos burocráticos por demonstrações visuais impactantes de testes destrutivos de laboratório com medidor de pressão na tela.
+   - Pilar: astonishing
+
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-22 21:41 — engenharia_e_construcao (SHORT)
+
+**Nicho:** engenharia_e_construcao · **Formato:** SHORT
+**Outliers detectados:** 6
+
+#### Fichas de dissecção (IA)
+### Projeto Interior - Salão de Beleza
+- **Canal:** Concretize Engenharia e Construção
+- **videoId / URL:** h8BYcpwkPaE · https://www.youtube.com/watch?v=h8BYcpwkPaE
+- **Views / idade / duração:** 4.736 / 5a / 61s
+- **Outlier?** 473.6× vs mediana do canal (10 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Veja essa transformação incrível para um salão de beleza.
+- Texto na tela: TRANSFORMAÇÃO 3D SALÃO DE BELEZA
+- Arquétipo: Visual Satisfaction / Before-After
+#### Estrutura
+- Formato: Time-lapse de Render 3D / Tour Virtual
+- Blocos / beats: 0-3s: Revelação do resultado final fascinante; 3-15s: Transição rápida dos ambientes e detalhes de marcenaria/iluminação; 15-25s: Ângulos fechados com acabamentos sofisticados.
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: Siga para mais projetos de interiores.
+- Tipo: Soft / Inscrição
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Projeto Interior - Salão de Beleza
+#### Mecânica extraída (1 linha)
+> Apelo estético imediato + curiosidade sobre aproveitamento de espaço em projetos comerciais.
+#### Erros do concorrente
+- Falta de narração explicando as escolhas técnicas de iluminação e revestimento.
+
+
+---
+
+### Eclusa na Barragem das Três Gargantas
+- **Canal:** Engenharia e Construção
+- **videoId / URL:** Hkm5VR5Cl70 · https://www.youtube.com/watch?v=Hkm5VR5Cl70
+- **Views / idade / duração:** 17.130 / 9a / 86s
+- **Outlier?** 32.6× vs mediana do canal (526 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Como os navios sobem uma montanha de água na China?
+- Texto na tela: A MAIOR ECLUSA DO MUNDO 🚢
+- Arquétipo: Astonishing / Mega Engineering
+#### Estrutura
+- Formato: Curiosidade / Engenharia Explicativa
+- Blocos / beats: 0-3s: Navio gigante entrando na câmara de água; 3-18s: Demonstração do funcionamento mecânico e escala do elevador de navios; 18-30s: Dados impressionantes de tonelagem e tempo de subida.
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: Você teria coragem de subir nesse elevador de navios?
+- Tipo: Engajamento / Pergunta
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Eclusa na Barragem das Três Gargantas
+#### Mecânica extraída (1 linha)
+> Escala monumental + física/mecânica aplicada de forma visual e intuitiva.
+#### Erros do concorrente
+- Ritmo visual poderia ser acelerado com legendas dinâmicas palavra por palavra.
+
+
+---
+
+### Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+- **Canal:** Active Engenharia e Construção
+- **videoId / URL:** xEOLkp47iYI · https://www.youtube.com/watch?v=xEOLkp47iYI
+- **Views / idade / duração:** 15.328 / 1d / 14s
+- **Outlier?** 15.75× vs mediana do canal (973 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Nunca faça emenda de cabo elétrico desse jeito ou sua casa pode pegar fogo!
+- Texto na tela: ERRO GRAVE NA ELÉTRICA ⚡
+- Arquétipo: Practical Warning / Common Mistake
+#### Estrutura
+- Formato: Demonstração Prática Errado vs Correto
+- Blocos / beats: 0-3s: Exibição da emenda desalinhada e alerta de perigo imediato; 3-15s: Explicação do risco de curto-circuitos e aquecimento no mesmo ponto; 15-30s: Demonstração do jeito certo (emenda desencontrada).
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: Envie esse vídeo para quem está fazendo obra ou reforma!
+- Tipo: Compartilhamento
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+#### Mecânica extraída (1 linha)
+> Gatilho do medo/prevenção de prejuízo + solução técnica simples e imediatamente aplicável.
+#### Erros do concorrente
+- Uso de termos excessivamente acadêmicos em vez de focar na explicação visual e direta.
+
+
+---
+
+### O assentador de pavê mais rápido do mundo
+- **Canal:** Engenharia e Construção
+- **videoId / URL:** cHNzOheqXiw · https://www.youtube.com/watch?v=cHNzOheqXiw
+- **Views / idade / duração:** 3.346 / 9a / 102s
+- **Outlier?** 6.37× vs mediana do canal (526 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Você não vai acreditar na velocidade desse profissional!
+- Texto na tela: VELOCIDADE INACREDITÁVEL 😱
+- Arquétipo: Satisfying / Skill Showcase
+#### Estrutura
+- Formato: Registro de Altíssimo Desempenho / Loop Rítmico
+- Blocos / beats: 0-3s: Movimento ultra rápido e perfeito encaixando o pavê; 3-15s: Sequência contínua e rítmica sem interrupções; 15-20s: Visão geral da área concluída com perfeição.
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: Quanto você pagaria pela diária desse profissional?
+- Tipo: Comentários
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: O assentador de pavê mais rápido do mundo
+#### Mecânica extraída (1 linha)
+> Efeito hipnótico de trabalho perfeito/rápido + valorização do trabalho manual especializado.
+#### Erros do concorrente
+- Qualidade do áudio original baixa, sem trilha rítmica marcante para acompanhar os encaixes.
+
+#### Ideias Lumiera derivadas
+1. **O Erro Oculto no Encanamento que Vaza na Sua Parede**
+   - Gancho: Se o seu pedreiro instalou a tubulação assim, sua parede vai mofar no mês que vem!
+   - Mecânica: Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+   - Por que não é cópia: Não copia a área elétrica, mas aplica a mecânica de exposição de erro comum + alerta de risco grave residencial + solução preventiva.
+   - Pilar: practical_warning
+
+2. **Como Funciona o Guindaste Gigante que Ergue Pontes Inteiras**
+   - Gancho: Como essa estrutura gigante não tomba ao levantar 500 toneladas?
+   - Mecânica: Eclusa na Barragem das Três Gargantas
+   - Por que não é cópia: Não fala de eclusas nem da China, mas utiliza a mecânica de curiosidade sobre mega-obras de engenharia e escala monumental de física aplicada.
+   - Pilar: astonishing
+
+3. **A Técnica Hipnótica para Aplicação de Rejunte sem Sujar os Pisos**
+   - Gancho: Olha a precisão impressionante desta ferramenta de acabamento!
+   - Mecânica: O assentador de pavê mais rápido do mundo
+   - Por que não é cópia: Não fala de pavê ou assentamento de rua, mas utiliza a mecânica de satisfação visual, habilidade manual extrema e ritmo perfeito.
+   - Pilar: satisfying
+
 
 ## Pesquisas automáticas (IA)
 
@@ -9772,3 +10058,9 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - **Ideia 1 — mecânica de "Eclusa na Barragem das Três Gargantas…"** — Eclusa na Barragem das Três Gargantas _(inbox · IA 2026-07-22)_
 - **Ideia 2 — mecânica de "Aplicação BIM para Subestações de Energi…"** — Aplicação BIM para Subestações de Energia Elétrica - Ampliação – ENGETÉCNICA _(inbox · IA 2026-07-22)_
 - **Ideia 3 — mecânica de "Aplicação BIM para Subestações de Energi…"** — Aplicação BIM para Subestações de Energia Elétrica – ENGETÉCNICA _(inbox · IA 2026-07-22)_
+- **O Erro Oculto no Encanamento que Vaza na Sua Parede** — Se o seu pedreiro instalou a tubulação assim, sua parede vai mofar no mês que vem! _(inbox · IA 2026-07-22)_
+- **Como Funciona o Guindaste Gigante que Ergue Pontes Inteiras** — Como essa estrutura gigante não tomba ao levantar 500 toneladas? _(inbox · IA 2026-07-22)_
+- **A Técnica Hipnótica para Aplicação de Rejunte sem Sujar os Pisos** — Olha a precisão impressionante desta ferramenta de acabamento! _(inbox · IA 2026-07-22)_
+- **Essa máquina assenta 3.000 tijolos por hora e vai mudar as obras** — Será que esse robô vai substituir os pedreiros nos próximos 5 anos? _(inbox · IA 2026-07-22)_
+- **Como esse prédio de 10 andares foi montado em apenas 48 horas** — Isso parece mentira, mas é a engenharia de estruturas pré-moldadas levada ao extremo! _(inbox · IA 2026-07-22)_
+- **O teste de pressão que destruiu um bloco de concreto de 100 toneladas** — Até quantos quilos esse pilar aguenta antes de explodir ao vivo? _(inbox · IA 2026-07-22)_

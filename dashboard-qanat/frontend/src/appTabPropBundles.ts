@@ -69,6 +69,7 @@ export type AppTabPropContext = Record<string, unknown> & {
   setOmnirouteBaseUrlInput: (v: string) => void;
   omnirouteKeyInput: string;
   setOmnirouteKeyInput: (v: string) => void;
+  ideasProgressLabel?: string;
   hasOmnirouteKey: boolean;
 };
 
@@ -103,6 +104,7 @@ export function buildAppTabPropBundles(
     copyToClipboard: ctx.copyToClipboard,
     creatorIdeasBundle: ctx.creatorIdeasBundle,
     creatorLoading: ctx.creatorLoading,
+    ideasProgressLabel: ctx.ideasProgressLabel,
     creatorLoadingMode: ctx.creatorLoadingMode,
     creatorProjectName: ctx.creatorProjectName,
     creatorScenesNeedRepair: ctx.creatorScenesNeedRepair,
