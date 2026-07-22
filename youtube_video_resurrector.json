@@ -34,9 +34,22 @@
       "applied": 1,
       "failed": 4
     },
-    "afternoon": null
+    "afternoon": {
+      "ranAt": "2026-07-22T21:02:38.138Z",
+      "trigger": "auto",
+      "videoIds": [
+        "cS-gLDn022E",
+        "4G8CzQr9qFk",
+        "9riK5j6jViA",
+        "cSvxGpLsah0",
+        "FpSANJNfE5c"
+      ],
+      "count": 5,
+      "applied": 5,
+      "failed": 0
+    }
   },
-  "lastDailyRunAt": "2026-07-22T14:01:19.779Z",
+  "lastDailyRunAt": "2026-07-22T21:02:38.138Z",
   "lastDailyRunDate": "2026-07-22",
   "items": [
     {
@@ -13012,7 +13025,7 @@
       "thumbnailUrl": "https://i.ytimg.com/vi/cS-gLDn022E/mqdefault.jpg",
       "hasLumieraProject": false,
       "source": "channel",
-      "status": "queued",
+      "status": "applied",
       "currentMetadata": {
         "title": "2000 Anos vs 50: Por Que Nosso Concreto é FRACO?",
         "description": "🤯 Você NUNCA vai acreditar na diferença entre o concreto romano de 2 mil anos e o nosso!\n\nDescubra o ingrediente SECRETO que fazia o concreto dos romanos durar milênios e até se \"curar\" sozinho.\n\nNeste vídeo, mergulhamos nos mistérios da engenharia romana para desvendar por que suas estruturas, como o Panteão, resistem ao tempo enquanto as nossas mal duram décadas. É uma tecnologia milenar baseada em cinza vulcânica (pozzolana) e cal virgem que desafia a ciência moderna com sua incrível durabilidade e capacidade de auto-regeneração. Prepare-se para questionar tudo o que você sabe sobre construção e os materiais modernos!\n\nSe essa maravilha da engenharia te surpreendeu, deixe seu like, compartilhe com seus amigos e inscreva-se no canal para não perder os próximos segredos desvendados!\n\n\n#ConcretoRomano #EngenhariaAntiga #Pozzolana #SegredosDeRoma #TecnologiaPerdida",
@@ -13034,13 +13047,37 @@
           "segredos romanos"
         ]
       },
-      "proposedMetadata": null,
-      "selectedTitle": null,
+      "proposedMetadata": {
+        "title": "Concreto romano de 2000 anos vs 50: por que o nosso é fraco?",
+        "titleVariants": [
+          "Concreto romano de 2000 anos vs 50: por que o nosso é fraco?"
+        ],
+        "description": "Entenda por que o concreto romano de 2 mil anos continua resistente enquanto o concreto moderno mal dura 50 anos. Conheça a tecnologia milenar baseada em cinza vulcânica (pozzolana) e cal virgem, usada em estruturas como o Panteão, que dá ao concreto antigo alta durabilidade e capacidade de autorregeneração.\n\n#ConcretoRomano #EngenhariaAntiga #Pozzolana #SegredosDeRoma #TecnologiaPerdida",
+        "tags": [
+          "concreto romano",
+          "engenharia",
+          "história",
+          "tecnologia",
+          "ciência",
+          "curiosidades",
+          "construção civil",
+          "roma antiga",
+          "pozzolana",
+          "concreto que se cura",
+          "arquitetura romana",
+          "imperio romano",
+          "durabilidade do concreto",
+          "materiais de construção",
+          "segredos romanos"
+        ],
+        "hashtags": []
+      },
+      "selectedTitle": "Concreto romano de 2000 anos vs 50: por que o nosso é fraco?",
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-03T17:56:52.064Z",
-      "updatedAt": "2026-07-21T17:53:18.740Z",
+      "updatedAt": "2026-07-22T21:01:06.270Z",
       "analyticsBaseline": {
         "videoId": "cS-gLDn022E",
         "startDate": "2026-06-23",
@@ -13085,7 +13122,74 @@
         },
         "analyzedAt": "2026-07-21T17:53:18.734Z"
       },
-      "opportunityScore": 54
+      "opportunityScore": 54,
+      "cycleNumber": 1,
+      "metadataRaw": "{\"title\":\"Concreto romano de 2000 anos vs 50: por que o nosso é fraco?\",\"description\":\"Entenda por que o concreto romano de 2 mil anos continua resistente enquanto o concreto moderno mal dura 50 anos. Conheça a tecnologia milenar baseada em cinza vulcânica (pozzolana) e cal virgem, usada em estruturas como o Panteão, que dá ao concreto antigo alta durabilidade e capacidade de autorregeneração.\\n\\n#ConcretoRomano #EngenhariaAntiga #Pozzolana #SegredosDeRoma #TecnologiaPerdida\",\"reason\":\"O título foi otimizado para telas pequenas colocando a palavra-chave principal ('Concreto romano') logo no início, mantendo o contraste de '2000 anos vs 50' e a promessa exata dos primeiros segundos da narração. A descrição foi limpa de clichês sensacionalistas, tornando-se objetiva, factual e respeitando o limite de 5 hashtags.\",\"prompt\":\"Você é um editor sênior de YouTube. Corrija SOMENTE a embalagem editorial de um vídeo já renderizado.\\n\\nREGRAS:\\n- Não altere fatos, números ou promessas.\\n- O título deve corresponder claramente ao que é entregue nos primeiros segundos.\\n- PARA SHORTS / TELAS PEQUENAS (REGRA OBRIGATÓRIA):\\n  Coloque a PALAVRA-CHAVE DO ASSUNTO PRINCIPAL (ex: \\\"Hotel de 30 andares\\\", \\\"Ponte do Rio X\\\") LOGO NAS PRIMEIRAS PALAVRAS DO TÍTULO.\\n  PROIBIDO usar prefixos de país ou categoria no início (ex: NUNCA use \\\"China: Hotel...\\\", \\\"Brasil: Ponte...\\\", \\\"Curiosidade: ...\\\").\\n  Exemplo INCORRETO: \\\"China: Hotel de 30 andares construído em apenas 15 dias!\\\"\\n  Exemplo CORRETO: \\\"Hotel de 30 andares construído em apenas 15 dias na China\\\"\\n  (\\\"put your most important keywords at the start of your title so viewers immediately get the vibe on small screens\\\").\\n- Não invente conteúdo que não aparece na narração.\\n- Português brasileiro natural.\\n- Título com no máximo 100 caracteres.\\n- Descrição concisa, factual, com contexto e sem promessas falsas.\\n- Preserve hashtags úteis já existentes, no máximo 5.\\n- Retorne APENAS JSON válido neste formato:\\n{\\\"title\\\":\\\"...\\\",\\\"description\\\":\\\"...\\\",\\\"reason\\\":\\\"...\\\"}\\n\\nTítulo atual:\\n2000 Anos vs 50: Por Que Nosso Concreto é FRACO?\\n\\nDescrição atual:\\n🤯 Você NUNCA vai acreditar na diferença entre o concreto romano de 2 mil anos e o nosso!\\n\\nDescubra o ingrediente SECRETO que fazia o concreto dos romanos durar milênios e até se \\\"curar\\\" sozinho.\\n\\nNeste vídeo, mergulhamos nos mistérios da engenharia romana para desvendar por que suas estruturas, como o Panteão, resistem ao tempo enquanto as nossas mal duram décadas. É uma tecnologia milenar baseada em cinza vulcânica (pozzolana) e cal virgem que desafia a ciência moderna com sua incrível durabilidade e capacidade de auto-regeneração. Prepare-se para questionar tudo o que você sabe sobre construção e os materiais modernos!\\n\\nSe essa maravilha da engenharia te surpreendeu, deixe seu like, compartilhe com seus amigos e inscreva-se no canal para não perder os próximos segredos desvendados!\\n\\n\\n#ConcretoRomano #EngenhariaAntiga #Pozzolana #SegredosDeRoma #TecnologiaPerdida\\n\\nAbertura real da narração:\\n2000 Anos vs 50: Por Que Nosso Concreto é FRACO? 🤯 Você NUNCA vai acreditar na diferença entre o concreto romano de 2 mil anos e o nosso! Descubra o ingrediente SECRETO que fazia o concreto dos romanos durar milênios e até se \\\"curar\\\" sozinho. Neste vídeo, mergulhamos nos mistérios da engenharia romana para desvendar por que suas estruturas, como o Panteão, resistem ao tempo enquanto as nossas mal duram décadas. É uma tecnologia milenar baseada em cinza vulcânica (pozzolana) e cal virgem que desafia a ciência moderna com sua\\n\\nNarração completa:\\n2000 Anos vs 50: Por Que Nosso Concreto é FRACO?\\n\\n🤯 Você NUNCA vai acreditar na diferença entre o concreto romano de 2 mil anos e o nosso!\\n\\nDescubra o ingrediente SECRETO que fazia o concreto dos romanos durar milênios e até se \\\"curar\\\" sozinho.\\n\\nNeste vídeo, mergulhamos nos mistérios da engenharia romana para desvendar por que suas estruturas, como o Panteão, resistem ao tempo enquanto as nossas mal duram décadas. É uma tecnologia milenar baseada em cinza vulcânica (pozzolana) e cal virgem que desafia a ciência moderna com sua incrível durabilidade e capacidade de auto-regeneração. Prepare-se para questionar tudo o que você sabe sobre construção e os materiais modernos!\\n\\nSe essa maravilha da engenharia te surpreendeu, deixe seu like, compartilhe com seus amigos e inscreva-se no canal para não perder os próximos segredos desvendados!\\n\\n\\n#ConcretoRomano #EngenhariaAntiga #Pozzolana #SegredosDeRoma #TecnologiaPerdida\\n\\nPalavras-chave do vídeo: concreto romano, engenharia, história, tecnologia, ciência, curiosidades, construção civil, roma antiga, pozzolana, concreto que se cura, arquitetura romana, imperio romano, durabilidade do concreto, materiais de construção, segredos romanos\"}",
+      "usedFallback": false,
+      "appliedAt": "2026-07-22T21:01:06.270Z",
+      "thumbnailApplied": false,
+      "experiment": {
+        "version": 1,
+        "status": "tracking",
+        "treatment": "short_recirculation",
+        "startedAt": "2026-07-22T21:01:06.270Z",
+        "baseline": {
+          "videoId": "cS-gLDn022E",
+          "startDate": "2026-06-23",
+          "endDate": "2026-07-21",
+          "available": true,
+          "reachNote": "Impressões e CTR de thumbnail só existem no YouTube Studio (Reporting API). O Lumiera compara views por período de cada título.",
+          "metrics": {
+            "views": 669,
+            "estimatedMinutesWatched": 201,
+            "averageViewDuration": 42,
+            "likes": 62,
+            "comments": 2,
+            "shares": 0,
+            "subscribersGained": 5,
+            "impressions": null,
+            "impressionClickThroughRate": null
+          }
+        },
+        "checkpoints": [
+          {
+            "label": "48h",
+            "dueAt": "2026-07-24T21:01:06.270Z",
+            "status": "pending"
+          },
+          {
+            "label": "7d",
+            "dueAt": "2026-07-29T21:01:06.270Z",
+            "status": "pending"
+          },
+          {
+            "label": "28d",
+            "dueAt": "2026-08-19T21:01:06.270Z",
+            "status": "pending"
+          }
+        ],
+        "originalMetadata": {
+          "title": "2000 Anos vs 50: Por Que Nosso Concreto é FRACO?",
+          "description": "🤯 Você NUNCA vai acreditar na diferença entre o concreto romano de 2 mil anos e o nosso!\n\nDescubra o ingrediente SECRETO que fazia o concreto dos romanos durar milênios e até se \"curar\" sozinho.\n\nNeste vídeo, mergulhamos nos mistérios da engenharia romana para desvendar por que suas estruturas, como o Panteão, resistem ao tempo enquanto as nossas mal duram décadas. É uma tecnologia milenar baseada em cinza vulcânica (pozzolana) e cal virgem que desafia a ciência moderna com sua incrível durabilidade e capacidade de auto-regeneração. Prepare-se para questionar tudo o que você sabe sobre construção e os materiais modernos!\n\nSe essa maravilha da engenharia te surpreendeu, deixe seu like, compartilhe com seus amigos e inscreva-se no canal para não perder os próximos segredos desvendados!\n\n\n#ConcretoRomano #EngenhariaAntiga #Pozzolana #SegredosDeRoma #TecnologiaPerdida",
+          "tags": [
+            "concreto romano",
+            "engenharia",
+            "história",
+            "tecnologia",
+            "ciência",
+            "curiosidades",
+            "construção civil",
+            "roma antiga",
+            "pozzolana",
+            "concreto que se cura",
+            "arquitetura romana",
+            "imperio romano",
+            "durabilidade do concreto",
+            "materiais de construção",
+            "segredos romanos"
+          ]
+        }
+      }
     },
     {
       "id": "352e4614-842d-4c8d-ad81-9568539b8e5a",
@@ -14478,7 +14582,7 @@
       "thumbnailUrl": "https://i.ytimg.com/vi/4G8CzQr9qFk/mqdefault.jpg",
       "hasLumieraProject": false,
       "source": "channel",
-      "status": "queued",
+      "status": "applied",
       "currentMetadata": {
         "title": "Sua cidade foi projetada para a GUERRA? A verdade!",
         "description": "Prepare-se para ver sua cidade com outros olhos! Parece impossível, mas a brutal lógica militar renascentista ainda dita o fluxo das nossas ruas hoje.\nNeste vídeo revelamos como os fortes em estrela, máquinas de guerra perfeitas, se transformaram nos projetos das metrópoles modernas, influenciando desde a organização social ao tráfego e até nossas \"smart cities\". Entenda a \"trace italienne\", a geometria da guerra que deu origem a ícones como Paris e Washington D.C., e como essa herança inesperada pulsa sob o asfalto. Uma história surpreendente de urbanismo, arquitetura e poder social.\n\nQuer desvendar mais segredos arquitetônicos e históricos?\n➡️ Inscreva-se no canal para não perder nada! \nyoutube.com/channel/UCYYcyky9A8fob3t6TlIENYA/\n💬 Deixe seu comentário: qual cidade você acha que esconde essa geometria?\n👍 Curta se você se surpreendeu com essa descoberta!\n🔗 Compartilhe com amigos que amam história e mistérios urbanos!\n\n#Urbanismo #Arquitetura #Historia #CidadesInteligentes #DesignUrbano",
@@ -14500,13 +14604,37 @@
           "Washington DC"
         ]
       },
-      "proposedMetadata": null,
-      "selectedTitle": null,
+      "proposedMetadata": {
+        "title": "Cidades projetadas para a GUERRA: a verdade sobre o urbanismo moderno",
+        "titleVariants": [
+          "Cidades projetadas para a GUERRA: a verdade sobre o urbanismo moderno"
+        ],
+        "description": "A lógica militar renascentista e os fortes em estrela (trace italienne) moldaram o fluxo e o design das metrópoles modernas, influenciando cidades como Paris e Washington D.C. Entenda como essa herança histórica afeta o tráfego e a arquitetura urbana até hoje.\n\n➡️ Inscreva-se no canal: https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA/\n\n#Urbanismo #Arquitetura #Historia #CidadesInteligentes #DesignUrbano",
+        "tags": [
+          "cidades",
+          "urbanismo",
+          "arquitetura",
+          "historia",
+          "planejamento urbano",
+          "cidades inteligentes",
+          "design urbano",
+          "fortes estrela",
+          "trace italienne",
+          "geometria da guerra",
+          "fortalezas",
+          "urbanização",
+          "curiosidades",
+          "Paris",
+          "Washington DC"
+        ],
+        "hashtags": []
+      },
+      "selectedTitle": "Cidades projetadas para a GUERRA: a verdade sobre o urbanismo moderno",
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-06T04:21:01.958Z",
-      "updatedAt": "2026-07-21T17:53:19.984Z",
+      "updatedAt": "2026-07-22T21:01:30.635Z",
       "analyticsBaseline": {
         "videoId": "4G8CzQr9qFk",
         "startDate": "2026-06-23",
@@ -14551,7 +14679,74 @@
         },
         "analyzedAt": "2026-07-21T17:53:19.961Z"
       },
-      "opportunityScore": 54
+      "opportunityScore": 54,
+      "cycleNumber": 1,
+      "metadataRaw": "{\"title\":\"Cidades projetadas para a GUERRA: a verdade sobre o urbanismo moderno\",\"description\":\"A lógica militar renascentista e os fortes em estrela (trace italienne) moldaram o fluxo e o design das metrópoles modernas, influenciando cidades como Paris e Washington D.C. Entenda como essa herança histórica afeta o tráfego e a arquitetura urbana até hoje.\\n\\n➡️ Inscreva-se no canal: https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA/\\n\\n#Urbanismo #Arquitetura #Historia #CidadesInteligentes #DesignUrbano\",\"reason\":\"O título foi reestruturado para colocar o assunto/palavra-chave principal ('Cidades projetadas para a GUERRA') logo nas primeiras palavras, garantindo leitura imediata em telas pequenas/Shorts sem utilizar prefixos proibidos. A descrição foi sintetizada para ser direta e factual, eliminando redundâncias enquanto mantém a contextualização do vídeo e preserva as 5 hashtags originais.\",\"prompt\":\"Você é um editor sênior de YouTube. Corrija SOMENTE a embalagem editorial de um vídeo já renderizado.\\n\\nREGRAS:\\n- Não altere fatos, números ou promessas.\\n- O título deve corresponder claramente ao que é entregue nos primeiros segundos.\\n- PARA SHORTS / TELAS PEQUENAS (REGRA OBRIGATÓRIA):\\n  Coloque a PALAVRA-CHAVE DO ASSUNTO PRINCIPAL (ex: \\\"Hotel de 30 andares\\\", \\\"Ponte do Rio X\\\") LOGO NAS PRIMEIRAS PALAVRAS DO TÍTULO.\\n  PROIBIDO usar prefixos de país ou categoria no início (ex: NUNCA use \\\"China: Hotel...\\\", \\\"Brasil: Ponte...\\\", \\\"Curiosidade: ...\\\").\\n  Exemplo INCORRETO: \\\"China: Hotel de 30 andares construído em apenas 15 dias!\\\"\\n  Exemplo CORRETO: \\\"Hotel de 30 andares construído em apenas 15 dias na China\\\"\\n  (\\\"put your most important keywords at the start of your title so viewers immediately get the vibe on small screens\\\").\\n- Não invente conteúdo que não aparece na narração.\\n- Português brasileiro natural.\\n- Título com no máximo 100 caracteres.\\n- Descrição concisa, factual, com contexto e sem promessas falsas.\\n- Preserve hashtags úteis já existentes, no máximo 5.\\n- Retorne APENAS JSON válido neste formato:\\n{\\\"title\\\":\\\"...\\\",\\\"description\\\":\\\"...\\\",\\\"reason\\\":\\\"...\\\"}\\n\\nTítulo atual:\\nSua cidade foi projetada para a GUERRA? A verdade!\\n\\nDescrição atual:\\nPrepare-se para ver sua cidade com outros olhos! Parece impossível, mas a brutal lógica militar renascentista ainda dita o fluxo das nossas ruas hoje.\\nNeste vídeo revelamos como os fortes em estrela, máquinas de guerra perfeitas, se transformaram nos projetos das metrópoles modernas, influenciando desde a organização social ao tráfego e até nossas \\\"smart cities\\\". Entenda a \\\"trace italienne\\\", a geometria da guerra que deu origem a ícones como Paris e Washington D.C., e como essa herança inesperada pulsa sob o asfalto. Uma história surpreendente de urbanismo, arquitetura e poder social.\\n\\nQuer desvendar mais segredos arquitetônicos e históricos?\\n➡️ Inscreva-se no canal para não perder nada! \\nyoutube.com/channel/UCYYcyky9A8fob3t6TlIENYA/\\n💬 Deixe seu comentário: qual cidade você acha que esconde essa geometria?\\n👍 Curta se você se surpreendeu com essa descoberta!\\n🔗 Compartilhe com amigos que amam história e mistérios urbanos!\\n\\n#Urbanismo #Arquitetura #Historia #CidadesInteligentes #DesignUrbano\\n\\nAbertura real da narração:\\nSua cidade foi projetada para a GUERRA? A verdade! Prepare-se para ver sua cidade com outros olhos! Parece impossível, mas a brutal lógica militar renascentista ainda dita o fluxo das nossas ruas hoje. Neste vídeo revelamos como os fortes em estrela, máquinas de guerra perfeitas, se transformaram nos projetos das metrópoles modernas, influenciando desde a organização social ao tráfego e até nossas \\\"smart cities\\\". Entenda a \\\"trace italienne\\\", a geometria da guerra que deu origem a ícones como Paris e Washington D.C., e como essa herança inesperada pulsa sob o\\n\\nNarração completa:\\nSua cidade foi projetada para a GUERRA? A verdade!\\n\\nPrepare-se para ver sua cidade com outros olhos! Parece impossível, mas a brutal lógica militar renascentista ainda dita o fluxo das nossas ruas hoje.\\nNeste vídeo revelamos como os fortes em estrela, máquinas de guerra perfeitas, se transformaram nos projetos das metrópoles modernas, influenciando desde a organização social ao tráfego e até nossas \\\"smart cities\\\". Entenda a \\\"trace italienne\\\", a geometria da guerra que deu origem a ícones como Paris e Washington D.C., e como essa herança inesperada pulsa sob o asfalto. Uma história surpreendente de urbanismo, arquitetura e poder social.\\n\\nQuer desvendar mais segredos arquitetônicos e históricos?\\n➡️ Inscreva-se no canal para não perder nada! \\nyoutube.com/channel/UCYYcyky9A8fob3t6TlIENYA/\\n💬 Deixe seu comentário: qual cidade você acha que esconde essa geometria?\\n👍 Curta se você se surpreendeu com essa descoberta!\\n🔗 Compartilhe com amigos que amam história e mistérios urbanos!\\n\\n#Urbanismo #Arquitetura #Historia #CidadesInteligentes #DesignUrbano\\n\\nPalavras-chave do vídeo: cidades, urbanismo, arquitetura, historia, planejamento urbano, cidades inteligentes, design urbano, fortes estrela, trace italienne, geometria da guerra, fortalezas, urbanização, curiosidades, Paris, Washington DC\"}",
+      "usedFallback": false,
+      "appliedAt": "2026-07-22T21:01:30.635Z",
+      "thumbnailApplied": false,
+      "experiment": {
+        "version": 1,
+        "status": "tracking",
+        "treatment": "short_recirculation",
+        "startedAt": "2026-07-22T21:01:30.635Z",
+        "baseline": {
+          "videoId": "4G8CzQr9qFk",
+          "startDate": "2026-06-23",
+          "endDate": "2026-07-21",
+          "available": true,
+          "reachNote": "Impressões e CTR de thumbnail só existem no YouTube Studio (Reporting API). O Lumiera compara views por período de cada título.",
+          "metrics": {
+            "views": 567,
+            "estimatedMinutesWatched": 267,
+            "averageViewDuration": 47,
+            "likes": 29,
+            "comments": 2,
+            "shares": 0,
+            "subscribersGained": 3,
+            "impressions": null,
+            "impressionClickThroughRate": null
+          }
+        },
+        "checkpoints": [
+          {
+            "label": "48h",
+            "dueAt": "2026-07-24T21:01:30.635Z",
+            "status": "pending"
+          },
+          {
+            "label": "7d",
+            "dueAt": "2026-07-29T21:01:30.635Z",
+            "status": "pending"
+          },
+          {
+            "label": "28d",
+            "dueAt": "2026-08-19T21:01:30.635Z",
+            "status": "pending"
+          }
+        ],
+        "originalMetadata": {
+          "title": "Sua cidade foi projetada para a GUERRA? A verdade!",
+          "description": "Prepare-se para ver sua cidade com outros olhos! Parece impossível, mas a brutal lógica militar renascentista ainda dita o fluxo das nossas ruas hoje.\nNeste vídeo revelamos como os fortes em estrela, máquinas de guerra perfeitas, se transformaram nos projetos das metrópoles modernas, influenciando desde a organização social ao tráfego e até nossas \"smart cities\". Entenda a \"trace italienne\", a geometria da guerra que deu origem a ícones como Paris e Washington D.C., e como essa herança inesperada pulsa sob o asfalto. Uma história surpreendente de urbanismo, arquitetura e poder social.\n\nQuer desvendar mais segredos arquitetônicos e históricos?\n➡️ Inscreva-se no canal para não perder nada! \nyoutube.com/channel/UCYYcyky9A8fob3t6TlIENYA/\n💬 Deixe seu comentário: qual cidade você acha que esconde essa geometria?\n👍 Curta se você se surpreendeu com essa descoberta!\n🔗 Compartilhe com amigos que amam história e mistérios urbanos!\n\n#Urbanismo #Arquitetura #Historia #CidadesInteligentes #DesignUrbano",
+          "tags": [
+            "cidades",
+            "urbanismo",
+            "arquitetura",
+            "historia",
+            "planejamento urbano",
+            "cidades inteligentes",
+            "design urbano",
+            "fortes estrela",
+            "trace italienne",
+            "geometria da guerra",
+            "fortalezas",
+            "urbanização",
+            "curiosidades",
+            "Paris",
+            "Washington DC"
+          ]
+        }
+      }
     },
     {
       "id": "fba5ec94-ea5b-46d8-a93d-3e5b14abaf29",
@@ -15008,7 +15203,7 @@
       "thumbnailUrl": "https://i.ytimg.com/vi/9riK5j6jViA/mqdefault.jpg",
       "hasLumieraProject": false,
       "source": "channel",
-      "status": "queued",
+      "status": "applied",
       "currentMetadata": {
         "title": "A Arma Medieval Pior Que A Guilhotina?",
         "description": "Sinta o medo: uma guilhotina medieval de 3 toneladas que transformava castelos em armadilhas letais.\nDescubra a física brutal por trás da portcullis, a engenharia genial para erguê-la e a tática da \"garrafa da morte\".\n\nVocê vai se surpreender com a precisão assustadora e a simplicidade letal de uma das defesas mais eficazes e brutais da era medieval. Entenda como a gravidade foi usada como arma e como essa arquitetura cinética inspirou até barreiras modernas.\n\nEste vídeo explora a portcullis, a guilhotina medieval que usava a física a seu favor, transformando massa em força destrutiva capaz de amassar a armadura mais forte. Desvendaremos os sistemas de guinchos, roldanas e contrappesos usados para controlar esse monstro de carvalho e ferro.\n\nQual outra invenção medieval te deixa tão arrepiado? Compartilhe nos comentários e não se esqueça de se inscrever para mais curiosidades históricas e científicas!\n➡️ Para mais segredos da Idade Média, confira nossa playlist: [Link para Playlist de História Medieval]\n➡️ Veja também: [Link para Vídeo Relacionado - Ex: As Armas Mais Letas da Idade Média]\n\n#Portcullis #IdadeMedia #EngenhariaMedieval #FisicaAplicada #CuriosidadesHistoricas",
@@ -15036,13 +15231,43 @@
           "história medieval débora aladim"
         ]
       },
-      "proposedMetadata": null,
-      "selectedTitle": null,
+      "proposedMetadata": {
+        "title": "Portcullis: A arma medieval de 3 toneladas pior que a guilhotina",
+        "titleVariants": [
+          "Portcullis: A arma medieval de 3 toneladas pior que a guilhotina"
+        ],
+        "description": "Conheça a engenharia e a física por trás da portcullis, uma guilhotina medieval de 3 toneladas feita de carvalho e ferro. Entenda como a gravidade, sistemas de guinchos e roldanas e a tática da \"garrafa da morte\" transformavam castelos em armadilhas letais capazes de amassar armaduras resistentes.\n\n#Portcullis #IdadeMedia #EngenhariaMedieval #FisicaAplicada #CuriosidadesHistoricas",
+        "tags": [
+          "idade média",
+          "história medieval",
+          "curiosidades históricas",
+          "engenharia medieval",
+          "castelo medieval",
+          "armas medievais",
+          "física aplicada",
+          "gravidade",
+          "portcullis",
+          "portcullis medieval",
+          "guilhotina medieval",
+          "arquitetura cinética",
+          "garrafa da morte",
+          "portculis",
+          "mecanismos de defesa",
+          "ancient empires",
+          "most shocking",
+          "forbidden secrets",
+          "história medieval para dormir",
+          "história medieval completa",
+          "história medieval débora aladim"
+        ],
+        "hashtags": []
+      },
+      "selectedTitle": "Portcullis: A arma medieval de 3 toneladas pior que a guilhotina",
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-07T03:48:34.781Z",
-      "updatedAt": "2026-07-21T17:53:20.615Z",
+      "updatedAt": "2026-07-22T21:01:58.556Z",
       "analyticsBaseline": {
         "videoId": "9riK5j6jViA",
         "startDate": "2026-06-23",
@@ -15087,7 +15312,80 @@
         },
         "analyzedAt": "2026-07-21T17:53:20.590Z"
       },
-      "opportunityScore": 54
+      "opportunityScore": 54,
+      "cycleNumber": 1,
+      "metadataRaw": "{\"title\":\"Portcullis: A arma medieval de 3 toneladas pior que a guilhotina\",\"description\":\"Conheça a engenharia e a física por trás da portcullis, uma guilhotina medieval de 3 toneladas feita de carvalho e ferro. Entenda como a gravidade, sistemas de guinchos e roldanas e a tática da \\\"garrafa da morte\\\" transformavam castelos em armadilhas letais capazes de amassar armaduras resistentes.\\n\\n#Portcullis #IdadeMedia #EngenhariaMedieval #FisicaAplicada #CuriosidadesHistoricas\",\"reason\":\"O título foi reestruturado para colocar a palavra-chave principal ('Portcullis') logo no início, atendendo à regra obrigatória para telas pequenas/Shorts e conectando-se diretamente aos primeiros segundos da narração. A descrição foi higienizada para remover redundâncias, mantendo o tom factual, o contexto histórico e as 5 hashtags úteis.\",\"prompt\":\"Você é um editor sênior de YouTube. Corrija SOMENTE a embalagem editorial de um vídeo já renderizado.\\n\\nREGRAS:\\n- Não altere fatos, números ou promessas.\\n- O título deve corresponder claramente ao que é entregue nos primeiros segundos.\\n- PARA SHORTS / TELAS PEQUENAS (REGRA OBRIGATÓRIA):\\n  Coloque a PALAVRA-CHAVE DO ASSUNTO PRINCIPAL (ex: \\\"Hotel de 30 andares\\\", \\\"Ponte do Rio X\\\") LOGO NAS PRIMEIRAS PALAVRAS DO TÍTULO.\\n  PROIBIDO usar prefixos de país ou categoria no início (ex: NUNCA use \\\"China: Hotel...\\\", \\\"Brasil: Ponte...\\\", \\\"Curiosidade: ...\\\").\\n  Exemplo INCORRETO: \\\"China: Hotel de 30 andares construído em apenas 15 dias!\\\"\\n  Exemplo CORRETO: \\\"Hotel de 30 andares construído em apenas 15 dias na China\\\"\\n  (\\\"put your most important keywords at the start of your title so viewers immediately get the vibe on small screens\\\").\\n- Não invente conteúdo que não aparece na narração.\\n- Português brasileiro natural.\\n- Título com no máximo 100 caracteres.\\n- Descrição concisa, factual, com contexto e sem promessas falsas.\\n- Preserve hashtags úteis já existentes, no máximo 5.\\n- Retorne APENAS JSON válido neste formato:\\n{\\\"title\\\":\\\"...\\\",\\\"description\\\":\\\"...\\\",\\\"reason\\\":\\\"...\\\"}\\n\\nTítulo atual:\\nA Arma Medieval Pior Que A Guilhotina?\\n\\nDescrição atual:\\nSinta o medo: uma guilhotina medieval de 3 toneladas que transformava castelos em armadilhas letais.\\nDescubra a física brutal por trás da portcullis, a engenharia genial para erguê-la e a tática da \\\"garrafa da morte\\\".\\n\\nVocê vai se surpreender com a precisão assustadora e a simplicidade letal de uma das defesas mais eficazes e brutais da era medieval. Entenda como a gravidade foi usada como arma e como essa arquitetura cinética inspirou até barreiras modernas.\\n\\nEste vídeo explora a portcullis, a guilhotina medieval que usava a física a seu favor, transformando massa em força destrutiva capaz de amassar a armadura mais forte. Desvendaremos os sistemas de guinchos, roldanas e contrappesos usados para controlar esse monstro de carvalho e ferro.\\n\\nQual outra invenção medieval te deixa tão arrepiado? Compartilhe nos comentários e não se esqueça de se inscrever para mais curiosidades históricas e científicas!\\n➡️ Para mais segredos da Idade Média, confira nossa playlist: [Link para Playlist de História Medieval]\\n➡️ Veja também: [Link para Vídeo Relacionado - Ex: As Armas Mais Letas da Idade Média]\\n\\n#Portcullis #IdadeMedia #EngenhariaMedieval #FisicaAplicada #CuriosidadesHistoricas\\n\\nAbertura real da narração:\\nA Arma Medieval Pior Que A Guilhotina? Sinta o medo: uma guilhotina medieval de 3 toneladas que transformava castelos em armadilhas letais. Descubra a física brutal por trás da portcullis, a engenharia genial para erguê-la e a tática da \\\"garrafa da morte\\\". Você vai se surpreender com a precisão assustadora e a simplicidade letal de uma das defesas mais eficazes e brutais da era medieval. Entenda como a gravidade foi usada como arma e como essa arquitetura cinética inspirou até barreiras modernas. Este vídeo explora a portcullis, a guilhotina medieval\\n\\nNarração completa:\\nA Arma Medieval Pior Que A Guilhotina?\\n\\nSinta o medo: uma guilhotina medieval de 3 toneladas que transformava castelos em armadilhas letais.\\nDescubra a física brutal por trás da portcullis, a engenharia genial para erguê-la e a tática da \\\"garrafa da morte\\\".\\n\\nVocê vai se surpreender com a precisão assustadora e a simplicidade letal de uma das defesas mais eficazes e brutais da era medieval. Entenda como a gravidade foi usada como arma e como essa arquitetura cinética inspirou até barreiras modernas.\\n\\nEste vídeo explora a portcullis, a guilhotina medieval que usava a física a seu favor, transformando massa em força destrutiva capaz de amassar a armadura mais forte. Desvendaremos os sistemas de guinchos, roldanas e contrappesos usados para controlar esse monstro de carvalho e ferro.\\n\\nQual outra invenção medieval te deixa tão arrepiado? Compartilhe nos comentários e não se esqueça de se inscrever para mais curiosidades históricas e científicas!\\n➡️ Para mais segredos da Idade Média, confira nossa playlist: [Link para Playlist de História Medieval]\\n➡️ Veja também: [Link para Vídeo Relacionado - Ex: As Armas Mais Letas da Idade Média]\\n\\n#Portcullis #IdadeMedia #EngenhariaMedieval #FisicaAplicada #CuriosidadesHistoricas\\n\\nPalavras-chave do vídeo: idade média, história medieval, curiosidades históricas, engenharia medieval, castelo medieval, armas medievais, física aplicada, gravidade, portcullis, portcullis medieval, guilhotina medieval, arquitetura cinética, garrafa da morte, portculis, mecanismos de defesa, ancient empires, most shocking, forbidden secrets, história medieval para dormir, história medieval completa, história medieval débora aladim\"}",
+      "usedFallback": false,
+      "appliedAt": "2026-07-22T21:01:58.556Z",
+      "thumbnailApplied": false,
+      "experiment": {
+        "version": 1,
+        "status": "tracking",
+        "treatment": "short_recirculation",
+        "startedAt": "2026-07-22T21:01:58.556Z",
+        "baseline": {
+          "videoId": "9riK5j6jViA",
+          "startDate": "2026-06-23",
+          "endDate": "2026-07-21",
+          "available": true,
+          "reachNote": "Impressões e CTR de thumbnail só existem no YouTube Studio (Reporting API). O Lumiera compara views por período de cada título.",
+          "metrics": {
+            "views": 651,
+            "estimatedMinutesWatched": 360,
+            "averageViewDuration": 56,
+            "likes": 51,
+            "comments": 1,
+            "shares": 0,
+            "subscribersGained": 2,
+            "impressions": null,
+            "impressionClickThroughRate": null
+          }
+        },
+        "checkpoints": [
+          {
+            "label": "48h",
+            "dueAt": "2026-07-24T21:01:58.556Z",
+            "status": "pending"
+          },
+          {
+            "label": "7d",
+            "dueAt": "2026-07-29T21:01:58.556Z",
+            "status": "pending"
+          },
+          {
+            "label": "28d",
+            "dueAt": "2026-08-19T21:01:58.556Z",
+            "status": "pending"
+          }
+        ],
+        "originalMetadata": {
+          "title": "A Arma Medieval Pior Que A Guilhotina?",
+          "description": "Sinta o medo: uma guilhotina medieval de 3 toneladas que transformava castelos em armadilhas letais.\nDescubra a física brutal por trás da portcullis, a engenharia genial para erguê-la e a tática da \"garrafa da morte\".\n\nVocê vai se surpreender com a precisão assustadora e a simplicidade letal de uma das defesas mais eficazes e brutais da era medieval. Entenda como a gravidade foi usada como arma e como essa arquitetura cinética inspirou até barreiras modernas.\n\nEste vídeo explora a portcullis, a guilhotina medieval que usava a física a seu favor, transformando massa em força destrutiva capaz de amassar a armadura mais forte. Desvendaremos os sistemas de guinchos, roldanas e contrappesos usados para controlar esse monstro de carvalho e ferro.\n\nQual outra invenção medieval te deixa tão arrepiado? Compartilhe nos comentários e não se esqueça de se inscrever para mais curiosidades históricas e científicas!\n➡️ Para mais segredos da Idade Média, confira nossa playlist: [Link para Playlist de História Medieval]\n➡️ Veja também: [Link para Vídeo Relacionado - Ex: As Armas Mais Letas da Idade Média]\n\n#Portcullis #IdadeMedia #EngenhariaMedieval #FisicaAplicada #CuriosidadesHistoricas",
+          "tags": [
+            "idade média",
+            "história medieval",
+            "curiosidades históricas",
+            "engenharia medieval",
+            "castelo medieval",
+            "armas medievais",
+            "física aplicada",
+            "gravidade",
+            "portcullis",
+            "portcullis medieval",
+            "guilhotina medieval",
+            "arquitetura cinética",
+            "garrafa da morte",
+            "portculis",
+            "mecanismos de defesa",
+            "ancient empires",
+            "most shocking",
+            "forbidden secrets",
+            "história medieval para dormir",
+            "história medieval completa",
+            "história medieval débora aladim"
+          ]
+        }
+      }
     },
     {
       "id": "8ded6cd3-66a5-4850-80f5-4a9bd00d9ad9",
@@ -15637,7 +15935,7 @@
         "analyzedAt": "2026-07-21T17:53:21.209Z"
       },
       "opportunityScore": 54,
-      "status": "queued",
+      "status": "applied",
       "currentMetadata": {
         "title": "Você usa essas 3 invenções romanas todos os dias! #Historia #RomaAntiga #Curiosidades",
         "description": "Invenções Romanas que mudaram o mundo: você usa elas todo dia sem saber! Descubra as 3 maravilhas da engenharia romana que ainda moldam sua vida hoje. #Shorts\nMergulhe na história da Roma Antiga e veja como a engenharia de 2 mil anos ainda impacta a tecnologia e urbanismo modernos. Salve este vídeo para compartilhar com amigos curiosos!\n\n#InvençõesRomanas #EngenhariaAntiga #RomaAntiga #UrbanismoRomano #EsgotoAntigo #EstradasRomanas #Historia #Shorts",
@@ -15661,13 +15959,39 @@
           "via appia"
         ]
       },
-      "proposedMetadata": null,
-      "selectedTitle": null,
+      "proposedMetadata": {
+        "title": "3 invenções romanas que você usa todos os dias!",
+        "titleVariants": [
+          "3 invenções romanas que você usa todos os dias!"
+        ],
+        "description": "Descubra como 3 maravilhas da engenharia da Roma Antiga moldam o urbanismo moderno e continuam presentes no seu dia a dia.\n\n#InvençõesRomanas #RomaAntiga #EngenhariaAntiga #Historia #Shorts",
+        "tags": [
+          "Shorts",
+          "YoutubeShorts",
+          "cloaca maxima",
+          "cultura romana",
+          "curiosidades",
+          "curiosidades roma",
+          "engenharia antiga",
+          "história",
+          "imperio romano",
+          "império romano",
+          "invenções romanas",
+          "legado romano",
+          "roma antiga",
+          "sistema de esgoto",
+          "tecnologia romana",
+          "urbanismo romano",
+          "via appia"
+        ],
+        "hashtags": []
+      },
+      "selectedTitle": "3 invenções romanas que você usa todos os dias!",
       "thumbnailStatus": "n/a",
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-15T04:27:40.265Z",
-      "updatedAt": "2026-07-21T17:53:21.225Z",
+      "updatedAt": "2026-07-22T21:02:16.218Z",
       "analyticsBaseline": {
         "videoId": "cSvxGpLsah0",
         "startDate": "2026-06-23",
@@ -15684,6 +16008,75 @@
           "subscribersGained": 3,
           "impressions": null,
           "impressionClickThroughRate": null
+        }
+      },
+      "cycleNumber": 1,
+      "metadataRaw": "{\"title\":\"3 invenções romanas que você usa todos os dias!\",\"description\":\"Descubra como 3 maravilhas da engenharia da Roma Antiga moldam o urbanismo moderno e continuam presentes no seu dia a dia.\\n\\n#InvençõesRomanas #RomaAntiga #EngenhariaAntiga #Historia #Shorts\",\"reason\":\"O título foi reordenado para colocar a palavra-chave principal ('3 invenções romanas') no início, atendendo à regra obrigatória para Shorts/telas pequenas e alinhando-se perfeitamente com a abertura do áudio. As hashtags foram removidas do título para mantê-lo limpo e a descrição foi condensada mantendo 5 hashtags relevantes.\",\"prompt\":\"Você é um editor sênior de YouTube. Corrija SOMENTE a embalagem editorial de um vídeo já renderizado.\\n\\nREGRAS:\\n- Não altere fatos, números ou promessas.\\n- O título deve corresponder claramente ao que é entregue nos primeiros segundos.\\n- PARA SHORTS / TELAS PEQUENAS (REGRA OBRIGATÓRIA):\\n  Coloque a PALAVRA-CHAVE DO ASSUNTO PRINCIPAL (ex: \\\"Hotel de 30 andares\\\", \\\"Ponte do Rio X\\\") LOGO NAS PRIMEIRAS PALAVRAS DO TÍTULO.\\n  PROIBIDO usar prefixos de país ou categoria no início (ex: NUNCA use \\\"China: Hotel...\\\", \\\"Brasil: Ponte...\\\", \\\"Curiosidade: ...\\\").\\n  Exemplo INCORRETO: \\\"China: Hotel de 30 andares construído em apenas 15 dias!\\\"\\n  Exemplo CORRETO: \\\"Hotel de 30 andares construído em apenas 15 dias na China\\\"\\n  (\\\"put your most important keywords at the start of your title so viewers immediately get the vibe on small screens\\\").\\n- Não invente conteúdo que não aparece na narração.\\n- Português brasileiro natural.\\n- Título com no máximo 100 caracteres.\\n- Descrição concisa, factual, com contexto e sem promessas falsas.\\n- Preserve hashtags úteis já existentes, no máximo 5.\\n- Retorne APENAS JSON válido neste formato:\\n{\\\"title\\\":\\\"...\\\",\\\"description\\\":\\\"...\\\",\\\"reason\\\":\\\"...\\\"}\\n\\nTítulo atual:\\nVocê usa essas 3 invenções romanas todos os dias! #Historia #RomaAntiga #Curiosidades\\n\\nDescrição atual:\\nInvenções Romanas que mudaram o mundo: você usa elas todo dia sem saber! Descubra as 3 maravilhas da engenharia romana que ainda moldam sua vida hoje. #Shorts\\nMergulhe na história da Roma Antiga e veja como a engenharia de 2 mil anos ainda impacta a tecnologia e urbanismo modernos. Salve este vídeo para compartilhar com amigos curiosos!\\n\\n#InvençõesRomanas #EngenhariaAntiga #RomaAntiga #UrbanismoRomano #EsgotoAntigo #EstradasRomanas #Historia #Shorts\\n\\nAbertura real da narração:\\nVocê usa essas 3 invenções romanas todos os dias! #Historia #RomaAntiga #Curiosidades Invenções Romanas que mudaram o mundo: você usa elas todo dia sem saber! Descubra as 3 maravilhas da engenharia romana que ainda moldam sua vida hoje. #Shorts Mergulhe na história da Roma Antiga e veja como a engenharia de 2 mil anos ainda impacta a tecnologia e urbanismo modernos. Salve este vídeo para compartilhar com amigos curiosos! #InvençõesRomanas #EngenhariaAntiga #RomaAntiga #UrbanismoRomano #EsgotoAntigo #EstradasRomanas #Historia #Shorts Palavras-chave do vídeo: Shorts, YoutubeShorts, cloaca maxima, cultura romana, curiosidades, curiosidades roma, engenharia\\n\\nNarração completa:\\nVocê usa essas 3 invenções romanas todos os dias! #Historia #RomaAntiga #Curiosidades\\n\\nInvenções Romanas que mudaram o mundo: você usa elas todo dia sem saber! Descubra as 3 maravilhas da engenharia romana que ainda moldam sua vida hoje. #Shorts\\nMergulhe na história da Roma Antiga e veja como a engenharia de 2 mil anos ainda impacta a tecnologia e urbanismo modernos. Salve este vídeo para compartilhar com amigos curiosos!\\n\\n#InvençõesRomanas #EngenhariaAntiga #RomaAntiga #UrbanismoRomano #EsgotoAntigo #EstradasRomanas #Historia #Shorts\\n\\nPalavras-chave do vídeo: Shorts, YoutubeShorts, cloaca maxima, cultura romana, curiosidades, curiosidades roma, engenharia antiga, história, imperio romano, império romano, invenções romanas, legado romano, roma antiga, sistema de esgoto, tecnologia romana, urbanismo romano, via appia\"}",
+      "usedFallback": false,
+      "appliedAt": "2026-07-22T21:02:16.218Z",
+      "thumbnailApplied": false,
+      "experiment": {
+        "version": 1,
+        "status": "tracking",
+        "treatment": "short_recirculation",
+        "startedAt": "2026-07-22T21:02:16.218Z",
+        "baseline": {
+          "videoId": "cSvxGpLsah0",
+          "startDate": "2026-06-23",
+          "endDate": "2026-07-21",
+          "available": true,
+          "reachNote": "Impressões e CTR de thumbnail só existem no YouTube Studio (Reporting API). O Lumiera compara views por período de cada título.",
+          "metrics": {
+            "views": 550,
+            "estimatedMinutesWatched": 537,
+            "averageViewDuration": 94,
+            "likes": 58,
+            "comments": 1,
+            "shares": 1,
+            "subscribersGained": 3,
+            "impressions": null,
+            "impressionClickThroughRate": null
+          }
+        },
+        "checkpoints": [
+          {
+            "label": "48h",
+            "dueAt": "2026-07-24T21:02:16.218Z",
+            "status": "pending"
+          },
+          {
+            "label": "7d",
+            "dueAt": "2026-07-29T21:02:16.218Z",
+            "status": "pending"
+          },
+          {
+            "label": "28d",
+            "dueAt": "2026-08-19T21:02:16.218Z",
+            "status": "pending"
+          }
+        ],
+        "originalMetadata": {
+          "title": "Você usa essas 3 invenções romanas todos os dias! #Historia #RomaAntiga #Curiosidades",
+          "description": "Invenções Romanas que mudaram o mundo: você usa elas todo dia sem saber! Descubra as 3 maravilhas da engenharia romana que ainda moldam sua vida hoje. #Shorts\nMergulhe na história da Roma Antiga e veja como a engenharia de 2 mil anos ainda impacta a tecnologia e urbanismo modernos. Salve este vídeo para compartilhar com amigos curiosos!\n\n#InvençõesRomanas #EngenhariaAntiga #RomaAntiga #UrbanismoRomano #EsgotoAntigo #EstradasRomanas #Historia #Shorts",
+          "tags": [
+            "Shorts",
+            "YoutubeShorts",
+            "cloaca maxima",
+            "cultura romana",
+            "curiosidades",
+            "curiosidades roma",
+            "engenharia antiga",
+            "história",
+            "imperio romano",
+            "império romano",
+            "invenções romanas",
+            "legado romano",
+            "roma antiga",
+            "sistema de esgoto",
+            "tecnologia romana",
+            "urbanismo romano",
+            "via appia"
+          ]
         }
       }
     },
@@ -15727,7 +16120,7 @@
         "analyzedAt": "2026-07-21T17:53:21.215Z"
       },
       "opportunityScore": 54,
-      "status": "queued",
+      "status": "applied",
       "currentMetadata": {
         "title": "O futuro foi desenhado no passado: 15 invenções que você usa todo dia",
         "description": "Você acha que vive no futuro? Prepare-se para um choque de realidade histórica!\nNeste vídeo, desvendamos 15 invenções de engenharia antiga que moldam sua rotina hoje.\n\nDas estradas romanas que você usa, ao concreto que sustenta sua casa e até o conceito de computador, a engenharia antiga é a base da sua vida moderna. Mergulhe em como civilizações como romanos, gregos e chineses criaram inovações que, ignoradas por séculos, ainda definem nossa tecnologia e cotidiano. Descubra os segredos por trás de invenções como a Bússola Magnética, o Sismógrafo de Zhang Heng e o revolucionário Concreto Romano, que não só sobreviveram ao tempo mas o desafiaram. Prepare-se para ver seu mundo de uma forma completamente nova, entendendo que o futuro foi desenhado no passado.\n\nNeste vídeo você vai:\n*   Aprender como invenções milenares ainda influenciam a tecnologia que você usa diariamente.\n*   Entender a genialidade por trás das obras de engenharia de civilizações antigas.\n*   Ter uma nova perspectiva sobre a história e o progresso humano.\n\n00:00 - Sua vida é antiga\n00:25 - As estradas que você usa\n01:15 - O \"taxímetro\" de Arquimedes\n01:59 - Seu piso aquecido: um segredo romano\n02:46 - China: o primeiro alarme de terremotos\n03:37 - Platão e o apito do amanhecer\n04:22 - A vending machine do templo egípcio\n05:08 - O papel que mudou o mundo\n05:53 - A bússola que guiou o Feng Shui\n06:44 - O computador de 100 a.C.\n07:33 - A primeira fábrica industrial\n08:20 - Concreto: o segredo que o mundo busca\n\n\nSe você gostou de desvendar esses segredos do passado, não esqueça de deixar seu like, se inscrever no canal para mais vídeos como este e ativar o sininho para não perder nenhuma nova descoberta!\n\n#EngenhariaAntiga #InvençõesHistóricas #TecnologiaAntiga #CuriosidadesHistoricas #HistoriaDaCiencia",
@@ -15756,13 +16149,44 @@
           "vida moderna"
         ]
       },
-      "proposedMetadata": null,
-      "selectedTitle": null,
+      "proposedMetadata": {
+        "title": "15 invenções da engenharia antiga que você usa todo dia",
+        "titleVariants": [
+          "15 invenções da engenharia antiga que você usa todo dia"
+        ],
+        "description": "Conheça 15 invenções de engenharia antiga criadas por civilizações como romanos, gregos e chineses que ainda sustentam a tecnologia e a rotina da vida moderna — desde estradas e piso aquecido até o concreto e o conceito de computador.\n\nCapítulos:\n00:00 - Sua vida é antiga\n00:25 - As estradas que você usa\n01:15 - O \"taxímetro\" de Arquimedes\n01:59 - Seu piso aquecido: um segredo romano\n02:46 - China: o primeiro alarme de terremotos\n03:37 - Platão e o apito do amanhecer\n04:22 - A vending machine do templo egípcio\n05:08 - O papel que mudou o mundo\n05:53 - A bússola que guiou o Feng Shui\n06:44 - O computador de 100 a.C.\n07:33 - A primeira fábrica industrial\n08:20 - Concreto: o segredo que o mundo busca\n\nInscreva-se no canal, deixe seu like e ative o sininho para acompanhar mais descobertas da história e da ciência!\n\n#EngenhariaAntiga #InvençõesHistóricas #TecnologiaAntiga #CuriosidadesHistoricas #HistoriaDaCiencia",
+        "tags": [
+          "7 invenções",
+          "china antiga",
+          "ciência",
+          "como era feito",
+          "concreto romano",
+          "curiosidades históricas",
+          "descobertas históricas",
+          "engenharia antiga",
+          "engenharia romana",
+          "grecia antiga",
+          "historia",
+          "história",
+          "história curiosa",
+          "invenções antigas",
+          "invenções que mudaram o mundo",
+          "mecanismo de anticítera",
+          "novas tecnologias",
+          "roma antiga",
+          "romanos",
+          "tecnologia antiga",
+          "tecnologias do futuro",
+          "vida moderna"
+        ],
+        "hashtags": []
+      },
+      "selectedTitle": "15 invenções da engenharia antiga que você usa todo dia",
       "thumbnailStatus": "awaiting_manual",
       "thumbnailLocalPath": null,
       "error": null,
       "createdAt": "2026-07-15T04:27:40.265Z",
-      "updatedAt": "2026-07-21T17:53:21.225Z",
+      "updatedAt": "2026-07-22T21:02:38.109Z",
       "analyticsBaseline": {
         "videoId": "FpSANJNfE5c",
         "startDate": "2026-06-23",
@@ -15779,6 +16203,80 @@
           "subscribersGained": 0,
           "impressions": null,
           "impressionClickThroughRate": null
+        }
+      },
+      "cycleNumber": 1,
+      "metadataRaw": "{\"title\":\"15 invenções da engenharia antiga que você usa todo dia\",\"description\":\"Conheça 15 invenções de engenharia antiga criadas por civilizações como romanos, gregos e chineses que ainda sustentam a tecnologia e a rotina da vida moderna — desde estradas e piso aquecido até o concreto e o conceito de computador.\\n\\nCapítulos:\\n00:00 - Sua vida é antiga\\n00:25 - As estradas que você usa\\n01:15 - O \\\"taxímetro\\\" de Arquimedes\\n01:59 - Seu piso aquecido: um segredo romano\\n02:46 - China: o primeiro alarme de terremotos\\n03:37 - Platão e o apito do amanhecer\\n04:22 - A vending machine do templo egípcio\\n05:08 - O papel que mudou o mundo\\n05:53 - A bússola que guiou o Feng Shui\\n06:44 - O computador de 100 a.C.\\n07:33 - A primeira fábrica industrial\\n08:20 - Concreto: o segredo que o mundo busca\\n\\nInscreva-se no canal, deixe seu like e ative o sininho para acompanhar mais descobertas da história e da ciência!\\n\\n#EngenhariaAntiga #InvençõesHistóricas #TecnologiaAntiga #CuriosidadesHistoricas #HistoriaDaCiencia\",\"reason\":\"O título anterior iniciava com uma frase abstrata ('O futuro foi desenhado no passado'), ocultando o assunto principal. Apliquei a regra de telas pequenas trazendo a palavra-chave principal ('15 invenções da engenharia antiga') logo para as primeiras palavras do título. A descrição foi enxugada para remover repetições de texto da narração, mantendo a contextualização factual, os capítulos intactos e o limite de 5 hashtags.\",\"prompt\":\"Você é um editor sênior de YouTube. Corrija SOMENTE a embalagem editorial de um vídeo já renderizado.\\n\\nREGRAS:\\n- Não altere fatos, números ou promessas.\\n- O título deve corresponder claramente ao que é entregue nos primeiros segundos.\\n- PARA SHORTS / TELAS PEQUENAS (REGRA OBRIGATÓRIA):\\n  Coloque a PALAVRA-CHAVE DO ASSUNTO PRINCIPAL (ex: \\\"Hotel de 30 andares\\\", \\\"Ponte do Rio X\\\") LOGO NAS PRIMEIRAS PALAVRAS DO TÍTULO.\\n  PROIBIDO usar prefixos de país ou categoria no início (ex: NUNCA use \\\"China: Hotel...\\\", \\\"Brasil: Ponte...\\\", \\\"Curiosidade: ...\\\").\\n  Exemplo INCORRETO: \\\"China: Hotel de 30 andares construído em apenas 15 dias!\\\"\\n  Exemplo CORRETO: \\\"Hotel de 30 andares construído em apenas 15 dias na China\\\"\\n  (\\\"put your most important keywords at the start of your title so viewers immediately get the vibe on small screens\\\").\\n- Não invente conteúdo que não aparece na narração.\\n- Português brasileiro natural.\\n- Título com no máximo 100 caracteres.\\n- Descrição concisa, factual, com contexto e sem promessas falsas.\\n- Preserve hashtags úteis já existentes, no máximo 5.\\n- Retorne APENAS JSON válido neste formato:\\n{\\\"title\\\":\\\"...\\\",\\\"description\\\":\\\"...\\\",\\\"reason\\\":\\\"...\\\"}\\n\\nTítulo atual:\\nO futuro foi desenhado no passado: 15 invenções que você usa todo dia\\n\\nDescrição atual:\\nVocê acha que vive no futuro? Prepare-se para um choque de realidade histórica!\\nNeste vídeo, desvendamos 15 invenções de engenharia antiga que moldam sua rotina hoje.\\n\\nDas estradas romanas que você usa, ao concreto que sustenta sua casa e até o conceito de computador, a engenharia antiga é a base da sua vida moderna. Mergulhe em como civilizações como romanos, gregos e chineses criaram inovações que, ignoradas por séculos, ainda definem nossa tecnologia e cotidiano. Descubra os segredos por trás de invenções como a Bússola Magnética, o Sismógrafo de Zhang Heng e o revolucionário Concreto Romano, que não só sobreviveram ao tempo mas o desafiaram. Prepare-se para ver seu mundo de uma forma completamente nova, entendendo que o futuro foi desenhado no passado.\\n\\nNeste vídeo você vai:\\n*   Aprender como invenções milenares ainda influenciam a tecnologia que você usa diariamente.\\n*   Entender a genialidade por trás das obras de engenharia de civilizações antigas.\\n*   Ter uma nova perspectiva sobre a história e o progresso humano.\\n\\n00:00 - Sua vida é antiga\\n00:25 - As estradas que você usa\\n01:15 - O \\\"taxímetro\\\" de Arquimedes\\n01:59 - Seu piso aquecido: um segredo romano\\n02:46 - China: o primeiro alarme de terremotos\\n03:37 - Platão e o apito do amanhecer\\n04:22 - A vending machine do templo egípcio\\n05:08 - O papel que mudou o mundo\\n05:53 - A bússola que guiou o Feng Shui\\n06:44 - O computador de 100 a.C.\\n07:33 - A primeira fábrica industrial\\n08:20 - Concreto: o segredo que o mundo busca\\n\\n\\nSe você gostou de desvendar esses segredos do passado, não esqueça de deixar seu like, se inscrever no canal para mais vídeos como este e ativar o sininho para não perder nenhuma nova descoberta!\\n\\n#EngenhariaAntiga #InvençõesHistóricas #TecnologiaAntiga #CuriosidadesHistoricas #HistoriaDaCiencia\\n\\nAbertura real da narração:\\nO futuro foi desenhado no passado: 15 invenções que você usa todo dia Você acha que vive no futuro? Prepare-se para um choque de realidade histórica! Neste vídeo, desvendamos 15 invenções de engenharia antiga que moldam sua rotina hoje. Das estradas romanas que você usa, ao concreto que sustenta sua casa e até o conceito de computador, a engenharia antiga é a base da sua vida moderna. Mergulhe em como civilizações como romanos, gregos e chineses criaram inovações que, ignoradas por séculos, ainda definem nossa tecnologia e cotidiano. Descubra os\\n\\nNarração completa:\\nO futuro foi desenhado no passado: 15 invenções que você usa todo dia\\n\\nVocê acha que vive no futuro? Prepare-se para um choque de realidade histórica!\\nNeste vídeo, desvendamos 15 invenções de engenharia antiga que moldam sua rotina hoje.\\n\\nDas estradas romanas que você usa, ao concreto que sustenta sua casa e até o conceito de computador, a engenharia antiga é a base da sua vida moderna. Mergulhe em como civilizações como romanos, gregos e chineses criaram inovações que, ignoradas por séculos, ainda definem nossa tecnologia e cotidiano. Descubra os segredos por trás de invenções como a Bússola Magnética, o Sismógrafo de Zhang Heng e o revolucionário Concreto Romano, que não só sobreviveram ao tempo mas o desafiaram. Prepare-se para ver seu mundo de uma forma completamente nova, entendendo que o futuro foi desenhado no passado.\\n\\nNeste vídeo você vai:\\n*   Aprender como invenções milenares ainda influenciam a tecnologia que você usa diariamente.\\n*   Entender a genialidade por trás das obras de engenharia de civilizações antigas.\\n*   Ter uma nova perspectiva sobre a história e o progresso humano.\\n\\n00:00 - Sua vida é antiga\\n00:25 - As estradas que você usa\\n01:15 - O \\\"taxímetro\\\" de Arquimedes\\n01:59 - Seu piso aquecido: um segredo romano\\n02:46 - China: o primeiro alarme de terremotos\\n03:37 - Platão e o apito do amanhecer\\n04:22 - A vending machine do templo egípcio\\n05:08 - O papel que mudou o mundo\\n05:53 - A bússola que guiou o Feng Shui\\n06:44 - O computador de 100 a.C.\\n07:33 - A primeira fábrica industrial\\n08:20 - Concreto: o segredo que o mundo busca\\n\\n\\nSe você gostou de desvendar esses segredos do passado, não esqueça de deixar seu like, se inscrever no canal para mais vídeos como este e ativar o sininho para não perder nenhuma nova descoberta!\\n\\n#EngenhariaAntiga #InvençõesHistóricas #TecnologiaAntiga #CuriosidadesHistoricas #HistoriaDaCiencia\\n\\nPalavras-chave do vídeo: 7 invenções, china antiga, ciência, como era feito, concreto romano, curiosidades históricas, descobertas históricas, engenharia antiga, engenharia romana, grecia antiga, historia, história, história curiosa, invenções antigas, invenções que mudaram o mundo, mecanismo de anticítera, novas tecnologias, roma antiga, romanos, tecnologia antiga, tecnologias do futuro, vida moderna\"}",
+      "usedFallback": false,
+      "appliedAt": "2026-07-22T21:02:38.109Z",
+      "thumbnailApplied": false,
+      "experiment": {
+        "version": 1,
+        "status": "tracking",
+        "treatment": "long_repackage_and_recirculate",
+        "startedAt": "2026-07-22T21:02:38.109Z",
+        "baseline": {
+          "videoId": "FpSANJNfE5c",
+          "startDate": "2026-06-23",
+          "endDate": "2026-07-21",
+          "available": true,
+          "reachNote": "Impressões e CTR de thumbnail só existem no YouTube Studio (Reporting API). O Lumiera compara views por período de cada título.",
+          "metrics": {
+            "views": 236,
+            "estimatedMinutesWatched": 1019,
+            "averageViewDuration": 259,
+            "likes": 9,
+            "comments": 1,
+            "shares": 3,
+            "subscribersGained": 0,
+            "impressions": null,
+            "impressionClickThroughRate": null
+          }
+        },
+        "checkpoints": [
+          {
+            "label": "48h",
+            "dueAt": "2026-07-24T21:02:38.109Z",
+            "status": "pending"
+          },
+          {
+            "label": "7d",
+            "dueAt": "2026-07-29T21:02:38.109Z",
+            "status": "pending"
+          },
+          {
+            "label": "28d",
+            "dueAt": "2026-08-19T21:02:38.109Z",
+            "status": "pending"
+          }
+        ],
+        "originalMetadata": {
+          "title": "O futuro foi desenhado no passado: 15 invenções que você usa todo dia",
+          "description": "Você acha que vive no futuro? Prepare-se para um choque de realidade histórica!\nNeste vídeo, desvendamos 15 invenções de engenharia antiga que moldam sua rotina hoje.\n\nDas estradas romanas que você usa, ao concreto que sustenta sua casa e até o conceito de computador, a engenharia antiga é a base da sua vida moderna. Mergulhe em como civilizações como romanos, gregos e chineses criaram inovações que, ignoradas por séculos, ainda definem nossa tecnologia e cotidiano. Descubra os segredos por trás de invenções como a Bússola Magnética, o Sismógrafo de Zhang Heng e o revolucionário Concreto Romano, que não só sobreviveram ao tempo mas o desafiaram. Prepare-se para ver seu mundo de uma forma completamente nova, entendendo que o futuro foi desenhado no passado.\n\nNeste vídeo você vai:\n*   Aprender como invenções milenares ainda influenciam a tecnologia que você usa diariamente.\n*   Entender a genialidade por trás das obras de engenharia de civilizações antigas.\n*   Ter uma nova perspectiva sobre a história e o progresso humano.\n\n00:00 - Sua vida é antiga\n00:25 - As estradas que você usa\n01:15 - O \"taxímetro\" de Arquimedes\n01:59 - Seu piso aquecido: um segredo romano\n02:46 - China: o primeiro alarme de terremotos\n03:37 - Platão e o apito do amanhecer\n04:22 - A vending machine do templo egípcio\n05:08 - O papel que mudou o mundo\n05:53 - A bússola que guiou o Feng Shui\n06:44 - O computador de 100 a.C.\n07:33 - A primeira fábrica industrial\n08:20 - Concreto: o segredo que o mundo busca\n\n\nSe você gostou de desvendar esses segredos do passado, não esqueça de deixar seu like, se inscrever no canal para mais vídeos como este e ativar o sininho para não perder nenhuma nova descoberta!\n\n#EngenhariaAntiga #InvençõesHistóricas #TecnologiaAntiga #CuriosidadesHistoricas #HistoriaDaCiencia",
+          "tags": [
+            "7 invenções",
+            "china antiga",
+            "ciência",
+            "como era feito",
+            "concreto romano",
+            "curiosidades históricas",
+            "descobertas históricas",
+            "engenharia antiga",
+            "engenharia romana",
+            "grecia antiga",
+            "historia",
+            "história",
+            "história curiosa",
+            "invenções antigas",
+            "invenções que mudaram o mundo",
+            "mecanismo de anticítera",
+            "novas tecnologias",
+            "roma antiga",
+            "romanos",
+            "tecnologia antiga",
+            "tecnologias do futuro",
+            "vida moderna"
+          ]
         }
       }
     },
@@ -24188,9 +24686,276 @@
       "error": null,
       "createdAt": "2026-07-22T15:26:20.412Z",
       "updatedAt": "2026-07-22T15:26:20.412Z"
+    },
+    {
+      "id": "398a071e-a80a-479b-bc18-55a80ce0dd02",
+      "videoId": "cu43HLHHnxs",
+      "projectName": "Mina_Wieliczka_Igreja",
+      "projectPath": "C:\\Users\\Leo\\Desktop\\Lumiera Videos\\videos curtos shorts\\Mina_Wieliczka_Igreja",
+      "format": "SHORT",
+      "niche": "curiosidades historicas construções",
+      "title": "Polônia esconde igreja inteira de sal 🧂",
+      "publishedAt": "2026-07-12T20:30:29Z",
+      "ageDays": 10,
+      "viewCount": 299,
+      "thumbnailUrl": "https://i.ytimg.com/vi/cu43HLHHnxs/mqdefault.jpg",
+      "hasLumieraProject": true,
+      "source": "lumiera",
+      "diagnosis": {
+        "version": 1,
+        "score": 45,
+        "tier": "low",
+        "diagnosis": "insufficient_data",
+        "recommendedTreatment": "creative_remake",
+        "treatmentLabel": "Criar nova versão editorial",
+        "reasons": [
+          "Projeto Lumiera disponível para reedição"
+        ],
+        "risks": [
+          "Analytics detalhado ainda não coletado"
+        ],
+        "analyticsAvailable": false,
+        "metrics": {
+          "recentViews": 0,
+          "averageViewDuration": 0,
+          "shares": 0,
+          "subscribersGained": 0,
+          "sharesPerThousand": 0,
+          "subscribersPerThousand": 0
+        },
+        "analyzedAt": "2026-07-22T21:00:39.646Z"
+      },
+      "opportunityScore": 45,
+      "status": "queued",
+      "currentMetadata": {
+        "title": "Polônia esconde igreja inteira de sal 🧂",
+        "description": "Mina de Sal de Wieliczka na Polônia: uma igreja inteira feita de sal? Descubra essa catedral subterrânea esculpida por mineiros desde o século XIII, um Patrimônio Mundial da UNESCO que te deixará sem palavras.\n#Shorts\nUm tesouro milenar que une fé, arte e engenharia em um mundo cristalizado. Salve para ver essa maravilha novamente!\n\n#Shorts #MinaWieliczka #IgrejaDeSal #Polonia",
+        "tags": [
+          "Catedral de Sal",
+          "Curiosidades Polônia",
+          "Esculturas de Sal",
+          "Igreja de Sal",
+          "Mina Wieliczka",
+          "Minas de Sal",
+          "Patrimônio UNESCO",
+          "Polônia",
+          "Shorts",
+          "Tesouro Subterrâneo",
+          "Wieliczka",
+          "deutsche welle",
+          "colombia",
+          "minas de sal de wieliczka",
+          "wieliczka salt mine",
+          "mina de sal"
+        ]
+      },
+      "proposedMetadata": null,
+      "selectedTitle": null,
+      "thumbnailStatus": "n/a",
+      "thumbnailLocalPath": null,
+      "error": null,
+      "createdAt": "2026-07-22T21:00:39.646Z",
+      "updatedAt": "2026-07-22T21:00:39.646Z"
+    },
+    {
+      "id": "1ab07249-895f-404d-b2f4-0b7ebf12ed4e",
+      "videoId": "JARIE0FCEgo",
+      "projectName": "Canal_Suez_fortuna",
+      "projectPath": "C:\\Users\\Leo\\Desktop\\Lumiera Videos\\videos curtos shorts\\Canal_Suez_fortuna",
+      "format": "SHORT",
+      "niche": "ENGENHARIA CURIOSIDADE HISTORICA",
+      "title": "Egito perdeu Suez por £100 milhões",
+      "publishedAt": "2026-07-12T21:00:20Z",
+      "ageDays": 10,
+      "viewCount": 171,
+      "thumbnailUrl": "https://i.ytimg.com/vi/JARIE0FCEgo/mqdefault.jpg",
+      "hasLumieraProject": true,
+      "source": "lumiera",
+      "diagnosis": {
+        "version": 1,
+        "score": 45,
+        "tier": "low",
+        "diagnosis": "insufficient_data",
+        "recommendedTreatment": "creative_remake",
+        "treatmentLabel": "Criar nova versão editorial",
+        "reasons": [
+          "Projeto Lumiera disponível para reedição"
+        ],
+        "risks": [
+          "Analytics detalhado ainda não coletado"
+        ],
+        "analyticsAvailable": false,
+        "metrics": {
+          "recentViews": 0,
+          "averageViewDuration": 0,
+          "shares": 0,
+          "subscribersGained": 0,
+          "sharesPerThousand": 0,
+          "subscribersPerThousand": 0
+        },
+        "analyzedAt": "2026-07-22T21:00:39.646Z"
+      },
+      "opportunityScore": 45,
+      "status": "queued",
+      "currentMetadata": {
+        "title": "Egito perdeu Suez por £100 milhões",
+        "description": "Canal de Suez: o verdadeiro custo dessa maravilha da engenharia que liga o Mediterrâneo ao Mar Vermelho. Descubra como 120 mil mortos e uma dívida de £100 milhões moldaram o mundo.\n#Shorts\nA fundação do Canal no século XIX foi brutal, com milhões de trabalhadores forçados. Entenda a riqueza de sangue por trás de uma das maiores obras da história. Salve para assistir depois!\n\n#CanalDeSuez #Historia #Engenharia #Egito #Shorts",
+        "tags": [
+          "120 mil mortos Suez",
+          "Canal de Suez",
+          "Egito dívida",
+          "Mar Vermelho",
+          "Mediterrâneo",
+          "Shorts",
+          "Suez século XIX",
+          "colonização britânica",
+          "custo Canal de Suez",
+          "engenharia Canal",
+          "história Canal de Suez",
+          "maravilha engenharia",
+          "egito",
+          "ever given",
+          "suez canal",
+          "história do canal de suez",
+          "egito canal de suez"
+        ]
+      },
+      "proposedMetadata": null,
+      "selectedTitle": null,
+      "thumbnailStatus": "n/a",
+      "thumbnailLocalPath": null,
+      "error": null,
+      "createdAt": "2026-07-22T21:00:39.646Z",
+      "updatedAt": "2026-07-22T21:00:39.646Z"
+    },
+    {
+      "id": "aa6c0d96-cf18-4189-907f-60aecdbf5817",
+      "videoId": "rN6HpKa7v4o",
+      "projectName": "Maior_enchente_Mississipi",
+      "projectPath": "C:\\Users\\Leo\\Desktop\\Lumiera Videos\\videos longos\\Maior_enchente_Mississipi",
+      "format": "LONG",
+      "niche": "ENGENHARIA",
+      "title": "Diques do Mississipi: A fé cega que explodiu",
+      "publishedAt": "2026-07-12T18:37:30Z",
+      "ageDays": 10,
+      "viewCount": 244,
+      "thumbnailUrl": "https://i.ytimg.com/vi/rN6HpKa7v4o/mqdefault.jpg",
+      "hasLumieraProject": true,
+      "source": "lumiera",
+      "diagnosis": {
+        "version": 1,
+        "score": 37,
+        "tier": "low",
+        "diagnosis": "insufficient_data",
+        "recommendedTreatment": "creative_remake",
+        "treatmentLabel": "Criar nova versão editorial",
+        "reasons": [
+          "Projeto Lumiera disponível para reedição"
+        ],
+        "risks": [
+          "Analytics detalhado ainda não coletado"
+        ],
+        "analyticsAvailable": false,
+        "metrics": {
+          "recentViews": 0,
+          "averageViewDuration": 0,
+          "shares": 0,
+          "subscribersGained": 0,
+          "sharesPerThousand": 0,
+          "subscribersPerThousand": 0
+        },
+        "analyzedAt": "2026-07-22T21:00:39.646Z"
+      },
+      "opportunityScore": 37,
+      "status": "queued",
+      "currentMetadata": {
+        "title": "Diques do Mississipi: A fé cega que explodiu",
+        "description": "A maior enchente do Mississipi em 1927 foi um desastre que redefiniu a engenharia. Descubra como essa catástrofe brutal salvou milhões e mudou o controle de cheias para sempre.\n\nEm 1927, o rio Mississipi explodiu, revelando a falha da engenharia de \"apenas diques\". Essa cheia histórica, que desalojou 700.000 pessoas e causou bilhões em perdas, forçou uma reavaliação completa. Conheça o MR&T de 1928 e o Bonnet Carré Spillway, projetos que transformaram um erro colossal na fundação para a segurança de milhões. Uma lição brutal de como a natureza ensinou a humanidade a coexistir e aprimorar o controle de cheias.\n\nNeste vídeo, você vai:\n*   Entender como um dos maiores desastres naturais dos EUA redesenhou a engenharia moderna.\n*   Descobrir as inovações como o Bonnet Carré Spillway que protegem cidades como Nova Orleans hoje.\n*   Ver a história de como a humanidade aprendeu a gerenciar a força implacável do rio Mississipi.\n\nSe você se impressionou com a capacidade da engenharia de aprender com seus erros, deixe seu like e inscreva-se para mais histórias que moldaram nosso mundo!\n\n#Engenharia #Mississipi #Enchente1927 #ControleDeCheias #DesastresNaturais\n\n00:00 - A Enchente que Explodiu a Engenharia\n01:18 - A Fé Cega nos Diques de Mississipi\n02:43 - A Fúria Incontrolável de 1927\n04:05 - Mound Landing: O Início do Fim\n05:26 - O Custo Humano: 700 Mil Desalojados\n06:46 - \"Apenas Diques\": Um Fracasso Colossal\n08:03 - A Necessidade de um Novo Paradigma\n09:10 - MR&T 1928: A Revolução da Engenharia\n10:26 - Coexistência: A Filosofia dos Vertedouros\n11:42 - O Legado da Grande Enchente\n12:49 - Mississipi: Um Erro que Salvou Milhões\n14:01 - A Engenharia Aprende com a Natureza",
+        "tags": [
+          "bonnet carré spillway",
+          "cheia mississipi 1927",
+          "controle de cheias",
+          "desastre natural",
+          "diques",
+          "enchente",
+          "engenharia",
+          "engenharia civil",
+          "engenharia hidráulica",
+          "história da engenharia",
+          "mississipi",
+          "mr&t",
+          "nova orleans",
+          "rio mississipi",
+          "usace",
+          "engenharia mecânica",
+          "mississippi river",
+          "rio mississippi",
+          "mudanças climáticas",
+          "como funciona",
+          "engenharia de produção",
+          "mississippi"
+        ]
+      },
+      "proposedMetadata": null,
+      "selectedTitle": null,
+      "thumbnailStatus": "awaiting_manual",
+      "thumbnailLocalPath": null,
+      "error": null,
+      "createdAt": "2026-07-22T21:00:39.646Z",
+      "updatedAt": "2026-07-22T21:00:39.646Z"
     }
   ],
   "history": [
+    {
+      "id": "6acd6c86-e29a-4747-9f3f-49f8ab5ce0ca",
+      "videoId": "FpSANJNfE5c",
+      "projectName": "O futuro foi desenhado no passado: 15 invenções que você usa todo dia",
+      "title": "15 invenções da engenharia antiga que você usa todo dia",
+      "appliedAt": "2026-07-22T21:02:38.109Z",
+      "thumbnailApplied": false,
+      "treatment": "long_repackage_and_recirculate",
+      "experimentStartedAt": "2026-07-22T21:02:38.109Z"
+    },
+    {
+      "id": "1c6248e9-7581-4663-a922-71c58fb8d9be",
+      "videoId": "cSvxGpLsah0",
+      "projectName": "Você usa essas 3 invenções romanas todos os dias! #Historia #RomaAntiga #Curiosidades",
+      "title": "3 invenções romanas que você usa todos os dias!",
+      "appliedAt": "2026-07-22T21:02:16.218Z",
+      "thumbnailApplied": false,
+      "treatment": "short_recirculation",
+      "experimentStartedAt": "2026-07-22T21:02:16.218Z"
+    },
+    {
+      "id": "e009925b-62a5-41e0-90bf-a0be800b6159",
+      "videoId": "9riK5j6jViA",
+      "projectName": "A Arma Medieval Pior Que A Guilhotina?",
+      "title": "Portcullis: A arma medieval de 3 toneladas pior que a guilhotina",
+      "appliedAt": "2026-07-22T21:01:58.556Z",
+      "thumbnailApplied": false,
+      "treatment": "short_recirculation",
+      "experimentStartedAt": "2026-07-22T21:01:58.556Z"
+    },
+    {
+      "id": "0a8ba5d4-b123-4641-bad2-7a3a629e5861",
+      "videoId": "4G8CzQr9qFk",
+      "projectName": "Sua cidade foi projetada para a GUERRA? A verdade!",
+      "title": "Cidades projetadas para a GUERRA: a verdade sobre o urbanismo moderno",
+      "appliedAt": "2026-07-22T21:01:30.635Z",
+      "thumbnailApplied": false,
+      "treatment": "short_recirculation",
+      "experimentStartedAt": "2026-07-22T21:01:30.635Z"
+    },
+    {
+      "id": "4639cb51-b838-4c26-a191-5d5adb69e684",
+      "videoId": "cS-gLDn022E",
+      "projectName": "2000 Anos vs 50: Por Que Nosso Concreto é FRACO?",
+      "title": "Concreto romano de 2000 anos vs 50: por que o nosso é fraco?",
+      "appliedAt": "2026-07-22T21:01:06.270Z",
+      "thumbnailApplied": false,
+      "treatment": "short_recirculation",
+      "experimentStartedAt": "2026-07-22T21:01:06.270Z"
+    },
     {
       "id": "71058d3f-1619-4815-9f3d-9706a30f7baa",
       "videoId": "lfjMMIIZgBQ",
@@ -25191,6 +25956,122 @@
     }
   ],
   "activityLog": [
+    {
+      "at": "2026-07-22T21:02:38.138Z",
+      "level": "success",
+      "message": "Etapa concluída: 5 publicado(s), 0 revisão, 0 falha(s).",
+      "slot": "afternoon",
+      "appliedCount": 5,
+      "reviewCount": 0,
+      "failCount": 0
+    },
+    {
+      "at": "2026-07-22T21:02:38.124Z",
+      "level": "success",
+      "message": "Publicado no YouTube: O futuro foi desenhado no passado: 15 invenções que você usa todo dia",
+      "videoId": "FpSANJNfE5c"
+    },
+    {
+      "at": "2026-07-22T21:02:36.386Z",
+      "level": "info",
+      "message": "Publicando no YouTube: O futuro foi desenhado no passado: 15 invenções que você usa todo dia",
+      "videoId": "FpSANJNfE5c"
+    },
+    {
+      "at": "2026-07-22T21:02:16.247Z",
+      "level": "info",
+      "message": "[5/5] Gerando metadados: O futuro foi desenhado no passado: 15 invenções que você usa todo dia",
+      "videoId": "FpSANJNfE5c",
+      "step": 5,
+      "total": 5
+    },
+    {
+      "at": "2026-07-22T21:02:16.233Z",
+      "level": "success",
+      "message": "Publicado no YouTube: Você usa essas 3 invenções romanas todos os dias! #Historia #RomaAntiga ",
+      "videoId": "cSvxGpLsah0"
+    },
+    {
+      "at": "2026-07-22T21:02:14.595Z",
+      "level": "info",
+      "message": "Publicando no YouTube: Você usa essas 3 invenções romanas todos os dias! #Historia #RomaAntiga ",
+      "videoId": "cSvxGpLsah0"
+    },
+    {
+      "at": "2026-07-22T21:01:58.585Z",
+      "level": "info",
+      "message": "[4/5] Gerando metadados: Você usa essas 3 invenções romanas todos os dias! #Historia #RomaAntiga ",
+      "videoId": "cSvxGpLsah0",
+      "step": 4,
+      "total": 5
+    },
+    {
+      "at": "2026-07-22T21:01:58.571Z",
+      "level": "success",
+      "message": "Publicado no YouTube: A Arma Medieval Pior Que A Guilhotina?",
+      "videoId": "9riK5j6jViA"
+    },
+    {
+      "at": "2026-07-22T21:01:56.978Z",
+      "level": "info",
+      "message": "Publicando no YouTube: A Arma Medieval Pior Que A Guilhotina?",
+      "videoId": "9riK5j6jViA"
+    },
+    {
+      "at": "2026-07-22T21:01:30.665Z",
+      "level": "info",
+      "message": "[3/5] Gerando metadados: A Arma Medieval Pior Que A Guilhotina?",
+      "videoId": "9riK5j6jViA",
+      "step": 3,
+      "total": 5
+    },
+    {
+      "at": "2026-07-22T21:01:30.650Z",
+      "level": "success",
+      "message": "Publicado no YouTube: Sua cidade foi projetada para a GUERRA? A verdade!",
+      "videoId": "4G8CzQr9qFk"
+    },
+    {
+      "at": "2026-07-22T21:01:28.731Z",
+      "level": "info",
+      "message": "Publicando no YouTube: Sua cidade foi projetada para a GUERRA? A verdade!",
+      "videoId": "4G8CzQr9qFk"
+    },
+    {
+      "at": "2026-07-22T21:01:06.299Z",
+      "level": "info",
+      "message": "[2/5] Gerando metadados: Sua cidade foi projetada para a GUERRA? A verdade!",
+      "videoId": "4G8CzQr9qFk",
+      "step": 2,
+      "total": 5
+    },
+    {
+      "at": "2026-07-22T21:01:06.285Z",
+      "level": "success",
+      "message": "Publicado no YouTube: 2000 Anos vs 50: Por Que Nosso Concreto é FRACO?",
+      "videoId": "cS-gLDn022E"
+    },
+    {
+      "at": "2026-07-22T21:01:04.667Z",
+      "level": "info",
+      "message": "Publicando no YouTube: 2000 Anos vs 50: Por Que Nosso Concreto é FRACO?",
+      "videoId": "cS-gLDn022E"
+    },
+    {
+      "at": "2026-07-22T21:00:39.654Z",
+      "level": "info",
+      "message": "[1/5] Gerando metadados: 2000 Anos vs 50: Por Que Nosso Concreto é FRACO?",
+      "videoId": "cS-gLDn022E",
+      "step": 1,
+      "total": 5
+    },
+    {
+      "at": "2026-07-22T21:00:39.654Z",
+      "level": "info",
+      "message": "Batch tarde iniciado (5 vídeo(s) nesta etapa).",
+      "slot": "afternoon",
+      "trigger": "auto"
+    },
     {
       "at": "2026-07-22T15:27:42.028Z",
       "level": "success",
@@ -26869,134 +27750,16 @@
       "level": "success",
       "message": "Publicado no YouTube: 3 erros catastróficos de engenharia — o #1 é a segurança de hoje!",
       "videoId": "4N7rUCvOspU"
-    },
-    {
-      "at": "2026-07-18T14:16:18.701Z",
-      "level": "info",
-      "message": "Publicando no YouTube: 3 erros catastróficos de engenharia — o #1 é a segurança de hoje!",
-      "videoId": "4N7rUCvOspU"
-    },
-    {
-      "at": "2026-07-18T14:16:03.714Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: 3 erros catastróficos de engenharia — o #1 é a segurança de hoje!",
-      "videoId": "4N7rUCvOspU",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-18T14:15:50.581Z",
-      "level": "success",
-      "message": "Etapa concluída: 1 publicado(s), 0 revisão, 0 falha(s).",
-      "slot": "afternoon",
-      "appliedCount": 1,
-      "reviewCount": 0,
-      "failCount": 0
-    },
-    {
-      "at": "2026-07-18T14:15:50.567Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Você nunca ESCAPARIA: Defesas Macabras de Castelos! #travel #history #sk",
-      "videoId": "uZckmQ4UKPY"
-    },
-    {
-      "at": "2026-07-18T14:15:48.992Z",
-      "level": "info",
-      "message": "Publicando no YouTube: Você nunca ESCAPARIA: Defesas Macabras de Castelos! #travel #history #sk",
-      "videoId": "uZckmQ4UKPY"
-    },
-    {
-      "at": "2026-07-18T14:15:30.516Z",
-      "level": "info",
-      "message": "[1/1] Gerando metadados: Você nunca ESCAPARIA: Defesas Macabras de Castelos! #travel #history #sk",
-      "videoId": "uZckmQ4UKPY",
-      "step": 1,
-      "total": 1
-    },
-    {
-      "at": "2026-07-18T14:01:48.247Z",
-      "level": "warn",
-      "message": "Etapa concluída: 4 publicado(s), 0 revisão, 1 falha(s).",
-      "slot": "morning",
-      "appliedCount": 4,
-      "reviewCount": 0,
-      "failCount": 1
-    },
-    {
-      "at": "2026-07-18T14:01:48.235Z",
-      "level": "success",
-      "message": "Publicado no YouTube: O Segredo das Fendas Medievais",
-      "videoId": "gptpczi9B7w"
-    },
-    {
-      "at": "2026-07-18T14:01:46.490Z",
-      "level": "info",
-      "message": "Publicando no YouTube: O Segredo das Fendas Medievais",
-      "videoId": "gptpczi9B7w"
-    },
-    {
-      "at": "2026-07-18T14:01:28.987Z",
-      "level": "info",
-      "message": "[5/5] Gerando metadados: O Segredo das Fendas Medievais",
-      "videoId": "gptpczi9B7w",
-      "step": 5,
-      "total": 5
-    },
-    {
-      "at": "2026-07-18T14:01:28.975Z",
-      "level": "success",
-      "message": "Publicado no YouTube: O Segredo de 500 Anos que Humilha Engenharia Moderna",
-      "videoId": "-Jf6juSP9e8"
-    },
-    {
-      "at": "2026-07-18T14:01:27.330Z",
-      "level": "info",
-      "message": "Publicando no YouTube: O Segredo de 500 Anos que Humilha Engenharia Moderna",
-      "videoId": "-Jf6juSP9e8"
-    },
-    {
-      "at": "2026-07-18T14:01:07.280Z",
-      "level": "info",
-      "message": "[4/5] Gerando metadados: O Segredo de 500 Anos que Humilha Engenharia Moderna",
-      "videoId": "-Jf6juSP9e8",
-      "step": 4,
-      "total": 5
-    },
-    {
-      "at": "2026-07-18T14:01:07.263Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Como funcionava o sismógrafo de Zhang Heng, a incrível invenção chinesa ",
-      "videoId": "gaYfwwN50HE"
-    },
-    {
-      "at": "2026-07-18T14:01:05.265Z",
-      "level": "info",
-      "message": "Publicando no YouTube: Como funcionava o sismógrafo de Zhang Heng, a incrível invenção chinesa ",
-      "videoId": "gaYfwwN50HE"
-    },
-    {
-      "at": "2026-07-18T14:00:48.382Z",
-      "level": "info",
-      "message": "[3/5] Gerando metadados: Como funcionava o sismógrafo de Zhang Heng, a incrível invenção chinesa ",
-      "videoId": "gaYfwwN50HE",
-      "step": 3,
-      "total": 5
-    },
-    {
-      "at": "2026-07-18T14:00:48.365Z",
-      "level": "success",
-      "message": "Publicado no YouTube: Ferro de 1600 anos desafia a química 😱",
-      "videoId": "x2s1ooLvdCM"
     }
   ],
-  "updatedAt": "2026-07-22T15:27:48.779Z",
+  "updatedAt": "2026-07-22T21:02:44.518Z",
   "cycleProgress": {
     "number": 1,
     "startedAt": "2026-07-03T17:48:11.595Z",
     "completedAt": null,
-    "total": 143,
-    "batched": 112,
-    "pending": 31,
+    "total": 146,
+    "batched": 117,
+    "pending": 29,
     "complete": false,
     "nextVideoId": "e4lnRR4DrDs",
     "nextVideoTitle": "5 Etapas: Castelo Himeji Tradicional 🏯 (34 chars + emoji)",

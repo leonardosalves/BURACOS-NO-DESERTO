@@ -12488,7 +12488,9 @@ function getOmniRouteModelChain(
       .filter((m) => m !== cleanPrimary)
       .slice(0, 3);
   } else {
-    fallbacks = OMNIROUTE_MODELS.filter((m) => m !== primary).slice(0, 2);
+    fallbacks = OMNIROUTE_MODELS.filter(
+      (m) => m !== primary && !m.startsWith("auto/")
+    ).slice(0, 2);
   }
   const prefixed = [primary, ...fallbacks].map((m) => {
     if (/^gemini-/i.test(m) && !m.includes("/")) return `gemini/${m}`;
@@ -13467,16 +13469,36 @@ async function callGeminiWithRetry(
       return text;
     }
     if (provider === "omniroute") {
-      const text = await callOmniRouteWithRetry(promptOrBody, {
-        maxRetries,
-        bodyOverride,
-        projectDir: projDir,
-        temperature,
-        models: providerModelsOverride,
-        maxTokens,
-      });
-      finishOk(primaryModel);
-      return text;
+      try {
+        const text = await callOmniRouteWithRetry(promptOrBody, {
+          maxRetries,
+          bodyOverride,
+          projectDir: projDir,
+          temperature,
+          models: providerModelsOverride,
+          maxTokens,
+        });
+        finishOk(primaryModel);
+        return text;
+      } catch (omniErr) {
+        console.warn(
+          `[OmniRoute] Falhou (${omniErr.message}). Tentando fallback automático via Gemini API...`
+        );
+        const geminiKey = getApiKey(projDir);
+        if (geminiKey) {
+          const text = await callGeminiDirectWithRetry(apiKeyToUse, promptOrBody, {
+            maxRetries,
+            bodyOverride,
+            projectDir: projDir,
+            temperature,
+            models: modelsOverride,
+            maxTokens,
+          });
+          finishOk("gemini-3.6-flash");
+          return text;
+        }
+        throw omniErr;
+      }
     }
     if (provider === "local") {
       const text = await callLocalLlmWithRetry(promptOrBody, {
