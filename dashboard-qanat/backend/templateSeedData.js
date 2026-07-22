@@ -270,6 +270,67 @@ function inferEnergy(id) {
 }
 
 /**
+ * Extra templates (Phase 5) — free-catalog inspired motion blocks.
+ * Original implementations in ParameterizedDataTemplates.tsx.
+ */
+const RVE_INSPIRED_TEMPLATES = [
+  {
+    template_id: "circular-progress",
+    name: "Circular Progress",
+    category: "dados",
+    energy: "medium",
+    default_props: { value: 72, unit: "%", label: "Conclusão" },
+    duration_seconds: 3.5,
+  },
+  {
+    template_id: "progress-bars",
+    name: "Progress Bars",
+    category: "dados",
+    energy: "medium",
+    default_props: {
+      title: "Métricas",
+      items: [
+        { label: "Item A", value: 85 },
+        { label: "Item B", value: 62 },
+        { label: "Item C", value: 44 },
+      ],
+    },
+    duration_seconds: 4,
+  },
+  {
+    template_id: "bar-chart-simple",
+    name: "Bar Chart Simple",
+    category: "dados",
+    energy: "medium",
+    default_props: {
+      title: "Comparativo",
+      items: [
+        { label: "A", value: 40 },
+        { label: "B", value: 70 },
+        { label: "C", value: 55 },
+      ],
+    },
+    duration_seconds: 4,
+  },
+  {
+    template_id: "lower-third-bar",
+    name: "Lower Third Bar",
+    category: "texto",
+    energy: "low",
+    default_props: { title: "Nome", subtitle: "Função / contexto" },
+    duration_seconds: 3,
+  },
+  {
+    template_id: "popping-text",
+    name: "Popping Text",
+    category: "texto",
+    energy: "high",
+    default_props: { title: "DESTAQUE" },
+    duration_seconds: 2.5,
+  },
+];
+
+/**
  * Build the complete seed data object.
  */
 export function buildSeedData() {
@@ -280,7 +341,7 @@ export function buildSeedData() {
     console.warn("[TemplateSeed] Could not read manifest, using empty seed");
   }
 
-  const templates = manifest.map((entry) => ({
+  const fromManifest = manifest.map((entry) => ({
     template_id: entry.id,
     name: entry.id
       .split("-")
@@ -297,8 +358,25 @@ export function buildSeedData() {
     approved: true,
   }));
 
+  const seen = new Set(fromManifest.map((t) => t.template_id));
+  const extras = RVE_INSPIRED_TEMPLATES.filter(
+    (t) => !seen.has(t.template_id)
+  ).map((t) => ({
+    template_id: t.template_id,
+    name: t.name,
+    category: t.category,
+    niche: null,
+    energy: t.energy || "medium",
+    formats: ["16:9", "9:16"],
+    tsx_source: null,
+    palette: null,
+    default_props: t.default_props || null,
+    duration_seconds: t.duration_seconds || 4,
+    approved: true,
+  }));
+
   return {
-    templates,
+    templates: [...fromManifest, ...extras],
     niches: NICHES,
     categories: CATEGORIES,
   };

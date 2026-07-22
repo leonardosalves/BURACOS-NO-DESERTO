@@ -18,6 +18,7 @@ import { SHOTCRAFT_DEMO_COMPONENTS } from "./shotcraftDemoImports";
 import {
   getParameterizedComponent,
   hasParameterizedVersion,
+  isAlwaysParameterized,
 } from "./ParameterizedDataTemplates";
 
 export type MotionShot = {
@@ -107,9 +108,10 @@ export function ShotcraftLayer({
   const normalizedProps = normalizeShotProps(shot.props);
   const shotWithProps = { ...shot, props: normalizedProps };
 
-  // If shot has real data AND a parameterized version exists, use it
+  // Parameterized: real data props, or always-param templates (Phase 5 RVE-inspired)
   const ParamComponent =
-    hasRealDataProps(shotWithProps) && hasParameterizedVersion(shot.templateId)
+    hasParameterizedVersion(shot.templateId) &&
+    (hasRealDataProps(shotWithProps) || isAlwaysParameterized(shot.templateId))
       ? getParameterizedComponent(shot.templateId)
       : null;
 

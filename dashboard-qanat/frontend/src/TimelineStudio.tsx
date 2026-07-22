@@ -812,7 +812,7 @@ export function TimelineStudio({
             addClipToStudio(act.clip);
           } else {
             toast.error(
-              "Templates legados removidos — use Template Studio (botoes roxos)."
+              "Templates legados removidos — use Shotcraft (Ask Lumiera) ou o Editor do Lumiera."
             );
           }
         } else if (act.type === "set_niche_pack") {

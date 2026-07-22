@@ -9,6 +9,7 @@ import { SHOTCRAFT_DEMO_COMPONENTS } from "@lumiera/overlays/shotcraftDemoImport
 import {
   getParameterizedComponent,
   hasParameterizedVersion,
+  isAlwaysParameterized,
 } from "@lumiera/overlays/ParameterizedDataTemplates.tsx";
 
 class PreviewErrorBoundary extends Component<
@@ -197,7 +198,7 @@ export function ShotcraftLivePreview({
   const useParameterized =
     Boolean(templateId) &&
     hasParameterizedVersion(templateId!) &&
-    hasRealDataProps(cleanProps);
+    (hasRealDataProps(cleanProps) || isAlwaysParameterized(templateId!));
 
   const inputProps = useMemo(
     () => ({

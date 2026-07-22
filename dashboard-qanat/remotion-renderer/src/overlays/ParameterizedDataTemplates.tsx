@@ -622,6 +622,356 @@ export const ParameterizedCounter: React.FC<CounterProps> = ({
 };
 
 /* ═══════════════════════════════════════════════════════════
+   CIRCULAR PROGRESS — KPI ring (inspired by free RVE catalog)
+   Props: value (0-100), label, unit
+   ═══════════════════════════════════════════════════════════ */
+
+export type CircularProgressProps = {
+  value?: number;
+  label?: string;
+  unit?: string;
+};
+
+export const ParameterizedCircularProgress: React.FC<CircularProgressProps> = ({
+  value = 72,
+  label = "",
+  unit = "%",
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const progress = spring({
+    frame,
+    fps,
+    config: { damping: 18, stiffness: 70 },
+  });
+  const clamped = Math.max(0, Math.min(100, Number(value) || 0));
+  const display = Math.round(clamped * progress);
+  const r = 120;
+  const c = 2 * Math.PI * r;
+  const dash = (clamped / 100) * c * progress;
+
+  return (
+    <div
+      style={{
+        width: 1920,
+        height: 1080,
+        background: P.bg,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "Inter, system-ui, sans-serif",
+      }}
+    >
+      <div style={{ position: "relative", width: 320, height: 320 }}>
+        <svg width={320} height={320} viewBox="0 0 320 320">
+          <circle
+            cx={160}
+            cy={160}
+            r={r}
+            fill="none"
+            stroke={P.line}
+            strokeWidth={18}
+          />
+          <circle
+            cx={160}
+            cy={160}
+            r={r}
+            fill="none"
+            stroke={P.primary}
+            strokeWidth={18}
+            strokeLinecap="round"
+            strokeDasharray={`${dash} ${c}`}
+            transform="rotate(-90 160 160)"
+          />
+        </svg>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 72,
+              fontWeight: 900,
+              color: P.text,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {display}
+            <span style={{ fontSize: 32, color: P.accent }}>{unit}</span>
+          </div>
+        </div>
+      </div>
+      {label ? (
+        <div
+          style={{
+            marginTop: 28,
+            color: P.text,
+            fontSize: 32,
+            fontWeight: 600,
+            opacity: interpolate(frame, [10, 24], [0, 1], {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+            }),
+          }}
+        >
+          {label}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
+   PROGRESS BARS — horizontal skill/metric bars
+   Props: items [{label, value}], title
+   ═══════════════════════════════════════════════════════════ */
+
+export type ProgressBarsProps = {
+  items?: Array<{ label: string; value: number }>;
+  title?: string;
+};
+
+export const ParameterizedProgressBars: React.FC<ProgressBarsProps> = ({
+  items = [
+    { label: "A", value: 80 },
+    { label: "B", value: 60 },
+    { label: "C", value: 45 },
+  ],
+  title = "",
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const list = items.slice(0, 6);
+
+  return (
+    <div
+      style={{
+        width: 1920,
+        height: 1080,
+        background: P.bg,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 100,
+        boxSizing: "border-box",
+        fontFamily: "Inter, system-ui, sans-serif",
+      }}
+    >
+      {title ? (
+        <div
+          style={{
+            color: P.text,
+            fontSize: 40,
+            fontWeight: 800,
+            marginBottom: 48,
+          }}
+        >
+          {title}
+        </div>
+      ) : null}
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 1100,
+          display: "flex",
+          flexDirection: "column",
+          gap: 28,
+        }}
+      >
+        {list.map((item, i) => {
+          const p = spring({
+            frame: frame - i * 5,
+            fps,
+            config: { damping: 16, stiffness: 90 },
+          });
+          const val = Math.max(0, Math.min(100, Number(item.value) || 0));
+          return (
+            <div key={i}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 8,
+                  color: P.text,
+                  fontSize: 24,
+                  fontWeight: 600,
+                }}
+              >
+                <span>{item.label}</span>
+                <span style={{ color: P.accent }}>{Math.round(val * p)}%</span>
+              </div>
+              <div
+                style={{
+                  height: 22,
+                  borderRadius: 11,
+                  background: P.line,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${val * p}%`,
+                    borderRadius: 11,
+                    background: `linear-gradient(90deg, ${P.primary}, ${P.accent})`,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
+   LOWER THIRD BAR — name / role plate
+   Props: title, subtitle
+   ═══════════════════════════════════════════════════════════ */
+
+export type LowerThirdProps = {
+  title?: string;
+  subtitle?: string;
+  label?: string;
+};
+
+export const ParameterizedLowerThird: React.FC<LowerThirdProps> = ({
+  title = "",
+  subtitle = "",
+  label = "",
+}) => {
+  const frame = useCurrentFrame();
+  const slide = interpolate(frame, [0, 14], [-80, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+  const op = interpolate(frame, [0, 10], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const main = title || label || "Título";
+  const sub = subtitle || "";
+
+  return (
+    <div
+      style={{
+        width: 1920,
+        height: 1080,
+        background: "transparent",
+        position: "relative",
+        fontFamily: "Inter, system-ui, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          left: 80,
+          bottom: 120,
+          transform: `translateX(${slide}px)`,
+          opacity: op,
+          display: "flex",
+          flexDirection: "column",
+          gap: 0,
+        }}
+      >
+        <div
+          style={{
+            background: P.primary,
+            color: "#0a0a12",
+            fontWeight: 900,
+            fontSize: 42,
+            padding: "14px 28px",
+            borderRadius: "8px 8px 0 0",
+            maxWidth: 900,
+          }}
+        >
+          {main}
+        </div>
+        {sub ? (
+          <div
+            style={{
+              background: P.bg,
+              color: P.text,
+              fontWeight: 600,
+              fontSize: 26,
+              padding: "12px 28px",
+              borderRadius: "0 0 8px 8px",
+              borderLeft: `6px solid ${P.accent}`,
+              maxWidth: 900,
+            }}
+          >
+            {sub}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
+   POPPING TEXT — spring scale title
+   Props: title / label
+   ═══════════════════════════════════════════════════════════ */
+
+export type PoppingTextProps = {
+  title?: string;
+  label?: string;
+};
+
+export const ParameterizedPoppingText: React.FC<PoppingTextProps> = ({
+  title = "",
+  label = "",
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const s = spring({
+    frame,
+    fps,
+    config: { damping: 12, stiffness: 140, mass: 0.7 },
+  });
+  const text = title || label || "DESTAQUE";
+
+  return (
+    <div
+      style={{
+        width: 1920,
+        height: 1080,
+        background: P.bg,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "Inter, system-ui, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          transform: `scale(${0.6 + 0.4 * s})`,
+          color: P.text,
+          fontSize: 96,
+          fontWeight: 900,
+          textAlign: "center",
+          maxWidth: 1600,
+          lineHeight: 1.1,
+          textShadow: `0 0 40px ${P.primary}88`,
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
    Registry: maps template_id → parameterized component
    ═══════════════════════════════════════════════════════════ */
 
@@ -637,11 +987,30 @@ export const PARAMETERIZED_TEMPLATES: Record<
   "autolayout-gap-dial": ParameterizedGauge,
   "crane-rise-reveal": ParameterizedCounter,
   "impact-feedback": ParameterizedCounter,
+  // Phase 5 — RVE-inspired free motion blocks (original implementations)
+  "circular-progress": ParameterizedCircularProgress,
+  "progress-bars": ParameterizedProgressBars,
+  "lower-third-bar": ParameterizedLowerThird,
+  "popping-text": ParameterizedPoppingText,
+  "bar-chart-simple": ParameterizedChart,
 };
+
+/** Templates that always use parameterized component (even without data props). */
+export const ALWAYS_PARAMETERIZED = new Set([
+  "circular-progress",
+  "progress-bars",
+  "lower-third-bar",
+  "popping-text",
+  "bar-chart-simple",
+]);
 
 /** Check if a template has a parameterized version */
 export function hasParameterizedVersion(templateId: string): boolean {
   return templateId in PARAMETERIZED_TEMPLATES;
+}
+
+export function isAlwaysParameterized(templateId: string): boolean {
+  return ALWAYS_PARAMETERIZED.has(templateId);
 }
 
 /** Get the parameterized component for a template */
