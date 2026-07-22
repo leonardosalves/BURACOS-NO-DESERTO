@@ -2863,7 +2863,7 @@ export function CollageBrollLab({
                 com prévia de color field.
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-3 pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-1">
                 {items.map((item) => {
                   const active = selected?.id === item.id;
                   return (
