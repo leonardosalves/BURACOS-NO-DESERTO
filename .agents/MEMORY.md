@@ -68,4 +68,4 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 - [[memory/video-reference-analyses]]
 - [[memory/videoagent-lumiera]]
 
-atualizado: 2026-07-22T21:10:01.107Z
+atualizado: 2026-07-22T21:40:24.885Z

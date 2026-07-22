@@ -158,4 +158,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-07-22T21:10:01.134Z
+atualizado: 2026-07-22T21:40:24.917Z

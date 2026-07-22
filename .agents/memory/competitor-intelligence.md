@@ -1042,6 +1042,429 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 
 ## Pesquisas automáticas (IA)
 
+### 2026-07-22 21:40 — engenharia_e_construcao (SHORT)
+
+**Nicho:** engenharia_e_construcao · **Formato:** SHORT
+**Outliers detectados:** 5
+
+#### Fichas de dissecção (IA)
+### Eclusa na Barragem das Três Gargantas
+- **Canal:** Engenharia e Construção
+- **videoId / URL:** Hkm5VR5Cl70 · https://www.youtube.com/watch?v=Hkm5VR5Cl70
+- **Views / idade / duração:** 17.130 / 9a / 86s
+- **Outlier?** 32.6× vs mediana do canal (526 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Eclusa na Barragem das Três Gargantas
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Eclusa na Barragem das Três Gargantas
+#### Mecânica extraída (1 linha)
+> Outlier 32.6× mediana (526 views)
+
+---
+
+### Aplicação BIM para Subestações de Energia Elétrica - Ampliação – ENGETÉCNICA
+- **Canal:** Engetecnica Engenharia e Construção
+- **videoId / URL:** yRcD9NUoNLs · https://www.youtube.com/watch?v=yRcD9NUoNLs
+- **Views / idade / duração:** 2.096 / 9a / 51s
+- **Outlier?** 26.2× vs mediana do canal (80 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Aplicação BIM para Subestações de Energia Elétrica - Ampliação – ENGETÉCNICA
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Aplicação BIM para Subestações de Energia Elétrica - Ampliação – ENGETÉCNICA
+#### Mecânica extraída (1 linha)
+> Outlier 26.2× mediana (80 views)
+
+---
+
+### Aplicação BIM para Subestações de Energia Elétrica – ENGETÉCNICA
+- **Canal:** Engetecnica Engenharia e Construção
+- **videoId / URL:** bQeksVK6etA · https://www.youtube.com/watch?v=bQeksVK6etA
+- **Views / idade / duração:** 1.736 / 9a / 91s
+- **Outlier?** 21.7× vs mediana do canal (80 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Aplicação BIM para Subestações de Energia Elétrica – ENGETÉCNICA
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Aplicação BIM para Subestações de Energia Elétrica – ENGETÉCNICA
+#### Mecânica extraída (1 linha)
+> Outlier 21.7× mediana (80 views)
+
+---
+
+### Engetecnica - Vídeo institucional
+- **Canal:** Engetecnica Engenharia e Construção
+- **videoId / URL:** P9np5vT8JQ0 · https://www.youtube.com/watch?v=P9np5vT8JQ0
+- **Views / idade / duração:** 1.360 / 5a / 121s
+- **Outlier?** 17× vs mediana do canal (80 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Engetecnica - Vídeo institucional
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Engetecnica - Vídeo institucional
+#### Mecânica extraída (1 linha)
+> Outlier 17× mediana (80 views)
+#### Ideias Lumiera derivadas
+1. **Ideia 1 — mecânica de "Eclusa na Barragem das Três Gargantas…"**
+   - Gancho: Eclusa na Barragem das Três Gargantas
+   - Mecânica: Eclusa na Barragem das Três Gargantas
+   - Por que não é cópia: Transplante de mecânica com novo tópico do nosso nicho
+   - Pilar: astonishing
+
+2. **Ideia 2 — mecânica de "Aplicação BIM para Subestações de Energi…"**
+   - Gancho: Aplicação BIM para Subestações de Energia Elétrica - Ampliação – ENGETÉCNICA
+   - Mecânica: Aplicação BIM para Subestações de Energia Elétrica - Ampliação – ENGETÉCNICA
+   - Por que não é cópia: Transplante de mecânica com novo tópico do nosso nicho
+   - Pilar: astonishing
+
+3. **Ideia 3 — mecânica de "Aplicação BIM para Subestações de Energi…"**
+   - Gancho: Aplicação BIM para Subestações de Energia Elétrica – ENGETÉCNICA
+   - Mecânica: Aplicação BIM para Subestações de Energia Elétrica – ENGETÉCNICA
+   - Por que não é cópia: Transplante de mecânica com novo tópico do nosso nicho
+   - Pilar: astonishing
+
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-22 21:39 — engenharia_e_construcao (SHORT)
+
+**Nicho:** engenharia_e_construcao · **Formato:** SHORT
+**Outliers detectados:** 6
+
+#### Fichas de dissecção (IA)
+### Projeto Interior - Salão de Beleza
+- **Canal:** Concretize Engenharia e Construção
+- **videoId / URL:** h8BYcpwkPaE · https://www.youtube.com/watch?v=h8BYcpwkPaE
+- **Views / idade / duração:** 4.736 / 5a / 61s
+- **Outlier?** 473.6× vs mediana do canal (10 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Projeto Interior - Salão de Beleza
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Projeto Interior - Salão de Beleza
+#### Mecânica extraída (1 linha)
+> Outlier 473.6× mediana (10 views)
+
+---
+
+### Eclusa na Barragem das Três Gargantas
+- **Canal:** Engenharia e Construção
+- **videoId / URL:** Hkm5VR5Cl70 · https://www.youtube.com/watch?v=Hkm5VR5Cl70
+- **Views / idade / duração:** 17.130 / 9a / 86s
+- **Outlier?** 32.6× vs mediana do canal (526 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Eclusa na Barragem das Três Gargantas
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Eclusa na Barragem das Três Gargantas
+#### Mecânica extraída (1 linha)
+> Outlier 32.6× mediana (526 views)
+
+---
+
+### Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+- **Canal:** Active Engenharia e Construção
+- **videoId / URL:** xEOLkp47iYI · https://www.youtube.com/watch?v=xEOLkp47iYI
+- **Views / idade / duração:** 15.276 / 1d / 14s
+- **Outlier?** 15.7× vs mediana do canal (973 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+#### Mecânica extraída (1 linha)
+> Outlier 15.7× mediana (973 views)
+
+---
+
+### O assentador de pavê mais rápido do mundo
+- **Canal:** Engenharia e Construção
+- **videoId / URL:** cHNzOheqXiw · https://www.youtube.com/watch?v=cHNzOheqXiw
+- **Views / idade / duração:** 3.346 / 9a / 102s
+- **Outlier?** 6.37× vs mediana do canal (526 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): O assentador de pavê mais rápido do mundo
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: O assentador de pavê mais rápido do mundo
+#### Mecânica extraída (1 linha)
+> Outlier 6.37× mediana (526 views)
+#### Ideias Lumiera derivadas
+1. **Ideia 1 — mecânica de "Projeto Interior - Salão de Beleza…"**
+   - Gancho: Projeto Interior - Salão de Beleza
+   - Mecânica: Projeto Interior - Salão de Beleza
+   - Por que não é cópia: Transplante de mecânica com novo tópico do nosso nicho
+   - Pilar: astonishing
+
+2. **Ideia 2 — mecânica de "Eclusa na Barragem das Três Gargantas…"**
+   - Gancho: Eclusa na Barragem das Três Gargantas
+   - Mecânica: Eclusa na Barragem das Três Gargantas
+   - Por que não é cópia: Transplante de mecânica com novo tópico do nosso nicho
+   - Pilar: astonishing
+
+3. **Ideia 3 — mecânica de "Por que não devemos emendar cabos elétri…"**
+   - Gancho: Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+   - Mecânica: Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+   - Por que não é cópia: Transplante de mecânica com novo tópico do nosso nicho
+   - Pilar: astonishing
+
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-22 21:10 — engenharia_e_construcao (SHORT)
+
+**Nicho:** engenharia_e_construcao · **Formato:** SHORT
+**Outliers detectados:** 6
+
+#### Fichas de dissecção (IA)
+### Projeto Interior - Salão de Beleza
+- **Canal:** Concretize Engenharia e Construção
+- **videoId / URL:** h8BYcpwkPaE · https://www.youtube.com/watch?v=h8BYcpwkPaE
+- **Views / idade / duração:** 4.736 / 5a / 61s
+- **Outlier?** 473.6× vs mediana do canal (10 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Projeto Interior - Salão de Beleza
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Projeto Interior - Salão de Beleza
+#### Mecânica extraída (1 linha)
+> Outlier 473.6× mediana (10 views)
+
+---
+
+### Eclusa na Barragem das Três Gargantas
+- **Canal:** Engenharia e Construção
+- **videoId / URL:** Hkm5VR5Cl70 · https://www.youtube.com/watch?v=Hkm5VR5Cl70
+- **Views / idade / duração:** 17.130 / 9a / 86s
+- **Outlier?** 32.6× vs mediana do canal (526 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Eclusa na Barragem das Três Gargantas
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Eclusa na Barragem das Três Gargantas
+#### Mecânica extraída (1 linha)
+> Outlier 32.6× mediana (526 views)
+
+---
+
+### Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+- **Canal:** Active Engenharia e Construção
+- **videoId / URL:** xEOLkp47iYI · https://www.youtube.com/watch?v=xEOLkp47iYI
+- **Views / idade / duração:** 14.977 / 1d / 14s
+- **Outlier?** 15.39× vs mediana do canal (973 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+#### Mecânica extraída (1 linha)
+> Outlier 15.39× mediana (973 views)
+
+---
+
+### O assentador de pavê mais rápido do mundo
+- **Canal:** Engenharia e Construção
+- **videoId / URL:** cHNzOheqXiw · https://www.youtube.com/watch?v=cHNzOheqXiw
+- **Views / idade / duração:** 3.346 / 9a / 102s
+- **Outlier?** 6.37× vs mediana do canal (526 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): O assentador de pavê mais rápido do mundo
+- Texto na tela: 
+- Arquétipo: 
+#### Estrutura
+- Formato: 
+- Blocos / beats: 
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: 
+- Tipo: 
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: O assentador de pavê mais rápido do mundo
+#### Mecânica extraída (1 linha)
+> Outlier 6.37× mediana (526 views)
+#### Ideias Lumiera derivadas
+1. **Ideia 1 — mecânica de "Projeto Interior - Salão de Beleza…"**
+   - Gancho: Projeto Interior - Salão de Beleza
+   - Mecânica: Projeto Interior - Salão de Beleza
+   - Por que não é cópia: Transplante de mecânica com novo tópico do nosso nicho
+   - Pilar: astonishing
+
+2. **Ideia 2 — mecânica de "Eclusa na Barragem das Três Gargantas…"**
+   - Gancho: Eclusa na Barragem das Três Gargantas
+   - Mecânica: Eclusa na Barragem das Três Gargantas
+   - Por que não é cópia: Transplante de mecânica com novo tópico do nosso nicho
+   - Pilar: astonishing
+
+3. **Ideia 3 — mecânica de "Por que não devemos emendar cabos elétri…"**
+   - Gancho: Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+   - Mecânica: Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+   - Por que não é cópia: Transplante de mecânica com novo tópico do nosso nicho
+   - Pilar: astonishing
+
+
+## Pesquisas automáticas (IA)
+
 ### 2026-07-22 21:10 — engenharia_e_construcao (SHORT)
 
 **Nicho:** engenharia_e_construcao · **Formato:** SHORT
@@ -9340,3 +9763,12 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - **Ideia 1 — mecânica de "Projeto Interior - Salão de Beleza…"** — Projeto Interior - Salão de Beleza _(inbox · IA 2026-07-22)_
 - **Ideia 2 — mecânica de "Eclusa na Barragem das Três Gargantas…"** — Eclusa na Barragem das Três Gargantas _(inbox · IA 2026-07-22)_
 - **Ideia 3 — mecânica de "Por que não devemos emendar cabos elétri…"** — Por que não devemos emendar cabos elétricos no mesmo alinhamento? _(inbox · IA 2026-07-22)_
+- **Ideia 1 — mecânica de "Projeto Interior - Salão de Beleza…"** — Projeto Interior - Salão de Beleza _(inbox · IA 2026-07-22)_
+- **Ideia 2 — mecânica de "Eclusa na Barragem das Três Gargantas…"** — Eclusa na Barragem das Três Gargantas _(inbox · IA 2026-07-22)_
+- **Ideia 3 — mecânica de "Por que não devemos emendar cabos elétri…"** — Por que não devemos emendar cabos elétricos no mesmo alinhamento? _(inbox · IA 2026-07-22)_
+- **Ideia 1 — mecânica de "Projeto Interior - Salão de Beleza…"** — Projeto Interior - Salão de Beleza _(inbox · IA 2026-07-22)_
+- **Ideia 2 — mecânica de "Eclusa na Barragem das Três Gargantas…"** — Eclusa na Barragem das Três Gargantas _(inbox · IA 2026-07-22)_
+- **Ideia 3 — mecânica de "Por que não devemos emendar cabos elétri…"** — Por que não devemos emendar cabos elétricos no mesmo alinhamento? _(inbox · IA 2026-07-22)_
+- **Ideia 1 — mecânica de "Eclusa na Barragem das Três Gargantas…"** — Eclusa na Barragem das Três Gargantas _(inbox · IA 2026-07-22)_
+- **Ideia 2 — mecânica de "Aplicação BIM para Subestações de Energi…"** — Aplicação BIM para Subestações de Energia Elétrica - Ampliação – ENGETÉCNICA _(inbox · IA 2026-07-22)_
+- **Ideia 3 — mecânica de "Aplicação BIM para Subestações de Energi…"** — Aplicação BIM para Subestações de Energia Elétrica – ENGETÉCNICA _(inbox · IA 2026-07-22)_

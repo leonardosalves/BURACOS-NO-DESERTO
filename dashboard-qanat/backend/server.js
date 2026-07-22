@@ -13488,22 +13488,12 @@ async function callGeminiWithRetry(
         return text;
       } catch (omniErr) {
         console.warn(
-          `[OmniRoute] Falhou (${omniErr.message}). Tentando fallback automático via Gemini API...`
+          `[OmniRoute] Falhou (${omniErr.message}). Executando fallback automático via Gemini API...`
         );
         const geminiKey = getApiKey(projDir);
-        if (geminiKey) {
-          const text = await callGeminiDirectWithRetry(apiKeyToUse, promptOrBody, {
-            maxRetries,
-            bodyOverride,
-            projectDir: projDir,
-            temperature,
-            models: modelsOverride,
-            maxTokens,
-          });
-          finishOk("gemini-3.6-flash");
-          return text;
+        if (!geminiKey) {
+          throw omniErr;
         }
-        throw omniErr;
       }
     }
     if (provider === "local") {
