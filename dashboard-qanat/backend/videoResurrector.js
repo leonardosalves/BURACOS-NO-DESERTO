@@ -23,6 +23,10 @@ import {
   resolveYoutubeMetadataContext,
   YOUTUBE_METADATA_PIPELINE_VERSION,
 } from "./youtubeMetadataOptimizer.js";
+import {
+  resolveYoutubeEditorialWithAi,
+  sanitizeShortsKeywordTitle,
+} from "./youtubeEditorialResolver.js";
 import { injectStudioAgentsContext } from "./studioAgents.js";
 import {
   compareResurrectionOpportunity,
@@ -1187,6 +1191,33 @@ export async function generateResurrectorMetadata(item, deps = {}) {
   let usedFallback = false;
   const geminiDir = projectPath || workspaceDir;
   const apiKey = typeof getApiKey === "function" ? getApiKey(geminiDir) : null;
+
+  if (deps.useEditorialResolver || (item.currentMetadata?.title && !projectPath)) {
+    const editorial = await resolveYoutubeEditorialWithAi({
+      currentTitle: item.currentMetadata?.title || item.title || "",
+      currentDescription: item.currentMetadata?.description || "",
+      narration: transcript || item.currentMetadata?.description || "",
+      generate: async (p) => {
+        if (typeof callGemini === "function") return callGemini(p, { temperature: 0.25 });
+        if (deps.callGeminiWithRetry && apiKey) return deps.callGeminiWithRetry(apiKey, p, { temperature: 0.25 });
+        throw new Error("Gemini indisponível");
+      },
+    });
+    return {
+      pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+      rawText: JSON.stringify(editorial),
+      proposed: {
+        title: sanitizeShortsKeywordTitle(editorial.title),
+        titleVariants: [sanitizeShortsKeywordTitle(editorial.title)],
+        description: editorial.description,
+        tags: parseTagsRaw(item.currentMetadata?.tags || []),
+        hashtags: [],
+      },
+      format,
+      niche: metadataCtx.niche,
+      usedFallback: false,
+    };
+  }
   try {
     if (typeof callGemini === "function" && apiKey) {
       text = await callGemini(prompt, {
@@ -1219,12 +1250,16 @@ export async function generateResurrectorMetadata(item, deps = {}) {
     parsed.hashtags
   );
 
+  const rawProposedTitle = parsed.recommendedTitle || parsed.titles[0]?.text || "";
+  const proposedTitle = sanitizeShortsKeywordTitle(rawProposedTitle);
+  const proposedVariants = (parsed.titles || []).map((t) => sanitizeShortsKeywordTitle(t.text));
+
   return {
     pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
     rawText: text,
     proposed: {
-      title: parsed.recommendedTitle || parsed.titles[0]?.text || "",
-      titleVariants: (parsed.titles || []).map((t) => t.text),
+      title: proposedTitle,
+      titleVariants: proposedVariants,
       description,
       tags: parseTagsRaw(parsed.tags),
       hashtags: parsed.hashtags,

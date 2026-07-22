@@ -9,6 +9,46 @@ function stripCodeFence(value) {
     .trim();
 }
 
+export function sanitizeShortsKeywordTitle(rawTitle = "") {
+  let title = String(rawTitle || "").trim();
+  if (!title) return title;
+
+  const prefixMatch = title.match(/^([A-ZÀ-Ú][A-Za-zÀ-ú\s]{1,20}):\s*(.+)/i);
+  if (prefixMatch) {
+    const prefix = prefixMatch[1].trim();
+    const rest = prefixMatch[2].trim();
+
+    const isLocationOrGenericCategory = /^(china|brasil|eua|japão|japao|rússia|russia|alemanha|frança|franca|itália|italia|índia|india|dubai|inglaterra|uk|canadá|canada|méxico|mexico|espanha|egito|turquia|coréia|coreia|curiosidade|curiosidades|história|historia|geografia|incrivel|incrível|veja|descubra)$/i.test(prefix);
+
+    if (isLocationOrGenericCategory && rest.length >= 5) {
+      const lower = prefix.toLowerCase();
+      if (new RegExp(`\\b${prefix}\\b`, "i").test(rest)) {
+        title = rest;
+      } else {
+        const cleanRest = rest.replace(/[!?.]$/, "");
+        const punct = rest.match(/[!?.]$/)?.[0] || "";
+
+        let prep = "em";
+        if (["brasil", "japão", "japao", "canadá", "canada", "méxico", "mexico", "egito"].includes(lower)) {
+          prep = "no";
+        } else if (["china", "rússia", "russia", "alemanha", "frança", "franca", "itália", "italia", "índia", "india", "inglaterra", "espanha", "turquia", "coréia", "coreia"].includes(lower)) {
+          prep = "na";
+        } else if (["eua", "uk"].includes(lower)) {
+          prep = "nos";
+        }
+
+        if (["curiosidade", "curiosidades", "história", "historia", "geografia", "incrivel", "incrível", "veja", "descubra"].includes(lower)) {
+          title = rest;
+        } else {
+          title = `${cleanRest} ${prep} ${prefix}${punct}`;
+        }
+      }
+    }
+  }
+
+  return title;
+}
+
 export function buildYoutubeEditorialFixPrompt({
   currentTitle = "",
   currentDescription = "",
@@ -22,7 +62,12 @@ export function buildYoutubeEditorialFixPrompt({
 REGRAS:
 - Não altere fatos, números ou promessas.
 - O título deve corresponder claramente ao que é entregue nos primeiros segundos.
-- Para vídeos Shorts (ou telas pequenas): coloque as palavras-chave mais importantes no início do título para que os espectadores em telas pequenas capturem a vibe imediatamente ("put your most important keywords at the start of your title so viewers immediately get the vibe on small screens").
+- PARA SHORTS / TELAS PEQUENAS (REGRA OBRIGATÓRIA):
+  Coloque a PALAVRA-CHAVE DO ASSUNTO PRINCIPAL (ex: "Hotel de 30 andares", "Ponte do Rio X") LOGO NAS PRIMEIRAS PALAVRAS DO TÍTULO.
+  PROIBIDO usar prefixos de país ou categoria no início (ex: NUNCA use "China: Hotel...", "Brasil: Ponte...", "Curiosidade: ...").
+  Exemplo INCORRETO: "China: Hotel de 30 andares construído em apenas 15 dias!"
+  Exemplo CORRETO: "Hotel de 30 andares construído em apenas 15 dias na China"
+  ("put your most important keywords at the start of your title so viewers immediately get the vibe on small screens").
 - Não invente conteúdo que não aparece na narração.
 - Português brasileiro natural.
 - Título com no máximo 100 caracteres.
@@ -62,7 +107,8 @@ export function parseYoutubeEditorialFix(value) {
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("Resposta editorial da IA inválida.");
   }
-  const title = String(parsed.title || "").trim().slice(0, MAX_TITLE_LENGTH);
+  const rawTitle = String(parsed.title || "").trim().slice(0, MAX_TITLE_LENGTH);
+  const title = sanitizeShortsKeywordTitle(rawTitle);
   const description = String(parsed.description || "")
     .trim()
     .slice(0, MAX_DESCRIPTION_LENGTH);
