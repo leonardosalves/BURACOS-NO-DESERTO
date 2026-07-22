@@ -12535,8 +12535,10 @@ async function callOmniRouteWithRetry(
         if (apiKey) {
           headers["Authorization"] = `Bearer ${apiKey}`;
         }
+        const requestTimeoutMs =
+          Number(options?.timeoutMs) || Number(options?.timeout_ms) || 180000;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000);
+        const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
         const response = await fetch(`${baseUrl}/chat/completions`, {
           method: "POST",
           headers,
@@ -13528,10 +13530,12 @@ async function callGeminiWithRetry(
               `[Gemini] modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt}/${maxRetries}`
             );
             totalHttpAttempts += 1;
+            const requestTimeoutMs =
+              Number(options?.timeoutMs) || Number(options?.timeout_ms) || 180000;
             const geminiController = new AbortController();
             const geminiTimeoutId = setTimeout(
               () => geminiController.abort(),
-              60000
+              requestTimeoutMs
             );
             const response = await fetch(
               `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentKey}`,
