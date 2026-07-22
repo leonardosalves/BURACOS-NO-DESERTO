@@ -328,6 +328,50 @@ const RVE_INSPIRED_TEMPLATES = [
     default_props: { title: "DESTAQUE" },
     duration_seconds: 2.5,
   },
+  {
+    template_id: "line-chart",
+    name: "Line Chart",
+    category: "dados",
+    energy: "medium",
+    default_props: {
+      title: "Tendência",
+      items: [
+        { label: "Jan", value: 20 },
+        { label: "Fev", value: 45 },
+        { label: "Mar", value: 38 },
+        { label: "Abr", value: 72 },
+        { label: "Mai", value: 60 },
+      ],
+    },
+    duration_seconds: 4,
+  },
+  {
+    template_id: "donut-chart",
+    name: "Donut Chart",
+    category: "dados",
+    energy: "medium",
+    default_props: {
+      title: "Participação",
+      centerLabel: "Top",
+      value: 35,
+      unit: "%",
+      items: [
+        { label: "A", value: 35 },
+        { label: "B", value: 25 },
+        { label: "C", value: 20 },
+        { label: "D", value: 20 },
+      ],
+    },
+    duration_seconds: 4,
+  },
+  {
+    template_id: "pixel-reveal",
+    name: "Pixel Reveal",
+    category: "transicao",
+    energy: "high",
+    default_props: { title: "" },
+    duration_seconds: 2.5,
+  },
 ];
 
 /**

@@ -37,6 +37,7 @@ type TemplateItem = {
   duration_seconds: number;
   approved: boolean;
   palette: Record<string, string> | null;
+  default_props?: Record<string, unknown> | null;
 };
 
 type NicheItem = {
@@ -276,26 +277,53 @@ export function LumieraEditor({
   }, [niches, activeNiche]);
 
   const previewProps = useMemo(() => {
+    const defaults =
+      previewTemplate?.default_props &&
+      typeof previewTemplate.default_props === "object"
+        ? { ...previewTemplate.default_props }
+        : {};
     const base =
       selectedScene?.props && typeof selectedScene.props === "object"
         ? { ...selectedScene.props }
         : {};
     return {
+      ...defaults,
       ...base,
       ...(propDraft.value
         ? { value: Number(propDraft.value) || propDraft.value }
         : {}),
       ...(propDraft.unit ? { unit: propDraft.unit } : {}),
-      ...(propDraft.label ? { label: propDraft.label } : {}),
+      ...(propDraft.label
+        ? { label: propDraft.label, title: propDraft.label }
+        : {}),
       ...(propDraft.prefix ? { prefix: propDraft.prefix } : {}),
       ...(propDraft.suffix ? { suffix: propDraft.suffix } : {}),
     };
-  }, [selectedScene, propDraft]);
+  }, [selectedScene, propDraft, previewTemplate]);
 
   /* Assign template to scene */
+  const applyDefaultPropsToDraft = useCallback((template: TemplateItem) => {
+    const d =
+      template.default_props && typeof template.default_props === "object"
+        ? template.default_props
+        : {};
+    setPropDraft({
+      value: String((d as any).value ?? (d as any).valor ?? ""),
+      unit: String((d as any).unit ?? (d as any).unidade ?? ""),
+      label: String((d as any).label ?? (d as any).title ?? ""),
+      prefix: String((d as any).prefix ?? ""),
+      suffix: String((d as any).suffix ?? ""),
+    });
+  }, []);
+
   const assignTemplateToScene = useCallback(
     (template: TemplateItem, scene: SceneBlock) => {
+      const defaults =
+        template.default_props && typeof template.default_props === "object"
+          ? { ...template.default_props }
+          : {};
       const nextProps = {
+        ...defaults,
         ...scene.props,
         ...(propDraft.value
           ? { value: Number(propDraft.value) || propDraft.value }
@@ -658,6 +686,7 @@ export function LumieraEditor({
                 onClick={() => {
                   setSelectedTemplate(t);
                   setPreviewTemplate(t);
+                  applyDefaultPropsToDraft(t);
                 }}
                 className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all cursor-grab active:cursor-grabbing ${
                   selectedTemplate?.template_id === t.template_id

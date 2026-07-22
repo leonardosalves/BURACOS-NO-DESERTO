@@ -58,6 +58,7 @@ type ShotcraftCatalogItem = {
   energy?: string;
   duration_seconds?: number;
   approved?: boolean;
+  default_props?: Record<string, unknown> | null;
 };
 
 type PaletteMode = "shotcraft" | "studio";
@@ -392,6 +393,10 @@ export function NicheTemplatePalette({
   }, [visibleShotcraft, selectedShotcraftId]);
 
   function insertShotcraftTemplate(tpl: ShotcraftCatalogItem) {
+    const shotProps =
+      tpl.default_props && typeof tpl.default_props === "object"
+        ? { ...tpl.default_props }
+        : {};
     onInsertTemplate(tpl.template_id, {
       label: tpl.name || tpl.template_id,
       props: {
@@ -399,10 +404,12 @@ export function NicheTemplatePalette({
         shotcraft_template_id: tpl.template_id,
         template_name: tpl.name,
         duration_seconds: tpl.duration_seconds || 4,
+        shot_props: shotProps,
         motion_shot: {
           templateId: tpl.template_id,
           duration_seconds: tpl.duration_seconds || 4,
           start_seconds: 0,
+          props: shotProps,
         },
       },
     });
@@ -516,7 +523,7 @@ export function NicheTemplatePalette({
         </select>
       </div>
 
-      <div className="flex gap-1">
+      <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => setPaletteMode("shotcraft")}
@@ -531,13 +538,14 @@ export function NicheTemplatePalette({
         <button
           type="button"
           onClick={() => setPaletteMode("studio")}
-          className={`flex-1 text-[9px] font-bold py-1 rounded-lg border transition cursor-pointer ${
+          className={`text-[8px] font-semibold py-1 px-2 rounded-lg border transition cursor-pointer ${
             paletteMode === "studio"
               ? "border-violet-400/50 bg-violet-500/15 text-violet-100"
-              : "border-zinc-800 bg-zinc-950/60 text-zinc-500 hover:border-zinc-700"
+              : "border-zinc-800/80 bg-transparent text-zinc-600 hover:text-zinc-400"
           }`}
+          title="Legado: templates TSX do Template Studio (em depreciação)"
         >
-          Studio TSX
+          TSX†
         </button>
       </div>
 

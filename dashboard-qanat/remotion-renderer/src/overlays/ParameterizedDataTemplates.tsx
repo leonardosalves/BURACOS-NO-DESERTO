@@ -972,6 +972,377 @@ export const ParameterizedPoppingText: React.FC<PoppingTextProps> = ({
 };
 
 /* ═══════════════════════════════════════════════════════════
+   LINE CHART — animated polyline
+   Props: items [{label, value}], title
+   ═══════════════════════════════════════════════════════════ */
+
+export type LineChartProps = {
+  items?: Array<{ label: string; value: number }>;
+  title?: string;
+};
+
+export const ParameterizedLineChart: React.FC<LineChartProps> = ({
+  items = [
+    { label: "1", value: 20 },
+    { label: "2", value: 45 },
+    { label: "3", value: 35 },
+    { label: "4", value: 70 },
+    { label: "5", value: 55 },
+  ],
+  title = "",
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const list = items.slice(0, 10);
+  const maxVal = Math.max(...list.map((i) => i.value), 1);
+  const w = 1200;
+  const h = 420;
+  const pad = 40;
+  const progress = spring({
+    frame,
+    fps,
+    config: { damping: 18, stiffness: 60 },
+  });
+
+  const points = list.map((item, i) => {
+    const x = pad + (i / Math.max(list.length - 1, 1)) * (w - pad * 2);
+    const y = h - pad - (item.value / maxVal) * (h - pad * 2);
+    return { x, y, label: item.label, value: item.value };
+  });
+
+  const pathD = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+    .join(" ");
+  const pathLen = 2000;
+  const draw = pathLen * progress;
+
+  return (
+    <div
+      style={{
+        width: 1920,
+        height: 1080,
+        background: P.bg,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "Inter, system-ui, sans-serif",
+        padding: 60,
+        boxSizing: "border-box",
+      }}
+    >
+      {title ? (
+        <div
+          style={{
+            color: P.text,
+            fontSize: 40,
+            fontWeight: 800,
+            marginBottom: 36,
+          }}
+        >
+          {title}
+        </div>
+      ) : null}
+      <svg width={w} height={h + 40} viewBox={`0 0 ${w} ${h + 40}`}>
+        <line
+          x1={pad}
+          y1={h - pad}
+          x2={w - pad}
+          y2={h - pad}
+          stroke={P.line}
+          strokeWidth={2}
+        />
+        <line
+          x1={pad}
+          y1={pad}
+          x2={pad}
+          y2={h - pad}
+          stroke={P.line}
+          strokeWidth={2}
+        />
+        <path
+          d={pathD}
+          fill="none"
+          stroke={P.primary}
+          strokeWidth={5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray={`${draw} ${pathLen}`}
+        />
+        {points.map((p, i) => {
+          const op = interpolate(frame, [i * 4, i * 4 + 10], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          return (
+            <g key={i} opacity={op * progress}>
+              <circle cx={p.x} cy={p.y} r={8} fill={P.accent} />
+              <text
+                x={p.x}
+                y={h - 8}
+                textAnchor="middle"
+                fill={P.text}
+                fontSize={18}
+                fontWeight={600}
+              >
+                {p.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
+   DONUT CHART — ring segments + center metric
+   Props: items [{label, value}], title, centerLabel
+   ═══════════════════════════════════════════════════════════ */
+
+export type DonutChartProps = {
+  items?: Array<{ label: string; value: number }>;
+  title?: string;
+  centerLabel?: string;
+  value?: number;
+  unit?: string;
+};
+
+export const ParameterizedDonutChart: React.FC<DonutChartProps> = ({
+  items = [
+    { label: "A", value: 35 },
+    { label: "B", value: 25 },
+    { label: "C", value: 20 },
+    { label: "D", value: 20 },
+  ],
+  title = "",
+  centerLabel = "",
+  value,
+  unit = "%",
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const progress = spring({
+    frame,
+    fps,
+    config: { damping: 16, stiffness: 70 },
+  });
+  const list = items.slice(0, 6);
+  const total =
+    list.reduce((s, i) => s + Math.max(0, Number(i.value) || 0), 0) || 1;
+  const r = 110;
+  const c = 2 * Math.PI * r;
+  const colors = [
+    P.primary,
+    P.accent,
+    "#00E5FF",
+    "#FF7043",
+    "#81C784",
+    "#B388FF",
+  ];
+
+  let offset = 0;
+  const arcs = list.map((item, i) => {
+    const frac = Math.max(0, Number(item.value) || 0) / total;
+    const len = frac * c * progress;
+    const dashOffset = -offset * progress;
+    offset += frac * c;
+    return { ...item, len, dashOffset, color: colors[i % colors.length] };
+  });
+
+  const centerVal =
+    value != null
+      ? Math.round(Number(value) * progress)
+      : Math.round((list[0]?.value || 0) * progress);
+
+  return (
+    <div
+      style={{
+        width: 1920,
+        height: 1080,
+        background: P.bg,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "Inter, system-ui, sans-serif",
+        gap: 40,
+      }}
+    >
+      {title ? (
+        <div style={{ color: P.text, fontSize: 40, fontWeight: 800 }}>
+          {title}
+        </div>
+      ) : null}
+      <div style={{ display: "flex", alignItems: "center", gap: 80 }}>
+        <div style={{ position: "relative", width: 300, height: 300 }}>
+          <svg width={300} height={300} viewBox="0 0 300 300">
+            <circle
+              cx={150}
+              cy={150}
+              r={r}
+              fill="none"
+              stroke={P.line}
+              strokeWidth={28}
+            />
+            {arcs.map((a, i) => (
+              <circle
+                key={i}
+                cx={150}
+                cy={150}
+                r={r}
+                fill="none"
+                stroke={a.color}
+                strokeWidth={28}
+                strokeDasharray={`${a.len} ${c}`}
+                strokeDashoffset={a.dashOffset}
+                transform="rotate(-90 150 150)"
+                strokeLinecap="butt"
+              />
+            ))}
+          </svg>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 56,
+                fontWeight: 900,
+                color: P.text,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {centerVal}
+              <span style={{ fontSize: 24, color: P.accent }}>{unit}</span>
+            </div>
+            {centerLabel ? (
+              <div style={{ fontSize: 18, color: P.text, opacity: 0.8 }}>
+                {centerLabel}
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {list.map((item, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                color: P.text,
+                fontSize: 22,
+                fontWeight: 600,
+              }}
+            >
+              <div
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: 4,
+                  background: colors[i % colors.length],
+                }}
+              />
+              <span>
+                {item.label}{" "}
+                <span style={{ color: P.accent }}>{item.value}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
+   PIXEL REVEAL — grid wipe transition feel (overlay)
+   Props: title / label
+   ═══════════════════════════════════════════════════════════ */
+
+export type PixelRevealProps = {
+  title?: string;
+  label?: string;
+};
+
+export const ParameterizedPixelReveal: React.FC<PixelRevealProps> = ({
+  title = "",
+  label = "",
+}) => {
+  const frame = useCurrentFrame();
+  const cols = 12;
+  const rows = 7;
+  const cellW = 1920 / cols;
+  const cellH = 1080 / rows;
+  const text = title || label || "";
+
+  return (
+    <div
+      style={{
+        width: 1920,
+        height: 1080,
+        position: "relative",
+        background: P.bg,
+        overflow: "hidden",
+        fontFamily: "Inter, system-ui, sans-serif",
+      }}
+    >
+      {Array.from({ length: cols * rows }).map((_, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const delay = (col + row) * 1.2;
+        const op = interpolate(frame, [delay, delay + 8], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        });
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: col * cellW,
+              top: row * cellH,
+              width: cellW + 1,
+              height: cellH + 1,
+              background: i % 2 === 0 ? P.primary : P.accent,
+              opacity: op * 0.85,
+            }}
+          />
+        );
+      })}
+      {text ? (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: P.text,
+            fontSize: 72,
+            fontWeight: 900,
+            textShadow: "0 4px 24px rgba(0,0,0,0.6)",
+            opacity: interpolate(frame, [20, 32], [0, 1], {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+            }),
+          }}
+        >
+          {text}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════
    Registry: maps template_id → parameterized component
    ═══════════════════════════════════════════════════════════ */
 
@@ -993,6 +1364,9 @@ export const PARAMETERIZED_TEMPLATES: Record<
   "lower-third-bar": ParameterizedLowerThird,
   "popping-text": ParameterizedPoppingText,
   "bar-chart-simple": ParameterizedChart,
+  "line-chart": ParameterizedLineChart,
+  "donut-chart": ParameterizedDonutChart,
+  "pixel-reveal": ParameterizedPixelReveal,
 };
 
 /** Templates that always use parameterized component (even without data props). */
@@ -1002,6 +1376,9 @@ export const ALWAYS_PARAMETERIZED = new Set([
   "lower-third-bar",
   "popping-text",
   "bar-chart-simple",
+  "line-chart",
+  "donut-chart",
+  "pixel-reveal",
 ]);
 
 /** Check if a template has a parameterized version */
