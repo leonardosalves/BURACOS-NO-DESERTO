@@ -772,6 +772,10 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - [ ] Link `[[memory/historia]]` ou nicho correto se for fato reutilizável
 
 ## Padrões promovidos (concorrentes → nosso formato)
+- Uso de alertas sobre erros fatais ou perigosos na construção nos primeiros 2 segundos para gerar retenção por aversão à perda. _(IA 2026-07-22)_
+- Exibição de megaconstruções ou processos de engenharia em escala extraordinária para despertar fascínio. _(IA 2026-07-22)_
+- Vídeos do tipo 'Oddly Satisfying' mostrando alta velocidade e precisão manual em tarefas operacionais de obra. _(IA 2026-07-22)_
+- Textos chamativos em caixa alta ancorados na tela reforçando a proposta principal do vídeo. _(IA 2026-07-22)_
 - Uso de ganchos baseados na aversão ao erro ('Nunca faça isso na obra') para gerar retenção imediata. _(IA 2026-07-22)_
 - Vídeos focado no formato 'Oddly Satisfying' mostrando trabalhadores habilidosos realizando tarefas repetitivas com perfeição. _(IA 2026-07-22)_
 - Projetos 3D focados em nichos comerciais específicos (salão, barbearia, consultório) que ativam desejo do público comprador. _(IA 2026-07-22)_
@@ -892,6 +896,10 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - (nenhum ainda — promover quando mecânica + resultado confirmado 2×)
 
 ## Erros dos concorrentes (nosso diferencial)
+- Demora para entregar a promessa do título nos primeiros 3 segundos de vídeo.
+- Falta de narração dinâmica ou efeitos sonoros para acompanhar cortes visuais.
+- Ausência de chamadas para ação (CTAs) objetivas fofocadas em retenção ou engajamento.
+- Foco excessivo em apresentações institucionais da empresa em vez do problema do espectador.
 - Republicação de vídeos de terceiros sem adição de narração técnica original ou elementos de marca própria.
 - Ausência de legendas em texto grande para visualização no mudo.
 - Falta de clareza nos ganchos verbais nos primeiros 3 segundos de vídeo.
@@ -1031,6 +1039,159 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - `skills/viral-captions-and-ctas/references/ctas-that-work.md`
 
 ## Pesquisas automáticas (IA)
+
+## Pesquisas automáticas (IA)
+
+### 2026-07-22 20:48 — engenharia_e_construcao (SHORT)
+
+**Nicho:** engenharia_e_construcao · **Formato:** SHORT
+**Outliers detectados:** 6
+
+#### Fichas de dissecção (IA)
+### Projeto Interior - Salão de Beleza
+- **Canal:** Concretize Engenharia e Construção
+- **videoId / URL:** h8BYcpwkPaE · https://www.youtube.com/watch?v=h8BYcpwkPaE
+- **Views / idade / duração:** 4.736 / 5a / 61s
+- **Outlier?** 473.6× vs mediana do canal (10 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Veja o resultado impressionante dessa transformação de interior para um salão de beleza.
+- Texto na tela: TRANSFORMAÇÃO INCREÍVEL: Salão de Beleza
+- Arquétipo: Visual Transformation
+#### Estrutura
+- Formato: 3D Timelapse Showcase
+- Blocos / beats: 1. Apresentação do espaço vazio em 3D -> 2. Evolução rápida de móveis e iluminação -> 3. Revelação do resultado final renderizado.
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: Inscreva-se para ver mais projetos inspiradores!
+- Tipo: Subscribe
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Projeto Interior - Salão de Beleza
+#### Mecânica extraída (1 linha)
+> O apelo estético de antes e depois em render 3D atrai visualmente e desperta curiosidade pelo design final.
+#### Erros do concorrente
+- Pouca explicação verbal dos materiais e falta de CTA clara no final.
+
+
+---
+
+### Eclusa na Barragem das Três Gargantas
+- **Canal:** Engenharia e Construção
+- **videoId / URL:** Hkm5VR5Cl70 · https://www.youtube.com/watch?v=Hkm5VR5Cl70
+- **Views / idade / duração:** 17.130 / 9a / 86s
+- **Outlier?** 32.6× vs mediana do canal (526 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Como navios gigantes conseguem subir uma montanha de água nesta eclusa?
+- Texto na tela: MEGAPROJETO: Maior Eclusa do Mundo
+- Arquétipo: Astonishing Scale Curiosity
+#### Estrutura
+- Formato: Educational / Curiosity Explainer
+- Blocos / beats: 1. Pergunta provocativa com imagem impactante -> 2. Explicação visual do funcionamento do elevador de navios -> 3. Conclusão sobre a escala da obra.
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: Você teria coragem de subir nessa eclusa? Deixe nos comentários!
+- Tipo: Engagement
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Eclusa na Barragem das Três Gargantas
+#### Mecânica extraída (1 linha)
+> Engenharia de proporções gigantescas desperta fascínio e desejo de compartilhamento sobre como a tecnologia funciona.
+#### Erros do concorrente
+- Ritmo inicial lento e qualidade de imagem que poderia ser melhor otimizada.
+
+
+---
+
+### Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+- **Canal:** Active Engenharia e Construção
+- **videoId / URL:** xEOLkp47iYI · https://www.youtube.com/watch?v=xEOLkp47iYI
+- **Views / idade / duração:** 14.722 / 1d / 14s
+- **Outlier?** 15.13× vs mediana do canal (973 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Nunca faça isso na sua instalação elétrica se não quiser causar um curto-circuito!
+- Texto na tela: ERRO GRAVE NA ELÉTRICA: Emenda de cabos
+- Arquétipo: Warning / Technical Practical Mistake
+#### Estrutura
+- Formato: Practical Warning & Demonstration
+- Blocos / beats: 1. Exibição do erro comum e perigoso -> 2. Explicação técnica do risco de aquecimento/curto -> 3. Demonstração da forma correta (desalinhada).
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: Compartilhe para evitar que façam isso na sua casa!
+- Tipo: Share
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+#### Mecânica extraída (1 linha)
+> Ativa o gatilho de aversão ao perigo e prejuízo, entregando uma solução técnica simples e prática instantaneamente.
+#### Erros do concorrente
+- Terminologia às vezes muito formal sem demonstrar o impacto prático/visual do erro de forma dramática.
+
+
+---
+
+### O assentador de pavê mais rápido do mundo
+- **Canal:** Engenharia e Construção
+- **videoId / URL:** cHNzOheqXiw · https://www.youtube.com/watch?v=cHNzOheqXiw
+- **Views / idade / duração:** 3.346 / 9a / 102s
+- **Outlier?** 6.37× vs mediana do canal (526 views)
+#### Hook (0–3s)
+- Visual (1º frame): 
+- Verbal (1ª frase): Olha a velocidade inacreditável desse profissional assentando pavê!
+- Texto na tela: MAIS RÁPIDO DO MUNDO: Assentando Pavê
+- Arquétipo: Oddly Satisfying / High Skill
+#### Estrutura
+- Formato: Satisfying Skill Showcase
+- Blocos / beats: 1. Gancho de velocidade imediato -> 2. Sequência fluida e hipnotizante do trabalho perfeito -> 3. Pergunta reflexiva ao público.
+- Open loops: 
+- Pattern interrupts: 
+#### Retenção & payoff
+- O que o gancho prometeu: 
+- Onde entrega: 
+#### CTA
+- Último bloco / comentário fixo: Quanto você acha que esse profissional deveria ganhar? Comente!
+- Tipo: Comment
+#### Packaging
+- Thumb (3–5 palavras): 
+- Título: O assentador de pavê mais rápido do mundo
+#### Mecânica extraída (1 linha)
+> O efeito hipnotizante de alta produtividade (Oddly Satisfying) prende a retenção e gera comentários sobre valor de mão de obra.
+#### Erros do concorrente
+- Vídeos sem corte nos momentos mortos, reduzindo a sensação de velocidade.
+
+#### Ideias Lumiera derivadas
+1. **Como o maior prédio do mundo resiste a terremotos sem cair**
+   - Gancho: Existe uma bola gigante de 660 toneladas pendurada no topo deste arranha-céu e ela salva vidas!
+   - Mecânica: Eclusa na Barragem das Três Gargantas
+   - Por que não é cópia: Adapta a mecânica de engenharia monumental e curiosa sem copiar o tema da eclusa.
+   - Pilar: astonishing
+
+2. **O maior erro na fundação que faz a parede da casa rachar**
+   - Gancho: Nunca concretize uma sapata sem verificar este detalhe simples ou sua casa vai trincar inteira!
+   - Mecânica: Por que não devemos emendar cabos elétricos no mesmo alinhamento?
+   - Por que não é cópia: Aplica a mecânica de prevenção de erro crítico e aversão à perda para a etapa de estrutura/fundação em vez de elétrica.
+   - Pilar: practical_warning
+
+3. **O jeito mais satisfatório de aplicar reboco em tempo recorde**
+   - Gancho: Essa ferramenta faz o trabalho de 5 pedreiros em poucos segundos e sem sujar o chão!
+   - Mecânica: O assentador de pavê mais rápido do mundo
+   - Por que não é cópia: Usa o gatilho de trabalho hipnotizante/rápido (oddly satisfying) aplicado ao processo de acabamento e alvenaria.
+   - Pilar: satisfying
+
 
 ## Pesquisas automáticas (IA)
 
@@ -8744,3 +8905,6 @@ Baseado em `mining-checklist.md` + foco concorrentes.
 - **A Estrutura de Macarrão que Suporta 50kg** — Parece brincadeira, mas essa pequena ponte de macarrão segura um saco inteiro de cimento sem quebrar! _(inbox · IA 2026-07-22)_
 - **O Erro Oculto no Encanamento da Pia que Causa Infiltração** — Se o seu encanador fizer essa curva no sifão, sua cozinha vai cheirar mal e vazar em menos de 1 mês! _(inbox · IA 2026-07-22)_
 - **O Acabamento em Gesso Perfeito que Parece Mágica** — Assistir a esse gesseiro alisando a parede sem deixar uma marca é a coisa mais relaxante que você vai ver hoje. _(inbox · IA 2026-07-22)_
+- **Como o maior prédio do mundo resiste a terremotos sem cair** — Existe uma bola gigante de 660 toneladas pendurada no topo deste arranha-céu e ela salva vidas! _(inbox · IA 2026-07-22)_
+- **O maior erro na fundação que faz a parede da casa rachar** — Nunca concretize uma sapata sem verificar este detalhe simples ou sua casa vai trincar inteira! _(inbox · IA 2026-07-22)_
+- **O jeito mais satisfatório de aplicar reboco em tempo recorde** — Essa ferramenta faz o trabalho de 5 pedreiros em poucos segundos e sem sujar o chão! _(inbox · IA 2026-07-22)_

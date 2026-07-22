@@ -12422,6 +12422,11 @@ async function callAirForceWithRetry(
 const OMNIROUTE_DEFAULT_BASE_URL = "http://localhost:20128/v1";
 const DEFAULT_OMNIROUTE_MODEL = "auto";
 const OMNIROUTE_MODEL_OPTIONS = [
+  {
+    id: "qwen/qwen3.8-max-preview:free",
+    label: "Qwen 3.8 Max Preview (Free)",
+    hint: "Grátis no OneRouter até 24/07/2026",
+  },
   { id: "auto", label: "Auto (Recomendado)", hint: "Escolha dinâmica padrão" },
   { id: "auto/coding", label: "Auto Coding", hint: "Otimizado para código" },
   {
@@ -12550,6 +12555,7 @@ async function callOmniRouteWithRetry(
             messages,
             stream: false,
             max_tokens: tokenLimit,
+            provider: { service_tier: "standard" },
             ...(temperature !== null ? { temperature } : {}),
           }),
         });
