@@ -20760,7 +20760,7 @@ app.post(
       listTopic,
       excludeIdeas = [],
       forceVariety = false,
-      useDeepResearch = true,
+      useDeepResearch = false,
     } = req.body;
 
     if (!niche || !format) {
@@ -20801,7 +20801,7 @@ app.post(
     let deepResearchContext = "";
     let deepResearchMeta = null;
 
-    if (useDeepResearch !== false && !skipResearch) {
+    if (useDeepResearch === true && !skipResearch) {
       try {
         const { llmFn: competitorLlmFn, repairJsonFn: competitorRepairFn } =
           buildCompetitorLlmFns(
