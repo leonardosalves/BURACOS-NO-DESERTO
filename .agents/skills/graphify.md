@@ -1,8 +1,6 @@
 # graphify
-
 > 🔗 [[MEMORIA-LUMIERA]] · [[skills/graphify/SKILL]] · [[SKILLS]]
-> Atalho Obsidian para [[skills/graphify/SKILL|graphify (SKILL completa)]].
-
+Atalho Obsidian para [[skills/graphify/SKILL|graphify (SKILL completa)]].
 - [[MEMORIA-LUMIERA]]
 - [[SKILLS]]
 - [[AGENTS]]

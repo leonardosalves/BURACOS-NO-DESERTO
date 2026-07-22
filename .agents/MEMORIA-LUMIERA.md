@@ -4,7 +4,6 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 **Grafo:** toda nota deve ligar a este hub — o Lumiera repara automaticamente ao abrir Studio Agents.
 
 ## Navegação rápida
-
 - [[MEMORY]] — regras globais do estúdio
 - [[AGENTS]] — documentação dos agentes
 - [[SKILLS]] — índice das skills (HyperFrames, viral, UGC, etc.)
@@ -13,7 +12,6 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skill-bundles/BUNDLES|Skill bundles (Hermes)]]
 
 ## Skills
-
 - [[skills/ad-concept-generator|ad concept generator]]
 - [[skills/agent-reach|agent reach]] · [[skills/agent-reach/REFERENCES|refs]]
 - [[skills/ai-camera-movements|ai camera movements]] · [[skills/ai-camera-movements/REFERENCES|refs]]
@@ -106,7 +104,6 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/youtube-thumbnail|youtube thumbnail]]
 
 ## Memória por nicho
-
 - [[memory/agent-frameworks-reference]]
 - [[memory/cocoloop-skills-curated]]
 - [[memory/cocoloop-skills-rejected]]
@@ -130,6 +127,7 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[memory/geral]]
 - [[memory/google-gemini-sdk-reference]]
 - [[memory/google-research-reference]]
+- [[memory/historia-da-tecnologia]]
 - [[memory/historia]]
 - [[memory/lumiera-architecture-overview]]
 - [[memory/lumiera-backend-map]]
@@ -142,24 +140,21 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[memory/videoagent-lumiera]]
 
 ## Logs recentes
-
+- [[agent_runs/2026-07-22]]
 - [[agent_runs/2026-07-21]]
 - [[agent_runs/2026-07-20]]
 - [[agent_runs/2026-07-19]]
 - [[agent_runs/2026-07-18]]
 - [[agent_runs/2026-07-17]]
 - [[agent_runs/2026-07-16]]
-- [[agent_runs/2026-07-15]]
 
 ## Regras por formato
-
 - Shorts: gancho 1.5s, pattern interrupt 8–12s, legendas ≤8 palavras
 - Longos: gancho 5s, gap 18s, BGM por bloco, chapter stingers
 
 ## Dica
-
 Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por tema.
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-07-21T07:53:42.653Z
+atualizado: 2026-07-22T20:39:36.581Z

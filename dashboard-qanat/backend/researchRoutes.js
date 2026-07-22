@@ -234,6 +234,7 @@ export function registerResearchRoutes(app, deps) {
         visualMapOnly,
         niche: String(req.body?.niche || "Geral").trim(),
         instructions: String(req.body?.instructions || "").trim(),
+        force: req.body?.force === true,
         callGeminiWithRetry,
         apiKey,
         workspaceDir: WORKSPACE_DIR,

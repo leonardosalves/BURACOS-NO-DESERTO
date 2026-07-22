@@ -23,6 +23,10 @@ export default defineConfig({
     legalComments: "none",
   },
   resolve: {
+    // Overlay sources live in the sibling Remotion workspace. Without dedupe,
+    // Vite can bundle that workspace's Remotion copy alongside the dashboard's
+    // copy, and Remotion aborts before React mounts the app.
+    dedupe: ["react", "react-dom", "remotion"],
     alias: {
       "@lumiera/overlays": path.resolve(
         __dirname,

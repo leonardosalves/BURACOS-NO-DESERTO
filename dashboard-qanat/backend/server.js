@@ -20746,7 +20746,7 @@ app.post(
   "/api/ai/creator/ideas",
   asyncHandler(async (req, res) => {
     const projDir = getProjectDir(req);
-
+    const progressJobId = normalizeJobId(req.body?.progress_job_id);
     const browserText = extractBrowserResponse(req.body);
 
     const {
@@ -20767,6 +20767,14 @@ app.post(
       return res
         .status(400)
         .json({ error: "Nicho e Formato são obrigatórios." });
+    }
+
+    if (progressJobId) {
+      setJobProgress(progressJobId, {
+        phase: "init",
+        label: "🔍 [1/3] Mapeando território editorial do nicho...",
+        percent: 20,
+      });
     }
 
     const isListicle = contentMode === "LISTICLE";
@@ -20887,7 +20895,7 @@ app.post(
           });
           notebooklmContext = formatNotebooklmPromptBlock(
             research,
-            "CONTEXTO DE PESQUISA"
+            "PESQUISA NOTEBOOKLM"
           );
         } catch {
           notebooklmContext = "";
@@ -20895,6 +20903,13 @@ app.post(
       }
 
       try {
+        if (progressJobId) {
+          setJobProgress(progressJobId, {
+            phase: "web_search",
+            label: "🌐 [1/3] Pesquisando dados recentes da web...",
+            percent: 35,
+          });
+        }
         const webResearch = await fetchWebResearchForTopic({
           topic: researchTopic,
           niche: nicheClean,
@@ -20914,11 +20929,19 @@ app.post(
       }
     }
 
+    if (progressJobId) {
+      setJobProgress(progressJobId, {
+        phase: "filtering",
+        label: "🛡️ [2/3] Filtrando tópicos explorados e estruturando 5 ideias…",
+        percent: 55,
+      });
+    }
+
     let promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
 
 O usuário fornecerá um Nicho de Vídeo e um Formato (Longo ou Shorts).
 
-Faça uma análise rápida, objetiva e estratégica do nicho e gere exatamente 10 ideias de vídeo virais exclusivas dentro desse nicho.
+Faça uma análise rápida, objetiva e estratégica do nicho e gere exatamente 5 ideias de vídeo virais exclusivas dentro desse nicho.
 
 ${buildNicheIsolationAddendum(nicheClean)}
 
@@ -20940,7 +20963,7 @@ ${buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG")}
 
 Diversidade obrigatoria de ideias:
 
-- As 10 ideias devem explorar angulos diferentes entre si; nao entregue variacoes do mesmo titulo.
+- As 5 ideias devem explorar angulos diferentes entre si; nao entregue variacoes do mesmo titulo.
 
 - Misture pelo menos estes tipos de abordagem quando fizer sentido: misterio, erro historico, detalhe esquecido, revelacao cientifica, comparacao improvavel, historia humana, mito versus realidade, pergunta provocadora, conflito moral e curiosidade visual.
 
@@ -21041,8 +21064,17 @@ NICHO: ${nicheClean}
 FORMATO: ${format}
 ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleTopic}\nORDEM: ${rankOrder || "desc"}` : ""}`;
 
+      if (progressJobId) {
+        setJobProgress(progressJobId, {
+          phase: "llm",
+          label: "⚡ [3/3] Consultando IA para sintetizar 5 ideias virais...",
+          percent: 80,
+        });
+      }
+
       const generation = await generateCreatorIdeasWithSingleRetry({
         basePrompt: fullPrompt,
+        expectedCount: 5,
         maxAttempts: browserText ? 1 : 2,
         generate: ({ attempt, prompt }) =>
           callGeminiLlm(req, res, projDir, {

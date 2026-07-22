@@ -1,0 +1,159 @@
+{
+  "project": "Lumiera Live Editor",
+  "branchName": "codex/lumiera-live-editor",
+  "baseBranch": "main",
+  "description": "Evoluir o LumieraEditor original para um editor live deterministico, preservando a interface de Motion Plan e garantindo que preview, projeto salvo e render final usem a mesma timeline em frames.",
+  "qualityChecks": [
+    {
+      "id": "editor-core-tests",
+      "workingDirectory": "dashboard-qanat/frontend",
+      "file": "node.exe",
+      "arguments": ["--experimental-strip-types", "--test", "src/lumieraEditorCore.test.ts"]
+    },
+    {
+      "id": "editor-storage-tests",
+      "workingDirectory": "dashboard-qanat/backend",
+      "file": "node.exe",
+      "arguments": ["--test", "lumieraEditorStorage.test.js"]
+    },
+    {
+      "id": "frontend-build",
+      "workingDirectory": "dashboard-qanat/frontend",
+      "file": "npm.cmd",
+      "arguments": ["run", "build"]
+    }
+  ],
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Preservar e ampliar o editor original",
+      "description": "Como editor, quero continuar usando a tela original de Motion Templates, propriedades, paletas e cenas, agora integrada a um editor live multitrilha que ocupa a largura da pagina.",
+      "acceptanceCriteria": [
+        "O LumieraEditor original permanece como tela principal dentro da aba do projeto.",
+        "Motion Templates, busca, propriedades, paleta e cards de cenas continuam funcionais.",
+        "Video, imagem, texto, audio, legenda, Lottie, efeitos, fundo e projetos ficam na mesma tela.",
+        "A timeline cresce verticalmente conforme as tracks, sem caixa interna com rolagem vertical.",
+        "O editor aproveita a largura disponivel da pagina."
+      ],
+      "allowedPaths": [
+        "dashboard-qanat/frontend/src/LumieraEditor.tsx",
+        "dashboard-qanat/frontend/src/LumieraEditorToolRail.tsx",
+        "dashboard-qanat/frontend/src/LumieraEditorTimeline.tsx",
+        "dashboard-qanat/frontend/src/AppShell.tsx",
+        "dashboard-qanat/frontend/src/index.css"
+      ],
+      "qualityChecks": ["frontend-build"],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "title": "Timeline deterministica em frames",
+      "description": "Como editor, quero que acoes manuais e da IA usem o mesmo sistema de comandos validado, reversivel e auditavel, tendo frames como fonte de verdade.",
+      "acceptanceCriteria": [
+        "Clips guardam inicio, duracao e recorte interno em frames.",
+        "Adicionar, remover, mover, dividir, atualizar e alterar formato passam pelo command bus.",
+        "Undo e redo usam comandos inversos e registram ator e resumo no historico auditavel.",
+        "Planos da IA sao validados integralmente antes de alterar a timeline.",
+        "Motion Templates sao clips normais na track de motion."
+      ],
+      "allowedPaths": [
+        "dashboard-qanat/frontend/src/lumieraEditorCore.ts",
+        "dashboard-qanat/frontend/src/lumieraEditorCore.test.ts",
+        "dashboard-qanat/frontend/src/LumieraEditor.tsx",
+        "dashboard-qanat/frontend/src/LumieraEditorTimeline.tsx"
+      ],
+      "qualityChecks": ["editor-core-tests"],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "title": "Ingestao, stock e formato automatico",
+      "description": "Como editor, quero importar ou escolher video e imagem, editar com proxies leves e adotar automaticamente 9:16 ou 16:9 conforme o video principal.",
+      "acceptanceCriteria": [
+        "FFprobe coleta metadados e o backend gera proxy, waveform e thumbnails quando FFmpeg estiver disponivel.",
+        "O preview usa proxy e o render resolve o original.",
+        "Video e imagem podem ser buscados com preview e escolha em Pexels, Pixabay e, para imagens, Bing.",
+        "Ao carregar o video principal, o projeto muda automaticamente para 1080x1920 ou 1920x1080.",
+        "Falhas parciais de ingestao preservam o original e retornam estado explicito."
+      ],
+      "allowedPaths": [
+        "dashboard-qanat/backend/lumieraEditorStorage.js",
+        "dashboard-qanat/backend/lumieraEditorStorage.test.js",
+        "dashboard-qanat/backend/timelineStudioRoutes.js",
+        "dashboard-qanat/frontend/src/LumieraEditor.tsx",
+        "dashboard-qanat/frontend/src/StockSearchModal.tsx",
+        "dashboard-qanat/frontend/src/lumieraEditorCore.ts"
+      ],
+      "qualityChecks": ["editor-storage-tests", "editor-core-tests"],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "US-004",
+      "title": "Preview composto e Motion Templates responsivos",
+      "description": "Como editor, quero visualizar em escala real o video com todos os overlays e Motion Templates responsivos, preservando a composicao original em 16:9 e reorganizando-a cuidadosamente em 9:16.",
+      "acceptanceCriteria": [
+        "O canvas respeita a proporcao real 9:16 ou 16:9 e usa o maior tamanho que cabe na area de preview.",
+        "Video, imagem, motion, texto e legenda aparecem simultaneamente por ordem de camada.",
+        "Templates em 16:9 mantem o design original.",
+        "Templates em 9:16 usam area segura, fundo de quadro completo, escala tipografica e perfil de layout apropriado sem esticar ou cortar conteudo essencial.",
+        "A mesma regra responsiva e usada no Remotion Player e na renderizacao final."
+      ],
+      "allowedPaths": [
+        "dashboard-qanat/frontend/src/LumieraEditorLivePreview.tsx",
+        "dashboard-qanat/frontend/src/ShotcraftLivePreview.tsx",
+        "dashboard-qanat/remotion-renderer/src/overlays/ShotcraftLayer.tsx",
+        "dashboard-qanat/remotion-renderer/src/overlays/ShotcraftResponsiveStage.tsx",
+        "dashboard-qanat/remotion-renderer/src/overlays/ParameterizedDataTemplates.tsx"
+      ],
+      "qualityChecks": ["frontend-build"],
+      "priority": 4,
+      "passes": false
+    },
+    {
+      "id": "US-005",
+      "title": "Persistencia unica de projeto, timeline e Motion Plan",
+      "description": "Como editor, quero salvar e reabrir todas as tracks e tambem persistir corretamente inclusoes, movimentos e exclusoes de Motion Templates.",
+      "acceptanceCriteria": [
+        "Salvar projeto mais Motion Plan grava a timeline completa antes de atualizar o storyboard.",
+        "Remover um Motion Template limpa o clip e o motion_shot da cena correspondente.",
+        "Ao reabrir, video, audio, imagem, legenda e motion sao hidratados sem duplicacao.",
+        "Todas as mudancas salvas na timeline alimentam a preparacao da renderizacao."
+      ],
+      "allowedPaths": [
+        "dashboard-qanat/frontend/src/LumieraEditor.tsx",
+        "dashboard-qanat/backend/lumieraEditorStorage.js",
+        "dashboard-qanat/backend/lumieraEditorStorage.test.js",
+        "dashboard-qanat/backend/timelineStudioRoutes.js"
+      ],
+      "qualityChecks": ["editor-storage-tests", "frontend-build"],
+      "priority": 5,
+      "passes": false
+    },
+    {
+      "id": "US-006",
+      "title": "Snapshot imutavel e render fiel",
+      "description": "Como editor, quero que cada render congele um snapshot da timeline e use os arquivos originais, refletindo clips, ordem, duracoes, overlays e formato do projeto.",
+      "acceptanceCriteria": [
+        "Um snapshot versionado com hash e criado antes do job.",
+        "O snapshot contem FPS, resolucao, tracks, clips, Motion Plan e referencias originais.",
+        "A preparacao Remotion le o snapshot congelado durante todo o job.",
+        "Proxies permanecem exclusivos do preview.",
+        "Motion Templates renderizam sobre o video e respeitam automaticamente 9:16 ou 16:9."
+      ],
+      "allowedPaths": [
+        "dashboard-qanat/backend/lumieraEditorStorage.js",
+        "dashboard-qanat/backend/timelineStudioRenderSync.js",
+        "dashboard-qanat/backend/server.js",
+        "dashboard-qanat/remotion-renderer/src/LumieraTimeline.tsx",
+        "dashboard-qanat/remotion-renderer/src/overlays/ShotcraftLayer.tsx",
+        "dashboard-qanat/remotion-renderer/src/overlays/ShotcraftResponsiveStage.tsx"
+      ],
+      "qualityChecks": ["editor-storage-tests", "frontend-build"],
+      "priority": 6,
+      "passes": false
+    }
+  ]
+}

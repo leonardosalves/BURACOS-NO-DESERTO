@@ -20,5 +20,6 @@
       "@shotcraft/*": ["../vendor/video-shotcraft/demos/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/overlays/shotcraft-demos"]
 }

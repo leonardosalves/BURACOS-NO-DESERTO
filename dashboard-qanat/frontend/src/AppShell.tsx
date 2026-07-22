@@ -11,7 +11,6 @@ import {
   Globe,
   Home,
   HeartPulse,
-  LayoutTemplate,
   Laugh,
   Layers,
   Lightbulb,
@@ -63,13 +62,6 @@ const STUDIO_ANALYSIS: GlobalNavItem[] = [
     accent: "sky",
   },
   { id: "agents", label: "Studio Agents", icon: Bot, helpId: "tab-agents" },
-  {
-    id: "templates",
-    label: "Templates",
-    icon: LayoutTemplate,
-    helpId: "tab-templates",
-    accent: "sky",
-  },
   {
     id: "flow-lab",
     label: "Flow Lab",
@@ -264,7 +256,7 @@ export function AppShell({
   projectBar,
   children,
 }: AppShellProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [serviceRestarting, setServiceRestarting] = useState(false);
   const [collapsed, setCollapsed] =
@@ -392,11 +384,8 @@ export function AppShell({
             onClick={() => setActiveTab("home")}
             title="Lumiera Studio — Início"
           >
-            <span
-              className="dash-brand-icon"
-              style={{ background: "transparent", boxShadow: "none" }}
-            >
-              <Logo size={28} variant="mark" glow />
+            <span className="dash-brand-icon">
+              <Logo size={24} variant="mark" glow />
             </span>
             <span className="dash-brand-text">
               <span className="dash-brand-title">Lumiera</span>
@@ -762,7 +751,7 @@ export function AppShell({
         />
 
         <main className="dash-main">
-          <div className="dash-content">{children}</div>
+          <div className={activeTab === "editor" ? "dash-content dash-content-editor" : "dash-content"}>{children}</div>
         </main>
       </div>
 

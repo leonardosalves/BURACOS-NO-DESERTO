@@ -15,11 +15,6 @@ const h = (n: number) => {
   return s - Math.floor(s);
 };
 
-const WORD = "GRAVITY";
-const SLOT_W = 150; // 每字符槽宽
-const FONT = 140;
-const WORD_W = WORD.length * SLOT_W; // 1050
-const LEFT = (1920 - WORD_W) / 2; // 435
 const REST_TOP = 452; // 字符落定后的 top
 const FLOOR_Y = REST_TOP + 152; // 地板线（视觉基线）
 
@@ -48,10 +43,31 @@ const dropY = (t: number): number => {
   return 0;
 };
 
-export const LetterDropPhysics: React.FC = () => {
+export const LetterDropPhysics: React.FC<{ title?: string; text?: string; label?: string; subtitle?: string }> = ({
+  title,
+  text,
+  label,
+  subtitle,
+}) => {
   const frame = useCurrentFrame();
-  // 帧 110 起的齐整回正进度
-  const snap = easeOutCubic(clamp01((frame - SNAP) / SNAP_DUR));
+  const word = String(title || text || label || "GRAVITY").slice(0, 24);
+  const font = Math.max(56, Math.min(140, 1100 / Math.max(1, word.length)));
+  const slotWidth = font + 10;
+  const wordWidth = word.length * slotWidth;
+  const left = (1920 - wordWidth) / 2;
+  const secondaryText = String(subtitle || "").trim();
+  // Frases longas usam um stagger menor para que a última letra também
+  // complete queda + bounce dentro dos 120 frames naturais do template.
+  // Palavras curtas preservam a cadência original. Em frases longas, todas as
+  // entradas são distribuídas nos primeiros 12 frames, deixando mais da metade
+  // da duração natural para a frase permanecer completamente assentada.
+  const stagger = word.length <= 8
+    ? 5
+    : 12 / Math.max(1, word.length - 1);
+  const firstStart = 4;
+  const lastSettledFrame = firstStart + Math.max(0, word.length - 1) * stagger + T_FALL + T_B1 + T_B2;
+  const snapFrame = Math.min(SNAP, lastSettledFrame + 4);
+  const snap = easeOutCubic(clamp01((frame - snapFrame) / SNAP_DUR));
 
   return (
     <div
@@ -67,17 +83,38 @@ export const LetterDropPhysics: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          left: LEFT - 60,
+          left: left - 60,
           top: FLOOR_Y,
-          width: WORD_W + 120,
+          width: wordWidth + 120,
           height: 6,
           background: G.bar,
           borderRadius: 3,
         }}
       />
 
-      {WORD.split("").map((ch, i) => {
-        const start = 10 + i * 5;
+      {secondaryText && secondaryText !== word ? (
+        <div
+          style={{
+            position: "absolute",
+            left: 360,
+            right: 360,
+            top: FLOOR_Y + 34,
+            color: G.mid,
+            fontFamily: "Helvetica, Arial, sans-serif",
+            fontSize: 34,
+            fontWeight: 700,
+            letterSpacing: 8,
+            textAlign: "center",
+            textTransform: "uppercase",
+            opacity: snap,
+          }}
+        >
+          {secondaryText}
+        </div>
+      ) : null}
+
+      {word.split("").map((ch, i) => {
+        const start = firstStart + i * stagger;
         const t = frame - start;
         const y = dropY(t);
         // 落地瞬间歪到 seed 小角度（±6°），落地前为 0
@@ -87,16 +124,16 @@ export const LetterDropPhysics: React.FC = () => {
         // snap 一拍：歪角与错位齐整归零，scale 1.06→1 脉冲
         const rot = tiltTarget * landP * (1 - snap);
         const jitter = restJitter * landP * (1 - snap);
-        const scale = frame < SNAP ? 1 : 1 + 0.06 * (1 - snap);
+        const scale = frame < snapFrame ? 1 : 1 + 0.06 * (1 - snap);
         return (
           <div
             key={i}
             style={{
               position: "absolute",
-              left: LEFT + i * SLOT_W,
+              left: left + i * slotWidth,
               top: REST_TOP,
-              width: SLOT_W,
-              height: FONT,
+              width: slotWidth,
+              height: font,
               display: "flex",
               alignItems: "flex-end",
               justifyContent: "center",
@@ -104,7 +141,7 @@ export const LetterDropPhysics: React.FC = () => {
               transformOrigin: "50% 100%",
               fontFamily: "Helvetica, Arial, sans-serif",
               fontWeight: 800,
-              fontSize: FONT,
+              fontSize: font,
               lineHeight: 1,
               color: G.ink,
             }}

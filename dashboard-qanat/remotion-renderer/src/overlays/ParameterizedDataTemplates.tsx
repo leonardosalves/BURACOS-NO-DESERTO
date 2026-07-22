@@ -9,7 +9,6 @@ import {
   useCurrentFrame,
   useVideoConfig,
   interpolate,
-  interpolateColors,
   Easing,
   spring,
 } from "remotion";
@@ -193,11 +192,9 @@ export const ParameterizedOdometer: React.FC<OdometerProps> = ({
   const decIdx = strVal.includes(".") ? strVal.indexOf(".") : -1;
 
   const lockFrame = 20 + (numDigits - 1) * 7 + 22;
-  const inkNow = interpolateColors(
-    frame,
-    [lockFrame, lockFrame + 4, lockFrame + 8],
-    [P.ink, P.primary, P.ink]
-  );
+  // P.ink is palette-driven via a CSS custom property. Passing it through
+  // interpolateColors() crashes because Remotion requires literal colors.
+  const inkNow = P.ink;
   const pulseScale = interpolate(
     frame,
     [lockFrame, lockFrame + 4, lockFrame + 8],
@@ -1580,7 +1577,6 @@ export const PARAMETERIZED_TEMPLATES: Record<
   "odometer-digit-roll": ParameterizedOdometer,
   "gauge-readout-moves": ParameterizedGauge,
   "chart-live-moves": ParameterizedChart,
-  "particle-sand-fill": ParameterizedGauge,
   "dataviz-landscape-open": ParameterizedChart,
   "autolayout-gap-dial": ParameterizedGauge,
   "crane-rise-reveal": ParameterizedCounter,

@@ -32,7 +32,7 @@
   --radius-lg: var(--r-lg);
 
   /* ── Tipografia unificada ── */
-  --font-display: "Sora", sans-serif;
+  --font-display: "Inter", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
@@ -40,11 +40,11 @@
   --dash-bg: var(--bg-0);
   --dash-card: var(--bg-2);
   --dash-card-hover: var(--bg-3);
-  --dash-border: #1f2330;
-  --dash-border-soft: var(--border);
-  --dash-primary: var(--gold-3);
-  --dash-primary-dark: var(--gold-5);
-  --dash-primary-light: var(--gold-1);
+  --dash-border: var(--border);
+  --dash-border-soft: var(--border-subtle);
+  --dash-primary: var(--accent);
+  --dash-primary-dark: #4f46e5;
+  --dash-primary-light: #a5b4fc;
   --dash-success: var(--success);
   --dash-info: var(--info);
   --dash-warning: var(--warning);

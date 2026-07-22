@@ -91,6 +91,28 @@
   padding: 8px 10px;
   font-size: 13px;
 }
+.mpe-end select option,
+.mpe-field select option,
+.mpe-busca option {
+  background: #1a1f32;
+  color: #eef0f8;
+  padding: 8px 12px;
+}
+.mpe-end select option:checked,
+.mpe-field select option:checked {
+  background: #2a3a5c;
+  color: #fff;
+}
+.mpe-end select option:hover,
+.mpe-field select option:hover {
+  background: #34406a;
+}
+.mpe-end select optgroup,
+.mpe-field select optgroup {
+  background: #12152280;
+  color: #9aa3c7;
+  font-weight: 700;
+}
 .mpe-end select {
   flex: 1;
   background: transparent;

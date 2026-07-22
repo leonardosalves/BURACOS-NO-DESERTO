@@ -286,7 +286,7 @@ export function AppStatusTab({
               <div>
                 <div className="flex flex-wrap justify-between items-start gap-1">
                   <SectionHeader
-                    title="HYPERFRAMES AI"
+                    title="REMOTION"
                     helpId="render-hyperframes"
                     icon={<Sparkles className="w-4 h-4 text-emerald-400" />}
                     size="sm"
@@ -297,7 +297,7 @@ export function AppStatusTab({
                   </span>
                 </div>
                 <p className="text-[10px] text-gray-500 mt-0.5">
-                  Catálogo HyperFrames · ProRes opcional.
+                  Render Remotion · ProRes opcional.
                 </p>
               </div>
               <div className="flex flex-col gap-1.5 w-full">
@@ -326,7 +326,7 @@ export function AppStatusTab({
                   className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>HyperFrames AI</span>
+                  <span>Render Remotion</span>
                 </button>
               </div>
             </div>

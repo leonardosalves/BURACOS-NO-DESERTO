@@ -14,6 +14,7 @@ export type ShotcraftRegistryEntry = {
   hasDemo: boolean;
   demoFile: string | null;
   exportName: string | null;
+  layoutMode: "fluid" | "legacy";
 };
 
 export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
@@ -30,7 +31,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "OdometerDigitRoll.tsx",
-    "exportName": "OdometerDigitRoll"
+    "exportName": "OdometerDigitRoll",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "chart-live-moves",
@@ -47,7 +49,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "AxisRescaleShockV2.tsx",
-    "exportName": "AxisRescaleShockV2"
+    "exportName": "AxisRescaleShockV2",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "particle-sand-fill",
@@ -62,7 +65,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "ParticleSandFill.tsx",
-    "exportName": "ParticleSandFill"
+    "exportName": "ParticleSandFill",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "gauge-readout-moves",
@@ -78,7 +82,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "NeedleSweepSelftest.tsx",
-    "exportName": "NeedleSweepSelftest"
+    "exportName": "NeedleSweepSelftest",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "crane-rise-reveal",
@@ -92,7 +97,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "CraneRiseReveal.tsx",
-    "exportName": "CraneRiseReveal"
+    "exportName": "CraneRiseReveal",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "dataviz-landscape-open",
@@ -106,7 +112,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "DatavizLandscapeOpen.tsx",
-    "exportName": "DatavizLandscapeOpen"
+    "exportName": "DatavizLandscapeOpen",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "autolayout-gap-dial",
@@ -120,7 +127,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "AutolayoutGapDial.tsx",
-    "exportName": "AutolayoutGapDial"
+    "exportName": "AutolayoutGapDial",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "ai-stream-response",
@@ -135,7 +143,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "StreamResponse.tsx",
-    "exportName": "StreamResponse"
+    "exportName": "StreamResponse",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "before-after-slider-scrub",
@@ -150,7 +159,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "BeforeAfterSliderScrub.tsx",
-    "exportName": "BeforeAfterSliderScrub"
+    "exportName": "BeforeAfterSliderScrub",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "text-column-converge",
@@ -164,7 +174,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "TextColumnConverge.tsx",
-    "exportName": "TextColumnConverge"
+    "exportName": "TextColumnConverge",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "timeline-travel",
@@ -179,7 +190,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "TimelineTravel.tsx",
-    "exportName": "TimelineTravel"
+    "exportName": "TimelineTravel",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "document-typewriter-reveal",
@@ -193,7 +205,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": false,
     "demoFile": null,
-    "exportName": null
+    "exportName": null,
+    "layoutMode": "fluid"
   },
   {
     "templateId": "list-stack-press",
@@ -208,7 +221,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": false,
     "demoFile": null,
-    "exportName": null
+    "exportName": null,
+    "layoutMode": "fluid"
   },
   {
     "templateId": "row-embed",
@@ -222,7 +236,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": false,
     "demoFile": null,
-    "exportName": null
+    "exportName": null,
+    "layoutMode": "fluid"
   },
   {
     "templateId": "beat-step-list-theme-cycle",
@@ -236,7 +251,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "BeatStepListThemeCycle.tsx",
-    "exportName": "BeatStepListThemeCycle"
+    "exportName": "BeatStepListThemeCycle",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "wall-reveal-moves",
@@ -252,7 +268,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "BentoLightUp.tsx",
-    "exportName": "BentoLightUp"
+    "exportName": "BentoLightUp",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "deck-deal-flyin",
@@ -266,7 +283,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": false,
     "demoFile": null,
-    "exportName": null
+    "exportName": null,
+    "layoutMode": "fluid"
   },
   {
     "templateId": "spotlight-hero-card",
@@ -280,7 +298,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": false,
     "demoFile": null,
-    "exportName": null
+    "exportName": null,
+    "layoutMode": "fluid"
   },
   {
     "templateId": "card-flip-reveal",
@@ -295,7 +314,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "CardFlipReveal.tsx",
-    "exportName": "CardFlipReveal"
+    "exportName": "CardFlipReveal",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "spotlight-sweep-moves",
@@ -309,7 +329,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "CornerSpotlightReveal.tsx",
-    "exportName": "CornerSpotlightReveal"
+    "exportName": "CornerSpotlightReveal",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "segmented-thumb-hero",
@@ -323,7 +344,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "SegmentedThumbHero.tsx",
-    "exportName": "SegmentedThumbHero"
+    "exportName": "SegmentedThumbHero",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "brand-ink-open",
@@ -338,7 +360,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": false,
     "demoFile": null,
-    "exportName": null
+    "exportName": null,
+    "layoutMode": "fluid"
   },
   {
     "templateId": "trailer-grammar-moves",
@@ -355,7 +378,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "CardFootageCadence.tsx",
-    "exportName": "CardFootageCadence"
+    "exportName": "CardFootageCadence",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "brand-frame-snap",
@@ -369,7 +393,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "BrandFrameSnap.tsx",
-    "exportName": "BrandFrameSnap"
+    "exportName": "BrandFrameSnap",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "letterspace-materialize",
@@ -383,7 +408,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "LetterspaceMaterialize.tsx",
-    "exportName": "LetterspaceMaterialize"
+    "exportName": "LetterspaceMaterialize",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "neon-frame-forerun",
@@ -397,7 +423,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "NeonFrameForerun.tsx",
-    "exportName": "NeonFrameForerun"
+    "exportName": "NeonFrameForerun",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "neon-frame-orbit-drop",
@@ -411,7 +438,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "NeonFrameForerunOrbit.tsx",
-    "exportName": "NeonFrameForerunOrbit"
+    "exportName": "NeonFrameForerunOrbit",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "outro-group-photo-launch",
@@ -425,7 +453,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": false,
     "demoFile": null,
-    "exportName": null
+    "exportName": null,
+    "layoutMode": "fluid"
   },
   {
     "templateId": "ui-strip-away-outro",
@@ -439,7 +468,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "UiStripAwayOutro.tsx",
-    "exportName": "UiStripAwayOutro"
+    "exportName": "UiStripAwayOutro",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "edit-hook-moves",
@@ -454,7 +484,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "LogoStingButton.tsx",
-    "exportName": "LogoStingButton"
+    "exportName": "LogoStingButton",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "shot-transitions",
@@ -474,7 +505,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "MaskWipeReal.tsx",
-    "exportName": "MASKWIPE_DUR"
+    "exportName": "MASKWIPE_DUR",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "wipe-transitions",
@@ -490,7 +522,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "BlindsSlice.tsx",
-    "exportName": "BlindsSlice"
+    "exportName": "BlindsSlice",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "page-turn-transitions",
@@ -505,7 +538,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "BarnDoorSplit.tsx",
-    "exportName": "BarnDoorSplit"
+    "exportName": "BarnDoorSplit",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "transition-hidden-cut",
@@ -522,7 +556,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "InvisibleCut.tsx",
-    "exportName": "InvisibleCut"
+    "exportName": "InvisibleCut",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "transition-travel",
@@ -537,7 +572,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "LetterformZoom.tsx",
-    "exportName": "LetterformZoom"
+    "exportName": "LetterformZoom",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "circle-match-iris",
@@ -552,7 +588,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "CircleMatchIris.tsx",
-    "exportName": "CircleMatchIris"
+    "exportName": "CircleMatchIris",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "line-carry-transition",
@@ -566,7 +603,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "LineCarryTransition.tsx",
-    "exportName": "LineCarryTransition"
+    "exportName": "LineCarryTransition",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "color-block-step-wipe",
@@ -581,7 +619,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "ColorBlockStepWipe.tsx",
-    "exportName": "ColorBlockStepWipe"
+    "exportName": "ColorBlockStepWipe",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "bottom-push-stack-wipe",
@@ -596,7 +635,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "BottomPushStackWipe.tsx",
-    "exportName": "BottomPushStackWipe"
+    "exportName": "BottomPushStackWipe",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "tear-streak-transitions",
@@ -611,7 +651,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "GlitchDisplace.tsx",
-    "exportName": "GlitchDisplace"
+    "exportName": "GlitchDisplace",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "print-texture-transitions",
@@ -625,7 +666,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "InkBleedReveal.tsx",
-    "exportName": "InkBleedReveal"
+    "exportName": "InkBleedReveal",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "bubble-swarm-takeover",
@@ -640,7 +682,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "BubbleSwarmTakeover.tsx",
-    "exportName": "BubbleSwarmTakeover"
+    "exportName": "BubbleSwarmTakeover",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "space-camera-moves",
@@ -656,7 +699,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "DroneDiveLanding.tsx",
-    "exportName": "DroneDiveLanding"
+    "exportName": "DroneDiveLanding",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "tension-camera-moves",
@@ -673,7 +717,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "BulletTimeFreezeOrbit.tsx",
-    "exportName": "BulletTimeFreezeOrbit"
+    "exportName": "BulletTimeFreezeOrbit",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "depth-layer-moves",
@@ -688,7 +733,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "DollyZoomReal.tsx",
-    "exportName": "DOLLYZOOM_DUR"
+    "exportName": "DOLLYZOOM_DUR",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "overhead-camera-moves",
@@ -703,7 +749,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "OverheadTabletopDrop.tsx",
-    "exportName": "OverheadTabletopDrop"
+    "exportName": "OverheadTabletopDrop",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "crash-zoom-punch",
@@ -718,7 +765,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "CrashImpactReal.tsx",
-    "exportName": "CRASHIMPACT_DUR"
+    "exportName": "CRASHIMPACT_DUR",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "graze-face-tour",
@@ -732,7 +780,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "GrazeFaceTour.tsx",
-    "exportName": "GrazeFaceTour"
+    "exportName": "GrazeFaceTour",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "steep-tilt-glide",
@@ -746,7 +795,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "SteepTiltGlide.tsx",
-    "exportName": "SteepTiltGlide"
+    "exportName": "SteepTiltGlide",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "runway-ground-skim",
@@ -760,7 +810,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "RunwayGroundSkim.tsx",
-    "exportName": "RunwayGroundSkim"
+    "exportName": "RunwayGroundSkim",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "scroll-brake-moves",
@@ -776,7 +827,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "BrakeReticleLock.tsx",
-    "exportName": "BrakeReticleLock"
+    "exportName": "BrakeReticleLock",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "gradient-word-sweep",
@@ -791,7 +843,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "GradientWordSweep.tsx",
-    "exportName": "GradientWordSweep"
+    "exportName": "GradientWordSweep",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "marker-underline-title",
@@ -806,7 +859,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "MarkerUnderlineTitle.tsx",
-    "exportName": "MarkerUnderlineTitle"
+    "exportName": "MarkerUnderlineTitle",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "scene-locked-title",
@@ -820,7 +874,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "SceneLockedTitle.tsx",
-    "exportName": "SceneLockedTitle"
+    "exportName": "SceneLockedTitle",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "text-as-mask",
@@ -834,7 +889,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "TextAsMask.tsx",
-    "exportName": "TextAsMask"
+    "exportName": "TextAsMask",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "typewriter-moves",
@@ -850,7 +906,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "TerminalTypewriter.tsx",
-    "exportName": "TerminalTypewriter"
+    "exportName": "TerminalTypewriter",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "type-assembly-moves",
@@ -867,7 +924,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "LetterformDriftAssembly.tsx",
-    "exportName": "LetterformDriftAssembly"
+    "exportName": "LetterformDriftAssembly",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "type-entrance-moves",
@@ -883,7 +941,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "LetterDropPhysics.tsx",
-    "exportName": "LetterDropPhysics"
+    "exportName": "LetterDropPhysics",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "type-rhythm-sync",
@@ -899,7 +958,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "FontWeightPump.tsx",
-    "exportName": "FontWeightPump"
+    "exportName": "FontWeightPump",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "split-flap-title",
@@ -913,7 +973,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "SplitFlapFlip.tsx",
-    "exportName": "SplitFlapFlip"
+    "exportName": "SplitFlapFlip",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "paper-title-card",
@@ -927,7 +988,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": false,
     "demoFile": null,
-    "exportName": null
+    "exportName": null,
+    "layoutMode": "fluid"
   },
   {
     "templateId": "stroke-segment-build",
@@ -941,7 +1003,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "StrokeSegmentBuild.tsx",
-    "exportName": "StrokeSegmentBuild"
+    "exportName": "StrokeSegmentBuild",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "title-demote-to-label",
@@ -955,7 +1018,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "TitleDemoteToLabel.tsx",
-    "exportName": "TitleDemoteToLabel"
+    "exportName": "TitleDemoteToLabel",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "word-relay-filmstrip",
@@ -969,7 +1033,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "WordRelayFilmstrip.tsx",
-    "exportName": "WordRelayFilmstrip"
+    "exportName": "WordRelayFilmstrip",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "spectrum-morph-ui",
@@ -983,7 +1048,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "SpectrumMorphUi.tsx",
-    "exportName": "SpectrumMorphUi"
+    "exportName": "SpectrumMorphUi",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "hashtag-to-pill-materialize",
@@ -998,7 +1064,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "HashtagToPillMaterialize.tsx",
-    "exportName": "HashtagToPillMaterialize"
+    "exportName": "HashtagToPillMaterialize",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "hires-rasterize-3d-text",
@@ -1012,7 +1079,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": false,
     "demoFile": null,
-    "exportName": null
+    "exportName": null,
+    "layoutMode": "fluid"
   },
   {
     "templateId": "beat-cut-moves",
@@ -1028,7 +1096,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "BeatCutAccelerando.tsx",
-    "exportName": "BeatCutAccelerando"
+    "exportName": "BeatCutAccelerando",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "cel-flash-stomp",
@@ -1043,7 +1112,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "CelFlashStomp.tsx",
-    "exportName": "CelFlashStomp"
+    "exportName": "CelFlashStomp",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "impact-feedback",
@@ -1059,7 +1129,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "AnimeImpact.tsx",
-    "exportName": "AnimeImpact"
+    "exportName": "AnimeImpact",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "montage-rhythm-moves",
@@ -1076,7 +1147,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "DominoCascade.tsx",
-    "exportName": "DominoCascade"
+    "exportName": "DominoCascade",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "rhythm-interrupt-moves",
@@ -1092,7 +1164,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "JumpCutPunchIn.tsx",
-    "exportName": "JumpCutPunchIn"
+    "exportName": "JumpCutPunchIn",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "slam-entrance-moves",
@@ -1109,7 +1182,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "ImpactBurstKit.tsx",
-    "exportName": "ImpactBurstKit"
+    "exportName": "ImpactBurstKit",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "riso-print-hits",
@@ -1125,7 +1199,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "RisoBeatPump.tsx",
-    "exportName": "RisoBeatPump"
+    "exportName": "RisoBeatPump",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "particle-celebrate-hits",
@@ -1141,7 +1216,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "ConfettiCrossfire.tsx",
-    "exportName": "ConfettiCrossfire"
+    "exportName": "ConfettiCrossfire",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "sakuga-timing-shift",
@@ -1155,7 +1231,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "SakugaTimingShift.tsx",
-    "exportName": "SakugaTimingShift"
+    "exportName": "SakugaTimingShift",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "speed-ramp-freeze",
@@ -1171,7 +1248,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "FreezeAnnotateReal.tsx",
-    "exportName": "FREEZEANNOTATE_DUR"
+    "exportName": "FREEZEANNOTATE_DUR",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "icon-performance-moves",
@@ -1187,7 +1265,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "AttentionBounce.tsx",
-    "exportName": "AttentionBounce"
+    "exportName": "AttentionBounce",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "element-body-moves",
@@ -1202,7 +1281,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "AxialStretch.tsx",
-    "exportName": "AxialStretch"
+    "exportName": "AxialStretch",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "morph-from-primitive",
@@ -1216,7 +1296,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "MorphFromPrimitive.tsx",
-    "exportName": "MorphFromPrimitive"
+    "exportName": "MorphFromPrimitive",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "cloner-depth-echo",
@@ -1230,7 +1311,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "ClonerDepthEcho.tsx",
-    "exportName": "ClonerDepthEcho"
+    "exportName": "ClonerDepthEcho",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "smear-multiples",
@@ -1244,7 +1326,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "SmearMultiples.tsx",
-    "exportName": "SmearMultiples"
+    "exportName": "SmearMultiples",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "skeleton-reveal",
@@ -1258,7 +1341,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "SkeletonReveal.tsx",
-    "exportName": "SkeletonReveal"
+    "exportName": "SkeletonReveal",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "canvas-materialize-moves",
@@ -1273,7 +1357,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "DiagramCascadeBuild.tsx",
-    "exportName": "DiagramCascadeBuild"
+    "exportName": "DiagramCascadeBuild",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "command-palette-summon",
@@ -1287,7 +1372,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "CommandPaletteSummon.tsx",
-    "exportName": "CommandPaletteSummon"
+    "exportName": "CommandPaletteSummon",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "type-and-filter",
@@ -1301,7 +1387,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": false,
     "demoFile": null,
-    "exportName": null
+    "exportName": null,
+    "layoutMode": "fluid"
   },
   {
     "templateId": "integration-hub-map",
@@ -1315,7 +1402,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "IntegrationHubMap.tsx",
-    "exportName": "IntegrationHubMap"
+    "exportName": "IntegrationHubMap",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "collab-cursor-moves",
@@ -1330,7 +1418,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "CursorCastEnsemble.tsx",
-    "exportName": "CursorCastEnsemble"
+    "exportName": "CursorCastEnsemble",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "input-trigger-moves",
@@ -1345,7 +1434,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "CursorPerformancePunchIn.tsx",
-    "exportName": "CursorPerformancePunchIn"
+    "exportName": "CursorPerformancePunchIn",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "paper-plane-messenger",
@@ -1359,7 +1449,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "PaperPlaneMessenger.tsx",
-    "exportName": "PaperPlaneMessenger"
+    "exportName": "PaperPlaneMessenger",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "voice-waveform-live",
@@ -1374,7 +1465,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "VoiceWaveformLive.tsx",
-    "exportName": "VoiceWaveformLive"
+    "exportName": "VoiceWaveformLive",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "theme-switch-moves",
@@ -1389,7 +1481,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "PaletteThemeRipple.tsx",
-    "exportName": "PaletteThemeRipple"
+    "exportName": "PaletteThemeRipple",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "icon-field-colorize",
@@ -1403,7 +1496,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "IconFieldColorize.tsx",
-    "exportName": "IconFieldColorize"
+    "exportName": "IconFieldColorize",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "fui-hud-moves",
@@ -1418,7 +1512,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "LineUnfoldPanel.tsx",
-    "exportName": "LineUnfoldPanel"
+    "exportName": "LineUnfoldPanel",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "glow-flyline-moves",
@@ -1434,7 +1529,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "FlylineArc.tsx",
-    "exportName": "FlylineArc"
+    "exportName": "FlylineArc",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "light-play-moves",
@@ -1450,7 +1546,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "HalationBloom.tsx",
-    "exportName": "HalationBloom"
+    "exportName": "HalationBloom",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "neon-triple-marquee",
@@ -1464,7 +1561,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "NeonTripleMarquee.tsx",
-    "exportName": "NeonTripleMarquee"
+    "exportName": "NeonTripleMarquee",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "page-waterfall-wall",
@@ -1478,7 +1576,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "PageWaterfallWall.tsx",
-    "exportName": "buildColumns"
+    "exportName": "buildColumns",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "panel-grid-moves",
@@ -1494,7 +1593,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "ComicPanelSplit.tsx",
-    "exportName": "ComicPanelSplit"
+    "exportName": "ComicPanelSplit",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "paper-craft-moves",
@@ -1509,7 +1609,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "MaskingTapeSlap.tsx",
-    "exportName": "MaskingTapeSlap"
+    "exportName": "MaskingTapeSlap",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "magician-card-flourish",
@@ -1523,7 +1624,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "MagicianCardFlourish.tsx",
-    "exportName": "MagicianCardFlourish"
+    "exportName": "MagicianCardFlourish",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "card-flock-tumble",
@@ -1537,7 +1639,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "CardFlockTumble.tsx",
-    "exportName": "CardFlockTumble"
+    "exportName": "CardFlockTumble",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "draw-svg-trace",
@@ -1551,7 +1654,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "DrawSvgTrace.tsx",
-    "exportName": "DrawSvgTrace"
+    "exportName": "DrawSvgTrace",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "line-boil",
@@ -1565,7 +1669,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "LineBoil.tsx",
-    "exportName": "LineBoil"
+    "exportName": "LineBoil",
+    "layoutMode": "legacy"
   },
   {
     "templateId": "ui-to-brand-morph",
@@ -1580,7 +1685,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "IconFlipBloomLogo.tsx",
-    "exportName": "IconFlipBloomLogo"
+    "exportName": "IconFlipBloomLogo",
+    "layoutMode": "fluid"
   },
   {
     "templateId": "score-slam-hit",
@@ -1595,7 +1701,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": false,
     "demoFile": null,
-    "exportName": null
+    "exportName": null,
+    "layoutMode": "fluid"
   },
   {
     "templateId": "pill-slot-cycle",
@@ -1607,7 +1714,8 @@ export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = [
     ],
     "hasDemo": true,
     "demoFile": "PillSlotCycle.tsx",
-    "exportName": "PillSlotCycle"
+    "exportName": "PillSlotCycle",
+    "layoutMode": "fluid"
   }
 ];
 

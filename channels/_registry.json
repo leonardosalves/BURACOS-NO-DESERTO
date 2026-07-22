@@ -4,9 +4,19 @@
   "channels": [
     {
       "id": "engenharia-impossivel",
-      "nome": "Engenharia Impossível",
+      "nome": "AI Construction Stories",
       "youtube_channel_id": "UCYYcyky9A8fob3t6TlIENYA",
       "status": "ativo",
+      "criado_em": "2026-07-21",
+      "ultimo_video": null,
+      "avatar_url": "https://yt3.googleusercontent.com/MnZN5dMDnLW957sZZslqNMacjOQ4j9Rde6rssehRblcCvzD1nsArzfkeYDLXl-rHeL4CaEg9=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "id": "geografia-em-fatos",
+      "nome": "GEOGRAFIA EM FATOS",
+      "youtube_channel_id": "UCOjeCeDeHDlk8S27XMDhAQw",
+      "avatar_url": "https://yt3.googleusercontent.com/-a0ls7-5KaDVFXqIDiNdik_mbVOIRRxOwW-nO8q6WdNwInD38ZgJKT20Dzvl7JmULMvnppY_=s900-c-k-c0x00ffffff-no-rj",
+      "status": "rascunho",
       "criado_em": "2026-07-21",
       "ultimo_video": null
     }

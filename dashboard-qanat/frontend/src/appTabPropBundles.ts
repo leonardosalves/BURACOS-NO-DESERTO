@@ -32,7 +32,10 @@ export type AppTabPropContext = Record<string, unknown> & {
   logs: string[];
   openCreatorTab: () => void;
   outputs: OutputVideo[];
-  postAi: (path: string, body: unknown) => Promise<any>;
+  postAi: (
+    path: string,
+    init?: RequestInit
+  ) => Promise<{ ok: boolean; data: Record<string, any> }>;
   projects: ProjectListItem[];
   recentProjects: string[];
   renderProgress?: { percent?: number };
@@ -92,6 +95,7 @@ export function buildAppTabPropBundles(
     applyWizardSessionPatch: ctx.applyWizardSessionPatch,
     bumpCreatorGenToken: ctx.bumpCreatorGenToken,
     applyNarrationGenerationResult: ctx.applyNarrationGenerationResult,
+    postAi: ctx.postAi,
     fetchProjects: ctx.fetchProjects,
     setActiveProject: ctx.setActiveProject,
     config: ctx.config,

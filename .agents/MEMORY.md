@@ -56,6 +56,7 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 - [[memory/geral]]
 - [[memory/google-gemini-sdk-reference]]
 - [[memory/google-research-reference]]
+- [[memory/historia-da-tecnologia]]
 - [[memory/historia]]
 - [[memory/lumiera-architecture-overview]]
 - [[memory/lumiera-backend-map]]
@@ -67,4 +68,4 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 - [[memory/video-reference-analyses]]
 - [[memory/videoagent-lumiera]]
 
-atualizado: 2026-07-21T07:53:42.626Z
+atualizado: 2026-07-22T20:39:36.551Z

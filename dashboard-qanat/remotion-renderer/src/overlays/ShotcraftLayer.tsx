@@ -13,6 +13,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
   Easing,
+  Freeze,
 } from "remotion";
 import { SHOTCRAFT_DEMO_COMPONENTS } from "./shotcraftDemoImports";
 import {
@@ -20,6 +21,7 @@ import {
   hasParameterizedVersion,
   isAlwaysParameterized,
 } from "./ParameterizedDataTemplates";
+import { ShotcraftResponsiveStage } from "./ShotcraftResponsiveStage";
 
 export type MotionShot = {
   templateId: string;
@@ -40,7 +42,6 @@ export type MotionShot = {
 };
 
 /** Scale: demo é 1920×1080, renderizamos como overlay centralizado */
-const OVERLAY_SCALE = 0.58;
 const FADE_FRAMES = 10;
 
 /** Check if shot has meaningful data props worth rendering with parameterized template */
@@ -65,6 +66,9 @@ function normalizeShotProps(
   }
   if (!p.unit && p.unidade) p.unit = p.unidade;
   if (!p.title && p.label) p.title = p.label;
+  if (!p.title && p.text) p.title = p.text;
+  if (!p.text && p.title) p.text = p.title;
+  if (!p.label && p.title) p.label = p.title;
   if (
     (!Array.isArray(p.items) || !p.items.length) &&
     Array.isArray(p.dataPoints)
@@ -118,6 +122,7 @@ export function ShotcraftLayer({
   if (ParamComponent) {
     return (
       <ShotcraftDemoRenderer
+        templateId={shot.templateId}
         DemoComponent={ParamComponent as React.ComponentType}
         durationInFrames={durationInFrames}
         palette={shot.palette}
@@ -133,21 +138,25 @@ export function ShotcraftLayer({
 
   return (
     <ShotcraftDemoRenderer
+      templateId={shot.templateId}
       DemoComponent={DemoComponent}
       durationInFrames={durationInFrames}
       palette={shot.palette}
+      templateProps={normalizedProps}
     />
   );
 }
 
 /** Internal: wraps the real demo with timing, scaling, transparency, and palette */
 const ShotcraftDemoRenderer: React.FC<{
+  templateId: string;
   DemoComponent: React.ComponentType<any>;
   durationInFrames?: number;
   palette?: MotionShot["palette"];
   templateProps?: Record<string, unknown>;
   isParameterized?: boolean;
 }> = ({
+  templateId,
   DemoComponent,
   durationInFrames,
   palette,
@@ -155,10 +164,15 @@ const ShotcraftDemoRenderer: React.FC<{
   isParameterized,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps } = useVideoConfig();
 
   // Duration: use provided or default 4s
   const totalFrames = durationInFrames || Math.round(4 * fps);
+  const naturalFrames = Math.round(4 * fps);
+  const virtualFrame = Math.min(
+    naturalFrames - 1,
+    Math.max(0, Math.round((frame / Math.max(1, totalFrames - 1)) * (naturalFrames - 1)))
+  );
 
   // Don't render outside the overlay window
   if (frame > totalFrames) return null;
@@ -179,73 +193,83 @@ const ShotcraftDemoRenderer: React.FC<{
       easing: Easing.in(Easing.quad),
     }
   );
-  const opacity = Math.min(fadeIn, fadeOut);
+  const requestedOpacity = Number(
+    templateProps?.opacity ?? templateProps?.strength ?? 1
+  );
+  const motionOpacity = Math.max(
+    0,
+    Math.min(1, Number.isFinite(requestedOpacity) ? requestedOpacity : 1)
+  );
+  const opacity = Math.min(fadeIn, fadeOut) * motionOpacity;
 
   // Scale demo (1920×1080) to overlay size
-  const scaleX = (width * OVERLAY_SCALE) / 1920;
-  const scaleY = (height * OVERLAY_SCALE) / 1080;
-  const scale = Math.min(scaleX, scaleY);
 
   // Resolve palette colors (niche-based or default)
   const p = palette || {};
   const scPrimary = p.primary || "#F5A623";
   const scAccent = p.accent || "#4A9EFF";
-  const scBg = p.bg || "rgba(10, 10, 18, 0.82)";
+  const scBg = p.bg || "transparent";
   const scText = p.text || "#FFFFFF";
   const scBar = p.bar || scPrimary;
   const scLine = p.line || "rgba(255,255,255,0.15)";
+  const normalizedPositionX = Number(templateProps?.positionX ?? 0.5);
+  const normalizedPositionY = Number(templateProps?.positionY ?? 0.5);
+  const normalizedScale = Number(templateProps?.scale ?? 1);
+  const positionX = Math.max(
+    0,
+    Math.min(1, Number.isFinite(normalizedPositionX) ? normalizedPositionX : 0.5)
+  );
+  const positionY = Math.max(
+    0,
+    Math.min(1, Number.isFinite(normalizedPositionY) ? normalizedPositionY : 0.5)
+  );
+  const userScale = Math.max(
+    0.25,
+    Math.min(3, Number.isFinite(normalizedScale) ? normalizedScale : 1)
+  );
 
   return (
     <AbsoluteFill
       style={{
         pointerEvents: "none",
         zIndex: 40,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         opacity,
+        transform: `translate(${(positionX - 0.5) * 100}%, ${(positionY - 0.5) * 100}%) scale(${userScale})`,
+        transformOrigin: "center center",
       }}
     >
-      <div
-        style={{
-          width: 1920,
-          height: 1080,
-          transform: `scale(${scale})`,
-          transformOrigin: "center center",
-          borderRadius: 20,
-          overflow: "hidden",
-          boxShadow: "0 12px 60px rgba(0,0,0,0.5)",
-        }}
+      <style>{`
+        .shotcraft-overlay-root > div {
+          background: transparent !important;
+          color: ${scText} !important;
+        }
+        .shotcraft-overlay-root * {
+          --sc-primary: ${scPrimary};
+          --sc-accent: ${scAccent};
+          --sc-bg: ${scBg};
+          --sc-text: ${scText};
+          --sc-bar: ${scBar};
+          --sc-line: ${scLine};
+          --sc-ink: ${scText};
+        }
+      `}</style>
+      <ShotcraftResponsiveStage
+        templateId={templateId}
+        nativeResponsive={Boolean(isParameterized)}
+        background={scBg}
+        transparent
+        className="shotcraft-overlay-root"
       >
-        {/* Override demo colors with niche palette via CSS variables */}
-        <style>{`
-          .shotcraft-overlay-root > div {
-            background: ${scBg} !important;
-            color: ${scText} !important;
-          }
-          .shotcraft-overlay-root * {
-            --sc-primary: ${scPrimary};
-            --sc-accent: ${scAccent};
-            --sc-bg: ${scBg};
-            --sc-text: ${scText};
-            --sc-bar: ${scBar};
-            --sc-line: ${scLine};
-            --sc-ink: ${scText};
-          }
-        `}</style>
-        <div
-          className="shotcraft-overlay-root"
-          style={{ width: "100%", height: "100%" }}
-        >
-          {isParameterized ? (
-            <DemoComponent {...(templateProps || {})} />
-          ) : (
+        {isParameterized ? (
+          <DemoComponent {...(templateProps || {})} />
+        ) : (
+          <Freeze frame={virtualFrame}>
             <Suspense fallback={null}>
-              <DemoComponent />
+              <DemoComponent {...(templateProps || {})} />
             </Suspense>
-          )}
-        </div>
-      </div>
+          </Freeze>
+        )}
+      </ShotcraftResponsiveStage>
     </AbsoluteFill>
   );
 };

@@ -1,3 +1,52 @@
+export function validateCreatorExpressInput(value = {}) {
+  const theme = String(value.theme || "").trim();
+  const niche = String(value.niche || "").trim();
+  const project = String(value.project || "").trim();
+  const tone = String(value.tone || "conversacional").trim() || "conversacional";
+
+  if (!theme || !niche || !project) {
+    return {
+      ok: false,
+      error: "Tema, nicho e nome do projeto são obrigatórios.",
+    };
+  }
+
+  const safeProjectName = project.replace(/[^a-zA-Z0-9_-]/g, "_");
+  if (!/[a-zA-Z0-9]/.test(safeProjectName)) {
+    return {
+      ok: false,
+      error: "O nome do projeto deve conter pelo menos uma letra ou número.",
+    };
+  }
+  if (safeProjectName.length > 80) {
+    return {
+      ok: false,
+      error: "O nome do projeto deve ter no máximo 80 caracteres.",
+    };
+  }
+
+  return {
+    ok: true,
+    value: { theme, niche, project: safeProjectName, tone },
+  };
+}
+
+export function validateCreatorExpressPayload(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { ok: false, reason: "a resposta não é um objeto JSON" };
+  }
+
+  const narrativeScript = String(value.narrative_script || "").trim();
+  if (narrativeScript.length < 20) {
+    return {
+      ok: false,
+      reason: "a IA não retornou uma narração válida",
+    };
+  }
+
+  return { ok: true, reason: "" };
+}
+
 export class CreatorIdeasContractError extends Error {
   constructor(message, details = {}) {
     super(message);
@@ -9,7 +58,7 @@ export class CreatorIdeasContractError extends Error {
 
 export function validateCreatorIdeasPayload(
   value,
-  { expectedCount = 10 } = {}
+  { expectedCount = 5 } = {}
 ) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return { ok: false, reason: "a resposta não é um objeto JSON" };
@@ -23,7 +72,7 @@ export function validateCreatorIdeasPayload(
     return { ok: false, reason: "o campo ideas está ausente" };
   }
 
-  if (value.ideas.length !== expectedCount) {
+  if (value.ideas.length < expectedCount) {
     return {
       ok: false,
       reason: `foram recebidas ${value.ideas.length} de ${expectedCount} ideias`,

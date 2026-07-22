@@ -2,15 +2,17 @@
  * ShotcraftLivePreview — Remotion Player preview for shotcraft templates.
  * Full-frame demos (not the scaled render overlay) + niche palette CSS vars.
  */
-import React, { Component, Suspense, useMemo, useRef } from "react";
+import React, { Component, Suspense, useEffect, useMemo, useRef } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import { AbsoluteFill } from "remotion";
+import { AbsoluteFill, Freeze, useCurrentFrame, useVideoConfig } from "remotion";
 import { SHOTCRAFT_DEMO_COMPONENTS } from "@lumiera/overlays/shotcraftDemoImports.tsx";
 import {
   getParameterizedComponent,
   hasParameterizedVersion,
   isAlwaysParameterized,
 } from "@lumiera/overlays/ParameterizedDataTemplates.tsx";
+import { ShotcraftResponsiveStage } from "@lumiera/overlays/ShotcraftResponsiveStage.tsx";
+import { ShotcraftLayer } from "@lumiera/overlays/ShotcraftLayer.tsx";
 
 class PreviewErrorBoundary extends Component<
   { children: React.ReactNode },
@@ -57,6 +59,25 @@ type CompositionProps = {
   palette: ShotcraftPreviewPalette;
   templateProps: Record<string, unknown>;
   useParameterized: boolean;
+  transparent: boolean;
+};
+
+/** Uses the exact render component so editor and final output cannot drift. */
+const ShotcraftRenderParityComposition: React.FC<CompositionProps> = ({
+  templateId,
+  palette,
+  templateProps,
+  transparent,
+}) => {
+  const { durationInFrames } = useVideoConfig();
+  return (
+    <AbsoluteFill style={{ background: transparent ? "transparent" : "#05050a" }}>
+      <ShotcraftLayer
+        shot={{ templateId, palette, props: templateProps }}
+        durationInFrames={durationInFrames}
+      />
+    </AbsoluteFill>
+  );
 };
 
 const ShotcraftPreviewComposition: React.FC<CompositionProps> = ({
@@ -64,11 +85,22 @@ const ShotcraftPreviewComposition: React.FC<CompositionProps> = ({
   palette,
   templateProps,
   useParameterized,
+  transparent,
 }) => {
+  const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
+  const naturalFrames = Math.round(4 * fps);
+  const virtualFrame = Math.min(
+    naturalFrames - 1,
+    Math.max(
+      0,
+      Math.round((frame / Math.max(1, durationInFrames - 1)) * (naturalFrames - 1))
+    )
+  );
   const p = palette || {};
   const scPrimary = p.primary || "#F5A623";
   const scAccent = p.accent || "#4A9EFF";
-  const scBg = p.bg || "rgba(10, 10, 18, 0.92)";
+  const scBg = transparent ? "transparent" : p.bg || "rgba(10, 10, 18, 0.92)";
   const scText = p.text || "#FFFFFF";
   const scBar = p.bar || scPrimary;
   const scLine = p.line || "rgba(255,255,255,0.15)";
@@ -99,7 +131,7 @@ const ShotcraftPreviewComposition: React.FC<CompositionProps> = ({
   }
 
   return (
-    <AbsoluteFill style={{ background: "#05050a" }}>
+    <AbsoluteFill style={{ background: transparent ? "transparent" : "#05050a" }}>
       <style>{`
         .shotcraft-preview-root,
         .shotcraft-preview-root * {
@@ -115,13 +147,17 @@ const ShotcraftPreviewComposition: React.FC<CompositionProps> = ({
           background: ${scBg} !important;
         }
       `}</style>
-      <div
+      <ShotcraftResponsiveStage
+        templateId={templateId}
+        nativeResponsive={Boolean(Param)}
+        background={scBg}
+        transparent={transparent}
         className="shotcraft-preview-root"
-        style={{ width: "100%", height: "100%" }}
       >
         {Param ? (
           <Demo {...templateProps} />
         ) : (
+          <Freeze frame={virtualFrame}>
           <Suspense
             fallback={
               <AbsoluteFill
@@ -140,8 +176,9 @@ const ShotcraftPreviewComposition: React.FC<CompositionProps> = ({
           >
             <Demo />
           </Suspense>
+          </Freeze>
         )}
-      </div>
+      </ShotcraftResponsiveStage>
     </AbsoluteFill>
   );
 };
@@ -162,6 +199,11 @@ export type ShotcraftLivePreviewProps = {
   className?: string;
   autoPlay?: boolean;
   loop?: boolean;
+  transparent?: boolean;
+  controls?: boolean;
+  compositionWidth?: number;
+  compositionHeight?: number;
+  currentFrame?: number;
 };
 
 export function ShotcraftLivePreview({
@@ -172,12 +214,17 @@ export function ShotcraftLivePreview({
   className = "",
   autoPlay = true,
   loop = true,
+  transparent = false,
+  controls = true,
+  compositionWidth = 1920,
+  compositionHeight = 1080,
+  currentFrame,
 }: ShotcraftLivePreviewProps) {
   const playerRef = useRef<PlayerRef>(null);
   const fps = 30;
   const durationInFrames = Math.max(
     Math.round((durationSeconds || 4) * fps),
-    fps
+    1
   );
 
   const cleanProps = useMemo(() => {
@@ -206,9 +253,17 @@ export function ShotcraftLivePreview({
       palette: palette || {},
       templateProps: cleanProps,
       useParameterized,
+      transparent,
     }),
-    [templateId, palette, cleanProps, useParameterized]
+    [templateId, palette, cleanProps, useParameterized, transparent]
   );
+
+  useEffect(() => {
+    if (currentFrame == null) return;
+    playerRef.current?.seekTo(
+      Math.max(0, Math.min(durationInFrames - 1, Math.round(currentFrame)))
+    );
+  }, [currentFrame, durationInFrames, templateId]);
 
   if (!templateId) {
     return (
@@ -222,19 +277,19 @@ export function ShotcraftLivePreview({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border border-white/10 bg-black ${className}`}
+      className={`relative overflow-hidden ${transparent ? "border-0 bg-transparent" : "rounded-xl border border-white/10 bg-black"} ${className}`}
     >
       <PreviewErrorBoundary>
         <Player
           ref={playerRef}
-          component={ShotcraftPreviewComposition}
+          component={ShotcraftRenderParityComposition}
           inputProps={inputProps}
           durationInFrames={durationInFrames}
-          compositionWidth={1920}
-          compositionHeight={1080}
+          compositionWidth={compositionWidth}
+          compositionHeight={compositionHeight}
           fps={fps}
           style={{ width: "100%", height: "100%" }}
-          controls
+          controls={controls}
           autoPlay={autoPlay}
           loop={loop}
           clickToPlay

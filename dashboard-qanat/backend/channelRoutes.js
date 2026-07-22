@@ -25,8 +25,7 @@ import {
   createChannel,
   deleteChannel,
   validateVideoForChannel,
-  syncChannelToRenderConfig,
-} from "./channelProfiles.js";
+} from "./channelManager.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = Router();
@@ -62,11 +61,8 @@ router.post("/switch", (req, res) => {
     if (!channelId) {
       return res.status(400).json({ error: "channelId é obrigatório." });
     }
+    // channelManager emite evento + sincroniza render config automaticamente
     const channel = setActiveChannel(channelId);
-
-    // Sincronizar com render_config_global.json
-    syncChannelToRenderConfig(__dirname, channelId);
-
     res.json({ ok: true, active: channel });
   } catch (err) {
     res.status(400).json({ error: err.message });

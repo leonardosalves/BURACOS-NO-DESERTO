@@ -21,11 +21,9 @@ export type AppTab =
   | "video-resurrector"
   | "trend-forecast"
   | "agent-reach"
-  | "templates"
   | "docs"
   | "projects"
   | "tools"
-  | "graphify"
   | "whiteboard-creator"
   | "video-monitor";
 
@@ -51,11 +49,9 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   "video-resurrector",
   "trend-forecast",
   "agent-reach",
-  "templates",
   "docs",
   "projects",
   "tools",
-  "graphify",
   "whiteboard-creator",
   "video-monitor",
 ];
@@ -74,7 +70,6 @@ export const GLOBAL_VIEW_TABS: AppTab[] = [
   "video-resurrector",
   "trend-forecast",
   "agent-reach",
-  "templates",
   "docs",
   "projects",
   "tools",

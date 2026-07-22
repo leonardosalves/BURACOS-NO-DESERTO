@@ -1,6 +1,186 @@
 {
   "items": [
     {
+      "id": "5e04b853-fef0-406f-8e5e-a27ecd64a178",
+      "title": "Variação #4: Pilar de 1600 anos que não enferruja",
+      "hookPt": "Continuidade com mecânica vencedora — views previstas estáveis nos próximos dias.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 8.8% no horizonte; 847 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-21T18:02:11.648Z",
+      "updatedAt": "2026-07-21T18:02:11.648Z"
+    },
+    {
+      "id": "98fc9e11-a6b9-41a6-abc7-a6943dc94808",
+      "title": "Variação #3: Seu copo: obra-prima da engenharia",
+      "hookPt": "Tendência em alta (+38% previsto) — variação do formato que já performa no canal.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 38.5% no horizonte; 645 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-21T18:02:11.648Z",
+      "updatedAt": "2026-07-21T18:02:11.648Z"
+    },
+    {
+      "id": "1e8a8921-03e3-453e-864c-78dfad259519",
+      "title": "Variação #2: Palace II: A areia nunca existiu 😳",
+      "hookPt": "Tendência em alta (+100% previsto) — variação do formato que já performa no canal.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 100.0% no horizonte; 586 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-21T18:02:11.648Z",
+      "updatedAt": "2026-07-21T18:02:11.648Z"
+    },
+    {
+      "id": "0a8878a8-0003-45b1-917a-7cc50f9716a2",
+      "title": "Variação #1: Metal impede trens no Brasil #Engenharia",
+      "hookPt": "Tendência em alta (+100% previsto) — variação do formato que já performa no canal.",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "timesfm-velocity",
+      "whyWorks": "Previsão TimesFM: crescimento 100.0% no horizonte; 636 views no período.",
+      "pioneerMeta": null,
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-21T18:02:11.648Z",
+      "updatedAt": "2026-07-21T18:02:11.648Z"
+    },
+    {
+      "id": "4bc811aa-6f6e-44f4-8916-2aadcaf76940",
+      "title": "O templo de 30 metros esculpido de CIMA para BAIXO em uma rocha única",
+      "hookPt": "Técnicas de escavação monolítica top-down e engenharia de ventilação em rocha única",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Alta retenção natural por explorar 'como foi feito'. Embora o nicho de curiosidades seja mais amplo, o ângulo focado em engenharia de escavação possui apenas 20% de saturação.",
+      "pioneerMeta": {
+        "macroNiche": "Curiosidades",
+        "angle": "Técnicas de escavação monolítica top-down e engenharia de ventilação em rocha única",
+        "formatPattern": "Recorde humano bizarro",
+        "youtubeSearchQuery": "templo de kailasa escavado rocha unica india"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-21T18:02:11.648Z",
+      "updatedAt": "2026-07-21T18:02:11.648Z"
+    },
+    {
+      "id": "99b4edf9-bb2d-47f0-aa35-938059a2c053",
+      "title": "A tragédia do Anfiteatro de Fidenae: O maior colapso da história romana",
+      "hookPt": "Perícia forense e investigação de falhas estruturais, desabamentos e negligência técnica na Antiguidade",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Aplica a narrativa instigante de True Crime (investigação e culpados) a desastres de engenharia antiga. Baixa saturação (10%) e excelente potencial de engajamento.",
+      "pioneerMeta": {
+        "macroNiche": "True Crime",
+        "angle": "Perícia forense e investigação de falhas estruturais, desabamentos e negligência técnica na Antiguidade",
+        "formatPattern": "Arquivo público esquecido",
+        "youtubeSearchQuery": "guindaste romano polispastos como funcionava"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-21T18:02:11.648Z",
+      "updatedAt": "2026-07-21T18:02:11.648Z"
+    },
+    {
+      "id": "6ae00595-e86f-4301-9219-453fb2f0930a",
+      "title": "Como os romanos erguiam blocos de 10 toneladas sem usar motores?",
+      "hookPt": "Engenharia de movimentação de cargas pesadas e funcionamento de guindastes de madeira (Polispastos) na Roma Antiga",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Saturação contida em 12% com gap de 72%. O público de tecnologia e física do YouTube PT consome bem demonstrações mecânicas explicativas rápidas.",
+      "pioneerMeta": {
+        "macroNiche": "Tecnologia",
+        "angle": "Engenharia de movimentação de cargas pesadas e funcionamento de guindastes de madeira (Polispastos) na Roma Antiga",
+        "formatPattern": "Timeline de um objeto",
+        "youtubeSearchQuery": "desabamento anfiteatro de fidenae imperio romano"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-21T18:02:11.648Z",
+      "updatedAt": "2026-07-21T18:02:11.648Z"
+    },
+    {
+      "id": "0902c429-efb1-4308-9e2d-1e3c6a3194d8",
+      "title": "Quanto custaria construir a Grande Pirâmide de Gizé em 2024?",
+      "hookPt": "Economia da construção civil antiga, logística de insumos, orçamento e remuneração de operários",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Combina o apelo de números e valores atuais com curiosidade histórica. Gap expressivo no nicho financeiro (saturação de 14%), sem canais dedicados a 'auditoria' histórica.",
+      "pioneerMeta": {
+        "macroNiche": "Finanças",
+        "angle": "Economia da construção civil antiga, logística de insumos, orçamento e remuneração de operários",
+        "formatPattern": "Antes/depois com dados",
+        "youtubeSearchQuery": "quanto custou construir as piramides egito salarios"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-21T18:02:11.648Z",
+      "updatedAt": "2026-07-21T18:02:11.648Z"
+    },
+    {
+      "id": "89baa5b6-d4e6-4aec-b678-04a953d2aa44",
+      "title": "O segredo Inca para prédios de pedra resistirem a terremotos sem cimento",
+      "hookPt": "Engenharia antissísmica passiva e joints de madeira sem pregos em estruturas antigas",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Saturação baixíssima (9%) focando na mecânica de encaixes de pedra inca e arquitetura japonesa. Grande apelo visual para retenção em formato de Shorts.",
+      "pioneerMeta": {
+        "macroNiche": "Arte & Design",
+        "angle": "Engenharia antissísmica passiva e joints de madeira sem pregos em estruturas antigas",
+        "formatPattern": "Comparativo países",
+        "youtubeSearchQuery": "tecnica antissismica inca encaixe pedra madeira japao"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-21T18:02:11.648Z",
+      "updatedAt": "2026-07-21T18:02:11.648Z"
+    },
+    {
+      "id": "9fa1784c-d17b-403f-8115-badaf158b668",
+      "title": "Por que o concreto romano fica MAIS FORTE com o tempo (e o nosso estraga)?",
+      "hookPt": "Química de materiais e mecanismos de autocura do concreto romano em contato com a água do mar",
+      "source": "timesfm-pioneer-forecast",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "pioneer-niche",
+      "whyWorks": "Saturação de apenas 9% no YouTube PT para explicação física/química de materiais antigos. Alto gap de demanda por comparações práticas entre engenharia moderna e antiga.",
+      "pioneerMeta": {
+        "macroNiche": "Engenharia",
+        "angle": "Química de materiais e mecanismos de autocura do concreto romano em contato com a água do mar",
+        "formatPattern": "Debunk em 3 atos",
+        "youtubeSearchQuery": "concreto romano que se regenera agua salgada"
+      },
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-21T18:02:11.648Z",
+      "updatedAt": "2026-07-21T18:02:11.648Z"
+    },
+    {
       "id": "bce67deb-f5cd-49c5-8d97-a9ab5c796af8",
       "title": "Explorar nicho em alta: bizarras",
       "hookPt": "O cluster \"bizarras\" deve crescer ~108% — ângulo novo antes da saturação.",
@@ -13,7 +193,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "874c13b6-71f1-46fd-b6e1-97ff35595117",
@@ -28,7 +208,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "d47e509d-8271-4e79-98d2-33203137e788",
@@ -43,7 +223,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "ca757d53-9de9-41e8-a9c7-58cd7af4b609",
@@ -58,7 +238,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "9e1611ac-8909-4c2c-8c7d-849a59da1ad5",
@@ -73,7 +253,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "ef7e89f0-01cf-4af3-9e0c-0df62b2ba7dd",
@@ -88,7 +268,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "0716b83b-0023-4d88-a553-830f0d2752b0",
@@ -103,7 +283,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "8022dea1-b1a8-4917-92fc-d36f6d81e812",
@@ -123,7 +303,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "faf23cf1-8732-45f7-82d4-3462aad4e809",
@@ -143,7 +323,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "41f5f4a4-e40f-4c07-9e07-f07c399a85b2",
@@ -163,7 +343,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "43a2e69b-3032-4304-af4f-c9e4c6385086",
@@ -183,7 +363,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "746a4e85-f801-41c9-bf78-8c49236dffd9",
@@ -203,7 +383,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "6990ae61-c089-4734-91a8-6cba5674032b",
@@ -223,7 +403,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-20T23:35:03.987Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "e6e15cd4-1021-4b73-aa7c-136c2619ba58",
@@ -238,7 +418,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.310Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "7658b916-bf30-44a1-95f6-77cc98b5c1cb",
@@ -253,7 +433,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.310Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "bf460866-151b-40d5-8a03-b9c704d0fd41",
@@ -268,7 +448,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.310Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "3ab7e99c-6d47-44cb-b889-83f3fe615ebb",
@@ -283,7 +463,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "d7086a38-cf9a-44e1-be0e-9eb20980398d",
@@ -298,7 +478,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "0010908e-10f3-47fc-a6a5-ecb3d7651f8e",
@@ -318,7 +498,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "c6c95888-2968-42aa-8b59-cbb53d3c02e3",
@@ -338,7 +518,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "f5059797-e3f1-467f-ae05-56f2606df2f3",
@@ -358,7 +538,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "9c046caf-d2a4-4c44-8812-f21d157b4c09",
@@ -378,7 +558,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "277c64d5-d57d-4f51-b55f-9881753c2ca3",
@@ -398,7 +578,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "2a39e4c1-b9fc-4022-abab-370a7d5f0efe",
@@ -418,7 +598,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-19T15:26:02.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "01fdd768-7985-4329-82ce-39b5a22ddf23",
@@ -433,7 +613,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "515805c7-aabf-4014-93f6-d8e77d58814d",
@@ -448,7 +628,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "9c72d9e8-2e47-442d-b403-48d54c6a2936",
@@ -463,7 +643,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "632de8a9-8d90-4e63-85c1-d1a709e032c0",
@@ -478,7 +658,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.309Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "b281db0d-7afd-40fb-ac17-a85bf03416cc",
@@ -493,7 +673,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "bb3715bc-8c9d-4c2f-9e6f-12dd904a2ce6",
@@ -508,7 +688,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "b2389108-591e-4eaf-aa99-546e6b99f7dc",
@@ -528,7 +708,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "437a86e4-87f4-4505-9ed6-9c41e86fae2f",
@@ -548,7 +728,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "0c9a37ec-6660-414b-95da-c7992843c88b",
@@ -568,7 +748,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "b618aeb0-3811-411b-84fc-6ba7331e272f",
@@ -588,7 +768,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "f6b686e6-4dba-4b41-b550-453a271d739f",
@@ -608,7 +788,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "a9dd7d2e-3311-4645-b34f-e3a8c1e35ee6",
@@ -628,7 +808,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-15T13:27:07.308Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "31369e5b-63ef-4282-9667-49c35ec904e8",
@@ -643,7 +823,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "35bd1554-700d-4669-9a4e-a90e263a781a",
@@ -658,7 +838,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "6b8721b2-336b-432a-b9af-25bf74b0097e",
@@ -673,7 +853,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "2579fbab-6ab5-485a-a4c5-bb7312ed077a",
@@ -688,7 +868,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "2da6d0dd-c179-46c9-b3c1-0f2afa610e98",
@@ -703,7 +883,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "ecb3d8f8-74f8-462a-98c5-07a5f6a8e33f",
@@ -723,7 +903,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "2e98363d-5b50-4bab-9fd2-336ba667c952",
@@ -743,7 +923,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "62f47830-3cf6-4ec0-8c04-4620c9dfbb89",
@@ -763,7 +943,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "dfe3ca93-6be6-4b53-883f-914750a07632",
@@ -783,7 +963,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "bea26f3c-d1de-40f6-a340-9684be9bc1dc",
@@ -803,7 +983,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "8212c691-4bc9-4084-9259-b970cc69305d",
@@ -823,7 +1003,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-05T04:51:21.020Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "0b8376f7-270a-404a-b178-21e113fcea9e",
@@ -838,7 +1018,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "4989f813-9c16-45bb-93c8-244c4e866080",
@@ -853,7 +1033,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "13ab90ae-f1d4-47c1-bf78-5f010db3f9b1",
@@ -868,7 +1048,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "8c84fa68-4a2d-4c91-93ef-17eb6f265828",
@@ -883,7 +1063,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "d87dd6e1-5644-4314-9611-db81b1dcabbe",
@@ -898,7 +1078,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "5d3a2ede-9965-4b00-9c31-8342a6d8f714",
@@ -913,7 +1093,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "e86ea360-4efa-4589-b54b-5affee150895",
@@ -933,7 +1113,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "e7f17f53-781d-4f27-9b9e-4af01a35d583",
@@ -953,7 +1133,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "8cb70fbe-998b-445f-ae53-6f2692c4a6f7",
@@ -973,7 +1153,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "39eb694c-c2a8-445a-a610-b919131afdfe",
@@ -993,7 +1173,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "4eb4645d-f6bd-435b-8727-e728369bd61f",
@@ -1013,7 +1193,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "5f7800b7-91e4-4c89-99bf-f73f7c260a20",
@@ -1033,7 +1213,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "0ab40a1c-4d6b-4f24-a423-02a9e63d6cca",
@@ -1048,7 +1228,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-02T05:48:20.662Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "75746370-5617-4390-84be-dc0106b53182",
@@ -1063,7 +1243,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-02T05:48:20.662Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "1be1aedf-08d7-4548-9666-8f9448f3873f",
@@ -1078,7 +1258,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-02T05:48:20.662Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "0400a443-cbd5-4a6e-a55b-68cef675d9e2",
@@ -1093,7 +1273,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:45:20.315Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "ecc75411-a0c6-4487-8bde-3da7ece92a2f",
@@ -1108,7 +1288,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:33:13.296Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "56a310b1-a87f-4f10-bb2c-59e0192224f7",
@@ -1123,7 +1303,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:33:13.296Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "1f3ad1d4-95c7-4089-92c3-cac6947e27ab",
@@ -1138,7 +1318,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:33:13.296Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "f603d07a-383a-4627-92a3-31e3f15c4018",
@@ -1153,7 +1333,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T06:37:01.849Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "31c9bc3f-3f14-4342-a816-8b28fca68a2d",
@@ -1168,7 +1348,7 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-01T14:45:20.315Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     },
     {
       "id": "aea9711a-1f74-4cc7-92b6-41380f892f1f",
@@ -1183,8 +1363,8 @@
       "format": "SHORTS",
       "status": "inbox",
       "createdAt": "2026-07-04T06:01:45.882Z",
-      "updatedAt": "2026-07-20T23:35:03.987Z"
+      "updatedAt": "2026-07-21T18:02:11.648Z"
     }
   ],
-  "updatedAt": "2026-07-20T23:35:03.987Z"
+  "updatedAt": "2026-07-21T18:02:11.648Z"
 }

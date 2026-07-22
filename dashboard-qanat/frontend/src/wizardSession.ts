@@ -123,8 +123,11 @@ export function resolveInitialActiveTab(
   session: WizardSessionPatch | null,
   restorableTabs: readonly string[]
 ): string {
-  const normalizeRetiredTab = (value: string) =>
-    value === "scene-timing" ? "editor" : value;
+  const normalizeRetiredTab = (value: string) => {
+    if (value === "scene-timing" || value === "templates") return "editor";
+    if (value === "graphify") return "status";
+    return value;
+  };
   const fromKey = normalizeRetiredTab(readPersistedWorkspaceTab());
   if (fromKey && restorableTabs.includes(fromKey)) return fromKey;
 

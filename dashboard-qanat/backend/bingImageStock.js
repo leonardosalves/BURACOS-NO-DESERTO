@@ -143,3 +143,83 @@ export async function searchBingImagesMedia(query, { skipSourceIds = new Set() }
   }
   return null;
 }
+
+function decodeHtmlAttribute(raw = "") {
+  return decodeEscapedUrl(raw)
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&#x27;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+export function extractBingVideoHits(html = "") {
+  const candidates = new Map();
+  const attributePattern = /(?:mmeta|vrhm)="([^"]+)"/g;
+  let attributeMatch;
+  while ((attributeMatch = attributePattern.exec(html)) !== null) {
+    try {
+      const metadata = JSON.parse(decodeHtmlAttribute(attributeMatch[1]));
+      const mediaUrl = decodeHtmlAttribute(metadata.murl || metadata.mediaUrl || "");
+      if (!/^https?:\/\//i.test(mediaUrl)) continue;
+      const thumbnailUrl = decodeHtmlAttribute(
+        metadata.turl ||
+          metadata.thumbnailUrl ||
+          metadata.smturl ||
+          (metadata.thid
+            ? `https://tse1.mm.bing.net/th?id=${encodeURIComponent(metadata.thid)}&w=640&h=360&c=7&rs=1&pid=2.1`
+            : "")
+      );
+      candidates.set(mediaUrl, {
+        mediaUrl,
+        pageUrl: decodeHtmlAttribute(metadata.pgurl || metadata.purl || mediaUrl),
+        thumbnailUrl,
+        title: String(metadata.vt || metadata.title || "Vídeo do Bing").trim(),
+        duration: String(metadata.du || metadata.duration || "").trim(),
+      });
+    } catch {
+      // Bing occasionally emits incomplete metadata attributes; fallback below.
+    }
+  }
+  const jsonPatterns = [
+    /"(?:mediaUrl|murl)":"([^"]+)"[^{}]{0,900}?"(?:thumbnailUrl|turl)":"([^"]+)"/g,
+    /"(?:thumbnailUrl|turl)":"([^"]+)"[^{}]{0,900}?"(?:mediaUrl|murl)":"([^"]+)"/g,
+  ];
+  for (let patternIndex = 0; patternIndex < jsonPatterns.length; patternIndex += 1) {
+    const pattern = jsonPatterns[patternIndex];
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      const first = decodeHtmlAttribute(match[1]);
+      const second = decodeHtmlAttribute(match[2]);
+      const mediaUrl = patternIndex === 0 ? first : second;
+      const thumbnailUrl = patternIndex === 0 ? second : first;
+      if (!/^https?:\/\//i.test(mediaUrl)) continue;
+      if (!candidates.has(mediaUrl)) {
+        candidates.set(mediaUrl, { mediaUrl, pageUrl: mediaUrl, thumbnailUrl });
+      }
+    }
+  }
+  return [...candidates.values()];
+}
+
+export async function searchBingVideos(query, { count = 18 } = {}) {
+  const q = encodeURIComponent(String(query || "").trim().slice(0, 120));
+  if (!q) return [];
+  const html = await httpsGetText(
+    `https://www.bing.com/videos/search?q=${q}&qft=+filterui:duration-short&FORM=VRFLTR`
+  );
+  return extractBingVideoHits(html).slice(0, count).map((hit) => {
+    const durationParts = String(hit.duration || "")
+      .split(":")
+      .map(Number)
+      .filter(Number.isFinite);
+    const durationSeconds = durationParts.reduce(
+      (total, part) => total * 60 + part,
+      0
+    );
+    return {
+      ...hit,
+      duration: durationSeconds || undefined,
+      sourceId: `bing-video:${hashUrl(hit.mediaUrl)}`,
+    };
+  });
+}

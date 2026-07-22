@@ -15,7 +15,14 @@ import { fileURLToPath, pathToFileURL } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "../..");
-const DEMOS_DIR = path.resolve(ROOT, "vendor/video-shotcraft/demos");
+const ACTIVE_DEMOS_DIR = path.resolve(
+  __dirname,
+  "../src/overlays/shotcraft-demos"
+);
+const VENDOR_DEMOS_DIR = path.resolve(ROOT, "vendor/video-shotcraft/demos");
+const DEMOS_DIR = fs.existsSync(ACTIVE_DEMOS_DIR)
+  ? ACTIVE_DEMOS_DIR
+  : VENDOR_DEMOS_DIR;
 const CATALOG_PATH = path.resolve(ROOT, "backend/shotcraftCatalog.js");
 const OUT_FILE = path.resolve(
   __dirname,
@@ -51,15 +58,21 @@ function scanDemos() {
         .filter((f) => f.endsWith(".tsx"))
         .map((f) => path.join(dir, f))[0];
       let exportName = null;
+      let layoutMode = "fluid";
       if (tsx && fs.existsSync(tsx)) {
         const src = fs.readFileSync(tsx, "utf8");
         const m = src.match(/export const (\w+)/);
         exportName = m?.[1] || null;
+        const fixedWidth = /width\s*:\s*1920/.test(src);
+        const fixedHeight = /height\s*:\s*1080/.test(src);
+        const absoluteCoordinates = (src.match(/(?:left|right)\s*:\s*\d{3,4}/g) || []).length;
+        layoutMode = fixedWidth && fixedHeight || absoluteCoordinates >= 3 ? "legacy" : "fluid";
       }
       return {
         templateId: d.name,
         demoFile: tsx ? path.basename(tsx) : null,
         exportName,
+        layoutMode,
         hasDemo: Boolean(tsx && exportName),
       };
     });
@@ -77,6 +90,7 @@ async function main() {
       hasDemo: Boolean(demo?.hasDemo),
       demoFile: demo?.demoFile || null,
       exportName: demo?.exportName || null,
+      layoutMode: demo?.layoutMode || "fluid",
     };
   });
 
@@ -92,6 +106,7 @@ async function main() {
         hasDemo: d.hasDemo,
         demoFile: d.demoFile,
         exportName: d.exportName,
+        layoutMode: d.layoutMode,
       });
     }
   }
@@ -112,6 +127,7 @@ export type ShotcraftRegistryEntry = {
   hasDemo: boolean;
   demoFile: string | null;
   exportName: string | null;
+  layoutMode: "fluid" | "legacy";
 };
 
 export const SHOTCRAFT_REGISTRY_ENTRIES: ShotcraftRegistryEntry[] = ${JSON.stringify(rows, null, 2)};

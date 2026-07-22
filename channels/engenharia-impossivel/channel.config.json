@@ -10,14 +10,18 @@
     "cor": "#f5a623"
   },
   "nicho": {
-    "principal": "",
+    "principal": "engenharia_e_construcao",
     "sub_nichos_permitidos": [],
     "temas_proibidos": []
   },
   "publico_alvo": {
     "idade": "18-45",
     "genero_predominante": "masculino",
-    "interesses": ["como as coisas funcionam", "história", "tecnologia"],
+    "interesses": [
+      "como as coisas funcionam",
+      "história",
+      "tecnologia"
+    ],
     "tom_preferido": "conversacional, direto, com energia"
   },
   "formato_video": {
@@ -25,13 +29,19 @@
     "duracao_max_segundos": 720,
     "duracao_ideal_segundos": 600,
     "frequencia_semanal": 3,
-    "dias_publicacao": ["terca", "quinta", "sabado"],
+    "dias_publicacao": [
+      "terca",
+      "quinta",
+      "sabado"
+    ],
     "horario_publicacao": "18:00",
     "shorts_por_semana": 2
   },
   "roteiro": {
     "hook_max_segundos": 10,
-    "hook_elementos_obrigatorios": ["numero_OU_contradição_OU_acao"],
+    "hook_elementos_obrigatorios": [
+      "numero_OU_contradição_OU_acao"
+    ],
     "hook_proibido_comecar_com": [
       "Olá",
       "Bem-vindo",
@@ -54,7 +64,9 @@
       "{epoca}: quando {sujeito} {acao} que {consequencia}",
       "{numero} {unidade} de {material} em {tempo}: como?"
     ],
-    "deve_conter": ["numero_OU_verbo_acao_OU_contradição"],
+    "deve_conter": [
+      "numero_OU_verbo_acao_OU_contradição"
+    ],
     "proibido": [
       "nomes_tecnicos_sem_contexto",
       "mais_de_2_maiusculas",
@@ -65,10 +77,19 @@
     "estilo_padrao": "hiper_realista_fotografico",
     "escala_humana_obrigatoria": true,
     "acao_obrigatoria": true,
-    "angulos_preferidos": ["contra_plongee", "aerial_drone", "close_up", "pov"],
+    "angulos_preferidos": [
+      "contra_plongee",
+      "aerial_drone",
+      "close_up",
+      "pov"
+    ],
     "luz": "golden_hour_ou_lateral_dramatica",
     "thumbnail_separada": true,
-    "thumbnail_cores": ["amarelo", "vermelho", "azul_escuro"],
+    "thumbnail_cores": [
+      "amarelo",
+      "vermelho",
+      "azul_escuro"
+    ],
     "thumbnail_texto_max_palavras": 3
   },
   "tts": {
@@ -85,7 +106,12 @@
   },
   "upload": {
     "youtube_categoria": "27",
-    "tags_padrao": ["engenharia", "construção", "como funciona", "megaprojeto"],
+    "tags_padrao": [
+      "engenharia",
+      "construção",
+      "como funciona",
+      "megaprojeto"
+    ],
     "descricao_template": "{hook_texto}\n\n⏱️ CAPÍTULOS:\n{timestamps}\n\n#engenharia #construção"
   },
   "brand": {

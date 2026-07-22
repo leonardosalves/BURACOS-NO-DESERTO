@@ -68,6 +68,8 @@ describe("timelineStudioRenderSync", () => {
           trackId: "video",
           start: 0,
           duration: 10,
+          sourceStart: 2.5,
+          sourceEnd: 12.5,
           source: "ASSETS/cena.jpg",
         },
         {
@@ -98,6 +100,8 @@ describe("timelineStudioRenderSync", () => {
     assert.equal(scenes.length, 1);
     assert.equal(scenes[0].type, "image");
     assert.ok(scenes[0].asset.includes("cena.jpg"));
+    assert.equal(scenes[0].sourceStart, 2.5);
+    assert.equal(scenes[0].sourceEnd, 12.5);
   });
 
   it("buildOverlaysFromStudio inclui trilha motion", () => {

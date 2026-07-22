@@ -232,16 +232,21 @@ export function buildMotionSceneEnrichmentPrompt({
     heuristicPlan.niche_pack || resolveNichePack(config, storyboard);
   const accent = String(config.accent_color || "#D4AF37");
   const scenes = (heuristicPlan.motion_scenes || []).slice(0, 16);
-  if (!scenes.length) return null;
+  const visualPrompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
+  // If no heuristic scenes AND no visual prompts, nothing to do
+  if (!scenes.length && !visualPrompts.length) return null;
 
-  const visualContext = (storyboard.visual_prompts || [])
+  const visualContext = visualPrompts
     .slice(0, 20)
-    .map((vp) => ({
-      scene: vp.scene,
+    .map((vp, i) => ({
+      scene: vp.scene || vp.scene_id || i + 1,
       block: vp.block,
       narration: String(
         vp.narration_text || vp.asset?.narration_segment || ""
-      ).slice(0, 160),
+      ).slice(0, 220),
+      has_asset: Boolean(vp.asset?.url || vp.asset?.src || vp.generated_image),
     }));
 
   const templateList = [...VALID_TEMPLATES].join(", ");
@@ -266,38 +271,57 @@ export function buildMotionSceneEnrichmentPrompt({
       snippet: String(src.snippet || "").slice(0, 200),
     }));
 
+  // Generation mode: heuristic found nothing, LLM creates from scratch
+  const isGenerationMode = scenes.length === 0;
+  const modeInstruction = isGenerationMode
+    ? [
+        "MODO: GERAÇÃO COMPLETA — o planner heurístico não encontrou triggers. Você deve CRIAR motion scenes do zero analisando a narração de cada cena.",
+        "- Analise CADA cena do CONTEXTO visual_prompts e decida se ela merece um template.",
+        "- Crie motion scenes APENAS para cenas que têm DADOS CONCRETOS (números, datas, comparações, listas, fatos históricos).",
+        "- Para cada motion scene gerada, use id: 'llm-<scene_ref>' (ex: 'llm-1', 'llm-3').",
+        "- scene_ref deve corresponder ao número da cena no visual_prompts.",
+        "- Se NENHUMA cena tem dados concretos, retorne { \"motion_scenes\": [], \"notes\": \"sem dados concretos para templates\" }.",
+      ].join("\n")
+    : "MODO: REFINAMENTO — refine o plano heurístico abaixo (mesmos ids). NÃO adicione cenas novas.";
+
   return [
     `Você é diretor de motion graphics Remotion para vídeo documental (nicho: "${niche}", pack: "${nichePack}").`,
-    "Refine o plano heurístico abaixo — melhore props, escolha de template e duração.",
+    modeInstruction,
     "",
     "REGRAS:",
     `- Use APENAS template_id: ${templateList}`,
     `- CATALOGO OPERACIONAL DOS TEMPLATES:\n${JSON.stringify(operationalCatalog, null, 2)}`,
     "- NUNCA duplique overlays já planejados em overlays_ai (mesmo template + mesma cena/bloco).",
-    "- NÃO adicione cenas novas — refine APENAS as do plano heurístico (mesmos id).",
+    isGenerationMode ? "" : "- NÃO adicione cenas novas — refine APENAS as do plano heurístico (mesmos id).",
     "- Preserve start_hint de cada cena; nunca empilhe cenas em start_hint 0.",
-    "- Extraia dados reais da narração: nomes de lugares, números, anos, comparações.",
-    "- ESCOLHA DE TEMPLATE: location-intro = zoom geografico continuo ate o alvo; geo-map = pin regional; counter/bar-chart/timeline = dados da narração.",
-    "- location-intro: location, region, country; variant satellite; place_type city|poi|historic_site; structure_exists boolean.",
-    "- REGRA GEO 16:9: location-intro deve ser fullscreen, vindo em zoom continuo estilo Google Maps desde globo/regiao (ex.: Europa) -> pais -> cidade -> alvo; sem transicao/corte entre mapas.",
-    "- REGRA GEO 9:16 ENGENHARIA: location-intro deve ser PIP tecnico de mapa, nao embaixo, com o mapa animado dentro da janela PIP e preservando legendas.",
-    "- REGRA GEO: pais/cidade/regiao usa place_type city, mapa antigo/satelite aberto, fronteira desenhada e zoom final mostrando o pais/cidade inteiro.",
-    "- REGRA GEO: ponte, monumento, edificio, predio, templo, torre, museu, estadio, ruina ou ponto especifico visivel no mapa usa place_type poi, zoom continuo ate o objeto e orbita 360; nao trate como cidade/pais.",
-    "- REGRA GEO: se for mapa antigo de pais/cidade, preserve enquadramento aberto com fronteira desenhada; nao faca close de POI.",
-    "- location-intro SEMPRE fly_mode earth_descent (globo terrestre → cidade com boundary OSM ou POI/terreno).",
-    "- PIP para mapas/geo só é permitido em 9:16 no nicho Engenharia; em 16:9 geo sempre fullscreen.",
-    "- NUNCA use kinetic-text automaticamente enquanto nao houver template aprovado no Remotion Template Studio; texto solto sobre video e proibido.",
+    "- DADOS CONCRETOS: Extraia APENAS dados reais da narração e da pesquisa — números, anos, nomes. NUNCA invente valores sem suporte textual.",
+    "",
+    "PROPS OBRIGATÓRIOS POR TIPO DE RENDERER (preencha com dados REAIS da narração/pesquisa):",
+    "  odometer-digit-roll / gauge-readout-moves / impact-feedback: { value: <número real>, unit: '<unidade>', label: '<nome curto da métrica>' }",
+    "  chart-live-moves / particle-sand-fill / dataviz-landscape-open: { value: <percent ou número>, label: '<título do dado>' }",
+    "  timeline-travel / document-typewriter-reveal: { milestones: [{ year: '<ano/época>', label: '<evento curto>' }] } (mín 2)",
+    "  list-stack-press / wall-reveal-moves: { items: [{ rank: 1, title: '<nome>', value: '<valor>' }] } (mín 2)",
+    "  before-after-slider-scrub / text-column-converge: { left: '<antes/lado A>', right: '<depois/lado B>', label: '<contexto>' }",
+    "  gradient-word-sweep / cel-flash-stomp / trailer-grammar-moves: { words: ['<palavra1>', '<palavra2>', ...] } (keywords curtos da narração, máx 5)",
+    "  spotlight-hero-card / crane-rise-reveal / card-flip-reveal: { card: { title: '<título curto ≤5 palavras>', subtitle: '<dado numérico>' } }",
+    "  brand-ink-open / neon-frame-forerun / outro-group-photo-launch: { text: '<título do vídeo/canal>', subtitle: '<subtítulo curto>' }",
+    "  marker-underline-title / type-entrance-moves: { text: '<frase curta ≤6 palavras>', value: '<dado complementar>' }",
+    "",
+    "- Se a cena NÃO tem dados concretos (só narrativa genérica), NÃO coloque template — deixe motion_shot: null e use apenas camera_move.",
+    "- Template SÓ aparece quando tem DADO REAL para mostrar. Nunca mostre template vazio ou com texto da narração como placeholder.",
+    "- DURATION: cada template deve ter duration_seconds adequado: dados=3-4s, timeline=4-6s, lista=3-5s, abertura=2-3s, texto=2-3s.",
+    "- COEXISTÊNCIA: se a cena tem asset visual forte (vídeo IA/imagem), o template entra como overlay menor (pip/bottom) após 2s do asset. Se a cena é só narração, template pode ser fullscreen.",
+    "- ESCOLHA INTELIGENTE: analise a narração de cada cena e escolha o template que MELHOR comunica o dado. Não use o mesmo template 2x seguidas.",
+    "- TEMPLATES DISPONÍVEIS (video-shotcraft): odometer-digit-roll, gauge-readout-moves, chart-live-moves, particle-sand-fill, before-after-slider-scrub, timeline-travel, list-stack-press, wall-reveal-moves, crash-zoom-punch, impact-feedback, slam-entrance-moves, gradient-word-sweep, marker-underline-title, type-entrance-moves, brand-ink-open, trailer-grammar-moves, space-camera-moves, crane-rise-reveal, canvas-materialize-moves, shot-transitions, transition-hidden-cut.",
+    "- PROIBIDO usar: location-intro, geo-map, ou qualquer template que não esteja na lista acima.",
+    "- Para texto/título use: gradient-word-sweep, marker-underline-title, type-entrance-moves, typewriter-moves (shotcraft). Nunca texto solto sem template.",
     studioCatalog.length
       ? "- CATÁLOGO DO NICHO (Template Studio): escolha template_id conforme motion_template_id que melhor encaixa na narração de cada cena — a IA decide automaticamente, sem seleção manual do usuário."
       : "",
     studioCatalog.length
       ? `CATÁLOGO_TEMPLATE_STUDIO:\n${JSON.stringify(studioCatalog, null, 2)}`
       : "",
-    "- Shorts 9:16 usam no maximo 1 template Remotion automatico; videos 16:9 longos usam ate 8 templates.",
-    "- location-intro cidade: place_type city, zoom_from 3, zoom_to 10 (máx), boundaryGeoJson obrigatório.",
-    "- location-intro POI (forte, ponte, monumento): place_type poi, zoom_from 3, zoom_to 17.",
-    "- location-intro: duration_seconds minimo 8, max 10 em shorts 9:16 e max 20 em videos longos 16:9.",
-    "- geo-map: só quando basta pin regional (sem descida); props.location + region obrigatórios.",
+    "- DENSIDADE: Shorts 9:16 max 2-3 motion scenes (alta energia, nao polua). Longo 16:9 max 6-8 distribuidas equilibradamente (max 1 por bloco, nao empilhe 2+ na mesma janela de 5s).",
     "- counter: value numérico real + label curto em PT-BR (extraído da narração).",
     "- bar-chart: props.items com labels e valores reais da narração (mín. 2 itens).",
     "- timeline: events com year + label (mín. 2 eventos quando houver datas).",
@@ -330,13 +354,13 @@ export function buildMotionSceneEnrichmentPrompt({
       ? `PESQUISA DO ROTEIRO (priorize estes fatos — NÃO invente dados genéricos):\nFATOS:\n${researchFacts.map((f) => `- ${f}`).join("\n")}\n\nFONTES:\n${researchSources.map((s) => `- ${s.title || s.url}: ${s.snippet || ""}`).join("\n")}`
       : "PESQUISA DO ROTEIRO: (nenhuma fonte no storyboard)",
     "",
-    "PLANO HEURÍSTICO:",
-    JSON.stringify(scenes, null, 2),
+    isGenerationMode ? "" : "PLANO HEURÍSTICO:",
+    isGenerationMode ? "" : JSON.stringify(scenes, null, 2),
     "",
-    "CONTEXTO visual_prompts:",
+    "CONTEXTO visual_prompts (cenas do vídeo com narração):",
     JSON.stringify(visualContext, null, 2),
     "",
-    'Retorne APENAS JSON: { "motion_scenes": [ { "id", "template_id", "props": { ... , "studio_props": { slot: valor } } } ], "notes": "breve" }',
+    'Retorne APENAS JSON: { "motion_scenes": [ { "id", "scene_ref", "template_id", "trigger", "duration_seconds", "props": { ... } } ], "notes": "breve" }',
   ].join("\n");
 }
 
@@ -575,11 +599,15 @@ export function applyLlmEnrichmentToPlan(
   const nichePack =
     heuristicPlan.niche_pack || resolveNichePack(config, storyboard);
   const researchContext = buildMotionResearchContext(storyboard, config);
+  const heuristicScenes = heuristicPlan.motion_scenes || [];
   const heuristicById = new Map(
-    (heuristicPlan.motion_scenes || []).map((s) => [String(s.id), s])
+    heuristicScenes.map((s) => [String(s.id), s])
   );
+  const isGenerationMode = heuristicScenes.length === 0;
 
   const llmById = new Map();
+  const generatedScenes = [];
+  const usedTemplateIds = new Set(); // dedup: nunca repetir template no mesmo vídeo
   for (const raw of rawScenes) {
     const normalized = normalizeLlmMotionScene(raw, heuristicById, {
       accentColor,
@@ -587,11 +615,38 @@ export function applyLlmEnrichmentToPlan(
       researchContext,
     });
     if (!normalized?.id) continue;
-    if (!heuristicById.has(String(normalized.id))) continue;
-    llmById.set(String(normalized.id), normalized);
+    // Deduplicação global de template_id
+    const tid = String(normalized.template_id || "");
+    if (tid && usedTemplateIds.has(tid)) continue;
+    if (tid) usedTemplateIds.add(tid);
+    if (isGenerationMode) {
+      // Generation mode: accept LLM-created scenes directly
+      generatedScenes.push(normalized);
+    } else {
+      // Refinement mode: only accept scenes matching heuristic IDs
+      if (!heuristicById.has(String(normalized.id))) continue;
+      llmById.set(String(normalized.id), normalized);
+    }
   }
 
-  const motion_scenes = (heuristicPlan.motion_scenes || []).map((heuristic) => {
+  // Generation mode: LLM created scenes from scratch
+  if (isGenerationMode) {
+    const contractFiltered = filterScenesFailingStudioContract(generatedScenes);
+    return {
+      ...heuristicPlan,
+      motion_scenes: enrichMotionScenesWithResearch(
+        contractFiltered.scenes,
+        researchContext
+      ),
+      planner_version: 2,
+      source: "llm_generation",
+      llm_notes: String(llmPayload?.notes || "").slice(0, 500),
+      studio_contract_rejected: contractFiltered.rejected,
+    };
+  }
+
+  // Refinement mode: merge LLM enrichments into heuristic scenes
+  const motion_scenes = heuristicScenes.map((heuristic) => {
     const llm = llmById.get(String(heuristic.id));
     if (!llm) return heuristic;
     const startHint = Number.isFinite(Number(llm.start_hint))

@@ -177,13 +177,44 @@ function resolveReverseSceneVideoPrompt(scene: ReverseScene) {
     .join(" ");
 }
 
+const VIDEO_SCENE_MAX_SEC = 10;
+
+/** Split video scenes > 10s into sub-scenes (max 10s each). */
+function splitLongVideoScenesLocal(scenes: ReverseScene[]): ReverseScene[] {
+  const result: ReverseScene[] = [];
+  for (const scene of scenes) {
+    const dur = Number(scene.duration_sec) || 5;
+    if (scene.media_type !== "video" || dur <= VIDEO_SCENE_MAX_SEC) {
+      result.push(scene);
+      continue;
+    }
+    const parts = Math.ceil(dur / VIDEO_SCENE_MAX_SEC);
+    const partDur = dur / parts;
+    const words = (scene.narration || "").split(/\s+/).filter(Boolean);
+    const wordsPerPart = Math.ceil(words.length / parts);
+    const suffixes = "abcdefghijklmnopqrstuvwxyz";
+    for (let i = 0; i < parts; i++) {
+      result.push({
+        ...scene,
+        id: `${scene.id}${suffixes[i] || String(i + 1)}`,
+        duration_sec: Math.round(partDur * 10) / 10,
+        narration: words.slice(i * wordsPerPart, (i + 1) * wordsPerPart).join(" ") || scene.narration,
+        speech_segments: [],
+        video_prompt: scene.video_prompt ? `${scene.video_prompt} (part ${i + 1}/${parts})` : scene.video_prompt,
+      });
+    }
+  }
+  return result.map((s, idx) => ({ ...s, order: idx + 1 }));
+}
+
 function buildPrebuiltStoryboard(result: ReverseResult) {
+  const expandedScenes = splitLongVideoScenesLocal(result.scenes);
   const maxBlocks = result.format === "SHORTS" ? 4 : 8;
   const scenesPerBlock = Math.max(
     1,
-    Math.ceil(result.scenes.length / maxBlocks)
+    Math.ceil(expandedScenes.length / maxBlocks)
   );
-  const visualPrompts = result.scenes.map((scene, index) => {
+  const visualPrompts = expandedScenes.map((scene, index) => {
     const block = Math.floor(index / scenesPerBlock) + 1;
     const sceneInBlock = (index % scenesPerBlock) + 1;
     const mediaType = scene.media_type === "image" ? "image" : "video";
@@ -341,6 +372,7 @@ export function VideoReverseEngineeringLab({
   const [instructions, setInstructions] = useState("");
   const [rightsConfirmed, setRightsConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [forceNext, setForceNext] = useState(false);
   const [result, setResult] = useState<ReverseResult | null>(null);
   const [activeView, setActiveView] = useState<
     "blueprint" | "narration" | "scenes"
@@ -391,6 +423,7 @@ export function VideoReverseEngineeringLab({
             visual_map_only_prompts: visualMapOnly,
             instructions,
             rightsConfirmed,
+            force: forceNext,
           }),
         }
       );
@@ -403,6 +436,7 @@ export function VideoReverseEngineeringLab({
       setResult(data.result as ReverseResult);
       setActiveView("blueprint");
       setExpandedScene(data.result.scenes?.[0]?.id || null);
+      setForceNext(false);
       toast.success("Dossie audiovisual pronto para revisao.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha na analise.");
@@ -664,6 +698,18 @@ export function VideoReverseEngineeringLab({
             {loading
               ? "Assistindo e desmontando..."
               : "Executar engenharia reversa"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setResult(null);
+              setForceNext(true);
+              toast.success("Cache limpo. Próxima análise será do zero.");
+            }}
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-xs font-bold text-red-300 hover:bg-red-400/20 disabled:opacity-50"
+          >
+            ↺ Resetar (ignorar cache)
           </button>
         </aside>
 

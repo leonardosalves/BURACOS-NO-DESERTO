@@ -2,10 +2,57 @@
   "bySourceId": {
     "pexels:33893555": {
       "count": 1,
-      "projects": ["Uma_unica_bala_acabou"],
+      "projects": [
+        "Uma_unica_bala_acabou"
+      ],
       "lastScene": "timeline-studio",
       "lastQuery": "barão vermelho",
       "lastAt": "2026-07-13T23:27:21.028Z"
+    },
+    "pixabay:270164": {
+      "count": 1,
+      "projects": [
+        "Megaprojeto_das_Alturas_Ponte"
+      ],
+      "lastScene": "timeline-studio",
+      "lastQuery": "Abertura China Huajiang mergulho aéreo cânion",
+      "lastAt": "2026-07-21T20:41:22.169Z"
+    },
+    "pexels:34395633": {
+      "count": 1,
+      "projects": [
+        "Megaprojeto_das_Alturas_Ponte"
+      ],
+      "lastScene": "timeline-studio",
+      "lastQuery": "Fotografia Suspenso Pattern estática colossais pilares",
+      "lastAt": "2026-07-21T20:41:47.954Z"
+    },
+    "pexels:27941748": {
+      "count": 1,
+      "projects": [
+        "Megaprojeto_das_Alturas_Ponte"
+      ],
+      "lastScene": "timeline-studio",
+      "lastQuery": "Tomada Sua movimento focando cabos sustentação",
+      "lastAt": "2026-07-21T20:42:03.147Z"
+    },
+    "pexels:15221699": {
+      "count": 1,
+      "projects": [
+        "Megaprojeto_das_Alturas_Ponte"
+      ],
+      "lastScene": "timeline-studio",
+      "lastQuery": "Enquadramento Ponto Aplicar final simétrico heroico",
+      "lastAt": "2026-07-21T20:42:17.264Z"
+    },
+    "pexels:33651645": {
+      "count": 1,
+      "projects": [
+        "Ponte_do_Rio_Danshui"
+      ],
+      "lastScene": "timeline-studio",
+      "lastQuery": "Ponte do Rio Danshu",
+      "lastAt": "2026-07-21T22:00:55.449Z"
     }
   },
   "byRelPath": {
@@ -15,6 +62,41 @@
       "query": "barão vermelho",
       "sourceId": "pexels:33893555",
       "at": "2026-07-13T23:27:21.028Z"
+    },
+    "stock_Abertura_China_Huajiang_mergulho_aereo_canion_pixabay_270164_20260721204119.mp4": {
+      "project": "Megaprojeto_das_Alturas_Ponte",
+      "scene": "timeline-studio",
+      "query": "Abertura China Huajiang mergulho aéreo cânion",
+      "sourceId": "pixabay:270164",
+      "at": "2026-07-21T20:41:22.169Z"
+    },
+    "stock_Fotografia_Suspenso_Pattern_estatica_colossais_p_pexels_34395633_20260721204146.mp4": {
+      "project": "Megaprojeto_das_Alturas_Ponte",
+      "scene": "timeline-studio",
+      "query": "Fotografia Suspenso Pattern estática colossais pilares",
+      "sourceId": "pexels:34395633",
+      "at": "2026-07-21T20:41:47.954Z"
+    },
+    "stock_Tomada_Sua_movimento_focando_cabos_sustentacao_pexels_27941748_20260721204200.mp4": {
+      "project": "Megaprojeto_das_Alturas_Ponte",
+      "scene": "timeline-studio",
+      "query": "Tomada Sua movimento focando cabos sustentação",
+      "sourceId": "pexels:27941748",
+      "at": "2026-07-21T20:42:03.147Z"
+    },
+    "stock_Enquadramento_Ponto_Aplicar_final_simetrico_hero_pexels_15221699_20260721204216.jpg": {
+      "project": "Megaprojeto_das_Alturas_Ponte",
+      "scene": "timeline-studio",
+      "query": "Enquadramento Ponto Aplicar final simétrico heroico",
+      "sourceId": "pexels:15221699",
+      "at": "2026-07-21T20:42:17.264Z"
+    },
+    "stock_Ponte_do_Rio_Danshu_pexels_33651645_20260721220054.jpg": {
+      "project": "Ponte_do_Rio_Danshui",
+      "scene": "timeline-studio",
+      "query": "Ponte do Rio Danshu",
+      "sourceId": "pexels:33651645",
+      "at": "2026-07-21T22:00:55.449Z"
     }
   }
 }

@@ -58,6 +58,16 @@ export function writeCache(workspaceDir, key, result) {
   }
 }
 
+export function clearCacheForKey(workspaceDir, key) {
+  try {
+    const file = path.join(cacheDir(workspaceDir), `${key}.json`);
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function clearCache(workspaceDir) {
   const dir = cacheDir(workspaceDir);
   if (!fs.existsSync(dir)) return 0;

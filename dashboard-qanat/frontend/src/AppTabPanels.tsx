@@ -1,7 +1,6 @@
 import React, { Suspense } from "react";
 import { AppAiTab } from "./AppAiTab";
 import { AppCreatorTab } from "./AppCreatorTab";
-import { AppEditorTab } from "./AppEditorTab";
 import { AppHomeTab } from "./AppHomeTab";
 import { AppMusicTabPanel } from "./AppMusicTabPanel";
 import { AppSettingsTab } from "./AppSettingsTab";
@@ -24,7 +23,6 @@ import {
   Fingerprint,
   Globe,
   HeartPulse,
-  LayoutTemplate,
   Laugh,
   Layers,
   TrendingUp,
@@ -152,7 +150,6 @@ export function AppTabPanels({
   creatorTabProps,
   aiTabProps,
   uploadTabProps,
-  editorTabProps,
   settingsTabProps,
   statusTabProps,
   timelineTabProps,
@@ -477,12 +474,12 @@ export function AppTabPanels({
       )}
 
       {activeTab === "editor" && (
-        <TabErrorBoundary tabName="Editor">
-          <Suspense
-            fallback={<TabPanelFallback label="Carregando editor..." />}
-          >
-            <AppEditorTab {...editorTabProps} />
-          </Suspense>
+        <TabErrorBoundary tabName="Editor do Lumiera">
+          <LumieraEditor
+            activeProject={activeProject}
+            projectNiche={config?.niche || nicheInput || "Engenharia"}
+            projectConfig={config}
+          />
         </TabErrorBoundary>
       )}
 
@@ -517,22 +514,6 @@ export function AppTabPanels({
                 }
               />
             </Suspense>
-          </DashminPageLayout>
-        </TabErrorBoundary>
-      )}
-
-      {activeTab === "templates" && (
-        <TabErrorBoundary tabName="Editor do Lumiera">
-          <DashminPageLayout
-            title="Editor do Lumiera"
-            subtitle="Editor de motion templates por nicho, categoria e formato. Timeline multi-track com preview ao vivo."
-            breadcrumb={["Dashboard", "Estudio", "Editor do Lumiera"]}
-            icon={<LayoutTemplate className="w-5 h-5" />}
-          >
-            <LumieraEditor
-              activeProject={activeProject}
-              projectNiche={config?.niche || nicheInput || "Engenharia"}
-            />
           </DashminPageLayout>
         </TabErrorBoundary>
       )}

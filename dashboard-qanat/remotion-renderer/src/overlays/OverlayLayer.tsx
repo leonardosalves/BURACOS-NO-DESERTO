@@ -1,5 +1,15 @@
-import React from "react";
-import { Sequence, useVideoConfig } from "remotion";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  AbsoluteFill,
+  continueRender,
+  delayRender,
+  interpolate,
+  Sequence,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
+import { Lottie } from "@remotion/lottie";
 
 import { LowerThird, LowerThirdProps } from "./LowerThird";
 import { InfoCounter, InfoCounterProps } from "./InfoCounter";
@@ -19,6 +29,7 @@ import { LocationIntro, LocationIntroProps } from "./LocationIntro";
 import { StudioTemplateOverlay } from "./StudioTemplateOverlay";
 import { safeCustomStyle } from "./overlayStyleUtils";
 import { repairOverlayPropsEncoding } from "../textEncoding";
+import { ShotcraftLayer, type MotionShot } from "./ShotcraftLayer";
 
 // ─────────────────────────────────────────────────────────────────────
 // OverlayLayer — Manages rendering of all overlay elements
@@ -41,7 +52,10 @@ export type OverlayType =
   | "social-post"
   | "geo-map"
   | "pictogram-chart"
-  | "location-intro";
+  | "location-intro"
+  | "shotcraft"
+  | "lottie-overlay"
+  | "effect-overlay";
 
 export interface OverlayBase {
   /** Unique identifier */
@@ -132,6 +146,11 @@ export interface LocationIntroOverlay extends OverlayBase {
   props: LocationIntroProps;
 }
 
+export interface LumieraGenericOverlay extends OverlayBase {
+  type: "shotcraft" | "lottie-overlay" | "effect-overlay";
+  props: Record<string, unknown>;
+}
+
 export type Overlay =
   | LowerThirdOverlay
   | CounterOverlay
@@ -147,11 +166,76 @@ export type Overlay =
   | SocialPostOverlay
   | GeoMapOverlayItem
   | PictogramChartOverlay
-  | LocationIntroOverlay;
+  | LocationIntroOverlay
+  | LumieraGenericOverlay;
 
 interface OverlayLayerProps {
   overlays: Overlay[];
 }
+
+const LottieTimelineOverlay: React.FC<{
+  source: string;
+  positionX?: number;
+  positionY?: number;
+  scale?: number;
+  opacity?: number;
+}> = ({ source, positionX = 0.5, positionY = 0.5, scale = 1, opacity = 1 }) => {
+  const [animationData, setAnimationData] = useState<object | null>(null);
+  const handle = useMemo(() => delayRender(`Lottie timeline: ${source}`), [source]);
+  useEffect(() => {
+    let active = true;
+    const url = /^(https?:|data:|\/)/i.test(source) ? source : staticFile(source);
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Lottie HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((data) => { if (active) setAnimationData(data); })
+      .catch(() => { if (active) setAnimationData({}); })
+      .finally(() => continueRender(handle));
+    return () => { active = false; };
+  }, [handle, source]);
+  if (!animationData || !Object.keys(animationData).length) return null;
+  return (
+    <AbsoluteFill
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+        pointerEvents: "none",
+        opacity: Math.max(0, Math.min(1, Number(opacity) || 0)),
+        transform: `translate(${(Math.max(0, Math.min(1, Number(positionX))) - 0.5) * 100}%, ${(Math.max(0, Math.min(1, Number(positionY))) - 0.5) * 100}%) scale(${Math.max(0.25, Math.min(3, Number(scale) || 1))})`,
+        transformOrigin: "center center",
+      }}
+    >
+      <div style={{ width: "72%", height: "72%" }}>
+        <Lottie animationData={animationData} />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+const TimelineEffectOverlay: React.FC<{ effect?: unknown; durationInFrames: number }> = ({ effect, durationInFrames }) => {
+  const frame = useCurrentFrame();
+  const progress = interpolate(frame, [0, Math.max(1, durationInFrames - 1)], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const kind = String(effect || "fade");
+  const fadeOpacity = kind === "fade" ? Math.sin(progress * Math.PI) * 0.72 : 0;
+  const edgeOpacity = kind === "zoom-in" || kind === "zoom-out" ? 0.2 + Math.sin(progress * Math.PI) * 0.18 : 0;
+  const shakeX = kind === "shake" ? Math.sin(frame * 2.7) * 7 : 0;
+  const shakeY = kind === "shake" ? Math.cos(frame * 2.1) * 5 : 0;
+  return (
+    <AbsoluteFill
+      style={{
+        pointerEvents: "none",
+        background: fadeOpacity > 0 ? `rgba(0,0,0,${fadeOpacity})` : `radial-gradient(circle at 50% 50%, transparent 48%, rgba(0,0,0,${edgeOpacity}) 100%)`,
+        transform: `translate(${shakeX}px, ${shakeY}px)`,
+        backdropFilter: kind === "shake" ? "blur(0.7px)" : undefined,
+      }}
+    />
+  );
+};
 
 function sanitizeOverlayProps<T extends Overlay["props"]>(raw: T): T {
   const props = repairOverlayPropsEncoding({ ...(raw || {}) } as Record<
@@ -200,6 +284,25 @@ const OverlayComponent: React.FC<{
   const isMotionScene = Boolean(
     (props as { motion_scene?: boolean }).motion_scene
   );
+  const motionShot = (props as { motion_shot?: MotionShot }).motion_shot;
+  if (overlay.type === "shotcraft" && motionShot) {
+    return <ShotcraftLayer shot={motionShot} durationInFrames={durationInFrames} />;
+  }
+  if (overlay.type === "lottie-overlay") {
+    const source = String((props as { source?: unknown }).source || "");
+    return source ? (
+      <LottieTimelineOverlay
+        source={source}
+        positionX={Number((props as Record<string, unknown>).positionX ?? 0.5)}
+        positionY={Number((props as Record<string, unknown>).positionY ?? 0.5)}
+        scale={Number((props as Record<string, unknown>).scale ?? 1)}
+        opacity={Number((props as Record<string, unknown>).opacity ?? 1)}
+      />
+    ) : null;
+  }
+  if (overlay.type === "effect-overlay") {
+    return <TimelineEffectOverlay effect={(props as { effect?: unknown }).effect} durationInFrames={durationInFrames} />;
+  }
   if (studioSource) {
     return (
       <StudioTemplateOverlay

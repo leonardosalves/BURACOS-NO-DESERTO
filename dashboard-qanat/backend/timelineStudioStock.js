@@ -7,6 +7,7 @@ import path from "path";
 import https from "https";
 import { getWorkflowApiKeys } from "./workflowTools.js";
 import { registerStockUsage } from "./mediaUsageRegistry.js";
+import { downloadWebVideoViaYtDlp } from "./videoUnderstandingService.js";
 
 function httpsGetJson(url, headers = {}) {
   return new Promise((resolve, reject) => {
@@ -264,7 +265,12 @@ export async function importTimelineStock({
   const filename = `stock_${slugify(query || item.query || "broll")}_${sourceTag}_${stamp}${ext}`;
   const destPath = path.join(assetsDir, filename);
 
-  await downloadFile(item.downloadUrl, destPath);
+  const isDirectVideoUrl = /\.(mp4|webm|mov)(?:[?#]|$)/i.test(item.downloadUrl);
+  if (item.type === "video" && !isDirectVideoUrl) {
+    await downloadWebVideoViaYtDlp(item.downloadUrl, destPath);
+  } else {
+    await downloadFile(item.downloadUrl, destPath);
+  }
 
   const projectName = path.basename(projDir);
   if (workspaceDir) {

@@ -99,7 +99,7 @@ function hasRealTimelineSequence(text = "") {
   return years.length >= 2 || sequenceMarkers.length >= 2;
 }
 
-const GEO_TEMPLATES = new Set(["location-intro", "geo-map"]);
+const GEO_TEMPLATES = new Set([]);
 
 function isGeoTemplate(templateId) {
   return GEO_TEMPLATES.has(String(templateId || ""));
@@ -767,6 +767,9 @@ export function boostStudioMotionScenesForLongForm({
       (s) => `${s.trigger}-${s.template_id}-${s.scene_ref || s.block}`
     )
   );
+  const usedTemplatesBoost = new Set(
+    boosted.map((s) => String(s.template_id || "")).filter(Boolean)
+  );
   const previousStudioIds = boosted
     .map((s) => String(s.props?.template_studio_id || "").trim())
     .filter(Boolean);
@@ -804,14 +807,15 @@ export function boostStudioMotionScenesForLongForm({
       trigger,
       nichePack,
       preferredTemplates,
-      { text: narration, previousTemplates }
+      { text: narration, previousTemplates, usedTemplates: usedTemplatesBoost }
     );
     const templateId = templateDecision.template_id;
-    if (!APPROVED_ORCHESTRATION_TEMPLATES.has(templateId)) continue;
+    if (!templateId || !APPROVED_ORCHESTRATION_TEMPLATES.has(templateId)) continue;
 
     const dedupeKey = sceneDedupeKey(trigger, templateId, vp);
     if (usedDedupe.has(dedupeKey)) continue;
     usedDedupe.add(dedupeKey);
+    usedTemplatesBoost.add(templateId);
 
     let scene = {
       ...buildBaseMotionScene({
@@ -885,6 +889,34 @@ function resolveSceneAssetFromVp(vp = {}) {
   );
 }
 
+/**
+ * Política de densidade por formato — controla quantidade e distribuição de templates.
+ */
+export function resolveTemplateDensityPolicy(aspectRatio = "16:9", niche = "", totalDuration = 0) {
+  const isShort = String(aspectRatio || "") === "9:16";
+  if (isShort) {
+    return {
+      maxScenes: 3,
+      minGapSeconds: 8,
+      maxPerBlock: 1,
+      preferHighEnergy: true,
+      allowedCategories: ["dados", "impacto", "destaque", "comparacao", "lista"],
+      antiPollutionWindow: 5,
+    };
+  }
+  // Longo — escala com duração
+  const dur = Number(totalDuration) || 600;
+  const maxByDuration = Math.min(8, Math.max(4, Math.round(dur / 90)));
+  return {
+    maxScenes: maxByDuration,
+    minGapSeconds: 15,
+    maxPerBlock: 1,
+    preferHighEnergy: false,
+    allowedCategories: null, // todas permitidas
+    antiPollutionWindow: 5,
+  };
+}
+
 export function limitMotionScenesForFormat(scenes = [], aspectRatio = "16:9") {
   const approved = (Array.isArray(scenes) ? scenes : []).filter((scene) => {
     const semanticTemplateId = String(
@@ -893,16 +925,14 @@ export function limitMotionScenesForFormat(scenes = [], aspectRatio = "16:9") {
     return APPROVED_ORCHESTRATION_TEMPLATES.has(semanticTemplateId);
   });
   const isShort = String(aspectRatio || "") === "9:16";
-  const max = isShort
-    ? REMOTION_TEMPLATE_LIMITS.shortMax
-    : REMOTION_TEMPLATE_LIMITS.longMax;
+  const policy = resolveTemplateDensityPolicy(aspectRatio);
+  const max = policy.maxScenes;
 
-  if (isShort && approved.length > 1) {
-    const geoScenes = approved.filter((scene) => {
-      return isGeoTemplate(
-        scene.props?.legacy_motion_template_id || scene.template_id
-      );
-    });
+  // Shorts: prioriza geo se existir, senão alta energia
+  if (isShort && approved.length > max) {
+    const geoScenes = approved.filter((scene) =>
+      isGeoTemplate(scene.props?.legacy_motion_template_id || scene.template_id)
+    );
     if (geoScenes.length) {
       return geoScenes
         .sort(
@@ -914,18 +944,71 @@ export function limitMotionScenesForFormat(scenes = [], aspectRatio = "16:9") {
     }
   }
 
-  if (approved.length <= max) return approved;
-  return approved
-    .map((scene, index) => ({ scene, index }))
+  if (approved.length <= max) return enforceAntiPollution(approved, policy);
+
+  // Seleciona por prioridade + distribuição por bloco
+  const byBlock = new Map();
+  for (const scene of approved) {
+    const blk = String(scene.block || scene.scene_ref?.split?.(".")[0] || "1");
+    if (!byBlock.has(blk)) byBlock.set(blk, []);
+    byBlock.get(blk).push(scene);
+  }
+
+  // Máx 1 por bloco — pega o melhor de cada bloco
+  const bestPerBlock = [];
+  for (const [, blockScenes] of byBlock) {
+    const sorted = blockScenes.sort(
+      (a, b) => motionScenePriority(b) - motionScenePriority(a)
+    );
+    bestPerBlock.push(sorted[0]);
+  }
+
+  const selected = bestPerBlock
     .sort(
       (a, b) =>
-        motionScenePriority(b.scene) - motionScenePriority(a.scene) ||
-        (Number(a.scene.start_hint) || 0) - (Number(b.scene.start_hint) || 0) ||
-        a.index - b.index
+        motionScenePriority(b) - motionScenePriority(a) ||
+        (Number(a.start_hint) || 0) - (Number(b.start_hint) || 0)
     )
     .slice(0, max)
-    .sort((a, b) => a.index - b.index)
-    .map((entry) => entry.scene);
+    .sort(
+      (a, b) =>
+        (Number(a.start_hint) || 0) - (Number(b.start_hint) || 0)
+    );
+
+  return enforceAntiPollution(selected, policy);
+}
+
+/**
+ * Anti-pollution: remove cenas que estejam dentro da mesma janela temporal.
+ */
+function enforceAntiPollution(scenes = [], policy = {}) {
+  const window = policy.antiPollutionWindow || 5;
+  const result = [];
+  for (const scene of scenes) {
+    const start = Number(scene.start_hint) || 0;
+    const tooClose = result.some((prev) => {
+      const prevStart = Number(prev.start_hint) || 0;
+      return Math.abs(start - prevStart) < window;
+    });
+    if (!tooClose) result.push(scene);
+  }
+  return result;
+}
+
+/**
+ * Remove cenas com template_id repetido (mantém a primeira ocorrência).
+ * Garante que o mesmo template nunca apareça duas vezes no mesmo vídeo.
+ */
+function deduplicateMotionScenesByTemplate(scenes) {
+  if (!Array.isArray(scenes)) return scenes;
+  const seen = new Set();
+  return scenes.filter((scene) => {
+    const tid = String(scene?.template_id || "").trim();
+    if (!tid) return true; // sem template_id, mantém
+    if (seen.has(tid)) return false; // duplicado, remove
+    seen.add(tid);
+    return true;
+  });
 }
 
 /**
@@ -959,6 +1042,7 @@ export function planMotionScenesFromStoryboard(
   const reviewEntries = [];
   const skippedEntries = [];
   const usedTriggers = new Set();
+  const usedTemplatesMain = new Set();
   const previousTemplates = [];
   const previousStudioIds = [];
   const previousStudioCategories = [];
@@ -998,10 +1082,11 @@ export function planMotionScenesFromStoryboard(
       {
         text: narration,
         previousTemplates,
+        usedTemplates: usedTemplatesMain,
       }
     );
     const templateId = templateDecision.template_id;
-    if (!APPROVED_ORCHESTRATION_TEMPLATES.has(templateId)) {
+    if (!templateId || !APPROVED_ORCHESTRATION_TEMPLATES.has(templateId)) {
       skippedEntries.push(
         buildTemplateReviewEntry({
           vp,
@@ -1030,6 +1115,7 @@ export function planMotionScenesFromStoryboard(
       continue;
     }
     usedTriggers.add(dedupeKey);
+    usedTemplatesMain.add(templateId);
 
     const triggerMeta = MOTION_SCENE_TRIGGERS[trigger] || {};
 
@@ -1248,9 +1334,8 @@ export function planMotionScenesFromStoryboard(
     renderPolicy,
     totalDurationFromBlockTimings(blockTimings, visualPrompts)
   );
-  const enrichedScenes = enrichMotionScenesWithResearch(
-    limitedScenes,
-    researchContext
+  const enrichedScenes = deduplicateMotionScenesByTemplate(
+    enrichMotionScenesWithResearch(limitedScenes, researchContext)
   );
 
   return {

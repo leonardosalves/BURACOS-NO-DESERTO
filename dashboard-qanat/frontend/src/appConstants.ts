@@ -1,13 +1,12 @@
 import {
   Layers,
+  LayoutTemplate,
   Music,
-  Settings,
   Share2,
   Sparkles,
   Terminal,
   Tv,
   Wand2,
-  Network,
 } from "lucide-react";
 import type { PendingRenderJob } from "./appTypes";
 
@@ -54,8 +53,8 @@ export const PROJECT_WORKSPACE_TABS = [
   },
   {
     id: "editor" as const,
-    label: "Editor",
-    icon: Settings,
+    label: "Editor do Lumiera",
+    icon: LayoutTemplate,
     helpId: "tab-editor",
   },
   {
@@ -63,11 +62,5 @@ export const PROJECT_WORKSPACE_TABS = [
     label: "Terminal",
     icon: Terminal,
     helpId: "tab-terminal",
-  },
-  {
-    id: "graphify" as const,
-    label: "Graphify",
-    icon: Network,
-    helpId: "tab-graphify",
   },
 ];

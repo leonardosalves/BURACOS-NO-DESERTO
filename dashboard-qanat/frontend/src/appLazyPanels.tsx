@@ -39,7 +39,7 @@ export const LazyLumieraDubPanel = LumieraDubPanel;
 export const LazyNarrationReplacePanel = NarrationReplacePanel;
 export const LazyAppMusicTab = AppMusicTab;
 export const LazyFlowLabPage = FlowLabPage;
-/** RemotionTemplateStudio removido da navegação — use Editor do Lumiera (tab templates). */
+/** RemotionTemplateStudio removido da navegação — use Editor do Lumiera (tab editor). */
 export const LazyVideoMonitorPage = VideoMonitorPage;
 
 export function TabPanelFallback({

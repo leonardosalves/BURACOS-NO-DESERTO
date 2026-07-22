@@ -3,12 +3,10 @@
 > 🔗 [[MEMORIA-LUMIERA]] · [[skills/whiteboard-video]] · [[skills/whiteboard-video/SKILL]] · [[SKILLS]]
 
 ### references
-
 - [[references/image-providers]]
 - [[references/install-layout]]
 
 ### runtime
-
 - [[runtime/hand-drawn-infographic-creator/EXAMPLE_OUTPUT]]
 - [[runtime/hand-drawn-infographic-creator/INTERNAL_SKILL]]
 - [[runtime/hand-drawn-infographic-creator/README]]
@@ -35,3 +33,4 @@
 - [[runtime/whiteboard-infographic-pipeline-orchestrator/references/runbook]]
 - [[runtime/whiteboard-infographic-video-renderer/INTERNAL_SKILL]]
 - [[runtime/whiteboard-infographic-video-renderer/references/contracts]]
+

@@ -71,6 +71,12 @@ type TimelineScene = {
 
   duration: number;
 
+  /** Ponto de entrada no arquivo original, em segundos. */
+  sourceStart?: number;
+
+  /** Ponto de saída no arquivo original, em segundos. */
+  sourceEnd?: number;
+
   narrationText?: string;
 
   editorNotes?: string;
@@ -98,7 +104,7 @@ type TimelineScene = {
   visual_filter?: string;
 };
 
-type Caption = {
+export type Caption = {
   text: string;
 
   startMs: number;
@@ -760,6 +766,7 @@ const SceneMedia: React.FC<{
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <Video
           src={assetUrl(scene.asset)}
+          trimBefore={Math.max(0, Math.round((scene.sourceStart || 0) * fps))}
           muted={clipVolume <= 0}
           loop={false}
           volume={resolveClipVolume}
@@ -938,7 +945,7 @@ function isWordByWordCaptionMode(mode: CaptionModeId): boolean {
   );
 }
 
-const CaptionLayer: React.FC<{
+export const CaptionLayer: React.FC<{
   captions: Caption[];
   captionStyle?: "shorts-viral" | "documentary";
   captionMode?: CaptionModeId;

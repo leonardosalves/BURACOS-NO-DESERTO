@@ -325,8 +325,8 @@
     "semantic_hash": "8e5c7c0d1b837c47fbd7dd480c335ad2"
   },
   ".agents/stock_usage_registry.json": {
-    "mtime": 1784338718.253772,
-    "ast_hash": "ab9898c4dfed13a7585a48ab82dd478a",
+    "mtime": 1784686340.1815217,
+    "ast_hash": "ab8c99d0fc675eb6ca227e7c5901b5b5",
     "semantic_hash": ""
   },
   ".codex/hooks.json": {
@@ -350,8 +350,8 @@
     "semantic_hash": ""
   },
   "agent_runs.json": {
-    "mtime": 1784559516.7761948,
-    "ast_hash": "07bacce6bd78644226973cd9df9627a6",
+    "mtime": 1784690084.8265789,
+    "ast_hash": "e49ae7c83bf56941a973e9bf365d0d02",
     "semantic_hash": ""
   },
   "align_transcripts.py": {
@@ -515,8 +515,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/aiJsonParse.js": {
-    "mtime": 1782885654.6938553,
-    "ast_hash": "732e100bc75cadb9ea6602d533bccb45",
+    "mtime": 1784608357.517624,
+    "ast_hash": "717deb34b6149097c3f670fbb9762ea8",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/archiveOrgStock.js": {
@@ -560,8 +560,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/bingImageStock.js": {
-    "mtime": 1782936545.05855,
-    "ast_hash": "17c7879cd5dfaab2bb799f5d5fbd94b4",
+    "mtime": 1784694411.0808177,
+    "ast_hash": "189494a802e75bc2c94753266520a429",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/blenderMapService.js": {
@@ -655,8 +655,8 @@
     "semantic_hash": "c25b553812299a113799a7065171fdbc"
   },
   "dashboard-qanat/backend/data/remotion-template-catalog.json": {
-    "mtime": 1784571181.3154733,
-    "ast_hash": "e70b821280a1513f60e29cd3ca10ddf8",
+    "mtime": 1784699450.5794165,
+    "ast_hash": "fa3fc4ae7874a5d19130cd830e9ea51c",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/deerFlowResearch.js": {
@@ -835,13 +835,13 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/motionSceneLlmEnrichment.js": {
-    "mtime": 1783789177.232589,
-    "ast_hash": "ad7c8cf2b1707be04a8bf4cfa2adff35",
+    "mtime": 1784688736.606755,
+    "ast_hash": "ab0c827f1bef0a49aeda905d549ec2ff",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/motionScenePlanner.js": {
-    "mtime": 1784436955.1014838,
-    "ast_hash": "c6c1b210cf8710b5d6d17485495ff094",
+    "mtime": 1784688736.6083133,
+    "ast_hash": "04a46b422ff714925449c90682f093cd",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/motionSceneQualityService.js": {
@@ -880,13 +880,13 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/narrationChunks.js": {
-    "mtime": 1784488860.0169816,
-    "ast_hash": "33c1c04b0ffb6cb32a4c5fce20ec58f1",
+    "mtime": 1784600637.6719973,
+    "ast_hash": "ee1252947b9eb43201e65d8893f10a65",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/narrationChunks.test.js": {
-    "mtime": 1784478851.1923563,
-    "ast_hash": "8d49ebf9161bb5105fa2b01fa5f2ab9e",
+    "mtime": 1784591006.0709524,
+    "ast_hash": "f3919fbf97e48618e42437b714cba5af",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/narrationComparison.js": {
@@ -1025,8 +1025,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/productionOrchestrator.js": {
-    "mtime": 1784439840.8294947,
-    "ast_hash": "dccbe069c435931032dd4c116cd518ee",
+    "mtime": 1784688736.6099195,
+    "ast_hash": "2c96de085eb3a9b5cbf9d9fb8be847c3",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/professionalSfxMultimodal.js": {
@@ -1165,8 +1165,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/researchRoutes.js": {
-    "mtime": 1784338717.263277,
-    "ast_hash": "214b8981fdee7437a22ece916376681e",
+    "mtime": 1784686340.1969237,
+    "ast_hash": "ef0740326062bb02686ca714a2b654a3",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/researchValidator.js": {
@@ -1260,18 +1260,18 @@
     "semantic_hash": "7b60129ad1d0c9beab1235ec1762682b"
   },
   "dashboard-qanat/backend/scriptQuality/visualPromptEngineer.js": {
-    "mtime": 1784561524.3383632,
-    "ast_hash": "264e50c154c5c5523c0c524ff593bf0f",
+    "mtime": 1784645440.3411462,
+    "ast_hash": "e67c0949adec6f4687ce6a7d5dd2ec46",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/scriptQuality/visualPromptEngineer.test.js": {
-    "mtime": 1784436955.2457035,
-    "ast_hash": "e6cdeacd8faee72cd1b7ff23ab506b5d",
+    "mtime": 1784645440.3456786,
+    "ast_hash": "ef00971b4439b6523a176974dcb4c41f",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/scriptQuality/visualPromptPipeline.js": {
-    "mtime": 1784493250.0828466,
-    "ast_hash": "87ba334cd29ff53eee9ffa0ba6a341d1",
+    "mtime": 1784645440.3517737,
+    "ast_hash": "35ace6a364fb4cc2c0c25be85e48eb66",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/scripts/test-template-adapt.mjs": {
@@ -1295,8 +1295,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/server.js": {
-    "mtime": 1784569848.6160626,
-    "ast_hash": "b2bad1540f56113eb782f903c9fbadb6",
+    "mtime": 1784691350.7802408,
+    "ast_hash": "40861c968ae1f1f68e366af2a04de983",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/shared/atomicJson.js": {
@@ -1325,8 +1325,8 @@
     "semantic_hash": "b7e46ecc330e32397314bcd402b83b0a"
   },
   "dashboard-qanat/backend/skillsRegistry.js": {
-    "mtime": 1782917676.2939384,
-    "ast_hash": "7c98e10d115fc2f383d4776985de45e8",
+    "mtime": 1784645440.364402,
+    "ast_hash": "0a3b89d877a7f36f60b92b5453bdbe18",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/slideshowRisk.js": {
@@ -1355,8 +1355,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/specializedStoryboardImport.js": {
-    "mtime": 1784338718.4095974,
-    "ast_hash": "efb0fb5cedfede11b59e09c8e17fbf37",
+    "mtime": 1784593868.9193645,
+    "ast_hash": "2bc13d874243975369de27c961620858",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/specializedStoryboardImport.test.js": {
@@ -1365,8 +1365,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/stockSearchQuery.js": {
-    "mtime": 1784338718.4274175,
-    "ast_hash": "b947af6aae8c382606b4c594d0bca521",
+    "mtime": 1784645440.3696473,
+    "ast_hash": "7f2e7cc14b9e9d924d2ff431b51a885c",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/storyboardResearchEnsure.js": {
@@ -1375,13 +1375,13 @@
     "semantic_hash": "c25e0dad31c1de3b45e8a316674d2748"
   },
   "dashboard-qanat/backend/studioAgents.js": {
-    "mtime": 1782887763.3741093,
-    "ast_hash": "23b1f2d76862865e149de35056f373e5",
+    "mtime": 1784579306.0081296,
+    "ast_hash": "2ec234f226618c9a1d9a57a0f5e70210",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/studio_agents_config.json": {
-    "mtime": 1784559516.7882242,
-    "ast_hash": "5a797d155e894b76d79399ae7bbc701b",
+    "mtime": 1784645440.37466,
+    "ast_hash": "7c7a2da615799ba4dd9859e8d9064d14",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/supermemoryClient.js": {
@@ -1425,24 +1425,24 @@
     "semantic_hash": "9678ddac4b65d092d8d674834729b72a"
   },
   "dashboard-qanat/backend/timelineStudioNichePacks.js": {
-    "mtime": 1783571444.6022134,
-    "ast_hash": "8fe334d6f6a4a90ff7e8cd92739246ba",
+    "mtime": 1784687577.8976562,
+    "ast_hash": "b9c29a2331ba45d9955c73de6e4213bd",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/timelineStudioRenderSync.js": {
-    "mtime": 1784361584.7886934,
-    "ast_hash": "5994c8470583e13392c8347a98a2e96c",
+    "mtime": 1784694841.599316,
+    "ast_hash": "77a69e526ca5ab7cbdb87523c1bb255f",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/timelineStudioRoutes.js": {
-    "mtime": 1784085023.7947476,
-    "ast_hash": "f3f7efc781d621fadd1a4f008db2d944",
-    "semantic_hash": "f3f7efc781d621fadd1a4f008db2d944"
+    "mtime": 1784692181.9755902,
+    "ast_hash": "1336e8acf82a33dde467abdb92dec982",
+    "semantic_hash": ""
   },
   "dashboard-qanat/backend/timelineStudioStock.js": {
-    "mtime": 1784085023.7957585,
-    "ast_hash": "ea1990aecddc389769cc598d7141a6fe",
-    "semantic_hash": "ea1990aecddc389769cc598d7141a6fe"
+    "mtime": 1784694446.701549,
+    "ast_hash": "179019c9d3f3918b83434a619043ef4d",
+    "semantic_hash": ""
   },
   "dashboard-qanat/backend/timesfmForecast.js": {
     "mtime": 1783144650.21189,
@@ -1515,8 +1515,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/videoResurrector.js": {
-    "mtime": 1784338718.545552,
-    "ast_hash": "f464787685d2f86122c43e31fd57018c",
+    "mtime": 1784700253.5972471,
+    "ast_hash": "5aba42bf1789f6789863bc287f8a02d8",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/videoResurrectorRoutes.js": {
@@ -1530,8 +1530,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/videoReverseEngineering.js": {
-    "mtime": 1784338718.5837426,
-    "ast_hash": "c1fbf3e0e2bb804ff6a433193b4dba17",
+    "mtime": 1784686340.2074513,
+    "ast_hash": "9b74a2d5b8897b878737ce2a25ffabe4",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/videoReverseEngineering.test.js": {
@@ -1540,8 +1540,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/videoUnderstandingService.js": {
-    "mtime": 1784338718.6136904,
-    "ast_hash": "e0dc6a818a8cd0239f2dbbb3c2f18b4e",
+    "mtime": 1784694432.0981922,
+    "ast_hash": "9d0c96621d28007a05e28dfba1021b35",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/videoUnderstandingService.test.js": {
@@ -1570,8 +1570,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/workflowRoutes.js": {
-    "mtime": 1784439021.5027626,
-    "ast_hash": "1a210063acac07b43c828f1e35ee47ff",
+    "mtime": 1784693886.514834,
+    "ast_hash": "fe6002c4f8fd05cf333d58b7bcb77a62",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/workflowTools.js": {
@@ -1600,7 +1600,7 @@
     "semantic_hash": "6f3f848064c8eef47efb2ffbae746c00"
   },
   "dashboard-qanat/backend/youtubeQualityGate.js": {
-    "mtime": 1784356048.1197696,
+    "mtime": 1784700290.6119847,
     "ast_hash": "e6b9d0061e0c1c0726b133d8ffd624a9",
     "semantic_hash": ""
   },
@@ -1815,8 +1815,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/App.tsx": {
-    "mtime": 1784571066.0697613,
-    "ast_hash": "759461b146affb72c284248ff59005e0",
+    "mtime": 1784690558.7747304,
+    "ast_hash": "505eaa04d9dece957abab651b839bc50",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/AppAiTab.tsx": {
@@ -1825,8 +1825,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/AppCreatorTab.tsx": {
-    "mtime": 1784571143.719674,
-    "ast_hash": "be4d64e7313e7832eccc1bd98c0c9cae",
+    "mtime": 1784686340.2139542,
+    "ast_hash": "3133c7908c9ca3cd69cd2d583b3f2788",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/AppDocsTab.tsx": {
@@ -1860,23 +1860,23 @@
     "semantic_hash": "1db91b0928cecb3d51ef23bcb928086e"
   },
   "dashboard-qanat/frontend/src/AppSettingsTab.tsx": {
-    "mtime": 1784568587.2694974,
-    "ast_hash": "d47770b39202e18e88d1874809d5696c",
+    "mtime": 1784645440.4136384,
+    "ast_hash": "5f82aaf592a9a076824c258ec1a92dd7",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/AppShell.tsx": {
-    "mtime": 1784571057.4494338,
-    "ast_hash": "02c40afbcaaa14d8ef6c5023c63de830",
+    "mtime": 1784692803.205048,
+    "ast_hash": "6c34011593e5a883f2bf02e09332db58",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/AppStatusTab.tsx": {
-    "mtime": 1784438429.0421157,
-    "ast_hash": "1f3db0f47a1799a021ed3043aa486069",
+    "mtime": 1784686340.2159593,
+    "ast_hash": "4214249edb4931b02a0c57fc4d4ec1b7",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/AppTabPanels.tsx": {
-    "mtime": 1784559516.7908864,
-    "ast_hash": "1f6268e90395613272f6d51c7ece5e76",
+    "mtime": 1784695673.2128334,
+    "ast_hash": "f2b5d71f994e3e489bee52b22951cd77",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/AppTerminalTab.tsx": {
@@ -1915,8 +1915,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/BackendActivityPanel.tsx": {
-    "mtime": 1784359026.8865805,
-    "ast_hash": "9a10c71dbd876368dce23b33291ac1e4",
+    "mtime": 1784645438.5164814,
+    "ast_hash": "d9a0212ead7f8592931cf6a1323ce9f1",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/BackendStatusBanner.tsx": {
@@ -1960,8 +1960,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/CollageBrollLab.tsx": {
-    "mtime": 1784386963.780821,
-    "ast_hash": "248662d974851b05fae66c508c134123",
+    "mtime": 1784645438.5184817,
+    "ast_hash": "aa69375e5b008a7270f1465b8660b8e8",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/CollageCreatorStep1.tsx": {
@@ -2150,8 +2150,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/NarrationReviewPanel.tsx": {
-    "mtime": 1784430906.1658642,
-    "ast_hash": "1b9030ca774681f7923ffbfc4db64640",
+    "mtime": 1784687852.2410052,
+    "ast_hash": "23326f47a688315ab9b246addb1f7998",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/NicheTag.tsx": {
@@ -2160,9 +2160,9 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/NicheTemplatePalette.tsx": {
-    "mtime": 1784085023.8162634,
-    "ast_hash": "ecc2e652d3ed519e1e9f485571b80271",
-    "semantic_hash": "ecc2e652d3ed519e1e9f485571b80271"
+    "mtime": 1784688706.8123727,
+    "ast_hash": "351d956b651c0934c6027aa7086cdfa6",
+    "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/NotebookLmConnect.tsx": {
     "mtime": 1783641730.3732708,
@@ -2245,18 +2245,13 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/ProjectYoutubeCard.tsx": {
-    "mtime": 1782880572.027898,
-    "ast_hash": "47785817a3749fe4adf3ad64c0f0b9f5",
+    "mtime": 1784645438.5209901,
+    "ast_hash": "13e74ab2e7a035501dc4f5af88d8dea9",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/ProjectsLibraryPanel.tsx": {
     "mtime": 1783021479.4434302,
     "ast_hash": "15f102c0e46d35b2f1206ae26423c648",
-    "semantic_hash": ""
-  },
-  "dashboard-qanat/frontend/src/RemotionTemplateStudio.tsx": {
-    "mtime": 1784338718.7553706,
-    "ast_hash": "2bf45c61824f49b40501a08ab33a10b8",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/RichTimelineEditor.tsx": {
@@ -2300,8 +2295,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/SocialPublishPanel.tsx": {
-    "mtime": 1783277984.931817,
-    "ast_hash": "f2d66ebb76fa0594836d48dc273fbd87",
+    "mtime": 1784645438.5229897,
+    "ast_hash": "5a8d9ca85499dd98a4c982af242e9875",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/StockMediaPanel.tsx": {
@@ -2310,8 +2305,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/StudioAgents.tsx": {
-    "mtime": 1783532887.5611463,
-    "ast_hash": "ccd601e4fbc86d12de2cba41b9d81af7",
+    "mtime": 1784645438.5254982,
+    "ast_hash": "c127087dde00e2955cbd5cbe0d805b0e",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/TabErrorBoundary.tsx": {
@@ -2335,8 +2330,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/TimelineStudio.tsx": {
-    "mtime": 1784438429.1766486,
-    "ast_hash": "8e12e3941ac37aa9a82f56a685281024",
+    "mtime": 1784688090.0150037,
+    "ast_hash": "d43237aa2eb0ad121d72c021007e7d0f",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/TimelineStudioClipInspector.tsx": {
@@ -2360,9 +2355,9 @@
     "semantic_hash": "a8aca973af65b9f7ed068e416227fcd9"
   },
   "dashboard-qanat/frontend/src/TrendForecastPanel.tsx": {
-    "mtime": 1784085023.827444,
-    "ast_hash": "0e3093ad654b0edfc02d5291917f6a67",
-    "semantic_hash": "0e3093ad654b0edfc02d5291917f6a67"
+    "mtime": 1784590376.534836,
+    "ast_hash": "9223b5e5976d1d78d89df226f6d68cc9",
+    "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/TrendRadarNicheDetail.tsx": {
     "mtime": 1783959743.447292,
@@ -2380,13 +2375,13 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/VideoResurrectorPanel.tsx": {
-    "mtime": 1784159387.5082335,
-    "ast_hash": "d280788d7fa69b0d5bf2f3b434a51fbe",
+    "mtime": 1784590376.7191231,
+    "ast_hash": "856b2abe2a8a574d972ce0c6dc8ad662",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/VideoReverseEngineeringLab.tsx": {
-    "mtime": 1784524995.28994,
-    "ast_hash": "9886d84b1a1dd56ca0ee3310f9089d5a",
+    "mtime": 1784686340.2189584,
+    "ast_hash": "46b81ec2f51e37dcb5525f183c2507dc",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/VisualAssetStylePicker.tsx": {
@@ -2415,13 +2410,13 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/YoutubeStudioPanel.tsx": {
-    "mtime": 1782930067.9988532,
-    "ast_hash": "6d848c9db54a0dc9ed9d23c48d6e4b4d",
+    "mtime": 1784645438.531055,
+    "ast_hash": "3f4504b096adbfe890f59682d2549718",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/YoutubeStudioPro.tsx": {
-    "mtime": 1783213788.0438676,
-    "ast_hash": "0ccd275c063e5cb974d2f2332250d10b",
+    "mtime": 1784645438.5330548,
+    "ast_hash": "30b1c53e6d2faa970263d02ab025da52",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/YoutubeStudioSettings.tsx": {
@@ -2440,28 +2435,28 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/aiJobProgressClient.ts": {
-    "mtime": 1783641730.3793254,
+    "mtime": 1784622235.3749232,
     "ast_hash": "a33e73f213a880da351bc5d4df8267bb",
     "semantic_hash": "a33e73f213a880da351bc5d4df8267bb"
   },
   "dashboard-qanat/frontend/src/appConstants.ts": {
-    "mtime": 1784438020.2923903,
-    "ast_hash": "816ff1f42b8f28949d5c468ed2005d01",
+    "mtime": 1784688624.004819,
+    "ast_hash": "f673a078fca6d363b1db9b68aa52c078",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/appLazyPanels.tsx": {
-    "mtime": 1784510269.705338,
-    "ast_hash": "3ae3e39b929f11114f9977cf3d9e0855",
+    "mtime": 1784688638.4973054,
+    "ast_hash": "c240d5e34e3f9632b389f3c9d60bb534",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/appTabPropBundles.ts": {
-    "mtime": 1784568539.5391371,
-    "ast_hash": "872a1884273d20b406baf4582463476e",
+    "mtime": 1784686340.2204618,
+    "ast_hash": "796c439cd987f0c25d16f5fdc6310047",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/appTabs.ts": {
-    "mtime": 1784559516.7928839,
-    "ast_hash": "a7c4b252bb6d839ab65803e66d8b2d8d",
+    "mtime": 1784688624.0068173,
+    "ast_hash": "d1281df6db2e8162d332444e17868459",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/appTypes.ts": {
@@ -2635,8 +2630,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/geminiExtensionBridge.ts": {
-    "mtime": 1783378661.6664972,
-    "ast_hash": "45b997d0001762b561a402e5128adb61",
+    "mtime": 1784645438.561585,
+    "ast_hash": "fa75229916783da3b07e7162e3c573ff",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/geoPipPreview.ts": {
@@ -2650,8 +2645,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/geoVideoFlyover.ts": {
-    "mtime": 1783574293.9160194,
-    "ast_hash": "ae88c06f8fc58568e17fa6c0a46ac431",
+    "mtime": 1784645438.5625849,
+    "ast_hash": "f694d7a778dcff7258bad64cc9cfee6e",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/historicalWitnessTypes.ts": {
@@ -2680,8 +2675,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/main.tsx": {
-    "mtime": 1784571052.1450737,
-    "ast_hash": "7e4e9598a4fc790a42e3b77b8061019d",
+    "mtime": 1784645440.51648,
+    "ast_hash": "d519d858142ce9522e7742b2a6d221cd",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/motionEditorConfig.ts": {
@@ -2795,8 +2790,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/sectionHelpContent.tsx": {
-    "mtime": 1784559516.793885,
-    "ast_hash": "72422c5caba4f6ee18b061220da613fe",
+    "mtime": 1784688638.4963052,
+    "ast_hash": "497cdb753793665de42f7be1bfe1a62b",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/seedanceDirecting.ts": {
@@ -2820,8 +2815,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/stockSearchQuery.ts": {
-    "mtime": 1784338717.2416506,
-    "ast_hash": "752aaa1b860c975fecf830215d3c0545",
+    "mtime": 1784645440.520993,
+    "ast_hash": "6ad552c73ed3a821b21e6a3513f13620",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/studioClipInspectorSlots.ts": {
@@ -2945,8 +2940,8 @@
     "semantic_hash": "607e70c30c5bc6b70c3a835b20aad60c"
   },
   "dashboard-qanat/frontend/src/wizardSession.ts": {
-    "mtime": 1784438020.3021922,
-    "ast_hash": "4067b181423e2cd95f24adc9e7249371",
+    "mtime": 1784688624.007817,
+    "ast_hash": "13f978f6838256ac5bab072f862c2fa6",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/youtubeMetadataDisplay.tsx": {
@@ -2960,8 +2955,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/tailwind.config.js": {
-    "mtime": 1782923676.4058914,
-    "ast_hash": "42da92c3a9611d4485326fa2f08cf144",
+    "mtime": 1784686340.2298121,
+    "ast_hash": "ea81eae63db26c97a322d7f3905b8a10",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/tsconfig.json": {
@@ -2970,14 +2965,14 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/vite.config.ts": {
-    "mtime": 1783795278.0018058,
-    "ast_hash": "08ac7ada51347bcfd11f843a9c6588cd",
+    "mtime": 1784687729.6052947,
+    "ast_hash": "863dad77e46f54bff2116728c4d17d33",
     "semantic_hash": ""
   },
   "dashboard-qanat/remotion-renderer/package.json": {
-    "mtime": 1784085023.8478293,
-    "ast_hash": "ffa7d92c790b0b8b2230423d3bea2341",
-    "semantic_hash": "ffa7d92c790b0b8b2230423d3bea2341"
+    "mtime": 1784686340.2333152,
+    "ast_hash": "5fd77a1f7454f77ae41394d16c2f75f5",
+    "semantic_hash": ""
   },
   "dashboard-qanat/remotion-renderer/remotion.config.ts": {
     "mtime": 1783389491.738673,
@@ -3000,8 +2995,8 @@
     "semantic_hash": "53bc8ee7f1b5af447cdf3da94629ee42"
   },
   "dashboard-qanat/remotion-renderer/src/LumieraTimeline.tsx": {
-    "mtime": 1784360508.0374563,
-    "ast_hash": "3598f89ca2d67855f0ab4e2328c90efe",
+    "mtime": 1784695606.0190287,
+    "ast_hash": "9a9c4afd74af85eb8e8258a973eac7d9",
     "semantic_hash": ""
   },
   "dashboard-qanat/remotion-renderer/src/Root.tsx": {
@@ -3100,8 +3095,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/remotion-renderer/src/overlays/OverlayLayer.tsx": {
-    "mtime": 1783559807.6119401,
-    "ast_hash": "5bf9ae7ebb6581475a9c9d2142d6a676",
+    "mtime": 1784698214.229547,
+    "ast_hash": "b0d2ccca8ba72c6b1a59979d2963995e",
     "semantic_hash": ""
   },
   "dashboard-qanat/remotion-renderer/src/overlays/PictogramChart.tsx": {
@@ -5615,13 +5610,13 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/remotion-renderer/tsconfig.json": {
-    "mtime": 1782879634.2111976,
-    "ast_hash": "89c836ada92e62f19e54901c918d2382",
-    "semantic_hash": "89c836ada92e62f19e54901c918d2382"
+    "mtime": 1784686340.236319,
+    "ast_hash": "a40f4d4f33caa44eafda54e3669e5658",
+    "semantic_hash": ""
   },
   "dashboard-qanat/remotion-renderer/webpack-override.ts": {
-    "mtime": 1783560292.71952,
-    "ast_hash": "c8b117d375def569d902677ec680d408",
+    "mtime": 1784645440.5410945,
+    "ast_hash": "ff6d18485eee87cc8c1bc5ddf5987b47",
     "semantic_hash": ""
   },
   "dashboard-qanat/scripts/blender/location_intro_flyover.py": {
@@ -5835,9 +5830,9 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/shared/motionSceneCatalog.js": {
-    "mtime": 1784085023.8553357,
-    "ast_hash": "8bca5173388170c50005e5602657a745",
-    "semantic_hash": "8bca5173388170c50005e5602657a745"
+    "mtime": 1784688736.6119945,
+    "ast_hash": "ee9f64a54d03025cc19e088af679d9f5",
+    "semantic_hash": ""
   },
   "dashboard-qanat/shared/motionSceneLlmEnrichment.test.js": {
     "mtime": 1783559232.072,
@@ -6240,8 +6235,8 @@
     "semantic_hash": "7bc9e210a7412a348fc9640ff1613882"
   },
   "dashboard-qanat/shared/timelineStudioRenderSync.test.js": {
-    "mtime": 1783581654.40036,
-    "ast_hash": "3c051e77144ba72f594892384ec07cbb",
+    "mtime": 1784694925.7587779,
+    "ast_hash": "a1ef2e0aefcbfd470ea33c8b37d4b758",
     "semantic_hash": ""
   },
   "dashboard-qanat/shared/timelineStudioSatelliteEnrich.js": {
@@ -6250,8 +6245,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/shared/timelineStudioTemplateInsert.test.js": {
-    "mtime": 1783571460.0782688,
-    "ast_hash": "76bec732059162174b52efc319f8fc9a",
+    "mtime": 1784687489.0950434,
+    "ast_hash": "7f9c94506edf4c8725b46749183c3c49",
     "semantic_hash": ""
   },
   "dashboard-qanat/shared/timelineStudioTighten.js": {
@@ -6305,9 +6300,9 @@
     "semantic_hash": "434b0fc9942f3881e4a7e7bde114c00d"
   },
   "ecosystem.config.cjs": {
-    "mtime": 1783641730.3963444,
-    "ast_hash": "8bae829b3cc11dee0decd5a1c47a35d4",
-    "semantic_hash": "8bae829b3cc11dee0decd5a1c47a35d4"
+    "mtime": 1784572443.1586308,
+    "ast_hash": "bee0487ce080fad8eeea0f420acc632b",
+    "semantic_hash": ""
   },
   "find_block_timings.py": {
     "mtime": 1783702091.6252866,
@@ -6375,9 +6370,9 @@
     "semantic_hash": "8b0df72319b4199ae9d617451eb595b1"
   },
   "scripts/ensure-lumiera.ps1": {
-    "mtime": 1783641730.4040048,
-    "ast_hash": "b63353d88fd59e88a62b0bcfd5de5b7b",
-    "semantic_hash": "b63353d88fd59e88a62b0bcfd5de5b7b"
+    "mtime": 1784594625.6636732,
+    "ast_hash": "5cf3484db2d8097757248e733c6df852",
+    "semantic_hash": ""
   },
   "scripts/ensure-watchdog.ps1": {
     "mtime": 1783391926.0783,
@@ -6485,9 +6480,9 @@
     "semantic_hash": "51ab03f3a2524b71800e0ebb00e97fc1"
   },
   "scripts/restart-backend.ps1": {
-    "mtime": 1783641730.4120066,
-    "ast_hash": "60b0e34d0ce3baca5751cf619424cf2f",
-    "semantic_hash": "60b0e34d0ce3baca5751cf619424cf2f"
+    "mtime": 1784648080.678519,
+    "ast_hash": "2bffc7873343f1ed30d3fbd12b5e59b5",
+    "semantic_hash": ""
   },
   "scripts/restart-watchdog.ps1": {
     "mtime": 1783286125.038167,
@@ -6630,18 +6625,18 @@
     "semantic_hash": "08edcd47f6c9044fbc85a1d8d58b9536"
   },
   "wizard_session.json": {
-    "mtime": 1784559516.8148837,
-    "ast_hash": "771f40ca724db7863cdcaca81459dd53",
+    "mtime": 1784686340.2448266,
+    "ast_hash": "0ce4bf6e8cfd1a44f8e0879d946d4f9f",
     "semantic_hash": ""
   },
   "youtube_editorial_queue.json": {
-    "mtime": 1784493252.931376,
-    "ast_hash": "47312b85b11e41e9d209d98055a108eb",
+    "mtime": 1784686340.245827,
+    "ast_hash": "ea9b0882dc7c8b466d18109c5eb7fbc9",
     "semantic_hash": ""
   },
   "youtube_video_resurrector.json": {
-    "mtime": 1784559516.8198822,
-    "ast_hash": "98ac9e933c28a4a351c9e0930253c01e",
+    "mtime": 1784686340.2523355,
+    "ast_hash": "f4766a9b713c4aee4501232c39296341",
     "semantic_hash": ""
   },
   ".kilo/kilo.json": {
@@ -6655,8 +6650,8 @@
     "semantic_hash": ""
   },
   ".agents/AGENTS.md": {
-    "mtime": 1784570960.163495,
-    "ast_hash": "5eb95a6c8ea18aec667b24bcf50730ab",
+    "mtime": 1784650032.7336214,
+    "ast_hash": "40c28250754910acf8d0abb43203788c",
     "semantic_hash": ""
   },
   ".agents/COMOUSARANARRACAOPRO.md": {
@@ -6665,13 +6660,13 @@
     "semantic_hash": ""
   },
   ".agents/MEMORIA-LUMIERA.md": {
-    "mtime": 1784570960.3104243,
-    "ast_hash": "a26b708237c2a0e777bf97a2ed5094dc",
+    "mtime": 1784686340.1546273,
+    "ast_hash": "2df5687c5e6329bbffdc4418da0f8dc4",
     "semantic_hash": ""
   },
   ".agents/MEMORY.md": {
-    "mtime": 1784570960.2824318,
-    "ast_hash": "44a358da112a02dbef8056937c79e1a2",
+    "mtime": 1784686340.1556852,
+    "ast_hash": "7e21982a4de05ca1afa7cb9b400ae773",
     "semantic_hash": ""
   },
   ".agents/NARRACAOPRO.md": {
@@ -6680,8 +6675,8 @@
     "semantic_hash": ""
   },
   ".agents/SKILLS.md": {
-    "mtime": 1784570960.3174374,
-    "ast_hash": "55396f250f1317d981961f236f7b6d36",
+    "mtime": 1784686340.1572504,
+    "ast_hash": "d754caf6eb57edf76004bb489dedfeab",
     "semantic_hash": ""
   },
   ".agents/memory/agent-frameworks-reference.md": {
@@ -6730,8 +6725,8 @@
     "semantic_hash": ""
   },
   ".agents/memory/curiosidades.md": {
-    "mtime": 1784571098.3236246,
-    "ast_hash": "0aa1cffb150b33ace3f935eebb96a9f5",
+    "mtime": 1784698416.752165,
+    "ast_hash": "60a5f89ded73ab467db632cb7e64ef2a",
     "semantic_hash": ""
   },
   ".agents/memory/customized.md": {
@@ -6785,8 +6780,8 @@
     "semantic_hash": ""
   },
   ".agents/memory/geral.md": {
-    "mtime": 1784559516.7722106,
-    "ast_hash": "51b8343a254740929d6a821051ee7e54",
+    "mtime": 1784690084.8295803,
+    "ast_hash": "4f59ceea3d79bc42033461212090731a",
     "semantic_hash": ""
   },
   ".agents/memory/google-gemini-sdk-reference.md": {
@@ -6865,12 +6860,12 @@
     "semantic_hash": ""
   },
   ".agents/skill-bundles/BUNDLES.md": {
-    "mtime": 1784570960.163495,
-    "ast_hash": "921372c905a84ff3f3ea195b05ed9db5",
+    "mtime": 1784686340.1602547,
+    "ast_hash": "d2a04be6a5ac357aa99163794e51e733",
     "semantic_hash": ""
   },
   ".agents/skills/ad-concept-generator.md": {
-    "mtime": 1784570960.1294944,
+    "mtime": 1784650032.694275,
     "ast_hash": "d08ab8cec87349eaa1871f08303d6809",
     "semantic_hash": ""
   },
@@ -6880,12 +6875,12 @@
     "semantic_hash": ""
   },
   ".agents/skills/agent-reach.md": {
-    "mtime": 1784570960.1294944,
+    "mtime": 1784650032.6951444,
     "ast_hash": "cde13aac8c697bd4d15155c6b41d4c07",
     "semantic_hash": ""
   },
   ".agents/skills/agent-reach/REFERENCES.md": {
-    "mtime": 1784570960.171358,
+    "mtime": 1784650032.7460964,
     "ast_hash": "9d88e8af126cb4227fc1d0004e33ed5b",
     "semantic_hash": ""
   },
@@ -6925,13 +6920,13 @@
     "semantic_hash": ""
   },
   ".agents/skills/ai-camera-movements.md": {
-    "mtime": 1784570960.1294944,
-    "ast_hash": "1c61ecc66fbeb28e7e4d21be76392448",
+    "mtime": 1784686340.1612546,
+    "ast_hash": "b57f68b1ef6b900e3a8ad47c1cd6f86e",
     "semantic_hash": ""
   },
   ".agents/skills/ai-camera-movements/REFERENCES.md": {
-    "mtime": 1784570960.1723459,
-    "ast_hash": "addaf30c270665c2d30b61a7f700d74e",
+    "mtime": 1784686340.1622548,
+    "ast_hash": "bc12a871d352a71ce602e04be7261662",
     "semantic_hash": ""
   },
   ".agents/skills/ai-camera-movements/SKILL.md": {
@@ -6945,7 +6940,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/ai-ugc-ads.md": {
-    "mtime": 1784570960.130496,
+    "mtime": 1784650032.6956463,
     "ast_hash": "fafb3282765c7c3c5c99da50817d7f37",
     "semantic_hash": ""
   },
@@ -6955,7 +6950,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/ask-matt.md": {
-    "mtime": 1784570960.130496,
+    "mtime": 1784650032.6956463,
     "ast_hash": "8e53b8af10f816989b39fb61b190a847",
     "semantic_hash": ""
   },
@@ -6965,12 +6960,12 @@
     "semantic_hash": ""
   },
   ".agents/skills/claude-api.md": {
-    "mtime": 1784570960.1314962,
+    "mtime": 1784650032.696875,
     "ast_hash": "f459f4ae18892a23cca01b3a6c0be6dc",
     "semantic_hash": ""
   },
   ".agents/skills/claude-api/REFERENCES.md": {
-    "mtime": 1784570960.1753578,
+    "mtime": 1784650032.7497394,
     "ast_hash": "2881f44b8ee36bbad3c1d4d28f9c44d0",
     "semantic_hash": ""
   },
@@ -7290,7 +7285,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/code-review.md": {
-    "mtime": 1784570960.1314962,
+    "mtime": 1784650032.6974509,
     "ast_hash": "009500566014402dcb0561a8b2879af9",
     "semantic_hash": ""
   },
@@ -7300,7 +7295,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/codebase-design.md": {
-    "mtime": 1784570960.1314962,
+    "mtime": 1784650032.6974509,
     "ast_hash": "6d983cc6b473db7bb58b72e69246ef05",
     "semantic_hash": ""
   },
@@ -7315,7 +7310,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/codebase-design/REFERENCES.md": {
-    "mtime": 1784570960.1753578,
+    "mtime": 1784650032.7502558,
     "ast_hash": "3e4dbb7bbf8501407602a88b80bb2319",
     "semantic_hash": ""
   },
@@ -7325,12 +7320,12 @@
     "semantic_hash": ""
   },
   ".agents/skills/content-strategy.md": {
-    "mtime": 1784570960.132496,
+    "mtime": 1784650032.6980338,
     "ast_hash": "ca537d361f9d4fd8e1dcfd96aa1bddfc",
     "semantic_hash": ""
   },
   ".agents/skills/content-strategy/REFERENCES.md": {
-    "mtime": 1784570960.1763456,
+    "mtime": 1784650032.7508156,
     "ast_hash": "4c116629c065ba7b089513b57a9840b6",
     "semantic_hash": ""
   },
@@ -7345,8 +7340,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/context-engineering.md": {
-    "mtime": 1784570960.132496,
-    "ast_hash": "a58aa7f63f8a4d9593794c67fdabf2a2",
+    "mtime": 1784686340.1643062,
+    "ast_hash": "32a31f62aea0a19ac5da098086045800",
     "semantic_hash": ""
   },
   ".agents/skills/context-engineering/SKILL.md": {
@@ -7355,7 +7350,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/decision-mapping.md": {
-    "mtime": 1784570960.132496,
+    "mtime": 1784650032.6980338,
     "ast_hash": "8018ad9e6aba3d0a16217a1ca81ff2e8",
     "semantic_hash": ""
   },
@@ -7365,7 +7360,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/deer-flow-research.md": {
-    "mtime": 1784570960.1334958,
+    "mtime": 1784650032.698587,
     "ast_hash": "90a4ae41b34c3d7ca9310671c8a9da13",
     "semantic_hash": ""
   },
@@ -7375,7 +7370,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/design-an-interface.md": {
-    "mtime": 1784570960.1334958,
+    "mtime": 1784650032.698587,
     "ast_hash": "0e30a62dc92ebac774e0b4d3c95620ad",
     "semantic_hash": ""
   },
@@ -7385,7 +7380,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/diagnosing-bugs.md": {
-    "mtime": 1784570960.1334958,
+    "mtime": 1784650032.6991043,
     "ast_hash": "971437ad801303ee1d9ba238d6ae7325",
     "semantic_hash": ""
   },
@@ -7395,7 +7390,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/doc-coauthoring.md": {
-    "mtime": 1784570960.1344972,
+    "mtime": 1784650032.6996365,
     "ast_hash": "ceb90f5d34700fb8843902ac6bc1e13b",
     "semantic_hash": ""
   },
@@ -7405,7 +7400,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/domain-modeling.md": {
-    "mtime": 1784570960.1344972,
+    "mtime": 1784650032.700154,
     "ast_hash": "ed0b3d332543bb7eaa936c8603732e10",
     "semantic_hash": ""
   },
@@ -7420,7 +7415,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/domain-modeling/REFERENCES.md": {
-    "mtime": 1784570960.1773458,
+    "mtime": 1784650032.7524037,
     "ast_hash": "f123fcbc83250d23e24185790fecbb8b",
     "semantic_hash": ""
   },
@@ -7430,7 +7425,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/edit-article.md": {
-    "mtime": 1784570960.1344972,
+    "mtime": 1784650032.700154,
     "ast_hash": "57596e737f7635d92d4cc07e9895bf7a",
     "semantic_hash": ""
   },
@@ -7440,7 +7435,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/epidemic_sound.md": {
-    "mtime": 1784570960.1354952,
+    "mtime": 1784650032.7006745,
     "ast_hash": "311b77e3f189a0a658eba2c6491424d5",
     "semantic_hash": ""
   },
@@ -7450,7 +7445,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/frontend-design.md": {
-    "mtime": 1784570960.1354952,
+    "mtime": 1784650032.7011902,
     "ast_hash": "5504385da61de070dc09366c26812c17",
     "semantic_hash": ""
   },
@@ -7460,8 +7455,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/gbro-collage-broll.md": {
-    "mtime": 1784570960.1354952,
-    "ast_hash": "45d56dd2775001f609753ad2f844e2fc",
+    "mtime": 1784686340.1653056,
+    "ast_hash": "68e007048a35ac36c61f37f49b0cc1ec",
     "semantic_hash": ""
   },
   ".agents/skills/gbro-collage-broll/SKILL.md": {
@@ -7470,8 +7465,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/gemini-prompt-strategies.md": {
-    "mtime": 1784570960.1354952,
-    "ast_hash": "84b78e607791f14bdf0372fe001f63c4",
+    "mtime": 1784686340.166305,
+    "ast_hash": "dd9db6e79ec108a02549df953b5c462c",
     "semantic_hash": ""
   },
   ".agents/skills/gemini-prompt-strategies/SKILL.md": {
@@ -7480,8 +7475,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/geo-video-prompts.md": {
-    "mtime": 1784570960.1364944,
-    "ast_hash": "6a6caaf67a6e5c5725b5b81d0a8e85f1",
+    "mtime": 1784686340.1673052,
+    "ast_hash": "33163aceefda84715d5d122dff7b065c",
     "semantic_hash": ""
   },
   ".agents/skills/geo-video-prompts/SKILL.md": {
@@ -7490,7 +7485,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/git-guardrails-claude-code.md": {
-    "mtime": 1784570960.1364944,
+    "mtime": 1784650032.7022235,
     "ast_hash": "9a57a7eae6470a1cb5a3c0bd8c4030ed",
     "semantic_hash": ""
   },
@@ -7500,8 +7495,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/gpt-prompt-enhancement.md": {
-    "mtime": 1784570960.1364944,
-    "ast_hash": "e38653b8a24c164f2c53eafc01eaeddb",
+    "mtime": 1784686340.1683052,
+    "ast_hash": "1b439e8e6981eb12f859c000a03ef0fe",
     "semantic_hash": ""
   },
   ".agents/skills/gpt-prompt-enhancement/SKILL.md": {
@@ -7510,13 +7505,13 @@
     "semantic_hash": ""
   },
   ".agents/skills/graphify.md": {
-    "mtime": 1784570960.1374946,
-    "ast_hash": "4d27237b141910e635137421a29fad2a",
+    "mtime": 1784686340.1698093,
+    "ast_hash": "2d03f32c7d4e60332f5ed7c7218e486e",
     "semantic_hash": ""
   },
   ".agents/skills/graphify/REFERENCES.md": {
-    "mtime": 1784570960.1793454,
-    "ast_hash": "f1db1a5eecb66b0cdef2c336eee3a668",
+    "mtime": 1784686340.170812,
+    "ast_hash": "f62810055c8aa74daeb695e15579be6f",
     "semantic_hash": ""
   },
   ".agents/skills/graphify/SKILL.md": {
@@ -7565,7 +7560,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/grill-me.md": {
-    "mtime": 1784570960.1374946,
+    "mtime": 1784650032.7032552,
     "ast_hash": "8092221e227cfbe072fd10567730a19d",
     "semantic_hash": ""
   },
@@ -7575,7 +7570,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/grill-with-docs.md": {
-    "mtime": 1784570960.1374946,
+    "mtime": 1784650032.7037706,
     "ast_hash": "b92133978e43d5bc8e3cd8cd197d2a39",
     "semantic_hash": ""
   },
@@ -7585,7 +7580,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/grilling.md": {
-    "mtime": 1784570960.1384945,
+    "mtime": 1784650032.7037706,
     "ast_hash": "f0663fcdd8a772bedea242e1ba11f4eb",
     "semantic_hash": ""
   },
@@ -7595,7 +7590,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/handoff.md": {
-    "mtime": 1784570960.1384945,
+    "mtime": 1784650032.7042902,
     "ast_hash": "3728047f90292c7826f1046ae921a995",
     "semantic_hash": ""
   },
@@ -7605,7 +7600,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/hyperframes.md": {
-    "mtime": 1784570960.1384945,
+    "mtime": 1784650032.7042902,
     "ast_hash": "9b9e048a78c659c4c3551df91398b630",
     "semantic_hash": ""
   },
@@ -7615,7 +7610,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/implement.md": {
-    "mtime": 1784570960.1384945,
+    "mtime": 1784650032.704808,
     "ast_hash": "137281070e1ba388986f033e29b0e67b",
     "semantic_hash": ""
   },
@@ -7625,7 +7620,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/improve-codebase-architecture.md": {
-    "mtime": 1784570960.1384945,
+    "mtime": 1784650032.704808,
     "ast_hash": "578a9bfdf004c8bf22e036cd16aabed2",
     "semantic_hash": ""
   },
@@ -7635,7 +7630,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/improve-codebase-architecture/REFERENCES.md": {
-    "mtime": 1784570960.1803453,
+    "mtime": 1784650032.7555177,
     "ast_hash": "755d18c104808b0f96fff783b6de9a3f",
     "semantic_hash": ""
   },
@@ -7645,7 +7640,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/loop-me.md": {
-    "mtime": 1784570960.1394944,
+    "mtime": 1784650032.705326,
     "ast_hash": "58295d581c1890ca9b9794d82fd4b04f",
     "semantic_hash": ""
   },
@@ -7655,7 +7650,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/lumiera-ops.md": {
-    "mtime": 1784570960.1394944,
+    "mtime": 1784650032.705326,
     "ast_hash": "f7dad0f8c3e309ef71e87b75919ff4f1",
     "semantic_hash": ""
   },
@@ -7665,8 +7660,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/lumiera-security-review.md": {
-    "mtime": 1784570960.1394944,
-    "ast_hash": "12d0735f9253c89f8d193f3997492eec",
+    "mtime": 1784686340.1718109,
+    "ast_hash": "20394c76c7f6e0103dd712a585a107c9",
     "semantic_hash": ""
   },
   ".agents/skills/lumiera-security-review/SKILL.md": {
@@ -7675,8 +7670,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/lumiera-seedance-directing.md": {
-    "mtime": 1784570960.1394944,
-    "ast_hash": "aef0599f52e9857a4ba9304ab1a9b0b1",
+    "mtime": 1784686340.1718109,
+    "ast_hash": "0763ded52f0e8ea5c37d4822719b6a0d",
     "semantic_hash": ""
   },
   ".agents/skills/lumiera-seedance-directing/SKILL.md": {
@@ -7685,8 +7680,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/markdown-converter.md": {
-    "mtime": 1784570960.1404946,
-    "ast_hash": "eac5f8224e2237fd5c63657674ddff18",
+    "mtime": 1784686340.1733146,
+    "ast_hash": "5423ea2d360cdc53ba7f09b6943e9f5f",
     "semantic_hash": ""
   },
   ".agents/skills/markdown-converter/SKILL.md": {
@@ -7695,12 +7690,12 @@
     "semantic_hash": ""
   },
   ".agents/skills/mcp-builder.md": {
-    "mtime": 1784570960.1404946,
+    "mtime": 1784650032.7069502,
     "ast_hash": "255f61b1556b1cb8b6315fd036bd2392",
     "semantic_hash": ""
   },
   ".agents/skills/mcp-builder/REFERENCES.md": {
-    "mtime": 1784570960.1823454,
+    "mtime": 1784650032.756548,
     "ast_hash": "ccfe2eac85c6d1a087865c4c6cefcafe",
     "semantic_hash": ""
   },
@@ -7730,7 +7725,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/migrate-to-shoehorn.md": {
-    "mtime": 1784570960.1404946,
+    "mtime": 1784650032.7074673,
     "ast_hash": "bda9f27927b5e960d4023127cecd9b93",
     "semantic_hash": ""
   },
@@ -7740,7 +7735,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/obsidian-vault.md": {
-    "mtime": 1784570960.1404946,
+    "mtime": 1784650032.7074673,
     "ast_hash": "e74d865d58d657a198519b9e91a26af1",
     "semantic_hash": ""
   },
@@ -7750,7 +7745,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/openmontage-preflight.md": {
-    "mtime": 1784570960.1414948,
+    "mtime": 1784650032.7079813,
     "ast_hash": "a2536715f1c2e0d9fad953d2eea1f84d",
     "semantic_hash": ""
   },
@@ -7760,7 +7755,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/openmontage-reference-video.md": {
-    "mtime": 1784570960.1414948,
+    "mtime": 1784650032.7079813,
     "ast_hash": "d312253d402a24a63971324dfef2bf8a",
     "semantic_hash": ""
   },
@@ -7770,7 +7765,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/openmontage-reviewer.md": {
-    "mtime": 1784570960.1414948,
+    "mtime": 1784650032.7084956,
     "ast_hash": "c0bfb0948c9242f0fe0893fa716cbfe4",
     "semantic_hash": ""
   },
@@ -7780,12 +7775,12 @@
     "semantic_hash": ""
   },
   ".agents/skills/pdf.md": {
-    "mtime": 1784570960.1424944,
+    "mtime": 1784650032.7090127,
     "ast_hash": "56c2a8d0fe06b3c9b975a2de89897d49",
     "semantic_hash": ""
   },
   ".agents/skills/pdf/REFERENCES.md": {
-    "mtime": 1784570960.1833456,
+    "mtime": 1784650032.757641,
     "ast_hash": "25eaa1189786b6d059108eeda97e6bde",
     "semantic_hash": ""
   },
@@ -7805,7 +7800,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/prototype.md": {
-    "mtime": 1784570960.1424944,
+    "mtime": 1784650032.7090127,
     "ast_hash": "9d2c044034c68947f2fbcab850297fcc",
     "semantic_hash": ""
   },
@@ -7815,7 +7810,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/prototype/REFERENCES.md": {
-    "mtime": 1784570960.1833456,
+    "mtime": 1784650032.7581568,
     "ast_hash": "52f61bbf006bb7746f3eeb2297792cf1",
     "semantic_hash": ""
   },
@@ -7830,7 +7825,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/qa.md": {
-    "mtime": 1784570960.1424944,
+    "mtime": 1784650032.709527,
     "ast_hash": "ece3431d682cd630287854bcd7786d08",
     "semantic_hash": ""
   },
@@ -7840,12 +7835,12 @@
     "semantic_hash": ""
   },
   ".agents/skills/remotion-best-practices.md": {
-    "mtime": 1784570960.1424944,
+    "mtime": 1784650032.7100406,
     "ast_hash": "34cf3a424f69c654b91c472eaef3d149",
     "semantic_hash": ""
   },
   ".agents/skills/remotion-best-practices/REFERENCES.md": {
-    "mtime": 1784570960.184345,
+    "mtime": 1784650032.7591887,
     "ast_hash": "a47bafbcc3d5737a86755f104563ac9a",
     "semantic_hash": ""
   },
@@ -8040,7 +8035,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/remotion-render.md": {
-    "mtime": 1784570960.1434944,
+    "mtime": 1784650032.7100406,
     "ast_hash": "4623515ca9b84aa09fedae2c727dc9c9",
     "semantic_hash": ""
   },
@@ -8050,7 +8045,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/remotion_docs.md": {
-    "mtime": 1784570960.1434944,
+    "mtime": 1784650032.7105587,
     "ast_hash": "57dd3dcb86b4287422e2482a43507128",
     "semantic_hash": ""
   },
@@ -8060,7 +8055,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/request-refactor-plan.md": {
-    "mtime": 1784570960.1434944,
+    "mtime": 1784650032.7105587,
     "ast_hash": "99ed76a3975fa2ebc45065a18de2e566",
     "semantic_hash": ""
   },
@@ -8070,7 +8065,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/resolving-merge-conflicts.md": {
-    "mtime": 1784570960.1444948,
+    "mtime": 1784650032.7110763,
     "ast_hash": "878b7f2e5743905133f6fd370cc74c7b",
     "semantic_hash": ""
   },
@@ -8080,7 +8075,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/scaffold-exercises.md": {
-    "mtime": 1784570960.1444948,
+    "mtime": 1784650032.7110763,
     "ast_hash": "52d22bb5034d373666914603f9b2f05d",
     "semantic_hash": ""
   },
@@ -8090,12 +8085,12 @@
     "semantic_hash": ""
   },
   ".agents/skills/setup-matt-pocock-skills.md": {
-    "mtime": 1784570960.1444948,
+    "mtime": 1784650032.7116168,
     "ast_hash": "a3fd8bca714473b236ae88cf611fd53a",
     "semantic_hash": ""
   },
   ".agents/skills/setup-matt-pocock-skills/REFERENCES.md": {
-    "mtime": 1784570960.185345,
+    "mtime": 1784650032.7607346,
     "ast_hash": "2962f074c396386bf749d36515d419b2",
     "semantic_hash": ""
   },
@@ -8130,7 +8125,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/setup-pre-commit.md": {
-    "mtime": 1784570960.1444948,
+    "mtime": 1784650032.7116168,
     "ast_hash": "93bc5ce9b7020dc7b258e35aa4fdb661",
     "semantic_hash": ""
   },
@@ -8140,12 +8135,12 @@
     "semantic_hash": ""
   },
   ".agents/skills/skill-creator.md": {
-    "mtime": 1784570960.1454947,
+    "mtime": 1784650032.7121327,
     "ast_hash": "572ff60afb9dca5e1ccd0c4d03b0b1a6",
     "semantic_hash": ""
   },
   ".agents/skills/skill-creator/REFERENCES.md": {
-    "mtime": 1784570960.186345,
+    "mtime": 1784650032.761239,
     "ast_hash": "a868b2ae2d13ee19635cffba5fee9451",
     "semantic_hash": ""
   },
@@ -8180,7 +8175,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/skills-registry-external.md": {
-    "mtime": 1784570960.1454947,
+    "mtime": 1784650032.7121327,
     "ast_hash": "b158b1925f1f6ea3e682001e74b5edd2",
     "semantic_hash": ""
   },
@@ -8190,7 +8185,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/social-publisher.md": {
-    "mtime": 1784570960.1454947,
+    "mtime": 1784650032.7126467,
     "ast_hash": "eb761ad79c41f1bb3c240b7e0968aea9",
     "semantic_hash": ""
   },
@@ -8200,7 +8195,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/speckit-clarify.md": {
-    "mtime": 1784570960.1464944,
+    "mtime": 1784650032.7126467,
     "ast_hash": "d98eb992dc2f7934eba1529c5ab07500",
     "semantic_hash": ""
   },
@@ -8210,7 +8205,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/speckit-implement.md": {
-    "mtime": 1784570960.1464944,
+    "mtime": 1784650032.713159,
     "ast_hash": "5a70a0aca66223672f0909016d00421a",
     "semantic_hash": ""
   },
@@ -8220,7 +8215,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/speckit-lumiera.md": {
-    "mtime": 1784570960.1464944,
+    "mtime": 1784650032.713159,
     "ast_hash": "db8ecdb3d3c6fd046e667a7728347b25",
     "semantic_hash": ""
   },
@@ -8230,7 +8225,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/speckit-plan.md": {
-    "mtime": 1784570960.1464944,
+    "mtime": 1784650032.7136755,
     "ast_hash": "4a1d32b463129420161e31677cd3be54",
     "semantic_hash": ""
   },
@@ -8240,7 +8235,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/speckit-specify.md": {
-    "mtime": 1784570960.1474943,
+    "mtime": 1784650032.7136755,
     "ast_hash": "54a0097e6f308bfb0860f49c0a18960d",
     "semantic_hash": ""
   },
@@ -8250,7 +8245,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/speckit-tasks.md": {
-    "mtime": 1784570960.1474943,
+    "mtime": 1784650032.7141912,
     "ast_hash": "df5eea07cc3322c5b68d0875c28e896d",
     "semantic_hash": ""
   },
@@ -8260,7 +8255,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/studio-agents-hermes.md": {
-    "mtime": 1784570960.1474943,
+    "mtime": 1784650032.7141912,
     "ast_hash": "41515958b754c19406d2750f628c70e4",
     "semantic_hash": ""
   },
@@ -8270,8 +8265,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/summarize-cli.md": {
-    "mtime": 1784570960.1474943,
-    "ast_hash": "705bf9958dee5d9ea5c7aee0125460b5",
+    "mtime": 1784686340.1743193,
+    "ast_hash": "ddfb9d208923ba6d976bacdef7f9a746",
     "semantic_hash": ""
   },
   ".agents/skills/summarize-cli/SKILL.md": {
@@ -8280,8 +8275,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/tavily-search-pro.md": {
-    "mtime": 1784570960.1474943,
-    "ast_hash": "e89849029983a2344b67888cb8243ee2",
+    "mtime": 1784686340.176319,
+    "ast_hash": "5c7f34f2e12799769bd1f46c7bc1545d",
     "semantic_hash": ""
   },
   ".agents/skills/tavily-search-pro/SKILL.md": {
@@ -8290,12 +8285,12 @@
     "semantic_hash": ""
   },
   ".agents/skills/tdd.md": {
-    "mtime": 1784570960.1484945,
+    "mtime": 1784650032.7157366,
     "ast_hash": "bc59e7622532133a5ed7d75cf57577fc",
     "semantic_hash": ""
   },
   ".agents/skills/tdd/REFERENCES.md": {
-    "mtime": 1784570960.189353,
+    "mtime": 1784650032.7632728,
     "ast_hash": "a72f4c9c2bf3453f7dd63ba4b1762eae",
     "semantic_hash": ""
   },
@@ -8315,7 +8310,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/teach.md": {
-    "mtime": 1784570960.1484945,
+    "mtime": 1784650032.7162514,
     "ast_hash": "1d3f9d34211368115917f9692f56f7db",
     "semantic_hash": ""
   },
@@ -8335,7 +8330,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/teach/REFERENCES.md": {
-    "mtime": 1784570960.189353,
+    "mtime": 1784650032.763775,
     "ast_hash": "b782840552ff13944aa1e237a705fdbf",
     "semantic_hash": ""
   },
@@ -8350,7 +8345,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/to-issues.md": {
-    "mtime": 1784570960.1484945,
+    "mtime": 1784650032.7167645,
     "ast_hash": "0be02a250791c5e39519e71f9381c5ed",
     "semantic_hash": ""
   },
@@ -8360,7 +8355,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/to-prd.md": {
-    "mtime": 1784570960.1484945,
+    "mtime": 1784650032.7177987,
     "ast_hash": "d8d282b45052ed1ed3de3978cff91ac7",
     "semantic_hash": ""
   },
@@ -8370,7 +8365,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/triage.md": {
-    "mtime": 1784570960.149495,
+    "mtime": 1784650032.7183146,
     "ast_hash": "f262f08011757f940f8f98c3261a843a",
     "semantic_hash": ""
   },
@@ -8385,7 +8380,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/triage/REFERENCES.md": {
-    "mtime": 1784570960.1903453,
+    "mtime": 1784650032.7647843,
     "ast_hash": "986601a17dd2097f9efe2e8e6f076275",
     "semantic_hash": ""
   },
@@ -8395,7 +8390,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/ubiquitous-language.md": {
-    "mtime": 1784570960.149495,
+    "mtime": 1784650032.7188318,
     "ast_hash": "b731c6b5894b78d4c2479657515f47ea",
     "semantic_hash": ""
   },
@@ -8405,7 +8400,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/ugc-scriptwriter.md": {
-    "mtime": 1784570960.149495,
+    "mtime": 1784650032.7193494,
     "ast_hash": "3b67c00acb115f02ccd9f29c8f235ed4",
     "semantic_hash": ""
   },
@@ -8415,7 +8410,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/video-marketing.md": {
-    "mtime": 1784570960.149495,
+    "mtime": 1784650032.719865,
     "ast_hash": "c1ac7b2b551e6101605ca3ef277aea83",
     "semantic_hash": ""
   },
@@ -8425,8 +8420,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/video-understanding.md": {
-    "mtime": 1784570960.1504953,
-    "ast_hash": "580a245167c6fd22c6daa2dc2eac2cc1",
+    "mtime": 1784686340.1775246,
+    "ast_hash": "50e9769f098680e31e17fe325b16003e",
     "semantic_hash": ""
   },
   ".agents/skills/video-understanding/SKILL.md": {
@@ -8435,12 +8430,12 @@
     "semantic_hash": ""
   },
   ".agents/skills/viral-captions-and-ctas.md": {
-    "mtime": 1784570960.1514947,
+    "mtime": 1784650032.721416,
     "ast_hash": "a7fd7bc114973866059e41be4089d131",
     "semantic_hash": ""
   },
   ".agents/skills/viral-captions-and-ctas/REFERENCES.md": {
-    "mtime": 1784570960.1913455,
+    "mtime": 1784650032.7658374,
     "ast_hash": "03bd0bc0bc215344961c38dc232726c4",
     "semantic_hash": ""
   },
@@ -8480,7 +8475,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/viral-hooks.md": {
-    "mtime": 1784570960.1514947,
+    "mtime": 1784650032.7219312,
     "ast_hash": "57fafbf999d228def439d27965e7189c",
     "semantic_hash": ""
   },
@@ -8490,12 +8485,12 @@
     "semantic_hash": ""
   },
   ".agents/skills/viral-short-form-ideas.md": {
-    "mtime": 1784570960.1534946,
+    "mtime": 1784650032.723479,
     "ast_hash": "dfc9d6793334af1263aab850b0470920",
     "semantic_hash": ""
   },
   ".agents/skills/viral-short-form-ideas/REFERENCES.md": {
-    "mtime": 1784570960.1933453,
+    "mtime": 1784650032.7673895,
     "ast_hash": "d0b1fabc59c88eede0d251485ded27f3",
     "semantic_hash": ""
   },
@@ -8540,7 +8535,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/viral-short-form.md": {
-    "mtime": 1784570960.1524947,
+    "mtime": 1784650032.7224452,
     "ast_hash": "24dc4e1015b9fce38ed6e417969a80a7",
     "semantic_hash": ""
   },
@@ -8550,7 +8545,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/viral-short-form/REFERENCES.md": {
-    "mtime": 1784570960.1923454,
+    "mtime": 1784650032.7668717,
     "ast_hash": "4447ed6384ee0975664c36ea41bd1275",
     "semantic_hash": ""
   },
@@ -8585,7 +8580,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/viral-youtube-shorts.md": {
-    "mtime": 1784570960.1534946,
+    "mtime": 1784650032.7239935,
     "ast_hash": "0e3957d83c7df490d6b7ce9024ba6523",
     "semantic_hash": ""
   },
@@ -8595,8 +8590,8 @@
     "semantic_hash": ""
   },
   ".agents/skills/visual-prompt-engineer.md": {
-    "mtime": 1784570960.1544945,
-    "ast_hash": "aa937c6611ff7d16687def1d77c7a50b",
+    "mtime": 1784686340.178522,
+    "ast_hash": "d2b64fcad9734a0266f23f81a470c0d1",
     "semantic_hash": ""
   },
   ".agents/skills/visual-prompt-engineer/SKILL.md": {
@@ -8605,7 +8600,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/webapp-testing.md": {
-    "mtime": 1784570960.1554945,
+    "mtime": 1784650032.725571,
     "ast_hash": "c1a469ff37467386e05d0d78ea48a104",
     "semantic_hash": ""
   },
@@ -8615,7 +8610,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/wizard.md": {
-    "mtime": 1784570960.1594956,
+    "mtime": 1784650032.7293963,
     "ast_hash": "a565b2f8b6b7b6df4d3c66af6c80b302",
     "semantic_hash": ""
   },
@@ -8625,7 +8620,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/writing-beats.md": {
-    "mtime": 1784570960.1594956,
+    "mtime": 1784650032.729915,
     "ast_hash": "7fd75671905b72b63bd9af715b0634b7",
     "semantic_hash": ""
   },
@@ -8635,7 +8630,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/writing-fragments.md": {
-    "mtime": 1784570960.1604948,
+    "mtime": 1784650032.7304323,
     "ast_hash": "05378450d0f0cee6aa7391c4915e353a",
     "semantic_hash": ""
   },
@@ -8645,7 +8640,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/writing-great-skills.md": {
-    "mtime": 1784570960.1604948,
+    "mtime": 1784650032.730955,
     "ast_hash": "55389e761fa93aed820539b9b74f0de0",
     "semantic_hash": ""
   },
@@ -8655,7 +8650,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/writing-great-skills/REFERENCES.md": {
-    "mtime": 1784570960.1983461,
+    "mtime": 1784650032.7715054,
     "ast_hash": "4a119f7ce66b7d055f206123c4f40842",
     "semantic_hash": ""
   },
@@ -8665,7 +8660,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/writing-shape.md": {
-    "mtime": 1784570960.1614945,
+    "mtime": 1784650032.730955,
     "ast_hash": "70359e0d5c88fd7edd5d4b0cc962dca1",
     "semantic_hash": ""
   },
@@ -8675,7 +8670,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/youtube-seo.md": {
-    "mtime": 1784570960.1624947,
+    "mtime": 1784650032.7326102,
     "ast_hash": "d9d796bc29069b8c0fd153748f2ca66e",
     "semantic_hash": ""
   },
@@ -8685,7 +8680,7 @@
     "semantic_hash": ""
   },
   ".agents/skills/youtube-thumbnail.md": {
-    "mtime": 1784570960.1624947,
+    "mtime": 1784650032.7326102,
     "ast_hash": "14583658df95afd3ebfa56ddc5e2db81",
     "semantic_hash": ""
   },
@@ -8855,8 +8850,8 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1784419343.4128973,
-    "ast_hash": "6659b6eeb551d269dac31c5218b88fa5",
+    "mtime": 1784583908.124588,
+    "ast_hash": "42de690728a985e06e4039ea7d864cf9",
     "semantic_hash": ""
   },
   "AGENT_INSTRUCTIONS.md": {
@@ -8880,8 +8875,8 @@
     "semantic_hash": ""
   },
   "GEMINI.md": {
-    "mtime": 1784412936.3429792,
-    "ast_hash": "b98d3f7e9adec687148385aed8f6a3ed",
+    "mtime": 1784583930.2573357,
+    "ast_hash": "f874176ab8e771f2a02b7d4c92524d97",
     "semantic_hash": ""
   },
   "NARRACAOPRO.md": {
@@ -9080,13 +9075,13 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/creatorIdeasContract.js": {
-    "mtime": 1784427139.240091,
-    "ast_hash": "596683ec839a2fe791c4b5f87d852175",
+    "mtime": 1784686340.1875753,
+    "ast_hash": "2a82b9349fde65b34aa195accb505e2a",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/creatorIdeasContract.test.js": {
-    "mtime": 1784427139.240091,
-    "ast_hash": "2fb2f6f2cfe7b9f7b9085bffbcee3ae5",
+    "mtime": 1784686340.1885796,
+    "ast_hash": "d639547d6adcd6af90a94b0a2ee54c0c",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/scriptQualityNarrationBlocks.test.js": {
@@ -9880,18 +9875,18 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/creatorHistoryRoutes.js": {
-    "mtime": 1784524993.9268086,
-    "ast_hash": "31feafa6beb8ac567cd5513f065a463e",
+    "mtime": 1784601119.900846,
+    "ast_hash": "8240eafc8b34f35c224ad30a960e5ed0",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/creatorHistoryService.js": {
-    "mtime": 1784514203.6451342,
-    "ast_hash": "46f5632b94051edf5aa66beb04016df8",
+    "mtime": 1784608914.9857173,
+    "ast_hash": "66449488387ebbd8f1e7dd853bada0e4",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/scriptQuality/narrationAuditRepair.js": {
-    "mtime": 1784510622.6561599,
-    "ast_hash": "5d0842383f9ed6dc63cde97a71cfb7dd",
+    "mtime": 1784645440.336153,
+    "ast_hash": "1d55dfce46ce74c9bc73af6d1dadd8bd",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/videoMonitorRoutes.js": {
@@ -9904,19 +9899,14 @@
     "ast_hash": "9aab1b023daec03f309e6d0022738d9a",
     "semantic_hash": ""
   },
-  "dashboard-qanat/frontend/src/AppToonflowTab.tsx": {
-    "mtime": 1784529508.6251414,
-    "ast_hash": "4a5770671b3e4781e88a31b2f16ac097",
-    "semantic_hash": ""
-  },
   "dashboard-qanat/frontend/src/CreatorHistoryDropdown.tsx": {
     "mtime": 1784524995.2425556,
     "ast_hash": "f9f0bf6455a451fcd52e09cc67166279",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/VideoMonitorPage.tsx": {
-    "mtime": 1784510330.5277169,
-    "ast_hash": "fa67eead74639564fe72b6fce135e096",
+    "mtime": 1784645440.4256418,
+    "ast_hash": "457832d5a1474384d9331103e02a5687",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/useMonitorRuns.ts": {
@@ -10115,13 +10105,13 @@
     "semantic_hash": ""
   },
   ".agents/skills/whiteboard-video.md": {
-    "mtime": 1784570960.1585073,
-    "ast_hash": "2ffd218b8afe0cc1801f4ae5a906bcc7",
+    "mtime": 1784686340.1795225,
+    "ast_hash": "ad7181d19314f68a0483a5f4a164be7c",
     "semantic_hash": ""
   },
   ".agents/skills/whiteboard-video/REFERENCES.md": {
-    "mtime": 1784570960.197358,
-    "ast_hash": "d934252c8bd0ea765576afc1e35d82eb",
+    "mtime": 1784686340.1805217,
+    "ast_hash": "345bc29b81f4054cc355dc8d0d6d4c31",
     "semantic_hash": ""
   },
   "deep-research-report2.md": {
@@ -10290,8 +10280,8 @@
     "semantic_hash": ""
   },
   "channels/_registry.json": {
-    "mtime": 1784569760.8964102,
-    "ast_hash": "68fe206835a66112bbdea7e1309c0501",
+    "mtime": 1784686340.1840258,
+    "ast_hash": "e38af6bbc8aa1b178e24361995d1e97b",
     "semantic_hash": ""
   },
   "channels/_template/channel.config.json": {
@@ -10300,13 +10290,13 @@
     "semantic_hash": ""
   },
   "channels/engenharia-impossivel/channel.config.json": {
-    "mtime": 1784569999.5828803,
-    "ast_hash": "24806c95441b72e22d30fe64c64764fd",
+    "mtime": 1784686340.1850276,
+    "ast_hash": "2044d4b5c988922b3276a5c6f707766e",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/channelProfiles.js": {
-    "mtime": 1784569999.6348774,
-    "ast_hash": "f974d059cd57e5d23f61c6bdd0f78c4c",
+    "mtime": 1784648103.3017552,
+    "ast_hash": "f9b9f1b51232a4be8cace325a3944cea",
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/channelProfiles.test.js": {
@@ -10320,8 +10310,8 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/backend/channelRoutes.js": {
-    "mtime": 1784569999.6698778,
-    "ast_hash": "d688a19cd707d98852fed088b52bda2c",
+    "mtime": 1784686340.1860273,
+    "ast_hash": "9d4fe3c3f4ed6322eeca9704d883ddae",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/ChannelSwitcher.tsx": {
@@ -10345,48 +10335,3258 @@
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/components/channels/ChannelBadge.tsx": {
-    "mtime": 1784571034.1174376,
-    "ast_hash": "d72ab8ef2687c2e4b20f70a32dd4da76",
+    "mtime": 1784645440.4372246,
+    "ast_hash": "585d571cb2e5a73687afac04d971b10f",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/components/channels/ChannelCard.tsx": {
-    "mtime": 1784571017.6242888,
-    "ast_hash": "ae2fd5c3342df9ea4cd1c6111f5c3252",
+    "mtime": 1784645440.8177953,
+    "ast_hash": "4c572f35d59693a3203aca8ce839e435",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/components/channels/ChannelForm.tsx": {
-    "mtime": 1784571011.9082742,
-    "ast_hash": "f7cf9c0660ec87a34c5112bc8c66d675",
+    "mtime": 1784645507.3556876,
+    "ast_hash": "58663b4cbf532cf57921c5f4bc87d1ed",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/components/channels/ChannelManager.tsx": {
-    "mtime": 1784571023.1871634,
-    "ast_hash": "959fcf37d52b4b8468de1e71a8a219b0",
+    "mtime": 1784645440.8298218,
+    "ast_hash": "01025da5da96f7f1b11d676370dd68b1",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/components/channels/ChannelSwitcher.tsx": {
-    "mtime": 1784571028.846326,
-    "ast_hash": "bfe5275f479de4331d731ecd159baa30",
+    "mtime": 1784645440.8343358,
+    "ast_hash": "cdbd650b455e7a0d3ef958baa6d903ce",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/components/channels/CreatorForm.tsx": {
-    "mtime": 1784571045.6574779,
-    "ast_hash": "777c367a07fa266c996b913a540ecd4d",
+    "mtime": 1784645440.468985,
+    "ast_hash": "14202ba8c2c202254bc6cb8a456c9ebd",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/config/creatorTemplates.ts": {
-    "mtime": 1784571040.1143212,
-    "ast_hash": "3293fe7e5be34f747153fafb01856e97",
+    "mtime": 1784572072.1537523,
+    "ast_hash": "c9f1e9ffa3c6efeb4509955bc979bd9a",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/context/ChannelContext.tsx": {
-    "mtime": 1784570999.2981153,
-    "ast_hash": "391b5d1c284d88eb81a2ba520b51a25b",
+    "mtime": 1784571279.3057609,
+    "ast_hash": "7a371b5cc218add275ba9704c45680e3",
     "semantic_hash": ""
   },
   "dashboard-qanat/frontend/src/hooks/useActiveChannel.ts": {
-    "mtime": 1784571004.7346098,
-    "ast_hash": "321bdd3619e59156375195de0dde9908",
+    "mtime": 1784571279.310758,
+    "ast_hash": "a76d2aa5083c4fc41253a00da97aa7e6",
+    "semantic_hash": ""
+  },
+  ".agents/skill-bundles/visual-prompt.json": {
+    "mtime": 1784645440.3043873,
+    "ast_hash": "753979fbc7ad5e042b32d67119a7e1e5",
+    "semantic_hash": ""
+  },
+  "channels/geografia-em-fatos/channel.config.json": {
+    "mtime": 1784686340.2901702,
+    "ast_hash": "10689342530821a196d0819e32f5c689",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/channelAwareSearch.js": {
+    "mtime": 1784588732.6175277,
+    "ast_hash": "2788d03220e185f46d602ff46177a0c2",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/channelTools.js": {
+    "mtime": 1784591968.604414,
+    "ast_hash": "82978f3d4a4362b1e54d92204d9fa9d7",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/creatorSceneTagger.js": {
+    "mtime": 1784645440.3235557,
+    "ast_hash": "f3ad8d314ca5e1510e19a9aee34adf6d",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/creatorSceneTagger.test.js": {
+    "mtime": 1784645440.3235557,
+    "ast_hash": "8c05a993128ab412408db1c28a48aabf",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/e2e-motion.test.js": {
+    "mtime": 1784645440.3235557,
+    "ast_hash": "35a56a7c20af3dbc62d8bafe07be49ed",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/editorialCalendar.js": {
+    "mtime": 1784575741.77907,
+    "ast_hash": "a9f424feae40c62aaa802291889f3868",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/flowLab.js": {
+    "mtime": 1784576588.7155871,
+    "ast_hash": "c7adbbe27e3e25a2a2e219e77fbd44a8",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/memoryEngine.js": {
+    "mtime": 1784575741.800117,
+    "ast_hash": "f1a0ad736ff22f3a0460bae4bdae5ff2",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/motionDirector.js": {
+    "mtime": 1784687294.301293,
+    "ast_hash": "27cd09e601087689c42b17cd6b3d5546",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/motionDirector.test.js": {
+    "mtime": 1784687294.321027,
+    "ast_hash": "2f8cf3c36cd7d9dd318d98980f516dd8",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/motionRoutes.js": {
+    "mtime": 1784645440.3245595,
+    "ast_hash": "62eb797a7dd21a282e58e3380e59fc40",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/nicheMotionPreferences.js": {
+    "mtime": 1784645440.3245595,
+    "ast_hash": "c25994dc6aad0952a53a9d8dbacf3843",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/reverseEngineering.test.js": {
+    "mtime": 1784594085.080421,
+    "ast_hash": "a467a13786f0d8837b04983bca312a23",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/reverseEngineeringCache.js": {
+    "mtime": 1784686340.197924,
+    "ast_hash": "94d2df1681ecc77d5a899215ac01566d",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/scriptQuality/narrationAuditRepair.test.js": {
+    "mtime": 1784645440.336153,
+    "ast_hash": "2dcfa0a6379c30db3e8c658b4d35dd0e",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/shortsSceneChunker.js": {
+    "mtime": 1784591006.0816185,
+    "ast_hash": "d1ba23790481b5e6344348c926fd5544",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/shotcraftCatalog.js": {
+    "mtime": 1784645440.3613956,
+    "ast_hash": "fe3155600e70e379d65dab60c2f32539",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/shotcraftPropsMap.js": {
+    "mtime": 1784687294.349573,
+    "ast_hash": "b4f9dfb6189ac85e688aed7a13679925",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/stockSearchQuery.test.js": {
+    "mtime": 1784645440.3696473,
+    "ast_hash": "98c4312f4a35115f897f69fea65ce7b3",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/syncJob.js": {
+    "mtime": 1784572759.450583,
+    "ast_hash": "a7b4f868dcc68aaeb0ce242204f412fe",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/systemHealth.js": {
+    "mtime": 1784576589.8740027,
+    "ast_hash": "2d415d2944842cf76a3f5f974095bd2a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/templatesManager.js": {
+    "mtime": 1784686365.0381773,
+    "ast_hash": "bb9d87bc0395449ebb41257e5d5f1af1",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/titleABTest.js": {
+    "mtime": 1784575742.7204473,
+    "ast_hash": "0f4f08bbdb48d1d54fb3cfa2e549bdab",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/youtubeClient.js": {
+    "mtime": 1784572759.4595747,
+    "ast_hash": "9221f76ce05b675e2a38435e3958bc13",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/youtubeCredentials.js": {
+    "mtime": 1784572759.4665837,
+    "ast_hash": "64c47cee94ab8ef17beecc3f0fe11c86",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/youtubeOAuth.js": {
+    "mtime": 1784574897.435762,
+    "ast_hash": "b6157dfda650b0f27e4866b52f66b289",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/scripts/migrateClasses.mjs": {
+    "mtime": 1784645440.398229,
+    "ast_hash": "3c4e65fc66c183df633d52d35a85f5a5",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/scripts/migrateInputs.mjs": {
+    "mtime": 1784645440.398229,
+    "ast_hash": "1635f050bdebf143d20331413cd1cb45",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/scripts/validateMigration.mjs": {
+    "mtime": 1784645440.398229,
+    "ast_hash": "61422a9db4c7a05b083c8693cfd5de45",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/components/AnimatedLogo.tsx": {
+    "mtime": 1784645440.4326434,
+    "ast_hash": "5dd4cce56d32dea707d422fe380c3393",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/components/Logo.tsx": {
+    "mtime": 1784645440.4326434,
+    "ast_hash": "9e44cb39aef5e0f1611e6a801fa565bc",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/components/MotionPlanEditor.tsx": {
+    "mtime": 1784686365.1881225,
+    "ast_hash": "e3e9fbf98946acaab38ec0f8c8bc1e6c",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/components/SplashScreen.tsx": {
+    "mtime": 1784645440.4326434,
+    "ast_hash": "a4d0b4152b378b181cb5a8913af23354",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/components/ThemeToggle.tsx": {
+    "mtime": 1784645440.4326434,
+    "ast_hash": "c3bf6f80f37c7e4127153cbc8f1fbfd3",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/components/channels/ConnectionTest.tsx": {
+    "mtime": 1784645440.4635346,
+    "ast_hash": "ea86745358acd28ca2a36b14dbe1d5dd",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/hooks/themeStore.ts": {
+    "mtime": 1784645440.5041761,
+    "ast_hash": "6f560743a2dc2f75333ade27bb83439b",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/hooks/useTheme.ts": {
+    "mtime": 1784645440.5041761,
+    "ast_hash": "b9074f1da06ad179c719f230fdbe3b13",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/wizardInputValidator.test.ts": {
+    "mtime": 1784645440.5275822,
+    "ast_hash": "a647fba417015bc83dba88f741feb1e0",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/wizardInputValidator.ts": {
+    "mtime": 1784645440.5285895,
+    "ast_hash": "184f9602565b5c0755586e5a06e58bb5",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/scripts/gen-shotcraft-registry.mjs": {
+    "mtime": 1784645440.5285895,
+    "ast_hash": "049c971b5ebd5345f1e866844e5d9b16",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/scripts/genShotcraftRegistry.mjs": {
+    "mtime": 1784693248.8878632,
+    "ast_hash": "2d287c4e9f8031491166aaeb6c9d4498",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/ShotcraftCamera.tsx": {
+    "mtime": 1784645440.531582,
+    "ast_hash": "ce9f9201df07e65812b14fe85174ed51",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/ShotcraftLayer.tsx": {
+    "mtime": 1784696744.8331833,
+    "ast_hash": "c78855f4a5f64dcee76146fe0ff2b400",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/ShotcraftTransition.tsx": {
+    "mtime": 1784686146.5512083,
+    "ast_hash": "8fe69e0c5222b9817c518da9e8289054",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos-manifest.json": {
+    "mtime": 1784645440.5325818,
+    "ast_hash": "52b4f7dbe693b174ccb187b846fda528",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraftRegistry.ts": {
+    "mtime": 1784693256.0403488,
+    "ast_hash": "8a1b541277ce191efb3b685a5ecdf248",
+    "semantic_hash": ""
+  },
+  "scripts/ensure-omniroute.ps1": {
+    "mtime": 1784595328.9960887,
+    "ast_hash": "2e9dba5e58ab5ec5d9b81f74a757b9be",
+    "semantic_hash": ""
+  },
+  ".agents/memory/historia-da-tecnologia.md": {
+    "mtime": 1784645694.4101126,
+    "ast_hash": "13c2d77a08c4ffe6a8a8444ba8bb645c",
+    "semantic_hash": ""
+  },
+  "channels/geografia-em-fatos/prompts/narracao.md": {
+    "mtime": 1784686340.2901702,
+    "ast_hash": "8a58897c80ae4cba06af6e1d9492593b",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/MOTION_SHOTCRAFT.md": {
+    "mtime": 1784645440.3095489,
+    "ast_hash": "a9bf45d6c3c880067e0cb58c21c0b70c",
+    "semantic_hash": ""
+  },
+  "templates_remotion.md": {
+    "mtime": 1784645695.7836468,
+    "ast_hash": "20385123188a7b0fb1f2e927a9c28178",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/public/logo.svg": {
+    "mtime": 1784645440.398229,
+    "ast_hash": "6012cf5a21e79e4d5a292e7b913d85e9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/.claude-plugin/plugin.json": {
+    "mtime": 1784680076.760859,
+    "ast_hash": "bab36773241d7db7bf2dc978e26b3f74",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/_fixtures/Fixtures.tsx": {
+    "mtime": 1784680076.9496193,
+    "ast_hash": "1d743ee19a754a52fef7b8d09b8ed91b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/_textures/live-layout.json": {
+    "mtime": 1784680076.9557147,
+    "ast_hash": "ff2266cd706be01489b6951503a81d34",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/ai-stream-response/StreamResponse.tsx": {
+    "mtime": 1784680076.9612286,
+    "ast_hash": "3ee628529bf58eecd18c9ef38c0798e4",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/autolayout-gap-dial/AutolayoutGapDial.tsx": {
+    "mtime": 1784680076.9622216,
+    "ast_hash": "a4de76d4f5caa6b5fc21293c74f4de22",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/beat-cut-moves/BeatCutAccelerando.tsx": {
+    "mtime": 1784680076.9622216,
+    "ast_hash": "c3bcedca95e7ff9693fc17cb8bdf422b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/beat-cut-moves/PaparazziFlash.tsx": {
+    "mtime": 1784680076.9632218,
+    "ast_hash": "3c45192caf8a90dfd8572c5b45ce9af9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/beat-step-list-theme-cycle/BeatStepListThemeCycle.tsx": {
+    "mtime": 1784680076.9632218,
+    "ast_hash": "d68f329c9befa3b6e6da2cdf0400bf61",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/before-after-slider-scrub/BeforeAfterSliderScrub.tsx": {
+    "mtime": 1784680076.9632218,
+    "ast_hash": "96cc75279a34e54eb648dc2dea487535",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/bottom-push-stack-wipe/BottomPushStackWipe.tsx": {
+    "mtime": 1784680076.964226,
+    "ast_hash": "866f4a4b0c87161bf63ff829f25865e0",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/brand-frame-snap/BrandFrameSnap.tsx": {
+    "mtime": 1784680076.964226,
+    "ast_hash": "0275b05b7ffa67c0f0c44b6b662c6651",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/bubble-swarm-takeover/BubbleSwarmTakeover.tsx": {
+    "mtime": 1784680076.964226,
+    "ast_hash": "07a545a7c31ef0a2b20b12ffdd57ee63",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/canvas-materialize-moves/DiagramCascadeBuild.tsx": {
+    "mtime": 1784680076.9652264,
+    "ast_hash": "4538da2b7e6ef80f84be4f335ded4329",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/canvas-materialize-moves/PanelToCanvasMaterialize.tsx": {
+    "mtime": 1784680076.9652264,
+    "ast_hash": "77ceccb636132aa3f4fae05db2f16fc0",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/card-flip-reveal/CardFlipReveal.tsx": {
+    "mtime": 1784680076.9652264,
+    "ast_hash": "0f1eae8345a08ecf8908b1104f24dea2",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/card-flock-tumble/CardFlockTumble.tsx": {
+    "mtime": 1784680076.966223,
+    "ast_hash": "99604e72c6772954bcfe3c2d749aec86",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/cel-flash-stomp/CelFlashStomp.tsx": {
+    "mtime": 1784680076.966223,
+    "ast_hash": "eac3b63c23a7c9680555388832763e28",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/chart-live-moves/AxisRescaleShockV2.tsx": {
+    "mtime": 1784680076.966223,
+    "ast_hash": "8fc4e000bc8fd16b22f8d2691fb11033",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/chart-live-moves/OscilloscopeStreamV2.tsx": {
+    "mtime": 1784680076.9672215,
+    "ast_hash": "ba0459c402a97ef92c00ccd27b38fd1d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/chart-live-moves/UnitDotSwarmRegroupV2.tsx": {
+    "mtime": 1784680076.9672215,
+    "ast_hash": "9ba8b1b3a4acad68a18447885cc60cba",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/circle-match-iris/CircleMatchIris.tsx": {
+    "mtime": 1784680076.9677248,
+    "ast_hash": "883f01b581c60899fdf6cb0c154b4b36",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/cloner-depth-echo/ClonerDepthEcho.tsx": {
+    "mtime": 1784680076.9677248,
+    "ast_hash": "c4a6fb73a35de510c9f8361779f080ab",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/collab-cursor-moves/CursorCastEnsemble.tsx": {
+    "mtime": 1784680076.9677248,
+    "ast_hash": "a5d401dc43439bc7507ff190d7788352",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/collab-cursor-moves/CursorDialogueDuet.tsx": {
+    "mtime": 1784680076.9677248,
+    "ast_hash": "87eb58286532a56bbfea97db9be0e064",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/color-block-step-wipe/ColorBlockStepWipe.tsx": {
+    "mtime": 1784680076.9687254,
+    "ast_hash": "91b3828553f2601c83ad9192e7002e22",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/command-palette-summon/CommandPaletteSummon.tsx": {
+    "mtime": 1784680076.9687254,
+    "ast_hash": "d2e4211b0e9d8e44f38b1c48569e8562",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/crane-rise-reveal/CraneRiseReveal.tsx": {
+    "mtime": 1784680076.9687254,
+    "ast_hash": "d61b43b153d404148851c70e95ad56eb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/crash-zoom-punch/CrashImpactReal.tsx": {
+    "mtime": 1784680076.9697256,
+    "ast_hash": "b9f0d1f188abf5728581fa0e4787ffe3",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/crash-zoom-punch/CrashZoomReal.tsx": {
+    "mtime": 1784680076.9697256,
+    "ast_hash": "fdb6ad09e211d70d59c907a77a92d008",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/dataviz-landscape-open/DatavizLandscapeOpen.tsx": {
+    "mtime": 1784680076.9697256,
+    "ast_hash": "94a769c11cd765b4f863917cb05f5963",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/depth-layer-moves/DollyZoomReal.tsx": {
+    "mtime": 1784680076.970728,
+    "ast_hash": "69d5748a0943fa2b3e1aa2cc73dc0bfa",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/depth-layer-moves/MultiplaneReal.tsx": {
+    "mtime": 1784680076.970728,
+    "ast_hash": "e0d0b46e1a8b062ec5121b486945f8e6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/draw-svg-trace/DrawSvgTrace.tsx": {
+    "mtime": 1784680076.970728,
+    "ast_hash": "1a52208163578521e2d973e6103073d6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/edit-hook-moves/LogoStingButton.tsx": {
+    "mtime": 1784680076.970728,
+    "ast_hash": "86adbb6e2df72bdd80f299647b0c66f9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/element-body-moves/AxialStretch.tsx": {
+    "mtime": 1784680076.971727,
+    "ast_hash": "5675e0b6eeb1ac3a2e0cc359d970cf88",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/element-body-moves/ContactShadowLift.tsx": {
+    "mtime": 1784680076.971727,
+    "ast_hash": "ac6761ba795868d4675b3deb73f7b387",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/fui-hud-moves/LineUnfoldPanel.tsx": {
+    "mtime": 1784680076.971727,
+    "ast_hash": "d9918a6b42b8e9fc72d54a2487c91e1f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/fui-hud-moves/ReticleLockOn.tsx": {
+    "mtime": 1784680076.9727254,
+    "ast_hash": "078e29a3e502beca24abb0ffa9c1deda",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/gauge-readout-moves/NeedleSweepSelftest.tsx": {
+    "mtime": 1784680076.9727254,
+    "ast_hash": "6e8fea46b9646e4827e90bd900c013e8",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/gauge-readout-moves/TapeScrollFixedPointer.tsx": {
+    "mtime": 1784680076.9727254,
+    "ast_hash": "ddc2390f2485f801b34b237b34bd54c4",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/glow-flyline-moves/FlylineArc.tsx": {
+    "mtime": 1784680076.9727254,
+    "ast_hash": "cba503b547fddfe045155b68d1cf49a3",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/glow-flyline-moves/GlowOrbAmbient.tsx": {
+    "mtime": 1784680076.9737253,
+    "ast_hash": "8ce3767ae898cf94bc7762066ce1421a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/glow-flyline-moves/OrbFlylineRelay.tsx": {
+    "mtime": 1784680076.9737253,
+    "ast_hash": "f5ac16a64556c7978a823d1dc2e0bbfe",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/gradient-word-sweep/GradientWordSweep.tsx": {
+    "mtime": 1784680076.9737253,
+    "ast_hash": "69582f63f863f1a3b50a7805ee7aca75",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/graze-face-tour/GrazeFaceTour.tsx": {
+    "mtime": 1784680076.9747252,
+    "ast_hash": "ad1d8798025bb4d1faa6e8ea03c367ad",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/hashtag-to-pill-materialize/HashtagToPillMaterialize.tsx": {
+    "mtime": 1784680076.9747252,
+    "ast_hash": "51ddec1bfab2a763b6d68e9a7265dfd0",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/icon-field-colorize/IconFieldColorize.tsx": {
+    "mtime": 1784680076.9757254,
+    "ast_hash": "d3a573435f15b925c2e25679f5d69355",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/icon-performance-moves/AttentionBounce.tsx": {
+    "mtime": 1784680076.9757254,
+    "ast_hash": "0d9bff9f624a975ea4ffbbed1afbd85c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/icon-performance-moves/PopBurstConfirm.tsx": {
+    "mtime": 1784680076.9757254,
+    "ast_hash": "d8717837fbcab08e0866dbb1f34ecafb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/impact-feedback/AnimeImpact.tsx": {
+    "mtime": 1784680076.9757254,
+    "ast_hash": "683546aecf7d6d64b9375eef8e597533",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/impact-feedback/HitCounter.tsx": {
+    "mtime": 1784680076.9757254,
+    "ast_hash": "b63c91d809010903a5aa92f5caec21e6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/input-trigger-moves/CursorPerformancePunchIn.tsx": {
+    "mtime": 1784680076.9772282,
+    "ast_hash": "19d86c5bfc1c038f0e1c6f628b05ed31",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/input-trigger-moves/KeycapSmashCut.tsx": {
+    "mtime": 1784680076.9772282,
+    "ast_hash": "95206c13ca6b6f2e1252b7c2a8ca1571",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/integration-hub-map/IntegrationHubMap.tsx": {
+    "mtime": 1784680076.9772282,
+    "ast_hash": "d71411b90eb23525754222dc9d55c325",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/letterspace-materialize/LetterspaceMaterialize.tsx": {
+    "mtime": 1784680076.9782333,
+    "ast_hash": "d33dbc6a34e5ea87a7f6fcf3d66b9200",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/light-play-moves/HalationBloom.tsx": {
+    "mtime": 1784680076.9782333,
+    "ast_hash": "50ad139e6ec5189dc43215dfeabc544d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/light-play-moves/SheenSweepRetry.tsx": {
+    "mtime": 1784680076.9782333,
+    "ast_hash": "15cd312310f28777b6e6ea3ea6b5181d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/light-play-moves/SpotlightSweepReveal.tsx": {
+    "mtime": 1784680076.9782333,
+    "ast_hash": "27f268b81c6bd8df26523845aa0e2711",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/line-boil/LineBoil.tsx": {
+    "mtime": 1784680076.9792323,
+    "ast_hash": "01dd9f1e47489cca6b505faa5dce3bee",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/line-carry-transition/LineCarryTransition.tsx": {
+    "mtime": 1784680076.9792323,
+    "ast_hash": "2a0e38edd55eb63542ca580fb96bab4c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/magician-card-flourish/MagicianCardFlourish.tsx": {
+    "mtime": 1784680076.9792323,
+    "ast_hash": "b0c082359be8dd84779f22857f92db0b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/marker-underline-title/MarkerUnderlineTitle.tsx": {
+    "mtime": 1784680076.9802315,
+    "ast_hash": "25b81487d2734913d2aae4eb66c7338d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/montage-rhythm-moves/DominoCascade.tsx": {
+    "mtime": 1784680076.9802315,
+    "ast_hash": "8125165bb91be54e35bdd0e312e52f25",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/montage-rhythm-moves/DropBlackoutSlam.tsx": {
+    "mtime": 1784680076.9802315,
+    "ast_hash": "93ae503464687cb398d5e9f3c1598a97",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/montage-rhythm-moves/WrightTripleCut.tsx": {
+    "mtime": 1784680076.9802315,
+    "ast_hash": "bdbf7548eb36318c5c03005b3ec95dcc",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/morph-from-primitive/MorphFromPrimitive.tsx": {
+    "mtime": 1784680076.9812317,
+    "ast_hash": "28edf602495ad09038601ab768a64b11",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/neon-frame-forerun/NeonFrameForerun.tsx": {
+    "mtime": 1784680076.9812317,
+    "ast_hash": "98356598558d1ad1e432f4e179fb6967",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/neon-frame-orbit-drop/NeonFrameForerunOrbit.tsx": {
+    "mtime": 1784680076.9812317,
+    "ast_hash": "139ddd20b7eec55e70cccf617a0751fe",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/neon-triple-marquee/NeonTripleMarquee.tsx": {
+    "mtime": 1784680076.9822333,
+    "ast_hash": "96dde1dc0241a485b9bca4f75712d4ff",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/odometer-digit-roll/OdometerDigitRoll.tsx": {
+    "mtime": 1784680076.9822333,
+    "ast_hash": "210385360a853ea9e2808a427bb143d3",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/overhead-camera-moves/OverheadTabletopDrop.tsx": {
+    "mtime": 1784680076.9832344,
+    "ast_hash": "19accc901169f2c2887b973140d6bf8c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/overhead-camera-moves/TiltReveal.tsx": {
+    "mtime": 1784680076.9832344,
+    "ast_hash": "2ea8086de2889e34d6de9187faf72eda",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/page-turn-transitions/BarnDoorSplit.tsx": {
+    "mtime": 1784680076.9832344,
+    "ast_hash": "401a89385a08a04c6761343842a7584c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/page-turn-transitions/CubeRotate.tsx": {
+    "mtime": 1784680076.9832344,
+    "ast_hash": "7eea48dfb8dd86f2efce3a33039dcd80",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/page-waterfall-wall/PageWaterfallWall.tsx": {
+    "mtime": 1784680076.984281,
+    "ast_hash": "a5f1932e7373286ee9e36d1c8447aa47",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/page-waterfall-wall/VerticalTicker.tsx": {
+    "mtime": 1784680076.984281,
+    "ast_hash": "26717a088d5696895cf50c64caf610be",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/panel-grid-moves/ComicPanelSplit.tsx": {
+    "mtime": 1784680076.984281,
+    "ast_hash": "0b50bef40133d4e2180dd701869b2c83",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/panel-grid-moves/FlipGridReflow.tsx": {
+    "mtime": 1784680076.984281,
+    "ast_hash": "2735a1bea27ea752c622ff60f293db62",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/panel-grid-moves/GridFlashMosaic.tsx": {
+    "mtime": 1784680076.985279,
+    "ast_hash": "4556b89b17aecc9532e83a4eebb142be",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/paper-craft-moves/MaskingTapeSlap.tsx": {
+    "mtime": 1784680076.985279,
+    "ast_hash": "b00d9a969dc3b6fcefb18dd68d20ebb8",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/paper-craft-moves/PopupBookRise.tsx": {
+    "mtime": 1784680076.985279,
+    "ast_hash": "6162badc4b93be9dc27c604ea5b9aa74",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/paper-plane-messenger/PaperPlaneMessenger.tsx": {
+    "mtime": 1784680076.985279,
+    "ast_hash": "5bba1cd726570b299fbb5377ff1229b6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/particle-celebrate-hits/ConfettiCrossfire.tsx": {
+    "mtime": 1784680076.9862876,
+    "ast_hash": "21075cfe487d2c9f43e6bd4d0d7c20ca",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/particle-celebrate-hits/CounterTickSparks.tsx": {
+    "mtime": 1784680076.9862876,
+    "ast_hash": "05a9b7ed43640a4a5f0219ba875e424a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/particle-sand-fill/ParticleSandFill.tsx": {
+    "mtime": 1784680076.9862876,
+    "ast_hash": "c64454af210080041133dccd6f4eaa31",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/pill-slot-cycle/PillSlotCycle.tsx": {
+    "mtime": 1784680076.9872792,
+    "ast_hash": "d7c2c43fe87bb7e8ff198163dfc48f28",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/print-texture-transitions/InkBleedReveal.tsx": {
+    "mtime": 1784680076.9872792,
+    "ast_hash": "8b5aec70b091bf84b69efadce245a642",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/rhythm-interrupt-moves/JumpCutPunchIn.tsx": {
+    "mtime": 1784680076.9877822,
+    "ast_hash": "ed4a1bdddc3f006c696ac01eec373b3a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/rhythm-interrupt-moves/StrobeBlackFrames.tsx": {
+    "mtime": 1784680076.9877822,
+    "ast_hash": "18f69eaa26f72bdd55ddf6f65aa9bb46",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/riso-print-hits/RisoBeatPump.tsx": {
+    "mtime": 1784680076.9877822,
+    "ast_hash": "db8ac58acf726b0ecf6672a309472613",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/riso-print-hits/RisoMisregistrationHit.tsx": {
+    "mtime": 1784680076.9887862,
+    "ast_hash": "69e62018eac578543e55f9f0cdd0b4c0",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/runway-ground-skim/RunwayGroundSkim.tsx": {
+    "mtime": 1784680076.9887862,
+    "ast_hash": "86b866328bd930cbfd6d25db4b7b7e16",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/sakuga-timing-shift/SakugaTimingShift.tsx": {
+    "mtime": 1784680076.9887862,
+    "ast_hash": "691b41a20310babd2f7da2d53470ebc4",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/scene-locked-title/SceneLockedTitle.tsx": {
+    "mtime": 1784680076.9897838,
+    "ast_hash": "4fc666a8242787c469a70c00da6c4647",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/scroll-brake-moves/BrakeReticleLock.tsx": {
+    "mtime": 1784680076.9897838,
+    "ast_hash": "56f0d1c6c424ebe7c207b73d3513ba2b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/scroll-brake-moves/ChangelogScrollBrake.tsx": {
+    "mtime": 1784680076.9897838,
+    "ast_hash": "4c69b4e86759ae257244e549ef76363a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/segmented-thumb-hero/SegmentedThumbHero.tsx": {
+    "mtime": 1784680076.99079,
+    "ast_hash": "590d241a2315d015860d2ee1908a1c45",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/shot-transitions/MaskWipeReal.tsx": {
+    "mtime": 1784680076.99079,
+    "ast_hash": "0debf3584e6c4b4a34b4da2e007bae6b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/shot-transitions/PortalWipeV2.tsx": {
+    "mtime": 1784680076.99079,
+    "ast_hash": "a88e3a05a140c64b003af8b06224423a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/shot-transitions/WhipBrakeReal.tsx": {
+    "mtime": 1784680076.99079,
+    "ast_hash": "dc3b7382f1922814876f332b5e9e424d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/shot-transitions/WhipPanReal.tsx": {
+    "mtime": 1784680076.991783,
+    "ast_hash": "9d05b861822f7dceb70e038757dbd6df",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/skeleton-reveal/SkeletonReveal.tsx": {
+    "mtime": 1784680076.991783,
+    "ast_hash": "a9a30c147919f5787b4150464689b6c1",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/slam-entrance-moves/ImpactBurstKit.tsx": {
+    "mtime": 1784680076.991783,
+    "ast_hash": "c476fdbebef761d1853bd4d06b34f020",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/slam-entrance-moves/KanadaPerspectiveSnap.tsx": {
+    "mtime": 1784680076.991783,
+    "ast_hash": "293f0f19f9fb2549701b260e5a1b21ea",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/slam-entrance-moves/ScoreSlam.tsx": {
+    "mtime": 1784680076.992783,
+    "ast_hash": "1792618585b8027e93f1e8b50fab73fd",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/smear-multiples/SmearMultiples.tsx": {
+    "mtime": 1784680076.992783,
+    "ast_hash": "81e00fd8c35f3db6678f137d272d7a94",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/space-camera-moves/DroneDiveLanding.tsx": {
+    "mtime": 1784680076.992783,
+    "ast_hash": "5c9317060e8b9222c07b09bfdc8c07d6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/space-camera-moves/ExplodedView.tsx": {
+    "mtime": 1784680076.9937832,
+    "ast_hash": "d268f5756d0d99e8ff022f92ff24eec7",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/space-camera-moves/SnorricamLock.tsx": {
+    "mtime": 1784680076.9937832,
+    "ast_hash": "71bdac88f88e9ee08e332af8cda9ff79",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/spectrum-morph-ui/SpectrumMorphUi.tsx": {
+    "mtime": 1784680076.9937832,
+    "ast_hash": "037b75a4214e78b4f9e8326948cac3c1",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/speed-ramp-freeze/FreezeAnnotateReal.tsx": {
+    "mtime": 1784680076.9937832,
+    "ast_hash": "461f03e402851f7a17707c85e759bfcb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/speed-ramp-freeze/SpeedRampReal.tsx": {
+    "mtime": 1784680076.9947846,
+    "ast_hash": "1b8bb56c0590baad09d012139b71d0d7",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/split-flap-title/SplitFlapFlip.tsx": {
+    "mtime": 1784680076.9947846,
+    "ast_hash": "0b357b954d5d2fb3caf91dfcbed33966",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/spotlight-sweep-moves/CornerSpotlightReveal.tsx": {
+    "mtime": 1784680076.9947846,
+    "ast_hash": "03a0ad8a048cfd5a663bb24b3d23b2fc",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/spotlight-sweep-moves/GlowWakeSleepPanel.tsx": {
+    "mtime": 1784680076.9947846,
+    "ast_hash": "fde1a58845d7ae9f9c1605e5de48d067",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/spotlight-sweep-moves/SlideSpotlightPan.tsx": {
+    "mtime": 1784680076.9957833,
+    "ast_hash": "4b3c33c50e796203a602fc4af35cca9a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/steep-tilt-glide/SteepTiltGlide.tsx": {
+    "mtime": 1784680076.9957833,
+    "ast_hash": "9984293bb34e9e83d73ed4a267de0a45",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/stroke-segment-build/StrokeSegmentBuild.tsx": {
+    "mtime": 1784680076.9957833,
+    "ast_hash": "8720879abcae62941870da8bfa9d5e9b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/tear-streak-transitions/GlitchDisplace.tsx": {
+    "mtime": 1784680076.9957833,
+    "ast_hash": "209677dd030986e1ecd2e3316b634513",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/tension-camera-moves/BulletTimeFreezeOrbit.tsx": {
+    "mtime": 1784680076.997286,
+    "ast_hash": "f994d0e2fea666285d7af31ece5f983f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/tension-camera-moves/DutchRollToLevel.tsx": {
+    "mtime": 1784680076.997286,
+    "ast_hash": "fc7f347b767625eb03ec5fb403179feb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/tension-camera-moves/PullBackIsolation.tsx": {
+    "mtime": 1784680076.997286,
+    "ast_hash": "ed0533864e04f947ce46e0a62099ec08",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/tension-camera-moves/SlowPushIn.tsx": {
+    "mtime": 1784680076.997286,
+    "ast_hash": "efd29082fd211b7d0b19c5408e06ff1c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/text-as-mask/TextAsMask.tsx": {
+    "mtime": 1784680076.9982886,
+    "ast_hash": "4fa30d9c7153b67123cfa33eb07f66cc",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/text-column-converge/TextColumnConverge.tsx": {
+    "mtime": 1784680076.9982886,
+    "ast_hash": "7cb917439df23dd1cb0f1e75bbcd992c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/theme-switch-moves/PaletteThemeRipple.tsx": {
+    "mtime": 1784680076.9982886,
+    "ast_hash": "f968554cbb9e16649fd138b6cc540bb4",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/theme-switch-moves/ThemeSweepToggle.tsx": {
+    "mtime": 1784680076.9982886,
+    "ast_hash": "fa00ecccc0567f5432608ee013ef5f27",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/timeline-travel/TimelineTravel.tsx": {
+    "mtime": 1784680076.9992886,
+    "ast_hash": "036d1ad1bf24d31fa99fa88e198565a6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/title-demote-to-label/TitleDemoteToLabel.tsx": {
+    "mtime": 1784680076.999857,
+    "ast_hash": "ff9f1c13f431ca6c5f3d8e54a0f0f13b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/trailer-grammar-moves/CardFootageCadence.tsx": {
+    "mtime": 1784680076.999857,
+    "ast_hash": "45e5a5b3ecc4a214f52d7a9014872d2c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/trailer-grammar-moves/SmashCut.tsx": {
+    "mtime": 1784680076.999857,
+    "ast_hash": "bec5a2339b7fcbc046c1043af3e4f85d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/trailer-grammar-moves/TrailerBumper.tsx": {
+    "mtime": 1784680077.0008612,
+    "ast_hash": "f5f985958c6a6123ff024bace1683b00",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/transition-hidden-cut/InvisibleCut.tsx": {
+    "mtime": 1784680077.0008612,
+    "ast_hash": "095550283641d2c1ca56bfd4e1abcf9d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/transition-hidden-cut/LightLeakBurn.tsx": {
+    "mtime": 1784680077.0008612,
+    "ast_hash": "83d71c068c066458a4c45c3dcaa1603e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/transition-hidden-cut/VersusSlam.tsx": {
+    "mtime": 1784680077.0008612,
+    "ast_hash": "0cd5ca6b2116d6f6b3aa1d0ea0e044f3",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/transition-travel/LetterformZoom.tsx": {
+    "mtime": 1784680077.00186,
+    "ast_hash": "772390ba1a2b2a33cf608df65ac8b560",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/transition-travel/SharedElementMorph.tsx": {
+    "mtime": 1784680077.00186,
+    "ast_hash": "7b38602917350f8ae47a78440a94f3a6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/type-assembly-moves/LetterformDriftAssembly.tsx": {
+    "mtime": 1784680077.00186,
+    "ast_hash": "4be0b3a507622893f2a8a65ecd699418",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/type-assembly-moves/SplitTextStagger.tsx": {
+    "mtime": 1784680077.002859,
+    "ast_hash": "b7002518cdfc7214844194019840e729",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/type-assembly-moves/TextOnPath.tsx": {
+    "mtime": 1784680077.002859,
+    "ast_hash": "6a01ad330322496c4fbb9114d0513742",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/type-assembly-moves/TrackingExpandReveal.tsx": {
+    "mtime": 1784680077.002859,
+    "ast_hash": "58098e8f6dfd4d7bb3e7b0d05ff03ede",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/type-entrance-moves/LetterDropPhysics.tsx": {
+    "mtime": 1784680077.002859,
+    "ast_hash": "020ad96fc4d514a5f9d6ddff9cf2d9f3",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/type-entrance-moves/ScrambleDecode.tsx": {
+    "mtime": 1784680077.003859,
+    "ast_hash": "6ffe8c82c1c136c02538c2b3c99e9262",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/type-rhythm-sync/FontWeightPump.tsx": {
+    "mtime": 1784680077.003859,
+    "ast_hash": "377a94a333f31c6dc3c678146454e157",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/type-rhythm-sync/KaraokeFillSync.tsx": {
+    "mtime": 1784680077.003859,
+    "ast_hash": "9786dcc1e0daccf8112c8419786ee44d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/typewriter-moves/TerminalTypewriter.tsx": {
+    "mtime": 1784680077.003859,
+    "ast_hash": "3adead445f5347777999fbacd9eaaf0f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/typewriter-moves/TypewriterErrorRetype.tsx": {
+    "mtime": 1784680077.0048661,
+    "ast_hash": "de3f2588c779d0245ca5b692207b279a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/ui-strip-away-outro/UiStripAwayOutro.tsx": {
+    "mtime": 1784680077.0048661,
+    "ast_hash": "23c820c6611d32a0ff82d8b1cc2a83dd",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/ui-to-brand-morph/IconFlipBloomLogo.tsx": {
+    "mtime": 1784680077.0048661,
+    "ast_hash": "ff73670190a931d6f227a9174016b709",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/ui-to-brand-morph/InputMorphsIntoLogo.tsx": {
+    "mtime": 1784680077.005867,
+    "ast_hash": "16d060d5378d8bcda1f1dac2b3e0119c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/voice-waveform-live/VoiceWaveformLive.tsx": {
+    "mtime": 1784680077.005867,
+    "ast_hash": "afc308abfc4b98f2c6cdbc7fb8c5e4ea",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/wall-reveal-moves/BentoLightUp.tsx": {
+    "mtime": 1784680077.005867,
+    "ast_hash": "118734aa12b2738d625608246636f927",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/wipe-transitions/BlindsSlice.tsx": {
+    "mtime": 1784680077.005867,
+    "ast_hash": "e21004a6da4f871cf7b07664e35a6f62",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/wipe-transitions/ClockWipe.tsx": {
+    "mtime": 1784680077.005867,
+    "ast_hash": "96506643bf9deecb379da08965e2d536",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/word-relay-filmstrip/WordRelayFilmstrip.tsx": {
+    "mtime": 1784680077.005867,
+    "ast_hash": "7dbaba68379813d60827f80a63d86acb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/api/library.json": {
+    "mtime": 1784680077.008015,
+    "ast_hash": "8657802f349512574b04770d42614962",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/app.js": {
+    "mtime": 1784680077.0085285,
+    "ast_hash": "793b83c4ad4c25108faa815814b9e7a1",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/build-seo.py": {
+    "mtime": 1784680077.0085285,
+    "ast_hash": "c00094e994c39f3eecb814b7ff772f24",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/sync-from-cards.py": {
+    "mtime": 1784680077.4997373,
+    "ast_hash": "82f0e4ae4dbd5ae82bcf33a0cc2b4349",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/translations.js": {
+    "mtime": 1784680077.5007372,
+    "ast_hash": "2e709fc385b5e12fc433badb3518573e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/package.json": {
+    "mtime": 1784680077.5675247,
+    "ast_hash": "743883acc44f30f10bb4d8bd209b4edd",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/remotion.config.ts": {
+    "mtime": 1784680077.619123,
+    "ast_hash": "2d34871f4657c833359b9793d5f46f48",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/Root.tsx": {
+    "mtime": 1784680077.619123,
+    "ast_hash": "970293579b25255be68b7ed3560f4b1a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/Caption.tsx": {
+    "mtime": 1784680077.620123,
+    "ast_hash": "37576fee11ca7ff5f103c66f56c660d1",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/DigitRoll.tsx": {
+    "mtime": 1784680077.620123,
+    "ast_hash": "6ec474de8150f59406d328320e072339",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/FlashCut.tsx": {
+    "mtime": 1784680077.620123,
+    "ast_hash": "63656d9a2ab5d926926c5f586c3cf76e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/Main.tsx": {
+    "mtime": 1784680077.620123,
+    "ast_hash": "9e83de1792570f1c5ce50eae6eb3a400",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/PaperTitleCard.tsx": {
+    "mtime": 1784680077.620123,
+    "ast_hash": "d6fa9bef2b92ba29b6e9e7b79bdaa963",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/live-layout.json": {
+    "mtime": 1784680077.6211233,
+    "ast_hash": "5ff2ec87870970b8f11a33153edfbf30",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/live/PageCam.tsx": {
+    "mtime": 1784680077.6211233,
+    "ast_hash": "f449739f5d4d1c19a710a09e9aa7d15a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/live/SceneDetail.tsx": {
+    "mtime": 1784680077.6211233,
+    "ast_hash": "3ea6ef789f9bb8cab58e5f06add2c461",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/live/SceneFlyIn.tsx": {
+    "mtime": 1784680077.622123,
+    "ast_hash": "0f381ec0457c6dfbad1b2e0bd5d3602d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/live/SceneOpen.tsx": {
+    "mtime": 1784680077.622123,
+    "ast_hash": "265a92a223d20b9e6c66f69ce702e7cb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/live/SceneOutroLive.tsx": {
+    "mtime": 1784680077.622123,
+    "ast_hash": "3af4f9d14809430622c69a26c9d5b86e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/live/ScenePapers.tsx": {
+    "mtime": 1784680077.622123,
+    "ast_hash": "8f97e97b323c2bd8799c86db09e70b50",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/aifl/live/SceneWbr.tsx": {
+    "mtime": 1784680077.6231234,
+    "ast_hash": "5e39018239dccea0b5e746287c2cb6da",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/src/index.ts": {
+    "mtime": 1784680077.6231234,
+    "ast_hash": "043b3a0f3364d79b1b943019f94a2c30",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/tsconfig.json": {
+    "mtime": 1784680077.6231234,
+    "ast_hash": "7fd8df8b138744193fe4d23c6d15ac46",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/channelManager.js": {
+    "mtime": 1784686340.29117,
+    "ast_hash": "0a5d59b4e91db18d566f8ade54b90516",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/nicheVideoPlans.js": {
+    "mtime": 1784686340.29117,
+    "ast_hash": "5824e48ca95c89b39f8dd8b0d88c36fa",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/templateRoutes.js": {
+    "mtime": 1784686146.2667966,
+    "ast_hash": "37160e2174377216d4fa1fc450a91265",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/templateSeedData.js": {
+    "mtime": 1784688706.8123727,
+    "ast_hash": "54bf59c1f056527cf6c2fad31d32cc95",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/templateStoreService.js": {
+    "mtime": 1784686146.28131,
+    "ast_hash": "e38af8d1b3ee370d103c12904e64dc05",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/transitionPlanner.js": {
+    "mtime": 1784686340.29117,
+    "ast_hash": "71a7be35bc6a6aabc920a3da83595a9f",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/visualFilterPlanner.js": {
+    "mtime": 1784686340.29117,
+    "ast_hash": "eabe84b71f92fa306896c93e2aadad76",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/LumieraEditor.tsx": {
+    "mtime": 1784699028.0430837,
+    "ast_hash": "e097af15bdc43d2624dfeca147a7b15f",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/StockSearchModal.tsx": {
+    "mtime": 1784694423.8922887,
+    "ast_hash": "35a15dab4b1dc71890cf740449ba257e",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/ParameterizedDataTemplates.tsx": {
+    "mtime": 1784698143.113752,
+    "ast_hash": "9299c147809787b3b5492cbb53387d70",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/ShotcraftDemoOverlay.tsx": {
+    "mtime": 1784686146.5321693,
+    "ast_hash": "969b8b7504cb888f7008b67fe5bf6488",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/_fixtures/Fixtures.tsx": {
+    "mtime": 1784686146.5843246,
+    "ast_hash": "d5c4e8bf10a7c3bae1c0ae15e6b60ab4",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/_textures/live-layout.json": {
+    "mtime": 1784686146.5955796,
+    "ast_hash": "b3492fac18059dc5d3bc8e80b8b184ac",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/ai-stream-response/StreamResponse.tsx": {
+    "mtime": 1784686146.6076045,
+    "ast_hash": "e85bc03ae267366510db3858d517b84a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/autolayout-gap-dial/AutolayoutGapDial.tsx": {
+    "mtime": 1784686146.6246228,
+    "ast_hash": "47440b743c249b6c11e68c7df2e31c86",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/beat-cut-moves/BeatCutAccelerando.tsx": {
+    "mtime": 1784686146.631132,
+    "ast_hash": "d3fa08bfb48dcaedcaf91cacde7cffa3",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/beat-cut-moves/PaparazziFlash.tsx": {
+    "mtime": 1784686146.63764,
+    "ast_hash": "5950105cd05042ac8d41c17c97efc7a4",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/beat-step-list-theme-cycle/BeatStepListThemeCycle.tsx": {
+    "mtime": 1784686146.6476953,
+    "ast_hash": "18fa3ba6f34cade4109beb1b07e142d1",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/before-after-slider-scrub/BeforeAfterSliderScrub.tsx": {
+    "mtime": 1784686146.6562157,
+    "ast_hash": "5a0bb72d7f0834f783beb84ca6e3b0f1",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/bottom-push-stack-wipe/BottomPushStackWipe.tsx": {
+    "mtime": 1784686146.6652431,
+    "ast_hash": "54dccc6cf772ee9835a59455ed0953e6",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/brand-frame-snap/BrandFrameSnap.tsx": {
+    "mtime": 1784686145.0054514,
+    "ast_hash": "b6365f97e7d5ffdd0b7b8ff2925a54d6",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/bubble-swarm-takeover/BubbleSwarmTakeover.tsx": {
+    "mtime": 1784686145.08676,
+    "ast_hash": "a4a586bc68af7f338626dd07843b38b7",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/canvas-materialize-moves/DiagramCascadeBuild.tsx": {
+    "mtime": 1784686145.1434693,
+    "ast_hash": "d3d7c27b34915e30d63200d587968f14",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/canvas-materialize-moves/PanelToCanvasMaterialize.tsx": {
+    "mtime": 1784686145.2085698,
+    "ast_hash": "78ad2238437f8b1739fe48d86e94e63c",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/card-flip-reveal/CardFlipReveal.tsx": {
+    "mtime": 1784686145.2301188,
+    "ast_hash": "26f87b5b24bb91c10f007f74306f9212",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/card-flock-tumble/CardFlockTumble.tsx": {
+    "mtime": 1784686145.2992136,
+    "ast_hash": "1af7643c1e8edcefcef8c4e8d8204703",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/cel-flash-stomp/CelFlashStomp.tsx": {
+    "mtime": 1784686145.3204296,
+    "ast_hash": "b6d57718858cdb2a1992c91c76969bc9",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/chart-live-moves/AxisRescaleShockV2.tsx": {
+    "mtime": 1784686145.3765945,
+    "ast_hash": "1944f2091bcf1de9ada1809e5c1bf436",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/chart-live-moves/OscilloscopeStreamV2.tsx": {
+    "mtime": 1784686145.4292312,
+    "ast_hash": "f5ba49940910aa4d9affa6f3c8c4d7aa",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/chart-live-moves/UnitDotSwarmRegroupV2.tsx": {
+    "mtime": 1784686145.4778686,
+    "ast_hash": "8fe83770453c9f8decdfcfcf8ad3864a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/circle-match-iris/CircleMatchIris.tsx": {
+    "mtime": 1784686145.5034175,
+    "ast_hash": "5baefcfcd0ac0e8398e084a5b6f0620a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/cloner-depth-echo/ClonerDepthEcho.tsx": {
+    "mtime": 1784686145.5177023,
+    "ast_hash": "d554717edd2730b30f5ee7aeca701168",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/collab-cursor-moves/CursorCastEnsemble.tsx": {
+    "mtime": 1784686145.550784,
+    "ast_hash": "5bd2a3d5e2727d768b4feec644b042bf",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/collab-cursor-moves/CursorDialogueDuet.tsx": {
+    "mtime": 1784686145.575376,
+    "ast_hash": "9f913ea697cdd0d411ce807563aa80cc",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/color-block-step-wipe/ColorBlockStepWipe.tsx": {
+    "mtime": 1784686145.5989375,
+    "ast_hash": "4a893be448495743829f9b47753565ab",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/command-palette-summon/CommandPaletteSummon.tsx": {
+    "mtime": 1784686145.621974,
+    "ast_hash": "7a8c7c4edeabe3e04a3a0f776b1ebc74",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/crane-rise-reveal/CraneRiseReveal.tsx": {
+    "mtime": 1784686145.6410184,
+    "ast_hash": "e255e0652dbb1a773e620300825e9999",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/crash-zoom-punch/CrashImpactReal.tsx": {
+    "mtime": 1784686145.6595857,
+    "ast_hash": "8c35eced6ff8d00e68e35f67b7bfb545",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/crash-zoom-punch/CrashZoomReal.tsx": {
+    "mtime": 1784686145.6736324,
+    "ast_hash": "b611b2cc64a15d83e29171f9f06f45aa",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/dataviz-landscape-open/DatavizLandscapeOpen.tsx": {
+    "mtime": 1784686145.7229166,
+    "ast_hash": "2586f82a2ae64b4ef8301f88f4c948c8",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/depth-layer-moves/DollyZoomReal.tsx": {
+    "mtime": 1784686145.7354598,
+    "ast_hash": "ce77c5ff4feb9a3ffd2eb18c6355b201",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/depth-layer-moves/MultiplaneReal.tsx": {
+    "mtime": 1784686145.747979,
+    "ast_hash": "e66c6d9b3a7b82be902a237a15f85ce7",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/draw-svg-trace/DrawSvgTrace.tsx": {
+    "mtime": 1784686145.7690375,
+    "ast_hash": "a1ffd5eba1f9ac4eae5d0dcc2c972d3e",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/edit-hook-moves/LogoStingButton.tsx": {
+    "mtime": 1784686145.7840664,
+    "ast_hash": "276abf06b8d5d609c99a45a7a7b2713d",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/element-body-moves/AxialStretch.tsx": {
+    "mtime": 1784686145.7995944,
+    "ast_hash": "e0dc3c01eb55264197affcb9910697e3",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/element-body-moves/ContactShadowLift.tsx": {
+    "mtime": 1784686144.993417,
+    "ast_hash": "3fc14201311036d7fe7e5a1f300d6f29",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/fui-hud-moves/LineUnfoldPanel.tsx": {
+    "mtime": 1784686145.0335193,
+    "ast_hash": "35bf12f58e30ebe46621bf7f335d8a43",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/fui-hud-moves/ReticleLockOn.tsx": {
+    "mtime": 1784686145.0932662,
+    "ast_hash": "eb67c19d9eccb7b37877fb20c0464ece",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/gauge-readout-moves/NeedleSweepSelftest.tsx": {
+    "mtime": 1784686145.1394687,
+    "ast_hash": "26d2440bfdcd825e551605a2fb5c9655",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/gauge-readout-moves/TapeScrollFixedPointer.tsx": {
+    "mtime": 1784686145.1703608,
+    "ast_hash": "5563d98baa495c15697c56530ecfc4ff",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/glow-flyline-moves/FlylineArc.tsx": {
+    "mtime": 1784686145.2220867,
+    "ast_hash": "950f91de7765850e87c68eecda1b2bbf",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/glow-flyline-moves/GlowOrbAmbient.tsx": {
+    "mtime": 1784686145.262709,
+    "ast_hash": "9f0689b1e1a834b48ac8ab0fef717636",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/glow-flyline-moves/OrbFlylineRelay.tsx": {
+    "mtime": 1784686145.3132484,
+    "ast_hash": "e948e5aec1989e576045932e98ea2d8d",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/gradient-word-sweep/GradientWordSweep.tsx": {
+    "mtime": 1784686145.354005,
+    "ast_hash": "eea119e34b1b0ab8623378530fbe83ff",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/graze-face-tour/GrazeFaceTour.tsx": {
+    "mtime": 1784686145.4487784,
+    "ast_hash": "9c89950a18f5b9935bc5497c3c45dbd7",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/hashtag-to-pill-materialize/HashtagToPillMaterialize.tsx": {
+    "mtime": 1784686145.4718423,
+    "ast_hash": "dfb9e30c554f18f201bfe8f092551661",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/icon-field-colorize/IconFieldColorize.tsx": {
+    "mtime": 1784686145.5044236,
+    "ast_hash": "eb67b6584fc4c5a6839b592d59f01bad",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/icon-performance-moves/AttentionBounce.tsx": {
+    "mtime": 1784686145.531742,
+    "ast_hash": "10f144d035cdcf64f75807d63e7c65ff",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/icon-performance-moves/PopBurstConfirm.tsx": {
+    "mtime": 1784686145.5578136,
+    "ast_hash": "c00304adfc76582edb8d441d5c458756",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/impact-feedback/AnimeImpact.tsx": {
+    "mtime": 1784686145.5803838,
+    "ast_hash": "39f0600d5070caac0174ca89f3081835",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/impact-feedback/HitCounter.tsx": {
+    "mtime": 1784686145.6009347,
+    "ast_hash": "c51704cc1df0af879fb51aafdcaf2931",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/input-trigger-moves/CursorPerformancePunchIn.tsx": {
+    "mtime": 1784686145.627496,
+    "ast_hash": "ac07abfce19a3f26459b73312f237994",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/input-trigger-moves/KeycapSmashCut.tsx": {
+    "mtime": 1784686145.6610913,
+    "ast_hash": "9e85aa0e57ebf43b4087e3235869c5d8",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/integration-hub-map/IntegrationHubMap.tsx": {
+    "mtime": 1784686145.729945,
+    "ast_hash": "0cb3955f437e80dcaa40b44ef7da0b0a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/letterspace-materialize/LetterspaceMaterialize.tsx": {
+    "mtime": 1784686145.7424653,
+    "ast_hash": "4a809cb1c406be16f8dce5db33134a5e",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/light-play-moves/HalationBloom.tsx": {
+    "mtime": 1784686145.756003,
+    "ast_hash": "0cce82df9e7a431d76fa037c556c955b",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/light-play-moves/SheenSweepRetry.tsx": {
+    "mtime": 1784686145.7670374,
+    "ast_hash": "55e759c8d2b7c0bb96d16c9d6e072444",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/light-play-moves/SpotlightSweepReveal.tsx": {
+    "mtime": 1784686145.78056,
+    "ast_hash": "799225b240bac3490a6e097cecaac8fa",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/line-boil/LineBoil.tsx": {
+    "mtime": 1784686145.7935867,
+    "ast_hash": "f690678e33f18c898eb2c98eab84113e",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/line-carry-transition/LineCarryTransition.tsx": {
+    "mtime": 1784686145.8119037,
+    "ast_hash": "7e7d7e526a6c9ee3ea27d411f0d0735b",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/magician-card-flourish/MagicianCardFlourish.tsx": {
+    "mtime": 1784686145.0621989,
+    "ast_hash": "c6ceddc39a8394cdbf49ba81af0a57f6",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/marker-underline-title/MarkerUnderlineTitle.tsx": {
+    "mtime": 1784686145.1168332,
+    "ast_hash": "b145df29da5db6a3f1191128cf329b2b",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/montage-rhythm-moves/DominoCascade.tsx": {
+    "mtime": 1784686145.1626222,
+    "ast_hash": "2dd2e6e7ca4fc613d7339b41e060429a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/montage-rhythm-moves/DropBlackoutSlam.tsx": {
+    "mtime": 1784686145.1935217,
+    "ast_hash": "5061175ab33a162cf69a4b4b60a9149a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/montage-rhythm-moves/WrightTripleCut.tsx": {
+    "mtime": 1784686145.2336214,
+    "ast_hash": "f94efec06ed76444ae651944680fdd51",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/morph-from-primitive/MorphFromPrimitive.tsx": {
+    "mtime": 1784686145.292688,
+    "ast_hash": "292ffe80f79995cb706ae81215245054",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/neon-frame-forerun/NeonFrameForerun.tsx": {
+    "mtime": 1784686145.3495011,
+    "ast_hash": "a4d882d6a4f277546bc7380fb1d446c3",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/neon-frame-orbit-drop/NeonFrameForerunOrbit.tsx": {
+    "mtime": 1784686145.406676,
+    "ast_hash": "42f1a8a62cf9d6a58fb12fa94cdf5ab7",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/neon-triple-marquee/NeonTripleMarquee.tsx": {
+    "mtime": 1784686145.4442616,
+    "ast_hash": "b26b46aca2beb74ec7a1a9c62bba01c5",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/odometer-digit-roll/OdometerDigitRoll.tsx": {
+    "mtime": 1784689083.218208,
+    "ast_hash": "49e6065c6e30dfad1399d55b2490ea5d",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/overhead-camera-moves/OverheadTabletopDrop.tsx": {
+    "mtime": 1784686145.4969075,
+    "ast_hash": "174b8b86bdd93e9e5d9de5a65f836506",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/overhead-camera-moves/TiltReveal.tsx": {
+    "mtime": 1784686145.506432,
+    "ast_hash": "94a945a8189bcb12f3100b7a7cec7515",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/page-turn-transitions/BarnDoorSplit.tsx": {
+    "mtime": 1784686145.5242193,
+    "ast_hash": "7bb62b7e595fb3adc2fc10435fe0f244",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/page-turn-transitions/CubeRotate.tsx": {
+    "mtime": 1784686145.538268,
+    "ast_hash": "ec6182d014ea57cb72318bd6a8be5033",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/page-waterfall-wall/PageWaterfallWall.tsx": {
+    "mtime": 1784686145.550784,
+    "ast_hash": "9de0b634aa17b8a50849df083425bb03",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/page-waterfall-wall/VerticalTicker.tsx": {
+    "mtime": 1784686145.5718582,
+    "ast_hash": "f18dc546555c6a8a0397a30fc42000de",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/panel-grid-moves/ComicPanelSplit.tsx": {
+    "mtime": 1784686145.6094491,
+    "ast_hash": "df6c4e8f63018e8fc2bcca689d2dbfc8",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/panel-grid-moves/FlipGridReflow.tsx": {
+    "mtime": 1784686145.626497,
+    "ast_hash": "c66053cf8b41e57ed228c8e93b888b02",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/panel-grid-moves/GridFlashMosaic.tsx": {
+    "mtime": 1784686145.6480606,
+    "ast_hash": "38a14ba097982881ffbaa50a40a33fc6",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/paper-craft-moves/MaskingTapeSlap.tsx": {
+    "mtime": 1784686145.6686223,
+    "ast_hash": "750935d4488388534e0509678031f64e",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/paper-craft-moves/PopupBookRise.tsx": {
+    "mtime": 1784686145.6903868,
+    "ast_hash": "129157c4d4b35a60be1c0963764ca2a4",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/paper-plane-messenger/PaperPlaneMessenger.tsx": {
+    "mtime": 1784686145.7289474,
+    "ast_hash": "8d3beb6fd70eef3ac43c28e06800c029",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/particle-celebrate-hits/ConfettiCrossfire.tsx": {
+    "mtime": 1784686145.7459822,
+    "ast_hash": "17ea8ed81bfe0c26670892d1bf9b1384",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/particle-celebrate-hits/CounterTickSparks.tsx": {
+    "mtime": 1784686145.7680376,
+    "ast_hash": "9b6932d8cfda1827e10e6fa36f6e0e84",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/particle-sand-fill/ParticleSandFill.tsx": {
+    "mtime": 1784698136.6332116,
+    "ast_hash": "a21f51ce37f512f8d634f058ec02a2db",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/pill-slot-cycle/PillSlotCycle.tsx": {
+    "mtime": 1784686145.0114563,
+    "ast_hash": "41f0956b2c185aaa50021a0cbb607d08",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/print-texture-transitions/InkBleedReveal.tsx": {
+    "mtime": 1784686145.0405343,
+    "ast_hash": "c80c22786f1b44f3f6ce2a196bc79ac1",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/rhythm-interrupt-moves/JumpCutPunchIn.tsx": {
+    "mtime": 1784686145.0732296,
+    "ast_hash": "e0f9808195f337c888f4d3bd44e87c78",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/rhythm-interrupt-moves/StrobeBlackFrames.tsx": {
+    "mtime": 1784686145.1032958,
+    "ast_hash": "1d9092929d130de36f48d6144b14edb1",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/riso-print-hits/RisoBeatPump.tsx": {
+    "mtime": 1784686145.1354635,
+    "ast_hash": "205c6506e07458663908d09236f90e52",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/riso-print-hits/RisoMisregistrationHit.tsx": {
+    "mtime": 1784686145.1576047,
+    "ast_hash": "6bc439ea309306e6316e35a5c59a1b59",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/runway-ground-skim/RunwayGroundSkim.tsx": {
+    "mtime": 1784686145.227604,
+    "ast_hash": "bb251edf1ba8a912abcf1ec522fafda3",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/sakuga-timing-shift/SakugaTimingShift.tsx": {
+    "mtime": 1784686145.2581923,
+    "ast_hash": "da1347489e211669c358f23d0c91c041",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/scene-locked-title/SceneLockedTitle.tsx": {
+    "mtime": 1784686145.276458,
+    "ast_hash": "408b635f7a4e94d0527f3531ce506eba",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/scroll-brake-moves/BrakeReticleLock.tsx": {
+    "mtime": 1784686145.309242,
+    "ast_hash": "3badbbb8b65bd622e2d04815ea1c4bd3",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/scroll-brake-moves/ChangelogScrollBrake.tsx": {
+    "mtime": 1784686145.3269515,
+    "ast_hash": "1b4447d1f6edee2fabc0cd5c02e8c0bf",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/segmented-thumb-hero/SegmentedThumbHero.tsx": {
+    "mtime": 1784686145.3570185,
+    "ast_hash": "1449d2a7f403f59237fe81dd4a5eb320",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/shot-transitions/MaskWipeReal.tsx": {
+    "mtime": 1784686145.3775928,
+    "ast_hash": "431b1433d733eedd845c01a2e3774f5c",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/shot-transitions/PortalWipeV2.tsx": {
+    "mtime": 1784686145.395146,
+    "ast_hash": "f06e75c8bd901f1e757b0c2392954c10",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/shot-transitions/WhipBrakeReal.tsx": {
+    "mtime": 1784686145.4171944,
+    "ast_hash": "98c11873bcf58d5a844bea10edab3c6a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/shot-transitions/WhipPanReal.tsx": {
+    "mtime": 1784686145.4432542,
+    "ast_hash": "2f87781d9df0236ea248447cff970620",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/skeleton-reveal/SkeletonReveal.tsx": {
+    "mtime": 1784686145.5094311,
+    "ast_hash": "0b8782f79bf115c27d0ee2ff20e7a937",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/slam-entrance-moves/ImpactBurstKit.tsx": {
+    "mtime": 1784686145.5282257,
+    "ast_hash": "53a9c4cba0e37914b670e77474f43496",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/slam-entrance-moves/KanadaPerspectiveSnap.tsx": {
+    "mtime": 1784686145.559813,
+    "ast_hash": "4560c17808d95a5ec3db60ffef22731b",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/slam-entrance-moves/ScoreSlam.tsx": {
+    "mtime": 1784686145.58389,
+    "ast_hash": "cc11083a941eb4eed9873f31ecac97fe",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/smear-multiples/SmearMultiples.tsx": {
+    "mtime": 1784686145.6124527,
+    "ast_hash": "9ccd1f9e910dcc8aaafff6df32e9b2dd",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/space-camera-moves/DroneDiveLanding.tsx": {
+    "mtime": 1784686145.6400173,
+    "ast_hash": "155fa4f0baac2b17a616c920518d5ba0",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/space-camera-moves/ExplodedView.tsx": {
+    "mtime": 1784686145.6676226,
+    "ast_hash": "aedef8b7040ed55891c31dd6f16bfb9b",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/space-camera-moves/SnorricamLock.tsx": {
+    "mtime": 1784686145.6887622,
+    "ast_hash": "80029465b5c2d8bf881ced80ad6ac512",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/spectrum-morph-ui/SpectrumMorphUi.tsx": {
+    "mtime": 1784686145.004452,
+    "ast_hash": "d469265a96cf05cae4a3d9bed347d418",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/speed-ramp-freeze/FreezeAnnotateReal.tsx": {
+    "mtime": 1784686145.0435326,
+    "ast_hash": "0fae78f0c10f37da37eba99f6c31a8f4",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/speed-ramp-freeze/SpeedRampReal.tsx": {
+    "mtime": 1784686145.078243,
+    "ast_hash": "ed23afdea61ae3a14a467f54f55ca02e",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/split-flap-title/SplitFlapFlip.tsx": {
+    "mtime": 1784686145.1364691,
+    "ast_hash": "b98f42bdc382a1d9255b882bb6ad6f24",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/spotlight-sweep-moves/CornerSpotlightReveal.tsx": {
+    "mtime": 1784686145.1935217,
+    "ast_hash": "113aae1824c17e53c0eb98e48971bb89",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/spotlight-sweep-moves/GlowWakeSleepPanel.tsx": {
+    "mtime": 1784686145.2581923,
+    "ast_hash": "e147e45fbc25dbbf9e7941f23c28a888",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/spotlight-sweep-moves/SlideSpotlightPan.tsx": {
+    "mtime": 1784686145.2952065,
+    "ast_hash": "411e101b7c3f4471a45c8dea7ebb4741",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/steep-tilt-glide/SteepTiltGlide.tsx": {
+    "mtime": 1784686145.3775928,
+    "ast_hash": "9d6734db7ca7e32efd304a05c616b38f",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/stroke-segment-build/StrokeSegmentBuild.tsx": {
+    "mtime": 1784686145.3981545,
+    "ast_hash": "ccd98e63cfa12f7292d211d22cc93e6b",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/tear-streak-transitions/GlitchDisplace.tsx": {
+    "mtime": 1784686145.4322288,
+    "ast_hash": "10b2952770adffc41ea6eff1043dd348",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/tension-camera-moves/BulletTimeFreezeOrbit.tsx": {
+    "mtime": 1784686145.4552886,
+    "ast_hash": "96fb3c74685a2f98b854372bf0a564a2",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/tension-camera-moves/DutchRollToLevel.tsx": {
+    "mtime": 1784686145.4733484,
+    "ast_hash": "da52aa00157d9f3ae5315e4011518bbc",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/tension-camera-moves/PullBackIsolation.tsx": {
+    "mtime": 1784686145.514698,
+    "ast_hash": "ed0108bbee8ef29ff12a3f46b5c6c647",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/tension-camera-moves/SlowPushIn.tsx": {
+    "mtime": 1784686145.5272257,
+    "ast_hash": "18b65649e724c33558a95049b9fe89b6",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/text-as-mask/TextAsMask.tsx": {
+    "mtime": 1784686145.5447774,
+    "ast_hash": "6dad0912c5fe557e657f48f791bf284a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/text-column-converge/TextColumnConverge.tsx": {
+    "mtime": 1784686145.5698583,
+    "ast_hash": "9328732ae0961bf898b0c735951aa98b",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/theme-switch-moves/PaletteThemeRipple.tsx": {
+    "mtime": 1784686145.6054494,
+    "ast_hash": "891bccf30588b9a74da52e3d769034d5",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/theme-switch-moves/ThemeSweepToggle.tsx": {
+    "mtime": 1784686145.6324975,
+    "ast_hash": "7e3fac971cbd72399b3a0e606ae72647",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/timeline-travel/TimelineTravel.tsx": {
+    "mtime": 1784686145.6595857,
+    "ast_hash": "54e864dd50f9ee5a6af3bf7bc31d9661",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/title-demote-to-label/TitleDemoteToLabel.tsx": {
+    "mtime": 1784686145.6836412,
+    "ast_hash": "81452d7506b4d898ea618bce0d6cb9cc",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/trailer-grammar-moves/CardFootageCadence.tsx": {
+    "mtime": 1784686145.696912,
+    "ast_hash": "a638ac735a459e2b66bfd368a4a521a5",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/trailer-grammar-moves/SmashCut.tsx": {
+    "mtime": 1784686145.7162125,
+    "ast_hash": "00e05ca6474c807f40e5b41b6457aaea",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/trailer-grammar-moves/TrailerBumper.tsx": {
+    "mtime": 1784686145.7319453,
+    "ast_hash": "bdd0b40b511fd1f53942e092638db6ed",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/transition-hidden-cut/InvisibleCut.tsx": {
+    "mtime": 1784686145.7469792,
+    "ast_hash": "a56134e1f9ef3bd194174553f9b21907",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/transition-hidden-cut/LightLeakBurn.tsx": {
+    "mtime": 1784686145.009457,
+    "ast_hash": "491dc72a5c976e170324289f77973d9c",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/transition-hidden-cut/VersusSlam.tsx": {
+    "mtime": 1784686145.0521634,
+    "ast_hash": "b75d626062e99e6fc3ceb5c8b283d46e",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/transition-travel/LetterformZoom.tsx": {
+    "mtime": 1784686145.0942774,
+    "ast_hash": "fe42a8dfd06bf7309791e89f0294c4ea",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/transition-travel/SharedElementMorph.tsx": {
+    "mtime": 1784686145.1404705,
+    "ast_hash": "61983c87278dfaf20ad8cb2cc6dd5749",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/type-assembly-moves/LetterformDriftAssembly.tsx": {
+    "mtime": 1784686145.173867,
+    "ast_hash": "664dcbf0b84b48f394b68817312a5aef",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/type-assembly-moves/SplitTextStagger.tsx": {
+    "mtime": 1784686145.192016,
+    "ast_hash": "c47bce7ad5dc0ac1d9ea6d91e02f2fa7",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/type-assembly-moves/TextOnPath.tsx": {
+    "mtime": 1784686145.2336214,
+    "ast_hash": "ab46e5b93a468a52bb4abcf73e5e8f35",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/type-assembly-moves/TrackingExpandReveal.tsx": {
+    "mtime": 1784686145.2571902,
+    "ast_hash": "3a2b03132e22af7fdbf33c58ccc2129f",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/type-entrance-moves/LetterDropPhysics.tsx": {
+    "mtime": 1784699284.344519,
+    "ast_hash": "e6272188a395f550a3d8ebbdea2a8938",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/type-entrance-moves/ScrambleDecode.tsx": {
+    "mtime": 1784686145.2972152,
+    "ast_hash": "3e8589d8a4a398c5d56fe91ceeef88d1",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/type-rhythm-sync/FontWeightPump.tsx": {
+    "mtime": 1784686145.3144295,
+    "ast_hash": "d27d2d2d2dfafdabafc890c4f2f553d8",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/type-rhythm-sync/KaraokeFillSync.tsx": {
+    "mtime": 1784686145.335975,
+    "ast_hash": "482fdd650ce6513fa32009a89c2a074d",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/typewriter-moves/TerminalTypewriter.tsx": {
+    "mtime": 1784686145.3625424,
+    "ast_hash": "29542066123d15d755a3ff97d4328807",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/typewriter-moves/TypewriterErrorRetype.tsx": {
+    "mtime": 1784686145.3785918,
+    "ast_hash": "d11cade709814f2b76d404570e9583b3",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/ui-strip-away-outro/UiStripAwayOutro.tsx": {
+    "mtime": 1784686145.435748,
+    "ast_hash": "7310159dafdb0dd85c286bb2db603a17",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/ui-to-brand-morph/IconFlipBloomLogo.tsx": {
+    "mtime": 1784686145.4733484,
+    "ast_hash": "44cd3f601e3ff6fc4a60eb4861cd6d3e",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/ui-to-brand-morph/InputMorphsIntoLogo.tsx": {
+    "mtime": 1784686145.506432,
+    "ast_hash": "f01c6bdf3e86c103c14ef3dcc636106c",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/voice-waveform-live/VoiceWaveformLive.tsx": {
+    "mtime": 1784686145.5372694,
+    "ast_hash": "a379fdd500c315d8589dd92d0e4f4b39",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/wall-reveal-moves/BentoLightUp.tsx": {
+    "mtime": 1784686145.559813,
+    "ast_hash": "e792421c8d0c2c0f32487d175a62624a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/wipe-transitions/BlindsSlice.tsx": {
+    "mtime": 1784686145.581384,
+    "ast_hash": "c5e610043e09f114b23465eced6b4149",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/wipe-transitions/ClockWipe.tsx": {
+    "mtime": 1784686145.6019356,
+    "ast_hash": "ae97f977a6db7fe23182f8c8fb06e1e1",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/word-relay-filmstrip/WordRelayFilmstrip.tsx": {
+    "mtime": 1784686145.6736324,
+    "ast_hash": "ae37c650d32e2a7338d7f0e525fd6275",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraftDemoImports.tsx": {
+    "mtime": 1784686145.7459822,
+    "ast_hash": "ade6ac69df49000e10c4f8c439e8c9b5",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/shared/nichePalettes.js": {
+    "mtime": 1784686145.77956,
+    "ast_hash": "6246761265e346de52ac704a70fbe874",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/README.md": {
+    "mtime": 1784680076.7616913,
+    "ast_hash": "106a04ca0ae2624be4d3782808c38b2c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/README_CN.md": {
+    "mtime": 1784680076.7622063,
+    "ast_hash": "c5c3c7f3aacc4d907e98f79d4b2c6ac6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/SKILL.md": {
+    "mtime": 1784680076.7627203,
+    "ast_hash": "a140e022a930fe58ac24d91791152b36",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/README.md": {
+    "mtime": 1784680076.9486203,
+    "ast_hash": "045483921c5bed9aa0d763b16c153f16",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/index.html": {
+    "mtime": 1784680077.0090356,
+    "ast_hash": "99d17eb80acd6e2d4bed7717cf8ce948",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/ai-stream-response.md": {
+    "mtime": 1784680077.476367,
+    "ast_hash": "87b13717fc63c18c89c53dc60304860c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/autolayout-gap-dial.md": {
+    "mtime": 1784680077.476367,
+    "ast_hash": "5279d8f41d38f1e75cb330589bd85daf",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/beat-cut-moves.md": {
+    "mtime": 1784680077.477368,
+    "ast_hash": "1c071c13850b7922031123072ce3cd0b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/beat-step-list-theme-cycle.md": {
+    "mtime": 1784680077.477368,
+    "ast_hash": "991378769fa697eef4480539daa2eaa9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/before-after-slider-scrub.md": {
+    "mtime": 1784680077.4778714,
+    "ast_hash": "360a997fa507873ce459067df37c69b5",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/bottom-push-stack-wipe.md": {
+    "mtime": 1784680077.4778714,
+    "ast_hash": "4563a20094b3c51adb35f800e291cc75",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/brand-frame-snap.md": {
+    "mtime": 1784680077.4778714,
+    "ast_hash": "ce811b20df8dd88eda6816778a398ef6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/brand-ink-open.md": {
+    "mtime": 1784680077.4778714,
+    "ast_hash": "e1b449ace7e55786f49db873feb60cec",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/bubble-swarm-takeover.md": {
+    "mtime": 1784680077.4778714,
+    "ast_hash": "c28816970f41d5d50bbb820e058e90ce",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/canvas-materialize-moves.md": {
+    "mtime": 1784680077.478876,
+    "ast_hash": "373c256178b5951d211364824a887bcd",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/card-flip-reveal.md": {
+    "mtime": 1784680077.478876,
+    "ast_hash": "4f2db40a910c7a0d8a23ac0ca8c59f1c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/card-flock-tumble.md": {
+    "mtime": 1784680077.478876,
+    "ast_hash": "d1209be40995ae606eccc5e5ac3e18c6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/cel-flash-stomp.md": {
+    "mtime": 1784680077.478876,
+    "ast_hash": "91d28db56d3ab6c05bddcbf7d1609d4e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/chart-live-moves.md": {
+    "mtime": 1784680077.479921,
+    "ast_hash": "7e0d301d44ae5ab090c2a6ed329e5be7",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/circle-match-iris.md": {
+    "mtime": 1784680077.479921,
+    "ast_hash": "9b41ef985d5a3c8781963c2be97a112e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/cloner-depth-echo.md": {
+    "mtime": 1784680077.479921,
+    "ast_hash": "2c3f341ebc88ff304dcee1ac84ea5858",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/collab-cursor-moves.md": {
+    "mtime": 1784680077.479921,
+    "ast_hash": "93d1ea64f68b5faa542de76cff5cda94",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/color-block-step-wipe.md": {
+    "mtime": 1784680077.479921,
+    "ast_hash": "5134cf98ea65fa8dc5ddd6bbc7758215",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/command-palette-summon.md": {
+    "mtime": 1784680077.480919,
+    "ast_hash": "011d40221186086e4cfc2b128a5cda1a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/crane-rise-reveal.md": {
+    "mtime": 1784680077.480919,
+    "ast_hash": "4802198d89f37450c92357ed2566a24f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/crash-zoom-punch.md": {
+    "mtime": 1784680077.480919,
+    "ast_hash": "cd4b56f6b04b1eb6995f9b0df59ba3d9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/dataviz-landscape-open.md": {
+    "mtime": 1784680077.480919,
+    "ast_hash": "c20f9922a5ddd1340f9a8734e2c8ae8f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/deck-deal-flyin.md": {
+    "mtime": 1784680077.4819193,
+    "ast_hash": "846d19bfffe8436813c300f275cefadc",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/depth-layer-moves.md": {
+    "mtime": 1784680077.4819193,
+    "ast_hash": "325e0670c6ecd7be74636ccf2325b62a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/document-typewriter-reveal.md": {
+    "mtime": 1784680077.4819193,
+    "ast_hash": "d35c383bfa43bb3d71d8b2ba71a6a42c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/draw-svg-trace.md": {
+    "mtime": 1784680077.4819193,
+    "ast_hash": "59b376de6cd6b44c4842ae00aaca9d48",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/edit-hook-moves.md": {
+    "mtime": 1784680077.4819193,
+    "ast_hash": "f7b75ce392f599a4a29cf795810c3fc5",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/element-body-moves.md": {
+    "mtime": 1784680077.4829192,
+    "ast_hash": "87979e53ced0ec3201910da5d9b3517c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/fui-hud-moves.md": {
+    "mtime": 1784680077.4829192,
+    "ast_hash": "a39f38223a19fc10535d8f54fe7f0077",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/gauge-readout-moves.md": {
+    "mtime": 1784680077.4829192,
+    "ast_hash": "51ac89300fe10817b2149583d53e4c23",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/glow-flyline-moves.md": {
+    "mtime": 1784680077.4829192,
+    "ast_hash": "6acce295fa63a100d543cbe22aae54f4",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/gradient-word-sweep.md": {
+    "mtime": 1784680077.4829192,
+    "ast_hash": "bc2bda2bda4c70b9eba51d174872a9a0",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/graze-face-tour.md": {
+    "mtime": 1784680077.4839194,
+    "ast_hash": "f8bda10eedcfb722dfa336804bc7bcb6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/hashtag-to-pill-materialize.md": {
+    "mtime": 1784680077.4839194,
+    "ast_hash": "2fcf1b2bb47efb020a083754670a2e7d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/hires-rasterize-3d-text.md": {
+    "mtime": 1784680077.4839194,
+    "ast_hash": "c370f7d55a60eccd0f3b03a8906b991f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/icon-field-colorize.md": {
+    "mtime": 1784680077.4839194,
+    "ast_hash": "69db5489763283225283e27f6b9cf080",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/icon-performance-moves.md": {
+    "mtime": 1784680077.4849198,
+    "ast_hash": "7a9821dc19852f5903faedb84c26a2f6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/impact-feedback.md": {
+    "mtime": 1784680077.4849198,
+    "ast_hash": "3c4059646a219c5fce3a9831a4e280d9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/input-trigger-moves.md": {
+    "mtime": 1784680077.4849198,
+    "ast_hash": "ce00a76bf6832412d9c79c2e8031a93a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/integration-hub-map.md": {
+    "mtime": 1784680077.4849198,
+    "ast_hash": "2b1faa224d2f8e80b59a74369b574d6c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/letterspace-materialize.md": {
+    "mtime": 1784680077.4849198,
+    "ast_hash": "e9c3cf96d6f890bddd1f76a1c7e697dd",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/light-play-moves.md": {
+    "mtime": 1784680077.485919,
+    "ast_hash": "ce192eaf31fc9eb3cf7e5cb5c6ab2131",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/line-boil.md": {
+    "mtime": 1784680077.485919,
+    "ast_hash": "900a1271306a39dbe455b769dc6fb511",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/line-carry-transition.md": {
+    "mtime": 1784680077.485919,
+    "ast_hash": "784890efd3fe668f34d6a3df685a3ff6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/list-stack-press.md": {
+    "mtime": 1784680077.485919,
+    "ast_hash": "c8002b970ca8d74db96e4312f2c91df3",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/magician-card-flourish.md": {
+    "mtime": 1784680077.485919,
+    "ast_hash": "75c82b92d83030b2c348f256d66a3913",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/marker-underline-title.md": {
+    "mtime": 1784680077.485919,
+    "ast_hash": "e3122d57f2823cf8ef1c2226a211e5b6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/montage-rhythm-moves.md": {
+    "mtime": 1784680077.485919,
+    "ast_hash": "56989e22d0a4f27a04bc85557dad0395",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/morph-from-primitive.md": {
+    "mtime": 1784680077.4874225,
+    "ast_hash": "50a948009fea8c3cc5ab59cf28a72dc5",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/neon-frame-forerun.md": {
+    "mtime": 1784680077.4874225,
+    "ast_hash": "ce543618abd0004af2a5071299b97f32",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/neon-frame-orbit-drop.md": {
+    "mtime": 1784680077.4874225,
+    "ast_hash": "14c3c1595319ec03176999030170cded",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/neon-triple-marquee.md": {
+    "mtime": 1784680077.4874225,
+    "ast_hash": "7c882f8cde60e7ac649b56bb2ef4371a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/odometer-digit-roll.md": {
+    "mtime": 1784680077.4884264,
+    "ast_hash": "2fdf94ee8e5481626314d2640aac73b8",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/outro-group-photo-launch.md": {
+    "mtime": 1784680077.4884264,
+    "ast_hash": "4def0d721dc1f7bc051b73c8899332d5",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/overhead-camera-moves.md": {
+    "mtime": 1784680077.4884264,
+    "ast_hash": "24ca2f4d76f85393dc6426c19d4cf394",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/page-turn-transitions.md": {
+    "mtime": 1784680077.4884264,
+    "ast_hash": "660c30803a2aecc226d37d0473306307",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/page-waterfall-wall.md": {
+    "mtime": 1784680077.4884264,
+    "ast_hash": "f97de2c4833f66bfb7f3ffacae47da6f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/panel-grid-moves.md": {
+    "mtime": 1784680077.4884264,
+    "ast_hash": "e7daf70e47b21d7a1bc7e353cbaf1b1d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/paper-craft-moves.md": {
+    "mtime": 1784680077.489427,
+    "ast_hash": "eeb9cadc61cb2dee71a0f8b180659aa2",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/paper-plane-messenger.md": {
+    "mtime": 1784680077.489427,
+    "ast_hash": "dcd6649f9c4b44ed23b498a20fc0386c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/paper-title-card.md": {
+    "mtime": 1784680077.489427,
+    "ast_hash": "8f768716da8f9c941a7880209445d890",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/particle-celebrate-hits.md": {
+    "mtime": 1784680077.489427,
+    "ast_hash": "a466bf9d065209dd039caa7939250922",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/particle-sand-fill.md": {
+    "mtime": 1784680077.489427,
+    "ast_hash": "66abd828b6834303db33140ab4c7c4ad",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/pill-slot-cycle.md": {
+    "mtime": 1784680077.490431,
+    "ast_hash": "de6ee24a3a6a1c589cfede3bd0b5a2bb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/print-texture-transitions.md": {
+    "mtime": 1784680077.490431,
+    "ast_hash": "855e2313ad209b4ec271d06d0745e573",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/rhythm-interrupt-moves.md": {
+    "mtime": 1784680077.490431,
+    "ast_hash": "2ca7f8457ca820961d02cbaa96d9d19d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/riso-print-hits.md": {
+    "mtime": 1784680077.490431,
+    "ast_hash": "c039c8cb31e2c6e4f1a842bd81789e88",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/row-embed.md": {
+    "mtime": 1784680077.490431,
+    "ast_hash": "efd9d6a3b2d5aeb710654fa0fe76a27f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/runway-ground-skim.md": {
+    "mtime": 1784680077.491431,
+    "ast_hash": "589b7bdf50908ddfc95c30ef67849bcf",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/sakuga-timing-shift.md": {
+    "mtime": 1784680077.491431,
+    "ast_hash": "3e0e4892b94a20f988ac90987bbd4158",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/scene-locked-title.md": {
+    "mtime": 1784680077.491431,
+    "ast_hash": "89d7ae52194c8d0724b188470dbc4aeb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/scroll-brake-moves.md": {
+    "mtime": 1784680077.491431,
+    "ast_hash": "ea9319855d1899faab516ac6ddacf0b2",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/segmented-thumb-hero.md": {
+    "mtime": 1784680077.491431,
+    "ast_hash": "a2ce1dacec1986bfbdedd6ad2149859d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/shot-transitions.md": {
+    "mtime": 1784680077.4924312,
+    "ast_hash": "07bb48c00edc87db65a1b1824a8aee8b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/skeleton-reveal.md": {
+    "mtime": 1784680077.4924312,
+    "ast_hash": "0d4f62b67842529018424e96ff435a97",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/slam-entrance-moves.md": {
+    "mtime": 1784680077.4924312,
+    "ast_hash": "4bf2c655d435b773af54644fa7048f37",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/smear-multiples.md": {
+    "mtime": 1784680077.4934313,
+    "ast_hash": "c81d44970d72bc2ca781f4a74efb26ea",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/space-camera-moves.md": {
+    "mtime": 1784680077.4934313,
+    "ast_hash": "7d17204d8f31219584bbbe6812c0a054",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/spectrum-morph-ui.md": {
+    "mtime": 1784680077.4934313,
+    "ast_hash": "9a8515595a9757b96e422e050ffd7c92",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/speed-ramp-freeze.md": {
+    "mtime": 1784680077.4934313,
+    "ast_hash": "27ab5da9b9aed15c302b7f2c9be4eebb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/split-flap-title.md": {
+    "mtime": 1784680077.4944315,
+    "ast_hash": "4caa112d226ce5aef91e297c84459c3b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/spotlight-hero-card.md": {
+    "mtime": 1784680077.4944315,
+    "ast_hash": "453aafbe10b3b2771b408145dc4b3cef",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/spotlight-sweep-moves.md": {
+    "mtime": 1784680077.4944315,
+    "ast_hash": "bc21fa9839014153834926be2e486db9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/steep-tilt-glide.md": {
+    "mtime": 1784680077.4944315,
+    "ast_hash": "2310cba7da3e033bdf84ff50032760d9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/stroke-segment-build.md": {
+    "mtime": 1784680077.495431,
+    "ast_hash": "f150db7c09d41e2a9bf85c3fed071631",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/tear-streak-transitions.md": {
+    "mtime": 1784680077.495431,
+    "ast_hash": "b58c64bcf5806fc894b9ab5dd3820bab",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/tension-camera-moves.md": {
+    "mtime": 1784680077.495431,
+    "ast_hash": "94403e148449793066cc8a5579a9538f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/text-as-mask.md": {
+    "mtime": 1784680077.495431,
+    "ast_hash": "9c69225cf1fc140b48c43b3ba37052b3",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/text-column-converge.md": {
+    "mtime": 1784680077.495431,
+    "ast_hash": "cde7478ce5169070d49f4480c2a2afc1",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/theme-switch-moves.md": {
+    "mtime": 1784680077.496431,
+    "ast_hash": "e1d2591df2239ff159e6ae62b765546a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/timeline-travel.md": {
+    "mtime": 1784680077.496431,
+    "ast_hash": "00f951b650887c86f3a676ef9566291e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/title-demote-to-label.md": {
+    "mtime": 1784680077.496431,
+    "ast_hash": "c877282a79e5c3d194892046e9507230",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/trailer-grammar-moves.md": {
+    "mtime": 1784680077.496431,
+    "ast_hash": "7a10eeaf281d4ed2634bd7be086e15b6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/transition-hidden-cut.md": {
+    "mtime": 1784680077.496431,
+    "ast_hash": "5553df5088c906f51f6f7b4b71d0fae6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/transition-travel.md": {
+    "mtime": 1784680077.4974313,
+    "ast_hash": "7296b4733473cf418758473ede271d4e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/type-and-filter.md": {
+    "mtime": 1784680077.4974313,
+    "ast_hash": "a1c44b680caca2f0b74e46e8a569fa1f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/type-assembly-moves.md": {
+    "mtime": 1784680077.4974313,
+    "ast_hash": "bca48dd0fcaf884f85c637ada422cfac",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/type-entrance-moves.md": {
+    "mtime": 1784680077.4974313,
+    "ast_hash": "a45b6ec9d8cfd738cc0f0a4555808fca",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/type-rhythm-sync.md": {
+    "mtime": 1784680077.4974313,
+    "ast_hash": "6c60d57c495a8a7ef7b5a36f992c2252",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/typewriter-moves.md": {
+    "mtime": 1784680077.498733,
+    "ast_hash": "20387427efa7dbe351a31f1bfd886bba",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/ui-strip-away-outro.md": {
+    "mtime": 1784680077.498733,
+    "ast_hash": "fb7c3bfc60efd1feed941387ea3b4f28",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/ui-to-brand-morph.md": {
+    "mtime": 1784680077.498733,
+    "ast_hash": "ba4ebfb39bb6879a3ca5d4f956cb00d0",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/voice-waveform-live.md": {
+    "mtime": 1784680077.498733,
+    "ast_hash": "10b98a90bc3ede8c0b62299951f6367c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/wall-reveal-moves.md": {
+    "mtime": 1784680077.4997373,
+    "ast_hash": "7b5d2d30a1921ddfd844b79098914783",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/wipe-transitions.md": {
+    "mtime": 1784680077.4997373,
+    "ast_hash": "aec967f58ed9b3881750e053d9f7d68f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/gallery/source/word-relay-filmstrip.md": {
+    "mtime": 1784680077.4997373,
+    "ast_hash": "57ccc08d5860b38bc5ab4363ba3b650c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/aesthetic-rules.md": {
+    "mtime": 1784680077.5007372,
+    "ast_hash": "748cf06a4c1bb2397bbe964eef270733",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/music-beat-sync.md": {
+    "mtime": 1784680077.5007372,
+    "ast_hash": "225d1fe517794134bea4382193a1d4e6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/pipeline.md": {
+    "mtime": 1784680077.5017369,
+    "ast_hash": "0250f44561388f62314b50df1effbc09",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/sequences/promo-energy-arc.md": {
+    "mtime": 1784680077.5017369,
+    "ast_hash": "67b9f888239cec6fc7af4c6e448ca558",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/ai-stream-response.md": {
+    "mtime": 1784680077.5017369,
+    "ast_hash": "87b13717fc63c18c89c53dc60304860c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/autolayout-gap-dial.md": {
+    "mtime": 1784680077.5027368,
+    "ast_hash": "5279d8f41d38f1e75cb330589bd85daf",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/beat-cut-moves.md": {
+    "mtime": 1784680077.5027368,
+    "ast_hash": "1c071c13850b7922031123072ce3cd0b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/beat-step-list-theme-cycle.md": {
+    "mtime": 1784680077.5027368,
+    "ast_hash": "991378769fa697eef4480539daa2eaa9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/before-after-slider-scrub.md": {
+    "mtime": 1784680077.5027368,
+    "ast_hash": "360a997fa507873ce459067df37c69b5",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/bottom-push-stack-wipe.md": {
+    "mtime": 1784680077.5027368,
+    "ast_hash": "4563a20094b3c51adb35f800e291cc75",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/brand-frame-snap.md": {
+    "mtime": 1784680077.5037367,
+    "ast_hash": "ce811b20df8dd88eda6816778a398ef6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/brand-ink-open.md": {
+    "mtime": 1784680077.5037367,
+    "ast_hash": "e1b449ace7e55786f49db873feb60cec",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/bubble-swarm-takeover.md": {
+    "mtime": 1784680077.5037367,
+    "ast_hash": "c28816970f41d5d50bbb820e058e90ce",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/canvas-materialize-moves.md": {
+    "mtime": 1784680077.5037367,
+    "ast_hash": "373c256178b5951d211364824a887bcd",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/card-flip-reveal.md": {
+    "mtime": 1784680077.5037367,
+    "ast_hash": "4f2db40a910c7a0d8a23ac0ca8c59f1c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/card-flock-tumble.md": {
+    "mtime": 1784680077.504737,
+    "ast_hash": "d1209be40995ae606eccc5e5ac3e18c6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/cel-flash-stomp.md": {
+    "mtime": 1784680077.504737,
+    "ast_hash": "91d28db56d3ab6c05bddcbf7d1609d4e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/chart-live-moves.md": {
+    "mtime": 1784680077.504737,
+    "ast_hash": "7e0d301d44ae5ab090c2a6ed329e5be7",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/circle-match-iris.md": {
+    "mtime": 1784680077.504737,
+    "ast_hash": "9b41ef985d5a3c8781963c2be97a112e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/cloner-depth-echo.md": {
+    "mtime": 1784680077.504737,
+    "ast_hash": "2c3f341ebc88ff304dcee1ac84ea5858",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/collab-cursor-moves.md": {
+    "mtime": 1784680077.505737,
+    "ast_hash": "93d1ea64f68b5faa542de76cff5cda94",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/color-block-step-wipe.md": {
+    "mtime": 1784680077.505737,
+    "ast_hash": "5134cf98ea65fa8dc5ddd6bbc7758215",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/command-palette-summon.md": {
+    "mtime": 1784680077.505737,
+    "ast_hash": "011d40221186086e4cfc2b128a5cda1a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/crane-rise-reveal.md": {
+    "mtime": 1784680077.505737,
+    "ast_hash": "4802198d89f37450c92357ed2566a24f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/crash-zoom-punch.md": {
+    "mtime": 1784680077.505737,
+    "ast_hash": "cd4b56f6b04b1eb6995f9b0df59ba3d9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/dataviz-landscape-open.md": {
+    "mtime": 1784680077.505737,
+    "ast_hash": "c20f9922a5ddd1340f9a8734e2c8ae8f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/deck-deal-flyin.md": {
+    "mtime": 1784680077.505737,
+    "ast_hash": "846d19bfffe8436813c300f275cefadc",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/depth-layer-moves.md": {
+    "mtime": 1784680077.5072403,
+    "ast_hash": "325e0670c6ecd7be74636ccf2325b62a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/document-typewriter-reveal.md": {
+    "mtime": 1784680077.5072403,
+    "ast_hash": "d35c383bfa43bb3d71d8b2ba71a6a42c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/draw-svg-trace.md": {
+    "mtime": 1784680077.5072403,
+    "ast_hash": "59b376de6cd6b44c4842ae00aaca9d48",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/edit-hook-moves.md": {
+    "mtime": 1784680077.5072403,
+    "ast_hash": "f7b75ce392f599a4a29cf795810c3fc5",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/element-body-moves.md": {
+    "mtime": 1784680077.5082471,
+    "ast_hash": "87979e53ced0ec3201910da5d9b3517c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/fui-hud-moves.md": {
+    "mtime": 1784680077.5082471,
+    "ast_hash": "a39f38223a19fc10535d8f54fe7f0077",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/gauge-readout-moves.md": {
+    "mtime": 1784680077.5082471,
+    "ast_hash": "51ac89300fe10817b2149583d53e4c23",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/glow-flyline-moves.md": {
+    "mtime": 1784680077.5082471,
+    "ast_hash": "6acce295fa63a100d543cbe22aae54f4",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/gradient-word-sweep.md": {
+    "mtime": 1784680077.5082471,
+    "ast_hash": "bc2bda2bda4c70b9eba51d174872a9a0",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/graze-face-tour.md": {
+    "mtime": 1784680077.509245,
+    "ast_hash": "f8bda10eedcfb722dfa336804bc7bcb6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/hashtag-to-pill-materialize.md": {
+    "mtime": 1784680077.509245,
+    "ast_hash": "2fcf1b2bb47efb020a083754670a2e7d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/hires-rasterize-3d-text.md": {
+    "mtime": 1784680077.509245,
+    "ast_hash": "c370f7d55a60eccd0f3b03a8906b991f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/icon-field-colorize.md": {
+    "mtime": 1784680077.509245,
+    "ast_hash": "69db5489763283225283e27f6b9cf080",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/icon-performance-moves.md": {
+    "mtime": 1784680077.509245,
+    "ast_hash": "7a9821dc19852f5903faedb84c26a2f6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/impact-feedback.md": {
+    "mtime": 1784680077.510247,
+    "ast_hash": "3c4059646a219c5fce3a9831a4e280d9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/input-trigger-moves.md": {
+    "mtime": 1784680077.510247,
+    "ast_hash": "ce00a76bf6832412d9c79c2e8031a93a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/integration-hub-map.md": {
+    "mtime": 1784680077.510247,
+    "ast_hash": "2b1faa224d2f8e80b59a74369b574d6c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/letterspace-materialize.md": {
+    "mtime": 1784680077.510247,
+    "ast_hash": "e9c3cf96d6f890bddd1f76a1c7e697dd",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/light-play-moves.md": {
+    "mtime": 1784680077.5112443,
+    "ast_hash": "ce192eaf31fc9eb3cf7e5cb5c6ab2131",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/line-boil.md": {
+    "mtime": 1784680077.5112443,
+    "ast_hash": "900a1271306a39dbe455b769dc6fb511",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/line-carry-transition.md": {
+    "mtime": 1784680077.5112443,
+    "ast_hash": "784890efd3fe668f34d6a3df685a3ff6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/list-stack-press.md": {
+    "mtime": 1784680077.5112443,
+    "ast_hash": "c8002b970ca8d74db96e4312f2c91df3",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/magician-card-flourish.md": {
+    "mtime": 1784680077.512245,
+    "ast_hash": "75c82b92d83030b2c348f256d66a3913",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/marker-underline-title.md": {
+    "mtime": 1784680077.512245,
+    "ast_hash": "e3122d57f2823cf8ef1c2226a211e5b6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/montage-rhythm-moves.md": {
+    "mtime": 1784680077.512245,
+    "ast_hash": "56989e22d0a4f27a04bc85557dad0395",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/morph-from-primitive.md": {
+    "mtime": 1784680077.512245,
+    "ast_hash": "50a948009fea8c3cc5ab59cf28a72dc5",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/neon-frame-forerun.md": {
+    "mtime": 1784680077.512245,
+    "ast_hash": "ce543618abd0004af2a5071299b97f32",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/neon-frame-orbit-drop.md": {
+    "mtime": 1784680077.5132449,
+    "ast_hash": "14c3c1595319ec03176999030170cded",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/neon-triple-marquee.md": {
+    "mtime": 1784680077.5132449,
+    "ast_hash": "7c882f8cde60e7ac649b56bb2ef4371a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/odometer-digit-roll.md": {
+    "mtime": 1784680077.5132449,
+    "ast_hash": "2fdf94ee8e5481626314d2640aac73b8",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/outro-group-photo-launch.md": {
+    "mtime": 1784680077.5132449,
+    "ast_hash": "4def0d721dc1f7bc051b73c8899332d5",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/overhead-camera-moves.md": {
+    "mtime": 1784680077.5142467,
+    "ast_hash": "24ca2f4d76f85393dc6426c19d4cf394",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/page-turn-transitions.md": {
+    "mtime": 1784680077.5142467,
+    "ast_hash": "660c30803a2aecc226d37d0473306307",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/page-waterfall-wall.md": {
+    "mtime": 1784680077.5142467,
+    "ast_hash": "f97de2c4833f66bfb7f3ffacae47da6f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/panel-grid-moves.md": {
+    "mtime": 1784680077.5142467,
+    "ast_hash": "e7daf70e47b21d7a1bc7e353cbaf1b1d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/paper-craft-moves.md": {
+    "mtime": 1784680077.5142467,
+    "ast_hash": "eeb9cadc61cb2dee71a0f8b180659aa2",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/paper-plane-messenger.md": {
+    "mtime": 1784680077.5152452,
+    "ast_hash": "dcd6649f9c4b44ed23b498a20fc0386c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/paper-title-card.md": {
+    "mtime": 1784680077.5152452,
+    "ast_hash": "8f768716da8f9c941a7880209445d890",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/particle-celebrate-hits.md": {
+    "mtime": 1784680077.5152452,
+    "ast_hash": "a466bf9d065209dd039caa7939250922",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/particle-sand-fill.md": {
+    "mtime": 1784680077.5152452,
+    "ast_hash": "66abd828b6834303db33140ab4c7c4ad",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/pill-slot-cycle.md": {
+    "mtime": 1784680077.516246,
+    "ast_hash": "de6ee24a3a6a1c589cfede3bd0b5a2bb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/print-texture-transitions.md": {
+    "mtime": 1784680077.516246,
+    "ast_hash": "855e2313ad209b4ec271d06d0745e573",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/rhythm-interrupt-moves.md": {
+    "mtime": 1784680077.516246,
+    "ast_hash": "2ca7f8457ca820961d02cbaa96d9d19d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/riso-print-hits.md": {
+    "mtime": 1784680077.516246,
+    "ast_hash": "c039c8cb31e2c6e4f1a842bd81789e88",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/row-embed.md": {
+    "mtime": 1784680077.516246,
+    "ast_hash": "efd9d6a3b2d5aeb710654fa0fe76a27f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/runway-ground-skim.md": {
+    "mtime": 1784680077.517245,
+    "ast_hash": "589b7bdf50908ddfc95c30ef67849bcf",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/sakuga-timing-shift.md": {
+    "mtime": 1784680077.517245,
+    "ast_hash": "3e0e4892b94a20f988ac90987bbd4158",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/scene-locked-title.md": {
+    "mtime": 1784680077.5177493,
+    "ast_hash": "89d7ae52194c8d0724b188470dbc4aeb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/scroll-brake-moves.md": {
+    "mtime": 1784680077.5177493,
+    "ast_hash": "ea9319855d1899faab516ac6ddacf0b2",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/segmented-thumb-hero.md": {
+    "mtime": 1784680077.5177493,
+    "ast_hash": "a2ce1dacec1986bfbdedd6ad2149859d",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/shot-transitions.md": {
+    "mtime": 1784680077.5177493,
+    "ast_hash": "07bb48c00edc87db65a1b1824a8aee8b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/skeleton-reveal.md": {
+    "mtime": 1784680077.5177493,
+    "ast_hash": "0d4f62b67842529018424e96ff435a97",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/slam-entrance-moves.md": {
+    "mtime": 1784680077.5187535,
+    "ast_hash": "4bf2c655d435b773af54644fa7048f37",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/smear-multiples.md": {
+    "mtime": 1784680077.5187535,
+    "ast_hash": "c81d44970d72bc2ca781f4a74efb26ea",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/space-camera-moves.md": {
+    "mtime": 1784680077.5187535,
+    "ast_hash": "7d17204d8f31219584bbbe6812c0a054",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/spectrum-morph-ui.md": {
+    "mtime": 1784680077.5187535,
+    "ast_hash": "9a8515595a9757b96e422e050ffd7c92",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/speed-ramp-freeze.md": {
+    "mtime": 1784680077.519581,
+    "ast_hash": "27ab5da9b9aed15c302b7f2c9be4eebb",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/split-flap-title.md": {
+    "mtime": 1784680077.519581,
+    "ast_hash": "4caa112d226ce5aef91e297c84459c3b",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/spotlight-hero-card.md": {
+    "mtime": 1784680077.519581,
+    "ast_hash": "453aafbe10b3b2771b408145dc4b3cef",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/spotlight-sweep-moves.md": {
+    "mtime": 1784680077.519581,
+    "ast_hash": "bc21fa9839014153834926be2e486db9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/steep-tilt-glide.md": {
+    "mtime": 1784680077.519581,
+    "ast_hash": "2310cba7da3e033bdf84ff50032760d9",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/stroke-segment-build.md": {
+    "mtime": 1784680077.520585,
+    "ast_hash": "f150db7c09d41e2a9bf85c3fed071631",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/tear-streak-transitions.md": {
+    "mtime": 1784680077.520585,
+    "ast_hash": "b58c64bcf5806fc894b9ab5dd3820bab",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/tension-camera-moves.md": {
+    "mtime": 1784680077.520585,
+    "ast_hash": "94403e148449793066cc8a5579a9538f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/text-as-mask.md": {
+    "mtime": 1784680077.520585,
+    "ast_hash": "9c69225cf1fc140b48c43b3ba37052b3",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/text-column-converge.md": {
+    "mtime": 1784680077.520585,
+    "ast_hash": "cde7478ce5169070d49f4480c2a2afc1",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/theme-switch-moves.md": {
+    "mtime": 1784680077.520585,
+    "ast_hash": "e1d2591df2239ff159e6ae62b765546a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/timeline-travel.md": {
+    "mtime": 1784680077.5215852,
+    "ast_hash": "00f951b650887c86f3a676ef9566291e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/title-demote-to-label.md": {
+    "mtime": 1784680077.5215852,
+    "ast_hash": "c877282a79e5c3d194892046e9507230",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/trailer-grammar-moves.md": {
+    "mtime": 1784680077.5215852,
+    "ast_hash": "7a10eeaf281d4ed2634bd7be086e15b6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/transition-hidden-cut.md": {
+    "mtime": 1784680077.5215852,
+    "ast_hash": "5553df5088c906f51f6f7b4b71d0fae6",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/transition-travel.md": {
+    "mtime": 1784680077.5225847,
+    "ast_hash": "7296b4733473cf418758473ede271d4e",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/type-and-filter.md": {
+    "mtime": 1784680077.5225847,
+    "ast_hash": "a1c44b680caca2f0b74e46e8a569fa1f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/type-assembly-moves.md": {
+    "mtime": 1784680077.5225847,
+    "ast_hash": "bca48dd0fcaf884f85c637ada422cfac",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/type-entrance-moves.md": {
+    "mtime": 1784680077.5225847,
+    "ast_hash": "a45b6ec9d8cfd738cc0f0a4555808fca",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/type-rhythm-sync.md": {
+    "mtime": 1784680077.5235865,
+    "ast_hash": "6c60d57c495a8a7ef7b5a36f992c2252",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/typewriter-moves.md": {
+    "mtime": 1784680077.5235865,
+    "ast_hash": "20387427efa7dbe351a31f1bfd886bba",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/ui-strip-away-outro.md": {
+    "mtime": 1784680077.5235865,
+    "ast_hash": "fb7c3bfc60efd1feed941387ea3b4f28",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/ui-to-brand-morph.md": {
+    "mtime": 1784680077.5235865,
+    "ast_hash": "ba4ebfb39bb6879a3ca5d4f956cb00d0",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/voice-waveform-live.md": {
+    "mtime": 1784680077.5235865,
+    "ast_hash": "10b98a90bc3ede8c0b62299951f6367c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/wall-reveal-moves.md": {
+    "mtime": 1784680077.5245843,
+    "ast_hash": "7b5d2d30a1921ddfd844b79098914783",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/wipe-transitions.md": {
+    "mtime": 1784680077.5245843,
+    "ast_hash": "aec967f58ed9b3881750e053d9f7d68f",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/shots/word-relay-filmstrip.md": {
+    "mtime": 1784680077.5245843,
+    "ast_hash": "57ccc08d5860b38bc5ab4363ba3b650c",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/references/sound-design.md": {
+    "mtime": 1784680077.5245843,
+    "ast_hash": "4fd7de06c5567ceec3496cda87908661",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/template/TEMPLATE.md": {
+    "mtime": 1784680077.5255108,
+    "ast_hash": "29d53aabb5987d7643d69f8372984d7a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/README.md": {
+    "mtime": 1784686146.5732906,
+    "ast_hash": "8cf9fe1af19b7ce1971ff51d8948e69a",
+    "semantic_hash": ""
+  },
+  ".video-shotcraft-temp/demos/ai-stream-response/agent-stream.jpg": {
+    "mtime": 1784680076.9622216,
+    "ast_hash": "404e22e83a60bfa925b22ccf934c21d7",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraft-demos/ai-stream-response/agent-stream.jpg": {
+    "mtime": 1784680076.9622216,
+    "ast_hash": "404e22e83a60bfa925b22ccf934c21d7",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/ShotcraftLivePreview.tsx": {
+    "mtime": 1784696199.714697,
+    "ast_hash": "57c6ddb165b86b10aaaa711f7d307018",
+    "semantic_hash": ""
+  },
+  "scripts/lumiera-dev-loop/lumiera-live-editor.prd.json": {
+    "mtime": 1784693141.0518384,
+    "ast_hash": "be0da3e3553da298f1586153c5a92cb3",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/lumieraEditorStorage.js": {
+    "mtime": 1784694853.6817725,
+    "ast_hash": "528abb44ee3a1885dd7facfe7856c73e",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/lumieraEditorStorage.test.js": {
+    "mtime": 1784696758.9005141,
+    "ast_hash": "a1b88230fcad6a864ec9b5cdea11cacb",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/LumieraEditorLivePreview.tsx": {
+    "mtime": 1784699284.3435266,
+    "ast_hash": "f869927773912a37aa78ef77f1dcd511",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/LumieraEditorTimeline.tsx": {
+    "mtime": 1784696224.2913058,
+    "ast_hash": "b7fdde82a0a798a496e568821b8b2adc",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/LumieraEditorToolRail.tsx": {
+    "mtime": 1784690851.900915,
+    "ast_hash": "04000dfd686c25cc648624542aa40406",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/lumieraEditorCore.test.ts": {
+    "mtime": 1784696758.901515,
+    "ast_hash": "b8039737c14f5afafaf717cb4b1eed91",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/lumieraEditorCore.ts": {
+    "mtime": 1784694733.23026,
+    "ast_hash": "a2ea20c44863475a53d32fb6a4e19074",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/ShotcraftResponsiveStage.tsx": {
+    "mtime": 1784697112.003923,
+    "ast_hash": "6c5f3a2a2c6d0928e060417e2e361d86",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/LumieraCaptionPreview.tsx": {
+    "mtime": 1784695882.511284,
+    "ast_hash": "14e644986f2e652ea4102bd3ce8312ae",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraftResponsiveLayout.test.ts": {
+    "mtime": 1784697112.0049229,
+    "ast_hash": "91aa487cea190d483db165adc7f0d271",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/remotion-renderer/src/overlays/shotcraftResponsiveLayout.ts": {
+    "mtime": 1784697112.003923,
+    "ast_hash": "f227ec289d3e11416609e7baafc289c6",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/motionTemplateText.test.ts": {
+    "mtime": 1784698761.6899464,
+    "ast_hash": "7b5f775e78fb72e5ce392781695f6622",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/frontend/src/motionTemplateText.ts": {
+    "mtime": 1784698748.117699,
+    "ast_hash": "ed7dc7c8740283030e713e36224ab51b",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/youtubeEditorialResolver.js": {
+    "mtime": 1784700212.2065835,
+    "ast_hash": "6e6751561f59e976ae7cd7c224853b9a",
+    "semantic_hash": ""
+  },
+  "dashboard-qanat/backend/youtubeEditorialResolver.test.js": {
+    "mtime": 1784700253.5982492,
+    "ast_hash": "eaf38c2a74e20ca9e24e9caad67cb2e3",
     "semantic_hash": ""
   }
 }

@@ -23,23 +23,37 @@ const GRAV = 1.6; // px/f²
 const STAGGER = 6; // 各柱错峰启动
 const RATE = 0.28; // 颗间出发间隔（帧）——最高柱 216 颗需 ~60f 发完，全局 f120 内收束
 
-const BARS = [
-  { cx: CARD.x + 175, h: 238, label: "238" },
-  { cx: CARD.x + 395, h: 336, label: "336" },
-  { cx: CARD.x + 615, h: 182, label: "182" },
-  { cx: CARD.x + 835, h: 294, label: "294" },
-].map((b) => ({
-  ...b,
-  layers: Math.round(b.h / GRAIN),
-  n: Math.round(b.h / GRAIN) * PER_LAYER,
-}));
+const DEFAULT_COLUMNS = [
+  { label: "238", value: 238 },
+  { label: "336", value: 336 },
+  { label: "182", value: 182 },
+  { label: "294", value: 294 },
+];
 
 const fallTime = (dist: number) => Math.sqrt((2 * dist) / GRAV);
 const departOf = (bar: number, i: number) =>
   8 + bar * STAGGER + i * RATE + rnd(i, bar * 7 + 1) * 1.5;
 
-export const ParticleSandFill: React.FC = () => {
+export const ParticleSandFill: React.FC<{
+  columns?: Array<{ label?: string; value?: number; color?: string }>;
+  maxValue?: number;
+  title?: string;
+}> = ({ columns = DEFAULT_COLUMNS, maxValue, title = "PARTICLE SAND FILL" }) => {
   const frame = useCurrentFrame();
+  const visibleColumns = (Array.isArray(columns) && columns.length ? columns : DEFAULT_COLUMNS).slice(0, 4);
+  const resolvedMax = Math.max(Number(maxValue) || 0, ...visibleColumns.map((column) => Number(column.value) || 0), 1);
+  const bars = visibleColumns.map((column, index) => {
+    const height = Math.max(18, ((Number(column.value) || 0) / resolvedMax) * 336);
+    const spacing = CARD.w / visibleColumns.length;
+    return {
+      cx: CARD.x + spacing * (index + 0.5),
+      h: height,
+      label: String(column.label || column.value || "0"),
+      color: column.color,
+      layers: Math.round(height / GRAIN),
+      n: Math.round(height / GRAIN) * PER_LAYER,
+    };
+  });
 
   return (
     <div
@@ -59,7 +73,7 @@ export const ParticleSandFill: React.FC = () => {
           textAlign: "center",
         }}
       >
-        <TitleBlock text="PARTICLE SAND FILL" size={72} />
+        <TitleBlock text={title} size={72} />
       </div>
 
       {/* 图表卡 */}
@@ -103,7 +117,7 @@ export const ParticleSandFill: React.FC = () => {
         }}
       />
 
-      {BARS.map((bar, b) => {
+      {bars.map((bar, b) => {
         const left = bar.cx - BAR_W / 2;
         // 末颗落地帧（闭式）：末颗落点在堆顶，坠距仍 ≈DROP_FROM
         const lastLand = departOf(b, bar.n - 1) + fallTime(DROP_FROM);

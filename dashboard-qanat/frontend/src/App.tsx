@@ -1725,6 +1725,7 @@ export default function App() {
     } catch (err: any) {
       toast.error(err.message || "Falha ao compilar directing.");
     } finally {
+      if (progressTimer) clearInterval(progressTimer);
       setCreatorLoading(false);
       setCreatorLoadingMode("idle");
       setDirectingSceneIndex(null);
@@ -8245,15 +8246,24 @@ export default function App() {
       setSelectedIdeaIndex(-1);
     }
 
+    const jobId = "ideas-" + Date.now();
+    let progressTimer: ReturnType<typeof setInterval> | null = null;
+
     try {
-      const loadingMsg = useDeepResearch
-        ? regen
-          ? "DeerFlow: nova varredura profunda + 10 ideias…"
-          : "DeerFlow: pesquisa profunda (web, Exa, YouTube) + 10 ideias…"
-        : regen
-          ? "Gerando outras 10 ideias…"
-          : "Gerando ideias…";
-      toast.loading(loadingMsg, { id: "gemini-ideas" });
+      const initialLoadingMsg = "🔍 [1/3] Mapeando território editorial do nicho…";
+      toast.loading(initialLoadingMsg, { id: "gemini-ideas" });
+
+      progressTimer = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/ai/progress/${jobId}`);
+          if (res.ok) {
+            const progress = await res.json();
+            if (progress?.label && !progress.done) {
+              toast.loading(progress.label, { id: "gemini-ideas" });
+            }
+          }
+        } catch {}
+      }, 400);
 
       const body = JSON.stringify({
         niche: nicheInput.trim(),
@@ -8262,6 +8272,7 @@ export default function App() {
         notebooklmDeep,
         useDeepResearch,
         forceVariety: regen,
+        progress_job_id: jobId,
         excludeIdeas: previousIdeas.map((idea: { title?: string }) => ({
           title: idea?.title || "",
         })),
@@ -8280,6 +8291,8 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body,
       });
+
+      if (progressTimer) clearInterval(progressTimer);
 
       if (ok && data.ideas) {
         const verifiedIdeasData = sanitizeCreatorIdeasData(data);
@@ -10257,7 +10270,7 @@ export default function App() {
       toast.error(validacao.problemas[0] || "Material incompleto para VPE.");
       return;
     }
-    validacao.avisos.forEach((a) => toast.warning(a, { duration: 6000 }));
+    validacao.avisos.forEach((a) => toast(a, { icon: "⚠️", duration: 6000 }));
 
     setCreatorLoading(true);
     setCreatorLoadingMode("full");
@@ -10336,7 +10349,7 @@ export default function App() {
     setMotionPlanEditorOpen(true);
   };
 
-  /** Motion Director — atribui shot cards video-shotcraft às cenas. */
+  /** Motion Director — IA analisa roteiro e orquestra shot cards, transições, filtros e timing. */
   const handleBuildMotionPlan = async () => {
     const projectName =
       narrationProjectName || creatorProjectName || activeProject;
@@ -10354,52 +10367,60 @@ export default function App() {
     }
     setCreatorLoading(true);
     setCreatorLoadingMode("full");
+    const toastId = toast.loading("🧠 IA analisando roteiro e orquestrando motion plan…");
     try {
-      const res = await fetch(getProjectUrl("/api/motion/plan"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, "_"),
-          niche: nicheInput?.trim() || "",
-          format: formatSelector === "SHORTS" ? "9:16" : "16:9",
-          apply: true,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
+      const res = await fetch(
+        getProjectUrl("/api/ai/creator/orchestrate-production"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            use_llm: true,
+            fetch_satellite: true,
+            sync_timeline: true,
+            rebuild_asset_slots: true,
+            persist: true,
+            restore_suppressed_motion: true,
+          }),
+        }
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        ok?: boolean;
+        orchestration_ok?: boolean;
+        storyboard?: Record<string, any>;
+        motion_count?: number;
+        timeline_motion_count?: number;
+        production?: Record<string, unknown>;
+        llm?: Record<string, unknown>;
+        quality?: Record<string, unknown>;
+      };
       if (!res.ok) {
-        throw new Error(data.error || "Falha ao gerar motion plan.");
+        throw new Error(String(data.error || "Falha na orquestração IA."));
       }
       const sb = data.storyboard || {
         ...(generatedScriptData || storyboardData || {}),
-        motion_plan: data.plan,
-        visual_prompts: (generatedScriptData?.visual_prompts || []).map(
-          (vp: any, i: number) => {
-            const cena = data.plan?.cenas?.[i];
-            if (!cena) return vp;
-            return {
-              ...vp,
-              scene_function: cena.scene_functions,
-              extracted_data: cena.extracted_data,
-              motion_shot: cena.motion_shot,
-              camera_move: cena.camera_move,
-              suggested_shot: cena.motion_shot?.templateId,
-            };
-          }
-        ),
       };
-      applyStoryboardToCreatorState(sb);
+      applyStoryboardToCreatorState(sb, "generation");
       await saveCreatorStoryboard(sb);
-      const withShot =
-        data.plan?.cenas?.filter((c: { motion_shot?: unknown }) =>
-          Boolean(c.motion_shot)
-        ).length || 0;
+      const motionCount = Number(data.motion_count) || 0;
+      const timelineMotion = Number(data.timeline_motion_count) || 0;
+      const llmUsed = Boolean(data.llm);
       toast.success(
-        `🎬 Motion plan — ${withShot}/${data.plan?.cenas?.length || 0} cenas com shotcraft · ${data.plan?.niche || nicheInput || "nicho"}`
+        [
+          `🎬 Motion Plan IA — ${motionCount} cena(s) com shotcraft`,
+          timelineMotion > 0 ? `${timelineMotion} na Timeline` : null,
+          llmUsed ? "✓ IA analisou roteiro" : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        { id: toastId, duration: 6000 }
       );
+      setTimelineDataRevision((r) => r + 1);
     } catch (err: unknown) {
       toast.error(
-        err instanceof Error ? err.message : "Falha no motion plan.",
-        { duration: 10000 }
+        err instanceof Error ? err.message : "Falha no motion plan IA.",
+        { id: toastId, duration: 10000 }
       );
     } finally {
       setCreatorLoading(false);
@@ -11751,6 +11772,7 @@ export default function App() {
       />
     );
   };
+
 
   const openCreatorTab = () => {
     setActiveTab("creator");

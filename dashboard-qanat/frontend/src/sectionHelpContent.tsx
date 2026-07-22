@@ -104,13 +104,11 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     ),
   },
   "tab-editor": {
-    title: "Editor",
+    title: "Editor do Lumiera",
     body: (
       <>
-        Storyboard visual: cenas, prompts, assets por bloco, overlays IA e barra
-        de progresso por blocos (ícones + design). Overlays em storyboard.json;
-        a barra de progresso salva em config_qanat.json — cada projeto tem a
-        sua.
+        Editor de motion templates do projeto ativo, organizado por nicho,
+        categoria e formato, com timeline multi-track e preview ao vivo.
       </>
     ),
   },

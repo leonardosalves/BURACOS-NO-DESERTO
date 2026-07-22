@@ -3,16 +3,16 @@
 > 🔗 [[MEMORIA-LUMIERA]] · [[MEMORY]]
 
 ## Meta
-
 niche: Curiosidades
-updated: 2026-07-21T14:44:36.936Z
-runs: 54
+updated: 2026-07-22T19:33:57.259Z
+runs: 71
 
 ## Padrões promovidos
-
 - (nenhum ainda)
 
 ## Candidatos (em observação)
-
-- [LONG/no_bgm] Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia (count: 48)
+- [LONG/no_bgm] Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia (count: 64)
 - [SHORT/no_bgm] Nenhuma trilha BGM mapeada — sonoplastia pode ficar vazia (count: 6)
+- [SHORT/hook_polluted] Evitar overlays informativos no gancho Short (<1.5s) — manter hook limpo (count: 2)
+- [SHORT/text_too_long] Overlay "llm-2.1": 13 palavras (máx. 12) — "Trata-se da Ponte do Rio Danshui, um gig..." (count: 1)
+- [SHORT/quality_score] Score de qualidade baixo (67/100) — revisar overlays e roteiro (count: 1)

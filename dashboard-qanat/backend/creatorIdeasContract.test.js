@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   CreatorIdeasContractError,
   generateCreatorIdeasWithSingleRetry,
+  validateCreatorExpressInput,
+  validateCreatorExpressPayload,
   validateCreatorIdeasPayload,
 } from "./creatorIdeasContract.js";
 
@@ -16,6 +18,52 @@ function validPayload() {
     best_idea_reason: "Maior potencial de retenção",
   };
 }
+
+test("valida e normaliza os campos do Criador Express", () => {
+  assert.deepEqual(
+    validateCreatorExpressInput({
+      theme: "  Buracos negros  ",
+      niche: "  Ciência  ",
+      tone: " educativo ",
+      project: " short ciência/01 ",
+    }),
+    {
+      ok: true,
+      value: {
+        theme: "Buracos negros",
+        niche: "Ciência",
+        tone: "educativo",
+        project: "short_ci_ncia_01",
+      },
+    }
+  );
+});
+
+test("bloqueia campos vazios e nomes de projeto sem letras ou números", () => {
+  assert.equal(validateCreatorExpressInput({}).ok, false);
+  assert.deepEqual(
+    validateCreatorExpressInput({
+      theme: "Tema",
+      niche: "Nicho",
+      project: "///",
+    }),
+    {
+      ok: false,
+      error: "O nome do projeto deve conter pelo menos uma letra ou número.",
+    }
+  );
+});
+
+test("exige narração válida na resposta do Criador Express", () => {
+  assert.equal(validateCreatorExpressPayload(null).ok, false);
+  assert.equal(validateCreatorExpressPayload({ narrative_script: "curto" }).ok, false);
+  assert.deepEqual(
+    validateCreatorExpressPayload({
+      narrative_script: "Uma narração completa e pronta para revisão.",
+    }),
+    { ok: true, reason: "" }
+  );
+});
 
 test("aceita uma resposta completa na primeira tentativa", async () => {
   let calls = 0;

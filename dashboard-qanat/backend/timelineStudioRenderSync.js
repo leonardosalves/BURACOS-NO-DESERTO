@@ -96,6 +96,9 @@ function copyRelAssetToPublic(
   if (!rel || /^https?:\/\//i.test(rel) || rel.startsWith("projects/")) {
     return rel;
   }
+  if (!projectDir || !publicProjectDir || typeof copyRemotionAsset !== "function" || typeof findProjectFile !== "function") {
+    return rel;
+  }
   const source = resolveProjectAssetPath(projectDir, rel, findProjectFile);
   const copied = copyRemotionAsset(source, publicProjectDir, prefix);
   return copied ? `projects/${projectSlug}/${copied}` : rel;
@@ -196,14 +199,24 @@ export function copyMotionPropsAssets(
 }
 
 function studioClipToOverlay(clip, assetCtx, index = 0) {
-  const type = String(clip.templateId || clip.props?.overlayType || "").trim();
-  if (!type) return null;
   const rawProps = { ...(clip.props || {}) };
+  const requestedType = String(clip.templateId || rawProps.overlayType || "").trim();
+  const type = rawProps.shotcraft && rawProps.motion_shot?.templateId
+    ? "shotcraft"
+    : requestedType;
+  if (!type) return null;
   delete rawProps.overlayType;
   const props =
     clip.trackId === MOTION_TRACK_ID
       ? copyMotionPropsAssets(rawProps, assetCtx, `mo${index + 1}_`)
       : rawProps;
+  if (type === "lottie-overlay" && props.source) {
+    props.source = copyRelAssetToPublic(
+      props.source,
+      assetCtx,
+      `lo${index + 1}_`
+    );
+  }
   return attachStudioOverlayMeta({
     id: String(clip.id || `studio-overlay-${type}`),
     type,
@@ -238,6 +251,14 @@ export function buildScenesFromStudio(
       : index + 1;
     const start = Number(clip.start) || 0;
     const duration = Math.max(0.08, Number(clip.duration) || 1);
+    const sourceStart = Math.max(
+      0,
+      Number(clip.sourceStart ?? clip.props?.sourceStartSeconds) || 0
+    );
+    const sourceEnd = Math.max(
+      sourceStart + duration,
+      Number(clip.sourceEnd ?? clip.props?.sourceEndSeconds) || sourceStart + duration
+    );
 
     // Tenta copiar asset; se não existir, cena continua com fundo escuro
     let copiedName = "";
@@ -281,6 +302,8 @@ export function buildScenesFromStudio(
       type: assetType,
       start,
       duration,
+      sourceStart,
+      sourceEnd,
       durationLocked: Boolean(clip.locked),
       narrationText:
         clip.props?.narration_text || clip.props?.narrationText || "",
@@ -325,9 +348,13 @@ export function buildOverlaysFromStudio(
   };
 
   const isRenderableStudioClip = (clip) =>
-    isStudioTemplateClip(clip) || isGeoMotionTemplateId(clip.templateId);
+    Boolean(clip?.props?.lumieraEditorClip) ||
+    isStudioTemplateClip(clip) ||
+    isGeoMotionTemplateId(clip.templateId);
 
-  const overlayClips = [];
+  const overlayClips = clipsOnTrack(studio.clips, "overlays").filter(
+    (clip) => clip?.props?.lumieraEditorClip && (clip.templateId || clip.props?.overlayType)
+  );
   const motionClips = clipsOnTrack(studio.clips, MOTION_TRACK_ID).filter(
     (c) => (c.templateId || c.props?.overlayType) && isRenderableStudioClip(c)
   );
@@ -388,14 +415,16 @@ export function resolveStudioTotalDuration(
 }
 
 export function resolveStudioFormat(studio, config = {}) {
+  if (studio?.format === "9:16" || studio?.format === "16:9")
+    return studio.format;
+  if (Number(studio?.width) > 0 && Number(studio?.height) > 0)
+    return Number(studio.height) > Number(studio.width) ? "9:16" : "16:9";
   if (
     config &&
     (config.aspect_ratio === "9:16" || config.aspect_ratio === "16:9")
   ) {
     return config.aspect_ratio;
   }
-  if (studio?.format === "9:16" || studio?.format === "16:9")
-    return studio.format;
   return "9:16";
 }
 

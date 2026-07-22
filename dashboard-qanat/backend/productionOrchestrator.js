@@ -42,6 +42,9 @@ import {
 import { getCatalogForNiche } from "./remotionTemplateCatalogService.js";
 import { ensureStoryboardWebResearch } from "./storyboardResearchEnsure.js";
 import { ensureShotcraftOnStoryboard } from "./motionDirector.js";
+import { assignTransitionsToMotionPlan, applyTransitionsToMotionPlan } from "./transitionPlanner.js";
+import { applyVisualFiltersToStoryboard, applyVisualFiltersToMotionScenes } from "./visualFilterPlanner.js";
+import { resolveNicheVideoPlan } from "./nicheVideoPlans.js";
 
 function readJsonSafe(filePath, fallback = null) {
   try {
@@ -331,6 +334,66 @@ export async function orchestrateProduction(
     );
   }
 
+  // Transições shotcraft entre cenas
+  try {
+    const transFmt =
+      String(config.video_format || "").toUpperCase() === "SHORTS" ||
+      String(config.video_format || "").toUpperCase() === "SHORT"
+        ? "9:16"
+        : "16:9";
+    const transNiche =
+      config.niche ||
+      storyboard.strategy?.niche ||
+      storyboard._vpe_checklist?.nicho_detectado ||
+      "";
+    if (storyboard.motion_plan?.cenas?.length) {
+      const transAssignments = assignTransitionsToMotionPlan({
+        motionPlan: storyboard.motion_plan,
+        format: transFmt,
+        niche: transNiche,
+      });
+      storyboard.motion_plan = applyTransitionsToMotionPlan(
+        storyboard.motion_plan,
+        transAssignments
+      );
+    }
+  } catch (transErr) {
+    console.warn("[orchestrateProduction] transicoes (nao bloqueante):", transErr?.message);
+  }
+
+  // Filtros visuais por cena
+  try {
+    storyboard = applyVisualFiltersToStoryboard(storyboard, config);
+  } catch (filterErr) {
+    console.warn("[orchestrateProduction] filtros visuais (nao bloqueante):", filterErr?.message);
+  }
+
+  // Plano de nicho profissional (metadata para o render)
+  try {
+    const nichePlanNiche =
+      config.niche ||
+      storyboard.strategy?.niche ||
+      storyboard._vpe_checklist?.nicho_detectado ||
+      "";
+    const nichePlanFmt =
+      String(config.video_format || "").toUpperCase() === "SHORTS" ||
+      String(config.video_format || "").toUpperCase() === "SHORT"
+        ? "shorts"
+        : "long";
+    const nichePlan = resolveNicheVideoPlan(nichePlanNiche, nichePlanFmt);
+    storyboard.niche_video_plan = {
+      niche: nichePlan.niche,
+      label: nichePlan.label,
+      format: nichePlan.resolvedFormat,
+      filter: nichePlan.formatPlan?.filter || "amber-documentary",
+      density: nichePlan.formatPlan?.density || "balanced",
+      transitions: nichePlan.formatPlan?.transitions || [],
+      preferredTemplates: nichePlan.formatPlan?.preferredTemplates || [],
+    };
+  } catch (planErr) {
+    console.warn("[orchestrateProduction] niche video plan (nao bloqueante):", planErr?.message);
+  }
+
   let researchFetchMeta = null;
   if (config.motion_template_pack?.enabled === true) {
     const ensured = await ensureStoryboardWebResearch(storyboard, config, {
@@ -360,6 +423,34 @@ export async function orchestrateProduction(
     });
     plan = llmResult.plan;
     llmMeta = llmResult.llm;
+
+    // Merge LLM-enriched props back into VP motion_shot (critical for render)
+    try {
+      const enrichedScenes = plan.motion_scenes || [];
+      if (enrichedScenes.length && Array.isArray(storyboard.visual_prompts)) {
+        const byRef = new Map(
+          enrichedScenes
+            .filter((ms) => ms.scene_ref)
+            .map((ms) => [String(ms.scene_ref), ms])
+        );
+        storyboard.visual_prompts = storyboard.visual_prompts.map((vp, i) => {
+          const key = String(vp.scene || vp.scene_id || i + 1);
+          const ms = byRef.get(key);
+          if (!ms?.props || !vp.motion_shot) return vp;
+          return {
+            ...vp,
+            motion_shot: {
+              ...vp.motion_shot,
+              templateId: ms.template_id || vp.motion_shot.templateId,
+              duration_seconds: ms.duration_seconds || vp.motion_shot.duration_seconds || undefined,
+              props: { ...(vp.motion_shot.props || {}), ...ms.props },
+            },
+          };
+        });
+      }
+    } catch (mergeErr) {
+      console.warn("[orchestrateProduction] merge LLM props (nao bloqueante):", mergeErr?.message);
+    }
   }
 
   if (isAiOverlaysEnabled(config)) {

@@ -11,7 +11,6 @@ import React from "react";
 import {
   useCurrentFrame,
   interpolate,
-  interpolateColors,
   Easing,
 } from "remotion";
 import { G, TitleBlock } from "../_fixtures/Fixtures";
@@ -143,12 +142,10 @@ const StaticGlyph: React.FC<{ ch: string; color: string; w?: number }> = ({
 
 export const OdometerDigitRoll: React.FC = () => {
   const frame = useCurrentFrame();
-  // 全位锁定于 63f：整体加深脉冲 ink→#000→ink（8f），附微缩放加码可感性
-  const inkNow = interpolateColors(
-    frame,
-    [63, 67, 71],
-    [G.ink, "#000000", G.ink]
-  );
+  // G.ink is a CSS custom-property expression. Remotion's interpolateColors()
+  // only accepts literal colors and throws before the preview can render.
+  // Keep the palette-aware ink and express the lock pulse through scale.
+  const inkNow = G.ink;
   const pulseScale = interpolate(frame, [63, 67, 71], [1, 1.035, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
