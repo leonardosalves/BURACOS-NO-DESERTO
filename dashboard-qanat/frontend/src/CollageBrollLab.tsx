@@ -903,7 +903,7 @@ function getNormalizedLines(text: string): string[] {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
-    .slice(0, 6);
+    .slice(0, 12);
 }
 
 export function validateEditorialContinuity(cardSpec: any): string[] {
