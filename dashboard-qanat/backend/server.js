@@ -24641,22 +24641,19 @@ app.post(
         if (prev?.scene) prevSceneMap.set(String(prev.scene).trim(), prev);
       }
       storyboard.visual_prompts = vps.map((vp, index) => {
+        const vpSceneStr = String(vp.scene ?? vp.cena ?? "").trim();
+        let prev =
+          prevSceneMap.get(vpSceneStr) ||
+          prevSnapshotVps[index] ||
+          null;
         const block =
+          prev?.block ??
           parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ??
           Math.min(
             expectedBlocks,
             Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1
           );
-        const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
-        const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
-        const scene = sceneInBlock ? sceneStr : `${block}.${index + 1}`;
-        let prev =
-          prevSceneMap.get(String(vp.scene || scene).trim()) ||
-          prevSceneMap.get(sceneStr) ||
-          null;
-        if (!prev && prevSnapshotVps[index]) {
-          prev = prevSnapshotVps[index];
-        }
+        const scene = prev?.scene ?? (vpSceneStr || `${block}.${index + 1}`);
         const identityTags = Array.isArray(vp.identity_tags)
           ? vp.identity_tags
               .map((tag) => String(tag || "").trim())
