@@ -8252,9 +8252,13 @@ export default function App() {
     let progressTimer: ReturnType<typeof setInterval> | null = null;
 
     try {
-      const initialLoadingMsg = "🔍 [1/3] Mapeando território editorial do nicho…";
+      const initialLoadingMsg =
+        "🔍 [1/3] Mapeando território editorial do nicho…";
       setIdeasProgressLabel(initialLoadingMsg);
-      toast.loading(initialLoadingMsg, { id: "gemini-ideas", duration: Infinity });
+      toast.loading(initialLoadingMsg, {
+        id: "gemini-ideas",
+        duration: Infinity,
+      });
 
       progressTimer = setInterval(async () => {
         try {
@@ -10290,6 +10294,16 @@ export default function App() {
             progress_job_id: progressJobId,
             niche: nicheInput?.trim() || "",
             format: formatSelector || "LONGO",
+            visualAssetStyle:
+              config?.visual_asset_style ||
+              generatedScriptData?.visual_asset_style ||
+              generatedScriptData?.technical_config?.visual_asset_style ||
+              "photorealistic",
+            visual_asset_style:
+              config?.visual_asset_style ||
+              generatedScriptData?.visual_asset_style ||
+              generatedScriptData?.technical_config?.visual_asset_style ||
+              "photorealistic",
           }),
         },
         {
@@ -10370,7 +10384,9 @@ export default function App() {
     }
     setCreatorLoading(true);
     setCreatorLoadingMode("full");
-    const toastId = toast.loading("🧠 IA analisando roteiro e orquestrando motion plan…");
+    const toastId = toast.loading(
+      "🧠 IA analisando roteiro e orquestrando motion plan…"
+    );
     try {
       const res = await fetch(
         getProjectUrl("/api/ai/creator/orchestrate-production"),
@@ -11776,7 +11792,6 @@ export default function App() {
     );
   };
 
-
   const openCreatorTab = () => {
     setActiveTab("creator");
     const session = loadWizardSession();
@@ -12371,48 +12386,51 @@ export default function App() {
         className={splashReady ? "anim-fade-in" : undefined}
         style={{ opacity: splashReady ? 1 : 0 }}
       >
-      <AiJobProgressBar />
+        <AiJobProgressBar />
 
-      <DashToaster />
+        <DashToaster />
 
-      {preRenderModalOpen && videoQuality?.preRenderAdvice && pendingRender && (
-        <PreRenderAdviceModal
-          advice={videoQuality.preRenderAdvice}
-          renderLabel={RENDER_MODE_LABELS[pendingRender.mode]}
-          onConfirm={confirmPendingRender}
-          onCancel={() => {
-            setPreRenderModalOpen(false);
-            setPendingRender(null);
-          }}
-          onGoToTab={(tab) => {
-            setPreRenderModalOpen(false);
-            setActiveTab(tab);
-          }}
-          onAutoFix={handlePreRenderAutoFix}
-          fixingFixId={preRenderFixingId}
-        />
-      )}
+        {preRenderModalOpen &&
+          videoQuality?.preRenderAdvice &&
+          pendingRender && (
+            <PreRenderAdviceModal
+              advice={videoQuality.preRenderAdvice}
+              renderLabel={RENDER_MODE_LABELS[pendingRender.mode]}
+              onConfirm={confirmPendingRender}
+              onCancel={() => {
+                setPreRenderModalOpen(false);
+                setPendingRender(null);
+              }}
+              onGoToTab={(tab) => {
+                setPreRenderModalOpen(false);
+                setActiveTab(tab);
+              }}
+              onAutoFix={handlePreRenderAutoFix}
+              fixingFixId={preRenderFixingId}
+            />
+          )}
 
-      {motionPlanEditorOpen && (
-        <MotionPlanEditor
-          storyboard={generatedScriptData || storyboardData}
-          projectName={
-            narrationProjectName || creatorProjectName || activeProject || ""
-          }
-          niche={nicheInput || ""}
-          format={formatSelector === "SHORTS" ? "9:16" : "16:9"}
-          getProjectUrl={getProjectUrl}
-          onClose={() => setMotionPlanEditorOpen(false)}
-          onPlanSaved={(plan, sb) => {
-            if (sb) {
-              applyStoryboardToCreatorState(sb);
-              void saveCreatorStoryboard(sb);
-            } else if (plan?.cenas && generatedScriptData) {
-              const next = {
-                ...generatedScriptData,
-                motion_plan: plan,
-                visual_prompts: (generatedScriptData.visual_prompts || []).map(
-                  (vp: any, i: number) => {
+        {motionPlanEditorOpen && (
+          <MotionPlanEditor
+            storyboard={generatedScriptData || storyboardData}
+            projectName={
+              narrationProjectName || creatorProjectName || activeProject || ""
+            }
+            niche={nicheInput || ""}
+            format={formatSelector === "SHORTS" ? "9:16" : "16:9"}
+            getProjectUrl={getProjectUrl}
+            onClose={() => setMotionPlanEditorOpen(false)}
+            onPlanSaved={(plan, sb) => {
+              if (sb) {
+                applyStoryboardToCreatorState(sb);
+                void saveCreatorStoryboard(sb);
+              } else if (plan?.cenas && generatedScriptData) {
+                const next = {
+                  ...generatedScriptData,
+                  motion_plan: plan,
+                  visual_prompts: (
+                    generatedScriptData.visual_prompts || []
+                  ).map((vp: any, i: number) => {
                     const cena = plan.cenas[i];
                     if (!cena) return vp;
                     return {
@@ -12423,114 +12441,113 @@ export default function App() {
                       transicao_entrada: cena.transicao_entrada,
                       suggested_shot: cena.motion_shot?.templateId,
                     };
-                  }
-                ),
-              };
-              applyStoryboardToCreatorState(next);
-              void saveCreatorStoryboard(next);
-            }
-            toast.success("Motion plan aplicado às cenas.");
-          }}
-        />
-      )}
+                  }),
+                };
+                applyStoryboardToCreatorState(next);
+                void saveCreatorStoryboard(next);
+              }
+              toast.success("Motion plan aplicado às cenas.");
+            }}
+          />
+        )}
 
-      <BackendActivityPanel activeProject={activeProject} />
+        <BackendActivityPanel activeProject={activeProject} />
 
-      <AppShell
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        activeProject={activeProject}
-        projects={projects}
-        recentProjects={recentProjects}
-        onSelectProject={handleSelectProject}
-        creatorMode={ideationTab}
-        onSelectCreatorMode={openCreatorMode}
-        formattedHeaderDate={formattedHeaderDate}
-        headerTemperatureLabel={headerTemperatureLabel}
-        youtubeAlertCount={youtubeChannelAlerts?.badgeCount ?? 0}
-        resurrectorAlertCount={resurrectorScheduler.badgeCount}
-        onRefresh={fetchData}
-        projectBar={projectWorkspaceBar}
-      >
-        <AppTabPanels
+        <AppShell
           activeTab={activeTab}
+          setActiveTab={setActiveTab}
           activeProject={activeProject}
-          config={config}
           projects={projects}
           recentProjects={recentProjects}
-          nicheInput={nicheInput}
-          geminiBrowserMode={geminiBrowserMode}
-          aiProvider={aiProvider}
-          youtubeChannelAlerts={youtubeChannelAlerts}
-          resurrectorAlerts={resurrectorScheduler.alerts}
-          getProjectUrl={getProjectUrl}
-          postAi={postAi}
-          setActiveTab={setActiveTab}
-          setSettingsSection={setSettingsSection}
-          handleSelectProject={handleSelectProject}
-          handleDeleteProject={handleDeleteProject}
-          handleApplyYoutubeStudioIdea={handleApplyYoutubeStudioIdea}
-          handleRelinkYoutube={handleRelinkYoutube}
-          handleScheduleFromHeatmap={handleScheduleFromHeatmap}
-          resolveBrowserResponse={resolveBrowserResponse}
-          setYoutubeChannelAlerts={setYoutubeChannelAlerts}
-          setNewProjectFormat={setNewProjectFormat}
-          setNewProjectNiche={setNewProjectNiche}
-          setShowCreateModal={setShowCreateModal}
-          saveConfigPatch={saveConfigPatch}
-          setConfig={setConfig}
-          creatorTabProps={creatorTabProps}
-          aiTabProps={aiTabProps}
-          uploadTabProps={uploadTabProps}
-          editorTabProps={editorTabProps}
-          settingsTabProps={settingsTabProps}
-          statusTabProps={statusTabProps}
-          timelineTabProps={timelineTabProps}
-          musicTabPanelProps={musicTabPanelProps}
-          homeTabProps={homeTabProps}
-          workflowTabProps={workflowTabProps}
-          hasApiKey={hasApiKey}
-          terminalTabProps={terminalTabProps}
-        />
-      </AppShell>
+          onSelectProject={handleSelectProject}
+          creatorMode={ideationTab}
+          onSelectCreatorMode={openCreatorMode}
+          formattedHeaderDate={formattedHeaderDate}
+          headerTemperatureLabel={headerTemperatureLabel}
+          youtubeAlertCount={youtubeChannelAlerts?.badgeCount ?? 0}
+          resurrectorAlertCount={resurrectorScheduler.badgeCount}
+          onRefresh={fetchData}
+          projectBar={projectWorkspaceBar}
+        >
+          <AppTabPanels
+            activeTab={activeTab}
+            activeProject={activeProject}
+            config={config}
+            projects={projects}
+            recentProjects={recentProjects}
+            nicheInput={nicheInput}
+            geminiBrowserMode={geminiBrowserMode}
+            aiProvider={aiProvider}
+            youtubeChannelAlerts={youtubeChannelAlerts}
+            resurrectorAlerts={resurrectorScheduler.alerts}
+            getProjectUrl={getProjectUrl}
+            postAi={postAi}
+            setActiveTab={setActiveTab}
+            setSettingsSection={setSettingsSection}
+            handleSelectProject={handleSelectProject}
+            handleDeleteProject={handleDeleteProject}
+            handleApplyYoutubeStudioIdea={handleApplyYoutubeStudioIdea}
+            handleRelinkYoutube={handleRelinkYoutube}
+            handleScheduleFromHeatmap={handleScheduleFromHeatmap}
+            resolveBrowserResponse={resolveBrowserResponse}
+            setYoutubeChannelAlerts={setYoutubeChannelAlerts}
+            setNewProjectFormat={setNewProjectFormat}
+            setNewProjectNiche={setNewProjectNiche}
+            setShowCreateModal={setShowCreateModal}
+            saveConfigPatch={saveConfigPatch}
+            setConfig={setConfig}
+            creatorTabProps={creatorTabProps}
+            aiTabProps={aiTabProps}
+            uploadTabProps={uploadTabProps}
+            editorTabProps={editorTabProps}
+            settingsTabProps={settingsTabProps}
+            statusTabProps={statusTabProps}
+            timelineTabProps={timelineTabProps}
+            musicTabPanelProps={musicTabPanelProps}
+            homeTabProps={homeTabProps}
+            workflowTabProps={workflowTabProps}
+            hasApiKey={hasApiKey}
+            terminalTabProps={terminalTabProps}
+          />
+        </AppShell>
 
-      <AppOverlays
-        chatOpen={chatOpen}
-        setChatOpen={setChatOpen}
-        chatMessages={chatMessages}
-        chatLoading={chatLoading}
-        chatInput={chatInput}
-        setChatInput={setChatInput}
-        handleSendChatMessage={handleSendChatMessage}
-        hasApiKey={hasApiKey}
-        chatEndRef={chatEndRef}
-        aiProviderBadge={aiProviderBadge}
-        setActiveTab={setActiveTab}
-        showCreateModal={showCreateModal}
-        setShowCreateModal={setShowCreateModal}
-        newProjectName={newProjectName}
-        setNewProjectName={setNewProjectName}
-        newProjectFormat={newProjectFormat}
-        setNewProjectFormat={setNewProjectFormat}
-        newProjectNiche={newProjectNiche}
-        setNewProjectNiche={setNewProjectNiche}
-        handleCreateProject={handleCreateProject}
-        pendingMusicDelete={pendingMusicDelete}
-        setPendingMusicDelete={setPendingMusicDelete}
-        deletingMusic={deletingMusic}
-        handleConfirmDeleteMusic={handleConfirmDeleteMusic}
-        musicFiles={musicFiles}
-        getFormatBytes={getFormatBytes}
-        pendingOutputDelete={pendingOutputDelete}
-        setPendingOutputDelete={setPendingOutputDelete}
-        deletingOutput={deletingOutput}
-        handleDeleteOutputVideo={handleDeleteOutputVideo}
-        previewVideoUrl={previewVideoUrl}
-        setPreviewVideoUrl={setPreviewVideoUrl}
-        renderProgress={renderProgress}
-        setRenderProgress={setRenderProgress}
-        onCancelRender={handleCancelRender}
-      />
+        <AppOverlays
+          chatOpen={chatOpen}
+          setChatOpen={setChatOpen}
+          chatMessages={chatMessages}
+          chatLoading={chatLoading}
+          chatInput={chatInput}
+          setChatInput={setChatInput}
+          handleSendChatMessage={handleSendChatMessage}
+          hasApiKey={hasApiKey}
+          chatEndRef={chatEndRef}
+          aiProviderBadge={aiProviderBadge}
+          setActiveTab={setActiveTab}
+          showCreateModal={showCreateModal}
+          setShowCreateModal={setShowCreateModal}
+          newProjectName={newProjectName}
+          setNewProjectName={setNewProjectName}
+          newProjectFormat={newProjectFormat}
+          setNewProjectFormat={setNewProjectFormat}
+          newProjectNiche={newProjectNiche}
+          setNewProjectNiche={setNewProjectNiche}
+          handleCreateProject={handleCreateProject}
+          pendingMusicDelete={pendingMusicDelete}
+          setPendingMusicDelete={setPendingMusicDelete}
+          deletingMusic={deletingMusic}
+          handleConfirmDeleteMusic={handleConfirmDeleteMusic}
+          musicFiles={musicFiles}
+          getFormatBytes={getFormatBytes}
+          pendingOutputDelete={pendingOutputDelete}
+          setPendingOutputDelete={setPendingOutputDelete}
+          deletingOutput={deletingOutput}
+          handleDeleteOutputVideo={handleDeleteOutputVideo}
+          previewVideoUrl={previewVideoUrl}
+          setPreviewVideoUrl={setPreviewVideoUrl}
+          renderProgress={renderProgress}
+          setRenderProgress={setRenderProgress}
+          onCancelRender={handleCancelRender}
+        />
       </div>
     </>
   );

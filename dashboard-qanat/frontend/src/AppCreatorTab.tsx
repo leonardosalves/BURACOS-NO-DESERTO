@@ -3743,57 +3743,17 @@ export function AppCreatorTab({
                                                       Cena {sceneNum}
                                                     </span>
 
-                                                    {vp?.motion_shot
-                                                      ?.templateId ? (
-                                                      <span
-                                                        className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-cyan-500/15 border border-cyan-500/35 text-cyan-200"
-                                                        title={`Shotcraft: ${vp.motion_shot.templateId}${
-                                                          Array.isArray(
-                                                            vp.scene_function
-                                                          )
-                                                            ? ` · ${vp.scene_function.join(", ")}`
-                                                            : ""
-                                                        }`}
-                                                      >
-                                                        🎬{" "}
-                                                        {
-                                                          vp.motion_shot
-                                                            .templateId
-                                                        }
-                                                      </span>
-                                                    ) : null}
-
-                                                    {isRemotionScene ? (
-                                                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-violet-500/15 border border-violet-500/35 text-violet-200">
-                                                        🟣 Remotion
-                                                        {vp?.motion_template_id
-                                                          ? ` · ${vp.motion_template_id}`
-                                                          : ""}
-                                                        {vp?.production
-                                                          ?.template_props
-                                                          ?.template_studio_fallback
-                                                          ? " · fallback nativo"
-                                                          : ""}
-                                                        {Number(
-                                                          vp?.production
-                                                            ?.template_props
-                                                            ?.template_studio_pick_score
-                                                        ) > 0
-                                                          ? ` · Studio ${Math.round(Number(vp.production.template_props.template_studio_pick_score))}`
-                                                          : ""}
-                                                      </span>
-                                                    ) : (
-                                                      <span
-                                                        className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                                                          isVideo
-                                                            ? "bg-blue-500/10 border border-blue-500/20 text-blue-400"
-                                                            : "bg-gold-500/10 border border-gold-500/20 text-gold-500"
-                                                        }`}
-                                                      >
-                                                        {vp?.type ||
-                                                          "imagem IA 2k"}
-                                                      </span>
-                                                    )}
+                                                    <span
+                                                      className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                                        isVideo
+                                                          ? "bg-blue-500/10 border border-blue-500/20 text-blue-400"
+                                                          : "bg-amber-500/10 border border-amber-500/20 text-amber-300"
+                                                      }`}
+                                                    >
+                                                      {isVideo
+                                                        ? "VÍDEO IA (MAX 10S)"
+                                                        : "IMAGEM IA 2K"}
+                                                    </span>
 
                                                     {/* Badge: tipo do asset (imagem/vídeo) */}
                                                     {currentAsset?.asset ? (

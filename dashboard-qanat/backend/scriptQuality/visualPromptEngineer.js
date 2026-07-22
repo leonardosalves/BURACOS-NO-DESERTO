@@ -88,7 +88,11 @@ export function normalizeNicheHint(hint = "") {
     .trim();
   if (!t) return null;
   if (NICHE_STYLE_MAP[t]) return t;
-  if (/engenh|constru|industrial|maquina|estrutura|arranha|bridge|foundation|machinery/.test(t))
+  if (
+    /engenh|constru|industrial|maquina|estrutura|arranha|bridge|foundation|machinery/.test(
+      t
+    )
+  )
     return "engineering";
   if (/true.?crime|assassin|forensic/.test(t)) return "true_crime";
   if (/horror|terror|fantasma|assombr/.test(t)) return "horror";
@@ -711,6 +715,11 @@ ${
 - A imagem **completa** o que a voz diz: mostra o que a voz não cabe em palavras (textura, escala, tensão, ironia visual, contraste, evidência).
 - PROIBIDO: stock genérico ("dramatic landscape", "thinking man silhouette", "abstract particles") quando a fala tem um sujeito concreto.
 - PROIBIDO: repetir a mesma composição/ideia visual em cenas diferentes só mudando o texto.
+
+**0b. ESTRUTURA E REGRAS DE CENA (PRESERVAÇÃO INTEGRAL E RÍGIDA)**
+- VOCÊ DEVE MANTER EXATAMENTE A MESMA QUANTIDADE E OS MESMOS IDENTIFICADORES DE CENA (\`scene\`) DO PAYLOAD DE ENTRADA.
+- É ABSOLUTAMENTE PROIBIDO DIVIDIR UMA CENA EM VÁRIAS, PROIBIDO UNIR CENAS E PROIBIDO ALTERAR OU MANIPULAR O TEXTO DA NARRAÇÃO (\`narration_text\`).
+- Cada item \`visual_prompts\` no JSON retornado deve corresponder 1:1 à cena enviada, mantendo a propriedade \`scene\` exatamente idêntica (ex: "1.1", "1.2", "2.1").
 
 **1. Alinhamento Total com a Narração (prova + emoção)**
 - Cada prompt ilustra EXATAMENTE o narration_text da cena — e ainda entrega um **narrative_job** claro:

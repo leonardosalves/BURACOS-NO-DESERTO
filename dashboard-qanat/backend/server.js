@@ -9788,9 +9788,13 @@ async function prepareRemotionRender(
     } catch (e) {}
   }
 
-  let config = snapshotFiles?.["config_qanat.json"] || readProjectJson(projectDir, "config_qanat.json", {});
+  let config =
+    snapshotFiles?.["config_qanat.json"] ||
+    readProjectJson(projectDir, "config_qanat.json", {});
 
-  let storyboard = snapshotFiles?.["storyboard.json"] || readProjectJson(projectDir, "storyboard.json", {});
+  let storyboard =
+    snapshotFiles?.["storyboard.json"] ||
+    readProjectJson(projectDir, "storyboard.json", {});
 
   try {
     const refreshed = refreshEmotionPlanTimings(projectDir);
@@ -9801,8 +9805,12 @@ async function prepareRemotionRender(
     const prepLogs = await prepareBgmBeforeMix(projectDir);
     for (const line of prepLogs || [])
       console.log(`[Remotion BGM Prep] ${line}`);
-    config = snapshotFiles?.["config_qanat.json"] || readProjectJson(projectDir, "config_qanat.json", {});
-    storyboard = snapshotFiles?.["storyboard.json"] || readProjectJson(projectDir, "storyboard.json", {});
+    config =
+      snapshotFiles?.["config_qanat.json"] ||
+      readProjectJson(projectDir, "config_qanat.json", {});
+    storyboard =
+      snapshotFiles?.["storyboard.json"] ||
+      readProjectJson(projectDir, "storyboard.json", {});
   } catch (prepErr) {
     console.warn(
       "[Remotion BGM Prep] Falha ao preparar trilhas emocionais:",
@@ -9832,15 +9840,20 @@ async function prepareRemotionRender(
     }
   }
 
-  const timings = snapshotFiles?.["block_timings.json"] || readProjectJson(projectDir, "block_timings.json", {
-    starts: [],
-    durations: [],
-  });
+  const timings =
+    snapshotFiles?.["block_timings.json"] ||
+    readProjectJson(projectDir, "block_timings.json", {
+      starts: [],
+      durations: [],
+    });
 
-  const wordTranscripts = snapshotFiles?.["word_transcripts.json"] || readProjectJson(projectDir, "word_transcripts.json", []);
+  const wordTranscripts =
+    snapshotFiles?.["word_transcripts.json"] ||
+    readProjectJson(projectDir, "word_transcripts.json", []);
   const flatTranscriptWords = flattenWordTranscripts(wordTranscripts);
 
-  const timelineStudio = snapshotFiles?.["timeline_studio.json"] || loadStudioForRender(projectDir);
+  const timelineStudio =
+    snapshotFiles?.["timeline_studio.json"] || loadStudioForRender(projectDir);
   const useStudioRender = shouldUseStudioForRender(timelineStudio);
   if (useStudioRender) {
     console.log(
@@ -12479,7 +12492,12 @@ function getOmniRouteModelChain(
   const cleanPrimary = String(primary || "").replace(/^gemini\//i, "");
   if (/^gemini/i.test(primary) || /^gemini/i.test(cleanPrimary)) {
     // Máximo 3 fallbacks para não multiplicar tempo de espera (priorizando 3.6-flash)
-    fallbacks = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-pro", "gemini-2.5-flash"]
+    fallbacks = [
+      "gemini-3.6-flash",
+      "gemini-3.5-flash",
+      "gemini-2.5-pro",
+      "gemini-2.5-flash",
+    ]
       .filter((m) => m !== cleanPrimary)
       .slice(0, 3);
   } else {
@@ -12494,10 +12512,7 @@ function getOmniRouteModelChain(
   return [...new Set(prefixed)];
 }
 
-async function callOmniRouteWithRetry(
-  promptOrBody,
-  options = {}
-) {
+async function callOmniRouteWithRetry(promptOrBody, options = {}) {
   const {
     maxRetries = 3,
     bodyOverride = null,
@@ -12542,7 +12557,10 @@ async function callOmniRouteWithRetry(
         const requestTimeoutMs =
           Number(options?.timeoutMs) || Number(options?.timeout_ms) || 180000;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          requestTimeoutMs
+        );
         const response = await fetch(`${baseUrl}/chat/completions`, {
           method: "POST",
           headers,
@@ -13048,7 +13066,13 @@ function getGeminiModelChain(
 ) {
   const primary = getGeminiModel(projectDir);
   if (Array.isArray(overrideModels) && overrideModels.length > 0) {
-    return [...new Set([primary, ...overrideModels.filter(Boolean), ...GEMINI_MODEL_FALLBACKS])];
+    return [
+      ...new Set([
+        primary,
+        ...overrideModels.filter(Boolean),
+        ...GEMINI_MODEL_FALLBACKS,
+      ]),
+    ];
   }
   return [...new Set([primary, ...GEMINI_MODEL_FALLBACKS])];
 }
@@ -13235,11 +13259,7 @@ async function callLocalLlmWithRetry(
   throw lastError || new Error("Falha ao consultar LLM local.");
 }
 
-async function callGeminiWithRetry(
-  apiKey,
-  promptOrBody,
-  options = {}
-) {
+async function callGeminiWithRetry(apiKey, promptOrBody, options = {}) {
   const {
     maxRetries = 4,
     models = null,
@@ -13547,7 +13567,9 @@ async function callGeminiWithRetry(
             );
             totalHttpAttempts += 1;
             const requestTimeoutMs =
-              Number(options?.timeoutMs) || Number(options?.timeout_ms) || 180000;
+              Number(options?.timeoutMs) ||
+              Number(options?.timeout_ms) ||
+              180000;
             const geminiController = new AbortController();
             const geminiTimeoutId = setTimeout(
               () => geminiController.abort(),
@@ -24413,6 +24435,8 @@ app.post(
       const rankOrder =
         config.rank_order || storyboard.listicle?.rank_order || "desc";
       const visualAssetStyle =
+        req.body?.visualAssetStyle ||
+        req.body?.visual_asset_style ||
         config.visual_asset_style ||
         storyboard.visual_asset_style ||
         storyboard.technical_config?.visual_asset_style ||
@@ -24612,8 +24636,9 @@ app.post(
           : 12;
       // Preserva a narração original, durações e flags POV
       const prevSceneMap = new Map();
-      for (const prev of prevSnapshot.visual_prompts || []) {
-        prevSceneMap.set(String(prev.scene || ""), prev);
+      const prevSnapshotVps = prevSnapshot.visual_prompts || [];
+      for (const prev of prevSnapshotVps) {
+        if (prev?.scene) prevSceneMap.set(String(prev.scene).trim(), prev);
       }
       storyboard.visual_prompts = vps.map((vp, index) => {
         const block =
@@ -24625,7 +24650,13 @@ app.post(
         const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
         const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
         const scene = sceneInBlock ? sceneStr : `${block}.${index + 1}`;
-        const prev = prevSceneMap.get(String(vp.scene || scene)) || null;
+        let prev =
+          prevSceneMap.get(String(vp.scene || scene).trim()) ||
+          prevSceneMap.get(sceneStr) ||
+          null;
+        if (!prev && prevSnapshotVps[index]) {
+          prev = prevSnapshotVps[index];
+        }
         const identityTags = Array.isArray(vp.identity_tags)
           ? vp.identity_tags
               .map((tag) => String(tag || "").trim())
@@ -24641,11 +24672,17 @@ app.post(
           ...vp, // Aplica as novidades geradas pelo Gemini
           ...(prev
             ? {
-                // Força restauração de chaves vitais
+                // Força restauração de chaves vitais e medições do Whisper
+                scene: prev.scene || scene || vp.scene,
+                block: prev.block ?? block ?? vp.block,
                 narration_text: prev.narration_text || vp.narration_text || "",
                 narration_excerpt:
                   prev.narration_excerpt || vp.narration_excerpt || "",
-                is_pov: prev.is_pov,
+                duration_seconds: prev.duration_seconds ?? vp.duration_seconds,
+                word_transcripts: prev.word_transcripts || vp.word_transcripts,
+                audio_start: prev.audio_start ?? vp.audio_start,
+                audio_end: prev.audio_end ?? vp.audio_end,
+                is_pov: prev.is_pov ?? vp.is_pov,
                 scene_kind: prev.scene_kind || vp.scene_kind,
                 video_role: prev.video_role || vp.video_role,
                 pov_pair_id: prev.pov_pair_id || vp.pov_pair_id,
