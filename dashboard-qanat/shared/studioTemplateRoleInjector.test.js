@@ -1,5 +1,8 @@
-import { describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import fs from "fs";
+import os from "os";
+import path from "path";
 import {
   injectStudioBackgroundFrames,
   injectStudioTransitionScenes,
@@ -18,6 +21,22 @@ export default function RoleTpl() {
 }`;
 
 const ROLE_NICHE = "__test_studio_role_inject__";
+const TEST_CATALOG_PATH = path.join(
+  os.tmpdir(),
+  `lumiera-cat-studioTemplateRoleInjector-${process.pid}.json`
+);
+
+before(() => {
+  process.env.LUMIERA_TEMPLATE_CATALOG_PATH = TEST_CATALOG_PATH;
+  fs.writeFileSync(TEST_CATALOG_PATH, JSON.stringify({ niches: {} }), "utf8");
+});
+
+after(() => {
+  delete process.env.LUMIERA_TEMPLATE_CATALOG_PATH;
+  try {
+    fs.unlinkSync(TEST_CATALOG_PATH);
+  } catch {}
+});
 
 describe("studioTemplateRoleInjector", () => {
   it("injeta transição entre blocos em 16:9", () => {
