@@ -12,10 +12,12 @@ import {
 import { resolveStockSearchQuery } from "../stockSearchQuery.js";
 import { enrichSceneFunctionsOnVisualPrompts } from "../motionDirector.js";
 import { tagSceneWithMotion } from "../creatorSceneTagger.js";
+import { estimateFishSpeechSeconds } from "../shortsSceneChunker.js";
 
 export const SHORTS_MIN_VIDEO_SCENES = 3;
 export const SHORTS_VIDEO_SCENE_TYPE = "vídeo IA (max 10s)";
 export const IMAGE_SCENE_TYPE = "imagem IA 2k";
+export const VIDEO_MAX_NARRATION_SECONDS = 10;
 
 const MOTION_PROMPT_RE =
   /\b(motion|moving|drone|aerial|timelapse|slow[\s-]?motion|camera pan|fly[\s-]?through|storm|drilling|pecking|tracking shot|handheld|dolly|crane|zoom in|zoom out|cinematic motion|max\s*\d{1,2}\s*s(?:ec(?:onds)?)?|\d{1,2}\s*(?:s|sec|secs|seconds))\b/i;
@@ -179,9 +181,17 @@ export function enforceShortsVideoSceneMix(
     effectiveMin
   ).filter((index) => !isVideoSceneType(vps[index].type));
 
+  const narrationWithinLimit = (vp) => {
+    const text = String(
+      vp.narration_text || vp.narracao || vp.narration_excerpt || ""
+    ).trim();
+    if (!text) return true;
+    return estimateFishSpeechSeconds(text) <= VIDEO_MAX_NARRATION_SECONDS;
+  };
+
   const scored = vps
     .map((vp, index) => ({ index, vp, isVideo: isVideoSceneType(vp.type) }))
-    .filter((entry) => !entry.isVideo)
+    .filter((entry) => !entry.isVideo && narrationWithinLimit(entry.vp))
     .map((entry) => {
       let score = 0;
       const prompt = String(entry.vp.prompt || entry.vp.visual_prompt || "");
@@ -541,8 +551,18 @@ export function normalizeVisualPromptMediaTypes(visualPrompts = []) {
         broll === "video" ||
         broll === "vídeo");
 
+    const narrationText = String(
+      next.narration_text || next.narracao || next.narration_excerpt || ""
+    ).trim();
+    const estimatedNarrationSeconds = narrationText
+      ? estimateFishSpeechSeconds(narrationText)
+      : 0;
+    const narrationExceedsVideoLimit =
+      estimatedNarrationSeconds > VIDEO_MAX_NARRATION_SECONDS;
+
     const wantsVideo =
       !hasSpecialMediaMode &&
+      !narrationExceedsVideoLimit &&
       (forceVideo ||
         realMotion ||
         notesSuggestVideo ||
@@ -560,6 +580,10 @@ export function normalizeVisualPromptMediaTypes(visualPrompts = []) {
       if (!hasSpecialMediaMode) next.media_mode = "image";
       production.broll_type = "image";
       next.prompt = stripVideoDirectivesFromImagePrompt(prompt);
+      if (narrationExceedsVideoLimit && !assetIsVideo) {
+        next.editor_notes =
+          `${notes ? notes + " — " : ""}imagem (narração ~${Math.round(estimatedNarrationSeconds)}s > ${VIDEO_MAX_NARRATION_SECONDS}s)`.trim();
+      }
     }
 
     production.generate_from_prompt = next.prompt;
