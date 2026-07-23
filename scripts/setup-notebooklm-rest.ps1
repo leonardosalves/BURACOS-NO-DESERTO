@@ -36,9 +36,11 @@ if (Test-Path -LiteralPath $InstallDir) {
 # 3. Instalar dependencias e build
 Push-Location $InstallDir
 Write-Host "Instalando dependencias (npm install)..." -ForegroundColor Yellow
-npm install --production=false 2>&1 | Out-Null
+$ErrorActionPreference = "Continue"
+npm install --include=dev 2>&1 | Out-Null
 Write-Host "Compilando (npm run build)..." -ForegroundColor Yellow
 npm run build 2>&1 | Out-Null
+$ErrorActionPreference = "Stop"
 Pop-Location
 Write-Host "[OK] Build concluido" -ForegroundColor Green
 
