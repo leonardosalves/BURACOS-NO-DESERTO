@@ -58,7 +58,7 @@ export class CreatorIdeasContractError extends Error {
 
 export function validateCreatorIdeasPayload(
   value,
-  { expectedCount = 5 } = {}
+  { expectedCount = 10 } = {}
 ) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return { ok: false, reason: "a resposta não é um objeto JSON" };
@@ -120,16 +120,20 @@ export async function generateCreatorIdeasWithSingleRetry({
   generate,
   parse,
   expectedCount = 10,
-  maxAttempts = 1,
+  maxAttempts = 2,
   niche = "Geral",
   format = "SHORTS",
 }) {
-  const attemptsLimit = 1;
+  const attemptsLimit = Math.max(1, Number(maxAttempts) || 2);
   let rejectionReason = "a resposta não pôde ser validada";
 
   for (let attempt = 1; attempt <= attemptsLimit; attempt += 1) {
     try {
-      const responseText = await generate({ attempt, prompt: basePrompt });
+      const prompt =
+        attempt === 1
+          ? basePrompt
+          : buildCreatorIdeasRetryPrompt(basePrompt, rejectionReason);
+      const responseText = await generate({ attempt, prompt });
 
       if (responseText == null) {
         return { handledExternally: true, data: null, attempts: attempt };
@@ -138,11 +142,7 @@ export async function generateCreatorIdeasWithSingleRetry({
       const parsed = await parse(responseText);
       const validation = validateCreatorIdeasPayload(parsed, { expectedCount });
       if (validation.ok) {
-        return {
-          handledExternally: false,
-          data: parsed,
-          attempts: attempt,
-        };
+        return { handledExternally: false, data: parsed, attempts: attempt };
       }
       rejectionReason = validation.reason;
     } catch (error) {
@@ -151,11 +151,8 @@ export async function generateCreatorIdeasWithSingleRetry({
     }
   }
 
-  console.warn(`[IDEAS CONTRACT] Usando fallback de ideias por conta de: ${rejectionReason}`);
-  return {
-    handledExternally: false,
-    data: createFallbackCreatorIdeas(niche, format),
-    attempts: attemptsLimit,
-    fallbackUsed: true,
-  };
+  throw new CreatorIdeasContractError(
+    `Resposta de ideias inválida após ${attemptsLimit} tentativas: ${rejectionReason}`,
+    { attempts: attemptsLimit, reason: rejectionReason }
+  );
 }
