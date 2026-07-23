@@ -10,11 +10,13 @@ import {
   Trash2,
   Tv,
   Video,
+  Wand2,
 } from "lucide-react";
 import { DashminProjectTabLayout } from "./DashminProjectTabLayout";
 import { SectionHeader } from "./SectionHeader";
 import { BrandSettingsPanel } from "./BrandSettingsPanel";
 import { PreRenderAdvicePanel } from "./PreRenderAdvice";
+import { GeminiWatermarkModal } from "./components/render/GeminiWatermarkModal";
 import type { AppTab } from "./appTabs";
 import type {
   ConfigData,
@@ -72,6 +74,8 @@ export function AppStatusTab({
   setRenderFps,
   onCancelRender,
 }: AppStatusTabProps) {
+  const [isWatermarkModalOpen, setIsWatermarkModalOpen] = React.useState(false);
+
   return (
     <DashminProjectTabLayout tab="status" activeProject={activeProject}>
       <div className="lumiera-render-workspace">
@@ -330,8 +334,41 @@ export function AppStatusTab({
                 </button>
               </div>
             </div>
+
+            <div className="glass-panel-glow border border-amber-500/40 lumiera-render-card bg-amber-950/10">
+              <div>
+                <div className="flex flex-wrap justify-between items-start gap-1">
+                  <SectionHeader
+                    title="WATERMARK GEMINI"
+                    helpId="render-remotion-pro"
+                    icon={<Wand2 className="w-4 h-4 text-amber-400" />}
+                    size="sm"
+                    titleClassName="text-[10px]"
+                  />
+                  <span className="bg-amber-500/20 text-amber-300 text-[7px] font-bold px-1.5 py-0.5 rounded uppercase border border-amber-500/30">
+                    Limpeza AI
+                  </span>
+                </div>
+                <p className="text-[10px] text-zinc-400 mt-0.5">
+                  Remover marcas d'água de todos os vídeos B-roll do projeto.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsWatermarkModalOpen(true)}
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-zinc-950 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full shadow-lg shadow-amber-500/20"
+              >
+                <Wand2 className="w-4 h-4" />
+                <span>Remover Watermark Gemini</span>
+              </button>
+            </div>
           </div>
         </div>
+
+        <GeminiWatermarkModal
+          isOpen={isWatermarkModalOpen}
+          onClose={() => setIsWatermarkModalOpen(false)}
+          activeProject={activeProject}
+        />
 
         <BrandSettingsPanel {...(brandPanelProps as any)} />
 

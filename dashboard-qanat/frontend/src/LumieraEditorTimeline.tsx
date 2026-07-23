@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { GripVertical, Lock, Minus, Plus, Scissors } from "lucide-react";
 import {
   framesToSeconds,
@@ -39,7 +39,10 @@ export function LumieraEditorTimeline({
 }) {
   const [pixelsPerSecond, setPixelsPerSecond] = useState(96);
   const [dragPreviewFrame, setDragPreviewFrame] = useState<number | null>(null);
-  const [resizeGesture, setResizeGesture] = useState<ResizeGesture | null>(null);
+  const [resizeGesture, setResizeGesture] = useState<ResizeGesture | null>(
+    null
+  );
+  const draggingClipIdRef = useRef<string | null>(null);
   const duration = Math.max(project.fps * 10, project.durationInFrames);
   const seconds = Math.ceil(duration / project.fps);
   const timelineWidth = Math.max(900, Math.ceil(seconds * pixelsPerSecond));
@@ -49,7 +52,9 @@ export function LumieraEditorTimeline({
     [seconds]
   );
   const visualForClip = (assetId?: string) => {
-    const asset = assetId ? project.assets.find((item) => item.id === assetId) : undefined;
+    const asset = assetId
+      ? project.assets.find((item) => item.id === assetId)
+      : undefined;
     return asset?.waveformSource || asset?.thumbnailSources?.[0] || "";
   };
 
@@ -76,7 +81,10 @@ export function LumieraEditorTimeline({
     const trimsSource = clip.type === "video" || clip.type === "audio";
     if (resizeGesture.edge === "start") {
       const minimumDelta = trimsSource
-        ? Math.max(-resizeGesture.initialSourceStart, -resizeGesture.initialStart)
+        ? Math.max(
+            -resizeGesture.initialSourceStart,
+            -resizeGesture.initialStart
+          )
         : -resizeGesture.initialStart;
       const appliedDelta = Math.max(
         minimumDelta,
@@ -103,9 +111,10 @@ export function LumieraEditorTimeline({
       );
       return;
     }
-    const sourceAvailable = trimsSource && asset?.durationInFrames
-      ? Math.max(1, asset.durationInFrames - resizeGesture.initialSourceStart)
-      : Number.POSITIVE_INFINITY;
+    const sourceAvailable =
+      trimsSource && asset?.durationInFrames
+        ? Math.max(1, asset.durationInFrames - resizeGesture.initialSourceStart)
+        : Number.POSITIVE_INFINITY;
     const durationInFrames = Math.max(
       1,
       Math.min(sourceAvailable, resizeGesture.initialDuration + delta)
@@ -132,7 +141,9 @@ export function LumieraEditorTimeline({
         sourceStartFrame: resizeGesture.sourceStartFrame,
         sourceEndFrame: resizeGesture.sourceEndFrame,
       },
-      resizeGesture.edge === "start" ? "Aparar início do clip" : "Aparar final do clip"
+      resizeGesture.edge === "start"
+        ? "Aparar início do clip"
+        : "Aparar final do clip"
     );
     setResizeGesture(null);
   };
@@ -168,14 +179,15 @@ export function LumieraEditorTimeline({
     }
     const nearestSecond = Math.round(candidate / project.fps) * project.fps;
     candidates.push(nearestSecond);
-    const threshold = Math.max(
-      1,
-      Math.round((6 / timelineWidth) * duration)
+    const threshold = Math.max(1, Math.round((6 / timelineWidth) * duration));
+    const nearest = candidates.reduce(
+      (best, value) =>
+        Math.abs(value - candidate) < Math.abs(best - candidate) ? value : best,
+      candidates[0] ?? candidate
     );
-    const nearest = candidates.reduce((best, value) =>
-      Math.abs(value - candidate) < Math.abs(best - candidate) ? value : best
-    , candidates[0] ?? candidate);
-    return Math.abs(nearest - candidate) <= threshold ? Math.max(0, nearest) : candidate;
+    return Math.abs(nearest - candidate) <= threshold
+      ? Math.max(0, nearest)
+      : candidate;
   };
 
   return (
@@ -184,7 +196,8 @@ export function LumieraEditorTimeline({
         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-indigo-300">
           Timeline multitrilha
           <span className="font-mono font-normal text-zinc-600">
-            {project.fps} fps · {framesToSeconds(duration, project.fps).toFixed(1)}s
+            {project.fps} fps ·{" "}
+            {framesToSeconds(duration, project.fps).toFixed(1)}s
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -193,7 +206,9 @@ export function LumieraEditorTimeline({
           </span>
           <button
             type="button"
-            onClick={() => setPixelsPerSecond((value) => Math.max(48, value - 24))}
+            onClick={() =>
+              setPixelsPerSecond((value) => Math.max(48, value - 24))
+            }
             className="rounded border border-white/10 p-1 hover:bg-white/5"
             title="Diminuir zoom da timeline"
           >
@@ -201,26 +216,32 @@ export function LumieraEditorTimeline({
           </button>
           <button
             type="button"
-            onClick={() => setPixelsPerSecond((value) => Math.min(240, value + 24))}
+            onClick={() =>
+              setPixelsPerSecond((value) => Math.min(240, value + 24))
+            }
             className="rounded border border-white/10 p-1 hover:bg-white/5"
             title="Aumentar zoom da timeline"
           >
             <Plus className="h-3 w-3" />
           </button>
-        <button
-          type="button"
-          disabled={!selectedClipId}
-          onClick={() =>
-            selectedClipId &&
-            onCommand(
-              { type: "SPLIT_CLIP", clipId: selectedClipId, frame: playheadFrame },
-              "Dividir clip no playhead"
-            )
-          }
-          className="flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-[10px] disabled:opacity-30"
-        >
-          <Scissors className="h-3 w-3" /> Dividir
-        </button>
+          <button
+            type="button"
+            disabled={!selectedClipId}
+            onClick={() =>
+              selectedClipId &&
+              onCommand(
+                {
+                  type: "SPLIT_CLIP",
+                  clipId: selectedClipId,
+                  frame: playheadFrame,
+                },
+                "Dividir clip no playhead"
+              )
+            }
+            className="flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-[10px] disabled:opacity-30"
+          >
+            <Scissors className="h-3 w-3" /> Dividir
+          </button>
         </div>
       </div>
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
@@ -269,22 +290,34 @@ export function LumieraEditorTimeline({
               onClick={(event) => onPlayheadChange(frameFromPointer(event))}
               onDragOver={(event) => {
                 event.preventDefault();
-                const clipId = event.dataTransfer.getData("application/x-lumiera-clip");
+                const clipId = draggingClipIdRef.current;
+                const hasClip = Boolean(
+                  clipId ||
+                  event.dataTransfer.types.includes(
+                    "application/x-lumiera-clip"
+                  )
+                );
                 const hasTemplate = event.dataTransfer.types.includes(
                   "application/x-lumiera-template"
                 );
                 if (hasTemplate && track.id === "motion") {
                   event.dataTransfer.dropEffect = "copy";
-                  setDragPreviewFrame(dropFrame(event, track.id, "new-motion-template"));
-                } else if (clipId) {
+                  setDragPreviewFrame(
+                    dropFrame(event, track.id, "new-motion-template")
+                  );
+                } else if (hasClip) {
                   event.dataTransfer.dropEffect = "move";
-                  setDragPreviewFrame(dropFrame(event, track.id, clipId));
+                  setDragPreviewFrame(
+                    dropFrame(event, track.id, clipId || "dragged-clip")
+                  );
                 } else {
                   event.dataTransfer.dropEffect = "none";
                 }
               }}
               onDragLeave={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                if (
+                  !event.currentTarget.contains(event.relatedTarget as Node)
+                ) {
                   setDragPreviewFrame(null);
                 }
               }}
@@ -303,7 +336,10 @@ export function LumieraEditorTimeline({
                   onAddMotionTemplate?.(templateId, startFrame);
                   return;
                 }
-                const clipId = event.dataTransfer.getData("application/x-lumiera-clip");
+                const clipId =
+                  event.dataTransfer.getData("application/x-lumiera-clip") ||
+                  draggingClipIdRef.current;
+                draggingClipIdRef.current = null;
                 if (!clipId) return;
                 const startFrame = dropFrame(event, track.id, clipId);
                 setDragPreviewFrame(null);
@@ -316,118 +352,143 @@ export function LumieraEditorTimeline({
               {track.clips.map((clip) => {
                 const shown = displayClip(clip);
                 return (
-                <button
-                  key={clip.id}
-                  type="button"
-                  draggable={!clip.locked}
-                  onDragStart={(event) => {
-                    if (resizeGesture?.clipId === clip.id) {
-                      event.preventDefault();
-                      return;
-                    }
-                    const bounds = event.currentTarget.getBoundingClientRect();
-                    const ratio = Math.max(
-                      0,
-                      Math.min(1, (event.clientX - bounds.left) / bounds.width)
-                    );
-                    event.dataTransfer.effectAllowed = "move";
-                    event.dataTransfer.setData("application/x-lumiera-clip", clip.id);
-                    event.dataTransfer.setData(
-                      "application/x-lumiera-offset-frames",
-                      String(Math.round(ratio * clip.durationInFrames))
-                    );
-                  }}
-                  onDragEnd={() => setDragPreviewFrame(null)}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onSelectClip(clip.id);
-                  }}
-                  className={`absolute top-1 h-10 overflow-hidden rounded-md border px-2 text-left text-[9px] shadow-sm ${
-                    selectedClipId === clip.id
-                      ? "border-white/70 ring-1 ring-white/40"
-                      : "border-white/10"
-                  }`}
-                  style={{
-                    left: `${(shown.startFrame * 100) / duration}%`,
-                    width: `${Math.max(0.8, (shown.durationInFrames * 100) / duration)}%`,
-                    backgroundColor: `${track.color}bb`,
-                    backgroundImage: visualForClip(clip.assetId)
-                      ? `linear-gradient(${track.color}66,${track.color}99),url("${visualForClip(clip.assetId)}")`
-                      : undefined,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                  title={`${clip.label || clip.templateId || clip.type} · ${framesToSeconds(shown.durationInFrames, project.fps)}s — arraste as bordas para aparar`}
-                >
-                  {!clip.locked ? (
-                    <span
-                      className="absolute inset-y-0 left-0 z-20 w-2 cursor-ew-resize border-l-2 border-white/70 bg-white/10 opacity-40 transition hover:opacity-100"
-                      title="Aparar início"
-                      onPointerDown={(event) => {
+                  <button
+                    key={clip.id}
+                    type="button"
+                    draggable={!clip.locked}
+                    onDragStart={(event) => {
+                      if (resizeGesture?.clipId === clip.id) {
                         event.preventDefault();
-                        event.stopPropagation();
-                        event.currentTarget.setPointerCapture(event.pointerId);
-                        setResizeGesture({
-                          clipId: clip.id,
-                          edge: "start",
-                          originX: event.clientX,
-                          initialStart: clip.startFrame,
-                          initialDuration: clip.durationInFrames,
-                          initialSourceStart: clip.sourceStartFrame || 0,
-                          startFrame: clip.startFrame,
-                          durationInFrames: clip.durationInFrames,
-                          sourceStartFrame: clip.sourceStartFrame || 0,
-                          sourceEndFrame: clip.sourceEndFrame || (clip.sourceStartFrame || 0) + clip.durationInFrames,
-                        });
-                        onSelectClip(clip.id);
-                      }}
-                      onPointerMove={(event) => resizeClip(event, clip)}
-                      onPointerUp={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        finishResize(clip);
-                      }}
-                      onPointerCancel={() => setResizeGesture(null)}
-                    />
-                  ) : null}
-                  <span className="block truncate font-semibold text-white">
-                    {clip.label || clip.templateId || clip.type}
-                  </span>
-                  <span className="font-mono text-white/60">
-                    {framesToSeconds(shown.durationInFrames, project.fps).toFixed(2)}s
-                  </span>
-                  {!clip.locked ? (
-                    <span
-                      className="absolute inset-y-0 right-0 z-20 w-2 cursor-ew-resize border-r-2 border-white/70 bg-white/10 opacity-40 transition hover:opacity-100"
-                      title="Aparar final"
-                      onPointerDown={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        event.currentTarget.setPointerCapture(event.pointerId);
-                        setResizeGesture({
-                          clipId: clip.id,
-                          edge: "end",
-                          originX: event.clientX,
-                          initialStart: clip.startFrame,
-                          initialDuration: clip.durationInFrames,
-                          initialSourceStart: clip.sourceStartFrame || 0,
-                          startFrame: clip.startFrame,
-                          durationInFrames: clip.durationInFrames,
-                          sourceStartFrame: clip.sourceStartFrame || 0,
-                          sourceEndFrame: clip.sourceEndFrame || (clip.sourceStartFrame || 0) + clip.durationInFrames,
-                        });
-                        onSelectClip(clip.id);
-                      }}
-                      onPointerMove={(event) => resizeClip(event, clip)}
-                      onPointerUp={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        finishResize(clip);
-                      }}
-                      onPointerCancel={() => setResizeGesture(null)}
-                    />
-                  ) : null}
-                </button>
+                        return;
+                      }
+                      const bounds =
+                        event.currentTarget.getBoundingClientRect();
+                      const ratio = Math.max(
+                        0,
+                        Math.min(
+                          1,
+                          (event.clientX - bounds.left) / bounds.width
+                        )
+                      );
+                      event.dataTransfer.effectAllowed = "move";
+                      draggingClipIdRef.current = clip.id;
+                      event.dataTransfer.setData(
+                        "application/x-lumiera-clip",
+                        clip.id
+                      );
+                      event.dataTransfer.setData(
+                        "application/x-lumiera-offset-frames",
+                        String(Math.round(ratio * clip.durationInFrames))
+                      );
+                    }}
+                    onDragEnd={() => {
+                      draggingClipIdRef.current = null;
+                      setDragPreviewFrame(null);
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectClip(clip.id);
+                    }}
+                    className={`absolute top-1 h-10 overflow-hidden rounded-md border px-2 text-left text-[9px] shadow-sm ${
+                      selectedClipId === clip.id
+                        ? "border-white/70 ring-1 ring-white/40"
+                        : "border-white/10"
+                    }`}
+                    style={{
+                      left: `${(shown.startFrame * 100) / duration}%`,
+                      width: `${Math.max(0.8, (shown.durationInFrames * 100) / duration)}%`,
+                      backgroundColor: `${track.color}bb`,
+                      backgroundImage: visualForClip(clip.assetId)
+                        ? `linear-gradient(${track.color}66,${track.color}99),url("${visualForClip(clip.assetId)}")`
+                        : undefined,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                    title={`${clip.label || clip.templateId || clip.type} · ${framesToSeconds(shown.durationInFrames, project.fps)}s — arraste as bordas para aparar`}
+                  >
+                    {!clip.locked ? (
+                      <span
+                        className="absolute inset-y-0 left-0 z-20 w-2 cursor-ew-resize border-l-2 border-white/70 bg-white/10 opacity-40 transition hover:opacity-100"
+                        title="Aparar início"
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          event.currentTarget.setPointerCapture(
+                            event.pointerId
+                          );
+                          setResizeGesture({
+                            clipId: clip.id,
+                            edge: "start",
+                            originX: event.clientX,
+                            initialStart: clip.startFrame,
+                            initialDuration: clip.durationInFrames,
+                            initialSourceStart: clip.sourceStartFrame || 0,
+                            startFrame: clip.startFrame,
+                            durationInFrames: clip.durationInFrames,
+                            sourceStartFrame: clip.sourceStartFrame || 0,
+                            sourceEndFrame:
+                              clip.sourceEndFrame ||
+                              (clip.sourceStartFrame || 0) +
+                                clip.durationInFrames,
+                          });
+                          onSelectClip(clip.id);
+                        }}
+                        onPointerMove={(event) => resizeClip(event, clip)}
+                        onPointerUp={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          finishResize(clip);
+                        }}
+                        onPointerCancel={() => setResizeGesture(null)}
+                      />
+                    ) : null}
+                    <span className="block truncate font-semibold text-white">
+                      {clip.label || clip.templateId || clip.type}
+                    </span>
+                    <span className="font-mono text-white/60">
+                      {framesToSeconds(
+                        shown.durationInFrames,
+                        project.fps
+                      ).toFixed(2)}
+                      s
+                    </span>
+                    {!clip.locked ? (
+                      <span
+                        className="absolute inset-y-0 right-0 z-20 w-2 cursor-ew-resize border-r-2 border-white/70 bg-white/10 opacity-40 transition hover:opacity-100"
+                        title="Aparar final"
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          event.currentTarget.setPointerCapture(
+                            event.pointerId
+                          );
+                          setResizeGesture({
+                            clipId: clip.id,
+                            edge: "end",
+                            originX: event.clientX,
+                            initialStart: clip.startFrame,
+                            initialDuration: clip.durationInFrames,
+                            initialSourceStart: clip.sourceStartFrame || 0,
+                            startFrame: clip.startFrame,
+                            durationInFrames: clip.durationInFrames,
+                            sourceStartFrame: clip.sourceStartFrame || 0,
+                            sourceEndFrame:
+                              clip.sourceEndFrame ||
+                              (clip.sourceStartFrame || 0) +
+                                clip.durationInFrames,
+                          });
+                          onSelectClip(clip.id);
+                        }}
+                        onPointerMove={(event) => resizeClip(event, clip)}
+                        onPointerUp={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          finishResize(clip);
+                        }}
+                        onPointerCancel={() => setResizeGesture(null)}
+                      />
+                    ) : null}
+                  </button>
                 );
               })}
               <div

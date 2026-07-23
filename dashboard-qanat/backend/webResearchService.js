@@ -8,6 +8,10 @@ import {
   fetchAgentReachResearchForTopic,
   mergeWebResearch,
 } from "./agentReachService.js";
+import {
+  crawlDiscoveredSources,
+  mergeCrawlWithDiscovery,
+} from "./crawl4aiService.js";
 import { RESEARCH_CONFIG, SAFETY_LIMITS } from "./researchConfig.js";
 import { callGeminiApi, maskApiKey } from "./fetchWithRetry.js";
 import {
@@ -170,7 +174,26 @@ export async function fetchWebResearchForTopic({
     }
   }
 
-  // ── 2. Gemini Grounding ──
+  // ── 2. Crawl4AI page extraction ──
+  if (agentReach.available && agentReach.sources?.length) {
+    try {
+      const crawl = await crawlDiscoveredSources(agentReach.sources);
+      if (crawl.available) {
+        agentReach = mergeCrawlWithDiscovery(agentReach, crawl);
+        logEvent(researchRunId, "crawl4ai_ok", {
+          sourceCount: crawl.sources?.length || 0,
+        });
+      } else {
+        logEvent(researchRunId, "crawl4ai_unavailable", {
+          message: crawl.message || "sem conteudo",
+        });
+      }
+    } catch (err) {
+      logEvent(researchRunId, "crawl4ai_error", { error: err.message });
+    }
+  }
+
+  // ── 3. Gemini Grounding ──
   const keys = [...new Set([apiKey, ...getApiKeys()].filter(Boolean))];
   if (!keys.length) {
     if (agentReach.available) {

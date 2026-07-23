@@ -190,6 +190,7 @@ import { buildAppTabPropBundles } from "./appTabPropBundles";
 import { AppOverlays } from "./AppOverlays";
 import { AppTabPanels } from "./AppTabPanels";
 import { RichTimelineEditor } from "./RichTimelineEditor";
+import { TimelineStudio } from "./TimelineStudio";
 import { normalizeReverseEngineeredStoryboard } from "@lumiera/shared/reverseEngineeringMedia.js";
 
 const MIN_CREATOR_NARRATION_LENGTH = 80;
@@ -11792,6 +11793,11 @@ export default function App() {
     );
   };
 
+  const renderTimelineStudio = () => {
+    if (!config) return null;
+    return <TimelineStudio {...timelineEditorCommonProps()} />;
+  };
+
   const openCreatorTab = () => {
     setActiveTab("creator");
     const session = loadWizardSession();
@@ -12373,47 +12379,44 @@ export default function App() {
 
       <DashToaster />
 
-        {preRenderModalOpen &&
-          videoQuality?.preRenderAdvice &&
-          pendingRender && (
-            <PreRenderAdviceModal
-              advice={videoQuality.preRenderAdvice}
-              renderLabel={RENDER_MODE_LABELS[pendingRender.mode]}
-              onConfirm={confirmPendingRender}
-              onCancel={() => {
-                setPreRenderModalOpen(false);
-                setPendingRender(null);
-              }}
-              onGoToTab={(tab) => {
-                setPreRenderModalOpen(false);
-                setActiveTab(tab);
-              }}
-              onAutoFix={handlePreRenderAutoFix}
-              fixingFixId={preRenderFixingId}
-            />
-          )}
+      {preRenderModalOpen && videoQuality?.preRenderAdvice && pendingRender && (
+        <PreRenderAdviceModal
+          advice={videoQuality.preRenderAdvice}
+          renderLabel={RENDER_MODE_LABELS[pendingRender.mode]}
+          onConfirm={confirmPendingRender}
+          onCancel={() => {
+            setPreRenderModalOpen(false);
+            setPendingRender(null);
+          }}
+          onGoToTab={(tab) => {
+            setPreRenderModalOpen(false);
+            setActiveTab(tab);
+          }}
+          onAutoFix={handlePreRenderAutoFix}
+          fixingFixId={preRenderFixingId}
+        />
+      )}
 
-        {motionPlanEditorOpen && (
-          <MotionPlanEditor
-            storyboard={generatedScriptData || storyboardData}
-            projectName={
-              narrationProjectName || creatorProjectName || activeProject || ""
-            }
-            niche={nicheInput || ""}
-            format={formatSelector === "SHORTS" ? "9:16" : "16:9"}
-            getProjectUrl={getProjectUrl}
-            onClose={() => setMotionPlanEditorOpen(false)}
-            onPlanSaved={(plan, sb) => {
-              if (sb) {
-                applyStoryboardToCreatorState(sb);
-                void saveCreatorStoryboard(sb);
-              } else if (plan?.cenas && generatedScriptData) {
-                const next = {
-                  ...generatedScriptData,
-                  motion_plan: plan,
-                  visual_prompts: (
-                    generatedScriptData.visual_prompts || []
-                  ).map((vp: any, i: number) => {
+      {motionPlanEditorOpen && (
+        <MotionPlanEditor
+          storyboard={generatedScriptData || storyboardData}
+          projectName={
+            narrationProjectName || creatorProjectName || activeProject || ""
+          }
+          niche={nicheInput || ""}
+          format={formatSelector === "SHORTS" ? "9:16" : "16:9"}
+          getProjectUrl={getProjectUrl}
+          onClose={() => setMotionPlanEditorOpen(false)}
+          onPlanSaved={(plan, sb) => {
+            if (sb) {
+              applyStoryboardToCreatorState(sb);
+              void saveCreatorStoryboard(sb);
+            } else if (plan?.cenas && generatedScriptData) {
+              const next = {
+                ...generatedScriptData,
+                motion_plan: plan,
+                visual_prompts: (generatedScriptData.visual_prompts || []).map(
+                  (vp: any, i: number) => {
                     const cena = plan.cenas[i];
                     if (!cena) return vp;
                     return {
@@ -12424,113 +12427,115 @@ export default function App() {
                       transicao_entrada: cena.transicao_entrada,
                       suggested_shot: cena.motion_shot?.templateId,
                     };
-                  }),
-                };
-                applyStoryboardToCreatorState(next);
-                void saveCreatorStoryboard(next);
-              }
-              toast.success("Motion plan aplicado às cenas.");
-            }}
-          />
-        )}
+                  }
+                ),
+              };
+              applyStoryboardToCreatorState(next);
+              void saveCreatorStoryboard(next);
+            }
+            toast.success("Motion plan aplicado às cenas.");
+          }}
+        />
+      )}
 
-        <BackendActivityPanel activeProject={activeProject} />
+      <BackendActivityPanel activeProject={activeProject} />
 
-        <AppShell
+      <AppShell
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        activeProject={activeProject}
+        projects={projects}
+        recentProjects={recentProjects}
+        onSelectProject={handleSelectProject}
+        creatorMode={ideationTab}
+        onSelectCreatorMode={openCreatorMode}
+        formattedHeaderDate={formattedHeaderDate}
+        headerTemperatureLabel={headerTemperatureLabel}
+        youtubeAlertCount={youtubeChannelAlerts?.badgeCount ?? 0}
+        resurrectorAlertCount={resurrectorScheduler.badgeCount}
+        onRefresh={fetchData}
+        projectBar={projectWorkspaceBar}
+      >
+        <AppTabPanels
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
           activeProject={activeProject}
+          config={config}
           projects={projects}
           recentProjects={recentProjects}
-          onSelectProject={handleSelectProject}
-          creatorMode={ideationTab}
-          onSelectCreatorMode={openCreatorMode}
-          formattedHeaderDate={formattedHeaderDate}
-          headerTemperatureLabel={headerTemperatureLabel}
-          youtubeAlertCount={youtubeChannelAlerts?.badgeCount ?? 0}
-          resurrectorAlertCount={resurrectorScheduler.badgeCount}
-          onRefresh={fetchData}
-          projectBar={projectWorkspaceBar}
-        >
-          <AppTabPanels
-            activeTab={activeTab}
-            activeProject={activeProject}
-            config={config}
-            projects={projects}
-            recentProjects={recentProjects}
-            nicheInput={nicheInput}
-            geminiBrowserMode={geminiBrowserMode}
-            aiProvider={aiProvider}
-            youtubeChannelAlerts={youtubeChannelAlerts}
-            resurrectorAlerts={resurrectorScheduler.alerts}
-            getProjectUrl={getProjectUrl}
-            postAi={postAi}
-            setActiveTab={setActiveTab}
-            setSettingsSection={setSettingsSection}
-            handleSelectProject={handleSelectProject}
-            handleDeleteProject={handleDeleteProject}
-            handleApplyYoutubeStudioIdea={handleApplyYoutubeStudioIdea}
-            handleRelinkYoutube={handleRelinkYoutube}
-            handleScheduleFromHeatmap={handleScheduleFromHeatmap}
-            resolveBrowserResponse={resolveBrowserResponse}
-            setYoutubeChannelAlerts={setYoutubeChannelAlerts}
-            setNewProjectFormat={setNewProjectFormat}
-            setNewProjectNiche={setNewProjectNiche}
-            setShowCreateModal={setShowCreateModal}
-            saveConfigPatch={saveConfigPatch}
-            setConfig={setConfig}
-            creatorTabProps={creatorTabProps}
-            aiTabProps={aiTabProps}
-            uploadTabProps={uploadTabProps}
-            editorTabProps={editorTabProps}
-            settingsTabProps={settingsTabProps}
-            statusTabProps={statusTabProps}
-            timelineTabProps={timelineTabProps}
-            musicTabPanelProps={musicTabPanelProps}
-            homeTabProps={homeTabProps}
-            workflowTabProps={workflowTabProps}
-            hasApiKey={hasApiKey}
-            terminalTabProps={terminalTabProps}
-          />
-        </AppShell>
-
-        <AppOverlays
-          chatOpen={chatOpen}
-          setChatOpen={setChatOpen}
-          chatMessages={chatMessages}
-          chatLoading={chatLoading}
-          chatInput={chatInput}
-          setChatInput={setChatInput}
-          handleSendChatMessage={handleSendChatMessage}
-          hasApiKey={hasApiKey}
-          chatEndRef={chatEndRef}
-          aiProviderBadge={aiProviderBadge}
+          nicheInput={nicheInput}
+          geminiBrowserMode={geminiBrowserMode}
+          aiProvider={aiProvider}
+          youtubeChannelAlerts={youtubeChannelAlerts}
+          resurrectorAlerts={resurrectorScheduler.alerts}
+          getProjectUrl={getProjectUrl}
+          postAi={postAi}
           setActiveTab={setActiveTab}
-          showCreateModal={showCreateModal}
-          setShowCreateModal={setShowCreateModal}
-          newProjectName={newProjectName}
-          setNewProjectName={setNewProjectName}
-          newProjectFormat={newProjectFormat}
+          setSettingsSection={setSettingsSection}
+          handleSelectProject={handleSelectProject}
+          handleDeleteProject={handleDeleteProject}
+          handleApplyYoutubeStudioIdea={handleApplyYoutubeStudioIdea}
+          handleRelinkYoutube={handleRelinkYoutube}
+          handleScheduleFromHeatmap={handleScheduleFromHeatmap}
+          resolveBrowserResponse={resolveBrowserResponse}
+          setYoutubeChannelAlerts={setYoutubeChannelAlerts}
           setNewProjectFormat={setNewProjectFormat}
-          newProjectNiche={newProjectNiche}
           setNewProjectNiche={setNewProjectNiche}
-          handleCreateProject={handleCreateProject}
-          pendingMusicDelete={pendingMusicDelete}
-          setPendingMusicDelete={setPendingMusicDelete}
-          deletingMusic={deletingMusic}
-          handleConfirmDeleteMusic={handleConfirmDeleteMusic}
-          musicFiles={musicFiles}
-          getFormatBytes={getFormatBytes}
-          pendingOutputDelete={pendingOutputDelete}
-          setPendingOutputDelete={setPendingOutputDelete}
-          deletingOutput={deletingOutput}
-          handleDeleteOutputVideo={handleDeleteOutputVideo}
-          previewVideoUrl={previewVideoUrl}
-          setPreviewVideoUrl={setPreviewVideoUrl}
-          renderProgress={renderProgress}
-          setRenderProgress={setRenderProgress}
-          onCancelRender={handleCancelRender}
+          setShowCreateModal={setShowCreateModal}
+          renderTimelineStudio={renderTimelineStudio}
+          saveConfigPatch={saveConfigPatch}
+          setConfig={setConfig}
+          creatorTabProps={creatorTabProps}
+          aiTabProps={aiTabProps}
+          uploadTabProps={uploadTabProps}
+          editorTabProps={editorTabProps}
+          settingsTabProps={settingsTabProps}
+          statusTabProps={statusTabProps}
+          timelineTabProps={timelineTabProps}
+          musicTabPanelProps={musicTabPanelProps}
+          homeTabProps={homeTabProps}
+          workflowTabProps={workflowTabProps}
+          hasApiKey={hasApiKey}
+          terminalTabProps={terminalTabProps}
         />
+      </AppShell>
+
+      <AppOverlays
+        chatOpen={chatOpen}
+        setChatOpen={setChatOpen}
+        chatMessages={chatMessages}
+        chatLoading={chatLoading}
+        chatInput={chatInput}
+        setChatInput={setChatInput}
+        handleSendChatMessage={handleSendChatMessage}
+        hasApiKey={hasApiKey}
+        chatEndRef={chatEndRef}
+        aiProviderBadge={aiProviderBadge}
+        setActiveTab={setActiveTab}
+        showCreateModal={showCreateModal}
+        setShowCreateModal={setShowCreateModal}
+        newProjectName={newProjectName}
+        setNewProjectName={setNewProjectName}
+        newProjectFormat={newProjectFormat}
+        setNewProjectFormat={setNewProjectFormat}
+        newProjectNiche={newProjectNiche}
+        setNewProjectNiche={setNewProjectNiche}
+        handleCreateProject={handleCreateProject}
+        pendingMusicDelete={pendingMusicDelete}
+        setPendingMusicDelete={setPendingMusicDelete}
+        deletingMusic={deletingMusic}
+        handleConfirmDeleteMusic={handleConfirmDeleteMusic}
+        musicFiles={musicFiles}
+        getFormatBytes={getFormatBytes}
+        pendingOutputDelete={pendingOutputDelete}
+        setPendingOutputDelete={setPendingOutputDelete}
+        deletingOutput={deletingOutput}
+        handleDeleteOutputVideo={handleDeleteOutputVideo}
+        previewVideoUrl={previewVideoUrl}
+        setPreviewVideoUrl={setPreviewVideoUrl}
+        renderProgress={renderProgress}
+        setRenderProgress={setRenderProgress}
+        onCancelRender={handleCancelRender}
+      />
     </>
   );
 }

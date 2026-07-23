@@ -3,7 +3,13 @@
  * Video editor page inspired by reactvideoeditor.com
  * Layout: left library | center preview | right properties | bottom timeline
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import toast from "react-hot-toast";
 import {
   Film,
@@ -70,7 +76,10 @@ type TemplateItem = {
   default_props?: Record<string, unknown> | null;
 };
 
-type TemplatePropSchema = Record<string, "string" | "number" | "array" | "object" | "boolean">;
+type TemplatePropSchema = Record<
+  string,
+  "string" | "number" | "array" | "object" | "boolean"
+>;
 
 const TEMPLATE_EDITOR_DEFAULTS: Record<string, Record<string, unknown>> = {
   "type-entrance-moves": { title: "GRAVITY" },
@@ -105,14 +114,20 @@ const PROP_LABELS: Record<string, string> = {
 
 function draftValue(value: unknown) {
   if (value === null || value === undefined) return "";
-  return typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
+  return typeof value === "object"
+    ? JSON.stringify(value, null, 2)
+    : String(value);
 }
 
 function parseDraftValue(value: string, type?: string) {
   if (type === "number") return Number(value) || 0;
   if (type === "boolean") return value === "true";
   if (type === "array" || type === "object") {
-    try { return JSON.parse(value); } catch { return type === "array" ? [] : {}; }
+    try {
+      return JSON.parse(value);
+    } catch {
+      return type === "array" ? [] : {};
+    }
   }
   return value;
 }
@@ -225,6 +240,11 @@ export function LumieraEditor({
   projectNiche: string;
   projectConfig?: ConfigData | null;
 }) {
+  const projectFormat: "16:9" | "9:16" =
+    projectConfig?.aspect_ratio === "9:16" ||
+    String(projectConfig?.video_format || "").toUpperCase() === "SHORTS"
+      ? "9:16"
+      : "16:9";
   const [templates, setTemplates] = useState<TemplateItem[]>([]);
   const [niches, setNiches] = useState<NicheItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
@@ -251,15 +271,19 @@ export function LumieraEditor({
     prefix: "",
     suffix: "",
   });
-  const [templatePropSchema, setTemplatePropSchema] = useState<TemplatePropSchema>({});
+  const [templatePropSchema, setTemplatePropSchema] =
+    useState<TemplatePropSchema>({});
   const [previewMotionOpacity, setPreviewMotionOpacity] = useState(1);
-  const [motionTextDraft, setMotionTextDraft] = useState({ primary: "", secondary: "" });
+  const [motionTextDraft, setMotionTextDraft] = useState({
+    primary: "",
+    secondary: "",
+  });
   const [dragTemplateId, setDragTemplateId] = useState<string | null>(null);
   const [dragSceneId, setDragSceneId] = useState<string | null>(null);
   const [dropSceneId, setDropSceneId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<LumieraEditorTool>("motion");
   const [editorProject, setEditorProject] = useState<LumieraEditorProject>(() =>
-    createEmptyLumieraProject("16:9")
+    createEmptyLumieraProject(projectFormat)
   );
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [playheadFrame, setPlayheadFrame] = useState(0);
@@ -393,7 +417,10 @@ export function LumieraEditor({
     const dynamicProps = Object.fromEntries(
       Object.entries(propDraft)
         .filter(([, value]) => value !== "")
-        .map(([key, value]) => [key, parseDraftValue(value, templatePropSchema[key])])
+        .map(([key, value]) => [
+          key,
+          parseDraftValue(value, templatePropSchema[key]),
+        ])
     );
     return {
       ...defaults,
@@ -419,7 +446,13 @@ export function LumieraEditor({
       opacity: previewMotionOpacity,
       forceTransparent: true,
     };
-  }, [selectedScene, propDraft, previewTemplate, previewMotionOpacity, templatePropSchema]);
+  }, [
+    selectedScene,
+    propDraft,
+    previewTemplate,
+    previewMotionOpacity,
+    templatePropSchema,
+  ]);
 
   useEffect(() => {
     if (!selectedTemplate?.template_id) {
@@ -427,13 +460,22 @@ export function LumieraEditor({
       return;
     }
     let cancelled = false;
-    fetch(`/api/motion/props-schema/${encodeURIComponent(selectedTemplate.template_id)}`)
+    fetch(
+      `/api/motion/props-schema/${encodeURIComponent(selectedTemplate.template_id)}`
+    )
       .then((response) => response.json())
       .then((data) => {
-        if (!cancelled) setTemplatePropSchema(data?.schema && typeof data.schema === "object" ? data.schema : {});
+        if (!cancelled)
+          setTemplatePropSchema(
+            data?.schema && typeof data.schema === "object" ? data.schema : {}
+          );
       })
-      .catch(() => { if (!cancelled) setTemplatePropSchema({}); });
-    return () => { cancelled = true; };
+      .catch(() => {
+        if (!cancelled) setTemplatePropSchema({});
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedTemplate?.template_id]);
 
   const selectedTemplateFields = useMemo(() => {
@@ -442,12 +484,31 @@ export function LumieraEditor({
       ...(TEMPLATE_EDITOR_DEFAULTS[selectedTemplate.template_id] || {}),
       ...(selectedTemplate.default_props || {}),
     };
-    const keys = new Set([...Object.keys(templatePropSchema), ...Object.keys(defaults)]);
+    const keys = new Set([
+      ...Object.keys(templatePropSchema),
+      ...Object.keys(defaults),
+    ]);
     if (selectedTemplate.category === "texto" || !keys.size) keys.add("title");
     if (selectedTemplate.category === "texto") keys.add("subtitle");
     return [...keys]
-      .filter((key) => !["palette", "positionX", "positionY", "scale", "opacity", "forceTransparent"].includes(key))
-      .map((key) => [key, PROP_LABELS[key] || key.replace(/([A-Z])/g, " $1").trim()] as [string, string]);
+      .filter(
+        (key) =>
+          ![
+            "palette",
+            "positionX",
+            "positionY",
+            "scale",
+            "opacity",
+            "forceTransparent",
+          ].includes(key)
+      )
+      .map(
+        (key) =>
+          [key, PROP_LABELS[key] || key.replace(/([A-Z])/g, " $1").trim()] as [
+            string,
+            string,
+          ]
+      );
   }, [selectedTemplate, templatePropSchema]);
 
   const selectedClip = useMemo(
@@ -474,37 +535,58 @@ export function LumieraEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClipId]);
   const selectedMotionPropEntries = useMemo(() => {
-    if (selectedClip?.type !== "motion-template") return [] as Array<[string, unknown]>;
-    return Object.entries(selectedClip.props || {}).filter(([key]) =>
-      !["palette", "positionX", "positionY", "scale", "opacity", "forceTransparent", "sceneRef", "motion_shot", "title", "text", "subtitle", "label"].includes(key)
+    if (selectedClip?.type !== "motion-template")
+      return [] as Array<[string, unknown]>;
+    return Object.entries(selectedClip.props || {}).filter(
+      ([key]) =>
+        ![
+          "palette",
+          "positionX",
+          "positionY",
+          "scale",
+          "opacity",
+          "forceTransparent",
+          "sceneRef",
+          "motion_shot",
+          "title",
+          "text",
+          "subtitle",
+          "label",
+        ].includes(key)
     );
   }, [selectedClip]);
 
   useEffect(() => {
     if (!activeProject) {
-      setEditorProject(createEmptyLumieraProject("16:9"));
+      setEditorProject(createEmptyLumieraProject(projectFormat));
       return;
     }
     let cancelled = false;
     const load = async () => {
       try {
-        const response = await fetch(`/api/lumiera-editor/project?project=${encodeURIComponent(activeProject)}`);
+        const response = await fetch(
+          `/api/lumiera-editor/project?project=${encodeURIComponent(activeProject)}`
+        );
         const data = repairMojibakeDeep(await response.json());
         if (!cancelled && data?.project?.tracks) {
           setEditorProject(data.project as LumieraEditorProject);
           return;
         }
-      } catch { /* local fallback below */ }
+      } catch {
+        /* local fallback below */
+      }
       if (cancelled) return;
       try {
-        const saved = localStorage.getItem(`lumiera-live-editor:${activeProject}`);
+        const saved = localStorage.getItem(
+          `lumiera-live-editor:${activeProject}`
+        );
         setEditorProject(
           saved
             ? repairMojibakeDeep(JSON.parse(saved) as LumieraEditorProject)
-            : createEmptyLumieraProject("16:9")
+            : createEmptyLumieraProject(projectFormat)
         );
       } catch {
-        setEditorProject(createEmptyLumieraProject("16:9"));
+        setEditorProject(createEmptyLumieraProject(projectFormat));
       }
     };
     void load();
@@ -512,8 +594,10 @@ export function LumieraEditor({
     redoCommandsRef.current = [];
     setSelectedClipId(null);
     setPlayheadFrame(0);
-    return () => { cancelled = true; };
-  }, [activeProject]);
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProject, projectFormat]);
 
   useEffect(() => {
     if (!activeProject) return;
@@ -522,11 +606,14 @@ export function LumieraEditor({
       JSON.stringify(editorProject)
     );
     const timer = window.setTimeout(() => {
-      void fetch(`/api/lumiera-editor/project?project=${encodeURIComponent(activeProject)}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ project: editorProject }),
-      }).catch(() => undefined);
+      void fetch(
+        `/api/lumiera-editor/project?project=${encodeURIComponent(activeProject)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ project: editorProject }),
+        }
+      ).catch(() => undefined);
     }, 450);
     return () => window.clearTimeout(timer);
   }, [activeProject, editorProject]);
@@ -539,7 +626,10 @@ export function LumieraEditor({
         const sceneStart = cursorSeconds;
         cursorSeconds += Math.max(0.1, scene.duration_seconds || 5);
         if (!scene.template_id) return [];
-        const duration = Math.min(8, Math.max(0.5, scene.duration_seconds || 4));
+        const duration = Math.min(
+          8,
+          Math.max(0.5, scene.duration_seconds || 4)
+        );
         const clipId = `motion-scene-${scene.id}`;
         const existingClip = current.tracks
           .find((track) => track.id === "motion")
@@ -692,7 +782,9 @@ export function LumieraEditor({
           plan.summary || `Plano IA (${plan.operations.length} operacoes)`,
           "ai"
         );
-        toast.success(`Plano da IA validado e aplicado (${plan.operations.length} operacoes)`);
+        toast.success(
+          `Plano da IA validado e aplicado (${plan.operations.length} operacoes)`
+        );
       } catch (error: any) {
         toast.error(`Plano da IA invalido: ${error?.message || error}`);
       }
@@ -756,12 +848,17 @@ export function LumieraEditor({
 
   const applyDetectedVideoFormat = useCallback(
     (assetId: string, width: number, height: number) => {
-      if (!width || !height || detectedVideoFormatsRef.current.has(assetId)) return;
+      if (!width || !height || detectedVideoFormatsRef.current.has(assetId))
+        return;
       detectedVideoFormatsRef.current.add(assetId);
       const vertical = height > width;
       const nextWidth = vertical ? 1080 : 1920;
       const nextHeight = vertical ? 1920 : 1080;
-      if (editorProject.width === nextWidth && editorProject.height === nextHeight) return;
+      if (
+        editorProject.width === nextWidth &&
+        editorProject.height === nextHeight
+      )
+        return;
       executeEditorCommand(
         { type: "SET_FORMAT", width: nextWidth, height: nextHeight },
         `Detectar formato ${vertical ? "9:16" : "16:9"} do video`,
@@ -789,11 +886,12 @@ export function LumieraEditor({
           }
         );
         const data = await response.json();
-        if (!response.ok || !data?.asset) throw new Error(data?.error || "Falha na ingestao");
+        if (!response.ok || !data?.asset)
+          throw new Error(data?.error || "Falha na ingestao");
         const asset = data.asset;
-      const clipId = `${kind}-${Date.now()}`;
-      const trackId =
-        kind === "audio" ? "audio" : kind === "image" ? "images" : kind;
+        const clipId = `${kind}-${Date.now()}`;
+        const trackId =
+          kind === "audio" ? "audio" : kind === "image" ? "images" : kind;
         const commands: LumieraEditCommand[] = [
           { type: "ADD_ASSET", asset },
           {
@@ -803,7 +901,12 @@ export function LumieraEditor({
               trackId,
               type: kind,
               startFrame: playheadFrame,
-              durationInFrames: asset.durationInFrames || secondsToFrames(kind === "image" || kind === "lottie" ? 4 : 8, editorProject.fps),
+              durationInFrames:
+                asset.durationInFrames ||
+                secondsToFrames(
+                  kind === "image" || kind === "lottie" ? 4 : 8,
+                  editorProject.fps
+                ),
               assetId: asset.id,
               label: file.name,
               ...(kind === "lottie"
@@ -814,17 +917,28 @@ export function LumieraEditor({
         ];
         if (kind === "video" && asset.width && asset.height) {
           const vertical = asset.height > asset.width;
-          commands.push({ type: "SET_FORMAT", width: vertical ? 1080 : 1920, height: vertical ? 1920 : 1080 });
+          commands.push({
+            type: "SET_FORMAT",
+            width: vertical ? 1080 : 1920,
+            height: vertical ? 1920 : 1080,
+          });
           detectedVideoFormatsRef.current.add(asset.id);
         }
-        executeEditorCommand({
-          type: "BATCH",
-          commands,
-        }, `Importar ${file.name}`);
-      setSelectedClipId(clipId);
-        toast.success(`Midia pronta: original preservado e proxy criado`, { id: toastId });
+        executeEditorCommand(
+          {
+            type: "BATCH",
+            commands,
+          },
+          `Importar ${file.name}`
+        );
+        setSelectedClipId(clipId);
+        toast.success(`Midia pronta: original preservado e proxy criado`, {
+          id: toastId,
+        });
       } catch (error: any) {
-        toast.error(error?.message || "Falha ao importar midia", { id: toastId });
+        toast.error(error?.message || "Falha ao importar midia", {
+          id: toastId,
+        });
       }
     },
     [activeProject, editorProject.fps, executeEditorCommand, playheadFrame]
@@ -838,7 +952,9 @@ export function LumieraEditor({
       const remote = /^(https?:|\/api\/)/i.test(item.downloadUrl || "");
       const source = remote
         ? item.downloadUrl
-        : `/api/projects-media/${encodeURIComponent(activeProject)}/ASSETS/${String(item.downloadUrl || "")
+        : `/api/projects-media/${encodeURIComponent(activeProject)}/ASSETS/${String(
+            item.downloadUrl || ""
+          )
             .split("/")
             .map((part) => encodeURIComponent(part))
             .join("/")}`;
@@ -853,7 +969,9 @@ export function LumieraEditor({
             proxySource: source,
             width: item.width,
             height: item.height,
-            durationInFrames: item.duration ? secondsToFrames(item.duration, editorProject.fps) : undefined,
+            durationInFrames: item.duration
+              ? secondsToFrames(item.duration, editorProject.fps)
+              : undefined,
             status: "ready",
           },
         },
@@ -864,19 +982,34 @@ export function LumieraEditor({
             trackId: item.type === "video" ? "video" : "images",
             type: item.type,
             startFrame: playheadFrame,
-            durationInFrames: item.duration ? secondsToFrames(item.duration, editorProject.fps) : secondsToFrames(item.type === "video" ? 6 : 4, editorProject.fps),
+            durationInFrames: item.duration
+              ? secondsToFrames(item.duration, editorProject.fps)
+              : secondsToFrames(
+                  item.type === "video" ? 6 : 4,
+                  editorProject.fps
+                ),
             assetId: id,
             label: item.photographer || `${item.provider} ${item.type}`,
-            props: { stockProvider: item.provider, stockSourceId: item.sourceId },
+            props: {
+              stockProvider: item.provider,
+              stockSourceId: item.sourceId,
+            },
           },
         },
       ];
       if (item.type === "video" && item.width && item.height) {
         const vertical = item.height > item.width;
-        commands.push({ type: "SET_FORMAT", width: vertical ? 1080 : 1920, height: vertical ? 1920 : 1080 });
+        commands.push({
+          type: "SET_FORMAT",
+          width: vertical ? 1080 : 1920,
+          height: vertical ? 1920 : 1080,
+        });
         detectedVideoFormatsRef.current.add(id);
       }
-      executeEditorCommand({ type: "BATCH", commands }, `Adicionar stock ${item.provider}`);
+      executeEditorCommand(
+        { type: "BATCH", commands },
+        `Adicionar stock ${item.provider}`
+      );
       setSelectedClipId(clipId);
       toast.success(`Asset ${item.provider} inserido no playhead`);
     },
@@ -899,14 +1032,19 @@ export function LumieraEditor({
       value: String((d as any).value ?? (d as any).valor ?? ""),
       unit: String((d as any).unit ?? (d as any).unidade ?? ""),
       label: String((d as any).label ?? (d as any).title ?? ""),
-      title: String((d as any).title ?? (d as any).text ?? (d as any).label ?? ""),
+      title: String(
+        (d as any).title ?? (d as any).text ?? (d as any).label ?? ""
+      ),
       subtitle: String((d as any).subtitle ?? ""),
       prefix: String((d as any).prefix ?? ""),
       suffix: String((d as any).suffix ?? ""),
     });
     const configuredOpacity = Number((d as any).opacity ?? 1);
     setPreviewMotionOpacity(
-      Math.max(0, Math.min(1, Number.isFinite(configuredOpacity) ? configuredOpacity : 1))
+      Math.max(
+        0,
+        Math.min(1, Number.isFinite(configuredOpacity) ? configuredOpacity : 1)
+      )
     );
   }, []);
 
@@ -981,7 +1119,9 @@ export function LumieraEditor({
 
   const addMotionTemplateToTimeline = useCallback(
     (templateId: string, startFrame: number) => {
-      const template = templates.find((item) => item.template_id === templateId);
+      const template = templates.find(
+        (item) => item.template_id === templateId
+      );
       if (!template) {
         toast.error("Motion Template não encontrado");
         return;
@@ -1064,9 +1204,14 @@ export function LumieraEditor({
     if (!activeProject) return toast.error("Nenhum projeto ativo");
     if (!storyboard) return toast.error("Storyboard não carregado");
 
-    const motionTrack = editorProject.tracks.find((track) => track.id === "motion");
+    const motionTrack = editorProject.tracks.find(
+      (track) => track.id === "motion"
+    );
     let sceneCursorSeconds = 0;
-    const motionTimingByScene = new Map<string, { start_seconds: number; duration_seconds: number }>();
+    const motionTimingByScene = new Map<
+      string,
+      { start_seconds: number; duration_seconds: number }
+    >();
     const scenesForSave = scenes.map((scene) => {
       const sceneStartSeconds = sceneCursorSeconds;
       sceneCursorSeconds += Math.max(0.1, scene.duration_seconds || 5);
@@ -1079,7 +1224,8 @@ export function LumieraEditor({
       const timing = {
         start_seconds: Math.max(
           0,
-          framesToSeconds(clip.startFrame, editorProject.fps) - sceneStartSeconds
+          framesToSeconds(clip.startFrame, editorProject.fps) -
+            sceneStartSeconds
         ),
         duration_seconds: Math.max(
           0.1,
@@ -1244,7 +1390,14 @@ export function LumieraEditor({
     } finally {
       setSaving(false);
     }
-  }, [activeProject, storyboard, scenes, nichePalette, activeNiche, editorProject]);
+  }, [
+    activeProject,
+    storyboard,
+    scenes,
+    nichePalette,
+    activeNiche,
+    editorProject,
+  ]);
 
   const applyPaletteToAll = useCallback(() => {
     setScenes((prev) =>
@@ -1259,24 +1412,30 @@ export function LumieraEditor({
         patch: { props: { ...(clip.props || {}), palette: nichePalette } },
       }));
     if (commands.length) {
-      executeEditorCommand({ type: "BATCH", commands }, `Aplicar paleta ${activeNiche} aos Motions`);
+      executeEditorCommand(
+        { type: "BATCH", commands },
+        `Aplicar paleta ${activeNiche} aos Motions`
+      );
     }
     toast.success(
       `Paleta ${activeNiche} aplicada a todas as cenas com template`
     );
   }, [nichePalette, activeNiche, editorProject.tracks, executeEditorCommand]);
 
-  const selectNichePalette = useCallback((nicheName: string) => {
-    setActiveNiche(nicheName);
-    const selectedPalette = niches.find(
-      (item) => item.niche.toLowerCase() === nicheName.toLowerCase()
-    )?.palette;
-    if (!selectedPalette || selectedClip?.type !== "motion-template") return;
-    updateSelectedMotionProps(
-      { ...(selectedClip.props || {}), palette: selectedPalette },
-      `Aplicar paleta ${nicheName} ao Motion selecionado`
-    );
-  }, [niches, selectedClip, updateSelectedMotionProps]);
+  const selectNichePalette = useCallback(
+    (nicheName: string) => {
+      setActiveNiche(nicheName);
+      const selectedPalette = niches.find(
+        (item) => item.niche.toLowerCase() === nicheName.toLowerCase()
+      )?.palette;
+      if (!selectedPalette || selectedClip?.type !== "motion-template") return;
+      updateSelectedMotionProps(
+        { ...(selectedClip.props || {}), palette: selectedPalette },
+        `Aplicar paleta ${nicheName} ao Motion selecionado`
+      );
+    },
+    [niches, selectedClip, updateSelectedMotionProps]
+  );
 
   if (loading) {
     return (
@@ -1291,682 +1450,730 @@ export function LumieraEditor({
 
   return (
     <>
-    <div className="flex w-full flex-col min-h-[calc(100vh-100px)] gap-0 overflow-visible rounded-2xl border border-white/5 bg-[#0a0a12]">
-      {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-white/5 bg-[#0d0d18]">
-        <Film className="w-5 h-5 text-indigo-400" />
-        <h2 className="text-sm font-bold text-white tracking-wide">
-          Editor do Lumiera
-        </h2>
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-semibold">
-          {activeProject || "sem projeto"}
-        </span>
-        <div className="flex-1" />
-        <select
-          value={activeNiche}
-          onChange={(e) => selectNichePalette(e.target.value)}
-          className="text-xs bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-        >
-          {niches.length === 0 && (
-            <option value={projectNiche}>{projectNiche}</option>
-          )}
-          {niches.map((n) => (
-            <option key={n.niche} value={n.niche}>
-              {n.label}
-            </option>
-          ))}
-        </select>
-        <div className="flex items-center gap-1">
-          <div
-            className="w-4 h-4 rounded-full border border-white/20"
-            style={{ background: nichePalette.primary }}
-          />
-          <div
-            className="w-4 h-4 rounded-full border border-white/20"
-            style={{ background: nichePalette.accent }}
-          />
-        </div>
-        <button
-          type="button"
-          onClick={applyPaletteToAll}
-          className="text-[10px] px-2 py-1.5 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10"
-          title="Aplicar paleta do nicho a todas as cenas"
-        >
-          Aplicar paleta
-        </button>
-        <button
-          type="button"
-          onClick={() => void reloadStoryboard()}
-          className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 text-xs"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={undoEditorCommand}
-          className="rounded-lg bg-white/5 p-1.5 text-gray-400 hover:bg-white/10 hover:text-white"
-          title="Desfazer edição da timeline"
-        >
-          <Undo2 className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={redoEditorCommand}
-          className="rounded-lg bg-white/5 p-1.5 text-gray-400 hover:bg-white/10 hover:text-white"
-          title="Refazer edição da timeline"
-        >
-          <Redo2 className="h-3.5 w-3.5" />
-        </button>
-        <label
-          className="flex cursor-pointer items-center gap-1 rounded-lg bg-white/5 px-2 py-1.5 text-[10px] text-indigo-200 hover:bg-white/10"
-          title="Valida todas as operacoes antes de alterar a timeline"
-        >
-          Plano IA
-          <input
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) void importAIPlan(file);
-              event.target.value = "";
-            }}
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => void saveMotionPlan()}
-          disabled={saving || !activeProject}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition-colors"
-        >
-          <Save className="w-3.5 h-3.5" />
-          {saving ? "Salvando…" : "Salvar projeto + Motion Plan"}
-        </button>
-      </div>
-
-      {/* Main content: 3 panels */}
-      <div className="flex h-[clamp(560px,72vh,900px)] min-h-0 flex-none overflow-hidden">
-        <LumieraEditorToolRail
-          activeTool={activeTool}
-          onChange={setActiveTool}
-        />
-        {/* LEFT: Template Library */}
-        <div className="w-72 border-r border-white/5 flex flex-col overflow-hidden bg-[#0c0c16]">
-          {activeTool === "motion" ? (
-            <>
-          <div className="p-3 border-b border-white/5">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar template..."
-                className="w-full pl-8 pr-3 py-2 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-              />
-            </div>
-          </div>
-          <div className="px-3 py-2 flex flex-wrap gap-1 border-b border-white/5">
-            <button
-              type="button"
-              onClick={() => setSelectedCategory(null)}
-              className={`px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
-                !selectedCategory
-                  ? "bg-indigo-600 text-white"
-                  : "bg-white/5 text-gray-400 hover:bg-white/10"
-              }`}
-            >
-              Todos
-            </button>
-            {categories.map((c) => (
-              <button
-                type="button"
-                key={c.category}
-                onClick={() =>
-                  setSelectedCategory(
-                    c.category === selectedCategory ? null : c.category
-                  )
-                }
-                className={`px-2 py-1 rounded text-[10px] font-semibold flex items-center gap-1 transition-colors ${
-                  selectedCategory === c.category
-                    ? "bg-indigo-600 text-white"
-                    : "bg-white/5 text-gray-400 hover:bg-white/10"
-                }`}
-              >
-                {CATEGORY_ICONS[c.category]}
-                {c.label.split(" ")[0]}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            <p className="text-[9px] text-gray-600 px-1 pb-1">
-              Clique para pré-visualizar · arraste para a trilha Motion
-            </p>
-            {filteredTemplates.map((t) => (
-              <button
-                type="button"
-                key={t.template_id}
-                draggable
-                onDragStart={(e) => {
-                  setDragTemplateId(t.template_id);
-                  e.dataTransfer.setData(
-                    "application/x-lumiera-template",
-                    t.template_id
-                  );
-                  e.dataTransfer.effectAllowed = "copy";
-                }}
-                onDragEnd={() => {
-                  setDragTemplateId(null);
-                  setDropSceneId(null);
-                }}
-                onClick={() => {
-                  setSelectedClipId(null);
-                  setSelectedTemplate(t);
-                  setPreviewTemplate(t);
-                  applyDefaultPropsToDraft(t);
-                }}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all cursor-grab active:cursor-grabbing ${
-                  selectedTemplate?.template_id === t.template_id
-                    ? "bg-indigo-600/20 border border-indigo-400/40 text-white"
-                    : dragTemplateId === t.template_id
-                      ? "bg-indigo-500/10 border border-indigo-400/30 text-white"
-                      : "bg-white/[0.02] border border-transparent text-gray-400 hover:bg-white/5 hover:text-gray-200"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <GripVertical className="w-3 h-3 opacity-40 shrink-0" />
-                  {CATEGORY_ICONS[t.category]}
-                  <span className="font-medium truncate">{t.name}</span>
-                </div>
-                <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500 pl-5">
-                  <span className="px-1.5 py-0.5 rounded bg-white/5">
-                    {t.category}
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded bg-white/5">
-                    {t.energy}
-                  </span>
-                  <span>{t.duration_seconds}s</span>
-                </div>
-              </button>
-            ))}
-            {filteredTemplates.length === 0 && (
-              <p className="text-xs text-gray-500 text-center py-8">
-                Nenhum template encontrado
-              </p>
+      <div className="flex w-full flex-col min-h-[calc(100vh-100px)] gap-0 overflow-visible rounded-2xl border border-white/5 bg-[#0a0a12]">
+        {/* Top bar */}
+        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-white/5 bg-[#0d0d18]">
+          <Film className="w-5 h-5 text-indigo-400" />
+          <h2 className="text-sm font-bold text-white tracking-wide">
+            Editor do Lumiera
+          </h2>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-semibold">
+            {activeProject || "sem projeto"}
+          </span>
+          <div className="flex-1" />
+          <select
+            value={activeNiche}
+            onChange={(e) => selectNichePalette(e.target.value)}
+            className="text-xs bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          >
+            {niches.length === 0 && (
+              <option value={projectNiche}>{projectNiche}</option>
             )}
+            {niches.map((n) => (
+              <option key={n.niche} value={n.niche}>
+                {n.label}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1">
+            <div
+              className="w-4 h-4 rounded-full border border-white/20"
+              style={{ background: nichePalette.primary }}
+            />
+            <div
+              className="w-4 h-4 rounded-full border border-white/20"
+              style={{ background: nichePalette.accent }}
+            />
           </div>
-            </>
-          ) : (
-            <div className="flex h-full flex-col overflow-y-auto p-3">
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-300">
-                {activeTool}
-              </p>
-              <p className="mb-4 text-[10px] leading-relaxed text-zinc-600">
-                O item será inserido no playhead atual e continuará editável na timeline.
-              </p>
-
-              {(activeTool === "media" ||
-                activeTool === "audio" ||
-                activeTool === "images" ||
-                activeTool === "lottie") && (
-                <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-indigo-400/30 bg-indigo-500/5 px-3 py-6 text-center text-xs text-indigo-200 hover:bg-indigo-500/10">
-                  <Upload className="h-5 w-5" />
-                  Importar {activeTool}
-                  <span className="text-[9px] text-zinc-600">
-                    Original preservado · proxy usado no preview
-                  </span>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept={
-                      activeTool === "media"
-                        ? "video/*"
-                        : activeTool === "audio"
-                          ? "audio/*"
-                          : activeTool === "images"
-                            ? "image/*"
-                            : ".json,application/json"
-                    }
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (!file) return;
-                      void addUploadedAsset(
-                        file,
-                        activeTool === "media"
-                          ? "video"
-                          : activeTool === "audio"
-                            ? "audio"
-                            : activeTool === "images"
-                              ? "image"
-                              : "lottie"
-                      );
-                      event.target.value = "";
-                    }}
-                  />
-                </label>
-              )}
-
-              {(activeTool === "media" || activeTool === "images") && (
-                <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.025] p-3">
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-cyan-300">
-                    Stock · Pexels · Pixabay · Bing
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      value={stockQuery}
-                      onChange={(event) => setStockQuery(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          setStockModal({ open: true, mediaType: activeTool === "media" ? "video" : "image" });
-                        }
-                      }}
-                      className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/30 px-2 py-2 text-[10px] text-white outline-none focus:border-cyan-400"
-                      placeholder="Buscar assets..."
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setStockModal({ open: true, mediaType: activeTool === "media" ? "video" : "image" })}
-                      className="rounded-lg bg-cyan-600 px-3 text-[10px] font-bold text-white hover:bg-cyan-500"
-                    >
-                      Buscar
-                    </button>
-                  </div>
-                  <p className="mt-2 text-[9px] text-zinc-600">
-                    Preview antes da escolha · asset salvo no projeto
-                  </p>
-                </div>
-              )}
-
-              {(activeTool === "text" || activeTool === "captions") && (
-                <div className="space-y-3">
-                  <textarea
-                    value={toolText}
-                    onChange={(event) => setToolText(event.target.value)}
-                    className="h-24 w-full rounded-lg border border-white/10 bg-white/5 p-3 text-xs text-white outline-none focus:border-indigo-400"
-                    placeholder="Digite o texto..."
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      addSimpleClip(
-                        activeTool === "text" ? "text" : "caption",
-                        activeTool === "text" ? "text" : "captions",
-                        toolText || "Texto",
-                        { text: toolText || "Texto", color: nichePalette.text }
-                      )
-                    }
-                    className="w-full rounded-lg bg-indigo-600 py-2 text-xs font-bold text-white hover:bg-indigo-500"
-                  >
-                    Adicionar ao playhead
-                  </button>
-                </div>
-              )}
-
-              {activeTool === "effects" && (
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    ["zoom-in", "Zoom In"],
-                    ["zoom-out", "Zoom Out"],
-                    ["shake", "Shake"],
-                    ["fade", "Fade"],
-                  ].map(([effect, label]) => (
-                    <button
-                      key={effect}
-                      type="button"
-                      onClick={() =>
-                        addSimpleClip("effect", "effects", label, { effect })
-                      }
-                      className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-5 text-[10px] text-zinc-300 hover:border-indigo-400/50 hover:bg-indigo-500/10"
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {activeTool === "background" && (
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    "#000000",
-                    "#0f0f18",
-                    "#ffffff",
-                    "#312e81",
-                    "#0f766e",
-                    "#7c2d12",
-                    "linear-gradient(135deg,#4f46e5,#ec4899)",
-                    "linear-gradient(135deg,#0f172a,#0891b2)",
-                  ].map((background) => (
-                    <button
-                      key={background}
-                      type="button"
-                      onClick={() =>
-                        executeEditorCommand({
-                          type: "SET_BACKGROUND",
-                          background,
-                        })
-                      }
-                      className="aspect-square rounded-lg border border-white/15"
-                      style={{ background }}
-                      title={background}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {activeTool === "templates" && (
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      executeEditorCommand(
-                        { type: "RESTORE_PROJECT", project: createEmptyLumieraProject("16:9") },
-                        "Aplicar projeto horizontal 16:9"
-                      )
-                    }
-                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] p-4 text-left text-xs text-white hover:bg-white/5"
-                  >
-                    Projeto horizontal 16:9
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      executeEditorCommand(
-                        { type: "RESTORE_PROJECT", project: createEmptyLumieraProject("9:16") },
-                        "Aplicar projeto vertical 9:16"
-                      )
-                    }
-                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] p-4 text-left text-xs text-white hover:bg-white/5"
-                  >
-                    Projeto vertical 9:16
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* CENTER: Live Remotion Preview */}
-        <div className="flex-1 min-w-0 flex flex-col items-center justify-center bg-[#080810] relative p-1 gap-2">
-          {false ? (
-            <>
-              <ShotcraftLivePreview
-                key={`${previewTemplate.template_id}-${activeNiche}-${propDraft.value}-${propDraft.label}`}
-                templateId={previewTemplate.template_id}
-                palette={selectedScene?.palette || nichePalette}
-                props={previewProps}
-                durationSeconds={previewTemplate.duration_seconds || 4}
-                className="w-full max-w-[720px] aspect-video"
-                autoPlay
-                loop
-              />
-              <div className="flex items-center gap-3 text-[11px] text-gray-500">
-                <span className="font-medium text-gray-400">
-                  {previewTemplate.name}
-                </span>
-                <span>·</span>
-                <span>{previewTemplate.template_id}</span>
-                <span>·</span>
-                <span>paleta {activeNiche}</span>
-                {propDraft.value ? (
-                  <>
-                    <span>·</span>
-                    <span className="text-indigo-300">
-                      value={propDraft.value}
-                      {propDraft.unit || propDraft.suffix || ""}
-                    </span>
-                  </>
-                ) : null}
-              </div>
-            </>
-          ) : (
-            <LumieraEditorLivePreview
-              project={editorProject}
-              playheadFrame={playheadFrame}
-              playing={playing}
-              selectedClipId={selectedClipId}
-              palette={nichePalette}
-              onPlayingChange={setPlaying}
-              onPlayheadChange={setPlayheadFrame}
-              onVideoMetadata={applyDetectedVideoFormat}
-              captionConfig={projectConfig}
-              previewMotion={
-                activeTool === "motion" && previewTemplate && !selectedClipId
-                  ? {
-                      templateId: previewTemplate.template_id,
-                      label: previewTemplate.name,
-                      palette: selectedScene?.palette || nichePalette,
-                      props: previewProps,
-                      durationInFrames: secondsToFrames(
-                        previewTemplate.duration_seconds || 4,
-                        editorProject.fps
-                      ),
-                      previewFrame: secondsToFrames(
-                        (previewTemplate.duration_seconds || 4) * 0.35,
-                        editorProject.fps
-                      ),
-                    }
-                  : null
-              }
-              onVisualTransformChange={(clipId, transform) => {
-                const motionClip = findLumieraClip(editorProject, clipId)?.clip;
-                if (!motionClip) return;
-                const nextProps = {
-                  ...(motionClip.props || {}),
-                  ...transform,
-                };
-                executeEditorCommand(
-                  {
-                    type: "UPDATE_CLIP",
-                    clipId,
-                    patch: { props: nextProps },
-                  },
-                  "Transformar elemento visual"
-                );
-                if (motionClip.type !== "motion-template") return;
-                const sceneRef = String(
-                  motionClip.props?.sceneRef ||
-                    motionClip.id.replace(/^motion-scene-/, "")
-                );
-                setScenes((current) =>
-                  current.map((scene) =>
-                    scene.id === sceneRef || scene.scene_ref === sceneRef
-                      ? {
-                          ...scene,
-                          props: {
-                            ...(scene.props || {}),
-                            ...transform,
-                          },
-                        }
-                      : scene
-                  )
-                );
+          <button
+            type="button"
+            onClick={applyPaletteToAll}
+            className="text-[10px] px-2 py-1.5 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10"
+            title="Aplicar paleta do nicho a todas as cenas"
+          >
+            Aplicar paleta
+          </button>
+          <button
+            type="button"
+            onClick={() => void reloadStoryboard()}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 text-xs"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={undoEditorCommand}
+            className="rounded-lg bg-white/5 p-1.5 text-gray-400 hover:bg-white/10 hover:text-white"
+            title="Desfazer edição da timeline"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={redoEditorCommand}
+            className="rounded-lg bg-white/5 p-1.5 text-gray-400 hover:bg-white/10 hover:text-white"
+            title="Refazer edição da timeline"
+          >
+            <Redo2 className="h-3.5 w-3.5" />
+          </button>
+          <label
+            className="flex cursor-pointer items-center gap-1 rounded-lg bg-white/5 px-2 py-1.5 text-[10px] text-indigo-200 hover:bg-white/10"
+            title="Valida todas as operacoes antes de alterar a timeline"
+          >
+            Plano IA
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void importAIPlan(file);
+                event.target.value = "";
               }}
             />
-          )}
+          </label>
+          <button
+            type="button"
+            onClick={() => void saveMotionPlan()}
+            disabled={saving || !activeProject}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition-colors"
+          >
+            <Save className="w-3.5 h-3.5" />
+            {saving ? "Salvando…" : "Salvar projeto + Motion Plan"}
+          </button>
         </div>
 
-        {/* RIGHT: Properties */}
-        <div className="w-72 border-l border-white/5 flex flex-col overflow-hidden bg-[#0c0c16]">
-          <div className="p-3 border-b border-white/5">
-            <h3 className="text-xs font-bold text-gray-300 flex items-center gap-2">
-              <Palette className="w-3.5 h-3.5 text-indigo-400" />
-              Propriedades
-            </h3>
-          </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-4">
-            {selectedClip ? (
+        {/* Main content: 3 panels */}
+        <div className="flex h-[clamp(560px,72vh,900px)] min-h-0 flex-none overflow-hidden">
+          <LumieraEditorToolRail
+            activeTool={activeTool}
+            onChange={setActiveTool}
+          />
+          {/* LEFT: Template Library */}
+          <div className="w-72 border-r border-white/5 flex flex-col overflow-hidden bg-[#0c0c16]">
+            {activeTool === "motion" ? (
               <>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                    Clip selecionado
-                  </label>
-                  <p className="mt-1 truncate text-sm font-medium text-white">
-                    {selectedClip.label || selectedClip.templateId || selectedClip.type}
-                  </p>
-                  <p className="text-[10px] text-indigo-300">
-                    {selectedClip.type} · {selectedClip.id}
-                  </p>
+                <div className="p-3 border-b border-white/5">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                    <input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Buscar template..."
+                      className="w-full pl-8 pr-3 py-2 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                    />
+                  </div>
                 </div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                  Início (segundos)
-                  <input
-                    type="number"
-                    min={0}
-                    step={1 / editorProject.fps}
-                    value={framesToSeconds(selectedClip.startFrame, editorProject.fps)}
-                    onChange={(event) =>
-                      executeEditorCommand({
-                        type: "MOVE_CLIP",
-                        clipId: selectedClip.id,
-                        startFrame: secondsToFrames(Number(event.target.value), editorProject.fps),
-                      })
-                    }
-                    className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white"
-                  />
-                </label>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                  Duração (segundos)
-                  <input
-                    type="number"
-                    min={1 / editorProject.fps}
-                    step={1 / editorProject.fps}
-                    value={framesToSeconds(selectedClip.durationInFrames, editorProject.fps)}
-                    onChange={(event) =>
-                      executeEditorCommand({
-                        type: "TRIM_CLIP",
-                        clipId: selectedClip.id,
-                        durationInFrames: secondsToFrames(Number(event.target.value), editorProject.fps),
-                      })
-                    }
-                    className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white"
-                  />
-                </label>
-                {(selectedClip.type === "motion-template" || selectedClip.type === "lottie") ? (
-                  <div className="space-y-2 rounded-lg border border-indigo-400/15 bg-indigo-400/5 p-2.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
-                      Posição no vídeo
-                    </p>
-                    <p className="text-[10px] leading-relaxed text-gray-500">
-                      Arraste no preview ou ajuste com precisão abaixo.
-                    </p>
-                    {selectedClip.type === "motion-template" ? <label className="block text-[9px] font-bold uppercase text-gray-500">
-                      Texto principal
-                      <textarea
-                        value={motionTextDraft.primary}
-                        onChange={(event) => setMotionTextDraft((draft) => ({ ...draft, primary: event.target.value }))}
-                        onBlur={() =>
-                          updateSelectedMotionProps(
-                            updateMotionTemplatePrimaryText(
-                              selectedClip.templateId,
-                              selectedClip.props,
-                              motionTextDraft.primary
-                            ),
-                            "Editar texto do Motion Template"
-                          )
-                        }
-                        placeholder="Texto exibido no Motion"
-                        onKeyDown={(event) => event.stopPropagation()}
-                        className="mt-1 h-16 w-full resize-none rounded border border-white/10 bg-black/20 p-2 text-xs normal-case text-white outline-none focus:border-indigo-400"
-                      />
-                    </label> : null}
-                    {selectedClip.type === "motion-template" ? <label className="block text-[9px] font-bold uppercase text-gray-500">
-                      Texto secundário
-                      <input
-                        value={motionTextDraft.secondary}
-                        onChange={(event) => setMotionTextDraft((draft) => ({ ...draft, secondary: event.target.value }))}
-                        onBlur={() =>
-                          updateSelectedMotionProps(
-                            updateMotionTemplateSecondaryText(
-                              selectedClip.templateId,
-                              selectedClip.props,
-                              motionTextDraft.secondary
-                            ),
-                            "Editar subtítulo do Motion Template"
-                          )
-                        }
-                        placeholder="Subtítulo ou complemento"
-                        onKeyDown={(event) => event.stopPropagation()}
-                        className="mt-1 w-full rounded border border-white/10 bg-black/20 px-2 py-1.5 text-xs normal-case text-white outline-none focus:border-indigo-400"
-                      />
-                    </label> : null}
-                    {selectedClip.type === "motion-template" && selectedMotionPropEntries.length ? (
-                      <div className="space-y-2 border-t border-white/5 pt-2">
-                        <p className="text-[9px] font-bold uppercase text-gray-500">Demais dados do template</p>
-                        {selectedMotionPropEntries.map(([key, value]) => {
-                          const structured = value !== null && typeof value === "object";
-                          const inputValue = draftValue(value);
-                          const update = (raw: string) => {
-                            let parsed: unknown = raw;
-                            if (structured) {
-                              try { parsed = JSON.parse(raw); } catch { return; }
-                            } else if (typeof value === "number") parsed = Number(raw) || 0;
-                            updateSelectedMotionProps({ ...(selectedClip.props || {}), [key]: parsed }, `Editar ${key}`);
-                          };
-                          return (
-                            <label key={key} className="block text-[9px] font-bold uppercase text-gray-500">
-                              {PROP_LABELS[key] || key}
-                              {structured ? (
-                                <textarea defaultValue={inputValue} onBlur={(event) => update(event.target.value)} onKeyDown={(event) => event.stopPropagation()} className="mt-1 h-20 w-full resize-y rounded border border-white/10 bg-black/20 p-2 font-mono text-[10px] normal-case text-white" />
-                              ) : (
-                                <input value={inputValue} onChange={(event) => update(event.target.value)} onKeyDown={(event) => event.stopPropagation()} className="mt-1 w-full rounded border border-white/10 bg-black/20 px-2 py-1.5 text-xs normal-case text-white" />
-                              )}
-                            </label>
-                          );
-                        })}
+                <div className="px-3 py-2 flex flex-wrap gap-1 border-b border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory(null)}
+                    className={`px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
+                      !selectedCategory
+                        ? "bg-indigo-600 text-white"
+                        : "bg-white/5 text-gray-400 hover:bg-white/10"
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  {categories.map((c) => (
+                    <button
+                      type="button"
+                      key={c.category}
+                      onClick={() =>
+                        setSelectedCategory(
+                          c.category === selectedCategory ? null : c.category
+                        )
+                      }
+                      className={`px-2 py-1 rounded text-[10px] font-semibold flex items-center gap-1 transition-colors ${
+                        selectedCategory === c.category
+                          ? "bg-indigo-600 text-white"
+                          : "bg-white/5 text-gray-400 hover:bg-white/10"
+                      }`}
+                    >
+                      {CATEGORY_ICONS[c.category]}
+                      {c.label.split(" ")[0]}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                  <p className="text-[9px] text-gray-600 px-1 pb-1">
+                    Clique para pré-visualizar · arraste para a trilha Motion
+                  </p>
+                  {filteredTemplates.map((t) => (
+                    <button
+                      type="button"
+                      key={t.template_id}
+                      draggable
+                      onDragStart={(e) => {
+                        setDragTemplateId(t.template_id);
+                        e.dataTransfer.setData(
+                          "application/x-lumiera-template",
+                          t.template_id
+                        );
+                        e.dataTransfer.effectAllowed = "copy";
+                      }}
+                      onDragEnd={() => {
+                        setDragTemplateId(null);
+                        setDropSceneId(null);
+                      }}
+                      onClick={() => {
+                        setSelectedClipId(null);
+                        setSelectedTemplate(t);
+                        setPreviewTemplate(t);
+                        applyDefaultPropsToDraft(t);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all cursor-grab active:cursor-grabbing ${
+                        selectedTemplate?.template_id === t.template_id
+                          ? "bg-indigo-600/20 border border-indigo-400/40 text-white"
+                          : dragTemplateId === t.template_id
+                            ? "bg-indigo-500/10 border border-indigo-400/30 text-white"
+                            : "bg-white/[0.02] border border-transparent text-gray-400 hover:bg-white/5 hover:text-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <GripVertical className="w-3 h-3 opacity-40 shrink-0" />
+                        {CATEGORY_ICONS[t.category]}
+                        <span className="font-medium truncate">{t.name}</span>
                       </div>
-                    ) : null}
-                    {selectedClip.type === "motion-template" ? <label className="block text-[9px] uppercase text-gray-500">
-                      Intensidade / opacidade ({Math.round(Number(selectedClip.props?.opacity ?? 1) * 100)}%)
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-500 pl-5">
+                        <span className="px-1.5 py-0.5 rounded bg-white/5">
+                          {t.category}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-white/5">
+                          {t.energy}
+                        </span>
+                        <span>{t.duration_seconds}s</span>
+                      </div>
+                    </button>
+                  ))}
+                  {filteredTemplates.length === 0 && (
+                    <p className="text-xs text-gray-500 text-center py-8">
+                      Nenhum template encontrado
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex h-full flex-col overflow-y-auto p-3">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-300">
+                  {activeTool}
+                </p>
+                <p className="mb-4 text-[10px] leading-relaxed text-zinc-600">
+                  O item será inserido no playhead atual e continuará editável
+                  na timeline.
+                </p>
+
+                {(activeTool === "media" ||
+                  activeTool === "audio" ||
+                  activeTool === "images" ||
+                  activeTool === "lottie") && (
+                  <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-indigo-400/30 bg-indigo-500/5 px-3 py-6 text-center text-xs text-indigo-200 hover:bg-indigo-500/10">
+                    <Upload className="h-5 w-5" />
+                    Importar {activeTool}
+                    <span className="text-[9px] text-zinc-600">
+                      Original preservado · proxy usado no preview
+                    </span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept={
+                        activeTool === "media"
+                          ? "video/*"
+                          : activeTool === "audio"
+                            ? "audio/*"
+                            : activeTool === "images"
+                              ? "image/*"
+                              : ".json,application/json"
+                      }
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        void addUploadedAsset(
+                          file,
+                          activeTool === "media"
+                            ? "video"
+                            : activeTool === "audio"
+                              ? "audio"
+                              : activeTool === "images"
+                                ? "image"
+                                : "lottie"
+                        );
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+
+                {(activeTool === "media" || activeTool === "images") && (
+                  <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-cyan-300">
+                      Stock · Pexels · Pixabay · Bing
+                    </p>
+                    <div className="flex gap-2">
                       <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={Number(selectedClip.props?.opacity ?? 1)}
-                        onChange={(event) =>
-                          executeEditorCommand(
-                            {
-                              type: "UPDATE_CLIP",
-                              clipId: selectedClip.id,
-                              patch: {
-                                props: {
-                                  ...(selectedClip.props || {}),
-                                  opacity: Number(event.target.value),
-                                  forceTransparent: true,
-                                },
-                              },
-                            },
-                            "Alterar opacidade do Motion Template"
-                          )
+                        value={stockQuery}
+                        onChange={(event) => setStockQuery(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            setStockModal({
+                              open: true,
+                              mediaType:
+                                activeTool === "media" ? "video" : "image",
+                            });
+                          }
+                        }}
+                        className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/30 px-2 py-2 text-[10px] text-white outline-none focus:border-cyan-400"
+                        placeholder="Buscar assets..."
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setStockModal({
+                            open: true,
+                            mediaType:
+                              activeTool === "media" ? "video" : "image",
+                          })
                         }
-                        className="mt-2 w-full accent-indigo-500"
+                        className="rounded-lg bg-cyan-600 px-3 text-[10px] font-bold text-white hover:bg-cyan-500"
+                      >
+                        Buscar
+                      </button>
+                    </div>
+                    <p className="mt-2 text-[9px] text-zinc-600">
+                      Preview antes da escolha · asset salvo no projeto
+                    </p>
+                  </div>
+                )}
+
+                {(activeTool === "text" || activeTool === "captions") && (
+                  <div className="space-y-3">
+                    <textarea
+                      value={toolText}
+                      onChange={(event) => setToolText(event.target.value)}
+                      className="h-24 w-full rounded-lg border border-white/10 bg-white/5 p-3 text-xs text-white outline-none focus:border-indigo-400"
+                      placeholder="Digite o texto..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        addSimpleClip(
+                          activeTool === "text" ? "text" : "caption",
+                          activeTool === "text" ? "text" : "captions",
+                          toolText || "Texto",
+                          {
+                            text: toolText || "Texto",
+                            color: nichePalette.text,
+                          }
+                        )
+                      }
+                      className="w-full rounded-lg bg-indigo-600 py-2 text-xs font-bold text-white hover:bg-indigo-500"
+                    >
+                      Adicionar ao playhead
+                    </button>
+                  </div>
+                )}
+
+                {activeTool === "effects" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      ["zoom-in", "Zoom In"],
+                      ["zoom-out", "Zoom Out"],
+                      ["shake", "Shake"],
+                      ["fade", "Fade"],
+                    ].map(([effect, label]) => (
+                      <button
+                        key={effect}
+                        type="button"
+                        onClick={() =>
+                          addSimpleClip("effect", "effects", label, { effect })
+                        }
+                        className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-5 text-[10px] text-zinc-300 hover:border-indigo-400/50 hover:bg-indigo-500/10"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {activeTool === "background" && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      "#000000",
+                      "#0f0f18",
+                      "#ffffff",
+                      "#312e81",
+                      "#0f766e",
+                      "#7c2d12",
+                      "linear-gradient(135deg,#4f46e5,#ec4899)",
+                      "linear-gradient(135deg,#0f172a,#0891b2)",
+                    ].map((background) => (
+                      <button
+                        key={background}
+                        type="button"
+                        onClick={() =>
+                          executeEditorCommand({
+                            type: "SET_BACKGROUND",
+                            background,
+                          })
+                        }
+                        className="aspect-square rounded-lg border border-white/15"
+                        style={{ background }}
+                        title={background}
                       />
-                    </label> : null}
-                    <label className="block text-[9px] uppercase text-gray-500">
-                      Tamanho ({Math.round(Number(selectedClip.props?.scale ?? 1) * 100)}%)
-                      <input
-                        type="range"
-                        min={0.25}
-                        max={3}
-                        step={0.01}
-                        value={Number(selectedClip.props?.scale ?? 1)}
-                        onChange={(event) => executeEditorCommand({
-                          type: "UPDATE_CLIP",
-                          clipId: selectedClip.id,
-                          patch: { props: { ...(selectedClip.props || {}), scale: Number(event.target.value) } },
-                        }, "Redimensionar elemento visual")}
-                        className="mt-2 w-full accent-indigo-500"
-                      />
+                    ))}
+                  </div>
+                )}
+
+                {activeTool === "templates" && (
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        executeEditorCommand(
+                          {
+                            type: "RESTORE_PROJECT",
+                            project: createEmptyLumieraProject("16:9"),
+                          },
+                          "Aplicar projeto horizontal 16:9"
+                        )
+                      }
+                      className="w-full rounded-lg border border-white/10 bg-white/[0.03] p-4 text-left text-xs text-white hover:bg-white/5"
+                    >
+                      Projeto horizontal 16:9
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        executeEditorCommand(
+                          {
+                            type: "RESTORE_PROJECT",
+                            project: createEmptyLumieraProject("9:16"),
+                          },
+                          "Aplicar projeto vertical 9:16"
+                        )
+                      }
+                      className="w-full rounded-lg border border-white/10 bg-white/[0.03] p-4 text-left text-xs text-white hover:bg-white/5"
+                    >
+                      Projeto vertical 9:16
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* CENTER: Live Remotion Preview */}
+          <div className="flex-1 min-w-0 flex flex-col items-center justify-center bg-[#080810] relative p-1 gap-2">
+            {false ? (
+              <>
+                <ShotcraftLivePreview
+                  key={`${previewTemplate.template_id}-${activeNiche}-${propDraft.value}-${propDraft.label}`}
+                  templateId={previewTemplate.template_id}
+                  palette={selectedScene?.palette || nichePalette}
+                  props={previewProps}
+                  durationSeconds={previewTemplate.duration_seconds || 4}
+                  className="w-full max-w-[720px] aspect-video"
+                  autoPlay
+                  loop
+                />
+                <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                  <span className="font-medium text-gray-400">
+                    {previewTemplate.name}
+                  </span>
+                  <span>·</span>
+                  <span>{previewTemplate.template_id}</span>
+                  <span>·</span>
+                  <span>paleta {activeNiche}</span>
+                  {propDraft.value ? (
+                    <>
+                      <span>·</span>
+                      <span className="text-indigo-300">
+                        value={propDraft.value}
+                        {propDraft.unit || propDraft.suffix || ""}
+                      </span>
+                    </>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <LumieraEditorLivePreview
+                project={editorProject}
+                playheadFrame={playheadFrame}
+                playing={playing}
+                selectedClipId={selectedClipId}
+                palette={nichePalette}
+                onPlayingChange={setPlaying}
+                onPlayheadChange={setPlayheadFrame}
+                onVideoMetadata={applyDetectedVideoFormat}
+                captionConfig={projectConfig}
+                previewMotion={
+                  activeTool === "motion" && previewTemplate && !selectedClipId
+                    ? {
+                        templateId: previewTemplate.template_id,
+                        label: previewTemplate.name,
+                        palette: selectedScene?.palette || nichePalette,
+                        props: previewProps,
+                        durationInFrames: secondsToFrames(
+                          previewTemplate.duration_seconds || 4,
+                          editorProject.fps
+                        ),
+                        previewFrame: secondsToFrames(
+                          (previewTemplate.duration_seconds || 4) * 0.35,
+                          editorProject.fps
+                        ),
+                      }
+                    : null
+                }
+                onVisualTransformChange={(clipId, transform) => {
+                  const motionClip = findLumieraClip(
+                    editorProject,
+                    clipId
+                  )?.clip;
+                  if (!motionClip) return;
+                  const nextProps = {
+                    ...(motionClip.props || {}),
+                    ...transform,
+                  };
+                  executeEditorCommand(
+                    {
+                      type: "UPDATE_CLIP",
+                      clipId,
+                      patch: { props: nextProps },
+                    },
+                    "Transformar elemento visual"
+                  );
+                  if (motionClip.type !== "motion-template") return;
+                  const sceneRef = String(
+                    motionClip.props?.sceneRef ||
+                      motionClip.id.replace(/^motion-scene-/, "")
+                  );
+                  setScenes((current) =>
+                    current.map((scene) =>
+                      scene.id === sceneRef || scene.scene_ref === sceneRef
+                        ? {
+                            ...scene,
+                            props: {
+                              ...(scene.props || {}),
+                              ...transform,
+                            },
+                          }
+                        : scene
+                    )
+                  );
+                }}
+              />
+            )}
+          </div>
+
+          {/* RIGHT: Properties */}
+          <div className="w-72 border-l border-white/5 flex flex-col overflow-hidden bg-[#0c0c16]">
+            <div className="p-3 border-b border-white/5">
+              <h3 className="text-xs font-bold text-gray-300 flex items-center gap-2">
+                <Palette className="w-3.5 h-3.5 text-indigo-400" />
+                Propriedades
+              </h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-4">
+              {selectedClip ? (
+                <>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                      Clip selecionado
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(["positionX", "positionY"] as const).map((key) => (
-                        <label key={key} className="text-[9px] uppercase text-gray-500">
-                          {key === "positionX" ? "X (%)" : "Y (%)"}
+                    <p className="mt-1 truncate text-sm font-medium text-white">
+                      {selectedClip.label ||
+                        selectedClip.templateId ||
+                        selectedClip.type}
+                    </p>
+                    <p className="text-[10px] text-indigo-300">
+                      {selectedClip.type} · {selectedClip.id}
+                    </p>
+                  </div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                    Início (segundos)
+                    <input
+                      type="number"
+                      min={0}
+                      step={1 / editorProject.fps}
+                      value={framesToSeconds(
+                        selectedClip.startFrame,
+                        editorProject.fps
+                      )}
+                      onChange={(event) =>
+                        executeEditorCommand({
+                          type: "MOVE_CLIP",
+                          clipId: selectedClip.id,
+                          startFrame: secondsToFrames(
+                            Number(event.target.value),
+                            editorProject.fps
+                          ),
+                        })
+                      }
+                      className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white"
+                    />
+                  </label>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                    Duração (segundos)
+                    <input
+                      type="number"
+                      min={1 / editorProject.fps}
+                      step={1 / editorProject.fps}
+                      value={framesToSeconds(
+                        selectedClip.durationInFrames,
+                        editorProject.fps
+                      )}
+                      onChange={(event) =>
+                        executeEditorCommand({
+                          type: "TRIM_CLIP",
+                          clipId: selectedClip.id,
+                          durationInFrames: secondsToFrames(
+                            Number(event.target.value),
+                            editorProject.fps
+                          ),
+                        })
+                      }
+                      className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white"
+                    />
+                  </label>
+                  {selectedClip.type === "motion-template" ||
+                  selectedClip.type === "lottie" ? (
+                    <div className="space-y-2 rounded-lg border border-indigo-400/15 bg-indigo-400/5 p-2.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                        Posição no vídeo
+                      </p>
+                      <p className="text-[10px] leading-relaxed text-gray-500">
+                        Arraste no preview ou ajuste com precisão abaixo.
+                      </p>
+                      {selectedClip.type === "motion-template" ? (
+                        <label className="block text-[9px] font-bold uppercase text-gray-500">
+                          Texto principal
+                          <textarea
+                            value={motionTextDraft.primary}
+                            onChange={(event) =>
+                              setMotionTextDraft((draft) => ({
+                                ...draft,
+                                primary: event.target.value,
+                              }))
+                            }
+                            onBlur={() =>
+                              updateSelectedMotionProps(
+                                updateMotionTemplatePrimaryText(
+                                  selectedClip.templateId,
+                                  selectedClip.props,
+                                  motionTextDraft.primary
+                                ),
+                                "Editar texto do Motion Template"
+                              )
+                            }
+                            placeholder="Texto exibido no Motion"
+                            onKeyDown={(event) => event.stopPropagation()}
+                            className="mt-1 h-16 w-full resize-none rounded border border-white/10 bg-black/20 p-2 text-xs normal-case text-white outline-none focus:border-indigo-400"
+                          />
+                        </label>
+                      ) : null}
+                      {selectedClip.type === "motion-template" ? (
+                        <label className="block text-[9px] font-bold uppercase text-gray-500">
+                          Texto secundário
                           <input
-                            type="number"
+                            value={motionTextDraft.secondary}
+                            onChange={(event) =>
+                              setMotionTextDraft((draft) => ({
+                                ...draft,
+                                secondary: event.target.value,
+                              }))
+                            }
+                            onBlur={() =>
+                              updateSelectedMotionProps(
+                                updateMotionTemplateSecondaryText(
+                                  selectedClip.templateId,
+                                  selectedClip.props,
+                                  motionTextDraft.secondary
+                                ),
+                                "Editar subtítulo do Motion Template"
+                              )
+                            }
+                            placeholder="Subtítulo ou complemento"
+                            onKeyDown={(event) => event.stopPropagation()}
+                            className="mt-1 w-full rounded border border-white/10 bg-black/20 px-2 py-1.5 text-xs normal-case text-white outline-none focus:border-indigo-400"
+                          />
+                        </label>
+                      ) : null}
+                      {selectedClip.type === "motion-template" &&
+                      selectedMotionPropEntries.length ? (
+                        <div className="space-y-2 border-t border-white/5 pt-2">
+                          <p className="text-[9px] font-bold uppercase text-gray-500">
+                            Demais dados do template
+                          </p>
+                          {selectedMotionPropEntries.map(([key, value]) => {
+                            const structured =
+                              value !== null && typeof value === "object";
+                            const inputValue = draftValue(value);
+                            const update = (raw: string) => {
+                              let parsed: unknown = raw;
+                              if (structured) {
+                                try {
+                                  parsed = JSON.parse(raw);
+                                } catch {
+                                  return;
+                                }
+                              } else if (typeof value === "number")
+                                parsed = Number(raw) || 0;
+                              updateSelectedMotionProps(
+                                {
+                                  ...(selectedClip.props || {}),
+                                  [key]: parsed,
+                                },
+                                `Editar ${key}`
+                              );
+                            };
+                            return (
+                              <label
+                                key={key}
+                                className="block text-[9px] font-bold uppercase text-gray-500"
+                              >
+                                {PROP_LABELS[key] || key}
+                                {structured ? (
+                                  <textarea
+                                    defaultValue={inputValue}
+                                    onBlur={(event) =>
+                                      update(event.target.value)
+                                    }
+                                    onKeyDown={(event) =>
+                                      event.stopPropagation()
+                                    }
+                                    className="mt-1 h-20 w-full resize-y rounded border border-white/10 bg-black/20 p-2 font-mono text-[10px] normal-case text-white"
+                                  />
+                                ) : (
+                                  <input
+                                    value={inputValue}
+                                    onChange={(event) =>
+                                      update(event.target.value)
+                                    }
+                                    onKeyDown={(event) =>
+                                      event.stopPropagation()
+                                    }
+                                    className="mt-1 w-full rounded border border-white/10 bg-black/20 px-2 py-1.5 text-xs normal-case text-white"
+                                  />
+                                )}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                      {selectedClip.type === "motion-template" ? (
+                        <label className="block text-[9px] uppercase text-gray-500">
+                          Intensidade / opacidade (
+                          {Math.round(
+                            Number(selectedClip.props?.opacity ?? 1) * 100
+                          )}
+                          %)
+                          <input
+                            type="range"
                             min={0}
-                            max={100}
-                            step={1}
-                            value={Math.round(Number(selectedClip.props?.[key] ?? 0.5) * 100)}
+                            max={1}
+                            step={0.01}
+                            value={Number(selectedClip.props?.opacity ?? 1)}
                             onChange={(event) =>
                               executeEditorCommand(
                                 {
@@ -1975,73 +2182,165 @@ export function LumieraEditor({
                                   patch: {
                                     props: {
                                       ...(selectedClip.props || {}),
-                                      [key]: Math.max(0, Math.min(1, Number(event.target.value) / 100)),
+                                      opacity: Number(event.target.value),
+                                      forceTransparent: true,
                                     },
                                   },
                                 },
-                                "Posicionar Motion Template"
+                                "Alterar opacidade do Motion Template"
                               )
                             }
-                            className="mt-1 w-full rounded border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-white"
+                            className="mt-2 w-full accent-indigo-500"
                           />
                         </label>
-                      ))}
+                      ) : null}
+                      <label className="block text-[9px] uppercase text-gray-500">
+                        Tamanho (
+                        {Math.round(
+                          Number(selectedClip.props?.scale ?? 1) * 100
+                        )}
+                        %)
+                        <input
+                          type="range"
+                          min={0.25}
+                          max={3}
+                          step={0.01}
+                          value={Number(selectedClip.props?.scale ?? 1)}
+                          onChange={(event) =>
+                            executeEditorCommand(
+                              {
+                                type: "UPDATE_CLIP",
+                                clipId: selectedClip.id,
+                                patch: {
+                                  props: {
+                                    ...(selectedClip.props || {}),
+                                    scale: Number(event.target.value),
+                                  },
+                                },
+                              },
+                              "Redimensionar elemento visual"
+                            )
+                          }
+                          className="mt-2 w-full accent-indigo-500"
+                        />
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(["positionX", "positionY"] as const).map((key) => (
+                          <label
+                            key={key}
+                            className="text-[9px] uppercase text-gray-500"
+                          >
+                            {key === "positionX" ? "X (%)" : "Y (%)"}
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={1}
+                              value={Math.round(
+                                Number(selectedClip.props?.[key] ?? 0.5) * 100
+                              )}
+                              onChange={(event) =>
+                                executeEditorCommand(
+                                  {
+                                    type: "UPDATE_CLIP",
+                                    clipId: selectedClip.id,
+                                    patch: {
+                                      props: {
+                                        ...(selectedClip.props || {}),
+                                        [key]: Math.max(
+                                          0,
+                                          Math.min(
+                                            1,
+                                            Number(event.target.value) / 100
+                                          )
+                                        ),
+                                      },
+                                    },
+                                  },
+                                  "Posicionar Motion Template"
+                                )
+                              }
+                              className="mt-1 w-full rounded border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-white"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          executeEditorCommand(
+                            {
+                              type: "UPDATE_CLIP",
+                              clipId: selectedClip.id,
+                              patch: {
+                                props: {
+                                  ...(selectedClip.props || {}),
+                                  positionX: 0.5,
+                                  positionY: 0.5,
+                                  scale: 1,
+                                },
+                              },
+                            },
+                            "Redefinir transformação visual"
+                          )
+                        }
+                        className="w-full rounded border border-white/10 bg-white/5 py-1.5 text-[10px] font-semibold text-gray-300 hover:bg-white/10"
+                      >
+                        Centralizar e restaurar tamanho
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        executeEditorCommand(
-                          {
+                  ) : null}
+                  {(selectedClip.type === "text" ||
+                    selectedClip.type === "caption") && (
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                      Texto
+                      <textarea
+                        value={String(
+                          selectedClip.props?.text || selectedClip.label || ""
+                        )}
+                        onChange={(event) =>
+                          executeEditorCommand({
                             type: "UPDATE_CLIP",
                             clipId: selectedClip.id,
                             patch: {
+                              label: event.target.value,
                               props: {
-                                ...(selectedClip.props || {}),
-                                positionX: 0.5,
-                                positionY: 0.5,
-                                scale: 1,
+                                ...selectedClip.props,
+                                text: event.target.value,
                               },
                             },
-                          },
-                          "Redefinir transformação visual"
-                        )
-                      }
-                      className="w-full rounded border border-white/10 bg-white/5 py-1.5 text-[10px] font-semibold text-gray-300 hover:bg-white/10"
-                    >
-                      Centralizar e restaurar tamanho
-                    </button>
-                  </div>
-                ) : null}
-                {(selectedClip.type === "text" || selectedClip.type === "caption") && (
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                    Texto
-                    <textarea
-                      value={String(selectedClip.props?.text || selectedClip.label || "")}
-                      onChange={(event) =>
-                        executeEditorCommand({
-                          type: "UPDATE_CLIP",
-                          clipId: selectedClip.id,
-                          patch: {
-                            label: event.target.value,
-                            props: { ...selectedClip.props, text: event.target.value },
-                          },
-                        })
-                      }
-                      className="mt-2 h-24 w-full rounded-lg border border-white/10 bg-white/5 p-2 text-xs text-white"
-                    />
-                  </label>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (selectedClip.type === "motion-template") {
-                      const sceneRef = String(
-                        selectedClip.props?.sceneRef ||
-                          selectedClip.id.replace(/^motion-scene-/, "")
-                      );
-                      setScenes((current) =>
-                        current.map((scene) =>
-                          scene.id === sceneRef || scene.scene_ref === sceneRef
+                          })
+                        }
+                        className="mt-2 h-24 w-full rounded-lg border border-white/10 bg-white/5 p-2 text-xs text-white"
+                      />
+                    </label>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedClip.type === "motion-template") {
+                        const sceneRef = String(
+                          selectedClip.props?.sceneRef ||
+                            selectedClip.id.replace(/^motion-scene-/, "")
+                        );
+                        setScenes((current) =>
+                          current.map((scene) =>
+                            scene.id === sceneRef ||
+                            scene.scene_ref === sceneRef
+                              ? {
+                                  ...scene,
+                                  template_id: null,
+                                  template_name: null,
+                                  props: {},
+                                  palette: null,
+                                }
+                              : scene
+                          )
+                        );
+                        setSelectedScene((scene) =>
+                          scene &&
+                          (scene.id === sceneRef ||
+                            scene.scene_ref === sceneRef)
                             ? {
                                 ...scene,
                                 template_id: null,
@@ -2050,412 +2349,456 @@ export function LumieraEditor({
                                 palette: null,
                               }
                             : scene
-                        )
-                      );
-                      setSelectedScene((scene) =>
-                        scene && (scene.id === sceneRef || scene.scene_ref === sceneRef)
-                          ? {
-                              ...scene,
-                              template_id: null,
-                              template_name: null,
-                              props: {},
-                              palette: null,
-                            }
-                          : scene
-                      );
-                      setSelectedTemplate(null);
-                      setPreviewTemplate(null);
-                    }
-                    executeEditorCommand({ type: "REMOVE_CLIP", clipId: selectedClip.id });
-                    setSelectedClipId(null);
-                  }}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 py-2 text-xs font-bold text-red-300 hover:bg-red-500/20"
-                >
-                  <Trash2 className="h-3.5 w-3.5" /> Remover clip
-                </button>
-              </>
-            ) : selectedTemplate ? (
-              <>
-                <div>
-                  <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
-                    Template
-                  </label>
-                  <p className="text-sm text-white font-medium mt-1">
-                    {selectedTemplate.name}
-                  </p>
-                  <p className="text-[11px] text-gray-500">
-                    {selectedTemplate.template_id}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
-                    Dados (props) · atualiza preview
-                  </label>
-                  <div className="mt-2 space-y-2">
-                    {selectedTemplateFields.map(([key, label]) => {
-                      const structured = templatePropSchema[key] === "array" || templatePropSchema[key] === "object";
-                      const commonProps = {
-                        value: propDraft[key] || "",
-                        onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                          setPropDraft((draft) => ({ ...draft, [key]: event.target.value })),
-                        onKeyDown: (event: React.KeyboardEvent) => event.stopPropagation(),
-                        placeholder: label,
-                        className: "w-full px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-400",
-                      };
-                      return structured ? (
-                        <label key={key} className="block text-[9px] font-bold uppercase text-gray-500">
-                          {label}
-                          <textarea {...commonProps} className={`${commonProps.className} mt-1 h-24 resize-y font-mono`} />
-                        </label>
-                      ) : (
-                        <label key={key} className="block text-[9px] font-bold uppercase text-gray-500">
-                          {label}
-                          <input {...commonProps} type={templatePropSchema[key] === "number" ? "number" : "text"} className={`${commonProps.className} mt-1`} />
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-indigo-400/15 bg-indigo-400/5 p-2.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-indigo-300">
-                    Intensidade / opacidade ({Math.round(previewMotionOpacity * 100)}%)
-                    <input
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={previewMotionOpacity}
-                      onChange={(event) =>
-                        setPreviewMotionOpacity(Number(event.target.value))
+                        );
+                        setSelectedTemplate(null);
+                        setPreviewTemplate(null);
                       }
-                      className="mt-2 w-full accent-indigo-500"
-                    />
-                  </label>
-                  <p className="mt-1 text-[9px] text-gray-500">
-                    Fundo transparente; o controle altera apenas a força visual do Motion.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    addMotionTemplateToTimeline(
-                      selectedTemplate.template_id,
-                      playheadFrame
-                    )
-                  }
-                  className="w-full rounded-lg bg-indigo-600 py-2 text-xs font-bold text-white hover:bg-indigo-500"
-                >
-                  Adicionar no playhead atual
-                </button>
-                {selectedScene && (
+                      executeEditorCommand({
+                        type: "REMOVE_CLIP",
+                        clipId: selectedClip.id,
+                      });
+                      setSelectedClipId(null);
+                    }}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 py-2 text-xs font-bold text-red-300 hover:bg-red-500/20"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Remover clip
+                  </button>
+                </>
+              ) : selectedTemplate ? (
+                <>
                   <div>
                     <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
-                      Entrada na cena (start_seconds)
+                      Template
                     </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.1}
-                      value={selectedScene.start_seconds}
-                      onChange={(e) => {
-                        const v = Math.max(0, Number(e.target.value) || 0);
-                        const sceneIndex = scenes.findIndex(
-                          (scene) => scene.id === selectedScene.id
+                    <p className="text-sm text-white font-medium mt-1">
+                      {selectedTemplate.name}
+                    </p>
+                    <p className="text-[11px] text-gray-500">
+                      {selectedTemplate.template_id}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+                      Dados (props) · atualiza preview
+                    </label>
+                    <div className="mt-2 space-y-2">
+                      {selectedTemplateFields.map(([key, label]) => {
+                        const structured =
+                          templatePropSchema[key] === "array" ||
+                          templatePropSchema[key] === "object";
+                        const commonProps = {
+                          value: propDraft[key] || "",
+                          onChange: (
+                            event: React.ChangeEvent<
+                              HTMLInputElement | HTMLTextAreaElement
+                            >
+                          ) =>
+                            setPropDraft((draft) => ({
+                              ...draft,
+                              [key]: event.target.value,
+                            })),
+                          onKeyDown: (event: React.KeyboardEvent) =>
+                            event.stopPropagation(),
+                          placeholder: label,
+                          className:
+                            "w-full px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-400",
+                        };
+                        return structured ? (
+                          <label
+                            key={key}
+                            className="block text-[9px] font-bold uppercase text-gray-500"
+                          >
+                            {label}
+                            <textarea
+                              {...commonProps}
+                              className={`${commonProps.className} mt-1 h-24 resize-y font-mono`}
+                            />
+                          </label>
+                        ) : (
+                          <label
+                            key={key}
+                            className="block text-[9px] font-bold uppercase text-gray-500"
+                          >
+                            {label}
+                            <input
+                              {...commonProps}
+                              type={
+                                templatePropSchema[key] === "number"
+                                  ? "number"
+                                  : "text"
+                              }
+                              className={`${commonProps.className} mt-1`}
+                            />
+                          </label>
                         );
-                        const sceneStartSeconds = scenes
-                          .slice(0, Math.max(0, sceneIndex))
-                          .reduce(
-                            (total, scene) =>
-                              total + Math.max(0.1, scene.duration_seconds || 5),
-                            0
-                          );
-                        const motionClip = editorProject.tracks
-                          .find((track) => track.id === "motion")
-                          ?.clips.find(
-                            (clip) =>
-                              clip.id === `motion-scene-${selectedScene.id}` ||
-                              clip.props?.sceneRef === selectedScene.scene_ref
-                          );
-                        if (motionClip) {
-                          executeEditorCommand(
-                            {
-                              type: "MOVE_CLIP",
-                              clipId: motionClip.id,
-                              startFrame: secondsToFrames(
-                                sceneStartSeconds + v,
-                                editorProject.fps
-                              ),
-                            },
-                            "Alterar entrada do Motion Template"
-                          );
+                      })}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-indigo-400/15 bg-indigo-400/5 p-2.5">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                      Intensidade / opacidade (
+                      {Math.round(previewMotionOpacity * 100)}%)
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={previewMotionOpacity}
+                        onChange={(event) =>
+                          setPreviewMotionOpacity(Number(event.target.value))
                         }
-                        setScenes((prev) =>
-                          prev.map((s) =>
-                            s.id === selectedScene.id
-                              ? { ...s, start_seconds: v }
-                              : s
-                          )
-                        );
-                        setSelectedScene((cur) =>
-                          cur ? { ...cur, start_seconds: v } : cur
-                        );
-                      }}
-                      className="w-full mt-2 px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                    />
+                        className="mt-2 w-full accent-indigo-500"
+                      />
+                    </label>
+                    <p className="mt-1 text-[9px] text-gray-500">
+                      Fundo transparente; o controle altera apenas a força
+                      visual do Motion.
+                    </p>
                   </div>
-                )}
-                <div>
-                  <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
-                    Paleta ({activeNiche})
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {Object.entries(nichePalette).map(([key, val]) => (
-                      <div key={key} className="flex items-center gap-2">
-                        <div
-                          className="w-5 h-5 rounded border border-white/20"
-                          style={{ background: val }}
-                        />
-                        <span className="text-[10px] text-gray-400">{key}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {selectedScene && (
                   <button
                     type="button"
                     onClick={() =>
-                      assignTemplateToScene(selectedTemplate, selectedScene)
+                      addMotionTemplateToTimeline(
+                        selectedTemplate.template_id,
+                        playheadFrame
+                      )
                     }
-                    className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors"
+                    className="w-full rounded-lg bg-indigo-600 py-2 text-xs font-bold text-white hover:bg-indigo-500"
                   >
-                    Aplicar à cena selecionada
+                    Adicionar no playhead atual
                   </button>
-                )}
-                {!selectedScene && (
-                  <p className="text-[10px] text-gray-500">
-                    Selecione uma cena na timeline abaixo
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-xs text-gray-500 text-center py-8">
-                Selecione um template
-              </p>
-            )}
-            <div className="border-t border-white/5 pt-3">
-              <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-gray-600">
-                <span>Historico auditavel</span>
-                <span>{editorProject.auditLog.length}</span>
-              </div>
-              <div className="mt-2 space-y-1">
-                {editorProject.auditLog.slice(-5).reverse().map((entry) => (
-                  <div key={entry.id} className="rounded bg-white/[0.025] px-2 py-1.5 text-[9px] text-gray-500">
-                    <span className={entry.actor === "ai" ? "text-fuchsia-300" : "text-indigo-300"}>{entry.actor}</span>
-                    {" · "}{entry.summary}
+                  {selectedScene && (
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+                        Entrada na cena (start_seconds)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        value={selectedScene.start_seconds}
+                        onChange={(e) => {
+                          const v = Math.max(0, Number(e.target.value) || 0);
+                          const sceneIndex = scenes.findIndex(
+                            (scene) => scene.id === selectedScene.id
+                          );
+                          const sceneStartSeconds = scenes
+                            .slice(0, Math.max(0, sceneIndex))
+                            .reduce(
+                              (total, scene) =>
+                                total +
+                                Math.max(0.1, scene.duration_seconds || 5),
+                              0
+                            );
+                          const motionClip = editorProject.tracks
+                            .find((track) => track.id === "motion")
+                            ?.clips.find(
+                              (clip) =>
+                                clip.id ===
+                                  `motion-scene-${selectedScene.id}` ||
+                                clip.props?.sceneRef === selectedScene.scene_ref
+                            );
+                          if (motionClip) {
+                            executeEditorCommand(
+                              {
+                                type: "MOVE_CLIP",
+                                clipId: motionClip.id,
+                                startFrame: secondsToFrames(
+                                  sceneStartSeconds + v,
+                                  editorProject.fps
+                                ),
+                              },
+                              "Alterar entrada do Motion Template"
+                            );
+                          }
+                          setScenes((prev) =>
+                            prev.map((s) =>
+                              s.id === selectedScene.id
+                                ? { ...s, start_seconds: v }
+                                : s
+                            )
+                          );
+                          setSelectedScene((cur) =>
+                            cur ? { ...cur, start_seconds: v } : cur
+                          );
+                        }}
+                        className="w-full mt-2 px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+                      Paleta ({activeNiche})
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {Object.entries(nichePalette).map(([key, val]) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <div
+                            className="w-5 h-5 rounded border border-white/20"
+                            style={{ background: val }}
+                          />
+                          <span className="text-[10px] text-gray-400">
+                            {key}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                  {selectedScene && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        assignTemplateToScene(selectedTemplate, selectedScene)
+                      }
+                      className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors"
+                    >
+                      Aplicar à cena selecionada
+                    </button>
+                  )}
+                  {!selectedScene && (
+                    <p className="text-[10px] text-gray-500">
+                      Selecione uma cena na timeline abaixo
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-gray-500 text-center py-8">
+                  Selecione um template
+                </p>
+              )}
+              <div className="border-t border-white/5 pt-3">
+                <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-gray-600">
+                  <span>Historico auditavel</span>
+                  <span>{editorProject.auditLog.length}</span>
+                </div>
+                <div className="mt-2 space-y-1">
+                  {editorProject.auditLog
+                    .slice(-5)
+                    .reverse()
+                    .map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="rounded bg-white/[0.025] px-2 py-1.5 text-[9px] text-gray-500"
+                      >
+                        <span
+                          className={
+                            entry.actor === "ai"
+                              ? "text-fuchsia-300"
+                              : "text-indigo-300"
+                          }
+                        >
+                          {entry.actor}
+                        </span>
+                        {" · "}
+                        {entry.summary}
+                      </div>
+                    ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* BOTTOM: Timeline */}
-      <div className="border-t border-white/5 bg-[#0a0a14] flex flex-col">
-        <div className="hidden">
-          <Clock className="w-3.5 h-3.5 text-gray-500" />
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-            Timeline · {scenes.length} cenas
-          </span>
-          <span className="text-[10px] text-gray-600">
-            {scenes
-              .reduce((acc, s) => acc + (s.duration_seconds || 0), 0)
-              .toFixed(1)}
-            s total
-          </span>
-          <span className="text-[9px] text-gray-600 ml-2">
-            solte template · arraste cenas para reordenar
-          </span>
-        </div>
-        <div className="hidden">
-          <div className="flex gap-1 h-full items-stretch min-w-max">
-            {scenes.map((scene, i) => (
-              <button
-                type="button"
-                key={scene.id}
-                draggable
-                onDragStart={(e) => {
-                  // Prefer reordering scenes; template drag uses different mime
-                  if (dragTemplateId) return;
-                  setDragSceneId(scene.id);
-                  e.dataTransfer.setData(
-                    "application/x-lumiera-scene",
-                    scene.id
-                  );
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onDragEnd={() => {
-                  setDragSceneId(null);
-                  setDropSceneId(null);
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  const isTpl = e.dataTransfer.types.includes(
-                    "application/x-lumiera-template"
-                  );
-                  e.dataTransfer.dropEffect = isTpl ? "copy" : "move";
-                  setDropSceneId(scene.id);
-                }}
-                onDragLeave={() => {
-                  setDropSceneId((cur) => (cur === scene.id ? null : cur));
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const tplId = e.dataTransfer.getData(
-                    "application/x-lumiera-template"
-                  );
-                  const scId = e.dataTransfer.getData(
-                    "application/x-lumiera-scene"
-                  );
-                  if (tplId) {
-                    assignTemplateIdToScene(tplId, scene.id);
-                  } else if (scId) {
-                    reorderScenes(scId, scene.id);
-                  }
-                  setDropSceneId(null);
-                  setDragTemplateId(null);
-                  setDragSceneId(null);
-                }}
-                onClick={() => {
-                  setSelectedScene(scene);
-                  if (scene.template_id) {
-                    const motionClipId = `motion-scene-${scene.id}`;
-                    setSelectedClipId(motionClipId);
-                    const motionClip = findLumieraClip(
-                      editorProject,
-                      motionClipId
-                    )?.clip;
-                    if (motionClip) setPlayheadFrame(motionClip.startFrame);
-                  } else {
-                    setSelectedClipId(null);
-                  }
-                  if (scene.template_id) {
-                    const t = templates.find(
-                      (x) => x.template_id === scene.template_id
+        {/* BOTTOM: Timeline */}
+        <div className="border-t border-white/5 bg-[#0a0a14] flex flex-col">
+          <div className="hidden">
+            <Clock className="w-3.5 h-3.5 text-gray-500" />
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+              Timeline · {scenes.length} cenas
+            </span>
+            <span className="text-[10px] text-gray-600">
+              {scenes
+                .reduce((acc, s) => acc + (s.duration_seconds || 0), 0)
+                .toFixed(1)}
+              s total
+            </span>
+            <span className="text-[9px] text-gray-600 ml-2">
+              solte template · arraste cenas para reordenar
+            </span>
+          </div>
+          <div className="hidden">
+            <div className="flex gap-1 h-full items-stretch min-w-max">
+              {scenes.map((scene, i) => (
+                <button
+                  type="button"
+                  key={scene.id}
+                  draggable
+                  onDragStart={(e) => {
+                    // Prefer reordering scenes; template drag uses different mime
+                    if (dragTemplateId) return;
+                    setDragSceneId(scene.id);
+                    e.dataTransfer.setData(
+                      "application/x-lumiera-scene",
+                      scene.id
                     );
-                    if (t) {
-                      setSelectedTemplate(t);
-                      setPreviewTemplate(t);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragEnd={() => {
+                    setDragSceneId(null);
+                    setDropSceneId(null);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    const isTpl = e.dataTransfer.types.includes(
+                      "application/x-lumiera-template"
+                    );
+                    e.dataTransfer.dropEffect = isTpl ? "copy" : "move";
+                    setDropSceneId(scene.id);
+                  }}
+                  onDragLeave={() => {
+                    setDropSceneId((cur) => (cur === scene.id ? null : cur));
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const tplId = e.dataTransfer.getData(
+                      "application/x-lumiera-template"
+                    );
+                    const scId = e.dataTransfer.getData(
+                      "application/x-lumiera-scene"
+                    );
+                    if (tplId) {
+                      assignTemplateIdToScene(tplId, scene.id);
+                    } else if (scId) {
+                      reorderScenes(scId, scene.id);
                     }
-                  }
-                  if (scene.props && typeof scene.props === "object") {
-                    setPropDraft({
-                      value: String(
-                        (scene.props as any).value ??
-                          (scene.props as any).valor ??
-                          ""
-                      ),
-                      unit: String(
-                        (scene.props as any).unit ??
-                          (scene.props as any).unidade ??
-                          ""
-                      ),
-                      label: String((scene.props as any).label ?? ""),
-                      title: String(
-                        (scene.props as any).title ??
-                          (scene.props as any).text ??
-                          (scene.props as any).label ??
-                          ""
-                      ),
-                      subtitle: String((scene.props as any).subtitle ?? ""),
-                      prefix: String((scene.props as any).prefix ?? ""),
-                      suffix: String((scene.props as any).suffix ?? ""),
-                    });
-                  }
-                }}
-                className={`relative flex flex-col justify-between px-3 py-2 rounded-lg border text-left transition-all cursor-grab active:cursor-grabbing ${
-                  selectedScene?.id === scene.id
-                    ? "border-indigo-400/60 bg-indigo-500/10"
-                    : dropSceneId === scene.id
-                      ? "border-emerald-400/70 bg-emerald-500/15 ring-1 ring-emerald-400/40"
-                      : dragSceneId === scene.id
-                        ? "border-white/20 bg-white/10 opacity-60"
-                        : "border-white/5 bg-white/[0.02] hover:bg-white/5"
-                }`}
-                style={{
-                  width: Math.max(100, (scene.duration_seconds || 5) * 30),
-                }}
-              >
-                <div className="text-[10px] text-gray-400 truncate font-medium flex items-center gap-1">
-                  <GripVertical className="w-3 h-3 opacity-40 shrink-0" />#
-                  {i + 1} {scene.narration.slice(0, 40) || "Sem narração"}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {scene.template_id ? (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold truncate max-w-[80px]">
-                      {scene.template_name}
-                    </span>
-                  ) : (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500">
-                      solte template
-                    </span>
-                  )}
-                  <span className="text-[9px] text-gray-600">
-                    @{scene.start_seconds}s
-                  </span>
-                </div>
-                {scene.palette && (
-                  <div className="absolute top-1 right-1 flex gap-0.5">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: scene.palette.primary }}
-                    />
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: scene.palette.accent }}
-                    />
+                    setDropSceneId(null);
+                    setDragTemplateId(null);
+                    setDragSceneId(null);
+                  }}
+                  onClick={() => {
+                    setSelectedScene(scene);
+                    if (scene.template_id) {
+                      const motionClipId = `motion-scene-${scene.id}`;
+                      setSelectedClipId(motionClipId);
+                      const motionClip = findLumieraClip(
+                        editorProject,
+                        motionClipId
+                      )?.clip;
+                      if (motionClip) setPlayheadFrame(motionClip.startFrame);
+                    } else {
+                      setSelectedClipId(null);
+                    }
+                    if (scene.template_id) {
+                      const t = templates.find(
+                        (x) => x.template_id === scene.template_id
+                      );
+                      if (t) {
+                        setSelectedTemplate(t);
+                        setPreviewTemplate(t);
+                      }
+                    }
+                    if (scene.props && typeof scene.props === "object") {
+                      setPropDraft({
+                        value: String(
+                          (scene.props as any).value ??
+                            (scene.props as any).valor ??
+                            ""
+                        ),
+                        unit: String(
+                          (scene.props as any).unit ??
+                            (scene.props as any).unidade ??
+                            ""
+                        ),
+                        label: String((scene.props as any).label ?? ""),
+                        title: String(
+                          (scene.props as any).title ??
+                            (scene.props as any).text ??
+                            (scene.props as any).label ??
+                            ""
+                        ),
+                        subtitle: String((scene.props as any).subtitle ?? ""),
+                        prefix: String((scene.props as any).prefix ?? ""),
+                        suffix: String((scene.props as any).suffix ?? ""),
+                      });
+                    }
+                  }}
+                  className={`relative flex flex-col justify-between px-3 py-2 rounded-lg border text-left transition-all cursor-grab active:cursor-grabbing ${
+                    selectedScene?.id === scene.id
+                      ? "border-indigo-400/60 bg-indigo-500/10"
+                      : dropSceneId === scene.id
+                        ? "border-emerald-400/70 bg-emerald-500/15 ring-1 ring-emerald-400/40"
+                        : dragSceneId === scene.id
+                          ? "border-white/20 bg-white/10 opacity-60"
+                          : "border-white/5 bg-white/[0.02] hover:bg-white/5"
+                  }`}
+                  style={{
+                    width: Math.max(100, (scene.duration_seconds || 5) * 30),
+                  }}
+                >
+                  <div className="text-[10px] text-gray-400 truncate font-medium flex items-center gap-1">
+                    <GripVertical className="w-3 h-3 opacity-40 shrink-0" />#
+                    {i + 1} {scene.narration.slice(0, 40) || "Sem narração"}
                   </div>
-                )}
-              </button>
-            ))}
-            {scenes.length === 0 && (
-              <div className="flex items-center justify-center w-full text-xs text-gray-600">
-                {activeProject
-                  ? "Projeto sem visual_prompts no storyboard"
-                  : "Selecione um projeto para ver as cenas"}
-              </div>
-            )}
+                  <div className="flex items-center gap-1.5">
+                    {scene.template_id ? (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold truncate max-w-[80px]">
+                        {scene.template_name}
+                      </span>
+                    ) : (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500">
+                        solte template
+                      </span>
+                    )}
+                    <span className="text-[9px] text-gray-600">
+                      @{scene.start_seconds}s
+                    </span>
+                  </div>
+                  {scene.palette && (
+                    <div className="absolute top-1 right-1 flex gap-0.5">
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: scene.palette.primary }}
+                      />
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: scene.palette.accent }}
+                      />
+                    </div>
+                  )}
+                </button>
+              ))}
+              {scenes.length === 0 && (
+                <div className="flex items-center justify-center w-full text-xs text-gray-600">
+                  {activeProject
+                    ? "Projeto sem visual_prompts no storyboard"
+                    : "Selecione um projeto para ver as cenas"}
+                </div>
+              )}
+            </div>
+          </div>
+          <div
+            className="flex-none border-t border-white/5"
+            style={{ height: 60 + editorProject.tracks.length * 48 }}
+          >
+            <LumieraEditorTimeline
+              project={editorProject}
+              playheadFrame={playheadFrame}
+              selectedClipId={selectedClipId}
+              onPlayheadChange={setPlayheadFrame}
+              onSelectClip={(clipId) => {
+                setSelectedClipId(clipId);
+                const clip = findLumieraClip(editorProject, clipId)?.clip;
+                if (clip) setPlayheadFrame(clip.startFrame);
+              }}
+              onCommand={executeEditorCommand}
+              onAddMotionTemplate={addMotionTemplateToTimeline}
+            />
           </div>
         </div>
-        <div
-          className="flex-none border-t border-white/5"
-          style={{ height: 60 + editorProject.tracks.length * 48 }}
-        >
-          <LumieraEditorTimeline
-            project={editorProject}
-            playheadFrame={playheadFrame}
-            selectedClipId={selectedClipId}
-            onPlayheadChange={setPlayheadFrame}
-            onSelectClip={(clipId) => {
-              setSelectedClipId(clipId);
-              const clip = findLumieraClip(editorProject, clipId)?.clip;
-              if (clip) setPlayheadFrame(clip.startFrame);
-            }}
-            onCommand={executeEditorCommand}
-            onAddMotionTemplate={addMotionTemplateToTimeline}
-          />
-        </div>
       </div>
-    </div>
-    <StockSearchModal
-      open={stockModal.open}
-      onClose={() => setStockModal((current) => ({ ...current, open: false }))}
-      query={stockQuery}
-      mediaType={stockModal.mediaType}
-      aspectRatio={editorProject.height > editorProject.width ? "9:16" : "16:9"}
-      projectName={activeProject || ""}
-      onSelect={addStockAsset}
-    />
+      <StockSearchModal
+        open={stockModal.open}
+        onClose={() =>
+          setStockModal((current) => ({ ...current, open: false }))
+        }
+        query={stockQuery}
+        mediaType={stockModal.mediaType}
+        aspectRatio={
+          editorProject.height > editorProject.width ? "9:16" : "16:9"
+        }
+        projectName={activeProject || ""}
+        onSelect={addStockAsset}
+      />
     </>
   );
 }

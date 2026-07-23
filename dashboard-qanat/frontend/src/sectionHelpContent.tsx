@@ -103,6 +103,15 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  "tab-director": {
+    title: "Diretor",
+    body: (
+      <>
+        Timeline de direção do projeto: sincronize B-roll, motion, narração,
+        legendas, transições e timing antes do render.
+      </>
+    ),
+  },
   "tab-editor": {
     title: "Editor do Lumiera",
     body: (

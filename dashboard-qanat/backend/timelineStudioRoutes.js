@@ -45,6 +45,7 @@ import fs from "fs";
 import path from "path";
 import { upsertMusicClipInStudio } from "../shared/timelineStudioMusic.js";
 import {
+  createLumieraEditorProject,
   ingestLumieraEditorAsset,
   hydrateLumieraEditorFromTimelineStudio,
   loadLumieraEditorProject,
@@ -86,18 +87,55 @@ export function registerTimelineStudioRoutes(
   app.get("/api/lumiera-editor/project", (req, res) => {
     try {
       const projectDir = getProjectDir(req);
+      const config = readProjectConfig(projectDir);
+      const blockTimingsPath = path.join(projectDir, "block_timings.json");
+      let blockTimings = {};
+      try {
+        if (fs.existsSync(blockTimingsPath)) {
+          blockTimings = JSON.parse(fs.readFileSync(blockTimingsPath, "utf8"));
+        }
+      } catch {
+        blockTimings = {};
+      }
+
+      const loaded = loadTimelineStudio(projectDir);
+      let studio = loaded?.studio || {};
+      const mergedStudio = mergeMissingBrollFromConfig(
+        studio,
+        config,
+        blockTimings
+      );
+      const configuredFormat =
+        config.aspect_ratio === "9:16"
+          ? "9:16"
+          : config.aspect_ratio === "16:9"
+            ? "16:9"
+            : studio.format;
+      if (configuredFormat && mergedStudio.format !== configuredFormat) {
+        studio = { ...mergedStudio, format: configuredFormat };
+      } else {
+        studio = mergedStudio;
+      }
+      if (studio !== loaded?.studio) {
+        saveTimelineStudio(projectDir, studio);
+      }
+
       let project = loadLumieraEditorProject(projectDir);
-      let imported = 0;
-      if (project) {
-        const { studio } = loadTimelineStudio(projectDir);
-        const hydrated = hydrateLumieraEditorFromTimelineStudio(
-          project,
-          studio,
-          path.basename(projectDir)
+      const created = !project;
+      if (!project) {
+        project = createLumieraEditorProject(
+          configuredFormat === "9:16" ? "9:16" : "16:9"
         );
-        project = hydrated.project;
-        imported = hydrated.imported;
-        if (hydrated.changed) project = saveLumieraEditorProject(projectDir, project);
+      }
+      const hydrated = hydrateLumieraEditorFromTimelineStudio(
+        project,
+        studio,
+        path.basename(projectDir)
+      );
+      project = hydrated.project;
+      const imported = hydrated.imported;
+      if (created || hydrated.changed) {
+        project = saveLumieraEditorProject(projectDir, project);
       }
       res.json({ ok: true, project, imported });
     } catch (err) {
@@ -121,7 +159,11 @@ export function registerTimelineStudioRoutes(
     const projectDir = getProjectDir(req);
     const projectName = path.basename(projectDir);
     let originalName = String(req.headers["x-file-name"] || "asset.bin");
-    try { originalName = decodeURIComponent(originalName); } catch { /* already decoded */ }
+    try {
+      originalName = decodeURIComponent(originalName);
+    } catch {
+      /* already decoded */
+    }
     const kind = String(req.headers["x-media-kind"] || "video");
     if (!["video", "audio", "image", "lottie"].includes(kind)) {
       return res.status(400).json({ error: "Tipo de midia invalido" });
@@ -154,13 +196,19 @@ export function registerTimelineStudioRoutes(
           projectName,
           inputPath: stagingPath,
           originalName,
-          mimeType: String(req.headers["content-type"] || "application/octet-stream"),
+          mimeType: String(
+            req.headers["content-type"] || "application/octet-stream"
+          ),
           kind,
           fps: Number(req.query?.fps) || 30,
         });
         res.json({ ok: true, asset });
       } catch (err) {
-        try { if (fs.existsSync(stagingPath)) fs.unlinkSync(stagingPath); } catch { /* ignore */ }
+        try {
+          if (fs.existsSync(stagingPath)) fs.unlinkSync(stagingPath);
+        } catch {
+          /* ignore */
+        }
         res.status(500).json({ error: err.message });
       }
     });
@@ -450,7 +498,8 @@ export function registerTimelineStudioRoutes(
 
   app.post("/api/timeline-studio/stock/ai-context-query", async (req, res) => {
     try {
-      const { narration_text, visual_description, prompt, video_theme } = req.body || {};
+      const { narration_text, visual_description, prompt, video_theme } =
+        req.body || {};
       const contextText = [
         narration_text ? `Narração da cena: "${narration_text}"` : "",
         visual_description ? `Descrição visual: "${visual_description}"` : "",
@@ -461,11 +510,15 @@ export function registerTimelineStudioRoutes(
         .join("\n");
 
       if (!contextText.trim()) {
-        return res.status(400).json({ error: "Contexto da cena é necessário." });
+        return res
+          .status(400)
+          .json({ error: "Contexto da cena é necessário." });
       }
 
       const projDir = getProjectDir(req);
-      const keys = getWorkflowApiKeys ? getWorkflowApiKeys(workspaceDir, projDir) : {};
+      const keys = getWorkflowApiKeys
+        ? getWorkflowApiKeys(workspaceDir, projDir)
+        : {};
       const apiKey = keys.gemini || process.env.GEMINI_API_KEY;
 
       const systemPrompt = `Você é um curador de banco de imagens/vídeos (Pexels, Pixabay, Bing).
@@ -494,7 +547,10 @@ Regras:
         );
       }
 
-      query = String(query || "").replace(/["']/g, "").replace(/\n/g, " ").trim();
+      query = String(query || "")
+        .replace(/["']/g, "")
+        .replace(/\n/g, " ")
+        .trim();
       if (!query) {
         query = resolveStockSearchQuery(
           { narration_text, visual_description, prompt },

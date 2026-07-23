@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { TabErrorBoundary } from "./TabErrorBoundary";
 import { DashminPageLayout } from "./DashminPageLayout";
+import { DashminProjectTabLayout } from "./DashminProjectTabLayout";
 import type { AppTab } from "./appTabs";
 import type { AppTabPropBundles } from "./appTabPropBundles";
 import type { ConfigData } from "./appTypes";
@@ -106,6 +107,7 @@ export type AppGlobalStudioPanelsProps = {
   setNewProjectFormat: (format: "LONGO" | "SHORTS") => void;
   setNewProjectNiche: (niche: string) => void;
   setShowCreateModal: (open: boolean) => void;
+  renderTimelineStudio: () => React.ReactNode;
   hasApiKey: boolean;
   saveConfigPatch?: (
     patch: Record<string, unknown>,
@@ -144,6 +146,7 @@ export function AppTabPanels({
   setNewProjectFormat,
   setNewProjectNiche,
   setShowCreateModal,
+  renderTimelineStudio,
   hasApiKey,
   saveConfigPatch,
   setConfig,
@@ -470,6 +473,14 @@ export function AppTabPanels({
           >
             <AppUploadTab {...uploadTabProps} />
           </Suspense>
+        </TabErrorBoundary>
+      )}
+
+      {activeTab === "director" && (
+        <TabErrorBoundary tabName="Diretor">
+          <DashminProjectTabLayout tab="director" activeProject={activeProject}>
+            {renderTimelineStudio()}
+          </DashminProjectTabLayout>
         </TabErrorBoundary>
       )}
 

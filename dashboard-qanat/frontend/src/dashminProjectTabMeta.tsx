@@ -1,5 +1,6 @@
 import type { ElementType } from "react";
 import {
+  Clapperboard,
   Layers,
   Music,
   Settings,
@@ -17,6 +18,7 @@ export type DashProjectTabId =
   | "music"
   | "ai"
   | "upload"
+  | "director"
   | "editor"
   | "terminal";
 
@@ -68,6 +70,13 @@ export const DASH_PROJECT_TAB_META: Record<
     title: "Upload",
     subtitle: "Distribuição multi-plataforma e metadados por rede.",
     icon: Share2,
+  },
+  director: {
+    id: "director",
+    title: "Diretor",
+    subtitle:
+      "Direção temporal de B-roll, motion, narração, legendas e transições.",
+    icon: Clapperboard,
   },
   editor: {
     id: "editor",

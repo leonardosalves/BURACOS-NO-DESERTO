@@ -1,4 +1,7 @@
-import { buildConsolidatedGuidelines } from "./guidelines.js";
+import {
+  buildConsolidatedGuidelines,
+  buildCompactGuidelines,
+} from "./guidelines.js";
 import {
   VIRAL_HOOK_TYPES,
   VIRAL_SHORT_FORM_REINFORCEMENT,
@@ -1999,4 +2002,19 @@ Responda APENAS JSON:
   "narrative_script": "...",
   "narrative_script_tagged": "..."
 }`;
+}
+
+/**
+ * Centraliza a seleção do prompt builder por fase/modo.
+ * Elimina a lógica espalhada no server.js (L22888-22894).
+ */
+export function resolveScriptPromptBuilder(promptContext = {}) {
+  const { scriptPhase, approvedNarration } = promptContext;
+  if (scriptPhase === "narration") {
+    return buildNarrationOnlyPrompt(promptContext);
+  }
+  if (approvedNarration) {
+    return buildCreatorPhase2Prompt(promptContext);
+  }
+  return buildCreatorFullScriptPrompt(promptContext);
 }

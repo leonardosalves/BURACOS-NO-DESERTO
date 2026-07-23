@@ -1,4 +1,5 @@
 import {
+  Clapperboard,
   Layers,
   LayoutTemplate,
   Music,
@@ -50,6 +51,12 @@ export const PROJECT_WORKSPACE_TABS = [
     label: "Upload",
     icon: Share2,
     helpId: "tab-upload",
+  },
+  {
+    id: "director" as const,
+    label: "Diretor",
+    icon: Clapperboard,
+    helpId: "tab-director",
   },
   {
     id: "editor" as const,

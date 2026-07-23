@@ -16,6 +16,7 @@ export type AppTab =
   | "flow-lab"
   | "settings"
   | "upload"
+  | "director"
   | "agents"
   | "youtube-studio"
   | "video-resurrector"
@@ -44,6 +45,7 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   "flow-lab",
   "settings",
   "upload",
+  "director",
   "agents",
   "youtube-studio",
   "video-resurrector",
@@ -83,5 +85,5 @@ export function isGlobalViewTab(tab: AppTab): boolean {
 
 /** Abas com edição intensa — pausar polling/fetch em background. */
 export function isEditorHeavyTab(tab: AppTab): boolean {
-  return tab === "editor" || tab === "flow-lab";
+  return tab === "director" || tab === "editor" || tab === "flow-lab";
 }

@@ -161,3 +161,46 @@ export function resolveCreatorModeIdentity(mode: string): CreatorModeIdentity {
     CREATOR_MODE_IDENTITIES.ai
   );
 }
+
+const NICHE_MODE_HINTS: Record<string, CreatorIdeationMode[]> = {
+  engenharia: ["historical-witness", "ai", "express"],
+  historia: ["historical-witness", "ai", "custom"],
+  geografia: ["ai", "express", "listicle"],
+  ciencia: ["ai", "express", "custom"],
+  curiosidades: ["express", "ai", "humor-facts"],
+  humor: ["humor-facts", "express", "ai"],
+  tecnologia: ["ai", "express", "custom"],
+  misterio: ["ai", "historical-witness", "custom"],
+  natureza: ["ai", "express", "collage-broll"],
+  financas: ["ai", "listicle", "express"],
+};
+
+/**
+ * Sugere o modo Creator ideal baseado no nicho e formato.
+ * Retorna o modo recomendado + alternativas ordenadas.
+ */
+export function suggestCreatorMode(
+  niche: string,
+  format: string
+): { recommended: CreatorIdeationMode; alternatives: CreatorIdeationMode[] } {
+  const nicheKey = String(niche || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z]/g, "");
+
+  const isShorts = /short/i.test(format);
+
+  const hints = NICHE_MODE_HINTS[nicheKey];
+  if (hints && hints.length > 0) {
+    const recommended =
+      isShorts && hints.includes("express") ? "express" : hints[0];
+    const alternatives = hints.filter((m) => m !== recommended);
+    return { recommended, alternatives };
+  }
+
+  if (isShorts) {
+    return { recommended: "express", alternatives: ["ai", "humor-facts"] };
+  }
+  return { recommended: "ai", alternatives: ["custom", "historical-witness"] };
+}

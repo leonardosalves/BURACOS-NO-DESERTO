@@ -256,6 +256,7 @@ import { registerWhiteboardRoutes } from "./whiteboardRoutes.js";
 import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
 import { registerAgentReachRoutes } from "./agentReachRoutes.js";
 import { registerVideoMonitorRoutes } from "./videoMonitorRoutes.js";
+import { registerGeminiWatermarkRoutes } from "./geminiWatermarkRoutes.js";
 import creatorHistoryRoutes from "./creatorHistoryRoutes.js";
 import { ensureCreatorHistoryDatabase } from "./creatorHistoryService.js";
 import {
@@ -866,6 +867,23 @@ app.use("/api/agents", agentsRouter);
 // Channel title templates (legado) — path dedicado para não colidir com Template Store
 app.use("/api/channel-templates", templatesRouter);
 app.use("/api/flows", flowRouter);
+
+function resolveProjectPath(projParam) {
+  if (!projParam) return WORKSPACE_DIR;
+  if (path.isAbsolute(projParam) && fs.existsSync(projParam)) return projParam;
+  const candidates = [
+    path.resolve(WORKSPACE_DIR, projParam),
+    path.resolve(LONGS_DIR, projParam),
+    path.resolve(SHORTS_DIR, projParam),
+    path.resolve(PROJECTS_ROOT, projParam),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return path.resolve(WORKSPACE_DIR, projParam);
+}
+
+registerGeminiWatermarkRoutes(app, resolveProjectPath);
 
 // Catch malformed JSON syntax errors to prevent crashing
 app.use((err, req, res, next) => {
@@ -20966,7 +20984,8 @@ app.post(
     if (progressJobId) {
       setJobProgress(progressJobId, {
         phase: "filtering",
-        label: "🛡️ [2/3] Filtrando tópicos explorados e estruturando 10 ideias…",
+        label:
+          "🛡️ [2/3] Filtrando tópicos explorados e estruturando 10 ideias…",
         percent: 55,
       });
     }
@@ -23522,11 +23541,15 @@ app.post(
           persistedAudit = {
             integrity: editedIntegrityAudit,
             editorial: editedEditorialAudit,
-            approved: (editedIntegrityAudit.ok && editedEditorialAudit.ok) || allowBypass,
+            approved:
+              (editedIntegrityAudit.ok && editedEditorialAudit.ok) ||
+              allowBypass,
             narrative_sha256: approvedNarrationHash,
             audited_at: new Date().toISOString(),
             user_edited: true,
-            bypassed: allowBypass && !(editedIntegrityAudit.ok && editedEditorialAudit.ok),
+            bypassed:
+              allowBypass &&
+              !(editedIntegrityAudit.ok && editedEditorialAudit.ok),
           };
           if (!persistedAudit.approved) {
             const issues = [
@@ -24654,9 +24677,7 @@ app.post(
       storyboard.visual_prompts = vps.map((vp, index) => {
         const vpSceneStr = String(vp.scene ?? vp.cena ?? "").trim();
         let prev =
-          prevSceneMap.get(vpSceneStr) ||
-          prevSnapshotVps[index] ||
-          null;
+          prevSceneMap.get(vpSceneStr) || prevSnapshotVps[index] || null;
         const block =
           prev?.block ??
           parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ??
