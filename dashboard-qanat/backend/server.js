@@ -4616,9 +4616,10 @@ app.post("/api/video-agent/chat", async (req, res) => {
         });
       }
 
-      // Remove comentários descritivos em português (ex: "— criar composição")
+      // Remove comentários descritivos em português (ex: "— criar composição") sem truncar flags como --quality
       let cleanExtraArgs = (hfMatch[2] || "")
-        .replace(/\s*[—–-]\s*[A-Za-zÀ-ÿ].*/i, "")
+        .replace(/\s+[—–]\s*.*/g, "")
+        .replace(/\s+-\s+[A-Za-zÀ-ÿ].*/g, "")
         .trim();
 
       const workDir = fs.existsSync(hfDir) ? hfDir : projDir;
