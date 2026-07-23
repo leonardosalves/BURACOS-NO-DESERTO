@@ -100,6 +100,13 @@ const STUDIO_CHANNELS: GlobalNavItem[] = [
     helpId: undefined,
     accent: "sky",
   },
+  {
+    id: "video-agent",
+    label: "Video Agent",
+    icon: Clapperboard,
+    helpId: undefined,
+    accent: "violet",
+  },
 ];
 
 const STUDIO_TOOLS: GlobalNavItem[] = [
@@ -751,7 +758,15 @@ export function AppShell({
         />
 
         <main className="dash-main">
-          <div className={activeTab === "editor" ? "dash-content dash-content-editor" : "dash-content"}>{children}</div>
+          <div
+            className={
+              activeTab === "editor"
+                ? "dash-content dash-content-editor"
+                : "dash-content"
+            }
+          >
+            {children}
+          </div>
         </main>
       </div>
 

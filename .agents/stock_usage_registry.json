@@ -2,57 +2,52 @@
   "bySourceId": {
     "pexels:33893555": {
       "count": 1,
-      "projects": [
-        "Uma_unica_bala_acabou"
-      ],
+      "projects": ["Uma_unica_bala_acabou"],
       "lastScene": "timeline-studio",
       "lastQuery": "barão vermelho",
       "lastAt": "2026-07-13T23:27:21.028Z"
     },
     "pixabay:270164": {
       "count": 1,
-      "projects": [
-        "Megaprojeto_das_Alturas_Ponte"
-      ],
+      "projects": ["Megaprojeto_das_Alturas_Ponte"],
       "lastScene": "timeline-studio",
       "lastQuery": "Abertura China Huajiang mergulho aéreo cânion",
       "lastAt": "2026-07-21T20:41:22.169Z"
     },
     "pexels:34395633": {
       "count": 1,
-      "projects": [
-        "Megaprojeto_das_Alturas_Ponte"
-      ],
+      "projects": ["Megaprojeto_das_Alturas_Ponte"],
       "lastScene": "timeline-studio",
       "lastQuery": "Fotografia Suspenso Pattern estática colossais pilares",
       "lastAt": "2026-07-21T20:41:47.954Z"
     },
     "pexels:27941748": {
       "count": 1,
-      "projects": [
-        "Megaprojeto_das_Alturas_Ponte"
-      ],
+      "projects": ["Megaprojeto_das_Alturas_Ponte"],
       "lastScene": "timeline-studio",
       "lastQuery": "Tomada Sua movimento focando cabos sustentação",
       "lastAt": "2026-07-21T20:42:03.147Z"
     },
     "pexels:15221699": {
       "count": 1,
-      "projects": [
-        "Megaprojeto_das_Alturas_Ponte"
-      ],
+      "projects": ["Megaprojeto_das_Alturas_Ponte"],
       "lastScene": "timeline-studio",
       "lastQuery": "Enquadramento Ponto Aplicar final simétrico heroico",
       "lastAt": "2026-07-21T20:42:17.264Z"
     },
     "pexels:33651645": {
       "count": 1,
-      "projects": [
-        "Ponte_do_Rio_Danshui"
-      ],
+      "projects": ["Ponte_do_Rio_Danshui"],
       "lastScene": "timeline-studio",
       "lastQuery": "Ponte do Rio Danshu",
       "lastAt": "2026-07-21T22:00:55.449Z"
+    },
+    "pexels:8172874": {
+      "count": 1,
+      "projects": ["Chaleira_gas_ruiu"],
+      "lastScene": "timeline-studio",
+      "lastQuery": "London tarnished vintage brass tea kettle",
+      "lastAt": "2026-07-23T18:24:01.162Z"
     }
   },
   "byRelPath": {
@@ -97,6 +92,13 @@
       "query": "Ponte do Rio Danshu",
       "sourceId": "pexels:33651645",
       "at": "2026-07-21T22:00:55.449Z"
+    },
+    "stock_London_tarnished_vintage_brass_tea_kettle_pexels_8172874_20260723182400.jpg": {
+      "project": "Chaleira_gas_ruiu",
+      "scene": "timeline-studio",
+      "query": "London tarnished vintage brass tea kettle",
+      "sourceId": "pexels:8172874",
+      "at": "2026-07-23T18:24:01.162Z"
     }
   }
 }

@@ -710,6 +710,17 @@ export function AppTabPanels({
           </Suspense>
         </TabErrorBoundary>
       )}
+
+      {/* TAB: VIDEO AGENT */}
+      {activeTab === "video-agent" && (
+        <TabErrorBoundary tabName="Video Agent">
+          <Suspense
+            fallback={<TabPanelFallback label="Carregando Video Agent..." />}
+          >
+            <LazyVideoAgentPage />
+          </Suspense>
+        </TabErrorBoundary>
+      )}
     </div>
   );
 }

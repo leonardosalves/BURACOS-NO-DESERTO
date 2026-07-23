@@ -24690,15 +24690,17 @@ app.post(
           ? 5
           : 12;
       // Preserva a narração original, durações e flags POV
-      const prevSceneMap = new Map();
-      const prevSnapshotVps = prevSnapshot.visual_prompts || [];
-      for (const prev of prevSnapshotVps) {
-        if (prev?.scene) prevSceneMap.set(String(prev.scene).trim(), prev);
+      // Mapear LLM visual_prompts por chave de cena para casar perfeitamente com prevSnapshotVps
+      const vpsBySceneKey = new Map();
+      for (const vpItem of vps) {
+        const k = String(vpItem.scene ?? vpItem.cena ?? "").trim();
+        if (k) vpsBySceneKey.set(k, vpItem);
       }
-      storyboard.visual_prompts = vps.map((vp, index) => {
-        const vpSceneStr = String(vp.scene ?? vp.cena ?? "").trim();
-        let prev =
-          prevSceneMap.get(vpSceneStr) || prevSnapshotVps[index] || null;
+      storyboard.visual_prompts = prevSnapshotVps.map((prev, index) => {
+        const prevSceneStr = String(
+          prev.scene ?? `${prev.block || 1}.${index + 1}`
+        ).trim();
+        let vp = vpsBySceneKey.get(prevSceneStr) || vps[index] || {};
         const block =
           prev?.block ??
           parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ??
