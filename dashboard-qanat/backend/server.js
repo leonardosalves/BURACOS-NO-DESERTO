@@ -4893,7 +4893,7 @@ app.post("/api/video-agent/chat", async (req, res) => {
           env: {
             ...process.env,
             NODE_OPTIONS: "",
-            PATH: `C:\\Program Files\\nodejs;${process.env.PATH || ""}`,
+            PATH: `C:\\Users\\Leo\\AppData\\Local\\Microsoft\\WinGet\\Links;C:\\Program Files\\nodejs;C:\\ffmpeg\\bin;${process.env.PATH || ""}`,
           },
         });
         let stdout = "";
