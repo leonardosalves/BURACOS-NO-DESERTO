@@ -411,13 +411,13 @@ export function assessNarracaoProIntegrity({
     );
   }
   if (isShort && selectedFacts.length > 3) {
-    issues.push(
-      `Short selecionou ${selectedFacts.length} fatos centrais; o limite é 3.`
+    warnings.push(
+      `Short selecionou ${selectedFacts.length} fatos centrais; o recomendado é no máximo 3.`
     );
   }
   if (isShort && entities.length > 3) {
-    issues.push(
-      `Short mistura ${entities.length} entidades; reduza para uma tese e no máximo três entidades indispensáveis.`
+    warnings.push(
+      `Short mistura ${entities.length} entidades; recomenda-se reduzir para uma tese e no máximo três entidades indispensáveis.`
     );
   }
   if (

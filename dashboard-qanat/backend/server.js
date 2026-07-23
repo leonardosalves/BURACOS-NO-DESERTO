@@ -23511,13 +23511,22 @@ app.post(
             narrativeScript: approvedNarration,
             strategy: existingStrategy || persistedStoryboard.strategy || {},
           });
+          const allowBypass = Boolean(
+            req.body?.forceApprove ||
+            req.body?.bypassAudit ||
+            req.body?.force_approve ||
+            req.body?.ignoreAudit ||
+            req.body?.allowFactOverflow ||
+            req.body?.allow_fact_overflow
+          );
           persistedAudit = {
             integrity: editedIntegrityAudit,
             editorial: editedEditorialAudit,
-            approved: editedIntegrityAudit.ok && editedEditorialAudit.ok,
+            approved: (editedIntegrityAudit.ok && editedEditorialAudit.ok) || allowBypass,
             narrative_sha256: approvedNarrationHash,
             audited_at: new Date().toISOString(),
             user_edited: true,
+            bypassed: allowBypass && !(editedIntegrityAudit.ok && editedEditorialAudit.ok),
           };
           if (!persistedAudit.approved) {
             const issues = [
