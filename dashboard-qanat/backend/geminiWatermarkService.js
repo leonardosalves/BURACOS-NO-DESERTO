@@ -2,6 +2,40 @@ import os from "os";
 import path from "path";
 import fs from "fs";
 import { spawn } from "child_process";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+function resolveScriptPath() {
+  const candidates = [
+    path.resolve(__dirname, "../../scripts/gemini_watermark_remover.py"),
+    path.resolve(__dirname, "../scripts/gemini_watermark_remover.py"),
+    path.resolve(process.cwd(), "scripts/gemini_watermark_remover.py"),
+    path.resolve(process.cwd(), "../scripts/gemini_watermark_remover.py"),
+    "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\scripts\\gemini_watermark_remover.py",
+    "C:\\Lumiera\\scripts\\gemini_watermark_remover.py",
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return candidates[0];
+}
+
+function resolvePythonBinary() {
+  const envPy = process.env.PYTHON_BINARY;
+  if (envPy && fs.existsSync(envPy)) return envPy;
+  const candidates = [
+    "C:\\Users\\Leo\\AppData\\Local\\Python\\bin\\python.exe",
+    "C:\\Users\\Leo\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+    "C:\\Users\\Leo\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "python",
+  ];
+  for (const c of candidates) {
+    if (c === "python") return c;
+    if (fs.existsSync(c)) return c;
+  }
+  return "python";
+}
 
 /**
  * Localiza todos os vídeos do projeto (.mp4, .webm, .mov)
@@ -89,12 +123,7 @@ export async function processProjectWatermark(
   onLog = () => {},
   onProgress = () => {}
 ) {
-  const rootDir = process.cwd();
-  const scriptPath = path.join(
-    rootDir,
-    "scripts",
-    "gemini_watermark_remover.py"
-  );
+  const scriptPath = resolveScriptPath();
 
   if (!fs.existsSync(scriptPath)) {
     throw new Error(`Script Python não encontrado em: ${scriptPath}`);
@@ -160,7 +189,8 @@ export async function processProjectWatermark(
     const tempOutputPath = `${videoPath}_cleaned.mp4`;
 
     // Executar script Python
-    const pythonExe = process.env.PYTHON_BINARY || "python";
+    const pythonExe = resolvePythonBinary();
+    const spawnCwd = path.dirname(scriptPath);
     const args = [
       scriptPath,
       "--input",
@@ -173,10 +203,12 @@ export async function processProjectWatermark(
       String(options.watermarkSize || 64),
     ];
 
-    onLog(`[WATERMARK] Executando Reverse Alpha Blending Python...`);
+    onLog(
+      `[WATERMARK] Executando Reverse Alpha Blending Python com ${path.basename(pythonExe)}...`
+    );
 
     const code = await new Promise((resolve) => {
-      const proc = spawn(pythonExe, args, { cwd: rootDir });
+      const proc = spawn(pythonExe, args, { cwd: spawnCwd });
 
       proc.stdout.on("data", (data) => {
         const text = data.toString("utf-8");
