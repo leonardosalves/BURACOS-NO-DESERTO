@@ -5158,6 +5158,21 @@ app.post("/api/video-agent/chat", async (req, res) => {
           if (isMotion || removeAll) {
             html = html.replace(/<div id="odometerCard"[\s\S]*?<\/div>/gi, "");
           }
+          // Atualizar o script GSAP para usar verificação de elemento segura
+          const safeGsapScript = `<script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const dateEl = document.querySelector('#dateBadge');
+      if (dateEl) {
+        tl.from(dateEl, { opacity: 0, y: -40, duration: 0.8, ease: "back.out(1.7)" }, 0);
+      }
+      const odoEl = document.querySelector('#odometerCard');
+      if (odoEl) {
+        tl.from(odoEl, { opacity: 0, scale: 0.8, duration: 0.8, ease: "back.out(1.7)" }, 0);
+      }
+      window.__timelines["main"] = tl;
+    </script>`;
+          html = html.replace(/<script>[\s\S]*?<\/script>/gi, safeGsapScript);
           fs.writeFileSync(hfIndex, html, "utf8");
         } catch (e) {}
       }
