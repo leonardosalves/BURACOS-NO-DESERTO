@@ -10,6 +10,8 @@ import subprocess
 
 import shutil
 
+import time
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
@@ -1666,7 +1668,15 @@ def render_subclip(clip_id, clip_info):
 
 
 
+def _timed_render(clip_id, clip_info):
+    _t = time.perf_counter()
+    path, cached = render_subclip(clip_id, clip_info)
+    return path, cached, (time.perf_counter() - _t)
+
+
 def main():
+
+    _t_total = time.perf_counter()
 
     if not os.path.exists(DRONE_PATH):
 
@@ -1676,15 +1686,21 @@ def main():
 
     # 1. Build Subtitles
 
+    _t1 = time.perf_counter()
+
     print("[PROGRESSO] FASE 1/5 - Gerando legendas dinâmicas...")
 
     print("[PROGRESSO] 5%")
 
     generate_subtitles()
 
+    print(f"[TIMING] FASE 1 legendas = {time.perf_counter()-_t1:.2f}s")
+
 
 
     # 2. Build Timeline
+
+    _t2 = time.perf_counter()
 
     print("[PROGRESSO] FASE 2/5 - Montando linha do tempo...")
 
@@ -1696,6 +1712,8 @@ def main():
 
         clip['is_transition'] = (idx > 0 and timeline[idx-1]['block'] != clip['block'])
 
+    print(f"[TIMING] FASE 2 timeline = {time.perf_counter()-_t2:.2f}s")
+
     total_dur = sum(c['duration'] for c in timeline)
 
     print(f"Timeline compilada: {len(timeline)} clips, duração total: {total_dur:.2f}s.")
@@ -1703,6 +1721,10 @@ def main():
 
 
     # 3. Render sub-clips (bulk of the work - 10% to 80%)
+
+    _t3 = time.perf_counter()
+
+    clip_times = []
 
     print("[PROGRESSO] FASE 3/5 - Renderizando sub-clips...")
 
@@ -1714,7 +1736,7 @@ def main():
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
 
-        futures = {executor.submit(render_subclip, idx, clip): idx for idx, clip in enumerate(timeline)}
+        futures = {executor.submit(_timed_render, idx, clip): idx for idx, clip in enumerate(timeline)}
 
         completed_count = 0
 
@@ -1724,7 +1746,9 @@ def main():
 
             try:
 
-                path, cached = future.result()
+                path, cached, dt = future.result()
+
+                clip_times.append((dt, idx, cached))
 
                 rendered_paths[idx] = path
 
@@ -1744,9 +1768,19 @@ def main():
 
                 raise e
 
+    clip_times.sort(reverse=True)
+
+    print(f"[TIMING] FASE 3 clips = {time.perf_counter()-_t3:.2f}s")
+
+    for dt, cid, cached in clip_times[:5]:
+
+        print(f"[TIMING]   clip lento {cid:03d} = {dt:.2f}s ({'cache' if cached else 'render'})")
+
 
 
     # 4. Concatenate + Audio Mix
+
+    _t4 = time.perf_counter()
 
     print("[PROGRESSO] FASE 4/5 - Concatenando clips e mixando áudio...")
 
@@ -1836,9 +1870,13 @@ def main():
 
     subprocess.run(mix_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
+    print(f"[TIMING] FASE 4 concat+audio = {time.perf_counter()-_t4:.2f}s")
+
 
 
     # 5. Burn Subtitles
+
+    _t5 = time.perf_counter()
 
     print("[PROGRESSO] FASE 5/5 - Gravando legendas no vídeo...")
 
@@ -1876,6 +1914,8 @@ def main():
 
     shutil.copyfile(with_subs_path, main_delivery_path)
 
+    print(f"[TIMING] FASE 5 legendas no video = {time.perf_counter()-_t5:.2f}s")
+
 
 
     # Cleanup
@@ -1901,6 +1941,8 @@ def main():
     print("\n=======================================================")
 
     print("[PROGRESSO] 100%")
+
+    print(f"[TIMING] TOTAL = {time.perf_counter()-_t_total:.2f}s")
 
     print("SUCCESS! Video generation pipeline complete!")
 

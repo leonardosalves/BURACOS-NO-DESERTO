@@ -2,6 +2,9 @@ import os
 import sys
 import json
 import subprocess
+
+import time
+
 import numpy as np
 
 def get_ffmpeg_path():
@@ -144,6 +147,7 @@ def find_best_climax_start(filename, duration_s, target_sr=SR, mood='peak'):
     mood: peak (máxima energia), rise (crescendo), soft (entrada suave), neutral (meio estável).
     """
     try:
+        _tc = time.perf_counter()
         if not filename or not os.path.exists(filename):
             return 0.0
         cmd = [
@@ -200,7 +204,7 @@ def find_best_climax_start(filename, duration_s, target_sr=SR, mood='peak'):
                 best_score = score
                 best_start = i
 
-        print(f"Climax detection ({mode}): best start offset is {best_start}s (score={best_score:.4f})")
+        print(f"Climax detection ({mode}): best start offset is {best_start}s (score={best_score:.4f}) [TIMING climax={time.perf_counter()-_tc:.2f}s]")
         return float(best_start)
     except Exception as e:
         print(f"Error detecting climax: {e}")
@@ -281,6 +285,8 @@ def apply_sidechain_ducking(bgm_audio, narration_file, total_duration, target_sr
 
 def main():
 
+    _tm = time.perf_counter()
+
     print("Loading block timings...")
 
     with open('block_timings.json', 'r', encoding='utf-8') as f:
@@ -304,6 +310,8 @@ def main():
     total_samples = int((total_duration + 5.0) * SR)
 
     bgm_audio = np.zeros((total_samples, 2), dtype=np.float32)
+
+    _tb = time.perf_counter()
 
     if bgm_mode == 'emotion' and emotion_mappings:
 
@@ -528,6 +536,8 @@ def main():
 
             current_start_sample += int(dur * SR)
 
+    print(f"[TIMING] build bgm = {time.perf_counter()-_tb:.2f}s")
+
     # Apply strict background music volume scaling (0.10 = -20 dB below voiceover)
 
     print("Scaling background music volume...")
@@ -576,9 +586,15 @@ def main():
 
     narration_file = "narracao_mestra_premium.mp3"
 
+    _td = time.perf_counter()
+
     bgm_audio = apply_sidechain_ducking(bgm_audio, narration_file, total_duration)
 
+    print(f"[TIMING] ducking = {time.perf_counter()-_td:.2f}s")
+
     # Mix Sound Effects (SFX) after BGM ducking so SFX stays clean and crisp
+
+    _ts = time.perf_counter()
 
     if os.path.exists('sfx_timeline.json'):
 
@@ -630,6 +646,8 @@ def main():
 
             print(f"Warning: Failed to mix SFX: {e}")
 
+    print(f"[TIMING] sfx = {time.perf_counter()-_ts:.2f}s")
+
     # Trim output audio to exactly the narration length + a tiny 0.5s safety padding
 
     final_len = int((total_duration + 0.5) * SR)
@@ -662,7 +680,13 @@ def main():
 
     print("Writing output to trilha_documentario.mp3...")
 
+    _tw = time.perf_counter()
+
     write_pcm_to_mp3(output_audio_int16, "trilha_documentario.mp3")
+
+    print(f"[TIMING] write mp3 = {time.perf_counter()-_tw:.2f}s")
+
+    print(f"[TIMING] mix_bgm TOTAL = {time.perf_counter()-_tm:.2f}s")
 
     print("Soundtrack and SFX mixed and saved successfully!")
 
