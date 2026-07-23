@@ -4538,7 +4538,7 @@ app.post("/api/video-agent/chat", async (req, res) => {
       console.log(`[VideoAgent] Executando: ${command} (cwd: ${workDir})`);
 
       const npxCmd = fs.existsSync("C:\\Program Files\\nodejs\\npx.cmd")
-        ? "C:\\Program Files\\nodejs\\npx.cmd"
+        ? '"C:\\Program Files\\nodejs\\npx.cmd"'
         : "npx";
 
       const result = spawnSync(npxCmd, args, {
