@@ -99,8 +99,12 @@ export function parseJsonLocally(responseText) {
         .replace(/['']/g, "'")
         .replace(/,\s*([}\]])/g, "$1"),
       candidate.replace(/'/g, '"').replace(/,\s*([}\]])/g, "$1"),
-      // Repair missing commas between adjacent objects/arrays/strings
+      // Repair missing commas between adjacent objects/arrays/strings or property lines
       candidate
+        .replace(
+          /(["\d]|true|false|null|\]|\})\s*\r?\n\s*(?="[\w_]+"\s*:)/gi,
+          "$1,\n"
+        )
         .replace(/}\s*{/g, "},{")
         .replace(/]\s*\[/g, "],[")
         .replace(/}\s*\[/g, "},[")
@@ -115,6 +119,10 @@ export function parseJsonLocally(responseText) {
       repairTruncatedJson(candidate),
       repairTruncatedJson(
         candidate
+          .replace(
+            /(["\d]|true|false|null|\]|\})\s*\r?\n\s*(?="[\w_]+"\s*:)/gi,
+            "$1,\n"
+          )
           .replace(/}\s*{/g, "},{")
           .replace(/]\s*\[/g, "],[")
           .replace(/"\s*"/g, '","')
