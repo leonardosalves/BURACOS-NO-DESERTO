@@ -25,24 +25,30 @@ function SyncedMedia({
 }) {
   const ref = useRef<HTMLMediaElement | null>(null);
 
-  const syncTime = () => {
+  useEffect(() => {
     const media = ref.current;
     if (!media) return;
-    try {
-      if (Math.abs(media.currentTime - time) > 0.05) {
-        media.currentTime = Math.max(0, time);
-      }
-      if (playing) {
-        void media.play().catch(() => undefined);
-      } else {
-        media.pause();
-      }
-    } catch (e) {}
-  };
+    if (playing) {
+      void media.play().catch(() => undefined);
+    } else {
+      media.pause();
+    }
+  }, [playing]);
 
   useEffect(() => {
-    syncTime();
-  }, [playing, time, source]);
+    const media = ref.current;
+    if (!media) return;
+    const current = media.currentTime || 0;
+    if (!playing) {
+      if (Math.abs(current - time) > 0.05) {
+        media.currentTime = Math.max(0, time);
+      }
+    } else {
+      if (Math.abs(current - time) > 0.6) {
+        media.currentTime = Math.max(0, time);
+      }
+    }
+  }, [time, playing]);
 
   return kind === "video" ? (
     <video
@@ -56,10 +62,9 @@ function SyncedMedia({
         const video = event.currentTarget;
         if (video.videoWidth > 0 && video.videoHeight > 0)
           onVideoMetadata?.(video.videoWidth, video.videoHeight);
-        syncTime();
-      }}
-      onCanPlay={() => {
-        syncTime();
+        if (Math.abs((video.currentTime || 0) - time) > 0.05) {
+          video.currentTime = Math.max(0, time);
+        }
       }}
     />
   ) : (
