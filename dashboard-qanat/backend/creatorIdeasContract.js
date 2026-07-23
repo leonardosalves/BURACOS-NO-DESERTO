@@ -2,7 +2,8 @@ export function validateCreatorExpressInput(value = {}) {
   const theme = String(value.theme || "").trim();
   const niche = String(value.niche || "").trim();
   const project = String(value.project || "").trim();
-  const tone = String(value.tone || "conversacional").trim() || "conversacional";
+  const tone =
+    String(value.tone || "conversacional").trim() || "conversacional";
 
   if (!theme || !niche || !project) {
     return {
@@ -58,38 +59,52 @@ export class CreatorIdeasContractError extends Error {
 
 export function validateCreatorIdeasPayload(
   value,
-  { expectedCount = 10 } = {}
+  { expectedCount = 10, minCount = null } = {}
 ) {
+  const minimum = minCount ?? Math.max(5, Math.ceil(expectedCount * 0.7));
+
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return { ok: false, reason: "a resposta não é um objeto JSON" };
   }
 
   if (!value.diagnostic || typeof value.diagnostic !== "object") {
-    return { ok: false, reason: "o diagnóstico do nicho está ausente" };
+    if (Array.isArray(value.ideas) && value.ideas.length >= minimum) {
+      value.diagnostic = {
+        title_style: "",
+        core_emotion: "",
+        retention_topics: "",
+      };
+    } else {
+      return { ok: false, reason: "o diagnóstico do nicho está ausente" };
+    }
   }
 
   if (!Array.isArray(value.ideas)) {
     return { ok: false, reason: "o campo ideas está ausente" };
   }
 
-  if (value.ideas.length < expectedCount) {
+  if (value.ideas.length < minimum) {
     return {
       ok: false,
-      reason: `foram recebidas ${value.ideas.length} de ${expectedCount} ideias`,
+      reason: `foram recebidas ${value.ideas.length} de ${expectedCount} ideias (mínimo ${minimum})`,
     };
   }
 
   const invalidIdeaIndex = value.ideas.findIndex(
     (idea) =>
-      !idea ||
-      typeof idea !== "object" ||
-      !String(idea.title || "").trim()
+      !idea || typeof idea !== "object" || !String(idea.title || "").trim()
   );
   if (invalidIdeaIndex >= 0) {
-    return {
-      ok: false,
-      reason: `a ideia ${invalidIdeaIndex + 1} não possui título`,
-    };
+    value.ideas = value.ideas.filter(
+      (idea) =>
+        idea && typeof idea === "object" && String(idea.title || "").trim()
+    );
+    if (value.ideas.length < minimum) {
+      return {
+        ok: false,
+        reason: `apenas ${value.ideas.length} ideias válidas com título (mínimo ${minimum})`,
+      };
+    }
   }
 
   const bestIndex = Number(value.best_idea_index);
@@ -98,7 +113,8 @@ export function validateCreatorIdeasPayload(
     bestIndex < 0 ||
     bestIndex >= value.ideas.length
   ) {
-    return { ok: false, reason: "best_idea_index é inválido" };
+    value.best_idea_index = 0;
+    if (!value.best_idea_reason) value.best_idea_reason = "";
   }
 
   return { ok: true, reason: "" };
@@ -145,9 +161,17 @@ export async function generateCreatorIdeasWithSingleRetry({
         return { handledExternally: false, data: parsed, attempts: attempt };
       }
       rejectionReason = validation.reason;
+      console.warn(
+        `[IdeasContract] Tentativa ${attempt}/${attemptsLimit} rejeitada: ${rejectionReason}` +
+          (parsed?.ideas ? ` (recebidas: ${parsed.ideas.length} ideias)` : "")
+      );
     } catch (error) {
-      const lastError = error instanceof Error ? error : new Error(String(error));
+      const lastError =
+        error instanceof Error ? error : new Error(String(error));
       rejectionReason = `o JSON não pôde ser interpretado (${lastError.message})`;
+      console.warn(
+        `[IdeasContract] Tentativa ${attempt}/${attemptsLimit} erro: ${lastError.message}`
+      );
     }
   }
 

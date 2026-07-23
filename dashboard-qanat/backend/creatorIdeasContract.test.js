@@ -56,7 +56,10 @@ test("bloqueia campos vazios e nomes de projeto sem letras ou números", () => {
 
 test("exige narração válida na resposta do Criador Express", () => {
   assert.equal(validateCreatorExpressPayload(null).ok, false);
-  assert.equal(validateCreatorExpressPayload({ narrative_script: "curto" }).ok, false);
+  assert.equal(
+    validateCreatorExpressPayload({ narrative_script: "curto" }).ok,
+    false
+  );
   assert.deepEqual(
     validateCreatorExpressPayload({
       narrative_script: "Uma narração completa e pronta para revisão.",
@@ -145,18 +148,21 @@ test("não repete quando o backend já respondeu pelo modo navegador", async () 
   assert.equal(result.handledExternally, true);
 });
 
-test("validador exige exatamente dez ideias e índice recomendado válido", () => {
+test("validador exige mínimo de ideias e corrige índice inválido", () => {
   const nineIdeas = validPayload();
   nineIdeas.ideas.pop();
-  assert.deepEqual(validateCreatorIdeasPayload(nineIdeas), {
-    ok: false,
-    reason: "foram recebidas 9 de 10 ideias",
-  });
+  const nineResult = validateCreatorIdeasPayload(nineIdeas);
+  assert.equal(nineResult.ok, true);
+
+  const fourIdeas = validPayload();
+  fourIdeas.ideas = fourIdeas.ideas.slice(0, 4);
+  const fourResult = validateCreatorIdeasPayload(fourIdeas);
+  assert.equal(fourResult.ok, false);
+  assert.ok(fourResult.reason.includes("4"));
 
   const invalidIndex = validPayload();
   invalidIndex.best_idea_index = 10;
-  assert.deepEqual(validateCreatorIdeasPayload(invalidIndex), {
-    ok: false,
-    reason: "best_idea_index é inválido",
-  });
+  const idxResult = validateCreatorIdeasPayload(invalidIndex);
+  assert.equal(idxResult.ok, true);
+  assert.equal(invalidIndex.best_idea_index, 0);
 });

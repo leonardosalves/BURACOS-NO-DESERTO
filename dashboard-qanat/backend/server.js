@@ -12554,7 +12554,7 @@ async function callOmniRouteWithRetry(promptOrBody, options = {}) {
 
   for (const model of modelList) {
     const isGeminiModel = /gemini/i.test(model);
-    const maxAllowedTokens = isGeminiModel ? 8192 : 32000;
+    const maxAllowedTokens = isGeminiModel ? 65536 : 32000;
     const tokenLimit = Math.max(
       256,
       Math.min(maxAllowedTokens, Number(maxTokens) || 8192)
@@ -12603,6 +12603,7 @@ async function callOmniRouteWithRetry(promptOrBody, options = {}) {
                 ? msg.content.map((p) => p?.text || p?.content || "").join("\n")
                 : "";
           text = String(text || "")
+            .replace(/<think[\s\S]*?<\/think>/gi, "")
             .replace(/```json/g, "")
             .replace(/```/g, "")
             .trim();
@@ -21130,7 +21131,7 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
       const generation = await generateCreatorIdeasWithSingleRetry({
         basePrompt: fullPrompt,
         expectedCount: 10,
-        maxAttempts: 2,
+        maxAttempts: 3,
         niche: nicheClean,
         format,
         generate: ({ prompt }) =>
@@ -21140,12 +21141,24 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
             temperature: 0.9,
             maxTokens: 16000,
           }),
-        parse: (responseText) =>
-          parseAiJsonResponse(
+        parse: (responseText) => {
+          const debugDir = path.join(WORKSPACE_DIR, ".debug");
+          try {
+            fs.mkdirSync(debugDir, { recursive: true });
+          } catch {}
+          try {
+            fs.writeFileSync(
+              path.join(debugDir, `ideas-raw-${Date.now()}.txt`),
+              String(responseText || "").slice(0, 50000),
+              "utf8"
+            );
+          } catch {}
+          return parseAiJsonResponse(
             responseText,
             getApiKey(projDir),
             "Ideias e diagnostico"
-          ),
+          );
+        },
       });
       if (generation.handledExternally) return;
 
@@ -21179,6 +21192,8 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
       });
     } catch (err) {
       console.error("[IDEAS ENDPOINT ERROR]", err.message);
+      if (err.details)
+        console.error("[IDEAS REJECTION REASON]", JSON.stringify(err.details));
 
       if (err instanceof CreatorIdeasContractError) {
         const repeatedAutomatically = Number(err.details?.attempts) > 1;
