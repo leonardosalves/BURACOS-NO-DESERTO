@@ -222,12 +222,39 @@ export function isRenderProcessActive(job = null) {
   }
 }
 
+function isPidAlive(pid) {
+  const p = Number(pid) || 0;
+  if (p <= 0) return false;
+  try {
+    process.kill(p, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function cleanupStaleRenderJobs() {
   const cutoff = now() - ACTIVE_TTL_MS;
   for (const job of listRenderJobs()) {
-    if ((job.updatedAt || 0) < cutoff && job.done) {
+    const stale = (job.updatedAt || 0) < cutoff;
+    if (!stale) continue;
+
+    if (job.done) {
       jobs.delete(job.jobId);
       deleteJobFromDisk(job.jobId);
+      continue;
     }
+
+    // Órfão: não concluído e sem atualização recente. Só recolhe se o processo
+    // morreu/sumiu (PID ausente ou morto). Render longo com PID vivo é preservado.
+    if (isPidAlive(job.childPid)) continue;
+
+    updateRenderJob(job.jobId, {
+      status: "failed",
+      phase: "Render interrompido",
+      done: true,
+      error: "Render órfão: o processo não respondeu e o backend reiniciou.",
+      childPid: null,
+    });
   }
 }
