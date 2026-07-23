@@ -75,6 +75,7 @@ export default function VideoAgentPage({
   const [loading, setLoading] = useState(false);
   const [hfStatus, setHfStatus] = useState<HfStatus>("idle");
   const [storyboard, setStoryboard] = useState<StoryboardFrame[]>([]);
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [graphicsIdeas, setGraphicsIdeas] = useState<GraphicsIdea[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -82,6 +83,30 @@ export default function VideoAgentPage({
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!activeProject) return;
+    const resolveUrl =
+      typeof getProjectUrl === "function"
+        ? getProjectUrl
+        : (path: string) => path;
+
+    fetch(resolveUrl("/api/video-agent/storyboard"))
+      .then((res) => res.json())
+      .then((data) => {
+        if (
+          data?.ok &&
+          Array.isArray(data.storyboard) &&
+          data.storyboard.length > 0
+        ) {
+          setStoryboard(data.storyboard);
+        }
+      })
+      .catch(() => {});
+  }, [activeProject, getProjectUrl]);
+
+  const selectedSceneObj =
+    storyboard.find((f) => f.id === selectedSceneId) || null;
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -110,6 +135,7 @@ export default function VideoAgentPage({
           body: JSON.stringify({
             message: text.trim(),
             project: activeProject,
+            selected_scene: selectedSceneObj,
             storyboard: approvedSb,
             graphics_ideas: approvedGi,
           }),
@@ -281,6 +307,50 @@ export default function VideoAgentPage({
           <div ref={chatEndRef} />
         </div>
 
+        {/* Selected Scene Action Banner */}
+        {selectedSceneObj && (
+          <div className="px-4 py-2 bg-violet-950/60 border-t border-violet-800/50 flex items-center justify-between gap-2 transition-all">
+            <div className="flex items-center gap-2 text-xs text-violet-200 min-w-0">
+              <Sparkles size={14} className="text-violet-400 shrink-0" />
+              <span className="font-semibold text-violet-300">
+                Cena {selectedSceneObj.id}:
+              </span>
+              <span className="truncate text-gray-300">
+                "{selectedSceneObj.description || selectedSceneObj.title}"
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() =>
+                  sendMessage(
+                    `Criar gráfico HyperFrames para a cena ${selectedSceneObj.id}: "${selectedSceneObj.description || selectedSceneObj.title}"`
+                  )
+                }
+                className="px-2.5 py-1 rounded-lg bg-violet-600 hover:bg-violet-500 text-[11px] text-white flex items-center gap-1 font-medium transition-colors shadow"
+              >
+                <Sparkles size={11} /> Criar Gráfico
+              </button>
+              <button
+                onClick={() =>
+                  sendMessage(
+                    `Analisar cena ${selectedSceneObj.id} e sugerir gráficos de retenção`
+                  )
+                }
+                className="px-2.5 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-[11px] text-gray-300 flex items-center gap-1 transition-colors border border-gray-700"
+              >
+                <BarChart3 size={11} /> Analisar
+              </button>
+              <button
+                onClick={() => setSelectedSceneId(null)}
+                className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                title="Desmarcar cena"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Input */}
         <div className="px-4 py-3 border-t border-gray-800 bg-gray-900/50">
           <div className="flex items-end gap-2">
@@ -293,7 +363,11 @@ export default function VideoAgentPage({
                   sendMessage(input);
                 }
               }}
-              placeholder="Descreva o vídeo ou digite um comando HyperFrames..."
+              placeholder={
+                selectedSceneObj
+                  ? `Digite a instrução para a Cena ${selectedSceneObj.id}...`
+                  : "Descreva o vídeo ou digite um comando HyperFrames..."
+              }
               rows={2}
               className="flex-1 resize-none rounded-xl bg-gray-800 border border-gray-700 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30"
             />
@@ -310,13 +384,18 @@ export default function VideoAgentPage({
 
       {/* Storyboard + Graphics Panel */}
       <div className="w-[360px] flex flex-col min-h-0 bg-gray-900/30">
-        <div className="px-4 py-3 border-b border-gray-800">
+        <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutGrid size={14} className="text-violet-400" />
             <span className="text-xs font-medium text-gray-300">
               Storyboard · HyperFrames
             </span>
           </div>
+          {selectedSceneObj && (
+            <span className="px-2 py-0.5 rounded-full bg-violet-600/30 text-violet-300 border border-violet-500/40 text-[10px] font-medium">
+              Cena {selectedSceneObj.id} selecionada
+            </span>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
@@ -330,54 +409,68 @@ export default function VideoAgentPage({
             </div>
           )}
 
-          {storyboard.map((frame) => (
-            <div
-              key={frame.id}
-              className={`rounded-lg border p-3 transition-colors ${
-                frame.status === "approved"
-                  ? "border-emerald-600/40 bg-emerald-900/10"
-                  : frame.status === "rejected"
-                    ? "border-red-600/30 bg-red-900/10 opacity-50"
-                    : "border-gray-700 bg-gray-800/50"
-              }`}
-            >
-              <div className="flex items-start gap-2">
-                <FrameIcon type={frame.type} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-white truncate">
-                      {frame.title}
-                    </span>
-                    <span className="text-[10px] text-gray-500">
-                      {frame.time}
-                    </span>
+          {storyboard.map((frame) => {
+            const isSelected = selectedSceneId === frame.id;
+            return (
+              <div
+                key={frame.id}
+                onClick={() => setSelectedSceneId(isSelected ? null : frame.id)}
+                className={`rounded-lg border p-3 transition-all cursor-pointer relative ${
+                  isSelected
+                    ? "border-violet-500 bg-violet-950/40 ring-2 ring-violet-500/50 shadow-md shadow-violet-950/50"
+                    : frame.status === "approved"
+                      ? "border-emerald-600/40 bg-emerald-900/10 hover:border-emerald-500/60"
+                      : frame.status === "rejected"
+                        ? "border-red-600/30 bg-red-900/10 opacity-50"
+                        : "border-gray-700 bg-gray-800/50 hover:border-gray-600"
+                }`}
+              >
+                {isSelected && (
+                  <div className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-violet-600 text-white text-[9px] font-bold tracking-wider shadow">
+                    SELECIONADA
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">
-                    {frame.description}
-                  </p>
+                )}
+                <div className="flex items-start gap-2">
+                  <FrameIcon type={frame.type} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-white truncate">
+                        {frame.title}
+                      </span>
+                      <span className="text-[10px] text-gray-500">
+                        {frame.time}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-300 mt-0.5 line-clamp-2">
+                      {frame.description}
+                    </p>
+                  </div>
+                  {frame.status === "proposed" && (
+                    <div
+                      className="flex gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => updateFrameStatus(frame.id, "approved")}
+                        className="p-1 rounded bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40"
+                      >
+                        <Check size={12} />
+                      </button>
+                      <button
+                        onClick={() => updateFrameStatus(frame.id, "rejected")}
+                        className="p-1 rounded bg-red-600/20 text-red-400 hover:bg-red-600/40"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )}
+                  {frame.status === "approved" && !isSelected && (
+                    <Check size={14} className="text-emerald-400 shrink-0" />
+                  )}
                 </div>
-                {frame.status === "proposed" && (
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => updateFrameStatus(frame.id, "approved")}
-                      className="p-1 rounded bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40"
-                    >
-                      <Check size={12} />
-                    </button>
-                    <button
-                      onClick={() => updateFrameStatus(frame.id, "rejected")}
-                      className="p-1 rounded bg-red-600/20 text-red-400 hover:bg-red-600/40"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-                {frame.status === "approved" && (
-                  <Check size={14} className="text-emerald-400" />
-                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {graphicsIdeas.length > 0 && (
             <div className="mt-4 pt-3 border-t border-gray-800">

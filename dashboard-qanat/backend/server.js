@@ -4470,6 +4470,53 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
   }
 });
 
+app.get("/api/video-agent/storyboard", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (!fs.existsSync(storyboardPath)) {
+      return res.json({ ok: true, storyboard: [] });
+    }
+
+    const sbData = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    const vps = sbData.visual_prompts || [];
+
+    const frames = vps.map((vp, index) => {
+      const sceneId = vp.scene || vp.scene_ref || `1.${index + 1}`;
+      const blockNum = vp.block || Math.floor(index / 2) + 1;
+      const desc = (
+        vp.narration_text ||
+        vp.visual_prompt ||
+        vp.generate_from_prompt ||
+        ""
+      ).trim();
+      const dur = vp.duration ? `${vp.duration}s` : "3s";
+
+      return {
+        id: String(sceneId),
+        scene_key: String(sceneId),
+        block: blockNum,
+        time: dur,
+        title: `Cena ${sceneId} · Bloco ${blockNum}`,
+        description: desc,
+        narration_text: vp.narration_text || "",
+        type: vp.motion_template_id ? "graphics" : "broll",
+        motion_template_id: vp.motion_template_id || null,
+        status: "approved",
+      };
+    });
+
+    return res.json({
+      ok: true,
+      project: path.basename(projDir),
+      storyboard: frames,
+    });
+  } catch (err) {
+    console.error("[VideoAgent] Erro ao carregar storyboard:", err.message);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post("/api/video-agent/chat", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
@@ -4477,6 +4524,7 @@ app.post("/api/video-agent/chat", async (req, res) => {
       message = "",
       storyboard = [],
       graphics_ideas = [],
+      selected_scene = null,
     } = req.body || {};
 
     const text = String(message || "").trim();
