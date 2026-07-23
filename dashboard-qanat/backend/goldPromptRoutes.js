@@ -1,13 +1,11 @@
-import { Router } from "express";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { callGeminiLlm, parseJsonLocally } from "./server.js";
+import { parseJsonLocally } from "./aiJsonParse.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const router = Router();
 const DATA_DIR = path.join(__dirname, "data");
 const STORE_PATH = path.join(DATA_DIR, "gold_prompt_channels.json");
 
@@ -143,35 +141,40 @@ function saveStoreData(data) {
   fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), "utf8");
 }
 
-// GET /api/gold-prompt/channels — List all saved cloned channels
-router.get("/channels", (req, res) => {
-  const data = getStoreData();
-  return res.json({ ok: true, channels: data.channels || [] });
-});
+export function registerGoldPromptRoutes(app, deps) {
+  const { WORKSPACE_DIR, getApiKey, callGeminiWithRetry } = deps;
 
-// GET /api/gold-prompt/channels/:id — Get details of a single cloned channel
-router.get("/channels/:id", (req, res) => {
-  const data = getStoreData();
-  const channel = (data.channels || []).find((c) => c.id === req.params.id);
-  if (!channel) {
-    return res
-      .status(404)
-      .json({ ok: false, error: "Canal clonado não encontrado." });
-  }
-  return res.json({ ok: true, channel });
-});
+  // GET /api/gold-prompt/channels — List all saved cloned channels
+  app.get("/api/gold-prompt/channels", (req, res) => {
+    const data = getStoreData();
+    return res.json({ ok: true, channels: data.channels || [] });
+  });
 
-// POST /api/gold-prompt/clone — Run THE GOLDEN PROMPT workflow & save cloned channel
-router.post("/clone", async (req, res) => {
-  const { sourceChannel, transcripts, topic, visualSamples, thumbnailSamples } =
-    req.body;
-  if (!sourceChannel) {
-    return res
-      .status(400)
-      .json({ ok: false, error: "Informe o nome ou URL do canal de origem." });
-  }
+  // GET /api/gold-prompt/channels/:id — Get details of a single cloned channel
+  app.get("/api/gold-prompt/channels/:id", (req, res) => {
+    const data = getStoreData();
+    const channel = (data.channels || []).find((c) => c.id === req.params.id);
+    if (!channel) {
+      return res
+        .status(404)
+        .json({ ok: false, error: "Canal clonado não encontrado." });
+    }
+    return res.json({ ok: true, channel });
+  });
 
-  const prompt = `Você é o executivo de IA THE GOLDEN PROMPT para clonagem e recondicionamento de conteúdo do YouTube.
+  // POST /api/gold-prompt/clone — Run THE GOLDEN PROMPT workflow & save cloned channel
+  app.post("/api/gold-prompt/clone", async (req, res) => {
+    const { sourceChannel, transcripts, topic } = req.body;
+    if (!sourceChannel) {
+      return res
+        .status(400)
+        .json({
+          ok: false,
+          error: "Informe o nome ou URL do canal de origem.",
+        });
+    }
+
+    const prompt = `Você é o executivo de IA THE GOLDEN PROMPT para clonagem e recondicionamento de conteúdo do YouTube.
 
 ENTRADAS DO USUÁRIO:
 - Canal a Clonar: ${sourceChannel}
@@ -242,55 +245,56 @@ Responda EXCLUSIVAMENTE em formato JSON com esta estrutura:
   }
 }`;
 
-  try {
-    const projDir = path.join(__dirname, "..");
-    const llmText = await callGeminiLlm({ body: {} }, null, projDir, {
-      title: "THE GOLDEN PROMPT · Clonagem de Canal",
-      prompt,
-      temperature: 0.7,
-      maxTokens: 8000,
-    });
+    try {
+      const apiKey = getApiKey
+        ? getApiKey(WORKSPACE_DIR)
+        : process.env.GEMINI_API_KEY;
+      const llmText = await callGeminiWithRetry(apiKey, prompt, {
+        temperature: 0.7,
+        maxTokens: 8000,
+      });
 
-    if (!llmText) {
-      throw new Error("Falha ao receber resposta do modelo LLM.");
+      if (!llmText) {
+        throw new Error("Falha ao receber resposta do modelo LLM.");
+      }
+
+      const parsed = parseJsonLocally(llmText);
+      if (!parsed || !parsed.cloneName) {
+        throw new Error("Resposta inválida da IA ao estruturar o canal.");
+      }
+
+      const store = getStoreData();
+      const newChannel = {
+        id: `channel-${Date.now()}`,
+        sourceChannel: sourceChannel.trim(),
+        cloneName: parsed.cloneName || sourceChannel,
+        niche: parsed.niche || "Conteúdo do YouTube",
+        createdAt: new Date().toISOString(),
+        branding: parsed.branding || {},
+        styleDna: parsed.styleDna || {},
+        visualProfile: parsed.visualProfile || {},
+        videos: parsed.video
+          ? [{ ...parsed.video, id: `video-${Date.now()}` }]
+          : [],
+      };
+
+      store.channels.unshift(newChannel);
+      saveStoreData(store);
+
+      return res.json({ ok: true, channel: newChannel });
+    } catch (err) {
+      console.error("[GoldPrompt] Erro na clonagem:", err);
+      return res.status(500).json({ ok: false, error: err.message });
     }
+  });
 
-    const parsed = parseJsonLocally(llmText);
-    if (!parsed || !parsed.cloneName) {
-      throw new Error("Resposta inválida da IA ao estruturar o canal.");
-    }
-
+  // DELETE /api/gold-prompt/channels/:id — Delete a cloned channel
+  app.delete("/api/gold-prompt/channels/:id", (req, res) => {
     const store = getStoreData();
-    const newChannel = {
-      id: `channel-${Date.now()}`,
-      sourceChannel: sourceChannel.trim(),
-      cloneName: parsed.cloneName || sourceChannel,
-      niche: parsed.niche || "Conteúdo do YouTube",
-      createdAt: new Date().toISOString(),
-      branding: parsed.branding || {},
-      styleDna: parsed.styleDna || {},
-      visualProfile: parsed.visualProfile || {},
-      videos: parsed.video
-        ? [{ ...parsed.video, id: `video-${Date.now()}` }]
-        : [],
-    };
-
-    store.channels.unshift(newChannel);
+    store.channels = (store.channels || []).filter(
+      (c) => c.id !== req.params.id
+    );
     saveStoreData(store);
-
-    return res.json({ ok: true, channel: newChannel });
-  } catch (err) {
-    console.error("[GoldPrompt] Erro na clonagem:", err);
-    return res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// DELETE /api/gold-prompt/channels/:id — Delete a cloned channel
-router.delete("/channels/:id", (req, res) => {
-  const store = getStoreData();
-  store.channels = (store.channels || []).filter((c) => c.id !== req.params.id);
-  saveStoreData(store);
-  return res.json({ ok: true });
-});
-
-export default router;
+    return res.json({ ok: true });
+  });
+}
