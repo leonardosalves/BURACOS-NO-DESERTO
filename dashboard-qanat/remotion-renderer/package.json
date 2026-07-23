@@ -12,22 +12,22 @@
     "postinstall": "node ../scripts/copy-cesium-assets.mjs"
   },
   "dependencies": {
-    "@remotion/lottie": "4.0.482",
-    "@remotion/media": "^4.0.0",
-    "@remotion/motion-blur": "^4.0.496",
-    "@remotion/rough-notation": "^4.0.496",
+    "@remotion/lottie": "4.0.496",
+    "@remotion/media": "4.0.496",
+    "@remotion/motion-blur": "4.0.496",
+    "@remotion/rough-notation": "4.0.496",
     "cesium": "1.143",
     "copy-webpack-plugin": "^12.0.2",
     "css-loader": "^7.1.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "remotion": "^4.0.0",
+    "remotion": "4.0.496",
     "rough-notation": "^0.5.1",
     "style-loader": "^4.0.0",
     "sucrase": "^3.35.1"
   },
   "devDependencies": {
-    "@remotion/cli": "^4.0.482",
+    "@remotion/cli": "4.0.496",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "typescript": "^5.2.2"
