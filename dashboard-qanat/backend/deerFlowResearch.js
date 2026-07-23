@@ -345,12 +345,11 @@ export function appendDeepResearchReport(workspaceDir, plan, report) {
 }
 
 function withLegTimeout(promise, ms, legName) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`[${legName}] Timeout (${ms}ms)`)), ms)
-    ),
-  ]);
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Timeout (${ms}ms)`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 export async function runDeepResearch(workspaceDir, opts = {}) {

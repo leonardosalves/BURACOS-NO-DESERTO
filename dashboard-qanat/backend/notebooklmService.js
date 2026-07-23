@@ -242,6 +242,41 @@ function saveCache(backendDir, cache) {
   );
 }
 
+// lumiera-perf: research-cache v1
+const RESEARCH_CACHE_FILE = "notebooklm_research_cache.json";
+const RESEARCH_CACHE_TTL_MS = Number(
+  process.env.NOTEBOOKLM_RESEARCH_CACHE_TTL_MS || 12 * 3600 * 1000
+);
+function researchCacheKey({ niche, format, purpose, topic, contentMode }) {
+  return [
+    purpose,
+    format,
+    contentMode || "default",
+    nicheKey(niche),
+    nicheKey(topic || ""),
+  ].join(":");
+}
+function loadResearchCache(backendDir) {
+  try {
+    return JSON.parse(
+      fs.readFileSync(path.join(backendDir, RESEARCH_CACHE_FILE), "utf8")
+    );
+  } catch {
+    return {};
+  }
+}
+function saveResearchCache(backendDir, c) {
+  try {
+    fs.writeFileSync(
+      path.join(backendDir, RESEARCH_CACHE_FILE),
+      JSON.stringify(c, null, 2),
+      "utf8"
+    );
+  } catch (e) {
+    console.warn("[NotebookLM] falha ao gravar cache de pesquisa:", e.message);
+  }
+}
+
 function nicheKey(niche) {
   return (
     String(niche || "default")
@@ -661,9 +696,9 @@ async function addTextSourceAsync(notebookId, title, text, backendDir) {
 
 function runOptionalFastResearch(notebookId, query, backendDir, mode = "fast") {
   const researchMode = mode === "deep" ? "deep" : "fast";
-  const maxWait = researchMode === "deep" ? "300" : "45";
-  const startTimeout = researchMode === "deep" ? 120000 : 45000;
-  const statusTimeout = researchMode === "deep" ? 320000 : 50000;
+  const maxWait = researchMode === "deep" ? "120" : "40";
+  const startTimeout = researchMode === "deep" ? 60000 : 40000;
+  const statusTimeout = researchMode === "deep" ? 140000 : 50000;
   try {
     const startRaw = runNlm(
       [
@@ -714,9 +749,9 @@ async function runOptionalFastResearchAsync(
   mode = "fast"
 ) {
   const researchMode = mode === "deep" ? "deep" : "fast";
-  const maxWait = researchMode === "deep" ? "300" : "45";
-  const startTimeout = researchMode === "deep" ? 120000 : 45000;
-  const statusTimeout = researchMode === "deep" ? 320000 : 50000;
+  const maxWait = researchMode === "deep" ? "120" : "40";
+  const startTimeout = researchMode === "deep" ? 60000 : 40000;
+  const statusTimeout = researchMode === "deep" ? 140000 : 50000;
   try {
     const startRaw = await runNlmAsync(
       [
@@ -787,7 +822,7 @@ export function assessNotebooklmSourcesReadiness(sources = [], minSources = 1) {
 async function waitForNotebookSourcesToLoadAsync(
   notebookId,
   backendDir,
-  maxWaitSeconds = 60
+  maxWaitSeconds = 30
 ) {
   console.log(
     `[NotebookLM] Aguardando fontes carregarem para o notebook ${notebookId}...`
@@ -809,13 +844,24 @@ async function waitForNotebookSourcesToLoadAsync(
         continue;
       }
 
-      const details = [];
-      for (const src of sources) {
-        const getRaw = await runNlmAsync(["source", "get", src.id, "--json"], {
-          timeoutMs: 10000,
-          backendDir,
-        });
-        details.push(parseJsonOutput(getRaw) || src);
+      const hasInlineStatus = sources.some(
+        (s) =>
+          s?.status || s?.state || s?.char_count != null || s?.charCount != null
+      );
+      let details;
+      if (hasInlineStatus) {
+        details = sources;
+      } else {
+        details = await Promise.all(
+          sources.map((src) =>
+            runNlmAsync(["source", "get", src.id, "--json"], {
+              timeoutMs: 8000,
+              backendDir,
+            })
+              .then((getRaw) => parseJsonOutput(getRaw) || src)
+              .catch(() => src)
+          )
+        );
       }
 
       const readiness = assessNotebooklmSourcesReadiness(details);
@@ -1131,7 +1177,7 @@ async function runNotebooklmPipeline({
   interactiveDiscovery = false,
   projDir = null,
 }) {
-  const status = getNotebooklmStatus(backendDir);
+  const status = getNotebooklmStatus(backendDir, { quick: true });
   if (!status.authenticated) {
     return buildFallbackSummary({ niche, format, purpose, needsLogin: true });
   }
@@ -1375,7 +1421,18 @@ export async function fetchNotebooklmResearch(niche, format, options = {}) {
     return buildFallbackSummary({ niche, format, purpose: "ideas" });
 
   try {
-    return await runNotebooklmPipeline({
+    const _ck = researchCacheKey({
+      niche,
+      format,
+      purpose: "ideas",
+      topic: options.idea?.title || options.listTopic,
+      contentMode: options.contentMode,
+    });
+    const _cc = loadResearchCache(backendDir);
+    if (_cc[_ck] && Date.now() - _cc[_ck].at < RESEARCH_CACHE_TTL_MS) {
+      return { ..._cc[_ck].result, cached: true };
+    }
+    const _fresh = await runNotebooklmPipeline({
       niche,
       format,
       contentMode: options.contentMode,
@@ -1389,6 +1446,11 @@ export async function fetchNotebooklmResearch(niche, format, options = {}) {
       researchMode: options.researchMode === "deep" ? "deep" : "fast",
       projDir: options.projDir,
     });
+    if (typeof _ck !== "undefined" && _ck && _cc) {
+      _cc[_ck] = { at: Date.now(), result: _fresh };
+      saveResearchCache(backendDir, _cc);
+    }
+    return _fresh;
   } catch (err) {
     console.warn("[NotebookLM] Ideas research failed:", err.message);
     return {
