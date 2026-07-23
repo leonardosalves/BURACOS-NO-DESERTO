@@ -5161,10 +5161,16 @@ app.post("/api/video-agent/chat", async (req, res) => {
         try {
           let html = fs.readFileSync(hfIndex, "utf8");
           if (isDate || removeAll) {
-            html = html.replace(/<div id="dateBadge"[\s\S]*?<\/div>/gi, "");
+            html = html.replace(
+              /<div[^>]*id=["']dateBadge["'][^>]*>[\s\S]*?<\/div>/gi,
+              ""
+            );
           }
           if (isMotion || removeAll) {
-            html = html.replace(/<div id="odometerCard"[\s\S]*?<\/div>/gi, "");
+            html = html.replace(
+              /<div[^>]*id=["']odometerCard["'][^>]*>[\s\S]*?<\/div>/gi,
+              ""
+            );
           }
           // Atualizar o script GSAP para usar verificação de elemento segura
           const safeGsapScript = `<script>
