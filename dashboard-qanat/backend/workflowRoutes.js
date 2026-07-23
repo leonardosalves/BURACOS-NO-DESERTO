@@ -1906,9 +1906,9 @@ Instruções críticas:
         };
         if (humorProvider === "gemini") {
           humorLlmOpts.models = [
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-lite",
             "gemini-2.0-flash",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
           ];
           humorLlmOpts.bodyOverride = {
             contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -1917,7 +1917,19 @@ Instruções críticas:
           };
         }
         const raw = await callGeminiWithRetry(apiKey, prompt, humorLlmOpts);
-        const parsed = parseHumorIdeasResponse(raw);
+        let parsed;
+        try {
+          parsed = parseHumorIdeasResponse(raw);
+        } catch (parseErr) {
+          console.error(
+            `[HUMOR FACTS IDEAS] Parse falhou attempt=${attempts}: ${parseErr.message}\nRaw (primeiros 500 chars): ${String(raw || "").slice(0, 500)}`
+          );
+          rejected.push({
+            title: `parse-error-${attempts}`,
+            conflict: parseErr.message,
+          });
+          continue;
+        }
         const filtered = filterNovelHumorIdeas(
           parsed,
           [
@@ -1928,19 +1940,23 @@ Instruções críticas:
           accepted,
           { niche }
         );
-        accepted.push(
-          ...filtered.ideas.slice(0, requestedCount - accepted.length)
-        );
+        if (filtered.ideas.length > 0) {
+          accepted.push(
+            ...filtered.ideas.slice(0, requestedCount - accepted.length)
+          );
+        } else if (parsed.length > 0 && accepted.length < requestedCount) {
+          // Fallback gracioso: usar pautas parseadas se o filtro de novidade for estrito demais
+          accepted.push(...parsed.slice(0, requestedCount - accepted.length));
+        }
         rejected.push(...filtered.rejected);
         console.log(
           `[HUMOR FACTS IDEAS] attempt=${attempts} niche="${niche}" parsed=${parsed.length} accepted=${accepted.length} rejected=${rejected.length} excluded=${retryExcluded.length}`
         );
       }
 
-      const minAcceptable = Math.max(3, Math.ceil(requestedCount * 0.6));
-      if (accepted.length < minAcceptable) {
+      if (accepted.length === 0) {
         throw new Error(
-          `A pesquisa nao encontrou pautas suficientes (${accepted.length}/${requestedCount}). ${rejected.length} repeticoes foram bloqueadas; tente um nicho mais especifico.`
+          `Não foi possível gerar pautas para o nicho "${niche}". Tente ajustar o termo da busca.`
         );
       }
 

@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Crown,
   Fingerprint,
   Globe,
   Home,
@@ -480,6 +481,13 @@ export function AppShell({
               icon={Laugh}
               label="Fatos com Graça"
               helpId="tab-humor-facts"
+            />
+            <SidebarLink
+              active={activeTab === "gold-prompt"}
+              onClick={() => setActiveTab("gold-prompt")}
+              icon={Crown}
+              label="The Gold Prompt"
+              helpId="tab-gold-prompt"
             />
             <SidebarLink
               active={activeTab === "collage-broll"}

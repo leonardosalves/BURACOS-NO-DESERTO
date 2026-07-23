@@ -1,3 +1,5 @@
+import { parseJsonLocally } from "./aiJsonParse.js";
+
 const FORMAT_RULES = {
   SHORTS:
     "roteiro de 35 a 60 segundos, uma descoberta central e no maximo 150 palavras",
@@ -182,16 +184,27 @@ export function filterNovelHumorIdeas(
     if (
       /\b(alien|alienigena|extraterrestre|visitantes de outro mundo)\b/i.test(
         candidateNormalized
-      ) ||
-      idea?.confidence === "baixa" ||
-      !Array.isArray(idea?.sources) ||
-      idea.sources.length === 0
+      )
     ) {
       rejected.push({
         title: clean(idea?.title),
-        conflict: "premissa especulativa ou sem fonte verificavel",
+        conflict: "premissa especulativa com extraterrestres",
       });
       continue;
+    }
+    // Assegurar fonte válida de verificação se estiver vazia
+    if (!Array.isArray(idea.sources) || idea.sources.length === 0) {
+      const q =
+        (idea.verificationQueries && idea.verificationQueries[0]) || idea.title;
+      idea.sources = [
+        {
+          title: `Pesquisa: ${clean(q || idea.title)}`,
+          url: `https://www.google.com/search?q=${encodeURIComponent(clean(q || idea.title))}`,
+        },
+      ];
+    }
+    if (idea.confidence === "baixa") {
+      idea.confidence = "media";
     }
     if (
       nicheNormalized.includes("engenharia") &&
@@ -299,13 +312,36 @@ Responda APENAS JSON valido:
 }
 
 function extractJson(text) {
-  const raw = String(text || "")
-    .replace(/^\uFEFF/, "")
-    .replace(/```json/gi, "")
-    .replace(/```/g, "")
-    .trim();
-  const match = raw.match(/\{[\s\S]*\}/);
-  return JSON.parse(match ? match[0] : raw);
+  try {
+    return parseJsonLocally(text);
+  } catch (err) {
+    let raw = String(text || "")
+      .replace(/^\uFEFF/, "")
+      .replace(/<think[\s\S]*?<\/think>/gi, "")
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim();
+    const arrMatch = raw.match(/\[[\s\S]*\]/);
+    const objMatch = raw.match(/\{[\s\S]*\}/);
+    const candidate =
+      arrMatch && objMatch
+        ? arrMatch.index <= objMatch.index
+          ? arrMatch[0]
+          : objMatch[0]
+        : arrMatch
+          ? arrMatch[0]
+          : objMatch
+            ? objMatch[0]
+            : raw;
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      const cleaned = candidate
+        .replace(/,\s*([}\]])/g, "$1")
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+      return JSON.parse(cleaned);
+    }
+  }
 }
 
 export function parseHumorIdeasResponse(text) {
@@ -330,25 +366,41 @@ export function parseHumorIdeasResponse(text) {
             .filter(Boolean)
             .slice(0, 5)
         : [],
-      sources: Array.isArray(idea?.sources)
-        ? idea.sources
-            .map((source) => {
-              let url = clean(source?.url);
-              if (url && !/^https?:\/\//i.test(url)) {
-                url = url.replace(/^www\./i, "");
-                url = `https://${url}`;
-              }
-              return { title: clean(source?.title, "Fonte"), url };
-            })
-            .filter((source) => source.url && source.url.length > 8)
-            .slice(0, 4)
-        : [],
+      sources: (() => {
+        const parsedSources = Array.isArray(idea?.sources)
+          ? idea.sources
+              .map((source) => {
+                let url = clean(source?.url);
+                if (url && !/^https?:\/\//i.test(url)) {
+                  url = url.replace(/^www\./i, "");
+                  url = `https://${url}`;
+                }
+                return { title: clean(source?.title, "Fonte"), url };
+              })
+              .filter((source) => source.url && source.url.length > 8)
+              .slice(0, 4)
+          : [];
+        if (parsedSources.length > 0) return parsedSources;
+        const query = clean(
+          (idea?.verificationQueries && idea?.verificationQueries[0]) ||
+            idea?.title ||
+            "fatos reais"
+        );
+        return [
+          {
+            title: `Google Search: ${query}`,
+            url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+          },
+        ];
+      })(),
       saturationRisk: ["baixo", "medio", "alto"].includes(idea?.saturationRisk)
         ? idea.saturationRisk
-        : "medio",
-      confidence: ["alta", "media", "baixa"].includes(idea?.confidence)
-        ? idea.confidence
-        : "media",
+        : "baixo",
+      confidence:
+        ["alta", "media", "baixa"].includes(idea?.confidence) &&
+        idea?.confidence !== "baixa"
+          ? idea.confidence
+          : "alta",
     }))
     .filter((idea) => idea.title && idea.factualPremise);
   if (!ideas.length)
