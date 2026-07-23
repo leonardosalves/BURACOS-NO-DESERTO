@@ -44,50 +44,25 @@ def remove_watermark_opencv(input_path, output_path, watermark_pos="bottom_right
 
     log_msg(f"Vídeo aberto com sucesso: {width}x{height} @ {fps:.2f}fps, total {total_frames} frames")
 
-    # Definir região do watermark (padrão Gemini: canto inferior direito)
-    w_size = min(watermark_size, width // 4, height // 4)
-    padding = 16
-
+    # Posição exata do logo de estrela (4 pontas) do Gemini/Veo (x=84.3% W, y=90.6% H)
     if watermark_pos == "bottom_right":
-        x1 = max(0, width - w_size - padding)
-        y1 = max(0, height - w_size - padding)
-        x2 = min(width, width - padding)
-        y2 = min(height, height - padding)
+        xc = int(width * 0.843)
+        yc = int(height * 0.906)
     elif watermark_pos == "bottom_left":
-        x1 = padding
-        y1 = max(0, height - w_size - padding)
-        x2 = min(width, padding + w_size)
-        y2 = min(height, height - padding)
+        xc = int(width * 0.157)
+        yc = int(height * 0.906)
     else:
-        # Default bottom-right
-        x1 = max(0, width - w_size - padding)
-        y1 = max(0, height - w_size - padding)
-        x2 = min(width, width - padding)
-        y2 = min(height, height - padding)
+        xc = int(width * 0.843)
+        yc = int(height * 0.906)
 
-    rw = x2 - x1
-    rh = y2 - y1
+    box_hw = max(80, int(min(width, height) * 0.10))
 
-    if rw <= 0 or rh <= 0:
-        log_msg("Dimensões de marca d'água inválidas.")
-        cap.release()
-        return False
+    x1 = max(0, xc - box_hw)
+    y1 = max(0, yc - box_hw)
+    x2 = min(width, xc + box_hw)
+    y2 = min(height, yc + box_hw)
 
-    # Matriz de Alpha estimada para o logo semi-transparente do Gemini (Reverse Alpha Blending)
-    # Criamos um gradiente gaussiano suave na ROI para blended Restoration
-    y_indices, x_indices = np.ogrid[:rh, :rw]
-    center_y, center_x = rh / 2.0, rw / 2.0
-    dist_from_center = np.sqrt((x_indices - center_x)**2 + (y_indices - center_y)**2)
-    radius = min(rw, rh) / 2.0
-
-    # Alpha estimado (~0.35 max de opacidade da marca do Gemini)
-    alpha = np.clip(1.0 - (dist_from_center / radius), 0, 1) ** 1.5 * 0.38
-    alpha_3d = np.dstack([alpha] * 3)
-
-    # Cor presumida da marca d'água (branca/cinza claro [245, 245, 245])
-    watermark_color = np.array([245.0, 245.0, 245.0], dtype=np.float32)
-
-    # Configurar VideoWriter com mp4v ou FFmpeg pipe
+    # Configurar VideoWriter
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     temp_out = output_path + ".tmp.mp4"
     out = cv2.VideoWriter(temp_out, fourcc, fps, (width, height))
@@ -100,24 +75,26 @@ def remove_watermark_opencv(input_path, output_path, watermark_pos="bottom_right
     frame_count = 0
     log_progress(0, f"Frame 0/{total_frames}")
 
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
         frame_count += 1
-        roi = frame[y1:y2, x1:x2].astype(np.float32)
+        roi = frame[y1:y2, x1:x2]
+        gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
-        # Inversão matemática do blend: Original = (Blend - Watermark * Alpha) / (1 - Alpha)
-        denom = np.maximum(1.0 - alpha_3d, 0.05)
-        restored_roi = (roi - watermark_color * alpha_3d) / denom
-        restored_roi = np.clip(restored_roi, 0, 255).astype(np.uint8)
+        # Máscara adaptativa baseada na luminância média da região + dilatação de bordas
+        mean_val = float(gray_roi.mean())
+        thresh_val = int(min(mean_val + 18, 230))
+        _, mask = cv2.threshold(gray_roi, thresh_val, 255, cv2.THRESH_BINARY)
+        mask = cv2.dilate(mask, kernel, iterations=1)
 
-        # Aplicar inpainting leve nas bordas para mesclagem invisível
-        mask_inpaint = (alpha * 255).astype(np.uint8)
-        restored_roi_smooth = cv2.inpaint(restored_roi, mask_inpaint, 3, cv2.INPAINT_TELEA)
-
-        frame[y1:y2, x1:x2] = restored_roi_smooth
+        # Restauração limpa por inpainting Telea
+        restored_roi = cv2.inpaint(roi, mask, 7, cv2.INPAINT_TELEA)
+        frame[y1:y2, x1:x2] = restored_roi
         out.write(frame)
 
         if total_frames > 0 and (frame_count % 15 == 0 or frame_count == total_frames):
@@ -181,10 +158,12 @@ def remove_watermark_ffmpeg_fallback(input_path, output_path, watermark_size=64)
     ffmpeg_exe = get_ffmpeg_binary()
 
     width, height = get_video_resolution(input_path)
-    w_box = max(60, min(watermark_size + 26, width // 4))
-    h_box = max(60, min(watermark_size + 26, height // 4))
-    x_pos = max(0, width - w_box - 16)
-    y_pos = max(0, height - h_box - 16)
+    xc = int(width * 0.843)
+    yc = int(height * 0.906)
+    w_box = max(120, int(min(width, height) * 0.12))
+    h_box = max(120, int(min(width, height) * 0.12))
+    x_pos = max(0, xc - (w_box // 2))
+    y_pos = max(0, yc - (h_box // 2))
 
     vf_filter = f"delogo=x={x_pos}:y={y_pos}:w={w_box}:h={h_box}"
     log_msg(f"Resolução detectada: {width}x{height} | ROI delogo: {w_box}x{h_box} em ({x_pos}, {y_pos})")
