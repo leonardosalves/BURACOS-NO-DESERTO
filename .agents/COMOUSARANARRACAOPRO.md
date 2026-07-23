@@ -1,4 +1,5 @@
 > 🔗 [[MEMORIA-LUMIERA]] · [[SKILLS]]
+> **Arquivo canônico do NARRADORPRO:** `.agents/NARRACAOPRO.md` (v4)
 
 # SCRIPT 2 v3 — AGENTE DE PESQUISA E PREPARAÇÃO FACTUAL
 
@@ -10,8 +11,8 @@
 > concretude, auditoria oral, block_phrase.
 >
 > **REGRA DE AUTORIDADE**: Em caso de conflito entre este arquivo e o
-> NARRACAOPRO, o NARRACAOPRO prevalece. Este arquivo NUNCA altera a narração
-> final. Ele prepara a base.
+> NARRACAOPRO (`.agents/NARRACAOPRO.md`), o NARRACAOPRO prevalece. Este
+> arquivo NUNCA altera a narração final. Ele prepara a base.
 
 ---
 
