@@ -4705,6 +4705,58 @@ function promoteRenderedSceneToProject(projDir, targetSceneId) {
       fs.writeFileSync(editorPath, JSON.stringify(edData, null, 2), "utf8");
     }
 
+    // 3. Update timeline_studio.json
+    const studioPath = path.join(projDir, "timeline_studio.json");
+    if (fs.existsSync(studioPath)) {
+      const studioData = JSON.parse(fs.readFileSync(studioPath, "utf8"));
+      const clips = studioData.clips || [];
+      const parts = String(targetSceneId || "1.2").split(".");
+      const blockNum = parts[0] || "1";
+      const sceneSub = parseInt(parts[1] || "1", 10) - 1;
+      const targetClipId = `video-${blockNum}-${sceneSub < 0 ? 0 : sceneSub}`;
+
+      let foundClip = false;
+      studioData.clips = clips.map((c) => {
+        if (
+          c.id === targetClipId ||
+          (c.props &&
+            String(c.props.blockKey) === blockNum &&
+            c.props.assetIndex === sceneSub)
+        ) {
+          foundClip = true;
+          return {
+            ...c,
+            trackId: "video",
+            label: newAssetFilename,
+            source: newAssetFilename,
+            props: { ...c.props, type: "video", text: newAssetFilename },
+            color: "#1565C0",
+          };
+        }
+        return c;
+      });
+
+      if (!foundClip) {
+        studioData.clips.push({
+          id: targetClipId,
+          trackId: "video",
+          start: 6.0905,
+          duration: 6.0905,
+          label: newAssetFilename,
+          source: newAssetFilename,
+          props: {
+            type: "video",
+            blockKey: blockNum,
+            assetIndex: sceneSub < 0 ? 0 : sceneSub,
+          },
+          color: "#1565C0",
+        });
+        studioData.clips.sort((a, b) => (a.start || 0) - (b.start || 0));
+      }
+
+      fs.writeFileSync(studioPath, JSON.stringify(studioData, null, 2), "utf8");
+    }
+
     return newAssetFilename;
   } catch (err) {
     console.error(
