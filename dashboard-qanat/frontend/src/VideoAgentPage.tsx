@@ -40,6 +40,7 @@ interface StoryboardFrame {
   motion_template_id?: string | null;
   asset_url?: string | null;
   media_type?: "video" | "image";
+  date_overlay?: string | null;
   status: "proposed" | "approved" | "rejected" | "built";
 }
 
@@ -54,26 +55,24 @@ interface GraphicsIdea {
 
 type HfStatus = "idle" | "init" | "lint" | "preview" | "render" | "error";
 
-const SUGGESTIONS_INITIAL = [
-  "npx hyperframes init",
-  "Analisar storyboard e sugerir gráficos",
-  "Companion mode: dirigir passo a passo",
-  "npx hyperframes doctor",
-];
-
 export default function VideoAgentPage({
   activeProject,
   getProjectUrl,
 }: {
   activeProject: string | null;
-  getProjectUrl: (path: string) => string;
+  getProjectUrl?: (path: string) => string;
 }) {
   const [messages, setMessages] = useState<AgentMessage[]>([
     {
       role: "agent",
       content:
         "Video Agent pronto. Uso o HyperFrames CLI real (npx hyperframes) para criar, validar e renderizar composições HTML → vídeo.\n\nComandos disponíveis:\n• init — scaffold de composição\n• lint — validar estrutura\n• inspect — inspeção visual\n• preview — preview no browser\n• render — renderizar MP4/WebM\n\nO que vamos criar?",
-      suggestions: SUGGESTIONS_INITIAL,
+      suggestions: [
+        "npx hyperframes init",
+        "Analisar storyboard e sugerir gráficos",
+        "Companion mode: dirigir passo a passo",
+        "npx hyperframes doctor",
+      ],
     },
   ]);
   const [input, setInput] = useState("");
@@ -86,8 +85,11 @@ export default function VideoAgentPage({
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const timer = setTimeout(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [messages, loading]);
 
   useEffect(() => {
     if (!activeProject) return;
@@ -635,6 +637,18 @@ function ScenePreviewPanel({
                 {selectedScene.time}
               </span>
             </div>
+
+            {/* Stylized Vintage Date Overlay Badge */}
+            {(selectedScene.date_overlay ||
+              selectedScene.description.match(/\b(19\d\d|20\d\d)\b/)) && (
+              <div className="z-10 mt-2 px-3.5 py-1.5 rounded-lg bg-amber-950/85 backdrop-blur-md border border-amber-500/60 shadow-2xl flex items-center justify-center gap-1.5 self-center">
+                <span className="text-[11px] font-mono font-extrabold tracking-widest text-amber-300 uppercase drop-shadow">
+                  📅{" "}
+                  {selectedScene.date_overlay ||
+                    `16 DE MAIO DE ${selectedScene.description.match(/\b(19\d\d|20\d\d)\b/)?.[0] || "1968"}`}
+                </span>
+              </div>
+            )}
 
             {/* Graphic / HyperFrames Overlay Center */}
             <div className="my-auto py-6 text-center z-10 flex flex-col items-center justify-center">

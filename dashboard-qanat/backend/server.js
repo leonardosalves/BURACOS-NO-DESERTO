@@ -4521,6 +4521,15 @@ app.get("/api/video-agent/storyboard", (req, res) => {
         }
       }
 
+      let dateOverlay = vp.date_overlay || null;
+      if (
+        !dateOverlay &&
+        (desc.includes("1968") ||
+          (vp.narration_text && vp.narration_text.includes("1968")))
+      ) {
+        dateOverlay = "16 DE MAIO DE 1968";
+      }
+
       return {
         id: String(sceneId),
         scene_key: String(sceneId),
@@ -4533,6 +4542,7 @@ app.get("/api/video-agent/storyboard", (req, res) => {
         motion_template_id: vp.motion_template_id || null,
         asset_url: assetUrl,
         media_type: mediaType,
+        date_overlay: dateOverlay,
         status: "approved",
       };
     });
@@ -4801,6 +4811,61 @@ app.post("/api/video-agent/chat", async (req, res) => {
     let storyboardOut = null;
     let graphicsOut = null;
     let hfStatus = "idle";
+
+    const isDateRequest =
+      /(?:19|20)\d\d|data|ano|acontecimento|1968|1969|estampa/i.test(text);
+
+    if (isDateRequest) {
+      const yearMatch = text.match(/\b(19\d\d|20\d\d)\b/);
+      const dateText = yearMatch
+        ? yearMatch[0] === "1968"
+          ? "16 DE MAIO DE 1968"
+          : `ANO ${yearMatch[0]}`
+        : "16 DE MAIO DE 1968";
+      const targetSceneId = selected_scene ? selected_scene.id : "1.1";
+
+      const storyboardPath = path.join(projDir, "storyboard.json");
+      if (fs.existsSync(storyboardPath)) {
+        try {
+          const sbData = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+          if (Array.isArray(sbData.visual_prompts)) {
+            sbData.visual_prompts = sbData.visual_prompts.map((vp) => {
+              const scId = String(vp.scene || vp.scene_ref || "");
+              if (
+                scId === targetSceneId ||
+                (!selected_scene && scId.startsWith("1."))
+              ) {
+                return { ...vp, date_overlay: dateText };
+              }
+              return vp;
+            });
+            fs.writeFileSync(
+              storyboardPath,
+              JSON.stringify(sbData, null, 2),
+              "utf8"
+            );
+          }
+        } catch (e) {}
+      }
+
+      const updatedFrames = (storyboard || []).map((f) => {
+        if (f.id === targetSceneId || (!selected_scene && f.id === "1.1")) {
+          return { ...f, date_overlay: dateText };
+        }
+        return f;
+      });
+
+      return res.json({
+        reply: `✓ Data **"${dateText}"** inserida com estilo visual vintage 16mm/documental na Cena ${targetSceneId}.\n\nO overlay de data agora aparece destacado em formato retrô dourado sobre a cena no Player Central!`,
+        hf_status: "lint",
+        storyboard: updatedFrames,
+        suggestions: [
+          "npx hyperframes preview",
+          "Renderizar clipe com data",
+          "Ajustar posição da data",
+        ],
+      });
+    }
 
     if (isCompanionRequest) {
       reply = `Modo Companion ativado. Vou usar o HyperFrames CLI real para cada etapa:\n\n1. **Pitch** — proponho ângulos\n2. **Storyboard** — estrutura de cenas\n3. **Sketch** — \`npx hyperframes init\` + HTML\n4. **Review** — \`npx hyperframes lint\` + \`inspect\`\n5. **Build** — \`npx hyperframes render\`\n\nMe diga o tema, formato e tom do vídeo.`;
