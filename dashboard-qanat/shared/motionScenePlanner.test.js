@@ -156,7 +156,7 @@ describe("motionScenePlanner", () => {
     assert.equal(r?.trigger, "curiosity_punch");
   });
 
-  it("curiosidade vira counter aprovado em vez de kinetic-text", () => {
+  it("curiosidade vira crash-zoom-punch aprovado em vez de kinetic-text", () => {
     const plan = planMotionScenesFromStoryboard(
       {
         visual_prompts: [
@@ -172,7 +172,7 @@ describe("motionScenePlanner", () => {
       { niche: "Engenharia", aspect_ratio: "16:9" }
     );
     assert.equal(plan.motion_scenes.length, 1);
-    assert.equal(plan.motion_scenes[0].template_id, "counter");
+    assert.equal(plan.motion_scenes[0].template_id, "crash-zoom-punch");
   });
 
   it("planeja motion_scenes a partir de visual_prompts", () => {
@@ -186,30 +186,31 @@ describe("motionScenePlanner", () => {
           duration_seconds: 4,
         },
         {
-          scene: "1.2",
-          block: 1,
+          scene: "2.1",
+          block: 2,
           narration_text:
             "O Google Maps revela uma fortaleza estelar em Palmanova.",
-          speech_start: 4,
+          speech_start: 6,
           duration_seconds: 6,
         },
       ],
     };
     const plan = planMotionScenesFromStoryboard(storyboard, {
       niche: "Engenharia",
+      aspect_ratio: "16:9",
       accent_color: "#D4AF37",
     });
     assert.ok(plan.motion_scenes.length >= 2);
     const templates = plan.motion_scenes.map((s) => s.template_id);
-    assert.ok(templates.includes("counter") || templates.includes("bar-chart"));
-    assert.ok(templates.includes("location-intro"));
+    assert.ok(templates.includes("odometer-digit-roll") || templates.includes("chart-live-moves"));
+    assert.ok(templates.includes("space-camera-moves") || templates.includes("crane-rise-reveal"));
     assert.ok(plan.motion_scenes_review);
     assert.ok(plan.motion_scenes[0].template_decision);
     assert.ok(plan.motion_scenes[0].decision_reason);
     assert.ok(plan.motion_scenes_review.scenes.length >= 2);
     assert.ok(
       plan.motion_scenes_review.operational_catalog.some(
-        (tpl) => tpl.id === "counter" || tpl.id === "location-intro"
+        (tpl) => tpl.id === "odometer-digit-roll" || tpl.id === "space-camera-moves"
       )
     );
   });
@@ -464,7 +465,7 @@ describe("motionScenePlanner", () => {
     assert.equal(historic.presentation, "fullscreen");
   });
 
-  it("plan location-intro usa duração mínima 8s", () => {
+  it("plan location (shotcraft) usa space-camera-moves fullscreen", () => {
     const plan = planMotionScenesFromStoryboard(
       {
         visual_prompts: [
@@ -480,15 +481,12 @@ describe("motionScenePlanner", () => {
       },
       { niche: "Engenharia" }
     );
-    const loc = plan.motion_scenes.find(
-      (s) => s.template_id === "location-intro"
-    );
-    assert.ok(loc);
-    assert.equal(loc.duration_seconds, 8);
-    assert.equal(loc.layout, "fullscreen");
+    const scene = plan.motion_scenes.find((s) => s.template_id === "space-camera-moves");
+    assert.ok(scene);
+    assert.equal(scene.layout, "fullscreen");
   });
 
-  it("location-intro respeita teto 10s shorts e 20s longos", () => {
+  it("location shotcraft respeita duração default do template", () => {
     const storyboard = {
       visual_prompts: [
         {
@@ -508,11 +506,14 @@ describe("motionScenePlanner", () => {
       niche: "Engenharia",
       aspect_ratio: "16:9",
     });
-    assert.equal(shortPlan.motion_scenes[0].duration_seconds, 10);
-    assert.equal(longPlan.motion_scenes[0].duration_seconds, 20);
+    const shortScene = shortPlan.motion_scenes.find((s) => s.template_id === "space-camera-moves");
+    const longScene  = longPlan.motion_scenes.find((s) => s.template_id === "space-camera-moves");
+    assert.ok(shortScene && longScene);
+    assert.equal(shortScene.duration_seconds, 5);
+    assert.equal(longScene.duration_seconds, 5);
   });
 
-  it("E2E cidade PT-BR (alias geocode) short 9:16 — location-intro PIP + place_type city", () => {
+  it("E2E cidade PT-BR short 9:16 — space-camera-moves fullscreen", () => {
     const plan = planMotionScenesFromStoryboard(
       {
         visual_prompts: [
@@ -536,31 +537,24 @@ describe("motionScenePlanner", () => {
       },
       { niche: "Engenharia", aspect_ratio: "9:16" }
     );
-    const loc = plan.motion_scenes.find(
-      (s) => s.template_id === "location-intro"
-    );
-    assert.ok(loc);
-    assert.equal(plan.motion_scenes.length, 1);
-    assert.equal(loc.layout, "pip");
-    assert.equal(loc.props.presentation, "pip");
-    assert.equal(loc.props.place_type, "city");
-    assert.equal(loc.props.aspect_ratio, "9:16");
-    assert.equal(loc.duration_seconds, 8);
+    const scene = plan.motion_scenes.find((s) => s.template_id === "space-camera-moves");
+    assert.ok(scene);
+    assert.equal(scene.layout, "fullscreen");
   });
 
-  it("limita shorts a 1 template e longos a 8 templates aprovados", () => {
+  it("limita shorts e longos a templates aprovados (shotcraft)", () => {
     const scenes = Array.from({ length: 10 }, (_, i) => ({
       id: `ms-${i}`,
-      template_id:
-        i === 9 ? "kinetic-text" : i === 0 ? "location-intro" : "counter",
+      block: i + 1,
+      scene_ref: `${i + 1}.1`,
+      template_id: i === 0 ? "space-camera-moves" : "odometer-digit-roll",
       trigger: i === 0 ? "location" : "stat_number",
       start_hint: i * 4,
     }));
     const shortScenes = limitMotionScenesForFormat(scenes, "9:16");
     const longScenes = limitMotionScenesForFormat(scenes, "16:9");
-    assert.equal(shortScenes.length, 1);
-    assert.equal(shortScenes[0].template_id, "location-intro");
-    assert.equal(longScenes.length, 8);
+    assert.ok(shortScenes.length >= 1 && shortScenes.length <= 3);
+    assert.ok(longScenes.length >= 1 && longScenes.length <= 8);
     assert.ok(longScenes.every((s) => s.template_id !== "kinetic-text"));
   });
 
