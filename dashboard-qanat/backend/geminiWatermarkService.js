@@ -280,6 +280,13 @@ export async function processProjectWatermark(
     }
   }
 
+  if (processedVideos > 0) {
+    onLog(
+      `[WATERMARK] Limpando cache de pré-visualização do Remotion no Lumiera...`
+    );
+    clearProjectRemotionCache(projDir);
+  }
+
   onProgress(
     100,
     `Concluído! ${processedVideos} substituído(s), ${failedVideos} falha(s).`
@@ -292,4 +299,23 @@ export async function processProjectWatermark(
   onLog(`==================================================`);
 
   return { totalVideos, processedVideos, failedVideos, replacedFiles };
+}
+
+export function clearProjectRemotionCache(projDir) {
+  try {
+    const slug = path.basename(projDir).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const candidates = [
+      path.resolve(__dirname, "../remotion-renderer/public/projects", slug),
+      path.resolve(__dirname, "../../remotion-renderer/public/projects", slug),
+      path.resolve(process.cwd(), "remotion-renderer/public/projects", slug),
+      path.resolve(process.cwd(), "../remotion-renderer/public/projects", slug),
+    ];
+    for (const cacheDir of candidates) {
+      if (fs.existsSync(cacheDir)) {
+        fs.rmSync(cacheDir, { recursive: true, force: true });
+      }
+    }
+  } catch (e) {
+    /* ignore */
+  }
 }
