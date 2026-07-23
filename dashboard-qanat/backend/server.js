@@ -20966,7 +20966,7 @@ app.post(
     if (progressJobId) {
       setJobProgress(progressJobId, {
         phase: "filtering",
-        label: "🛡️ [2/3] Filtrando tópicos explorados e estruturando 5 ideias…",
+        label: "🛡️ [2/3] Filtrando tópicos explorados e estruturando 10 ideias…",
         percent: 55,
       });
     }
@@ -20975,7 +20975,7 @@ app.post(
 
 O usuário fornecerá um Nicho de Vídeo e um Formato (Longo ou Shorts).
 
-Faça uma análise rápida, objetiva e estratégica do nicho e gere exatamente 5 ideias de vídeo virais exclusivas dentro desse nicho.
+Faça uma análise rápida, objetiva e estratégica do nicho e gere exatamente 10 ideias de vídeo virais exclusivas dentro desse nicho.
 
 ${buildNicheIsolationAddendum(nicheClean)}
 
@@ -20997,7 +20997,7 @@ ${buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG")}
 
 Diversidade obrigatoria de ideias:
 
-- As 5 ideias devem explorar angulos diferentes entre si; nao entregue variacoes do mesmo titulo.
+- As 10 ideias devem explorar angulos diferentes entre si; nao entregue variacoes do mesmo titulo.
 
 - Misture pelo menos estes tipos de abordagem quando fizer sentido: misterio, erro historico, detalhe esquecido, revelacao cientifica, comparacao improvavel, historia humana, mito versus realidade, pergunta provocadora, conflito moral e curiosidade visual.
 
@@ -21101,20 +21101,22 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
       if (progressJobId) {
         setJobProgress(progressJobId, {
           phase: "llm",
-          label: "⚡ [3/3] Consultando IA para sintetizar 5 ideias virais...",
+          label: "⚡ [3/3] Consultando IA para sintetizar 10 ideias virais...",
           percent: 80,
         });
       }
 
       const generation = await generateCreatorIdeasWithSingleRetry({
         basePrompt: fullPrompt,
-        expectedCount: 5,
-        maxAttempts: browserText ? 1 : 2,
-        generate: ({ attempt, prompt }) =>
+        expectedCount: 10,
+        maxAttempts: 1,
+        niche: nicheClean,
+        format,
+        generate: ({ prompt }) =>
           callGeminiLlm(req, res, projDir, {
             title: "Gerar 10 ideias virais",
             prompt,
-            temperature: attempt === 1 ? 1.2 : 0.35,
+            temperature: 0.9,
           }),
         parse: (responseText) =>
           parseAiJsonResponse(

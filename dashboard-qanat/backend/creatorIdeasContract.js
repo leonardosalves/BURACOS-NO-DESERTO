@@ -120,24 +120,21 @@ export async function generateCreatorIdeasWithSingleRetry({
   generate,
   parse,
   expectedCount = 10,
-  maxAttempts = 2,
+  maxAttempts = 1,
+  niche = "Geral",
+  format = "SHORTS",
 }) {
-  const attemptsLimit = Math.max(1, Math.min(2, Number(maxAttempts) || 2));
+  const attemptsLimit = 1;
   let rejectionReason = "a resposta não pôde ser validada";
-  let lastError = null;
 
   for (let attempt = 1; attempt <= attemptsLimit; attempt += 1) {
-    const prompt =
-      attempt === 1
-        ? basePrompt
-        : buildCreatorIdeasRetryPrompt(basePrompt, rejectionReason);
-    const responseText = await generate({ attempt, prompt });
-
-    if (responseText == null) {
-      return { handledExternally: true, data: null, attempts: attempt };
-    }
-
     try {
+      const responseText = await generate({ attempt, prompt: basePrompt });
+
+      if (responseText == null) {
+        return { handledExternally: true, data: null, attempts: attempt };
+      }
+
       const parsed = await parse(responseText);
       const validation = validateCreatorIdeasPayload(parsed, { expectedCount });
       if (validation.ok) {
@@ -148,19 +145,17 @@ export async function generateCreatorIdeasWithSingleRetry({
         };
       }
       rejectionReason = validation.reason;
-      lastError = new Error(validation.reason);
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
+      const lastError = error instanceof Error ? error : new Error(String(error));
       rejectionReason = `o JSON não pôde ser interpretado (${lastError.message})`;
     }
   }
 
-  throw new CreatorIdeasContractError(
-    "A IA não entregou as 10 ideias em um formato válido após a repetição automática.",
-    {
-      attempts: attemptsLimit,
-      reason: rejectionReason,
-      cause: lastError?.message || "resposta inválida",
-    }
-  );
+  console.warn(`[IDEAS CONTRACT] Usando fallback de ideias por conta de: ${rejectionReason}`);
+  return {
+    handledExternally: false,
+    data: createFallbackCreatorIdeas(niche, format),
+    attempts: attemptsLimit,
+    fallbackUsed: true,
+  };
 }

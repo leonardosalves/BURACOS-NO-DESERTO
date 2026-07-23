@@ -1873,7 +1873,7 @@ export function AppCreatorTab({
                           <Sparkles className="w-4 h-4" />
                         )}
 
-                        <span>Analisar Nicho e Gerar 5 Ideias</span>
+                        <span>Analisar Nicho e Gerar 10 Ideias</span>
                       </button>
                     </div>
                   </div>
