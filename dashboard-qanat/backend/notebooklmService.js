@@ -2,6 +2,18 @@ import { spawn, spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import {
+  restHealth,
+  restIsAuthenticated,
+  restListNotebooks,
+  restCreateNotebook,
+  restListSources,
+  restAddSourceText,
+  restAsk,
+  restWebResearch,
+  NotebooklmRestError,
+  getRestBaseUrl,
+} from "./notebooklmRestClient.js";
+import {
   buildNotebooklmSessionFromResearch,
   extractNotebooklmQuestions,
   finalizeNotebooklmSession,
@@ -81,6 +93,32 @@ const NLM_BIN = resolveNlmBin();
 const LOGIN_PENDING_TIMEOUT_MS = Number(
   process.env.NOTEBOOKLM_LOGIN_TIMEOUT_MS || 180000
 );
+
+let restAvailable = null;
+let restCheckedAt = 0;
+const REST_CHECK_TTL_MS = 60000;
+
+async function isRestApiAvailable() {
+  if (
+    restAvailable !== null &&
+    Date.now() - restCheckedAt < REST_CHECK_TTL_MS
+  ) {
+    return restAvailable;
+  }
+  try {
+    await restHealth();
+    restAvailable = true;
+  } catch {
+    restAvailable = false;
+  }
+  restCheckedAt = Date.now();
+  return restAvailable;
+}
+
+function invalidateRestCheck() {
+  restAvailable = null;
+  restCheckedAt = 0;
+}
 
 let loginChild = null;
 let loginStartedAt = null;
@@ -1189,6 +1227,27 @@ async function runNotebooklmPipeline({
   interactiveDiscovery = false,
   projDir = null,
 }) {
+  const useRest = await isRestApiAvailable();
+
+  if (useRest) {
+    return runNotebooklmPipelineRest({
+      niche,
+      format,
+      idea,
+      contentMode,
+      rankCount,
+      listTopic,
+      rankOrder,
+      purpose,
+      narrativeScript,
+      backendDir,
+      runResearch,
+      researchMode,
+      interactiveDiscovery,
+      projDir,
+    });
+  }
+
   const status = getNotebooklmStatus(backendDir, { quick: true });
   if (!status.authenticated) {
     return buildFallbackSummary({ niche, format, purpose, needsLogin: true });
@@ -1326,6 +1385,211 @@ async function runNotebooklmPipeline({
     initialQuestion: question,
     interactiveDiscovery,
   };
+}
+
+async function runNotebooklmPipelineRest({
+  niche,
+  format,
+  idea,
+  contentMode,
+  rankCount,
+  listTopic,
+  rankOrder,
+  purpose,
+  narrativeScript,
+  backendDir,
+  runResearch = false,
+  researchMode = "fast",
+  interactiveDiscovery = false,
+  projDir = null,
+}) {
+  const authenticated = await restIsAuthenticated();
+  if (!authenticated) {
+    return buildFallbackSummary({ niche, format, purpose, needsLogin: true });
+  }
+
+  const notebookId = await findOrCreateNotebookRest(niche, backendDir, projDir);
+
+  const cache = loadCache(backendDir);
+  const key = nicheKey(niche);
+  const notebookExistsInCache = Boolean(cache.notebooks[key]);
+
+  const skipBriefUpload =
+    purpose === "script" && interactiveDiscovery && notebookExistsInCache;
+  if ((purpose !== "improve" || !notebookExistsInCache) && !skipBriefUpload) {
+    const brief = buildBriefText({
+      niche,
+      format,
+      idea,
+      contentMode,
+      rankCount,
+      listTopic,
+      rankOrder,
+    });
+    try {
+      await restAddSourceText(
+        notebookId,
+        brief,
+        `Brief Lumiera ${new Date().toISOString().slice(0, 16)}`
+      );
+    } catch (err) {
+      console.warn("[NotebookLM REST] Upload de brief bloqueado:", err.message);
+    }
+  }
+
+  if (runResearch) {
+    const researchQuery =
+      contentMode === "LISTICLE"
+        ? `melhores fatos e curiosidades sobre ${listTopic || niche} para vídeo top ${rankCount}`
+        : `fatos surpreendentes tendências e perguntas do público sobre ${niche}`;
+    try {
+      await restWebResearch(notebookId, researchQuery, {
+        deep: researchMode === "deep",
+      });
+    } catch (err) {
+      console.warn(
+        "[NotebookLM REST] Web research falhou (opcional):",
+        err.message
+      );
+    }
+  }
+
+  let question;
+  if (purpose === "improve") {
+    question = buildImproveQuery({ niche, format, narrativeScript });
+  } else if (purpose === "script" && interactiveDiscovery) {
+    question = buildInteractiveDiscoveryQuery({
+      niche,
+      format,
+      idea,
+      contentMode,
+      listTopic,
+      rankCount,
+    });
+  } else if (purpose === "script") {
+    question = buildScriptQuery({
+      niche,
+      format,
+      idea,
+      contentMode,
+      rankCount,
+      listTopic,
+      rankOrder,
+    });
+  } else {
+    question = buildIdeasQuery({
+      niche,
+      format,
+      contentMode,
+      rankCount,
+      listTopic,
+    });
+  }
+
+  let answer;
+  try {
+    const result = await restAsk(notebookId, question, {
+      sourceFormat: "json",
+    });
+    answer =
+      result?.answer || result?.response || result?.text || result?.raw || "";
+  } catch (err) {
+    console.warn("[NotebookLM REST] Query falhou:", err.message);
+    invalidateRestCheck();
+    return buildFallbackSummary({ niche, format, purpose });
+  }
+
+  const summary = String(answer || "")
+    .trim()
+    .slice(0, 12000);
+  const awaitingUser = isNotebooklmAwaitingUser(summary);
+  const questions = extractNotebooklmQuestions(summary);
+
+  return {
+    available: true,
+    topic: listTopic || idea?.title || niche,
+    summary,
+    notebookId,
+    sources: ["NotebookLM REST"],
+    fallback: false,
+    awaitingUser:
+      awaitingUser || (interactiveDiscovery && questions.length > 0),
+    questions,
+    researchDone: Boolean(runResearch),
+    initialQuestion: question,
+    interactiveDiscovery,
+    viaRest: true,
+  };
+}
+
+async function findOrCreateNotebookRest(niche, backendDir, projDir = null) {
+  const cache = loadCache(backendDir);
+
+  if (projDir && fs.existsSync(projDir)) {
+    const sessionPath = path.join(projDir, "notebooklm_session.json");
+    if (fs.existsSync(sessionPath)) {
+      try {
+        const session = JSON.parse(fs.readFileSync(sessionPath, "utf8"));
+        if (session?.notebookId) return session.notebookId;
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  const repoRoot = path.resolve(backendDir, "..", "..");
+  const isActualProject =
+    projDir && fs.existsSync(projDir) && path.resolve(projDir) !== repoRoot;
+
+  let key;
+  let title;
+  if (isActualProject) {
+    const projName = path.basename(projDir);
+    key = `project-${nicheKey(projName)}`;
+    title = `Lumiera: ${projName.trim().slice(0, 50)} (${String(niche).trim().slice(0, 20)})`;
+  } else {
+    key = nicheKey(niche);
+    title = `Lumiera: ${String(niche).trim().slice(0, 72) || "Geral"}`;
+  }
+
+  if (cache.notebooks[key]?.id) return cache.notebooks[key].id;
+
+  try {
+    const notebooks = await restListNotebooks();
+    const list = Array.isArray(notebooks)
+      ? notebooks
+      : notebooks?.notebooks || [];
+    const existing = list.find((n) => {
+      const t = String(n.title || n.name || "").toLowerCase();
+      if (isActualProject) {
+        const projName = path.basename(projDir).toLowerCase();
+        return t.includes("lumiera") && t.includes(projName.slice(0, 24));
+      }
+      return (
+        t.includes("lumiera") &&
+        t.includes(String(niche).trim().toLowerCase().slice(0, 24))
+      );
+    });
+    if (existing?.id) {
+      cache.notebooks[key] = {
+        id: existing.id,
+        title: existing.title || existing.name,
+        reused: true,
+      };
+      saveCache(backendDir, cache);
+      return existing.id;
+    }
+  } catch {
+    /* continue to create */
+  }
+
+  const created = await restCreateNotebook(title);
+  const id = created?.id || created?.notebook_id;
+  if (!id) throw new Error("Falha ao criar notebook via REST API.");
+
+  cache.notebooks[key] = { id, title, createdAt: new Date().toISOString() };
+  saveCache(backendDir, cache);
+  return id;
 }
 
 export async function handleNotebooklmSessionReply({
