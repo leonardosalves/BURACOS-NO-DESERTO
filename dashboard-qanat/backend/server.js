@@ -21084,7 +21084,7 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 
       "hooks": "Gancho principal ≤10 palavras, voz ativa, PT-BR",
       "reality_status": "documented | current | plausible | disputed",
-      "evidence_anchor": "fato/caso verificável",
+      "evidence_anchor": "Caso real específico: NOME do evento/local + DATA (ano) + LOCALIZAÇÃO (cidade/país) + 1 dado numérico concreto. Ex: 'Ronan Point, Londres, 1968 — explosão de gás no 18º andar causou colapso progressivo de 22 andares em 5 segundos'",
       "saturation_level": "low | medium | high | unknown",
       "saturation_evidence": "sinal observado ou não confirmado",
       "undercovered_reason": "lacuna e diferencial do recorte",
