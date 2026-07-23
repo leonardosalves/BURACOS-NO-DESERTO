@@ -4628,24 +4628,69 @@ app.post("/api/video-agent/chat", async (req, res) => {
         });
         let stdout = "";
         let stderr = "";
+        let resolved = false;
+
+        const checkPreviewReady = () => {
+          if (subcommand === "preview" && !resolved) {
+            const combined = stdout + stderr;
+            if (
+              combined.includes("Studio running") ||
+              combined.includes("http://localhost") ||
+              combined.includes("http://127.0.0.1")
+            ) {
+              resolved = true;
+              clearTimeout(timer);
+              resolve({ stdout, stderr, status: 0 });
+            }
+          }
+        };
+
         const timer = setTimeout(
           () => {
-            child.kill("SIGTERM");
-            resolve({ stdout, stderr: stderr + "\n[timeout]", status: 1 });
+            if (resolved) return;
+            resolved = true;
+            if (
+              subcommand === "preview" &&
+              (stdout + stderr).includes("Studio")
+            ) {
+              resolve({ stdout, stderr, status: 0 });
+            } else {
+              child.kill("SIGTERM");
+              resolve({
+                stdout,
+                stderr: stderr + "\n[timeout]",
+                status: subcommand === "preview" ? 0 : 1,
+              });
+            }
           },
-          subcommand === "render" ? 300000 : 90000
+          subcommand === "preview"
+            ? 5000
+            : subcommand === "render"
+              ? 300000
+              : 90000
         );
+
         child.stdout.on("data", (d) => {
           stdout += d.toString();
+          checkPreviewReady();
         });
         child.stderr.on("data", (d) => {
           stderr += d.toString();
+          checkPreviewReady();
         });
         child.on("close", (code) => {
+          if (resolved) return;
+          resolved = true;
           clearTimeout(timer);
-          resolve({ stdout, stderr, status: code ?? 1 });
+          resolve({
+            stdout,
+            stderr,
+            status: code ?? (subcommand === "preview" ? 0 : 1),
+          });
         });
         child.on("error", (err) => {
+          if (resolved) return;
+          resolved = true;
           clearTimeout(timer);
           resolve({ stdout, stderr: String(err.message), status: 1 });
         });
@@ -4654,7 +4699,13 @@ app.post("/api/video-agent/chat", async (req, res) => {
       const stdout = (result.stdout || "").trim();
       const stderr = (result.stderr || "").replace(/^npm warn.*$/gm, "").trim();
       const output = [stdout, stderr].filter(Boolean).join("\n\n");
-      const exitCode = result.status ?? 1;
+      let exitCode = result.status ?? 1;
+      if (
+        subcommand === "preview" &&
+        (output.includes("Studio") || output.includes("http://localhost"))
+      ) {
+        exitCode = 0;
+      }
 
       let previewUrl = null;
       if (subcommand === "preview") {
