@@ -67,6 +67,12 @@ const LazyWhiteboardCreatorPanel = React.lazy(() =>
   }))
 );
 
+const LazyVideoAgentPage = React.lazy(() =>
+  import("./VideoAgentPage").then((module) => ({
+    default: module.default,
+  }))
+);
+
 type ResurrectorAlert = {
   type: string;
   slot: string;

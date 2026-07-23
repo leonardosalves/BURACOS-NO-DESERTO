@@ -4470,6 +4470,255 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
   }
 });
 
+app.post("/api/video-agent/chat", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const {
+      message = "",
+      phase = "idle",
+      storyboard = [],
+      graphics_ideas = [],
+    } = req.body || {};
+
+    const text = String(message || "").trim();
+    if (!text) {
+      return res.status(400).json({ error: "Mensagem vazia." });
+    }
+
+    const isCompanionRequest =
+      /companion|dirigir|passo a passo|acompanhar/i.test(text);
+    const isAnalyzeRequest =
+      /analis|storyboard|gráficos|overlays|sugerir/i.test(text);
+    const isBuildRequest =
+      /construir|build|aprovar|renderizar|gerar vídeo/i.test(text);
+    const isFromScratch = /do zero|criar vídeo|novo vídeo|prompt/i.test(text);
+
+    let nextPhase = phase;
+    let reply = "";
+    let suggestions = [];
+    let storyboardOut = null;
+    let graphicsOut = null;
+
+    if (isCompanionRequest && phase === "idle") {
+      nextPhase = "pitch";
+      reply = `Perfeito! Vamos trabalhar em modo Companion — você dirige, eu executo.\n\nVou propor 5 ângulos para o vídeo. Me diga:\n1. Qual é o tema/assunto?\n2. Qual o formato (Shorts ou Longo)?\n3. Qual o tom (documental, energético, misterioso)?\n\nCom base nisso, vou pitchear 5 abordagens diferentes para você escolher.`;
+      suggestions = [
+        "Engenharia civil, Shorts, documental",
+        "Curiosidades científicas, Shorts, energético",
+        "Mistérios históricos, Longo, misterioso",
+      ];
+    } else if (isAnalyzeRequest) {
+      nextPhase = "storyboard";
+      reply = `Vou analisar o storyboard atual e identificar pontos onde gráficos e overlays de dados podem enriquecer o vídeo.\n\nAnalisando estrutura narrativa...`;
+
+      const prompt = `Você é um diretor de motion graphics analisando um storyboard de vídeo para YouTube.
+
+STORYBOARD ATUAL:
+${JSON.stringify(storyboard.slice(0, 10), null, 2)}
+
+INSTRUÇÃO DO USUÁRIO: ${text}
+
+Analise cada cena e identifique onde gráficos, charts, counters, lower thirds ou text overlays podem ser adicionados para enriquecer a narrativa visual.
+
+Responda APENAS JSON:
+{
+  "reply": "explicação curta do que encontrou",
+  "graphics_ideas": [
+    {
+      "id": "g1",
+      "sceneId": "id da cena",
+      "sceneTitle": "título da cena",
+      "type": "chart | lower_third | text_overlay | counter | comparison | timeline",
+      "description": "o que mostrar",
+      "data_hint": "dados necessários"
+    }
+  ]
+}`;
+
+      try {
+        const llmText = await callGeminiLlm(req, res, projDir, {
+          title: "Video Agent · Análise de Storyboard",
+          prompt,
+          temperature: 0.5,
+          maxTokens: 4000,
+        });
+        if (llmText != null) {
+          const parsed = parseJsonLocally(llmText);
+          if (parsed?.graphics_ideas?.length) {
+            graphicsOut = parsed.graphics_ideas.map((g, i) => ({
+              ...g,
+              id: g.id || `g${i + 1}`,
+              status: "suggested",
+            }));
+            reply =
+              parsed.reply ||
+              `Encontrei ${graphicsOut.length} oportunidades de gráficos/overlays no storyboard.`;
+          } else {
+            reply =
+              "Analisei o storyboard mas não encontrei pontos claros para gráficos adicionais. Tente ser mais específico sobre o tipo de dado que quer visualizar.";
+          }
+        }
+      } catch (llmErr) {
+        reply = `Erro ao analisar com IA: ${llmErr.message}. Tente novamente.`;
+      }
+      suggestions = [
+        "Aprovar todos os gráficos",
+        "Mostrar só charts",
+        "Adicionar counter animado",
+      ];
+    } else if (isBuildRequest) {
+      nextPhase = "build";
+      const approvedFrames = (storyboard || []).filter(
+        (f) => f.status === "approved"
+      );
+      const approvedGraphics = (graphics_ideas || []).filter(
+        (g) => g.status === "approved"
+      );
+      reply = `Iniciando construção do vídeo:\n\n• ${approvedFrames.length} frames aprovados\n• ${approvedGraphics.length} overlays de dados aprovados\n\nGerando composição HyperFrames...`;
+
+      try {
+        const planPrompt = `Você é o Video Agent do Lumiera. Construa um plano de execução para um vídeo HyperFrames.
+
+FRAMES APROVADOS:
+${JSON.stringify(approvedFrames.slice(0, 12), null, 2)}
+
+OVERLAYS APROVADOS:
+${JSON.stringify(approvedGraphics.slice(0, 8), null, 2)}
+
+INSTRUÇÃO: ${text}
+
+Responda APENAS JSON:
+{
+  "reply": "resumo do que será construído",
+  "hyperframes_plan": {
+    "total_duration_seconds": 45,
+    "scenes": [{"id": "s1", "type": "avatar|graphics|broll|chart", "duration": 5, "description": "..."}],
+    "overlays": [{"id": "o1", "type": "chart|counter|lower_third", "scene": "s1", "description": "..."}]
+  }
+}`;
+        const llmText = await callGeminiLlm(req, res, projDir, {
+          title: "Video Agent · Build Plan",
+          prompt: planPrompt,
+          temperature: 0.4,
+          maxTokens: 4000,
+        });
+        if (llmText != null) {
+          const parsed = parseJsonLocally(llmText);
+          if (parsed?.reply) {
+            reply = parsed.reply;
+          }
+        }
+      } catch (llmErr) {
+        reply = `Plano local gerado (IA indisponível: ${llmErr.message}). ${approvedFrames.length} frames serão renderizados via HyperFrames.`;
+      }
+      suggestions = ["Ver preview", "Ajustar timing", "Exportar para Remotion"];
+    } else if (phase === "pitch" || isFromScratch) {
+      nextPhase = "storyboard";
+      const prompt = `Você é o Video Agent do Lumiera em modo Companion. O usuário quer criar um vídeo.
+
+PEDIDO: ${text}
+
+Crie um storyboard com 5-8 frames para um vídeo YouTube. Cada frame deve ter:
+- time: timestamp (ex: "0:00-0:05")
+- title: título curto
+- description: descrição visual detalhada
+- type: "avatar" | "graphics" | "caption" | "broll" | "chart" | "transition"
+
+Responda APENAS JSON:
+{
+  "reply": "explicação curta da estrutura proposta",
+  "storyboard": [
+    {"id": "f1", "time": "0:00-0:05", "title": "...", "description": "...", "type": "broll", "status": "proposed"}
+  ],
+  "suggestions": ["sugestão 1", "sugestão 2"]
+}`;
+
+      try {
+        const llmText = await callGeminiLlm(req, res, projDir, {
+          title: "Video Agent · Storyboard",
+          prompt,
+          temperature: 0.7,
+          maxTokens: 6000,
+        });
+        if (llmText != null) {
+          const parsed = parseJsonLocally(llmText);
+          if (parsed?.storyboard?.length) {
+            storyboardOut = parsed.storyboard.map((f, i) => ({
+              ...f,
+              id: f.id || `f${i + 1}`,
+              status: "proposed",
+            }));
+            reply =
+              parsed.reply ||
+              `Propus ${storyboardOut.length} frames. Aprove ou rejeite cada um no painel à direita.`;
+            suggestions = parsed.suggestions || [
+              "Aprovar todos",
+              "Trocar frame 1",
+              "Adicionar frame de chart",
+            ];
+          } else {
+            reply =
+              "Não consegui gerar o storyboard. Tente reformular o pedido com mais detalhes.";
+            suggestions = ["Tentar novamente", "Mudar para modo livre"];
+          }
+        }
+      } catch (llmErr) {
+        reply = `Erro ao gerar storyboard: ${llmErr.message}`;
+        suggestions = ["Tentar novamente"];
+      }
+    } else {
+      const prompt = `Você é o Video Agent do Lumiera. Responda de forma concisa e útil.
+
+CONTEXTO: O usuário está na fase "${phase}" da criação de um vídeo.
+STORYBOARD ATUAL: ${storyboard.length} frames (${storyboard.filter((f) => f.status === "approved").length} aprovados)
+GRÁFICOS: ${graphics_ideas.length} ideias (${graphics_ideas.filter((g) => g.status === "approved").length} aprovadas)
+
+MENSAGEM: ${text}
+
+Responda APENAS JSON:
+{
+  "reply": "sua resposta",
+  "suggestions": ["sugestão 1", "sugestão 2"]
+}`;
+
+      try {
+        const llmText = await callGeminiLlm(req, res, projDir, {
+          title: "Video Agent · Chat",
+          prompt,
+          temperature: 0.6,
+          maxTokens: 2000,
+        });
+        if (llmText != null) {
+          const parsed = parseJsonLocally(llmText);
+          reply = parsed?.reply || llmText.slice(0, 500);
+          suggestions = parsed?.suggestions || [];
+        } else {
+          reply = "Não consegui processar. Tente novamente.";
+        }
+      } catch (llmErr) {
+        reply = `Erro: ${llmErr.message}`;
+      }
+    }
+
+    if (!res.headersSent) {
+      res.json({
+        reply,
+        phase: nextPhase,
+        suggestions,
+        storyboard: storyboardOut,
+        graphics_ideas: graphicsOut,
+      });
+    }
+  } catch (err) {
+    console.error("[VideoAgentChat]", err.message);
+    if (!res.headersSent) {
+      res
+        .status(500)
+        .json({ error: "Erro no Video Agent", details: err.message });
+    }
+  }
+});
+
 app.post("/api/ai/video-agent/execute", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
