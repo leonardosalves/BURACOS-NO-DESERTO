@@ -4782,8 +4782,19 @@ app.post("/api/video-agent/chat", async (req, res) => {
       return res.status(400).json({ error: "Mensagem vazia." });
     }
 
+    let normalizedText = text;
+    if (/renderizar clipe|renderizar cena|⚡ renderizar|render/i.test(text)) {
+      normalizedText = "npx hyperframes render --quality standard";
+    } else if (/pré-visualizar|preview|👁️/i.test(text)) {
+      normalizedText = "npx hyperframes preview";
+    } else if (/verificar qualidade|lint|🔍/i.test(text)) {
+      normalizedText = "npx hyperframes lint";
+    } else if (/criar gráficos|init|✨/i.test(text)) {
+      normalizedText = "npx hyperframes init";
+    }
+
     const HF_CMD_RE = /npx\s+hyperframes\s+(\w+)(.*)/i;
-    const hfMatch = text.match(HF_CMD_RE);
+    const hfMatch = normalizedText.match(HF_CMD_RE);
 
     if (hfMatch) {
       const subcommand = hfMatch[1].toLowerCase();
@@ -5098,10 +5109,66 @@ app.post("/api/video-agent/chat", async (req, res) => {
     let graphicsOut = null;
     let hfStatus = "idle";
 
+    const isRemoveRequest =
+      /remover|tirar|excluir|apagar|limpar|sem data|sem graphic|sem overlay/i.test(
+        text
+      );
     const isDateRequest =
+      !isRemoveRequest &&
       /(?:19|20)\d\d|data|ano|acontecimento|1968|1969|estampa/i.test(text);
 
-    if (isDateRequest) {
+    if (isRemoveRequest) {
+      const targetSceneId = selected_scene ? selected_scene.id : "1.2";
+      const isDate = /data|ano|texto|camada/i.test(text);
+      const isMotion =
+        /motion|template|grafico|gráfico|odometer|efeito|camada/i.test(text);
+      const removeAll = !isDate && !isMotion;
+
+      const storyboardPath = path.join(projDir, "storyboard.json");
+      if (fs.existsSync(storyboardPath)) {
+        try {
+          const sbData = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+          if (Array.isArray(sbData.visual_prompts)) {
+            sbData.visual_prompts = sbData.visual_prompts.map((vp) => {
+              const scId = String(vp.scene || vp.scene_ref || "");
+              if (scId === String(targetSceneId)) {
+                const updated = { ...vp };
+                if (isDate || removeAll) delete updated.date_overlay;
+                if (isMotion || removeAll) delete updated.motion_template_id;
+                return updated;
+              }
+              return vp;
+            });
+            fs.writeFileSync(
+              storyboardPath,
+              JSON.stringify(sbData, null, 2),
+              "utf8"
+            );
+          }
+        } catch (e) {}
+      }
+
+      const hfIndex = path.join(projDir, "hyperframes", "index.html");
+      if (fs.existsSync(hfIndex)) {
+        try {
+          let html = fs.readFileSync(hfIndex, "utf8");
+          if (isDate || removeAll) {
+            html = html.replace(/<div id="dateBadge"[\s\S]*?<\/div>/gi, "");
+          }
+          if (isMotion || removeAll) {
+            html = html.replace(/<div id="odometerCard"[\s\S]*?<\/div>/gi, "");
+          }
+          fs.writeFileSync(hfIndex, html, "utf8");
+        } catch (e) {}
+      }
+
+      reply = `✓ Camada(s) removida(s) com sucesso da Cena ${targetSceneId}.\n\nA data/overlay foi excluída do storyboard e da composição HyperFrames.`;
+      suggestions = [
+        "npx hyperframes render --quality standard",
+        "npx hyperframes preview",
+        "Adicionar data novamente",
+      ];
+    } else if (isDateRequest) {
       const yearMatch = text.match(/\b(19\d\d|20\d\d)\b/);
       const dateText = yearMatch
         ? yearMatch[0] === "1968"
