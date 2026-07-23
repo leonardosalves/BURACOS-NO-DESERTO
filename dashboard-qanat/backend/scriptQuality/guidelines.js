@@ -16,10 +16,10 @@ export function loadComousarAnarracaoProGuidelines() {
 }
 
 function loadPreferredGuideline(filename) {
+  const agentVersion = path.join(WORKSPACE_DIR, ".agents", filename);
   const workspaceVersion = path.join(WORKSPACE_DIR, filename);
-  const legacyAgentVersion = path.join(WORKSPACE_DIR, ".agents", filename);
   return loadFileCached(
-    fs.existsSync(workspaceVersion) ? workspaceVersion : legacyAgentVersion
+    fs.existsSync(agentVersion) ? agentVersion : workspaceVersion
   );
 }
 
