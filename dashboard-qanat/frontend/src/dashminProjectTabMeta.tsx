@@ -1,5 +1,6 @@
 import type { ElementType } from "react";
 import {
+  Bot,
   Clapperboard,
   Layers,
   Music,
@@ -20,7 +21,8 @@ export type DashProjectTabId =
   | "upload"
   | "director"
   | "editor"
-  | "terminal";
+  | "terminal"
+  | "video-agent";
 
 export type DashProjectTabMeta = {
   id: DashProjectTabId;
@@ -89,5 +91,12 @@ export const DASH_PROJECT_TAB_META: Record<
     title: "Terminal",
     subtitle: "Console de compilação, logs e diagnóstico do render.",
     icon: Terminal,
+  },
+  "video-agent": {
+    id: "video-agent",
+    title: "Video Agent",
+    subtitle:
+      "Companion mode: dirija a criação do vídeo com storyboard HyperFrames, gráficos e overlays.",
+    icon: Bot,
   },
 };

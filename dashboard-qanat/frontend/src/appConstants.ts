@@ -1,4 +1,5 @@
 import {
+  Bot,
   Clapperboard,
   Layers,
   LayoutTemplate,
@@ -69,5 +70,11 @@ export const PROJECT_WORKSPACE_TABS = [
     label: "Terminal",
     icon: Terminal,
     helpId: "tab-terminal",
+  },
+  {
+    id: "video-agent" as const,
+    label: "Video Agent",
+    icon: Bot,
+    helpId: undefined,
   },
 ];

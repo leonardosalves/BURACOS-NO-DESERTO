@@ -79,7 +79,6 @@ export const GLOBAL_VIEW_TABS: AppTab[] = [
   "tools",
   "whiteboard-creator",
   "video-monitor",
-  "video-agent",
 ];
 
 export function isGlobalViewTab(tab: AppTab): boolean {

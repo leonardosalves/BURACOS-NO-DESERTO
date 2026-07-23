@@ -100,13 +100,6 @@ const STUDIO_CHANNELS: GlobalNavItem[] = [
     helpId: undefined,
     accent: "sky",
   },
-  {
-    id: "video-agent",
-    label: "Video Agent",
-    icon: Clapperboard,
-    helpId: undefined,
-    accent: "violet",
-  },
 ];
 
 const STUDIO_TOOLS: GlobalNavItem[] = [

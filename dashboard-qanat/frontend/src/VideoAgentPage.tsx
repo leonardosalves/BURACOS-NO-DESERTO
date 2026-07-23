@@ -7,24 +7,26 @@ import {
   BarChart3,
   Type,
   Image,
-  Music,
-  User,
   Check,
   X,
-  ChevronRight,
   Sparkles,
   Film,
   LayoutGrid,
-  MessageSquare,
+  Play,
+  Terminal,
+  RefreshCw,
+  Eye,
+  Download,
 } from "lucide-react";
 
 interface AgentMessage {
-  role: "user" | "agent";
+  role: "user" | "agent" | "system";
   content: string;
-  phase?: "pitch" | "storyboard" | "sketch" | "build" | "chat";
+  phase?: string;
   suggestions?: string[];
-  storyboard?: StoryboardFrame[];
-  graphicsIdeas?: GraphicsIdea[];
+  command?: string;
+  output?: string;
+  previewUrl?: string;
 }
 
 interface StoryboardFrame {
@@ -32,41 +34,26 @@ interface StoryboardFrame {
   time: string;
   title: string;
   description: string;
-  type: "avatar" | "graphics" | "caption" | "broll" | "chart" | "transition";
+  type: string;
   status: "proposed" | "approved" | "rejected" | "built";
 }
 
 interface GraphicsIdea {
   id: string;
-  sceneId: string;
   sceneTitle: string;
-  type:
-    | "chart"
-    | "lower_third"
-    | "text_overlay"
-    | "counter"
-    | "comparison"
-    | "timeline";
+  type: string;
   description: string;
   data_hint: string;
   status: "suggested" | "approved" | "rejected";
 }
 
-type CompanionPhase = "idle" | "pitch" | "storyboard" | "sketch" | "build";
-
-const PHASE_LABELS: Record<CompanionPhase, string> = {
-  idle: "Pronto",
-  pitch: "Pitch de Ângulos",
-  storyboard: "Storyboard",
-  sketch: "Sketch de Frames",
-  build: "Construindo",
-};
+type HfStatus = "idle" | "init" | "lint" | "preview" | "render" | "error";
 
 const SUGGESTIONS_INITIAL = [
-  "Criar vídeo do zero com prompt",
-  "Analisar storyboard atual e sugerir gráficos",
+  "npx hyperframes init — criar composição",
+  "Analisar storyboard e sugerir gráficos",
   "Companion mode: dirigir passo a passo",
-  "Adicionar overlays de dados ao vídeo",
+  "npx hyperframes doctor — verificar ambiente",
 ];
 
 export default function VideoAgentPage({
@@ -80,16 +67,16 @@ export default function VideoAgentPage({
     {
       role: "agent",
       content:
-        "Olá! Sou o Video Agent do Lumiera. Posso criar vídeos completos a partir de um prompt, analisar seu storyboard e sugerir gráficos/overlays, ou trabalhar em modo companion onde você dirige cada etapa.\n\nO que vamos criar hoje?",
-      phase: "chat",
+        "Video Agent pronto. Uso o HyperFrames CLI real (npx hyperframes) para criar, validar e renderizar composições HTML → vídeo.\n\nComandos disponíveis:\n• init — scaffold de composição\n• lint — validar estrutura\n• inspect — inspeção visual\n• preview — preview no browser\n• render — renderizar MP4/WebM\n\nO que vamos criar?",
       suggestions: SUGGESTIONS_INITIAL,
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [phase, setPhase] = useState<CompanionPhase>("idle");
+  const [hfStatus, setHfStatus] = useState<HfStatus>("idle");
   const [storyboard, setStoryboard] = useState<StoryboardFrame[]>([]);
   const [graphicsIdeas, setGraphicsIdeas] = useState<GraphicsIdea[]>([]);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -103,6 +90,7 @@ export default function VideoAgentPage({
       setMessages((prev) => [...prev, userMsg]);
       setInput("");
       setLoading(true);
+      setHfStatus("idle");
 
       try {
         const res = await fetch(getProjectUrl("/api/video-agent/chat"), {
@@ -110,7 +98,6 @@ export default function VideoAgentPage({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: text.trim(),
-            phase,
             project: activeProject,
             storyboard: storyboard.filter((f) => f.status === "approved"),
             graphics_ideas: graphicsIdeas.filter(
@@ -120,21 +107,18 @@ export default function VideoAgentPage({
         });
         const data = await res.json();
 
-        if (data.phase) setPhase(data.phase);
-        if (data.storyboard) {
-          setStoryboard(data.storyboard);
-        }
-        if (data.graphics_ideas) {
-          setGraphicsIdeas(data.graphics_ideas);
-        }
+        if (data.hf_status) setHfStatus(data.hf_status);
+        if (data.storyboard) setStoryboard(data.storyboard);
+        if (data.graphics_ideas) setGraphicsIdeas(data.graphics_ideas);
+        if (data.preview_url) setPreviewUrl(data.preview_url);
 
         const agentMsg: AgentMessage = {
           role: "agent",
-          content: data.reply || "Entendido.",
-          phase: data.phase,
+          content: data.reply || "Feito.",
           suggestions: data.suggestions,
-          storyboard: data.storyboard,
-          graphicsIdeas: data.graphics_ideas,
+          command: data.command,
+          output: data.output,
+          previewUrl: data.preview_url,
         };
         setMessages((prev) => [...prev, agentMsg]);
       } catch {
@@ -143,14 +127,14 @@ export default function VideoAgentPage({
           {
             role: "agent",
             content:
-              "Erro ao conectar com o Video Agent. Verifique se o backend está rodando.",
+              "Erro ao conectar com o backend. Verifique se o LumieraBackend está rodando.",
           },
         ]);
       } finally {
         setLoading(false);
       }
     },
-    [loading, phase, activeProject, storyboard, graphicsIdeas, getProjectUrl]
+    [loading, activeProject, storyboard, graphicsIdeas, getProjectUrl]
   );
 
   const updateFrameStatus = (id: string, status: "approved" | "rejected") => {
@@ -168,11 +152,6 @@ export default function VideoAgentPage({
     );
   };
 
-  const approvedFrames = storyboard.filter(
-    (f) => f.status === "approved"
-  ).length;
-  const totalFrames = storyboard.length;
-
   return (
     <div className="flex h-full min-h-0">
       {/* Chat Panel */}
@@ -183,14 +162,14 @@ export default function VideoAgentPage({
             <Bot size={16} className="text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-white">Video Agent</h2>
+            <h2 className="text-sm font-semibold text-white">
+              Video Agent · HyperFrames
+            </h2>
             <p className="text-xs text-gray-400">
-              {activeProject || "Nenhum projeto"} · Companion Mode
+              {activeProject || "Selecione um projeto"}
             </p>
           </div>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-600/20 text-violet-300 border border-violet-600/30">
-            {PHASE_LABELS[phase]}
-          </span>
+          <HfStatusBadge status={hfStatus} />
         </div>
 
         {/* Messages */}
@@ -216,6 +195,39 @@ export default function VideoAgentPage({
                   </div>
                 )}
                 <p className="whitespace-pre-wrap">{msg.content}</p>
+
+                {msg.command && (
+                  <div className="mt-2 rounded-lg bg-gray-900 border border-gray-700 px-3 py-2">
+                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mb-1">
+                      <Terminal size={10} />
+                      <span>COMANDO</span>
+                    </div>
+                    <code className="text-xs text-emerald-400 font-mono">
+                      {msg.command}
+                    </code>
+                  </div>
+                )}
+
+                {msg.output && (
+                  <div className="mt-2 rounded-lg bg-gray-900 border border-gray-700 px-3 py-2 max-h-40 overflow-y-auto">
+                    <pre className="text-[11px] text-gray-400 font-mono whitespace-pre-wrap">
+                      {msg.output}
+                    </pre>
+                  </div>
+                )}
+
+                {msg.previewUrl && (
+                  <a
+                    href={msg.previewUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600/20 text-violet-300 text-xs border border-violet-600/30 hover:bg-violet-600/30"
+                  >
+                    <Eye size={12} />
+                    Abrir Preview
+                  </a>
+                )}
+
                 {msg.suggestions && msg.suggestions.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {msg.suggestions.map((s, j) => (
@@ -237,7 +249,7 @@ export default function VideoAgentPage({
               <div className="bg-gray-800 rounded-xl px-4 py-3 border border-gray-700">
                 <div className="flex items-center gap-2 text-gray-400 text-sm">
                   <div className="w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-                  Analisando...
+                  Executando HyperFrames...
                 </div>
               </div>
             </div>
@@ -257,7 +269,7 @@ export default function VideoAgentPage({
                   sendMessage(input);
                 }
               }}
-              placeholder="Descreva o vídeo ou dê uma instrução..."
+              placeholder="Descreva o vídeo ou digite um comando HyperFrames..."
               rows={2}
               className="flex-1 resize-none rounded-xl bg-gray-800 border border-gray-700 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30"
             />
@@ -273,48 +285,23 @@ export default function VideoAgentPage({
       </div>
 
       {/* Storyboard + Graphics Panel */}
-      <div className="w-[380px] flex flex-col min-h-0 bg-gray-900/30">
-        {/* Phase Progress */}
+      <div className="w-[360px] flex flex-col min-h-0 bg-gray-900/30">
         <div className="px-4 py-3 border-b border-gray-800">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2">
             <LayoutGrid size={14} className="text-violet-400" />
             <span className="text-xs font-medium text-gray-300">
-              Storyboard HyperFrames
+              Storyboard · HyperFrames
             </span>
-            {totalFrames > 0 && (
-              <span className="ml-auto text-[10px] text-gray-500">
-                {approvedFrames}/{totalFrames} aprovados
-              </span>
-            )}
-          </div>
-          <div className="flex gap-1">
-            {(
-              ["pitch", "storyboard", "sketch", "build"] as CompanionPhase[]
-            ).map((p, i) => (
-              <div
-                key={p}
-                className={`flex-1 h-1 rounded-full ${
-                  phase === p
-                    ? "bg-violet-500"
-                    : ["pitch", "storyboard", "sketch", "build"].indexOf(
-                          phase
-                        ) > i
-                      ? "bg-violet-700"
-                      : "bg-gray-700"
-                }`}
-              />
-            ))}
           </div>
         </div>
 
-        {/* Storyboard Frames */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
           {storyboard.length === 0 && graphicsIdeas.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center px-6">
               <Film size={32} className="text-gray-600 mb-3" />
               <p className="text-xs text-gray-500">
                 O storyboard aparecerá aqui quando o Video Agent propor a
-                estrutura do vídeo.
+                estrutura da composição HyperFrames.
               </p>
             </div>
           )}
@@ -368,13 +355,12 @@ export default function VideoAgentPage({
             </div>
           ))}
 
-          {/* Graphics Ideas */}
           {graphicsIdeas.length > 0 && (
             <div className="mt-4 pt-3 border-t border-gray-800">
               <div className="flex items-center gap-2 mb-2">
                 <BarChart3 size={13} className="text-amber-400" />
                 <span className="text-xs font-medium text-gray-300">
-                  Ideias de Gráficos & Overlays
+                  Gráficos & Overlays
                 </span>
               </div>
               {graphicsIdeas.map((idea) => (
@@ -389,7 +375,10 @@ export default function VideoAgentPage({
                   }`}
                 >
                   <div className="flex items-start gap-2">
-                    <GraphicsIcon type={idea.type} />
+                    <BarChart3
+                      size={13}
+                      className="text-amber-400 mt-0.5 shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
                       <span className="text-xs font-medium text-white">
                         {idea.sceneTitle}
@@ -428,34 +417,82 @@ export default function VideoAgentPage({
           )}
         </div>
 
-        {/* Build Button */}
-        {approvedFrames > 0 && phase !== "build" && (
-          <div className="px-4 py-3 border-t border-gray-800">
+        {/* Quick Actions */}
+        <div className="px-4 py-3 border-t border-gray-800 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => sendMessage("npx hyperframes lint")}
+              className="py-2 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-300 hover:border-violet-500/50 hover:text-violet-200 flex items-center justify-center gap-1.5"
+            >
+              <Check size={12} /> Lint
+            </button>
+            <button
+              onClick={() => sendMessage("npx hyperframes preview")}
+              className="py-2 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-300 hover:border-violet-500/50 hover:text-violet-200 flex items-center justify-center gap-1.5"
+            >
+              <Play size={12} /> Preview
+            </button>
             <button
               onClick={() =>
-                sendMessage(
-                  `Aprovar e construir vídeo com ${approvedFrames} frames e ${
-                    graphicsIdeas.filter((g) => g.status === "approved").length
-                  } overlays de dados.`
-                )
+                sendMessage("npx hyperframes render --quality standard")
               }
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-medium hover:from-violet-500 hover:to-indigo-500 transition-all flex items-center justify-center gap-2"
+              className="py-2 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-300 hover:border-violet-500/50 hover:text-violet-200 flex items-center justify-center gap-1.5"
             >
-              <Clapperboard size={15} />
-              Construir Vídeo ({approvedFrames} frames)
+              <Film size={12} /> Render
+            </button>
+            <button
+              onClick={() => sendMessage("npx hyperframes inspect --json")}
+              className="py-2 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-300 hover:border-violet-500/50 hover:text-violet-200 flex items-center justify-center gap-1.5"
+            >
+              <Eye size={12} /> Inspect
             </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
+  );
+}
+
+function HfStatusBadge({ status }: { status: HfStatus }) {
+  const map: Record<HfStatus, { label: string; cls: string }> = {
+    idle: {
+      label: "Pronto",
+      cls: "bg-gray-700/50 text-gray-400 border-gray-600",
+    },
+    init: {
+      label: "Init...",
+      cls: "bg-blue-600/20 text-blue-300 border-blue-600/30",
+    },
+    lint: {
+      label: "Lint",
+      cls: "bg-amber-600/20 text-amber-300 border-amber-600/30",
+    },
+    preview: {
+      label: "Preview",
+      cls: "bg-emerald-600/20 text-emerald-300 border-emerald-600/30",
+    },
+    render: {
+      label: "Render",
+      cls: "bg-violet-600/20 text-violet-300 border-violet-600/30",
+    },
+    error: {
+      label: "Erro",
+      cls: "bg-red-600/20 text-red-300 border-red-600/30",
+    },
+  };
+  const { label, cls } = map[status] || map.idle;
+  return (
+    <span
+      className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${cls}`}
+    >
+      {label}
+    </span>
   );
 }
 
 function FrameIcon({ type }: { type: string }) {
   const cls = "text-gray-400 mt-0.5 shrink-0";
   switch (type) {
-    case "avatar":
-      return <User size={13} className={cls} />;
     case "graphics":
       return <Layers size={13} className={cls} />;
     case "caption":
@@ -464,23 +501,7 @@ function FrameIcon({ type }: { type: string }) {
       return <Image size={13} className={cls} />;
     case "chart":
       return <BarChart3 size={13} className={cls} />;
-    case "transition":
-      return <ChevronRight size={13} className={cls} />;
     default:
       return <Film size={13} className={cls} />;
-  }
-}
-
-function GraphicsIcon({ type }: { type: string }) {
-  const cls = "text-amber-400 mt-0.5 shrink-0";
-  switch (type) {
-    case "chart":
-      return <BarChart3 size={13} className={cls} />;
-    case "counter":
-      return <span className={`text-[10px] font-bold ${cls}`}>#</span>;
-    case "timeline":
-      return <Layers size={13} className={cls} />;
-    default:
-      return <Sparkles size={13} className={cls} />;
   }
 }
