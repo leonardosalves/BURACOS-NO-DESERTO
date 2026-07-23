@@ -1,6 +1,7 @@
 import {
   Bot,
   Clapperboard,
+  Crown,
   Layers,
   LayoutTemplate,
   Music,
@@ -75,6 +76,12 @@ export const PROJECT_WORKSPACE_TABS = [
     id: "video-agent" as const,
     label: "Video Agent",
     icon: Bot,
+    helpId: undefined,
+  },
+  {
+    id: "gold-prompt" as const,
+    label: "The Gold Prompt",
+    icon: Crown,
     helpId: undefined,
   },
 ];

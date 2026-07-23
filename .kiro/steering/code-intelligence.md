@@ -1,0 +1,31 @@
+---
+inclusion: always
+---
+
+# Inteligência de código (economia de tokens)
+
+## Ordem recomendada
+
+1. **Mapa Lumiera** — `GET http://127.0.0.1:3005/api/studio-agents/code-map` ou `.agents/memory/lumiera-code-map.md`
+2. **codebase-memory-mcp** (se instalado) — `index_repository` uma vez; depois `search_graph`, `trace_path`, `get_architecture`
+3. **Grep direcionado** — só após saber o módulo (ex. `skillsRegistry.js`, não todo o repo)
+4. **Read file** — trecho necessário, não arquivo de 14k linhas inteiro
+
+## MCP opcionais (setup)
+
+```powershell
+.\scripts\setup-context-mcp.ps1   # grafo de código (codebase-memory-mcp)
+.\scripts\setup-agent-reach.ps1   # busca na internet (Exa, Jina, YouTube, GitHub)
+```
+
+## Busca na internet (Agent Reach)
+
+1. **MCP exa** no Cursor — `web_search_exa`, `web_fetch_exa` (após reiniciar Cursor)
+2. **CLI** — `mcporter call 'exa.web_search_exa(query: "...", numResults: 5)' --config config/mcporter.json`
+3. **Páginas** — `curl -s "https://r.jina.ai/URL"`
+4. **Skill** — `agent-reach` (doctor: `agent-reach doctor`)
+
+## Produção de vídeo vs código
+
+- Roteiro, SEO, overlays → `.agents/AGENTS.md` + skills Studio Agents
+- Implementação TypeScript/JS → `.cursor/rules/ponytail-dev.mdc`

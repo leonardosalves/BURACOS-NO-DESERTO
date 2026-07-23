@@ -16,6 +16,7 @@ import { AppDocsTab } from "./AppDocsTab";
 import { AppToolsTab } from "./AppToolsTab";
 import { FlowLabPage } from "./FlowLabPage";
 import { LumieraEditor } from "./LumieraEditor";
+import { TheGoldPromptPanel } from "./TheGoldPromptPanel";
 import toast from "react-hot-toast";
 import {
   Bot,
@@ -728,6 +729,17 @@ export function AppTabPanels({
               getProjectUrl={getProjectUrl}
             />
           </Suspense>
+        </TabErrorBoundary>
+      )}
+
+      {/* TAB: THE GOLD PROMPT */}
+      {activeTab === "gold-prompt" && (
+        <TabErrorBoundary tabName="The Gold Prompt">
+          <TheGoldPromptPanel
+            onOpenInEditor={(title, script) => {
+              setActiveTab("creator");
+            }}
+          />
         </TabErrorBoundary>
       )}
     </div>

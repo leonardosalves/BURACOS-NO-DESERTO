@@ -258,6 +258,7 @@ import { registerAgentReachRoutes } from "./agentReachRoutes.js";
 import { registerVideoMonitorRoutes } from "./videoMonitorRoutes.js";
 import { registerGeminiWatermarkRoutes } from "./geminiWatermarkRoutes.js";
 import creatorHistoryRoutes from "./creatorHistoryRoutes.js";
+import goldPromptRoutes from "./goldPromptRoutes.js";
 import { ensureCreatorHistoryDatabase } from "./creatorHistoryService.js";
 import {
   fetchMemoryContext,
@@ -27525,6 +27526,7 @@ registerVideoMonitorRoutes(app, {
 });
 
 app.use("/api/creator-history", creatorHistoryRoutes);
+app.use("/api/gold-prompt", goldPromptRoutes);
 
 // --- Global Express error middleware (última barreira antes de crash) ---
 app.use((err, req, res, _next) => {

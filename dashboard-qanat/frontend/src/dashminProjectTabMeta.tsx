@@ -2,6 +2,7 @@ import type { ElementType } from "react";
 import {
   Bot,
   Clapperboard,
+  Crown,
   Layers,
   Music,
   Settings,
@@ -22,7 +23,8 @@ export type DashProjectTabId =
   | "director"
   | "editor"
   | "terminal"
-  | "video-agent";
+  | "video-agent"
+  | "gold-prompt";
 
 export type DashProjectTabMeta = {
   id: DashProjectTabId;
@@ -98,5 +100,12 @@ export const DASH_PROJECT_TAB_META: Record<
     subtitle:
       "Companion mode: dirija a criação do vídeo com storyboard HyperFrames, gráficos e overlays.",
     icon: Bot,
+  },
+  "gold-prompt": {
+    id: "gold-prompt",
+    title: "The Gold Prompt",
+    subtitle:
+      "Engine de clonagem de estilo de canais e recondicionamento de conteúdo em 12 estados.",
+    icon: Crown,
   },
 };
