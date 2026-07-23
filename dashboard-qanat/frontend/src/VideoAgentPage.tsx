@@ -203,9 +203,9 @@ export default function VideoAgentPage({
   };
 
   return (
-    <div className="flex h-full min-h-0">
-      {/* Chat Panel */}
-      <div className="flex flex-1 flex-col min-w-0 border-r border-gray-800">
+    <div className="flex h-full min-h-0 divide-x divide-gray-800">
+      {/* 1. Chat Panel (Left) */}
+      <div className="flex flex-[1.2] flex-col min-w-[320px]">
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800 bg-gray-900/50">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
@@ -238,55 +238,38 @@ export default function VideoAgentPage({
               >
                 {msg.role === "agent" && (
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <Sparkles size={12} className="text-violet-400" />
-                    <span className="text-[10px] font-medium text-violet-400 uppercase tracking-wide">
+                    <Bot size={14} className="text-violet-400" />
+                    <span className="text-xs font-medium text-violet-300">
                       Video Agent
                     </span>
                   </div>
                 )}
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+                <div className="whitespace-pre-wrap">{msg.content}</div>
 
                 {msg.command && (
-                  <div className="mt-2 rounded-lg bg-gray-900 border border-gray-700 px-3 py-2">
-                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mb-1">
-                      <Terminal size={10} />
-                      <span>COMANDO</span>
+                  <div className="mt-2 rounded-lg bg-gray-900 p-2.5 font-mono text-xs text-emerald-400 border border-gray-700/50">
+                    <div className="text-[10px] text-gray-500 mb-1">
+                      &gt;_ COMANDO
                     </div>
-                    <code className="text-xs text-emerald-400 font-mono">
-                      {msg.command}
-                    </code>
+                    {msg.command}
                   </div>
                 )}
 
                 {msg.output && (
-                  <div className="mt-2 rounded-lg bg-gray-900 border border-gray-700 px-3 py-2 max-h-40 overflow-y-auto">
-                    <pre className="text-[11px] text-gray-400 font-mono whitespace-pre-wrap">
-                      {msg.output}
-                    </pre>
+                  <div className="mt-2 rounded-lg bg-gray-950 p-2.5 font-mono text-[11px] text-gray-400 max-h-40 overflow-y-auto border border-gray-800">
+                    <pre className="whitespace-pre-wrap">{msg.output}</pre>
                   </div>
                 )}
 
-                {msg.previewUrl && (
-                  <a
-                    href={msg.previewUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600/20 text-violet-300 text-xs border border-violet-600/30 hover:bg-violet-600/30"
-                  >
-                    <Eye size={12} />
-                    Abrir Preview
-                  </a>
-                )}
-
                 {msg.suggestions && msg.suggestions.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {msg.suggestions.map((s, j) => (
+                  <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-gray-700/50">
+                    {msg.suggestions.map((sug, j) => (
                       <button
                         key={j}
-                        onClick={() => sendMessage(s)}
-                        className="px-3 py-1.5 rounded-lg text-xs bg-gray-700/50 text-gray-300 border border-gray-600 hover:bg-violet-600/20 hover:border-violet-500/50 hover:text-violet-200 transition-colors"
+                        onClick={() => sendMessage(sug)}
+                        className="px-2.5 py-1 rounded-lg bg-gray-700/60 hover:bg-violet-600/30 hover:border-violet-500/50 border border-gray-600/40 text-xs text-violet-200 transition-colors"
                       >
-                        {s}
+                        {sug}
                       </button>
                     ))}
                   </div>
@@ -306,50 +289,6 @@ export default function VideoAgentPage({
           )}
           <div ref={chatEndRef} />
         </div>
-
-        {/* Selected Scene Action Banner */}
-        {selectedSceneObj && (
-          <div className="px-4 py-2 bg-violet-950/60 border-t border-violet-800/50 flex items-center justify-between gap-2 transition-all">
-            <div className="flex items-center gap-2 text-xs text-violet-200 min-w-0">
-              <Sparkles size={14} className="text-violet-400 shrink-0" />
-              <span className="font-semibold text-violet-300">
-                Cena {selectedSceneObj.id}:
-              </span>
-              <span className="truncate text-gray-300">
-                "{selectedSceneObj.description || selectedSceneObj.title}"
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                onClick={() =>
-                  sendMessage(
-                    `Criar gráfico HyperFrames para a cena ${selectedSceneObj.id}: "${selectedSceneObj.description || selectedSceneObj.title}"`
-                  )
-                }
-                className="px-2.5 py-1 rounded-lg bg-violet-600 hover:bg-violet-500 text-[11px] text-white flex items-center gap-1 font-medium transition-colors shadow"
-              >
-                <Sparkles size={11} /> Criar Gráfico
-              </button>
-              <button
-                onClick={() =>
-                  sendMessage(
-                    `Analisar cena ${selectedSceneObj.id} e sugerir gráficos de retenção`
-                  )
-                }
-                className="px-2.5 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-[11px] text-gray-300 flex items-center gap-1 transition-colors border border-gray-700"
-              >
-                <BarChart3 size={11} /> Analisar
-              </button>
-              <button
-                onClick={() => setSelectedSceneId(null)}
-                className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-                title="Desmarcar cena"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Input */}
         <div className="px-4 py-3 border-t border-gray-800 bg-gray-900/50">
@@ -382,8 +321,17 @@ export default function VideoAgentPage({
         </div>
       </div>
 
-      {/* Storyboard + Graphics Panel */}
-      <div className="w-[360px] flex flex-col min-h-0 bg-gray-900/30">
+      {/* 2. Middle Scene Preview Player */}
+      <ScenePreviewPanel
+        selectedScene={selectedSceneObj}
+        previewUrl={previewUrl}
+        hfStatus={hfStatus}
+        onSendMessage={sendMessage}
+        graphicsIdeas={graphicsIdeas}
+      />
+
+      {/* 3. Storyboard + Graphics Panel (Right) */}
+      <div className="w-[320px] shrink-0 flex flex-col min-h-0 bg-gray-900/30">
         <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutGrid size={14} className="text-violet-400" />
@@ -564,6 +512,156 @@ export default function VideoAgentPage({
               <Eye size={12} /> Inspect
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScenePreviewPanel({
+  selectedScene,
+  previewUrl,
+  hfStatus,
+  onSendMessage,
+  graphicsIdeas,
+}: {
+  selectedScene: StoryboardFrame | null;
+  previewUrl: string | null;
+  hfStatus: HfStatus;
+  onSendMessage: (msg: string) => void;
+  graphicsIdeas: GraphicsIdea[];
+}) {
+  const sceneGraphics = graphicsIdeas.filter(
+    (g) => selectedScene && g.sceneTitle?.includes(selectedScene.id)
+  );
+
+  return (
+    <div className="flex-1 flex flex-col min-w-[320px] max-w-[480px] bg-gray-900/60 border-r border-gray-800">
+      {/* Preview Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-900/80">
+        <div className="flex items-center gap-2 min-w-0">
+          <Film size={15} className="text-violet-400 shrink-0" />
+          <div className="min-w-0">
+            <h3 className="text-xs font-semibold text-white truncate">
+              {selectedScene
+                ? `Preview · Cena ${selectedScene.id}`
+                : "Preview Visual da Cena"}
+            </h3>
+            <p className="text-[10px] text-gray-400 truncate">
+              {selectedScene
+                ? `Bloco ${selectedScene.block} · ${selectedScene.time}`
+                : "Selecione uma cena no storyboard à direita"}
+            </p>
+          </div>
+        </div>
+        {selectedScene && (
+          <span className="px-2 py-0.5 rounded-full bg-violet-600/20 text-violet-300 border border-violet-500/30 text-[10px] font-medium">
+            Ativa
+          </span>
+        )}
+      </div>
+
+      {/* Preview Canvas / Player Area */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4 bg-black/40 overflow-y-auto relative">
+        {previewUrl ? (
+          <div className="w-full max-w-[280px] aspect-[9/16] rounded-2xl overflow-hidden border-2 border-violet-500/60 shadow-2xl shadow-violet-950/50 bg-black relative">
+            <iframe
+              src={previewUrl}
+              title="HyperFrames Live Preview"
+              className="w-full h-full border-0"
+            />
+          </div>
+        ) : selectedScene ? (
+          <div className="w-full max-w-[260px] aspect-[9/16] rounded-2xl border-2 border-violet-500/40 bg-gradient-to-b from-gray-950 via-gray-900 to-black p-4 flex flex-col justify-between shadow-2xl shadow-violet-950/40 relative overflow-hidden group">
+            {/* Ambient Glow */}
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-violet-600/15 rounded-full blur-3xl group-hover:bg-violet-600/25 transition-all" />
+
+            {/* Top Scene Tag */}
+            <div className="flex items-center justify-between z-10">
+              <span className="px-2.5 py-1 rounded-md bg-violet-900/60 text-violet-200 border border-violet-700/50 text-[10px] font-bold tracking-wider uppercase">
+                CENA {selectedScene.id}
+              </span>
+              <span className="text-[10px] font-mono text-gray-400 bg-gray-900/80 px-2 py-0.5 rounded border border-gray-800">
+                {selectedScene.time}
+              </span>
+            </div>
+
+            {/* Graphic / HyperFrames Mockup Overlay Center */}
+            <div className="my-auto py-6 text-center z-10 flex flex-col items-center justify-center">
+              {selectedScene.type === "graphics" ||
+              selectedScene.motion_template_id ? (
+                <div className="px-3 py-2 rounded-xl bg-violet-900/30 border border-violet-500/40 text-violet-200 text-xs font-mono mb-2 flex items-center gap-1.5 shadow">
+                  <Sparkles size={13} className="text-violet-400" />
+                  <span>
+                    {selectedScene.motion_template_id || "hyperframes-graphic"}
+                  </span>
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-violet-600/10 border border-violet-500/30 flex items-center justify-center text-violet-400 mb-2">
+                  <Layers size={20} />
+                </div>
+              )}
+
+              <p className="text-[11px] text-gray-300 font-medium leading-snug max-w-[200px] px-2 italic">
+                "{selectedScene.description}"
+              </p>
+
+              {sceneGraphics.length > 0 && (
+                <div className="mt-3 px-2 py-1 rounded-md bg-amber-950/40 border border-amber-600/40 text-amber-300 text-[10px] font-medium flex items-center gap-1">
+                  <BarChart3 size={11} /> {sceneGraphics.length} gráfico(s)
+                  sugerido(s)
+                </div>
+              )}
+            </div>
+
+            {/* Subtitle / Narration Bottom Overlay */}
+            <div className="z-10 bg-black/70 backdrop-blur-md rounded-xl p-2.5 border border-gray-800 text-center">
+              <span className="text-[9px] uppercase tracking-widest text-violet-400 font-bold block mb-0.5">
+                LEGENDA DE RETENÇÃO
+              </span>
+              <p className="text-[11px] font-semibold text-white leading-tight">
+                {selectedScene.narration_text || selectedScene.description}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-center px-6 py-12">
+            <div className="w-14 h-14 rounded-2xl bg-gray-800/80 border border-gray-700 flex items-center justify-center text-gray-500 mb-3">
+              <Film size={26} />
+            </div>
+            <h4 className="text-xs font-semibold text-gray-300 mb-1">
+              Nenhuma cena selecionada
+            </h4>
+            <p className="text-[11px] text-gray-500 max-w-[220px]">
+              Clique em uma cena no storyboard à direita para visualizar o
+              preview e orientar o Video Agent.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Scene Quick Controls */}
+      <div className="p-3 border-t border-gray-800 bg-gray-900/50 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() =>
+              selectedScene
+                ? onSendMessage(
+                    `Criar gráfico HyperFrames para a cena ${selectedScene.id}: "${selectedScene.description}"`
+                  )
+                : onSendMessage("npx hyperframes init")
+            }
+            disabled={!selectedScene}
+            className="py-2 px-3 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs text-white font-medium flex items-center justify-center gap-1.5 transition-colors shadow"
+          >
+            <Sparkles size={13} /> Gerar Gráfico
+          </button>
+          <button
+            onClick={() => onSendMessage("npx hyperframes preview")}
+            className="py-2 px-3 rounded-lg bg-gray-800 border border-gray-700 hover:border-violet-500/50 text-xs text-gray-200 flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <Play size={13} /> Preview Ao Vivo
+          </button>
         </div>
       </div>
     </div>
