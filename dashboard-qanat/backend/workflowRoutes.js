@@ -1913,7 +1913,7 @@ Instruções críticas:
           humorLlmOpts.bodyOverride = {
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             tools: [{ google_search: {} }],
-            generationConfig: { temperature: 0.82 },
+            generationConfig: { temperature: 0.82, maxOutputTokens: 16384 },
           };
         }
         const raw = await callGeminiWithRetry(apiKey, prompt, humorLlmOpts);
@@ -1937,9 +1937,10 @@ Instruções críticas:
         );
       }
 
-      if (accepted.length < requestedCount) {
+      const minAcceptable = Math.max(3, Math.ceil(requestedCount * 0.6));
+      if (accepted.length < minAcceptable) {
         throw new Error(
-          `A pesquisa nao encontrou ${requestedCount} pautas realmente novas. ${rejected.length} repeticoes foram bloqueadas; tente um nicho mais especifico.`
+          `A pesquisa nao encontrou pautas suficientes (${accepted.length}/${requestedCount}). ${rejected.length} repeticoes foram bloqueadas; tente um nicho mais especifico.`
         );
       }
 
@@ -1990,9 +1991,8 @@ Instruções críticas:
       // Shotcraft: taggeia cenas do plano de produção (humor → impacto)
       try {
         if (result && Array.isArray(result.scenes)) {
-          const { tagHumorStoryboard } = await import(
-            "./creatorSceneTagger.js"
-          );
+          const { tagHumorStoryboard } =
+            await import("./creatorSceneTagger.js");
           const asBoard = {
             visual_prompts: result.scenes.map((s, i) => ({
               scene: s.id || s.order || i + 1,

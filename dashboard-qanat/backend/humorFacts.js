@@ -332,11 +332,15 @@ export function parseHumorIdeasResponse(text) {
         : [],
       sources: Array.isArray(idea?.sources)
         ? idea.sources
-            .map((source) => ({
-              title: clean(source?.title, "Fonte"),
-              url: clean(source?.url),
-            }))
-            .filter((source) => /^https?:\/\//i.test(source.url))
+            .map((source) => {
+              let url = clean(source?.url);
+              if (url && !/^https?:\/\//i.test(url)) {
+                url = url.replace(/^www\./i, "");
+                url = `https://${url}`;
+              }
+              return { title: clean(source?.title, "Fonte"), url };
+            })
+            .filter((source) => source.url && source.url.length > 8)
             .slice(0, 4)
         : [],
       saturationRisk: ["baixo", "medio", "alto"].includes(idea?.saturationRisk)
