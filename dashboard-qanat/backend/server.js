@@ -1538,7 +1538,7 @@ app.post("/api/render/cancel", (req, res) => {
   res.json({ ok: true, cancelled });
 });
 
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(processActivityMiddleware);
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -4537,12 +4537,20 @@ app.post("/api/video-agent/chat", async (req, res) => {
       const command = `npx ${args.join(" ")}`;
       console.log(`[VideoAgent] Executando: ${command} (cwd: ${workDir})`);
 
-      const result = spawnSync("npx", args, {
+      const npxCmd = fs.existsSync("C:\\Program Files\\nodejs\\npx.cmd")
+        ? "C:\\Program Files\\nodejs\\npx.cmd"
+        : "npx";
+
+      const result = spawnSync(npxCmd, args, {
         cwd: workDir,
         encoding: "utf8",
         timeout: subcommand === "render" ? 300000 : 60000,
         shell: true,
-        env: { ...process.env, NODE_OPTIONS: "" },
+        env: {
+          ...process.env,
+          NODE_OPTIONS: "",
+          PATH: `C:\\Program Files\\nodejs;${process.env.PATH || ""}`,
+        },
       });
 
       const stdout = (result.stdout || "").trim();
