@@ -709,7 +709,7 @@ import fs from "fs";
 
 import path from "path";
 
-import { spawn, execSync } from "child_process";
+import { spawn, execSync, spawnSync } from "child_process";
 
 import { fileURLToPath } from "url";
 
@@ -14124,6 +14124,36 @@ function parseJsonCandidate(text) {
   throw lastError;
 }
 
+function repairTruncatedJson(str) {
+  if (!str) return str;
+  let text = String(str).trim().replace(/,\s*$/, "");
+  const stack = [];
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{" || ch === "[") stack.push(ch === "{" ? "}" : "]");
+    else if (ch === "}" || ch === "]") {
+      if (stack.length > 0 && stack[stack.length - 1] === ch) {
+        stack.pop();
+      }
+    }
+  }
+  if (inString) text += '"';
+  text = text.replace(/,\s*$/, "");
+  while (stack.length > 0) {
+    text += stack.pop();
+  }
+  return text.replace(/,\s*([}\]])/g, "$1");
+}
+
 function parseJsonLocally(responseText) {
   const variants = [
     responseText,
@@ -14146,6 +14176,40 @@ function parseJsonLocally(responseText) {
         .replace(/['']/g, "'")
         .replace(/,\s*([}\]])/g, "$1"),
       candidate.replace(/'/g, '"').replace(/,\s*([}\]])/g, "$1"),
+      // Repara falta de vírgula entre propriedades em linhas separadas: "val"\n"key": -> "val",\n"key":
+      candidate
+        .replace(
+          /(["\d]|true|false|null|\]|\})\s*\r?\n\s*(?="[\w_]+"\s*:)/gi,
+          "$1,\n"
+        )
+        .replace(/,\s*([}\]])/g, "$1"),
+      // Repara falta de vírgulas entre objetos e arrays adjacentes
+      candidate
+        .replace(
+          /(["\d]|true|false|null|\]|\})\s*\r?\n\s*(?="[\w_]+"\s*:)/gi,
+          "$1,\n"
+        )
+        .replace(/}\s*{/g, "},{")
+        .replace(/]\s*\[/g, "],[")
+        .replace(/}\s*\[/g, "},[")
+        .replace(/]\s*{/g, "],[")
+        .replace(/"\s*"/g, '","')
+        .replace(/}\s*"/g, '},"')
+        .replace(/"\s*{/g, '",{"')
+        .replace(/]\s*"/g, '],"')
+        .replace(/"\s*\[/g, '",[')
+        .replace(/,\s*([}\]])/g, "$1"),
+      repairTruncatedJson(candidate),
+      repairTruncatedJson(
+        candidate
+          .replace(
+            /(["\d]|true|false|null|\]|\})\s*\r?\n\s*(?="[\w_]+"\s*:)/gi,
+            "$1,\n"
+          )
+          .replace(/}\s*{/g, "},{")
+          .replace(/]\s*\[/g, "],[")
+          .replace(/"\s*"/g, '","')
+      ),
     ];
     for (const variant of attempts) {
       try {
