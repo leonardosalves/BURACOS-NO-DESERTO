@@ -241,7 +241,7 @@ export const APPROVED_ORCHESTRATION_TEMPLATES = new Set([
   // texto
   "gradient-word-sweep", "marker-underline-title", "type-entrance-moves",
   "typewriter-moves", "type-assembly-moves", "type-rhythm-sync",
-  "cel-flash-stomp", "split-flap-title",
+  "cel-flash-stomp", "split-flap-title", "lower-third",
   // impacto
   "impact-feedback", "beat-cut-moves", "montage-rhythm-moves",
   "slam-entrance-moves", "particle-celebrate-hits", "rhythm-interrupt-moves",

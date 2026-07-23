@@ -12,9 +12,7 @@ export function hasRunnableStudioSource(sourceCode = null) {
 }
 
 export function mapStudioTemplateToMotionId(template = {}) {
-  const category = String(template.category || "")
-    .trim()
-    .toLowerCase();
+  const category = String(template.category || "").trim().toLowerCase();
 
   if (
     category === "cinematic" ||
@@ -39,27 +37,19 @@ export function mapStudioTemplateToMotionId(template = {}) {
     .join(" ")
     .toLowerCase();
 
-  if (/transition|wipe|dissolve|fade/.test(haystack)) return "counter";
-  if (/background|backdrop|pattern|frame/.test(haystack)) return "counter";
+  // BUG FIX: transição/fundo NÃO são contador — viram genérico (studio-runtime)
+  if (/transition|wipe|dissolve|fade/.test(haystack)) return STUDIO_RUNTIME_MOTION_ID;
+  if (/background|backdrop|pattern|frame/.test(haystack)) return STUDIO_RUNTIME_MOTION_ID;
   if (/logo|bug|watermark|branding/.test(haystack)) return "lower-third";
   if (/lower/.test(haystack)) return "lower-third";
-  if (/timeline|cronolog|process|roadmap|steps/.test(haystack))
-    return "timeline";
-  if (/counter|contador|stat|circular|progress/.test(haystack))
-    return "counter";
-  if (/pie|donut|pictogram/.test(haystack)) return "pictogram-chart";
-  if (/bar|bars|line|area|comparison|chart|grafico|gráfico/.test(haystack))
-    return "bar-chart";
-  if (/text|title|quote|chapter|glitch|typewriter|kinetic/.test(haystack))
-    return "kinetic-text";
-  if (/mapa|geo|location|satelite|satélite/.test(haystack))
-    return "location-intro";
-  if (
-    /picture.in.picture|pip media|image.media|split screen|gallery|carousel/.test(
-      haystack
-    )
-  )
-    return "location-intro";
+  // shotcraft (aprovados):
+  if (/timeline|cronolog|process|roadmap|steps/.test(haystack)) return "timeline-travel";
+  if (/counter|contador|stat|circular|progress/.test(haystack)) return "odometer-digit-roll";
+  if (/pie|donut|pictogram/.test(haystack)) return "particle-sand-fill";
+  if (/bar|bars|line|area|comparison|chart|grafico|gráfico/.test(haystack)) return "chart-live-moves";
+  if (/text|title|quote|chapter|glitch|typewriter|kinetic/.test(haystack)) return "gradient-word-sweep";
+  if (/mapa|geo|location|satelite|satélite/.test(haystack)) return "space-camera-moves";
+  if (/picture.in.picture|pip media|image.media|split screen|gallery|carousel/.test(haystack)) return "space-camera-moves";
   return null;
 }
 

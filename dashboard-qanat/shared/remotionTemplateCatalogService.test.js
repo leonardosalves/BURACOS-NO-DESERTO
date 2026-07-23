@@ -142,7 +142,7 @@ describe("remotionTemplateCatalogService bridge", () => {
       subcategory: "Bar chart",
       shortPreview: "bars",
     });
-    assert.equal(id, "bar-chart");
+    assert.equal(id, "chart-live-moves");
   });
 
   it("pruneCatalogEntriesWithoutSource remove metadados sem TSX", () => {
@@ -174,9 +174,10 @@ describe("remotionTemplateCatalogService bridge", () => {
     syncCatalogForNiche("Engenharia", [
       {
         id: "eng-case-test",
-        name: "Case Test",
+        name: "Case Engenharia",
         category: "chart-data",
-        subcategory: "Counter",
+        subcategory: "Stat Counter",
+        niche: "Engenharia",
         status: "approved",
         sourceCode: { short: SAMPLE_TSX, long: SAMPLE_TSX },
       },
@@ -219,7 +220,7 @@ describe("remotionTemplateCatalogService bridge", () => {
 
     const pick = pickStudioTemplateForTrigger({
       trigger: "comparison",
-      motionTemplateId: "bar-chart",
+      motionTemplateId: "chart-live-moves",
       niche: TEST_NICHE,
       aspectRatio: "9:16",
     });
@@ -230,7 +231,7 @@ describe("remotionTemplateCatalogService bridge", () => {
 
     const scene = attachStudioTemplateToScene(
       {
-        template_id: "bar-chart",
+        template_id: "chart-live-moves",
         props: { title: "COMPARACAO", aspect_ratio: "9:16" },
       },
       pick

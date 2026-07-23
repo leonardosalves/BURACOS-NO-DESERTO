@@ -2170,7 +2170,3309 @@
         }
       ],
       "updated_at": "2026-07-19T05:14:16.003Z"
+    },
+    "__test_studio_boost_long__": {
+      "templates": [
+        {
+          "id": "boost-counter",
+          "name": "boost-counter",
+          "category": "metrics-vis",
+          "subcategory": "Stat Counter",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar",
+          "name": "boost-bar",
+          "category": "metrics-vis",
+          "subcategory": "Bar chart",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-2",
+          "name": "boost-bar-2",
+          "category": "metrics-vis",
+          "subcategory": "Line chart",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-3",
+          "name": "boost-bar-3",
+          "category": "chart-data",
+          "subcategory": "Comparison Chart",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline",
+          "name": "boost-timeline",
+          "category": "metrics-vis",
+          "subcategory": "Timeline steps",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-2",
+          "name": "boost-timeline-2",
+          "category": "chart-data",
+          "subcategory": "Process Timeline",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "value",
+            "label",
+            "suffix",
+            "items",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-counter-2",
+          "name": "boost-counter-2",
+          "category": "metrics-vis",
+          "subcategory": "KPI Counter",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-counter-3",
+          "name": "boost-counter-3",
+          "category": "chart-data",
+          "subcategory": "Stat Counter 3",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "suffix",
+            "items",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo",
+          "name": "boost-geo",
+          "category": "metrics-vis",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-2",
+          "name": "boost-geo-2",
+          "category": "chart-data",
+          "subcategory": "Satelite Geo",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "value",
+            "label",
+            "suffix",
+            "items",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-punch",
+          "name": "boost-punch",
+          "category": "chart-data",
+          "subcategory": "Punch Glitch Text",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "text",
+            "title",
+            "subtitle",
+            "value",
+            "label",
+            "suffix",
+            "items",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram",
+          "name": "boost-pictogram",
+          "category": "metrics-vis",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-text",
+          "name": "boost-text",
+          "category": "metrics-vis",
+          "subcategory": "Kinetic Title Quote",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "text",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "gradient-word-sweep",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "tpl-counter",
+          "name": "tpl-counter",
+          "category": "chart-data",
+          "subcategory": "Stat Counter",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "tpl-pictogram",
+          "name": "tpl-pictogram",
+          "category": "chart-data",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "suffix",
+            "items",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "tpl-bar",
+          "name": "tpl-bar",
+          "category": "chart-data",
+          "subcategory": "Bar chart",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "tpl-timeline",
+          "name": "tpl-timeline",
+          "category": "chart-data",
+          "subcategory": "Timeline steps",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "value",
+            "label",
+            "suffix",
+            "items",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "tpl-text",
+          "name": "tpl-text",
+          "category": "chart-data",
+          "subcategory": "Kinetic Title Quote",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "text",
+            "title",
+            "subtitle",
+            "value",
+            "label",
+            "suffix",
+            "items",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "tpl-geo",
+          "name": "tpl-geo",
+          "category": "chart-data",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "value",
+            "label",
+            "suffix",
+            "items",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "studio",
+          "subcategory": "Stat Counter",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "studio",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "studio",
+          "subcategory": "Bar chart",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "studio",
+          "subcategory": "Timeline steps",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "studio",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-text-1",
+          "name": "boost-text-1",
+          "category": "studio",
+          "subcategory": "Kinetic Title Quote",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "text",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "gradient-word-sweep",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-2",
+          "name": "boost-pictogram-2",
+          "category": "chart-data",
+          "subcategory": "Pie Donut Pictogram 2",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "suffix",
+            "items",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-runtime-1",
+          "name": "boost-runtime-1",
+          "category": "cinematic",
+          "subcategory": "Vignette Pulse",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "intensity",
+            "studio_opacity",
+            "accentColor"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-runtime-2",
+          "name": "boost-runtime-2",
+          "category": "cinematic",
+          "subcategory": "Film Glow",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "sceneAsset",
+            "imageUrl",
+            "videoUrl",
+            "intensity",
+            "effect_intensity",
+            "accentColor",
+            "studio_opacity",
+            "backgroundColor",
+            "title",
+            "subtitle"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-runtime-3",
+          "name": "boost-runtime-3",
+          "category": "cinematic",
+          "subcategory": "Dark Moody",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "sceneAsset",
+            "imageUrl",
+            "videoUrl",
+            "intensity",
+            "effect_intensity",
+            "accentColor",
+            "studio_opacity",
+            "backgroundColor",
+            "title",
+            "subtitle"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-runtime-4",
+          "name": "boost-runtime-4",
+          "category": "cinematic",
+          "subcategory": "High Contrast",
+          "niche": "__test_studio_boost_long__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "sceneAsset",
+            "imageUrl",
+            "videoUrl",
+            "intensity",
+            "effect_intensity",
+            "accentColor",
+            "studio_opacity",
+            "backgroundColor",
+            "title",
+            "subtitle"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T03:02:51.823Z"
+    },
+    "__test_boost_fresh_7__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "stats",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_7__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "stats",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_7__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "charts",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_7__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "timeline",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_7__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-text-1",
+          "name": "boost-text-1",
+          "category": "typography",
+          "subcategory": "Kinetic Title Quote",
+          "niche": "__test_boost_fresh_7__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "text",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "gradient-word-sweep",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "map",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_7__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-counter-2",
+          "name": "boost-counter-2",
+          "category": "stats",
+          "subcategory": "KPI Stat Counter",
+          "niche": "__test_boost_fresh_7__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-2",
+          "name": "boost-bar-2",
+          "category": "charts",
+          "subcategory": "Line chart",
+          "niche": "__test_boost_fresh_7__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-2",
+          "name": "boost-timeline-2",
+          "category": "timeline",
+          "subcategory": "Process roadmap",
+          "niche": "__test_boost_fresh_7__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-2",
+          "name": "boost-geo-2",
+          "category": "map",
+          "subcategory": "Satelite Location",
+          "niche": "__test_boost_fresh_7__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T02:57:21.012Z"
+    },
+    "__test_boost_long_clean__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "stats",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_long_clean__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "stats",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_long_clean__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "charts",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_long_clean__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "timeline",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_long_clean__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "map",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_long_clean__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-text-1",
+          "name": "boost-text-1",
+          "category": "typography",
+          "subcategory": "Kinetic Title Quote",
+          "niche": "__test_boost_long_clean__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "text",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "gradient-word-sweep",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T02:58:01.724Z"
+    },
+    "__test_boost_fresh_8__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "stats",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_8__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "stats",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_8__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "charts",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_8__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "timeline",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_8__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "map",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_8__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-text-1",
+          "name": "boost-text-1",
+          "category": "typography",
+          "subcategory": "Kinetic Title Quote",
+          "niche": "__test_boost_fresh_8__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "text",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "gradient-word-sweep",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T02:58:47.723Z"
+    },
+    "__test_boost_fresh_9__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "stats",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_9__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "stats",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_9__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "charts",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_9__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "timeline",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_9__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "map",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_9__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-text-1",
+          "name": "boost-text-1",
+          "category": "typography",
+          "subcategory": "Kinetic Title Quote",
+          "niche": "__test_boost_fresh_9__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "text",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "gradient-word-sweep",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T02:58:53.146Z"
+    },
+    "__test_boost_fresh_10__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "metrics",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_10__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "metrics",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_10__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "data-graphics",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_10__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "chronology",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_10__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "navigation",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_10__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-text-1",
+          "name": "boost-text-1",
+          "category": "typography",
+          "subcategory": "Kinetic Title Quote",
+          "niche": "__test_boost_fresh_10__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "text",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "gradient-word-sweep",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T02:59:05.093Z"
+    },
+    "__test_boost_fresh_11__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "metrics",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_11__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "metrics",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_11__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "graphics",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_11__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "chronology",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_11__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "navigation",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_11__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-text-1",
+          "name": "boost-text-1",
+          "category": "typography",
+          "subcategory": "Kinetic Title Quote",
+          "niche": "__test_boost_fresh_11__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "text",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "gradient-word-sweep",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T02:59:28.530Z"
+    },
+    "__test_boost_fresh_12__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "metrics",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_12__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "graphics",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_12__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "navigation",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_12__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "chronology",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_12__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-text-1",
+          "name": "boost-text-1",
+          "category": "typography",
+          "subcategory": "Kinetic Title Quote",
+          "niche": "__test_boost_fresh_12__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "text",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "gradient-word-sweep",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T02:59:35.426Z"
+    },
+    "__test_boost_fresh_15__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "metrics",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_15__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "graphics",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_15__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "graphics",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_15__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "navigation",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_15__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "chronology",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_15__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-counter-2",
+          "name": "boost-counter-2",
+          "category": "metrics",
+          "subcategory": "KPI Stat Counter",
+          "niche": "__test_boost_fresh_15__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-2",
+          "name": "boost-bar-2",
+          "category": "graphics",
+          "subcategory": "Line chart",
+          "niche": "__test_boost_fresh_15__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T02:59:47.981Z"
+    },
+    "__test_boost_fresh_16__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "metrics",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_16__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "graphics",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_16__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "graphics",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_16__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "navigation",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_16__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "chronology",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_16__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-counter-2",
+          "name": "boost-counter-2",
+          "category": "metrics",
+          "subcategory": "KPI Stat Counter",
+          "niche": "__test_boost_fresh_16__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-2",
+          "name": "boost-bar-2",
+          "category": "graphics",
+          "subcategory": "Line chart",
+          "niche": "__test_boost_fresh_16__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T02:59:54.427Z"
+    },
+    "__test_boost_fresh_17__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "metrics",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_17__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "graphics",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_17__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "graphics",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_17__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "navigation",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_17__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "chronology",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_17__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-counter-2",
+          "name": "boost-counter-2",
+          "category": "metrics",
+          "subcategory": "KPI Stat Counter",
+          "niche": "__test_boost_fresh_17__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "title",
+            "subtitle",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-2",
+          "name": "boost-bar-2",
+          "category": "graphics",
+          "subcategory": "Line chart",
+          "niche": "__test_boost_fresh_17__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T03:00:06.558Z"
+    },
+    "__test_boost_fresh_18__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "metrics",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_18__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "graphics",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_18__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "graphics",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_18__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "navigation",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_18__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "chronology",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_18__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T03:00:12.695Z"
+    },
+    "__test_boost_fresh_20__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "metrics",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_20__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "graphics",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_20__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "graphics",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_20__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "navigation",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_20__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "chronology",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_20__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-2",
+          "name": "boost-timeline-2",
+          "category": "chronology",
+          "subcategory": "Process Timeline",
+          "niche": "__test_boost_fresh_20__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T03:01:11.703Z"
+    },
+    "__test_boost_fresh_21__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "metrics",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_21__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "graphics",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_21__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "graphics",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_21__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "navigation",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_21__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "chronology",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_21__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-2",
+          "name": "boost-timeline-2",
+          "category": "chronology",
+          "subcategory": "Process Timeline",
+          "niche": "__test_boost_fresh_21__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T03:01:19.307Z"
+    },
+    "__test_boost_fresh_22__": {
+      "templates": [
+        {
+          "id": "boost-counter-1",
+          "name": "boost-counter-1",
+          "category": "metrics",
+          "subcategory": "Stat Counter",
+          "niche": "__test_boost_fresh_22__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "value",
+            "label",
+            "suffix",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "odometer-digit-roll",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-bar-1",
+          "name": "boost-bar-1",
+          "category": "graphics",
+          "subcategory": "Bar chart",
+          "niche": "__test_boost_fresh_22__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "accentColor"
+          ],
+          "motion_template_id": "chart-live-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-pictogram-1",
+          "name": "boost-pictogram-1",
+          "category": "graphics",
+          "subcategory": "Pie Donut Pictogram",
+          "niche": "__test_boost_fresh_22__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "items",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "particle-sand-fill",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-geo-1",
+          "name": "boost-geo-1",
+          "category": "navigation",
+          "subcategory": "Mapa Geo Location",
+          "niche": "__test_boost_fresh_22__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "location",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "space-camera-moves",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-timeline-1",
+          "name": "boost-timeline-1",
+          "category": "chronology",
+          "subcategory": "Timeline steps",
+          "niche": "__test_boost_fresh_22__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "events",
+            "title",
+            "subtitle",
+            "label",
+            "accentColor"
+          ],
+          "motion_template_id": "timeline-travel",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-cinematic-1",
+          "name": "boost-cinematic-1",
+          "category": "cinematic",
+          "subcategory": "Vignette Reveal",
+          "niche": "__test_boost_fresh_22__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "title",
+            "sceneAsset",
+            "imageUrl",
+            "videoUrl",
+            "intensity",
+            "effect_intensity",
+            "accentColor",
+            "studio_opacity",
+            "backgroundColor",
+            "subtitle"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-cinematic-2",
+          "name": "boost-cinematic-2",
+          "category": "cinematic",
+          "subcategory": "Film Glow",
+          "niche": "__test_boost_fresh_22__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "title",
+            "sceneAsset",
+            "imageUrl",
+            "videoUrl",
+            "intensity",
+            "effect_intensity",
+            "accentColor",
+            "studio_opacity",
+            "backgroundColor",
+            "subtitle"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "overlay",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "boost-cinematic-3",
+          "name": "boost-cinematic-3",
+          "category": "transition",
+          "subcategory": "Wipe Move",
+          "niche": "__test_boost_fresh_22__",
+          "status": "approved",
+          "description": "",
+          "dataSlots": [
+            "title",
+            "sceneAsset",
+            "imageUrl",
+            "videoUrl",
+            "accentColor",
+            "durationSeconds",
+            "studio_opacity",
+            "backgroundColor",
+            "subtitle"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "transition",
+          "orchestration_ready": true,
+          "shortPreview": "x",
+          "longPreview": "x",
+          "sourceCode": {
+            "short": "export default function T() { const f = useCurrentFrame(); return null; }",
+            "long": "export default function T() { const f = useCurrentFrame(); return null; }"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T03:01:26.851Z"
+    },
+    "__test_studio_role_inject__": {
+      "templates": [
+        {
+          "id": "role-transition",
+          "name": "Chapter Wipe",
+          "category": "transition",
+          "subcategory": "Wipe",
+          "niche": "__test_studio_role_inject__",
+          "status": "approved",
+          "description": "Transição entre capítulos",
+          "dataSlots": [
+            "text",
+            "sceneAsset",
+            "imageUrl",
+            "videoUrl",
+            "accentColor",
+            "durationSeconds",
+            "studio_opacity",
+            "backgroundColor",
+            "title",
+            "subtitle"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "transition",
+          "orchestration_ready": true,
+          "shortPreview": "wipe",
+          "longPreview": "wipe",
+          "sourceCode": {
+            "short": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}",
+            "long": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}"
+          },
+          "has_source_code": true
+        },
+        {
+          "id": "role-background",
+          "name": "Tech Grid Frame",
+          "category": "background",
+          "subcategory": "Grid",
+          "niche": "__test_studio_role_inject__",
+          "status": "approved",
+          "description": "Fundo técnico",
+          "dataSlots": [
+            "text",
+            "projectCode",
+            "accentColor",
+            "backgroundColor",
+            "intensity"
+          ],
+          "motion_template_id": "studio-runtime",
+          "orchestration_role": "background_frame",
+          "orchestration_ready": true,
+          "shortPreview": "grid",
+          "longPreview": "grid",
+          "sourceCode": {
+            "short": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}",
+            "long": "\"use client\";\nimport { AbsoluteFill, useCurrentFrame } from \"remotion\";\nexport const exampleProps = { text: \"TRANS\" };\nexport default function RoleTpl() {\n  const frame = useCurrentFrame();\n  return <AbsoluteFill style={{ opacity: frame / 30 }} />;\n}"
+          },
+          "has_source_code": true
+        }
+      ],
+      "updated_at": "2026-07-23T03:05:27.175Z"
     }
   },
-  "updated_at": "2026-07-22T22:45:45.931Z"
+  "updated_at": "2026-07-23T03:05:27.175Z"
 }

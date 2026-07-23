@@ -560,10 +560,10 @@ describe("motionScenePlanner", () => {
 
   it("boostStudioMotionScenesForLongForm atinge minimo 5 templates Studio", () => {
     const BOOST_NICHE = "__test_studio_boost_long__";
-    const mkTpl = (id, motionId, subcategory, slots) => ({
+    const mkTpl = (id, subcategory, slots) => ({
       id,
       name: id,
-      category: "chart-data",
+      category: "motion-visual",
       subcategory,
       niche: BOOST_NICHE,
       status: "approved",
@@ -574,23 +574,58 @@ describe("motionScenePlanner", () => {
       sourceCode: { short: BRIDGE_TSX, long: BRIDGE_TSX },
     });
     syncCatalogForNiche(BOOST_NICHE, [
-      mkTpl("boost-counter", "counter", "Counter", ["value", "label"]),
-      mkTpl("boost-bar", "bar-chart", "Bar chart", ["items", "title"]),
-      mkTpl("boost-bar-2", "bar-chart", "Line chart", ["items", "title"]),
-      mkTpl("boost-timeline", "timeline", "Timeline", ["events", "title"]),
-      mkTpl("boost-counter-2", "counter", "KPI", ["value", "label"]),
+      mkTpl("boost-counter", "Stat Counter", ["value", "label"]),
+      mkTpl("boost-bar", "Bar chart", ["items", "title"]),
+      mkTpl("boost-pictogram", "Pie Donut Pictogram", ["value", "label"]),
+      mkTpl("boost-timeline", "Timeline steps", ["events", "title"]),
+      mkTpl("boost-geo", "Mapa Geo Location", ["location"]),
+      mkTpl("boost-text", "Kinetic Title Quote", ["text"]),
     ]);
 
-    const visualPrompts = Array.from({ length: 8 }, (_, i) => ({
-      scene: `${i + 2}.1`,
-      block: i + 2,
-      narration_text:
-        i % 2 === 0
-          ? `Em ${1930 + i} a estrutura suportava ${40 + i}% da carga máxima.`
-          : `Comparando materiais: aço ${200 + i} MPa versus concreto ${40 + i} MPa.`,
-      speech_start: (i + 1) * 12,
-      duration_seconds: 4,
-    }));
+    const visualPrompts = [
+      {
+        scene: "2.1",
+        block: 2,
+        narration_text: "Em 1930 a estrutura suportava 40% da carga máxima.",
+        speech_start: 12,
+        duration_seconds: 4,
+      },
+      {
+        scene: "3.1",
+        block: 3,
+        narration_text: "Comparando o material A 200 MPa contra o material B 40 MPa.",
+        speech_start: 24,
+        duration_seconds: 4,
+      },
+      {
+        scene: "4.1",
+        block: 4,
+        narration_text: "Na cidade de Palmanova, a fortaleza estelar impressiona.",
+        speech_start: 36,
+        duration_seconds: 4,
+      },
+      {
+        scene: "5.1",
+        block: 5,
+        narration_text: "No ano de 1850 começou a expansão, e até 1860 a infraestrutura cresceu.",
+        speech_start: 48,
+        duration_seconds: 4,
+      },
+      {
+        scene: "6.1",
+        block: 6,
+        narration_text: "O gráfico de pizza registrou 92% de aprovação.",
+        speech_start: 60,
+        duration_seconds: 4,
+      },
+      {
+        scene: "7.1",
+        block: 7,
+        narration_text: "Um segredo incrível revelou um enigma chocante no relatório.",
+        speech_start: 72,
+        duration_seconds: 4,
+      },
+    ];
 
     const boosted = boostStudioMotionScenesForLongForm({
       scenes: [],

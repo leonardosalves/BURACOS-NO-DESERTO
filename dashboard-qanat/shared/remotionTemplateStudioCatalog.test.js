@@ -39,7 +39,7 @@ describe("remotionTemplateStudioCatalog map", () => {
     );
   });
 
-  it("chart data ainda mapeia counter/bar", () => {
+  it("chart data mapeia para shotcraft (odometer-digit-roll)", () => {
     assert.equal(
       mapStudioTemplateToMotionId({
         category: "chart-data",
@@ -47,7 +47,7 @@ describe("remotionTemplateStudioCatalog map", () => {
         name: "Stat Counter",
         sourceCode: runnable,
       }),
-      "counter"
+      "odometer-digit-roll"
     );
   });
 
