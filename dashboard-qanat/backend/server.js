@@ -14580,6 +14580,7 @@ async function callGeminiLlm(
     bodyOverride = null,
     temperature = null,
     models = null,
+    maxTokens = null,
   } = {}
 ) {
   const browserText = extractBrowserResponse(req.body);
@@ -14639,6 +14640,7 @@ async function callGeminiLlm(
     temperature,
     projectDir: projDir,
     models,
+    maxTokens,
     activityLabel: title || "Consulta IA Lumiera",
     activityDetail: String(prompt || "").slice(0, 120),
   });
@@ -21128,7 +21130,7 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
       const generation = await generateCreatorIdeasWithSingleRetry({
         basePrompt: fullPrompt,
         expectedCount: 10,
-        maxAttempts: 1,
+        maxAttempts: 2,
         niche: nicheClean,
         format,
         generate: ({ prompt }) =>
@@ -21136,6 +21138,7 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
             title: "Gerar 10 ideias virais",
             prompt,
             temperature: 0.9,
+            maxTokens: 16000,
           }),
         parse: (responseText) =>
           parseAiJsonResponse(
