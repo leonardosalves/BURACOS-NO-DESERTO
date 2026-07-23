@@ -4581,7 +4581,7 @@ app.post("/api/video-agent/chat", async (req, res) => {
         .trim();
 
       const workDir = fs.existsSync(hfDir) ? hfDir : projDir;
-      const args = ["hyperframes", subcommand];
+      const args = ["--yes", "hyperframes@latest", subcommand];
       if (cleanExtraArgs) {
         args.push(...cleanExtraArgs.split(/\s+/).filter(Boolean));
       }
@@ -4590,7 +4590,7 @@ app.post("/api/video-agent/chat", async (req, res) => {
         if (fs.existsSync(path.join(hfDir, "index.html"))) {
           return res.json({
             reply: `✓ Composição HyperFrames já está pronta em ${hfDir}.\n\nVocê já pode validar (lint), visualizar (preview) ou renderizar (render).`,
-            command: "npx hyperframes init hyperframes",
+            command: "npx --yes hyperframes@latest init hyperframes",
             output: `HyperFrames composition active at: ${hfDir}`,
             hf_status: "init",
             suggestions: [
@@ -4601,7 +4601,7 @@ app.post("/api/video-agent/chat", async (req, res) => {
           });
         }
         if (!args.includes("hyperframes") && !args.includes(".")) {
-          args.splice(2, 0, "hyperframes");
+          args.splice(3, 0, "hyperframes");
         }
         if (!args.includes("--non-interactive")) {
           args.push("--non-interactive");
