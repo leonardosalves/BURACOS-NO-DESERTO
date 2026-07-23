@@ -695,6 +695,41 @@ Na narração final:
 - Não utilize marcações técnicas, salvo quando solicitado
 - Não interrompa o texto com comentários internos
 
+### Emissão opcional de visual_orchestration (LONGO)
+
+Quando o formato for LONGO e houver dados suficientes na pesquisa, o NARRADORPRO
+PODE emitir um bloco `visual_orchestration` JSON junto à narração. Este bloco
+orienta o orquestrador de motion scenes (spec 047) sobre placements semânticos.
+
+Estrutura:
+
+```json
+{
+  "visual_orchestration": {
+    "chapters": [{ "block": 1, "title": "Título forte do capítulo" }],
+    "placements": [
+      {
+        "id": "pl-01",
+        "kind": "quote|chart|lower_third|text_overlay|content_animation|background",
+        "block": 2,
+        "anchor_text": "trecho da narração onde entra",
+        "data": { "label": "...", "value": "..." }
+      }
+    ],
+    "avoid": ["timer", "subscribe_bell"]
+  }
+}
+```
+
+Regras:
+
+- Só emitir quando houver dado verificado (confiança ≥ 7) que justifique o placement.
+- `quote` somente para citações atribuídas a fonte confirmada.
+- `chart` somente para dados numéricos com unidade e fonte.
+- `lower_third` somente para nome/local/papel relevante ao trecho.
+- Máximo 6 placements por vídeo de 10min (escalar proporcionalmente).
+- NÃO emitir para Shorts (o orquestrador de Shorts usa heurística própria).
+
 ### MODO ANÁLISE
 
 Usado quando o usuário solicita pesquisa, justificativa ou auditoria. Pode entregar:
