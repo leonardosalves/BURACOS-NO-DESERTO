@@ -105,7 +105,21 @@ export default function VideoAgentPage({
             ),
           }),
         });
-        const data = await res.json();
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data) {
+          const errMsg =
+            data?.error ||
+            data?.message ||
+            `Erro de conexão com o servidor (HTTP ${res.status}).`;
+          setMessages((prev) => [
+            ...prev,
+            { role: "agent", content: `❌ ${errMsg}` },
+          ]);
+          setHfStatus("error");
+          return;
+        }
 
         if (data.hf_status) setHfStatus(data.hf_status);
         if (data.storyboard) setStoryboard(data.storyboard);
@@ -114,22 +128,22 @@ export default function VideoAgentPage({
 
         const agentMsg: AgentMessage = {
           role: "agent",
-          content: data.reply || "Feito.",
+          content: data.reply || data.error || "Feito.",
           suggestions: data.suggestions,
           command: data.command,
           output: data.output,
           previewUrl: data.preview_url,
         };
         setMessages((prev) => [...prev, agentMsg]);
-      } catch {
+      } catch (err: any) {
         setMessages((prev) => [
           ...prev,
           {
             role: "agent",
-            content:
-              "Erro ao conectar com o backend. Verifique se o LumieraBackend está rodando.",
+            content: `Erro ao conectar com o backend: ${err?.message || "Serviço indisponível"}. Verifique se o LumieraBackend na porta 3005 está rodando.`,
           },
         ]);
+        setHfStatus("error");
       } finally {
         setLoading(false);
       }
