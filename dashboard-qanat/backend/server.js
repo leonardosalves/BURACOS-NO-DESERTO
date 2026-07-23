@@ -4537,20 +4537,39 @@ app.post("/api/video-agent/chat", async (req, res) => {
       const command = `npx ${args.join(" ")}`;
       console.log(`[VideoAgent] Executando: ${command} (cwd: ${workDir})`);
 
-      const npxCmd = fs.existsSync("C:\\Program Files\\nodejs\\npx.cmd")
-        ? '"C:\\Program Files\\nodejs\\npx.cmd"'
-        : "npx";
-
-      const result = spawnSync(npxCmd, args, {
-        cwd: workDir,
-        encoding: "utf8",
-        timeout: subcommand === "render" ? 300000 : 60000,
-        shell: true,
-        env: {
-          ...process.env,
-          NODE_OPTIONS: "",
-          PATH: `C:\\Program Files\\nodejs;${process.env.PATH || ""}`,
-        },
+      const result = await new Promise((resolve) => {
+        const child = spawn("npx", args, {
+          cwd: workDir,
+          shell: true,
+          env: {
+            ...process.env,
+            NODE_OPTIONS: "",
+            PATH: `C:\\Program Files\\nodejs;${process.env.PATH || ""}`,
+          },
+        });
+        let stdout = "";
+        let stderr = "";
+        const timer = setTimeout(
+          () => {
+            child.kill("SIGTERM");
+            resolve({ stdout, stderr: stderr + "\n[timeout]", status: 1 });
+          },
+          subcommand === "render" ? 300000 : 90000
+        );
+        child.stdout.on("data", (d) => {
+          stdout += d.toString();
+        });
+        child.stderr.on("data", (d) => {
+          stderr += d.toString();
+        });
+        child.on("close", (code) => {
+          clearTimeout(timer);
+          resolve({ stdout, stderr, status: code ?? 1 });
+        });
+        child.on("error", (err) => {
+          clearTimeout(timer);
+          resolve({ stdout, stderr: String(err.message), status: 1 });
+        });
       });
 
       const stdout = (result.stdout || "").trim();
@@ -4686,17 +4705,41 @@ Responda APENAS JSON:
       } else {
         reply = "Renderizando composição HyperFrames...";
         hfStatus = "render";
-        const result = spawnSync(
-          "npx",
-          ["hyperframes", "render", "--quality", "standard"],
-          {
-            cwd: hfDir,
-            encoding: "utf8",
-            timeout: 300000,
-            shell: true,
-            env: { ...process.env, NODE_OPTIONS: "" },
-          }
-        );
+        const result = await new Promise((resolve) => {
+          const child = spawn(
+            "npx",
+            ["hyperframes", "render", "--quality", "standard"],
+            {
+              cwd: hfDir,
+              shell: true,
+              env: {
+                ...process.env,
+                NODE_OPTIONS: "",
+                PATH: `C:\\Program Files\\nodejs;${process.env.PATH || ""}`,
+              },
+            }
+          );
+          let stdout = "";
+          let stderr = "";
+          const timer = setTimeout(() => {
+            child.kill("SIGTERM");
+            resolve({ stdout, stderr: stderr + "\n[timeout]", status: 1 });
+          }, 300000);
+          child.stdout.on("data", (d) => {
+            stdout += d.toString();
+          });
+          child.stderr.on("data", (d) => {
+            stderr += d.toString();
+          });
+          child.on("close", (code) => {
+            clearTimeout(timer);
+            resolve({ stdout, stderr, status: code ?? 1 });
+          });
+          child.on("error", (err) => {
+            clearTimeout(timer);
+            resolve({ stdout, stderr: String(err.message), status: 1 });
+          });
+        });
         const output = [result.stdout || "", result.stderr || ""]
           .filter(Boolean)
           .join("\n");
