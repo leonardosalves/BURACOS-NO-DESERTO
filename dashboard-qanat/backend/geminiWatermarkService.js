@@ -25,13 +25,14 @@ function resolvePythonBinary() {
   const envPy = process.env.PYTHON_BINARY;
   if (envPy && fs.existsSync(envPy)) return envPy;
   const candidates = [
+    "C:\\Users\\Leo\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
     "C:\\Users\\Leo\\AppData\\Local\\Python\\bin\\python.exe",
     "C:\\Users\\Leo\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
     "C:\\Users\\Leo\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
     "python",
   ];
   for (const c of candidates) {
-    if (c === "python") return c;
+    if (c === "python") continue;
     if (fs.existsSync(c)) return c;
   }
   return "python";

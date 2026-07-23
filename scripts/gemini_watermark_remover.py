@@ -127,19 +127,22 @@ def remove_watermark_opencv(input_path, output_path, watermark_pos="bottom_right
     cap.release()
     out.release()
 
-    # Re-codificar áudio da fonte original usando FFmpeg se existir
+    # Re-codificar vídeo em H.264 (libx264, yuv420p) para ser reproduzível no HTML5 <video> do navegador
     ffmpeg_exe = get_ffmpeg_binary()
     cmd = [
         ffmpeg_exe, "-y",
         "-i", temp_out,
         "-i", input_path,
-        "-c:v", "copy",
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-preset", "fast",
+        "-crf", "18",
         "-c:a", "aac",
         "-map", "0:v:0",
         "-map", "1:a:0?",
         output_path
     ]
-    log_msg("Finalizando container de vídeo com FFmpeg...")
+    log_msg("Re-codificando container em H.264 (HTML5 compatível) com FFmpeg...")
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     if os.path.exists(temp_out):
@@ -155,19 +158,43 @@ def remove_watermark_opencv(input_path, output_path, watermark_pos="bottom_right
         log_msg("Falha ao salvar vídeo final com OpenCV. Tentando fallback FFmpeg...")
         return False
 
+def get_video_resolution(input_path):
+    ffmpeg_exe = get_ffmpeg_binary()
+    ffprobe_exe = ffmpeg_exe.replace("ffmpeg.exe", "ffprobe.exe").replace("ffmpeg", "ffprobe")
+    cmd = [
+        ffprobe_exe, "-v", "error",
+        "-select_streams", "v:0",
+        "-show_entries", "stream=width,height",
+        "-of", "json",
+        input_path
+    ]
+    try:
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        data = json.loads(res.stdout)
+        stream = data["streams"][0]
+        return int(stream["width"]), int(stream["height"])
+    except Exception:
+        return 1080, 1920
+
 def remove_watermark_ffmpeg_fallback(input_path, output_path, watermark_size=64):
     log_msg("Executando remoção de marca d'água via FFmpeg delogo filter...")
     ffmpeg_exe = get_ffmpeg_binary()
 
-    # Estimar ROI padrão Gemini no canto inferior direito
-    # Padrão: w=80, h=80 a partir de (main_w - 96), (main_h - 96)
-    vf_filter = "delogo=x=main_w-96:y=main_h-96:w=80:h=80:show=0"
+    width, height = get_video_resolution(input_path)
+    w_box = max(60, min(watermark_size + 26, width // 4))
+    h_box = max(60, min(watermark_size + 26, height // 4))
+    x_pos = max(0, width - w_box - 16)
+    y_pos = max(0, height - h_box - 16)
+
+    vf_filter = f"delogo=x={x_pos}:y={y_pos}:w={w_box}:h={h_box}"
+    log_msg(f"Resolução detectada: {width}x{height} | ROI delogo: {w_box}x{h_box} em ({x_pos}, {y_pos})")
 
     cmd = [
         ffmpeg_exe, "-y",
         "-i", input_path,
         "-vf", vf_filter,
         "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
         "-preset", "fast",
         "-crf", "18",
         "-c:a", "copy",
