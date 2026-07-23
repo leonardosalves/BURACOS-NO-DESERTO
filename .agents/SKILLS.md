@@ -1,8 +1,11 @@
 # Skills do Lumiera
+
 > 🔗 [[MEMORIA-LUMIERA]] · [[AGENTS]] · [[MEMORY]]
-Índice das skills em `.agents/skills/`. Cada pasta tem um atalho com nome legível no grafo.
-Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
+> Índice das skills em `.agents/skills/`. Cada pasta tem um atalho com nome legível no grafo.
+> Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
+
 ## Catálogo
+
 - [[skills/ad-concept-generator|ad concept generator]] — doc: [[skills/ad-concept-generator/SKILL]]
 - [[skills/agent-reach|agent reach]] — doc: [[skills/agent-reach/SKILL]]
 - [[skills/ai-camera-movements|ai camera movements]] — doc: [[skills/ai-camera-movements/SKILL]]
@@ -94,6 +97,8 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/writing-shape|writing shape]] — doc: [[skills/writing-shape/SKILL]]
 - [[skills/youtube-seo|youtube seo]] — doc: [[skills/youtube-seo/SKILL]]
 - [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
+
 ## Por que vários arquivos SKILL?
+
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-22T21:42:21.147Z
+atualizado: 2026-07-23T17:38:59.162Z

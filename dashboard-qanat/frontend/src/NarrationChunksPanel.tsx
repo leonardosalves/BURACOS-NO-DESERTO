@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import {
+  Bookmark,
   Eye,
   Loader2,
   Mic,
@@ -16,6 +17,7 @@ import {
   Tag,
   Volume2,
 } from "lucide-react";
+import { useChannels } from "./context/ChannelContext";
 import { SectionHeader } from "./SectionHeader";
 import {
   createProgressJobId,
@@ -177,6 +179,56 @@ export function NarrationChunksPanel({
   );
   const [defaultEngine, setDefaultEngine] = useState("kokoro");
   const [defaultVoice, setDefaultVoice] = useState("pm_alex");
+  const [savingChannelVoice, setSavingChannelVoice] = useState(false);
+
+  // Conexão com contexto de canais Lumiera
+  let activeId: string | null = null;
+  let activeConfig: any = null;
+  let updateChannel: any = null;
+  try {
+    const chCtx = useChannels();
+    activeId = chCtx.activeId;
+    activeConfig = chCtx.activeConfig;
+    updateChannel = chCtx.updateChannel;
+  } catch (_e) {
+    // Ignorar se renderizado fora do ChannelProvider
+  }
+
+  // Carregar automaticamente o motor e voz padrão do canal ativo quando trocado no ChannelSwitcher
+  useEffect(() => {
+    if (!activeConfig?.tts) return;
+    const chTts = activeConfig.tts;
+    const engine = chTts.defaultEngine || chTts.motor_padrao || chTts.engine;
+    const voice =
+      chTts.defaultVoice || chTts.voz_padrao || chTts.voice_id || chTts.voice;
+    if (engine) setDefaultEngine(engine);
+    if (voice) setDefaultVoice(voice);
+  }, [activeId, activeConfig]);
+
+  const saveDefaultVoiceToChannel = async () => {
+    if (!activeId || !updateChannel) return;
+    setSavingChannelVoice(true);
+    try {
+      await updateChannel(activeId, {
+        ...activeConfig,
+        tts: {
+          ...(activeConfig?.tts || {}),
+          defaultEngine,
+          defaultVoice,
+          motor_padrao: defaultEngine,
+          voz_padrao: defaultVoice,
+        },
+      });
+      toast?.(
+        `Voz padrão (${defaultVoice}) salva no canal ${activeConfig?.canal_nome || activeId}!`,
+        "success"
+      );
+    } catch (err: any) {
+      toast?.(`Erro ao salvar voz no canal: ${err.message}`, "error");
+    } finally {
+      setSavingChannelVoice(false);
+    }
+  };
   const [useTagged, setUseTagged] = useState(true);
   const [expandedTagsChunkId, setExpandedTagsChunkId] = useState<string | null>(
     null
@@ -1116,14 +1168,28 @@ export function NarrationChunksPanel({
                 ))}
               </select>
             </div>
-            <button
-              type="button"
-              onClick={applyDefaultVoiceToAll}
-              disabled={!chunks.length}
-              className="text-[10px] font-bold px-3 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:border-gold-500/50"
-            >
-              Aplicar a todos
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={applyDefaultVoiceToAll}
+                disabled={!chunks.length}
+                className="text-[10px] font-bold px-3 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:border-gold-500/50 flex-1"
+              >
+                Aplicar a todos
+              </button>
+              {activeId && (
+                <button
+                  type="button"
+                  onClick={saveDefaultVoiceToChannel}
+                  disabled={savingChannelVoice}
+                  className="text-[10px] font-bold px-3 py-2 rounded-lg border border-amber-500/40 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 flex items-center gap-1 shrink-0"
+                  title={`Salvar ${defaultVoice} como voz padrão do canal ${activeConfig?.canal_nome || activeId}`}
+                >
+                  <Bookmark className="w-3 h-3 text-amber-400" />
+                  {savingChannelVoice ? "Salvando..." : "Salvar no Canal"}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2">

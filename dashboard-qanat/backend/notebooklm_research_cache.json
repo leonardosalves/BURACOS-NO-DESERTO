@@ -1,0 +1,13 @@
+{
+  "ideas:SHORT:default:engenharia-e-construcao:engenharia-e-construcao": {
+    "at": 1784825861850,
+    "result": {
+      "available": false,
+      "topic": "engenharia_e_construcao",
+      "summary": "Pesquisa sugerida para \"engenharia_e_construcao\" (SHORT): tendências recentes, dores do público, curiosidades virais e ângulos pouco explorados por concorrentes.",
+      "sources": [],
+      "fallback": true,
+      "needsLogin": true
+    }
+  }
+}

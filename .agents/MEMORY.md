@@ -49,6 +49,7 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 - [[memory/engenharia-antiga-curioso]]
 - [[memory/engenharia-antiga]]
 - [[memory/engenharia-curiosidade]]
+- [[memory/engenharia-e-construcao]]
 - [[memory/engenharia-japao]]
 - [[memory/engenharia-medieval]]
 - [[memory/engenharia-tailandesa]]
@@ -68,4 +69,4 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 - [[memory/video-reference-analyses]]
 - [[memory/videoagent-lumiera]]
 
-atualizado: 2026-07-22T21:42:21.098Z
+atualizado: 2026-07-23T17:38:59.122Z
