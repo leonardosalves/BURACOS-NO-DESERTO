@@ -4879,7 +4879,8 @@ app.post("/api/video-agent/chat", async (req, res) => {
       console.log(`[VideoAgent] Executando: ${command} (cwd: ${workDir})`);
 
       const result = await new Promise((resolve) => {
-        const child = spawn("npx", args, {
+        const npxCmd = process.platform === "win32" ? "npx.cmd" : "npx";
+        const child = spawn(npxCmd, args, {
           cwd: workDir,
           shell: true,
           env: {
