@@ -177,3 +177,28 @@ config_qanat.json
 # video-shotcraft vendor clone (large)
 dashboard-qanat/vendor/video-shotcraft/
 
+# Segredos / credenciais
+dashboard-qanat/backend/.env
+youtube_client_secrets.json
+kwai_cookies.json
+tiktok_cookies.json
+*_cookies.json
+*client_secrets*.json
+# Estado de aplicação
+wizard_session.json
+agent_runs.json
+youtube_editorial_queue.json
+youtube_video_resurrector.json
+timeline_studio.json
+trend_radar_saves.json.bak
+# Artefatos / caches de runtime
+resurrector_metadata_cache/
+whiteboard-runs/
+graphify-out/
+concreto_romano_CURA/
+__pycache__/
+*.pyc
+.scratch/
+.video-shotcraft-temp
+
+
