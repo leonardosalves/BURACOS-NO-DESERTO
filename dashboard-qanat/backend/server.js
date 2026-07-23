@@ -4475,7 +4475,6 @@ app.post("/api/video-agent/chat", async (req, res) => {
     const projDir = getProjectDir(req);
     const {
       message = "",
-      phase = "idle",
       storyboard = [],
       graphics_ideas = [],
     } = req.body || {};
@@ -4483,6 +4482,122 @@ app.post("/api/video-agent/chat", async (req, res) => {
     const text = String(message || "").trim();
     if (!text) {
       return res.status(400).json({ error: "Mensagem vazia." });
+    }
+
+    const HF_CMD_RE = /npx\s+hyperframes\s+(\w+)(.*)/i;
+    const hfMatch = text.match(HF_CMD_RE);
+
+    if (hfMatch) {
+      const subcommand = hfMatch[1].toLowerCase();
+      const extraArgs = (hfMatch[2] || "").trim();
+      const allowedCmds = [
+        "init",
+        "lint",
+        "inspect",
+        "preview",
+        "render",
+        "doctor",
+        "info",
+        "compositions",
+        "benchmark",
+        "layout",
+      ];
+
+      if (!allowedCmds.includes(subcommand)) {
+        return res.json({
+          reply: `Comando "${subcommand}" não reconhecido. Comandos disponíveis: ${allowedCmds.join(", ")}.`,
+          hf_status: "error",
+        });
+      }
+
+      const hfDir = path.join(projDir, "hyperframes");
+      if (
+        !fs.existsSync(hfDir) &&
+        subcommand !== "init" &&
+        subcommand !== "doctor" &&
+        subcommand !== "info"
+      ) {
+        return res.json({
+          reply: `Nenhuma composição HyperFrames encontrada em ${hfDir}.\n\nRode "npx hyperframes init" primeiro para criar a estrutura.`,
+          hf_status: "error",
+          suggestions: [
+            "npx hyperframes init --non-interactive",
+            "npx hyperframes doctor",
+          ],
+        });
+      }
+
+      const workDir = fs.existsSync(hfDir) ? hfDir : projDir;
+      const args = ["hyperframes", subcommand];
+      if (extraArgs) args.push(...extraArgs.split(/\s+/).filter(Boolean));
+      if (subcommand === "init" && !extraArgs.includes("--non-interactive")) {
+        args.push("--non-interactive");
+      }
+
+      const command = `npx ${args.join(" ")}`;
+      console.log(`[VideoAgent] Executando: ${command} (cwd: ${workDir})`);
+
+      const result = spawnSync("npx", args, {
+        cwd: workDir,
+        encoding: "utf8",
+        timeout: subcommand === "render" ? 300000 : 60000,
+        shell: true,
+        env: { ...process.env, NODE_OPTIONS: "" },
+      });
+
+      const stdout = (result.stdout || "").trim();
+      const stderr = (result.stderr || "").replace(/^npm warn.*$/gm, "").trim();
+      const output = [stdout, stderr].filter(Boolean).join("\n\n");
+      const exitCode = result.status ?? 1;
+
+      let previewUrl = null;
+      if (subcommand === "preview") {
+        const portMatch = output.match(/localhost:(\d+)/);
+        if (portMatch) {
+          previewUrl = `http://localhost:${portMatch[1]}`;
+        } else {
+          previewUrl = "http://localhost:3002";
+        }
+      }
+
+      const hfStatusMap = {
+        init: "init",
+        lint: "lint",
+        inspect: "lint",
+        preview: "preview",
+        render: "render",
+        doctor: "idle",
+        info: "idle",
+      };
+
+      return res.json({
+        reply:
+          exitCode === 0
+            ? `✓ \`hyperframes ${subcommand}\` executado com sucesso.`
+            : `✗ \`hyperframes ${subcommand}\` falhou (exit ${exitCode}).`,
+        command,
+        output: output.slice(0, 8000),
+        hf_status: exitCode === 0 ? hfStatusMap[subcommand] || "idle" : "error",
+        preview_url: previewUrl,
+        suggestions:
+          subcommand === "init" && exitCode === 0
+            ? [
+                "npx hyperframes lint",
+                "npx hyperframes preview",
+                "Editar index.html",
+              ]
+            : subcommand === "lint" && exitCode === 0
+              ? [
+                  "npx hyperframes preview",
+                  "npx hyperframes render --quality standard",
+                ]
+              : subcommand === "render" && exitCode === 0
+                ? [
+                    "Ver arquivo renderizado",
+                    "npx hyperframes render --quality high",
+                  ]
+                : [],
+      });
     }
 
     const isCompanionRequest =
@@ -4493,24 +4608,20 @@ app.post("/api/video-agent/chat", async (req, res) => {
       /construir|build|aprovar|renderizar|gerar vídeo/i.test(text);
     const isFromScratch = /do zero|criar vídeo|novo vídeo|prompt/i.test(text);
 
-    let nextPhase = phase;
     let reply = "";
     let suggestions = [];
     let storyboardOut = null;
     let graphicsOut = null;
+    let hfStatus = "idle";
 
-    if (isCompanionRequest && phase === "idle") {
-      nextPhase = "pitch";
-      reply = `Perfeito! Vamos trabalhar em modo Companion — você dirige, eu executo.\n\nVou propor 5 ângulos para o vídeo. Me diga:\n1. Qual é o tema/assunto?\n2. Qual o formato (Shorts ou Longo)?\n3. Qual o tom (documental, energético, misterioso)?\n\nCom base nisso, vou pitchear 5 abordagens diferentes para você escolher.`;
+    if (isCompanionRequest) {
+      reply = `Modo Companion ativado. Vou usar o HyperFrames CLI real para cada etapa:\n\n1. **Pitch** — proponho ângulos\n2. **Storyboard** — estrutura de cenas\n3. **Sketch** — \`npx hyperframes init\` + HTML\n4. **Review** — \`npx hyperframes lint\` + \`inspect\`\n5. **Build** — \`npx hyperframes render\`\n\nMe diga o tema, formato e tom do vídeo.`;
       suggestions = [
         "Engenharia civil, Shorts, documental",
         "Curiosidades científicas, Shorts, energético",
         "Mistérios históricos, Longo, misterioso",
       ];
     } else if (isAnalyzeRequest) {
-      nextPhase = "storyboard";
-      reply = `Vou analisar o storyboard atual e identificar pontos onde gráficos e overlays de dados podem enriquecer o vídeo.\n\nAnalisando estrutura narrativa...`;
-
       const prompt = `Você é um diretor de motion graphics analisando um storyboard de vídeo para YouTube.
 
 STORYBOARD ATUAL:
@@ -4518,26 +4629,18 @@ ${JSON.stringify(storyboard.slice(0, 10), null, 2)}
 
 INSTRUÇÃO DO USUÁRIO: ${text}
 
-Analise cada cena e identifique onde gráficos, charts, counters, lower thirds ou text overlays podem ser adicionados para enriquecer a narrativa visual.
+Analise cada cena e identifique onde gráficos, charts, counters, lower thirds ou text overlays podem ser adicionados como composições HyperFrames (HTML + CSS animations).
 
 Responda APENAS JSON:
 {
-  "reply": "explicação curta do que encontrou",
+  "reply": "explicação curta",
   "graphics_ideas": [
-    {
-      "id": "g1",
-      "sceneId": "id da cena",
-      "sceneTitle": "título da cena",
-      "type": "chart | lower_third | text_overlay | counter | comparison | timeline",
-      "description": "o que mostrar",
-      "data_hint": "dados necessários"
-    }
+    {"id": "g1", "sceneTitle": "título", "type": "chart|lower_third|text_overlay|counter|comparison|timeline", "description": "o que mostrar", "data_hint": "dados necessários"}
   ]
 }`;
-
       try {
         const llmText = await callGeminiLlm(req, res, projDir, {
-          title: "Video Agent · Análise de Storyboard",
+          title: "Video Agent · Análise HyperFrames",
           prompt,
           temperature: 0.5,
           maxTokens: 4000,
@@ -4552,90 +4655,78 @@ Responda APENAS JSON:
             }));
             reply =
               parsed.reply ||
-              `Encontrei ${graphicsOut.length} oportunidades de gráficos/overlays no storyboard.`;
+              `Encontrei ${graphicsOut.length} oportunidades para composições HyperFrames.`;
           } else {
             reply =
-              "Analisei o storyboard mas não encontrei pontos claros para gráficos adicionais. Tente ser mais específico sobre o tipo de dado que quer visualizar.";
+              "Não encontrei pontos claros para gráficos. Seja mais específico.";
           }
         }
       } catch (llmErr) {
-        reply = `Erro ao analisar com IA: ${llmErr.message}. Tente novamente.`;
+        reply = `Erro na análise: ${llmErr.message}`;
       }
       suggestions = [
-        "Aprovar todos os gráficos",
-        "Mostrar só charts",
-        "Adicionar counter animado",
+        "npx hyperframes init --non-interactive",
+        "Aprovar todos",
+        "npx hyperframes doctor",
       ];
     } else if (isBuildRequest) {
-      nextPhase = "build";
-      const approvedFrames = (storyboard || []).filter(
-        (f) => f.status === "approved"
-      );
-      const approvedGraphics = (graphics_ideas || []).filter(
-        (g) => g.status === "approved"
-      );
-      reply = `Iniciando construção do vídeo:\n\n• ${approvedFrames.length} frames aprovados\n• ${approvedGraphics.length} overlays de dados aprovados\n\nGerando composição HyperFrames...`;
-
-      try {
-        const planPrompt = `Você é o Video Agent do Lumiera. Construa um plano de execução para um vídeo HyperFrames.
-
-FRAMES APROVADOS:
-${JSON.stringify(approvedFrames.slice(0, 12), null, 2)}
-
-OVERLAYS APROVADOS:
-${JSON.stringify(approvedGraphics.slice(0, 8), null, 2)}
-
-INSTRUÇÃO: ${text}
-
-Responda APENAS JSON:
-{
-  "reply": "resumo do que será construído",
-  "hyperframes_plan": {
-    "total_duration_seconds": 45,
-    "scenes": [{"id": "s1", "type": "avatar|graphics|broll|chart", "duration": 5, "description": "..."}],
-    "overlays": [{"id": "o1", "type": "chart|counter|lower_third", "scene": "s1", "description": "..."}]
-  }
-}`;
-        const llmText = await callGeminiLlm(req, res, projDir, {
-          title: "Video Agent · Build Plan",
-          prompt: planPrompt,
-          temperature: 0.4,
-          maxTokens: 4000,
-        });
-        if (llmText != null) {
-          const parsed = parseJsonLocally(llmText);
-          if (parsed?.reply) {
-            reply = parsed.reply;
+      const hfDir = path.join(projDir, "hyperframes");
+      if (!fs.existsSync(path.join(hfDir, "index.html"))) {
+        reply =
+          "Nenhuma composição HyperFrames encontrada. Rode init primeiro.";
+        suggestions = ["npx hyperframes init --non-interactive"];
+      } else {
+        reply = "Renderizando composição HyperFrames...";
+        hfStatus = "render";
+        const result = spawnSync(
+          "npx",
+          ["hyperframes", "render", "--quality", "standard"],
+          {
+            cwd: hfDir,
+            encoding: "utf8",
+            timeout: 300000,
+            shell: true,
+            env: { ...process.env, NODE_OPTIONS: "" },
           }
-        }
-      } catch (llmErr) {
-        reply = `Plano local gerado (IA indisponível: ${llmErr.message}). ${approvedFrames.length} frames serão renderizados via HyperFrames.`;
+        );
+        const output = [result.stdout || "", result.stderr || ""]
+          .filter(Boolean)
+          .join("\n");
+        reply =
+          result.status === 0
+            ? "✓ Render concluído! Vídeo gerado em renders/."
+            : `✗ Render falhou (exit ${result.status}).`;
+        suggestions =
+          result.status === 0
+            ? [
+                "npx hyperframes render --quality high",
+                "npx hyperframes preview",
+              ]
+            : ["npx hyperframes lint", "npx hyperframes doctor"];
+        return res.json({
+          reply,
+          command: "npx hyperframes render --quality standard",
+          output: output.slice(0, 8000),
+          hf_status: result.status === 0 ? "render" : "error",
+          suggestions,
+        });
       }
-      suggestions = ["Ver preview", "Ajustar timing", "Exportar para Remotion"];
-    } else if (phase === "pitch" || isFromScratch) {
-      nextPhase = "storyboard";
-      const prompt = `Você é o Video Agent do Lumiera em modo Companion. O usuário quer criar um vídeo.
+    } else if (isFromScratch) {
+      const prompt = `Você é o Video Agent do Lumiera. O usuário quer criar um vídeo com HyperFrames.
 
 PEDIDO: ${text}
 
-Crie um storyboard com 5-8 frames para um vídeo YouTube. Cada frame deve ter:
-- time: timestamp (ex: "0:00-0:05")
-- title: título curto
-- description: descrição visual detalhada
-- type: "avatar" | "graphics" | "caption" | "broll" | "chart" | "transition"
+Crie um storyboard com 5-8 frames. Cada frame será uma cena HTML na composição HyperFrames.
 
 Responda APENAS JSON:
 {
-  "reply": "explicação curta da estrutura proposta",
-  "storyboard": [
-    {"id": "f1", "time": "0:00-0:05", "title": "...", "description": "...", "type": "broll", "status": "proposed"}
-  ],
+  "reply": "explicação da estrutura",
+  "storyboard": [{"id": "f1", "time": "0:00-0:05", "title": "...", "description": "...", "type": "broll|graphics|caption|chart|transition", "status": "proposed"}],
   "suggestions": ["sugestão 1", "sugestão 2"]
 }`;
-
       try {
         const llmText = await callGeminiLlm(req, res, projDir, {
-          title: "Video Agent · Storyboard",
+          title: "Video Agent · Storyboard HyperFrames",
           prompt,
           temperature: 0.7,
           maxTokens: 6000,
@@ -4650,37 +4741,24 @@ Responda APENAS JSON:
             }));
             reply =
               parsed.reply ||
-              `Propus ${storyboardOut.length} frames. Aprove ou rejeite cada um no painel à direita.`;
+              `Propus ${storyboardOut.length} frames. Aprove no painel e depois rode init.`;
             suggestions = parsed.suggestions || [
+              "npx hyperframes init --non-interactive",
               "Aprovar todos",
-              "Trocar frame 1",
-              "Adicionar frame de chart",
             ];
           } else {
-            reply =
-              "Não consegui gerar o storyboard. Tente reformular o pedido com mais detalhes.";
-            suggestions = ["Tentar novamente", "Mudar para modo livre"];
+            reply = "Não consegui gerar o storyboard. Reformule o pedido.";
           }
         }
       } catch (llmErr) {
-        reply = `Erro ao gerar storyboard: ${llmErr.message}`;
-        suggestions = ["Tentar novamente"];
+        reply = `Erro: ${llmErr.message}`;
       }
     } else {
-      const prompt = `Você é o Video Agent do Lumiera. Responda de forma concisa e útil.
-
-CONTEXTO: O usuário está na fase "${phase}" da criação de um vídeo.
-STORYBOARD ATUAL: ${storyboard.length} frames (${storyboard.filter((f) => f.status === "approved").length} aprovados)
-GRÁFICOS: ${graphics_ideas.length} ideias (${graphics_ideas.filter((g) => g.status === "approved").length} aprovadas)
+      const prompt = `Você é o Video Agent do Lumiera. Responda concisamente. O usuário está trabalhando com HyperFrames CLI.
 
 MENSAGEM: ${text}
 
-Responda APENAS JSON:
-{
-  "reply": "sua resposta",
-  "suggestions": ["sugestão 1", "sugestão 2"]
-}`;
-
+Responda APENAS JSON: {"reply": "sua resposta", "suggestions": ["s1", "s2"]}`;
       try {
         const llmText = await callGeminiLlm(req, res, projDir, {
           title: "Video Agent · Chat",
@@ -4693,7 +4771,7 @@ Responda APENAS JSON:
           reply = parsed?.reply || llmText.slice(0, 500);
           suggestions = parsed?.suggestions || [];
         } else {
-          reply = "Não consegui processar. Tente novamente.";
+          reply = "Não consegui processar.";
         }
       } catch (llmErr) {
         reply = `Erro: ${llmErr.message}`;
@@ -4703,10 +4781,10 @@ Responda APENAS JSON:
     if (!res.headersSent) {
       res.json({
         reply,
-        phase: nextPhase,
         suggestions,
         storyboard: storyboardOut,
         graphics_ideas: graphicsOut,
+        hf_status: hfStatus,
       });
     }
   } catch (err) {
@@ -24933,6 +25011,7 @@ app.post(
       }
 
       const vps = storyboard.visual_prompts || [];
+      const prevSnapshotVps = prevSnapshot.visual_prompts || [];
       const expectedBlocks = isListicle
         ? resolveListicleBlockCount({ rankCount: listicleRank, format })
         : format === "SHORTS"
@@ -24957,7 +25036,7 @@ app.post(
             expectedBlocks,
             Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1
           );
-        const scene = prev?.scene ?? (vpSceneStr || `${block}.${index + 1}`);
+        const scene = prev?.scene ?? (prevSceneStr || `${block}.${index + 1}`);
         const identityTags = Array.isArray(vp.identity_tags)
           ? vp.identity_tags
               .map((tag) => String(tag || "").trim())
