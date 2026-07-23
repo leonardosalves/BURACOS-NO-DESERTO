@@ -17,6 +17,7 @@ interface GeminiWatermarkModalProps {
   isOpen: boolean;
   onClose: () => void;
   activeProject?: string;
+  onComplete?: () => void;
 }
 
 interface VideoStatus {
@@ -38,6 +39,7 @@ export function GeminiWatermarkModal({
   isOpen,
   onClose,
   activeProject,
+  onComplete,
 }: GeminiWatermarkModalProps) {
   const [statusData, setStatusData] = useState<ProjectStatusResponse | null>(
     null
@@ -133,6 +135,8 @@ export function GeminiWatermarkModal({
             setCompletedSummary(data.summary);
             toast.success("Remoção de marca d'água concluída!");
             fetchStatus();
+            if (onComplete) onComplete();
+            window.dispatchEvent(new CustomEvent("lumiera:timeline-updated"));
           } else {
             setProgress((p) => ({ ...p, phase: "Erro no processamento" }));
             toast.error(`Falha: ${data.error || "Erro desconhecido"}`);
