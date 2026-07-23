@@ -262,6 +262,16 @@ Português brasileiro oral. Frases concretas. Tom: explicando para amigo intelig
 - Três frases seguidas com mesma estrutura inicial
 - Gírias: "cara", "mano", "bizarro demais", "do nada", "tipo assim", "tá ligado", "isso é insano"
 - Repetição da mesma ideia com palavras diferentes para preencher duração
+- **Contraste binário artificial:** "Não é X. É Y." / "Não se trata de X — trata-se de Y."
+  Prefira afirmar diretamente o que é, com evidência.
+- **Cycling de sinônimos:** referir ao mesmo objeto como "o agente", depois "o assistente",
+  depois "a ferramenta", depois "o sistema" sem razão. Use UM termo consistente.
+- **Fragmentação dramática:** "É isso. É só isso." / "Simples assim." / "Ponto final."
+  como encerramento artificial. Prefira consequência concreta.
+- **Revelação com dois-pontos:** "A melhor parte: aprende sozinho." / "O segredo: timing."
+  Prefira frase completa com sujeito e verbo.
+- **Listagem negativa:** "Não é um X. Não é um Y. É um Z." como estrutura de apresentação.
+  Prefira definir diretamente o que o objeto É.
 - **Profissão genérica de nicho:** em engenharia (e nichos técnicos afins), não
   repita só "engenheiro"/"engenheiros". Especifique de forma natural o papel
   real: engenheiro civil, estrutural, naval, mecânico, de solo, de saneamento,
