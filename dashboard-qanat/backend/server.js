@@ -4847,6 +4847,13 @@ app.post("/api/video-agent/chat", async (req, res) => {
       if (cleanExtraArgs) {
         args.push(...cleanExtraArgs.split(/\s+/).filter(Boolean));
       }
+      if (
+        subcommand === "render" &&
+        !args.includes("--workers") &&
+        !args.includes("-w")
+      ) {
+        args.push("--workers", "2");
+      }
 
       if (subcommand === "init") {
         if (fs.existsSync(path.join(hfDir, "index.html"))) {
