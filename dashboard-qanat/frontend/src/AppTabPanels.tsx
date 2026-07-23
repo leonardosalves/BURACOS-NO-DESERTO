@@ -723,7 +723,10 @@ export function AppTabPanels({
           <Suspense
             fallback={<TabPanelFallback label="Carregando Video Agent..." />}
           >
-            <LazyVideoAgentPage />
+            <LazyVideoAgentPage
+              activeProject={activeProject}
+              getProjectUrl={getProjectUrl}
+            />
           </Suspense>
         </TabErrorBoundary>
       )}

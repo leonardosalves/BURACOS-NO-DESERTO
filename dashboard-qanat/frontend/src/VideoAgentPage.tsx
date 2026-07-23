@@ -93,16 +93,25 @@ export default function VideoAgentPage({
       setHfStatus("idle");
 
       try {
-        const res = await fetch(getProjectUrl("/api/video-agent/chat"), {
+        const resolveUrl =
+          typeof getProjectUrl === "function"
+            ? getProjectUrl
+            : (path: string) => path;
+        const approvedSb = Array.isArray(storyboard)
+          ? storyboard.filter((f) => f?.status === "approved")
+          : [];
+        const approvedGi = Array.isArray(graphicsIdeas)
+          ? graphicsIdeas.filter((g) => g?.status === "approved")
+          : [];
+
+        const res = await fetch(resolveUrl("/api/video-agent/chat"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: text.trim(),
             project: activeProject,
-            storyboard: storyboard.filter((f) => f.status === "approved"),
-            graphics_ideas: graphicsIdeas.filter(
-              (g) => g.status === "approved"
-            ),
+            storyboard: approvedSb,
+            graphics_ideas: approvedGi,
           }),
         });
 
@@ -122,8 +131,9 @@ export default function VideoAgentPage({
         }
 
         if (data.hf_status) setHfStatus(data.hf_status);
-        if (data.storyboard) setStoryboard(data.storyboard);
-        if (data.graphics_ideas) setGraphicsIdeas(data.graphics_ideas);
+        if (Array.isArray(data.storyboard)) setStoryboard(data.storyboard);
+        if (Array.isArray(data.graphics_ideas))
+          setGraphicsIdeas(data.graphics_ideas);
         if (data.preview_url) setPreviewUrl(data.preview_url);
 
         const agentMsg: AgentMessage = {
