@@ -40,9 +40,11 @@ $ErrorActionPreference = "Continue"
 npm install --include=dev 2>&1 | Out-Null
 Write-Host "Compilando (npm run build)..." -ForegroundColor Yellow
 npm run build 2>&1 | Out-Null
+Write-Host "Instalando navegador Chromium (patchright)..." -ForegroundColor Yellow
+npx patchright install chromium 2>&1 | Out-Null
 $ErrorActionPreference = "Stop"
 Pop-Location
-Write-Host "[OK] Build concluido" -ForegroundColor Green
+Write-Host "[OK] Build + Chromium concluido" -ForegroundColor Green
 
 # 4. Autenticacao inicial (abre Chrome)
 Write-Host ""
@@ -68,25 +70,36 @@ node dist/http-server.js
 Write-Host ""
 Write-Host "=== SERVICO WINDOWS ===" -ForegroundColor Magenta
 
-$nssm = Get-Command nssm -ErrorAction SilentlyContinue
-if ($nssm) {
-    Write-Host "Registrando servico via nssm..." -ForegroundColor Yellow
-    nssm install $ServiceName "node" "dist/http-server.js"
-    nssm set $ServiceName AppDirectory $InstallDir
-    nssm set $ServiceName DisplayName "Lumiera NotebookLM REST API"
-    nssm set $ServiceName Description "NotebookLM REST API (roomi-fields) - auto-reauth habilitado"
-    nssm set $ServiceName Start SERVICE_AUTO_START
-    nssm set $ServiceName AppEnvironmentExtra "NOTEBOOKLM_REST_PORT=$Port"
-    nssm start $ServiceName
-    Write-Host "[OK] Servico '$ServiceName' registrado e iniciado via nssm" -ForegroundColor Green
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Write-Host "[AVISO] Script nao esta rodando como Administrador." -ForegroundColor Yellow
+    Write-Host "  Para registrar o servico Windows, rode este script como Admin:" -ForegroundColor Yellow
+    Write-Host "  Start-Process powershell -Verb RunAs -ArgumentList '-File `"$PSCommandPath`"'" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  Alternativa: inicie manualmente com:" -ForegroundColor Yellow
+    Write-Host "  cd '$InstallDir'; node dist/http-wrapper.js" -ForegroundColor DarkGray
+    Write-Host ""
 } else {
-    Write-Host "nssm nao encontrado. Criando servico via sc.exe..." -ForegroundColor Yellow
-    $nodeExe = (Get-Command node).Source
-    $httpServer = Join-Path $InstallDir "dist\http-server.js"
-    sc.exe create $ServiceName binPath= "`"$nodeExe`" `"$httpServer`"" start= auto DisplayName= "Lumiera NotebookLM REST API"
-    sc.exe description $ServiceName "NotebookLM REST API (roomi-fields) - auto-reauth habilitado"
-    sc.exe start $ServiceName
-    Write-Host "[OK] Servico '$ServiceName' criado via sc.exe" -ForegroundColor Green
+    $nssm = Get-Command nssm -ErrorAction SilentlyContinue
+    if ($nssm) {
+        Write-Host "Registrando servico via nssm..." -ForegroundColor Yellow
+        nssm install $ServiceName "node" "dist/http-wrapper.js"
+        nssm set $ServiceName AppDirectory $InstallDir
+        nssm set $ServiceName DisplayName "Lumiera NotebookLM REST API"
+        nssm set $ServiceName Description "NotebookLM REST API (roomi-fields) - auto-reauth habilitado"
+        nssm set $ServiceName Start SERVICE_AUTO_START
+        nssm set $ServiceName AppEnvironmentExtra "NOTEBOOKLM_REST_PORT=$Port"
+        nssm start $ServiceName
+        Write-Host "[OK] Servico '$ServiceName' registrado e iniciado via nssm" -ForegroundColor Green
+    } else {
+        Write-Host "nssm nao encontrado. Criando servico via sc.exe..." -ForegroundColor Yellow
+        $nodeExe = (Get-Command node).Source
+        $httpServer = Join-Path $InstallDir "dist\http-wrapper.js"
+        sc.exe create $ServiceName binPath= "`"$nodeExe`" `"$httpServer`"" start= auto DisplayName= "Lumiera NotebookLM REST API"
+        sc.exe description $ServiceName "NotebookLM REST API (roomi-fields) - auto-reauth habilitado"
+        sc.exe start $ServiceName
+        Write-Host "[OK] Servico '$ServiceName' criado via sc.exe" -ForegroundColor Green
+    }
 }
 
 # 7. Verificar se esta respondendo
