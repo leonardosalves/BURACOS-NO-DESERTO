@@ -4470,6 +4470,18 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
   }
 });
 
+app.get("/api/projects/asset-file", (req, res) => {
+  try {
+    const filePath = req.query.file;
+    if (!filePath || !fs.existsSync(filePath)) {
+      return res.status(404).send("File not found");
+    }
+    return res.sendFile(path.resolve(filePath));
+  } catch (err) {
+    return res.status(500).send(err.message);
+  }
+});
+
 app.get("/api/video-agent/storyboard", (req, res) => {
   try {
     const projDir = getProjectDir(req);
@@ -4492,6 +4504,23 @@ app.get("/api/video-agent/storyboard", (req, res) => {
       ).trim();
       const dur = vp.duration ? `${vp.duration}s` : "3s";
 
+      const assetObj = vp.asset || {};
+      const assetFilename =
+        typeof assetObj === "string"
+          ? assetObj
+          : assetObj.asset || assetObj.file || null;
+      let assetUrl = null;
+      let mediaType = "image";
+      if (assetFilename) {
+        const assetPath = path.join(projDir, "ASSETS", assetFilename);
+        if (fs.existsSync(assetPath)) {
+          assetUrl = `/api/projects/asset-file?file=${encodeURIComponent(assetPath)}`;
+          if (assetFilename.match(/\.(mp4|webm|mov)$/i)) {
+            mediaType = "video";
+          }
+        }
+      }
+
       return {
         id: String(sceneId),
         scene_key: String(sceneId),
@@ -4502,6 +4531,8 @@ app.get("/api/video-agent/storyboard", (req, res) => {
         narration_text: vp.narration_text || "",
         type: vp.motion_template_id ? "graphics" : "broll",
         motion_template_id: vp.motion_template_id || null,
+        asset_url: assetUrl,
+        media_type: mediaType,
         status: "approved",
       };
     });
