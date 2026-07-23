@@ -4527,11 +4527,26 @@ app.post("/api/video-agent/chat", async (req, res) => {
         });
       }
 
+      // Remove comentários descritivos em português (ex: "— criar composição")
+      let cleanExtraArgs = (hfMatch[2] || "")
+        .replace(/\s*[—–-]\s*[A-Za-zÀ-ÿ].*/i, "")
+        .trim();
+
       const workDir = fs.existsSync(hfDir) ? hfDir : projDir;
       const args = ["hyperframes", subcommand];
-      if (extraArgs) args.push(...extraArgs.split(/\s+/).filter(Boolean));
-      if (subcommand === "init" && !extraArgs.includes("--non-interactive")) {
-        args.push("--non-interactive");
+      if (cleanExtraArgs) {
+        args.push(...cleanExtraArgs.split(/\s+/).filter(Boolean));
+      }
+
+      if (subcommand === "init") {
+        if (!args.includes("--non-interactive")) {
+          args.push("--non-interactive");
+        }
+        if (
+          !args.some((a) => ["--example", "--video", "--audio"].includes(a))
+        ) {
+          args.push("--example", "blank");
+        }
       }
 
       const command = `npx ${args.join(" ")}`;

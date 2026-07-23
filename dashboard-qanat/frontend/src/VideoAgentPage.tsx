@@ -50,10 +50,10 @@ interface GraphicsIdea {
 type HfStatus = "idle" | "init" | "lint" | "preview" | "render" | "error";
 
 const SUGGESTIONS_INITIAL = [
-  "npx hyperframes init — criar composição",
+  "npx hyperframes init",
   "Analisar storyboard e sugerir gráficos",
   "Companion mode: dirigir passo a passo",
-  "npx hyperframes doctor — verificar ambiente",
+  "npx hyperframes doctor",
 ];
 
 export default function VideoAgentPage({
