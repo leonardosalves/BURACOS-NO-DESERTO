@@ -702,17 +702,43 @@ function ScenePreviewPanel({
         )}
       </div>
 
-      {/* Scene Quick Controls (Botões de Ação Direta Amigáveis) */}
-      <div className="p-3 border-t border-gray-800 bg-gray-900/80 space-y-2">
-        <div className="grid grid-cols-4 gap-2">
+      {/* Scene Quick Controls (Botões Vibrantes de Alto Contraste com Detecção de Overlays Ativos) */}
+      <div className="p-3.5 border-t border-gray-800 bg-gray-950 space-y-2">
+        {selectedScene && (
+          <div className="px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-[11px] text-gray-300 flex items-center justify-between shadow-inner">
+            <span className="font-semibold text-gray-400 flex items-center gap-1.5">
+              <Sparkles size={13} className="text-violet-400" /> Overlays na
+              Cena {selectedScene.id}:
+            </span>
+            <span className="font-bold text-violet-300">
+              {[
+                selectedScene.date_overlay ||
+                selectedScene.description.match(/\b(19\d\d|20\d\d)\b/)
+                  ? "📅 Selo Data (1968)"
+                  : null,
+                selectedScene.motion_template_id ||
+                selectedScene.type === "graphics"
+                  ? `📊 ${selectedScene.motion_template_id || "Odômetro"}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" + ") || "Nenhum (Imagem Limpa)"}
+            </span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-4 gap-2.5">
           <button
             onClick={() => onSendMessage("⚡ Renderizar Clipe MP4")}
             disabled={!selectedScene}
-            className="py-2.5 px-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-xs text-white font-bold flex flex-col items-center justify-center gap-1 transition-all shadow-lg border border-violet-400/30"
+            className="py-3 px-2 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 disabled:opacity-40 text-white font-black flex flex-col items-center justify-center gap-1 transition-all shadow-lg border-2 border-violet-400/50 cursor-pointer active:scale-95"
           >
-            <Sparkles size={15} />
-            <span className="text-[10px] truncate">Render MP4</span>
+            <Sparkles size={18} className="text-white drop-shadow" />
+            <span className="text-xs font-black tracking-wide text-white drop-shadow">
+              ⚡ Render MP4
+            </span>
           </button>
+
           <button
             onClick={() =>
               onSendMessage(
@@ -720,11 +746,14 @@ function ScenePreviewPanel({
               )
             }
             disabled={!selectedScene}
-            className="py-2.5 px-2 rounded-xl bg-amber-700/80 hover:bg-amber-600/80 disabled:opacity-40 text-xs text-amber-100 font-bold flex flex-col items-center justify-center gap-1 transition-all border border-amber-500/40 shadow-lg"
+            className="py-3 px-2 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 disabled:opacity-40 text-white font-black flex flex-col items-center justify-center gap-1 transition-all shadow-lg border-2 border-amber-400/50 cursor-pointer active:scale-95"
           >
-            <Type size={15} />
-            <span className="text-[10px] truncate">Selo Data</span>
+            <Type size={18} className="text-white drop-shadow" />
+            <span className="text-xs font-black tracking-wide text-white drop-shadow">
+              📅 Selo Data
+            </span>
           </button>
+
           <button
             onClick={() =>
               onSendMessage(
@@ -732,23 +761,57 @@ function ScenePreviewPanel({
               )
             }
             disabled={!selectedScene}
-            className="py-2.5 px-2 rounded-xl bg-indigo-700/80 hover:bg-indigo-600/80 disabled:opacity-40 text-xs text-indigo-100 font-bold flex flex-col items-center justify-center gap-1 transition-all border border-indigo-500/40 shadow-lg"
+            className="py-3 px-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 disabled:opacity-40 text-white font-black flex flex-col items-center justify-center gap-1 transition-all shadow-lg border-2 border-indigo-400/50 cursor-pointer active:scale-95"
           >
-            <BarChart3 size={15} />
-            <span className="text-[10px] truncate">Odômetro</span>
+            <BarChart3 size={18} className="text-white drop-shadow" />
+            <span className="text-xs font-black tracking-wide text-white drop-shadow">
+              📊 Odômetro
+            </span>
           </button>
-          <button
-            onClick={() =>
-              onSendMessage(
-                `TIRAR A DATA E OVERLAYS NESSA CENA ${selectedScene?.id || "1.2"}`
-              )
-            }
-            disabled={!selectedScene}
-            className="py-2.5 px-2 rounded-xl bg-red-950/80 hover:bg-red-900/80 text-red-300 disabled:opacity-40 text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all border border-red-800/50 shadow-lg"
-          >
-            <X size={15} />
-            <span className="text-[10px] truncate">Remover</span>
-          </button>
+
+          {(() => {
+            const hasDate = Boolean(
+              selectedScene?.date_overlay ||
+              selectedScene?.description.match(/\b(19\d\d|20\d\d)\b/)
+            );
+            const hasGraphic = Boolean(
+              selectedScene?.motion_template_id ||
+              selectedScene?.type === "graphics"
+            );
+            const removeLabel =
+              hasDate && hasGraphic
+                ? "Tirar Tudo"
+                : hasDate
+                  ? "Tirar Data"
+                  : hasGraphic
+                    ? "Tirar Gráfico"
+                    : "Remover";
+            const targetOverlays = [
+              hasDate ? "Selo de Data" : null,
+              hasGraphic
+                ? `Gráfico ${selectedScene?.motion_template_id || "Odômetro"}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" e ");
+
+            return (
+              <button
+                onClick={() =>
+                  onSendMessage(
+                    `TIRAR OVERLAYS DA CENA ${selectedScene?.id || "1.2"}: ${targetOverlays || "todos os elementos"}`
+                  )
+                }
+                disabled={!selectedScene}
+                className="py-3 px-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white disabled:opacity-40 font-black flex flex-col items-center justify-center gap-1 transition-all shadow-lg border-2 border-red-400/50 cursor-pointer active:scale-95"
+              >
+                <X size={18} className="text-white drop-shadow" />
+                <span className="text-xs font-black tracking-wide text-white drop-shadow">
+                  🗑️ {removeLabel}
+                </span>
+              </button>
+            );
+          })()}
         </div>
       </div>
     </div>
