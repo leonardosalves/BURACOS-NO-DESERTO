@@ -22,7 +22,7 @@ describe("shouldPauseNotebooklmNarration", () => {
         briefFinalized: false,
       }
     );
-    assert.equal(pause, false);
+    assert.equal(pause, true);
   });
 
   it("fase interativa bloqueia pipeline antes do usuario prosseguir", () => {
@@ -33,7 +33,7 @@ describe("shouldPauseNotebooklmNarration", () => {
         skipNotebooklmPending: false,
         interactiveNotebooklm: true,
       }),
-      false
+      true
     );
     assert.equal(
       wantsNotebooklmInteractiveNarration({
@@ -72,6 +72,44 @@ describe("shouldPauseNotebooklmNarration", () => {
         needsDiscovery: false,
         userTurns: 2,
         briefFinalized: true,
+      }
+    );
+    assert.equal(pause, false);
+  });
+
+  it("nao pausa quando useNotebooklm desativado", () => {
+    assert.equal(
+      wantsNotebooklmInteractiveNarration({
+        scriptPhase: "narration",
+        useNotebooklm: false,
+        skipNotebooklmPending: false,
+        interactiveNotebooklm: true,
+      }),
+      false
+    );
+  });
+
+  it("nao pausa em fase full", () => {
+    assert.equal(
+      wantsNotebooklmInteractiveNarration({
+        scriptPhase: "full",
+        useNotebooklm: true,
+        skipNotebooklmPending: false,
+        interactiveNotebooklm: true,
+      }),
+      false
+    );
+  });
+
+  it("nao pausa quando research indisponivel", () => {
+    const pause = shouldPauseNotebooklmNarration(
+      { available: false },
+      {
+        scriptPhase: "narration",
+        skipNotebooklmPending: false,
+        needsDiscovery: true,
+        userTurns: 0,
+        briefFinalized: false,
       }
     );
     assert.equal(pause, false);

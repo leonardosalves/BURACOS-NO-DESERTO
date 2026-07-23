@@ -22138,7 +22138,7 @@ app.post(
       rankOrder,
       listTopic,
       listicleHudStyle,
-      useNotebooklm: _unusedUseNotebooklm,
+      useNotebooklm: useNotebooklmRaw,
       notebooklmDeep,
       phase = "full",
       approvedNarration: approvedNarrationRaw,
@@ -22150,7 +22150,10 @@ app.post(
       enablePov: enablePovRaw,
       povBlockIndex: povBlockIndexRaw,
     } = req.body;
-    const useNotebooklm = false; // Bypassed NotebookLM interaction entirely as requested
+    const useNotebooklm =
+      useNotebooklmRaw === true ||
+      useNotebooklmRaw === 1 ||
+      String(useNotebooklmRaw || "").toLowerCase() === "true";
     const enablePov =
       enablePovRaw === true ||
       enablePovRaw === 1 ||
