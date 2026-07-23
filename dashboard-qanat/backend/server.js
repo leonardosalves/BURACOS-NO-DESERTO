@@ -4558,6 +4558,163 @@ app.get("/api/video-agent/storyboard", (req, res) => {
   }
 });
 
+function promoteRenderedSceneToProject(projDir, targetSceneId) {
+  try {
+    const rendersDir = path.join(projDir, "hyperframes", "renders");
+    const fallbackRendersDir = path.join(projDir, "renders");
+    let activeRendersDir = fs.existsSync(rendersDir)
+      ? rendersDir
+      : fs.existsSync(fallbackRendersDir)
+        ? fallbackRendersDir
+        : null;
+    if (!activeRendersDir) return null;
+
+    const mp4Files = fs
+      .readdirSync(activeRendersDir)
+      .filter((f) => f.endsWith(".mp4"))
+      .map((f) => ({
+        name: f,
+        fullPath: path.join(activeRendersDir, f),
+        mtime: fs.statSync(path.join(activeRendersDir, f)).mtimeMs,
+      }))
+      .sort((a, b) => b.mtime - a.mtime);
+
+    if (mp4Files.length === 0) return null;
+    const latestRender = mp4Files[0];
+
+    const safeSceneId = String(targetSceneId || "1.2").replace(/\./g, "_");
+    const newAssetFilename = `Cena_${safeSceneId}_hyperframes.mp4`;
+    const destAssetsDir = path.join(projDir, "ASSETS");
+    if (!fs.existsSync(destAssetsDir)) {
+      fs.mkdirSync(destAssetsDir, { recursive: true });
+    }
+
+    const destAssetPath = path.join(destAssetsDir, newAssetFilename);
+    fs.copyFileSync(latestRender.fullPath, destAssetPath);
+
+    const projName = path.basename(projDir);
+
+    // 1. Update storyboard.json
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (fs.existsSync(storyboardPath)) {
+      const sbData = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      if (Array.isArray(sbData.visual_prompts)) {
+        sbData.visual_prompts = sbData.visual_prompts.map((vp) => {
+          const scId = String(vp.scene || vp.scene_ref || "");
+          if (scId === String(targetSceneId)) {
+            return {
+              ...vp,
+              type: "vídeo (HyperFrames)",
+              asset: {
+                asset: newAssetFilename,
+                type: "video",
+                user_locked: true,
+              },
+            };
+          }
+          return vp;
+        });
+        fs.writeFileSync(
+          storyboardPath,
+          JSON.stringify(sbData, null, 2),
+          "utf8"
+        );
+      }
+    }
+
+    // 2. Update lumiera_editor.json
+    const editorPath = path.join(projDir, "lumiera_editor.json");
+    if (fs.existsSync(editorPath)) {
+      const edData = JSON.parse(fs.readFileSync(editorPath, "utf8"));
+
+      const parts = String(targetSceneId || "1.2").split(".");
+      const blockNum = parts[0] || "1";
+      const sceneSub = parseInt(parts[1] || "1", 10) - 1;
+      const targetAssetId = `studio-asset-video-${blockNum}-${sceneSub < 0 ? 0 : sceneSub}`;
+
+      if (Array.isArray(edData.assets)) {
+        edData.assets = edData.assets.map((a) => {
+          if (
+            a.id === targetAssetId ||
+            a.name.includes(`Cena_${safeSceneId}`)
+          ) {
+            return {
+              ...a,
+              name: newAssetFilename,
+              kind: "video",
+              originalSource: `/api/projects-media/${projName}/ASSETS/${newAssetFilename}`,
+              proxySource: `/api/projects-media/${projName}/ASSETS/${newAssetFilename}`,
+            };
+          }
+          return a;
+        });
+      }
+
+      if (Array.isArray(edData.tracks)) {
+        let movedClip = null;
+        edData.tracks = edData.tracks.map((track) => {
+          if (track.id === "images") {
+            const remainingClips = [];
+            (track.clips || []).forEach((clip) => {
+              if (
+                clip.assetId === targetAssetId ||
+                (clip.props &&
+                  String(clip.props.blockKey) === blockNum &&
+                  clip.props.assetIndex === sceneSub)
+              ) {
+                movedClip = {
+                  ...clip,
+                  trackId: "video",
+                  type: "video",
+                  label: newAssetFilename,
+                  assetId: targetAssetId,
+                  props: {
+                    ...clip.props,
+                    type: "video",
+                    text: newAssetFilename,
+                  },
+                };
+              } else {
+                remainingClips.push(clip);
+              }
+            });
+            return { ...track, clips: remainingClips };
+          }
+          return track;
+        });
+
+        if (movedClip) {
+          edData.tracks = edData.tracks.map((track) => {
+            if (track.id === "video") {
+              const existingClips = track.clips || [];
+              const filtered = existingClips.filter(
+                (c) => c.id !== movedClip.id
+              );
+              filtered.push(movedClip);
+              filtered.sort(
+                (a, b) => (a.startFrame || 0) - (b.startFrame || 0)
+              );
+              return { ...track, clips: filtered };
+            }
+            return track;
+          });
+        }
+      }
+
+      edData.updatedAt = new Date().toISOString();
+      fs.writeFileSync(editorPath, JSON.stringify(edData, null, 2), "utf8");
+    }
+
+    return newAssetFilename;
+  } catch (err) {
+    console.error(
+      "[VideoAgent] Erro ao promover renderização para o projeto:",
+      err.message
+    );
+    return null;
+  }
+}
+
 app.post("/api/video-agent/chat", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
@@ -4769,15 +4926,91 @@ app.post("/api/video-agent/chat", async (req, res) => {
         info: "idle",
       };
 
+      let renderReply =
+        exitCode === 0
+          ? `✓ \`hyperframes ${subcommand}\` executado com sucesso.`
+          : `✗ \`hyperframes ${subcommand}\` falhou (exit ${exitCode}).`;
+      let updatedStoryboard = null;
+
+      if (subcommand === "render" && exitCode === 0) {
+        const targetSceneId = selected_scene ? selected_scene.id : "1.2";
+        const promotedFilename = promoteRenderedSceneToProject(
+          projDir,
+          targetSceneId
+        );
+        if (promotedFilename) {
+          renderReply = `✓ Renderização da Cena ${targetSceneId} concluída com sucesso!\n\nO clipe em vídeo \`${promotedFilename}\` foi promovido para a faixa de VÍDEO no Editor do Lumiera e substituiu a imagem estática.`;
+          try {
+            const sbPath = path.join(projDir, "storyboard.json");
+            if (fs.existsSync(sbPath)) {
+              const sbData = JSON.parse(fs.readFileSync(sbPath, "utf8"));
+              const vps = sbData.visual_prompts || [];
+              updatedStoryboard = vps.map((vp, index) => {
+                const sceneId = vp.scene || vp.scene_ref || `1.${index + 1}`;
+                const blockNum = vp.block || Math.floor(index / 2) + 1;
+                const desc = (
+                  vp.narration_text ||
+                  vp.visual_prompt ||
+                  vp.generate_from_prompt ||
+                  ""
+                ).trim();
+                const dur = vp.duration ? `${vp.duration}s` : "3s";
+                const assetObj = vp.asset || {};
+                const assetFilename =
+                  typeof assetObj === "string"
+                    ? assetObj
+                    : assetObj.asset || assetObj.file || null;
+                let assetUrl = null;
+                let mediaType = "image";
+                if (assetFilename) {
+                  const assetPath = path.join(projDir, "ASSETS", assetFilename);
+                  if (fs.existsSync(assetPath)) {
+                    assetUrl = `/api/projects/asset-file?file=${encodeURIComponent(assetPath)}`;
+                    if (assetFilename.match(/\.(mp4|webm|mov)$/i)) {
+                      mediaType = "video";
+                    }
+                  }
+                }
+                let dateOverlay = vp.date_overlay || null;
+                if (
+                  !dateOverlay &&
+                  (desc.includes("1968") ||
+                    (vp.narration_text && vp.narration_text.includes("1968")))
+                ) {
+                  dateOverlay = "16 DE MAIO DE 1968";
+                }
+                return {
+                  id: String(sceneId),
+                  scene_key: String(sceneId),
+                  block: blockNum,
+                  time: dur,
+                  title: `Cena ${sceneId} · Bloco ${blockNum}`,
+                  description: desc,
+                  narration_text: vp.narration_text || "",
+                  type: vp.motion_template_id
+                    ? "graphics"
+                    : mediaType === "video"
+                      ? "broll"
+                      : "graphics",
+                  motion_template_id: vp.motion_template_id || null,
+                  asset_url: assetUrl,
+                  media_type: mediaType,
+                  date_overlay: dateOverlay,
+                  status: "approved",
+                };
+              });
+            }
+          } catch (e) {}
+        }
+      }
+
       return res.json({
-        reply:
-          exitCode === 0
-            ? `✓ \`hyperframes ${subcommand}\` executado com sucesso.`
-            : `✗ \`hyperframes ${subcommand}\` falhou (exit ${exitCode}).`,
+        reply: renderReply,
         command,
         output: output.slice(0, 8000),
         hf_status: exitCode === 0 ? hfStatusMap[subcommand] || "idle" : "error",
         preview_url: previewUrl,
+        storyboard: updatedStoryboard || undefined,
         suggestions:
           subcommand === "init" && exitCode === 0
             ? [
