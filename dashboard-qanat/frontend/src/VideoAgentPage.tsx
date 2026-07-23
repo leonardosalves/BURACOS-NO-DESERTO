@@ -66,12 +66,12 @@ export default function VideoAgentPage({
     {
       role: "agent",
       content:
-        "Video Agent pronto. Uso o HyperFrames CLI real (npx hyperframes) para criar, validar e renderizar composições HTML → vídeo.\n\nComandos disponíveis:\n• init — scaffold de composição\n• lint — validar estrutura\n• inspect — inspeção visual\n• preview — preview no browser\n• render — renderizar MP4/WebM\n\nO que vamos criar?",
+        "Video Agent pronto. Selecione uma cena no storyboard à direita para adicionar selos de data, odômetros ou gráficos HyperFrames e exportar em vídeo MP4 para a timeline do Lumiera.\n\nAções recomendadas para a cena:",
       suggestions: [
-        "npx hyperframes init",
-        "Analisar storyboard e sugerir gráficos",
-        "Companion mode: dirigir passo a passo",
-        "npx hyperframes doctor",
+        "⚡ Renderizar Clipe MP4",
+        "📅 Inserir Data (16 DE MAIO DE 1968)",
+        "📊 Inserir Odômetro Histórico",
+        "🗑️ Remover Overlays da Cena",
       ],
     },
   ]);
@@ -489,34 +489,32 @@ export default function VideoAgentPage({
           )}
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions Amigáveis */}
         <div className="px-4 py-3 border-t border-gray-800 space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => sendMessage("npx hyperframes lint")}
-              className="py-2 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-300 hover:border-violet-500/50 hover:text-violet-200 flex items-center justify-center gap-1.5"
+              className="py-2 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-200 hover:border-violet-500/50 hover:text-white flex items-center justify-center gap-1.5 font-medium"
             >
-              <Check size={12} /> Lint
+              <Check size={12} className="text-emerald-400" /> Validar
             </button>
             <button
               onClick={() => sendMessage("npx hyperframes preview")}
-              className="py-2 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-300 hover:border-violet-500/50 hover:text-violet-200 flex items-center justify-center gap-1.5"
+              className="py-2 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-200 hover:border-violet-500/50 hover:text-white flex items-center justify-center gap-1.5 font-medium"
             >
-              <Play size={12} /> Preview
+              <Play size={12} className="text-violet-400" /> Pré-visualizar
             </button>
             <button
-              onClick={() =>
-                sendMessage("npx hyperframes render --quality standard")
-              }
-              className="py-2 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-300 hover:border-violet-500/50 hover:text-violet-200 flex items-center justify-center gap-1.5"
+              onClick={() => sendMessage("⚡ Renderizar Clipe MP4")}
+              className="py-2 rounded-lg bg-violet-600/30 border border-violet-500/50 text-xs text-violet-200 hover:bg-violet-600/50 hover:text-white flex items-center justify-center gap-1.5 font-bold shadow"
             >
-              <Film size={12} /> Render
+              <Film size={12} className="text-violet-300" /> Renderizar
             </button>
             <button
               onClick={() => sendMessage("npx hyperframes inspect --json")}
-              className="py-2 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-300 hover:border-violet-500/50 hover:text-violet-200 flex items-center justify-center gap-1.5"
+              className="py-2 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-200 hover:border-violet-500/50 hover:text-white flex items-center justify-center gap-1.5 font-medium"
             >
-              <Eye size={12} /> Inspect
+              <Eye size={12} className="text-amber-400" /> Inspecionar
             </button>
           </div>
         </div>
@@ -590,10 +588,10 @@ function ScenePreviewPanel({
         </div>
       </div>
 
-      {/* Preview Canvas / Player Area (Ampliada) */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-black/50 overflow-y-auto relative">
+      {/* Preview Canvas / Player Area (Ampliada em HD) */}
+      <div className="flex-1 flex flex-col items-center justify-center p-3 py-4 bg-black/60 overflow-y-auto relative">
         {mode === "studio" && previewUrl ? (
-          <div className="w-full max-w-[340px] aspect-[9/16] h-full max-h-[620px] rounded-2xl overflow-hidden border-2 border-violet-500/60 shadow-2xl shadow-violet-950/60 bg-black relative">
+          <div className="w-full max-w-[440px] aspect-[9/16] h-[78vh] max-h-[750px] rounded-2xl overflow-hidden border-2 border-violet-500/60 shadow-2xl shadow-violet-950/60 bg-black relative">
             <iframe
               src={previewUrl}
               title="HyperFrames Studio CLI"
@@ -601,7 +599,7 @@ function ScenePreviewPanel({
             />
           </div>
         ) : selectedScene ? (
-          <div className="w-full max-w-[340px] aspect-[9/16] h-full max-h-[600px] rounded-2xl border-2 border-violet-500/40 bg-gradient-to-b from-gray-950 via-gray-900 to-black flex flex-col justify-between shadow-2xl shadow-violet-950/50 relative overflow-hidden group p-4">
+          <div className="w-full max-w-[440px] aspect-[9/16] h-[78vh] max-h-[750px] rounded-2xl border-2 border-violet-500/50 bg-gradient-to-b from-gray-950 via-gray-900 to-black flex flex-col justify-between shadow-2xl shadow-violet-950/60 relative overflow-hidden group p-5">
             {/* Real Background Media (Video / Photo of the Scene) */}
             {selectedScene.asset_url ? (
               selectedScene.media_type === "video" ? (
@@ -626,14 +624,14 @@ function ScenePreviewPanel({
             <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-black/70 pointer-events-none" />
 
             {/* Ambient Glow behind Overlays */}
-            <div className="absolute -top-20 -right-20 w-48 h-48 bg-violet-600/20 rounded-full blur-3xl group-hover:bg-violet-600/30 transition-all pointer-events-none" />
+            <div className="absolute -top-20 -right-20 w-56 h-56 bg-violet-600/25 rounded-full blur-3xl group-hover:bg-violet-600/35 transition-all pointer-events-none" />
 
             {/* Top Scene Bar */}
             <div className="flex items-center justify-between z-10">
-              <span className="px-3 py-1 rounded-md bg-violet-950/80 text-violet-200 border border-violet-600/60 text-[10px] font-extrabold tracking-wider uppercase backdrop-blur-md shadow-lg">
+              <span className="px-3.5 py-1 rounded-md bg-violet-950/90 text-violet-200 border border-violet-500/70 text-[11px] font-extrabold tracking-wider uppercase backdrop-blur-md shadow-lg">
                 CENA {selectedScene.id}
               </span>
-              <span className="text-[10px] font-mono text-gray-200 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded border border-gray-700/80 font-bold shadow">
+              <span className="text-[11px] font-mono text-gray-200 bg-black/85 backdrop-blur-md px-3 py-1 rounded border border-gray-700/80 font-bold shadow">
                 {selectedScene.time}
               </span>
             </div>
@@ -641,8 +639,8 @@ function ScenePreviewPanel({
             {/* Stylized Vintage Date Overlay Badge */}
             {(selectedScene.date_overlay ||
               selectedScene.description.match(/\b(19\d\d|20\d\d)\b/)) && (
-              <div className="z-10 mt-2 px-3.5 py-1.5 rounded-lg bg-amber-950/85 backdrop-blur-md border border-amber-500/60 shadow-2xl flex items-center justify-center gap-1.5 self-center">
-                <span className="text-[11px] font-mono font-extrabold tracking-widest text-amber-300 uppercase drop-shadow">
+              <div className="z-10 mt-2 px-4 py-2 rounded-xl bg-amber-950/90 backdrop-blur-md border border-amber-500/70 shadow-2xl flex items-center justify-center gap-2 self-center">
+                <span className="text-xs font-mono font-extrabold tracking-widest text-amber-300 uppercase drop-shadow">
                   📅{" "}
                   {selectedScene.date_overlay ||
                     `16 DE MAIO DE ${selectedScene.description.match(/\b(19\d\d|20\d\d)\b/)?.[0] || "1968"}`}
@@ -651,36 +649,36 @@ function ScenePreviewPanel({
             )}
 
             {/* Graphic / HyperFrames Overlay Center */}
-            <div className="my-auto py-6 text-center z-10 flex flex-col items-center justify-center">
+            <div className="my-auto py-4 text-center z-10 flex flex-col items-center justify-center">
               {selectedScene.type === "graphics" ||
               selectedScene.motion_template_id ? (
-                <div className="px-4 py-2.5 rounded-xl bg-violet-950/80 backdrop-blur-md border border-violet-500/60 text-violet-200 text-xs font-mono mb-3 flex items-center gap-2 shadow-xl animate-pulse">
-                  <Sparkles size={14} className="text-violet-400" />
+                <div className="px-4 py-2.5 rounded-xl bg-violet-950/90 backdrop-blur-md border border-violet-500/70 text-violet-200 text-xs font-mono mb-3 flex items-center gap-2 shadow-xl animate-pulse">
+                  <Sparkles size={16} className="text-violet-400" />
                   <span className="font-bold">
                     {selectedScene.motion_template_id || "hyperframes-graphic"}
                   </span>
                 </div>
               ) : (
-                <div className="w-14 h-14 rounded-full bg-violet-600/20 border border-violet-500/40 backdrop-blur-md flex items-center justify-center text-violet-400 mb-3 shadow-lg group-hover:scale-110 transition-transform">
-                  <Layers size={24} />
+                <div className="w-16 h-16 rounded-full bg-violet-600/30 border border-violet-500/50 backdrop-blur-md flex items-center justify-center text-violet-300 mb-3 shadow-lg group-hover:scale-110 transition-transform">
+                  <Layers size={28} />
                 </div>
               )}
 
-              <p className="text-xs text-gray-200 font-medium leading-relaxed max-w-[240px] px-2 italic drop-shadow-md">
+              <p className="text-sm text-gray-100 font-medium leading-relaxed max-w-[280px] px-2 italic drop-shadow-lg">
                 "{selectedScene.description}"
               </p>
 
               {sceneGraphics.length > 0 && (
-                <div className="mt-3 px-3 py-1.5 rounded-md bg-amber-950/80 backdrop-blur-md border border-amber-500/50 text-amber-300 text-[10px] font-bold flex items-center gap-1.5 shadow">
-                  <BarChart3 size={12} /> {sceneGraphics.length} gráfico(s)
+                <div className="mt-3 px-3.5 py-1.5 rounded-lg bg-amber-950/90 backdrop-blur-md border border-amber-500/60 text-amber-300 text-[11px] font-bold flex items-center gap-1.5 shadow">
+                  <BarChart3 size={14} /> {sceneGraphics.length} gráfico(s)
                   HyperFrames
                 </div>
               )}
             </div>
 
             {/* Subtitle / Retention Narration Bottom Overlay */}
-            <div className="z-10 bg-black/85 backdrop-blur-md rounded-xl p-3 border border-gray-800 text-center shadow-2xl">
-              <span className="text-[9px] uppercase tracking-widest text-violet-400 font-extrabold block mb-1">
+            <div className="z-10 bg-black/90 backdrop-blur-md rounded-xl p-3.5 border border-gray-800 text-center shadow-2xl">
+              <span className="text-[10px] uppercase tracking-widest text-violet-400 font-extrabold block mb-1">
                 LEGENDA DE RETENÇÃO
               </span>
               <p className="text-xs font-bold text-white leading-snug drop-shadow-md">
@@ -704,30 +702,52 @@ function ScenePreviewPanel({
         )}
       </div>
 
-      {/* Scene Quick Controls */}
-      <div className="p-3.5 border-t border-gray-800 bg-gray-900/50 space-y-2">
-        <div className="grid grid-cols-2 gap-2">
+      {/* Scene Quick Controls (Botões de Ação Direta Amigáveis) */}
+      <div className="p-3 border-t border-gray-800 bg-gray-900/80 space-y-2">
+        <div className="grid grid-cols-4 gap-2">
           <button
-            onClick={() =>
-              selectedScene
-                ? onSendMessage(
-                    `Criar gráfico HyperFrames para a cena ${selectedScene.id}: "${selectedScene.description}"`
-                  )
-                : onSendMessage("npx hyperframes init")
-            }
+            onClick={() => onSendMessage("⚡ Renderizar Clipe MP4")}
             disabled={!selectedScene}
-            className="py-2.5 px-3 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs text-white font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-lg"
+            className="py-2.5 px-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-xs text-white font-bold flex flex-col items-center justify-center gap-1 transition-all shadow-lg border border-violet-400/30"
           >
-            <Sparkles size={14} /> Gerar Gráfico
+            <Sparkles size={15} />
+            <span className="text-[10px] truncate">Render MP4</span>
           </button>
           <button
-            onClick={() => {
-              setMode("studio");
-              onSendMessage("npx hyperframes preview");
-            }}
-            className="py-2.5 px-3 rounded-lg bg-gray-800 border border-gray-700 hover:border-violet-500/50 text-xs text-gray-200 flex items-center justify-center gap-1.5 transition-colors font-medium"
+            onClick={() =>
+              onSendMessage(
+                `Adicionar data 16 DE MAIO DE 1968 na cena ${selectedScene?.id || "1.2"}`
+              )
+            }
+            disabled={!selectedScene}
+            className="py-2.5 px-2 rounded-xl bg-amber-700/80 hover:bg-amber-600/80 disabled:opacity-40 text-xs text-amber-100 font-bold flex flex-col items-center justify-center gap-1 transition-all border border-amber-500/40 shadow-lg"
           >
-            <Play size={14} /> Studio CLI
+            <Type size={15} />
+            <span className="text-[10px] truncate">Selo Data</span>
+          </button>
+          <button
+            onClick={() =>
+              onSendMessage(
+                `Adicionar contador odômetro histórico na cena ${selectedScene?.id || "1.2"}`
+              )
+            }
+            disabled={!selectedScene}
+            className="py-2.5 px-2 rounded-xl bg-indigo-700/80 hover:bg-indigo-600/80 disabled:opacity-40 text-xs text-indigo-100 font-bold flex flex-col items-center justify-center gap-1 transition-all border border-indigo-500/40 shadow-lg"
+          >
+            <BarChart3 size={15} />
+            <span className="text-[10px] truncate">Odômetro</span>
+          </button>
+          <button
+            onClick={() =>
+              onSendMessage(
+                `TIRAR A DATA E OVERLAYS NESSA CENA ${selectedScene?.id || "1.2"}`
+              )
+            }
+            disabled={!selectedScene}
+            className="py-2.5 px-2 rounded-xl bg-red-950/80 hover:bg-red-900/80 text-red-300 disabled:opacity-40 text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all border border-red-800/50 shadow-lg"
+          >
+            <X size={15} />
+            <span className="text-[10px] truncate">Remover</span>
           </button>
         </div>
       </div>
