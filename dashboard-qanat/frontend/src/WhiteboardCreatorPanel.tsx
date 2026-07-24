@@ -253,10 +253,10 @@ export function WhiteboardCreatorPanel({
         fetchDetail(selectedRunId);
         setActiveSubTab("result");
       } else {
-        setRenderLogs((prev) => [
-          ...prev,
-          "ERRO: " + (data.error || "Falha na renderização."),
-        ]);
+        const errorMsg =
+          (data.error || "Falha na renderização.") +
+          (data.details ? ` (${data.details})` : "");
+        setRenderLogs((prev) => [...prev, "ERRO: " + errorMsg]);
         toast.error(data.error || "Erro de renderização.", { id: toastId });
       }
     } catch (err: any) {

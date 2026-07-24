@@ -3,7 +3,7 @@ import path from "path";
 import pg from "pg";
 import { exec, execSync, spawn } from "child_process";
 import { synthesizeFishSpeech, loadFishSpeechConfig } from "./fishSpeechTts.js";
-import { buildPythonSpawnEnv } from "./pythonEnv.js";
+import { buildPythonSpawnEnv, getFfmpegStatus } from "./pythonEnv.js";
 
 const pool = new pg.Pool({
   connectionString:
@@ -400,13 +400,26 @@ export async function synthesizePortugueseFishSpeech(workspaceDir, runDir) {
   const fishVoice =
     fishConfig.fish_speech?.default_reference_id || "__default__";
 
+  const spawnEnv = buildPythonSpawnEnv();
+  const ffmpegBin = getFfmpegStatus().binary || "ffmpeg";
+  const ffmpegDir = getFfmpegStatus().dir;
+  const ffprobeBin = ffmpegDir
+    ? path.join(
+        ffmpegDir,
+        process.platform === "win32" ? "ffprobe.exe" : "ffprobe"
+      )
+    : "ffprobe";
+
   const generated = [];
   let index = 0;
 
   for (const segment of source.segments) {
-    const cleanId = String(segment.id)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-");
+    const rawId = segment.id || `seg-${index + 1}`;
+    const cleanId =
+      String(rawId)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "") || `seg-${index + 1}`;
     const base = `${String(index + 1).padStart(2, "0")}-${cleanId}`;
     const mp3Path = path.join(segmentDir, `${base}.mp3`);
     const wavPath = path.join(segmentDir, `${base}.wav`);
@@ -423,14 +436,14 @@ export async function synthesizePortugueseFishSpeech(workspaceDir, runDir) {
 
     // Convert MP3 to WAV (48000 Hz, mono)
     execSync(
-      `ffmpeg -y -i "${mp3Path}" -ar 48000 -ac 1 -c:a pcm_s16le "${wavPath}"`,
-      { windowsHide: true }
+      `"${ffmpegBin}" -y -i "${mp3Path}" -ar 48000 -ac 1 -c:a pcm_s16le "${wavPath}"`,
+      { env: spawnEnv, windowsHide: true }
     );
 
     // Read WAV duration using ffprobe
     const durationStdout = execSync(
-      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${wavPath}"`,
-      { encoding: "utf8", windowsHide: true }
+      `"${ffprobeBin}" -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${wavPath}"`,
+      { encoding: "utf8", env: spawnEnv, windowsHide: true }
     ).trim();
     const duration = parseFloat(durationStdout) || 1.0;
 
@@ -473,7 +486,13 @@ ${segment.caption || text}
     concatFileContent += `file '${localWav.replace(/\\/g, "/")}'\n`;
 
     if (pauseAfter > 0) {
-      const silenceWav = makeSilenceWav(pauseAfter, segmentDir, pauseCache);
+      const silenceWav = makeSilenceWav(
+        pauseAfter,
+        segmentDir,
+        pauseCache,
+        ffmpegBin,
+        spawnEnv
+      );
       concatFileContent += `file '${silenceWav.replace(/\\/g, "/")}'\n`;
     }
 
@@ -501,8 +520,8 @@ ${segment.caption || text}
   // Run FFMPEG concat
   const outputWav = path.join(audioDir, "narration.wav");
   execSync(
-    `ffmpeg -y -f concat -safe 0 -i "${concatListPath}" -c copy "${outputWav}"`,
-    { windowsHide: true }
+    `"${ffmpegBin}" -y -f concat -safe 0 -i "${concatListPath}" -c copy "${outputWav}"`,
+    { env: spawnEnv, windowsHide: true }
   );
 
   const timing = {
@@ -527,14 +546,20 @@ ${segment.caption || text}
   );
 }
 
-function makeSilenceWav(duration, segmentDir, cache) {
+function makeSilenceWav(
+  duration,
+  segmentDir,
+  cache,
+  ffmpegBin = "ffmpeg",
+  spawnEnv = process.env
+) {
   const key = String(duration.toFixed(3));
   if (cache.has(key)) return cache.get(key);
 
   const silenceWav = path.join(segmentDir, `silence-${key}.wav`);
   execSync(
-    `ffmpeg -y -f lavfi -i anullsrc=r=48000:cl=mono -t ${duration} -c:a pcm_s16le "${silenceWav}"`,
-    { stdio: "ignore", windowsHide: true }
+    `"${ffmpegBin}" -y -f lavfi -i anullsrc=r=48000:cl=mono -t ${duration} -c:a pcm_s16le "${silenceWav}"`,
+    { stdio: "ignore", env: spawnEnv, windowsHide: true }
   );
 
   cache.set(key, silenceWav);
