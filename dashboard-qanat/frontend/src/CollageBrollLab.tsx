@@ -983,6 +983,158 @@ const GATES = [
   },
 ] as const;
 
+/**
+ * Fluxo visual de 5 etapas — substitui a noção ambígua de "Gate 2/Quietude".
+ * Cada etapa deriva seu estado do card selecionado.
+ */
+const PIPELINE_STAGES = [
+  {
+    id: "proposta",
+    label: "Proposta",
+    gate: 1,
+    desc: "Composição, objetos, mapa e paleta",
+  },
+  {
+    id: "frame_final",
+    label: "Frame final",
+    gate: 2,
+    desc: "Composição definitiva · fonte de verdade",
+  },
+  {
+    id: "frame_inicial",
+    label: "Frame inicial",
+    gate: 2,
+    desc: "Estado ainda não montado, derivado do final",
+  },
+  {
+    id: "movimento",
+    label: "Movimento",
+    gate: 3,
+    desc: "O que aparece, desloca, gira ou cresce",
+  },
+  {
+    id: "video",
+    label: "Vídeo",
+    gate: 3,
+    desc: "Interpolação start→end e validação",
+  },
+] as const;
+
+type StageState =
+  "pending" | "ready" | "running" | "review" | "approved" | "done" | "error";
+
+function derivePipelineStages(
+  item: CollageItem | null | undefined
+): {
+  id: string;
+  label: string;
+  gate: number;
+  desc: string;
+  state: StageState;
+  note: string;
+}[] {
+  const base = PIPELINE_STAGES.map((s) => ({
+    ...s,
+    state: "pending" as StageState,
+    note: "aguardando",
+  }));
+  if (!item) return base;
+
+  const endUrl =
+    item.endFrame?.imageUrl || item.still_url || item.last_frame_url;
+  const startUrl = item.startFrame?.imageUrl || item.first_frame_url;
+  const hasEnd = Boolean(endUrl || item.still_path || item.endFrame?.imagePath);
+  const hasStart = Boolean(
+    startUrl || item.startFrame?.imagePath || item.first_frame_path
+  );
+  const endApproved =
+    hasEnd && Boolean(item.endFrame?.approved || item.still_approved);
+  const startApproved = hasStart && Boolean(item.startFrame?.approved);
+  const hasVideo = Boolean(item.video_url || item.video_path);
+  const hasMotion = Boolean(item.motion?.videoPrompt);
+  const proposalOk =
+    item.status === "approved" ||
+    item.status === "needs_review" ||
+    endApproved ||
+    hasVideo;
+
+  return base.map((s) => {
+    switch (s.id) {
+      case "proposta":
+        if (item.status === "rejected")
+          return { ...s, state: "error", note: "rejeitada" };
+        if (item.status === "error")
+          return { ...s, state: "error", note: "erro" };
+        if (item.status === "regenerating" || item.status === "candidate_ready")
+          return { ...s, state: "running", note: "gerando…" };
+        if (proposalOk) return { ...s, state: "approved", note: "aprovada" };
+        return { ...s, state: "review", note: "requer aprovação" };
+      case "frame_final":
+        if (!proposalOk)
+          return { ...s, state: "pending", note: "aguardando proposta" };
+        if (endApproved) return { ...s, state: "approved", note: "aprovado" };
+        if (hasEnd) return { ...s, state: "review", note: "requer aprovação" };
+        return { ...s, state: "ready", note: "pronto para gerar" };
+      case "frame_inicial":
+        if (!endApproved)
+          return { ...s, state: "pending", note: "aguardando frame final" };
+        if (startApproved) return { ...s, state: "approved", note: "aprovado" };
+        if (hasStart)
+          return { ...s, state: "review", note: "requer aprovação" };
+        return { ...s, state: "ready", note: "pronto para derivar" };
+      case "movimento":
+        if (!startApproved)
+          return { ...s, state: "pending", note: "aguardando frames" };
+        if (hasMotion) return { ...s, state: "done", note: "definido" };
+        return { ...s, state: "ready", note: "pronto para definir" };
+      case "video":
+        if (hasVideo) return { ...s, state: "done", note: "concluído" };
+        if (startApproved)
+          return { ...s, state: "ready", note: "pronto para gerar" };
+        return { ...s, state: "pending", note: "aguardando frames" };
+      default:
+        return s;
+    }
+  });
+}
+
+const STAGE_STATE_META: Record<
+  StageState,
+  { dot: string; text: string; ring: string }
+> = {
+  pending: {
+    dot: "bg-zinc-600",
+    text: "text-zinc-500",
+    ring: "border-zinc-800",
+  },
+  ready: { dot: "bg-sky-400", text: "text-sky-300", ring: "border-sky-400/40" },
+  running: {
+    dot: "bg-amber-400 animate-pulse",
+    text: "text-amber-300",
+    ring: "border-amber-400/40",
+  },
+  review: {
+    dot: "bg-orange-400",
+    text: "text-orange-300",
+    ring: "border-orange-400/40",
+  },
+  approved: {
+    dot: "bg-emerald-400",
+    text: "text-emerald-300",
+    ring: "border-emerald-400/40",
+  },
+  done: {
+    dot: "bg-emerald-400",
+    text: "text-emerald-300",
+    ring: "border-emerald-400/40",
+  },
+  error: {
+    dot: "bg-rose-400",
+    text: "text-rose-300",
+    ring: "border-rose-400/40",
+  },
+};
+
 function copyText(label: string, text: string) {
   void navigator.clipboard.writeText(text).then(
     () => toast.success(`${label} copiado`),
@@ -2691,30 +2843,50 @@ export function CollageBrollLab({
         </span>
       </div>
 
-      {/* Gate stepper */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        {GATES.map((g) => {
-          const active = activeGate === g.id;
-          return (
-            <button
-              key={g.id}
-              type="button"
-              onClick={() => setActiveGate(g.id as 1 | 2 | 3)}
-              className={`text-left rounded-xl border px-3 py-3 transition ${
-                active
-                  ? "border-violet-400/50 bg-violet-500/15"
-                  : "border-zinc-800 bg-zinc-950/60 hover:border-zinc-700"
-              }`}
-            >
-              <p
-                className={`text-[11px] font-bold ${active ? "text-violet-200" : "text-zinc-300"}`}
-              >
-                {g.title}
-              </p>
-              <p className="text-[10px] text-zinc-500 mt-0.5">{g.hint}</p>
-            </button>
-          );
-        })}
+      {/* Fluxo visual de 5 etapas — derive do card selecionado */}
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-950/50 p-3">
+        <div className="flex items-center gap-1 overflow-x-auto pb-1">
+          {derivePipelineStages(selected).map((stage, idx) => {
+            const meta = STAGE_STATE_META[stage.state];
+            const active = activeGate === stage.gate;
+            return (
+              <React.Fragment key={stage.id}>
+                {idx > 0 && (
+                  <div className="mx-0.5 h-px w-4 shrink-0 bg-zinc-700 sm:w-6" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setActiveGate(stage.gate as 1 | 2 | 3)}
+                  title={stage.desc}
+                  className={`flex min-w-[104px] shrink-0 flex-col gap-1 rounded-xl border px-2.5 py-2 text-left transition ${
+                    active
+                      ? "border-violet-400/50 bg-violet-500/10"
+                      : `${meta.ring} bg-zinc-950/60 hover:bg-zinc-900/60`
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`}
+                    />
+                    <span
+                      className={`text-[10px] font-bold ${active ? "text-violet-200" : "text-zinc-200"}`}
+                    >
+                      {stage.label}
+                    </span>
+                  </div>
+                  <span className={`text-[9px] leading-tight ${meta.text}`}>
+                    {stage.note}
+                  </span>
+                </button>
+              </React.Fragment>
+            );
+          })}
+        </div>
+        {!selected && (
+          <p className="mt-2 text-[10px] text-zinc-600">
+            Selecione um card para ver o estado de cada etapa do fluxo.
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(380px,440px)] gap-5">
