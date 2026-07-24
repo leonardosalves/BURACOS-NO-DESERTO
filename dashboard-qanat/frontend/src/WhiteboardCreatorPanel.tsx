@@ -79,6 +79,7 @@ export function WhiteboardCreatorPanel({
   // Render logs
   const [renderLogs, setRenderLogs] = useState<string[]>([]);
   const [rendering, setRendering] = useState<boolean>(false);
+  const [previewReady, setPreviewReady] = useState<boolean>(false);
   const [renderError, setRenderError] = useState<{
     error: string;
     stage?: string;
@@ -304,6 +305,60 @@ export function WhiteboardCreatorPanel({
       setRenderError({ error: "Erro de conexão com o servidor." });
       setRenderLogs((prev) => [...prev, "ERRO de conexão com o servidor."]);
       toast.error("Erro ao iniciar renderização.", { id: toastId });
+    } finally {
+      setRendering(false);
+    }
+  };
+
+  const handlePreview = async () => {
+    if (!selectedRunId) return;
+    setRendering(true);
+    setRenderError(null);
+    setPreviewReady(false);
+    setRenderLogs([
+      "Gerando prévia de baixa resolução (draft)...",
+      "1. Verificando narração...",
+    ]);
+    setActiveSubTab("render");
+    const toastId = toast.loading("Gerando prévia de baixa resolução...");
+    try {
+      const res = await fetch("/api/whiteboard/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: selectedRunId, preview: true }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRenderLogs((prev) => [
+          ...prev,
+          ...data.logs,
+          "Prévia pronta (baixa resolução). Revise antes do render final.",
+        ]);
+        setPreviewReady(true);
+        toast.success("Prévia gerada. Revise antes do render final.", {
+          id: toastId,
+        });
+        fetchRuns();
+        fetchDetail(selectedRunId);
+      } else {
+        setRenderError({
+          error: data.error || "Falha na prévia.",
+          stage: data.stage,
+          failedStep: data.failedStep,
+          errorLog: data.errorLog,
+          reportPath: data.reportPath,
+        });
+        setRenderLogs((prev) => [
+          ...prev,
+          `ERRO: ${data.error || "Falha na prévia."}`,
+        ]);
+        toast.error(data.error || "Erro na prévia.", { id: toastId });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setRenderError({ error: "Erro de conexão com o servidor." });
+      setRenderLogs((prev) => [...prev, "ERRO de conexão com o servidor."]);
+      toast.error("Erro ao gerar prévia.", { id: toastId });
     } finally {
       setRendering(false);
     }
@@ -908,13 +963,41 @@ export function WhiteboardCreatorPanel({
                                       </div>
                                     ))}
                                   </div>
-                                  <button
-                                    onClick={handleRender}
-                                    disabled={!precheck.ready}
-                                    className="h-9 px-6 bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed border-0 rounded-lg text-xs font-bold text-white cursor-pointer shadow-lg shadow-sky-500/10 transition mt-1"
-                                  >
-                                    Renderizar Vídeo
-                                  </button>
+                                  <div className="flex flex-col gap-2 mt-1">
+                                    {!previewReady ? (
+                                      <button
+                                        onClick={handlePreview}
+                                        disabled={!precheck.ready || rendering}
+                                        className="h-9 px-6 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed border-0 rounded-lg text-xs font-bold text-white cursor-pointer shadow-lg shadow-amber-500/10 transition flex items-center justify-center gap-2"
+                                      >
+                                        {rendering ? (
+                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                          <Play className="w-3.5 h-3.5" />
+                                        )}
+                                        Gerar prévia de baixa resolução
+                                      </button>
+                                    ) : (
+                                      <>
+                                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-3 py-2 text-[11px] text-amber-200">
+                                          Prévia pronta (baixa resolução).
+                                          Revise o vídeo antes do render final.
+                                        </div>
+                                        <button
+                                          onClick={() => handleRender(false)}
+                                          disabled={rendering}
+                                          className="h-9 px-6 bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed border-0 rounded-lg text-xs font-bold text-white cursor-pointer shadow-lg shadow-sky-500/10 transition flex items-center justify-center gap-2"
+                                        >
+                                          {rendering ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                          ) : (
+                                            <Film className="w-3.5 h-3.5" />
+                                          )}
+                                          Renderizar vídeo final
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
                                 </>
                               )}
                             </div>

@@ -678,7 +678,7 @@ function runRenderStage(stage, command, opts, runDir) {
 export function runWhiteboardRender(
   workspaceDir,
   runDir,
-  { onLog = () => {} } = {}
+  { onLog = () => {}, quality = "standard", preview = false } = {}
 ) {
   const python = resolvePythonPath(workspaceDir);
   const sPaths = getSkillPaths(workspaceDir);
@@ -687,6 +687,7 @@ export function runWhiteboardRender(
     env: buildPythonSpawnEnv(),
     windowsHide: true,
   };
+  const renderQuality = preview ? "draft" : quality;
 
   onLog("1. Gerando o manifesto de assets de imagem...");
   runRenderStage(
@@ -712,10 +713,14 @@ export function runWhiteboardRender(
     runDir
   );
 
-  onLog("4. Renderizando composição de vídeo do quadro (Stage E)...");
+  onLog(
+    preview
+      ? "4. Renderizando PRÉVIA de baixa resolução (draft)..."
+      : "4. Renderizando composição de vídeo do quadro (Stage E)..."
+  );
   runRenderStage(
     "Render da composição (Stage E)",
-    `node "${sPaths.renderMultiBoardProject}" --project-dir "${runDir}" --board-root "${path.join(runDir, "board_source_for_e")}" --voiceover "${path.join(runDir, "script", "voiceover_segments.json")}" --skip-tts --quality standard`,
+    `node "${sPaths.renderMultiBoardProject}" --project-dir "${runDir}" --board-root "${path.join(runDir, "board_source_for_e")}" --voiceover "${path.join(runDir, "script", "voiceover_segments.json")}" --skip-tts --quality ${renderQuality}`,
     baseOpts,
     runDir
   );
@@ -727,6 +732,12 @@ export function runWhiteboardRender(
     baseOpts,
     runDir
   );
+
+  // No modo prévia (draft), pula o Quality Gate final para acelerar.
+  if (preview) {
+    onLog("6. Prévia concluída (Quality Gate final pulado no modo rascunho).");
+    return;
+  }
 
   onLog("6. Validando empacotamento final (Quality Gate)...");
   runRenderStage(

@@ -243,6 +243,7 @@ export function registerWhiteboardRoutes(app, deps) {
     const runId = Number(req.body.runId);
     const resume = Boolean(req.body.resume);
     const forceNarration = Boolean(req.body.forceNarration);
+    const preview = Boolean(req.body.preview);
     if (!runId) return res.status(400).json({ error: "runId é obrigatório." });
 
     const client = await pool.connect();
@@ -287,17 +288,23 @@ export function registerWhiteboardRoutes(app, deps) {
 
       // 2. Run all remaining calibration and Remotion rendering scripts
       await runWhiteboardRender(WORKSPACE_DIR, runDir, {
+        preview,
         onLog: (msg) => {
           logs.push(msg);
         },
       });
 
-      // Update status to completed
+      // Update status: prévia marca "preview_ready"; render final marca "completed".
       await pool.query("UPDATE whiteboard_runs SET status = $1 WHERE id = $2", [
-        "completed",
+        preview ? "preview_ready" : "completed",
         runId,
       ]);
-      res.json({ success: true, logs, resumed: resume && narrationExists });
+      res.json({
+        success: true,
+        logs,
+        preview,
+        resumed: resume && narrationExists,
+      });
     } catch (err) {
       console.error("Erro ao renderizar whiteboard run:", err);
       await pool.query("UPDATE whiteboard_runs SET status = $1 WHERE id = $2", [
