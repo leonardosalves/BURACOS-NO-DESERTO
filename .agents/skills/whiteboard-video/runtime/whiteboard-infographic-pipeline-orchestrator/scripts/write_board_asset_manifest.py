@@ -15,18 +15,53 @@ PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
 def read_png_size(path: Path) -> tuple[int, int]:
-    with path.open("rb") as handle:
-        signature = handle.read(8)
-        if signature != PNG_SIGNATURE:
-            raise ValueError(f"Not a PNG file: {path}")
-        chunk_length = int.from_bytes(handle.read(4), "big")
-        chunk_type = handle.read(4)
-        if chunk_type != b"IHDR" or chunk_length < 8:
-            raise ValueError(f"PNG missing IHDR chunk: {path}")
-        width, height = struct.unpack(">II", handle.read(8))
-    if width <= 0 or height <= 0:
-        raise ValueError(f"PNG has invalid dimensions: {path}")
-    return width, height
+    # Tenta usar PIL primeiro para compatibilidade universal com JPEG, WebP, PNG, etc.
+    try:
+        from PIL import Image
+        with Image.open(path) as img:
+            w, h = img.size
+            if w > 0 and h > 0:
+                return w, h
+    except Exception:
+        pass
+
+    # Leitura nativa em Python caso PIL não esteja instalado
+    try:
+        with path.open("rb") as handle:
+            signature = handle.read(8)
+            if signature == PNG_SIGNATURE:
+                chunk_length = int.from_bytes(handle.read(4), "big")
+                chunk_type = handle.read(4)
+                if chunk_type == b"IHDR" and chunk_length >= 8:
+                    width, height = struct.unpack(">II", handle.read(8))
+                    if width > 0 and height > 0:
+                        return width, height
+            # Fallback nativo para JPEG (JFIF/EXIF)
+            handle.seek(0)
+            header = handle.read(2)
+            if header == b"\xff\xd8":
+                while True:
+                    marker_bytes = handle.read(2)
+                    if not marker_bytes or len(marker_bytes) < 2:
+                        break
+                    marker, = struct.unpack(">H", marker_bytes)
+                    if marker in (0xFFC0, 0xFFC2):
+                        handle.read(3) # skip length & precision
+                        h, w = struct.unpack(">HH", handle.read(4))
+                        if w > 0 and h > 0:
+                            return w, h
+                    elif marker >= 0xFFD0 and marker <= 0xFFD9:
+                        continue
+                    else:
+                        len_bytes = handle.read(2)
+                        if not len_bytes or len(len_bytes) < 2:
+                            break
+                        length, = struct.unpack(">H", len_bytes)
+                        handle.seek(length - 2, 1)
+    except Exception:
+        pass
+
+    raise ValueError(f"Não foi possível ler as dimensões da imagem: {path}")
 
 
 def rel(path: Path, root: Path) -> str:
