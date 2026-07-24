@@ -1023,9 +1023,7 @@ const PIPELINE_STAGES = [
 type StageState =
   "pending" | "ready" | "running" | "review" | "approved" | "done" | "error";
 
-function derivePipelineStages(
-  item: CollageItem | null | undefined
-): {
+function derivePipelineStages(item: CollageItem | null | undefined): {
   id: string;
   label: string;
   gate: number;
@@ -1134,6 +1132,97 @@ const STAGE_STATE_META: Record<
     ring: "border-rose-400/40",
   },
 };
+
+/**
+ * Ficha geográfica por card — deriva tipo, escala, elementos e alerta de
+ * fronteira histórica a partir dos campos do card.
+ */
+function buildGeoFiche(item: CollageItem | null | undefined): {
+  local: string;
+  tipo: string;
+  pais: string;
+  escala: string;
+  elementos: string[];
+  direcaoRota: string;
+  periodo: string;
+  historicalBorderWarning: string | null;
+} | null {
+  if (!item) return null;
+  const local = [item.place_name, item.region].filter(Boolean).join(", ");
+  if (!local && !item.country) return null;
+
+  const text = [
+    item.place_name,
+    item.region,
+    item.country,
+    ...(item.lineAnalysis?.geographicEntities || []),
+    ...(item.visualProposal?.geographicRelationships || []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  // Tipo inferido por palavras-chave
+  let tipo = "região geográfica";
+  if (/\b(rio|river|rio |tejo|tamisa|reno|nile|danube)\b/.test(text))
+    tipo = "rio / corpo d'água";
+  else if (/\b(mar|sea|ocean|oceano|norte|mediterr)\b/.test(text))
+    tipo = "corpo d'água";
+  else if (/\b(deserto|desert|atacama|saara|gobi)\b/.test(text))
+    tipo = "deserto / região natural";
+  else if (/\b(montanha|mountain|cordilheira|andes|alps|serra)\b/.test(text))
+    tipo = "cordilheira / relevo";
+  else if (/\b(cidade|city|londres|roma|paris|town)\b/.test(text))
+    tipo = "cidade / assentamento";
+  else if (/\b(forte|fort|fortaleza|fronteira|border|limes|wall)\b/.test(text))
+    tipo = "fronteira / fortificação";
+  else if (/\b(ilha|island)\b/.test(text)) tipo = "ilha";
+
+  // Escala inferida do map_type
+  const escala =
+    item.map_type === "city" || item.map_type === "poi"
+      ? "local / urbana"
+      : item.map_type === "country"
+        ? "nacional"
+        : item.map_type === "continent" || item.map_type === "world"
+          ? "continental / global"
+          : "regional";
+
+  const elementos = Array.from(
+    new Set([
+      ...(item.lineAnalysis?.geographicEntities || []),
+      ...(item.key_objects || []),
+    ])
+  ).slice(0, 6);
+
+  const direcaoRota =
+    (item.visualProposal?.geographicRelationships || []).join("; ") ||
+    "ainda não confirmada";
+
+  const periodo = item.era || "não informado";
+
+  // Alerta de fronteira histórica: se a época é antiga/histórica, a fronteira
+  // moderna provavelmente não existia.
+  const eraLower = (item.era || "").toLowerCase();
+  const isHistorical =
+    /\b(a\.?c\.?|bc|bce|antig|mediev|romano|romana|império|século|century|dinastia|colônia|colonial)\b/.test(
+      eraLower
+    );
+  const historicalBorderWarning = isHistorical
+    ? `A época "${item.era}" é anterior às fronteiras atuais. Use a fronteira/território histórico, não o país moderno, e indique o período no mapa.`
+    : null;
+
+  return {
+    local: local || item.country || "—",
+    tipo,
+    pais: item.country || "—",
+    escala,
+    elementos,
+    direcaoRota,
+    periodo,
+    historicalBorderWarning,
+  };
+}
 
 function copyText(label: string, text: string) {
   void navigator.clipboard.writeText(text).then(
@@ -4555,25 +4644,83 @@ export function CollageBrollLab({
                     value={selected.visualProposal.supportingMetaphor}
                   />
                 )}
-                {(selected.place_name ||
-                  selected.country ||
-                  selected.region ||
-                  selected.map_type) && (
-                  <>
-                    <Field
-                      label="Lugar"
-                      value={[
-                        selected.place_name,
-                        selected.region,
-                        selected.country,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    />
-                    <Field label="Tipo de mapa" value={selected.map_type} />
-                    <Field label="Época" value={selected.era} />
-                  </>
-                )}
+                {(() => {
+                  const fiche = buildGeoFiche(selected);
+                  if (!fiche) return null;
+                  return (
+                    <div className="rounded-lg border border-sky-500/25 bg-sky-950/20 p-3 space-y-2">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-sky-300 flex items-center gap-1.5">
+                        <MapIcon className="w-3 h-3" /> Ficha geográfica
+                      </p>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                        <div className="col-span-2">
+                          <p className="text-[9px] uppercase tracking-wider text-zinc-500">
+                            Local principal
+                          </p>
+                          <p className="text-[11px] text-zinc-200">
+                            {fiche.local}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-wider text-zinc-500">
+                            Tipo
+                          </p>
+                          <p className="text-[11px] text-zinc-200">
+                            {fiche.tipo}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-wider text-zinc-500">
+                            País atual
+                          </p>
+                          <p className="text-[11px] text-zinc-200">
+                            {fiche.pais}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-wider text-zinc-500">
+                            Escala
+                          </p>
+                          <p className="text-[11px] text-zinc-200">
+                            {fiche.escala}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-wider text-zinc-500">
+                            Período
+                          </p>
+                          <p className="text-[11px] text-zinc-200">
+                            {fiche.periodo}
+                          </p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[9px] uppercase tracking-wider text-zinc-500">
+                            Direção da rota
+                          </p>
+                          <p className="text-[11px] text-zinc-200">
+                            {fiche.direcaoRota}
+                          </p>
+                        </div>
+                        {fiche.elementos.length > 0 && (
+                          <div className="col-span-2">
+                            <p className="text-[9px] uppercase tracking-wider text-zinc-500">
+                              Elementos permitidos
+                            </p>
+                            <p className="text-[11px] text-zinc-300">
+                              {fiche.elementos.join(" · ")}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {fiche.historicalBorderWarning && (
+                        <p className="rounded-md border border-amber-500/30 bg-amber-500/[0.07] px-2 py-1.5 text-[10px] leading-4 text-amber-200/90 flex gap-1.5">
+                          <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                          {fiche.historicalBorderWarning}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
                 <Field
                   label="Objetos"
                   value={(
