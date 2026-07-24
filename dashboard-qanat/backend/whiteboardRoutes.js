@@ -393,4 +393,191 @@ export function registerWhiteboardRoutes(app, deps) {
       });
     }
   });
+
+  // Validação pré-render: checklist de roteiro, imagens, FFmpeg e disco.
+  app.get("/api/whiteboard/precheck", async (req, res) => {
+    try {
+      const runId = Number(req.query.id);
+      if (!runId)
+        return res.status(400).json({ error: "id do projeto é obrigatório." });
+
+      const client = await pool.connect();
+      let run = null;
+      try {
+        const result = await client.query(
+          "SELECT * FROM whiteboard_runs WHERE id = $1",
+          [runId]
+        );
+        run = result.rows[0];
+      } finally {
+        client.release();
+      }
+
+      if (!run)
+        return res.status(404).json({ error: "Projeto não encontrado." });
+
+      const runDir = run.folder_path;
+      const checks = [];
+      const add = (category, label, status, message) =>
+        checks.push({ category, label, status, message });
+
+      // ── Roteiro ──
+      const segPath = path.join(runDir, "script", "voiceover_segments.json");
+      let segments = [];
+      if (fs.existsSync(segPath)) {
+        try {
+          segments =
+            JSON.parse(fs.readFileSync(segPath, "utf8")).segments || [];
+        } catch {}
+      }
+      if (segments.length === 0) {
+        add(
+          "Roteiro",
+          "Quadros com texto",
+          "fail",
+          "Nenhum quadro encontrado no roteiro."
+        );
+      } else {
+        const empty = segments.filter((s) => !String(s.text || "").trim());
+        if (empty.length > 0) {
+          add(
+            "Roteiro",
+            "Quadros com texto",
+            "warn",
+            `${empty.length} quadro(s) com texto vazio.`
+          );
+        } else {
+          add(
+            "Roteiro",
+            "Quadros com texto",
+            "pass",
+            `${segments.length} quadros com texto.`
+          );
+        }
+      }
+
+      // ── Imagens ──
+      const boardIds = segments.map((s) => s.boardId).filter(Boolean);
+      const uniqueBoards = Array.from(new Set(boardIds));
+      const imagesDir = path.join(runDir, "images");
+      const present = [];
+      const missing = [];
+      const badDims = [];
+      for (const boardId of uniqueBoards) {
+        const imgPath = path.join(imagesDir, `${boardId}.model-generated.png`);
+        if (!fs.existsSync(imgPath) || fs.statSync(imgPath).size === 0) {
+          missing.push(boardId);
+          continue;
+        }
+        present.push(boardId);
+        try {
+          const meta = await sharp(imgPath).metadata();
+          if (meta.width && meta.height) {
+            const ratio = meta.width / meta.height;
+            if (
+              Math.abs(ratio - 16 / 9) > 0.15 &&
+              Math.abs(ratio - 9 / 16) > 0.15
+            ) {
+              badDims.push(`${boardId} (${meta.width}×${meta.height})`);
+            }
+          }
+        } catch {
+          badDims.push(`${boardId} (ilegível)`);
+        }
+      }
+      if (uniqueBoards.length === 0) {
+        add(
+          "Imagens",
+          "Imagens carregadas",
+          "warn",
+          "Nenhum quadro para validar imagens."
+        );
+      } else if (missing.length > 0) {
+        add(
+          "Imagens",
+          "Imagens carregadas",
+          "fail",
+          `${present.length}/${uniqueBoards.length} carregadas. Faltam: ${missing.join(", ")}.`
+        );
+      } else {
+        add(
+          "Imagens",
+          "Imagens carregadas",
+          "pass",
+          `${present.length}/${uniqueBoards.length} imagens carregadas.`
+        );
+      }
+      if (badDims.length > 0) {
+        add(
+          "Imagens",
+          "Proporção 16:9",
+          "warn",
+          `Proporção fora do esperado em: ${badDims.join(", ")}.`
+        );
+      } else if (present.length > 0) {
+        add(
+          "Imagens",
+          "Proporção 16:9",
+          "pass",
+          "Todas as imagens com proporção adequada."
+        );
+      }
+
+      // ── FFmpeg ──
+      let ffmpegOk = false;
+      try {
+        execSync("ffmpeg -version", { stdio: "ignore", windowsHide: true });
+        ffmpegOk = true;
+      } catch {
+        ffmpegOk = false;
+      }
+      add(
+        "Render",
+        "FFmpeg disponível",
+        ffmpegOk ? "pass" : "fail",
+        ffmpegOk ? "FFmpeg encontrado." : "FFmpeg não encontrado no PATH."
+      );
+
+      // ── Pasta de saída gravável ──
+      const videoDir = path.join(runDir, "video");
+      let writable = false;
+      try {
+        if (!fs.existsSync(videoDir))
+          fs.mkdirSync(videoDir, { recursive: true });
+        const probe = path.join(videoDir, ".write-probe");
+        fs.writeFileSync(probe, "ok");
+        fs.rmSync(probe);
+        writable = true;
+      } catch {
+        writable = false;
+      }
+      add(
+        "Render",
+        "Pasta de saída gravável",
+        writable ? "pass" : "fail",
+        writable
+          ? "Pasta video/ gravável."
+          : "Não foi possível gravar em video/."
+      );
+
+      const failCount = checks.filter((c) => c.status === "fail").length;
+      const warnCount = checks.filter((c) => c.status === "warn").length;
+      const passCount = checks.filter((c) => c.status === "pass").length;
+
+      res.json({
+        success: true,
+        ready: failCount === 0,
+        checks,
+        passCount,
+        warnCount,
+        failCount,
+      });
+    } catch (err) {
+      console.error("Erro em /api/whiteboard/precheck:", err);
+      res.status(500).json({
+        error: "Erro ao executar validação pré-render.",
+        details: err.message,
+      });
+    }
+  });
 }

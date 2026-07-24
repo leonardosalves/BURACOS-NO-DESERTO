@@ -86,6 +86,21 @@ export function WhiteboardCreatorPanel({
     reportPath?: string | null;
   } | null>(null);
 
+  // Validação pré-render
+  const [precheck, setPrecheck] = useState<{
+    ready: boolean;
+    checks: {
+      category: string;
+      label: string;
+      status: string;
+      message: string;
+    }[];
+    passCount: number;
+    warnCount: number;
+    failCount: number;
+  } | null>(null);
+  const [precheckLoading, setPrecheckLoading] = useState<boolean>(false);
+
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
@@ -292,6 +307,25 @@ export function WhiteboardCreatorPanel({
     const boards = Object.keys(detail.prompts);
     if (boards.length === 0) return false;
     return boards.every((b) => detail.imagesStatus[b]?.present);
+  };
+
+  const runPrecheck = async () => {
+    if (!selectedRunId) return;
+    setPrecheckLoading(true);
+    try {
+      const res = await fetch(`/api/whiteboard/precheck?id=${selectedRunId}`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPrecheck(data);
+      } else {
+        toast.error(data.error || "Falha na validação pré-render.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao executar validação pré-render.");
+    } finally {
+      setPrecheckLoading(false);
+    }
   };
 
   return (
@@ -789,23 +823,83 @@ export function WhiteboardCreatorPanel({
                         {allImagesUploaded() &&
                           !rendering &&
                           renderLogs.length === 0 && (
-                            <div className="flex flex-col items-center justify-center p-12 bg-zinc-900/20 border border-zinc-800 rounded-2xl gap-4">
-                              <Check className="w-8 h-8 text-emerald-400 bg-emerald-500/10 rounded-full p-1.5" />
-                              <div className="text-center">
-                                <p className="text-xs font-bold text-white">
-                                  Todos os quadros estão com imagens carregadas!
-                                </p>
-                                <p className="text-[11px] text-zinc-500 mt-1">
-                                  Pronto para gerar a locução em Português e
-                                  renderizar o vídeo explicativo final.
-                                </p>
+                            <div className="flex flex-col gap-3 p-5 bg-zinc-900/20 border border-zinc-800 rounded-2xl">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-xs font-bold text-zinc-200 flex items-center gap-2">
+                                  <Check className="w-4 h-4 text-emerald-400" />
+                                  Validação pré-render
+                                </h4>
+                                <button
+                                  onClick={runPrecheck}
+                                  disabled={precheckLoading}
+                                  className="text-[10px] font-bold text-sky-400 bg-sky-400/10 hover:bg-sky-400/20 border-0 px-2.5 py-1 rounded transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                                >
+                                  {precheckLoading && (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  )}
+                                  {precheck ? "Revalidar" : "Validar"}
+                                </button>
                               </div>
-                              <button
-                                onClick={handleRender}
-                                className="h-9 px-6 bg-sky-500 hover:bg-sky-400 border-0 rounded-lg text-xs font-bold text-white cursor-pointer shadow-lg shadow-sky-500/10 transition"
-                              >
-                                Renderizar Vídeo
-                              </button>
+
+                              {!precheck && !precheckLoading && (
+                                <p className="text-[11px] text-zinc-500">
+                                  Execute a validação para conferir roteiro,
+                                  imagens, FFmpeg e pasta de saída antes de
+                                  renderizar.
+                                </p>
+                              )}
+
+                              {precheck && (
+                                <>
+                                  <div
+                                    className={`rounded-lg border px-3 py-2 text-[11px] font-bold ${
+                                      precheck.ready
+                                        ? "border-emerald-500/30 bg-emerald-500/[0.06] text-emerald-200"
+                                        : "border-rose-500/30 bg-rose-500/[0.06] text-rose-200"
+                                    }`}
+                                  >
+                                    {precheck.ready
+                                      ? `Pronto para renderizar · ${precheck.passCount} verificações OK${precheck.warnCount > 0 ? ` · ${precheck.warnCount} aviso(s)` : ""}`
+                                      : `${precheck.failCount} verificação(ões) falharam — corrija antes de renderizar`}
+                                  </div>
+                                  <div className="flex flex-col gap-1.5">
+                                    {precheck.checks.map((c, i) => (
+                                      <div
+                                        key={i}
+                                        className="flex items-start gap-2 text-[11px]"
+                                      >
+                                        <span
+                                          className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
+                                            c.status === "pass"
+                                              ? "bg-emerald-400"
+                                              : c.status === "warn"
+                                                ? "bg-amber-400"
+                                                : "bg-rose-400"
+                                          }`}
+                                        />
+                                        <div className="min-w-0">
+                                          <span className="text-zinc-500">
+                                            {c.category} ·{" "}
+                                          </span>
+                                          <span className="text-zinc-300 font-bold">
+                                            {c.label}:{" "}
+                                          </span>
+                                          <span className="text-zinc-400">
+                                            {c.message}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <button
+                                    onClick={handleRender}
+                                    disabled={!precheck.ready}
+                                    className="h-9 px-6 bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed border-0 rounded-lg text-xs font-bold text-white cursor-pointer shadow-lg shadow-sky-500/10 transition mt-1"
+                                  >
+                                    Renderizar Vídeo
+                                  </button>
+                                </>
+                              )}
                             </div>
                           )}
 
