@@ -11267,27 +11267,29 @@ async function prepareRemotionRender(
           scene.asset || scene.type === "remotion" || scene.narrationText
       );
 
-  // Shotcraft: injeta motion_shot / camera_move / transições do motion plan
-  let motionPlanForRender = storyboard?.motion_plan || null;
-  try {
-    const resolved = resolveMotionPlanForRender(storyboard, config);
-    if (resolved.storyboard) storyboard = resolved.storyboard;
-    motionPlanForRender = resolved.motionPlan || motionPlanForRender;
-    validScenes = enrichRemotionScenesWithMotionPlan(
-      validScenes,
-      motionPlanForRender
-    );
-    const shotN = validScenes.filter((s) => s.motion_shot).length;
-    if (shotN > 0) {
-      console.log(
-        `[Remotion] Shotcraft: ${shotN}/${validScenes.length} cena(s) com motion_shot`
+  // Shotcraft: injeta motion_shot / camera_move / transições do motion plan (apenas no modo automático sem Studio Timeline)
+  if (!useStudioRender) {
+    let motionPlanForRender = storyboard?.motion_plan || null;
+    try {
+      const resolved = resolveMotionPlanForRender(storyboard, config);
+      if (resolved.storyboard) storyboard = resolved.storyboard;
+      motionPlanForRender = resolved.motionPlan || motionPlanForRender;
+      validScenes = enrichRemotionScenesWithMotionPlan(
+        validScenes,
+        motionPlanForRender
+      );
+      const shotN = validScenes.filter((s) => s.motion_shot).length;
+      if (shotN > 0) {
+        console.log(
+          `[Remotion] Shotcraft: ${shotN}/${validScenes.length} cena(s) com motion_shot`
+        );
+      }
+    } catch (motionErr) {
+      console.warn(
+        "[Remotion] Shotcraft motion plan (não bloqueante):",
+        motionErr?.message || motionErr
       );
     }
-  } catch (motionErr) {
-    console.warn(
-      "[Remotion] Shotcraft motion plan (não bloqueante):",
-      motionErr?.message || motionErr
-    );
   }
 
   if (validScenes.length === 0) {
