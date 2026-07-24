@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   BarChart3,
   RefreshCw,
   Sparkles,
@@ -8,6 +10,8 @@ import {
   ScrollText,
   Lock,
   Check,
+  ShieldAlert,
+  Trash2,
 } from "lucide-react";
 import {
   ListicleRankingIdeas,
@@ -312,6 +316,101 @@ export function ListicleCreatorStep({
     contract.rankingQuestion.trim() && contract.mainCriterion.trim()
   );
 
+  // ── Editor de itens provisórios ──────────────────────────────────────────
+  type ProvisionalItem = { id: string; title: string };
+  const [provisionalItems, setProvisionalItems] = useState<ProvisionalItem[]>(
+    []
+  );
+
+  useEffect(() => {
+    const sample = selectedIdea?.sample_items || [];
+    setProvisionalItems(
+      sample.map((name, i) => ({
+        id: `item-${i}-${name.slice(0, 12)}`,
+        title: name,
+      }))
+    );
+  }, [selectedListicleIdeaIndex]);
+
+  const moveItem = (index: number, dir: -1 | 1) => {
+    setProvisionalItems((prev) => {
+      const next = [...prev];
+      const target = index + dir;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+  const editItemTitle = (id: string, title: string) => {
+    setProvisionalItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, title } : it))
+    );
+  };
+  const removeItem = (id: string) => {
+    setProvisionalItems((prev) => prev.filter((it) => it.id !== id));
+  };
+
+  // ── Detecção de ranking arbitrário ───────────────────────────────────────
+  // Um ranking defensável precisa de um critério comparável/mensurável.
+  const arbitraryRankingWarning = useMemo(() => {
+    const criterion = contract.mainCriterion.toLowerCase();
+    if (!criterion.trim()) return null;
+    const measurableHints = [
+      "mais",
+      "menos",
+      "maior",
+      "menor",
+      "melhor",
+      "pior",
+      "tempo",
+      "anos",
+      "quantidade",
+      "número",
+      "frequência",
+      "duração",
+      "peso",
+      "altura",
+      "velocidade",
+      "custo",
+      "preço",
+      "distância",
+      "comprovad",
+      "documentad",
+      "evidência",
+      "fonte",
+      "ranking",
+      "pontua",
+      "score",
+      "compar",
+    ];
+    const hasMeasurable = measurableHints.some((h) => criterion.includes(h));
+    if (hasMeasurable) return null;
+    return "O critério principal não parece comparável ou mensurável. Sem uma dimensão objetiva, isto é uma lista comentada / ordem de impacto — não um ranking defensável. Considere definir uma métrica (tempo, quantidade, evidências) ou renomear o formato.";
+  }, [contract.mainCriterion]);
+
+  // ── Sugestão de payoff fraco ─────────────────────────────────────────────
+  const payoffSuggestion = useMemo(() => {
+    if (provisionalItems.length < 3) return null;
+    const last =
+      provisionalItems[provisionalItems.length - 1]?.title.toLowerCase() || "";
+    const climax =
+      rankOrder === "desc"
+        ? last
+        : provisionalItems[0]?.title.toLowerCase() || "";
+    const weakHints = [
+      "outros",
+      "diversos",
+      "vários",
+      "etc",
+      "resto",
+      "menção",
+    ];
+    if (weakHints.some((h) => climax.includes(h))) {
+      return "O item do clímax parece fraco (genérico). O #1 deve ser a maior recompensa — considere mover o item mais surpreendente para o final.";
+    }
+    return null;
+  }, [provisionalItems, rankOrder]);
+
   return (
     <div className="mx-auto max-w-5xl space-y-5 font-sans">
       <section className="relative overflow-hidden rounded-[28px] border border-emerald-300/20 bg-[#07110d] p-5 shadow-2xl shadow-black/20 sm:p-7">
@@ -550,6 +649,17 @@ export function ListicleCreatorStep({
               Editar contrato
             </button>
           )}
+          {arbitraryRankingWarning && (
+            <div className="rounded-xl border border-orange-400/30 bg-orange-400/[0.06] p-3">
+              <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-orange-300">
+                <ShieldAlert className="h-3.5 w-3.5" /> Ranking possivelmente
+                arbitrário
+              </p>
+              <p className="mt-1.5 text-[11px] leading-5 text-orange-100/80">
+                {arbitraryRankingWarning}
+              </p>
+            </div>
+          )}
         </section>
       )}
 
@@ -746,7 +856,81 @@ export function ListicleCreatorStep({
             parecer mais surpreendente que o #1, considere fortalecer a
             revelação final.
           </p>
+          {payoffSuggestion && (
+            <div className="rounded-lg border border-amber-400/30 bg-amber-400/[0.06] px-3 py-2">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold text-amber-300">
+                <ShieldAlert className="h-3.5 w-3.5" /> Payoff possivelmente
+                fraco
+              </p>
+              <p className="mt-1 text-[10px] leading-4 text-amber-100/80">
+                {payoffSuggestion}
+              </p>
+            </div>
+          )}
         </div>
+
+        {/* Editor de itens provisórios */}
+        {provisionalItems.length > 0 && (
+          <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-950/50 p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-zinc-400">
+                Itens do ranking (provisórios)
+              </p>
+              <span className="text-[9px] text-zinc-600">
+                {provisionalItems.length} itens
+              </span>
+            </div>
+            <p className="text-[10px] leading-4 text-zinc-500">
+              Reordene, edite ou remova itens antes de gerar. A ordem aqui
+              define a ordem de revelação.
+            </p>
+            <div className="space-y-2">
+              {provisionalItems.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-black/25 p-2.5"
+                >
+                  <span className="w-7 shrink-0 text-center font-mono text-[11px] font-bold text-emerald-300">
+                    {index + 1}
+                  </span>
+                  <input
+                    value={item.title}
+                    onChange={(e) => editItemTitle(item.id, e.target.value)}
+                    className="min-w-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-emerald-400/50"
+                  />
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => moveItem(index, -1)}
+                      disabled={index === 0}
+                      title="Subir"
+                      className="rounded p-1 text-zinc-500 transition hover:text-emerald-300 disabled:opacity-30"
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveItem(index, 1)}
+                      disabled={index === provisionalItems.length - 1}
+                      title="Descer"
+                      className="rounded p-1 text-zinc-500 transition hover:text-emerald-300 disabled:opacity-30"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.id)}
+                      title="Remover"
+                      className="rounded p-1 text-zinc-500 transition hover:text-rose-400"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <ListicleHudPreview
           rankCount={rankCount}
