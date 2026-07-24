@@ -1817,6 +1817,102 @@ function VersionComparison({
   );
 }
 
+/**
+ * Estimativa de custo e tempo para geração em lote (End Frames / Vídeos).
+ * Mostra quantidade, modelo, tempo estimado, custo e já concluídos.
+ */
+function collageHasEndFrame(item: CollageItem): boolean {
+  return Boolean(
+    item.endFrame?.imageUrl ||
+    item.still_url ||
+    item.endFrame?.imagePath ||
+    item.still_path
+  );
+}
+function collageHasVideo(item: CollageItem): boolean {
+  return Boolean(item.video_url || item.video_path);
+}
+function estimateCollageGeneration(
+  items: CollageItem[],
+  kind: "still" | "video",
+  framesReady: (i: CollageItem) => boolean
+): {
+  count: number;
+  model: string;
+  timeSec: number;
+  cost: number;
+  alreadyDone: number;
+} {
+  if (kind === "still") {
+    const eligible = items.filter(
+      (i) => i.status === "approved" && !collageHasEndFrame(i)
+    );
+    return {
+      count: eligible.length,
+      model: "Gemini (imagem)",
+      timeSec: eligible.length * 12,
+      cost: eligible.length * 0.04,
+      alreadyDone: items.filter((i) => collageHasEndFrame(i)).length,
+    };
+  }
+  const eligible = items.filter((i) => framesReady(i) && !collageHasVideo(i));
+  return {
+    count: eligible.length,
+    model: "Omni Flash (vídeo 5s)",
+    timeSec: eligible.length * 45,
+    cost: eligible.length * 0.15,
+    alreadyDone: items.filter((i) => collageHasVideo(i)).length,
+  };
+}
+
+function GenerationEstimatePanel({
+  items,
+  framesReady,
+}: {
+  items: CollageItem[];
+  framesReady: (i: CollageItem) => boolean;
+}) {
+  const still = estimateCollageGeneration(items, "still", framesReady);
+  const video = estimateCollageGeneration(items, "video", framesReady);
+  const fmtTime = (s: number) =>
+    s >= 60 ? `${Math.round(s / 60)}min` : `${s}s`;
+  const Row = ({
+    label,
+    est,
+  }: {
+    label: string;
+    est: ReturnType<typeof estimateCollageGeneration>;
+  }) => (
+    <div className="flex items-center justify-between gap-2 text-[9px]">
+      <span className="text-zinc-400">{label}</span>
+      <span className="font-mono text-zinc-300">
+        {est.count === 0 ? (
+          <span className="text-zinc-600">nada a gerar</span>
+        ) : (
+          <>
+            {est.count} · {est.model} · ~{fmtTime(est.timeSec)} · $
+            {est.cost.toFixed(2)}
+          </>
+        )}
+      </span>
+    </div>
+  );
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-2 space-y-1">
+      <p className="text-[8px] uppercase font-bold text-zinc-500 flex items-center gap-1">
+        <Film className="w-3 h-3" /> Estimativa de geração
+      </p>
+      <Row label="End Frames" est={still} />
+      <Row label="Vídeos" est={video} />
+      <p className="text-[8px] text-zinc-600 pt-0.5">
+        Já concluídos: {still.alreadyDone} frame
+        {still.alreadyDone !== 1 ? "s" : ""} · {video.alreadyDone} vídeo
+        {video.alreadyDone !== 1 ? "s" : ""}
+      </p>
+    </div>
+  );
+}
+
 function copyText(label: string, text: string) {
   void navigator.clipboard.writeText(text).then(
     () => toast.success(`${label} copiado`),
@@ -3888,6 +3984,12 @@ export function CollageBrollLab({
                 </button>
               )}
             </div>
+            {items.length > 0 && (
+              <GenerationEstimatePanel
+                items={items}
+                framesReady={framesReady}
+              />
+            )}
           </div>
 
           {scriptAnalysis && (
