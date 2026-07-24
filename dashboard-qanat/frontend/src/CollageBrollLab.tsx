@@ -1434,6 +1434,193 @@ function buildValidationExplanations(
   ];
 }
 
+/**
+ * Prévia barata de movimento — simula a interpolação start→end em canvas
+ * (cross-fade + Ken Burns) e estima continuidade, legibilidade e risco de
+ * deformação ANTES de gastar geração de vídeo.
+ */
+function MotionPreview({
+  startUrl,
+  endUrl,
+  hasRouteDirection,
+}: {
+  startUrl?: string;
+  endUrl?: string;
+  hasRouteDirection?: boolean;
+}) {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const [playing, setPlaying] = React.useState(false);
+  const [tested, setTested] = React.useState(false);
+  const [diff, setDiff] = React.useState<number | null>(null);
+  const startImgRef = React.useRef<HTMLImageElement | null>(null);
+  const endImgRef = React.useRef<HTMLImageElement | null>(null);
+  const rafRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    if (!startUrl || !endUrl) return;
+    let cancelled = false;
+    const load = (url: string) =>
+      new Promise<HTMLImageElement>((res, rej) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => res(img);
+        img.onerror = rej;
+        img.src = url;
+      });
+    Promise.all([load(startUrl), load(endUrl)])
+      .then(([s, e]) => {
+        if (cancelled) return;
+        startImgRef.current = s;
+        endImgRef.current = e;
+        // calcula diferença estrutural para as métricas
+        const size = 64;
+        const c1 = document.createElement("canvas");
+        const c2 = document.createElement("canvas");
+        c1.width = c2.width = size;
+        c1.height = c2.height = size;
+        const x1 = c1.getContext("2d");
+        const x2 = c2.getContext("2d");
+        if (!x1 || !x2) return;
+        x1.drawImage(s, 0, 0, size, size);
+        x2.drawImage(e, 0, 0, size, size);
+        const d1 = x1.getImageData(0, 0, size, size).data;
+        const d2 = x2.getImageData(0, 0, size, size).data;
+        let sum = 0;
+        for (let i = 0; i < d1.length; i += 4) {
+          sum +=
+            (Math.abs(d1[i] - d2[i]) +
+              Math.abs(d1[i + 1] - d2[i + 1]) +
+              Math.abs(d1[i + 2] - d2[i + 2])) /
+            (3 * 255);
+        }
+        setDiff(Math.round((sum / (size * size)) * 100));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [startUrl, endUrl]);
+
+  React.useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  const play = () => {
+    const canvas = canvasRef.current;
+    const s = startImgRef.current;
+    const e = endImgRef.current;
+    if (!canvas || !s || !e) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const W = canvas.width;
+    const H = canvas.height;
+    setPlaying(true);
+    setTested(true);
+    const duration = 1500;
+    const t0 = performance.now();
+    const drawImg = (img: HTMLImageElement, alpha: number, scale: number) => {
+      ctx.globalAlpha = alpha;
+      const base = Math.max(W / img.width, H / img.height) * scale;
+      const dw = img.width * base;
+      const dh = img.height * base;
+      ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    };
+    const frame = (t: number) => {
+      const p = Math.min(1, (t - t0) / duration);
+      const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      ctx.clearRect(0, 0, W, H);
+      drawImg(s, 1 - ease, 1.15 - 0.15 * ease);
+      drawImg(e, ease, 1 + 0.15 * ease);
+      ctx.globalAlpha = 1;
+      if (p < 1) {
+        rafRef.current = requestAnimationFrame(frame);
+      } else {
+        setPlaying(false);
+      }
+    };
+    rafRef.current = requestAnimationFrame(frame);
+  };
+
+  if (!startUrl || !endUrl) return null;
+
+  const d = diff ?? 0;
+  const continuidade = Math.max(40, Math.min(99, Math.round(100 - d * 0.8)));
+  const movimento =
+    d < 8 ? 45 : d > 60 ? 55 : Math.round(70 + (50 - Math.abs(d - 30)) * 0.5);
+  const risco = d > 50 ? "Alto" : d > 25 ? "Médio" : "Baixo";
+  const riscoTone =
+    d > 50 ? "text-rose-300" : d > 25 ? "text-amber-300" : "text-emerald-300";
+  const direcao = hasRouteDirection ? "Confirmada" : "A confirmar";
+
+  return (
+    <div className="rounded-lg border border-cyan-500/20 bg-zinc-950/50 p-2.5 space-y-2">
+      <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300 flex items-center gap-1.5">
+        <Play className="w-3 h-3" /> Prévia de movimento (simulação)
+      </p>
+      <canvas
+        ref={canvasRef}
+        width={270}
+        height={480}
+        className="w-full aspect-[9/16] rounded-lg bg-zinc-900 border border-zinc-800"
+      />
+      <button
+        type="button"
+        onClick={play}
+        disabled={playing}
+        className="w-full rounded-lg bg-cyan-500/15 border border-cyan-500/30 px-3 py-2 text-[10px] font-bold text-cyan-200 transition hover:bg-cyan-500/25 disabled:opacity-50"
+      >
+        {playing
+          ? "Simulando…"
+          : tested
+            ? "Testar novamente"
+            : "Testar movimento"}
+      </button>
+      {tested && (
+        <div className="grid grid-cols-2 gap-1.5">
+          <div className="rounded-md border border-zinc-800 bg-zinc-900/60 px-2 py-1.5">
+            <p className="text-[8px] uppercase tracking-wider text-zinc-500">
+              Continuidade
+            </p>
+            <p className="font-mono text-[11px] font-bold text-zinc-100">
+              {continuidade}%
+            </p>
+          </div>
+          <div className="rounded-md border border-zinc-800 bg-zinc-900/60 px-2 py-1.5">
+            <p className="text-[8px] uppercase tracking-wider text-zinc-500">
+              Movimento legível
+            </p>
+            <p className="font-mono text-[11px] font-bold text-zinc-100">
+              {movimento}%
+            </p>
+          </div>
+          <div className="rounded-md border border-zinc-800 bg-zinc-900/60 px-2 py-1.5">
+            <p className="text-[8px] uppercase tracking-wider text-zinc-500">
+              Risco de deformar
+            </p>
+            <p className={`font-mono text-[11px] font-bold ${riscoTone}`}>
+              {risco}
+            </p>
+          </div>
+          <div className="rounded-md border border-zinc-800 bg-zinc-900/60 px-2 py-1.5">
+            <p className="text-[8px] uppercase tracking-wider text-zinc-500">
+              Direção geográfica
+            </p>
+            <p className="font-mono text-[11px] font-bold text-zinc-100">
+              {direcao}
+            </p>
+          </div>
+        </div>
+      )}
+      <p className="text-[9px] text-zinc-600 leading-4">
+        Simulação técnica (cross-fade + Ken Burns) — não é o vídeo final. Serve
+        para validar continuidade e direção antes de gastar geração.
+      </p>
+    </div>
+  );
+}
+
 function copyText(label: string, text: string) {
   void navigator.clipboard.writeText(text).then(
     () => toast.success(`${label} copiado`),
@@ -4515,6 +4702,29 @@ export function CollageBrollLab({
                     assemblySteps={
                       selected.visualProposal?.assemblySteps ||
                       selected.assembly_order
+                    }
+                  />
+
+                  {/* Prévia barata de movimento — valida antes de gastar geração */}
+                  <MotionPreview
+                    startUrl={
+                      selected.startFrame?.imageUrl || selected.first_frame_url
+                        ? mediaSrc(
+                            selected.startFrame?.imageUrl ||
+                              selected.first_frame_url
+                          )
+                        : undefined
+                    }
+                    endUrl={
+                      selected.endFrame?.imageUrl || selected.still_url
+                        ? mediaSrc(
+                            selected.endFrame?.imageUrl || selected.still_url
+                          )
+                        : undefined
+                    }
+                    hasRouteDirection={
+                      (selected.visualProposal?.geographicRelationships || [])
+                        .length > 0
                     }
                   />
 
