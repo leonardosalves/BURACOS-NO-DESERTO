@@ -21718,7 +21718,35 @@ Retorne SOMENTE JSON valido:
       "format_fit": "SHORTS | LONGO",
       "recommended_duration": "duracao adequada",
       "premium_upgrade": "como elevar o video",
-      "validation_needed": "o que validar antes do roteiro"
+      "validation_needed": "o que validar antes do roteiro",
+      "scores": {
+        "gancho": 0-100,
+        "visual": 0-100,
+        "originalidade": 0-100,
+        "clareza": 0-100,
+        "segurancaFactual": 0-100
+      },
+      "factualCoverage": 0-100,
+      "contested": true se ha disputa historiografica relevante, senao false,
+      "contestNote": "por que e contestada e como tratar (vazio se nao contestada)",
+      "sources": [
+        {"title": "nome da fonte antiga ou moderna", "type": "antiga|moderna|museu|universidade|documento", "url": "url opcional"}
+      ],
+      "knowledgeBarrier": {
+        "canKnow": ["o que a testemunha PODE ver/saber na epoca"],
+        "cannotKnow": ["o que a testemunha NAO poderia saber (descoberto depois)"]
+      },
+      "causality": ["condicao preexistente", "gatilho", "decisao/acao", "consequencia imediata", "consequencia posterior"],
+      "historicalContract": {
+        "period": "recorte temporal preciso",
+        "location": "local preciso",
+        "character": "papel da testemunha",
+        "event": "evento central",
+        "allowedTech": "tecnologias/objetos permitidos na epoca",
+        "forbidden": "elementos proibidos (anacronismos)",
+        "visualMood": "clima visual",
+        "certaintyLevel": "alto|moderado|baixo"
+      }
     }
   ]
 }`;

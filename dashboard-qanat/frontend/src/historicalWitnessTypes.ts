@@ -40,7 +40,32 @@ export type HistoricalWitnessIdea = {
   recommended_duration?: string;
   premium_upgrade?: string;
   validation_needed?: string;
+  scores?: {
+    gancho?: number;
+    visual?: number;
+    originalidade?: number;
+    clareza?: number;
+    segurancaFactual?: number;
+  };
+  sources?: Array<{ title: string; url?: string; type?: string }>;
+  factualCoverage?: number;
+  knowledgeBarrier?: { canKnow?: string[]; cannotKnow?: string[] };
+  causality?: string[];
+  contested?: boolean;
+  contestNote?: string;
+  historicalContract?: {
+    period?: string;
+    location?: string;
+    character?: string;
+    event?: string;
+    allowedTech?: string;
+    forbidden?: string;
+    visualMood?: string;
+    certaintyLevel?: string;
+  };
 };
+
+export type WitnessMode = "historical" | "presenter";
 
 export type HistoricalWitnessCharacter = {
   id: string;
@@ -48,6 +73,7 @@ export type HistoricalWitnessCharacter = {
   hint: string;
   description: string;
   custom?: boolean;
+  mode?: WitnessMode;
 };
 
 export type HistoricalWitnessContext = {

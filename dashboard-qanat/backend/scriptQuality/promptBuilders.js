@@ -248,6 +248,8 @@ export function normalizeIdeaOpportunity(item = {}, { format = "LONGO" } = {}) {
     ...item,
     reality_status: normalizedReality,
     evidence_anchor: evidenceAnchor,
+    contested: item.contested === true || normalizedReality === "disputed",
+    contestNote: pick(item.contestNote, item.contest_note),
     saturation_level: allowedSaturation.has(saturationRaw)
       ? saturationRaw
       : "unknown",
