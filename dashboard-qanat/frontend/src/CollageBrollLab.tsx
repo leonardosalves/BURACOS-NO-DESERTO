@@ -1637,6 +1637,186 @@ function itemHasAlert(item: CollageItem): boolean {
   return false;
 }
 
+/**
+ * Compara as propostas de duas versões e separa o que mudou do que foi
+ * preservado (composição, paleta, montagem, geografia e entidades).
+ */
+function diffVersionProposals(
+  a: CollageProposalFields | undefined,
+  b: CollageProposalFields | undefined
+): {
+  changed: { field: string; from: string; to: string }[];
+  preserved: string[];
+  entitiesPreserved: number;
+  entitiesTotal: number;
+} {
+  const fields: {
+    key: keyof CollageProposalFields;
+    label: string;
+    format?: (v: unknown) => string;
+  }[] = [
+    { key: "visual_proposition", label: "Composição" },
+    { key: "action_verb", label: "Ação" },
+    {
+      key: "background_color",
+      label: "Cor de fundo",
+      format: (v) => (v as { name?: string })?.name || "—",
+    },
+    {
+      key: "accent_colors",
+      label: "Cores de destaque",
+      format: (v) => ((v as string[]) || []).join(", ") || "—",
+    },
+    {
+      key: "assembly_order",
+      label: "Ordem de montagem",
+      format: (v) => ((v as string[]) || []).join(" → ") || "—",
+    },
+    { key: "place_name", label: "Local" },
+    { key: "region", label: "Região" },
+    { key: "era", label: "Época" },
+  ];
+  const changed: { field: string; from: string; to: string }[] = [];
+  const preserved: string[] = [];
+  for (const f of fields) {
+    const va = f.format
+      ? f.format(a?.[f.key])
+      : String((a?.[f.key] as string) || "—");
+    const vb = f.format
+      ? f.format(b?.[f.key])
+      : String((b?.[f.key] as string) || "—");
+    if (va !== vb) changed.push({ field: f.label, from: va, to: vb });
+    else preserved.push(f.label);
+  }
+  const ea = a?.key_objects || [];
+  const eb = b?.key_objects || [];
+  const entitiesPreserved = ea.filter((e) => eb.includes(e)).length;
+  return {
+    changed,
+    preserved,
+    entitiesPreserved,
+    entitiesTotal: Math.max(ea.length, eb.length),
+  };
+}
+
+/**
+ * Comparação visual entre duas versões do card — mostra o que mudou e o que
+ * foi preservado (entidades, paleta, composição, geografia).
+ */
+function VersionComparison({
+  versions,
+  activeVersion,
+}: {
+  versions: CardVersionSnapshot[];
+  activeVersion: number;
+}) {
+  const sorted = [...versions].sort((x, y) => x.version - y.version);
+  const [leftV, setLeftV] = React.useState(Math.max(1, activeVersion - 1));
+  const [rightV, setRightV] = React.useState(activeVersion);
+  const left = versions.find((v) => v.version === leftV);
+  const right = versions.find((v) => v.version === rightV);
+  if (!left || !right || leftV === rightV) {
+    return (
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-2 space-y-1.5">
+        <p className="text-[8px] uppercase font-bold text-zinc-500 flex items-center gap-1">
+          <History className="w-3 h-3" /> Comparar versões
+        </p>
+        <div className="flex items-center gap-1.5">
+          <select
+            value={leftV}
+            onChange={(e) => setLeftV(Number(e.target.value))}
+            className="flex-1 rounded border border-zinc-700 bg-zinc-950 px-1.5 py-1 text-[9px] text-zinc-300"
+          >
+            {sorted.map((v) => (
+              <option key={v.version} value={v.version}>
+                v{v.version}
+              </option>
+            ))}
+          </select>
+          <span className="text-[9px] text-zinc-600">→</span>
+          <select
+            value={rightV}
+            onChange={(e) => setRightV(Number(e.target.value))}
+            className="flex-1 rounded border border-zinc-700 bg-zinc-950 px-1.5 py-1 text-[9px] text-zinc-300"
+          >
+            {sorted.map((v) => (
+              <option key={v.version} value={v.version}>
+                v{v.version}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="text-[9px] text-zinc-600">
+          Selecione duas versões diferentes.
+        </p>
+      </div>
+    );
+  }
+  const diff = diffVersionProposals(left.proposal, right.proposal);
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-2 space-y-2">
+      <p className="text-[8px] uppercase font-bold text-zinc-500 flex items-center gap-1">
+        <History className="w-3 h-3" /> Comparar v{leftV} → v{rightV}
+      </p>
+      <div className="flex items-center gap-1.5">
+        <select
+          value={leftV}
+          onChange={(e) => setLeftV(Number(e.target.value))}
+          className="flex-1 rounded border border-zinc-700 bg-zinc-950 px-1.5 py-1 text-[9px] text-zinc-300"
+        >
+          {sorted.map((v) => (
+            <option key={v.version} value={v.version}>
+              v{v.version}
+            </option>
+          ))}
+        </select>
+        <span className="text-[9px] text-zinc-600">→</span>
+        <select
+          value={rightV}
+          onChange={(e) => setRightV(Number(e.target.value))}
+          className="flex-1 rounded border border-zinc-700 bg-zinc-950 px-1.5 py-1 text-[9px] text-zinc-300"
+        >
+          {sorted.map((v) => (
+            <option key={v.version} value={v.version}>
+              v{v.version}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="rounded-md border border-emerald-500/25 bg-emerald-500/[0.06] px-2 py-1.5">
+        <p className="text-[9px] font-bold text-emerald-300">
+          Entidades preservadas: {diff.entitiesPreserved}/{diff.entitiesTotal}
+        </p>
+      </div>
+      {diff.changed.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[8px] uppercase tracking-wider text-amber-400">
+            Será alterado
+          </p>
+          {diff.changed.map((c) => (
+            <div key={c.field} className="text-[9px] leading-4">
+              <span className="text-zinc-500">{c.field}: </span>
+              <span className="text-rose-300/80 line-through">{c.from}</span>
+              <span className="text-zinc-600"> → </span>
+              <span className="text-emerald-300">{c.to}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {diff.preserved.length > 0 && (
+        <div>
+          <p className="text-[8px] uppercase tracking-wider text-emerald-400">
+            Preservado
+          </p>
+          <p className="text-[9px] text-zinc-400">
+            {diff.preserved.join(" · ")}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function copyText(label: string, text: string) {
   void navigator.clipboard.writeText(text).then(
     () => toast.success(`${label} copiado`),
@@ -5146,6 +5326,10 @@ export function CollageBrollLab({
                         </button>
                       ))}
                     </div>
+                    <VersionComparison
+                      versions={selected.versions || []}
+                      activeVersion={selected.activeVersion || 1}
+                    />
                   </div>
                 )}
 
