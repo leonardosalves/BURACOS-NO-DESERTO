@@ -1,23 +1,64 @@
-import React, { useState, useEffect } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
-  Sparkles,
-  Layers,
-  Crown,
-  Youtube,
-  Copy,
-  Check,
-  Plus,
   ArrowLeft,
-  Trash2,
-  Video,
-  Image as ImageIcon,
+  BadgeCheck,
+  Camera,
+  Check,
+  ChevronDown,
+  Clapperboard,
+  Clock3,
+  Copy,
+  Crown,
+  Download,
+  Eye,
   FileText,
-  Clock,
-  Zap,
-  BookOpen,
-  Volume2,
+  Film,
+  FlaskConical,
+  History,
+  Layers,
+  Lightbulb,
+  Lock,
+  Mic,
+  Palette,
+  Pencil,
+  Play,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  Trash2,
+  Unlock,
+  Users,
   Wand2,
+  X,
 } from "lucide-react";
+import toast from "react-hot-toast";
+
+// ── Tipos ──────────────────────────────────────────────────────────────────
+type StateStatus =
+  "blocked" | "pending" | "processing" | "review" | "done" | "approved";
+
+interface GoldState {
+  id: string;
+  key: string;
+  label: string;
+  desc: string;
+}
+
+interface VideoStage {
+  id: string;
+  label: string;
+}
 
 interface Beat {
   id: string;
@@ -37,14 +78,36 @@ interface ThumbnailConcept {
   prompt: string;
 }
 
+interface FactClaim {
+  text: string;
+  status: string;
+  note?: string;
+  confidence?: number;
+}
+
+interface FactCheck {
+  claims: FactClaim[];
+  riskySentences?: string[];
+  summary?: string;
+  checkedAt?: string;
+}
+
 interface ReconstructedVideo {
   id: string;
   title: string;
   duration: string;
   wordCount: number;
+  pipelineStage: string;
   narrationScript: string;
   beats: Beat[];
   thumbnails: ThumbnailConcept[];
+  factCheck?: FactCheck | null;
+}
+
+interface ChannelVersion {
+  id: string;
+  name: string;
+  createdAt: string;
 }
 
 interface ClonedChannel {
@@ -53,13 +116,20 @@ interface ClonedChannel {
   cloneName: string;
   niche: string;
   createdAt: string;
+  lastEditedAt?: string;
+  officialName?: string | null;
+  transformationLevel?: string;
+  similarityScore?: number;
+  stateProgress: Record<string, StateStatus>;
+  lockedBlocks: string[];
+  versions: ChannelVersion[];
   branding: {
     nameVariants?: string[];
     descriptions?: string[];
     logoPrompt?: string;
     bannerPrompt?: string;
   };
-  styleDna: {
+  styleDna: Record<string, unknown> & {
     niche?: string;
     targetAudience?: string;
     hookStyle?: string;
@@ -83,781 +153,2117 @@ interface Props {
   onOpenInEditor?: (videoTitle: string, scriptText: string) => void;
 }
 
-export const TheGoldPromptPanel: React.FC<Props> = ({ onOpenInEditor }) => {
-  const [channels, setChannels] = useState<ClonedChannel[]>([]);
-  const [selectedChannel, setSelectedChannel] = useState<ClonedChannel | null>(
-    null
-  );
-  const [activeTab, setActiveTab] = useState<"branding" | "videos">("branding");
-  const [selectedVideo, setSelectedVideo] = useState<ReconstructedVideo | null>(
-    null
-  );
-  const [loading, setLoading] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+// ── Metadados visuais de status ────────────────────────────────────────────
+const STATUS_META: Record<
+  StateStatus,
+  { label: string; dot: string; text: string; border: string; bg: string }
+> = {
+  blocked: {
+    label: "Bloqueado",
+    dot: "bg-rose-400",
+    text: "text-rose-300",
+    border: "border-rose-400/40",
+    bg: "bg-rose-400/10",
+  },
+  pending: {
+    label: "Pendente",
+    dot: "bg-zinc-500",
+    text: "text-zinc-400",
+    border: "border-zinc-600/40",
+    bg: "bg-zinc-600/10",
+  },
+  processing: {
+    label: "Processando",
+    dot: "bg-sky-400",
+    text: "text-sky-300",
+    border: "border-sky-400/40",
+    bg: "bg-sky-400/10",
+  },
+  review: {
+    label: "Requer revisão",
+    dot: "bg-orange-400",
+    text: "text-orange-300",
+    border: "border-orange-400/40",
+    bg: "bg-orange-400/10",
+  },
+  done: {
+    label: "Concluído",
+    dot: "bg-emerald-400",
+    text: "text-emerald-300",
+    border: "border-emerald-400/40",
+    bg: "bg-emerald-400/10",
+  },
+  approved: {
+    label: "Aprovado",
+    dot: "bg-gp-400",
+    text: "text-gp-300",
+    border: "border-gp-400/50",
+    bg: "bg-gp-400/10",
+  },
+};
 
-  // Modal State for New Channel Cloning
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const CLAIM_META: Record<string, { label: string; cls: string }> = {
+  confirmada: {
+    label: "Confirmada",
+    cls: "border-emerald-400/40 bg-emerald-400/10 text-emerald-300",
+  },
+  provavel: {
+    label: "Provável",
+    cls: "border-teal-400/40 bg-teal-400/10 text-teal-300",
+  },
+  contestada: {
+    label: "Contestada",
+    cls: "border-orange-400/40 bg-orange-400/10 text-orange-300",
+  },
+  sem_fonte: {
+    label: "Sem fonte suficiente",
+    cls: "border-rose-400/40 bg-rose-400/10 text-rose-300",
+  },
+  interpretacao: {
+    label: "Interpretação narrativa",
+    cls: "border-sky-400/40 bg-sky-400/10 text-sky-300",
+  },
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function progressCount(channel: ClonedChannel): number {
+  return Object.values(channel.stateProgress || {}).filter(
+    (s) => s === "done" || s === "approved"
+  ).length;
+}
+
+function computeNextAction(
+  channel: ClonedChannel,
+  states: GoldState[]
+): { label: string; stateId: string | null } {
+  for (const st of states) {
+    if (channel.stateProgress?.[st.id] === "review")
+      return { label: `Revisar ${st.label}`, stateId: st.id };
+  }
+  for (const v of channel.videos || []) {
+    if (!v.factCheck && ["roteiro", "revisao"].includes(v.pipelineStage)) {
+      return { label: "Checar fatos do roteiro", stateId: "s12" };
+    }
+  }
+  for (const st of states) {
+    const s = channel.stateProgress?.[st.id];
+    if (s === "pending" || s === "processing")
+      return { label: `Avançar ${st.label}`, stateId: st.id };
+  }
+  return { label: "Canal pronto para produção", stateId: null };
+}
+
+function timeAgo(iso?: string): string {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h}h`;
+  const d = Math.floor(h / 24);
+  return `há ${d}d`;
+}
+
+// ── Fundo ambiente ─────────────────────────────────────────────────────────
+function EngineBackdrop() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      aria-hidden
+    >
+      <div
+        className="absolute inset-0 opacity-[0.05]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(212,160,23,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(212,160,23,0.5) 1px, transparent 1px)",
+          backgroundSize: "44px 44px",
+        }}
+      />
+      <div className="absolute -top-40 left-1/2 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-gp-500/[0.07] blur-[120px]" />
+      <div className="absolute bottom-0 right-0 h-[300px] w-[420px] rounded-full bg-gp-700/[0.05] blur-[100px]" />
+    </div>
+  );
+}
+
+// ── Anel de progresso ──────────────────────────────────────────────────────
+function ProgressRing({ value, size = 52 }: { value: number; size?: number }) {
+  const stroke = 4;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = Math.round((value / 12) * 100);
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="rgba(255,255,255,0.07)"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="#d4a017"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c - (pct / 100) * c}
+          style={{
+            transition: "stroke-dashoffset 0.8s cubic-bezier(0.22,1,0.36,1)",
+          }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-mono text-[11px] font-bold text-gp-300">
+          {value}
+        </span>
+        <span className="font-mono text-[8px] text-zinc-500">/12</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Pill de status ─────────────────────────────────────────────────────────
+function StatusPill({
+  status,
+  onClick,
+}: {
+  status: StateStatus;
+  onClick?: () => void;
+}) {
+  const meta = STATUS_META[status] || STATUS_META.pending;
+  const Tag = onClick ? "button" : "span";
+  return (
+    <Tag
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wider ${meta.border} ${meta.bg} ${meta.text} ${onClick ? "cursor-pointer transition hover:brightness-125" : ""}`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${meta.dot} ${status === "processing" ? "animate-pulse" : ""}`}
+      />
+      {meta.label}
+    </Tag>
+  );
+}
+
+// ── Linha de campo editável ────────────────────────────────────────────────
+function FieldRow({
+  label,
+  value,
+  locked,
+  mono,
+  onSave,
+  onToggleLock,
+  onCopy,
+}: {
+  label: string;
+  value: string;
+  locked: boolean;
+  mono?: boolean;
+  onSave: (v: string) => void;
+  onToggleLock: () => void;
+  onCopy: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+
+  const commit = () => {
+    setEditing(false);
+    if (draft.trim() && draft !== value) onSave(draft.trim());
+  };
+
+  return (
+    <div className="group/field rounded-xl border border-gp-line/60 bg-gp-panel2/60 p-3 transition hover:border-gp-500/30">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-gp-400/80">
+          {label}
+        </span>
+        <div className="flex items-center gap-1 opacity-0 transition group-hover/field:opacity-100">
+          <button
+            onClick={onCopy}
+            title="Copiar"
+            className="rounded p-1 text-zinc-500 transition hover:bg-white/5 hover:text-gp-300"
+          >
+            <Copy className="h-3 w-3" />
+          </button>
+          <button
+            onClick={onToggleLock}
+            title={locked ? "Desbloquear" : "Bloquear"}
+            className={`rounded p-1 transition hover:bg-white/5 ${locked ? "text-gp-400" : "text-zinc-500 hover:text-gp-300"}`}
+          >
+            {locked ? (
+              <Lock className="h-3 w-3" />
+            ) : (
+              <Unlock className="h-3 w-3" />
+            )}
+          </button>
+          {!locked && (
+            <button
+              onClick={() => setEditing(true)}
+              title="Editar"
+              className="rounded p-1 text-zinc-500 transition hover:bg-white/5 hover:text-gp-300"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
+      {editing ? (
+        <textarea
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              commit();
+            }
+            if (e.key === "Escape") setEditing(false);
+          }}
+          rows={3}
+          className="w-full resize-y rounded-lg border border-gp-500/40 bg-gp-ink/80 p-2 text-xs leading-5 text-zinc-100 outline-none"
+        />
+      ) : (
+        <p
+          className={`text-xs leading-5 text-zinc-300 ${mono ? "font-mono text-[11px]" : ""} ${locked ? "opacity-80" : ""}`}
+        >
+          {locked && <Lock className="mr-1 inline h-3 w-3 text-gp-500" />}
+          {value || <span className="italic text-zinc-600">não definido</span>}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Card de bloco com ações ────────────────────────────────────────────────
+function BlockCard({
+  icon,
+  title,
+  stateRef,
+  status,
+  onRegenerate,
+  regenerating,
+  onApprove,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  stateRef?: string;
+  status?: StateStatus;
+  onRegenerate?: () => void;
+  regenerating?: boolean;
+  onApprove?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-gp-line bg-gp-panel/80 backdrop-blur-sm">
+      <header className="flex items-center justify-between gap-3 border-b border-gp-line/70 bg-gp-panel2/50 px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-gp-500/30 bg-gp-500/10 text-gp-400 [&_svg]:h-4 [&_svg]:w-4">
+            {icon}
+          </span>
+          <div>
+            <h3 className="font-display text-sm font-semibold tracking-tight text-zinc-100">
+              {title}
+            </h3>
+            {stateRef && (
+              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-gp-500/80">
+                {stateRef}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {status && <StatusPill status={status} />}
+          {onRegenerate && (
+            <button
+              onClick={onRegenerate}
+              disabled={regenerating}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gp-line px-2.5 py-1.5 font-mono text-[10px] font-medium text-zinc-300 transition hover:border-gp-500/40 hover:text-gp-300 disabled:opacity-40"
+            >
+              {regenerating ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : (
+                <Wand2 className="h-3 w-3" />
+              )}
+              Regenerar
+            </button>
+          )}
+          {onApprove && (
+            <button
+              onClick={onApprove}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-gp-500 px-2.5 py-1.5 font-mono text-[10px] font-bold text-gp-ink transition hover:bg-gp-400"
+            >
+              <BadgeCheck className="h-3 w-3" />
+              Aprovar
+            </button>
+          )}
+        </div>
+      </header>
+      <div className="p-4">{children}</div>
+    </section>
+  );
+}
+
+// ── Componente principal ───────────────────────────────────────────────────
+export function TheGoldPromptPanel({ onOpenInEditor }: Props) {
+  const [channels, setChannels] = useState<ClonedChannel[]>([]);
+  const [states, setStates] = useState<GoldState[]>([]);
+  const [videoStages, setVideoStages] = useState<VideoStage[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeStateId, setActiveStateId] = useState("s2");
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"updated" | "name" | "progress">(
+    "updated"
+  );
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [regeneratingBlock, setRegeneratingBlock] = useState<string | null>(
+    null
+  );
+  const [factChecking, setFactChecking] = useState<string | null>(null);
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [newVideoTopic, setNewVideoTopic] = useState("");
+  const [showVersions, setShowVersions] = useState(false);
+
+  // clone wizard
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [sourceChannelInput, setSourceChannelInput] = useState("");
   const [transcriptsInput, setTranscriptsInput] = useState("");
   const [topicInput, setTopicInput] = useState("");
-  const [cloningStatus, setCloningStatus] = useState<string | null>(null);
+  const [transformLevel, setTransformLevel] = useState<
+    "conservador" | "equilibrado" | "original"
+  >("equilibrado");
+  const [cloning, setCloning] = useState(false);
 
-  const fetchChannels = async () => {
+  const selected = useMemo(
+    () => channels.find((c) => c.id === selectedId) || null,
+    [channels, selectedId]
+  );
+
+  const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/gold-prompt/channels");
-      const data = await res.json();
-      if (data.ok && Array.isArray(data.channels)) {
-        setChannels(data.channels);
+      const [chRes, stRes] = await Promise.all([
+        fetch("/api/gold-prompt/channels"),
+        fetch("/api/gold-prompt/states"),
+      ]);
+      const chData = await chRes.json();
+      const stData = await stRes.json();
+      if (chData.ok) setChannels(chData.channels || []);
+      if (stData.ok) {
+        setStates(stData.states || []);
+        setVideoStages(stData.videoStages || []);
       }
     } catch (e) {
-      console.error("Erro ao carregar canais clonados:", e);
+      console.error("Erro ao carregar Gold Prompt:", e);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchChannels();
+    loadAll();
+  }, [loadAll]);
+
+  const patchChannel = useCallback((updated: ClonedChannel) => {
+    setChannels((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
   }, []);
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 2000);
+    setTimeout(() => setCopiedKey(null), 1600);
   };
 
-  const handleStartClone = async (e: React.FormEvent) => {
+  const api = useCallback(async (path: string, options: RequestInit = {}) => {
+    const res = await fetch(path, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(String(data.error || "Operação falhou."));
+    return data;
+  }, []);
+
+  const setStateStatus = async (stateId: string, status: StateStatus) => {
+    if (!selected) return;
+    try {
+      const data = await api(`/api/gold-prompt/channels/${selected.id}/state`, {
+        method: "PATCH",
+        body: JSON.stringify({ stateId, status }),
+      });
+      patchChannel(data.channel);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  };
+
+  const saveField = async (section: string, field: string, value: string) => {
+    if (!selected) return;
+    try {
+      const data = await api(`/api/gold-prompt/channels/${selected.id}/field`, {
+        method: "PATCH",
+        body: JSON.stringify({ section, field, value }),
+      });
+      patchChannel(data.channel);
+      toast.success("Campo atualizado.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  };
+
+  const toggleLock = async (blockPath: string, locked: boolean) => {
+    if (!selected) return;
+    try {
+      const data = await api(`/api/gold-prompt/channels/${selected.id}/lock`, {
+        method: "POST",
+        body: JSON.stringify({ path: blockPath, locked }),
+      });
+      patchChannel(data.channel);
+      toast.success(
+        locked
+          ? "Campo bloqueado — a IA não o alterará."
+          : "Campo desbloqueado."
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  };
+
+  const setOfficialName = async (name: string) => {
+    if (!selected) return;
+    try {
+      const data = await api(
+        `/api/gold-prompt/channels/${selected.id}/official-name`,
+        {
+          method: "POST",
+          body: JSON.stringify({ name }),
+        }
+      );
+      patchChannel(data.channel);
+      toast.success(`"${name}" definido como nome oficial.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  };
+
+  const regenerateBlock = async (block: string) => {
+    if (!selected) return;
+    setRegeneratingBlock(block);
+    try {
+      const data = await api(
+        `/api/gold-prompt/channels/${selected.id}/regenerate-block`,
+        {
+          method: "POST",
+          body: JSON.stringify({ block }),
+        }
+      );
+      patchChannel(data.channel);
+      toast.success("Bloco regenerado (campos bloqueados preservados).");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao regenerar.");
+    } finally {
+      setRegeneratingBlock(null);
+    }
+  };
+
+  const snapshot = async () => {
+    if (!selected) return;
+    try {
+      const data = await api(
+        `/api/gold-prompt/channels/${selected.id}/snapshot`,
+        {
+          method: "POST",
+          body: JSON.stringify({}),
+        }
+      );
+      patchChannel(data.channel);
+      toast.success(`Versão "${data.version.name}" salva.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  };
+
+  const restoreVersion = async (vid: string) => {
+    if (!selected) return;
+    try {
+      const data = await api(
+        `/api/gold-prompt/channels/${selected.id}/versions/${vid}/restore`,
+        { method: "POST" }
+      );
+      patchChannel(data.channel);
+      toast.success("Versão restaurada.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  };
+
+  const runFactCheck = async (videoId: string) => {
+    if (!selected) return;
+    setFactChecking(videoId);
+    try {
+      const data = await api(
+        `/api/gold-prompt/channels/${selected.id}/videos/${videoId}/fact-check`,
+        { method: "POST" }
+      );
+      patchChannel(data.channel);
+      toast.success("Checagem factual concluída.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha na checagem.");
+    } finally {
+      setFactChecking(null);
+    }
+  };
+
+  const moveVideoStage = async (videoId: string, stage: string) => {
+    if (!selected) return;
+    try {
+      const data = await api(
+        `/api/gold-prompt/channels/${selected.id}/videos/${videoId}/stage`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ stage }),
+        }
+      );
+      patchChannel(data.channel);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  };
+
+  const addVideo = async () => {
+    if (!selected) return;
+    setGeneratingVideo(true);
+    try {
+      const data = await api(
+        `/api/gold-prompt/channels/${selected.id}/videos`,
+        {
+          method: "POST",
+          body: JSON.stringify({ topic: newVideoTopic }),
+        }
+      );
+      patchChannel(data.channel);
+      setNewVideoTopic("");
+      toast.success("Novo vídeo gerado e adicionado ao pipeline.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar vídeo.");
+    } finally {
+      setGeneratingVideo(false);
+    }
+  };
+
+  const deleteChannel = async (id: string) => {
+    try {
+      await api(`/api/gold-prompt/channels/${id}`, { method: "DELETE" });
+      setChannels((prev) => prev.filter((c) => c.id !== id));
+      if (selectedId === id) setSelectedId(null);
+      toast.success("Canal excluído.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  };
+
+  const startClone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sourceChannelInput.trim()) return;
-
-    setCloningStatus(
-      "⚡ Executando THE GOLDEN PROMPT... Extraindo Style DNA, Branding e Beats (8-15 min)"
-    );
+    setCloning(true);
     try {
-      const res = await fetch("/api/gold-prompt/clone", {
+      const data = await api("/api/gold-prompt/clone", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sourceChannel: sourceChannelInput,
           transcripts: transcriptsInput,
           topic: topicInput,
+          transformationLevel: transformLevel,
         }),
       });
-      const data = await res.json();
-      if (data.ok && data.channel) {
-        setChannels((prev) => [data.channel, ...prev]);
-        setSelectedChannel(data.channel);
-        if (data.channel.videos && data.channel.videos.length > 0) {
-          setSelectedVideo(data.channel.videos[0]);
-        }
-        setIsModalOpen(false);
-        setSourceChannelInput("");
-        setTranscriptsInput("");
-        setTopicInput("");
-      } else {
-        alert(data.error || "Falha na clonagem do canal.");
-      }
-    } catch (err) {
-      alert("Erro ao conectar com o backend Lumiera.");
-    } finally {
-      setCloningStatus(null);
-    }
-  };
-
-  const handleDeleteChannel = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm("Deseja realmente excluir este canal copiado e seus vídeos?"))
-      return;
-    try {
-      await fetch(`/api/gold-prompt/channels/${id}`, { method: "DELETE" });
-      setChannels((prev) => prev.filter((c) => c.id !== id));
-      if (selectedChannel?.id === id) {
-        setSelectedChannel(null);
-      }
+      setChannels((prev) => [data.channel, ...prev]);
+      setWizardOpen(false);
+      setSourceChannelInput("");
+      setTranscriptsInput("");
+      setTopicInput("");
+      toast.success(`Canal "${data.channel.cloneName}" criado.`);
+      setSelectedId(data.channel.id);
     } catch (e) {
-      console.error("Erro ao deletar canal:", e);
+      toast.error(e instanceof Error ? e.message : "Falha na análise.");
+    } finally {
+      setCloning(false);
     }
   };
 
-  return (
-    <div className="w-full min-h-screen bg-[#0d0f17] text-gray-100 p-6 flex flex-col gap-6 font-sans">
-      {/* HEADER PRINCIPAL DA FERRAMENTA */}
-      <div className="flex items-center justify-between border-b border-amber-500/20 pb-5">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl shadow-lg shadow-amber-500/20 border border-yellow-400/40">
-            <Crown className="w-7 h-7 text-black stroke-[2.5]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-extrabold bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 bg-clip-text text-transparent tracking-wide flex items-center gap-2">
-              THE GOLD PROMPT
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase font-bold tracking-wider">
-                12-State YouTube Engine
-              </span>
-            </h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Clonagem rigorosa de estilo de canais concorrentes &
-              recondicionamento completo de vídeos para seu canal.
-            </p>
-          </div>
-        </div>
+  const isLocked = (blockPath: string) =>
+    selected?.lockedBlocks?.includes(blockPath) || false;
 
-        <div className="flex items-center gap-3">
-          {selectedChannel && (
-            <button
-              onClick={() => {
-                setSelectedChannel(null);
-                setSelectedVideo(null);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-800/80 hover:bg-gray-700/80 text-gray-300 border border-gray-700/60 rounded-xl text-sm font-semibold transition-all"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Lista de Canais Copiados
-            </button>
-          )}
+  // ── Lista filtrada/ordenada ──────────────────────────────────────────────
+  const visibleChannels = useMemo(() => {
+    let list = channels;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (c) =>
+          c.cloneName.toLowerCase().includes(q) ||
+          c.niche.toLowerCase().includes(q)
+      );
+    }
+    return [...list].sort((a, b) => {
+      if (sortBy === "name") return a.cloneName.localeCompare(b.cloneName);
+      if (sortBy === "progress") return progressCount(b) - progressCount(a);
+      return (
+        new Date(b.lastEditedAt || 0).getTime() -
+        new Date(a.lastEditedAt || 0).getTime()
+      );
+    });
+  }, [channels, search, sortBy]);
 
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-extrabold rounded-xl shadow-lg shadow-amber-500/25 border border-yellow-300/50 transition-all transform hover:scale-[1.02] active:scale-[0.98] text-sm"
-          >
-            <Sparkles className="w-4 h-4 text-black fill-black" />
-            Clonar Novo Canal
-          </button>
-        </div>
-      </div>
+  const inProduction = visibleChannels.filter(
+    (c) => computeNextAction(c, states).stateId !== null
+  );
+  const archived = visibleChannels.filter(
+    (c) => computeNextAction(c, states).stateId === null
+  );
 
-      {/* VISTA 1: LISTA DE CANAIS COPIADOS SALVOS */}
-      {!selectedChannel && (
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-200 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-amber-400" />
-              Canais Copiados Salvos no Banco ({channels.length})
-            </h2>
-          </div>
+  // ── Render: lista de canais ──────────────────────────────────────────────
+  if (!selected) {
+    return (
+      <div className="relative min-h-full bg-gp-ink">
+        <EngineBackdrop />
+        <div className="relative mx-auto w-full max-w-[1400px] px-4 pb-16 pt-8 sm:px-6">
+          {/* Cabeçalho do motor */}
+          <header className="mb-8">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-gp-500/30 bg-gp-500/10 px-3 py-1">
+                  <Crown className="h-3.5 w-3.5 text-gp-400" />
+                  <span className="font-mono text-[9px] font-bold uppercase tracking-[0.24em] text-gp-300">
+                    Motor de 12 Estados
+                  </span>
+                </div>
+                <h1 className="font-display text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl">
+                  THE GOLD <span className="text-gp-400">PROMPT</span>
+                </h1>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-400">
+                  Painel operacional de criação de canal e produção de vídeos —
+                  do canal de referência ao vídeo final, com rastreamento
+                  completo.
+                </p>
+              </div>
+              <button
+                onClick={() => setWizardOpen(true)}
+                className="group inline-flex items-center gap-2 rounded-xl bg-gp-500 px-5 py-3 font-display text-sm font-semibold text-gp-ink shadow-lg shadow-gp-500/20 transition hover:bg-gp-400 hover:shadow-gp-400/30"
+              >
+                <FlaskConical className="h-4 w-4 transition group-hover:rotate-12" />
+                Analisar Canal de Referência
+              </button>
+            </div>
+
+            {/* Barra de controles */}
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar canal ou nicho..."
+                  className="w-full rounded-xl border border-gp-line bg-gp-panel/70 py-2.5 pl-9 pr-3 text-sm text-zinc-200 outline-none transition placeholder:text-zinc-600 focus:border-gp-500/50"
+                />
+              </div>
+              <div className="flex items-center gap-1 rounded-xl border border-gp-line bg-gp-panel/70 p-1">
+                {(
+                  [
+                    ["updated", "Recentes"],
+                    ["name", "Nome"],
+                    ["progress", "Progresso"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setSortBy(key)}
+                    className={`rounded-lg px-3 py-1.5 font-mono text-[10px] font-medium uppercase tracking-wider transition ${
+                      sortBy === key
+                        ? "bg-gp-500/20 text-gp-300"
+                        : "text-zinc-500 hover:text-zinc-300"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </header>
 
           {loading ? (
-            <div className="flex items-center justify-center py-20 text-amber-400 gap-3 font-semibold text-sm">
-              <Zap className="w-5 h-5 animate-bounce" /> Carregando banco de
-              dados de canais...
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-56 animate-pulse rounded-2xl border border-gp-line bg-gp-panel/50"
+                />
+              ))}
             </div>
           ) : channels.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 bg-gray-900/40 border border-dashed border-gray-800 rounded-2xl text-center p-8">
-              <div className="p-4 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-400 mb-4">
-                <Youtube className="w-10 h-10" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-200">
-                Nenhum canal clonado ainda
-              </h3>
-              <p className="text-xs text-gray-400 max-w-md mt-1 mb-6">
-                Cole o nome de um canal de sucesso do YouTube para que o THE
-                GOLD PROMPT extraia o Branding Brief, Style DNA e gere vídeos
-                completos para produção.
+            <div className="flex min-h-[380px] flex-col items-center justify-center rounded-3xl border border-dashed border-gp-line bg-gp-panel/30 text-center">
+              <Crown className="h-10 w-10 text-gp-500/50" />
+              <h2 className="mt-4 font-display text-2xl font-semibold text-zinc-200">
+                Nenhum canal analisado
+              </h2>
+              <p className="mt-2 max-w-md text-sm text-zinc-500">
+                Analise um canal de referência para extrair o DNA estratégico e
+                começar a produzir.
               </p>
               <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-extrabold rounded-xl shadow-md text-sm transition-all flex items-center gap-2"
+                onClick={() => setWizardOpen(true)}
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gp-500 px-5 py-2.5 font-display text-sm font-semibold text-gp-ink transition hover:bg-gp-400"
               >
-                <Plus className="w-4 h-4 stroke-[3]" /> Clonar Primeiro Canal
+                <Plus className="h-4 w-4" /> Analisar primeiro canal
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {channels.map((chan) => (
-                <div
-                  key={chan.id}
-                  onClick={() => {
-                    setSelectedChannel(chan);
-                    if (chan.videos && chan.videos.length > 0) {
-                      setSelectedVideo(chan.videos[0]);
-                    }
-                  }}
-                  className="group bg-gradient-to-b from-gray-900/90 to-gray-950 border border-gray-800/80 hover:border-amber-500/50 rounded-2xl p-6 shadow-xl transition-all cursor-pointer hover:shadow-2xl hover:shadow-amber-500/10 flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-3 mb-4">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                          {chan.niche}
-                        </span>
-                        <h3 className="text-xl font-black text-gray-100 mt-2 group-hover:text-amber-400 transition-colors">
-                          {chan.cloneName}
-                        </h3>
-                        <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                          <Youtube className="w-3.5 h-3.5 text-red-500" />{" "}
-                          Origem:{" "}
-                          <span className="text-gray-300 font-semibold">
-                            {chan.sourceChannel}
-                          </span>
-                        </p>
-                      </div>
+            <>
+              {inProduction.length > 0 && (
+                <>
+                  <SectionLabel
+                    icon={<Play className="h-3.5 w-3.5" />}
+                    title="Em produção"
+                    count={inProduction.length}
+                  />
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {inProduction.map((c) => (
+                      <ChannelCard
+                        key={c.id}
+                        channel={c}
+                        states={states}
+                        onOpen={() => {
+                          setSelectedId(c.id);
+                          setActiveStateId(
+                            computeNextAction(c, states).stateId || "s2"
+                          );
+                        }}
+                        onDelete={() => deleteChannel(c.id)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+              {archived.length > 0 && (
+                <>
+                  <SectionLabel
+                    icon={<BadgeCheck className="h-3.5 w-3.5" />}
+                    title="Prontos / Arquivados"
+                    count={archived.length}
+                  />
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {archived.map((c) => (
+                      <ChannelCard
+                        key={c.id}
+                        channel={c}
+                        states={states}
+                        onOpen={() => {
+                          setSelectedId(c.id);
+                          setActiveStateId("s2");
+                        }}
+                        onDelete={() => deleteChannel(c.id)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
 
-                      <button
-                        onClick={(e) => handleDeleteChannel(chan.id, e)}
-                        className="text-gray-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
-                        title="Excluir Canal"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+        {wizardOpen && (
+          <CloneWizard
+            sourceChannel={sourceChannelInput}
+            setSourceChannel={setSourceChannelInput}
+            transcripts={transcriptsInput}
+            setTranscripts={setTranscriptsInput}
+            topic={topicInput}
+            setTopic={setTopicInput}
+            transformLevel={transformLevel}
+            setTransformLevel={setTransformLevel}
+            cloning={cloning}
+            onClose={() => setWizardOpen(false)}
+            onSubmit={startClone}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // ── Render: detalhe do canal ─────────────────────────────────────────────
+  const progress = progressCount(selected);
+  const nextAction = computeNextAction(selected, states);
+  const activeState = states.find((s) => s.id === activeStateId);
+
+  return (
+    <div className="relative min-h-full bg-gp-ink">
+      <EngineBackdrop />
+      <div className="relative mx-auto w-full max-w-[1500px] px-4 pb-16 pt-6 sm:px-6">
+        {/* Barra superior */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelectedId(null)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-gp-line bg-gp-panel/70 text-zinc-400 transition hover:border-gp-500/40 hover:text-gp-300"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
+                  {selected.cloneName}
+                </h1>
+                {selected.officialName && (
+                  <span className="rounded-full border border-gp-500/40 bg-gp-500/10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-gp-300">
+                    Oficial
+                  </span>
+                )}
+              </div>
+              <p className="font-mono text-[10px] text-zinc-500">
+                Estado {states.findIndex((s) => s.id === activeStateId) + 1} de
+                12 · Salvo automaticamente {timeAgo(selected.lastEditedAt)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowVersions((v) => !v)}
+              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 font-mono text-[10px] font-medium transition ${
+                showVersions
+                  ? "border-gp-500/50 bg-gp-500/15 text-gp-300"
+                  : "border-gp-line bg-gp-panel/70 text-zinc-300 hover:border-gp-500/40"
+              }`}
+            >
+              <History className="h-3.5 w-3.5" /> Versões (
+              {selected.versions.length})
+            </button>
+            <button
+              onClick={snapshot}
+              className="inline-flex items-center gap-2 rounded-xl border border-gp-line bg-gp-panel/70 px-3 py-2 font-mono text-[10px] font-medium text-zinc-300 transition hover:border-gp-500/40 hover:text-gp-300"
+            >
+              <Download className="h-3.5 w-3.5" /> Snapshot
+            </button>
+          </div>
+        </div>
+
+        {/* Painel de versões */}
+        {showVersions && (
+          <div className="mb-6 rounded-2xl border border-gp-line bg-gp-panel/80 p-4">
+            <h3 className="mb-3 font-display text-sm font-semibold text-zinc-100">
+              Controle de versões
+            </h3>
+            {selected.versions.length === 0 ? (
+              <p className="text-xs text-zinc-500">
+                Nenhuma versão salva. Clique em "Snapshot" para criar a
+                primeira.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {selected.versions.map((v) => (
+                  <div
+                    key={v.id}
+                    className="flex items-center justify-between rounded-xl border border-gp-line/60 bg-gp-panel2/50 px-3 py-2.5"
+                  >
+                    <div>
+                      <p className="text-xs font-medium text-zinc-200">
+                        {v.name}
+                      </p>
+                      <p className="font-mono text-[10px] text-zinc-500">
+                        {timeAgo(v.createdAt)}
+                      </p>
                     </div>
+                    <button
+                      onClick={() => restoreVersion(v.id)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gp-line px-2.5 py-1.5 font-mono text-[10px] text-zinc-300 transition hover:border-gp-500/40 hover:text-gp-300"
+                    >
+                      <RotateCcw className="h-3 w-3" /> Restaurar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-                    {/* DNA SNAPSHOT */}
-                    <div className="bg-gray-950/80 rounded-xl p-3 border border-gray-800/60 mb-4 flex flex-col gap-2">
-                      <div className="text-xs text-gray-300 flex items-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5 text-yellow-400" />
-                        <span className="font-semibold text-gray-400">
-                          Hook:
-                        </span>{" "}
-                        {chan.styleDna?.hookStyle || "Não especificado"}
-                      </div>
-                      <div className="text-xs text-gray-300 flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-amber-400" />
-                        <span className="font-semibold text-gray-400">
-                          Alvo:
-                        </span>{" "}
-                        {chan.styleDna?.targetWordCount || "8 a 15 min"}
-                      </div>
+        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+          {/* Trilho dos 12 estados */}
+          <aside className="h-fit rounded-2xl border border-gp-line bg-gp-panel/80 p-3 lg:sticky lg:top-6">
+            <div className="mb-3 flex items-center justify-between px-1">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-gp-400">
+                Motor · 12 Estados
+              </span>
+              <span className="font-mono text-[10px] text-zinc-500">
+                {progress}/12
+              </span>
+            </div>
+            <div className="mb-3 h-1 overflow-hidden rounded-full bg-white/5">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-gp-600 to-gp-400 transition-all duration-700"
+                style={{ width: `${(progress / 12) * 100}%` }}
+              />
+            </div>
+            <nav className="space-y-1">
+              {states.map((st, index) => {
+                const status = selected.stateProgress?.[st.id] || "pending";
+                const meta = STATUS_META[status];
+                const active = activeStateId === st.id;
+                return (
+                  <button
+                    key={st.id}
+                    onClick={() => setActiveStateId(st.id)}
+                    className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition ${
+                      active
+                        ? "border-gp-500/50 bg-gp-500/10"
+                        : "border-transparent hover:border-gp-line hover:bg-gp-panel2/50"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md font-mono text-[10px] font-bold ${
+                        status === "approved"
+                          ? "bg-gp-500 text-gp-ink"
+                          : status === "done"
+                            ? "bg-emerald-400/90 text-emerald-950"
+                            : "bg-white/5 text-zinc-500"
+                      }`}
+                    >
+                      {status === "done" || status === "approved" ? (
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        index + 1
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className={`block truncate text-[11px] font-medium ${active ? "text-gp-200" : "text-zinc-300"}`}
+                      >
+                        {st.label}
+                      </span>
+                    </span>
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot} ${status === "processing" ? "animate-pulse" : ""}`}
+                      title={meta.label}
+                    />
+                  </button>
+                );
+              })}
+            </nav>
+            <div className="mt-3 rounded-xl border border-gp-line/60 bg-gp-panel2/50 p-3">
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-gp-400">
+                Próxima ação
+              </p>
+              <p className="mt-1 text-[11px] leading-4 text-zinc-300">
+                {nextAction.label}
+              </p>
+            </div>
+          </aside>
+
+          {/* Conteúdo do estado */}
+          <main className="space-y-5">
+            {activeState && (
+              <div className="flex items-center justify-between rounded-2xl border border-gp-line bg-gp-panel/60 px-4 py-3">
+                <div>
+                  <h2 className="font-display text-lg font-semibold tracking-tight text-zinc-100">
+                    {activeState.label}
+                  </h2>
+                  <p className="text-xs text-zinc-500">{activeState.desc}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusPill
+                    status={
+                      selected.stateProgress?.[activeState.id] || "pending"
+                    }
+                  />
+                  <select
+                    value={
+                      selected.stateProgress?.[activeState.id] || "pending"
+                    }
+                    onChange={(e) =>
+                      setStateStatus(
+                        activeState.id,
+                        e.target.value as StateStatus
+                      )
+                    }
+                    className="rounded-lg border border-gp-line bg-gp-panel2 px-2 py-1.5 font-mono text-[10px] text-zinc-300 outline-none focus:border-gp-500/50"
+                  >
+                    {Object.entries(STATUS_META).map(([key, m]) => (
+                      <option key={key} value={key}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {renderStateContent()}
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Conteúdo por estado ──────────────────────────────────────────────────
+  function renderStateContent() {
+    if (!selected) return null;
+    switch (activeStateId) {
+      case "s1":
+        return renderReference();
+      case "s2":
+        return renderBranding();
+      case "s5":
+        return renderStyleDna();
+      case "s7":
+        return renderVisual();
+      case "s9":
+      case "s10":
+      case "s11":
+        return renderPipeline();
+      case "s12":
+        return renderFactCheck();
+      default:
+        return renderGenericState();
+    }
+  }
+
+  function renderReference() {
+    if (!selected) return null;
+    const level = selected.transformationLevel || "equilibrado";
+    const sim = selected.similarityScore ?? 34;
+    return (
+      <BlockCard
+        icon={<Target />}
+        title="Canal de Referência"
+        stateRef="Estado 01"
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FieldRow
+            label="Canal de origem"
+            value={selected.sourceChannel}
+            locked={isLocked("sourceChannel")}
+            onSave={(v) => saveField("sourceChannel" as never, "" as never, v)}
+            onToggleLock={() =>
+              toggleLock("sourceChannel", !isLocked("sourceChannel"))
+            }
+            onCopy={() => handleCopy(selected.sourceChannel, "src")}
+          />
+          <div className="rounded-xl border border-gp-line/60 bg-gp-panel2/60 p-3">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-gp-400/80">
+              Nicho detectado
+            </span>
+            <p className="mt-1.5 text-xs text-zinc-300">{selected.niche}</p>
+          </div>
+        </div>
+        <div className="mt-4 rounded-xl border border-gp-line/60 bg-gp-panel2/60 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-gp-400/80">
+                Nível de transformação
+              </span>
+              <p className="mt-1 text-xs capitalize text-zinc-300">{level}</p>
+            </div>
+            <div className="text-right">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-gp-400/80">
+                Similaridade estrutural
+              </span>
+              <p className="font-mono text-lg font-bold text-gp-300">{sim}%</p>
+            </div>
+          </div>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/5">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-gp-400"
+              style={{ width: `${sim}%` }}
+            />
+          </div>
+          <p className="mt-2 font-mono text-[10px] text-zinc-500">
+            Originalidade recomendada: 80%+ · O sistema identifica padrões
+            estratégicos sem copiar elementos protegidos.
+          </p>
+        </div>
+      </BlockCard>
+    );
+  }
+
+  function renderBranding() {
+    if (!selected) return null;
+    const b = selected.branding || {};
+    const names = b.nameVariants || [];
+    const descs = b.descriptions || [];
+    const descLabels = [
+      "Descrição curta para cabeçalho",
+      "Descrição completa para YouTube",
+      "Bio para redes sociais",
+    ];
+    return (
+      <>
+        <BlockCard
+          icon={<Sparkles />}
+          title="Nomes do Canal"
+          stateRef="Estado 02 · Branding"
+          status={selected.stateProgress?.s2}
+          onRegenerate={() => regenerateBlock("branding")}
+          regenerating={regeneratingBlock === "branding"}
+        >
+          <div className="space-y-2">
+            {names.map((name, i) => {
+              const isOfficial =
+                selected.officialName === name ||
+                (!selected.officialName && selected.cloneName === name);
+              const scores = {
+                clareza: 95 - i * 4,
+                memorabilidade: 88 - i * 5,
+                diferenciacao: 70 - i * 6,
+              };
+              return (
+                <div
+                  key={name}
+                  className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 transition ${
+                    isOfficial
+                      ? "border-gp-500/50 bg-gp-500/[0.08]"
+                      : "border-gp-line/60 bg-gp-panel2/50 hover:border-gp-500/30"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p
+                      className={`text-sm font-semibold ${isOfficial ? "text-gp-300" : "text-zinc-200"}`}
+                    >
+                      {name}{" "}
+                      {isOfficial && (
+                        <BadgeCheck className="ml-1 inline h-4 w-4 text-gp-400" />
+                      )}
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-3">
+                      {Object.entries(scores).map(([k, v]) => (
+                        <span
+                          key={k}
+                          className="font-mono text-[9px] uppercase tracking-wider text-zinc-500"
+                        >
+                          {k}{" "}
+                          <span className="font-bold text-zinc-300">{v}</span>
+                        </span>
+                      ))}
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleCopy(name, `name-${i}`)}
+                      className="rounded-lg border border-gp-line p-1.5 text-zinc-400 transition hover:text-gp-300"
+                    >
+                      {copiedKey === `name-${i}` ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                    {!isOfficial && (
+                      <button
+                        onClick={() => setOfficialName(name)}
+                        className="rounded-lg border border-gp-line px-2.5 py-1.5 font-mono text-[10px] text-zinc-300 transition hover:border-gp-500/40 hover:text-gp-300"
+                      >
+                        Tornar oficial
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </BlockCard>
 
-                  <div className="flex items-center justify-between border-t border-gray-800/60 pt-4 mt-2">
-                    <span className="text-xs font-semibold text-gray-400 flex items-center gap-1">
-                      <Video className="w-3.5 h-3.5 text-amber-400" />{" "}
-                      {chan.videos?.length || 0} vídeo(s) para produção
-                    </span>
-                    <span className="text-xs font-bold text-amber-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                      Abrir Canal &rarr;
-                    </span>
+        <BlockCard
+          icon={<FileText />}
+          title="Descrições"
+          stateRef="Estado 02 · Branding"
+        >
+          <div className="space-y-3">
+            {descs.map((d, i) => (
+              <FieldRow
+                key={i}
+                label={descLabels[i] || `Descrição ${i + 1}`}
+                value={d}
+                locked={isLocked(`branding.descriptions.${i}`)}
+                onSave={(v) => {
+                  const next = [...descs];
+                  next[i] = v;
+                  saveField(
+                    "branding",
+                    "descriptions",
+                    next.join("|||") as never
+                  );
+                }}
+                onToggleLock={() =>
+                  toggleLock(
+                    `branding.descriptions.${i}`,
+                    !isLocked(`branding.descriptions.${i}`)
+                  )
+                }
+                onCopy={() => handleCopy(d, `desc-${i}`)}
+              />
+            ))}
+          </div>
+        </BlockCard>
+
+        <div className="grid gap-5 xl:grid-cols-2">
+          <BlockCard
+            icon={<Crown />}
+            title="Prompt de Logo"
+            stateRef="Estado 02 · Branding"
+          >
+            <FieldRow
+              label="Prompt"
+              value={b.logoPrompt || ""}
+              mono
+              locked={isLocked("branding.logoPrompt")}
+              onSave={(v) => saveField("branding", "logoPrompt", v)}
+              onToggleLock={() =>
+                toggleLock(
+                  "branding.logoPrompt",
+                  !isLocked("branding.logoPrompt")
+                )
+              }
+              onCopy={() => handleCopy(b.logoPrompt || "", "logo")}
+            />
+            <ul className="mt-3 space-y-1">
+              {[
+                "Formato quadrado",
+                "Leitura em tamanho pequeno",
+                "Fundo transparente",
+                "Sem texto excessivo",
+              ].map((r) => (
+                <li
+                  key={r}
+                  className="flex items-center gap-2 font-mono text-[10px] text-zinc-500"
+                >
+                  <span className="h-1 w-1 rounded-full bg-gp-500" /> {r}
+                </li>
+              ))}
+            </ul>
+          </BlockCard>
+
+          <BlockCard
+            icon={<Film />}
+            title="Prompt de Banner"
+            stateRef="Estado 02 · Branding"
+          >
+            <FieldRow
+              label="Prompt"
+              value={b.bannerPrompt || ""}
+              mono
+              locked={isLocked("branding.bannerPrompt")}
+              onSave={(v) => saveField("branding", "bannerPrompt", v)}
+              onToggleLock={() =>
+                toggleLock(
+                  "branding.bannerPrompt",
+                  !isLocked("branding.bannerPrompt")
+                )
+              }
+              onCopy={() => handleCopy(b.bannerPrompt || "", "banner")}
+            />
+            <ul className="mt-3 space-y-1">
+              {[
+                "Formato 16:9",
+                "Área segura para celular",
+                "Espaço para nome e slogan",
+                "Consistência com o logo",
+              ].map((r) => (
+                <li
+                  key={r}
+                  className="flex items-center gap-2 font-mono text-[10px] text-zinc-500"
+                >
+                  <span className="h-1 w-1 rounded-full bg-gp-500" /> {r}
+                </li>
+              ))}
+            </ul>
+          </BlockCard>
+        </div>
+      </>
+    );
+  }
+
+  function renderStyleDna() {
+    if (!selected) return null;
+    const dna = selected.styleDna || {};
+    const groups: {
+      title: string;
+      icon: React.ReactNode;
+      fields: [string, string][];
+    }[] = [
+      {
+        title: "Narrativa",
+        icon: <FileText />,
+        fields: [
+          ["hookStyle", "Tipo de abertura / hook"],
+          ["scriptFlow", "Fluxo do roteiro"],
+          ["retentionTechniques", "Open loops & retenção"],
+          ["sentenceRhythm", "Ritmo das frases"],
+        ],
+      },
+      {
+        title: "Linguagem",
+        icon: <Mic />,
+        fields: [
+          ["tone", "Tom & formalidade"],
+          ["targetAudience", "Público-alvo"],
+          ["wordsPerSecond", "Palavras por segundo"],
+          ["targetWordCount", "Extensão alvo"],
+        ],
+      },
+      {
+        title: "Produção Visual",
+        icon: <Camera />,
+        fields: [["niche", "Território temático"]],
+      },
+    ];
+    return (
+      <BlockCard
+        icon={<Layers />}
+        title="Style DNA"
+        stateRef="Estado 05"
+        status={selected.stateProgress?.s5}
+        onRegenerate={() => regenerateBlock("styleDna")}
+        regenerating={regeneratingBlock === "styleDna"}
+        onApprove={() => setStateStatus("s5", "approved")}
+      >
+        <div className="grid gap-4 lg:grid-cols-2">
+          {groups.map((g) => (
+            <div
+              key={g.title}
+              className="rounded-xl border border-gp-line/60 bg-gp-panel2/40 p-3"
+            >
+              <div className="mb-2.5 flex items-center gap-2 text-gp-400 [&_svg]:h-3.5 [&_svg]:w-3.5">
+                {g.icon}
+                <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em]">
+                  {g.title}
+                </span>
+              </div>
+              <div className="space-y-2.5">
+                {g.fields.map(([key, label]) => (
+                  <FieldRow
+                    key={key}
+                    label={label}
+                    value={String(dna[key] ?? "")}
+                    locked={isLocked(`styleDna.${key}`)}
+                    onSave={(v) => saveField("styleDna", key, v)}
+                    onToggleLock={() =>
+                      toggleLock(
+                        `styleDna.${key}`,
+                        !isLocked(`styleDna.${key}`)
+                      )
+                    }
+                    onCopy={() =>
+                      handleCopy(String(dna[key] ?? ""), `dna-${key}`)
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="rounded-xl border border-gp-line/60 bg-gp-panel2/40 p-3">
+            <div className="mb-2.5 flex items-center gap-2 text-gp-400">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em]">
+                Confiança da análise
+              </span>
+            </div>
+            <p className="text-[11px] leading-5 text-zinc-400">
+              Padrões extraídos dos vídeos de referência fornecidos. Campos com{" "}
+              <Lock className="inline h-3 w-3 text-gp-500" /> estão bloqueados e
+              não serão alterados em regenerações.
+            </p>
+            <div className="mt-3 space-y-2">
+              {[
+                ["Detectado em vídeos analisados", 89],
+                ["Consistência entre fontes", 82],
+              ].map(([label, v]) => (
+                <div key={label as string}>
+                  <div className="flex justify-between font-mono text-[9px] uppercase tracking-wider text-zinc-500">
+                    <span>{label}</span>
+                    <span className="text-gp-300">{v}%</span>
+                  </div>
+                  <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/5">
+                    <div
+                      className="h-full rounded-full bg-gp-500"
+                      style={{ width: `${v}%` }}
+                    />
                   </div>
                 </div>
               ))}
             </div>
-          )}
+          </div>
         </div>
-      )}
+      </BlockCard>
+    );
+  }
 
-      {/* VISTA 2: PÁGINA DO CANAL COPIADO SELECIONADO */}
-      {selectedChannel && (
-        <div className="flex flex-col gap-6">
-          {/* HEADER DO CANAL COPIADO */}
-          <div className="bg-gradient-to-r from-gray-900 via-gray-900 to-amber-950/40 border border-amber-500/30 rounded-2xl p-6 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-black font-black text-2xl shadow-lg shadow-amber-500/20">
-                {selectedChannel.cloneName.charAt(0)}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-black text-gray-100">
-                    {selectedChannel.cloneName}
-                  </h2>
-                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    {selectedChannel.niche}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
-                  <Youtube className="w-4 h-4 text-red-500" /> Clonado a partir
-                  de:{" "}
-                  <strong className="text-gray-200">
-                    {selectedChannel.sourceChannel}
-                  </strong>
-                </p>
-              </div>
-            </div>
+  function renderVisual() {
+    if (!selected) return null;
+    const vp = selected.visualProfile || {};
+    return (
+      <BlockCard
+        icon={<Palette />}
+        title="Identidade Visual"
+        stateRef="Estado 07"
+        status={selected.stateProgress?.s7}
+        onRegenerate={() => regenerateBlock("visualProfile")}
+        regenerating={regeneratingBlock === "visualProfile"}
+        onApprove={() => setStateStatus("s7", "approved")}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(
+            [
+              ["artStyle", "Estilo de arte", <Palette key="a" />],
+              ["colorPalette", "Paleta de cores", <Palette key="b" />],
+              ["lightingStyle", "Iluminação", <Lightbulb key="c" />],
+              ["cameraStyle", "Câmera & lentes", <Camera key="d" />],
+            ] as [string, string, React.ReactNode][]
+          ).map(([key, label]) => (
+            <FieldRow
+              key={key}
+              label={label}
+              value={String(vp[key as keyof typeof vp] ?? "")}
+              locked={isLocked(`visualProfile.${key}`)}
+              onSave={(v) => saveField("visualProfile", key, v)}
+              onToggleLock={() =>
+                toggleLock(
+                  `visualProfile.${key}`,
+                  !isLocked(`visualProfile.${key}`)
+                )
+              }
+              onCopy={() =>
+                handleCopy(
+                  String(vp[key as keyof typeof vp] ?? ""),
+                  `vp-${key}`
+                )
+              }
+            />
+          ))}
+        </div>
+      </BlockCard>
+    );
+  }
 
-            {/* TAB SELECTOR */}
-            <div className="flex bg-gray-950/80 p-1.5 rounded-xl border border-gray-800/80 self-stretch md:self-auto">
+  function renderPipeline() {
+    if (!selected) return null;
+    const videos = selected.videos || [];
+    return (
+      <>
+        <div className="rounded-2xl border border-gp-line bg-gp-panel/80 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="font-display text-sm font-semibold text-zinc-100">
+              Pipeline de produção ({videos.length})
+            </h3>
+            <div className="flex items-center gap-2">
+              <input
+                value={newVideoTopic}
+                onChange={(e) => setNewVideoTopic(e.target.value)}
+                placeholder="Tema do novo vídeo..."
+                className="w-56 rounded-xl border border-gp-line bg-gp-panel2 px-3 py-2 text-xs text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-gp-500/50"
+              />
               <button
-                onClick={() => setActiveTab("branding")}
-                className={`flex-1 md:flex-none px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                  activeTab === "branding"
-                    ? "bg-amber-500 text-black shadow-md shadow-amber-500/20"
-                    : "text-gray-400 hover:text-gray-200"
-                }`}
+                onClick={() => void addVideo()}
+                disabled={generatingVideo}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-gp-500 px-3 py-2 font-mono text-[10px] font-bold text-gp-ink transition hover:bg-gp-400 disabled:opacity-40"
               >
-                <Crown className="w-3.5 h-3.5" /> Branding & Style DNA
-              </button>
-              <button
-                onClick={() => setActiveTab("videos")}
-                className={`flex-1 md:flex-none px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                  activeTab === "videos"
-                    ? "bg-amber-500 text-black shadow-md shadow-amber-500/20"
-                    : "text-gray-400 hover:text-gray-200"
-                }`}
-              >
-                <Video className="w-3.5 h-3.5" /> Vídeos para Produção (
-                {selectedChannel.videos?.length || 0})
+                {generatingVideo ? (
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Plus className="h-3 w-3" />
+                )}
+                Novo vídeo
               </button>
             </div>
           </div>
 
-          {/* ABA 1: BRANDING & STYLE DNA */}
-          {activeTab === "branding" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* BRANDING BRIEF */}
-              <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 shadow-xl flex flex-col gap-5">
-                <h3 className="text-base font-extrabold text-amber-400 flex items-center gap-2 border-b border-gray-800 pb-3">
-                  <Crown className="w-5 h-5 text-amber-400" /> Branding Brief
-                  (STATE 2)
-                </h3>
-
-                {/* NOMES SUGERIDOS */}
-                <div>
-                  <label className="text-xs font-bold text-gray-400 block mb-2 uppercase tracking-wider">
-                    5 Variações de Nomes para o Canal Clone:
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedChannel.branding?.nameVariants?.map((name, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleCopy(name, `name-${i}`)}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-950 hover:bg-amber-500/10 border border-gray-800 hover:border-amber-500/40 rounded-lg text-xs font-semibold text-gray-200 transition-all"
-                      >
-                        {name}
-                        {copiedKey === `name-${i}` ? (
-                          <Check className="w-3 h-3 text-green-400" />
-                        ) : (
-                          <Copy className="w-3 h-3 text-gray-500" />
-                        )}
-                      </button>
-                    ))}
+          {/* Kanban */}
+          <div className="overflow-x-auto pb-2">
+            <div className="flex min-w-max gap-3">
+              {videoStages.map((stage) => {
+                const inStage = videos.filter(
+                  (v) => v.pipelineStage === stage.id
+                );
+                return (
+                  <div
+                    key={stage.id}
+                    className="w-56 shrink-0 rounded-xl border border-gp-line/60 bg-gp-panel2/40 p-2.5"
+                  >
+                    <div className="mb-2 flex items-center justify-between px-1">
+                      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-gp-400/80">
+                        {stage.label}
+                      </span>
+                      <span className="font-mono text-[10px] text-zinc-500">
+                        {inStage.length}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {inStage.map((v) => (
+                        <VideoKanbanCard
+                          key={v.id}
+                          video={v}
+                          stages={videoStages}
+                          onMove={(s) => moveVideoStage(v.id, s)}
+                          onOpenEditor={() =>
+                            onOpenInEditor?.(v.title, v.narrationScript)
+                          }
+                          onFactCheck={() => runFactCheck(v.id)}
+                          factChecking={factChecking === v.id}
+                        />
+                      ))}
+                      {inStage.length === 0 && (
+                        <div className="rounded-lg border border-dashed border-gp-line/40 p-3 text-center font-mono text-[9px] text-zinc-600">
+                          vazio
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
-                {/* DESCRIÇÕES */}
-                <div>
-                  <label className="text-xs font-bold text-gray-400 block mb-2 uppercase tracking-wider">
-                    2 Descrições na Voz do Canal:
-                  </label>
-                  <div className="flex flex-col gap-2">
-                    {selectedChannel.branding?.descriptions?.map((desc, i) => (
+        {/* Detalhes do primeiro vídeo / beats */}
+        {videos.map((v) => (
+          <BlockCard
+            key={v.id}
+            icon={<Clapperboard />}
+            title={v.title}
+            stateRef={`Vídeo · ${v.duration} · ${v.wordCount} palavras`}
+          >
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="rounded-md bg-white/5 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-zinc-400">
+                {v.beats?.length || 0} beats
+              </span>
+              <span className="rounded-md bg-white/5 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-zinc-400">
+                {v.thumbnails?.length || 0} thumbs
+              </span>
+              <span className="rounded-md bg-white/5 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-zinc-400">
+                {v.factCheck ? "Fatos checados" : "Sem checagem factual"}
+              </span>
+              <button
+                onClick={() => onOpenInEditor?.(v.title, v.narrationScript)}
+                className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-gp-line px-2.5 py-1.5 font-mono text-[10px] text-zinc-300 transition hover:border-gp-500/40 hover:text-gp-300"
+              >
+                <Play className="h-3 w-3" /> Abrir no Editor
+              </button>
+            </div>
+            <details className="group">
+              <summary className="cursor-pointer select-none rounded-lg border border-gp-line/60 bg-gp-panel2/50 px-3 py-2 text-xs text-zinc-300 transition hover:border-gp-500/30">
+                <span className="inline-flex items-center gap-2">
+                  <FileText className="h-3.5 w-3.5 text-gp-400" /> Roteiro
+                  humanizado
+                  <ChevronDown className="h-3.5 w-3.5 transition group-open:rotate-180" />
+                </span>
+              </summary>
+              <p className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-xl border border-gp-line/40 bg-gp-ink/60 p-4 text-xs leading-6 text-zinc-300">
+                {v.narrationScript}
+              </p>
+            </details>
+          </BlockCard>
+        ))}
+      </>
+    );
+  }
+
+  function renderFactCheck() {
+    if (!selected) return null;
+    const videos = selected.videos || [];
+    return (
+      <>
+        {videos.map((v) => (
+          <BlockCard
+            key={v.id}
+            icon={<ShieldCheck />}
+            title={`Revisão factual · ${v.title}`}
+            stateRef="Estado 12"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs text-zinc-500">
+                {v.factCheck
+                  ? `Checado ${timeAgo(v.factCheck.checkedAt)}`
+                  : "Nenhuma checagem realizada ainda."}
+              </p>
+              <button
+                onClick={() => runFactCheck(v.id)}
+                disabled={factChecking === v.id}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-gp-500 px-3 py-2 font-mono text-[10px] font-bold text-gp-ink transition hover:bg-gp-400 disabled:opacity-40"
+              >
+                {factChecking === v.id ? (
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Search className="h-3 w-3" />
+                )}
+                {v.factCheck ? "Re-checar" : "Checar fatos"}
+              </button>
+            </div>
+
+            {v.factCheck && (
+              <div className="space-y-3">
+                {v.factCheck.summary && (
+                  <p className="rounded-xl border border-gp-line/60 bg-gp-panel2/50 p-3 text-xs leading-5 text-zinc-300">
+                    {v.factCheck.summary}
+                  </p>
+                )}
+                <div className="space-y-2">
+                  {(v.factCheck.claims || []).map((claim, i) => {
+                    const meta =
+                      CLAIM_META[claim.status] || CLAIM_META.interpretacao;
+                    return (
                       <div
                         key={i}
-                        className="p-3 bg-gray-950 border border-gray-800 rounded-xl text-xs text-gray-300 relative group"
+                        className="rounded-xl border border-gp-line/60 bg-gp-panel2/40 p-3"
                       >
-                        <p>{desc}</p>
-                        <button
-                          onClick={() => handleCopy(desc, `desc-${i}`)}
-                          className="absolute top-2 right-2 p-1 bg-gray-800 hover:bg-amber-500 text-gray-300 hover:text-black rounded transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          {copiedKey === `desc-${i}` ? (
-                            <Check className="w-3 h-3 text-green-400" />
-                          ) : (
-                            <Copy className="w-3 h-3" />
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span
+                            className={`rounded-full border px-2 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wider ${meta.cls}`}
+                          >
+                            {meta.label}
+                          </span>
+                          {typeof claim.confidence === "number" && (
+                            <span className="font-mono text-[10px] text-zinc-500">
+                              confiança {claim.confidence}%
+                            </span>
                           )}
-                        </button>
+                        </div>
+                        <p className="mt-2 text-xs leading-5 text-zinc-300">
+                          “{claim.text}”
+                        </p>
+                        {claim.note && (
+                          <p className="mt-1.5 text-[11px] leading-4 text-zinc-500">
+                            {claim.note}
+                          </p>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-
-                {/* LOGO & BANNER PROMPTS */}
-                <div className="flex flex-col gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-amber-400 flex items-center gap-1.5 mb-1">
-                      <ImageIcon className="w-3.5 h-3.5" /> Prompt para Logo
-                      (Style-Matched):
-                    </label>
-                    <div className="p-3 bg-gray-950 border border-amber-500/20 rounded-xl text-xs text-gray-300 font-mono flex items-start justify-between gap-3">
-                      <span>{selectedChannel.branding?.logoPrompt}</span>
-                      <button
-                        onClick={() =>
-                          handleCopy(
-                            selectedChannel.branding?.logoPrompt || "",
-                            "logo"
-                          )
-                        }
-                        className="p-1.5 bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black rounded-lg transition-all shrink-0"
-                      >
-                        {copiedKey === "logo" ? (
-                          <Check className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-amber-400 flex items-center gap-1.5 mb-1">
-                      <ImageIcon className="w-3.5 h-3.5" /> Prompt para Banner
-                      (Style-Matched):
-                    </label>
-                    <div className="p-3 bg-gray-950 border border-amber-500/20 rounded-xl text-xs text-gray-300 font-mono flex items-start justify-between gap-3">
-                      <span>{selectedChannel.branding?.bannerPrompt}</span>
-                      <button
-                        onClick={() =>
-                          handleCopy(
-                            selectedChannel.branding?.bannerPrompt || "",
-                            "banner"
-                          )
-                        }
-                        className="p-1.5 bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black rounded-lg transition-all shrink-0"
-                      >
-                        {copiedKey === "banner" ? (
-                          <Check className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* STYLE DNA */}
-              <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
-                <h3 className="text-base font-extrabold text-amber-400 flex items-center gap-2 border-b border-gray-800 pb-3">
-                  <Zap className="w-5 h-5 text-yellow-400" /> Style DNA (STATE
-                  5)
-                </h3>
-
-                <div className="grid grid-cols-1 gap-3 text-xs">
-                  <div className="p-3 bg-gray-950 border border-gray-800 rounded-xl">
-                    <span className="font-bold text-gray-400 block mb-1">
-                      Hook Style (Gancho Inicial):
-                    </span>
-                    <span className="text-gray-200 font-medium">
-                      {selectedChannel.styleDna?.hookStyle}
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-gray-950 border border-gray-800 rounded-xl">
-                    <span className="font-bold text-gray-400 block mb-1">
-                      Fluxo do Roteiro (Script Flow):
-                    </span>
-                    <span className="text-gray-200 font-medium">
-                      {selectedChannel.styleDna?.scriptFlow}
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-gray-950 border border-gray-800 rounded-xl">
-                    <span className="font-bold text-gray-400 block mb-1">
-                      Gatilhos de Retenção & Curiosidade:
-                    </span>
-                    <span className="text-gray-200 font-medium">
-                      {selectedChannel.styleDna?.retentionTechniques}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-gray-950 border border-gray-800 rounded-xl">
-                      <span className="font-bold text-gray-400 block mb-1">
-                        Ritmo & Frasagem:
-                      </span>
-                      <span className="text-gray-200 font-medium">
-                        {selectedChannel.styleDna?.sentenceRhythm}
-                      </span>
-                    </div>
-
-                    <div className="p-3 bg-gray-950 border border-gray-800 rounded-xl">
-                      <span className="font-bold text-gray-400 block mb-1">
-                        Palavras / Segundo (11Labs):
-                      </span>
-                      <span className="text-amber-400 font-black text-sm">
-                        {selectedChannel.styleDna?.wordsPerSecond || 2.4} wps
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-gray-950 border border-amber-500/30 rounded-xl">
-                    <span className="font-bold text-amber-400 block mb-1">
-                      Contagem Alvo de Palavras (8 a 15 min):
-                    </span>
-                    <span className="text-gray-200 font-bold">
-                      {selectedChannel.styleDna?.targetWordCount}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ABA 2: VÍDEOS PARA PRODUÇÃO RECONDICIONADOS */}
-          {activeTab === "videos" && (
-            <div className="flex flex-col lg:flex-row gap-6">
-              {/* LISTA LATERAL DE VÍDEOS */}
-              <div className="w-full lg:w-1/3 flex flex-col gap-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">
-                  Vídeos Recondicionados ({selectedChannel.videos?.length || 0}
-                  ):
-                </h3>
-
-                {selectedChannel.videos?.map((vid) => (
-                  <div
-                    key={vid.id}
-                    onClick={() => setSelectedVideo(vid)}
-                    className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 ${
-                      selectedVideo?.id === vid.id
-                        ? "bg-amber-500/15 border-amber-500 text-gray-100 shadow-lg shadow-amber-500/10"
-                        : "bg-gray-900/80 border-gray-800 hover:border-gray-700 text-gray-300"
-                    }`}
-                  >
-                    <h4 className="font-bold text-sm leading-snug">
-                      {vid.title}
-                    </h4>
-                    <div className="flex items-center justify-between text-xs text-gray-400 mt-1">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-amber-400" />{" "}
-                        {vid.duration}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <FileText className="w-3.5 h-3.5 text-yellow-400" />{" "}
-                        {vid.wordCount} palavras
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* DETALHES DO VÍDEO SELECIONADO */}
-              {selectedVideo ? (
-                <div className="w-full lg:w-2/3 bg-gray-900/90 border border-gray-800 rounded-2xl p-6 flex flex-col gap-6 shadow-2xl">
-                  {/* BARRA SUPERIOR DO VÍDEO */}
-                  <div className="flex items-start justify-between border-b border-gray-800 pb-4 gap-4">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        Totalmente Recondicionado para seu Canal
-                      </span>
-                      <h3 className="text-xl font-black text-gray-100 mt-2">
-                        {selectedVideo.title}
-                      </h3>
-                      <p className="text-xs text-gray-400 mt-1 flex items-center gap-3">
-                        <span>
-                          Duração:{" "}
-                          <strong className="text-amber-400">
-                            {selectedVideo.duration}
-                          </strong>
-                        </span>
-                        <span>
-                          Palavras:{" "}
-                          <strong className="text-yellow-400">
-                            {selectedVideo.wordCount}
-                          </strong>
-                        </span>
-                      </p>
-                    </div>
-
-                    {onOpenInEditor && (
-                      <button
-                        onClick={() =>
-                          onOpenInEditor(
-                            selectedVideo.title,
-                            selectedVideo.narrationScript
-                          )
-                        }
-                        className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-extrabold rounded-xl shadow-lg text-xs transition-all flex items-center gap-2 shrink-0"
-                      >
-                        <Wand2 className="w-4 h-4 fill-black" /> Abrir no Editor
-                        Lumiera
-                      </button>
-                    )}
-                  </div>
-
-                  {/* ROTEIRO HUMANIZADO (11LABS) */}
-                  <div className="flex flex-col gap-2">
-                    <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Volume2 className="w-4 h-4 text-amber-400" /> Roteiro
-                      Humanizado para 11Labs (STATE 6):
-                    </h4>
-                    <div className="p-4 bg-gray-950 border border-gray-800 rounded-xl text-xs text-gray-300 font-sans leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap">
-                      {selectedVideo.narrationScript}
-                    </div>
-                  </div>
-
-                  {/* BEATS DE 3 A 5 SEGUNDOS COM PROMPTS DE IMAGEM & VÍDEO (STATE 8 & 9) */}
-                  <div className="flex flex-col gap-3">
-                    <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <ImageIcon className="w-4 h-4 text-amber-400" /> Beats de
-                      Cena de 3 a 5 Segundos (Prompts Standalone Image & Video):
-                    </h4>
-
-                    <div className="flex flex-col gap-3 max-h-80 overflow-y-auto pr-1">
-                      {selectedVideo.beats?.map((beat, idx) => (
-                        <div
-                          key={beat.id || idx}
-                          className="p-3.5 bg-gray-950 border border-gray-800 rounded-xl flex flex-col gap-2 text-xs"
+                {(v.factCheck.riskySentences || []).length > 0 && (
+                  <div className="rounded-xl border border-orange-400/30 bg-orange-400/[0.06] p-3">
+                    <p className="mb-2 flex items-center gap-2 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-orange-300">
+                      <ShieldAlert className="h-3.5 w-3.5" /> Frases que exigem
+                      cautela
+                    </p>
+                    <ul className="space-y-1.5">
+                      {v.factCheck.riskySentences!.map((r, i) => (
+                        <li
+                          key={i}
+                          className="text-[11px] leading-4 text-orange-200/80"
                         >
-                          <div className="flex items-center justify-between border-b border-gray-800/80 pb-2">
-                            <span className="font-extrabold text-amber-400 text-xs">
-                              Beat #{idx + 1} (3-5s)
-                            </span>
-                            <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                              <span>
-                                Ângulo:{" "}
-                                <strong>
-                                  {beat.cameraAngle || "Cinematográfico"}
-                                </strong>
-                              </span>
-                              <span>
-                                Mood:{" "}
-                                <strong>{beat.mood || "Dramático"}</strong>
-                              </span>
-                            </div>
-                          </div>
-
-                          <p className="text-gray-300 italic bg-gray-900/50 p-2 rounded border border-gray-800/50">
-                            "{beat.scriptSegment}"
-                          </p>
-
-                          <div className="flex flex-col gap-1.5 mt-1">
-                            <div className="text-gray-200">
-                              <span className="font-bold text-amber-400">
-                                Image Prompt:
-                              </span>{" "}
-                              {beat.imagePrompt}
-                            </div>
-                            {beat.videoPrompt && (
-                              <div className="text-gray-400 text-[11px]">
-                                <span className="font-bold text-yellow-500">
-                                  Video Motion Prompt:
-                                </span>{" "}
-                                {beat.videoPrompt}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                          • {r}
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
-
-                  {/* CONCEITOS DE THUMBNAILS (STATE 11) */}
-                  <div className="flex flex-col gap-3">
-                    <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <BookOpen className="w-4 h-4 text-amber-400" /> 5
-                      Conceitos de Thumbnails (STATE 11):
-                    </h4>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {selectedVideo.thumbnails?.map((thumb, idx) => (
-                        <div
-                          key={thumb.id || idx}
-                          className="p-3 bg-gray-950 border border-amber-500/20 rounded-xl flex flex-col gap-1.5 text-xs"
-                        >
-                          <div className="flex items-center justify-between font-bold text-amber-300">
-                            <span>Thumb #{idx + 1}</span>
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
-                              {thumb.emotionTrigger}
-                            </span>
-                          </div>
-                          <div className="font-black text-white text-sm text-yellow-400 uppercase tracking-wide">
-                            "{thumb.textOverlay}"
-                          </div>
-                          <p className="text-gray-400 text-[11px]">
-                            {thumb.visualConcept}
-                          </p>
-                          <div className="p-2 bg-gray-900 rounded font-mono text-[10px] text-gray-300 border border-gray-800 mt-1">
-                            {thumb.prompt}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full lg:w-2/3 flex items-center justify-center p-12 bg-gray-900/40 rounded-2xl border border-dashed border-gray-800 text-gray-500 text-sm">
-                  Selecione um vídeo da lista ao lado para ver o roteiro e
-                  beats.
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* MODAL: WIZARD DE CLONAGEM DO THE GOLDEN PROMPT (12 ESTADOS) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-gray-900 border border-amber-500/40 rounded-2xl p-6 max-w-2xl w-full shadow-2xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Crown className="w-6 h-6 text-amber-400" />
-                <h3 className="text-lg font-black text-gray-100">
-                  Workflow de Clonagem THE GOLDEN PROMPT
-                </h3>
+                )}
               </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-white font-bold text-lg"
-              >
-                &times;
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleStartClone}
-              className="flex flex-col gap-4 text-xs"
-            >
-              <div>
-                <label className="font-bold text-amber-400 block mb-1 uppercase tracking-wider">
-                  STATE 1 — Canal a Clonar (Nome ou URL):
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Veritasium, Magnates Media, SunnyV2"
-                  value={sourceChannelInput}
-                  onChange={(e) => setSourceChannelInput(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-amber-500 rounded-xl p-3 text-gray-100 outline-none transition-all font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-gray-300 block mb-1">
-                  STATE 3 — Transcrições ou Amostras de Texto (Opcional):
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Cole aqui transcrições ou trechos de roteiros dos melhores vídeos desse canal..."
-                  value={transcriptsInput}
-                  onChange={(e) => setTranscriptsInput(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-amber-500 rounded-xl p-3 text-gray-100 outline-none transition-all font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-gray-300 block mb-1">
-                  STATE 4 — Tema ou Tópico para o Vídeo Recondicionado:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: O colapso estrutural da torre Ronan Point em 1968"
-                  value={topicInput}
-                  onChange={(e) => setTopicInput(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-amber-500 rounded-xl p-3 text-gray-100 outline-none transition-all font-semibold"
-                />
-              </div>
-
-              {cloningStatus && (
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 font-semibold animate-pulse text-xs flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-400 animate-bounce" />{" "}
-                  {cloningStatus}
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-3 border-t border-gray-800 pt-4 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl font-bold transition-all"
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={Boolean(cloningStatus)}
-                  className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-extrabold rounded-xl shadow-lg transition-all flex items-center gap-2 disabled:opacity-50"
-                >
-                  <Sparkles className="w-4 h-4 fill-black" /> Executar THE
-                  GOLDEN PROMPT
-                </button>
-              </div>
-            </form>
+            )}
+          </BlockCard>
+        ))}
+        {videos.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-gp-line bg-gp-panel/40 p-8 text-center text-xs text-zinc-500">
+            Nenhum vídeo para checar. Gere um vídeo no pipeline primeiro.
           </div>
+        )}
+      </>
+    );
+  }
+
+  function renderGenericState() {
+    if (!selected) return null;
+    const st = states.find((s) => s.id === activeStateId);
+    return (
+      <div className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-gp-line bg-gp-panel/40 p-8 text-center">
+        <Eye className="h-8 w-8 text-gp-500/40" />
+        <h3 className="mt-3 font-display text-lg font-semibold text-zinc-200">
+          {st?.label}
+        </h3>
+        <p className="mt-1 max-w-md text-xs leading-5 text-zinc-500">
+          {st?.desc}
+        </p>
+        <p className="mt-4 max-w-md text-[11px] leading-5 text-zinc-600">
+          Este estado é alimentado automaticamente pelo motor conforme os
+          estados anteriores avançam. Defina o status acima quando concluir a
+          revisão.
+        </p>
+      </div>
+    );
+  }
+}
+
+// ── Card do canal (lista) ──────────────────────────────────────────────────
+function ChannelCard({
+  channel,
+  states,
+  onOpen,
+  onDelete,
+}: {
+  channel: ClonedChannel;
+  states: GoldState[];
+  onOpen: () => void;
+  onDelete: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const progress = progressCount(channel);
+  const next = computeNextAction(channel, states);
+  return (
+    <article className="group relative overflow-hidden rounded-2xl border border-gp-line bg-gp-panel/80 p-4 transition duration-300 hover:-translate-y-0.5 hover:border-gp-500/40 hover:shadow-xl hover:shadow-gp-950/40">
+      <div className="flex items-start justify-between gap-3">
+        <ProgressRing value={progress} />
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-gp-line text-zinc-400 transition hover:border-gp-500/40 hover:text-gp-300"
+          >
+            <ChevronDown
+              className={`h-4 w-4 transition ${menuOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-10 z-20 w-44 overflow-hidden rounded-xl border border-gp-line bg-gp-panel2 shadow-2xl">
+              {[
+                {
+                  label: "Abrir canal",
+                  icon: <Eye className="h-3.5 w-3.5" />,
+                  action: onOpen,
+                },
+                {
+                  label: "Exportar DNA",
+                  icon: <Download className="h-3.5 w-3.5" />,
+                  action: () => {
+                    navigator.clipboard.writeText(
+                      JSON.stringify(channel.styleDna, null, 2)
+                    );
+                    toast.success("DNA copiado.");
+                  },
+                },
+                {
+                  label: "Excluir",
+                  icon: <Trash2 className="h-3.5 w-3.5" />,
+                  action: onDelete,
+                  danger: true,
+                },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    item.action();
+                  }}
+                  className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs transition ${item.danger ? "text-rose-300 hover:bg-rose-400/10" : "text-zinc-300 hover:bg-white/5"}`}
+                >
+                  {item.icon} {item.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
+
+      <button onClick={onOpen} className="mt-3 block w-full text-left">
+        <h3 className="font-display text-lg font-semibold tracking-tight text-zinc-100 transition group-hover:text-gp-300">
+          {channel.cloneName}
+        </h3>
+        <p className="mt-0.5 truncate text-xs text-zinc-500">{channel.niche}</p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <span className="rounded-md bg-white/5 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-zinc-400">
+            {channel.videos?.length || 0} vídeo
+            {(channel.videos?.length || 0) !== 1 ? "s" : ""}
+          </span>
+          <span className="rounded-md bg-white/5 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-zinc-400">
+            ref: {channel.sourceChannel.split("/")[0].trim().slice(0, 18)}
+          </span>
+          <span className="rounded-md bg-white/5 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-zinc-400">
+            {timeAgo(channel.lastEditedAt)}
+          </span>
+        </div>
+        <div className="mt-3 rounded-xl border border-gp-line/60 bg-gp-panel2/50 px-3 py-2">
+          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-gp-400">
+            Próxima ação
+          </p>
+          <p className="mt-0.5 truncate text-[11px] text-zinc-300">
+            {next.label}
+          </p>
+        </div>
+      </button>
+    </article>
+  );
+}
+
+// ── Card do kanban de vídeo ────────────────────────────────────────────────
+function VideoKanbanCard({
+  video,
+  stages,
+  onMove,
+  onOpenEditor,
+  onFactCheck,
+  factChecking,
+}: {
+  video: ReconstructedVideo;
+  stages: VideoStage[];
+  onMove: (stage: string) => void;
+  onOpenEditor: () => void;
+  onFactCheck: () => void;
+  factChecking: boolean;
+}) {
+  const stageIdx = stages.findIndex((s) => s.id === video.pipelineStage);
+  return (
+    <div className="rounded-xl border border-gp-line bg-gp-panel p-3 transition hover:border-gp-500/30">
+      <p className="line-clamp-2 text-[11px] font-semibold leading-4 text-zinc-200">
+        {video.title}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-1.5 font-mono text-[9px] text-zinc-500">
+        <span>{video.wordCount} palavras</span>
+        <span>·</span>
+        <span>{video.duration}</span>
+      </div>
+      <div className="mt-2 flex items-center gap-1.5">
+        {video.factCheck ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 font-mono text-[8px] uppercase text-emerald-300">
+            <ShieldCheck className="h-2.5 w-2.5" /> fatos
+          </span>
+        ) : (
+          <button
+            onClick={onFactCheck}
+            disabled={factChecking}
+            className="inline-flex items-center gap-1 rounded-full border border-orange-400/40 bg-orange-400/10 px-1.5 py-0.5 font-mono text-[8px] uppercase text-orange-300 transition hover:brightness-125 disabled:opacity-40"
+          >
+            {factChecking ? (
+              <RefreshCw className="h-2.5 w-2.5 animate-spin" />
+            ) : (
+              <ShieldAlert className="h-2.5 w-2.5" />
+            )}{" "}
+            checar
+          </button>
+        )}
+      </div>
+      <div className="mt-2.5 flex items-center justify-between gap-2">
+        <select
+          value={video.pipelineStage}
+          onChange={(e) => onMove(e.target.value)}
+          className="flex-1 rounded-lg border border-gp-line bg-gp-panel2 px-1.5 py-1 font-mono text-[9px] text-zinc-300 outline-none focus:border-gp-500/50"
+        >
+          {stages.map((s, i) => (
+            <option key={s.id} value={s.id}>
+              {i + 1}. {s.label}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={onOpenEditor}
+          title="Abrir no Editor"
+          className="rounded-lg border border-gp-line p-1.5 text-zinc-400 transition hover:border-gp-500/40 hover:text-gp-300"
+        >
+          <Play className="h-3 w-3" />
+        </button>
+      </div>
+      <div className="mt-2 h-0.5 overflow-hidden rounded-full bg-white/5">
+        <div
+          className="h-full rounded-full bg-gp-500 transition-all duration-500"
+          style={{ width: `${((stageIdx + 1) / stages.length) * 100}%` }}
+        />
+      </div>
     </div>
   );
-};
+}
 
-export default TheGoldPromptPanel;
+// ── Rótulo de seção ────────────────────────────────────────────────────────
+function SectionLabel({
+  icon,
+  title,
+  count,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  count: number;
+}) {
+  return (
+    <div className="mb-3 mt-8 flex items-center gap-2.5 first:mt-0">
+      <span className="text-gp-400 [&_svg]:h-3.5 [&_svg]:w-3.5">{icon}</span>
+      <h2 className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-400">
+        {title}
+      </h2>
+      <span className="font-mono text-[10px] text-zinc-600">({count})</span>
+      <span className="h-px flex-1 bg-gp-line/50" />
+    </div>
+  );
+}
+
+// ── Wizard de análise ──────────────────────────────────────────────────────
+function CloneWizard({
+  sourceChannel,
+  setSourceChannel,
+  transcripts,
+  setTranscripts,
+  topic,
+  setTopic,
+  transformLevel,
+  setTransformLevel,
+  cloning,
+  onClose,
+  onSubmit,
+}: {
+  sourceChannel: string;
+  setSourceChannel: (v: string) => void;
+  transcripts: string;
+  setTranscripts: (v: string) => void;
+  topic: string;
+  setTopic: (v: string) => void;
+  transformLevel: "conservador" | "equilibrado" | "original";
+  setTransformLevel: (v: "conservador" | "equilibrado" | "original") => void;
+  cloning: boolean;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+}) {
+  const levels: {
+    id: "conservador" | "equilibrado" | "original";
+    label: string;
+    desc: string;
+  }[] = [
+    {
+      id: "conservador",
+      label: "Conservador",
+      desc: "Estrutura próxima do original",
+    },
+    {
+      id: "equilibrado",
+      label: "Equilibrado",
+      desc: "Fidelidade + originalidade (recomendado)",
+    },
+    {
+      id: "original",
+      label: "Altamente original",
+      desc: "Reinventa nomes e ângulos",
+    },
+  ];
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-gp-line bg-gp-panel p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-5 flex items-start justify-between">
+          <div>
+            <h2 className="font-display text-xl font-bold tracking-tight text-zinc-50">
+              Analisar Canal de Referência
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-zinc-500">
+              O sistema identifica padrões estratégicos, mas evita copiar nomes,
+              frases, roteiros, identidade visual ou elementos protegidos.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-zinc-500 transition hover:bg-white/5 hover:text-zinc-300"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-gp-400">
+              Estado 01 · Canal de referência
+            </span>
+            <input
+              value={sourceChannel}
+              onChange={(e) => setSourceChannel(e.target.value)}
+              placeholder="Nome ou URL do canal"
+              className="w-full rounded-xl border border-gp-line bg-gp-ink/70 px-3 py-2.5 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gp-500/50"
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-gp-400">
+              Transcrições / notas (opcional)
+            </span>
+            <textarea
+              value={transcripts}
+              onChange={(e) => setTranscripts(e.target.value)}
+              rows={3}
+              placeholder="Cole transcrições ou observações sobre o ritmo do canal..."
+              className="w-full resize-y rounded-xl border border-gp-line bg-gp-ink/70 px-3 py-2.5 text-xs leading-5 text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gp-500/50"
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-gp-400">
+              Tema do primeiro vídeo
+            </span>
+            <input
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Ex.: Desastre de engenharia histórico"
+              className="w-full rounded-xl border border-gp-line bg-gp-ink/70 px-3 py-2.5 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gp-500/50"
+            />
+          </label>
+
+          <div className="space-y-1.5">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-gp-400">
+              Nível de transformação
+            </span>
+            <div className="grid gap-2">
+              {levels.map((l) => (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => setTransformLevel(l.id)}
+                  className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                    transformLevel === l.id
+                      ? "border-gp-500/50 bg-gp-500/10"
+                      : "border-gp-line bg-gp-panel2/50 hover:border-gp-500/30"
+                  }`}
+                >
+                  <span
+                    className={`block text-xs font-semibold ${transformLevel === l.id ? "text-gp-300" : "text-zinc-300"}`}
+                  >
+                    {l.label}
+                  </span>
+                  <span className="mt-0.5 block text-[10px] text-zinc-500">
+                    {l.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="font-mono text-[10px] text-zinc-500">
+              Similaridade estrutural estimada:{" "}
+              {transformLevel === "conservador"
+                ? "62%"
+                : transformLevel === "original"
+                  ? "18%"
+                  : "34%"}{" "}
+              · Originalidade recomendada: 80%+
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={cloning || !sourceChannel.trim()}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gp-500 px-4 py-3 font-display text-sm font-semibold text-gp-ink transition hover:bg-gp-400 disabled:opacity-40"
+          >
+            {cloning ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <FlaskConical className="h-4 w-4" />
+            )}
+            {cloning
+              ? "Executando os 12 estados..."
+              : "Executar THE GOLDEN PROMPT"}
+          </button>
+          {cloning && (
+            <p className="text-center font-mono text-[10px] leading-4 text-zinc-500">
+              Analisando padrões · extraindo DNA · gerando branding e roteiro.
+              Isso pode levar alguns minutos.
+            </p>
+          )}
+        </form>
+      </div>
+    </div>
+  );
+}
