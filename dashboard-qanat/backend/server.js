@@ -13998,13 +13998,23 @@ async function callXaiWithRetry(
 // Fonte: ai.google.dev/gemini-api/docs/models (jul/2026).
 // Removidos: gemini-2.0-flash (shut down), gemini-3.1-flash-lite (shut down).
 
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-3.6-flash";
 
 const GEMINI_MODEL_OPTIONS = [
   {
-    id: "gemini-2.5-flash",
-    label: "Gemini 2.5 Flash",
-    hint: "Mais recente · Rápido, estável, contexto 1M (Recomendado)",
+    id: "gemini-3.6-flash",
+    label: "Gemini 3.6 Flash (Padrão)",
+    hint: "Mais recente · Equilíbrio velocidade/inteligência (agentic + multimodal)",
+  },
+  {
+    id: "gemini-3.5-flash",
+    label: "Gemini 3.5 Flash",
+    hint: "Fronteira sustentada · agentic e coding",
+  },
+  {
+    id: "gemini-3.1-pro-preview",
+    label: "Gemini 3.1 Pro (Preview)",
+    hint: "Inteligência avançada · resolução complexa",
   },
   {
     id: "gemini-2.5-pro",
@@ -14012,9 +14022,14 @@ const GEMINI_MODEL_OPTIONS = [
     hint: "Máxima qualidade · raciocínio profundo e coding complexo",
   },
   {
+    id: "gemini-2.5-flash",
+    label: "Gemini 2.5 Flash",
+    hint: "Rápido, estável, contexto 1M",
+  },
+  {
     id: "gemini-2.0-flash",
     label: "Gemini 2.0 Flash",
-    hint: "Equilíbrio velocidade/inteligência (multimodal)",
+    hint: "Super rápido, multimodal",
   },
   {
     id: "gemini-1.5-flash",
@@ -14040,8 +14055,11 @@ const GEMINI_MODEL_OPTIONS = [
 
 /** Cadeia de rotação: melhor qualidade → mais simples se 503/429/indisponível. */
 const GEMINI_MODEL_FALLBACKS = [
-  "gemini-2.5-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3.1-pro-preview",
   "gemini-2.5-pro",
+  "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-1.5-flash",
   "gemini-1.5-pro",
@@ -14618,6 +14636,20 @@ async function callGeminiWithRetry(apiKey, promptOrBody, options = {}) {
               `[Gemini] HTTP ${status} modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...): ${errMsg} · ${attemptMs}ms`
             );
             lastError = new Error(`${model}: ${errMsg}`);
+
+            if (
+              status === 404 ||
+              status === 400 ||
+              /not found|invalid model|is not supported|unsupported/i.test(
+                errMsg
+              )
+            ) {
+              console.warn(
+                `[Gemini] HTTP ${status} modelo=${model} não encontrado/suportado -> Rotacionando instantaneamente para próximo modelo da lista`
+              );
+              skipRemainingKeysForModel = true;
+              break;
+            }
 
             if (shouldRotateGeminiKey(status)) {
               if (isGeminiModelOverloadStatus(status)) {
@@ -16555,6 +16587,52 @@ app.delete("/api/omniroute/providers/:id", async (req, res) => {
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Varredura de modelos Gemini disponíveis na API do Google Generative AI
+app.get("/api/ai/models/scan", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const apiKey = getApiKey(projDir);
+  if (!apiKey) {
+    return res.json({
+      ok: false,
+      error: "Nenhuma chave Gemini configurada.",
+      models: GEMINI_MODEL_FALLBACKS,
+    });
+  }
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+    );
+    if (!response.ok) {
+      return res.json({
+        ok: false,
+        error: `HTTP ${response.status}: ${response.statusText}`,
+        models: GEMINI_MODEL_FALLBACKS,
+      });
+    }
+    const data = await response.json();
+    const rawModels = (data.models || [])
+      .map((m) => String(m.name || "").replace(/^models\//i, ""))
+      .filter((name) => name.includes("gemini"));
+
+    const sortedModels = [
+      ...new Set(["gemini-3.6-flash", ...rawModels, ...GEMINI_MODEL_FALLBACKS]),
+    ];
+
+    return res.json({
+      ok: true,
+      defaultModel: DEFAULT_GEMINI_MODEL,
+      activeModels: rawModels,
+      rotationChain: sortedModels,
+    });
+  } catch (err) {
+    return res.json({
+      ok: false,
+      error: err.message,
+      models: GEMINI_MODEL_FALLBACKS,
+    });
   }
 });
 
