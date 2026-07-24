@@ -127,13 +127,25 @@ def find_board_image(project_dir: Path, board_id: str) -> Path | None:
 
 
 def png_size(path: Path) -> tuple[int, int]:
-    with path.open("rb") as f:
-        header = f.read(24)
-    if len(header) < 24 or header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
-        raise ValueError(f"{path} is not a valid PNG")
-    import struct
+    try:
+        from PIL import Image
+        with Image.open(path) as img:
+            w, h = img.size
+            if w > 0 and h > 0:
+                return w, h
+    except Exception:
+        pass
 
-    return struct.unpack(">II", header[16:24])
+    try:
+        with path.open("rb") as f:
+            header = f.read(24)
+        if len(header) >= 24 and header[:8] == b"\x89PNG\r\n\x1a\n" and header[12:16] == b"IHDR":
+            import struct
+            return struct.unpack(">II", header[16:24])
+    except Exception:
+        pass
+
+    raise ValueError(f"{path} is not a valid image")
 
 
 def extract_candidates(spec: dict[str, Any]) -> list[dict[str, Any]]:

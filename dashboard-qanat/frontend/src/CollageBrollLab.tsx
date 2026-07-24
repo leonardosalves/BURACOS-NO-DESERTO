@@ -571,6 +571,108 @@ function derivePipelineStatus(
   return { gate1, gate2, image, still, gate3, video };
 }
 
+/**
+ * Próxima ação única do card — conduz o usuário pelo pipeline sem que ele
+ * precise adivinhar por que um botão está bloqueado. Derivada do estado real.
+ */
+function computeNextAction(item: CollageItem | null | undefined): {
+  label: string;
+  hint: string;
+  tone: "action" | "running" | "done" | "error" | "muted";
+} {
+  if (!item)
+    return {
+      label: "Selecione uma cena",
+      hint: "Escolha um card à esquerda para ver a próxima etapa.",
+      tone: "muted",
+    };
+
+  const endUrl =
+    item.endFrame?.imageUrl || item.still_url || item.last_frame_url;
+  const startUrl = item.startFrame?.imageUrl || item.first_frame_url;
+  const hasEnd = Boolean(endUrl || item.still_path || item.endFrame?.imagePath);
+  const hasStart = Boolean(
+    startUrl || item.startFrame?.imagePath || item.first_frame_path
+  );
+  const endApproved =
+    hasEnd && Boolean(item.endFrame?.approved || item.still_approved);
+  const startApproved = hasStart && Boolean(item.startFrame?.approved);
+  const hasVideo = Boolean(item.video_url || item.video_path);
+
+  // Gate 1 — proposta visual
+  if (item.status === "rejected")
+    return {
+      label: "Proposta rejeitada",
+      hint: "Regenere com outra direção visual.",
+      tone: "error",
+    };
+  if (item.status === "error")
+    return {
+      label: "Erro na proposta",
+      hint: "Tente regenerar a proposta.",
+      tone: "error",
+    };
+  if (item.status === "regenerating" || item.status === "candidate_ready")
+    return {
+      label: "Gerando proposta…",
+      hint: "Aguarde a nova versão para comparar.",
+      tone: "running",
+    };
+  if (
+    item.status !== "approved" &&
+    item.status !== "needs_review" &&
+    !endApproved &&
+    !hasVideo
+  )
+    return {
+      label: "Aprovar a proposta visual",
+      hint: "Revise a composição e aprove para liberar os frames.",
+      tone: "action",
+    };
+
+  // Gate 2A — frame final (fonte de verdade)
+  if (!hasEnd)
+    return {
+      label: "Gerar o frame final",
+      hint: "Crie a composição definitiva — ela é a fonte de verdade da cena.",
+      tone: "action",
+    };
+  if (!endApproved)
+    return {
+      label: "Aprovar o frame final",
+      hint: "Confira a composição e aprove para derivar o frame inicial.",
+      tone: "action",
+    };
+
+  // Gate 2B — frame inicial (derivado do final)
+  if (!hasStart)
+    return {
+      label: "Gerar o frame inicial",
+      hint: "Derive o estado ainda não montado a partir do frame final.",
+      tone: "action",
+    };
+  if (!startApproved)
+    return {
+      label: "Aprovar o frame inicial",
+      hint: "Confira e aprove para liberar a geração do vídeo.",
+      tone: "action",
+    };
+
+  // Gate 3 — vídeo
+  if (!hasVideo)
+    return {
+      label: "Gerar o vídeo",
+      hint: "Interpole o movimento do frame inicial ao final.",
+      tone: "action",
+    };
+
+  return {
+    label: "Cena concluída",
+    hint: "Vídeo pronto para entrega.",
+    tone: "done",
+  };
+}
+
 /** Remove contradições ao carregar/salvar card. */
 function normalizePipelineItem(item: CollageItem): CollageItem {
   const hasImage = Boolean(item.still_url || item.still_path);
@@ -1017,6 +1119,7 @@ export function CollageBrollLab({
     null
   );
   const [activeGate, setActiveGate] = useState<1 | 2 | 3>(1);
+  const [viewMode, setViewMode] = useState<"criador" | "tecnico">("criador");
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -2419,30 +2522,52 @@ export function CollageBrollLab({
                 )}
                 {isGeo ? "Geo collage · mapas" : "Paper-collage B-roll"}
               </span>
-              <span className="text-[10px] text-zinc-500 font-mono">
-                gbro-collage-broll · 3 gates
+              {/* Toggle Criador / Diagnóstico técnico */}
+              <span className="inline-flex overflow-hidden rounded-lg border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("criador")}
+                  className={`px-2.5 py-1 text-[10px] font-bold transition ${
+                    viewMode === "criador"
+                      ? "bg-emerald-400/15 text-emerald-200"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  Criador
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("tecnico")}
+                  className={`px-2.5 py-1 text-[10px] font-bold transition ${
+                    viewMode === "tecnico"
+                      ? "bg-sky-400/15 text-sky-200"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  Diagnóstico
+                </button>
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-              {isGeo
-                ? "Cartografia em papel · assemble-from-empty"
-                : "Halftone collage · assemble-from-empty"}
+              {isGeo ? "Cartografia em papel" : "Halftone collage B-roll"}
             </h2>
             <p className="text-[12px] text-zinc-400 max-w-2xl leading-relaxed">
               {isGeo
                 ? "Trechos de narração viram B-roll de mapa em colagem: silhuetas de países, rotas pontilhadas, pinos de papel, bússolas e satélite em meio-tom — sem UI de Google Maps."
-                : "Transforme trechos de ~5s de narração em B-roll editorial de papel: cor de fundo plana, recortes P&B em meio-tom, cartolina colorida e montagem stop-motion — com 3 portões para não queimar API de vídeo."}
+                : "Transforme trechos de ~5s de narração em B-roll editorial de papel: cor de fundo plana, recortes P&B em meio-tom, cartolina colorida e montagem stop-motion — com um fluxo guiado para não queimar API de vídeo."}
             </p>
-            <a
-              href="https://github.com/pyang5166/gbro-collage-broll"
-              target="_blank"
-              rel="noreferrer"
-              className={`inline-flex items-center gap-1.5 text-[11px] ${isGeo ? "text-sky-300 hover:text-sky-100" : "text-violet-300 hover:text-violet-100"}`}
-            >
-              <Github className="w-3.5 h-3.5" />
-              pyang5166/gbro-collage-broll
-              <ExternalLink className="w-3 h-3 opacity-60" />
-            </a>
+            {viewMode === "tecnico" && (
+              <a
+                href="https://github.com/pyang5166/gbro-collage-broll"
+                target="_blank"
+                rel="noreferrer"
+                className={`inline-flex items-center gap-1.5 text-[11px] ${isGeo ? "text-sky-300 hover:text-sky-100" : "text-violet-300 hover:text-violet-100"}`}
+              >
+                <Github className="w-3.5 h-3.5" />
+                pyang5166/gbro-collage-broll · assemble-from-empty
+                <ExternalLink className="w-3 h-3 opacity-60" />
+              </a>
+            )}
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
             {/* Opção aleatória */}
@@ -2969,13 +3094,14 @@ export function CollageBrollLab({
                           <span className="text-[8px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 font-mono">
                             v{item.activeVersion || 1}
                           </span>
-                          {(!activeRunId ||
-                            item.generationRunId !== activeRunId ||
-                            item.isModifiedSpec) && (
-                            <span className="text-[8px] px-1.5 py-0.5 rounded border border-red-500/50 text-red-300 bg-red-500/10 font-semibold">
-                              dessincronizado
-                            </span>
-                          )}
+                          {viewMode === "tecnico" &&
+                            (!activeRunId ||
+                              item.generationRunId !== activeRunId ||
+                              item.isModifiedSpec) && (
+                              <span className="text-[8px] px-1.5 py-0.5 rounded border border-red-500/50 text-red-300 bg-red-500/10 font-semibold">
+                                dessincronizado
+                              </span>
+                            )}
                           {(() => {
                             const spec = item.visual_spec || item;
                             const errors = validateEditorialContinuity(spec);
@@ -2996,33 +3122,35 @@ export function CollageBrollLab({
                               {item.visualProposal?.visualMode || "geo"}
                             </span>
                           )}
-                          {typeof item.validation?.semanticAlignment ===
-                            "number" && (
-                            <span className="text-[8px] text-zinc-500">
-                              sem {item.validation.semanticAlignment}
-                              {typeof item.validation.geographicRelevance ===
-                              "number"
-                                ? ` · geo ${item.validation.geographicRelevance}`
-                                : ""}
-                            </span>
-                          )}
+                          {viewMode === "tecnico" &&
+                            typeof item.validation?.semanticAlignment ===
+                              "number" && (
+                              <span className="text-[8px] text-zinc-500">
+                                sem {item.validation.semanticAlignment}
+                                {typeof item.validation.geographicRelevance ===
+                                "number"
+                                  ? ` · geo ${item.validation.geographicRelevance}`
+                                  : ""}
+                              </span>
+                            )}
                           {(item.versions?.length || 0) > 1 && (
                             <History className="w-3 h-3 text-zinc-600" />
                           )}
                         </div>
-                        {(() => {
-                          const p = derivePipelineStatus(item, {
-                            mediaBusyKind:
-                              mediaBusyId === item.id ? mediaBusyKind : null,
-                            isMediaBusy: mediaBusyId === item.id,
-                          });
-                          return (
-                            <p className="text-[8px] text-zinc-600 pt-0.5 leading-snug">
-                              G1 {p.gate1.label} · img {p.image.label} · still{" "}
-                              {p.still.label} · vid {p.video.label}
-                            </p>
-                          );
-                        })()}
+                        {viewMode === "tecnico" &&
+                          (() => {
+                            const p = derivePipelineStatus(item, {
+                              mediaBusyKind:
+                                mediaBusyId === item.id ? mediaBusyKind : null,
+                              isMediaBusy: mediaBusyId === item.id,
+                            });
+                            return (
+                              <p className="text-[8px] text-zinc-600 pt-0.5 leading-snug">
+                                G1 {p.gate1.label} · img {p.image.label} · still{" "}
+                                {p.still.label} · vid {p.video.label}
+                              </p>
+                            );
+                          })()}
                       </div>
                     </button>
                   );
@@ -3040,6 +3168,43 @@ export function CollageBrollLab({
             </div>
           ) : (
             <>
+              {/* Próxima ação única — conduz o usuário pelo pipeline */}
+              {(() => {
+                const next = computeNextAction(selected);
+                const toneCls =
+                  next.tone === "action"
+                    ? "border-emerald-400/40 bg-emerald-400/[0.07]"
+                    : next.tone === "running"
+                      ? "border-sky-400/40 bg-sky-400/[0.07]"
+                      : next.tone === "done"
+                        ? "border-zinc-700 bg-zinc-900/50"
+                        : next.tone === "error"
+                          ? "border-rose-400/40 bg-rose-400/[0.07]"
+                          : "border-zinc-800 bg-zinc-950/50";
+                const labelCls =
+                  next.tone === "action"
+                    ? "text-emerald-200"
+                    : next.tone === "running"
+                      ? "text-sky-200"
+                      : next.tone === "done"
+                        ? "text-zinc-300"
+                        : next.tone === "error"
+                          ? "text-rose-200"
+                          : "text-zinc-400";
+                return (
+                  <div className={`rounded-2xl border px-4 py-3 ${toneCls}`}>
+                    <p className="text-[9px] uppercase tracking-[0.16em] text-zinc-500 font-bold">
+                      Próxima etapa
+                    </p>
+                    <p className={`mt-0.5 text-sm font-bold ${labelCls}`}>
+                      {next.label}
+                    </p>
+                    <p className="mt-0.5 text-[11px] leading-4 text-zinc-400">
+                      {next.hint}
+                    </p>
+                  </div>
+                );
+              })()}
               {/* Phone-like 9:16 preview */}
               <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
                 <p className="text-[9px] uppercase tracking-wide text-zinc-500 font-bold mb-2 flex items-center gap-1">
@@ -4277,19 +4442,19 @@ export function CollageBrollLab({
                   </div>
                 )}
 
-                {selected.imagegen_prompt && (
+                {viewMode === "tecnico" && selected.imagegen_prompt && (
                   <PromptBlock
                     title="Imagegen prompt (Gate 2)"
                     text={selected.imagegen_prompt}
                   />
                 )}
-                {selected.omni_prompt && (
+                {viewMode === "tecnico" && selected.omni_prompt && (
                   <PromptBlock
                     title="Omni Flash prompt (Gate 3)"
                     text={selected.omni_prompt}
                   />
                 )}
-                {selected.visual_spec && (
+                {viewMode === "tecnico" && selected.visual_spec && (
                   <PromptBlock
                     title="visual-spec.json"
                     text={JSON.stringify(selected.visual_spec, null, 2)}
@@ -4297,44 +4462,46 @@ export function CollageBrollLab({
                 )}
               </div>
 
-              <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 text-[10px] text-zinc-500 leading-relaxed space-y-1">
-                <p className="font-bold text-zinc-400 flex items-center gap-1">
-                  <Square className="w-3 h-3" />
-                  Entrega padrão
-                </p>
-                <p>
-                  9:16 · 5s · 720×1280 · 24fps · MP4 sem áudio ·
-                  assemble-from-empty (não fade/zoom).
-                </p>
-                {isGeo && (
-                  <p className="text-sky-400/80">
-                    Modo geo: silhuetas e rotas em papel — sem UI de mapas
-                    digitais. Complementa a skill{" "}
-                    <code className="text-[9px]">geo-video-prompts</code> (T2V
-                    satélite) com estética collage.
+              {viewMode === "tecnico" && (
+                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 text-[10px] text-zinc-500 leading-relaxed space-y-1">
+                  <p className="font-bold text-zinc-400 flex items-center gap-1">
+                    <Square className="w-3 h-3" />
+                    Entrega padrão
                   </p>
-                )}
-                <p>
-                  Gate 2/3 no agent usam{" "}
-                  <code className="text-zinc-400">image_gen</code> +{" "}
-                  <code className="text-zinc-400">
-                    scripts/generate_video.py
-                  </code>{" "}
-                  do repo. Esta página gera metáforas, specs e prompts; exporta
-                  o pacote para o pipeline.
-                </p>
-                <p
-                  className={`flex items-center gap-1 ${isGeo ? "text-sky-300/80" : "text-violet-300/80"}`}
-                >
-                  Skill:{" "}
-                  <code className="text-[9px]">
-                    .agents/skills/gbro-collage-broll
-                  </code>
-                  <ChevronRight className="w-3 h-3" />
-                  trigger <em>collage b-roll</em>
-                  {isGeo ? " / geo map collage" : ""}
-                </p>
-              </div>
+                  <p>
+                    9:16 · 5s · 720×1280 · 24fps · MP4 sem áudio ·
+                    assemble-from-empty (não fade/zoom).
+                  </p>
+                  {isGeo && (
+                    <p className="text-sky-400/80">
+                      Modo geo: silhuetas e rotas em papel — sem UI de mapas
+                      digitais. Complementa a skill{" "}
+                      <code className="text-[9px]">geo-video-prompts</code> (T2V
+                      satélite) com estética collage.
+                    </p>
+                  )}
+                  <p>
+                    Gate 2/3 no agent usam{" "}
+                    <code className="text-zinc-400">image_gen</code> +{" "}
+                    <code className="text-zinc-400">
+                      scripts/generate_video.py
+                    </code>{" "}
+                    do repo. Esta página gera metáforas, specs e prompts;
+                    exporta o pacote para o pipeline.
+                  </p>
+                  <p
+                    className={`flex items-center gap-1 ${isGeo ? "text-sky-300/80" : "text-violet-300/80"}`}
+                  >
+                    Skill:{" "}
+                    <code className="text-[9px]">
+                      .agents/skills/gbro-collage-broll
+                    </code>
+                    <ChevronRight className="w-3 h-3" />
+                    trigger <em>collage b-roll</em>
+                    {isGeo ? " / geo map collage" : ""}
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>

@@ -152,6 +152,14 @@ Não coloque nenhuma explicação ou introdução fora do JSON.
 
   const scriptData = JSON.parse(cleanLlmJson(scriptResRaw));
 
+  if (scriptData.voiceover_segments_json?.segments) {
+    scriptData.voiceover_segments_json.segments =
+      scriptData.voiceover_segments_json.segments.map((seg, i) => {
+        const segId = String(seg.id || seg.segmentId || `s${i + 1}`);
+        return { ...seg, id: segId, segmentId: segId };
+      });
+  }
+
   fs.mkdirSync(path.join(runDir, "script"), { recursive: true });
   fs.writeFileSync(
     path.join(runDir, "script", "polished_voiceover.md"),
@@ -496,8 +504,10 @@ ${segment.caption || text}
       concatFileContent += `file '${silenceWav.replace(/\\/g, "/")}'\n`;
     }
 
+    const segId = String(segment.id || segment.segmentId || `s${idx + 1}`);
     timedSegments.push({
-      id: segment.id,
+      id: segId,
+      segmentId: segId,
       text: segment.text,
       caption: segment.caption,
       visualIntent: segment.visualIntent,

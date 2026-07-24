@@ -257,10 +257,21 @@ function commandExists(command, probeArgs = ["--version"]) {
 
 function run(command, args, options = {}) {
   verbose(`exec: ${[command].concat(args).join(" ")}`);
-  execFileSync(command, args, {
+  const actualCmd =
+    process.platform === "win32" && command === "npx" ? "npx.cmd" : command;
+  const quotedArgs =
+    process.platform === "win32"
+      ? args.map((arg) =>
+          typeof arg === "string" && arg.includes(" ") && !arg.startsWith('"')
+            ? `"${arg}"`
+            : arg
+        )
+      : args;
+  execFileSync(actualCmd, quotedArgs, {
     cwd: options.cwd,
     stdio: options.stdio || "inherit",
     encoding: options.encoding || "utf8",
+    shell: true,
   });
 }
 
@@ -269,7 +280,21 @@ function runCapture(command, args, cwd) {
     const cwdLabel = cwd ? ` (cwd: ${cwd})` : "";
     verbose(`capture: ${[command].concat(args).join(" ")}${cwdLabel}`);
   }
-  const result = spawnSync(command, args, { cwd, encoding: "utf8" });
+  const actualCmd =
+    process.platform === "win32" && command === "npx" ? "npx.cmd" : command;
+  const quotedArgs =
+    process.platform === "win32"
+      ? args.map((arg) =>
+          typeof arg === "string" && arg.includes(" ") && !arg.startsWith('"')
+            ? `"${arg}"`
+            : arg
+        )
+      : args;
+  const result = spawnSync(actualCmd, quotedArgs, {
+    cwd,
+    encoding: "utf8",
+    shell: true,
+  });
   return {
     command: [command].concat(args).join(" "),
     status: result.status,
@@ -287,6 +312,13 @@ function assertCommand(report, label) {
 }
 
 function ffprobeDuration(file) {
+  const quotedFile =
+    process.platform === "win32" &&
+    typeof file === "string" &&
+    file.includes(" ") &&
+    !file.startsWith('"')
+      ? `"${file}"`
+      : file;
   const out = execFileSync(
     "ffprobe",
     [
@@ -296,9 +328,9 @@ function ffprobeDuration(file) {
       "format=duration",
       "-of",
       "default=noprint_wrappers=1:nokey=1",
-      file,
+      quotedFile,
     ],
-    { encoding: "utf8" }
+    { encoding: "utf8", shell: true }
   ).trim();
   const duration = Number(out);
   if (!Number.isFinite(duration))
@@ -1258,6 +1290,8 @@ function validateMultiBoardInputs({
   }
 
   for (const segment of source.segments || []) {
+    if (!segment.id && segment.segmentId)
+      segment.id = String(segment.segmentId);
     if (!segment.id) errors.push("voiceover segment missing id");
     if (!segment.text && !segment.caption)
       errors.push(
@@ -1265,12 +1299,17 @@ function validateMultiBoardInputs({
       );
   }
 
-  const sourceIds = new Set((source.segments || []).map((item) => item.id));
+  const sourceIds = new Set(
+    (source.segments || []).map((item) => item.id || item.segmentId)
+  );
   for (const segment of combinedMotionPlan.segments || []) {
+    const segId = segment.id || segment.segmentId;
+    if (!segment.id && segment.segmentId)
+      segment.id = String(segment.segmentId);
     if (!segment.id) errors.push("combined_motion_plan segment missing id");
-    if (!sourceIds.has(segment.id))
+    if (!sourceIds.has(segId))
       errors.push(
-        `combined_motion_plan segment ${segment.id} missing in voiceover_segments.json`
+        `combined_motion_plan segment ${segId} missing in voiceover_segments.json`
       );
     const board = boards[segment.boardId];
     if (!board) {
@@ -1522,80 +1561,86 @@ function updateCombinedMotionPlan({
 }) {
   const sourceById = mapById(source.segments || []);
   const timedById = mapById(timing.segments || []);
-  const orderedSegments = (combinedMotionPlan.segments || []).map((segment) => {
-    const sourceSegment = sourceById.get(segment.id) || {};
-    const timedSegment = timedById.get(segment.id);
-    if (!timedSegment) fail(`Missing measured timing for ${segment.id}`);
-    const sourceActions = sourceSegment.actions || [];
-    const segmentSpan = Math.max(
-      0.12,
-      Number(timedSegment.end) - Number(timedSegment.start)
-    );
-    const speechDuration = Math.max(
-      0.12,
-      Number(
-        timedSegment.speechDuration ||
-          Number(timedSegment.speechEnd) - Number(timedSegment.start)
-      )
-    );
+  const orderedSegments = (combinedMotionPlan.segments || []).map(
+    (segment, index) => {
+      const segId = String(segment.id || segment.segmentId || `s${index + 1}`);
+      const sourceSegment =
+        sourceById.get(segId) || (source.segments || [])[index] || {};
+      const timedSegment =
+        timedById.get(segId) || (timing.segments || [])[index];
+      if (!timedSegment) fail(`Missing measured timing for ${segId}`);
+      const sourceActions = sourceSegment.actions || [];
+      const segmentSpan = Math.max(
+        0.12,
+        Number(timedSegment.end) - Number(timedSegment.start)
+      );
+      const speechDuration = Math.max(
+        0.12,
+        Number(
+          timedSegment.speechDuration ||
+            Number(timedSegment.speechEnd) - Number(timedSegment.start)
+        )
+      );
 
-    const actions = (segment.actions || []).map((motionAction, index) => {
-      const sourceAction = sourceActions[index] || {};
-      const syncAction = actionTimingLookup.get(actionKey(segment.id, index));
-      const requestedDuration = Number(
-        motionAction.duration || sourceAction.duration || 0.72
-      );
-      const duration = formatSeconds(
-        Math.min(requestedDuration, Math.max(0.12, segmentSpan - 0.05))
-      );
-      let rawOffset;
-      let anchorRatioSource = "combined_motion_plan.actions[].offset";
-      if (syncAction && Number.isFinite(Number(syncAction.offset))) {
-        rawOffset = Number(syncAction.offset);
-        anchorRatioSource = "sync/action_timing.json";
-      } else if (Number.isFinite(Number(sourceAction.anchorRatio))) {
-        rawOffset = speechDuration * Number(sourceAction.anchorRatio);
-        anchorRatioSource = "voiceover_segments.actions[].anchorRatio";
-      } else if (Number.isFinite(Number(motionAction.offset))) {
-        rawOffset = Number(motionAction.offset);
-      } else {
-        rawOffset =
-          (speechDuration * (index + 1)) / ((segment.actions || []).length + 1);
-        anchorRatioSource = "evenly-spaced-fallback";
-      }
-      const maxStart = Math.max(0, segmentSpan - duration - 0.05);
-      const minStart = syncAction ? 0 : Math.min(0.35, maxStart);
+      const actions = (segment.actions || []).map((motionAction, index) => {
+        const sourceAction = sourceActions[index] || {};
+        const syncAction = actionTimingLookup.get(actionKey(segment.id, index));
+        const requestedDuration = Number(
+          motionAction.duration || sourceAction.duration || 0.72
+        );
+        const duration = formatSeconds(
+          Math.min(requestedDuration, Math.max(0.12, segmentSpan - 0.05))
+        );
+        let rawOffset;
+        let anchorRatioSource = "combined_motion_plan.actions[].offset";
+        if (syncAction && Number.isFinite(Number(syncAction.offset))) {
+          rawOffset = Number(syncAction.offset);
+          anchorRatioSource = "sync/action_timing.json";
+        } else if (Number.isFinite(Number(sourceAction.anchorRatio))) {
+          rawOffset = speechDuration * Number(sourceAction.anchorRatio);
+          anchorRatioSource = "voiceover_segments.actions[].anchorRatio";
+        } else if (Number.isFinite(Number(motionAction.offset))) {
+          rawOffset = Number(motionAction.offset);
+        } else {
+          rawOffset =
+            (speechDuration * (index + 1)) /
+            ((segment.actions || []).length + 1);
+          anchorRatioSource = "evenly-spaced-fallback";
+        }
+        const maxStart = Math.max(0, segmentSpan - duration - 0.05);
+        const minStart = syncAction ? 0 : Math.min(0.35, maxStart);
+        return {
+          ...motionAction,
+          offset: formatSeconds(clamp(rawOffset, minStart, maxStart)),
+          duration,
+          anchorRatioSource,
+          sync: syncAction
+            ? {
+                source: syncAction.syncSource,
+                confidence: syncAction.syncConfidence,
+                spokenAnchor: syncAction.spokenAnchor,
+                anchorStart: syncAction.anchorStart,
+                anchorEnd: syncAction.anchorEnd,
+              }
+            : undefined,
+          rhythm: syncAction?.rhythm,
+        };
+      });
+
       return {
-        ...motionAction,
-        offset: formatSeconds(clamp(rawOffset, minStart, maxStart)),
-        duration,
-        anchorRatioSource,
-        sync: syncAction
-          ? {
-              source: syncAction.syncSource,
-              confidence: syncAction.syncConfidence,
-              spokenAnchor: syncAction.spokenAnchor,
-              anchorStart: syncAction.anchorStart,
-              anchorEnd: syncAction.anchorEnd,
-            }
-          : undefined,
-        rhythm: syncAction?.rhythm,
+        ...segment,
+        start: timedSegment.start,
+        speechEnd: timedSegment.speechEnd,
+        end: timedSegment.end,
+        caption:
+          timedSegment.caption ||
+          sourceSegment.caption ||
+          segment.caption ||
+          sourceSegment.text,
+        actions,
       };
-    });
-
-    return {
-      ...segment,
-      start: timedSegment.start,
-      speechEnd: timedSegment.speechEnd,
-      end: timedSegment.end,
-      caption:
-        timedSegment.caption ||
-        sourceSegment.caption ||
-        segment.caption ||
-        sourceSegment.text,
-      actions,
-    };
-  });
+    }
+  );
 
   return {
     ...combinedMotionPlan,

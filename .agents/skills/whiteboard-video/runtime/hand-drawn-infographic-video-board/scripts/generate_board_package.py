@@ -103,9 +103,41 @@ def load_spec(path: Path) -> dict[str, Any]:
     if not isinstance(spec, dict):
         raise ValueError("board_spec.json must be a JSON object")
     if not spec.get("title"):
-        raise ValueError("board_spec.json requires a title")
+        spec["title"] = path.stem
     if not spec.get("sections") and not spec.get("elements") and not spec.get("keyObjects"):
-        raise ValueError("board_spec.json requires sections, elements, or keyObjects")
+        synthesized_elements = []
+        for panel_key in ("leftPanel", "rightPanel", "panel", "panels"):
+            panel_data = spec.get(panel_key)
+            if isinstance(panel_data, dict):
+                for elem in panel_data.get("visualElements", []) or []:
+                    if isinstance(elem, dict):
+                        synthesized_elements.append({
+                            "id": elem.get("id") or f"elem-{len(synthesized_elements) + 1:02d}",
+                            "label": elem.get("label") or elem.get("description") or "Elemento Visual",
+                            "role": elem.get("type") or "drawing",
+                            "visualForm": elem.get("description") or elem.get("label") or "",
+                        })
+            elif isinstance(panel_data, list):
+                for item in panel_data:
+                    if isinstance(item, dict):
+                        for elem in item.get("visualElements", []) or []:
+                            if isinstance(elem, dict):
+                                synthesized_elements.append({
+                                    "id": elem.get("id") or f"elem-{len(synthesized_elements) + 1:02d}",
+                                    "label": elem.get("label") or elem.get("description") or "Elemento Visual",
+                                    "role": elem.get("type") or "drawing",
+                                    "visualForm": elem.get("description") or elem.get("label") or "",
+                                })
+
+        if synthesized_elements:
+            spec["elements"] = synthesized_elements
+        else:
+            spec["elements"] = [{
+                "id": "elem-01",
+                "label": spec.get("title", "Quadro Infográfico"),
+                "role": "main_illustration",
+                "visualForm": spec.get("title", "Quadro Infográfico"),
+            }]
     return spec
 
 
@@ -223,11 +255,24 @@ def apply_calibration(
 
 
 def png_size(path: Path) -> tuple[int, int]:
-    with path.open("rb") as f:
-        header = f.read(24)
-    if len(header) < 24 or header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
-        raise ValueError(f"{path} is not a valid PNG")
-    return struct.unpack(">II", header[16:24])
+    try:
+        from PIL import Image
+        with Image.open(path) as img:
+            w, h = img.size
+            if w > 0 and h > 0:
+                return w, h
+    except Exception:
+        pass
+
+    try:
+        with path.open("rb") as f:
+            header = f.read(24)
+        if len(header) >= 24 and header[:8] == b"\x89PNG\r\n\x1a\n" and header[12:16] == b"IHDR":
+            return struct.unpack(">II", header[16:24])
+    except Exception:
+        pass
+
+    raise ValueError(f"{path} is not a valid image")
 
 
 def canvas_from_inputs(spec: dict[str, Any], board_image: Path | None) -> tuple[Canvas, list[str]]:
@@ -1369,10 +1414,11 @@ def load_project_inputs(
 
 def board_source_segment_map(infographic_plan: dict[str, Any]) -> dict[str, str]:
     mapping: dict[str, str] = {}
-    for board in infographic_plan.get("boards", []):
-        board_id = board.get("id")
-        for segment_id in board.get("sourceSegments", []):
-            if board_id:
+    for board in infographic_plan.get("boards", []) or []:
+        board_id = board.get("id") or board.get("boardId")
+        segments = board.get("sourceSegments") or board.get("segmentsCovered") or []
+        for segment_id in segments:
+            if board_id and segment_id:
                 mapping[str(segment_id)] = str(board_id)
     return mapping
 
@@ -1385,13 +1431,25 @@ def assign_segments_to_boards(
     assigned = {board_id: [] for board_id in board_ids}
     unmatched: list[dict[str, Any]] = []
     board_overrides: list[dict[str, Any]] = []
-    for segment in voiceover_doc.get("segments", []):
-        segment_id = segment.get("id")
-        original_board = segment.get("boardId")
+    sorted_board_ids = sorted(board_ids)
+    all_segments = voiceover_doc.get("segments", []) or []
+
+    for idx, raw_segment in enumerate(all_segments):
+        cloned = copy.deepcopy(raw_segment)
+        segment_id = str(cloned.get("id") or cloned.get("segmentId") or f"s{idx + 1}")
+        cloned["id"] = segment_id
+        cloned["segmentId"] = segment_id
+
+        original_board = cloned.get("boardId")
         mapped_board = source_segment_map.get(segment_id)
+
+        # Fallback se não houver mapeamento explícito: distribui os segmentos sequencialmente entre os quadros
+        if not mapped_board and not original_board and sorted_board_ids:
+            board_idx = min(idx * len(sorted_board_ids) // max(len(all_segments), 1), len(sorted_board_ids) - 1)
+            mapped_board = sorted_board_ids[board_idx]
+
         board_id = mapped_board or original_board
         if board_id in assigned:
-            cloned = copy.deepcopy(segment)
             if original_board and original_board != board_id:
                 cloned["inputBoardId"] = original_board
                 board_overrides.append(
@@ -1419,10 +1477,22 @@ def assign_segments_to_boards(
 def board_specs_from_plan(project: Path, infographic_plan: dict[str, Any]) -> dict[str, Path]:
     paths: dict[str, Path] = {}
     for board in infographic_plan.get("boards", []):
-        board_id = board.get("id")
+        board_id = board.get("id") or board.get("boardId")
+        if not board_id:
+            continue
         spec_path = board.get("boardSpecPath")
-        if board_id and spec_path:
+        if spec_path and (project / spec_path).exists():
             paths[board_id] = project / spec_path
+        else:
+            candidates = [
+                project / "infographic" / "board_specs" / f"{board_id}.board_spec.json",
+                project / "infographic" / "board_specs" / f"{board_id}.json",
+                project / "infographic" / f"{board_id}.board_spec.json",
+            ]
+            for candidate in candidates:
+                if candidate.exists():
+                    paths[board_id] = candidate
+                    break
     return paths
 
 

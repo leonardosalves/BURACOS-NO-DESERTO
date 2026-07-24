@@ -58,9 +58,21 @@ def spec_paths_from_plan(project: Path, plan: dict[str, Any]) -> dict[str, Path]
     out: dict[str, Path] = {}
     for board in plan.get("boards", []) or []:
         board_id = board.get("id") or board.get("boardId")
+        if not board_id:
+            continue
         path = board.get("boardSpecPath")
-        if board_id and path:
+        if path and (project / path).exists():
             out[str(board_id)] = project / path
+        else:
+            candidates = [
+                project / "infographic" / "board_specs" / f"{board_id}.board_spec.json",
+                project / "infographic" / "board_specs" / f"{board_id}.json",
+                project / "infographic" / f"{board_id}.board_spec.json",
+            ]
+            for candidate in candidates:
+                if candidate.exists():
+                    out[str(board_id)] = candidate
+                    break
     return out
 
 
