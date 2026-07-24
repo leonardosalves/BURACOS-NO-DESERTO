@@ -104,3 +104,6 @@ Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
 - [[skills/openmontage-reference-video|OpenMontage Reference]] — URL → brief + conceitos ([[memory/openmontage-lumiera]])
 - [[skills/openmontage-preflight|OpenMontage Preflight]] — capability envelope
 - [[skills/openmontage-reviewer|OpenMontage Reviewer]] — quality gates por estágio
+- [[skills/deep-research|Deep Research]] — pesquisa profunda citada (davidondrej/skills)
+- [[skills/youtube-transcript|YouTube Transcript]] — extração de transcrição/legendas (davidondrej/skills)
+- [[skills/research-prompt|Research Prompt]] — briefs de pesquisa de 1 parágrafo (davidondrej/skills)

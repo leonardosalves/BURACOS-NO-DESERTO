@@ -97,6 +97,9 @@
 - [[skills/writing-shape|writing shape]] — doc: [[skills/writing-shape/SKILL]]
 - [[skills/youtube-seo|youtube seo]] — doc: [[skills/youtube-seo/SKILL]]
 - [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
+- [[skills/youtube-transcript|youtube transcript]] — doc: [[skills/youtube-transcript/SKILL]]
+- [[skills/deep-research|deep research]] — doc: [[skills/deep-research/SKILL]]
+- [[skills/research-prompt|research prompt]] — doc: [[skills/research-prompt/SKILL]]
 
 ## Por que vários arquivos SKILL?
 
