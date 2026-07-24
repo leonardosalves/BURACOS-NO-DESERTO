@@ -693,6 +693,104 @@ export function WhiteboardCreatorPanel({
                             </h3>
                           </div>
                         )}
+                        {/* Timeline com duração por quadro */}
+                        {detail.segments.length > 0 &&
+                          (() => {
+                            const WPS = 2.5; // palavras por segundo (narração PT)
+                            const fmt = (s: number) => {
+                              const m = Math.floor(s / 60);
+                              const ss = Math.round(s % 60);
+                              return `${m}:${String(ss).padStart(2, "0")}`;
+                            };
+                            let cursor = 0;
+                            const rows = detail.segments.map((seg, idx) => {
+                              const words = String(seg.text || "")
+                                .split(/\s+/)
+                                .filter(Boolean).length;
+                              const dur = words / WPS;
+                              const start = cursor;
+                              cursor += dur;
+                              return {
+                                idx,
+                                role: seg.role,
+                                boardId: seg.boardId,
+                                words,
+                                dur,
+                                start,
+                                end: cursor,
+                                overloaded: words > 30,
+                              };
+                            });
+                            const total = cursor;
+                            const target = detail.run?.duration_sec || 0;
+                            const deviation =
+                              target > 0
+                                ? Math.round(((total - target) / target) * 100)
+                                : 0;
+                            return (
+                              <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                                    Timeline ({detail.segments.length} quadros)
+                                  </h4>
+                                  <span
+                                    className={`text-[10px] font-bold ${
+                                      Math.abs(deviation) > 20
+                                        ? "text-amber-300"
+                                        : "text-zinc-500"
+                                    }`}
+                                  >
+                                    {fmt(total)}
+                                    {target > 0
+                                      ? ` / alvo ${fmt(target)} (${deviation > 0 ? "+" : ""}${deviation}%)`
+                                      : ""}
+                                  </span>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  {rows.map((r) => (
+                                    <div
+                                      key={r.idx}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <span className="w-16 shrink-0 font-mono text-[9px] text-zinc-500">
+                                        {fmt(r.start)}–{fmt(r.end)}
+                                      </span>
+                                      <div className="flex-1 h-4 rounded bg-zinc-900/60 overflow-hidden relative">
+                                        <div
+                                          className={`h-full rounded ${
+                                            r.overloaded
+                                              ? "bg-amber-500/40"
+                                              : "bg-sky-500/30"
+                                          }`}
+                                          style={{
+                                            width: `${Math.min(100, (r.dur / (total || 1)) * 100)}%`,
+                                          }}
+                                        />
+                                        <span className="absolute inset-0 flex items-center px-1.5 text-[8px] text-zinc-300 truncate">
+                                          {r.role} · Q{r.boardId} · {r.words}p
+                                        </span>
+                                      </div>
+                                      {r.overloaded && (
+                                        <span
+                                          className="shrink-0 text-[8px] text-amber-300 font-bold"
+                                          title="Muitas palavras para o tempo — ritmo rápido"
+                                        >
+                                          rápido
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                                {Math.abs(deviation) > 20 && target > 0 && (
+                                  <p className="mt-2 text-[10px] text-amber-300/90">
+                                    Duração estimada difere{" "}
+                                    {Math.abs(deviation)}% do alvo. Ajuste o
+                                    texto ou a duração do projeto.
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })()}
                         <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-4">
                           <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3">
                             Estrutura do Roteiro (Português)
