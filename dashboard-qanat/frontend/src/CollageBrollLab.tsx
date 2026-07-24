@@ -2978,6 +2978,79 @@ export function CollageBrollLab({
         )}
       </div>
 
+      {/* Timeline de produção — visão geral de onde o pipeline está parado */}
+      {items.length > 0 && (
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/50 p-3 overflow-x-auto">
+          <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-500 flex items-center gap-1.5">
+            <Layers className="w-3 h-3" /> Timeline de produção
+          </p>
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr>
+                <th className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                  Cena
+                </th>
+                {[
+                  "Proposta",
+                  "Frame final",
+                  "Frame inicial",
+                  "Movimento",
+                  "Vídeo",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-zinc-500 whitespace-nowrap"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, idx) => {
+                const stages = derivePipelineStages(item);
+                const isSel = selected?.id === item.id;
+                const label =
+                  item.place_name ||
+                  item.line?.slice(0, 28) ||
+                  `C${String(idx + 1).padStart(2, "0")}`;
+                return (
+                  <tr
+                    key={item.id}
+                    onClick={() => {
+                      setSelectedId(item.id);
+                    }}
+                    className={`cursor-pointer border-t border-zinc-800/60 transition ${
+                      isSel ? "bg-violet-500/10" : "hover:bg-zinc-900/50"
+                    }`}
+                  >
+                    <td className="px-2 py-1.5 text-[10px] font-medium text-zinc-300 whitespace-nowrap max-w-[160px] truncate">
+                      C{String(idx + 1).padStart(2, "0")} · {label}
+                    </td>
+                    {stages.map((s) => {
+                      const meta = STAGE_STATE_META[s.state];
+                      return (
+                        <td key={s.id} className="px-2 py-1.5">
+                          <span
+                            title={s.note}
+                            className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8px] font-semibold whitespace-nowrap ${meta.ring} ${meta.text}`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${meta.dot}`}
+                            />
+                            {s.note}
+                          </span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(380px,440px)] gap-5">
         {/* Left: input + list */}
         <div className="space-y-4 min-w-0">
