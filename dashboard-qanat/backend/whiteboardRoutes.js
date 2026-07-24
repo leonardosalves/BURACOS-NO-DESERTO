@@ -150,6 +150,7 @@ export function registerWhiteboardRoutes(app, deps) {
             present: true,
             filename: file,
             size: fs.statSync(path.join(imagesDir, file)).size,
+            imageUrl: `/api/whiteboard/board-image?id=${runId}&board=${encodeURIComponent(boardId)}`,
           };
         }
       }
@@ -341,6 +342,53 @@ export function registerWhiteboardRoutes(app, deps) {
       console.error("Erro em /api/whiteboard/preview-video:", err);
       res.status(500).json({
         error: "Erro ao carregar preview do vídeo.",
+        details: err.message,
+      });
+    }
+  });
+
+  // Serve a imagem (miniatura) de um quadro específico para validação visual.
+  app.get("/api/whiteboard/board-image", async (req, res) => {
+    try {
+      const runId = Number(req.query.id);
+      const boardId = String(req.query.board || "").trim();
+      if (!runId || !boardId)
+        return res
+          .status(400)
+          .json({ error: "id do projeto e board são obrigatórios." });
+
+      const client = await pool.connect();
+      let run = null;
+      try {
+        const result = await client.query(
+          "SELECT * FROM whiteboard_runs WHERE id = $1",
+          [runId]
+        );
+        run = result.rows[0];
+      } finally {
+        client.release();
+      }
+
+      if (!run)
+        return res.status(404).json({ error: "Projeto não encontrado." });
+
+      const imagePath = path.join(
+        run.folder_path,
+        "images",
+        `${boardId}.model-generated.png`
+      );
+      if (!fs.existsSync(imagePath)) {
+        return res
+          .status(404)
+          .json({ error: "Imagem do quadro não encontrada." });
+      }
+
+      res.setHeader("Cache-Control", "no-cache");
+      res.sendFile(imagePath);
+    } catch (err) {
+      console.error("Erro em /api/whiteboard/board-image:", err);
+      res.status(500).json({
+        error: "Erro ao carregar imagem do quadro.",
         details: err.message,
       });
     }

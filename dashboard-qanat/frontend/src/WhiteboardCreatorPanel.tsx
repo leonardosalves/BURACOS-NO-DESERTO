@@ -34,6 +34,7 @@ type BoardImageStatus = {
   present: boolean;
   filename: string;
   size: number;
+  imageUrl?: string;
 };
 
 type RunDetail = {
@@ -714,29 +715,41 @@ export function WhiteboardCreatorPanel({
                                       className="hidden"
                                     />
                                     {isPresent ? (
-                                      <div className="flex items-center justify-between p-2 bg-zinc-900/60 border border-zinc-800 rounded-xl">
-                                        <div className="flex items-center gap-2">
-                                          <ImageIcon className="w-6 h-6 text-sky-400" />
-                                          <div className="flex flex-col">
+                                      <div className="flex flex-col gap-2 p-2 bg-zinc-900/60 border border-zinc-800 rounded-xl">
+                                        {imageStatus.imageUrl ? (
+                                          <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/40">
+                                            <img
+                                              src={imageStatus.imageUrl}
+                                              alt={`Quadro ${boardId}`}
+                                              className="w-full h-32 object-contain"
+                                              loading="lazy"
+                                            />
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2">
+                                            <ImageIcon className="w-6 h-6 text-sky-400" />
                                             <span className="text-[10px] text-zinc-300 font-bold truncate max-w-[150px]">
                                               {imageStatus.filename}
                                             </span>
-                                            <span className="text-[9px] text-zinc-500">
-                                              {(
-                                                imageStatus.size / 1024
-                                              ).toFixed(0)}{" "}
-                                              KB
-                                            </span>
                                           </div>
+                                        )}
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-[9px] text-zinc-500">
+                                            {imageStatus.filename} ·{" "}
+                                            {(imageStatus.size / 1024).toFixed(
+                                              0
+                                            )}{" "}
+                                            KB
+                                          </span>
+                                          <button
+                                            onClick={() =>
+                                              triggerFileInput(boardId)
+                                            }
+                                            className="text-[10px] font-bold text-sky-400 bg-sky-400/10 hover:bg-sky-400/20 border-0 px-2 py-1 rounded transition cursor-pointer"
+                                          >
+                                            Substituir
+                                          </button>
                                         </div>
-                                        <button
-                                          onClick={() =>
-                                            triggerFileInput(boardId)
-                                          }
-                                          className="text-[10px] font-bold text-sky-400 bg-sky-400/10 hover:bg-sky-400/20 border-0 px-2 py-1 rounded transition cursor-pointer"
-                                        >
-                                          Substituir
-                                        </button>
                                       </div>
                                     ) : (
                                       <button
