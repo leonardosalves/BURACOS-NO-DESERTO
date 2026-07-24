@@ -118,6 +118,23 @@ export function registerWhiteboardRoutes(app, deps) {
       } catch {}
     }
 
+    // Planos de animação por quadro (entrada/construção/ênfase/saída/continuidade).
+    const boardAnimationPlans = {};
+    const boardSpecsDir = path.join(runDir, "infographic", "board_specs");
+    if (fs.existsSync(boardSpecsDir)) {
+      for (const f of fs.readdirSync(boardSpecsDir)) {
+        if (!f.endsWith(".board_spec.json")) continue;
+        try {
+          const spec = JSON.parse(
+            fs.readFileSync(path.join(boardSpecsDir, f), "utf8")
+          );
+          if (spec.id && spec.animationPlan) {
+            boardAnimationPlans[spec.id] = spec.animationPlan;
+          }
+        } catch {}
+      }
+    }
+
     // Read segments text
     let segments = [];
     let scriptTitle = "";
@@ -181,6 +198,7 @@ export function registerWhiteboardRoutes(app, deps) {
       hasVideo,
       imageReport,
       visualDna,
+      boardAnimationPlans,
       segments,
       scriptTitle,
       prompts,

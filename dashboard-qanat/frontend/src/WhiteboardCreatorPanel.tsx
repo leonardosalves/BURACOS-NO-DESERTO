@@ -49,6 +49,16 @@ type RunDetail = {
     persistentElements: string[];
     negativePrompt: string;
   } | null;
+  boardAnimationPlans?: Record<
+    string,
+    {
+      entrada?: string;
+      construcao?: string;
+      enfase?: string;
+      saida?: string;
+      continuidade?: string;
+    }
+  >;
   segments: any[];
   scriptTitle?: string;
   prompts: Record<string, string>;
@@ -1033,6 +1043,59 @@ export function WhiteboardCreatorPanel({
                                       </button>
                                     )}
                                   </div>
+
+                                  {/* Plano de animação do quadro */}
+                                  {detail.boardAnimationPlans?.[boardId] && (
+                                    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-3">
+                                      <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                        <Film className="w-3 h-3" />
+                                        Plano de animação
+                                      </p>
+                                      <div className="flex flex-col gap-1.5">
+                                        {[
+                                          [
+                                            "Entrada",
+                                            detail.boardAnimationPlans[boardId]
+                                              .entrada,
+                                          ],
+                                          [
+                                            "Construção",
+                                            detail.boardAnimationPlans[boardId]
+                                              .construcao,
+                                          ],
+                                          [
+                                            "Ênfase",
+                                            detail.boardAnimationPlans[boardId]
+                                              .enfase,
+                                          ],
+                                          [
+                                            "Saída",
+                                            detail.boardAnimationPlans[boardId]
+                                              .saida,
+                                          ],
+                                          [
+                                            "Continuidade",
+                                            detail.boardAnimationPlans[boardId]
+                                              .continuidade,
+                                          ],
+                                        ]
+                                          .filter(([, v]) => v)
+                                          .map(([label, value]) => (
+                                            <div
+                                              key={label}
+                                              className="text-[10px] leading-4"
+                                            >
+                                              <span className="text-zinc-500 font-bold">
+                                                {label}:{" "}
+                                              </span>
+                                              <span className="text-zinc-300">
+                                                {value}
+                                              </span>
+                                            </div>
+                                          ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             );

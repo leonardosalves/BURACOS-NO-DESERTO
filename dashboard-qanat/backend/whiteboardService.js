@@ -336,6 +336,13 @@ Retorne EXCLUSIVAMENTE um único objeto JSON contendo:
         "type": "flow" // flow, contrast, dependency
       }
     ],
+    "animationPlan": {
+      "entrada": "Como o quadro/elementos entram (ex: desenhar a torre esquerda e avançar para a direita)",
+      "construcao": "O que é revelado/construído em sequência (ex: revelar o tabuleiro, adicionar cabos, desenhar setas)",
+      "enfase": "O que é destacado/circulado (ex: circular a região central)",
+      "saida": "Como o quadro sai/transiciona (ex: manter a ponte e apagar apenas as setas)",
+      "continuidade": "O que permanece no quadro seguinte (ex: a ponte deve permanecer no mesmo lugar)"
+    },
     "imagePromptPath": "infographic/image_prompts/board-01.prompt.md",
     "handoff": "hand-drawn-infographic-creator"
   }
