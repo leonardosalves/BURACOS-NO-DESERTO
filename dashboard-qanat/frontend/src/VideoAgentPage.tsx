@@ -62,6 +62,7 @@ export default function VideoAgentPage({
   activeProject: string | null;
   getProjectUrl?: (path: string) => string;
 }) {
+  const [projectFormat, setProjectFormat] = useState<"16:9" | "9:16">("16:9");
   const [messages, setMessages] = useState<AgentMessage[]>([
     {
       role: "agent",
@@ -101,16 +102,21 @@ export default function VideoAgentPage({
     fetch(resolveUrl("/api/video-agent/storyboard"))
       .then((res) => res.json())
       .then((data) => {
-        if (
-          data?.ok &&
-          Array.isArray(data.storyboard) &&
-          data.storyboard.length > 0
-        ) {
-          setStoryboard(data.storyboard);
+        if (data?.ok) {
+          if (data.format === "9:16" || data.format === "16:9") {
+            setProjectFormat(data.format);
+          }
+          if (Array.isArray(data.storyboard) && data.storyboard.length > 0) {
+            setStoryboard(data.storyboard);
+          }
         }
       })
       .catch(() => {});
   }, [activeProject, getProjectUrl]);
+
+  const handleToggleFormat = () => {
+    setProjectFormat((prev) => (prev === "16:9" ? "9:16" : "16:9"));
+  };
 
   const selectedSceneObj =
     storyboard.find((f) => f.id === selectedSceneId) || null;
@@ -212,7 +218,9 @@ export default function VideoAgentPage({
   return (
     <div className="flex h-full min-h-0 divide-x divide-gray-800">
       {/* 1. Chat Panel (Left) */}
-      <div className="w-[360px] shrink-0 flex flex-col">
+      <div
+        className={`${projectFormat === "16:9" ? "w-[300px]" : "w-[360px]"} shrink-0 flex flex-col transition-all duration-300`}
+      >
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800 bg-gray-900/50">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
@@ -335,10 +343,14 @@ export default function VideoAgentPage({
         hfStatus={hfStatus}
         onSendMessage={sendMessage}
         graphicsIdeas={graphicsIdeas}
+        projectFormat={projectFormat}
+        onToggleFormat={handleToggleFormat}
       />
 
       {/* 3. Storyboard + Graphics Panel (Right) */}
-      <div className="w-[320px] shrink-0 flex flex-col min-h-0 bg-gray-900/30">
+      <div
+        className={`${projectFormat === "16:9" ? "w-[300px]" : "w-[320px]"} shrink-0 flex flex-col min-h-0 bg-gray-900/30 transition-all duration-300`}
+      >
         <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutGrid size={14} className="text-violet-400" />
@@ -529,20 +541,25 @@ function ScenePreviewPanel({
   hfStatus,
   onSendMessage,
   graphicsIdeas,
+  projectFormat,
+  onToggleFormat,
 }: {
   selectedScene: StoryboardFrame | null;
   previewUrl: string | null;
   hfStatus: HfStatus;
   onSendMessage: (msg: string) => void;
   graphicsIdeas: GraphicsIdea[];
+  projectFormat: "16:9" | "9:16";
+  onToggleFormat: () => void;
 }) {
   const [mode, setMode] = useState<"scene" | "studio">("scene");
+  const isLandscape = projectFormat === "16:9";
   const sceneGraphics = graphicsIdeas.filter(
     (g) => selectedScene && g.sceneTitle?.includes(selectedScene.id)
   );
 
   return (
-    <div className="flex-1 flex flex-col min-w-[440px] bg-gray-900/60 border-r border-gray-800">
+    <div className="flex-1 flex flex-col min-w-0 bg-gray-900/60 border-r border-gray-800 transition-all duration-300">
       {/* Preview Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-900/80">
         <div className="flex items-center gap-2 min-w-0">
@@ -561,37 +578,55 @@ function ScenePreviewPanel({
           </div>
         </div>
 
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 bg-gray-950 p-1 rounded-lg border border-gray-800">
+        {/* View Mode & Format Controls */}
+        <div className="flex items-center gap-2">
+          {/* Format Toggle Button */}
           <button
-            onClick={() => setMode("scene")}
-            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-              mode === "scene"
-                ? "bg-violet-600 text-white shadow"
-                : "text-gray-400 hover:text-gray-200"
-            }`}
+            onClick={onToggleFormat}
+            title="Alternar formato do preview (16:9 Longo vs 9:16 Shorts)"
+            className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-violet-950/90 border border-violet-500/70 text-violet-200 hover:bg-violet-900 transition-all flex items-center gap-1.5 shadow"
           >
-            🎬 Cena em Si
+            {isLandscape ? "📺 16:9 Longo" : "📱 9:16 Shorts"}
           </button>
-          {previewUrl && (
+
+          {/* Mode Toggle */}
+          <div className="flex items-center gap-1 bg-gray-950 p-1 rounded-lg border border-gray-800">
             <button
-              onClick={() => setMode("studio")}
+              onClick={() => setMode("scene")}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                mode === "studio"
+                mode === "scene"
                   ? "bg-violet-600 text-white shadow"
                   : "text-gray-400 hover:text-gray-200"
               }`}
             >
-              🛠️ Studio CLI
+              🎬 Cena em Si
             </button>
-          )}
+            {previewUrl && (
+              <button
+                onClick={() => setMode("studio")}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  mode === "studio"
+                    ? "bg-violet-600 text-white shadow"
+                    : "text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                🛠️ Studio CLI
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Preview Canvas / Player Area (Ampliada em HD) */}
+      {/* Preview Canvas / Player Area */}
       <div className="flex-1 flex flex-col items-center justify-center p-3 py-4 bg-black/60 overflow-y-auto relative">
         {mode === "studio" && previewUrl ? (
-          <div className="w-full max-w-[440px] aspect-[9/16] h-[78vh] max-h-[750px] rounded-2xl overflow-hidden border-2 border-violet-500/60 shadow-2xl shadow-violet-950/60 bg-black relative">
+          <div
+            className={`w-full transition-all duration-300 ${
+              isLandscape
+                ? "max-w-[850px] aspect-video max-h-[500px]"
+                : "max-w-[440px] aspect-[9/16] h-[78vh] max-h-[750px]"
+            } rounded-2xl overflow-hidden border-2 border-violet-500/60 shadow-2xl shadow-violet-950/60 bg-black relative`}
+          >
             <iframe
               src={previewUrl}
               title="HyperFrames Studio CLI"
@@ -599,7 +634,13 @@ function ScenePreviewPanel({
             />
           </div>
         ) : selectedScene ? (
-          <div className="w-full max-w-[440px] aspect-[9/16] h-[78vh] max-h-[750px] rounded-2xl border-2 border-violet-500/50 bg-gradient-to-b from-gray-950 via-gray-900 to-black flex flex-col justify-between shadow-2xl shadow-violet-950/60 relative overflow-hidden group p-5">
+          <div
+            className={`w-full transition-all duration-300 ${
+              isLandscape
+                ? "max-w-[850px] aspect-video max-h-[500px]"
+                : "max-w-[440px] aspect-[9/16] h-[78vh] max-h-[750px]"
+            } rounded-2xl border-2 border-violet-500/50 bg-gradient-to-b from-gray-950 via-gray-900 to-black flex flex-col justify-between shadow-2xl shadow-violet-950/60 relative overflow-hidden group p-5`}
+          >
             {/* Real Background Media (Video / Photo of the Scene) */}
             {selectedScene.asset_url ? (
               selectedScene.media_type === "video" ? (
@@ -664,7 +705,11 @@ function ScenePreviewPanel({
                 </div>
               )}
 
-              <p className="text-sm text-gray-100 font-medium leading-relaxed max-w-[280px] px-2 italic drop-shadow-lg">
+              <p
+                className={`text-sm text-gray-100 font-medium leading-relaxed ${
+                  isLandscape ? "max-w-[560px]" : "max-w-[280px]"
+                } px-2 italic drop-shadow-lg`}
+              >
                 "{selectedScene.description}"
               </p>
 
@@ -677,7 +722,11 @@ function ScenePreviewPanel({
             </div>
 
             {/* Subtitle / Retention Narration Bottom Overlay */}
-            <div className="z-10 bg-black/90 backdrop-blur-md rounded-xl p-3.5 border border-gray-800 text-center shadow-2xl">
+            <div
+              className={`z-10 bg-black/90 backdrop-blur-md rounded-xl p-3.5 border border-gray-800 text-center shadow-2xl ${
+                isLandscape ? "max-w-[650px] w-full self-center" : "w-full"
+              }`}
+            >
               <span className="text-[10px] uppercase tracking-widest text-violet-400 font-extrabold block mb-1">
                 LEGENDA DE RETENÇÃO
               </span>

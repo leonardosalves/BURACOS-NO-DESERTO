@@ -4548,9 +4548,26 @@ app.get("/api/video-agent/storyboard", (req, res) => {
       };
     });
 
+    let format = "16:9";
+    try {
+      const cfg = readProjectJson(projDir, "config_qanat.json", {});
+      const std = readProjectJson(projDir, "timeline_studio.json", {});
+      if (
+        cfg.aspect_ratio === "9:16" ||
+        String(cfg.video_format || "").toUpperCase() === "SHORTS" ||
+        String(cfg.video_format || "").toUpperCase() === "SHORT" ||
+        std.format === "9:16"
+      ) {
+        format = "9:16";
+      } else {
+        format = "16:9";
+      }
+    } catch {}
+
     return res.json({
       ok: true,
       project: path.basename(projDir),
+      format,
       storyboard: frames,
     });
   } catch (err) {
