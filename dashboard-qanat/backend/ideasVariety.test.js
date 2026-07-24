@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { collectProjectTopics } from "./ideasVariety.js";
+import { collectProjectTopics, mergeExclusionTopics } from "./ideasVariety.js";
 
 test("coletor inclui titulos alternativos que revelam o assunto real", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-ideas-"));
@@ -31,4 +31,24 @@ test("coletor inclui titulos alternativos que revelam o assunto real", () => {
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("mergeExclusionTopics nao bloqueia sugestoes do historico a menos que exista projeto real", () => {
+  const historyTopics = [
+    "A Ponte Romana que Nunca Morria",
+    "O Truque do Balde d'Água",
+  ];
+  const projectTopics = ["A Ponte Romana que Nunca Morria"];
+
+  const excluded = mergeExclusionTopics({
+    projectTopics,
+    historyTopics,
+    previousIdeas: [],
+  });
+
+  // O tema com projeto real 'A Ponte Romana' DEVE ser bloqueado
+  assert.ok(excluded.some((t) => t.toLowerCase().includes("ponte romana")));
+
+  // O tema sem projeto 'O Truque do Balde d'Água' NAO deve ser bloqueado
+  assert.ok(!excluded.some((t) => t.toLowerCase().includes("balde")));
 });

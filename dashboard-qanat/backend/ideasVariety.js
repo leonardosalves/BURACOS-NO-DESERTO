@@ -106,30 +106,59 @@ function ideasHistoryPath(workspaceDir, niche) {
 }
 
 /**
- * Lê o título principal de um projeto a partir do seu storyboard.json.
+ * Lê os tópicos e títulos de um projeto a partir dos seus arquivos de metadados.
  * @param {string} projectPath
  * @param {string} fallbackTitle
- * @returns {string}
+ * @returns {string[]}
  */
 function readProjectTopics(projectPath, fallbackTitle) {
+  const topics = [];
+  const add = (val) => {
+    const s = String(val || "").trim();
+    if (s && !topics.includes(s)) topics.push(s);
+  };
+
   const storyboardPath = path.join(projectPath, "storyboard.json");
-  if (!fs.existsSync(storyboardPath)) return [fallbackTitle];
-  try {
-    const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-    const topics = [
-      sb.strategy?.title_main,
-      ...(Array.isArray(sb.strategy?.title_variations)
-        ? sb.strategy.title_variations
-        : []),
-      sb.strategy?.hook,
-    ]
-      .map((value) => String(value || "").trim())
-      .filter(Boolean);
-    return topics.length ? topics : [fallbackTitle];
-  } catch {
-    /* ignore */
+  const summaryPath = path.join(projectPath, "run_summary.json");
+  const voPath = path.join(projectPath, "script", "voiceover_segments.json");
+
+  if (fs.existsSync(storyboardPath)) {
+    try {
+      const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      if (sb.strategy?.title_main) add(sb.strategy.title_main);
+      if (Array.isArray(sb.strategy?.title_variations)) {
+        sb.strategy.title_variations.forEach(add);
+      }
+      if (sb.strategy?.hook) add(sb.strategy.hook);
+      if (sb.topic) add(sb.topic);
+    } catch {
+      /* ignore */
+    }
   }
-  return [fallbackTitle];
+
+  if (fs.existsSync(summaryPath)) {
+    try {
+      const sum = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
+      if (sum.topic) add(sum.topic);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (fs.existsSync(voPath)) {
+    try {
+      const vo = JSON.parse(fs.readFileSync(voPath, "utf8"));
+      if (vo.topic) add(vo.topic);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (fallbackTitle) {
+    add(fallbackTitle.replace(/[-_]/g, " "));
+  }
+
+  return topics.length ? topics : [fallbackTitle];
 }
 
 /**
@@ -214,41 +243,39 @@ export function appendIdeasHistory(workspaceDir, niche, ideas = []) {
 }
 
 /**
- * Coleta os títulos e tópicos de todos os projetos ativos no workspace.
+ * Coleta os títulos e tópicos de todos os projetos ATIVOS/CRIADOS no workspace.
+ * Escaneia 'videos longos', 'videos curtos shorts' e 'whiteboard-runs'.
  * @param {string} projectsRoot
  * @returns {string[]}
  */
 export function collectProjectTopics(projectsRoot) {
   const projects = [];
-  const longsDir = path.join(projectsRoot, "videos longos");
-  const shortsDir = path.join(projectsRoot, "videos curtos shorts");
+  const dirsToScan = [
+    { dir: path.join(projectsRoot, "videos longos"), format: "LONGO" },
+    { dir: path.join(projectsRoot, "videos curtos shorts"), format: "SHORTS" },
+    { dir: path.join(projectsRoot, "whiteboard-runs"), format: "WHITEBOARD" },
+  ];
 
-  const scanDir = (dir, format) => {
-    if (!fs.existsSync(dir)) return;
+  for (const { dir, format } of dirsToScan) {
+    if (!fs.existsSync(dir)) continue;
     for (const dirent of fs.readdirSync(dir, { withFileTypes: true })) {
       if (!dirent.isDirectory()) continue;
       const item = dirent.name;
       if (SKIP_DIRS.includes(item)) continue;
 
       const fullPath = path.join(dir, item);
-      const hasBuildScript = fs.existsSync(
-        path.join(fullPath, "build_video.py")
-      );
-      if (!hasBuildScript && item !== "FINANCAS") continue;
-
       const topics = readProjectTopics(fullPath, item);
       projects.push({ name: item, topics, format });
     }
-  };
-
-  scanDir(longsDir, "LONGO");
-  scanDir(shortsDir, "SHORTS");
+  }
 
   return projects.flatMap((p) => p.topics).filter(Boolean);
 }
 
 /**
  * Une e deduz a lista de tópicos a serem excluídos do prompt da rodada.
+ * Apenas PROJETOS REAIS criados e ideias ativas da sessão atual são bloqueados.
+ * Histórico de meras sugestões NÃO bloqueia a geração de novas ideias.
  * @param {object} args
  * @param {string[]} [args.projectTopics]
  * @param {string[]} [args.historyTopics]
@@ -258,7 +285,7 @@ export function collectProjectTopics(projectsRoot) {
  */
 export function mergeExclusionTopics({
   projectTopics = [],
-  historyTopics = [],
+  historyTopics = [], // Obsoleto para exclusão rígida: meras sugestões não bloqueiam
   previousIdeas = [],
   extraExclude = [],
 } = {}) {
@@ -274,20 +301,16 @@ export function mergeExclusionTopics({
     out.push(t);
   };
 
-  const pool = [
-    ...previousIdeas,
-    ...historyTopics,
-    ...projectTopics,
-    ...extraExclude,
-  ];
+  // Bloquear APENAS assuntos de projetos reais existentes no workspace + ideias ativas da sessão atual
+  const pool = [...previousIdeas, ...projectTopics, ...extraExclude];
   for (const t of pool) {
     push(t);
   }
 
-  // Se o assunto clássico já foi abordado, joga no blocklist explicitamente
-  const historyNorm = new Set(pool.map(normalizeTopic));
+  // Se um assunto clássico já foi abordado em um projeto real, joga no blocklist
+  const projectNorm = new Set(projectTopics.map(normalizeTopic));
   for (const canon of OVERUSED_CURIOSITY_CANON) {
-    if (historyNorm.has(normalizeTopic(canon))) {
+    if (projectNorm.has(normalizeTopic(canon))) {
       push(canon);
     }
   }
