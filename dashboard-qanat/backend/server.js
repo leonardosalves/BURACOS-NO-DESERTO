@@ -11268,8 +11268,8 @@ async function prepareRemotionRender(
       );
 
   // Shotcraft: injeta motion_shot / camera_move / transições do motion plan (apenas no modo automático sem Studio Timeline)
+  let motionPlanForRender = storyboard?.motion_plan || null;
   if (!useStudioRender) {
-    let motionPlanForRender = storyboard?.motion_plan || null;
     try {
       const resolved = resolveMotionPlanForRender(storyboard, config);
       if (resolved.storyboard) storyboard = resolved.storyboard;

@@ -523,4 +523,32 @@ export function registerMotionSceneRoutes(
       res.status(500).json({ error: err.message });
     }
   });
+
+  app.post("/api/ai/creator/render-template-policy/apply", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const policy = req.body?.render_template_policy || {};
+      const configPath = path.join(projDir, "config_qanat.json");
+      let config = readJsonSafe(configPath, {});
+      if (req.body?.persist !== false) {
+        config = { ...config, render_template_policy: policy };
+        try {
+          fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+        } catch (err) {
+          console.warn(
+            "[render-template-policy] Falha ao persistir config:",
+            err.message
+          );
+        }
+      }
+      res.json({
+        ok: true,
+        message: "Policy de templates configurada com sucesso",
+        injected_count: 0,
+        motion_count: 0,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 }
