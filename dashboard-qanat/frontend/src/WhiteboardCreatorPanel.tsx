@@ -228,6 +228,42 @@ export function WhiteboardCreatorPanel({
     toast.success("Prompt copiado para a área de transferência!");
   };
 
+  const handleRegenerateBoardPrompt = async (
+    boardId: string,
+    instruction?: string
+  ) => {
+    if (!selectedRunId) return;
+    const toastId = toast.loading(`Regenerando prompt de ${boardId}...`);
+    try {
+      const res = await fetch("/api/whiteboard/regenerate-board-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          runId: selectedRunId,
+          boardId,
+          instruction: instruction || "",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(
+          `Prompt de ${boardId} regenerado (demais quadros preservados).`,
+          {
+            id: toastId,
+          }
+        );
+        fetchDetail(selectedRunId);
+      } else {
+        toast.error(data.error || "Falha ao regenerar prompt.", {
+          id: toastId,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao regenerar prompt do quadro.", { id: toastId });
+    }
+  };
+
   const triggerFileInput = (boardId: string) => {
     fileInputRefs.current[boardId]?.click();
   };
@@ -974,6 +1010,15 @@ export function WhiteboardCreatorPanel({
                                       title="Copiar Prompt"
                                     >
                                       <Copy className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleRegenerateBoardPrompt(boardId)
+                                      }
+                                      className="absolute right-11 top-2 p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border-0 rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                                      title="Regenerar prompt (preserva os demais quadros)"
+                                    >
+                                      <RefreshCw className="w-3.5 h-3.5" />
                                     </button>
                                   </div>
 

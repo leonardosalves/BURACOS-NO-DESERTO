@@ -10,6 +10,7 @@ import {
   resolvePythonPath,
   getSkillPaths,
   WhiteboardRenderError,
+  regenerateBoardPrompt,
 } from "./whiteboardService.js";
 import { buildPythonSpawnEnv } from "./pythonEnv.js";
 import { execSync } from "child_process";
@@ -635,6 +636,36 @@ export function registerWhiteboardRoutes(app, deps) {
       console.error("Erro em /api/whiteboard/precheck:", err);
       res.status(500).json({
         error: "Erro ao executar validação pré-render.",
+        details: err.message,
+      });
+    }
+  });
+
+  // Regeneração localizada: regenera o prompt de UM quadro, preservando os demais.
+  app.post("/api/whiteboard/regenerate-board-prompt", async (req, res) => {
+    try {
+      const runId = Number(req.body.runId);
+      const boardId = String(req.body.boardId || "").trim();
+      const instruction = String(req.body.instruction || "").trim();
+      if (!runId || !boardId)
+        return res
+          .status(400)
+          .json({ error: "runId e boardId são obrigatórios." });
+
+      const result = await regenerateBoardPrompt(
+        {
+          getApiKey: deps.getApiKey,
+          callGeminiWithRetry: deps.callGeminiWithRetry,
+          WORKSPACE_DIR,
+          pool,
+        },
+        { runId, boardId, instruction }
+      );
+      res.json({ success: true, ...result });
+    } catch (err) {
+      console.error("Erro em /api/whiteboard/regenerate-board-prompt:", err);
+      res.status(500).json({
+        error: "Erro ao regenerar prompt do quadro.",
         details: err.message,
       });
     }
