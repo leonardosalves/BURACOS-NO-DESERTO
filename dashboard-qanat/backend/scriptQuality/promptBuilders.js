@@ -509,7 +509,13 @@ Responda APENAS JSON válido (sem markdown, sem texto extra):
       "format_fit": "LONGO ou SHORTS",
       "recommended_duration": "duração recomendada",
       "premium_upgrade": "como tornar o ranking premium",
-      "validation_needed": "o que validar antes do roteiro"
+      "validation_needed": "o que validar antes do roteiro",
+      "scores": {
+        "retencao": 0-100,
+        "visual": 0-100,
+        "segurancaFactual": 0-100,
+        "originalidade": 0-100
+      }
     }
   ],
   "best_index": 0,
@@ -583,6 +589,23 @@ function normalizeRankingIdeaItem(item = {}) {
       ),
       premium_upgrade: pickStr(item.premium_upgrade, item.premiumUpgrade),
       validation_needed: pickStr(item.validation_needed, item.validationNeeded),
+      scores:
+        item.scores && typeof item.scores === "object"
+          ? {
+              retencao:
+                Number(item.scores.retencao ?? item.scores.retention ?? 0) ||
+                undefined,
+              visual: Number(item.scores.visual ?? 0) || undefined,
+              segurancaFactual:
+                Number(
+                  item.scores.segurancaFactual ?? item.scores.factual ?? 0
+                ) || undefined,
+              originalidade:
+                Number(
+                  item.scores.originalidade ?? item.scores.originality ?? 0
+                ) || undefined,
+            }
+          : undefined,
     },
     {
       format:

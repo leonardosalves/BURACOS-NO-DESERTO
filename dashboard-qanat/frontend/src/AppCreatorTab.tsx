@@ -300,6 +300,7 @@ export type AppCreatorTabProps = {
   setListNiche: (v: string) => void;
   setListTopic: (v: string) => void;
   setListicleHudStyle: (v: string) => void;
+  patchSelectedListicleRanking: (contract: unknown) => void;
   setNarrationDraft: (v: string) => void;
   setNarrationTaggedDraft: (v: string) => void;
   setNicheInput: (v: string) => void;
@@ -456,6 +457,7 @@ export function AppCreatorTab({
   setListNiche,
   setListTopic,
   setListicleHudStyle,
+  patchSelectedListicleRanking,
   setNarrationDraft,
   setNarrationTaggedDraft,
   setNicheInput,
@@ -1769,6 +1771,7 @@ export function AppCreatorTab({
                         setSelectedListicleIdeaIndex(idx)
                       }
                       onGenerateScript={handleGenerateListicleScript}
+                      onContractChange={patchSelectedListicleRanking}
                     />
                   </Suspense>
                 ) : !ideasData ? (

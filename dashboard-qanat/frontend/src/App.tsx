@@ -8550,6 +8550,20 @@ export default function App() {
     }
   };
 
+  // Armazena o Contrato do Ranking editado na ideia selecionada, de modo que
+  // ele flua para o payload via ...(selectedRanking || {}).
+  const patchSelectedListicleRanking = (contract: unknown) => {
+    setListicleIdeasData((prev) => {
+      if (!prev?.ranking_ideas) return prev;
+      const idx = selectedListicleIdeaIndex;
+      if (idx < 0 || idx >= prev.ranking_ideas.length) return prev;
+      const ranking_ideas = prev.ranking_ideas.map((idea, i) =>
+        i === idx ? { ...idea, ranking_contract: contract } : idea
+      );
+      return { ...prev, ranking_ideas };
+    });
+  };
+
   const buildCreatorScriptPayload = (
     phase: "narration" | "full",
     options?: { approvedNarration?: string; approvedNarrationTagged?: string }
@@ -12106,6 +12120,7 @@ export default function App() {
     listTopic,
     listicleHudStyle,
     listicleIdeasData,
+    patchSelectedListicleRanking,
     loadEditorProject,
     loadingStoryboard,
     logs,

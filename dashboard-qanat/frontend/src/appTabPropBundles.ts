@@ -165,6 +165,7 @@ export function buildAppTabPropBundles(
     listTopic: ctx.listTopic,
     listicleHudStyle: ctx.listicleHudStyle,
     listicleIdeasData: ctx.listicleIdeasData,
+    patchSelectedListicleRanking: ctx.patchSelectedListicleRanking,
     mixBGM: ctx.mixBGM,
     mixing: ctx.mixing,
     narrationBlockPhrases: ctx.narrationBlockPhrases,

@@ -1,10 +1,13 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   RefreshCw,
   Sparkles,
   Lightbulb,
   Trophy,
+  ScrollText,
+  Lock,
+  Check,
 } from "lucide-react";
 import {
   ListicleRankingIdeas,
@@ -19,6 +22,24 @@ import {
 
 export const LONGO_RANK_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
 export const SHORTS_RANK_OPTIONS = [3, 5] as const;
+
+export type RankingContract = {
+  rankingQuestion: string;
+  mainCriterion: string;
+  secondaryCriteria: string;
+  scope: string;
+  tieBreakRule: string;
+  exclusions: string;
+};
+
+export const EMPTY_CONTRACT: RankingContract = {
+  rankingQuestion: "",
+  mainCriterion: "",
+  secondaryCriteria: "",
+  scope: "",
+  tieBreakRule: "",
+  exclusions: "",
+};
 
 export const LISTICLE_PRESETS = [
   {
@@ -96,6 +117,7 @@ type Props = {
   onSuggestRankings: () => void;
   onSelectRankingIdea: (index: number, idea: ListicleRankingIdea) => void;
   onGenerateScript: () => void;
+  onContractChange?: (contract: RankingContract) => void;
 };
 
 function projectNameFromTitle(title: string) {
@@ -159,12 +181,67 @@ export function ListicleCreatorStep({
   onSuggestRankings,
   onSelectRankingIdea,
   onGenerateScript,
+  onContractChange,
 }: Props) {
   const rankOptions =
     formatSelector === "SHORTS" ? SHORTS_RANK_OPTIONS : LONGO_RANK_OPTIONS;
+
+  // ── CORREÇÃO CRÍTICA: única fonte de verdade para a quantidade ──────────
+  // Reconcilia rankCount com as opções válidas do formato sempre que o
+  // formato muda ou ao montar. Evita o estado "dropdown mostra Top 3 mas
+  // badge/HUD/botão/payload usam Top 20".
+  useEffect(() => {
+    if (!(rankOptions as readonly number[]).includes(rankCount)) {
+      setRankCount(formatSelector === "SHORTS" ? 3 : 10);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formatSelector]);
+
   const hudPreview = useMemo(
     () => buildHudPreviewItems(rankCount, rankOrder, listItems),
     [rankCount, rankOrder, listItems]
+  );
+
+  // ── Contrato do Ranking ──────────────────────────────────────────────────
+  const selectedIdea =
+    listicleIdeasData?.ranking_ideas?.[selectedListicleIdeaIndex] || null;
+  const [contract, setContract] = useState<RankingContract>(EMPTY_CONTRACT);
+  const [contractApproved, setContractApproved] = useState(false);
+
+  // Auto-sugere o contrato ao selecionar uma ideia
+  useEffect(() => {
+    if (!selectedIdea) return;
+    const suggested: RankingContract = {
+      rankingQuestion:
+        selectedIdea.listicle_angle ||
+        `Quais são os ${rankCount} itens mais relevantes sobre ${selectedIdea.list_topic || listTopic}?`,
+      mainCriterion:
+        selectedIdea.why_interesting ||
+        "Relevância e impacto comprovado para o público do nicho.",
+      secondaryCriteria:
+        "Disponibilidade de evidências; potencial visual; originalidade para o público.",
+      scope: selectedIdea.list_topic || listTopic || "",
+      tieBreakRule:
+        "Priorizar o item com maior quantidade de fontes independentes.",
+      exclusions:
+        "Itens sem evidência verificável; alegações baseadas apenas em reprodução moderna; exemplos fora do período ou tema definidos.",
+    };
+    setContract(suggested);
+    setContractApproved(false);
+    onContractChange?.(suggested);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedListicleIdeaIndex]);
+
+  const updateContract = (patch: Partial<RankingContract>) => {
+    setContract((prev) => {
+      const next = { ...prev, ...patch };
+      onContractChange?.(next);
+      return next;
+    });
+  };
+
+  const hasContract = Boolean(
+    contract.rankingQuestion.trim() && contract.mainCriterion.trim()
   );
 
   return (
@@ -322,6 +399,92 @@ export function ListicleCreatorStep({
         />
       ) : null}
 
+      {/* ── Contrato do Ranking ── */}
+      {selectedIdea && (
+        <section className="space-y-4 rounded-[28px] border border-emerald-300/15 bg-[#0a0d0b] p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3 border-b border-emerald-300/10 pb-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-300">
+                <ScrollText className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-300">
+                  Contrato do ranking
+                </p>
+                <p className="mt-1 text-[10px] text-zinc-500">
+                  Define critério, escopo e regras antes de ordenar. Orienta
+                  pesquisa, pontuação e roteiro.
+                </p>
+              </div>
+            </div>
+            {contractApproved ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-bold text-emerald-300">
+                <Lock className="h-3 w-3" /> Aprovado
+              </span>
+            ) : (
+              <button
+                type="button"
+                disabled={!hasContract}
+                onClick={() => setContractApproved(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-300 px-3 py-2 text-[10px] font-black text-slate-950 transition hover:bg-emerald-200 disabled:opacity-40"
+              >
+                <Check className="h-3.5 w-3.5" /> Aprovar contrato
+              </button>
+            )}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <ContractField
+              label="Pergunta do ranking"
+              value={contract.rankingQuestion}
+              onChange={(v) => updateContract({ rankingQuestion: v })}
+              disabled={contractApproved}
+              full
+            />
+            <ContractField
+              label="Critério principal"
+              value={contract.mainCriterion}
+              onChange={(v) => updateContract({ mainCriterion: v })}
+              disabled={contractApproved}
+            />
+            <ContractField
+              label="Critérios secundários"
+              value={contract.secondaryCriteria}
+              onChange={(v) => updateContract({ secondaryCriteria: v })}
+              disabled={contractApproved}
+            />
+            <ContractField
+              label="Escopo"
+              value={contract.scope}
+              onChange={(v) => updateContract({ scope: v })}
+              disabled={contractApproved}
+            />
+            <ContractField
+              label="Regra para empates"
+              value={contract.tieBreakRule}
+              onChange={(v) => updateContract({ tieBreakRule: v })}
+              disabled={contractApproved}
+            />
+            <ContractField
+              label="O que não pode entrar"
+              value={contract.exclusions}
+              onChange={(v) => updateContract({ exclusions: v })}
+              disabled={contractApproved}
+              full
+            />
+          </div>
+          {contractApproved && (
+            <button
+              type="button"
+              onClick={() => setContractApproved(false)}
+              className="text-[10px] font-bold text-emerald-300/80 hover:text-emerald-200"
+            >
+              Editar contrato
+            </button>
+          )}
+        </section>
+      )}
+
       <section className="space-y-5 rounded-[28px] border border-emerald-300/15 bg-[#0a0d0b] p-5 sm:p-6">
         <div className="flex items-center gap-3 border-b border-emerald-300/10 pb-4">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-300">
@@ -442,7 +605,8 @@ export function ListicleCreatorStep({
               creatorLoading ||
               !listTopic.trim() ||
               !creatorProjectName.trim() ||
-              !hasApiKey
+              !hasApiKey ||
+              (selectedIdea ? !contractApproved : false)
             }
             onClick={onGenerateScript}
             className="flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-300 px-6 py-3 text-xs font-black text-slate-950 shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-200 disabled:opacity-50"
@@ -452,10 +616,43 @@ export function ListicleCreatorStep({
             ) : (
               <Sparkles className="w-4 h-4" />
             )}
-            <span>Gerar Narração Top {rankCount}</span>
+            <span>
+              {selectedIdea && !contractApproved
+                ? "Aprove o contrato para continuar"
+                : `Gerar roteiro e narração Top ${rankCount}`}
+            </span>
           </button>
         </div>
       </section>
+    </div>
+  );
+}
+
+function ContractField({
+  label,
+  value,
+  onChange,
+  disabled,
+  full,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  full?: boolean;
+}) {
+  return (
+    <div className={`space-y-1.5 ${full ? "md:col-span-2" : ""}`}>
+      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+        {label}
+      </label>
+      <textarea
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        rows={2}
+        className="w-full resize-y rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs leading-5 text-white outline-none focus:border-emerald-400/50 disabled:opacity-60"
+      />
     </div>
   );
 }
