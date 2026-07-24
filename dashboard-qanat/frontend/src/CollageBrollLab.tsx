@@ -1621,6 +1621,22 @@ function MotionPreview({
   );
 }
 
+/**
+ * Detecta se um card tem algum alerta (geo histórico, clareza baixa ou
+ * entidades faltando) — usado no preflight da aprovação em lote.
+ */
+function itemHasAlert(item: CollageItem): boolean {
+  const fiche = buildGeoFiche(item);
+  if (fiche?.historicalBorderWarning) return true;
+  if (
+    typeof item.validation?.fiveSecondClarity === "number" &&
+    item.validation.fiveSecondClarity < 90
+  )
+    return true;
+  if ((item.validation?.missingAnchors || []).length > 0) return true;
+  return false;
+}
+
 function copyText(label: string, text: string) {
   void navigator.clipboard.writeText(text).then(
     () => toast.success(`${label} copiado`),
@@ -1758,6 +1774,7 @@ export function CollageBrollLab({
   );
   const [activeGate, setActiveGate] = useState<1 | 2 | 3>(1);
   const [viewMode, setViewMode] = useState<"criador" | "tecnico">("criador");
+  const [preflightOpen, setPreflightOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -2689,14 +2706,46 @@ export function CollageBrollLab({
     }
   };
 
-  const approveAllPending = () => {
+  const approveAllPending = (mode: "all" | "clean" = "all") => {
     setItems((prev) =>
-      prev.map((i) =>
-        i.status === "pending" ? { ...i, status: "approved" as const } : i
-      )
+      prev.map((i) => {
+        if (i.status !== "pending") return i;
+        if (mode === "clean" && itemHasAlert(i)) return i;
+        return { ...i, status: "approved" as const };
+      })
     );
-    toast.success("Todas as pendentes aprovadas");
+    setPreflightOpen(false);
+    toast.success(
+      mode === "clean"
+        ? "Aprovadas somente as propostas sem alertas"
+        : "Todas as pendentes aprovadas"
+    );
   };
+
+  /** Estatísticas de preflight para a aprovação em lote. */
+  const preflightStats = useMemo(() => {
+    const pending = items.filter((i) => i.status === "pending");
+    let geoAlerts = 0;
+    let lowClarity = 0;
+    let missingEntities = 0;
+    for (const i of pending) {
+      const fiche = buildGeoFiche(i);
+      if (fiche?.historicalBorderWarning) geoAlerts++;
+      if (
+        typeof i.validation?.fiveSecondClarity === "number" &&
+        i.validation.fiveSecondClarity < 90
+      )
+        lowClarity++;
+      if ((i.validation?.missingAnchors || []).length > 0) missingEntities++;
+    }
+    return {
+      total: pending.length,
+      geoAlerts,
+      lowClarity,
+      missingEntities,
+      withAlerts: pending.filter((i) => itemHasAlert(i)).length,
+    };
+  }, [items]);
 
   const mediaSrc = useCallback(
     (url?: string) => {
@@ -3714,7 +3763,7 @@ export function CollageBrollLab({
               {items.some((i) => i.status === "pending") && (
                 <button
                   type="button"
-                  onClick={approveAllPending}
+                  onClick={() => setPreflightOpen(true)}
                   className="text-[10px] text-violet-300 hover:text-violet-100"
                 >
                   Aprovar todas pendentes
@@ -5394,6 +5443,96 @@ export function CollageBrollLab({
           )}
         </div>
       </div>
+
+      {/* Preflight de aprovação em lote */}
+      {preflightOpen && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPreflightOpen(false);
+          }}
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-700 bg-zinc-950 shadow-2xl p-4 space-y-3">
+            <p className="text-sm font-bold text-zinc-100">
+              Aprovar propostas pendentes
+            </p>
+            <div className="space-y-1.5 text-[11px]">
+              <p className="text-zinc-300">
+                <span className="font-mono font-bold text-zinc-100">
+                  {preflightStats.total}
+                </span>{" "}
+                proposta{preflightStats.total !== 1 ? "s" : ""} será
+                {preflightStats.total !== 1 ? "ão" : ""} aprovada
+                {preflightStats.total !== 1 ? "s" : ""}
+              </p>
+              <p
+                className={
+                  preflightStats.geoAlerts > 0
+                    ? "text-amber-300"
+                    : "text-zinc-500"
+                }
+              >
+                <span className="font-mono font-bold">
+                  {preflightStats.geoAlerts}
+                </span>{" "}
+                com alerta geográfico (fronteira histórica)
+              </p>
+              <p
+                className={
+                  preflightStats.lowClarity > 0
+                    ? "text-amber-300"
+                    : "text-zinc-500"
+                }
+              >
+                <span className="font-mono font-bold">
+                  {preflightStats.lowClarity}
+                </span>{" "}
+                com clareza abaixo de 90%
+              </p>
+              <p
+                className={
+                  preflightStats.missingEntities > 0
+                    ? "text-rose-300"
+                    : "text-zinc-500"
+                }
+              >
+                <span className="font-mono font-bold">
+                  {preflightStats.missingEntities}
+                </span>{" "}
+                com entidades ausentes
+              </p>
+            </div>
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => approveAllPending("clean")}
+                disabled={preflightStats.total === 0}
+                className="w-full rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-3 py-2 text-[11px] font-bold text-emerald-200 transition hover:bg-emerald-500/25 disabled:opacity-40"
+              >
+                Aprovar somente as sem alertas (
+                {preflightStats.total - preflightStats.withAlerts})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreflightOpen(false)}
+                className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700 px-3 py-2 text-[11px] font-bold text-zinc-300 transition hover:bg-zinc-800"
+              >
+                Revisar problemas antes
+              </button>
+              <button
+                type="button"
+                onClick={() => approveAllPending("all")}
+                disabled={preflightStats.total === 0}
+                className="w-full rounded-lg bg-violet-500/15 border border-violet-500/30 px-3 py-2 text-[11px] font-bold text-violet-200 transition hover:bg-violet-500/25 disabled:opacity-40"
+              >
+                Aprovar todas mesmo assim ({preflightStats.total})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preview de still / vídeo */}
       {previewMedia && (
