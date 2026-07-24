@@ -6,6 +6,8 @@ import {
   ChevronDown,
   ChevronUp,
   Clapperboard,
+  Lightbulb,
+  ListOrdered,
   PackageCheck,
   Palette,
   RotateCcw,
@@ -19,6 +21,8 @@ import type { CreatorModeIdentity } from "./creatorModeIdentity";
 import { VisualAssetStylePicker } from "./VisualAssetStylePicker";
 
 const PHASE_ICONS: Record<CreatorWizardPhase["id"], React.ElementType> = {
+  idea: Lightbulb,
+  ranking: ListOrdered,
   story: BookOpenText,
   voice: AudioLines,
   scenes: Clapperboard,
@@ -60,8 +64,9 @@ export function CreatorWizardNavigator({
   onReset,
 }: Props) {
   const [stylesOpen, setStylesOpen] = useState(false);
-  const activePhase = CREATOR_WIZARD_PHASES[phaseIndex];
-  const progress = ((phaseIndex + 1) / CREATOR_WIZARD_PHASES.length) * 100;
+  const phases = identity.wizardPhases ?? CREATOR_WIZARD_PHASES;
+  const activePhase = phases[phaseIndex] ?? phases[0];
+  const progress = ((phaseIndex + 1) / phases.length) * 100;
 
   return (
     <section className="relative shrink-0 rounded-2xl border border-white/[0.08] bg-[#090a0d]/95">
@@ -74,8 +79,7 @@ export function CreatorWizardNavigator({
                 {activePhase.label}
               </h2>
               <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-500">
-                {String(phaseIndex + 1)}/{CREATOR_WIZARD_PHASES.length} ·{" "}
-                {identity.menuLabel}
+                {String(phaseIndex + 1)}/{phases.length} · {identity.menuLabel}
               </span>
             </div>
           </div>
@@ -88,8 +92,8 @@ export function CreatorWizardNavigator({
 
         {/* Linha 2: pills de fase (altura baixa) */}
         <div className="mt-2 flex gap-1 overflow-x-auto pb-0.5">
-          {CREATOR_WIZARD_PHASES.map((phase, index) => {
-            const Icon = PHASE_ICONS[phase.id];
+          {phases.map((phase, index) => {
+            const Icon = PHASE_ICONS[phase.id] ?? BookOpenText;
             const completed = index < phaseIndex;
             const active = index === phaseIndex;
             return (

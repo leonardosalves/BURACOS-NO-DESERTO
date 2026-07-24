@@ -1,5 +1,5 @@
 export type CreatorWizardPhase = {
-  id: "story" | "voice" | "scenes" | "finish" | "publish";
+  id: "idea" | "ranking" | "story" | "voice" | "scenes" | "finish" | "publish";
   label: string;
   shortLabel: string;
   entryStep: number;
@@ -52,6 +52,20 @@ export const CREATOR_WIZARD_PHASES: CreatorWizardPhase[] = [
 
 export function creatorWizardPhaseIndex(step: number) {
   const found = CREATOR_WIZARD_PHASES.findIndex((phase) =>
+    phase.legacySteps.includes(Number(step))
+  );
+  return found >= 0 ? found : 0;
+}
+
+/**
+ * Índice da fase dentro de um array de fases específico do modo.
+ * Retorna a primeira fase cujo legacySteps inclui o passo atual.
+ */
+export function creatorModePhaseIndex(
+  step: number,
+  phases: CreatorWizardPhase[]
+) {
+  const found = phases.findIndex((phase) =>
     phase.legacySteps.includes(Number(step))
   );
   return found >= 0 ? found : 0;

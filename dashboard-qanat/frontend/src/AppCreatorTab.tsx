@@ -72,8 +72,8 @@ import {
 import type { ConfigData, WorkspaceStatus } from "./appTypes";
 import {
   CREATOR_WIZARD_PHASES,
+  creatorModePhaseIndex,
   creatorTimelineReady,
-  creatorWizardPhaseIndex,
 } from "./creatorWizardFlow";
 import {
   resolveCreatorModeIdentity,
@@ -700,7 +700,20 @@ export function AppCreatorTab({
     }
     toast.success("Melhorias premium aplicadas. Você ainda pode editar tudo.");
   };
-  const wizardPhaseIndex = creatorWizardPhaseIndex(creatorStep);
+  const wizardPhases =
+    resolveCreatorModeIdentity(ideationTab).wizardPhases ??
+    CREATOR_WIZARD_PHASES;
+  let wizardPhaseIndex = creatorModePhaseIndex(creatorStep, wizardPhases);
+  // Ranking Lab: dentro do passo 1, distingue "Ideia" (nenhuma ideia
+  // selecionada) de "Ranking" (ideia selecionada / contrato em revisão).
+  if (
+    ideationTab === "listicle" &&
+    creatorStep === 1 &&
+    selectedListicleIdeaIndex >= 0
+  ) {
+    const rankingIdx = wizardPhases.findIndex((p) => p.id === "ranking");
+    if (rankingIdx >= 0) wizardPhaseIndex = rankingIdx;
+  }
   const timelineReady = creatorTimelineReady({
     narrationMode: config?.narration_mode,
     chunkPlanReady: narrationWizardReadiness.ready,
@@ -819,7 +832,7 @@ export function AppCreatorTab({
       <DashminPageLayout
         className="lumiera-fill-view overflow-hidden !space-y-2"
         title={modeIdentity.title}
-        subtitle={`${CREATOR_WIZARD_PHASES[wizardPhaseIndex].label}`}
+        subtitle={`${wizardPhases[wizardPhaseIndex]?.label ?? ""}`}
         breadcrumb={["Dashboard", "Criadores", modeIdentity.menuLabel]}
         icon={<ModeIcon className={`w-5 h-5 ${modeIdentity.accentText}`} />}
         actions={

@@ -1,3 +1,5 @@
+import type { CreatorWizardPhase } from "./creatorWizardFlow";
+
 export type CreatorIdeationMode =
   | "ai"
   | "custom"
@@ -20,7 +22,64 @@ export type CreatorModeIdentity = {
   accentBorder: string;
   accentSurface: string;
   halo: string;
+  /** Fases do wizard específicas deste modo (sobrescreve CREATOR_WIZARD_PHASES). */
+  wizardPhases?: CreatorWizardPhase[];
 };
+
+/**
+ * Fases do Ranking Lab — explicitam que o passo 1 começa pela descoberta da
+ * ideia e pela definição do ranking antes do roteiro, em vez de "Roteiro".
+ */
+const LISTICLE_WIZARD_PHASES: CreatorWizardPhase[] = [
+  {
+    id: "idea",
+    label: "Descoberta de ideias",
+    shortLabel: "Ideia",
+    entryStep: 1,
+    legacySteps: [1],
+    description: "Nicho, formato e seleção do ângulo de ranking",
+  },
+  {
+    id: "ranking",
+    label: "Contrato e ordenação",
+    shortLabel: "Ranking",
+    entryStep: 1,
+    legacySteps: [1],
+    description: "Critério, itens, ordem e aprovação do contrato",
+  },
+  {
+    id: "voice",
+    label: "Voz e timing",
+    shortLabel: "Voz",
+    entryStep: 2,
+    legacySteps: [2, 3],
+    description: "TTS, upload, trechos e sincronização",
+  },
+  {
+    id: "scenes",
+    label: "Cenas e edição",
+    shortLabel: "Cenas",
+    entryStep: 4,
+    legacySteps: [4],
+    description: "B-roll, prompts, motion e timeline",
+  },
+  {
+    id: "finish",
+    label: "Finalizar",
+    shortLabel: "Final",
+    entryStep: 5,
+    legacySteps: [5, 6],
+    description: "Mixagem, render, metadados e thumbnail",
+  },
+  {
+    id: "publish",
+    label: "Publicar",
+    shortLabel: "Publicar",
+    entryStep: 7,
+    legacySteps: [7],
+    description: "Revisão final e envio ao canal",
+  },
+];
 
 export const CREATOR_MODE_IDENTITIES: Record<
   CreatorIdeationMode,
@@ -83,6 +142,7 @@ export const CREATOR_MODE_IDENTITIES: Record<
     accentBorder: "border-emerald-400/30",
     accentSurface: "bg-emerald-400/[0.06]",
     halo: "bg-[radial-gradient(circle_at_86%_16%,rgba(52,211,153,0.18),transparent_34%)]",
+    wizardPhases: LISTICLE_WIZARD_PHASES,
   },
   "historical-witness": {
     id: "historical-witness",
