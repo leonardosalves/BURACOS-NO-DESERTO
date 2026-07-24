@@ -109,6 +109,15 @@ export function registerWhiteboardRoutes(app, deps) {
       } catch {}
     }
 
+    // DNA visual — trava de consistência compartilhada por todos os quadros.
+    let visualDna = null;
+    const visualDnaPath = path.join(runDir, "visual_dna.json");
+    if (fs.existsSync(visualDnaPath)) {
+      try {
+        visualDna = JSON.parse(fs.readFileSync(visualDnaPath, "utf8"));
+      } catch {}
+    }
+
     // Read segments text
     let segments = [];
     let scriptTitle = "";
@@ -171,6 +180,7 @@ export function registerWhiteboardRoutes(app, deps) {
       hasPlan,
       hasVideo,
       imageReport,
+      visualDna,
       segments,
       scriptTitle,
       prompts,

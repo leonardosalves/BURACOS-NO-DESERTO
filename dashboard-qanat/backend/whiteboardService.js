@@ -106,6 +106,51 @@ function cleanLlmJson(text) {
   return cleaned.trim();
 }
 
+/**
+ * DNA visual do quadro branco — trava de consistência injetada em TODOS os
+ * prompts de imagem para que todos os quadros compartilhem o mesmo estilo.
+ */
+export function buildWhiteboardVisualDna() {
+  return {
+    materials: {
+      background: "papel marfim (#faf8f3)",
+      mainLine: "carvão escuro (#1a2332)",
+      technicalLine: "azul oceano (#2d5a7b)",
+      alert: "vermelho de alerta (máx. 1 destaque)",
+      fill: "preenchimento mínimo",
+    },
+    rules: [
+      "mesma espessura de linha em todos os quadros",
+      "mesma perspectiva",
+      "mesma textura de papel",
+      "sem fotografia",
+      "sem sombras realistas",
+      "sem textos complexos (não escrever a narração palavra por palavra)",
+      "sem elementos 3D",
+      "mesma proporção e margem segura",
+    ],
+    persistentElements: [
+      "estilo continuous line art / engineer's notebook sketch",
+      "estética de explicação em quadro branco",
+      "máximo 1-2 cores de destaque semântico",
+    ],
+    negativePrompt:
+      "photorealistic, 3D render, stock photo, realistic shadows, complex text",
+  };
+}
+
+/** Bloco de prompt com o DNA visual, para injetar no Stage C. */
+export function visualDnaPromptBlock() {
+  const dna = buildWhiteboardVisualDna();
+  return `
+DNA VISUAL (trava de consistência — TODOS os quadros devem seguir exatamente):
+- Materiais: fundo ${dna.materials.background}; linha principal ${dna.materials.mainLine}; linha técnica ${dna.materials.technicalLine}; alerta ${dna.materials.alert}; ${dna.materials.fill}.
+- Regras: ${dna.rules.join("; ")}.
+- Elementos persistentes: ${dna.persistentElements.join("; ")}.
+- Prompt negativo obrigatório em cada imagem: ${dna.negativePrompt}.
+- IMPORTANTE: As prompts de imagem em "image_prompts" devem ser em INGLÊS e incluir TODO o DNA visual acima, garantindo que todos os quadros tenham aparência idêntica em estilo, cor e textura. Adicione a frase "内容简洁一点，不要逐字写满口播" (Mantenha o conteúdo simples, não escreva a narração palavra por palavra).`;
+}
+
 export async function createWhiteboardRun(deps, { topic, durationSec }) {
   const { WORKSPACE_DIR, getApiKey, callGeminiWithRetry } = deps;
   const apiKey = getApiKey(WORKSPACE_DIR);
@@ -187,6 +232,12 @@ Não coloque nenhuma explicação ou introdução fora do JSON.
     scriptData.polished_voiceover_md,
     "utf8"
   );
+  // DNA visual — trava de consistência compartilhada por todos os quadros.
+  fs.writeFileSync(
+    path.join(runDir, "visual_dna.json"),
+    JSON.stringify(buildWhiteboardVisualDna(), null, 2),
+    "utf8"
+  );
   fs.writeFileSync(
     path.join(runDir, "script", "voiceover_segments.json"),
     JSON.stringify(scriptData.voiceover_segments_json, null, 2),
@@ -210,7 +261,7 @@ Regras de Layout:
 - Determine os quadros (boards) necessários (normalmente 1 ou 2 quadros para vídeos curtos).
 - Use os tipos de diagrama: process_flow, comparison, two_panel_comparison, timeline, knowledge_map, checklist_flow, ou flywheel.
 - Escreva títulos e labels de diagramas em PORTUGUÊS.
-- IMPORTANTE: As prompts de imagem geradas em "image_prompts" devem ser em INGLÊS. Elas devem incluir: continuous line art, engineer's notebook sketch, whiteboard explanation aesthetic, parchment background '#faf8f3', charcoal line color '#1a2332', ocean-blue annotations '#2d5a7b', e no máximo 1-2 cores de destaque semântico. Adicione prompt negativo para evitar photorealistic, 3D render e stock photo. Adicione a frase "内容简洁一点，不要逐字写满口播" (Mantenha o conteúdo simples, não escreva a narração palavra por palavra).
+${visualDnaPromptBlock()}
 
 Retorne EXCLUSIVAMENTE um único objeto JSON contendo:
 - "infographic_plan_json": Objeto correspondente ao infographic_plan.json. Deve seguir rigorosamente esta estrutura:

@@ -43,6 +43,12 @@ type RunDetail = {
   hasPlan: boolean;
   hasVideo: boolean;
   imageReport: any;
+  visualDna?: {
+    materials: Record<string, string>;
+    rules: string[];
+    persistentElements: string[];
+    negativePrompt: string;
+  } | null;
   segments: any[];
   scriptTitle?: string;
   prompts: Record<string, string>;
@@ -852,6 +858,64 @@ export function WhiteboardCreatorPanel({
                             quadro.
                           </p>
                         </div>
+
+                        {/* DNA Visual — trava de consistência entre quadros */}
+                        {detail.visualDna && (
+                          <div className="p-4 bg-zinc-950/40 border border-zinc-900 rounded-2xl">
+                            <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                              <Palette className="w-3.5 h-3.5 text-indigo-400" />
+                              DNA Visual (consistência entre quadros)
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
+                                  Materiais
+                                </p>
+                                <div className="flex flex-col gap-1">
+                                  {Object.entries(
+                                    detail.visualDna.materials
+                                  ).map(([k, v]) => (
+                                    <div
+                                      key={k}
+                                      className="flex items-center gap-2 text-[10px]"
+                                    >
+                                      <span className="text-zinc-500 capitalize">
+                                        {k}:
+                                      </span>
+                                      <span className="text-zinc-300">{v}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
+                                  Regras
+                                </p>
+                                <ul className="flex flex-col gap-1">
+                                  {detail.visualDna.rules.map((r, i) => (
+                                    <li
+                                      key={i}
+                                      className="text-[10px] text-zinc-400 flex items-start gap-1.5"
+                                    >
+                                      <span className="text-emerald-500 mt-0.5">
+                                        •
+                                      </span>
+                                      {r}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-zinc-800/60">
+                              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1">
+                                Prompt negativo
+                              </p>
+                              <p className="text-[10px] text-rose-300/80 font-mono">
+                                {detail.visualDna.negativePrompt}
+                              </p>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {Object.keys(detail.prompts).map((boardId) => {
