@@ -137,8 +137,14 @@ Todo o conteúdo falado (text/caption), intenção visual (visualIntent) e descr
 Cada segmento deve ter spokenAnchors (frases que aparecem literalmente no text ou caption).
 O tempo total estimado do roteiro deve ser próximo de ${durationSec} segundos.
 
+REGRAS DE TÍTULO (importante):
+- Produza um campo "title" separado: um título curto e chamativo (máx. ~8 palavras), SEM ponto final.
+- O título NÃO deve aparecer dentro do texto do primeiro segmento (hook). O hook começa direto com a narração, sem repetir o título.
+- No "polished_voiceover_md", a primeira linha deve ser o título como cabeçalho "# <title>", seguido de uma linha em branco e então o corpo do roteiro (sem repetir o título no corpo).
+
 Responda EXCLUSIVAMENTE com um único objeto JSON contendo:
-- "polished_voiceover_md": String (arquivo Markdown human-readable)
+- "title": String (título curto e separado do roteiro)
+- "polished_voiceover_md": String (arquivo Markdown human-readable começando com "# <title>")
 - "voiceover_segments_json": Objeto (JSON estruturado correspondente ao schema do voiceover_segments.json com as chaves topic, style, targetDurationSec, estimatedDurationSec, segments)
 - "visual_beats_json": Objeto (JSON estruturado correspondente ao schema do visual_beats.json com as chaves topic, visualStyle, beats)
 
@@ -161,6 +167,21 @@ Não coloque nenhuma explicação ou introdução fora do JSON.
   }
 
   fs.mkdirSync(path.join(runDir, "script"), { recursive: true });
+  // Título separado do corpo do roteiro (não fundido ao primeiro segmento).
+  const scriptTitle = String(scriptData.title || "").trim();
+  if (scriptTitle) {
+    fs.writeFileSync(
+      path.join(runDir, "script", "title.txt"),
+      scriptTitle,
+      "utf8"
+    );
+    if (
+      scriptData.voiceover_segments_json &&
+      typeof scriptData.voiceover_segments_json === "object"
+    ) {
+      scriptData.voiceover_segments_json.title = scriptTitle;
+    }
+  }
   fs.writeFileSync(
     path.join(runDir, "script", "polished_voiceover.md"),
     scriptData.polished_voiceover_md,

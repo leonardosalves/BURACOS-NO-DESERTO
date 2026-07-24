@@ -44,6 +44,7 @@ type RunDetail = {
   hasVideo: boolean;
   imageReport: any;
   segments: any[];
+  scriptTitle?: string;
   prompts: Record<string, string>;
   imagesStatus: Record<string, BoardImageStatus>;
 };
@@ -621,6 +622,16 @@ export function WhiteboardCreatorPanel({
                     {/* Tab 1: Script */}
                     {activeSubTab === "script" && (
                       <div className="flex flex-col gap-4">
+                        {detail.scriptTitle && (
+                          <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-4">
+                            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">
+                              Título
+                            </p>
+                            <h3 className="text-base font-bold text-white leading-snug">
+                              {detail.scriptTitle}
+                            </h3>
+                          </div>
+                        )}
                         <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-4">
                           <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3">
                             Estrutura do Roteiro (Português)

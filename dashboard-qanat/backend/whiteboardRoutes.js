@@ -111,6 +111,7 @@ export function registerWhiteboardRoutes(app, deps) {
 
     // Read segments text
     let segments = [];
+    let scriptTitle = "";
     if (hasScript) {
       try {
         const segmentsData = JSON.parse(
@@ -120,7 +121,14 @@ export function registerWhiteboardRoutes(app, deps) {
           )
         );
         segments = segmentsData.segments || [];
+        scriptTitle = String(segmentsData.title || "").trim();
       } catch {}
+      if (!scriptTitle) {
+        const titlePath = path.join(runDir, "script", "title.txt");
+        if (fs.existsSync(titlePath)) {
+          scriptTitle = fs.readFileSync(titlePath, "utf8").trim();
+        }
+      }
     }
 
     // Load final imagegen prompts text
@@ -164,6 +172,7 @@ export function registerWhiteboardRoutes(app, deps) {
       hasVideo,
       imageReport,
       segments,
+      scriptTitle,
       prompts,
       imagesStatus,
     });
