@@ -1224,6 +1224,144 @@ function buildGeoFiche(item: CollageItem | null | undefined): {
   };
 }
 
+/**
+ * Comparação Start×End Frame — calcula diferença estrutural (via canvas) e
+ * avalia continuidade de identidade + caminho de montagem.
+ */
+function FrameComparison({
+  startUrl,
+  endUrl,
+  assemblySteps,
+}: {
+  startUrl?: string;
+  endUrl?: string;
+  assemblySteps?: string[];
+}) {
+  const [diff, setDiff] = React.useState<number | null>(null);
+  const [computing, setComputing] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!startUrl || !endUrl) {
+      setDiff(null);
+      return;
+    }
+    let cancelled = false;
+    setComputing(true);
+    const size = 64;
+    const loadImage = (url: string) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+      });
+    Promise.all([loadImage(startUrl), loadImage(endUrl)])
+      .then(([s, e]) => {
+        const c1 = document.createElement("canvas");
+        const c2 = document.createElement("canvas");
+        c1.width = c2.width = size;
+        c1.height = c2.height = size;
+        const x1 = c1.getContext("2d");
+        const x2 = c2.getContext("2d");
+        if (!x1 || !x2) return;
+        x1.drawImage(s, 0, 0, size, size);
+        x2.drawImage(e, 0, 0, size, size);
+        const d1 = x1.getImageData(0, 0, size, size).data;
+        const d2 = x2.getImageData(0, 0, size, size).data;
+        let sum = 0;
+        const pixels = size * size;
+        for (let i = 0; i < d1.length; i += 4) {
+          sum +=
+            (Math.abs(d1[i] - d2[i]) +
+              Math.abs(d1[i + 1] - d2[i + 1]) +
+              Math.abs(d1[i + 2] - d2[i + 2])) /
+            (3 * 255);
+        }
+        if (!cancelled) setDiff(Math.round((sum / pixels) * 100));
+      })
+      .catch(() => {
+        if (!cancelled) setDiff(null);
+      })
+      .finally(() => {
+        if (!cancelled) setComputing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [startUrl, endUrl]);
+
+  if (!startUrl || !endUrl) return null;
+
+  const assessment =
+    diff == null
+      ? null
+      : diff < 8
+        ? {
+            tone: "text-amber-300",
+            border: "border-amber-500/30 bg-amber-500/[0.07]",
+            text: "Frames quase idênticos — o movimento pode ficar imperceptível. Aumente a diferença entre start e end.",
+          }
+        : diff > 60
+          ? {
+              tone: "text-rose-300",
+              border: "border-rose-500/30 bg-rose-500/[0.07]",
+              text: "Diferença alta — risco de perda de identidade dos objetos. Verifique cor, escala e orientação.",
+            }
+          : {
+              tone: "text-emerald-300",
+              border: "border-emerald-500/30 bg-emerald-500/[0.07]",
+              text: "Diferença adequada para montagem progressiva com continuidade de identidade.",
+            };
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-2.5 space-y-2">
+      <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-400 flex items-center gap-1.5">
+        <GitBranch className="w-3 h-3" /> Comparação Start × End
+      </p>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] text-zinc-500">Diferença estrutural</span>
+        <span className="font-mono text-sm font-bold text-zinc-100">
+          {computing ? "…" : diff == null ? "—" : `${diff}%`}
+        </span>
+      </div>
+      {diff != null && (
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-400"
+            style={{ width: `${Math.min(100, diff)}%` }}
+          />
+        </div>
+      )}
+      {assessment && (
+        <p
+          className={`rounded-md border px-2 py-1.5 text-[10px] leading-4 ${assessment.border} ${assessment.tone}`}
+        >
+          {assessment.text}
+        </p>
+      )}
+      {(assemblySteps || []).length > 0 && (
+        <div>
+          <p className="text-[9px] uppercase tracking-wider text-zinc-500 mb-1">
+            Caminho de montagem
+          </p>
+          <ol className="space-y-0.5">
+            {(assemblySteps || []).map((step, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-1.5 text-[10px] text-zinc-400"
+              >
+                <span className="text-zinc-600 font-mono">{i + 1}.</span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function copyText(label: string, text: string) {
   void navigator.clipboard.writeText(text).then(
     () => toast.success(`${label} copiado`),
@@ -4284,6 +4422,29 @@ export function CollageBrollLab({
                       </div>
                     </div>
                   )}
+
+                  {/* Comparação Start×End: diferença estrutural + caminho de montagem */}
+                  <FrameComparison
+                    startUrl={
+                      selected.startFrame?.imageUrl || selected.first_frame_url
+                        ? mediaSrc(
+                            selected.startFrame?.imageUrl ||
+                              selected.first_frame_url
+                          )
+                        : undefined
+                    }
+                    endUrl={
+                      selected.endFrame?.imageUrl || selected.still_url
+                        ? mediaSrc(
+                            selected.endFrame?.imageUrl || selected.still_url
+                          )
+                        : undefined
+                    }
+                    assemblySteps={
+                      selected.visualProposal?.assemblySteps ||
+                      selected.assembly_order
+                    }
+                  />
 
                   {/* GATE 3 */}
                   <div className="rounded-lg border border-cyan-500/20 bg-zinc-950/50 p-2 space-y-1.5">
