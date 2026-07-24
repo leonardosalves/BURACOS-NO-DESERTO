@@ -805,3 +805,75 @@ export function runWhiteboardRender(
     runDir
   );
 }
+
+/**
+ * Regeneração localizada: regenera o prompt de imagem de UM único quadro,
+ * preservando os demais. Usa o DNA visual para manter a consistência.
+ */
+export async function regenerateBoardPrompt(
+  deps,
+  { runId, boardId, instruction }
+) {
+  const { getApiKey, callGeminiWithRetry, WORKSPACE_DIR } = deps;
+  const apiKey = getApiKey(WORKSPACE_DIR);
+
+  const client = await deps.pool.connect();
+  let run = null;
+  try {
+    const result = await client.query(
+      "SELECT * FROM whiteboard_runs WHERE id = $1",
+      [runId]
+    );
+    run = result.rows[0];
+  } finally {
+    client.release();
+  }
+  if (!run) throw new Error("Projeto não encontrado.");
+
+  const runDir = run.folder_path;
+  const boardSpecPath = path.join(
+    runDir,
+    "infographic",
+    "board_specs",
+    `${boardId}.board_spec.json`
+  );
+  let boardSpec = null;
+  if (fs.existsSync(boardSpecPath)) {
+    try {
+      boardSpec = JSON.parse(fs.readFileSync(boardSpecPath, "utf8"));
+    } catch {}
+  }
+
+  const prompt = `
+Você é o Infographic Planner do Lumiera Whiteboard. Regenerate APENAS o prompt de imagem do quadro "${boardId}".
+${boardSpec ? `Especificação do quadro:\n${JSON.stringify(boardSpec, null, 2)}` : ""}
+${instruction ? `Instrução adicional do usuário: ${instruction}` : ""}
+${visualDnaPromptBlock()}
+
+Retorne EXCLUSIVAMENTE um único objeto JSON: { "image_prompt": "o prompt de imagem em INGLÊS, completo, seguindo o DNA visual" }
+`;
+
+  const resRaw = await callGeminiWithRetry(apiKey, prompt, {
+    projectDir: WORKSPACE_DIR,
+    temperature: 0.7,
+  });
+  let parsed = {};
+  try {
+    const match = String(resRaw).match(/\{[\s\S]*\}/);
+    parsed = match ? JSON.parse(match[0]) : {};
+  } catch {}
+  const newPrompt = String(parsed.image_prompt || "").trim();
+  if (!newPrompt) throw new Error("Falha ao regenerar o prompt do quadro.");
+
+  // Grava o novo prompt, preservando os demais quadros.
+  const promptPath = path.join(
+    runDir,
+    "infographic",
+    "image_prompts",
+    `${boardId}.prompt.md`
+  );
+  fs.mkdirSync(path.dirname(promptPath), { recursive: true });
+  fs.writeFileSync(promptPath, newPrompt, "utf8");
+
+  return { boardId, imagePrompt: newPrompt };
+}
