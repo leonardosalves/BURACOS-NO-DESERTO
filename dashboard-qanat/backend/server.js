@@ -13515,12 +13515,12 @@ function getOmniRouteModelChain(
   let fallbacks = [];
   const cleanPrimary = String(primary || "").replace(/^gemini\//i, "");
   if (/^gemini/i.test(primary) || /^gemini/i.test(cleanPrimary)) {
-    // Máximo 3 fallbacks para não multiplicar tempo de espera (priorizando 3.6-flash)
+    // Máximo 3 fallbacks para não multiplicar tempo de espera (priorizando 2.5-flash/2.5-pro)
     fallbacks = [
-      "gemini-3.6-flash",
-      "gemini-3.5-flash",
-      "gemini-2.5-pro",
       "gemini-2.5-flash",
+      "gemini-2.5-pro",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
     ]
       .filter((m) => m !== cleanPrimary)
       .slice(0, 3);
@@ -13998,48 +13998,33 @@ async function callXaiWithRetry(
 // Fonte: ai.google.dev/gemini-api/docs/models (jul/2026).
 // Removidos: gemini-2.0-flash (shut down), gemini-3.1-flash-lite (shut down).
 
-const DEFAULT_GEMINI_MODEL = "gemini-3.6-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 
 const GEMINI_MODEL_OPTIONS = [
+  {
+    id: "gemini-2.5-flash",
+    label: "Gemini 2.5 Flash",
+    hint: "Mais recente · Rápido, estável, contexto 1M (Recomendado)",
+  },
   {
     id: "gemini-2.5-pro",
     label: "Gemini 2.5 Pro",
     hint: "Máxima qualidade · raciocínio profundo e coding complexo",
   },
   {
-    id: "gemini-3.6-flash",
-    label: "Gemini 3.6 Flash",
-    hint: "Mais recente · equilíbrio velocidade/inteligência (agentic + multimodal)",
+    id: "gemini-2.0-flash",
+    label: "Gemini 2.0 Flash",
+    hint: "Equilíbrio velocidade/inteligência (multimodal)",
   },
   {
-    id: "gemini-3.5-flash",
-    label: "Gemini 3.5 Flash",
-    hint: "Fronteira sustentada · agentic e coding",
+    id: "gemini-1.5-flash",
+    label: "Gemini 1.5 Flash",
+    hint: "Alto volume / estabilidade",
   },
   {
-    id: "gemini-3.1-pro-preview",
-    label: "Gemini 3.1 Pro (Preview)",
-    hint: "Inteligência avançada · resolução complexa (preview)",
-  },
-  {
-    id: "gemini-2.5-flash",
-    label: "Gemini 2.5 Flash",
-    hint: "Rápido, estável, contexto 1M",
-  },
-  {
-    id: "gemini-3-flash-preview",
-    label: "Gemini 3 Flash (Preview)",
-    hint: "Fronteira a fração do custo (preview)",
-  },
-  {
-    id: "gemini-3.5-flash-lite",
-    label: "Gemini 3.5 Flash-Lite",
-    hint: "Mais rápido e econômico da família 3.5",
-  },
-  {
-    id: "gemini-2.5-flash-lite",
-    label: "Gemini 2.5 Flash-Lite",
-    hint: "Alto volume / fallback barato",
+    id: "gemini-1.5-pro",
+    label: "Gemini 1.5 Pro",
+    hint: "Modelo Pro clássico",
   },
   {
     id: "gemini-flash-latest",
@@ -14055,14 +14040,11 @@ const GEMINI_MODEL_OPTIONS = [
 
 /** Cadeia de rotação: melhor qualidade → mais simples se 503/429/indisponível. */
 const GEMINI_MODEL_FALLBACKS = [
-  "gemini-2.5-pro",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash",
-  "gemini-3.1-pro-preview",
   "gemini-2.5-flash",
-  "gemini-3-flash-preview",
-  "gemini-3.5-flash-lite",
-  "gemini-2.5-flash-lite",
+  "gemini-2.5-pro",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
   "gemini-flash-latest",
   "gemini-pro-latest",
 ];
@@ -21678,9 +21660,9 @@ Retorne SOMENTE JSON valido:
       .map((idea) => normalizeIdeaOpportunity(idea, { format }))
       .filter((idea) => idea?.title && idea?.event)
       .slice(0, 10);
-    if (ideas.length < 10) {
+    if (ideas.length === 0) {
       return res.status(502).json({
-        error: `A IA retornou apenas ${ideas.length} ideias validas. Gere novamente.`,
+        error: "Nenhuma ideia válida gerada pela IA. Gere novamente.",
       });
     }
     res.json({ ideas });
