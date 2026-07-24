@@ -2963,6 +2963,14 @@ export function CollageBrollLab({
                   Locais: {(scriptAnalysis.locations || []).join(" · ")}
                 </p>
               )}
+              {isGeo && (scriptAnalysis.locations || []).length >= 3 && (
+                <p className="mt-1 rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-2 py-1.5 text-[10px] leading-4 text-amber-200/90">
+                  {(scriptAnalysis.locations || []).length} locais sem relação
+                  espacial direta detectados. Cada linha será tratada como uma
+                  cena independente — elementos de um local não vazam para o
+                  outro.
+                </p>
+              )}
             </div>
           )}
 

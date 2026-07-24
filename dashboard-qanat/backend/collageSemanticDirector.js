@@ -1292,7 +1292,14 @@ ${modeBlock}
 
 Fidelidade desejada: ${fidelity}
 
-## ROTEIRO COMPLETO
+## ISOLAMENTO POR CENA (OBRIGATÓRIO)
+- Esta proposta é UMA cena independente. Use SOMENTE as entidades, o local, o período e os objetos da LINHA ATUAL (currentLine).
+- NÃO importe lugares, entidades, rotas, objetos ou períodos das outras linhas do roteiro.
+- O roteiro completo abaixo serve APENAS para continuidade de estilo e transição — NÃO como fonte de entidades para esta cena.
+- Se a linha atual fala do Atacama, a cena NÃO pode receber elementos do Reno, do Tâmisa ou de qualquer outra linha.
+- Cada local sem relação espacial direta com os demais deve ser tratado como cena independente.
+
+## ROTEIRO COMPLETO (apenas para continuidade de estilo/transição — não copiar entidades)
 ${scriptList || "(não informado)"}
 
 ## CONTEXTO DAS LINHAS
